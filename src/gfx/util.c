@@ -1,0 +1,84 @@
+/*
+   (c) Copyright 2000  convergence integrated media GmbH.
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@convergence.de> and
+              Andreas Hundt <andi@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <directfb.h>
+
+#include <core/state.h>
+#include <core/gfxcard.h>
+
+#include "util.h"
+
+static CardState copy_state = { 0 };
+static CardState btf_state = { 0 };
+
+void gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect )
+{
+     copy_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+
+     copy_state.clip.x1     = 0;
+     copy_state.clip.y1     = 0;
+     copy_state.clip.x2     = destination->width - 1;
+     copy_state.clip.y2     = destination->height - 1;
+     copy_state.source      = source;
+     copy_state.destination = destination;
+
+     if (rect) {
+          gfxcard_blit( rect, rect->x, rect->y, &copy_state );
+     }
+     else {
+          DFBRectangle sourcerect = { 0, 0, source->width, source->height };
+          gfxcard_blit( &sourcerect, 0, 0, &copy_state );
+     }
+}
+
+void back_to_front_copy( CoreSurface *surface, DFBRectangle *rect )
+{
+     SurfaceBuffer *tmp;
+
+     btf_state.modified   |= SMF_CLIP | SMF_SOURCE | SMF_DESTINATION;
+
+     btf_state.clip.x1     = 0;
+     btf_state.clip.y1     = 0;
+     btf_state.clip.x2     = surface->width - 1;
+     btf_state.clip.y2     = surface->height - 1;
+     btf_state.source      = surface;
+     btf_state.destination = surface;
+
+     /* URGENT: thread insafe */
+     tmp = surface->front_buffer;
+     surface->front_buffer = surface->back_buffer;
+     surface->back_buffer = tmp;
+
+     if (rect) {
+          gfxcard_blit( rect, rect->x, rect->y, &btf_state );
+     }
+     else {
+          DFBRectangle sourcerect = { 0, 0, surface->width, surface->height };
+          gfxcard_blit( &sourcerect, 0, 0, &btf_state );
+     }
+     
+     tmp = surface->front_buffer;
+     surface->front_buffer = surface->back_buffer;
+     surface->back_buffer = tmp;
+}
+

@@ -1,0 +1,8 @@
+#!/bin/sh
+# script for df_dok to save benchmark results
+date >> df_dok.results
+cat /proc/cpuinfo | grep model\ name >> df_dok.results
+cat /proc/cpuinfo | grep MHz >> df_dok.results
+echo >> df_dok.results
+./df_dok >> df_dok.results
+echo --------------------------------- >> df_dok.results

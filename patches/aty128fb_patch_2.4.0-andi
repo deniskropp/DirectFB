@@ -1,0 +1,206 @@
+--- aty128fb.c.orig	Mon Dec  4 17:30:03 2000
++++ aty128fb.c	Sat Dec  9 01:15:19 2000
+@@ -432,36 +432,18 @@
+ };
+ #endif /* CONFIG_PMAC_BACKLIGHT */
+ 
+-    /*
+-     * Functions to read from/write to the mmio registers
+-     *	- endian conversions may possibly be avoided by
+-     *    using the other register aperture. TODO.
+-     */
+ static inline u32
+ _aty_ld_le32(volatile unsigned int regindex, 
+                               const struct fb_info_aty128 *info)
+ {
+-    u32 val;
+-
+-#if defined(__powerpc__)
+-    asm("lwbrx %0,%1,%2;eieio" : "=r"(val) : "b"(regindex), "r"(info->regbase));
+-#else
+-    val = readl (info->regbase + regindex);
+-#endif
+-
+-    return val;
++    return  readl (info->regbase + regindex);
+ }
+ 
+ static inline void
+ _aty_st_le32(volatile unsigned int regindex, u32 val, 
+                                const struct fb_info_aty128 *info)
+ {
+-#if defined(__powerpc__)
+-    asm("stwbrx %0,%1,%2;eieio" : : "r"(val), "b"(regindex),
+-                "r"(info->regbase) : "memory");
+-#else
+     writel (val, info->regbase + regindex);
+-#endif
+ }
+ 
+ static inline u8
+@@ -707,6 +689,7 @@
+ 		GMC_WRITE_MASK_SET);
+ 
+     wait_for_fifo(8, info);
++    
+     /* clear the line drawing registers */
+     aty_st_le32(DST_BRES_ERR, 0);
+     aty_st_le32(DST_BRES_INC, 0);
+@@ -735,7 +718,7 @@
+     if (bpp <= 8)
+ 	return DST_8BPP;
+     else if (bpp <= 16)
+-        return DST_15BPP;
++        return DST_16BPP;
+     else if (bpp <= 24)
+ 	return DST_24BPP;
+     else if (bpp <= 32)
+@@ -880,8 +863,12 @@
+     crtc->pitch = vxres >> 3;
+ 
+     crtc->offset = 0;
+-    crtc->offset_cntl = 0;
+ 
++    if ((var->activate & FB_ACTIVATE_MASK) == FB_ACTIVATE_NOW)
++        crtc->offset_cntl = 0x00010000;
++    else
++        crtc->offset_cntl = 0;
++        
+     crtc->vxres = vxres;
+     crtc->vyres = vyres;
+     crtc->xoffset = xoffset;
+@@ -912,10 +899,10 @@
+     case CRTC_PIX_WIDTH_15BPP:
+     case CRTC_PIX_WIDTH_16BPP:
+ 	var->bits_per_pixel = 16;
+-	var->red.offset = 10;
++	var->red.offset = 11;
+ 	var->red.length = 5;
+ 	var->green.offset = 5;
+-	var->green.length = 5;
++	var->green.length = 6;
+ 	var->blue.offset = 0;
+ 	var->blue.length = 5;
+ 	var->transp.offset = 0;
+@@ -1363,7 +1350,7 @@
+ 
+     aty128_encode_var(var, &par, info);
+ 
+-    if ((var->activate & FB_ACTIVATE_MASK) != FB_ACTIVATE_NOW)
++    if ((var->activate & FB_ACTIVATE_MASK) == FB_ACTIVATE_TEST)
+ 	return 0;
+ 
+     oldxres = display->var.xres;
+@@ -1527,7 +1514,7 @@
+     par->crtc.xoffset = xoffset;
+     par->crtc.yoffset = yoffset;
+ 
+-    offset = ((yoffset * par->crtc.vxres + xoffset) * par->crtc.bpp) >> 6;
++    offset = ((yoffset * par->crtc.vxres + xoffset) * par->crtc.bpp) >> 3;
+ 
+     aty_st_le32(CRTC_OFFSET, offset);
+ 
+@@ -2217,69 +2204,52 @@
+ 
+     /* initialize gamma ramp for hi-color+ */
+ 
+-    if ((info->current_par.crtc.bpp > 8) && (regno == 0)) {
++    if (info->current_par.crtc.bpp > 8) {
+         int i;
+ 
+-        if (info->chip_gen == rage_M3)
+-            aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) & ~DAC_PALETTE_ACCESS_CNTL);
++        aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) & ~DAC_PALETTE_ACCESS_CNTL);
+ 
+-        for (i=16; i<256; i++) {
++        for (i=0; i<256; i++) {
+             aty_st_8(PALETTE_INDEX, i);
+             col = (i << 16) | (i << 8) | i;
+             aty_st_le32(PALETTE_DATA, col);
+         }
+-
+-        if (info->chip_gen == rage_M3) {
+-            aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) | DAC_PALETTE_ACCESS_CNTL);
+-
+-            for (i=16; i<256; i++) {
+-                aty_st_8(PALETTE_INDEX, i);
+-                col = (i << 16) | (i << 8) | i;
+-                aty_st_le32(PALETTE_DATA, col);
+-            }
+-        }
+     }
++    else {
++        /* initialize palette */
+ 
+-    /* initialize palette */
+-
+-    if (info->chip_gen == rage_M3)
+-        aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) & ~DAC_PALETTE_ACCESS_CNTL);
++        if (info->chip_gen == rage_M3)
++            aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) & ~DAC_PALETTE_ACCESS_CNTL);
+ 
+-    if (info->current_par.crtc.bpp == 16)
+-        aty_st_8(PALETTE_INDEX, (regno << 3));
+-    else
+         aty_st_8(PALETTE_INDEX, regno);
+-    col = (red << 16) | (green << 8) | blue;
+-    aty_st_le32(PALETTE_DATA, col);
+-    if (info->chip_gen == rage_M3) {
+-    	aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) | DAC_PALETTE_ACCESS_CNTL);
+-        if (info->current_par.crtc.bpp == 16)
+-            aty_st_8(PALETTE_INDEX, (regno << 3));
+-        else
+-            aty_st_8(PALETTE_INDEX, regno);
++        col = (red << 16) | (green << 8) | blue;
+         aty_st_le32(PALETTE_DATA, col);
++        if (info->chip_gen == rage_M3) {
++            aty_st_le32(DAC_CNTL, aty_ld_le32(DAC_CNTL) | DAC_PALETTE_ACCESS_CNTL);
++	    aty_st_8(PALETTE_INDEX, regno);
++	    aty_st_le32(PALETTE_DATA, col);
++	}
+     }
+ 
+     if (regno < 16)
+ 	switch (info->current_par.crtc.bpp) {
+ #ifdef FBCON_HAS_CFB16
+ 	case 9 ... 16:
+-	    info->fbcon_cmap.cfb16[regno] = (regno << 10) | (regno << 5) |
+-                regno;
++	    info->fbcon_cmap.cfb16[regno] =   ( ((red   & 0xF8) << 8) | 
++	                                        ((green & 0xFC) << 3) | 
++	                                        ((blue  & 0xF8) >> 3) );
+ 	    break;
+ #endif
+ #ifdef FBCON_HAS_CFB24
+ 	case 17 ... 24:
+-	    info->fbcon_cmap.cfb24[regno] = (regno << 16) | (regno << 8) |
+-		regno;
++	    info->fbcon_cmap.cfb24[regno] = (red << 16) | (green << 8) |
++		blue;
+ 	    break;
+ #endif
+ #ifdef FBCON_HAS_CFB32
+ 	case 25 ... 32: {
+-            u32 i;
+-
+-            i = (regno << 8) | regno;
+-            info->fbcon_cmap.cfb32[regno] = (i << 16) | i;
++	    info->fbcon_cmap.cfb24[regno] = 0xFF000000 | (red << 16) | 
++	                                    (green << 8) | blue;
+ 	    break;
+         }
+ #endif
+@@ -2378,7 +2348,7 @@
+ 
+     wait_for_fifo(2, info);
+     aty_st_le32(DP_DATATYPE, save_dp_datatype);
+-    aty_st_le32(DP_CNTL, save_dp_cntl); 
++    aty_st_le32(DP_CNTL, save_dp_cntl);
+ }
+ 
+ 
+@@ -2635,3 +2605,4 @@
+     }
+ }
+ #endif /* MODULE */
++

@@ -1,0 +1,6 @@
+.libs
+.deps
+Makefile
+Makefile.in
+raw16toraw24
+raw32toraw24

@@ -1,0 +1,43 @@
+How to make DirectFB screenshots
+--------------------------------
+
+Basically screenshots are taken by reading directly from the framebuffer
+device. The resulting data is then converted to a more convenient format 
+using the netpbm graphics conversion tools. 
+
+If the framebuffer is not running at 24 bit depth, the data has to be 
+propagated to 24bit RGB before netpbm can handle it. The tools directory 
+contains the source for two small utilities that do just this:
+
+  raw16toraw24 is a small tool that reads 16bit RGB565 data from stdin,
+  converts to 24bit RGB888 data and writes it to stdout.
+
+  raw32toraw24 is a small tool that reads 32bit ARGB data from stdin, 
+  converts to 24bit RGB888 data and writes it to stdout.
+
+
+The following steps have to be performed to take screenshots:
+
+Step 1 - Log in from another computer using ssh or telnet. Start your 
+         DirectFB application, and stop it by pressing Ctrl+C.
+
+Step 2 - Read data from /dev/fb and write it to a file.
+
+ examples:
+  [16bit]  raw16toraw24 < /dev/fb > raw24.tmp
+  [24bit]  cat /dev/fb > raw24.tmp
+  [32bit]  raw32toraw24 < /dev/fb > raw24.tmp
+
+Step 2 - Convert data to ppm using rawtoppm and specify the resolution of
+         the framebuffer.
+
+ example:  rawtoppm 800 600 raw24.tmp > ppm24.tmp
+
+Step 3 - Convert ppm to png using pnmtopng.
+
+ example : pnmtopng <ppm24.tmp >screenshot.png
+
+
+Thats it!
+
+

@@ -1,0 +1,24 @@
+These are components using surface management:
+
+	layers	-> manipulates front- and backbuffer CoreSurface struct itself, adjusts video heap offset
+	windows	-> creates surfaces, resizes surfaces
+	gfxcard	-> sets limitations like pitch or alignment, needs state change notification,
+	           locks system/video instances
+	
+	IDirectFBSurface -> does state changes (clipping rectangle, color keys, porter/duff rule),
+	                    locks surface data (preferably system instances)
+
+The following functionality is needed in the surface management:
+
+	- adjusting heap offset within video memory (moves/destroys video instances)
+	- creating surfaces (automates initializing CoreSurface struct including malloc for pixel data)
+	- surface resizing (realloc of system memory data, possibly invalidation of video instance or
+	                    reallocation within video surface heap for videoonly/videohigh policies)
+	- changing surface states (notifies listeners)
+	- installing/removing state listeners (adds callback and filter to notification list)
+	- (un)locking surfaces (provides instance data pointer, uses mutex, invalidates other instances,
+	                        optimizes read or write locks, uses mprotect on read locks)
+	- setting limitations (controls video storage)
+	- requesting instances (revalidates instances via memcpy or AGP transfer, stores surface in
+	                        video heap conforming to limitations)
+	- destroying surfaces (free instances and CoreSurface struct)

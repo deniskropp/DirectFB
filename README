@@ -1,0 +1,140 @@
+DirectFB README
+---------------
+
+   This is a developers release of DirectFB.
+
+   DirectFB is a graphics library which was designed with embedded systems 
+   in mind. It offers maximum hardware accelerated performance at a minimum 
+   of resource usage and overhead. 
+
+   Check http://www.directfb.org/ for more and uptodate infos.
+
+
+Requirements
+------------
+
+   - Linux kernel 2.4.x with framebuffer device support compiled in(*)
+   - freetype 2.0.1
+   - libpng2
+   - libjpeg62
+   - zlib
+
+
+Additional Requirements for some Demos
+--------------------------------------
+
+   - PS/2 mouse for windowing, USB and ADB mice also work via PS/2 emulation.
+     Please stop gpm before using the mouse in DirectFB.
+   - Video card supported by video4linux for df_video
+   - A very recent version of avifile is required to build an optional AVI 
+     videoprovider; enable building it by passing --enable-avifile to 
+     configure.
+   - Joystick for df_joystick
+
+
+   For mode switching a special fbdev driver for the graphics card must be 
+   compiled in, generic vesa fbdev driver does not support mode switching.
+   However if you use vesafb, you should add the following to /etc/lilo.conf:
+
+	append="video=vesa:ywrap,mtrr"
+
+   'ywrap' enables panning with wraparound.
+   'mtrr' enables setting caching type for the framebuffer to write-combining.
+
+   If you use an ATI128 or a RivaTNT apply the corresponding patch in the
+   'patches' directory to the kernel.
+
+   If you have a Matrox G200/G400 you may try the highly experimental vsync 
+   patch that enables applications to "idle wait" for the vertical retrace.
+
+
+Recommendations
+---------------
+
+   To take full advantage of hardware acceleration, a Matrox G200 or G400 
+   graphics card is recommened for this version of DirectFB. The drivers for 
+   ATI128, Voodoo 3/4/5/Banshee and NeoMagic cards included with this release
+   are work in progress and only yet support a subset of the possible 
+   accelerations.
+
+
+Installation
+------------
+
+   1) In the DirectFB directory type:
+
+	./configure
+	make
+	make install (as superuser)
+
+   2) Make sure that /usr/local/lib is listed in your /etc/ld.so.conf.
+      If you added it you have to run 'ldconfig' as superuser.
+
+   3) Copy fb.modes to /etc or merge it with your existing /etc/fb.modes file. 
+      The first entry will be used by default - copy other entries as you may 
+      need.
+
+
+Demos
+-----
+
+   After installation the following demos can be run (must be root):
+
+   df_andi    - penguin demo, press space to form convergence logo, 
+   	     	s/d to spawn/destroy a penguin, r to revive penguin
+                after space was pressed, c tests clipping
+
+   df_dok     - the DirectFB benchmark application, runs some tests and 
+		displays benchmark results afterwards
+
+   df_window  - simple demostration of the DirectFB window stack,
+   	        follow the instructions in the upper left corner
+       		(look into the source to enable the videowindow)
+
+   df_particle - a moving fountain consisting of alphablended rectangles,
+		nice and fast if hardware accelerated
+
+   df_video_partice - same as df_particle, but the rectangles have been
+  		replaced by a video (via video4linux). nice color effects.
+
+   df_porter  - shows porter/duff blending rules
+
+   df_video   - shows window stack with alpha blending and video playback in 
+		a moving window
+
+   df_joystick - colored version of df_particle, fointain can be moved with 
+		joystick, particles of different colors can be spawned with 
+		different joystick  buttons (1-4)
+
+   df_neo     - port from a gdk-pixbuf demo to DirectFB, uses scaling, alpha
+   	      	blending and color modulation; use cursor keys and space to
+	 	change parameters
+
+   df_fire    - the famous fire effect ported to DirectFB (16 bpp only)
+
+   df_stress  - stress tests surface manager, for debugging purposes only
+
+
+Dokumentation
+-------------
+
+   A complete API reference documentation in HTML format is created during 
+   the build in the docs directory.
+
+
+Legal stuff
+-----------
+
+   (c) Copyright 2000  convergence integrated media GmbH.
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@convergence.de> and
+              Andreas Hundt <andi@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   The complete text of the license is found in the file COPYING. 
+

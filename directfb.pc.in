@@ -1,0 +1,10 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: DirectFB
+Description: graphics and windowing library on Linux framebuffer
+Version: @VERSION@
+Libs: -L${libdir} -ldirectfb -lpthread -ldl
+Cflags: -I${includedir}

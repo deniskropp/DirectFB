@@ -1,0 +1,9 @@
+directfb_major_version
+directfb_minor_version
+directfb_micro_version
+directfb_binary_age
+directfb_interface_age
+DirectFBCheckVersion
+DirectFBError
+DirectFBErrorFatal
+DirectFBCreate

@@ -1,0 +1,499 @@
+#!/usr/bin/perl
+#
+#   (c) Copyright 2000  convergence integrated media GmbH.
+#   All rights reserved.
+#
+#   Written by Denis Oliver Kropp <dok@convergence.de> and
+#              Andreas Hundt <andi@convergence.de>.
+#
+#
+#
+#   The contents of this software are proprietary and confidential to
+#   convergence integrated media GmbH. Use of this information is
+#   to be in accordance with the terms of the license agreement you
+#   entered into with convergence integrated media GmbH. Individuals
+#   having access to this software are responsible for maintaining the
+#   confidentiality of the content and for keeping the software secure
+#   when not in use. Transfer to any party is strictly forbidden other
+#   than as expressly permitted in writing by convergence integrated
+#   media GmbH.  Unauthorized transfer to or possession by any
+#   unauthorized party may be a criminal offense.
+#
+#   convergence integrated media GmbH MAKES NO WARRANTIES EITHER
+#   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
+#   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
+#   OR NON-INFRINGEMENT.
+#   convergence integrated media GmbH SHALL NOT BE LIABLE FOR ANY
+#   DAMAGES SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR
+#   DISTRIBUTING THIS SOFTWARE OR ITS DERIVATIVES.
+#
+#   convergence integrated media GmbH
+#   Rosenthaler Str.51
+#   D-10178 Berlin / Germany
+#
+
+################################################################
+#                                                              #
+#  Documentation generator (early stage of implementation)     #
+#                                                              #
+#  - Reads header from stdin                                   #
+#  - Writes HTML to several files                              #
+#                                                              #
+################################################################
+
+
+html_create( INDEX, "html/index.html", "DirectFB Interfaces" );
+html_create( TYPES, "html/types.html", "DirectFB Types" );
+
+print INDEX "<P>\n",
+            "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
+
+while (<>)
+   {
+      chomp;
+
+      if ( /^\s*\/\*\s*$/ )
+         {
+            while (<>)
+               {
+                  chomp;
+                  last if ( /^\s*\*\/\s*$/ );
+
+                  $comment .= " $1" if /^\s*\*?\s*(.+)$/;
+               }
+         }
+      elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ )
+         {
+            $interface_abstracts{$1} = $comment;
+            print INDEX "    <TR><TD valign=top>\n",
+                        "      <A href=\"$1.html\">$1</A>\n",
+                        "    </TD><TD valign=top>\n",
+                        "      $comment\n",
+                        "    </TD></TR>\n";
+         }
+      elsif ( /^\s*DEFINE_INTERFACE\s*\(\s*(\w+),\s*$/ )
+         {
+            parse_interface( $1 );
+         }
+      elsif ( /^\s*typedef\s+enum\s*\{?\s*$/ )
+         {
+            parse_enum();
+         }
+      elsif ( /^\s*typedef\s+struct\s*\{?\s*$/ )
+         {
+            parse_struct();
+         }
+      else
+         {
+            $comment = "";
+         }
+   }
+
+print INDEX "  </CENTER></TABLE>\n",
+            "</P>\n";
+
+html_close( INDEX );
+html_close( TYPES );
+
+#
+# Reads stdin until the end of the interface is reached.
+# Writes formatted HTML to stdout.
+# Parameter is the interface name.
+#
+sub parse_interface (NAME)
+   {
+      my $interface = shift(@_);
+
+      $comment = "";
+      $section = "";
+
+      html_create( INTERFACE, "html/$interface.html",
+                              "<A href=\"index.html\">" .
+                              "<FONT color=white>DirectFB Interfaces</FONT>" .
+                              "</A>", $interface );
+
+      print INTERFACE "<P align=center>\n",
+                      "  $interface_abstracts{$interface}\n",
+                      "</P>";
+
+      print INTERFACE "<P>\n",
+                      "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
+
+      while (<>)
+         {
+            chomp;
+            last if /^\s*\)\s*$/;
+
+            if ( /^\s*\/\*\*\s*(.+)\s*\*\*\/\s*$/ )
+               {
+                  $section = $1;
+               }
+            elsif ( /^\s*DFBResult\s*\(\s*\*\s*(\w+)\s*\)\s*\(?\s*$/ )
+               {
+                  print INTERFACE "    <TR><TD valign=top>\n",
+                                  "      <B><SMALL>$section</SMALL></B>\n",
+                                  "    </TD><TD valign=top>\n",
+                                  "      <A href=\"${interface}_$1.html\">",
+                                         "<B>$1</B></A>\n",
+                                  "    </TD><TD valign=top>\n",
+                                  "      $comment\n",
+                                  "    </TD></TR>\n";
+
+                  html_create( FUNCTION, "html/${interface}_$1.html",
+                               "<A href=\"$interface.html\">" .
+                               "<FONT color=white>$interface</FONT>" .
+                               "</A>", $1 );
+
+                  print FUNCTION "<P>\n",
+                                 "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#C0C0C0>\n",
+                                 "    <TR><TD colspan=3><I><FONT color=black>$1 (</FONT></I></TD></TR>\n";
+
+                  while (<>)
+                     {
+                        chomp;
+                        last if /^\s*\)\;\s*$/;
+
+
+                        if ( /^\s*(\w+)\s*(\**\w+)\s*,?\s*$/ )
+                           {
+                              if ($types{$1})
+                                 {
+                                    $type = "<A href=\"types.html#$1\">$1</A>";
+                                 }
+                              elsif ($interface_abstracts{$1})
+                                 {
+                                    $type = "<A href=\"$1.html\">$1</A>";
+                                 }
+                              else
+                                 {
+                                    $type = "$1";
+                                 }
+
+                              print FUNCTION "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
+                                             "      $type\n",
+                                             "    </TD><TD valign=top>\n",
+                                             "      <FONT color=black><B>$2</B></FONT>\n",
+                                             "    </TD></TR>\n";
+                           }
+                     }
+
+                  print FUNCTION "    <TR><TD colspan=3><I><FONT color=black>);</FONT></I></TD></TR>\n",
+                                 "  </TABLE>\n",
+                                 "</P>\n";
+
+                  print FUNCTION "<P>$comment</P>\n";
+
+                  $comment = "";
+                  $section = "";
+
+                  html_close( FUNCTION );
+               }
+            elsif ( /^\s*\/\*\s*$/ )
+               {
+                  $comment = "";
+
+                  while (<>)
+                     {
+                        chomp;
+                        last if /^\s*\*\/\s*$/;
+
+                        $comment .= " $1" if /^\s*\*?\s*(.+)$/;
+                     }
+               }
+         }
+
+      print INTERFACE "  </CENTER></TABLE>\n",
+                      "</P>\n";
+
+      html_close( INTERFACE );
+   }
+
+
+#
+# Reads stdin until the end of the enum is reached.
+# Writes formatted HTML to stdout.
+#
+sub parse_enum
+   {
+      %entries = ();
+
+      while (<>)
+         {
+            chomp;
+
+            # complete one line entry with assignment
+            if ( /^\s*(\w+)\s*=\s*([\w\d]+)\s*,?\s*\/\*\s*(.+)\*\/\s*$/ )
+               {
+                  $entries{ $1 } = $3;
+               }
+            # with comment opening
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
+               {
+                  $entry = $1;
+
+                  $entries{ $entry } = $3;
+
+                  while (<>)
+                     {
+                        chomp;
+
+                        if ( /^\s*(.+)\*\/\s*$/ )
+                           {
+                              $entries{ $entry } .= " $1";
+                              last;
+                           }
+                        elsif ( /^\s*(.+)\s*$/ )
+                           {
+                              $entries{ $entry } .= " $1";
+                           }
+                  }
+               }
+            # complete one line entry
+            elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\*\/\s*$/ )
+               {
+                  $entries{ $1 } = $2;
+               }
+            # with comment opening
+            elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\s*$/ )
+               {
+                  $entry = $1;
+
+                  $entries{ $entry } = $2;
+
+                  while (<>)
+                     {
+                        chomp;
+
+                        if ( /^\s*(.+)\*\/\s*$/ )
+                           {
+                              $entries{ $entry } .= " $1";
+                              last;
+                           }
+                        elsif ( /^\s*(.+)\s*$/ )
+                           {
+                              $entries{ $entry } .= " $1";
+                           }
+                     }
+               }
+            elsif ( /^\s*\}\s*(\w+)\s*\;\s*$/ )
+               {
+                  $enum = $1;
+
+                  $types{$enum} = 1;
+
+                  last;
+               }
+         }
+
+      if (keys %entries)
+         {
+            print TYPES "<br><br>",
+                        "<a name=$enum>",
+                        "<font color=#D07070 size=+2>$enum</font>\n";
+            print TYPES "<p style=\"margin-left:3mm;\" >",
+                        "  $comment",
+                        "</p>\n";
+         }
+
+      foreach $key (sort keys %entries)
+         {
+            print TYPES "<p style=\"margin-left:6mm;\" >",
+                        "  <font color=#40A040 size=+1>$key</font><br>",
+                        "  <font color=#404040>$entries{$key}</font>",
+                        "</p>\n";
+         }
+   }
+
+
+#
+# Reads stdin until the end of the enum is reached.
+# Writes formatted HTML to stdout.
+#
+sub parse_struct
+   {
+      %entries = ();
+      %entries_types = ();
+
+      while (<>)
+         {
+            chomp;
+
+            # without comment
+            if ( /^\s*(\w+)\s+(\w+;)\s*$/ )
+               {
+                  if ($types{$1})
+                     {
+                        $entries_types{$2} = "<A href=\"types.html#$1\">$1</A>";
+                     }
+                  elsif ($interface_abstracts{$1})
+                     {
+                        $entries_types{$2} = "<A href=\"$1.html#$1\">$1</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$2} = "$1";
+                     }
+                  
+                  $entries{ $2 } = "";
+               }
+            # complete one line entry
+            elsif ( /^\s*(\w+)\s+(\w+;)\s*\/\*\s*(.+)\*\/\s*$/ )
+               {
+                  if ($types{$1})
+                     {
+                        $entries_types{$2} = "<A href=\"types.html#$1\">$1</A>";
+                     }
+                  elsif ($interface_abstracts{$1})
+                     {
+                        $entries_types{$2} = "<A href=\"$1.html#$1\">$1</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$2} = "$1";
+                     }
+                  
+                  $entries{ $2 } = $3;
+               }
+            # with comment opening
+            elsif ( /^\s*(\w+)\s+(\w+;)\s*\/\*\s*(.+)\s*$/ )
+               {
+                  if ($types{$1})
+                     {
+                        $entries_types{$2} = "<A href=\"types.html#$1\">$1</A>";
+                     }
+                  elsif ($interface_abstracts{$1})
+                     {
+                        $entries_types{$2} = "<A href=\"$1.html#$1\">$1</A>";
+                     }
+                  else
+                     {
+                        $entries_types{$2} = "$1";
+                     }
+
+                  $entries{ $2 } = $3;
+
+                  $entry = $2;
+                  
+                  while (<>)
+                     {
+                        chomp;
+
+                        if ( /^\s*(.+)\*\/\s*$/ )
+                           {
+                              $entries{ $entry } .= " $1";
+                              last;
+                           }
+                        elsif ( /^\s*(.+)\s*$/ )
+                           {
+                              $entries{ $entry } .= " $1";
+                           }
+                     }
+               }
+            elsif ( /^\s*\}\s*(\w+)\s*\;\s*$/ )
+               {
+                  $struct = $1;
+
+                  $types{$struct} = 1;
+
+                  last;
+               }
+         }
+
+      if (keys %entries)
+         {
+            print TYPES "<br><br>",
+                        "<a name=$struct>",
+                        "<font color=#70D070 size=+2>$struct</font>\n";
+
+            print TYPES "<P>\n",
+                        "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n";
+      
+            foreach $key (sort keys %entries)
+               {
+                  print TYPES "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
+                              "      $entries_types{$key}\n",
+                              "    </TD><TD valign=top>\n",
+                              "      <FONT color=black><B>$key</B></FONT>\n",
+                              "    </TD><TD valign=top>\n",
+                              "      <font color=#404040>$entries{$key}</font>\n",
+                              "    </TD></TR>\n";
+               }
+
+            print TYPES "  </TABLE>\n",
+                        "</P>\n";
+         }
+   }
+
+
+
+sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
+   {
+      my $FILE = shift(@_);
+      my $filename = shift(@_);
+      my $title = shift(@_);
+      my $subtitle = shift(@_);
+
+      open( $FILE, ">$filename" ) || die;
+
+      print $FILE "<HTML>\n",
+                  "<STYLE>\n",
+                  "  <!--\n",
+                  "    A{textdecoration:none}\n",
+                  "  -->\n",
+                  "</STYLE>\n",
+                  "<HEAD>\n",
+                  "  <TITLE>DirectFB Reference Manual</TITLE>\n",
+                  "</HEAD>\n",
+                  "<BODY bgcolor=#FFFFFF link=#0070FF",
+                       " vlink=#0070FF text=#404040>\n",
+                  "\n",
+                  "<TABLE width=100% bgcolor=black border=0 cellspacing=1 cellpadding=3>\n",
+                  "  <TR><TD width=30%>\n",
+                  "    <A href=\"http://www.directfb.org\"><IMG border=0 src=\"directfb.png\"></A>\n",
+                  "  </TD><TD align=right>\n",
+                  "    &nbsp;&nbsp;",
+                  "    <A href=\"index.html\"><FONT size=+3 color=white>DirectFB Reference Manual</FONT></A>\n",
+                  "  </TD></TR>\n",
+                  "  <TR><TD colspan=2 align=center bgcolor=#303030>\n";
+
+      if ($subtitle)
+         {
+            print $FILE "    <TABLE border=0 cellspacing=0 cellpadding=0>\n",
+                        "      <TR><TD align=right width=50%>\n",
+                        "        <BIG>$title&nbsp;</BIG>\n",
+                        "      </TD><TD align=left width=50%>\n",
+                        "        <BIG><FONT color=yellow>&nbsp;$subtitle</FONT></BIG>\n",
+                        "      </TD></TR>\n",
+                        "    </TABLE>\n";
+         }
+      else
+         {
+            print $FILE "    <BIG><FONT color=yellow>$title</FONT></BIG>\n";
+         }
+
+      print $FILE "  </TD></TR>\n",
+                  "</TABLE>\n",
+                  "\n";
+   }
+
+sub html_close (FILEHANDLE)
+   {
+      my $FILE = shift(@_);
+
+      print $FILE "\n",
+                  "<TABLE width=100% bgcolor=black border=0 cellspacing=0 cellpadding=0>\n",
+                  "  <TR><TD valign=center>\n",
+                  "    <FONT size=-3>&nbsp;&nbsp;(C) Copyright by convergence integrated media GmbH</FONT>\n",
+                  "  </TD><TD align=right>\n",
+                  "    <A href=\"http://www.convergence.de\">\n",
+                  "      <IMG border=0 src=\"cimlogo.png\">\n",
+                  "    </A>\n",
+                  "  </TD></TR>\n",
+                  "</TABLE>\n",
+                  "\n",
+                  "</BODY>\n",
+                  "</HTML>\n";
+
+      close( $FILE );
+   }
+

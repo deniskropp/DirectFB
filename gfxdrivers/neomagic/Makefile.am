@@ -1,0 +1,23 @@
+## Makefile.am for DirectFB/gfxdrivers/neomagic
+
+INCLUDES = \
+	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/src
+
+CFLAGS = $(DFB_CFLAGS)
+
+neomagic_LTLIBRARIES = libdirectfb_neomagic.la
+
+neomagicdir = $(LIBDIR)/gfxdrivers
+
+libdirectfb_neomagic_la_SOURCES =	\
+	neomagic.c	\
+	neomagic.h	\
+	neo2200.c
+
+libdirectfb_neomagic_la_LDFLAGS = \
+        -export-dynamic		\
+	-disable-static		\
+	-avoid-version		\
+        $(DFB_LDFLAGS)
+

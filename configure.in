@@ -1,0 +1,297 @@
+dnl Process this file with autoconf to produce a configure script.
+AC_INIT(Makefile.am)
+
+# Save this value here, since automake will set cflags later
+cflags_set=${CFLAGS+set}
+
+dnl we need to AC_DIVERT_PUSH/AC_DIVERT_POP these variable definitions so they
+dnl are available for $ac_help expansion (don't we all *love* autoconf?)
+AC_DIVERT_PUSH(AC_DIVERSION_NOTICE)dnl
+#
+# Making releases:
+#   DIRECTFB_MICRO_VERSION += 1;
+#   DIRECTFB_INTERFACE_AGE += 1;
+#   DIRECTFB_BINARY_AGE += 1;
+# if any functions have been added, set DIRECTFB_INTERFACE_AGE to 0.
+# if backwards compatibility has been broken,
+# set DIRECTFB_BINARY_AGE and DIRECTFB_INTERFACE_AGE to 0.
+#
+DIRECTFB_MAJOR_VERSION=0
+DIRECTFB_MINOR_VERSION=9
+DIRECTFB_MICRO_VERSION=0
+DIRECTFB_INTERFACE_AGE=0
+DIRECTFB_BINARY_AGE=0
+DIRECTFB_VERSION=$DIRECTFB_MAJOR_VERSION.$DIRECTFB_MINOR_VERSION.$DIRECTFB_MICRO_VERSION
+dnl
+AC_DIVERT_POP()
+
+AC_SUBST(DIRECTFB_MAJOR_VERSION)
+AC_SUBST(DIRECTFB_MINOR_VERSION)
+AC_SUBST(DIRECTFB_MICRO_VERSION)
+AC_SUBST(DIRECTFB_INTERFACE_AGE)
+AC_SUBST(DIRECTFB_BINARY_AGE)
+AC_SUBST(DIRECTFB_VERSION)
+
+# libtool versioning
+LT_RELEASE=$DIRECTFB_MAJOR_VERSION.$DIRECTFB_MINOR_VERSION
+LT_CURRENT=`expr $DIRECTFB_MICRO_VERSION - $DIRECTFB_INTERFACE_AGE`
+LT_REVISION=$DIRECTFB_INTERFACE_AGE
+LT_AGE=`expr $DIRECTFB_BINARY_AGE - $DIRECTFB_INTERFACE_AGE`
+
+AC_SUBST(LT_RELEASE)
+AC_SUBST(LT_CURRENT)
+AC_SUBST(LT_REVISION)
+AC_SUBST(LT_AGE)
+
+# For automake.
+VERSION=$DIRECTFB_VERSION
+PACKAGE=DirectFB
+
+# Save this value here, since automake will set cflags later
+cflags_set=${CFLAGS+set}
+
+AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
+AM_CONFIG_HEADER(config.h)
+AM_MAINTAINER_MODE
+AC_DISABLE_STATIC
+AM_PROG_LIBTOOL
+AC_CANONICAL_HOST
+AM_SANITY_CHECK
+AC_ISC_POSIX
+AM_PROG_CC_STDC
+AC_PROG_INSTALL
+AC_PROG_MAKE_SET
+AC_HEADER_STDC
+AC_C_CONST
+
+dnl Threads
+AC_CHECK_LIB(pthread, pthread_attr_init,
+  THREAD_LIBS="$LIBS -lpthread"
+  THREAD_CFLAGS="-D_REENTRANT",
+  AC_MSG_ERROR([*** DirectFB requires libpthread.]))
+
+dnl Dynamic Linker
+AC_CHECK_LIB(dl, dlopen, ,
+  AC_MSG_ERROR([*** DirectFB requires libdl.]))
+
+
+CFLAGS="$THREAD_CFLAGS $CFLAGS"
+CXXFLAGS="$THREAD_CFLAGS $CXXFLAGS"
+
+if test "x$GCC" = xyes; then
+   CFLAGS="-fexpensive-optimizations -ffast-math -g -O3 -Wall"
+   CXXFLAGS="-fexpensive-optimizations -ffast-math -g -O3 -Wall"
+fi
+
+
+AC_MSG_CHECKING([if linking against libm is required])
+AC_TRY_RUN([ #include <math.h>
+             int main (void) { double x = ceil (1.1); return 0; } ],
+  AC_MSG_RESULT(no), 
+  LIBS="$LIBS -lm"
+  AC_MSG_RESULT(yes),
+  LIBS="$LIBS -lm"
+  AC_MSG_RESULT(yes))
+
+
+
+dnl compiling for x86, asm checks and inb/outb/iopl
+case "$host" in
+i*86-*-*) have_x86=on ;;
+*) have_x86=off ;;
+esac
+
+
+if test "x$have_x86" = xon; then
+  AC_DEFINE(HAVE_INB_OUTB_IOPL)
+  AC_MSG_CHECKING([for sys/io.h])
+  AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0);], 
+    AC_DEFINE(HAVE_SYSIO)
+    AC_MSG_RESULT(yes), 
+    AC_MSG_RESULT(no))
+fi
+
+dnl Necessary for assembler sources
+save_ac_ext="$ac_ext"
+ac_ext=S
+
+
+AC_ARG_ENABLE(debug, [  --enable-debug          enable debugging support [default=no]],, enable_debug=no)
+if test "x$enable_debug" = xyes; then
+    AC_DEFINE(DFB_DEBUG)
+fi
+echo debug $enable_debug
+
+have_mmx=$have_x86
+AC_ARG_ENABLE(mmx,
+[  --enable-mmx            enable MMX support [default=autodetect]],
+  have_mmx=$enableval)
+
+
+if test "x$have_mmx" = xon; then
+  AC_MSG_CHECKING(whether the binutils support MMX)
+  cp "$srcdir/src/gfx/generic/detect_MMX.s" conftest.S
+  if AC_TRY_EVAL(ac_compile); then
+    AC_DEFINE(USE_MMX)
+    MMX=yes
+    AC_MSG_RESULT(yes)
+  else
+    AC_MSG_RESULT(no)
+    echo 2>&1 "****************************************************************"
+    echo 2>&1 " The installed assembler does not supports the MMX command set. "
+    echo 2>&1 " Update your binutils package, if you want to compile MMX code. "
+    echo 2>&1 "****************************************************************"
+    have_mmx=off
+    MMX=no
+  fi
+  rm conftest*
+fi
+
+AM_CONDITIONAL(BUILDMMX, test x$MMX = xyes)
+ac_ext="$save_ac_ext"
+
+
+dnl Test for libjpeg
+  if test -z "$LIBJPEG"; then
+    AC_CHECK_LIB(jpeg, jpeg_destroy_decompress,
+      jpeg_ok=yes,
+      jpeg_ok=no)
+    if test "$jpeg_ok" = yes; then
+      AC_CHECK_HEADER(jpeglib.h,
+	jpeg_ok=yes,
+        jpeg_ok=no)
+      if test "$jpeg_ok" = yes; then
+	LIBJPEG='-ljpeg'
+      else
+	AC_MSG_ERROR([*** JPEG header files not found.])
+      fi
+    else
+      AC_MSG_ERROR([*** DirectFB requires libjpeg.])
+    fi
+  fi
+
+
+
+dnl Test for libz
+  if test -z "$LIBZ"; then
+    AC_CHECK_LIB(z, gzsetparams,
+      AC_CHECK_HEADER(zlib.h,
+	LIBZ='-lz',
+	AC_MSG_ERROR([*** LIBZ header files not found.])),
+      AC_MSG_ERROR([*** DirectFB requires libz.]))
+  fi
+
+
+
+dnl Test for libpng
+  if test -z "$LIBPNG" && test -n "$LIBZ"; then
+    AC_CHECK_LIB(png, png_read_info,
+      AC_CHECK_HEADER(png.h,
+	png_ok=yes,
+	AC_MSG_ERROR([*** PNG head files not found.])),
+      AC_MSG_ERROR([*** DirectFB requires libpng.]))
+    if test "$png_ok" = yes; then
+      AC_MSG_CHECKING([for png_structp in png.h])
+      AC_TRY_COMPILE([#include <png.h>],
+        [png_structp pp;
+	 png_infop info;
+	 png_colorp cmap;
+	 png_create_read_struct;],
+        png_ok=yes,
+        png_ok=no)
+      AC_MSG_RESULT($png_ok)
+      if test "$png_ok" = yes; then
+        LIBPNG="-lpng $LIBZ"
+      else
+        AC_MSG_ERROR([*** PNG library is too old.])
+      fi
+    else
+      AC_MSG_ERROR([*** PNG header files not found.])
+    fi
+  fi
+
+dnl Test for freetype
+  AC_PATH_PROG(FREETYPE, freetype-config, no)
+  if test "$FREETYPE" = no; then
+    AC_MSG_ERROR(["Could not find freetype-config."])
+  else
+    FREETYPE_CFLAGS=`freetype-config --cflags`
+    FREETYPE_LIBS=`freetype-config --libs`
+  fi
+
+dnl Test for avifile
+  AC_ARG_ENABLE(avifile, [  --enable-avifile        compile avifile video provider [default=no]], enable_avifile="$enableval", enable_avifile=no)
+
+  if test x$enable_avifile = xyes; then
+    AC_PATH_PROG(AVIFILE_CONFIG, avifile-config, no)
+    if test "$AVIFILE" = no; then
+      AC_MSG_WARN(["*** avifile-config not found -- AVI media provider will not be built"])
+    else
+      AC_PROG_CXX
+      AVIFILE=yes
+      AVIFILE_CFLAGS=`avifile-config --cflags`
+      AVIFILE_LIBS=`avifile-config --libs` 	
+    fi
+  fi
+
+AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
+
+
+
+DFB_CFLAGS="$CFLAGS"
+DFB_CXXFLAGS="$CXXFLAGS"
+DFB_LDFLAGS="$LDFLAGS"
+
+
+# Honor aclocal flags
+ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
+
+
+DATADIR=$datadir/directfb
+LIBDIR=$libdir/directfb
+
+AC_SUBST(DFB_CFLAGS)
+AC_SUBST(DFB_LDFLAGS)
+AC_SUBST(DFB_CXXFLAGS)
+AC_SUBST(THREAD_CFLAGS)
+AC_SUBST(THREAD_LIBS)
+AC_SUBST(LIBJPEG)
+AC_SUBST(LIBZ)
+AC_SUBST(LIBPNG)
+AC_SUBST(FREETYPE_CFLAGS)
+AC_SUBST(FREETYPE_LIBS)
+AC_SUBST(AVIFILE_PROVIDER)
+AC_SUBST(AVIFILE_CFLAGS)
+AC_SUBST(AVIFILE_LIBS)
+
+AC_SUBST(DATADIR)
+AC_SUBST(LIBDIR)
+
+AC_OUTPUT([
+directfb-config
+directfb.pc
+Makefile
+examples/Makefile
+examples/df_neo/Makefile
+include/Makefile
+include/directfb_version.h
+patches/Makefile
+src/Makefile
+src/display/Makefile
+src/media/Makefile
+src/windows/Makefile
+src/input/Makefile
+src/misc/Makefile
+src/gfx/Makefile
+src/gfx/generic/Makefile
+src/core/Makefile
+src/core/inputdevices/Makefile
+gfxdrivers/Makefile
+gfxdrivers/ati128/Makefile
+gfxdrivers/matrox/Makefile
+gfxdrivers/neomagic/Makefile
+gfxdrivers/tdfx/Makefile
+interfaces/Makefile
+tools/Makefile
+docs/Makefile
+], [chmod +x directfb-config])

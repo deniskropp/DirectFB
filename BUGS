@@ -1,0 +1,28 @@
+automake/autoconf etc.
+----------------------
+- while linking -ldl is repeated up to 12 times (looks silly)
+- if host system is i386+ mmx support is compiled in, to allow cross
+  compiling, mmx support should be compiled if target system is i386+
+
+
+linking problems
+----------------
+- libdirectfb has to be linked against libm on some platforms
+  (i.e powerpc) because of ceil() and floor(). this is not
+  necessary on intel systems. We should either replace the
+  ceil and floor calls with own functions or check if
+  libm is needed in configure.in
+
+  2001/03/12 (dok)
+        if host system is not intel "-lm" is added to LDFLAGS
+	( we should rather implement ceil() and floor() )
+        
+
+demo problems
+-------------
+- some demos work incredible slower with hardware drivers that do not support
+  every blitting function (all except matrox) than with the generic driver. 
+  This is because the surfaces are loaded into offscreen video memory, but
+  cannot be blitted by hardware afterwards because of the non-supported
+  blitting effects (modulation etc). All demos should query the hardware
+  drivers' capabilities, and decide where the surfaces should go.
