@@ -27,6 +27,8 @@
 #ifndef __MISC__DEBUG_H__
 #define __MISC__DEBUG_H__
 
+#include <config.h>
+
 void dfb_trace_print_stack( int pid );
 void dfb_trace_print_stacks();
 
