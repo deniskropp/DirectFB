@@ -45,7 +45,7 @@ static MemDesc *alloc_list = NULL;
 static pthread_mutex_t alloc_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
-void dbg_print_memleaks()
+void dfb_dbg_print_memleaks()
 {
      unsigned int i;
 
@@ -70,7 +70,7 @@ void dbg_print_memleaks()
 }
 
 
-void* dbg_malloc( char* file, int line, char *func, size_t bytes )
+void* dfb_dbg_malloc( char* file, int line, char *func, size_t bytes )
 {
      void *mem = (void*) malloc (bytes);
      MemDesc *d;
@@ -92,7 +92,7 @@ void* dbg_malloc( char* file, int line, char *func, size_t bytes )
 }
 
 
-void* dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
+void* dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
 {
      void *mem = (void*) calloc (count, bytes);
      MemDesc *d;
@@ -114,10 +114,18 @@ void* dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
 }
 
 
-void* dbg_realloc( char *file, int line, char *func, char *what,
-                   void *mem, size_t bytes )
+void* dfb_dbg_realloc( char *file, int line, char *func, char *what,
+                       void *mem, size_t bytes )
 {
      unsigned int i;
+
+     if (!mem)
+          return dfb_dbg_malloc( file, line, func, bytes );
+
+     if (!bytes) {
+          dfb_dbg_free( file, line, func, what, mem );
+          return NULL;
+     }
 
      pthread_mutex_lock( &alloc_lock );
 
@@ -139,10 +147,10 @@ void* dbg_realloc( char *file, int line, char *func, char *what,
           kill( 0, SIGTRAP );
      }
 
-     return dbg_malloc( file, line, func, bytes );
+     return dfb_dbg_malloc( file, line, func, bytes );
 }
 
-char* dbg_strdup( char* file, int line, char *func, const char *string )
+char* dfb_dbg_strdup( char* file, int line, char *func, const char *string )
 {
      char *mem = strdup (string);
      MemDesc *d;
@@ -163,7 +171,7 @@ char* dbg_strdup( char* file, int line, char *func, const char *string )
      return mem;
 }
 
-void dbg_free( char *file, int line, char *func, char *what, void *mem )
+void dfb_dbg_free( char *file, int line, char *func, char *what, void *mem )
 {
      unsigned int i;
 

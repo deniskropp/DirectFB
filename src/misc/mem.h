@@ -32,24 +32,24 @@
 
 #ifdef DFB_DEBUG
 
-void  dbg_print_memleaks();
+void  dfb_dbg_print_memleaks();
 
-void  dbg_free( char *file, int line, char *func, char *what, void *mem );
-void *dbg_malloc( char *file, int line, char *func, size_t bytes );
-void *dbg_calloc( char *file, int line, char *func, size_t count, size_t bytes);
-void *dbg_realloc( char *file, int line, char *func, char *what, void *mem,
-                   size_t bytes );
-char *dbg_strdup( char *file, int line, char *func, const char *string );
+void  dfb_dbg_free( char *file, int line, char *func, char *what, void *mem );
+void *dfb_dbg_malloc( char *file, int line, char *func, size_t bytes );
+void *dfb_dbg_calloc( char *file, int line, char *func, size_t count, size_t bytes);
+void *dfb_dbg_realloc( char *file, int line, char *func, char *what, void *mem,
+                       size_t bytes );
+char *dfb_dbg_strdup( char *file, int line, char *func, const char *string );
 
-#define DFBFREE(mem)           dbg_free( __FILE__, __LINE__, __FUNCTION__, \
+#define DFBFREE(mem)           dfb_dbg_free( __FILE__, __LINE__, __FUNCTION__, \
                                          #mem,mem )
-#define DFBMALLOC(bytes)       dbg_malloc( __FILE__, __LINE__, __FUNCTION__, \
+#define DFBMALLOC(bytes)       dfb_dbg_malloc( __FILE__, __LINE__, __FUNCTION__, \
                                            bytes )
-#define DFBCALLOC(count,bytes) dbg_calloc( __FILE__, __LINE__, __FUNCTION__, \
+#define DFBCALLOC(count,bytes) dfb_dbg_calloc( __FILE__, __LINE__, __FUNCTION__, \
                                            count, bytes )
-#define DFBREALLOC(mem,bytes)  dbg_realloc( __FILE__, __LINE__, __FUNCTION__, \
+#define DFBREALLOC(mem,bytes)  dfb_dbg_realloc( __FILE__, __LINE__, __FUNCTION__, \
                                             #mem, mem, bytes )
-#define DFBSTRDUP(string)      dbg_strdup( __FILE__, __LINE__, __FUNCTION__, \
+#define DFBSTRDUP(string)      dfb_dbg_strdup( __FILE__, __LINE__, __FUNCTION__, \
                                            string )
 
 #else

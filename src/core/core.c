@@ -106,7 +106,7 @@ void core_deinit_check()
      }
 
 #ifdef DFB_DEBUG
-     dbg_print_memleaks();
+     dfb_dbg_print_memleaks();
 #endif
 }
 
