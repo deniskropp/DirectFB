@@ -208,7 +208,7 @@ dfb_colorhash_lookup( CorePalette *palette,
                int a_diff = (int) entries[i].a - (int) a;
 
                int diff = (r_diff * r_diff + g_diff * g_diff + 
-                           b_diff * b_diff + a_diff * a_diff / 16);
+                           b_diff * b_diff + ((a_diff * a_diff) >> 6));
 
                if (i == 0 || diff < min_diff) {
                     min_diff = diff;
