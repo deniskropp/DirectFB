@@ -105,11 +105,18 @@ typedef struct {
 
 
 static inline long long
-microsec( void )
+microsec( struct timeval *t )
 {
-     struct timeval t;
-     gettimeofday( &t, NULL );
-     return (t.tv_sec * 1000000ll + t.tv_usec);
+     long long msec;
+     
+     if (!t) {
+          struct timeval tv;
+          gettimeofday( &tv, NULL );
+          msec = tv.tv_sec * 1000000ll + tv.tv_usec;
+     } else
+          msec = t->tv_sec * 1000000ll + t->tv_usec;
+     
+     return msec;
 }
 
 
@@ -272,22 +279,27 @@ SwfPlayback( DirectThread *self, void *arg )
      pthread_setcanceltype( PTHREAD_CANCEL_ASYNCHRONOUS, NULL );
 
      while (1) {
-          SwfdecBuffer *video_buffer;
-          SwfdecBuffer *audio_buffer;
-          DFBRectangle  rect;
-          long long     start;
-          int           pos;
+          SwfdecBuffer   *video_buffer;
+          SwfdecBuffer   *audio_buffer;
+          DFBRectangle    rect;
+          struct timeval  start;
+          int             pos;
+          
+          gettimeofday( &start, NULL );
           
           direct_thread_testcancel( self );
           
           if (data->finished || data->stopped) {
                pthread_mutex_lock( &data->mutex );
                pthread_cond_wait( &data->cond, &data->mutex );
+#ifdef HAVE_FUSIONSOUND
+               if (data->stream)
+                    data->stream->Wait( data->stream, 0 );
+#endif
                pthread_mutex_unlock( &data->mutex );
+               gettimeofday( &start, NULL );
                adjust = 0;
           }
-          
-          start = microsec();
           
           pthread_mutex_lock( &data->mutex );
           
@@ -337,19 +349,16 @@ SwfPlayback( DirectThread *self, void *arg )
           data->seeking = false;
 
           if (!data->stopped && !data->finished) {
-               adjust += (long) (microsec() - start);
+               adjust += (long) (microsec( NULL ) - microsec( &start ));
+               
                if (adjust < data->interval) {
-                    struct timeval  t0;
-                    struct timespec t1;
-                    long            s;
+                    struct timespec t;
 
-                    s = data->interval - adjust;
-                    gettimeofday( &t0, NULL );
-                    t1.tv_sec  = t0.tv_sec + s/1000000;
-                    t1.tv_nsec = (t0.tv_usec + (s%1000000)) * 1000;
+                    t.tv_sec  = start.tv_sec;
+                    t.tv_nsec = (start.tv_usec + data->interval) * 1000;
                
                     pthread_cond_timedwait( &data->cond,
-                                            &data->mutex, &t1 );
+                                            &data->mutex, &t );
                     adjust = 0;
                } else
                     adjust -= data->interval;
@@ -740,7 +749,7 @@ Construct( IDirectFBVideoProvider *thiz,
      data->height   = data->height ? : 1;
      data->frames   = data->frames ? : 1;
      data->rate     = data->rate   ? : 1;
-     data->interval = (1000000.0 / data->rate + 0.555);
+     data->interval = (1000000.0 / data->rate);
      data->length   = (double)data->frames / data->rate;
 
 #ifdef HAVE_FUSIONSOUND
