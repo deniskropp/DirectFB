@@ -898,12 +898,11 @@ static void Sop_rgb15_to_Dacc()
 
           S += 2;
           D += 2;
-          w -= 2;
 
           --l;
      }
 
-     if (w) {
+     if (w&1) {
           __u16 spixel = *S;
 
           D->a = 0xFF;
@@ -960,12 +959,11 @@ static void Sop_rgb16_to_Dacc()
 
           S += 2;
           D += 2;
-          w -= 2;
 
           --l;
      }
 
-     if (w) {
+     if (w&1) {
           __u16 spixel = *S;
 
           D->a = 0xFF;

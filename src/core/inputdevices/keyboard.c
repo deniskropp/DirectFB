@@ -75,6 +75,7 @@ int keyboard_init(InputDevice *device)
      char buf[32];
      struct termios ts;
      const char cursoroff_str[] = "\033[?1;0;0c";
+     const char blankoff_str[] = "\033[9;0]";
 
      sprintf(buf, "/dev/tty%d", vt->num);
      fd = open( buf, O_RDWR );
@@ -124,6 +125,7 @@ int keyboard_init(InputDevice *device)
      tcsetpgrp( fd, getpgrp() );
 
      write( fd, cursoroff_str, strlen(cursoroff_str) );
+     write( fd, blankoff_str, strlen(blankoff_str) );
 
 
 
