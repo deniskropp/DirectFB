@@ -130,6 +130,72 @@ dfb_window_pool_create()
 
 /**************************************************************************************************/
 
+static DFBResult
+create_region( CoreDFB                 *core,
+               CoreLayerContext        *context,
+               CoreWindow              *window,
+               DFBSurfacePixelFormat    format,
+               DFBSurfaceCapabilities   surface_caps,
+               CoreLayerRegion        **ret_region,
+               CoreSurface            **ret_surface )
+{
+     DFBResult              ret;
+     CoreLayerRegionConfig  config;
+     CoreLayerRegion       *region;
+     CoreSurface           *surface;
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( context != NULL );
+     D_ASSERT( window != NULL );
+     D_ASSERT( ret_region != NULL );
+     D_ASSERT( ret_surface != NULL );
+
+     config.width      = window->width;
+     config.height     = window->height;
+     config.format     = format;
+     config.buffermode = DLBM_BACKVIDEO;
+     config.options    = context->config.options & (DLOP_ALPHACHANNEL | DLOP_FLICKER_FILTERING);
+     config.source     = (DFBRectangle) {         0,         0, window->width, window->height };
+     config.dest       = (DFBRectangle) { window->x, window->y, window->width, window->height };
+     config.opacity    = 0xff;
+
+     ret = dfb_layer_region_create( context, &region );
+     if (ret)
+          return ret;
+
+     ret = dfb_layer_region_set_configuration( region, &config, CLRCF_ALL );
+     if (ret) {
+          dfb_layer_region_unref( region );
+          return ret;
+     }
+
+     ret = dfb_surface_create( core, window->width, window->height, format,
+                               CSP_VIDEOONLY, surface_caps | DSCAPS_DOUBLE, NULL, &surface );
+     if (ret) {
+          dfb_layer_region_unref( region );
+          return ret;
+     }
+
+     ret = dfb_layer_region_set_surface( region, surface );
+     if (ret) {
+          dfb_surface_unref( surface );
+          dfb_layer_region_unref( region );
+          return ret;
+     }
+
+     ret = dfb_layer_region_enable( region );
+     if (ret) {
+          dfb_surface_unref( surface );
+          dfb_layer_region_unref( region );
+          return ret;
+     }
+
+     *ret_region  = region;
+     *ret_surface = surface;
+
+     return DFB_OK;
+}
+
 DFBResult
 dfb_window_create( CoreWindowStack        *stack,
                    int                     x,
@@ -171,8 +237,8 @@ dfb_window_create( CoreWindowStack        *stack,
      if (!dfb_config->translucent_windows) {
           caps &= ~DWCAPS_ALPHACHANNEL;
 
-          if (DFB_PIXELFORMAT_HAS_ALPHA(pixelformat))
-               pixelformat = DSPF_UNKNOWN;
+          /*if (DFB_PIXELFORMAT_HAS_ALPHA(pixelformat))
+               pixelformat = DSPF_UNKNOWN;*/
      }
 
      /* Choose pixel format. */
@@ -259,40 +325,66 @@ dfb_window_create( CoreWindowStack        *stack,
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
-          CoreLayerRegion *region;
+          if (context->config.buffermode == DLBM_WINDOWS) {
+               CoreLayerRegion *region;
 
-          /* Get the primary region of the layer context. */
-          ret = dfb_layer_context_get_primary_region( context, true, &region );
-          if (ret) {
-               fusion_object_destroy( &window->object );
-               dfb_windowstack_unlock( stack );
-               return ret;
+               /* Create a region for the window. */
+               ret = create_region( layer->core, context, window,
+                                    pixelformat, surface_caps, &region, &surface );
+               if (ret) {
+                    fusion_object_destroy( &window->object );
+                    dfb_windowstack_unlock( stack );
+                    return ret;
+               }
+
+               /* Link the region into the window structure. */
+               dfb_layer_region_link( &window->region, region );
+               dfb_layer_region_unref( region );
+
+               /* Link the surface into the window structure. */
+               dfb_surface_link( &window->surface, surface );
+               dfb_surface_unref( surface );
+
+               /* Attach our global listener to the surface. */
+               dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
+                                          window, &window->surface_reaction );
           }
+          else {
+               CoreLayerRegion *region;
 
-          /* Link the primary region into the window structure. */
-          dfb_layer_region_link( &window->primary_region, region );
-          dfb_layer_region_unref( region );
+               /* Get the primary region of the layer context. */
+               ret = dfb_layer_context_get_primary_region( context, true, &region );
+               if (ret) {
+                    fusion_object_destroy( &window->object );
+                    dfb_windowstack_unlock( stack );
+                    return ret;
+               }
 
-          /* Create the surface for the window. */
-          ret = dfb_surface_create( layer->core,
-                                    width, height, pixelformat,
-                                    surface_policy, surface_caps,
-                                    region->surface ?
-                                    region->surface->palette : NULL, &surface );
-          if (ret) {
-               dfb_layer_region_unlink( &window->primary_region );
-               fusion_object_destroy( &window->object );
-               dfb_windowstack_unlock( stack );
-               return ret;
+               /* Link the primary region into the window structure. */
+               dfb_layer_region_link( &window->primary_region, region );
+               dfb_layer_region_unref( region );
+
+               /* Create the surface for the window. */
+               ret = dfb_surface_create( layer->core,
+                                         width, height, pixelformat,
+                                         surface_policy, surface_caps,
+                                         region->surface ?
+                                         region->surface->palette : NULL, &surface );
+               if (ret) {
+                    dfb_layer_region_unlink( &window->primary_region );
+                    fusion_object_destroy( &window->object );
+                    dfb_windowstack_unlock( stack );
+                    return ret;
+               }
+
+               /* Link the surface into the window structure. */
+               dfb_surface_link( &window->surface, surface );
+               dfb_surface_unref( surface );
+
+               /* Attach our global listener to the surface. */
+               dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
+                                          window, &window->surface_reaction );
           }
-
-          /* Link the surface into the window structure. */
-          dfb_surface_link( &window->surface, surface );
-          dfb_surface_unref( surface );
-
-          /* Attach our global listener to the surface. */
-          dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
-                                     window, &window->surface_reaction );
      }
 
      /* Pass the new window to the window manager. */
@@ -305,6 +397,9 @@ dfb_window_create( CoreWindowStack        *stack,
 
           if (window->primary_region)
                dfb_layer_region_unlink( &window->primary_region );
+
+          if (window->region)
+               dfb_layer_region_unlink( &window->region );
 
           fusion_object_destroy( &window->object );
           dfb_windowstack_unlock( stack );

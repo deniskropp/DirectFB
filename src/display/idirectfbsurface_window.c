@@ -38,10 +38,11 @@
 #include "core/core.h"
 #include "core/coretypes.h"
 
-#include "core/gfxcard.h"
-#include "core/surfaces.h"
 #include "core/fonts.h"
+#include "core/gfxcard.h"
+#include "core/layer_region.h"
 #include "core/state.h"
+#include "core/surfaces.h"
 #include "core/windows.h"
 #include "core/windows_internal.h" /* FIXME */
 
@@ -144,18 +145,21 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           dfb_state_get_serial( &data->base.state, &data->window->serial1 );
      }
 
-     if (data->base.surface->caps & DSCAPS_FLIPPING) {
+     if (data->window->region) {
+          dfb_layer_region_flip_update( data->window->region, &reg, flags );
+     }
+     else if (data->base.surface->caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
               reg.x2 == data->window->width - 1 && reg.y2 == data->window->height - 1)
                dfb_surface_flip_buffers( data->base.surface );
           else
                dfb_back_to_front_copy( data->base.surface, &reg );
+
+          dfb_window_repaint( data->window, &reg, flags, false, false );
      }
 
      if (!data->window->opacity && data->base.caps & DSCAPS_PRIMARY)
           dfb_window_set_opacity( data->window, 0xff );
-     else
-          dfb_window_repaint( data->window, &reg, flags, false, false );
 
      return DFB_OK;
 }

@@ -112,6 +112,8 @@ typedef struct {
      StackData                    *stack_data;
 
      int                           priority;           /* derived from stacking class */
+
+     CoreLayerRegionConfig         config;
 } WindowData;
 
 /**************************************************************************************************/
@@ -1081,7 +1083,7 @@ update_window( CoreWindow          *window,
      data  = window_data->stack_data;
      stack = data->stack;
 
-     if (!force_invisible && !VISIBLE_WINDOW(window))
+     if (!VISIBLE_WINDOW(window) && !force_invisible)
           return DFB_OK;
 
      if (stack->hw_mode)
@@ -1241,7 +1243,13 @@ move_window( CoreWindow *window,
      window->x += dx;
      window->y += dy;
 
-     if (VISIBLE_WINDOW(window)) {
+     if (window->region) {
+          data->config.dest.x += dx;
+          data->config.dest.y += dy;
+
+          dfb_layer_region_set_configuration( window->region, &data->config, CLRCF_DEST );
+     }
+     else if (VISIBLE_WINDOW(window)) {
           DFBRegion region = { 0, 0, window->width - 1, window->height - 1 };
 
           if (dx > 0)
@@ -2481,6 +2489,9 @@ wm_add_window( CoreWindowStack *stack,
      data->window     = window;
      data->stack_data = stack_data;
      data->priority   = get_priority( window );
+
+     if (window->region)
+          dfb_layer_region_get_configuration( window->region, &data->config );
 
      /* Actually add the window to the stack. */
      insert_window( stack, stack_data, window, window_data );
