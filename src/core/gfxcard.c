@@ -206,8 +206,9 @@ DFBResult gfxcard_initialize()
           card->device_data = Scard->device_data;
      }
 
-     INITMSG( "DirectFB/GraphicsDevice: %s %d.%d (%s)\n",
-              Scard->driver_info.name, Scard->driver_info.version.major,
+     INITMSG( "DirectFB/GraphicsDevice: %s %s %d.%d (%s)\n",
+              Scard->device_info.vendor, Scard->device_info.name,
+              Scard->driver_info.version.major,
               Scard->driver_info.version.minor, Scard->driver_info.vendor );
 
      Scard->surface_manager = surfacemanager_create( card->framebuffer.length,
@@ -264,10 +265,6 @@ DFBResult gfxcard_join()
           card->driver      = driver;
           card->device_data = Scard->device_data;
      }
-
-     INITMSG( "DirectFB/GraphicsDevice: %s %d.%d (%s)\n",
-              Scard->driver_info.name, Scard->driver_info.version.major,
-              Scard->driver_info.version.minor, Scard->driver_info.vendor );
 
      return DFB_OK;
 }
