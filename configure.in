@@ -102,7 +102,7 @@ fi
 
 CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
 
-CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
+DFB_INTERNAL_CFLAGS="-D_GNU_SOURCE $DFB_INTERNAL_CFLAGS"
 
 AC_ARG_ENABLE(extra-warnings,
   [  --enable-extra-warnings   enable extra warnings [default=no]],,
