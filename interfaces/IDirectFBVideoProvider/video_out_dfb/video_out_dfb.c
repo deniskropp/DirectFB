@@ -1575,10 +1575,16 @@ dfb_get_property( vo_driver_t *vo_driver,
      {
           case VO_PROP_INTERLACED:
           {
-               DBUG( "frame is %s interlaced", 
-                      (this->state.blittingflags & DSBLIT_DEINTERLACE)
-                      ? "" : "not" );
-               return (this->state.blittingflags & DSBLIT_DEINTERLACE);
+               if (this->state.blittingflags & DSBLIT_DEINTERLACE)
+               {
+                    DBUG( "deinterlacing enabled (fieldparity: %s)",
+                          this->dest_data->surface->field ? "bottom" : "top" );
+                    return (this->dest_data->surface->field + 1);
+               } else
+               {
+                    DBUG( "deinterlacing disabled" );
+                    return 0;
+               }
           }
           break;
           
@@ -1630,12 +1636,22 @@ dfb_set_property( vo_driver_t *vo_driver,
      {
           case VO_PROP_INTERLACED:
           {
-               if (value)
-                    this->state.blittingflags |= DSBLIT_DEINTERLACE;
-               else
-                    this->state.blittingflags &= ~DSBLIT_DEINTERLACE;
+               if (value >= 0 && value <= 2)
+               {
+                    if (value)
+                    {
+                         DBUG( "deinterlacing (fieldparity: %s)",
+                               (value == 1) ? "top" : "bottom" );
+                         this->state.blittingflags |= DSBLIT_DEINTERLACE;
+                         this->dest->SetField( this->dest, value-1 );
+                    } else
+                    {
+                         DBUG( "deinterlacing disabled" );
+                         this->state.blittingflags &= ~DSBLIT_DEINTERLACE;
+                    }
 
-               this->state.modified |= SMF_BLITTING_FLAGS;
+                    this->state.modified |= SMF_BLITTING_FLAGS;
+               }
           }
           break;
           
@@ -1691,6 +1707,13 @@ dfb_get_property_min_max( vo_driver_t *vo_driver,
 
      switch (property)
      {
+          case VO_PROP_INTERLACED:
+          {
+               *min = 0;
+               *max = 2;
+          }
+          break;
+          
           case VO_PROP_BRIGHTNESS:
           {
                *min = -128;
