@@ -3994,6 +3994,39 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      CHECK_PIPELINE();
 
+     if (state->blittingflags & DSBLIT_DEINTERLACE) {
+          int i;
+          int height = rect->h;
+
+          gfxs->length = rect->w;
+
+          Aop_xy( gfxs, gfxs->dst_org, dx, dy, gfxs->dst_pitch );
+          Bop_xy( gfxs, gfxs->src_org, rect->x, rect->y, gfxs->src_pitch );
+
+          if (state->source->field) {
+               Aop_next( gfxs, gfxs->dst_pitch );
+               Bop_next( gfxs, gfxs->src_pitch );
+               height--;
+          }
+
+          height >>= 1;
+
+          for (i=0; i<height; i++) {
+               RUN_PIPELINE();
+
+               Aop_next( gfxs, gfxs->dst_pitch );
+
+               RUN_PIPELINE();
+
+               Aop_next( gfxs, gfxs->dst_pitch );
+
+               Bop_next( gfxs, gfxs->src_pitch );
+               Bop_next( gfxs, gfxs->src_pitch );
+          }
+
+          return;
+     }
+
      if (gfxs->src_org == gfxs->dst_org && dx > rect->x)
           /* we must blit from right to left */
           gfxs->Ostep = -1;
