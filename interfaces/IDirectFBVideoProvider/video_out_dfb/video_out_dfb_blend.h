@@ -22,7 +22,7 @@
  *
  */
 
-
+#include <string.h>
 
 /* CLUT == Color LookUp Table */
 typedef struct
