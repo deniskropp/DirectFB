@@ -859,6 +859,22 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                               return RS_OK;
                     }
                }
+               else if (evt->flags & DIEF_AXISABS) {
+                    switch (evt->axis) {
+                         case DIAI_X:
+                              windowstack_handle_motion( stack,
+                                                         evt->axis - stack->cx,
+                                                         0 );
+                              break;
+                         case DIAI_Y:
+                              windowstack_handle_motion( stack,
+                                                         0,
+                                                         evt->axis - stack->cy);
+                              break;
+                         default:
+                              return RS_OK;
+                    }
+               }
                break;
           default:
                break;
