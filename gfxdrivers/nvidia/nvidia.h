@@ -443,6 +443,7 @@ typedef struct {
      __u32                  color;
      __u32                  color3d;
      __u32                  blitfx;
+     __u8                   alpha;
 
      struct {
           __u32             colorkey;

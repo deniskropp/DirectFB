@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <time.h>
 
 #include <directfb.h>
 
@@ -45,37 +44,6 @@ DisplayLayerFuncs  nvidiaOldPrimaryLayerFuncs;
 void              *nvidiaOldPrimaryLayerDriverData;
 
 
-#if 0
-/* attempt to make WaitForSync work */
-static inline void
-nv_waitvsync( NVidiaDriverData *nvdrv )
-{
-     volatile __u32       *FIFO = nvdrv->FIFO;
-     volatile NVScreenBlt *Blt  = nvdrv->Blt;
-     __u32                 free = 0;
-     
-     while (free < 4)
-          free += Blt->FifoFree;
-     free -= 4;
-     FIFO[0xA12C/4] = 0;
-     
-     while (free < 4)
-          free += Blt->FifoFree;
-     free -= 4;
-     FIFO[0xA134/4] = 0;
-
-     while (free < 4)
-          free += Blt->FifoFree;
-     free -= 4;
-     FIFO[0xA100/4] = 0;
-
-     while (free < 4)
-          free += Blt->FifoFree;
-     free -= 4;
-     FIFO[0xA130/4] = 0;
-}
-#endif
-
 /************************** Primary Screen functions **************************/
 
 static int
@@ -91,10 +59,24 @@ nvcrtc1InitScreen( CoreScreen           *screen,
                    void                 *screen_data,
                    DFBScreenDescription *description )
 {
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+     volatile __u32   *PCRTC = nvdrv->PCRTC;
+     
      description->caps = DSCCAPS_VSYNC | DSCCAPS_POWER_MANAGEMENT;
 
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "NVidia Primary Screen" );
+
+     /* turn off VBlank enable */
+     PCRTC[0x140/4] = 0x00000000;
+     /* set screen type (0=vga, 2=hsync) */
+#ifdef WORDS_BIGENDIAN
+     PCRTC[0x804/4] = 0x80000002;
+#else
+     PCRTC[0x804/4] = 0x00000002;
+#endif
+     /* reset VBlank */
+     PCRTC[0x100/4] = 0x00000001;
 
      return DFB_OK;
 }
@@ -157,6 +139,9 @@ nvcrtc1WaitVSync( CoreScreen *screen,
           /* not the right way, use with caution */
           while (  PCIO[0x3DA] & 8 );
           while (!(PCIO[0x3DA] & 8));
+          // the same but uses PCRTC
+          //while (  PCRTC[0x808/4] & 0x10000 );
+          //while (!(PCRTC[0x808/4] & 0x10000));
      }
 
      return DFB_OK;
