@@ -2,7 +2,7 @@
 .\"
 .\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
 
-.TH DFBG 1 "12 Nov 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DFBG 1 "11 Jun 2003" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 dfbg \- DirectFB background configuration tool
