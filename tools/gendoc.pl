@@ -115,7 +115,7 @@ sub parse_interface (NAME)
 
       html_create( INTERFACE, "$interface.html",
                               "<A href=\"index.html\">" .
-                              "<FONT color=white>DirectFB Interfaces</FONT>" .
+                              "<FONT color=#DDDDDD>DirectFB Interfaces</FONT>" .
                               "</A>", $interface );
 
 #      print INTERFACE "<P align=center>\n",
@@ -152,7 +152,7 @@ sub parse_interface (NAME)
 
                   html_create( FUNCTION, "${interface}_$1.html",
                                "<A href=\"$interface.html\">" .
-                               "<FONT color=white>$interface</FONT>" .
+                               "<FONT color=#DDDDDD>$interface</FONT>" .
                                "</A>", $1 );
 
                   print FUNCTION "<P>\n",
@@ -530,13 +530,13 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
                         "      <TR><TD align=right width=50%>\n",
                         "        <BIG>$title&nbsp;</BIG>\n",
                         "      </TD><TD align=left width=50%>\n",
-                        "        <BIG><FONT color=yellow>&nbsp;$subtitle</FONT></BIG>\n",
+                        "        <BIG><FONT color=orange>&nbsp;$subtitle</FONT></BIG>\n",
                         "      </TD></TR>\n",
                         "    </TABLE>\n";
          }
       else
          {
-            print $FILE "    <BIG><FONT color=yellow>$title</FONT></BIG>\n";
+            print $FILE "    <BIG><FONT color=orange>$title</FONT></BIG>\n";
          }
 
       print $FILE "  </TD></TR>\n",

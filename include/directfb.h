@@ -776,7 +776,7 @@ extern "C"
 
 
      /*
-      * <b>IDirectFB</b> is the main interface. It can be retrieved by a call to
+      * <i><b>IDirectFB</b></i> is the main interface. It can be retrieved by a call to
       * <i>DirectFBCreate</i>. It's the only interface with a global creation
       * facility. Other interfaces are created by this interface or
       * interfaces created by it.
