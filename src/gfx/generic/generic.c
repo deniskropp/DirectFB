@@ -4423,18 +4423,28 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     break;
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT)    ||
-                        state->blittingflags & ~DSBLIT_SRC_COLORKEY) {
-                         D_ONCE("blits with effects are not supported for YUV in software");
+                    if (state->blittingflags & ~DSBLIT_SRC_COLORKEY) {
+                         D_ONCE("blits with effects are not"
+                                " supported for YUV in software");
                          return false;
+                    }
+                    if (gfxs->src_format != gfxs->dst_format) {
+                         if (gfxs->dst_format == DSPF_YUY2 ||
+                             gfxs->dst_format == DSPF_UYVY ||
+                             gfxs->dst_format == DSPF_YV12 ||
+                             gfxs->dst_format == DSPF_I420) {
+                              D_ONCE("YUV to YUV conversion is not"
+                                     " supported in software");
+                              return false;
+                         }
                     }
                     break;
                case DSPF_I420:
                case DSPF_YV12:
-                    if (accel & ~(DFXL_BLIT | DFXL_STRETCHBLIT) ||
-                        gfxs->src_format != gfxs->dst_format ||
+                    if (gfxs->src_format != gfxs->dst_format ||
                         state->blittingflags != DSBLIT_NOFX) {
-                         D_ONCE("only copying/scaling blits supported for YUV in software");
+                         D_ONCE("only copying/scaling blits supported"
+                                " for YV12/I420 in software");
                          return false;
                     }
                     break;
