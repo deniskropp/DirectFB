@@ -680,8 +680,8 @@ static void matroxBlit3D( void *drv, void *dev,
 
      __s32 startx, starty;
 
-     startx = ((rect->x << 20) | 0x80000) >> mdev->matrox_w2;
-     starty = ((rect->y << 20) | 0x80000) >> mdev->matrox_h2;
+     startx = rect->x << (20 - mdev->matrox_w2);
+     starty = rect->y << (20 - mdev->matrox_h2);
 
 
      mga_waitfifo( mdrv, mdev, 8);
