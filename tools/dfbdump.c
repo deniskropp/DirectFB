@@ -201,6 +201,9 @@ surface_callback( FusionObjectPool *pool,
      if (surface->caps & DSCAPS_INTERLACED)
           printf( "interlaced   " );
 
+     if (surface->caps & DSCAPS_PREMULTIPLIED)
+          printf( "premultiplied" );
+
      printf( "\n" );
 
      return true;
