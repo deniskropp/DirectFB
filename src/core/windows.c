@@ -421,10 +421,13 @@ dfb_window_destroy( CoreWindow *window, bool unref )
      dfb_window_dispatch( window, &evt );
 
      if (window->surface) {
+          CoreSurface *surface = window->surface;
+
           DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) unlinking surface...\n", window);
 
-          dfb_surface_unlink( window->surface );
           window->surface = NULL;
+
+          dfb_surface_unlink( surface );
      }
 
      if (unref) {
@@ -670,7 +673,7 @@ dfb_window_putbelow( CoreWindow *window,
                                                DWOP_COLORKEYING))
 
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
-                               (w)->opacity > 0)
+                               (w)->opacity > 0 && !(w)->destroyed)
 
 
 void

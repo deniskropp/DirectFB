@@ -332,7 +332,7 @@ reactor_free (FusionReactor *reactor)
      msgctl (reactor->queue, IPC_RMID, NULL);
 
      if (reactor->nodes) {
-          /* loop through remaining nodes and print error messages */
+          /* loop through remaining nodes and print debug messages */
           for (i=0; i<MAX_REACTOR_NODES; i++) {
                if (!reactor->node[i].id)
                     continue;
@@ -342,12 +342,6 @@ reactor_free (FusionReactor *reactor)
 
                reactor->node[i].reactions = NULL;
 
-               FDEBUG ("reactor_free: doing zero lock...\n");
-
-               fusion_ref_zero_lock (&reactor->node[i].ref);
-               
-               FDEBUG ("reactor_free: zero lock done.\n");
-               
                fusion_ref_destroy (&reactor->node[i].ref);
           }
      }
@@ -457,7 +451,7 @@ static void _reactor_process_reactions (FusionLink **reactions, const void *msg_
           Reaction   *reaction = (Reaction*) l;
           FusionLink *next     = l->next;
 
-          FDEBUG(" -- before react (%p)\n", reaction->react);
+          //FDEBUG(" -- before react (%p)\n", reaction->react);
           
           /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
           if (reaction->react (msg_data, reaction->ctx) == RS_REMOVE) {
@@ -466,7 +460,7 @@ static void _reactor_process_reactions (FusionLink **reactions, const void *msg_
                fusion_list_remove (reactions, l);
           }
 
-          FDEBUG(" -- after react (%p)\n", reaction->react);
+          //FDEBUG(" -- after react (%p)\n", reaction->react);
           
           /* fetch the next list entry */
           l = next;

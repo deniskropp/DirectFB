@@ -130,16 +130,16 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           reg.y2 = data->base.area.current.y + data->base.area.current.h - 1;
      }
 
-     if (data->window->surface->caps & DSCAPS_FLIPPING) {
+     if (data->base.surface->caps & DSCAPS_FLIPPING) {
           DFBRectangle rect = { reg.x1, reg.y1,
                                 reg.x2 - reg.x1 + 1,
                                 reg.y2 - reg.y1 + 1 };
 
           if ((~flags & DSFLIP_BLIT) && rect.x == 0 && rect.y == 0 &&
               rect.w == data->window->width && rect.h == data->window->height)
-               dfb_surface_flip_buffers( data->window->surface );
+               dfb_surface_flip_buffers( data->base.surface );
           else
-               dfb_back_to_front_copy( data->window->surface, &rect );
+               dfb_back_to_front_copy( data->base.surface, &rect );
      }
 
      dfb_window_repaint( data->window, &reg, flags );
