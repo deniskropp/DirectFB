@@ -412,10 +412,10 @@ bool uc_stretch_blit(void* drv, void* dev,
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYWCST(fifo, dr->x,       dy,       1, 0,              s1, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dy+dr->h, 1, 0,              s2, t2);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dy,       1, ucdev->color3d, s2, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x,       dy+dr->h, 1, ucdev->color3d, s1, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dy,       1, 0,              s2, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x,       dy+dr->h, 1, 0,              s1, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x,       dy,       1, ucdev->color3d, s1, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dy+dr->h, 1, ucdev->color3d, s2, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
 
