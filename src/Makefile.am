@@ -58,7 +58,7 @@ libdirectfb_fixed.a: .libs/libdirectfb.a
 	ar cru libdirectfb_fixed.a `find -name "*.o" | grep -v core/sdl | grep -v core/fbdev`
 	cp -af libdirectfb_fixed.a .libs/libdirectfb.a
 
-.libs/libdirectfb.a:
+.libs/libdirectfb.a: libdirectfb.la
 
 else
 
