@@ -275,9 +275,9 @@ dump_mixers( IDirectFBScreen *screen,
                     if (DFB_DISPLAYLAYER_IDS_HAVE( descs[i].layers, n ))
                          printf( "(%02x) ", n );
                }
-          }
 
-          printf( "\n" );
+               printf( "\n" );
+          }
 
 
           /* Sub mode layers */
