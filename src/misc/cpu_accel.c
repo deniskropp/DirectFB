@@ -62,7 +62,7 @@ static __u32 arch_accel (void)
 {
   __u32 eax, ebx, ecx, edx;
   int AMD;
-  __u32 caps;
+  __u32 caps = 0;
 
 #ifndef PIC
 #define cpuid(op,eax,ebx,ecx,edx)       \
@@ -115,7 +115,9 @@ static __u32 arch_accel (void)
   if (! (edx & 0x00800000))   /* no MMX */
     return 0;
 
+#ifdef USE_MMX
   caps = MM_ACCEL_X86_MMX;
+#ifdef USE_SSE
   if (edx & 0x02000000)       /* SSE - identical to AMD MMX extensions */
     caps |= MM_ACCEL_X86_SSE | MM_ACCEL_X86_MMXEXT;
 
@@ -133,6 +135,8 @@ static __u32 arch_accel (void)
 
   if (AMD && (edx & 0x00400000))      /* AMD MMX extensions */
     caps |= MM_ACCEL_X86_MMXEXT;
+#endif /* USE_SSE */
+#endif /* USE_MMX */
 
   return caps;
 }
@@ -190,9 +194,9 @@ __u32 dfb_mm_accel (void)
 
   accel = arch_accel ();
 
-#ifdef ARCH_X86
+#ifdef USE_SSE
   /* test OS support for SSE */
-  if( accel & MM_ACCEL_X86_SSE ) {
+  if (accel & MM_ACCEL_X86_SSE) {
     if (setjmp(sigill_return)) {
       accel &= ~(MM_ACCEL_X86_SSE|MM_ACCEL_X86_SSE2);
     } else {
@@ -201,7 +205,7 @@ __u32 dfb_mm_accel (void)
       signal (SIGILL, SIG_DFL);
     }
   }
-#endif /* ARCH_X86 */
+#endif /* USE_SSE */
 
   return accel;
 
