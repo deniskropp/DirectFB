@@ -40,6 +40,10 @@ extern "C"
 #include <core/fusion/ref.h>
 #include <core/fusion/reactor.h>
 
+#include <core/coredefs.h>
+
+#include <misc/debug.h>
+
 typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie );
 
 typedef enum {
@@ -49,6 +53,8 @@ typedef enum {
 } FusionObjectState;
 
 struct _FusionObject {
+     int                magic;
+
      FusionLink         link;
      FusionObjectPool  *pool;
 
@@ -94,6 +100,7 @@ prefix##_attach( type     *object,                                             \
                  void     *ctx,                                                \
                  Reaction *reaction )                                          \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_reactor_attach( ((FusionObject*)object)->reactor,           \
                                    react, ctx, reaction );                     \
 }                                                                              \
@@ -102,6 +109,7 @@ static inline FusionResult                                                     \
 prefix##_detach( type     *object,                                             \
                  Reaction *reaction )                                          \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_reactor_detach( ((FusionObject*)object)->reactor,           \
                                    reaction );                                 \
 }                                                                              \
@@ -112,6 +120,7 @@ prefix##_attach_global( type           *object,                                \
                         void           *ctx,                                   \
                         GlobalReaction *reaction )                             \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_reactor_attach_global( ((FusionObject*)object)->reactor,    \
                                           react_index, ctx, reaction );        \
 }                                                                              \
@@ -120,6 +129,7 @@ static inline FusionResult                                                     \
 prefix##_detach_global( type           *object,                                \
                         GlobalReaction *reaction )                             \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_reactor_detach_global( ((FusionObject*)object)->reactor,    \
                                           reaction );                          \
 }                                                                              \
@@ -129,6 +139,7 @@ prefix##_dispatch( type        *object,                                        \
                    void        *message,                                       \
                    const React *globals )                                      \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_reactor_dispatch( ((FusionObject*)object)->reactor,         \
                                      message, true, globals );                 \
 }                                                                              \
@@ -136,12 +147,14 @@ prefix##_dispatch( type        *object,                                        \
 static inline FusionResult                                                     \
 prefix##_ref( type *object )                                                   \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_ref_up( &((FusionObject*)object)->ref, false );             \
 }                                                                              \
                                                                                \
 static inline FusionResult                                                     \
 prefix##_unref( type *object )                                                 \
 {                                                                              \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
      return fusion_ref_down( &((FusionObject*)object)->ref, false );           \
 }                                                                              \
                                                                                \
@@ -150,6 +163,8 @@ prefix##_link( type **link,                                                    \
                type  *object )                                                 \
 {                                                                              \
      FusionResult ret;                                                         \
+                                                                               \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
                                                                                \
      ret = fusion_ref_up( &((FusionObject*)object)->ref, true );               \
      if (ret)                                                                  \
@@ -164,6 +179,8 @@ static inline FusionResult                                                     \
 prefix##_unlink( type **link )                                                 \
 {                                                                              \
      type *object = *link;                                                     \
+                                                                               \
+     DFB_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                 \
                                                                                \
      *link = NULL;                                                             \
                                                                                \

@@ -63,6 +63,8 @@
  *
  */
 struct _FusionReactor {
+     int magic;
+
      int id;        /* reactor id                          */
      int msg_size;  /* size of each message                */
 
@@ -132,6 +134,8 @@ fusion_reactor_new (int msg_size)
 
      fusion_skirmish_init( &reactor->globals_lock );
 
+     DFB_MAGIC_SET( reactor, FusionReactor );
+
      return reactor;
 }
 
@@ -147,6 +151,8 @@ fusion_reactor_attach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( react != NULL );
      DFB_ASSERT( reaction != NULL );
+
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
 
      while (ioctl (_fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
           switch (errno) {
@@ -208,6 +214,8 @@ fusion_reactor_detach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
+
      DFB_ASSUME( reaction->attached );
 
      if (!reaction->attached)
@@ -261,6 +269,8 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
      DFB_ASSERT( react_index >= 0 );
      DFB_ASSERT( reaction != NULL );
 
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
+
      ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
           return ret;
@@ -286,6 +296,8 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
 
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
+
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
 
      DFB_ASSUME( reaction->attached );
 
@@ -318,6 +330,8 @@ fusion_reactor_dispatch (FusionReactor *reactor,
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( msg_data != NULL );
+
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
 
      if (self)
           _fusion_reactor_process_message( reactor->id, msg_data );
@@ -359,6 +373,10 @@ fusion_reactor_free (FusionReactor *reactor)
 {
      DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( reactor != NULL );
+
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
+
+     DFB_MAGIC_CLEAR( reactor );
 
      fusion_skirmish_prevail( &reactor->globals_lock );
      fusion_skirmish_destroy( &reactor->globals_lock );
@@ -485,6 +503,8 @@ process_globals( FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( msg_data != NULL );
      DFB_ASSERT( globals != NULL );
+
+     DFB_MAGIC_ASSERT( reactor, FusionReactor );
 
      while (globals[max_index+1]) {
           max_index++;

@@ -293,6 +293,8 @@ fusion_object_create( FusionObjectPool *pool )
 
      FDEBUG("{%s} added %p\n", pool->name, object);
 
+     DFB_MAGIC_SET( object, FusionObject );
+
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
 
@@ -302,6 +304,8 @@ fusion_object_create( FusionObjectPool *pool )
 FusionResult
 fusion_object_activate( FusionObject *object )
 {
+     DFB_MAGIC_ASSERT( object, FusionObject );
+
      /* Set "active" state. */
      object->state = FOS_ACTIVE;
 
@@ -312,6 +316,8 @@ FusionResult
 fusion_object_destroy( FusionObject     *object )
 {
      DFB_ASSERT( object != NULL );
+
+     DFB_MAGIC_CLEAR( object );
 
      /* Set "deinitializing" state. */
      object->state = FOS_DEINIT;
