@@ -408,10 +408,16 @@ IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
 static DFBResult
 IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 {
+     CoreWindow *window;
+
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     window = data->window;
+     if (window)
           return DFB_DESTROYED;
+
+     if ((window->options & DWOP_GHOST) || !window->opacity)
+          return DFB_UNSUPPORTED;
 
      dfb_window_request_focus( data->window );
 
