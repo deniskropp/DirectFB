@@ -101,16 +101,6 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency );
 #endif
 
 /*
- * macro for error handling in init functions
- */
-#define INITCHECK(a...)                                                     \
-     if ((ret = a) != DFB_OK) {                                             \
-          ERRORMSG("DirectFB/Core: Error during initialization: " #a "\n"); \
-          dfb_core_deinit_emergency();                                      \
-          return ret;                                                       \
-     }
-
-/*
  * ckecks if stack is clean, otherwise prints warning, then calls core_deinit()
  */
 static void
@@ -149,7 +139,8 @@ dfb_core_ref()
 #else
      char *mmx_string = "";
 #endif
-     int   fid;
+     int fid;
+     int ret;
 
      /* check for multiple calls, do reference counting */
      if (dfb_core && dfb_core->refs++)
@@ -184,10 +175,24 @@ dfb_core_ref()
      dfb_core->fid   = fid;
 
 #ifndef FUSION_FAKE
-     arena_enter ("DirectFB/Core",
-                  dfb_core_initialize, dfb_core_join, NULL);
-     if (!dfb_core)
-          return DFB_INIT;
+     if (arena_enter ("DirectFB/Core",
+                      dfb_core_initialize, dfb_core_join, NULL,
+                      &dfb_core->arena, &ret))
+     {
+          fusion_exit();
+
+          DFBFREE( dfb_core );
+          dfb_core = NULL;
+
+          return DFB_FUSION;
+     }
+     
+     if (ret) {
+          ERRORMSG("DirectFB/Core: Error during initialization (%s)\n",
+                   DirectFBErrorString( ret ));
+          dfb_core_deinit_emergency();
+          return ret;
+     }
 #else
      if (dfb_core_initialize( NULL, NULL ))
           return DFB_INIT;
@@ -216,7 +221,7 @@ dfb_core_unref()
 
 #ifndef FUSION_FAKE
      arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, false );
+                 dfb_core_shutdown, dfb_core_leave, false, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, false );
 #endif
@@ -294,7 +299,7 @@ dfb_core_deinit_emergency()
 
 #ifndef FUSION_FAKE
      arena_exit( dfb_core->arena,
-                 dfb_core_shutdown, dfb_core_leave, true );
+                 dfb_core_shutdown, dfb_core_leave, true, NULL );
 #else
      dfb_core_shutdown( NULL, NULL, true );
 #endif
@@ -340,22 +345,38 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 
      dfb_sig_install_handlers();
      
-     dfb_core->arena  = arena;
      dfb_core->master = true;
 
 #ifdef DFB_DEBUG
      fbdebug_init();
 #endif
 
-     INITCHECK( dfb_colorhash_initialize() );
+     ret = dfb_colorhash_initialize();
+     if (ret)
+          return ret;
      
-     INITCHECK( dfb_system_initialize() );
      
-     INITCHECK( dfb_input_initialize() );
-     INITCHECK( dfb_gfxcard_initialize() );
-     INITCHECK( dfb_layers_initialize() );
+     ret = dfb_system_initialize();
+     if (ret)
+          return ret;
      
-     INITCHECK( dfb_layers_init_all() );
+     
+     ret = dfb_input_initialize();
+     if (ret)
+          return ret;
+     
+     ret = dfb_gfxcard_initialize();
+     if (ret)
+          return ret;
+     
+     ret = dfb_layers_initialize();
+     if (ret)
+          return ret;
+     
+     
+     ret = dfb_layers_init_all();
+     if (ret)
+          return ret;
 
      return 0;
 }
@@ -372,17 +393,33 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      dfb_sig_install_handlers();
      
-     dfb_core->arena  = arena;
 
-     INITCHECK( dfb_colorhash_join() );
+     ret = dfb_colorhash_join();
+     if (ret)
+          return ret;
      
-     INITCHECK( dfb_system_join() );
      
-     INITCHECK( dfb_input_join() );
-     INITCHECK( dfb_gfxcard_join() );
-     INITCHECK( dfb_layers_join() );
+     ret = dfb_system_join();
+     if (ret)
+          return ret;
+     
+     
+     ret = dfb_input_join();
+     if (ret)
+          return ret;
+     
+     ret = dfb_gfxcard_join();
+     if (ret)
+          return ret;
+     
+     ret = dfb_layers_join();
+     if (ret)
+          return ret;
 
-     INITCHECK( dfb_layers_join_all() );
+
+     ret = dfb_layers_join_all();
+     if (ret)
+          return ret;
      
      return 0;
 }

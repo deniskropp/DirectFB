@@ -35,23 +35,26 @@ typedef int (*ArenaEnterFunc) (FusionArena *arena, void *ctx);
 typedef int (*ArenaExitFunc) (FusionArena *arena, void *ctx, bool emergency);
 
 
-FusionArena  *arena_enter            (const char     *name,
-                                      ArenaEnterFunc  initialize,
-                                      ArenaEnterFunc  join,
-                                      void           *ctx);
+FusionResult  arena_enter            (const char      *name,
+                                      ArenaEnterFunc   initialize,
+                                      ArenaEnterFunc   join,
+                                      void            *ctx,
+                                      FusionArena    **ret_arena,
+                                      int             *ret_error);
 
-FusionResult  arena_add_shared_field (FusionArena    *arena,
-                                      void           *data,
-                                      const char     *name);
+FusionResult  arena_add_shared_field (FusionArena     *arena,
+                                      void            *data,
+                                      const char      *name);
 
-FusionResult  arena_get_shared_field (FusionArena    *arena,
-                                      void          **data,
-                                      const char     *name);
+FusionResult  arena_get_shared_field (FusionArena     *arena,
+                                      void           **data,
+                                      const char      *name);
 
-void          arena_exit             (FusionArena    *arena,
-                                      ArenaExitFunc   shutdown,
-                                      ArenaExitFunc   leave,
-                                      bool            emergency);
+FusionResult  arena_exit             (FusionArena     *arena,
+                                      ArenaExitFunc    shutdown,
+                                      ArenaExitFunc    leave,
+                                      bool             emergency,
+                                      int             *ret_error);
 
 #endif /* !FUSION_FAKE */
 

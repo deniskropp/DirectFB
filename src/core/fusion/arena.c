@@ -93,16 +93,24 @@ struct _FusionArena {
  *  Public API  *
  ****************/
 
-FusionArena *arena_enter (const char     *name,
+FusionResult arena_enter (const char     *name,
                           ArenaEnterFunc  initialize,
                           ArenaEnterFunc  join,
-                          void           *ctx)
+                          void           *ctx,
+                          FusionArena   **ret_arena,
+                          int            *ret_error)
 {
      key_t              key;
      FusionArena       *arena;
      ArenaShared       *shared;
      ArenaEnterFunc     func;
      AcquisitionStatus  as;
+     int                error = 0;
+
+     DFB_ASSERT( name != NULL );
+     DFB_ASSERT( initialize != NULL );
+     DFB_ASSERT( join != NULL );
+     DFB_ASSERT( ret_arena != NULL );
 
      key = keygen (name, FUSION_KEY_ARENA);
 
@@ -116,7 +124,7 @@ FusionArena *arena_enter (const char     *name,
      as = _shm_acquire (key, sizeof(ArenaShared), &arena->shared_shm);
      if (as == AS_Failure) {
           DFBFREE (arena);
-          return NULL;
+          return FUSION_FAILURE;
      }
 
      arena->shared = shared = shmat (arena->shared_shm, NULL, 0);
@@ -145,7 +153,7 @@ FusionArena *arena_enter (const char     *name,
                skirmish_dismiss (&arena->shared->lock);
 
                DFBFREE (arena);
-               return NULL;
+               return FUSION_LIMITREACHED;
           }
 
           fusion_ref_up (&shared->ref, false);
@@ -160,11 +168,16 @@ FusionArena *arena_enter (const char     *name,
      FDEBUG ("added fid %x to arena nodes (%d)\n", _fusion_id(), arena->shared->nodes.num);
 
      if (func)
-          func (arena, ctx);
-
+          error = func (arena, ctx);
+     
      skirmish_dismiss (&arena->shared->lock);
 
-     return arena;
+     *ret_arena = arena;
+
+     if (ret_error)
+          *ret_error = error;
+     
+     return FUSION_SUCCESS;
 }
 
 FusionResult arena_add_shared_field (FusionArena *arena,
@@ -232,11 +245,14 @@ FusionResult arena_get_shared_field (FusionArena  *arena,
      return FUSION_NOTEXISTENT;
 }
 
-void arena_exit (FusionArena   *arena,
-                 ArenaExitFunc  shutdown,
-                 ArenaExitFunc  leave,
-                 bool           emergency)
+FusionResult arena_exit (FusionArena   *arena,
+                         ArenaExitFunc  shutdown,
+                         ArenaExitFunc  leave,
+                         bool           emergency,
+                         int           *ret_error)
 {
+     int error = 0;
+
      skirmish_prevail (&arena->shared->lock);
 
      if (arena->shared->nodes.num > 1) {
@@ -255,14 +271,15 @@ void arena_exit (FusionArena   *arena,
      fusion_ref_down (&arena->shared->ref, false);
 
      if (fusion_ref_zero_trylock (&arena->shared->ref) == FUSION_SUCCESS) {
-          shutdown (arena, arena->ctx, emergency);
+          error = shutdown (arena, arena->ctx, emergency);
 
           fusion_ref_destroy (&arena->shared->ref);
 
           skirmish_destroy (&arena->shared->lock);
      }
      else {
-          leave (arena, arena->ctx, emergency);
+          error = leave (arena, arena->ctx, emergency);
+
           skirmish_dismiss (&arena->shared->lock);
      }
 
@@ -272,6 +289,11 @@ void arena_exit (FusionArena   *arena,
      }
 
      DFBFREE (arena);
+
+     if (ret_error)
+          *ret_error = error;
+
+     return FUSION_SUCCESS;
 }
 
 
