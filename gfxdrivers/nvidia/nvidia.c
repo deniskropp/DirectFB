@@ -312,6 +312,20 @@ static void nvSetState( void *drv, void *dev,
      if (state->modified & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
+     if (state->modified & SMF_DRAWING_FLAGS) {
+          if (state->drawingflags == DSDRAW_BLEND)
+               nvdev->drawfx = 0x00000002;
+          else
+               nvdev->drawfx = 0x00000000;
+     }
+
+     if (state->modified & SMF_BLITTING_FLAGS) {
+          if (state->blittingflags == DSBLIT_BLEND_COLORALPHA)
+               nvdev->blitfx = 0x00000002;
+          else
+               nvdev->blitfx = 0x00000000;
+     }
+
      if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
           switch (state->destination->format) {
                case DSPF_ARGB1555:
@@ -320,13 +334,13 @@ static void nvSetState( void *drv, void *dev,
                                                    state->color.g,
                                                    state->color.b );
                     break;
-              
+
                case DSPF_RGB16:
                     nvdev->color = PIXEL_RGB16( state->color.r,
                                                 state->color.g,
                                                 state->color.b );
                     break;
-              
+
                case DSPF_RGB32:
                     nvdev->color = PIXEL_RGB32( state->color.r,
                                                 state->color.g,
@@ -348,25 +362,11 @@ static void nvSetState( void *drv, void *dev,
                     D_BUG( "unexpected pixelformat" );
                     break;
           }
-     }
 
-     if (state->modified & SMF_DRAWING_FLAGS) {
-          if (state->drawingflags == DSDRAW_BLEND)
-               nvdev->drawfx = 0x00000002;
-          else
-               nvdev->drawfx = 0x00000000;
+          /* set alpha value if using transparency */
+          if (nvdev->drawfx || nvdev->blitfx)
+               PGRAPH[0x608/4] = state->color.a << 23;
      }
-
-     if (state->modified & SMF_BLITTING_FLAGS) {
-          if (state->blittingflags == DSBLIT_BLEND_COLORALPHA)
-               nvdev->blitfx = 0x00000002;
-          else
-               nvdev->blitfx = 0x00000000;
-     }
-
-     /* set alpha value if using transparency */
-     if (nvdev->drawfx || nvdev->blitfx)
-          PGRAPH[0x608/4] = state->color.a << 23;
 
      state->modified = 0;
 }
@@ -508,8 +508,10 @@ static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
      NV_FIFO_FREE( nvdev, ScaledImage, 4 )
      ScaledImage->ImageInSize    = (source->height << 16) | source->width;
      ScaledImage->ImageInFormat  = source->front_buffer->video.pitch;
-     ScaledImage->ImageInOffset  = source->front_buffer->video.offset & 0x1FFFFFF;
-     ScaledImage->ImageInPoint   = 0;
+     ScaledImage->ImageInOffset  = (source->front_buffer->video.offset & 0x1FFFFFF) + 
+                                   (sr->y * source->front_buffer->video.pitch)      +
+				   (sr->x * DFB_BITS_PER_PIXEL( source->format ) >> 3);
+     ScaledImage->ImageInPoint   = 0; /* how does it work ??... */
      
      return true;
 }
@@ -675,7 +677,7 @@ driver_get_info( GraphicsDevice     *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "nVidia RIVA TNT/TNT2/GeForce Driver" );
+               "nVidia TNT/TNT2/GeForce Driver" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
