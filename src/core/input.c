@@ -447,13 +447,13 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
           case DIET_KEYPRESS:
           case DIET_KEYRELEASE:
                if (dfb_config->capslock_meta) {
-                    if (device->shared->keymap.num_entries)
+                    if (device->shared->keymap.num_entries && (event->flags & DIEF_KEYCODE))
                          lookup_from_table( device, event, (DIEF_KEYID |
                                                             DIEF_KEYSYMBOL) & ~event->flags );
 
                     if (event->key_id == DIKI_CAPS_LOCK || event->key_symbol == DIKS_CAPS_LOCK) {
                          event->flags     |= DIEF_KEYID | DIEF_KEYSYMBOL;
-
+                         event->key_code   = -1;
                          event->key_id     = DIKI_META_L;
                          event->key_symbol = DIKS_META;
                     }
