@@ -55,6 +55,34 @@ static void surface_deallocate_buffer     ( CoreSurface    *surface,
                                             SurfaceBuffer  *buffer );
 
 
+/* internal functions needed to avoid side effects */
+
+static inline void video_access_by_hardware( SurfaceBuffer       *buffer,
+                                             DFBSurfaceLockFlags  flags )
+{
+     if (flags & DSLF_READ) {
+          if (buffer->video.written & VWF_BY_SOFTWARE) {
+               gfxcard_flush_texture_cache();
+               buffer->video.written &= ~VWF_BY_SOFTWARE;
+          }
+     }
+     if (flags & DSLF_WRITE)
+          buffer->video.written |= VWF_BY_HARDWARE;
+}
+
+static inline void video_access_by_software( SurfaceBuffer       *buffer,
+                                             DFBSurfaceLockFlags  flags )
+{
+     if (flags & (DSLF_READ | DSLF_WRITE)) {
+          if (buffer->video.written & VWF_BY_HARDWARE) {
+               gfxcard_sync();
+               buffer->video.written &= ~VWF_BY_HARDWARE;
+          }
+     }
+     if (flags & DSLF_WRITE)
+          buffer->video.written |= VWF_BY_SOFTWARE;
+}
+
 /** public **/
 
 DFBResult surface_create( int width, int height, int format, int policy,
@@ -245,7 +273,7 @@ DFBResult surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
                     *data = gfxcard_memory_virtual( buffer->video.offset );
                     *pitch = buffer->video.pitch;
                     buffer->system.health = CSH_RESTORE;
-                    gfxcard_sync();
+                    video_access_by_software( buffer, flags );
                }
                break;
           case CSP_VIDEOHIGH:
@@ -265,7 +293,7 @@ DFBResult surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
                buffer->video.locked = 1;
                *data = gfxcard_memory_virtual( buffer->video.offset );
                *pitch = buffer->video.pitch;
-               gfxcard_sync();
+               video_access_by_software( buffer, flags );
                break;
           default:
                BUG( "invalid surface policy" );
@@ -305,23 +333,20 @@ DFBResult surface_hardware_lock( CoreSurface *surface,
                /* never ever! */
                break;
 
-          case CSP_VIDEOHIGH:   // XXX enabled XXX, see below
+          case CSP_VIDEOHIGH:
           case CSP_VIDEOLOW:
                /* no reading? no force? no video instance? no success! ;-) */
                if (!(flags & (DSLF_READ|CSLF_FORCE)) && buffer->video.health != CSH_STORED)
                     break;
-               /* fall through */
-
-//          case CSP_VIDEOHIGH: // XXX disabled XXX
                if (surfacemanager_assure_video( surface->manager, buffer ))
                     break;
-               buffer->video.locked = 1;
                if (flags & DSLF_WRITE)
                     buffer->system.health = CSH_RESTORE;
-               return DFB_OK;
+               /* fall through */
 
           case CSP_VIDEOONLY:
                buffer->video.locked = 1;
+               video_access_by_hardware( buffer, flags );
                return DFB_OK;
 
           default:
@@ -345,8 +370,6 @@ DFBResult surface_hardware_lock( CoreSurface *surface,
 
 void surface_unlock( CoreSurface *surface, int front )
 {
-     gfxcard_flush_texture_cache();
-
      if (front) {
           surface->front_buffer->video.locked = 0;
           skirmish_dismiss( &surface->front_lock );

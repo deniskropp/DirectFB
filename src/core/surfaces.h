@@ -51,30 +51,39 @@ typedef struct {
      CoreSurface                  *surface;
 } CoreSurfaceNotification;
 
+typedef enum {
+     VWF_NONE         = 0x00000000,     /* no write access happened since last
+                                           clearing of all bits */
+     VWF_BY_SOFTWARE  = 0x00000001,     /* software wrote to buffer */
+     VWF_BY_HARDWARE  = 0x00000002      /* hardware wrote to buffer */
+} VideoWrittenFlags;
 
 struct _SurfaceBuffer
 {
-     int                 policy;        /* swapping policy for surfacemanager */
+     int                    policy;     /* swapping policy for surfacemanager */
 
      struct {
-          int            health;        /* currently stored in system memory? */
+          int               health;     /* currently stored in system memory? */
 
-          int            pitch;         /* number of bytes til next line */
-          void           *addr;         /* address pointing to surface data */
+          int               pitch;      /* number of bytes til next line */
+          void             *addr;       /* address pointing to surface data */
      } system;
 
      struct {
-          int            health;        /* currently stored in video memory? */
-          int            locked;        /* video instance is locked, don't
+          int               health;     /* currently stored in video memory? */
+          int               locked;     /* video instance is locked, don't
                                            try to kick out, could deadlock */
 
-          int            pitch;         /* number of bytes til next line */
-          int            offset;        /* byte offset from the beginning
+          VideoWrittenFlags written;    /* information about recent write
+                                           accesses to video buffer memory */
+
+          int               pitch;      /* number of bytes til next line */
+          int               offset;     /* byte offset from the beginning
                                            of the framebuffer */
-          struct _Chunk *chunk;         /* points to the allocated chunk */
+          struct _Chunk    *chunk;      /* points to the allocated chunk */
      } video;
 
-     CoreSurface        *surface;       /* always pointing to the surface this
+     CoreSurface           *surface;    /* always pointing to the surface this
                                            buffer belongs to, surfacemanger
                                            always depends on this! */
 };

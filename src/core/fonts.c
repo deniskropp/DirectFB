@@ -33,6 +33,7 @@
 #include "coretypes.h"
 
 #include "fonts.h"
+#include "gfxcard.h"
 #include "surfaces.h"
 
 #include "misc/mem.h"
@@ -120,6 +121,8 @@ DFBResult font_get_glyph_data( CoreFont        *font,
                     data->surface = font->surfaces[font->rows - 1];
                     data->start   = font->next_x;
                     font->next_x += data->width;
+
+                    gfxcard_flush_texture_cache();
                }
                else {
                     data->start = data->width = data->height = 0;
