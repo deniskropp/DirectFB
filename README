@@ -88,15 +88,18 @@ Usage Requirements
 
        crw-rw----    1 root     tty       29,   0  /dev/fb0
        crw-rw----    1 root     tty       10,   1  /dev/psaux
-       crw-rw----    1 root     tty        4,   0  /dev/tty0
+       crw-r-----    1 root     tty        4,   0  /dev/tty0
 
    If you are using the multi application core, only the master process needs
    access to all of these devices. Additional processes (slaves) just need
-   access to /dev/fb0, but additionally /dev/fusion/0 and the shared memory,
-   e.g. '/dev/shm/fusion.0'. You should start the master as a normal user,
-   but have the binary suid root, i.e. 'chown root' and 'chmod u+s'. This way
-   the shared memory file is created in the group of the user that started the
-   master.
+   access to /dev/fb0 and:
+
+       crw-rw----    1 root     fusion    29,   0  /dev/fusion/0
+   
+   Note that the master creates a shared memory file, probably
+   in '/dev/shm/fusion.0'. It's read/writeable for anyone matching
+   the master process' user or group.
+
 
    Some applications from the DirectFB-examples package have additional
    requirements:
