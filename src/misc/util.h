@@ -31,7 +31,7 @@
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
 #define MAX(a,b) ((a) > (b) ? (a) : (b))
 
-#define SGN(x)   ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
+#define SIGN(x)  ((x<0) ?  -1  :  ((x>0) ? 1 : 0))
 
 void trim( char **s );
 

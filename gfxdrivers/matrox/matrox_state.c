@@ -360,6 +360,19 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                
                break;
           }
+          case DFXL_FILLTRIANGLE: {
+               unsigned int atype = config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
+
+               if (matrox->state->drawingflags & DSDRAW_BLEND)
+                    mga_out32( mmio_base, BOP_COPY | SHFTZERO | ATYPE_I | OP_TRAP,
+                               DWGCTL );
+               else
+                    mga_out32( mmio_base, TRANSC | BOP_COPY | SHFTZERO |
+                                          SOLID | atype | OP_TRAP,
+                               DWGCTL );
+
+               break;
+          }
           case DFXL_BLIT: {
                if (matrox_tmu) {
                     mga_out32( mmio_base, BOP_COPY | SHFTZERO | SGNZERO | ARZERO |

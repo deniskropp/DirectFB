@@ -292,3 +292,6 @@
 #define BLIT_LEFT     1
 #define BLIT_UP       4
 
+
+#define SDXL          0x0002
+#define SDXR          0x0020

@@ -2020,8 +2020,8 @@ void gDrawLine( DFBRegion *line )
           return;
      }
 
-     sdx = SGN(dx);
-     sdy = SGN(dy);
+     sdx = SIGN(dx);
+     sdy = SIGN(dy);
      x   = dyabs >> 1;
      y   = dxabs >> 1;
      px  = line->x1;

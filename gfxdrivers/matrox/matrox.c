@@ -34,6 +34,9 @@
 #include <core/coredefs.h>
 #include <core/gfxcard.h>
 
+#include <gfx/util.h>
+#include <misc/util.h>
+
 #include "regs.h"
 #include "mmio.h"
 #include "matrox.h"
@@ -77,6 +80,7 @@ static void matroxEngineSync()
 #define MATROX_SUPPORTED_FUNCTIONS DFXL_FILLRECTANGLE | \
                                    DFXL_DRAWRECTANGLE | \
                                    DFXL_DRAWLINE      | \
+                                   DFXL_FILLTRIANGLE  | \
                                    DFXL_BLIT          | \
                                    DFXL_STRETCHBLIT
 
@@ -139,6 +143,7 @@ static void matroxSetState( CardState *state, DFBAccelerationMask accel )
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
+          case DFXL_FILLTRIANGLE:
                if (state->modified & SMF_DRAWING_FLAGS)
                     state->set = 0;
 
@@ -243,6 +248,74 @@ static void matroxDrawLine( DFBRegion *line )
 
      mga_out32( mmio_base, RS16(line->x2) | (RS16(line->y2) << 16),
                            XYEND | EXECUTE );
+}
+
+static void matroxFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int dY )
+{
+  int dxl = X2l - Xl;
+  int dxr = ++X2r - ++Xr;
+
+  int dXl = abs(dxl);
+  int dXr = abs(dxr);
+
+  __u32 sgn = 0;
+
+  mga_waitfifo( mmio_base, 6 );
+
+  mga_out32( mmio_base, dY, AR0 );
+  mga_out32( mmio_base, - dXl, AR1 );
+  mga_out32( mmio_base, - dXl, AR2 );
+  mga_out32( mmio_base, - dXr, AR4 );
+  mga_out32( mmio_base, - dXr, AR5 );
+  mga_out32( mmio_base, dY, AR6 );
+
+  if (dxl < 0)
+    sgn |= SDXL;
+  if (dxr < 0)
+    sgn |= SDXR;
+
+  mga_waitfifo( mmio_base, 3 );
+
+  mga_out32( mmio_base, sgn, SGN );
+  mga_out32( mmio_base, (RS16(Xr) << 16) | RS16(Xl), FXBNDRY );
+  mga_out32( mmio_base, (RS16(Y) << 16) | RS16(dY), YDSTLEN | EXECUTE );
+}
+
+static void matroxFillTriangle( DFBTriangle *tri )
+{
+     sort_triangle( tri );
+
+     if (tri->y2 == tri->y3) {
+       matroxFillTrapezoid( tri->x1, tri->x1,
+			    MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
+			    tri->y1, tri->y3 - tri->y1 + 1 );
+     } else
+     if (tri->y1 == tri->y2) {
+       matroxFillTrapezoid( MIN( tri->x1, tri->x2 ), MAX( tri->x1, tri->x2 ),
+			    tri->x3, tri->x3,
+			    tri->y1, tri->y3 - tri->y1 + 1 );
+     }
+     else {
+       int majDx = tri->x3 - tri->x1;
+       int majDy = tri->y3 - tri->y1;
+       int topDx = tri->x2 - tri->x1;
+       int topDy = tri->y2 - tri->y1;
+       int botDy = tri->y3 - tri->y2;
+
+       int topXperY = (topDx << 20) / topDy;
+       int X2a = tri->x1 + (((topXperY * topDy) + (1<<19)) >> 20);
+
+       int majXperY = (majDx << 20) / majDy;
+       int majX2  = tri->x1 + (((majXperY * topDy) + (1<<19)) >> 20);
+       int majX2a = majX2 - ((majXperY + (1<<19)) >> 20);
+
+       matroxFillTrapezoid( tri->x1, tri->x1,
+			    MIN( X2a, majX2a ), MAX( X2a, majX2a ),
+			    tri->y1, topDy );
+       matroxFillTrapezoid( MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
+			    tri->x3, tri->x3,
+			    tri->y2, botDy + 1 );
+     }
 }
 
 static void matroxBlit( DFBRectangle *rect, int dx, int dy )
@@ -370,6 +443,7 @@ int driver_init( int fd, GfxCard *card )
      card->FillRectangle = matroxFillRectangle;
      card->DrawRectangle = matroxDrawRectangle;
      card->DrawLine = matroxDrawLine;
+     card->FillTriangle = matroxFillTriangle;
      card->Blit = matroxBlit;
      card->StretchBlit = matroxStretchBlit;
 
