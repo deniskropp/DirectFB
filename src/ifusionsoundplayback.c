@@ -141,7 +141,6 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
      if (stop >= data->length)
           return DFB_INVARG;
 
-     /* FIXME: dead lock with our listener */
      pthread_mutex_lock( &data->lock );
 
      fs_playback_set_position( data->playback, start );
@@ -301,7 +300,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      pthread_mutexattr_init( &attr );
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 
-     pthread_mutex_init( &data->lock, NULL );
+     pthread_mutex_init( &data->lock, &attr );
 
      pthread_mutexattr_destroy( &attr );
 
@@ -343,7 +342,7 @@ IFusionSoundPlayback_React( const void *msg_data,
      if (notification->flags & CPNF_ADVANCE)
           DEBUGMSG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
 
-//     pthread_mutex_lock( &data->lock );
+     pthread_mutex_lock( &data->lock );
 
      data->position = notification->pos;
 
@@ -359,7 +358,7 @@ IFusionSoundPlayback_React( const void *msg_data,
 
      pthread_cond_broadcast( &data->wait );
 
-//     pthread_mutex_unlock( &data->lock );
+     pthread_mutex_unlock( &data->lock );
 
      return RS_OK;
 }
