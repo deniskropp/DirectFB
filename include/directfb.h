@@ -1792,91 +1792,6 @@ typedef struct {
 
 
 /*
- * Capabilities of a display encoder.
- */
-typedef enum {
-     DSECAPS_NONE         = 0x00000000, /* None of these. */
-
-     DSECAPS_TV_STANDARDS = 0x00000001, /* TV standards can be selected. */
-     DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
-     DSECAPS_MIXER_SEL    = 0x00000004  /* Mixer can be selected. */
-} DFBScreenEncoderCapabilities;
-
-/*
- * Type of display encoder.
- */
-typedef enum {
-     DSET_UNKNOWN         = 0x00000000, /* Unknown type */
-
-     DSET_CRTC            = 0x00000001, /* Encoder is a CRTC. */
-     DSET_TV              = 0x00000002  /* TV output encoder. */
-} DFBScreenEncoderType;
-
-/*
- * TV standards.
- */
-typedef enum {
-     DSETV_UNKNOWN        = 0x00000000, /* Unknown standard */
-
-     DSETV_PAL            = 0x00000001, /* PAL */
-     DSETV_NTSC           = 0x00000002, /* NTSC */
-     DSETV_SECAM          = 0x00000004  /* SECAM */
-} DFBScreenEncoderTVStandards;
-
-/*
- * Description of a display encoder.
- */
-typedef struct {
-     DFBScreenEncoderCapabilities  caps;          /* Encoder capabilities. */
-     DFBScreenEncoderType          type;          /* Type of encoder. */
-
-     DFBScreenEncoderTVStandards   tv_standards;  /* Supported TV standards. */
-} DFBScreenEncoderDescription;
-
-/*
- * Flags for display encoder configuration.
- */
-typedef enum {
-     DSECONF_NONE         = 0x00000000, /* None of these. */
-
-     DSECONF_TV_STANDARD  = 0x00000001, /* Set TV standard. */
-     DSECONF_TEST_PICTURE = 0x00000002, /* Set test picture mode. */
-     DSECONF_MIXER        = 0x00000004, /* Select mixer. */
-
-     DSECONF_ALL          = 0x00000007
-} DFBScreenEncoderConfigFlags;
-
-/*
- * Test picture mode.
- */
-typedef enum {
-     DSETP_OFF            = 0x00000000, /* Disable test picture. */
-
-     DSETP_MULTI_COLOR    = 0x00000001, /* Show color bars. */
-
-     DSETP_SINGLE_BLACK   = 0x00000002, /* Whole screen black. */
-     DSETP_SINGLE_WHITE   = 0x00000003, /* Whole screen white. */
-     DSETP_SINGLE_YELLOW  = 0x00000004, /* Whole screen yellow. */
-     DSETP_SINGLE_CYAN    = 0x00000005, /* Whole screen cyan. */
-     DSETP_SINGLE_GREEN   = 0x00000006, /* Whole screen green. */
-     DSETP_SINGLE_MAGENTA = 0x00000007, /* Whole screen magenta. */
-     DSETP_SINGLE_RED     = 0x00000008, /* Whole screen red. */
-     DSETP_SINGLE_BLUE    = 0x00000009  /* Whole screen blue. */
-} DFBScreenEncoderTestPicture;
-
-/*
- * Configuration of a display encoder.
- */
-typedef struct {
-     DFBScreenEncoderConfigFlags   flags;        /* Validates struct members. */
-
-     DFBScreenEncoderTVStandards   tv_standard;  /* TV standard. */
-     DFBScreenEncoderTestPicture   test_picture; /* Test picture mode. */
-     int                           mixer;        /* Selected mixer. */
-} DFBScreenEncoderConfig;
-
-
-/*
  * Capabilities of an output.
  */
 typedef enum {
@@ -1931,7 +1846,7 @@ typedef struct {
 typedef enum {
      DSOCONF_NONE         = 0x00000000, /* None of these. */
 
-     DSOCONF_ENCODER      = 0x00000001, /* Set encoder the signal comes from. */
+     DSOCONF_ENCODER      = 0x00000001, /* Set encoder the signal(s) comes from. */
      DSOCONF_SIGNALS      = 0x00000002, /* Select signal(s) from encoder. */
      DSOCONF_CONNECTORS   = 0x00000004, /* Select output connector(s). */
 
@@ -1948,6 +1863,92 @@ typedef struct {
      DFBScreenOutputSignals      out_signals;    /* Selected encoder signal(s). */
      DFBScreenOutputConnectors   out_connectors; /* Selected output connector(s). */
 } DFBScreenOutputConfig;
+
+
+/*
+ * Capabilities of a display encoder.
+ */
+typedef enum {
+     DSECAPS_NONE         = 0x00000000, /* None of these. */
+
+     DSECAPS_TV_STANDARDS = 0x00000001, /* TV standards can be selected. */
+     DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
+     DSECAPS_MIXER_SEL    = 0x00000004  /* Mixer can be selected. */
+} DFBScreenEncoderCapabilities;
+
+/*
+ * Type of display encoder.
+ */
+typedef enum {
+     DSET_UNKNOWN         = 0x00000000, /* Unknown type */
+
+     DSET_CRTC            = 0x00000001, /* Encoder is a CRTC. */
+     DSET_TV              = 0x00000002  /* TV output encoder. */
+} DFBScreenEncoderType;
+
+/*
+ * TV standards.
+ */
+typedef enum {
+     DSETV_UNKNOWN        = 0x00000000, /* Unknown standard */
+
+     DSETV_PAL            = 0x00000001, /* PAL */
+     DSETV_NTSC           = 0x00000002, /* NTSC */
+     DSETV_SECAM          = 0x00000004  /* SECAM */
+} DFBScreenEncoderTVStandards;
+
+/*
+ * Description of a display encoder.
+ */
+typedef struct {
+     DFBScreenEncoderCapabilities  caps;          /* Encoder capabilities. */
+     DFBScreenEncoderType          type;          /* Type of encoder. */
+
+     DFBScreenEncoderTVStandards   tv_standards;  /* Supported TV standards. */
+     DFBScreenOutputSignals        out_signals;   /* Supported output signals. */
+} DFBScreenEncoderDescription;
+
+/*
+ * Flags for display encoder configuration.
+ */
+typedef enum {
+     DSECONF_NONE         = 0x00000000, /* None of these. */
+
+     DSECONF_TV_STANDARD  = 0x00000001, /* Set TV standard. */
+     DSECONF_TEST_PICTURE = 0x00000002, /* Set test picture mode. */
+     DSECONF_MIXER        = 0x00000004, /* Select mixer. */
+
+     DSECONF_ALL          = 0x00000007
+} DFBScreenEncoderConfigFlags;
+
+/*
+ * Test picture mode.
+ */
+typedef enum {
+     DSETP_OFF            = 0x00000000, /* Disable test picture. */
+
+     DSETP_MULTI_COLOR    = 0x00000001, /* Show color bars. */
+
+     DSETP_SINGLE_BLACK   = 0x00000002, /* Whole screen black. */
+     DSETP_SINGLE_WHITE   = 0x00000003, /* Whole screen white. */
+     DSETP_SINGLE_YELLOW  = 0x00000004, /* Whole screen yellow. */
+     DSETP_SINGLE_CYAN    = 0x00000005, /* Whole screen cyan. */
+     DSETP_SINGLE_GREEN   = 0x00000006, /* Whole screen green. */
+     DSETP_SINGLE_MAGENTA = 0x00000007, /* Whole screen magenta. */
+     DSETP_SINGLE_RED     = 0x00000008, /* Whole screen red. */
+     DSETP_SINGLE_BLUE    = 0x00000009  /* Whole screen blue. */
+} DFBScreenEncoderTestPicture;
+
+/*
+ * Configuration of a display encoder.
+ */
+typedef struct {
+     DFBScreenEncoderConfigFlags   flags;        /* Validates struct members. */
+
+     DFBScreenEncoderTVStandards   tv_standard;  /* TV standard. */
+     DFBScreenEncoderTestPicture   test_picture; /* Test picture mode. */
+     int                           mixer;        /* Selected mixer. */
+} DFBScreenEncoderConfig;
 
 
 /*******************
