@@ -222,7 +222,7 @@ fs_core_destroy( CoreSound *core )
      /* Exit the FusionSound core arena. */
      if (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                             core->master ? NULL : fs_core_arena_leave,
-                            core, false, NULL ) == FUSION_INUSE)
+                            core, false, NULL ) == DFB_BUSY)
      {
           D_WARN( "forking to wait until all slaves terminated" );
 
@@ -233,7 +233,7 @@ fs_core_destroy( CoreSound *core )
 
                     while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                                               core->master ? NULL : fs_core_arena_leave,
-                                              core, false, NULL ) == FUSION_INUSE)
+                                              core, false, NULL ) == DFB_BUSY)
                          usleep( 100000 );
 
                     break;
@@ -241,7 +241,7 @@ fs_core_destroy( CoreSound *core )
                case 0:
                     while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                                               core->master ? NULL : fs_core_arena_leave,
-                                              core, false, NULL ) == FUSION_INUSE)
+                                              core, false, NULL ) == DFB_BUSY)
                          usleep( 100000 );
 
                     _exit(0);
@@ -284,7 +284,7 @@ fs_core_create_playback( CoreSound *core )
      return (CorePlayback*) fusion_object_create( core->shared->playback_pool );
 }
 
-FusionResult
+DirectResult
 fs_core_playlist_lock( CoreSound *core )
 {
      D_ASSERT( core != NULL );
@@ -293,7 +293,7 @@ fs_core_playlist_lock( CoreSound *core )
      return fusion_skirmish_prevail( &core->shared->playlist.lock );
 }
 
-FusionResult
+DirectResult
 fs_core_playlist_unlock( CoreSound *core )
 {
      D_ASSERT( core != NULL );

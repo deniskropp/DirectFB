@@ -48,8 +48,8 @@ CorePlayback    *fs_core_create_playback( CoreSound *core );
 /*
  * Playback list management
  */
-FusionResult fs_core_playlist_lock( CoreSound *core );
-FusionResult fs_core_playlist_unlock( CoreSound *core );
+DirectResult fs_core_playlist_lock( CoreSound *core );
+DirectResult fs_core_playlist_unlock( CoreSound *core );
 
 DFBResult fs_core_add_playback( CoreSound    *core,
                                 CorePlayback *playback );
