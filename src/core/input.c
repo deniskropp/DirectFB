@@ -187,7 +187,7 @@ void input_deinit()
 
 DFBResult input_init_devices()
 {
-     char *driver_dir = LIBDIR"/inputdrivers";
+     char *driver_dir = MODULEDIR"/inputdrivers";
 
      core_load_modules( driver_dir, input_driver_handle_func, NULL );
      

@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 neomagic_LTLIBRARIES = libdirectfb_neomagic.la
 
-neomagicdir = $(LIBDIR)/gfxdrivers
+neomagicdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_neomagic_la_SOURCES =	\
 	neomagic.c	\

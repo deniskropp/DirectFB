@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/interfaces/IDirectFBImageProvider
 
-idirectfbimageproviderdir = $(LIBDIR)/interfaces/IDirectFBImageProvider
+idirectfbimageproviderdir = $(MODULEDIR)/interfaces/IDirectFBImageProvider
 
 if GIF_PROVIDER
 GIF_PROVIDER_LTLIB = libidirectfbimageprovider_gif.la

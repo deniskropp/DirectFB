@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 joystick_LTLIBRARIES = libdirectfb_joystick.la
 
-joystickdir = $(LIBDIR)/inputdrivers
+joystickdir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_joystick_la_SOURCES =	\
 	joystick.c

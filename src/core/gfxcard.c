@@ -90,7 +90,7 @@ CoreModuleLoadResult gfxcard_driver_handle_func( void *handle,
 GfxDriver* gfxcard_find_driver()
 {
      GfxDriver *driver;
-     char      *driver_dir = LIBDIR"/gfxdrivers";
+     char      *driver_dir = MODULEDIR"/gfxdrivers";
 
      if (dfb_config->software_only)
           return NULL;

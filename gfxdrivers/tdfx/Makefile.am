@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 tdfx_LTLIBRARIES = libdirectfb_tdfx.la
 
-tdfxdir = $(LIBDIR)/gfxdrivers
+tdfxdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_tdfx_la_SOURCES =	\
 	tdfx.c	\

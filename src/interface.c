@@ -54,9 +54,9 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      struct dirent              *entry;
      DFBInterfaceImplementation *impl;
 
-     interface_dir = malloc( strlen(LIBDIR"/interfaces/") + strlen(type) + 1 );
+     interface_dir = malloc( strlen(MODULEDIR"/interfaces/") + strlen(type) + 1 );
 
-     sprintf( interface_dir, LIBDIR"/interfaces/%s", type );
+     sprintf( interface_dir, MODULEDIR"/interfaces/%s", type );
      
      pthread_mutex_lock( &implementations_mutex );
 

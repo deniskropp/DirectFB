@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 keyboard_LTLIBRARIES = libdirectfb_keyboard.la
 
-keyboarddir = $(LIBDIR)/inputdrivers
+keyboarddir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_keyboard_la_SOURCES =	\
 	keyboard.c

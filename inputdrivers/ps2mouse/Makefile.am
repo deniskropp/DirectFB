@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 ps2mouse_LTLIBRARIES = libdirectfb_ps2mouse.la
 
-ps2mousedir = $(LIBDIR)/inputdrivers
+ps2mousedir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_ps2mouse_la_SOURCES =	\
 	ps2mouse.c

@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 ati_LTLIBRARIES = libdirectfb_ati128.la
 
-atidir = $(LIBDIR)/gfxdrivers
+atidir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_ati128_la_SOURCES =	\
 	ati128.c	\

@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 matrox_LTLIBRARIES = libdirectfb_matrox.la
 
-matroxdir = $(LIBDIR)/gfxdrivers
+matroxdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_matrox_la_SOURCES =	\
 	matrox.c	\

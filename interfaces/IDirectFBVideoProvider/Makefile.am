@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/interfaces/IDirectFBVideoProvider
 
-idirectfbvideoproviderdir = $(LIBDIR)/interfaces/IDirectFBVideoProvider
+idirectfbvideoproviderdir = $(MODULEDIR)/interfaces/IDirectFBVideoProvider
 
 
 if AVIFILE_PROVIDER

@@ -8,7 +8,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 serialmouse_LTLIBRARIES = libdirectfb_serialmouse.la
 
-serialmousedir = $(LIBDIR)/inputdrivers
+serialmousedir = $(MODULEDIR)/inputdrivers
 
 libdirectfb_serialmouse_la_SOURCES = serialmouse.c
 

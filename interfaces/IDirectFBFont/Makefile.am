@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/interfaces/IDirectFBFont
 
-idirectfbfontdir = $(LIBDIR)/interfaces/IDirectFBFont
+idirectfbfontdir = $(MODULEDIR)/interfaces/IDirectFBFont
 
 if FREETYPE_PROVIDER
 FREETYPE_PROVIDER_LTLIB = libidirectfbfont_ft2.la

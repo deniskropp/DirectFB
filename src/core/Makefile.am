@@ -16,7 +16,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"	\
-	-DLIBDIR=\"@LIBDIR@\"
+	-DMODULEDIR=\"@MODULEDIR@\"
 
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
