@@ -312,20 +312,6 @@ static void nvSetState( void *drv, void *dev,
      if (state->modified & (SMF_CLIP | SMF_DESTINATION))
           nv_set_clip( nvdrv, nvdev, &state->clip );
 
-     if (state->modified & SMF_DRAWING_FLAGS) {
-          if (state->drawingflags == DSDRAW_BLEND)
-               nvdev->drawfx = 0x00000002;
-          else
-               nvdev->drawfx = 0x00000000;
-     }
-
-     if (state->modified & SMF_BLITTING_FLAGS) {
-          if (state->blittingflags == DSBLIT_BLEND_COLORALPHA)
-               nvdev->blitfx = 0x00000002;
-          else
-               nvdev->blitfx = 0x00000000;
-     }
-
      if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
           switch (state->destination->format) {
                case DSPF_ARGB1555:
@@ -362,11 +348,25 @@ static void nvSetState( void *drv, void *dev,
                     D_BUG( "unexpected pixelformat" );
                     break;
           }
-
-          /* set alpha value if using transparency */
-          if (nvdev->drawfx || nvdev->blitfx)
-               PGRAPH[0x608/4] = state->color.a << 23;
      }
+
+     if (state->modified & SMF_DRAWING_FLAGS) {
+          if (state->drawingflags == DSDRAW_BLEND)
+               nvdev->drawfx = 0x00000002;
+          else
+               nvdev->drawfx = 0x00000000;
+     }
+
+     if (state->modified & SMF_BLITTING_FLAGS) {
+          if (state->blittingflags == DSBLIT_BLEND_COLORALPHA)
+               nvdev->blitfx = 0x00000002;
+          else
+               nvdev->blitfx = 0x00000000;
+     }
+
+     /* set alpha value if using transparency */
+     if (nvdev->drawfx || nvdev->blitfx)
+          PGRAPH[0x608/4] = state->color.a << 23;
 
      state->modified = 0;
 }
@@ -383,9 +383,9 @@ static bool nvFillRectangle( void *drv, void *dev, DFBRectangle *rect )
      }
 
      NV_FIFO_FREE( nvdev, Rectangle, 3 )
-     Rectangle->Color        = nvdev->color;
-     Rectangle->TopLeft      = (rect->y << 16) | rect->x;
-     Rectangle->WidthHeight  = (rect->h << 16) | rect->w;
+     Rectangle->Color       = nvdev->color;
+     Rectangle->TopLeft     = (rect->y << 16) | rect->x;
+     Rectangle->WidthHeight = (rect->h << 16) | rect->w;
 
      return true;
 }
@@ -423,19 +423,19 @@ static bool nvDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      NV_FIFO_FREE( nvdev, Rectangle, 9 )
 
-     Rectangle->Color        = nvdev->color;
+     Rectangle->Color       = nvdev->color;
 
-     Rectangle->TopLeft      = (rect->y << 16) | rect->x;
-     Rectangle->WidthHeight  = (1 << 16) | rect->w;
+     Rectangle->TopLeft     = (rect->y << 16) | rect->x;
+     Rectangle->WidthHeight = (1 << 16) | rect->w;
 
-     Rectangle->TopLeft      = ((rect->y + rect->h - 1) << 16) | rect->x;
-     Rectangle->WidthHeight  = (1 << 16) | rect->w;
+     Rectangle->TopLeft     = ((rect->y + rect->h - 1) << 16) | rect->x;
+     Rectangle->WidthHeight = (1 << 16) | rect->w;
 
-     Rectangle->TopLeft      = ((rect->y + 1) << 16) | rect->x;
-     Rectangle->WidthHeight  = ((rect->h - 2) << 16) | 1;
+     Rectangle->TopLeft     = ((rect->y + 1) << 16) | rect->x;
+     Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
 
-     Rectangle->TopLeft      = ((rect->y + 1) << 16) | (rect->x + rect->w - 1);
-     Rectangle->WidthHeight  = ((rect->h - 2) << 16) | 1;
+     Rectangle->TopLeft     = ((rect->y + 1) << 16) | (rect->x + rect->w - 1);
+     Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
 
      return true;
 }
@@ -498,20 +498,20 @@ static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
      }
 
      NV_FIFO_FREE( nvdev, ScaledImage, 6 )
-     ScaledImage->ClipPoint      = (dr->y << 16) | dr->x;
-     ScaledImage->ClipSize       = (dr->h << 16) | dr->w;
-     ScaledImage->ImageOutPoint  = (dr->y << 16) | dr->x;
-     ScaledImage->ImageOutSize   = (dr->h << 16) | dr->w;
-     ScaledImage->DuDx           = (sr->w << 20) / dr->w;
-     ScaledImage->DvDy           = (sr->h << 20) / dr->h;
+     ScaledImage->ClipPoint     = (dr->y << 16) | dr->x;
+     ScaledImage->ClipSize      = (dr->h << 16) | dr->w;
+     ScaledImage->ImageOutPoint = (dr->y << 16) | dr->x;
+     ScaledImage->ImageOutSize  = (dr->h << 16) | dr->w;
+     ScaledImage->DuDx          = (sr->w << 20) / dr->w;
+     ScaledImage->DvDy          = (sr->h << 20) / dr->h;
 
      NV_FIFO_FREE( nvdev, ScaledImage, 4 )
-     ScaledImage->ImageInSize    = (sr->h << 16) | sr->w;
-     ScaledImage->ImageInFormat  = source->front_buffer->video.pitch;
-     ScaledImage->ImageInOffset  = (source->front_buffer->video.offset & 0x1FFFFFF) + 
-                                   (sr->y * source->front_buffer->video.pitch)      +
-				   (sr->x * DFB_BITS_PER_PIXEL( source->format ) >> 3);
-     ScaledImage->ImageInPoint   = 0; /* how does it work ??... */
+     ScaledImage->ImageInSize   = (sr->h << 16) | sr->w;
+     ScaledImage->ImageInFormat = source->front_buffer->video.pitch;
+     ScaledImage->ImageInOffset = (source->front_buffer->video.offset & 0x1FFFFFF) +
+                                  (sr->y * source->front_buffer->video.pitch)      +
+                                  (sr->x * DFB_BITS_PER_PIXEL( source->format ) >> 3);
+     ScaledImage->ImageInPoint  = 0; /* how does it work ??... */
      
      return true;
 }
@@ -533,103 +533,19 @@ static bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      }
 
      NV_FIFO_FREE( nvdev, Blt, 3 )
-     Blt->TopLeftSrc   = (rect->y << 16) | rect->x;
-     Blt->TopLeftDst   = (dy << 16) | dx;
-     Blt->WidthHeight  = (rect->h << 16) | rect->w;
+     Blt->TopLeftSrc  = (rect->y << 16) | rect->x;
+     Blt->TopLeftDst  = (dy << 16) | dx;
+     Blt->WidthHeight = (rect->h << 16) | rect->w;
 
      return true;
 }
-
-
-#if 0
-#define NV_VERTEX3D( n, x, y, z, w, col, spc, s, t ) \
-{\
-     NV_FIFO_FREE( nvdev, TexTri, 8 );\
-     TexTri->Vertex[n].sx       = x;\
-     TexTri->Vertex[n].sy       = y;\
-     TexTri->Vertex[n].sz       = z;\
-     TexTri->Vertex[n].rhw      = w;\
-     TexTri->Vertex[n].color    = col;\
-     TexTri->Vertex[n].specular = spc;\
-     TexTri->Vertex[n].ts       = s;\
-     TexTri->Vertex[n].tt       = t;\
-}
-
-static void
-nv_texture_triangle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev,
-           DFBVertex *v0, DFBVertex *v1, DFBVertex *v2 )
-{
-     volatile NVTexturedTriangle05 *TexTri = nvdrv->TexTri;
-
-     NV_VERTEX3D( 0, v0->x, v0->y, v0->z, v0->w, 0, 0, v0->s, v0->t )
-     NV_VERTEX3D( 1, v1->x, v1->y, v1->z, v1->w, 0, 0, v1->s, v1->t )
-     NV_VERTEX3D( 2, v2->x, v2->y, v2->z, v2->w, 0, 0, v2->s, v2->t )
-
-     NV_FIFO_FREE( nvdev, TexTri, 1 );
-
-     TexTri->DrawTriangle3D = (2 << 8) | (1 << 4) | 0;
-}
-#endif
-
-static bool
-nvTextureTriangles( void *drv, void *dev, DFBVertex *vertices,
-                    int num, DFBTriangleFormation formation )
-{
-#if 0
-     NVidiaDriverData              *nvdrv  = (NVidiaDriverData*) drv;
-     NVidiaDeviceData              *nvdev  = (NVidiaDeviceData*) dev;
-     volatile NVTexturedTriangle05 *TexTri = nvdrv->TexTri;
-     int                            wl2    = direct_log2( nvdev->source->width );
-     int                            hl2    = direct_log2( nvdev->source->height );
-     int                            i;
-
-     NV_FIFO_FREE( nvdev, TexTri, 7 );
-     TexTri->ColorKeyValue = 0;
-     TexTri->TextureOffset = nvdev->source->front_buffer->video.offset & 0x1FFFFFFF;
-     TexTri->TextureFormat = (wl2 << 16) | (hl2 << 20);
-     TexTri->TextureFilter = 0;
-     TexTri->Blend         = 0;
-     TexTri->Control       = 0;
-     TexTri->FogColor      = 0xffffffff;
- 
-     switch (formation)
-     {
-          case DTTF_LIST:
-               for (i = 0; i < num; i += 3)
-                    nv_texture_triangle( nvdrv, nvdev,
-                         &vertices[i], &vertices[i+1], &vertices[i+2] );
-               break;
-
-          case DTTF_STRIP:
-               nv_texture_triangle( nvdrv, nvdev, 
-                         &vertices[0], &vertices[1], &vertices[2] );
-               for (i = 0; i < num; i++)
-                    nv_texture_triangle( nvdrv, nvdev, 
-                         &vertices[i-2], &vertices[i-1], &vertices[i] );
-               break;
-
-          case DTTF_FAN:
-          nv_texture_triangle( nvdrv, nvdev,
-                         &vertices[0], &vertices[1], &vertices[2] );
-               for (i = 0; i < num; i++)
-                    nv_texture_triangle( nvdrv, nvdev,
-                         &vertices[0], &vertices[i-1], &vertices[i] );
-               break;
-
-          default:
-               return false;
-     }
-#endif
-     return true;
-}
-     
 
 static void nvAfterSetVar( void *drv, void *dev )
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      volatile __u32   *PRAMIN = nvdrv->PRAMIN;
      volatile __u32   *FIFO   = nvdrv->FIFO;
-     
+
      /* write objects configuration */
      NV_LOAD_TABLE( PRAMIN, PRAMIN )
 
@@ -774,28 +690,26 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->PRAMIN = (volatile __u32*) (nvdrv->mmio_base + 0x710000);
      nvdrv->FIFO   = (volatile __u32*) (nvdrv->mmio_base + 0x800000);
 
-     nvdrv->Rop         = (volatile NVRop                *) &nvdrv->FIFO[0x0000/4];
-     nvdrv->Clip        = (volatile NVClip               *) &nvdrv->FIFO[0x2000/4];
-     nvdrv->Pattern     = (volatile NVPattern            *) &nvdrv->FIFO[0x4000/4];
-     nvdrv->Triangle    = (volatile NVTriangle           *) &nvdrv->FIFO[0x6000/4];
-     nvdrv->ScaledImage = (volatile NVScaledImage        *) &nvdrv->FIFO[0x8000/4];
-     nvdrv->Rectangle   = (volatile NVRectangle          *) &nvdrv->FIFO[0xA000/4];
-     nvdrv->Line        = (volatile NVLine               *) &nvdrv->FIFO[0xC000/4];
-     nvdrv->Blt         = (volatile NVScreenBlt          *) &nvdrv->FIFO[0xE000/4];
-     //nvdrv->TexTri      = (volatile NVTexturedTriangle05 *) &nvdrv->FIFO[0xE000/4];
-     
+     nvdrv->Rop         = (volatile NVRop         *) &nvdrv->FIFO[0x0000/4];
+     nvdrv->Clip        = (volatile NVClip        *) &nvdrv->FIFO[0x2000/4];
+     nvdrv->Pattern     = (volatile NVPattern     *) &nvdrv->FIFO[0x4000/4];
+     nvdrv->Triangle    = (volatile NVTriangle    *) &nvdrv->FIFO[0x6000/4];
+     nvdrv->ScaledImage = (volatile NVScaledImage *) &nvdrv->FIFO[0x8000/4];
+     nvdrv->Rectangle   = (volatile NVRectangle   *) &nvdrv->FIFO[0xA000/4];
+     nvdrv->Line        = (volatile NVLine        *) &nvdrv->FIFO[0xC000/4];
+     nvdrv->Blt         = (volatile NVScreenBlt   *) &nvdrv->FIFO[0xE000/4];
+
      funcs->CheckState    = nvCheckState;
      funcs->SetState      = nvSetState;
      funcs->EngineSync    = nvEngineSync;
      funcs->AfterSetVar   = nvAfterSetVar;
 
-     funcs->FillRectangle    = nvFillRectangle;
-     funcs->FillTriangle     = nvFillTriangle;
-     funcs->DrawRectangle    = nvDrawRectangle;
-     funcs->DrawLine         = nvDrawLine;
-     funcs->Blit             = nvBlit;
-     funcs->StretchBlit      = nvStretchBlit;
-     funcs->TextureTriangles = nvTextureTriangles;
+     funcs->FillRectangle = nvFillRectangle;
+     funcs->FillTriangle  = nvFillTriangle;
+     funcs->DrawRectangle = nvDrawRectangle;
+     funcs->DrawLine      = nvDrawLine;
+     funcs->Blit          = nvBlit;
+     funcs->StretchBlit   = nvStretchBlit;
 
      dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
                           driver_data, &nvidiaOverlayFuncs );
@@ -846,8 +760,6 @@ driver_init_device( GraphicsDevice     *device,
      nvdrv->PVIDEO[0x924/4] = 0;
      nvdrv->PVIDEO[0x908/4] = dfb_system_videoram_length() - 1;
      nvdrv->PVIDEO[0x90C/4] = dfb_system_videoram_length() - 1;
-     //nvdrv->PGRAPH[0x684/4] = dfb_system_videoram_length() - 1;
-     //nvdrv->PGRAPH[0x688/4] = dfb_system_videoram_length() - 1;
 
      /* set default Rop3 */
      nvdrv->PGRAPH[0x604/4] = 0x000000CC; /* copy */
