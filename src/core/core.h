@@ -50,17 +50,6 @@ typedef enum {
 typedef void (*CoreCleanupFunc)(void *data, int emergency);
 
 /*
- * Opens a directory and starts opening one module after another (*.so).
- * Return value of handle_func decides if loading continues or stops.
- */
-DFBResult
-dfb_core_load_modules( char *module_dir,
-                       CoreModuleLoadResult (*handle_func)(void *handle,
-                                                           char *name,
-                                                           void *ctx),
-                       void *ctx );
-
-/*
  * Process local core data. Shared between threads.
  */
 typedef struct {

@@ -54,6 +54,27 @@ static void  unload_module( ModuleEntry *module );
 
 /******************************************************************************/
 
+static
+int suppress_module (const char *name)
+{
+     int i = 0;
+
+     if (!dfb_config->disable_module)
+          return 0;
+     
+     while (dfb_config->disable_module[i]) {
+          if (strcmp (dfb_config->disable_module[i], name) == 0) {
+               INITMSG( "DirectFB/Core: suppress module '%s'\n", 
+			dfb_config->disable_module[i] );
+               return 1;
+	  }
+
+	  i++;
+     }
+
+     return 0;
+}
+
 void
 dfb_modules_register( ModuleDirectory *directory,
                       unsigned int     abi_version,
@@ -84,6 +105,8 @@ dfb_modules_register( ModuleDirectory *directory,
      entry->loaded    = true;
      entry->name      = DFBSTRDUP( name );
      entry->funcs     = funcs;
+
+     entry->disabled  = suppress_module( name );
 
      if (abi_version != directory->abi_version) {
           ERRORMSG( "DirectFB/core/modules: "
