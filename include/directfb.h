@@ -2996,6 +2996,18 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      );
      
      /*
+      * Set the window color key (indexed).
+      *
+      * If a pixel (indexed format) of the window matches this
+      * color index the underlying window or the background is
+      * visible at this point.
+      */
+     DFBResult (*SetColorKeyIndex) (
+          IDirectFBWindow          *thiz,
+          unsigned int              index
+     );
+     
+     /*
       * Set the window's global opacity factor.
       *
       * Set it to "0" to hide a window.

@@ -190,7 +190,7 @@ reactor_detach (FusionReactor *reactor,
      DFB_ASSERT( reaction != NULL );
 
      if (!reaction->attached)
-          return;
+          return FUSION_SUCCESS;
 
      node = lock_node( reactor->id, false );
      if (!node) {
@@ -328,12 +328,11 @@ _reactor_process_message( int reactor_id, const void *msg_data )
                                    continue;
                               case EINVAL:
                                    FERROR ("invalid reactor\n");
-                                   return FUSION_DESTROYED;
+                                   break;
                               default:
+                                   FPERROR ("FUSION_REACTOR_DETACH\n");
                                    break;
                          }
-                         
-                         FPERROR ("FUSION_REACTOR_DETACH\n");
                     }
                }
           }

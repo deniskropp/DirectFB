@@ -36,28 +36,29 @@
 
 #include <pthread.h>
 
-#include "directfb.h"
-#include "directfb_internals.h"
+#include <directfb.h>
+#include <directfb_internals.h>
 
-#include "core/core.h"
-#include "core/coredefs.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "core/state.h"
-#include "core/surfaces.h"
-#include "core/windows.h"
+#include <core/palette.h>
+#include <core/state.h>
+#include <core/surfaces.h>
+#include <core/windows.h>
 
-#include "display/idirectfbsurface.h"
-#include "display/idirectfbsurface_window.h"
+#include <display/idirectfbsurface.h>
+#include <display/idirectfbsurface_window.h>
 
-#include "input/idirectfbinputbuffer.h"
+#include <input/idirectfbinputbuffer.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
+#include <misc/util.h>
+#include <misc/mem.h>
 
-#include "gfx/convert.h"
+#include <gfx/convert.h>
 
-#include "idirectfbwindow.h"
+#include <windows/idirectfbwindow.h>
 
 /*
  * adds an window event to the event queue
@@ -368,7 +369,8 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
                              __u8             g,
                              __u8             b )
 {
-     __u32 key;
+     __u32        key;
+     CoreSurface *surface;
 
      INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -378,8 +380,36 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      if (data->window->caps & DWCAPS_INPUTONLY)
           return DFB_UNSUPPORTED;
 
-     /* FIXME: LUT surfaces */
-     key = dfb_color_to_pixel( data->window->surface->format, r, g, b );
+     surface = data->window->surface;
+
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          key = dfb_palette_search( surface->palette, r, g, b, 0x80 );
+     else
+          key = dfb_color_to_pixel( surface->format, r, g, b );
+
+     if (data->window->color_key != key) {
+          data->window->color_key = key;
+
+          if (data->window->options & DWOP_COLORKEYING)
+               dfb_window_repaint( data->window, NULL, 0 );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
+                                  unsigned int     index )
+{
+     __u32 key = index;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (data->window->caps & DWCAPS_INPUTONLY)
+          return DFB_UNSUPPORTED;
 
      if (data->window->color_key != key) {
           data->window->color_key = key;
@@ -733,6 +763,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetOptions = IDirectFBWindow_SetOptions;
      thiz->GetOptions = IDirectFBWindow_GetOptions;
      thiz->SetColorKey = IDirectFBWindow_SetColorKey;
+     thiz->SetColorKeyIndex = IDirectFBWindow_SetColorKeyIndex;
      thiz->SetOpacity = IDirectFBWindow_SetOpacity;
      thiz->GetOpacity = IDirectFBWindow_GetOpacity;
      thiz->RequestFocus = IDirectFBWindow_RequestFocus;
