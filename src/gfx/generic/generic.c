@@ -212,6 +212,7 @@ static GFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_to_Aop_32,
      Cop_to_Aop_8,
      Cop_to_Aop_8,
+     Cop_to_Aop_8,
      Cop_to_Aop_8
 };
 
@@ -261,6 +262,19 @@ static void Cop_toK_Aop_32()
      }
 }
 
+static void Cop_toK_Aop_alut44()
+{
+     int   w = Dlength;
+     __u8 *D = (__u8*)Aop;
+
+     while (w--) {
+          if ((__u8)Dkey == (*D & 0x0F))
+               *D = (__u8)Cop;
+
+          D++;
+     }
+}
+
 static GFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_toK_Aop_16,
      Cop_toK_Aop_16,
@@ -273,7 +287,8 @@ static GFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Cop_toK_Aop_8
+     Cop_toK_Aop_8,
+     Cop_toK_Aop_alut44
 };
 
 /********************************* Bop_PFI_to_Aop_PFI *************************/
@@ -314,7 +329,8 @@ static GFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_to_Aop,      /* DSPF_UYVY */
      Bop_8_to_Aop,       /* DSPF_I420 */
      Bop_8_to_Aop,       /* DSPF_YV12 */
-     Bop_8_to_Aop        /* DSPF_LUT8 */
+     Bop_8_to_Aop,       /* DSPF_LUT8 */
+     Bop_8_to_Aop        /* DSPF_ALUT44 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -529,6 +545,28 @@ static void Bop_8_Kto_Aop()
      }
 }
 
+static void Bop_alut44_Kto_Aop()
+{
+     int    w = Dlength;
+     __u8 *D = (__u8*)Aop;
+     __u8 *S = (__u8*)Bop;
+
+     if (Ostep < 0) {
+          D+= Dlength - 1;
+          S+= Dlength - 1;
+     }
+
+     while (w--) {
+          __u8 spixel = *S;
+
+          if ((spixel & 0x0F) != (__u8)Skey)
+               *D = spixel;
+
+          S+=Ostep;
+          D+=Ostep;
+     }
+}
+
 static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_Kto_Aop,
      Bop_rgb16_Kto_Aop,
@@ -541,7 +579,8 @@ static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Bop_8_Kto_Aop
+     Bop_8_Kto_Aop,
+     Bop_alut44_Kto_Aop
 };
 
 /********************************* Bop_PFI_Sto_Aop_PFI ****************************/
@@ -633,6 +672,7 @@ static GFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
+     Bop_8_Sto_Aop,
      Bop_8_Sto_Aop
 };
 
@@ -768,6 +808,24 @@ static void Bop_8_SKto_Aop()
      }
 }
 
+static void Bop_alut44_SKto_Aop()
+{
+     int    w = Dlength;
+     int    i = 0;
+     __u8 *D = (__u8*)Aop;
+     __u8 *S = (__u8*)Bop;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          if ((s & 0x0F) != Skey)
+               *D = s;
+
+          D++;
+          i += SperD;
+     }
+}
+
 static GFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_SKto_Aop,
      Bop_rgb16_SKto_Aop,
@@ -780,7 +838,8 @@ static GFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Bop_8_SKto_Aop
+     Bop_8_SKto_Aop,
+     Bop_alut44_SKto_Aop
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -970,6 +1029,31 @@ static void Sop_lut8_Sto_Dacc()
      }
 }
 
+static void Sop_alut44_Sto_Dacc()
+{
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          D->a = s & 0xF0;
+          s &= 0x0F;
+          D->r = entries[s].r;
+          D->g = entries[s].g;
+          D->b = entries[s].b;
+
+          i += SperD;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_Sto_Dacc,
      Sop_rgb16_Sto_Dacc,
@@ -986,7 +1070,8 @@ static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Sop_lut8_Sto_Dacc
+     Sop_lut8_Sto_Dacc,
+     Sop_alut44_Sto_Dacc
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
@@ -1177,6 +1262,35 @@ static void Sop_lut8_SKto_Dacc()
      }
 }
 
+static void Sop_alut44_SKto_Dacc()
+{
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          if ((s & 0x0F) != Skey) {
+               D->a = s & 0xF0;
+               s &= 0x0F;
+               D->r = entries[s].r;
+               D->g = entries[s].g;
+               D->b = entries[s].b;
+          }
+          else 
+               D->a = 0xF000;
+
+          i += SperD;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_SKto_Dacc,
      Sop_rgb16_SKto_Dacc,
@@ -1189,7 +1303,8 @@ static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Sop_lut8_SKto_Dacc
+     Sop_lut8_SKto_Dacc,
+     Sop_alut44_SKto_Dacc
 };
 
 /********************************* Sop_PFI_to_Dacc ****************************/
@@ -1431,6 +1546,27 @@ static void Sop_lut8_to_Dacc()
      }
 }
 
+static void Sop_alut44_to_Dacc()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = *S++;
+
+          D->a = s & 0xF0;
+          s &= 0x0F;
+          D->r = entries[s].r;
+          D->g = entries[s].g;
+          D->b = entries[s].b;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_to_Dacc,
      Sop_rgb16_to_Dacc,
@@ -1447,7 +1583,8 @@ static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Sop_lut8_to_Dacc
+     Sop_lut8_to_Dacc,
+     Sop_alut44_to_Dacc
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -1631,6 +1768,31 @@ static void Sop_lut8_Kto_Dacc()
      }
 }
 
+static void Sop_alut44_Kto_Dacc()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = *S++;
+
+          if ((s & 0x0F) != (__u8)Skey) {
+               D->a = s & 0xF0;
+               s &= 0x0F;
+               D->r = entries[s].r;
+               D->g = entries[s].g;
+               D->b = entries[s].b;
+          }
+          else
+               D->a = 0xF000;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_Kto_Dacc,
      Sop_rgb16_Kto_Dacc,
@@ -1647,7 +1809,8 @@ static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Sop_lut8_Kto_Dacc
+     Sop_lut8_Kto_Dacc,
+     Sop_alut44_Kto_Dacc
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
@@ -1855,6 +2018,27 @@ static void Sacc_to_Aop_lut8()
      }
 }
 
+static void Sacc_to_Aop_alut44()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000)) {
+               *D = (S->a & 0xFF00) ? 0xF0 : (S->a & 0xF0) +
+                    dfb_palette_search( Alut,
+                                        (S->r & 0xFF00) ? 0xFF : S->r,
+                                        (S->g & 0xFF00) ? 0xFF : S->g,
+                                        (S->b & 0xFF00) ? 0xFF : S->b,
+                                        0x80 );
+          }
+
+          D++;
+          S++;
+     }
+}
+
 GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb1555,
      Sacc_to_Aop_rgb16,
@@ -1871,7 +2055,8 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Sacc_to_Aop_lut8
+     Sacc_to_Aop_lut8,
+     Sacc_to_Aop_alut44
 };
 
 /******************************** Sacc_toK_Aop_PFI ****************************/
@@ -2026,6 +2211,27 @@ static void Sacc_toK_Aop_lut8()
      }
 }
 
+static void Sacc_toK_Aop_alut44()
+{
+     int          w = Dlength;
+     Accumulator *S = Sacc;
+     __u8        *D = (__u8*)Aop;
+
+     while (w--) {
+          if (!(S->a & 0xF000) && ((*D & 0x0F) == (__u8)Dkey)) {
+               *D = (S->a & 0xFF00) ? 0xF0 : (S->a & 0xF0) +
+                    dfb_palette_search( Alut,
+                                        (S->r & 0xFF00) ? 0xFF : S->r,
+                                        (S->g & 0xFF00) ? 0xFF : S->g,
+                                        (S->b & 0xFF00) ? 0xFF : S->b,
+                                        0x80 );
+          }
+
+          D++;
+          S++;
+     }
+}
+
 GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_toK_Aop_argb1555,
      Sacc_toK_Aop_rgb16,
@@ -2042,7 +2248,8 @@ GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Sacc_toK_Aop_lut8
+     Sacc_toK_Aop_lut8,
+     Sacc_toK_Aop_alut44
 };
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
@@ -2289,6 +2496,37 @@ static void Bop_a8_set_alphapixel_Aop_lut8()
 #undef SET_ALPHA_PIXEL_LUT8
 }
 
+static void Bop_a8_set_alphapixel_Aop_alut44()
+{
+     int    w = Dlength;
+     __u8  *S = Bop;
+     __u8  *D = Aop;
+
+#define SET_ALPHA_PIXEL_ALUT44(d,alpha) \
+     switch (alpha) {\
+          case 0xff: d = Cop;\
+          case 0: break; \
+          default: {\
+               register __u16 s = alpha+1;\
+               DFBColor      dc = Alut->entries[d & 0x0f];\
+               __u16         sa = (d & 0xf0) + alpha;\
+               dc.r = ((color.r - dc.r) * s + (dc.r << 8)) >> 8;\
+               dc.g = ((color.g - dc.g) * s + (dc.g << 8)) >> 8;\
+               dc.b = ((color.b - dc.b) * s + (dc.b << 8)) >> 8;\
+               if (sa & 0xff00) sa = 0xf0;\
+               d = (sa & 0xf0) + \
+                    dfb_palette_search( Alut, dc.r, dc.g, dc.b, 0x80 );\
+          }\
+     }
+
+     while (w--) {
+          SET_ALPHA_PIXEL_ALUT44( *D, *S );
+          D++, S++;
+     }
+
+#undef SET_ALPHA_PIXEL_ALUT44
+}
+
 GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_argb1555,
      Bop_a8_set_alphapixel_Aop_rgb16,
@@ -2305,7 +2543,8 @@ GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     Bop_a8_set_alphapixel_Aop_lut8
+     Bop_a8_set_alphapixel_Aop_lut8,
+     Bop_a8_set_alphapixel_Aop_alut44
 };
 
 
@@ -2865,6 +3104,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                Cop  = state->color_index;
                Alut = destination->palette;
                break;
+          case DSPF_ALUT44:
+               Cop  = (color.a & 0xF0) + state->color_index;
+               Alut = destination->palette;
+               break;
           default:
                ONCE("unsupported destination format");
                pthread_mutex_unlock( &generic_lock );
@@ -2894,6 +3137,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     }
                     break;
                case DSPF_LUT8:
+               case DSPF_ALUT44:
                     Blut = source->palette;
                     break;
                default:

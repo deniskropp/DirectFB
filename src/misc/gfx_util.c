@@ -116,6 +116,11 @@ static void rgba_to_dst_format (__u8 *dst,
                *dst++ = dfb_palette_search( palette, r, g, b, a );
           break;
 
+     case DSPF_ALUT44:
+          if (palette)
+               *dst++ = (a & 0xF0) + dfb_palette_search( palette, r, g, b, 0x80 );
+          break;
+
      default:
           ONCE( "unimplemented destination format" );
           break;

@@ -106,7 +106,7 @@ spicInitLayer( GraphicsDevice        *device,
 
      default_config->width       = 720;
      default_config->height      = dfb_config->matrox_ntsc ? 480 : 576;
-     default_config->pixelformat = DSPF_LUT8;
+     default_config->pixelformat = DSPF_ALUT44;
      default_config->buffermode  = DLBM_FRONTONLY;
      default_config->options     = DLOP_NONE;
 
@@ -176,7 +176,7 @@ spicTestConfiguration( DisplayLayer               *layer,
           fail |= DLCONF_OPTIONS;
 
      switch (config->pixelformat) {
-          case DSPF_LUT8:
+          case DSPF_ALUT44:
                break;
           default:
                fail |= DLCONF_PIXELFORMAT;
@@ -226,10 +226,8 @@ spicSetPalette( DisplayLayer *layer,
      __u8                 r, g, b, y, cb, cr;
      int                  i;
 
-#if 0
      if (palette->num_entries != 16)
           return DFB_UNSUPPORTED;
-#endif
 
      for (i = 0; i < 16; i++) {
           r  = palette->entries[i].r;

@@ -138,6 +138,26 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
      dfb_palette_update( palette, 0, palette->num_entries - 1 );
 }
 
+void
+dfb_palette_generate_rgb121_map( CorePalette *palette )
+{
+     int i;
+
+     DFB_ASSERT( palette != NULL );
+
+     if (!palette->num_entries)
+          return;
+
+     for (i=0; i<palette->num_entries; i++) {
+          palette->entries[i].a = i ? 0xff : 0x00;
+          palette->entries[i].r = (i & 0x8) ? 0xff : 0x00;
+          palette->entries[i].g = lookup2to8[ (i & 0x6) >> 1 ];
+          palette->entries[i].b = (i & 0x1) ? 0xff : 0x00;
+     }
+
+     dfb_palette_update( palette, 0, palette->num_entries - 1 );
+}
+
 unsigned int
 dfb_palette_search( CorePalette *palette,
                     __u8         r,

@@ -291,7 +291,8 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( 256, &palette );
+          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( format ),
+                                    &palette );
           if (ret)
                return ret;
 
@@ -689,6 +690,7 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           case DSPF_YUY2:
           case DSPF_YV12:
           case DSPF_LUT8:
+          case DSPF_ALUT44:
                break;
 
           default:
@@ -718,12 +720,15 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( 256, &palette );
+          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( format ),
+                                    &palette );
           if (ret)
                return ret;
 
           if (format == DSPF_LUT8)
                dfb_palette_generate_rgb332_map( palette );
+          else if (format == DSPF_ALUT44)
+               dfb_palette_generate_rgb121_map( palette );
 
           dfb_surface_set_palette( surface, palette );
 

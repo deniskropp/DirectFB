@@ -83,6 +83,10 @@ surface_callback( FusionObjectPool *pool,
                printf( "LUT8     " );
                break;
 
+          case DSPF_ALUT44:
+               printf( "ALUT44   " );
+               break;
+
           case DSPF_RGB16:
                printf( "RGB16    " );
                break;

@@ -797,12 +797,13 @@ typedef enum {
      DSPF_YV12           = 0x08100C0B,  /* 8 bit Y plane followed by 8 bit
                                            2x2 subsampled V and U planes */
      DSPF_LUT8           = 0x4011080C,  /* 8 bit lookup table (palette) */
+     DSPF_ALUT44         = 0x4011040D,  /* 4 bit alpha + 4 bit lookup table */
 
      DSPF_RGB15          = DSPF_ARGB1555
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            12
+#define DFB_NUM_PIXELFORMATS            13
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000FF) - 1)
