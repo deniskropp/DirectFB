@@ -39,7 +39,7 @@ extern "C"
 
      typedef struct {
           int magic;
-          int sem_id;
+          int ref_id;
      } FusionRef;
 
 #else

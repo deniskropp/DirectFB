@@ -131,7 +131,8 @@ typedef enum {
 /*
  * from fusion.c
  */
-int   _fusion_id();
+int _fusion_id();
+int _fusion_fd();
 
 /*
  * from util.c

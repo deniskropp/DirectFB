@@ -33,8 +33,13 @@
 #ifndef FUSION_FAKE
 #include <sys/types.h>
 #include <sys/ipc.h>
-#include <sys/msg.h>
 #include <sys/sem.h>
+
+#if LINUX_FUSION
+#include <sys/ioctl.h>
+#include <linux/fusion.h>
+#endif
+
 #endif
 
 #include "fusion_types.h"
@@ -60,6 +65,147 @@
  
 #ifndef FUSION_FAKE
 
+#if LINUX_FUSION
+
+FusionResult
+fusion_ref_init (FusionRef *ref)
+{
+     DFB_ASSERT( ref != NULL );
+     
+     if (ioctl (_fusion_fd(), FUSION_REF_NEW, &ref->ref_id)) {
+          FPERROR ("FUSION_REF_NEW");
+          return FUSION_FAILURE;
+     }
+
+     ref->magic = 0x12345678;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_up (FusionRef *ref, bool global)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+
+     if (ioctl (_fusion_fd(),
+                global ? FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->ref_id))
+     {
+          if (global)
+               FPERROR ("FUSION_REF_UP_GLOBAL");
+          else
+               FPERROR ("FUSION_REF_UP");
+
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_down (FusionRef *ref, bool global)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+     
+     if (ioctl (_fusion_fd(),
+                global ? FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->ref_id))
+     {
+          if (global)
+               FPERROR ("FUSION_REF_DOWN_GLOBAL");
+          else
+               FPERROR ("FUSION_REF_DOWN");
+
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_stat (FusionRef *ref, int *refs)
+{
+     int val;
+
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( refs != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+
+     val = ioctl (_fusion_fd(), FUSION_REF_STAT, &ref->ref_id);
+     if (val < 0) {
+          FPERROR ("FUSION_REF_STAT");
+          return FUSION_FAILURE;
+     }
+
+     *refs = val;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_zero_lock (FusionRef *ref)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+     
+     if (ioctl (_fusion_fd(), FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
+          FPERROR ("FUSION_REF_ZERO_LOCK");
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_zero_trylock (FusionRef *ref)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+     
+     if (ioctl (_fusion_fd(), FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
+          if (errno == ETOOMANYREFS)
+               return FUSION_INUSE;
+
+          FPERROR ("FUSION_REF_ZERO_TRYLOCK");
+
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_unlock (FusionRef *ref)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+     
+     if (ioctl (_fusion_fd(), FUSION_REF_UNLOCK, &ref->ref_id)) {
+          FPERROR ("FUSION_REF_UNLOCK");
+          return FUSION_FAILURE;
+     }
+     
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_ref_destroy (FusionRef *ref)
+{
+     DFB_ASSERT( ref != NULL );
+     DFB_ASSERT( ref->magic == 0x12345678 );
+     
+     ref->magic = 0x87654321;
+
+     if (ioctl (_fusion_fd(), FUSION_REF_DESTROY, &ref->ref_id)) {
+          FPERROR ("FUSION_REF_DESTROY");
+          return FUSION_FAILURE;
+     }
+
+     return FUSION_SUCCESS;
+}
+
+#else
+
 FusionResult
 fusion_ref_init (FusionRef *ref)
 {
@@ -68,8 +214,8 @@ fusion_ref_init (FusionRef *ref)
      DFB_ASSERT( ref != NULL );
      
      /* create two semaphores, one for locking, one for counting */
-     ref->sem_id = semget (IPC_PRIVATE, 2, IPC_CREAT | 0660);
-     if (ref->sem_id < 0) {
+     ref->ref_id = semget (IPC_PRIVATE, 2, IPC_CREAT | 0660);
+     if (ref->ref_id < 0) {
           FPERROR ("semget");
 
           if (errno == ENOMEM || errno == ENOSPC)
@@ -80,10 +226,10 @@ fusion_ref_init (FusionRef *ref)
 
      /* initialize the lock */
      semopts.val = 1;
-     if (semctl (ref->sem_id, 0, SETVAL, semopts)) {
+     if (semctl (ref->ref_id, 0, SETVAL, semopts)) {
           FPERROR ("semctl");
 
-          semctl (ref->sem_id, 0, IPC_RMID, 0);
+          semctl (ref->ref_id, 0, IPC_RMID, 0);
           return FUSION_FAILURE;
      }
 
@@ -111,7 +257,7 @@ fusion_ref_up (FusionRef *ref, bool global)
      else
           op[1].sem_flg = SEM_UNDO;
 
-     while (semop (ref->sem_id, op, 2)) {
+     while (semop (ref->ref_id, op, 2)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -130,7 +276,7 @@ fusion_ref_up (FusionRef *ref, bool global)
      /* unlock */
      op[0].sem_op  = 1;
 
-     while (semop (ref->sem_id, op, 1)) {
+     while (semop (ref->ref_id, op, 1)) {
           FPERROR ("semop");
 
           switch (errno) {
@@ -167,7 +313,7 @@ fusion_ref_down (FusionRef *ref, bool global)
      if (!global)
           op[1].sem_flg |= SEM_UNDO;
 
-     while (semop (ref->sem_id, op, 2)) {
+     while (semop (ref->ref_id, op, 2)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -189,7 +335,7 @@ fusion_ref_down (FusionRef *ref, bool global)
      /* unlock */
      op[0].sem_op  = 1;
 
-     while (semop (ref->sem_id, op, 1)) {
+     while (semop (ref->ref_id, op, 1)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -217,7 +363,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      DFB_ASSERT( refs != NULL );
      DFB_ASSERT( ref->magic == 0x12345678 );
 
-     while ((val = semctl( ref->sem_id, 1, GETVAL )) < 0) {
+     while ((val = semctl( ref->ref_id, 1, GETVAL )) < 0) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -254,7 +400,7 @@ fusion_ref_zero_lock (FusionRef *ref)
      op[1].sem_op  = 0;
      op[1].sem_flg = 0;
 
-     while (semop (ref->sem_id, op, 2)) {
+     while (semop (ref->ref_id, op, 2)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -289,7 +435,7 @@ fusion_ref_zero_trylock (FusionRef *ref)
      op[1].sem_op  = 0;
      op[1].sem_flg = IPC_NOWAIT;
 
-     while (semop (ref->sem_id, op, 2)) {
+     while (semop (ref->ref_id, op, 2)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -323,7 +469,7 @@ fusion_ref_unlock (FusionRef *ref)
      op.sem_op  = 1;
      op.sem_flg = SEM_UNDO;
 
-     while (semop (ref->sem_id, &op, 1)) {
+     while (semop (ref->ref_id, &op, 1)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -353,7 +499,7 @@ fusion_ref_destroy (FusionRef *ref)
      ref->magic = 0x87654321;
 
      /* remove semaphore set */
-     if (semctl (ref->sem_id, 0, IPC_RMID, semopts)) {
+     if (semctl (ref->ref_id, 0, IPC_RMID, semopts)) {
           switch (errno) {
                case EACCES:
                     return FUSION_ACCESSDENIED;
@@ -372,6 +518,8 @@ fusion_ref_destroy (FusionRef *ref)
 
      return FUSION_SUCCESS;
 }
+
+#endif
 
 #else /* !FUSION_FAKE */
 

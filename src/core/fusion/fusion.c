@@ -38,6 +38,10 @@
 #include <sys/msg.h>
 #include <sys/shm.h>
 
+#if LINUX_FUSION
+#include <linux/fusion.h>
+#endif
+
 #include <core/coredefs.h>
 
 #include <misc/mem.h>
@@ -67,6 +71,8 @@ typedef struct {
  * local fusion data
  */
 typedef struct {
+     int  fd;
+
      int  fid;
 
      int  ref;
@@ -98,6 +104,7 @@ static Fusion *fusion = NULL;
 int
 fusion_init()
 {
+     int               fd = -1;
      AcquisitionStatus as;
 
      /* check against multiple initialization */
@@ -110,8 +117,18 @@ fusion_init()
 
      check_limits();
 
+#if LINUX_FUSION
+     fd = open ("/dev/fusion", O_RDWR);
+     if (fd < 0) {
+          FPERROR ("opening /dev/fusion\n");
+          return -1;
+     }
+#endif
+
      /* allocate local Fusion data */
      fusion = DFBCALLOC (1, sizeof(Fusion));
+
+     fusion->fd = fd;
 
      /* intialize local reference counter */
      fusion->ref = 1;
@@ -215,14 +232,24 @@ fusion_exit()
 int
 _fusion_id()
 {
-     if (fusion)
-          return fusion->fid;
+     if (!fusion) {
+          FERROR("called without being initialized!\n");
+          return -1;
+     }
 
-     FERROR("called without being initialized!\n");
-
-     return -1;
+     return fusion->fid;
 }
 
+int
+_fusion_fd()
+{
+     if (!fusion) {
+          FERROR("called without being initialized!\n");
+          return -1;
+     }
+
+     return fusion->fd;
+}
 
 /*******************************
  *  File internal functions  *

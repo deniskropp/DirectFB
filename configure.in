@@ -296,6 +296,13 @@ SDL=no
   AM_CONDITIONAL(SDL_CORE, test x$SDL = xyes)
 
 
+dnl Test for Fusion Kernel Device
+linux_fusion=yes
+AC_CHECK_HEADER( [linux/fusion.h],
+  AC_DEFINE(LINUX_FUSION,1,[Define to 1 if fusion kernel device is available.]),
+  linux_fusion=no)
+
+
 dnl Test for libjpeg
   JPEG=no
 
@@ -704,37 +711,38 @@ docs/html/Makefile
 AC_MSG_RESULT([
 
 Build options:
-  Version             $VERSION
-  Install prefix      $prefix
-  Build shared libs   $enable_shared
-  Build static libs   $enable_static
-  Module directory    $MODULEDIR
+  Version               $VERSION
+  Install prefix        $prefix
+  Build shared libs     $enable_shared
+  Build static libs     $enable_static
+  Module directory      $MODULEDIR
 
 Misc options:
-  MMX support         $MMX
-  Debug mode          $enable_debug
-  RGB332 support      $enable_rgb332
-  Multi App support   $enable_multi
+  MMX support           $MMX
+  Debug mode            $enable_debug
+  RGB332 support        $enable_rgb332
+  Multi App support     $enable_multi
+  Fusion Kernel Device  $linux_fusion
 
 Core Systems:
-  Linux FBDev support $LINUX_FBDEV
-  SDL support         $SDL
+  Linux FBDev support   $LINUX_FBDEV
+  SDL support           $SDL
 
 Building Image Providers:
-  JPEG                $JPEG
-  PNG                 $PNG
-  GIF                 $enable_gif 
-  MPEG2 I-Frame       yes
+  JPEG                  $JPEG
+  PNG                   $PNG
+  GIF                   $enable_gif 
+  MPEG2 I-Frame         yes
 
 Building Video Providers:
-  AviFile             $AVIFILE
-  Libmpeg3            $MPEG3
-  Flash               $FLASH
-  Video4Linux         $have_linux
+  AviFile               $AVIFILE
+  Libmpeg3              $MPEG3
+  Flash                 $FLASH
+  Video4Linux           $have_linux
 
 Building Font implementations:
-  FreeType2           $FREETYPE
-  DirectFB font       yes
+  FreeType2             $FREETYPE
+  DirectFB font         yes
 ]);
 
 if test x$have_linux = xyes; then
