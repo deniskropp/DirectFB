@@ -704,7 +704,7 @@ driver_get_info( GraphicsDevice     *device,
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               "directfb.org" );
 
      info->version.major = 0;
      info->version.minor = 4;

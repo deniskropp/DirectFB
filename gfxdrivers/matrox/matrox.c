@@ -1812,11 +1812,11 @@ driver_get_info( GraphicsDevice     *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "Matrox G550/G450/G400/G200/G100/Millennium/Mystique Driver" );
+               "Matrox G-Series/Millennium/Mystique" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               "directfb.org" );
 
      info->version.major = 0;
      info->version.minor = 7;

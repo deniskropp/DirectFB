@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -85,7 +85,7 @@ driver_probe( GraphicsDevice *device )
           case FB_ACCEL_S3TWISTER_P:
           case FB_ACCEL_S3TWISTER_K:
                return 1;
-          
+
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000         */
                return 1;
      }
@@ -104,7 +104,7 @@ driver_get_info( GraphicsDevice     *device,
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               "directfb.org" );
 
      /* some defaults, each driver has it's own version */
      info->version.major = 0;
@@ -130,7 +130,7 @@ driver_get_info( GraphicsDevice     *device,
           case FB_ACCEL_S3TWISTER_K:
                savage4_get_info( device, info );
                break;
-          
+
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000     */
                savage2000_get_info( device, info );
                break;
@@ -151,7 +151,7 @@ driver_init_driver( GraphicsDevice      *device,
           return DFB_IO;
 
      sdrv->bci_base = (volatile __u32*)(sdrv->mmio_base + BCI_BUFFER_OFFSET);
-     
+
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_SAVAGE3D:       /* Savage3D series */
           case FB_ACCEL_SAVAGE3D_MV:
@@ -167,7 +167,7 @@ driver_init_driver( GraphicsDevice      *device,
           case FB_ACCEL_S3TWISTER_P:
           case FB_ACCEL_S3TWISTER_K:
                return savage4_init_driver( device, funcs, driver_data );
-          
+
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000     */
                return savage2000_init_driver( device, funcs, driver_data );
      }
@@ -209,7 +209,7 @@ driver_init_device( GraphicsDevice     *device,
                savage4_init_device( device, device_info,
                                     driver_data, device_data );
                break;
-          
+
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000     */
                savage2000_init_device( device, device_info,
                                        driver_data, device_data );
@@ -233,8 +233,8 @@ driver_init_device( GraphicsDevice     *device,
 
      vga_out8( mmio, 0x3d4, 0x40 );
      vga_out8( mmio, 0x3d5, 0x01 );
-     
-     
+
+
      savage_out32( mmio, MONO_PAT_0, ~0 );
      savage_out32( mmio, MONO_PAT_1, ~0 );
 
@@ -243,7 +243,7 @@ driver_init_device( GraphicsDevice     *device,
      savage_out32( mmio, 0x812C, ~0 ); /* enable all read planes */
      savage_out16( mmio, 0x8134, 0x27 );
      savage_out16( mmio, 0x8136, 0x07 );
-     
+
      return DFB_OK;
 }
 
@@ -273,7 +273,7 @@ driver_close_device( GraphicsDevice *device,
           case FB_ACCEL_S3TWISTER_K:
                savage4_close_device( device, driver_data, device_data );
                break;
-          
+
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000     */
                savage2000_close_device( device, driver_data, device_data );
                break;
@@ -330,7 +330,7 @@ driver_close_driver( GraphicsDevice *device,
           case FB_ACCEL_S3TWISTER_K:
                savage4_close_driver( device, driver_data );
                break;
-          
+
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000     */
                savage2000_close_driver( device, driver_data );
                break;
