@@ -358,13 +358,13 @@ sub parse_enum
             $entry = "";
 
             # entry with assignment (complete comment)
-            if ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\s]+)\s*,?\s*\/\*\s*(.+)\s*\*\/\s*$/ )
+            if ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\!\s]+)\s*,?\s*\/\*\s*(.+)\s*\*\/\s*$/ )
                {
                   $entry = $1;
                   $entries{ $entry } = $3;
                }
             # entry with assignment (opening comment)
-            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\s]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\!\s]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
                {
                   $entry = $1;
 
@@ -386,7 +386,7 @@ sub parse_enum
                   }
                }
             # entry with assignment (none or preceding comment)
-            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\s]+)\s*,?\s*$/ )
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\!\s]+)\s*,?\s*$/ )
                {
                   $entry = $1;
                   $entries{ $entry } = $pre;
