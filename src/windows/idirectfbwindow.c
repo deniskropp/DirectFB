@@ -97,6 +97,14 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           window_destroy( data->window );
      }
 
+     while (data->events) {
+          IDirectFBWindowBuffer_item *next = data->events->next;
+
+          DFBFREE( data->events );
+
+          data->events = next;
+     }
+
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
 
