@@ -141,6 +141,14 @@ static void Cop_to_Aop_32( GenefxState *gfxs )
           *D++ = Cop;
 }
 
+static void Cop_to_Aop_NV( GenefxState *gfxs )
+{
+     if (!gfxs->chroma_plane)
+          Cop_to_Aop_8( gfxs );
+     else
+          Cop_to_Aop_16( gfxs );
+}
+
 static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_to_Aop_16,      /* DSPF_ARGB1555 */
      Cop_to_Aop_16,      /* DSPF_RGB16 */
@@ -157,11 +165,11 @@ static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_to_Aop_8,       /* DSPF_ALUT44 */
      Cop_to_Aop_32,      /* DSPF_AiRGB */
      NULL,               /* DSPF_A1 */
-     NULL,               /* DSPF_NV12 */
-     NULL,               /* DSPF_NV16 */
+     Cop_to_Aop_NV,      /* DSPF_NV12 */
+     Cop_to_Aop_NV,      /* DSPF_NV16 */
      Cop_to_Aop_16,      /* DSPF_ARGB2554 */
      Cop_to_Aop_16,      /* DSPF_ARGB4444 */
-     NULL,               /* DSPF_NV21 */
+     Cop_to_Aop_NV,      /* DSPF_NV21 */
 };
 
 /********************************* Cop_toK_Aop_PFI ****************************/
@@ -321,6 +329,14 @@ static void Bop_32_to_Aop( GenefxState *gfxs )
      direct_memmove( gfxs->Aop, gfxs->Bop, gfxs->length*4 );
 }
 
+static void Bop_NV_to_Aop( GenefxState *gfxs )
+{
+     if (!gfxs->chroma_plane)
+          Bop_8_to_Aop( gfxs );
+     else
+          Bop_16_to_Aop( gfxs );
+}
+
 static GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_to_Aop,      /* DSPF_ARGB1555 */
      Bop_16_to_Aop,      /* DSPF_RGB16 */
@@ -337,11 +353,11 @@ static GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_8_to_Aop,       /* DSPF_ALUT44 */
      Bop_32_to_Aop,      /* DSPF_AiRGB */
      NULL,               /* DSPF_A1 */
-     NULL,               /* DSPF_NV12 */
-     NULL,               /* DSPF_NV16 */
+     Bop_NV_to_Aop,      /* DSPF_NV12 */
+     Bop_NV_to_Aop,      /* DSPF_NV16 */
      Bop_16_to_Aop,      /* DSPF_ARGB2554 */
      Bop_16_to_Aop,      /* DSPF_ARGB4444 */
-     NULL,               /* DSPF_NV21 */
+     Bop_NV_to_Aop,      /* DSPF_NV21 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -1184,7 +1200,14 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
           crsc += SperD;
      }
 }
-	
+
+static void Bop_NV_Sto_Aop( GenefxState *gfxs )
+{
+     if (!gfxs->chroma_plane)
+          Bop_8_Sto_Aop( gfxs );
+     else
+          Bop_16_Sto_Aop( gfxs );
+}
 
 static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_Sto_Aop,          /* DSPF_ARGB1555 */
@@ -1202,11 +1225,11 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_8_Sto_Aop,           /* DSPF_ALUT44 */
      Bop_32_Sto_Aop,          /* DSPF_AiRGB */
      NULL,                    /* DSPF_A1 */
-     NULL,                    /* DSPF_NV12 */
-     NULL,                    /* DSPF_NV16 */
+     Bop_NV_Sto_Aop,          /* DSPF_NV12 */
+     Bop_NV_Sto_Aop,          /* DSPF_NV16 */
      Bop_16_Sto_Aop,          /* DSPF_ARGB2554 */
      Bop_16_Sto_Aop,          /* DSPF_ARGB4444 */
-     NULL,                    /* DSPF_NV21 */
+     Bop_NV_Sto_Aop,          /* DSPF_NV21 */
 };
 
 /********************************* Bop_PFI_SKto_Aop_PFI ***************************/
@@ -4956,10 +4979,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Cop = PIXEL_UYVY( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_I420:
+          case DSPF_NV12:
+          case DSPF_NV16:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_YV12:
+          case DSPF_NV21:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->Cop, gfxs->CrCop, gfxs->CbCop );
                break;
@@ -5007,7 +5033,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          if (gfxs->dst_format == DSPF_YUY2 ||
                              gfxs->dst_format == DSPF_UYVY ||
                              gfxs->dst_format == DSPF_YV12 ||
-                             gfxs->dst_format == DSPF_I420) {
+                             gfxs->dst_format == DSPF_I420 ||
+                             gfxs->dst_format == DSPF_NV12 ||
+                             gfxs->dst_format == DSPF_NV21 ||
+                             gfxs->dst_format == DSPF_NV16) {
                               D_ONCE("YUV to YUV conversion is not"
                                      " supported in software");
                               return false;
@@ -5016,10 +5045,20 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     break;
                case DSPF_I420:
                case DSPF_YV12:
-                    if (gfxs->src_format != gfxs->dst_format ||
+                    if ((gfxs->dst_format != DSPF_I420 && gfxs->dst_format != DSPF_YV12) ||
                         state->blittingflags != DSBLIT_NOFX) {
                          D_ONCE("only copying/scaling blits supported"
                                 " for YV12/I420 in software");
+                         return false;
+                    }
+                    break;
+               case DSPF_NV12:
+               case DSPF_NV21:
+               case DSPF_NV16:
+                    if (gfxs->src_format != gfxs->dst_format ||
+                        state->blittingflags != DSBLIT_NOFX) {
+                         D_ONCE("only copying/scaling blits supported"
+                                " for NV12/NV21/NV16 in software");
                          return false;
                     }
                     break;
@@ -5037,10 +5076,27 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (dfb_surface_software_lock( source, DSLF_READ, &gfxs->src_org,
+          if (dfb_surface_software_lock( source, DSLF_READ, &gfxs->src_org[0],
                                          &gfxs->src_pitch, true )) {
                dfb_surfacemanager_unlock( destination->manager );
                return false;
+          }
+          switch (gfxs->src_format) {
+               case DSPF_I420:
+                    gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
+                    gfxs->src_org[2] = gfxs->src_org[1] + gfxs->src_height * gfxs->src_pitch / 4;
+                    break;
+               case DSPF_YV12:
+                    gfxs->src_org[2] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
+                    gfxs->src_org[1] = gfxs->src_org[2] + gfxs->src_height * gfxs->src_pitch / 4;
+                    break;
+               case DSPF_NV12:
+               case DSPF_NV21:
+               case DSPF_NV16:
+                    gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
+                    break;
+               default:
+                    break;
           }
 
           gfxs->src_field_offset = gfxs->src_height/2 * gfxs->src_pitch;
@@ -5049,7 +5105,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      }
 
      if (dfb_surface_software_lock( state->destination, lock_flags,
-                                    &gfxs->dst_org, &gfxs->dst_pitch, false ))
+                                    &gfxs->dst_org[0], &gfxs->dst_pitch, false ))
      {
           if (state->flags & CSF_SOURCE_LOCKED) {
                dfb_surface_unlock( source, true );
@@ -5058,6 +5114,23 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
           dfb_surfacemanager_unlock( destination->manager );
           return false;
+     }
+     switch (gfxs->dst_format) {
+          case DSPF_I420:
+               gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
+               gfxs->dst_org[2] = gfxs->dst_org[1] + gfxs->dst_height * gfxs->dst_pitch / 4;
+               break;
+          case DSPF_YV12:
+               gfxs->dst_org[2] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
+               gfxs->dst_org[1] = gfxs->dst_org[2] + gfxs->dst_height * gfxs->dst_pitch / 4;
+               break;
+          case DSPF_NV12:
+          case DSPF_NV21:
+          case DSPF_NV16:
+               gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
+               break;
+          default:
+               break;
      }
 
      gfxs->dst_field_offset = gfxs->dst_height/2 * gfxs->dst_pitch;
@@ -5366,7 +5439,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          *funcs++ = Sacc_is_Bacc;
                          *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                     }
-                    else if (gfxs->src_format == gfxs->dst_format/* &&
+                    else if (gfxs->src_format == gfxs->dst_format ||
+                             ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
+                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12))/* &&
                              (!DFB_PIXELFORMAT_IS_INDEXED(src_format) ||
                               Alut == Blut)*/) {
                          if (accel == DFXL_BLIT) {
@@ -5596,7 +5671,7 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
      if (gfxs->dst_format == DSPF_YUY2 || gfxs->dst_format == DSPF_UYVY)
           gfxs->length /= 2;
 
-     Aop_xy( gfxs, gfxs->dst_org, rect->x, rect->y, gfxs->dst_pitch );
+     Aop_xy( gfxs, gfxs->dst_org[0], rect->x, rect->y, gfxs->dst_pitch );
 
      h = rect->h;
      while (h--) {
@@ -5606,20 +5681,17 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
      }
 
      if (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12) {
-          int dst_field_offset_save = gfxs->dst_field_offset;
-
-          gfxs->dst_field_offset /= 4;
-
           rect->x /= 2;
           rect->y /= 2;
-          rect->w /= 2;
-          rect->h /= 2;
+          rect->w  = (rect->w + 1) / 2;
+          rect->h  = (rect->h + 1) / 2;
+
+          gfxs->dst_field_offset /= 4;
 
           gfxs->length = rect->w;
 
           gfxs->Cop = gfxs->CbCop;
-          Aop_xy( gfxs, gfxs->dst_org + gfxs->dst_height * gfxs->dst_pitch,
-                  rect->x, rect->y, gfxs->dst_pitch/2 );
+          Aop_xy( gfxs, gfxs->dst_org[1], rect->x, rect->y, gfxs->dst_pitch/2 );
           h = rect->h;
           while (h--) {
                RUN_PIPELINE();
@@ -5628,9 +5700,7 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
           }
 
           gfxs->Cop = gfxs->CrCop;
-          Aop_xy( gfxs, gfxs->dst_org + gfxs->dst_height * gfxs->dst_pitch +
-                  gfxs->dst_height * gfxs->dst_pitch/4,
-                  rect->x, rect->y, gfxs->dst_pitch/2 );
+          Aop_xy( gfxs, gfxs->dst_org[2], rect->x, rect->y, gfxs->dst_pitch/2 );
           h = rect->h;
           while (h--) {
                RUN_PIPELINE();
@@ -5638,7 +5708,37 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
                Aop_next( gfxs, gfxs->dst_pitch/2 );
           }
 
-          gfxs->dst_field_offset = dst_field_offset_save;
+          gfxs->dst_field_offset *= 4;
+     }
+     else if (gfxs->dst_format == DSPF_NV12 || gfxs->dst_format == DSPF_NV21 ||
+              gfxs->dst_format == DSPF_NV16) {
+          rect->x &= ~1;
+          rect->w  = (rect->w + 1) / 2;
+
+          if (gfxs->dst_format != DSPF_NV16) {
+               rect->y /= 2;
+               rect->h  = (rect->h + 1) / 2;
+
+               gfxs->dst_field_offset /= 2;
+          }
+
+          gfxs->chroma_plane = true;
+          gfxs->length = rect->w;
+
+          gfxs->Cop = (gfxs->CrCop << 8) | gfxs->CbCop;
+          Aop_xy( gfxs, gfxs->dst_org[1], rect->x, rect->y, gfxs->dst_pitch );
+          h = rect->h;
+          while (h--) {
+               RUN_PIPELINE();
+
+               Aop_next( gfxs, gfxs->dst_pitch );
+          }
+
+          gfxs->chroma_plane = false;
+
+          if (gfxs->dst_format != DSPF_NV16) {
+               gfxs->dst_field_offset *= 2;
+          }
      }
 }
 
@@ -5691,7 +5791,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
           for (i=0, gfxs->length=1; i<dxabs; i++, gfxs->length++) {
                y += dyabs;
                if (y >= dxabs) {
-                    Aop_xy( gfxs, gfxs->dst_org, px, py, gfxs->dst_pitch );
+                    Aop_xy( gfxs, gfxs->dst_org[0], px, py, gfxs->dst_pitch );
                     RUN_PIPELINE();
                     px += gfxs->length;
                     gfxs->length = 0;
@@ -5699,13 +5799,13 @@ void gDrawLine( CardState *state, DFBRegion *line )
                     py += sdy;
                }
           }
-          Aop_xy( gfxs, gfxs->dst_org, px, py, gfxs->dst_pitch );
+          Aop_xy( gfxs, gfxs->dst_org[0], px, py, gfxs->dst_pitch );
           RUN_PIPELINE();
      }
      else { /* the line is more vertical than horizontal */
 
           gfxs->length = 1;
-          Aop_xy( gfxs, gfxs->dst_org, px, py, gfxs->dst_pitch );
+          Aop_xy( gfxs, gfxs->dst_org[0], px, py, gfxs->dst_pitch );
           RUN_PIPELINE();
 
           for (i=0; i<dyabs; i++) {
@@ -5716,7 +5816,7 @@ void gDrawLine( CardState *state, DFBRegion *line )
                }
                py += sdy;
 
-               Aop_xy( gfxs, gfxs->dst_org, px, py, gfxs->dst_pitch );
+               Aop_xy( gfxs, gfxs->dst_org[0], px, py, gfxs->dst_pitch );
                RUN_PIPELINE();
           }
      }
@@ -5776,8 +5876,8 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           gfxs->length = rect->w;
 
-          Aop_xy( gfxs, gfxs->dst_org, dx, dy, gfxs->dst_pitch );
-          Bop_xy( gfxs, gfxs->src_org, rect->x, rect->y, gfxs->src_pitch );
+          Aop_xy( gfxs, gfxs->dst_org[0], dx, dy, gfxs->dst_pitch );
+          Bop_xy( gfxs, gfxs->src_org[0], rect->x, rect->y, gfxs->src_pitch );
 
           if (state->source->field) {
                Aop_next( gfxs, gfxs->dst_pitch );
@@ -5803,7 +5903,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           return;
      }
 
-     if (gfxs->src_org == gfxs->dst_org && dx > rect->x)
+     if (gfxs->src_org[0] == gfxs->dst_org[0] && dx > rect->x)
           /* we must blit from right to left */
           gfxs->Ostep = -1;
      else
@@ -5813,9 +5913,9 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      switch (gfxs->src_format) {
           case DSPF_YUY2:
           case DSPF_UYVY:
+               dx      &= ~1;
                rect->x &= ~1;
-               rect->w &= ~1;
-               dx &= ~1;
+               rect->w  = (rect->w + 1) & ~1;
                break;
 
           default:
@@ -5823,29 +5923,55 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }
 
      gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
-              gfxs->src_pitch, gfxs->dst_pitch, gfxs->src_org, gfxs->dst_org );
+              gfxs->src_pitch, gfxs->dst_pitch, gfxs->src_org[0], gfxs->dst_org[0] );
 
      /* do other planes */
      if (gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) {
-          void *sorg = gfxs->src_org + gfxs->src_height * gfxs->src_pitch;
-          void *dorg = gfxs->dst_org + gfxs->dst_height * gfxs->dst_pitch;
-          int dst_field_offset_save = gfxs->dst_field_offset;
-          int src_field_offset_save = gfxs->src_field_offset;
+          dx      /= 2;
+          dy      /= 2;
+          rect->x /= 2;
+          rect->y /= 2;
+          rect->w  = (rect->w + 1) / 2;
+          rect->h  = (rect->h + 1) / 2;
 
           gfxs->dst_field_offset /= 4;
           gfxs->src_field_offset /= 4;
 
-          gDoBlit( gfxs, rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
-                   gfxs->src_pitch/2, gfxs->dst_pitch/2, sorg, dorg );
+          gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+                   gfxs->src_pitch/2, gfxs->dst_pitch/2, gfxs->src_org[1], gfxs->dst_org[1] );
 
-          sorg += gfxs->src_height * gfxs->src_pitch / 4;
-          dorg += gfxs->dst_height * gfxs->dst_pitch / 4;
+          gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+                   gfxs->src_pitch/2, gfxs->dst_pitch/2, gfxs->src_org[2], gfxs->dst_org[2] );
 
-          gDoBlit( gfxs, rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
-                   gfxs->src_pitch/2, gfxs->dst_pitch/2, sorg, dorg );
+          gfxs->dst_field_offset *= 4;
+          gfxs->src_field_offset *= 4;
+     }
+     else if (gfxs->src_format == DSPF_NV12 || gfxs->src_format == DSPF_NV21 ||
+              gfxs->src_format == DSPF_NV16) {
+          dx      &= ~1;
+          rect->x &= ~1;
+          rect->w  = (rect->w + 1) / 2;
 
-          gfxs->dst_field_offset = dst_field_offset_save;
-          gfxs->src_field_offset = src_field_offset_save;
+          if (gfxs->src_format != DSPF_NV16) {
+               dy      /= 2;
+               rect->y /= 2;
+               rect->h  = (rect->h + 1) / 2;
+
+               gfxs->dst_field_offset /= 2;
+               gfxs->src_field_offset /= 2;
+          }
+
+          gfxs->chroma_plane = true;
+
+          gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+                   gfxs->src_pitch, gfxs->dst_pitch, gfxs->src_org[1], gfxs->dst_org[1] );
+
+          gfxs->chroma_plane = false;
+
+          if (gfxs->src_format != DSPF_NV16) {
+               gfxs->dst_field_offset *= 2;
+               gfxs->src_field_offset *= 2;
+          }
      }
 }
 
@@ -5870,8 +5996,8 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      f = (srect->h << 16) / drect->h;
      h = drect->h;
 
-     Aop_xy( gfxs, gfxs->dst_org, drect->x, drect->y, gfxs->dst_pitch );
-     Bop_xy( gfxs, gfxs->src_org, srect->x, srect->y, gfxs->src_pitch );
+     Aop_xy( gfxs, gfxs->dst_org[0], drect->x, drect->y, gfxs->dst_pitch );
+     Bop_xy( gfxs, gfxs->src_org[0], srect->x, srect->y, gfxs->src_pitch );
 
      while (h--) {
           RUN_PIPELINE();
@@ -5888,56 +6014,103 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      /* scale other planes */
      if (gfxs->src_format == DSPF_YV12 || gfxs->src_format == DSPF_I420) {
-          void *sorg   = gfxs->src_org + (gfxs->src_pitch * gfxs->src_height);
-          void *dorg   = gfxs->dst_org + (gfxs->dst_pitch * gfxs->dst_height);
-          int spitch   = gfxs->src_pitch / 2;
-          int dpitch   = gfxs->dst_pitch / 2;
-          int dfo_save = gfxs->dst_field_offset;
-          int sfo_save = gfxs->src_field_offset;
-	
-          gfxs->length = drect->w / 2;
+          srect->x /= 2;
+          srect->y /= 2;
+          srect->w  = (srect->w + 1) / 2;
+          srect->h  = (srect->h + 1) / 2;
+          drect->x /= 2;
+          drect->y /= 2;
+          drect->w  = (drect->w + 1) / 2;
+          drect->h  = (drect->h + 1) / 2;
+
           gfxs->dst_field_offset /= 4;
           gfxs->src_field_offset /= 4;
 
-          Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
-          Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
+          gfxs->length = drect->w;
 
-          /* scale first plane */
-          for (h = (drect->h / 2), i = 0; h--; ) {
+          Aop_xy( gfxs, gfxs->dst_org[1], drect->x, drect->y, gfxs->dst_pitch/2 );
+          Bop_xy( gfxs, gfxs->src_org[1], srect->x, srect->y, gfxs->src_pitch/2 );
+
+          i = 0;
+          h = drect->h;
+          while (h--) {
                RUN_PIPELINE();
 
-               Aop_next( gfxs, dpitch );
+               Aop_next( gfxs, gfxs->dst_pitch/2 );
 
                i += f;
 
                while (i > 0xFFFF) {
                     i -= 0x10000;
-                    Bop_next( gfxs, spitch );
+                    Bop_next( gfxs, gfxs->src_pitch/2 );
                }
           }
 
-          sorg += (spitch * gfxs->src_height) / 2;
-          dorg += (dpitch * gfxs->dst_height) / 2;
+          Aop_xy( gfxs, gfxs->dst_org[2], drect->x, drect->y, gfxs->dst_pitch/2 );
+          Bop_xy( gfxs, gfxs->src_org[2], srect->x, srect->y, gfxs->src_pitch/2 );
 
-          Aop_xy( gfxs, dorg, drect->x / 2, drect->y / 2, dpitch );
-          Bop_xy( gfxs, sorg, srect->x / 2, srect->y / 2, spitch );
-
-          /* scale second plane */
-          for (h = (drect->h / 2), i = 0; h--; ) {
+          i = 0;
+          h = drect->h;
+          while (h--) {
                RUN_PIPELINE();
 
-               Aop_next( gfxs, dpitch );
+               Aop_next( gfxs, gfxs->dst_pitch/2 );
 
                i += f;
 
                while (i > 0xFFFF) {
                     i -= 0x10000;
-                    Bop_next( gfxs, spitch );
+                    Bop_next( gfxs, gfxs->src_pitch/2 );
                }
           }
 
-          gfxs->dst_field_offset = dfo_save;
-          gfxs->src_field_offset = sfo_save;
+          gfxs->dst_field_offset *= 4;
+          gfxs->src_field_offset *= 4;
+     }
+     else if (gfxs->src_format == DSPF_NV12 || gfxs->src_format == DSPF_NV21 ||
+              gfxs->src_format == DSPF_NV16) {
+          srect->x &= ~1;
+          srect->w  = (srect->w + 1) / 2;
+          drect->x &= ~1;
+          drect->w  = (drect->w + 1) / 2;
+
+          if (gfxs->src_format != DSPF_NV16) {
+               srect->y /= 2;
+               srect->h  = (srect->h + 1) / 2;
+               drect->y /= 2;
+               drect->h  = (drect->h + 1) / 2;
+
+               gfxs->dst_field_offset /= 2;
+               gfxs->src_field_offset /= 2;
+          }
+
+          gfxs->chroma_plane = true;
+          gfxs->length = drect->w;
+
+          Aop_xy( gfxs, gfxs->dst_org[1], drect->x, drect->y, gfxs->dst_pitch );
+          Bop_xy( gfxs, gfxs->src_org[1], srect->x, srect->y, gfxs->src_pitch );
+
+          i = 0;
+          h = drect->h;
+          while (h--) {
+               RUN_PIPELINE();
+
+               Aop_next( gfxs, gfxs->dst_pitch );
+
+               i += f;
+
+               while (i > 0xFFFF) {
+                    i -= 0x10000;
+                    Bop_next( gfxs, gfxs->src_pitch );
+               }
+          }
+
+          gfxs->chroma_plane = false;
+
+          if (gfxs->src_format != DSPF_NV16) {
+               gfxs->dst_field_offset *= 2;
+               gfxs->src_field_offset *= 2;
+          }
      }
 }
 

@@ -60,8 +60,8 @@ struct _GenefxState {
      /*
       * state values
       */
-     void *dst_org;
-     void *src_org;
+     void *dst_org[3];
+     void *src_org[3];
      int dst_pitch;
      int src_pitch;
 
@@ -130,6 +130,8 @@ struct _GenefxState {
      int Ostep; /* controls horizontal blitting direction */
 
      int SperD; /* for scaled routines only */
+
+     int chroma_plane; /* for NV12/NV21/NV16 formats */
 };
 
 
