@@ -442,7 +442,7 @@ fs_core_initialize( CoreSound *core )
           return DFB_UNSUPPORTED;
      }
 
-     if (shared->config.block_size > 4096)
+//     if (shared->config.block_size > 4096)
           shared->config.block_size = 4096;
 
      /* calculate number of samples fitting into one block */
