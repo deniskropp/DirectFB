@@ -25,7 +25,6 @@
 #define __MATROX_MAVEN_H__
 
 typedef struct {
-     int  g450;
      char dev[256];
      __u8 regs[256];
 } MatroxMavenData;

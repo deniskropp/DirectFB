@@ -1264,6 +1264,74 @@ static bool matroxTextureTriangles( void *drv, void *dev,
 
 /******************************************************************************/
 
+static bool
+detect_g450( void )
+{
+     unsigned int vendor, device, devfn, bus;
+     char  line[512];
+     FILE *file;
+
+     file = fopen( "/proc/bus/pci/devices", "r" );
+     if (!file) {
+          PERRORMSG( "DirectFB/Matrox: "
+                     "Error opening `/proc/bus/pci/devices'!\n" );
+          return false;
+     }
+
+     while (fgets( line, 512, file )) {
+          if (sscanf( line, "%02x%02x\t%04x%04x",
+                      &bus, &devfn, &vendor, &device ) != 4)
+               continue;
+
+          if (vendor != 0x102B)
+               continue;
+
+          if (device == 0x2527) {
+               /* G550 */
+               fclose( file );
+
+               return true;
+          } else if (device == 0x0525) {
+               int fd;
+               __u8 rev;
+
+               /* G400 or G450 -> check revision */
+               snprintf( line, 512,
+                         "/proc/bus/pci/%02x/%02x.%x",
+                         bus,
+                         (devfn >> 3) & 0x1F,
+                         devfn & 0x07 );
+
+               fd = open( line, O_RDONLY );
+               if (fd < 0)
+                    continue;
+
+               if (lseek( fd, 0x08, SEEK_SET ) != 0x08) {
+                    close( fd );
+                    continue;
+               }
+
+               if (read( fd, &rev, 1 ) != 1) {
+                    close( fd );
+                    continue;
+               }
+
+               close( fd );
+
+               fclose( file );
+
+               return (rev >= 0x80);
+          }
+     }
+
+     fclose( file );
+
+     ERRORMSG( "DirectFB/Matrox: "
+               "Can't determine chip type from `/proc/bus/pci'!\n" );
+
+     return false;
+}
+
 /* exported symbols */
 
 static int
@@ -1299,7 +1367,7 @@ driver_get_info( GraphicsDevice     *device,
                "convergence integrated media GmbH" );
 
      info->version.major = 0;
-     info->version.minor = 6;
+     info->version.minor = 7;
 
      info->driver_data_size = sizeof (MatroxDriverData);
      info->device_data_size = sizeof (MatroxDeviceData);
@@ -1324,6 +1392,8 @@ driver_init_driver( GraphicsDevice      *device,
      switch (mdrv->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
+               mdrv->g450 = detect_g450();
+
                funcs->CheckState = matroxG400CheckState;
                break;
 #endif

@@ -55,7 +55,7 @@ maven_write_byte( MatroxMavenData  *mav,
                   __u8              reg,
                   __u8              val )
 {
-     if (mav->g450) {
+     if (mdrv->g450) {
           volatile __u8 *mmio = mdrv->mmio_base;
 
           mga_out_dac( mmio, 0x87, reg );
@@ -70,7 +70,7 @@ maven_write_word( MatroxMavenData  *mav,
                   __u8              reg,
                   __u16             val )
 {
-     if (mav->g450) {
+     if (mdrv->g450) {
           volatile __u8 *mmio = mdrv->mmio_base;
 
           mga_out_dac( mmio, 0x87, reg );
@@ -87,7 +87,7 @@ maven_disable( MatroxMavenData  *mav,
 {
      maven_write_byte( mav, mdrv, 0x3E, 0x01 );
 
-     if (mav->g450) {
+     if (mdrv->g450) {
           maven_write_byte( mav, mdrv, 0x80, 0x00 );
           return;
      }
@@ -103,7 +103,7 @@ void
 maven_enable( MatroxMavenData  *mav,
               MatroxDriverData *mdrv )
 {
-     if (mav->g450) {
+     if (mdrv->g450) {
           if (dfb_config->matrox_cable == 1)
                /* SCART RGB */
                maven_write_byte( mav, mdrv, 0x80,
@@ -123,7 +123,7 @@ void
 maven_sync( MatroxMavenData  *mav,
             MatroxDriverData *mdrv )
 {
-     if (mav->g450)
+     if (mdrv->g450)
           return;
 
      maven_write_byte( mav, mdrv, 0xD4, 0x01 );
@@ -190,7 +190,7 @@ maven_set_regs( MatroxMavenData       *mav,
      LR(0x37);
      LR(0x38);
 
-     if (mav->g450) {
+     if (mdrv->g450) {
           maven_write_word( mav, mdrv, 0x82,
                             dfb_config->matrox_ntsc ? 0x0014 : 0x0017 );
           maven_write_word( mav, mdrv, 0x84, 0x0001 );
@@ -214,7 +214,7 @@ maven_set_regs( MatroxMavenData       *mav,
      maven_set_bwlevel( mav, mdrv, adj->brightness >> 8,
                         adj->contrast >> 8 );
 
-     if (!mav->g450) {
+     if (!mdrv->g450) {
           LR(0x83);
           LR(0x84);
           LR(0x85);
@@ -268,7 +268,7 @@ maven_set_bwlevel( MatroxMavenData  *mav,
      int b, c, bl, wl, wlmax, blmin, range;
      bool ntsc = dfb_config->matrox_ntsc;
 
-     if (mav->g450) {
+     if (mdrv->g450) {
           wlmax = ntsc ? 869 : 881;
           blmin = ntsc ? 200 : 224;
      } else {
@@ -296,7 +296,7 @@ DFBResult
 maven_open( MatroxMavenData  *mav,
             MatroxDriverData *mdrv )
 {
-     if (mav->g450)
+     if (mdrv->g450)
           return DFB_OK;
 
      if (mdrv->maven_fd != -1)
@@ -324,7 +324,7 @@ void
 maven_close( MatroxMavenData  *mav,
              MatroxDriverData *mdrv )
 {
-     if (mav->g450)
+     if (mdrv->g450)
           return;
 
      if (mdrv->maven_fd == -1)
@@ -341,78 +341,8 @@ DFBResult maven_init( MatroxMavenData  *mav,
      int   fd, found;
      FILE *file;
 
-     /* Determine chip type (G400 or G450/G550) */
-     {
-          unsigned int devfn, devid, rev;
-
-          found = 0;
-
-          file = fopen( "/proc/bus/pci/devices", "r" );
-          if (!file) {
-               PERRORMSG( "DirectFB/Matrox/Maven: "
-                          "Error opening `/proc/bus/pci/devices'!\n" );
-               return errno2dfb( errno );
-          }
-          while (fgets( line, 512, file )) {
-               sscanf( line,
-                       "%x %x %*x %*x %*x %*x"
-                       "%*x %*x %*x %*x %*x"
-                       "%*x %*x %*x %*x %*x"
-                       "%*x",
-                       &devfn, &devid );
-
-               /* vendor */
-               if ((devid >> 16) != 0x102B)
-                    continue;
-
-               /* device */
-               if ((devid & 0xFFFF) == 0x2527) {
-                    /* G550 */
-                    mav->g450 = 1;
-                    found = 1;
-                    break;
-               } else if ((devid & 0xFFFF) == 0x0525) {
-                    /* G400 or G450 -> check revision */
-                    snprintf( line, 512,
-                              "/proc/bus/pci/%02x/%02x.%x",
-                              devfn >> 8,
-                              (devfn >> 3) & 0x1F,
-                              devfn & 0x07 );
-
-                    fd = open( line, O_RDONLY );
-                    if (fd < 0)
-                         continue;
-
-                    if (lseek( fd, 0x08, SEEK_SET ) != 0x08) {
-                         close( fd );
-                         continue;
-                    }
-                    if (read( fd, &rev, 1 ) != 1) {
-                         close( fd );
-                         continue;
-                    }
-                    close( fd );
-
-                    if ((rev & 0xFF) >= 0x80)
-                         mav->g450 = 1;
-                    else
-                         mav->g450 = 0;
-
-                    found = 1;
-                    break;
-               }
-          }
-          fclose( file );
-
-          if (!found) {
-               ERRORMSG( "DirectFB/Matrox/Maven: "
-                         "Can't determine if chip is G400 or G450/G550!\n" );
-               return DFB_UNSUPPORTED;
-          }
-     }
-
      /* Locate G400 maven /dev/i2c file */
-     if (!mav->g450) {
+     if (!mdrv->g450) {
           found = 0;
 
           file = fopen( "/proc/bus/i2c", "r" );
@@ -573,7 +503,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
           else
                dfb_memcpy( mav->regs, palregs, 64 );
 
-          if (mav->g450) {
+          if (mdrv->g450) {
                if (dfb_config->matrox_ntsc) {
                     mav->regs[0x09] = 0x44;
                     mav->regs[0x0A] = 0x76;

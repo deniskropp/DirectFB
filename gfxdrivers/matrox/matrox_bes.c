@@ -59,13 +59,6 @@
 typedef struct {
      CoreLayerRegionConfig config;
 
-     struct {
-          float            x;
-          float            y;
-          float            w;
-          float            h;
-     } location;
-
      /* Stored registers */
      struct {
           /* BES */
@@ -127,7 +120,6 @@ besInitLayer( CoreLayer                  *layer,
               DFBColorAdjustment         *adjustment )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
-     MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      volatile __u8      *mmio = mdrv->mmio_base;
 
      /* set capabilities and type */
@@ -156,13 +148,6 @@ besInitLayer( CoreLayer                  *layer,
      adjustment->brightness = 0x8000;
      adjustment->contrast   = 0x8000;
 
-
-     /* initialize destination rectangle */
-     mbes->location.x = 0.0f;
-     mbes->location.y = 0.0f;
-     mbes->location.w = 1.0f;
-     mbes->location.h = 1.0f;
-
      /* disable backend scaler */
      mga_out32( mmio, 0, BESCTL );
 
@@ -182,22 +167,6 @@ besInitLayer( CoreLayer                  *layer,
      return DFB_OK;
 }
 
-
-static void
-besOnOff( MatroxDriverData   *mdrv,
-          MatroxBesLayerData *mbes,
-          int                 on )
-{
-     if (on)
-          mbes->regs.besCTL |= 1;
-     else
-          mbes->regs.besCTL &= ~1;
-
-     mga_out32( mdrv->mmio_base,
-                mbes->regs.besCTL | mbes->regs.besCTL_field, BESCTL );
-}
-
-
 static DFBResult
 besTestRegion( CoreLayer                  *layer,
                void                       *driver_data,
@@ -205,9 +174,9 @@ besTestRegion( CoreLayer                  *layer,
                CoreLayerRegionConfig      *config,
                CoreLayerRegionConfigFlags *failed )
 {
-     int                         max_width = 1024;
-     CoreLayerRegionConfigFlags  fail      = 0;
      MatroxDriverData           *mdrv      = (MatroxDriverData*) driver_data;
+     int                         max_width = mdrv->g450 ? 2048 : 1024;
+     CoreLayerRegionConfigFlags  fail      = 0;
 
      if (config->options & ~BES_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
@@ -217,7 +186,8 @@ besTestRegion( CoreLayer                  *layer,
                break;
 
           case DSPF_RGB32:
-               max_width = 512;
+               if (!mdrv->g450)
+                    max_width = 512;
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_UYVY:
@@ -306,9 +276,6 @@ besSetRegion( CoreLayer                  *layer,
           mga_out_dac( mmio, XCOLKEY0BLUE,  key.b );
      }
 
-     /* enable backend scaler */
-     besOnOff( mdrv, mbes, 1 );
-
      return DFB_OK;
 }
 
@@ -319,10 +286,9 @@ besRemoveRegion( CoreLayer *layer,
                  void      *region_data )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
-     MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
 
      /* disable backend scaler */
-     besOnOff( mdrv, mbes, 0 );
+     mga_out32( mdrv->mmio_base, 0, BESCTL );
 
      return DFB_OK;
 }
@@ -455,26 +421,62 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                            CoreLayerRegionConfig *config,
                            CoreSurface           *surface )
 {
-     int tmp, hzoom, intrep;
-
+     int cropleft, cropright, croptop, cropbot, croptop_uv;
+     int field_height, pitch, tmp, hzoom, intrep;
+     DFBRectangle   dest;
      DFBRegion      dstBox;
-     int            drw_w, drw_h;
-     int            field_height;
      SurfaceBuffer *front_buffer = surface->front_buffer;
      VideoMode     *current_mode = dfb_system_current_mode();
 
-     /* destination box */
-     dstBox.x1 = config->dest.x;
-     dstBox.y1 = config->dest.y;
-     dstBox.x2 = config->dest.x + config->dest.w;
-     dstBox.y2 = config->dest.y + config->dest.h;
+     dest = config->dest;
 
-     /* destination size */
-     drw_w = config->dest.w;
-     drw_h = config->dest.h;
+     if (!mdrv->g450 && surface->format == DSPF_RGB32)
+          dest.w = surface->width;
+
+     field_height = surface->height;
+     pitch        = front_buffer->video.pitch;
+
+     if (config->options & DLOP_DEINTERLACING) {
+          field_height /= 2;
+          pitch        *= 2;
+     } else
+          mbes->regs.besCTL_field = 0;
+
+     /* calculate destination cropping */
+     cropleft  = -dest.x;
+     croptop   = -dest.y;
+     cropright = dest.x + dest.w - current_mode->xres;
+     cropbot   = dest.y + dest.h - current_mode->yres;
+
+     cropleft   = cropleft > 0 ? cropleft : 0;
+     croptop    = croptop > 0 ? croptop : 0;
+     cropright  = cropright > 0 ? cropright : 0;
+     cropbot    = cropbot > 0 ? cropbot : 0;
+     croptop_uv = croptop;
+
+     /* destination box */
+     dstBox.x1 = dest.x + cropleft;
+     dstBox.y1 = dest.y + croptop;
+     dstBox.x2 = dest.x + dest.w - 1 - cropright;
+     dstBox.y2 = dest.y + dest.h - 1 - cropbot;
+
+     /* scale crop values to source dimensions */
+     if (cropleft)
+          cropleft = ((__u64) (surface->width << 16) * cropleft / dest.w) & ~0x3;
+     if (croptop)
+          croptop = ((__u64) (field_height << 16) * croptop / dest.h) & ~0x3;
+     if (cropright)
+          cropright = ((__u64) (surface->width << 16) * cropright / dest.w) & ~0x3;
+     if (cropbot)
+          cropbot = ((__u64) (field_height << 16) * cropbot / dest.h) & ~0x3;
+     if (croptop_uv)
+          croptop_uv = ((__u64) ((field_height/2) << 16) * croptop_uv / dest.h) & ~0x3;
 
      /* should horizontal zoom be used? */
-     hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
+     if (mdrv->g450)
+          hzoom = (1000000/current_mode->pixclock >= 234) ? 1 : 0;
+     else
+          hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
 
      /* initialize */
      mbes->regs.besGLOBCTL = 0;
@@ -509,9 +511,6 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
           case DSPF_RGB32:
                mbes->regs.besGLOBCTL |= BESRGB32;
-
-               drw_w = surface->width;
-               dstBox.x2 = dstBox.x1 + surface->width;
                break;
 
           default:
@@ -520,31 +519,38 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      }
 
      mbes->regs.besGLOBCTL |= 3*hzoom | (current_mode->yres & 0xFFF) << 16;
-     mbes->regs.besA1ORG    = front_buffer->video.offset;
-     mbes->regs.besA2ORG    = front_buffer->video.offset +
-                              front_buffer->video.pitch;
+
+     mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->format);
+
+     /* buffer offsets */
+     mbes->regs.besA1ORG = front_buffer->video.offset +
+                           pitch * (croptop >> 16);
+     mbes->regs.besA2ORG = mbes->regs.besA1ORG +
+                           front_buffer->video.pitch;
 
      switch (surface->format) {
           case DSPF_I420:
-               mbes->regs.besA1CORG  = mbes->regs.besA1ORG + surface->height *
-                                       front_buffer->video.pitch;
+               mbes->regs.besA1CORG  = front_buffer->video.offset +
+                                       surface->height * front_buffer->video.pitch +
+                                       pitch/2 * (croptop_uv >> 16);
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
                                        front_buffer->video.pitch/2;
 
-               mbes->regs.besA1C3ORG = mbes->regs.besA1CORG + surface->height/2 *
-                                       front_buffer->video.pitch/2;
+               mbes->regs.besA1C3ORG = mbes->regs.besA1CORG +
+                                       surface->height/2 * front_buffer->video.pitch/2;
                mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
                                        front_buffer->video.pitch/2;
                break;
 
           case DSPF_YV12:
-               mbes->regs.besA1C3ORG = mbes->regs.besA1ORG + surface->height *
-                                       front_buffer->video.pitch;
+               mbes->regs.besA1C3ORG = front_buffer->video.offset +
+                                       surface->height * front_buffer->video.pitch +
+                                       pitch/2 * (croptop_uv >> 16);
                mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
                                        front_buffer->video.pitch/2;
 
-               mbes->regs.besA1CORG  = mbes->regs.besA1C3ORG + surface->height/2 *
-                                       front_buffer->video.pitch/2;
+               mbes->regs.besA1CORG  = mbes->regs.besA1C3ORG +
+                                       surface->height/2 * front_buffer->video.pitch/2;
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
                                        front_buffer->video.pitch/2;
                break;
@@ -553,43 +559,60 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                ;
      }
 
-     mbes->regs.besHCOORD   = (dstBox.x1 << 16) | (dstBox.x2 - 1);
-     mbes->regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
+     if (!mdrv->g450 && surface->format == DSPF_RGB32) {
+          dstBox.x1 *= 2;
+          dstBox.x2 *= 2;
+     }
+     mbes->regs.besHCOORD   = (dstBox.x1 << 16) | dstBox.x2;
+     mbes->regs.besVCOORD   = (dstBox.y1 << 16) | dstBox.y2;
 
-     mbes->regs.besHSRCST   = 0;
-     mbes->regs.besHSRCEND  = (surface->width - 1) << 16;
+     mbes->regs.besHSRCST   = cropleft;
+     mbes->regs.besHSRCEND  = ((surface->width - 1) << 16) - cropright;
      mbes->regs.besHSRCLST  = (surface->width - 1) << 16;
 
-     mbes->regs.besV1WGHT   = 0;
-     mbes->regs.besV2WGHT   = 0x18000;
-
-     mbes->regs.besV1SRCLST = surface->height - 1;
-     mbes->regs.besV2SRCLST = surface->height - 2;
-
-     mbes->regs.besPITCH    = front_buffer->video.pitch /
-                              DFB_BYTES_PER_PIXEL(surface->format);
-
-     field_height           = surface->height;
-
-     if (config->options & DLOP_DEINTERLACING) {
-          field_height        /= 2;
-          mbes->regs.besPITCH *= 2;
+     /* vertical starting weights */
+     tmp = croptop & 0xfffc;
+     mbes->regs.besV1WGHT = tmp;
+     if (tmp >= 0x8000) {
+          tmp = tmp - 0x8000;
+          /* fields start on the same line */
+          if ((croptop >> 16) & 1)
+               mbes->regs.besCTL |= BESV1SRCSTP | BESV2SRCSTP;
+     } else {
+          tmp = 0x10000 | (0x8000 - tmp);
+          /* fields start on alternate lines */
+          if ((croptop >> 16) & 1)
+               mbes->regs.besCTL |= BESV1SRCSTP;
+          else
+               mbes->regs.besCTL |= BESV2SRCSTP;
      }
-     else
-          mbes->regs.besCTL_field = 0;
+     mbes->regs.besV2WGHT = tmp;
 
-     if (config->format == DSPF_RGB32)
-          mbes->regs.besHISCAL = 0x20000;
-     else {
-          intrep = ((drw_w == surface->width) || (drw_w < 2)) ? 0 : 1;
-          tmp = (((surface->width - intrep) << 16) / (drw_w - intrep)) << hzoom;
+     mbes->regs.besV1SRCLST = mbes->regs.besV2SRCLST =
+          field_height - 1 - (croptop >> 16) - (cropbot >> 16);
+
+     /* horizontal scaling */
+     if (!mdrv->g450 && surface->format == DSPF_RGB32) {
+          mbes->regs.besHISCAL   = 0x20000;
+          mbes->regs.besHSRCST  *= 2;
+          mbes->regs.besHSRCEND *= 2;
+          mbes->regs.besHSRCLST *= 2;
+          mbes->regs.besPITCH   *= 2;
+     } else {
+          intrep = ((mbes->regs.besCTL & BESHFEN) || (surface->width > dest.w)) ? 1 : 0;
+          if ((dest.w == surface->width) || (dest.w < 2))
+               intrep = 0;
+          tmp = (((surface->width - intrep) << 16) / (dest.w - intrep)) << hzoom;
           if (tmp >= (32 << 16))
                tmp = (32 << 16) - 1;
           mbes->regs.besHISCAL = tmp & 0x001ffffc;
      }
 
-     intrep = ((drw_h == field_height) || (drw_h < 2)) ? 0 : 1;
-     tmp = ((field_height - intrep) << 16) / (drw_h - intrep);
+     /* vertical scaling */
+     intrep = ((mbes->regs.besCTL & BESVFEN) || (field_height > dest.h)) ? 1 : 0;
+     if ((dest.h == field_height) || (dest.h < 2))
+          intrep = 0;
+     tmp = ((field_height - intrep) << 16) / (dest.h - intrep);
      if(tmp >= (32 << 16))
           tmp = (32 << 16) - 1;
      mbes->regs.besVISCAL = tmp & 0x001ffffc;
@@ -597,4 +620,3 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      /* enable color keying? */
      mbes->regs.xKEYOPMODE = (config->options & DLOP_DST_COLORKEY) ? 1 : 0;
 }
-

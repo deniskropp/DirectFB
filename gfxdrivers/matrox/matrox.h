@@ -57,6 +57,8 @@ typedef struct {
      int            maven_fd;
      volatile __u8 *mmio_base;
 
+     bool           g450;
+
      CoreScreen    *primary;
      CoreScreen    *secondary;
 } MatroxDriverData;

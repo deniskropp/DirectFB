@@ -72,6 +72,8 @@
 
 #define BESCTL           0x3D20
 #    define BESEN             0x00000001
+#    define BESV1SRCSTP       0x00000040
+#    define BESV2SRCSTP       0x00000080
 #    define BESHFEN           0x00000400
 #    define BESVFEN           0x00000800
 #    define BESCUPS           0x00010000
