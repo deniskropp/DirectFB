@@ -60,11 +60,9 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
      __u32 pixel;
 
      switch (format) {
-#ifdef SUPPORT_RGB332
           case DSPF_RGB332:
                pixel = PIXEL_RGB332( r, g, b );
                break;
-#endif
           case DSPF_ARGB1555:
                pixel = PIXEL_RGB15( r, g, b );
                break;

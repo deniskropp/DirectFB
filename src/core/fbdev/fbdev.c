@@ -220,9 +220,7 @@ static DisplayLayerFuncs primaryLayerFuncs = {
 
 static DFBResult dfb_fbdev_read_modes();
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
-#ifdef SUPPORT_RGB332
 static DFBResult dfb_fbdev_set_rgb332_palette();
-#endif
 static DFBResult dfb_fbdev_pan( int offset );
 static DFBResult dfb_fbdev_blank( int level );
 static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
@@ -858,10 +856,8 @@ primaryTestConfiguration ( DisplayLayer               *layer,
      DFBDisplayLayerConfigFlags  fail = 0;
 
      if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT)) {
-#ifndef SUPPORT_RGB332
           if (config->pixelformat == DSPF_RGB332)
                fail |= DLCONF_PIXELFORMAT;
-#endif
 
           videomode = dfb_fbdev->shared->modes;
           while (videomode) {
@@ -1322,18 +1318,15 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
      switch (var->bits_per_pixel) {
           
           case 8:
-#ifdef SUPPORT_RGB332
 /*
                This check is omitted, since we want to use RGB332 even if the
                hardware uses a palette (in that case we initialize a calculated
                one to have correct colors)
 
                if (fbdev_compatible_format( var, 0, 3, 3, 2, 0, 5, 2, 0 ))*/
+
                return DSPF_RGB332;
 
-               break;
-#endif
-               return DSPF_LUT8;
           case 15:
                if (dfb_fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ) |
                    dfb_fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
@@ -1602,11 +1595,9 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                format = config->pixelformat;
           }
 
-#ifdef SUPPORT_RGB332
           if (config->pixelformat == DSPF_RGB332)
                dfb_fbdev_set_rgb332_palette();
           else
-#endif
                dfb_fbdev_set_gamma_ramp( config->pixelformat );
 
           dfb_fbdev->shared->current_var = var;
@@ -1945,7 +1936,6 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      return DFB_OK;
 }
 
-#ifdef SUPPORT_RGB332
 static DFBResult dfb_fbdev_set_rgb332_palette()
 {
      int red_val;
@@ -2000,7 +1990,6 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
 
      return DFB_OK;
 }
-#endif
 
 static int
 fbdev_ioctl_call_handler( int   caller,

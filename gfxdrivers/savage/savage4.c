@@ -187,13 +187,11 @@ static inline void savage4_validate_color( Savage4DeviceData *sdev,
                                              state->color.g,
                                              state->color.b);
                break;
-#ifdef SUPPORT_RGB332
           case DSPF_RGB332:
                sdev->Fill_Color = PIXEL_RGB332(state->color.r,
                                                state->color.g,
                                                state->color.b);
                break;
-#endif
           default:
                BUG( "unexpected destination format" );
                break;
@@ -225,9 +223,7 @@ static void savage4CheckState( void *drv, void *dev,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
-#ifdef SUPPORT_RGB332
           case DSPF_RGB332:
-#endif
                break;
           default:
                return;

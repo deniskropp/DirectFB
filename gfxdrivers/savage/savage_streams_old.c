@@ -1002,12 +1002,10 @@ primary_calc_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play,
                SVGDBG("primary set to DSPF_ARGB\n");
                play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_ARGB;
                break;
-#ifdef SUPPORT_RGB332
           case DSPF_RGB332:
                SVGDBG("primary set to DSPF_RGB332\n");
                play->regs.PSTREAM_CTRL = SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_CLUT;
                break;
-#endif
           default:
                BUG("unexpected primary pixelformat");
                return;

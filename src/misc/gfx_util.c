@@ -76,11 +76,9 @@ static void rgba_to_dst_format (__u8 *dst,
 
      switch (dst_format) {
 
-#ifdef SUPPORT_RGB332
      case DSPF_RGB332:
           *((__u8*)dst) = PIXEL_RGB332( r, g, b );
           break;
-#endif
 
      case DSPF_A8:
           *((__u8*)dst) = a;
