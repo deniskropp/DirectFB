@@ -735,31 +735,41 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 
           if (edges) {
                if (gAcquire( state, DFXL_DRAWLINE )) {
-                    DFBRegion line;
+                    DFBRectangle r;
+                    int          t  = (edges & DFEF_TOP ? 1 : 0);
+                    int          tb = t + (edges & DFEF_BOTTOM ? 1 : 0);
 
                     if (edges & DFEF_LEFT) {
-                         line.x1 = line.x2 = rect->x;
-                         line.y1 = rect->y + (edges & DFEF_TOP ? 1 : 0);
-                         line.y2 = rect->y + rect->h - 1;
-                         gDrawLine( state, &line );
+                         r.x = rect->x;
+                         r.y = rect->y + t;
+                         r.w = 1;
+                         r.h = rect->h - tb;
+
+                         gFillRectangle( state, &r );
                     }
                     if (edges & DFEF_TOP) {
-                         line.x1 = rect->x;
-                         line.x2 = rect->x + rect->w - (edges & DFEF_RIGHT ? 2 : 1);
-                         line.y1 = line.y2 = rect->y;
-                         gDrawLine( state, &line );
+                         r.x = rect->x;
+                         r.y = rect->y;
+                         r.w = rect->w;
+                         r.h = 1;
+
+                         gFillRectangle( state, &r );
                     }
                     if (edges & DFEF_RIGHT) {
-                         line.x1 = line.x2 = rect->x + rect->w - 1;
-                         line.y1 = rect->y;
-                         line.y2 = rect->y + rect->h - (edges & DFEF_BOTTOM ? 2 : 1);
-                         gDrawLine( state, &line );
+                         r.x = rect->x + rect->w - 1;
+                         r.y = rect->y + t;
+                         r.w = 1;
+                         r.h = rect->h - tb;
+
+                         gFillRectangle( state, &r );
                     }
                     if (edges & DFEF_BOTTOM) {
-                         line.x1 = rect->x + (edges & DFEF_LEFT ? 1 : 0);
-                         line.x2 = rect->x + rect->w - 1;
-                         line.y1 = line.y2 = rect->y + rect->h - 1;
-                         gDrawLine( state, &line );
+                         r.x = rect->x;
+                         r.y = rect->y + rect->h - 1;
+                         r.w = rect->w;
+                         r.h = 1;
+
+                         gFillRectangle( state, &r );
                     }
 
                     gRelease (state);
