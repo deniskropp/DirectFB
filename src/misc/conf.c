@@ -686,7 +686,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      if (ret  &&  ret != DFB_IO)
           return ret;
 
-     if (argc && argv) {
+     if (argc && *argc && argv && *argv) {
           prog = strrchr( (*argv)[0], '/' );
 
           if (prog)
