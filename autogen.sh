@@ -126,7 +126,7 @@ autoconf
 (autoheader --version)  < /dev/null > /dev/null 2>&1 && echo Running autoheader... && autoheader
 
 echo Running automake ...
-automake --force --add-missing $am_opt
+automake --add-missing $am_opt
 
 cd $ORIGDIR
 
