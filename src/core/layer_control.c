@@ -445,14 +445,10 @@ dfb_layer_remove_context( CoreLayer        *layer,
           /* There's no active context anymore. */
           ctxs->active = -1;
 
-          /* Activate primary (shared) context. */
-          if (ctxs->primary) {
+          if (ctxs->primary)
                D_ASSERT( fusion_vector_contains( &ctxs->stack, ctxs->primary ) );
 
-               if (shared->suspended || dfb_layer_context_activate( ctxs->primary ) == DFB_OK)
-                    ctxs->active = fusion_vector_index_of( &ctxs->stack, ctxs->primary );
-          }
-          else if (fusion_vector_has_elements( &ctxs->stack )) {
+          if (fusion_vector_has_elements( &ctxs->stack )) {
                CoreLayerContext *ctx;
 
                /* Activate most recent context. */
