@@ -204,6 +204,7 @@ static void print_usage()
 static void shutdown()
 {
      /* release our interfaces to shutdown DirectFB */
+     font->Release( font );
      intro->Release( intro );
      simple->Release( simple );
      colorkeyed->Release( colorkeyed );
