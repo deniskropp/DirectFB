@@ -163,6 +163,12 @@ void direct_assumption( const char *exp,
                                         D_ASSERT( (o)->magic == D_MAGIC(#m) );       \
                                    } while (0)
 
+#define D_MAGIC_ASSUME(o,m)        do {                                              \
+                                        D_ASSUME( (o) != NULL );                     \
+                                        if (o)                                       \
+                                             D_ASSUME( (o)->magic == D_MAGIC(#m) );  \
+                                   } while (0)
+
 #define D_MAGIC_ASSERT_IF(o,m)     do {                                              \
                                         if (o)                                       \
                                              D_ASSERT( (o)->magic == D_MAGIC(#m) );  \
