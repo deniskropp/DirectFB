@@ -154,25 +154,26 @@ sub parse_interface (NAME)
                         last if /^\s*\)\;\s*$/;
 
 
-                        if ( /^\s*(\w+)\s*(\**\w+)\s*,?\s*$/ )
+                        if ( /^\s*([\w\ ]+)\s+(\**\w+)\s*,?\s*$/ )
                            {
-                              if ($types{$1})
+                              $type = $1;
+                              $name = $2;
+
+                              $type =~ s/\ *$//;
+
+                              if ($types{$type})
                                  {
-                                    $type = "<A href=\"types.html#$1\">$1</A>";
+                                    $type = "<A href=\"types.html#$type\">$type</A>";
                                  }
-                              elsif ($interface_abstracts{$1})
+                              elsif ($interface_abstracts{$type})
                                  {
-                                    $type = "<A href=\"$1.html\">$1</A>";
-                                 }
-                              else
-                                 {
-                                    $type = "$1";
+                                    $type = "<A href=\"$type.html\">$type</A>";
                                  }
 
                               print FUNCTION "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
                                              "      $type\n",
                                              "    </TD><TD valign=top>\n",
-                                             "      <FONT color=black><B>$2</B></FONT>\n",
+                                             "      <FONT color=black><B>$name</B></FONT>\n",
                                              "    </TD></TR>\n";
                            }
                      }
@@ -319,60 +320,75 @@ sub parse_struct
             chomp;
 
             # without comment
-            if ( /^\s*(\w+)\s+(\w+;)\s*$/ )
+            if ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*$/ )
                {
-                  if ($types{$1})
+                  $type = $1;
+                  $entry = $2;
+
+                  $type =~ s/\ *$//;
+                  
+                  if ($types{$type})
                      {
-                        $entries_types{$2} = "<A href=\"types.html#$1\">$1</A>";
+                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
                      }
-                  elsif ($interface_abstracts{$1})
+                  elsif ($interface_abstracts{$type})
                      {
-                        $entries_types{$2} = "<A href=\"$1.html#$1\">$1</A>";
+                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
                      }
                   else
                      {
-                        $entries_types{$2} = "$1";
+                        $entries_types{$entry} = "$type";
                      }
                   
-                  $entries{ $2 } = "";
+                  $entries{ $entry } = "";
                }
             # complete one line entry
-            elsif ( /^\s*(\w+)\s+(\w+;)\s*\/\*\s*(.+)\*\/\s*$/ )
+            elsif ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*\/\*\s*(.+)\*\/\s*$/ )
                {
-                  if ($types{$1})
+                  $type = $1;
+                  $entry = $2;
+                  $text = $3;
+   
+                  $type =~ s/\ *$//;
+   
+                  if ($types{$type})
                      {
-                        $entries_types{$2} = "<A href=\"types.html#$1\">$1</A>";
+                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
                      }
-                  elsif ($interface_abstracts{$1})
+                  elsif ($interface_abstracts{$type})
                      {
-                        $entries_types{$2} = "<A href=\"$1.html#$1\">$1</A>";
+                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
                      }
                   else
                      {
-                        $entries_types{$2} = "$1";
+                        $entries_types{$entry} = "$type";
                      }
-                  
-                  $entries{ $2 } = $3;
+   
+                  $entries{ $entry } = $text;
                }
             # with comment opening
-            elsif ( /^\s*(\w+)\s+(\w+;)\s*\/\*\s*(.+)\s*$/ )
+            elsif ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*\/\*\s*(.+)\s*$/ )
                {
-                  if ($types{$1})
+                  $type = $1;
+                  $entry = $2;
+                  $text = $3;
+   
+                  $type =~ s/\ *$//;
+   
+                  if ($types{$type})
                      {
-                        $entries_types{$2} = "<A href=\"types.html#$1\">$1</A>";
+                        $entries_types{$entry} = "<A href=\"types.html#$type\">$type</A>";
                      }
-                  elsif ($interface_abstracts{$1})
+                  elsif ($interface_abstracts{$type})
                      {
-                        $entries_types{$2} = "<A href=\"$1.html#$1\">$1</A>";
+                        $entries_types{$entry} = "<A href=\"$type.html\">$type</A>";
                      }
                   else
                      {
-                        $entries_types{$2} = "$1";
+                        $entries_types{$entry} = "$type";
                      }
-
-                  $entries{ $2 } = $3;
-
-                  $entry = $2;
+   
+                  $entries{ $entry } = $text;
                   
                   while (<>)
                      {
