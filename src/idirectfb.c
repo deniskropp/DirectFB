@@ -134,8 +134,11 @@ static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice  *device,
 static ReactionResult focus_listener( const void *msg_data,
                                       void       *ctx );
 
-static bool input_filter( DFBEvent *evt,
-                          void     *ctx );
+static bool input_filter_local( DFBEvent *evt,
+                                void     *ctx );
+
+static bool input_filter_global( DFBEvent *evt,
+                                 void     *ctx );
 
 static void drop_window( IDirectFB_data *data );
 
@@ -738,8 +741,8 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
      
-     IDirectFBEventBuffer_Construct( *interface,
-                                     global ? NULL : input_filter, data );
+     IDirectFBEventBuffer_Construct( *interface, global ? input_filter_global :
+                                     input_filter_local, data );
 
      context.caps      = caps;
      context.interface = interface;
@@ -1134,8 +1137,8 @@ focus_listener( const void *msg_data,
 }
 
 static bool
-input_filter( DFBEvent *evt,
-              void     *ctx )
+input_filter_local( DFBEvent *evt,
+                    void     *ctx )
 {
      IDirectFB_data *data = (IDirectFB_data*) ctx;
 
@@ -1156,6 +1159,22 @@ input_filter( DFBEvent *evt,
                default:
                     break;
           }
+     }
+
+     return false;
+}
+
+static bool
+input_filter_global( DFBEvent *evt,
+                     void     *ctx )
+{
+     IDirectFB_data *data = (IDirectFB_data*) ctx;
+
+     if (evt->clazz == DFEC_INPUT) {
+          DFBInputEvent *event = &evt->input;
+
+          if (!data->primary.focused && !data->app_focus)
+               event->flags |= DIEF_GLOBAL;
      }
 
      return false;

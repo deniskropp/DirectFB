@@ -2644,8 +2644,14 @@ typedef enum {
                                        always set at application level */
      DIEF_LOCKS          = 0x080,   /* used internally by the input core,
                                        always set at application level */
-     DIEF_BUTTONS        = 0x100    /* used internally by the input core,
+     DIEF_BUTTONS        = 0x100,   /* used internally by the input core,
                                        always set at application level */
+     DIEF_GLOBAL         = 0x200    /* Only for event buffers creates by
+                                       IDirectFB::CreateInputEventBuffer()
+                                       with global events enabled.
+                                       Indicates that the event would have been
+                                       filtered if the buffer hadn't been
+                                       global. */
 } DFBInputEventFlags;
 
 /*
