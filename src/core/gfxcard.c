@@ -131,7 +131,7 @@ DFBResult dfb_gfxcard_initialize()
      gGetDeviceInfo( &Scard->device_info );
 
 
-
+     /* Retrieve fixed informations like video ram size */
      if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &Scard->fix ) < 0) {
           PERRORMSG( "DirectFB/core/gfxcard: "
                      "Could not get fixed screen information!\n" );
@@ -140,6 +140,12 @@ DFBResult dfb_gfxcard_initialize()
           return DFB_INIT;
      }
 
+     /* Limit video ram length */
+     if (dfb_config->videoram_limit > 0 &&
+         dfb_config->videoram_limit < Scard->fix.smem_len)
+          Scard->fix.smem_len = dfb_config->videoram_limit;
+
+     /* Map the framebuffer */
      card->framebuffer.length = Scard->fix.smem_len;
      card->framebuffer.base = mmap( NULL, Scard->fix.smem_len,
                                     PROT_READ | PROT_WRITE, MAP_SHARED,
@@ -151,8 +157,6 @@ DFBResult dfb_gfxcard_initialize()
           card = NULL;
           return DFB_INIT;
      }
-
-     memset( card->framebuffer.base, 0, Scard->fix.smem_len );
 
      /* load driver */
      driver = dfb_gfxcard_find_driver();
@@ -219,6 +223,7 @@ DFBResult dfb_gfxcard_join()
 
      arena_get_shared_field( dfb_core->arena, (void**) &Scard, "Scard" );
 
+     /* Map the framebuffer */
      card->framebuffer.length = Scard->fix.smem_len;
      card->framebuffer.base = mmap( NULL, Scard->fix.smem_len,
                                     PROT_READ | PROT_WRITE, MAP_SHARED,

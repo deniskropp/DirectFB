@@ -91,6 +91,9 @@ typedef struct
           int  height;                            /* default height */
           int  depth;                             /* default depth */
      } mode;
+
+     int       videoram_limit;                    /* limit amount of video
+                                                     memory used by DirectFB */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

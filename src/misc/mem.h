@@ -26,9 +26,12 @@
 
 #include <config.h>
 
+#include <asm/page.h>
+
 #include <stdlib.h>
 #include <string.h>
 
+#define PAGE_ALIGN(x) ((((x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE)
 
 #ifdef DFB_DEBUG
 

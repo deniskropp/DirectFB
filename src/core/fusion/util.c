@@ -30,6 +30,8 @@
 #include <sys/msg.h>
 #include <sys/shm.h>
 
+#include <misc/mem.h>
+
 #include "fusion_types.h"
 
 #include "fusion_internal.h"

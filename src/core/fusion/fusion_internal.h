@@ -60,7 +60,6 @@ static inline key_t keygen (const char *name, const long type)
 } while (0)
 
 
-#define PAGE_ALIGN(x) ((((x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE)
 #define SHMSIZE(shm) (PAGE_ALIGN (sizeof(shm)))
 
 /***************************************

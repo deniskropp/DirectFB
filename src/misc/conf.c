@@ -104,6 +104,8 @@ static const char *config_usage =
     "Use tiled background image\n"
     "  disable-window-opacity         "
     "Force window opacity to be 0 or 255\n"
+    "  videoram-limit=<amount>        "
+    "Limit amount of Video RAM in kb\n"
     "  matrox-sgram                   "
     "Use Matrox SGRAM features\n"
     "\n"
@@ -208,9 +210,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
      } else
      if (strcmp (name, "mode" ) == 0) {
-          int width, height;
-
           if (value) {
+               int width, height;
+
                if (sscanf( value, "%dx%d", &width, &height ) < 2) {
                     ERRORMSG("DirectFB/Config 'mode': Could not parse mode!\n");
                     return DFB_INVARG;
@@ -225,9 +227,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
      } else
      if (strcmp (name, "depth" ) == 0) {
-          int depth;
-
           if (value) {
+               int depth;
+
                if (sscanf( value, "%d", &depth ) < 1) {
                     ERRORMSG("DirectFB/Config 'depth': Could not parse value!\n");
                     return DFB_INVARG;
@@ -237,6 +239,25 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'depth': No value specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "videoram-limit" ) == 0) {
+          if (value) {
+               int limit;
+               
+               if (sscanf( value, "%d", &limit ) < 1) {
+                    ERRORMSG("DirectFB/Config 'videoram-limit': Could not parse value!\n");
+                    return DFB_INVARG;
+               }
+
+               if (limit < 0)
+                    limit = 0;
+               
+               dfb_config->videoram_limit = PAGE_ALIGN(limit<<10);
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'videoram-limit': No value specified!\n");
                return DFB_INVARG;
           }
      } else
