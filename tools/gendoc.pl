@@ -84,7 +84,7 @@ while (<>)
          {
             parse_enum();
          }
-      elsif ( /^\s*typedef\s+struct\s*\{?\s*$/ )
+      elsif ( /^\s*typedef\s+(struct|union)\s*\{?\s*$/ )
          {
             parse_struct();
          }
