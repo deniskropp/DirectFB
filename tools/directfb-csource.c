@@ -60,6 +60,7 @@ static struct {
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
 
+static void       print_usage     (const char             *prg_name);
 static DFBResult  load_image      (const char             *filename,
                                    DFBSurfaceDescription  *desc,
                                    DFBColor               *palette,
@@ -77,7 +78,7 @@ static DFBResult  dump_rectangles (const char             *name,
                                    const char            **names,
                                    int                     num_rects);
 static char *     variable_name   (const char             *name);
-static void       print_usage     (const char             *prg_name);
+static char *     base_name       (const char             *name);
 
 
 int main (int         argc,
@@ -680,7 +681,7 @@ static DFBResult dump_rectangles (const char    *name,
 
      for (i = 0, rect = rectangles; i < num_rects; i++, rect++) {
 
-          char *v = variable_name (names[i]);
+          char *v = base_name (names[i]);
 
           if (i)
                fprintf (fp, ",\n");
@@ -717,17 +718,33 @@ variable_name (const char *name)
      while (DFB_TRUE) {
           switch (*v) {
                case 0:
-                   return vname;
-               case '.':
-                   *v = 0;
-                   return vname;
+                    return vname;
                case 'a'...'z':
                case 'A'...'Z':
                case '0'...'9':
                case '_':
-                   break;
-              default:
-                   *v = '_';
+                    break;
+               default:
+                    *v = '_';
+          }
+          v++;
+     }
+}
+
+static char *
+base_name (const char *name)
+{
+     char *vname = strdup (name);
+     char *v     = vname;
+
+     while (DFB_TRUE) {
+          switch (*v) {
+               case '.':
+                    *v = 0;
+               case 0:
+                    return vname;
+               default:
+                    break;
           }
           v++;
      }
