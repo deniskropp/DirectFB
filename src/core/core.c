@@ -162,9 +162,9 @@ dfb_core_ref()
           atexit( dfb_core_deinit_check );
 
 #ifdef FUSION_FAKE
-     INITMSG( "Single Application Core.%s\n", mmx_string );
+     INITMSG( "Single Application Core.%s ("BUILDTIME")\n", mmx_string );
 #else
-     INITMSG( "Multi Application Core.%s\n", mmx_string );
+     INITMSG( "Multi Application Core.%s ("BUILDTIME")\n", mmx_string );
 #endif
 
      if (dfb_config->sync) {

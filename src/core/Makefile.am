@@ -10,9 +10,10 @@ INCLUDES = \
 CFLAGS = $(DFB_CFLAGS) 
 
 AM_CPPFLAGS = \
-	-DDATADIR=\"@DATADIR@\"	\
-	-DSOPATH=\"@SOPATH@\"	\
-	-DMODULEDIR=\"@MODULEDIR@\"
+	-DDATADIR=\"@DATADIR@\"		\
+	-DSOPATH=\"@SOPATH@\"		\
+	-DMODULEDIR=\"@MODULEDIR@\"	\
+	"-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\""
 
 
 internalincludedir = $(INTERNALINCLUDEDIR)/core
