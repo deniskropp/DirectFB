@@ -33,6 +33,7 @@
 #include <misc/util.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -142,11 +143,7 @@ void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 
 DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 {
-     IDirectFBImageProvider_PNG_data *data =
-                                   (IDirectFBImageProvider_PNG_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      data->ref++;
 
@@ -155,11 +152,7 @@ DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 
 DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 {
-     IDirectFBImageProvider_PNG_data *data =
-                                   (IDirectFBImageProvider_PNG_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      if (--data->ref == 0) {
           IDirectFBImageProvider_PNG_Destruct( thiz );
@@ -176,11 +169,8 @@ DFBResult IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      int pitch, width, height;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
-     IDirectFBImageProvider_PNG_data *data =
-                                   (IDirectFBImageProvider_PNG_data*)thiz->priv;
 
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      err = destination->GetCapabilities( destination, &caps );
      if (err)
@@ -336,9 +326,9 @@ DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
                                               IDirectFBImageProvider *thiz,
                                               DFBSurfaceDescription *dsc )
 {
-     IDirectFBImageProvider_PNG_data *data =
-                                   (IDirectFBImageProvider_PNG_data*)thiz->priv;
      FILE *f;
+
+     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      f = fopen( data->filename, "rb" );
      if (!f)

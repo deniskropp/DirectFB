@@ -30,6 +30,7 @@
 #include <malloc.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -184,11 +185,7 @@ void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
 
 DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 {
-     IDirectFBImageProvider_GIF_data *data =
-                                   (IDirectFBImageProvider_GIF_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
      data->ref++;
 
@@ -197,11 +194,7 @@ DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 
 DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
 {
-     IDirectFBImageProvider_GIF_data *data =
-                                   (IDirectFBImageProvider_GIF_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
      if (--data->ref == 0) {
           IDirectFBImageProvider_GIF_Destruct( thiz );
@@ -676,11 +669,8 @@ DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
      int pitch, width, height, src_width, src_height, transparency;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
-     IDirectFBImageProvider_GIF_data *data =
-                                   (IDirectFBImageProvider_GIF_data*)thiz->priv;
 
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      err = destination->GetCapabilities( destination, &caps );
      if (err)
@@ -731,9 +721,9 @@ DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
                                                    IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription *dsc )
 {
-     IDirectFBImageProvider_GIF_data *data =
-                                   (IDirectFBImageProvider_GIF_data*)thiz->priv;
      FILE *f;
+ 
+     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      f = fopen( data->filename, "rb" );
      if (!f)

@@ -31,6 +31,7 @@ extern "C" {
 #include <malloc.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -89,15 +90,7 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
                                                  IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_AviFile_data *data;
-
-     if (!thiz)
-        return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      data->ref++;
 
@@ -107,15 +100,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
 static DFBResult IDirectFBVideoProvider_AviFile_Release(
                                                  IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_AviFile_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (--data->ref == 0) {
           IDirectFBVideoProvider_AviFile_Destruct( thiz );
@@ -128,15 +113,10 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetCapabilities(
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     IDirectFBVideoProvider_AviFile_data *data;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
-     if (!thiz || !caps)
+     if (!caps)
           return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *caps = (DFBVideoProviderCapabilities) ( DVCAPS_BASIC | 
                                               DVCAPS_SCALE | 
@@ -149,15 +129,10 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
                                                  IDirectFBVideoProvider *thiz,
                                                  DFBSurfaceDescription  *desc )
 {
-     IDirectFBVideoProvider_AviFile_data *data;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
-     if (!thiz || !desc)
+     if (!desc)
           return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      desc->flags = (DFBSurfaceDescriptionFlags)
           (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
@@ -175,17 +150,17 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
                                            DVFrameCallback         callback,
                                            void                   *ctx )
 {
-     DFBRectangle                         rect;
-     IDirectFBVideoProvider_AviFile_data *data;
-     IDirectFBSurface_data               *dst_data;
+     DFBRectangle           rect;
+     IDirectFBSurface_data *dst_data;
 
-     if (!thiz || !destination)
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+
+     if (!destination)
         return DFB_INVARG;
 
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
      dst_data = (IDirectFBSurface_data*)destination->priv;
 
-     if (!data || !dst_data)
+     if (!dst_data)
           return DFB_DEAD;
 
      /* URGENT: keep in sync with DrawCallback */
@@ -250,15 +225,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
 static DFBResult IDirectFBVideoProvider_AviFile_Stop(
                                                  IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_AviFile_data *data;
-
-     if (!thiz)
-        return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 
      if (data->player->IsPlaying())
           data->player->Pause(true);
@@ -275,17 +242,10 @@ static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
                                                IDirectFBVideoProvider *thiz,
                                                double                  seconds)
 {
-     IDirectFBVideoProvider_AviFile_data *data;
      double curpos;
 
-     if (!thiz)
-        return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+       
      curpos = data->player->GetPos();
      data->player->Reseek( seconds );
      /* seeking forward for some small amount may actually bring us
@@ -301,15 +261,10 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetPos(
      IDirectFBVideoProvider *thiz,
      double                 *seconds)
 {
-     IDirectFBVideoProvider_AviFile_data *data;
-
-     if (!thiz)
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+       
+     if (!seconds)
         return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *seconds = data->player->GetPos();
 
@@ -320,15 +275,10 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      IDirectFBVideoProvider *thiz,
      double                 *seconds)
 {
-     IDirectFBVideoProvider_AviFile_data *data;
-
-     if (!thiz)
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+       
+     if (!seconds)
         return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *seconds = data->player->GetVideoLength();
 
@@ -339,34 +289,24 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-    IDirectFBVideoProvider_AviFile_data *data;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+       
+     if (!adj)
+          return DFB_INVARG;
 
-    if (!thiz || !adj)
-        return DFB_INVARG;
-
-    data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-    if (!data)
-        return DFB_DEAD;
-
-    return DFB_UNIMPLEMENTED;
+     return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-    IDirectFBVideoProvider_AviFile_data *data;
+     INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+       
+     if (!adj)
+          return DFB_INVARG;
 
-    if (!thiz || !adj)
-        return DFB_INVARG;
-
-    data = (IDirectFBVideoProvider_AviFile_data*)thiz->priv;
-
-    if (!data)
-        return DFB_DEAD;
-
-    return DFB_UNIMPLEMENTED;
+     return DFB_UNIMPLEMENTED;
 }
 
 static void AviFile_KillCallback( int bogus, void *p )

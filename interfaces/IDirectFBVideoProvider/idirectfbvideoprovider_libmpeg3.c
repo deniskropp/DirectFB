@@ -94,15 +94,7 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 {
-    IDirectFBVideoProvider_Libmpeg3_data *data;
-
-    if (!thiz)
-        return DFB_INVARG;
-
-    data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
-
-    if (!data)
-        return DFB_DEAD;
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
 
     data->ref++;
 
@@ -113,15 +105,7 @@ IDirectFBVideoProvider_Libmpeg3_AddRef( IDirectFBVideoProvider *thiz )
 static DFBResult
 IDirectFBVideoProvider_Libmpeg3_Release( IDirectFBVideoProvider *thiz )
 {
-    IDirectFBVideoProvider_Libmpeg3_data *data;
-
-    if (!thiz)
-        return DFB_INVARG;
-
-    data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
-
-    if (!data)
-        return DFB_DEAD;
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
 
     if (--data->ref == 0) {
         IDirectFBVideoProvider_Libmpeg3_Destruct( thiz );
@@ -135,15 +119,10 @@ IDirectFBVideoProvider_Libmpeg3_GetCapabilities(
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     IDirectFBVideoProvider_Libmpeg3_data *data;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
 
-     if (!thiz || !caps)
+     if (!caps)
           return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *caps = DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_SEEK;
 
@@ -154,15 +133,10 @@ static DFBResult
 IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
     IDirectFBVideoProvider *thiz, DFBSurfaceDescription  *desc )
 {
-    IDirectFBVideoProvider_Libmpeg3_data *data;
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
 
-    if (!thiz || !desc)
+    if (!desc)
         return DFB_INVARG;
-
-    data = (IDirectFBVideoProvider_Libmpeg3_data *) thiz->priv;
-
-    if (!data)
-        return DFB_DEAD;
 
     desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
     desc->width  = mpeg3_video_width( data->stream, 0 );
@@ -264,17 +238,17 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
                                         DVFrameCallback         callback,
                                         void                   *ctx )
 {
-    DFBRectangle                                rect;
-    IDirectFBVideoProvider_Libmpeg3_data       *data;
-    IDirectFBSurface_data                      *dst_data;
+    DFBRectangle            rect;
+    IDirectFBSurface_data  *dst_data;
 
-    if (!thiz || !destination)
+    INTERFACE_GET_DATA (IDirectFBVideoProvider_LibMpeg3)
+
+    if (!destination)
         return DFB_INVARG;
-     
-    data = (IDirectFBVideoProvider_Libmpeg3_data *) thiz->priv;
+
     dst_data = (IDirectFBSurface_data*)destination->priv;
 
-    if (!data || !dst_data)
+    if (!dst_data)
         return DFB_DEAD;
 
         /* build the destination rectangle */

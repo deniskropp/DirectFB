@@ -30,6 +30,7 @@
 #include <malloc.h>
 
 #include <directfb.h>
+#include <directfb_internals.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -198,11 +199,7 @@ void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 
 DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 {
-     IDirectFBImageProvider_JPEG_data *data =
-                                  (IDirectFBImageProvider_JPEG_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      data->ref++;
 
@@ -211,11 +208,7 @@ DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 
 DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 {
-     IDirectFBImageProvider_JPEG_data *data =
-                                  (IDirectFBImageProvider_JPEG_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      if (--data->ref == 0) {
           IDirectFBImageProvider_JPEG_Destruct( thiz );
@@ -232,11 +225,8 @@ DFBResult IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      int pitch, width, height;
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
-     IDirectFBImageProvider_JPEG_data *data =
-                                  (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      err = destination->GetPixelFormat( destination, &format );
      if (err)
@@ -379,9 +369,9 @@ DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
                                                IDirectFBImageProvider *thiz,
                                                DFBSurfaceDescription *dsc )
 {
-     IDirectFBImageProvider_JPEG_data *data =
-                                  (IDirectFBImageProvider_JPEG_data*)thiz->priv;
      FILE *f;
+
+     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      f = fopen( data->filename, "rb" );
      if (!f) {

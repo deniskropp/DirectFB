@@ -101,15 +101,7 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
 static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_V4L_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      data->ref++;
 
@@ -118,15 +110,7 @@ static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz
 
 static DFBResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_V4L_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (--data->ref == 0) {
           IDirectFBVideoProvider_V4L_Destruct( thiz );
@@ -139,15 +123,10 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
                                            IDirectFBVideoProvider       *thiz,
                                            DFBVideoProviderCapabilities *caps )
 {
-     IDirectFBVideoProvider_V4L_data *data;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     if (!thiz || !caps)
+     if (!caps)
           return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *caps = ( DVCAPS_BASIC      |
                DVCAPS_BRIGHTNESS |
@@ -190,18 +169,17 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                                             DVFrameCallback         callback,
                                             void                   *ctx )
 {
-     DFBRectangle rect;
+     DFBRectangle           rect;
+     IDirectFBSurface_data *dst_data;
 
-     IDirectFBVideoProvider_V4L_data *data;
-     IDirectFBSurface_data           *dst_data;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     if (!thiz || !destination)
+     if (!destination)
           return DFB_INVARG;
 
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
      dst_data = (IDirectFBSurface_data*)destination->priv;
 
-     if (!data || !dst_data)
+     if (!dst_data)
           return DFB_DEAD;
 
      if (!dst_data->area.current.w || !dst_data->area.current.h)
@@ -231,15 +209,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
                                                  IDirectFBVideoProvider *thiz )
 {
-     IDirectFBVideoProvider_V4L_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return v4l_stop( data );
 }
@@ -248,15 +218,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
                                               IDirectFBVideoProvider *thiz,
                                               double                  seconds )
 {
-     IDirectFBVideoProvider_V4L_data *data;
-
-     if (!thiz)
-        return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return DFB_UNIMPLEMENTED;
 }
@@ -265,15 +227,10 @@ static DFBResult IDirectFBVideoProvider_V4L_GetPos(
                                               IDirectFBVideoProvider *thiz,
                                               double                 *seconds )
 {
-     IDirectFBVideoProvider_V4L_data *data;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     if (!thiz)
+     if (!seconds)
         return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *seconds = 0.0;
 
@@ -284,15 +241,10 @@ static DFBResult IDirectFBVideoProvider_V4L_GetLength(
                                               IDirectFBVideoProvider *thiz,
                                               double                 *seconds )
 {
-     IDirectFBVideoProvider_V4L_data *data;
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
-     if (!thiz)
+     if (!seconds)
         return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *seconds = 0.0;
 
@@ -303,16 +255,12 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
                                                   IDirectFBVideoProvider *thiz,
                                                   DFBColorAdjustment     *adj )
 {
-     IDirectFBVideoProvider_V4L_data *data;
      struct video_picture pic;
 
-     if (!thiz || !adj)
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+
+     if (!adj)
         return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      ioctl( data->fd, VIDIOCGPICT, &pic );
 
@@ -330,16 +278,12 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
      IDirectFBVideoProvider *thiz,
      DFBColorAdjustment     *adj )
 {
-     IDirectFBVideoProvider_V4L_data *data;
      struct video_picture pic;
 
-     if (!thiz || !adj)
+     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+
+     if (!adj)
         return DFB_INVARG;
-
-     data = (IDirectFBVideoProvider_V4L_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (adj->flags == DCAF_NONE)
           return DFB_OK;
