@@ -223,8 +223,13 @@ if test "$echo_libs" = "yes"; then
       libs=-L@libdir@
 
       if test "$lib_directfb" = "yes"; then
-	 libs="$libs -ldirectfb @THREADLIB@ @DYNLIB@"
-      fi	
+	 libs="$libs -ldirectfb @THREADLIB@"
+
+	 if test -z "$echo_static"; then
+	    libs="$libs @DYNLIB@"
+	 fi
+      fi
+
       if test "$lib_avifile" = "yes"; then
 	 libs="$libs @AVIFILE_LIBS@"
       fi
