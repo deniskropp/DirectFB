@@ -359,10 +359,6 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
      /* Set new options */
      data->window->options = options;
 
-     /* Redraw window if appearance influencing options have been toggled */
-     if (changed & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL))
-          dfb_window_repaint( data->window, NULL, 0 );
-
      return DFB_OK;
 }
 
