@@ -577,7 +577,10 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                     x += kerning;
                }
 
-               rect.x = data->start % font->row_width;
+               if (font->row_width > 0)
+                    rect.x = data->start % font->row_width;
+               else
+                    rect.x = data->start;
                rect.y = 0;
                rect.w = data->width;
                rect.h = data->height;
