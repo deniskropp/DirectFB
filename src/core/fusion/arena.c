@@ -306,6 +306,15 @@ lock_arena( const char *name, bool add )
 
           /* Check if the name matches. */
           if (! strcmp( arena->name, name )) {
+               /* Check for an orphaned arena. */
+               if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
+                    FERROR( "orphaned arena '%s'!\n", name );
+
+                    fusion_ref_unlock( &arena->ref );
+
+//                    arena = NULL;
+               }
+
                /* Unlock the list. */
                skirmish_dismiss( &fusion_shared->arenas_lock );
 

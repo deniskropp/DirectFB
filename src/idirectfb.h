@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
+   (c) Copyright 2002-2003  convergence GmbH.
    
    All rights reserved.
 

@@ -1161,7 +1161,7 @@ input_filter_local( DFBEvent *evt,
           switch (event->type) {
                case DIET_BUTTONPRESS:
                     if (data->primary.window)
-                         dfb_layer_cursor_enable( data->layer, 0 );
+                         dfb_layer_cursor_enable( data->layer, false );
                     break;
                case DIET_KEYPRESS:
                     if (data->primary.window &&

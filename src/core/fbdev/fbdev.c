@@ -594,7 +594,7 @@ system_map_mmio( unsigned int    offset,
 {
      void *addr;
 
-     if (length < 0)
+     if (length <= 0)
           length = dfb_fbdev->shared->fix.mmio_len;
 
      addr = mmap( NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED,

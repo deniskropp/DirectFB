@@ -64,11 +64,13 @@ int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx );
  */
 void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 
-#define DFB_ALLOCATE_INTERFACE(p,i)     \
-     (p) = (i*)calloc( 1, sizeof(i) );
+#define DFB_ALLOCATE_INTERFACE(p,i)                         \
+     do {                                                   \
+          (p) = (i*)calloc( 1, sizeof(i) );                 \
+     } while (0)
 
 
-#define DFB_ALLOCATE_INTERFACE_DATA(p,i)     \
+#define DFB_ALLOCATE_INTERFACE_DATA(p,i)                    \
      i##_data *data;                                        \
                                                             \
      if (!(p)->priv)                                        \
@@ -92,7 +94,7 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
      free( (p) );
 #endif
 
-#define INTERFACE_GET_DATA(i) \
+#define INTERFACE_GET_DATA(i)           \
      i##_data *data;                    \
                                         \
      if (!thiz)                         \

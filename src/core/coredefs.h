@@ -40,6 +40,7 @@
 
 #include <misc/conf.h>
 
+
 #ifdef PIC
 #define DFB_DYNAMIC_LINKING
 #endif
@@ -89,11 +90,21 @@
 #endif
 
 
+#define DFB_BREAK(msg)   do {                                                  \
+                              int       pid    = getpid();                     \
+                              long long millis = fusion_get_millis();          \
+                                                                               \
+                              fprintf( stderr,                                 \
+                                       "(!) [%5d: %4lld.%03lld] *** "          \
+                                       "Break [%s] *** %s (%d)\n",             \
+                                       pid, millis/1000, millis%1000,          \
+                                       msg, __FILE__, __LINE__ );              \
+                              fflush( stderr );                                \
+                              kill( pid, SIGTRAP );                            \
+                         } while (0)
 
-#if defined(DFB_DEBUG) && !defined(DFB_NOTEXT)
+#if (defined(DFB_DEBUG) && !defined(DFB_NOTEXT)) || defined(DFB_FORCE_DEBUG)
 
-     #include <misc/util.h>   /* for dfb_get_millis() */
-     
      #ifdef HEAVYDEBUG
           #define HEAVYDEBUGMSG(x...)   if (!dfb_config || dfb_config->debug) {\
                                                   fprintf( stderr, "(=) "x );  \
@@ -103,20 +114,25 @@
      #endif
 
      #define DEBUGMSG(x...)   do { if (!dfb_config || dfb_config->debug) {     \
-                                   fprintf( stderr, "(-) [%d: %5lld] ",        \
-                                            getpid(), fusion_get_millis() );   \
+                                   long long millis = fusion_get_millis();     \
+                                   fprintf( stderr, "(-) [%5d: %4lld.%03lld] ",\
+                                            getpid(),millis/1000,millis%1000 );\
                                    fprintf( stderr, x );                       \
                                    fflush( stderr );                           \
                               } } while (0)
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
-                                   fprintf( stderr, "(!) [%d: %5lld] *** "     \
-                                                    "Assertion [%s] failed! "  \
-                                                    "*** %s (%d)\n", getpid(), \
-                                                    fusion_get_millis(), #exp, \
-                                                    __FILE__, __LINE__ );      \
+                                   int       pid    = getpid();                \
+                                   long long millis = fusion_get_millis();     \
+                                                                               \
+                                   fprintf( stderr,                            \
+                                            "(!) [%5d: %4lld.%03lld] *** "     \
+                                            "Assertion [%s] failed! *** %s "   \
+                                            "(%d)\n", pid, millis/1000,        \
+                                            millis%1000, #exp,                 \
+                                            __FILE__, __LINE__ );              \
                                    fflush( stderr );                           \
-                                   kill( 0, SIGTRAP );                         \
+                                   kill( pid, SIGTRAP );                       \
                               }
 
 #else
