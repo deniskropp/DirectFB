@@ -306,6 +306,56 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Clear( IDirectFBSurface *thiz, __u8 r, __u8 g, __u8 b, __u8 a )
+{
+     DFBColor               old_color;
+     DFBSurfaceDrawingFlags old_flags;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     /* save current color and drawing flags */
+     old_color = data->state.color;
+     old_flags = data->state.drawingflags;
+
+     /* set drawing flags */
+     if (old_flags != DSDRAW_NOFX) {
+          data->state.drawingflags  = DSDRAW_NOFX;
+          data->state.modified     |= SMF_DRAWING_FLAGS;
+     }
+     
+     /* set color */
+     data->state.color.r   = r;
+     data->state.color.g   = g;
+     data->state.color.b   = b;
+     data->state.color.a   = a;
+     data->state.modified |= SMF_DRAWING_FLAGS;
+     
+     /* fill the visible rectangle */
+     dfb_gfxcard_fillrectangle( &data->area.current, &data->state );
+
+     /* restore drawing flags */
+     if (old_flags != DSDRAW_NOFX) {
+          data->state.drawingflags  = old_flags;
+          data->state.modified     |= SMF_DRAWING_FLAGS;
+     }
+
+     /* restore color */
+     data->state.color     = old_color;
+     data->state.modified |= SMF_COLOR;
+     
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
 {
      DFBRegion newclip;
@@ -497,6 +547,9 @@ IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
      data->src_key.r = r;
      data->src_key.g = g;
      data->src_key.b = b;
@@ -516,6 +569,9 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
                                  __u8              b )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
      data->dst_key.r = r;
      data->dst_key.g = g;
@@ -659,6 +715,9 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
 
      if (data->locked)
           return DFB_LOCKED;
+
+     if (!lines || !num_lines)
+          return DFB_INVARG;
 
      if (data->area.wanted.x || data->area.wanted.y) {
           unsigned int i;
@@ -1169,7 +1228,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      else
           data->area.granted = data->area.wanted;
 
-     /* The currently accessable rectangle */
+     /* The currently accessible rectangle */
      data->area.current = data->area.granted;
      dfb_rectangle_intersect( &data->area.current, &rect );
 
@@ -1200,6 +1259,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->Unlock = IDirectFBSurface_Unlock;
      thiz->Flip = IDirectFBSurface_Flip;
+     thiz->Clear = IDirectFBSurface_Clear;
 
      thiz->SetClip = IDirectFBSurface_SetClip;
      thiz->SetColor = IDirectFBSurface_SetColor;

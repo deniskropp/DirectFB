@@ -1600,12 +1600,35 @@ extern "C"
                DFBSurfaceFlipFlags       flags
           );
 
+          /*
+           * Clear the surface with an extra color.
+           *
+           * Fills the whole (sub) surface with the specified color ignoring
+           * drawing flags and color of the current state, but limited to the
+           * current clip.
+           *
+           * As with all drawing and blitting functions the backbuffer is
+           * written to. If you are initializing a double buffered surface
+           * you may want to clear both buffers by doing a Clear-Flip-Clear
+           * sequence.
+           */
+          DFBResult (*Clear) (
+               IDirectFBSurface         *thiz,
+               __u8                      r,
+               __u8                      g,
+               __u8                      b,
+               __u8                      a
+          );
+
 
         /** Drawing/blitting control **/
 
           /*
-           * Set the clipping rectangle used to limitate the area
+           * Set the clipping region used to limitate the area
            * for drawing, blitting and text functions.
+           *
+           * If no region is specified (NULL passed)
+           * the clip is set to the surface extents (initial clip).
            */
           DFBResult (*SetClip) (
                IDirectFBSurface         *thiz,
@@ -1613,8 +1636,12 @@ extern "C"
           );
 
           /*
-           * Set the color used for alpha/color modulation,
-           * (blended) drawing and text functions.
+           * Set the color used for drawing/text functions or
+           * alpha/color modulation (blitting functions).
+           *
+           * If you are not using the alpha value it should be set to 0xff
+           * to ensure visibility when the code is ported to or used for
+           * surfaces with an alpha channel.
            */
           DFBResult (*SetColor) (
                IDirectFBSurface         *thiz,
