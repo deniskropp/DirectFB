@@ -36,7 +36,7 @@ uc_set_blending_fn( UcDriverData *ucdrv,
                     UcDeviceData *ucdev,
                     CardState    *state )
 {
-     volatile struct uc_fifo     *fifo    = ucdev->fifo;
+     struct uc_fifo     *fifo    = ucdrv->fifo;
      struct uc_hw_alpha *hwalpha = &ucdev->hwalpha;
 
      if (UC_IS_VALID( uc_blending_fn ))
@@ -73,7 +73,7 @@ uc_set_texenv( UcDriverData *ucdrv,
                UcDeviceData *ucdev,
                CardState    *state )
 {
-     volatile struct uc_fifo       *fifo  = ucdev->fifo;
+     struct uc_fifo       *fifo  = ucdrv->fifo;
      struct uc_hw_texture *hwtex = &ucdev->hwtex;
 
      if (UC_IS_VALID( uc_texenv ))
@@ -114,7 +114,7 @@ uc_set_clip( UcDriverData *ucdrv,
              UcDeviceData *ucdev,
              CardState    *state )
 {
-     volatile struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo *fifo = ucdrv->fifo;
 
      if (DFB_REGION_EQUAL( ucdev->clip, state->clip ))
           return;
@@ -147,7 +147,7 @@ uc_set_destination( UcDriverData *ucdrv,
                     UcDeviceData *ucdev,
                     CardState    *state )
 {
-     volatile struct uc_fifo        *fifo        = ucdev->fifo;
+     struct uc_fifo        *fifo        = ucdrv->fifo;
 
      CoreSurface           *destination = state->destination;
      SurfaceBuffer         *buffer      = destination->back_buffer;
@@ -201,7 +201,7 @@ uc_set_source_2d( UcDriverData *ucdrv,
                   UcDeviceData *ucdev,
                   CardState    *state )
 {
-     volatile struct uc_fifo *fifo   = ucdev->fifo;
+     struct uc_fifo *fifo   = ucdrv->fifo;
      SurfaceBuffer  *buffer = state->source->front_buffer;
 
      if (UC_IS_VALID( uc_source2d ))
@@ -227,7 +227,7 @@ uc_set_source_3d( UcDriverData *ucdrv,
                   UcDeviceData *ucdev,
                   CardState    *state )
 {
-     volatile struct uc_fifo       *fifo   = ucdev->fifo;
+     struct uc_fifo       *fifo   = ucdrv->fifo;
      struct uc_hw_texture *hwtex  = &ucdev->hwtex;
 
      CoreSurface          *source = state->source;
@@ -330,7 +330,7 @@ uc_set_color_2d( UcDriverData *ucdrv,
                  UcDeviceData *ucdev,
                  CardState    *state )
 {
-     volatile struct uc_fifo *fifo  = ucdev->fifo;
+     struct uc_fifo *fifo  = ucdrv->fifo;
      __u32           color = 0;
 
      if (UC_IS_VALID( uc_color2d ))
@@ -385,7 +385,7 @@ uc_set_colorkey_2d( UcDriverData *ucdrv,
                     UcDeviceData *ucdev,
                     CardState    *state )
 {
-     volatile struct uc_fifo *fifo = ucdev->fifo;
+     struct uc_fifo *fifo = ucdrv->fifo;
 
      if (UC_IS_VALID( uc_colorkey2d ))
           return;

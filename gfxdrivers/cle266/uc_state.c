@@ -133,7 +133,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
 {
      UcDriverData   *ucdrv = (UcDriverData*) drv;
      UcDeviceData   *ucdev = (UcDeviceData*) dev;
-     volatile struct uc_fifo *fifo  = ucdev->fifo;
+     struct uc_fifo *fifo  = ucdrv->fifo;
 
      __u32 rop3d     = HC_HROP_P;
      __u32 regEnable = HC_HenCW_MASK;

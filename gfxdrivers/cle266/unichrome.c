@@ -427,6 +427,9 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
                return DFB_IO;
      }
 
+     ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE);
+     if (!ucdrv->fifo)
+          return DFB_NOSYSTEMMEMORY;
 
      uc_after_set_var(driver_data, device_data);
 
@@ -489,10 +492,6 @@ static DFBResult driver_init_device(GraphicsDevice* device,
      ucdev->cmd_waitcycles = 0;
      ucdev->idle_waitcycles = 0;
 
-     ucdev->fifo = uc_fifo_create(UC_FIFO_SIZE);
-     if (!ucdev->fifo)
-          return DFB_NOSYSTEMMEMORY;
-
      uc_init_2d_engine(device, ucdev, ucdrv, false); // VQ disabled - can't make it work.
      uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
 
@@ -509,14 +508,14 @@ static void driver_close_device(GraphicsDevice *device,
 
      uc_engine_sync(driver_data, device_data);
      uc_init_2d_engine(device, ucdev, ucdrv, false);
-
-     if (ucdev->fifo)
-          uc_fifo_destroy( ucdev->fifo );
 }
 
 static void driver_close_driver(GraphicsDevice* device, void* driver_data)
 {
      UcDriverData* ucdrv = (UcDriverData*) driver_data;
+
+     if (ucdrv->fifo)
+          uc_fifo_destroy( ucdrv->fifo );
 
      if (ucdrv->file != -1)
           close( ucdrv->file );
