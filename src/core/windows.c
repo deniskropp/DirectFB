@@ -1304,6 +1304,7 @@ stack_inputdevice_react( const void *msg_data,
           switch (evt->type) {
                case DIET_KEYRELEASE:
                     switch (evt->key_symbol) {
+                         case DIKS_META:
                          case DIKS_CAPS_LOCK:
                               stack->wm_hack = 0;
                               stack_lock( stack );
@@ -1368,7 +1369,8 @@ stack_inputdevice_react( const void *msg_data,
 
      switch (evt->type) {
           case DIET_KEYPRESS:
-               if (evt->key_id == DIKI_CAPS_LOCK)
+               if (evt->key_symbol == DIKS_CAPS_LOCK ||
+                   evt->key_symbol == DIKS_META)
                     stack->wm_hack = 1;
                /* fall through */
           case DIET_KEYRELEASE:
