@@ -45,6 +45,11 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data );
 
+static DFBResult
+driver_get_keymap_entry( InputDevice               *device,
+                         void                      *driver_data,
+                         DFBInputDeviceKeymapEntry *entry );
+
 static void
 driver_close_device( void *driver_data );
 
@@ -53,6 +58,7 @@ static InputDriverFuncs driver_funcs = {
      GetAvailable:       driver_get_available,
      GetDriverInfo:      driver_get_info,
      OpenDevice:         driver_open_device,
+     GetKeymapEntry:     driver_get_keymap_entry,
      CloseDevice:        driver_close_device
 };
 

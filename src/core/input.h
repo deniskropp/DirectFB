@@ -38,7 +38,7 @@
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_INPUT_DRIVER_ABI_VERSION         3
+#define DFB_INPUT_DRIVER_ABI_VERSION         4
 
 #define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   60
 #define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 80
@@ -82,12 +82,15 @@ typedef struct {
 typedef struct {
      int       (*GetAbiVersion)  ();
      int       (*GetAvailable)   ();
-     void      (*GetDriverInfo)  (InputDriverInfo  *driver_info);
-     DFBResult (*OpenDevice)     (InputDevice      *device,
-                                  unsigned int      number,
-                                  InputDeviceInfo  *device_info,
-                                  void            **driver_data);
-     void      (*CloseDevice)    (void             *driver_data);
+     void      (*GetDriverInfo)  (InputDriverInfo            *driver_info);
+     DFBResult (*OpenDevice)     (InputDevice                *device,
+                                  unsigned int                number,
+                                  InputDeviceInfo            *device_info,
+                                  void                      **driver_data);
+     DFBResult (*GetKeymapEntry) (InputDevice                *device,
+                                  void                       *driver_data,
+                                  DFBInputDeviceKeymapEntry  *entry);
+     void      (*CloseDevice)    (void                       *driver_data);
 } InputDriverFuncs;
 
 /*

@@ -672,7 +672,12 @@ extern "C"
                                                              validates the
                                                              following fields */
 
-          int                                max_keycode; /* highest hardware
+          int                                min_keycode; /* minimum hardware
+                                                             keycode or -1 if
+                                                             no differentiation
+                                                             between hardware
+                                                             keys is made */
+          int                                max_keycode; /* maximum hardware
                                                              keycode or -1 if
                                                              no differentiation
                                                              between hardware
@@ -1898,15 +1903,6 @@ extern "C"
           DIMM_HYPER     = (1 << DIMKI_HYPER)     /* Hyper key is pressed */
      } DFBInputDeviceModifierMask;
      
-     /*
-      * Flags specifying the key locks that are currently active.
-      */
-     typedef enum {
-          DILS_SCROLL         = 0x00000001,  /* scroll-lock active? */
-          DILS_NUM            = 0x00000002,  /* num-lock active? */
-          DILS_CAPS           = 0x00000004   /* caps-lock active? */
-     } DFBInputDeviceLockState;
-
 
      /************************
       * IDirectFBInputDevice *
@@ -2079,11 +2075,12 @@ extern "C"
 
           DFBInputEventType               type;       /* type of event */
           DFBInputDeviceID                device_id;  /* source of event */
-          DFBInputEventFlags              flags;      /* which fields are
-                                                         valid? */
+          DFBInputEventFlags              flags;      /* which optional fields
+                                                         are valid? */
 
           /* additionally (check flags) */
-          struct timeval                  timestamp;
+          struct timeval                  timestamp;  /* time of event
+                                                         creation (optional) */
 
      /* DIET_KEYPRESS, DIET_KEYRELEASE */
           int                             key_code;   /* hardware keycode, no
@@ -2096,8 +2093,10 @@ extern "C"
                                                          unicode compatible,
                                                          modifier dependent */
           /* additionally (check flags) */
-          DFBInputDeviceModifierMask      modifiers;  /* pressed modifiers */
-          DFBInputDeviceLockState         locks;      /* active locks */
+          DFBInputDeviceModifierMask      modifiers;  /* pressed modifiers
+                                                         (optional) */
+          DFBInputDeviceLockState         locks;      /* active locks
+                                                         (optional) */
 
      /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
           DFBInputDeviceButtonIdentifier  button;     /* in case of a button
@@ -2160,27 +2159,31 @@ extern "C"
       * Event from the windowing system.
       */
      typedef struct {
-          DFBEventClass                   clazz;       /* clazz of event */
+          DFBEventClass                   clazz;      /* clazz of event */
 
-          DFBWindowEventType              type;
-          DFBWindowID                     window_id;
+          DFBWindowEventType              type;       /* type of event */
+          DFBWindowID                     window_id;  /* source of event */
 
           /* used by DWET_MOVE, DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
              DWET_ENTER, DWET_LEAVE */
-          int                             x;
-          int                             y;
+          int                             x;          /* x position of window
+                                                         or coordinate within
+                                                         window */
+          int                             y;          /* y position of window
+                                                         or coordinate within
+                                                         window */
 
           /* used by DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP,
              DWET_ENTER, DWET_LEAVE */
-          int                             cx;
-          int                             cy;
+          int                             cx;         /* x cursor position */
+          int                             cy;         /* y cursor position */
 
           /* used by DWET_WHEEL */
-          int                             step;
+          int                             step;       /* wheel step */
 
           /* used by DWET_RESIZE */
-          unsigned int                    w;
-          unsigned int                    h;
+          unsigned int                    w;          /* width of window */
+          unsigned int                    h;          /* height of window */
 
           /* used by DWET_KEYDOWN, DWET_KEYUP */
           int                             key_code;   /* hardware keycode, no
@@ -2196,7 +2199,8 @@ extern "C"
           DFBInputDeviceLockState         locks;      /* active locks */
 
           /* used by DWET_BUTTONDOWN, DWET_BUTTONUP */
-          DFBInputDeviceButtonIdentifier  button;
+          DFBInputDeviceButtonIdentifier  button;     /* button being
+                                                         pressed or released */
      } DFBWindowEvent;
 
      /*

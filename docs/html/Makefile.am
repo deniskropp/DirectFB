@@ -1,6 +1,8 @@
 EXTRA_DIST = cimlogo.png directfb.png
 
-docs_headers = $(top_srcdir)/include/directfb.h
+docs_headers = \
+	$(top_srcdir)/include/directfb_keyboard.h \
+	$(top_srcdir)/include/directfb.h
 
 all-local: stamp-docs
 

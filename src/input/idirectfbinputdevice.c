@@ -319,23 +319,20 @@ IDirectFBInputDevice_React( const void *msg_data,
      const DFBInputEvent       *evt  = (DFBInputEvent*)msg_data;
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)ctx;
 
+     if (evt->flags & DIEF_MODIFIERS)
+          data->modifiers = evt->modifiers;
+     if (evt->flags & DIEF_LOCKS)
+          data->locks = evt->locks;
+     
      switch (evt->type) {
           case DIET_KEYPRESS:
                if (evt->key_id != DIKI_UNKNOWN)
                     data->keystates[evt->key_id] = DIKS_DOWN;
-               if (evt->flags & DIEF_MODIFIERS)
-                    data->modifiers = evt->modifiers;
-               if (evt->flags & DIEF_LOCKS)
-                    data->locks = evt->locks;
-	       break;
+	           break;
 
           case DIET_KEYRELEASE:
                if (evt->key_id != DIKI_UNKNOWN)
                     data->keystates[evt->key_id] = DIKS_UP;
-               if (evt->flags & DIEF_MODIFIERS)
-                    data->modifiers = evt->modifiers;
-	       if (evt->flags & DIEF_LOCKS)
-                    data->locks = evt->locks;
                break;
 
           case DIET_BUTTONPRESS:

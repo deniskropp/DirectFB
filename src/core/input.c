@@ -24,7 +24,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -67,14 +66,24 @@ typedef struct {
 } InputDriver;
 
 typedef struct {
-     DFBInputDeviceID            id;            /* unique device id */
+     int                          min_keycode;
+     int                          max_keycode;
+     int                          num_entries;
+     DFBInputDeviceKeymapEntry   *entries;
+} InputDeviceKeymap;
 
-     InputDeviceInfo             device_info;
+typedef struct {
+     DFBInputDeviceID             id;            /* unique device id */
 
-     DFBInputDeviceModifierMask  modifiers;
-     DFBInputDeviceLockState     locks;
+     InputDeviceInfo              device_info;
 
-     FusionReactor              *reactor;       /* event dispatcher */
+     InputDeviceKeymap            keymap;
+     
+     DFBInputDeviceModifierMask   modifiers;
+     DFBInputDeviceLockState      locks;
+     DFBInputDeviceLockState      locks_pressed;
+
+     FusionReactor               *reactor;       /* event dispatcher */
 } InputDeviceShared;
 
 struct _InputDevice {
@@ -385,6 +394,27 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
 }
 #endif
 
+static void allocate_device_keymap( InputDevice *device )
+{
+     int                        i;
+     DFBInputDeviceKeymapEntry *entries;
+     InputDeviceShared         *shared      = device->shared;
+     DFBInputDeviceDescription *desc        = &shared->device_info.desc;
+     int                        num_entries = desc->max_keycode -
+                                              desc->min_keycode + 1;
+
+     entries = DFBCALLOC( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
+     
+     /* write -1 indicating entry is not fetched yet from driver */
+     for (i=0; i<num_entries; i++)
+          entries[i].code = -1;
+     
+     shared->keymap.min_keycode = desc->min_keycode;
+     shared->keymap.max_keycode = desc->max_keycode;
+     shared->keymap.num_entries = num_entries;
+     shared->keymap.entries     = entries;
+}
+
 static void init_devices()
 {
      FusionLink *link;
@@ -408,6 +438,9 @@ static void init_devices()
                device->shared = shcalloc( 1, sizeof(InputDeviceShared) );
 
                memset( &device_info, 0, sizeof(InputDeviceInfo) );
+
+               device_info.desc.min_keycode = -1;
+               device_info.desc.max_keycode = -1;
 
                device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
 
@@ -457,10 +490,88 @@ static void init_devices()
                              driver->info.vendor );
                }
 
+               if (device_info.desc.min_keycode >= 0 &&
+                   device_info.desc.max_keycode >= 0)
+                    allocate_device_keymap( device );
+
                /* add it to the list */
                input_add_device( device );
           }
      }
+}
+
+static DFBInputDeviceKeymapEntry *
+get_keymap_entry( InputDevice *device,
+                  int          code )
+{
+     InputDeviceKeymap         *map = &device->shared->keymap;
+     DFBInputDeviceKeymapEntry *entry;
+
+     /* safety check */
+     if (code < map->min_keycode || code > map->max_keycode)
+          return NULL;
+
+     /* point to right array index */
+     entry = &map->entries[code - map->min_keycode];
+
+     /* need to initialize? */
+     if (entry->code != code) {
+          DFBResult    ret;
+          InputDriver *driver = device->driver;
+
+          /* FIXME: (multi-app) retrieve whole map once during initialization */
+          if (!driver)
+               return NULL;
+
+          /* write keycode to entry */
+          entry->code = code;
+
+          /* fetch entry from driver */
+          ret = driver->funcs->GetKeymapEntry( device,
+                                               device->driver_data, entry );
+          if (ret)
+               return NULL;
+
+          /* drivers may leave this blank */
+          if (entry->identifier == DIKI_UNKNOWN)
+               entry->identifier = symbol_to_id( entry->symbols[DIKSI_BASE] );
+     }
+
+     return entry;
+}
+
+static bool
+lookup_from_table( InputDevice        *device,
+                   DFBInputEvent      *event,
+                   DFBInputEventFlags  lookup )
+{
+     DFBInputDeviceKeymapEntry *entry;
+     
+     /* fetch the entry from the keymap, possibly calling the driver */
+     entry = get_keymap_entry( device, event->key_code );
+     if (!entry)
+          return false;
+
+     /* lookup identifier */
+     if (lookup & DIEF_KEYID)
+          event->key_id = entry->identifier;
+
+     /* lookup symbol */
+     if (lookup & DIEF_KEYSYMBOL) {
+          DFBInputDeviceKeymapSymbolIndex index =
+               (event->modifiers & DIMM_ALTGR) ? DIKSI_ALT : DIKSI_BASE;
+
+          if ((event->modifiers & DIMM_SHIFT) || (entry->locks & event->locks))
+               index++;
+
+          /* don't modify modifiers */
+          if (DFB_KEY_TYPE( entry->symbols[DIKSI_BASE] ) == DIKT_MODIFIER)
+               event->key_symbol = entry->symbols[DIKSI_BASE];
+          else
+               event->key_symbol = entry->symbols[index];
+     }
+
+     return true;
 }
 
 #define FIXUP_FIELDS     (DIEF_MODIFIERS | DIEF_LOCKS | \
@@ -497,10 +608,6 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
      DFBInputEventFlags  missing = valid ^ FIXUP_FIELDS;
      InputDeviceShared  *shared  = device->shared;
 
-     /* None is missing? */
-     if (missing == DIEF_NONE)
-          return;
-
      /* Add missing flags */
      event->flags |= missing;
      
@@ -511,11 +618,15 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
           event->modifiers = shared->modifiers;
           missing &= ~DIEF_MODIFIERS;
      }
+     else
+          shared->modifiers = event->modifiers;
 
      if (missing & DIEF_LOCKS) {
           event->locks = shared->locks;
           missing &= ~DIEF_LOCKS;
      }
+     else
+          shared->locks = event->locks;
 
      /*
       * Return if the rest is ok.
@@ -524,19 +635,32 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
           return;
 
      /*
-      * Without translation table
+      * With translation table
       */
-     if (valid & DIEF_KEYID) {
-          if (missing & DIEF_KEYSYMBOL) {
-               event->key_symbol = id_to_symbol( event->key_id,
-                                                 event->modifiers,
-                                                 event->locks );
-               missing &= ~DIEF_KEYSYMBOL;
+     if (device->shared->keymap.num_entries) {
+          /* 3. only, 4. and 5. not implemented yet */
+          if (valid & DIEF_KEYCODE) {
+               lookup_from_table( device, event, missing );
+
+               missing &= ~(DIEF_KEYID | DIEF_KEYSYMBOL);
           }
      }
-     else if (valid & DIEF_KEYSYMBOL) {
-          event->key_id = symbol_to_id( event->key_symbol );
-          missing &= ~DIEF_KEYID;
+     else {
+          /*
+           * Without translation table
+           */
+          if (valid & DIEF_KEYID) {
+               if (missing & DIEF_KEYSYMBOL) {
+                    event->key_symbol = id_to_symbol( event->key_id,
+                                                      event->modifiers,
+                                                      event->locks );
+                    missing &= ~DIEF_KEYSYMBOL;
+               }
+          }
+          else if (valid & DIEF_KEYSYMBOL) {
+               event->key_id = symbol_to_id( event->key_symbol );
+               missing &= ~DIEF_KEYID;
+          }
      }
 
      /*
@@ -563,6 +687,9 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
                shared->modifiers |= event->key_symbol & 0xFFF;
           else
                shared->modifiers &= ~(event->key_symbol & 0xFFF);
+          
+          /* write back to event */
+          event->modifiers = shared->modifiers;
      }
      
      if (valid & DIEF_LOCKS) {
@@ -571,13 +698,34 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
      else if (event->type == DIET_KEYPRESS) {
           switch (event->key_id) {
                case DIKI_CAPSLOCK:
-                    shared->locks ^= DILS_CAPS;
+                    shared->locks ^= (DILS_CAPS & ~shared->locks_pressed);
+                    shared->locks_pressed |= DILS_CAPS;
                     break;
                case DIKI_NUMLOCK:
-                    shared->locks ^= DILS_NUM;
+                    shared->locks ^= (DILS_NUM & ~shared->locks_pressed);
+                    shared->locks_pressed |= DILS_NUM;
                     break;
                case DIKI_SCRLOCK:
-                    shared->locks ^= DILS_SCROLL;
+                    shared->locks ^= (DILS_SCROLL & ~shared->locks_pressed);
+                    shared->locks_pressed |= DILS_SCROLL;
+                    break;
+               default:
+                    ;
+          }
+          
+          /* write back to event */
+          event->locks = shared->locks;
+     }
+     else {
+          switch (event->key_id) {
+               case DIKI_CAPSLOCK:
+                    shared->locks_pressed &= ~DILS_CAPS;
+                    break;
+               case DIKI_NUMLOCK:
+                    shared->locks_pressed &= ~DILS_NUM;
+                    break;
+               case DIKI_SCRLOCK:
+                    shared->locks_pressed &= ~DILS_SCROLL;
                     break;
                default:
                     ;

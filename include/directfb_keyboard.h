@@ -392,6 +392,44 @@ extern "C"
           DIKS_CUSTOM9                  = DFB_CUSTOM_KEY( 9 )
      } DFBInputDeviceKeySymbol;
 
+     /*
+      * Flags specifying the key locks that are currently active.
+      */
+     typedef enum {
+          DILS_SCROLL         = 0x00000001,  /* scroll-lock active? */
+          DILS_NUM            = 0x00000002,  /* num-lock active? */
+          DILS_CAPS           = 0x00000004   /* caps-lock active? */
+     } DFBInputDeviceLockState;
+
+     /*
+      * Groups and levels as an index to the symbol array.
+      */
+     typedef enum {
+          DIKSI_BASE          = 0x00,   /* base group, base level
+                                           (no modifier pressed) */
+          DIKSI_BASE_SHIFT    = 0x01,   /* base group, shifted level
+                                           (with Shift pressed) */
+          DIKSI_ALT           = 0x02,   /* alternative group, base level
+                                           (with AltGr pressed) */
+          DIKSI_ALT_SHIFT     = 0x03,   /* alternative group, shifted level
+                                           (with AltGr and Shift pressed) */
+
+          DIKSI_LAST          = DIKSI_ALT_SHIFT
+     } DFBInputDeviceKeymapSymbolIndex;
+
+     /*
+      * One entry in the keymap of an input device.
+      */
+     typedef struct {
+          int                         code;                  /* hardware
+                                                                key code */
+          DFBInputDeviceLockState     locks;                 /* locks activating
+                                                                shifted level */
+          DFBInputDeviceKeyIdentifier identifier;            /* basic mapping */
+          DFBInputDeviceKeySymbol     symbols[DIKSI_LAST+1]; /* advanced key
+                                                                mapping */
+     } DFBInputDeviceKeymapEntry;
+
 #ifdef __cplusplus
 }
 #endif

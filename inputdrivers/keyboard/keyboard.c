@@ -62,43 +62,38 @@ DFB_INPUT_DRIVER( keyboard )
 typedef struct {
      InputDevice                *device;
      struct termios              old_ts;
-     DFBInputDeviceModifierMask  modifier_state;
-     DFBInputDeviceLockState     lock_state;
-     DFBInputDeviceLockState     lock_pressed;
      pthread_t                   thread;
 } KeyboardData;
 
 static DFBInputDeviceKeySymbol
-keyboard_translate( unsigned short kb_value )
+keyboard_get_symbol( unsigned short                  value,
+                     DFBInputDeviceKeymapSymbolIndex level )
 {
-     unsigned char key_type = (kb_value & 0xFF00) >> 8;
-     unsigned char key_index = kb_value & 0xFF;
+     unsigned char type  = KTYP(value);
+     unsigned char index = KVAL(value);
 
-     HEAVYDEBUGMSG( "DirectFB/Keyboard: key_type 0x%x, key_index 0x%x\n",
-                    key_type, key_index );
-
-     switch (key_type) {
+     switch (type) {
           case KT_FN:
-               if (key_index < 20)
-                    return DFB_FUNCTION_KEY( key_index + 1 );
+               if (index < 20)
+                    return DFB_FUNCTION_KEY( index + 1 );
                break;
           case KT_LETTER:
           case KT_LATIN:
-               switch (key_index) {
+               switch (index) {
                     case 0x1c:
                          return DIKS_PRINT;
                     case 0x7f:
                          return DIKS_BACKSPACE;
                     default:
-                         return key_index;
+                         return index;
                }
                break;
           case KT_PAD:
-               if (key_index <= 9)
-                    return DIKS_0 + key_index;
+               if (index <= 9 && level != DIKSI_BASE)
+                    return DIKS_0 + index;
                break;
           case 0xe: /* special IPAQ H3600 case - AH */
-               switch (key_index) {
+               switch (index) {
                     case 0x20:     return DIKS_CALENDAR;
                     case 0x1a:     return DIKS_BACK;
                     case 0x1c:     return DIKS_MEMO;
@@ -106,194 +101,118 @@ keyboard_translate( unsigned short kb_value )
                }
                break;
           case 0xd: /* another special IPAQ H3600 case - AH */
-               switch (key_index) {
+               switch (index) {
                     case 0x2:     return DIKS_DIRECTORY;
                     case 0x1:     return DIKS_MAIL;  /* Q on older iPaqs */
                }
                break;
      }
 
-     switch (kb_value) {
-          case K_LEFT:   return DIKS_CURSOR_LEFT;
-          case K_RIGHT:  return DIKS_CURSOR_RIGHT;
-          case K_UP:     return DIKS_CURSOR_UP;
-          case K_DOWN:   return DIKS_CURSOR_DOWN;
-          case K_ENTER:  return DIKS_ENTER;
-          case K_CTRL:   return DIKS_CONTROL;
-          case K_SHIFT:  return DIKS_SHIFT;
-          case K_ALT:    return DIKS_ALT;
-          case K_ALTGR:  return DIKS_ALTGR;
-          case K_INSERT: return DIKS_INSERT;
-          case K_REMOVE: return DIKS_DELETE;
-          case K_FIND:   return DIKS_HOME;
-          case K_SELECT: return DIKS_END;
-          case K_PGUP:   return DIKS_PAGE_UP;
-          case K_PGDN:   return DIKS_PAGE_DOWN;
-          case K_CAPS:   return DIKS_CAPSLOCK;
-          case K_NUM:    return DIKS_NUMLOCK;
-          case K_HOLD:   return DIKS_SCROLLLOCK;
-          case K(1,29):  return DIKS_PAUSE;
-#if 0
-          case K_PSLASH: return DIKS_KP_DIV;
-          case K_PSTAR:  return DIKS_KP_MULT;
-          case K_PMINUS: return DIKS_KP_MINUS;
-          case K_PPLUS:  return DIKS_KP_PLUS;
-          case K_PENTER: return DIKS_KP_ENTER;
-          case K_PCOMMA:
-          case K_PDOT:   return DIKS_KP_DECIMAL;
-#endif
+     switch (value) {
+          case K_LEFT:    return DIKS_CURSOR_LEFT;
+          case K_RIGHT:   return DIKS_CURSOR_RIGHT;
+          case K_UP:      return DIKS_CURSOR_UP;
+          case K_DOWN:    return DIKS_CURSOR_DOWN;
+          case K_ENTER:   return DIKS_ENTER;
+          case K_CTRL:    return DIKS_CONTROL;
+          case K_SHIFT:   return DIKS_SHIFT;
+          case K_ALT:     return DIKS_ALT;
+          case K_ALTGR:   return DIKS_ALTGR;
+          case K_INSERT:  return DIKS_INSERT;
+          case K_REMOVE:  return DIKS_DELETE;
+          case K_FIND:    return DIKS_HOME;
+          case K_SELECT:  return DIKS_END;
+          case K_PGUP:    return DIKS_PAGE_UP;
+          case K_PGDN:    return DIKS_PAGE_DOWN;
+          case K_CAPS:    return DIKS_CAPSLOCK;
+          case K_NUM:     return DIKS_NUMLOCK;
+          case K_HOLD:    return DIKS_SCROLLLOCK;
+          case K_PAUSE:   return DIKS_PAUSE;
+          
+          case K_P0:      return DIKS_INSERT;
+          case K_P1:      return DIKS_END;
+          case K_P2:      return DIKS_CURSOR_DOWN;
+          case K_P3:      return DIKS_PAGE_DOWN;
+          case K_P4:      return DIKS_CURSOR_LEFT;
+          case K_P5:      return DIKS_BEGIN;
+          case K_P6:      return DIKS_CURSOR_RIGHT;
+          case K_P7:      return DIKS_HOME;
+          case K_P8:      return DIKS_CURSOR_UP;
+          case K_P9:      return DIKS_PAGE_UP;
+          case K_PPLUS:   return DIKS_PLUS_SIGN;
+          case K_PMINUS:  return DIKS_MINUS_SIGN;
+          case K_PSTAR:   return DIKS_ASTERISK;
+          case K_PSLASH:  return DIKS_SLASH;
+          case K_PENTER:  return DIKS_ENTER;
+          case K_PCOMMA:  return DIKS_COMMA;
+          case K_PDOT:    return DIKS_PERIOD;
+          case K_PPARENL: return DIKS_PARENTHESIS_LEFT;
+          case K_PPARENR: return DIKS_PARENTHESIS_RIGHT;
      }
 
      return DIKS_NULL;
 }
 
-static DFBInputDeviceKeySymbol
-adjust_pad_keys( DFBInputDeviceKeySymbol symbol )
+static DFBInputDeviceKeyIdentifier
+keyboard_get_identifier( unsigned short value )
 {
-#if 0
-     switch (symbol) {
-          case DIKS_KP_DECIMAL: return DIKS_KP_DELETE;
-          case DIKS_KP_0:       return DIKS_KP_INSERT;
-          case DIKS_KP_1:       return DIKS_KP_END;
-          case DIKS_KP_2:       return DIKS_KP_DOWN;
-          case DIKS_KP_3:       return DIKS_KP_PAGE_DOWN;
-          case DIKS_KP_4:       return DIKS_KP_LEFT;
-          case DIKS_KP_5:       return DIKS_KP_BEGIN;
-          case DIKS_KP_6:       return DIKS_KP_RIGHT;
-          case DIKS_KP_7:       return DIKS_KP_HOME;
-          case DIKS_KP_8:       return DIKS_KP_UP;
-          case DIKS_KP_9:       return DIKS_KP_PAGE_UP;
-          default:
-               ;
-     }
-#endif
+     unsigned char type  = KTYP(value);
+     unsigned char index = KVAL(value);
 
-     return symbol;
+     if (type == KT_PAD) {
+          if (index <= 9)
+               return DIKI_KP_0 + index;
+
+          switch (value) {
+               case K_PSLASH: return DIKI_KP_DIV;
+               case K_PSTAR:  return DIKI_KP_MULT;
+               case K_PMINUS: return DIKI_KP_MINUS;
+               case K_PPLUS:  return DIKI_KP_PLUS;
+               case K_PENTER: return DIKI_KP_ENTER;
+               case K_PCOMMA:
+               case K_PDOT:   return DIKI_KP_DECIMAL;
+          }
+     }
+
+     return DIKI_UNKNOWN;
 }
 
-#define HANDLE_LOCK(flag)     if (keydown) { \
-                                   if (! (data->lock_pressed & (flag))) { \
-                                        data->lock_state   ^= (flag); \
-                                        data->lock_pressed |= (flag); \
-                                   } \
-                              } \
-                              else \
-                                   data->lock_pressed &= ~(flag);
-
-static DFBInputEvent
-keyboard_handle_code( KeyboardData  *data, unsigned char code )
+static unsigned short
+keyboard_read_value( unsigned char table, unsigned char index )
 {
-     int keydown;
      struct kbentry entry;
-     DFBInputEvent event;
-
-     if (code & 0x80) {
-          code &= 0x7f;
-          keydown = 0;
-     }
-     else {
-          keydown = 1;
-     }
-
-     HEAVYDEBUGMSG( "DirectFB/Keyboard: kb_code 0x%x\n", code );
-
-     /* fetch the keycode */
-
-     entry.kb_table = K_NORMTAB;
-     entry.kb_index = code;
+     
+     entry.kb_table = table;
+     entry.kb_index = index;
      entry.kb_value = 0;
 
-     ioctl( dfb_vt->fd, KDGKBENT, &entry );
-     ioctl( dfb_vt->fd, KDGKBLED, &data->lock_state );
-
-     event.type  = keydown ? DIET_KEYPRESS : DIET_KEYRELEASE;
-     event.flags = DIEF_KEYCODE | DIEF_KEYSYMBOL | DIEF_MODIFIERS | DIEF_LOCKS;
-
-     event.key_code = code;
-
-     switch (keyboard_translate( entry.kb_value )) {
-          case DIKS_SHIFT:
-               if (keydown)
-                    data->modifier_state |= DIMM_SHIFT;
-               else
-                    data->modifier_state &= ~DIMM_SHIFT;
-               break;
-          case DIKS_CONTROL:
-               if (keydown)
-                    data->modifier_state |= DIMM_CONTROL;
-               else
-                    data->modifier_state &= ~DIMM_CONTROL;
-               break;
-          case DIKS_ALT:
-               if (keydown)
-                    data->modifier_state |= DIMM_ALT;
-               else
-                    data->modifier_state &= ~DIMM_ALT;
-               break;
-          case DIKS_ALTGR:
-               if (keydown)
-                    data->modifier_state |= DIMM_ALTGR;
-               else
-                    data->modifier_state &= ~DIMM_ALTGR;
-               break;
-          case DIKS_CAPSLOCK:
-               HANDLE_LOCK( DILS_CAPS );
-               break;
-          case DIKS_NUMLOCK:
-               HANDLE_LOCK( DILS_NUM );
-               break;
-          case DIKS_SCROLLLOCK:
-               HANDLE_LOCK( DILS_SCROLL );
-               break;
-          default:
-               break;
-     }
-     /* Set the lock flags. We rely on these being
-      * in the same order as defined by the kernel. */
-     ioctl( dfb_vt->fd, KDSKBLED, data->lock_state );
-
-     if (data->modifier_state & DIMM_SHIFT) {
-          if (data->modifier_state & DIMM_ALT)
-               entry.kb_table = K_ALTSHIFTTAB;
-          else
-               entry.kb_table = K_SHIFTTAB;
-
-          ioctl( dfb_vt->fd, KDGKBENT, &entry );
-     }
-     else if (data->modifier_state & DIMM_ALTGR) {
-          entry.kb_table = K_ALTTAB;
-          ioctl( dfb_vt->fd, KDGKBENT, &entry );
-     }
-     if ( ((entry.kb_value & 0xFF00) >> 8 == KT_LETTER) &&
-           (data->lock_state & DILS_CAPS)) {
-          entry.kb_table = K_SHIFTTAB;
-          ioctl( dfb_vt->fd, KDGKBENT, &entry );
+     if (ioctl( dfb_vt->fd, KDGKBENT, &entry )) {
+          PERRORMSG("DirectFB/keyboard: KDGKBENT (table: %d, index: %d) "
+                    "failed!\n", table, index);
+          return 0;
      }
 
-     event.modifiers = data->modifier_state;
-     event.locks = data->lock_state;
-     event.key_symbol = keyboard_translate( entry.kb_value );
+     return entry.kb_value;
+}
 
-     if ( ((entry.kb_value & 0xFF00) >> 8 == KT_PAD) &&
-           !(data->lock_state & DILS_NUM)) {
-          event.key_symbol = adjust_pad_keys(event.key_symbol);
-     }
-     
-     return event;
+static void
+keyboard_set_lights( DFBInputDeviceLockState locks )
+{
+     ioctl( dfb_vt->fd, KDSKBLED, locks );
 }
 
 static void*
 keyboardEventThread( void *driver_data )
 {
      int            readlen;
-     unsigned char  buf[256];
+     unsigned char  buf[64];
      KeyboardData  *data = (KeyboardData*) driver_data;
 
      /* block all signals, they must not be handled by this thread */
      dfb_sig_block_all();
 
      /* Read keyboard data */
-     while ((readlen = read (dfb_vt->fd, buf, 256)) >= 0 || errno == EINTR) {
+     while ((readlen = read (dfb_vt->fd, buf, 64)) >= 0 || errno == EINTR) {
           int i;
 
           pthread_testcancel();
@@ -301,10 +220,13 @@ keyboardEventThread( void *driver_data )
           for (i = 0; i < readlen; i++) {
                DFBInputEvent evt;
 
-               pthread_testcancel();
-
-               evt = keyboard_handle_code( data, buf[i] );
+               evt.type     = (buf[i] & 0x80) ? DIET_KEYRELEASE : DIET_KEYPRESS;
+               evt.flags    = DIEF_KEYCODE;
+               evt.key_code = buf[i] & 0x7f;
+               
                dfb_input_dispatch( data->device, &evt );
+
+               keyboard_set_lights( evt.locks );
           }
      }
 
@@ -388,10 +310,16 @@ driver_open_device( InputDevice      *device,
      snprintf( info->vendor,
                DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
 
+     /* claim to be the primary keyboard */
      info->prefered_id = DIDID_KEYBOARD;
 
+     /* classify as a keyboard able to produce key events */
      info->desc.type   = DIDTF_KEYBOARD;
      info->desc.caps   = DICAPS_KEYS;
+
+     /* enable translation of raw hardware keycodes */
+     info->desc.min_keycode = 0;
+     info->desc.max_keycode = 127;
 
      /* start input thread */
      pthread_create( &data->thread, NULL, keyboardEventThread, data );
@@ -399,6 +327,63 @@ driver_open_device( InputDevice      *device,
      /* set private data pointer */
      *driver_data = data;
 
+     return DFB_OK;
+}
+
+/*
+ * Fetch one entry from the kernel keymap.
+ */
+static DFBResult
+driver_get_keymap_entry( InputDevice               *device,
+                         void                      *driver_data,
+                         DFBInputDeviceKeymapEntry *entry )
+{
+     unsigned short              value;
+     DFBInputDeviceKeyIdentifier identifier;
+     
+     /* fetch the base level */
+     value = keyboard_read_value( K_NORMTAB, entry->code );
+
+     /* get the identifier for basic mapping */
+     identifier = keyboard_get_identifier( value );
+
+     /* is CapsLock effective? */
+     if (KTYP(value) == KT_LETTER)
+          entry->locks |= DILS_CAPS;
+
+     /* is NumLock effective? */
+     if (identifier >= DIKI_KP_0 && identifier <= DIKI_KP_9)
+          entry->locks |= DILS_NUM;
+
+     /* write identifier to entry */
+     entry->identifier = identifier;
+     
+     /* write base level symbol to entry */
+     entry->symbols[DIKSI_BASE] = keyboard_get_symbol( value, DIKSI_BASE );
+     
+     
+     /* fetch the shifted base level */
+     value = keyboard_read_value( K_SHIFTTAB, entry->code );
+     
+     /* write shifted base level symbol to entry */
+     entry->symbols[DIKSI_BASE_SHIFT] = keyboard_get_symbol( value,
+                                                             DIKSI_BASE_SHIFT );
+     
+     
+     /* fetch the alternative level */
+     value = keyboard_read_value( K_ALTTAB, entry->code );
+     
+     /* write alternative level symbol to entry */
+     entry->symbols[DIKSI_ALT] = keyboard_get_symbol( value, DIKSI_ALT );
+     
+     
+     /* fetch the shifted alternative level */
+     value = keyboard_read_value( K_ALTSHIFTTAB, entry->code );
+     
+     /* write shifted alternative level symbol to entry */
+     entry->symbols[DIKSI_ALT_SHIFT] = keyboard_get_symbol( value,
+                                                            DIKSI_ALT_SHIFT );
+     
      return DFB_OK;
 }
 

@@ -260,7 +260,7 @@ sub parse_enum
       while (<>)
          {
             chomp;
-
+                                                  
             $entry = "";
 
             # complete one line entry with assignment
@@ -368,7 +368,7 @@ sub parse_struct
             chomp;
 
             # without comment
-            if ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*$/ )
+            if ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+;)\s*$/ )
                {
                   $type = $1;
                   $entry = $2;
@@ -392,7 +392,7 @@ sub parse_struct
                   $entries_params{ $entry } = "";
                }
             # complete one line entry
-            elsif ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*\/\*\s*(.+)\*\/\s*$/ )
+            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+;)\s*\/\*\s*(.+)\*\/\s*$/ )
                {
                   $type = $1;
                   $entry = $2;
@@ -417,7 +417,7 @@ sub parse_struct
                   $entries_params{ $entry } = $text;
                }
             # with comment opening
-            elsif ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*\/\*\s*(.+)\s*$/ )
+            elsif ( /^\s*([\w\ ]+)\s+(\**[\w\d\+\[\]]+;)\s*\/\*\s*(.+)\s*$/ )
                {
                   $type = $1;
                   $entry = $2;

@@ -317,6 +317,17 @@ driver_open_device( InputDevice      *device,
 }
 
 /*
+ * Fetch one entry from the device's keymap if supported.
+ */
+static DFBResult
+driver_get_keymap_entry( InputDevice               *device,
+                         void                      *driver_data,
+                         DFBInputDeviceKeymapEntry *entry )
+{
+     return DFB_UNSUPPORTED;
+}
+
+/*
  * End thread, close device and free private data.
  */
 static void
