@@ -481,7 +481,6 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
           case DSPF_YV12:
                mdev->regs.besGLOBCTL |= BESPROCAMP | BES3PLANE;
                mdev->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS | BES420PL;
-               mdev->regs.besPITCH    = surface->width * 2;
                break;
 
           case DSPF_UYVY:
@@ -491,22 +490,18 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
           case DSPF_YUY2:
                mdev->regs.besGLOBCTL |= BESPROCAMP;
                mdev->regs.besCTL     |= BESHFEN | BESVFEN | BESCUPS;
-               mdev->regs.besPITCH    = surface->width * 2;
                break;
 
           case DSPF_RGB15:
                mdev->regs.besGLOBCTL |= BESRGB15;
-               mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
                break;
 
           case DSPF_RGB16:
                mdev->regs.besGLOBCTL |= BESRGB16;
-               mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
                break;
 
           case DSPF_RGB32:
                mdev->regs.besGLOBCTL |= BESRGB32;
-               mdev->regs.besPITCH    = surface->front_buffer->video.pitch;
 
                drw_w = layer->shared->width;
                dstBox.x2 = dstBox.x1 + layer->shared->width;
@@ -566,15 +561,17 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mdev->regs.besV1SRCLST = layer->shared->height - 1;
      mdev->regs.besV2SRCLST = layer->shared->height - 2;
 
+     mdev->regs.besPITCH    = surface->front_buffer->video.pitch /
+                              DFB_BYTES_PER_PIXEL(surface->format);
+
      field_height           = layer->shared->height;
 
-     if (layer->shared->options & DLOP_INTERLACED_VIDEO)
-          field_height >>= 1;
-     else {
-          mdev->regs.besPITCH >>= 1;
-          mdev->regs.besCTL_field = 0;
+     if (layer->shared->options & DLOP_INTERLACED_VIDEO) {
+          field_height        /= 2;
+          mdev->regs.besPITCH *= 2;
      }
-
+     else
+          mdev->regs.besCTL_field = 0;
 
      if (layer->shared->surface->format == DSPF_RGB32)
           mdev->regs.besHISCAL = 0x20000;
