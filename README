@@ -10,11 +10,12 @@ DirectFB README
    Check http://www.directfb.org/ for more and uptodate infos.
 
 
-Requirements
+Build Requirements
 ------------
 
    - Linux kernel 2.2.x or newer with working frame buffer device
-     (check /proc/fb).
+     (check /proc/fb) for the fbdev system.
+   - SDL (Simple DirectMedia Layer) for the sdl system (optional).
 
    - freetype (version >= 2.0.1)
    - libpng2
@@ -32,12 +33,33 @@ Requirements
    disable it explicitely. Check the output of 'configure --help'.
 
 
-Additional Requirements for some Demos
---------------------------------------
+Usage Requirements
+------------------
 
+   Depending on the DirectFB application you want to run, you need some
+   or all of these:
+
+   - A working frame buffer device (check the output of fbset -i).
+   - A keyboard (if it works on the console, everything should be fine).
    - A PS/2 or serial mouse (MS protocol) for windowing, USB and ADB mice
      also work via PS/2 emulation.
-     Please stop gpm before using the mouse in DirectFB.
+
+
+   To access the frame buffer device and the mouse you need access to
+   /dev/tty0, /dev/fb0 and the mouse device (/dev/psaux, /dev/mouse).
+   You can either run all DirectFB applications as root or allow users
+   to access these devices. A reasonable way to do this is to add users
+   to the group tty (or some other group) and allow this group to read
+   and write the files in /dev:
+
+       crw-rw----    1 root     tty       29,   0  /dev/fb0
+       crw-rw----    1 root     tty       10,   1  /dev/psaux
+       crw-rw----    1 root     tty        4,   0  /dev/tty0
+
+
+   Some applications from the DirectFB-examples package have additional
+   requirements:
+
    - A video card supported by video4linux for df_video.
    - A joystick for df_joystick.
 
@@ -115,12 +137,12 @@ Configuring the Linux framebuffer device
 
    Other framebuffer devices support mode switching. DirectFB will only 
    support modes listed in your /etc/fb.modes file. By default the first 
-   entry found is used. Make sure that it is a mode with at least 15bpp 
-   bitdepth (16bpp recommened).
+   entry found is used.
 
-   If you have a Matrox G200/G400 you may try the highly experimental vsync 
-   patch found in the patches/ directory that enables applications to 
-   "idle wait" for the vertical retrace.
+   If you have a Matrox G200/G400 you may try the vsync patch found in
+   the patches directory that enables applications to "idle wait" for the
+   vertical retrace.
+
 
 Documentation
 -------------
