@@ -1098,10 +1098,11 @@ extern "C"
      #define DLID_PRIMARY          0x00
 
      /* predefined input device ids */
-     #define DIDID_KEYBOARD        0    /* primary keyboard       */
-     #define DIDID_MOUSE           1    /* primary mouse          */
-     #define DIDID_JOYSTICK        2    /* primary joystick       */
-     #define DIDID_REMOTE          3    /* primary remote control */
+     #define DIDID_KEYBOARD        0x0000    /* primary keyboard       */
+     #define DIDID_MOUSE           0x0001    /* primary mouse          */
+     #define DIDID_JOYSTICK        0x0002    /* primary joystick       */
+     #define DIDID_REMOTE          0x0003    /* primary remote control */
+     #define DIDID_ANY             0x1000    /* no primary device      */
 
 
      /*
