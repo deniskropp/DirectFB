@@ -45,8 +45,17 @@ static inline void
 nv_waitidle( NVidiaDriverData *nvdrv,
              NVidiaDeviceData *nvdev )
 {
-     while (nv_in32( nvdrv->PGRAPH, 0x700 ) & 1)
-          nvdev->idle_waitcycles++;
+     int waitcycles = 0;
+     
+     while (nv_in32( nvdrv->PGRAPH, 0x700 ) & 1) {
+          if (++waitcycles > 10000000) {
+               D_BREAK( "card hung" );
+               /* avoid card crash */
+               _exit(-1);
+          }
+     }
+      
+     nvdev->idle_waitcycles += waitcycles;
 }
 
 static inline void

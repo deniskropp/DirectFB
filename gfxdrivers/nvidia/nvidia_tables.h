@@ -205,6 +205,7 @@ static const __u32 nvPGRAPH10[][2] =
      {0x000003D3, 0x00000000}
 };
 
+#if 0
 static const __u32 nvPGRAPH_ARGB1555[][2] =
 {
      {0x000001C9, 0x00441444},     /* 0x0724 */
@@ -246,6 +247,6 @@ static const __u32 nvPGRAPH_UYVY[][2] =
      {0x00000186, 0x0000F135},
      {0x0000020C, 0x0F0D0D0D}
 };
-
+#endif
 
 #endif /* __NVIDIA_TABLES_H__ */
