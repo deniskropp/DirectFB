@@ -942,11 +942,25 @@ void
 dfb_window_dispatch( CoreWindow     *window,
                      DFBWindowEvent *event )
 {
+     DFB_ASSERT( window != NULL );
+     DFB_ASSERT( event != NULL );
+
      if (! (event->type & window->events))
           return;
 
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
+
+     if (window->stack) {
+          CoreWindowStack *stack = window->stack;
+
+          event->buttons   = stack->buttons;
+          event->modifiers = stack->modifiers;
+          event->locks     = stack->locks;
+
+          event->cx        = stack->cursor.x;
+          event->cy        = stack->cursor.y;
+     }
 
      fusion_object_dispatch( &window->object, event );
 }
@@ -992,8 +1006,6 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
                we.key_code   = stack->keys[i].code;
                we.key_id     = stack->keys[i].id;
                we.key_symbol = stack->keys[i].symbol;
-               we.modifiers  = stack->modifiers;
-               we.locks      = stack->locks;
 
                dfb_window_dispatch( stack->keys[i].owner, &we );
 
@@ -1007,8 +1019,7 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
 void
 dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                                int                       dx,
-                               int                       dy,
-                               DFBInputDeviceButtonMask  buttons )
+                               int                       dy )
 {
      int            new_cx, new_cy;
      DFBWindowEvent we;
@@ -1086,14 +1097,10 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
           case 0:
                stack_lock( stack );
 
-               we.cx      = stack->cursor.x;
-               we.cy      = stack->cursor.y;
-               we.buttons = buttons;
-
                if (stack->pointer_window) {
                     we.type = DWET_MOTION;
-                    we.x    = we.cx - stack->pointer_window->x;
-                    we.y    = we.cy - stack->pointer_window->y;
+                    we.x    = stack->cursor.x - stack->pointer_window->x;
+                    we.y    = stack->cursor.y - stack->pointer_window->y;
           
                     dfb_window_dispatch( stack->pointer_window, &we );
                }
@@ -1102,8 +1109,8 @@ dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                         && stack->entered_window)
                     {
                          we.type = DWET_MOTION;
-                         we.x    = we.cx - stack->entered_window->x;
-                         we.y    = we.cy - stack->entered_window->y;
+                         we.x    = stack->cursor.x - stack->entered_window->x;
+                         we.y    = stack->cursor.y - stack->entered_window->y;
           
                          dfb_window_dispatch( stack->entered_window, &we );
                     }
@@ -1391,6 +1398,16 @@ stack_inputdevice_react( const void *msg_data,
 
      dfb_layer_release( layer, false );
 
+     /* FIXME: handle multiple devices */
+     if (evt->flags & DIEF_BUTTONS)
+          stack->buttons = evt->buttons;
+
+     if (evt->flags & DIEF_MODIFIERS)
+          stack->modifiers = evt->modifiers;
+     
+     if (evt->flags & DIEF_LOCKS)
+          stack->locks = evt->locks;
+     
      if (stack->wm_hack) {
           switch (evt->type) {
                case DIET_KEYRELEASE:
@@ -1542,8 +1559,6 @@ stack_inputdevice_react( const void *msg_data,
                     we.key_code   = evt->key_code;
                     we.key_id     = evt->key_id;
                     we.key_symbol = evt->key_symbol;
-                    we.modifiers  = stack->modifiers;
-                    we.locks      = stack->locks;
 
                     dfb_window_dispatch( window, &we );
                }
@@ -1564,12 +1579,9 @@ stack_inputdevice_react( const void *msg_data,
                if (window) {
                     we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :
                                                                 DWET_BUTTONUP;
-                    we.button  = evt->button;
-                    we.buttons = evt->buttons; /* FIXME: handle mult. devices */
-                    we.cx      = stack->cursor.x;
-                    we.cy      = stack->cursor.y;
-                    we.x       = we.cx - window->x;
-                    we.y       = we.cy - window->y;
+                    we.button = evt->button;
+                    we.x      = stack->cursor.x - window->x;
+                    we.y      = stack->cursor.y - window->y;
 
                     dfb_window_dispatch( window, &we );
                }
@@ -1593,14 +1605,10 @@ stack_inputdevice_react( const void *msg_data,
 
                     switch (evt->axis) {
                          case DIAI_X:
-                              dfb_windowstack_handle_motion( stack,
-                                                             rel, 0,
-                                                             evt->buttons );
+                              dfb_windowstack_handle_motion( stack, rel, 0 );
                               break;
                          case DIAI_Y:
-                              dfb_windowstack_handle_motion( stack,
-                                                             0, rel,
-                                                             evt->buttons );
+                              dfb_windowstack_handle_motion( stack, 0, rel );
                               break;
                          case DIAI_Z:
                               handle_wheel( stack, - evt->axisrel );
@@ -1613,13 +1621,11 @@ stack_inputdevice_react( const void *msg_data,
                     switch (evt->axis) {
                          case DIAI_X:
                               dfb_windowstack_handle_motion( stack,
-                                                             evt->axisabs - stack->cursor.x, 0,
-                                                             evt->buttons );
+                                                             evt->axisabs - stack->cursor.x, 0 );
                               break;
                          case DIAI_Y:
                               dfb_windowstack_handle_motion( stack,
-                                                             0, evt->axisabs - stack->cursor.y,
-                                                             evt->buttons );
+                                                             0, evt->axisabs - stack->cursor.y );
                               break;
                          default:
                               return RS_OK;
@@ -1660,10 +1666,8 @@ handle_wheel( CoreWindowStack *stack, int dz )
           else {
                we.type = DWET_WHEEL;
 
-               we.cx     = stack->cursor.x;
-               we.cy     = stack->cursor.y;
-               we.x      = we.cx - window->x;
-               we.y      = we.cy - window->y;
+               we.x      = stack->cursor.x - window->x;
+               we.y      = stack->cursor.y - window->y;
                we.step   = dz;
 
                dfb_window_dispatch( window, &we );
@@ -1683,15 +1687,11 @@ handle_enter_leave_focus( CoreWindowStack *stack )
           if (before != after) {
                DFBWindowEvent we;
 
-               /* set cursor position */
-               we.cx = stack->cursor.x;
-               we.cy = stack->cursor.y;
-
                /* send leave event */
                if (before) {
                     we.type = DWET_LEAVE;
-                    we.x    = we.cx - before->x;
-                    we.y    = we.cy - before->y;
+                    we.x    = stack->cursor.x - before->x;
+                    we.y    = stack->cursor.y - before->y;
 
                     dfb_window_dispatch( before, &we );
                }
@@ -1701,8 +1701,8 @@ handle_enter_leave_focus( CoreWindowStack *stack )
                
                if (after) {
                     we.type = DWET_ENTER;
-                    we.x    = we.cx - after->x;
-                    we.y    = we.cy - after->y;
+                    we.x    = stack->cursor.x - after->x;
+                    we.y    = stack->cursor.y - after->y;
 
                     dfb_window_dispatch( after, &we );
                }
@@ -1946,8 +1946,6 @@ window_withdraw( CoreWindow *window )
                we.key_code   = stack->keys[i].code;
                we.key_id     = stack->keys[i].id;
                we.key_symbol = stack->keys[i].symbol;
-               we.modifiers  = stack->modifiers;
-               we.locks      = stack->locks;
 
                dfb_window_dispatch( window, &we );
 
@@ -2012,10 +2010,6 @@ get_keyboard_window( CoreWindowStack     *stack,
      DFB_ASSERT( stack != NULL );
      DFB_ASSERT( evt != NULL );
      DFB_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
-
-     /* FIXME: handle multiple devices */
-     stack->modifiers = evt->modifiers;
-     stack->locks     = evt->locks;
 
      if (evt->key_symbol == DIKS_NULL)
           return NULL;

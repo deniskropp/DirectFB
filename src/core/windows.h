@@ -105,6 +105,7 @@ struct _CoreWindowStack {
           CoreWindow                  *owner;
      } keys[8];
 
+     DFBInputDeviceButtonMask          buttons;
      DFBInputDeviceModifierMask        modifiers;
      DFBInputDeviceLockState           locks;
 
@@ -324,7 +325,6 @@ void dfb_windowstack_flush_keys( CoreWindowStack *stack );
 /*
  * moves the cursor and handles events
  */
-void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy,
-                                    DFBInputDeviceButtonMask  buttons);
+void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
 
 #endif

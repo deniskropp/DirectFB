@@ -688,9 +688,24 @@ IDirectFB_GetInputDevice( IDirectFB             *thiz,
 }
 
 static DFBResult
-IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
-                             DFBInputDeviceCapabilities   caps,
-                             IDirectFBEventBuffer       **interface)
+IDirectFB_CreateEventBuffer( IDirectFB             *thiz,
+                             IDirectFBEventBuffer **interface)
+{
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
+     
+     return IDirectFBEventBuffer_Construct( *interface, NULL, data );
+}
+
+static DFBResult
+IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
+                                  DFBInputDeviceCapabilities   caps,
+                                  DFBBoolean                   global,
+                                  IDirectFBEventBuffer       **interface)
 {
      CreateEventBuffer_Context context;
 
@@ -700,7 +715,9 @@ IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
           return DFB_INVARG;
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
-     IDirectFBEventBuffer_Construct( *interface, input_filter, data );
+     
+     IDirectFBEventBuffer_Construct( *interface,
+                                     global ? NULL : input_filter, data );
 
      context.caps      = caps;
      context.interface = interface;
@@ -941,6 +958,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      thiz->EnumInputDevices = IDirectFB_EnumInputDevices;
      thiz->GetInputDevice = IDirectFB_GetInputDevice;
      thiz->CreateEventBuffer = IDirectFB_CreateEventBuffer;
+     thiz->CreateInputEventBuffer = IDirectFB_CreateInputEventBuffer;
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;

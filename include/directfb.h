@@ -180,6 +180,14 @@ typedef enum {
 } DFBResult;
 
 /*
+ * A boolean.
+ */
+typedef enum {
+     DFB_FALSE = 0,
+     DFB_TRUE  = !DFB_FALSE
+} DFBBoolean;
+
+/*
  * A point specified by x/y coordinates.
  */
 typedef struct {
@@ -1199,14 +1207,31 @@ DEFINE_INTERFACE(   IDirectFB,
      /*
       * Create a buffer for events.
       *
+      * Creates an empty event buffer without event sources connected to it.
+      */
+     DFBResult (*CreateEventBuffer) (
+          IDirectFB                   *thiz,
+          IDirectFBEventBuffer       **buffer
+     );
+
+     /*
+      * Create a buffer for events with input devices connected.
+      *
       * Creates an event buffer and attaches all input devices
       * with matching capabilities. If no input devices match,
       * e.g. by specifying DICAPS_NONE, a buffer will be returned
       * that has no event sources connected to it.
+      *
+      * If global is DFB_FALSE events will only be delivered if this
+      * instance of IDirectFB has a focused primary (either running fullscreen
+      * or running in windowed mode with the window being focused).
+      *
+      * If global is DFB_TRUE no event will be discarded.
       */
-     DFBResult (*CreateEventBuffer) (
+     DFBResult (*CreateInputEventBuffer) (
           IDirectFB                   *thiz,
           DFBInputDeviceCapabilities   caps,
+          DFBBoolean                   global,
           IDirectFBEventBuffer       **buffer
      );
 

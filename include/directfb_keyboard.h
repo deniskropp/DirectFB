@@ -70,7 +70,10 @@ extern "C"
           DIMKI_ALTGR,                       /* AltGr modifier key */
           DIMKI_META,                        /* Meta modifier key */
           DIMKI_SUPER,                       /* Super modifier key */
-          DIMKI_HYPER                        /* Hyper modifier key */
+          DIMKI_HYPER,                       /* Hyper modifier key */
+
+          DIMKI_FIRST    = DIMKI_SHIFT,
+          DIMKI_LAST     = DIMKI_HYPER
      } DFBInputDeviceModifierKeyIdentifier;
 
      /*
