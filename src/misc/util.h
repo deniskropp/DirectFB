@@ -52,24 +52,24 @@ DFBResult errno2dfb( int erno );
 int dfb_region_intersect( DFBRegion *region,
                           int x1, int y1, int x2, int y2 );
 
-int dfb_region_rectangle_intersect( DFBRegion    *region,
-                                    DFBRectangle *rect );
+int dfb_region_rectangle_intersect( DFBRegion          *region,
+                                    const DFBRectangle *rect );
 
 int dfb_unsafe_region_intersect( DFBRegion *region,
                                  int x1, int y1, int x2, int y2 );
 
-int dfb_unsafe_region_rectangle_intersect( DFBRegion    *region,
-                                           DFBRectangle *rect );
+int dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
+                                           const DFBRectangle *rect );
 
 int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
                                               DFBRegion    *region );
 
-int dfb_rectangle_intersect( DFBRectangle *rectangle,
-                             DFBRectangle *clip );
+int dfb_rectangle_intersect( DFBRectangle       *rectangle,
+                             const DFBRectangle *clip );
 
 /* returns the result in the first rectangle */
-void dfb_rectangle_union ( DFBRectangle *rect1,
-                           DFBRectangle *rect2 );
+void dfb_rectangle_union ( DFBRectangle       *rect1,
+                           const DFBRectangle *rect2 );
 
 
 /* Returns the current time after startup of DirectFB in milliseconds */
