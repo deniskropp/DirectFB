@@ -414,7 +414,7 @@ driver_get_info( GraphicsDevice     *device,
 	      "Michel Dänzer" );
 
     info->version.major = 0;
-    info->version.minor = 1;
+    info->version.minor = 2;
 
     info->driver_data_size = sizeof (RADEONDriverData);
     info->device_data_size = sizeof (RADEONDeviceData);
@@ -454,6 +454,9 @@ driver_init_driver( GraphicsDevice      *device,
     if ( ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ) )
 #endif
 	dfb_screens_register_primary( device, driver_data, &radeonScreenFuncs );
+
+    /* overlay support */
+    dfb_layers_register( dfb_screens_at(DSCID_PRIMARY), driver_data, &RadeonOverlayFuncs );
 
     return DFB_OK;
 }

@@ -63,4 +63,6 @@ typedef struct {
     unsigned int fifo_cache_hits;
 } RADEONDeviceData;
 
+extern DisplayLayerFuncs RadeonOverlayFuncs;
+
 #endif

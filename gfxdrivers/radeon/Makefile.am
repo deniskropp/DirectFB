@@ -12,6 +12,7 @@ radeondir = $(MODULEDIR)/gfxdrivers
 libdirectfb_radeon_la_SOURCES =	\
 	radeon.c		\
 	radeon.h		\
+	radeon_overlay.c	\
 	radeon_state.c		\
 	radeon_state.h		\
 	radeon_regs.h		\
