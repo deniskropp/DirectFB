@@ -1377,8 +1377,9 @@ stack_inputdevice_react( const void *msg_data,
                               stack->wm_hack = 1;
                               return RS_OK;
 
-                         case DIKS_SMALL_S:
+                         case DIKS_SMALL_A:
                          case DIKS_SMALL_C:
+                         case DIKS_SMALL_S:
                          case DIKS_SMALL_X:
                          case DIKS_SMALL_D:
                               return RS_OK;
@@ -1398,7 +1399,7 @@ stack_inputdevice_react( const void *msg_data,
                               stack->wm_hack = 2;
                               return RS_OK;
 
-                         case DIKS_SMALL_S:
+                         case DIKS_SMALL_X:
                               stack_lock( stack );
                               if (stack->wm_cycle <= 0)
                                    stack->wm_cycle = stack->num_windows;
@@ -1444,11 +1445,19 @@ stack_inputdevice_react( const void *msg_data,
                               }
                               return RS_OK;
 
-                         case DIKS_SMALL_X:
+                         case DIKS_SMALL_A:
                               if (stack->focused_window && 
                                   ! (stack->focused_window->options & DWOP_KEEP_STACKING))
                               {
                                    dfb_window_lowertobottom( stack->focused_window );
+                              }
+                              return RS_OK;
+
+                         case DIKS_SMALL_S:
+                              if (stack->focused_window && 
+                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING))
+                              {
+                                   dfb_window_raisetotop( stack->focused_window );
                               }
                               return RS_OK;
 
