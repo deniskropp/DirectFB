@@ -10,6 +10,10 @@
 #include <core/surfaces.h>
 #include <core/windows.h>
 
+typedef struct {
+     int video;
+     int system;
+} MemoryUsage;
 
 static IDirectFB *dfb = NULL;
 
@@ -38,6 +42,32 @@ deinit_directfb()
           dfb->Release( dfb );
 }
 
+static inline int
+buffer_size( CoreSurface *surface, SurfaceBuffer *buffer, bool video )
+{
+     return video ?
+          (buffer->video.health == CSH_INVALID ?
+           0 : buffer->video.pitch * DFB_PLANE_MULTIPLY( surface->format,
+                                                         surface->height )) :
+          (buffer->system.health == CSH_INVALID ?
+           0 : buffer->system.pitch * DFB_PLANE_MULTIPLY( surface->format,
+                                                          surface->height ));
+}
+
+static int
+buffer_sizes( CoreSurface *surface, bool video )
+{
+     int mem = buffer_size( surface, surface->front_buffer, video );
+
+     if (surface->caps & DSCAPS_FLIPPING)
+          mem += buffer_size( surface, surface->back_buffer, video );
+
+     if (surface->caps & DSCAPS_TRIPLE)
+          mem += buffer_size( surface, surface->idle_buffer, video );
+     
+     return (mem + 0x3ff) & ~0x3ff;
+}
+
 static bool
 surface_callback( FusionObjectPool *pool,
                   FusionObject     *object,
@@ -46,8 +76,9 @@ surface_callback( FusionObjectPool *pool,
      FusionResult ret;
      int          refs;
      CoreSurface *surface = (CoreSurface*) object;
-     int         *total   = (int*) ctx;
-     int          mem;
+     MemoryUsage *mem     = ctx;
+     int          vmem;
+     int          smem;
 
      if (object->state != FOS_ACTIVE)
           return true;
@@ -120,16 +151,14 @@ surface_callback( FusionObjectPool *pool,
                break;
      }
 
-     mem = DFB_BYTES_PER_LINE( surface->format, surface->width ) *
-           surface->height * ((surface->caps & DSCAPS_TRIPLE) ? 3 :
-                              (surface->caps & DSCAPS_FLIPPING) ? 2 : 1);
+     vmem = buffer_sizes( surface, true );
+     smem = buffer_sizes( surface, false );
 
-     if (mem < 1024)
-          mem = 1024;
+     printf( "%6dk  ", vmem >> 10 );
+     printf( "%6dk  ", smem >> 10 );
 
-     printf( "%4dk  ", mem >> 10 );
-
-     *total += mem;
+     mem->video  += vmem;
+     mem->system += smem;
 
      if (surface->caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
@@ -154,16 +183,17 @@ surface_callback( FusionObjectPool *pool,
 static void
 dump_surfaces()
 {
-     int total = 0;
+     MemoryUsage mem = { 0, 0 };
 
      printf( "\nSurfaces\n" );
      printf( "---------\n\n" );
 
      fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
-                              surface_callback, &total );
+                              surface_callback, &mem );
 
-     printf( "                         ------\n" );
-     printf( "                         %4dk\n", total >> 10 );
+     printf( "                           -------  -------\n" );
+     printf( "                           %6dk  %6dk    -> %dk total\n",
+             mem.video >> 10, mem.system >> 10, (mem.video + mem.system) >> 10);
 }
 
 static bool
