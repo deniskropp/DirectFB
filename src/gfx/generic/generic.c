@@ -302,7 +302,7 @@ static void Bop_rgb15_Kto_Aop()
 
      __u32 DSkey = (Skey << 16) | (Skey & 0x0000FFFF);
 
-     if (((long)S)&2) {         /* align */
+     if (((long)D)&2) {         /* align */
           __u16 *tmp = Aop;
           --l;
           if ((*((__u16*)S) & 0x7FFF) != (__u16)Skey)
@@ -357,7 +357,7 @@ static void Bop_rgb16_Kto_Aop()
 
      __u32 DSkey = (Skey << 16) | (Skey & 0x0000FFFF);
 
-     if (((long)S)&2) {         /* align */
+     if (((long)D)&2) {         /* align */
           __u16 *tmp = Aop;
           --l;
           if (*((__u16*)S) != (__u16)Skey)
