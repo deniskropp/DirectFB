@@ -188,8 +188,6 @@ bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
     //printf("%s: r = (%d, %d, %d, %d) -> (%d, %d)\n", __PRETTY_FUNCTION__,
     //  rect->x, rect->y, rect->h, rect->w, dx, dy);
 
-    ucdev = ucdev; // Kill 'unused variable' compiler warning.
-
     int cmd = VIA_GEC_BLT | VIA_ROP_S | VIA_GEC_CLIP_ENABLE;
 
     int sx = rect->x;
@@ -199,6 +197,8 @@ bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
 
     if (!w || !h) return true;
 
+    (void) ucdev; // Kill 'unused variable' compiler warning.
+    
     if (sx < dx) {
         cmd |= VIA_GEC_DECX;
         sx += w - 1;
