@@ -1621,8 +1621,8 @@ dfb_layer_window_stack( DisplayLayer *layer )
      DFB_ASSERT( layersfield != NULL );
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( layer->shared != NULL );
-     DFB_ASSERT( layer->shared->stack != NULL );
-     DFB_ASSERT( layer->shared->enabled );
+/* FIXME:     DFB_ASSERT( layer->shared->stack != NULL );
+     DFB_ASSERT( layer->shared->enabled ); */
 
      return layer->shared->stack;
 }
