@@ -21,4 +21,5 @@ libdirectfb_core_sdl_la_SOURCES = \
 	primary.c	\
 	primary.h	\
 	sdl.c		\
+	sdl.h		\
 	sdlinput.c
