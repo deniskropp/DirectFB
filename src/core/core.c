@@ -123,6 +123,8 @@ dfb_core_deinit_check()
 DFBResult
 dfb_core_init( int *argc, char **argv[] )
 {
+     DFBResult ret;
+
 #ifdef DFB_DYNAMIC_LINKING
      if (!dfb_lib_handle)
 #ifdef RTLD_GLOBAL
@@ -133,6 +135,10 @@ dfb_core_init( int *argc, char **argv[] )
 #endif
 #endif
     
+     ret = dfb_system_lookup();
+     if (ret)
+          return ret;
+     
      return DFB_OK;
 }
 
@@ -165,10 +171,6 @@ dfb_core_ref()
           sync();
      }
 
-     ret = dfb_system_lookup();
-     if (ret)
-          return ret;
-     
 #ifndef FUSION_FAKE
      if (dfb_config->vt_switch)
           dfb_system_thread_init();

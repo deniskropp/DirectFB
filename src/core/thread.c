@@ -45,6 +45,7 @@ struct _CoreThread {
      CoreThreadMain  main;    /* The thread's main routine (or entry point). */
      void           *arg;     /* Custom argument passed to the main routine. */
 
+     bool            init;    /* Set to true before calling the main routine. */
      bool            cancel;  /* True if dfb_thread_cancel() has been called. */
      bool            joined;  /* True if dfb_thread_join() succeeded. */
 };
@@ -81,6 +82,10 @@ dfb_thread_create( CoreThreadType  thread_type,
 
      /* Create and run the thread. */
      pthread_create( &thread->thread, NULL, dfb_thread_main, thread );
+
+     /* Wait for completion of the thread's initialization. */
+     while (!thread->init)
+          sched_yield();
 
      return thread;
 }
@@ -188,6 +193,9 @@ dfb_thread_main( void *arg )
           default:
                break;
      }
+
+     /* Indicate that our initialization has completed. */
+     thread->init = true;
 
      /* Call main routine. */
      return thread->main( thread, thread->arg );

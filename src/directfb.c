@@ -101,11 +101,11 @@ DirectFBInit( int *argc, char **argv[] )
 {
      DFBResult ret;
 
-     ret = dfb_core_init( argc, argv );
+     ret = dfb_config_init( argc, argv );
      if (ret)
           return ret;
 
-     ret = dfb_config_init( argc, argv );
+     ret = dfb_core_init( argc, argv );
      if (ret)
           return ret;
 
