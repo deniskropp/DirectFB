@@ -207,17 +207,8 @@ _fusion_shfree_internal (void *ptr)
 void
 _fusion_shfree (void *ptr)
 {
-     struct alignlist *l;
-
      if (ptr == NULL)
           return;
-
-     for (l = _sheap->aligned_blocks; l != NULL; l = l->next)
-          if (l->aligned == ptr) {
-               l->aligned = NULL;      /* Mark the slot in the list as free.  */
-               ptr = l->exact;
-               break;
-          }
 
      _fusion_shfree_internal (ptr);
 }

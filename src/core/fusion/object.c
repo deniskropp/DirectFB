@@ -62,7 +62,7 @@ fusion_object_pool_create( const char             *name,
      DFB_ASSERT( destructor != NULL );
 
      /* Allocate shared memory for the pool. */
-     pool = shcalloc( 1, sizeof(FusionObjectPool) );
+     pool = SHCALLOC( 1, sizeof(FusionObjectPool) );
      if (!pool)
           return NULL;
 
@@ -70,7 +70,7 @@ fusion_object_pool_create( const char             *name,
      fusion_skirmish_init( &pool->lock );
 
      /* Fill information. */
-     pool->name         = shstrdup( name );
+     pool->name         = SHSTRDUP( name );
      pool->object_size  = object_size;
      pool->message_size = message_size;
      pool->destructor   = destructor;
@@ -96,8 +96,8 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      fusion_skirmish_destroy( &pool->lock );
 
      /* Deallocate shared memory. */
-     shfree( pool->name );
-     shfree( pool );
+     SHFREE( pool->name );
+     SHFREE( pool );
 
      return FUSION_SUCCESS;
 }
@@ -136,7 +136,7 @@ fusion_object_create( FusionObjectPool *pool )
      DFB_ASSERT( pool != NULL );
 
      /* Allocate shared memory for the object. */
-     object = shcalloc( 1, pool->object_size );
+     object = SHCALLOC( 1, pool->object_size );
      if (!object)
           return NULL;
 
@@ -145,7 +145,7 @@ fusion_object_create( FusionObjectPool *pool )
 
      /* Initialize the reference counter. */
      if (fusion_ref_init( &object->ref )) {
-          shfree( object );
+          SHFREE( object );
           return NULL;
      }
 
@@ -153,7 +153,7 @@ fusion_object_create( FusionObjectPool *pool )
      object->reactor = fusion_reactor_new( pool->message_size );
      if (!object->reactor) {
           fusion_ref_destroy( &object->ref );
-          shfree( object );
+          SHFREE( object );
           return NULL;
      }
 
@@ -215,7 +215,7 @@ fusion_object_destroy( FusionObject     *object )
 
      fusion_reactor_free( object->reactor );
 
-     shfree( object );
+     SHFREE( object );
 
      return FUSION_SUCCESS;
 }

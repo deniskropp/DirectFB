@@ -103,13 +103,13 @@ dfb_surfacemanager_create( unsigned int length,
      Chunk          *chunk;
      SurfaceManager *manager;
 
-     manager = shcalloc( 1, sizeof(SurfaceManager) );
+     manager = SHCALLOC( 1, sizeof(SurfaceManager) );
      if (!manager)
           return NULL;
 
-     chunk = shcalloc( 1, sizeof(Chunk) );
+     chunk = SHCALLOC( 1, sizeof(Chunk) );
      if (!chunk) {
-          shfree( manager );
+          SHFREE( manager );
           return NULL;
      }
 
@@ -140,7 +140,7 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
      while (chunk) {
           Chunk *next = chunk->next;
 
-          shfree( chunk );
+          SHFREE( chunk );
 
           chunk = next;
      }
@@ -149,7 +149,7 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
      fusion_skirmish_destroy( &manager->lock );
      
      /* Deallocate manager struct. */
-     shfree( manager );
+     SHFREE( manager );
 }
 
 DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
@@ -535,7 +535,7 @@ static Chunk* split_chunk( Chunk *c, int length )
      if (c->length == length)          /* does not need be splitted */
           return c;
 
-     newchunk = (Chunk*) shcalloc( 1, sizeof(Chunk) );
+     newchunk = (Chunk*) SHCALLOC( 1, sizeof(Chunk) );
 
      /* calculate offsets and lengths of resulting chunks */
      newchunk->offset = c->offset + c->length - length;
@@ -583,7 +583,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 
           DEBUGMSG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
 
-          shfree( chunk );
+          SHFREE( chunk );
           chunk = prev;
      }
 
@@ -598,7 +598,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           if (chunk->next)
                chunk->next->prev = chunk;
 
-          shfree( next );
+          SHFREE( next );
      }
 
      return chunk;

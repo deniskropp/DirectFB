@@ -161,7 +161,7 @@ dfb_layers_initialize( void *data_local, void *data_shared )
           DisplayLayer       *layer = dfb_layers[i];
           
           /* allocate shared data */
-          shared = shcalloc( 1, sizeof(DisplayLayerShared) );
+          shared = SHCALLOC( 1, sizeof(DisplayLayerShared) );
 
           /* zero based counting */
           shared->id = i;
@@ -172,7 +172,7 @@ dfb_layers_initialize( void *data_local, void *data_shared )
           /* allocate shared layer driver data */
           layer_data_size = layer->funcs->LayerDataSize();
           if (layer_data_size > 0)
-               shared->layer_data = shcalloc( 1, layer_data_size );
+               shared->layer_data = SHCALLOC( 1, layer_data_size );
 
           /* set default opacity */
           shared->opacity = 0xFF;
@@ -197,8 +197,8 @@ dfb_layers_initialize( void *data_local, void *data_shared )
 
                fusion_property_destroy( &shared->lock );
 
-               shfree( shared->layer_data );
-               shfree( shared );
+               SHFREE( shared->layer_data );
+               SHFREE( shared );
 
                return ret;
           }
@@ -280,10 +280,10 @@ dfb_layers_shutdown( bool emergency )
 
           /* Free shared layer driver data */
           if (l->shared->layer_data)
-               shfree( l->shared->layer_data );
+               SHFREE( l->shared->layer_data );
 
           /* Free shared layer data */
-          shfree( l->shared );
+          SHFREE( l->shared );
 
           /* Deinit state for stack repaints. */
           dfb_state_set_destination( &l->state, NULL );

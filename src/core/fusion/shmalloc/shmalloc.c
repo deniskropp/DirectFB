@@ -571,7 +571,7 @@ void *__shmalloc_allocate_root (size_t size)
      DFB_ASSERT( _sheap != NULL );
      DFB_ASSERT( _sheap->root_node == NULL );
 
-     _sheap->root_node = shcalloc( 1, size );
+     _sheap->root_node = SHCALLOC( 1, size );
 
      return _sheap->root_node;
 }

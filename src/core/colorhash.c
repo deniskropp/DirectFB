@@ -144,7 +144,7 @@ dfb_colorhash_attach( CorePalette *palette )
      if (!hash_field->hash) {
           DFB_ASSERT( !hash_field->hash_users );
 
-          hash_field->hash = shcalloc( HASH_SIZE, sizeof (Colorhash) );
+          hash_field->hash = SHCALLOC( HASH_SIZE, sizeof (Colorhash) );
      }
 
      hash_field->hash_users++;
@@ -166,7 +166,7 @@ dfb_colorhash_detach( CorePalette *palette )
 
      if (!hash_field->hash_users) {
           /* no more users, free allocated resources */
-          shfree( hash_field->hash );
+          SHFREE( hash_field->hash );
           hash_field->hash = NULL;
      }
 

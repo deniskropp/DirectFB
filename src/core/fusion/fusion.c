@@ -46,9 +46,14 @@
 
 #include "fusion_internal.h"
 
+#include "shmalloc.h"
+
+
+
 #ifndef FUSION_FAKE
 
 #include <linux/fusion.h>
+
 #include "shmalloc/shmalloc_internal.h"
 
 
@@ -170,6 +175,8 @@ fusion_exit()
 
      if (_fusion_id == 1) {
           fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
+          
+          fusion_dbg_print_memleaks();
      }
 
      _fusion_shared = NULL;
@@ -308,6 +315,7 @@ fusion_init( int world, int *ret_world )
 void
 fusion_exit()
 {
+     fusion_dbg_print_memleaks();
 }
 
 FusionResult

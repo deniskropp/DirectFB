@@ -73,7 +73,7 @@ system_initialize( void **data )
 
      DFB_ASSERT( dfb_sdl == NULL );
 
-     dfb_sdl = (DFBSDL*) shcalloc( 1, sizeof(DFBSDL) );
+     dfb_sdl = (DFBSDL*) SHCALLOC( 1, sizeof(DFBSDL) );
      if (!dfb_sdl) {
           ERRORMSG( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
@@ -91,7 +91,7 @@ system_initialize( void **data )
           ERRORMSG( "DirectFB/SDL: Couldn't initialize SDL: %s\n",
                     SDL_GetError() );
           
-          shfree( dfb_sdl );
+          SHFREE( dfb_sdl );
           dfb_sdl = NULL;
           
           return DFB_INIT;
@@ -141,7 +141,7 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_destroy( &dfb_sdl->lock );
      
-     shfree( dfb_sdl );
+     SHFREE( dfb_sdl );
      dfb_sdl = NULL;
      
      return DFB_OK;

@@ -157,21 +157,21 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
 
           ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
-               shfree( card->shared->module_name );
+               SHFREE( card->shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
           }
 
           card->shared->device_data =
-               shcalloc( 1, card->shared->driver_info.device_data_size );
+               SHCALLOC( 1, card->shared->driver_info.device_data_size );
 
           ret = funcs->InitDevice( card, &card->shared->device_info,
                                    card->driver_data, card->shared->device_data );
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
-               shfree( card->shared->device_data );
-               shfree( card->shared->module_name );
+               SHFREE( card->shared->device_data );
+               SHFREE( card->shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
@@ -286,7 +286,7 @@ dfb_gfxcard_shutdown( bool emergency )
 
           dfb_module_unref( card->module );
 
-          shfree( card->device_data );
+          SHFREE( card->device_data );
           DFBFREE( card->driver_data );
      }
 
@@ -298,7 +298,7 @@ dfb_gfxcard_shutdown( bool emergency )
      fusion_property_destroy( &shared->lock );
 
      if (shared->module_name)
-          shfree( shared->module_name );
+          SHFREE( shared->module_name );
      
      card = NULL;
 
@@ -1437,7 +1437,7 @@ static void dfb_gfxcard_find_driver()
                card->module       = module;
                card->driver_funcs = funcs;
 
-               card->shared->module_name = shstrdup( module->name );
+               card->shared->module_name = SHSTRDUP( module->name );
           }
           else
                dfb_module_unref( module );

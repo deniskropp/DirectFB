@@ -199,7 +199,7 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
      DFB_ASSERT( height > 0 );
 
      /* Allocate window stack data (completely shared) */
-     stack = (CoreWindowStack*) shcalloc( 1, sizeof(CoreWindowStack) );
+     stack = (CoreWindowStack*) SHCALLOC( 1, sizeof(CoreWindowStack) );
 
      /* Remember layer id for access to it's local data later */
      stack->layer_id = dfb_layer_id( layer );
@@ -252,7 +252,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           dfb_input_detach_global( dfb_input_device_at( device->id ),
                                    &device->reaction );
 
-          shfree( device );
+          SHFREE( device );
 
           l = next;
      }
@@ -261,7 +261,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      while (l) {
           FusionLink *next = l->next;
 
-          shfree( l );
+          SHFREE( l );
 
           l = next;
      }
@@ -280,10 +280,10 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           for (i=0; i<stack->num_windows; i++)
                stack->windows[i]->stack = NULL;
 
-          shfree( stack->windows );
+          SHFREE( stack->windows );
      }
 
-     shfree( stack );
+     SHFREE( stack );
 }
 
 void
@@ -1013,7 +1013,7 @@ dfb_window_grab_key( CoreWindow                 *window,
           }
      }
 
-     grab = shcalloc( 1, sizeof(GrabbedKey) );
+     grab = SHCALLOC( 1, sizeof(GrabbedKey) );
 
      grab->symbol    = symbol;
      grab->modifiers = modifiers;
@@ -1047,7 +1047,7 @@ dfb_window_ungrab_key( CoreWindow                 *window,
               key->modifiers == modifiers &&
               key->owner     == window) {
                fusion_list_remove( &stack->grabbed_keys, &key->link );
-               shfree( key );
+               SHFREE( key );
                break;
           }
      }
@@ -1295,7 +1295,7 @@ stack_attach_devices( InputDevice *device,
      StackDevice     *dev;
      CoreWindowStack *stack = (CoreWindowStack*) ctx;
 
-     dev = shcalloc( 1, sizeof(StackDevice) );
+     dev = SHCALLOC( 1, sizeof(StackDevice) );
      if (!dev) {
           ERRORMSG( "DirectFB/core/windows: Could not allocate %d bytes\n",
                     sizeof(StackDevice) );
@@ -2075,7 +2075,7 @@ window_insert( CoreWindow *window,
           if (before < 0  ||  before > stack->num_windows)
                before = stack->num_windows;
 
-          stack->windows = shrealloc( stack->windows,
+          stack->windows = SHREALLOC( stack->windows,
                                       sizeof(CoreWindow*) * (stack->num_windows+1) );
 
           for (i=stack->num_windows; i>before; i--)
@@ -2121,7 +2121,7 @@ window_remove( CoreWindow *window )
 
           if (key->owner == window) {
                fusion_list_remove( &stack->grabbed_keys, &key->link );
-               shfree( key );
+               SHFREE( key );
           }
 
           l = next;
@@ -2139,11 +2139,11 @@ window_remove( CoreWindow *window )
 
           if (stack->num_windows) {
                stack->windows =
-               shrealloc( stack->windows,
+               SHREALLOC( stack->windows,
                           sizeof(CoreWindow*) * stack->num_windows );
           }
           else {
-               shfree( stack->windows );
+               SHFREE( stack->windows );
                stack->windows = NULL;
           }
      }

@@ -147,12 +147,14 @@ struct list {
      struct list *prev;
 };
 
-/* List of blocks allocated with `shmemalign' (or `shvalloc').  */
-struct alignlist {
-     struct alignlist *next;
-     void *aligned;                /* The address that shmemaligned returned.  */
-     void *exact;          /* The address that shmalloc returned.  */
-};
+/* Used for debugging. */
+typedef struct {
+     void         *mem;
+     size_t        bytes;
+     char         *allocated_in_func;
+     char         *allocated_in_file;
+     unsigned int  allocated_in_line;
+} SHMemDesc;
 
 typedef struct {
      /* Pointer to first block of the heap.  */
@@ -184,9 +186,6 @@ typedef struct {
      /* Free list headers for each fragment size.  */
      struct list fraghead[BLOCKLOG];
 
-     /* List of blocks allocated by shmemalign.  */
-     struct alignlist *aligned_blocks;
-
      /* Instrumentation.  */
      size_t chunks_used;
      size_t bytes_used;
@@ -194,6 +193,10 @@ typedef struct {
      size_t bytes_free;
 
      void *root_node;
+
+     /* Used for debugging. */
+     int        alloc_count;
+     SHMemDesc *alloc_list;
 } shmalloc_heap;
 
 /* global data at beginning of shared memory */

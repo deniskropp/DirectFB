@@ -191,7 +191,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
           s->caps |= DSCAPS_SYSTEMONLY;
 
 
-     s->front_buffer = (SurfaceBuffer *) shcalloc( 1, sizeof(SurfaceBuffer) );
+     s->front_buffer = (SurfaceBuffer *) SHCALLOC( 1, sizeof(SurfaceBuffer) );
 
      s->front_buffer->flags   = SBF_FOREIGN_SYSTEM;
      s->front_buffer->policy  = policy;
@@ -202,7 +202,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      s->front_buffer->system.addr   = front_buffer;
 
      if (caps & DSCAPS_FLIPPING) {
-          s->back_buffer = (SurfaceBuffer *) shmalloc( sizeof(SurfaceBuffer) );
+          s->back_buffer = (SurfaceBuffer *) SHMALLOC( sizeof(SurfaceBuffer) );
           dfb_memcpy( s->back_buffer, s->front_buffer, sizeof(SurfaceBuffer) );
 
           s->back_buffer->system.pitch  = back_pitch;
@@ -826,7 +826,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
      DFB_ASSERT( ret_buffer != NULL );
 
      /* Allocate buffer structure. */
-     buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
+     buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
 
      buffer->policy  = policy;
      buffer->surface = surface;
@@ -852,9 +852,9 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
                                                surface->min_height ) * pitch );
 
                /* Allocate shared memory. */
-               data = shmalloc( size );
+               data = SHMALLOC( size );
                if (!data) {
-                    shfree( buffer );
+                    SHFREE( buffer );
                     return DFB_NOSYSTEMMEMORY;
                }
 
@@ -880,7 +880,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
 
                /* Check for successful allocation. */
                if (ret) {
-                    shfree( buffer );
+                    SHFREE( buffer );
                     return ret;
                }
 
@@ -923,12 +923,12 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
                                           surface->min_height ) * pitch );
 
           /* Allocate shared memory. */
-          data = shmalloc( size );
+          data = SHMALLOC( size );
           if (!data)
                return DFB_NOSYSTEMMEMORY;
 
           /* Free old memory. */
-          shfree( buffer->system.addr );
+          SHFREE( buffer->system.addr );
           
           /* Write back new values. */
           buffer->system.health = CSH_STORED;
@@ -962,7 +962,7 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
                                            SurfaceBuffer *buffer )
 {
      if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM))
-          shfree( buffer->system.addr );
+          SHFREE( buffer->system.addr );
 
      dfb_surfacemanager_lock( surface->manager );
 
@@ -971,7 +971,7 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
 
      dfb_surfacemanager_unlock( surface->manager );
 
-     shfree( buffer );
+     SHFREE( buffer );
 }
 
 ReactionResult

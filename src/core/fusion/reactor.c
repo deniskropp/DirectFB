@@ -105,7 +105,7 @@ fusion_reactor_new (int msg_size)
      DFB_ASSERT( msg_size > 0 );
 
      /* allocate shared reactor data */
-     reactor = shcalloc (1, sizeof (FusionReactor));
+     reactor = SHCALLOC( 1, sizeof (FusionReactor) );
      if (!reactor)
           return NULL;
 
@@ -120,7 +120,7 @@ fusion_reactor_new (int msg_size)
 
           FPERROR ("FUSION_REACTOR_NEW\n");
 
-          shfree( reactor );
+          SHFREE( reactor );
 
           return NULL;
      }
@@ -374,7 +374,7 @@ fusion_reactor_free (FusionReactor *reactor)
      }
      
      /* free shared reactor data */
-     shfree (reactor);
+     SHFREE( reactor );
 
      return FUSION_SUCCESS;
 }

@@ -649,7 +649,7 @@ dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
           return dfb_sdl_set_video_mode_handler( config );
 
      if (!fusion_is_shared( config )) {
-          tmp = shmalloc( sizeof(DFBDisplayLayerConfig) );
+          tmp = SHMALLOC( sizeof(DFBDisplayLayerConfig) );
           if (!tmp)
                return DFB_NOSYSTEMMEMORY;
           
@@ -660,7 +660,7 @@ dfb_sdl_set_video_mode( DFBDisplayLayerConfig *config )
                           tmp ? tmp : config, &ret );
 
      if (tmp)
-          shfree( tmp );
+          SHFREE( tmp );
 
      return ret;
 }
@@ -676,7 +676,7 @@ dfb_sdl_update_screen( DFBRegion *region )
 
      if (region) {
           if (!fusion_is_shared( region )) {
-               tmp = shmalloc( sizeof(DFBRegion) );
+               tmp = SHMALLOC( sizeof(DFBRegion) );
                if (!tmp)
                     return DFB_NOSYSTEMMEMORY;
 
@@ -688,7 +688,7 @@ dfb_sdl_update_screen( DFBRegion *region )
                           tmp ? tmp : region, &ret );
 
      if (tmp)
-          shfree( tmp );
+          SHFREE( tmp );
 
      return ret;
 }

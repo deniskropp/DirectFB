@@ -61,25 +61,70 @@ extern "C"
 #include "fusion_types.h"
 
 
+/* Check if a pointer points to the shared memory. */
+bool fusion_is_shared (const void *ptr);
+
+
+
+#ifdef DFB_DEBUG
+
+void  fusion_dbg_print_memleaks();
+
+void *fusion_dbg_shmalloc ( char *file, int line,
+                            char *func, size_t __size );
+
+void *fusion_dbg_shcalloc ( char *file, int line,
+                            char *func, size_t __nmemb, size_t __size);
+
+void *fusion_dbg_shrealloc( char *file, int line,
+                            char *func, char *what, void *__ptr,
+                            size_t __size );
+
+void  fusion_dbg_shfree   ( char *file, int line,
+                            char *func, char *what, void *__ptr );
+
+char *fusion_dbg_shstrdup ( char *file, int line,
+                            char *func, const char *string );
+
+#define SHMALLOC(bytes)        fusion_dbg_shmalloc( __FILE__, __LINE__, __FUNCTION__, \
+                                                    bytes )
+#define SHCALLOC(count,bytes)  fusion_dbg_shcalloc( __FILE__, __LINE__, __FUNCTION__, \
+                                                    count, bytes )
+#define SHREALLOC(mem,bytes)   fusion_dbg_shrealloc( __FILE__, __LINE__, __FUNCTION__, \
+                                                     #mem, mem, bytes )
+#define SHFREE(mem)            fusion_dbg_shfree( __FILE__, __LINE__, __FUNCTION__, \
+                                                  #mem,mem )
+#define SHSTRDUP(string)       fusion_dbg_shstrdup( __FILE__, __LINE__, __FUNCTION__, \
+                                                    string )
+
+#else
+
+#define fusion_dbg_print_memleaks()     do {} while (0)
+
 /* Allocate SIZE bytes of memory.  */
-void *shmalloc (size_t __size);
+void *fusion_shmalloc (size_t __size);
+
+/* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
+void *fusion_shcalloc (size_t __nmemb, size_t __size);
 
 /* Re-allocate the previously allocated block
    in __ptr, making the new block SIZE bytes long.  */
-void *shrealloc (void *__ptr, size_t __size);
-
-/* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
-void *shcalloc (size_t __nmemb, size_t __size);
+void *fusion_shrealloc (void *__ptr, size_t __size);
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
-void  shfree (void *__ptr);
+void  fusion_shfree (void *__ptr);
 
 /* Duplicate string in shared memory. */
-char *shstrdup (const char *string);
+char *fusion_shstrdup (const char *string);
 
+#define SHMALLOC   fusion_shmalloc
+#define SHCALLOC   fusion_shcalloc
+#define SHREALLOC  fusion_shrealloc
+#define SHFREE     fusion_shfree
+#define SHSTRDUP   fusion_shstrdup
 
-/* Check if a pointer points to the shared memory. */
-bool fusion_is_shared (const void *ptr);
+#endif
+
 
 
 #ifdef __cplusplus

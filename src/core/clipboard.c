@@ -82,10 +82,10 @@ dfb_clipboard_shutdown( bool emergency )
      fusion_skirmish_destroy( &core_clip->lock );
 
      if (core_clip->data)
-          shfree( core_clip->data );
+          SHFREE( core_clip->data );
 
      if (core_clip->mime_type)
-          shfree( core_clip->mime_type );
+          SHFREE( core_clip->mime_type );
 
      core_clip = NULL;
 
@@ -134,29 +134,29 @@ dfb_clipboard_set( const char     *mime_type,
      DFB_ASSERT( data != NULL );
      DFB_ASSERT( size > 0 );
 
-     new_mime = shstrdup( mime_type );
+     new_mime = SHSTRDUP( mime_type );
      if (!new_mime)
           return DFB_NOSYSTEMMEMORY;
 
-     new_data = shmalloc( size );
+     new_data = SHMALLOC( size );
      if (!new_data) {
-          shfree( new_mime );
+          SHFREE( new_mime );
           return DFB_NOSYSTEMMEMORY;
      }
 
      dfb_memcpy( new_data, data, size );
 
      if (fusion_skirmish_prevail( &core_clip->lock )) {
-          shfree( new_data );
-          shfree( new_mime );
+          SHFREE( new_data );
+          SHFREE( new_mime );
           return DFB_FUSION;
      }
 
      if (core_clip->data)
-          shfree( core_clip->data );
+          SHFREE( core_clip->data );
 
      if (core_clip->mime_type)
-          shfree( core_clip->mime_type );
+          SHFREE( core_clip->mime_type );
 
      core_clip->mime_type = new_mime;
      core_clip->data      = new_data;

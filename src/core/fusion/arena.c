@@ -145,8 +145,8 @@ fusion_arena_enter (const char     *name,
                     ArenaField *field = (ArenaField*) l;
 
                     /* Free allocated memory. */
-                    shfree( field->name );
-                    shfree( field );
+                    SHFREE( field->name );
+                    SHFREE( field );
 
                     l = next;
                }
@@ -165,8 +165,8 @@ fusion_arena_enter (const char     *name,
                fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
                /* Free allocated memory. */
-               shfree( arena->name );
-               shfree( arena );
+               SHFREE( arena->name );
+               SHFREE( arena );
 
                return FUSION_SUCCESS;
           }
@@ -194,14 +194,14 @@ fusion_arena_add_shared_field (FusionArena *arena,
           return FUSION_FAILURE;
 
      /* Allocate memory for the field information. */
-     field = shcalloc( 1, sizeof(ArenaField) );
+     field = SHCALLOC( 1, sizeof(ArenaField) );
      if (!field) {
           fusion_skirmish_dismiss( &arena->lock );
           return FUSION_FAILURE;
      }
 
      /* Give it the requested name. */
-     field->name = shstrdup( name );
+     field->name = SHSTRDUP( name );
 
      /* Assign the data pointer. */
      field->data = data;
@@ -287,8 +287,8 @@ fusion_arena_exit (FusionArena   *arena,
                ArenaField *field = (ArenaField*) l;
 
                /* Free allocated memory. */
-               shfree( field->name );
-               shfree( field );
+               SHFREE( field->name );
+               SHFREE( field );
 
                l = next;
           }
@@ -307,8 +307,8 @@ fusion_arena_exit (FusionArena   *arena,
           fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
 
           /* Free allocated memory. */
-          shfree( arena->name );
-          shfree( arena );
+          SHFREE( arena->name );
+          SHFREE( arena );
      }
      else {
           if (!leave) {
@@ -379,14 +379,14 @@ lock_arena( const char *name, bool add )
      /* If no arena name matched, create a new arena
         before unlocking the list again. */
      if (add) {
-          FusionArena *arena = shcalloc( 1, sizeof(FusionArena) );
+          FusionArena *arena = SHCALLOC( 1, sizeof(FusionArena) );
 
           /* Initialize lock and reference counter. */
           fusion_skirmish_init( &arena->lock );
           fusion_ref_init( &arena->ref );
 
           /* Give it the requested name. */
-          arena->name = shstrdup( name );
+          arena->name = SHSTRDUP( name );
 
           /* Add it to the list. */
           fusion_list_prepend( &_fusion_shared->arenas, &arena->link );

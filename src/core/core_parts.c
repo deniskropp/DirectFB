@@ -57,7 +57,7 @@ dfb_core_part_initialize( CorePart *core_part )
           local = DFBCALLOC( 1, core_part->size_local );
 
      if (core_part->size_shared)
-          shared = shcalloc( 1, core_part->size_shared );
+          shared = SHCALLOC( 1, core_part->size_shared );
 
      ret = core_part->Initialize( local, shared );
      if (ret) {
@@ -66,7 +66,7 @@ dfb_core_part_initialize( CorePart *core_part )
                     DirectFBErrorString( ret ) );
           
           if (shared)
-               shfree( shared );
+               SHFREE( shared );
           
           if (local)
                DFBFREE( local );
@@ -147,7 +147,7 @@ dfb_core_part_shutdown( CorePart *core_part, bool emergency )
                     DirectFBErrorString( ret ) );
      
      if (core_part->data_shared)
-          shfree( core_part->data_shared );
+          SHFREE( core_part->data_shared );
 
      if (core_part->data_local)
           DFBFREE( core_part->data_local );

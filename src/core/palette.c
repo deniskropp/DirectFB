@@ -64,7 +64,7 @@ static void palette_destructor( FusionObject *object, bool zombie )
           dfb_colorhash_detach( palette );
      }
 
-     shfree( palette->entries );
+     SHFREE( palette->entries );
 
      fusion_object_destroy( object );
 }
@@ -96,7 +96,7 @@ dfb_palette_create( unsigned int size, CorePalette **ret_palette )
           return DFB_FUSION;
 
      if (size) {
-          palette->entries = shcalloc( size, sizeof(DFBColor) );
+          palette->entries = SHCALLOC( size, sizeof(DFBColor) );
           if (!palette->entries) {
                fusion_object_destroy( &palette->object );
                return DFB_NOSYSTEMMEMORY;

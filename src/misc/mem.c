@@ -46,20 +46,20 @@ typedef struct {
 } MemDesc;
 
 
-static int alloc_count = 0;
-static MemDesc *alloc_list = NULL;
-static pthread_mutex_t alloc_lock = PTHREAD_MUTEX_INITIALIZER;
+static int              alloc_count = 0;
+static MemDesc         *alloc_list = NULL;
+static pthread_mutex_t  alloc_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
-void dfb_dbg_print_memleaks()
+void
+dfb_dbg_print_memleaks()
 {
      unsigned int i;
 
      pthread_mutex_lock( &alloc_lock );
 
      if (alloc_count) {
-          DEBUGMSG( "memory leak detected !!!\n");
-          DEBUGMSG( "alloc_count == %i\n\n", alloc_count);
+          DEBUGMSG( "Local memory allocations remaining (%d): \n", alloc_count);
 
           for (i=0; i<alloc_count; i++) {
                MemDesc *d = &alloc_list[i];
@@ -74,7 +74,8 @@ void dfb_dbg_print_memleaks()
 }
 
 
-void* dfb_dbg_malloc( char* file, int line, char *func, size_t bytes )
+void *
+dfb_dbg_malloc( char* file, int line, char *func, size_t bytes )
 {
      void *mem = (void*) malloc (bytes);
      MemDesc *d;
@@ -100,7 +101,8 @@ void* dfb_dbg_malloc( char* file, int line, char *func, size_t bytes )
 }
 
 
-void* dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
+void *
+dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
 {
      void *mem = (void*) calloc (count, bytes);
      MemDesc *d;
@@ -115,7 +117,7 @@ void* dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t byt
 
      d = &alloc_list[alloc_count-1];
      d->mem   = mem;
-     d->bytes = bytes;
+     d->bytes = count * bytes;
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;
@@ -126,8 +128,9 @@ void* dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t byt
 }
 
 
-void* dfb_dbg_realloc( char *file, int line, char *func, char *what,
-                       void *mem, size_t bytes )
+void *
+dfb_dbg_realloc( char *file, int line, char *func, char *what,
+                 void *mem, size_t bytes )
 {
      unsigned int i;
 
@@ -163,7 +166,35 @@ void* dfb_dbg_realloc( char *file, int line, char *func, char *what,
      return dfb_dbg_malloc( file, line, func, bytes );
 }
 
-char* dfb_dbg_strdup( char* file, int line, char *func, const char *string )
+void
+dfb_dbg_free( char *file, int line, char *func, char *what, void *mem )
+{
+     unsigned int i;
+
+     pthread_mutex_lock( &alloc_lock );
+
+     for (i=0; i<alloc_count; i++) {
+          if (alloc_list[i].mem == mem) {
+               free( mem );
+               alloc_count--;
+               dfb_memcpy( &alloc_list[i], &alloc_list[i+1],
+                           (alloc_count - i) * sizeof(MemDesc) );
+               pthread_mutex_unlock( &alloc_lock );
+               return;
+          }
+     }
+
+     pthread_mutex_unlock( &alloc_lock );
+
+     ERRORMSG( "%s: trying to free unknown chunk %p (%s)\n"
+               "          in %s (%s: %u) !!!\n",
+               __FUNCTION__, mem, what, func, file, line);
+
+     kill( 0, SIGTRAP );
+}
+
+char *
+dfb_dbg_strdup( char* file, int line, char *func, const char *string )
 {
      MemDesc *d;
      void    *mem;
@@ -194,33 +225,6 @@ char* dfb_dbg_strdup( char* file, int line, char *func, const char *string )
 
      return mem;
 }
-
-void dfb_dbg_free( char *file, int line, char *func, char *what, void *mem )
-{
-     unsigned int i;
-
-     pthread_mutex_lock( &alloc_lock );
-
-     for (i=0; i<alloc_count; i++) {
-          if (alloc_list[i].mem == mem) {
-               free( mem );
-               alloc_count--;
-               dfb_memcpy( &alloc_list[i], &alloc_list[i+1],
-                           (alloc_count - i) * sizeof(MemDesc) );
-               pthread_mutex_unlock( &alloc_lock );
-               return;
-          }
-     }
-
-     pthread_mutex_unlock( &alloc_lock );
-
-     ERRORMSG( "%s: trying to free unknown chunk %p (%s)\n"
-               "          in %s (%s: %u) !!!\n",
-               __FUNCTION__, mem, what, func, file, line);
-
-     kill( 0, SIGTRAP );
-}
-
 
 #endif
 

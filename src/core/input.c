@@ -239,9 +239,9 @@ dfb_input_shutdown( bool emergency )
           fusion_reactor_free( shared->reactor );
 
           if (shared->keymap.entries)
-               shfree( shared->keymap.entries );
+               SHFREE( shared->keymap.entries );
           
-          shfree( shared );
+          SHFREE( shared );
           
           DFBFREE( d );
 
@@ -551,7 +551,7 @@ allocate_device_keymap( InputDevice *device )
 
      DFB_ASSERT( inputfield != NULL );
      
-     entries = shcalloc( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
+     entries = SHCALLOC( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
      
      /* write -1 indicating entry is not fetched yet from driver */
      for (i=0; i<num_entries; i++)
@@ -641,7 +641,7 @@ init_devices()
                void            *driver_data;
 
                device = DFBCALLOC( 1, sizeof(InputDevice) );
-               device->shared = shcalloc( 1, sizeof(InputDeviceShared) );
+               device->shared = SHCALLOC( 1, sizeof(InputDeviceShared) );
 
                memset( &device_info, 0, sizeof(InputDeviceInfo) );
 
@@ -652,7 +652,7 @@ init_devices()
 
                if (funcs->OpenDevice( device, n, &device_info, &driver_data )) {
                     fusion_reactor_free( device->shared->reactor );
-                    shfree( device->shared );
+                    SHFREE( device->shared );
                     DFBFREE( device );
                     continue;
                }
