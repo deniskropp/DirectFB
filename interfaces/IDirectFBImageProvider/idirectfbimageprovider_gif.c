@@ -104,13 +104,13 @@ static struct {
      int disposal;
 } Gif89 = { -1, -1, -1, 0 };
 
-static int verbose = 1;
-static int showComment = 1;
-static int ZeroDataBlock = FALSE;
+static bool verbose       = FALSE;
+static bool showComment   = TRUE;
+static bool ZeroDataBlock = FALSE;
 
 static __u32* ReadGIF( FILE *fd, int imageNumber,
-                       int *width, int *height, int *transparency,
-                       __u32 *key_rgb, int headeronly);
+                       int *width, int *height, bool *transparency,
+                       __u32 *key_rgb, bool headeronly);
 
 /*
  * private data struct of IDirectFBImageProvider_GIF
@@ -215,7 +215,8 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
 {
      int err;
      void *dst;
-     int pitch, src_width, src_height, transparency;
+     int pitch, src_width, src_height;
+     bool transparency;
      DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
@@ -238,6 +239,7 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
      if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
 
           __u32 *image_data;
+          __u32  key_rgb;
           FILE *f;
 
           f = fopen( data->filename, "rb" );
@@ -245,7 +247,7 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
                return errno2dfb( errno );
 
           image_data = ReadGIF( f, 1, &src_width, &src_height,
-                                &transparency, NULL, 0 );
+                                &transparency, &key_rgb, FALSE );
 
           if (image_data) {
                err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
@@ -283,11 +285,11 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           return errno2dfb( errno );
 
      {
-          int width;
-          int height;
-          int transparency;
+          int  width;
+          int  height;
+          bool transparency;
 
-          ReadGIF( f, 1, &width, &height, &transparency, NULL, 1 ); /* 1 = read header only */
+          ReadGIF( f, 1, &width, &height, &transparency, NULL, TRUE );
 
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
@@ -315,17 +317,17 @@ static DFBResult IDirectFBImageProvider_GIF_GetImageDescription(
      {
           int   width;
           int   height;
-          int   transparency;
+          bool  transparency;
           __u32 key_rgb;
 
-          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, 1 ); /* 1 = read header only */
+          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, TRUE );
 
           if (transparency) {
                dsc->caps = DICAPS_COLORKEY;
 
-               dsc->colorkey_r = 0;    // (key_rgb & 0xff0000) >> 16;
-               dsc->colorkey_g = 0xFF; // (key_rgb & 0x00ff00) >>  8;
-               dsc->colorkey_b = 0;    // (key_rgb & 0x0000ff);
+               dsc->colorkey_r = (key_rgb & 0xff0000) >> 16;
+               dsc->colorkey_g = (key_rgb & 0x00ff00) >>  8;
+               dsc->colorkey_b = (key_rgb & 0x0000ff);
           }
           else
                dsc->caps = DICAPS_NONE;
@@ -586,10 +588,58 @@ static int LWZReadByte( FILE *fd, int flag, int input_code_size )
      return code;
 }
 
+static int SortColors (const void *a, const void *b)
+{
+     return (*((__u8 *) a) - *((__u8 *) b));
+}
+
+/*  looks for a color that is not in the colormap and ideally not
+    even close to the colors used in the colormap  */
+static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
+{
+     __u32 color = 0xFF000000;
+     __u8  csort[MAXCOLORMAPSIZE];
+     int   i, j, index, d;
+     
+     if (n_colors < 1)
+          return color;
+
+     DFB_ASSERT( n_colors <= MAXCOLORMAPSIZE );
+
+     for (i = 0; i < 3; i++) {
+          memcpy( csort, cmap[i], n_colors );
+          qsort( csort, 1, n_colors, SortColors );
+          
+          for (j = 1, index = 0, d = 0; j < n_colors; j++) {
+               if (csort[j] - csort[j-1] > d) {
+                    d = csort[j] - csort[j-1];
+                    index = j;
+               }
+          }
+          if ((csort[0] - 0x0) > d) {
+               d = csort[0] - 0x0;
+               index = n_colors;
+          }
+          if (0xFF - (csort[n_colors - 1]) > d) {
+               index = n_colors + 1;
+          }
+
+          if (index < n_colors)
+               csort[0] = csort[index] - (d/2);
+          else if (index == n_colors)
+               csort[0] = 0x0;
+          else
+               csort[0] = 0xFF;
+
+          color |= (csort[0] << (8 * (2 - i)));
+     }
+
+     return color;
+}
 
 static __u32* ReadImage( FILE *fd, int len, int height,
-                         __u8 cmap[3][MAXCOLORMAPSIZE],
-                         int interlace, int ignore )
+                         __u8 cmap[3][MAXCOLORMAPSIZE], __u32 key_rgb,
+                         bool interlace, bool ignore )
 {
      __u8 c;
      int v;
@@ -630,19 +680,21 @@ static __u32* ReadImage( FILE *fd, int len, int height,
           __u32 *dst = image + (ypos * len + xpos);
 
           if (v == Gif89.transparent) {
-               *dst++ = 0xFF00FF00;
+               *dst++ = key_rgb;
           }
           else {
-               __u32 color = cmap[CM_RED][v]   << 16 |
-                             cmap[CM_GREEN][v] << 8  |
-                             cmap[CM_BLUE][v];
-
+               *dst++ = (0xFF000000              |
+                         cmap[CM_RED][v]   << 16 |
+                         cmap[CM_GREEN][v] << 8  |
+                         cmap[CM_BLUE][v]);
+#if 0
                /* very ugly quick hack to preserve the colorkey for 16bit,
                   this will be fixed very soon! */
                if ((color & 0x00FC00) == 0x00FC00)
                     *dst++ = (0xFF000000 | (color & 0xFFF8FF));
                else
                     *dst++ = 0xFF000000 | color;
+#endif
           }
 
           ++xpos;
@@ -699,8 +751,8 @@ fini:
 
 
 static __u32* ReadGIF( FILE *fd, int imageNumber,
-                       int *width, int *height, int *transparency,
-                       __u32 *key_rgb, int headeronly)
+                       int *width, int *height, bool *transparency,
+                       __u32 *key_rgb, bool headeronly)
 {
      __u8 buf[16];
      __u8 c;
@@ -709,6 +761,8 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
      int bitPixel;
      int imageCount = 0;
      char version[4];
+
+     DFB_ASSERT( header_only || key_rgb );
 
      if (! ReadOK(fd,buf,6)) {
           GIFERRORMSG("error reading magic number" );
@@ -729,10 +783,10 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
           GIFERRORMSG("failed to read screen descriptor" );
      }
 
-     GifScreen.Width           = LM_to_uint(buf[0],buf[1]);
-     GifScreen.Height          = LM_to_uint(buf[2],buf[3]);
-     GifScreen.BitPixel        = 2<<(buf[4]&0x07);
-     GifScreen.ColorResolution = (((buf[4]&0x70)>>3)+1);
+     GifScreen.Width           = LM_to_uint( buf[0], buf[1] );
+     GifScreen.Height          = LM_to_uint( buf[2], buf[3] );
+     GifScreen.BitPixel        = 2 << (buf[4] & 0x07);
+     GifScreen.ColorResolution = (((buf[4] & 0x70) >> 3) + 1);
      GifScreen.Background      = buf[5];
      GifScreen.AspectRatio     = buf[6];
 
@@ -785,8 +839,8 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
                GIFERRORMSG("couldn't read left/top/width/height");
           }
 
-          *width = LM_to_uint(buf[4],buf[5]);
-          *height = LM_to_uint(buf[6],buf[7]);
+          *width = LM_to_uint( buf[4], buf[5] );
+          *height = LM_to_uint( buf[6], buf[7] );
           *transparency = (Gif89.transparent != -1);
 
           if (headeronly && (!key_rgb || !*transparency))
@@ -794,7 +848,7 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
 
           useGlobalColormap = ! BitSet(buf[8], LOCALCOLORMAP);
 
-          bitPixel = 1<<((buf[8]&0x07)+1);
+          bitPixel = 2 << (buf[8] & 0x07);
 
           if (! useGlobalColormap) {
                if (ReadColorMap(fd, bitPixel, localColorMap)) {
@@ -802,32 +856,27 @@ static __u32* ReadGIF( FILE *fd, int imageNumber,
                }
 
                if (key_rgb && *transparency)
-                    *key_rgb =
-                         (localColorMap[CM_RED][Gif89.transparent] << 16) |
-                         (localColorMap[CM_GREEN][Gif89.transparent] << 8) |
-                         (localColorMap[CM_BLUE][Gif89.transparent]);
+                    *key_rgb = FindColorKey( bitPixel, localColorMap );
 
                if (headeronly)
                     return NULL;
 
                return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
                                  LM_to_uint(buf[6],buf[7]), localColorMap,
-                                 BitSet(buf[8], INTERLACE),
+                                 *key_rgb, BitSet(buf[8], INTERLACE),
                                  imageCount != imageNumber);
           }
           else {
                if (key_rgb && *transparency)
-                    *key_rgb =
-                         (GifScreen.ColorMap[CM_RED][Gif89.transparent] << 16) |
-                         (GifScreen.ColorMap[CM_GREEN][Gif89.transparent] << 8)|
-                         (GifScreen.ColorMap[CM_BLUE][Gif89.transparent]);
+                    *key_rgb = FindColorKey( GifScreen.BitPixel,
+                                             GifScreen.ColorMap );
 
                if (headeronly)
                     return NULL;
 
                return ReadImage( fd, LM_to_uint(buf[4],buf[5]),
                                  LM_to_uint(buf[6],buf[7]), GifScreen.ColorMap,
-                                 BitSet(buf[8], INTERLACE),
+                                 *key_rgb, BitSet(buf[8], INTERLACE),
                                  imageCount != imageNumber);
           }
      }
