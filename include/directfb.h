@@ -362,6 +362,17 @@ extern "C"
      } DFBCardCapabilities;
 
      /*
+      * Type of input device for basic classification.
+      * Values may be or'ed together.
+      */
+     typedef enum {
+          DIDTF_KEYBOARD      = 0x00000001,  /* can act as a keyboard */
+          DIDTF_MOUSE         = 0x00000002,  /* can be used as a mouse */
+          DIDTF_JOYSTICK      = 0x00000004,  /* can be used as a joystick */
+          DIDTF_REMOTE        = 0x00000008   /* device is a remote control */
+     } DFBInputDeviceTypeFlags;
+     
+     /*
       * Basic input device features.
       */
      typedef enum {
@@ -449,7 +460,9 @@ extern "C"
           DSPF_A8             = 0x00010806,  /* 8bit alpha (1 byte, alpha 8@0 ),
                                                 e.g. anti-aliased text glyphs */
           DSPF_A1             = 0x00010107   /* 1bit alpha (8 pixel ber byte),
-                                                e.g. bitmap text glyphs */
+                                                e.g. bitmap text glyphs, support
+                                                for this pixel format is
+                                                currently broken */
      } DFBSurfacePixelFormat;
 
 
@@ -469,6 +482,8 @@ extern "C"
       * Description of the input device capabilities.
       */
      typedef struct {
+          DFBInputDeviceTypeFlags            type;       /* classification of
+                                                            input device */
           DFBInputDeviceCapabilities         caps;       /* capabilities,
                                                             validates the
                                                             following fields */
@@ -714,20 +729,10 @@ extern "C"
      /* predefined layer ids */
      #define DLID_PRIMARY          0x00
 
-     /* input major id byte defining the type */
-     #define DIDT_KEYBOARD         0x00
-     #define DIDT_MOUSE            0x01
-     #define DIDT_JOYSTICK         0x02
-
-     /* macros handling input device ids */
-     #define DIDID(type,index)     ((type<<8)|(index))    /* compose an id */
-     #define DIDID_TYPE(id)        (((id)&0xFF00)>>8)     /* extract type */
-     #define DIDID_INDEX(id)       ((id)&0xFF)            /* extract index */
-
      /* predefined input device ids */
-     #define DIDID_KEYBOARD        DIDID(DIDT_KEYBOARD,0) /* primary keyboard */
-     #define DIDID_MOUSE           DIDID(DIDT_MOUSE,0)    /* primary mouse */
-     #define DIDID_JOYSTICK        DIDID(DIDT_JOYSTICK,0) /* primary joystick */
+     #define DIDID_KEYBOARD        0x00000000 /* primary keyboard */
+     #define DIDID_MOUSE           0x00000001 /* primary mouse */
+     #define DIDID_JOYSTICK        0x00000002 /* primary joystick */
 
 
 

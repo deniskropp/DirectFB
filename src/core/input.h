@@ -56,8 +56,8 @@ struct _InputDevice {
           InputDriver      *driver;
      } info;
 
+     unsigned int                  id;            /* unique device id */
      DFBInputDeviceDescription     desc;          /* number of axis etc. */
-     unsigned int                  id;            /* device id (TYPE/INDEX) */
 
      /*
       * Input thread routine, e.g. to do a blocking read() on a file

@@ -61,12 +61,11 @@ Particle *last_particle = NULL;
 int enum_devices_callback( unsigned int id,
                            DFBInputDeviceDescription desc, void *data )
 {
-     unsigned int type = id >> 8;
-
-     if (type == DIDT_JOYSTICK) {
+     if (desc.type & DIDTF_JOYSTICK) {
           dfb->GetInputDevice( dfb, id, &joystick[nr_joysticks] );
           nr_joysticks++;
      }
+
      return 0;
 }
 

@@ -77,15 +77,10 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
      pthread_mutex_init( &stack->update, NULL );
 
      while (inputdevice) {
-          switch (DIDID_TYPE(inputdevice->id)) {
-               case DIDT_KEYBOARD:
-               case DIDT_MOUSE:
-                    reactor_attach( inputdevice->reactor,
-                                    windowstack_inputdevice_react, stack );
-                    break;
-               default:
-                    break;
-          }
+          if (inputdevice->desc.type & (DIDTF_KEYBOARD | DIDTF_KEYBOARD))
+               reactor_attach( inputdevice->reactor,
+                               windowstack_inputdevice_react, stack );
+          
           inputdevice = inputdevice->next;
      }
 
@@ -104,15 +99,10 @@ void windowstack_destroy( CoreWindowStack *stack )
      state_set_destination( &stack->state, NULL );
 
      while (inputdevice) {
-          switch (DIDID_TYPE(inputdevice->id)) {
-               case DIDT_KEYBOARD:
-               case DIDT_MOUSE:
-                    reactor_detach( inputdevice->reactor,
-                                    windowstack_inputdevice_react, stack );
-                    break;
-               default:
-                    break;
-          }
+          if (inputdevice->desc.type & (DIDTF_KEYBOARD | DIDTF_KEYBOARD))
+               reactor_detach( inputdevice->reactor,
+                               windowstack_inputdevice_react, stack );
+          
           inputdevice = inputdevice->next;
      }
 
