@@ -430,7 +430,10 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                break;
      }
 
-     texctl |= CLAMPUV | ((mdev->src_pitch&0x7ff)<<9) | PITCHEXT;
+     texctl |= ((mdev->src_pitch&0x7ff)<<9) | PITCHEXT;
+
+     if (1 << mdev->w2 != mdev->w  ||  1 << mdev->h2 != mdev->h)
+          texctl |= CLAMPUV;
 
      if (state->blittingflags & DSBLIT_COLORIZE)
           texctl |= TMODULATE;
