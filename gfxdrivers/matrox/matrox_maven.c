@@ -94,9 +94,10 @@ maven_write_word( MatroxMavenData  *mav,
 }
 
 /* i2c_smbus_read_byte_data() doesn't work with maven. */
-static __u8
+static int
 i2c_read_byte( int fd, __u8 addr, __u8 reg )
 {
+     int ret;
      __u8 val;
      struct i2c_msg msgs[] = {
           { addr, I2C_M_REV_DIR_ADDR, sizeof(reg), &reg },
@@ -106,8 +107,9 @@ i2c_read_byte( int fd, __u8 addr, __u8 reg )
           msgs, 2
      };
 
-     if (ioctl( fd, I2C_RDWR, &data ) < 0)
-          return 0xFF;
+     ret = ioctl( fd, I2C_RDWR, &data );
+     if (ret < 0)
+          return ret;
 
      return val;
 }
@@ -468,8 +470,8 @@ DFBResult maven_init( MatroxMavenData  *mav,
           }
 
           /* Check if maven is at address 0x1B (DH board) or 0x1A (DH add-on) */
-          if (i2c_read_byte( fd, 0x1B, 0xB2 ) == 0xFF) {
-               if (i2c_read_byte( fd, 0x1A, 0xB2 ) == 0xFF) {
+          if (i2c_read_byte( fd, 0x1B, 0xB2 ) < 0) {
+               if (i2c_read_byte( fd, 0x1A, 0xB2 ) < 0) {
                     D_ERROR( "DirectFB/Matrox/Maven: Error reading from maven chip!\n" );
                     close( fd );
                     return errno2result( errno );
