@@ -81,6 +81,8 @@ typedef struct {
 
 /**************************************************************************************************/
 
+#define MAX_KEYS 16
+
 typedef struct {
      CoreDFB                      *core;
 } WMData;
@@ -113,7 +115,7 @@ typedef struct {
           DFBInputDeviceKeyIdentifier  id;
           int                          code;
           CoreWindow                  *owner;
-     } keys[8];
+     } keys[MAX_KEYS];
 } StackData;
 
 typedef struct {
@@ -258,7 +260,7 @@ get_keyboard_window( CoreWindowStack     *stack,
           CoreWindow *window;
 
           /* Check active grabs. */
-          for (i=0; i<8; i++) {
+          for (i=0; i<MAX_KEYS; i++) {
                /* Key is grabbed, send to owner (NULL if destroyed). */
                if (data->keys[i].code == event->key_code)
                     return data->keys[i].owner;
@@ -292,7 +294,7 @@ get_keyboard_window( CoreWindowStack     *stack,
           int i;
 
           /* Lookup owner and ungrab the key. */
-          for (i=0; i<8; i++) {
+          for (i=0; i<MAX_KEYS; i++) {
                if (data->keys[i].code == event->key_code) {
                     data->keys[i].code = -1;
 
@@ -1204,7 +1206,7 @@ withdraw_window( CoreWindowStack *stack,
           data->pointer_window = NULL;
 
      /* Release all implicit key grabs. */
-     for (i=0; i<8; i++) {
+     for (i=0; i<MAX_KEYS; i++) {
           if (data->keys[i].code != -1 && data->keys[i].owner == window) {
                if (!DFB_WINDOW_DESTROYED( window )) {
                     DFBWindowEvent we;
@@ -1660,7 +1662,7 @@ grab_key( CoreWindow                 *window,
      direct_list_append( &data->grabbed_keys, &grab->link );
 
      /* Remove implicit grabs for this key. */
-     for (i=0; i<8; i++)
+     for (i=0; i<MAX_KEYS; i++)
           if (data->keys[i].code != -1 && data->keys[i].symbol == symbol)
                data->keys[i].code = -1;
 
@@ -2319,7 +2321,7 @@ wm_init_stack( CoreWindowStack *stack,
 
      fusion_vector_init( &data->windows, 64 );
 
-     for (i=0; i<8; i++)
+     for (i=0; i<MAX_KEYS; i++)
           data->keys[i].code = -1;
 
      D_MAGIC_SET( data, StackData );
@@ -2471,7 +2473,7 @@ wm_flush_keys( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( data, StackData );
 
-     for (i=0; i<8; i++) {
+     for (i=0; i<MAX_KEYS; i++) {
           if (data->keys[i].code != -1) {
                DFBWindowEvent we;
 
