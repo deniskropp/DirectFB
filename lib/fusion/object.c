@@ -258,7 +258,7 @@ fusion_object_create( FusionObjectPool *pool )
      object->state = FOS_INIT;
 
      /* Set object id. */
-     object->id = pool->ids++;
+     object->id = ++pool->ids;
 
      /* Initialize the reference counter. */
      if (fusion_ref_init( &object->ref )) {
