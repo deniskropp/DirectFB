@@ -116,7 +116,7 @@ typedef struct {
                                                             \
      if ((nvdev)->fifo_space < (space)) {                   \
           do {                                              \
-               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \ 
+               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
                (nvdev)->fifo_waitcycles++;                  \
           } while ((nvdev)->fifo_space < (space));          \
      }                                                      \
