@@ -199,7 +199,7 @@ static void radeonSetState( void *drv, void *dev,
     if ( state->modified & SMF_CLIP )
 	radeon_set_clip( adrv, adev, state );
 
-    state->modified = 0;
+    //state->modified = 0;
 }
 
 

@@ -26,7 +26,11 @@ Finish surface manager.
 
 Finish module unloading (done for most cases).
 
-Add cooperative levels to input devices.
+Add cooperative levels to input devices, implement sharing/distinction for
+applications (e.g. PS/2 Keyboard + PS/2 Mouse driver XDirectFB on Monitor out,
+USB-Keyboard + USB-Mouse drive XDirectFB and/or other applications on TV Out,
+USB-Wacom Tablet with mouse and pen can be assigned or switched to either,
+preferrably during runtime)
 
 Virtual window/layer resolution with scrolling/panning.
 
