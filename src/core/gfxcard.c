@@ -236,16 +236,20 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
      if (!card)
           return DFB_OK;
 
-     /* try to prohibit graphics hardware access,
-        this may fail if the current thread locked it */
-     for (i=0; i<100; i++) {
-          dfb_gfxcard_sync();
+     if (emergency) {
+          /* try to prohibit graphics hardware access,
+             this may fail if the current thread locked it */
+          for (i=0; i<100; i++) {
+               dfb_gfxcard_sync();
 
-          if (skirmish_swoop( &Scard->lock ) != EBUSY)
-               break;
+               if (skirmish_swoop( &Scard->lock ) != EBUSY)
+                    break;
 
-          sched_yield();
+               sched_yield();
+          }
      }
+     else
+          skirmish_prevail( &Scard->lock );
 
      if (card->driver) {
           card->driver->funcs->CloseDevice( card,
@@ -471,7 +475,8 @@ int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * Make sure that state setting with subsequent command execution
       * isn't done by two processes simultaneously.
       */
-     skirmish_prevail( &Scard->lock );
+     if (skirmish_prevail( &Scard->lock ))
+          return 0;
 
      /* if we are switching to another state... */
      if (state != Scard->state) {
