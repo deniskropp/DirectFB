@@ -1,5 +1,5 @@
 - New function Font->GetStringExtends.
-- Support for interlaced PNGs (thanks to Joachim Zellner).
+- Support for interlaced PNGs (thanks to Johannes Zellner).
 
 0.9.2
 ------
