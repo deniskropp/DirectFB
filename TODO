@@ -1,3 +1,10 @@
 SetVideoMode should resize the window for the primary surface
 when in normal cooperative level and it already exists.
 
+Use CON2FBMAP. Allow disabling of specific input devices.
+
+Add creation of surfaces with preallocated memory.
+
+Memory Source or Streaming for Image/Video Provider.
+
+Swapping option for left/right mouse button.
