@@ -97,7 +97,8 @@ typedef struct {
 
      pthread_cond_t                wait_condition; /* condition for idle wait in WaitForEvent() */
 
-     int                           pipe_fds[2];
+     bool                          pipe;           /* file descriptor mode? */
+     int                           pipe_fds[2];    /* read & write file descriptor */
 } IDirectFBEventBuffer_data;
 
 /*
@@ -144,11 +145,10 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
 
-     if (data->pipe_fds[0])
+     if (data->pipe) {
           close( data->pipe_fds[0] );
-
-     if (data->pipe_fds[1])
           close( data->pipe_fds[1] );
+     }
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -182,6 +182,8 @@ IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -201,6 +203,9 @@ IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
      DFBResult ret = DFB_OK;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -226,6 +231,9 @@ IDirectFBEventBuffer_WaitForEventWithTimeout( IDirectFBEventBuffer *thiz,
      long int        nano_seconds = milli_seconds * 1000000;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
 
      if (pthread_mutex_trylock( &data->events_mutex ) == 0) {
           if (data->events) {
@@ -265,6 +273,9 @@ IDirectFBEventBuffer_WakeUp( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
+
      pthread_cond_broadcast( &data->wait_condition );
 
      return DFB_OK;
@@ -277,6 +288,9 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
      EventBufferItem *item;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -321,6 +335,9 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
+
      pthread_mutex_lock( &data->events_mutex );
 
      if (!data->events) {
@@ -356,6 +373,9 @@ static DFBResult
 IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (data->pipe)
+          return DFB_UNSUPPORTED;
 
      return (data->events ? DFB_OK : DFB_BUFFEREMPTY);
 }
@@ -398,20 +418,50 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
 
 static DFBResult
 IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
-                                           int                  *fd )
+                                           int                  *ret_fd )
 {
+     EventBufferItem *item;
+     DirectLink      *n;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
-     if (!fd)
+     /* Check arguments. */
+     if (!ret_fd)
           return DFB_INVARG;
 
-     if (data->pipe_fds[0])
+     /* Lock the event queue. */
+     pthread_mutex_lock( &data->events_mutex );
+
+     /* Already in pipe mode? */
+     if (data->pipe) {
+          pthread_mutex_unlock( &data->events_mutex );
           return DFB_BUSY;
+     }
 
-     if (socketpair( PF_LOCAL, SOCK_STREAM, 0, data->pipe_fds ))
+     /* Create the file descriptor(s). */
+     if (socketpair( PF_LOCAL, SOCK_STREAM, 0, data->pipe_fds )) {
+          pthread_mutex_unlock( &data->events_mutex );
           return errno2result( errno );
+     }
 
-     *fd = data->pipe_fds[0];
+     /* Enter pipe mode. */
+     data->pipe = true;
+
+     /* Free all events. */
+     direct_list_foreach_safe (item, n, data->events)
+          D_FREE( item );
+
+     /* Empty list. */
+     data->events = NULL;
+
+     /* Signal any waiting processes. */
+     pthread_cond_broadcast( &data->wait_condition );
+
+     /* Unlock the event queue. */
+     pthread_mutex_unlock( &data->events_mutex );
+
+     /* Return the file descriptor for reading. */
+     *ret_fd = data->pipe_fds[0];
 
      return DFB_OK;
 }
@@ -493,16 +543,21 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
           return;
      }
 
-     pthread_mutex_lock( &data->events_mutex );
+     if (data->pipe) {
+          if (data->pipe_fds[1])
+               write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
 
-     direct_list_append( &data->events, &item->link );
+          D_FREE( item );
+     }
+     else {
+          pthread_mutex_lock( &data->events_mutex );
 
-     pthread_cond_broadcast( &data->wait_condition );
+          direct_list_append( &data->events, &item->link );
 
-     pthread_mutex_unlock( &data->events_mutex );
+          pthread_cond_broadcast( &data->wait_condition );
 
-     if (data->pipe_fds[1])
-          write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
+          pthread_mutex_unlock( &data->events_mutex );
+     }
 }
 
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,

@@ -3726,10 +3726,10 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
      /*
       * Wake up any thread waiting for events in this buffer.
       *
-      * This method causes any <i>WaitForEvent()</i> or
-      * <i>WaitForEventWithTimeout()</i> call to return with DFB_INTERRUPTED.
+      * This method causes any IDirectFBEventBuffer::WaitForEvent() or
+      * IDirectFBEventBuffer::WaitForEventWithTimeout() call to return with DFB_INTERRUPTED.
       *
-      * This method should be used rather than sending wake up messages which
+      * It should be used rather than sending wake up messages which
       * may pollute the queue and consume lots of CPU and memory compared to
       * this 'single code line method'.
       */
@@ -3742,6 +3742,14 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
 
      /*
       * Create a file descriptor for reading events.
+      *
+      * This method provides an alternative for reading events from an event buffer.
+      * It creates a file descriptor which can be used in select(), poll() or read().
+      *
+      * In general only non-threaded applications which already use select() or poll() need it.
+      *
+      * <b>Note:</b> This method flushes the event buffer. After calling this method all other
+      * methods will return DFB_UNSUPPORTED. Calling this method again will return DFB_BUSY.
       */
      DFBResult (*CreateFileDescriptor) (
           IDirectFBEventBuffer     *thiz,
