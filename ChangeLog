@@ -1,3 +1,422 @@
+2001-06-14 15:19   Denis Oliver Kropp <dok@convergence.de>
+
+	NEWS (1.16) (+2 -1)
+	
+	updated
+	
+2001-06-14 01:40   Andreas Hundt <andi@convergence.de>
+
+	tools/raw32toraw24.c (1.3) (+4 -0)
+	
+	compile fix for big endian machines
+	
+2001-06-13 20:20   Michael Natterer <mitch@convergence.de>
+
+	src/core/input.c (1.7) (+2 -2)
+	
+	Re-enabled and fixed two lines which close/reopen the input devices
+	on Suspend()/Resume().
+	
+2001-06-13 15:26   Sven Neumann <neo@convergence.de>
+
+	include/directfb.h (1.28) (+4 -4)
+	src/core/input.c (1.6) (+16 -0)
+	
+	Added DIDID_REMOTE to the list of predefined device IDs.
+	Uniquify device IDs.
+	
+2001-06-13 06:13   Denis Oliver Kropp <dok@convergence.de>
+
+	gfxdrivers/matrox/matrox.c (1.7) (+11 -8)
+	gfxdrivers/matrox/matrox_state.c (1.7) (+2 -2)
+	gfxdrivers/matrox/matrox.h (1.2) (+2 -3)
+	
+	- log2 had to return ret, always
+	- optimized TMU calculations, better rounding, looks always good now
+	
+2001-06-12 21:11   Sven Neumann <neo@convergence.de>
+
+	configure.in (1.26) (+1 -0)
+	
+	include Video4Linux video provider in the configure result list
+	
+2001-06-12 21:01   Denis Oliver Kropp <dok@convergence.de>
+
+	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.3) (+1 -1)
+	
+	call v4l_stop() in v4l_deinit() to eventually stop the v4l thread
+	
+2001-06-12 20:50   Sven Neumann <neo@convergence.de>
+
+	configure.in (1.25) (+6 -6)
+	
+	use correct variables for configure result list
+	
+2001-06-12 20:45   Sven Neumann <neo@convergence.de>
+
+	README (1.9) (+5 -0)
+	
+	describe how to configure a serial mouse for DirectFB
+	
+2001-06-12 20:44   Denis Oliver Kropp <dok@convergence.de>
+
+	configure.in (1.24) (+8 -4)
+	
+	use $JPEG and $PNG
+	
+2001-06-12 20:29   Denis Oliver Kropp <dok@convergence.de>
+
+	configure.in (1.23) (+2 -1)
+	
+	do not print "on" for MMX support
+	
+2001-06-12 20:18   Denis Oliver Kropp <dok@convergence.de>
+
+	configure.in (1.22) (+46 -22)
+	
+	Prints summary of build options and built providers/drivers.
+	
+2001-06-12 18:24   Denis Oliver Kropp <dok@convergence.de>
+
+	README (1.8) (+1 -0)
+	
+	added Joachim Steiger to "thanks to"
+	
+2001-06-12 18:11   Sven Neumann <neo@convergence.de>
+
+	configure.in (1.21) (+47 -0)
+	gfxdrivers/Makefile.am (1.2) (+20 -1)
+	
+	Check for <linux/fb.h>
+	Check which gfxdrivers can be compiled by looking at <linux/fb.h>.
+	
+2001-06-12 18:00   Denis Oliver Kropp <dok@convergence.de>
+
+	NEWS (1.15) (+2 -1)
+	
+	fixed typo added note about conditional build of providers
+	
+2001-06-12 17:58   Denis Oliver Kropp <dok@convergence.de>
+
+	NEWS (1.14) (+21 -2)
+	
+	updated
+	
+2001-06-12 17:24   Sven Neumann <neo@convergence.de>
+
+	README (1.7) (+2 -2)
+	
+	update
+	
+2001-06-12 17:23   Sven Neumann <neo@convergence.de>
+
+	README (1.6) (+18 -10)
+	interfaces/IDirectFBImageProvider/Makefile.am (1.2) (+21 -4)
+	interfaces/IDirectFBFont/Makefile.am (1.2) (+7 -1)
+	include/directfb.h (1.27) (+15 -7)
+	configure.in (1.20) (+87 -50)
+	
+	Even more remote control keycodes.
+	
+	Allow conditional build of gif, jpeg and png image providers.
+	Allow conditional build of freetype font provider.
+	We strongly suggest you don't disable the build of these modules
+	since the example code and most DirectFB apps depend on them.
+	
+2001-06-12 14:40   Sven Neumann <neo@convergence.de>
+
+	include/directfb.h (1.26) (+5 -3)
+	
+	added a few more remote control keycodes we might need
+	
+2001-06-12 13:05   Sven Neumann <neo@convergence.de>
+
+	src/core/fonts.c (1.9) (+38 -34)
+	src/misc/tree.h (1.2) (+2 -0)
+	src/misc/tree.c (1.4) (+28 -18)
+	
+	Added tree_lock() and tree_unlock() to allow to use the tree in a thread-safe
+	way. fonts_get_glyph_data() locks and unlocks the tree so it can be called
+	from multiple threads. Unfortunately this brings down performance a little.
+	
+2001-06-12 11:17   Sven Neumann <neo@convergence.de>
+
+	inputdrivers/serialmouse/serialmouse.c (1.9) (+3 -0)
+	
+	include <sys/time.h> and <sys/types.h> for select()
+	
+2001-06-11 20:53   Denis Oliver Kropp <dok@convergence.de>
+
+	include/directfb_version.h.in (1.2) (+17 -21)
+	tools/gendoc.pl (1.5) (+15 -24)
+	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.2) (+15 -23)
+	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.3) (+15 -24)
+	
+	fixed license, oops
+	
+2001-06-11 18:36   Sven Neumann <neo@convergence.de>
+
+	inputdrivers/serialmouse/serialmouse.c (1.8) (+29 -26)
+	
+	The old implementation of the MouseMan protocol definitely did not
+	work, this one might do the trick...
+	
+2001-06-11 18:17   Sven Neumann <neo@convergence.de>
+
+	include/directfb.h (1.25) (+113 -116)
+	inputdrivers/serialmouse/serialmouse.c (1.7) (+4 -5)
+	inputdrivers/keyboard/keyboard.c (1.6) (+2 -156)
+	
+	Replaced old remote control keycodes with new unified keycodes.
+	Removed special handling for remote control from keyboard driver.
+	Decreased wait cycles in initialization of serial mouse driver.
+	
+2001-06-11 15:43   Denis Oliver Kropp <dok@convergence.de>
+
+	src/idirectfb.c (1.17) (+2 -0)
+	src/windows/idirectfbwindow.c (1.8) (+2 -0)
+	src/core/windows.h (1.4) (+6 -0)
+	src/core/windows.c (1.17) (+8 -3)
+	src/core/layers.c (1.2) (+2 -0)
+	
+	split up window_create and added window_init that has to be called after
+	window_create. i split it up because the code in window_init generates
+	events, but the reactor can only be attached to after window_create.
+	this fixes the missing initial DWET_POSITION_SIZE event.
+	
+2001-06-11 10:26   Sven Neumann <neo@convergence.de>
+
+	examples/df_window.c (1.6) (+149 -209)
+	src/core/windows.c (1.16) (+1 -1)
+	
+	Fixed a bug in window_request_focus() where the wrong window was emitting
+	the DWET_LOSTFOCUS event.
+	
+	Rewrote large parts of df_window to make it behave more like a windowing
+	system as you know it. You can specify a video file on the command line
+	to bring some live into the second window.
+	
+2001-06-11 02:59   Denis Oliver Kropp <dok@convergence.de>
+
+	gfxdrivers/matrox/matrox.c (1.6) (+2 -0)
+	
+	ifdef for FB_ACCEL_MATROX_MGAG400
+	
+2001-06-11 02:57   Denis Oliver Kropp <dok@convergence.de>
+
+	src/core/sig.c (1.2) (+1 -1)
+	
+	Removed signal handler for SIGSTKFLT as it is
+	not available on all architectures.
+	
+2001-06-10 21:25   Denis Oliver Kropp <dok@convergence.de>
+
+	README (1.5) (+13 -1)
+	
+	Added "Thanks to" section
+	
+2001-06-09 15:18   Denis Oliver Kropp <dok@convergence.de>
+
+	src/core/surfaces.c (1.7) (+2 -2)
+	src/core/windows.c (1.15) (+14 -8)
+	
+	Finished update_region for windowstack repaints.
+	Nothing will be drawn that is not visible after all.
+	Every further windowstack optimizations have to be made in other
+	functions like window_move (blitting within same surface, actually
+	from front to back buffer, but that is default ;-)
+	
+	Fixed segfault in surface_destroy (many demos crashed at the end),
+	df_porter did not run at all, because surface_destroy was called from
+	font managering system.
+	
+2001-06-09 15:03   Denis Oliver Kropp <dok@convergence.de>
+
+	.cvsignore (1.3) (+1 -0)
+	src/windows/idirectfbwindow.c (1.7) (+5 -2)
+	examples/df_fire.c (1.5) (+5 -2)
+	
+	added ltconfig
+	
+	any volunteer to fix DirectFB for the new autotools?
+	
+2001-06-08 23:31   Denis Oliver Kropp <dok@convergence.de>
+
+	src/core/windows.c (1.14) (+111 -65)
+	
+	rewrote windowstack_repaint, no performance gain yet, but this recursive
+	function is designed to just pass the rectangles that are not covered by
+	the opaque window of the iteration level (make update_region calls in all
+	16 different cases).
+	
+2001-06-08 22:32   Denis Oliver Kropp <dok@convergence.de>
+
+	include/directfb.h (1.24) (+10 -0)
+	src/misc/conf.h (1.4) (+6 -0)
+	src/misc/conf.c (1.5) (+1 -1)
+	src/export_list.sym (1.2) (+2 -0)
+	src/directfb.c (1.13) (+24 -0)
+	
+	Applied patch submitted by Till Adam <till@adam-lilienthal.de>
+	with a check if DirectFBSetOption has been called before DirectFBCreate.
+	Also added function to directfb.h.
+	
+2001-06-08 18:44   Denis Oliver Kropp <dok@convergence.de>
+
+	include/directfb.h (1.23) (+12 -1)
+	src/input/idirectfbinputbuffer.c (1.8) (+41 -0)
+	src/directfb.c (1.12) (+3 -0)
+	
+	Added IDirectFBInputBuffer->WaitForEventWithTimeout (secs, nano_secs).
+	
+2001-06-08 15:48   Sven Neumann <neo@convergence.de>
+
+	inputdrivers/serialmouse/serialmouse.c (1.6) (+1 -0)
+	
+	fixed(?) handling of middle mouse button for MS3 protocol
+	
+2001-06-08 13:37   Sven Neumann <neo@convergence.de>
+
+	inputdrivers/serialmouse/serialmouse.c (1.5) (+132 -15)
+	
+	We now support the following serial mice:
+	
+	  "MS"		   two buttons MS protocol
+	  "MS3"		   MS with ugly 3-button extension
+	  "MouseMan"       referred to as MS + Logitech extension in mouse(4)
+	  "MouseSystems"   most commonly used serial mouse protocol nowadays
+	
+	All this is highly experimental and needs more testing.
+	
+2001-06-08 12:06   Sven Neumann <neo@convergence.de>
+
+	inputdrivers/ps2mouse/ps2mouse.c (1.7) (+1 -8)
+	inputdrivers/serialmouse/serialmouse.c (1.4) (+52 -17)
+	
+	Small code cleanup in ps2mouse inputdriver.
+	
+	Added support for MS 3 button mouse protocol (this protocol sucks!) to the
+	serial mouse inputdriver. Put "mouse-protocol=ms3" into your directfbrc.
+	
+2001-06-08 11:30   Denis Oliver Kropp <dok@convergence.de>
+
+	src/core/windows.c (1.13) (+1 -1)
+	
+	typo fixed
+	
+2001-06-08 08:50   Denis Oliver Kropp <dok@convergence.de>
+
+	src/interface.c (1.5) (+3 -2)
+	
+	Print init type message if an interface implementation is loaded.
+	
+2001-06-08 08:28   Denis Oliver Kropp <dok@convergence.de>
+
+	src/core/windows.c (1.12) (+14 -103)
+	src/windows/idirectfbwindow.h (1.2) (+0 -12)
+	src/windows/idirectfbwindow.c (1.6) (+149 -32)
+	src/core/windows.h (1.3) (+1 -25)
+	
+	moved window event buffer into interface using pthread conditions
+	windowing events are dispatched through reactors now
+	(~100 lines stripped from core ;-)
+	
+2001-06-07 21:46   Denis Oliver Kropp <dok@convergence.de>
+
+	src/input/idirectfbinputbuffer.c (1.7) (+26 -18)
+	
+	use pthread conditions
+	
+2001-06-07 20:39   Denis Oliver Kropp <dok@convergence.de>
+
+	gfxdrivers/matrox/matrox_state.c (1.6) (+1 -1)
+	
+	fixed bug when blitting from 32bit without blending,
+	e.g. --blit-convert in df_dok
+	
+2001-06-07 20:06   Denis Oliver Kropp <dok@convergence.de>
+
+	inputdrivers/joystick/joystick.c (1.4) (+1 -0)
+	inputdrivers/serialmouse/serialmouse.c (1.3) (+2 -0)
+	inputdrivers/ps2mouse/ps2mouse.c (1.6) (+2 -0)
+	inputdrivers/keyboard/keyboard.c (1.5) (+1 -0)
+	
+	follow changes
+	
+2001-06-07 20:04   Denis Oliver Kropp <dok@convergence.de>
+
+	examples/df_joystick.c (1.5) (+2 -3)
+	src/core/windows.c (1.11) (+8 -18)
+	src/core/input.h (1.5) (+1 -1)
+	include/directfb.h (1.22) (+19 -14)
+	
+	API Change: The Input Device ID no longer contains the type of input device.
+	
+	Added DFBInputDeviceTypeFlags to DFBInputDeviceDescription that contains
+	the type of the input device specified by one or more of the following flags:
+	
+	DIDTF_KEYBOARD      = 0x00000001,  /* can act as a keyboard */
+	DIDTF_MOUSE         = 0x00000002,  /* can be used as a mouse */
+	DIDTF_JOYSTICK      = 0x00000004,  /* can be used as a joystick */
+	DIDTF_REMOTE        = 0x00000008   /* device is a remote control */
+	
+	
+	Something like
+	
+	...       DIDID_TYPE(id) == DIDT_MOUSE
+	
+	should be replaced by
+	
+	...       desc.type & DIDTF_MOUSE
+	
+2001-06-07 17:01   Denis Oliver Kropp <dok@convergence.de>
+
+	inputdrivers/joystick/joystick.c (1.3) (+2 -2)
+	src/core/input.h (1.4) (+2 -2)
+	inputdrivers/serialmouse/serialmouse.c (1.2) (+10 -3)
+	inputdrivers/ps2mouse/ps2mouse.c (1.5) (+2 -2)
+	inputdrivers/keyboard/keyboard.c (1.4) (+2 -2)
+	
+	InputDevice info.driver_name/vendor are now pointers
+	
+2001-06-07 16:00   Sven Neumann <neo@convergence.de>
+
+	inputdrivers/serialmouse/Makefile.am (1.2) (+1 -1)
+	
+	s/msmouse/serialmouse/
+	
+2001-06-07 15:17   Sven Neumann <neo@convergence.de>
+
+	NEWS (1.13) (+1 -1)
+	inputdrivers/serialmouse/serialmouse.c (1.1) (ADDED)
+	inputdrivers/serialmouse/Makefile.am (1.1) (ADDED)
+	inputdrivers/serialmouse/.cvsignore (1.1) (ADDED)
+	inputdrivers/Makefile.am (1.3) (+2 -2)
+	configure.in (1.19) (+1 -1)
+	README (1.4) (+2 -1)
+	
+	Renamed msmouse inputdriver to serialmouse since this beast will support
+	other more serial mouse protocols in the future.
+	
+2001-06-07 15:06   Sven Neumann <neo@convergence.de>
+
+	NEWS (1.12) (+3 -0)
+	src/misc/conf.h (1.3) (+2 -0)
+	src/misc/conf.c (1.4) (+12 -22)
+	
+	Added config option "mouse-protocol" (for serial mouse only). You need to
+	specify the protocol type if you want to use a serial mouse.  At the moment
+	only "ms" (2-button) is supported. I will add more serial mouse protocols
+	later.
+	
+	Check if a mouse is attached to the serial port.
+	
+2001-06-07 00:09   Michael Natterer <mitch@convergence.de>
+
+	ChangeLog (1.8) (+1395 -852)
+	
+	Updated ChangeLog.
+	
 2001-06-06 23:49   Denis Oliver Kropp <dok@convergence.de>
 
 	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.2) (+5 -1)
@@ -23,9 +442,6 @@
 2001-06-06 21:40   Sven Neumann <neo@convergence.de>
 
 	configure.in (1.18) (+1 -0)
-	inputdrivers/msmouse/msmouse.c (1.1) (ADDED)
-	inputdrivers/msmouse/Makefile.am (1.1) (ADDED)
-	inputdrivers/msmouse/.cvsignore (1.1) (ADDED)
 	inputdrivers/Makefile.am (1.2) (+5 -1)
 	
 	added MS Serial Mouse inputdevice, disabled at the moment
