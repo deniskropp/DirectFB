@@ -53,6 +53,7 @@ static int                       width      = 0;
 static int                       height     = 0;
 static DFBSurfacePixelFormat     format     = DSPF_UNKNOWN;
 static DFBDisplayLayerBufferMode buffermode = -1;
+static int                       opacity    = -1;
 
 /*****************************************************************************/
 
@@ -139,6 +140,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "   -m, --mode    <width>x<height>  Change the resolution (pixels)\n");
      fprintf (stderr, "   -f, --format  <pixelformat>     Change the pixel format\n");
      fprintf (stderr, "   -b, --buffer  <buffermode>      Change the buffer mode (single/video/system)\n");
+     fprintf (stderr, "   -o, --opacity <opacity>         Change the layer's opacity (0-255)\n");
      fprintf (stderr, "   -h, --help                      Show this help message\n");
      fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
@@ -248,6 +250,18 @@ parse_buffermode( const char *arg )
 }
 
 static DFBBoolean
+parse_opacity( const char *arg )
+{
+     if (sscanf( arg, "%d", &opacity ) != 1 || opacity < 0 || opacity > 255) {
+          fprintf (stderr, "\nInvalid opacity value specified!\n\n");
+
+          return DFB_FALSE;
+     }
+     
+     return DFB_TRUE;
+}
+
+static DFBBoolean
 parse_command_line( int argc, char *argv[] )
 {
      int n;
@@ -312,6 +326,18 @@ parse_command_line( int argc, char *argv[] )
 
                continue;
           }
+
+          if (strcmp (arg, "-o") == 0 || strcmp (arg, "--opacity") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_opacity( argv[n] ))
+                    return DFB_FALSE;
+
+               continue;
+          }
           
           print_usage (argv[0]);
 
@@ -353,6 +379,7 @@ set_configuration()
           config.buffermode  = buffermode;
      }
 
+     /* Set the configuration if anything changed. */
      if (config.flags) {
           ret = layer->SetConfiguration( layer, &config );
           if (ret) {
@@ -361,6 +388,7 @@ set_configuration()
           }
      }
 
+     /* Get and show the current (new) configuration. */
      ret = layer->GetConfiguration( layer, &config );
      if (ret) {
           DirectFBError( "IDirectFBDisplayLayer::GetConfiguration() failed", ret );
@@ -399,6 +427,47 @@ set_configuration()
           }
      }
      
+     if (config.flags & DLCONF_OPTIONS) {
+          printf( "Options     " );
+
+          if (config.options == DLOP_NONE) {
+               printf( "none\n" );
+          }
+          else {
+               if (config.options & DLOP_ALPHACHANNEL)
+                    printf( "ALPHA CHANNEL       " );
+               
+               if (config.options & DLOP_DEINTERLACING)
+                    printf( "DEINTERLACING       " );
+               
+               if (config.options & DLOP_DST_COLORKEY)
+                    printf( "DST COLOR KEY       " );
+               
+               if (config.options & DLOP_FIELD_PARITY)
+                    printf( "FIELD PARITY        " );
+               
+               if (config.options & DLOP_FLICKER_FILTERING)
+                    printf( "FLICKER FILTERING   " );
+               
+               if (config.options & DLOP_OPACITY)
+                    printf( "OPACITY             " );
+               
+               if (config.options & DLOP_SRC_COLORKEY)
+                    printf( "SRC COLOR KEY       " );
+               
+               printf( "\n" );
+          }
+     }
+     
      printf( "\n" );
+
+     /* Set the opacity if requested. */
+     if (opacity != -1) {
+          ret = layer->SetOpacity( layer, opacity );
+          if (ret == DFB_UNSUPPORTED)
+               fprintf( stderr, "Opacity value (%d) not supported!\n\n", opacity );
+          else if (ret)
+               DirectFBError( "IDirectFBDisplayLayer::SetOpacity() failed", ret );
+     }
 }
 
