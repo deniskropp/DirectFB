@@ -1948,22 +1948,8 @@ static void Bop_a8_set_alphapixel_Aop_a8()
 }
 
 #ifdef SUPPORT_RGB332
-
-static void Bop_a8_set_alphapixel_Aop_rgb332()
-{
-     int    w = Dlength;
-     __u8  *S = Bop;
-     __u8  *D = Aop;
-
-/* FIXME: implement correctly! */
-#define SET_ALPHA_PIXEL_RGB332(d,a) \
-     if (a & 0x80) \
-          d = Cop;
-
-     SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB332 );
-
-#undef SET_ALPHA_PIXEL_RGB332
-}
+/* RGB332 reuses the LUT8 implementation */
+#define Bop_a8_set_alphapixel_Aop_rgb332  Bop_a8_set_alphapixel_Aop_lut8
 #endif
 
 static void Bop_a8_set_alphapixel_Aop_lut8()
