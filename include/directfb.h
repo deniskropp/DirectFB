@@ -907,10 +907,7 @@ typedef struct {
 /*
  * @internal
  *
- * Pixel format of a surface.
- * Contains information about the format (see following definition).
- *
- * Format constants are encoded in the following way (bit 31 - 0):
+ * Encodes format constants in the following way (bit 31 - 0):
  *
  * lkjj:hhgg | gfff:eeed | cccc:bbbb | baaa:aaaa
  *
@@ -941,6 +938,9 @@ typedef struct {
        (((has_lut   ) ? 1 :0) << 30) |                                         \
        (((inv_alpha ) ? 1 :0) << 31) )
 
+/*
+ * Pixel format of a surface.
+ */
 typedef enum {
      DSPF_UNKNOWN   = 0x00000000,  /* unknown or unspecified format */
 
