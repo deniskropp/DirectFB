@@ -16,8 +16,6 @@ stamp-h1
 directfb-config
 directfb.pc
 directfb-internal.pc
-directfb-avifile.pc
-directfb-swf.pc
 DirectFB.vpj
 DirectFB.vpw
 DirectFB.vtg

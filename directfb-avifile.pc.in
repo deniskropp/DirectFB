@@ -1,5 +1,0 @@
-Name: DirectFB Avifile Provider
-Description: Avifile video provider for DirectFB
-Requires: directfb
-Version: @VERSION@
-Libs: @AVIFILE_LIBS@
