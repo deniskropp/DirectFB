@@ -158,17 +158,40 @@ DFBResult layer_cursor_enable( DisplayLayer *layer, int enable )
 {
      DFBResult ret = DFB_OK;
 
-     if (!layer->windowstack->cursor) {                 /* no cursor yet? */
-          if (enable)
-               ret = layer_cursor_load_default( layer );/* install the default*/
-          else
-               return DFB_OK;                           /* we dont have it,
-                                                           they dont want it */
+     if (enable) {
+          if (!layer->windowstack->cursor_window)        /* no cursor yet?      */
+               ret = layer_cursor_load_default( layer ); /* install the default */
+
+          if (ret == DFB_OK)
+               ret = window_set_opacity( layer->windowstack->cursor_window, 
+                                         layer->windowstack->cursor_opacity );
+          if (ret == DFB_OK)
+               layer->windowstack->cursor = 1;
+     }
+     else {
+          ret = window_set_opacity( layer->windowstack->cursor_window, 0 );
+
+          if (ret == DFB_OK)
+               layer->windowstack->cursor = 0;          
+     }
+     return ret;
+}
+
+DFBResult layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
+{
+     DFBResult ret = DFB_OK;
+
+     if (layer->windowstack->cursor) {
+          if (!layer->windowstack->cursor_window)        /* no cursor yet?      */
+               ret = layer_cursor_load_default( layer ); /* install the default */
+
+          if (ret == DFB_OK)
+               ret = window_set_opacity( layer->windowstack->cursor_window, opacity );
+
      }
 
      if (ret == DFB_OK)
-          ret = window_set_opacity( layer->windowstack->cursor,
-                                    enable ? 0xFF : 0 );
+          layer->windowstack->cursor_opacity = opacity;
 
      return ret;
 }
@@ -178,29 +201,29 @@ DFBResult layer_cursor_set_shape( DisplayLayer *layer, CoreSurface *shape,
 {
      int dx, dy;
 
-     if (!layer->windowstack->cursor) {
+     if (!layer->windowstack->cursor_window) {
           DFBResult ret =
                layer_create_cursor_window( layer, shape->width, shape->height );
 
           if (ret)
                return ret;
      }
-     else if (layer->windowstack->cursor->width != shape->width  ||
-              layer->windowstack->cursor->height != shape->height)
+     else if (layer->windowstack->cursor_window->width != shape->width  ||
+              layer->windowstack->cursor_window->height != shape->height)
      {
-          window_resize( layer->windowstack->cursor,
+          window_resize( layer->windowstack->cursor_window,
                          shape->width, shape->height );
      }
 
-     gfx_copy( shape, layer->windowstack->cursor->surface, NULL );
+     gfx_copy( shape, layer->windowstack->cursor_window->surface, NULL );
 
-     dx = layer->windowstack->cx - hot_x - layer->windowstack->cursor->x;
-     dy = layer->windowstack->cy - hot_y - layer->windowstack->cursor->y;
+     dx = layer->windowstack->cx - hot_x - layer->windowstack->cursor_window->x;
+     dy = layer->windowstack->cy - hot_y - layer->windowstack->cursor_window->y;
 
      if (dx || dy)
-          window_move( layer->windowstack->cursor, dx, dy );
+          window_move( layer->windowstack->cursor_window, dx, dy );
      else
-          window_repaint( layer->windowstack->cursor, NULL );
+          window_repaint( layer->windowstack->cursor_window, NULL );
 
      return DFB_OK;
 }
@@ -226,10 +249,14 @@ DFBResult layer_create_cursor_window( DisplayLayer *layer,
      CoreWindow *cursor;
 
      /* reinitialization check */
-     if (layer->windowstack->cursor) {
+     if (layer->windowstack->cursor_window) {
           BUG( "already created a cursor for this layer" );
           return DFB_BUG;
      }
+
+     layer->windowstack->cursor_opacity = 0xFF;
+     layer->windowstack->cx = layer->width / 2;
+     layer->windowstack->cy = layer->height / 2;
 
      /* create a super-top-most_event-and-focus-less window */
      cursor = window_create( layer->windowstack, layer->windowstack->cx,
@@ -241,9 +268,10 @@ DFBResult layer_create_cursor_window( DisplayLayer *layer,
           return DFB_FAILURE;
      }
 
+     window_set_opacity( cursor, layer->windowstack->cursor_opacity );
      window_init( cursor );
 
-     layer->windowstack->cursor = cursor;
+     layer->windowstack->cursor_window  = cursor;
 
      return DFB_OK;
 }
@@ -259,7 +287,7 @@ DFBResult layer_cursor_load_default( DisplayLayer *layer )
      void *data;
      FILE *f;
 
-     if (!layer->windowstack->cursor) {
+     if (!layer->windowstack->cursor_window) {
           ret = layer_create_cursor_window( layer, 40, 40 );
           if (ret)
                return ret;
@@ -274,7 +302,7 @@ DFBResult layer_cursor_load_default( DisplayLayer *layer )
      }
 
      /* lock the surface of the window */
-     ret = surface_soft_lock( layer->windowstack->cursor->surface,
+     ret = surface_soft_lock( layer->windowstack->cursor_window->surface,
                               DSLF_WRITE, &data, &pitch, 0 );
      if (ret) {
           ERRORMSG( "DirectFB/core/layers: "
@@ -292,7 +320,7 @@ DFBResult layer_cursor_load_default( DisplayLayer *layer )
                ERRORMSG( "DirectFB/core/layers: "
                          "unexpected end or read error of cursor data!\n" );
 
-               surface_unlock( layer->windowstack->cursor->surface, 0 );
+               surface_unlock( layer->windowstack->cursor_window->surface, 0 );
                fclose( f );
 
                return ret;
@@ -314,7 +342,7 @@ DFBResult layer_cursor_load_default( DisplayLayer *layer )
      }
 
      fclose( f );
-     surface_unlock( layer->windowstack->cursor->surface, 0 );
+     surface_unlock( layer->windowstack->cursor_window->surface, 0 );
 
      return DFB_OK;
 }

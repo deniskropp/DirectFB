@@ -413,6 +413,17 @@ DFBResult IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
                                     hot_x, hot_y );
 }
 
+DFBResult IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
+                                                  __u8                   opacity )
+{
+     IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     return layer_cursor_set_opacity( data->layer, opacity );
+}
+
 DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                            DisplayLayer *layer )
 {
@@ -441,6 +452,7 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->EnableCursor = IDirectFBDisplayLayer_EnableCursor;
      thiz->GetCursorPosition = IDirectFBDisplayLayer_GetCursorPosition;
      thiz->SetCursorShape = IDirectFBDisplayLayer_SetCursorShape;
+     thiz->SetCursorOpacity = IDirectFBDisplayLayer_SetCursorOpacity;
 
      return DFB_OK;
 }

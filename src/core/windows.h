@@ -81,9 +81,10 @@ struct _CoreWindowStack
      CoreWindow         *focused_window;  /* window having the focus */
      CoreWindow         *entered_window;  /* window under the pointer */
 
+     int                 cursor;          /* is cursor enabled ? */
      int                 cx, cy;          /* cursor position */
-     CoreWindow         *cursor;          /* super-toplevel-window for
-                                             software cursor */
+     CoreWindow         *cursor_window;   /* super-toplevel-window for software cursor */
+     __u8                cursor_opacity;  /* cursor opacity */
      DFBRegion           cursor_region;   /* cursor is clipped by this region */
 
      CardState           state;           /* state for windowstack repaints */

@@ -271,6 +271,27 @@ int SW, SH;
                          }
                          break;
 
+                    case DWET_KEYDOWN:
+                         if (grabbed)
+                              break;
+                         switch (evt.keycode) {
+                         case DIKC_RIGHT:
+                              active->Move (active, 1, 0);
+                              break;
+                         case DIKC_LEFT:
+                              active->Move (active, -1, 0);
+                              break;
+                         case DIKC_UP:
+                              active->Move (active, 0, -1);
+                              break;
+                         case DIKC_DOWN:
+                              active->Move (active, 0, 1);
+                              break;
+                         default:
+                              break;
+                         }
+                         break;
+
                     case DWET_LOSTFOCUS:
                          if (!grabbed)
                               active = NULL;

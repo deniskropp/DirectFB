@@ -894,9 +894,11 @@ extern "C"
           );
 
           /*
-           * Enable/disable the mouse cursor for this layer.
+           * Enable/disable the mouse cursor for this layer. 
            *
-           * Only available in exclusive/administrative mode.
+           * Windows on a layer will only receive motion events if
+           * the cursor is enabled. This function is only available
+           * in exclusive/administrative mode.
            */
           DFBResult (*EnableCursor) (
                IDirectFBDisplayLayer              *thiz,
@@ -920,6 +922,14 @@ extern "C"
                IDirectFBSurface                   *shape,
                int                                 hot_x,
                int                                 hot_y
+          );
+
+          /*
+           * Set the cursor opacity.
+           */
+          DFBResult (*SetCursorOpacity) (
+               IDirectFBDisplayLayer              *thiz,
+               __u8                                opacity
           );
      )
 

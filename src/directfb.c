@@ -97,7 +97,7 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
           switch (evt->keycode) {
                case DIKC_BACKSPACE:
                     kill( getpid(), SIGINT );
-                    break;
+                    return RS_DROP;
 
                case DIKC_F1 ... DIKC_F12: {
                     int num = evt->keycode - DIKC_F1 + 1;
@@ -121,7 +121,7 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
                     DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
                               "...hopefully switched to VT %d.\n", num );
 
-                    break;
+                    return RS_DROP;
                }
 
                default:
@@ -129,7 +129,7 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
           }
      }
 
-     return RS_DROP; /* stop dispatching of the event */
+     return RS_OK; /* continue dispatching this event */
 }
 
 DFBResult DirectFBInit( int *argc, char **argv[] )

@@ -120,6 +120,7 @@ DFBResult layer_unlock( DisplayLayer *layer );
 DFBResult layer_cursor_enable( DisplayLayer *layer, int enable );
 DFBResult layer_cursor_set_shape( DisplayLayer *layer, CoreSurface *shape,
                                   int hot_x, int hot_y );
+DFBResult layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity );
 DFBResult layer_cursor_warp( DisplayLayer *layer, int x, int y );
 
 

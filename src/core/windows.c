@@ -808,8 +808,8 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
      switch (evt->type) {
           case DIET_KEYPRESS:
           case DIET_KEYRELEASE:
-               window         = stack->keyboard_window ?
-                                stack->keyboard_window : stack->focused_window;
+               window = (stack->keyboard_window ?
+                         stack->keyboard_window : stack->focused_window);
 
                if (window) {
                     we.type = (evt->type == DIET_KEYPRESS) ? DWET_KEYDOWN :
@@ -825,11 +825,11 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                break;
           case DIET_BUTTONPRESS:
           case DIET_BUTTONRELEASE:
-               if (!stack->cursor || !stack->cursor->opacity)
+               if (!stack->cursor)
                     break;
           
-               window         = stack->pointer_window ?
-                                stack->pointer_window : stack->focused_window;
+               window = (stack->pointer_window ?
+                         stack->pointer_window : stack->focused_window);
 
                if (window) {
                     we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :
@@ -872,7 +872,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
      int new_cx, new_cy;
      DFBWindowEvent we;
 
-     if (!stack->cursor || !stack->cursor->opacity)
+     if (!stack->cursor)
           return;
 
      new_cx = MIN( stack->cx + dx, stack->cursor_region.x2);
@@ -891,7 +891,7 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
      stack->cy = new_cy;
 
 
-     window_move( stack->cursor, dx, dy );
+     window_move( stack->cursor_window, dx, dy );
 
 
      we.cx   = stack->cx;
