@@ -316,7 +316,7 @@ static DFBResult IDirectFBVideoProvider_Swf_PlayTo(
      data->callback = callback;
      data->ctx = ctx;
 
-     if (data->thread == -1)
+     if ((int) data->thread == -1)
           pthread_create( &data->thread, NULL, FrameThread, data );
 
      return DFB_OK;
@@ -327,10 +327,10 @@ static DFBResult IDirectFBVideoProvider_Swf_Stop(IDirectFBVideoProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBVideoProvider_Swf)
 
-     if (data->thread != -1) {
+     if ((int) data->thread != -1) {
           pthread_cancel( data->thread );
           pthread_join( data->thread, NULL );
-          data->thread = -1;
+          data->thread = (pthread_t) -1;
      }
 
      if (data->destination) {
@@ -455,7 +455,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->flashDisplay.depth = 16;
      data->flashDisplay.bpp = 2;
 
-     data->thread = -1;     
+     data->thread = (pthread_t) -1;     
 
 /*
      pthread_mutex_init( &data->source.front_lock, NULL );
