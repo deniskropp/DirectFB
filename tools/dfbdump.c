@@ -156,16 +156,13 @@ dump_surfaces()
 }
 
 static bool
-window_callback( FusionObjectPool *pool,
-                 FusionObject     *object,
-                 void             *ctx )
+window_callback( CoreWindow      *window,
+                 CoreWindowStack *stack )
 {
-     FusionResult     ret;
-     int              refs;
-     CoreWindow      *window = (CoreWindow*) object;
-     CoreWindowStack *stack  = (CoreWindowStack*) ctx;
+     FusionResult ret;
+     int          refs;
 
-     ret = fusion_ref_stat( &object->ref, &refs );
+     ret = fusion_ref_stat( &window->object.ref, &refs );
      if (ret) {
           printf( "Fusion error %d!\n", ret );
           return false;
@@ -177,7 +174,22 @@ window_callback( FusionObjectPool *pool,
      
      printf( "%4d, %4d   ", window->x, window->y );
 
-     printf( "0x%02x   ", window->opacity );
+     printf( "0x%02x  ", window->opacity );
+
+     switch (window->stacking) {
+          case DWSC_UPPER:
+               printf( "^  " );
+               break;
+          case DWSC_MIDDLE:
+               printf( "-  " );
+               break;
+          case DWSC_LOWER:
+               printf( "v  " );
+               break;
+          default:
+               printf( "?  " );
+               break;
+     }
 
      if (stack->focused_window == window)
           printf( "FOCUSED        " );
@@ -200,14 +212,24 @@ static DFBEnumerationResult
 layer_callback( DisplayLayer *layer,
                 void         *ctx)
 {
+     int              i;
      CoreWindowStack *stack = dfb_layer_window_stack( layer );
+
+     if (!stack)
+          return DFENUM_OK;
      
      printf( "\nWindows on layer %d\n", dfb_layer_id( layer ) );
      printf( "-------------------\n\n" );
 
-     if (stack)
-          fusion_object_pool_enum( stack->pool, window_callback, stack );
+     skirmish_prevail( &stack->lock );
+     
+     for (i=stack->num_windows - 1; i>=0; i--) {
+          if (!window_callback( stack->windows[i], stack ))
+               break;
+     }
 
+     skirmish_dismiss( &stack->lock );
+     
      return DFENUM_OK;
 }
 
