@@ -41,6 +41,8 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
+#include <media/idirectfbvideoprovider.h>
+
 #include <misc/util.h>
 #include <misc/mem.h>
 
@@ -61,7 +63,7 @@
 
 
 static DFBResult
-Probe( const char *filename );
+Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename );
@@ -959,16 +961,16 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SetColorAdjustment(
 /* exported symbols */
 
 static DFBResult
-Probe( const char *filename )
+Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      quicktime_t *q;
 
 #ifdef SEGFAULTS_IN_OPENQUICKTIME
-     if (!quicktime_check_sig( (char *) filename ))
+     if (!quicktime_check_sig( (char *) ctx->filename ))
           return DFB_UNSUPPORTED;
 #endif
 
-     q = quicktime_open( (char*) filename, 1, 0 );
+     q = quicktime_open( (char*) ctx->filename, 1, 0 );
      if (!q)
           return DFB_UNSUPPORTED;
 
