@@ -384,6 +384,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
                                          SurfaceBuffer  *buffer )
 {
+     int    loops = 0;
      Chunk *chunk = buffer->video.chunk;
 
      DFB_ASSERT( buffer->surface );
@@ -403,6 +404,9 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      dfb_surface_notify_listeners( buffer->surface, CSNF_VIDEO );
 
      while (buffer->video.locked) {
+          if (++loops > 1000)
+               break;
+          
           sched_yield();
      }
 
