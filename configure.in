@@ -552,6 +552,41 @@ fi
 
 AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
 
+
+
+dnl Test for video4linux
+V4L=no
+
+if test $have_linux = yes; then
+  AC_ARG_ENABLE(video4linux,
+    [  --enable-video4linux      build Video4Linux video provider [default=yes]],
+    enable_v4l="$enableval", enable_v4l=yes)
+
+  if test x$enable_v4l = xyes; then
+    AC_CHECK_HEADER(linux/videodev.h,
+          V4L=yes,
+          AC_MSG_WARN([
+  *** Video4Linux headers not found -- Video4Linux video provider will not be built.])
+    )
+  fi
+
+  if test $V4L = yes; then
+    dnl Test for video4linux 2
+    AC_EGREP_CPP(yes, [
+        #include <linux/videodev.h>
+        #ifdef VIDIOC_REQBUFS
+          yes
+        #endif
+      ],
+      AC_DEFINE( HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
+    )
+  fi
+fi
+
+AM_CONDITIONAL(V4L_PROVIDER, test x$V4L = xyes)
+
+
+
 dnl check which gfxdrivers to build
 ati=no
 cyber5k=no
@@ -994,7 +1029,7 @@ Building Image Providers:
 
 Building Video Providers:
   Libmpeg3              $MPEG3
-  Video4Linux           $have_linux
+  Video4Linux           $V4L
 
 Building Font implementations:
   FreeType2             $FREETYPE

@@ -76,6 +76,12 @@ Construct( IDirectFBVideoProvider *thiz,
 
 DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, V4L )
 
+#if 0
+#define DEBUG_MSG(...) fprintf(stderr,__VA_ARGS__);
+#else
+#define DEBUG_MSG  do {} while (0)
+#endif
+
 /*
  * private data struct of IDirectFBVideoProvider
  */
@@ -84,10 +90,28 @@ typedef struct {
 
      char                    *filename;
      int                      fd;
+#ifdef HAVE_V4L2
+#define NUMBER_OF_BUFFERS 2
+     bool is_v4l2;
+	struct v4l2_format fmt;
+	struct v4l2_capability caps;
+	
+	struct v4l2_queryctrl brightness;
+	struct v4l2_queryctrl contrast;
+	struct v4l2_queryctrl saturation;
+	struct v4l2_queryctrl hue;
+
+	struct v4l2_requestbuffers req;
+	struct v4l2_buffer vidbuf[NUMBER_OF_BUFFERS];
+	char *ptr[NUMBER_OF_BUFFERS];	/* only used for capture to system memory */
+	bool framebuffer_or_system;
+#endif
      struct video_capability  vcap;
      struct video_mmap        vmmap;
      struct video_mbuf        vmbuf;
      void                    *buffer;
+     bool                     grab_mode;
+
      CoreThread              *thread;
      CoreSurface             *destination;
      DVFrameCallback          callback;
@@ -95,7 +119,6 @@ typedef struct {
 
      CoreCleanup             *cleanup;
 
-     bool                     grab_mode;
      bool                     running;
      pthread_mutex_t          lock;
 
@@ -117,6 +140,9 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_cleanup( void *data, int emergency );
 
+#ifdef HAVE_V4L2
+static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirectFBVideoProvider_V4L_data * data);
+#endif
 
 static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 {
@@ -164,6 +190,39 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
      if (!caps)
           return DFB_INVARG;
 
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+
+		*caps = 0;
+
+		data->saturation.id = V4L2_CID_SATURATION;
+		if( 0 != ioctl(data->fd, VIDIOC_G_CTRL, &data->saturation)) {
+			*caps |= DVCAPS_SATURATION; 
+		} else {
+			data->saturation.id = 0;
+		}
+		data->brightness.id = V4L2_CID_BRIGHTNESS;
+		if( 0 != ioctl(data->fd, VIDIOC_G_CTRL, &data->brightness)) {
+			*caps |= DVCAPS_BRIGHTNESS; 
+		} else {
+			data->brightness.id = 0;
+		}
+		data->contrast.id = V4L2_CID_CONTRAST;
+		if( 0 != ioctl(data->fd, VIDIOC_G_CTRL, &data->contrast)) {
+			*caps |= DVCAPS_CONTRAST;
+		} else {
+			data->contrast.id = 0;
+		}
+		data->hue.id = V4L2_CID_HUE;
+		if( 0 != ioctl(data->fd, VIDIOC_G_CTRL, &data->hue)) {
+			*caps |= DVCAPS_HUE;
+		} else {
+			data->hue.id = 0;
+		}
+		/* fixme: interlaced might not be true for field capture */
+		*caps |= DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_INTERLACED;
+	} else {
+#endif
      *caps = ( DVCAPS_BASIC      |
                DVCAPS_BRIGHTNESS |
                DVCAPS_CONTRAST   |
@@ -173,7 +232,9 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 
      if (data->vcap.type & VID_TYPE_SCALES)
           *caps |= DVCAPS_SCALE;
-
+#ifdef HAVE_V4L2
+	}
+#endif	
      return DFB_OK;
 }
 
@@ -192,8 +253,17 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
           return DFB_DEAD;
 
      desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT | DSDESC_CAPS;
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+	desc->width = 720;	/* fimxe: depends on the selected standard: query standard and set accordingly */
+	desc->height = 576;
+	} else {
+#endif
      desc->width  = data->vcap.maxwidth;
      desc->height = data->vcap.maxheight;
+#ifdef HAVE_V4L2
+	}
+#endif
      desc->pixelformat = dfb_primary_layer_pixelformat();
      desc->caps = DSCAPS_INTERLACED;
 
@@ -249,6 +319,11 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 
      surface = dst_data->surface;
 
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+		ret = v4l2_playto(surface, &rect, data);
+} else {
+#endif
      data->grab_mode = 0;
      if (surface->caps & DSCAPS_SYSTEMONLY
          || surface->caps & DSCAPS_FLIPPING
@@ -275,7 +350,9 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
           ret = v4l_to_surface_grab( surface, &rect, data );
      else
           ret = v4l_to_surface_overlay( surface, &rect, data );
-
+#ifdef HAVE_V4L2
+}
+#endif
      if (DFB_OK != ret && !data->grab_mode)
           dfb_surface_unlock( surface, false );
 
@@ -330,6 +407,40 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
      if (!adj)
           return DFB_INVARG;
 
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+	struct v4l2_control ctrl;
+
+	if (data->brightness.id != 0) {
+		ctrl.id = data->brightness.id;
+		if( 0 == ioctl(data->fd, VIDIOC_G_CTRL, &ctrl)) {
+			adj->flags |= DCAF_BRIGHTNESS;
+			adj->brightness = 0xffff * ctrl.value / (data->brightness.maximum - data->brightness.minimum);
+		}
+	}
+	if (data->contrast.id != 0) {
+		ctrl.id = data->contrast.id;
+		if( 0 == ioctl(data->fd, VIDIOC_G_CTRL, &ctrl)) {
+			adj->flags |= DCAF_CONTRAST;
+			adj->contrast = 0xffff * ctrl.value / (data->contrast.maximum - data->contrast.minimum);
+		}
+	}
+	if (data->hue.id != 0) {
+		ctrl.id = data->hue.id;
+		if( 0 == ioctl(data->fd, VIDIOC_G_CTRL, &ctrl)) {
+			adj->flags |= DCAF_HUE;
+			adj->hue = 0xffff * ctrl.value / (data->hue.maximum - data->hue.minimum);
+		}
+	}
+	if (data->saturation.id != 0) {
+		ctrl.id = data->saturation.id;
+		if( 0 == ioctl(data->fd, VIDIOC_G_CTRL, &ctrl)) {
+			adj->flags |= DCAF_SATURATION;
+			adj->saturation = 0xffff * ctrl.value / (data->saturation.maximum - data->saturation.minimum);
+		}
+	}
+	} else  {
+#endif
      ioctl( data->fd, VIDIOCGPICT, &pic );
 
      adj->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
@@ -338,7 +449,9 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
      adj->contrast   = pic.contrast;
      adj->hue        = pic.hue;
      adj->saturation = pic.colour;
-
+#ifdef HAVE_V4L2
+	}
+#endif
      return DFB_OK;
 }
 
@@ -355,6 +468,32 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 
      if (adj->flags == DCAF_NONE)
           return DFB_OK;
+
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+	struct v4l2_control ctrl;
+	if (adj->flags & DCAF_BRIGHTNESS && data->brightness.id != 0) {
+		ctrl.id = data->brightness.id;
+		ctrl.value = (adj->brightness * (data->brightness.maximum - data->brightness.minimum)) / 0xfff;
+		ioctl(data->fd, VIDIOC_S_CTRL, &ctrl);
+	}
+	if (adj->flags & DCAF_CONTRAST && data->contrast.id != 0) {
+		ctrl.id = data->contrast.id;
+		ctrl.value = (adj->contrast * (data->contrast.maximum - data->contrast.minimum)) / 0xfff;
+		ioctl(data->fd, VIDIOC_S_CTRL, &ctrl);
+	}
+	if (adj->flags & DCAF_HUE && data->hue.id != 0) {
+		ctrl.id = data->hue.id;
+		ctrl.value = (adj->hue * (data->hue.maximum - data->hue.minimum)) / 0xfff;
+		ioctl(data->fd, VIDIOC_S_CTRL, &ctrl);
+	}
+	if (adj->flags & DCAF_SATURATION && data->saturation.id != 0) {
+		ctrl.id = data->saturation.id;
+		ctrl.value = (adj->saturation * (data->saturation.maximum - data->saturation.minimum)) / 0xfff;
+		ioctl(data->fd, VIDIOC_S_CTRL, &ctrl);
+	}
+	} else  {
+#endif
 
      if (ioctl( data->fd, VIDIOCGPICT, &pic ) < 0) {
           DFBResult ret = errno2dfb( errno );
@@ -376,6 +515,9 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 
           return ret;
      }
+#ifdef HAVE_V4L2
+	}
+#endif
 
      return DFB_OK;
 }
@@ -416,6 +558,22 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      pthread_mutex_init( &data->lock, NULL );
 
+#ifdef HAVE_V4L2
+	data->is_v4l2 = 0;
+
+	/* look if the device is a v4l2 device */
+	if (0 == ioctl(fd, VIDIOC_QUERYCAP, &data->caps)) {
+		INITMSG("DirectFB/v4l: This is a Video4Linux-2 device.\n");
+		data->is_v4l2 = 1;
+	}
+
+	if( 0 != data->is_v4l2 ) {
+		/* hmm, anything to do here? */
+	} else  {
+#endif
+
+	INITMSG("DirectFB/v4l: This is a Video4Linux-1 device.\n");
+
      ioctl( fd, VIDIOCGCAP, &data->vcap );
      ioctl( fd, VIDIOCCAPTURE, &zero );
 
@@ -423,6 +581,10 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      data->buffer = mmap( NULL, data->vmbuf.size,
                           PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
+
+#ifdef HAVE_V4L2
+	}
+#endif
 
      data->filename = DFBSTRDUP( filename );
      data->fd       = fd;
@@ -824,12 +986,6 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
           pthread_mutex_unlock( &data->lock );
           return DFB_OK;
      }
-     
-     if (!data->grab_mode) {
-          if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0)
-               PERRORMSG( "DirectFB/v4l: "
-                          "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
-     }
 
      if (data->thread) {
           data->running = false;
@@ -838,6 +994,27 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
           data->thread = NULL;
      }
 
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+	/* turn off streaming */
+	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	int err = ioctl(data->fd, VIDIOC_STREAMOFF, &type);
+	if (err) {
+		PERRORMSG("DirectFB/v4l2: VIDIOC_STREAMOFF.\n");
+		/* don't quit here */
+	}
+	} else {
+#endif
+     if (!data->grab_mode) {
+          if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0)
+               PERRORMSG( "DirectFB/v4l: "
+                          "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
+     }
+
+#ifdef HAVE_V4L2
+}
+#endif
+
      destination = data->destination;
 
      if (!destination) {
@@ -845,8 +1022,26 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
           return DFB_OK;
      }
 
+#ifdef HAVE_V4L2
+	if( 0 != data->is_v4l2 ) {
+	/* unmap all buffers, if necessary */
+	if (0 != data->framebuffer_or_system) {
+		int i;
+		for (i = 0; i < data->req.count; i++) {
+			struct v4l2_buffer *vidbuf = &data->vidbuf[i];
+			DEBUGMSG("DirectFB/v4l2: %d => 0x%08x, len:%d\n", i, (__u32) data->ptr[i], vidbuf->length);
+			if (0 != munmap(data->ptr[i], vidbuf->length)) {
+				PERRORMSG("DirectFB/v4l2: munmap().\n");
+			}
+		}
+	}
+	} else {
+#endif
      if (!data->grab_mode)
           dfb_surface_unlock( destination, false );
+#ifdef HAVE_V4L2
+}
+#endif
 
      data->destination = NULL;
      
@@ -882,3 +1077,295 @@ static void v4l_cleanup( void *ctx, int emergency )
      else
           v4l_deinit( data );
 }
+
+/* v4l2 specific stuff */
+#ifdef HAVE_V4L2
+int wait_for_buffer(int vid, struct v4l2_buffer *cur)
+{
+	fd_set rdset;
+	struct timeval timeout;
+	int n, err;
+
+//	DEBUGMSG("DirectFB/v4l2: %s...\n", __FUNCTION__);
+
+	cur->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+	FD_ZERO(&rdset);
+	FD_SET(vid, &rdset);
+
+	timeout.tv_sec = 5;
+	timeout.tv_usec = 0;
+
+	n = select(vid + 1, &rdset, NULL, NULL, &timeout);
+	if (n == -1) {
+		PERRORMSG("DirectFB/v4l2: select().\n");
+		return -1;	/* fixme */
+	} else if (n == 0) {
+		PERRORMSG("DirectFB/v4l2: select(), timeout.\n");
+		return -1;	/* fixme */
+	} else if (FD_ISSET(vid, &rdset)) {
+		err = ioctl(vid, VIDIOC_DQBUF, cur);
+		if (err) {
+			PERRORMSG("DirectFB/v4l2: VIDIOC_DQBUF.\n");
+			return -1;	/* fixme */
+		}
+	}
+	return 0;
+}
+
+static void *V4L2_Thread(CoreThread * thread, void *ctx)
+{
+	int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	int i, err;
+
+	IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data *) ctx;
+	CoreSurface *surface = data->destination;
+	SurfaceBuffer *buffer = surface->back_buffer;
+	void *src, *dst;
+	int dst_pitch, src_pitch, h;
+
+	DEBUGMSG("DirectFB/v4l2: %s started.\n", __FUNCTION__);
+
+	src_pitch = DFB_BYTES_PER_LINE(surface->format, surface->width);
+
+	/* Queue all buffers */
+	for (i = 0; i < data->req.count; i++) {
+		struct v4l2_buffer *vidbuf = &data->vidbuf[i];
+
+		if (0 == data->framebuffer_or_system) {
+			vidbuf->m.offset = buffer->video.offset;
+		}
+
+		err = ioctl(data->fd, VIDIOC_QBUF, vidbuf);
+		if (err) {
+			PERRORMSG("DirectFB/v4l2: VIDIOC_QBUF.\n");
+			return NULL;
+		}
+	}
+
+	/* start streaming */
+	if (ioctl(data->fd, VIDIOC_STREAMON, &type)) {
+		PERRORMSG("DirectFB/v4l2: VIDIOC_STREAMON.\n");
+		return NULL;	/* fixme */
+	}
+
+	while (data->running) {
+
+		struct v4l2_buffer cur;
+
+		if (0 != wait_for_buffer(data->fd, &cur)) {
+			return NULL;
+		}
+
+		if (0 != data->framebuffer_or_system) {
+
+		DEBUGMSG("DirectFB/v4l2: index:%d, to system memory.\n", cur.index);
+
+			h = surface->height;
+			src = data->ptr[cur.index];
+			dfb_surface_soft_lock(surface, DSLF_WRITE, &dst, &dst_pitch, 0);
+			while (h--) {
+				dfb_memcpy(dst, src, src_pitch);
+				dst += dst_pitch;
+				src += src_pitch;
+			}
+			if (surface->format == DSPF_I420) {
+				h = surface->height / 2;
+				while (h--) {
+					dfb_memcpy(dst, src, src_pitch);
+					dst += dst_pitch;
+					src += src_pitch;
+				}
+			} else if (surface->format == DSPF_YV12) {
+				h = surface->height / 4;
+				src += h * src_pitch;
+				while (h--) {
+					dfb_memcpy(dst, src, src_pitch);
+					dst += dst_pitch;
+					src += src_pitch;
+				}
+				h = surface->height / 4;
+				src -= 2 * h * src_pitch;
+				while (h--) {
+					dfb_memcpy(dst, src, src_pitch);
+					dst += dst_pitch;
+					src += src_pitch;
+				}
+			}
+			dfb_surface_unlock(surface, 0);
+		} else {
+			DEBUGMSG("DirectFB/v4l2: index:%d, to overlay surface\n", cur.index);
+		}
+
+		if (data->callback)
+			data->callback(data->ctx);
+
+		if (0 != ioctl(data->fd, VIDIOC_QBUF, &cur)) {
+			PERRORMSG("DirectFB/v4l2: VIDIOC_QBUF.\n");
+			return NULL;
+		}
+	}
+
+	return NULL;
+}
+
+static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirectFBVideoProvider_V4L_data * data)
+{
+	SurfaceBuffer *buffer = surface->back_buffer;
+	int bpp, palette;
+
+	int err;
+	int i;
+
+	DEBUGMSG("DirectFB/v4l2: %s...\n", __FUNCTION__);
+
+	switch (surface->format) {
+	case DSPF_YUY2:
+		bpp = 16;
+		palette = V4L2_PIX_FMT_YUYV;
+		break;
+	case DSPF_UYVY:
+		bpp = 16;
+		palette = V4L2_PIX_FMT_UYVY;
+		break;
+/*
+	case DSPF_I420:
+		bpp = 8;
+		palette = VIDEO_PALETTE_YUV420P;
+		break;
+	case DSPF_YV12:
+		bpp = 8;
+		palette = VIDEO_PALETTE_YUV420P;
+		break;
+	case DSPF_ARGB1555:
+		bpp = 15;
+		palette = VIDEO_PALETTE_RGB555;
+		break;
+*/
+	case DSPF_RGB16:
+		bpp = 16;
+		palette = V4L2_PIX_FMT_RGB565;
+		break;
+	case DSPF_RGB24:
+		bpp = 24;
+		palette = V4L2_PIX_FMT_BGR24;
+		break;
+	case DSPF_ARGB:
+	case DSPF_RGB32:
+		bpp = 32;
+		palette = V4L2_PIX_FMT_BGR32;
+		break;
+	default:
+		return DFB_UNSUPPORTED;
+	}
+
+	data->fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	data->fmt.fmt.pix.width = surface->width;
+	data->fmt.fmt.pix.height = surface->height;
+	data->fmt.fmt.pix.pixelformat = palette;
+	data->fmt.fmt.pix.bytesperline = buffer->video.pitch;
+	data->fmt.fmt.pix.field = V4L2_FIELD_INTERLACED; /* fixme: we can do field based capture, too */
+
+	DEBUGMSG("DirectFB/v4l2: surface->width:%d, surface->height:%d.\n", surface->width, surface->height);
+
+	err = ioctl(data->fd, VIDIOC_S_FMT, &data->fmt);
+	if (err) {
+		PERRORMSG("DirectFB/v4l2: VIDIOC_S_FMT.\n");
+		return err;
+	}
+
+	if (data->fmt.fmt.pix.width != surface->width || data->fmt.fmt.pix.height != surface->height) {
+		PERRORMSG("DirectFB/v4l2: driver cannot fulfill application request.\n");
+		return DFB_UNSUPPORTED;	/* fixme */
+	}
+
+	if( 0 != data->brightness.id ) {
+		ioctl(data->fd, VIDIOC_G_CTRL, &data->brightness);
+	}
+	if( 0 != data->contrast.id ) {
+		ioctl(data->fd, VIDIOC_G_CTRL, &data->contrast);
+	}
+	if( 0 != data->saturation.id ) {
+		ioctl(data->fd, VIDIOC_G_CTRL, &data->saturation);
+	}
+	if( 0 != data->hue.id ) {
+		ioctl(data->fd, VIDIOC_G_CTRL, &data->hue);
+	}
+
+	if (surface->caps & DSCAPS_SYSTEMONLY) {
+		data->framebuffer_or_system = 1;
+		data->req.memory = V4L2_MEMORY_MMAP;
+	} else {
+		struct v4l2_framebuffer fb;
+
+		data->framebuffer_or_system = 0;
+		data->req.memory = V4L2_MEMORY_OVERLAY;
+
+		fb.base = (void *) dfb_gfxcard_memory_physical(NULL, 0);
+          	fb.fmt.width = surface->width;
+          	fb.fmt.height = surface->height;
+		fb.fmt.pixelformat = palette;
+
+		DEBUGMSG("w:%d, h:%d, bpp:%d, bpl:%d, base:0x%08lx\n",fb.fmt.width, fb.fmt.height,bpp,fb.fmt.bytesperline, (unsigned long)fb.base);
+
+		if (ioctl(data->fd, VIDIOC_S_FBUF, &fb) < 0) {
+			DFBResult ret = errno2dfb(errno);
+
+			PERRORMSG("DirectFB/v4l: VIDIOCSFBUF failed, must run being root!\n");
+
+			return ret;
+		}
+	}
+
+	/* Ask Video Device for Buffers */
+	data->req.count = NUMBER_OF_BUFFERS;
+	data->req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	err = ioctl(data->fd, VIDIOC_REQBUFS, &data->req);
+	if (err < 0 || data->req.count < NUMBER_OF_BUFFERS) {
+		PERRORMSG("DirectFB/v4l2: VIDIOC_REQBUFS: %d, %d.\n", err, data->req.count);
+		return err;
+	}
+
+	/* Query each buffer and map it to the video device if necessary */
+	for (i = 0; i < data->req.count; i++) {
+		struct v4l2_buffer *vidbuf = &data->vidbuf[i];
+
+		vidbuf->index = i;
+		vidbuf->type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+
+		err = ioctl(data->fd, VIDIOC_QUERYBUF, vidbuf);
+		if (err < 0) {
+			PERRORMSG("DirectFB/v4l2: VIDIOC_QUERYBUF.\n");
+			return err;
+		}
+
+/*
+		if (vidbuf->length == 0) {
+			PERRORMSG("DirectFB/v4l2: length is zero!\n");
+			return -EINVAL;
+		}
+*/
+		if (0 != data->framebuffer_or_system) {
+			data->ptr[i] = mmap(0, vidbuf->length, PROT_READ | PROT_WRITE, MAP_SHARED, data->fd, vidbuf->m.offset);
+			if (data->ptr[i] == MAP_FAILED) {
+				PERRORMSG("DirectFB/v4l2: mmap().\n");
+				return err;
+			}
+		}
+		DEBUGMSG("DirectFB/v4l2: len:0x%08x, %d => 0x%08x\n", vidbuf->length, i, (__u32) data->ptr[i]);
+	}
+
+	if (!data->cleanup)
+		data->cleanup = dfb_core_cleanup_add(v4l_cleanup, data, true);
+
+	data->destination = surface;
+
+	dfb_surface_attach(surface, v4l_systemsurface_listener, data, &data->reaction);
+
+	data->running = true;
+
+	data->thread = dfb_thread_create(CTT_ANY, V4L2_Thread, data);
+
+	return DFB_OK;
+}
+#endif
