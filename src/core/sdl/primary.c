@@ -544,7 +544,8 @@ primaryReallocateSurface ( DisplayLayer               *layer,
           DFBResult    ret;
           CorePalette *palette;
            
-          ret = dfb_palette_create( 256, &palette );
+          ret = dfb_palette_create( 1 << DFB_BITS_PER_PIXEL( config->pixelformat ),
+                                    &palette );
           if (ret)
                return ret;
 
