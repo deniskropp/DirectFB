@@ -171,7 +171,7 @@ driver_open_device( CoreInputDevice      *device,
      /* open device */
      fd = open( dfb_config->h3600_device ? : "/dev/ts", O_RDONLY | O_NOCTTY );
      if (fd < 0) {
-          D_PERROR( "DirectFB/H3600: Error opening `/dev/ts'!\n" );
+          D_PERROR( "DirectFB/H3600: Error opening `%s'!\n", dfb_config->h3600_device ? : "/dev/ts" );
           return DFB_INIT;
      }
 
@@ -227,7 +227,7 @@ driver_close_device( void *driver_data )
 
      /* close device */
      if (close( data->fd ) < 0)
-          D_PERROR( "DirectFB/H3600: Error closing `/dev/ts'!\n" );
+          D_PERROR( "DirectFB/H3600: Error closing `%s'!\n", dfb_config->h3600_device ? : "/dev/ts" );
 
      /* free private data */
      D_FREE( data );
