@@ -465,26 +465,196 @@ static void Bop_a8_Kto_Aop( GenefxState *gfxs )
 
 static void Bop_8_Kto_Aop( GenefxState *gfxs )
 {
-     int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop;
-     __u8  *S     = gfxs->Bop;
-     __u32  Skey  = gfxs->Skey;
-     int    Ostep = gfxs->Ostep;
+     int    i;
+     int    w    = gfxs->length;
+     __u8  *D    = gfxs->Aop;
+     __u8  *S    = gfxs->Bop;
+     __u32  Skey = gfxs->Skey;
 
-     if (Ostep < 0) {
-          D += gfxs->length - 1;
-          S += gfxs->length - 1;
+     if (gfxs->Ostep < 0) {
+          for (i=w-1; i>=0; --i) {
+               register __u32 pixel = S[i];
+
+               if (pixel != Skey)
+                    D[i] = pixel;
+          }
      }
+#ifdef __MIPSEB__   /* FIXME: fix little endian */
+     else if (((long) S & 3) == ((long) D & 3)) {
+          __u32 *D32;
+          __u32 *S32;
+          __u32  Skey32;
+          int    n = 0;
 
-     while (w--) {
-          __u8 spixel = *S;
+          /* Align source & destination to 32 bit. */
+          if ((long) D & 3) {
+               n = 4 - ((long) D & 3);
+               
+               for (i=0; i<n; i++) {
+                    register __u32 pixel = S[i];
 
-          if (spixel != Skey)
-               *D = spixel;
+                    if (pixel != Skey)
+                         D[i] = pixel;
+               }
 
-          S += Ostep;
-          D += Ostep;
+               w -= n;
+          }
+
+          D32 = gfxs->Aop + n;
+          S32 = gfxs->Bop + n;
+          
+          /* Fill 32 bit with 8 bit key. */
+          Skey32 = (Skey << 24) | (Skey << 16) | (Skey << 8) | Skey;
+
+          /* Compare four pixels at once. */
+          n = w >> 2;
+          for (i=0; i<n; i++) {
+               __u32 P32 = S32[i];
+               __u32 X32 = P32 ^ Skey32;
+
+               if (X32) {
+                    /* Check for common case. */
+                    if ((X32 & 0xff000000) &&
+                        (X32 & 0x00ff0000) &&
+                        (X32 & 0x0000ff00) &&
+                        (X32 & 0x000000ff))
+                    {
+                         /* Copy all four pixels. */
+                         D32[i] = P32;
+                    }
+                    else {
+                         /* Copy one by one. */
+                         D = (__u8*) (D32 + i);
+                         
+#ifdef WORDS_BIGENDIAN
+                         if (X32 & 0xff000000)
+                              D[0] = (__u8)P32 >> 24;
+
+                         if (X32 & 0x00ff0000)
+                              D[1] = P32 >> 16;
+
+                         if (X32 & 0x0000ff00)
+                              D[2] = P32 >> 8;
+
+                         if (X32 & 0x000000ff)
+                              D[3] = P32;
+
+#else
+                         
+                         if (X32 & 0x000000ff)
+                              D[0] = P32;
+
+                         if (X32 & 0x0000ff00)
+                              D[1] = P32 >> 8;
+
+                         if (X32 & 0x00ff0000)
+                              D[2] = P32 >> 16;
+
+                         if (X32 & 0xff000000)
+                              D[3] = P32 >> 24;
+#endif
+                    }
+               }
+          }
+
+          /* Copy remaining pixels one by one. */
+          if (w & 3) {
+               D = (__u8*) (D32 + n);
+               S = (__u8*) (S32 + n);
+
+               n = w & 3;
+               
+               for (i=0; i<n; i++) {
+                    register __u32 pixel = S[i];
+
+                    if (pixel != Skey)
+                         D[i] = pixel;
+               }
+          }
      }
+     else {
+          register __u32 out = 0;     /* Collect output pixels. */
+          register int   num = 0;     /* Count output pixels. */
+
+          /* Align destination to 32 bit. */
+          if (((long) D & 3) && w > 4) {
+               int n = 4 - ((long) D & 3);
+
+               for (i=0; i<n; i++) {
+                    register __u32 pixel = S[i];
+
+                    if (pixel != Skey)
+                         D[i] = pixel;
+               }
+
+               w -= n;
+               D += n;
+               S += n;
+          }
+          
+          /* Write up to 32 bit at once. */
+          for (i=0; i<w; ++i) {
+               register __u32 pixel = S[i];
+               
+               if (pixel != Skey) {
+                    out = (out << 8) | pixel;
+                    
+                    if (++num == 4) {
+                         *(__u32*)(D+i-3) = out;
+
+                         num = 0;
+                    }
+                    else if ((i & 3) == 3) {
+                         /* Flush 'out' to realign destination to 32 bit. */
+                         switch (num) {
+                              case 3:
+                                   D[i-2] = out >> 16;
+                              case 2:
+                                   D[i-1] = out >> 8;
+                              case 1:
+                                   D[i] = out;
+                         }
+                         
+                         num = 0;
+                    }
+               }
+               else while (num) {
+                    /* Flush 'out' due to a keyed pixel. */
+                    switch (num) {
+                         case 3:
+                              D[i-3] = out >> 16;
+                         case 2:
+                              D[i-2] = out >> 8;
+                         case 1:
+                              D[i-1] = out;
+                    }
+                    
+                    num = 0;
+               }
+          }
+          
+          /* Flush 'out'. */
+          if (num) {
+               switch (num) {
+                    case 3:
+                         D[i-3] = out >> 16;
+                    case 2:
+                         D[i-2] = out >> 8;
+                    case 1:
+                         D[i-1] = out;
+               }
+          }
+     }
+#else
+     else {
+          for (i=0; i<w; ++i) {
+               register __u32 pixel = S[i];
+
+               if (pixel != Skey)
+                    D[i] = pixel;
+          }
+     }
+#endif
 }
 
 static void Bop_alut44_Kto_Aop( GenefxState *gfxs )
@@ -3820,7 +3990,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      CHECK_PIPELINE();
 
-     if (dx > rect->x)
+     if (gfxs->src_org == gfxs->dst_org && dx > rect->x)
           /* we must blit from right to left */
           gfxs->Ostep = -1;
      else
