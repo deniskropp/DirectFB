@@ -463,9 +463,23 @@ static DFBResult surface_init ( CoreSurface           *surface,
                                 DFBSurfacePixelFormat  format,
                                 DFBSurfaceCapabilities caps )
 {
-     if (DFB_PIXELFORMAT_INDEX( format ) == 0) {
-          BUG( "unknown pixel format" );
-          return DFB_BUG;
+     switch (format) {
+          case DSPF_A8:
+          case DSPF_ARGB:
+          case DSPF_I420:
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_RGB332:
+          case DSPF_UYVY:
+          case DSPF_YUY2:
+          case DSPF_YV12:
+               break;
+
+          default:
+               BUG( "unknown pixel format" );
+               return DFB_BUG;
      }
 
      surface->width   = width;
