@@ -27,8 +27,11 @@ Additional Requirements for some Demos
      Please stop gpm before using the mouse in DirectFB.
    - Video card supported by video4linux for df_video
    - A very recent version of avifile is required to build an optional AVI 
-     videoprovider; enable building it by passing --enable-avifile to 
+     videoprovider. If you have avifile, but not the correct version, you 
+     can explicetely disable building it by passing --disable-avifile to 
      configure.
+   - To build the SWF videoprovider, you need libflash. We have build a 
+     package that can be found at http://www.directfb.org/download.
    - Joystick for df_joystick
 
 

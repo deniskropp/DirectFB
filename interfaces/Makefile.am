@@ -13,13 +13,20 @@ else
 AVIFILE_PROVIDER_LTLIB =
 endif
 
+if FLASH_PROVIDER
+FLASH_PROVIDER_LTLIB = libidirectfbvideoprovider_swf.la
+else
+FLASH_PROVIDER_LTLIB =
+endif
+
 interfaces_LTLIBRARIES = \
 	libidirectfbfont_ft2.la			\
 	libidirectfbimageprovider_png.la	\
 	libidirectfbimageprovider_gif.la	\
 	libidirectfbimageprovider_jpeg.la	\
+	libidirectfbvideoprovider_v4l.la	\
 	$(AVIFILE_PROVIDER_LTLIB)		\
-	libidirectfbvideoprovider_v4l.la
+	$(FLASH_PROVIDER_LTLIB)
 
 interfacesdir = $(LIBDIR)/interfaces
 
@@ -55,6 +62,13 @@ libidirectfbvideoprovider_avifile_la_SOURCES = idirectfbvideoprovider_avifile.cp
 libidirectfbvideoprovider_avifile_la_LIBADD = $(AVIFILE_LIBS)
 
 libidirectfbvideoprovider_avifile_la_LDFLAGS = -avoid-version -module -disable-static
+
+
+libidirectfbvideoprovider_swf_la_SOURCES = idirectfbvideoprovider_swf.c
+
+libidirectfbvideoprovider_swf_la_LIBADD = $(LIBFLASH)
+
+libidirectfbvideoprovider_swf_la_LDFLAGS = -avoid-version -module -disable-static
 
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c
