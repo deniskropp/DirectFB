@@ -44,7 +44,7 @@ static void config_print_usage()
 {
      fprintf(stderr,
              "\n"
-             "Options are:\n"
+             "DirectFB options are:\n"
              " --quiet                           "
              "No text output except debugging\n"
              " --no-banner                       "
