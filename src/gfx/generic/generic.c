@@ -37,6 +37,7 @@
 #include <misc/util.h>
 #include <misc/conf.h>
 #include <gfx/convert.h>
+#include <gfx/util.h>
 
 #include <config.h>
 
@@ -1711,6 +1712,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
+          case DFXL_FILLTRIANGLE:
                if (state->drawingflags & DSDRAW_BLEND) {
 
                     /* not yet completed optimizing checks */
@@ -2065,6 +2067,64 @@ void gDrawLine( DFBRegion *line )
                Aop = dst_org + py * dst_pitch + px * dst_bpp;
                RUN_PIPELINE();
           }
+     }
+}
+
+static inline void gFillTrapezoid( int Xl, int Xr, int X2l, int X2r, int Y, int dY )
+{
+  int dXl = ((X2l - Xl) << 20) / dY;
+  int dXr = ((X2r - Xr) << 20) / dY;
+
+  Xl <<= 20;
+  Xr <<= 20;
+
+  while (dY--) {
+    Aop = dst_org  +  Y++ * dst_pitch  +  ((Xl + (1<<19)) >> 20) * dst_bpp;
+    Dlength = ((Xr + (1<<19)) >> 20) - ((Xl + (1<<19)) >> 20);
+
+    if (Dlength)
+      RUN_PIPELINE();
+
+    Xl += dXl;
+    Xr += dXr;
+  }
+}
+
+void gFillTriangle( DFBTriangle *tri )
+{
+     sort_triangle( tri );
+
+     if (tri->y2 == tri->y3) {
+       gFillTrapezoid( tri->x1, tri->x1,
+		       MIN( tri->x2, tri->x3 ), MAX( tri->x2, tri->x3 ),
+		       tri->y1, tri->y3 - tri->y1 + 1 );
+     } else
+     if (tri->y1 == tri->y2) {
+       gFillTrapezoid( MIN( tri->x1, tri->x2 ), MAX( tri->x1, tri->x2 ),
+		       tri->x3, tri->x3,
+		       tri->y1, tri->y3 - tri->y1 + 1 );
+     }
+     else {
+       int majDx = tri->x3 - tri->x1;
+       int majDy = tri->y3 - tri->y1;
+       int topDx = tri->x2 - tri->x1;
+       int topDy = tri->y2 - tri->y1;
+       int botDy = tri->y3 - tri->y2;
+
+       int topXperY = (topDx << 20) / topDy;
+       int X2a = tri->x1 + (((topXperY * topDy) + (1<<19)) >> 20);
+
+       int majXperY = (majDx << 20) / majDy;
+       int majX2  = tri->x1 + (((majXperY * topDy) + (1<<19)) >> 20);
+       int majX2a = majX2 - ((majXperY + (1<<19)) >> 20);
+
+       
+       gFillTrapezoid( tri->x1, tri->x1,
+		       MIN( X2a, majX2a ), MAX( X2a, majX2a ),
+		       tri->y1, topDy );
+       gFillTrapezoid( MIN( tri->x2, majX2 ), MAX( tri->x2, majX2 ),
+		       tri->x3, tri->x3,
+		       tri->y2, botDy + 1 );
      }
 }
 

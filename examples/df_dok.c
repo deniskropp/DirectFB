@@ -89,6 +89,8 @@ struct {
      float drawstring;
      float fillrectangle;
      float fillrectangle_blend;
+     float filltriangle;
+     float filltriangle_blend;
      float drawrectangle;
      float drawrectangle_blend;
      float drawline;
@@ -188,6 +190,14 @@ void showResult()
      dest.y += 40;
      primary->StretchBlit( primary, meter, NULL, &dest );
 
+     dest.w = (int)( result.filltriangle * factor ); 
+     dest.y += 40;
+     primary->StretchBlit( primary, meter, NULL, &dest );
+
+     dest.w = (int)( result.filltriangle_blend * factor ); 
+     dest.y += 40;
+     primary->StretchBlit( primary, meter, NULL, &dest );
+
      dest.w = (int)( result.drawrectangle * factor ); 
      dest.y += 40;
      primary->StretchBlit( primary, meter, NULL, &dest );
@@ -229,7 +239,7 @@ void showResult()
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0x40 );
-     for (i=0; i<12; i++) {
+     for (i=0; i<13; i++) {
           primary->DrawLine( primary, 40, 89 + 40*i, SW-40, 89 + 40*i );
      }
      
@@ -237,15 +247,17 @@ void showResult()
      primary->DrawString( primary, "Anti-aliased Text", 20, 75, DSTF_LEFT );
      primary->DrawString( primary, "Fill Rectangles", 20, 115, DSTF_LEFT );
      primary->DrawString( primary, "Fill Rectangles (blend)", 20, 155, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Rectangles", 20, 195, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Rectangles (blend)", 20, 235, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Lines", 20, 275, DSTF_LEFT );
-     primary->DrawString( primary, "Draw Lines (blend)", 20, 315, DSTF_LEFT );
-     primary->DrawString( primary, "Blit", 20, 355, DSTF_LEFT );
-     primary->DrawString( primary, "Blit colorkeyed", 20, 395, DSTF_LEFT );
-     primary->DrawString( primary, "Blit with format conversion", 20, 435, DSTF_LEFT );
-     primary->DrawString( primary, "Blit from 32bit (alphachannel blend)", 20, 475, DSTF_LEFT );
-     primary->DrawString( primary, "Stretched Blit", 20, 515, DSTF_LEFT );
+     primary->DrawString( primary, "Fill Triangles", 20, 195, DSTF_LEFT );
+     primary->DrawString( primary, "Fill Triangles (blend)", 20, 235, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Rectangles", 20, 275, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Rectangles (blend)", 20, 315, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Lines", 20, 355, DSTF_LEFT );
+     primary->DrawString( primary, "Draw Lines (blend)", 20, 395, DSTF_LEFT );
+     primary->DrawString( primary, "Blit", 20, 435, DSTF_LEFT );
+     primary->DrawString( primary, "Blit colorkeyed", 20, 475, DSTF_LEFT );
+     primary->DrawString( primary, "Blit with format conversion", 20, 515, DSTF_LEFT );
+     primary->DrawString( primary, "Blit from 32bit (alphachannel blend)", 20, 555, DSTF_LEFT );
+     primary->DrawString( primary, "Stretched Blit", 20, 595, DSTF_LEFT );
      
      primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
      sprintf( rate, "%.2f KChar/sec", result.drawstring );
@@ -254,24 +266,28 @@ void showResult()
      primary->DrawString( primary, rate, SW-40, 120, DSTF_RIGHT );
      sprintf( rate, "%.2f MPixel/sec", result.fillrectangle_blend );
      primary->DrawString( primary, rate, SW-40, 160, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawrectangle );
+     sprintf( rate, "%.2f MPixel/sec", result.filltriangle );
      primary->DrawString( primary, rate, SW-40, 200, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawrectangle_blend );
+     sprintf( rate, "%.2f MPixel/sec", result.filltriangle_blend );
      primary->DrawString( primary, rate, SW-40, 240, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawline );
+     sprintf( rate, "%.2f MPixel/sec", result.drawrectangle );
      primary->DrawString( primary, rate, SW-40, 280, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.drawline_blend );
+     sprintf( rate, "%.2f MPixel/sec", result.drawrectangle_blend );
      primary->DrawString( primary, rate, SW-40, 320, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit );
+     sprintf( rate, "%.2f MPixel/sec", result.drawline );
      primary->DrawString( primary, rate, SW-40, 360, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit_colorkey );
+     sprintf( rate, "%.2f MPixel/sec", result.drawline_blend );
      primary->DrawString( primary, rate, SW-40, 400, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit_32 );
+     sprintf( rate, "%.2f MPixel/sec", result.blit );
      primary->DrawString( primary, rate, SW-40, 440, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.blit_alpha );
+     sprintf( rate, "%.2f MPixel/sec", result.blit_colorkey );
      primary->DrawString( primary, rate, SW-40, 480, DSTF_RIGHT );
-     sprintf( rate, "%.2f MPixel/sec", result.stretchblit );
+     sprintf( rate, "%.2f MPixel/sec", result.blit_32 );
      primary->DrawString( primary, rate, SW-40, 520, DSTF_RIGHT );
+     sprintf( rate, "%.2f MPixel/sec", result.blit_alpha );
+     primary->DrawString( primary, rate, SW-40, 560, DSTF_RIGHT );
+     sprintf( rate, "%.2f MPixel/sec", result.stretchblit );
+     primary->DrawString( primary, rate, SW-40, 600, DSTF_RIGHT );
 
 
      key_events->Reset( key_events );
@@ -457,8 +473,8 @@ int main( int argc, char *argv[] )
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
                                   rand()%0xFF, 0xFF );
-               primary->FillRectangle( primary, rand()%(SW-SX), rand()%(SH-SY),
-                                       SX, SY );
+	       primary->FillRectangle( primary,
+				       rand()%(SW-SX), rand()%(SH-SY), SX, SY );
           }
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.fillrectangle = SX*SY*(i/dt)/1000000.0f;
@@ -477,13 +493,55 @@ int main( int argc, char *argv[] )
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
                                   rand()%0xFF, rand()%0x64 );
-               primary->FillRectangle( primary, rand()%(SW-SX), rand()%(SH-SY),
-                                       SX, SY );
+	       primary->FillRectangle( primary,
+				       rand()%(SW-SX), rand()%(SH-SY), SX, SY );
           }
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.fillrectangle_blend = SX*SY*(i/dt)/1000000.0f;
           printf( "FillRectangle (blend):  %6.2f secs (%6.2f MPixel/sec)\n",
                   dt, result.fillrectangle_blend );
+
+
+
+          showMessage( "Ok, we'll go on with some opaque filled triangles!" );
+
+          showStatus( "Triangle Filling" );
+          sync();
+          t = clock();
+          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+               int x = rand()%(SW-SX);
+               int y = rand()%(SH-SY);
+
+               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
+                                  rand()%0xFF, 0xFF );
+	       primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
+          }
+          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
+          result.filltriangle = SX*SY*(i/dt)/1000000.0f / 2.0f;
+          printf( "FillTriangle:           %6.2f secs (%6.2f MPixel/sec)\n",
+                  dt, result.filltriangle );
+          
+          
+          
+          showMessage( "What about alpha blended triangles?" );
+
+          showStatus( "Alpha Blended Triangle Filling" );
+
+          sync();
+          t = clock();
+          primary->SetDrawingFlags( primary, DSDRAW_BLEND );
+          for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
+               int x = rand()%(SW-SX);
+               int y = rand()%(SH-SY);
+
+               primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
+                                  rand()%0xFF, rand()%0x64 );
+	       primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
+          }
+          dt = (clock() - t) / (float)CLOCKS_PER_SEC;
+          result.filltriangle_blend = SX*SY*(i/dt)/1000000.0f / 2.0f;
+          printf( "FillTriangle (blend):   %6.2f secs (%6.2f MPixel/sec)\n",
+                  dt, result.filltriangle_blend );
 
 
           

@@ -466,12 +466,14 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      }
      else
      {
-/* FIXME          if (clip_triangle( &state->clip, tri ) &&
-               gAquire( state, DFXL_DRAWLINE ))
+          ONCE("No clipping for triangles yet!");
+
+          if (/*clip_triangle( &state->clip, tri ) &&*/
+               gAquire( state, DFXL_FILLTRIANGLE ))
           {
-               gDrawLine( line );
+               gFillTriangle( tri );
                gRelease( state );
-          }*/
+          }
      }
 }
 
