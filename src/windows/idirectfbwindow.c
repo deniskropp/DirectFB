@@ -89,9 +89,6 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
      DEBUGMSG("IDirectFBWindow_Destruct...\n");
      
-     if (data->surface)
-          data->surface->Release( data->surface );
-
      if (!data->detached) {
           DEBUGMSG("IDirectFBWindow_Destruct - detaching...\n");
           
@@ -107,6 +104,9 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           
           DEBUGMSG("IDirectFBWindow_Destruct - unref done.\n");
      }
+
+     if (data->surface)
+          data->surface->Release( data->surface );
 
      DEBUGMSG("IDirectFBWindow_Destruct - done.\n");
 

@@ -38,6 +38,8 @@
 
 #include <config.h>
 
+#include <core/fusion/fusion.h>
+
 #include <misc/conf.h>
 #include <misc/util.h>
 
@@ -81,7 +83,7 @@ static inline key_t keygen (const char *name, const long type)
      #define FDEBUG(x...)   do { if (dfb_config->debug) {                      \
                                  fprintf( stderr, "(-) [%d: %5lld] DirectFB/"  \
                                           "core/fusion: (%s) ", getpid(),      \
-                                          dfb_get_millis(), __FUNCTION__ );    \
+                                          fusion_get_millis(), __FUNCTION__ ); \
                                  fprintf( stderr, x );                         \
                                  fflush( stderr );                             \
                             } } while (0)
@@ -90,7 +92,7 @@ static inline key_t keygen (const char *name, const long type)
 #define FERROR(x...) do \
 { \
      fprintf( stderr, "(!) [%d: %5lld] DirectFB/core/fusion: (%s) ",           \
-              getpid(), dfb_get_millis(), __FUNCTION__ );                      \
+              getpid(), fusion_get_millis(), __FUNCTION__ );                   \
      fprintf( stderr, x );                                                     \
      fflush( stderr );                                                         \
 } while (0)
@@ -98,7 +100,7 @@ static inline key_t keygen (const char *name, const long type)
 #define FPERROR(x...) do \
 { \
      fprintf( stderr, "(!) [%d: %5lld] DirectFB/core/fusion: (%s) ",           \
-              getpid(), dfb_get_millis(), __FUNCTION__ );                      \
+              getpid(), fusion_get_millis(), __FUNCTION__ );                   \
      fprintf( stderr, x );                                                     \
      fprintf( stderr, "    --> " );                                            \
      perror("");                                                               \

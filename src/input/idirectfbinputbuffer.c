@@ -125,7 +125,8 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      while (data->windows) {
           AttachedWindow *window = (AttachedWindow*) data->windows;
 
-          dfb_window_detach( window->window, &window->reaction );
+          if (window->window)
+               dfb_window_detach( window->window, &window->reaction );
           fusion_list_remove( &data->windows, data->windows );
           DFBFREE( window );
      }
@@ -488,7 +489,12 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
           while (window) {
                if (window->window->id == evt->window_id) {
                     fusion_list_remove( &data->windows, &window->link );
-                    DFBFREE( window );
+                    
+                    /* free memory later, because reactor writes to it
+                       after we return RS_REMOVE */
+                    //DFBFREE( window );
+                    window->window = NULL;
+
                     break;
                }
 

@@ -34,6 +34,8 @@
 
 #include <config.h>
 
+#include <core/fusion/fusion.h>
+
 /* #define HEAVYDEBUG */
 
 #include <misc/conf.h>
@@ -75,7 +77,7 @@
 
      #define DEBUGMSG(x...)   do { if (!dfb_config || dfb_config->debug) {     \
                                    fprintf( stderr, "(-) [%d: %5lld] ",        \
-                                            getpid(), dfb_get_millis() );      \
+                                            getpid(), fusion_get_millis() );   \
                                    fprintf( stderr, x );                       \
                                    fflush( stderr );                           \
                               } } while (0)
@@ -84,8 +86,9 @@
                                    fprintf( stderr, "(!) [%d: %5lld] *** "     \
                                                     "Assertion [%s] failed! "  \
                                                     "*** %s (%d)\n", getpid(), \
-                                                    dfb_get_millis(), #exp,    \
+                                                    fusion_get_millis(), #exp, \
                                                     __FILE__, __LINE__ );      \
+                                   fflush( stderr );                           \
                                    kill( 0, SIGSEGV );                         \
                               }
 

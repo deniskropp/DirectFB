@@ -230,10 +230,8 @@ fusion_get_millis()
 {
      struct timeval tv;
      
-     if (!fusion) {
-          FERROR("called without being initialized!\n");
-          return -1;
-     }
+     if (!fusion || !fusion->fid)
+          return 0;
      
      gettimeofday( &tv, NULL );
 
