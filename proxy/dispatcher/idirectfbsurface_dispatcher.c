@@ -612,6 +612,25 @@ Dispatch_GetSize( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_GetVisibleRectangle( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                              VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult    ret;
+     DFBRectangle rect;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     ret = real->GetVisibleRectangle( real, &rect );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBRectangle), &rect,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetPixelFormat( IDirectFBSurface *thiz, IDirectFBSurface *real,
                          VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1193,6 +1212,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
      switch (msg->method) {
           case IDIRECTFBSURFACE_METHOD_ID_GetSize:
                return Dispatch_GetSize( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_GetVisibleRectangle:
+               return Dispatch_GetVisibleRectangle( dispatcher, real, manager, msg );
 
           case IDIRECTFBSURFACE_METHOD_ID_GetPixelFormat:
                return Dispatch_GetPixelFormat( dispatcher, real, manager, msg );

@@ -236,21 +236,42 @@ IDirectFBSurface_Requestor_GetSize( IDirectFBSurface *thiz,
 
      voodoo_manager_finish_request( data->manager, response );
 
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBSurface_Requestor_GetVisibleRectangle( IDirectFBSurface *thiz,
                                                 DFBRectangle     *rect )
 {
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      if (!rect)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSURFACE_METHOD_ID_GetVisibleRectangle,
+                                   VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_READ_DATA( parser, rect, sizeof(DFBRectangle) );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
 }
 
 static DFBResult
