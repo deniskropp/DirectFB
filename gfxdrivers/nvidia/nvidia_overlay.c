@@ -37,6 +37,7 @@
 #include <direct/messages.h>
 
 #include "nvidia.h"
+#include "nvidia_mmio.h"
 
 
 typedef struct {
@@ -94,7 +95,6 @@ ov0InitLayer( CoreLayer                  *layer,
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
-     __u32                   vram  = dfb_system_videoram_length();
 
      /* set capabilities and type */
      description->caps =  DLCAPS_SURFACE      | DLCAPS_SCREEN_LOCATION |
@@ -125,14 +125,6 @@ ov0InitLayer( CoreLayer                  *layer,
      adjustment->contrast   = 0x8000;
      adjustment->saturation = 0x8000;
      adjustment->hue        = 0x8000;
-
-     /* set video memory start and limit */
-     if (nvdrv->chip != 0x2a0) {
-          nvdrv->PVIDEO[0x920/4] = 0;
-          nvdrv->PVIDEO[0x924/4] = 0;
-          nvdrv->PVIDEO[0x908/4] = (vram - 1) & nvdrv->fb_mask;
-          nvdrv->PVIDEO[0x90C/4] = (vram - 1) & nvdrv->fb_mask;
-     }
 
      /* reset overlay */
      nvov0->brightness = 0;

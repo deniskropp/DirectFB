@@ -21,6 +21,7 @@ libdirectfb_nvidia_la_SOURCES = \
      nvidia_primary.c \
      nvidia_overlay.c \
      nvidia.h         \
+     nvidia_mmio.h    \
      nvidia_tables.h  \
      nvidia_2d.h      \
      nvidia_3d.h

@@ -31,6 +31,7 @@
 
 #include <dfb_types.h>
 
+#include <core/state.h>
 #include <core/screens.h>
 #include <core/layers.h>
 
@@ -430,40 +431,48 @@ typedef struct
 
 
 typedef struct {
-     DFBSurfacePixelFormat  dst_format;
-     __u32                  dst_offset;
-     __u32                  dst_pitch;
+     StateModificationFlags  reloaded;
+     
+     DFBSurfacePixelFormat   dst_format;
+     __u32                   dst_offset;
+     __u32                   dst_pitch;
 
-     DFBSurfacePixelFormat  src_format;
-     __u32                  src_offset;
-     __u32                  src_pitch;
-     __u32                  src_width;
-     __u32                  src_height;
+     DFBSurfacePixelFormat   src_format;
+     __u32                   src_offset;
+     __u32                   src_pitch;
+     __u32                   src_width;
+     __u32                   src_height;
 
-     __u32                  color;
-     __u32                  color3d;
-     __u32                  blitfx;
-     __u8                   alpha;
+     __u32                   depth_offset;
+     __u32                   depth_pitch;
 
+     __u32                   color;
+     __u32                   blitfx;
+     __u8                    alpha;
+
+     /* 3D stuff */
+     __u32                   tex_offset; /* texture buffer offset  */
+     __u32                  *tex_origin; /* texture buffer address */
+     __u32                   col_offset; /* color buffer offset    */
+     __u32                   color3d;
+     
      struct {
-          __u32             colorkey;
-          __u32             offset;
-          __u32             format;
-          __u32             filter;
-          __u32             blend;
-          __u32             control;
-          __u32             fog;
+          __u32              colorkey;
+          __u32              offset;
+          __u32              format;
+          __u32              filter;
+          __u32              blend;
+          __u32              control;
+          __u32              fog;
      } state3d;
 
-     bool                   reloaded;
-
      /* for fifo/performance monitoring */
-     unsigned int           fifo_space;
-     unsigned int           waitfifo_sum;
-     unsigned int           waitfifo_calls;
-     unsigned int           fifo_waitcycles;
-     unsigned int           idle_waitcycles;
-     unsigned int           fifo_cache_hits;
+     unsigned int            fifo_space;
+     unsigned int            waitfifo_sum;
+     unsigned int            waitfifo_calls;
+     unsigned int            fifo_waitcycles;
+     unsigned int            idle_waitcycles;
+     unsigned int            fifo_cache_hits;
 } NVidiaDeviceData;
 
 
@@ -513,30 +522,6 @@ extern DisplayLayerFuncs  nvidiaOldPrimaryLayerFuncs;
 extern void              *nvidiaOldPrimaryLayerDriverData;
 
 extern DisplayLayerFuncs  nvidiaOverlayFuncs;
-
-
-#define nv_waitfifo( nvdev, ptr, space )                    \
-{                                                           \
-     int waitcycles = 0;                                    \
-                                                            \
-     (nvdev)->waitfifo_sum += (space);                      \
-     (nvdev)->waitfifo_calls++;                             \
-                                                            \
-     if ((nvdev)->fifo_space < (space)) {                   \
-          do {                                              \
-               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
-               if (++waitcycles > 0x10000) {                \
-                    D_BREAK( "card hung" );                 \
-                    break;                                  \
-               }                                            \
-          } while ((nvdev)->fifo_space < (space));          \
-                                                            \
-          (nvdev)->fifo_waitcycles += waitcycles;           \
-     } else                                                 \
-          (nvdev)->fifo_cache_hits++;                       \
-                                                            \
-     (nvdev)->fifo_space -= (space);                        \
-}
 
 
 #endif /* __NVIDIA_H__ */

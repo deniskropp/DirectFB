@@ -37,6 +37,7 @@
 #include <direct/messages.h>
 
 #include "nvidia.h"
+#include "nvidia_mmio.h"
 
 
 
@@ -67,16 +68,16 @@ nvcrtc1InitScreen( CoreScreen           *screen,
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "NVidia Primary Screen" );
 
-     /* turn off VBlank enable */
-     PCRTC[0x140/4] = 0x00000000;
-     /* set screen type (0=vga, 2=hsync) */
+     /* NV_PCRTC_INTR_EN_0 */
+     nv_out32( PCRTC, 0x140, 0x00000000 );
+     /* NV_PCRTC_CONFIG */
 #ifdef WORDS_BIGENDIAN
-     PCRTC[0x804/4] = 0x80000002;
+     nv_out32( PCRTC, 0x804, 0x80000002 );
 #else
-     PCRTC[0x804/4] = 0x00000002;
+     nv_out32( PCRTC, 0x804, 0x00000002 );
 #endif
-     /* reset VBlank */
-     PCRTC[0x100/4] = 0x00000001;
+     /* NV_PCRTC_INTR_0 */
+     nv_out32( PCRTC, 0x100, 0x00000001 );
 
      return DFB_OK;
 }
@@ -93,11 +94,11 @@ nvcrtc1SetPowerMode( CoreScreen         *screen,
      __u8              sr;
      __u8              cr;
 
-     PVIO[0x3C4] = 0x01;
-     sr = PVIO[0x3C5] & ~0x20; /* screen on/off */
+     nv_out8( PVIO, 0x3C4, 0x01 );
+     sr = nv_in8( PVIO, 0x3C5 ) & ~0x20; /* screen on/off */
 
-     PCIO[0x3D4] = 0x1A;
-     cr = PCIO[0x3D5] & ~0xC0; /* sync on/off */
+     nv_out8( PCIO, 0x3D4, 0x1A );
+     cr = nv_in8( PCIO, 0x3D5 ) & ~0xC0; /* sync on/off */
 
      switch (mode) {
           case DSPM_OFF:
@@ -118,11 +119,11 @@ nvcrtc1SetPowerMode( CoreScreen         *screen,
                return DFB_INVARG;
      }
 
-     PVIO[0x3C4] = 0x01;
-     PVIO[0x3C5] = sr;
+     nv_out8( PVIO, 0x3C4, 0x01 );
+     nv_out8( PVIO, 0x3C5, sr );
 
-     PCIO[0x3D4] = 0x1A;
-     PCIO[0x3D5] = cr;
+     nv_out8( PCIO, 0x3D4, 0x1A );
+     nv_out8( PCIO, 0x3D5, cr );
 
      return DFB_OK;
 }
@@ -137,11 +138,11 @@ nvcrtc1WaitVSync( CoreScreen *screen,
 
      if (!dfb_config->pollvsync_none) {
           /* not the right way, use with caution */
-          while (  PCIO[0x3DA] & 8 );
-          while (!(PCIO[0x3DA] & 8));
+          while (  nv_in8( PCIO, 0x3DA ) & 8 );
+          while (!(nv_in8( PCIO, 0x3DA ) & 8));
           // the same but uses PCRTC
-          //while (  PCRTC[0x808/4] & 0x10000 );
-          //while (!(PCRTC[0x808/4] & 0x10000));
+          //while (  nv_in32( nvdrv->PCRTC, 0x808 ) & 0x10000 );
+          //while (!(nv_in32( nvdrv->PCRTC, 0x808 ) & 0x10000));
      }
 
      return DFB_OK;
@@ -202,7 +203,8 @@ nvfb0FlipRegion( CoreLayer           *layer,
           offset += nvdrv->fb_base;
      offset &= nvdrv->fb_mask;
 
-     nvdrv->PCRTC[0x800/4] = offset;
+     /* NV_PCRTC_START */
+     nv_out32( nvdrv->PCRTC, 0x800, offset );
 
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( dfb_screens_at( DSCID_PRIMARY ) );

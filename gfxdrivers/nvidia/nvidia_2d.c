@@ -30,6 +30,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 
 #include <directfb.h>
 
@@ -42,6 +43,7 @@
 #include <core/surfaces.h>
 
 #include "nvidia.h"
+#include "nvidia_mmio.h"
 #include "nvidia_2d.h"
 
 
@@ -205,7 +207,7 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      NVidiaDeviceData       *nvdev       = (NVidiaDeviceData*) dev;
      volatile NVScaledImage *ScaledImage = nvdrv->ScaledImage;
      __u32                   format      = 0;
-     
+
      switch (nvdev->src_format) {
           case DSPF_ARGB1555:
                format = 0x00000002;
