@@ -90,9 +90,10 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      if (data->surface)
           data->surface->Release( data->surface );
 
+     window_remove( data->window );
+
      reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
 
-     window_remove( data->window );
      window_destroy( data->window );
 
      pthread_cond_destroy( &data->wait_condition );
@@ -279,28 +280,7 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
      if (data->window->width == width  &&  data->window->height == height)
           return DFB_OK;
 
-     window_resize( data->window, width, height );
-
-/*     if (data->surface) {
-          IDirectFBSurface_data *surface_data =
-                                    (IDirectFBSurface_data*)data->surface->priv;
-
-          if (surface_data->state.clip.x2 <= data->window->surface->width) {
-               surface_data->state.clip.x2 = data->window->surface->width - 1;
-               surface_data->state.modified |= SMF_CLIP;
-          }
-          if (surface_data->state.clip.y2 <= data->window->surface->height) {
-               surface_data->state.clip.y2 = data->window->surface->height - 1;
-               surface_data->state.modified |= SMF_CLIP;
-          }
-
-          surface_data->req_rect.w = data->window->surface->width;
-          surface_data->req_rect.h = data->window->surface->height;
-          surface_data->clip_rect.w = data->window->surface->width;
-          surface_data->clip_rect.h = data->window->surface->height;
-     }*/
-
-     return DFB_OK;
+     return window_resize( data->window, width, height );
 }
 
 static DFBResult IDirectFBWindow_Raise( IDirectFBWindow *thiz )
