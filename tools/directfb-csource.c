@@ -656,7 +656,7 @@ static DFBResult dump_rectangles (const char    *name,
 {
      DFBRectangle *rect;
      const char   *blanks = "                                  ";
-     char         *vname  = strdup (name);
+     char         *vname  = variable_name (name);
      FILE         *fp     = stdout;
      int           len, i;
 
@@ -671,7 +671,7 @@ static DFBResult dump_rectangles (const char    *name,
               "static struct {\n"
               "  const char   *name;\n"
               "  DFBRectangle  rect;\n"
-              "} %s_rects[] = {\n", vname);
+              "} %s[] = {\n", vname);
 
      for (i = 0, len = 0; i < num_rects; i++)
           len = MAX (len, strlen (names[i]));
