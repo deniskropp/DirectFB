@@ -106,6 +106,214 @@ motion_realize( SDLInputData *data )
      }
 }
 
+static bool
+translate_key( SDLKey key, DFBInputEvent *evt )
+{
+     /* Numeric keypad */
+     if (key >= SDLK_KP0  &&  key <= SDLK_KP9) {
+          evt->flags = DIEF_KEYID;
+          evt->key_id = DIKI_KP_0 + key - SDLK_KP0;
+          return true;
+     }
+
+     /* Function keys */
+     if (key >= SDLK_F1  &&  key <= SDLK_F15) {
+          evt->flags = DIEF_KEYSYMBOL;
+          evt->key_symbol = DIKS_F1 + key - SDLK_F1;
+          return true;
+     }
+
+     switch (key) {
+          /* Numeric keypad */
+          case SDLK_KP_PERIOD:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_DECIMAL;
+               break;
+
+          case SDLK_KP_DIVIDE:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_DIV;
+               break;
+
+          case SDLK_KP_MULTIPLY:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_MULT;
+               break;
+
+          case SDLK_KP_MINUS:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_MINUS;
+               break;
+
+          case SDLK_KP_PLUS:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_PLUS;
+               break;
+
+          case SDLK_KP_ENTER:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_ENTER;
+               break;
+
+          case SDLK_KP_EQUALS:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_KP_EQUAL;
+               break;
+
+
+          /* Arrows + Home/End pad */
+          case SDLK_UP:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_CURSOR_UP;
+               break;
+          
+          case SDLK_DOWN:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_CURSOR_DOWN;
+               break;
+          
+          case SDLK_RIGHT:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_CURSOR_RIGHT;
+               break;
+          
+          case SDLK_LEFT:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_CURSOR_LEFT;
+               break;
+          
+          case SDLK_INSERT:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_INSERT;
+               break;
+          
+          case SDLK_HOME:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_HOME;
+               break;
+          
+          case SDLK_END:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_END;
+               break;
+          
+          case SDLK_PAGEUP:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_PAGE_UP;
+               break;
+          
+          case SDLK_PAGEDOWN:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_PAGE_DOWN;
+               break;
+          
+
+          /* Key state modifier keys */
+          case SDLK_NUMLOCK:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_NUM_LOCK;
+               break;
+
+          case SDLK_CAPSLOCK:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_CAPS_LOCK;
+               break;
+
+          case SDLK_SCROLLOCK:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_SCROLL_LOCK;
+               break;
+
+          case SDLK_RSHIFT:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_SHIFT_R;
+               break;
+          
+          case SDLK_LSHIFT:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_SHIFT_L;
+               break;
+          
+          case SDLK_RCTRL:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_CONTROL_R;
+               break;
+          
+          case SDLK_LCTRL:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_CONTROL_L;
+               break;
+          
+          case SDLK_RALT:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_ALT_R;
+               break;
+          
+          case SDLK_LALT:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_ALT_L;
+               break;
+          
+          case SDLK_RMETA:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_META_R;
+               break;
+          
+          case SDLK_LMETA:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_META_L;
+               break;
+          
+          case SDLK_LSUPER:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_SUPER_L;
+               break;
+          
+          case SDLK_RSUPER:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_SUPER_R;
+               break;
+          
+          case SDLK_MODE:
+               evt->flags = DIEF_KEYID;
+               evt->key_id = DIKI_ALTGR;
+               break;
+          
+
+          /* Miscellaneous function keys */
+          case SDLK_HELP:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_HELP;
+               break;
+          
+          case SDLK_PRINT:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_PRINT;
+               break;
+          
+          case SDLK_BREAK:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_BREAK;
+               break;
+          
+          case SDLK_MENU:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_MENU;
+               break;
+          
+          case SDLK_POWER:
+               evt->flags = DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_POWER;
+               break;
+          
+
+          default:
+               return false;
+     }
+     
+     return true;
+}
+
 /*
  * Input thread reading from device.
  * Generates events on incoming data.
@@ -166,9 +374,11 @@ sdlEventThread( CoreThread *thread, void *driver_data )
                          else
                               evt.type = DIET_KEYRELEASE;
 
-                         evt.flags = DIEF_KEYSYMBOL;
-
-                         if (event.key.keysym.unicode) {
+                         if (translate_key( event.key.keysym.sym, &evt )) {
+                              dfb_input_dispatch( data->device, &evt );
+                         }
+                         else if (event.key.keysym.unicode) {
+                              evt.flags      = DIEF_KEYSYMBOL;
                               evt.key_symbol = event.key.keysym.unicode;
 
                               dfb_input_dispatch( data->device, &evt );
