@@ -86,8 +86,9 @@ divine_send_symbol( DiVine *divine, DFBInputDeviceKeySymbol symbol )
      write( divine->fd, &event, sizeof(DFBInputEvent) );
 }
 
+/* crude hack for minicom vt102 escape sequences */
 void
-divine_send_ansi( DiVine *divine, int size, const char *ansistr )
+divine_send_vt102 ( DiVine *divine, int size, const char *ansistr )
 {
      int i;
 
@@ -103,17 +104,18 @@ divine_send_ansi( DiVine *divine, int size, const char *ansistr )
           /* watch for escape sequences */
           switch (ansistr[i]) {
                case 27:
-                    if (ansistr[i+1] == 91) {
+                    if (ansistr[i+1] == 91 || ansistr[i+1] == 79) {
                          switch (ansistr[i+2]) {
+                              case 80:  event.key_symbol = DIKS_F1;  f = 1; break;
+                              case 81:  event.key_symbol = DIKS_F2;  f = 1; break;
+                              case 82:  event.key_symbol = DIKS_F3;  f = 1; break;
+                              case 83:  event.key_symbol = DIKS_F4;  f = 1; break;
                               case 49:  switch (ansistr[i+3]) {
-                                        case 49:  event.key_symbol = DIKS_F1; break;
-                                        case 50:  event.key_symbol = DIKS_F2; break;
-                                        case 51:  event.key_symbol = DIKS_F3; break;
-                                        case 52:  event.key_symbol = DIKS_F4; break;
-                                        case 53:  event.key_symbol = DIKS_F5; break;
-                                        case 54:  event.key_symbol = DIKS_F6; break;
-                                        case 55:  event.key_symbol = DIKS_F7; break;
-                                        case 56:  event.key_symbol = DIKS_F8; break;
+                                        case 54:  event.key_symbol = DIKS_F5;   break;
+                                        case 55:  event.key_symbol = DIKS_F6;   break;
+                                        case 56:  event.key_symbol = DIKS_F7;   break;
+                                        case 57:  event.key_symbol = DIKS_F8;   break;
+					case 126: event.key_symbol = DIKS_HOME; break;
                                         default:   break;
                                    }
                                    f = 3;  break;
@@ -129,16 +131,15 @@ divine_send_ansi( DiVine *divine, int size, const char *ansistr )
                               case 51: event.key_symbol = DIKS_DELETE;       f = 3; break;
                               case 53: event.key_symbol = DIKS_PAGE_UP;      f = 3; break;
                               case 54: event.key_symbol = DIKS_PAGE_DOWN;    f = 3; break;
-                              case 55: event.key_symbol = DIKS_HOME;         f = 3; break;
                               case 56: event.key_symbol = DIKS_STOP;         f = 3; break;
                               case 65: event.key_symbol = DIKS_CURSOR_UP;    f = 2; break;
                               case 66: event.key_symbol = DIKS_CURSOR_DOWN;  f = 2; break;
-                              case 67: event.key_symbol = DIKS_CURSOR_LEFT;  f = 2; break;
-                              case 68: event.key_symbol = DIKS_CURSOR_RIGHT; f = 2; break;
+                              case 67: event.key_symbol = DIKS_CURSOR_RIGHT; f = 2; break;
+                              case 68: event.key_symbol = DIKS_CURSOR_LEFT;  f = 2; break;
                               default:  break;
                          }
                          break;
-                    } else      event.key_symbol = DIKS_ESCAPE;    break;
+                    } else  event.key_symbol = DIKS_ESCAPE;    break;
                case 127: event.key_symbol = DIKS_BACKSPACE; break;
                case 10:  event.key_symbol = DIKS_ENTER;     break;
                default:  event.key_symbol = ansistr[i];     break;

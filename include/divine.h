@@ -51,7 +51,7 @@ void divine_send_symbol (DiVine *divine, DFBInputDeviceKeySymbol symbol);
  * Sends a press and a release event for the specified ANSI string.
  * Use this to feed terminal input into a DirectFB application.
  */
-void divine_send_ansi (DiVine *divine, int size, const char *ansistr);
+void divine_send_vt102 (DiVine *divine, int size, const char *ansistr);
 
 /*
  * Closes the pipe and destroys the connection object.
