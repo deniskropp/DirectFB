@@ -1006,15 +1006,27 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
                     break;
 
                case DIET_BUTTONRELEASE:
-                    dfb_windowstack_unlock( stack );
-                    return RS_OK;
+                    if (stack->wm_hack == 2) {
+                         evt->button += 2;
+                    }
+                    else {
+                         dfb_windowstack_unlock( stack );
+                         return RS_OK;
+                    }
+                    break;
 
                case DIET_BUTTONPRESS:
-                    if (stack->entered_window &&
-                        !(stack->entered_window->options & DWOP_KEEP_STACKING))
-                         dfb_window_raisetotop( stack->entered_window );
-                    dfb_windowstack_unlock( stack );
-                    return RS_OK;
+                    if (stack->wm_hack == 2) {
+                         evt->button += 2;
+                    }
+                    else {
+                         if (stack->entered_window &&
+                             !(stack->entered_window->options & DWOP_KEEP_STACKING))
+                              dfb_window_raisetotop( stack->entered_window );
+                         dfb_windowstack_unlock( stack );
+                         return RS_OK;
+                    }
+                    break;
 
                default:
                     ;
