@@ -1401,10 +1401,6 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
                break;
 
           case DTTF_STRIP:
-               if ((num - 3) % 2)
-                    return DFB_INVARG;
-               break;
-
           case DTTF_FAN:
                break;
 
