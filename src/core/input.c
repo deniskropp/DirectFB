@@ -1369,34 +1369,34 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
                return DIKS_COMMA;
 
           case DIKI_KP_0:
-               return DIKS_INSERT;
+               return DIKS_0;
           
           case DIKI_KP_1:
-               return DIKS_END;
+               return DIKS_1;
           
           case DIKI_KP_2:
-               return DIKS_CURSOR_DOWN;
+               return DIKS_2;
           
           case DIKI_KP_3:
-               return DIKS_PAGE_DOWN;
+               return DIKS_3;
           
           case DIKI_KP_4:
-               return DIKS_CURSOR_LEFT;
+               return DIKS_4;
           
           case DIKI_KP_5:
-               return DIKS_BEGIN;
+               return DIKS_5;
           
           case DIKI_KP_6:
-               return DIKS_CURSOR_RIGHT;
+               return DIKS_6;
           
           case DIKI_KP_7:
-               return DIKS_HOME;
+               return DIKS_7;
           
           case DIKI_KP_8:
-               return DIKS_CURSOR_UP;
+               return DIKS_8;
           
           case DIKI_KP_9:
-               return DIKS_PAGE_UP;
+               return DIKS_9;
 
           default:
                ;
