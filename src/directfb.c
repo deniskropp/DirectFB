@@ -89,19 +89,19 @@ char * DirectFBCheckVersion (unsigned int required_major,
      return NULL;
 }
 
-#ifdef FIXME_LATER
 static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 {
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
 
      if (evt->type == DIET_KEYPRESS &&
-         (evt->modifiers & (DIMK_CTRL|DIMK_ALT)) == (DIMK_CTRL|DIMK_ALT))
+         (evt->modifiers & (DIMM_CONTROL|DIMM_ALT)) == (DIMM_CONTROL|DIMM_ALT))
      {
-          switch (evt->keycode) {
-               case DIKC_BACKSPACE:
-                    kill( getpid(), SIGINT );
+          switch (evt->key_symbol) {
+               case DIKS_BREAK:
+                    kill( 0, SIGINT );
                     return RS_DROP;
 
+#ifdef FIXME_LATER
                case DIKC_F1 ... DIKC_F12:
                     if (dfb_config->vt_switching) {
                          int num = evt->keycode - DIKC_F1 + 1;
@@ -128,6 +128,7 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
                          return RS_DROP;
                     }
                     break;
+#endif
 
                default:
                     return RS_OK;
@@ -136,7 +137,16 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 
      return RS_OK; /* continue dispatching this event */
 }
-#endif
+
+static DFBEnumerationResult
+device_callback( InputDevice *device, void *ctx )
+{
+     if (dfb_input_device_description( device ).caps == DICAPS_KEYS)
+          dfb_input_attach( device, keyboard_handler, NULL );
+     
+     return DFENUM_OK;
+}
+
 
 const char *DirectFBUsageString( void )
 {
@@ -237,18 +247,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      if (!dfb_core_is_master())
           return DFB_OK;
 
-#ifdef FIXME_LATER
-     {
-          InputDevice *d = inputdevices;
-
-          while (d) {
-               if (input_device_id( d ) == DIDID_KEYBOARD)
-                    reactor_attach( d->shared->reactor, keyboard_handler, NULL );
-
-               d = d->next;
-          }
-     }
-#endif
+     dfb_input_enumerate_devices( device_callback, NULL );
 
      /* the primary layer */
      layer = dfb_layer_at( DLID_PRIMARY );

@@ -329,6 +329,8 @@ extern "C"
           DIKS_TEEN                     = DFB_KEY( SPECIAL, 0x5F ),
           DIKS_TWEN                     = DFB_KEY( SPECIAL, 0x60 ),
 
+          DIKS_BREAK                    = DFB_KEY( SPECIAL, 0x61 ),
+
           /*
            * Unicode private area - DirectFB Function keys
            *

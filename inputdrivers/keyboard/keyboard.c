@@ -129,6 +129,7 @@ keyboard_get_symbol( unsigned short                  value,
           case K_NUM:     return DIKS_NUMLOCK;
           case K_HOLD:    return DIKS_SCROLLLOCK;
           case K_PAUSE:   return DIKS_PAUSE;
+          case K_BREAK:   return DIKS_BREAK;
           
           case K_P0:      return DIKS_INSERT;
           case K_P1:      return DIKS_END;
@@ -224,7 +225,7 @@ keyboardEventThread( void *driver_data )
                evt.type     = (buf[i] & 0x80) ? DIET_KEYRELEASE : DIET_KEYPRESS;
                evt.flags    = DIEF_KEYCODE;
                evt.key_code = buf[i] & 0x7f;
-               
+
                dfb_input_dispatch( data->device, &evt );
 
                keyboard_set_lights( evt.locks );
