@@ -144,7 +144,10 @@ main (int argc, char *argv[])
      }
 
      /* create a window */
-     window = lite_new_window( NULL, 330, 170,
+     window = lite_new_window( NULL,
+                               LITE_CENTER_HORIZONTALLY,
+                               LITE_CENTER_VERTICALLY,
+                               330, 170,
                                DWCAPS_ALPHACHANNEL, basename(argv[1]) );
 
      /* setup the labels */
