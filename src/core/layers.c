@@ -268,8 +268,8 @@ DFBResult layer_create_cursor_window( DisplayLayer *layer,
           return DFB_FAILURE;
      }
 
-     window_set_opacity( cursor, layer->windowstack->cursor_opacity );
      window_init( cursor );
+     window_set_opacity( cursor, layer->windowstack->cursor_opacity );
 
      layer->windowstack->cursor_window  = cursor;
 
@@ -344,5 +344,7 @@ DFBResult layer_cursor_load_default( DisplayLayer *layer )
      fclose( f );
      surface_unlock( layer->windowstack->cursor_window->surface, 0 );
 
+     window_repaint( layer->windowstack->cursor_window, NULL );
+     
      return DFB_OK;
 }
