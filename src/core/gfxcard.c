@@ -55,6 +55,7 @@
 
 #include <misc/utf8.h>
 #include <misc/mem.h>
+#include <misc/tree.h>
 #include <misc/util.h>
 
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
@@ -1106,12 +1107,24 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes,
 
      /* preload glyphs to avoid deadlock (FIXME: still needed or otherwise useful?) */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
-          steps[offset] = dfb_utf8_skip[text[offset]];
-          chars[offset] = dfb_utf8_get_char (&text[offset]);
+          unsigned char c = text[offset];
 
-          if (dfb_font_get_glyph_data (font, chars[offset],
-                                       &glyphs[offset]) != DFB_OK)
-               glyphs[offset] = NULL;
+          if (c < 128) {
+               steps[offset] = 1;
+               chars[offset] = c;
+          }
+          else {
+               steps[offset] = dfb_utf8_skip[c];
+               chars[offset] = dfb_utf8_get_char( &text[offset] );
+          }
+
+          glyphs[offset] = dfb_tree_lookup( font->glyph_infos, (void *)chars[offset] );
+
+          if (!glyphs[offset]) {
+               if (dfb_font_get_glyph_data (font, chars[offset],
+                                            &glyphs[offset]) != DFB_OK)
+                    glyphs[offset] = NULL;
+          }
      }
 
      /* simple prechecks */
