@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -38,12 +38,14 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
+#include <direct/memcpy.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -54,11 +56,8 @@
 #include <core/gfxcard.h>
 
 #include <gfx/convert.h>
-#include <misc/memcpy.h>
 
 #include <display/idirectfbsurface.h>
-
-#include <directfb_internals.h>
 
 #ifdef HAVE_FUSIONSOUND
 #include <fusionsound.h>
@@ -165,13 +164,13 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
 
     mpeg3_close( data->file );
 
-    DFBFREE( data->video.buffer );
-    DFBFREE( data->rgb.lines );
+    D_FREE( data->video.buffer );
+    D_FREE( data->rgb.lines );
 
     pthread_mutex_destroy( &data->video.lock );
     pthread_mutex_destroy( &data->audio.lock );
 
-    DFBFREE( data->filename );
+    D_FREE( data->filename );
 
     DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -449,7 +448,7 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                }
 
                for (y=0; y<data->dest_clip.h; y++) {
-                    dfb_memcpy( dst_y, src_y, data->dest_clip.w );
+                    direct_memcpy( dst_y, src_y, data->dest_clip.w );
 
                     src_y += data->video.width;
                     dst_y += pitch;
@@ -461,8 +460,8 @@ WriteYUVFrame( IDirectFBVideoProvider_Libmpeg3_data *data )
                          dst_v += pitch/2;
                     }
                     else {
-                         dfb_memcpy( dst_u, src_u, data->dest_clip.w/2 );
-                         dfb_memcpy( dst_v, src_v, data->dest_clip.w/2 );
+                         direct_memcpy( dst_u, src_u, data->dest_clip.w/2 );
+                         direct_memcpy( dst_v, src_v, data->dest_clip.w/2 );
                     }
                }
                break;
@@ -668,7 +667,7 @@ AudioThread( void *ctx )
                /* flush buffered audio data */
 #ifdef HAVE_FUSIONSOUND
                data->audio.stream->Wait( data->audio.stream, 0 );
-#else               
+#else
                ioctl( data->audio.fd, SNDCTL_DSP_RESET, 0 );
 #endif
                data->audio.seeked = 0;
@@ -710,7 +709,7 @@ AudioThread( void *ctx )
                          buffer[i*2+1] = right[i];
                     }
                }
-#ifdef HAVE_FUSIONSOUND              
+#ifdef HAVE_FUSIONSOUND
                data->audio.stream->Write( data->audio.stream, buffer, data->audio.samples_per_block );
 #else
                write( data->audio.fd, buffer, data->audio.block_size );
@@ -987,24 +986,23 @@ static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      mpeg3_t *q;
-     char    *filename = DFBSTRDUP( ctx->filename );
+     char    *filename = D_STRDUP( ctx->filename );
 
      if (!mpeg3_check_sig( filename )) {
-          DFBFREE( filename );
+          D_FREE( filename );
           return DFB_UNSUPPORTED;
      }
 
      q = mpeg3_open( filename );
      if (!q) {
-          DFBFREE( filename );
+          D_FREE( filename );
           return DFB_UNSUPPORTED;
      }
 
-     DFBFREE( filename );
-     
+     D_FREE( filename );
+
      if (!mpeg3_has_video( q )) {
-          ERRORMSG( "Libmpeg3 Provider: "
-                    "File doesn't contain a video track!\n" );
+          D_ERROR( "Libmpeg3 Provider: File doesn't contain a video track!\n" );
           mpeg3_close( q );
           return DFB_UNSUPPORTED;
      }
@@ -1018,12 +1016,12 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int i;
-     
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Libmpeg3)
 
      /* initialize private data */
      data->ref           = 1;
-     data->filename      = DFBSTRDUP( filename );
+     data->filename      = D_STRDUP( filename );
 
      data->video.thread  = (pthread_t) -1;
      data->audio.thread  = (pthread_t) -1;
@@ -1047,11 +1045,9 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->rgb.supported = 1;
 
      /* allocate video decoding buffer */
-     data->video.buffer  = DFBMALLOC( data->video.height *
-                                      data->video.width * 3 );
+     data->video.buffer  = D_MALLOC( data->video.height * data->video.width * 3 );
 
-     data->rgb.lines     = DFBMALLOC( data->video.height *
-                                      sizeof(unsigned char*) );
+     data->rgb.lines     = D_MALLOC( data->video.height * sizeof(unsigned char*) );
 
      for (i=0; i<data->video.height; i++)
           data->rgb.lines[i] = data->video.buffer + data->video.width * 3 * i;
@@ -1076,24 +1072,18 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      /* initialize function pointers */
      thiz->AddRef                = IDirectFBVideoProvider_Libmpeg3_AddRef;
      thiz->Release               = IDirectFBVideoProvider_Libmpeg3_Release;
-     thiz->GetCapabilities       =
-          IDirectFBVideoProvider_Libmpeg3_GetCapabilities;
+     thiz->GetCapabilities       = IDirectFBVideoProvider_Libmpeg3_GetCapabilities;
 
-     thiz->GetSurfaceDescription =
-          IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription;
+     thiz->GetSurfaceDescription = IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription;
 
      thiz->PlayTo                = IDirectFBVideoProvider_Libmpeg3_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Libmpeg3_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_Libmpeg3_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_Libmpeg3_GetPos;
-     thiz->GetLength             =
-          IDirectFBVideoProvider_Libmpeg3_GetLength;
+     thiz->GetLength             = IDirectFBVideoProvider_Libmpeg3_GetLength;
 
-     thiz->GetColorAdjustment    =
-          IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment;
-
-     thiz->SetColorAdjustment    =
-          IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment;
+     thiz->GetColorAdjustment    = IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment;
+     thiz->SetColorAdjustment    = IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment;
 
      return DFB_OK;
 }
@@ -1106,13 +1096,13 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
      IFusionSound        *sound;
      IFusionSoundStream  *stream;
-     FSStreamDescription  desc;  
+     FSStreamDescription  desc;
      DFBResult            ret;
 
      /* Retrieve the main sound interface. */
      ret = idirectfb_singleton->GetInterface( idirectfb_singleton, "IFusionSound", NULL, NULL, (void**) &sound );
      if (ret) {
-         PERRORMSG( "Libmpeg3 Provider: Could not get fusion interface!\n" );
+         D_ERROR( "Libmpeg3 Provider: Could not get fusion interface!\n" );
          return DFB_IO;
      }
 
@@ -1129,9 +1119,9 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
      if (ret) {
           DirectFBError ("IFusionSound::CreateStream", ret);
      }
-     
+
      data->audio.samples_per_block = desc.buffersize / 2;
-     
+
      /* store pointers in data stuct */
      data->audio.stream = stream;
      data->audio.sound = sound;
@@ -1143,7 +1133,7 @@ CloseSound( IDirectFBVideoProvider_Libmpeg3_data *data )
 {
      if (data->audio.stream)
          data->audio.stream->Release( data->audio.stream );
-     
+
      if (data->audio.sound)
          data->audio.sound->Release( data->audio.sound );
 
@@ -1192,12 +1182,12 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
           ERRORMSG( "Libmpeg3 Provider: "
                     "unexpected sample format (%d bit)!\n", data->audio.bits );
           close( fd );
-          return DFB_UNSUPPORTED;                    
+          return DFB_UNSUPPORTED;
      }
-     
+
      if (ioctl( fd, SNDCTL_DSP_SETFMT, &format )) {
           ERRORMSG( "Libmpeg3 Provider: "
-                    "failed to set sample format to %d bit!\n", 
+                    "failed to set sample format to %d bit!\n",
                     data->audio.bits );
           close( fd );
           return DFB_UNSUPPORTED;

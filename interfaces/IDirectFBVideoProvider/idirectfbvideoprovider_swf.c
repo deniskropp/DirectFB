@@ -1,13 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de> and
               Sven Neumann <sven@convergence.de>.
-              
+
    The SWF Provider is written by Joachim Steiger <roh@hyte.de>.
 
    This library is free software; you can redistribute it and/or
@@ -37,7 +37,7 @@
 #include <flash.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -52,7 +52,8 @@
 #include <display/idirectfbsurface.h>
 
 #include <misc/util.h>
-#include <misc/mem.h>
+
+#include <direct/mem.h>
 
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
@@ -102,7 +103,7 @@ readFile (const char *filename, char **buffer, long *size)
      fseek (in, 0, SEEK_END);
      length = ftell (in);
      rewind (in);
-     (int *) buf = DFBMALLOC(length);
+     buf = D_MALLOC(length);
      fread (buf, length, 1, in);
      fclose (in);
      *size = length;
@@ -184,7 +185,7 @@ static void* FrameThread( void *ctx )
 }
 
 /* ------------------------------------------ */
-static 
+static
 void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_Swf_data *data;
@@ -220,7 +221,7 @@ static DFBResult IDirectFBVideoProvider_Swf_Release(IDirectFBVideoProvider *thiz
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IDirectFBVideoProvider_Swf_GetCapabilities(
                                           IDirectFBVideoProvider       *thiz,
                                           DFBVideoProviderCapabilities *caps )
@@ -422,7 +423,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      if (readFile (filename, &buffer, &size) < 0) {
           printf( "DirectFB/Swf: Loading Swf file failed.\n");
-          DFBFREE( data );
+          D_FREE( data );
           DFB_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
@@ -430,7 +431,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->flashHandle = FlashNew();
      if (data->flashHandle == 0) {
           printf( "DirectFB/Swf: Creation of Swfplayer failed.\n");
-          DFBFREE( data );
+          D_FREE( data );
           DFB_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
@@ -439,7 +440,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           status = FlashParse (data->flashHandle, 0, buffer, size);
      }
      while (status & FLASH_PARSE_NEED_DATA);
-     DFBFREE(buffer);
+     D_FREE(buffer);
 
      FlashGetInfo (data->flashHandle, &data->flashInfo);
 
@@ -455,7 +456,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->flashDisplay.depth = 16;
      data->flashDisplay.bpp = 2;
 
-     data->thread = (pthread_t) -1;     
+     data->thread = (pthread_t) -1;
 
 /*
      pthread_mutex_init( &data->source.front_lock, NULL );
@@ -468,23 +469,23 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      FlashGraphicInit (data->flashHandle, &data->flashDisplay);
 //     FlashSoundInit(data->flashHandle, "/dev/dsp");
      FlashSetGetUrlMethod (data->flashHandle, showUrl, 0);
-     FlashSetGetSwfMethod (data->flashHandle, getSwf, 
+     FlashSetGetSwfMethod (data->flashHandle, getSwf,
                            (void *) data->flashHandle);
 
 
      thiz->AddRef    = IDirectFBVideoProvider_Swf_AddRef;
      thiz->Release   = IDirectFBVideoProvider_Swf_Release;
      thiz->GetCapabilities = IDirectFBVideoProvider_Swf_GetCapabilities;
-     thiz->GetSurfaceDescription = 
+     thiz->GetSurfaceDescription =
      IDirectFBVideoProvider_Swf_GetSurfaceDescription;
      thiz->PlayTo    = IDirectFBVideoProvider_Swf_PlayTo;
      thiz->Stop      = IDirectFBVideoProvider_Swf_Stop;
      thiz->SeekTo    = IDirectFBVideoProvider_Swf_SeekTo;
      thiz->GetPos    = IDirectFBVideoProvider_Swf_GetPos;
      thiz->GetLength = IDirectFBVideoProvider_Swf_GetLength;
-     thiz->GetColorAdjustment = 
+     thiz->GetColorAdjustment =
      IDirectFBVideoProvider_Swf_GetColorAdjustment;
-     thiz->SetColorAdjustment = 
+     thiz->SetColorAdjustment =
      IDirectFBVideoProvider_Swf_SetColorAdjustment;
 
      return DFB_OK;

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -33,7 +33,7 @@ extern "C" {
 #include <malloc.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -47,7 +47,8 @@ extern "C" {
 
 #include <display/idirectfbsurface.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
+
 #include <misc/util.h>
 
 static DFBResult
