@@ -26,7 +26,8 @@ pkgconfig_DATA = directfb.pc directfb-internal.pc
 EXTRA_DIST = \
 	README.screenshots	\
 	fb.modes 		\
-	directfb.spec.in
+	directfb.spec.in	\
+	directfb.spec
 
 
 ## Some special rules that may be useful ...
