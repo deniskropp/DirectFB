@@ -112,6 +112,8 @@ typedef struct
      char    **disable_module;                    /* don't load these modules */
 
      char     *system;                            /* FBDev, SDL, etc. */
+
+     bool      capslock_meta;                     /* map CapsLock -> Meta */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -192,6 +192,11 @@ in mouse(4).
 Swaps left and right mouse buttons. Useful for left-handers.
 
 .TP
+.BI [no-]capslock-meta
+Map the CapsLock key to Meta. Useful for users of the builtin WM
+without a Meta key on the keyboard (e.g. Window key).
+
+.TP
 .BI [no-]cursor
 By default DirectFB shows a mouse cursor when an application makes use
 of windows. This options allows to switch the cursor off. Note that

@@ -99,6 +99,8 @@ static const char *config_usage =
     "Mouse protocol (serial mouse)\n"
     "  [no-]lefty                     "
     "Swap left and right mouse buttons\n"
+    "  [no-]capslock-meta             "
+    "Map the CapsLock key to Meta\n"
     "  [no-]cursor                    "
     "Show cursor on start up (default)\n"
     "  bg-none                        "
@@ -664,6 +666,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-lefty" ) == 0) {
           dfb_config->lefty = false;
+     } else
+     if (strcmp (name, "capslock-meta" ) == 0) {
+          dfb_config->capslock_meta = true;
+     } else
+     if (strcmp (name, "no-capslock-meta" ) == 0) {
+          dfb_config->capslock_meta = false;
      }
      else
           return DFB_UNSUPPORTED;
