@@ -365,16 +365,19 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      if (buffer->in_trace)
           return;
 
+     buffer->in_trace = true;
+
+
      level = buffer->level;
      if (level > MAX_LEVEL) {
           D_WARN( "only showing %d of %d items", MAX_LEVEL, level );
           level = MAX_LEVEL;
      }
      else if (level == 0) {
+          buffer->in_trace = false;
           return;
      }
 
-     buffer->in_trace = true;
 
      if (buffer->name)
           fprintf( stderr, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
