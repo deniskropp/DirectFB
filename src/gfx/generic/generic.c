@@ -2812,4 +2812,3 @@ void gInit_MMX()
 }
 
 #endif
-

@@ -55,6 +55,8 @@
 static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
+static void generate_wheelevents( CoreWindowStack *stack, int z );
+
 static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                                                      void       *ctx );
 static DFBEnumerationResult
@@ -966,6 +968,9 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                               windowstack_handle_motion( stack,
                                                          0, evt->axisrel );
                               break;
+                         case DIAI_Z:
+                              generate_wheelevents( stack, evt->axisrel );
+                              break;
                          default:
                               return RS_OK;
                     }
@@ -1051,6 +1056,32 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
      HEAVYDEBUGMSG("DirectFB/windows: mouse at %d, %d\n", stack->cx, stack->cy);
 }
 
+
+void generate_wheelevents( CoreWindowStack *stack, int dz )
+{
+     DFBWindowEvent we;          
+     CoreWindow *window = NULL;
+     
+     if (!stack->cursor)
+          return;
+          
+     window = (stack->pointer_window ?
+               stack->pointer_window : stack->entered_window);
+
+     if (window) {
+          we.type = DWET_WHEEL;
+          
+          we.cx     = stack->cx;
+          we.cy     = stack->cy;
+          we.x      = we.cx - window->x;
+          we.y      = we.cy - window->y;
+          we.step   = dz;
+
+          reactor_dispatch( window->reactor, &we, true );
+     }
+}
+
+                              
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack )
 {
      CoreWindow    *before = stack->entered_window;

@@ -1978,10 +1978,13 @@ extern "C"
           DWET_BUTTONUP       = 0x00020000,  /* mouse button went up in
                                                 the window */
           DWET_MOTION         = 0x00040000,  /* mouse cursor changed its
-                                                position in window */
+                                                position in window */                                                
           DWET_ENTER          = 0x00080000,  /* mouse cursor entered
                                                 the window */
           DWET_LEAVE          = 0x00100000,  /* mouse cursor left the window */
+          
+          DWET_WHEEL          = 0x00200000,  /* mouse wheel was moved while
+                                                window has focus */
 
           DWET_POSITION_SIZE  = DWET_POSITION | DWET_SIZE /* initially sent to
                                                              window when it's
@@ -2003,6 +2006,9 @@ extern "C"
              DWET_ENTER, DWET_LEAVE */
           int                                cx;
           int                                cy;
+          
+          /* used by DWET_WHEEL */
+          int                                step;
 
           /* used by DWET_RESIZE */
           unsigned int                       w;
