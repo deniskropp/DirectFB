@@ -241,18 +241,18 @@ typedef struct {
  * Print a description of the result code along with an
  * optional message that is put in front with a colon.
  */
-void DirectFBError(
-                         const char  *msg,    /* optional message */
-                         DFBResult    result  /* result code to interpret */
-                  );
+DFBResult DirectFBError(
+                             const char  *msg,    /* optional message */
+                             DFBResult    result  /* result code to interpret */
+                       );
 
 /*
  * Behaves like DirectFBError, but shuts down the calling application.
  */
-void DirectFBErrorFatal(
-                         const char  *msg,    /* optional message */
-                         DFBResult    result  /* result code to interpret */
-                      );
+DFBResult DirectFBErrorFatal(
+                             const char  *msg,    /* optional message */
+                             DFBResult    result  /* result code to interpret */
+                            );
 
 /*
  * Returns a string describing 'result'.

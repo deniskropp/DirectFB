@@ -437,7 +437,8 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      return DFB_OK;
 }
 
-void DirectFBError( const char *msg, DFBResult error )
+DFBResult
+DirectFBError( const char *msg, DFBResult error )
 {
      if (msg)
           fprintf( stderr, "(#) DirectFBError [%s]: %s\n", msg,
@@ -445,6 +446,8 @@ void DirectFBError( const char *msg, DFBResult error )
      else
           fprintf( stderr, "(#) DirectFBError: %s\n",
                    DirectFBErrorString( error ) );
+
+     return error;
 }
 
 const char *DirectFBErrorString( DFBResult error )
@@ -503,11 +506,13 @@ const char *DirectFBErrorString( DFBResult error )
      return "<UNKNOWN ERROR CODE>!";
 }
 
-void DirectFBErrorFatal( const char *msg, DFBResult error )
+DFBResult
+DirectFBErrorFatal( const char *msg, DFBResult error )
 {
      DirectFBError( msg, error );
 
      /* Deinit all stuff here. */
+     dfb_core->refs = 1;
      dfb_core_unref();     /* for now, this dirty thing should work */
 
      exit( error );
