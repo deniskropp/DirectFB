@@ -30,9 +30,12 @@
 #include <pthread.h>
 
 #include <directfb.h>
+
+#include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <core/fusion/reactor.h>
+
 
 typedef enum {
      SMF_DRAWING_FLAGS   = 0x00000001,
@@ -51,6 +54,8 @@ typedef enum {
 } StateModificationFlags;
 
 struct _CardState {
+     bool                    initialized;  /* dfb_state_init() called? */
+
      StateModificationFlags  modified;     /* indicate which fields have been
                                               modified, these flags will be
                                               cleared by the gfx drivers */
@@ -89,6 +94,11 @@ struct _CardState {
 
      Reaction                destination_reaction;
      Reaction                source_reaction;
+
+
+     /* software driver */
+     
+     void                   *gfxs;
 };
 
 int dfb_state_init( CardState *state );
@@ -97,15 +107,21 @@ void dfb_state_destroy( CardState *state );
 void dfb_state_set_destination( CardState *state, CoreSurface *destination );
 void dfb_state_set_source( CardState *state, CoreSurface *source );
 
-static inline int dfb_state_lock( CardState *state )
-{
-     return pthread_mutex_lock( &state->lock );
-}
+#define dfb_state_lock(state)                \
+do {                                         \
+     DFB_ASSERT( (state) != NULL );          \
+     DFB_ASSERT( (state)->initialized );     \
+                                             \
+     pthread_mutex_lock( &(state)->lock );   \
+} while (0)
 
-static inline int dfb_state_unlock( CardState *state )
-{
-     return pthread_mutex_unlock( &state->lock );
-}
+#define dfb_state_unlock(state)              \
+do {                                         \
+     DFB_ASSERT( (state) != NULL );          \
+     DFB_ASSERT( (state)->initialized );     \
+                                             \
+     pthread_mutex_unlock( &(state)->lock ); \
+} while (0)
 
 #endif
 

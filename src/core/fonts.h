@@ -99,20 +99,20 @@ void dfb_font_destroy( CoreFont *font );
 /*
  * lock the font before accessing it
  */
-static inline void dfb_font_lock( CoreFont *font )
-{
-     pthread_mutex_lock( &font->lock );
-     dfb_state_lock( &font->state );
-}
+#define dfb_font_lock(font)                  \
+do {                                         \
+     pthread_mutex_lock( &(font)->lock );    \
+     dfb_state_lock( &(font)->state );       \
+} while (0)
 
 /*
  * unlock the font after access
  */
-static inline void dfb_font_unlock( CoreFont *font )
-{
-     dfb_state_unlock( &font->state );
-     pthread_mutex_unlock( &font->lock );
-}
+#define dfb_font_unlock(font)                \
+do {                                         \
+     dfb_state_unlock( &(font)->state );     \
+     pthread_mutex_unlock( &(font)->lock );  \
+} while (0)
 
 /*
  * loads glyph data from font

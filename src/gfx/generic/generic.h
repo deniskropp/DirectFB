@@ -42,11 +42,93 @@ typedef struct
      __u16 g;
      __u16 r;
      __u16 a;
-} Accumulator;
+} GenefxAccumulator;
 
 #define ACC_WIDTH 1600
 
-typedef void (*GFunc)();
+typedef struct _GenefxState GenefxState;
+
+typedef void (*GenefxFunc)(GenefxState *gfxs);
+
+/*
+ * State of the virtual graphics processing unit "Genefx" (pron. 'genie facts').
+ */
+struct _GenefxState {
+     GenefxFunc funcs[32];
+     
+     int length;    /* span length (destination) */
+     
+     /*
+      * state values
+      */
+     void *dst_org;
+     void *src_org;
+     int dst_pitch;
+     int src_pitch;
+
+     int dst_bpp;
+     int src_bpp;
+
+     DFBSurfaceCapabilities dst_caps;
+     DFBSurfaceCapabilities src_caps;
+
+     DFBSurfacePixelFormat src_format;
+     DFBSurfacePixelFormat dst_format;
+
+     int dst_height;
+     int src_height;
+
+     int dst_field_offset;
+     int src_field_offset;
+
+     DFBColor color;
+
+     /*
+      * operands
+      */
+     void *Aop;
+     void *Bop;
+     __u32 Cop;
+
+     __u8 CbCop;
+     __u8 CrCop;
+
+     int Aop_field;
+     int Bop_field;
+     
+     /*
+      * color keys
+      */
+     __u32 Dkey;
+     __u32 Skey;
+
+     /*
+      * color lookup tables
+      */
+     CorePalette *Alut;
+     CorePalette *Blut;
+
+     /*
+      * accumulators
+      */
+     GenefxAccumulator Aacc[ACC_WIDTH]; // FIXME: dynamically
+     GenefxAccumulator Bacc[ACC_WIDTH]; // FIXME: dynamically
+     GenefxAccumulator Cacc;
+
+     /*
+      * dataflow control
+      */
+     GenefxAccumulator *Xacc;
+     GenefxAccumulator *Dacc;
+     GenefxAccumulator *Sacc;
+
+     void        *Sop;
+     CorePalette *Slut;
+
+     int Ostep; /* controls horizontal blitting direction */
+
+     int SperD; /* for scaled routines only */
+};
 
 
 void gGetDriverInfo( GraphicsDriverInfo *info );
@@ -55,11 +137,11 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info );
 bool gAquire  ( CardState *state, DFBAccelerationMask accel );
 void gRelease ( CardState *state );
 
-void gFillRectangle ( DFBRectangle *rect );
-void gDrawLine      ( DFBRegion    *line );
+void gFillRectangle ( CardState *state, DFBRectangle *rect );
+void gDrawLine      ( CardState *state, DFBRegion    *line );
 
-void gBlit          ( DFBRectangle *rect, int dx, int dy );
-void gStretchBlit   ( DFBRectangle *srect, DFBRectangle *drect );
+void gBlit          ( CardState *state, DFBRectangle *rect, int dx, int dy );
+void gStretchBlit   ( CardState *state, DFBRectangle *srect, DFBRectangle *drect );
 
 
 #endif

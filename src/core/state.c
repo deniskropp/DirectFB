@@ -32,13 +32,15 @@
 
 #include <core/fusion/reactor.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coretypes.h>
 
-#include "state.h"
-#include "surfaces.h"
+#include <core/state.h>
+#include <core/surfaces.h>
+
+#include <misc/mem.h>
 
 
 static ReactionResult destination_listener( const void *msg_data,
@@ -68,6 +70,8 @@ dfb_state_init( CardState *state )
      
      pthread_mutexattr_destroy( &attr );
 
+     state->initialized = true;
+
      return 0;
 }
 
@@ -75,6 +79,12 @@ void
 dfb_state_destroy( CardState *state )
 {
      DFB_ASSERT( state != NULL );
+     DFB_ASSERT( state->initialized );
+
+     state->initialized = false;
+     
+     if (state->gfxs)
+          DFBFREE( state->gfxs );
      
      pthread_mutex_destroy( &state->lock );
 }
@@ -83,6 +93,7 @@ void
 dfb_state_set_destination( CardState *state, CoreSurface *destination )
 {
      DFB_ASSERT( state != NULL );
+     DFB_ASSERT( state->initialized );
 
      dfb_state_lock( state );
      
@@ -110,6 +121,7 @@ void
 dfb_state_set_source( CardState *state, CoreSurface *source )
 {
      DFB_ASSERT( state != NULL );
+     DFB_ASSERT( state->initialized );
 
      dfb_state_lock( state );
      
@@ -141,6 +153,8 @@ destination_listener( const void *msg_data,
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
+
+     DFB_ASSERT( state->initialized );
 
 //     dfb_state_lock( state );
 
@@ -187,6 +201,8 @@ source_listener( const void *msg_data,
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
+
+     DFB_ASSERT( state->initialized );
 
 //     dfb_state_lock( state );
      

@@ -24,7 +24,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-static void Cacc_add_to_Dacc_MMX()
+static void Cacc_add_to_Dacc_MMX( GenefxState *gfxs )
 {
      __asm__ __volatile__ (
                "    movq     %2, %%mm0\n"
@@ -38,11 +38,11 @@ static void Cacc_add_to_Dacc_MMX()
                "    jnz      1b\n"
                "    emms"
                : /* no outputs */
-               : "D" (Dacc), "c" (Dlength), "m" (Cacc)
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "m" (gfxs->Cacc)
                : "%st", "memory");
 }
 
-static void Dacc_modulate_argb_MMX()
+static void Dacc_modulate_argb_MMX( GenefxState *gfxs )
 {
      __asm__ __volatile__ (
                "movq     %2, %%mm0\n\t"
@@ -61,11 +61,11 @@ static void Dacc_modulate_argb_MMX()
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Dacc), "c" (Dlength), "m" (Cacc)
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "m" (gfxs->Cacc)
                : "%st", "memory");
 }
 
-static void Sacc_add_to_Dacc_MMX()
+static void Sacc_add_to_Dacc_MMX( GenefxState *gfxs )
 {
      __asm__ __volatile__ (
                ".align   16\n"
@@ -80,11 +80,11 @@ static void Sacc_add_to_Dacc_MMX()
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Dacc), "c" (Dlength), "S" (Sacc)
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sacc)
                : "%st", "memory");
 }
 
-static void Sacc_to_Aop_rgb16_MMX()
+static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
 {
      static const long preload[] = { 0xFF00FF00, 0x0000FF00 };
      static const long mask[]    = { 0x00FC00F8, 0x000000F8 };
@@ -116,12 +116,12 @@ static void Sacc_to_Aop_rgb16_MMX()
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Aop), "c" (Dlength), "S" (Sacc),
+               : "D" (gfxs->Aop), "c" (gfxs->length), "S" (gfxs->Sacc),
                  "m" (*preload), "m" (*mask), "m" (*pm)
                : "%eax", "%st", "memory");
 }
 
-static void Sacc_to_Aop_rgb32_MMX()
+static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
 {
      static const long preload[]  = { 0xFF00FF00, 0x0000FF00 };
      static const long postload[] = { 0x00FF00FF, 0x000000FF };
@@ -151,12 +151,12 @@ static void Sacc_to_Aop_rgb32_MMX()
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Aop), "c" (Dlength), "S" (Sacc),
+               : "D" (gfxs->Aop), "c" (gfxs->length), "S" (gfxs->Sacc),
                  "m" (*preload), "m" (*postload), "m" (*pm)
                : "%st", "memory");
 }
 
-static void Sop_argb_Sto_Dacc_MMX()
+static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 {
      static const long zeros[]  = { 0, 0 };
      int i = 0;
@@ -185,12 +185,12 @@ static void Sop_argb_Sto_Dacc_MMX()
                "3:\n\t"
                "emms"
                : "=r" (i)
-               : "D" (Dacc), "c" (Dlength), "S" (Sop), "a" (SperD),
-                 "m" (*zeros), "0" (i)
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
+                 "a" (gfxs->SperD), "m" (*zeros), "0" (i)
                : "%st", "memory");
 }
 
-static void Sop_argb_to_Dacc_MMX()
+static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
 {
      static const long zeros[]  = { 0, 0 };
 
@@ -207,11 +207,12 @@ static void Sop_argb_to_Dacc_MMX()
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Dacc), "c" (Dlength), "S" (Sop), "m" (*zeros)
+               : "D" (gfxs->Dacc), "c" (gfxs->length),
+                 "S" (gfxs->Sop), "m" (*zeros)
                : "%st", "memory");
 }
 
-static void Sop_rgb16_to_Dacc_MMX()
+static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
 {
      static const long mask[]  = { 0x07E0001F, 0x0000F800 };
      static const long smul[]  = { 0x00200800, 0x00000001 };
@@ -284,12 +285,12 @@ static void Sop_rgb16_to_Dacc_MMX()
                "2:\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Dacc), "c" (Dlength), "S" (Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
                  "m" (*mask), "m" (*smul), "m" (*alpha)
                : "%st", "memory");
 }
 
-static void Sop_rgb32_to_Dacc_MMX()
+static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
 {
      static const long alpha[]  = { 0, 0x00FF0000 };
      static const long zeros[]  = { 0, 0 };
@@ -309,12 +310,12 @@ static void Sop_rgb32_to_Dacc_MMX()
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Dacc), "c" (Dlength), "S" (Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
                  "m" (*alpha), "m" (*zeros)
                : "%st", "memory");
 }
 
-static void Xacc_blend_invsrcalpha_MMX()
+static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
 {
      static const long einser[] = { 0x01000100, 0x01000100 };
      static const long zeros[]  = { 0, 0 };
@@ -366,12 +367,12 @@ static void Xacc_blend_invsrcalpha_MMX()
                "2:\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Xacc), "c" (Dlength), "S" (Sacc),
-                 "m" (*einser), "m" (*zeros), "m" (color)
+               : "D" (gfxs->Xacc), "c" (gfxs->length), "S" (gfxs->Sacc),
+                 "m" (*einser), "m" (*zeros), "m" (gfxs->color)
                : "%st", "memory");
 }
 
-static void Xacc_blend_srcalpha_MMX()
+static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
 {
      static const long ones[]  = { 0x00010001, 0x00010001 };
      static const long zeros[] = { 0, 0 };
@@ -421,8 +422,8 @@ static void Xacc_blend_srcalpha_MMX()
                "2:\n\t"
                "emms"
                : /* no outputs */
-               : "D" (Xacc), "c" (Dlength), "S" (Sacc),
-                 "m" (*ones), "m" (*zeros), "m" (color)
+               : "D" (gfxs->Xacc), "c" (gfxs->length), "S" (gfxs->Sacc),
+                 "m" (*ones), "m" (*zeros), "m" (gfxs->color)
                : "%st", "memory");
 }
 

@@ -1033,8 +1033,6 @@ dfb_layer_state( DisplayLayer *layer )
      DFB_ASSERT( layer->shared->enabled );
      DFB_ASSERT( layer->shared->surface );
 
-     //dfb_state_set_destination( &layer->state, layer->shared->surface );
-
      return &layer->state;
 }
 

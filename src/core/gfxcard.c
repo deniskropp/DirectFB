@@ -644,7 +644,7 @@ void dfb_gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
           if (dfb_clip_rectangle( &state->clip, rect ) &&
               gAquire( state, DFXL_FILLRECTANGLE ))
           {
-               gFillRectangle( rect );
+               gFillRectangle( state, rect );
                gRelease( state );
           }
      }
@@ -689,25 +689,25 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
                          line.x1 = line.x2 = rect->x;
                          line.y1 = rect->y + (edges & 2 ? 1 : 0);
                          line.y2 = rect->y + rect->h - 1;
-                         gDrawLine( &line );
+                         gDrawLine( state, &line );
                     }
                     if (edges & 2) {
                          line.x1 = rect->x;
                          line.x2 = rect->x + rect->w - (edges & 4 ? 2 : 1);
                          line.y1 = line.y2 = rect->y;
-                         gDrawLine( &line );
+                         gDrawLine( state, &line );
                     }
                     if (edges & 4) {
                          line.x1 = line.x2 = rect->x + rect->w - 1;
                          line.y1 = rect->y;
                          line.y2 = rect->y + rect->h - (edges & 8 ? 2 : 1);
-                         gDrawLine( &line );
+                         gDrawLine( state, &line );
                     }
                     if (edges & 8) {
                          line.x1 = rect->x + (edges & 1 ? 1 : 0);
                          line.x2 = rect->x + rect->w - 1;
                          line.y1 = line.y2 = rect->y + rect->h - 1;
-                         gDrawLine( &line );
+                         gDrawLine( state, &line );
                     }
 
                     gRelease (state);
@@ -750,7 +750,7 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
           if (gAquire( state, DFXL_DRAWLINE )) {
                for (i=0; i<num_lines; i++) {
                     if (dfb_clip_line( &state->clip, &lines[i] ))
-                         gDrawLine( &lines[i] );
+                         gDrawLine( state, &lines[i] );
                }
 
                gRelease( state );
@@ -846,7 +846,7 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
                     card->funcs.FillRectangle( card->driver_data,
                                                card->device_data, &rect );
                else
-                    gFillRectangle (&rect);
+                    gFillRectangle( state, &rect );
           }
 
           INC_DDA(dda1);
@@ -935,7 +935,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      if (!hw) {
           if (gAquire( state, DFXL_BLIT )) {
                dfb_clip_blit( &state->clip, rect, &dx, &dy );
-               gBlit( rect, dx, dy );
+               gBlit( state, rect, dx, dy );
                gRelease( state );
           }
      }
@@ -1004,7 +1004,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
 
                          dfb_clip_blit( &state->clip, &srect, &x, &y );
 
-                         gBlit( &srect, x, y );
+                         gBlit( state, &srect, x, y );
                     }
                }
                gRelease( state );
@@ -1049,7 +1049,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      if (!hw) {
           if (gAquire( state, DFXL_STRETCHBLIT )) {
                dfb_clip_stretchblit( &state->clip, srect, drect );
-               gStretchBlit( srect, drect );
+               gStretchBlit( state, srect, drect );
                gRelease( state );
           }
      }
@@ -1169,7 +1169,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                               case 2:
                                    dfb_clip_blit( &font->state.clip,
                                                   &rect, &xx, &yy );
-                                   gBlit( &rect, xx, yy );
+                                   gBlit( &font->state, &rect, xx, yy );
                                    break;
                               default:
                                    break;
@@ -1255,7 +1255,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      else if (gAquire( &font->state, DFXL_BLIT )) {
 
           dfb_clip_blit( &font->state.clip, &rect, &x, &y );
-          gBlit( &rect, x, y );
+          gBlit( &font->state, &rect, x, y );
           gRelease( &font->state );
      }
 
