@@ -54,24 +54,27 @@
  */
 
 #ifdef SIGUNUSED
-#define SIG_SWITCH_FROM  (SIGUNUSED + 10)
-#define SIG_SWITCH_TO    (SIGUNUSED + 11)
+     #define SIG_SWITCH_FROM  (SIGUNUSED + 10)
+     #define SIG_SWITCH_TO    (SIGUNUSED + 11)
 #else
-#define SIG_SWITCH_FROM  (31 + 10)
-#define SIG_SWITCH_TO    (31 + 11)
+     #define SIG_SWITCH_FROM  (31 + 10)
+     #define SIG_SWITCH_TO    (31 + 11)
 #endif
 
 #ifndef SI_KERNEL
 // glibc 2.1.x doesn't have this in /usr/include/bits/siginfo.h
-#define SI_KERNEL 0x80
+     #define SI_KERNEL 0x80
 #endif
+
 
 VirtualTerminal *core_vt = NULL;
 
 static DFBResult vt_init_switching();
+static int       vt_get_fb( int vt );
+static void      vt_set_fb( int vt, int fb );
 
-
-DFBResult vt_initialize()
+DFBResult
+vt_initialize()
 {
      DFBResult ret;
      struct vt_stat vs;
@@ -117,11 +120,17 @@ DFBResult vt_initialize()
           core_vt = NULL;
           return DFB_INIT;
      }
+
      Score_vt->prev = vs.v_active;
+
 
      if (dfb_config->no_vt_switch) {
           core_vt->fd   = core_vt->fd0;
           Score_vt->num = Score_vt->prev;
+          
+          /* move vt to framebuffer */
+          Score_vt->old_fb = vt_get_fb( Score_vt->num );
+          vt_set_fb( Score_vt->num, -1 );
      }
      else {
           int n;
@@ -135,6 +144,11 @@ DFBResult vt_initialize()
                return DFB_INIT;
           }
 
+          /* move vt to framebuffer */
+          Score_vt->old_fb = vt_get_fb( Score_vt->num );
+          vt_set_fb( Score_vt->num, -1 );
+
+          /* switch to vt */
           while (ioctl( core_vt->fd0, VT_ACTIVATE, Score_vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
@@ -175,12 +189,14 @@ DFBResult vt_initialize()
      return DFB_OK;
 }
 
-DFBResult vt_join()
+DFBResult
+vt_join()
 {
      return DFB_OK;
 }
 
-DFBResult vt_shutdown()
+DFBResult
+vt_shutdown()
 {
      if (dfb_config->vt_switching) {
           if (ioctl( core_vt->fd, VT_SETMODE, &Score_vt->vt_mode ) < 0)
@@ -201,12 +217,19 @@ DFBResult vt_shutdown()
 
           DEBUGMSG( "switched back...\n" );
 
+          /* restore con2fbmap */
+          vt_set_fb( Score_vt->num, Score_vt->old_fb );
+          
           if (close( core_vt->fd ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to "
                           "close file descriptor of allocated VT!\n" );
 
           if (ioctl( core_vt->fd0, VT_DISALLOCATE, Score_vt->num ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to disallocate VT!\n" );
+     }
+     else {
+          /* restore con2fbmap */
+          vt_set_fb( Score_vt->num, Score_vt->old_fb );
      }
 
      if (close( core_vt->fd0 ) < 0)
@@ -219,12 +242,14 @@ DFBResult vt_shutdown()
      return DFB_OK;
 }
 
-DFBResult vt_leave()
+DFBResult
+vt_leave()
 {
      return DFB_OK;
 }
 
-static DFBResult vt_init_switching()
+static DFBResult
+vt_init_switching()
 {
      char buf[32];
 
@@ -257,5 +282,64 @@ static DFBResult vt_init_switching()
      }
 
      return DFB_OK;
+}
+
+static int
+vt_get_fb( int vt )
+{
+     int                  fd;
+     struct fb_con2fbmap  c2m;
+     const char          *fbpath = "/dev/fb0";
+     
+     if (dfb_config->fb_device)
+          fbpath = dfb_config->fb_device;
+
+     c2m.console = vt;
+     
+     fd = open( fbpath, O_RDWR );
+     if (fd != -1) {
+          if (ioctl( fd, FBIOGET_CON2FBMAP, &c2m ) < 0) {
+               PERRORMSG( "DirectFB/core/fbdev: "
+                          "FBIOGET_CON2FBMAP failed!\n" );
+          }
+
+          close( fd );
+     }
+     
+     return c2m.framebuffer;
+}
+
+static void
+vt_set_fb( int vt, int fb )
+{
+     int                  fd;
+     struct fb_con2fbmap  c2m;
+     const char          *fbpath = "/dev/fb0";
+     
+     if (dfb_config->fb_device) {
+          struct stat sbf;
+
+          if (!stat( dfb_config->fb_device, &sbf )) {
+               fbpath = dfb_config->fb_device;
+               c2m.framebuffer = (sbf.st_rdev & 0xFF) >> 5;
+          }
+     }
+     else
+          c2m.framebuffer = 0;
+
+     if (fb > -1)
+          c2m.framebuffer = fb;
+
+     c2m.console = vt;
+     
+     fd = open( fbpath, O_RDWR );
+     if (fd != -1) {
+          if (ioctl( fd, FBIOPUT_CON2FBMAP, &c2m ) < 0) {
+               PERRORMSG( "DirectFB/core/fbdev: "
+                          "FBIOPUT_CON2FBMAP failed!\n" );
+          }
+
+          close( fd );
+     }
 }
 

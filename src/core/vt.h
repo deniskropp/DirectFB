@@ -35,6 +35,8 @@ struct _VirtualTerminalShared {
      int num;                      /* number of vt where DirectFB runs */
      int prev;                     /* number of vt DirectFB was started from */
 
+     int old_fb;                   /* original fb mapped to vt */
+
      struct sigaction sig_usr1;    /* previous signal handler for USR1 */
      struct sigaction sig_usr2;    /* previous signal handler for USR2 */
 
