@@ -493,7 +493,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     else
                          config.buffermode = DLBM_FRONTONLY;
 
-                    if (format != config.pixelformat) {
+                    if (desc->flags & DSDESC_PIXELFORMAT) {
                          config.flags       |= DLCONF_PIXELFORMAT;
                          config.pixelformat  = format;
                     }
@@ -1057,6 +1057,8 @@ IDirectFB_Construct( IDirectFB *thiz )
           data->primary.height = 480;
 
      data->layer = dfb_layer_at_translated( DLID_PRIMARY );
+
+     dfb_layer_enable( data->layer );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;
