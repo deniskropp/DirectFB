@@ -473,6 +473,9 @@ void *__shmalloc_init (int world, bool initialize)
 
 void *__shmalloc_brk (int increment)
 {
+     FDEBUG( "%d + %d -> %d\n",
+             size, increment, size + increment );
+
      if (fd < 0) {
           FDEBUG("called without __shmalloc_init!\n");
           return NULL;
@@ -500,7 +503,7 @@ void *__shmalloc_brk (int increment)
           }
 
           if (new_mem != mem)
-               printf ("FATAL: mremap returned a different address!\n");
+               DFB_BREAK ("mremap returned a different address!\n");
 
           size = new_size;
 
@@ -516,6 +519,8 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
      void *new_mem;
      int   new_size = *((const int*) msg_data);
 
+     FDEBUG( "%d -> %d\n", size, new_size );
+     
      new_mem = mremap (mem, size, new_size, 0);
      if (new_mem == MAP_FAILED) {
           FPERROR ("mremap on shared memory file failed!\n");
