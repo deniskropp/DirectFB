@@ -52,6 +52,8 @@ struct _CoreWindow {
 
      DFBWindowID             id;
 
+     int                     fid;
+
      int                     x;            /* x position in pixels */
      int                     y;            /* y position in pixels */
      int                     width;        /* width in pixels */
@@ -95,6 +97,16 @@ struct _CoreWindowStack {
      CoreWindow         *keyboard_window; /* window grabbing the keyboard */
      CoreWindow         *focused_window;  /* window having the focus */
      CoreWindow         *entered_window;  /* window under the pointer */
+
+     struct {
+          DFBInputDeviceKeySymbol      symbol;
+          DFBInputDeviceKeyIdentifier  id;
+          int                          code;
+          CoreWindow                  *owner;
+     } keys[8];
+
+     DFBInputDeviceModifierMask        modifiers;
+     DFBInputDeviceLockState           locks;
 
      struct {
           int            enabled;         /* is cursor enabled ? */
@@ -303,6 +315,11 @@ void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event );
  * repaints all window on a window stack
  */
 void dfb_windowstack_repaint_all( CoreWindowStack *stack );
+
+/*
+ * Releases pressed keys.
+ */
+void dfb_windowstack_flush_keys( CoreWindowStack *stack );
 
 /*
  * moves the cursor and handles events

@@ -502,7 +502,8 @@ dfb_layer_lease( DisplayLayer *layer )
           /* Clear exclusive access. */
           layer->shared->exclusive = false;
 
-          dfb_windowstack_repaint_all( layer->shared->stack );
+          if (layer->shared->stack)
+               dfb_windowstack_repaint_all( layer->shared->stack );
      }
      
      return DFB_OK;
@@ -518,6 +519,10 @@ dfb_layer_purchase( DisplayLayer *layer )
      
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
+
+     /* Flush pressed keys. */
+     if (layer->shared->stack)
+          dfb_windowstack_flush_keys( layer->shared->stack );
 
      /* Backup configuration of shared access. */
      if (!layer->shared->exclusive)

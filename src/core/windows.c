@@ -67,6 +67,9 @@ static int  handle_enter_leave_focus( CoreWindowStack *stack );
 static void handle_wheel( CoreWindowStack *stack, int z );
 static DFBWindowID new_window_id( CoreWindowStack *stack );
 
+static CoreWindow* get_keyboard_window( CoreWindowStack     *stack,
+                                        const DFBInputEvent *evt );
+
 /*
  * Returns the stacking index of the window within its stack
  * or -1 if not found.
@@ -973,6 +976,35 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 }
 
 void
+dfb_windowstack_flush_keys( CoreWindowStack *stack )
+{
+     int i;
+
+     DFB_ASSERT( stack != NULL );
+
+     stack_lock( stack );
+     
+     for (i=0; i<8; i++) {
+          if (stack->keys[i].symbol != DIKS_NULL) {
+               DFBWindowEvent we;
+
+               we.type       = DWET_KEYUP;
+               we.key_code   = stack->keys[i].code;
+               we.key_id     = stack->keys[i].id;
+               we.key_symbol = stack->keys[i].symbol;
+               we.modifiers  = stack->modifiers;
+               we.locks      = stack->locks;
+
+               dfb_window_dispatch( stack->keys[i].owner, &we );
+
+               stack->keys[i].symbol = DIKS_NULL;
+          }
+     }
+     
+     stack_unlock( stack );
+}
+
+void
 dfb_windowstack_handle_motion( CoreWindowStack          *stack,
                                int                       dx,
                                int                       dy,
@@ -1502,8 +1534,7 @@ stack_inputdevice_react( const void *msg_data,
           case DIET_KEYRELEASE:
                stack_lock( stack );
                
-               window = (stack->keyboard_window ?
-                         stack->keyboard_window : stack->focused_window);
+               window = get_keyboard_window( stack, evt );
 
                if (window) {
                     we.type = (evt->type == DIET_KEYPRESS) ? DWET_KEYDOWN :
@@ -1511,8 +1542,8 @@ stack_inputdevice_react( const void *msg_data,
                     we.key_code   = evt->key_code;
                     we.key_id     = evt->key_id;
                     we.key_symbol = evt->key_symbol;
-                    we.modifiers  = evt->modifiers; /* FIXME: handle mult. devices */
-                    we.locks      = evt->locks; /* FIXME: handle mult. devices */
+                    we.modifiers  = stack->modifiers;
+                    we.locks      = stack->locks;
 
                     dfb_window_dispatch( window, &we );
                }
@@ -1885,10 +1916,14 @@ window_restacked( CoreWindow *window )
 static void
 window_withdraw( CoreWindow *window )
 {
-     CoreWindowStack *stack = window->stack;
+     int              i;
+     CoreWindowStack *stack;
 
+     DFB_ASSERT( window != NULL );
      DFB_ASSERT( window->stack != NULL );
 
+     stack = window->stack;
+     
      if (stack->entered_window == window)
           stack->entered_window = NULL;
 
@@ -1900,6 +1935,25 @@ window_withdraw( CoreWindow *window )
 
      if (stack->pointer_window == window)
           stack->pointer_window = NULL;
+
+     for (i=0; i<8; i++) {
+          if (stack->keys[i].symbol != DIKS_NULL &&
+              stack->keys[i].owner == window)
+          {
+               DFBWindowEvent we;
+
+               we.type       = DWET_KEYUP;
+               we.key_code   = stack->keys[i].code;
+               we.key_id     = stack->keys[i].id;
+               we.key_symbol = stack->keys[i].symbol;
+               we.modifiers  = stack->modifiers;
+               we.locks      = stack->locks;
+
+               dfb_window_dispatch( window, &we );
+
+               stack->keys[i].symbol = DIKS_NULL;
+          }
+     }
 }
 
 static void
@@ -1940,5 +1994,63 @@ ensure_focus( CoreWindowStack *stack )
                break;
           }
      }
+}
+
+static CoreWindow *
+get_keyboard_window( CoreWindowStack     *stack,
+                     const DFBInputEvent *evt )
+{
+     DFB_ASSERT( stack != NULL );
+     DFB_ASSERT( evt != NULL );
+     DFB_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
+
+     /* FIXME: handle multiple devices */
+     stack->modifiers = evt->modifiers;
+     stack->locks     = evt->locks;
+
+     if (evt->key_symbol == DIKS_NULL)
+          return NULL;
+     
+     if (evt->type == DIET_KEYPRESS) {
+          int         i;
+          int         free_key = -1;
+          CoreWindow *window;
+
+          for (i=0; i<8; i++) {
+               if (stack->keys[i].symbol == evt->key_symbol)
+                    return stack->keys[i].owner;
+
+               if (free_key == -1 && stack->keys[i].symbol == DIKS_NULL)
+                    free_key = i;
+          }
+
+          if (free_key == -1) {
+               CAUTION( "maximum number of owned keys reached" );
+               return NULL;
+          }
+
+          window = stack->keyboard_window ?
+                   stack->keyboard_window : stack->focused_window;
+          
+          stack->keys[free_key].symbol = evt->key_symbol;
+          stack->keys[free_key].id     = evt->key_id;
+          stack->keys[free_key].code   = evt->key_code;
+          stack->keys[free_key].owner  = window;
+
+          return window;
+     }
+     else {
+          int i;
+
+          for (i=0; i<8; i++) {
+               if (stack->keys[i].symbol == evt->key_symbol) {
+                    stack->keys[i].symbol = DIKS_NULL;
+                         
+                    return stack->keys[i].owner;
+               }
+          }
+     }
+
+     return NULL;
 }
 
