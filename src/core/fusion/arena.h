@@ -29,8 +29,6 @@
 
 #include "fusion_types.h"
 
-#ifndef FUSION_FAKE
-
 typedef int (*ArenaEnterFunc) (FusionArena *arena, void *ctx);
 typedef int (*ArenaExitFunc) (FusionArena *arena, void *ctx, bool emergency);
 
@@ -56,8 +54,6 @@ FusionResult fusion_arena_exit             (FusionArena     *arena,
                                             void            *ctx,
                                             bool             emergency,
                                             int             *ret_error);
-
-#endif /* !FUSION_FAKE */
 
 #endif /* __FUSION__ARENA_H__ */
 

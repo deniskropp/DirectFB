@@ -46,6 +46,8 @@
 #include "fusion_internal.h"
 
 
+#ifndef FUSION_FAKE
+
 /***************************
  *  Internal declarations  *
  ***************************/
@@ -413,4 +415,80 @@ unlock_arena( FusionArena *arena )
      /* Unlock the arena. */
      fusion_skirmish_dismiss( &arena->lock );
 }
+
+#else
+
+FusionResult
+fusion_arena_enter (const char     *name,
+                    ArenaEnterFunc  initialize,
+                    ArenaEnterFunc  join,
+                    void           *ctx,
+                    FusionArena   **ret_arena,
+                    int            *ret_error)
+{
+     int error;
+
+     DFB_ASSERT( name != NULL );
+     DFB_ASSERT( initialize != NULL );
+     DFB_ASSERT( join != NULL );
+     DFB_ASSERT( ret_arena != NULL );
+
+     /* Always call 'initialize'. */
+     error = initialize (NULL, ctx);
+
+     /* Return the return value of the callback. */
+     if (ret_error)
+          *ret_error = error;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_arena_add_shared_field (FusionArena *arena,
+                               const char  *name,
+                               void        *data)
+{
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( name != NULL );
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
+fusion_arena_get_shared_field (FusionArena  *arena,
+                               const char   *name,
+                               void        **data)
+{
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( name != NULL );
+
+     BUG( "should not call this in fake mode" );
+     
+     /* No field by that name has been found. */
+     return FUSION_NOTEXISTENT;
+}
+
+FusionResult
+fusion_arena_exit (FusionArena   *arena,
+                   ArenaExitFunc  shutdown,
+                   ArenaExitFunc  leave,
+                   void          *ctx,
+                   bool           emergency,
+                   int           *ret_error)
+{
+     int error = 0;
+
+     DFB_ASSERT( shutdown != NULL );
+
+     /* Deinitialize everything. */
+     error = shutdown( arena, ctx, emergency );
+
+     /* Return the return value of the callback. */
+     if (ret_error)
+          *ret_error = error;
+
+     return FUSION_SUCCESS;
+}
+
+#endif
 

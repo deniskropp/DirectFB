@@ -63,6 +63,8 @@ extern "C"
 
 #else
 
+  #include <misc/util.h>
+
   #define fusion_init(a,b)    (1)
   #define fusion_exit()       do {} while (0)
   #define fusion_get_millis   dfb_get_millis

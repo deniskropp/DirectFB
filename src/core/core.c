@@ -157,8 +157,10 @@ dfb_core_ref()
 #endif
      int   fid;
      int   ret;
+#ifndef FUSION_FAKE
      int   world;
      char  buf[16];
+#endif
 
      /* check for multiple calls, do reference counting */
      if (dfb_core && dfb_core->refs++)
