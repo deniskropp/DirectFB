@@ -1702,11 +1702,11 @@ GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 static void Bop_a8_set_alphapixel_Aop_rgb15()
 {
-     int    w = Dlength;
-     __u8  *S = Bop;
-     __u16 *D = Aop;
-     __u32  rb = (((color.r & 0xf8) << 7) | ((color.b & 0xf8) >> 3));
-     __u32  g  =  ((color.g & 0xf8) << 2);
+     int    w  = Dlength;
+     __u8  *S  = Bop;
+     __u16 *D  = Aop;
+     __u32  rb = Cop & 0x7c1f;
+     __u32  g  = Cop & 0x03e0;
 
      while (w>4) {
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
@@ -1845,8 +1845,8 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
      int    w  = Dlength;
      __u8  *S  = Bop;
      __u32 *D  = Aop;
-     __u32  rb = (((color.r) << 16) | (color.b));
-     __u32  g  =  ((color.g) << 8);
+     __u32  rb = Cop & 0xff00ff;
+     __u32  g  = Cop & 0x00ff00;
 
      while (w>4) {
           SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
@@ -1863,9 +1863,9 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
 
 /* saturating alpha blend */
 
-#define SET_ALPHA_PIXEL_ARGB(d,g,a)\
+#define SET_ALPHA_PIXEL_ARGB(d,a)\
      switch (a) {\
-     case 0xff: *(d) = 0xff000000 | __rb | ((g) << 8);\
+     case 0xff: *(d) = 0xff000000 | Cop;\
      case 0: break;\
      default: {\
           __u32 pixel = *(d);\
@@ -1874,27 +1874,28 @@ static void Bop_a8_set_alphapixel_Aop_rgb32()
           register __u16 sa = (pixel >> 24) + a;\
           if (sa & 0xff00) sa = 0xff;\
           *(d) = (sa << 24) + \
-                 (((((pixel & 0x00ff00ff)       * s1) + (__rb * s)) >> 8) & 0x00ff00ff) + \
-                 (((((pixel & 0x0000ff00) >> 8) * s1) + ((g)  * s))       & 0x0000ff00);  \
+                 (((((pixel & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
+                 (((((pixel & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
           }\
      }
 
 static void Bop_a8_set_alphapixel_Aop_argb()
 {
-     int    w = Dlength;
-     __u8  *S = Bop;
-     __u32 *D = (__u32*)Aop;
-     __u32 __rb = (((color.r)<<16) | (color.b));
+     int    w  = Dlength;
+     __u8  *S  = Bop;
+     __u32 *D  = (__u32*)Aop;
+     __u32  rb = Cop & 0x00ff00ff;
+     __u32  g  = color.g;
 
      while (w>4) {
-          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
-          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
-          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
-          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
       w-=4;
      }
      while (w--) {
-          SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
+          SET_ALPHA_PIXEL_ARGB( D, *S ); D++; S++;
      }
 }
 
@@ -1904,8 +1905,8 @@ static void Bop_a8_set_alphapixel_Aop_argb()
      case 0: break; \
      default: {\
           __u16 pixel = *(d);\
-          __u16 s = (a)+1;\
-          __u16 s1 = 256-s;\
+          register __u16 s = (a)+1;\
+          register __u16 s1 = 256-s;\
           *(d) = (pixel * s1 + s) >> 8;\
           }\
      }
