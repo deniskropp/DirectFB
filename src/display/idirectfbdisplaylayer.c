@@ -53,6 +53,7 @@
 
 #include <gfx/convert.h>
 
+#include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
@@ -61,6 +62,9 @@
 #include "idirectfbscreen.h"
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_layer.h"
+
+
+D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
 
 /*
  * private data struct of IDirectFB
@@ -82,10 +86,19 @@ IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 {
      IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
 
+     D_DEBUG_AT( Layer, "IDirectFBDisplayLayer_Destruct()\n" );
+
+     D_DEBUG_AT( Layer, "  -> unref region...\n" );
+
      dfb_layer_region_unref( data->region );
+
+     D_DEBUG_AT( Layer, "  -> unref context...\n" );
+
      dfb_layer_context_unref( data->context );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
+
+     D_DEBUG_AT( Layer, "  -> done.\n" );
 }
 
 static DFBResult
