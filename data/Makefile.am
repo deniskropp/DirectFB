@@ -2,22 +2,6 @@
 
 miscdatadir = $(DATADIR)
 
-miscdata_DATA = \
-	cursor.dat font.data
-
+miscdata_DATA = cursor.dat font.data
 
 EXTRA_DIST = $(miscdata_DATA)
-
-
-.PHONY: files
-
-files:
-	@files=`ls $(DISTFILES) 2> /dev/null `; for p in $$files; do \
-	  echo $$p; \
-	done
-	@for subdir in $(SUBDIRS); do \
-	  files=`cd $$subdir; $(MAKE) files | grep -v "make\[[1-9]\]"`; \
-	  for file in $$files; do \
-	    echo $$subdir/$$file; \
-	  done; \
-	done
