@@ -82,6 +82,9 @@ typedef struct
                                                      on start up */
      int       no_window_opacity;                 /* Force window opacity to be
                                                      0 or 255 */
+
+     char     *fbdebug_device;                    /* Device for framebuffer
+                                                     based debug output */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

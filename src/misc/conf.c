@@ -140,6 +140,9 @@ static void config_cleanup()
      if (dfb_config->fb_device)
           DFBFREE( dfb_config->fb_device );
 
+     if (dfb_config->fbdebug_device)
+          DFBFREE( dfb_config->fbdebug_device );
+
      if (dfb_config->layer_bg_filename)
           DFBFREE( dfb_config->layer_bg_filename );
 
@@ -180,6 +183,17 @@ DFBResult config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config --fbdev: No device name specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "fbdebug" ) == 0) {
+          if (value) {
+               if (dfb_config->fbdebug_device)
+                    DFBFREE( dfb_config->fbdebug_device );
+               dfb_config->fbdebug_device = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG("DirectFB/Config --fbdebug: No device name specified!\n");
                return DFB_INVARG;
           }
      } else

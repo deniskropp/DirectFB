@@ -49,6 +49,7 @@
 
 #include "misc/mem.h"
 #include "misc/util.h"
+#include "misc/fbdebug.h"
 
 /*
  * one entry in the cleanup list
@@ -372,6 +373,10 @@ static int core_initialize( FusionArena *arena, void *ctx )
      dfb_core->arena  = arena;
      dfb_core->master = 1;
 
+#ifdef DFB_DEBUG
+     fbdebug_init();
+#endif
+
      INITCHECK( vt_initialize() );
      INITCHECK( input_initialize() );
      INITCHECK( fbdev_initialize() );
@@ -426,6 +431,10 @@ static int core_shutdown( FusionArena *arena, void *ctx )
      fbdev_shutdown();
      input_shutdown();
      vt_shutdown();
+
+#ifdef DFB_DEBUG
+     fbdebug_exit();
+#endif
 
      return 0;
 }

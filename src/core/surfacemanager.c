@@ -44,6 +44,7 @@
 
 #include "misc/util.h"
 #include "misc/mem.h"
+#include "misc/fbdebug.h"
 
 /*
  * initially there is one big free chunk,
@@ -70,6 +71,15 @@ struct _SurfaceManager {
 
      CoreSurface    *surfaces;
      Chunk          *chunks;
+     int             length;
+
+     struct {
+          unsigned int    width;
+          unsigned int    height;
+          unsigned int    total;
+
+          FBDebugArea    *area;
+     } debug;
 
      /* offset of the surface heap */
      unsigned int    heap_offset;
@@ -80,11 +90,20 @@ struct _SurfaceManager {
 };
 
 
-static int min_toleration = 1;
+static int min_toleration = 8;
 
 static Chunk* split_chunk( Chunk *c, int length );
 static Chunk* free_chunk( Chunk *chunk );
 static void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length );
+
+#ifdef DFB_DEBUG
+static void debug_init( SurfaceManager *manager );
+static void debug_exit( SurfaceManager *manager );
+static void debug_linear_fill( SurfaceManager *manager,
+                               int start, int length, __u8 r, __u8 g, __u8 b );
+static void debug_dump( SurfaceManager *manager );
+static void debug_pause( SurfaceManager *manager );
+#endif
 
 
 SurfaceManager *surfacemanager_create( unsigned int length,
@@ -108,10 +127,15 @@ SurfaceManager *surfacemanager_create( unsigned int length,
      chunk->length = length;
 
      manager->chunks           = chunk;
+     manager->length           = length;
      manager->byteoffset_align = byteoffset_align;
      manager->pixelpitch_align = pixelpitch_align;
 
      skirmish_init( &manager->lock );
+
+#ifdef DFB_DEBUG
+     debug_init( manager );
+#endif
 
      return manager;
 }
@@ -197,6 +221,10 @@ DFBResult surfacemanager_adjust_heap_offset( SurfaceManager *manager,
 
      manager->heap_offset = offset;
 
+#ifdef DFB_DEBUG
+     debug_dump( manager );
+#endif
+
      surfacemanager_unlock( manager );
 
      return DFB_OK;
@@ -241,7 +269,7 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
                if (c->buffer  &&
                    !c->buffer->video.locked &&
                    c->buffer->policy != CSP_VIDEOONLY  &&
-                   ((c->tolerations > min_toleration) ||
+                   ((c->tolerations > min_toleration/8) ||
                    buffer->policy == CSP_VIDEOONLY))
                {
                     /* found a nice place to chill */
@@ -250,6 +278,8 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
                          best_occupied->tolerations < c->tolerations)
                          /* first found or better one? */
                          best_occupied = c;
+
+                    c->tolerations++;
                } else
                if (!c->buffer) {
                     /* found a nice place to chill */
@@ -258,13 +288,20 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
                          best_free = c;
                } else
                     c->tolerations++;
-          }
+          } else
+          if (c->buffer)
+               c->tolerations++;
 
           c = c->next;
      }
 
      /* if we found a place */
      if (best_free) {
+/*          debug_linear_fill( manager, best_free->offset,
+                             best_free->length, 0x90, 0x90, 0x90 );
+
+          debug_pause( manager );*/
+
           occupy_chunk( best_free, buffer, length );
      } else
      if (best_occupied) {
@@ -273,6 +310,13 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
           DEBUGMSG( "kicking out surface at %d with tolerations %d...\n",
                     best_occupied->offset, best_occupied->tolerations );
 
+#ifdef DFB_DEBUG
+          debug_linear_fill( manager, best_occupied->offset,
+                             best_occupied->length, 0xff, 0xff, 0xff );
+
+          debug_pause( manager );
+#endif
+
           surfacemanager_assure_system( manager, best_occupied->buffer );
 
           best_occupied->buffer->video.health = CSH_INVALID;
@@ -280,31 +324,35 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
 
           best_occupied = free_chunk( best_occupied );
 
+          gfxcard_sync();
+
           DEBUGMSG( "kicked out.\n" );
 
 
           occupy_chunk( best_occupied, buffer, length );
      }
      else {
-          //char *tmp;
-
           DEBUGMSG( "DirectFB/core/surfacemanager: "
                     "Couldn't allocate enough heap space "
                     "for video memory surface!\n" );
 
-          /*
-          tmp = DFBMALLOC( card->framebuffer.length );
+#ifdef DFB_DEBUG
+          debug_linear_fill( manager, manager->heap_offset,
+                             manager->length - manager->heap_offset,
+                             0x20, 0x10, 0x40 );
 
-          memcpy( tmp, card->framebuffer.base, card->framebuffer.length );
-          memset( card->framebuffer.base, 0xFF, card->framebuffer.length );
-          memcpy( card->framebuffer.base, tmp, card->framebuffer.length );
+          debug_pause( manager );
 
-          DFBFREE( tmp );
-          */
+          debug_dump( manager );
+#endif
 
           /* no luck */
           return DFB_NOVIDEOMEMORY;
      }
+
+#ifdef DFB_DEBUG
+     debug_dump( manager );
+#endif
 
      return DFB_OK;
 }
@@ -324,6 +372,10 @@ DFBResult surfacemanager_deallocate( SurfaceManager *manager,
 
      free_chunk( chunk );
 
+#ifdef DFB_DEBUG
+     debug_dump( manager );
+#endif
+
      surface_notify_listeners( buffer->surface, CSNF_VIDEO );
 
      DEBUGMSG( "deallocated.\n" );
@@ -338,9 +390,16 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
 
      switch (buffer->video.health) {
           case CSH_STORED:
-               if (buffer->video.chunk)
+               if (buffer->video.chunk &&
+                   buffer->video.chunk->tolerations != 0)
+               {
                     buffer->video.chunk->tolerations = 0;
+#ifdef DFB_DEBUG
+                    debug_dump( manager );
+#endif
+               }
                return DFB_OK;
+
           case CSH_INVALID: {
                DFBResult ret;
 
@@ -368,6 +427,10 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
                buffer->video.health = CSH_STORED;
                buffer->video.chunk->tolerations = 0;
                surface_notify_listeners( surface, CSNF_VIDEO );
+
+#ifdef DFB_DEBUG
+               debug_dump( manager );
+#endif
 
                return DFB_OK;
           }
@@ -401,6 +464,11 @@ DFBResult surfacemanager_assure_system( SurfaceManager *manager,
                dst += buffer->system.pitch;
           }
           buffer->system.health = CSH_STORED;
+
+#ifdef DFB_DEBUG
+          debug_dump( manager );
+#endif
+
           surface_notify_listeners( surface, CSNF_SYSTEM );
 
           return DFB_OK;
@@ -449,7 +517,7 @@ static Chunk* free_chunk( Chunk *chunk )
 
      chunk->buffer = NULL;
 
-     //min_toleration--;
+     min_toleration--;
 
      if (chunk->prev  &&  !chunk->prev->buffer) {
           Chunk *prev = chunk->prev;
@@ -495,10 +563,107 @@ static void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length )
 
      chunk->buffer = buffer;
 
-     //min_toleration++;
+     min_toleration++;
 
      DEBUGMSG( "DirectFB/core/surfacemanager: "
                "Allocated %d bytes at offset %d.\n",
                chunk->length, chunk->offset );
 }
+
+
+#ifdef DFB_DEBUG
+
+static void debug_init( SurfaceManager *manager )
+{
+     unsigned int width, height;
+
+     fbdebug_get_size( &width, &height );
+     fbdebug_get_area( 0, 0, width, height, &manager->debug.area );
+
+     manager->debug.width  = width;
+     manager->debug.height = height;
+     manager->debug.total  = width * height;
+}
+
+static void debug_exit( SurfaceManager *manager )
+{
+     fbdebug_free_area( manager->debug.area );
+}
+
+static void debug_linear_fill( SurfaceManager *manager,
+                               int start, int length, __u8 r, __u8 g, __u8 b )
+{
+     int s, l, x, y, w = 1;
+
+     s = start  * (long long)manager->debug.total / manager->length;
+     l = length * (long long)manager->debug.total / manager->length;
+
+     x = s % manager->debug.width;
+     y = s / manager->debug.width;
+
+     while (l) {
+          w = l;
+
+          if (x + w > manager->debug.width)
+               w = manager->debug.width - x;
+
+          fbdebug_fill( manager->debug.area, x, y, w, 1, r, g, b );
+
+          if (w < l) {
+               x = 0;
+               y++;
+          }
+
+          l -= w;
+     }
+
+     fbdebug_fill( manager->debug.area, x+w-1, y, 1, 1, 0xff, 0xff, 0xff );
+}
+
+static void debug_dump( SurfaceManager *manager )
+{
+     Chunk *c;
+
+     debug_linear_fill( manager, 0, manager->heap_offset, 0, 0, 0 );
+
+     c = manager->chunks;
+     while (c) {
+          if (c->buffer) {
+               __u8 r = 0, g = 0, b = 0;
+
+               switch (c->buffer->policy) {
+                    case CSP_VIDEOLOW:
+                         r = 0x60;
+                         break;
+                    case CSP_VIDEOHIGH:
+                         r = 0x90;
+                         break;
+                    case CSP_VIDEOONLY:
+                         r = 0xFF;
+                         break;
+               }
+
+               if (c->tolerations > min_toleration/8)
+                    b = r/2;
+
+               if (c->buffer->system.health == CSH_RESTORE)
+                    g = r/2;
+
+               debug_linear_fill( manager, c->offset, c->length, r, g, b );
+          }
+          else
+               debug_linear_fill( manager, c->offset, c->length, 0x10, 0x10, 0x18 );
+
+          c = c->next;
+     }
+
+     debug_pause( manager );
+}
+
+static void debug_pause( SurfaceManager *manager )
+{
+     //usleep( 200000 );
+}
+
+#endif
 
