@@ -55,9 +55,9 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      volatile __u8 *mmio            = mdrv->mmio_base;
      SurfaceBuffer *buffer          = destination->back_buffer;
      SurfaceBuffer *depth_buffer    = destination->depth_buffer;
-     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(destination->format);
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(buffer->format);
 
-     mdev->planar    = DFB_PLANAR_PIXELFORMAT( destination->format );
+     mdev->planar    = DFB_PLANAR_PIXELFORMAT( buffer->format );
      mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
 
      D_ASSERT( mdev->dst_pitch % 32 == 0 );
