@@ -1,5 +1,11 @@
 ## Makefile.am for DirectFB/inputdrivers
 
+if LINUX_INPUT
+LINUX_INPUT_DIR = linux_input
+else
+LINUX_INPUT_DIR =
+endif
+
 if H3600_TS
 H3600_TS_DIR = h3600_ts
 else
@@ -21,7 +27,7 @@ endif
 SUBDIRS = \
 	joystick	\
 	keyboard	\
-	linux_input	\
+	$(LINUX_INPUT_DIR) \
 	lirc		\
 	ps2mouse	\
 	serialmouse	\

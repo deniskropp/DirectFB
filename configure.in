@@ -467,6 +467,9 @@ AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
 dnl Only compile NeoMagic driver when HAVE_SYSIO is defined
 AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 
+AC_ARG_ENABLE(linux-input, [  --enable-linux-input          build Linux Input driver [default=no]], enable_linux_input="$enableval", enable_linux_input=no)
+AM_CONDITIONAL(LINUX_INPUT, test x$enable_linux_input = xyes)
+
 
 dnl Test for H3600 Touchscreen support
 AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
@@ -636,6 +639,7 @@ Building Graphics Drivers:
   S3 Savage           $savage
 
 Building Input Drivers:
+  Linux Input         $enable_linux_input
   DBox2 Remote        $dbox2remote
   H3600 Touchscreen   $h3600_ts
   SonyPI Jogdial      $sonypi
