@@ -137,10 +137,13 @@ static void Cop_to_Dop_24()
      int   w = Dlength;
      __u8 *D = (__u8*)Dop;
 
-     while (w--) {
-          *D++ = color.b;
-          *D++ = color.g;
-          *D++ = color.r;
+     while (w) {
+          D[0] = color.b;
+          D[1] = color.g;
+          D[2] = color.r;
+
+          D += 3;
+          --w;
      }
 }
 
