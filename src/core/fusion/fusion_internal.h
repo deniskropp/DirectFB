@@ -43,6 +43,8 @@
 
 #include <config.h>
 
+#include <core/coredefs.h>
+
 #include <core/fusion/fusion.h>
 #include <core/fusion/list.h>
 #include <core/fusion/lock.h>
@@ -61,7 +63,7 @@
 #  define FDEBUG(x...)   do { if (!dfb_config || dfb_config->debug) {          \
                                  long long millis = fusion_get_millis();       \
                                  fprintf( stderr, "(-) [%5d: %4lld.%03lld] Dir"\
-                                          "ectFB/core/fusion: (%s) ", getpid(),\
+                                          "ectFB/core/fusion: (%s) ", gettid(),\
                                           millis/1000, millis%1000,            \
                                           __FUNCTION__ );                      \
                                  fprintf( stderr, x );                         \
@@ -77,7 +79,7 @@
 {                                                                              \
      long long millis = fusion_get_millis();                                   \
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/core/fusion: (%s) ",   \
-              getpid(), millis/1000, millis%1000, __FUNCTION__ );              \
+              gettid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fflush( stderr );                                                         \
      dfb_trace_print_stack( -1 );                                              \
@@ -87,7 +89,7 @@
 {                                                                              \
      long long millis = fusion_get_millis();                                   \
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] DirectFB/core/fusion: (%s) ",   \
-              getpid(), millis/1000, millis%1000, __FUNCTION__ );              \
+              gettid(), millis/1000, millis%1000, __FUNCTION__ );              \
      fprintf( stderr, x );                                                     \
      fprintf( stderr, "    --> " );                                            \
      perror("");                                                               \

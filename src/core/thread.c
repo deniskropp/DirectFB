@@ -51,7 +51,7 @@
 
 struct _CoreThread {
      pthread_t       thread;   /* The pthread thread identifier. */
-     pid_t           pid;
+     pid_t           tid;
 
      CoreThreadType  type;     /* The thread's type, e.g. input thread. */
      CoreThreadMain  main;     /* The thread's main routine (or entry point). */
@@ -98,7 +98,7 @@ dfb_thread_create( CoreThreadType  thread_type,
 
      /* Initialize to -1 for synchronization. */
      thread->thread = (pthread_t) -1;
-     thread->pid    = (pid_t) -1;
+     thread->tid    = (pid_t) -1;
 
      /* Create and run the thread. */
      pthread_create( &thread->thread, NULL, dfb_thread_main, thread );
@@ -114,7 +114,7 @@ dfb_thread_create( CoreThreadType  thread_type,
 #endif
 
      DEBUGMSG( "DirectFB/core/threads: ...created thread of type %d (%d).\n",
-               thread_type, thread->pid );
+               thread_type, thread->tid );
 
      return thread;
 }
@@ -128,7 +128,7 @@ dfb_thread_cancel( CoreThread *thread )
 
      DFB_ASSUME( !thread->canceled );
 
-     DEBUGMSG( "DirectFB/core/threads: Canceling %d.\n", thread->pid );
+     DEBUGMSG( "DirectFB/core/threads: Canceling %d.\n", thread->tid );
 
      thread->canceled = true;
 
@@ -168,13 +168,13 @@ dfb_thread_join( CoreThread *thread )
      if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
           thread->joining = true;
 
-          DEBUGMSG( "DirectFB/core/threads: Joining %d...\n", thread->pid );
+          DEBUGMSG( "DirectFB/core/threads: Joining %d...\n", thread->tid );
 
           pthread_join( thread->thread, NULL );
 
           thread->joined = true;
 
-          DEBUGMSG( "DirectFB/core/threads: ...joined %d.\n", thread->pid );
+          DEBUGMSG( "DirectFB/core/threads: ...joined %d.\n", thread->tid );
      }
 }
 
@@ -200,7 +200,7 @@ dfb_thread_destroy( CoreThread *thread )
           else
                BUG("thread still running");
 
-          ERRORMSG( "DirectFB/core/threads: Killing %d!\n", thread->pid );
+          ERRORMSG( "DirectFB/core/threads: Killing %d!\n", thread->tid );
 
           pthread_kill( thread->thread, SIGKILL );
      }
@@ -215,7 +215,7 @@ dfb_thread_main( void *arg )
 {
      CoreThread *thread = (CoreThread*) arg;
 
-     thread->pid = getpid();
+     thread->tid = gettid();
 
      dfb_system_thread_init();
 

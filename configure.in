@@ -92,6 +92,9 @@ fi
 AM_CONDITIONAL(FBDEV_CORE, test x$enable_fbdev = xyes)
 
 
+AC_CHECK_HEADERS(linux/unistd.h)
+
+
 dnl Clear default CFLAGS
 if test x"$CFLAGS" = x"-g -O2"; then
   CFLAGS=

@@ -183,7 +183,7 @@ lookup_symbol( long offset )
 
 __attribute__((no_instrument_function))
 void
-dfb_trace_print_stack( int pid )
+dfb_trace_print_stack( int tid )
 {
 #ifdef DFB_DYNAMIC_LINKING
      Dl_info info;
@@ -191,20 +191,20 @@ dfb_trace_print_stack( int pid )
      int     i;
      int     level;
 
-     if (pid < 1)
-          pid = getpid();
+     if (tid < 1)
+          tid = gettid();
 
-     level = threads[pid].level;
+     level = threads[tid].level;
      if (level > MAX_LEVEL) {
           CAUTION( "only showing 100 items" );
           return;
      }
 
-     fprintf( stderr, "\n(-) DirectFB stack trace of pid %d\n", pid );
+     fprintf( stderr, "\n(-) DirectFB stack trace of %d\n", tid );
 
      for (i=0; i<level; i++) {
           int   n;
-          void *fn = threads[pid].trace[i];
+          void *fn = threads[tid].trace[i];
 
           fprintf( stderr, "    " );
 
@@ -243,13 +243,13 @@ __attribute__((no_instrument_function))
 void
 dfb_trace_print_stacks()
 {
-     int i, pid = getpid();
+     int i, tid = gettid();
 
-     if (threads[pid].level)
-          dfb_trace_print_stack( pid );
+     if (threads[tid].level)
+          dfb_trace_print_stack( tid );
 
      for (i=0; i<65536; i++) {
-          if (i != pid && threads[i].level)
+          if (i != tid && threads[i].level)
                dfb_trace_print_stack( i );
      }
 }
@@ -260,13 +260,13 @@ void
 __cyg_profile_func_enter (void *this_fn,
                           void *call_site)
 {
-     int pid   = getpid();
-     int level = threads[pid].level++;
+     int tid   = gettid();
+     int level = threads[tid].level++;
 
      if (level > MAX_LEVEL)
           return;
 
-     threads[pid].trace[level] = this_fn;
+     threads[tid].trace[level] = this_fn;
 }
 
 __attribute__((no_instrument_function))
@@ -274,14 +274,14 @@ void
 __cyg_profile_func_exit (void *this_fn,
                          void *call_site)
 {
-     int pid   = getpid();
-     int level = --threads[pid].level;
+     int tid   = gettid();
+     int level = --threads[tid].level;
 
      if (level > MAX_LEVEL)
           return;
 
 //     DFB_ASSERT( level >= 0 );
-//     DFB_ASSERT( threads[pid].trace[level] == this_fn );
+//     DFB_ASSERT( threads[tid].trace[level] == this_fn );
 }
 
 
@@ -289,7 +289,7 @@ __cyg_profile_func_exit (void *this_fn,
 #else
 
 void
-dfb_trace_print_stack( int pid )
+dfb_trace_print_stack( int tid )
 {
 }
 
@@ -308,14 +308,14 @@ dfb_assertion_fail( const char *expression,
                     int         line,
                     const char *function )
 {
-     int       pid    = getpid();
+     int       tid    = gettid();
      int       pgrp   = getpgrp();
      long long millis = fusion_get_millis();
 
      fprintf( stderr,
               "(!) [%5d: %4lld.%03lld] *** "
               "Assertion [%s] failed! *** %s:"
-              "%d in %s()\n", pid, millis/1000,
+              "%d in %s()\n", tid, millis/1000,
               millis%1000, expression,
               filename, line, function );
 
@@ -340,13 +340,13 @@ dfb_assumption_fail( const char *expression,
                      int         line,
                      const char *function )
 {
-     int       pid    = getpid();
+     int       tid    = gettid();
      long long millis = fusion_get_millis();
 
      fprintf( stderr,
               "(!) [%5d: %4lld.%03lld] *** "
               "Assumption [%s] failed! *** %s:"
-              "%d in %s()\n", pid, millis/1000,
+              "%d in %s()\n", tid, millis/1000,
               millis%1000, expression,
               filename, line, function );
 

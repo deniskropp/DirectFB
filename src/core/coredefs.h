@@ -42,6 +42,12 @@
 #include <misc/conf.h>
 #include <misc/debug.h>
 
+#ifdef HAVE_LINUX_UNISTD_H
+#include <linux/unistd.h>
+static inline _syscall0(pid_t,gettid)
+#else
+#define gettid getpid
+#endif
 
 #ifdef PIC
 #define DFB_DYNAMIC_LINKING
@@ -94,7 +100,7 @@
 
 
 #define DFB_BREAK(msg)   do {                                                  \
-                              int       pid    = getpid();                     \
+                              int       pid    = gettid();                     \
                               long long millis = fusion_get_millis();          \
                                                                                \
                               fprintf( stderr,                                 \
@@ -120,7 +126,7 @@
      #define DEBUGMSG(x...)   do { if (!dfb_config || dfb_config->debug) {     \
                                    long long millis = fusion_get_millis();     \
                                    fprintf( stderr, "(-) [%5d: %4lld.%03lld] ",\
-                                            getpid(),millis/1000,millis%1000 );\
+                                            gettid(),millis/1000,millis%1000 );\
                                    fprintf( stderr, x );                       \
                                    fflush( stderr );                           \
                               } } while (0)

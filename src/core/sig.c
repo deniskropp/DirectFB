@@ -189,7 +189,7 @@ show_any( const siginfo_t *info )
 static void
 dfb_sig_action( int num, siginfo_t *info, void *foo )
 {
-     int       pid    = getpid();
+     int       pid    = gettid();
      long long millis = fusion_get_millis();
 
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
