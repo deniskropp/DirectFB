@@ -183,7 +183,7 @@ Configuring the Linux frame buffer device
    support modes listed in your /etc/fb.modes file. By default the first 
    entry found is used.
 
-   If you have a Matrox G200/G400 you may try the vsync patch found in
+   If you have a Matrox card you may try the vsync patch found in
    the patches directory that enables applications to "idle wait" for the
    vertical retrace.
 
@@ -197,21 +197,6 @@ Running multiple DirectFB applications at the same time
    DirectFB applications to run at the same time. Please note that
    this is still considered experimental. You have been warned!
 
-   Compile DirectFB with multi-application core enabled:
-
-     ./configure --enable-multi
-
-   Make sure your Linux kernel supports tmpfs. This is explained in
-   the kernel sources in Documentation/filesystems/tmpfs.txt. Mount a
-   tmpfs filesystem as /dev/shm:
-
-     mount shm /dev/shm -tshm 
-
-   A good way to test the multi-application core is to install the lite
-   toolkit and DFBTerm, a DirectFB terminal (both available in the
-   DirectFB CVS repository). You can then start DirectFB applications
-   from dfbterm.
-
    DirectFB applications communicate through a layer we called Fusion.
    This layer was previously implemented completely in user space using
    semaphores and message queues. But since 0.9.15 the Fusion Kernel
@@ -220,6 +205,21 @@ Running multiple DirectFB applications at the same time
    module (only available for Linux yet), check out the linux-fusion
    module from our CVS repository. DirectFB will use the kernel module if
    the linux/fusion.h header file is found by configure.
+
+   Compile DirectFB with multi-application core enabled:
+
+     ./configure --enable-multi
+
+   Make sure your Linux kernel supports tmpfs. This is explained in
+   the kernel sources in Documentation/filesystems/tmpfs.txt. Mount a
+   tmpfs filesystem as /dev/shm:
+
+     mount tmpfs /dev/shm -ttmpfs
+
+   A good way to test the multi-application core is to install the lite
+   toolkit and DFBTerm, a DirectFB terminal (both available in the
+   DirectFB CVS repository). You can then start DirectFB applications
+   from dfbterm.
 
 
 Using the builtin "window manager"
