@@ -2856,6 +2856,8 @@ typedef struct {
      /* used by DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP */
      DFBInputDeviceButtonMask        buttons;    /* mask of currently
                                                     pressed buttons */
+     
+     struct timeval                  timestamp;  /* always set */
 } DFBWindowEvent;
 
 /*

@@ -1064,6 +1064,8 @@ dfb_window_post_event( CoreWindow     *window,
      if (! (event->type & window->events))
           return;
 
+     gettimeofday( &event->timestamp, NULL );
+
      event->clazz     = DFEC_WINDOW;
      event->window_id = window->id;
 
