@@ -87,7 +87,8 @@ keyboard_get_ascii( unsigned short kb_value )
      }
 }
 
-static unsigned char keyboard_translate(unsigned short kb_value)
+static unsigned char
+keyboard_translate( unsigned short kb_value )
 {
      unsigned char key_type = (kb_value & 0xFF00) >> 8;
      unsigned char key_index = kb_value & 0xFF;
@@ -165,34 +166,38 @@ static unsigned char keyboard_translate(unsigned short kb_value)
           case K_PMINUS: return DIKC_KP_MINUS;
           case K_PPLUS:  return DIKC_KP_PLUS;
           case K_PENTER: return DIKC_KP_ENTER;
-          case K_PCOMMA: 
-	  case K_PDOT:   return DIKC_KP_DECIMAL;
+          case K_PCOMMA:
+          case K_PDOT:   return DIKC_KP_DECIMAL;
      }
 
      return DIKC_UNKNOWN;
 }
 
-static unsigned char adjust_pad_keys( unsigned char code ){
-   switch (code) {
-       case DIKC_KP_DECIMAL: return DIKC_KP_DELETE;
-       case DIKC_KP_0:       return DIKC_KP_INSERT;
-       case DIKC_KP_1:       return DIKC_KP_END;
-       case DIKC_KP_2:       return DIKC_KP_DOWN;
-       case DIKC_KP_3:       return DIKC_KP_PAGE_DOWN;
-       case DIKC_KP_4:       return DIKC_KP_LEFT;
-       case DIKC_KP_5:       return DIKC_KP_BEGIN;
-       case DIKC_KP_6:       return DIKC_KP_RIGHT;
-       case DIKC_KP_7:       return DIKC_KP_HOME;
-       case DIKC_KP_8:       return DIKC_KP_UP;
-       case DIKC_KP_9:        return DIKC_KP_PAGE_UP;
-   }
+static DFBInputDeviceKeyIdentifier
+adjust_pad_keys( DFBInputDeviceKeyIdentifier code )
+{
+     switch (code) {
+          case DIKC_KP_DECIMAL: return DIKC_KP_DELETE;
+          case DIKC_KP_0:       return DIKC_KP_INSERT;
+          case DIKC_KP_1:       return DIKC_KP_END;
+          case DIKC_KP_2:       return DIKC_KP_DOWN;
+          case DIKC_KP_3:       return DIKC_KP_PAGE_DOWN;
+          case DIKC_KP_4:       return DIKC_KP_LEFT;
+          case DIKC_KP_5:       return DIKC_KP_BEGIN;
+          case DIKC_KP_6:       return DIKC_KP_RIGHT;
+          case DIKC_KP_7:       return DIKC_KP_HOME;
+          case DIKC_KP_8:       return DIKC_KP_UP;
+          case DIKC_KP_9:       return DIKC_KP_PAGE_UP;
+          default:
+               ;
+     }
 
-   return DIKC_UNKNOWN;
-   
+     return code;
 }
-#define TOGGLE_LOCK(flag)	data->lock_state & flag ?\
-                                   (data->lock_state &= ~flag):\
-			           (data->lock_state |= flag);
+
+#define TOGGLE_LOCK(flag)       ((data->lock_state & (flag)) ?        \
+                                 (data->lock_state &= ~flag):         \
+                                 (data->lock_state |= flag));
 
 static DFBInputEvent
 keyboard_handle_code( KeyboardData  *data, unsigned char code )
@@ -251,27 +256,24 @@ keyboard_handle_code( KeyboardData  *data, unsigned char code )
                      else
                           data->modifier_state &= ~DIMK_ALTGR;
                      break;
-	       case DIKC_CAPSLOCK:
-                     if (keydown) {
+               case DIKC_CAPSLOCK:
+                     if (keydown)
                           TOGGLE_LOCK( DILS_CAPS );
-		     }
-		     break;
+                     break;
                case DIKC_NUMLOCK:
-                     if (keydown) {
+                     if (keydown)
                           TOGGLE_LOCK( DILS_NUM );
-		     }
-		     break;
-	        case DIKC_SCRLOCK:
-                     if (keydown) {
+                     break;
+                case DIKC_SCRLOCK:
+                     if (keydown)
                           TOGGLE_LOCK( DILS_SCROLL );
-		     }
-		     break;
-	       default:
+                     break;
+               default:
                     break;
           }
-	  /* Set the lock flags. We rely on these being
-	   * in the same order as defined by the kernel. */
-	  ioctl( dfb_vt->fd, KDSKBLED, data->lock_state );
+          /* Set the lock flags. We rely on these being
+           * in the same order as defined by the kernel. */
+          ioctl( dfb_vt->fd, KDSKBLED, data->lock_state );
 
           if (data->modifier_state & DIMK_SHIFT) {
                if (data->modifier_state & DIMK_ALT)
@@ -285,15 +287,15 @@ keyboard_handle_code( KeyboardData  *data, unsigned char code )
                entry.kb_table = K_ALTTAB;
                ioctl( dfb_vt->fd, KDGKBENT, &entry );
           }
-	  if ( ((entry.kb_value & 0xFF00) >> 8 == KT_LETTER) &&
-		(data->lock_state & DILS_CAPS)) { 
-	       entry.kb_table = K_SHIFTTAB;
+          if ( ((entry.kb_value & 0xFF00) >> 8 == KT_LETTER) &&
+                (data->lock_state & DILS_CAPS)) {
+               entry.kb_table = K_SHIFTTAB;
                ioctl( dfb_vt->fd, KDGKBENT, &entry );
-	  }
-	  if ( ((entry.kb_value & 0xFF00) >> 8 == KT_PAD) &&
-		!(data->lock_state & DILS_NUM)) { 
-	       event.keycode = adjust_pad_keys(event.keycode);
-	  }
+          }
+          if ( ((entry.kb_value & 0xFF00) >> 8 == KT_PAD) &&
+                !(data->lock_state & DILS_NUM)) {
+               event.keycode = adjust_pad_keys(event.keycode);
+          }
 
           event.modifiers = data->modifier_state;
           event.locks = data->lock_state;
