@@ -203,11 +203,19 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    CoreWindow             *window,
                                    DFBSurfaceCapabilities  caps )
 {
+     DFBResult ret;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
-     dfb_window_ref( window );
-
-     IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
+     ret = IDirectFBSurface_Construct( thiz, wanted, granted,
+                                       window->surface, caps );
+     if (ret)
+          return ret;
+     
+     if (dfb_window_ref( window ) != FUSION_SUCCESS) {
+          IDirectFBSurface_Destruct( thiz );
+          return DFB_FAILURE;
+     }
 
      data->window = window;
      data->flip_thread = (pthread_t) -1;
