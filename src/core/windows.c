@@ -229,8 +229,6 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 void
 dfb_windowstack_destroy( CoreWindowStack *stack )
 {
-/*     int i;*/
-
      DFB_ASSERT( stack != NULL );
      
      dfb_input_enumerate_devices( stack_detach_devices, stack );
@@ -238,9 +236,6 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      fusion_object_pool_destroy( stack->pool );
 
      skirmish_destroy( &stack->lock );
-
-/*     for (i=0; i<stack->num_windows; i++)
-          dfb_window_destroy( stack->windows[i] );*/
 
      if (stack->windows)
           shfree( stack->windows );

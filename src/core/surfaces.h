@@ -222,6 +222,12 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                                 CoreSurfacePolicy  back_policy );
 
 /*
+ * Change the palette of the surface.
+ */
+DFBResult dfb_surface_set_palette( CoreSurface *surface,
+                                   CorePalette *palette );
+
+/*
  * helper function
  */
 static inline FusionResult

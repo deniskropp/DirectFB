@@ -58,6 +58,8 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface        *surface,
 static void dfb_surface_deallocate_buffer     ( CoreSurface        *surface,
                                                 SurfaceBuffer      *buffer );
 
+static ReactionResult palette_listener( const void *msg_data,
+                                        void       *ctx );
 
 /* internal functions needed to avoid side effects */
 
@@ -243,16 +245,17 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      old_height = surface->height;
      old_format = surface->format;
 
+     if (width      <= surface->min_width &&
+         old_width  <= surface->min_width &&
+         height     <= surface->min_height &&
+         old_height <= surface->min_height &&
+         old_format == surface->format)
+          return DFB_OK;
+
      surface->width  = width;
      surface->height = height;
      surface->format = format;
      
-     if (surface->width  <= surface->min_width &&
-         old_width       <= surface->min_width &&
-         surface->height <= surface->min_height &&
-         old_height      <= surface->min_height)
-          return DFB_OK;
-
      dfb_surfacemanager_lock( surface->manager );
 
      skirmish_prevail( &surface->front_lock );
@@ -290,12 +293,106 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
 
      dfb_surfacemanager_unlock( surface->manager );
 
+     if (DFB_PIXELFORMAT_IS_INDEXED( format ) && !surface->palette) {
+          CorePalette *palette = dfb_palette_create( 256 );
+          if (!palette)
+               return DFB_FAILURE;
+
+          dfb_surface_set_palette( surface, palette );
+
+          dfb_palette_unref( palette );
+     }
 
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
                                    CSNF_SYSTEM | CSNF_VIDEO );
 
      skirmish_dismiss( &surface->front_lock );
      skirmish_dismiss( &surface->back_lock );
+
+     return DFB_OK;
+}
+
+DFBResult dfb_surface_reconfig( CoreSurface       *surface,
+                                CoreSurfacePolicy  front_policy,
+                                CoreSurfacePolicy  back_policy ) 
+{
+     DFBResult      ret;
+     SurfaceBuffer *old_front;
+     SurfaceBuffer *old_back;
+     bool           new_front = surface->front_buffer->policy != front_policy;
+
+     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
+         surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
+     {
+          return DFB_UNSUPPORTED;
+     }
+
+     dfb_surfacemanager_lock( surface->manager );
+     skirmish_prevail( &surface->front_lock );
+     skirmish_prevail( &surface->back_lock );
+     dfb_surfacemanager_unlock( surface->manager );
+
+     old_front = surface->front_buffer;
+     old_back = surface->back_buffer;
+
+     if (new_front) {
+          ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
+          if (ret) {
+               skirmish_dismiss( &surface->front_lock );
+               skirmish_dismiss( &surface->back_lock );
+               return ret;
+          }
+     }
+
+     if (surface->caps & DSCAPS_FLIPPING) {
+          ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
+          if (ret) {
+               if (new_front) {
+                    dfb_surface_deallocate_buffer( surface, surface->front_buffer );
+                    surface->front_buffer = old_front;
+               }
+
+               skirmish_dismiss( &surface->front_lock );
+               skirmish_dismiss( &surface->back_lock );
+               return ret;
+          }
+     }
+     else {
+          surface->back_buffer = surface->front_buffer;
+     }
+
+     if (new_front)
+          dfb_surface_deallocate_buffer( surface, old_front );
+
+     if (old_front != old_back)
+          dfb_surface_deallocate_buffer ( surface, old_back );
+
+     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
+                                   CSNF_SYSTEM | CSNF_VIDEO );
+
+     skirmish_dismiss( &surface->front_lock );
+     skirmish_dismiss( &surface->back_lock );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_surface_set_palette( CoreSurface *surface,
+                         CorePalette *palette )
+{
+     DFB_ASSERT( surface != NULL );
+
+     if (surface->palette) {
+          dfb_palette_detach( surface->palette, palette_listener, surface );
+          dfb_palette_unlink( surface->palette );
+
+          surface->palette = NULL;
+     }
+
+     if (palette) {
+          dfb_palette_link( &surface->palette, palette );
+          dfb_palette_attach( palette, palette_listener, surface );
+     }
 
      return DFB_OK;
 }
@@ -340,10 +437,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 {
      SurfaceBuffer *buffer;
 
-     if (!flags) {
-          BUG( "lock without flags" );
-          return DFB_INVARG;
-     }
+     DFB_ASSERT( flags != 0 );
 
      if (front) {
           skirmish_prevail( &surface->front_lock );
@@ -507,24 +601,6 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
      }
 }
 
-static ReactionResult
-palette_listener( const void *msg_data,
-                  void       *ctx )
-{
-     CorePaletteNotification *notification = (CorePaletteNotification*)msg_data;
-     CoreSurface             *surface      = (CoreSurface*) ctx;
-
-     if (notification->flags & CPNF_DESTROY)
-          surface->palette = NULL;
-
-     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
-
-     if (notification->flags & CPNF_DESTROY)
-          return RS_REMOVE;
-
-     return RS_OK;
-}
-
 void dfb_surface_destroy( CoreSurface *surface, bool unref )
 {
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
@@ -604,19 +680,18 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           surface->min_height = height;
      }
 
-     if (!palette /* FIXME: DFB_PIXELFORMAT_IS_INDEXED( format )*/) {
+     if (palette) {
+          dfb_surface_set_palette( surface, palette );
+     }
+     else if (DFB_PIXELFORMAT_IS_INDEXED( format )) {
           palette = dfb_palette_create( 256 );
           if (!palette)
                return DFB_FAILURE;
 
-          dfb_palette_link( &surface->palette, palette );
+          dfb_surface_set_palette( surface, palette );
+
           dfb_palette_unref( palette );
      }
-     else {
-          dfb_palette_link( &surface->palette, palette );
-     }
-     
-     dfb_palette_attach( palette, palette_listener, surface );
      
      skirmish_init( &surface->lock );
      
@@ -792,67 +867,21 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
      shfree( buffer );
 }
 
-DFBResult dfb_surface_reconfig( CoreSurface       *surface,
-                                CoreSurfacePolicy  front_policy,
-                                CoreSurfacePolicy  back_policy ) 
+static ReactionResult
+palette_listener( const void *msg_data,
+                  void       *ctx )
 {
-     DFBResult      ret;
-     SurfaceBuffer *old_front;
-     SurfaceBuffer *old_back;
-     bool           new_front = surface->front_buffer->policy != front_policy;
+     CorePaletteNotification *notification = (CorePaletteNotification*)msg_data;
+     CoreSurface             *surface      = (CoreSurface*) ctx;
 
-     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
-         surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
-     {
-          return DFB_UNSUPPORTED;
-     }
+     if (notification->flags & CPNF_DESTROY)
+          surface->palette = NULL;
 
-     dfb_surfacemanager_lock( surface->manager );
-     skirmish_prevail( &surface->front_lock );
-     skirmish_prevail( &surface->back_lock );
-     dfb_surfacemanager_unlock( surface->manager );
+     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
 
-     old_front = surface->front_buffer;
-     old_back = surface->back_buffer;
+     if (notification->flags & CPNF_DESTROY)
+          return RS_REMOVE;
 
-     if (new_front) {
-          ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
-          if (ret) {
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
-               return ret;
-          }
-     }
-
-     if (surface->caps & DSCAPS_FLIPPING) {
-          ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
-          if (ret) {
-               if (new_front) {
-                    dfb_surface_deallocate_buffer( surface, surface->front_buffer );
-                    surface->front_buffer = old_front;
-               }
-
-               skirmish_dismiss( &surface->front_lock );
-               skirmish_dismiss( &surface->back_lock );
-               return ret;
-          }
-     }
-     else {
-          surface->back_buffer = surface->front_buffer;
-     }
-
-     if (new_front)
-          dfb_surface_deallocate_buffer( surface, old_front );
-
-     if (old_front != old_back)
-          dfb_surface_deallocate_buffer ( surface, old_back );
-
-     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
-                                   CSNF_SYSTEM | CSNF_VIDEO );
-
-     skirmish_dismiss( &surface->front_lock );
-     skirmish_dismiss( &surface->back_lock );
-
-     return DFB_OK;
+     return RS_OK;
 }
 

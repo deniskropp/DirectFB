@@ -495,9 +495,9 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
 
+     dfb_input_shutdown( emergency );
      dfb_layers_shutdown( emergency );
      dfb_gfxcard_shutdown( emergency );
-     dfb_input_shutdown( emergency );
      
      dfb_fbdev_shutdown( emergency );
      dfb_vt_shutdown( emergency );
@@ -526,9 +526,9 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
      
+     dfb_input_leave( emergency );
      dfb_layers_leave( emergency );
      dfb_gfxcard_leave( emergency );
-     dfb_input_leave( emergency );
      
      dfb_fbdev_leave( emergency );
      dfb_vt_leave( emergency );

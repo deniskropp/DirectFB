@@ -909,6 +909,15 @@ primaryReallocateSurface ( DisplayLayer               *layer,
 {
      /* reallocation is done during SetConfiguration,
         because the pitch can only be determined AFTER setting the mode */
+     if (DFB_PIXELFORMAT_IS_INDEXED(config->pixelformat) && !surface->palette) {
+          CorePalette *palette = dfb_palette_create( 256 );
+          if (!palette)
+               return DFB_FAILURE;
+
+          dfb_surface_set_palette( surface, palette );
+
+          dfb_palette_unref( palette );
+     }
 
      return DFB_OK;
 }

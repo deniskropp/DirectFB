@@ -95,7 +95,9 @@ FusionResult fusion_ref_up (FusionRef *ref, bool global)
      op[0].sem_flg = SEM_UNDO;
      op[1].sem_num = 1;
      op[1].sem_op  = 1;
-     if (!global)
+     if (global)
+          op[1].sem_flg = 0;
+     else
           op[1].sem_flg = SEM_UNDO;
 
      while (semop (ref->sem_id, op, 2)) {
@@ -144,7 +146,9 @@ FusionResult fusion_ref_down (FusionRef *ref, bool global)
      op[0].sem_flg = SEM_UNDO;
      op[1].sem_num = 1;
      op[1].sem_op  = -1;
-     if (!global)
+     if (global)
+          op[1].sem_flg = 0;
+     else
           op[1].sem_flg = SEM_UNDO;
 
      while (semop (ref->sem_id, op, 2)) {

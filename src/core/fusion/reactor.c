@@ -359,7 +359,7 @@ reactor_free (FusionReactor *reactor)
                if (!reactor->node[i].id)
                     continue;
 
-               FERROR ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
+               FDEBUG ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
                        reactor->node[i].id, reactor->node[i].reactions);
                
                fusion_ref_destroy (&reactor->node[i].ref);
