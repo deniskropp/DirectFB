@@ -58,15 +58,17 @@ static DFBResult vt_init_switching();
 void vt_close()
 {
      if (!vt) {
-          BUG( "vt_close() called with none allocated!?" );
+          BUG( "vt_close() multiple times" );
           return;
      }
 
-     if (ioctl( vt->fd, VT_SETMODE, &vt->vt_mode) < 0)
-          PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
+     if (dfb_config->vt_switching) {
+          if (ioctl( vt->fd, VT_SETMODE, &vt->vt_mode ) < 0)
+               PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
 
-     sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
-     sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
+          sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
+          sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
+     }
 
      if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
@@ -301,6 +303,8 @@ static DFBResult vt_init_switching()
 
      char buf[32];
 
+     /* FIXME: Opening the device should be moved out of this function. */
+
      sprintf(buf, "/dev/tty%d", vt->num);
      vt->fd = open( buf, O_RDWR );
      if (vt->fd < 0) {
@@ -327,44 +331,46 @@ static DFBResult vt_init_switching()
           }
      }
 
-     memset( &sig_tty, 0, sizeof( sig_tty ) );
-     sig_tty.sa_sigaction = vt_switch;
-     sig_tty.sa_flags     = SA_SIGINFO | SA_RESTART;
-     sigemptyset( &sig_tty.sa_mask );
-     if (sigaction( SIG_SWITCH_FROM, &sig_tty, &vt->sig_usr1 ) ||
-         sigaction( SIG_SWITCH_TO, &sig_tty, &vt->sig_usr2 ))
-     {
-          PERRORMSG( "DirectFB/core/vt: sigaction failed!\n" );
-          return errno2dfb( errno );
-     }
+     if (dfb_config->vt_switching) {
+          memset( &sig_tty, 0, sizeof( sig_tty ) );
+          sig_tty.sa_sigaction = vt_switch;
+          sig_tty.sa_flags     = SA_SIGINFO | SA_RESTART;
+          sigemptyset( &sig_tty.sa_mask );
+          if (sigaction( SIG_SWITCH_FROM, &sig_tty, &vt->sig_usr1 ) ||
+              sigaction( SIG_SWITCH_TO, &sig_tty, &vt->sig_usr2 ))
+          {
+               PERRORMSG( "DirectFB/core/vt: sigaction failed!\n" );
+               return errno2dfb( errno );
+          }
 
-     if (ioctl( vt->fd, VT_GETMODE, &vt_mode ) < 0) {
-          int erno = errno;
+          if (ioctl( vt->fd, VT_GETMODE, &vt_mode ) < 0) {
+               int erno = errno;
 
-          PERRORMSG( "DirectFB/core/vt: VT_GETMODE failed!\n" );
+               PERRORMSG( "DirectFB/core/vt: VT_GETMODE failed!\n" );
 
-          sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
-          sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
+               sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
+               sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
 
-          return errno2dfb( erno );
-     }
+               return errno2dfb( erno );
+          }
 
-     vt->vt_mode = vt_mode;
+          vt->vt_mode = vt_mode;
 
-     vt_mode.mode   = VT_PROCESS;
-     vt_mode.waitv  = 0;
-     vt_mode.relsig = SIG_SWITCH_FROM;
-     vt_mode.acqsig = SIG_SWITCH_TO;
+          vt_mode.mode   = VT_PROCESS;
+          vt_mode.waitv  = 0;
+          vt_mode.relsig = SIG_SWITCH_FROM;
+          vt_mode.acqsig = SIG_SWITCH_TO;
 
-     if (ioctl( vt->fd, VT_SETMODE, &vt_mode) < 0) {
-          int erno = errno;
+          if (ioctl( vt->fd, VT_SETMODE, &vt_mode) < 0) {
+               int erno = errno;
 
-          PERRORMSG( "DirectFB/core/vt: VT_SETMODE failed!\n" );
+               PERRORMSG( "DirectFB/core/vt: VT_SETMODE failed!\n" );
 
-          sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
-          sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
+               sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
+               sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
 
-          return errno2dfb( erno );
+               return errno2dfb( erno );
+          }
      }
 
      return DFB_OK;

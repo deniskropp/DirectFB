@@ -74,7 +74,9 @@ static void config_print_usage()
              " --no-deinit-check                 "
              "Disable deinit check at exit\n"
              " --no-vt-switch                    "
-             "Don't switch to another VT (ugly!)\n"
+             "Don't allocate/switch to a new VT\n"
+             " --[no-]vt-switching               "
+             "Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
              " --graphics-vt                     "
              "Put terminal into graphics mode\n"
              " --[no-]motion-compression         "
@@ -206,6 +208,12 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-vt-switch" ) == 0) {
           dfb_config->no_vt_switch = 1;
+     } else
+     if (strcmp (name, "vt-switching" ) == 0) {
+          dfb_config->vt_switching = 1;
+     } else
+     if (strcmp (name, "no-vt-switching" ) == 0) {
+          dfb_config->vt_switching = 0;
      } else
      if (strcmp (name, "graphics-vt" ) == 0) {
           dfb_config->kd_graphics = 1;

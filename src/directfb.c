@@ -99,30 +99,32 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
                     kill( getpid(), SIGINT );
                     return RS_DROP;
 
-               case DIKC_F1 ... DIKC_F12: {
-                    int num = evt->keycode - DIKC_F1 + 1;
+               case DIKC_F1 ... DIKC_F12:
+                    if (dfb_config->vt_switching) {
+                         int num = evt->keycode - DIKC_F1 + 1;
 
-                    DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
-                              "Locking/unlocking hardware to "
-                              "increase the chance of idle hardware...\n" );
+                         DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
+                                   "Locking/unlocking hardware to "
+                                   "increase the chance of idle hardware...\n" );
 
-                    pthread_mutex_lock( &card->lock );
-                    pthread_mutex_unlock( &card->lock );
+                         pthread_mutex_lock( &card->lock );
+                         pthread_mutex_unlock( &card->lock );
 
-                    DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
-                              "Switching to VT %d...\n", num );
+                         DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
+                                   "Switching to VT %d...\n", num );
 
-                    if (ioctl( vt->fd, VT_ACTIVATE, num ))
-                         PERRORMSG( "DirectFB/directfb/keyboard_handler: "
-                                    "VT_ACTIVATE for VT %d failed!\n", num );
+                         if (ioctl( vt->fd, VT_ACTIVATE, num ))
+                              PERRORMSG( "DirectFB/directfb/keyboard_handler: "
+                                         "VT_ACTIVATE for VT %d failed!\n", num );
 
-                    //ioctl( vt->fd, VT_WAITACTIVE, num );
+                         //ioctl( vt->fd, VT_WAITACTIVE, num );
 
-                    DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
-                              "...hopefully switched to VT %d.\n", num );
+                         DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
+                                   "...hopefully switched to VT %d.\n", num );
 
-                    return RS_DROP;
-               }
+                         return RS_DROP;
+                    }
+                    break;
 
                default:
                     return RS_OK;

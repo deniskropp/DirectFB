@@ -61,7 +61,7 @@ typedef struct
      int       no_sighandler;
      int       no_deinit_check;
 
-     int       no_vt_switch;                      /* don't allocate a VT */
+     int       no_vt_switch;                      /* don't allocate a new VT */
      int       kd_graphics;                       /* put terminal into graphics
                                                      mode */
 
@@ -70,6 +70,8 @@ typedef struct
 
      int       matrox_sgram;                      /* Use Matrox SGRAM features*/
      int       sync;                              /* Do sync() in core_init() */
+     int       vt_switching;                      /* Allow VT switching by
+                                                     pressing Ctrl+Alt+<F?> */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
