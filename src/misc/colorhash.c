@@ -183,10 +183,14 @@ unsigned int dfb_colorhash_lookup( CorePalette *palette,
           unsigned int i, min_index = 0;
           
           for (i = 0; i < palette->num_entries; i++) {
-               int diff = (((ABS( (int) entries[i].r - (int) r ) +
-                             ABS( (int) entries[i].g - (int) g ) +
-                             ABS( (int) entries[i].b - (int) b )) << 3) +
-                           ABS( (int) entries[i].a - (int) a) );
+
+               int r_diff = (int) entries[i].r - (int) r;
+               int g_diff = (int) entries[i].g - (int) g;
+               int b_diff = (int) entries[i].b - (int) b;
+               int a_diff = (int) entries[i].a - (int) a;
+
+               int diff = (r_diff * r_diff + g_diff * g_diff + 
+                           b_diff * b_diff + a_diff * a_diff);
 
                if (i == 0 || diff < min_diff) {
                     min_diff = diff;
