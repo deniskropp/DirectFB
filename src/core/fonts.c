@@ -68,6 +68,8 @@ dfb_font_create( CoreDFB *core )
 
      font->glyph_infos = dfb_tree_new ();
 
+     DFB_MAGIC_SET( font, CoreFont );
+
      return font;
 }
 
@@ -75,6 +77,12 @@ void
 dfb_font_destroy( CoreFont *font )
 {
      int i;
+
+     DFB_ASSERT( font != NULL );
+
+     DFB_MAGIC_ASSERT( font, CoreFont );
+
+     DFB_MAGIC_CLEAR( font );
 
      pthread_mutex_lock( &font->lock );
 
@@ -103,6 +111,10 @@ dfb_font_get_glyph_data( CoreFont        *font,
 {
      DFBResult      ret;
      CoreGlyphData *data;
+
+     DFB_ASSERT( font != NULL );
+
+     DFB_MAGIC_ASSERT( font, CoreFont );
 
      if ((data = dfb_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
           *glyph_data = data;

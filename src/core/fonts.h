@@ -56,6 +56,8 @@ typedef struct {
  */
 
 struct _CoreFont {
+     int                      magic;
+
      DFBSurfacePixelFormat    pixel_format;
      CardState                state;    /* the state used to blit glyphs    */
 

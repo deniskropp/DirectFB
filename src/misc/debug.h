@@ -48,14 +48,14 @@ void dfb_assumption_fail( const char *expression,
                           int         line,
                           const char *function );
 
-#define DFB_MAGIC(spell)        ( (((spell)[2] << 24) | \
-                                   ((spell)[3] << 16) | \
-                                   ((spell)[4] <<  8) | \
-                                   ((spell)[5]      )) ^  \
-                                  (((spell)[6] << 24) | \
-                                   ((spell)[7] << 16) | \
-                                   ((spell)[8] <<  8) | \
-                                   ((spell)[9]      )) )
+#define DFB_MAGIC(spell)        ( (((spell)[0] << 24) | \
+                                   ((spell)[1] << 16) | \
+                                   ((spell)[2] <<  8) | \
+                                   ((spell)[3]      )) ^  \
+                                  (((spell)[4] << 24) | \
+                                   ((spell)[5] << 16) | \
+                                   ((spell)[6] <<  8) | \
+                                   ((spell)[7]      )) )
 
 #define DFB_MAGIC_CLEAR(o)      do { (o)->magic = 0; } while (0)
 #define DFB_MAGIC_SET(o,m)      do { (o)->magic = DFB_MAGIC(#m); } while (0)
