@@ -6,7 +6,7 @@ EXTRA_DIST = \
 	README.savagefb					\
 	fusion-full-linux-2.4.20.patch.bz2		\
 	fusion-full-linux-2.4.21.patch.bz2		\
-	fusion-full-linux-2.5.71.patch.bz2		\
+	fusion-full-linux-2.6.0-test1.patch.bz2		\
 	matroxfb-full-memory-linux-2.4.21-rc2.patch.bz2	\
 	matroxfb-vsync-irq-2.4.20.patch.bz2		\
 	matroxfb-vsync-irq-2.4.21-pre6.patch.bz2	\
