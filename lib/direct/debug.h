@@ -129,6 +129,7 @@ void direct_assumption( const char *exp,
 
 #define D_MAGIC_SET(o,m)      do {                                         \
                                    D_ASSERT( (o) != NULL );                \
+                                   D_ASSUME( (o)->magic != D_MAGIC(#m) );  \
                                                                            \
                                    (o)->magic = D_MAGIC(#m);               \
                               } while (0)
