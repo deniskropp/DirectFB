@@ -29,7 +29,6 @@ Rework VT handling. Readd VT switching and Suspend/Resume.
 Finish multi application core.
  - FusionProperty needs to be implemented
  - Reduce number of thread
- - Add session-alive probing, reinitialize shared memory
  - Remove leaks
  - Drop feature of transferring mastership
  - Add fork handling
