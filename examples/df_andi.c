@@ -434,9 +434,6 @@ void init_resources( int argc, char *argv[] )
 
      DFBCHECK(dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer ));
 
-     /* set our desired video mode */
-     DFBCHECK(layer->GetSize( layer, &xres, &yres ));
-
      /* get the primary surface, i.e. the surface of the primary layer we have
         exclusive access to */
      memset( &dsc, 0, sizeof(DFBSurfaceDescription) );
@@ -444,6 +441,7 @@ void init_resources( int argc, char *argv[] )
      dsc.caps = DSCAPS_PRIMARY | DSCAPS_FLIPPING;
 
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &primary ));
+     DFBCHECK(primary->GetSize( primary, &xres, &yres ));
 
      /* load font */
      {

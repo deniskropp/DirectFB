@@ -613,22 +613,20 @@ int main( int argc, char *argv[] )
 
      /* set our cooperative level to DFSCL_FULLSCREEN
         for exclusive access to the primary layer */
-     DFBCHECK(dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN ));
+     err = dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
+     if (err)
+          DirectFBError( "Failed to get exclusive access", err );
 
      DFBCHECK(dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer ));
 
-     /* set our desired video mode */
-     DFBCHECK(layer->GetSize( layer, &SW, &SH ));
-
      /* get the primary surface, i.e. the surface of the primary
         layer we have exclusive access to */
-     memset( &dsc, 0, sizeof(DFBSurfaceDescription) );
-
      dsc.flags = DSDESC_CAPS;
      dsc.caps = DSCAPS_PRIMARY;
 
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &primary ));
      primary->GetPixelFormat( primary, &pixelformat );
+     primary->GetSize( primary, &SW, &SH );
 
      {
           DFBFontDescription desc;
