@@ -193,7 +193,7 @@ reactor_detach (FusionReactor *reactor,
 {
      int index = reaction->index;
 
-     if (reactor->node[index].id == _fusion_id())
+     if (reactor->node[index].id != _fusion_id())
           FDEBUG( "removing reaction %p from foreign node %d!\n",
                   reaction, reactor->node[index].id );
      
