@@ -188,26 +188,30 @@ fusion_init()
 void
 fusion_exit()
 {
+     FusionShared *shared;
+
      if (!fusion) {
           FERROR("called without being initialized!\n");
           return;
      }
+
+     shared = fusion->shared;
 
      /* decrement local reference counter */
      if (--(fusion->ref))
           return;
 
      /* decrement shared reference counter */
-     fusion_ref_down (&fusion->shared->ref, false);
+     fusion_ref_down (&shared->ref, false);
      
      /* perform a shutdown? */
-     if (fusion_ref_zero_trylock (&fusion->shared->ref) == FUSION_SUCCESS) {
-          fusion_ref_destroy (&fusion->shared->ref);
+     if (fusion_ref_zero_trylock (&shared->ref) == FUSION_SUCCESS) {
+          fusion_ref_destroy (&shared->ref);
      }
 
-     fusion->fid = 0;
+     fusion->shared = NULL;
 
-     switch (_shm_abolish (fusion->shared_shm, fusion->shared)) {
+     switch (_shm_abolish (fusion->shared_shm, shared)) {
           case AB_Destroyed:
                FDEBUG ("I'VE BEEN THE LAST\n");
                __shmalloc_exit (true);
@@ -232,7 +236,7 @@ fusion_get_millis()
 {
      struct timeval tv;
      
-     if (!fusion || !fusion->fid)
+     if (!fusion || !fusion->fid || !fusion->shared)
           return dfb_get_millis();
      
      gettimeofday( &tv, NULL );

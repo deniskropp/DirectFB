@@ -218,6 +218,11 @@ dfb_vt_shutdown( bool emergency )
           //sigaction( SIG_SWITCH_TO, &dfb_vt->shared->sig_usr2, NULL );
      }
 #endif
+     if (dfb_config->kd_graphics) {
+          if (ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT ) < 0)
+               PERRORMSG( "DirectFB/Keyboard: KD_TEXT failed!\n" );
+     }
+     
      if (dfb_config->vt_switch) {
           DEBUGMSG( "switching back...\n" );
 
@@ -305,8 +310,8 @@ vt_init_switching()
      }
 
      if (dfb_config->vt_switch) {
-          if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0);
-/*               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );*/
+          if (ioctl( 0/*dfb_vt->fd0*/, TIOCNOTTY, 0 ) < 0)
+               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );
           
           if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0);
 /*               PERRORMSG( "DirectFB/Keyboard: TIOCSCTTY failed!\n" );*/

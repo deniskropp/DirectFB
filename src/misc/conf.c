@@ -246,12 +246,15 @@ static void config_allocate()
      dfb_config->mouse_motion_compression = true;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
+     dfb_config->kd_graphics              = true;
 
      sigemptyset( &dfb_config->dont_catch );
 
      /* default to fbdev if we have root privileges */
      if (!geteuid())
           dfb_config->system = DFBSTRDUP( "FBDev" );
+     else
+          dfb_config->vt_switch = false;
 }
 
 const char *dfb_config_usage( void )

@@ -384,7 +384,7 @@ driver_open_device( InputDevice      *device,
 
      /* open device */
 
-     fd = open( devlist[number], O_RDWR | O_SYNC );
+     fd = open( devlist[number], O_RDWR | O_SYNC | O_EXCL );
      if (fd < 0) {
           PERRORMSG( "DirectFB/PS2Mouse: failed opening `%s' !\n",
                      devlist[number] );
