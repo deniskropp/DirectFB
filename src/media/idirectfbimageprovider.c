@@ -42,6 +42,11 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      IDirectFBImageProvider              *imageprovider;
      IDirectFBImageProvider_ProbeContext  ctx;
 
+     /* Wait until 32 bytes are available */
+     ret = buffer->WaitForData( buffer, 32 );
+     if (ret)
+          return ret;
+     
      /* Read the first 32 bytes */
      ret = buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
      if (ret)
