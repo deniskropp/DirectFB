@@ -21,6 +21,7 @@ endif
 SUBDIRS = \
 	joystick	\
 	keyboard	\
+	linux_input	\
 	lirc		\
 	ps2mouse	\
 	serialmouse	\
