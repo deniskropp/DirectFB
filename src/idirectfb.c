@@ -527,11 +527,6 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      if (!interface || !filename)
           return DFB_INVARG;
 
-     data = (IDirectFB_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
 
      ret = DFBGetInterface( &impl,
                             "IDirectFBVideoProvider", NULL,
