@@ -2325,9 +2325,11 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 				CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY,
 				NULL, &(frame->tmp)));	
 	
+	memcpy(&(frame->state), &(this->main_data->state), sizeof(CardState));
+
+	frame->state.modified    = (SMF_CLIP | SMF_DESTINATION | SMF_SOURCE);
 	frame->state.source      = frame->tmp;
 	frame->state.destination = this->main_data->surface;
-	frame->state.modified    = (SMF_CLIP | SMF_DESTINATION | SMF_SOURCE);
 	
 	this->output_cb(this->output_cdata, frame->width, 
 			frame->height, &(frame->dest_rect));
