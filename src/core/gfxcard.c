@@ -61,34 +61,29 @@
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
                          DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
-typedef enum {
-   GLF_INVALIDATE_STATE = 0x00000001,
-   GLF_ENGINE_RESET     = 0x00000002
-} GraphicsLockFlags;
-
 /*
  * struct for graphics cards
  */
 typedef struct {
      /* amount of usable video memory */
-     unsigned int          videoram_length;
+     unsigned int             videoram_length;
 
-     char                 *module_name;
+     char                    *module_name;
 
-     GraphicsDriverInfo    driver_info;
-     GraphicsDeviceInfo    device_info;
-     void                 *device_data;
+     GraphicsDriverInfo       driver_info;
+     GraphicsDeviceInfo       device_info;
+     void                    *device_data;
 
-     FusionProperty        lock;
-     GraphicsLockFlags     lock_flags;
+     FusionProperty           lock;
+     GraphicsDeviceLockFlags  lock_flags;
 
-     SurfaceManager       *surface_manager;
+     SurfaceManager          *surface_manager;
 
      /*
       * Points to the current state of the graphics card.
       */
-     CardState            *state;
-     int                   holder; /* Fusion ID of state owner. */
+     CardState               *state;
+     int                      holder; /* Fusion ID of state owner. */
 } GraphicsDeviceShared;
 
 struct _GraphicsDevice {
@@ -277,7 +272,7 @@ dfb_gfxcard_shutdown( CoreDFB *core, bool emergency )
 
      DFB_ASSERT( shared->surface_manager != NULL );
 
-     dfb_gfxcard_lock( true, true, false, false );
+     dfb_gfxcard_lock( GDLF_SYNC );
 
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
@@ -329,7 +324,7 @@ dfb_gfxcard_suspend( CoreDFB *core )
      DFB_ASSERT( card != NULL );
      DFB_ASSERT( card->shared != NULL );
 
-     dfb_gfxcard_lock( true, true, true, true );
+     dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC | GDLF_RESET | GDLF_INVALIDATE );
 
      return dfb_surfacemanager_suspend( card->shared->surface_manager );
 }
@@ -346,49 +341,32 @@ dfb_gfxcard_resume( CoreDFB *core )
 }
 
 DFBResult
-dfb_gfxcard_lock( bool wait, bool sync,
-                  bool invalidate_state, bool engine_reset )
+dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 {
-/*     DEBUGMSG("DirectFB/core/gfxcard: %s (%d, %d, %d, %d)\n",
-              __FUNCTION__, wait, sync, invalidate_state, engine_reset);*/
+     GraphicsDeviceShared *shared;
+     GraphicsDeviceFuncs  *funcs;
 
-     if (card && card->shared) {
-          GraphicsDeviceShared *shared = card->shared;
+     DFB_ASSERT( card != NULL );
+     DFB_ASSERT( card->shared != NULL );
 
-          if (wait) {
-               if (fusion_property_purchase( &shared->lock )) {
-                    /*DEBUGMSG("DirectFB/core/gfxcard: %s FAILED.\n", __FUNCTION__);*/
-                    return DFB_FAILURE;
-               }
-          }
-          else {
-               if (fusion_property_lease( &shared->lock )) {
-                    /*DEBUGMSG("DirectFB/core/gfxcard: %s FAILED.\n", __FUNCTION__);*/
-                    return DFB_FAILURE;
-               }
-          }
+     shared = card->shared;
+     funcs  = &card->funcs;
 
-          /*DEBUGMSG("DirectFB/core/gfxcard: %s got lock...\n", __FUNCTION__);*/
+     if ( ((flags & GDLF_WAIT) ?
+           fusion_property_purchase( &shared->lock ) :
+           fusion_property_lease( &shared->lock )) )
+          return DFB_FAILURE;
 
-          if (sync)
-               dfb_gfxcard_sync();
+     if ((flags & GDLF_SYNC) && funcs->EngineSync)
+          funcs->EngineSync( card->driver_data, card->device_data );
 
-          if (shared->lock_flags & GLF_INVALIDATE_STATE)
-               shared->state = NULL;
+     if (shared->lock_flags & GDLF_INVALIDATE)
+          shared->state = NULL;
 
-          if ((shared->lock_flags & GLF_ENGINE_RESET) && card->funcs.EngineReset)
-               card->funcs.EngineReset( card->driver_data, card->device_data );
+     if ((shared->lock_flags & GDLF_RESET) && funcs->EngineReset)
+          funcs->EngineReset( card->driver_data, card->device_data );
 
-          shared->lock_flags = 0;
-
-          if (invalidate_state)
-               shared->lock_flags |= GLF_INVALIDATE_STATE;
-
-          if (engine_reset)
-               shared->lock_flags |= GLF_ENGINE_RESET;
-     }
-
-     /*DEBUGMSG("DirectFB/core/gfxcard: %s OK.\n", __FUNCTION__);*/
+     shared->lock_flags = flags;
 
      return DFB_OK;
 }
@@ -396,17 +374,19 @@ dfb_gfxcard_lock( bool wait, bool sync,
 void
 dfb_gfxcard_unlock()
 {
-     if (card && card->shared) {
-          fusion_property_cede( &card->shared->lock );
-     }
+     DFB_ASSERT( card != NULL );
+     DFB_ASSERT( card->shared != NULL );
+
+     fusion_property_cede( &card->shared->lock );
 }
 
 void
 dfb_gfxcard_holdup()
 {
-     if (card && card->shared) {
-          fusion_property_holdup( &card->shared->lock );
-     }
+     DFB_ASSERT( card != NULL );
+     DFB_ASSERT( card->shared != NULL );
+
+     fusion_property_holdup( &card->shared->lock );
 }
 
 /*
@@ -570,7 +550,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
       * This will timeout if the hardware is locked by another party with
       * the first argument being true (e.g. DRI).
       */
-     if (dfb_gfxcard_lock( false, false, false, false )) {
+     if (dfb_gfxcard_lock( GDLF_NONE )) {
           dfb_surface_unlock( state->destination, false );
 
           if (state->source_locked)
@@ -1371,13 +1351,15 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_sync()
+inline void dfb_gfxcard_sync()
 {
+     DFB_ASSERT( card != NULL );
+
      if (card && card->funcs.EngineSync)
           card->funcs.EngineSync( card->driver_data, card->device_data );
 }
 
-void dfb_gfxcard_flush_texture_cache()
+inline void dfb_gfxcard_flush_texture_cache()
 {
      DFB_ASSERT( card != NULL );
 
@@ -1385,7 +1367,7 @@ void dfb_gfxcard_flush_texture_cache()
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
 
-void dfb_gfxcard_after_set_var()
+inline void dfb_gfxcard_after_set_var()
 {
      DFB_ASSERT( card != NULL );
 

@@ -1480,7 +1480,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      if (mode->doubled)
           var.vmode |= FB_VMODE_DOUBLE;
 
-     dfb_gfxcard_lock( true, true, true, true );
+     dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC | GDLF_RESET | GDLF_INVALIDATE );
 
      if (FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &var ) < 0) {
           int erno = errno;

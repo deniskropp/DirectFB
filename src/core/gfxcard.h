@@ -231,8 +231,16 @@ typedef struct {
                                   void                *driver_data);
 } GraphicsDriverFuncs;
 
-DFBResult dfb_gfxcard_lock( bool wait, bool sync,
-                            bool invalidate_state, bool engine_reset );
+typedef enum {
+     GDLF_NONE       = 0x00000000,
+
+     GDLF_WAIT       = 0x00000001,
+     GDLF_SYNC       = 0x00000002,
+     GDLF_INVALIDATE = 0x00000004,
+     GDLF_RESET      = 0x00000008
+} GraphicsDeviceLockFlags;
+
+DFBResult dfb_gfxcard_lock( GraphicsDeviceLockFlags flags );
 void dfb_gfxcard_unlock();
 void dfb_gfxcard_holdup();
 
@@ -269,9 +277,9 @@ void dfb_gfxcard_drawstring( const unsigned char *text, int bytes, int x, int y,
 void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state );
 
-void dfb_gfxcard_sync();
-void dfb_gfxcard_flush_texture_cache();
-void dfb_gfxcard_after_set_var();
+inline void dfb_gfxcard_sync();
+inline void dfb_gfxcard_flush_texture_cache();
+inline void dfb_gfxcard_after_set_var();
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
