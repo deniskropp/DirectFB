@@ -314,9 +314,11 @@ int driver_init(InputDevice *device)
           return DFB_INIT;
      }
 
-//     ioctl( 0, TIOCNOTTY, 0 );
-//     ioctl( vt->fd, TIOCSCTTY, 0 );
-     
+     if (!dfb_config->no_vt_switch) {
+          ioctl( 0, TIOCNOTTY, 0 );
+          ioctl( vt->fd, TIOCSCTTY, 0 );
+     }
+
      tcgetattr( vt->fd, &old_ts );
 
      ts = old_ts;
@@ -354,10 +356,10 @@ void driver_deinit(InputDevice *device)
 
      write( vt->fd, cursoron_str, strlen(cursoron_str) );
      write( vt->fd, blankon_str, strlen(blankon_str) );
-     
+
      if (tcsetattr( vt->fd, TCSAFLUSH, &old_ts ) < 0)
           PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
-     
+
      if (ioctl( vt->fd, KDSKBMODE, K_XLATE ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set mode to XLATE!\n");
      if (ioctl( vt->fd, KDSETMODE, KD_TEXT ) < 0)
