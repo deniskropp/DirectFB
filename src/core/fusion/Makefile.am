@@ -41,4 +41,6 @@ libdirectfb_core_fusion_la_SOURCES = \
 	ref.c			\
 	util.c
 
+if ENABLE_MULTI
 libdirectfb_core_fusion_la_LIBADD = shmalloc/libdirectfb_shmalloc.la
+endif
