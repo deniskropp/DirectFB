@@ -453,7 +453,8 @@ dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
 
              return DFB_FAILURE;
      }
-
+     /* Hide SDL's cursor */
+     SDL_ShowCursor(SDL_DISABLE);
      fusion_skirmish_dismiss( &dfb_sdl->lock );
 
      return DFB_OK;
