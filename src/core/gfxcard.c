@@ -293,10 +293,10 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      if (accel & 0xFFFF0000)
-          lock_flags = state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
-                                                DSBLIT_BLEND_COLORALPHA   |
-                                                DSBLIT_DST_COLORKEY ) ?
-                       DSLF_READ | DSLF_WRITE : DSLF_WRITE;
+          lock_flags = (state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
+                                                 DSBLIT_BLEND_COLORALPHA   |
+                                                 DSBLIT_DST_COLORKEY ) ?
+                        DSLF_READ | DSLF_WRITE : DSLF_WRITE) | CSLF_FORCE;
      else
           lock_flags = state->drawingflags & ( DSDRAW_BLEND |
                                                DSDRAW_DST_COLORKEY ) ?

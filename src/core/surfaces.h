@@ -26,6 +26,8 @@
 
 #include "core/reactor.h"
 
+#define CSLF_FORCE 0x80000000
+
 struct _Chunk;
 
 typedef enum {

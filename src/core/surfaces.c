@@ -373,8 +373,8 @@ DFBResult surface_hard_lock( CoreSurface *surface,
 
           case CSP_VIDEOHIGH:   // XXX enabled XXX, see below
           case CSP_VIDEOLOW:
-               /* no reading? no video instance? no success! ;-) */
-               if (!(flags & DSLF_READ) && buffer->video.health != CSH_STORED)
+               /* no reading? no force? no video instance? no success! ;-) */
+               if (!(flags & (DSLF_READ|CSLF_FORCE)) && buffer->video.health != CSH_STORED)
                     break;
                /* fall through */
 
