@@ -532,7 +532,6 @@ static void Bop_16_Sto_Aop()
      int    i = 0;
      __u32 *D = (__u32*)Aop;
      __u16 *S = (__u16*)Bop;
-     __u32 pixel2;
 
      if (((long)D)&2) {
         *(((__u16*)D)++) = *S;
@@ -542,17 +541,13 @@ static void Bop_16_Sto_Aop()
 
      w2 = (w >> 1);
      while (w2--) {
+          int SperD2 = (SperD << 1);
 #if __BYTE_ORDER == __BIG_ENDIAN
-          pixel2 = S[i>>16] << 16;
-          i += SperD;
-          pixel2 |= S[i>>16];
+          *D++ =  S[i>>16] << 16 | S[(i+SperD)>>16];
 #else
-          pixel2 = S[i>>16];
-          i += SperD;
-          pixel2 |= (S[i>>16] << 16);
+          *D++ = (S[(i+SperD)>>16] << 16) | S[i>>16];
 #endif
-          *D++ = pixel2;
-          i += SperD;
+          i += SperD2;
      }
      if (w&1) {
           *((__u16*)D) = S[i>>16];
