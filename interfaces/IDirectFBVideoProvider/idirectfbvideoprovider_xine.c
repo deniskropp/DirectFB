@@ -114,7 +114,7 @@ typedef struct
 
 
 static void
-get_error( IDirectFBVideoProvider_Xine_data *data );
+get_stream_error( IDirectFBVideoProvider_Xine_data *data );
 
 static void
 frame_output( void *cdata, int width, int height,
@@ -167,7 +167,7 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
 
 		xine_exit( data->xine );
 	}
-
+	
 	D_FREE( data->mrl );
 	DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -312,7 +312,7 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 		
 		if(!xine_play( data->stream, 0, 0 ))
 		{
-			get_error( data );
+			get_stream_error( data );
 			return data->err;
 		}
 		
@@ -547,7 +547,7 @@ Construct( IDirectFBVideoProvider *thiz,
 	const char        *xinerc;
 	int                verbosity    = XINE_VERBOSITY_LOG;
 	const char* const *plug_list;
-	int                audio_driver;
+	const char        *audio_driver;
 	dfb_visual_t       visual;
 	
 	DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine )
@@ -558,7 +558,11 @@ Construct( IDirectFBVideoProvider *thiz,
 	
 	data->xine = xine_new();
 	if (!data->xine)
+	{
+		D_ERROR( "DirectFB/VideoProvider_Xine: "
+			 "xine_new() failed.\n" );
 		return DFB_INIT;
+	}
 
 	xinerc = getenv( "XINERC" );
 	
@@ -594,23 +598,24 @@ Construct( IDirectFBVideoProvider *thiz,
 				XINE_VISUAL_TYPE_DFB, (void*) &visual );
 	if (!data->vo)
 	{
-		get_error( data );
+		D_ERROR( "DirectFB/VideoProvider_Xine: "
+			 "failed to load video driver 'DFB'.\n" );
 		xine_exit( data->xine );
 		return data->err;
 	}
 
 	plug_list = xine_list_audio_output_plugins( data->xine );
 
-	audio_driver = xine_config_register_enum( data->xine, "audio.driver",
-				0, (char**) plug_list, "Audio driver to use",
-				NULL, 0, NULL, NULL );	
+	audio_driver = xine_config_register_string( data->xine, "audio.driver",
+					plug_list[0], "Audio driver to use",
+					NULL, 0, NULL, NULL );	
 	
-	data->ao = xine_open_audio_driver( data->xine,
-				plug_list[audio_driver], NULL );
+	data->ao = xine_open_audio_driver( data->xine, audio_driver, NULL );
 
 	if (!data->ao)
 	{
-		get_error( data );
+		D_ERROR( "DirectFB/VideoProvider_Xine: "
+			 "failed to load audio driver '%s'.\n", audio_driver );
 		xine_close_video_driver( data->xine, data->vo );
 		xine_exit( data->xine );
 		return data->err;
@@ -619,7 +624,8 @@ Construct( IDirectFBVideoProvider *thiz,
 	data->stream = xine_stream_new( data->xine, data->ao, data->vo );
 	if (!data->stream)
 	{
-		get_error( data );
+		D_ERROR( "DirectFB/VideoProvider_Xine: "
+			 "failed to create a new stream.\n" );
 		xine_close_video_driver( data->xine, data->vo );
 		xine_close_audio_driver( data->xine, data->ao );
 		xine_exit( data->xine );
@@ -636,7 +642,7 @@ Construct( IDirectFBVideoProvider *thiz,
 
 	if (!xine_open( data->stream, data->mrl ))
 	{
-		get_error( data );
+		get_stream_error( data );
 		if (data->queue)
 			xine_event_dispose_queue( data->queue );
 		xine_dispose( data->stream );
@@ -651,19 +657,18 @@ Construct( IDirectFBVideoProvider *thiz,
 	/* init a post plugin if no video */
 	if (!xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO ))
 	{
-		int              post_plugin;
+		const char      *post_plugin;
 		xine_post_out_t *audio_source;
 
 		plug_list = xine_list_post_plugins_typed( data->xine,
 					XINE_POST_TYPE_AUDIO_VISUALIZATION );
 
-		post_plugin = xine_config_register_enum( data->xine,
-					"gui.post_audio_plugin", 0,
-					(char**) plug_list,
+		post_plugin = xine_config_register_string( data->xine,
+					"gui.post_audio_plugin", plug_list[0],
 					"Audio visualization plugin",
 					NULL, 0, NULL, NULL );
 
-		data->post = xine_post_init( data->xine, plug_list[post_plugin],
+		data->post = xine_post_init( data->xine, post_plugin,
 						0, &data->ao, &data->vo );
 		if (data->post)
 		{
@@ -690,9 +695,12 @@ Construct( IDirectFBVideoProvider *thiz,
 
 
 static void
-get_error( IDirectFBVideoProvider_Xine_data *data )
+get_stream_error( IDirectFBVideoProvider_Xine_data *data )
 {
-	int err = xine_get_error( data->stream );
+	int err = 0;
+
+	if (data->stream)	
+		err = xine_get_error( data->stream );
 
 	switch (err)
 	{
