@@ -137,11 +137,11 @@ void dfb_copy_buffer_32( __u32 *src,
 
      switch (dst_surface->format) {
           case DSPF_A8:
-               for (y = drect->y; y < drect->h; y++) {
+               for (y = drect->y; y < drect->y + drect->h; y++) {
                     __u8 *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
 
-                    for (x = drect->x; x < drect->w; x++)
+                    for (x = drect->x; x < drect->x + drect->w; x++)
                          d[x] = src[x] >> 24;
 
                     src += drect->w;
@@ -149,7 +149,7 @@ void dfb_copy_buffer_32( __u32 *src,
                break;
 
           case DSPF_ARGB:
-               for (y = drect->y; y < drect->h; y++) {
+               for (y = drect->y; y < drect->y + drect->h; y++) {
                     void *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
 
@@ -160,11 +160,11 @@ void dfb_copy_buffer_32( __u32 *src,
                break;
 
           default:
-               for (y = drect->y; y < drect->h; y++) {
+               for (y = drect->y; y < drect->y + drect->h; y++) {
                     void *d = LINE_PTR( dst, dst_surface->caps,
                                         y, dst_surface->height, dpitch );
 
-                    for (x = drect->x; x < drect->w; x++) {
+                    for (x = drect->x; x < drect->x + drect->w; x++) {
                          a = *src >> 24;
 
                          rgba_to_dst_format ((__u8 *)d,
@@ -415,7 +415,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
      scaled_x_offset = DFB_IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
      sy = DFB_IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
 
-     for (i = drect->y; i < drect->h; i++) {
+     for (i = drect->y; i < drect->y + drect->h; i++) {
           int x_start;
           int y_start;
           int dest_x;
