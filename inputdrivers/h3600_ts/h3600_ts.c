@@ -51,50 +51,56 @@ static void* h3600_tsEventThread(void *device)
 {
      InputDevice *h3600_ts = (InputDevice*)device;
 
-     TS_EVENT old_event;
-     TS_EVENT new_event;
+     TS_EVENT ts_event;
 
      int readlen;
 
-     old_event.x = -1;
-     old_event.y = -1;
-     old_event.pressure = 0;
+     unsigned short old_x = -1;
+     unsigned short old_y = -1;
+     unsigned short old_pressure = 0;
 
-     while ((readlen = read(fd, &new_event, sizeof(TS_EVENT))) > 0  ||
+     while ((readlen = read(fd, &ts_event, sizeof(TS_EVENT))) > 0  ||
             errno == EINTR)
      {
           DFBInputEvent evt;
 
           pthread_testcancel();
 
-          if (new_event.x != old_event.x) {
-               evt.type    = DIET_AXISMOTION;
-               evt.flags   = DIEF_AXISABS;
-               evt.axis    = DIAI_X;
-               evt.axisabs = new_event.x;
+          if (ts_event.pressure) {
+               if (ts_event.x != old_x) {
+                    evt.type    = DIET_AXISMOTION;
+                    evt.flags   = DIEF_AXISABS;
+                    evt.axis    = DIAI_X;
+                    evt.axisabs = ts_event.x;
 
-               reactor_dispatch( h3600_ts->reactor, &evt );
+                    reactor_dispatch( h3600_ts->reactor, &evt );
+
+                    old_x = ts_event.x;
+               }
+
+               if (ts_event.y != old_y) {
+                    evt.type    = DIET_AXISMOTION;
+                    evt.flags   = DIEF_AXISABS;
+                    evt.axis    = DIAI_Y;
+                    evt.axisabs = ts_event.y;
+
+                    reactor_dispatch( h3600_ts->reactor, &evt );
+
+                    old_y = ts_event.y;
+               }
           }
 
-          if (new_event.y != old_event.y) {
-               evt.type    = DIET_AXISMOTION;
-               evt.flags   = DIEF_AXISABS;
-               evt.axis    = DIAI_Y;
-               evt.axisabs = new_event.y;
-
-               reactor_dispatch( h3600_ts->reactor, &evt );
-          }
-
-          if (new_event.pressure && !old_event.pressure) {
-               evt.type    = new_event.pressure ?
+          if ((ts_event.pressure && !ts_event.pressure) ||
+              (!ts_event.pressure && ts_event.pressure)) {
+               evt.type    = ts_event.pressure ?
                              DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                evt.flags   = DIEF_BUTTON;
                evt.button  = DIBI_LEFT;
 
                reactor_dispatch( h3600_ts->reactor, &evt );
-          }
 
-          old_event = new_event;
+               old_pressure = ts_event.pressure;
+          }
      }
 
      if (readlen <= 0)
