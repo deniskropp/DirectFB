@@ -206,6 +206,50 @@ parse_pixelformat( const char *format )
      return format_string->format;
 }
 
+static DFBResult
+parse_args( const char *args )
+{
+     char *buf = alloca( strlen(args) + 1 );
+
+     strcpy( buf, args );
+
+     while (buf && buf[0]) {
+          DFBResult  ret;
+          char      *value;
+          char      *next;
+
+          if ((next = strchr( buf, ',' )) != NULL)
+               *next++ = '\0';
+
+          if (strcmp (buf, "help") == 0) {
+               fprintf( stderr, config_usage );
+               exit(1);
+          }
+
+          if (strcmp (buf, "memcpy=help") == 0) {
+               dfb_print_memcpy_routines();
+               exit(1);
+          }
+
+          if ((value = strchr( buf, '=' )) != NULL)
+               *value++ = '\0';
+
+          ret = dfb_config_set( buf, value );
+          switch (ret) {
+               case DFB_OK:
+                    break;
+               case DFB_UNSUPPORTED:
+                    ERRORMSG( "DirectFB/Config: Unknown option '%s'!\n", buf );
+                    break;
+               default:
+                    return ret;
+          }
+
+          buf = next;
+     }
+
+     return DFB_OK;
+}
 
 /*
  * The following function isn't used because the configuration should
@@ -770,12 +814,14 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
      char *home = getenv( "HOME" );
      char *prog = NULL;
      char *session;
+     char *dfbargs;
 
      if (dfb_config)
           return DFB_OK;
 
      config_allocate();
 
+     /* Current session is default. */
      session = getenv( "DIRECTFB_SESSION" );
      if (session) {
           ret = dfb_config_set( "session", session );
@@ -783,10 +829,24 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                return ret;
      }
      
+     /* Read system settings. */
      ret = dfb_config_read( "/etc/directfbrc" );
      if (ret  &&  ret != DFB_IO)
           return ret;
 
+     /* Read user settings. */
+     if (home) {
+          int  len = strlen(home) + strlen("/.directfbrc") + 1;
+          char buf[len];
+
+          snprintf( buf, len, "%s/.directfbrc", home );
+
+          ret = dfb_config_read( buf );
+          if (ret  &&  ret != DFB_IO)
+               return ret;
+     }
+     
+     /* Get application name. */
      if (argc && *argc && argv && *argv) {
           prog = strrchr( (*argv)[0], '/' );
 
@@ -796,6 +856,7 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                prog = (*argv)[0];
      }
      
+     /* Read global application settings. */
      if (prog && prog[0]) {
           int  len = strlen("/etc/directfbrc.") + strlen(prog) + 1;
           char buf[len];
@@ -807,26 +868,27 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                return ret;
      }
 
-     if (home) {
-          int len = strlen(home) +
-                    strlen("/.directfbrc.") + (prog ? strlen(prog) : 0) + 1;
-          char filename[len];
+     /* Read user application settings. */
+     if (home && prog && prog[0]) {
+          int  len = strlen(home) + strlen("/.directfbrc.") + strlen(prog) + 1;
+          char buf[len];
 
-          snprintf( filename, len, "%s/.directfbrc", home );
+          snprintf( buf, len, "%s/.directfbrc.%s", home, prog );
 
-          ret = dfb_config_read( filename );
+          ret = dfb_config_read( buf );
           if (ret  &&  ret != DFB_IO)
                return ret;
-     
-          if (prog && prog[0]) {
-               snprintf( filename, len, "%s/.directfbrc.%s", home, prog );
-
-               ret = dfb_config_read( filename );
-               if (ret  &&  ret != DFB_IO)
-                    return ret;
-          }
      }
 
+     /* Read settings from environment variable. */
+     dfbargs = getenv( "DFBARGS" );
+     if (dfbargs) {
+          ret = parse_args( dfbargs );
+          if (ret)
+               return ret;
+     }
+     
+     /* Read settings from command line. */
      if (argc && argv) {
           for (i = 1; i < *argc; i++) {
 
@@ -836,46 +898,11 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                }
 
                if (strncmp ((*argv)[i], "--dfb:", 6) == 0) {
-                    int len = strlen( (*argv)[i] ) - 6;
-                    char *arg = (*argv)[i] + 6;
+                    ret = parse_args( (*argv)[i] + 6 );
+                    if (ret)
+                         return ret;
 
-                    while (len) {
-                         char *name, *value, *comma;
-                         
-                         if ((comma = strchr( arg, ',' )) != NULL)
-                              *comma = '\0';
-
-                         if (strcmp (arg, "help") == 0) {
-                              fprintf( stderr, config_usage );
-                              exit(1);
-                         }
-
-                         if (strcmp (arg, "memcpy=help") == 0) {
-                              dfb_print_memcpy_routines();
-                              exit(1);
-                         }
-
-                         name = DFBSTRDUP( arg );
-                         len -= strlen( arg );
-
-                         value = strchr( name, '=' );
-                         if (value)
-                              *value++ = '\0';
-
-                         ret = dfb_config_set( name, value );
-
-                         DFBFREE( name );
-
-                         if (ret == DFB_OK)
-                              (*argv)[i] = NULL;
-                         else if (ret != DFB_UNSUPPORTED)
-                              return ret;
-                         
-                         if (comma && len) {
-                              arg = comma + 1;
-                              len--;
-                         }
-                    }
+                    (*argv)[i] = NULL;
                }
           }
 
@@ -883,19 +910,18 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                int k;
 
                for (k = i; k < *argc; k++)
-                   if ((*argv)[k] != NULL)
-                       break;
+                    if ((*argv)[k] != NULL)
+                         break;
 
-               if (k > i)
-                   {
-                   int j;
+               if (k > i) {
+                    int j;
 
-               k -= i;
+                    k -= i;
 
-               for (j = i + k; j < *argc; j++)
-                       (*argv)[j-k] = (*argv)[j];
+                    for (j = i + k; j < *argc; j++)
+                         (*argv)[j-k] = (*argv)[j];
 
-                       *argc -= k;
+                    *argc -= k;
                }
           }
      }
