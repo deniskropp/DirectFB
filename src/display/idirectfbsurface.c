@@ -816,13 +816,15 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (font)
-          font->AddRef (font);
+     if (data->font != font) {
+         if (font)
+              font->AddRef (font);
 
-     if (data->font)
-          data->font->Release (data->font);
+         if (data->font)
+              data->font->Release (data->font);
 
-     data->font = font;
+         data->font = font;
+     }
 
      return DFB_OK;
 }
