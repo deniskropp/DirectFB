@@ -1401,7 +1401,7 @@ load_default_cursor( DisplayLayer *layer )
 
      /* read from file directly into the cursor window surface */
      for (i=0; i<40; i++) {
-          if (fread( data, 40*4, 1, f ) != 1) {
+          if (fread( data, MIN (40*4, pitch), 1, f ) != 1) {
                ret = errno2dfb( errno );
 
                ERRORMSG( "DirectFB/core/layers: "
@@ -1414,7 +1414,7 @@ load_default_cursor( DisplayLayer *layer )
           }
 #ifdef WORDS_BIGENDIAN
           {
-               int i = 40;
+               int i = MIN (40, pitch/4);
                __u32 *tmp_data = data;
 
                while (i--) {

@@ -1971,6 +1971,15 @@ switch_focus( CoreWindowStack *stack, CoreWindow *to )
      }
 
      if (to) {
+          if (to->surface->palette) {
+               DisplayLayer *layer   = dfb_layer_at( stack->layer_id );
+               CoreSurface  *surface = dfb_layer_surface( layer );
+
+               if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+                    dfb_surface_set_palette (dfb_layer_surface (layer),
+                                             to->surface->palette);
+          }
+
           evt.type = DWET_GOTFOCUS;
           dfb_window_dispatch( to, &evt );
      }

@@ -30,6 +30,8 @@ Rework VT handling. Readd VT switching and Suspend/Resume.
 
 Virtual window/layer resolution with scrolling/panning.
 
+Rework cursor and palette handling in the window stack.
+
 
 Drivers
 --------
