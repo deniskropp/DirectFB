@@ -38,4 +38,4 @@ libidirectfbfont_ft2_la_LIBADD = $(FREETYPE_LIBS)
 libidirectfbfont_ft2_la_LDFLAGS = -avoid-version -module
 
 
-include $(top_srcdir)/rules/libobject.make
+#include $(top_srcdir)/rules/libobject.make

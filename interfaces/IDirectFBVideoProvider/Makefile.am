@@ -29,4 +29,4 @@ libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c
 libidirectfbvideoprovider_v4l_la_LDFLAGS = -avoid-version -module
 
 
-include $(top_srcdir)/rules/libobject.make
+#include $(top_srcdir)/rules/libobject.make
