@@ -34,20 +34,43 @@
 #include <unique/types.h>
 
 
-DFBResult unique_input_switch_create ( UniqueContext           *context,
-                                       UniqueInputSwitch      **ret_switch );
+DFBResult unique_input_switch_create      ( UniqueContext           *context,
+                                            UniqueInputSwitch      **ret_switch );
 
-DFBResult unique_input_switch_destroy( UniqueInputSwitch       *input_switch );
+DFBResult unique_input_switch_destroy     ( UniqueInputSwitch       *input_switch );
 
-DFBResult unique_input_switch_add    ( UniqueInputSwitch       *input_switch,
-                                       UniqueDevice            *device );
+DFBResult unique_input_switch_add         ( UniqueInputSwitch       *input_switch,
+                                            UniqueDevice            *device );
 
-DFBResult unique_input_switch_remove ( UniqueInputSwitch       *input_switch,
-                                       UniqueDevice            *device );
+DFBResult unique_input_switch_remove      ( UniqueInputSwitch       *input_switch,
+                                            UniqueDevice            *device );
 
-DFBResult unique_input_switch_select ( UniqueInputSwitch       *input_switch,
-                                       UniqueDeviceClassIndex   index,
-                                       UniqueInputChannel      *channel );
+DFBResult unique_input_switch_select      ( UniqueInputSwitch       *input_switch,
+                                            UniqueDeviceClassIndex   index,
+                                            UniqueInputChannel      *channel );
+
+DFBResult unique_input_switch_set         ( UniqueInputSwitch       *input_switch,
+                                            UniqueDeviceClassIndex   index,
+                                            UniqueInputChannel      *channel );
+
+DFBResult unique_input_switch_unset       ( UniqueInputSwitch       *input_switch,
+                                            UniqueDeviceClassIndex   index,
+                                            UniqueInputChannel      *channel );
+
+DFBResult unique_input_switch_set_filter  ( UniqueInputSwitch       *input_switch,
+                                            UniqueDeviceClassIndex   index,
+                                            UniqueInputChannel      *channel,
+                                            const UniqueInputEvent  *event,
+                                            UniqueInputFilter      **ret_filter );
+
+DFBResult unique_input_switch_unset_filter( UniqueInputSwitch       *input_switch,
+                                            UniqueInputFilter       *filter );
+
+DFBResult unique_input_switch_drop        ( UniqueInputSwitch       *input_switch,
+                                            UniqueInputChannel      *channel );
+
+DFBResult unique_input_switch_update      ( UniqueInputSwitch       *input_switch,
+                                            UniqueInputChannel      *channel );
 
 
 #endif

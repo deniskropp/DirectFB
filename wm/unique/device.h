@@ -34,29 +34,52 @@
 
 #include <core/coretypes.h>
 
-#include <unique/input_events.h>
 #include <unique/types.h>
 
 
 typedef struct {
-     void (*Connected)   ( UniqueDevice        *device,
-                           void                *data,
-                           unsigned long        arg,
-                           CoreInputDevice     *source );
+     int data_size;
 
-     void (*Disconnected)( UniqueDevice        *device,
-                           void                *data,
-                           unsigned long        arg,
-                           CoreInputDevice     *source );
 
-     void (*ProcessEvent)( UniqueDevice        *device,
-                           void                *data,
-                           unsigned long        arg,
-                           const DFBInputEvent *event );
+     DFBResult (*Initialize)    ( UniqueDevice        *device,
+                                  void                *data,
+                                  void                *ctx );
+
+     void      (*Shutdown)      ( UniqueDevice        *device,
+                                  void                *data,
+                                  void                *ctx );
+
+
+     void (*Connected)   ( UniqueDevice           *device,
+                           void                   *data,
+                           void                   *ctx,
+                           CoreInputDevice        *source );
+
+     void (*Disconnected)( UniqueDevice           *device,
+                           void                   *data,
+                           void                   *ctx,
+                           CoreInputDevice        *source );
+
+     void (*ProcessEvent)( UniqueDevice           *device,
+                           void                   *data,
+                           void                   *ctx,
+                           const DFBInputEvent    *event );
+
+
+     bool (*FilterEvent) ( const UniqueInputEvent *event,
+                           const UniqueInputEvent *filter );
 } UniqueDeviceClass;
 
 typedef unsigned int UniqueDeviceID;
 typedef unsigned int UniqueDeviceClassID;
+
+typedef enum {
+     UDCI_POINTER,
+     UDCI_WHEEL,
+     UDCI_KEYBOARD,
+
+     _UDCI_NUM
+} UniqueDeviceClassIndex;
 
 
 DFBResult unique_device_class_register  ( const UniqueDeviceClass *clazz,
@@ -67,8 +90,7 @@ DFBResult unique_device_class_unregister( UniqueDeviceClassID      id );
 
 DFBResult unique_device_create       ( UniqueContext          *context,
                                        UniqueDeviceClassID     class_id,
-                                       void                   *data,
-                                       unsigned long           arg,
+                                       void                   *ctx,
                                        UniqueDevice          **ret_device );
 
 DFBResult unique_device_destroy      ( UniqueDevice           *device );
@@ -99,11 +121,16 @@ DFBResult unique_device_detach_global( UniqueDevice           *device,
 DFBResult unique_device_dispatch     ( UniqueDevice           *device,
                                        const UniqueInputEvent *event );
 
+bool      unique_device_filter       ( UniqueDeviceClassID     class_id,
+                                       const UniqueInputEvent *event,
+                                       const UniqueInputEvent *filter );
+
 
 /* global reactions */
 
 typedef enum {
-     UNIQUE_INPUT_SWITCH_DEVICE_LISTENER
+     UNIQUE_INPUT_SWITCH_DEVICE_LISTENER,
+     UNIQUE_CURSOR_DEVICE_LISTENER
 } UNIQUE_DEVICE_GLOBALS;
 
 #endif

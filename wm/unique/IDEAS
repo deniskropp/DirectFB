@@ -31,6 +31,7 @@ UniqueInputSwitch
 - each device class has its own channel selection
 - automatic channel selection by pre-processing events (focus follows mouse etc.)
 - fixed channel selection (grabbing) for whole device or selected events
+- implicit grabbing for keyboard and pointer
 
 
 UniqueInputChannel
@@ -38,7 +39,7 @@ UniqueInputChannel
 - window decorations can have additional channels
 - StReT regions can be assigned a channel for each device class
 - automatic channel selection is based on these assignments
-- reactor for receiving input events from UniqueInputSwitch
+- reactor for dispatching input events received from UniqueInputSwitch
 
 
 UniqueCursor part

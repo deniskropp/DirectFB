@@ -46,6 +46,48 @@
 
 D_DEBUG_DOMAIN( UniQuE_Foo, "UniQuE/Foo", "UniQuE's Foo Region Class" );
 
+static DFBResult
+foo_get_input( StretRegion         *region,
+               void                *region_data,
+               unsigned long        arg,
+               int                  index,
+               int                  x,
+               int                  y,
+               UniqueInputChannel **ret_channel )
+{
+     UniqueContext *context;
+     UniqueWindow  *window = region_data;
+
+     D_MAGIC_ASSERT( region, StretRegion );
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
+     D_ASSERT( ret_channel != NULL );
+
+     D_DEBUG_AT( UniQuE_Foo, "foo_get_input( region %p, window %p, index %d, x %d, y %d )\n",
+                 region, window, index, x, y );
+
+     switch (index) {
+          case UDCI_KEYBOARD:
+          case UDCI_WHEEL:
+               *ret_channel = window->channel;
+               break;
+
+          case UDCI_POINTER:
+               *ret_channel = window->channel;
+//               *ret_channel = context->foo_channel;
+               break;
+
+          default:
+               *ret_channel = NULL;
+               break;
+     }
+
+     return DFB_OK;
+}
 
 static void
 foo_update( StretRegion     *region,
@@ -183,6 +225,7 @@ foo_update( StretRegion     *region,
 }
 
 const StretRegionClass unique_foo_region_class = {
+     GetInput: foo_get_input,
      Update:   foo_update
 };
 

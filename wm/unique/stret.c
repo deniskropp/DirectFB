@@ -405,6 +405,32 @@ stret_region_get_size( StretRegion  *region,
      ret_size->h = region->bounds.y2 - region->bounds.y1 + 1;
 }
 
+DFBResult
+stret_region_get_input( StretRegion         *region,
+                        int                  index,
+                        int                  x,
+                        int                  y,
+                        UniqueInputChannel **ret_channel )
+{
+     const StretRegionClass *clazz;
+
+     D_MAGIC_ASSERT( region, StretRegion );
+
+     D_ASSERT( ret_channel != NULL );
+
+     D_ASSERT( region->clazz >= 0 );
+     D_ASSERT( region->clazz < MAX_CLASSES );
+
+     clazz = classes[region->clazz];
+
+     D_ASSERT( clazz != NULL );
+
+     if (clazz->GetInput)
+          return clazz->GetInput( region, region->data, region->arg, index, x, y, ret_channel );
+
+     return DFB_UNSUPPORTED;
+}
+
 
 typedef struct {
      int          num;

@@ -31,6 +31,7 @@
 #include <directfb.h>
 
 #include <unique/types.h>
+#include <unique/device.h>
 
 typedef enum {
      UIET_NONE      = 0x00000000,
@@ -42,7 +43,9 @@ typedef enum {
 
      UIET_KEY       = 0x00000100,
 
-     UIET_ALL       = 0x00000113
+     UIET_CHANNEL   = 0x00001000,
+
+     UIET_ALL       = 0x00001113
 } UniqueInputEventType;
 
 
@@ -50,6 +53,8 @@ typedef struct {
      UniqueInputEventType               type;
 
      DFBInputDeviceID                   device_id;
+
+     bool                               press;
 
      int                                x;
      int                                y;
@@ -72,6 +77,8 @@ typedef struct {
 
      DFBInputDeviceID                   device_id;
 
+     bool                               press;
+
      int                                key_code;
      DFBInputDeviceKeyIdentifier        key_id;
      DFBInputDeviceKeySymbol            key_symbol;
@@ -80,14 +87,26 @@ typedef struct {
      DFBInputDeviceLockState            locks;
 } UniqueInputKeyboardEvent;
 
+typedef struct {
+     UniqueInputEventType               type;
 
-typedef union {
+     bool                               selected;
+
+     UniqueDeviceClassIndex             index;
+
+     int                                x;
+     int                                y;
+} UniqueInputChannelEvent;
+
+
+union __UniQuE_UniqueInputEvent {
      UniqueInputEventType               type;
 
      UniqueInputPointerEvent            pointer;
      UniqueInputWheelEvent              wheel;
      UniqueInputKeyboardEvent           keyboard;
-} UniqueInputEvent;
+     UniqueInputChannelEvent            channel;
+};
 
 
 #endif

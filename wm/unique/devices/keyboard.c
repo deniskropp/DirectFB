@@ -46,47 +46,140 @@
 D_DEBUG_DOMAIN( UniQuE_Keyboard, "UniQuE/Keyboard", "UniQuE's Keyboard Device Class" );
 
 
+typedef struct {
+     int magic;
+} KeyboardData;
+
+/**************************************************************************************************/
+
+static DFBResult
+keyboard_initialize( UniqueDevice    *device,
+                     void            *data,
+                     void            *ctx )
+{
+     KeyboardData *keyboard = data;
+
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_initialize( %p, %p, %p )\n", device, data, ctx );
+
+     D_MAGIC_SET( keyboard, KeyboardData );
+
+     return DFB_OK;
+}
+
+static void
+keyboard_shutdown( UniqueDevice    *device,
+                   void            *data,
+                   void            *ctx )
+{
+     KeyboardData *keyboard = data;
+
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( keyboard, KeyboardData );
+
+     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_shutdown( %p, %p, %p )\n", device, data, ctx );
+
+     D_MAGIC_CLEAR( keyboard );
+}
 
 static void
 keyboard_connected( UniqueDevice        *device,
                     void                *data,
-                    unsigned long        arg,
+                    void                *ctx,
                     CoreInputDevice     *source )
 {
-     D_MAGIC_ASSERT( device, UniqueDevice );
+     KeyboardData *keyboard = data;
 
-     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_connected( %p, %p, %lu, %p )\n",
-                 device, data, arg, source );
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( keyboard, KeyboardData );
+
+     D_ASSERT( source != NULL );
+
+     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_connected( %p, %p, %p, %p )\n",
+                 device, data, ctx, source );
 }
 
 static void
 keyboard_disconnected( UniqueDevice        *device,
                        void                *data,
-                       unsigned long        arg,
+                       void                *ctx,
                        CoreInputDevice     *source )
 {
-     D_MAGIC_ASSERT( device, UniqueDevice );
+     KeyboardData *keyboard = data;
 
-     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_disconnected( %p, %p, %lu, %p )\n",
-                 device, data, arg, source );
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( keyboard, KeyboardData );
+
+     D_ASSERT( source != NULL );
+
+     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_disconnected( %p, %p, %p, %p )\n",
+                 device, data, ctx, source );
 }
 
 static void
 keyboard_process_event( UniqueDevice        *device,
                         void                *data,
-                        unsigned long        arg,
+                        void                *ctx,
                         const DFBInputEvent *event )
 {
-     D_MAGIC_ASSERT( device, UniqueDevice );
+     UniqueInputEvent  evt;
+     KeyboardData     *keyboard = data;
 
-     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_process_event( %p, %p, %lu, %p ) <- type 0x%08x\n",
-                 device, data, arg, event, event->type );
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( keyboard, KeyboardData );
+
+     D_ASSERT( event != NULL );
+
+     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_process_event( %p, %p, %p, %p ) <- type 0x%08x\n",
+                 device, data, ctx, event, event->type );
+
+     switch (event->type) {
+          case DIET_KEYPRESS:
+          case DIET_KEYRELEASE:
+               evt.type = UIET_KEY;
+
+               evt.keyboard.device_id  = event->device_id;
+               evt.keyboard.press      = (event->type == DIET_KEYPRESS);
+               evt.keyboard.key_code   = event->key_code;
+               evt.keyboard.key_id     = event->key_id;
+               evt.keyboard.key_symbol = event->key_symbol;
+               evt.keyboard.modifiers  = event->modifiers;
+               evt.keyboard.locks      = event->locks;
+
+               unique_device_dispatch( device, &evt );
+               break;
+
+          default:
+               break;
+     }
+}
+
+static bool
+keyboard_filter_event( const UniqueInputEvent *event,
+                       const UniqueInputEvent *filter )
+{
+     D_ASSERT( event != NULL );
+     D_ASSERT( filter != NULL );
+
+     D_DEBUG_AT( UniQuE_Keyboard, "keyboard_filter_event( %p, %p )\n", event, filter );
+
+     if (filter->keyboard.key_code != -1)
+          return (filter->keyboard.key_code == event->keyboard.key_code);
+
+     return (event->keyboard.modifiers  == filter->keyboard.modifiers &&
+             event->keyboard.key_symbol == filter->keyboard.key_symbol);
 }
 
 
 const UniqueDeviceClass unique_keyboard_device_class = {
+     data_size:     sizeof(KeyboardData),
+
+     Initialize:    keyboard_initialize,
+     Shutdown:      keyboard_shutdown,
      Connected:     keyboard_connected,
      Disconnected:  keyboard_disconnected,
-     ProcessEvent:  keyboard_process_event
+     ProcessEvent:  keyboard_process_event,
+     FilterEvent:   keyboard_filter_event
 };
 

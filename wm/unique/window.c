@@ -36,14 +36,18 @@
 #include <fusion/shmalloc.h>
 
 #include <core/coretypes.h>
+#include <core/layers_internal.h>      /* FIXME */
 #include <core/surfaces.h>
 #include <core/windows.h>
+#include <core/windows_internal.h>     /* FIXME */
 #include <core/windowstack.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
 
 #include <unique/context.h>
+#include <unique/input_channel.h>
+#include <unique/input_switch.h>
 #include <unique/internal.h>
 #include <unique/window.h>
 
@@ -58,7 +62,29 @@ static const ReactionFunc unique_window_globals[] = {
 
 /**************************************************************************************************/
 
-static inline int get_priority( DFBWindowCapabilities caps, DFBWindowStackingClass stacking );
+typedef struct {
+     DirectLink                  link;
+
+     int                         magic;
+
+     DFBInputDeviceKeySymbol     symbol;
+     DFBInputDeviceModifierMask  modifiers;
+
+     UniqueInputFilter          *filter;
+} KeyFilter;
+
+/**************************************************************************************************/
+
+static DFBResult  add_key_filter    ( UniqueWindow               *window,
+                                      DFBInputDeviceKeySymbol     symbol,
+                                      DFBInputDeviceModifierMask  modifiers,
+                                      UniqueInputFilter          *filter );
+
+static DFBResult  remove_key_filter ( UniqueWindow               *window,
+                                      DFBInputDeviceKeySymbol     symbol,
+                                      DFBInputDeviceModifierMask  modifiers );
+
+static void       remove_all_filters( UniqueWindow               *window );
 
 /**************************************************************************************************/
 
@@ -80,8 +106,6 @@ static DFBResult  update_window   ( UniqueWindow        *window,
 
 static void       update_flags    ( UniqueWindow  *window );
 
-static DFBResult  request_focus   ( UniqueWindow  *window );
-
 static void       set_opacity     ( UniqueWindow  *window,
                                     __u8           opacity );
 
@@ -100,32 +124,26 @@ static DFBResult  restack_window  ( UniqueWindow           *window,
 
 /**************************************************************************************************/
 
-static DFBResult  grab_keyboard   ( UniqueWindow  *window );
-
-static DFBResult  ungrab_keyboard ( UniqueWindow  *window );
-
-static DFBResult  grab_pointer    ( UniqueWindow  *window );
-
-static DFBResult  ungrab_pointer  ( UniqueWindow  *window );
-
-static DFBResult  grab_key        ( UniqueWindow               *window,
-                                    DFBInputDeviceKeySymbol     symbol,
-                                    DFBInputDeviceModifierMask  modifiers );
-
-static DFBResult  ungrab_key      ( UniqueWindow               *window,
-                                    DFBInputDeviceKeySymbol     symbol,
-                                    DFBInputDeviceModifierMask  modifiers );
+static inline int get_priority( DFBWindowCapabilities caps, DFBWindowStackingClass stacking );
 
 /**************************************************************************************************/
 
 static void
 window_destructor( FusionObject *object, bool zombie )
 {
-     int           i;
-     UniqueWindow *window = (UniqueWindow*) object;
+     int            i;
+     UniqueContext *context;
+     UniqueWindow  *window = (UniqueWindow*) object;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
 
      D_DEBUG_AT( UniQuE_Window, "destroying %p (%dx%d - %dx%d)%s\n",
                  window, DFB_RECTANGLE_VALS( &window->bounds ), zombie ? " (ZOMBIE)" : "");
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
 
      D_FLAGS_SET( window->flags, UWF_DESTROYED );
 
@@ -146,7 +164,17 @@ window_destructor( FusionObject *object, bool zombie )
      stret_region_destroy( window->frame );
 
 
-     dfb_surface_unlink( &window->surface );
+     remove_all_filters( window );
+
+     unique_input_switch_drop( context->input_switch, window->channel );
+
+     unique_input_channel_detach_global( window->channel, &window->channel_reaction );
+
+     unique_input_channel_destroy( window->channel );
+
+
+     if (window->surface)
+          dfb_surface_unlink( &window->surface );
 
      unique_context_unlink( &window->context );
 
@@ -177,6 +205,7 @@ unique_window_create( CoreWindow              *window,
      UniqueWindow *uniwin;
      WMShared     *shared;
      CoreSurface  *surface;
+     DFBRectangle  bounds;
 
      D_ASSERT( window != NULL );
      D_ASSERT( ret_window != NULL );
@@ -189,12 +218,18 @@ unique_window_create( CoreWindow              *window,
 
      surface = dfb_window_surface( window );
 
-     D_ASSERT( surface != NULL );
+     D_ASSERT( surface != NULL || (caps & DWCAPS_INPUTONLY));
 
      uniwin = unique_wm_create_window();
      if (!uniwin)
           return DFB_FUSION;
 
+     bounds = config->bounds;
+
+     if (bounds.x == 0 && bounds.y == 0) {
+          bounds.x = (context->width  - bounds.w) / 2;
+          bounds.y = (context->height - bounds.h) / 2;
+     }
 
      /* Initialize window data. */
      uniwin->shared    = context->shared;
@@ -202,7 +237,7 @@ unique_window_create( CoreWindow              *window,
      uniwin->caps      = caps;
      uniwin->flags     = UWF_NONE;
 
-     uniwin->bounds    = config->bounds;
+     uniwin->bounds    = bounds;
      uniwin->opacity   = config->opacity;
      uniwin->stacking  = config->stacking;
      uniwin->priority  = get_priority( caps, config->stacking );
@@ -218,16 +253,31 @@ unique_window_create( CoreWindow              *window,
 
      dfb_rectangle_from_rectangle_plus_insets( &uniwin->full, &uniwin->bounds, &uniwin->insets );
 
-     ret = DFB_FUSION;
-
-     if (dfb_window_link( &uniwin->window, window ))
+     ret = dfb_window_link( &uniwin->window, window );
+     if (ret)
           goto error;
 
-     if (unique_context_link( &uniwin->context, context ))
+     ret = unique_context_link( &uniwin->context, context );
+     if (ret)
           goto error;
 
-     if (dfb_surface_link( &uniwin->surface, surface ))
+     if (surface) {
+          ret = dfb_surface_link( &uniwin->surface, surface );
+          if (ret)
+               goto error;
+     }
+
+
+     ret = unique_input_channel_create( context, &uniwin->channel );
+     if (ret)
           goto error;
+
+     ret = unique_input_channel_attach_global( uniwin->channel,
+                                               UNIQUE_WINDOW_INPUT_CHANNEL_LISTENER,
+                                               uniwin, &uniwin->channel_reaction );
+     if (ret)
+          goto error;
+
 
      D_MAGIC_SET( uniwin, UniqueWindow );
 
@@ -238,6 +288,9 @@ unique_window_create( CoreWindow              *window,
      }
 
 
+     /* Change global reaction lock. */
+     fusion_object_set_lock( &uniwin->object, &context->stack->context->lock );
+
      /* activate object */
      fusion_object_activate( &uniwin->object );
 
@@ -245,7 +298,7 @@ unique_window_create( CoreWindow              *window,
      insert_window( context, uniwin );
 
      /* Possibly switch focus to the new window. */
-     unique_context_update_focus( context );
+     //unique_context_update_focus( context );
 
      /* return the new context */
      *ret_window = uniwin;
@@ -253,6 +306,12 @@ unique_window_create( CoreWindow              *window,
      return DFB_OK;
 
 error:
+     if (uniwin->channel_reaction.attached)
+          unique_input_channel_detach_global( uniwin->channel, &uniwin->channel_reaction );
+
+     if (uniwin->channel)
+          unique_input_channel_destroy( uniwin->channel );
+
      if (uniwin->surface)
           dfb_surface_unlink( &uniwin->surface );
 
@@ -333,10 +392,6 @@ unique_window_post_event( UniqueWindow   *window,
      context = window->context;
 
      D_MAGIC_ASSERT( context, UniqueContext );
-
-     event->buttons   = context->buttons;
-     event->modifiers = context->modifiers;
-     event->locks     = context->locks;
 
      dfb_window_post_event( window->window, event );
 
@@ -419,17 +474,47 @@ DFBResult
 unique_window_grab( UniqueWindow     *window,
                     const CoreWMGrab *grab )
 {
+     UniqueContext *context;
+
      D_MAGIC_ASSERT( window, UniqueWindow );
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      switch (grab->target) {
           case CWMGT_KEYBOARD:
-               return grab_keyboard( window );
+               return unique_input_switch_set( context->input_switch,
+                                               UDCI_KEYBOARD, window->channel );
 
           case CWMGT_POINTER:
-               return grab_pointer( window );
+               return unique_input_switch_set( context->input_switch,
+                                               UDCI_POINTER, window->channel );
 
-          case CWMGT_KEY:
-               return grab_key( window, grab->symbol, grab->modifiers );
+          case CWMGT_KEY: {
+               DFBResult          ret;
+               UniqueInputEvent   event;
+               UniqueInputFilter *filter;
+
+               event.keyboard.key_code   = -1;
+               event.keyboard.key_symbol = grab->symbol;
+               event.keyboard.modifiers  = grab->modifiers;
+
+               ret = unique_input_switch_set_filter( context->input_switch, UDCI_KEYBOARD,
+                                                     window->channel, &event, &filter );
+               if (ret) {
+                    D_DERROR( ret, "UniQuE/Window: Could not set input filter for key grab!\n" );
+                    return ret;
+               }
+
+               ret = add_key_filter( window, grab->symbol, grab->modifiers, filter );
+               if (ret) {
+                    unique_input_switch_unset_filter( context->input_switch, filter );
+                    return ret;
+               }
+
+               break;
+          }
 
           default:
                D_BUG( "unknown grab target" );
@@ -443,17 +528,25 @@ DFBResult
 unique_window_ungrab( UniqueWindow     *window,
                       const CoreWMGrab *grab )
 {
+     UniqueContext *context;
+
      D_MAGIC_ASSERT( window, UniqueWindow );
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      switch (grab->target) {
           case CWMGT_KEYBOARD:
-               return ungrab_keyboard( window );
+               return unique_input_switch_unset( context->input_switch,
+                                                 UDCI_KEYBOARD, window->channel );
 
           case CWMGT_POINTER:
-               return ungrab_pointer( window );
+               return unique_input_switch_unset( context->input_switch,
+                                                 UDCI_POINTER, window->channel );
 
           case CWMGT_KEY:
-               return ungrab_key( window, grab->symbol, grab->modifiers );
+               return remove_key_filter( window, grab->symbol, grab->modifiers );
 
           default:
                D_BUG( "unknown grab target" );
@@ -466,21 +559,262 @@ unique_window_ungrab( UniqueWindow     *window,
 DFBResult
 unique_window_request_focus( UniqueWindow *window )
 {
+     UniqueContext *context;
+
      D_MAGIC_ASSERT( window, UniqueWindow );
 
-     request_focus( window );
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
+     return unique_input_switch_select( context->input_switch, UDCI_KEYBOARD, window->channel );
+}
+
+/**************************************************************************************************/
+
+static DFBResult
+add_key_filter( UniqueWindow               *window,
+                DFBInputDeviceKeySymbol     symbol,
+                DFBInputDeviceModifierMask  modifiers,
+                UniqueInputFilter          *filter )
+{
+     KeyFilter     *key;
+     UniqueContext *context;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
+     key = SHCALLOC( 1, sizeof(KeyFilter) );
+     if (!key)
+          return D_OOSHM();
+
+     key->symbol    = symbol;
+     key->modifiers = modifiers;
+     key->filter    = filter;
+
+     direct_list_append( &window->filters, &key->link );
+
+     D_MAGIC_SET( key, KeyFilter );
 
      return DFB_OK;
 }
 
+static DFBResult
+remove_key_filter( UniqueWindow               *window,
+                   DFBInputDeviceKeySymbol     symbol,
+                   DFBInputDeviceModifierMask  modifiers )
+{
+     KeyFilter     *key;
+     UniqueContext *context;
 
+     D_MAGIC_ASSERT( window, UniqueWindow );
 
+     context = window->context;
 
+     D_MAGIC_ASSERT( context, UniqueContext );
 
+     direct_list_foreach (key, window->filters) {
+          D_MAGIC_ASSERT( key, KeyFilter );
 
+          if (key->symbol == symbol && key->modifiers == modifiers)
+               break;
+     }
 
+     if (!key)
+          return DFB_ITEMNOTFOUND;
 
+     unique_input_switch_unset_filter( context->input_switch, key->filter );
 
+     direct_list_remove( &window->filters, &key->link );
+
+     D_MAGIC_CLEAR( key );
+
+     SHFREE( key );
+
+     return DFB_OK;
+}
+
+static void
+remove_all_filters( UniqueWindow *window )
+{
+     DirectLink    *n;
+     KeyFilter     *key;
+     UniqueContext *context;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     context = window->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
+     direct_list_foreach_safe (key, n, window->filters) {
+          D_MAGIC_ASSERT( key, KeyFilter );
+
+          unique_input_switch_unset_filter( context->input_switch, key->filter );
+
+          D_MAGIC_CLEAR( key );
+
+          SHFREE( key );
+     }
+
+     window->filters = NULL;
+}
+
+/**************************************************************************************************/
+
+static void
+dispatch_motion( UniqueWindow           *window,
+                 const UniqueInputEvent *event )
+{
+     DFBWindowEvent evt;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( event != NULL );
+
+     evt.type    = DWET_MOTION;
+     evt.cx      = event->pointer.x;
+     evt.cy      = event->pointer.y;
+     evt.x       = event->pointer.x - window->bounds.x;
+     evt.y       = event->pointer.y - window->bounds.y;
+     evt.buttons = event->pointer.buttons;
+
+     dfb_window_post_event( window->window, &evt );
+}
+
+static void
+dispatch_button( UniqueWindow           *window,
+                 const UniqueInputEvent *event )
+{
+     DFBWindowEvent evt;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( event != NULL );
+
+     evt.type    = event->pointer.press ? DWET_BUTTONDOWN : DWET_BUTTONUP;
+     evt.cx      = event->pointer.x;
+     evt.cy      = event->pointer.y;
+     evt.x       = event->pointer.x - window->bounds.x;
+     evt.y       = event->pointer.y - window->bounds.y;
+     evt.button  = event->pointer.button;
+     evt.buttons = event->pointer.buttons;
+
+     dfb_window_post_event( window->window, &evt );
+}
+
+static void
+dispatch_wheel( UniqueWindow           *window,
+                const UniqueInputEvent *event )
+{
+     DFBWindowEvent evt;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( event != NULL );
+
+     evt.type = DWET_WHEEL;
+     evt.step = event->wheel.value;
+
+     dfb_window_post_event( window->window, &evt );
+}
+
+static void
+dispatch_key( UniqueWindow           *window,
+              const UniqueInputEvent *event )
+{
+     DFBWindowEvent evt;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( event != NULL );
+
+     evt.type       = event->keyboard.press ? DWET_KEYDOWN : DWET_KEYUP;
+     evt.key_code   = event->keyboard.key_code;
+     evt.key_id     = event->keyboard.key_id;
+     evt.key_symbol = event->keyboard.key_symbol;
+     evt.modifiers  = event->keyboard.modifiers;
+     evt.locks      = event->keyboard.locks;
+
+     dfb_window_post_event( window->window, &evt );
+}
+
+static void
+dispatch_channel( UniqueWindow           *window,
+                  const UniqueInputEvent *event )
+{
+     DFBWindowEvent evt;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( event != NULL );
+
+     switch (event->channel.index) {
+          case UDCI_POINTER:
+               evt.type = event->channel.selected ? DWET_ENTER : DWET_LEAVE;
+               break;
+
+          case UDCI_KEYBOARD:
+               evt.type = event->channel.selected ? DWET_GOTFOCUS : DWET_LOSTFOCUS;
+               break;
+
+          default:
+               return;
+     }
+
+     evt.cx = event->channel.x;
+     evt.cy = event->channel.y;
+     evt.x  = event->channel.x - window->bounds.x;
+     evt.y  = event->channel.y - window->bounds.y;
+
+     dfb_window_post_event( window->window, &evt );
+}
+
+ReactionResult
+_unique_window_input_channel_listener( const void *msg_data,
+                                       void       *ctx )
+{
+     const UniqueInputEvent *event  = msg_data;
+     UniqueWindow           *window = ctx;
+
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( event != NULL );
+
+     D_DEBUG_AT( UniQuE_Window, "_unique_window_input_channel_listener( %p, %p )\n",
+                 event, window );
+
+     switch (event->type) {
+          case UIET_MOTION:
+               dispatch_motion( window, event );
+               break;
+
+          case UIET_BUTTON:
+               dispatch_button( window, event );
+               break;
+
+          case UIET_WHEEL:
+               dispatch_wheel( window, event );
+               break;
+
+          case UIET_KEY:
+               dispatch_key( window, event );
+               break;
+
+          case UIET_CHANNEL:
+               dispatch_channel( window, event );
+               break;
+
+          default:
+               D_ONCE( "unknown event type" );
+               break;
+     }
+
+     return RS_OK;
+}
 
 /**************************************************************************************************/
 
@@ -619,68 +953,10 @@ insert_window( UniqueContext *context,
 }
 
 static void
-withdraw_window( UniqueWindow *window )
-{
-     int            i;
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     /* No longer be the 'entered window'. */
-     if (context->entered_window == window)
-          context->entered_window = NULL;
-
-     /* Release explicit keyboard grab. */
-     if (context->keyboard_window == window)
-          context->keyboard_window = NULL;
-
-     /* Release explicit pointer grab. */
-     if (context->pointer_window == window)
-          context->pointer_window = NULL;
-
-     /* Release all implicit key grabs. */
-     for (i=0; i<8; i++) {
-          if (context->keys[i].code != -1 && context->keys[i].owner == window) {
-               if (!D_FLAGS_IS_SET( window->flags, UWF_DESTROYED )) {
-                    DFBWindowEvent we;
-
-                    we.type       = DWET_KEYUP;
-                    we.key_code   = context->keys[i].code;
-                    we.key_id     = context->keys[i].id;
-                    we.key_symbol = context->keys[i].symbol;
-
-                    unique_window_post_event( window, &we );
-               }
-
-               context->keys[i].code  = -1;
-               context->keys[i].owner = NULL;
-          }
-     }
-
-     /* Remove focus from window. */
-     if (context->focused_window == window) {
-          context->focused_window = NULL;
-
-          fusion_vector_foreach_reverse (window, i, context->windows) {
-               if (window->opacity && !(window->options & DWOP_GHOST)) {
-                    unique_context_switch_focus( context, window );
-                    break;
-               }
-          }
-     }
-}
-
-static void
 remove_window( UniqueWindow *window )
 {
-     DirectLink    *l;
-     GrabbedKey    *key;
-     UniqueContext *context;
      int            index;
+     UniqueContext *context;
 
      D_MAGIC_ASSERT( window, UniqueWindow );
 
@@ -691,17 +967,6 @@ remove_window( UniqueWindow *window )
      D_ASSERT( fusion_vector_contains( &context->windows, window ) );
 
      index = fusion_vector_index_of( &context->windows, window );
-
-     /* Release implicit grabs, focus etc. */
-     withdraw_window( window );
-
-     /* Release all explicit key grabs. */
-     direct_list_foreach_safe (key, l, context->grabbed_keys) {
-          if (key->owner == window) {
-               direct_list_remove( &context->grabbed_keys, &key->link );
-               SHFREE( key );
-          }
-     }
 
      fusion_vector_remove( &context->windows, index );
 }
@@ -875,7 +1140,8 @@ resize_window( UniqueWindow *window,
 
      unique_window_post_event( window, &evt );
 
-     unique_context_update_focus( context );
+     unique_input_switch_update( context->input_switch, window->channel );
+     //unique_context_update_focus( context );
 
      return DFB_OK;
 }
@@ -975,6 +1241,9 @@ restack_window( UniqueWindow           *window,
 
      update_frame( window, NULL, DSFLIP_NONE, (index < old) );
 
+     if (index < old)
+          unique_input_switch_update( context->input_switch, window->channel );
+
      return DFB_OK;
 }
 
@@ -1022,189 +1291,18 @@ set_opacity( UniqueWindow *window,
 
 
           /* Check focus after window appeared or disappeared */
-          if (show || hide)
-               unique_context_update_focus( context );
+          if (/*show ||*/ hide)
+               unique_input_switch_update( context->input_switch, window->channel );
+//               unique_context_update_focus( context );
 
           /* If window disappeared... */
           if (hide) {
                stret_region_disable( window->frame, SRF_ACTIVE );
 
                /* Ungrab pointer/keyboard, release focus */
-               withdraw_window( window );
+               unique_input_switch_drop( context->input_switch, window->channel );
           }
      }
-}
-
-static DFBResult
-grab_keyboard( UniqueWindow *window )
-{
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     if (context->keyboard_window)
-          return DFB_LOCKED;
-
-     context->keyboard_window = window;
-
-     return DFB_OK;
-}
-
-static DFBResult
-ungrab_keyboard( UniqueWindow *window )
-{
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     if (context->keyboard_window == window)
-          context->keyboard_window = NULL;
-
-     return DFB_OK;
-}
-
-static DFBResult
-grab_pointer( UniqueWindow *window )
-{
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     if (context->pointer_window)
-          return DFB_LOCKED;
-
-     context->pointer_window = window;
-
-     return DFB_OK;
-}
-
-static DFBResult
-ungrab_pointer( UniqueWindow *window )
-{
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     if (context->pointer_window == window) {
-          context->pointer_window = NULL;
-
-          /* Possibly change focus to window that's now under the cursor */
-          unique_context_update_focus( context );
-     }
-
-     return DFB_OK;
-}
-
-static DFBResult
-grab_key( UniqueWindow               *window,
-          DFBInputDeviceKeySymbol     symbol,
-          DFBInputDeviceModifierMask  modifiers )
-{
-     int            i;
-     GrabbedKey    *grab;
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     /* Reject if already grabbed. */
-     direct_list_foreach (grab, context->grabbed_keys)
-          if (grab->symbol == symbol && grab->modifiers == modifiers)
-               return DFB_LOCKED;
-
-     /* Allocate grab information. */
-     grab = SHCALLOC( 1, sizeof(GrabbedKey) );
-
-     /* Fill grab information. */
-     grab->symbol    = symbol;
-     grab->modifiers = modifiers;
-     grab->owner     = window;
-
-     /* Add to list of key grabs. */
-     direct_list_append( &context->grabbed_keys, &grab->link );
-
-     /* Remove implicit grabs for this key. */
-     for (i=0; i<8; i++)
-          if (context->keys[i].code != -1 && context->keys[i].symbol == symbol)
-               context->keys[i].code = -1;
-
-     return DFB_OK;
-}
-
-static DFBResult
-ungrab_key( UniqueWindow               *window,
-            DFBInputDeviceKeySymbol     symbol,
-            DFBInputDeviceModifierMask  modifiers )
-{
-     GrabbedKey    *key;
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-
-     direct_list_foreach (key, context->grabbed_keys) {
-          if (key->symbol == symbol && key->modifiers == modifiers && key->owner == window) {
-               direct_list_remove( &context->grabbed_keys, &key->link );
-               SHFREE( key );
-               return DFB_OK;
-          }
-     }
-
-     return DFB_IDNOTFOUND;
-}
-
-static DFBResult
-request_focus( UniqueWindow *window )
-{
-     UniqueWindow  *entered;
-     UniqueContext *context;
-
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     context = window->context;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     unique_context_switch_focus( context, window );
-
-     entered = context->entered_window;
-
-     if (entered && entered != window) {
-          DFBWindowEvent we;
-
-          we.type = DWET_LEAVE;
-          we.x    = context->cursor.x - entered->bounds.x;
-          we.y    = context->cursor.y - entered->bounds.y;
-
-          unique_window_post_event( entered, &we );
-
-          context->entered_window = NULL;
-     }
-
-     return DFB_OK;
 }
 
 /**************************************************************************************************/

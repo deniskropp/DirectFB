@@ -45,12 +45,22 @@ typedef enum {
      UCNF_WINDOW_ADDED   = 0x00000010,
      UCNF_WINDOW_REMOVED = 0x00000020,
 
-     UCNF_ALL            = 0x00000031
+     UCNF_ACTIVATE       = 0x00000100,
+     UCNF_DEACTIVATE     = 0x00000200,
+
+     UCNF_RESIZE         = 0x00001000,
+
+     UCNF_WARP_CURSOR    = 0x00010000,
+
+     UCNF_ALL            = 0x00011331
 } UniqueContextNotificationFlags;
 
 typedef struct {
      UniqueContextNotificationFlags  flags;
      UniqueContext                  *context;
+
+     DFBPoint                        pos;         /* New cursor position (UCNF_WARP_CURSOR) */
+     DFBDimension                    size;        /* New root (desktop) size (UCNF_RESIZE) */
 } UniqueContextNotification;
 
 
@@ -80,15 +90,7 @@ DFBResult unique_context_resize       ( UniqueContext                   *context
                                         int                              width,
                                         int                              height );
 
-DFBResult unique_context_process_input( UniqueContext                   *context,
-                                        const DFBInputEvent             *event );
-
 DFBResult unique_context_flush_keys   ( UniqueContext                   *context );
-
-DFBResult unique_context_update_focus ( UniqueContext                   *context );
-
-DFBResult unique_context_switch_focus ( UniqueContext                   *context,
-                                        UniqueWindow                    *to );
 
 DFBResult unique_context_window_at    ( UniqueContext                   *context,
                                         int                              x,

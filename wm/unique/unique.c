@@ -188,7 +188,7 @@ static void
 wm_get_info( CoreWMInfo *info )
 {
      info->version.major  = 0;
-     info->version.minor  = 3;
+     info->version.minor  = 4;
      info->version.binary = UNIQUE_WM_ABI_VERSION;
 
      snprintf( info->name, DFB_CORE_WM_INFO_NAME_LENGTH, "UniQuE" );
@@ -416,10 +416,7 @@ wm_process_input( CoreWindowStack     *stack,
 
      D_MAGIC_ASSERT( data, StackData );
 
-     if (!data->context)
-          return DFB_DESTROYED;
-
-     return unique_context_process_input( data->context, event );
+     return DFB_OK;
 }
 
 static DFBResult
@@ -600,6 +597,7 @@ wm_add_window( CoreWindowStack *stack,
           return ret;
      }
 
+     unique_window_get_config( data->window, &window->config );
 
 
      D_MAGIC_SET( data, WindowData );
@@ -624,7 +622,7 @@ wm_remove_window( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( data, WindowData );
 
-     D_ASSUME( data->window == NULL );
+//     D_ASSUME( data->window == NULL );
 
      if (data->window)
           unique_window_detach_global( data->window, &data->window_reaction );

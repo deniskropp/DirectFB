@@ -13,7 +13,7 @@ INCLUDES = \
 
 bin_PROGRAMS = uwmdump
 
-noinst_PROGRAMS = test_color stret_test
+noinst_PROGRAMS = test_color test_foo stret_test
 
 
 uwmdump_SOURCES = uwmdump.c
@@ -28,6 +28,15 @@ uwmdump_LDADD = \
 test_color_SOURCES = test_color.c
 
 test_color_LDADD = \
+	libuniquewm.la					\
+	$(top_builddir)/lib/direct/libdirect.la		\
+	$(top_builddir)/lib/fusion/libfusion.la		\
+	$(top_builddir)/src/libdirectfb.la
+
+
+test_foo_SOURCES = test_foo.c
+
+test_foo_LDADD = \
 	libuniquewm.la					\
 	$(top_builddir)/lib/direct/libdirect.la		\
 	$(top_builddir)/lib/fusion/libfusion.la		\
@@ -70,6 +79,7 @@ includedir = @INCLUDEDIR@/unique
 include_HEADERS = \
 	context.h		\
 	device.h		\
+	input_channel.h		\
 	input_events.h		\
 	input_switch.h		\
 	stret.h			\
@@ -84,6 +94,7 @@ lib_LTLIBRARIES = libuniquewm.la
 libuniquewm_la_SOURCES = \
 	context.c		\
 	device.c		\
+	input_channel.c		\
 	input_switch.c		\
 	internal.h		\
 	stret.c			\

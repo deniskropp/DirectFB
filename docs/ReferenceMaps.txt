@@ -125,3 +125,7 @@ With Unique WM
                      *      |
                      |      ^
                    Unique Window
+                            *
+                            |
+                            ^
+                   Unique Decoration

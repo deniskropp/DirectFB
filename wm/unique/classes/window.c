@@ -48,6 +48,29 @@
 
 D_DEBUG_DOMAIN( UniQuE_Window, "UniQuE/WindowReg", "UniQuE's Window Region Class" );
 
+static DFBResult
+window_get_input( StretRegion         *region,
+                  void                *region_data,
+                  unsigned long        arg,
+                  int                  index,
+                  int                  x,
+                  int                  y,
+                  UniqueInputChannel **ret_channel )
+{
+     UniqueWindow *window = region_data;
+
+     D_MAGIC_ASSERT( region, StretRegion );
+     D_MAGIC_ASSERT( window, UniqueWindow );
+
+     D_ASSERT( ret_channel != NULL );
+
+     D_DEBUG_AT( UniQuE_Window, "window_get_input( region %p, window %p, index %d, x %d, y %d )\n",
+                 region, window, index, x, y );
+
+     *ret_channel = window->channel;
+
+     return DFB_OK;
+}
 
 static void
 window_update( StretRegion     *region,
@@ -66,11 +89,9 @@ window_update( StretRegion     *region,
      bool                     alpha  = arg;
      bool                     visible;
 
-     D_ASSERT( region != NULL );
-     D_ASSERT( region_data != NULL );
-     D_ASSERT( update_data != NULL );
      D_ASSERT( updates != NULL );
 
+     D_MAGIC_ASSERT( region, StretRegion );
      D_MAGIC_ASSERT( window, UniqueWindow );
      D_MAGIC_ASSERT( state, CardState );
 
@@ -137,6 +158,7 @@ window_update( StretRegion     *region,
 }
 
 const StretRegionClass unique_window_region_class = {
+     GetInput: window_get_input,
      Update:   window_update
 };
 

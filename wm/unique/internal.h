@@ -40,12 +40,13 @@
 
 #include <unique/context.h>
 #include <unique/device.h>
+#include <unique/input_events.h>
 #include <unique/stret.h>
 #include <unique/types.h>
 #include <unique/window.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 7
+#define UNIQUE_WM_ABI_VERSION 11
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -65,14 +66,6 @@ typedef enum {
 
      _URCI_NUM
 } UniqueRegionClassIndex;
-
-typedef enum {
-     UDCI_POINTER,
-     UDCI_WHEEL,
-     UDCI_KEYBOARD,
-
-     _UDCI_NUM
-} UniqueDeviceClassIndex;
 
 typedef enum {
      UFI_N,
@@ -114,7 +107,7 @@ struct __UniQuE_WMShared {
      StretRegionClassID            region_classes[_URCI_NUM];
      UniqueDeviceClassID           device_classes[_UDCI_NUM];
 
-     int                           device_listener;    /* react index of the registered global */
+     int                           device_listener;    /* index of the registered global */
 
      DFBInsets                     insets;
 
@@ -169,44 +162,22 @@ struct __UniQuE_UniqueContext {
 
      DFBColor            color;
 
-     int                           width;
-     int                           height;
+     int                 width;
+     int                 height;
 
-     StretRegion                  *root;
+     StretRegion        *root;
 
-     FusionVector                  windows;
-
-
-     UniqueDevice                 *devices[_UDCI_NUM];
-
-     UniqueInputSwitch            *input_switch;
+     FusionVector        windows;
 
 
-     DFBInputDeviceButtonMask      buttons;
-     DFBInputDeviceModifierMask    modifiers;
-     DFBInputDeviceLockState       locks;
+     UniqueInputSwitch  *input_switch;
+
+     UniqueDevice       *devices[_UDCI_NUM];
+
+     GlobalReaction      cursor_reaction;
 
 
-
-     DFBPoint                      cursor;
-
-
-     int                           wm_level;
-     int                           wm_cycle;
-
-     UniqueWindow                 *pointer_window;     /* window grabbing the pointer */
-     UniqueWindow                 *keyboard_window;    /* window grabbing the keyboard */
-     UniqueWindow                 *focused_window;     /* window having the focus */
-     UniqueWindow                 *entered_window;     /* window under the pointer */
-
-     DirectLink                   *grabbed_keys;       /* List of currently grabbed keys. */
-
-     struct {
-          DFBInputDeviceKeySymbol      symbol;
-          DFBInputDeviceKeyIdentifier  id;
-          int                          code;
-          UniqueWindow                *owner;
-     } keys[8];
+     UniqueInputChannel *foo_channel;
 };
 
 struct __UniQuE_UniqueWindow {
@@ -220,6 +191,10 @@ struct __UniQuE_UniqueWindow {
 
      CoreSurface             *surface;
 
+     UniqueInputChannel      *channel;
+     GlobalReaction           channel_reaction;
+
+     DirectLink              *filters;
 
      DFBWindowCapabilities    caps;
 
@@ -268,8 +243,6 @@ struct __UniQuE_StretRegion {
 };
 
 struct __UniQuE_UniqueDevice {
-     DirectLink           link;
-
      int                  magic;
 
      UniqueContext       *context;
@@ -277,7 +250,7 @@ struct __UniQuE_UniqueDevice {
      UniqueDeviceClassID  clazz;        /* Device class (implementation) used for processing etc. */
 
      void                *data;         /* Optional private data of device class. */
-     unsigned long        arg;          /* Optional argument for device class instance. */
+     void                *ctx;          /* Optional context for device class instance. */
 
      FusionReactor       *reactor;      /* UniqueInputEvent deployment */
 
@@ -285,33 +258,51 @@ struct __UniQuE_UniqueDevice {
 };
 
 
+struct __UniQuE_UniqueInputFilter {
+     DirectLink               link;
+
+     int                      magic;
+
+     UniqueDeviceClassIndex   index;
+
+     UniqueInputChannel      *channel;
+
+     UniqueInputEvent         filter;
+};
+
 typedef struct {
-     DirectLink           link;
+     UniqueDeviceClassID  clazz;
 
-     int                  magic;
+     UniqueInputChannel  *current;
 
-     UniqueInputChannel  *channel;
-
-     UniqueInputEvent     filter;
-} UniqueInputTargetFilter;
-
-typedef struct {
      UniqueInputChannel  *normal;
      UniqueInputChannel  *fixed;
+
+     UniqueInputChannel  *implicit;
 
      DirectLink          *filters;
 } UniqueInputTarget;
 
-struct __UniQuE_UniqueInputSwitch {
-     DirectLink           link;
 
+struct __UniQuE_UniqueInputSwitch {
      int                  magic;
 
      UniqueContext       *context;
 
      DirectLink          *connections;  /* UniqueDevice connections */
 
+     int                  x;
+     int                  y;
+
      UniqueInputTarget    targets[_UDCI_NUM];
+};
+
+struct __UniQuE_UniqueInputChannel {
+     int                  magic;
+
+     UniqueContext       *context;
+
+     FusionReactor       *reactor;      /* UniqueInputEvent arrival */
 };
 
 
@@ -328,16 +319,22 @@ UniqueWindow  *unique_wm_create_window();
 
 
 /* global reactions */
-ReactionResult _unique_wm_module_context_listener( const void *msg_data,
-                                                   void       *ctx );
+ReactionResult _unique_device_listener              ( const void *msg_data,
+                                                      void       *ctx );
 
-ReactionResult _unique_wm_module_window_listener ( const void *msg_data,
-                                                   void       *ctx );
+ReactionResult _unique_wm_module_context_listener   ( const void *msg_data,
+                                                      void       *ctx );
 
-ReactionResult _unique_device_listener ( const void *msg_data,
-                                         void       *ctx );
+ReactionResult _unique_wm_module_window_listener    ( const void *msg_data,
+                                                      void       *ctx );
+
+ReactionResult _unique_cursor_device_listener       ( const void *msg_data,
+                                                      void       *ctx );
 
 ReactionResult _unique_input_switch_device_listener ( const void *msg_data,
+                                                      void       *ctx );
+
+ReactionResult _unique_window_input_channel_listener( const void *msg_data,
                                                       void       *ctx );
 
 #endif

@@ -37,6 +37,8 @@
 #include <fusion/vector.h>
 
 #include <core/input.h>
+#include <core/layers_internal.h>
+#include <core/windows_internal.h>
 
 #include <misc/util.h>
 
@@ -52,6 +54,7 @@ D_DEBUG_DOMAIN( UniQuE_Device, "UniQuE/Device", "UniQuE's Devices" );
 
 static const ReactionFunc unique_device_globals[] = {
      _unique_input_switch_device_listener,
+     _unique_cursor_device_listener,
      NULL
 };
 
@@ -62,7 +65,7 @@ typedef struct {
 
      int              magic;
 
-     CoreInputDevice *source;
+     DFBInputDeviceID source;
 
      GlobalReaction   reaction;
 } DeviceConnection;
@@ -145,11 +148,12 @@ unique_device_class_unregister( UniqueDeviceClassID id )
 DFBResult
 unique_device_create( UniqueContext        *context,
                       UniqueDeviceClassID   class_id,
-                      void                 *data,
-                      unsigned long         arg,
+                      void                 *ctx,
                       UniqueDevice        **ret_device )
 {
-     UniqueDevice *device;
+     DFBResult                ret;
+     UniqueDevice            *device;
+     const UniqueDeviceClass *clazz;
 
      D_DEBUG_AT( UniQuE_Device, "unique_device_create( class %d )\n", class_id );
 
@@ -157,8 +161,10 @@ unique_device_create( UniqueContext        *context,
 
      D_ASSERT( class_id >= 0 );
      D_ASSERT( class_id < MAX_CLASSES );
-     D_ASSERT( classes[class_id] != NULL );
 
+     clazz = classes[class_id];
+
+     D_ASSERT( clazz != NULL );
      D_ASSERT( ret_device != NULL );
 
      /* Allocate device data. */
@@ -171,32 +177,70 @@ unique_device_create( UniqueContext        *context,
      /* Initialize device data. */
      device->context = context;
      device->clazz   = class_id;
-     device->data    = data;
-     device->arg     = arg;
+     device->ctx     = ctx;
+
+     /* Allocate private device data. */
+     if (clazz->data_size) {
+          device->data = SHCALLOC( 1, clazz->data_size );
+          if (!device->data) {
+               ret = DFB_NOSYSTEMMEMORY;
+               goto error;
+          }
+     }
 
      /* Create reactor for dispatching generated events. */
      device->reactor = fusion_reactor_new( sizeof(UniqueInputEvent), "UniQuE Device" );
      if (!device->reactor) {
-          SHFREE( device );
-          return DFB_FUSION;
+          ret = DFB_FUSION;
+          goto error;
      }
 
+     fusion_reactor_set_lock( device->reactor, &context->stack->context->lock );
+
      D_MAGIC_SET( device, UniqueDevice );
+
+     if (clazz->Initialize) {
+          ret = clazz->Initialize( device, device->data, device->ctx );
+          if (ret) {
+               D_MAGIC_CLEAR( device );
+               goto error;
+          }
+     }
 
      D_DEBUG_AT( UniQuE_Device, "  -> device created (%p)\n", device );
 
      *ret_device = device;
 
      return DFB_OK;
+
+
+error:
+     if (device->reactor)
+          fusion_reactor_free( device->reactor );
+
+     if (device->data)
+          SHFREE( device->data );
+
+     SHFREE( device );
+
+     return ret;
 }
 
 DFBResult
 unique_device_destroy( UniqueDevice *device )
 {
-     DirectLink       *n;
-     DeviceConnection *connection;
+     DirectLink              *n;
+     DeviceConnection        *connection;
+     const UniqueDeviceClass *clazz;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
+
+     D_ASSERT( device->clazz >= 0 );
+     D_ASSERT( device->clazz < MAX_CLASSES );
+
+     clazz = classes[device->clazz];
+
+     D_ASSERT( clazz != NULL );
 
      D_DEBUG_AT( UniQuE_Device, "unique_device_destroy( %p )\n", device );
 
@@ -208,7 +252,13 @@ unique_device_destroy( UniqueDevice *device )
 
      D_ASSERT( device->connections == NULL );
 
+     if (clazz->Shutdown)
+          clazz->Shutdown( device, device->data, device->ctx );
+
      fusion_reactor_free( device->reactor );
+
+     if (device->data)
+          SHFREE( device->data );
 
      D_MAGIC_CLEAR( device );
 
@@ -248,12 +298,12 @@ unique_device_connect( UniqueDevice    *device,
      /* Allocate connection structure. */
      connection = SHCALLOC( 1, sizeof(DeviceConnection) );
      if (!connection) {
-          D_WARN( "out of (shared) memory" );
+          D_OOSHM();
           return DFB_NOSYSTEMMEMORY;
      }
 
      /* Initialize connection structure. */
-     connection->source = source;
+     connection->source = dfb_input_device_id( source );
 
      /* Attach global reaction for processing events. */
      ret = dfb_input_attach_global( source, shared->device_listener,
@@ -269,7 +319,7 @@ unique_device_connect( UniqueDevice    *device,
      D_MAGIC_SET( connection, DeviceConnection );
 
      if (classes[device->clazz]->Connected)
-          classes[device->clazz]->Connected( device, device->data, device->arg, source );
+          classes[device->clazz]->Connected( device, device->data, device->ctx, source );
 
      return DFB_OK;
 }
@@ -278,6 +328,7 @@ DFBResult
 unique_device_disconnect( UniqueDevice    *device,
                           CoreInputDevice *source )
 {
+     DFBInputDeviceID  source_id;
      DeviceConnection *connection;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
@@ -288,10 +339,12 @@ unique_device_disconnect( UniqueDevice    *device,
      D_ASSERT( device->clazz < MAX_CLASSES );
      D_ASSERT( classes[device->clazz] != NULL );
 
+     source_id = dfb_input_device_id( source );
+
      direct_list_foreach (connection, device->connections) {
           D_MAGIC_ASSERT( connection, DeviceConnection );
 
-          if (connection->source == source)
+          if (connection->source == source_id)
                break;
      }
 
@@ -351,9 +404,30 @@ unique_device_dispatch( UniqueDevice           *device,
 {
      D_MAGIC_ASSERT( device, UniqueDevice );
 
-     D_ASSERT( event != NULL );
-
      return fusion_reactor_dispatch( device->reactor, event, true, unique_device_globals );
+}
+
+bool
+unique_device_filter ( UniqueDeviceClassID     class_id,
+                       const UniqueInputEvent *event,
+                       const UniqueInputEvent *filter )
+{
+     const UniqueDeviceClass *clazz;
+
+     D_ASSERT( class_id >= 0 );
+     D_ASSERT( class_id < MAX_CLASSES );
+
+     D_ASSERT( event != NULL );
+     D_ASSERT( filter != NULL );
+
+     clazz = classes[class_id];
+
+     D_ASSERT( clazz != NULL );
+
+     if (clazz->FilterEvent)
+          return clazz->FilterEvent( event, filter );
+
+     return false;
 }
 
 /**************************************************************************************************/
@@ -374,7 +448,7 @@ _unique_device_listener( const void *msg_data,
      D_ASSERT( classes[device->clazz] != NULL );
      D_ASSERT( classes[device->clazz]->ProcessEvent != NULL );
 
-     classes[device->clazz]->ProcessEvent( device, device->data, device->arg, event );
+     classes[device->clazz]->ProcessEvent( device, device->data, device->ctx, event );
 
      return RS_OK;
 }
@@ -385,17 +459,22 @@ static void
 purge_connection( UniqueDevice     *device,
                   DeviceConnection *connection )
 {
+     CoreInputDevice *source;
+
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( connection, DeviceConnection );
 
+     source = dfb_input_device_at( connection->source );
+
+     D_ASSERT( source != NULL );
+
      /* Detach global reaction for processing events. */
-     dfb_input_detach_global( connection->source, &connection->reaction );
+     dfb_input_detach_global( source, &connection->reaction );
 
      direct_list_remove( &device->connections, &connection->link );
 
      if (classes[device->clazz]->Disconnected)
-          classes[device->clazz]->Disconnected( device, device->data,
-                                                device->arg, connection->source );
+          classes[device->clazz]->Disconnected( device, device->data, device->ctx, source );
 
      D_MAGIC_CLEAR( connection );
 

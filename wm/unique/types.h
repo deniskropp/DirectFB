@@ -34,6 +34,8 @@ typedef struct __UniQuE_UniqueDevice         UniqueDevice;
 typedef struct __UniQuE_UniqueWindow         UniqueWindow;
 
 typedef struct __UniQuE_UniqueInputChannel   UniqueInputChannel;
+typedef union  __UniQuE_UniqueInputEvent     UniqueInputEvent;
+typedef struct __UniQuE_UniqueInputFilter    UniqueInputFilter;
 typedef struct __UniQuE_UniqueInputSwitch    UniqueInputSwitch;
 
 

@@ -41,16 +41,18 @@
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/layers.h>
+#include <core/layers_internal.h>      /* FIXME */
 #include <core/state.h>
 #include <core/surfaces.h>
 #include <core/windowstack.h>
-#include <core/windows_internal.h>  /* FIXME */
+#include <core/windows_internal.h>     /* FIXME */
 
 #include <misc/conf.h>
 #include <misc/util.h>
 
 #include <unique/context.h>
 #include <unique/device.h>
+#include <unique/input_channel.h>
 #include <unique/input_switch.h>
 #include <unique/internal.h>
 
@@ -65,39 +67,9 @@ static const ReactionFunc unique_context_globals[] = {
 
 /**************************************************************************************************/
 
-static void send_key_event   ( UniqueContext       *context,
-                               UniqueWindow        *window,
-                               const DFBInputEvent *event );
-
-static void send_button_event( UniqueContext       *context,
-                               UniqueWindow        *window,
-                               const DFBInputEvent *event );
-
-/**************************************************************************************************/
-
-static void handle_key_press     ( UniqueContext       *context,
-                                   const DFBInputEvent *event );
-
-static void handle_key_release   ( UniqueContext       *context,
-                                   const DFBInputEvent *event );
-
-static void handle_button_press  ( UniqueContext       *context,
-                                   const DFBInputEvent *event );
-
-static void handle_button_release( UniqueContext       *context,
-                                   const DFBInputEvent *event );
-
-static void handle_motion        ( UniqueContext       *context,
-                                   int                  dx,
-                                   int                  dy );
-
-static void handle_wheel         ( UniqueContext       *context,
-                                   int                  dz );
-
-static void handle_axis_motion   ( UniqueContext       *context,
-                                   const DFBInputEvent *event );
-
-static bool update_focus         ( UniqueContext       *context );
+static void warp_cursor ( UniqueContext *context,
+                          int            x,
+                          int            y );
 
 /**************************************************************************************************/
 
@@ -105,7 +77,6 @@ static void
 context_destructor( FusionObject *object, bool zombie )
 {
      int            i;
-     DirectLink    *l, *next;
      UniqueContext *context = (UniqueContext*) object;
 
      D_DEBUG_AT( UniQuE_Context, "destroying %p (stack %p)%s\n",
@@ -115,6 +86,12 @@ context_destructor( FusionObject *object, bool zombie )
 
      unique_context_notify( context, UCNF_DESTROYED );
 
+     unique_device_detach_global( context->devices[UDCI_POINTER], &context->cursor_reaction );
+
+
+     unique_input_switch_drop( context->input_switch, context->foo_channel );
+
+     unique_input_channel_destroy( context->foo_channel );
 
      unique_input_switch_destroy( context->input_switch );
 
@@ -129,15 +106,12 @@ context_destructor( FusionObject *object, bool zombie )
 
      stret_region_destroy( context->root );
 
+
      fusion_vector_destroy( &context->windows );
 
      dfb_surface_unlink( &context->surface );
 
      dfb_layer_region_unlink( &context->region );
-
-     /* Free grabbed keys. */
-     direct_list_foreach_safe (l, next, context->grabbed_keys)
-          SHFREE( l );
 
      D_MAGIC_CLEAR( context );
 
@@ -180,7 +154,7 @@ create_devices( UniqueContext *context,
           DFBInputDeviceCapabilities caps;
 
           ret = unique_device_create( context, shared->device_classes[i],
-                                      NULL, 0, &context->devices[i] );
+                                      context, &context->devices[i] );
           if (ret)
                goto error;
 
@@ -250,9 +224,6 @@ unique_context_create( CoreWindowStack    *stack,
 
      fusion_vector_init( &context->windows, 16 );
 
-     for (i=0; i<D_ARRAY_SIZE(context->keys); i++)
-          context->keys[i].code = -1;
-
      /* Create Root Region. */
      ret = stret_region_create( shared->region_classes[URCI_ROOT], context, 0,
                                 SRF_ACTIVE | SRF_OUTPUT, _UNRL_NUM,
@@ -288,6 +259,18 @@ unique_context_create( CoreWindowStack    *stack,
      if (ret)
           goto error_devices;
 
+     ret = unique_input_channel_create( context, &context->foo_channel );
+     if (ret)
+          goto error_foo_channel;
+
+     ret = unique_device_attach_global( context->devices[UDCI_POINTER],
+                                        UNIQUE_CURSOR_DEVICE_LISTENER,
+                                        context, &context->cursor_reaction );
+     if (ret)
+          goto error_attach_cursor;
+
+     /* Change global reaction lock. */
+     fusion_object_set_lock( &context->object, &context->stack->context->lock );
 
      /* Activate Object. */
      fusion_object_activate( &context->object );
@@ -297,6 +280,13 @@ unique_context_create( CoreWindowStack    *stack,
 
      return DFB_OK;
 
+
+error_attach_cursor:
+     unique_input_channel_destroy( context->foo_channel );
+
+error_foo_channel:
+     for (i=0; i<_UDCI_NUM; i++)
+          unique_device_destroy( context->devices[i] );
 
 error_devices:
      unique_input_switch_destroy( context->input_switch );
@@ -461,133 +451,9 @@ unique_context_resize( UniqueContext *context,
 }
 
 DFBResult
-unique_context_process_input( UniqueContext       *context,
-                              const DFBInputEvent *event )
-{
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-
-     /* FIXME: handle multiple devices */
-     if (event->flags & DIEF_BUTTONS)
-          context->buttons = event->buttons;
-
-     if (event->flags & DIEF_MODIFIERS)
-          context->modifiers = event->modifiers;
-
-     if (event->flags & DIEF_LOCKS)
-          context->locks = event->locks;
-
-     switch (event->type) {
-          case DIET_KEYPRESS:
-               handle_key_press( context, event );
-               break;
-
-          case DIET_KEYRELEASE:
-               handle_key_release( context, event );
-               break;
-
-          case DIET_BUTTONPRESS:
-               handle_button_press( context, event );
-               break;
-
-          case DIET_BUTTONRELEASE:
-               handle_button_release( context, event );
-               break;
-
-          case DIET_AXISMOTION:
-               handle_axis_motion( context, event );
-               break;
-
-          default:
-               D_ONCE( "unknown input event type" );
-               return DFB_UNSUPPORTED;
-     }
-
-     return DFB_OK;
-}
-
-DFBResult
 unique_context_flush_keys( UniqueContext *context )
 {
-     int i;
-
      D_MAGIC_ASSERT( context, UniqueContext );
-
-     for (i=0; i<D_ARRAY_SIZE(context->keys); i++) {
-          if (context->keys[i].code != -1) {
-               DFBWindowEvent we;
-
-               we.type       = DWET_KEYUP;
-               we.key_code   = context->keys[i].code;
-               we.key_id     = context->keys[i].id;
-               we.key_symbol = context->keys[i].symbol;
-
-               unique_window_post_event( context->keys[i].owner, &we );
-
-               context->keys[i].code = -1;
-          }
-     }
-
-     return DFB_OK;
-}
-
-DFBResult
-unique_context_update_focus( UniqueContext *context )
-{
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     update_focus( context );
-
-     return DFB_OK;
-}
-
-DFBResult
-unique_context_switch_focus( UniqueContext *context,
-                             UniqueWindow  *to )
-{
-     DFBWindowEvent  evt;
-     UniqueWindow   *from;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_MAGIC_ASSERT_IF( to, UniqueWindow );
-
-     from = context->focused_window;
-
-     if (from == to)
-          return DFB_OK;
-
-
-     context->focused_window = NULL;
-
-     if (from) {
-          evt.type = DWET_LOSTFOCUS;
-
-          unique_window_post_event( from, &evt );
-     }
-
-
-     context->focused_window = to;
-
-     if (to) {
-/*  FIXME        if (to->surface && to->surface->palette) {
-               CoreSurface *surface;
-
-               D_ASSERT( to->primary_region != NULL );
-
-               if (dfb_layer_region_get_surface( to->primary_region, &surface ) == DFB_OK) {
-                    if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-                         dfb_surface_set_palette( surface, to->surface->palette );
-
-                    dfb_surface_unref( surface );
-               }
-          }*/
-
-          evt.type = DWET_GOTFOCUS;
-
-          unique_window_post_event( to, &evt );
-     }
 
      return DFB_OK;
 }
@@ -698,15 +564,9 @@ unique_context_warp_cursor( UniqueContext *context,
                             int            x,
                             int            y )
 {
-     int dx;
-     int dy;
-
      D_MAGIC_ASSERT( context, UniqueContext );
 
-     dx = x - context->stack->cursor.x;
-     dy = y - context->stack->cursor.y;
-
-     handle_motion( context, dx, dy );
+     warp_cursor( context, x, y );
 
      return DFB_OK;
 }
@@ -714,509 +574,12 @@ unique_context_warp_cursor( UniqueContext *context,
 /**************************************************************************************************/
 
 static void
-send_key_event( UniqueContext       *context,
-                UniqueWindow        *window,
-                const DFBInputEvent *event )
+warp_cursor( UniqueContext *context,
+             int            x,
+             int            y )
 {
-     DFBWindowEvent we;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     D_ASSERT( event != NULL );
-
-     we.type       = (event->type == DIET_KEYPRESS) ? DWET_KEYDOWN : DWET_KEYUP;
-     we.key_code   = event->key_code;
-     we.key_id     = event->key_id;
-     we.key_symbol = event->key_symbol;
-
-     unique_window_post_event( window, &we );
-}
-
-static void
-send_button_event( UniqueContext       *context,
-                   UniqueWindow        *window,
-                   const DFBInputEvent *event )
-{
-     DFBWindowEvent we;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-     D_MAGIC_ASSERT( window, UniqueWindow );
-
-     D_ASSERT( event != NULL );
-
-     we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
-     we.x      = context->stack->cursor.x - window->bounds.x;
-     we.y      = context->stack->cursor.y - window->bounds.y;
-     we.button = (context->wm_level & 2) ? (event->button + 2) : event->button;
-
-     unique_window_post_event( window, &we );
-}
-
-/**************************************************************************************************/
-
-static UniqueWindow *
-get_keyboard_window( UniqueContext       *context,
-                     const DFBInputEvent *event )
-{
-     DirectLink *l;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_KEYPRESS || event->type == DIET_KEYRELEASE );
-
-     /* Check explicit key grabs first. */
-     direct_list_foreach (l, context->grabbed_keys) {
-          GrabbedKey *key = (GrabbedKey*) l;
-
-          if (key->symbol    == event->key_symbol &&
-              key->modifiers == context->modifiers)
-               return key->owner;
-     }
-
-     /* Don't do implicit grabs on keys without a hardware index. */
-     if (event->key_code == -1)
-          return (context->keyboard_window ?
-                  context->keyboard_window : context->focused_window);
-
-     /* Implicitly grab (press) or ungrab (release) key. */
-     if (event->type == DIET_KEYPRESS) {
-          int           i;
-          int           free_key = -1;
-          UniqueWindow *window;
-
-          /* Check active grabs. */
-          for (i=0; i<8; i++) {
-               /* Key is grabbed, send to owner (NULL if destroyed). */
-               if (context->keys[i].code == event->key_code)
-                    return context->keys[i].owner;
-
-               /* Remember first free array item. */
-               if (free_key == -1 && context->keys[i].code == -1)
-                    free_key = i;
-          }
-
-          /* Key is not grabbed, check for explicit keyboard grab or focus. */
-          window = context->keyboard_window ?
-                   context->keyboard_window : context->focused_window;
-          if (!window)
-               return NULL;
-
-          /* Check if a free array item was found. */
-          if (free_key == -1) {
-               D_WARN( "maximum number of owned keys reached" );
-               return NULL;
-          }
-
-          /* Implicitly grab the key. */
-          context->keys[free_key].symbol = event->key_symbol;
-          context->keys[free_key].id     = event->key_id;
-          context->keys[free_key].code   = event->key_code;
-          context->keys[free_key].owner  = window;
-
-          return window;
-     }
-     else {
-          int i;
-
-          /* Lookup owner and ungrab the key. */
-          for (i=0; i<8; i++) {
-               if (context->keys[i].code == event->key_code) {
-                    context->keys[i].code = -1;
-
-                    /* Return owner (NULL if destroyed). */
-                    return context->keys[i].owner;
-               }
-          }
-     }
-
-     /* No owner for release event found, discard it. */
-     return NULL;
-}
-
-static UniqueWindow *
-window_at( UniqueContext *context,
-           int            x,
-           int            y )
-{
-     DFBResult     ret;
-     UniqueWindow *window;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     ret = unique_context_window_at( context, x, y, &window );
-     if (ret)
-          return NULL;
-
-     return window;
-}
-
-static bool
-update_focus( UniqueContext *context )
-{
-     CoreWindowStack *stack;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     stack = context->stack;
-
-     D_ASSERT( stack != NULL );
-
-     /* if pointer is not grabbed */
-     if (!context->pointer_window) {
-          UniqueWindow *before = context->entered_window;
-          UniqueWindow *after  = window_at( context, -1, -1 );
-
-          /* and the window under the cursor is another one now */
-          if (before != after) {
-               DFBWindowEvent we;
-
-               /* send leave event */
-               if (before) {
-                    we.type = DWET_LEAVE;
-                    we.x    = stack->cursor.x - before->bounds.x;
-                    we.y    = stack->cursor.y - before->bounds.y;
-
-                    unique_window_post_event( before, &we );
-               }
-
-               /* switch focus */
-               unique_context_switch_focus( context, after );
-
-               /* update pointer to window under the cursor */
-               context->entered_window = after;
-
-               /* send enter event */
-               if (after) {
-                    we.type = DWET_ENTER;
-                    we.x    = stack->cursor.x - after->bounds.x;
-                    we.y    = stack->cursor.y - after->bounds.y;
-
-                    unique_window_post_event( after, &we );
-               }
-
-               return true;
-          }
-     }
-
-     return false;
-}
-
-/**************************************************************************************************/
-/**************************************************************************************************/
-
-static bool
-handle_wm_key( UniqueContext       *context,
-               const DFBInputEvent *event )
-{
-     int         i, num;
-     UniqueWindow *entered;
-     UniqueWindow *focused;
-     UniqueWindow *window;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( context->wm_level > 0 );
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_KEYPRESS );
-
-     entered = context->entered_window;
-     focused = context->focused_window;
-
-     switch (DFB_LOWER_CASE(event->key_symbol)) {
-          case DIKS_SMALL_X:
-               num = fusion_vector_size( &context->windows );
-
-               if (context->wm_cycle <= 0)
-                    context->wm_cycle = num;
-
-               if (num) {
-                    int looped = 0;
-                    int index  = MIN( num, context->wm_cycle );
-
-                    while (index--) {
-                         window = fusion_vector_at( &context->windows, index );
-
-                         if ((window->options & (DWOP_GHOST | DWOP_KEEP_STACKING)) ||
-                             ! VISIBLE_WINDOW(window->window) || window == context->focused_window)
-                         {
-                              if (index == 0 && !looped) {
-                                   looped = 1;
-                                   index  = num - 1;
-                              }
-
-                              continue;
-                         }
-
-                         unique_window_restack( window, NULL, 1 );
-                         unique_window_request_focus( window );
-
-                         break;
-                    }
-
-                    context->wm_cycle = index;
-               }
-               break;
-
-          case DIKS_SMALL_S:
-               fusion_vector_foreach (window, i, context->windows) {
-                    if (! D_FLAGS_IS_SET( window->flags, UWF_VISIBLE ))
-                         continue;
-
-                    if (window->stacking != DWSC_MIDDLE)
-                         continue;
-
-                    if (D_FLAGS_IS_SET( window->options, DWOP_GHOST | DWOP_KEEP_STACKING ))
-                         continue;
-
-                    unique_window_restack( window, NULL, 1 );
-                    unique_window_request_focus( window );
-
-                    break;
-               }
-               break;
-
-          case DIKS_SMALL_C:
-               if (entered) {
-                    DFBWindowEvent event;
-
-                    event.type = DWET_CLOSE;
-
-                    unique_window_post_event( entered, &event );
-               }
-               break;
-
-          case DIKS_SMALL_E:
-               update_focus( context );
-               break;
-
-          case DIKS_SMALL_A:
-               if (focused && !(focused->options & DWOP_KEEP_STACKING)) {
-                    unique_window_restack( focused, NULL, 0 );
-                    update_focus( context );
-               }
-               break;
-
-          case DIKS_SMALL_W:
-               if (focused && !(focused->options & DWOP_KEEP_STACKING))
-                    unique_window_restack( focused, NULL, 1 );
-               break;
-
-          case DIKS_SMALL_D:
-               if (entered && !(entered->options & DWOP_INDESTRUCTIBLE))
-                    dfb_window_destroy( entered->window );
-
-               break;
-
-          case DIKS_SMALL_P:
-               /* Enable and show cursor. */
-               dfb_windowstack_cursor_set_opacity( context->stack, 0xff );
-               dfb_windowstack_cursor_enable( context->stack, true );
-
-               /* Ungrab pointer. */
-               context->pointer_window = NULL;
-
-               /* TODO: set new cursor shape, the one current might be completely transparent */
-               break;
-
-          case DIKS_PRINT:
-               if (dfb_config->screenshot_dir && focused && focused->surface)
-                    dfb_surface_dump( focused->surface, dfb_config->screenshot_dir, "dfb_window" );
-
-               break;
-
-          default:
-               return false;
-     }
-
-     return true;
-}
-
-static bool
-is_wm_key( DFBInputDeviceKeySymbol key_symbol )
-{
-     switch (DFB_LOWER_CASE(key_symbol)) {
-          case DIKS_SMALL_X:
-          case DIKS_SMALL_S:
-          case DIKS_SMALL_C:
-          case DIKS_SMALL_E:
-          case DIKS_SMALL_A:
-          case DIKS_SMALL_W:
-          case DIKS_SMALL_D:
-          case DIKS_SMALL_P:
-          case DIKS_PRINT:
-               break;
-
-          default:
-               return false;
-     }
-
-     return true;
-}
-
-
-/**************************************************************************************************/
-
-static void
-handle_key_press( UniqueContext       *context,
-                  const DFBInputEvent *event )
-{
-     UniqueWindow *window;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_KEYPRESS );
-
-     if (context->wm_level) {
-          switch (event->key_symbol) {
-               case DIKS_META:
-                    context->wm_level |= 1;
-                    break;
-
-               case DIKS_CONTROL:
-                    context->wm_level |= 2;
-                    break;
-
-               case DIKS_ALT:
-                    context->wm_level |= 4;
-                    break;
-
-               default:
-                    if (handle_wm_key( context, event ))
-                         return;
-
-                    break;
-          }
-     }
-     else if (event->key_symbol == DIKS_META) {
-          context->wm_level |= 1;
-          context->wm_cycle  = 0;
-     }
-
-     window = get_keyboard_window( context, event );
-     if (window)
-          send_key_event( context, window, event );
-}
-
-static void
-handle_key_release( UniqueContext       *context,
-                    const DFBInputEvent *event )
-{
-     UniqueWindow *window;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_KEYRELEASE );
-
-     if (context->wm_level) {
-          switch (event->key_symbol) {
-               case DIKS_META:
-                    context->wm_level &= ~1;
-                    break;
-
-               case DIKS_CONTROL:
-                    context->wm_level &= ~2;
-                    break;
-
-               case DIKS_ALT:
-                    context->wm_level &= ~4;
-                    break;
-
-               default:
-                    if (is_wm_key( event->key_symbol ))
-                         return;
-
-                    break;
-          }
-     }
-
-     window = get_keyboard_window( context, event );
-     if (window)
-          send_key_event( context, window, event );
-}
-
-/**************************************************************************************************/
-
-static void
-handle_button_press( UniqueContext       *context,
-                     const DFBInputEvent *event )
-{
-     CoreWindowStack *stack;
-     UniqueWindow    *window;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_BUTTONPRESS );
-
-     stack = context->stack;
-
-     D_ASSERT( stack != NULL );
-
-     if (!stack->cursor.enabled)
-          return;
-
-     switch (context->wm_level) {
-          case 1:
-               window = context->entered_window;
-               if (window && !(window->options & DWOP_KEEP_STACKING))
-                    unique_window_restack( window, NULL, 1 );
-
-               break;
-
-          default:
-               window = context->pointer_window ? context->pointer_window : context->entered_window;
-               if (window)
-                    send_button_event( context, window, event );
-
-               break;
-     }
-}
-
-static void
-handle_button_release( UniqueContext       *context,
-                       const DFBInputEvent *event )
-{
-     CoreWindowStack *stack;
-     UniqueWindow    *window;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_BUTTONRELEASE );
-
-     stack = context->stack;
-
-     D_ASSERT( stack != NULL );
-
-     if (!stack->cursor.enabled)
-          return;
-
-     switch (context->wm_level) {
-          case 1:
-               break;
-
-          default:
-               window = context->pointer_window ? context->pointer_window : context->entered_window;
-               if (window)
-                    send_button_event( context, window, event );
-
-               break;
-     }
-}
-
-/**************************************************************************************************/
-
-static void
-handle_motion( UniqueContext *context,
-               int            dx,
-               int            dy )
-{
-     int              new_cx, new_cy;
-     DFBWindowEvent   we;
+     int              new_cx, dx;
+     int              new_cy, dy;
      CoreWindowStack *stack;
 
      D_MAGIC_ASSERT( context, UniqueContext );
@@ -1228,8 +591,8 @@ handle_motion( UniqueContext *context,
      if (!stack->cursor.enabled)
           return;
 
-     new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
-     new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
+     new_cx = MIN( x, stack->cursor.region.x2 );
+     new_cy = MIN( y, stack->cursor.region.y2 );
 
      new_cx = MAX( new_cx, stack->cursor.region.x1 );
      new_cy = MAX( new_cy, stack->cursor.region.y1 );
@@ -1243,194 +606,33 @@ handle_motion( UniqueContext *context,
      stack->cursor.x = new_cx;
      stack->cursor.y = new_cy;
 
-     context->cursor.x += dx;
-     context->cursor.y += dy;
-
      D_ASSERT( stack->cursor.window != NULL );
 
      dfb_window_move( stack->cursor.window, dx, dy, true );
+}
 
+ReactionResult
+_unique_cursor_device_listener( const void *msg_data,
+                                void       *ctx )
+{
+     const UniqueInputEvent *event   = msg_data;
+     UniqueContext          *context = ctx;
 
+     D_ASSERT( event != NULL );
 
+     D_MAGIC_ASSERT( context, UniqueContext );
 
-     switch (context->wm_level) {
-          case 7:
-          case 6:
-          case 5:
-          case 4: {
-                    UniqueWindow *window = context->entered_window;
+     D_DEBUG_AT( UniQuE_Context, "_unique_cursor_device_listener( %p, %p )\n", event, context );
 
-                    if (window) {
-                         int opacity = window->opacity + dx;
-
-                         if (opacity < 8)
-                              opacity = 8;
-                         else if (opacity > 255)
-                              opacity = 255;
-
-                         dfb_window_set_opacity( window->window, opacity );
-                    }
-
-                    break;
-               }
-
-          case 3:
-          case 2: {
-                    UniqueWindow *window = context->entered_window;
-
-                    if (window && !(window->options & DWOP_KEEP_SIZE)) {
-                         int width  = window->bounds.w + dx;
-                         int height = window->bounds.h + dy;
-
-                         if (width  <   48) width  = 48;
-                         if (height <   48) height = 48;
-                         if (width  > 2048) width  = 2048;
-                         if (height > 2048) height = 2048;
-
-                         dfb_window_resize( window->window, width, height );
-                    }
-
-                    break;
-               }
-
-          case 1: {
-                    UniqueWindow *window = context->entered_window;
-
-                    if (window && !(window->options & DWOP_KEEP_POSITION))
-                         dfb_window_move( window->window, dx, dy, true );
-
-                    break;
-               }
-
-          case 0:
-               if (context->pointer_window) {
-                    UniqueWindow *window = context->pointer_window;
-
-                    we.type = DWET_MOTION;
-                    we.x    = stack->cursor.x - window->bounds.x;
-                    we.y    = stack->cursor.y - window->bounds.y;
-
-                    unique_window_post_event( window, &we );
-               }
-               else if (!update_focus( context ) && context->entered_window) {
-                    UniqueWindow *window = context->entered_window;
-
-                    we.type = DWET_MOTION;
-                    we.x    = stack->cursor.x - window->bounds.x;
-                    we.y    = stack->cursor.y - window->bounds.y;
-
-                    unique_window_post_event( window, &we );
-               }
-
+     switch (event->type) {
+          case UIET_MOTION:
+               warp_cursor( context, event->pointer.x, event->pointer.y );
                break;
 
           default:
-               ;
+               break;
      }
-}
 
-static void
-handle_wheel( UniqueContext *context,
-              int            dz )
-{
-     UniqueWindow     *window;
-     CoreWindowStack  *stack;
-     CoreWindowConfig  config;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     stack = context->stack;
-
-     D_ASSERT( stack != NULL );
-
-     if (!stack->cursor.enabled)
-          return;
-
-     window = context->pointer_window ? context->pointer_window : context->entered_window;
-     if (!window)
-          return;
-
-     if (context->wm_level) {
-          int opacity = window->opacity + dz*7;
-
-          if (opacity < 0x01)
-               opacity = 1;
-          if (opacity > 0xFF)
-               opacity = 0xFF;
-
-          config.opacity = opacity;
-
-          unique_window_set_config( window, &config, CWCF_OPACITY );
-     }
-     else {
-          DFBWindowEvent we;
-
-          we.type = DWET_WHEEL;
-          we.x    = stack->cursor.x - window->bounds.x;
-          we.y    = stack->cursor.y - window->bounds.y;
-          we.step = dz;
-
-          unique_window_post_event( window, &we );
-     }
-}
-
-static void
-handle_axis_motion( UniqueContext       *context,
-                    const DFBInputEvent *event )
-{
-     CoreWindowStack *stack;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     D_ASSERT( event != NULL );
-     D_ASSERT( event->type == DIET_AXISMOTION );
-
-     stack = context->stack;
-
-     D_ASSERT( stack != NULL );
-
-     if (!stack->cursor.enabled)
-          return;
-
-
-     if (event->flags & DIEF_AXISREL) {
-          int rel = event->axisrel;
-
-          /* handle cursor acceleration */
-          if (rel > stack->cursor.threshold)
-               rel += (rel - stack->cursor.threshold)
-                      * stack->cursor.numerator
-                      / stack->cursor.denominator;
-          else if (rel < -stack->cursor.threshold)
-               rel += (rel + stack->cursor.threshold)
-                      * stack->cursor.numerator
-                      / stack->cursor.denominator;
-
-          switch (event->axis) {
-               case DIAI_X:
-                    handle_motion( context, rel, 0 );
-                    break;
-               case DIAI_Y:
-                    handle_motion( context, 0, rel );
-                    break;
-               case DIAI_Z:
-                    handle_wheel( context, - event->axisrel );
-                    break;
-               default:
-                    ;
-          }
-     }
-     else if (event->flags & DIEF_AXISABS) {
-          switch (event->axis) {
-               case DIAI_X:
-                    handle_motion( context, event->axisabs - stack->cursor.x, 0 );
-                    break;
-               case DIAI_Y:
-                    handle_motion( context, 0, event->axisabs - stack->cursor.y );
-                    break;
-               default:
-                    ;
-          }
-     }
+     return RS_OK;
 }
 

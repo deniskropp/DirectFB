@@ -46,45 +46,128 @@
 D_DEBUG_DOMAIN( UniQuE_Wheel, "UniQuE/Wheel", "UniQuE's Wheel Device Class" );
 
 
+typedef struct {
+     int magic;
+} WheelData;
+
+/**************************************************************************************************/
+
+static DFBResult
+wheel_initialize( UniqueDevice    *device,
+                  void            *data,
+                  void            *ctx )
+{
+     WheelData *wheel = data;
+
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     D_DEBUG_AT( UniQuE_Wheel, "wheel_initialize( %p, %p, %p )\n", device, data, ctx );
+
+     D_MAGIC_SET( wheel, WheelData );
+
+     return DFB_OK;
+}
+
+static void
+wheel_shutdown( UniqueDevice    *device,
+                void            *data,
+                void            *ctx )
+{
+     WheelData *wheel = data;
+
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( wheel, WheelData );
+
+     D_DEBUG_AT( UniQuE_Wheel, "wheel_shutdown( %p, %p, %p )\n", device, data, ctx );
+
+     D_MAGIC_CLEAR( wheel );
+}
 
 static void
 wheel_connected( UniqueDevice        *device,
                  void                *data,
-                 unsigned long        arg,
+                 void                *ctx,
                  CoreInputDevice     *source )
 {
-     D_MAGIC_ASSERT( device, UniqueDevice );
+     WheelData *wheel = data;
 
-     D_DEBUG_AT( UniQuE_Wheel, "wheel_connected( %p, %p, %lu, %p )\n",
-                 device, data, arg, source );
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( wheel, WheelData );
+
+     D_ASSERT( source != NULL );
+
+     D_DEBUG_AT( UniQuE_Wheel, "wheel_connected( %p, %p, %p, %p )\n",
+                 device, data, ctx, source );
 }
 
 static void
 wheel_disconnected( UniqueDevice        *device,
                     void                *data,
-                    unsigned long        arg,
+                    void                *ctx,
                     CoreInputDevice     *source )
 {
-     D_MAGIC_ASSERT( device, UniqueDevice );
+     WheelData *wheel = data;
 
-     D_DEBUG_AT( UniQuE_Wheel, "wheel_disconnected( %p, %p, %lu, %p )\n",
-                 device, data, arg, source );
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( wheel, WheelData );
+
+     D_ASSERT( source != NULL );
+
+     D_DEBUG_AT( UniQuE_Wheel, "wheel_disconnected( %p, %p, %p, %p )\n",
+                 device, data, ctx, source );
 }
 
 static void
 wheel_process_event( UniqueDevice        *device,
                      void                *data,
-                     unsigned long        arg,
+                     void                *ctx,
                      const DFBInputEvent *event )
 {
-     D_MAGIC_ASSERT( device, UniqueDevice );
+     UniqueInputEvent  evt;
+     WheelData        *wheel = data;
 
-     D_DEBUG_AT( UniQuE_Wheel, "wheel_process_event( %p, %p, %lu, %p ) <- type 0x%08x\n",
-                 device, data, arg, event, event->type );
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( wheel, WheelData );
+
+     D_ASSERT( event != NULL );
+
+     D_DEBUG_AT( UniQuE_Wheel, "wheel_process_event( %p, %p, %p, %p ) <- type 0x%08x\n",
+                 device, data, ctx, event, event->type );
+
+     switch (event->type) {
+          case DIET_AXISMOTION:
+               switch (event->axis) {
+                    case DIAI_Z:
+                         evt.type = UIET_WHEEL;
+
+                         evt.wheel.device_id = event->device_id;
+
+                         if (event->flags & DIEF_AXISREL)
+                              evt.wheel.value = event->axisrel;
+                         else if (event->flags & DIEF_AXISABS)
+                              evt.wheel.value = event->axisabs;
+                         else
+                              break;
+
+                         unique_device_dispatch( device, &evt );
+                         break;
+
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
 }
 
 
 const UniqueDeviceClass unique_wheel_device_class = {
+     data_size:     sizeof(WheelData),
+
+     Initialize:    wheel_initialize,
+     Shutdown:      wheel_shutdown,
      Connected:     wheel_connected,
      Disconnected:  wheel_disconnected,
      ProcessEvent:  wheel_process_event

@@ -52,14 +52,22 @@ typedef enum {
 
 
 typedef struct {
-     void (*Update)( StretRegion     *region,
-                     void            *region_data,
-                     void            *update_data,
-                     unsigned long    arg,
-                     int              x,
-                     int              y,
-                     const DFBRegion *updates,
-                     int              num );
+     DFBResult (*GetInput)( StretRegion         *region,
+                            void                *region_data,
+                            unsigned long        arg,
+                            int                  index,
+                            int                  x,
+                            int                  y,
+                            UniqueInputChannel **ret_channel );
+
+     void      (*Update)  ( StretRegion         *region,
+                            void                *region_data,
+                            void                *update_data,
+                            unsigned long        arg,
+                            int                  x,
+                            int                  y,
+                            const DFBRegion     *updates,
+                            int                  num );
 } StretRegionClass;
 
 typedef int StretRegionClassID;
@@ -75,65 +83,71 @@ DFBResult stret_class_unregister( StretRegionClassID      id );
 
 
 
-DFBResult stret_region_create ( StretRegionClassID   class_id,
-                                void                *data,
-                                unsigned long        arg,
-                                StretRegionFlags     flags,
-                                int                  levels,
-                                int                  x,
-                                int                  y,
-                                int                  width,
-                                int                  height,
-                                StretRegion         *parent,
-                                int                  level,
-                                StretRegion        **ret_region );
+DFBResult stret_region_create   ( StretRegionClassID   class_id,
+                                  void                *data,
+                                  unsigned long        arg,
+                                  StretRegionFlags     flags,
+                                  int                  levels,
+                                  int                  x,
+                                  int                  y,
+                                  int                  width,
+                                  int                  height,
+                                  StretRegion         *parent,
+                                  int                  level,
+                                  StretRegion        **ret_region );
 
-DFBResult stret_region_destroy( StretRegion         *region );
-
-
-DFBResult stret_region_enable ( StretRegion         *region,
-                                StretRegionFlags     flags );
-
-DFBResult stret_region_disable( StretRegion         *region,
-                                StretRegionFlags     flags );
+DFBResult stret_region_destroy  ( StretRegion         *region );
 
 
-DFBResult stret_region_move   ( StretRegion         *region,
-                                int                  dx,
-                                int                  dy );
+DFBResult stret_region_enable   ( StretRegion         *region,
+                                  StretRegionFlags     flags );
 
-DFBResult stret_region_resize ( StretRegion         *region,
-                                int                  width,
-                                int                  height );
-
-DFBResult stret_region_restack( StretRegion         *region,
-                                int                  index );
+DFBResult stret_region_disable  ( StretRegion         *region,
+                                  StretRegionFlags     flags );
 
 
-void      stret_region_get_abs ( StretRegion         *region,
-                                 DFBRegion           *ret_bounds );
+DFBResult stret_region_move     ( StretRegion         *region,
+                                  int                  dx,
+                                  int                  dy );
 
-void      stret_region_get_size( StretRegion         *region,
-                                 DFBDimension        *ret_size );
+DFBResult stret_region_resize   ( StretRegion         *region,
+                                  int                  width,
+                                  int                  height );
 
-DFBResult stret_region_visible( StretRegion         *region,
-                                const DFBRegion     *base,
-                                bool                 children,
-                                DFBRegion           *ret_regions,
-                                int                  max_num,
-                                int                 *ret_num );
+DFBResult stret_region_restack  ( StretRegion         *region,
+                                  int                  index );
 
-DFBResult stret_region_update ( StretRegion         *region,
-                                const DFBRegion     *update,
-                                void                *update_data );
 
-StretRegion *stret_region_at  ( StretRegion         *region,
-                                int                  x,
-                                int                  y,
-                                StretRegionFlags     flags,
-                                StretRegionClassID   class_id );
+void      stret_region_get_abs  ( StretRegion         *region,
+                                  DFBRegion           *ret_bounds );
 
-void        *stret_region_data( const StretRegion   *region );
+void      stret_region_get_size ( StretRegion         *region,
+                                  DFBDimension        *ret_size );
+
+DFBResult stret_region_get_input( StretRegion         *region,
+                                  int                  index,
+                                  int                  x,
+                                  int                  y,
+                                  UniqueInputChannel **ret_channel );
+
+DFBResult stret_region_visible  ( StretRegion         *region,
+                                  const DFBRegion     *base,
+                                  bool                 children,
+                                  DFBRegion           *ret_regions,
+                                  int                  max_num,
+                                  int                 *ret_num );
+
+DFBResult stret_region_update   ( StretRegion         *region,
+                                  const DFBRegion     *update,
+                                  void                *update_data );
+
+StretRegion *stret_region_at    ( StretRegion         *region,
+                                  int                  x,
+                                  int                  y,
+                                  StretRegionFlags     flags,
+                                  StretRegionClassID   class_id );
+
+void        *stret_region_data  ( const StretRegion   *region );
 
 #endif
 
