@@ -71,8 +71,10 @@ AC_CHECK_LIB(pthread, pthread_attr_init, ,
   AC_MSG_ERROR([*** DirectFB requires libpthread.]))
 
 dnl Dynamic Linker
-AC_CHECK_LIB(dl, dlopen, ,
-  AC_MSG_ERROR([*** DirectFB requires libdl.]))
+if test x$enable_shared = xyes; then
+  AC_CHECK_LIB(dl, dlopen, ,
+    AC_MSG_ERROR([*** DirectFB requires libdl.]))
+fi
 
 if test "x$GCC" = xyes; then
   DFB_CFLAGS="$DFB_CFLAGS -ffast-math -Wall"
@@ -246,7 +248,7 @@ dnl Test for libpng and libz
         AC_CHECK_HEADER(png.h,
 	  png_ok=yes,
 	  AC_MSG_WARN([*** PNG header files not found. PNG image provider will not be built.])),
-        AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.]))
+        AC_MSG_WARN([*** PNG library not found. PNG image provider will not be built.]), $LIBZ -lm)
       if test "$png_ok" = yes; then
         AC_MSG_CHECKING([for png_structp in png.h])
         AC_TRY_COMPILE([#include <png.h>],
@@ -528,6 +530,10 @@ AC_MSG_RESULT([
 
 Build options: 
   Install prefix      $prefix
+  Build shared libs   $enable_shared
+  Build static libs   $enable_static
+
+Misc options:
   MMX support         $MMX
   Debug mode          $enable_debug
   RGB332 support      $enable_rgb332
