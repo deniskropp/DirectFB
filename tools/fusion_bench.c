@@ -288,11 +288,14 @@ bench_skirmish_threaded()
      printf( "\n" );
 }
 
+
+static pthread_spinlock_t spin_lock;
+
 static void *
 spin_lock_unlock_loop( void *arg )
 {
      int                 i;
-     pthread_spinlock_t *lock = (pthread_spinlock_t *) arg;
+     pthread_spinlock_t *lock = &spin_lock;
 
      for (i=0; i<2000000; i++) {
           pthread_spin_lock( lock );
@@ -307,9 +310,8 @@ bench_spinlock_threaded()
 {
      FusionResult       ret;
      int                i;
-     pthread_spinlock_t lock;
 
-     ret = pthread_spin_init( &lock, true );
+     ret = pthread_spin_init( &spin_lock, true );
      if (ret) {
           fprintf( stderr, "pthread error %d\n", ret );
           return;
@@ -325,7 +327,7 @@ bench_spinlock_threaded()
           t1 = dfb_get_millis();
 
           for (t=0; t<i; t++)
-               pthread_create( &threads[t], NULL, spin_lock_unlock_loop, &lock );
+               pthread_create( &threads[t], NULL, spin_lock_unlock_loop, NULL );
 
           for (t=0; t<i; t++)
                pthread_join( threads[t], NULL );
@@ -337,7 +339,7 @@ bench_spinlock_threaded()
      }
 
      
-     pthread_spin_destroy( &lock );
+     pthread_spin_destroy( &spin_lock );
 
      printf( "\n" );
 }

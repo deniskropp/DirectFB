@@ -963,14 +963,21 @@ static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      mpeg3_t *q;
+     char    *filename = DFBSTRDUP( ctx->filename );
 
-     if (!mpeg3_check_sig( ctx->filename ))
+     if (!mpeg3_check_sig( filename )) {
+          DFBFREE( filename );
           return DFB_UNSUPPORTED;
+     }
 
-     q = mpeg3_open( ctx->filename );
-     if (!q)
+     q = mpeg3_open( filename );
+     if (!q) {
+          DFBFREE( filename );
           return DFB_UNSUPPORTED;
+     }
 
+     DFBFREE( filename );
+     
      if (!mpeg3_has_video( q )) {
           ERRORMSG( "Libmpeg3 Provider: "
                     "File doesn't contain a video track!\n" );
