@@ -53,85 +53,85 @@ DFB_INPUT_DRIVER( dbox2remote )
 #define DEVICE "/dev/dbox/rc0"
 
 typedef struct {
-     DFBInputDeviceKeyIdentifier  key;
-     __u16                        rccode;
+     DFBInputDeviceKeySymbol  key;
+     __u16                    rccode;
 } KeyCode;
 
 /* REMOTE_NEW is the one with _fewer_ buttons */
 static KeyCode keycodes_new_remote[] = {
-     { DIKC_0, 0x0000 },
-     { DIKC_1, 0x0001 },
-     { DIKC_2, 0x0002 },
-     { DIKC_3, 0x0003 },
-     { DIKC_4, 0x0004 },
-     { DIKC_5, 0x0005 },
-     { DIKC_6, 0x0006 },
-     { DIKC_7, 0x0007 },
-     { DIKC_8, 0x0008 },
-     { DIKC_9, 0x0009 },
+     { DIKS_0, 0x0000 },
+     { DIKS_1, 0x0001 },
+     { DIKS_2, 0x0002 },
+     { DIKS_3, 0x0003 },
+     { DIKS_4, 0x0004 },
+     { DIKS_5, 0x0005 },
+     { DIKS_6, 0x0006 },
+     { DIKS_7, 0x0007 },
+     { DIKS_8, 0x0008 },
+     { DIKS_9, 0x0009 },
 
-     { DIKC_LEFT, 0x000b },
-     { DIKC_RIGHT, 0x000a },
-     { DIKC_UP, 0x000c },
-     { DIKC_DOWN, 0x000d },
+     { DIKS_CURSOR_LEFT, 0x000b },
+     { DIKS_CURSOR_RIGHT, 0x000a },
+     { DIKS_CURSOR_UP, 0x000c },
+     { DIKS_CURSOR_DOWN, 0x000d },
      /* FIXME: add support for right-up, right-down, left-down, left-up,
         they occur, too */
 
-     { DIKC_RED, 0x0013 },
-     { DIKC_GREEN, 0x0011 },
-     { DIKC_YELLOW, 0x0012 },
-     { DIKC_BLUE, 0x0014 },
+     { DIKS_RED, 0x0013 },
+     { DIKS_GREEN, 0x0011 },
+     { DIKS_YELLOW, 0x0012 },
+     { DIKS_BLUE, 0x0014 },
 
-     { DIKC_OK, 0x000e },
-     { DIKC_HOME, 0x001F },
-     { DIKC_VENDOR, 0x0018 },                     /* "d-box" key */
-     { DIKC_POWER, 0x0010 },
+     { DIKS_OK, 0x000e },
+     { DIKS_HOME, 0x001F },
+     { DIKS_VENDOR, 0x0018 },                     /* "d-box" key */
+     { DIKS_POWER, 0x0010 },
 
-     { DIKC_PAGEDOWN, 0x0053 },                   /* dbox1 only  */
-     { DIKC_PAGEUP, 0x0054 },                     /* dbox1 only  */
+     { DIKS_PAGE_DOWN, 0x0053 },                   /* dbox1 only  */
+     { DIKS_PAGE_UP, 0x0054 },                     /* dbox1 only  */
 
-     { DIKC_VOLUMEUP, 0x0015 },
-     { DIKC_VOLUMEDOWN, 0x0016 },
-     { DIKC_MUTE, 0x000f },
-     { DIKC_INFO, 0x0017 },
-     { DIKC_UNKNOWN, 0xFFFF }
+     { DIKS_VOLUME_UP, 0x0015 },
+     { DIKS_VOLUME_DOWN, 0x0016 },
+     { DIKS_MUTE, 0x000f },
+     { DIKS_INFO, 0x0017 },
+     { DIKS_NULL, 0xFFFF }
 };
 
 static KeyCode keycodes_old_remote[] = {
-     { DIKC_0, 0x5c00 },
-     { DIKC_1, 0x5c01 },
-     { DIKC_2, 0x5c02 },
-     { DIKC_3, 0x5c03 },
-     { DIKC_4, 0x5c04 },
-     { DIKC_5, 0x5c05 },
-     { DIKC_6, 0x5c06 },
-     { DIKC_7, 0x5c07 },
-     { DIKC_8, 0x5c08 },
-     { DIKC_9, 0x5c09 },
+     { DIKS_0, 0x5c00 },
+     { DIKS_1, 0x5c01 },
+     { DIKS_2, 0x5c02 },
+     { DIKS_3, 0x5c03 },
+     { DIKS_4, 0x5c04 },
+     { DIKS_5, 0x5c05 },
+     { DIKS_6, 0x5c06 },
+     { DIKS_7, 0x5c07 },
+     { DIKS_8, 0x5c08 },
+     { DIKS_9, 0x5c09 },
 
-     { DIKC_LEFT, 0x5c2f },
-     { DIKC_RIGHT, 0x5c2e },
-     { DIKC_UP, 0x5c0e },
-     { DIKC_DOWN, 0x5c0f },
+     { DIKS_CURSOR_LEFT, 0x5c2f },
+     { DIKS_CURSOR_RIGHT, 0x5c2e },
+     { DIKS_CURSOR_UP, 0x5c0e },
+     { DIKS_CURSOR_DOWN, 0x5c0f },
 
-     { DIKC_RED, 0x5c2D },
-     { DIKC_GREEN, 0x5c55 },
-     { DIKC_YELLOW, 0x5c52 },
-     { DIKC_BLUE, 0x5c3b },
+     { DIKS_RED, 0x5c2D },
+     { DIKS_GREEN, 0x5c55 },
+     { DIKS_YELLOW, 0x5c52 },
+     { DIKS_BLUE, 0x5c3b },
 
-     { DIKC_OK, 0x5c30 },
-     { DIKC_HOME, 0x5c20 },                       /* radio key  */
-     { DIKC_VENDOR, 0x5c27 },                     /* TV key     */
-     { DIKC_POWER, 0x5c0c },
+     { DIKS_OK, 0x5c30 },
+     { DIKS_HOME, 0x5c20 },                       /* radio key  */
+     { DIKS_VENDOR, 0x5c27 },                     /* TV key     */
+     { DIKS_POWER, 0x5c0c },
 
-     { DIKC_PAGEDOWN, 0x5c53 },                   /* dbox1 only */
-     { DIKC_PAGEUP, 0x5c54 },                     /* dbox1 only */
+     { DIKS_PAGE_DOWN, 0x5c53 },                   /* dbox1 only */
+     { DIKS_PAGE_UP, 0x5c54 },                     /* dbox1 only */
 
-     { DIKC_VOLUMEUP, 0x5c16 },
-     { DIKC_VOLUMEDOWN, 0x5c17 },
-     { DIKC_MUTE, 0x5c28 },
-     { DIKC_INFO, 0x5c82 },
-     { DIKC_UNKNOWN, 0xFFFF }
+     { DIKS_VOLUME_UP, 0x5c16 },
+     { DIKS_VOLUME_DOWN, 0x5c17 },
+     { DIKS_MUTE, 0x5c28 },
+     { DIKS_INFO, 0x5c82 },
+     { DIKS_NULL, 0xFFFF }
 };
 
 
@@ -149,7 +149,7 @@ typedef struct {
 /*
  * helper function for translating rccode
  */
-static DFBInputDeviceKeyIdentifier
+static DFBInputDeviceKeySymbol
 dbox2remote_parse_rccode( __u16 rccode )
 {
      KeyCode *keycode;
@@ -162,14 +162,14 @@ dbox2remote_parse_rccode( __u16 rccode )
           rccode &= 0x003f;
      }
 
-     while (keycode->key != DIKC_UNKNOWN) {
+     while (keycode->key != DIKS_NULL) {
           if (keycode->rccode == rccode) {
                return keycode->key;
           }
           keycode++;
      }
 
-     return DIKC_UNKNOWN;
+     return DIKS_NULL;
 }
 
 /*
@@ -188,16 +188,16 @@ dbox2remoteEventThread( CoreThread *thread, void *driver_data )
           dfb_thread_testcancel( thread );
 
           /* translate rccode to DirectFB keycode */
-          evt.keycode = dbox2remote_parse_rccode( rccode );
-          if (evt.keycode != DIKC_UNKNOWN) {
+          evt.key_symbol = dbox2remote_parse_rccode( rccode );
+          if (evt.key_symbol != DIKS_NULL) {
                /* set event type and dispatch*/
                evt.type = DIET_KEYPRESS;
-               evt.flags = DIEF_KEYCODE;
+               evt.flags = DIEF_KEYSYMBOL;
                dfb_input_dispatch( data->device, &evt );
 
                /* set event type and dispatch*/
                evt.type = DIET_KEYRELEASE;
-               evt.flags = DIEF_KEYCODE;
+               evt.flags = DIEF_KEYSYMBOL;
                dfb_input_dispatch( data->device, &evt );
           }
      }
