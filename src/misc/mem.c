@@ -22,6 +22,9 @@
 */
 
 #include <stdio.h>
+#include <pthread.h>
+#include <sys/types.h>
+#include <signal.h>
 
 #include "core/coredefs.h"
 
@@ -40,6 +43,7 @@ typedef struct {
 static int initialized = 0;
 static int alloc_count = 0;
 static MemDesc *alloc_list = NULL;
+static pthread_mutex_t alloc_lock = PTHREAD_MUTEX_INITIALIZER;
 
 
 static void dbg_memleaks_done( int exitcode, void *dummy )
@@ -53,7 +57,7 @@ static void dbg_memleaks_done( int exitcode, void *dummy )
 
           for (i=0; i<alloc_count; i++) {
                MemDesc *d = &alloc_list[i];
-               
+
                DEBUGMSG( "chunk %p allocated in %s (%s: %u) not free'd !!\n",
                          d->mem, d->allocated_in_func, d->allocated_in_file,
                          d->allocated_in_line);
@@ -79,6 +83,8 @@ void* dbg_malloc( char* file, int line, char *func, size_t bytes )
      if (!initialized)
           dbg_memleaks_init();
 
+     pthread_mutex_lock( &alloc_lock );
+
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
 
@@ -87,6 +93,8 @@ void* dbg_malloc( char* file, int line, char *func, size_t bytes )
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;
+
+     pthread_mutex_unlock( &alloc_lock );
 
      return mem;
 }
@@ -100,6 +108,8 @@ void* dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
      if (!initialized)
           dbg_memleaks_init();
 
+     pthread_mutex_lock( &alloc_lock );
+
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
 
@@ -108,6 +118,8 @@ void* dbg_calloc( char* file, int line, char *func, size_t count, size_t bytes )
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;
+
+     pthread_mutex_unlock( &alloc_lock );
 
      return mem;
 }
@@ -118,18 +130,24 @@ void* dbg_realloc( char *file, int line, char *func, char *what,
 {
      unsigned int i;
 
+     pthread_mutex_lock( &alloc_lock );
+
      for (i=0; i<alloc_count; i++) {
           if (alloc_list[i].mem == mem) {
-               alloc_list[i].mem = (void*) realloc( mem, bytes );
-               return alloc_list[i].mem;
+               char *new_mem = (void*) realloc( mem, bytes );
+               alloc_list[i].mem = new_mem;
+               pthread_mutex_unlock( &alloc_lock );
+               return new_mem;
           }
      }
+
+     pthread_mutex_unlock( &alloc_lock );
 
      if (mem != NULL) {
           DEBUGMSG ( "%s: trying to reallocate unknown chunk %p (%s)\n"
                      "          in %s (%s: %u) !!!\n",
                      __FUNCTION__, mem, what, func, file, line);
-          exit (-1);
+          kill( 0, SIGTRAP );
      }
 
      return dbg_malloc( file, line, func, bytes );
@@ -143,6 +161,8 @@ char* dbg_strdup( char* file, int line, char *func, const char *string )
      if (!initialized)
           dbg_memleaks_init();
 
+     pthread_mutex_lock( &alloc_lock );
+
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
 
@@ -151,6 +171,8 @@ char* dbg_strdup( char* file, int line, char *func, const char *string )
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;
+
+     pthread_mutex_unlock( &alloc_lock );
 
      return mem;
 }
@@ -162,21 +184,26 @@ void dbg_free( char *file, int line, char *func, char *what, void *mem )
      if (!initialized)
           dbg_memleaks_init();
 
+     pthread_mutex_lock( &alloc_lock );
+
      for (i=0; i<alloc_count; i++) {
           if (alloc_list[i].mem == mem) {
                free( mem );
                alloc_count--;
                memmove( &alloc_list[i], &alloc_list[i+1],
                         (alloc_count - i) * sizeof(MemDesc) );
+               pthread_mutex_unlock( &alloc_lock );
                return;
           }
      }
+
+     pthread_mutex_unlock( &alloc_lock );
 
      DEBUGMSG( "%s: trying to free unknown chunk %p (%s)\n"
                "          in %s (%s: %u) !!!\n",
                __FUNCTION__, mem, what, func, file, line);
 
-     exit (-1);
+     kill( 0, SIGTRAP );
 }
 
 
