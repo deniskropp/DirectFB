@@ -81,9 +81,26 @@ int direct_try_open( const char *name1, const char *name2, int flags );
 void direct_trim( char **s );
 
 /*
+ * Slow implementation, but quite fast if only low bits are set.
+ */
+static inline int
+direct_util_count_bits( unsigned int mask )
+{
+     register int ret = 0;
+
+     while (mask) {
+          ret += mask & 1;
+          mask >>= 1;
+     }
+
+     return ret;
+}
+
+/*
  * Utility function to initialize recursive mutexes.
  */
-static inline int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
+static inline int
+direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
 {
      int                 ret;
      pthread_mutexattr_t attr;
