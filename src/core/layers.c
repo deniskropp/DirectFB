@@ -429,8 +429,12 @@ dfb_layer_lease( DisplayLayer *layer )
      DFB_ASSERT( layer->shared->enabled );
 
      /* FIXME: workaround */
-     if (layer->shared->exclusive)
-          return DFB_LOCKED;
+     if (layer->shared->exclusive) {
+          if (skirmish_swoop( &layer->shared->lock ))
+               return DFB_LOCKED;
+
+          dfb_layer_release( layer, true );
+     }
      
      if (fusion_property_lease( &layer->shared->lock ))
           return DFB_LOCKED;
@@ -447,8 +451,12 @@ dfb_layer_purchase( DisplayLayer *layer )
      DFB_ASSERT( layer->shared->enabled );
      
      /* FIXME: workaround */
-     if (layer->shared->exclusive)
-          return DFB_LOCKED;
+     if (layer->shared->exclusive) {
+          if (skirmish_swoop( &layer->shared->lock ))
+               return DFB_LOCKED;
+
+          dfb_layer_release( layer, true );
+     }
      
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
