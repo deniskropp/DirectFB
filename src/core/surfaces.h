@@ -76,8 +76,10 @@ typedef enum {
 
 typedef enum {
      SBF_NONE            = 0x00000000,
-     SBF_FOREIGN_SYSTEM  = 0x00000001   /* system memory is preallocated by
+     SBF_FOREIGN_SYSTEM  = 0x00000001,  /* system memory is preallocated by
                                            application, won't be freed */
+     SBF_WRITTEN         = 0x00000002   /* buffer has been locked for writing
+                                           since its birth */
 } SurfaceBufferFlags;
 
 typedef enum {
@@ -99,7 +101,7 @@ struct _SurfaceBuffer
           CoreSurfaceHealth  health;    /* currently stored in system memory? */
           int                locked;    /* system instance is locked,
                                            stick to it */
-
+          
           int                pitch;     /* number of bytes til next line */
           void              *addr;      /* address pointing to surface data */
      } system;

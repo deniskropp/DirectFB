@@ -412,6 +412,7 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                                            SurfaceBuffer  *buffer )
 {
+     DFBResult    ret;
      CoreSurface *surface = buffer->surface;
 
      if (manager->suspended)
@@ -419,53 +420,56 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
      switch (buffer->video.health) {
           case CSH_STORED:
-               if (buffer->video.chunk &&
-                   buffer->video.chunk->tolerations != 0)
-               {
+               if (buffer->video.chunk)
                     buffer->video.chunk->tolerations = 0;
-               }
+               
                return DFB_OK;
 
-          case CSH_INVALID: {
-               DFBResult ret;
-
+          case CSH_INVALID:
                ret = dfb_surfacemanager_allocate( manager, buffer );
                if (ret)
                     return ret;
 
                /* FALL THROUGH, because after successful allocation
                   the surface health is CSH_RESTORE */
-          }
-          case CSH_RESTORE: {
-               int   h   = surface->height;
-               char *src = buffer->system.addr;
-               char *dst = dfb_system_video_memory_virtual( buffer->video.offset );
-
+          
+          case CSH_RESTORE:
                if (buffer->system.health != CSH_STORED)
                     BUG( "system/video instances both not stored!" );
 
-               while (h--) {
-                    dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
-                                                             surface->width) );
-                    src += buffer->system.pitch;
-                    dst += buffer->video.pitch;
-               }
-               if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
-                    h = surface->height;
-                    while (h--) {
-                         dfb_memcpy( dst, src, DFB_BYTES_PER_LINE(surface->format,
-                                                                  surface->width / 2) );
-                         src += buffer->system.pitch / 2;
-                         dst += buffer->video.pitch  / 2;
+               if (buffer->flags & SBF_WRITTEN) {
+                    int   i;
+                    char *src = buffer->system.addr;
+                    char *dst = dfb_system_video_memory_virtual( buffer->video.offset );
+                    
+                    for (i=0; i<surface->height; i++) {
+                         dfb_memcpy( dst, src,
+                                     DFB_BYTES_PER_LINE(surface->format,
+                                                        surface->width) );
+                         src += buffer->system.pitch;
+                         dst += buffer->video.pitch;
+                    }
+                    
+                    if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+                         for (i=0; i<surface->height; i++) {
+                              dfb_memcpy( dst, src,
+                                          DFB_BYTES_PER_LINE(surface->format,
+                                                             surface->width / 2) );
+                              src += buffer->system.pitch / 2;
+                              dst += buffer->video.pitch  / 2;
+                         }
                     }
                }
 
-               buffer->video.health = CSH_STORED;
+               buffer->video.health             = CSH_STORED;
                buffer->video.chunk->tolerations = 0;
+
                dfb_surface_notify_listeners( surface, CSNF_VIDEO );
 
                return DFB_OK;
-          }
+
+          default:
+               break;
      }
 
      BUG( "unknown video instance health" );

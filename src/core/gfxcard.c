@@ -526,9 +526,9 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                                                  DSBLIT_DST_COLORKEY ) ?
                         DSLF_READ | DSLF_WRITE : DSLF_WRITE) | CSLF_FORCE;
      else
-          lock_flags = state->drawingflags & ( DSDRAW_BLEND |
+          lock_flags = (state->drawingflags & ( DSDRAW_BLEND |
                                                DSDRAW_DST_COLORKEY ) ?
-                       DSLF_READ | DSLF_WRITE : DSLF_WRITE;
+                        DSLF_READ | DSLF_WRITE : DSLF_WRITE) | CSLF_FORCE;
 
      /* lock surface manager */
      dfb_surfacemanager_lock( card->shared->surface_manager );

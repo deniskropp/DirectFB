@@ -222,7 +222,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
 
      s->front_buffer = (SurfaceBuffer *) SHCALLOC( 1, sizeof(SurfaceBuffer) );
 
-     s->front_buffer->flags   = SBF_FOREIGN_SYSTEM;
+     s->front_buffer->flags   = SBF_FOREIGN_SYSTEM | SBF_WRITTEN;
      s->front_buffer->policy  = policy;
      s->front_buffer->surface = s;
 
@@ -592,6 +592,9 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                BUG( "invalid surface policy" );
                return DFB_BUG;
      }
+
+     if (flags & DSLF_WRITE)
+          buffer->flags |= SBF_WRITTEN;
 
      return DFB_OK;
 }
