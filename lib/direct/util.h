@@ -60,7 +60,7 @@
 #define D_FLAGS_ARE_IN(flags,f)    (((flags) & ~(f)) == 0)
 #define D_FLAGS_INVALID(flags,f)   (((flags) & ~(f)) != 0)
 
-#define D_ARRAY_SIZE(array)        (sizeof(array) / sizeof((array)[0]))
+#define D_ARRAY_SIZE(array)        ((int)(sizeof(array) / sizeof((array)[0])))
 
 
 #if __GNUC__ >= 3
