@@ -58,6 +58,7 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/layers.h>
+#include <core/layer_control.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 
@@ -744,6 +745,11 @@ static void* GrabThread( CoreThread *thread, void *ctx )
 
                if (data->callback)
                     data->callback(data->ctx);
+
+               if (!data->running)
+                    break;
+
+               sched_yield();
           }
 
           if (++frame == data->vmbuf.frames)
