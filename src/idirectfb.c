@@ -446,15 +446,37 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                }
                case DFSCL_FULLSCREEN:
                case DFSCL_EXCLUSIVE:
-                    if (format != config.pixelformat) {
-                         config.pixelformat = format;
+                    config.flags |= DLCONF_BUFFERMODE;
 
-                         ret = dfb_layer_set_configuration( data->layer,
-                                                            &config );
-                         if (ret)
-                              return ret;
+                    if (caps & DSCAPS_FLIPPING) {
+                         if (caps & DSCAPS_SYSTEMONLY)
+                              config.buffermode = DLBM_BACKSYSTEM;
+                         else
+                              config.buffermode = DLBM_BACKVIDEO;
                     }
+                    else
+                         config.buffermode = DLBM_FRONTONLY;
 
+                    if (format != config.pixelformat) {
+                         config.flags       |= DLCONF_PIXELFORMAT;
+                         config.pixelformat  = format;
+                    }
+                    
+                    ret = dfb_layer_set_configuration( data->layer, &config );
+                    if (ret) {
+                         if (! (caps & (DSCAPS_SYSTEMONLY||DSCAPS_VIDEOONLY))) {
+                              if (config.buffermode == DLBM_BACKVIDEO) {
+                                   config.buffermode = DLBM_BACKSYSTEM;
+                                   
+                                   ret = dfb_layer_set_configuration( data->layer, &config );
+                                   if (ret)
+                                        return ret;
+                              }
+                         }
+                         
+                         return ret;
+                    }
+                    
                     init_palette( dfb_layer_surface( data->layer ), desc );
                     
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );

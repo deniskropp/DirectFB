@@ -186,38 +186,12 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                   DisplayLayer           *layer,
                                   DFBSurfaceCapabilities  caps )
 {
-     DFBResult err = DFB_OK;
+     CoreSurface *surface = dfb_layer_surface( layer );
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer)
-     
-     if (!(caps & DSCAPS_SUBSURFACE)  &&  !wanted) {
-          DFBDisplayLayerConfig config;
-
-          config.flags      = DLCONF_BUFFERMODE;
-
-          if (caps & DSCAPS_FLIPPING) {
-               if (caps & DSCAPS_VIDEOONLY)
-                    config.buffermode = DLBM_BACKVIDEO;
-               else if (caps & DSCAPS_SYSTEMONLY)
-                    config.buffermode = DLBM_BACKSYSTEM;
-               else {
-                    config.buffermode = DLBM_BACKVIDEO;
-                    if (dfb_layer_set_configuration( layer, &config ))
-                         config.buffermode = DLBM_BACKSYSTEM;
-               }
-          }
-          else
-               config.buffermode = DLBM_FRONTONLY;
-
-          err = dfb_layer_set_configuration( layer, &config );
-          if (err) {
-               DFB_DEALLOCATE_INTERFACE( thiz );
-               return err;
-          }
-     }
 
      IDirectFBSurface_Construct( thiz, wanted, granted,
-                                 dfb_layer_surface( layer ), caps );
+                                 surface, surface->caps | caps );
 
      data->layer = layer;
 

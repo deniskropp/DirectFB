@@ -60,8 +60,6 @@ typedef struct {
      int                             ref;    /* reference counter */
      DFBDisplayLayerCooperativeLevel level;  /* current cooperative level */
      DisplayLayer                    *layer; /* pointer to core data */
-
-     IDirectFBSurface                *surface;
 } IDirectFBDisplayLayer_data;
 
 
@@ -71,9 +69,9 @@ IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
 {
      IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
 
-     if (data->surface)
-          data->surface->Release( data->surface );
-
+     if (data->level == DLSCL_EXCLUSIVE)
+          dfb_layer_release( data->layer, true );
+     
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -134,8 +132,7 @@ static DFBResult
 IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
                                   IDirectFBSurface      **interface )
 {
-     DFBResult ret;
-     DFBRectangle rect;
+     DFBResult         ret;
      IDirectFBSurface *surface;
 
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
@@ -145,28 +142,14 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
 
      /* FIXME: cooperative level */
 
-     if (!data->surface) {
-          CoreSurface *layer_surface = dfb_layer_surface( data->layer );
+     DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
-          rect.x = 0;
-          rect.y = 0;
-          rect.w = layer_surface->width;
-          rect.h = layer_surface->height;
+     ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL,
+                                             data->layer, DSCAPS_NONE );
+     if (ret)
+          return ret;
 
-          DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
-
-          ret = IDirectFBSurface_Layer_Construct( surface, &rect,
-                                                  NULL, data->layer,
-                                                  layer_surface->caps );
-          if (ret)
-               return ret;
-
-          data->surface = surface;
-     }
-
-     data->surface->AddRef( data->surface );
-
-     *interface = data->surface;
+     *interface = surface;
 
      return DFB_OK;
 }
