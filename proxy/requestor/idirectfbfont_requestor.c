@@ -88,13 +88,39 @@ IDirectFBFont_Requestor_Release( IDirectFBFont *thiz )
 }
 
 static DFBResult
-IDirectFBFont_Requestor_GetAscender( IDirectFBFont *thiz, int *ascender )
+IDirectFBFont_Requestor_GetAscender( IDirectFBFont *thiz, int *ret_ascender )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     int                    ascender;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!ret_ascender)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBFONT_METHOD_ID_GetAscender, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_INT( parser, ascender );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_ascender = ascender;
+
+     return DFB_OK;
 }
 
 static DFBResult

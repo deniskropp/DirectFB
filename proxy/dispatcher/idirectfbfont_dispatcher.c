@@ -194,6 +194,25 @@ IDirectFBFont_Dispatcher_GetGlyphExtents( IDirectFBFont *thiz,
 /**************************************************************************************************/
 
 static DirectResult
+Dispatch_GetAscender( IDirectFBFont *thiz, IDirectFBFont *real,
+                      VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     int          ascender;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     ret = real->GetAscender( real, &ascender );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, ascender,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetHeight( IDirectFBFont *thiz, IDirectFBFont *real,
                     VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -273,6 +292,8 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
               "Handling request for instance %lu with method %lu...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBFONT_METHOD_ID_GetAscender:
+               return Dispatch_GetAscender( dispatcher, real, manager, msg );
           case IDIRECTFBFONT_METHOD_ID_GetHeight:
                return Dispatch_GetHeight( dispatcher, real, manager, msg );
           case IDIRECTFBFONT_METHOD_ID_GetStringWidth:
