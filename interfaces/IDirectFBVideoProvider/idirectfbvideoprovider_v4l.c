@@ -444,6 +444,10 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      v4l_stop( data );
 
      switch (surface->format) {
+          case DSPF_YUY2:
+               bpp = 16;
+               palette = VIDEO_PALETTE_YUV422;
+               break;
           case DSPF_RGB15:
                bpp = 15;
                palette = VIDEO_PALETTE_RGB555;
