@@ -426,7 +426,7 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      DEBUGMSG( "DirectFB/Core: we are a slave, joining...\n" );
 
-     dfb_config->sighandler = false;
+     //dfb_config->sighandler = false;
      dfb_sig_install_handlers();
      
      for (i=0; i<NUM_CORE_PARTS; i++) {

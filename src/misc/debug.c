@@ -120,8 +120,8 @@ __cyg_profile_func_exit (char *this_fn,
      if (level > MAX_LEVEL)
           return;
 
-     DFB_ASSERT( level >= 0 );
-     DFB_ASSERT( threads[pid].trace[level] == this_fn );
+//     DFB_ASSERT( level >= 0 );
+//     DFB_ASSERT( threads[pid].trace[level] == this_fn );
 }
 
 
