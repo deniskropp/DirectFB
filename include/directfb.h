@@ -576,6 +576,18 @@ extern "C"
      );
 
      /*
+      * Called for each block of continous data requested,
+      * e.g. by a Video Provider. Write as many data as you can but
+      * not more than specified by length. Return the number of bytes written
+      * or 'EOF' if no data is available anymore.
+      */
+     typedef int (*DFBGetDataCallback) (
+          void                              *buffer,
+          unsigned int                       length,
+          void                              *callbackdata
+     );
+
+     /*
       * Description of how to load the glyphs from the font file.
       */
      typedef struct {
@@ -753,6 +765,18 @@ extern "C"
           DFBResult (*CreateVideoProvider) (
                IDirectFB                *thiz,
                const char               *filename,
+               IDirectFBVideoProvider  **interface
+          );
+
+          /*
+           * Create a streamed video provider that uses the callback function
+           * to retrieve data. Callback is called one time during creation
+           * to determine the data type.
+           */
+          DFBResult (*CreateStreamedVideoProvider) (
+               IDirectFB                *thiz,
+               DFBGetDataCallback        callback,
+               void                     *callback_data,
                IDirectFBVideoProvider  **interface
           );
 
@@ -1296,7 +1320,7 @@ extern "C"
 
           /*
            * Set the source colorkey, i.e. the pixel value that is
-           * excluded when blitting from this surface.
+           * excluded from the source when blitting to this surface.
            */
           DFBResult (*SetSrcColorKey) (
                IDirectFBSurface         *thiz,
