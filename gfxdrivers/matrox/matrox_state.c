@@ -185,10 +185,10 @@ static __u32 matroxDestBlend[] = {
 };
 
 static __u32 matroxModulation[] = {
-     ALPHACHANNEL,
-     ALPHACHANNEL,
-     ALPHACHANNEL | DIFFUSEDALPHA,
-     ALPHACHANNEL | MODULATEDALPHA
+     VIDEOALPHA,
+     VIDEOALPHA,
+     VIDEOALPHA | DIFFUSEDALPHA,
+     VIDEOALPHA | MODULATEDALPHA
 };
 
 inline void matrox_validate_drawBlend()
