@@ -139,7 +139,7 @@ crtc2InitLayer( CoreLayer                  *layer,
      description->caps = DLCAPS_SURFACE |
                          DLCAPS_FIELD_PARITY | DLCAPS_FLICKER_FILTERING |
                          DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
-                         DLCAPS_HUE | DLCAPS_SATURATION;
+                         DLCAPS_HUE | DLCAPS_SATURATION | DLCAPS_ALPHA_RAMP;
      description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
@@ -147,14 +147,15 @@ crtc2InitLayer( CoreLayer                  *layer,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox CRTC2 Layer" );
 
      /* fill out the default configuration */
-     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
-                           DLCONF_OPTIONS;
-     config->width       = 720;
-     config->height      = ntsc ? 480 : 576;
-     config->pixelformat = DSPF_YUY2;
-     config->buffermode  = DLBM_FRONTONLY;
-     config->options     = DLOP_NONE;
+     config->flags        = DLCONF_WIDTH | DLCONF_HEIGHT |
+                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                            DLCONF_OPTIONS | DLCONF_SURFACE_CAPS;
+     config->width        = 720;
+     config->height       = ntsc ? 480 : 576;
+     config->pixelformat  = DSPF_YUY2;
+     config->buffermode   = DLBM_FRONTONLY;
+     config->options      = DLOP_NONE;
+     config->surface_caps = DSCAPS_INTERLACED;
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
@@ -187,6 +188,9 @@ crtc2TestRegion( CoreLayer                  *layer,
 
      if (config->options & ~CRTC2_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
+
+     if (config->surface_caps & ~DSCAPS_INTERLACED)
+          fail |= CLRCF_SURFACE_CAPS;
 
      switch (config->format) {
           case DSPF_ARGB:
@@ -282,24 +286,16 @@ crtc2FlipRegion( CoreLayer           *layer,
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
      volatile __u8        *mmio    = mdrv->mmio_base;
 
-     int                   vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
-     int                   line;
-
      dfb_surface_flip_buffers( surface, false );
      crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
-     line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
-     if (line + 6 > vdisplay && line < vdisplay)
-          while ((int)(mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
-               ;
-
      if (mcrtc2->config.options & DLOP_FIELD_PARITY) {
-          int field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
+          int field = (mga_in32( mmio, C2VCOUNT ) & C2FIELD) ? 1 : 0;
 
           while (field == mcrtc2->field) {
                dfb_screen_wait_vsync( mdrv->secondary );
 
-               field = (mga_in32( mmio, C2VCOUNT ) >> 24) & 0x1;
+               field = (mga_in32( mmio, C2VCOUNT ) & C2FIELD) ? 1 : 0;
           }
      }
      crtc2_set_buffer( mdrv, mcrtc2 );
@@ -355,7 +351,7 @@ crtc2GetCurrentOutputField( CoreLayer *layer,
      if (!field)
           return DFB_INVARG;
 
-     *field = (mga_in32( mdrv->mmio_base, C2VCOUNT ) >> 24) & 0x1;
+     *field = (mga_in32( mdrv->mmio_base, C2VCOUNT ) & C2FIELD) ? 1 : 0;
 
      return DFB_OK;
 }
@@ -401,89 +397,76 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
 
      mcrtc2->regs.c2CTL = 0;
 
+     /* Don't touch sub-picture bits. */
      mcrtc2->regs.c2DATACTL  = mga_in32( mdrv->mmio_base, C2DATACTL );
-     mcrtc2->regs.c2DATACTL &= ~0x00000097;
+     mcrtc2->regs.c2DATACTL &= C2STATICKEY | C2OFFSETDIVEN | C2STATICKEYEN | C2SUBPICEN;
 
-     /* c2pixcksel = 01 (vdoclk) */
-     mcrtc2->regs.c2CTL |= (1 << 1);
      if (mdev->g450_matrox)
-          mcrtc2->regs.c2CTL |= (1 << 14);
+          mcrtc2->regs.c2CTL |= C2PIXCLKSEL_CRISTAL;
+     else
+          mcrtc2->regs.c2CTL |= C2PIXCLKSEL_VDOCLK;
 
      /*
       * High priority request level.
       * According to G400 specs these values should
       * be fixed when CRTC2 is in YUV mode.
       */
-     /* c2hiprilvl = 010 */
-     mcrtc2->regs.c2CTL |= (2 << 4);
-     /* c2maxhipri = 001 */
-     mcrtc2->regs.c2CTL |= (1 << 8);
+     /* c2hiprilvl */
+     mcrtc2->regs.c2CTL |= 2 << 4;
+     /* c2maxhipri */
+     mcrtc2->regs.c2CTL |= 1 << 8;
 
-     /* c2vidrstmod = 01 */
-     mcrtc2->regs.c2CTL |= (1 << 28);
-     /* c2hploaden = 1 */
-     mcrtc2->regs.c2CTL |= (1 << 30);
-     /* c2vploaden = 1 */
-     mcrtc2->regs.c2CTL |= (1 << 31);
+     mcrtc2->regs.c2CTL |= C2VIDRSTMOD_RISING | C2HPLOADEN | C2VPLOADEN;
 
      switch (surface->format) {
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
-               /* c2dithen = 1 */
-               mcrtc2->regs.c2DATACTL |= (1 << 0);
-               /* c2yfiltend = 1 */
-               mcrtc2->regs.c2DATACTL |= (1 << 1);
-               /* c2cbcrfilten = 1 */
-               mcrtc2->regs.c2DATACTL |= (1 << 2);
+               mcrtc2->regs.c2DATACTL |= C2DITHEN | C2YFILTEN | C2CBCRFILTEN;
                break;
           default:
                break;
      }
 
      if (dfb_config->matrox_ntsc)
-          /* c2ntscen = 1 */
-          mcrtc2->regs.c2DATACTL |= (1 << 4);
+          mcrtc2->regs.c2DATACTL |= C2NTSCEN;
 
      /* pixel format settings */
      switch (surface->format) {
           case DSPF_I420:
           case DSPF_YV12:
-               /* c2depth = 111 */
-               mcrtc2->regs.c2CTL |= (7 << 21);
+               mcrtc2->regs.c2CTL |= C2DEPTH_YCBCR420;
                break;
 
           case DSPF_UYVY:
-               /* c2uyvyfmt = 1 */
-               mcrtc2->regs.c2DATACTL |= (1 << 7);
+               mcrtc2->regs.c2DATACTL |= C2UYVYFMT;
                /* fall through */
 
           case DSPF_YUY2:
-               /* c2depth = 101 */
-               mcrtc2->regs.c2CTL |= (5 << 21);
+               mcrtc2->regs.c2CTL |= C2DEPTH_YCBCR422;
                break;
 
           case DSPF_ARGB1555:
-               /* c2depth = 001 */
-               mcrtc2->regs.c2CTL |= (1 << 21);
+               mcrtc2->regs.c2CTL |= C2DEPTH_15BPP;
                break;
 
           case DSPF_RGB16:
-               /* c2depth = 010 */
-               mcrtc2->regs.c2CTL |= (2 << 21);
+               mcrtc2->regs.c2CTL |= C2DEPTH_16BPP;
                break;
 
           case DSPF_RGB32:
           case DSPF_ARGB:
-               /* c2depth = 100 */
-               mcrtc2->regs.c2CTL |= (4 << 21);
+               mcrtc2->regs.c2CTL |= C2DEPTH_32BPP;
                break;
 
           default:
                D_BUG( "unexpected pixelformat" );
                return;
      }
+
+     if (!(surface->caps & DSCAPS_INTERLACED))
+          mcrtc2->regs.c2CTL |= C2VCBCRSINGLE;
 
      /* interleaved fields */
      mcrtc2->regs.c2OFFSET = surface->front_buffer->video.pitch * 2;
@@ -508,8 +491,14 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
 
           mcrtc2->regs.c2MISC = 0;
           /* c2vlinecomp */
-          mcrtc2->regs.c2MISC |= ((vdisplay + 2) << 16);
+          mcrtc2->regs.c2MISC |= (vdisplay + 2) << 16;
      }
+
+     /* c2bpp15halpha */
+     mcrtc2->regs.c2DATACTL |= config->alpha_ramp[3] << 8;
+
+     /* c2bpp15lalpha */
+     mcrtc2->regs.c2DATACTL |= config->alpha_ramp[0] << 16;
 }
 
 static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
@@ -517,24 +506,30 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
                                CoreSurface          *surface )
 {
      SurfaceBuffer *front_buffer = surface->front_buffer;
+     int            field_offset = front_buffer->video.pitch;
 
      mcrtc2->regs.c2STARTADD1 = front_buffer->video.offset;
-     mcrtc2->regs.c2STARTADD0 = front_buffer->video.offset + front_buffer->video.pitch;
+     mcrtc2->regs.c2STARTADD0 = mcrtc2->regs.c2STARTADD1 + field_offset;
+
+     if (surface->caps & DSCAPS_INTERLACED)
+          field_offset /= 2;
+     else
+          field_offset = 0;
 
      switch (surface->format) {
           case DSPF_I420:
                mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * front_buffer->video.pitch;
-               mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + front_buffer->video.pitch/2;
+               mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
 
                mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->height/2 * front_buffer->video.pitch/2;
-               mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + front_buffer->video.pitch/2;
+               mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
                break;
           case DSPF_YV12:
                mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * front_buffer->video.pitch;
-               mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + front_buffer->video.pitch/2;
+               mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
 
                mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->height/2 *  front_buffer->video.pitch/2;
-               mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + front_buffer->video.pitch/2;
+               mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
                break;
           default:
                break;
@@ -546,12 +541,12 @@ static void crtc2_set_buffer( MatroxDriverData     *mdrv,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
-     mga_out32( mmio, mcrtc2->regs.c2STARTADD1, C2STARTADD1 );
      mga_out32( mmio, mcrtc2->regs.c2STARTADD0, C2STARTADD0 );
-     mga_out32( mmio, mcrtc2->regs.c2PL2STARTADD1, C2PL2STARTADD1 );
+     mga_out32( mmio, mcrtc2->regs.c2STARTADD1, C2STARTADD1 );
      mga_out32( mmio, mcrtc2->regs.c2PL2STARTADD0, C2PL2STARTADD0 );
-     mga_out32( mmio, mcrtc2->regs.c2PL3STARTADD1, C2PL3STARTADD1 );
+     mga_out32( mmio, mcrtc2->regs.c2PL2STARTADD1, C2PL2STARTADD1 );
      mga_out32( mmio, mcrtc2->regs.c2PL3STARTADD0, C2PL3STARTADD0 );
+     mga_out32( mmio, mcrtc2->regs.c2PL3STARTADD1, C2PL3STARTADD1 );
 }
 
 static void
@@ -562,24 +557,19 @@ crtc2OnOff( MatroxDriverData     *mdrv,
      volatile __u8 *mmio = mdrv->mmio_base;
 
      if (on)
-          /* c2en = 1 */
-          mcrtc2->regs.c2CTL |= 1;
+          mcrtc2->regs.c2CTL |= C2EN;
      else
-          /* c2en = 0 */
-          mcrtc2->regs.c2CTL &= ~1;
+          mcrtc2->regs.c2CTL &= ~C2EN;
      mga_out32( mmio, mcrtc2->regs.c2CTL, C2CTL );
 
      if (on)
-          /* c2pixclkdis = 0 */
-          mcrtc2->regs.c2CTL &= ~8;
+          mcrtc2->regs.c2CTL &= ~C2PIXCLKDIS;
      else
-          /* c2pixclkdis = 1 */
-          mcrtc2->regs.c2CTL |= 8;
+          mcrtc2->regs.c2CTL |= C2PIXCLKDIS;
      mga_out32( mmio, mcrtc2->regs.c2CTL, C2CTL );
 
      if (!on) {
-          /* c2interlace = 0 */
-          mcrtc2->regs.c2CTL &= ~(1 << 25);
+          mcrtc2->regs.c2CTL &= ~C2INTERLACE;
           mga_out32( mmio, mcrtc2->regs.c2CTL, C2CTL );
      }
 }
@@ -592,17 +582,11 @@ static void crtc2_set_mafc( MatroxDriverData     *mdrv,
 
      val = mga_in_dac( mmio, XMISCCTRL );
      if (on) {
-          /*
-           * mfcsel   = 01  (MAFC)
-           * vdoutsel = 110 (CRTC2 ITU-R 656)
-           */
-          val &= ~((3 << 1) | (7 << 5));
-          val |=   (1 << 1) | (6 << 5);
+          val &= ~(MFCSEL_MASK | VDOUTSEL_MASK);
+          val |= MFCSEL_MAFC | VDOUTSEL_CRTC2656;
      } else {
-          /*
-           * mfcsel   = 11  (Disable)
-           */
-          val |= (3 << 1);
+          val &= ~MFCSEL_MASK;
+          val |= MFCSEL_DIS;
      }
      mga_out_dac( mmio, XMISCCTRL, val );
 }
@@ -629,17 +613,21 @@ crtc2_disable_output( MatroxDriverData     *mdrv,
           volatile __u8 *mmio = mdrv->mmio_base;
           __u8           val;
 
-          /*
-           * dac2pdn = 0
-           * cfifopdn = 0
-           */
+          /* Set Rset to 0.7 V */
+          val = mga_in_dac( mmio, XGENIOCTRL );
+          val &= ~0x40;
+          mga_out_dac( mmio, XGENIOCTRL, val );
+          val = mga_in_dac( mmio, XGENIODATA );
+          val &= ~0x40;
+          mga_out_dac( mmio, XGENIODATA, val );
+
           val = mga_in_dac( mmio, XPWRCTRL );
-          val &= ~((1 << 4) | (1 << 0));
+          val &= ~(DAC2PDN | CFIFOPDN);
           mga_out_dac( mmio, XPWRCTRL, val );
 
-          /* dac2outsel = 00 (disable) */
           val = mga_in_dac( mmio, XDISPCTRL );
-          val &= ~(3 << 2);
+          val &= ~DAC2OUTSEL_MASK;
+          val |= DAC2OUTSEL_DIS;
           mga_out_dac( mmio, XDISPCTRL, val );
      }
 
@@ -662,6 +650,7 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
           volatile __u8 *mmio = mdrv->mmio_base;
           __u8           val;
 
+          /* Set Rset to 1.0 V */
           val = mga_in_dac( mmio, XGENIOCTRL );
           val |= 0x40;
           mga_out_dac( mmio, XGENIOCTRL, val );
@@ -669,28 +658,18 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
           val &= ~0x40;
           mga_out_dac( mmio, XGENIODATA, val );
 
-          /*
-           * dac2pdn = 1
-           * cfifopdn = 1
-           */
           val = mga_in_dac( mmio, XPWRCTRL );
-          val |= (1 << 4) | (1 << 0);
+          val |= DAC2PDN | CFIFOPDN;
           mga_out_dac( mmio, XPWRCTRL, val );
 
-          /* dac2outsel = 11 (TVE) */
           val = mga_in_dac( mmio, XDISPCTRL );
-          val |= (3 << 2);
+          val &= ~DAC2OUTSEL_MASK;
+          val |= DAC2OUTSEL_TVE;
           mga_out_dac( mmio, XDISPCTRL, val );
 
           if (dfb_config->matrox_cable == 1) {
-               /*
-                * dac2hsoff = 0
-                * dac2vsoff = 0
-                * dac2hspol = 0 (+)
-                * dac2vspol = 0 (+)
-                */
                val = mga_in_dac( mmio, XSYNCCTRL );
-               val &= 0x0F;
+               val &= ~(DAC2HSOFF | DAC2VSOFF | DAC2HSPOL | DAC2VSPOL);
                mga_out_dac( mmio, XSYNCCTRL, val );
           }
      }
@@ -709,10 +688,9 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
 
      maven_set_regs( mav, mdrv, &mcrtc2->config, &mcrtc2->adj );
 
-     /* c2interlace = 1 */
-     mcrtc2->regs.c2CTL |= (1 << 25);
+     mcrtc2->regs.c2CTL |= C2INTERLACE;
      if (mdev->g450_matrox)
-          mcrtc2->regs.c2CTL |= (1 << 12);
+          mcrtc2->regs.c2CTL |= 0x1000; /* Undocumented bit */
      while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != 1)
           ;
      while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != 0)

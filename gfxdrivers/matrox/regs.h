@@ -43,6 +43,30 @@
 
 /* CRTC2 registers */
 #define C2CTL            0x3C10
+#    define C2EN                0x00000001
+#    define C2PIXCLKSEL_PCICLK  0x00000000
+#    define C2PIXCLKSEL_VDOCLK  0x00000002
+#    define C2PIXCLKSEL_PIXPLL  0x00000004
+#    define C2PIXCLKSEL_VIDPLL  0x00000006 /* SYSPLL on G400 */
+#    define C2PIXCLKSEL_VDCLK   0x00004000 /* G450/G550 only */
+#    define C2PIXCLKSEL_CRISTAL 0x00004002 /* G450/G550 only */
+#    define C2PIXCLKSEL_SYSPLL  0x00004004 /* G450/G550 only */
+#    define C2PIXCLKDIS         0x00000008
+#    define CRTCDACSEL          0x00100000
+#    define C2DEPTH_15BPP       0x00200000
+#    define C2DEPTH_16BPP       0x00400000
+#    define C2DEPTH_32BPP       0x00800000
+#    define C2DEPTH_YCBCR422    0x00A00000
+#    define C2DEPTH_YCBCR420    0x00E00000
+#    define C2VCBCRSINGLE       0x01000000
+#    define C2INTERLACE         0x02000000
+#    define C2FIELDLENGTH       0x04000000
+#    define C2FIELDPOL          0x08000000
+#    define C2VIDRSTMOD_FALLING 0x00000000
+#    define C2VIDRSTMOD_RISING  0x10000000
+#    define C2VIDRSTMOD_BOTH    0x20000000
+#    define C2HPLOADEN          0x40000000
+#    define C2VPLOADEN          0x80000000
 #define C2HPARAM         0x3C14
 #define C2HSYNC          0x3C18
 #define C2VPARAM         0x3C1C
@@ -56,8 +80,20 @@
 #define C2PL3STARTADD1   0x3C3C
 #define C2OFFSET         0x3C40
 #define C2MISC           0x3C44
+#    define C2HSYNCPOL          0x00000100
+#    define C2VSYNCPOL          0x00000200
 #define C2VCOUNT         0x3C48
+#    define C2FIELD             0x01000000
 #define C2DATACTL        0x3C4C
+#    define C2DITHEN            0x00000001
+#    define C2YFILTEN           0x00000002
+#    define C2CBCRFILTEN        0x00000004
+#    define C2SUBPICEN          0x00000008
+#    define C2NTSCEN            0x00000010
+#    define C2STATICKEYEN       0x00000020
+#    define C2OFFSETDIVEN       0x00000040
+#    define C2UYVYFMT           0x00000080
+#    define C2STATICKEY         0x1F000000
 #define C2SUBPICLUT      0x3C50
 #define C2SPICSTARTADD0  0x3C54
 #define C2SPICSTARTADD1  0x3C58
@@ -372,6 +408,18 @@
 /* DAC registers */
 
 #define XMISCCTRL      0x1E
+#     define DACPDN             0x01
+#     define MFCSEL_MAFC        0x02
+#     define MFCSEL_PANELLINK   0x04
+#     define MFCSEL_DIS         0x06
+#     define MFCSEL_MASK        0x06
+#     define VGA8DAC            0x08
+#     define RAMCS              0x10
+#     define VDOUTSEL_MAFC12    0x00
+#     define VDOUTSEL_BYPASS656 0x40
+#     define VDOUTSEL_CRTC2RGB  0x80
+#     define VDOUTSEL_CRTC2656  0xC0
+#     define VDOUTSEL_MASK      0xE0
 
 #define XGENIOCTRL     0x2A
 #define XGENIODATA     0x2B
@@ -387,8 +435,36 @@
 #define XCOLKEY0BLUE   0x57
 
 #define XDISPCTRL      0x8A
+#     define DAC1OUTSEL_DIS     0x00
+#     define DAC1OUTSEL_EN      0x01
+#     define DAC1OUTSEL_MASK    0x01
+#     define DAC2OUTSEL_DIS     0x00
+#     define DAC2OUTSEL_CRTC1   0x04
+#     define DAC2OUTSEL_CRTC2   0x08
+#     define DAC2OUTSEL_TVE     0x0C
+#     define DAC2OUTSEL_MASK    0x0C
+#     define PANOUTSEL_DIS      0x00
+#     define PANOUTSEL_CRTC1    0x20
+#     define PANOUTSEL_CRTC2RGB 0x40
+#     define PANOUTSEL_CRTC2656 0x60
+#     define PANOUTSEL_MASK     0x60
+
 #define XSYNCCTRL      0x8B
+#     define DAC1HSOFF          0x01
+#     define DAC1VSOFF          0x02
+#     define DAC1HSPOL          0x04
+#     define DAC1VSPOL          0x08
+#     define DAC2HSOFF          0x10
+#     define DAC2VSOFF          0x20
+#     define DAC2HSPOL          0x40
+#     define DAC2VSPOL          0x80
+
 #define XPWRCTRL       0xA0
+#     define DAC2PDN            0x01
+#     define VIDPLLPDN          0x02
+#     define PANPDN             0x04
+#     define RFIFOPDN           0x08
+#     define CFIFOPDN           0x10
 
 #endif
 

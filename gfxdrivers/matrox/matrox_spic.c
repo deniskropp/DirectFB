@@ -103,15 +103,16 @@ spicInitLayer( CoreLayer                  *layer,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Matrox CRTC2 Sub-Picture" );
 
      /* fill out the default configuration */
-     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
-                           DLCONF_OPTIONS;
+     config->flags        = DLCONF_WIDTH | DLCONF_HEIGHT |
+                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                            DLCONF_OPTIONS | DLCONF_SURFACE_CAPS;
 
-     config->width       = 720;
-     config->height      = dfb_config->matrox_ntsc ? 480 : 576;
-     config->pixelformat = DSPF_ALUT44;
-     config->buffermode  = DLBM_FRONTONLY;
-     config->options     = DLOP_NONE;
+     config->width        = 720;
+     config->height       = dfb_config->matrox_ntsc ? 480 : 576;
+     config->pixelformat  = DSPF_ALUT44;
+     config->buffermode   = DLBM_FRONTONLY;
+     config->options      = DLOP_NONE;
+     config->surface_caps = DSCAPS_INTERLACED;
 
      return DFB_OK;
 }
@@ -129,22 +130,34 @@ spicTestRegion( CoreLayer                  *layer,
           fail |= CLRCF_OPTIONS;
 
      /* Can't have both at the same time */
-     if (config->options & DLOP_ALPHACHANNEL &&
-         config->options & DLOP_OPACITY)
+     if (config->options & DLOP_ALPHACHANNEL && config->options & DLOP_OPACITY)
           fail |= CLRCF_OPTIONS;
 
-     switch (config->format) {
-          case DSPF_ALUT44:
+     switch (config->opacity) {
+          case 0x00:
+          case 0xFF:
                break;
           default:
-               fail |= CLRCF_FORMAT;
+               if (!(config->options & DLOP_OPACITY))
+                    fail |= CLRCF_OPACITY;
      }
+
+     if (config->surface_caps & ~DSCAPS_INTERLACED)
+          fail |= CLRCF_SURFACE_CAPS;
+
+     if (config->format != DSPF_ALUT44)
+          fail |= CLRCF_FORMAT;
 
      if (config->width != 720)
           fail |= CLRCF_WIDTH;
 
-     if (config->height != (dfb_config->matrox_ntsc ? 480 : 576))
-          fail |= CLRCF_HEIGHT;
+     if (config->surface_caps & DSCAPS_INTERLACED) {
+          if (config->height != (dfb_config->matrox_ntsc ? 480 : 576))
+               fail |= CLRCF_HEIGHT;
+     } else {
+          if (config->height != (dfb_config->matrox_ntsc ? 240 : 288))
+               fail |= CLRCF_HEIGHT;
+     }
 
      if (failed)
           *failed = fail;
@@ -198,45 +211,23 @@ spicSetRegion( CoreLayer                  *layer,
 
      mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
-     /* c2offsetdiven = 0 */
-     mspic->regs.c2DATACTL &= ~(1 << 6);
+     if (surface->caps & DSCAPS_INTERLACED)
+          mspic->regs.c2DATACTL &= ~C2OFFSETDIVEN;
+     else
+          mspic->regs.c2DATACTL |= C2OFFSETDIVEN;
 
-     /* c2bpp15halpha */
-     mspic->regs.c2DATACTL &= ~0x0000ff00;
-     mspic->regs.c2DATACTL |= palette->entries[1].a << 8;
-
-     /* c2bpp15lalpha */
-     mspic->regs.c2DATACTL &= ~0x00ff0000;
-     mspic->regs.c2DATACTL |= palette->entries[0].a << 16;
-
-     switch (config->opacity) {
-          case 0:
-               /* c2subpicen = 0 */
-               mspic->regs.c2DATACTL &= ~(1 << 3);
-               break;
-          case 0xFF:
-               /* c2subpicen = 1 */
-               mspic->regs.c2DATACTL |= (1 << 3);
-               break;
-          default:
-               if (!(config->options & DLOP_OPACITY))
-                    return DFB_UNSUPPORTED;
-
-               /* c2subpicen = 1 */
-               mspic->regs.c2DATACTL |= (1 << 3);
-               break;
-     }
+     if (config->opacity)
+          mspic->regs.c2DATACTL |= C2SUBPICEN;
+     else
+          mspic->regs.c2DATACTL &= ~C2SUBPICEN;
 
      if (config->options & DLOP_ALPHACHANNEL)
-          /* c2statickeyen = 0 */
-          mspic->regs.c2DATACTL &= ~(1 << 5);
+          mspic->regs.c2DATACTL &= ~C2STATICKEYEN;
      else
-          /* c2statickeyen = 1 */
-          mspic->regs.c2DATACTL |= (1 << 5);
+          mspic->regs.c2DATACTL |= C2STATICKEYEN;
 
-     /* c2statickey */
-     mspic->regs.c2DATACTL &= ~0x1F000000;
-     mspic->regs.c2DATACTL |= ((config->opacity + 1) << 20) & 0x1F000000;
+     mspic->regs.c2DATACTL &= ~C2STATICKEY;
+     mspic->regs.c2DATACTL |= ((config->opacity + 1) << 20) & C2STATICKEY;
 
      mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL);
 
@@ -255,8 +246,7 @@ spicRemoveRegion( CoreLayer *layer,
 
      mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
-     /* c2subpicen = 0 */
-     mspic->regs.c2DATACTL &= ~(1 << 3);
+     mspic->regs.c2DATACTL &= ~C2SUBPICEN;
 
      mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL );
 
@@ -302,8 +292,11 @@ static void spic_set_buffer( MatroxDriverData    *mdrv,
      volatile __u8 *mmio         = mdrv->mmio_base;
 
      mspic->regs.c2SPICSTARTADD1 = front_buffer->video.offset;
-     mspic->regs.c2SPICSTARTADD0 = front_buffer->video.offset + front_buffer->video.pitch;
+     mspic->regs.c2SPICSTARTADD0 = front_buffer->video.offset;
 
-     mga_out32( mmio, mspic->regs.c2SPICSTARTADD1, C2SPICSTARTADD1 );
+     if (surface->caps & DSCAPS_INTERLACED)
+          mspic->regs.c2SPICSTARTADD0 += front_buffer->video.pitch;
+
      mga_out32( mmio, mspic->regs.c2SPICSTARTADD0, C2SPICSTARTADD0 );
+     mga_out32( mmio, mspic->regs.c2SPICSTARTADD1, C2SPICSTARTADD1 );
 }
