@@ -606,6 +606,7 @@ data/Makefile
 tools/Makefile
 docs/Makefile
 docs/directfbrc.5
+docs/directfb-csource.1
 docs/html/Makefile
 ], [chmod +x directfb-config])
 

@@ -2,6 +2,14 @@
 
 SUBDIRS = html
 
-man_MANS = directfbrc.5
+if DIRECTFB_CSOURCE
+csource_mans = directfb-csource.1
+endif
 
-EXTRA_DIST = directfbrc.5.in
+man_MANS = \
+	$(csource_mans)	\
+	directfbrc.5
+
+EXTRA_DIST = \
+	directfbrc.5.in		\
+	directfb-csource.1.in
