@@ -84,8 +84,13 @@ uc_select_blittype( CardState* state,
      }
 
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
-          if (uc_has_src_format_3d( state->source->format ))
+          if (uc_has_src_format_3d( state->source->format )) {
+               if (!DFB_PIXELFORMAT_HAS_ALPHA(state->source->format) && 
+                   DFB_PIXELFORMAT_HAS_ALPHA(state->destination->format))
+                    return UC_TYPE_UNSUPPORTED;
+
                return UC_TYPE_3D;
+          }
      }
 
      return UC_TYPE_UNSUPPORTED;
