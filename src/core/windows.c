@@ -273,16 +273,19 @@ dfb_window_create( CoreWindowStack        *stack,
                    int                     width,
                    int                     height,
                    DFBWindowCapabilities   caps,
+                   DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
                    CoreWindow            **window )
 {
      DFBResult               ret;
      CoreSurface            *surface;
      CoreSurfacePolicy       surface_policy;
-     DFBSurfaceCapabilities  surface_caps;
      CoreWindow             *w;
      DisplayLayer           *layer = dfb_layer_at( stack->layer_id );
      CoreSurface            *layer_surface = dfb_layer_surface( layer );
+
+     surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPERATED |
+                     DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
      if (caps & DWCAPS_ALPHACHANNEL) {
           if (pixelformat == DSPF_UNKNOWN)
@@ -299,13 +302,15 @@ dfb_window_create( CoreWindowStack        *stack,
                pixelformat = layer_surface->format;
      }
 
-     if (layer_surface->back_buffer->policy == CSP_SYSTEMONLY)
+     if (surface_caps & DSCAPS_VIDEOONLY)
+          surface_policy = CSP_VIDEOONLY;
+     else if (surface_caps & DSCAPS_SYSTEMONLY)
+          surface_policy = CSP_SYSTEMONLY;
+     else if (layer_surface->back_buffer->policy == CSP_SYSTEMONLY)
           surface_policy = CSP_SYSTEMONLY;
 
      if (caps & DWCAPS_DOUBLEBUFFER)
-          surface_caps = DSCAPS_FLIPPING;
-     else
-          surface_caps = DSCAPS_NONE;
+          surface_caps |= DSCAPS_FLIPPING;
 
      /* Create the window object. */
      w = (CoreWindow*) fusion_object_create( stack->pool );

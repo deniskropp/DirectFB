@@ -399,7 +399,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                     ret = dfb_layer_create_window( data->layer, x, y,
                                                    width, height, window_caps,
-                                                   format, &window );
+                                                   caps, format, &window );
                     if (ret)
                          return ret;
 

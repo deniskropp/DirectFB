@@ -408,12 +408,13 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
 {
      CoreWindow            *w;
      DFBResult              ret;
-     unsigned int           width  = 128;
-     unsigned int           height = 128;
-     int                    posx   = 0;
-     int                    posy   = 0;
-     DFBWindowCapabilities  caps   = 0;
-     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
+     unsigned int           width        = 128;
+     unsigned int           height       = 128;
+     int                    posx         = 0;
+     int                    posy         = 0;
+     DFBWindowCapabilities  caps         = 0;
+     DFBSurfaceCapabilities surface_caps = 0;
+     DFBSurfacePixelFormat  format       = DSPF_UNKNOWN;
 
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -430,6 +431,8 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
           posy = desc->posy;
      if (desc->flags & DWDESC_CAPS)
           caps = desc->caps;
+     if (desc->flags & DWDESC_SURFACE_CAPS)
+          caps = desc->surface_caps;
 
      if ((caps & ~DWCAPS_ALL) || !window)
           return DFB_INVARG;
@@ -438,7 +441,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
           return DFB_INVARG;
 
      ret = dfb_layer_create_window( data->layer, posx, posy, width, height,
-                                    caps, format, &w );
+                                    caps, surface_caps, format, &w );
      if (ret)
           return ret;
 

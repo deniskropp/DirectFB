@@ -50,13 +50,13 @@
 #include <misc/util.h>
 #include <misc/mem.h>
 
-static DFBResult dfb_surface_allocate_buffer  ( CoreSurface    *surface,
-                                                int             policy,
-                                                SurfaceBuffer **buffer );
-static DFBResult dfb_surface_reallocate_buffer( CoreSurface    *surface,
-                                                SurfaceBuffer  *buffer );
-static void dfb_surface_deallocate_buffer     ( CoreSurface    *surface,
-                                                SurfaceBuffer  *buffer );
+static DFBResult dfb_surface_allocate_buffer  ( CoreSurface        *surface,
+                                                CoreSurfacePolicy   policy,
+                                                SurfaceBuffer     **buffer );
+static DFBResult dfb_surface_reallocate_buffer( CoreSurface        *surface,
+                                                SurfaceBuffer      *buffer );
+static void dfb_surface_deallocate_buffer     ( CoreSurface        *surface,
+                                                SurfaceBuffer      *buffer );
 
 
 /* internal functions needed to avoid side effects */
@@ -237,18 +237,24 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
           return DFB_UNSUPPORTED;
      }
 
-     dfb_surfacemanager_lock( surface->manager );
-
-     skirmish_prevail( &surface->front_lock );
-     skirmish_prevail( &surface->back_lock );
-
      old_width  = surface->width;
      old_height = surface->height;
      old_format = surface->format;
 
-     surface->width = width;
+     surface->width  = width;
      surface->height = height;
      surface->format = format;
+     
+     if (surface->width  <= surface->min_width &&
+         old_width       <= surface->min_width &&
+         surface->height <= surface->min_height &&
+         old_height      <= surface->min_height)
+          return DFB_OK;
+
+     dfb_surfacemanager_lock( surface->manager );
+
+     skirmish_prevail( &surface->front_lock );
+     skirmish_prevail( &surface->back_lock );
 
      ret = dfb_surface_reallocate_buffer( surface, surface->front_buffer );
      if (ret) {
@@ -570,6 +576,11 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
      surface->format = format;
      surface->caps   = caps;
 
+     if (caps & DSCAPS_STATIC_ALLOC) {
+          surface->min_width  = width;
+          surface->min_height = height;
+     }
+
      skirmish_init( &surface->lock );
      
      skirmish_init( &surface->front_lock );
@@ -588,51 +599,83 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
 
 /** internal **/
 
-static DFBResult dfb_surface_allocate_buffer( CoreSurface *surface, int policy,
-                                              SurfaceBuffer **buffer )
+static DFBResult dfb_surface_allocate_buffer( CoreSurface        *surface,
+                                              CoreSurfacePolicy   policy,
+                                              SurfaceBuffer     **ret_buffer )
 {
-     SurfaceBuffer *b;
+     SurfaceBuffer *buffer;
 
-     b = (SurfaceBuffer *) shcalloc( 1, sizeof(SurfaceBuffer) );
+     DFB_ASSERT( surface != NULL );
+     DFB_ASSERT( ret_buffer != NULL );
 
-     b->policy = policy;
-     b->surface = surface;
+     /* Allocate buffer structure. */
+     buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
+
+     buffer->policy  = policy;
+     buffer->surface = surface;
 
      switch (policy) {
           case CSP_SYSTEMONLY:
           case CSP_VIDEOLOW:
-          case CSP_VIDEOHIGH:
-               b->system.health = CSH_STORED;
+          case CSP_VIDEOHIGH: {
+               int   pitch;
+               int   size;
+               void *data;
 
-               b->system.pitch = DFB_BYTES_PER_LINE(surface->format,
-                                                    surface->width);
-               if (b->system.pitch & 3)
-                    b->system.pitch += 4 - (b->system.pitch & 3);
+               /* Calculate pitch. */
+               pitch = DFB_BYTES_PER_LINE( surface->format,
+                                           MAX( surface->width,
+                                                surface->min_width ) );
+               if (pitch & 3)
+                    pitch += 4 - (pitch & 3);
 
-               b->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
-                                                             surface->height *
-                                                             b->system.pitch) );
-               break;
-          case CSP_VIDEOONLY: {
-                    DFBResult ret;
+               /* Calculate amount of data to allocate. */
+               size = DFB_PLANE_MULTIPLY( surface->format,
+                                          MAX( surface->height,
+                                               surface->min_height ) * pitch );
 
-                    dfb_surfacemanager_lock( surface->manager );
-
-                    ret = dfb_surfacemanager_allocate( surface->manager, b );
-
-                    dfb_surfacemanager_unlock( surface->manager );
-
-                    if (ret) {
-                         shfree( b );
-                         return ret;
-                    }
-
-                    b->video.health = CSH_STORED;
-                    break;
+               /* Allocate shared memory. */
+               data = shmalloc( size );
+               if (!data) {
+                    shfree( buffer );
+                    return DFB_NOSYSTEMMEMORY;
                }
+
+               /* Write back values. */
+               buffer->system.health = CSH_STORED;
+               buffer->system.pitch  = pitch;
+               buffer->system.addr   = data;
+
+               break;
+          }
+
+          case CSP_VIDEOONLY: {
+               DFBResult ret;
+
+               /* Lock surface manager. */
+               dfb_surfacemanager_lock( surface->manager );
+
+               /* Allocate buffer in video memory. */
+               ret = dfb_surfacemanager_allocate( surface->manager, buffer );
+
+               /* Unlock surface manager. */
+               dfb_surfacemanager_unlock( surface->manager );
+
+               /* Check for successful allocation. */
+               if (ret) {
+                    shfree( buffer );
+                    return ret;
+               }
+
+               /* Set from 'to be restored' to 'is stored'. */
+               buffer->video.health = CSH_STORED;
+
+               break;
+          }
      }
 
-     *buffer = b;
+     /* Return the new buffer. */
+     *ret_buffer = buffer;
 
      return DFB_OK;
 }
@@ -646,15 +689,34 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
           return DFB_UNSUPPORTED;
 
      if (buffer->system.health) {
-          buffer->system.pitch = DFB_BYTES_PER_LINE(surface->format,
-                                                    surface->width);
-          if (buffer->system.pitch & 3)
-               buffer->system.pitch += 4 - (buffer->system.pitch & 3);
+          int   pitch;
+          int   size;
+          void *data;
 
+          /* Calculate pitch. */
+          pitch = DFB_BYTES_PER_LINE( surface->format,
+                                      MAX( surface->width,
+                                           surface->min_width ) );
+          if (pitch & 3)
+               pitch += 4 - (pitch & 3);
+
+          /* Calculate amount of data to allocate. */
+          size = DFB_PLANE_MULTIPLY( surface->format,
+                                     MAX( surface->height,
+                                          surface->min_height ) * pitch );
+
+          /* Allocate shared memory. */
+          data = shmalloc( size );
+          if (!data)
+               return DFB_NOSYSTEMMEMORY;
+
+          /* Free old memory. */
           shfree( buffer->system.addr );
-          buffer->system.addr = shmalloc(
-                                        DFB_PLANE_MULTIPLY(surface->format,
-                                                           surface->height * buffer->system.pitch) );
+          
+          /* Write back new values. */
+          buffer->system.health = CSH_STORED;
+          buffer->system.pitch  = pitch;
+          buffer->system.addr   = data;
      }
 
      if (buffer->video.health) {

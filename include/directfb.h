@@ -440,12 +440,21 @@ typedef enum {
                                            stored interleaved. One field's
                                            height is a half of the surface's
                                            height. */
-     DSCAPS_SEPERATED    = 0x00000080   /* For usage with DSCAPS_INTERLACED.
+     DSCAPS_SEPERATED    = 0x00000080,  /* For usage with DSCAPS_INTERLACED.
                                            <br> DSCAPS_SEPERATED specifies that
                                            the fields are NOT interleaved line
                                            by line in the buffer. <br>The first
                                            field is followed by the second one
                                            in the buffer. */
+     DSCAPS_STATIC_ALLOC = 0x00000100   /* The amount of video or system memory
+                                           allocated for the surface is never
+                                           less than its initial value. This way
+                                           a surface can be resized (smaller and
+                                           bigger up to the initial size)
+                                           without reallocation of the buffers.
+                                           It's useful for surfaces that need
+                                           a guaranteed space in video memory
+                                           after resizing. */
 } DFBSurfaceCapabilities;
 
 /*
@@ -612,7 +621,9 @@ typedef enum {
      DWDESC_HEIGHT       = 0x00000004,  /* height field is valid */
      DWDESC_PIXELFORMAT  = 0x00000008,  /* pixelformat field is valid */
      DWDESC_POSX         = 0x00000010,  /* posx field is valid */
-     DWDESC_POSY         = 0x00000020   /* posy field is valid */
+     DWDESC_POSY         = 0x00000020,  /* posy field is valid */
+     DWDESC_SURFACE_CAPS = 0x00000040   /* Create the window surface with
+                                           special capabilities. */
 } DFBWindowDescriptionFlags;
 
 /*
@@ -828,16 +839,17 @@ typedef struct {
  * Description of the window that is to be created.
  */
 typedef struct {
-     DFBWindowDescriptionFlags          flags;       /* field validation */
+     DFBWindowDescriptionFlags          flags;        /* field validation */
 
-     DFBWindowCapabilities              caps;        /* capabilities */
-     unsigned int                       width;       /* pixel width */
-     unsigned int                       height;      /* pixel height */
-     DFBSurfacePixelFormat              pixelformat; /* pixel format */
-     int                                posx;        /* distance from left
-                                                        layer border */
-     int                                posy;        /* distance from upper
-                                                        layer border */
+     DFBWindowCapabilities              caps;         /* capabilities */
+     unsigned int                       width;        /* pixel width */
+     unsigned int                       height;       /* pixel height */
+     DFBSurfacePixelFormat              pixelformat;  /* pixel format */
+     int                                posx;         /* distance from left
+                                                         layer border */
+     int                                posy;         /* distance from upper
+                                                         layer border */
+     DFBSurfaceCapabilities             surface_caps; /* pixel format */
 } DFBWindowDescription;
 
 /*

@@ -138,6 +138,9 @@ struct _CoreSurface
      DFBSurfacePixelFormat  format;        /* pixel format of the surface */
      DFBSurfaceCapabilities caps;
 
+     int                    min_width;     /* minimum allocation width */
+     int                    min_height;    /* minimum allocation height */
+
      CorePalette           *palette;
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading

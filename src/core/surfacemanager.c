@@ -269,14 +269,16 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      CoreSurface *surface = buffer->surface;
 
      /* calculate the required length depending on limitations */
-     pitch = surface->width;
+     pitch = MAX( surface->width, surface->min_width );
      if (manager->pixelpitch_align > 1) {
           pitch += manager->pixelpitch_align - 1;
           pitch -= pitch % manager->pixelpitch_align;
      }
 
-     pitch = DFB_BYTES_PER_LINE(surface->format, pitch);
-     length = DFB_PLANE_MULTIPLY(surface->format, surface->height * pitch);
+     pitch = DFB_BYTES_PER_LINE( surface->format, pitch );
+     length = DFB_PLANE_MULTIPLY( surface->format,
+                                  MAX( surface->height,
+                                       surface->min_height ) * pitch );
 
      if (manager->byteoffset_align > 1) {
           length += manager->byteoffset_align - 1;

@@ -934,6 +934,7 @@ dfb_layer_create_window( DisplayLayer           *layer,
                          int                     width,
                          int                     height,
                          DFBWindowCapabilities   caps,
+                         DFBSurfaceCapabilities  surface_caps,
                          DFBSurfacePixelFormat   pixelformat,
                          CoreWindow            **window )
 {
@@ -943,8 +944,8 @@ dfb_layer_create_window( DisplayLayer           *layer,
 
      DFB_ASSERT( shared->enabled );
      
-     ret = dfb_window_create( shared->stack,
-                              x, y, width, height, caps, pixelformat, &w );
+     ret = dfb_window_create( shared->stack, x, y, width, height,
+                              caps, surface_caps, pixelformat, &w );
      if (ret)
           return ret;
 
@@ -1393,10 +1394,10 @@ create_cursor_window( DisplayLayer *layer,
                               stack->cursor.x,
                               stack->cursor.y, width, height,
                               DWHC_TOPMOST | DWCAPS_ALPHACHANNEL,
-                              DSPF_UNKNOWN, &cursor );
+                              DSCAPS_NONE, DSPF_UNKNOWN, &cursor );
      if (ret) {
           ERRORMSG( "DirectFB/Core/layers: "
-                    "failed creating a window for software cursor!\n" );
+                    "Failed creating a window for software cursor!\n" );
           return ret;
      }
 
