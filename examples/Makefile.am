@@ -14,10 +14,13 @@ else
 LITE_EXAMPLES =
 endif
 
-noinst_PROGRAMS = advanced simple stream $(LITE_EXAMPLES)
+noinst_PROGRAMS = advanced music simple stream $(LITE_EXAMPLES)
 
 advanced_SOURCES = advanced.c loader.c loader.h
 advanced_LDADD   = $(LIBADDS)
+
+music_SOURCES = music.c
+music_LDADD   = $(LIBADDS)
 
 simple_SOURCES = simple.c loader.c loader.h
 simple_LDADD   = $(LIBADDS)

@@ -24,40 +24,14 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IFUSIONSOUNDSTREAM_H__
-#define __IFUSIONSOUNDSTREAM_H__
-
-#include <fusionsound.h>
-
-#include <core/types_sound.h>
+#ifndef __IFUSIONSOUNDMUSICPROVIDER_H__
+#define __IFUSIONSOUNDMUSICPROVIDER_H__
 
 /*
- * private data struct of IFusionSoundStream
+ * probing context
  */
 typedef struct {
-     int                    ref;             /* reference counter */
-
-     CoreSound             *core;
-     CoreSoundBuffer       *buffer;
-     CorePlayback          *playback;
-     int                    size;
-
-     Reaction               reaction;
-
-     pthread_mutex_t        lock;
-     pthread_cond_t         wait;
-     bool                   playing;
-     int                    pos_write;
-     int                    pos_read;
-} IFusionSoundStream_data;
-
-/*
- * initializes interface struct and private data
- */
-DFBResult IFusionSoundStream_Construct( IFusionSoundStream *thiz,
-                                        CoreSound          *core,
-                                        CoreSoundBuffer    *buffer,
-                                        int                 size );
-
+     const char *filename;
+} IFusionSoundMusicProvider_ProbeContext;
 
 #endif

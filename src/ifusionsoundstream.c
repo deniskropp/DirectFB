@@ -53,26 +53,6 @@
 
 #include "ifusionsoundstream.h"
 
-/*
- * private data struct of IFusionSoundStream
- */
-typedef struct {
-     int                    ref;             /* reference counter */
-
-     CoreSound             *core;
-     CoreSoundBuffer       *buffer;
-     CorePlayback          *playback;
-     int                    size;
-
-     Reaction               reaction;
-
-     pthread_mutex_t        lock;
-     pthread_cond_t         wait;
-     bool                   playing;
-     int                    pos_write;
-     int                    pos_read;
-} IFusionSoundStream_data;
-
 /******/
 
 static ReactionResult IFusionSoundStream_React( const void *msg_data,

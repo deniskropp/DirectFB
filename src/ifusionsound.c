@@ -43,6 +43,7 @@
 
 #include "ifusionsoundbuffer.h"
 #include "ifusionsoundstream.h"
+#include "media/ifusionsoundmusicprovider.h"
 
 
 static DFBResult
@@ -261,6 +262,47 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      return ret;
 }
 
+static DFBResult
+IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
+                                  const char                 *filename,
+                                  IFusionSoundMusicProvider **interface )
+{
+     DFBResult                            ret;
+     DFBInterfaceFuncs                   *funcs = NULL;
+     IFusionSoundMusicProvider           *musicprovider;
+     IFusionSoundMusicProvider_ProbeContext ctx;
+
+     INTERFACE_GET_DATA(IFusionSound)
+
+     /* Check arguments */
+     if (!interface || !filename)
+          return DFB_INVARG;
+
+     if (access( filename, R_OK ) != 0)
+          return DFB_FILENOTFOUND;
+
+     /* Fill out probe context */
+     ctx.filename = filename;
+
+     /* Find a suitable implemenation */
+     ret = DFBGetInterface( &funcs,
+                            "IFusionSoundMusicProvider", NULL,
+                            DFBProbeInterface, &ctx );
+
+     if (ret)
+          return ret;
+
+     DFB_ALLOCATE_INTERFACE( musicprovider, IFusionSoundMusicProvider );
+
+     /* Construct the interface */
+     ret = funcs->Construct( musicprovider, filename );
+     if (ret)
+          return ret;
+
+     *interface = musicprovider;
+
+     return DFB_OK;
+}
 
 /* exported symbols */
 
@@ -297,6 +339,7 @@ Construct( IFusionSound *thiz,
      thiz->Release       = IFusionSound_Release;
      thiz->CreateBuffer  = IFusionSound_CreateBuffer;
      thiz->CreateStream  = IFusionSound_CreateStream;
+     thiz->CreateMusicProvider = IFusionSound_CreateMusicProvider;
 
      return DFB_OK;
 }

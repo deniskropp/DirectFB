@@ -34,25 +34,6 @@
 
 /******************************************************************************/
 
-struct __FS_CoreSoundBuffer {
-     FusionObject     object;
-
-     CoreSound       *core;
-
-     int              length;
-     int              channels;
-     FSSampleFormat   format;
-     int              rate;
-     int              bytes;
-
-     bool             notify;
-     int              break_pos;
-     
-     void            *data;
-};
-
-/******************************************************************************/
-
 static void
 buffer_destructor( FusionObject *object, bool zombie )
 {

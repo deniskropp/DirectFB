@@ -33,6 +33,23 @@
 
 #include <core/types_sound.h>
 
+struct __FS_CoreSoundBuffer {
+     FusionObject     object;
+
+     CoreSound       *core;
+
+     int              length;
+     int              channels;
+     FSSampleFormat   format;
+     int              rate;
+     int              bytes;
+
+     bool             notify;
+     int              break_pos;
+     
+     void            *data;
+};
+
 typedef enum {
      CSBNF_NONE
 } CoreSoundBufferNotificationFlags;

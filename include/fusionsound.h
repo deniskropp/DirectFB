@@ -55,6 +55,11 @@ DECLARE_INTERFACE( IFusionSoundStream )
 DECLARE_INTERFACE( IFusionSoundPlayback )
 
 /*
+ * Rendering music data into a stream.
+ */
+DECLARE_INTERFACE( IFusionSoundMusicProvider )
+
+/*
  * The sample format is the way of storing audible information.
  *
  * Data is always stored in <b>native endian</b>. This keeps the library and
@@ -120,6 +125,14 @@ typedef struct {
 } FSStreamDescription;
 
 /*
+ * Information about an IDirectFBVideoProvider.
+ */
+typedef enum {
+     FMCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
+     FMCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
+} FSMusicProviderCapabilities;
+
+/*
  * <i><b>IFusionSound</b></i> is the main FusionSound interface. Currently it
  * can only be retrieved by calling <i>IDirectFB::GetInterface()</i>. This will
  * change when Fusion and other relevant parts of DirectFB are dumped into a
@@ -168,6 +181,15 @@ DEFINE_INTERFACE( IFusionSound,
           IFusionSound             *thiz,
           FSStreamDescription      *desc,
           IFusionSoundStream      **interface
+     );
+
+     /*
+      * Create a video provider.
+      */
+     DFBResult (*CreateMusicProvider) (
+          IFusionSound               *thiz,
+          const char                 *filename,
+          IFusionSoundMusicProvider **interface
      );
 )
 
@@ -505,6 +527,74 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      DFBResult (*SetPitch) (
           IFusionSoundPlayback     *thiz,
           float                     value
+     );
+)
+
+/*
+ * <i>No summary yet...</i>
+ */
+DEFINE_INTERFACE(   IFusionSoundMusicProvider,
+     /** Retrieving information **/
+
+     /*
+      * Retrieve information about the music provider's
+      * capabilities.
+      */
+     DFBResult (*GetCapabilities) (
+          IFusionSoundMusicProvider   *thiz,
+          FSMusicProviderCapabilities *caps
+     );
+
+     /*
+      * Get a surface description that best matches the music
+      * contained in the file.
+      */
+     DFBResult (*GetStreamDescription) (
+          IFusionSoundMusicProvider *thiz,
+          FSStreamDescription       *desc
+     );
+
+     /** Playback **/
+
+     /*
+      * Play music rendering it into the destination stream.
+      */
+     DFBResult (*PlayTo) (
+          IFusionSoundMusicProvider *thiz,
+          IFusionSoundStream        *destination
+     );
+
+     /*
+      * Stop rendering into the destination stream.
+      */
+     DFBResult (*Stop) (
+          IFusionSoundMusicProvider *thiz
+     );
+
+     /** Media Control **/
+
+     /*
+      * Seeks to a position within the stream.
+      */
+     DFBResult (*SeekTo) (
+          IFusionSoundMusicProvider *thiz,
+          double                     seconds
+     );
+
+     /*
+      * Gets current position within the stream.
+      */
+     DFBResult (*GetPos) (
+          IFusionSoundMusicProvider *thiz,
+          double                    *seconds
+     );
+
+     /*
+      * Gets the length of the stream.
+      */
+     DFBResult (*GetLength) (
+          IFusionSoundMusicProvider *thiz,
+          double                    *seconds
      );
 )
 

@@ -4,6 +4,7 @@ Makefile.in
 .libs
 gmon.out
 advanced
+music
 player
 simple
 stream
