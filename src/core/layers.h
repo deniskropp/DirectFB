@@ -190,6 +190,14 @@ void dfb_layers_hook_primary( GraphicsDevice     *device,
                               DisplayLayerFuncs  *primary_funcs,
                               void              **primary_driver_data );
 
+/*
+ * Replace functions of the primary layer implementation completely by passing
+ * an alternative driver function table.
+ */
+void dfb_layers_replace_primary( GraphicsDevice     *device,
+                                 void               *driver_data,
+                                 DisplayLayerFuncs  *funcs );
+
 typedef DFBEnumerationResult (*DisplayLayerCallback) (DisplayLayer *layer,
                                                       void         *ctx);
 
