@@ -30,7 +30,7 @@ Bool	BackfaceCull  = False;
 Bool	DoubleBuffer  = True;
 Bool	Lighting      = True;
 int	PrimitiveType = FLAT_SHADED;
-float	ScaleFactor   = 1.0;
+float	ScaleFactor   = 0.0012;
 
 unsigned int Width, Height;
 
@@ -309,7 +309,7 @@ int main (int argc, char *argv[])
   if(SetupDirectFB (argc, argv))
     return -1;
 
-  ScaleFactor = Height / 900.0f;
+  ScaleFactor *= Height;
 
   InitMatrix();
   SetupMatrix(ScaleFactor);

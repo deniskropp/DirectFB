@@ -683,7 +683,13 @@ int clip_triangle_precheck( DFBRegion   *clip,
     w = MAX (MAX (tri->x1, tri->x2), tri->x3) - x;
     h = MAX (MAX (tri->y1, tri->y2), tri->y3) - y;
     
-    return clip_blit_precheck (clip, w, h, x, y);
+    if (clip->x1 > x ||
+        clip->x2 < x + w ||
+        clip->y1 > y ||
+        clip->y2 < y + h)
+      return 0;
+    
+    return 1;
 }
 
 int clip_blit_precheck( DFBRegion *clip,

@@ -454,24 +454,21 @@ void gfxcard_drawline( DFBRegion *line, CardState *state )
 
 void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
-     if (!clip_triangle_precheck( &state->clip, tri ))
-          /* no work at all */
-          return;
-
      if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
          gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
-       /*  FIXME, clipping 
+        /*  FIXME, clipping 
           if (card->caps.flags & CCF_CLIPPING ||
               clip_triangle ( &state->clip, tri ))
-        */
+         */
           card->FillTriangle( tri );
           gfxcard_state_release( state );
      }
      else
      {
-          /*  FIXME, clipping  */
-          if (gAquire( state, DFXL_FILLTRIANGLE ))
+        /*  FIXME, do real clipping  */
+          if (clip_triangle_precheck( &state->clip, tri ) &&
+              gAquire( state, DFXL_FILLTRIANGLE ))
           {
                gFillTriangle( tri );
                gRelease( state );
