@@ -211,7 +211,6 @@ main (int    argc,
   DFBSurfaceDescription   back_dsc;
   DFBRectangle            rect;
   IDirectFBImageProvider *provider;
-  IDirectFBInputDevice   *keyboard;
   IDirectFBInputBuffer   *keybuffer;
   DFBInputEvent           evt;
   int                     width;
@@ -236,13 +235,12 @@ main (int    argc,
   /* create the super interface */
   DFBCHECK (DirectFBCreate( &dfb));
 
-  DFBCHECK (dfb->SetCooperativeLevel (dfb, DFSCL_FULLSCREEN));
-  DFBCHECK (dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard));
-  DFBCHECK (keyboard->CreateInputBuffer (keyboard, &keybuffer));
+  DFBCHECK (dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN ));
+  DFBCHECK (dfb->CreateInputBuffer( dfb, DICAPS_KEYS, &keybuffer ));
 
   /* load size of background image */
-  DFBCHECK (dfb->CreateImageProvider( dfb, BACKGROUND_NAME, &provider));
-  DFBCHECK (provider->GetSurfaceDescription( provider, &back_dsc));
+  DFBCHECK (dfb->CreateImageProvider( dfb, BACKGROUND_NAME, &provider ));
+  DFBCHECK (provider->GetSurfaceDescription( provider, &back_dsc ));
   back_width  = back_dsc.width;
   back_height = back_dsc.height;
 
@@ -250,8 +248,8 @@ main (int    argc,
     return -1;
 
   /*  create the background surface  */
-  DFBCHECK (dfb->CreateSurface( dfb, &back_dsc, &background));
-  provider->RenderTo (provider, background);
+  DFBCHECK (dfb->CreateSurface( dfb, &back_dsc, &background ));
+  provider->RenderTo( provider, background );
   provider->Release( provider );
 
   /*  create the primary surface  */
@@ -259,7 +257,7 @@ main (int    argc,
   dsc.caps  = DSCAPS_PRIMARY;
   if (!on_crack)
     dsc.caps |= DSCAPS_FLIPPING;
-  DFBCHECK (dfb->CreateSurface( dfb, &dsc, &primary));
+  DFBCHECK (dfb->CreateSurface( dfb, &dsc, &primary ));
 
   if (on_crack)
     {
@@ -269,7 +267,7 @@ main (int    argc,
     {
       /*  fill screen and backbuffer with tiled background  */
       tile_screen ();
-      primary->Flip (primary, NULL, 0);
+      primary->Flip( primary, NULL, 0) ;
       tile_screen ();
     }
 
@@ -344,6 +342,7 @@ main (int    argc,
         }
     }
 
+  keybuffer->Release (keybuffer);
   primary->Release (primary);
   dfb->Release (dfb);
 

@@ -54,6 +54,7 @@
 #include "display/idirectfbsurface_layer.h"
 #include "display/idirectfbsurface_window.h"
 #include "display/idirectfbdisplaylayer.h"
+#include "input/idirectfbinputbuffer.h"
 #include "input/idirectfbinputdevice.h"
 
 #include "idirectfb.h"
@@ -418,6 +419,36 @@ DFBResult IDirectFB_GetInputDevice( IDirectFB *thiz, unsigned int id,
      return DFB_IDNOTFOUND;
 }
 
+DFBResult IDirectFB_CreateInputBuffer( IDirectFB                   *thiz,
+                                       DFBInputDeviceCapabilities   caps,
+                                       IDirectFBInputBuffer       **buffer)
+{
+     InputDevice *d = inputdevices;
+
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!buffer)
+          return DFB_INVARG;
+
+     *buffer = NULL;
+     
+     while (d) {
+          if (d->desc.caps & caps) {
+               if (! *buffer) {
+                    DFB_ALLOCATE_INTERFACE( *buffer, IDirectFBInputBuffer );
+                    if (IDirectFBInputBuffer_Construct( *buffer, d ) != DFB_OK)
+                         *buffer = NULL;
+               }
+               else {
+                    IDirectFBInputBuffer_Attach( *buffer, d );
+               }
+          }
+          d = d->next;
+     }
+
+     return (*buffer) ? DFB_OK : DFB_IDNOTFOUND;
+}
+
 static int image_probe( DFBInterfaceImplementation *impl, void *ctx )
 {
      if (impl->Probe((char *) ctx) == DFB_OK)
@@ -646,6 +677,7 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      thiz->GetDisplayLayer = IDirectFB_GetDisplayLayer;
      thiz->EnumInputDevices = IDirectFB_EnumInputDevices;
      thiz->GetInputDevice = IDirectFB_GetInputDevice;
+     thiz->CreateInputBuffer = IDirectFB_CreateInputBuffer;
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;

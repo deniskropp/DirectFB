@@ -1,3 +1,7 @@
+0.9.5
+-----
+- Added IDirectFB->CreateInputBuffer().
+
 0.9.4
 ------
 

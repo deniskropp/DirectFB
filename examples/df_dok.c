@@ -52,8 +52,7 @@ int fontheight;
 /* Media super interface and the provider for our images/font */
 IDirectFBImageProvider *provider;
 
-/* Input interfaces: device and its buffer */
-IDirectFBInputDevice *keyboard;
+/* Input interfaces: event buffer */
 IDirectFBInputBuffer *key_events;
 
 int SW, SH;
@@ -212,7 +211,6 @@ static void shutdown()
      image32a->Release( image32a );
      primary->Release( primary );
      key_events->Release( key_events );
-     keyboard->Release( keyboard );
      layer->Release( layer );
      dfb->Release( dfb );
 }
@@ -615,10 +613,8 @@ int main( int argc, char *argv[] )
      /* create the super interface */
      DFBCHECK(DirectFBCreate( &dfb ));
 
-     /* get an interface to the primary keyboard
-        and create an input buffer for it */
-     DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard ));
-     DFBCHECK(keyboard->CreateInputBuffer( keyboard, &key_events ));
+     /* create an input buffer for key events */
+     DFBCHECK(dfb->CreateInputBuffer( dfb, DICAPS_KEYS, &key_events ));
 
      /* set our cooperative level to DFSCL_FULLSCREEN
         for exclusive access to the primary layer */

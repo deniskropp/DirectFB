@@ -61,7 +61,6 @@ int DESTINATION_MASK_HEIGHT;
 IDirectFB               *dfb;
 IDirectFBSurface        *primary;
 IDirectFBDisplayLayer   *layer;
-IDirectFBInputDevice    *keyboard;
 IDirectFBInputBuffer    *keybuffer;
 IDirectFBImageProvider  *provider;
 IDirectFBFont           *font;
@@ -421,10 +420,8 @@ void init_resources( int argc, char *argv[] )
      /* create the super interface */
      DFBCHECK(DirectFBCreate( &dfb ));
 
-     /* get an interface to the primary keyboard and create an
-        input buffer for it */
-     DFBCHECK(dfb->GetInputDevice( dfb, DIDID_KEYBOARD, &keyboard ));
-     DFBCHECK(keyboard->CreateInputBuffer( keyboard, &keybuffer ));
+     /* create an input buffer for key events */
+     DFBCHECK(dfb->CreateInputBuffer( dfb, DICAPS_KEYS, &keybuffer ));
 
      /* set our cooperative level to DFSCL_FULLSCREEN for exclusive access to
         the primary layer */
@@ -510,7 +507,6 @@ void deinit_resources()
      destination_mask->Release( destination_mask );
      primary->Release( primary );
      keybuffer->Release( keybuffer );
-     keyboard->Release( keyboard );
      layer->Release( layer );
      dfb->Release( dfb );
 

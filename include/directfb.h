@@ -757,6 +757,17 @@ extern "C"
                IDirectFBInputDevice    **interface
           );
 
+          /*
+           * Create an input buffer for specific events.
+           *
+           * Creates an input buffer and attaches all devices
+           * with matching capabilities.
+           */
+          DFBResult (*CreateInputBuffer) (
+               IDirectFB                   *thiz,
+               DFBInputDeviceCapabilities   caps,
+               IDirectFBInputBuffer       **buffer
+          );
 
         /** Media **/
 
