@@ -328,7 +328,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_fbdev->core = core;
 
      page_size = sysconf( _SC_PAGESIZE );
-     dfb_fbdev->shared->page_mask = page_size < 0 ? 0 : page_size - 1;
+     dfb_fbdev->shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
 
      ret = dfb_fbdev_open();
      if (ret) {
