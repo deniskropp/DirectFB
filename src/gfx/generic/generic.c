@@ -1149,6 +1149,34 @@ static void Sop_a8_SKto_Dacc()
      }
 }
 
+static void Sop_lut8_SKto_Dacc()
+{
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          if (s != Skey) {
+               D->a = entries[s].a;
+               D->r = entries[s].r;
+               D->g = entries[s].g;
+               D->b = entries[s].b;
+          }
+          else 
+               D->a = 0xF000;
+
+          i += SperD;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_SKto_Dacc,
      Sop_rgb16_SKto_Dacc,
@@ -1161,7 +1189,7 @@ static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     NULL
+     Sop_lut8_SKto_Dacc
 };
 
 /********************************* Sop_PFI_to_Dacc ****************************/
@@ -1602,6 +1630,30 @@ static void Sop_rgb332_Kto_Dacc()
 
 #endif
 
+static void Sop_lut8_Kto_Dacc()
+{
+     int          w = Dlength;
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = *S++;
+
+          if (s != (__u8)Skey) {
+               D->a = entries[s].a;
+               D->r = entries[s].r;
+               D->g = entries[s].g;
+               D->b = entries[s].b;
+          }
+          else
+               D->a = 0xF000;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_Kto_Dacc,
      Sop_rgb16_Kto_Dacc,
@@ -1618,7 +1670,7 @@ static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     NULL
+     Sop_lut8_Kto_Dacc
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
