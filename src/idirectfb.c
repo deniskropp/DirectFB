@@ -327,6 +327,23 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
      if (desc->flags & DSDESC_PIXELFORMAT)
           format = desc->pixelformat;
 
+     switch (format) {
+          case DSPF_A8:
+          case DSPF_ARGB:
+          case DSPF_I420:
+          case DSPF_RGB15:
+          case DSPF_RGB16:
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_RGB332:
+          case DSPF_UYVY:
+          case DSPF_YUY2:
+          case DSPF_YV12:
+               break;
+
+          default:
+               return DFB_INVARG;
+     }
 
      if (caps & DSCAPS_PRIMARY) {
           if (desc->flags & DSDESC_PREALLOCATED)
