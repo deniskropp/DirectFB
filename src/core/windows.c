@@ -1366,6 +1366,7 @@ stack_inputdevice_react( const void *msg_data,
                          case DIKS_META:
                          case DIKS_CAPS_LOCK:
                               stack->wm_hack = 0;
+                              stack->wm_cycle = 0;
                               stack_lock( stack );
                               handle_enter_leave_focus( stack );
                               stack_unlock( stack );
@@ -1376,6 +1377,12 @@ stack_inputdevice_react( const void *msg_data,
                               stack->wm_hack = 1;
                               return RS_OK;
 
+                         case DIKS_SMALL_S:
+                         case DIKS_SMALL_C:
+                         case DIKS_SMALL_X:
+                         case DIKS_SMALL_D:
+                              return RS_OK;
+                         
                          default:
                               ;
                     }
@@ -1391,11 +1398,57 @@ stack_inputdevice_react( const void *msg_data,
                               stack->wm_hack = 2;
                               return RS_OK;
 
+                         case DIKS_SMALL_S:
+                              stack_lock( stack );
+                              if (stack->wm_cycle <= 0)
+                                   stack->wm_cycle = stack->num_windows;
+                              
+                              if (stack->num_windows) {
+                                   int looped = 0;
+                                   int index = MIN( stack->num_windows,
+                                                    stack->wm_cycle );
+
+                                   while (index--) {
+                                        CoreWindow *window = stack->windows[index];
+
+                                        if ((window->options & (DWOP_GHOST | DWOP_KEEP_STACKING)) ||
+                                            ! VISIBLE_WINDOW(window) ||
+                                            window == stack->focused_window)
+                                        {
+                                             if (index == 0 && !looped) {
+                                                  looped = 1;
+                                                  index = stack->num_windows - 1;
+                                             }
+                                             
+                                             continue;
+                                        }
+
+                                        if (window_restack( stack, index, stack->num_windows - 1 ))
+                                             window_restacked( window );
+
+                                        switch_focus( stack, window );
+
+                                        break;
+                                   }
+
+                                   stack->wm_cycle = index;
+                              }
+                              stack_unlock( stack );
+                              return RS_OK;
+
                          case DIKS_SMALL_C:
                               if (stack->entered_window) {
                                    DFBWindowEvent evt;
                                    evt.type = DWET_CLOSE;
                                    dfb_window_dispatch( stack->entered_window, &evt );
+                              }
+                              return RS_OK;
+
+                         case DIKS_SMALL_X:
+                              if (stack->focused_window && 
+                                  ! (stack->focused_window->options & DWOP_KEEP_STACKING))
+                              {
+                                   dfb_window_lowertobottom( stack->focused_window );
                               }
                               return RS_OK;
 

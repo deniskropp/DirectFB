@@ -113,6 +113,7 @@ struct _CoreWindowStack {
                                              management functions */
 
      int                 wm_hack;
+     int                 wm_cycle;
 
      int                 wsp_opaque;      /* surface policy for opaque windows */
      int                 wsp_alpha;       /* surface policy for windows with
