@@ -2236,7 +2236,7 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
 
 #ifdef USE_MMX
      if (dfb_mm_accel() & MM_MMX) {
-          if (dfb_config->no_mmx) {
+          if (!dfb_config->mmx) {
                INITMSG( "MMX detected, but disabled by --no-mmx \n");
           }
           else {

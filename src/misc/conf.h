@@ -26,6 +26,8 @@
 
 #include <directfb.h>
 
+#include <core/fusion/fusion_types.h>
+
 typedef struct
 {
      DFBDisplayLayerBackgroundMode layer_bg_mode; /* background mode for
@@ -35,7 +37,7 @@ typedef struct
      char     *layer_bg_filename;                 /* background image for
                                                      primary layer */
 
-     int       mouse_motion_compression;          /* use motion compression? */
+     bool      mouse_motion_compression;          /* use motion compression? */
      char     *mouse_protocol;                    /* mouse protocol */
 
      int       window_policy;                     /* swapping policy for the
@@ -43,45 +45,45 @@ typedef struct
      int       buffer_mode;                       /* default buffer mode for
                                                      primary layer */
 
-     int       pollvsync_after;
-     int       pollvsync_none;
-     int       software_only;                     /* disable hardware
+     bool      pollvsync_after;
+     bool      pollvsync_none;
+     bool      software_only;                     /* disable hardware
                                                      acceleration */
 
-     int       no_mmx;                            /* disable mmx support */
+     bool      mmx;                               /* mmx support */
 
-     int       no_banner;                         /* disable banner */
-     int       quiet;                             /* no output at all
+     bool      banner;                            /* startup banner */
+     bool      quiet;                             /* no output at all
                                                      except debugging */
 
-     int       no_debug;                          /* disable debug output */
+     bool      debug;                             /* debug output */
 
-     int       force_windowed;                    /* prohibit exclusive modes */
+     bool      force_windowed;                    /* prohibit exclusive modes */
 
-     int       no_sighandler;
-     int       no_deinit_check;
+     bool      sighandler;
+     bool      deinit_check;
 
-     int       no_vt_switch;                      /* don't allocate a new VT */
-     int       kd_graphics;                       /* put terminal into graphics
+     bool      vt_switch;                         /* allocate a new VT */
+     bool      kd_graphics;                       /* put terminal into graphics
                                                      mode */
 
-     int       argb_font;                         /* whether to load fontmap
+     bool      argb_font;                         /* whether to load fontmap
                                                      as argb and not a8 */
 
-     int       matrox_sgram;                      /* Use Matrox SGRAM features*/
-     int       sync;                              /* Do sync() in core_init() */
-     int       vt_switching;                      /* Allow VT switching by
+     bool      matrox_sgram;                      /* Use Matrox SGRAM features*/
+     bool      sync;                              /* Do sync() in core_init() */
+     bool      vt_switching;                      /* Allow VT switching by
                                                      pressing Ctrl+Alt+<F?> */
 
      char     *fb_device;                         /* Used framebuffer device,
                                                      e.g. "/dev/fb0" */
 
-     int       lefty;                             /* Left handed mouse, swaps
+     bool      lefty;                             /* Left handed mouse, swaps
                                                      left/right mouse buttons */
-     int       show_cursor;                       /* Show default mouse cursor
+     bool      show_cursor;                       /* Show default mouse cursor
                                                      on start up */
-     int       no_window_opacity;                 /* Force window opacity to be
-                                                     0 or 255 */
+     bool      translucent_windows;               /* Allow translucent
+                                                     windows */
 
      char     *fbdebug_device;                    /* Device for framebuffer
                                                      based debug output */

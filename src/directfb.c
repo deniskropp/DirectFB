@@ -211,7 +211,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           return DFB_OK;
      }
 
-     if (!dfb_config->quiet && !dfb_config->no_banner) {
+     if (!dfb_config->quiet && dfb_config->banner) {
           printf( "\n" );
           printf( "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
                   DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );

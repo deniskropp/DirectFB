@@ -71,8 +71,8 @@ Suppresses console output from DirectFB. Only error messages will be
 displayed.
 
 .TP
-.BI no-banner
-Suppresses the output of the DirectFB banner at startup.
+.BI [no-]banner
+Enables/disables the output of the DirectFB banner at startup.
 
 .TP
 .BI [no-]debug
@@ -97,45 +97,48 @@ useful if you working with experimental device drivers and expect
 crashes.
 
 .TP
-.BI no-mmx
-Disables the use of MMX routines even if support for MMX was detected.
+.BI [no-]mmx
+Allows to disable the use of MMX routines even if support for MMX was
+detected.
 
 .TP
-.BI argb-font
+.BI [no-]argb-font
 Instead of using A8 surfaces (alpha masks), load glyphs into ARGB
 surfaces. This uses more memory but some graphics cards do weird
 things with A8 surfaces. Try this option if your fonts look strange.
 
 .TP
-.BI no-sighandler
+.BI [no-]sighandler
 By default DirectFB installs a signal handler for a number of signals
 that cause an application to exit. This signal handler tries to
 deinitialize the DirectFB engine before quitting the application.
-Use this option to turn off this feature.
+Use this option to enable/disable this feature.
 
 .TP
 .BI dont-catch=<num>[[,<num>]...]
 As described with the
 .B
-no-sighandler
+sighandler
 option, DirectFB installs a signal handler for a number of signals.
 By using this option you may specify a list of signals that shouldn't
 be handled this way.
 
 .TP
-.BI no-deinit-check
-Disable deinit check at exit.
+.BI [no-]deinit-check
+By default DirectFB checks if the application has released all allocated
+resources on exit. If it didn't, it will clean up after the application.
+This option allows to switch this feature on or off.
 
 .TP
-.BI no-vt-switch
-Don't allocate/switch to a new VT.
+.BI [no-]vt-switch
+Allocate/switch to a new VT.
 
 .TP
 .BI [no-]vt-switching
 Allow Ctrl+Alt+<F?> (EXPERIMENTAL).
 
 .TP
-.BI graphics-vt
+.BI [no-]graphics-vt
 Put terminal into graphics mode.
 
 .TP
@@ -164,7 +167,7 @@ The different protocols for serial mice are described in more details
 in mouse(4).
 
 .TP
-.BI lefty
+.BI [no-]lefty
 Swaps left and right mouse buttons. Useful for left-handers.
 
 .TP
@@ -196,9 +199,11 @@ but tiles the image to fit to the screen dimensions instead of
 stretching it.
 
 .TP
-.BI disable-window-opacity
-Forces windows to be either fully opaque or fully transparent. Useful if
-your graphics card doesn't support alpha-transparent blits.
+.BI [no-]translucent-windows
+By default DirectFB windows may be translucent. If you disable this
+feature, windows are forced to be either fully opaque or fully
+transparent. This is useful if your graphics card doesn't support
+alpha-transparent blits.
 
 .TP
 .BI videoram-limit=<amount>
@@ -206,10 +211,16 @@ Limits the amount of Video RAM used by DirectFB. The amount of Video
 RAM is specified in Kilobytes.
 
 .TP
-.BI matrox-sgram
-Use this option if your Matrox card has SGRAM (available on some older
-G400 cards). Some operations are considerably faster with this option
-enabled. Only use it if your card really has SGRAM!
+.BI [no-]matrox-sgram
+Some older Matrox G400 cards have SGRAM and a number of graphics
+operations are considerably faster on these cards if this feature
+is enabled. Don't try to enable it if your card doesn't have SGRAM!
+
+.TP
+.BI fbdebug=<device>
+Allows to specify a second frame buffer device that is used to display
+how surface memory is located in the video card. This is highly
+experimental and only useful for debugging.
 
 .TP
 .BI window-surface-policy=<policy>

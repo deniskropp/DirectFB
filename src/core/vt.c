@@ -125,7 +125,7 @@ dfb_vt_initialize()
      Sdfb_vt->prev = vs.v_active;
 
 
-     if (dfb_config->no_vt_switch) {
+     if (!dfb_config->vt_switch) {
           dfb_vt->fd   = dfb_vt->fd0;
           Sdfb_vt->num = Sdfb_vt->prev;
 
@@ -175,7 +175,7 @@ dfb_vt_initialize()
 
      ret = vt_init_switching();
      if (ret) {
-          if (!dfb_config->no_vt_switch) {
+          if (dfb_config->vt_switch) {
                DEBUGMSG( "switching back...\n" );
                ioctl( dfb_vt->fd0, VT_ACTIVATE, Sdfb_vt->prev );
                ioctl( dfb_vt->fd0, VT_WAITACTIVE, Sdfb_vt->prev );
@@ -212,7 +212,7 @@ dfb_vt_shutdown( bool emergency )
           //sigaction( SIG_SWITCH_TO, &Sdfb_vt->sig_usr2, NULL );
      }
 
-     if (!dfb_config->no_vt_switch) {
+     if (dfb_config->vt_switch) {
           DEBUGMSG( "switching back...\n" );
 
           if (ioctl( dfb_vt->fd0, VT_ACTIVATE, Sdfb_vt->prev ) < 0)
@@ -295,7 +295,7 @@ vt_init_switching()
           }
      }
 
-     if (!dfb_config->no_vt_switch) {
+     if (dfb_config->vt_switch) {
           if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0)
                PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );
           

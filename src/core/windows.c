@@ -677,7 +677,7 @@ dfb_window_set_opacity( CoreWindow *window,
      int              old_opacity = window->opacity;
      CoreWindowStack *stack       = window->stack;
 
-     if (dfb_config->no_window_opacity && opacity)
+     if (!dfb_config->translucent_windows && opacity)
           opacity = 0xFF;
 
      if (old_opacity != opacity) {

@@ -60,10 +60,10 @@ static const char *config_usage =
     "Set the default pixel depth\n"
     "  quiet                          "
     "No text output except debugging\n"
-    "  no-banner                      "
-    "Disable DirectFB Banner\n"
+    "  [no-]banner                    "
+    "Show DirectFB Banner on startup\n"
     "  [no-]debug                     "
-    "Disable/enable debug output\n"
+    "Enable debug output\n"
     "  force-windowed                 "
     "Primary surface always is a window\n"
     "  [no-]hardware                  "
@@ -71,28 +71,28 @@ static const char *config_usage =
     "  [no-]sync                      "
     "Do `sync()' (default=no)\n"
 #ifdef USE_MMX
-    "  no-mmx                         "
-    "Disable mmx support\n"
+    "  [no-]mmx                       "
+    "Enable mmx support\n"
 #endif
-    "  argb-font                      "
+    "  [no-]argb-font                 "
     "Load glyphs into ARGB surfaces\n"
     "  dont-catch=<num>[[,<num>]...]  "
     "Don't catch these signals\n"
-    "  no-sighandler                  "
-    "Disable signal handler\n"
-    "  no-deinit-check                "
-    "Disable deinit check at exit\n"
-    "  no-vt-switch                   "
-    "Don't allocate/switch to a new VT\n"
+    "  [no-]sighandler                "
+    "Enable signal handler\n"
+    "  [no-]deinit-check              "
+    "Enable deinit check at exit\n"
+    "  [no-]vt-switch                 "
+    "Allocate/switch to a new VT\n"
     "  [no-]vt-switching              "
     "Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
-    "  graphics-vt                    "
+    "  [no-]graphics-vt               "
     "Put terminal into graphics mode\n"
     "  [no-]motion-compression        "
     "Mouse motion event compression\n"
     "  mouse-protocol=<protocol>      "
     "Mouse protocol (serial mouse)\n"
-    "  lefty                          "
+    "  [no-]lefty                     "
     "Swap left and right mouse buttons\n"
     "  [no-]cursor                    "
     "Show cursor on start up (default)\n"
@@ -104,12 +104,14 @@ static const char *config_usage =
     "Use background image\n"
     "  bg-tile=<filename>             "
     "Use tiled background image\n"
-    "  disable-window-opacity         "
-    "Force window opacity to be 0 or 255\n"
+    "  [no-]translucent-windows       "
+    "Allow translucent windows\n"
     "  videoram-limit=<amount>        "
     "Limit amount of Video RAM in kb\n"
-    "  matrox-sgram                   "
+    "  [no-]matrox-sgram              "
     "Use Matrox SGRAM features\n"
+    "  fbdebug=<device>               "
+    "Use a second frame buffer device for debugging\n"
     "\n"
     " Window surface swapping policy:\n"
     "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -176,8 +178,15 @@ static void config_allocate()
      dfb_config->layer_bg_color.b = 0x9f;
      dfb_config->layer_bg_mode    = DLBM_COLOR;
 
-     dfb_config->show_cursor              =  1;
-     dfb_config->mouse_motion_compression =  1;
+     dfb_config->banner                   = true;
+     dfb_config->debug                    = true;
+     dfb_config->deinit_check             = true;
+     dfb_config->mmx                      = true;
+     dfb_config->sighandler               = true;
+     dfb_config->vt_switch                = true;
+     dfb_config->show_cursor              = true;
+     dfb_config->translucent_windows      = true;
+     dfb_config->mouse_motion_compression = true;
      dfb_config->window_policy            = -1;
      dfb_config->buffer_mode              = -1;
 
@@ -266,57 +275,64 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
      } else
      if (strcmp (name, "quiet" ) == 0) {
-          dfb_config->quiet = 1;
+          dfb_config->quiet = true;
+     } else
+     if (strcmp (name, "banner" ) == 0) {
+          dfb_config->banner = true;
      } else
      if (strcmp (name, "no-banner" ) == 0) {
-          dfb_config->no_banner = 1;
+          dfb_config->banner = false;
      } else
      if (strcmp (name, "debug" ) == 0) {
-          dfb_config->no_debug = 0;
+          dfb_config->debug = true;
      } else
      if (strcmp (name, "no-debug" ) == 0) {
-          dfb_config->no_debug = 1;
+          dfb_config->debug = false;
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
-          dfb_config->force_windowed = 1;
+          dfb_config->force_windowed = true;
      } else
      if (strcmp (name, "hardware" ) == 0) {
-          dfb_config->software_only = 0;
+          dfb_config->software_only = false;
      } else
      if (strcmp (name, "no-hardware" ) == 0) {
-          dfb_config->software_only = 1;
+          dfb_config->software_only = true;
      } else
-#ifdef USE_MMX
+     if (strcmp (name, "mmx" ) == 0) {
+          dfb_config->mmx = true;
+     } else
      if (strcmp (name, "no-mmx" ) == 0) {
-          dfb_config->no_mmx = 1;
+          dfb_config->mmx = false;
      } else
-#endif
      if (strcmp (name, "argb-font" ) == 0) {
-          dfb_config->argb_font = 1;
+          dfb_config->argb_font = true;
      } else
-     if (strcmp (name, "no-sighandler" ) == 0) {
-          dfb_config->no_sighandler = 1;
+     if (strcmp (name, "no-argb-font" ) == 0) {
+          dfb_config->argb_font = false;
      } else
      if (strcmp (name, "sighandler" ) == 0) {
-          dfb_config->no_sighandler = 0;
+          dfb_config->sighandler = true;
      } else
-     if (strcmp (name, "no-deinit-check" ) == 0) {
-          dfb_config->no_deinit_check = 1;
+     if (strcmp (name, "no-sighandler" ) == 0) {
+          dfb_config->sighandler = false;
      } else
      if (strcmp (name, "deinit-check" ) == 0) {
-          dfb_config->no_deinit_check = 0;
+          dfb_config->deinit_check = true;
      } else
-     if (strcmp (name, "no-cursor" ) == 0) {
-          dfb_config->show_cursor = 0;
+     if (strcmp (name, "no-deinit-check" ) == 0) {
+          dfb_config->deinit_check = false;
      } else
      if (strcmp (name, "cursor" ) == 0) {
-          dfb_config->show_cursor = 1;
+          dfb_config->show_cursor = true;
+     } else
+     if (strcmp (name, "no-cursor" ) == 0) {
+          dfb_config->show_cursor = false;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
-          dfb_config->mouse_motion_compression = 1;
+          dfb_config->mouse_motion_compression = true;
      } else
      if (strcmp (name, "no-motion-compression" ) == 0) {
-          dfb_config->mouse_motion_compression = 0;
+          dfb_config->mouse_motion_compression = false;
      } else
      if (strcmp (name, "mouse-protocol" ) == 0) {
           if (value) {
@@ -327,26 +343,35 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "disable-window-opacity" ) == 0) {
-          dfb_config->no_window_opacity = 1;
+     if (strcmp (name, "translucent-windows" ) == 0) {
+          dfb_config->translucent_windows = true;
+     } else
+     if (strcmp (name, "no-translucent-windows" ) == 0) {
+          dfb_config->translucent_windows = false;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
-          dfb_config->pollvsync_none = 1;
+          dfb_config->pollvsync_none = true;
      } else
      if (strcmp (name, "vsync-after" ) == 0) {
-          dfb_config->pollvsync_after = 1;
+          dfb_config->pollvsync_after = true;
+     } else
+     if (strcmp (name, "vt-switch" ) == 0) {
+          dfb_config->vt_switch = true;
      } else
      if (strcmp (name, "no-vt-switch" ) == 0) {
-          dfb_config->no_vt_switch = 1;
+          dfb_config->vt_switch = false;
      } else
      if (strcmp (name, "vt-switching" ) == 0) {
-          dfb_config->vt_switching = 1;
+          dfb_config->vt_switching = true;
      } else
      if (strcmp (name, "no-vt-switching" ) == 0) {
-          dfb_config->vt_switching = 0;
+          dfb_config->vt_switching = false;
      } else
      if (strcmp (name, "graphics-vt" ) == 0) {
-          dfb_config->kd_graphics = 1;
+          dfb_config->kd_graphics = true;
+     } else
+     if (strcmp (name, "no-graphics-vt" ) == 0) {
+          dfb_config->kd_graphics = false;
      } else
      if (strcmp (name, "bg-none" ) == 0) {
           dfb_config->layer_bg_mode = DLBM_DONTCARE;
@@ -479,16 +504,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
      } else
      if (strcmp (name, "matrox-sgram" ) == 0) {
-          dfb_config->matrox_sgram = 1;
+          dfb_config->matrox_sgram = true;
+     } else
+     if (strcmp (name, "no-matrox-sgram" ) == 0) {
+          dfb_config->matrox_sgram = false;
      } else
      if (strcmp (name, "sync" ) == 0) {
-          dfb_config->sync = 1;
-     } else
-     if (strcmp (name, "lefty" ) == 0) {
-          dfb_config->lefty = 1;
+          dfb_config->sync = true;
      } else
      if (strcmp (name, "no-sync" ) == 0) {
-          dfb_config->sync = 0;
+          dfb_config->sync = false;
+     } else
+     if (strcmp (name, "lefty" ) == 0) {
+          dfb_config->lefty = true;
+     } else
+     if (strcmp (name, "no-lefty" ) == 0) {
+          dfb_config->lefty = false;
      }
      else
           return DFB_UNSUPPORTED;
