@@ -16,6 +16,8 @@
  *
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -24,7 +26,7 @@
 #include <sys/types.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
+#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -169,7 +171,7 @@ IDirectFBVideoProvider_Xine_GetCapabilities(IDirectFBVideoProvider* thiz,
 	if(!caps)
 		return(DFB_INVARG);
 
-	*caps = (DVCAPS_BASIC | DVCAPS_SCALE | 
+	*caps = (DVCAPS_BASIC | DVCAPS_SCALE |
 		 DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST);
 	
 	if(xine_get_stream_info(data->stream,
@@ -223,8 +225,8 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription(IDirectFBVideoProvider* thiz,
 
 
 static DFBResult
-IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz, 
-				   IDirectFBSurface* dest, 
+IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
+				   IDirectFBSurface* dest,
 				   const DFBRectangle* dest_rect,
 				   DVFrameCallback callback, void* ctx)
 {
@@ -662,7 +664,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 }
 
 
-static void 
+static void
 DFBxine_frame_output(void* cdata, int width, int height,
 			DFBRectangle* dest_rect)
 {
