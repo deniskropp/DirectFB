@@ -560,22 +560,24 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
           case DSPF_I420:
                mbes->regs.besA1CORG  = mbes->regs.besA1ORG + surface->height *
                                        front_buffer->video.pitch;
+               mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
+                                       front_buffer->video.pitch/2;
+
                mbes->regs.besA1C3ORG = mbes->regs.besA1CORG + surface->height/2 *
                                        front_buffer->video.pitch/2;
-               mbes->regs.besA2CORG  = mbes->regs.besA2ORG + surface->height *
-                                       front_buffer->video.pitch;
-               mbes->regs.besA2C3ORG = mbes->regs.besA2CORG + surface->height/2 *
+               mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
                                        front_buffer->video.pitch/2;
                break;
 
           case DSPF_YV12:
                mbes->regs.besA1C3ORG = mbes->regs.besA1ORG + surface->height *
                                        front_buffer->video.pitch;
+               mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
+                                       front_buffer->video.pitch/2;
+
                mbes->regs.besA1CORG  = mbes->regs.besA1C3ORG + surface->height/2 *
                                        front_buffer->video.pitch/2;
-               mbes->regs.besA2C3ORG = mbes->regs.besA2ORG + surface->height *
-                                       front_buffer->video.pitch;
-               mbes->regs.besA2CORG  = mbes->regs.besA2C3ORG + surface->height/2 *
+               mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
                                        front_buffer->video.pitch/2;
                break;
 
