@@ -79,11 +79,11 @@ DFBResult Construct( IDirectFBFont *thiz,
      font->height    = 20;
      font->ascender  = 16;
      font->descender = 4;
-     
+
      font->glyph_infos = tree_new ();
 
      surface_create( 1024, font->height,
-                     dfb_config->argb_font ? DSPF_ARGB : DSPF_A8, 
+                     dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
                      CSP_VIDEOHIGH, DSCAPS_NONE, &surface );
 
      font->rows = 1;
@@ -105,19 +105,20 @@ DFBResult Construct( IDirectFBFont *thiz,
           for (i=0; i<1024; i++) {
                if (points[i] == 0xFF) {
                  data = malloc (sizeof (CoreGlyphData));
+                 data->surface = surface;
                  data->start   = start;
                  data->width   = i - start;
                  data->height  = font->height;
                  data->left    = 0;
                  data->top     = 0;
                  data->advance = data->width + 1;
-                 HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n", 
+                 HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n",
                                 *glyphs, start, i-start );
 
                  if (font->maxadvance < data->width)
                       font->maxadvance = data->width;
-                 
-                 tree_insert (font->glyph_infos, 
+
+                 tree_insert (font->glyph_infos,
                               (void *) utf8_get_char (glyphs), data);
 
                  start = i+1;
@@ -126,16 +127,16 @@ DFBResult Construct( IDirectFBFont *thiz,
                if (*glyphs == 0)
                     break;
           }
-               
+
           /*  space  */
           data = calloc (1, sizeof (CoreGlyphData));
           data->advance = 5;
-          tree_insert (font->glyph_infos, 
+          tree_insert (font->glyph_infos,
                        (void *) utf8_get_char (" "), data);
      }
 
      surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
-     
+
      for (i = 0; i < font->height; i++) {
           if (dfb_config->argb_font) {
                char buf[1024];

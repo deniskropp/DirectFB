@@ -106,13 +106,13 @@ typedef struct {
      int       requested;
      long      result;
      char    * unit;
-     unsigned long long (* func) ( long );  
+     unsigned long long (* func) ( long );
 } Demo;
 
 static Demo demos[] = {
-  { "Anti-aliased Text", 
+  { "Anti-aliased Text",
     "This is the DirectFB benchmarking tool, let's start with some text!",
-    "Anti-aliased Text", "draw-string", 
+    "Anti-aliased Text", "draw-string",
     0, 0, "KChars/sec",  draw_string },
   { "Fill Rectangles",
     "Ok, we'll go on with some opaque filled rectangles!",
@@ -126,12 +126,12 @@ static Demo demos[] = {
     "Ok, we'll go on with some opaque filled triangles!",
     "Triangle Filling", "fill-triangle",
     0, 0, "MPixel/sec", fill_triangle },
-  { "Fill Triangles (blend)",  
-    "What about alpha blended triangles?", 
+  { "Fill Triangles (blend)",
+    "What about alpha blended triangles?",
     "Alpha Blended Triangle Filling", "fill-triangle-blend",
     0, 0, "MPixel/sec", fill_triangle_blend },
-  { "Draw Rectangles", 
-    "Now pass over to non filled rectangles!", 
+  { "Draw Rectangles",
+    "Now pass over to non filled rectangles!",
     "Rectangle Outlines", "draw-rect",
     0, 0, "MPixel/sec", draw_rect },
   { "Draw Rectangles (blend)",
@@ -158,16 +158,27 @@ static Demo demos[] = {
     "What if the source surface has another format?",
     "BitBlt with on-the-fly format conversion", "blit-convert",
     0, 0, "MPixel/sec", blit_convert },
-  { "Blit from 32bit (alphachannel blend)", 
+  { "Blit from 32bit (alphachannel blend)",
     "Here we go with alpha again!",
     "BitBlt with Alpha Channel", "blit-blend",
     0, 0, "MPixel/sec", blit_blend },
-  { "Stretch Blit", 
+  { "Stretch Blit",
     "Stretching!!!!!",
     "Stretch Blit", "stretch-blit",
     0, 0, "MPixel/sec", stretch_blit }
 };
 static int num_demos = sizeof( demos ) / sizeof (demos[0]);
+
+
+static unsigned int rand_pool = 0x12345678;
+
+static inline unsigned int myrand()
+{
+     rand_pool ^= ((rand_pool << 7) | (rand_pool >> 25));
+     rand_pool += 0x87654321;
+
+     return rand_pool;
+}
 
 
 static inline long myclock()
@@ -176,7 +187,7 @@ static inline long myclock()
 
   gettimeofday (&tv, NULL);
   return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
-} 
+}
 
 static void print_usage()
 {
@@ -217,7 +228,7 @@ static void showMessage( const char *msg )
                exit( 42 );
           }
      }
-     
+
      if (with_intro) {
           primary->SetBlittingFlags( primary, DSBLIT_NOFX );
           DFBCHECK(primary->Blit( primary, intro, NULL, 0, 0 ));
@@ -251,7 +262,7 @@ static void showResult()
      char  format[32];
      double factor = (SW-80) / 500000.0;
 
-     if (dfb->CreateImageProvider( dfb, 
+     if (dfb->CreateImageProvider( dfb,
                                    DATADIR"/examples/meter.png", &provider ))
          return;
 
@@ -264,7 +275,7 @@ static void showResult()
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      primary->SetColor( primary, 0, 0, 0, 0 );
      primary->FillRectangle( primary, 0, 0, SW, SH+fontheight );
-     
+
      primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0xFF );
      primary->DrawString( primary, "Results", -1, SW/2, 10, DSTF_TOPCENTER );
 
@@ -278,14 +289,14 @@ static void showResult()
           dest.w = (double) demos[i].result * factor;
           primary->StretchBlit( primary, meter, NULL, &dest );
           if (dest.w < SW-80)
-               primary->DrawLine( primary, 
-                                  40 + dest.w, dest.y + 18, 
+               primary->DrawLine( primary,
+                                  40 + dest.w, dest.y + 18,
                                   SW-40, dest.y + 18 );
           dest.y += 38;
      }
 
      meter->Release( meter );
-    
+
      y = 75;
      for (i = 0; i < num_demos; i++) {
           if (!demos[i].requested)
@@ -293,7 +304,7 @@ static void showResult()
 
           primary->SetColor( primary, 0xCC, 0xCC, 0xCC, 0xFF );
           primary->DrawString( primary, demos[i].desc, -1, 20, y, DSTF_LEFT );
-     
+
           sprintf( format, "%%.2f %s", demos[i].unit );
           sprintf( rate, format, (double) demos[i].result / 1000.0);
           primary->SetColor( primary, 0xAA, 0xAA, 0xAA, 0xFF );
@@ -301,7 +312,7 @@ static void showResult()
 
           y += 38;
      }
-     
+
      key_events->Reset( key_events );
      key_events->WaitForEvent( key_events );
 }
@@ -323,12 +334,12 @@ static unsigned long long draw_string( long t )
      long i;
 
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
-                             rand()%0xFF, 0xFF );
-          primary->DrawString( primary, 
+          primary->SetColor( primary, myrand()%0xFF, myrand()%0xFF,
+                             myrand()%0xFF, 0xFF );
+          primary->DrawString( primary,
                                "DirectX is dead, this is DirectFB", -1,
-                               rand()%(SW-stringwidth),
-                               rand()%(SH-fontheight),
+                               myrand()%(SW-stringwidth),
+                               myrand()%(SH-fontheight),
                                DSTF_TOPLEFT );
      }
      return 36*(unsigned long long)i*1000;
@@ -340,10 +351,10 @@ static unsigned long long fill_rect( long t )
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF, 0xFF );
           primary->FillRectangle( primary,
-                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+                                  myrand()%(SW-SX), myrand()%(SH-SY), SX, SY );
      }
      return SX*SY*(unsigned long long)i;
 }
@@ -354,26 +365,26 @@ static unsigned long long fill_rect_blend( long t )
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
-                             rand()%0x64 );
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF,
+                             myrand()%0x64 );
           primary->FillRectangle( primary,
-                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+                                  myrand()%(SW-SX), myrand()%(SH-SY), SX, SY );
      }
      return SX*SY*(unsigned long long)i;
 }
 
-static unsigned long long fill_triangle( long t )          
+static unsigned long long fill_triangle( long t )
 {
      long i, x, y;
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          x = rand()%(SW-SX);
-          y = rand()%(SH-SY);
+          x = myrand()%(SW-SX);
+          y = myrand()%(SH-SY);
 
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF, 0xFF );
           primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
      }
      return SX*SY*(unsigned long long)i/2;
@@ -385,12 +396,12 @@ static unsigned long long fill_triangle_blend( long t )
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          x = rand()%(SW-SX);
-          y = rand()%(SH-SY);
+          x = myrand()%(SW-SX);
+          y = myrand()%(SH-SY);
 
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
-                             rand()%0x64 );
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF,
+                             myrand()%0x64 );
           primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
      }
      return SX*SY*(unsigned long long)i/2;
@@ -399,13 +410,13 @@ static unsigned long long fill_triangle_blend( long t )
 static unsigned long long draw_rect( long t )
 {
      long i;
-     
+
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
-          primary->DrawRectangle( primary, 
-                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF, 0xFF );
+          primary->DrawRectangle( primary,
+                                  myrand()%(SW-SX), myrand()%(SH-SY), SX, SY );
      }
      return (SX*2+SY*2-4)*(unsigned long long)i;
 }
@@ -416,53 +427,70 @@ static unsigned long long draw_rect_blend( long t )
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
-                             rand()%0x64 );
-          primary->DrawRectangle( primary, 
-                                  rand()%(SW-SX), rand()%(SH-SY), SX, SY );
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF,
+                             myrand()%0x64 );
+          primary->DrawRectangle( primary,
+                                  myrand()%(SW-SX), myrand()%(SH-SY), SX, SY );
      }
      return (SX*2+SY*2-4)*(unsigned long long)i;
 }
 
 static unsigned long long draw_lines( long t )
 {
-     long i, x, y, dx, dy;
+     long i, l, x, y, dx, dy;
      unsigned long long pixels = 0;
+     DFBRegion lines[10];
 
      primary->SetDrawingFlags( primary, DSDRAW_NOFX );
-     for (i=0; i<i%100 || myclock()<(t+DEMOTIME); i++) {
-          x = rand()%(SW-SX) + SX/2;
-          y = rand()%(SH-SY) + SY/2;
-          dx = rand()%(2*SX) - SX;
-          dy = rand()%(2*SY) - SY;
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 0xFF );
-          primary->DrawLine( primary, 
-                             x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
-          pixels += MAX( abs (dx), abs (dy) );
+     for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
+
+          for (l=0; l<10; l++) {
+               x = myrand()%(SW-SX) + SX/2;
+               y = myrand()%(SH-SY) + SY/2;
+               dx = myrand()%(2*SX) - SX;
+               dy = myrand()%(2*SY) - SY;
+               pixels += MAX( abs (dx), abs (dy) );
+
+               lines[l].x1 = x - dx/2;
+               lines[l].y1 = y - dy/2;
+               lines[l].x2 = x + dx/2;
+               lines[l].y2 = y + dy/2;
+          }
+
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF, 0xFF );
+          primary->DrawLines( primary, lines, 10 );
      }
      return pixels;
 }
 
 static unsigned long long draw_lines_blend( long t )
 {
-     long i, x, y, dx, dy;
+     long i, l, x, y, dx, dy;
      unsigned long long pixels = 0;
+     DFBRegion lines[10];
 
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
-          x = rand()%(SW-SX) + SX/2;
-          y = rand()%(SH-SY) + SY/2;
-          dx = rand()%(2*SX) - SX;
-          dy = rand()%(2*SY) - SY;
-    
-          primary->SetColor( primary, 
-                             rand()%0xFF, rand()%0xFF, rand()%0xFF, 
-                             rand()%0x64 );
-          primary->DrawLine( primary, 
-                             x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
-          pixels += MAX( abs (dx), abs (dy) );
+
+          for (l=0; l<10; l++) {
+               x = myrand()%(SW-SX) + SX/2;
+               y = myrand()%(SH-SY) + SY/2;
+               dx = myrand()%(2*SX) - SX;
+               dy = myrand()%(2*SY) - SY;
+               pixels += MAX( abs (dx), abs (dy) );
+
+               lines[l].x1 = x - dx/2;
+               lines[l].y1 = y - dy/2;
+               lines[l].x2 = x + dx/2;
+               lines[l].y2 = y + dy/2;
+          }
+
+          primary->SetColor( primary,
+                             myrand()%0xFF, myrand()%0xFF, myrand()%0xFF,
+                             myrand()%0x64 );
+          primary->DrawLines( primary, lines, 10 );
      }
      return pixels;
 }
@@ -474,8 +502,8 @@ static unsigned long long blit( long t )
      primary->SetBlittingFlags( primary, DSBLIT_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
        primary->Blit( primary, simple, NULL,
-                      (SW!=SX) ? rand()%(SW-SX) : 0,
-                      (SH-SY) ? rand()%(SH-SY) : 0 );
+                      (SW!=SX) ? myrand()%(SW-SX) : 0,
+                      (SH-SY) ? myrand()%(SH-SY) : 0 );
      }
      return SX*SY*(unsigned long long)i;
 }
@@ -488,8 +516,8 @@ static unsigned long long blit_colorkeyed( long t )
      primary->SetBlittingFlags( primary, DSBLIT_SRC_COLORKEY );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
        primary->Blit( primary, colorkeyed, NULL,
-                      (SW!=SX) ? rand()%(SW-SX) : 0,
-                      (SY-SH)  ? rand()%(SH-SY) : 0 );
+                      (SW!=SX) ? myrand()%(SW-SX) : 0,
+                      (SY-SH)  ? myrand()%(SH-SY) : 0 );
      }
      return SX*SY*(unsigned long long)i;
 }
@@ -501,8 +529,8 @@ static unsigned long long blit_convert( long t )
      primary->SetBlittingFlags( primary, DSBLIT_NOFX );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
        primary->Blit( primary, image32, NULL,
-                      (SW!=SX) ? rand()%(SW-SX) : 0,
-                      (SY-SH) ? rand()%(SH-SY) : 0 );
+                      (SW!=SX) ? myrand()%(SW-SX) : 0,
+                      (SY-SH) ? myrand()%(SH-SY) : 0 );
      }
      return SX*SY*(unsigned long long)i;
 }
@@ -514,8 +542,8 @@ static unsigned long long blit_blend( long t )
      primary->SetBlittingFlags( primary, DSBLIT_BLEND_ALPHACHANNEL );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
        primary->Blit( primary, image32a, NULL,
-                      (SW!=SX) ? rand()%(SW-SX) : 0,
-                      (SY-SH)  ? rand()%(SH-SY) : 0 );
+                      (SW!=SX) ? myrand()%(SW-SX) : 0,
+                      (SY-SH)  ? myrand()%(SH-SY) : 0 );
      }
      return SX*SY*(unsigned long long)i;
 }
@@ -532,9 +560,9 @@ static unsigned long long stretch_blit( long t )
           }
           for (i=10; i<SH; i+=j) {
             DFBRectangle dr = { SW/2-i/2, SH/2-i/2, i, i };
-            
+
             primary->StretchBlit( primary, simple, NULL, &dr );
-            
+
             pixels += dr.w * dr.h;
           }
      }
@@ -568,7 +596,7 @@ int main( int argc, char *argv[] )
                     print_usage();
                     return 1;
                }
-          } 
+          }
           else {
                print_usage();
                return 1;
@@ -632,14 +660,14 @@ int main( int argc, char *argv[] )
      provider->Release( provider );
 
      /* create a surface and render an image to it */
-     
+
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/colorkeyed.png",
                                         &provider ));
      DFBCHECK(provider->GetSurfaceDescription( provider, &dsc ));
 
      dsc.width = SX;
      dsc.height = SY;
- 
+
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &colorkeyed ));
      DFBCHECK(provider->RenderTo( provider, colorkeyed ));
      provider->Release( provider );
@@ -652,7 +680,7 @@ int main( int argc, char *argv[] )
      dsc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc.width = SX;
      dsc.height = SY;
-     dsc.pixelformat = BYTES_PER_PIXEL(pixelformat) == 2 ? 
+     dsc.pixelformat = BYTES_PER_PIXEL(pixelformat) == 2 ?
                        DSPF_RGB32 : DSPF_RGB16;
 
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &image32 ));
@@ -666,7 +694,7 @@ int main( int argc, char *argv[] )
      dsc.width = SX;
      dsc.height = SY;
      dsc.pixelformat = DSPF_ARGB;
-     
+
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &image32a ));
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/pngtest2.png",
                                         &provider ));
@@ -677,12 +705,12 @@ int main( int argc, char *argv[] )
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/intro.png",
                                         &provider ));
      DFBCHECK(provider->GetSurfaceDescription( provider, &dsc ));
-     
+
      dsc.width = SW;
      dsc.height = SH;
-     
+
      DFBCHECK(dfb->CreateSurface( dfb, &dsc, &intro ));
-     
+
      DFBCHECK(provider->RenderTo( provider, intro ));
      provider->Release( provider );
 
@@ -693,11 +721,11 @@ int main( int argc, char *argv[] )
 
      sync();
      sleep(2);
-     
+
      for (i = 0; i < num_demos; i++) {
            long t, dt;
            unsigned long long pixels;
-          
+
            if (!demos[i].requested)
                 continue;
 
@@ -711,17 +739,17 @@ int main( int argc, char *argv[] )
            dfb->WaitIdle( dfb );
            dt = myclock() - t;
            demos[i].result = pixels / (unsigned long long)dt;
-           printf( "%-36s %6.2f secs (%8.2f %s)\n", 
-                   demos[i].desc, 
+           printf( "%-36s %6.2f secs (%8.2f %s)\n",
+                   demos[i].desc,
                    dt / 1000.0, demos[i].result / 1000.0, demos[i].unit);
-     }          
+     }
 
      showResult();
 
      printf( "\n" );
-     
+
      shutdown();
-     
+
      return 0;
 }
 

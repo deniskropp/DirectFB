@@ -1244,7 +1244,7 @@ extern "C"
 
           /*
            * Draw a line from one point to the other with the given color
-           * following the specified flags.
+           * following the drawing flags.
            */
           DFBResult (*DrawLine) (
                IDirectFBSurface         *thiz,
@@ -1252,6 +1252,16 @@ extern "C"
                int                       y1,
                int                       x2,
                int                       y2
+          );
+
+          /*
+           * Draw 'num_lines' lines with the given color
+           * following the drawing flags. Each line specified by a DFBRegion.
+           */
+          DFBResult (*DrawLines) (
+               IDirectFBSurface         *thiz,
+               DFBRegion                *lines,
+               unsigned int              num_lines
           );
 
           /*

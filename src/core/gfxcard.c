@@ -412,26 +412,32 @@ void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      }
 }
 
-void gfxcard_drawline( DFBRegion *line, CardState *state )
+void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 {
+     int i;
+
      if (gfxcard_state_check( state, DFXL_DRAWLINE ) &&
          gfxcard_state_acquire( state, DFXL_DRAWLINE ))
      {
-          if (card->caps.flags & CCF_CLIPPING  ||
-               clip_line( &state->clip, line ))
-          {
-               card->DrawLine( line );
-          }
+          if (card->caps.flags & CCF_CLIPPING)
+               for (i=0; i<num_lines; i++)
+                    card->DrawLine( &lines[i] );
+          else
+               for (i=0; i<num_lines; i++) {
+                    if (clip_line( &state->clip, &lines[i] ))
+                         card->DrawLine( &lines[i] );
+               }
+
           gfxcard_state_release( state );
      }
-     else
-     {
-          if (clip_line (&state->clip, line) &&
-               gAquire( state, DFXL_DRAWLINE ))
-          {
-               gDrawLine( line );
-               gRelease( state );
-          }
+     else {
+          if (gAquire( state, DFXL_DRAWLINE ))
+               for (i=0; i<num_lines; i++) {
+                    if (clip_line( &state->clip, &lines[i] ))
+                         gDrawLine( &lines[i] );
+               }
+
+          gRelease( state );
      }
 }
 

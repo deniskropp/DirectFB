@@ -713,7 +713,43 @@ DFBResult IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      line.y1 += data->req_rect.y;
      line.y2 += data->req_rect.y;
 
-     gfxcard_drawline( &line, &data->state );
+     gfxcard_drawlines( &line, 1, &data->state );
+
+     return DFB_OK;
+}
+
+DFBResult IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
+                                      DFBRegion *lines, unsigned int num_lines )
+{
+     IDirectFBSurface_data *data;
+     DFBRegion             *local_lines = alloca(sizeof(DFBRegion) * num_lines);
+
+     if (!thiz)
+          return DFB_INVARG;
+
+     data = (IDirectFBSurface_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (data->req_rect.x || data->req_rect.y) {
+          unsigned int i;
+
+          for (i=0; i<num_lines; i++) {
+               local_lines[i].x1 = lines[i].x1 + data->req_rect.x;
+               local_lines[i].x2 = lines[i].x2 + data->req_rect.x;
+               local_lines[i].y1 = lines[i].y1 + data->req_rect.y;
+               local_lines[i].y2 = lines[i].y2 + data->req_rect.y;
+          }
+     }
+     else
+          /* clipping may modify lines, so we copy them */
+          memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
+
+     gfxcard_drawlines( local_lines, num_lines, &data->state );
 
      return DFB_OK;
 }
@@ -1037,7 +1073,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 {
      IDirectFBSurface_data *data;
 
-     data = (IDirectFBSurface_data*) 
+     data = (IDirectFBSurface_data*)
           calloc( 1, sizeof(IDirectFBSurface_data) );
 
      thiz->priv = data;
@@ -1102,6 +1138,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetDrawingFlags = IDirectFBSurface_SetDrawingFlags;
      thiz->FillRectangle = IDirectFBSurface_FillRectangle;
      thiz->DrawLine = IDirectFBSurface_DrawLine;
+     thiz->DrawLines = IDirectFBSurface_DrawLines;
      thiz->DrawRectangle = IDirectFBSurface_DrawRectangle;
      thiz->FillTriangle = IDirectFBSurface_FillTriangle;
 

@@ -176,7 +176,7 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state );
 
 void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
 
-void gfxcard_drawline( DFBRegion *line, CardState *state );
+void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state );
 
 void gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
 
