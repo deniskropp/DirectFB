@@ -36,6 +36,8 @@ typedef struct
                                                      primary layer */
 
      int       mouse_motion_compression;          /* use motion compression? */
+     char     *mouse_protocol;                    /* mouse protocol */
+
      int       window_policy;                     /* swapping policy for the
                                                      surface of a window */
      int       buffer_mode;                       /* default buffer mode for

@@ -1,6 +1,9 @@
+- Added inputdriver for MS serial mouse. 
 - Modularized inputdrivers.
 - Even faster DrawString() software implementations.
+- 32 bit aligning in the software driver resulting in a major speedup.
 - New function Font->GetStringExtents.
+- Use of antialiasing, kerning and hinting for fonts is now configurable.
 - Support for interlaced PNGs (thanks to Johannes Zellner).
 
 0.9.2

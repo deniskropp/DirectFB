@@ -69,6 +69,8 @@ static void config_print_usage()
              "Put terminal into graphics mode\n"
              " --[no-]motion-compression         "
              "Mouse Motion Event Compression\n"
+             " --mouse-protocol=<protocol>       "
+             "Mouse Protocol (serial mouse)\n"
              " --bg-none                         "
              "Disable Background Clear\n"
              " --bg-color=AARRGGBB               "
@@ -120,7 +122,7 @@ static void config_allocate()
      if (dfb_config)
           return;
 
-     dfb_config = (DFBConfig*)malloc( sizeof(DFBConfig) );
+     dfb_config = (DFBConfig*) calloc( 1, sizeof(DFBConfig) );
 
      dfb_config->layer_bg_color.a = 0xFF;
      dfb_config->layer_bg_color.r = 0x40;
@@ -132,27 +134,6 @@ static void config_allocate()
      dfb_config->mouse_motion_compression = 1;
      dfb_config->window_policy = -1;
      dfb_config->buffer_mode = -1;
-
-     dfb_config->pollvsync_after = 0;
-     dfb_config->pollvsync_none = 0;
-     dfb_config->software_only = 0;
-
-     dfb_config->no_mmx = 0;
-
-     dfb_config->no_banner = 0;
-     dfb_config->quiet = 0;
-
-     dfb_config->no_debug = 0;     
-
-     dfb_config->no_sighandler = 0;
-     dfb_config->no_deinit_check = 0;
-
-     dfb_config->no_vt_switch = 0;
-     dfb_config->kd_graphics = 0;
-     
-     dfb_config->argb_font = 0;
-
-     dfb_config->matrox_sgram = 0;
 }
 
 static DFBResult config_set( const char *name, const char *value )
@@ -194,6 +175,15 @@ static DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = 0;
+     } else
+     if (strcmp (name, "mouse-protocol" ) == 0) {
+          if (value) {
+               dfb_config->mouse_protocol = strdup( value );
+          }
+          else {
+               ERRORMSG( "DirectFB/Config: No mouse protocol specified!\n" );
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = 1;

@@ -193,18 +193,57 @@ void* msmouseEventThread(void *device)
 int driver_probe()
 {
      struct serial_struct serial_info;
+     struct timeval timeout;
+     fd_set set;
+     char buf[8];
+     int readlen;
+     int lines;
+
+     if (!dfb_config->mouse_protocol || 
+         strcmp (dfb_config->mouse_protocol, "ms"))
+          return 0;
 
      fd = open( "/dev/mouse", O_RDWR | O_NONBLOCK );
-     if (fd < 0) {
+     if (fd < 0)
           return 0;
-     }
-     if (ioctl( fd, TIOCGSERIAL, &serial_info )) {
-          close( fd );
-          return 0;
-     }
-     close( fd );
 
-     return 1;
+     /*  test if this is a serial device  */
+     if (ioctl( fd, TIOCGSERIAL, &serial_info ))
+          goto error;
+
+     /*  test if there's a mouse connected by lowering and raising RTS  */
+     if (ioctl( fd, TIOCMGET, &lines ))
+          goto error;
+
+     lines ^= TIOCM_RTS;
+     if (ioctl( fd, TIOCMSET, &lines ))
+          goto error;
+     usleep (1000);
+     lines |= TIOCM_RTS;
+     if (ioctl( fd, TIOCMSET, &lines ))
+          goto error;
+
+     /*  wait for the mouse to send 0x4D  */
+     FD_ZERO(&set);
+     FD_SET(fd, &set);
+     timeout.tv_sec=0;
+     timeout.tv_usec=100000;
+
+     while (select (fd+1, &set, NULL, NULL, &timeout) < 0 && errno == EINTR);
+     if (FD_ISSET (fd, &set) && (readlen = read (fd, buf, 8) > 0)) {
+          while (readlen--) {
+               if (buf[8-readlen] == 0x4D)
+                    break;
+          }
+          if (readlen) {
+               close (fd);
+               return 1;
+          }
+     }
+
+ error:
+     close (fd);
+     return 0;
 }
 
 int driver_init(InputDevice *device)
