@@ -49,7 +49,7 @@ direct_initialize()
      D_DEBUG( "Direct/Initialize: direct_initialize() called...\n" );
 
      if (refs++) {
-          D_DEBUG( "Direct/Initialize: ...%d references now.\n" );
+          D_DEBUG( "Direct/Initialize: ...%d references now.\n", refs );
           pthread_mutex_unlock( &refs_lock );
           return DFB_OK;
      }
@@ -71,7 +71,7 @@ direct_shutdown()
      D_DEBUG( "Direct/Shutdown: direct_shutdown() called...\n" );
 
      if (--refs) {
-          D_DEBUG( "Direct/Shutdown: ...%d references now.\n" );
+          D_DEBUG( "Direct/Shutdown: ...%d references left.\n", refs );
           pthread_mutex_unlock( &refs_lock );
           return DFB_OK;
      }
