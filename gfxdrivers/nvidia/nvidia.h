@@ -476,8 +476,13 @@ typedef struct
 
 
 typedef struct {
-     CoreSurface           *destination;
-     CoreSurface           *source;
+     DFBSurfacePixelFormat  dst_format;
+     __u32                  dst_offset;
+     __u32                  dst_pitch;
+
+     DFBSurfacePixelFormat  src_format;
+     __u32                  src_offset;
+     __u32                  src_pitch;
 
      __u32                  color;
      __u32                  drawfx;
