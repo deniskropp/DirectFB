@@ -176,7 +176,7 @@ static __u32 matroxDestBlend[] = {
 };
 
 static __u32 matroxModulation[] = {
-     ALPHACHANNEL,
+     DIFFUSEDALPHA,
      ALPHACHANNEL,
      ALPHACHANNEL | DIFFUSEDALPHA,
      ALPHACHANNEL | MODULATEDALPHA
