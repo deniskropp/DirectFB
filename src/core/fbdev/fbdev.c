@@ -1353,6 +1353,9 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
           /* To get the new pitch */
           ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &fix );
           
+	  /* ++Tony: Other information (such as visual formats) will also change */
+          dfb_fbdev->shared->fix = fix;
+
           dfb_gfxcard_adjust_heap_offset( var.yres_virtual * fix.line_length );
 
           surface->front_buffer->surface = surface;
@@ -1520,6 +1523,9 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      int red_size   = 0;
      int green_size = 0;
      int blue_size  = 0;
+     int red_max    = 0;
+     int green_max  = 0;
+     int blue_max   = 0;
 
      struct fb_cmap cmap;
 
@@ -1551,6 +1557,21 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
                return DFB_OK;
      }
 
+     /*
+      * ++Tony: The gamma ramp must be set differently if in DirectColor,
+      *         ie, to mimic TrueColor, index == color[index].
+      */
+     if (dfb_fbdev->shared->fix.visual == FB_VISUAL_DIRECTCOLOR) {
+          red_max   = 65536 / (256/red_size);
+          green_max = 65536 / (256/green_size);
+	  blue_max  = 65536 / (256/blue_size);
+     }
+     else {
+         red_max   = red_size;
+         green_max = green_size;
+         blue_max  = blue_size;
+     }
+
      cmap.start  = 0;
      /* assume green to have most weight */
      cmap.len    = green_size;
@@ -1561,13 +1582,25 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
 
 
      for (i = 0; i < red_size; i++)
-          cmap.red[i] = dfb_fbdev_calc_gamma( i, red_size );
+          cmap.red[i] = dfb_fbdev_calc_gamma( i, red_max );
 
      for (i = 0; i < green_size; i++)
-          cmap.green[i] = dfb_fbdev_calc_gamma( i, green_size );
+          cmap.green[i] = dfb_fbdev_calc_gamma( i, green_max );
 
      for (i = 0; i < blue_size; i++)
-          cmap.blue[i] = dfb_fbdev_calc_gamma( i, blue_size );
+          cmap.blue[i] = dfb_fbdev_calc_gamma( i, blue_max );
+
+     /* ++Tony: Some drivers use the upper byte, some use the lower */
+     if (dfb_fbdev->shared->fix.visual == FB_VISUAL_DIRECTCOLOR) {
+         for (i = 0; i < red_size; i++)
+	     cmap.red[i] |= cmap.red[i] << 8;
+
+         for (i = 0; i < green_size; i++)
+             cmap.green[i] |= cmap.green[i] << 8;
+
+         for (i = 0; i < blue_size; i++)
+             cmap.blue[i] |= cmap.blue[i] << 8;
+     }
 
      if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
