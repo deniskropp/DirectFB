@@ -1890,7 +1890,8 @@ typedef enum {
      DSECAPS_TV_STANDARDS = 0x00000001, /* TV standards can be selected. */
      DSECAPS_TEST_PICTURE = 0x00000002, /* Test picture generation supported. */
      DSECAPS_MIXER_SEL    = 0x00000004, /* Mixer can be selected. */
-     DSECAPS_OUT_SIGNALS  = 0x00000008  /* Different output signals are supported. */
+     DSECAPS_OUT_SIGNALS  = 0x00000008, /* Different output signals are supported. */
+     DSECAPS_SCANMODE     = 0x00000010  /* Can switch between interlaced and progressive output. */
 } DFBScreenEncoderCapabilities;
 
 /*
@@ -1915,6 +1916,16 @@ typedef enum {
 } DFBScreenEncoderTVStandards;
 
 /*
+ * Scan modes.
+ */
+typedef enum {
+     DSESM_UNKNOWN        = 0x00000000, /* Unknown mode */
+
+     DSESM_INTERLACED     = 0x00000001, /* Interlaced scan mode */
+     DSESM_PROGRESSIVE    = 0x00000002  /* Progressive scan mode */
+} DFBScreenEncoderScanMode;
+
+/*
  * Description of a display encoder.
  */
 typedef struct {
@@ -1935,8 +1946,9 @@ typedef enum {
      DSECONF_TEST_PICTURE = 0x00000002, /* Set test picture mode. */
      DSECONF_MIXER        = 0x00000004, /* Select mixer. */
      DSECONF_OUT_SIGNALS  = 0x00000008, /* Select generated output signal(s). */
+     DSECONF_SCANMODE     = 0x00000010, /* Select interlaced or progressive output. */
 
-     DSECONF_ALL          = 0x0000000F
+     DSECONF_ALL          = 0x0000001F
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -1967,6 +1979,7 @@ typedef struct {
      DFBScreenEncoderTestPicture   test_picture;  /* Test picture mode. */
      int                           mixer;         /* Selected mixer. */
      DFBScreenOutputSignals        out_signals;   /* Generated output signals. */
+     DFBScreenEncoderScanMode      scanmode;      /* Interlaced or progressive output. */
 } DFBScreenEncoderConfig;
 
 
