@@ -42,10 +42,8 @@
 /* FIXME: DFB_THREAD_WAIT_INIT is required, but should be optional. */
 #define DFB_THREAD_WAIT_INIT
 
-/* FIXME: DFB_THREAD_WAIT_CREATE is required if _WAIT_INIT is not used. */
-#if !defined(DFB_THREAD_WAIT_INIT) && !defined(DFB_THREAD_WAIT_CREATE)
+/* FIXME: DFB_THREAD_WAIT_CREATE is required, but should be optional. */
 #define DFB_THREAD_WAIT_CREATE
-#endif
 
 
 struct _CoreThread {
@@ -109,7 +107,7 @@ dfb_thread_create( CoreThreadType  thread_type,
      while (!thread->init)
           sched_yield();
 
-     DEBUGMSG( "DirectFB/core/threads: Thread is running.\n" );
+     DEBUGMSG( "DirectFB/core/threads: ...thread is running.\n" );
 #endif     
 
      DEBUGMSG( "DirectFB/core/threads: ...created thread of type %d (%d).\n",
@@ -217,20 +215,6 @@ dfb_thread_main( void *arg )
 
      dfb_system_thread_init();
      
-#ifdef DFB_THREAD_WAIT_CREATE
-     if (thread->thread == -1) {
-          DEBUGMSG( "DirectFB/core/threads: "
-                    "    (thread) Waiting for pthread_create()...\n" );
-     
-          /* Wait for completion of pthread_create(). */
-          while ((int) thread->thread == -1)
-               sched_yield();
-
-          DEBUGMSG( "DirectFB/core/threads: "
-                    "    (thread) ...pthread_create() finished.\n" );
-     }
-#endif
-
      /* Have all signals handled by the main thread. */
      if (dfb_core && dfb_core->master)
           dfb_sig_block_all();
@@ -272,6 +256,21 @@ dfb_thread_main( void *arg )
           return NULL;
      }
 
+#ifdef DFB_THREAD_WAIT_CREATE
+     if (thread->thread == -1) {
+          DEBUGMSG( "DirectFB/core/threads: "
+                    "    (thread) Waiting for pthread_create()...\n" );
+     
+          /* Wait for completion of pthread_create(). */
+          while ((int) thread->thread == -1)
+               sched_yield();
+
+          DEBUGMSG( "DirectFB/core/threads: "
+                    "    (thread) ...pthread_create() finished.\n" );
+     }
+#endif
+     
      /* Call main routine. */
      return thread->main( thread, thread->arg );
 }
+
