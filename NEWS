@@ -1,3 +1,28 @@
+0.9.17
+------
+
+- Added input driver for Microtouch serial touchscreens.
+- Added input device name and vendor to DFBInputDeviceDescription.
+- Added clipboard functionality via IDirectFB::Set/GetClipboardData()
+  including mime type. This is an intermediate solution that will be replaced.
+- Added new tool "dfbinfo" which currently enumerates input devices and layers.
+- Added IDirectFBDisplayLayer::SetFieldParity(), thanks to Ville.
+- Added cooperative level restrictions to many display layer functions.
+- Readded DSPF_RGB15 (= DSPF_ARGB1555).
+- Graphics drivers are now able to return false in graphics functions to
+  trigger a 'late' software fallback. Useful if blitting direction can't be set.
+- It is finally possible to specify which gfxdrivers should be built.
+        ./configure --with-gfxdrivers=<list>
+- Fix "could not adjust heap offset message" if the primary layer surface
+  consumes the whole video memory (thanks to Ville Syrjala).
+- Fix for planar formats and other fixes by Ville Syrjala <syrjala@sci.fi>.
+- Fixed "directfb-config" for static linking.
+- Fixed destination color keying for blended drawing in software driver.
+- Fixed blitting within one buffer with NeoMagic (scrolling errors).
+- Reject YUV for fbdev layer, thanks to Jiri Svoboda <Jiri.Svoboda@seznam.cz>.
+- Many bug fixes, code cleanups, comments and assertions added etc.
+
+
 0.9.16
 ------
 
