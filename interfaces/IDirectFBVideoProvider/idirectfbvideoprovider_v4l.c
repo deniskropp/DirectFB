@@ -247,18 +247,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 	 || !(VID_TYPE_OVERLAY & data->vcap.type))
           data->grab_mode = 1;
 
-     if (dst_data->caps & DSCAPS_SYSTEMONLY) {
-
-          dfb_surfacemanager_lock( surface->manager );
-
-	  ret = dfb_surfacemanager_assure_system( surface->manager, 
-						  surface->back_buffer );
-	  dfb_surfacemanager_unlock( surface->manager );
-
-	  if (ret)
-	       return ret;
-     } else {
-
+     if (!(dst_data->caps & DSCAPS_SYSTEMONLY)) {
           dfb_surfacemanager_lock( surface->manager );
 
 	  ret = dfb_surfacemanager_assure_video( surface->manager, 
