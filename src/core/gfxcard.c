@@ -1511,7 +1511,7 @@ void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
      D_ASSUME( card != NULL );
      D_ASSERT( serial != NULL );
 
-     if (card && card->funcs.EngineSync)
+     if (card && card->funcs.WaitSerial)
           card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
 }
 
