@@ -110,6 +110,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
           case DSPF_ARGB1555:
                mga_out32( mmio, PW16 | DIT555, MACCESS );
                break;
+          case DSPF_ARGB4444:
           case DSPF_RGB16:
                mga_out32( mmio, PW16, MACCESS );
                break;
@@ -199,6 +200,13 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                                      state->color.g,
                                      state->color.b );
                color |= color << 8;
+               color |= color << 16;
+               break;
+          case DSPF_ARGB4444:
+               color = PIXEL_ARGB4444( state->color.a,
+                                       state->color.r,
+                                       state->color.g,
+                                       state->color.b );
                color |= color << 16;
                break;
           case DSPF_ARGB1555:
@@ -462,6 +470,9 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
           case DSPF_YV12:
           case DSPF_A8:
                texctl |= TW8A;
+               break;
+          case DSPF_ARGB4444:
+               texctl |= TW12;
                break;
           case DSPF_ARGB1555:
                texctl |= TW15;

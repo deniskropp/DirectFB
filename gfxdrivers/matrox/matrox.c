@@ -245,6 +245,7 @@ matrox2064WCheckState( void *drv, void *dev,
                     state->source->format != DSPF_YV12))
                     return;
           case DSPF_RGB332:
+          case DSPF_ARGB4444:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -297,6 +298,7 @@ matroxOldCheckState( void *drv, void *dev,
                     state->source->format != DSPF_YV12))
                     return;
           case DSPF_RGB332:
+          case DSPF_ARGB4444:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -348,6 +350,11 @@ matroxG100CheckState( void *drv, void *dev,
                    (state->source->format != DSPF_I420 &&
                     state->source->format != DSPF_YV12))
                     return;
+               break;
+          case DSPF_ARGB4444:
+               if (DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel ))
+                    return;
+               break;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -379,6 +386,7 @@ matroxG100CheckState( void *drv, void *dev,
                switch (state->source->format) {
                     case DSPF_LUT8:
                     case DSPF_RGB332:
+                    case DSPF_ARGB4444:
                     case DSPF_ARGB1555:
                     case DSPF_RGB16:
                          break;
@@ -425,6 +433,12 @@ matroxG200CheckState( void *drv, void *dev,
                    (state->source->format != DSPF_I420 &&
                     state->source->format != DSPF_YV12))
                     return;
+               break;
+          case DSPF_ARGB4444:
+               if ((DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel )) ||
+                   (DFB_DRAWING_FUNCTION( accel ) && (state->drawingflags & DSDRAW_BLEND)))
+                    return;
+               break;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -460,6 +474,7 @@ matroxG200CheckState( void *drv, void *dev,
                          return;
                case DSPF_LUT8:
                case DSPF_RGB332:
+               case DSPF_ARGB4444:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -508,6 +523,12 @@ matroxG400CheckState( void *drv, void *dev,
                    (state->source->format != DSPF_I420 &&
                     state->source->format != DSPF_YV12))
                     return;
+               break;
+          case DSPF_ARGB4444:
+               if ((DFB_BLITTING_FUNCTION( accel ) && MATROX_USE_TMU( state, accel )) ||
+                   (DFB_DRAWING_FUNCTION( accel ) && (state->drawingflags & DSDRAW_BLEND)))
+                    return;
+               break;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -541,6 +562,7 @@ matroxG400CheckState( void *drv, void *dev,
                case DSPF_RGB332:
                     if (use_tmu)
                          return;
+               case DSPF_ARGB4444:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
