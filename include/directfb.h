@@ -379,7 +379,7 @@ typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 
-typedef unsigned long long DFBDisplayLayerIDs;
+typedef unsigned long DFBDisplayLayerIDs;
 
 /*
  * Adds the id to the bitmask of layer ids.
