@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#define _GNU_SOURCE
+
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -541,10 +543,17 @@ lock_node( int reactor_id, bool add )
      }
 
      if (add) {
-          ReactorNode *node = DFBCALLOC( 1, sizeof(ReactorNode) );
+          pthread_mutexattr_t  attr;
+          ReactorNode         *node = DFBCALLOC( 1, sizeof(ReactorNode) );
 
-          pthread_mutex_init( &node->lock, NULL );
+          pthread_mutexattr_init( &attr );
+          pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 
+          pthread_mutex_init( &node->lock, &attr );
+
+          pthread_mutexattr_destroy( &attr );
+          
+          
           pthread_mutex_lock( &node->lock );
           
           node->reactor_id = reactor_id;
