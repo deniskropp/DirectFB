@@ -38,6 +38,8 @@
 #include <stdio.h>
 #include <unistd.h>
 
+#include <sys/file.h>
+
 #include <pthread.h>
 
 #include <directfb.h>
@@ -493,19 +495,36 @@ bench_mutex()
 static void
 bench_getpid()
 {
-     int             i;
-     long long       t1, t2;
+     int        i, fd;
+     long long  t1, t2;
+     FILE      *tmp;
+
+     tmp = tmpfile();
+     if (!tmp) {
+          perror( "tmpfile()" );
+          return;
+     }
+
+     fd = fileno( tmp );
+     if (fd < 0) {
+          perror( "fileno()" );
+          fclose( tmp );
+          return;
+     }
 
      t1 = dfb_get_millis();
 
-     for (i=0; i<4000000; i++) {
-          getpid();
+     for (i=0; i<2000000; i++) {
+          flock( fd, LOCK_EX );
+          flock( fd, LOCK_UN );
      }
 
      t2 = dfb_get_millis();
 
-     printf( "getpid                                -> %8.2f k/sec\n", (double)2000000 / (double)(t2 - t1) );
+     printf( "flock lock/unlock                     -> %8.2f k/sec\n", (double)2000000 / (double)(t2 - t1) );
      printf( "\n" );
+
+     fclose( tmp );
 }
 
 #define RUN(x...)   sync(); sleep(1); x
