@@ -164,12 +164,12 @@ fusion_object_create( FusionObjectPool *pool )
      /* Add the object to the pool. */
      fusion_list_prepend( &pool->objects, &object->link );
 
-     /* Unlock the pool's object list. */
-     skirmish_dismiss( &pool->lock );
-     
      /* Set pool back pointer. */
      object->pool = pool;
 
+     /* Unlock the pool's object list. */
+     skirmish_dismiss( &pool->lock );
+     
      return object;
 }
 
@@ -234,6 +234,12 @@ fusion_object_destroy( FusionObject     *object )
 {
      DFB_ASSERT( object != NULL );
 
+     /* Remove the object from the pool. */
+     if (object->pool) {
+          fusion_list_remove( &object->pool->objects, &object->link );
+          object->pool = NULL;
+     }
+     
      fusion_ref_destroy( &object->ref );
 
      reactor_free( object->reactor );
@@ -269,6 +275,7 @@ bone_collector_loop( CoreThread *thread, void *arg )
 
                          /* Remove the object from the pool. */
                          fusion_list_remove( &pool->objects, &object->link );
+                         object->pool = NULL;
 
                          /* Call the destructor. */
                          pool->destructor( object, false );
@@ -307,6 +314,7 @@ bone_collector_loop( CoreThread *thread, void *arg )
           
           /* Remove the object from the pool. */
           fusion_list_remove( &pool->objects, &object->link );
+          object->pool = NULL;
 
           /* Call the destructor. */
           pool->destructor( object, true );
