@@ -355,7 +355,7 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
                }
           }
           else {     /* image must be scaled */
-               image_data = alloca(cinfo.output_width * cinfo.output_height*4);
+               image_data = malloc(cinfo.output_width * cinfo.output_height*4);
                row_ptr = image_data;
 
                while (cinfo.output_scanline < cinfo.output_height) {
@@ -368,6 +368,8 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
                                 cinfo.output_height, width, height,
                                 pitch - width * BYTES_PER_PIXEL(format),
                                 format );
+               
+               free( image_data );
           }
 
           jpeg_finish_decompress(&cinfo);
