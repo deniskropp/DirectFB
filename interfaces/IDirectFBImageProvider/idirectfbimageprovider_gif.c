@@ -312,9 +312,9 @@ static DFBResult IDirectFBImageProvider_GIF_GetImageDescription(
           if (transparency) {
                dsc->caps = DICAPS_COLORKEY;
 
-               dsc->colorkey_r = (key_rgb & 0xff0000) >> 16;
-               dsc->colorkey_g = (key_rgb & 0x00ff00) >>  8;
-               dsc->colorkey_b = (key_rgb & 0x0000ff);
+               dsc->colorkey_r = 0;//(key_rgb & 0xff0000) >> 16;
+               dsc->colorkey_g = 0xFF;//(key_rgb & 0x00ff00) >>  8;
+               dsc->colorkey_b = 0;//(key_rgb & 0x0000ff);
           }
           else
                dsc->caps = DICAPS_NONE;
@@ -617,10 +617,22 @@ static __u32* ReadImage( FILE *fd, int len, int height,
 
      while ((v = LWZReadByte(fd,FALSE,c)) >= 0 ) {
           __u32 *dst = image + (ypos * len + xpos);
-          *dst++ = (0xFF000000 | 
-                    cmap[CM_RED][v]   << 16 | 
-                    cmap[CM_GREEN][v] << 8  | 
-                    cmap[CM_BLUE][v]);
+
+          if (v == Gif89.transparent) {
+               *dst++ = 0xFF00FF00;
+          }
+          else {
+               __u32 color = cmap[CM_RED][v]   << 16 | 
+                             cmap[CM_GREEN][v] << 8  | 
+                             cmap[CM_BLUE][v];
+
+               /* very ugly quick hack to preserve the colorkey for 16bit,
+                  this will be fixed very soon! */
+               if ((color & 0x00FC00) == 0x00FC00)
+                    *dst++ = (0xFF000000 | (color & 0xFFF8FF));
+               else
+                    *dst++ = 0xFF000000 | color;
+          }
 
           ++xpos;
           if (xpos == len) {
