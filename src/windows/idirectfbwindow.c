@@ -43,6 +43,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/layers.h>
 #include <core/palette.h>
 #include <core/state.h>
 #include <core/surfaces.h>
@@ -71,12 +72,21 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
 typedef struct {
      int                ref;
      CoreWindow        *window;
+     DisplayLayer      *layer;
 
      IDirectFBSurface  *surface;
-
+     
      DFBWindowEvent    *position_size_event;
 
+     struct {
+          IDirectFBSurface  *shape;
+          int                hot_x;
+          int                hot_y;
+     } cursor;
+
      Reaction           reaction;
+
+     bool               entered;
 
      bool               detached;
      bool               destroyed;
@@ -109,6 +119,9 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      if (data->surface)
           data->surface->Release( data->surface );
 
+     if (data->cursor.shape)
+          data->cursor.shape->Release( data->cursor.shape );
+     
      DEBUGMSG("IDirectFBWindow_Destruct - done.\n");
 
      DFB_DEALLOCATE_INTERFACE( thiz );
@@ -454,6 +467,47 @@ IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
 }
 
 static DFBResult
+IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
+                                IDirectFBSurface *shape,
+                                int               hot_x,
+                                int               hot_y )
+{
+     DFBResult              ret;
+     IDirectFBSurface_data *shape_data;
+     CoreSurface           *shape_surface;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     shape_data = (IDirectFBSurface_data*) shape->priv;
+     if (!shape_data)
+          return DFB_DEAD;
+
+     shape_surface = shape_data->surface;
+     if (!shape_surface)
+          return DFB_DESTROYED;
+
+     ret = shape->AddRef( shape );
+     if (ret)
+          return ret;
+
+     if (data->cursor.shape)
+          data->cursor.shape->Release( data->cursor.shape );
+
+     data->cursor.shape = shape;
+     data->cursor.hot_x = hot_x;
+     data->cursor.hot_y = hot_y;
+
+     if (data->entered)
+          dfb_layer_cursor_set_shape( data->layer,
+                                      shape_surface, hot_x, hot_y );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 {
      CoreWindow *window;
@@ -740,6 +794,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 
      data->ref = 1;
      data->window = window;
+     data->layer  = dfb_layer_at( window->stack->layer_id );
 
      dfb_window_attach( data->window, IDirectFBWindow_React,
                         data, &data->reaction );
@@ -766,6 +821,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->SetColorKeyIndex = IDirectFBWindow_SetColorKeyIndex;
      thiz->SetOpacity = IDirectFBWindow_SetOpacity;
      thiz->GetOpacity = IDirectFBWindow_GetOpacity;
+     thiz->SetCursorShape = IDirectFBWindow_SetCursorShape;
      thiz->RequestFocus = IDirectFBWindow_RequestFocus;
      thiz->GrabKeyboard = IDirectFBWindow_GrabKeyboard;
      thiz->UngrabKeyboard = IDirectFBWindow_UngrabKeyboard;
@@ -799,29 +855,59 @@ IDirectFBWindow_React( const void *msg_data,
 
      DEBUGMSG("IDirectFBWindow_React\n");
 
-     if (evt->type == DWET_POSITION_SIZE) {
-          if (!data->position_size_event)
-               data->position_size_event = DFBMALLOC( sizeof(DFBWindowEvent) );
+     switch (evt->type) {
+          case DWET_POSITION_SIZE:
+               if (!data->position_size_event)
+                    data->position_size_event = DFBMALLOC( sizeof(DFBWindowEvent) );
 
-          *data->position_size_event = *evt;
-     }
+               *data->position_size_event = *evt;
 
-     if (evt->type == DWET_DESTROYED) {
-          DEBUGMSG("IDirectFBWindow_React - window destroyed\n");
+               break;
 
-          if (!data->destroyed) {
-               data->destroyed = true;
-               
-               DEBUGMSG("IDirectFBWindow_React - unrefing...\n");
+          case DWET_DESTROYED:
+               DEBUGMSG("IDirectFBWindow_React - window destroyed\n");
 
-               dfb_window_unref( data->window );
+               if (!data->destroyed) {
+                    data->destroyed = true;
 
-               DEBUGMSG("IDirectFBWindow_React - unref done.\n");
-          }
-          
-          data->detached = true;
+                    DEBUGMSG("IDirectFBWindow_React - unrefing...\n");
 
-          return RS_REMOVE;
+                    dfb_window_unref( data->window );
+
+                    DEBUGMSG("IDirectFBWindow_React - unref done.\n");
+               }
+
+               data->detached = true;
+
+               return RS_REMOVE;
+
+          case DWET_LEAVE:
+               data->entered = false;
+               break;
+
+          case DWET_ENTER:
+               data->entered = true;
+
+               if (data->cursor.shape) {
+                    IDirectFBSurface_data* shape_data;
+
+                    shape_data = (IDirectFBSurface_data*) data->cursor.shape->priv;
+                    if (!shape_data)
+                         break;
+
+                    if (!shape_data->surface)
+                         break;
+
+                    dfb_layer_cursor_set_shape( data->layer,
+                                                shape_data->surface,
+                                                data->cursor.hot_x,
+                                                data->cursor.hot_y );
+               }
+
+               break;
+
+          default:
+               break;
      }
 
      return RS_OK;

@@ -3034,6 +3034,19 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           __u8                     *opacity
      );
 
+     /*
+      * Bind a cursor shape to this window.
+      *
+      * This method will set a per-window cursor shape. Everytime
+      * the cursor enters this window, the specified shape is set.
+      */
+     DFBResult (*SetCursorShape) (
+          IDirectFBWindow          *thiz,
+          IDirectFBSurface         *shape,
+          int                       hot_x,
+          int                       hot_y
+     );
+
 
    /** Focus handling **/
 
