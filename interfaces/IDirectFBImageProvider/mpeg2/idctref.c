@@ -1,4 +1,4 @@
-/* Reference_IDCT.c, Inverse Discrete Fourier Transform, double precision          */
+/* MPEG2_Reference_IDCT.c, Inverse Discrete Fourier Transform, double precision          */
 
 /* Copyright (C) 1996, MPEG Software Simulation Group. All Rights Reserved. */
 
@@ -47,7 +47,7 @@
 
 /* global declarations */
 void Initialize_Fast_IDCTref (void);
-void Reference_IDCT (short *block);
+void MPEG2_Reference_IDCT (short *block);
 
 /* private data */
 
@@ -56,7 +56,7 @@ static double c[8][8];
 
 /* initialize DCT coefficient matrix */
 
-void Initialize_Reference_IDCT()
+void MPEG2_Initialize_Reference_IDCT()
 {
   int freq, time;
   double scale;
@@ -71,7 +71,7 @@ void Initialize_Reference_IDCT()
 
 /* perform IDCT matrix multiply for 8x8 coefficient block */
 
-void Reference_IDCT(block)
+void MPEG2_Reference_IDCT(block)
 short *block;
 {
   int i, j, k, v;

@@ -36,71 +36,71 @@
 
 /* prototypes of global functions */
 
-/* Get_Bits.c */
-void Initialize_Buffer (void);
-void Fill_Buffer (void);
-unsigned int Show_Bits (int n);
-unsigned int Get_Bits1 (void);
-void Flush_Buffer (int n);
-unsigned int Get_Bits (int n);
+/* MPEG2_Get_Bits.c */
+void MPEG2_Initialize_Buffer (void);
+void MPEG2_Fill_Buffer (void);
+unsigned int MPEG2_Show_Bits (int n);
+unsigned int MPEG2_Get_Bits1 (void);
+void MPEG2_Flush_Buffer (int n);
+unsigned int MPEG2_Get_Bits (int n);
 
 /* systems.c */
-void Flush_Buffer32 (void);
-unsigned int Get_Bits32 (void);
+void MPEG2_Flush_Buffer32 (void);
+unsigned int MPEG2_Get_Bits32 (void);
 
 /* getblk.c */
-void Decode_MPEG1_Intra_Block (int comp, int dc_dct_pred[]);
-void Decode_MPEG1_Non_Intra_Block (int comp);
-void Decode_MPEG2_Intra_Block (int comp, int dc_dct_pred[]);
-void Decode_MPEG2_Non_Intra_Block (int comp);
+void MPEG2_Decode_MPEG1_Intra_Block (int comp, int dc_dct_pred[]);
+void MPEG2_Decode_MPEG1_Non_Intra_Block (int comp);
+void MPEG2_Decode_MPEG2_Intra_Block (int comp, int dc_dct_pred[]);
+void MPEG2_Decode_MPEG2_Non_Intra_Block (int comp);
 
 /* gethdr.c */
-int Get_Hdr (void);
-void next_start_code (void);
-int slice_header (void);
-void marker_bit (char *text);
+int MPEG2_Get_Hdr (void);
+void MPEG2_next_start_code (void);
+int MPEG2_slice_header (void);
+void MPEG2_marker_bit (char *text);
 
 /* getpic.c */
-void Decode_Picture (int bitstream_framenum, 
+void MPEG2_Decode_Picture (int bitstream_framenum, 
   int sequence_framenum);
-void Output_Last_Frame_of_Sequence (int framenum);
+void MPEG2_Output_Last_Frame_of_Sequence (int framenum);
 
 /* getvlc.c */
-int Get_macroblock_type (void);
-int Get_motion_code (void);
-int Get_dmvector (void);
-int Get_coded_block_pattern (void);
-int Get_macroblock_address_increment (void);
-int Get_Luma_DC_dct_diff (void);
-int Get_Chroma_DC_dct_diff (void);
+int MPEG2_Get_macroblock_type (void);
+int MPEG2_Get_motion_code (void);
+int MPEG2_Get_dmvector (void);
+int MPEG2_Get_coded_block_pattern (void);
+int MPEG2_Get_macroblock_address_increment (void);
+int MPEG2_Get_Luma_DC_dct_diff (void);
+int MPEG2_Get_Chroma_DC_dct_diff (void);
 
 /* idct.c */
-void Fast_IDCT (short *block);
-void Initialize_Fast_IDCT (void);
+void MPEG2_Fast_IDCT (short *block);
+void MPEG2_Initialize_Fast_IDCT (void);
 
-/* Reference_IDCT.c */
-void Initialize_Reference_IDCT (void);
-void Reference_IDCT (short *block);
+/* MPEG2_Reference_IDCT.c */
+void MPEG2_Initialize_Reference_IDCT (void);
+void MPEG2_Reference_IDCT (short *block);
 
 /* motion.c */
-void motion_vectors (int PMV[2][2][2], int dmvector[2],
+void MPEG2_motion_vectors (int PMV[2][2][2], int dmvector[2],
   int motion_vertical_field_select[2][2], int s, int motion_vector_count, 
   int mv_format, int h_r_size, int v_r_size, int dmv, int mvscale);
-void motion_vector (int *PMV, int *dmvector,
+void MPEG2_motion_vector (int *PMV, int *dmvector,
   int h_r_size, int v_r_size, int dmv, int mvscale, int full_pel_vector);
-void Dual_Prime_Arithmetic (int DMV[][2], int *dmvector, int mvx, int mvy);
+void MPEG2_Dual_Prime_Arithmetic (int DMV[][2], int *dmvector, int mvx, int mvy);
 
 /* mpeg2dec.c */
-void Error (char *text);
-void Warning (char *text);
+void MPEG2_Error (char *text);
+void MPEG2_Warning (char *text);
 
 /* recon.c */
-void form_predictions (int bx, int by, int macroblock_type, 
+void MPEG2_form_predictions (int bx, int by, int macroblock_type, 
   int motion_type, int PMV[2][2][2], int motion_vertical_field_select[2][2], 
   int dmvector[2], int stwtype);
 
 /* store.c */
-void Write_Frame (unsigned char *src[], int frame);
+void MPEG2_Write_Frame (unsigned char *src[], int frame);
 
 /* global variables */
 

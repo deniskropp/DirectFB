@@ -65,7 +65,7 @@ MPEG2_Init (MPEG2_Read mpeg2_read, void *read_ctx, int *width, int *height)
   ld->mpeg2_read = mpeg2_read;
   ld->mpeg2_read_ctx = read_ctx;
 
-  Initialize_Buffer(); 
+  MPEG2_Initialize_Buffer(); 
 
   Initialize_Decoder();
 
@@ -109,7 +109,7 @@ static void Initialize_Decoder()
 
   /* MPEG2_Clip table */
   if (!(MPEG2_Clip=(unsigned char *)malloc(1024)))
-    Error("MPEG2_Clip[] malloc failed\n");
+    MPEG2_Error("MPEG2_Clip[] malloc failed\n");
 
   MPEG2_Clip += 384;
 
@@ -118,9 +118,9 @@ static void Initialize_Decoder()
 
   /* IDCT */
   if (MPEG2_Reference_IDCT_Flag)
-    Initialize_Reference_IDCT();
+    MPEG2_Initialize_Reference_IDCT();
   else
-    Initialize_Fast_IDCT();
+    MPEG2_Initialize_Fast_IDCT();
 
 }
 
@@ -168,17 +168,17 @@ static void Initialize_Sequence()
       size = Chroma_Width*Chroma_Height;
 
     if (!(backward_reference_frame[cc] = (unsigned char *)malloc(size)))
-      Error("backward_reference_frame[] malloc failed\n");
+      MPEG2_Error("backward_reference_frame[] malloc failed\n");
 
     if (!(forward_reference_frame[cc] = (unsigned char *)malloc(size)))
-      Error("forward_reference_frame[] malloc failed\n");
+      MPEG2_Error("forward_reference_frame[] malloc failed\n");
 
     if (!(auxframe[cc] = (unsigned char *)malloc(size)))
-      Error("auxframe[] malloc failed\n");
+      MPEG2_Error("auxframe[] malloc failed\n");
   }
 }
 
-void Error(text)
+void MPEG2_Error(text)
 char *text;
 {
   fprintf(stderr,text);
@@ -195,7 +195,7 @@ static int Headers()
   /* return when end of sequence (0) or picture
      header has been parsed (1) */
 
-  ret = Get_Hdr();
+  ret = MPEG2_Get_Hdr();
 
   return ret;
 }
@@ -255,7 +255,7 @@ int *Bitstream_Framenumber;
      Decode_Bitstream() */
 
 
-  Decode_Picture(Bitstream_Framenum, Sequence_Framenum);
+  MPEG2_Decode_Picture(Bitstream_Framenum, Sequence_Framenum);
 
   /* update picture numbers */
   if (!Second_Field)
@@ -267,7 +267,7 @@ int *Bitstream_Framenumber;
   /* loop through the rest of the pictures in the sequence */
   while ((Return_Value=Headers()))
   {
-    Decode_Picture(Bitstream_Framenum, Sequence_Framenum);
+    MPEG2_Decode_Picture(Bitstream_Framenum, Sequence_Framenum);
 
     if (!Second_Field)
     {
@@ -279,7 +279,7 @@ int *Bitstream_Framenumber;
   /* put last frame */
   if (Sequence_Framenum!=0)
   {
-    Output_Last_Frame_of_Sequence(Bitstream_Framenum);
+    MPEG2_Output_Last_Frame_of_Sequence(Bitstream_Framenum);
   }
 
   Deinitialize_Sequence();

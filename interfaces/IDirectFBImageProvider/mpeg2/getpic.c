@@ -67,7 +67,7 @@ static int decode_macroblock (int *macroblock_type,
 
 
 /* decode one frame or field picture */
-void Decode_Picture(bitstream_framenum, sequence_framenum)
+void MPEG2_Decode_Picture(bitstream_framenum, sequence_framenum)
 int bitstream_framenum, sequence_framenum;
 {
 
@@ -152,19 +152,19 @@ int framenum, MBAmax;
       if (base.scalable_mode==SC_DP && base.priority_breakpoint==1)
           ld = &enhan;
 
-      if (!Show_Bits(23) || MPEG2_Fault_Flag) /* next_start_code or fault */
+      if (!MPEG2_Show_Bits(23) || MPEG2_Fault_Flag) /* MPEG2_next_start_code or fault */
       {
-resync: /* if MPEG2_Fault_Flag: resynchronize to next next_start_code */
+resync: /* if MPEG2_Fault_Flag: resynchronize to next MPEG2_next_start_code */
         MPEG2_Fault_Flag = 0;
         return(0);     /* trigger: go to next slice */
       }
-      else /* neither next_start_code nor MPEG2_Fault_Flag */
+      else /* neither MPEG2_next_start_code nor MPEG2_Fault_Flag */
       {
         if (base.scalable_mode==SC_DP && base.priority_breakpoint==1)
           ld = &enhan;
 
         /* decode macroblock address increment */
-        MBAinc = Get_macroblock_address_increment();
+        MBAinc = MPEG2_Get_macroblock_address_increment();
 
         if (MPEG2_Fault_Flag) goto resync;
       }
@@ -231,7 +231,7 @@ static void macroblock_modes(pmacroblock_type,pstwtype,pstwclass,
     = {0, 1, 2, 1, 1, 2, 3, 3, 4};
 
   /* get macroblock_type */
-  macroblock_type = Get_macroblock_type();
+  macroblock_type = MPEG2_Get_macroblock_type();
 
   if (MPEG2_Fault_Flag) return;
 
@@ -242,7 +242,7 @@ static void macroblock_modes(pmacroblock_type,pstwtype,pstwclass,
       stwtype = 4;
     else
     {
-      stwcode = Get_Bits(2);
+      stwcode = MPEG2_Get_Bits(2);
       stwtype = stwc_table[spatial_temporal_weight_code_table_index-1][stwcode];
     }
   }
@@ -257,11 +257,11 @@ static void macroblock_modes(pmacroblock_type,pstwtype,pstwclass,
   {
     if (picture_structure==FRAME_PICTURE) /* frame_motion_type */
     {
-      motion_type = frame_pred_frame_dct ? MC_FRAME : Get_Bits(2);
+      motion_type = frame_pred_frame_dct ? MC_FRAME : MPEG2_Get_Bits(2);
     }
     else /* field_motion_type */
     {
-      motion_type = Get_Bits(2);
+      motion_type = MPEG2_Get_Bits(2);
     }
   }
   else if ((macroblock_type & MACROBLOCK_INTRA) && concealment_motion_vectors)
@@ -293,7 +293,7 @@ static void macroblock_modes(pmacroblock_type,pstwtype,pstwclass,
 
   /* field mv predictions in frame pictures have to be scaled
    * ISO/IEC 13818-2 section 7.6.3.1 Decoding the motion vectors
-   * IMPLEMENTATION: mvscale is derived for later use in motion_vectors()
+   * IMPLEMENTATION: mvscale is derived for later use in MPEG2_motion_vectors()
    * it displaces the stage:
    *
    *    if((mv_format=="field")&&(t==1)&&(picture_structure=="Frame picture"))
@@ -306,7 +306,7 @@ static void macroblock_modes(pmacroblock_type,pstwtype,pstwclass,
   dct_type = (picture_structure==FRAME_PICTURE)
              && (!frame_pred_frame_dct)
              && (macroblock_type & (MACROBLOCK_PATTERN|MACROBLOCK_INTRA))
-             ? Get_Bits(1)
+             ? MPEG2_Get_Bits(1)
              : 0;
 
   /* return values */
@@ -444,10 +444,10 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
 
   if (*SNRMBAinc==0)
   {
-    if (!Show_Bits(23)) /* next_start_code */
+    if (!MPEG2_Show_Bits(23)) /* MPEG2_next_start_code */
     {
-      next_start_code();
-      code = Show_Bits(32);
+      MPEG2_next_start_code();
+      code = MPEG2_Show_Bits(32);
 
       if (code<SLICE_START_CODE_MIN || code>SLICE_START_CODE_MAX)
       {
@@ -457,13 +457,13 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
         return;
       }
 
-      Flush_Buffer32();
+      MPEG2_Flush_Buffer32();
 
       /* decode slice header (may change quantizer_scale) */
-      slice_vert_pos_ext = slice_header();
+      slice_vert_pos_ext = MPEG2_slice_header();
 
       /* decode macroblock address increment */
-      *SNRMBAinc = Get_macroblock_address_increment();
+      *SNRMBAinc = MPEG2_Get_macroblock_address_increment();
 
       /* set current location */
       *SNRMBA =
@@ -471,7 +471,7 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
 
       *SNRMBAinc = 1; /* first macroblock in slice: not skipped */
     }
-    else /* not next_start_code */
+    else /* not MPEG2_next_start_code */
     {
       if (*SNRMBA>=MBAmax)
       {
@@ -481,7 +481,7 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
       }
 
       /* decode macroblock address increment */
-      *SNRMBAinc = Get_macroblock_address_increment();
+      *SNRMBAinc = MPEG2_Get_macroblock_address_increment();
     }
   }
 
@@ -504,7 +504,7 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
 
     if (SNRmacroblock_type & MACROBLOCK_QUANT)
     {
-      quantizer_scale_code = Get_Bits(5);
+      quantizer_scale_code = MPEG2_Get_Bits(5);
       ld->quantizer_scale =
         ld->q_scale_type ? MPEG2_Non_Linear_quantizer_scale[quantizer_scale_code] : quantizer_scale_code<<1;
     }
@@ -512,12 +512,12 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
     /* macroblock_pattern */
     if (SNRmacroblock_type & MACROBLOCK_PATTERN)
     {
-      SNRcoded_block_pattern = Get_coded_block_pattern();
+      SNRcoded_block_pattern = MPEG2_Get_coded_block_pattern();
 
       if (chroma_format==CHROMA422)
-        SNRcoded_block_pattern = (SNRcoded_block_pattern<<2) | Get_Bits(2); /* coded_block_pattern_1 */
+        SNRcoded_block_pattern = (SNRcoded_block_pattern<<2) | MPEG2_Get_Bits(2); /* coded_block_pattern_1 */
       else if (chroma_format==CHROMA444)
-        SNRcoded_block_pattern = (SNRcoded_block_pattern<<6) | Get_Bits(6); /* coded_block_pattern_2 */
+        SNRcoded_block_pattern = (SNRcoded_block_pattern<<6) | MPEG2_Get_Bits(6); /* coded_block_pattern_2 */
     }
     else
       SNRcoded_block_pattern = 0;
@@ -528,7 +528,7 @@ static void Decode_SNR_Macroblock(SNRMBA, SNRMBAinc, MBA, MBAmax, dct_type)
       Clear_Block(comp);
 
       if (SNRcoded_block_pattern & (1<<(block_count-1-comp)))
-        Decode_MPEG2_Non_Intra_Block(comp);
+        MPEG2_Decode_MPEG2_Non_Intra_Block(comp);
     }
   }
   else /* SNRMBAinc!=1: skipped macroblock */
@@ -651,13 +651,13 @@ static void Update_Picture_Buffers()
 
 /* store last frame */
 
-void Output_Last_Frame_of_Sequence(Framenum)
+void MPEG2_Output_Last_Frame_of_Sequence(Framenum)
 int Framenum;
 {
   if (Second_Field)
     printf("last frame incomplete, not stored\n");
   else
-    Write_Frame(backward_reference_frame,Framenum-1);
+    MPEG2_Write_Frame(backward_reference_frame,Framenum-1);
 }
 
 
@@ -673,13 +673,13 @@ int Bitstream_Framenum, Sequence_Framenum;
     if (picture_structure==FRAME_PICTURE || Second_Field)
     {
       if (picture_coding_type==B_TYPE)
-        Write_Frame(auxframe,Bitstream_Framenum-1);
+        MPEG2_Write_Frame(auxframe,Bitstream_Framenum-1);
       else
       {
         Newref_progressive_frame = progressive_frame;
         progressive_frame = Oldref_progressive_frame;
 
-        Write_Frame(forward_reference_frame,Bitstream_Framenum-1);
+        MPEG2_Write_Frame(forward_reference_frame,Bitstream_Framenum-1);
 
         Oldref_progressive_frame = progressive_frame = Newref_progressive_frame;
       }
@@ -712,7 +712,7 @@ int dct_type;
 
   /* motion compensation */
   if (!(macroblock_type & MACROBLOCK_INTRA))
-    form_predictions(bx,by,macroblock_type,motion_type,PMV,
+    MPEG2_form_predictions(bx,by,macroblock_type,motion_type,PMV,
       motion_vertical_field_select,dmvector,stwtype);
   
   /* SCALABILITY: Data Partitioning */
@@ -724,9 +724,9 @@ int dct_type;
   {
     /* ISO/IEC 13818-2 section Annex A: inverse DCT */
     if (MPEG2_Reference_IDCT_Flag)
-      Reference_IDCT(ld->block[comp]);
+      MPEG2_Reference_IDCT(ld->block[comp]);
     else
-      Fast_IDCT(ld->block[comp]);
+      MPEG2_Fast_IDCT(ld->block[comp]);
     
     /* ISO/IEC 13818-2 section 7.6.8: Adding prediction and coefficient data */
     Add_Block(comp,bx,by,dct_type,(macroblock_type & MACROBLOCK_INTRA)==0);
@@ -803,8 +803,8 @@ int PMV[2][2][2];
 
   MPEG2_Fault_Flag = 0;
 
-  next_start_code();
-  code = Show_Bits(32);
+  MPEG2_next_start_code();
+  code = MPEG2_Show_Bits(32);
 
   if (code<SLICE_START_CODE_MIN || code>SLICE_START_CODE_MAX)
   {
@@ -815,18 +815,18 @@ int PMV[2][2][2];
     return(-1);  /* trigger: go to next picture */
   }
 
-  Flush_Buffer32(); 
+  MPEG2_Flush_Buffer32(); 
 
   /* decode slice header (may change quantizer_scale) */
-  slice_vert_pos_ext = slice_header();
+  slice_vert_pos_ext = MPEG2_slice_header();
 
  
   /* SCALABILITY: Data Partitioning */
   if (base.scalable_mode==SC_DP)
   {
     ld = &enhan;
-    next_start_code();
-    code = Show_Bits(32);
+    MPEG2_next_start_code();
+    code = MPEG2_Show_Bits(32);
 
     if (code<SLICE_START_CODE_MIN || code>SLICE_START_CODE_MAX)
     {
@@ -836,17 +836,17 @@ int PMV[2][2][2];
       return(-1);    /* trigger: go to next picture */
     }
 
-    Flush_Buffer32();
+    MPEG2_Flush_Buffer32();
 
     /* decode slice header (may change quantizer_scale) */
-    slice_vert_pos_ext = slice_header();
+    slice_vert_pos_ext = MPEG2_slice_header();
 
     if (base.priority_breakpoint!=1)
       ld = &base;
   }
 
   /* decode macroblock address increment */
-  *MBAinc = Get_macroblock_address_increment();
+  *MBAinc = MPEG2_Get_macroblock_address_increment();
 
   if (MPEG2_Fault_Flag) 
   {
@@ -917,7 +917,7 @@ int dmvector[2];
 
   if (*macroblock_type & MACROBLOCK_QUANT)
   {
-    quantizer_scale_code = Get_Bits(5);
+    quantizer_scale_code = MPEG2_Get_Bits(5);
 
     /* ISO/IEC 13818-2 section 7.4.2.2: Quantizer scale factor */
     if (ld->MPEG2_Flag)
@@ -944,11 +944,11 @@ int dmvector[2];
     && concealment_motion_vectors))
   {
     if (ld->MPEG2_Flag)
-      motion_vectors(PMV,dmvector,motion_vertical_field_select,
+      MPEG2_motion_vectors(PMV,dmvector,motion_vertical_field_select,
         0,motion_vector_count,mv_format,f_code[0][0]-1,f_code[0][1]-1,
         dmv,mvscale);
     else
-      motion_vector(PMV[0][0],dmvector,
+      MPEG2_motion_vector(PMV[0][0],dmvector,
       forward_f_code-1,forward_f_code-1,0,0,full_pel_forward_vector);
   }
 
@@ -958,18 +958,18 @@ int dmvector[2];
   if (*macroblock_type & MACROBLOCK_MOTION_BACKWARD)
   {
     if (ld->MPEG2_Flag)
-      motion_vectors(PMV,dmvector,motion_vertical_field_select,
+      MPEG2_motion_vectors(PMV,dmvector,motion_vertical_field_select,
         1,motion_vector_count,mv_format,f_code[1][0]-1,f_code[1][1]-1,0,
         mvscale);
     else
-      motion_vector(PMV[0][1],dmvector,
+      MPEG2_motion_vector(PMV[0][1],dmvector,
         backward_f_code-1,backward_f_code-1,0,0,full_pel_backward_vector);
   }
 
   if (MPEG2_Fault_Flag) return(0);  /* trigger: go to next slice */
 
   if ((*macroblock_type & MACROBLOCK_INTRA) && concealment_motion_vectors)
-    Flush_Buffer(1); /* remove marker_bit */
+    MPEG2_Flush_Buffer(1); /* remove MPEG2_marker_bit */
 
   if (base.scalable_mode==SC_DP && base.priority_breakpoint==3)
     ld = &enhan;
@@ -978,18 +978,18 @@ int dmvector[2];
   /* ISO/IEC 13818-2 section 6.3.17.4: Coded block pattern */
   if (*macroblock_type & MACROBLOCK_PATTERN)
   {
-    coded_block_pattern = Get_coded_block_pattern();
+    coded_block_pattern = MPEG2_Get_coded_block_pattern();
 
     if (chroma_format==CHROMA422)
     {
       /* coded_block_pattern_1 */
-      coded_block_pattern = (coded_block_pattern<<2) | Get_Bits(2); 
+      coded_block_pattern = (coded_block_pattern<<2) | MPEG2_Get_Bits(2); 
 
      }
      else if (chroma_format==CHROMA444)
      {
       /* coded_block_pattern_2 */
-      coded_block_pattern = (coded_block_pattern<<6) | Get_Bits(6); 
+      coded_block_pattern = (coded_block_pattern<<6) | MPEG2_Get_Bits(6); 
     }
   }
   else
@@ -1012,16 +1012,16 @@ int dmvector[2];
       if (*macroblock_type & MACROBLOCK_INTRA)
       {
         if (ld->MPEG2_Flag)
-          Decode_MPEG2_Intra_Block(comp,dc_dct_pred);
+          MPEG2_Decode_MPEG2_Intra_Block(comp,dc_dct_pred);
         else
-          Decode_MPEG1_Intra_Block(comp,dc_dct_pred);
+          MPEG2_Decode_MPEG1_Intra_Block(comp,dc_dct_pred);
       }
       else
       {
         if (ld->MPEG2_Flag)
-          Decode_MPEG2_Non_Intra_Block(comp);
+          MPEG2_Decode_MPEG2_Non_Intra_Block(comp);
         else
-          Decode_MPEG1_Non_Intra_Block(comp);
+          MPEG2_Decode_MPEG1_Non_Intra_Block(comp);
       }
 
       if (MPEG2_Fault_Flag) return(0);  /* trigger: go to next slice */
@@ -1032,7 +1032,7 @@ int dmvector[2];
   {
     /* remove end_of_macroblock (always 1, prevents startcode emulation) */
     /* ISO/IEC 11172-2 section 2.4.2.7 and 2.4.3.6 */
-    marker_bit("D picture end_of_macroblock bit");
+    MPEG2_marker_bit("D picture end_of_macroblock bit");
   }
 
   /* reset intra_dc predictors */

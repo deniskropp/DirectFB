@@ -36,7 +36,7 @@ static void decode_motion_vector (int *pred, int r_size, int motion_code,
   int motion_residualesidual, int full_pel_vector);
 
 /* ISO/IEC 13818-2 sections 6.2.5.2, 6.3.17.2, and 7.6.3: Motion vectors */
-void motion_vectors(PMV,dmvector,
+void MPEG2_motion_vectors(PMV,dmvector,
   motion_vertical_field_select,s,motion_vector_count,mv_format,h_r_size,v_r_size,dmv,mvscale)
 int PMV[2][2][2];
 int dmvector[2];
@@ -47,10 +47,10 @@ int s, motion_vector_count, mv_format, h_r_size, v_r_size, dmv, mvscale;
   {
     if (mv_format==MV_FIELD && !dmv)
     {
-      motion_vertical_field_select[1][s] = motion_vertical_field_select[0][s] = Get_Bits(1);
+      motion_vertical_field_select[1][s] = motion_vertical_field_select[0][s] = MPEG2_Get_Bits(1);
     }
 
-    motion_vector(PMV[0][s],dmvector,h_r_size,v_r_size,dmv,mvscale,0);
+    MPEG2_motion_vector(PMV[0][s],dmvector,h_r_size,v_r_size,dmv,mvscale,0);
 
     /* update other motion vector predictors */
     PMV[1][s][0] = PMV[0][s][0];
@@ -58,17 +58,17 @@ int s, motion_vector_count, mv_format, h_r_size, v_r_size, dmv, mvscale;
   }
   else
   {
-    motion_vertical_field_select[0][s] = Get_Bits(1);
-    motion_vector(PMV[0][s],dmvector,h_r_size,v_r_size,dmv,mvscale,0);
+    motion_vertical_field_select[0][s] = MPEG2_Get_Bits(1);
+    MPEG2_motion_vector(PMV[0][s],dmvector,h_r_size,v_r_size,dmv,mvscale,0);
 
-    motion_vertical_field_select[1][s] = Get_Bits(1);
-    motion_vector(PMV[1][s],dmvector,h_r_size,v_r_size,dmv,mvscale,0);
+    motion_vertical_field_select[1][s] = MPEG2_Get_Bits(1);
+    MPEG2_motion_vector(PMV[1][s],dmvector,h_r_size,v_r_size,dmv,mvscale,0);
   }
 }
 
 /* get and decode motion vector and differential motion vector 
    for one prediction */
-void motion_vector(PMV,dmvector,
+void MPEG2_motion_vector(PMV,dmvector,
   h_r_size,v_r_size,dmv,mvscale,full_pel_vector)
 int *PMV;
 int *dmvector;
@@ -82,20 +82,20 @@ int full_pel_vector; /* MPEG-1 only */
 
   /* horizontal component */
   /* ISO/IEC 13818-2 Table B-10 */
-  motion_code = Get_motion_code();
+  motion_code = MPEG2_Get_motion_code();
 
-  motion_residual = (h_r_size!=0 && motion_code!=0) ? Get_Bits(h_r_size) : 0;
+  motion_residual = (h_r_size!=0 && motion_code!=0) ? MPEG2_Get_Bits(h_r_size) : 0;
 
 
   decode_motion_vector(&PMV[0],h_r_size,motion_code,motion_residual,full_pel_vector);
 
   if (dmv)
-    dmvector[0] = Get_dmvector();
+    dmvector[0] = MPEG2_Get_dmvector();
 
 
   /* vertical component */
-  motion_code     = Get_motion_code();
-  motion_residual = (v_r_size!=0 && motion_code!=0) ? Get_Bits(v_r_size) : 0;
+  motion_code     = MPEG2_Get_motion_code();
+  motion_residual = (v_r_size!=0 && motion_code!=0) ? MPEG2_Get_Bits(v_r_size) : 0;
 
   if (mvscale)
     PMV[1] >>= 1; /* DIV 2 */
@@ -106,7 +106,7 @@ int full_pel_vector; /* MPEG-1 only */
     PMV[1] <<= 1;
 
   if (dmv)
-    dmvector[1] = Get_dmvector();
+    dmvector[1] = MPEG2_Get_dmvector();
 }
 
 /* calculate motion vector component */
@@ -141,7 +141,7 @@ int full_pel_vector; /* MPEG-1 (ISO/IEC 11172-1) support */
 
 
 /* ISO/IEC 13818-2 section 7.6.3.6: Dual prime additional arithmetic */
-void Dual_Prime_Arithmetic(DMV,dmvector,mvx,mvy)
+void MPEG2_Dual_Prime_Arithmetic(DMV,dmvector,mvx,mvy)
 int DMV[][2];
 int *dmvector; /* differential motion vector */
 int mvx, mvy;  /* decoded mv components (always in field format) */

@@ -34,7 +34,7 @@
 
 /* initialize buffer, call once before first getbits or showbits */
 
-void Flush_Buffer32()
+void MPEG2_Flush_Buffer32()
 {
   int Incnt;
 
@@ -46,7 +46,7 @@ void Flush_Buffer32()
   while (Incnt <= 24)
     {
       if (ld->Rdptr >= ld->Rdbfr+2048)
-        Fill_Buffer();
+        MPEG2_Fill_Buffer();
       ld->Bfr |= *ld->Rdptr++ << (24 - Incnt);
       Incnt += 8;
     }
@@ -55,12 +55,12 @@ void Flush_Buffer32()
 }
 
 
-unsigned int Get_Bits32()
+unsigned int MPEG2_Get_Bits32()
 {
   unsigned int l;
 
-  l = Show_Bits(32);
-  Flush_Buffer32();
+  l = MPEG2_Show_Bits(32);
+  MPEG2_Flush_Buffer32();
 
   return l;
 }

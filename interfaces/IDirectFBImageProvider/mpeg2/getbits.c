@@ -40,17 +40,17 @@
 
 /* initialize buffer, call once before first getbits or showbits */
 
-void Initialize_Buffer()
+void MPEG2_Initialize_Buffer()
 {
   ld->Incnt = 0;
   ld->Rdptr = ld->Rdbfr + 2048;
   ld->Rdmax = ld->Rdptr;
 
   ld->Bfr = 0;
-  Flush_Buffer(0); /* fills valid data into bfr */
+  MPEG2_Flush_Buffer(0); /* fills valid data into bfr */
 }
 
-void Fill_Buffer()
+void MPEG2_Fill_Buffer()
 {
   int Buffer_Level;
 
@@ -82,24 +82,24 @@ void Fill_Buffer()
 
 /* return next n bits (right adjusted) without advancing */
 
-unsigned int Show_Bits(N)
+unsigned int MPEG2_Show_Bits(N)
 int N;
 {
   return ld->Bfr >> (32-N);
 }
 
 
-/* return next bit (could be made faster than Get_Bits(1)) */
+/* return next bit (could be made faster than MPEG2_Get_Bits(1)) */
 
-unsigned int Get_Bits1()
+unsigned int MPEG2_Get_Bits1()
 {
-  return Get_Bits(1);
+  return MPEG2_Get_Bits(1);
 }
 
 
 /* advance by n bits */
 
-void Flush_Buffer(N)
+void MPEG2_Flush_Buffer(N)
 int N;
 {
   int Incnt;
@@ -124,7 +124,7 @@ int N;
       do
       {
         if (ld->Rdptr >= ld->Rdbfr+2048)
-          Fill_Buffer();
+          MPEG2_Fill_Buffer();
         ld->Bfr |= *ld->Rdptr++ << (24 - Incnt);
         Incnt += 8;
       }
@@ -137,13 +137,13 @@ int N;
 
 /* return next n bits (right adjusted) */
 
-unsigned int Get_Bits(N)
+unsigned int MPEG2_Get_Bits(N)
 int N;
 {
   unsigned int Val;
 
-  Val = Show_Bits(N);
-  Flush_Buffer(N);
+  Val = MPEG2_Show_Bits(N);
+  MPEG2_Flush_Buffer(N);
 
   return Val;
 }

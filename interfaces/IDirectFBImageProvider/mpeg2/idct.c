@@ -49,8 +49,8 @@
 #define W7 565  /* 2048*sqrt(2)*cos(7*pi/16) */
 
 /* global declarations */
-void Initialize_Fast_IDCT (void);
-void Fast_IDCT (short *block);
+void MPEG2_Initialize_Fast_IDCT (void);
+void MPEG2_Fast_IDCT (short *block);
 
 /* private data */
 static short iclip[1024]; /* clipping table */
@@ -187,7 +187,7 @@ short *blk;
 }
 
 /* two dimensional inverse discrete cosine transform */
-void Fast_IDCT(block)
+void MPEG2_Fast_IDCT(block)
 short *block;
 {
   int i;
@@ -199,7 +199,7 @@ short *block;
     idctcol(block+i);
 }
 
-void Initialize_Fast_IDCT()
+void MPEG2_Initialize_Fast_IDCT()
 {
   int i;
 

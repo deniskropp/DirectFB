@@ -40,7 +40,7 @@ static void form_prediction (unsigned char *src[], int sfield,
 static void form_component_prediction (unsigned char *src, unsigned char *dst,
   int lx, int lx2, int w, int h, int x, int y, int dx, int dy, int average_flag);
 
-void form_predictions(bx,by,macroblock_type,motion_type,PMV,motion_vertical_field_select,dmvector,stwtype)
+void MPEG2_form_predictions(bx,by,macroblock_type,motion_type,PMV,motion_vertical_field_select,dmvector,stwtype)
 int bx, by;
 int macroblock_type;
 int motion_type;
@@ -92,7 +92,7 @@ int stwtype;
       else if (motion_type==MC_DMV) /* dual prime prediction */
       {
         /* calculate derived motion vectors */
-        Dual_Prime_Arithmetic(DMV,dmvector,PMV[0][0][0],PMV[0][0][1]>>1);
+        MPEG2_Dual_Prime_Arithmetic(DMV,dmvector,PMV[0][0][0],PMV[0][0][1]>>1);
 
         if (stwtop<2)
         {
@@ -173,7 +173,7 @@ int stwtype;
           predframe = forward_reference_frame; /* previous frame */
 
         /* calculate derived motion vectors */
-        Dual_Prime_Arithmetic(DMV,dmvector,PMV[0][0][0],PMV[0][0][1]);
+        MPEG2_Dual_Prime_Arithmetic(DMV,dmvector,PMV[0][0][0],PMV[0][0][1]);
 
         /* predict from field of same parity */
         form_prediction(forward_reference_frame,currentfield,current_frame,0,

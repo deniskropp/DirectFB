@@ -83,7 +83,7 @@ static const int Inverse_Table_6_9[8][4] = {
 /*
  * store a picture as either one frame or two fields
  */
-void Write_Frame(src,frame)
+void MPEG2_Write_Frame(src,frame)
 unsigned char *src[];
 int frame;
 {
@@ -137,7 +137,7 @@ int offset,incr,width,height;
   if ((outfile = open(name,O_CREAT|O_TRUNC|O_WRONLY|O_BINARY,0666))==-1)
   {
     sprintf(MPEG2_Error_Text,"Couldn't create %s\n",name);
-    Error(MPEG2_Error_Text);
+    MPEG2_Error(MPEG2_Error_Text);
   }
 
   optr=obfr;
@@ -168,7 +168,7 @@ int offset, incr, height;
   unsigned char *u422, *v422;
 
   if (chroma_format==CHROMA444)
-    Error("4:4:4 not supported for SIF format");
+    MPEG2_Error("4:4:4 not supported for SIF format");
 
   if (chroma_format==CHROMA422)
   {
@@ -179,10 +179,10 @@ int offset, incr, height;
   {
     if (!(u422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
                                          *Coded_Picture_Height)))
-      Error("alloca failed");
+      MPEG2_Error("alloca failed");
     if (!(v422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
                                          *Coded_Picture_Height)))
-      Error("alloca failed");
+      MPEG2_Error("alloca failed");
   
     conv420to422(src[1],u422);
     conv420to422(src[2],v422);
@@ -196,7 +196,7 @@ int offset, incr, height;
   if ((outfile = open(outname,O_CREAT|O_TRUNC|O_WRONLY|O_BINARY,0666))==-1)
   {
     sprintf(MPEG2_Error_Text,"Couldn't create %s\n",outname);
-    Error(MPEG2_Error_Text);
+    MPEG2_Error(MPEG2_Error_Text);
   }
 
   optr = obfr;
@@ -247,19 +247,19 @@ int offset, incr, height;
       {
         if (!(u422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
                                              *Coded_Picture_Height)))
-          Error("alloca failed");
+          MPEG2_Error("alloca failed");
         if (!(v422 = (unsigned char *)alloca((Coded_Picture_Width>>1)
                                              *Coded_Picture_Height)))
-          Error("alloca failed");
+          MPEG2_Error("alloca failed");
       }
     
     if (!(u444 = (unsigned char *)alloca(Coded_Picture_Width
                                          *Coded_Picture_Height)))
-      Error("alloca failed");
+      MPEG2_Error("alloca failed");
     
     if (!(v444 = (unsigned char *)alloca(Coded_Picture_Width
                                          *Coded_Picture_Height)))
-      Error("alloca failed");
+      MPEG2_Error("alloca failed");
 
     if (chroma_format==CHROMA420)
     {

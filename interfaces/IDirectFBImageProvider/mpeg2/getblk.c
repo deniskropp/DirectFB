@@ -44,7 +44,7 @@ extern DCTtab DCTtab0a[],DCTtab1a[];
 
 /* decode one intra coded MPEG-1 block */
 
-void Decode_MPEG1_Intra_Block(comp,dc_dct_pred)
+void MPEG2_Decode_MPEG1_Intra_Block(comp,dc_dct_pred)
 int comp;
 int dc_dct_pred[];
 {
@@ -58,11 +58,11 @@ int dc_dct_pred[];
   /* ISO/IEC 11172-2 section 2.4.3.7: Block layer. */
   /* decode DC coefficients */
   if (comp<4)
-    bp[0] = (dc_dct_pred[0]+=Get_Luma_DC_dct_diff()) << 3;
+    bp[0] = (dc_dct_pred[0]+=MPEG2_Get_Luma_DC_dct_diff()) << 3;
   else if (comp==4)
-    bp[0] = (dc_dct_pred[1]+=Get_Chroma_DC_dct_diff()) << 3;
+    bp[0] = (dc_dct_pred[1]+=MPEG2_Get_Chroma_DC_dct_diff()) << 3;
   else
-    bp[0] = (dc_dct_pred[2]+=Get_Chroma_DC_dct_diff()) << 3;
+    bp[0] = (dc_dct_pred[2]+=MPEG2_Get_Chroma_DC_dct_diff()) << 3;
 
   if (MPEG2_Fault_Flag) return;
 
@@ -73,7 +73,7 @@ int dc_dct_pred[];
   /* decode AC coefficients */
   for (i=1; ; i++)
   {
-    code = Show_Bits(16);
+    code = MPEG2_Show_Bits(16);
     if (code>=16384)
       tab = &DCTtabnext[(code>>12)-4];
     else if (code>=1024)
@@ -93,25 +93,25 @@ int dc_dct_pred[];
     else
     {
       if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in Decode_MPEG1_Intra_Block()\n");
+        printf("invalid Huffman code in MPEG2_Decode_MPEG1_Intra_Block()\n");
       MPEG2_Fault_Flag = 1;
       return;
     }
 
-    Flush_Buffer(tab->len);
+    MPEG2_Flush_Buffer(tab->len);
 
     if (tab->run==64) /* end_of_block */
       return;
 
     if (tab->run==65) /* escape */
     {
-      i+= Get_Bits(6);
+      i+= MPEG2_Get_Bits(6);
 
-      val = Get_Bits(8);
+      val = MPEG2_Get_Bits(8);
       if (val==0)
-        val = Get_Bits(8);
+        val = MPEG2_Get_Bits(8);
       else if (val==128)
-        val = Get_Bits(8) - 256;
+        val = MPEG2_Get_Bits(8) - 256;
       else if (val>128)
         val -= 256;
 
@@ -122,7 +122,7 @@ int dc_dct_pred[];
     {
       i+= tab->run;
       val = tab->level;
-      sign = Get_Bits(1);
+      sign = MPEG2_Get_Bits(1);
     }
 
     if (i>=64)
@@ -151,7 +151,7 @@ int dc_dct_pred[];
 
 /* decode one non-intra coded MPEG-1 block */
 
-void Decode_MPEG1_Non_Intra_Block(comp)
+void MPEG2_Decode_MPEG1_Non_Intra_Block(comp)
 int comp;
 {
   int val, i, j, sign;
@@ -164,7 +164,7 @@ int comp;
   /* decode AC coefficients */
   for (i=0; ; i++)
   {
-    code = Show_Bits(16);
+    code = MPEG2_Show_Bits(16);
     if (code>=16384)
     {
       if (i==0)
@@ -189,25 +189,25 @@ int comp;
     else
     {
       if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in Decode_MPEG1_Non_Intra_Block()\n");
+        printf("invalid Huffman code in MPEG2_Decode_MPEG1_Non_Intra_Block()\n");
       MPEG2_Fault_Flag = 1;
       return;
     }
 
-    Flush_Buffer(tab->len);
+    MPEG2_Flush_Buffer(tab->len);
 
     if (tab->run==64) /* end_of_block */
       return;
 
     if (tab->run==65) /* escape */
     {
-      i+= Get_Bits(6);
+      i+= MPEG2_Get_Bits(6);
 
-      val = Get_Bits(8);
+      val = MPEG2_Get_Bits(8);
       if (val==0)
-        val = Get_Bits(8);
+        val = MPEG2_Get_Bits(8);
       else if (val==128)
-        val = Get_Bits(8) - 256;
+        val = MPEG2_Get_Bits(8) - 256;
       else if (val>128)
         val -= 256;
 
@@ -218,7 +218,7 @@ int comp;
     {
       i+= tab->run;
       val = tab->level;
-      sign = Get_Bits(1);
+      sign = MPEG2_Get_Bits(1);
     }
 
     if (i>=64)
@@ -247,7 +247,7 @@ int comp;
 
 /* decode one intra coded MPEG-2 block */
 
-void Decode_MPEG2_Intra_Block(comp,dc_dct_pred)
+void MPEG2_Decode_MPEG2_Intra_Block(comp,dc_dct_pred)
 int comp;
 int dc_dct_pred[];
 {
@@ -278,11 +278,11 @@ int dc_dct_pred[];
 
   /* ISO/IEC 13818-2 section 7.2.1: decode DC coefficients */
   if (cc==0)
-    val = (dc_dct_pred[0]+= Get_Luma_DC_dct_diff());
+    val = (dc_dct_pred[0]+= MPEG2_Get_Luma_DC_dct_diff());
   else if (cc==1)
-    val = (dc_dct_pred[1]+= Get_Chroma_DC_dct_diff());
+    val = (dc_dct_pred[1]+= MPEG2_Get_Chroma_DC_dct_diff());
   else
-    val = (dc_dct_pred[2]+= Get_Chroma_DC_dct_diff());
+    val = (dc_dct_pred[2]+= MPEG2_Get_Chroma_DC_dct_diff());
 
   if (MPEG2_Fault_Flag) return;
 
@@ -293,7 +293,7 @@ int dc_dct_pred[];
   /* decode AC coefficients */
   for (i=1; ; i++)
   {
-    code = Show_Bits(16);
+    code = MPEG2_Show_Bits(16);
     if (code>=16384 && !intra_vlc_format)
       tab = &DCTtabnext[(code>>12)-4];
     else if (code>=1024)
@@ -323,12 +323,12 @@ int dc_dct_pred[];
     else
     {
       if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in Decode_MPEG2_Intra_Block()\n");
+        printf("invalid Huffman code in MPEG2_Decode_MPEG2_Intra_Block()\n");
       MPEG2_Fault_Flag = 1;
       return;
     }
 
-    Flush_Buffer(tab->len);
+    MPEG2_Flush_Buffer(tab->len);
 
     if (tab->run==64) /* end_of_block */
     {
@@ -337,13 +337,13 @@ int dc_dct_pred[];
 
     if (tab->run==65) /* escape */
     {
-      i+= run = Get_Bits(6);
+      i+= run = MPEG2_Get_Bits(6);
 
-      val = Get_Bits(12);
+      val = MPEG2_Get_Bits(12);
       if ((val&2047)==0)
       {
         if (!MPEG2_Quiet_Flag)
-          printf("invalid escape in Decode_MPEG2_Intra_Block()\n");
+          printf("invalid escape in MPEG2_Decode_MPEG2_Intra_Block()\n");
         MPEG2_Fault_Flag = 1;
         return;
       }
@@ -354,7 +354,7 @@ int dc_dct_pred[];
     {
       i+= run = tab->run;
       val = tab->level;
-      sign = Get_Bits(1);
+      sign = MPEG2_Get_Bits(1);
     }
 
     if (i>=64)
@@ -378,7 +378,7 @@ int dc_dct_pred[];
 
 /* decode one non-intra coded MPEG-2 block */
 
-void Decode_MPEG2_Non_Intra_Block(comp)
+void MPEG2_Decode_MPEG2_Non_Intra_Block(comp)
 int comp;
 {
   int val, i, j, sign, nc, run;
@@ -409,7 +409,7 @@ int comp;
   /* decode AC coefficients */
   for (i=0; ; i++)
   {
-    code = Show_Bits(16);
+    code = MPEG2_Show_Bits(16);
     if (code>=16384)
     {
       if (i==0)
@@ -434,12 +434,12 @@ int comp;
     else
     {
       if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in Decode_MPEG2_Non_Intra_Block()\n");
+        printf("invalid Huffman code in MPEG2_Decode_MPEG2_Non_Intra_Block()\n");
       MPEG2_Fault_Flag = 1;
       return;
     }
 
-    Flush_Buffer(tab->len);
+    MPEG2_Flush_Buffer(tab->len);
 
     if (tab->run==64) /* end_of_block */
     {
@@ -448,13 +448,13 @@ int comp;
 
     if (tab->run==65) /* escape */
     {
-      i+= run = Get_Bits(6);
+      i+= run = MPEG2_Get_Bits(6);
 
-      val = Get_Bits(12);
+      val = MPEG2_Get_Bits(12);
       if ((val&2047)==0)
       {
         if (!MPEG2_Quiet_Flag)
-          printf("invalid escape in Decode_MPEG2_Intra_Block()\n");
+          printf("invalid escape in MPEG2_Decode_MPEG2_Intra_Block()\n");
         MPEG2_Fault_Flag = 1;
         return;
       }
@@ -465,7 +465,7 @@ int comp;
     {
       i+= run = tab->run;
       val = tab->level;
-      sign = Get_Bits(1);
+      sign = MPEG2_Get_Bits(1);
     }
 
     if (i>=64)

@@ -100,15 +100,15 @@ static const unsigned char default_intra_quantizer_matrix[64] = {
  * until an End of Sequence or picture start code
  * is found
  */
-int Get_Hdr()
+int MPEG2_Get_Hdr()
 {
   unsigned int code;
 
   for (;;)
   {
-    /* look for next_start_code */
-    next_start_code();
-    code = Get_Bits32();
+    /* look for MPEG2_next_start_code */
+    MPEG2_next_start_code();
+    code = MPEG2_Get_Bits32();
   
     switch (code)
     {
@@ -127,21 +127,21 @@ int Get_Hdr()
       break;
     default:
       if (!MPEG2_Quiet_Flag)
-        fprintf(stderr,"Unexpected next_start_code %08x (ignored)\n",code);
+        fprintf(stderr,"Unexpected MPEG2_next_start_code %08x (ignored)\n",code);
       break;
     }
   }
 }
 
 
-/* align to start of next next_start_code */
+/* align to start of next MPEG2_next_start_code */
 
-void next_start_code()
+void MPEG2_next_start_code()
 {
   /* byte align */
-  Flush_Buffer(ld->Incnt&7);
-  while (Show_Bits(24)!=0x01L)
-    Flush_Buffer(8);
+  MPEG2_Flush_Buffer(ld->Incnt&7);
+  while (MPEG2_Show_Bits(24)!=0x01L)
+    MPEG2_Flush_Buffer(8);
 }
 
 
@@ -153,19 +153,19 @@ static void sequence_header()
   int pos;
 
   pos = ld->Bitcnt;
-  horizontal_size             = Get_Bits(12);
-  vertical_size               = Get_Bits(12);
-  aspect_ratio_information    = Get_Bits(4);
-  frame_rate_code             = Get_Bits(4);
-  bit_rate_value              = Get_Bits(18);
-  marker_bit("sequence_header()");
-  vbv_buffer_size             = Get_Bits(10);
-  constrained_parameters_flag = Get_Bits(1);
+  horizontal_size             = MPEG2_Get_Bits(12);
+  vertical_size               = MPEG2_Get_Bits(12);
+  aspect_ratio_information    = MPEG2_Get_Bits(4);
+  frame_rate_code             = MPEG2_Get_Bits(4);
+  bit_rate_value              = MPEG2_Get_Bits(18);
+  MPEG2_marker_bit("sequence_header()");
+  vbv_buffer_size             = MPEG2_Get_Bits(10);
+  constrained_parameters_flag = MPEG2_Get_Bits(1);
 
-  if((ld->load_intra_quantizer_matrix = Get_Bits(1)))
+  if((ld->load_intra_quantizer_matrix = MPEG2_Get_Bits(1)))
   {
     for (i=0; i<64; i++)
-      ld->intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = Get_Bits(8);
+      ld->intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = MPEG2_Get_Bits(8);
   }
   else
   {
@@ -173,10 +173,10 @@ static void sequence_header()
       ld->intra_quantizer_matrix[i] = default_intra_quantizer_matrix[i];
   }
 
-  if((ld->load_non_intra_quantizer_matrix = Get_Bits(1)))
+  if((ld->load_non_intra_quantizer_matrix = MPEG2_Get_Bits(1)))
   {
     for (i=0; i<64; i++)
-      ld->non_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = Get_Bits(8);
+      ld->non_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = MPEG2_Get_Bits(8);
   }
   else
   {
@@ -211,14 +211,14 @@ static void group_of_pictures_header()
     Temporal_Reference_GOP_Reset = 1;
   }
   pos = ld->Bitcnt;
-  drop_flag   = Get_Bits(1);
-  hour        = Get_Bits(5);
-  minute      = Get_Bits(6);
-  marker_bit("group_of_pictures_header()");
-  sec         = Get_Bits(6);
-  frame       = Get_Bits(6);
-  closed_gop  = Get_Bits(1);
-  broken_link = Get_Bits(1);
+  drop_flag   = MPEG2_Get_Bits(1);
+  hour        = MPEG2_Get_Bits(5);
+  minute      = MPEG2_Get_Bits(6);
+  MPEG2_marker_bit("group_of_pictures_header()");
+  sec         = MPEG2_Get_Bits(6);
+  frame       = MPEG2_Get_Bits(6);
+  closed_gop  = MPEG2_Get_Bits(1);
+  broken_link = MPEG2_Get_Bits(1);
 
   extension_and_user_data();
 
@@ -237,19 +237,19 @@ static void picture_header()
   ld->pict_scal = 0; 
   
   pos = ld->Bitcnt;
-  temporal_reference  = Get_Bits(10);
-  picture_coding_type = Get_Bits(3);
-  vbv_delay           = Get_Bits(16);
+  temporal_reference  = MPEG2_Get_Bits(10);
+  picture_coding_type = MPEG2_Get_Bits(3);
+  vbv_delay           = MPEG2_Get_Bits(16);
 
   if (picture_coding_type==P_TYPE || picture_coding_type==B_TYPE)
   {
-    full_pel_forward_vector = Get_Bits(1);
-    forward_f_code = Get_Bits(3);
+    full_pel_forward_vector = MPEG2_Get_Bits(1);
+    forward_f_code = MPEG2_Get_Bits(3);
   }
   if (picture_coding_type==B_TYPE)
   {
-    full_pel_backward_vector = Get_Bits(1);
-    backward_f_code = Get_Bits(3);
+    full_pel_backward_vector = MPEG2_Get_Bits(1);
+    backward_f_code = MPEG2_Get_Bits(3);
   }
 
   Extra_Information_Byte_Count = 
@@ -264,7 +264,7 @@ static void picture_header()
 /* decode slice header */
 
 /* ISO/IEC 13818-2 section 6.2.4 */
-int slice_header()
+int MPEG2_slice_header()
 {
   int slice_vertical_position_extension;
   int quantizer_scale_code;
@@ -276,23 +276,23 @@ int slice_header()
   pos = ld->Bitcnt;
 
   slice_vertical_position_extension =
-    (ld->MPEG2_Flag && vertical_size>2800) ? Get_Bits(3) : 0;
+    (ld->MPEG2_Flag && vertical_size>2800) ? MPEG2_Get_Bits(3) : 0;
 
   if (ld->scalable_mode==SC_DP)
-    ld->priority_breakpoint = Get_Bits(7);
+    ld->priority_breakpoint = MPEG2_Get_Bits(7);
 
-  quantizer_scale_code = Get_Bits(5);
+  quantizer_scale_code = MPEG2_Get_Bits(5);
   ld->quantizer_scale =
     ld->MPEG2_Flag ? (ld->q_scale_type ? MPEG2_Non_Linear_quantizer_scale[quantizer_scale_code] : quantizer_scale_code<<1) : quantizer_scale_code;
 
   /* slice_id introduced in March 1995 as part of the video corridendum
      (after the IS was drafted in November 1994) */
-  if (Get_Bits(1))
+  if (MPEG2_Get_Bits(1))
   {
-    ld->intra_slice = Get_Bits(1);
+    ld->intra_slice = MPEG2_Get_Bits(1);
 
-    slice_picture_id_enable = Get_Bits(1);
-	slice_picture_id = Get_Bits(6);
+    slice_picture_id_enable = MPEG2_Get_Bits(1);
+	slice_picture_id = MPEG2_Get_Bits(6);
 
     extra_information_slice = extra_bit_information();
   }
@@ -310,14 +310,14 @@ static void extension_and_user_data()
 {
   int code,ext_ID;
 
-  next_start_code();
+  MPEG2_next_start_code();
 
-  while ((code = Show_Bits(32))==EXTENSION_START_CODE || code==USER_DATA_START_CODE)
+  while ((code = MPEG2_Show_Bits(32))==EXTENSION_START_CODE || code==USER_DATA_START_CODE)
   {
     if (code==EXTENSION_START_CODE)
     {
-      Flush_Buffer32();
-      ext_ID = Get_Bits(4);
+      MPEG2_Flush_Buffer32();
+      ext_ID = MPEG2_Get_Bits(4);
       switch (ext_ID)
       {
       case SEQUENCE_EXTENSION_ID:
@@ -351,11 +351,11 @@ static void extension_and_user_data()
         fprintf(stderr,"reserved extension start code ID %d\n",ext_ID);
         break;
       }
-      next_start_code();
+      MPEG2_next_start_code();
     }
     else
     {
-      Flush_Buffer32();
+      MPEG2_Flush_Buffer32();
       user_data();
     }
   }
@@ -378,17 +378,17 @@ static void sequence_extension()
   ld->scalable_mode = SC_NONE; /* unless overwritten by sequence_scalable_extension() */
   layer_id = 0;                /* unless overwritten by sequence_scalable_extension() */
   
-  profile_and_level_indication = Get_Bits(8);
-  progressive_sequence         = Get_Bits(1);
-  chroma_format                = Get_Bits(2);
-  horizontal_size_extension    = Get_Bits(2);
-  vertical_size_extension      = Get_Bits(2);
-  bit_rate_extension           = Get_Bits(12);
-  marker_bit("sequence_extension");
-  vbv_buffer_size_extension    = Get_Bits(8);
-  low_delay                    = Get_Bits(1);
-  frame_rate_extension_n       = Get_Bits(2);
-  frame_rate_extension_d       = Get_Bits(5);
+  profile_and_level_indication = MPEG2_Get_Bits(8);
+  progressive_sequence         = MPEG2_Get_Bits(1);
+  chroma_format                = MPEG2_Get_Bits(2);
+  horizontal_size_extension    = MPEG2_Get_Bits(2);
+  vertical_size_extension      = MPEG2_Get_Bits(2);
+  bit_rate_extension           = MPEG2_Get_Bits(12);
+  MPEG2_marker_bit("sequence_extension");
+  vbv_buffer_size_extension    = MPEG2_Get_Bits(8);
+  low_delay                    = MPEG2_Get_Bits(1);
+  frame_rate_extension_n       = MPEG2_Get_Bits(2);
+  frame_rate_extension_d       = MPEG2_Get_Bits(5);
 
   frame_rate = frame_rate_Table[frame_rate_code] *
     ((frame_rate_extension_n+1)/(frame_rate_extension_d+1));
@@ -434,19 +434,19 @@ static void sequence_display_extension()
   int pos;
 
   pos = ld->Bitcnt;
-  video_format      = Get_Bits(3);
-  color_description = Get_Bits(1);
+  video_format      = MPEG2_Get_Bits(3);
+  color_description = MPEG2_Get_Bits(1);
 
   if (color_description)
   {
-    color_primaries          = Get_Bits(8);
-    transfer_characteristics = Get_Bits(8);
-    matrix_coefficients      = Get_Bits(8);
+    color_primaries          = MPEG2_Get_Bits(8);
+    transfer_characteristics = MPEG2_Get_Bits(8);
+    matrix_coefficients      = MPEG2_Get_Bits(8);
   }
 
-  display_horizontal_size = Get_Bits(14);
-  marker_bit("sequence_display_extension");
-  display_vertical_size   = Get_Bits(14);
+  display_horizontal_size = MPEG2_Get_Bits(14);
+  MPEG2_marker_bit("sequence_display_extension");
+  display_vertical_size   = MPEG2_Get_Bits(14);
 
 }
 
@@ -460,36 +460,36 @@ static void quant_matrix_extension()
 
   pos = ld->Bitcnt;
 
-  if((ld->load_intra_quantizer_matrix = Get_Bits(1)))
+  if((ld->load_intra_quantizer_matrix = MPEG2_Get_Bits(1)))
   {
     for (i=0; i<64; i++)
     {
       ld->chroma_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]]
       = ld->intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]]
-      = Get_Bits(8);
+      = MPEG2_Get_Bits(8);
     }
   }
 
-  if((ld->load_non_intra_quantizer_matrix = Get_Bits(1)))
+  if((ld->load_non_intra_quantizer_matrix = MPEG2_Get_Bits(1)))
   {
     for (i=0; i<64; i++)
     {
       ld->chroma_non_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]]
       = ld->non_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]]
-      = Get_Bits(8);
+      = MPEG2_Get_Bits(8);
     }
   }
 
-  if((ld->load_chroma_intra_quantizer_matrix = Get_Bits(1)))
+  if((ld->load_chroma_intra_quantizer_matrix = MPEG2_Get_Bits(1)))
   {
     for (i=0; i<64; i++)
-      ld->chroma_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = Get_Bits(8);
+      ld->chroma_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = MPEG2_Get_Bits(8);
   }
 
-  if((ld->load_chroma_non_intra_quantizer_matrix = Get_Bits(1)))
+  if((ld->load_chroma_non_intra_quantizer_matrix = MPEG2_Get_Bits(1)))
   {
     for (i=0; i<64; i++)
-      ld->chroma_non_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = Get_Bits(8);
+      ld->chroma_non_intra_quantizer_matrix[MPEG2_scan[ZIG_ZAG][i]] = MPEG2_Get_Bits(8);
   }
 }
 
@@ -504,23 +504,23 @@ static void sequence_scalable_extension()
 
   /* values (without the +1 offset) of scalable_mode are defined in 
      Table 6-10 of ISO/IEC 13818-2 */
-  ld->scalable_mode = Get_Bits(2) + 1; /* add 1 to make SC_DP != SC_NONE */
+  ld->scalable_mode = MPEG2_Get_Bits(2) + 1; /* add 1 to make SC_DP != SC_NONE */
 
-  layer_id = Get_Bits(4);
+  layer_id = MPEG2_Get_Bits(4);
 
   if (ld->scalable_mode==SC_SPAT)
   {
-    lower_layer_prediction_horizontal_size = Get_Bits(14);
-    marker_bit("sequence_scalable_extension()");
-    lower_layer_prediction_vertical_size   = Get_Bits(14); 
-    horizontal_subsampling_factor_m        = Get_Bits(5);
-    horizontal_subsampling_factor_n        = Get_Bits(5);
-    vertical_subsampling_factor_m          = Get_Bits(5);
-    vertical_subsampling_factor_n          = Get_Bits(5);
+    lower_layer_prediction_horizontal_size = MPEG2_Get_Bits(14);
+    MPEG2_marker_bit("sequence_scalable_extension()");
+    lower_layer_prediction_vertical_size   = MPEG2_Get_Bits(14); 
+    horizontal_subsampling_factor_m        = MPEG2_Get_Bits(5);
+    horizontal_subsampling_factor_n        = MPEG2_Get_Bits(5);
+    vertical_subsampling_factor_m          = MPEG2_Get_Bits(5);
+    vertical_subsampling_factor_n          = MPEG2_Get_Bits(5);
   }
 
   if (ld->scalable_mode==SC_TEMP)
-    Error("temporal scalability not implemented\n");
+    MPEG2_Error("temporal scalability not implemented\n");
 }
 
 
@@ -570,11 +570,11 @@ static void picture_display_extension()
   /* now parse */
   for (i=0; i<number_of_frame_center_offsets; i++)
   {
-    frame_center_horizontal_offset[i] = Get_Bits(16);
-    marker_bit("picture_display_extension, first marker bit");
+    frame_center_horizontal_offset[i] = MPEG2_Get_Bits(16);
+    MPEG2_marker_bit("picture_display_extension, first marker bit");
     
-    frame_center_vertical_offset[i]   = Get_Bits(16);
-    marker_bit("picture_display_extension, second marker bit");
+    frame_center_vertical_offset[i]   = MPEG2_Get_Bits(16);
+    MPEG2_marker_bit("picture_display_extension, second marker bit");
   }
 }
 
@@ -586,31 +586,31 @@ static void picture_coding_extension()
 
   pos = ld->Bitcnt;
 
-  f_code[0][0] = Get_Bits(4);
-  f_code[0][1] = Get_Bits(4);
-  f_code[1][0] = Get_Bits(4);
-  f_code[1][1] = Get_Bits(4);
+  f_code[0][0] = MPEG2_Get_Bits(4);
+  f_code[0][1] = MPEG2_Get_Bits(4);
+  f_code[1][0] = MPEG2_Get_Bits(4);
+  f_code[1][1] = MPEG2_Get_Bits(4);
 
-  intra_dc_precision         = Get_Bits(2);
-  picture_structure          = Get_Bits(2);
-  top_field_first            = Get_Bits(1);
-  frame_pred_frame_dct       = Get_Bits(1);
-  concealment_motion_vectors = Get_Bits(1);
-  ld->q_scale_type           = Get_Bits(1);
-  intra_vlc_format           = Get_Bits(1);
-  ld->alternate_scan         = Get_Bits(1);
-  repeat_first_field         = Get_Bits(1);
-  chroma_420_type            = Get_Bits(1);
-  progressive_frame          = Get_Bits(1);
-  composite_display_flag     = Get_Bits(1);
+  intra_dc_precision         = MPEG2_Get_Bits(2);
+  picture_structure          = MPEG2_Get_Bits(2);
+  top_field_first            = MPEG2_Get_Bits(1);
+  frame_pred_frame_dct       = MPEG2_Get_Bits(1);
+  concealment_motion_vectors = MPEG2_Get_Bits(1);
+  ld->q_scale_type           = MPEG2_Get_Bits(1);
+  intra_vlc_format           = MPEG2_Get_Bits(1);
+  ld->alternate_scan         = MPEG2_Get_Bits(1);
+  repeat_first_field         = MPEG2_Get_Bits(1);
+  chroma_420_type            = MPEG2_Get_Bits(1);
+  progressive_frame          = MPEG2_Get_Bits(1);
+  composite_display_flag     = MPEG2_Get_Bits(1);
 
   if (composite_display_flag)
   {
-    v_axis            = Get_Bits(1);
-    field_sequence    = Get_Bits(3);
-    sub_carrier       = Get_Bits(1);
-    burst_amplitude   = Get_Bits(7);
-    sub_carrier_phase = Get_Bits(8);
+    v_axis            = MPEG2_Get_Bits(1);
+    field_sequence    = MPEG2_Get_Bits(3);
+    sub_carrier       = MPEG2_Get_Bits(1);
+    burst_amplitude   = MPEG2_Get_Bits(7);
+    sub_carrier_phase = MPEG2_Get_Bits(8);
   }
 }
 
@@ -625,18 +625,18 @@ static void picture_spatial_scalable_extension()
 
   ld->pict_scal = 1; /* use spatial scalability in this picture */
 
-  lower_layer_temporal_reference = Get_Bits(10);
-  marker_bit("picture_spatial_scalable_extension(), first marker bit");
-  lower_layer_horizontal_offset = Get_Bits(15);
+  lower_layer_temporal_reference = MPEG2_Get_Bits(10);
+  MPEG2_marker_bit("picture_spatial_scalable_extension(), first marker bit");
+  lower_layer_horizontal_offset = MPEG2_Get_Bits(15);
   if (lower_layer_horizontal_offset>=16384)
     lower_layer_horizontal_offset-= 32768;
-  marker_bit("picture_spatial_scalable_extension(), second marker bit");
-  lower_layer_vertical_offset = Get_Bits(15);
+  MPEG2_marker_bit("picture_spatial_scalable_extension(), second marker bit");
+  lower_layer_vertical_offset = MPEG2_Get_Bits(15);
   if (lower_layer_vertical_offset>=16384)
     lower_layer_vertical_offset-= 32768;
-  spatial_temporal_weight_code_table_index = Get_Bits(2);
-  lower_layer_progressive_frame = Get_Bits(1);
-  lower_layer_deinterlaced_field_select = Get_Bits(1);
+  spatial_temporal_weight_code_table_index = MPEG2_Get_Bits(2);
+  lower_layer_progressive_frame = MPEG2_Get_Bits(1);
+  lower_layer_deinterlaced_field_select = MPEG2_Get_Bits(1);
 }
 
 
@@ -647,7 +647,7 @@ static void picture_spatial_scalable_extension()
 /* ISO/IEC 13818-2 section 6.2.3.4. */
 static void picture_temporal_scalable_extension()
 {
-  Error("temporal scalability not supported\n");
+  MPEG2_Error("temporal scalability not supported\n");
 }
 
 
@@ -657,9 +657,9 @@ static int extra_bit_information()
 {
   int Byte_Count = 0;
 
-  while (Get_Bits1())
+  while (MPEG2_Get_Bits1())
   {
-    Flush_Buffer(8);
+    MPEG2_Flush_Buffer(8);
     Byte_Count++;
   }
 
@@ -670,13 +670,13 @@ static int extra_bit_information()
 
 /* ISO/IEC 13818-2 section 5.3 */
 /* Purpose: this function is mainly designed to aid in bitstream conformance
-   testing.  A simple Flush_Buffer(1) would do */
-void marker_bit(text)
+   testing.  A simple MPEG2_Flush_Buffer(1) would do */
+void MPEG2_marker_bit(text)
 char *text;
 {
   int marker;
 
-  marker = Get_Bits(1);
+  marker = MPEG2_Get_Bits(1);
 }
 
 
@@ -684,7 +684,7 @@ char *text;
 static void user_data()
 {
   /* skip ahead to the next start code */
-  next_start_code();
+  MPEG2_next_start_code();
 }
 
 
@@ -702,19 +702,19 @@ static void copyright_extension()
   pos = ld->Bitcnt;
   
 
-  copyright_flag =       Get_Bits(1); 
-  copyright_identifier = Get_Bits(8);
-  original_or_copy =     Get_Bits(1);
+  copyright_flag =       MPEG2_Get_Bits(1); 
+  copyright_identifier = MPEG2_Get_Bits(8);
+  original_or_copy =     MPEG2_Get_Bits(1);
   
   /* reserved */
-  reserved_data = Get_Bits(7);
+  reserved_data = MPEG2_Get_Bits(7);
 
-  marker_bit("copyright_extension(), first marker bit");
-  copyright_number_1 =   Get_Bits(20);
-  marker_bit("copyright_extension(), second marker bit");
-  copyright_number_2 =   Get_Bits(22);
-  marker_bit("copyright_extension(), third marker bit");
-  copyright_number_3 =   Get_Bits(22);
+  MPEG2_marker_bit("copyright_extension(), first marker bit");
+  copyright_number_1 =   MPEG2_Get_Bits(20);
+  MPEG2_marker_bit("copyright_extension(), second marker bit");
+  copyright_number_2 =   MPEG2_Get_Bits(22);
+  MPEG2_marker_bit("copyright_extension(), third marker bit");
+  copyright_number_3 =   MPEG2_Get_Bits(22);
 }
 
 
