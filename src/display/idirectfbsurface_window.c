@@ -69,6 +69,8 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      reactor_detach( data->base.surface->reactor,
                      IDirectFBSurface_listener, thiz );
 
+     thiz->Unlock( thiz );
+     
      if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
           data->base.caps & DSCAPS_PRIMARY)
      {
@@ -76,6 +78,9 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           window_destroy( data->window );
      }
 
+     if (data->base.font)
+          data->base.font->Release (data->base.font);
+     
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 

@@ -68,6 +68,11 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 
      reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
 
+     thiz->Unlock( thiz );
+     
+     if (data->font)
+          data->font->Release (data->font);
+     
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 

@@ -46,8 +46,10 @@ void fonts_destruct (CoreFont *font)
      if (!font)
           return;
 
-     tree_destroy (font->glyph_infos);
-     font->glyph_infos = NULL;
+     if (font->glyph_infos) {
+          tree_destroy (font->glyph_infos);
+          font->glyph_infos = NULL;
+     }
 
      for (i = 0; i < font->rows; i++) {
           surface_destroy (font->surfaces[i]);
