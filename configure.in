@@ -970,6 +970,7 @@ gfxdrivers/savage/Makefile
 gfxdrivers/sis315/Makefile
 inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
+inputdrivers/elo/Makefile
 inputdrivers/h3600_ts/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile

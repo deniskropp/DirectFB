@@ -29,6 +29,7 @@ WM97XX_TS_DIR = wm97xx_ts
 endif
 
 SUBDIRS = \
+	elo			\
 	joystick		\
 	keyboard		\
 	$(LINUX_INPUT_DIR)	\
