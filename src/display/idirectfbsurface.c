@@ -1324,7 +1324,8 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
           int width = 0;
 
-          if (data->font->GetStringWidth (data->font, text, bytes, &width) == DFB_OK) {
+          if (data->font->GetStringWidth (data->font,
+                                          text, bytes, &width) == DFB_OK) {
                if (flags & DSTF_RIGHT) {
                     x -= width;
                }
