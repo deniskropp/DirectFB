@@ -7,6 +7,7 @@
 #include <directfb.h>
 
 #include <core/fusion/lock.h>
+#include <core/fusion/reactor.h>
 #include <core/fusion/ref.h>
 
 #include <misc/util.h>
@@ -39,6 +40,64 @@ deinit_directfb()
           dfb->Release( dfb );
 }
 
+static ReactionResult
+react (const void    *msg_data,
+       void          *ctx)
+{
+     return RS_OK;
+}
+
+static void
+bench_reactor()
+{
+     unsigned int   i;
+     long long      t1, t2;
+     FusionReactor *reactor;
+     Reaction       reaction;
+     Reaction       reaction2;
+
+     reactor = reactor_new( 16 );
+     if (!reactor) {
+          fprintf( stderr, "Fusion Error\n" );
+          return;
+     }
+
+     
+     /* reactor attach/detach */
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<10000; i++) {
+          reactor_attach( reactor, react, NULL, &reaction );
+          reactor_detach( reactor, &reaction );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "reactor attach/detach        -> %8.2f k/sec\n", 10000 / (float)(t2 - t1) );
+
+     
+     /* reactor attach/detach (2nd) */
+     reactor_attach( reactor, react, NULL, &reaction );
+     
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<1000000; i++) {
+          reactor_attach( reactor, react, NULL, &reaction2 );
+          reactor_detach( reactor, &reaction2 );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     reactor_detach( reactor, &reaction );
+     
+     printf( "reactor attach/detach (2nd)  -> %8.2f k/sec\n", 1000000 / (float)(t2 - t1) );
+
+     
+     reactor_free( reactor );
+
+     printf( "\n" );
+}
+
 static void
 bench_ref()
 {
@@ -64,7 +123,7 @@ bench_ref()
      
      t2 = dfb_get_millis();
      
-     printf( "ref up/down (local)        -> %.2f M/sec\n", 4000 / (float)(t2 - t1) );
+     printf( "ref up/down (local)          -> %8.2f k/sec\n", 4000000 / (float)(t2 - t1) );
 
      
      /* ref up/down (global) */
@@ -77,7 +136,7 @@ bench_ref()
      
      t2 = dfb_get_millis();
 
-     printf( "ref up/down (global)       -> %.2f M/sec\n", 4000 / (float)(t2 - t1) );
+     printf( "ref up/down (global)         -> %8.2f k/sec\n", 4000000 / (float)(t2 - t1) );
 
      
      fusion_ref_destroy( &ref );
@@ -110,7 +169,7 @@ bench_skirmish()
      
      t2 = dfb_get_millis();
      
-     printf( "skirmish prevail/dismiss   -> %.2f M/sec\n", 4000 / (float)(t2 - t1) );
+     printf( "skirmish prevail/dismiss     -> %8.2f k/sec\n", 4000000 / (float)(t2 - t1) );
 
      
      skirmish_destroy( &skirmish );
@@ -144,7 +203,7 @@ bench_pthread_mutex()
      
      t2 = dfb_get_millis();
      
-     printf( "pthread_mutex lock/unlock  -> %.2f M/sec\n", 20000 / (float)(t2 - t1) );
+     printf( "pthread_mutex lock/unlock    -> %8.2f k/sec\n", (double)20000000 / (double)(t2 - t1) );
 
      
      pthread_mutex_destroy( &mutex );
@@ -182,6 +241,8 @@ main( int argc, char *argv[] )
      bench_skirmish();
      
      bench_ref();
+     
+     bench_reactor();
 
 
 out:
