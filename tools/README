@@ -13,12 +13,6 @@ This directory holds some tools you might find useful.
   gendoc.pl  is a Perl script used to generate HTML documentation from
 	the DirectFB header files.
 
-  ipc_cleanup  is a shell script that tries to recognize IPC resources that
-	have been allocated by the DirectFB multi-application core and
-	frees them. You might need it if you compiled DirectFB with the
-	--enable-multi configure switch and a DirectFB application
-        crashed.
-
   raw16toraw24, raw15toraw24 and raw32toraw24  are small utilities that
 	help creating screenshots from applications running on the
 	Linux framebuffer. See the file README.screenshots in the

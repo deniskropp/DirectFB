@@ -1,6 +1,0 @@
-#!/bin/sh
-
-ipcs -m | grep ^0x7 | awk '{ print $2; }' | xargs -r ipcrm shm
-
-rmmod fusion
-insmod fusion
