@@ -503,8 +503,8 @@ static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
                     b->system.pitch += 4 - (b->system.pitch & 3);
 
                b->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
-                                                             surface->height) *
-                                          b->system.pitch );
+                                                             surface->height *
+                                                             b->system.pitch) );
                break;
           case CSP_VIDEOONLY: {
                DFBResult ret;
@@ -549,8 +549,8 @@ static DFBResult surface_reallocate_buffer( CoreSurface   *surface,
           /* HACK HACK HACK */
           shmfree( buffer->system.addr );
           buffer->system.addr = shmalloc( DFB_PLANE_MULTIPLY(surface->format,
-                                                             surface->height) *
-                                          buffer->system.pitch );
+                                                             surface->height *
+                                                             buffer->system.pitch) );
 
           /* FIXME: better support video instance reallocation */
           surfacemanager_lock( surface->manager );

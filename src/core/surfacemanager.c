@@ -253,7 +253,7 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
      }
 
      pitch = DFB_BYTES_PER_LINE(surface->format, pitch);
-     length = pitch * DFB_PLANE_MULTIPLY(surface->format, surface->height);
+     length = DFB_PLANE_MULTIPLY(surface->format, surface->height * pitch);
 
      if (manager->byteoffset_align > 1) {
           length += manager->byteoffset_align - 1;
