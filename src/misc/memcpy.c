@@ -128,6 +128,9 @@
 
 #include "config.h"
 
+#include <sys/time.h>
+#include <time.h>
+
 #include <stdlib.h>
 #include <string.h>
 
@@ -138,7 +141,9 @@
 #include "misc/mem.h"
 #include "misc/cpu_accel.h"
 
-
+#ifdef ARCH_PPC
+#include "ppcasm_string.h"
+#endif
 
 #ifdef ARCH_X86
 
@@ -389,9 +394,9 @@ static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
 
 #endif /* ARCH_X86 */
 
+/* save library size on platforms without special memcpy impl. */
 
-
-#ifdef ARCH_X86 /* <-- remove, once other platforms are supported */
+#if defined (ARCH_X86) || defined (ARCH_PPC)
 static struct {
      char                 *name;
      void               *(*function)(void *to, const void *from, size_t len);
@@ -411,6 +416,10 @@ static struct {
 #endif /* USE_SSE  */
 #endif /* USE_MMX  */
 #endif /* ARCH_X86 */
+#ifdef ARCH_PPC
+     { "ppcasm_memcpy()",            ppcasm_memcpy, 0, 0},
+     { "ppcasm_cacheable_memcpy()",   ppcasm_cacheable_memcpy, 0, 0},
+#endif /* ARCH_PPC */
      { NULL, NULL, 0, 0}
 };
 #endif
@@ -426,15 +435,15 @@ static inline unsigned long long int rdtsc()
 #else
 static inline unsigned long long int rdtsc()
 {
-     /* FIXME: implement an equivalent for using optimized memcpy on other
-               architectures */
-     return 0;
+     struct timeval tv;
+   
+     gettimeofday (&tv, NULL);
+     return (tv.tv_sec * 1000000 + tv.tv_usec);
 }
 #endif
 
 
 void *(* dfb_memcpy)(void *to, const void *from, size_t len) = memcpy;
-
 
 #define BUFSIZE 1024
 
@@ -442,7 +451,7 @@ void dfb_find_best_memcpy()
 {
      /* save library size on platforms without special memcpy impl. */
 
-#ifdef ARCH_X86
+#if defined (ARCH_X86) || defined (ARCH_PPC)
      unsigned long long t;
      char *buf1, *buf2;
      int i, j, best = 0;
@@ -468,7 +477,7 @@ void dfb_find_best_memcpy()
 
           t = rdtsc();
 
-          for (j=0; j<256; j++) {
+          for (j=0; j<2000; j++) {
                memcpy_method[i].function( buf1, buf2, BUFSIZE );
                memcpy_method[i].function( buf2, buf1, BUFSIZE );
           }

@@ -6,10 +6,16 @@ INCLUDES = \
 
 AM_CFLAGS = $(DFB_CFLAGS)
 
+if BUILDPPCASM
+ppcasm_sources = ppcasm_string.S
+ppcasm_headers = ppcasm_string.h  \
+                 ppc_asm.h
+endif
 
 internalincludedir = $(INTERNALINCLUDEDIR)/misc
 
 internalinclude_HEADERS = \
+        $(ppcasm_headers)	\
 	conf.h			\
 	cpu_accel.h		\
 	gfx_util.h		\
@@ -32,4 +38,5 @@ libdirectfb_misc_la_SOURCES =	\
 	memcpy.c		\
 	tree.c			\
 	utf8.c			\
+        $(ppcasm_sources)	\
 	util.c

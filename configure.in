@@ -116,12 +116,15 @@ case "$target_or_host" in
     ;;
 
   ppc-*-linux* | powerpc-*)
+    have_ppc=yes
     AC_DEFINE(ARCH_PPC,1,[Define to 1 if you are compiling for PowerPC.])
     ;;
 
   *)
     ;;
 esac
+
+AM_CONDITIONAL(BUILDPPCASM, test x$have_ppc = xyes)
 
 have_linux=no
 need_libc_r=no
