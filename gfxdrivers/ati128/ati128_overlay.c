@@ -235,7 +235,7 @@ ov0FlipRegion( CoreLayer           *layer,
      ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      ov0_calc_regs( adrv, aov0, &aov0->config, surface );
      ov0_set_regs( adrv, aov0 );

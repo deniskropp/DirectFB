@@ -283,7 +283,7 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
  * really swaps front_buffer and back_buffer if they have the same policy,
  * otherwise it does a back_to_front_copy, notifies listeners
  */
-void dfb_surface_flip_buffers( CoreSurface *surface );
+void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front );
 
 void dfb_surface_set_field( CoreSurface *surface, int field );
 

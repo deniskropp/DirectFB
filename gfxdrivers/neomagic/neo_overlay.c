@@ -236,7 +236,7 @@ ovlFlipRegion(  CoreLayer           *layer,
           dfb_fbdev_wait_vsync();
 #endif
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      ovl_calc_regs( ndrv, novl, &novl->config, surface );
      ovl_set_regs( ndrv, novl );

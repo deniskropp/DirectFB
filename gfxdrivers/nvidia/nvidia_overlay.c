@@ -98,7 +98,7 @@ ov0InitLayer( CoreLayer                  *layer,
 
      /* set capabilities and type */
      description->caps =  DLCAPS_SURFACE      | DLCAPS_SCREEN_LOCATION |
-                          DLCAPS_BRIGHTNESS   | DLCAPS_CONTRAST        | 
+                          DLCAPS_BRIGHTNESS   | DLCAPS_CONTRAST        |
                           DLCAPS_SATURATION   | DLCAPS_HUE             |
                           DLCAPS_DST_COLORKEY;
      description->type = DLTF_VIDEO | DLTF_STILL_PICTURE;
@@ -119,7 +119,7 @@ ov0InitLayer( CoreLayer                  *layer,
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     adjustment->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | 
+     adjustment->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST |
                               DCAF_SATURATION | DCAF_HUE;
      adjustment->brightness = 0x8000;
      adjustment->contrast   = 0x8000;
@@ -154,7 +154,7 @@ ov0OnOff( NVidiaDriverData       *nvdrv,
           nvov0->regs.NV_PVIDEO_STOP = 0;
      else
           nvov0->regs.NV_PVIDEO_STOP = 1;
-     
+
      nvdrv->PVIDEO[0x704/4] = nvov0->regs.NV_PVIDEO_STOP;
 }
 
@@ -191,7 +191,7 @@ ov0TestRegion(CoreLayer                  *layer,
      /* check buffermode */
      if (config->buffermode == DLBM_WINDOWS)
           fail |= CLRCF_BUFFERMODE;
-     
+
      /* check pixel format */
      switch (config->format) {
           case DSPF_YUY2:
@@ -284,9 +284,9 @@ ov0AllocateSurface( CoreLayer              *layer,
 
      switch (config->buffermode) {
           case DLBM_FRONTONLY:
-          case DLBM_BACKSYSTEM: 
+          case DLBM_BACKSYSTEM:
                break;
-            
+
           case DLBM_BACKVIDEO:
                caps |= DSCAPS_DOUBLE;
                break;
@@ -352,7 +352,7 @@ ov0ReallocateSurface( CoreLayer             *layer,
           case DLBM_BACKSYSTEM:
                videoSurface->caps &= ~DSCAPS_FLIPPING;
                break;
-            
+
           case DLBM_BACKVIDEO:
                videoSurface->caps &= ~DSCAPS_FLIPPING;
                videoSurface->caps |=  DSCAPS_DOUBLE;
@@ -392,11 +392,11 @@ ov0ReallocateSurface( CoreLayer             *layer,
                                     dst_width * config->height *
                                     DFB_BYTES_PER_PIXEL(format) / 1024);
 
-     result = dfb_surface_reconfig( videoSurface, 
+     result = dfb_surface_reconfig( videoSurface,
                                     CSP_VIDEOONLY, CSP_VIDEOONLY );
      if (result != DFB_OK)
           return result;
-     
+
      result = dfb_surface_reformat( NULL, videoSurface, dst_width,
                                     config->height, format );
      if (result != DFB_OK)
@@ -527,17 +527,17 @@ ov0FlipRegion ( CoreLayer           *layer,
      SurfaceBuffer *data_buffer;
      SurfaceBuffer *video_buffer;
 
-     dfb_surface_flip_buffers( nvov0->videoSurface );
-    
+     dfb_surface_flip_buffers( nvov0->videoSurface, false );
+
      data_buffer = surface->front_buffer;
      video_buffer = nvov0->videoSurface->front_buffer;
 
      dstPitch = video_buffer->video.pitch;
      srcPitch = data_buffer->system.pitch;
-     
+
      buf = data_buffer->system.addr;
      dstStart = (__u8*)dfb_system_video_memory_virtual(video_buffer->video.offset);
-     
+
      switch(nvov0->config.format) {
           case DSPF_YV12:
           case DSPF_I420:
@@ -641,7 +641,7 @@ ov0SetColorAdjustment( CoreLayer          *layer,
           nvov0->brightness = (adj->brightness >> 8) - 128;
           D_DEBUG( "DirectFB/NVidia/Overlay: brightness=%i\n", nvov0->brightness );
      }
- 
+
      if (adj->flags & DCAF_CONTRAST) {
           nvov0->contrast   = 8191 - (adj->contrast >> 3); /* contrast inverted ?! */
           D_DEBUG( "DirectFB/NVidia/Overlay: contrast=%i\n", nvov0->contrast );
@@ -690,7 +690,7 @@ static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0
      nvdrv->PVIDEO[(0x948/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_POINT_OUT;
      nvdrv->PVIDEO[(0x950/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_SIZE_OUT;
      nvdrv->PVIDEO[(0x958/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_FORMAT;
-     
+
      nvdrv->PVIDEO[0x704/4] = nvov0->regs.NV_PVIDEO_STOP;
      nvdrv->PVIDEO[0x700/4] = nvov0->regs.NV_PVIDEO_BUFFER;
 }
@@ -704,7 +704,7 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      CoreSurface   *surface = nvov0->videoSurface;
      SurfaceBuffer *buffer  = surface->front_buffer;
      __u32          pitch   = buffer->video.pitch;
-    
+
      if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
           nvov0->regs.NV_PVIDEO_BASE = (nvdrv->fb_base + buffer->video.offset)
                                         & nvdrv->fb_mask;

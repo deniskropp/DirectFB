@@ -235,7 +235,7 @@ uc_ovl_flip_region( CoreLayer           *layer,
         !dfb_config->pollvsync_after)
         dfb_layer_wait_vsync( layer );
 
-    dfb_surface_flip_buffers(surface);
+    dfb_surface_flip_buffers(surface, false);
 
     ucovl->field = 0;
 

@@ -1210,7 +1210,7 @@ primaryFlipRegion( CoreLayer           *layer,
          (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
           dfb_screen_wait_vsync( dfb_screens_at(DSCID_PRIMARY) );
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      return DFB_OK;
 }

@@ -353,7 +353,7 @@ ov0SetRegion( CoreLayer                  *layer,
 
         default:
             D_BUG("unexpected pixelformat");
-    	    return DFB_UNSUPPORTED;	       
+    	    return DFB_UNSUPPORTED;	
     }
 
     rov0->regs.GRPH_KEY_CLR_HIGH = rov0->regs.GRPH_KEY_CLR_LOW;
@@ -380,7 +380,7 @@ ov0SetRegion( CoreLayer                  *layer,
     if (config->options & DLOP_ALPHACHANNEL) {
     	rov0->regs.DISP_MERGE_CONTROL = 0xffff0001;
 	rov0->regs.KEY_CNTL = VIDEO_KEY_FN_FALSE | GRAPHIC_KEY_FN_FALSE;
-    } 
+    }
 
 
     ov_calc_scaler_regs ( rdrv, rov0, surface, config );
@@ -510,7 +510,7 @@ ov0FlipRegion( CoreLayer           *layer,
     RADEONDriverData       *rdrv = (RADEONDriverData*) driver_data;
     RadeonOverlayLayerData *rov0 = (RadeonOverlayLayerData*) layer_data;
 
-    dfb_surface_flip_buffers( surface );
+    dfb_surface_flip_buffers( surface, false );
 
     ov_calc_buffer_regs( rdrv, rov0, surface );
     ov_set_buffer_regs( rdrv, rov0, surface );

@@ -381,7 +381,7 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 
      if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
          reg.x2 == surface->width - 1 && reg.y2 == surface->height - 1)
-          dfb_surface_flip_buffers( data->surface );
+          dfb_surface_flip_buffers( data->surface, false );
      else
           dfb_back_to_front_copy( data->surface, &reg );
 

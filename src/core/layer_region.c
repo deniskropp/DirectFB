@@ -463,7 +463,7 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     }
                     else
                          /* Just do the hardware independent work. */
-                         dfb_surface_flip_buffers( surface );
+                         dfb_surface_flip_buffers( surface, false );
 
                     break;
                }

@@ -161,7 +161,7 @@ nvcrtc1GetScreenSize( CoreScreen *screen,
 
      if (!mode)
           mode = dfb_system_modes();
-     
+
      if (!mode) {
            D_WARN( "no default mode found" );
            return DFB_UNSUPPORTED;
@@ -195,19 +195,19 @@ nvfb0FlipRegion( CoreLayer           *layer,
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
      __u32             offset = surface->back_buffer->video.offset;
-     
+
      dfb_gfxcard_sync();
 
      if (nvdrv->chip == 0x2A0)
           offset += nvdrv->fb_base;
      offset &= nvdrv->fb_mask;
-     
+
      nvdrv->PCRTC[0x800/4] = offset;
-     
+
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( dfb_screens_at( DSCID_PRIMARY ) );
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      return DFB_OK;
 }

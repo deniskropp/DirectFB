@@ -525,7 +525,7 @@ savageSecondaryFlipBuffers( CoreLayer           *layer,
 
      SVGDBG("savageSecondaryFlipBuffers\n");
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      secondary_calc_regs(sdrv, slay, layer, &slay->config);
      secondary_set_regs(sdrv, slay);

@@ -297,7 +297,7 @@ besFlipRegion( CoreLayer           *layer,
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      bes_calc_regs( mdrv, mbes, &mbes->config, surface );
      bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );

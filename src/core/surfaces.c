@@ -650,9 +650,9 @@ dfb_surface_set_palette( CoreSurface *surface,
      return DFB_OK;
 }
 
-void dfb_surface_flip_buffers( CoreSurface *surface )
+void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front )
 {
-     SurfaceBuffer *tmp;
+     SurfaceBuffer *front;
 
      D_ASSERT( surface != NULL );
 
@@ -661,14 +661,19 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
      dfb_surfacemanager_lock( surface->manager );
 
      if (surface->caps & DSCAPS_TRIPLE) {
-          tmp = surface->front_buffer;
+          front = surface->front_buffer;
           surface->front_buffer = surface->back_buffer;
-          surface->back_buffer = surface->idle_buffer;
-          surface->idle_buffer = tmp;
+
+          if (write_front)
+               surface->back_buffer = front;
+          else {
+               surface->back_buffer = surface->idle_buffer;
+               surface->idle_buffer = front;
+          }
      } else {
-          tmp = surface->front_buffer;
+          front = surface->front_buffer;
           surface->front_buffer = surface->back_buffer;
-          surface->back_buffer = tmp;
+          surface->back_buffer = front;
 
           /* To avoid problems with buffer deallocation */
           surface->idle_buffer = surface->front_buffer;

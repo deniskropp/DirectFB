@@ -241,7 +241,7 @@ ovFlipRegion( CoreLayer           *layer,
      Mach64DriverData       *mdrv = (Mach64DriverData*) driver_data;
      Mach64OverlayLayerData *mov  = (Mach64OverlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      ov_calc_buffer( mdrv, mov, &mov->config, surface );
      ov_set_buffer( mdrv, mov );

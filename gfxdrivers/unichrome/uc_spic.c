@@ -173,7 +173,7 @@ uc_spic_flip_region( CoreLayer           *layer,
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
 
-    dfb_surface_flip_buffers(surface);
+    dfb_surface_flip_buffers(surface, false);
     uc_spic_set_buffer(ucdrv->hwregs, surface);
 
     return DFB_OK;

@@ -274,7 +274,7 @@ spicFlipRegion( CoreLayer           *layer,
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      spic_set_buffer( mdrv, mspic, surface );
 

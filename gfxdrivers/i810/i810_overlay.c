@@ -143,7 +143,7 @@ extern u32 i810_wait_for_space(I810DriverData *i810drv,
 static void ovl_calc_regs (I810DriverData        *i810drv,
 			   I810OverlayLayerData  *i810ovl,
 			   CoreLayer             *layer,
-			   CoreSurface           *surface, 
+			   CoreSurface           *surface,
 			   CoreLayerRegionConfig *config );
 
 static void update_overlay(I810DriverData       *i810drv,
@@ -157,9 +157,9 @@ ovlOnOff( I810DriverData       *i810drv,
 	  I810OverlayLayerData *i810ovl,
 	  int                   on )
 {
-	if (on) 
+	if (on)
 		i810ovl->regs->ov0cmd |= 1;
-	else 
+	else
 		i810ovl->regs->ov0cmd &= ~1;
 	update_overlay(i810drv, i810ovl);
 }
@@ -171,7 +171,7 @@ ovlLayerDataSize()
 }
 
 static DFBResult
-ovlInitLayer( 
+ovlInitLayer(
               CoreLayer                  *layer,
 	      void                       *driver_data,
 	      void                       *layer_data,
@@ -341,7 +341,7 @@ ovlFlipRegion(  CoreLayer           *layer,
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
 	u32 current_buffer;
 
-	dfb_surface_flip_buffers( surface );
+	dfb_surface_flip_buffers( surface, false );
 
 	/* select buffer */
 	current_buffer =  (i810ovl->regs->ov0cmd & 4) >> 2;
@@ -405,7 +405,7 @@ DisplayLayerFuncs i810OverlayFuncs = {
      FlipRegion:         ovlFlipRegion,
      SetColorAdjustment: ovlSetColorAdjustment,
      SetInputField:      ovlSetInputField
-     
+
 };
 
 

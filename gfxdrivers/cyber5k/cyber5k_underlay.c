@@ -192,7 +192,7 @@ udlFlipRegion( CoreLayer           *layer,
      CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
      CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      udl_set_all( cdrv, cudl, &cudl->config, surface );
 

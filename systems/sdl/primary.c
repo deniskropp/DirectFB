@@ -260,7 +260,7 @@ primaryFlipRegion( CoreLayer           *layer,
                    CoreSurface         *surface,
                    DFBSurfaceFlipFlags  flags )
 {
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
 
      return dfb_sdl_update_screen( dfb_sdl_core, NULL );
 }

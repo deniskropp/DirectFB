@@ -285,7 +285,7 @@ crtc2FlipRegion( CoreLayer           *layer,
      int                   vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
      int                   line;
 
-     dfb_surface_flip_buffers( surface );
+     dfb_surface_flip_buffers( surface, false );
      crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
      line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
