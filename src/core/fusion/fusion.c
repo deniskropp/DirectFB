@@ -134,6 +134,9 @@ fusion_exit()
           skirmish_destroy( &fusion_shared->arenas_lock );
      }
 
+     fusion_id     = 0;
+     fusion_shared = NULL;
+
      __shmalloc_exit( fusion_id == 1 );
 
      close( fusion_fd );
