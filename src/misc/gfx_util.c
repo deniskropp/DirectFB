@@ -137,7 +137,7 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
 {
      int x, y;
      int dskip;
-     __u32 rb, a;
+     __u32 /*rb,*/ a;
      int bpp = DFB_BYTES_PER_PIXEL( dst_surface->format );
 
      dskip = dpitch - DFB_BYTES_PER_LINE (dst_surface->format, w);
@@ -174,11 +174,11 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
                     for (x = 0; x < w; x++) {
                          a = *src >> 24;
 
-                         switch (a) {
+/*                         switch (a) {
                               case 0x0:
                                    memset ( (__u8*) d, 0, bpp );
                                    break;
-                              case 0xFF:
+                              case 0xFF:*/
                                    rgba_to_dst_format ((__u8 *)d,
                                                        (*src & 0x00FF0000) >> 16,
                                                        (*src & 0x0000FF00) >> 8,
@@ -186,7 +186,7 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
                                                        0xFF,
                                                        dst_surface->format,
                                                        dst_surface->palette);
-                                   break;
+/*                                   break;
                               default:
                                    rb = (*src & 0x00FF00FF) * (a+1);
                                    rgba_to_dst_format ((__u8 *)d,
@@ -196,7 +196,7 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
                                                        a, dst_surface->format,
                                                        dst_surface->palette);
                                    break;
-                         }
+                         }*/
 
                          d += bpp;
 
