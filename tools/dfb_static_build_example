@@ -14,9 +14,9 @@ IDIRECTFBIMAGEPROVIDER_JPEG=no
 IDIRECTFBIMAGEPROVIDER_PNG=yes
 IDIRECTFBIMAGEPROVIDER_GIF=no
 
-PREFIX="/usr/local"
+: ${PREFIX:=/usr/local}
 
-CFLAGS="-DFONT=\"$PREFIX/share/directfb-examples/fonts/decker.ttf\" -DDATADIR=\"$PREFIX/share/directfb-examples\""
+CFLAGS="$CFLAGS -DFONT=\"$PREFIX/share/directfb-examples/fonts/decker.ttf\" -DDATADIR=\"$PREFIX/share/directfb-examples\""
 
 
 #
@@ -31,7 +31,7 @@ fi
 #
 # Input drivers
 #
-INPUT="-L/usr/local/lib/directfb/inputdrivers"
+INPUT="-L$PREFIX/lib/directfb/inputdrivers"
 for i in $INPUT_DRIVERS; do
 	INPUT="$INPUT -ldirectfb_$i -Wl,-udirectfb_$i"
 done
@@ -39,7 +39,7 @@ done
 #
 # Graphics drivers
 #
-GRAPHICS="-L/usr/local/lib/directfb/gfxdrivers"
+GRAPHICS="-L$PREFIX/lib/directfb/gfxdrivers"
 for i in $GRAPHICS_DRIVERS; do
 	GRAPHICS="$GRAPHICS -ldirectfb_$i -Wl,-udirectfb_$i"
 done
@@ -47,7 +47,7 @@ done
 #
 # IDirectFBFont
 #
-INTERFACES="$INTERFACES -L/usr/local/lib/directfb/interfaces/IDirectFBFont"
+INTERFACES="$INTERFACES -L$PREFIX/lib/directfb/interfaces/IDirectFBFont"
 if [ x"$IDIRECTFBFONT_FT2" = xyes ]; then
 	INTERFACES="$INTERFACES -lidirectfbfont_ft2 -Wl,-uIDirectFBFont_FT2 -lfreetype"
 fi
@@ -55,7 +55,7 @@ fi
 #
 # IDirectFBImageProvider
 #
-INTERFACES="$INTERFACES -L/usr/local/lib/directfb/interfaces/IDirectFBImageProvider"
+INTERFACES="$INTERFACES -L$PREFIX/lib/directfb/interfaces/IDirectFBImageProvider"
 if [ x"$IDIRECTFBIMAGEPROVIDER_JPEG" = xyes ]; then
 	INTERFACES="$INTERFACES -lidirectfbimageprovider_jpeg -Wl,-uIDirectFBImageProvider_JPEG -ljpeg"
 fi
