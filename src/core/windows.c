@@ -337,6 +337,9 @@ dfb_window_create( CoreWindowStack        *stack,
      w->caps    = caps;
      w->opacity = 0;
 
+     if (caps & DWCAPS_ALPHACHANNEL)
+          w->options = DWOP_ALPHACHANNEL;
+
      w->stack   = stack;
 
      w->events  = DWET_ALL;
@@ -641,8 +644,8 @@ dfb_window_putbelow( CoreWindow *window,
 
 
 #define TRANSLUCENT_WINDOW(w) ((w)->opacity < 0xff || \
-                               (w)->caps & DWCAPS_ALPHACHANNEL || \
-                               (w)->options & DWOP_COLORKEYING)
+                               (w)->options & (DWOP_ALPHACHANNEL | \
+                                               DWOP_COLORKEYING))
 
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
                                (w)->opacity > 0)
@@ -1121,7 +1124,7 @@ update_region( CoreWindowStack *stack,
                                                    region.x2 - region.x1 + 1,
                                                    region.y2 - region.y1 + 1 };
 
-               if (window->caps & DWCAPS_ALPHACHANNEL)
+               if (window->options & DWOP_ALPHACHANNEL)
                     flags |= DSBLIT_BLEND_ALPHACHANNEL;
 
                if (window->opacity != 0xFF) {

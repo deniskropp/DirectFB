@@ -314,6 +314,10 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
      if (options & ~DWOP_ALL)
           return DFB_INVARG;
 
+     if ((options & DWOP_ALPHACHANNEL) &&
+         !(data->window->caps & DWCAPS_ALPHACHANNEL))
+          return DFB_UNSUPPORTED;
+
      /* Examine toggled options */
      changed = data->window->options ^ options;
 
@@ -321,7 +325,7 @@ IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
      data->window->options = options;
 
      /* Redraw window if appearance influencing options have been toggled */
-     if (changed & DWOP_COLORKEYING)
+     if (changed & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL))
           dfb_window_repaint( data->window, NULL, 0 );
 
      return DFB_OK;

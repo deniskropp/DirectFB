@@ -2669,6 +2669,8 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
 typedef enum {
      DWOP_NONE           = 0x00000000,  /* none of these */
      DWOP_COLORKEYING    = 0x00000001,  /* enable color key */
+     DWOP_ALPHACHANNEL   = 0x00000002,  /* enable alpha blending using the
+                                           window's alpha channel */
      DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
                                            with the mouse */
      DWOP_KEEP_SIZE      = 0x00000020,  /* window can't be resized
@@ -2680,7 +2682,7 @@ typedef enum {
                                            implies DWOP_KEEP... */
      DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
                                            by internal shortcut */
-     DWOP_ALL            = 0x00003071   /* all possible options */
+     DWOP_ALL            = 0x00003073   /* all possible options */
 } DFBWindowOptions;
 
 /*
