@@ -146,7 +146,8 @@ extern "C"
           DFB_MISSINGIMAGE,   /* no image has been set */
           DFB_THIZNULL,       /* 'thiz' pointer is NULL */
           DFB_IDNOTFOUND,     /* layer/device/... id not found */
-          DFB_INVAREA         /* invalid area specified or detected */
+          DFB_INVAREA,        /* invalid area specified or detected */
+          DFB_DESTROYED       /* object (e.g. a window) has been destroyed */
      } DFBResult;
 
      /*
@@ -1891,11 +1892,13 @@ extern "C"
           DWET_SIZE           = 0x00000002,  /* window has been resized
                                                 by window manager or the
                                                 application itself */
-          DWET_CLOSE          = 0x00000004,  /* window got closed by window
-                                                manager or the application
-                                                itself */
-          DWET_GOTFOCUS       = 0x00000008,  /* window got focus */
-          DWET_LOSTFOCUS      = 0x00000010,  /* window lost focus */
+          DWET_CLOSE          = 0x00000004,  /* closing this window has been
+                                                requested only */
+          DWET_DESTROYED      = 0x00000008,  /* window got destroyed by global
+                                                deinitialization function or the
+                                                application itself */
+          DWET_GOTFOCUS       = 0x00000010,  /* window got focus */
+          DWET_LOSTFOCUS      = 0x00000020,  /* window lost focus */
 
           DWET_KEYDOWN        = 0x00000100,  /* a key has gone down while
                                                 window has focus */
@@ -2146,6 +2149,31 @@ extern "C"
           DFBResult (*PeekEvent) (
                IDirectFBWindow     *thiz,
                DFBWindowEvent      *event
+          );
+
+
+        /** Closing **/
+
+          /*
+           * Send a close message to the window.
+           *
+           * This function sends a message of type DWET_CLOSE to the window.
+           * It does NOT actually close it.
+           */
+          DFBResult (*Close) (
+               IDirectFBWindow     *thiz
+          );
+
+          /*
+           * Destroys the window and sends a destruction message.
+           *
+           * This function sends a message of type DWET_DESTROY to the window
+           * after removing it from the window stack and freeing its data.
+           * Some functions called from this interface will return DFB_DESTROYED
+           * after that.
+           */
+          DFBResult (*Destroy) (
+               IDirectFBWindow     *thiz
           );
      )
 

@@ -67,16 +67,18 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      state_set_destination( &data->base.state, NULL );
      state_set_source( &data->base.state, NULL );
 
-     reactor_detach( data->base.surface->reactor,
-                     IDirectFBSurface_listener, thiz );
+     if (data->base.surface) {
+          reactor_detach( data->base.surface->reactor,
+                          IDirectFBSurface_listener, thiz );
 
-     thiz->Unlock( thiz );
+          thiz->Unlock( thiz );
 
-     if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
-          data->base.caps & DSCAPS_PRIMARY)
-     {
-          window_remove( data->window );
-          window_destroy( data->window );
+          if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
+               data->base.caps & DSCAPS_PRIMARY)
+          {
+               window_remove( data->window );
+               window_destroy( data->window );
+          }
      }
 
      if (data->base.font)
@@ -107,6 +109,9 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
      DFBRegion reg;
 
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -161,6 +166,9 @@ DFBResult IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
      DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
 
 
      if (!data->base.area.current.w || !data->base.area.current.h)

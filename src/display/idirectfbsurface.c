@@ -60,12 +60,15 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      state_set_destination( &data->state, NULL );
      state_set_source( &data->state, NULL );
 
-     reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
+     if (data->surface) {
+          reactor_detach( data->surface->reactor,
+                          IDirectFBSurface_listener, thiz );
 
-     thiz->Unlock( thiz );
+          thiz->Unlock( thiz );
 
-     if (!(data->caps & DSCAPS_SUBSURFACE))
-          surface_destroy( data->surface );
+          if (!(data->caps & DSCAPS_SUBSURFACE))
+               surface_destroy( data->surface );
+     }
 
      if (data->font)
           data->font->Release (data->font);
@@ -103,6 +106,9 @@ DFBResult IDirectFBSurface_GetPixelFormat( IDirectFBSurface *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
      if (!format)
           return DFB_INVARG;
 
@@ -116,6 +122,9 @@ DFBResult IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
                                                 DFBAccelerationMask *mask )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
      if (!mask)
           return DFB_INVARG;
@@ -196,6 +205,9 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
 
      if (!flags || !ptr || !pitch)
           return DFB_INVARG;
@@ -234,6 +246,9 @@ DFBResult IDirectFBSurface_Flip( IDirectFBSurface *thiz, DFBRegion *region,
                                  DFBSurfaceFlipFlags flags )
 {
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -534,6 +549,9 @@ DFBResult IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
 
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
@@ -560,6 +578,9 @@ DFBResult IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
 
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
@@ -583,6 +604,9 @@ DFBResult IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
 
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
 
      if (!data->area.current.w || !data->area.current.h)
@@ -617,6 +641,9 @@ DFBResult IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
 
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
@@ -643,6 +670,9 @@ DFBResult IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
      DFBTriangle tri = { x1, y1, x2, y2, x3, y3 };
 
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
 
      if (!data->area.current.w || !data->area.current.h)
@@ -685,6 +715,9 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
      IDirectFBSurface_data *src_data;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
 
      if (!data->area.current.w || !data->area.current.h)
@@ -743,6 +776,9 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
      IDirectFBSurface_data *src_data;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
 
      if (!data->area.current.w || !data->area.current.h)
@@ -825,6 +861,9 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!data->surface)
+          return DFB_DESTROYED;
+
      if (!text)
           return DFB_INVARG;
 
@@ -880,6 +919,9 @@ DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
      DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
 
 
      if (!data->area.current.w || !data->area.current.h)
@@ -1010,16 +1052,8 @@ ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
      CoreSurface             *surface      = data->surface;
 
      if (notification->flags & CSNF_DESTROY) {
-          if (data) {
-               DEBUGMSG("IDirectFBSurface: "
-                        "CoreSurface vanished! I'm dead now!!!\n");
-
-               thiz->Unlock( thiz );
-
-               DFBFREE( data );
-               thiz->priv = NULL;
-          }
-
+          thiz->Unlock( thiz );
+          data->surface = NULL;
           return RS_REMOVE;
      }
 

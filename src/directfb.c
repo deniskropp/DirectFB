@@ -184,8 +184,8 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      DFBDisplayLayerConfig layer_config;
 
      if (dfb_config == NULL) {
-          /*  don't use ERRORMSG() here, it uses dfb_config  */ 
-          fprintf( stderr, 
+          /*  don't use ERRORMSG() here, it uses dfb_config  */
+          fprintf( stderr,
                    "(!) DirectFBCreate: DirectFBInit has to be "
                    "called before DirectFBCreate!\n" );
           return DFB_INIT;
@@ -366,6 +366,8 @@ const char *DirectFBErrorString( DFBResult error )
                return "ID not found!";
           case DFB_INVAREA:
                return "Invalid area specified or detected!";
+          case DFB_DESTROYED:
+               return "Object has been destroyed!";
      }
 
      return "<UNKNOWN ERROR CODE>!";

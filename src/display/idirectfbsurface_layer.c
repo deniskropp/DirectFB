@@ -66,13 +66,15 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
      state_set_destination( &data->state, NULL );
      state_set_source( &data->state, NULL );
 
-     reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
+     if (data->surface) {
+          reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
 
-     thiz->Unlock( thiz );
-     
+          thiz->Unlock( thiz );
+     }
+
      if (data->font)
           data->font->Release (data->font);
-     
+
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
@@ -96,6 +98,9 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
                                        DFBSurfaceFlipFlags flags )
 {
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -143,6 +148,9 @@ DFBResult IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface     *thiz,
      DFBRectangle wanted, granted;
 
      INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+
+     if (!data->base.surface)
+          return DFB_DESTROYED;
 
 
      if (!data->base.area.current.w || !data->base.area.current.h)

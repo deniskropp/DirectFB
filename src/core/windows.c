@@ -212,14 +212,6 @@ void window_remove( CoreWindow *window )
 
      windowstack_repaint( stack, &region );
 
-     {
-          DFBWindowEvent evt;
-
-          evt.type = DWET_CLOSE;
-
-          reactor_dispatch( window->reactor, &evt );
-     }
-
      if (window->opacity)
           windowstack_handle_enter_leave_focus( stack );
 }
@@ -288,7 +280,7 @@ void window_destroy( CoreWindow *window )
 {
      DFBWindowEvent evt;
 
-     evt.type = DWET_CLOSE;
+     evt.type = DWET_DESTROYED;
      reactor_dispatch( window->reactor, &evt );
 
      surface_destroy( window->surface );
@@ -828,13 +820,30 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
      CoreWindow      *window = NULL;
      CoreWindowStack *stack  = (CoreWindowStack*)ctx;
 
-     if (stack->wm_hack &&
-         evt->type    == DIET_KEYRELEASE &&
-         evt->keycode == DIKC_CAPSLOCK)
-     {
-          stack->wm_hack = 0;
-          windowstack_handle_enter_leave_focus( stack );
-          return RS_OK;
+     if (stack->wm_hack) {
+          switch (evt->type) {
+               case DIET_KEYRELEASE:
+                    if (evt->keycode == DIKC_CAPSLOCK) {
+                         stack->wm_hack = 0;
+                         windowstack_handle_enter_leave_focus( stack );
+                         return RS_OK;
+                    }
+               case DIET_KEYPRESS:
+                    switch (evt->keycode) {
+                         case DIKC_C:
+                              if (stack->entered_window) {
+                                   DFBWindowEvent evt;
+                                   evt.type = DWET_CLOSE;
+                                   reactor_dispatch( stack->entered_window->reactor, &evt );
+                              }
+                              return RS_OK;
+                         default:
+                              ;
+                    }
+                    return RS_OK;
+               default:
+                    ;
+          }
      }
 
      switch (evt->type) {

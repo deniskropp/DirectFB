@@ -90,11 +90,13 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      if (data->surface)
           data->surface->Release( data->surface );
 
-     window_remove( data->window );
+     if (data->window) {
+          window_remove( data->window );
 
-     reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
+          reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
 
-     window_destroy( data->window );
+          window_destroy( data->window );
+     }
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
@@ -131,6 +133,9 @@ static DFBResult IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      if (!x && !y)
           return DFB_INVARG;
 
@@ -149,6 +154,9 @@ static DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      if (!width && !height)
           return DFB_INVARG;
 
@@ -165,6 +173,9 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
                                              IDirectFBSurface **surface )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      if (!surface)
           return DFB_INVARG;
@@ -196,6 +207,9 @@ static DFBResult IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      if (data->window->opacity != opacity)
           return window_set_opacity( data->window, opacity );
 
@@ -206,6 +220,9 @@ static DFBResult IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
                                              __u8 *opacity )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      if (!opacity)
           return DFB_INVARG;
@@ -219,12 +236,18 @@ static DFBResult IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return window_request_focus( data->window );
 }
 
 static DFBResult IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return window_grab_keyboard( data->window );
 }
@@ -233,12 +256,18 @@ static DFBResult IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return window_ungrab_keyboard( data->window );
 }
 
 static DFBResult IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return window_grab_pointer( data->window );
 }
@@ -247,12 +276,18 @@ static DFBResult IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return window_ungrab_pointer( data->window );
 }
 
 static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      if (dx == 0  &&  dy == 0)
           return DFB_OK;
@@ -263,6 +298,9 @@ static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 static DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      if (data->window->x == x  &&  data->window->y == y)
           return DFB_OK;
@@ -277,6 +315,9 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      if (data->window->width == width  &&  data->window->height == height)
           return DFB_OK;
 
@@ -287,12 +328,18 @@ static DFBResult IDirectFBWindow_Raise( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return window_raise( data->window );
 }
 
 static DFBResult IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return window_lower( data->window );
 }
@@ -301,12 +348,18 @@ static DFBResult IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     if (!data->window)
+          return DFB_DESTROYED;
+
      return window_raisetotop( data->window );
 }
 
 static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
 
      return window_lowertobottom( data->window );
 }
@@ -315,12 +368,21 @@ static DFBResult IDirectFBWindow_WaitForEvent( IDirectFBWindow *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     DEBUGMSG("DirectFB/IDirectFBWindow: Locking...\n");
+
      pthread_mutex_lock( &data->events_mutex );
 
-     if (!data->events)
+
+     if (!data->events) {
+          DEBUGMSG("DirectFB/IDirectFBWindow: - Waiting...\n");
           pthread_cond_wait( &data->wait_condition, &data->events_mutex );
+     }
+
+     DEBUGMSG("DirectFB/IDirectFBWindow: - - Unlocking...\n");
 
      pthread_mutex_unlock( &data->events_mutex );
+
+     DEBUGMSG("DirectFB/IDirectFBWindow: - - - Returning...\n");
 
      return DFB_OK;
 }
@@ -413,6 +475,35 @@ static DFBResult IDirectFBWindow_PeekEvent( IDirectFBWindow *thiz,
      return DFB_OK;
 }
 
+static DFBResult IDirectFBWindow_Close( IDirectFBWindow *thiz )
+{
+     DFBWindowEvent evt;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     evt.type = DWET_CLOSE;
+
+     IDirectFBWindow_React( &evt, (void**)data );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     window_remove( data->window );
+     window_destroy( data->window );
+
+     return DFB_OK;
+}
+
 DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                                      CoreWindow      *window )
 {
@@ -459,6 +550,8 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->WaitForEventWithTimeout = IDirectFBWindow_WaitForEventWithTimeout;
      thiz->GetEvent = IDirectFBWindow_GetEvent;
      thiz->PeekEvent = IDirectFBWindow_PeekEvent;
+     thiz->Close = IDirectFBWindow_Close;
+     thiz->Destroy = IDirectFBWindow_Destroy;
 
      return DFB_OK;
 }
@@ -492,12 +585,12 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
           e->next = item;
      }
 
+     if (evt->type == DWET_DESTROYED)
+          data->window = NULL;
+
      pthread_cond_broadcast( &data->wait_condition );
 
      pthread_mutex_unlock( &data->events_mutex );
-
-     if (evt->type == DWET_CLOSE)
-          return RS_REMOVE;
 
      return RS_OK;
 }
