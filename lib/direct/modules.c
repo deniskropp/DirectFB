@@ -121,7 +121,8 @@ direct_modules_register( DirectModuleDir *directory,
 
      if (abi_version != directory->abi_version) {
           D_ERROR( "Direct/Modules: ABI version of '%s' (%d) does not match %d!\n",
-                   entry->file, abi_version, directory->abi_version );
+                   entry->file ? entry->file : entry->name,
+                   abi_version, directory->abi_version );
 
           entry->disabled = true;
      }
