@@ -257,15 +257,6 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           l = next;
      }
 
-     l = stack->grabbed_keys;
-     while (l) {
-          FusionLink *next = l->next;
-
-          SHFREE( l );
-
-          l = next;
-     }
-
      if (stack->cursor.window)
           dfb_window_unlink( stack->cursor.window );
 
@@ -281,6 +272,15 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
                stack->windows[i]->stack = NULL;
 
           SHFREE( stack->windows );
+     }
+
+     l = stack->grabbed_keys;
+     while (l) {
+          FusionLink *next = l->next;
+
+          SHFREE( l );
+
+          l = next;
      }
 
      SHFREE( stack );
