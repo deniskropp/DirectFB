@@ -193,7 +193,6 @@ DFBResult get_kerning( CoreFontData *thiz,
      FT_Get_Kerning( face, prev_index, current_index, ft_kerning_default, &vector );
      *kerning = vector.x >> 6;
 
-	printf("gay!\n");
      return DFB_OK;
 }
 
