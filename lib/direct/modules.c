@@ -372,7 +372,7 @@ open_module( DirectModuleEntry *module )
 
      D_DEBUG_AT( Direct_Modules, "Loading '%s'...\n", buf );
 
-     handle = dlopen( buf, RTLD_LAZY );
+     handle = dlopen( buf, RTLD_NOW );
      if (!handle)
           D_DLERROR( "Direct/Modules: Unable to dlopen `%s'!\n", buf );
 

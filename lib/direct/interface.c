@@ -190,10 +190,10 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
            * Open it and check.
            */
 #ifdef RTLD_GLOBAL
-          handle = dlopen( buf, RTLD_LAZY | RTLD_GLOBAL );
+          handle = dlopen( buf, RTLD_NOW /*| RTLD_GLOBAL*/ );
 #else
           /* RTLD_GLOBAL is missing on OpenBSD*/
-          handle = dlopen( buf, RTLD_LAZY );
+          handle = dlopen( buf, RTLD_NOW );
 #endif
           if (handle) {
                DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
