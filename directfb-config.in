@@ -192,19 +192,6 @@ if test "$echo_cflags" = "yes"; then
       echo $cflags @THREADFLAGS@
 fi
 
-if test "$echo_libs" = "yes"; then
-      libs=-L@libdir@
-
-      if test "$lib_directfb" = "yes"; then
-	 libs="$libs -ldirectfb @THREADLIB@ @DYNLIB@"
-      fi	
-      if test "$lib_avifile" = "yes"; then
-	 libs="$libs @AVIFILE_LIBS@"
-      fi
-
-      echo $libs
-fi      
-
 if test -n "$echo_static"; then
 	echo -static -Wl,-udirectfb_fbdev
 fi
@@ -228,3 +215,16 @@ fi
 if test -n "$echo_videoprovider"; then
 	echo -L$moduledir/interfaces/IDirectFBVideoProvider $echo_videoprovider
 fi
+
+if test "$echo_libs" = "yes"; then
+      libs=-L@libdir@
+
+      if test "$lib_directfb" = "yes"; then
+	 libs="$libs -ldirectfb @THREADLIB@ @DYNLIB@"
+      fi	
+      if test "$lib_avifile" = "yes"; then
+	 libs="$libs @AVIFILE_LIBS@"
+      fi
+
+      echo $libs
+fi      
