@@ -459,6 +459,9 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
      window->opaque.x2 = x2;
      window->opaque.y2 = y2;
 
+     dfb_region_intersect( &window->opaque,
+                           0, 0, window->width - 1, window->height - 1 );
+
      return DFB_OK;
 }
 

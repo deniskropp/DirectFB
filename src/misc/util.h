@@ -62,20 +62,23 @@ DFBResult errno2dfb( int erno );
 bool dfb_region_intersect( DFBRegion *region,
                            int x1, int y1, int x2, int y2 );
 
-int dfb_region_rectangle_intersect( DFBRegion          *region,
-                                    const DFBRectangle *rect );
+bool dfb_region_region_intersect( DFBRegion       *region,
+                                  const DFBRegion *clip );
 
-int dfb_unsafe_region_intersect( DFBRegion *region,
-                                 int x1, int y1, int x2, int y2 );
+bool dfb_region_rectangle_intersect( DFBRegion          *region,
+                                     const DFBRectangle *rect );
 
-int dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
-                                           const DFBRectangle *rect );
+bool dfb_unsafe_region_intersect( DFBRegion *region,
+                                  int x1, int y1, int x2, int y2 );
 
-int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
-                                              DFBRegion    *region );
+bool dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
+                                            const DFBRectangle *rect );
 
-int dfb_rectangle_intersect( DFBRectangle       *rectangle,
-                             const DFBRectangle *clip );
+bool dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
+                                               DFBRegion    *region );
+
+bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
+                              const DFBRectangle *clip );
 
 /* returns the result in the first rectangle */
 void dfb_rectangle_union ( DFBRectangle       *rect1,

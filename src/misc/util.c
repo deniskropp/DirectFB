@@ -42,7 +42,8 @@
 
 static struct timeval start_time = { 0, 0 };
 
-long long dfb_get_micros()
+long long
+dfb_get_micros()
 {
      struct timeval tv;
 
@@ -57,7 +58,8 @@ long long dfb_get_micros()
             (long long)(tv.tv_usec - start_time.tv_usec);
 }
 
-long long dfb_get_millis()
+long long
+dfb_get_millis()
 {
      return dfb_get_micros() / (long long) 1000;
 }
@@ -88,7 +90,8 @@ dfb_try_open( const char *name1, const char *name2, int flags )
      return -1;
 }
 
-void dfb_trim( char **s )
+void
+dfb_trim( char **s )
 {
      int i;
      int len = strlen( *s );
@@ -109,7 +112,8 @@ void dfb_trim( char **s )
 /*
  * translates errno to DirectFB DFBResult
  */
-DFBResult errno2dfb( int erno )
+DFBResult
+errno2dfb( int erno )
 {
      switch (erno) {
           case 0:
@@ -134,8 +138,9 @@ DFBResult errno2dfb( int erno )
      return DFB_FAILURE;
 }
 
-bool dfb_region_intersect( DFBRegion *region,
-                           int x1, int y1, int x2, int y2 )
+bool
+dfb_region_intersect( DFBRegion *region,
+                      int x1, int y1, int x2, int y2 )
 {
      if (region->x2 < x1 ||
          region->y2 < y1 ||
@@ -143,16 +148,49 @@ bool dfb_region_intersect( DFBRegion *region,
          region->y1 > y2)
           return false;
 
-     region->x1 = MAX( region->x1, x1 );
-     region->y1 = MAX( region->y1, y1 );
-     region->x2 = MIN( region->x2, x2 );
-     region->y2 = MIN( region->y2, y2 );
+     if (region->x1 < x1)
+          region->x1 = x1;
+
+     if (region->y1 < y1)
+          region->y1 = y1;
+
+     if (region->x2 > x2)
+          region->x2 = x2;
+
+     if (region->y2 > y2)
+          region->y2 = y2;
 
      return true;
 }
 
-int dfb_region_rectangle_intersect( DFBRegion          *region,
-                                    const DFBRectangle *rect )
+bool
+dfb_region_region_intersect( DFBRegion       *region,
+                             const DFBRegion *clip )
+{
+     if (region->x2 < clip->x1 ||
+         region->y2 < clip->y1 ||
+         region->x1 > clip->x2 ||
+         region->y1 > clip->y2)
+          return false;
+
+     if (region->x1 < clip->x1)
+          region->x1 = clip->x1;
+
+     if (region->y1 < clip->y1)
+          region->y1 = clip->y1;
+
+     if (region->x2 > clip->x2)
+          region->x2 = clip->x2;
+
+     if (region->y2 > clip->y2)
+          region->y2 = clip->y2;
+
+     return true;
+}
+
+bool
+dfb_region_rectangle_intersect( DFBRegion          *region,
+                                const DFBRectangle *rect )
 {
      int x2 = rect->x + rect->w - 1;
      int y2 = rect->y + rect->h - 1;
@@ -161,18 +199,26 @@ int dfb_region_rectangle_intersect( DFBRegion          *region,
          region->y2 < rect->y ||
          region->x1 > x2 ||
          region->y1 > y2)
-          return 0;
+          return false;
 
-     region->x1 = MAX( region->x1, rect->x );
-     region->y1 = MAX( region->y1, rect->y );
-     region->x2 = MIN( region->x2, x2 );
-     region->y2 = MIN( region->y2, y2 );
+     if (region->x1 < rect->x)
+          region->x1 = rect->x;
 
-     return 1;
+     if (region->y1 < rect->y)
+          region->y1 = rect->y;
+
+     if (region->x2 > x2)
+          region->x2 = x2;
+
+     if (region->y2 > y2)
+          region->y2 = y2;
+
+     return true;
 }
 
-int dfb_unsafe_region_intersect( DFBRegion *region,
-                                 int x1, int y1, int x2, int y2 )
+bool
+dfb_unsafe_region_intersect( DFBRegion *region,
+                             int x1, int y1, int x2, int y2 )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -189,8 +235,9 @@ int dfb_unsafe_region_intersect( DFBRegion *region,
      return dfb_region_intersect( region, x1, y1, x2, y2 );
 }
 
-int dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
-                                           const DFBRectangle *rect )
+bool
+dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
+                                       const DFBRectangle *rect )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -207,8 +254,9 @@ int dfb_unsafe_region_rectangle_intersect( DFBRegion          *region,
      return dfb_region_rectangle_intersect( region, rect );
 }
 
-int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
-                                              DFBRegion    *region )
+bool
+dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
+                                          DFBRegion    *region )
 {
      /* validate region */
      if (region->x1 > region->x2) {
@@ -246,14 +294,14 @@ int dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
           rectangle->w = 0;
           rectangle->h = 0;
 
-          return 0;
+          return false;
      }
 
-     return 1;
+     return true;
 }
 
-int dfb_rectangle_intersect( DFBRectangle       *rectangle,
-                             const DFBRectangle *clip )
+bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
+                              const DFBRectangle *clip )
 {
      DFBRegion region = { clip->x, clip->y,
                           clip->x + clip->w - 1, clip->y + clip->h - 1 };
@@ -281,10 +329,10 @@ int dfb_rectangle_intersect( DFBRectangle       *rectangle,
           rectangle->w = 0;
           rectangle->h = 0;
 
-          return 0;
+          return false;
      }
 
-     return 1;
+     return true;
 }
 
 void dfb_rectangle_union ( DFBRectangle       *rect1,

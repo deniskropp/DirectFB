@@ -383,14 +383,16 @@ update_region( CoreWindowStack *stack,
           CoreWindow *window = stack->windows[i];
 
           if ((window->options & DWOP_ALPHACHANNEL) &&
-              (window->options & DWOP_OPAQUE_REGION)) {
-               DFBRegion opaque = region;
+              (window->options & DWOP_OPAQUE_REGION))
+          {
+               DFBRegion opaque;
+                
+               opaque.x1 = window->x + window->opaque.x1;
+               opaque.y1 = window->y + window->opaque.y1;
+               opaque.x2 = window->x + window->opaque.x2;
+               opaque.y2 = window->y + window->opaque.y2;
 
-               if (!dfb_region_intersect( &opaque,
-                                          window->x + window->opaque.x1,
-                                          window->y + window->opaque.y1,
-                                          window->x + window->opaque.x2,
-                                          window->y + window->opaque.y2 )) {
+               if (!dfb_region_region_intersect( &opaque, &region )) {
                     update_region( stack, state, i-1, x1, y1, x2, y2 );
 
                     draw_window( window, state, &region, true );
@@ -422,28 +424,28 @@ update_region( CoreWindowStack *stack,
                     /* left */
                     if (opaque.x1 != region.x1) {
                          DFBRegion r = { region.x1, opaque.y1,
-                              opaque.x1 - 1, opaque.y2};
+                                         opaque.x1 - 1, opaque.y2};
                          draw_window( window, state, &r, true );
                     }
 
                     /* upper */
                     if (opaque.y1 != region.y1) {
                          DFBRegion r = { region.x1, region.y1,
-                              region.x2, opaque.y1 - 1};
+                                         region.x2, opaque.y1 - 1};
                          draw_window( window, state, &r, true );
                     }
 
                     /* right */
                     if (opaque.x2 != region.x2) {
                          DFBRegion r = { opaque.x2 + 1, opaque.y1,
-                              region.x2, opaque.y2};
+                                         region.x2, opaque.y2};
                          draw_window( window, state, &r, true );
                     }
 
                     /* lower */
                     if (opaque.y2 != region.y2) {
                          DFBRegion r = { region.x1, opaque.y2 + 1,
-                              region.x2, region.y2};
+                                         region.x2, region.y2};
                          draw_window( window, state, &r, true );
                     }
 

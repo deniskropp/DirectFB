@@ -711,6 +711,8 @@ dfb_window_resize( CoreWindow   *window,
           window->height = height;
      }
 
+     dfb_region_intersect( &window->opaque, 0, 0, width - 1, height - 1 );
+
      if (VISIBLE_WINDOW (window)) {
           if (ow > window->width) {
                DFBRegion region = { window->width, 0,
