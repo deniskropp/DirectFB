@@ -121,7 +121,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
           case DSPF_A8:
                for (y = 0; y < h; y++) {
                     for (x = 0; x < w; x++) {
-                         *(__u8 *)dst++ = *src & 0xFF000000;
+                         *(__u8 *)dst++ = *src >> 24;
                          src++;
                     }
                     (__u8 *)dst += dskip;
@@ -139,7 +139,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
           default:
                for (y = 0; y < h; y++) {
                     for (x = 0; x < w; x++) {
-                         a = (*src & 0xFF000000) >> 24;
+                         a = *src >> 24;
                          switch (a) {
                          case 0x0:
                               memset ((__u8 *)dst, 0, BYTES_PER_PIXEL (dst_format));
@@ -154,7 +154,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                          default:
                               rb = (*src & 0x00FF00FF) * a;
                               rgba_to_dst_format ((__u8 *)dst, 
-                                                  (rb & 0xFF000000) >> 24,
+                                                  rb >> 24,
                                                   ((*src & 0x0000FF00) * a) >> 16,
                                                   (rb & 0x0000FF00) >> 8, 
                                                   a, dst_format);
