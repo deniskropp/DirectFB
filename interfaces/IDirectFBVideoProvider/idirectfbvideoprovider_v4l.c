@@ -466,9 +466,9 @@ static void* OverlayThread( void *ctx )
           pthread_testcancel();
 
           if (data->destination->caps & DSCAPS_INTERLACED) {
-              dfb_surface_notify_listeners( data->destination,
-                                            field ? CSNF_SET_ODD : CSNF_SET_EVEN );
-              field = !field;
+               dfb_surface_set_field( data->destination, field );
+
+               field = !field;
           }
 
           if (data->callback)

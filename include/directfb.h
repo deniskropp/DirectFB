@@ -1807,6 +1807,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Set the active field.
+      *
+      * Interlaced surfaces consist of two fields. Software driven
+      * deinterlacing uses this method to manually switch the field
+      * that is displayed, e.g. scaled up vertically by two.
+      */
+     DFBResult (*SetField) (
+          IDirectFBSurface         *thiz,
+          int                       field
+     );
+
+     /*
       * Clear the surface with an extra color.
       *
       * Fills the whole (sub) surface with the specified color

@@ -331,6 +331,26 @@ IDirectFBSurface_Flip( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_SetField( IDirectFBSurface    *thiz,
+                           int                  field )
+{
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!(data->caps & DSCAPS_INTERLACED))
+          return DFB_UNSUPPORTED;
+
+     if (field < 0 || field > 1)
+          return DFB_INVARG;
+
+     dfb_surface_set_field( data->surface, field );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_Clear( IDirectFBSurface *thiz,
                         __u8 r, __u8 g, __u8 b, __u8 a )
 {
@@ -1419,6 +1439,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->Unlock = IDirectFBSurface_Unlock;
      thiz->Flip = IDirectFBSurface_Flip;
+     thiz->SetField = IDirectFBSurface_SetField;
      thiz->Clear = IDirectFBSurface_Clear;
 
      thiz->SetClip = IDirectFBSurface_SetClip;

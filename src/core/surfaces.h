@@ -45,11 +45,8 @@ typedef enum {
      CSNF_VIDEO          = 0x00000004,  /* video instance information */
      CSNF_DESTROY        = 0x00000008,  /* surface is about to be destroyed */
      CSNF_FLIP           = 0x00000010,  /* surface buffer pointer swapped */
-     CSNF_SET_EVEN       = 0x00000020,  /* set the even field of an interlaced
-                                           surface buffer active */
-     CSNF_SET_ODD        = 0x00000040,  /* set the odd field of an interlaced
-                                           surface buffer active */
-     CSNF_PALETTE        = 0x00000080   /* surface palette has been altered */
+     CSNF_FIELD          = 0x00000020,  /* active (displayed) field switched */
+     CSNF_PALETTE        = 0x00000040   /* surface palette has been altered */
 } CoreSurfaceNotificationFlags;
 
 typedef struct {
@@ -142,6 +139,8 @@ struct _CoreSurface
      int                    min_height;    /* minimum allocation height */
 
      CorePalette           *palette;
+
+     int                    field;
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
@@ -288,6 +287,8 @@ dfb_surface_unlink( CoreSurface *surface )
  * otherwise it does a back_to_front_copy, notifies listeners
  */
 void dfb_surface_flip_buffers( CoreSurface *surface );
+
+void dfb_surface_set_field( CoreSurface *surface, int field );
 
 /*
  * This is a utility function for easier usage.

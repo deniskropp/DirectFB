@@ -1593,9 +1593,9 @@ layer_surface_listener( const void *msg_data, void *ctx )
           funcs->SetPalette( layer, layer->driver_data,
                              layer->layer_data, surface->palette );
 
-     if ((flags & (CSNF_SET_EVEN | CSNF_SET_ODD)) && funcs->SetField)
+     if ((flags & CSNF_FIELD) && funcs->SetField)
           funcs->SetField( layer, layer->driver_data,
-                           layer->layer_data, (flags & CSNF_SET_ODD) ? 1 : 0 );
+                           layer->layer_data, surface->field );
 
      return RS_OK;
 }

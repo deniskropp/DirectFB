@@ -401,6 +401,8 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
 {
      SurfaceBuffer *tmp;
 
+     DFB_ASSERT( surface != NULL );
+     
      DFB_ASSERT(surface->back_buffer->policy == surface->front_buffer->policy);
 
      dfb_surfacemanager_lock( surface->manager );
@@ -420,11 +422,24 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
      skirmish_dismiss( &surface->back_lock );
 }
 
+void dfb_surface_set_field( CoreSurface *surface, int field )
+{
+     DFB_ASSERT( surface != NULL );
+
+     surface->field = field;
+
+     dfb_surface_notify_listeners( surface, CSNF_FIELD );
+}
+
 DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
                                  void **data, int *pitch, int front )
 {
      DFBResult ret;
 
+     DFB_ASSERT( surface != NULL );
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( pitch != NULL );
+     
      dfb_surfacemanager_lock( surface->manager );
      ret = dfb_surface_software_lock( surface, flags, data, pitch, front );
      dfb_surfacemanager_unlock( surface->manager );
@@ -437,7 +452,10 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 {
      SurfaceBuffer *buffer;
 
+     DFB_ASSERT( surface != NULL );
      DFB_ASSERT( flags != 0 );
+     DFB_ASSERT( data != NULL );
+     DFB_ASSERT( pitch != NULL );
 
      if (front) {
           skirmish_prevail( &surface->front_lock );
@@ -518,10 +536,8 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 {
      SurfaceBuffer *buffer;
 
-     if (!flags) {
-          BUG( "lock without flags" );
-          return DFB_INVARG;
-     }
+     DFB_ASSERT( surface != NULL );
+     DFB_ASSERT( flags != 0 );
 
      if (front) {
           skirmish_prevail( &surface->front_lock );
@@ -577,6 +593,8 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 
 void dfb_surface_unlock( CoreSurface *surface, int front )
 {
+     DFB_ASSERT( surface != NULL );
+     
      if (front) {
           SurfaceBuffer *buffer = surface->front_buffer;
 
@@ -603,6 +621,8 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
 void dfb_surface_destroy( CoreSurface *surface, bool unref )
 {
+     DFB_ASSERT( surface != NULL );
+     
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
 
      skirmish_prevail( &surface->lock );
@@ -650,6 +670,8 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
                              DFBSurfaceCapabilities  caps,
                              CorePalette            *palette )
 {
+     DFB_ASSERT( surface != NULL );
+     
      switch (format) {
           case DSPF_A8:
           case DSPF_ARGB:
