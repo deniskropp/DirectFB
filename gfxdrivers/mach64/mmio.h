@@ -34,6 +34,18 @@
 #include "mach64.h"
 
 static inline void
+mach64_out8(volatile __u8 *mmioaddr, __u32 reg, __u8 value)
+{
+     *((volatile __u8*)(mmioaddr+reg)) = value;
+}
+
+static inline __u8
+mach64_in8(volatile __u8 *mmioaddr, __u32 reg)
+{
+     return *((volatile __u8*)(mmioaddr+reg));
+}
+
+static inline void
 mach64_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
 {
      if (reg >= 0x400)
@@ -49,6 +61,20 @@ mach64_in32(volatile __u8 *mmioaddr, __u32 reg)
           return *((volatile __u32*)(mmioaddr+reg-0x800));
      else
           return *((volatile __u32*)(mmioaddr+reg));
+}
+
+static void
+mach64_out_lcd(volatile __u8 *mmioaddr, __u8 reg, __u32 value )
+{
+     mach64_out8( mmioaddr, LCD_INDEX, reg );
+     mach64_out32( mmioaddr, LCD_DATA, value );
+}
+
+static inline __u32
+mach64_in_lcd(volatile __u8 *mmioaddr, __u8 reg )
+{
+     mach64_out8( mmioaddr, LCD_INDEX, reg );
+     return mach64_in32( mmioaddr, LCD_DATA );
 }
 
 static inline void mach64_waitidle( Mach64DriverData *mdrv,

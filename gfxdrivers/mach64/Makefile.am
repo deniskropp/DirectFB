@@ -10,8 +10,10 @@ mach64dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_mach64_la_SOURCES =	\
 	mach64.c		\
-	mach64_state.c		\
 	mach64.h		\
+	mach64_state.c		\
+	mach64_state.h		\
+	mach64_overlay.c	\
 	regs.h			\
 	mmio.h
 

@@ -28,6 +28,21 @@
 #ifndef __MACH64_REGS_H__
 #define __MACH64_REGS_H__
 
+/* LCD indexed registers */
+#define LCD_GEN_CTRL            0x01
+#define LCD_VERT_STRETCHING     0x05
+
+/* LCD_GEN_CTRL */
+#define LCD_ON                  0x00000002
+
+/* LCD_VERT_STRETCHING */
+#define VERT_STRETCH_RATIO0     0x000003FF
+#define VERT_STRETCH_EN         0x80000000
+
+
+#define LCD_INDEX               0x0A4
+#define LCD_DATA                0x0A8
+
 #define DST_OFF_PITCH           0x100
 #define DST_X                   0x104
 #define DST_Y                   0x108
@@ -223,6 +238,79 @@
 #define ALPHA_START             0x3F8
 #define FOG_START               0x3F8
 /* 0x3FC */
+#define OVERLAY_Y_X_START       0x400
+#define OVERLAY_Y_X_END         0x404
+#define OVERLAY_VIDEO_KEY_CLR   0x408
+#define OVERLAY_VIDEO_KEY_MSK   0x40C
+#define OVERLAY_GRAPHICS_KEY_CLR        0x410
+#define OVERLAY_GRAPHICS_KEY_MSK        0x414
+#define OVERLAY_KEY_CNTL        0x418
+/* 0x41C */
+#define OVERLAY_SCALE_INC       0x420
+#define OVERLAY_SCALE_CNTL      0x424
+#define SCALER_HEIGHT_WIDTH     0x428
+#define SCALER_TEST             0x42C
+/* 0x430 */
+#define SCALER_BUF0_OFFSET      0x434
+#define SCALER_BUF1_OFFSET      0x438
+#define SCALER_BUF_PITCH        0x43C
+#define CAPTURE_START_END       0x440
+#define CAPTURE_X_WIDTH         0x444
+#define VIDEO_FORMAT            0x448
+#define VBI_START_END           0x44C
+#define CAPTURE_CONFIG          0x450
+#define TRIG_CNTL               0x454
+#define OVERLAY_EXCLUSIVE_HORZ  0x458
+#define OVERLAY_EXCLUSIVE_VERT  0x45C
+#define VAL_WIDTH               0x460
+#define CAPTURE_DEBUG           0x464
+#define VIDEO_SYNC_TEST         0x468
+/* 0x46C */
+#define SNAPSHOT_VH_COUNTS      0x470
+#define SNAPSHOT_F_COUNT        0x474
+#define N_VIF_COUNT             0x478
+#define SNAPSHOT_VIF_COUNT      0x47C
+#define CAPTURE_BUF0_OFFSET     0x480
+#define CAPTURE_BUF1_OFFSET     0x484
+#define CAPTURE_BUF_PITCH       0x488
+/* 0x48C */
+#define SNAPSHOT2_VH_COUNTS     0x4B0
+#define SNAPSHOT2_F_COUNT       0x4B4
+#define N_VIF2_COUNT            0x4B8
+#define SNAPSHOT2_VIF_COUNT     0x4BC
+#define MPP_CONFIG              0x4C0
+#define MPP_STROBE_SEQ          0x4C4
+#define MPP_ADDR                0x4C8
+#define MPP_DATA                0x4CC
+#define TVO_CNTL                0x500
+/* 0x504 - 0x540 */
+#define CRT_HORZ_VERT_LOAD      0x544
+#define AGP_BASE                0x548
+#define AGP_CNTL                0x54C
+#define SCALER_COLOR_CNTL       0x550
+#define SCALER_H_COEFF0         0x554
+#define SCALER_H_COEFF1         0x558
+#define SCALER_H_COEFF2         0x55C
+#define SCALER_H_COEFF3         0x560
+#define SCALER_H_COEFF4         0x564
+/* 0x568 - 0x56C */
+#define GUI_CMDFIFO_DEBUG       0x570
+#define GUI_CMDFIFO_DATA        0x574
+#define GUI_CNTL                0x578
+/* 0x57C */
+#define BM_FRAME_BUF_OFFSET     0x580
+#define BM_SYSTEM_MEM_ADDR      0x584
+#define BM_COMMAND              0x588
+#define BM_STATUS               0x58C
+/* 0x590 - 0x5B4 */
+#define BM_GUI_TABLE            0x5B8
+#define BM_SYSTEM_TABLE         0x5BC
+/* 0x5D0 */
+#define SCALER_BUF0_OFFSET_U    0x5D4
+#define SCALER_BUF0_OFFSET_V    0x5D8
+#define SCALER_BUF1_OFFSET_U    0x5DC
+#define SCALER_BUF1_OFFSET_V    0x5E0
+
 
 /* SRC_CNTL */
 #define SRC_PATTERN_EN                  0x1
@@ -303,5 +391,36 @@
 #define COMPARE_DESTINATION	0x0000000
 #define COMPARE_SOURCE		0x1000000
 #define COMPARE_TEXEL		0x2000000
+
+/* OVERLAY_SCALE_CNTL */
+#define SCALE_PIX_EXPAND        0x00000001
+#define SCALE_Y2R_TEMP          0x00000002
+#define SCALE_HORZ_MODE         0x00000004
+#define SCALE_VERT_MODE         0x00000008
+#define SCALE_SIGNED_UV         0x00000010
+#define SCALE_GAMMA_SEL         0x00000060
+#define SCALE_BANDWITH          0x04000000
+#define SCALE_DIS_LIMIT         0x08000000
+#define SCALE_CLK_FORCE_ON      0x20000000
+#define OVERLAY_EN              0x40000000
+#define SCALE_EN                0x80000000
+
+/* OVERLAY_Y_X_START */
+#define OVERLAY_LOCK_START      0x80000000
+
+/* OVERLAY_Y_X_END */
+#define OVERLAY_LOCK_END        0x80000000
+
+/* VIDEO_FORMAT */
+#define VIDEO_IN_VYUY422        0x0000000B
+#define VIDEO_IN_YVYU422        0x0000000C
+#define VIDEO_SIGNED_UV         0x00000010
+#define SCALER_IN_RGB15         0x00030000
+#define SCALER_IN_RGB16         0x00040000
+#define SCALER_IN_RGB32         0x00060000
+#define SCALER_IN_YUV9          0x00090000
+#define SCALER_IN_YUV12         0x000A0000
+#define SCALER_IN_VYUY422       0x000B0000
+#define SCALER_IN_YVYU422       0x000C0000
 
 #endif

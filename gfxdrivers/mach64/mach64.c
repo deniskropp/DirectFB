@@ -376,7 +376,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 2;
+     info->version.minor = 3;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
@@ -394,14 +394,9 @@ driver_init_driver( GraphicsDevice      *device,
      if (!mdrv->mmio_base)
           return DFB_IO;
 
-     mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
+     mdrv->device_data = (Mach64DeviceData*) device_data;
 
-     switch (mdrv->accelerator) {
-          case FB_ACCEL_ATI_MACH64VT:
-          case FB_ACCEL_ATI_MACH64GT:
-               mdrv->mmio_base += 0x400;
-               break;
-     }
+     mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
 
      funcs->CheckState    = mach64CheckState;
      funcs->SetState      = mach64SetState;
@@ -411,6 +406,16 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->DrawRectangle = mach64DrawRectangle;
      funcs->DrawLine      = mach64DrawLine;
      funcs->Blit          = mach64Blit;
+
+     switch (mdrv->accelerator) {
+          case FB_ACCEL_ATI_MACH64VT:
+          case FB_ACCEL_ATI_MACH64GT:
+               mdrv->mmio_base += 0x400;
+
+               dfb_layers_register( dfb_screens_at( DSCID_PRIMARY ),
+                                    driver_data, &mach64OverlayFuncs );
+               break;
+     }
 
      return DFB_OK;
 }

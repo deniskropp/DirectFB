@@ -45,11 +45,6 @@ typedef enum {
 #define MACH64_IS_VALID(b)      (mdev->valid & (b))
      
 typedef struct {
-     int accelerator;
-     volatile __u8 *mmio_base;
-} Mach64DriverData;
-
-typedef struct {
      /* for fifo/performance monitoring */
      unsigned int fifo_space;
      unsigned int waitfifo_sum;
@@ -66,5 +61,13 @@ typedef struct {
      __u32 src_key_mask;
      __u32 dst_key_mask;
 } Mach64DeviceData;
+
+typedef struct {
+     int accelerator;
+     volatile __u8 *mmio_base;
+     Mach64DeviceData *device_data;
+} Mach64DriverData;
+
+extern DisplayLayerFuncs mach64OverlayFuncs;
 
 #endif
