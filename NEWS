@@ -1,3 +1,47 @@
+0.9.9
+-----
+
+- Added DSPF_I420 and DSPF_YV12, two planar YUV formats.
+- Added ATI Overlay support for all four YUV formats.
+- Added NeoMagic YUV Overlay support.
+- Added static linking support. Minor changes to driver and interface modules.
+- There's a general IDirectFBEventBuffer now that can be connected to
+  input devices and windows. Added DFBEvent union that can contain
+  any specific event class.
+- Added DFBUserEvent that can be used by developers (user of the library).
+- Added IDirectFBEventBuffer::PostEvent that can be used for any event class.
+- Each window has a unique window id now. DFBWindowEvent contains the id.
+- Added GetID functions to IDirectFB- DisplayLayer, Window and InputDevice.
+- Added IDirectFBSurface::TileBlit.
+- IPAQ buttons support by Ara Hacopian <ahacop@anthrotronix.com>.
+- Windows can now be created with a specific pixel format, e.g. YUV.
+- RGB332 acceleration on Matrox cards (including alpha blending).
+- Added fast memcpy routine that uses MMX, MMXEXT or SSE.
+- Changed DirectFB command-line parsing: The only recognized options are
+  --dfb-help and --dfb: follow by a comma-separated list of DirectFB options.
+  The format of the options is the same as used in the directfbrc file.
+- Surfaces can now be created using existing surface data.
+- New option "[no-]cursor" to enable/disable the default cursor on startup.
+- New option "disable-window-opacity" for testing/tweaking purposes.
+- New option "lefty" that enables swapping of left and right button.
+- Applied patch from Till Adam <till@adam-lilienthal.de> that adds
+  DFBInputDeviceLockState, IDirectFBInputDevice::GetLockState() and
+  LED handling in keyboard driver.
+- Rewritten Libmpeg3 provider based on OpenQuicktime provider (YUV/Sound).
+- Make usage of CON2FBMAP (by Jiri Svoboda <Jiri.Svoboda@seznam.cz>).
+- '/dev/input/js*' support by W. Michael Petullo <mike@flyn.org>.
+- Detailed documentation of dbox2 remote driver code (example driver).
+- More code documentation, especially state handling.
+- Additional framebuffer device can be used to debug the surface manager.
+- All global DirectFB symbols have the prefix "dfb_" now.
+- Enno Brehm <enno@convergence.de> added dlopen on libdirectfb with RTLD_GLOBAL.
+- Completely rewritten shmalloc stuff (used by Multi Application Core)
+  based on libc5's GNU malloc. It now uses tmpfs (former shmfs).
+- Some optimizations, Matrox colorkeying fixes.
+- ATI state fix by Topi Kanerva <topi.kanerva@eke.fi>.
+- USB and PS/2 mice fixes, endian fixes on parisc, many other bugfixes.
+
+
 0.9.8
 -----
 
