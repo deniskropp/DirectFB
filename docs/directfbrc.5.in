@@ -260,8 +260,26 @@ Window surfaces are stored in video memory.
 
 .TP
 .BI desktop-buffer-mode=<mode>
-Allows to control the desktop buffer mode. Supported values for <mode>
-are:
+Allows to control the desktop buffer mode. Whenever a window is moved,
+opened, closed, resized or simply updates its contents DirectFB recomposites
+the window stack at the affected region. This is done by an optimized
+algorithm blitting the windows together that are visible within that
+region. Opaque windows are blitted without any effect and transparent windows
+are blitted using alpha blending or color keying. If there's a backbuffer
+the recomposition is not visible and the result is copied into the front
+buffer. Without a backbuffer each step of the recomposition is visible
+which produces flickering unless there are opaque windows only. DirectFB
+chooses a backbuffer in video memory if the hardware supports simple
+blitting (e.g. to copy from back- to frontbuffer). If there's no acceleration
+at all the backbuffer is allocated in system memory which gives much better
+performance during alpha blended recomposition in software and avoids reading
+from the video memory when the result is copied to the frontbuffer.
+You should set an explicit value if your hardware supports simple blitting
+but no alpha blending if you are going to have many alpha blended windows.
+In this case 'backsystem' is the recommended value. If you are using opaque
+windows only without color keying you should try 'frontonly'.
+
+Supported values for <mode> are:
 
 .BI auto
 DirectFB decides depending on hardware capabilities. This is the
