@@ -124,7 +124,11 @@ IDirectFBDataBuffer_Streamed_Flush( IDirectFBDataBuffer *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
+     pthread_mutex_lock( &data->chunks_mutex );
+     
      DestroyAllChunks( data );
+     
+     pthread_mutex_unlock( &data->chunks_mutex );
      
      return DFB_OK;
 }
