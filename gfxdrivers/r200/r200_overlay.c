@@ -396,17 +396,53 @@ ov0_calc_offsets( R200DeviceData       *rdev,
      }
 }
 
+static inline __u32
+ov0_calc_dstkey( __u8 r, __u8 b, __u8 g )
+{
+     __u32 Kr, Kg, Kb;
+     
+     switch (dfb_primary_layer_pixelformat()) {
+          case DSPF_RGB332:
+               Kr = r & 0xe0;
+               Kg = g & 0xe0;
+               Kb = b & 0xc0;
+               break;
+          case DSPF_ARGB1555:
+               Kr = r & 0xf8;
+               Kg = g & 0xf8;
+               Kb = b & 0xf8;
+               break;
+          case DSPF_RGB16:
+               Kr = r & 0xf8;
+               Kg = g & 0xfc;
+               Kb = b & 0xf8;
+               break;
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               Kr = r;
+               Kg = g;
+               Kb = b;
+               break;
+          default:
+               D_BUG( "unexpected primary layer pixelformat" );
+               Kr = Kg = Kb = 0;
+               break;
+     }
+
+     return PIXEL_RGB32( Kr, Kg, Kb );
+}
+
 static void 
 ov0_calc_regs ( R200DriverData        *rdrv,
                 R200OverlayLayerData  *rov0,
                 CoreSurface           *surface,
                 CoreLayerRegionConfig *config )
 {
-     DFBSurfacePixelFormat primary_format = dfb_primary_layer_pixelformat();
-     __u32                 offsets[3];
-     __u32                 tmp;
-     __u32                 h_inc;
-     __u32                 step_by;
+     __u32 offsets[3];
+     __u32 tmp;
+     __u32 h_inc;
+     __u32 step_by;
      
      /* clear all */
      rov0->regs.KEY_CNTL   = 0;
@@ -505,24 +541,10 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      rov0->regs.VID_KEY_CLR_HIGH = rov0->regs.VID_KEY_CLR_LOW | 0xff000000;
      
      /* set destination colorkey */
-     rov0->regs.GRPH_KEY_CLR_LOW = dfb_color_to_pixel( primary_format,
-                                                        config->dst_key.r,
-                                                        config->dst_key.g,
-                                                        config->dst_key.b );
-     rov0->regs.GRPH_KEY_CLR_HIGH = rov0->regs.GRPH_KEY_CLR_LOW;
-     
-     if (DFB_PIXELFORMAT_HAS_ALPHA( primary_format )) {
-          switch (primary_format) {
-               case DSPF_ARGB1555:
-                    rov0->regs.GRPH_KEY_CLR_HIGH |= 0x00008000;
-                    break;
-               case DSPF_ARGB:
-                    rov0->regs.GRPH_KEY_CLR_HIGH |= 0xff000000;
-                    break;
-               default:
-                    break;
-          }
-     }
+     rov0->regs.GRPH_KEY_CLR_LOW  = ov0_calc_dstkey( config->dst_key.r,
+                                                     config->dst_key.g,
+                                                     config->dst_key.b );
+     rov0->regs.GRPH_KEY_CLR_HIGH = rov0->regs.GRPH_KEY_CLR_LOW | 0xff000000;
      
      /* set source format and enable overlay */
      if (config->opacity) { 
