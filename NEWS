@@ -6,10 +6,12 @@
 - Added IDirectFBWindow::SetCursorShape().
 - Added IDirectFBDisplayLayer::WaitForSync(), thanks to Ville Syrjala.
 - Made IDirectFBWindow::SetColorKey() lookup the index if the format is indexed.
+- Removed DSPF_RGB15 in favor of DSPF_ARGB1555, not completely tested yet.
 - Added DFB_COLOR_EQUAL macro to compare two DFBColor.
 - Added <Meta>-P shortcut to enable the cursor manually.
 - Added new multi app core shortcut Ctrl-Alt-Break which sends a SIGKILL to
   fullscreen applications, useful if a fullscreen app hangs.
+- Added optimized memcpy routines for PPC (disabled in default build).
 - New automatic grabbing mechanism for fullscreen applications running windowed.
 - Added options for statically linking applications with selected modules
   to directfb-config.
@@ -25,6 +27,7 @@
   temporarily switching to KD_GRAPHICS mode.
 - New configure option "--disable-text" which disables all init, debug and
   error messages and saves about ~20k binary size (tested on i386).
+- Other minor bug fixes and improvements.
 
 
 0.9.15

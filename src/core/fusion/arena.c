@@ -95,6 +95,7 @@ FusionResult arena_enter (const char     *name,
      DFB_ASSERT( join != NULL );
      DFB_ASSERT( ret_arena != NULL );
 
+     /* Lookup arena and lock it. If it doesn't exist create it. */
      arena = lock_arena( name, true );
      if (!arena)
           return FUSION_FAILURE;
