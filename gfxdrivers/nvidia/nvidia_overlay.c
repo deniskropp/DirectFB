@@ -48,7 +48,6 @@ typedef struct {
      short                 hue;
      __u32                 colorkey;
      int                   buffer;
-     __u32                 fbstart;
 
      struct {
           __u32 NV_PVIDEO_BUFFER;      // 0x700
@@ -95,6 +94,7 @@ ov0InitLayer( CoreLayer                  *layer,
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
+     __u32                   vram  = dfb_system_videoram_length();
 
      /* set capabilities and type */
      description->caps =  DLCAPS_SURFACE      | DLCAPS_SCREEN_LOCATION |
@@ -126,6 +126,14 @@ ov0InitLayer( CoreLayer                  *layer,
      adjustment->saturation = 0x8000;
      adjustment->hue        = 0x8000;
 
+     /* set video memory start and limit */
+     if (nvdrv->chip != 0x2a0) {
+          nvdrv->PVIDEO[0x920/4] = 0;
+          nvdrv->PVIDEO[0x924/4] = 0;
+          nvdrv->PVIDEO[0x908/4] = vram & 0x7ffffc0;
+          nvdrv->PVIDEO[0x90C/4] = vram & 0x7ffffc0;
+     }
+
      /* reset overlay */
      nvov0->brightness = 0;
      nvov0->contrast   = 4096;
@@ -134,8 +142,6 @@ ov0InitLayer( CoreLayer                  *layer,
      nvov0->colorkey   = 0;
      ov0_set_csc( nvdrv, nvov0 );
 
-     nvov0->buffer = 0;
-     nvov0->fbstart = dfb_gfxcard_memory_physical(nvdrv->device, 0);
      return DFB_OK;
 }
 
@@ -699,9 +705,11 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      SurfaceBuffer *buffer  = surface->front_buffer;
      __u32          pitch   = buffer->video.pitch;
     
-     nvov0->regs.NV_PVIDEO_BASE      = buffer->video.offset & 0x07fffff0;
-     // XBOX-specific: add nvov0->fbstart
-     // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + buffer->video.offset) & 0x03fffff0;
+     if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
+          nvov0->regs.NV_PVIDEO_BASE = (nvdrv->fb_base + buffer->video.offset) & 0x3fffff0;
+     else
+          nvov0->regs.NV_PVIDEO_BASE = buffer->video.offset & 0x7fffff0;
+
      nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16) | config->width;
      nvov0->regs.NV_PVIDEO_POINT_IN  = (config->source.y << 20) | (config->source.x << 4);
      nvov0->regs.NV_PVIDEO_DS_DX     = (config->source.w << 20) / config->dest.w;

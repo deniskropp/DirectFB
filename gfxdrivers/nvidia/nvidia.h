@@ -467,17 +467,19 @@ typedef struct {
 
 
 typedef enum {
-     NV_ARCH_04 = 0x04,
-     NV_ARCH_05 = 0x05,
-     NV_ARCH_10 = 0x10,
-     NV_ARCH_20 = 0x20
+     NV_ARCH_04   = 0x04,
+     NV_ARCH_05   = 0x05,
+     NV_ARCH_10   = 0x10,
+     NV_ARCH_20   = 0x20
 } NVArch;
 
 typedef struct {
      GraphicsDevice                *device;
 
-     NVArch                         arch;
+     __u32                          chip;
+     __u32                          arch; /* NVArch */
      
+     __u32                          fb_base;
      volatile __u8                 *mmio_base;
      volatile __u32                *PVIDEO;
      volatile __u32                *PFB;

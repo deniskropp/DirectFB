@@ -193,7 +193,7 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      nv_waitfifo( nvdev, ScaledImage, 4 );
      ScaledImage->ImageInSize   = (nvdev->src_height << 16) | nvdev->src_width;
      ScaledImage->ImageInFormat = nvdev->src_pitch;
-     ScaledImage->ImageInOffset = nvdev->src_offset & 0x1FFFFFFF;
+     ScaledImage->ImageInOffset = nvdev->src_offset;
      ScaledImage->ImageInPoint  = (sr->y << 20) | (sr->x << 4);
      
      return true;
@@ -246,7 +246,7 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      nv_waitfifo( nvdev, ScaledImage, 4 );
      ScaledImage->ImageInSize   = (srch << 16) | srcw;
      ScaledImage->ImageInFormat = nvdev->src_pitch | 0x01010000;
-     ScaledImage->ImageInOffset = nvdev->src_offset & 0x1FFFFFFF;
+     ScaledImage->ImageInOffset = nvdev->src_offset;
      ScaledImage->ImageInPoint  = (sr->y << 20) | (sr->x << 4);
      
      return true;

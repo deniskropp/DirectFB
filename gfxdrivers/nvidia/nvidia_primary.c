@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <time.h>
 
 #include <directfb.h>
 
@@ -207,19 +208,18 @@ nvfb0FlipRegion( CoreLayer           *layer,
                  CoreSurface         *surface,
                  DFBSurfaceFlipFlags  flags )
 {
-     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u32   *PCRTC = nvdrv->PCRTC;
+     NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
+     __u32             offset = surface->back_buffer->video.offset;
      
      dfb_gfxcard_sync();
 
-     /* NV_PCRTC_START */
-     PCRTC[0x800/4] = surface->back_buffer->video.offset & 0x1FFFFFFC;
-     /* NV_PCRTC_CONFIG (0=vga; 2=hsync) */
-#ifdef WORDS_BIGENDIAN
-     PCRTC[0x804/4] = 0x80000002;
-#else
-     PCRTC[0x804/4] = 0x00000002;
-#endif
+     if (nvdrv->chip == 0x2A0) {
+          offset += nvdrv->fb_base;
+          offset &= 0x3FFFFFC;
+     } else
+          offset &= 0x7FFFFFC;
+     
+     nvdrv->PCRTC[0x800/4] = offset;
      
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( dfb_screens_at( DSCID_PRIMARY ) );
