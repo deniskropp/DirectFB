@@ -245,9 +245,14 @@ context_callback( FusionObjectPool *pool,
      printf( "%4d x %4d   ", context->config.width, context->config.height );
 
      for (i=0; format_names[i].format; i++) {
-          if (context->config.pixelformat == format_names[i].format)
+          if (context->config.pixelformat == format_names[i].format) {
                printf( "%-8s ", format_names[i].name );
+               break;
+          }
      }
+
+     if (!format_names[i].format)
+          printf( "unknown  " );
 
      printf( "%.1f, %.1f -> %.1f, %.1f    ",
              context->screen.x, context->screen.y,
