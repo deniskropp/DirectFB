@@ -2,17 +2,17 @@
    (c) Copyright 2000  convergence integrated media GmbH.
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de>,   
+   Written by Denis Oliver Kropp <dok@convergence.de>,
               Andreas Hundt <andi@convergence.de> and
               Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
-   modify it under the terms of the GNU Lesser General Public  
+   modify it under the terms of the GNU Lesser General Public
    License as published by the Free Software Foundation; either
    version 2 of the License, or (at your option) any later version.
 
    This library is distributed in the hope that it will be useful,
-   but WITHOUT ANY WARRANTY; without even the implied warranty of   
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
    Lesser General Public License for more details.
 
@@ -47,6 +47,7 @@ extern "C" {
 }
 
 #include <aviplay.h>
+#include <fourcc.h>
 
 /*
  * private data struct of IDirectFBVideoProvider
@@ -81,7 +82,7 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
           data->destination->Release( data->destination );
           data->destination = NULL;     /* FIXME: remove listener */
      }
-     
+
      reactor_free( data->source.reactor );
 
      free (thiz->priv);
@@ -123,8 +124,8 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetCapabilities(
      if (!caps)
           return DFB_INVARG;
 
-     *caps = (DFBVideoProviderCapabilities) ( DVCAPS_BASIC | 
-                                              DVCAPS_SCALE | 
+     *caps = (DFBVideoProviderCapabilities) ( DVCAPS_BASIC |
+                                              DVCAPS_SCALE |
                                               DVCAPS_SEEK );
 
      return DFB_OK;
@@ -205,7 +206,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
           data->destination->Release( data->destination );
           data->destination = NULL;     /* FIXME: remove listener */
      }
-     
+
      destination->AddRef( destination );
      data->destination = destination;   /* FIXME: install listener */
 
@@ -213,6 +214,14 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
      data->callback = callback;
      data->ctx = ctx;
 
+     switch (dst_data->surface->format) {
+          case DSPF_YUY2:
+               data->source.format = DSPF_YUY2;
+               data->player->SetColorSpace( fccYUY2, 0 );
+               break;
+          default:
+               ;
+     }
 
      switch (data->player->GetState( NULL )) {
           case IAviPlayer::Playing:
@@ -250,7 +259,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
      double curpos;
 
      INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
-       
+
      curpos = data->player->GetPos();
      data->player->Reseek( seconds );
      /* seeking forward for some small amount may actually bring us
@@ -267,7 +276,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetPos(
      double                 *seconds)
 {
      INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
-       
+
      if (!seconds)
         return DFB_INVARG;
 
@@ -281,7 +290,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetLength(
      double                 *seconds)
 {
      INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
-       
+
      if (!seconds)
         return DFB_INVARG;
 
@@ -295,7 +304,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetColorAdjustment(
                                                   DFBColorAdjustment     *adj )
 {
      INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
-       
+
      if (!adj)
           return DFB_INVARG;
 
@@ -307,7 +316,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment(
                                                   DFBColorAdjustment     *adj )
 {
      INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
-       
+
      if (!adj)
           return DFB_INVARG;
 
@@ -332,7 +341,7 @@ static void AviFile_DrawCallback( const CImage *image, void *p )
      data->source.front_buffer->system.addr   = (void*)(image->Data());
      data->source.front_buffer->system.pitch  = image->Bpl();
 
-     
+
      DFBRectangle rect = { 0, 0, image->Width(), image->Height() };
 
      if (rect.w == data->dest_rect.w  &&  rect.h == data->dest_rect.h) {
@@ -404,20 +413,20 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->source.width  = data->player->GetWidth();
      data->source.height = data->player->GetHeight();
      data->source.format = DSPF_RGB16;
-     
-     data->source.front_buffer = 
+
+     data->source.front_buffer =
           (SurfaceBuffer*) calloc( 1, sizeof(SurfaceBuffer) );
-     
+
      data->source.front_buffer->policy = CSP_SYSTEMONLY;
      data->source.front_buffer->system.health = CSH_STORED;
 
      data->source.back_buffer = data->source.front_buffer;
-     
+
      pthread_mutex_init( &data->source.front_lock, NULL );
      pthread_mutex_init( &data->source.back_lock, NULL );
-     
+
      data->source.reactor = reactor_new();
-     
+
      data->state.source   = &data->source;
      data->state.modified = SMF_ALL;
 
@@ -431,9 +440,9 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      thiz->SeekTo    = IDirectFBVideoProvider_AviFile_SeekTo;
      thiz->GetPos    = IDirectFBVideoProvider_AviFile_GetPos;
      thiz->GetLength = IDirectFBVideoProvider_AviFile_GetLength;
-     thiz->GetColorAdjustment = 
+     thiz->GetColorAdjustment =
           IDirectFBVideoProvider_AviFile_GetColorAdjustment;
-     thiz->SetColorAdjustment = 
+     thiz->SetColorAdjustment =
           IDirectFBVideoProvider_AviFile_SetColorAdjustment;
 
      return DFB_OK;

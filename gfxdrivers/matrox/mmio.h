@@ -95,3 +95,6 @@ mga_waitidle(volatile uint8 *mmioaddr)
      }
 }
 
+#define outMGAdac(reg, val) \
+        (mga_out8(mmio_base, reg, DAC_INDEX), mga_out8(mmio_base,val,DAC_DATA))
+

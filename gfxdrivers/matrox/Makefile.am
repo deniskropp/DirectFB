@@ -13,6 +13,7 @@ matroxdir = $(MODULEDIR)/gfxdrivers
 libdirectfb_matrox_la_SOURCES =	\
 	matrox.c	\
 	matrox.h	\
+	matrox_bes.c	\
 	matrox_state.c	\
 	matrox_state.h	\
 	regs.h		\

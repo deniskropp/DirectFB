@@ -166,7 +166,8 @@ static GFunc Cop_to_Aop_PFI[] = {
      Cop_to_Aop_24,
      Cop_to_Aop_32,
      Cop_to_Aop_32,
-     Cop_to_Aop_8
+     Cop_to_Aop_8,
+     NULL
 };
 
 /********************************* Cop_toK_Aop_PFI ****************************/
@@ -221,7 +222,8 @@ static GFunc Cop_toK_Aop_PFI[] = {
      Cop_toK_Aop_24,
      Cop_toK_Aop_32,
      Cop_toK_Aop_32,
-     Cop_toK_Aop_8
+     Cop_toK_Aop_8,
+     NULL
 };
 
 /********************************* Sop_PFI_to_Aop_PFI *************************/
@@ -252,7 +254,8 @@ static GFunc Sop_PFI_to_Aop_PFI[] = {
      Sop_24_to_Aop,
      Sop_32_to_Aop,
      Sop_32_to_Aop,
-     Sop_8_to_Aop
+     Sop_8_to_Aop,
+     Sop_16_to_Aop
 };
 
 /********************************* Sop_PFI_Kto_Aop_PFI ************************/
@@ -384,7 +387,8 @@ static GFunc Sop_PFI_Kto_Aop_PFI[] = {
      Sop_rgb24_Kto_Aop,
      Sop_rgb32_Kto_Aop,
      Sop_argb_Kto_Aop,
-     Sop_a8_Kto_Aop
+     Sop_a8_Kto_Aop,
+     NULL
 };
 
 /********************************* Sop_PFI_Sto_Aop ****************************/
@@ -446,7 +450,8 @@ static GFunc Sop_PFI_Sto_Aop[] = {
      Sop_24_Sto_Aop,
      Sop_32_Sto_Aop,
      Sop_32_Sto_Aop,
-     Sop_8_Sto_Aop
+     Sop_8_Sto_Aop,
+     NULL
 };
 
 /********************************* Sop_PFI_SKto_Aop ***************************/
@@ -560,7 +565,8 @@ static GFunc Sop_PFI_SKto_Aop[] = {
      Sop_rgb24_SKto_Aop,
      Sop_rgb32_SKto_Aop,
      Sop_argb_SKto_Aop,
-     Sop_a8_SKto_Aop
+     Sop_a8_SKto_Aop,
+     NULL
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -691,7 +697,8 @@ static GFunc Sop_PFI_Sto_Dacc[] = {
      Sop_rgb24_Sto_Dacc,
      Sop_rgb32_Sto_Dacc,
      Sop_argb_Sto_Dacc,
-     Sop_a8_Sto_Dacc
+     Sop_a8_Sto_Dacc,
+     NULL
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
@@ -843,7 +850,8 @@ static GFunc Sop_PFI_SKto_Dacc[] = {
      Sop_rgb24_SKto_Dacc,
      Sop_rgb32_SKto_Dacc,
      Sop_argb_SKto_Dacc,
-     Sop_a8_SKto_Dacc
+     Sop_a8_SKto_Dacc,
+     NULL
 };
 
 /********************************* Sop_PFI_to_Dacc ****************************/
@@ -873,7 +881,7 @@ static void Sop_rgb15_to_Dacc()
           ++D;
           --w;
      }
-     
+
      l = w >> 1;
      while (l) {
           __u32 spixel2 = *((__u32*)S);
@@ -883,7 +891,7 @@ static void Sop_rgb15_to_Dacc()
           D[0].r = (spixel2 & 0x7C000000) >> 23;
           D[0].g = (spixel2 & 0x03E00000) >> 18;
           D[0].b = (spixel2 & 0x001F0000) >> 13;
-          
+
           D[1].a = 0xFF;
           D[1].r = (spixel2 & 0x7C00) >> 7;
           D[1].g = (spixel2 & 0x03E0) >> 2;
@@ -934,7 +942,7 @@ static void Sop_rgb16_to_Dacc()
           ++D;
           --w;
      }
-     
+
      l = w >> 1;
      while (l) {
           __u32 spixel2 = *((__u32*)S);
@@ -944,7 +952,7 @@ static void Sop_rgb16_to_Dacc()
           D[0].r = (spixel2 & 0xF8000000) >> 24;
           D[0].g = (spixel2 & 0x07E00000) >> 19;
           D[0].b = (spixel2 & 0x001F0000) >> 13;
-          
+
           D[1].a = 0xFF;
           D[1].r = (spixel2 & 0xF800) >> 8;
           D[1].g = (spixel2 & 0x07E0) >> 3;
@@ -1068,7 +1076,8 @@ static GFunc Sop_PFI_to_Dacc[] = {
      Sop_rgb32_to_Dacc,
      Sop_argb_to_Dacc,
      Sop_a8_to_Dacc,
-     Sop_a1_to_Dacc
+     Sop_a1_to_Dacc,
+     NULL
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -1197,7 +1206,8 @@ static GFunc Sop_PFI_Kto_Dacc[] = {
      Sop_rgb24_Kto_Dacc,
      Sop_rgb32_Kto_Dacc,
      Sop_argb_Kto_Dacc,
-     Sop_a8_Kto_Dacc
+     Sop_a8_Kto_Dacc,
+     NULL
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
@@ -1310,7 +1320,8 @@ GFunc Sacc_to_Aop_PFI[] = {
      Sacc_to_Aop_rgb24,
      Sacc_to_Aop_rgb32,
      Sacc_to_Aop_argb,
-     Sacc_to_Aop_a8
+     Sacc_to_Aop_a8,
+     NULL
 };
 
 /************** Sop_a8_set_alphapixel_Aop_PFI *********************************/
@@ -1323,10 +1334,10 @@ GFunc Sacc_to_Aop_PFI[] = {
           __u32 pixel = *(d); \
           __u8  s = ((a)>>3)+1; \
           register __u32 t1,t2; \
-	  t1 = (pixel&0x7c1f); t2 = (pixel&0x03e0); \
-	  pixel = ((((__rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
-	           ((( __g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5; \
-	  *(d) = pixel;\
+      t1 = (pixel&0x7c1f); t2 = (pixel&0x03e0); \
+      pixel = ((((__rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
+               ((( __g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5; \
+      *(d) = pixel;\
           }\
      }
 
@@ -1343,7 +1354,7 @@ static void Sop_a8_set_alphapixel_Aop_rgb15()
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
-	  w-=4;
+      w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_RGB15( D, *S ); D++, S++;
@@ -1355,13 +1366,13 @@ static void Sop_a8_set_alphapixel_Aop_rgb15()
      case 0xff: *(d) = __rb+__g; \
      case 0: break; \
      default: {\
-	  __u32 pixel = *(d);\
-	  __u8  s = ((a)>>2)+1;\
-	  register __u32 t1,t2; \
-	  t1 = (pixel&0xf81f); t2 = (pixel&0x07e0); \
-	  pixel = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
-	           ((( __g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6; \
-	  *(d) = pixel;\
+      __u32 pixel = *(d);\
+      __u8  s = ((a)>>2)+1;\
+      register __u32 t1,t2; \
+      t1 = (pixel&0xf81f); t2 = (pixel&0x07e0); \
+      pixel = ((((__rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
+               ((( __g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6; \
+      *(d) = pixel;\
           }\
      }
 
@@ -1378,7 +1389,7 @@ static void Sop_a8_set_alphapixel_Aop_rgb16()
           SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
           SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
           SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
-	  w-=4;
+      w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_RGB16( D, *S ); D++, S++;
@@ -1414,7 +1425,7 @@ static void Sop_a8_set_alphapixel_Aop_rgb24()
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
-	  w-=4;
+      w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3, S++;
@@ -1426,13 +1437,13 @@ static void Sop_a8_set_alphapixel_Aop_rgb24()
      case 0xff: *(d) = (0xff000000 | __rb | __g); \
      case 0: break; \
      default: {\
-	  __u32 pixel = *(d);\
-	  __u16  s = (a)+1;\
-	  register __u32 t1,t2; \
-	  t1 = (pixel&0x00ff00ff); t2 = (pixel&0x0000ff00); \
-	  pixel = ((((__rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
-	           ((( __g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8; \
-	  *(d) = pixel;\
+      __u32 pixel = *(d);\
+      __u16  s = (a)+1;\
+      register __u32 t1,t2; \
+      t1 = (pixel&0x00ff00ff); t2 = (pixel&0x0000ff00); \
+      pixel = ((((__rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
+               ((( __g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8; \
+      *(d) = pixel;\
           }\
      }
 
@@ -1449,7 +1460,7 @@ static void Sop_a8_set_alphapixel_Aop_rgb32()
           SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
           SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
           SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
-	  w-=4;
+      w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_RGB32( D, *S ); D++; S++;
@@ -1463,8 +1474,8 @@ static void Sop_a8_set_alphapixel_Aop_rgb32()
      default: {\
           __u32 pixel = *(d);\
           __u16  s = (a)+1;\
-     	  __u16 s1 = 256-s;\
-     	  *(d) = (((((pixel & 0x00ff00ff)       * s1) +              (__rb * s)) & 0xff00ff00) >> 8) + \
+          __u16 s1 = 256-s;\
+          *(d) = (((((pixel & 0x00ff00ff)       * s1) +              (__rb * s)) & 0xff00ff00) >> 8) + \
                  (((((pixel & 0xff00ff00) >> 8) * s1) + ((((a)<<16) | (g)) * s)) & 0xff00ff00);\
           }\
      }
@@ -1481,7 +1492,7 @@ static void Sop_a8_set_alphapixel_Aop_argb()
           SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
           SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
           SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
-	  w-=4;
+      w-=4;
      }
      while (w--) {
           SET_ALPHA_PIXEL_ARGB( D, color.g, *S ); D++; S++;
@@ -1495,7 +1506,7 @@ static void Sop_a8_set_alphapixel_Aop_argb()
      default: {\
           __u16 pixel = *(d);\
           __u16 s = (a)+1;\
-     	  __u16 s1 = 256-s;\
+          __u16 s1 = 256-s;\
           *(d) = (pixel * s1 + s) >> 8;\
           }\
      }
@@ -1506,14 +1517,14 @@ static void Sop_a8_set_alphapixel_Aop_a8()
      __u8  *S = Sop;
      __u8  *D = Aop;
 
-     while (w>4) {          
+     while (w>4) {
           SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
           SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
           SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
           SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
           w -= 4;
      }
-     while (w--) {          
+     while (w--) {
           SET_ALPHA_PIXEL_A8 (D, *S); D++; S++;
      }
 }
@@ -1524,7 +1535,8 @@ GFunc Sop_a8_set_alphapixel_Aop_PFI[] = {
      Sop_a8_set_alphapixel_Aop_rgb24,
      Sop_a8_set_alphapixel_Aop_rgb32,
      Sop_a8_set_alphapixel_Aop_argb,
-     Sop_a8_set_alphapixel_Aop_a8
+     Sop_a8_set_alphapixel_Aop_a8,
+     NULL
 };
 
 /********************************* Xacc_blend *********************************/
@@ -1843,7 +1855,7 @@ static void Sacc_add_to_Dacc_C()
      Accumulator *D = Dacc;
 
      while (w--) {
-          if (!(D->a & 0xF000)) {          
+          if (!(D->a & 0xF000)) {
                D->a += S->a;
                D->r += S->r;
                D->g += S->g;
@@ -1893,25 +1905,6 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                                                DSDRAW_DST_COLORKEY ) ?
                        DSLF_READ | DSLF_WRITE : DSLF_WRITE;
 
-     if (surface_soft_lock( state->destination,
-                            lock_flags, &dst_org, &dst_pitch, 0 )) {
-          pthread_mutex_unlock( &generic_lock );
-          return 0;
-     }
-
-     if (accel & 0xFFFF0000) {
-          if (surface_soft_lock( state->source,
-                                 DSLF_READ, &src_org, &src_pitch, 1 )) {
-               surface_unlock( state->destination, 0 );
-               pthread_mutex_unlock( &generic_lock );
-               return 0;
-          }
-
-          source_locked = 1;
-     }
-     else
-          source_locked = 0;
-
      color = state->color;
 
      switch (state->destination->format) {
@@ -1933,12 +1926,31 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_A8:
                Cop = color.a;
                break;
-          case DSPF_A1:
-               Cop = (color.a >> 7) ? 0xFF : 0;
+          case DSPF_YUY2:
                break;
           default:
-               ONCE("");
+               ONCE("unsupported pixelformat");
+               return 0;
      }
+
+     if (surface_soft_lock( state->destination,
+                            lock_flags, &dst_org, &dst_pitch, 0 )) {
+          pthread_mutex_unlock( &generic_lock );
+          return 0;
+     }
+
+     if (accel & 0xFFFF0000) {
+          if (surface_soft_lock( state->source,
+                                 DSLF_READ, &src_org, &src_pitch, 1 )) {
+               surface_unlock( state->destination, 0 );
+               pthread_mutex_unlock( &generic_lock );
+               return 0;
+          }
+
+          source_locked = 1;
+     }
+     else
+          source_locked = 0;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -2133,11 +2145,11 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Xacc_is_Aacc;
                                    *funcs++ = Xacc_blend[state->dst_blend - 1];
                               }
-                              
+
                               /* blend the source */
                               *funcs++ = Xacc_is_Bacc;
                               *funcs++ = Xacc_blend[state->src_blend - 1];
-                              
+
                               /* add the destination to the source */
                               if (state->dst_blend != DSBF_ZERO) {
                                    *funcs++ = Sacc_is_Aacc;
@@ -2145,7 +2157,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Sacc_add_to_Dacc;
                               }
                          }
-                         
+
                          /* write source to destination */
                          *funcs++ = Sacc_is_Bacc;
                          *funcs++ = Sacc_to_Aop_PFI[pindex];

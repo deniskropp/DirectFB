@@ -37,12 +37,18 @@
 #define BESA1C3ORG       0x3D60
 #define BESA1CORG        0x3D10
 #define BESA1ORG         0x3D00
+
 #define BESCTL           0x3D20
-#     define     BESEN          0x00000001
+#define BESCTL_BESEN     0x00000001
+#define BESCTL_BESHFEN   0x00000400
+#define BESCTL_BESVFEN   0x00000800
+#define BESCTL_BESCUPS   0x00010000
+
 #define BESGLOBCTL       0x3DC0
 #     define     BESRGB15     0x00000100
 #     define     BESRGB16     0x00000200
 #     define     BESRGB32     0x00000300
+
 #define BESHCOORD        0x3D28
 #define BESHISCAL        0x3D30
 #define BESHSRCEND       0x3D3C
@@ -59,6 +65,8 @@
 /* DAC Registers */
 #define DAC_INDEX        0x3C00
 #define DAC_DATA         0x3C0A
+
+#define MGAREG_VCOUNT    0x1e20
 
 /* Alpha registers */
 

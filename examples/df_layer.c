@@ -79,6 +79,8 @@ int main( int argc, char *argv[] )
      IDirectFBSurface       *videosurface;
      IDirectFBVideoProvider *videoprovider;
      IDirectFBDisplayLayer  *videolayer = NULL;
+     DFBDisplayLayerConfig   dlc;
+     DFBSurfaceDescription   dsc;
 
      IDirectFBInputBuffer   *events;
 
@@ -109,7 +111,7 @@ int main( int argc, char *argv[] )
      }
 
      /* Set the screen location of the video layer */
-     videolayer->SetScreenLocation( videolayer, 0.2f, 0.2f, 0.5f, 0.5f );
+     videolayer->SetScreenLocation( videolayer, 0.0f, 0.0f, 0.2f, 0.2f );
 
      /* Get the surface of the video layer */
      ret = videolayer->GetSurface( videolayer, &videosurface );
@@ -121,18 +123,47 @@ int main( int argc, char *argv[] )
      if (ret)
           DirectFBErrorFatal( "dfb->CreateVideoProvider failed", ret );
 
+     /* Set the layer's pixel resolution to that of the video */
+     videoprovider->GetSurfaceDescription( videoprovider, &dsc );
+
+     dlc.flags       = DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT;
+     dlc.width       = dsc.width;
+     dlc.height      = dsc.height;
+     dlc.pixelformat = DSPF_YUY2;
+
+     ret = videolayer->SetConfiguration( videolayer, &dlc );
+     if (ret)
+          DirectFBErrorFatal( "videolayer->SetConfiguration failed", ret );
+
      /* Have the video decoded into the surface of the layer */
      ret = videoprovider->PlayTo( videoprovider, videosurface, NULL, NULL, NULL );
      if (ret)
           DirectFBErrorFatal( "videoprovider->PlayTo failed", ret );
 
-     /* Create an input buffer for any device that has keys or buttons */
-     ret = dfb->CreateInputBuffer( dfb, DICAPS_KEYS | DICAPS_BUTTONS, &events );
+     /* Create an input buffer for any device that has keys */
+     ret = dfb->CreateInputBuffer( dfb, DICAPS_KEYS, &events );
      if (ret)
           DirectFBErrorFatal( "dfb->CreateInputBuffer failed", ret );
 
-     /* Wait until an event arrives */
-     events->WaitForEvent( events );
+     while (1) {
+          double t;
+          float  w, h;
+          struct timeval tv;
+
+          /* Wait max. 20ms for an event, if one arrived then quit */
+          if (events->WaitForEventWithTimeout( events, 0, 20000000 ) == DFB_OK)
+               break;
+
+          gettimeofday( &tv, NULL );
+
+          t = tv.tv_sec + tv.tv_usec / 1000000.0;
+
+          w = ( (float)sin(4*t) + 1.0f ) / 3.0f + 0.2f;
+          h = ( (float)cos(3*t) + 1.0f ) / 3.0f + 0.2f;
+
+          videolayer->SetScreenLocation( videolayer,
+                                         0.5f - w/2.0f, 0.5f - h/2.0f, w, h );
+     }
 
      /* Shutdown */
      events->Release( events );

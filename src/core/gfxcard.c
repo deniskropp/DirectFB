@@ -80,7 +80,7 @@ DFBResult gfxcard_init()
      sprintf( card->info.driver_name, "Generic" );
 
 #ifdef USE_MMX
-     if  (intel_cpu_features() & (1 << 23)) {
+     if (intel_cpu_features() & (1 << 23)) {
           if (dfb_config->no_mmx) {
                INITMSG( "MMX detected, but disabled by --no-mmx \n");
           }
@@ -236,7 +236,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->checked |= accel;
      }
 
-     return (state->accel & accel);
+     return(state->accel & accel);
 }
 
 int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
@@ -283,8 +283,7 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      if (!(state->set & accel)  ||
          state != card->state   ||
-         state->modified)
-     {
+         state->modified) {
           card->SetState( state, accel );
      }
 
@@ -306,20 +305,16 @@ void gfxcard_state_release( CardState *state )
 void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 {
      if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
-     {
+         gfxcard_state_acquire( state, DFXL_FILLRECTANGLE )) {
           if ((card->caps.flags & CCF_CLIPPING) ||
-              clip_rectangle( &state->clip, rect ))
-          {
-              card->FillRectangle( rect );
+              clip_rectangle( &state->clip, rect )) {
+               card->FillRectangle( rect );
           }
           gfxcard_state_release( state );
      }
-     else
-     {
+     else {
           if (clip_rectangle( &state->clip, rect ) &&
-          gAquire( state, DFXL_FILLRECTANGLE ))
-      {
+              gAquire( state, DFXL_FILLRECTANGLE )) {
                gFillRectangle( rect );
                gRelease( state );
           }
@@ -329,57 +324,48 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 {
      if (gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
-     {
+         gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE )) {
           if (card->caps.flags & CCF_CLIPPING  ||
-          clip_rectangle( &state->clip, rect ))
-          {
-              card->DrawRectangle( rect );
+              clip_rectangle( &state->clip, rect )) {
+               card->DrawRectangle( rect );
           }
           gfxcard_state_release( state );
      }
-     else
-     {
+     else {
           unsigned int edges = clip_rectangle (&state->clip, rect);
 
-      if (edges)
-      {
-          if (gAquire( state, DFXL_DRAWLINE))
-          {
-          DFBRegion line;
+          if (edges) {
+               if (gAquire( state, DFXL_DRAWLINE)) {
+                    DFBRegion line;
 
-          if (edges & 1)
-          {
-              line.x1 = line.x2 = rect->x;
-                      line.y1 = rect->y + (edges & 2 ? 1 : 0);
-              line.y2 = rect->y + rect->h - 1;
-              gDrawLine( &line );
-          }
-          if (edges & 2)
-          {
-              line.x1 = rect->x;
-              line.x2 = rect->x + rect->w - (edges & 4 ? 2 : 1);
-              line.y1 = line.y2 = rect->y;
-              gDrawLine( &line );
-          }
-          if (edges & 4)
-          {
-              line.x1 = line.x2 = rect->x + rect->w - 1;
-                      line.y1 = rect->y;
-              line.y2 = rect->y + rect->h - (edges & 8 ? 2 : 1);
-              gDrawLine( &line );
-          }
-          if (edges & 8)
-          {
-              line.x1 = rect->x + (edges & 1 ? 1 : 0);
-              line.x2 = rect->x + rect->w - 1;
-              line.y1 = line.y2 = rect->y + rect->h - 1;
-              gDrawLine( &line );
-          }
+                    if (edges & 1) {
+                         line.x1 = line.x2 = rect->x;
+                         line.y1 = rect->y + (edges & 2 ? 1 : 0);
+                         line.y2 = rect->y + rect->h - 1;
+                         gDrawLine( &line );
+                    }
+                    if (edges & 2) {
+                         line.x1 = rect->x;
+                         line.x2 = rect->x + rect->w - (edges & 4 ? 2 : 1);
+                         line.y1 = line.y2 = rect->y;
+                         gDrawLine( &line );
+                    }
+                    if (edges & 4) {
+                         line.x1 = line.x2 = rect->x + rect->w - 1;
+                         line.y1 = rect->y;
+                         line.y2 = rect->y + rect->h - (edges & 8 ? 2 : 1);
+                         gDrawLine( &line );
+                    }
+                    if (edges & 8) {
+                         line.x1 = rect->x + (edges & 1 ? 1 : 0);
+                         line.x2 = rect->x + rect->w - 1;
+                         line.y1 = line.y2 = rect->y + rect->h - 1;
+                         gDrawLine( &line );
+                    }
 
-          gRelease (state);
+                    gRelease (state);
+               }
           }
-      }
      }
 }
 
@@ -388,8 +374,7 @@ void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      int i;
 
      if (gfxcard_state_check( state, DFXL_DRAWLINE ) &&
-         gfxcard_state_acquire( state, DFXL_DRAWLINE ))
-     {
+         gfxcard_state_acquire( state, DFXL_DRAWLINE )) {
           if (card->caps.flags & CCF_CLIPPING)
                for (i=0; i<num_lines; i++)
                     card->DrawLine( &lines[i] );
@@ -402,21 +387,21 @@ void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
           gfxcard_state_release( state );
      }
      else {
-          if (gAquire( state, DFXL_DRAWLINE ))
+          if (gAquire( state, DFXL_DRAWLINE )) {
                for (i=0; i<num_lines; i++) {
                     if (clip_line( &state->clip, &lines[i] ))
                          gDrawLine( &lines[i] );
                }
 
-          gRelease( state );
+               gRelease( state );
+          }
      }
 }
 
 void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
      if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
-         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
-     {
+         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE )) {
           /*  FIXME: do real clipping  */
           if (card->caps.flags & CCF_CLIPPING ||
               clip_triangle_precheck( &state->clip, tri ))
@@ -424,12 +409,10 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 
           gfxcard_state_release( state );
      }
-     else
-     {
+     else {
           /*  FIXME: do real clipping  */
           if (clip_triangle_precheck( &state->clip, tri ) &&
-              gAquire( state, DFXL_FILLTRIANGLE ))
-          {
+              gAquire( state, DFXL_FILLTRIANGLE )) {
                gFillTriangle( tri );
                gRelease( state );
           }
@@ -443,8 +426,7 @@ void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
           return;
 
      if (gfxcard_state_check( state, DFXL_BLIT ) &&
-         gfxcard_state_acquire( state, DFXL_BLIT ))
-     {
+         gfxcard_state_acquire( state, DFXL_BLIT )) {
           if (!(card->caps.flags & CCF_CLIPPING))
                clip_blit( &state->clip, rect, &dx, &dy );
 
@@ -464,12 +446,11 @@ void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                           CardState *state )
 {
      if (!clip_blit_precheck( &state->clip, drect->w, drect->h,
-                               drect->x, drect->y ))
+                              drect->x, drect->y ))
           return;
 
      if (gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
-         gfxcard_state_acquire( state, DFXL_STRETCHBLIT ))
-     {
+         gfxcard_state_acquire( state, DFXL_STRETCHBLIT )) {
           if (!(card->caps.flags & CCF_CLIPPING))
                clip_stretchblit( &state->clip, srect, drect );
 
@@ -541,14 +522,14 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
 
                     if (state->source != data->surface) {
                          switch (blit) {
-                         case 1:
-                              gfxcard_state_release( state );
-                              break;
-                         case 2:
-                              gRelease( state );
-                              break;
-                         default:
-                              break;
+                              case 1:
+                                   gfxcard_state_release( state );
+                                   break;
+                              case 2:
+                                   gRelease( state );
+                                   break;
+                              default:
+                                   break;
                          }
                          state->source = data->surface;
                          state->modified |= SMF_SOURCE;
@@ -565,17 +546,17 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
                     if (clip_blit_precheck( &state->clip,
                                             rect.w, rect.h, xx, yy )) {
                          switch (blit) {
-                         case 1:
-                              if (!hw_clipping)
+                              case 1:
+                                   if (!hw_clipping)
+                                        clip_blit( &state->clip, &rect, &xx, &yy );
+                                   card->Blit( &rect, xx, yy );
+                                   break;
+                              case 2:
                                    clip_blit( &state->clip, &rect, &xx, &yy );
-                              card->Blit( &rect, xx, yy );
-                              break;
-                         case 2:
-                              clip_blit( &state->clip, &rect, &xx, &yy );
-                              gBlit( &rect, xx, yy );
-                              break;
-                         default:
-                              break;
+                                   gBlit( &rect, xx, yy );
+                                   break;
+                              default:
+                                   break;
                          }
                     }
                }
@@ -585,14 +566,14 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
      }
 
      switch (blit) {
-     case 1:
-          gfxcard_state_release( state );
-          break;
-     case 2:
-          gRelease( state );
-          break;
-     default:
-          break;
+          case 1:
+               gfxcard_state_release( state );
+               break;
+          case 2:
+               gRelease( state );
+               break;
+          default:
+               break;
      }
 
      state->source = NULL;
@@ -650,8 +631,7 @@ static GfxDriver* gfxcard_find_driver()
      driver = DFBCALLOC( 1, sizeof(GfxDriver) );
 
      if (core_load_modules( driver_dir,
-                            gfxcard_driver_handle_func, (void*)driver ))
-     {
+                            gfxcard_driver_handle_func, (void*)driver )) {
           DFBFREE( driver );
           driver = NULL;
      }
