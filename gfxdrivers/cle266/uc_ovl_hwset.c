@@ -72,8 +72,6 @@ void uc_ovl_vcmd_wait(__u8* vio)
 DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
                         CoreSurface* surface)
 {
-    if (!ucovl->v1.isenabled) return DFB_OK;
-
     int sw, sh, sp, sfmt;   // Source width, height, pitch and format
     int dx, dy;             // Destination position
     int dw, dh;             // Destination width and height
@@ -90,6 +88,8 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     __u32 y_start, u_start, v_start;
     __u32 v_ctrl, fifo_ctrl;
 
+    if (!ucovl->v1.isenabled) return DFB_OK;
+    
     qwpitch = 0;
 
     // Get screen size
