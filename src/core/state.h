@@ -35,6 +35,8 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
+#include <core/gfxcard.h>
+
 #include <fusion/reactor.h>
 
 
@@ -92,6 +94,7 @@ struct _CardState {
      Reaction                destination_reaction;
      Reaction                source_reaction;
 
+     CoreGraphicsSerial      serial;       /* hardware serial of the last operation */
 
      /* software driver */
 
@@ -103,6 +106,15 @@ void dfb_state_destroy( CardState *state );
 
 void dfb_state_set_destination( CardState *state, CoreSurface *destination );
 void dfb_state_set_source( CardState *state, CoreSurface *source );
+
+static inline void
+dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )
+{
+     D_ASSERT( state != NULL );
+     D_ASSERT( ret_serial != NULL );
+
+     *ret_serial = state->serial;
+}
 
 
 #define dfb_state_lock(state)                               \

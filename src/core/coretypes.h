@@ -50,6 +50,8 @@ typedef struct _Chunk                      Chunk;
 typedef struct _InputDevice                InputDevice;
 typedef struct _GraphicsDevice             GraphicsDevice;
 
+typedef struct __DFB_CoreGraphicsSerial    CoreGraphicsSerial;
+
 typedef struct __DFB_CoreScreen            CoreScreen;
 
 typedef struct __DFB_CoreLayer             CoreLayer;

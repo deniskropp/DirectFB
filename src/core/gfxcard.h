@@ -42,6 +42,10 @@ typedef enum {
      CCF_NOTRIEMU = 0x00000002
 } CardCapabilitiesFlags;
 
+struct __DFB_CoreGraphicsSerial {
+     unsigned int serial;
+     unsigned int generation;
+};
 
 /*
  * return value for hardware accelerated card functions
@@ -74,7 +78,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          23
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          24
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -160,6 +164,19 @@ typedef struct _GraphicsDeviceFuncs {
       * of a texture) make sure the accelerator won't use cached texture data
       */
      void (*FlushTextureCache)( void *driver_data, void *device_data );
+
+     /*
+      * Return the serial of the last (queued) operation.
+      *
+      * The serial is used to wait for finishing a specific graphics
+      * operation instead of the whole engine being idle.
+      */
+     void (*GetSerial)( void *driver_data, void *device_data, CoreGraphicsSerial *serial );
+
+     /*
+      * Makes sure that graphics hardware has finished the specified operation.
+      */
+     void (*WaitSerial)( void *driver_data, void *device_data, const CoreGraphicsSerial *serial );
 
      /*
       * Check if the function 'accel' can be accelerated with the 'state'.
@@ -287,6 +304,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state );
 
 void dfb_gfxcard_sync();
+void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache();
 void dfb_gfxcard_after_set_var();
 

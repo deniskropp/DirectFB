@@ -2539,6 +2539,8 @@ typedef enum {
                                            The Flip() method will still return immediately unless
                                            DSFLIP_WAIT is specified, too. */
 
+     DSFLIP_PIPELINE     = 0x00000008,
+
      DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 

@@ -598,15 +598,19 @@ dfb_gfxcard_state_release( CardState *state )
      if (card->funcs.EmitCommands)
           card->funcs.EmitCommands( card->driver_data, card->device_data );
 
+     /* Store the serial of the operation. */
+     if (card->funcs.GetSerial)
+          card->funcs.GetSerial( card->driver_data, card->device_data, &state->serial );
+
+     /* allow others to use the hardware */
+     dfb_gfxcard_unlock();
+
      /* destination always gets locked during acquisition */
      dfb_surface_unlock( state->destination, false );
 
      /* if source got locked this value is true */
      if (state->source_locked)
           dfb_surface_unlock( state->source, true );
-
-     /* allow others to use the hardware */
-     dfb_gfxcard_unlock();
 }
 
 /** DRAWING FUNCTIONS **/
@@ -1456,25 +1460,34 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
 
 void dfb_gfxcard_sync()
 {
-     D_ASSERT( card != NULL );
+     D_ASSUME( card != NULL );
 
      if (card && card->funcs.EngineSync)
           card->funcs.EngineSync( card->driver_data, card->device_data );
 }
 
+void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
+{
+     D_ASSUME( card != NULL );
+     D_ASSERT( serial != NULL );
+
+     if (card && card->funcs.EngineSync)
+          card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
+}
+
 void dfb_gfxcard_flush_texture_cache()
 {
-     D_ASSERT( card != NULL );
+     D_ASSUME( card != NULL );
 
-     if (card->funcs.FlushTextureCache)
+     if (card && card->funcs.FlushTextureCache)
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
 
 void dfb_gfxcard_after_set_var()
 {
-     D_ASSERT( card != NULL );
+     D_ASSUME( card != NULL );
 
-     if (card->funcs.AfterSetVar)
+     if (card && card->funcs.AfterSetVar)
           card->funcs.AfterSetVar( card->driver_data, card->device_data );
 }
 

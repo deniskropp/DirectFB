@@ -64,6 +64,8 @@ typedef struct {
 
      pthread_t             flip_thread; /* thread for non-flipping primary
                                            surfaces, to make changes visible */
+
+     CoreGraphicsSerial    serial;
 } IDirectFBSurface_Window_data;
 
 
@@ -146,6 +148,11 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           dfb_window_set_opacity( data->window, 0xff );
      else
           dfb_window_repaint( data->window, &reg, flags, false, false );
+
+     if (flags & DSFLIP_PIPELINE) {
+          dfb_gfxcard_wait_serial( &data->serial );
+          dfb_state_get_serial( &data->base.state, &data->serial );
+     }
 
      return DFB_OK;
 }
