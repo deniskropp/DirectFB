@@ -383,7 +383,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 
                     if (!symbol) {
                          symbol = lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
-                         if (!symbol)
+                         if (!symbol) {
                               symbol = lookup_symbol(info.dli_fname, (long)(fn));
                               if (!symbol) {
                                    if (info.dli_sname)
@@ -391,6 +391,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                                    else
                                         symbol = "??";
                               }
+                         }
                     }
 
                     fprintf( stderr, "%s () from %s\n", symbol, info.dli_fname );
