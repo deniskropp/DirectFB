@@ -96,6 +96,8 @@ static void config_print_usage()
              "Use Background Color (hex)\n"
              " --bg-image=<filename>             "
              "Use Background Image\n"
+             " --disable-window-opacity          "
+             "Force window opacity to be 0 or 255\n"
              " --matrox-sgram                    "
              "Use Matrox SGRAM features\n"
              "\n"
@@ -236,6 +238,9 @@ DFBResult config_set( const char *name, const char *value )
                ERRORMSG( "DirectFB/Config: No mouse protocol specified!\n" );
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "disable-window-opacity" ) == 0) {
+          dfb_config->no_window_opacity = 1;
      } else
      if (strcmp (name, "vsync-none" ) == 0) {
           dfb_config->pollvsync_none = 1;

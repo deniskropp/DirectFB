@@ -80,6 +80,8 @@ typedef struct
                                                      left/right mouse buttons */
      int       show_cursor;                       /* Show default mouse cursor
                                                      on start up */
+     int       no_window_opacity;                 /* Force window opacity to be
+                                                     0 or 255 */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -548,6 +548,9 @@ int window_set_opacity( CoreWindow *window, __u8 opacity )
      int old_opacity = window->opacity;
      CoreWindowStack *stack = window->stack;
 
+     if (dfb_config->no_window_opacity && opacity)
+          opacity = 0xFF;
+
      if (old_opacity != opacity) {
           DFBRegion region = { window->x, window->y,
                                window->x + window->width - 1,
