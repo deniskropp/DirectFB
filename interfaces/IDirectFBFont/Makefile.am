@@ -21,6 +21,10 @@ idirectfbfont_LTLIBRARIES = \
 	libidirectfbfont_default.la	\
 	$(FREETYPE_PROVIDER_LTLIB)
 
+if BUILD_STATIC
+idirectfbfont_DATA = $(idirectfbfont_LTLIBRARIES:.la=.o)
+endif
+
 
 libidirectfbfont_default_la_SOURCES = idirectfbfont_default.c default_font.h
 
@@ -32,3 +36,6 @@ libidirectfbfont_ft2_la_SOURCES = idirectfbfont_ft2.c
 libidirectfbfont_ft2_la_LIBADD = $(FREETYPE_LIBS)
 
 libidirectfbfont_ft2_la_LDFLAGS = -avoid-version -module
+
+
+include $(top_srcdir)/rules/libobject.make

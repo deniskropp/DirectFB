@@ -17,6 +17,9 @@ internalinclude_HEADERS = \
 
 systemsdir = $(MODULEDIR)/systems
 
+if BUILD_STATIC
+systems_DATA = libdirectfb_fbdev.o
+endif
 systems_LTLIBRARIES = libdirectfb_fbdev.la
 
 libdirectfb_fbdev_la_LDFLAGS = \
@@ -26,3 +29,6 @@ libdirectfb_fbdev_la_LDFLAGS = \
 libdirectfb_fbdev_la_SOURCES = \
 	fbdev.c		\
 	vt.c
+
+
+include $(top_srcdir)/rules/libobject.make

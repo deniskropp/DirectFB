@@ -37,6 +37,11 @@ idirectfbimageprovider_LTLIBRARIES = \
 	$(JPEG_PROVIDER_LTLIB)			\
 	$(PNG_PROVIDER_LTLIB)
 
+if BUILD_STATIC
+idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
+endif
+
+
 libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
 
 libidirectfbimageprovider_png_la_LIBADD = $(LIBPNG)
@@ -61,3 +66,6 @@ libidirectfbimageprovider_jpeg_la_SOURCES = idirectfbimageprovider_jpeg.c
 libidirectfbimageprovider_jpeg_la_LIBADD = $(LIBJPEG)
 
 libidirectfbimageprovider_jpeg_la_LDFLAGS = -avoid-version -module
+
+
+include $(top_srcdir)/rules/libobject.make

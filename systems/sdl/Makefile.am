@@ -8,11 +8,21 @@ INCLUDES = \
 	-I$(top_srcdir)/src		\
 	$(SDL_CFLAGS)
 
+
 systemsdir = $(MODULEDIR)/systems
-inputdriversdir = $(MODULEDIR)/inputdrivers
+
+if BUILD_STATIC
+systems_DATA = libdirectfb_sdl.o
+endif
 
 systems_LTLIBRARIES = libdirectfb_sdl.la
+
+
+inputdriversdir = $(MODULEDIR)/inputdrivers
+
+inputdrivers_DATA = libdirectfb_sdlinput.o
 inputdrivers_LTLIBRARIES = libdirectfb_sdlinput.la
+
 
 libdirectfb_sdl_la_LDFLAGS = \
 	$(SDL_LIBS)	\
@@ -32,3 +42,6 @@ libdirectfb_sdlinput_la_LDFLAGS = \
 
 libdirectfb_sdlinput_la_SOURCES = \
 	sdlinput.c
+
+
+include $(top_srcdir)/rules/libobject.make
