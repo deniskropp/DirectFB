@@ -8,6 +8,8 @@ INCLUDES = \
 
 AM_CFLAGS = $(DFB_CFLAGS_OMIT_FRAME_POINTER)
 
+EXTRA_DIST = \
+	yuvtbl-gen.c
 
 internalincludedir = $(INTERNALINCLUDEDIR)/gfx/generic
 
