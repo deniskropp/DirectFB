@@ -319,61 +319,6 @@ DFBResult dfb_fbdev_initialize()
           return DFB_INIT;
      }
 
-     dfb_fbdev_read_modes();
-
-     if (!Sfbdev->modes) {
-          /* try to use current mode*/
-          Sfbdev->modes = (VideoMode*) shcalloc( 1, sizeof(VideoMode) );
-
-          Sfbdev->modes->xres = Sfbdev->orig_var.xres;
-          Sfbdev->modes->yres = Sfbdev->orig_var.yres;
-          Sfbdev->modes->hsync_len = Sfbdev->orig_var.hsync_len;
-          Sfbdev->modes->vsync_len = Sfbdev->orig_var.vsync_len;
-          Sfbdev->modes->left_margin = Sfbdev->orig_var.left_margin;
-          Sfbdev->modes->right_margin = Sfbdev->orig_var.right_margin;
-          Sfbdev->modes->upper_margin = Sfbdev->orig_var.upper_margin;
-          Sfbdev->modes->lower_margin = Sfbdev->orig_var.lower_margin;
-          Sfbdev->modes->pixclock = Sfbdev->orig_var.pixclock;
-
-
-          if (Sfbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
-               Sfbdev->modes->hsync_high = 1;
-          if (Sfbdev->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
-               Sfbdev->modes->vsync_high = 1;
-
-          if (Sfbdev->orig_var.vmode & FB_VMODE_INTERLACED)
-               Sfbdev->modes->laced = 1;
-          if (Sfbdev->orig_var.vmode & FB_VMODE_DOUBLE)
-               Sfbdev->modes->doubled = 1;
-
-          if (dfb_fbdev_set_mode(NULL, Sfbdev->modes, NULL)) {
-               ERRORMSG("DirectFB/core/fbdev: "
-                        "No supported modes found in /etc/fb.modes and "
-                        "current mode not supported!\n");
-
-               ERRORMSG( "DirectFB/core/fbdev: Current mode's pixelformat: "
-                         "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
-                         Sfbdev->orig_var.red.length,
-                         Sfbdev->orig_var.red.offset,
-                         Sfbdev->orig_var.green.length,
-                         Sfbdev->orig_var.green.offset,
-                         Sfbdev->orig_var.blue.length,
-                         Sfbdev->orig_var.blue.offset,
-                         Sfbdev->orig_var.transp.length,
-                         Sfbdev->orig_var.transp.offset,
-                         Sfbdev->orig_var.bits_per_pixel );
-
-               shfree( Sfbdev->modes );
-               shfree( Sfbdev );
-
-               close( dfb_fbdev->fd );
-               DFBFREE( dfb_fbdev );
-               dfb_fbdev = NULL;
-
-               return DFB_INIT;
-          }
-     }
-
      Sfbdev->orig_cmap.start  = 0;
      Sfbdev->orig_cmap.len    = 256;
      Sfbdev->orig_cmap.red    = (__u16*)shmalloc( 2 * 256 );
@@ -528,6 +473,58 @@ DFBResult dfb_fbdev_wait_vsync()
      return DFB_OK;
 }
 
+static DFBResult init_modes()
+{
+     dfb_fbdev_read_modes();
+
+     if (!Sfbdev->modes) {
+          /* try to use current mode*/
+          Sfbdev->modes = (VideoMode*) shcalloc( 1, sizeof(VideoMode) );
+
+          Sfbdev->modes->xres = Sfbdev->orig_var.xres;
+          Sfbdev->modes->yres = Sfbdev->orig_var.yres;
+          Sfbdev->modes->hsync_len = Sfbdev->orig_var.hsync_len;
+          Sfbdev->modes->vsync_len = Sfbdev->orig_var.vsync_len;
+          Sfbdev->modes->left_margin = Sfbdev->orig_var.left_margin;
+          Sfbdev->modes->right_margin = Sfbdev->orig_var.right_margin;
+          Sfbdev->modes->upper_margin = Sfbdev->orig_var.upper_margin;
+          Sfbdev->modes->lower_margin = Sfbdev->orig_var.lower_margin;
+          Sfbdev->modes->pixclock = Sfbdev->orig_var.pixclock;
+
+
+          if (Sfbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
+               Sfbdev->modes->hsync_high = 1;
+          if (Sfbdev->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
+               Sfbdev->modes->vsync_high = 1;
+
+          if (Sfbdev->orig_var.vmode & FB_VMODE_INTERLACED)
+               Sfbdev->modes->laced = 1;
+          if (Sfbdev->orig_var.vmode & FB_VMODE_DOUBLE)
+               Sfbdev->modes->doubled = 1;
+
+          if (dfb_fbdev_set_mode(NULL, Sfbdev->modes, NULL)) {
+               ERRORMSG("DirectFB/core/fbdev: "
+                        "No supported modes found in /etc/fb.modes and "
+                        "current mode not supported!\n");
+
+               ERRORMSG( "DirectFB/core/fbdev: Current mode's pixelformat: "
+                         "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
+                         Sfbdev->orig_var.red.length,
+                         Sfbdev->orig_var.red.offset,
+                         Sfbdev->orig_var.green.length,
+                         Sfbdev->orig_var.green.offset,
+                         Sfbdev->orig_var.blue.length,
+                         Sfbdev->orig_var.blue.offset,
+                         Sfbdev->orig_var.transp.length,
+                         Sfbdev->orig_var.transp.offset,
+                         Sfbdev->orig_var.bits_per_pixel );
+
+               return DFB_INIT;
+          }
+     }
+
+     return DFB_OK;
+}
 
 /** primary layer functions **/
 
@@ -546,7 +543,15 @@ primaryInitLayer         ( GraphicsDevice             *device,
                            void                       *driver_data,
                            void                       *layer_data )
 {
-     VideoMode *default_mode = dfb_fbdev->shared->modes;
+     DFBResult  ret;
+     VideoMode *default_mode;
+
+     /* initialize mode table */
+     ret = init_modes();
+     if (ret)
+          return ret;
+
+     default_mode = dfb_fbdev->shared->modes;
 
      /* set capabilities and type */
      layer_info->desc.caps = DLCAPS_SURFACE;
