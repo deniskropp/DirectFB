@@ -441,10 +441,11 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 #endif
 
      INITCHECK( dfb_vt_initialize() );
-     INITCHECK( dfb_input_initialize() );
-     INITCHECK( dfb_layers_initialize() );
      INITCHECK( dfb_fbdev_initialize() );
+     
+     INITCHECK( dfb_input_initialize() );
      INITCHECK( dfb_gfxcard_initialize() );
+     INITCHECK( dfb_layers_initialize() );
      
      INITCHECK( dfb_layers_init_all() );
 
@@ -466,10 +467,11 @@ dfb_core_join( FusionArena *arena, void *ctx )
      dfb_core->arena  = arena;
 
      INITCHECK( dfb_vt_join() );
-     INITCHECK( dfb_input_join() );
-     INITCHECK( dfb_layers_join() );
      INITCHECK( dfb_fbdev_join() );
+     
+     INITCHECK( dfb_input_join() );
      INITCHECK( dfb_gfxcard_join() );
+     INITCHECK( dfb_layers_join() );
 
      INITCHECK( dfb_layers_join_all() );
      
@@ -495,8 +497,9 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
 
      dfb_layers_shutdown( emergency );
      dfb_gfxcard_shutdown( emergency );
-     dfb_fbdev_shutdown( emergency );
      dfb_input_shutdown( emergency );
+     
+     dfb_fbdev_shutdown( emergency );
      dfb_vt_shutdown( emergency );
 
 #ifdef DFB_DEBUG
@@ -523,10 +526,11 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
      
-     dfb_gfxcard_leave( emergency );
-     dfb_fbdev_leave( emergency );
      dfb_layers_leave( emergency );
+     dfb_gfxcard_leave( emergency );
      dfb_input_leave( emergency );
+     
+     dfb_fbdev_leave( emergency );
      dfb_vt_leave( emergency );
 
      return 0;

@@ -63,6 +63,9 @@ typedef struct _VideoMode {
 
 typedef struct _FBDevShared             FBDevShared;
 struct _FBDevShared {
+     /* fbdev fixed screeninfo, contains infos about memory and type of card */
+     struct fb_fix_screeninfo fix;
+
      VideoMode                *modes;        /* linked list of valid
                                                 video modes */
      VideoMode                *current_mode; /* current video mode */
@@ -77,6 +80,9 @@ struct _FBDevShared {
 struct _FBDev {
      FBDevShared             *shared;
 
+     /* virtual framebuffer address */
+     void                    *framebuffer_base;
+     
      int                      fd;            /* file descriptor for /dev/fb */
 };
 

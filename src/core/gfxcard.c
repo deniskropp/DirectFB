@@ -73,9 +73,6 @@ typedef struct {
  * struct for graphics cards
  */
 typedef struct {
-     /* fbdev fixed screeninfo, contains infos about memory and type of card */
-     struct fb_fix_screeninfo fix;
-
      /* amount of usable video memory */
      unsigned int          videoram_length;
 
@@ -103,9 +100,6 @@ struct _GraphicsDevice {
      void                 *device_data; /* copy of shared->device_data */
 
      GraphicsDeviceFuncs   funcs;
-
-     /* virtual framebuffer address */
-     void                 *framebuffer_base;
 };
 
 
@@ -136,35 +130,14 @@ DFBResult dfb_gfxcard_initialize()
      gGetDeviceInfo( &Scard->device_info );
 
 
-     /* Retrieve fixed informations like video ram size */
-     if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &Scard->fix ) < 0) {
-          PERRORMSG( "DirectFB/core/gfxcard: "
-                     "Could not get fixed screen information!\n" );
-          DFBFREE( card );
-          card = NULL;
-          return DFB_INIT;
-     }
-
      /* Limit video ram length */
      if (dfb_config->videoram_limit > 0 &&
-         dfb_config->videoram_limit < Scard->fix.smem_len)
+         dfb_config->videoram_limit < Sfbdev->fix.smem_len)
           Scard->videoram_length = dfb_config->videoram_limit;
      else
-          Scard->videoram_length = Scard->fix.smem_len;
+          Scard->videoram_length = Sfbdev->fix.smem_len;
 
-     /* Map the framebuffer */
-     card->framebuffer_base = mmap( NULL, Scard->fix.smem_len,
-                                    PROT_READ | PROT_WRITE, MAP_SHARED,
-                                    dfb_fbdev->fd, 0 );
-     if ((int)(card->framebuffer_base) == -1) {
-          PERRORMSG( "DirectFB/core/gfxcard: "
-                     "Could not mmap the framebuffer!\n");
-          DFBFREE( card );
-          card = NULL;
-          return DFB_INIT;
-     }
-
-     /* load driver */
+     /* Load driver */
      driver = dfb_gfxcard_find_driver();
      if (driver) {
           card->driver_data = DFBCALLOC( 1,
@@ -173,7 +146,6 @@ DFBResult dfb_gfxcard_initialize()
           ret = driver->funcs->InitDriver( card,
                                            &card->funcs, card->driver_data );
           if (ret) {
-               munmap( card->framebuffer_base, Scard->fix.smem_len );
                DFBFREE( card->driver_data );
                DFBFREE( driver );
                DFBFREE( card );
@@ -188,7 +160,6 @@ DFBResult dfb_gfxcard_initialize()
                                            card->driver_data, Scard->device_data );
           if (ret) {
                driver->funcs->CloseDriver( card, card->driver_data );
-               munmap( card->framebuffer_base, Scard->fix.smem_len );
                shfree( Scard->device_data );
                DFBFREE( card->driver_data );
                DFBFREE( driver );
@@ -231,18 +202,6 @@ DFBResult dfb_gfxcard_join()
 
      arena_get_shared_field( dfb_core->arena, (void**) &Scard, "Scard" );
 
-     /* Map the framebuffer */
-     card->framebuffer_base = mmap( NULL, Scard->fix.smem_len,
-                                    PROT_READ | PROT_WRITE, MAP_SHARED,
-                                    dfb_fbdev->fd, 0 );
-     if ((int)(card->framebuffer_base) == -1) {
-          PERRORMSG( "DirectFB/core/gfxcard: "
-                     "Could not mmap the framebuffer!\n");
-         DFBFREE( card );
-         card = NULL;
-         return DFB_INIT;
-     }
-
      /* load driver, FIXME: do not probe */
      driver = dfb_gfxcard_find_driver();
      if (driver) {
@@ -252,7 +211,6 @@ DFBResult dfb_gfxcard_join()
           ret = driver->funcs->InitDriver( card,
                                            &card->funcs, card->driver_data );
           if (ret) {
-               munmap( card->framebuffer_base, Scard->fix.smem_len );
                DFBFREE( card->driver_data );
                DFBFREE( driver );
                DFBFREE( card );
@@ -299,8 +257,6 @@ DFBResult dfb_gfxcard_shutdown( bool emergency )
 
      dfb_surfacemanager_destroy( Scard->surface_manager );
 
-     munmap( (char*)card->framebuffer_base, Scard->fix.smem_len );
-
      skirmish_destroy( &Scard->lock );
 
      shfree( Scard );
@@ -324,8 +280,6 @@ DFBResult dfb_gfxcard_leave( bool emergency )
 
           DFBFREE( card->driver_data );
      }
-
-     munmap( (char*)card->framebuffer_base, Scard->fix.smem_len );
 
      DFBFREE( card );
      card = NULL;
@@ -1135,10 +1089,10 @@ volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
      void *addr;
 
      if (length < 0)
-          length = device->shared->fix.mmio_len;
+          length = Sfbdev->fix.mmio_len;
 
      addr = mmap( NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED,
-                  dfb_fbdev->fd, device->shared->fix.smem_len + offset );
+                  dfb_fbdev->fd, Sfbdev->fix.smem_len + offset );
      if ((int)(addr) == -1) {
           PERRORMSG( "DirectFB/core/gfxcard: Could not mmap MMIO region "
                      "(offset %d, length %d)!\n", offset, length );
@@ -1153,7 +1107,7 @@ void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
                              int             length )
 {
      if (length < 0)
-          length = device->shared->fix.mmio_len;
+          length = Sfbdev->fix.mmio_len;
 
      if (munmap( (void*) addr, length ) < 0)
           PERRORMSG( "DirectFB/core/gfxcard: Could not unmap MMIO region "
@@ -1163,10 +1117,10 @@ void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
 int dfb_gfxcard_get_accelerator( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_MATROX_MGAG400
-     if (!strcmp( device->shared->fix.id, "MATROX DH" ))
+     if (!strcmp( Sfbdev->fix.id, "MATROX DH" ))
           return FB_ACCEL_MATROX_MGAG400;
 #endif
-     return device->shared->fix.accel;
+     return Sfbdev->fix.accel;
 }
 
 void dfb_gfxcard_sync()
@@ -1232,13 +1186,13 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 unsigned long
 dfb_gfxcard_memory_physical( unsigned int offset )
 {
-     return Scard->fix.smem_start + offset;
+     return Sfbdev->fix.smem_start + offset;
 }
 
 void *
 dfb_gfxcard_memory_virtual( unsigned int offset )
 {
-     return (void*)((__u8*)(card->framebuffer_base) + offset);
+     return (void*)((__u8*)(dfb_fbdev->framebuffer_base) + offset);
 }
 
 unsigned int

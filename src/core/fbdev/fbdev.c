@@ -35,6 +35,7 @@
 #endif
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 
 #include <pthread.h>
 
@@ -293,10 +294,38 @@ DFBResult dfb_fbdev_initialize()
           return ret;
      }
 
+     /* Retrieve fixed informations like video ram size */
+     if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &Sfbdev->fix ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not get fixed screen information!\n" );
+          shfree( Sfbdev );
+          close( dfb_fbdev->fd );
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return DFB_INIT;
+     }
+     
+     /* Map the framebuffer */
+     dfb_fbdev->framebuffer_base = mmap( NULL, Sfbdev->fix.smem_len,
+                                         PROT_READ | PROT_WRITE, MAP_SHARED,
+                                         dfb_fbdev->fd, 0 );
+     if ((int)(dfb_fbdev->framebuffer_base) == -1) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not mmap the framebuffer!\n");
+          shfree( Sfbdev );
+          close( dfb_fbdev->fd );
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return DFB_INIT;
+     }
+     
      if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &Sfbdev->orig_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not get variable screen information!\n" );
           shfree( Sfbdev );
+          munmap( dfb_fbdev->framebuffer_base, Sfbdev->fix.smem_len );
           close( dfb_fbdev->fd );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -311,6 +340,7 @@ DFBResult dfb_fbdev_initialize()
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not disable console acceleration!\n" );
           shfree( Sfbdev );
+          munmap( dfb_fbdev->framebuffer_base, Sfbdev->fix.smem_len );
           close( dfb_fbdev->fd );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -368,12 +398,27 @@ DFBResult dfb_fbdev_join()
           return ret;
      }
 
+     /* Map the framebuffer */
+     dfb_fbdev->framebuffer_base = mmap( NULL, Sfbdev->fix.smem_len,
+                                         PROT_READ | PROT_WRITE, MAP_SHARED,
+                                         dfb_fbdev->fd, 0 );
+     if ((int)(dfb_fbdev->framebuffer_base) == -1) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not mmap the framebuffer!\n");
+          close( dfb_fbdev->fd );
+          DFBFREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return DFB_INIT;
+     }
+     
      /*
       * Disable console acceleration.
       */
      if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not get variable screen information!\n" );
+          munmap( dfb_fbdev->framebuffer_base, Sfbdev->fix.smem_len );
           close( dfb_fbdev->fd );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -386,6 +431,7 @@ DFBResult dfb_fbdev_join()
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not disable console acceleration!\n" );
+          munmap( dfb_fbdev->framebuffer_base, Sfbdev->fix.smem_len );
           close( dfb_fbdev->fd );
           DFBFREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -430,6 +476,8 @@ DFBResult dfb_fbdev_shutdown( bool emergency )
           shfree( Sfbdev->orig_cmap.transp );
      }
 
+     munmap( dfb_fbdev->framebuffer_base, Sfbdev->fix.smem_len );
+     
      close( dfb_fbdev->fd );
 
      DFBFREE( dfb_fbdev );
@@ -441,6 +489,8 @@ DFBResult dfb_fbdev_shutdown( bool emergency )
 #ifndef FUSION_FAKE
 DFBResult dfb_fbdev_leave( bool emergency )
 {
+     munmap( dfb_fbdev->framebuffer_base, Sfbdev->fix.smem_len );
+     
      close( dfb_fbdev->fd );
 
      DFBFREE( dfb_fbdev );
