@@ -184,7 +184,7 @@ tree_node_insert (Tree *tree,
      }
 
      if (*inserted && (node->balance < -1 || node->balance > 1))
-       node = tree_node_balance (node);
+          node = tree_node_balance (node);
 
      return node;
 }
