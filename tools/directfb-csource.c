@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
+   (c) Copyright 2002-2003  convergence GmbH.
 
    All rights reserved.
 
@@ -60,15 +60,19 @@ static struct {
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
 
-static DFBResult  load_image  (const char            *filename,
-                               DFBSurfaceDescription *desc,
-                               DFBColor              *palette,
-                               int                   *palette_size);
-static DFBResult  dump_image  (const char            *name,
-                               DFBSurfaceDescription *desc,
-                               DFBColor              *palette,
-                               int                    palette_size);
-static void       print_usage (const char            *prg_name);
+static DFBResult  load_image   (const char             *filename,
+                                DFBSurfaceDescription  *desc,
+                                DFBColor               *palette,
+                                int                    *palette_size);
+static DFBResult  dump_image   (const char             *name,
+                                DFBSurfaceDescription  *desc,
+                                DFBColor               *palette,
+                                int                     palette_size);
+static DFBResult  merge_images (DFBSurfaceDescription  *images,
+                                int                     num_images,
+                                DFBSurfaceDescription  *dest,
+                                DFBRectangle           *rectangles);
+static void       print_usage  (const char             *prg_name);
 
 
 int main (int         argc,
@@ -77,65 +81,56 @@ int main (int         argc,
      DFBSurfaceDescription  desc   = { flags: 0 };
      DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
      DFBColor    palette[256];
-     int         palette_size = 0;
-     const char *name         = NULL;
-     const char *filename     = NULL;
-     char       *vname;
-     int         i, j, n;
+     const char *filename[argc];
+     const char *name           = NULL;
+     int         palette_size   = 0;
+     int         num_images     = 0;
+     int         i, n;
 
      /* parse command line */
      for (n = 1; n < argc; n++) {
           if (strncmp (argv[n], "--", 2) == 0) {
-               if (strcmp (argv[n] + 2, "help") == 0) {
+
+               const char *arg = argv[n] + 2;
+
+               if (strcmp (arg, "help") == 0) {
                     print_usage (argv[0]);
                     return EXIT_SUCCESS;
                }
-               if (strcmp (argv[n] + 2, "version") == 0) {
+               if (strcmp (arg, "version") == 0) {
                     fprintf (stderr, "directfb-csource version %s\n",
                              DIRECTFB_VERSION);
                     return EXIT_SUCCESS;
                }
-               if (strncmp (argv[n] + 2, "format=", 7) == 0 && !format) {
-                    for (j = 0; j < n_pixelformats && !format; j++)
-                         if (!strcasecmp (pixelformats[j].name, argv[n] + 9))
-                              format = pixelformats[j].format;
+               if (strncmp (arg, "format=", 7) == 0 && !format) {
+                    for (i = 0; i < n_pixelformats && !format; i++)
+                         if (!strcasecmp (pixelformats[i].name, arg + 7))
+                              format = pixelformats[i].format;
                     if (format)
                          continue;
                }
-               if (strncmp (argv[n] + 2, "name=", 5) == 0 && !name) {
-                    name = argv[n] + 7;
+               if (strncmp (arg, "name=", 5) == 0 && !name) {
+                    name = arg + 5;
                     if (*name)
                          continue;
                }
-               filename = ""; /* bail out below */
-          }
-          if (filename) {
+
                print_usage (argv[0]);
                return EXIT_FAILURE;
           }
-          filename = argv[n];
+
+          filename[num_images++] = argv[n];
      }
 
-     if (!filename) {
+     if (! num_images) {
           print_usage (argv[0]);
           return EXIT_FAILURE;
      }
 
-     if (name)
-          vname = strdup (name);
-     else
-          vname = basename (strdup (filename));
-
-     for (i = 0; vname[i]; i++) {
-          switch (vname[i]) {
-               case 'a'...'z':
-               case 'A'...'Z':
-               case '0'...'9':
-               case '_':
-                    break;
-               default:
-                    vname[i] = '_';
-          }
+     if (num_images > 1 && !name) {
+          fprintf (stderr,
+                   "You must specify a variable name when using multiple images.\n");
+          return EXIT_FAILURE;
      }
 
      if (format) {
@@ -143,10 +138,35 @@ int main (int         argc,
           desc.pixelformat = format;
      }
 
-     if (load_image (filename, &desc, palette, &palette_size) != DFB_OK)
+     if (load_image (filename[0], &desc, palette, &palette_size) != DFB_OK)
           return EXIT_FAILURE;
 
-     return dump_image (vname, &desc, palette, palette_size);
+     if (num_images == 1) {
+          return dump_image (name ? name : basename (strdup (filename[0])),
+                             &desc, palette, palette_size);
+     }
+     else {
+          DFBSurfaceDescription  image[num_images];
+          DFBRectangle           rect[num_images];
+          DFBColor               foo[256];
+          int                    foo_size;
+
+          image[0] = desc;
+
+          for (i = 1; i < num_images; i++) {
+               image[i].flags = DSDESC_PIXELFORMAT;
+               image[i].pixelformat = desc.pixelformat;
+
+               if (load_image (filename[i],
+                               image + i, foo, &foo_size) != DFB_OK)
+                    return EXIT_FAILURE;
+          }
+
+          if (merge_images (image, num_images, &desc, rect) != DFB_OK)
+               return EXIT_FAILURE;
+
+          return dump_image (name, &desc, palette, palette_size);
+     }
 }
 
 static void print_usage (const char *prg_name)
@@ -155,8 +175,11 @@ static void print_usage (const char *prg_name)
      fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
      fprintf (stderr, "   --name=<identifer>     specifies variable name\n");
      fprintf (stderr, "   --format=<identifer>   specifies surface format\n");
+     fprintf (stderr, "   --multi                multiple images\n");
      fprintf (stderr, "   --help                 show this help message\n");
      fprintf (stderr, "   --version              print version information\n");
+     fprintf (stderr, "\n");
+     fprintf (stderr, "See the directfb-csource(1) man-page for more information.\n");
      fprintf (stderr, "\n");
 }
 
@@ -306,8 +329,7 @@ static DFBResult load_image (const char            *filename,
 
      data  = malloc (height * pitch);
      if (!data) {
-          fprintf (stderr, "Failed to allocate %ld bytes.\n",
-                   height * pitch);
+          fprintf (stderr, "Failed to allocate %ld bytes.\n", height * pitch);
           goto cleanup;
      }
 
@@ -445,9 +467,22 @@ static DFBResult dump_image (const char            *name,
 {
      CSourceData    csource = { stdout, 0, 0 };
      const char    *format  = NULL;
+     char          *vname   = strdup (name);
      unsigned char *data;
      unsigned long  len;
      int            i;
+
+     for (i = 0; vname[i]; i++) {
+          switch (vname[i]) {
+               case 'a'...'z':
+               case 'A'...'Z':
+               case '0'...'9':
+               case '_':
+                    break;
+               default:
+                    vname[i] = '_';
+          }
+     }
 
      if (desc->flags != (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
                          DSDESC_PREALLOCATED))
@@ -473,7 +508,7 @@ static DFBResult dump_image (const char            *name,
 
      /* dump data */
      fprintf (csource.fp,
-              "static unsigned char %s_data[] = \n", name);
+              "static unsigned char %s_data[] = \n", vname);
      fprintf (csource.fp, "  \"");
 
      csource.pos = 3;
@@ -486,7 +521,7 @@ static DFBResult dump_image (const char            *name,
      /* dump palette */
      if (palette_size > 0) {
           fprintf (csource.fp,
-                   "static DFBColor %s_palette[%d] = {\n", name, palette_size);
+                   "static DFBColor %s_palette[%d] = {\n", vname, palette_size);
           for (i = 0; i < palette_size; i++)
                fprintf (csource.fp,
                         "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
@@ -497,7 +532,7 @@ static DFBResult dump_image (const char            *name,
 
      /* dump description */
      fprintf (csource.fp,
-              "static DFBSurfaceDescription %s_desc = {\n", name);
+              "static DFBSurfaceDescription %s_desc = {\n", vname);
      fprintf (csource.fp,
               "  flags                   : DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |\n"
               "                            DSDESC_PREALLOCATED");
@@ -511,17 +546,98 @@ static DFBResult dump_image (const char            *name,
      fprintf (csource.fp,
               "  pixelformat             : DSPF_%s,\n", format);
      fprintf (csource.fp,
-              "  preallocated : {{  data : (void *) %s_data,\n", name);
+              "  preallocated : {{  data : (void *) %s_data,\n", vname);
      fprintf (csource.fp,
               "                    pitch : %d  }}", desc->preallocated[0].pitch);
      if (palette_size > 0) {
           fprintf (csource.fp, ",\n");
           fprintf (csource.fp,
-                   "  palette :    {  entries : %s_palette,\n", name);
+                   "  palette :    {  entries : %s_palette,\n", vname);
           fprintf (csource.fp,
                    "                     size : %d  }", palette_size);
      }
      fprintf (csource.fp, "\n};\n\n");
 
      return DFB_OK;
+}
+
+static DFBResult merge_images (DFBSurfaceDescription *images,
+                               int                    num_images,
+                               DFBSurfaceDescription *dest,
+                               DFBRectangle          *rectangles)
+{
+  DFBSurfaceDescription *image = images;
+  DFBRectangle          *rect  = rectangles;
+  unsigned char         *data;
+  int                    bpp;
+  int                    pitch, i;
+
+  rect->x = 0;
+  rect->y = 0;
+  rect->w = image->width;
+  rect->h = image->height;
+
+  dest->flags       = (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
+                       DSDESC_PREALLOCATED);
+  dest->pixelformat = image->pixelformat;
+
+  bpp = DFB_BYTES_PER_PIXEL (dest->pixelformat);
+
+  if (bpp == 1)
+       dest->width  = (rect->w + 3) & ~3;
+  else
+       dest->width  = rect->w;
+
+  dest->height      = rect->h;
+
+  for (i = 1; i < num_images; i++) {
+       image++;
+       rect++;
+
+       if (image->pixelformat != dest->pixelformat)
+            return DFB_INVARG;
+
+       rect->x = dest->width;
+       rect->y = 0;
+       rect->w = image->width;
+       rect->h = image->height;
+
+       if (bpp == 1)
+            dest->width += (rect->w + 3) & ~3;
+       else
+            dest->width += rect->w;
+
+       if (dest->height < rect->h)
+            dest->height = rect->h;
+  }
+
+  pitch = (dest->width * bpp + 3) &~ 3;
+  data  = malloc (dest->height * pitch);
+  if (!data) {
+       fprintf (stderr, "Failed to allocate %ld bytes.\n",
+                (long) dest->height * pitch);
+       return DFB_FAILURE;
+  }
+
+
+  for (i = 0, image = images, rect = rectangles;
+       i < num_images;
+       i++, image++, rect++) {
+
+       unsigned char *dest   = data + rect->x * bpp;
+       unsigned char *src    = image->preallocated[0].data;
+       int            height = rect->h;
+
+       do {
+            memcpy (dest, src, rect->w * bpp);
+            src  += image->preallocated[0].pitch;
+            dest += pitch;
+       }
+       while (--height);
+  }
+
+  dest->preallocated[0].pitch = pitch;
+  dest->preallocated[0].data  = data;
+
+  return DFB_OK;
 }
