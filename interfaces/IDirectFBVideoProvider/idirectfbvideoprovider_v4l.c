@@ -338,14 +338,26 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
      if (adj->flags == DCAF_NONE)
           return DFB_OK;
 
-     ioctl( data->fd, VIDIOCGPICT, &pic );
+     if (ioctl( data->fd, VIDIOCGPICT, &pic ) < 0) {
+          DFBResult ret = errno2dfb( errno );
+
+          PERRORMSG( "DirectFB/v4l: VIDIOCGPICT failed!\n" );
+
+          return ret;
+     }
 
      if (adj->flags & DCAF_BRIGHTNESS) pic.brightness = adj->brightness;
      if (adj->flags & DCAF_HUE)        pic.hue        = adj->hue;
      if (adj->flags & DCAF_COLOR)      pic.colour     = adj->color;
      if (adj->flags & DCAF_CONTRAST)   pic.contrast   = adj->contrast;
 
-     ioctl( data->fd, VIDIOCSPICT, &pic );
+     if (ioctl( data->fd, VIDIOCSPICT, &pic ) < 0) {
+          DFBResult ret = errno2dfb( errno );
+
+          PERRORMSG( "DirectFB/v4l: VIDIOCSPICT failed!\n" );
+
+          return ret;
+     }
 
      return DFB_OK;
 }
@@ -523,8 +535,6 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
 
           p.depth = bpp;
           p.palette = palette;
-          //p.contrast = 0x8000;
-          //p.colour = 0x6000;
 
           if (ioctl( data->fd, VIDIOCSPICT, &p ) < 0) {
                DFBResult ret = errno2dfb( errno );
