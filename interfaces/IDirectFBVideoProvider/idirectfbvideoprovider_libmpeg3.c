@@ -533,6 +533,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
     thiz->AddRef    = IDirectFBVideoProvider_Libmpeg3_AddRef;
     thiz->Release   = IDirectFBVideoProvider_Libmpeg3_Release;
+    thiz->GetCapabilities = IDirectFBVideoProvider_Libmpeg3_GetCapabilities;
     thiz->GetSurfaceDescription =
          IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription;
     thiz->PlayTo    = IDirectFBVideoProvider_Libmpeg3_PlayTo;
