@@ -65,7 +65,7 @@ static void uc_fifo_pad(struct uc_fifo* fifo)
  * @note Equivalent DRI code is in via_ioctl::flush_sys()
  */
 
-static void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs)
+void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs)
 {
     __u32* p;
     __u32* q;
@@ -175,9 +175,9 @@ struct uc_fifo* uc_fifo_create(size_t size)
     fifo->size = (unsigned int) size;
     fifo->prep = 0;
 
-    fifo->flush_sys = uc_fifo_flush_sys;
+    //fifo->flush_sys = uc_fifo_flush_sys;
 
-    fifo->flush = uc_fifo_flush_sys;
+    //fifo->flush = uc_fifo_flush_sys;
 
     return fifo;
 }

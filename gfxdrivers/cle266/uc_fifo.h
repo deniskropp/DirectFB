@@ -45,14 +45,30 @@ struct uc_fifo
     unsigned int prep;
     unsigned int used;
 
-    void (*flush)(struct uc_fifo* fifo, volatile void *hwregs);
-    void (*flush_sys)(struct uc_fifo* fifo, volatile void *hwregs);
+    //void (*flush)(struct uc_fifo* fifo, volatile void *hwregs);
+    //void (*flush_sys)(struct uc_fifo* fifo, volatile void *hwregs);
 };
 
 // Help macros ---------------------------------------------------------------
 
 // For the record: Macros suck maintenance- and debugging-wise,
 // but provide guaranteed inlining of the code.
+
+/**
+ * Send the contents of the FIFO buffer to the hardware, and clear
+ * the buffer. The transfer may be performed by the CPU or by DMA.
+ */
+
+//#define UC_FIFO_FLUSH(fifo) (fifo)->flush(fifo,ucdrv->hwregs)
+
+/**
+ * Same as UC_FIFO_FLUSH(), but always uses the CPU to transfer data.
+ */
+
+//#define UC_FIFO_FLUSH_SYS(fifo) (fifo)->flush_sys(fifo,ucdrv->hwregs)
+
+#define UC_FIFO_FLUSH(fifo)     uc_fifo_flush_sys(fifo,ucdrv->hwregs)
+#define UC_FIFO_FLUSH_SYS(fifo) uc_fifo_flush_sys(fifo,ucdrv->hwregs)
 
 /**
  * Make sure there is room for dwsize double words in the FIFO.
@@ -74,7 +90,7 @@ struct uc_fifo
     do {                                                    \
         if ((fifo)->used + dwsize + 32 > (fifo)->size) {    \
             DEBUGMSG("CLE266: FIFO full - flushing it.");   \
-            (fifo)->flush(fifo,ucdrv->hwregs);              \
+            UC_FIFO_FLUSH(fifo);                            \
         }                                                   \
         if (dwsize + (fifo)->prep + 32 > (fifo)->size) {    \
             BUG("CLE266: FIFO too small for allocation.");  \
@@ -87,7 +103,7 @@ struct uc_fifo
 #define UC_FIFO_PREPARE(fifo, dwsize)                       \
     do {                                                    \
         if ((fifo)->used + dwsize + 32 > (fifo)->size) {    \
-            (fifo)->flush(fifo,ucdrv->hwregs);              \
+            UC_FIFO_FLUSH(fifo);                            \
         }                                                   \
         (fifo)->prep += dwsize;                             \
     } while(0)
@@ -224,19 +240,6 @@ struct uc_fifo
 
 #endif // UC_DEBUG
 
-/**
- * Send the contents of the FIFO buffer to the hardware, and clear
- * the buffer. The transfer may be performed by the CPU or by DMA.
- */
-
-#define UC_FIFO_FLUSH(fifo) (fifo)->flush(fifo,ucdrv->hwregs)
-
-/**
- * Same as UC_FIFO_FLUSH(), but always uses the CPU to transfer data.
- */
-
-#define UC_FIFO_FLUSH_SYS(fifo) (fifo)->flush_sys(fifo,ucdrv->hwregs)
-
 
 // FIFO functions ------------------------------------------------------------
 
@@ -247,5 +250,7 @@ struct uc_fifo* uc_fifo_create(size_t size);
 /** Destroy a FIFO */
 
 void uc_fifo_destroy(struct uc_fifo* fifo);
+
+void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs);
 
 #endif // __UC_FIFO_H__
