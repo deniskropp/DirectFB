@@ -25,14 +25,10 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECTFB_INTERNALS_H__
-#define __DIRECTFB_INTERNALS_H__
-
-#include <stdlib.h>
+#ifndef __DIRECTFB__INTERFACE_H__
+#define __DIRECTFB__INTERFACE_H__
 
 #include <directfb.h>
-
-#include <core/coretypes.h>
 
 #include <direct/mem.h>
 
@@ -73,7 +69,7 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 
 #define DFB_ALLOCATE_INTERFACE(p,i)                         \
      do {                                                   \
-          (p) = (i*)D_CALLOC( 1, sizeof(i) );                 \
+          (p) = (i*)D_CALLOC( 1, sizeof(i) );               \
      } while (0)
 
 
@@ -114,4 +110,4 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 
 extern IDirectFB *idirectfb_singleton;
 
-#endif /* __INTERFACE_H__ */
+#endif /* __DIRECTFB__INTERFACE_H__ */
