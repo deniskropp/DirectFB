@@ -75,7 +75,8 @@ DFB_GRAPHICS_DRIVER( r200 )
        DFXL_DRAWRECTANGLE | DFXL_DRAWLINE )
 
 #define R200_SUPPORTED_BLITTINGFLAGS \
-     ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE )
+     ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
+       DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR )
 
 #define R200_SUPPORTED_BLITTINGFUNCTIONS \
      ( DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -84,7 +85,8 @@ DFB_GRAPHICS_DRIVER( r200 )
 #define DSBLIT_MODULATE_ALPHA ( DSBLIT_BLEND_ALPHACHANNEL | \
                                 DSBLIT_BLEND_COLORALPHA )
 #define DSBLIT_MODULATE_COLOR ( DSBLIT_BLEND_COLORALPHA   | \
-                                DSBLIT_COLORIZE )
+                                DSBLIT_COLORIZE           | \
+                                DSBLIT_SRC_PREMULTCOLOR )
 #define DSBLIT_MODULATE       ( DSBLIT_MODULATE_ALPHA     | \
                                 DSBLIT_MODULATE_COLOR )
 
@@ -244,6 +246,7 @@ static void r200CheckState( void *drv, void *dev,
      switch (destination->format) {
           case DSPF_A8:
           case DSPF_RGB332:
+          case DSPF_ARGB4444:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -251,7 +254,7 @@ static void r200CheckState( void *drv, void *dev,
           case DSPF_YUY2:
           case DSPF_UYVY:
                break;
-          
+               
           default:
                return;
      }
@@ -319,7 +322,7 @@ static void r200SetState( void *drv, void *dev,
           case DFXL_FILLTRIANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
-               r200_set_color( rdrv, rdev, state );
+               r200_set_drawing_color( rdrv, rdev, state );
                
                if (state->drawingflags & DSDRAW_BLEND)
                     r200_set_blend_function( rdrv, rdev, state );
@@ -341,7 +344,7 @@ static void r200SetState( void *drv, void *dev,
                     r200_set_blend_function( rdrv, rdev, state );
                
                if (state->blittingflags & DSBLIT_MODULATE_COLOR)
-                    r200_set_color( rdrv, rdev, state );
+                    r200_set_blitting_color( rdrv, rdev, state );
                
                if (state->blittingflags & DSBLIT_SRC_COLORKEY)
                     r200_set_src_colorkey( rdrv, rdev, state );
@@ -372,7 +375,7 @@ out_vertex2d( volatile __u8 *mmio,
           float f[4];
           __u32 d[4];
      } tmp = {
-          .f = { x+.5, y+.5, s+.5, t+.5 }
+          .f = { x, y, s, t }
      };
      
      r200_out32( mmio, SE_PORT_DATA0, tmp.d[0] );
@@ -389,7 +392,7 @@ out_vertex3d( volatile __u8 *mmio,
           float f[6];
           __u32 d[6];
      } tmp = {
-          .f = { x+.5, y+.5, z+.5, w, s+.5, t+.5 }
+          .f = { x, y, z, w, s, t }
      };
      
      r200_out32( mmio, SE_PORT_DATA0, tmp.d[0] );
@@ -406,7 +409,7 @@ static bool r200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      R200DeviceData *rdev = ( R200DeviceData* ) dev;
      volatile __u8  *mmio = rdrv->mmio_base;
 
-     if (rdev->drawingflags & ~DSDRAW_XOR) {
+     if (rdev->drawingflags & ~DSDRAW_XOR || rdev->dst_format == DSPF_ARGB4444) {
           DFBRegion reg = { rect->x, rect->y,
                             rect->x+rect->w, rect->y+rect->h };
                             
@@ -468,7 +471,7 @@ static bool r200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      R200DeviceData *rdev = ( R200DeviceData* ) dev;
      volatile __u8  *mmio = rdrv->mmio_base;
 
-     if (rdev->drawingflags & ~DSDRAW_XOR) {
+     if (rdev->drawingflags & ~DSDRAW_XOR || rdev->dst_format == DSPF_ARGB4444) {
           r200_waitfifo( rdrv, rdev, 33 );
      
           r200_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_LINE_LIST |
@@ -523,7 +526,7 @@ static bool r200DrawLine( void *drv, void *dev, DFBRegion *line )
      R200DeviceData *rdev = (R200DeviceData*) dev;
      volatile __u8  *mmio = rdrv->mmio_base;
 
-     if (rdev->drawingflags & ~DSDRAW_XOR) {
+     if (rdev->drawingflags & ~DSDRAW_XOR || rdev->dst_format == DSPF_ARGB4444) {
           r200_waitfifo( rdrv, rdev, 17 );
           
           r200_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_LINE_LIST |
@@ -570,10 +573,14 @@ static bool r200Blit( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
                                         VF_PRIM_WALK_DATA      |
                                         (4 << VF_NUM_VERTICES_SHIFT) );
 
-          out_vertex2d( mmio, dx      , dy      , sr->x      , sr->y       ); 
-          out_vertex2d( mmio, dx+sr->w, dy      , sr->x+sr->w, sr->y       ); 
-          out_vertex2d( mmio, dx+sr->w, dy+sr->h, sr->x+sr->w, sr->y+sr->h );
-          out_vertex2d( mmio, dx      , dy+sr->h, sr->x      , sr->y+sr->h ); 
+          out_vertex2d( mmio, dx         +.5, dy         +.5,
+                              sr->x      +.5, sr->y      +.5 );
+          out_vertex2d( mmio, dx+sr->w   +.5, dy         +.5,
+                              sr->x+sr->w+.5, sr->y      +.5 );
+          out_vertex2d( mmio, dx+sr->w   +.5, dy+sr->h   +.5,
+                              sr->x+sr->w+.5, sr->y+sr->h+.5 );
+          out_vertex2d( mmio, dx         +.5, dy+sr->h   +.5,
+                              sr->x      +.5, sr->y+sr->h+.5 ); 
      }
      else {
           __u32 dir = 0;
@@ -615,10 +622,14 @@ static bool r200StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangl
                                    VF_PRIM_WALK_DATA      |
                                    (4 << VF_NUM_VERTICES_SHIFT) );
      
-     out_vertex2d( mmio, dr->x      , dr->y      , sr->x      , sr->y       );  
-     out_vertex2d( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       ); 
-     out_vertex2d( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
-     out_vertex2d( mmio, dr->x      , dr->y+dr->h, sr->x      , sr->y+sr->h ); 
+     out_vertex2d( mmio, dr->x      +.5, dr->y      +.5,
+                         sr->x      +.5, sr->y      +.5 );
+     out_vertex2d( mmio, dr->x+dr->w+.5, dr->y      +.5,
+                         sr->x+sr->w+.5, sr->y      +.5 );
+     out_vertex2d( mmio, dr->x+dr->w+.5, dr->y+dr->h+.5,
+                         sr->x+sr->w+.5, sr->y+sr->h+.5 );
+     out_vertex2d( mmio, dr->x      +.5, dr->y+dr->h+.5,
+                         sr->x      +.5, sr->y+sr->h+.5 ); 
      
      return true;
 }
@@ -653,8 +664,11 @@ static bool r200TextureTriangles( void *drv, void *dev, DFBVertex *ve,
      }
 
      for (i = 0; i < num; i++) {
-          ve[i].s *= (float) rdev->src_width;
-          ve[i].t *= (float) rdev->src_height;
+          ve[i].x += .5;
+          ve[i].y += .5;
+          ve[i].z += .5;
+          ve[i].s  = ve[i].s * (float)rdev->src_width  + .5;
+          ve[i].t  = ve[i].t * (float)rdev->src_height + .5;
      }
 
      r200_waitfifo( rdrv, rdev, 1 ); 
@@ -682,30 +696,31 @@ static bool r200TextureTriangles( void *drv, void *dev, DFBVertex *ve,
 /* probe functions */
 
 static struct {
-     __u32       id;
-     char        igp;
+     __u16       id;
+     __u32       chip;
+     __u8        igp;
      const char *name;
 } dev_table[] = {
-     { 0x514c, 0, "Radeon 8500 QL" },
-     { 0x4242, 0, "Radeon 8500 AIW BB" },
-     { 0x4243, 0, "Radeon 8500 AIW BC" },
-     { 0x4966, 0, "Radeon 9000/PRO If" },
-     { 0x4967, 0, "Radeon 9000 Ig" },
-     { 0x4c66, 0, "Radeon Mobility 9000 (M9) Lf" },
-     { 0x4c67, 0, "Radeon Mobility 9000 (M9) Lg" },
-     { 0x514d, 0, "Radeon 9100 QM" },
-     { 0x5834, 1, "Radeon 9100 IGP (A5)" },
-     { 0x5835, 1, "Radeon Mobility 9100 IGP (U3)" },
-     { 0x7834, 1, "Radeon 9100 PRO IGP" },
-     { 0x5960, 0, "Radeon 9200PRO" },
-     { 0x5961, 0, "Radeon 9200" },
-     { 0x5962, 0, "Radeon 9200" },
-     { 0x5964, 0, "Radeon 9200SE" },
-     { 0x5c61, 0, "Radeon Mobility 9200 (M9+)" },
-     { 0x5c63, 0, "Radeon Mobility 9200 (M9+)" },
-     { 0x7835, 1, "Radeon Mobility 9200 IGP" },
-     { 0x5148, 0, "FireGL 8700/8800 QH" },
-     { 0x4c64, 0, "FireGL Mobility 9000 (M9) Ld" }
+     { 0x514c, CHIP_R200 , 0, "Radeon 8500 QL" },
+     { 0x4242, CHIP_R200 , 0, "Radeon 8500 AIW BB" },
+     { 0x4243, CHIP_R200 , 0, "Radeon 8500 AIW BC" },
+     { 0x514d, CHIP_R200 , 0, "Radeon 9100 QM" },
+     { 0x5148, CHIP_R200 , 0, "FireGL 8700/8800 QH" },
+     { 0x4966, CHIP_RV250, 0, "Radeon 9000/PRO If" },
+     { 0x4967, CHIP_RV250, 0, "Radeon 9000 Ig" },
+     { 0x4c66, CHIP_RV250, 0, "Radeon Mobility 9000 (M9) Lf" },
+     { 0x4c67, CHIP_RV250, 0, "Radeon Mobility 9000 (M9) Lg" },
+     { 0x4c64, CHIP_RV250, 0, "FireGL Mobility 9000 (M9) Ld" },
+     { 0x5960, CHIP_RV280, 0, "Radeon 9200PRO" },
+     { 0x5961, CHIP_RV280, 0, "Radeon 9200" },
+     { 0x5962, CHIP_RV280, 0, "Radeon 9200" },
+     { 0x5964, CHIP_RV280, 0, "Radeon 9200SE" },
+     { 0x5c61, CHIP_RV280, 0, "Radeon Mobility 9200 (M9+)" },
+     { 0x5c63, CHIP_RV280, 0, "Radeon Mobility 9200 (M9+)" },
+     { 0x5834, CHIP_RS300, 1, "Radeon 9100 IGP (A5)" },
+     { 0x5835, CHIP_RS300, 1, "Radeon Mobility 9100 IGP (U3)" },
+     { 0x7834, CHIP_RS350, 1, "Radeon 9100 PRO IGP" },
+     { 0x7835, CHIP_RS350, 1, "Radeon Mobility 9200 IGP" }
 };
 
 static int 
@@ -882,6 +897,8 @@ driver_init_device( GraphicsDevice     *device,
                    "unexpected error while probing device id!\n" );
           return DFB_FAILURE;
      }
+     
+     rdev->chipset = dev_table[id].chip;
 
      if (dev_table[id].igp) {
           rdev->fb_offset = r200_in32( rdrv->mmio_base, NB_TOM );

@@ -35,7 +35,10 @@ void r200_set_source        ( R200DriverData *rdrv,
 void r200_set_clip          ( R200DriverData *rdrv,
                               R200DeviceData *rdev,
                               CardState      *state );
-void r200_set_color         ( R200DriverData *rdrv,
+void r200_set_drawing_color ( R200DriverData *rdrv,
+                              R200DeviceData *rdev,
+                              CardState      *state );
+void r200_set_blitting_color( R200DriverData *rdrv,
                               R200DeviceData *rdev,
                               CardState      *state );
 void r200_set_src_colorkey  ( R200DriverData *rdrv,

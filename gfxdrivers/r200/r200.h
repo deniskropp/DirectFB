@@ -31,7 +31,15 @@
 #include <core/screens.h>
 
 
-typedef struct {
+enum {
+     CHIP_R200,
+     CHIP_RV250,
+     CHIP_RV280,
+     CHIP_RS300,
+     CHIP_RS350
+};
+
+typedef struct { 
      /* validated flags */
      StateModificationFlags  set;
      /* current function */
@@ -56,6 +64,9 @@ typedef struct {
      __u32                   dp_gui_master_cntl;
      __u32                   rb3d_cntl;
      __u32                   txformat;
+
+     /* chipset identified */
+     __u32                   chipset;
      
      /* for fifo/performance monitoring */
      unsigned int            fifo_space;

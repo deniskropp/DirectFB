@@ -439,10 +439,11 @@ ov0_calc_regs ( R200DriverData        *rdrv,
                 CoreSurface           *surface,
                 CoreLayerRegionConfig *config )
 {
-     __u32 offsets[3];
-     __u32 tmp;
-     __u32 h_inc;
-     __u32 step_by;
+     R200DeviceData *rdev       = rdrv->device_data;
+     __u32           offsets[3];
+     __u32           tmp;
+     __u32           h_inc;
+     __u32           step_by;
      
      /* clear all */
      rov0->regs.KEY_CNTL   = 0;
@@ -457,9 +458,9 @@ ov0_calc_regs ( R200DriverData        *rdrv,
 
      /* calculate values for horizontal accumulators */
      tmp = 0x00028000 + (h_inc << 3);
-     rov0->regs.P1_H_ACCUM_INIT = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0xf0000000);
+     rov0->regs.P1_H_ACCUM_INIT = ((tmp << 4) & 0x000f8000) | ((tmp << 12) & 0xf0000000);
      tmp = 0x00028000 + (h_inc << 2);
-     rov0->regs.P23_H_ACCUM_INIT = ((tmp <<  4) & 0x000f8000) | ((tmp << 12) & 0x70000000);
+     rov0->regs.P23_H_ACCUM_INIT = ((tmp << 4) & 0x000f8000) | ((tmp << 12) & 0x70000000);
 
      /* calculate values for vertical accumulators */
      tmp = 0x00018000;
@@ -473,16 +474,22 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      rov0->regs.H_INC     = h_inc | ((h_inc >> 1) << 16);  
      rov0->regs.STEP_BY   = step_by | (step_by << 8);
      rov0->regs.V_INC     = (config->source.h << 20) / config->dest.h;
-     rov0->regs.Y_X_START = (config->dest.x) | (config->dest.y << 16);
-     rov0->regs.Y_X_END   = (config->dest.x + config->dest.w) | 
-                            ((config->dest.y + config->dest.h) << 16);
+     if (rdev->chipset == CHIP_R200) {
+          rov0->regs.Y_X_START = (config->dest.x) | (config->dest.y << 16);
+          rov0->regs.Y_X_END   = (config->dest.x + config->dest.w) | 
+                                 ((config->dest.y + config->dest.h) << 16);
+     } else {    
+          rov0->regs.Y_X_START = (config->dest.x + 8) | (config->dest.y << 16);
+          rov0->regs.Y_X_END   = (config->dest.x + config->dest.w + 8) | 
+                                 ((config->dest.y + config->dest.h) << 16);
+     }
                                          
      /* set source coordinates */
      rov0->regs.P1_BLANK_LINES_AT_TOP  = P1_BLNK_LN_AT_TOP_M1_MASK  | 
                                          ((config->source.h - 1) << 16);
      rov0->regs.P23_BLANK_LINES_AT_TOP = P23_BLNK_LN_AT_TOP_M1_MASK |
                                          ((((config->source.h + 1) >> 1) - 1) << 16);
-     rov0->regs.P1_X_START_END         = (config->source.x << 16 ) |
+     rov0->regs.P1_X_START_END         = (config->source.x << 16) |
                                          (config->source.x+config->source.w-1);
      rov0->regs.P2_X_START_END         = ((config->source.x >> 1) << 16) |
                                          (((config->source.x+config->source.w)>>1) - 1);
@@ -544,7 +551,10 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      rov0->regs.GRPH_KEY_CLR_LOW  = ov0_calc_dstkey( config->dst_key.r,
                                                      config->dst_key.g,
                                                      config->dst_key.b );
-     rov0->regs.GRPH_KEY_CLR_HIGH = rov0->regs.GRPH_KEY_CLR_LOW | 0xff000000;
+     rov0->regs.GRPH_KEY_CLR_HIGH = PIXEL_ARGB( 0xff, 
+                                                config->dst_key.r,
+                                                config->dst_key.g,
+                                                config->dst_key.b );
      
      /* set source format and enable overlay */
      if (config->opacity) { 

@@ -116,6 +116,10 @@ void r200_set_destination( R200DriverData *rdrv,
                     rdev->dp_gui_master_cntl = GMC_DST_8BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB332;
                     break;
+               case DSPF_ARGB4444:
+                    rdev->dp_gui_master_cntl = GMC_DST_ARGB4444;
+                    rdev->rb3d_cntl = COLOR_FORMAT_ARGB4444;
+                    break;
                case DSPF_ARGB1555:          
                     rdev->dp_gui_master_cntl = GMC_DST_15BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_ARGB1555;
@@ -253,7 +257,7 @@ void r200_set_source( R200DriverData *rdrv,
 
           offset = rdev->fb_offset + buffer->video.offset;
           pitch  = buffer->video.pitch;
-          
+ 
           r200_waitfifo( rdrv, rdev, 3 );
           r200_out32( mmio, CLR_CMP_MASK, mask ); 
           r200_out32( mmio, SRC_OFFSET, offset );
@@ -304,62 +308,61 @@ void r200_set_clip( R200DriverData *rdrv,
      R200_SET( CLIP );
 }
 
-void r200_set_color( R200DriverData *rdrv,
-                     R200DeviceData *rdev,
-                     CardState      *state )
+void r200_set_drawing_color( R200DriverData *rdrv,
+                             R200DeviceData *rdev,
+                             CardState      *state )
 {
-     __u32 color2d;
-     __u32 color3d;
-     int   y, u, v;
+     DFBColor color   = state->color;
+     __u32    color2d;
+     __u32    color3d;
+     int      y, u, v;
 
-     if (R200_IS_SET( COLOR ))
+     if (R200_IS_SET( COLOR ) && R200_IS_SET( DRAWING_FLAGS ))
           return;
  
      switch (rdev->dst_format) {
           case DSPF_A8:
-               color2d = state->color.a;
+               color2d = color.a;
                break;
           case DSPF_RGB332:
-               color2d = PIXEL_RGB332( state->color.r,
-                                       state->color.g,
-                                       state->color.b );
+               color2d = PIXEL_RGB332( color.r,
+                                       color.g,
+                                       color.b );
                break;
           case DSPF_ARGB4444:
-               color2d = PIXEL_ARGB4444( state->color.a,
-                                         state->color.r,
-                                         state->color.g,
-                                         state->color.b );
+               color2d = PIXEL_ARGB4444( color.a,
+                                         color.r,
+                                         color.g,
+                                         color.b );
                break;
           case DSPF_ARGB1555:
-               color2d = PIXEL_ARGB1555( state->color.a,
-                                         state->color.r,
-                                         state->color.g,
-                                         state->color.b );
+               color2d = PIXEL_ARGB1555( color.a,
+                                         color.r,
+                                         color.g,
+                                         color.b );
                break;
           case DSPF_RGB16:
-               color2d = PIXEL_RGB16( state->color.r,
-                                      state->color.g,
-                                      state->color.b );
+               color2d = PIXEL_RGB16( color.r,
+                                      color.g,
+                                      color.b );
                break;
           case DSPF_RGB32:
-               color2d = PIXEL_RGB32( state->color.r,
-                                      state->color.g,
-                                      state->color.b );
+               color2d = PIXEL_RGB32( color.r,
+                                      color.g,
+                                      color.b );
                break;
           case DSPF_ARGB:
-               color2d = PIXEL_ARGB( state->color.a,
-                                     state->color.r,
-                                     state->color.g,
-                                     state->color.b );
+               color2d = PIXEL_ARGB( color.a,
+                                     color.r,
+                                     color.g,
+                                     color.b );
                break;
           case DSPF_UYVY:
-               RGB_TO_YCBCR( state->color.r, state->color.g, 
-                             state->color.b, y, u, v );
+               RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                color2d = PIXEL_UYVY( y, u, v );
                break;
           case DSPF_YUY2:
-               RGB_TO_YCBCR( state->color.r, state->color.g,
-                             state->color.b, y, u, v );
+               RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                color2d = PIXEL_YUY2( y, u, v );
                break;
           default:
@@ -368,11 +371,37 @@ void r200_set_color( R200DriverData *rdrv,
                break;
      }
 
-     color3d = PIXEL_ARGB( state->color.a, state->color.r,
-                           state->color.g, state->color.b );
+     color3d = PIXEL_ARGB( color.a, color.r,
+                           color.g, color.b );
 
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( rdrv->mmio_base, DP_BRUSH_FRGD_CLR, color2d );
+     r200_out32( rdrv->mmio_base, R200_PP_TFACTOR_0, color3d );
+
+     R200_SET( COLOR );
+}
+
+void r200_set_blitting_color( R200DriverData *rdrv,
+                              R200DeviceData *rdev,
+                              CardState      *state )
+{
+     DFBColor color   = state->color;
+     __u32    color3d;
+
+     if (R200_IS_SET( COLOR ) && R200_IS_SET( BLITTING_FLAGS ))
+          return;
+
+     if (state->blittingflags & DSBLIT_COLORIZE &&
+         state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+          color3d = PIXEL_ARGB( color.a,
+                                color.r * color.a / 0xff,
+                                color.g * color.a / 0xff,
+                                color.b * color.a / 0xff );
+     } else
+          color3d = PIXEL_ARGB( color.a, color.r,
+                                color.g, color.b );
+
+     r200_waitfifo( rdrv, rdev, 1 );
      r200_out32( rdrv->mmio_base, R200_PP_TFACTOR_0, color3d );
 
      R200_SET( COLOR );
@@ -518,12 +547,20 @@ void r200_set_blittingflags( R200DriverData *rdrv,
           rb3d_cntl |= ALPHA_BLEND_ENABLE;
      }
      
-     if (state->blittingflags & DSBLIT_COLORIZE) {
+     if (state->blittingflags & DSBLIT_COLORIZE) { 
           if (rdev->src_format != DSPF_A8)
                cblend = R200_TXC_ARG_A_TFACTOR_COLOR | R200_TXC_ARG_B_R0_COLOR;
           else
                cblend = R200_TXC_ARG_C_TFACTOR_COLOR;
           
+          pp_cntl |= TEX_BLEND_0_ENABLE;
+     }
+     else if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+          if (rdev->src_format != DSPF_A8)
+               cblend = R200_TXC_ARG_A_TFACTOR_ALPHA | R200_TXC_ARG_B_R0_COLOR;
+          else
+               cblend = R200_TXC_ARG_C_R0_ALPHA;
+            
           pp_cntl |= TEX_BLEND_0_ENABLE;
      }
  
