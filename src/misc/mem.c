@@ -78,8 +78,8 @@ void* dfb_dbg_malloc( char* file, int line, char *func, size_t bytes )
 
      pthread_mutex_lock( &alloc_lock );
 
-     DEBUGMSG("DirectFB/mem: "
-              "allocating %7d bytes in %s (%s: %u)\n", bytes, func, file, line);
+     HEAVYDEBUGMSG("DirectFB/mem: "
+                   "allocating %7d bytes in %s (%s: %u)\n", bytes, func, file, line);
 
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
@@ -103,8 +103,8 @@ void* dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t byt
 
      pthread_mutex_lock( &alloc_lock );
 
-     DEBUGMSG("DirectFB/mem: allocating %7d bytes in %s (%s: %u)\n", 
-              count * bytes, func, file, line);
+     HEAVYDEBUGMSG("DirectFB/mem: allocating %7d bytes in %s (%s: %u)\n", 
+                   count * bytes, func, file, line);
 
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
@@ -164,8 +164,8 @@ char* dfb_dbg_strdup( char* file, int line, char *func, const char *string )
 
      pthread_mutex_lock( &alloc_lock );
 
-     DEBUGMSG("DirectFB/mem: allocating %7d bytes in %s (%s: %u)\n",
-              strlen( string ), func, file, line);
+     HEAVYDEBUGMSG("DirectFB/mem: allocating %7d bytes in %s (%s: %u)\n",
+                   strlen( string ), func, file, line);
 
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
