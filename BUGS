@@ -1,8 +1,6 @@
 different bugs and issues
 -------------------------
-- fix deinitialization deadlocks, especially caused by signal handling
-- fix planar pixel format blitting
-- fix blending onto ARGB surface in Matrox driver (G550 only)
+- sometimes a deadlock occurs in deinitialization done by the signal handler
 
 automake/autoconf etc.
 ----------------------
