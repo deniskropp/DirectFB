@@ -184,7 +184,7 @@ Configuring the Linux frame buffer device
    support modes listed in your /etc/fb.modes file. By default the first 
    entry found is used.
 
-   If you have a Matrox card you may try the vsync patch found in
+   If you have a Matrox card you may want to try the vsync patch found in
    the patches directory that enables applications to "idle wait" for the
    vertical retrace.
 
