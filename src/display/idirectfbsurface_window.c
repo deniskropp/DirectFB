@@ -160,7 +160,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      /* Check arguments */
-     if (!data->base.surface)
+     if (!data->base.surface || !data->window || !data->window->surface)
           return DFB_DESTROYED;
 
      if (!surface)
