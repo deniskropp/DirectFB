@@ -37,7 +37,6 @@
 
 static inline bool ensure_capacity( FusionVector *vector )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( vector->capacity > 0 );
 
@@ -80,7 +79,6 @@ fusion_vector_init( FusionVector *vector, int capacity )
 void
 fusion_vector_destroy( FusionVector *vector )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( vector->count == 0 || vector->elements != NULL );
 
@@ -96,7 +94,6 @@ FusionResult
 fusion_vector_add( FusionVector *vector,
                    void         *element )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( element != NULL );
 
@@ -115,7 +112,6 @@ fusion_vector_insert( FusionVector *vector,
                       void         *element,
                       int           index )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( element != NULL );
      D_ASSERT( index >= 0 );
@@ -140,10 +136,48 @@ fusion_vector_insert( FusionVector *vector,
 }
 
 FusionResult
+fusion_vector_move( FusionVector *vector,
+                    int           from,
+                    int           to )
+{
+     void *element;
+
+     D_MAGIC_ASSERT( vector, FusionVector );
+     D_ASSERT( from >= 0 );
+     D_ASSERT( from < vector->count );
+     D_ASSERT( to >= 0 );
+     D_ASSERT( to < vector->count );
+
+     if (to == from)
+          return FUSION_SUCCESS;
+
+     /* Save the element. */
+     element = vector->elements[from];
+
+     /* Move elements that lie on the way to the new position. */
+     if (to > from) {
+          /* Element is moving up -> move other elements down. */
+          memmove( &vector->elements[ from ],
+                   &vector->elements[ from + 1 ],
+                   (to - from) * sizeof(void*) );
+     }
+     else {
+          /* Element is moving down -> move other elements up. */
+          memmove( &vector->elements[ to + 1 ],
+                   &vector->elements[ to ],
+                   (from - to) * sizeof(void*) );
+     }
+
+     /* Restore the element at the new position. */
+     vector->elements[to] = element;
+
+     return FUSION_SUCCESS;
+}
+
+FusionResult
 fusion_vector_remove( FusionVector *vector,
                       int           index )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( index >= 0 );
      D_ASSERT( index < vector->count );
@@ -162,7 +196,6 @@ fusion_vector_remove( FusionVector *vector,
 FusionResult
 fusion_vector_remove_last( FusionVector *vector )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( vector->count > 0 );
 

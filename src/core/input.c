@@ -458,8 +458,7 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      event->device_id = device->shared->id;
 
      if (!core_input_filter( device, event ))
-          fusion_reactor_dispatch( device->shared->reactor, event,
-                                   true, dfb_input_globals );
+          fusion_reactor_dispatch( device->shared->reactor, event, true, dfb_input_globals );
 }
 
 DFBInputDeviceID

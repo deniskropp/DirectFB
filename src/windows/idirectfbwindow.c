@@ -84,8 +84,6 @@ typedef struct {
 
      IDirectFBSurface  *surface;
 
-     DFBWindowEvent    *position_size_event;
-
      struct {
           IDirectFBSurface  *shape;
           int                hot_x;
@@ -130,9 +128,6 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      if (data->cursor.shape)
           data->cursor.shape->Release( data->cursor.shape );
 
-     if (data->position_size_event)
-          D_FREE( data->position_size_event );
-
      D_DEBUG("IDirectFBWindow_Destruct - done.\n");
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -176,11 +171,7 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
 
      IDirectFBEventBuffer_AttachWindow( b, data->window );
 
-     if (data->position_size_event) {
-          dfb_window_post_event( data->window, data->position_size_event );
-          D_FREE( data->position_size_event );
-          data->position_size_event = NULL;
-     }
+     dfb_window_send_configuration( data->window );
 
      *buffer = b;
 
@@ -198,11 +189,7 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 
      IDirectFBEventBuffer_AttachWindow( buffer, data->window );
 
-     if (data->position_size_event) {
-          dfb_window_post_event( data->window, data->position_size_event );
-          D_FREE( data->position_size_event );
-          data->position_size_event = NULL;
-     }
+     dfb_window_send_configuration( data->window );
 
      return DFB_OK;
 }
@@ -857,20 +844,11 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      D_DEBUG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
                 window->x, window->y, window->width, window->height );
 
-     data->ref = 1;
+     data->ref    = 1;
      data->window = window;
      data->layer  = dfb_layer_at( window->stack->context->layer_id );
 
-     dfb_window_attach( window, IDirectFBWindow_React,
-                        data, &data->reaction );
-
-     if (init) {
-          DFBWindowEventType old_events = window->events;
-
-          window->events |= DWET_POSITION_SIZE;
-          dfb_window_init( window );
-          window->events = old_events;
-     }
+     dfb_window_attach( window, IDirectFBWindow_React, data, &data->reaction );
 
      thiz->AddRef = IDirectFBWindow_AddRef;
      thiz->Release = IDirectFBWindow_Release;
@@ -926,14 +904,6 @@ IDirectFBWindow_React( const void *msg_data,
      D_HEAVYDEBUG("IDirectFBWindow_React\n");
 
      switch (evt->type) {
-          case DWET_POSITION_SIZE:
-               if (!data->position_size_event)
-                    data->position_size_event = D_MALLOC( sizeof(DFBWindowEvent) );
-
-               *data->position_size_event = *evt;
-
-               break;
-
           case DWET_DESTROYED:
                D_DEBUG("IDirectFBWindow_React - window destroyed\n");
 

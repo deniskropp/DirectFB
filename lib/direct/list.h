@@ -29,19 +29,24 @@
 #define __DIRECT__LIST_H__
 
 #include <direct/types.h>
+#include <direct/debug.h>
 
 struct __D_DirectLink {
+     int         magic;
+
      DirectLink *next;
      DirectLink *prev; /* 'prev' of the first element points to the last element of the list ;) */
 };
 
-static inline void direct_list_prepend (DirectLink **list, DirectLink *link)
+static inline void direct_list_prepend( DirectLink **list, DirectLink *link )
 {
      DirectLink *first = *list;
 
      link->next = first;
 
      if (first) {
+          D_MAGIC_ASSERT( first, DirectLink );
+
           link->prev = first->prev;
 
           first->prev = link;
@@ -50,9 +55,11 @@ static inline void direct_list_prepend (DirectLink **list, DirectLink *link)
           link->prev = link;
 
      *list = link;
+
+     D_MAGIC_SET( link, DirectLink );
 }
 
-static inline void direct_list_append (DirectLink **list, DirectLink *link)
+static inline void direct_list_append( DirectLink **list, DirectLink *link )
 {
      DirectLink *first = *list;
 
@@ -61,38 +68,62 @@ static inline void direct_list_append (DirectLink **list, DirectLink *link)
      if (first) {
           DirectLink *last = first->prev;
 
+          D_MAGIC_ASSERT( first, DirectLink );
+          D_MAGIC_ASSERT( last, DirectLink );
+
           link->prev = last;
 
           last->next = first->prev = link;
      }
      else
           *list = link->prev = link;
+
+     D_MAGIC_SET( link, DirectLink );
 }
 
-static inline void direct_list_remove (DirectLink **list, DirectLink *link)
+static inline void direct_list_remove( DirectLink **list, DirectLink *link )
 {
      DirectLink *next = link->next;
      DirectLink *prev = link->prev;
 
-     if (next)
+     D_MAGIC_ASSERT( link, DirectLink );
+
+     if (next) {
+          D_MAGIC_ASSERT( next, DirectLink );
+
           next->prev = prev;
+     }
 
      if (link == *list)
           *list = next;
-     else
+     else {
+          D_MAGIC_ASSERT( prev, DirectLink );
+
           prev->next = next;
+     }
 
      link->next = link->prev = NULL;
+
+     D_MAGIC_CLEAR( link );
+}
+
+static inline bool direct_list_check_link( const DirectLink *link )
+{
+     D_ASSERT( link == NULL || link->magic == D_MAGIC( "DirectLink" ) );
+
+     return link != NULL;
 }
 
 
-#define direct_list_foreach(link, list) \
-     for (link = list; link; link = link->next)
+#define direct_list_foreach(elem, list)                     \
+     for (elem = (void*)(list);                             \
+          direct_list_check_link( (DirectLink*)(elem) );    \
+          elem = (void*)(((DirectLink*)(elem))->next))
 
-#define direct_list_foreach_safe(link, temp, list)         \
-     for (link = list, temp = (link ? link->next : NULL);  \
-          link;                                            \
-          link = temp, temp = (link ? link->next : NULL))
+#define direct_list_foreach_safe(elem, temp, list)                                             \
+     for (elem = (void*)(list), temp = ((elem) ? (void*)(((DirectLink*)(elem))->next) : NULL); \
+          direct_list_check_link( (DirectLink*)(elem) );                                       \
+          elem = (void*)(temp), temp = ((elem) ? (void*)(((DirectLink*)(elem))->next) : NULL))
 
 #endif
 

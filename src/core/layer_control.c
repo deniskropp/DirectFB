@@ -446,20 +446,19 @@ dfb_layer_remove_context( CoreLayer        *layer,
 
           /* Activate primary (shared) context. */
           if (ctxs->primary) {
-               if (shared->suspended ||
-                   dfb_layer_context_activate( ctxs->primary ) == DFB_OK)
-                    ctxs->active = fusion_vector_index_of( &ctxs->stack,
-                                                            ctxs->primary );
+               D_ASSERT( fusion_vector_contains( &ctxs->stack, ctxs->primary ) );
+
+               if (shared->suspended || dfb_layer_context_activate( ctxs->primary ) == DFB_OK)
+                    ctxs->active = fusion_vector_index_of( &ctxs->stack, ctxs->primary );
           }
-          else if (fusion_vector_size( &ctxs->stack ) > 0) {
+          else if (fusion_vector_has_elements( &ctxs->stack )) {
                CoreLayerContext *ctx;
 
                /* Activate most recent context. */
                index = fusion_vector_size( &ctxs->stack ) - 1;
                ctx   = fusion_vector_at( &ctxs->stack, index );
 
-               if (shared->suspended ||
-                   dfb_layer_context_activate( ctx ) == DFB_OK)
+               if (shared->suspended || dfb_layer_context_activate( ctx ) == DFB_OK)
                     ctxs->active = index;
           }
      }

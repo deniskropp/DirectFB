@@ -186,7 +186,8 @@ typedef enum {
      DFB_TEMPUNAVAIL,    /* Temporarily unavailable. */
      DFB_LIMITEXCEEDED,  /* Attempted to exceed limit, i.e. any kind of maximum size, count etc. */
      DFB_NOSUCHMETHOD,   /* Requested method is not known to remote site. */
-     DFB_NOSUCHINSTANCE  /* Requested instance is not known to remote site. */
+     DFB_NOSUCHINSTANCE, /* Requested instance is not known to remote site. */
+     DFB_ITEMNOTFOUND    /* No such item found. */
 } DFBResult;
 
 /*

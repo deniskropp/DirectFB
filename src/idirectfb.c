@@ -580,8 +580,6 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          dfb_window_attach( window, focus_listener,
                                             data, &data->primary.reaction );
 
-                         dfb_window_init( window );
-
                          init_palette( window->surface, desc );
 
                          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );

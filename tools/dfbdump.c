@@ -54,6 +54,7 @@
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h>
+#include <core/wm.h>
 
 static DirectFBPixelFormatNames( format_names );
 
@@ -298,9 +299,9 @@ dump_contexts( CoreLayer *layer )
      dfb_core_enum_layer_contexts( NULL, context_callback, layer );
 }
 
-static bool
-window_callback( CoreWindow      *window,
-                 CoreWindowStack *stack )
+static DFBEnumerationResult
+window_callback( CoreWindow *window,
+                 void       *ctx )
 {
      FusionResult ret;
      int          refs;
@@ -308,7 +309,7 @@ window_callback( CoreWindow      *window,
      ret = fusion_ref_stat( &window->object.ref, &refs );
      if (ret) {
           printf( "Fusion error %d!\n", ret );
-          return false;
+          return DFENUM_OK;
      }
 
 #if FUSION_BUILD_MULTI
@@ -359,21 +360,20 @@ window_callback( CoreWindow      *window,
      if (window->options & DWOP_GHOST)
           printf( "GHOST          " );
 
-     if (stack->focused_window == window)
+     if (DFB_WINDOW_FOCUSED( window ))
           printf( "FOCUSED        " );
 
-     if (window->destroyed)
+     if (DFB_WINDOW_DESTROYED( window ))
           printf( "DESTROYED      " );
 
      printf( "\n" );
 
-     return true;
+     return DFENUM_OK;
 }
 
 static void
 dump_windows( CoreLayer *layer )
 {
-     int               i;
      CoreLayerContext *context;
      CoreWindowStack  *stack;
 
@@ -388,16 +388,13 @@ dump_windows( CoreLayer *layer )
 
      dfb_windowstack_lock( stack );
 
-     if (stack->num_windows) {
+     if (stack->num) {
           printf( "\n"
                   "-----------------------------------[ Windows of Layer %d ]-----------------------------------\n", dfb_layer_id( layer ) );
           printf( "Reference  . Refs     X     Y   Width Height Opacity   ID     Capabilities   State & Options\n" );
           printf( "--------------------------------------------------------------------------------------------\n" );
 
-          for (i=stack->num_windows - 1; i>=0; i--) {
-               if (!window_callback( stack->windows[i], stack ))
-                    break;
-          }
+          dfb_wm_enum_windows( stack, window_callback, NULL );
      }
 
      dfb_windowstack_unlock( stack );

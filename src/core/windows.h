@@ -55,7 +55,7 @@ typedef enum {
                                                DWOP_COLORKEYING))
 
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
-                               (w)->opacity > 0 && !(w)->destroyed)
+                               (w)->opacity > 0 && !DFB_WINDOW_DESTROYED((w)))
 
 
 /*
@@ -81,12 +81,6 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
                    CoreWindow            **window );
-
-/*
- * must be called after dfb_window_create
- */
-void
-dfb_window_init( CoreWindow *window );
 
 /*
  * deinitializes a window and removes it from the window stack
@@ -165,7 +159,7 @@ dfb_window_set_opacity( CoreWindow *window,
 /*
  * repaints part of a window, if region is NULL the whole window is repainted
  */
-void
+DFBResult
 dfb_window_repaint( CoreWindow          *window,
                     DFBRegion           *region,
                     DFBSurfaceFlipFlags  flags,
@@ -190,6 +184,8 @@ DFBResult dfb_window_ungrab_key     ( CoreWindow                 *window,
                                       DFBInputDeviceModifierMask  modifiers );
 
 void dfb_window_post_event( CoreWindow *window, DFBWindowEvent *event );
+
+DFBResult dfb_window_send_configuration( CoreWindow *window );
 
 DFBWindowID dfb_window_id( const CoreWindow *window );
 

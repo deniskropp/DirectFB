@@ -28,6 +28,8 @@
 #ifndef __FUSION__VECTOR_H__
 #define __FUSION__VECTOR_H__
 
+#include <limits.h>
+
 #include <fusion/types.h>
 
 #include <direct/debug.h>
@@ -51,6 +53,10 @@ FusionResult fusion_vector_insert     ( FusionVector *vector,
                                         void         *element,
                                         int           index );
 
+FusionResult fusion_vector_move       ( FusionVector *vector,
+                                        int           from,
+                                        int           to );
+
 FusionResult fusion_vector_remove     ( FusionVector *vector,
                                         int           index );
 
@@ -58,9 +64,16 @@ FusionResult fusion_vector_remove_last( FusionVector *vector );
 
 
 static inline bool
-fusion_vector_empty( const FusionVector *vector )
+fusion_vector_has_elements( const FusionVector *vector )
 {
-     D_ASSERT( vector != NULL );
+     D_MAGIC_ASSERT( vector, FusionVector );
+
+     return vector->count > 0;
+}
+
+static inline bool
+fusion_vector_is_empty( const FusionVector *vector )
+{
      D_MAGIC_ASSERT( vector, FusionVector );
 
      return vector->count == 0;
@@ -69,7 +82,6 @@ fusion_vector_empty( const FusionVector *vector )
 static inline int
 fusion_vector_size( const FusionVector *vector )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
 
      return vector->count;
@@ -78,7 +90,6 @@ fusion_vector_size( const FusionVector *vector )
 static inline void *
 fusion_vector_at( const FusionVector *vector, int index )
 {
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( index >= 0 );
      D_ASSERT( index < vector->count );
@@ -87,44 +98,61 @@ fusion_vector_at( const FusionVector *vector, int index )
 }
 
 static inline bool
-fusion_vector_contains( const FusionVector *vector, void *element )
+fusion_vector_contains( const FusionVector *vector, const void *element )
 {
-     int i;
+     int           i;
+     int           count;
+     void * const *elements;
 
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( element != NULL );
 
+     count    = vector->count;
+     elements = vector->elements;
+
      /* Start with more recently added elements. */
-     for (i=vector->count-1; i>=0; i++)
-          if (vector->elements[i] == element)
+     for (i=count-1; i>=0; i--)
+          if (elements[i] == element)
                return true;
 
      return false;
 }
 
 static inline int
-fusion_vector_index_of( const FusionVector *vector, void *element )
+fusion_vector_index_of( const FusionVector *vector, const void *element )
 {
-     int i;
+     int           i;
+     int           count;
+     void * const *elements;
 
-     D_ASSERT( vector != NULL );
      D_MAGIC_ASSERT( vector, FusionVector );
      D_ASSERT( element != NULL );
 
+     count    = vector->count;
+     elements = vector->elements;
+
      /* Start with more recently added elements. */
-     for (i=vector->count-1; i>=0; i--)
-          if (vector->elements[i] == element)
+     for (i=count-1; i>=0; i--)
+          if (elements[i] == element)
                return i;
 
-     return -1;
+     /*
+      * In case the return value isn't checked
+      * this will most likely generate a bad address.
+      */
+     return INT_MIN >> 2;
 }
 
 
-#define fusion_vector_foreach(vector, index, element)                         \
+#define fusion_vector_foreach(element, index, vector)                         \
      for ((index) = 0;                                                        \
-          (index) < (vector)->count && (element = (vector)->elements[index]); \
+          (index) < (vector).count && (element = (vector).elements[index]);   \
           (index)++)
+
+#define fusion_vector_foreach_reverse(element, index, vector)                 \
+     for ((index) = (vector).count - 1;                                       \
+          (index) >= 0 && (element = (vector).elements[index]);               \
+          (index)--)
 
 #endif
 

@@ -107,8 +107,7 @@ stack_attach_devices( InputDevice *device,
 CoreWindowStack*
 dfb_windowstack_create( CoreLayerContext *context )
 {
-     int               i;
-     CoreWindowStack  *stack;
+     CoreWindowStack *stack;
 
      D_ASSERT( context != NULL );
 
@@ -128,13 +127,10 @@ dfb_windowstack_create( CoreLayerContext *context )
      /* Set default background mode. */
      stack->bg.mode = DLBM_COLOR;
 
-     for (i=0; i<8; i++)
-          stack->keys[i].code = -1;
+     dfb_wm_init_stack( stack );
 
      /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack );
-
-     dfb_wm_init_stack( stack );
 
      return stack;
 }
@@ -142,11 +138,9 @@ dfb_windowstack_create( CoreLayerContext *context )
 void
 dfb_windowstack_destroy( CoreWindowStack *stack )
 {
-     DirectLink *l, *next;
+     DirectLink *l;
 
      D_ASSERT( stack != NULL );
-
-     dfb_wm_close_stack( stack );
 
      /* Detach all input devices. */
      l = stack->devices;
@@ -166,18 +160,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      if (stack->cursor.window)
           dfb_window_unlink( &stack->cursor.window );
 
-     D_ASSUME( !stack->windows );
-
-     if (stack->windows) {
-          int i;
-
-          for (i=0; i<stack->num_windows; i++) {
-               D_WARN( "setting window->stack = NULL" );
-               stack->windows[i]->stack = NULL;
-          }
-
-          SHFREE( stack->windows );
-     }
+     dfb_wm_close_stack( stack );
 
      /* detach listener from background surface and unlink it */
      if (stack->bg.image) {
@@ -186,10 +169,6 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
 
           dfb_surface_unlink( &stack->bg.image );
      }
-
-     /* Free grabbed keys. */
-     direct_list_foreach_safe (l, next, stack->grabbed_keys)
-          SHFREE( l );
 
      /* Free stack data. */
      SHFREE( stack );
@@ -245,74 +224,29 @@ dfb_windowstack_unlock( CoreWindowStack *stack )
      return dfb_layer_context_unlock( stack->context );
 }
 
-/*
- * Returns the stacking index of the window within its stack
- * or -1 if not found.
- */
-int
-dfb_windowstack_get_window_index( CoreWindowStack *stack,
-                                  CoreWindow      *window )
+DFBResult
+dfb_windowstack_repaint_all( CoreWindowStack *stack )
 {
-     int          i;
-     int          num;
-     CoreWindow **windows;
+     DFBResult ret;
+     DFBRegion region;
 
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
-          return -1;
+          return DFB_FUSION;
 
-     num     = stack->num_windows;
-     windows = stack->windows;
+     region.x1 = 0;
+     region.y1 = 0;
+     region.x2 = stack->width  - 1;
+     region.y2 = stack->height - 1;
 
-     /* Lookup window. */
-     for (i=0; i<num; i++) {
-          if (windows[i] == window) {
-               /* Unlock the window stack. */
-               dfb_windowstack_unlock( stack );
-
-               /* Return the index. */
-               return i;
-          }
-     }
-
-     D_WARN( "window not found" );
+     ret = dfb_wm_update_stack( stack, &region, 0 );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
 
-     return -1;
-}
-
-void
-dfb_windowstack_flush_keys( CoreWindowStack *stack )
-{
-     int i;
-
-     D_ASSERT( stack != NULL );
-
-     /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
-          return;
-
-     for (i=0; i<8; i++) {
-          if (stack->keys[i].code != -1) {
-               DFBWindowEvent we;
-
-               we.type       = DWET_KEYUP;
-               we.key_code   = stack->keys[i].code;
-               we.key_id     = stack->keys[i].id;
-               we.key_symbol = stack->keys[i].symbol;
-
-               dfb_window_post_event( stack->keys[i].owner, &we );
-
-               stack->keys[i].code = -1;
-          }
-     }
-
-     /* Unlock the window stack. */
-     dfb_windowstack_unlock( stack );
+     return ret;
 }
 
 /*
@@ -612,50 +546,6 @@ dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *x, int *y )
      return DFB_OK;
 }
 
-DFBResult
-dfb_windowstack_switch_focus( CoreWindowStack *stack, CoreWindow *to )
-{
-     DFBWindowEvent  evt;
-     CoreWindow     *from;
-
-     D_ASSERT( stack != NULL );
-
-     /* Lock the window stack. */
-     if (dfb_windowstack_lock( stack ))
-          return DFB_FUSION;
-
-     from = stack->focused_window;
-
-     if (from == to) {
-          dfb_windowstack_unlock( stack );
-          return DFB_OK;
-     }
-
-     if (from) {
-          evt.type = DWET_LOSTFOCUS;
-          dfb_window_post_event( from, &evt );
-     }
-
-     if (to) {
-          if (to->surface && to->surface->palette && !stack->hw_mode) {
-               CoreSurface *surface = to->primary_region->surface;
-
-               if (surface && DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-                    dfb_surface_set_palette (surface, to->surface->palette);
-          }
-
-          evt.type = DWET_GOTFOCUS;
-          dfb_window_post_event( to, &evt );
-     }
-
-     stack->focused_window = to;
-
-     /* Unlock the window stack. */
-     dfb_windowstack_unlock( stack );
-
-     return DFB_OK;
-}
-
 /******************************************************************************/
 
 ReactionResult
@@ -864,7 +754,6 @@ create_cursor_window( CoreWindowStack *stack,
 
      dfb_window_unref( window );
 
-     dfb_window_init( window );
      dfb_window_set_opacity( window, stack->cursor.opacity );
 
      return DFB_OK;

@@ -70,7 +70,6 @@ libdirectfb_core_la_SOURCES = \
 	surfaces.c		\
 	surfacemanager.c	\
 	system.c		\
-	window_display.c	\
 	windows.c		\
 	windows_internal.h	\
 	windowstack.c		\

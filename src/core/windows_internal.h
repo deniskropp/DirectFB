@@ -41,52 +41,65 @@
 /*
  * Hidden capability for software cursor, window will be the "super topmost".
  */
-#define DWHC_TOPMOST     0x80000000
+#define DWHC_TOPMOST   0x80000000
+
+typedef enum {
+     CWF_NONE        = 0x00000000,
+
+     CWF_INITIALIZED = 0x00000001,
+     CWF_FOCUSED     = 0x00000002,
+     CWF_ENTERED     = 0x00000004,
+     CWF_DESTROYED   = 0x00000008,
+
+     CWF_ALL         = 0x0000000F
+} CoreWindowFlags;
+
+#define DFB_WINDOW_INITIALIZED(w)  ((w)->flags & CWF_INITIALIZED)
+#define DFB_WINDOW_FOCUSED(w)      ((w)->flags & CWF_FOCUSED)
+#define DFB_WINDOW_ENTERED(w)      ((w)->flags & CWF_ENTERED)
+#define DFB_WINDOW_DESTROYED(w)    ((w)->flags & CWF_DESTROYED)
 
 /*
- * a window
+ * Core data of a window.
  */
 struct __DFB_CoreWindow {
      FusionObject            object;
 
      DFBWindowID             id;
 
-     int                     fid;
+     int                     x;              /* x position in pixels */
+     int                     y;              /* y position in pixels */
+     int                     width;          /* width in pixels */
+     int                     height;         /* width in pixels */
 
-     int                     x;            /* x position in pixels */
-     int                     y;            /* y position in pixels */
-     int                     width;        /* width in pixels */
-     int                     height;       /* width in pixels */
+     CoreWindowFlags         flags;
 
      DFBRegion               opaque;
 
-     DFBWindowCapabilities   caps;         /* window capabilities, to enable
-                                              blending etc. */
+     DFBWindowCapabilities   caps;           /* window capabilities, to enable blending etc. */
 
-     DFBWindowOptions        options;      /* flags for appearance/behaviour */
-     DFBWindowEventType      events;       /* mask of enabled events */
+     DFBWindowOptions        options;        /* flags for appearance/behaviour */
+     DFBWindowEventType      events;         /* mask of enabled events */
 
-     DFBWindowStackingClass  stacking;
+     DFBWindowStackingClass  stacking;       /* level boundaries */
 
-     __u8                    opacity;      /* global alpha factor */
-     __u32                   color_key;    /* transparent pixel */
+     __u8                    opacity;        /* global alpha factor */
+     __u32                   color_key;      /* transparent pixel */
 
-     CoreSurface            *surface;      /* backing store surface */
+     CoreSurface            *surface;        /* backing store surface */
      GlobalReaction          surface_reaction;
 
-     CoreWindowStack        *stack;        /* window stack the window belongs */
-
-     bool                    initialized;  /* window has been inserted into
-                                              the stack */
-     bool                    destroyed;    /* window is (being) destroyed */
+     CoreWindowStack        *stack;          /* window stack the window belongs */
 
      CoreLayerRegion        *primary_region; /* default region of context */
 
-     CoreLayerRegion        *region;       /* hardware allocated window */
+     CoreLayerRegion        *region;         /* hardware allocated window */
+
+     void                   *window_data;    /* private data of window manager */
 };
 
 /*
- * a window stack
+ * Core data of a window stack.
  */
 struct __DFB_CoreWindowStack {
      CoreLayerContext   *context;
@@ -98,22 +111,7 @@ struct __DFB_CoreWindowStack {
 
      DFBWindowID         id_pool;
 
-     int                 num_windows;     /* number of windows on the stack */
-     CoreWindow        **windows;         /* array of windows */
-
-     CoreWindow         *pointer_window;  /* window grabbing the pointer */
-     CoreWindow         *keyboard_window; /* window grabbing the keyboard */
-     CoreWindow         *focused_window;  /* window having the focus */
-     CoreWindow         *entered_window;  /* window under the pointer */
-
-     DirectLink         *grabbed_keys;    /* List of currently grabbed keys. */
-
-     struct {
-          DFBInputDeviceKeySymbol      symbol;
-          DFBInputDeviceKeyIdentifier  id;
-          int                          code;
-          CoreWindow                  *owner;
-     } keys[8];
+     int                 num;
 
      struct {
           int            enabled;         /* is cursor enabled ? */

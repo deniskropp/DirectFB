@@ -133,6 +133,8 @@ DirectResultString( DirectResult result )
                return "No such (remote) method!";
           case DFB_NOSUCHINSTANCE:
                return "No such (remote) instance!";
+          case DFB_ITEMNOTFOUND:
+               return "Appropriate item not found!";
      }
 
      return "UNKNOWN RESULT CODE!";

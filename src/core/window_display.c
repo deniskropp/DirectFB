@@ -99,8 +99,7 @@ dfb_window_repaint( CoreWindow          *window,
           repaint_stack( stack, window->primary_region, &reg, flags );
      else
           repaint_stack_for_window( stack, window->primary_region, &reg, flags,
-                                    dfb_windowstack_get_window_index(stack,
-                                                                     window) );
+                                    dfb_windowstack_get_window_index(stack, window) );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );

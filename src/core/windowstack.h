@@ -46,21 +46,13 @@ void             dfb_windowstack_resize ( CoreWindowStack  *stack,
 
 FusionResult     dfb_windowstack_lock   ( CoreWindowStack  *stack );
 
-FusionResult    dfb_windowstack_unlock  ( CoreWindowStack  *stack );
+FusionResult     dfb_windowstack_unlock ( CoreWindowStack  *stack );
 
-
-int             dfb_windowstack_get_window_index( CoreWindowStack *stack,
-                                                  CoreWindow      *window );
 
 /*
  * repaints all window on a window stack
  */
-void dfb_windowstack_repaint_all( CoreWindowStack *stack );
-
-/*
- * Releases pressed keys.
- */
-void dfb_windowstack_flush_keys( CoreWindowStack *stack );
+DFBResult dfb_windowstack_repaint_all( CoreWindowStack *stack );
 
 /*
  * background handling
@@ -102,11 +94,5 @@ DFBResult dfb_windowstack_cursor_warp( CoreWindowStack *stack,
 DFBResult dfb_windowstack_get_cursor_position (CoreWindowStack *stack,
                                                int             *x,
                                                int             *y);
-
-/*
- * focus
- */
-DFBResult dfb_windowstack_switch_focus( CoreWindowStack *stack,
-                                        CoreWindow      *to );
 
 #endif

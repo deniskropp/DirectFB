@@ -38,6 +38,7 @@
 #include <core/system.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
+#include <core/wm.h>
 
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
@@ -201,7 +202,7 @@ dfb_layer_context_activate( CoreLayerContext *context )
      }
 
      /* Iterate through all regions. */
-     fusion_vector_foreach (&context->regions, index, region) {
+     fusion_vector_foreach (region, index, context->regions) {
           /* Activate each region. */
           if (dfb_layer_region_activate( region ))
                D_WARN( "could not activate region!" );
@@ -248,7 +249,7 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
      }
 
      /* Iterate through all regions. */
-     fusion_vector_foreach (&context->regions, index, region) {
+     fusion_vector_foreach (region, index, context->regions) {
           /* Deactivate each region. */
           dfb_layer_region_deactivate( region );
      }
@@ -263,7 +264,7 @@ dfb_layer_context_deactivate( CoreLayerContext *context )
           stack->active = false;
 
           /* Force release of all pressed keys. */
-          dfb_windowstack_flush_keys( stack );
+          dfb_wm_flush_keys( stack );
      }
 
      /* Unlock the context. */
@@ -327,14 +328,12 @@ dfb_layer_context_remove_region( CoreLayerContext *context,
           return DFB_OK;
      }
 
-     if (index >= 0) {
-          /* Remove region from vector. */
-          fusion_vector_remove( &context->regions, index );
+     /* Remove region from vector. */
+     fusion_vector_remove( &context->regions, index );
 
-          /* Check if the primary region is removed. */
-          if (region == context->primary.region)
-               context->primary.region = NULL;
-     }
+     /* Check if the primary region is removed. */
+     if (region == context->primary.region)
+          context->primary.region = NULL;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -980,34 +979,18 @@ dfb_layer_context_create_window( CoreLayerContext       *context,
 CoreWindow *
 dfb_layer_context_find_window( CoreLayerContext *context, DFBWindowID id )
 {
-     int               i;
-     CoreWindowStack  *stack;
-     int               num;
-     CoreWindow       *window = NULL;
-     CoreWindow      **windows;
+     CoreWindowStack *stack;
+     CoreWindow      *window;
 
      D_ASSERT( context != NULL );
-     D_ASSERT( context->stack );
+     D_ASSERT( context->stack != NULL );
 
      stack = context->stack;
 
      if (dfb_layer_context_lock( context ))
          return NULL;
 
-     num     = stack->num_windows;
-     windows = stack->windows;
-
-     for (i=num-1; i>=0; i--) {
-          if (windows[i]->id == id) {
-               /* don't hand out the cursor window */
-               if (! (windows[i]->caps & DWHC_TOPMOST))
-                    window = windows[i];
-
-               break;
-          }
-     }
-
-     if (window && dfb_window_ref( window ))
+     if (dfb_wm_window_lookup( stack, id, &window ) || dfb_window_ref( window ))
           window = NULL;
 
      dfb_layer_context_unlock( context );
