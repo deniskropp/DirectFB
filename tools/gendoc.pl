@@ -329,7 +329,8 @@ sub parse_enum
 #
 sub parse_struct
    {
-      %entries = ();
+      @entries = (); 
+      %entries_params = ();
       %entries_types = ();
 
       while (<>)
@@ -357,7 +358,8 @@ sub parse_struct
                         $entries_types{$entry} = "$type";
                      }
 
-                  $entries{ $entry } = "";
+		  push (@entries, $entry);
+                  $entries_params{ $entry } = "";
                }
             # complete one line entry
             elsif ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*\/\*\s*(.+)\*\/\s*$/ )
@@ -381,7 +383,8 @@ sub parse_struct
                         $entries_types{$entry} = "$type";
                      }
 
-                  $entries{ $entry } = $text;
+		  push (@entries, $entry);
+                  $entries_params{ $entry } = $text;
                }
             # with comment opening
             elsif ( /^\s*([\w\ ]+)\s+(\**\w+;)\s*\/\*\s*(.+)\s*$/ )
@@ -405,7 +408,8 @@ sub parse_struct
                         $entries_types{$entry} = "$type";
                      }
 
-                  $entries{ $entry } = $text;
+		  push (@entries, $entry);
+                  $entries_params{ $entry } = $text;
 
                   while (<>)
                      {
@@ -413,12 +417,12 @@ sub parse_struct
 
                         if ( /^\s*(.+)\*\/\s*$/ )
                            {
-                              $entries{ $entry } .= " $1";
+                              $entries_params{ $entry } .= " $1";
                               last;
                            }
                         elsif ( /^\s*(.+)\s*$/ )
                            {
-                              $entries{ $entry } .= " $1";
+                              $entries_params{ $entry } .= " $1";
                            }
                      }
                }
@@ -432,7 +436,7 @@ sub parse_struct
                }
          }
 
-      if (keys %entries)
+      if (scalar @entries > 0)
          {
             print TYPES "<br><br>",
                         "<a name=$struct>",
@@ -441,14 +445,14 @@ sub parse_struct
             print TYPES "<P>\n",
                         "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#E0E0E0>\n";
 
-            foreach $key (sort keys %entries)
+            foreach $key (@entries)
                {
                   print TYPES "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
                               "      $entries_types{$key}\n",
                               "    </TD><TD valign=top>\n",
                               "      <FONT color=black><B>$key</B></FONT>\n",
                               "    </TD><TD valign=top>\n",
-                              "      <font color=#404040>$entries{$key}</font>\n",
+                              "      <font color=#404040>$entries_params{$key}</font>\n",
                               "    </TD></TR>\n";
                }
 
