@@ -29,7 +29,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <linux/i2c-dev.h>
+
+#include "i2c-dev.h"
 
 #include <misc/memcpy.h>
 #include <misc/util.h>
