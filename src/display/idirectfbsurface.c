@@ -1500,7 +1500,6 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
                        const char         *directory,
                        const char         *prefix )
 {
-     DFBResult    ret;
      CoreSurface *surface;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
