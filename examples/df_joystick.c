@@ -57,7 +57,8 @@ typedef struct _Particle
 Particle *particles = NULL;
 Particle *last_particle = NULL;
 
-int enum_devices_callback( unsigned int id, DFBInputDeviceDescription desc )
+int enum_devices_callback( unsigned int id,
+                           DFBInputDeviceDescription desc, void *data )
 {
      unsigned int type = id >> 8;
 
@@ -147,7 +148,7 @@ int main( int argc, char *argv[] )
      if (DirectFBCreate( &argc, &argv, &dfb )  !=  DFB_OK)
           return 1;
 
-     err = dfb->EnumInputDevices( dfb, enum_devices_callback );
+     err = dfb->EnumInputDevices( dfb, enum_devices_callback, NULL );
      if (err != DFB_OK) {
           DirectFBError( "IDirectFBInput->EnumDevices failed", err );
           dfb->Release( dfb );

@@ -145,7 +145,8 @@ DFBResult IDirectFB_GetCardCapabilities( IDirectFB               *thiz,
 }
 
 DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
-                                    DFBVideoModeCallback callbackfunc )
+                                    DFBVideoModeCallback callbackfunc,
+                                    void *callbackdata )
 {
      VideoMode *m = display->modes;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
@@ -157,7 +158,7 @@ DFBResult IDirectFB_EnumVideoModes( IDirectFB *thiz,
           return DFB_INVARG;
 
      while (m) {
-          callbackfunc( m->xres, m->yres, m->bpp );
+          callbackfunc( m->xres, m->yres, m->bpp, callbackdata );
 
           m = m->next;
      }
@@ -308,7 +309,7 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
 
 DFBResult IDirectFB_EnumDisplayLayers( IDirectFB *thiz,
                                        DFBDisplayLayerCallback callbackfunc,
-				       void *callbackdata )
+                                       void *callbackdata )
 {
      DisplayLayer *dl = layers;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
@@ -357,7 +358,8 @@ DFBResult IDirectFB_GetDisplayLayer( IDirectFB *thiz, unsigned int id,
 }
 
 DFBResult IDirectFB_EnumInputDevices( IDirectFB *thiz,
-                                      DFBInputDeviceCallback callbackfunc )
+                                      DFBInputDeviceCallback callbackfunc,
+                                      void *callbackdata )
 {
      InputDevice *d = inputdevices;
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
@@ -369,7 +371,7 @@ DFBResult IDirectFB_EnumInputDevices( IDirectFB *thiz,
           return DFB_INVARG;
 
      while (d) {
-          callbackfunc( d->id, d->desc );
+          callbackfunc( d->id, d->desc, callbackdata );
           d = d->next;
      }
 

@@ -451,7 +451,8 @@ extern "C"
      typedef int (*DFBVideoModeCallback) (
           unsigned int                       width,
           unsigned int                       height,
-          unsigned int                       bpp
+          unsigned int                       bpp,
+          void                               *callbackdata
      );
 
      /*
@@ -461,7 +462,7 @@ extern "C"
      typedef int (*DFBDisplayLayerCallback) (
           unsigned int                       id,
           DFBDisplayLayerCapabilities        caps,
-	  void                              *callbackdata
+          void                               *callbackdata
      );
 
      /*
@@ -470,7 +471,8 @@ extern "C"
       */
      typedef int (*DFBInputDeviceCallback) (
           unsigned int                       id,
-          DFBInputDeviceDescription          desc
+          DFBInputDeviceDescription          desc,
+          void                               *callbackdata
      );
 
      /*
@@ -533,7 +535,8 @@ extern "C"
            */
           DFBResult (*EnumVideoModes) (
                IDirectFB                *thiz,
-               DFBVideoModeCallback     callback
+               DFBVideoModeCallback     callback,
+               void                     *callbackdata
           );
 
 
@@ -577,7 +580,8 @@ extern "C"
            */
           DFBResult (*EnumInputDevices) (
                IDirectFB                *thiz,
-               DFBInputDeviceCallback   callback
+               DFBInputDeviceCallback   callback,
+               void                     *callbackdata
           );
 
           /*
