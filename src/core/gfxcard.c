@@ -483,6 +483,9 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 
           /* Add the function to 'checked functions'. */
           state->checked |= accel;
+
+          /* Add additional functions the driver might have checked, too. */
+          state->checked |= state->accel;
      }
 
      /* Return whether the function bit is set. */
