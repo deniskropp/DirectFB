@@ -421,6 +421,8 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 
 	SurfaceBuffer *front_buffer = surface->front_buffer;
 
+        DFBSurfacePixelFormat primary_format;
+
 	drw_w = config->dest.w;
 	drw_h = config->dest.h;
 	src_w = surface->width;
@@ -604,5 +606,23 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	i810ovl->regs->awinpos = i810ovl->regs->dwinpos;
 	i810ovl->regs->awinsz = i810ovl->regs->dwinsz;
 
-	return;
+
+        /*
+         * Destination color keying.
+         */
+
+        primary_format = dfb_primary_layer_pixelformat();
+
+        i810ovl->regs->dclrkv = dfb_color_to_pixel( primary_format,
+                                                    config->dst_key.r,
+                                                    config->dst_key.g,
+                                                    config->dst_key.b );
+
+        i810ovl->regs->dclrkm = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;
+
+        if (config->options & DLOP_DST_COLORKEY)
+             i810ovl->regs->dclrkm |= 0x80000000;
+	
+
+        return;
 }
