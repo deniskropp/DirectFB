@@ -33,6 +33,7 @@
 #include <fcntl.h>
 
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 
@@ -80,7 +81,8 @@ fusion_init()
      }
 
      /* Open Fusion Kernel Device. */
-     fusion_fd = dfb_try_open ("/dev/fusion", "/dev/misc/fusion", O_RDWR);
+     fusion_fd = dfb_try_open ("/dev/fusion",
+                               "/dev/misc/fusion", O_RDWR | O_NONBLOCK);
      if (fusion_fd < 0)
           return -1;
 
@@ -167,14 +169,34 @@ fusion_get_millis()
 static void *
 fusion_read_loop( CoreThread *thread, void *arg )
 {
-     int  len;
-     char buf[1024];
+     int    len = 0, result;
+     char   buf[1024];
+     fd_set set;
 
+     FD_ZERO(&set);
+     FD_SET(fusion_fd,&set);
+     
      FDEBUG( "entering loop...\n" );
 
-     while ((len = read (fusion_fd, buf, 1024)) > 0 || errno == EINTR) {
+     while ((result = select (fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
+            errno == EINTR)
+     {
           char *buf_p = buf;
 
+          dfb_thread_testcancel( thread );
+          
+          FD_ZERO(&set);
+          FD_SET(fusion_fd,&set);
+          
+          if (result <= 0)
+               continue;
+          
+          FDEBUG( "going to read...\n" );
+          
+          len = read (fusion_fd, buf, 1024);
+          
+          FDEBUG( "read %d bytes.\n", len );
+          
           dfb_thread_testcancel( thread );
           
           while (buf_p < buf + len) {
