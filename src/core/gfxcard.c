@@ -1691,12 +1691,37 @@ dfb_gfxcard_surface_manager()
 }
 
 void
-dfb_gfxcard_get_capabilities( CardCapabilities *caps )
+dfb_gfxcard_get_capabilities( CardCapabilities *ret_caps )
 {
      D_ASSERT( card != NULL );
 
-     *caps = card->caps;
+     D_ASSERT( ret_caps != NULL );
+
+     *ret_caps = card->caps;
 }
+
+void
+dfb_gfxcard_get_device_info( GraphicsDeviceInfo *ret_info )
+{
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+
+     D_ASSERT( ret_info != NULL );
+
+     *ret_info = card->shared->device_info;
+}
+
+void
+dfb_gfxcard_get_driver_info( GraphicsDriverInfo *ret_info )
+{
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+
+     D_ASSERT( ret_info != NULL );
+
+     *ret_info = card->shared->driver_info;
+}
+
 
 int
 dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )

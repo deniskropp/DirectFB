@@ -284,22 +284,33 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
 }
 
 static DFBResult
-IDirectFB_GetCardCapabilities( IDirectFB           *thiz,
-                               DFBCardCapabilities *caps )
+IDirectFB_GetDeviceDescription( IDirectFB                    *thiz,
+                                DFBGraphicsDeviceDescription *ret_desc )
 {
-     CardCapabilities card_caps;
+     GraphicsDeviceInfo device_info;
+     GraphicsDriverInfo driver_info;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
-     if (!caps)
+     if (!ret_desc)
           return DFB_INVARG;
 
-     dfb_gfxcard_get_capabilities( &card_caps );
+     dfb_gfxcard_get_device_info( &device_info );
+     dfb_gfxcard_get_driver_info( &driver_info );
 
-     caps->acceleration_mask = card_caps.accel;
-     caps->blitting_flags    = card_caps.blitting;
-     caps->drawing_flags     = card_caps.drawing;
-     caps->video_memory      = dfb_gfxcard_memory_length();
+     ret_desc->acceleration_mask = device_info.caps.accel;
+     ret_desc->blitting_flags    = device_info.caps.blitting;
+     ret_desc->drawing_flags     = device_info.caps.drawing;
+     ret_desc->video_memory      = dfb_gfxcard_memory_length();
+
+     snprintf( ret_desc->name,   DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH, device_info.name );
+     snprintf( ret_desc->vendor, DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH, device_info.vendor );
+
+     ret_desc->driver.major = driver_info.version.major;
+     ret_desc->driver.minor = driver_info.version.minor;
+
+     snprintf( ret_desc->driver.name,   DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,   driver_info.name );
+     snprintf( ret_desc->driver.vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH, driver_info.vendor );
 
      return DFB_OK;
 }
@@ -1236,7 +1247,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;
      thiz->SetCooperativeLevel = IDirectFB_SetCooperativeLevel;
-     thiz->GetCardCapabilities = IDirectFB_GetCardCapabilities;
+     thiz->GetDeviceDescription = IDirectFB_GetDeviceDescription;
      thiz->EnumVideoModes = IDirectFB_EnumVideoModes;
      thiz->SetVideoMode = IDirectFB_SetVideoMode;
      thiz->CreateSurface = IDirectFB_CreateSurface;

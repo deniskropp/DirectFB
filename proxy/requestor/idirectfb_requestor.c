@@ -131,8 +131,8 @@ IDirectFB_Requestor_SetCooperativeLevel( IDirectFB           *thiz,
 }
 
 static DFBResult
-IDirectFB_Requestor_GetCardCapabilities( IDirectFB           *thiz,
-                                         DFBCardCapabilities *ret_caps )
+IDirectFB_Requestor_GetDeviceDescription( IDirectFB                    *thiz,
+                                          DFBGraphicsDeviceDescription *ret_desc )
 {
      DirectResult           ret;
      VoodooResponseMessage *response;
@@ -140,7 +140,7 @@ IDirectFB_Requestor_GetCardCapabilities( IDirectFB           *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
      ret = voodoo_manager_request( data->manager, data->instance,
-                                   IDIRECTFB_METHOD_ID_GetCardCapabilities, VREQ_RESPOND, &response,
+                                   IDIRECTFB_METHOD_ID_GetDeviceDescription, VREQ_RESPOND, &response,
                                    VMBT_NONE );
      if (ret)
           return ret;
@@ -150,7 +150,7 @@ IDirectFB_Requestor_GetCardCapabilities( IDirectFB           *thiz,
           VoodooMessageParser parser;
 
           VOODOO_PARSER_BEGIN( parser, response );
-          VOODOO_PARSER_READ_DATA( parser, ret_caps, sizeof(DFBCardCapabilities) );
+          VOODOO_PARSER_READ_DATA( parser, ret_desc, sizeof(DFBGraphicsDeviceDescription) );
           VOODOO_PARSER_END( parser );
      }
 
@@ -863,7 +863,7 @@ Construct( IDirectFB *thiz, const char *host, int session )
      thiz->AddRef                  = IDirectFB_Requestor_AddRef;
      thiz->Release                 = IDirectFB_Requestor_Release;
      thiz->SetCooperativeLevel     = IDirectFB_Requestor_SetCooperativeLevel;
-     thiz->GetCardCapabilities     = IDirectFB_Requestor_GetCardCapabilities;
+     thiz->GetDeviceDescription    = IDirectFB_Requestor_GetDeviceDescription;
      thiz->EnumVideoModes          = IDirectFB_Requestor_EnumVideoModes;
      thiz->SetVideoMode            = IDirectFB_Requestor_SetVideoMode;
      thiz->CreateSurface           = IDirectFB_Requestor_CreateSurface;

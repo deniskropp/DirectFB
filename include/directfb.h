@@ -695,16 +695,6 @@ typedef enum {
 #define DFB_BLITTING_FUNCTION(a)   ((a) & 0xFFFF0000)
 
 /*
- * Rough information about hardware capabilities.
- */
-typedef struct {
-     DFBAccelerationMask     acceleration_mask;   /* drawing/blitting functions */
-     DFBSurfaceDrawingFlags  drawing_flags;       /* drawing flags */
-     DFBSurfaceBlittingFlags blitting_flags;      /* blitting flags */
-     unsigned int            video_memory;        /* amount of video memory in bytes */
-} DFBCardCapabilities;
-
-/*
  * Type of display layer for basic classification.
  * Values may be or'ed together.
  */
@@ -1129,6 +1119,38 @@ typedef struct {
      char vendor[DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH]; /* Device vendor */
 } DFBInputDeviceDescription;
 
+
+#define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH    40
+#define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH  60
+
+typedef struct {
+     int  major;                                          /* Major version */
+     int  minor;                                          /* Minor version */
+
+     char name[DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH];     /* Driver name */
+     char vendor[DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH]; /* Driver vendor */
+} DFBGraphicsDriverInfo;
+
+#define DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH    48
+#define DFB_GRAPHICS_DEVICE_DESC_VENDOR_LENGTH  64
+
+/*
+ * Description of the graphics device capabilities.
+ */
+typedef struct {
+     DFBAccelerationMask      acceleration_mask;          /* Accelerated functions */
+
+     DFBSurfaceBlittingFlags  blitting_flags;             /* Supported blitting flags */
+     DFBSurfaceDrawingFlags   drawing_flags;              /* Supported drawing flags */
+
+     unsigned int             video_memory;               /* Amount of video memory in bytes */
+
+     char name[DFB_GRAPHICS_DEVICE_DESC_NAME_LENGTH];     /* Device/Chipset name */
+     char vendor[DFB_GRAPHICS_DEVICE_DESC_VENDOR_LENGTH]; /* Device vendor */
+
+     DFBGraphicsDriverInfo    driver;
+} DFBGraphicsDeviceDescription;
+
 /*
  * Description of the window that is to be created.
  */
@@ -1350,15 +1372,14 @@ DEFINE_INTERFACE(   IDirectFB,
    /** Hardware capabilities **/
 
      /*
-      * Get a rough description of all drawing/blitting functions
-      * along with drawing/blitting flags supported by the hardware.
+      * Get a description of the graphics device.
       *
       * For more detailed information use
       * IDirectFBSurface::GetAccelerationMask().
       */
-     DFBResult (*GetCardCapabilities) (
-          IDirectFB                *thiz,
-          DFBCardCapabilities      *ret_caps
+     DFBResult (*GetDeviceDescription) (
+          IDirectFB                    *thiz,
+          DFBGraphicsDeviceDescription *ret_desc
      );
 
      /*

@@ -107,9 +107,9 @@ main( int argc, char *argv[] )
 static void
 init_application( int *argc, char **argv[] )
 {
-     DFBResult             ret;
-     DFBSurfaceDescription desc;
-     DFBCardCapabilities   caps;
+     DFBResult                    ret;
+     DFBSurfaceDescription        desc;
+     DFBGraphicsDeviceDescription dev_desc;
 
      /* Initialize DirectFB including command line parsing. */
      ret = DirectFBInit( argc, argv );
@@ -125,9 +125,9 @@ init_application( int *argc, char **argv[] )
           exit_application( 2 );
      }
 
-     dfb->GetCardCapabilities( dfb, &caps );
+     dfb->GetDeviceDescription( dfb, &dev_desc );
 
-     video_total = caps.video_memory;
+     video_total = dev_desc.video_memory;
 
      /* Request fullscreen mode. */
      //dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );

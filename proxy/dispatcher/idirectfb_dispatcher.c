@@ -142,12 +142,12 @@ IDirectFB_Dispatcher_SetCooperativeLevel( IDirectFB           *thiz,
 }
 
 static DFBResult
-IDirectFB_Dispatcher_GetCardCapabilities( IDirectFB           *thiz,
-                                          DFBCardCapabilities *caps )
+IDirectFB_Dispatcher_GetDeviceDescription( IDirectFB                    *thiz,
+                                           DFBGraphicsDeviceDescription *ret_desc )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     if (!caps)
+     if (!ret_desc)
           return DFB_INVARG;
 
 
@@ -520,21 +520,21 @@ Dispatch_SetCooperativeLevel( IDirectFB *thiz, IDirectFB *real,
 }
 
 static DirectResult
-Dispatch_GetCardCapabilities( IDirectFB *thiz, IDirectFB *real,
-                              VoodooManager *manager, VoodooRequestMessage *msg )
+Dispatch_GetDeviceDescription( IDirectFB *thiz, IDirectFB *real,
+                               VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult        ret;
-     DFBCardCapabilities caps;
+     DirectResult                 ret;
+     DFBGraphicsDeviceDescription desc;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
-     ret = real->GetCardCapabilities( real, &caps );
+     ret = real->GetDeviceDescription( real, &desc );
      if (ret)
           return ret;
 
      return voodoo_manager_respond( manager, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
-                                    VMBT_DATA, sizeof(DFBCardCapabilities), &caps,
+                                    VMBT_DATA, sizeof(DFBGraphicsDeviceDescription), &desc,
                                     VMBT_NONE );
 }
 
@@ -988,8 +988,8 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
           case IDIRECTFB_METHOD_ID_SetCooperativeLevel:
                return Dispatch_SetCooperativeLevel( dispatcher, real, manager, msg );
 
-          case IDIRECTFB_METHOD_ID_GetCardCapabilities:
-               return Dispatch_GetCardCapabilities( dispatcher, real, manager, msg );
+          case IDIRECTFB_METHOD_ID_GetDeviceDescription:
+               return Dispatch_GetDeviceDescription( dispatcher, real, manager, msg );
 
           case IDIRECTFB_METHOD_ID_SetVideoMode:
                return Dispatch_SetVideoMode( dispatcher, real, manager, msg );
@@ -1079,7 +1079,7 @@ Construct( IDirectFB *thiz, VoodooManager *manager, VoodooInstanceID *ret_instan
      thiz->AddRef                  = IDirectFB_Dispatcher_AddRef;
      thiz->Release                 = IDirectFB_Dispatcher_Release;
      thiz->SetCooperativeLevel     = IDirectFB_Dispatcher_SetCooperativeLevel;
-     thiz->GetCardCapabilities     = IDirectFB_Dispatcher_GetCardCapabilities;
+     thiz->GetDeviceDescription    = IDirectFB_Dispatcher_GetDeviceDescription;
      thiz->EnumVideoModes          = IDirectFB_Dispatcher_EnumVideoModes;
      thiz->SetVideoMode            = IDirectFB_Dispatcher_SetVideoMode;
      thiz->CreateSurface           = IDirectFB_Dispatcher_CreateSurface;

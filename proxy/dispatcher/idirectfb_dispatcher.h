@@ -33,7 +33,7 @@
 #define IDIRECTFB_METHOD_ID_AddRef                     1
 #define IDIRECTFB_METHOD_ID_Release                    2
 #define IDIRECTFB_METHOD_ID_SetCooperativeLevel        3
-#define IDIRECTFB_METHOD_ID_GetCardCapabilities        4
+#define IDIRECTFB_METHOD_ID_GetDeviceDescription       4
 #define IDIRECTFB_METHOD_ID_EnumVideoModes             5
 #define IDIRECTFB_METHOD_ID_SetVideoMode               6
 #define IDIRECTFB_METHOD_ID_CreateSurface              7
