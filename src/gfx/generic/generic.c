@@ -109,11 +109,16 @@ static void Cop_to_Dop_8()
 
 static void Cop_to_Dop_16()
 {
-     int    w = Dlength;
-     __u16 *D = (__u16*)Dop;
-
+     int    w = (Dlength >> 1);
+     __u32 *D = (__u32*)Dop;
+     
+     __u32 DCop = ((Cop << 16) | Cop);
+		 	
      while (w--)
-          *D++ = (__u16)Cop;
+          *D++ = DCop;
+					 	
+     if (Dlength & 1) 
+          *((__u16*)D) = (__u16)Cop;
 }
 
 static void Cop_to_Dop_24()
