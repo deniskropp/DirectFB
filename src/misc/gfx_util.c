@@ -25,7 +25,6 @@
 */
 
 #include <stdlib.h>
-#include <math.h>
 
 #include <directfb.h>
 
@@ -185,7 +184,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           filter->x_offset = 0.5 * (1/x_scale - 1);
      }
      else {                    /* Tile */
-          n_x = ceil (1.0 + 1.0 / x_scale);
+          n_x = ICEIL (1.0 + 1.0 / x_scale);
           filter->x_offset = 0.0;
      }
 
@@ -194,7 +193,7 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, double x_scale,
           filter->y_offset = 0.5 * (1/y_scale - 1);
      }
      else {                    /* Tile */
-          n_y = ceil (1.0 + 1.0/y_scale);
+          n_y = ICEIL (1.0 + 1.0/y_scale);
           filter->y_offset = 0.0;
      }
 
@@ -426,8 +425,8 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
      if (! bilinear_make_fast_weights( &filter, scale_x, scale_y ))
           return;
 
-     scaled_x_offset = floor( filter.x_offset * (1 << SCALE_SHIFT) );
-     y = floor( filter.y_offset * (1 << SCALE_SHIFT) );
+     scaled_x_offset = IFLOOR( filter.x_offset * (1 << SCALE_SHIFT) );
+     y = IFLOOR( filter.y_offset * (1 << SCALE_SHIFT) );
 
      for (i = 0; i < dh; i++) {
           int x_start;
@@ -522,8 +521,8 @@ void scale_nearest_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
                __u32 q;
                int sx, sy;
 
-               sx = floor((float)x*hscale + 0.5f);
-               sy = floor((float)y*vscale + 0.5f);
+               sx = IFLOOR((float)x*hscale + 0.5f);
+               sy = IFLOOR((float)y*vscale + 0.5f);
 
                q = src[sy * sw + sx];
 
@@ -749,9 +748,9 @@ void clip_stretchblit( DFBRegion *clip,
                              (srect->h / (float)orig_dst.h) + 0.5f );
      
      if (drect->w != orig_dst.w)
-          srect->w = ceil(srect->w * (drect->w / (float)orig_dst.w));
+          srect->w = ICEIL(srect->w * (drect->w / (float)orig_dst.w));
 
      if (drect->h != orig_dst.h)
-          srect->h = ceil(srect->h * (drect->h / (float)orig_dst.h));
+          srect->h = ICEIL(srect->h * (drect->h / (float)orig_dst.h));
 }
 

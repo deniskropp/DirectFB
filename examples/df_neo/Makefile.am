@@ -22,7 +22,7 @@ CFLAGS = $(DFB_CFLAGS)
 
 LIBADDS = \
 	$(top_builddir)/src/libdirectfb.la \
-	$(DFB_LDFLAGS)
+	$(DFB_LDFLAGS) -lm
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@/examples\"

@@ -84,17 +84,6 @@ if test "x$GCC" = xyes; then
 fi
 
 
-AC_MSG_CHECKING([if linking against libm is required])
-AC_TRY_RUN([ #include <math.h>
-             int main (void) { double x = ceil (1.1); return 0; } ],
-  AC_MSG_RESULT(no), 
-  LIBS="$LIBS -lm"
-  AC_MSG_RESULT(yes),
-  LIBS="$LIBS -lm"
-  AC_MSG_RESULT(yes))
-
-
-
 dnl compiling for x86, asm checks and inb/outb/iopl
 case "$host" in
 i*86-*-*) have_x86=on ;;

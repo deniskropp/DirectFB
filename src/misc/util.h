@@ -55,4 +55,78 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
 int rectangle_intersect( DFBRectangle *rectangle,
                          DFBRectangle *clip );
 
+
+
+/* floor and ceil implementation to get rid of libm */
+
+
+/*
+ IEEE floor for computers that round to nearest or even.
+
+ 'f' must be between -4194304 and 4194303.
+
+ This floor operation is done by "(iround(f + .5) + iround(f - .5)) >> 1",
+ but uses some IEEE specific tricks for better speed.
+*/
+static inline int IFLOOR(float f)
+{
+        int ai, bi;
+        double af, bf;
+
+        af = (3 << 22) + 0.5 + (double)f;
+        bf = (3 << 22) + 0.5 - (double)f;
+
+#if defined(__GNUC__) && defined(__i386__)
+        /*
+         GCC generates an extra fstp/fld without this.
+        */
+        asm ("fstps %0" : "=m" (ai) : "t" (af) : "st");
+        asm ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
+#else
+        {
+                union { int i; float f; } u;
+                u.f = af; ai = u.i;
+                u.f = bf; bi = u.i;
+        }
+#endif
+
+        return (ai - bi) >> 1;
+}
+
+
+/*
+ IEEE ceil for computers that round to nearest or even.
+
+ 'f' must be between -4194304 and 4194303.
+
+ This ceil operation is done by "(iround(f + .5) + iround(f - .5) + 1) >> 1",
+ but uses some IEEE specific tricks for better speed.
+*/
+static inline int ICEIL(float f)
+{
+        int ai, bi;
+        double af, bf;
+
+        af = (3 << 22) + 0.5 + (double)f;
+        bf = (3 << 22) + 0.5 - (double)f;
+
+#if defined(__GNUC__) && defined(__i386__)
+        /*
+         GCC generates an extra fstp/fld without this.
+        */
+        asm ("fstps %0" : "=m" (ai) : "t" (af) : "st");
+        asm ("fstps %0" : "=m" (bi) : "t" (bf) : "st");
+#else
+        {
+                union { int i; float f; } u;
+                u.f = af; ai = u.i;
+                u.f = bf; bi = u.i;
+        }
+#endif
+
+        return (ai - bi + 1) >> 1;
+}
+
+
+
 #endif

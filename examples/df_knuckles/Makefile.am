@@ -12,7 +12,7 @@ LIBADDS = \
 bin_PROGRAMS = df_knuckles
 
 df_knuckles_SOURCES = df_knuckles.c matrix.c matrix.h skull.h
-df_knuckles_LDADD  = $(LIBADDS)
+df_knuckles_LDADD  = $(LIBADDS) -lm
 
 .PHONY: files
 
