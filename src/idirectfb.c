@@ -244,7 +244,7 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                                    IDirectFBSurface **interface )
 {
      DFBResult ret;
-     unsigned int width = 400;
+     unsigned int width = 300;
      unsigned int height = 300;
      int policy = CSP_VIDEOLOW;
      DFBSurfacePixelFormat format = layers->surface->format;
@@ -296,12 +296,12 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                          window = window_create( layers->windowstack, 0, 0,
                                                  data->primary.width,
                                                  data->primary.height,
-                                                 DWCAPS_ALPHACHANNEL );
+                                                 DWCAPS_ALPHACHANNEL | DWCAPS_DOUBLEBUFFER );
                     }
                     else
                          window = window_create( layers->windowstack, 0, 0,
                                                  data->primary.width,
-                                                 data->primary.height, 0 );
+                                                 data->primary.height, DWCAPS_DOUBLEBUFFER );
 
                     window_init( window );
 

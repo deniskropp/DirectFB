@@ -119,6 +119,11 @@ extern "C"
       */
      DECLARE_INTERFACE( IDirectFBVideoProvider )
 
+     /*
+      * OpenGL context of a surface.
+      */
+     DECLARE_INTERFACE( IDirectFBGL )
+
 
      /*
       * DirectFB interface functions return code.
@@ -1624,6 +1629,17 @@ extern "C"
                IDirectFBSurface         *thiz,
                DFBRectangle             *rect,
                IDirectFBSurface        **interface
+          );
+
+
+        /** OpenGL **/
+
+          /*
+           * Get an OpenGL context for this surface.
+           */
+          DFBResult (*GetGL) (
+               IDirectFBSurface         *thiz,
+               IDirectFBGL             **interface
           );
      )
 

@@ -58,7 +58,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      interface_dir = DFBMALLOC( strlen(MODULEDIR"/interfaces/") + strlen(type) + 1 );
 
      sprintf( interface_dir, MODULEDIR"/interfaces/%s", type );
-     
+
      pthread_mutex_lock( &implementations_mutex );
 
      for (i=0; i<n_implementations; i++) {
@@ -82,17 +82,17 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
           }
      }
 
-     
+
      dir = opendir( interface_dir );
 
      if (!dir) {
           PERRORMSG( "DirectFB/interfaces: "
                      "Could not open interface directory `%s'!\n",
                      interface_dir );
-          
+
           pthread_mutex_unlock( &implementations_mutex );
           DFBFREE( interface_dir );
-          
+
           return errno2dfb( errno );
      }
 
@@ -114,7 +114,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                if (!strcmp( implementations[i]->filename, buf ))
                     continue;
           }
-          
+
           handle = dlopen( buf, RTLD_LAZY );
           if (handle) {
                char *(*get)() = NULL;
@@ -128,7 +128,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     continue;
                }
                impl->type = get();
-               
+
                get = dlsym( handle, "get_implementation"  );
                if (!get) {
                     DLERRORMSG( "DirectFB/interface: "
@@ -139,6 +139,15 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                }
                impl->implementation = get();
 
+               impl->Allocate = dlsym( handle, "Allocate"  );
+/*               if (!impl->Allocate) {
+                    DLERRORMSG( "DirectFB/interface: "
+                                "Could not link `Allocate' of `%s'!\n",
+                                buf );
+                    dlclose( handle );
+                    continue;
+               }*/
+
                impl->Probe = dlsym( handle, "Probe"  );
                if (!impl->Probe) {
                     DLERRORMSG( "DirectFB/interface: "
@@ -147,7 +156,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     dlclose( handle );
                     continue;
                }
-               
+
                impl->Construct = dlsym( handle, "Construct"  );
                if (!impl->Construct) {
                     DLERRORMSG( "DirectFB/interface: "
@@ -156,10 +165,10 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                     dlclose( handle );
                     continue;
                }
-               
+
                HEAVYDEBUGMSG( "DirectFB/interface: Found `%s_%s'.\n",
                               impl->type, impl->implementation );
-               
+
                if (type && strcmp( type, impl->type )) {
                     dlclose( handle );
                     continue;

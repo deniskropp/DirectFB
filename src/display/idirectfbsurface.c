@@ -478,7 +478,7 @@ DFBResult IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
      data->src_key.g = g;
      data->src_key.b = b;
      data->src_key.value = color_to_pixel( data->surface->format, r, g, b );
-     
+
      /* The new key won't be applied to this surface's state.
         The key will be taken by the destination surface to apply it
         to its state when source color keying is used. */
@@ -497,7 +497,7 @@ DFBResult IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
      data->dst_key.g = g;
      data->dst_key.b = b;
      data->dst_key.value = color_to_pixel( data->surface->format, r, g, b );
-     
+
      if (data->state.dst_colorkey != data->dst_key.value) {
           data->state.dst_colorkey = data->dst_key.value;
           data->state.modified |= SMF_DST_COLORKEY;
@@ -876,7 +876,7 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
                data->state.modified |= SMF_SRC_COLORKEY;
           }
      }
-     
+
      gfxcard_stretchblit( &srect, &drect, &data->state );
 
      return DFB_OK;
@@ -953,6 +953,8 @@ DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
+     if (!surface)
+          return DFB_INVARG;
 
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
@@ -984,6 +986,45 @@ DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
      return IDirectFBSurface_Construct( *surface, &wanted, &granted,
                                         data->surface,
                                         data->caps | DSCAPS_SUBSURFACE );
+}
+
+DFBResult IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
+                                  IDirectFBGL       **interface )
+{
+     DFBResult ret;
+     DFBInterfaceImplementation *impl = NULL;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!interface)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+
+     ret = DFBGetInterface( &impl, "IDirectFBGL", NULL, NULL, NULL );
+     if (ret)
+          return ret;
+
+     if (!impl->Allocate)
+          return DFB_UNIMPLEMENTED;
+
+     ret = impl->Allocate( (void**)interface );
+     if (ret)
+          return ret;
+
+     ret = impl->Construct( *interface, thiz );
+
+     if (ret) {
+        DFBFREE(*interface);
+        *interface = NULL;
+     }
+
+     return ret;
 }
 
 /******/
@@ -1069,6 +1110,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->DrawString = IDirectFBSurface_DrawString;
 
      thiz->GetSubSurface = IDirectFBSurface_GetSubSurface;
+
+     thiz->GetGL = IDirectFBSurface_GetGL;
 
      return DFB_OK;
 }

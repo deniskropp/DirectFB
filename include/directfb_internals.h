@@ -32,6 +32,7 @@ typedef struct
 
      int   references;
 
+     DFBResult (*Allocate)( void **interface );
      DFBResult (*Probe)( void *data, ... );
      DFBResult (*Construct)( void *interface, ... );
 } DFBInterfaceImplementation;
