@@ -140,7 +140,7 @@ static void mach64EngineReset( void *drv, void *dev )
           /* Some 3D registers aren't accessible without this. */
           mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
-          mach64_out32( mmio, ALPHA_TEST_CNTL, 0 );
+          mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_DSTALPHA );
           mach64_out32( mmio, TEX_CNTL, 0 );
           mach64_out32( mmio, Z_CNTL, 0 );
 
@@ -871,7 +871,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 12;
+     info->version.minor = 13;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);

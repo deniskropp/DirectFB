@@ -66,7 +66,7 @@
 #define LEAD_BRES_LNTH          0x144
 #define Z_OFF_PITCH             0x148
 #define Z_CNTL                  0x14C
-#define ALPHA_TEST_CNTL         0x150
+#define ALPHA_TST_CNTL          0x150
 /* 0x154 */
 #define SECONDARY_STW_EXP       0x158
 #define SECONDARY_S_X_INC       0x15C
@@ -416,6 +416,14 @@
 #define COMPARE_DESTINATION	0x0000000
 #define COMPARE_SOURCE		0x1000000
 #define COMPARE_SCALE		0x2000000
+
+/* ALPHA_TST_CNTL */
+#define ALPHA_DST_SEL_ZERO              0x000
+#define ALPHA_DST_SEL_ONE               0x100
+#define ALPHA_DST_SEL_SRCALPHA          0x400
+#define ALPHA_DST_SEL_INVSRCALPHA       0x500
+#define ALPHA_DST_SEL_DSTALPHA          0x600
+#define ALPHA_DST_SEL_INVDSTALPHA       0x700
 
 /* SCALE_3D_CNTL */
 #define SCALE_3D_FCN_NOP        0x00
