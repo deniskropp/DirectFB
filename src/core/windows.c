@@ -937,7 +937,7 @@ dfb_window_post_event( CoreWindow     *window,
      DFB_ASSERT( window != NULL );
      DFB_ASSERT( event != NULL );
 
-     DFB_ASSUME( !window->destroyed );
+     DFB_ASSUME( !window->destroyed || event->type == DWET_DESTROYED );
 
      if (! (event->type & window->events))
           return;
