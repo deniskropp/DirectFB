@@ -109,7 +109,7 @@ typedef enum {
      FSSDF_SAMPLEFORMAT  = 0x00000004,      /* Sample format is set. */
      FSSDF_SAMPLERATE    = 0x00000008,      /* Sample rate is set. */
      FSSDF_PREBUFFER     = 0x00000010,      /* Prebuffer amount is set. */
-     FSSDF_ALL           = 0x0000000F       /* All of these. */
+     FSSDF_ALL           = 0x0000001F       /* All of these. */
 } FSStreamDescriptionFlags;
 
 /*
