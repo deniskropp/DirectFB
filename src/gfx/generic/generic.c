@@ -2025,7 +2025,7 @@ static void Sacc_to_Aop_alut44()
      }
 }
 
-GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+static GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb1555,
      Sacc_to_Aop_rgb16,
      Sacc_to_Aop_rgb24,
@@ -2218,7 +2218,7 @@ static void Sacc_toK_Aop_alut44()
      }
 }
 
-GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+static GFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_toK_Aop_argb1555,
      Sacc_toK_Aop_rgb16,
      Sacc_toK_Aop_rgb24,
@@ -2513,7 +2513,7 @@ static void Bop_a8_set_alphapixel_Aop_alut44()
 #undef SET_ALPHA_PIXEL_ALUT44
 }
 
-GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+static GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_argb1555,
      Bop_a8_set_alphapixel_Aop_rgb16,
      Bop_a8_set_alphapixel_Aop_rgb24,
@@ -2883,7 +2883,7 @@ static void Cacc_add_to_Dacc_C()
      }
 }
 
-GFunc Cacc_add_to_Dacc = Cacc_add_to_Dacc_C;
+static GFunc Cacc_add_to_Dacc = Cacc_add_to_Dacc_C;
 
 static void Sacc_add_to_Dacc_C()
 {
@@ -2903,7 +2903,7 @@ static void Sacc_add_to_Dacc_C()
      }
 }
 
-GFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
+static GFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
 
 static void Sop_is_Aop() { Sop = Aop;}
 static void Sop_is_Bop() { Sop = Bop;}
