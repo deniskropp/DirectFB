@@ -69,6 +69,8 @@ typedef struct {
      /* amount of usable video memory */
      unsigned int          videoram_length;
 
+     char                 *module_name;
+     
      GraphicsDriverInfo    driver_info;
      GraphicsDeviceInfo    device_info;
      void                 *device_data;
@@ -106,6 +108,7 @@ static GraphicsDevice *card = NULL;
 
 
 static void dfb_gfxcard_find_driver();
+static void dfb_gfxcard_load_driver();
 
 DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) );
 
@@ -152,6 +155,7 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
 
           ret = funcs->InitDriver( card, &card->funcs, card->driver_data );
           if (ret) {
+               shfree( card->shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
@@ -165,6 +169,7 @@ dfb_gfxcard_initialize( void *data_local, void *data_shared )
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
                shfree( card->shared->device_data );
+               shfree( card->shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
@@ -219,8 +224,8 @@ dfb_gfxcard_join( void *data_local, void *data_shared )
      /* Build a list of available drivers. */
      dfb_modules_explore_directory( &dfb_graphics_drivers );
 
-     /* load driver, FIXME: do not probe */
-     dfb_gfxcard_find_driver();
+     /* Load driver. */
+     dfb_gfxcard_load_driver();
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
           
@@ -235,6 +240,12 @@ dfb_gfxcard_join( void *data_local, void *data_shared )
           }
 
           card->device_data = card->shared->device_data;
+     }
+     else if (card->shared->module_name) {
+          ERRORMSG( "DirectFB/core/gfxcard: "
+                    "Could not load driver used by the running session!\n" );
+          card = NULL;
+          return DFB_UNSUPPORTED;
      }
 
      if (dfb_config->software_only && card->funcs.CheckState) {
@@ -284,6 +295,9 @@ dfb_gfxcard_shutdown( bool emergency )
 
      fusion_property_destroy( &shared->lock );
 
+     if (shared->module_name)
+          shfree( shared->module_name );
+     
      card = NULL;
 
      return DFB_OK;
@@ -1418,6 +1432,37 @@ static void dfb_gfxcard_find_driver()
           if (!card->module && funcs->Probe( card )) {
                funcs->GetDriverInfo( card, &card->shared->driver_info );
 
+               card->module       = module;
+               card->driver_funcs = funcs;
+
+               card->shared->module_name = shstrdup( module->name );
+          }
+          else
+               dfb_module_unref( module );
+     }
+}
+
+/*
+ * loads the driver module used by the session
+ */
+static void dfb_gfxcard_load_driver()
+{
+     FusionLink *link;
+
+     if (dfb_system_type() != CORE_FBDEV)
+          return;
+
+     fusion_list_foreach (link, dfb_graphics_drivers.entries) {
+          ModuleEntry *module = (ModuleEntry*) link;
+
+          const GraphicsDriverFuncs *funcs = dfb_module_ref( module );
+
+          if (!funcs)
+               continue;
+
+          if (!card->module &&
+              !strcmp( module->name, card->shared->module_name ))
+          {
                card->module       = module;
                card->driver_funcs = funcs;
           }
