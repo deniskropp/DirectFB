@@ -717,6 +717,7 @@ dnl check which gfxdrivers to build
 ati=no
 cyber5k=no
 i810=no
+i830=no
 mach64=no
 matrox=no
 neomagic=no
@@ -737,7 +738,7 @@ AC_ARG_WITH(gfxdrivers,
 [                            gfxdrivers may be comma separated ]
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
-[                            ati128, cle266, cyber5k, i810, mach64, matrox,]
+[                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
 [                            neomagic, nsc, nvidia, radeon, savage, sis315,]
 [                            tdfx, unichrome], gfxdrivers="$withval",[gfxdrivers="all"])
 
@@ -746,6 +747,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_cyber5k=yes
   checkfor_cle266=yes
   checkfor_i810=yes
+  checkfor_i830=yes
   checkfor_mach64=yes
   checkfor_matrox=yes
   checkfor_neomagic=yes
@@ -774,6 +776,9 @@ else
                   ;;
           i810)
                   checkfor_i810=yes
+                  ;;
+          i830)
+                  checkfor_i830=yes
                   ;;
           mach64)
                   checkfor_mach64=yes
@@ -960,6 +965,20 @@ if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
   i810=no   
   AC_MSG_WARN([
 *** i810 gfxdriver will not be built.]))
+fi
+
+dnl Test for i830 frame buffer support in the kernel
+if test "$checkfor_i830" = "yes"; then
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+//#ifdef FB_ACCEL_I830
+  yes
+//#endif
+  ],
+  i830=yes,
+  i830=no
+  AC_MSG_WARN([
+*** i830 gfxdriver will not be built.]))
 fi
 
 dnl Test for nsc framebuffer support in the kernel
@@ -1187,6 +1206,7 @@ AM_CONDITIONAL(GFX_ATI, test "$ati" = "yes")
 AM_CONDITIONAL(GFX_CYBER5K, test "$cyber5k" = "yes")
 AM_CONDITIONAL(GFX_CLE266, test "$cle266" = "yes")
 AM_CONDITIONAL(GFX_I810, test "$i810" = "yes")
+AM_CONDITIONAL(GFX_I830, test "$i830" = "yes")
 AM_CONDITIONAL(GFX_MACH64, test "$mach64" = "yes")
 AM_CONDITIONAL(GFX_MATROX, test "$matrox" = "yes")
 AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
@@ -1327,6 +1347,7 @@ gfxdrivers/ati128/Makefile
 gfxdrivers/cle266/Makefile
 gfxdrivers/cyber5k/Makefile
 gfxdrivers/i810/Makefile
+gfxdrivers/i830/Makefile
 gfxdrivers/mach64/Makefile
 gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
@@ -1428,6 +1449,7 @@ Building Graphics Drivers:
   ATI Radeon                $radeon
   ATI Rage 128              $ati
   Intel i810                $i810
+  Intel i830                $i830
   Matrox                    $matrox
   NeoMagic                  $neomagic
   NSC Geode                 $nsc

@@ -72,6 +72,12 @@ else
 I810_DIR =
 endif
 
+if GFX_I830
+I830_DIR = i830
+else
+I830_DIR =
+endif
+
 if GFX_CLE266
 CLE266_DIR = cle266
 else
@@ -96,6 +102,7 @@ SUBDIRS = \
 	$(SAVAGE_DIR)	\
 	$(SIS315_DIR)	\
 	$(I810_DIR)	\
+	$(I830_DIR)	\
 	$(CLE266_DIR)	\
 	$(UNICHROME_DIR) \
 	$(GEODE_DIR)
