@@ -34,6 +34,8 @@
 
 #include <config.h>
 
+#include <misc/conf.h>
+
 #define MAX_SHMALLOC_SEGMENTS       2000
 #define MAX_REACTOR_NODES            100
 
@@ -73,7 +75,8 @@ static inline key_t keygen (const char *name, const long type)
 #else
 # define FDEBUG(x...) do \
 { \
-  fprintf (stderr, " -Fusion-Debug-  "__FUNCTION__": "x); \
+  if (dfb_config->debug) \
+     fprintf (stderr, " -Fusion-Debug-  "__FUNCTION__": "x); \
 } while (0)
 #endif
 
