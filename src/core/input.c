@@ -1012,13 +1012,13 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      bool shift = (modifiers & DIMM_SHIFT) || (locks & DILS_CAPS);
 
      if (id >= DIKI_A && id <= DIKI_Z)
-          return (shift ? 'A' : 'a') + id - DIKI_A;
+          return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
      
      if (id >= DIKI_0 && id <= DIKI_9)
-          return '0' + id - DIKI_0;
+          return DIKS_0 + id - DIKI_0;
 
      if ((locks & DILS_NUM) && id >= DIKI_KP_0 && id <= DIKI_KP_9)
-          return '0' + id - DIKI_KP_0;
+          return DIKS_0 + id - DIKI_KP_0;
 
      if (id >= DIKI_F1 && id <= DIKI_F12)
           return DIKS_F1 + id - DIKI_F1;

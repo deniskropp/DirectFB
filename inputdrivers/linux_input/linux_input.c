@@ -77,773 +77,156 @@ typedef struct {
 static int num_devices = 0;
 static int device_nums[MAX_LINUX_INPUT_DEVICES];
 
-#define DIKI_ DIKI_UNKNOWN
+
+static
+int basic_keycodes [] = {
+     DIKI_UNKNOWN, DIKI_ESCAPE, DIKI_1, DIKI_2, DIKI_3, DIKI_4, DIKI_5, 
+     DIKI_6, DIKI_7, DIKI_8, DIKI_9, DIKI_0, DIKI_MINUS_SIGN, 
+     DIKI_EQUALS_SIGN, DIKI_BACKSPACE,
+
+     DIKI_TAB, DIKI_Q, DIKI_W, DIKI_E, DIKI_R, DIKI_T, DIKI_Y, DIKI_U, 
+     DIKI_I, DIKI_O, DIKI_P, DIKI_BRACKET_LEFT, DIKI_BRACKET_RIGHT, 
+     DIKI_ENTER,
+
+     DIKI_CONTROL_L, DIKI_A, DIKI_S, DIKI_D, DIKI_F, DIKI_G, DIKI_H, DIKI_J,
+     DIKI_K, DIKI_L, DIKI_SEMICOLON, DIKI_QUOTE_RIGHT, DIKI_QUOTE_LEFT,
+
+     DIKI_SHIFT_L, DIKI_BACKSLASH, DIKI_Z, DIKI_X, DIKI_C, DIKI_V, DIKI_B,
+     DIKI_N, DIKI_M, DIKI_COMMA, DIKI_PERIOD, DIKI_SLASH, DIKI_SHIFT_R,
+     DIKI_KP_MULT, DIKI_ALT_L, DIKI_SPACE, DIKI_CAPS_LOCK, 
+
+     DIKI_F1, DIKI_F2, DIKI_F3, DIKI_F4, DIKI_F5, DIKI_F6, DIKI_F7, DIKI_F8,
+     DIKI_F9, DIKI_F10, DIKI_NUM_LOCK, DIKI_SCROLL_LOCK,
+
+     DIKI_KP_7, DIKI_KP_8, DIKI_KP_9, DIKI_KP_MINUS,
+     DIKI_KP_4, DIKI_KP_5, DIKI_KP_6, DIKI_KP_PLUS,
+     DIKI_KP_1, DIKI_KP_2, DIKI_KP_3, DIKI_KP_0, DIKI_KP_DECIMAL,
+
+     /*KEY_103RD,*/ DIKI_BACKSLASH, /*KEY_F13,*/ DIKI_UNKNOWN,
+
+     /*KEY_102ND, XXX FIXME HACK!!! what is the real DIKI_XXX?*/
+     DIKS_LESS_THAN_SIGN,
+	     
+     DIKI_F11, DIKI_F12,
+
+     /*KEY_F14, KEY_F15, KEY_F16, KEY_F17, KEY_F18, KEY_F19, KEY_F20,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+     DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     DIKI_KP_ENTER, DIKI_CONTROL_R, DIKI_KP_DIV, DIKI_PRINT, DIKI_ALT_R,
+
+     /*KEY_LINEFEED*/ DIKI_UNKNOWN,
+	
+     DIKI_HOME, DIKI_UP, DIKI_PAGE_UP, DIKI_LEFT, DIKI_RIGHT,
+     DIKI_END, DIKI_DOWN, DIKI_PAGE_DOWN, DIKI_INSERT, DIKI_DELETE, 
+
+     /*KEY_MACRO,*/ DIKI_UNKNOWN,
+
+     DIKS_MUTE, DIKS_VOLUME_DOWN, DIKS_VOLUME_UP, DIKS_POWER, DIKI_KP_EQUAL,
+
+     /*KEY_KPPLUSMINUS,*/ DIKI_UNKNOWN,
+
+     DIKS_PAUSE, 
+
+     /*KEY_F21, KEY_F22, KEY_F23, KEY_F24,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     DIKI_KP_SEPARATOR, DIKI_META_L, DIKI_META_R, DIKI_SUPER_L,
+
+     DIKS_STOP,
+
+     /*DIKS_AGAIN, DIKS_PROPS, DIKS_UNDO, DIKS_FRONT, DIKS_COPY,
+     DIKS_OPEN, DIKS_PASTE, DIKS_FIND, DIKS_CUT,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, 
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, 
+
+     DIKS_HELP, DIKS_MENU, DIKS_CALCULATOR, DIKS_SETUP,
+
+     /*KEY_SLEEP, KEY_WAKEUP, KEY_FILE, KEY_SENDFILE, KEY_DELETEFILE,
+     KEY_XFER,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, 
+     DIKI_UNKNOWN,
+
+     /*KEY_PROG1, KEY_PROG2,*/
+     DIKS_CUSTOM1, DIKS_CUSTOM2, 
+
+     DIKS_INTERNET,
+
+     /*KEY_MSDOS, KEY_COFFEE, KEY_DIRECTION, KEY_CYCLEWINDOWS,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     DIKS_MAIL,
+
+     /*KEY_BOOKMARKS, KEY_COMPUTER, */
+     DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     DIKS_BACK, DIKS_FORWARD,
+
+     /*KEY_CLOSECD, KEY_EJECTCD, KEY_EJECTCLOSECD,*/
+     DIKS_EJECT, DIKS_EJECT, DIKS_EJECT, 
+
+     DIKS_NEXT, DIKS_PLAYPAUSE, DIKS_PREVIOUS, DIKS_STOP, DIKS_RECORD, 
+     DIKS_REWIND, DIKS_PHONE,
+
+     /*KEY_ISO,*/ DIKI_UNKNOWN,
+     /*KEY_CONFIG,*/ DIKS_SETUP,
+     /*KEY_HOMEPAGE, KEY_REFRESH,*/ DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     DIKS_EXIT, /*KEY_MOVE,*/ DIKI_UNKNOWN, DIKS_EDITOR,
+
+     /*KEY_SCROLLUP,*/ DIKS_PAGE_UP,
+     /*KEY_SCROLLDOWN,*/ DIKS_PAGE_DOWN,
+     /*KEY_KPLEFTPAREN,*/ DIKI_UNKNOWN,
+     /*KEY_KPRIGHTPAREN,*/ DIKI_UNKNOWN,
+
+     /*KEY_INTL1,  KEY_INTL2, KEY_INTL3, KEY_INTL4, KEY_INTL5, KEY_INTL6, 
+     KEY_INTL7, KEY_INTL8, KEY_INTL9,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     /*KEY_LANG1, KEY_LANG2, KEY_LANG3, KEY_LANG4, KEY_LANG5, KEY_LANG6,
+     KEY_LANG7, KEY_LANG8, KEY_LANG9,*/
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+     DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN, DIKI_UNKNOWN,
+
+     DIKS_PLAY, DIKS_PAUSE, 
+
+     /*KEY_PROG3, KEY_PROG4,*/
+     DIKS_CUSTOM3, DIKS_CUSTOM4, 
+
+     /*KEY_SUSPEND, KEY_CLOSE*/ DIKI_UNKNOWN, DIKI_UNKNOWN
+};
+
+static
+int ext_keycodes [] = {
+     DIKS_OK, DIKS_SELECT, DIKS_GOTO, DIKS_CLEAR, DIKS_POWER2, DIKS_OPTION,
+     DIKS_INFO, DIKS_TIME, DIKS_VENDOR, DIKS_ARCHIVE, DIKS_PROGRAM, 
+     DIKS_CHANNEL, DIKS_FAVORITES, DIKS_EPG, DIKS_PVR, DIKS_MHP,
+     DIKS_LANGUAGE, DIKS_TITLE, DIKS_SUBTITLE, DIKS_ANGLE, DIKS_ZOOM, 
+     DIKS_MODE, DIKS_KEYBOARD, DIKS_SCREEN, DIKS_PC, DIKS_TV, DIKS_TV2,
+     DIKS_VCR, DIKS_VCR2, DIKS_SAT, DIKS_SAT2, DIKS_CD, DIKS_TAPE,
+     DIKS_RADIO, DIKS_TUNER, DIKS_PLAYER, DIKS_TEXT, DIKS_DVD, DIKS_AUX,
+     DIKS_MP3, DIKS_AUDIO, DIKS_VIDEO, DIKS_DIRECTORY, DIKS_LIST, DIKS_MEMO,
+     DIKS_CALENDAR, DIKS_RED, DIKS_GREEN, DIKS_YELLOW, DIKS_BLUE,
+     DIKS_CHANNEL_UP, DIKS_CHANNEL_DOWN, DIKS_FIRST, DIKS_LAST, DIKS_AB,
+     DIKS_PLAY, DIKS_RESTART, DIKS_SLOW, DIKS_SHUFFLE, DIKS_FASTFORWARD,
+     DIKS_PREVIOUS, DIKS_NEXT, DIKS_DIGITS, DIKS_TEEN, DIKS_TWEN, DIKS_BREAK
+};
 
 /*
  * Translates a Linux input keycode into a DirectFB keycode.
  */
-static DFBInputDeviceKeyIdentifier
-translate_key( unsigned short code, DFBInputEvent *devt )
+static int
+translate_key( unsigned short code )
 {
-	switch (code) {
-          case KEY_ESC:
-               devt->key_symbol = DIKS_ESCAPE;
-	       break;
+     if (code < sizeof(basic_keycodes)/sizeof(basic_keycodes[0]))
+          return basic_keycodes[code];
 
-          case KEY_1:
-               devt->key_symbol = DIKS_1;
-	       break;
+     if (code >= KEY_OK)
+          if (code - KEY_OK < sizeof(ext_keycodes)/sizeof(ext_keycodes[0]))
+               return ext_keycodes[code-KEY_OK];
 
-          case KEY_2:
-               devt->key_symbol = DIKS_2;
-	       break;
-
-          case KEY_3:
-               devt->key_symbol = DIKS_3;
-	       break;
-
-          case KEY_4:
-               devt->key_symbol = DIKS_4;
-	       break;
-
-          case KEY_5:
-               devt->key_symbol = DIKS_5;
-	       break;
-
-          case KEY_6:
-               devt->key_symbol = DIKS_6;
-	       break;
-
-          case KEY_7:
-               devt->key_symbol = DIKS_7;
-	       break;
-
-          case KEY_8:
-               devt->key_symbol = DIKS_8;
-	       break;
-
-          case KEY_9:
-               devt->key_symbol = DIKS_9;
-	       break;
-
-          case KEY_0:
-               devt->key_symbol = DIKS_0;
-	       break;
-#if 0
-          case KEY_MINUS:
-               return DIKI_;
-
-          case KEY_EQUAL:
-               return DIKI_;
-
-          case KEY_BACKSPACE:
-               return DIKI_BACKSPACE;
-
-          case KEY_TAB:
-               return DIKI_TAB;
-
-          case KEY_Q:
-               return DIKI_Q;
-
-          case KEY_W:
-               return DIKI_W;
-
-          case KEY_E:
-               return DIKI_E;
-
-          case KEY_R:
-               return DIKI_R;
-
-          case KEY_T:
-               return DIKI_T;
-
-          case KEY_Y:
-               return DIKI_Y;
-
-          case KEY_U:
-               return DIKI_U;
-
-          case KEY_I:
-               return DIKI_I;
-
-          case KEY_O:
-               return DIKI_O;
-
-          case KEY_P:
-               return DIKI_P;
-
-          case KEY_LEFTBRACE:
-               return DIKI_;
-
-          case KEY_RIGHTBRACE:
-               return DIKI_;
-#endif
-	  case KEY_ENTER:
-               devt->key_symbol = DIKS_ENTER;
-	       break;
-#if 0
-          case KEY_LEFTCTRL:
-               return DIKI_CONTROL_L;
-
-          case KEY_A:
-               return DIKI_A;
-
-          case KEY_S:
-               return DIKI_S;
-
-          case KEY_D:
-               return DIKI_D;
-
-          case KEY_F:
-               return DIKI_F;
-
-          case KEY_G:
-               return DIKI_G;
-
-          case KEY_H:
-               return DIKI_H;
-
-          case KEY_J:
-               return DIKI_J;
-
-          case KEY_K:
-               return DIKI_K;
-
-          case KEY_L:
-               return DIKI_L;
-
-          case KEY_SEMICOLON:
-               return DIKI_;
-
-          case KEY_APOSTROPHE:
-               return DIKI_;
-
-          case KEY_GRAVE:
-               return DIKI_;
-
-          case KEY_LEFTSHIFT:
-               return DIKI_SHIFT_L;
-
-          case KEY_BACKSLASH:
-               return DIKI_;
-
-          case KEY_Z:
-               return DIKI_Z;
-
-          case KEY_X:
-               return DIKI_X;
-
-          case KEY_C:
-               return DIKI_C;
-
-          case KEY_V:
-               return DIKI_V;
-
-          case KEY_B:
-               return DIKI_B;
-
-          case KEY_N:
-               return DIKI_N;
-
-          case KEY_M:
-               return DIKI_M;
-
-          case KEY_COMMA:
-               return DIKI_;
-
-          case KEY_DOT:
-               return DIKI_;
-
-          case KEY_SLASH:
-               return DIKI_;
-
-          case KEY_RIGHTSHIFT:
-               return DIKI_SHIFT_R;
-
-          case KEY_KPASTERISK:
-               return DIKI_KP_MULT;
-
-          case KEY_LEFTALT:
-               return DIKI_ALT_R;
-
-          case KEY_SPACE:
-               return DIKI_SPACE;
-
-          case KEY_CAPSLOCK:
-               return DIKS_CAPS_LOCK;
-
-          case KEY_F1:
-               return DIKI_F1;
-
-          case KEY_F2:
-               return DIKI_F2;
-
-          case KEY_F3:
-               return DIKI_F3;
-
-          case KEY_F4:
-               return DIKI_F4;
-
-          case KEY_F5:
-               return DIKI_F5;
-
-          case KEY_F6:
-               return DIKI_F6;
-
-          case KEY_F7:
-               return DIKI_F7;
-
-          case KEY_F8:
-               return DIKI_F8;
-
-          case KEY_F9:
-               return DIKI_F9;
-
-          case KEY_F10:
-               return DIKI_F10;
-
-          case KEY_NUMLOCK:
-               return DIKI_NUM_LOCK;
-
-          case KEY_SCROLLLOCK:
-               return DIKI_SCROLL_LOCK;
-
-          case KEY_KP7:
-               return DIKI_;
-
-          case KEY_KP8:
-               return DIKI_;
-
-          case KEY_KP9:
-               return DIKI_;
-
-          case KEY_KPMINUS:
-               return DIKI_KP_MINUS;
-
-          case KEY_KP4:
-               return DIKI_;
-
-          case KEY_KP5:
-               return DIKI_;
-
-          case KEY_KP6:
-               return DIKI_;
-
-          case KEY_KPPLUS:
-               return DIKI_KP_PLUS;
-
-          case KEY_KP1:
-               return DIKI_;
-
-          case KEY_KP2:
-               return DIKI_;
-
-          case KEY_KP3:
-               return DIKI_;
-
-          case KEY_KP0:
-               return DIKI_;
-
-          case KEY_KPDOT:
-               return DIKI_;
-
-          case KEY_103RD:
-               return DIKI_;
-
-          case KEY_F13:
-               return DIKI_;
-
-          case KEY_102ND:
-               return DIKI_;
-
-          case KEY_F11:
-               return DIKI_F11;
-
-          case KEY_F12:
-               return DIKI_F12;
-
-          case KEY_F14:
-               return DIKI_;
-
-          case KEY_F15:
-               return DIKI_;
-
-          case KEY_F16:
-               return DIKI_;
-
-          case KEY_F17:
-               return DIKI_;
-
-          case KEY_F18:
-               return DIKI_;
-
-          case KEY_F19:
-               return DIKI_;
-
-          case KEY_F20:
-               return DIKI_;
-
-          case KEY_KPENTER:
-               return DIKI_KP_ENTER;
-
-          case KEY_RIGHTCTRL:
-               return DIKI_CONTROL_R;
-
-          case KEY_KPSLASH:
-               return DIKI_KP_DIV;
-
-          case KEY_SYSRQ:
-               return DIKI_;
-
-          case KEY_RIGHTALT:
-               return DIKI_ALT_R;
-
-          case KEY_LINEFEED:
-               return DIKI_ENTER;
-
-          case KEY_HOME:
-               return DIKI_HOME;
-#endif
-	  case KEY_UP:
-               devt->key_symbol = DIKS_CURSOR_UP;
-	       break;
-
-          case KEY_PAGEUP:
-               devt->key_symbol = DIKS_PAGE_UP;
-	       break;
-
-          case KEY_LEFT:
-               devt->key_symbol = DIKS_CURSOR_LEFT;
-	       break;
-
-          case KEY_RIGHT:
-               devt->key_symbol = DIKS_CURSOR_RIGHT;
-	       break;
-#if 0
-          case KEY_END:
-               return DIKI_END;
-#endif
-          case KEY_DOWN:
-               devt->key_symbol = DIKS_CURSOR_DOWN;
-	       break;
-#if 0
-          case KEY_PAGEDOWN:
-               return DIKS_PAGE_DOWN;
-
-          case KEY_INSERT:
-               return DIKI_INSERT;
-
-          case KEY_DELETE:
-               return DIKI_DELETE;
-
-          case KEY_MACRO:
-               return DIKI_;
-#endif
-          case KEY_MUTE:
-               devt->key_symbol = DIKS_MUTE;
-	       break;
-
-          case KEY_VOLUMEDOWN:
-               devt->key_symbol = DIKS_VOLUME_DOWN;
-	       break;
-
-          case KEY_VOLUMEUP:
-               devt->key_symbol = DIKS_VOLUME_UP;
-	       break;
-
-          case KEY_POWER:
-               devt->key_symbol = DIKS_POWER;
-	       break;
-#if 0
-          case KEY_KPEQUAL:
-               return DIKI_;
-
-          case KEY_KPPLUSMINUS:
-               return DIKI_;
-
-          case KEY_PAUSE:
-               return DIKS_PAUSE;
-
-          case KEY_F21:
-               return DIKI_;
-
-          case KEY_F22:
-               return DIKI_;
-
-          case KEY_F23:
-               return DIKI_;
-
-          case KEY_F24:
-               return DIKI_;
-
-          case KEY_KPCOMMA:
-               return DIKI_;
-
-          case KEY_LEFTMETA:
-               return DIKI_;
-
-          case KEY_RIGHTMETA:
-               return DIKI_;
-
-          case KEY_COMPOSE:
-               return DIKI_;
-
-
-          case KEY_STOP:
-               return DIKS_STOP;
-
-          case KEY_AGAIN:
-               return DIKI_;
-
-          case KEY_PROPS:
-               return DIKI_;
-
-          case KEY_UNDO:
-               return DIKI_;
-
-          case KEY_FRONT:
-               return DIKI_;
-
-          case KEY_COPY:
-               return DIKI_;
-
-          case KEY_OPEN:
-               return DIKI_;
-
-          case KEY_PASTE:
-               return DIKI_;
-
-          case KEY_FIND:
-               return DIKI_;
-
-          case KEY_CUT:
-               return DIKI_;
-
-          case KEY_HELP:
-               return DIKS_HELP;
-#endif
-          case KEY_MENU:
-               devt->key_symbol = DIKS_MENU;
-	       break;
-#if 0
-          case KEY_CALC:
-               return DIKI_;
-#endif
-          case KEY_SETUP:
-               devt->key_symbol = DIKS_SETUP;
-	       break;
-#if 0
-          case KEY_SLEEP:
-               return DIKI_;
-
-          case KEY_WAKEUP:
-               return DIKI_;
-
-          case KEY_FILE:
-               return DIKI_;
-
-          case KEY_SENDFILE:
-               return DIKI_;
-
-          case KEY_DELETEFILE:
-               return DIKI_;
-
-          case KEY_XFER:
-               return DIKI_;
-
-          case KEY_PROG1:
-               return DIKI_;
-
-          case KEY_PROG2:
-               return DIKI_;
-
-          case KEY_WWW:
-               return DIKS_INTERNET;
-
-          case KEY_MSDOS:
-               return DIKI_;
-
-          case KEY_COFFEE:
-               return DIKI_;
-
-          case KEY_DIRECTION:
-               return DIKI_;
-
-          case KEY_CYCLEWINDOWS:
-               return DIKI_;
-
-          case KEY_MAIL:
-               return DIKS_MAIL;
-
-          case KEY_BOOKMARKS:
-               return DIKI_;
-
-          case KEY_COMPUTER:
-               return DIKI_;
-
-          case KEY_BACK:
-               return DIKS_BACK;
-
-          case KEY_FORWARD:
-               return DIKS_FORWARD;
-
-          case KEY_CLOSECD:
-               return DIKI_;
-
-          case KEY_EJECTCD:
-               return DIKS_EJECT;
-
-          case KEY_EJECTCLOSECD:
-               return DIKS_EJECT;
-
-          case KEY_NEXTSONG:
-               return DIKS_NEXT;
-
-          case KEY_PLAYPAUSE:
-               return DIKS_PLAYPAUSE;
-
-          case KEY_PREVIOUSSONG:
-               return DIKS_PREVIOUS;
-
-          case KEY_STOPCD:
-               return DIKS_STOP;
-
-          case KEY_RECORD:
-               return DIKS_RECORD;
-
-          case KEY_REWIND:
-               return DIKS_REWIND;
-
-          case KEY_PHONE:
-               return DIKI_;
-
-          case KEY_ISO:
-               return DIKI_;
-
-          case KEY_CONFIG:
-               return DIKS_OPTION;
-
-          case KEY_HOMEPAGE:
-               return DIKI_;
-
-          case KEY_REFRESH:
-               return DIKI_;
-#endif
-          case KEY_EXIT:
-               devt->key_symbol = DIKS_EXIT;
-	       break;
-
-#if 0
-          case KEY_MOVE:
-               return DIKI_;
-
-          case KEY_EDIT:
-               return DIKI_;
-
-          case KEY_SCROLLUP:
-               return DIKS_PAGE_UP;
-
-          case KEY_SCROLLDOWN:
-               return DIKS_PAGE_DOWN;
-
-          case KEY_KPLEFTPAREN:
-               return DIKI_;
-
-          case KEY_KPRIGHTPAREN:
-               return DIKI_;
-
-
-          case KEY_INTL1:
-               return DIKI_;
-
-          case KEY_INTL2:
-               return DIKI_;
-
-          case KEY_INTL3:
-               return DIKI_;
-
-          case KEY_INTL4:
-               return DIKI_;
-
-          case KEY_INTL5:
-               return DIKI_;
-
-          case KEY_INTL6:
-               return DIKI_;
-
-          case KEY_INTL7:
-               return DIKI_;
-
-          case KEY_INTL8:
-               return DIKI_;
-
-          case KEY_INTL9:
-               return DIKI_;
-
-          case KEY_LANG1:
-               return DIKI_;
-
-          case KEY_LANG2:
-               return DIKI_;
-
-          case KEY_LANG3:
-               return DIKI_;
-
-          case KEY_LANG4:
-               return DIKI_;
-
-          case KEY_LANG5:
-               return DIKI_;
-
-          case KEY_LANG6:
-               return DIKI_;
-
-          case KEY_LANG7:
-               return DIKI_;
-
-          case KEY_LANG8:
-               return DIKI_;
-
-          case KEY_LANG9:
-               return DIKI_;
-
-
-          case KEY_PLAYCD:
-               return DIKS_PLAY;
-
-          case KEY_PAUSECD:
-               return DIKS_PAUSE;
-
-          case KEY_PROG3:
-               return DIKI_;
-
-          case KEY_PROG4:
-               return DIKI_;
-
-          case KEY_SUSPEND:
-               return DIKI_;
-
-          case KEY_CLOSE:
-               return DIKI_;
-
-          case KEY_PLAY:
-               return DIKI_PLAY;
-
-          case KEY_FASTFORWARD:
-               return DIKI_FASTFORWARD;
-
-          case KEY_BASSBOOST:
-               return DIKI_;
-
-          case KEY_PRINT:
-               return DIKI_PRINT;
-
-          case KEY_HP:
-               return DIKI_;
-
-          case KEY_CAMERA:
-               return DIKI_;
-
-          case KEY_SOUND:
-               return DIKI_AUDIO;
-
-          case KEY_QUESTION:
-               return DIKI_;
-
-          case KEY_EMAIL:
-               return DIKI_MAIL;
-
-          case KEY_CHAT:
-               return DIKI_;
-
-          case KEY_SEARCH:
-               return DIKI_;
-
-          case KEY_CONNECT:
-               return DIKI_;
-
-          case KEY_FINANCE:
-               return DIKI_;
-
-          case KEY_SPORT:
-               return DIKI_;
-
-          case KEY_SHOP:
-               return DIKI_;
-#endif
-          case KEY_OK:
-               devt->key_symbol = DIKS_OK;
-	       break;
-
-          case KEY_LAST:
-               devt->key_symbol = DIKS_LAST;
-	       break;
-
-          case KEY_INFO:
-               devt->key_symbol = DIKS_INFO;
-	       break;
-
-          case KEY_CHANNELUP:
-               devt->key_symbol = DIKS_CHANNEL_UP;
-	       break;
-
-          case KEY_CHANNELDOWN:
-               devt->key_symbol = DIKS_CHANNEL_DOWN;
-	       break;
-
-          case KEY_TEXT:
-               devt->key_symbol = DIKS_TEXT;
-	       break;
-
-          case KEY_TV:
-               devt->key_symbol = DIKS_TV;
-	       break;
-
-          case KEY_SUBTITLE:
-               devt->key_symbol = DIKS_SUBTITLE;
-	       break;
-
-          case KEY_LANGUAGE:
-               devt->key_symbol = DIKS_LANGUAGE;
-	       break;
-
-          case KEY_RADIO:
-               devt->key_symbol = DIKS_RADIO;
-	       break;
-
-          case KEY_LIST:
-               devt->key_symbol = DIKS_LIST;
-	       break;
-
-          case KEY_RED:
-               devt->key_symbol = DIKS_RED;
-	       break;
-
-          case KEY_GREEN:
-               devt->key_symbol = DIKS_GREEN;
-	       break;
-
-          case KEY_YELLOW:
-               devt->key_symbol = DIKS_YELLOW;
-	       break;
-
-          case KEY_BLUE:
-               devt->key_symbol = DIKS_BLUE;
-	       break;
-
-          case KEY_EPG:
-               devt->key_symbol = DIKS_EPG;
-	       break;
-
-          case KEY_MHP:
-               devt->key_symbol = DIKS_MHP;
-	       break;
-
-          default:
-               return 0;
-     }
-
-     return 1;
+     return DIKI_UNKNOWN;
 }
 
 /*
@@ -859,15 +242,21 @@ key_event( struct input_event *levt,
           devt->button = DIBI_FIRST + levt->code - BTN_MOUSE;
      }
      else {
-          if (!translate_key( levt->code, devt ))
+          int key = translate_key( levt->code );
+
+          if (key == DIKI_UNKNOWN)
                return 0;
-          devt->type   = levt->value ? DIET_KEYPRESS : DIET_KEYRELEASE;
-          if (devt->key_code)
-             devt->flags |= DIEF_KEYCODE;
-          if (devt->key_symbol)
-             devt->flags |= DIEF_KEYSYMBOL;
-//          if (devt->key_id)
-//             devt->flags |= DIEF_KEYID;
+
+          devt->type = levt->value ? DIET_KEYPRESS : DIET_KEYRELEASE;
+
+          if (DFB_KEY_TYPE(key) == DIKT_IDENTIFIER) {
+               devt->key_id = key;
+               devt->flags |= DIEF_KEYID;
+          }
+          else {
+               devt->key_symbol = key;
+               devt->flags |= DIEF_KEYSYMBOL;
+          }
      }
 
      return 1;
@@ -985,9 +374,6 @@ linux_input_EventThread( void *driver_data )
                continue;
 
 	  devt.flags = 0;
-	  devt.key_code = 0;
-	  devt.key_id = 0;
-	  devt.key_symbol = 0;
 
           if (translate_event( &levt, &devt))
                dfb_input_dispatch( data->device, &devt );
@@ -1210,6 +596,7 @@ driver_get_keymap_entry( InputDevice               *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
+     /* XXX FIXME: get keymap from tty... */
      return DFB_UNSUPPORTED;
 }
 
