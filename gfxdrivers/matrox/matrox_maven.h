@@ -27,6 +27,7 @@
 typedef struct {
      char dev[256];
      __u8 regs[256];
+     __u8 address;
 } MatroxMavenData;
 
 DFBResult maven_init( MatroxMavenData  *mav,

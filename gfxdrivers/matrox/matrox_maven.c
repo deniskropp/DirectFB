@@ -57,8 +57,6 @@
 #define max(a,b) (a > b ? a : b)
 #endif
 
-#define MAVEN_I2CID	(0x1B)
-
 static void
 maven_write_byte( MatroxMavenData  *mav,
                   MatroxDriverData *mdrv,
@@ -93,6 +91,25 @@ maven_write_word( MatroxMavenData  *mav,
           mga_out_dac( mmio, 0x88, val >> 8);
      } else
           i2c_smbus_write_word_data( mdrv->maven_fd, reg, val );
+}
+
+/* i2c_smbus_read_byte_data() doesn't work with maven. */
+static __u8
+i2c_read_byte( int fd, __u8 addr, __u8 reg )
+{
+     __u8 val;
+     struct i2c_msg msgs[] = {
+          { addr, I2C_M_REV_DIR_ADDR, sizeof(reg), &reg },
+          { addr, I2C_M_RD | I2C_M_NOSTART, sizeof(val), &val }
+     };
+     struct i2c_rdwr_ioctl_data data = {
+          msgs, 2
+     };
+
+     if (ioctl( fd, I2C_RDWR, &data ) < 0)
+          return 0xFF;
+
+     return val;
 }
 
 void
@@ -334,7 +351,7 @@ maven_open( MatroxMavenData  *mav,
           return errno2result( errno );
      }
 
-     if (ioctl( mdrv->maven_fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
+     if (ioctl( mdrv->maven_fd, I2C_SLAVE, mav->address ) < 0) {
           D_PERROR( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
                      mav->dev );
           close( mdrv->maven_fd );
@@ -450,12 +467,17 @@ DFBResult maven_init( MatroxMavenData  *mav,
                return errno2result( errno );
           }
 
-          if (ioctl( fd, I2C_SLAVE, MAVEN_I2CID ) < 0) {
-               D_PERROR( "DirectFB/Matrox/Maven: Error controlling `%s'!\n",
-                          mav->dev );
-               close( fd );
-               return errno2result( errno );
-          }
+          /* Check if maven is at address 0x1B (DH board) or 0x1A (DH add-on) */
+          if (i2c_read_byte( fd, 0x1B, 0xB2 ) == 0xFF) {
+               if (i2c_read_byte( fd, 0x1A, 0xB2 ) == 0xFF) {
+                    D_ERROR( "DirectFB/Matrox/Maven: Error reading from maven chip!\n" );
+                    close( fd );
+                    return errno2result( errno );
+               } else
+                    mav->address = 0x1A;
+          } else
+               mav->address = 0x1B;
+
           close( fd );
      }
 
