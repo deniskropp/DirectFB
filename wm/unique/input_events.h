@@ -25,8 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __UNIQUE__EVENTS_H__
-#define __UNIQUE__EVENTS_H__
+#ifndef __UNIQUE__INPUT_EVENTS_H__
+#define __UNIQUE__INPUT_EVENTS_H__
 
 #include <directfb.h>
 

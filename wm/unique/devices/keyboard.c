@@ -53,6 +53,8 @@ keyboard_connected( UniqueDevice        *device,
                     unsigned long        arg,
                     CoreInputDevice     *source )
 {
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
      D_DEBUG_AT( UniQuE_Keyboard, "keyboard_connected( %p, %p, %lu, %p )\n",
                  device, data, arg, source );
 }
@@ -63,6 +65,8 @@ keyboard_disconnected( UniqueDevice        *device,
                        unsigned long        arg,
                        CoreInputDevice     *source )
 {
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
      D_DEBUG_AT( UniQuE_Keyboard, "keyboard_disconnected( %p, %p, %lu, %p )\n",
                  device, data, arg, source );
 }
@@ -73,6 +77,8 @@ keyboard_process_event( UniqueDevice        *device,
                         unsigned long        arg,
                         const DFBInputEvent *event )
 {
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
      D_DEBUG_AT( UniQuE_Keyboard, "keyboard_process_event( %p, %p, %lu, %p ) <- type 0x%08x\n",
                  device, data, arg, event, event->type );
 }

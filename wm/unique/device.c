@@ -51,6 +51,7 @@ D_DEBUG_DOMAIN( UniQuE_Device, "UniQuE/Device", "UniQuE's Devices" );
 
 
 static const React unique_device_globals[] = {
+     _unique_input_switch_device_listener,
      NULL
 };
 
@@ -65,6 +66,11 @@ typedef struct {
 
      GlobalReaction   reaction;
 } DeviceConnection;
+
+/**************************************************************************************************/
+
+static void purge_connection( UniqueDevice     *device,
+                              DeviceConnection *connection );
 
 /**************************************************************************************************/
 
@@ -187,9 +193,20 @@ unique_device_create( UniqueContext        *context,
 DFBResult
 unique_device_destroy( UniqueDevice *device )
 {
+     DirectLink       *n;
+     DeviceConnection *connection;
+
      D_MAGIC_ASSERT( device, UniqueDevice );
 
      D_DEBUG_AT( UniQuE_Device, "unique_device_destroy( %p )\n", device );
+
+     direct_list_foreach_safe (connection, n, device->connections) {
+          D_MAGIC_ASSERT( connection, DeviceConnection );
+
+          purge_connection( device, connection );
+     }
+
+     D_ASSERT( device->connections == NULL );
 
      fusion_reactor_free( device->reactor );
 
@@ -283,20 +300,49 @@ unique_device_disconnect( UniqueDevice    *device,
           return DFB_ITEMNOTFOUND;
      }
 
-
-     /* Detach global reaction for processing events. */
-     dfb_input_detach_global( source, &connection->reaction );
-
-     direct_list_remove( &device->connections, &connection->link );
-
-     if (classes[device->clazz]->Disconnected)
-          classes[device->clazz]->Disconnected( device, device->data, device->arg, source );
-
-     D_MAGIC_CLEAR( connection );
-
-     SHFREE( connection );
+     purge_connection( device, connection );
 
      return DFB_OK;
+}
+
+DFBResult
+unique_device_attach( UniqueDevice *device,
+                      React         react,
+                      void         *ctx,
+                      Reaction     *reaction )
+{
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     return fusion_reactor_attach( device->reactor, react, ctx, reaction );
+}
+
+DFBResult
+unique_device_detach( UniqueDevice *device,
+                      Reaction     *reaction )
+{
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     return fusion_reactor_detach( device->reactor, reaction );
+}
+
+DFBResult
+unique_device_attach_global( UniqueDevice   *device,
+                             int             react_index,
+                             void           *ctx,
+                             GlobalReaction *reaction )
+{
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     return fusion_reactor_attach_global( device->reactor, react_index, ctx, reaction );
+}
+
+DFBResult
+unique_device_detach_global( UniqueDevice   *device,
+                             GlobalReaction *reaction )
+{
+     D_MAGIC_ASSERT( device, UniqueDevice );
+
+     return fusion_reactor_detach_global( device->reactor, reaction );
 }
 
 DFBResult
@@ -331,5 +377,28 @@ _unique_device_listener( const void *msg_data,
      classes[device->clazz]->ProcessEvent( device, device->data, device->arg, event );
 
      return RS_OK;
+}
+
+/**************************************************************************************************/
+
+static void
+purge_connection( UniqueDevice     *device,
+                  DeviceConnection *connection )
+{
+     D_MAGIC_ASSERT( device, UniqueDevice );
+     D_MAGIC_ASSERT( connection, DeviceConnection );
+
+     /* Detach global reaction for processing events. */
+     dfb_input_detach_global( connection->source, &connection->reaction );
+
+     direct_list_remove( &device->connections, &connection->link );
+
+     if (classes[device->clazz]->Disconnected)
+          classes[device->clazz]->Disconnected( device, device->data,
+                                                device->arg, connection->source );
+
+     D_MAGIC_CLEAR( connection );
+
+     SHFREE( connection );
 }
 

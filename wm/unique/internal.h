@@ -179,6 +179,7 @@ struct __UniQuE_UniqueContext {
 
      UniqueDevice                 *devices[_UDCI_NUM];
 
+     UniqueInputSwitch            *input_switch;
 
 
      DFBInputDeviceButtonMask      buttons;
@@ -280,7 +281,7 @@ struct __UniQuE_UniqueDevice {
 
      FusionReactor       *reactor;      /* UniqueInputEvent deployment */
 
-     DirectLink          *connections;
+     DirectLink          *connections;  /* CoreInputDevice connections */
 };
 
 
@@ -306,7 +307,9 @@ struct __UniQuE_UniqueInputSwitch {
 
      int                  magic;
 
-     DirectLink          *devices;
+     UniqueContext       *context;
+
+     DirectLink          *connections;  /* UniqueDevice connections */
 
      UniqueInputTarget    targets[_UDCI_NUM];
 };
@@ -333,6 +336,9 @@ ReactionResult _unique_wm_module_window_listener ( const void *msg_data,
 
 ReactionResult _unique_device_listener ( const void *msg_data,
                                          void       *ctx );
+
+ReactionResult _unique_input_switch_device_listener ( const void *msg_data,
+                                                      void       *ctx );
 
 #endif
 

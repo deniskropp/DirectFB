@@ -35,6 +35,7 @@ UniqueInputSwitch
 
 UniqueInputChannel
 - each UniqueWindow has one channel to receive input events
+- window decorations can have additional channels
 - StReT regions can be assigned a channel for each device class
 - automatic channel selection is based on these assignments
 - reactor for receiving input events from UniqueInputSwitch

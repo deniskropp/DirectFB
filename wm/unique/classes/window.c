@@ -46,7 +46,7 @@
 #include <unique/window.h>
 
 
-D_DEBUG_DOMAIN( UniQuE_Window, "UniQuE/Window", "UniQuE's Window Region Class" );
+D_DEBUG_DOMAIN( UniQuE_Window, "UniQuE/WindowReg", "UniQuE's Window Region Class" );
 
 
 static void

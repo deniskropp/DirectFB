@@ -51,6 +51,7 @@
 
 #include <unique/context.h>
 #include <unique/device.h>
+#include <unique/input_switch.h>
 #include <unique/internal.h>
 
 
@@ -103,6 +104,7 @@ static bool update_focus         ( UniqueContext       *context );
 static void
 context_destructor( FusionObject *object, bool zombie )
 {
+     int            i;
      DirectLink    *l, *next;
      UniqueContext *context = (UniqueContext*) object;
 
@@ -112,6 +114,13 @@ context_destructor( FusionObject *object, bool zombie )
      D_ASSUME( fusion_vector_is_empty( &context->windows ) );
 
      unique_context_notify( context, UCNF_DESTROYED );
+
+
+     unique_input_switch_destroy( context->input_switch );
+
+
+     for (i=0; i<_UDCI_NUM; i++)
+          unique_device_destroy( context->devices[i] );
 
 
      while (fusion_vector_has_elements( &context->windows )) {
@@ -175,6 +184,10 @@ create_devices( UniqueContext *context,
           if (ret)
                goto error;
 
+          ret = unique_input_switch_add( context->input_switch, context->devices[i] );
+          if (ret)
+               goto error_add;
+
           switch (i) {
                case UDCI_POINTER:
                     caps = DICAPS_AXES | DICAPS_BUTTONS;
@@ -198,6 +211,9 @@ create_devices( UniqueContext *context,
 
      return DFB_OK;
 
+
+error_add:
+     unique_device_destroy( context->devices[i] );
 
 error:
      while (--i >= 0)
@@ -262,15 +278,15 @@ unique_context_create( CoreWindowStack    *stack,
           goto error;
      }
 
-
      D_MAGIC_SET( context, UniqueContext );
 
+     ret = unique_input_switch_create( context, &context->input_switch );
+     if (ret)
+          goto error_switch;
+
      ret = create_devices( context, shared );
-     if (ret) {
-          D_MAGIC_CLEAR( context );
-          dfb_surface_unlink( &context->surface );
-          goto error;
-     }
+     if (ret)
+          goto error_devices;
 
 
      /* Activate Object. */
@@ -281,6 +297,14 @@ unique_context_create( CoreWindowStack    *stack,
 
      return DFB_OK;
 
+
+error_devices:
+     unique_input_switch_destroy( context->input_switch );
+
+error_switch:
+     D_MAGIC_CLEAR( context );
+
+     dfb_surface_unlink( &context->surface );
 
 error:
      if (context->region)

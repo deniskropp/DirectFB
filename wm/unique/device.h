@@ -30,9 +30,11 @@
 
 #include <directfb.h>
 
+#include <fusion/reactor.h>
+
 #include <core/coretypes.h>
 
-#include <unique/events.h>
+#include <unique/input_events.h>
 #include <unique/types.h>
 
 
@@ -63,23 +65,46 @@ DFBResult unique_device_class_register  ( const UniqueDeviceClass *clazz,
 DFBResult unique_device_class_unregister( UniqueDeviceClassID      id );
 
 
-DFBResult unique_device_create    ( UniqueContext          *context,
-                                    UniqueDeviceClassID     class_id,
-                                    void                   *data,
-                                    unsigned long           arg,
-                                    UniqueDevice          **ret_device );
+DFBResult unique_device_create       ( UniqueContext          *context,
+                                       UniqueDeviceClassID     class_id,
+                                       void                   *data,
+                                       unsigned long           arg,
+                                       UniqueDevice          **ret_device );
 
-DFBResult unique_device_destroy   ( UniqueDevice           *device );
+DFBResult unique_device_destroy      ( UniqueDevice           *device );
 
 
-DFBResult unique_device_connect   ( UniqueDevice           *device,
-                                    CoreInputDevice        *source );
+DFBResult unique_device_connect      ( UniqueDevice           *device,
+                                       CoreInputDevice        *source );
 
-DFBResult unique_device_disconnect( UniqueDevice           *device,
-                                    CoreInputDevice        *source );
+DFBResult unique_device_disconnect   ( UniqueDevice           *device,
+                                       CoreInputDevice        *source );
 
-DFBResult unique_device_dispatch  ( UniqueDevice           *device,
-                                    const UniqueInputEvent *event );
+DFBResult unique_device_attach       ( UniqueDevice           *device,
+                                       React                   react,
+                                       void                   *ctx,
+                                       Reaction               *reaction );
+
+DFBResult unique_device_detach       ( UniqueDevice           *device,
+                                       Reaction               *reaction );
+
+DFBResult unique_device_attach_global( UniqueDevice           *device,
+                                       int                     react_index,
+                                       void                   *ctx,
+                                       GlobalReaction         *reaction );
+
+DFBResult unique_device_detach_global( UniqueDevice           *device,
+                                       GlobalReaction         *reaction );
+
+DFBResult unique_device_dispatch     ( UniqueDevice           *device,
+                                       const UniqueInputEvent *event );
+
+
+/* global reactions */
+
+typedef enum {
+     UNIQUE_INPUT_SWITCH_DEVICE_LISTENER
+} UNIQUE_DEVICE_GLOBALS;
 
 #endif
 

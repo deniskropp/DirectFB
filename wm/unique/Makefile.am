@@ -70,7 +70,8 @@ includedir = @INCLUDEDIR@/unique
 include_HEADERS = \
 	context.h		\
 	device.h		\
-	events.h		\
+	input_events.h		\
+	input_switch.h		\
 	stret.h			\
 	stret_iteration.h	\
 	types.h			\
@@ -83,6 +84,7 @@ lib_LTLIBRARIES = libuniquewm.la
 libuniquewm_la_SOURCES = \
 	context.c		\
 	device.c		\
+	input_switch.c		\
 	internal.h		\
 	stret.c			\
 	stret_iteration.c	\
