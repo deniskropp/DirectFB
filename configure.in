@@ -69,8 +69,8 @@ esac
 
 case "$target_or_host" in
   *-cygwin)
-    AC_ENABLE_STATIC
-    AC_DISABLE_SHARED
+dnl    AC_ENABLE_STATIC
+dnl    AC_DISABLE_SHARED
     ;;
 esac
 
