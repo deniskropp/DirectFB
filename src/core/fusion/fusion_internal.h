@@ -28,6 +28,7 @@
 #define __FUSION_INTERNAL_H__
 
 #include <sys/types.h>
+#include <sys/param.h>
 #include <sys/user.h>
 #ifdef __linux__
 #include <asm/page.h>
