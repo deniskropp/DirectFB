@@ -283,7 +283,6 @@ FusionResult ref_destroy (FusionRef *ref)
 {
   union semun semopts;
   
-  semopts.val = 0;
   if (semctl (ref->sem_id, 0, IPC_RMID, semopts))
     {
       FPERROR ("semctl");

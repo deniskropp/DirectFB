@@ -133,7 +133,6 @@ void skirmish_destroy (FusionSkirmish *skirmish)
 {
   union semun semopts;
   
-  semopts.val = 0;
   if (semctl (skirmish->sem_id, 0, IPC_RMID, semopts))
     {
       perror (__FUNCTION__": semctl");
