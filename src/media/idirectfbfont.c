@@ -224,9 +224,9 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
             
             if (prev && data->font->GetKerning && 
                 (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
-                 width += kerning;
+                 *width += kerning;
             }
-            width += glyph->advance;
+            *width += glyph->advance;
 
             prev = current;
             string = utf8_next_char (string);
