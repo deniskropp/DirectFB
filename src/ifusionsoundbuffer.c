@@ -31,6 +31,7 @@
 
 #include <math.h>
 
+#include <pthread.h>
 
 #include <fusionsound.h>
 #include <directfb_internals.h>
@@ -44,7 +45,10 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
+#include <core/playback.h>
 #include <core/sound_buffer.h>
+
+#include "ifusionsoundplayback.h"
 
 #include "ifusionsoundbuffer.h"
 
@@ -54,10 +58,21 @@
 typedef struct {
      int                    ref;             /* reference counter */
 
+     CoreSound             *core;
      CoreSoundBuffer       *buffer;
+     
+     int                    size;
+     int                    channels;
+     FSSampleFormat         format;
+     int                    rate;
 
      bool                   locked;
-     __u16                  pan;
+
+     int                    left;
+     int                    right;
+     
+     CorePlayback          *looping;
+     pthread_mutex_t        lock;
 } IFusionSoundBuffer_data;
 
 
@@ -66,19 +81,21 @@ IFusionSoundBuffer_Destruct( IFusionSoundBuffer *thiz )
 {
      IFusionSoundBuffer_data *data = (IFusionSoundBuffer_data*)thiz->priv;
 
-     if (data->buffer) {
-          CoreSoundBuffer *buffer = data->buffer;
+     DFB_ASSERT( data->buffer != NULL );
 
-          data->buffer = NULL;
+     if (data->locked)
+          fs_buffer_unlock( data->buffer );
 
-          if (data->locked)
-               fs_buffer_unlock( buffer );
-          
-          fs_buffer_stop_all( buffer );
-          
-          fs_buffer_unref( buffer );
+     /* Stop and throw away looping playback. */
+     if (data->looping) {
+          fs_playback_stop( data->looping );
+          fs_playback_unref( data->looping );
      }
+          
+     fs_buffer_unref( data->buffer );
 
+     pthread_mutex_destroy( &data->lock );
+     
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
@@ -105,6 +122,26 @@ IFusionSoundBuffer_Release( IFusionSoundBuffer *thiz )
 
 
 static DFBResult
+IFusionSoundBuffer_GetDescription( IFusionSoundBuffer  *thiz,
+                                   FSBufferDescription *desc )
+{
+     INTERFACE_GET_DATA(IFusionSoundBuffer)
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->flags = FSBDF_CHANNELS | FSBDF_LENGTH |
+                   FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
+
+     desc->channels     = data->channels;
+     desc->length       = data->size;
+     desc->sampleformat = data->format;
+     desc->samplerate   = data->rate;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IFusionSoundBuffer_Lock( IFusionSoundBuffer  *thiz,
                          void               **ret_data )
 {
@@ -113,9 +150,6 @@ IFusionSoundBuffer_Lock( IFusionSoundBuffer  *thiz,
      int        lock_bytes;
 
      INTERFACE_GET_DATA(IFusionSoundBuffer)
-
-     if (!data->buffer)
-          return DFB_DESTROYED;
 
      if (!ret_data)
           return DFB_INVARG;
@@ -141,9 +175,6 @@ IFusionSoundBuffer_Unlock( IFusionSoundBuffer *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundBuffer)
 
-     if (!data->buffer)
-          return DFB_DESTROYED;
-
      if (!data->locked)
           return DFB_OK;
 
@@ -156,18 +187,24 @@ IFusionSoundBuffer_Unlock( IFusionSoundBuffer *thiz )
 
 static DFBResult
 IFusionSoundBuffer_SetPan( IFusionSoundBuffer *thiz,
-                           float               value )
+                           float               pan )
 {
+     int left  = 0x100;
+     int right = 0x100;
+
      INTERFACE_GET_DATA(IFusionSoundBuffer)
 
-     if (!data->buffer)
-          return DFB_DESTROYED;
-
-     if (value < -1.0f || value > 1.0f)
+     if (pan < -1.0f || pan > 1.0f)
           return DFB_INVARG;
 
-     data->pan = (__u16)( 0x8000 + value * 0x7fff );
+     if (pan < 0.0f)
+          right = (1.0f + pan) * 0x100;
+     else if (pan > 0.0f)
+          left = (1.0f - pan) * 0x100;
 
+     data->left  = left;
+     data->right = right;
+          
      return DFB_OK;
 }
 
@@ -175,52 +212,185 @@ static DFBResult
 IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                          FSBufferPlayFlags   flags )
 {
-     __u16 pan = 0x8000;
+     DFBResult     ret;
+     int           left;
+     int           right;
+     CorePlayback *playback;
 
      INTERFACE_GET_DATA(IFusionSoundBuffer)
-
-     if (!data->buffer)
-          return DFB_DESTROYED;
 
      if (flags & ~FSPLAY_ALL)
           return DFB_INVARG;
 
-     if (flags & FSPLAY_PAN)
-          pan = data->pan;
+     /* Choose volume for left and right channel. */
+     if (flags & FSPLAY_PAN) {
+          left  = data->left;
+          right = data->right;
+     }
+     else {
+          left  = 0x100;
+          right = 0x100;
+     }
+     
+     /* Choose looping playback mode. */
+     if (flags & FSPLAY_LOOPING) {
+          pthread_mutex_lock( &data->lock );
+          
+          /* Return error if already running a looping playing. */
+          if (data->looping) {
+               pthread_mutex_unlock( &data->lock );
+               return DFB_BUSY;
+          }
+          
+          /* Create a playback object. */
+          ret = fs_playback_create( data->core,
+                                    data->buffer, false, &playback );
+          if (ret) {
+               pthread_mutex_unlock( &data->lock );
+               return ret;
+          }
+          
+          /* Set values produced by SetPan(). */
+          fs_playback_set_volume( playback, data->left, data->right );
 
-     return fs_buffer_playback( data->buffer, 0, pan, flags & FSPLAY_LOOPING );
+          /* Set looping playback. */
+          fs_playback_set_stop( playback, -1 );
+          
+          /* Start the playback. */
+          ret = fs_playback_start( playback, 0 );
+          if (ret) {
+               fs_playback_unref( playback );
+               pthread_mutex_unlock( &data->lock );
+               return ret;
+          }
+
+          /* Keep looping playback. */
+          data->looping = playback;
+          
+          pthread_mutex_unlock( &data->lock );
+     }
+     else {
+          /* Create a playback object. */
+          ret = fs_playback_create( data->core,
+                                    data->buffer, false, &playback );
+          if (ret) {
+               pthread_mutex_unlock( &data->lock );
+               return ret;
+          }
+          
+          /* Set values produced by SetPan(). */
+          fs_playback_set_volume( playback, data->left, data->right );
+
+          /* Start the playback. */
+          ret = fs_playback_start( playback, 0 );
+
+          /*
+           * Already throw away playback object. It has a global reference while
+           * it's being played and gets destroyed after playback has finished.
+           */
+          fs_playback_unref( playback );
+     }
+     
+     return ret;
 }
 
 static DFBResult
-IFusionSoundBuffer_StopAll( IFusionSoundBuffer *thiz )
+IFusionSoundBuffer_Stop( IFusionSoundBuffer *thiz )
 {
      INTERFACE_GET_DATA(IFusionSoundBuffer)
 
-     if (!data->buffer)
-          return DFB_DESTROYED;
+     pthread_mutex_lock( &data->lock );
+     
+     /* Stop and throw away looping playback. */
+     if (data->looping) {
+          fs_playback_stop( data->looping );
+          fs_playback_unref( data->looping );
 
-     return fs_buffer_stop_all( data->buffer );
+          data->looping = NULL;
+     }
+
+     pthread_mutex_unlock( &data->lock );
+     
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundBuffer_CreatePlayback( IFusionSoundBuffer    *thiz,
+                                   IFusionSoundPlayback **ret_interface )
+{
+     DFBResult             ret;
+     CorePlayback         *playback;
+     IFusionSoundPlayback *interface;
+
+     INTERFACE_GET_DATA(IFusionSoundBuffer)
+
+     if (!ret_interface)
+          return DFB_INVARG;
+
+     ret = fs_playback_create( data->core, data->buffer, true, &playback );
+     if (ret)
+          return ret;
+
+     DFB_ALLOCATE_INTERFACE( interface, IFusionSoundPlayback );
+
+     ret = IFusionSoundPlayback_Construct( interface, playback, data->size );
+     if (ret)
+          *ret_interface = NULL;
+     else
+          *ret_interface = interface;
+
+     fs_playback_unref( playback );
+
+     return ret;
 }
 
 /******/
 
 DFBResult
 IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
-                              CoreSoundBuffer    *buffer )
+                              CoreSound          *core,
+                              CoreSoundBuffer    *buffer,
+                              int                 size,
+                              int                 channels,
+                              FSSampleFormat      format,
+                              int                 rate )
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundBuffer)
 
-     data->ref    = 1;
-     data->buffer = buffer;
+     /* Increase reference counter of the buffer. */
+     if (fs_buffer_ref( buffer )) {
+          DFB_DEALLOCATE_INTERFACE( thiz );
 
-     thiz->AddRef  = IFusionSoundBuffer_AddRef;
-     thiz->Release = IFusionSoundBuffer_Release;
+          return DFB_FUSION;
+     }
+     
+     /* Initialize private data. */
+     data->ref      = 1;
+     data->core     = core;
+     data->buffer   = buffer;
+     data->size     = size;
+     data->channels = channels;
+     data->format   = format;
+     data->rate     = rate;
+     data->left     = 0x100;
+     data->right    = 0x100;
 
-     thiz->Lock    = IFusionSoundBuffer_Lock;
-     thiz->Unlock  = IFusionSoundBuffer_Unlock;
-     thiz->SetPan  = IFusionSoundBuffer_SetPan;
-     thiz->Play    = IFusionSoundBuffer_Play;
-     thiz->StopAll = IFusionSoundBuffer_StopAll;
+     pthread_mutex_init( &data->lock, NULL );
+     
+     /* Initialize method table. */
+     thiz->AddRef         = IFusionSoundBuffer_AddRef;
+     thiz->Release        = IFusionSoundBuffer_Release;
+
+     thiz->GetDescription = IFusionSoundBuffer_GetDescription;
+
+     thiz->Lock           = IFusionSoundBuffer_Lock;
+     thiz->Unlock         = IFusionSoundBuffer_Unlock;
+
+     thiz->SetPan         = IFusionSoundBuffer_SetPan;
+     thiz->Play           = IFusionSoundBuffer_Play;
+     thiz->Stop           = IFusionSoundBuffer_Stop;
+     
+     thiz->CreatePlayback = IFusionSoundBuffer_CreatePlayback;
      
      return DFB_OK;
 }

@@ -34,19 +34,12 @@
 #include <core/types_sound.h>
 
 typedef enum {
-     CABNF_PLAYBACK_ADVANCED  = 0x00000001,
-     CABNF_PLAYBACK_ENDED     = 0x00000002
+     CSBNF_NONE
 } CoreSoundBufferNotificationFlags;
 
 typedef struct {
-     CoreSoundBufferNotificationFlags   flags;
-     CoreSoundBuffer                   *buffer;
-
-     int                                pos;      /* Next sample to read in
-                                                     case of PLAYBACK_ADVANCED.
-                                                     Next sample that would
-                                                     have been read in case
-                                                     of PLAYBACK_ENDED. */
+     CoreSoundBufferNotificationFlags  flags;
+     CoreSoundBuffer                  *buffer;
 } CoreSoundBufferNotification;
 
 /*
@@ -60,43 +53,30 @@ FusionObjectPool *fs_buffer_pool_create();
 FUSION_OBJECT_METHODS( CoreSoundBuffer, fs_buffer )
 
 
-DFBResult fs_buffer_create   ( CoreSound          *core,
-                               int                 length,
-                               int                 channels,
-                               FSSampleFormat      format,
-                               int                 rate,
-                               bool                notify,
-                               CoreSoundBuffer   **ret_buffer );
+DFBResult fs_buffer_create( CoreSound        *core,
+                            int               length,
+                            int               channels,
+                            FSSampleFormat    format,
+                            int               rate,
+                            CoreSoundBuffer **ret_buffer );
 
-DFBResult fs_buffer_lock     ( CoreSoundBuffer    *buffer,
-                               int                 pos,
-                               int                 length,
-                               void              **ret_data,
-                               int                *ret_bytes );
+DFBResult fs_buffer_lock  ( CoreSoundBuffer  *buffer,
+                            int               pos,
+                            int               length,
+                            void            **ret_data,
+                            int              *ret_bytes );
 
-DFBResult fs_buffer_unlock   ( CoreSoundBuffer    *buffer );
+DFBResult fs_buffer_unlock( CoreSoundBuffer  *buffer );
 
-DFBResult fs_buffer_playback ( CoreSoundBuffer    *buffer,
-                               int                 pos,
-                               __u16               pan,
-                               bool                loop );
-
-DFBResult fs_buffer_set_break( CoreSoundBuffer    *buffer,
-                               int                 pos );
-
-DFBResult fs_buffer_stop_all ( CoreSoundBuffer    *buffer );
-
-DFBResult fs_buffer_mixto    ( CoreSoundBuffer    *buffer,
-                               int                 pos,
-                               int                *dest,
-                               int                 max_samples,
-                               __u16               pan,
-                               bool                loop,
-                               int                *ret_pos );
-
-DFBResult fs_buffer_playback_notify( CoreSoundBuffer                  *buffer,
-                                     CoreSoundBufferNotificationFlags  flags,
-                                     int                               pos );
+DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
+                            int              *dest,
+                            int               max_samples,
+                            int               pos,
+                            int               stop,
+                            int               left,
+                            int               right,
+                            int               pitch,
+                            int              *ret_pos );
 
 #endif
 

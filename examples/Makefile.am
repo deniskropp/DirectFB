@@ -8,7 +8,10 @@ EXTRA_DIST = \
 	test.wav	\
 	test2.wav
 
-noinst_PROGRAMS = simple stream
+noinst_PROGRAMS = advanced simple stream
+
+advanced_SOURCES = advanced.c
+advanced_LDADD   = $(LIBADDS)
 
 simple_SOURCES = simple.c
 simple_LDADD   = $(LIBADDS)

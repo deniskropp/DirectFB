@@ -101,7 +101,7 @@ IFusionSound_Release( IFusionSound *thiz )
 static DFBResult
 IFusionSound_CreateBuffer( IFusionSound         *thiz,
                            FSBufferDescription  *desc,
-                           IFusionSoundBuffer  **interface )
+                           IFusionSoundBuffer  **ret_interface )
 {
      DFBResult                 ret;
      int                       length   = 0;
@@ -110,10 +110,11 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
      int                       rate     = 44100;
      FSBufferDescriptionFlags  flags;
      CoreSoundBuffer          *buffer;
+     IFusionSoundBuffer       *interface;
 
      INTERFACE_GET_DATA (IFusionSound);
 
-     if (!desc || !interface)
+     if (!desc || !ret_interface)
           return DFB_INVARG;
 
      flags = desc->flags;
@@ -158,21 +159,28 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
           return DFB_INVARG;
 
      ret = fs_buffer_create( data->core,
-                             length, channels, format, rate, false, &buffer );
+                             length, channels, format, rate, &buffer );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IFusionSoundBuffer );
+     DFB_ALLOCATE_INTERFACE( interface, IFusionSoundBuffer );
 
-     IFusionSoundBuffer_Construct( *interface, buffer );
+     ret = IFusionSoundBuffer_Construct( interface, data->core, buffer,
+                                         length, channels, format, rate );
+     if (ret)
+          *ret_interface = NULL;
+     else
+          *ret_interface = interface;
 
-     return DFB_OK;
+     fs_buffer_unref( buffer );
+
+     return ret;
 }
 
 static DFBResult
 IFusionSound_CreateStream( IFusionSound         *thiz,
                            FSStreamDescription  *desc,
-                           IFusionSoundStream  **interface )
+                           IFusionSoundStream  **ret_interface )
 {
      DFBResult                 ret;
      int                       channels = 2;
@@ -181,10 +189,11 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      int                       size     = rate;   /* space for one second */
      FSStreamDescriptionFlags  flags    = FSSDF_NONE;
      CoreSoundBuffer          *buffer;
+     IFusionSoundStream       *interface;
 
      INTERFACE_GET_DATA (IFusionSound);
 
-     if (!interface)
+     if (!ret_interface)
           return DFB_INVARG;
 
      if (desc) {
@@ -235,15 +244,21 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
           return DFB_INVARG;
 
      ret = fs_buffer_create( data->core,
-                             size, channels, format, rate, true, &buffer );
+                             size, channels, format, rate, &buffer );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IFusionSoundStream );
+     DFB_ALLOCATE_INTERFACE( interface, IFusionSoundStream );
 
-     IFusionSoundStream_Construct( *interface, buffer, size );
+     ret = IFusionSoundStream_Construct( interface, data->core, buffer, size );
+     if (ret)
+          *ret_interface = NULL;
+     else
+          *ret_interface = interface;
 
-     return DFB_OK;
+     fs_buffer_unref( buffer );
+
+     return ret;
 }
 
 

@@ -46,6 +46,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
+#include <core/playback.h>
 #include <core/sound_buffer.h>
 
 #include "ifusionsoundstream.h"
@@ -56,7 +57,9 @@
 typedef struct {
      int                    ref;             /* reference counter */
 
+     CoreSound             *core;
      CoreSoundBuffer       *buffer;
+     CorePlayback          *playback;
      int                    size;
 
      Reaction               reaction;
@@ -80,17 +83,16 @@ IFusionSoundStream_Destruct( IFusionSoundStream *thiz )
 {
      IFusionSoundStream_data *data = (IFusionSoundStream_data*)thiz->priv;
 
-     if (data->buffer) {
-          CoreSoundBuffer *buffer = data->buffer;
-
-          data->buffer = NULL;
-
-          fs_buffer_detach( buffer, &data->reaction );
+     DFB_ASSERT( data->buffer != NULL );     
+     DFB_ASSERT( data->playback != NULL );     
+     
+     fs_playback_detach( data->playback, &data->reaction );
           
-          fs_buffer_stop_all( buffer );
-          
-          fs_buffer_unref( buffer );
-     }
+     fs_playback_stop( data->playback );
+     
+     fs_playback_unref( data->playback );
+
+     fs_buffer_unref( data->buffer );
 
      pthread_cond_destroy( &data->wait );
      pthread_mutex_destroy( &data->lock );
@@ -159,8 +161,8 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
      if (ret_bytes)
           *ret_bytes = offset;
      
-     /* Set new break position. */
-     return fs_buffer_set_break( data->buffer, data->pos_write );
+     /* Set new stop position. */
+     return fs_playback_set_stop( data->playback, data->pos_write );
 }
 
 static DFBResult
@@ -168,13 +170,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
                           const void         *sample_data,
                           int                 length )
 {
-     CoreSoundBuffer *buffer;
-
      INTERFACE_GET_DATA(IFusionSoundStream)
-
-     buffer = data->buffer;
-     if (!buffer)
-          return DFB_DESTROYED;
 
      if (!sample_data || length < 1)
           return DFB_INVARG;
@@ -222,7 +218,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           if (!data->playing) {
                data->playing = true;
 
-               fs_buffer_playback( buffer, data->pos_read, 0x8000, true );
+               fs_playback_start( data->playback, data->pos_read );
           }
 
           /* Update input parameters. */
@@ -239,13 +235,7 @@ static DFBResult
 IFusionSoundStream_Wait( IFusionSoundStream *thiz,
                          int                 length )
 {
-     CoreSoundBuffer *buffer;
-
      INTERFACE_GET_DATA(IFusionSoundStream)
-
-     buffer = data->buffer;
-     if (!buffer)
-          return DFB_DESTROYED;
 
      if (length < 0 || length >= data->size)
           return DFB_INVARG;
@@ -285,9 +275,6 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
 {
      INTERFACE_GET_DATA(IFusionSoundStream)
 
-     if (!data->buffer)
-          return DFB_DESTROYED;
-
      pthread_mutex_lock( &data->lock );
      
      if (filled) {
@@ -315,26 +302,55 @@ IFusionSoundStream_GetStatus( IFusionSoundStream *thiz,
 
 DFBResult
 IFusionSoundStream_Construct( IFusionSoundStream *thiz,
+                              CoreSound          *core,
                               CoreSoundBuffer    *buffer,
                               int                 size )
 {
+     DFBResult     ret;
+     CorePlayback *playback;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundStream)
 
-     data->ref    = 1;
-     data->buffer = buffer;
-     data->size   = size;
-
-     pthread_mutex_init( &data->lock, NULL );
-     pthread_cond_init( &data->wait, NULL );
-
-     if (fs_buffer_attach( buffer, IFusionSoundStream_React,
-                           data, &data->reaction ))
-     {
+     /* Increase reference counter of the buffer. */
+     if (fs_buffer_ref( buffer )) {
           DFB_DEALLOCATE_INTERFACE( thiz );
 
           return DFB_FUSION;
      }
 
+     /* Create a playback object for the buffer. */
+     ret = fs_playback_create( core, buffer, true, &playback );
+     if (ret) {
+          fs_buffer_unref( buffer );
+
+          DFB_DEALLOCATE_INTERFACE( thiz );
+
+          return ret;
+     }
+     
+     /* Attach our listener to the playback object. */
+     if (fs_playback_attach( playback, IFusionSoundStream_React,
+                             data, &data->reaction ))
+     {
+          fs_playback_unref( playback );
+          fs_buffer_unref( buffer );
+
+          DFB_DEALLOCATE_INTERFACE( thiz );
+
+          return DFB_FUSION;
+     }
+     
+     /* Initialize private data. */
+     data->ref      = 1;
+     data->core     = core;
+     data->buffer   = buffer;
+     data->playback = playback;
+     data->size     = size;
+
+     pthread_mutex_init( &data->lock, NULL );
+     pthread_cond_init( &data->wait, NULL );
+
+     /* Initialize method table. */
      thiz->AddRef    = IFusionSoundStream_AddRef;
      thiz->Release   = IFusionSoundStream_Release;
 
@@ -351,14 +367,14 @@ static ReactionResult
 IFusionSoundStream_React( const void *msg_data,
                           void       *ctx )
 {
-     const CoreSoundBufferNotification *notification = msg_data;
-     IFusionSoundStream_data           *data         = ctx;
+     const CorePlaybackNotification *notification = msg_data;
+     IFusionSoundStream_data        *data         = ctx;
 
-     if (notification->flags & CABNF_PLAYBACK_ADVANCED)
+     if (notification->flags & CPNF_ADVANCED)
           DEBUGMSG( "%s: playback advanced, next read at position %d\n",
                     __FUNCTION__, notification->pos );
 
-     if (notification->flags & CABNF_PLAYBACK_ENDED)
+     if (notification->flags & CPNF_ENDED)
           DEBUGMSG( "%s: playback ended at position %d!\n",
                     __FUNCTION__, notification->pos );
      
@@ -366,7 +382,7 @@ IFusionSoundStream_React( const void *msg_data,
      
      data->pos_read = notification->pos;
 
-     if (notification->flags & CABNF_PLAYBACK_ENDED)
+     if (notification->flags & CPNF_ENDED)
           data->playing = false;
 
      pthread_cond_broadcast( &data->wait );

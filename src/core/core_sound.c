@@ -48,27 +48,25 @@
 #include <misc/util.h>
 
 #include <core/core_sound.h>
+#include <core/playback.h>
 #include <core/sound_buffer.h>
 
 /******************************************************************************/
 
 typedef struct {
-     FusionLink       link;
+     FusionLink           link;
 
-     CoreSoundBuffer *buffer;
-
-     int              pos;
-     __u16            pan;
-     bool             loop;
-} CoreSoundPlayback;
+     CorePlayback        *playback;
+} CorePlaylistEntry;
 
 struct __FS_CoreSoundShared {
      FusionObjectPool    *buffer_pool;
+     FusionObjectPool    *playback_pool;
      
      struct {
-          FusionLink     *list;
+          FusionLink     *entries;
           FusionSkirmish  lock;
-     } playbacks;
+     } playlist;
      
      struct {
           int             fmt;               /* hack */
@@ -206,75 +204,82 @@ fs_core_create_buffer( CoreSound *core )
      return (CoreSoundBuffer*)fusion_object_create( core->shared->buffer_pool );
 }
 
-DFBResult
-fs_core_add_playback( CoreSound       *core,
-                      CoreSoundBuffer *buffer,
-                      int              pos,
-                      __u16            pan,
-                      bool             loop )
+CorePlayback *
+fs_core_create_playback( CoreSound *core )
 {
+     DFB_ASSERT( core != NULL );
+     DFB_ASSERT( core->shared != NULL );
+     DFB_ASSERT( core->shared->playback_pool != NULL );
+
+     return (CorePlayback*) fusion_object_create( core->shared->playback_pool );
+}
+
+DFBResult
+fs_core_add_playback( CoreSound    *core,
+                      CorePlayback *playback )
+{
+     CorePlaylistEntry *entry;
      CoreSoundShared   *shared;
-     CoreSoundPlayback *playback;
      
      DFB_ASSERT( core != NULL );
      DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( buffer != NULL );
-     DFB_ASSERT( pos >= 0 );
+     DFB_ASSERT( playback != NULL );
      
-     DEBUGMSG( "FusionSound/Core: %s...\n", __FUNCTION__ );
+     DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
 
-     shared = core->shared;
-
-     playback = shcalloc( 1, sizeof(CoreSoundPlayback) );
-     if (!playback)
+     /* Allocate playlist entry. */
+     entry = shcalloc( 1, sizeof(CorePlaylistEntry) );
+     if (!entry)
           return DFB_NOSYSTEMMEMORY;
 
-     playback->pos  = pos;
-     playback->pan  = pan;
-     playback->loop = loop;
-
-     if (fs_buffer_link( &playback->buffer, buffer )) {
-          shfree( playback );
+     /* Link playback to playlist entry. */
+     if (fs_playback_link( &entry->playback, playback )) {
+          shfree( entry );
           return DFB_FUSION;
      }
 
-     fusion_skirmish_prevail( &shared->playbacks.lock );
-     fusion_list_prepend( &shared->playbacks.list, &playback->link );
-     fusion_skirmish_dismiss( &shared->playbacks.lock );
+     /* Add it to the list. */
+     shared = core->shared;
+     
+     fusion_skirmish_prevail( &shared->playlist.lock );
+     fusion_list_prepend( &shared->playlist.entries, &entry->link );
+     fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
 }
 
 DFBResult
-fs_core_remove_playbacks( CoreSound       *core,
-                          CoreSoundBuffer *buffer )
+fs_core_remove_playback( CoreSound    *core,
+                         CorePlayback *playback )
 {
      FusionLink      *l, *next;
      CoreSoundShared *shared;
      
      DFB_ASSERT( core != NULL );
      DFB_ASSERT( core->shared != NULL );
-     DFB_ASSERT( buffer != NULL );
+     DFB_ASSERT( playback != NULL );
      
-     DEBUGMSG( "FusionSound/Core: %s...\n", __FUNCTION__ );
+     DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
 
      shared = core->shared;
+     
+     fusion_skirmish_prevail( &shared->playlist.lock );
+     
+     /* Lookup playback in the list. */
+     fusion_list_foreach_safe (l, next, shared->playlist.entries) {
+          CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
-     fusion_skirmish_prevail( &shared->playbacks.lock );
+          /* Remove any matches. */
+          if (entry->playback == playback) {
+               fs_playback_unlink( playback );
 
-     fusion_list_foreach_safe (l, next, shared->playbacks.list) {
-          CoreSoundPlayback *playback = (CoreSoundPlayback*) l;
+               fusion_list_remove( &shared->playlist.entries, l );
 
-          if (playback->buffer == buffer) {
-               fs_buffer_unlink( playback->buffer );
-
-               fusion_list_remove( &shared->playbacks.list, l );
-               
-               shfree( playback );
+               shfree( entry );
           }
      }
      
-     fusion_skirmish_dismiss( &shared->playbacks.lock );
+     fusion_skirmish_dismiss( &shared->playlist.lock );
 
      return DFB_OK;
 }
@@ -303,8 +308,6 @@ sound_thread( CoreThread *thread, void *arg )
 
           dfb_thread_testcancel( thread );
           
-          //DEBUGMSG("written %d\n", written);
-          
           if (last_time) {
                int       played;
                long long this_time = dfb_get_micros();
@@ -321,8 +324,6 @@ sound_thread( CoreThread *thread, void *arg )
                     last_time = 0;
                }
 
-               //DEBUGMSG("     -> %d (played %d)\n", written, played);
-               
                last_time = this_time;
 
                /* do not buffer more than 150 ms */
@@ -332,34 +333,30 @@ sound_thread( CoreThread *thread, void *arg )
                dfb_thread_testcancel( thread );
           }
 
+          /* Clear mixing buffer. */
           memset( mixing, 0, sizeof(int) * samples );
 
-          fusion_skirmish_prevail( &shared->playbacks.lock );
+          /* Iterate through running playbacks mixing them together. */
+          fusion_skirmish_prevail( &shared->playlist.lock );
 
-          fusion_list_foreach_safe (l, next, shared->playbacks.list) {
+          fusion_list_foreach_safe (l, next, shared->playlist.entries) {
                DFBResult          ret;
-               CoreSoundPlayback *playback = (CoreSoundPlayback *) l;
-               CoreSoundBuffer   *buffer   = playback->buffer;
+               CorePlaylistEntry *entry    = (CorePlaylistEntry *) l;
+               CorePlayback      *playback = entry->playback;
                
-               ret = fs_buffer_mixto( buffer, playback->pos,
-                                      mixing, samples, playback->pan,
-                                      playback->loop, &playback->pos );
-               
-               fs_buffer_playback_notify( buffer, ret ? CABNF_PLAYBACK_ENDED :
-                                          CABNF_PLAYBACK_ADVANCED,
-                                          playback->pos );
-               
+               ret = fs_playback_mixto( playback, mixing, samples );
                if (ret) {
-                    fs_buffer_unlink( playback->buffer );
+                    fs_playback_unlink( playback );
 
-                    fusion_list_remove( &shared->playbacks.list, l );
+                    fusion_list_remove( &shared->playlist.entries, l );
 
-                    shfree( playback );
+                    shfree( entry );
                }
           }
           
-          fusion_skirmish_dismiss( &shared->playbacks.lock );
+          fusion_skirmish_dismiss( &shared->playlist.lock );
           
+          /* Convert mixing buffer to output format clipping each sample. */
           for (i=0; i<samples; i++) {
                register int sample = mixing[i];
 
@@ -448,10 +445,13 @@ fs_core_initialize( CoreSound *core )
      core->fd = fd;
 
      /* initialize playback list lock */
-     fusion_skirmish_init( &shared->playbacks.lock );
+     fusion_skirmish_init( &shared->playlist.lock );
 
      /* create a pool for sound buffer objects */
      shared->buffer_pool = fs_buffer_pool_create();
+
+     /* create a pool for playback objects */
+     shared->playback_pool = fs_playback_pool_create();
 
      /* create sound thread */
      core->sound_thread = dfb_thread_create( CTT_CRITICAL, sound_thread, core );
@@ -462,12 +462,20 @@ fs_core_initialize( CoreSound *core )
 static DFBResult
 fs_core_join( CoreSound *core )
 {
+     /* really nothing to be done here, yet ;) */
+
+     (void) core;
+
      return DFB_OK;
 }
 
 static DFBResult
 fs_core_leave( CoreSound *core )
 {
+     /* really nothing to be done here, yet ;) */
+
+     (void) core;
+     
      return DFB_OK;
 }
 
@@ -483,6 +491,7 @@ fs_core_shutdown( CoreSound *core )
      shared = core->shared;
      
      DFB_ASSERT( shared->buffer_pool != NULL );
+     DFB_ASSERT( shared->playback_pool != NULL );
      
      /* stop sound thread */
      dfb_thread_cancel( core->sound_thread );
@@ -496,21 +505,24 @@ fs_core_shutdown( CoreSound *core )
      close( core->fd );
 
      /* clear playback list */
-     fusion_skirmish_prevail( &shared->playbacks.lock );
+     fusion_skirmish_prevail( &shared->playlist.lock );
 
-     fusion_list_foreach_safe (l, next, shared->playbacks.list) {
-          CoreSoundPlayback *playback = (CoreSoundPlayback*) l;
+     fusion_list_foreach_safe (l, next, shared->playlist.entries) {
+          CorePlaylistEntry *entry = (CorePlaylistEntry*) l;
 
-          fs_buffer_unlink( playback->buffer );
+          fs_playback_unlink( entry->playback );
 
-          shfree( playback );
+          shfree( entry );
      }
+     
+     /* destroy playback object pool */
+     fusion_object_pool_destroy( shared->playback_pool );
      
      /* destroy buffer object pool */
      fusion_object_pool_destroy( shared->buffer_pool );
 
-     /* destroy playback list lock */
-     fusion_skirmish_destroy( &shared->playbacks.lock );
+     /* destroy playlist lock */
+     fusion_skirmish_destroy( &shared->playlist.lock );
      
      return DFB_OK;
 }
@@ -597,6 +609,9 @@ fs_core_arena_leave( FusionArena *arena,
      DFBResult  ret;
      CoreSound *core = ctx;
 
+     (void) arena;
+     (void) emergency;
+     
      DEBUGMSG( "FusionSound/Core: Leaving...\n" );
 
      /* Leave. */
@@ -614,6 +629,9 @@ fs_core_arena_shutdown( FusionArena *arena,
 {
      DFBResult  ret;
      CoreSound *core = ctx;
+
+     (void) arena;
+     (void) emergency;
 
      DEBUGMSG( "FusionSound/Core: Shutting down...\n" );
 

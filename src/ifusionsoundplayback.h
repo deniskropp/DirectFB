@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2003  convergence GmbH.
+   (c) Copyright 2002       convergence GmbH.
    
    All rights reserved.
 
@@ -24,15 +24,19 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __FUSIONSOUND_CORE_TYPES_SOUND_H__
-#define __FUSIONSOUND_CORE_TYPES_SOUND_H__
+#ifndef __IFUSIONSOUNDPLAYBACK_H__
+#define __IFUSIONSOUNDPLAYBACK_H__
 
-typedef struct __FS_CoreSound       CoreSound;
-typedef struct __FS_CoreSoundShared CoreSoundShared;
+#include <fusionsound.h>
 
-typedef struct __FS_CoreSoundBuffer CoreSoundBuffer;
+#include <core/types_sound.h>
 
-typedef struct __FS_CorePlayback    CorePlayback;
+/*
+ * initializes interface struct and private data
+ */
+DFBResult IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
+                                          CorePlayback         *playback,
+                                          int                   length );
+
 
 #endif
-

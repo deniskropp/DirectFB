@@ -3,5 +3,6 @@ Makefile.in
 .deps
 .libs
 gmon.out
+advanced
 simple
 stream

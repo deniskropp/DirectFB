@@ -50,6 +50,11 @@ DECLARE_INTERFACE( IFusionSoundBuffer )
 DECLARE_INTERFACE( IFusionSoundStream )
 
 /*
+ * Advanced playback control for static sound buffers.
+ */
+DECLARE_INTERFACE( IFusionSoundPlayback )
+
+/*
  * The sample format is the way of storing audible information.
  */
 typedef enum {
@@ -153,22 +158,36 @@ DEFINE_INTERFACE( IFusionSound,
 )
 
 /*
- * Playback flags control the bahaviour of <i>IFusionSoundBuffer::Play()</i>.
+ * Flags for simple playback using <i>IFusionSoundBuffer::Play()</i>.
  */
 typedef enum {
      FSPLAY_NOFX         = 0x00000000,  /* No effects are applied. */
      FSPLAY_LOOPING      = 0x00000001,  /* Playback will continue at the
                                            beginning of the buffer as soon as
                                            the end is reached. There's no gap
-                                           produced by concatenation. */
-     FSPLAY_PAN          = 0x00000002,  /* Use the value passed to
-                                           <i>IFusionSoundBuffer::SetPan()</i>
+                                           produced by concatenation. Only one
+                                           looping playback at a time is
+                                           supported by the simple playback.
+                                           See also <i>CreatePlayback()</i>. */
+     FSPLAY_PAN          = 0x00000002,  /* Use value passed to <i>SetPan()</i>
                                            to control the balance between left
                                            and right speakers. */
      FSPLAY_ALL          = 0x00000003   /* All of these. */
 } FSBufferPlayFlags;
 
+
 DEFINE_INTERFACE( IFusionSoundBuffer,
+
+   /** Information **/
+
+     /*
+      * Get a description of the buffer.
+      */
+     DFBResult (*GetDescription) (
+          IFusionSoundBuffer       *thiz,
+          FSBufferDescription      *desc
+     );
+
 
    /** Access **/
 
@@ -188,7 +207,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      );
      
 
-   /** Playback **/
+   /** Simple playback **/
 
      /*
       * Set panning value.
@@ -201,7 +220,12 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      );
 
      /*
-      * Start a playback of the buffer.
+      * Start playing the buffer.
+      *
+      * There's no limited number of concurrent playbacks, but the simple
+      * playback only provides one looping playback at a time.
+      *
+      * See also <i>CreatePlayback()</i>.
       */
      DFBResult (*Play) (
           IFusionSoundBuffer       *thiz,
@@ -209,10 +233,26 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      );
 
      /*
-      * Stop all running playbacks of the buffer.
+      * Stop looping playback.
+      *
+      * This method is for the one concurrently looping playback that is
+      * provided by the simple playback.
+      *
+      * See also <i>CreatePlayback()</i>.
       */
-     DFBResult (*StopAll) (
+     DFBResult (*Stop) (
           IFusionSoundBuffer       *thiz
+     );
+
+
+   /** Advanced playback **/
+
+     /*
+      * Retrieve advanced playback control interface.
+      */
+     DFBResult (*CreatePlayback) (
+          IFusionSoundBuffer       *thiz,
+          IFusionSoundPlayback    **interface
      );
 )
 
@@ -266,6 +306,98 @@ DEFINE_INTERFACE( IFusionSoundStream,
      );
 )
 
+DEFINE_INTERFACE( IFusionSoundPlayback,
+
+   /** Commands **/
+
+     /*
+      * Start playback of the buffer.
+      *
+      * The <i>start</i> position specifies the sample at which the playback
+      * is going to start.
+      *
+      * The <i>stop</i> position specifies the sample after the last sample
+      * being played. The default value of zero causes the playback to stop
+      * after the last sample in the buffer, i.e. upon completion. A negative
+      * value means unlimited playback (looping).
+      *
+      * This method can be used for seeking if the playback is already running.
+      */
+     DFBResult (*Start) (
+          IFusionSoundPlayback     *thiz,
+          int                       start,
+          int                       stop
+     );
+
+     /*
+      * Stop playback of the buffer.
+      *
+      * This method stops a running playback. The playback can be continued
+      * by calling <i>Continue()</i> or restarted using <i>Start()</i>.
+      */
+     DFBResult (*Stop) (
+          IFusionSoundPlayback     *thiz
+     );
+
+     /*
+      * Continue playback of the buffer.
+      *
+      * This method is used to continue an explicitly stopped playback.
+      *
+      * It returns an error, if the playback is still running, or if it has
+      * stopped automatically by reaching the stop position.
+      */
+     DFBResult (*Continue) (
+          IFusionSoundPlayback     *thiz
+     );
+
+     /*
+      * Wait until playback of the buffer has finished.
+      *
+      * This method will block as long as the playback is running.
+      *
+      * If the playback is in looping mode the method returns immediately
+      * with an error.
+      */
+     DFBResult (*Wait) (
+          IFusionSoundPlayback     *thiz
+     );
+
+
+   /** Parameters **/
+
+     /*
+      * Set volume level.
+      *
+      * The <i>level</i> is a linear factor being 1.0f by default, currently
+      * ranges from 0.0f to 256.0f due to internal mixing limitations.
+      */
+     DFBResult (*SetVolume) (
+          IFusionSoundPlayback     *thiz,
+          float                     level
+     );
+
+     /*
+      * Set panning value.
+      *
+      * The <i>value</i> ranges from -1.0f (left) to 1.0f (right).
+      */
+     DFBResult (*SetPan) (
+          IFusionSoundPlayback     *thiz,
+          float                     value
+     );
+
+     /*
+      * Set pitch value.
+      *
+      * The <i>value</i> is a linear factor being 1.0f by default, currently
+      * ranges from 0.0f to 256.0f due to internal mixing limitations.
+      */
+     DFBResult (*SetPitch) (
+          IFusionSoundPlayback     *thiz,
+          float                     value
+     );
+)
 
 #ifdef __cplusplus
 }

@@ -31,19 +31,26 @@
 
 #include <core/types_sound.h>
 
+/*
+ * Core initialization and deinitialization
+ */
 DFBResult fs_core_create ( CoreSound **ret_core );
 DFBResult fs_core_destroy( CoreSound  *core );
 
-CoreSoundBuffer *fs_core_create_buffer( CoreSound *core );
+/*
+ * Object creation
+ */
+CoreSoundBuffer *fs_core_create_buffer  ( CoreSound *core );
+CorePlayback    *fs_core_create_playback( CoreSound *core );
 
-DFBResult fs_core_add_playback( CoreSound       *core,
-                                CoreSoundBuffer *buffer,
-                                int              pos,
-                                __u16            pan,
-                                bool             loop );
+/*
+ * Playback list management
+ */
+DFBResult fs_core_add_playback( CoreSound    *core,
+                                CorePlayback *playback );
 
-DFBResult fs_core_remove_playbacks( CoreSound       *core,
-                                    CoreSoundBuffer *buffer );
+DFBResult fs_core_remove_playback( CoreSound    *core,
+                                   CorePlayback *playback );
 
 #endif
 

@@ -35,7 +35,12 @@
  * initializes interface struct and private data
  */
 DFBResult IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
-                                        CoreSoundBuffer    *buffer );
+                                        CoreSound          *core,
+                                        CoreSoundBuffer    *buffer,
+                                        int                 size,
+                                        int                 channels,
+                                        FSSampleFormat      format,
+                                        int                 rate );
 
 
 #endif
