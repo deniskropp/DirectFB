@@ -105,6 +105,8 @@ fusion_init()
      if (fusion_id == 1) {
           fusion_shared = __shmalloc_allocate_root( sizeof(FusionShared) );
 
+          skirmish_init( &fusion_shared->arenas_lock );
+
           gettimeofday( &fusion_shared->start_time, NULL );
      }
      else
@@ -127,6 +129,10 @@ fusion_exit()
      dfb_thread_cancel( read_loop );
      dfb_thread_join( read_loop );
      dfb_thread_destroy( read_loop );
+
+     if (fusion_id == 1) {
+          skirmish_destroy( &fusion_shared->arenas_lock );
+     }
 
      __shmalloc_exit( fusion_id == 1 );
 

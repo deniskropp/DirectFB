@@ -225,14 +225,15 @@ FusionResult arena_exit (FusionArena   *arena,
           skirmish_prevail( &fusion_shared->arenas_lock );
           fusion_list_remove( &fusion_shared->arenas, &arena->link );
           skirmish_dismiss( &fusion_shared->arenas_lock );
+
+          shfree( arena->name );
+          shfree( arena );
      }
      else {
           error = leave( arena, ctx, emergency );
 
           skirmish_dismiss( &arena->lock );
      }
-
-     shfree( arena );
 
      if (ret_error)
           *ret_error = error;
@@ -255,14 +256,16 @@ lock_arena( const char *name, bool add )
      fusion_list_foreach (l, fusion_shared->arenas) {
           FusionArena *arena = (FusionArena*) l;
 
-          if (! strcmp( arena->name, name )) {
-               if (skirmish_prevail( &arena->lock ))
-                    arena = NULL;
+          if (skirmish_prevail( &arena->lock ))
+               continue;
 
+          if (! strcmp( arena->name, name )) {
                skirmish_dismiss( &fusion_shared->arenas_lock );
 
                return arena;
           }
+
+          skirmish_dismiss( &arena->lock );
      }
 
      if (add) {
