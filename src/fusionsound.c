@@ -37,6 +37,7 @@
 #include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <misc/conf.h>
 
@@ -78,7 +79,7 @@ FusionSoundSetOption( const char *name, const char *value )
      return dfb_config_set( name, value );
 }
 
-DFBResult
+DirectResult
 FusionSoundCreate( IFusionSound **ret_interface )
 {
      if (!dfb_config) {
@@ -110,6 +111,23 @@ FusionSoundCreate( IFusionSound **ret_interface )
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, ret_interface );
 
      return CreateLocal( ret_interface );
+}
+
+DirectResult
+FusionSoundError( const char *msg, DirectResult error )
+{
+     if (msg)
+          fprintf( stderr, "(#) FusionSound Error [%s]: %s\n", msg, DirectResultString( error ) );
+     else
+          fprintf( stderr, "(#) FusionSound Error: %s\n", DirectResultString( error ) );
+
+     return error;
+}
+
+const char *
+FusionSoundErrorString( DirectResult error )
+{
+     return DirectResultString( error );
 }
 
 /**************************************************************************************************/

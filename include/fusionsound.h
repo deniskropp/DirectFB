@@ -85,6 +85,22 @@ DFBResult FusionSoundCreate(
                            );
 
 /*
+ * Print a description of the result code along with an
+ * optional message that is put in front with a colon.
+ */
+DFBResult FusionSoundError(
+                            const char *msg,    /* optional message */
+                            DFBResult   result  /* result code to interpret */
+                          );
+
+/*
+ * Returns a string describing 'result'.
+ */
+const char *FusionSoundErrorString(
+                                    DFBResult result
+                                  );
+
+/*
  * The sample format is the way of storing audible information.
  *
  * Data is always stored in <b>native endian</b>. This keeps the library and
