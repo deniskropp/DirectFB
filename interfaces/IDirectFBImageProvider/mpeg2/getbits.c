@@ -40,111 +40,108 @@
 
 /* initialize buffer, call once before first getbits or showbits */
 
-void MPEG2_Initialize_Buffer()
+void
+MPEG2_Initialize_Buffer(MPEG2_Decoder *dec)
 {
-  ld->Incnt = 0;
-  ld->Rdptr = ld->Rdbfr + 2048;
-  ld->Rdmax = ld->Rdptr;
+     dec->Incnt = 0;
+     dec->Rdptr = dec->Rdbfr + 2048;
+     dec->Rdmax = dec->Rdptr;
 
-  ld->Bfr = 0;
-  MPEG2_Flush_Buffer(0); /* fills valid data into bfr */
+     dec->Bfr = 0;
+
+     MPEG2_Flush_Buffer(dec, 0); /* fills valid data into bfr */
 }
 
-void MPEG2_Fill_Buffer()
+void
+MPEG2_Fill_Buffer(MPEG2_Decoder *dec)
 {
-  int Buffer_Level;
+     int Buffer_Level;
 
-  Buffer_Level = ld->mpeg2_read (ld->Rdbfr, 2048, ld->mpeg2_read_ctx);
-  ld->Rdptr = ld->Rdbfr;
+     Buffer_Level = dec->mpeg2_read (dec->Rdbfr, 2048, dec->mpeg2_read_ctx);
+     dec->Rdptr = dec->Rdbfr;
 
-  /* end of the bitstream file */
-  if (Buffer_Level < 2048)
-  {
-    /* just to be safe */
-    if (Buffer_Level < 0)
-      Buffer_Level = 0;
+     /* end of the bitstream file */
+     if (Buffer_Level < 2048) {
+          /* just to be safe */
+          if (Buffer_Level < 0)
+               Buffer_Level = 0;
 
-    /* pad until the next to the next 32-bit word boundary */
-    while (Buffer_Level & 3)
-      ld->Rdbfr[Buffer_Level++] = 0;
+          /* pad until the next to the next 32-bit word boundary */
+          while (Buffer_Level & 3)
+               dec->Rdbfr[Buffer_Level++] = 0;
 
-	/* pad the buffer with sequence end codes */
-    while (Buffer_Level < 2048)
-    {
-      ld->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE>>24;
-      ld->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE>>16;
-      ld->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE>>8;
-      ld->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE&0xff;
-    }
-  }
+          /* pad the buffer with sequence end codes */
+          while (Buffer_Level < 2048) {
+               dec->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE>>24;
+               dec->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE>>16;
+               dec->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE>>8;
+               dec->Rdbfr[Buffer_Level++] = SEQUENCE_END_CODE&0xff;
+          }
+     }
 }
 
 
 /* return next n bits (right adjusted) without advancing */
 
-unsigned int MPEG2_Show_Bits(N)
-int N;
+unsigned int
+MPEG2_Show_Bits(MPEG2_Decoder *dec, int N)
 {
-  return ld->Bfr >> (32-N);
+     return dec->Bfr >> (32-N);
 }
 
 
 /* return next bit (could be made faster than MPEG2_Get_Bits(1)) */
 
-unsigned int MPEG2_Get_Bits1()
+unsigned int
+MPEG2_Get_Bits1(MPEG2_Decoder *dec)
 {
-  return MPEG2_Get_Bits(1);
+     return MPEG2_Get_Bits(dec, 1);
 }
 
 
 /* advance by n bits */
 
-void MPEG2_Flush_Buffer(N)
-int N;
+void
+MPEG2_Flush_Buffer(MPEG2_Decoder *dec, int N)
 {
-  int Incnt;
+     int Incnt;
 
-  ld->Bfr <<= N;
+     dec->Bfr <<= N;
 
-  Incnt = ld->Incnt -= N;
+     Incnt = dec->Incnt -= N;
 
-  if (Incnt <= 24)
-  {
-    if (ld->Rdptr < ld->Rdbfr+2044)
-    {
-      do
-      {
-        ld->Bfr |= *ld->Rdptr++ << (24 - Incnt);
-        Incnt += 8;
-      }
-      while (Incnt <= 24);
-    }
-    else
-    {
-      do
-      {
-        if (ld->Rdptr >= ld->Rdbfr+2048)
-          MPEG2_Fill_Buffer();
-        ld->Bfr |= *ld->Rdptr++ << (24 - Incnt);
-        Incnt += 8;
-      }
-      while (Incnt <= 24);
-    }
-    ld->Incnt = Incnt;
-  }
+     if (Incnt <= 24) {
+          if (dec->Rdptr < dec->Rdbfr+2044) {
+               do {
+                    dec->Bfr |= *dec->Rdptr++ << (24 - Incnt);
+                    Incnt += 8;
+               }
+               while (Incnt <= 24);
+          }
+          else {
+               do {
+                    if (dec->Rdptr >= dec->Rdbfr+2048)
+                         MPEG2_Fill_Buffer(dec);
+                    dec->Bfr |= *dec->Rdptr++ << (24 - Incnt);
+                    Incnt += 8;
+               }
+               while (Incnt <= 24);
+          }
+          dec->Incnt = Incnt;
+     }
 }
 
 
 /* return next n bits (right adjusted) */
 
-unsigned int MPEG2_Get_Bits(N)
-int N;
+unsigned int
+MPEG2_Get_Bits(MPEG2_Decoder *dec, int N)
 {
-  unsigned int Val;
+     unsigned int Val;
 
-  Val = MPEG2_Show_Bits(N);
-  MPEG2_Flush_Buffer(N);
+     Val = MPEG2_Show_Bits(dec, N);
+     MPEG2_Flush_Buffer(dec, N);
 
-  return Val;
+     return Val;
 }
 

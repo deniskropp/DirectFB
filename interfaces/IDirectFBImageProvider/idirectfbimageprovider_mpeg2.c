@@ -79,6 +79,8 @@ typedef struct {
      int                  ref;      /* reference counter */
      IDirectFBDataBuffer *buffer;
 
+     MPEG2_Decoder       *dec;
+
      int                  stage;
 
      int                  width;
@@ -141,7 +143,8 @@ Construct( IDirectFBImageProvider *thiz,
      buffer->AddRef( buffer );
 
      /* Initialize mpeg2 decoding. */
-     if (MPEG2_Init( mpeg2_read_func, buffer, &data->width, &data->height ))
+     data->dec = MPEG2_Init( mpeg2_read_func, buffer, &data->width, &data->height );
+     if (!data->dec)
           goto error;
 
      data->stage = STAGE_INFO;
@@ -164,7 +167,8 @@ Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 
 error:
-     MPEG2_Close();
+     if (data->dec)
+          MPEG2_Close(data->dec);
 
      buffer->Release( buffer );
 
@@ -179,7 +183,7 @@ IDirectFBImageProvider_MPEG2_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_MPEG2_data *data =
                               (IDirectFBImageProvider_MPEG2_data*)thiz->priv;
 
-     MPEG2_Close();
+     MPEG2_Close(data->dec);
      
      /* Decrease the data buffer reference counter. */
      data->buffer->Release( data->buffer );
@@ -240,7 +244,7 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
           case STAGE_END:
                break;
           case STAGE_IMAGE:
-               if (MPEG2_Decode( mpeg2_write_func, data )) {
+               if (MPEG2_Decode( data->dec, mpeg2_write_func, data )) {
                     data->stage = STAGE_ERROR;
                     return DFB_FAILURE;
                }

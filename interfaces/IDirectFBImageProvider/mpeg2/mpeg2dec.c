@@ -36,263 +36,228 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define GLOBAL
 #include "global.h"
 
 /* private prototypes */
-static int  video_sequence (int *framenum);
-#if 0
-static int Decode_Bitstream (void);
-#endif
-static int  Headers (void);
-static void Initialize_Sequence (void);
-static void Initialize_Decoder (void);
-static void Deinitialize_Sequence (void);
+static int  video_sequence (MPEG2_Decoder *dec, int *framenum);
+static void Initialize_Sequence (MPEG2_Decoder *dec);
+static void Initialize_Decoder (MPEG2_Decoder *dec);
+static void Deinitialize_Sequence (MPEG2_Decoder *dec);
 
+/* decoder operation control flags */
+int MPEG2_Quiet_Flag = 0;
+int MPEG2_Reference_IDCT_Flag = 0;
 
-static void Clear_Options();
+/* zig-zag and alternate MPEG2_scan patterns */
+const unsigned char MPEG2_scan[2][64] = {
+     { /* Zig-Zag MPEG2_scan pattern  */
+          0,1,8,16,9,2,3,10,17,24,32,25,18,11,4,5,
+          12,19,26,33,40,48,41,34,27,20,13,6,7,14,21,28,
+          35,42,49,56,57,50,43,36,29,22,15,23,30,37,44,51,
+          58,59,52,45,38,31,39,46,53,60,61,54,47,55,62,63
+     },
+     { /* Alternate MPEG2_scan pattern */
+          0,8,16,24,1,9,2,10,17,25,32,40,48,56,57,49,
+          41,33,26,18,3,11,4,12,19,27,34,42,50,58,35,43,
+          51,59,20,28,5,13,6,14,21,29,36,44,52,60,37,45,
+          53,61,22,30,7,15,23,31,38,46,54,62,39,47,55,63
+     }
+};
 
+/* non-linear quantization coefficient table */
+const unsigned char MPEG2_Non_Linear_quantizer_scale[32] = {
+     0, 1, 2, 3, 4, 5, 6, 7,
+     8,10,12,14,16,18,20,22,
+     24,28,32,36,40,44,48,52,
+     56,64,72,80,88,96,104,112
+};
 
-int
+MPEG2_Decoder *
 MPEG2_Init (MPEG2_Read mpeg2_read, void *read_ctx, int *width, int *height)
 {
-  int ret;
+     MPEG2_Decoder *dec;
 
-  Clear_Options();
+     dec = calloc( 1, sizeof(MPEG2_Decoder) );
+     if (!dec)
+          return NULL;
 
-  ld = &base; /* select base layer context */
+     dec->mpeg2_read = mpeg2_read;
+     dec->mpeg2_read_ctx = read_ctx;
 
-  ld->mpeg2_read = mpeg2_read;
-  ld->mpeg2_read_ctx = read_ctx;
+     MPEG2_Initialize_Buffer(dec);
 
-  MPEG2_Initialize_Buffer(); 
+     Initialize_Decoder(dec);
 
-  Initialize_Decoder();
+     if (MPEG2_Get_Hdr(dec) != 1) {
+          free(dec);
+          return NULL;
+     }
 
-  ret = Headers();
-  if (ret != 1)
-    return -1;
+     if (width)
+          *width = dec->horizontal_size;
 
-  if (width)
-    *width = horizontal_size;
+     if (height)
+          *height = dec->vertical_size;
 
-  if (height)
-    *height = vertical_size;
-
-  return 0;
+     return dec;
 }
 
 int
-MPEG2_Decode(MPEG2_Write mpeg2_write, void *write_ctx)
+MPEG2_Decode(MPEG2_Decoder *dec, MPEG2_Write mpeg2_write, void *write_ctx)
 {
-  int Bitstream_Framenum = 0;
+     int Bitstream_Framenum = 0;
 
-  ld->mpeg2_write = mpeg2_write;
-  ld->mpeg2_write_ctx = write_ctx;
+     dec->mpeg2_write = mpeg2_write;
+     dec->mpeg2_write_ctx = write_ctx;
 
-  return video_sequence(&Bitstream_Framenum);
+     return video_sequence(dec, &Bitstream_Framenum);
 }
 
 void
-MPEG2_Close()
+MPEG2_Close(MPEG2_Decoder *dec)
 {
-  free( MPEG2_Clip - 384 );
-  MPEG2_Clip = NULL;
 }
 
 
 
 /* IMPLEMENTAION specific rouintes */
-static void Initialize_Decoder()
+static void
+Initialize_Decoder(MPEG2_Decoder *dec)
 {
-  int i;
+     int i;
 
-  /* MPEG2_Clip table */
-  if (!(MPEG2_Clip=(unsigned char *)malloc(1024)))
-    MPEG2_Error("MPEG2_Clip[] malloc failed\n");
+     dec->Clip = dec->_Clip + 384;
 
-  MPEG2_Clip += 384;
+     for (i=-384; i<640; i++)
+          dec->Clip[i] = (i<0) ? 0 : ((i>255) ? 255 : i);
 
-  for (i=-384; i<640; i++)
-    MPEG2_Clip[i] = (i<0) ? 0 : ((i>255) ? 255 : i);
-
-  /* IDCT */
-  if (MPEG2_Reference_IDCT_Flag)
-    MPEG2_Initialize_Reference_IDCT();
-  else
-    MPEG2_Initialize_Fast_IDCT();
+     /* IDCT */
+     if (MPEG2_Reference_IDCT_Flag)
+          MPEG2_Initialize_Reference_IDCT(dec);
+     else
+          MPEG2_Initialize_Fast_IDCT(dec);
 
 }
 
 /* mostly IMPLEMENTAION specific rouintes */
-static void Initialize_Sequence()
+static void
+Initialize_Sequence(MPEG2_Decoder *dec)
 {
-  int cc, size;
-  static int Table_6_20[3] = {6,8,12};
+     int cc, size;
+     static int Table_6_20[3] = {6,8,12};
 
-  /* force MPEG-1 parameters for proper decoder behavior */
-  /* see ISO/IEC 13818-2 section D.9.14 */
-  if (!base.MPEG2_Flag)
-  {
-    progressive_sequence = 1;
-    progressive_frame = 1;
-    picture_structure = FRAME_PICTURE;
-    frame_pred_frame_dct = 1;
-    chroma_format = CHROMA420;
-    matrix_coefficients = 5;
-  }
+     /* force MPEG-1 parameters for proper decoder behavior */
+     /* see ISO/IEC 13818-2 section D.9.14 */
+     if (!dec->MPEG2_Flag) {
+          dec->progressive_sequence = 1;
+          dec->progressive_frame = 1;
+          dec->picture_structure = FRAME_PICTURE;
+          dec->frame_pred_frame_dct = 1;
+          dec->chroma_format = CHROMA420;
+          dec->matrix_coefficients = 5;
+     }
 
-  /* round to nearest multiple of coded macroblocks */
-  /* ISO/IEC 13818-2 section 6.3.3 sequence_header() */
-  mb_width = (horizontal_size+15)/16;
-  mb_height = (base.MPEG2_Flag && !progressive_sequence) ? 2*((vertical_size+31)/32)
-                                        : (vertical_size+15)/16;
+     /* round to nearest multiple of coded macroblocks */
+     /* ISO/IEC 13818-2 section 6.3.3 sequence_header() */
+     dec->mb_width = (dec->horizontal_size+15)/16;
+     dec->mb_height = (dec->MPEG2_Flag && !dec->progressive_sequence) ? 2*((dec->vertical_size+31)/32)
+                      : (dec->vertical_size+15)/16;
 
-  Coded_Picture_Width = 16*mb_width;
-  Coded_Picture_Height = 16*mb_height;
+     dec->Coded_Picture_Width = 16*dec->mb_width;
+     dec->Coded_Picture_Height = 16*dec->mb_height;
 
-  /* ISO/IEC 13818-2 sections 6.1.1.8, 6.1.1.9, and 6.1.1.10 */
-  Chroma_Width = (chroma_format==CHROMA444) ? Coded_Picture_Width
-                                           : Coded_Picture_Width>>1;
-  Chroma_Height = (chroma_format!=CHROMA420) ? Coded_Picture_Height
-                                            : Coded_Picture_Height>>1;
-  
-  /* derived based on Table 6-20 in ISO/IEC 13818-2 section 6.3.17 */
-  block_count = Table_6_20[chroma_format-1];
+     /* ISO/IEC 13818-2 sections 6.1.1.8, 6.1.1.9, and 6.1.1.10 */
+     dec->Chroma_Width = (dec->chroma_format==CHROMA444) ? dec->Coded_Picture_Width
+                         : dec->Coded_Picture_Width>>1;
+     dec->Chroma_Height = (dec->chroma_format!=CHROMA420) ? dec->Coded_Picture_Height
+                          : dec->Coded_Picture_Height>>1;
 
-  for (cc=0; cc<3; cc++)
-  {
-    if (cc==0)
-      size = Coded_Picture_Width*Coded_Picture_Height;
-    else
-      size = Chroma_Width*Chroma_Height;
+     /* derived based on Table 6-20 in ISO/IEC 13818-2 section 6.3.17 */
+     dec->block_count = Table_6_20[dec->chroma_format-1];
 
-    if (!(backward_reference_frame[cc] = (unsigned char *)malloc(size)))
-      MPEG2_Error("backward_reference_frame[] malloc failed\n");
+     for (cc=0; cc<3; cc++) {
+          if (cc==0)
+               size = dec->Coded_Picture_Width*dec->Coded_Picture_Height;
+          else
+               size = dec->Chroma_Width*dec->Chroma_Height;
 
-    if (!(forward_reference_frame[cc] = (unsigned char *)malloc(size)))
-      MPEG2_Error("forward_reference_frame[] malloc failed\n");
+          if (!(dec->backward_reference_frame[cc] = (unsigned char *)malloc(size)))
+               MPEG2_Error(dec, "backward_reference_frame[] malloc failed\n");
 
-    if (!(auxframe[cc] = (unsigned char *)malloc(size)))
-      MPEG2_Error("auxframe[] malloc failed\n");
-  }
+          if (!(dec->forward_reference_frame[cc] = (unsigned char *)malloc(size)))
+               MPEG2_Error(dec, "forward_reference_frame[] malloc failed\n");
+
+          if (!(dec->auxframe[cc] = (unsigned char *)malloc(size)))
+               MPEG2_Error(dec, "auxframe[] malloc failed\n");
+     }
 }
 
-void MPEG2_Error(text)
-char *text;
+void
+MPEG2_Error(MPEG2_Decoder *dec, char *text)
 {
-  fprintf(stderr,text);
-  //  exit(1);
+     fprintf(stderr,text);
+     //  exit(1);
 }
 
-static int Headers()
+static void
+Deinitialize_Sequence(MPEG2_Decoder *dec)
 {
-  int ret;
+     int i;
 
-  ld = &base;
-  
+     /* clear flags */
+     dec->MPEG2_Flag=0;
 
-  /* return when end of sequence (0) or picture
-     header has been parsed (1) */
-
-  ret = MPEG2_Get_Hdr();
-
-  return ret;
-}
-
-#if 0
-static int Decode_Bitstream()
-{
-  int ret;
-  int Bitstream_Framenum;
-
-  Bitstream_Framenum = 0;
-
-  for(;;)
-  {
-    ret = Headers();
-    
-    if(ret==1)
-    {
-      ret = video_sequence(&Bitstream_Framenum);
-    }
-    else
-      return(ret);
-  }
-
-}
-#endif
-
-static void Deinitialize_Sequence()
-{
-  int i;
-
-  /* clear flags */
-  base.MPEG2_Flag=0;
-
-  for(i=0;i<3;i++)
-  {
-    free(backward_reference_frame[i]);
-    free(forward_reference_frame[i]);
-    free(auxframe[i]);
-  }
+     for (i=0;i<3;i++) {
+          free(dec->backward_reference_frame[i]);
+          free(dec->forward_reference_frame[i]);
+          free(dec->auxframe[i]);
+     }
 }
 
 
-static int video_sequence(Bitstream_Framenumber)
-int *Bitstream_Framenumber;
+static int
+video_sequence(MPEG2_Decoder *dec, int *Bitstream_Framenumber)
 {
-  int Bitstream_Framenum;
-  int Sequence_Framenum;
-  int Return_Value;
+     int Bitstream_Framenum;
+     int Sequence_Framenum;
+     int Return_Value;
 
-  Bitstream_Framenum = *Bitstream_Framenumber;
-  Sequence_Framenum=0;
+     Bitstream_Framenum = *Bitstream_Framenumber;
+     Sequence_Framenum=0;
 
-  Initialize_Sequence();
+     Initialize_Sequence(dec);
 
-  /* decode picture whose header has already been parsed in 
-     Decode_Bitstream() */
+     /* decode picture whose header has already been parsed in 
+        Decode_Bitstream() */
 
 
-  MPEG2_Decode_Picture(Bitstream_Framenum, Sequence_Framenum);
+     MPEG2_Decode_Picture(dec, Bitstream_Framenum, Sequence_Framenum);
 
-  /* update picture numbers */
-  if (!Second_Field)
-  {
-    Bitstream_Framenum++;
-    Sequence_Framenum++;
-  }
+     /* update picture numbers */
+     if (!dec->Second_Field) {
+          Bitstream_Framenum++;
+          Sequence_Framenum++;
+     }
 
-  /* loop through the rest of the pictures in the sequence */
-  while ((Return_Value=Headers()))
-  {
-    MPEG2_Decode_Picture(Bitstream_Framenum, Sequence_Framenum);
+     /* loop through the rest of the pictures in the sequence */
+     while ((Return_Value=MPEG2_Get_Hdr(dec))) {
+          MPEG2_Decode_Picture(dec, Bitstream_Framenum, Sequence_Framenum);
 
-    if (!Second_Field)
-    {
-      Bitstream_Framenum++;
-      Sequence_Framenum++;
-    }
-  }
+          if (!dec->Second_Field) {
+               Bitstream_Framenum++;
+               Sequence_Framenum++;
+          }
+     }
 
-  /* put last frame */
-  if (Sequence_Framenum!=0)
-  {
-    MPEG2_Output_Last_Frame_of_Sequence(Bitstream_Framenum);
-  }
+     /* put last frame */
+     if (Sequence_Framenum!=0) {
+          MPEG2_Output_Last_Frame_of_Sequence(dec, Bitstream_Framenum);
+     }
 
-  Deinitialize_Sequence();
+     Deinitialize_Sequence(dec);
 
-  *Bitstream_Framenumber = Bitstream_Framenum;
+     *Bitstream_Framenumber = Bitstream_Framenum;
 
-  return(Return_Value);
+     return(Return_Value);
 }
 
-
-
-static void Clear_Options()
-{
-  MPEG2_Reference_IDCT_Flag = 0;
-  MPEG2_Quiet_Flag = 0;
-}

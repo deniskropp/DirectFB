@@ -34,33 +34,35 @@
 
 /* initialize buffer, call once before first getbits or showbits */
 
-void MPEG2_Flush_Buffer32()
+void
+MPEG2_Flush_Buffer32(MPEG2_Decoder *dec)
 {
   int Incnt;
 
-  ld->Bfr = 0;
+  dec->Bfr = 0;
 
-  Incnt = ld->Incnt;
+  Incnt = dec->Incnt;
   Incnt -= 32;
 
   while (Incnt <= 24)
     {
-      if (ld->Rdptr >= ld->Rdbfr+2048)
-        MPEG2_Fill_Buffer();
-      ld->Bfr |= *ld->Rdptr++ << (24 - Incnt);
+      if (dec->Rdptr >= dec->Rdbfr+2048)
+        MPEG2_Fill_Buffer(dec);
+      dec->Bfr |= *dec->Rdptr++ << (24 - Incnt);
       Incnt += 8;
     }
 
-  ld->Incnt = Incnt;
+  dec->Incnt = Incnt;
 }
 
 
-unsigned int MPEG2_Get_Bits32()
+unsigned int
+MPEG2_Get_Bits32(MPEG2_Decoder *dec)
 {
   unsigned int l;
 
-  l = MPEG2_Show_Bits(32);
-  MPEG2_Flush_Buffer32();
+  l = MPEG2_Show_Bits(dec, 32);
+  MPEG2_Flush_Buffer32(dec);
 
   return l;
 }

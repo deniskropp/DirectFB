@@ -34,454 +34,398 @@
 
 /* defined in getvlc.h */
 typedef struct {
-  char run, level, len;
+     char run, level, len;
 } DCTtab;
 
-extern DCTtab DCTtabfirst[],DCTtabnext[],DCTtab0[],DCTtab1[];
-extern DCTtab DCTtab2[],DCTtab3[],DCTtab4[],DCTtab5[],DCTtab6[];
-extern DCTtab DCTtab0a[],DCTtab1a[];
+extern const DCTtab DCTtabfirst[],DCTtabnext[],DCTtab0[],DCTtab1[];
+extern const DCTtab DCTtab2[],DCTtab3[],DCTtab4[],DCTtab5[],DCTtab6[];
+extern const DCTtab DCTtab0a[],DCTtab1a[];
 
 
 /* decode one intra coded MPEG-1 block */
 
-void MPEG2_Decode_MPEG1_Intra_Block(comp,dc_dct_pred)
-int comp;
-int dc_dct_pred[];
+void
+MPEG2_Decode_MPEG1_Intra_Block(MPEG2_Decoder *dec, int comp, int dc_dct_pred[])
 {
-  int val, i, j, sign;
-  unsigned int code;
-  DCTtab *tab;
-  short *bp;
+     int val, i, j, sign;
+     unsigned int code;
+     const DCTtab *tab;
+     short *bp;
 
-  bp = ld->block[comp];
+     bp = dec->block[comp];
 
-  /* ISO/IEC 11172-2 section 2.4.3.7: Block layer. */
-  /* decode DC coefficients */
-  if (comp<4)
-    bp[0] = (dc_dct_pred[0]+=MPEG2_Get_Luma_DC_dct_diff()) << 3;
-  else if (comp==4)
-    bp[0] = (dc_dct_pred[1]+=MPEG2_Get_Chroma_DC_dct_diff()) << 3;
-  else
-    bp[0] = (dc_dct_pred[2]+=MPEG2_Get_Chroma_DC_dct_diff()) << 3;
+     /* ISO/IEC 11172-2 section 2.4.3.7: Block layer. */
+     /* decode DC coefficients */
+     if (comp<4)
+          bp[0] = (dc_dct_pred[0]+=MPEG2_Get_Luma_DC_dct_diff(dec)) << 3;
+     else if (comp==4)
+          bp[0] = (dc_dct_pred[1]+=MPEG2_Get_Chroma_DC_dct_diff(dec)) << 3;
+     else
+          bp[0] = (dc_dct_pred[2]+=MPEG2_Get_Chroma_DC_dct_diff(dec)) << 3;
 
-  if (MPEG2_Fault_Flag) return;
+     if (dec->Fault_Flag)
+          return;
 
-  /* D-pictures do not contain AC coefficients */
-  if(picture_coding_type == D_TYPE)
-    return;
+     /* D-pictures do not contain AC coefficients */
+     if (dec->picture_coding_type == D_TYPE)
+          return;
 
-  /* decode AC coefficients */
-  for (i=1; ; i++)
-  {
-    code = MPEG2_Show_Bits(16);
-    if (code>=16384)
-      tab = &DCTtabnext[(code>>12)-4];
-    else if (code>=1024)
-      tab = &DCTtab0[(code>>8)-4];
-    else if (code>=512)
-      tab = &DCTtab1[(code>>6)-8];
-    else if (code>=256)
-      tab = &DCTtab2[(code>>4)-16];
-    else if (code>=128)
-      tab = &DCTtab3[(code>>3)-16];
-    else if (code>=64)
-      tab = &DCTtab4[(code>>2)-16];
-    else if (code>=32)
-      tab = &DCTtab5[(code>>1)-16];
-    else if (code>=16)
-      tab = &DCTtab6[code-16];
-    else
-    {
-      if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in MPEG2_Decode_MPEG1_Intra_Block()\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
+     /* decode AC coefficients */
+     for (i=1; ; i++) {
+          code = MPEG2_Show_Bits(dec, 16);
+          if (code>=16384)
+               tab = &DCTtabnext[(code>>12)-4];
+          else if (code>=1024)
+               tab = &DCTtab0[(code>>8)-4];
+          else if (code>=512)
+               tab = &DCTtab1[(code>>6)-8];
+          else if (code>=256)
+               tab = &DCTtab2[(code>>4)-16];
+          else if (code>=128)
+               tab = &DCTtab3[(code>>3)-16];
+          else if (code>=64)
+               tab = &DCTtab4[(code>>2)-16];
+          else if (code>=32)
+               tab = &DCTtab5[(code>>1)-16];
+          else if (code>=16)
+               tab = &DCTtab6[code-16];
+          else {
+               if (!MPEG2_Quiet_Flag)
+                    printf("invalid Huffman code in MPEG2_Decode_MPEG1_Intra_Block()\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-    MPEG2_Flush_Buffer(tab->len);
+          MPEG2_Flush_Buffer(dec, tab->len);
 
-    if (tab->run==64) /* end_of_block */
-      return;
+          if (tab->run==64) /* end_of_block */
+               return;
 
-    if (tab->run==65) /* escape */
-    {
-      i+= MPEG2_Get_Bits(6);
+          if (tab->run==65) { /* escape */
+               i+= MPEG2_Get_Bits(dec, 6);
 
-      val = MPEG2_Get_Bits(8);
-      if (val==0)
-        val = MPEG2_Get_Bits(8);
-      else if (val==128)
-        val = MPEG2_Get_Bits(8) - 256;
-      else if (val>128)
-        val -= 256;
+               val = MPEG2_Get_Bits(dec, 8);
+               if (val==0)
+                    val = MPEG2_Get_Bits(dec, 8);
+               else if (val==128)
+                    val = MPEG2_Get_Bits(dec, 8) - 256;
+               else if (val>128)
+                    val -= 256;
 
-      if((sign = (val<0)))
-        val = -val;
-    }
-    else
-    {
-      i+= tab->run;
-      val = tab->level;
-      sign = MPEG2_Get_Bits(1);
-    }
+               if ((sign = (val<0)))
+                    val = -val;
+          }
+          else {
+               i+= tab->run;
+               val = tab->level;
+               sign = MPEG2_Get_Bits(dec, 1);
+          }
 
-    if (i>=64)
-    {
-      if (!MPEG2_Quiet_Flag)
-        fprintf(stderr,"DCT coeff index (i) out of bounds (intra)\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
+          if (i>=64) {
+               if (!MPEG2_Quiet_Flag)
+                    fprintf(stderr,"DCT coeff index (i) out of bounds (intra)\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-    j = MPEG2_scan[ZIG_ZAG][i];
-    val = (val*ld->quantizer_scale*ld->intra_quantizer_matrix[j]) >> 3;
+          j = MPEG2_scan[ZIG_ZAG][i];
+          val = (val*dec->quantizer_scale*dec->intra_quantizer_matrix[j]) >> 3;
 
-    /* mismatch control ('oddification') */
-    if (val!=0) /* should always be true, but it's not guaranteed */
-      val = (val-1) | 1; /* equivalent to: if ((val&1)==0) val = val - 1; */
+          /* mismatch control ('oddification') */
+          if (val!=0) /* should always be true, but it's not guaranteed */
+               val = (val-1) | 1; /* equivalent to: if ((val&1)==0) val = val - 1; */
 
-    /* saturation */
-    if (!sign)
-      bp[j] = (val>2047) ?  2047 :  val; /* positive */
-    else
-      bp[j] = (val>2048) ? -2048 : -val; /* negative */
-  }
+          /* saturation */
+          if (!sign)
+               bp[j] = (val>2047) ?  2047 :  val; /* positive */
+          else
+               bp[j] = (val>2048) ? -2048 : -val; /* negative */
+     }
 }
 
 
 /* decode one non-intra coded MPEG-1 block */
 
-void MPEG2_Decode_MPEG1_Non_Intra_Block(comp)
-int comp;
+void
+MPEG2_Decode_MPEG1_Non_Intra_Block(MPEG2_Decoder *dec, int comp)
 {
-  int val, i, j, sign;
-  unsigned int code;
-  DCTtab *tab;
-  short *bp;
+     int val, i, j, sign;
+     unsigned int code;
+     const DCTtab *tab;
+     short *bp;
 
-  bp = ld->block[comp];
+     bp = dec->block[comp];
 
-  /* decode AC coefficients */
-  for (i=0; ; i++)
-  {
-    code = MPEG2_Show_Bits(16);
-    if (code>=16384)
-    {
-      if (i==0)
-        tab = &DCTtabfirst[(code>>12)-4];
-      else
-        tab = &DCTtabnext[(code>>12)-4];
-    }
-    else if (code>=1024)
-      tab = &DCTtab0[(code>>8)-4];
-    else if (code>=512)
-      tab = &DCTtab1[(code>>6)-8];
-    else if (code>=256)
-      tab = &DCTtab2[(code>>4)-16];
-    else if (code>=128)
-      tab = &DCTtab3[(code>>3)-16];
-    else if (code>=64)
-      tab = &DCTtab4[(code>>2)-16];
-    else if (code>=32)
-      tab = &DCTtab5[(code>>1)-16];
-    else if (code>=16)
-      tab = &DCTtab6[code-16];
-    else
-    {
-      if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in MPEG2_Decode_MPEG1_Non_Intra_Block()\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
+     /* decode AC coefficients */
+     for (i=0; ; i++) {
+          code = MPEG2_Show_Bits(dec, 16);
+          if (code>=16384) {
+               if (i==0)
+                    tab = &DCTtabfirst[(code>>12)-4];
+               else
+                    tab = &DCTtabnext[(code>>12)-4];
+          }
+          else if (code>=1024)
+               tab = &DCTtab0[(code>>8)-4];
+          else if (code>=512)
+               tab = &DCTtab1[(code>>6)-8];
+          else if (code>=256)
+               tab = &DCTtab2[(code>>4)-16];
+          else if (code>=128)
+               tab = &DCTtab3[(code>>3)-16];
+          else if (code>=64)
+               tab = &DCTtab4[(code>>2)-16];
+          else if (code>=32)
+               tab = &DCTtab5[(code>>1)-16];
+          else if (code>=16)
+               tab = &DCTtab6[code-16];
+          else {
+               if (!MPEG2_Quiet_Flag)
+                    printf("invalid Huffman code in MPEG2_Decode_MPEG1_Non_Intra_Block()\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-    MPEG2_Flush_Buffer(tab->len);
+          MPEG2_Flush_Buffer(dec, tab->len);
 
-    if (tab->run==64) /* end_of_block */
-      return;
+          if (tab->run==64) /* end_of_block */
+               return;
 
-    if (tab->run==65) /* escape */
-    {
-      i+= MPEG2_Get_Bits(6);
+          if (tab->run==65) { /* escape */
+               i+= MPEG2_Get_Bits(dec, 6);
 
-      val = MPEG2_Get_Bits(8);
-      if (val==0)
-        val = MPEG2_Get_Bits(8);
-      else if (val==128)
-        val = MPEG2_Get_Bits(8) - 256;
-      else if (val>128)
-        val -= 256;
+               val = MPEG2_Get_Bits(dec, 8);
+               if (val==0)
+                    val = MPEG2_Get_Bits(dec, 8);
+               else if (val==128)
+                    val = MPEG2_Get_Bits(dec, 8) - 256;
+               else if (val>128)
+                    val -= 256;
 
-      if((sign = (val<0)))
-        val = -val;
-    }
-    else
-    {
-      i+= tab->run;
-      val = tab->level;
-      sign = MPEG2_Get_Bits(1);
-    }
+               if ((sign = (val<0)))
+                    val = -val;
+          }
+          else {
+               i+= tab->run;
+               val = tab->level;
+               sign = MPEG2_Get_Bits(dec, 1);
+          }
 
-    if (i>=64)
-    {
-      if (!MPEG2_Quiet_Flag)
-        fprintf(stderr,"DCT coeff index (i) out of bounds (inter)\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
+          if (i>=64) {
+               if (!MPEG2_Quiet_Flag)
+                    fprintf(stderr,"DCT coeff index (i) out of bounds (inter)\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-    j = MPEG2_scan[ZIG_ZAG][i];
-    val = (((val<<1)+1)*ld->quantizer_scale*ld->non_intra_quantizer_matrix[j]) >> 4;
+          j = MPEG2_scan[ZIG_ZAG][i];
+          val = (((val<<1)+1)*dec->quantizer_scale*dec->non_intra_quantizer_matrix[j]) >> 4;
 
-    /* mismatch control ('oddification') */
-    if (val!=0) /* should always be true, but it's not guaranteed */
-      val = (val-1) | 1; /* equivalent to: if ((val&1)==0) val = val - 1; */
+          /* mismatch control ('oddification') */
+          if (val!=0) /* should always be true, but it's not guaranteed */
+               val = (val-1) | 1; /* equivalent to: if ((val&1)==0) val = val - 1; */
 
-    /* saturation */
-    if (!sign)
-      bp[j] = (val>2047) ?  2047 :  val; /* positive */
-    else
-      bp[j] = (val>2048) ? -2048 : -val; /* negative */
-  }
+          /* saturation */
+          if (!sign)
+               bp[j] = (val>2047) ?  2047 :  val; /* positive */
+          else
+               bp[j] = (val>2048) ? -2048 : -val; /* negative */
+     }
 }
 
 
 /* decode one intra coded MPEG-2 block */
 
-void MPEG2_Decode_MPEG2_Intra_Block(comp,dc_dct_pred)
-int comp;
-int dc_dct_pred[];
+void
+MPEG2_Decode_MPEG2_Intra_Block(MPEG2_Decoder *dec, int comp, int dc_dct_pred[])
 {
-  int val, i, j, sign, nc, cc, run;
-  unsigned int code;
-  DCTtab *tab;
-  short *bp;
-  int *qmat;
-  struct layer_data *ld1;
+     int val, i, j, sign, nc, cc, run;
+     unsigned int code;
+     const DCTtab *tab;
+     short *bp;
+     int *qmat;
 
-  /* with data partitioning, data always goes to base layer */
-  ld1 = (ld->scalable_mode==SC_DP) ? &base : ld;
-  bp = ld1->block[comp];
+     bp = dec->block[comp];
 
-  if (base.scalable_mode==SC_DP)
-  {
-    if (base.priority_breakpoint<64)
-      ld = &enhan;
-    else
-      ld = &base;
-  }
+     cc = (comp<4) ? 0 : (comp&1)+1;
 
-  cc = (comp<4) ? 0 : (comp&1)+1;
+     qmat = (comp<4 || dec->chroma_format==CHROMA420)
+            ? dec->intra_quantizer_matrix
+            : dec->chroma_intra_quantizer_matrix;
 
-  qmat = (comp<4 || chroma_format==CHROMA420)
-         ? ld1->intra_quantizer_matrix
-         : ld1->chroma_intra_quantizer_matrix;
+     /* ISO/IEC 13818-2 section 7.2.1: decode DC coefficients */
+     if (cc==0)
+          val = (dc_dct_pred[0]+= MPEG2_Get_Luma_DC_dct_diff(dec));
+     else if (cc==1)
+          val = (dc_dct_pred[1]+= MPEG2_Get_Chroma_DC_dct_diff(dec));
+     else
+          val = (dc_dct_pred[2]+= MPEG2_Get_Chroma_DC_dct_diff(dec));
 
-  /* ISO/IEC 13818-2 section 7.2.1: decode DC coefficients */
-  if (cc==0)
-    val = (dc_dct_pred[0]+= MPEG2_Get_Luma_DC_dct_diff());
-  else if (cc==1)
-    val = (dc_dct_pred[1]+= MPEG2_Get_Chroma_DC_dct_diff());
-  else
-    val = (dc_dct_pred[2]+= MPEG2_Get_Chroma_DC_dct_diff());
+     if (dec->Fault_Flag)
+          return;
 
-  if (MPEG2_Fault_Flag) return;
+     bp[0] = val << (3-dec->intra_dc_precision);
 
-  bp[0] = val << (3-intra_dc_precision);
+     nc=0;
 
-  nc=0;
+     /* decode AC coefficients */
+     for (i=1; ; i++) {
+          code = MPEG2_Show_Bits(dec, 16);
+          if (code>=16384 && !dec->intra_vlc_format)
+               tab = &DCTtabnext[(code>>12)-4];
+          else if (code>=1024) {
+               if (dec->intra_vlc_format)
+                    tab = &DCTtab0a[(code>>8)-4];
+               else
+                    tab = &DCTtab0[(code>>8)-4];
+          }
+          else if (code>=512) {
+               if (dec->intra_vlc_format)
+                    tab = &DCTtab1a[(code>>6)-8];
+               else
+                    tab = &DCTtab1[(code>>6)-8];
+          }
+          else if (code>=256)
+               tab = &DCTtab2[(code>>4)-16];
+          else if (code>=128)
+               tab = &DCTtab3[(code>>3)-16];
+          else if (code>=64)
+               tab = &DCTtab4[(code>>2)-16];
+          else if (code>=32)
+               tab = &DCTtab5[(code>>1)-16];
+          else if (code>=16)
+               tab = &DCTtab6[code-16];
+          else {
+               if (!MPEG2_Quiet_Flag)
+                    printf("invalid Huffman code in MPEG2_Decode_MPEG2_Intra_Block()\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-  /* decode AC coefficients */
-  for (i=1; ; i++)
-  {
-    code = MPEG2_Show_Bits(16);
-    if (code>=16384 && !intra_vlc_format)
-      tab = &DCTtabnext[(code>>12)-4];
-    else if (code>=1024)
-    {
-      if (intra_vlc_format)
-        tab = &DCTtab0a[(code>>8)-4];
-      else
-        tab = &DCTtab0[(code>>8)-4];
-    }
-    else if (code>=512)
-    {
-      if (intra_vlc_format)
-        tab = &DCTtab1a[(code>>6)-8];
-      else
-        tab = &DCTtab1[(code>>6)-8];
-    }
-    else if (code>=256)
-      tab = &DCTtab2[(code>>4)-16];
-    else if (code>=128)
-      tab = &DCTtab3[(code>>3)-16];
-    else if (code>=64)
-      tab = &DCTtab4[(code>>2)-16];
-    else if (code>=32)
-      tab = &DCTtab5[(code>>1)-16];
-    else if (code>=16)
-      tab = &DCTtab6[code-16];
-    else
-    {
-      if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in MPEG2_Decode_MPEG2_Intra_Block()\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
+          MPEG2_Flush_Buffer(dec, tab->len);
 
-    MPEG2_Flush_Buffer(tab->len);
+          if (tab->run==64) { /* end_of_block */
+               return;
+          }
 
-    if (tab->run==64) /* end_of_block */
-    {
-      return;
-    }
+          if (tab->run==65) { /* escape */
+               i+= run = MPEG2_Get_Bits(dec, 6);
 
-    if (tab->run==65) /* escape */
-    {
-      i+= run = MPEG2_Get_Bits(6);
+               val = MPEG2_Get_Bits(dec, 12);
+               if ((val&2047)==0) {
+                    if (!MPEG2_Quiet_Flag)
+                         printf("invalid escape in MPEG2_Decode_MPEG2_Intra_Block()\n");
+                    dec->Fault_Flag = 1;
+                    return;
+               }
+               if ((sign = (val>=2048)))
+                    val = 4096 - val;
+          }
+          else {
+               i+= run = tab->run;
+               val = tab->level;
+               sign = MPEG2_Get_Bits(dec, 1);
+          }
 
-      val = MPEG2_Get_Bits(12);
-      if ((val&2047)==0)
-      {
-        if (!MPEG2_Quiet_Flag)
-          printf("invalid escape in MPEG2_Decode_MPEG2_Intra_Block()\n");
-        MPEG2_Fault_Flag = 1;
-        return;
-      }
-      if((sign = (val>=2048)))
-        val = 4096 - val;
-    }
-    else
-    {
-      i+= run = tab->run;
-      val = tab->level;
-      sign = MPEG2_Get_Bits(1);
-    }
+          if (i>=64) {
+               if (!MPEG2_Quiet_Flag)
+                    fprintf(stderr,"DCT coeff index (i) out of bounds (intra2)\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-    if (i>=64)
-    {
-      if (!MPEG2_Quiet_Flag)
-        fprintf(stderr,"DCT coeff index (i) out of bounds (intra2)\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
-
-    j = MPEG2_scan[ld1->alternate_scan][i];
-    val = (val * ld1->quantizer_scale * qmat[j]) >> 4;
-    bp[j] = sign ? -val : val;
-    nc++;
-
-    if (base.scalable_mode==SC_DP && nc==base.priority_breakpoint-63)
-      ld = &enhan;
-  }
+          j = MPEG2_scan[dec->alternate_scan][i];
+          val = (val * dec->quantizer_scale * qmat[j]) >> 4;
+          bp[j] = sign ? -val : val;
+          nc++;
+     }
 }
 
 
 /* decode one non-intra coded MPEG-2 block */
 
-void MPEG2_Decode_MPEG2_Non_Intra_Block(comp)
-int comp;
+void
+MPEG2_Decode_MPEG2_Non_Intra_Block(MPEG2_Decoder *dec, int comp)
 {
-  int val, i, j, sign, nc, run;
-  unsigned int code;
-  DCTtab *tab;
-  short *bp;
-  int *qmat;
-  struct layer_data *ld1;
+     int val, i, j, sign, nc, run;
+     unsigned int code;
+     const DCTtab *tab;
+     short *bp;
+     int *qmat;
 
-  /* with data partitioning, data always goes to base layer */
-  ld1 = (ld->scalable_mode==SC_DP) ? &base : ld;
-  bp = ld1->block[comp];
+     bp = dec->block[comp];
 
-  if (base.scalable_mode==SC_DP)
-  {
-    if (base.priority_breakpoint<64)
-      ld = &enhan;
-    else
-      ld = &base;
-  }
+     qmat = (comp<4 || dec->chroma_format==CHROMA420)
+            ? dec->non_intra_quantizer_matrix
+            : dec->chroma_non_intra_quantizer_matrix;
 
-  qmat = (comp<4 || chroma_format==CHROMA420)
-         ? ld1->non_intra_quantizer_matrix
-         : ld1->chroma_non_intra_quantizer_matrix;
+     nc = 0;
 
-  nc = 0;
+     /* decode AC coefficients */
+     for (i=0; ; i++) {
+          code = MPEG2_Show_Bits(dec, 16);
+          if (code>=16384) {
+               if (i==0)
+                    tab = &DCTtabfirst[(code>>12)-4];
+               else
+                    tab = &DCTtabnext[(code>>12)-4];
+          }
+          else if (code>=1024)
+               tab = &DCTtab0[(code>>8)-4];
+          else if (code>=512)
+               tab = &DCTtab1[(code>>6)-8];
+          else if (code>=256)
+               tab = &DCTtab2[(code>>4)-16];
+          else if (code>=128)
+               tab = &DCTtab3[(code>>3)-16];
+          else if (code>=64)
+               tab = &DCTtab4[(code>>2)-16];
+          else if (code>=32)
+               tab = &DCTtab5[(code>>1)-16];
+          else if (code>=16)
+               tab = &DCTtab6[code-16];
+          else {
+               if (!MPEG2_Quiet_Flag)
+                    printf("invalid Huffman code in MPEG2_Decode_MPEG2_Non_Intra_Block()\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-  /* decode AC coefficients */
-  for (i=0; ; i++)
-  {
-    code = MPEG2_Show_Bits(16);
-    if (code>=16384)
-    {
-      if (i==0)
-        tab = &DCTtabfirst[(code>>12)-4];
-      else
-        tab = &DCTtabnext[(code>>12)-4];
-    }
-    else if (code>=1024)
-      tab = &DCTtab0[(code>>8)-4];
-    else if (code>=512)
-      tab = &DCTtab1[(code>>6)-8];
-    else if (code>=256)
-      tab = &DCTtab2[(code>>4)-16];
-    else if (code>=128)
-      tab = &DCTtab3[(code>>3)-16];
-    else if (code>=64)
-      tab = &DCTtab4[(code>>2)-16];
-    else if (code>=32)
-      tab = &DCTtab5[(code>>1)-16];
-    else if (code>=16)
-      tab = &DCTtab6[code-16];
-    else
-    {
-      if (!MPEG2_Quiet_Flag)
-        printf("invalid Huffman code in MPEG2_Decode_MPEG2_Non_Intra_Block()\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
+          MPEG2_Flush_Buffer(dec, tab->len);
 
-    MPEG2_Flush_Buffer(tab->len);
+          if (tab->run==64) { /* end_of_block */
+               return;
+          }
 
-    if (tab->run==64) /* end_of_block */
-    {
-      return;
-    }
+          if (tab->run==65) { /* escape */
+               i+= run = MPEG2_Get_Bits(dec, 6);
 
-    if (tab->run==65) /* escape */
-    {
-      i+= run = MPEG2_Get_Bits(6);
+               val = MPEG2_Get_Bits(dec, 12);
+               if ((val&2047)==0) {
+                    if (!MPEG2_Quiet_Flag)
+                         printf("invalid escape in MPEG2_Decode_MPEG2_Intra_Block()\n");
+                    dec->Fault_Flag = 1;
+                    return;
+               }
+               if ((sign = (val>=2048)))
+                    val = 4096 - val;
+          }
+          else {
+               i+= run = tab->run;
+               val = tab->level;
+               sign = MPEG2_Get_Bits(dec, 1);
+          }
 
-      val = MPEG2_Get_Bits(12);
-      if ((val&2047)==0)
-      {
-        if (!MPEG2_Quiet_Flag)
-          printf("invalid escape in MPEG2_Decode_MPEG2_Intra_Block()\n");
-        MPEG2_Fault_Flag = 1;
-        return;
-      }
-      if((sign = (val>=2048)))
-        val = 4096 - val;
-    }
-    else
-    {
-      i+= run = tab->run;
-      val = tab->level;
-      sign = MPEG2_Get_Bits(1);
-    }
+          if (i>=64) {
+               if (!MPEG2_Quiet_Flag)
+                    fprintf(stderr,"DCT coeff index (i) out of bounds (inter2)\n");
+               dec->Fault_Flag = 1;
+               return;
+          }
 
-    if (i>=64)
-    {
-      if (!MPEG2_Quiet_Flag)
-        fprintf(stderr,"DCT coeff index (i) out of bounds (inter2)\n");
-      MPEG2_Fault_Flag = 1;
-      return;
-    }
-
-    j = MPEG2_scan[ld1->alternate_scan][i];
-    val = (((val<<1)+1) * ld1->quantizer_scale * qmat[j]) >> 5;
-    bp[j] = sign ? -val : val;
-    nc++;
-
-    if (base.scalable_mode==SC_DP && nc==base.priority_breakpoint-63)
-      ld = &enhan;
-  }
+          j = MPEG2_scan[dec->alternate_scan][i];
+          val = (((val<<1)+1) * dec->quantizer_scale * qmat[j]) >> 5;
+          bp[j] = sign ? -val : val;
+          nc++;
+     }
 }
