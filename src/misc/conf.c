@@ -235,8 +235,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-sighandler" ) == 0) {
           dfb_config->no_sighandler = 1;
      } else
+     if (strcmp (name, "sighandler" ) == 0) {
+          dfb_config->no_sighandler = 0;
+     } else
      if (strcmp (name, "no-deinit-check" ) == 0) {
           dfb_config->no_deinit_check = 1;
+     } else
+     if (strcmp (name, "deinit-check" ) == 0) {
+          dfb_config->no_deinit_check = 0;
      } else
      if (strcmp (name, "no-cursor" ) == 0) {
           dfb_config->show_cursor = 0;
