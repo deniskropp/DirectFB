@@ -244,6 +244,8 @@ crtc2SetRegion( CoreLayer                  *layer,
      /* remember configuration */
      mcrtc2->config = *config;
 
+     mcrtc2->field = !config->parity;
+
      crtc2_calc_regs( mdrv, mcrtc2, config, surface );
      crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
@@ -357,21 +359,6 @@ crtc2GetCurrentOutputField( CoreLayer *layer,
 
      return DFB_OK;
 }
-
-#if 0
-static DFBResult
-crtc2SetFieldParity( CoreLayer *layer,
-                     void      *driver_data,
-                     void      *layer_data,
-                     int        field )
-{
-     MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
-
-     mcrtc2->field = !field;
-
-     return DFB_OK;
-}
-#endif
 
 DisplayLayerFuncs matroxCrtc2Funcs = {
      LayerDataSize:         crtc2LayerDataSize,
