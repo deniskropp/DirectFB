@@ -452,25 +452,24 @@ static void* SystemThread( void *ctx )
      CoreSurface *surface = data->destination;
      __u8 *src, *dst;
      int dst_pitch, src_pitch, h;
-     int capframe = 0, syncframe = -1;
+     int frame = 0;
 
      src_pitch = DFB_BYTES_PER_LINE( surface->format, surface->width );
 
-     while (1) {
-          if (++syncframe == data->vmbuf.frames)
-               syncframe = 0;
-          if (++capframe == data->vmbuf.frames)
-               capframe = 0;
-
-          data->vmmap.frame = capframe;
+     while (frame < data->vmbuf.frames) {
+          data->vmmap.frame = frame;
           ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
+          frame++;
+     }
 
-          ioctl( data->fd, VIDIOCSYNC, &syncframe );
+     frame = 0;
+     while (1) {
+          ioctl( data->fd, VIDIOCSYNC, &frame );
 
           pthread_testcancel();
 
           h = surface->height;
-          src = (__u8 *) data->buffer + data->vmbuf.offsets[syncframe];
+          src = (__u8 *) data->buffer + data->vmbuf.offsets[frame];
           dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &dst_pitch, 0 );
           while (h--) {
                dfb_memcpy( dst, src, src_pitch );
@@ -502,8 +501,14 @@ static void* SystemThread( void *ctx )
           }
           dfb_surface_unlock( surface, 0 );
 
+          data->vmmap.frame = frame;
+          ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
+
           if (data->callback)
                data->callback(data->ctx);
+
+          if (++frame == data->vmbuf.frames)
+               frame = 0;
      }
 
      return NULL;
