@@ -49,6 +49,8 @@ typedef enum {
 #define MACH64_IS_VALID(b)      (mdev->valid & (b))
 
 typedef struct {
+     bool rage_pro;
+
      /* for fifo/performance monitoring */
      unsigned int fifo_space;
      unsigned int waitfifo_sum;

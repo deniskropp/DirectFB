@@ -112,19 +112,25 @@ ovInitLayer( CoreLayer                  *layer,
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     adjustment->flags      = DCAF_BRIGHTNESS | DCAF_SATURATION;
-     adjustment->brightness = 0x8000;
-     adjustment->saturation = 0x8000;
+     if (mdev->rage_pro) {
+          adjustment->flags      = DCAF_BRIGHTNESS | DCAF_SATURATION;
+          adjustment->brightness = 0x8000;
+          adjustment->saturation = 0x8000;
+     } else
+          adjustment->flags      = DCAF_NONE;
 
      /* reset overlay */
-     mach64_waitfifo( mdrv, mdev, 7 );
+     if (mdev->rage_pro) {
+          mach64_waitfifo( mdrv, mdev, 6 );
+          mach64_out32( mmio, SCALER_H_COEFF0, 0x00002000 );
+          mach64_out32( mmio, SCALER_H_COEFF1, 0x0D06200D );
+          mach64_out32( mmio, SCALER_H_COEFF2, 0x0D0A1C0D );
+          mach64_out32( mmio, SCALER_H_COEFF3, 0x0C0E1A0C );
+          mach64_out32( mmio, SCALER_H_COEFF4, 0x0C14140C );
+          mach64_out32( mmio, SCALER_COLOR_CNTL, 0x00101000 );
+     }
 
-     mach64_out32( mmio, SCALER_H_COEFF0, 0x00002000 );
-     mach64_out32( mmio, SCALER_H_COEFF1, 0x0D06200D );
-     mach64_out32( mmio, SCALER_H_COEFF2, 0x0D0A1C0D );
-     mach64_out32( mmio, SCALER_H_COEFF3, 0x0C0E1A0C );
-     mach64_out32( mmio, SCALER_H_COEFF4, 0x0C14140C );
-     mach64_out32( mmio, SCALER_COLOR_CNTL, 0x00101000 );
+     mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
 
      return DFB_OK;
@@ -137,8 +143,10 @@ ovTestRegion( CoreLayer                  *layer,
               CoreLayerRegionConfig      *config,
               CoreLayerRegionConfigFlags *failed )
 {
+     Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
+     Mach64DeviceData *mdev = mdrv->device_data;
      CoreLayerRegionConfigFlags fail = 0;
-     int max_width = 720; /* FIXME: 768 for 3D Rage (LT) Pro */
+     int max_width = mdev->rage_pro ? 768 : 720;
 
      /* check for unsupported options */
      if (config->options & ~OV_SUPPORTED_OPTIONS)

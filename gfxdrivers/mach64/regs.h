@@ -43,6 +43,8 @@
 #define LCD_INDEX               0x0A4
 #define LCD_DATA                0x0A8
 
+#define CONFIG_CHIP_ID          0x0E0
+
 #define DST_OFF_PITCH           0x100
 #define DST_X                   0x104
 #define DST_Y                   0x108

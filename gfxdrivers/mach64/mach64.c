@@ -636,6 +636,37 @@ static bool mach64StretchBlit( void *drv, void *dev,
      return true;
 }
 
+/* */
+
+static bool mach64_detect_rage_pro( Mach64DriverData *mdrv,
+                                    GraphicsDeviceInfo *device_info )
+{
+     switch (mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID ) & 0xFFFF) {  
+     case 0x4742: case 0x4744: case 0x4749: case 0x4750: case 0x4751:
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Pro" );
+          return true;
+     case 0x4C42: case 0x4C44: case 0x4C49: case 0x4C50: case 0x4C51:
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage LT Pro" );
+          return true;
+     case 0x4752: case 0x474F: case 0x474D:
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage XL" );
+          return true;
+     case 0x4753: case 0x474C: case 0x474E:
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage XC" );
+          return true;
+     case 0x4C4D: case 0x4C4E: case 0x4C52: case 0x4C53:
+          snprintf( device_info->name,
+                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "3D Rage Mobility" );
+          return true;
+     default:
+          return false;
+     }
+}
+
 /* exported symbols */
 
 static int
@@ -722,6 +753,7 @@ driver_init_device( GraphicsDevice     *device,
                     void               *device_data )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
 
      /* fill device info */
      device_info->caps.flags    = CCF_CLIPPING;
@@ -755,8 +787,10 @@ driver_init_device( GraphicsDevice     *device,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 VT" );
                break;
           case FB_ACCEL_ATI_MACH64GT:
-               snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
+               mdev->rage_pro = mach64_detect_rage_pro( mdrv, device_info );
+               if (!mdev->rage_pro)
+                    snprintf( device_info->name,
+                              DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
                break;
      }
 
