@@ -14,17 +14,22 @@ endif
 
 nvidiadir = $(MODULEDIR)/gfxdrivers
 
-libdirectfb_nvidia_la_SOURCES =	\
-	nvidia.c	 \
-	nvidia_overlay.c \
-	nvidia.h         \
-	nvidia_tables.h
+libdirectfb_nvidia_la_SOURCES = \
+     nvidia.c	       \
+     nvidia_2d.c      \
+     nvidia_3d.c      \
+     nvidia_primary.c \
+     nvidia_overlay.c \
+     nvidia.h         \
+     nvidia_tables.h  \
+     nvidia_2d.h      \
+     nvidia_3d.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
-	$(SYSFS_LIBS)		\
-        -export-dynamic		\
-	-avoid-version		\
-	$(DFB_LDFLAGS) -lm
+     $(SYSFS_LIBS)       \
+     -export-dynamic     \
+     -avoid-version      \
+     $(DFB_LDFLAGS) -lm
 
 
 include $(top_srcdir)/rules/libobject.make
