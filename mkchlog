@@ -1,0 +1,77 @@
+#!/usr/bin/perl
+
+# Generate a ChangeLog file from a CVS log.
+# Written by Robert Krawitz <rlk@alum.mit.edu>
+# This code is in the public domain and may be used
+# for any purpose.
+
+%logmsgs = ();			# Index by date, time, and author
+$skipme = 0;
+
+$names{"dok"} = 'Denis Oliver Kropp <dok@directfb.org>';
+$names{"andi"} = 'Andreas Hundt <andi@fischlustig.de>';
+$names{"neo"} = 'Sven Neumann <sven@convergence.de>';
+$names{"mitch"} = 'Michael Natterer <mitch@convergence.de>';
+$names{"holger"} = 'Holger Waechtler <holger@convergence.de>';
+$names{"count"} = 'Andreas Kotes <count@convergence.de>';
+$names{"mm"} = 'Martin Mueller <mm@convergence.de>';
+$names{"syrjala"} = 'Ville Syrjala <syrjala@sci.fi>';
+$names{"andros"} = 'Andreas Robinson <andro134+student.liu.se>';
+
+while (<>) {
+    if (/^Working file: /) {
+	chomp;
+	($ignore, $ignore, $currentfile) = split;
+	while (<>) {
+	    if (/^----------------------------$/) {
+		last;
+	    }
+	}
+	next;
+    } elsif (/^----------------------------$/) {
+	next;
+    } elsif (/^revision /) {
+	($ignore, $revision) = split;
+	@junk = split(/\./, $revision);
+    } elsif (/^date: /) {
+	($ignore, $date, $time, $ignore, $author, $ignore, $ignore,
+	 $ignore, $plus, $minus, $ignore) = split;
+	$time =~ s/:[0-9][0-9];$//;
+	$author =~ s/;$//;
+	$datetimeauthor = "$date $time $author";
+	$body = "";
+	$firstline = 1;
+	while (<>) {
+	    if (/^----------------------------$/) {
+		last;
+	    } elsif (/^=============================================================================$/) {
+		last;
+	    } elsif ($firstline && /^branches:[ \t]+[0-9]+(\.[0-9]+)+;$/) {
+		next;
+	    } else {
+		$body .= $_;
+		$firstline = 0;
+	    }
+	}
+	if ($skipme == 0) {
+	    if ($logmsgs{$datetimeauthor}) {
+		$stuff = $logmsgs{$datetimeauthor};
+		$stuff =~ s/\n/\n\t$currentfile ($revision) ($plus $minus)\n/;
+		$logmsgs{$datetimeauthor} = $stuff;
+	    } else {
+		$logmsgs{$datetimeauthor} = "Files:\t$currentfile ($revision) ($plus $minus)\n\n$body"
+		}
+	}
+    }				# Other junk we ignore
+}
+
+@chlog = reverse sort keys %logmsgs;
+foreach $_ (@chlog) {
+    ($date, $time, $author) = split;
+    $date =~ s,/,-,g;
+    $msg = $logmsgs{$_};
+    print "$date\t$time\t$names{$author}\n\n";
+    $msg =~ s/^/\t/g;
+    $msg =~ s/\n/\n\t/g;
+    print "$msg\n";
+}
