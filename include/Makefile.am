@@ -41,6 +41,9 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type $(INCP)/directfb.h \
 	   | grep -v DIDTF_ALL >> $@
 
+	$(MKNAMES) DFBSurfaceBlittingFlags DSBLIT NOFX SurfaceBlittingFlags flag $(INCP)/directfb.h \
+	   | grep -v DSBLIT_ALL >> $@
+
 	@echo FIXME: Use DIMCAPS prefix for DFBImageCapabilities
 	$(MKNAMES) DFBInputDeviceCapabilities DICAPS NONE InputDeviceCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DICAPS_ALL | grep -v DICAPS_ALPHACHANNEL | grep -v DICAPS_COLORKEY >> $@
