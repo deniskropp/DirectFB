@@ -439,13 +439,23 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
                          event->button = DIBI_LEFT;
                }
                /* fallthru */
+
           case DIET_AXISMOTION:
                fixup_mouse_event( device, event );
                break;
 
           case DIET_KEYPRESS:
           case DIET_KEYRELEASE:
+               if (dfb_config->capslock_meta) {
+                    if (event->key_id == DIKI_CAPS_LOCK)
+                         event->key_id = DIKI_META_L;
+
+                    if (event->key_symbol == DIKS_CAPS_LOCK)
+                         event->key_symbol = DIKS_META;
+               }
+
                fixup_key_event( device, event );
+
                /* D_DEBUG("DirectFB/Input: key code: %x, id: %x, symbol: %x\n",
                         event->key_code, event->key_id, event->key_symbol); */
                break;
