@@ -1512,19 +1512,69 @@ static void Sacc_to_Aop_rgb15()
 
 static void Sacc_to_Aop_rgb16()
 {
+     int          l;
      int          w = Dlength;
      Accumulator *S = Sacc;
      __u16       *D = (__u16*)Aop;
 
-     while (w--) {
+     if ((long) D & 2) {
           if (!(S->a & 0xF000)) {
                *D = PIXEL_RGB16( (S->r & 0xFF00) ? 0xFF : S->r,
                                  (S->g & 0xFF00) ? 0xFF : S->g,
                                  (S->b & 0xFF00) ? 0xFF : S->b );
           }
+          
+          ++S;
+          ++D;
+          --w;
+     }
 
-          D++;
-          S++;
+     l = w >> 1;
+     while (l) {
+          __u32 *D2 = (__u32*) D;
+
+          if (!(S[0].a & 0xF000) && !(S[1].a & 0xF000)) {
+#if __BYTE_ORDER == __BIG_ENDIAN
+               *D2 = PIXEL_RGB16( (S[1].r & 0xFF00) ? 0xFF : S[1].r,
+                                  (S[1].g & 0xFF00) ? 0xFF : S[1].g,
+                                  (S[1].b & 0xFF00) ? 0xFF : S[1].b ) |
+                     PIXEL_RGB16( (S[0].r & 0xFF00) ? 0xFF : S[0].r,
+                                  (S[0].g & 0xFF00) ? 0xFF : S[0].g,
+                                  (S[0].b & 0xFF00) ? 0xFF : S[0].b ) << 16;
+#else
+               *D2 = PIXEL_RGB16( (S[0].r & 0xFF00) ? 0xFF : S[0].r,
+                                  (S[0].g & 0xFF00) ? 0xFF : S[0].g,
+                                  (S[0].b & 0xFF00) ? 0xFF : S[0].b ) |
+                     PIXEL_RGB16( (S[1].r & 0xFF00) ? 0xFF : S[1].r,
+                                  (S[1].g & 0xFF00) ? 0xFF : S[1].g,
+                                  (S[1].b & 0xFF00) ? 0xFF : S[1].b ) << 16;
+#endif
+          }
+          else {
+               if (!(S[0].a & 0xF000)) {
+                    D[0] = PIXEL_RGB16( (S[0].r & 0xFF00) ? 0xFF : S[0].r,
+                                        (S[0].g & 0xFF00) ? 0xFF : S[0].g,
+                                        (S[0].b & 0xFF00) ? 0xFF : S[0].b );
+               } else
+               if (!(S[1].a & 0xF000)) {
+                    D[1] = PIXEL_RGB16( (S[1].r & 0xFF00) ? 0xFF : S[1].r,
+                                        (S[1].g & 0xFF00) ? 0xFF : S[1].g,
+                                        (S[1].b & 0xFF00) ? 0xFF : S[1].b );
+               }
+          }
+          
+          S += 2;
+          D += 2;
+
+          --l;
+     }
+     
+     if (w & 1) {
+          if (!(S->a & 0xF000)) {
+               *D = PIXEL_RGB16( (S->r & 0xFF00) ? 0xFF : S->r,
+                                 (S->g & 0xFF00) ? 0xFF : S->g,
+                                 (S->b & 0xFF00) ? 0xFF : S->b );
+          }
      }
 }
 
