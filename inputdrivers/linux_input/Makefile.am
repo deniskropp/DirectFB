@@ -4,7 +4,8 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src	\
+	-I$(top_srcdir)/systems
 
 linux_input_LTLIBRARIES = libdirectfb_linux_input.la
 
@@ -25,4 +26,4 @@ libdirectfb_linux_input_la_LDFLAGS = \
 
 
 #include $(top_srcdir)/rules/libobject.make
-	
+
