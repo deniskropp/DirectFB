@@ -244,7 +244,7 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
 
           image_data = ReadGIF( f, 1, &src_width, &src_height,
                                 &transparency, NULL,
-                                (format == DSPF_ARGB || format == DSPF_A8),
+                                DFB_PIXEL_FORMAT_HAS_ALPHA (format),
                                 false );
 
           if (image_data) {

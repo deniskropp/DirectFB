@@ -640,14 +640,15 @@ extern "C"
       *
       * Format constants are encoded in the following way (bit 31 - 0):
       *
-      * --ff:eeee | dddd:ccc- | bbbb:bbbb | aaaa:aaaa
+      * --gg:ffff | eeee:dddc | bbbb:bbbb | aaaa:aaaa
       *
       * a) pixelformat index<br>
       * b) effective bits per pixel of format<br>
-      * c) bytes per pixel in a row (1/8 fragment, i.e. bits)<br>
-      * d) bytes per pixel in a row (decimal part, i.e. bytes)<br>
-      * e) multiplier for planes minus one (1/16 fragment)<br>
-      * f) multiplier for planes minus one (decimal part)
+      * c) alpha channel present<br>
+      * d) bytes per pixel in a row (1/8 fragment, i.e. bits)<br>
+      * e) bytes per pixel in a row (decimal part, i.e. bytes)<br>
+      * f) multiplier for planes minus one (1/16 fragment)<br>
+      * g) multiplier for planes minus one (decimal part)
       */
      typedef enum {
           DSPF_UNKNOWN        = 0x00000000,  /* no specific format,
@@ -660,9 +661,9 @@ extern "C"
                                                 green 8@8, blue 8@0) */
           DSPF_RGB32          = 0x00401804,  /* 24bit  RGB (4 bytes, nothing@24,
                                                 red 8@16, green 8@8, blue 8@0)*/
-          DSPF_ARGB           = 0x00402005,  /* 32bit ARGB (4 bytes, alpha 8@24,
+          DSPF_ARGB           = 0x00412005,  /* 32bit ARGB (4 bytes, alpha 8@24,
                                                 red 8@16, green 8@8, blue 8@0)*/
-          DSPF_A8             = 0x00100806,  /* 8bit alpha (1 byte, alpha 8@0 ),
+          DSPF_A8             = 0x00110806,  /* 8bit alpha (1 byte, alpha 8@0 ),
                                                 e.g. anti-aliased text glyphs */
           DSPF_YUY2           = 0x00201007,  /* A macropixel (32bit / 2 pixel)
                                                 contains YUYV (starting with
@@ -683,11 +684,13 @@ extern "C"
      #define DFB_NUM_PIXELFORMATS            12
 
      /* These macros extract information about the pixel format. */
+     #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000FF) - 1)
+
      #define DFB_BYTES_PER_PIXEL(fmt)        (((fmt) & 0xF00000) >> 20)
 
      #define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x00FF00) >>  8)
 
-     #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000FF) - 1)
+     #define DFB_PIXELFORMAT_HAS_ALPHA(fmt)  ((fmt) & 0x010000)
 
      #define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0xFE0000) >> 17) * \
                                                (width)) >> 3)
@@ -696,7 +699,6 @@ extern "C"
 
      #define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3F000000) >> 24) + \
                                                 0x10) * (height)) >> 4 )
-
      /*
       * Description of the surface that is to be created.
       */
