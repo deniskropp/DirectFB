@@ -16,7 +16,7 @@ endif
 if LIBMPEG3_PROVIDER
 
 clean-local:
-	-rm libidirectfbvideoprovider_libmpeg3.so
+	-rm -f libidirectfbvideoprovider_libmpeg3.so
 
 all-local: libidirectfbvideoprovider_libmpeg3.so
 
