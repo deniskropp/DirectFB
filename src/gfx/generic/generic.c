@@ -1854,15 +1854,26 @@ static void Bop_a8_set_alphapixel_Aop_rgb24()
           }\
      }
 
-     while (w>4) {
-          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
-          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
-          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
-          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3; S++;
-      w-=4;
-     }
-     while (w--) {
-          SET_ALPHA_PIXEL_RGB24( D, color.r, color.g, color.b, *S ); D+=3, S++;
+     while (w) {
+          int l = w & 3;
+          switch (l) {
+               default:
+                    l = 4;
+                    SET_ALPHA_PIXEL_RGB24( (D+9),
+                                           color.r, color.g, color.b, S[3] );
+               case 3:
+                    SET_ALPHA_PIXEL_RGB24( (D+6),
+                                           color.r, color.g, color.b, S[2] );
+               case 2:
+                    SET_ALPHA_PIXEL_RGB24( (D+3),
+                                           color.r, color.g, color.b, S[1] );
+               case 1:
+                    SET_ALPHA_PIXEL_RGB24( D,
+                                           color.r, color.g, color.b, S[0] );
+          }
+          D += 3*l;
+          S += l;
+          w -= l;
      }
 
 #undef SET_ALPHA_PIXEL_RGB24
