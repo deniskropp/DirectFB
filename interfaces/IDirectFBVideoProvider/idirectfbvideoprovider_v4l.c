@@ -38,6 +38,7 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/select.h>
+#include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <linux/videodev.h>
@@ -84,6 +85,9 @@ typedef struct {
      char                    *filename;
      int                      fd;
      struct video_capability  vcap;
+     struct video_mmap        vmmap;
+     struct video_mbuf        vmbuf;
+     void                    *buffer;
      pthread_t                thread;
      CoreSurface             *destination;
      DVFrameCallback          callback;
@@ -378,6 +382,8 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      ioctl( fd, VIDIOCGCAP, &data->vcap );
      ioctl( fd, VIDIOCCAPTURE, &zero );
+     ioctl( fd, VIDIOCGMBUF, &data->vmbuf );
+     data->buffer = mmap( NULL, data->vmbuf.size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
 
      data->filename = DFBSTRDUP( filename );
      data->fd = fd;
@@ -411,24 +417,61 @@ static void* FrameThread( void *ctx )
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
 
-     int            even = 0;
-     struct timeval tv;
+     int            field = 0;
 
-     while (1) {
-          tv.tv_sec = 0;
-          tv.tv_usec = 20000;
-          select( 0, 0, 0, 0, &tv );
+     if (data->destination->caps & DSCAPS_SYSTEMONLY) {
+          __u8 *src, *dst;
+          int src_pitch = DFB_BYTES_PER_LINE( data->destination->format, data->destination->width );
+          int dst_pitch = data->destination->back_buffer->system.pitch * (data->destination->caps & DSCAPS_INTERLACED ? 2 : 1);
+          int h;
+          while (1) {
+               data->vmmap.frame = field;
+               ioctl( data->fd, VIDIOCSYNC, &field );
+               pthread_testcancel();
 
-          pthread_testcancel();
+               ioctl( data->fd, VIDIOCMCAPTURE, &data->vmmap );
 
-          if (data->destination->caps & DSCAPS_INTERLACED) {
-               dfb_surface_notify_listeners( data->destination,
-                                             even ? CSNF_SET_EVEN : CSNF_SET_ODD );
-               even = !even;
+               src = (__u8 *) data->buffer + data->vmbuf.offsets[field];
+               dst = (__u8 *) data->destination->back_buffer->system.addr;
+               h = data->destination->height;
+               if (data->destination->caps & DSCAPS_INTERLACED) {
+                    dst += field * data->destination->back_buffer->system.pitch;
+                    h += field ? 0 : 1;
+                    h /= 2;
+               }
+
+               while (h--) {
+                    memcpy( dst, src, src_pitch );
+                    src += src_pitch;
+                    dst += dst_pitch;
+               }
+               if (data->destination->caps & DSCAPS_INTERLACED) {
+                    dfb_surface_notify_listeners( data->destination,
+                                                  field ? CSNF_SET_ODD : CSNF_SET_EVEN );
+                    field = !field;
+               }
+               if (data->callback)
+                   data->callback(data->ctx);
           }
+     } else {
+          struct timeval tv;
 
-          if (data->callback)
-               data->callback( data->ctx );
+          while (1) {
+               tv.tv_sec = 0;
+               tv.tv_usec = 20000;
+               select( 0, 0, 0, 0, &tv );
+
+               pthread_testcancel();
+
+               if (data->destination->caps & DSCAPS_INTERLACED) {
+                    dfb_surface_notify_listeners( data->destination,
+                                                  field ? CSNF_SET_ODD : CSNF_SET_EVEN );
+                    field = !field;
+               }
+
+               if (data->callback)
+                    data->callback( data->ctx );
+          }
      }
 
      return NULL;
@@ -444,14 +487,21 @@ static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
           v4l_stop( data );
           return RS_REMOVE;
      }*/
+     CoreSurface *surface = data->destination;
 
-     if (notification->flags & CSNF_VIDEO) {
-          CoreSurface *surface = data->destination;
+     if (!surface)
+          return RS_OK;
 
-          if (surface && surface->back_buffer->video.health == CSH_INVALID) {
-               v4l_stop( data );
-               return RS_REMOVE;
-          }
+     if (notification->flags & CSNF_SYSTEM &&
+         surface->caps & DSCAPS_SYSTEMONLY &&
+         surface->back_buffer->system.health == CSH_INVALID) {
+          v4l_stop( data );
+          return RS_REMOVE;
+     } else if (notification->flags & CSNF_VIDEO &&
+                !(surface->caps & DSCAPS_SYSTEMONLY) &&
+                surface->back_buffer->video.health == CSH_INVALID) {
+          v4l_stop( data );
+          return RS_REMOVE;
      }
 
      return RS_OK;
@@ -469,11 +519,22 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      if (surface->caps & DSCAPS_FLIPPING)
           return DFB_UNSUPPORTED;
 
+     if (surface->caps & DSCAPS_INTERLACED &&
+         surface->caps & DSCAPS_SYSTEMONLY &&
+         data->vmbuf.frames < 2)
+          return DFB_UNSUPPORTED;
+
      dfb_surfacemanager_lock( surface->manager );
 
-     ret = dfb_surfacemanager_assure_video( surface->manager, buffer );
-     if (!ret)
-          buffer->video.locked++;
+     if (surface->caps & DSCAPS_SYSTEMONLY) {
+          ret = dfb_surfacemanager_assure_system( surface->manager, buffer );
+          if (!ret)
+               buffer->system.locked++;
+     } else {
+          ret = dfb_surfacemanager_assure_video( surface->manager, buffer );
+          if (!ret)
+              buffer->video.locked++;
+     }
 
      dfb_surfacemanager_unlock( surface->manager );
 
@@ -508,12 +569,43 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                break;
           default:
                BUG( "unknown pixel format" );
-               buffer->video.locked--;
+               if (surface->caps & DSCAPS_SYSTEMONLY)
+                    buffer->system.locked--;
+               else
+                    buffer->video.locked--;
                return DFB_BUG;
      }
 
-     {
+     if (surface->caps & DSCAPS_SYSTEMONLY) {
+          data->vmmap.width = surface->width;
+          data->vmmap.height = surface->height;
+          data->vmmap.format = palette;
+          data->vmmap.frame = 0;
+          if (ioctl(data->fd, VIDIOCMCAPTURE, &data->vmmap) < 0) {
+              DFBResult ret = errno2dfb(errno);
+
+              PERRORMSG("DirectFB/v4l: "
+                        "Could not start capturing (VIDIOCMCAPTURE failed)!\n");
+
+              buffer->system.locked--;
+              return ret;
+          }
+          if (surface->caps & DSCAPS_INTERLACED) {
+              data->vmmap.frame = 1;
+              if (ioctl(data->fd, VIDIOCMCAPTURE, &data->vmmap) < 0) {
+                  DFBResult ret = errno2dfb(errno);
+
+                  PERRORMSG("DirectFB/v4l: "
+                            "Could not start capturing (VIDIOCMCAPTURE failed)!\n");
+
+                  buffer->system.locked--;
+                  return ret;
+              }
+          }
+     } else {
           struct video_buffer b;
+          struct video_picture p;
+          struct video_window win;
 
           b.base = (void*)dfb_gfxcard_memory_physical( buffer->video.offset );
           b.width = surface->width;
@@ -530,10 +622,6 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                buffer->video.locked--;
                return ret;
           }
-     }
-
-     {
-          struct video_picture p;
 
           if (ioctl( data->fd, VIDIOCGPICT, &p ) < 0) {
                DFBResult ret = errno2dfb( errno );
@@ -555,10 +643,6 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                buffer->video.locked--;
                return ret;
           }
-     }
-
-     {
-          struct video_window win;
 
           win.width = rect->w;
           win.height = rect->h;
@@ -582,21 +666,23 @@ static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
      if (!data->cleanup)
           data->cleanup = dfb_core_cleanup_add( v4l_cleanup, data, true );
 
-     if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
-          DFBResult ret = errno2dfb( errno );
+     if (!(surface->caps & DSCAPS_SYSTEMONLY)) {
+          if (ioctl( data->fd, VIDIOCCAPTURE, &one ) < 0) {
+               DFBResult ret = errno2dfb( errno );
 
-          PERRORMSG( "DirectFB/v4l: "
-                     "Could not start capturing (VIDIOCCAPTURE failed)!\n" );
+               PERRORMSG( "DirectFB/v4l: "
+                          "Could not start capturing (VIDIOCCAPTURE failed)!\n" );
 
-          buffer->video.locked--;
-          return ret;
+               buffer->video.locked--;
+               return ret;
+          }
      }
 
      data->destination = surface;
 
      reactor_attach( surface->reactor, v4l_surface_listener, data );
      
-     if (data->callback || surface->caps & DSCAPS_INTERLACED)
+     if (data->callback || surface->caps & DSCAPS_INTERLACED || surface->caps & DSCAPS_SYSTEMONLY)
           pthread_create( &data->thread, NULL, FrameThread, data );
 
      return DFB_OK;
@@ -618,11 +704,15 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data )
 
           return ret;
      }
+     
+     if (!data->destination)
+          return DFB_OK;
 
-     if (data->destination) {
+     if (data->destination->caps & DSCAPS_SYSTEMONLY)
+          data->destination->back_buffer->system.locked--;
+     else
           data->destination->back_buffer->video.locked--;
-          data->destination = NULL;
-     }
+     data->destination = NULL;
 
      return DFB_OK;
 }
@@ -636,6 +726,7 @@ static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data )
 
      v4l_stop( data );
 
+     munmap( data->buffer, data->vmbuf.size );
      close( data->fd );
      data->fd = -1;
 }
