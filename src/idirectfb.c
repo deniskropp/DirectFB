@@ -851,6 +851,14 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
      if (!interface)
           return DFB_INVARG;
 
+     if (desc) {
+          if ((desc->flags & DFDESC_HEIGHT) && desc->height < 1)
+               return DFB_INVARG;
+
+          if ((desc->flags & DFDESC_WIDTH) && desc->width < 1)
+               return DFB_INVARG;
+     }
+
      if (filename) {
           if (!desc)
                return DFB_INVARG;
