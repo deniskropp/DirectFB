@@ -219,8 +219,8 @@ __rawpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 	for(i = (len * 8), s = 0; --i >= 0; )
 	{
 		d[i] = (*dest & (1 << s)) 
-			? 0x8000  /* alpha:1, color:black */
-			: 0x7fff; /* alpha:0, color:white */
+			? 0x0000  /* alpha:0, color:black */
+			: 0xffff; /* alpha:1, color:white */
 		
 		if(++s > 7)
 		{
@@ -310,11 +310,11 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 		switch(buf[i])
 		{
 			case '0':
-				*d++ = 0x7fff; /* alpha:0, color:white */
+				*d++ = 0xffff; /* alpha:1, color:white */
 			break;
 
 			case '1':
-				*d++ = 0x8000; /* alpha:1, color:black */
+				*d++ = 0x0000; /* alpha:0, color:black */
 			break;
 
 			default:
@@ -726,13 +726,13 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
 
 		memset( &state, 0, sizeof(CardState) );
 		
-		state.source        = data->img;
-		state.destination   = dst_data->surface;
-		state.clip.x1       = drect.x;
-		state.clip.x2       = drect.x + drect.w - 1;
-		state.clip.y1       = drect.y;
-		state.clip.y2       = drect.y + drect.h - 1;
-		state.modified      = SMF_ALL;
+		state.source      = data->img;
+		state.destination = dst_data->surface;
+		state.clip.x1     = drect.x;
+		state.clip.x2     = drect.x + drect.w - 1;
+		state.clip.y1     = drect.y;
+		state.clip.y2     = drect.y + drect.h - 1;
+		state.modified    = SMF_ALL;
 
 		D_MAGIC_SET( &state, CardState );
 	}
@@ -888,7 +888,8 @@ IDirectFBImageProvider_PNM_GetImageDescription( IDirectFBImageProvider *thiz,
 	if(!desc)
 		return( DFB_INVARG );
 
-	desc->caps = DICAPS_NONE;
+	desc->caps = (data->format == PFMT_PBM) 
+		      ? DICAPS_ALPHACHANNEL : DICAPS_NONE;
 
 	return( DFB_OK );
 }
