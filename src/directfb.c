@@ -292,7 +292,7 @@ apply_configuration( IDirectFB *dfb )
      DFBDisplayLayerConfig  layer_config;
      
      /* the primary layer */
-     layer = dfb_layer_at( DLID_PRIMARY );
+     layer = dfb_layer_at_translated( DLID_PRIMARY );
      
      /* set buffer mode for desktop */
      layer_config.flags = DLCONF_BUFFERMODE;

@@ -1048,7 +1048,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      else
           data->primary.height = 480;
 
-     data->layer = dfb_layer_at( DLID_PRIMARY );
+     data->layer = dfb_layer_at_translated( DLID_PRIMARY );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;

@@ -216,6 +216,7 @@ void dfb_layers_enumerate( DisplayLayerCallback  callback,
                            void                 *ctx );
 
 DisplayLayer *dfb_layer_at( DFBDisplayLayerID id );
+DisplayLayer *dfb_layer_at_translated( DFBDisplayLayerID id );
 
 /*
  * Lease layer during window stack repaints.

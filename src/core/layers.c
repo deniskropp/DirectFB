@@ -508,6 +508,24 @@ dfb_layer_at( DFBDisplayLayerID id )
      return dfb_layers[id];
 }
 
+DisplayLayer *
+dfb_layer_at_translated( DFBDisplayLayerID id )
+{
+     DFB_ASSERT( layersfield != NULL );
+
+     if (dfb_config->primary_layer > 0 &&
+         dfb_config->primary_layer < layersfield->num)
+     {
+          if (id == DLID_PRIMARY)
+               return dfb_layer_at( dfb_config->primary_layer );
+          
+          if (id == dfb_config->primary_layer)
+               return dfb_layer_at( DLID_PRIMARY );
+     }
+     
+     return dfb_layer_at( id );
+}
+
 /*
  * Lease layer during window stack repaints.
  */
