@@ -30,6 +30,7 @@
 #include <errno.h>
 #include <unistd.h>
 
+#include <direct/build.h>
 #include <direct/system.h>
 
 #if HAVE_ASM_PAGE_H
@@ -39,7 +40,7 @@
 #endif
 
 
-#ifdef HAVE_LINUX_UNISTD_H
+#if DIRECT_BUILD_GETTID && defined(HAVE_LINUX_UNISTD_H)
 #include <linux/unistd.h>
 
 #ifdef __NR_gettid

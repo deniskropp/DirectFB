@@ -347,6 +347,17 @@ fi
 AC_SUBST(DIRECT_BUILD_NOTEXT)
 
 
+AC_ARG_ENABLE(gettid,
+  [  --enable-gettid           enable usage of gettid() [default=yes]],, enable_gettid=yes)
+if test "$enable_gettid" = "no"; then
+    DIRECT_BUILD_GETTID=1
+else
+    DIRECT_BUILD_GETTID=0
+fi
+
+AC_SUBST(DIRECT_BUILD_GETTID)
+
+
 AC_ARG_ENABLE(multi,
   [  --enable-multi            enable multi application core [default=no]],, enable_multi=no)
 if test "$enable_multi" = "yes"; then
