@@ -1,0 +1,10 @@
+This patch fixes a potential bug in rivafb that may crash your card:
+there are 128 Kb at the end of the framebuffer memory that must
+not be mapped in user space.
+
+Either apply the patch
+
+	cd kernel-source
+	bzcat rivafb-smemlen-linux-2.4.26.patch.bz2 | patch -Np1
+
+or use the 'videoram-limit' option.
