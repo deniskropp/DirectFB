@@ -453,7 +453,6 @@ DFBResult dfb_config_init( int *argc, char **argv[] )
                          if (value)
                               *value++ = '\0';
 
-                         printf( "%s %s\n", name, value ? value : "" );
                          ret = dfb_config_set( name, value );
 
                          DFBFREE( name );
