@@ -276,7 +276,7 @@ void window_destroy( CoreWindow *window )
      surface_destroy( window->surface );
 
      reactor_free( window->reactor );
-     
+
      DFBFREE( window );
 }
 
@@ -790,8 +790,22 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
      CoreWindow      *window = NULL;
      CoreWindowStack *stack  = (CoreWindowStack*)ctx;
 
+     if (stack->wm_hack &&
+         evt->type    == DIET_KEYRELEASE &&
+         evt->keycode == DIKC_CAPSLOCK)
+     {
+          stack->wm_hack = 0;
+          windowstack_handle_enter_leave_focus( stack );
+          return RS_OK;
+     }
+
      switch (evt->type) {
           case DIET_KEYPRESS:
+               if (evt->keycode == DIKC_CAPSLOCK) {
+                    stack->wm_hack = 1;
+                    break;
+               }
+               /* fall through */
           case DIET_KEYRELEASE:
                window = (stack->keyboard_window ?
                          stack->keyboard_window : stack->focused_window);
@@ -812,7 +826,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
           case DIET_BUTTONRELEASE:
                if (!stack->cursor)
                     break;
-          
+
                window = (stack->pointer_window ?
                          stack->pointer_window : stack->focused_window);
 
@@ -894,26 +908,31 @@ void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
 
      window_move( stack->cursor_window, dx, dy );
 
-
-     we.cx   = stack->cx;
-     we.cy   = stack->cy;
-
-     if (stack->pointer_window) {
-          we.type = DWET_MOTION;
-          we.x    = we.cx - stack->pointer_window->x;
-          we.y    = we.cy - stack->pointer_window->y;
-
-          reactor_dispatch( stack->pointer_window->reactor, &we );
+     if (stack->wm_hack) {
+          if (stack->entered_window)
+               window_move( stack->entered_window, dx, dy );
      }
      else {
-          if (!windowstack_handle_enter_leave_focus( stack )
-              && stack->entered_window)
-          {
-               we.type = DWET_MOTION;
-               we.x    = we.cx - stack->entered_window->x;
-               we.y    = we.cy - stack->entered_window->y;
+          we.cx   = stack->cx;
+          we.cy   = stack->cy;
 
-               reactor_dispatch( stack->entered_window->reactor, &we );
+          if (stack->pointer_window) {
+               we.type = DWET_MOTION;
+               we.x    = we.cx - stack->pointer_window->x;
+               we.y    = we.cy - stack->pointer_window->y;
+
+               reactor_dispatch( stack->pointer_window->reactor, &we );
+          }
+          else {
+               if (!windowstack_handle_enter_leave_focus( stack )
+                   && stack->entered_window)
+               {
+                    we.type = DWET_MOTION;
+                    we.x    = we.cx - stack->entered_window->x;
+                    we.y    = we.cy - stack->entered_window->y;
+
+                    reactor_dispatch( stack->entered_window->reactor, &we );
+               }
           }
      }
 

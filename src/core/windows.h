@@ -93,6 +93,7 @@ struct _CoreWindowStack
 
      pthread_mutex_t     update;          /* mutex lock for repaints */
 
+     int                 wm_hack;
 
      int                 wsp_opaque;
      int                 wsp_alpha;
