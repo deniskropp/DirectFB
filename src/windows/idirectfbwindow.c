@@ -887,6 +887,8 @@ IDirectFBWindow_React( const void *msg_data,
                                                       shape_data->surface,
                                                       data->cursor.hot_x,
                                                       data->cursor.hot_y );
+
+                    dfb_windowstack_cursor_set_opacity( data->window->stack, 0xff );
                }
 
                break;
