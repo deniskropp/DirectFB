@@ -317,8 +317,9 @@ DFBResult IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer *thiz,
 
           DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
-          /* FIXME: the following function should not set buffer mode. Fix caps! */
-          ret = IDirectFBSurface_Layer_Construct( surface, &rect, NULL, data->layer, 0 );
+          ret = IDirectFBSurface_Layer_Construct( surface, &rect,
+                                                  NULL, data->layer,
+                                                  data->layer->surface->caps );
           if (ret) {
                free( surface );
                return ret;
