@@ -42,6 +42,8 @@
 #include "misc/tree.h"
 #include "misc/util.h"
 
+static ReactionResult glyph_surface_listener( const void *msg_data,
+                                              void       *ctx );
 
 CoreFont *dfb_font_create()
 {
@@ -76,11 +78,18 @@ void dfb_font_destroy( CoreFont *font )
 
      dfb_tree_destroy (font->glyph_infos);
 
-     for (i = 0; i < font->rows; i++)
-          dfb_surface_unref (font->surfaces[i]);
+     for (i = 0; i < font->rows; i++) {
+          dfb_surface_detach( font->surfaces[i], font->reactions[i] );
+          dfb_surface_unref( font->surfaces[i] );
+
+          DFBFREE( font->reactions[i] );
+     }
 
      if (font->surfaces)
           DFBFREE( font->surfaces );
+
+     if (font->reactions)
+          DFBFREE( font->reactions );
 
      dfb_font_unlock( font );
 
@@ -117,8 +126,8 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
 
                if (font->next_x + data->width > font->row_width) {
                     if (font->row_width == 0)
-                        font->row_width = ((font->maxadvance * 64) > 2048 ?
-                                           2048 : font->maxadvance * 64);
+                        font->row_width = ((font->maxadvance * 16) > 2048 ?
+                                           2048 : font->maxadvance * 16);
 
                     font->next_x = 0;
                     font->rows++;
@@ -126,12 +135,22 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                     font->surfaces = DFBREALLOC( font->surfaces,
                                                  sizeof(void *) * font->rows );
 
+                    font->reactions = DFBREALLOC( font->reactions,
+                                                  sizeof(Reaction*) * font->rows );
+
+                    font->reactions[font->rows - 1] = DFBCALLOC( 1, sizeof(Reaction) );
+
+                    /* FIXME: error checking! */
                     dfb_surface_create( font->row_width,
                                         MAX( font->ascender - font->descender,
                                              8 ),
                                         font->pixel_format,
                                         CSP_VIDEOHIGH, DSCAPS_NONE, NULL,
                                         &font->surfaces[font->rows - 1] );
+
+                    dfb_surface_attach( font->surfaces[font->rows - 1],
+                                        glyph_surface_listener, font,
+                                        font->reactions[font->rows - 1] );
                }
 
                if ((* font->RenderGlyph)
@@ -158,3 +177,13 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
 
      return DFB_OK;
 }
+
+static ReactionResult
+glyph_surface_listener( const void *msg_data,
+                        void       *ctx )
+{
+     /* Should we handle CSNF_DESTROY? */
+
+     return RS_OK;
+}
+
