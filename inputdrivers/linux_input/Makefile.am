@@ -10,7 +10,8 @@ linux_input_LTLIBRARIES = libdirectfb_linux_input.la
 
 linux_inputdir = $(MODULEDIR)/inputdrivers
 
-libdirectfb_linux_input_la_SOURCES =	\
+libdirectfb_linux_input_la_SOURCES = \
+	input_fake.h		\
 	linux_input.c
 
 libdirectfb_linux_input_la_LDFLAGS = \
