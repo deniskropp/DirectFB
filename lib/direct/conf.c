@@ -32,6 +32,7 @@
 
 static DirectConfig config = {
      debug:      true,
+     trace:      true,
      sighandler: true
 };
 

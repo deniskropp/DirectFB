@@ -86,6 +86,8 @@ static const char *config_usage =
     "Show DirectFB Banner on startup\n"
     "  [no-]debug                     "
     "Enable debug output\n"
+    "  [no-]trace                     "
+    "Enable stack trace support\n"
     "  force-windowed                 "
     "Primary surface always is a window\n"
     "  force-desktop                  "
@@ -209,7 +211,7 @@ static int
 format_string_compare (const void *key,
                        const void *base)
 {
-  return strcmp ((const char *) key, ((const FormatString *) base)->string);
+     return strcmp ((const char *) key, ((const FormatString *) base)->string);
 }
 
 static DFBSurfacePixelFormat
@@ -567,6 +569,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                direct_debug_config_domain( value, false );
           else
                direct_config->debug = false;
+     } else
+     if (strcmp (name, "trace" ) == 0) {
+          direct_config->trace = true;
+     } else
+     if (strcmp (name, "no-trace" ) == 0) {
+          direct_config->trace = false;
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;

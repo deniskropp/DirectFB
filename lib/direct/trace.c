@@ -72,10 +72,14 @@ struct __D_DirectTraceBuffer {
      void *trace[MAX_LEVEL];
 };
 
+/**************************************************************************************************/
+
 static DirectTraceBuffer *buffers[MAX_BUFFERS];
 static int                buffers_num  = 0;
 static pthread_mutex_t    buffers_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t      trace_key    = -1;
+
+/**************************************************************************************************/
 
 __attribute__((no_instrument_function))
 static void
@@ -137,6 +141,7 @@ get_trace_buffer()
      return buffer;
 }
 
+/**************************************************************************************************/
 
 #ifdef DYNAMIC_LINKING
 
@@ -156,6 +161,7 @@ typedef struct {
 
 static DirectLink      *tables      = NULL;
 static pthread_mutex_t  tables_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+
 
 __attribute__((no_instrument_function))
 static void
@@ -338,6 +344,7 @@ lookup_symbol( const char *filename, long offset )
 
 #endif
 
+/**************************************************************************************************/
 
 __attribute__((no_instrument_function))
 void
@@ -348,6 +355,9 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 #endif
      int     i;
      int     level;
+
+     if (!direct_config->trace)
+          return;
 
      if (!buffer)
           buffer = get_trace_buffer();
@@ -475,16 +485,20 @@ direct_trace_free_buffer( DirectTraceBuffer *buffer )
      free( buffer );
 }
 
+/**************************************************************************************************/
+
 __attribute__((no_instrument_function))
 void
 __cyg_profile_func_enter (void *this_fn,
                           void *call_site)
 {
-     DirectTraceBuffer *buffer = get_trace_buffer();
-     int                level  = buffer->level++;
+     if (direct_config->trace) {
+          DirectTraceBuffer *buffer = get_trace_buffer();
+          int                level  = buffer->level++;
 
-     if (level < MAX_LEVEL)
-          buffer->trace[level] = this_fn;
+          if (level < MAX_LEVEL)
+               buffer->trace[level] = this_fn;
+     }
 }
 
 __attribute__((no_instrument_function))
@@ -492,10 +506,12 @@ void
 __cyg_profile_func_exit (void *this_fn,
                          void *call_site)
 {
-     DirectTraceBuffer *buffer = get_trace_buffer();
+     if (direct_config->trace) {
+          DirectTraceBuffer *buffer = get_trace_buffer();
 
-     if (buffer->level > 0)
-          buffer->level--;
+          if (buffer->level > 0)
+               buffer->level--;
+     }
 }
 
 
