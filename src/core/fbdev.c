@@ -887,8 +887,8 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 {
      switch (var->bits_per_pixel) {
 
-#ifdef SUPPORT_RGB332
           case 8:
+#ifdef SUPPORT_RGB332
 /*
                This check is omitted, since we want to use RGB332 even if the
                hardware uses a palette (in that case we initzalize a calculated
