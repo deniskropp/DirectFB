@@ -118,7 +118,7 @@ static void via_enable_mmio(void)
     // Enable MMIO
 
     outb(0x1a, 0x3c4);
-    outb(inb(0x3c5) | 0x68, 0x3c5);
+    //outb(inb(0x3c5) | 0x68, 0x3c5);
 }
 
 static void via_disable_mmio(void)

@@ -379,9 +379,9 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
 
     // VIA-driver crash workaround.
     // This clears bit 6 (software reset) in extended VGA register 0x1a
-    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
-    ucdrv->vga1A_save = VGA_IN8(ucdrv->hwregs, 0x3c5);
-    VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save & 0xbf);
+    //VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    //ucdrv->vga1A_save = VGA_IN8(ucdrv->hwregs, 0x3c5);
+    //VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save & 0xbf);
 
     ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
 
@@ -469,8 +469,8 @@ static void driver_close_driver(GraphicsDevice* device, void* driver_data)
 
     // VIA-driver crash workaround.
     // This restores extended VGA register 0x1a
-    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
-    VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save);
+    //VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    //VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save | 0x68);
 
     if (ucdrv->fifo) uc_fifo_destroy(ucdrv->fifo);
     if ((int) ucdrv->file != -1) close(ucdrv->file);
