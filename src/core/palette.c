@@ -168,6 +168,8 @@ dfb_palette_search( CorePalette *palette,
 {
      unsigned int index;
 
+     DFB_ASSERT( palette != NULL );
+     
      /* check local cache first */
      if (palette->search_cache.index != -1 &&
          palette->search_cache.color.a == a &&

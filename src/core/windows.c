@@ -1364,11 +1364,21 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
 
      switch (stack->bg.mode) {
           case DLBM_COLOR: {
-                    DFBRectangle rect = { region->x1, region->y1,
-                         region->x2 - region->x1 + 1,
-                         region->y2 - region->y1 + 1};
+                    CoreSurface *dest  = state->destination;
+                    DFBColor    *color = &stack->bg.color;
+                    DFBRectangle rect  = { region->x1, region->y1,
+                                           region->x2 - region->x1 + 1,
+                                           region->y2 - region->y1 + 1};
 
-                    state->color     = stack->bg.color;
+                    state->color = *color;
+
+                    if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
+                         state->color_index = dfb_palette_search( dest->palette,
+                                                                  color->r,
+                                                                  color->g,
+                                                                  color->b,
+                                                                  color->a );
+
                     state->modified |= SMF_COLOR;
 
                     dfb_gfxcard_fillrectangle( &rect, state );
