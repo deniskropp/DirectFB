@@ -834,14 +834,17 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      /* Write the pixmap (and graymap) data. */
      for (i=0; i<surface->height; i++) {
           int    n3;
-          __u8  *data8  = data;
-          __u16 *data16 = data;
-          __u32 *data32 = data;
+          __u8  *data8;
+          __u16 *data16;
+          __u32 *data32;
 
           __u8 buf_p[surface->width * 3];
           __u8 buf_g[surface->width];
           
           /* Prepare one row. */
+          data8 = data16 = data32 = dfb_surface_data_offset( surface, data,
+                                                             pitch, 0, i );
+
           switch (surface->format) {
                case DSPF_ARGB:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
@@ -893,8 +896,6 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           /* Write alpha buffer to graymap file. */
           if (alpha)
                write( fd_g, buf_g, surface->width );
-
-          data += pitch;
      }
 
      /* Unlock the surface. */
