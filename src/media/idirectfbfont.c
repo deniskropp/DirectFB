@@ -42,6 +42,7 @@
 
 #include <direct/interface.h>
 #include <direct/mem.h>
+#include <direct/tree.h>
 #include <direct/utf8.h>
 
 #include "misc/util.h"
@@ -219,22 +220,20 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      if (bytes < 0)
           bytes = strlen (text);
 
-     for (offset = 0; offset < bytes; offset += direct_utf8_skip[(__u8)text[offset]]) {
-          unsigned char c = text[offset];
+     for (offset = 0; offset < bytes; offset += DIRECT_UTF8_SKIP(text[offset])) {
+          unsigned int c = text[offset];
 
           if (c < 128)
                current = c;
           else
-               current = direct_utf8_get_char( &text[offset] );
+               current = DIRECT_UTF8_GET_CHAR( &text[offset] );
 
           if (dfb_font_get_glyph_data (font, current, &glyph) == DFB_OK) {
                kern_y = 0;
 
-               if (prev && font->GetKerning &&
-                   font->GetKerning (font, prev, current, &kern_x, &kern_y) == DFB_OK)
-               {
+               if (prev && font->GetKerning && font->GetKerning( font, prev, current,
+                                                                 &kern_x, &kern_y ) == DFB_OK)
                     width += kern_x;
-               }
 
                if (ink_rect) {
                     DFBRectangle glyph_rect = { width + glyph->left,
@@ -274,21 +273,67 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
  */
 static DFBResult
 IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
-                              const char *text, int bytes,
-                              int *width )
+                              const char    *text,
+                              int            bytes,
+                              int           *ret_width )
 {
-     DFBRectangle rect;
-     DFBResult    result;
+     CoreFont      *font;
+     DirectTree    *glyphs;
+     const __u8    *string;
+     const __u8    *end;
+     CoreGlyphData *glyph;
+     int            kern_x;
+     int            width = 0;
+     unichar        prev  = 0;
+     unichar        current;
 
-     if (!width)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     if (!text || !ret_width)
           return DFB_INVARG;
 
-     result = thiz->GetStringExtents (thiz, text, bytes, &rect, NULL);
+     if (bytes < 0)
+          bytes = strlen (text);
 
-     if (result == DFB_OK)
-          *width = rect.w;
+     if (!bytes) {
+          *ret_width = 0;
 
-     return result;
+          return DFB_OK;
+     }
+
+     font   = data->font;
+     glyphs = font->glyph_infos;
+     string = text;
+     end    = string + bytes;
+
+     dfb_font_lock( font );
+
+     do {
+          current = DIRECT_UTF8_GET_CHAR( string );
+
+          if (current >= 32 && current < 128)
+               glyph = glyphs->fast_keys[current-32];
+          else
+               glyph = direct_tree_lookup( glyphs, (void *) current );
+
+          if (glyph || dfb_font_get_glyph_data( font, current, &glyph ) == DFB_OK) {
+               width += glyph->advance;
+
+               if (prev && font->GetKerning && font->GetKerning( font, prev,
+                                                                 current, &kern_x, NULL ) == DFB_OK)
+                    width += kern_x;
+          }
+
+          prev = current;
+
+          string += DIRECT_UTF8_SKIP( current );
+     } while (string < end);
+
+     dfb_font_unlock( font );
+
+     *ret_width = width;
+
+     return DFB_OK;
 }
 
 /*
