@@ -43,7 +43,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
                            void *probe_ctx );
 
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
-     (p) = (i*)calloc( 1, sizeof(i) );
+     (p) = (i*)DFBCALLOC( 1, sizeof(i) );
 
 #define INTERFACE_GET_DATA(i) \
      i##_data *data;                    \

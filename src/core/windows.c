@@ -826,8 +826,8 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     if (evt->keycode == DIKC_CAPSLOCK) {
                          stack->wm_hack = 0;
                          windowstack_handle_enter_leave_focus( stack );
-                         return RS_OK;
                     }
+                    return RS_OK;
                case DIET_KEYPRESS:
                     switch (evt->keycode) {
                          case DIKC_C:
@@ -840,6 +840,12 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                          default:
                               ;
                     }
+                    return RS_OK;
+               case DIET_BUTTONRELEASE:
+                    return RS_OK;
+               case DIET_BUTTONPRESS:
+                    if (stack->entered_window)
+                         window_raisetotop( stack->entered_window );
                     return RS_OK;
                default:
                     ;
@@ -875,7 +881,7 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     break;
 
                window = (stack->pointer_window ?
-                         stack->pointer_window : stack->focused_window);
+                         stack->pointer_window : stack->entered_window);
 
                if (window) {
                     we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :

@@ -241,7 +241,6 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 
 int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
-     int source_locked;
      DFBSurfaceLockFlags lock_flags;
 
      if (!state->destination) {
@@ -272,14 +271,12 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                return 0;
           }
 
-          source_locked = 1;
+          state->source_locked = 1;
      }
      else
-          source_locked = 0;
+          state->source_locked = 0;
 
      pthread_mutex_lock( &card->lock );
-
-     card->source_locked = source_locked;
 
      if (!(state->set & accel)  ||
          state != card->state   ||
@@ -294,7 +291,7 @@ void gfxcard_state_release( CardState *state )
 {
      surface_unlock( state->destination, 0 );
 
-     if (card->source_locked)
+     if (state->source_locked)
           surface_unlock( state->source, 1 );
 
      pthread_mutex_unlock( &card->lock );
@@ -304,6 +301,8 @@ void gfxcard_state_release( CardState *state )
 
 void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
 {
+     state_lock( state );
+
      if (gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
          gfxcard_state_acquire( state, DFXL_FILLRECTANGLE )) {
           if ((card->caps.flags & CCF_CLIPPING) ||
@@ -319,10 +318,14 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state )
                gRelease( state );
           }
      }
+
+     state_unlock( state );
 }
 
 void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 {
+     state_lock( state );
+
      if (gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
          gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE )) {
           if (card->caps.flags & CCF_CLIPPING  ||
@@ -367,11 +370,15 @@ void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
                }
           }
      }
+
+     state_unlock( state );
 }
 
 void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 {
      int i;
+
+     state_lock( state );
 
      if (gfxcard_state_check( state, DFXL_DRAWLINE ) &&
          gfxcard_state_acquire( state, DFXL_DRAWLINE )) {
@@ -396,10 +403,14 @@ void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
                gRelease( state );
           }
      }
+
+     state_unlock( state );
 }
 
 void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
+     state_lock( state );
+
      if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
          gfxcard_state_acquire( state, DFXL_FILLTRIANGLE )) {
           /*  FIXME: do real clipping  */
@@ -417,13 +428,19 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
                gRelease( state );
           }
      }
+
+     state_unlock( state );
 }
 
 void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
-     if (!clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy ))
+     state_lock( state );
+
+     if (!clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy )) {
           /* no work at all */
+          state_unlock( state );
           return;
+     }
 
      if (gfxcard_state_check( state, DFXL_BLIT ) &&
          gfxcard_state_acquire( state, DFXL_BLIT )) {
@@ -440,14 +457,21 @@ void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
                gRelease( state );
           }
      }
+
+     state_unlock( state );
 }
 
 void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                           CardState *state )
 {
+     state_lock( state );
+
      if (!clip_blit_precheck( &state->clip, drect->w, drect->h,
                               drect->x, drect->y ))
+     {
+          state_unlock( state );
           return;
+     }
 
      if (gfxcard_state_check( state, DFXL_STRETCHBLIT ) &&
          gfxcard_state_acquire( state, DFXL_STRETCHBLIT )) {
@@ -464,6 +488,8 @@ void gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
                gRelease( state );
           }
      }
+
+     state_unlock( state );
 }
 
 #define FONT_BLITTINGFLAGS   (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
@@ -486,11 +512,17 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
      int restore_blittingflags = 0;
      DFBSurfaceBlittingFlags original_blittingflags = 0;
 
+     state_lock( state );
+
      /* simple prechecks */
-     if (y + font->height <= state->clip.y1)
+     if (y + font->height <= state->clip.y1) {
+          state_unlock( state );
           return;
-     if (y > state->clip.y2)
+     }
+     if (y > state->clip.y2) {
+          state_unlock( state );
           return;
+     }
 
      state_set_source( state, NULL );
 
@@ -583,6 +615,8 @@ void gfxcard_drawstring( const __u8 *text, int bytes,
           state->blittingflags = original_blittingflags;
           state->modified |= SMF_BLITTING_FLAGS;
      }
+
+     state_unlock( state );
 }
 
 

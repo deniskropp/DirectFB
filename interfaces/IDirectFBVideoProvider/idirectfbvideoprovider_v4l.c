@@ -96,7 +96,7 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      if (data->cleanup)
           core_cleanup_remove( data->cleanup );
-     
+
      DFBFREE( data->filename );
 
      DFBFREE( thiz->priv );
@@ -428,12 +428,18 @@ static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
 static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data )
 {
+     DFBResult ret;
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     if (surfacemanager_assure_video(buffer)) {
-          return DFB_UNSUPPORTED;
-     }
+     surfacemanager_lock();
+
+     ret = surfacemanager_assure_video(buffer);
+
+     surfacemanager_unlock();
+
+     if (ret)
+          return ret;
 
      v4l_stop( data );
 

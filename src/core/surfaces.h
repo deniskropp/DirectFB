@@ -57,6 +57,8 @@ struct _SurfaceBuffer
 
      struct {
           int            health;        /* currently stored in video memory? */
+          int            locked;        /* video instance is locked, don't
+                                           try to kick out, could deadlock */
 
           int            pitch;         /* number of bytes til next line */
           int            offset;        /* byte offset from the beginning

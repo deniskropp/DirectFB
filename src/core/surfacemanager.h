@@ -24,6 +24,7 @@
 #ifndef __SURFACEMANAGER_H__
 #define __SURFACEMANAGER_H__
 
+#include "coredefs.h"
 
 /*
  * initially there is one big free chunk,
@@ -52,13 +53,50 @@ typedef struct _Chunk
  */
 DFBResult surfacemanager_init_heap();
 
+/*
+ * frees all data allocated by the surfacemanager,
+ * it does not deallocate surfaces from video memory
+ */
 void surfacemanager_deinit();
+
+/*
+ * marks video instances for restoration,
+ * TODO: backup video only surfaces in system memory
+ */
+DFBResult surfacemanager_suspend();
 
 /*
  * adjust the offset within the framebuffer for surface storage,
  * needs to be called after a resolution switch
  */
 DFBResult surfacemanager_adjust_heap_offset( int offset );
+
+
+
+extern pthread_mutex_t surfacemanager_mutex_lock;
+
+/*
+ * Lock/unlock the surfacemanager for usage of the functions below.
+ */
+#ifdef DFB_DEBUG
+#define surfacemanager_lock() { \
+     DEBUGMSG("[%d] Locking in "__FUNCTION__" at "__FILE__":%d\n", getpid(), __LINE__); \
+     pthread_mutex_lock( &surfacemanager_mutex_lock ); \
+}
+
+#define surfacemanager_unlock() { \
+     DEBUGMSG("[%d] Unlocking in "__FUNCTION__" in "__FILE__":%d\n", getpid(), __LINE__); \
+     pthread_mutex_unlock( &surfacemanager_mutex_lock ); \
+}
+#else
+static inline int surfacemanager_lock() {
+     return pthread_mutex_lock( &surfacemanager_mutex_lock );
+}
+
+static inline int surfacemanager_unlock() {
+     return pthread_mutex_unlock( &surfacemanager_mutex_lock );
+}
+#endif
 
 /*
  * finds and allocates one for the surface or fails,
@@ -84,7 +122,5 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer );
  * it fails if the policy is CSP_VIDEOONLY
  */
 DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer );
-
-DFBResult surfacemanager_suspend();
 
 #endif

@@ -24,6 +24,8 @@
 #ifndef __STATE_H__
 #define __STATE_H__
 
+#include <pthread.h>
+
 typedef enum {
      SMF_DRAWING_FLAGS   = 0x00000001,
      SMF_BLITTING_FLAGS  = 0x00000002,
@@ -64,10 +66,26 @@ struct _CardState {
                                               already checked */
      DFBAccelerationMask     set;          /* commands for which a state has
                                               been set */
+
+     int                     source_locked;/* when state is acquired for a blit
+                                              mark that the source needs to be
+                                              unlock when state is released */
+
+     pthread_mutex_t         lock;         /* mutex lock for state access */
 };
 
 void state_set_destination( CardState *state, CoreSurface *destination );
 void state_set_source( CardState *state, CoreSurface *source );
+
+static inline int state_lock( CardState *state )
+{
+     return pthread_mutex_lock( &state->lock );
+}
+
+static inline int state_unlock( CardState *state )
+{
+     return pthread_mutex_unlock( &state->lock );
+}
 
 #endif
 

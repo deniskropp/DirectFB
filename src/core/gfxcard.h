@@ -104,10 +104,9 @@ struct _GfxCard {
      void (*FlushTextureCache)();
 
      /*
-      * state handling
+      * Points to the current state of the graphics card.
       */
-     CardState           *state;
-     int                  source_locked;
+     CardState *state;
 
      void (*CheckState)( CardState *state, DFBAccelerationMask accel );
      void (*SetState  )( CardState *state, DFBAccelerationMask accel );

@@ -52,13 +52,18 @@ static Chunk* split_chunk( Chunk *c, int length );
 static Chunk* free_chunk( Chunk *chunk );
 static void occupy_chunk( Chunk *chunk, SurfaceBuffer *buffer, int length );
 
+pthread_mutex_t surfacemanager_mutex_lock = PTHREAD_MUTEX_INITIALIZER;
 
-/** public **/
+/** public functions locking the surfacemanger theirself,
+    NOT to be called between lock/unlock of surfacemanager **/
 
 DFBResult surfacemanager_init_heap()
 {
+     surfacemanager_lock();
+
      if (chunks) {
           BUG( "reinitialization of surface manager" );
+          surfacemanager_unlock();
           return DFB_BUG;
      }
 
@@ -81,11 +86,15 @@ DFBResult surfacemanager_init_heap()
      if (card->byteoffset_align > 1)
           chunks->length -= chunks->length % card->byteoffset_align;
 
+     surfacemanager_unlock();
+
      return DFB_OK;
 }
 
 void surfacemanager_deinit()
 {
+     surfacemanager_lock();
+
      while (chunks) {
           Chunk *c = chunks;
 
@@ -93,10 +102,42 @@ void surfacemanager_deinit()
 
           DFBFREE( c );
      }
+
+     surfacemanager_unlock();
+}
+
+DFBResult surfacemanager_suspend()
+{
+     Chunk *c;
+
+     DEBUGMSG( "DirectFB/core/surfacemanager: suspending...\n" );
+
+     surfacemanager_lock();
+
+     c = chunks;
+     while (c) {
+          if (c->buffer &&
+              c->buffer->policy != CSP_VIDEOONLY &&
+              c->buffer->video.health == CSH_STORED)
+          {
+               surfacemanager_assure_system( c->buffer );
+               c->buffer->video.health = CSH_RESTORE;
+          }
+
+          c = c->next;
+     }
+
+     surfacemanager_unlock();
+
+     DEBUGMSG( "DirectFB/core/surfacemanager: ...suspended\n" );
+
+     return DFB_OK;
 }
 
 DFBResult surfacemanager_adjust_heap_offset( int offset )
 {
+     surfacemanager_lock();
+
      if (card->byteoffset_align > 1) {
           offset += card->byteoffset_align - 1;
           offset -= offset % card->byteoffset_align;
@@ -121,8 +162,13 @@ DFBResult surfacemanager_adjust_heap_offset( int offset )
 
      card->heap_offset = offset;
 
+     surfacemanager_unlock();
+
      return DFB_OK;
 }
+
+/** public functions NOT locking the surfacemanger theirself,
+    to be called between lock/unlock of surfacemanager **/
 
 DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
 {
@@ -157,6 +203,7 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
      while (c) {
           if (c->length >= length) {
                if (c->buffer  &&
+                   !c->buffer->video.locked &&
                    c->buffer->policy != CSP_VIDEOONLY  &&
                    ((c->tolerations > min_toleration) ||
                    buffer->policy == CSP_VIDEOONLY))
@@ -190,18 +237,12 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
           DEBUGMSG( "kicking out surface at %d with tolerations %d...\n",
                     best_occupied->offset, best_occupied->tolerations );
 
-          pthread_mutex_lock( &kicked->front_lock );
-          pthread_mutex_lock( &kicked->back_lock );
-
           surfacemanager_assure_system( best_occupied->buffer );
 
           best_occupied->buffer->video.health = CSH_INVALID;
           surface_notify_listeners( kicked, CSNF_VIDEO );
 
           best_occupied = free_chunk( best_occupied );
-
-          pthread_mutex_unlock( &kicked->front_lock );
-          pthread_mutex_unlock( &kicked->back_lock );
 
           DEBUGMSG( "kicked out.\n" );
 
@@ -244,9 +285,9 @@ DFBResult surfacemanager_deallocate( SurfaceBuffer *buffer )
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
 
-     surface_notify_listeners( buffer->surface, CSNF_VIDEO );
-
      free_chunk( chunk );
+
+     surface_notify_listeners( buffer->surface, CSNF_VIDEO );
 
      DEBUGMSG( "deallocated.\n" );
 
@@ -330,31 +371,8 @@ DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
      return DFB_BUG;
 }
 
-DFBResult surfacemanager_suspend()
-{
-     Chunk *c = chunks;
 
-     DEBUGMSG( "DirectFB/core/surfacemanager: suspending...\n" );
-
-     while (c) {
-          if (c->buffer &&
-              c->buffer->policy != CSP_VIDEOONLY &&
-              c->buffer->video.health == CSH_STORED)
-          {
-               surfacemanager_assure_system( c->buffer );
-               c->buffer->video.health = CSH_RESTORE;
-          }
-
-          c = c->next;
-     }
-
-     DEBUGMSG( "DirectFB/core/surfacemanager: ...suspended\n" );
-
-     return DFB_OK;
-}
-
-
-/** internal **/
+/** internal functions NOT locking the surfacemanager **/
 
 static Chunk* split_chunk( Chunk *c, int length )
 {

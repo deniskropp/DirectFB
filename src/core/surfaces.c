@@ -208,6 +208,8 @@ DFBResult surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
           return DFB_INVARG;
      }
 
+     surfacemanager_lock();
+
      if (front) {
           pthread_mutex_lock( &surface->front_lock );
           buffer = surface->front_buffer;
@@ -234,6 +236,7 @@ DFBResult surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
                }
                else {
                     /* ok, write only goes into video directly */
+                    buffer->video.locked = 1;
                     *data = card->framebuffer.base + buffer->video.offset;
                     *pitch = buffer->video.pitch;
                     buffer->system.health = CSH_RESTORE;
@@ -254,6 +257,7 @@ DFBResult surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
                /* FALL THROUGH, for the rest we have to do a video lock
                   as if it had the policy CSP_VIDEOONLY */
           case CSP_VIDEOONLY:
+               buffer->video.locked = 1;
                *data = card->framebuffer.base + buffer->video.offset;
                *pitch = buffer->video.pitch;
                gfxcard_sync();
@@ -266,8 +270,12 @@ DFBResult surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
                else
                     pthread_mutex_unlock( &surface->back_lock );
 
+               surfacemanager_unlock();
+
                return DFB_BUG;
      }
+
+     surfacemanager_unlock();
 
      return DFB_OK;
 }
@@ -281,6 +289,8 @@ DFBResult surface_hard_lock( CoreSurface *surface,
           BUG( "lock without flags" );
           return DFB_INVARG;
      }
+
+     surfacemanager_lock();
 
      if (front) {
           pthread_mutex_lock( &surface->front_lock );
@@ -306,11 +316,15 @@ DFBResult surface_hard_lock( CoreSurface *surface,
 //          case CSP_VIDEOHIGH: // XXX disabled XXX
                if (surfacemanager_assure_video( buffer ))
                     break;
+               buffer->video.locked = 1;
                if (flags & DSLF_WRITE)
                     buffer->system.health = CSH_RESTORE;
+               surfacemanager_unlock();
                return DFB_OK;
 
           case CSP_VIDEOONLY:
+               buffer->video.locked = 1;
+               surfacemanager_unlock();
                return DFB_OK;
 
           default:
@@ -321,6 +335,8 @@ DFBResult surface_hard_lock( CoreSurface *surface,
                else
                     pthread_mutex_unlock( &surface->back_lock );
 
+               surfacemanager_unlock();
+
                return DFB_BUG;
      }
 
@@ -329,6 +345,8 @@ DFBResult surface_hard_lock( CoreSurface *surface,
      else
           pthread_mutex_unlock( &surface->back_lock );
 
+     surfacemanager_unlock();
+
      return DFB_FAILURE;
 }
 
@@ -336,10 +354,14 @@ void surface_unlock( CoreSurface *surface, int front )
 {
      gfxcard_flush_texture_cache();
 
-     if (front)
+     if (front) {
+          surface->front_buffer->video.locked = 0;
           pthread_mutex_unlock( &surface->front_lock );
-     else
+     }
+     else {
+          surface->back_buffer->video.locked = 0;
           pthread_mutex_unlock( &surface->back_lock );
+     }
 }
 
 void surface_destroy( CoreSurface *surface )
@@ -406,7 +428,12 @@ static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
           case CSP_VIDEOONLY: {
                DFBResult ret;
 
+               surfacemanager_lock();
+
                ret = surfacemanager_allocate( b );
+
+               surfacemanager_unlock();
+
                if (ret) {
                     DFBFREE( b );
                     return ret;
@@ -424,6 +451,7 @@ static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
 
 static DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
 {
+     DFBResult    ret;
      CoreSurface *surface = buffer->surface;
 
      if (buffer->system.health) {
@@ -438,12 +466,21 @@ static DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
                                          surface->height*buffer->system.pitch );
 
           /* FIXME: better support video instance reallocation */
+          surfacemanager_lock();
           surfacemanager_deallocate( buffer );
+          surfacemanager_unlock();
      }
      else {
           /* FIXME: better support video instance reallocation */
+          surfacemanager_lock();
           surfacemanager_deallocate( buffer );
-          surfacemanager_allocate( buffer );
+          ret = surfacemanager_allocate( buffer );
+          surfacemanager_unlock();
+
+          if (ret) {
+               CAUTION( "reallocation of video instance failed" );
+               return ret;
+          }
 
           buffer->video.health = CSH_STORED;
      }
@@ -456,8 +493,12 @@ static void surface_deallocate_buffer( SurfaceBuffer *buffer )
      if (buffer->system.health)
           DFBFREE( buffer->system.addr );
 
+     surfacemanager_lock();
+
      if (buffer->video.health)
           surfacemanager_deallocate( buffer );
+
+     surfacemanager_unlock();
 
      DFBFREE( buffer );
 }

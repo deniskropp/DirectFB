@@ -103,8 +103,6 @@ int SperD = 0; /* for scaled routines only */
 
 static pthread_mutex_t generic_lock = PTHREAD_MUTEX_INITIALIZER;
 
-static int source_locked = 0;
-
 /********************************* Cop_to_Aop_PFI *****************************/
 static void Cop_to_Aop_8()
 {
@@ -1947,10 +1945,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                return 0;
           }
 
-          source_locked = 1;
+          state->source_locked = 1;
      }
      else
-          source_locked = 0;
+          state->source_locked = 0;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -2224,7 +2222,7 @@ void gRelease( CardState *state )
 {
      surface_unlock( state->destination, 0 );
 
-     if (source_locked)
+     if (state->source_locked)
           surface_unlock( state->source, 1 );
 
      pthread_mutex_unlock( &generic_lock );
