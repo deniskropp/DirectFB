@@ -50,6 +50,12 @@ react (const void    *msg_data,
      return RS_OK;
 }
 
+#ifdef FUSION_FAKE
+#define N_DISPATCH  1000000
+#else
+#define N_DISPATCH  40000
+#endif
+
 static void
 bench_reactor()
 {
@@ -101,7 +107,7 @@ bench_reactor()
      
      t1 = dfb_get_millis();
      
-     for (i=0; i<40000; i++) {
+     for (i=0; i<N_DISPATCH; i++) {
           char msg[16];
 
           reactor_dispatch( reactor, msg, true );
@@ -110,10 +116,10 @@ bench_reactor()
      t2 = dfb_get_millis();
      
      printf( "reactor dispatch             -> %8.2f k/sec  (%d%% arrived)\n",
-             40000 / (float)(t2 - t1), react_counter * 100 / 40000 );
+             N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
 
 #if 0
-     while (react_counter < 40000) {
+     while (react_counter < N_DISPATCH) {
           int old_counter = react_counter;
 
           sched_yield();
@@ -125,7 +131,7 @@ bench_reactor()
      t2 = dfb_get_millis();
      
      printf( "reactor dispatch             -> %8.2f k/sec  (%d%% arrived)\n",
-             40000 / (float)(t2 - t1), react_counter * 100 / 40000 );
+             N_DISPATCH / (float)(t2 - t1), react_counter / (N_DISPATCH/100) );
 #endif     
      
      reactor_detach( reactor, &reaction );
