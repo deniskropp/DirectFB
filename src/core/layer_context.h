@@ -57,9 +57,6 @@ FUSION_OBJECT_METHODS( CoreLayerContext, dfb_layer_context )
 DFBResult dfb_layer_context_create( CoreLayer         *layer,
                                     CoreLayerContext **ret_context );
 
-DFBResult dfb_layer_context_test_region( CoreLayerContext      *context,
-                                         CoreLayerRegionConfig *config );
-
 DFBResult dfb_layer_context_get_primary_region( CoreLayerContext  *context,
                                                 bool               create,
                                                 CoreLayerRegion  **ret_region );
@@ -67,41 +64,47 @@ DFBResult dfb_layer_context_get_primary_region( CoreLayerContext  *context,
 /*
  * configuration testing/setting/getting
  */
-DFBResult dfb_layer_context_test_configuration( CoreLayerContext            *context,
-                                                const DFBDisplayLayerConfig *config,
-                                                DFBDisplayLayerConfigFlags  *ret_failed );
+DFBResult dfb_layer_context_test_configuration ( CoreLayerContext            *context,
+                                                 const DFBDisplayLayerConfig *config,
+                                                 DFBDisplayLayerConfigFlags  *ret_failed );
 
-DFBResult dfb_layer_context_set_configuration( CoreLayerContext            *context,
-                                               const DFBDisplayLayerConfig *config );
+DFBResult dfb_layer_context_set_configuration  ( CoreLayerContext            *context,
+                                                 const DFBDisplayLayerConfig *config );
 
-DFBResult dfb_layer_context_get_configuration( CoreLayerContext      *context,
-                                               DFBDisplayLayerConfig *ret_config );
+DFBResult dfb_layer_context_get_configuration  ( CoreLayerContext            *context,
+                                                 DFBDisplayLayerConfig       *ret_config );
 
 
 /*
  * configuration details
  */
-DFBResult dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
-                                              __u8 r, __u8 g, __u8 b );
+DFBResult dfb_layer_context_set_src_colorkey   ( CoreLayerContext            *context,
+                                                 __u8                         r,
+                                                 __u8                         g,
+                                                 __u8                         b );
 
-DFBResult dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
-                                              __u8 r, __u8 g, __u8 b );
+DFBResult dfb_layer_context_set_dst_colorkey   ( CoreLayerContext            *context,
+                                                 __u8                         r,
+                                                 __u8                         g,
+                                                 __u8                         b );
 
-DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext *context,
-                                                 DFBRectangle     *source );
+DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext            *context,
+                                                 const DFBRectangle          *source );
 
-DFBResult dfb_layer_context_set_screenlocation( CoreLayerContext *context,
-                                                DFBLocation      *location );
+DFBResult dfb_layer_context_set_screenlocation ( CoreLayerContext            *context,
+                                                 const DFBLocation           *location );
 
-DFBResult dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity);
+DFBResult dfb_layer_context_set_opacity        ( CoreLayerContext            *context,
+                                                 __u8                         opacity);
 
-DFBResult dfb_layer_context_set_coloradjustment (CoreLayerContext         *context,
-                                                 const DFBColorAdjustment *adj);
+DFBResult dfb_layer_context_set_coloradjustment( CoreLayerContext            *context,
+                                                 const DFBColorAdjustment    *adjustment );
 
-DFBResult dfb_layer_context_get_coloradjustment (CoreLayerContext   *context,
-                                                 DFBColorAdjustment *adj);
+DFBResult dfb_layer_context_get_coloradjustment( CoreLayerContext            *context,
+                                                 DFBColorAdjustment          *ret_adjustment );
 
-DFBResult dfb_layer_context_set_field_parity( CoreLayerContext *context, int field );
+DFBResult dfb_layer_context_set_field_parity   ( CoreLayerContext            *context,
+                                                 int                          field );
 
 
 /*

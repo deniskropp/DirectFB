@@ -743,8 +743,8 @@ dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
 }
 
 DFBResult
-dfb_layer_context_set_sourcerectangle( CoreLayerContext *context,
-                                       DFBRectangle     *source )
+dfb_layer_context_set_sourcerectangle( CoreLayerContext   *context,
+                                       const DFBRectangle *source )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -786,8 +786,8 @@ dfb_layer_context_set_sourcerectangle( CoreLayerContext *context,
 }
 
 DFBResult
-dfb_layer_context_set_screenlocation( CoreLayerContext *context,
-                                      DFBLocation      *location )
+dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
+                                      const DFBLocation *location )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -823,7 +823,8 @@ dfb_layer_context_set_screenlocation( CoreLayerContext *context,
 }
 
 DFBResult
-dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity)
+dfb_layer_context_set_opacity( CoreLayerContext *context,
+                               __u8              opacity )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -858,69 +859,63 @@ dfb_layer_context_set_opacity (CoreLayerContext *context, __u8 opacity)
 }
 
 DFBResult
-dfb_layer_context_set_coloradjustment (CoreLayerContext         *context,
-                                       const DFBColorAdjustment *adj)
+dfb_layer_context_set_coloradjustment( CoreLayerContext         *context,
+                                       const DFBColorAdjustment *adjustment )
 {
      DFBResult           ret;
-     DFBColorAdjustment  adjustment;
+     DFBColorAdjustment  adj;
      CoreLayer          *layer;
 
      D_ASSERT( context != NULL );
-     D_ASSERT( adj != NULL );
+     D_ASSERT( adjustment != NULL );
 
      layer = dfb_layer_at( context->layer_id );
 
      D_ASSERT( layer != NULL );
      D_ASSERT( layer->funcs != NULL );
 
-     adjustment = context->adjustment;
+     adj = context->adjustment;
 
      if (!layer->funcs->SetColorAdjustment)
           return DFB_UNSUPPORTED;
 
      /* if flags are set that are not in the default adjustment */
-     if (adj->flags & ~context->adjustment.flags)
+     if (adjustment->flags & ~context->adjustment.flags)
           return DFB_UNSUPPORTED;
 
      /* take over changed values */
-     if (adj->flags & DCAF_BRIGHTNESS)
-          adjustment.brightness = adj->brightness;
-
-     if (adj->flags & DCAF_CONTRAST)
-          adjustment.contrast = adj->contrast;
-
-     if (adj->flags & DCAF_HUE)
-          adjustment.hue = adj->hue;
-
-     if (adj->flags & DCAF_SATURATION)
-          adjustment.saturation = adj->saturation;
+     if (adjustment->flags & DCAF_BRIGHTNESS)  adj.brightness = adjustment->brightness;
+     if (adjustment->flags & DCAF_CONTRAST)    adj.contrast   = adjustment->contrast;
+     if (adjustment->flags & DCAF_HUE)         adj.hue        = adjustment->hue;
+     if (adjustment->flags & DCAF_SATURATION)  adj.saturation = adjustment->saturation;
 
      /* set new adjustment */
      ret = layer->funcs->SetColorAdjustment( layer, layer->driver_data,
-                                             layer->layer_data, &adjustment );
+                                             layer->layer_data, &adj );
      if (ret)
           return ret;
 
      /* keep new adjustment */
-     context->adjustment = adjustment;
+     context->adjustment = adj;
 
      return DFB_OK;
 }
 
 DFBResult
-dfb_layer_context_get_coloradjustment (CoreLayerContext   *context,
-                                       DFBColorAdjustment *adj)
+dfb_layer_context_get_coloradjustment( CoreLayerContext   *context,
+                                       DFBColorAdjustment *ret_adjustment )
 {
      D_ASSERT( context != NULL );
-     D_ASSERT( adj != NULL );
+     D_ASSERT( ret_adjustment != NULL );
 
-     *adj = context->adjustment;
+     *ret_adjustment = context->adjustment;
 
      return DFB_OK;
 }
 
 DFBResult
-dfb_layer_context_set_field_parity( CoreLayerContext *context, int field )
+dfb_layer_context_set_field_parity( CoreLayerContext *context,
+                                    int               field )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -953,15 +948,15 @@ dfb_layer_context_set_field_parity( CoreLayerContext *context, int field )
 }
 
 DFBResult
-dfb_layer_context_create_window( CoreLayerContext       *context,
-                                 int                     x,
-                                 int                     y,
-                                 int                     width,
-                                 int                     height,
-                                 DFBWindowCapabilities   caps,
-                                 DFBSurfaceCapabilities  surface_caps,
-                                 DFBSurfacePixelFormat   pixelformat,
-                                 CoreWindow            **ret_window )
+dfb_layer_context_create_window( CoreLayerContext        *context,
+                                 int                      x,
+                                 int                      y,
+                                 int                      width,
+                                 int                      height,
+                                 DFBWindowCapabilities    caps,
+                                 DFBSurfaceCapabilities   surface_caps,
+                                 DFBSurfacePixelFormat    pixelformat,
+                                 CoreWindow             **ret_window )
 {
      DFBResult        ret;
      CoreWindow      *window;
@@ -1058,7 +1053,7 @@ dfb_layer_context_unlock( CoreLayerContext *context )
      return fusion_skirmish_dismiss( &context->lock );
 }
 
-/******************************************************************************/
+/**************************************************************************************************/
 
 /*
  * region config construction
