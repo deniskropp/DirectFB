@@ -91,9 +91,6 @@ typedef struct
      bool      translucent_windows;               /* Allow translucent
                                                      windows */
 
-     char     *fbdebug_device;                    /* Device for framebuffer
-                                                     based debug output */
-
      struct {
           int                   width;            /* primary layer width */
           int                   height;           /* primary layer height */

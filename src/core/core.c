@@ -53,7 +53,6 @@
 #include <misc/mem.h>
 #include <misc/memcpy.h>
 #include <misc/util.h>
-#include <misc/fbdebug.h>
 #include <misc/colorhash.h>
 
 /*
@@ -367,10 +366,6 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      
      dfb_core->master = true;
 
-#ifdef DFB_DEBUG
-     fbdebug_init();
-#endif
-
      ret = dfb_colorhash_initialize();
      if (ret)
           return ret;
@@ -468,10 +463,6 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
      dfb_system_shutdown( emergency );
 
      dfb_colorhash_shutdown( emergency );
-
-#ifdef DFB_DEBUG
-     fbdebug_exit();
-#endif
 
      return 0;
 }

@@ -58,12 +58,8 @@ CoreFont *dfb_font_create()
 
      /* the state used to blit the glyphs, may be changed by the font
         provider */
-     memset( &font->state, 0, sizeof(CardState) );
      dfb_state_init( &font->state );
      font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
-     font->state.src_blend     = DSBF_SRCALPHA;
-     font->state.dst_blend     = DSBF_INVSRCALPHA;
-     font->state.modified      = SMF_ALL;
 
      font->glyph_infos = dfb_tree_new ();
 
