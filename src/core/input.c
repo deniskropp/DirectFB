@@ -67,11 +67,14 @@ typedef struct {
 } InputDriver;
 
 typedef struct {
-     DFBInputDeviceID   id;            /* unique device id */
+     DFBInputDeviceID            id;            /* unique device id */
 
-     InputDeviceInfo    device_info;
+     InputDeviceInfo             device_info;
 
-     FusionReactor     *reactor;       /* event dispatcher */
+     DFBInputDeviceModifierMask  modifiers;
+     DFBInputDeviceLockState     locks;
+
+     FusionReactor              *reactor;       /* event dispatcher */
 } InputDeviceShared;
 
 struct _InputDevice {
@@ -94,15 +97,20 @@ static CoreInputField *inputfield   = NULL;
 static InputDevice    *inputdevices = NULL;
 
 
-static void init_devices();
-static void fixup_key_event( DFBInputEvent *event );
+static void
+init_devices();
+
+static void
+fixup_key_event( InputDevice   *device,
+                 DFBInputEvent *event );
 
 static DFBInputDeviceKeyIdentifier
 symbol_to_id( DFBInputDeviceKeySymbol symbol );
 
 static DFBInputDeviceKeySymbol
 id_to_symbol( DFBInputDeviceKeyIdentifier id,
-              DFBInputDeviceModifierMask  modifiers );
+              DFBInputDeviceModifierMask  modifiers,
+              DFBInputDeviceLockState     locks );
 
 #ifdef DFB_DYNAMIC_LINKING
 static CoreModuleLoadResult input_driver_handle_func( void *handle,
@@ -301,7 +309,8 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
 
           case DIET_KEYPRESS:
           case DIET_KEYRELEASE:
-               fixup_key_event( event );
+               fixup_key_event( device, event );
+               printf("code: %x, id: %x, symbol: %x\n", event->key_code, event->key_id, event->key_symbol);
                break;
           
           default:
@@ -453,7 +462,6 @@ static void init_devices()
      }
 }
 
-
 #define FIXUP_FIELDS     (DIEF_MODIFIERS | DIEF_LOCKS | \
                           DIEF_KEYCODE | DIEF_KEYID | DIEF_KEYSYMBOL)
 
@@ -482,10 +490,11 @@ static void init_devices()
  * Fields remaining will be set to the default, e.g. key_code to -1.
  */
 static void
-fixup_key_event( DFBInputEvent *event )
+fixup_key_event( InputDevice *device, DFBInputEvent *event )
 {
-     DFBInputEventFlags valid   = event->flags & FIXUP_FIELDS;
-     DFBInputEventFlags missing = valid ^ FIXUP_FIELDS;
+     DFBInputEventFlags  valid   = event->flags & FIXUP_FIELDS;
+     DFBInputEventFlags  missing = valid ^ FIXUP_FIELDS;
+     InputDeviceShared  *shared  = device->shared;
 
      /* None is missing? */
      if (missing == DIEF_NONE)
@@ -495,15 +504,15 @@ fixup_key_event( DFBInputEvent *event )
      event->flags |= missing;
      
      /*
-      * Use computed values for modifiers and locks if they are missing.
+      * Use cached values for modifiers/locks if they are missing.
       */
      if (missing & DIEF_MODIFIERS) {
-          event->modifiers = 0; /* TODO */
+          event->modifiers = shared->modifiers;
           missing &= ~DIEF_MODIFIERS;
      }
 
      if (missing & DIEF_LOCKS) {
-          event->locks = 0; /* TODO */
+          event->locks = shared->locks;
           missing &= ~DIEF_LOCKS;
      }
 
@@ -518,8 +527,9 @@ fixup_key_event( DFBInputEvent *event )
       */
      if (valid & DIEF_KEYID) {
           if (missing & DIEF_KEYSYMBOL) {
-               event->key_symbol = 0; /*id_to_symbol( event->key_id,
-                                                 event->modifiers ); FIXME */
+               event->key_symbol = id_to_symbol( event->key_id,
+                                                 event->modifiers,
+                                                 event->locks );
                missing &= ~DIEF_KEYSYMBOL;
           }
      }
@@ -539,6 +549,39 @@ fixup_key_event( DFBInputEvent *event )
 
      if (missing & DIEF_KEYSYMBOL)
           event->key_symbol = DIKS_NULL;
+
+     /*
+      * Update cached values for modifiers/locks, use the ones that were
+      * originally provided by the driver or compute them.
+      */
+     if (valid & DIEF_MODIFIERS) {
+          shared->modifiers = event->modifiers;
+     }
+     else if (DFB_KEY_TYPE(event->key_symbol) == DIKT_MODIFIER) {
+          if (event->type == DIET_KEYPRESS)
+               shared->modifiers |= event->key_symbol & 0xFFF;
+          else
+               shared->modifiers &= ~(event->key_symbol & 0xFFF);
+     }
+     
+     if (valid & DIEF_LOCKS) {
+          shared->locks = event->locks;
+     }
+     else if (event->type == DIET_KEYPRESS) {
+          switch (event->key_id) {
+               case DIKI_CAPSLOCK:
+                    shared->locks ^= DILS_CAPS;
+                    break;
+               case DIKI_NUMLOCK:
+                    shared->locks ^= DILS_NUM;
+                    break;
+               case DIKI_SCRLOCK:
+                    shared->locks ^= DILS_SCROLL;
+                    break;
+               default:
+                    ;
+          }
+     }
 }
 
 static DFBInputDeviceKeyIdentifier
@@ -638,8 +681,172 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
 
 static DFBInputDeviceKeySymbol
 id_to_symbol( DFBInputDeviceKeyIdentifier id,
-              DFBInputDeviceModifierMask  modifiers )
+              DFBInputDeviceModifierMask  modifiers,
+              DFBInputDeviceLockState     locks )
 {
+     bool shift = (modifiers & DIMM_SHIFT) || (locks & DILS_CAPS);
+
+     if (id >= DIKI_A && id <= DIKI_Z)
+          return (shift ? 'A' : 'a') + id - DIKI_A;
+     
+     if (id >= DIKI_0 && id <= DIKI_9)
+          return '0' + id - DIKI_0;
+
+     if ((locks & DILS_NUM) && id >= DIKI_KP_0 && id <= DIKI_KP_9)
+          return '0' + id - DIKI_KP_0;
+
+     if (id >= DIKI_F1 && id <= DIKI_F12)
+          return DIKS_F1 + id - DIKI_F1;
+
+     switch (id) {
+          case DIKI_ESCAPE:
+               return DIKS_ESCAPE;
+          
+          case DIKI_LEFT:
+               return DIKS_CURSOR_LEFT;
+          
+          case DIKI_RIGHT:
+               return DIKS_CURSOR_RIGHT;
+
+          case DIKI_UP:
+               return DIKS_CURSOR_UP;
+
+          case DIKI_DOWN:
+               return DIKS_CURSOR_DOWN;
+          
+          case DIKI_CTRL:
+               return DIKS_CONTROL;
+          
+          case DIKI_SHIFT:
+               return DIKS_SHIFT;
+          
+          case DIKI_ALT:
+               return DIKS_ALT;
+          
+          case DIKI_ALTGR:
+               return DIKS_ALTGR;
+          
+          case DIKI_TAB:
+               return DIKS_TAB;
+          
+          case DIKI_ENTER:
+               return DIKS_ENTER;
+          
+          case DIKI_SPACE:
+               return DIKS_SPACE;
+          
+          case DIKI_BACKSPACE:
+               return DIKS_BACKSPACE;
+          
+          case DIKI_INSERT:
+               return DIKS_INSERT;
+          
+          case DIKI_DELETE:
+               return DIKS_DELETE;
+          
+          case DIKI_HOME:
+               return DIKS_HOME;
+          
+          case DIKI_END:
+               return DIKS_END;
+          
+          case DIKI_PAGE_UP:
+               return DIKS_PAGE_UP;
+          
+          case DIKI_PAGE_DOWN:
+               return DIKS_PAGE_DOWN;
+          
+          case DIKI_CAPSLOCK:
+               return DIKS_CAPSLOCK;
+          
+          case DIKI_NUMLOCK:
+               return DIKS_NUMLOCK;
+          
+          case DIKI_SCRLOCK:
+               return DIKS_SCROLLLOCK;
+          
+          case DIKI_PRINT:
+               return DIKS_PRINT;
+          
+          case DIKI_PAUSE:
+               return DIKS_PAUSE;
+
+          case DIKI_KP_DIV:
+               return DIKS_SLASH;
+               
+          case DIKI_KP_MULT:
+               return DIKS_ASTERISK;
+
+          case DIKI_KP_MINUS:
+               return DIKS_MINUS_SIGN;
+              
+          case DIKI_KP_PLUS:
+               return DIKS_PLUS_SIGN;
+
+          case DIKI_KP_ENTER:
+               return DIKS_ENTER;
+          
+          case DIKI_KP_SPACE:
+               return DIKS_SPACE;
+          
+          case DIKI_KP_TAB:
+               return DIKS_TAB;
+          
+          case DIKI_KP_F1:
+               return DIKS_F1;
+          
+          case DIKI_KP_F2:
+               return DIKS_F2;
+          
+          case DIKI_KP_F3:
+               return DIKS_F3;
+          
+          case DIKI_KP_F4:
+               return DIKS_F4;
+          
+          case DIKI_KP_EQUAL:
+               return DIKS_EQUALS_SIGN;
+          
+          case DIKI_KP_DECIMAL:
+               return DIKS_PERIOD;
+          
+          case DIKI_KP_SEPARATOR:
+               return DIKS_COMMA;
+
+          case DIKI_KP_0:
+               return DIKS_INSERT;
+          
+          case DIKI_KP_1:
+               return DIKS_END;
+          
+          case DIKI_KP_2:
+               return DIKS_CURSOR_DOWN;
+          
+          case DIKI_KP_3:
+               return DIKS_PAGE_DOWN;
+          
+          case DIKI_KP_4:
+               return DIKS_CURSOR_LEFT;
+          
+          case DIKI_KP_5:
+               return DIKS_BEGIN;
+          
+          case DIKI_KP_6:
+               return DIKS_CURSOR_RIGHT;
+          
+          case DIKI_KP_7:
+               return DIKS_HOME;
+          
+          case DIKI_KP_8:
+               return DIKS_CURSOR_UP;
+          
+          case DIKI_KP_9:
+               return DIKS_PAGE_UP;
+
+          default:
+               ;
+     }
+     
      return DIKS_NULL;
 }
 

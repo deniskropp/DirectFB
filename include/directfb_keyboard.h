@@ -58,10 +58,7 @@ extern "C"
 
           DIKI_KP_DIV, DIKI_KP_MULT, DIKI_KP_MINUS, DIKI_KP_PLUS,
           DIKI_KP_ENTER, DIKI_KP_SPACE, DIKI_KP_TAB, DIKI_KP_F1,
-          DIKI_KP_F2, DIKI_KP_F3, DIKI_KP_F4, DIKI_KP_HOME, DIKI_KP_LEFT,
-          DIKI_KP_UP, DIKI_KP_RIGHT, DIKI_KP_DOWN, DIKI_KP_PRIOR,
-          DIKI_KP_PAGE_UP, DIKI_KP_NEXT, DIKI_KP_PAGE_DOWN, DIKI_KP_END,
-          DIKI_KP_BEGIN, DIKI_KP_INSERT, DIKI_KP_DELETE, DIKI_KP_EQUAL,
+          DIKI_KP_F2, DIKI_KP_F3, DIKI_KP_F4, DIKI_KP_EQUAL,
           DIKI_KP_DECIMAL, DIKI_KP_SEPARATOR,
 
           DIKI_KP_0, DIKI_KP_1, DIKI_KP_2, DIKI_KP_3, DIKI_KP_4,
@@ -326,10 +323,11 @@ extern "C"
           DIKS_FASTFORWARD              = DFB_KEY( SPECIAL, 0x5A ),
           DIKS_PREVIOUS                 = DFB_KEY( SPECIAL, 0x5B ),
           DIKS_NEXT                     = DFB_KEY( SPECIAL, 0x5C ),
+          DIKS_BEGIN                    = DFB_KEY( SPECIAL, 0x5D ),
 
-          DIKS_DIGITS                   = DFB_KEY( SPECIAL, 0x5D ),
-          DIKS_TEEN                     = DFB_KEY( SPECIAL, 0x5E ),
-          DIKS_TWEN                     = DFB_KEY( SPECIAL, 0x5F ),
+          DIKS_DIGITS                   = DFB_KEY( SPECIAL, 0x5E ),
+          DIKS_TEEN                     = DFB_KEY( SPECIAL, 0x5F ),
+          DIKS_TWEN                     = DFB_KEY( SPECIAL, 0x60 ),
 
           /*
            * Unicode private area - DirectFB Function keys
