@@ -151,7 +151,7 @@ typedef volatile struct {
      __u32 NoOperation;            /* 0100-0103 */
      __u32 Notify;                 /* 0104-0107 */
      __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotifies;  /* 0180-0183 */
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
      __u32 SetContextClip;         /* 0184-0187 */
      __u32 SetContextPattern;      /* 0188-018B */
      __u32 SetContextRop;          /* 018C-018F */
@@ -257,13 +257,39 @@ typedef volatile struct {
 } NVScreenBlt;
 
 /*
+ * 2D DMA-screen BLT
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextColorKey;     /* 0184-0187 */
+     __u32 SetContextClip;         /* 0188-018B */
+     __u32 SetContextPattern;      /* 018C-018F */
+     __u32 SetContextRop;          /* 0190-0193 */
+     __u32 SetContextBeta1;        /* 0194-0197 */
+     __u32 SetContextBeta4;        /* 0198-019B */
+     __u32 SetContextSurface;      /* 019C-019F */
+     __u32 Reserved01[0x056];
+     __u32 SetColorConversion;     /* 02F8-02FB */
+     __u32 SetOperation;           /* 02FC-02FF */
+     __u32 SetColorFormat;         /* 0300-0303 */
+     __u32 Point;                  /* 0304-0307 */
+     __u32 SizeOut;                /* 0308-030B */
+     __u32 SizeIn;                 /* 030C-030F */
+     __u32 Reserved02[0x03C];
+     __u32 Pixel[1792];            /* 0400-     */
+} NVImageBlt;
+
+/*
  * 2D scaled image BLT
  */
 typedef volatile struct {
      __u32 NoOperation;            /* 0100-0103 */
      __u32 Notify;                 /* 0104-0107 */
      __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotifies;  /* 0180-0183 */
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
      __u32 SetContextDmaImage;     /* 0184-0187 */
      __u32 SetContextPattern;      /* 0188-018B */
      __u32 SetContextRop;          /* 018C-018F */
@@ -287,6 +313,34 @@ typedef volatile struct {
      __u32 ImageInPoint;           /* 040C-040F */
      __u32 Reserved03[0x6FC];
 } NVScaledImage;
+
+/*
+ * 2D stretched image from DMA BLT
+ */
+typedef volatile struct {
+     __u32 NoOperation;            /* 0100-0103 */
+     __u32 Notify;                 /* 0104-0107 */
+     __u32 Reserved00[0x01E];
+     __u32 SetContextDmaNotify;    /* 0180-0183 */
+     __u32 SetContextColorKey;     /* 0184-0187 */
+     __u32 SetContextPattern;      /* 0188-018B */
+     __u32 SetContextRop;          /* 018C-018F */
+     __u32 SetContextBeta1;        /* 0190-0193 */
+     __u32 SetContextBeta4;        /* 0194-0197 */
+     __u32 SetContextSurface;      /* 0198-019C */
+     __u32 Reserved01[0x057];
+     __u32 SetColorConversion;     /* 02F8-02FB */
+     __u32 SetOperation;           /* 02FC-02FF */
+     __u32 SetColorFormat;         /* 0300-0303 */
+     __u32 ImageInSize;            /* 0304-0307 */
+     __u32 DxDu;                   /* 0308-030B */
+     __u32 DyDv;                   /* 030C-030F */
+     __u32 ClipPoint;              /* 0310-0313 */
+     __u32 ClipSize;               /* 0314-0317 */
+     __u32 ImageOutPoint;          /* 0318-031B */
+     __u32 Reserved02[0x039];
+     __u32 Pixel[1792];            /* 0400-     */
+} NVStretchedImage;
 
 /*
  * 3D textured, Z buffered triangle
@@ -345,8 +399,10 @@ typedef volatile struct {
           NVRectangle           Rectangle;
           NVTriangle            Triangle;
           NVLine                Line;
-          NVScreenBlt           Blt;
+          NVScreenBlt           ScreenBlt;
+          NVImageBlt            ImageBlt;
           NVScaledImage         ScaledImage;
+          NVStretchedImage      StretchedImage;
           NVTexturedTriangleDx5 TexTriangle;
      } o;
 } NVFifoSubChannel;
@@ -361,36 +417,40 @@ typedef volatile struct {
  * used for RAMHT offset calculation
  */
 enum {
-     OBJ_DMA          = 0x00800000,
-     OBJ_SURFACES2D   = 0x00800001,
-     OBJ_CLIP         = 0x00800002,
-     OBJ_BETA1        = 0x00800003,
-     OBJ_BETA4        = 0x00800004,
-     OBJ_RECTANGLE    = 0x00800010,
-     OBJ_TRIANGLE     = 0x00800011,
-     OBJ_LINE         = 0x00800012,
-     OBJ_SCREENBLT    = 0x00800013,
-     OBJ_SCALEDIMAGE  = 0x00800014,
-     OBJ_TEXTRIANGLE  = 0x00800015,
-     OBJ_SURFACES3D   = 0x00800016
+     OBJ_DMA            = 0x00800000,
+     OBJ_SURFACES2D     = 0x00800001,
+     OBJ_SURFACES3D     = 0x00800002,
+     OBJ_CLIP           = 0x00800003,
+     OBJ_BETA1          = 0x00800004,
+     OBJ_BETA4          = 0x00800005,
+     OBJ_RECTANGLE      = 0x00800010,
+     OBJ_TRIANGLE       = 0x00800011,
+     OBJ_LINE           = 0x00800012,
+     OBJ_SCREENBLT      = 0x00800013,
+     OBJ_IMAGEBLT       = 0x00800014,
+     OBJ_SCALEDIMAGE    = 0x00800015,
+     OBJ_STRETCHEDIMAGE = 0x00800016,
+     OBJ_TEXTRIANGLE    = 0x00800017
 };
 
 /*
  * Objects addresses into context table [PRAMIN + (address)*16]
  */
 enum {
-     ADDR_DMA         = 0x1160,
-     ADDR_SURFACES2D  = 0x1162,
-     ADDR_CLIP        = 0x1163,
-     ADDR_BETA1       = 0x1164,
-     ADDR_BETA4       = 0x1165,
-     ADDR_RECTANGLE   = 0x1166,
-     ADDR_TRIANGLE    = 0x1167,
-     ADDR_LINE        = 0x1168,
-     ADDR_SCREENBLT   = 0x1169,
-     ADDR_SCALEDIMAGE = 0x116A,
-     ADDR_TEXTRIANGLE = 0x116B,
-     ADDR_SURFACES3D  = 0x116C
+     ADDR_DMA            = 0x1160,
+     ADDR_SURFACES2D     = 0x1162,
+     ADDR_SURFACES3D     = 0x1163,
+     ADDR_CLIP           = 0x1164,
+     ADDR_BETA1          = 0x1165,
+     ADDR_BETA4          = 0x1166,
+     ADDR_RECTANGLE      = 0x1167,
+     ADDR_TRIANGLE       = 0x1168,
+     ADDR_LINE           = 0x1169,
+     ADDR_SCREENBLT      = 0x116A,
+     ADDR_IMAGEBLT       = 0x116B,
+     ADDR_SCALEDIMAGE    = 0x116C,
+     ADDR_STRETCHEDIMAGE = 0x116D,
+     ADDR_TEXTRIANGLE    = 0x116E
 };
 
 
@@ -405,9 +465,11 @@ typedef struct {
 
      DFBSurfacePixelFormat   src_format;
      __u32                   src_offset;
+     __u8                   *src_address;
      __u32                   src_pitch;
      __u32                   src_width;
      __u32                   src_height;
+     bool                    src_alpha;
 
      __u32                   depth_offset;
      __u32                   depth_pitch;
@@ -416,14 +478,18 @@ typedef struct {
 
      __u32                   color;
      __u8                    alpha;
-     __u32                   dop;        /* drawing operation         */
-     __u32                   bop;        /* blitting operation        */
-     bool                    argb_src;
+     __u32                   dop;           // drawing operation
+     __u32                   bop0;          // blitting operation from video memory
+     __u32                   bop1;          // blitting operation from system memory  
+     __u32                   system_format; // color format for NVImageBlt & NVStretchedImage
+     __u32                   video_format;  // color format for NVScaledImage
+     __u32                   filter;        // filter for NVScaledImage 
 
      /* 3D stuff */
-     bool                    enabled_3d;  /* 3d engine enabled        */
-     __u32                   tex_offset;  /* texture buffer offset    */
-     __u32                   col_offset;  /* color buffer offset      */
+     bool                    enabled_3d;  // 3d engine enabled
+     __u32                   tex_offset;  // texture buffer offset
+     __u32                   col_offset;  // color buffer offset
+     __u32                   src_texture; // last surface copied to texture buffer
      __u32                   color3d;
      
      struct {
@@ -436,6 +502,8 @@ typedef struct {
           __u32              control;
           __u32              fog;
      } state3d;
+
+     __u32                   subchannel_object[8];
 
      /* for fifo/performance monitoring */
      unsigned int            fifo_space;
@@ -465,14 +533,14 @@ typedef struct {
      __u32                   fb_mask;
 
      volatile __u8          *mmio_base;
-     volatile __u32         *PVIDEO;
-     volatile __u32         *PFB;
-     volatile __u32         *PGRAPH;
-     volatile __u32         *PCRTC;
+     volatile __u8          *PVIDEO;
+     volatile __u8          *PFB;
+     volatile __u8          *PGRAPH;
+     volatile __u8          *PCRTC;
      volatile __u8          *PCIO;
      volatile __u8          *PVIO;
-     volatile __u32         *PRAMIN;
-     volatile __u32         *PRAMHT;
+     volatile __u8          *PRAMIN;
+     volatile __u8          *PRAMHT;
 
      NVFifoChannel          *Fifo;
      NVSurfaces2D           *Surfaces2D;
@@ -483,8 +551,10 @@ typedef struct {
      NVRectangle            *Rectangle;
      NVTriangle             *Triangle;
      NVLine                 *Line;
-     NVScreenBlt            *Blt;
+     NVScreenBlt            *ScreenBlt;
+     NVImageBlt             *ImageBlt;
      NVScaledImage          *ScaledImage;
+     NVStretchedImage       *StretchedImage;
      NVTexturedTriangleDx5  *TexTriangle;
 } NVidiaDriverData;
 

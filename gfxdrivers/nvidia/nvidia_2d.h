@@ -8,7 +8,7 @@
               Andreas Hundt <andi@fischlustig.de>,
               Sven Neumann <neo@directfb.org>,
               Ville Syrjälä <syrjala@sci.fi> and
-              Claudio Ciccani <klan82@cheapnet.it>.
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -37,13 +37,13 @@ bool nvDrawRectangle2D( void *drv, void *dev, DFBRectangle *rect );
 
 bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line );
 
-bool nv4Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
+bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
 
-bool nv5Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
+bool nvDMABlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
 
-bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
+bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
 
-bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
+bool nvDMAStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
 
 #endif /* __NVIDIA_2D_H__ */
 

@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2005 Claudio Ciccani <klan82@cheapnet.it>
+   Copyright (C) 2005 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -61,7 +61,6 @@ nvcrtc1InitScreen( CoreScreen           *screen,
                    DFBScreenDescription *description )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u32   *PCRTC = nvdrv->PCRTC;
      
      description->caps = DSCCAPS_VSYNC | DSCCAPS_POWER_MANAGEMENT;
 
@@ -69,15 +68,15 @@ nvcrtc1InitScreen( CoreScreen           *screen,
                DFB_SCREEN_DESC_NAME_LENGTH, "NVidia Primary Screen" );
 
      /* NV_PCRTC_INTR_EN_0 */
-     nv_out32( PCRTC, 0x140, 0x00000000 );
+     nv_out32( nvdrv->PCRTC, 0x140, 0x00000000 );
      /* NV_PCRTC_CONFIG */
 #ifdef WORDS_BIGENDIAN
-     nv_out32( PCRTC, 0x804, 0x80000002 );
+     nv_out32( nvdrv->PCRTC, 0x804, 0x80000002 );
 #else
-     nv_out32( PCRTC, 0x804, 0x00000002 );
+     nv_out32( nvdrv->PCRTC, 0x804, 0x00000002 );
 #endif
      /* NV_PCRTC_INTR_0 */
-     nv_out32( PCRTC, 0x100, 0x00000001 );
+     nv_out32( nvdrv->PCRTC, 0x100, 0x00000001 );
 
      return DFB_OK;
 }
@@ -139,7 +138,7 @@ nvcrtc1WaitVSync( CoreScreen *screen,
      if (!dfb_config->pollvsync_none) {
           while (  nv_in8( PCIO, 0x3DA ) & 8 );
           while (!(nv_in8( PCIO, 0x3DA ) & 8));
-          // the same but uses PCRTC
+          // using PCRTC
           //while (  nv_in32( nvdrv->PCRTC, 0x808 ) & 0x10000 );
           //while (!(nv_in32( nvdrv->PCRTC, 0x808 ) & 0x10000));
      }

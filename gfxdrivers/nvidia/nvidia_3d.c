@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2004-2005 Claudio Ciccani <klan82@cheapnet.it>
+   Copyright (C) 2004-2005 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -32,7 +32,6 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
-#include <core/system.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 
@@ -400,18 +399,38 @@ void nv_put_texture( NVidiaDriverData *nvdrv,
                      NVidiaDeviceData *nvdev,
                      SurfaceBuffer    *source )
 {
-     __u32 *tex_origin = (__u32*) dfb_system_video_memory_virtual( nvdev->tex_offset );
-     __u8  *src_origin = (__u8*) dfb_system_video_memory_virtual( source->video.offset );
-     int    src_pitch  = source->video.pitch;
+     __u32 *tex_origin;
      __u8  *src_buffer;
+     __u32  src_pitch;
 
-     src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
-     if (!src_buffer) {
-          D_BUG( "out of system memory" );
-          return;
-     }
+     tex_origin = (__u32*) dfb_gfxcard_memory_virtual( nvdrv->device,
+                                                       nvdev->tex_offset );
+
+     if (source->policy != CSP_SYSTEMONLY) {
+          __u8 *src_origin;
+          
+          if (nvdev->src_texture == (__u32) source &&
+              !(source->video.access & (VAF_SOFTWARE_WRITE | VAF_HARDWARE_WRITE)))
+               return;
+          
+          src_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
+                                                   source->video.offset );
+          src_pitch  = source->video.pitch;
+          
+          src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
+          if (!src_buffer) {
+               D_BUG( "out of system memory" );
+               return;
+          }
      
-     direct_memcpy( src_buffer, src_origin, src_pitch * nvdev->src_height ); 
+          direct_memcpy( src_buffer, src_origin, src_pitch * nvdev->src_height );
+          nvdev->src_texture = (__u32) source;
+     }
+     else {
+          src_buffer = source->system.addr;
+          src_pitch  = source->system.pitch;
+          nvdev->src_texture = 0;
+     }
 
      nv_waitidle( nvdrv, nvdev );
      
@@ -441,6 +460,7 @@ void nv_put_texture( NVidiaDriverData *nvdrv,
                break;
      }
 
-     D_FREE( src_buffer );
+     if (source->policy != CSP_SYSTEMONLY)
+          D_FREE( src_buffer );
 }
 

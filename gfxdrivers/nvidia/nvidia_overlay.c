@@ -110,7 +110,7 @@ ov0InitLayer( CoreLayer                  *layer,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "NVidia Overlay" );
 
      /* fill out the default configuration */
-     config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+     config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT     |
                            DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
                            DLCONF_OPTIONS;
      config->width       = 640;
@@ -129,10 +129,12 @@ ov0InitLayer( CoreLayer                  *layer,
      adjustment->hue        = 0x8000;
 
      /* set video buffers start and limit */
-     nvdrv->PVIDEO[0x920/4] = 0;
-     nvdrv->PVIDEO[0x924/4] = 0;
-     nvdrv->PVIDEO[0x908/4] = nvdrv->fb_offset + vram - 1;
-     nvdrv->PVIDEO[0x90C/4] = nvdrv->fb_offset + vram - 1;
+     if (nvdrv->arch >= NV_ARCH_10) {
+          nv_out32( nvdrv->PVIDEO, 0x920, 0 );
+          nv_out32( nvdrv->PVIDEO, 0x924, 0 );
+          nv_out32( nvdrv->PVIDEO, 0x908, nvdrv->fb_offset + vram - 1 );
+          nv_out32( nvdrv->PVIDEO, 0x90C, nvdrv->fb_offset + vram - 1 );
+     }
  
      /* reset overlay */
      nvov0->brightness = 0;
@@ -155,7 +157,7 @@ ov0OnOff( NVidiaDriverData       *nvdrv,
      else
           nvov0->regs.NV_PVIDEO_STOP = 1;
 
-     nvdrv->PVIDEO[0x704/4] = nvov0->regs.NV_PVIDEO_STOP;
+     nv_out32( nvdrv->PVIDEO, 0x704, nvov0->regs.NV_PVIDEO_STOP );
 }
 
 
@@ -230,38 +232,28 @@ ov0SetRegion( CoreLayer                  *layer,
               void                       *layer_data,
               void                       *region_data,
               CoreLayerRegionConfig      *config,
-              CoreLayerRegionConfigFlags updated,
+              CoreLayerRegionConfigFlags  updated,
               CoreSurface                *surface,
               CorePalette                *palette )
 {
-     NVidiaDriverData    *nvdrv = (NVidiaDriverData*) driver_data;
+     NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
 
      /* remember configuration */
-     nvov0->config  = *config;
+     nvov0->config = *config;
 
      ov0_calc_regs( nvdrv, nvov0, layer, config );
      ov0_set_regs( nvdrv, nvov0 );
 
      /* set destination colorkey */
-     if (config->options & DLOP_DST_COLORKEY) {
+     if (updated & CLRCF_DSTKEY) {
           nvov0->colorkey = dfb_color_to_pixel( dfb_primary_layer_pixelformat(),
                                                 config->dst_key.r, config->dst_key.g,
                                                 config->dst_key.b );
           ov0_set_csc( nvdrv, nvov0 );
      }
 
-     switch (config->opacity) {
-          case 0:
-               ov0OnOff( nvdrv, nvov0, 0 );
-          break;
-          default:
-               ov0OnOff( nvdrv, nvov0, 1 );
-          break;
-     }
-
-     /* enable overlay */
-     ov0OnOff(nvdrv, nvov0, 1);
+     ov0OnOff( nvdrv, nvov0, config->opacity );
 
      return DFB_OK;
 }
@@ -652,17 +644,19 @@ DisplayLayerFuncs nvidiaOverlayFuncs = {
 
 static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0 )
 {
-     nvdrv->PVIDEO[(0x900/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_BASE;
-     nvdrv->PVIDEO[(0x928/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_SIZE_IN;
-     nvdrv->PVIDEO[(0x930/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_POINT_IN;
-     nvdrv->PVIDEO[(0x938/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_DS_DX;
-     nvdrv->PVIDEO[(0x940/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_DT_DY;
-     nvdrv->PVIDEO[(0x948/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_POINT_OUT;
-     nvdrv->PVIDEO[(0x950/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_SIZE_OUT;
-     nvdrv->PVIDEO[(0x958/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_FORMAT;
+     volatile __u8 *PVIDEO = nvdrv->PVIDEO;
+     
+     nv_out32( PVIDEO, 0x900 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_BASE );
+     nv_out32( PVIDEO, 0x928 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_SIZE_IN );
+     nv_out32( PVIDEO, 0x930 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_POINT_IN );
+     nv_out32( PVIDEO, 0x938 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_DS_DX );
+     nv_out32( PVIDEO, 0x940 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_DT_DY );
+     nv_out32( PVIDEO, 0x948 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_POINT_OUT );
+     nv_out32( PVIDEO, 0x950 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_SIZE_OUT );
+     nv_out32( PVIDEO, 0x958 + nvov0->buffer*4, nvov0->regs.NV_PVIDEO_FORMAT );
 
-     nvdrv->PVIDEO[0x704/4] = nvov0->regs.NV_PVIDEO_STOP;
-     nvdrv->PVIDEO[0x700/4] = nvov0->regs.NV_PVIDEO_BUFFER;
+     nv_out32( PVIDEO, 0x704, nvov0->regs.NV_PVIDEO_STOP );
+     nv_out32( PVIDEO, 0x700, nvov0->regs.NV_PVIDEO_BUFFER );
 }
 
 static void
@@ -704,8 +698,10 @@ static void
 ov0_set_csc( NVidiaDriverData       *nvdrv,
              NVidiaOverlayLayerData *nvov0 )
 {
-     __s32  satSine, satCosine;
-     double angle;
+     volatile __u8 *PVIDEO    = nvdrv->PVIDEO;
+     __s32          satSine;
+     __s32          satCosine;
+     double         angle;
 
      angle = (double) nvov0->hue * M_PI / 180.0;
      satSine = nvov0->saturation * sin(angle);
@@ -715,10 +711,10 @@ ov0_set_csc( NVidiaDriverData       *nvdrv,
      if (satCosine < -1024)
           satCosine = -1024;
 
-     nvdrv->PVIDEO[0x910/4] = (nvov0->brightness << 16) | nvov0->contrast;
-     nvdrv->PVIDEO[0x914/4] = (nvov0->brightness << 16) | nvov0->contrast;
-     nvdrv->PVIDEO[0x918/4] = (satSine << 16) | (satCosine & 0xffff);
-     nvdrv->PVIDEO[0x91c/4] = (satSine << 16) | (satCosine & 0xffff);
-     nvdrv->PVIDEO[0xb00/4] = nvov0->colorkey;
+     nv_out32( PVIDEO, 0x910, (nvov0->brightness << 16) | nvov0->contrast );
+     nv_out32( PVIDEO, 0x914, (nvov0->brightness << 16) | nvov0->contrast );
+     nv_out32( PVIDEO, 0x918, (satSine << 16) | (satCosine & 0xffff) );
+     nv_out32( PVIDEO, 0x91c, (satSine << 16) | (satCosine & 0xffff) );
+     nv_out32( PVIDEO, 0xb00, nvov0->colorkey );
 }
 
