@@ -57,10 +57,12 @@
 #include <direct/cpu_accel.h>
 #include <direct/debug.h>
 
+
+#ifdef ARCH_X86
+
 D_DEBUG_DOMAIN( Direct_CPU, "Direct/CPU", "CPU model and feature detection" );
 
 
-#ifdef ARCH_X86
 static __u32 arch_accel (void)
 {
      __u32 eax, ebx, ecx, edx;

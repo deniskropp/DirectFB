@@ -144,7 +144,9 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#if defined (ARCH_X86) || defined (ARCH_PPC)
 D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
+#endif
 
 #ifdef USE_PPCASM
 #include "ppcasm_memcpy.h"
