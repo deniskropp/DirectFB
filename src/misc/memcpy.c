@@ -448,7 +448,7 @@ void dfb_find_best_memcpy()
 
           t = rdtsc();
 
-          for (j=0; j<100; j++) {
+          for (j=0; j<256; j++) {
                memcpy_method[i].function( buf1, buf2, BUFSIZE );
                memcpy_method[i].function( buf2, buf1, BUFSIZE );
           }

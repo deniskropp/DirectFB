@@ -388,7 +388,8 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
           png_structp png_ptr;
           png_infop info_ptr;
 
-          int png_type;
+          png_uint_32 png_width, png_height;
+          int png_bpp, png_type;
 
           png_ptr = png_create_read_struct( PNG_LIBPNG_VER_STRING, NULL,
                                             NULL, NULL );
@@ -408,7 +409,7 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
           png_init_io( png_ptr, f );
           png_read_info( png_ptr, info_ptr );
 
-          png_get_IHDR( png_ptr, info_ptr, NULL, NULL, NULL,
+          png_get_IHDR( png_ptr, info_ptr, &png_width, &png_height, &png_bpp,
                         &png_type, NULL, NULL, NULL );
 
           if (png_type & PNG_COLOR_MASK_ALPHA)
