@@ -58,8 +58,8 @@ DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers",
                          DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
 typedef enum {
-   GLF_INVALIDATE_STATE,
-   GLF_ENGINE_RESET
+   GLF_INVALIDATE_STATE = 0x00000001,
+   GLF_ENGINE_RESET     = 0x00000002
 } GraphicsLockFlags;
 
 /*
@@ -324,30 +324,36 @@ DFBResult
 dfb_gfxcard_lock( bool wait, bool sync,
                   bool invalidate_state, bool engine_reset )
 {
+/*     DEBUGMSG("DirectFB/core/gfxcard: %s (%d, %d, %d, %d)\n",
+              __FUNCTION__, wait, sync, invalidate_state, engine_reset);*/
+
      if (card && card->shared) {
           GraphicsDeviceShared *shared = card->shared;
-          GraphicsLockFlags     flags  = shared->lock_flags;
 
           if (wait) {
                if (fusion_property_purchase( &shared->lock )) {
+                    /*DEBUGMSG("DirectFB/core/gfxcard: %s FAILED.\n", __FUNCTION__);*/
                     return DFB_FAILURE;
                }
           }
           else {
                if (fusion_property_lease( &shared->lock )) {
+                    /*DEBUGMSG("DirectFB/core/gfxcard: %s FAILED.\n", __FUNCTION__);*/
                     return DFB_FAILURE;
                }
           }
 
+          /*DEBUGMSG("DirectFB/core/gfxcard: %s got lock...\n", __FUNCTION__);*/
+
           if (sync)
                dfb_gfxcard_sync();
           
-          if (flags & GLF_INVALIDATE_STATE)
+          if (shared->lock_flags & GLF_INVALIDATE_STATE)
                shared->state = NULL;
           
-          if ((flags & GLF_ENGINE_RESET) && card->funcs.EngineReset)
+          if ((shared->lock_flags & GLF_ENGINE_RESET) && card->funcs.EngineReset)
                card->funcs.EngineReset( card->driver_data, card->device_data );
-
+          
           shared->lock_flags = 0;
           
           if (invalidate_state)
@@ -357,6 +363,8 @@ dfb_gfxcard_lock( bool wait, bool sync,
                shared->lock_flags |= GLF_ENGINE_RESET;
      }
 
+     /*DEBUGMSG("DirectFB/core/gfxcard: %s OK.\n", __FUNCTION__);*/
+
      return DFB_OK;
 }
 
@@ -364,17 +372,6 @@ void
 dfb_gfxcard_unlock()
 {
      if (card && card->shared) {
-          GraphicsDeviceShared *shared = card->shared;
-          GraphicsLockFlags     flags  = shared->lock_flags;
-          
-          if (flags & GLF_INVALIDATE_STATE)
-               shared->state = NULL;
-          
-          if ((flags & GLF_ENGINE_RESET) && card->funcs.EngineReset)
-               card->funcs.EngineReset( card->driver_data, card->device_data );
-
-          shared->lock_flags = 0;
-          
           fusion_property_cede( &card->shared->lock );
      }
 }
