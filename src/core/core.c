@@ -194,8 +194,13 @@ dfb_core_ref()
           return ret;
      }
 #else
-     if (dfb_core_initialize( NULL, NULL ))
-          return DFB_INIT;
+     ret = dfb_core_initialize( NULL, NULL );
+     if (ret) {
+          ERRORMSG("DirectFB/Core: Error during initialization (%s)\n",
+                   DirectFBErrorString( ret ));
+          dfb_core_deinit_emergency();
+          return ret;
+     }
 #endif
 
      return DFB_OK;
