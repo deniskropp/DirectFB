@@ -397,7 +397,6 @@ enum {
 
 typedef struct {
      StateModificationFlags  reloaded;
-     StateModificationFlags  modified;
      
      DFBSurfacePixelFormat   dst_format;
      __u32                   dst_offset;
@@ -422,12 +421,12 @@ typedef struct {
 
      /* 3D stuff */
      bool                    enabled_3d;  /* 3d engine enabled        */
-     bool                    modified_3d; /* 3d engine state modified */
      __u32                   tex_offset;  /* texture buffer offset    */
      __u32                   col_offset;  /* color buffer offset      */
      __u32                   color3d;
      
      struct {
+          bool               modified;
           __u32              colorkey;
           __u32              offset;
           __u32              format;

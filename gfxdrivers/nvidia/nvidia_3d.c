@@ -45,14 +45,18 @@
 
 #define nv_setstate3d( state3d )                                  \
 {                                                                 \
-     nv_waitfifo( nvdev, subchannelof(TexTriangle), 7 );          \
-     TexTriangle->ColorKey      = (state3d)->colorkey;            \
-     TexTriangle->TextureOffset = (state3d)->offset;              \
-     TexTriangle->TextureFormat = (state3d)->format;              \
-     TexTriangle->TextureFilter = (state3d)->filter;              \
-     TexTriangle->Blend         = (state3d)->blend;               \
-     TexTriangle->Control       = (state3d)->control;             \
-     TexTriangle->FogColor      = (state3d)->fog;                 \
+     if ((state3d)->modified) {                                   \
+          nv_waitfifo( nvdev, subchannelof(TexTriangle), 7 );     \
+          TexTriangle->ColorKey      = (state3d)->colorkey;       \
+          TexTriangle->TextureOffset = (state3d)->offset;         \
+          TexTriangle->TextureFormat = (state3d)->format;         \
+          TexTriangle->TextureFilter = (state3d)->filter;         \
+          TexTriangle->Blend         = (state3d)->blend;          \
+          TexTriangle->Control       = (state3d)->control;        \
+          TexTriangle->FogColor      = (state3d)->fog;            \
+                                                                  \
+          (state3d)->modified = false;                            \
+     }                                                            \
 }
 
 #define nv_putvertex( ii, xx, yy, zz, ww, col, spc, s, t )        \
@@ -91,10 +95,7 @@ bool nvFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      reg.x2 = rect->x + rect->w;
      reg.y2 = rect->y + rect->h;
 
-     if (nvdev->modified_3d) {
-          nv_setstate3d( &nvdev->state3d );
-          nvdev->modified_3d = false;
-     }
+     nv_setstate3d( &nvdev->state3d );
 
      nv_putvertex( 0, reg.x1, reg.y1, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, reg.x2, reg.y1, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -112,10 +113,7 @@ bool nvFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
      NVidiaDeviceData      *nvdev  = (NVidiaDeviceData*) dev;
      NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
 
-     if (nvdev->modified_3d) {
-          nv_setstate3d( &nvdev->state3d );
-          nvdev->modified_3d = false;
-     }
+     nv_setstate3d( &nvdev->state3d );
 
      nv_putvertex( 0, tri->x1, tri->y1, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, tri->x2, tri->y2, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -158,10 +156,7 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      reg[3].x2 = rect->x + rect->w;
      reg[3].y2 = rect->y + rect->h - 2;
      
-     if (nvdev->modified_3d) {
-          nv_setstate3d( &nvdev->state3d );
-          nvdev->modified_3d = false;
-     }
+     nv_setstate3d( &nvdev->state3d );
 
      for (i = 0; i < 4; i++) {
           nv_putvertex( 0, reg[i].x1, reg[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -199,10 +194,7 @@ bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line )
           yinc = 0.0;
      }
 
-     if (nvdev->modified_3d) {
-          nv_setstate3d( &nvdev->state3d );
-          nvdev->modified_3d = false;
-     }
+     nv_setstate3d( &nvdev->state3d );
 
      nv_putvertex( 0, x1 - xinc, y1 - yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, x1 + xinc, y1 + yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -234,10 +226,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
           ve[i].t *= t_scale;
      }
 
-     if (nvdev->modified_3d) {
-          nv_setstate3d( &nvdev->state3d );
-          nvdev->modified_3d = false;
-     }
+     nv_setstate3d( &nvdev->state3d );
 
      switch (formation) {
           case DTTF_LIST:

@@ -449,12 +449,11 @@ static void nvAfterSetVar( void *driver_data,
      Fifo->sub[6].SetObject = OBJ_SCALEDIMAGE;
      Fifo->sub[7].SetObject = OBJ_TEXTRIANGLE;
 
-     nvdev->reloaded   |= SMF_DESTINATION | SMF_CLIP;
-     nvdev->modified   |= SMF_DRAWING_FLAGS | SMF_BLITTING_FLAGS;
-     nvdev->dst_format  = DSPF_UNKNOWN;
-     nvdev->src_pitch   = 0;
-     nvdev->depth_pitch = 0;
-     nvdev->modified_3d = true;
+     nvdev->reloaded        |= SMF_DESTINATION | SMF_CLIP;
+     nvdev->dst_format       = DSPF_UNKNOWN;
+     nvdev->src_pitch        = 0;
+     nvdev->depth_pitch      = 0;
+     nvdev->state3d.modified = true;
 }
 
 static void nvEngineSync( void *drv, void *dev )
@@ -741,7 +740,7 @@ static void nv4SetState( void *drv, void *dev,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                if (state->drawingflags & DSDRAW_BLEND) {
-                    nvdev->modified_3d      = true;
+                    nvdev->state3d.modified = true;
                     nvdev->state3d.offset   = nvdev->col_offset;
                     nvdev->state3d.format   = 0x111115A1; // 2x2 RGB16
                     nvdev->state3d.blend    = (state->dst_blend << 28) |
@@ -801,8 +800,10 @@ static void nv4SetState( void *drv, void *dev,
                }
 
                if (nvdev->bop != operation) {
+                    nv_waitfifo( nvdev, subchannelof(nvdrv->ScaledImage), 1 );
+                    nvdrv->ScaledImage->SetOperation = operation;
+                    
                     nvdev->bop = operation;
-                    nvdev->modified |= SMF_BLITTING_FLAGS;
                }
 
                state->set |= DFXL_BLIT |
@@ -813,9 +814,9 @@ static void nv4SetState( void *drv, void *dev,
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
 
-               nvdev->modified_3d = true;
-
-               nvdev->state3d.offset = nvdev->tex_offset;
+               nvdev->state3d.modified = true;
+               nvdev->state3d.offset   = nvdev->tex_offset;
+               
                if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
                     nvdev->state3d.format = 0x119914A1; // 512x512 ARGB4444
                else
@@ -885,7 +886,7 @@ static void nv5SetState( void *drv, void *dev,
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                if (state->drawingflags & DSDRAW_BLEND) {
-                    nvdev->modified_3d      = true;
+                    nvdev->state3d.modified = true;
                     nvdev->state3d.offset   = nvdev->col_offset;
                     nvdev->state3d.format   = 0x111115A1; // 2x2 RGB16 
                     nvdev->state3d.blend    = (state->dst_blend << 28) |
@@ -948,8 +949,10 @@ static void nv5SetState( void *drv, void *dev,
                }
 
                if (nvdev->bop != operation) {
+                    nv_waitfifo( nvdev, subchannelof(nvdrv->ScaledImage), 1 );
+                    nvdrv->ScaledImage->SetOperation = operation;
+                    
                     nvdev->bop = operation;
-                    nvdev->modified |= SMF_BLITTING_FLAGS;
                }
                
                state->set |= DFXL_BLIT |
@@ -960,9 +963,9 @@ static void nv5SetState( void *drv, void *dev,
                nvdev->src_width  = state->source->width;
                nvdev->src_height = state->source->height;
 
-               nvdev->modified_3d = true;
+               nvdev->state3d.modified = true;
+               nvdev->state3d.offset   = nvdev->tex_offset;
                
-               nvdev->state3d.offset = nvdev->tex_offset;
                if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
                     nvdev->state3d.format = 0x119914A1; // 512x512 ARGB4444
                else
@@ -1044,8 +1047,16 @@ static void nv20SetState( void *drv, void *dev,
                }
               
                if (nvdev->dop != operation) {
+                    nv_waitfifo( nvdev, subchannelof(nvdrv->Rectangle), 1 );
+                    nvdrv->Rectangle->SetOperation = operation;
+
+                    nv_waitfifo( nvdev, subchannelof(nvdrv->Triangle), 1 );
+                    nvdrv->Triangle->SetOperation  = operation;
+
+                    nv_waitfifo( nvdev, subchannelof(nvdrv->Line), 1 );
+                    nvdrv->Line->SetOperation      = operation;
+               
                     nvdev->dop = operation;
-                    nvdev->modified |= SMF_DRAWING_FLAGS;
                }
                
                state->set |= DFXL_FILLRECTANGLE |
@@ -1092,8 +1103,10 @@ static void nv20SetState( void *drv, void *dev,
                }
 
                if (nvdev->bop != operation) {
+                    nv_waitfifo( nvdev, subchannelof(nvdrv->ScaledImage), 1 );
+                    nvdrv->ScaledImage->SetOperation = operation;
+                    
                     nvdev->bop = operation;
-                    nvdev->modified |= SMF_BLITTING_FLAGS;
                }
                
                state->set |= DFXL_BLIT |
@@ -1520,7 +1533,6 @@ driver_init_device( GraphicsDevice     *device,
                     len, offset );
 
           nvdev->enabled_3d  = true;
-          nvdev->modified_3d = true;
           nvdev->tex_offset  = offset;
           nvdev->col_offset  = offset + (512 * 512 * 2);
 
@@ -1528,6 +1540,7 @@ driver_init_device( GraphicsDevice     *device,
           memset( dfb_system_video_memory_virtual( nvdev->col_offset ), 0xFF, 8 );
           
           /* set default 3d state */
+          nvdev->state3d.modified = true;
           nvdev->state3d.colorkey = 0;
           nvdev->state3d.filter   = 0x22000000;
           nvdev->state3d.control  = 0x40580800;
