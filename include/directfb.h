@@ -483,7 +483,8 @@ typedef enum {
                                                 can be chosen, i.e. using ARGB1555 or ARGB2554 the
                                                 user can define the meaning of the two or four
                                                 possibilities. In short, this feature provides a
-                                                lookup table for the alpha of these formats. */
+                                                lookup table for the alpha bits of these formats.
+                                                See also IDirectFBSurface::SetAlphaRamp(). */
 
      DLCAPS_ALL               = 0x0001FFFF
 } DFBDisplayLayerCapabilities;
@@ -1711,7 +1712,6 @@ typedef enum {
      DLCONF_BUFFERMODE        = 0x00000008,
      DLCONF_OPTIONS           = 0x00000010,
      DLCONF_SOURCE            = 0x00000020,
-     DLCONF_ALPHA_RAMP        = 0x00000040,
 
      DLCONF_ALL               = 0x0000007F
 } DFBDisplayLayerConfigFlags;
@@ -1729,11 +1729,6 @@ typedef struct {
      DFBDisplayLayerBufferMode     buffermode;    /* Buffer mode */
      DFBDisplayLayerOptions        options;       /* Enable capabilities */
      DFBDisplayLayerSourceID       source;        /* Selected layer source */
-     __u8                          alpha_ramp[4]; /* Alpha values for 1 or 2 bit lookup.
-                                                     See description of DLCAPS_ALPHA_RAMP.
-                                                     Either all four values or the first and the
-                                                     last one are used, depending on the format.
-                                                     Default values are: 0x00, 0x55, 0xaa, 0xff. */
 } DFBDisplayLayerConfig;
 
 /*
@@ -2798,7 +2793,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
 
-   /** Palette control **/
+   /** Palette & Alpha Ramp **/
 
      /*
       * Get access to the surface's palette.
@@ -2817,6 +2812,21 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*SetPalette) (
           IDirectFBSurface         *thiz,
           IDirectFBPalette         *palette
+     );
+
+     /*
+      * Set the alpha ramp for formats with one or two alpha bits.
+      *
+      * Either all four values or the first and the
+      * last one are used, depending on the format.
+      * Default values are: 0x00, 0x55, 0xaa, 0xff.
+      */
+     DFBResult (*SetAlphaRamp) (
+          IDirectFBSurface         *thiz,
+          __u8                      a0,
+          __u8                      a1,
+          __u8                      a2,
+          __u8                      a3
      );
 
 
@@ -3166,6 +3176,17 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           int                       y3
      );
 
+     /*
+      * Fill 'num_spans' spans with the given color following the
+      * drawing flags. Each span specified by a DFBSpan.
+      */
+     DFBResult (*FillSpans) (
+          IDirectFBSurface         *thiz,
+          int                       y,
+          const DFBSpan            *spans,
+          unsigned int              num_spans
+     );
+
 
    /** Text functions **/
 
@@ -3279,20 +3300,6 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           const char               *directory,
           const char               *prefix
-     );
-
-
-   /** Drawing functions **/
-
-     /*
-      * Fill 'num_spans' spans with the given color following the
-      * drawing flags. Each span specified by a DFBSpan.
-      */
-     DFBResult (*FillSpans) (
-          IDirectFBSurface         *thiz,
-          int                       y,
-          const DFBSpan            *spans,
-          unsigned int              num_spans
      );
 )
 

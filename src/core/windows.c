@@ -157,13 +157,17 @@ create_region( CoreDFB                 *core,
 
      memset( &config, 0, sizeof(CoreLayerRegionConfig) );
 
-     config.width      = window->config.bounds.w;
-     config.height     = window->config.bounds.h;
-     config.format     = format;
-     config.options    = context->config.options & DLOP_FLICKER_FILTERING;
-     config.source     = (DFBRectangle) { 0, 0, config.width, config.height };
-     config.dest       = window->config.bounds;
-     config.opacity    = 0;
+     config.width         = window->config.bounds.w;
+     config.height        = window->config.bounds.h;
+     config.format        = format;
+     config.options       = context->config.options & DLOP_FLICKER_FILTERING;
+     config.source        = (DFBRectangle) { 0, 0, config.width, config.height };
+     config.dest          = window->config.bounds;
+     config.opacity       = 0;
+     config.alpha_ramp[0] = 0x00;
+     config.alpha_ramp[1] = 0x55;
+     config.alpha_ramp[2] = 0xaa;
+     config.alpha_ramp[3] = 0xff;
 
      if (surface_caps & DSCAPS_DOUBLE)
           config.buffermode = DLBM_BACKVIDEO;

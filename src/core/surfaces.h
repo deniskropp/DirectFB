@@ -53,7 +53,8 @@ typedef enum {
      CSNF_FLIP           = 0x00000010,  /* surface buffer pointer swapped */
      CSNF_FIELD          = 0x00000020,  /* active (displayed) field switched */
      CSNF_PALETTE_CHANGE = 0x00000040,  /* another palette has been set */
-     CSNF_PALETTE_UPDATE = 0x00000080   /* current palette has been altered */
+     CSNF_PALETTE_UPDATE = 0x00000080,  /* current palette has been altered */
+     CSNF_ALPHA_RAMP     = 0x00000100   /* alpha ramp was modified */
 } CoreSurfaceNotificationFlags;
 
 typedef struct {
@@ -153,6 +154,8 @@ struct _CoreSurface
      GlobalReaction         palette_reaction;
 
      int                    field;
+
+     __u8                   alpha_ramp[4];
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
@@ -286,6 +289,8 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
 void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front );
 
 void dfb_surface_set_field( CoreSurface *surface, int field );
+
+void dfb_surface_set_alpha_ramp( CoreSurface *surface, __u8 a0, __u8 a1, __u8 a2, __u8 a3 );
 
 /*
  * This is a utility function for easier usage.

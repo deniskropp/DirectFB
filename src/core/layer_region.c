@@ -759,6 +759,18 @@ _dfb_layer_region_surface_listener( const void *msg_data, void *ctx )
                funcs->SetInputField( layer,
                                      layer->driver_data, layer->layer_data,
                                      region->region_data, surface->field );
+
+          if ((flags & CSNF_ALPHA_RAMP) && (shared->description.caps & DLCAPS_ALPHA_RAMP)) {
+               region->config.alpha_ramp[0] = surface->alpha_ramp[0];
+               region->config.alpha_ramp[1] = surface->alpha_ramp[1];
+               region->config.alpha_ramp[2] = surface->alpha_ramp[2];
+               region->config.alpha_ramp[3] = surface->alpha_ramp[3];
+
+               funcs->SetRegion( layer,
+                                 layer->driver_data, layer->layer_data,
+                                 region->region_data, &region->config,
+                                 CLRCF_ALPHA_RAMP, surface, surface->palette );
+          }
      }
 
      dfb_layer_region_unlock( region );

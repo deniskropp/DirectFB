@@ -700,13 +700,31 @@ void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front )
      dfb_surface_notify_listeners( surface, CSNF_FLIP );
 }
 
-void dfb_surface_set_field( CoreSurface *surface, int field )
+void
+dfb_surface_set_field( CoreSurface *surface, int field )
 {
      D_ASSERT( surface != NULL );
 
      surface->field = field;
 
      dfb_surface_notify_listeners( surface, CSNF_FIELD );
+}
+
+void
+dfb_surface_set_alpha_ramp( CoreSurface *surface,
+                            __u8         a0,
+                            __u8         a1,
+                            __u8         a2,
+                            __u8         a3 )
+{
+     D_ASSERT( surface != NULL );
+
+     surface->alpha_ramp[0] = a0;
+     surface->alpha_ramp[1] = a1;
+     surface->alpha_ramp[2] = a2;
+     surface->alpha_ramp[3] = a3;
+
+     dfb_surface_notify_listeners( surface, CSNF_ALPHA_RAMP );
 }
 
 DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
@@ -914,6 +932,11 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
      surface->height = height;
      surface->format = format;
      surface->caps   = caps;
+
+     surface->alpha_ramp[0] = 0x00;
+     surface->alpha_ramp[1] = 0x55;
+     surface->alpha_ramp[2] = 0xaa;
+     surface->alpha_ramp[3] = 0xff;
 
      if (caps & DSCAPS_STATIC_ALLOC) {
           surface->min_width  = width;

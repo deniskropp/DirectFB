@@ -293,6 +293,23 @@ IDirectFBSurface_SetPalette( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_SetAlphaRamp( IDirectFBSurface *thiz,
+                               __u8              a0,
+                               __u8              a1,
+                               __u8              a2,
+                               __u8              a3 )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     dfb_surface_set_alpha_ramp( data->surface, a0, a1, a2, a3 );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_Lock( IDirectFBSurface *thiz,
                        DFBSurfaceLockFlags flags,
                        void **ret_ptr, int *ret_pitch )
@@ -1771,6 +1788,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->GetPalette = IDirectFBSurface_GetPalette;
      thiz->SetPalette = IDirectFBSurface_SetPalette;
+     thiz->SetAlphaRamp = IDirectFBSurface_SetAlphaRamp;
 
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->Unlock = IDirectFBSurface_Unlock;
@@ -1802,6 +1820,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->DrawLines = IDirectFBSurface_DrawLines;
      thiz->DrawRectangle = IDirectFBSurface_DrawRectangle;
      thiz->FillTriangle = IDirectFBSurface_FillTriangle;
+     thiz->FillSpans = IDirectFBSurface_FillSpans;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
      thiz->GetFont = IDirectFBSurface_GetFont;
@@ -1814,7 +1833,6 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->Dump = IDirectFBSurface_Dump;
 
-     thiz->FillSpans = IDirectFBSurface_FillSpans;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );

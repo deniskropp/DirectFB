@@ -389,8 +389,7 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
           context->primary.region = region;
 
           /* Allocate surface, enable region etc. */
-          ret = dfb_layer_context_set_configuration( context,
-                                                     &context->config );
+          ret = dfb_layer_context_set_configuration( context, &context->config );
           if (ret) {
                D_DERROR( ret, "DirectFB/core/layers: "
                          "Could not set layer context config!\n" );
@@ -487,9 +486,6 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
 
                if (failed & CLRCF_SOURCE_ID)
                     flags |= DLCONF_SOURCE;
-
-               if (failed & CLRCF_ALPHA_RAMP)
-                    flags |= DLCONF_ALPHA_RAMP;
           }
 
           *ret_failed = flags;
@@ -656,13 +652,6 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
      if (config->flags & DLCONF_SOURCE)
           context->config.source = config->source;
 
-     if (config->flags & DLCONF_ALPHA_RAMP) {
-          context->config.alpha_ramp[0] = config->alpha_ramp[0];
-          context->config.alpha_ramp[1] = config->alpha_ramp[1];
-          context->config.alpha_ramp[2] = config->alpha_ramp[2];
-          context->config.alpha_ramp[3] = config->alpha_ramp[3];
-     }
-
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
 
@@ -693,8 +682,7 @@ update_primary_region_config( CoreLayerContext           *context,
 
      if (context->primary.region) {
           /* Set the new configuration. */
-          ret = dfb_layer_region_set_configuration( context->primary.region,
-                                                    config, flags );
+          ret = dfb_layer_region_set_configuration( context->primary.region, config, flags );
      }
      else {
           CoreLayer *layer = dfb_layer_at( context->layer_id );
@@ -1158,6 +1146,12 @@ init_region_config( CoreLayerContext      *context,
 
      /* Set default opacity. */
      config->opacity = 0xff;
+
+     /* Set default alpha ramp. */
+     config->alpha_ramp[0] = 0x00;
+     config->alpha_ramp[1] = 0x55;
+     config->alpha_ramp[2] = 0xaa;
+     config->alpha_ramp[3] = 0xff;
 }
 
 static void
@@ -1230,16 +1224,6 @@ build_updated_config( CoreLayer                   *layer,
      if (update->flags & DLCONF_SOURCE) {
           flags |= CLRCF_SOURCE_ID;
           ret_config->source_id = update->source;
-     }
-
-     /* Change alpha ramp. */
-     if (update->flags & DLCONF_ALPHA_RAMP) {
-          flags |= CLRCF_ALPHA_RAMP;
-
-          ret_config->alpha_ramp[0] = update->alpha_ramp[0];
-          ret_config->alpha_ramp[1] = update->alpha_ramp[1];
-          ret_config->alpha_ramp[2] = update->alpha_ramp[2];
-          ret_config->alpha_ramp[3] = update->alpha_ramp[3];
      }
 
      /* Return translated flags. */
