@@ -885,9 +885,9 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
                                  (drect.h / (float)orig_src.h) + 0.5f);
 
           if (srect.w != orig_src.w)
-               drect.w = ceil(drect.w * (srect.w / (float)orig_src.w));
+               drect.w = ICEIL(drect.w * (srect.w / (float)orig_src.w));
           if (srect.h != orig_src.h)
-               drect.h = ceil(drect.h * (srect.h / (float)orig_src.h));
+               drect.h = ICEIL(drect.h * (srect.h / (float)orig_src.h));
      }
 
      state_set_source( &data->state, src_data->surface );
