@@ -31,6 +31,10 @@
 
 #include <direct/types.h>
 
+#ifndef __LINUX__
+#include <sys/signal.h>
+#endif
+
 struct __D_DirectConfig {
      bool       quiet;
      bool       debug;
