@@ -58,7 +58,6 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     ucovl->v1.win.x = 0;
     ucovl->v1.win.y = 0;
 
-
     config->width  = 720;
     config->height = 576;
 
@@ -76,6 +75,14 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     ucovl->v1.cfg = *config;
     ucovl->v1.ox = 0;
     ucovl->v1.oy = 0;
+
+//    adjustment->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST |
+//        DCAF_HUE | DCAF_SATURATION;
+    adjustment->brightness = 0x8000;
+    adjustment->contrast = 0x8000;
+    adjustment->saturation = 0x8000;
+    adjustment->hue = 0x8000;
+    ucovl->v1.adj = *adjustment;
 
     uc_ovl_remove(layer, driver_data, layer_data, NULL);
 
@@ -298,5 +305,6 @@ DisplayLayerFuncs ucOverlayFuncs = {
     FlipRegion:         uc_ovl_flip_region,
     GetLevel:           uc_ovl_get_level,
     SetLevel:           uc_ovl_set_level,
-    SetInputField:      uc_ovl_set_input_field
+    SetInputField:      uc_ovl_set_input_field,
+    SetColorAdjustment: uc_ovl_set_adjustment
 };

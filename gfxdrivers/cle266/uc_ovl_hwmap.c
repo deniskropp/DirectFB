@@ -11,6 +11,7 @@
 #include "uc_overlay.h"
 #include "vidregs.h"
 #include "mmio.h"
+#include <math.h>
 
 /**
  * Map hw settings for vertical scaling.
@@ -482,4 +483,74 @@ void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
                 *fifo = UC_MAP_V1_FIFO_CONTROL(32,29,16);   // Default
         }
     }
+}
+
+/** uc_ovl_map_adjustment() helper - clamp x to [lo, hi] */
+static float clamp(float x, float lo, float hi)
+{
+    return (x < lo) ? lo : ((x > hi) ? hi : x); /* 2 nested if's. */
+}
+
+/** 
+ * uc_ovl_map_adjustment() helper - format x for the hardware.
+ *
+ * @param x     The value to format.
+ * @param ndec  Number of binary decimals. 
+ * @param sbit  sign bit position.
+ *              =0: use two's complement representation
+ *              >0: use a sign bit + positive value.
+ * @param mask  Bitmask
+ * @param shift Position in hardware register.
+ */
+static int fmt(float x, int ndec, int sbit, __u32 mask, int shift)
+{
+    int y = (x * (1 << ndec));
+    if (sbit && (y < 0)) y = -y | (1 << sbit);
+    return (((__u32) y) & mask) << shift;
+}
+
+/**
+ * Map color adjustment to CLE266 hardware.
+ *
+ * @param adj   DirectFB color adjustment. All fields are assumed valid.
+ * @param a1    Will hold value for V1_ColorSpaceReg_1
+ * @param a2    Will hold value for V1_ColorSpaceReg_2
+ */
+void uc_ovl_map_adjustment(DFBColorAdjustment* adj, __u32* a1, __u32* a2)
+{
+    float con, sat, bri, hue;
+    float c, s;
+    float A, B1, C1, D, B2, C2, B3, C3;
+
+    // Map contrast to [0, 2.0] (preferred: [0, 1.66]), default: 1.0.
+    con = (float) adj->contrast / 32768.0;
+    // Map saturation to [0, 2.0], default: 1.0.
+    sat = (float) adj->saturation / 32768.0;
+    // Map brightness to [-121, 125], (preferred: [-94, 125.1]), default: 3.97.
+    bri = (float) (adj->brightness - 31696) / 270.48;
+    // Map hue to [-pi, pi], default is 0.0.
+    hue = (float) (adj->hue - 32768) / 10430.378;
+    // Note: The limits are estimates that need testing.
+
+    // Map parameters to hw registers.
+
+    s = sin(hue) * con * sat;
+    c = cos(hue) * con * sat;
+
+    A = clamp(1.164*con, 0, 1.9375);
+    B1 = clamp(-1.596*s, -0.75, 0.75);
+    C1 = clamp(1.596*c, 1, 2.875);
+    B2 = clamp( (0.813*s - 0.391*c), 0, -0.875);
+    C2 = clamp(-(0.813*c + 0.391*s), 0, -1.875);
+    B3 = clamp(2.018*c, 0, 3.75);
+    C3 = clamp(2.018*s, -1.25, 1.25);
+    D = clamp(1.164*(bri-16), -128, 127);
+
+    *a1 = 
+        fmt(A,  4, 0, 0x1f, 24) | fmt(B1, 2, 2, 0x07, 18) |
+        fmt(C1, 3, 0, 0x1f,  9) | fmt(D,  0, 0, 0xff,  0);
+
+    *a2 =
+        fmt(B2, 3, 4, 0x7, 25) | fmt(C2, 3, 4, 0xf, 17) |
+        fmt(B3, 2, 0, 0xf, 10) | fmt(C3, 2, 3, 0xf,  2);
 }

@@ -1,7 +1,9 @@
 #ifndef __UC_OVERLAY_H__
 #define __UC_OVERLAY_H__
 
-#define UC_OVL_CAPS (DLCAPS_SURFACE | DLCAPS_OPACITY | DLCAPS_SCREEN_LOCATION | DLCAPS_DEINTERLACING)
+#define UC_OVL_CAPS (DLCAPS_SURFACE | DLCAPS_OPACITY | DLCAPS_SCREEN_LOCATION \
+    | DLCAPS_DEINTERLACING | DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST              \
+    | DLCAPS_SATURATION | DLCAPS_HUE)
 #define UC_OVL_OPTIONS (DLOP_DEINTERLACING)
 
 #define ALIGN_TO(v, n) (((v) + (n-1)) & ~(n-1))
@@ -24,6 +26,7 @@ struct uc_ovl_vinfo {
     __u8 opacity;                   // Layer opacity
     int level;                      // Position in the DirectFB layer stack
                                     // < 0 = underlay mode, > 0 = overlay mode
+    DFBColorAdjustment adj;         // Color adjustment (brightness etc)
 };
 
 typedef struct _UcOverlayData {
@@ -63,6 +66,7 @@ void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
                            int hwrev, bool extfifo_on,
                            __u32* control, __u32* fifo);
 __u32 uc_ovl_map_fifo(__u8 depth, __u8 pre_thr, __u8 thr);
+void uc_ovl_map_adjustment(DFBColorAdjustment* adj, __u32* a1, __u32* a2);
 
 // Video engine - setting functions (uc_ovl_hwset.c)
 
@@ -71,6 +75,9 @@ void uc_ovl_vcmd_wait(volatile __u8* vio);
 DFBResult uc_ovl_update(UcDriverData* ucdrv,
                         UcOverlayData* ucovl, int action,
                         CoreSurface* surface);
-
+DFBResult uc_ovl_set_adjustment(CoreLayer *layer,
+                                void *driver_data,
+                                void *layer_data,
+                                DFBColorAdjustment *adj);
 
 #endif // __UC_OVERLAY_H__

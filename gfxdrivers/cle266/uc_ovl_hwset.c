@@ -230,3 +230,32 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
 
      return DFB_OK;
 }
+
+DFBResult uc_ovl_set_adjustment(CoreLayer            *layer,
+                                void                 *driver_data,
+                                void                 *layer_data,
+                                DFBColorAdjustment   *adj)
+{
+    UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+    UcDriverData*  ucdrv = (UcDriverData*) driver_data;
+    DFBColorAdjustment* ucadj;
+    __u32 a1, a2;
+
+    ucadj = &ucovl->v1.adj;
+
+    if (adj->flags & DCAF_BRIGHTNESS)
+        ucadj->brightness = adj->brightness;
+    if (adj->flags & DCAF_CONTRAST)
+        ucadj->contrast = adj->contrast;
+    if (adj->flags & DCAF_HUE)
+        ucadj->hue = adj->hue;
+    if (adj->flags & DCAF_SATURATION)
+        ucadj->saturation = adj->saturation;
+
+    uc_ovl_map_adjustment(ucadj, &a1, &a2);
+
+    VIDEO_OUT(ucdrv->hwregs, V1_ColorSpaceReg_1, a1);
+    VIDEO_OUT(ucdrv->hwregs, V1_ColorSpaceReg_2, a2);
+
+    return DFB_OK;
+}
