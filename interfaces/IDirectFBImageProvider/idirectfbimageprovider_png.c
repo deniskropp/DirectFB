@@ -64,6 +64,14 @@ Construct( IDirectFBImageProvider *thiz,
 DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
 
 
+enum {
+     STAGE_ERROR = -1,
+     STAGE_START =  0,
+     STAGE_INFO,
+     STAGE_IMAGE,
+     STAGE_END
+};
+
 /*
  * private data struct of IDirectFBImageProvider_PNG
  */
@@ -178,7 +186,7 @@ Construct( IDirectFBImageProvider *thiz,
 
      
      /* Read until info callback is called. */
-     ret = push_data_until_stage( data, 1, 4 );
+     ret = push_data_until_stage( data, STAGE_INFO, 4 );
      if (ret)
           goto error;
 
@@ -271,7 +279,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           return ret;
 
      /* Read until image is completely decoded. */
-     ret = push_data_until_stage( data, 3, 4096 );
+     ret = push_data_until_stage( data, STAGE_END, 4096 );
      if (ret)
           return ret;
 
@@ -284,7 +292,8 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           if (ret)
                return ret;
 
-          dst += rect.x * DFB_BYTES_PER_PIXEL(dst_surface->format) + rect.y * pitch;
+          dst += (rect.x * DFB_BYTES_PER_PIXEL(dst_surface->format)
+                  + rect.y * pitch);
 
           dfb_scale_linear_32( (__u32*)dst, (__u32*)data->image, data->width,
                                data->height, rect.w, rect.h, pitch,
@@ -348,9 +357,6 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
 }
 
 
-
-
-
 /* Called at the start of the progressive load, once we have image info */
 static void
 png_info_callback   (png_structp png_read_ptr,
@@ -358,14 +364,14 @@ png_info_callback   (png_structp png_read_ptr,
 {
      IDirectFBImageProvider_PNG_data *data;
 
-     data = png_get_progressive_ptr(png_read_ptr);
+     data = png_get_progressive_ptr( png_read_ptr );
 
      /* error stage? */
      if (data->stage < 0)
           return;
 
      /* set info stage */
-     data->stage = 1;
+     data->stage = STAGE_INFO;
 
      png_get_IHDR( data->png_ptr, data->info_ptr,
                    &data->width, &data->height, &data->bpp, &data->color_type,
@@ -419,7 +425,7 @@ png_row_callback   (png_structp png_read_ptr,
           return;
 
      /* set image decoding stage */
-     data->stage = 2;
+     data->stage = STAGE_IMAGE;
 
      /* check image data pointer */
      if (!data->image) {
@@ -432,7 +438,7 @@ png_row_callback   (png_structp png_read_ptr,
                         "allocate %d bytes of system memory!\n", size);
 
                /* set error stage */
-               data->stage = -1;
+               data->stage = STAGE_ERROR;
 
                return;
           }
@@ -453,14 +459,14 @@ png_end_callback   (png_structp png_read_ptr,
 {
      IDirectFBImageProvider_PNG_data *data;
 
-     data = png_get_progressive_ptr(png_read_ptr);
+     data = png_get_progressive_ptr( png_read_ptr );
 
      /* error stage? */
      if (data->stage < 0)
           return;
      
      /* set end stage */
-     data->stage = 3;
+     data->stage = STAGE_END;
 }
 
 /* Pipes data into libpng until stage is different from the one specified. */
@@ -488,12 +494,11 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
 
                png_process_data( data->png_ptr, data->info_ptr, buf, len );
 
-               /* check for errors */
-               if (data->stage < 0)
+               /* are we there yet? */
+               if (data->stage < 0 || data->stage >= stage)
                     break;
           }
      }
-     
+
      return DFB_OK;
 }
-
