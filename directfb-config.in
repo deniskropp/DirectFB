@@ -21,6 +21,7 @@ Options:
 	[--imageprovider=<impl>[,<impl>]...]
 	[--videoprovider=<impl>[,<impl>]...]
 	[--fusionsound]
+	[--voodoo]
 Libraries:
 	directfb
 	avifile
@@ -101,12 +102,10 @@ while test $# -gt 0; do
       fi
         
       for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_font="$echo_font $moduledir/interfaces/IDirectFBFont/libidirectfbfont_$i.o"
         case $i in
           ft2)
-            echo_font="$echo_font -Wl,-uIDirectFBFont_FT2 -lidirectfbfont_$i -lfreetype"
-            ;;
-          *)
-            echo_font="$echo_font -Wl,-uIDirectFBFont_$i -lidirectfbfont_$i"
+            echo_font="$echo_font -lfreetype"
             ;;
         esac
       done
@@ -119,28 +118,21 @@ while test $# -gt 0; do
       fi
         
       for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_imageprovider="$echo_imageprovider $moduledir/interfaces/IDirectFBImageProvider/libidirectfbimageprovider_$i.o"
         case $i in
           imlib2)
-            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_Imlib2 -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lImlib2 -lttf -lm -L/usr/X11R6/lib -lXext -lX11"
             ;;
           jpeg)
-            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_JPEG -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -ljpeg"
             ;;
           png)
-            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_PNG -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lpng -lz -lm"
             ;;
           gif)
-            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_GIF -lidirectfbimageprovider_$i"
             ;;
           mpeg2)
-            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_MPEG2 -lidirectfbimageprovider_$i"
             echo_imageprovider="$echo_imageprovider -lm"
-            ;;
-          *)
-            echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_$i -lidirectfbimageprovider_$i"
             ;;
         esac
       done
@@ -153,21 +145,16 @@ while test $# -gt 0; do
       fi
         
       for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_videoprovider="$echo_videoprovider $moduledir/interfaces/IDirectFBVideoProvider/libidirectfbvideoprovider_$i.o"
         case $i in
           libmpeg3)
-            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_Libmpeg3 -lidirectfbvideoprovider_$i"
             echo_videoprovider="$echo_videoprovider -lmpeg3"
             ;;
           swf)
-            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_SWF -lidirectfbvideoprovider_$i"
             echo_videoprovider="$echo_videoprovider -ljpeg -lz"
             ;;
           openquicktime)
-            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_OpenQuicktime -lidirectfbvideoprovider_$i"
             echo_videoprovider="$echo_videoprovider -lopenquicktime -lz -lglib -lm"
-            ;;
-          *)
-            echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_$i -lidirectfbvideoprovider_$i"
             ;;
         esac
       done
@@ -176,6 +163,10 @@ while test $# -gt 0; do
       ;;
     --fusionsound)
       echo_fusionsound="-Wl,-uIFusionSound_default -lifusionsound"
+      echo_static=yes
+      ;;
+    --voodoo)
+      echo_voodoo=yes
       echo_static=yes
       ;;
     *)
@@ -202,9 +193,23 @@ fi
 
 if test -n "$echo_static"; then
 	echo -static
-	echo -L$moduledir/systems -Wl,-udirectfb_fbdev -ldirectfb_fbdev
-	echo -L$moduledir/wm -Wl,-udirectfbwm_default -ldirectfbwm_default
+	echo $moduledir/systems/libdirectfb_fbdev.o
+	echo $moduledir/wm/libdirectfbwm_default.o
 fi
+
+
+if test -n "$echo_font"; then
+	echo $echo_font
+fi
+
+if test -n "$echo_imageprovider"; then
+	echo $echo_imageprovider
+fi
+
+if test -n "$echo_videoprovider"; then
+	echo $echo_videoprovider
+fi
+
 
 if test -n "$echo_input"; then
 	echo -L$moduledir/inputdrivers $echo_input
@@ -214,20 +219,29 @@ if test -n "$echo_graphics"; then
 	echo -L$moduledir/gfxdrivers $echo_graphics
 fi
 
-if test -n "$echo_font"; then
-	echo -L$moduledir/interfaces/IDirectFBFont $echo_font
-fi
-
-if test -n "$echo_imageprovider"; then
-	echo -L$moduledir/interfaces/IDirectFBImageProvider $echo_imageprovider
-fi
-
-if test -n "$echo_videoprovider"; then
-	echo -L$moduledir/interfaces/IDirectFBVideoProvider $echo_videoprovider
-fi
-
 if test -n "$echo_fusionsound"; then
 	echo -L$moduledir/interfaces/IFusionSound $echo_fusionsound
+fi
+
+
+function print_voodoo()
+{
+	echo $moduledir/interfaces/$1/lib$2_dispatcher.o $moduledir/interfaces/$1/lib$2_requestor.o
+}
+
+if test -n "$echo_voodoo"; then
+	print_voodoo  IDirectFB              idirectfb
+	print_voodoo  IDirectFBDataBuffer    idirectfbdatabuffer
+	print_voodoo  IDirectFBDisplayLayer  idirectfbdisplaylayer
+	print_voodoo  IDirectFBEventBuffer   idirectfbeventbuffer
+	print_voodoo  IDirectFBFont          idirectfbfont
+	print_voodoo  IDirectFBImageProvider idirectfbimageprovider
+	print_voodoo  IDirectFBInputDevice   idirectfbinputdevice
+	print_voodoo  IDirectFBPalette       idirectfbpalette
+	print_voodoo  IDirectFBScreen        idirectfbscreen
+	print_voodoo  IDirectFBSurface       idirectfbsurface
+	print_voodoo  IDirectFBWindow        idirectfbwindow
+	echo -lvoodoo
 fi
 
 if test "$echo_libs" = "yes"; then
