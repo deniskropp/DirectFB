@@ -81,7 +81,7 @@
                               } } while (0)
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
-                                   DEBUGMSG( "*** Assertion [%s] failed! "     \
+                                   ERRORMSG( "*** Assertion [%s] failed! "     \
                                              "*** %s (%d)\n", #exp,            \
                                              __FILE__, __LINE__ );             \
                                    kill( 0, SIGTRAP );                         \

@@ -78,14 +78,13 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
           pthread_join( data->flip_thread, NULL );
      }
 
-     fusion_object_unref( &data->window->object );
+     dfb_window_unref( data->window );
      
      if (data->base.surface) {
           if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
                data->base.caps & DSCAPS_PRIMARY)
           {
-               dfb_window_deinit( data->window );
-               dfb_window_destroy( data->window, true );
+               dfb_window_unref( data->window );
           }
      }
 
@@ -209,9 +208,9 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
-     IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
+     dfb_window_ref( window );
 
-     fusion_object_ref( &window->object );
+     IDirectFBSurface_Construct( thiz, wanted, granted, window->surface, caps );
 
      data->window = window;
      data->flip_thread = -1;

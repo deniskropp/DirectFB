@@ -87,12 +87,7 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
      if (data->window) {
           dfb_window_detach( data->window, IDirectFBWindow_React, data );
-          
-          /* recheck, threading... */
-          if (data->window) {
-               dfb_window_deinit( data->window );
-               dfb_window_destroy( data->window, true );
-          }
+          dfb_window_unref( data->window );
      }
 
      DFB_DEALLOCATE_INTERFACE( thiz );
@@ -664,13 +659,18 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 {
+     CoreWindow *window;
+
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data->window)
+     window = data->window;
+     if (!window)
           return DFB_DESTROYED;
 
-     dfb_window_deinit( data->window );
-     dfb_window_destroy( data->window, true );
+     data->window = NULL;
+
+     dfb_window_deinit( window );
+     dfb_window_destroy( window, true );
 
      return DFB_OK;
 }
@@ -748,7 +748,8 @@ IDirectFBWindow_React( const void *msg_data,
           *data->position_size_event = *evt;
      }
 
-     if (evt->type == DWET_DESTROYED) {
+     if (data->window && evt->type == DWET_DESTROYED) {
+          dfb_window_unref( data->window );
           data->window = NULL;
           return RS_REMOVE;
      }

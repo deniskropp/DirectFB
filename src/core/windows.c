@@ -409,7 +409,7 @@ dfb_window_destroy( CoreWindow *window, bool unref )
      }
 
      if (unref)
-          fusion_object_unref( &window->object );
+          dfb_window_unref( window );
 
      DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exitting\n", window);
 }
@@ -889,22 +889,6 @@ dfb_window_ungrab_pointer( CoreWindow *window )
      stack_unlock( stack );
      
      return DFB_OK;
-}
-
-void
-dfb_window_attach( CoreWindow *window,
-                   React       react,
-                   void       *ctx )
-{
-     fusion_object_attach( &window->object, react, ctx );
-}
-
-void
-dfb_window_detach( CoreWindow *window,
-                   React       react,
-                   void       *ctx )
-{
-     fusion_object_detach( &window->object, react, ctx );
 }
 
 void

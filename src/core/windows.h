@@ -29,6 +29,7 @@
 
 #include <dfb_types.h>
 #include <core/coretypes.h>
+#include <core/coredefs.h>
 
 #include <core/fusion/object.h>
 #include <core/fusion/lock.h>
@@ -262,8 +263,36 @@ DFBResult dfb_window_ungrab_keyboard( CoreWindow *window );
 DFBResult dfb_window_grab_pointer( CoreWindow *window );
 DFBResult dfb_window_ungrab_pointer( CoreWindow *window );
 
-void dfb_window_attach( CoreWindow *window, React react, void *ctx );
-void dfb_window_detach( CoreWindow *window, React react, void *ctx );
+
+static inline FusionResult
+dfb_window_attach( CoreWindow *window,
+                   React        react,
+                   void        *ctx )
+{
+     return fusion_object_attach( &window->object, react, ctx );
+}
+
+static inline FusionResult
+dfb_window_detach( CoreWindow *window,
+                   React        react,
+                   void        *ctx )
+{
+     return fusion_object_detach( &window->object, react, ctx );
+}
+
+static inline FusionResult
+dfb_window_ref( CoreWindow *window )
+{
+     return fusion_object_ref( &window->object );
+}
+
+static inline FusionResult
+dfb_window_unref( CoreWindow *window )
+{
+     return fusion_object_ref( &window->object );
+}
+
+
 void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event );
 
 /*
