@@ -673,7 +673,20 @@ static void Sop_a8_SKto_Aop()
 #ifdef SUPPORT_RGB332
 static void Sop_rgb332_SKto_Aop()
 {
-     ONCE( "Sop_rgb332_SKto_Aop() unimplemented" );
+     int    w = Dlength;
+     int    i = 0;
+     __u8 *D = (__u8*)Aop;
+     __u8 *S = (__u8*)Sop;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          if (s != Skey)
+               *D = s;
+
+          D++;
+          i += SperD;
+     }
 }
 #endif
 
