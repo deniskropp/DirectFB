@@ -168,6 +168,35 @@ IDirectFBPalette_GetEntries( IDirectFBPalette *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
+                                __u8              r,
+                                __u8              g,
+                                __u8              b,
+                                __u8              a,
+                                unsigned int     *index )
+{
+     CoreSurface *surface;
+     CorePalette *palette;
+
+     INTERFACE_GET_DATA(IDirectFBPalette)
+
+     if (!index)
+          return DFB_INVARG;
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     palette = surface->palette;
+     if (!palette)
+          return DFB_UNSUPPORTED;
+
+     *index = dfb_palette_search( palette, r, g, b, a );
+     
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
@@ -180,13 +209,14 @@ DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
 
      reactor_attach( surface->reactor, IDirectFBPalette_listener, thiz );
 
-     thiz->AddRef  = IDirectFBPalette_AddRef;
-     thiz->Release = IDirectFBPalette_Release;
+     thiz->AddRef        = IDirectFBPalette_AddRef;
+     thiz->Release       = IDirectFBPalette_Release;
 
-     thiz->GetSize = IDirectFBPalette_GetSize;
+     thiz->GetSize       = IDirectFBPalette_GetSize;
      
-     thiz->SetEntries = IDirectFBPalette_SetEntries;
-     thiz->GetEntries = IDirectFBPalette_GetEntries;
+     thiz->SetEntries    = IDirectFBPalette_SetEntries;
+     thiz->GetEntries    = IDirectFBPalette_GetEntries;
+     thiz->FindBestMatch = IDirectFBPalette_FindBestMatch;
      
      return DFB_OK;
 }

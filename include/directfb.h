@@ -2135,6 +2135,20 @@ DEFINE_INTERFACE(   IDirectFBPalette,
           unsigned int              num_entries,
           unsigned int              offset
      );
+
+     /*
+      * Find the best matching entry.
+      *
+      * Searches the map for an entry which best matches the specified color.
+      */
+     DFBResult (*FindBestMatch) (
+          IDirectFBPalette         *thiz,
+          __u8                      r,
+          __u8                      g,
+          __u8                      b,
+          __u8                      a,
+          unsigned int             *index
+     );
 )
 
 
