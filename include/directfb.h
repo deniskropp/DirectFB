@@ -2559,7 +2559,7 @@ typedef struct {
      float x;   /* Destination X coordinate (in pixels) */
      float y;   /* Destination Y coordinate (in pixels) */
      float z;   /* Z coordinate */
-     float w;   /* Reciprocal of the W coordinate */
+     float w;   /* W coordinate */
 
      float s;   /* Texture S coordinate */
      float t;   /* Texture T coordinate */

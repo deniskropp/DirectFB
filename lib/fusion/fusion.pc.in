@@ -7,5 +7,5 @@ Name: Fusion IPC
 Description: High Level IPC Mechanisms
 Version: @VERSION@
 Requires: direct
-Libs: -L${libdir} -lfusion @THREADLIB@ @DYNLIB@
-Cflags: @THREADFLAGS@ -I@INCLUDEDIR@
+Libs: -L${libdir} -lfusion
+Cflags: -I@INCLUDEDIR@

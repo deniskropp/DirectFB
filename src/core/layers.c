@@ -165,7 +165,7 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
           layer->shared = shared;
           layer->core   = core;
 
-          /* Add the layerto the shared list. */
+          /* Add the layer to the shared list. */
           layersfield->layers[ layersfield->num++ ] = shared;
      }
 
