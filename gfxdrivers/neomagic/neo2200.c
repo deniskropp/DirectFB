@@ -38,10 +38,13 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <core/state.h>
+#include <core/screens.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 
@@ -517,8 +520,8 @@ neo2200_init_driver( GraphicsDevice      *device,
      //     funcs->StretchBlit = neoStretchBlit;
 
      /* overlay support */
-     dfb_layers_register( device, driver_data, &neoOverlayFuncs );
-
+     dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
+                          driver_data, &neoOverlayFuncs );
      return DFB_OK;
 }
 

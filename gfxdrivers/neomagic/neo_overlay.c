@@ -25,6 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <stdio.h>
+
 #include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
@@ -32,8 +34,7 @@
 #include "neomagic.h"
 
 typedef struct {
-     DFBRectangle          dest;
-     DFBDisplayLayerConfig config;
+     CoreLayerRegionConfig config;
 
      /* overlay registers */
      struct {
@@ -54,7 +55,8 @@ static void ovl_set_regs ( NeoDriverData         *ndrv,
 static void ovl_calc_regs( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl,
                            CoreLayer             *layer,
-                           DFBDisplayLayerConfig *config );
+                           CoreLayerRegionConfig *config,
+                           CoreSurface           *surface );
 
 #define NEO_OVERLAY_SUPPORTED_OPTIONS   (DLOP_NONE)
 
@@ -67,23 +69,20 @@ ovlLayerDataSize()
 }
 
 static DFBResult
-ovlInitLayer( GraphicsDevice             *device,
-              CoreLayer                  *layer,
-              DisplayLayerInfo           *layer_info,
-              DFBDisplayLayerConfig      *default_config,
-              DFBColorAdjustment         *default_adj,
+ovlInitLayer( CoreLayer                  *layer,
               void                       *driver_data,
-              void                       *layer_data )
+              void                       *layer_data,
+              DFBDisplayLayerDescription *description,
+              DFBDisplayLayerConfig      *default_config,
+              DFBColorAdjustment         *default_adj )
 {
-     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                             DLCAPS_BRIGHTNESS;
-     layer_info->desc.type = DLTF_VIDEO | DLTF_STILL_PICTURE;
+     description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
+                         DLCAPS_BRIGHTNESS;
+     description->type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
-     snprintf( layer_info->desc.name,
+     snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "NeoMagic Overlay" );
 
      /* fill out the default configuration */
@@ -100,11 +99,6 @@ ovlInitLayer( GraphicsDevice             *device,
         only fields set in flags will be accepted from applications */
      default_adj->flags      = DCAF_BRIGHTNESS;
      default_adj->brightness = 0x8000;
-
-
-     /* initialize destination rectangle */
-     dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &novl->dest );
-
 
      /* FIXME: use mmio */
      iopl(3);
@@ -146,39 +140,11 @@ ovlOnOff( NeoDriverData       *ndrv,
 }
 
 static DFBResult
-ovlEnable( CoreLayer *layer,
-           void      *driver_data,
-           void      *layer_data )
-{
-     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
-     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-
-     /* enable overlay */
-     ovlOnOff( ndrv, novl, 1 );
-
-     return DFB_OK;
-}
-
-static DFBResult
-ovlDisable( CoreLayer *layer,
-            void      *driver_data,
-            void      *layer_data )
-{
-     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
-     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-
-     /* disable overlay */
-     ovlOnOff( ndrv, novl, 0 );
-
-     return DFB_OK;
-}
-
-static DFBResult
-ovlTestConfiguration( CoreLayer                  *layer,
-                      void                       *driver_data,
-                      void                       *layer_data,
-                      DFBDisplayLayerConfig      *config,
-                      DFBDisplayLayerConfigFlags *failed )
+ovlTestRegion( CoreLayer                  *layer,
+               void                       *driver_data,
+               void                       *layer_data,
+               CoreLayerRegionConfig      *config,
+               CoreLayerRegionConfigFlags *failed )
 {
      DFBDisplayLayerConfigFlags fail = 0;
 
@@ -187,7 +153,7 @@ ovlTestConfiguration( CoreLayer                  *layer,
           fail |= DLCONF_OPTIONS;
 
      /* check pixel format */
-     switch (config->pixelformat) {
+     switch (config->format) {
           case DSPF_YUY2:
                break;
 
@@ -215,10 +181,14 @@ ovlTestConfiguration( CoreLayer                  *layer,
 }
 
 static DFBResult
-ovlSetConfiguration( CoreLayer             *layer,
-                     void                  *driver_data,
-                     void                  *layer_data,
-                     DFBDisplayLayerConfig *config )
+ovlSetRegion( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              void                       *region_data,
+              CoreLayerRegionConfig      *config,
+              CoreLayerRegionConfigFlags  updated,
+              CoreSurface                *surface,
+              CorePalette                *palette )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
@@ -226,76 +196,40 @@ ovlSetConfiguration( CoreLayer             *layer,
      /* remember configuration */
      novl->config = *config;
 
-     ovl_calc_regs( ndrv, novl, layer, config );
+     ovl_calc_regs( ndrv, novl, layer, config, surface );
      ovl_set_regs( ndrv, novl );
+
+     /* enable overlay */
+     ovlOnOff( ndrv, novl, 1 );
 
      return DFB_OK;
 }
 
 static DFBResult
-ovlSetOpacity( CoreLayer *layer,
-               void      *driver_data,
-               void      *layer_data,
-               __u8       opacity )
+ovlRemoveRegion( CoreLayer *layer,
+                 void      *driver_data,
+                 void      *layer_data,
+                 void      *region_data )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
 
-     switch (opacity) {
-          case 0:
-               ovlOnOff( ndrv, novl, 0 );
-               break;
-          case 0xFF:
-               ovlOnOff( ndrv, novl, 1 );
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
+     /* disable overlay */
+     ovlOnOff( ndrv, novl, 0 );
 
      return DFB_OK;
 }
 
 static DFBResult
-ovlSetScreenLocation( CoreLayer *layer,
-                      void      *driver_data,
-                      void      *layer_data,
-                      float      x,
-                      float      y,
-                      float      width,
-                      float      height )
-{
-     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
-     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-
-     /* get new destination rectangle */
-     dfb_primary_layer_rectangle( x, y, width, height, &novl->dest );
-
-     ovl_calc_regs( ndrv, novl, layer, &novl->config );
-     ovl_set_regs( ndrv, novl );
-
-     return DFB_OK;
-}
-
-static DFBResult
-ovlSetDstColorKey( CoreLayer *layer,
-                   void      *driver_data,
-                   void      *layer_data,
-                   __u8       r,
-                   __u8       g,
-                   __u8       b )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
-ovlFlipBuffers( CoreLayer           *layer,
+ovlFlipRegion(  CoreLayer           *layer,
                 void                *driver_data,
                 void                *layer_data,
+                void                *region_data,
+                CoreSurface         *surface,
                 DFBSurfaceFlipFlags  flags )
 {
      NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
-     CoreSurface         *surface = dfb_layer_surface( layer );
 #if 0
      bool                 onsync  = (flags & DSFLIP_WAITFORSYNC);
 
@@ -305,7 +239,7 @@ ovlFlipBuffers( CoreLayer           *layer,
 
      dfb_surface_flip_buffers( surface );
 
-     ovl_calc_regs( ndrv, novl, layer, &novl->config );
+     ovl_calc_regs( ndrv, novl, layer, &novl->config, surface );
      ovl_set_regs( ndrv, novl );
 
      return DFB_OK;
@@ -328,14 +262,10 @@ ovlSetColorAdjustment( CoreLayer          *layer,
 DisplayLayerFuncs neoOverlayFuncs = {
      LayerDataSize:      ovlLayerDataSize,
      InitLayer:          ovlInitLayer,
-     Enable:             ovlEnable,
-     Disable:            ovlDisable,
-     TestConfiguration:  ovlTestConfiguration,
-     SetConfiguration:   ovlSetConfiguration,
-     SetOpacity:         ovlSetOpacity,
-     SetScreenLocation:  ovlSetScreenLocation,
-     SetDstColorKey:     ovlSetDstColorKey,
-     FlipBuffers:        ovlFlipBuffers,
+     SetRegion:          ovlSetRegion,
+     RemoveRegion:       ovlRemoveRegion,
+     TestRegion:         ovlTestRegion,
+     FlipRegion:         ovlFlipRegion,
      SetColorAdjustment: ovlSetColorAdjustment
 };
 
@@ -373,22 +303,22 @@ static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl )
 static void ovl_calc_regs( NeoDriverData         *ndrv,
                            NeoOverlayLayerData   *novl,
                            CoreLayer             *layer,
-                           DFBDisplayLayerConfig *config )
+                           CoreLayerRegionConfig *config,
+                           CoreSurface           *surface )
 {
-     CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
 
      /* fill register struct */
-     novl->regs.X1     = novl->dest.x;
-     novl->regs.X2     = novl->dest.x + novl->dest.w - 1;
+     novl->regs.X1     = config->dest.x;
+     novl->regs.X2     = config->dest.x + config->dest.w - 1;
 
-     novl->regs.Y1     = novl->dest.y;
-     novl->regs.Y2     = novl->dest.y + novl->dest.h - 1;
+     novl->regs.Y1     = config->dest.y;
+     novl->regs.Y2     = config->dest.y + config->dest.h - 1;
 
      novl->regs.OFFSET = front_buffer->video.offset;
      novl->regs.PITCH  = front_buffer->video.pitch;
 
-     novl->regs.HSCALE = (surface->width  << 12) / (novl->dest.w + 1);
-     novl->regs.VSCALE = (surface->height << 12) / (novl->dest.h + 1);
+     novl->regs.HSCALE = (surface->width  << 12) / (config->dest.w + 1);
+     novl->regs.VSCALE = (surface->height << 12) / (config->dest.h + 1);
 }
 

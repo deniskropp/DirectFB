@@ -37,6 +37,9 @@
 
 #include <directfb.h>
 
+#include <direct/messages.h>
+#include <direct/util.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -44,7 +47,10 @@
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 
-#include <gfx/convert.h>
+#include <gfx/util.h>
+
+#include <misc/conf.h>
+#include <misc/util.h>
 
 #include <core/graphics_driver.h>
 
