@@ -448,6 +448,11 @@ extern "C"
           DIKS_EXIT                     = DFB_KEY( SPECIAL, 0x62 ),
           DIKS_SETUP                    = DFB_KEY( SPECIAL, 0x63 ),
 
+          DIKS_CURSOR_LEFT_UP           = DFB_KEY( SPECIAL, 0x64 ),
+          DIKS_CURSOR_LEFT_DOWN         = DFB_KEY( SPECIAL, 0x65 ),
+          DIKS_CURSOR_UP_RIGHT          = DFB_KEY( SPECIAL, 0x66 ),
+          DIKS_CURSOR_DOWN_RIGHT        = DFB_KEY( SPECIAL, 0x67 ),
+
           /*
            * Unicode private area - DirectFB Function keys
            *
