@@ -594,6 +594,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     config.flags |= DLCONF_BUFFERMODE | DLCONF_PIXELFORMAT |
                                     DLCONF_WIDTH | DLCONF_HEIGHT;
 
+                    if (caps & DSCAPS_PREMULTIPLIED) {
+                          config.flags        |= DLCONF_SURFACE_CAPS;
+                          config.surface_caps  = DSCAPS_PREMULTIPLIED;
+                    }
+
                     if (caps & DSCAPS_TRIPLE) {
                          if (caps & DSCAPS_SYSTEMONLY)
                               return DFB_UNSUPPORTED;
