@@ -35,7 +35,6 @@
 #include <string.h>
 #include <errno.h>
 #include <assert.h>
-#include <libgen.h>
 
 #include <png.h>
 
@@ -159,7 +158,7 @@ int main (int         argc,
      /*  dump it and quit if this is the only image on the command line  */
 
      if (num_images == 1)
-          return dump_image (name ? name : basename (strdup (filename[0])),
+          return dump_image (name ? : strrchr (filename[0], '/') ? : filename[0],
                              &desc, palette, palette_size);
 
      /*  merge multiple images into one surface  */
