@@ -70,9 +70,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Initialize all registered screens. */
      for (i=0; i<num_screens; i++) {
-          CoreScreenShared  *shared;
-          CoreScreen        *screen = screens[i];
-          ScreenFuncs       *funcs  = screen->funcs;
+          DFBScreenDescription  desc;
+          CoreScreenShared     *shared;
+          CoreScreen           *screen = screens[i];
+          ScreenFuncs          *funcs  = screen->funcs;
 
           /* Allocate shared data. */
           shared = SHCALLOC( 1, sizeof(CoreScreenShared) );
@@ -105,7 +106,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                    screen->device,
                                    screen->driver_data,
                                    shared->screen_data,
-                                   &shared->description );
+                                   &desc );
           if (ret) {
                D_ERROR("DirectFB/Core/screens: "
                         "Failed to initialize screen %d!\n", shared->screen_id);
@@ -120,10 +121,24 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                return ret;
           }
 
-          D_ASSERT( shared->description.encoders >= 0 );
-          D_ASSERT( shared->description.encoders <= 32 );
-          D_ASSERT( shared->description.outputs >= 0 );
-          D_ASSERT( shared->description.outputs <= 32 );
+          D_ASSUME( desc.mixers  > 0 || !(desc.caps & DSCCAPS_MIXERS) );
+          D_ASSUME( desc.mixers == 0 ||  (desc.caps & DSCCAPS_MIXERS) );
+
+          D_ASSUME( desc.encoders  > 0 || !(desc.caps & DSCCAPS_ENCODERS) );
+          D_ASSUME( desc.encoders == 0 ||  (desc.caps & DSCCAPS_ENCODERS) );
+
+          D_ASSUME( desc.outputs  > 0 || !(desc.caps & DSCCAPS_OUTPUTS) );
+          D_ASSUME( desc.outputs == 0 ||  (desc.caps & DSCCAPS_OUTPUTS) );
+
+          D_ASSERT( desc.mixers >= 0 );
+          D_ASSERT( desc.mixers <= 32 );
+          D_ASSERT( desc.encoders >= 0 );
+          D_ASSERT( desc.encoders <= 32 );
+          D_ASSERT( desc.outputs >= 0 );
+          D_ASSERT( desc.outputs <= 32 );
+
+          /* Store description in shared memory. */
+          shared->description = desc;
 
           /* Initialize mixers. */
           if (shared->description.mixers) {
