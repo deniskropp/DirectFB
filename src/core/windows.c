@@ -1418,6 +1418,8 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                     state->modified |= SMF_SOURCE | SMF_CLIP;
                     break;
                }
+          case DLBM_DONTCARE:
+               break;
           default:
                BUG( "unknown background mode" );
                break;
