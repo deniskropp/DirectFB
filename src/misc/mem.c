@@ -24,7 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
 #include <pthread.h>
 #include <sys/types.h>
 #include <signal.h>
@@ -32,11 +33,13 @@
 #include "core/coredefs.h"
 
 #include "mem.h"
+#include "memcpy.h"
 
 #ifdef DFB_DEBUG
 
 typedef struct {
      void         *mem;
+     size_t        bytes;
      char         *allocated_in_func;
      char         *allocated_in_file;
      unsigned int  allocated_in_line;
@@ -61,9 +64,9 @@ void dfb_dbg_print_memleaks()
           for (i=0; i<alloc_count; i++) {
                MemDesc *d = &alloc_list[i];
 
-               DEBUGMSG( "chunk %p allocated in %s (%s: %u) not free'd !!\n",
-                         d->mem, d->allocated_in_func, d->allocated_in_file,
-                         d->allocated_in_line);
+               DEBUGMSG( "%7d bytes at %p allocated in %s (%s: %u)\n",
+                         d->bytes, d->mem, d->allocated_in_func,
+                         d->allocated_in_file, d->allocated_in_line);
           }
      }
 
@@ -85,7 +88,8 @@ void* dfb_dbg_malloc( char* file, int line, char *func, size_t bytes )
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
 
      d = &alloc_list[alloc_count-1];
-     d->mem = mem;
+     d->mem   = mem;
+     d->bytes = bytes;
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;
@@ -110,7 +114,8 @@ void* dfb_dbg_calloc( char* file, int line, char *func, size_t count, size_t byt
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
 
      d = &alloc_list[alloc_count-1];
-     d->mem = mem;
+     d->mem   = mem;
+     d->bytes = bytes;
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;
@@ -139,7 +144,8 @@ void* dfb_dbg_realloc( char *file, int line, char *func, char *what,
      for (i=0; i<alloc_count; i++) {
           if (alloc_list[i].mem == mem) {
                char *new_mem = (void*) realloc( mem, bytes );
-               alloc_list[i].mem = new_mem;
+               alloc_list[i].mem   = new_mem;
+               alloc_list[i].bytes = bytes;
                pthread_mutex_unlock( &alloc_lock );
                return new_mem;
           }
@@ -159,19 +165,27 @@ void* dfb_dbg_realloc( char *file, int line, char *func, char *what,
 
 char* dfb_dbg_strdup( char* file, int line, char *func, const char *string )
 {
-     char *mem = strdup (string);
      MemDesc *d;
+     void    *mem;
+     int      len = strlen( string ) + 1;
+
+     mem = malloc( len );
+     if (!mem)
+          return NULL;
+
+     dfb_memcpy( mem, string, len );
 
      pthread_mutex_lock( &alloc_lock );
 
      HEAVYDEBUGMSG("DirectFB/mem: allocating %7d bytes in %s (%s: %u)\n",
-                   strlen( string ), func, file, line);
+                   len, func, file, line);
 
      alloc_count++;
      alloc_list = realloc( alloc_list, alloc_count * sizeof(MemDesc) );
 
      d = &alloc_list[alloc_count-1];
-     d->mem = (void*) mem;
+     d->mem   = mem;
+     d->bytes = len;
      d->allocated_in_func = func;
      d->allocated_in_file = file;
      d->allocated_in_line = line;

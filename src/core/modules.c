@@ -26,6 +26,7 @@
 
 #include <sys/types.h>
 #include <dirent.h>
+#include <string.h>
 
 #include <core/coredefs.h>
 #include <core/modules.h>

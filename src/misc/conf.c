@@ -413,7 +413,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                if (limit < 0)
                     limit = 0;
                
-               dfb_config->videoram_limit = PAGE_ALIGN(limit<<10);
+               dfb_config->videoram_limit = limit << 10;
           }
           else {
                ERRORMSG("DirectFB/Config 'videoram-limit': No value specified!\n");

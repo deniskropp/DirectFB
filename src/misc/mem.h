@@ -29,22 +29,6 @@
 
 #include <config.h>
 
-#ifdef __linux__
-#include <asm/page.h>
-#endif
-
-#include <stdlib.h>
-#include <string.h>
-
-#ifndef PAGE_SIZE
-#ifdef _SC_PAGE_SIZE
-#define PAGE_SIZE     (sysconf( _SC_PAGE_SIZE ))
-#else
-#define PAGE_SIZE     4096  /* FIXME: do not guess */
-#endif
-#endif
-
-#define PAGE_ALIGN(x) ((((x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE)
 
 #ifdef DFB_DEBUG
 
@@ -67,15 +51,15 @@ char *dfb_dbg_strdup ( char *file, int line,
                        char *func, const char *string );
 
 #define DFBFREE(mem)           dfb_dbg_free( __FILE__, __LINE__, __FUNCTION__, \
-                                         #mem,mem )
+                                             #mem,mem )
 #define DFBMALLOC(bytes)       dfb_dbg_malloc( __FILE__, __LINE__, __FUNCTION__, \
-                                           bytes )
+                                               bytes )
 #define DFBCALLOC(count,bytes) dfb_dbg_calloc( __FILE__, __LINE__, __FUNCTION__, \
-                                           count, bytes )
+                                               count, bytes )
 #define DFBREALLOC(mem,bytes)  dfb_dbg_realloc( __FILE__, __LINE__, __FUNCTION__, \
-                                            #mem, mem, bytes )
+                                                #mem, mem, bytes )
 #define DFBSTRDUP(string)      dfb_dbg_strdup( __FILE__, __LINE__, __FUNCTION__, \
-                                           string )
+                                               string )
 
 #else
 

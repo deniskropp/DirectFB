@@ -27,6 +27,8 @@
 #ifndef __DIRECTFB_INTERNALS_H__
 #define __DIRECTFB_INTERNALS_H__
 
+#include <stdlib.h>
+
 #include <directfb.h>
 #include <core/coretypes.h>
 
