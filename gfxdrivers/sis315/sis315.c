@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.3 2003-11-20 10:38:37 oberritter Exp $
+ * $Id: sis315.c,v 1.4 2003-11-20 13:09:29 oberritter Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -21,6 +21,10 @@
 
 #include <linux/fb.h>
 #include <linux/sisfb.h>
+
+#ifndef FB_ACCEL_SIS_GLAMOUR_2
+#define FB_ACCEL_SIS_GLAMOUR_2	40
+#endif
 
 #include <stdio.h>
 #include <sys/ioctl.h>
@@ -525,6 +529,8 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 		((fbinfo.sisfb_version == 1) && (fbinfo.sisfb_revision == 6) && (fbinfo.sisfb_patchlevel < 23))) {
 		printf("*** Warning: sisfb version < 1.6.23 detected, please update your driver! ***\n");
 	}
+
+#if defined(SISFB_SET_AUTOMAXIMIZE)
 	else {
 		if (ioctl(dfb_fbdev->fd, SISFB_GET_AUTOMAXIMIZE, &drv->auto_maximize))
 			return DFB_IO;
@@ -534,6 +540,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 				return DFB_IO;
 		}
 	}
+#endif
 
 	drv->mmio_base = (volatile __u8 *)dfb_gfxcard_map_mmio(device, 0, -1);
 	if (!drv->mmio_base)
@@ -587,15 +594,16 @@ static void driver_close_driver(GraphicsDevice *device,
 				void *driver_data)
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
-	FBDev *dfb_fbdev;
 
 	dfb_gfxcard_unmap_mmio(device, drv->mmio_base, -1);
 
+#if defined(SISFB_SET_AUTOMAXIMIZE)
 	if (drv->auto_maximize) {
-		dfb_fbdev = dfb_system_data();
+		FBDev *dfb_fbdev = dfb_system_data();
 		if (!dfb_fbdev)
 			return;
 		ioctl(dfb_fbdev->fd, SISFB_SET_AUTOMAXIMIZE, &drv->auto_maximize);
 	}
+#endif
 }
 
