@@ -51,6 +51,7 @@
 #include <core/system.h>
 #include <core/windows.h>
 
+#include <display/idirectfbpalette.h>
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_layer.h>
 #include <display/idirectfbsurface_window.h>
@@ -493,6 +494,52 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 }
 
 static DFBResult
+IDirectFB_CreatePalette( IDirectFB              *thiz,
+                         DFBPaletteDescription  *desc,
+                         IDirectFBPalette      **interface )
+{
+     DFBResult         ret;
+     IDirectFBPalette *iface;
+     unsigned int      size    = 256;
+     CorePalette      *palette = NULL;
+
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     if (desc && desc->flags & DPDESC_SIZE) {
+          if (!desc->size)
+               return DFB_INVARG;
+
+          size = desc->size;
+     }
+
+     ret = dfb_palette_create( size, &palette );
+     if (ret)
+          return ret;
+     
+     if (desc && desc->flags & DPDESC_ENTRIES) {
+          dfb_memcpy( palette->entries, desc->entries, size * sizeof(DFBColor));
+
+          dfb_palette_update( palette, 0, size - 1 );
+     }
+     else
+          dfb_palette_generate_rgb332_map( palette );
+     
+     DFB_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
+
+     ret = IDirectFBPalette_Construct( iface, palette );
+
+     dfb_palette_unref( palette );
+
+     if (!ret)
+          *interface = iface;
+
+     return ret;
+}
+
+static DFBResult
 IDirectFB_EnumDisplayLayers( IDirectFB               *thiz,
                              DFBDisplayLayerCallback  callbackfunc,
                              void                    *callbackdata )
@@ -814,6 +861,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      thiz->EnumVideoModes = IDirectFB_EnumVideoModes;
      thiz->SetVideoMode = IDirectFB_SetVideoMode;
      thiz->CreateSurface = IDirectFB_CreateSurface;
+     thiz->CreatePalette = IDirectFB_CreatePalette;
      thiz->EnumDisplayLayers = IDirectFB_EnumDisplayLayers;
      thiz->GetDisplayLayer = IDirectFB_GetDisplayLayer;
      thiz->EnumInputDevices = IDirectFB_EnumInputDevices;

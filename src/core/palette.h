@@ -58,19 +58,20 @@ typedef struct {
 } CorePaletteNotification;
 
 
-CorePalette *dfb_palette_create             ( unsigned int  size );
+DFBResult    dfb_palette_create             ( unsigned int   size,
+                                              CorePalette  **ret_palette );
 
-void         dfb_palette_generate_rgb332_map( CorePalette  *palette );
+void         dfb_palette_generate_rgb332_map( CorePalette   *palette );
 
-unsigned int dfb_palette_search             ( CorePalette  *palette,
-                                              __u8          r,
-                                              __u8          g,
-                                              __u8          b,
-                                              __u8          a );
+unsigned int dfb_palette_search             ( CorePalette   *palette,
+                                              __u8           r,
+                                              __u8           g,
+                                              __u8           b,
+                                              __u8           a );
 
-void         dfb_palette_update             ( CorePalette  *palette,
-                                              int           first,
-                                              int           last );
+void         dfb_palette_update             ( CorePalette   *palette,
+                                              int            first,
+                                              int            last );
 
 
 /*

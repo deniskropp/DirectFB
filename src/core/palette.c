@@ -79,20 +79,22 @@ dfb_palette_pool_create()
      return pool;
 }
 
-CorePalette *
-dfb_palette_create( unsigned int size )
+DFBResult
+dfb_palette_create( unsigned int size, CorePalette **ret_palette )
 {
      CorePalette *palette;
 
+     DFB_ASSERT( ret_palette );
+
      palette = (CorePalette*) fusion_object_create( dfb_gfxcard_palette_pool() );
      if (!palette)
-          return NULL;
+          return DFB_FUSION;
 
      if (size) {
           palette->entries = shcalloc( size, sizeof(DFBColor) );
           if (!palette->entries) {
                fusion_object_destroy( &palette->object );
-               return NULL;
+               return DFB_NOSYSTEMMEMORY;
           }
      }
      
@@ -101,9 +103,10 @@ dfb_palette_create( unsigned int size )
      /* reset cache */
      palette->search_cache.index = -1;
 
-     palette->hash_attached = false;
+     /* Resturn the new palette. */
+     *ret_palette = palette;
 
-     return palette;
+     return DFB_OK;
 }
 
 void
@@ -119,6 +122,8 @@ dfb_palette_generate_rgb332_map( CorePalette *palette )
           palette->entries[i].g = lookup3to8[ (i & 0x1C) >> 2 ];
           palette->entries[i].b = lookup2to8[ (i & 0x03) ];
      }
+
+     dfb_palette_update( palette, 0, 255 );
 }
 
 unsigned int

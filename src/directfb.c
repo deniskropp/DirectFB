@@ -501,6 +501,8 @@ const char *DirectFBErrorString( DFBResult error )
                return "Invalid area specified or detected!";
           case DFB_DESTROYED:
                return "Object has been destroyed!";
+          case DFB_FUSION:
+               return "Internal fusion (IPC) error detected!";
      }
 
      return "<UNKNOWN ERROR CODE>!";

@@ -81,6 +81,27 @@ IDirectFBPalette_Release( IDirectFBPalette *thiz )
 }
 
 static DFBResult
+IDirectFBPalette_GetCapabilities( IDirectFBPalette       *thiz,
+                                  DFBPaletteCapabilities *caps )
+{
+     CorePalette *palette;
+
+     INTERFACE_GET_DATA(IDirectFBPalette)
+
+     palette = data->palette;
+     if (!palette)
+          return DFB_DESTROYED;
+
+     if (!caps)
+          return DFB_INVARG;
+
+     /* FIXME: no caps yet */
+     *caps = DPCAPS_NONE;
+     
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBPalette_GetSize( IDirectFBPalette *thiz,
                           unsigned int     *size )
 {
@@ -173,6 +194,44 @@ IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBPalette_CreateCopy( IDirectFBPalette  *thiz,
+                             IDirectFBPalette **interface )
+{
+     DFBResult         ret;
+     IDirectFBPalette *iface;
+     CorePalette      *palette = NULL;
+
+     INTERFACE_GET_DATA(IDirectFBPalette)
+
+     if (!data->palette)
+          return DFB_DESTROYED;
+     
+     if (!interface)
+          return DFB_INVARG;
+
+     ret = dfb_palette_create( data->palette->num_entries, &palette );
+     if (ret)
+          return ret;
+     
+     dfb_memcpy( palette->entries, data->palette->entries,
+                 palette->num_entries * sizeof(DFBColor));
+
+     dfb_palette_update( palette, 0, palette->num_entries - 1 );
+     
+     
+     DFB_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
+
+     ret = IDirectFBPalette_Construct( iface, palette );
+
+     dfb_palette_unref( palette );
+
+     if (!ret)
+          *interface = iface;
+
+     return ret;
+}
+
 /******/
 
 DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
@@ -189,14 +248,17 @@ DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
      data->palette = palette;
 
 
-     thiz->AddRef        = IDirectFBPalette_AddRef;
-     thiz->Release       = IDirectFBPalette_Release;
+     thiz->AddRef          = IDirectFBPalette_AddRef;
+     thiz->Release         = IDirectFBPalette_Release;
 
-     thiz->GetSize       = IDirectFBPalette_GetSize;
+     thiz->GetCapabilities = IDirectFBPalette_GetCapabilities;
+     thiz->GetSize         = IDirectFBPalette_GetSize;
      
-     thiz->SetEntries    = IDirectFBPalette_SetEntries;
-     thiz->GetEntries    = IDirectFBPalette_GetEntries;
-     thiz->FindBestMatch = IDirectFBPalette_FindBestMatch;
+     thiz->SetEntries      = IDirectFBPalette_SetEntries;
+     thiz->GetEntries      = IDirectFBPalette_GetEntries;
+     thiz->FindBestMatch   = IDirectFBPalette_FindBestMatch;
+
+     thiz->CreateCopy      = IDirectFBPalette_CreateCopy;
      
      return DFB_OK;
 }

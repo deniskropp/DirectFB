@@ -295,9 +295,12 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      dfb_surfacemanager_unlock( surface->manager );
 
      if (DFB_PIXELFORMAT_IS_INDEXED( format ) && !surface->palette) {
-          CorePalette *palette = dfb_palette_create( 256 );
-          if (!palette)
-               return DFB_FAILURE;
+          DFBResult    ret;
+          CorePalette *palette;
+
+          ret = dfb_palette_create( 256, &palette );
+          if (ret)
+               return ret;
 
           dfb_surface_set_palette( surface, palette );
 
@@ -707,9 +710,12 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           dfb_surface_set_palette( surface, palette );
      }
      else if (DFB_PIXELFORMAT_IS_INDEXED( format )) {
-          palette = dfb_palette_create( 256 );
-          if (!palette)
-               return DFB_FAILURE;
+          DFBResult    ret;
+          CorePalette *palette;
+
+          ret = dfb_palette_create( 256, &palette );
+          if (ret)
+               return ret;
 
           dfb_surface_set_palette( surface, palette );
 

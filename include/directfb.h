@@ -173,8 +173,10 @@ typedef enum {
      DFB_THIZNULL,       /* 'thiz' pointer is NULL. */
      DFB_IDNOTFOUND,     /* No resource has been found by the specified id. */
      DFB_INVAREA,        /* An invalid area has been specified or detected. */
-     DFB_DESTROYED       /* The underlying object (e.g. a window or surface)
+     DFB_DESTROYED,      /* The underlying object (e.g. a window or surface)
                             has been destroyed. */
+     DFB_FUSION          /* Internal fusion error detected, most likely
+                            related to IPC resources. */
 } DFBResult;
 
 /*
@@ -416,6 +418,17 @@ typedef enum {
 } DFBSurfaceDescriptionFlags;
 
 /*
+ * Flags defining which fields of a DFBPaletteDescription are valid.
+ */
+typedef enum {
+     DPDESC_CAPS         = 0x00000001,  /* Specify palette capabilities. */
+     DPDESC_SIZE         = 0x00000002,  /* Specify number of entries. */
+     DPDESC_ENTRIES      = 0x00000004   /* Initialize the palette with the
+                                           entries specified in the
+                                           description. */
+} DFBPaletteDescriptionFlags;
+
+/*
  * The surface capabilities.
  */
 typedef enum {
@@ -457,6 +470,13 @@ typedef enum {
                                            space in video memory after
                                            resizing. */
 } DFBSurfaceCapabilities;
+
+/*
+ * The palette capabilities.
+ */
+typedef enum {
+     DPCAPS_NONE         = 0x00000000   /* None of these. */
+} DFBPaletteCapabilities;
 
 /*
  * Flags controlling drawing commands.
@@ -780,11 +800,12 @@ typedef enum {
 
 #define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3F000000) >> 24) + \
                                            0x10) * (height)) >> 4 )
+
 /*
  * Description of the surface that is to be created.
  */
 typedef struct {
-     DFBSurfaceDescriptionFlags         flags;      /* field validation */
+     DFBSurfaceDescriptionFlags         flags;       /* field validation */
 
      DFBSurfaceCapabilities             caps;        /* capabilities */
      unsigned int                       width;       /* pixel width */
@@ -802,6 +823,18 @@ typedef struct {
           unsigned int                  size;
      } palette;
 } DFBSurfaceDescription;
+
+/*
+ * Description of the palette that is to be created.
+ */
+typedef struct {
+     DFBPaletteDescriptionFlags         flags;       /* Validation of fields. */
+
+     DFBPaletteCapabilities             caps;        /* Palette capabilities. */
+     unsigned int                       size;        /* Number of entries. */
+     DFBColor                          *entries;     /* Preset palette
+                                                        entries. */
+} DFBPaletteDescription;
 
 /*
  * Description of the display layer capabilities.
@@ -1083,7 +1116,7 @@ DEFINE_INTERFACE(   IDirectFB,
      );
 
 
-   /** Surfaces **/
+   /** Surfaces & Palettes **/
 
      /*
       * Create a surface matching the specified description.
@@ -1092,6 +1125,18 @@ DEFINE_INTERFACE(   IDirectFB,
           IDirectFB                *thiz,
           DFBSurfaceDescription    *desc,
           IDirectFBSurface        **interface
+     );
+
+     /*
+      * Create a palette matching the specified description.
+      *
+      * Passing a NULL description creates a default palette with
+      * 256 entries filled with colors matching the RGB332 format.
+      */
+     DFBResult (*CreatePalette) (
+          IDirectFB                *thiz,
+          DFBPaletteDescription    *desc,
+          IDirectFBPalette        **interface
      );
 
 
@@ -1773,6 +1818,14 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           IDirectFBPalette        **interface
      );
+
+     /*
+      * Change the surface's palette.
+      */
+     DFBResult (*SetPalette) (
+          IDirectFBSurface         *thiz,
+          IDirectFBPalette         *palette
+     );
    
      
    /** Buffer operations **/
@@ -2193,6 +2246,14 @@ DEFINE_INTERFACE(   IDirectFBPalette,
    /** Retrieving information **/
 
      /*
+      * Return the capabilities of this palette.
+      */
+     DFBResult (*GetCapabilities) (
+          IDirectFBPalette         *thiz,
+          DFBPaletteCapabilities   *caps
+     );
+
+     /*
       * Get the number of entries in the palette.
       */
      DFBResult (*GetSize) (
@@ -2241,6 +2302,17 @@ DEFINE_INTERFACE(   IDirectFBPalette,
           __u8                      b,
           __u8                      a,
           unsigned int             *index
+     );
+
+
+   /** Clone **/
+
+     /*
+      * Create a copy of the palette.
+      */
+     DFBResult (*CreateCopy) (
+          IDirectFBPalette         *thiz,
+          IDirectFBPalette        **interface
      );
 )
 

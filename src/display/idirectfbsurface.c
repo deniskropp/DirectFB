@@ -239,6 +239,37 @@ IDirectFBSurface_GetPalette( IDirectFBSurface  *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_SetPalette( IDirectFBSurface *thiz,
+                             IDirectFBPalette *palette )
+{
+     CoreSurface           *surface;
+     IDirectFBPalette_data *palette_data;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (!palette)
+          return DFB_INVARG;
+
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          return DFB_UNSUPPORTED;
+
+     palette_data = (IDirectFBPalette_data*) palette->priv;
+     if (!palette_data)
+          return DFB_DEAD;
+
+     if (!palette_data->palette)
+          return DFB_DESTROYED;
+
+     dfb_surface_set_palette( surface, palette_data->palette );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_Lock( IDirectFBSurface *thiz,
                        DFBSurfaceLockFlags flags,
                        void **ptr, int *pitch )
@@ -1508,6 +1539,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetAccelerationMask = IDirectFBSurface_GetAccelerationMask;
 
      thiz->GetPalette = IDirectFBSurface_GetPalette;
+     thiz->SetPalette = IDirectFBSurface_SetPalette;
      
      thiz->Lock = IDirectFBSurface_Lock;
      thiz->Unlock = IDirectFBSurface_Unlock;
