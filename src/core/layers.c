@@ -21,6 +21,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <endian.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -375,7 +377,7 @@ static DFBResult layer_cursor_load_default( DisplayLayer *layer )
 
                return ret;
           }
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
           {
                int i = 40;
                __u32 *tmp_data = data;

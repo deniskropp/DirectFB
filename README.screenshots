@@ -12,6 +12,9 @@ contains the source for two small utilities that do just this:
   raw16toraw24 is a small tool that reads 16bit RGB565 data from stdin,
   converts to 24bit RGB888 data and writes it to stdout.
 
+  raw15toraw24 is a small tool that reads 15bit RGB555 data from stdin,
+  converts to 24bit RGB888 data and writes it to stdout.
+
   raw32toraw24 is a small tool that reads 32bit ARGB data from stdin, 
   converts to 24bit RGB888 data and writes it to stdout.
 
@@ -24,6 +27,7 @@ Step 1 - Log in from another computer using ssh or telnet. Start your
 Step 2 - Read data from /dev/fb and write it to a file.
 
  examples:
+  [15bit]  raw15toraw24 < /dev/fb > raw24.tmp
   [16bit]  raw16toraw24 < /dev/fb > raw24.tmp
   [24bit]  cat /dev/fb > raw24.tmp
   [32bit]  raw32toraw24 < /dev/fb > raw24.tmp

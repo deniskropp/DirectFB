@@ -1,3 +1,4 @@
+#include <endian.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -9,11 +10,9 @@ int main()
      do {
           fread( &wrd, 2, 1, stdin);
           
-          #ifdef __BIG_ENDIAN__
-          
-          swab(&wrd, &wrd, 2);
-          
-          #endif
+#if __BYTE_ORDER == __BIG_ENDIAN
+          swab(&wrd, &wrd, 2);          
+#endif
           
           byt = (wrd & 0xf800) >> 8;
           fwrite (&byt, 1, 1, stdout);

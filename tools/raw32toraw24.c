@@ -1,9 +1,10 @@
+#include <endian.h>
 #include <unistd.h>
 #include <stdio.h>
 
 #include <asm/types.h>
 
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
 #include <asm/byteorder.h>
 #endif
 
@@ -15,11 +16,9 @@ int main()
      do {
           fread( &pixel32, 4, 1, stdin );
           
-          #ifdef __BIG_ENDIAN__
-          
+#if __BYTE_ORDER == __BIG_ENDIAN
           __swab32( pixel32 );
-          
-          #endif
+#endif
           
           byt = (pixel32 & 0xff0000) >> 16;
           fwrite (&byt, 1, 1, stdout);

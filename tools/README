@@ -1,6 +1,6 @@
 gendoc.pl is a Perl script used to generate HTML documentation from the
 DirectFB header files.
 
-raw16toraw24 and raw32toraw24 are two small utilities that help creating
-screenshots from applications running on the Linux framebuffer. See the
-file README.screenshots in the toplevel directory to learn how to use them.
+raw16toraw24, raw15toraw24 and raw32toraw24 are small utilities that help
+creating screenshots from applications running on the Linux framebuffer. See
+the file README.screenshots in the toplevel directory to learn how to use them.

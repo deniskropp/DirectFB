@@ -23,6 +23,7 @@
 
 #include "config.h"
 
+#include <endian.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -299,7 +300,7 @@ static void Bop_rgb15_Kto_Aop()
                          *D = dpixel;
                     }
                     else {
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
                          tmp[0] = (__u16)(dpixel >> 16);
 #else
                          tmp[1] = (__u16)(dpixel >> 16);
@@ -307,7 +308,7 @@ static void Bop_rgb15_Kto_Aop()
                     }
                }
                else {
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
                     tmp[1] = (__u16)dpixel;
 #else
                     tmp[0] = (__u16)dpixel;
@@ -353,7 +354,7 @@ static void Bop_rgb16_Kto_Aop()
                          *D = dpixel;
                     }
                     else {
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
                          tmp[0] = (__u16)(dpixel >> 16);
 #else
                          tmp[1] = (__u16)(dpixel >> 16);
@@ -361,7 +362,7 @@ static void Bop_rgb16_Kto_Aop()
                     }
                }
                else {
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
                     tmp[1] = (__u16)dpixel;
 #else
                     tmp[0] = (__u16)dpixel;
@@ -1064,7 +1065,7 @@ static void Sop_rgb15_to_Dacc()
      while (l) {
           __u32 spixel2 = *((__u32*)S);
 
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
           D[0].a = 0xFF;
           D[0].r = (spixel2 & 0x7C000000) >> 23;
           D[0].g = (spixel2 & 0x03E00000) >> 18;
@@ -1125,7 +1126,7 @@ static void Sop_rgb16_to_Dacc()
      while (l) {
           __u32 spixel2 = *((__u32*)S);
 
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
           D[0].a = 0xFF;
           D[0].r = (spixel2 & 0xF8000000) >> 24;
           D[0].g = (spixel2 & 0x07E00000) >> 19;

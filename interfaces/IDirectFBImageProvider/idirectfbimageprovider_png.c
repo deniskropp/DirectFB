@@ -21,6 +21,7 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <endian.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -258,7 +259,7 @@ static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
      if (png_bpp == 16)
           png_set_strip_16( png_ptr );
 
-#ifdef __BIG_ENDIAN__
+#if __BYTE_ORDER == __BIG_ENDIAN
      if (!(png_type & PNG_COLOR_MASK_ALPHA))
           png_set_filler( png_ptr, 0xFF, PNG_FILLER_BEFORE );
 

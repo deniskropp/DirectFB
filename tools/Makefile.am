@@ -1,8 +1,12 @@
 ## Makefile.am for DirectFB/tools
 
 noinst_PROGRAMS = \
+	raw15toraw24	\
 	raw16toraw24	\
 	raw32toraw24
+
+
+raw15toraw24_SOURCES = raw15toraw24.c
 
 raw16toraw24_SOURCES = raw16toraw24.c
 
