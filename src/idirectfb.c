@@ -272,6 +272,8 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                         unsigned int  height,
                         unsigned int  bpp )
 {
+     DFBResult ret;
+
      INTERFACE_GET_DATA(IDirectFB)
 
      if (!width || !height || !bpp)
@@ -279,7 +281,11 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 
      switch (data->level) {
           case DFSCL_NORMAL:
-               /* FIXME: resize window if already existent */
+               if (data->primary.window) {
+                    ret = dfb_window_resize( data->primary.window, width, height );
+                    if (ret)
+                         return ret;
+               }
                break;
 
           case DFSCL_FULLSCREEN:

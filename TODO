@@ -20,9 +20,6 @@ Finish surface manager.
 
 Module unloading.
 
-SetVideoMode should resize the window for the primary surface
-when in normal cooperative level and it already exists.
-
 Add cooperative levels to input devices and implement
 a grabbing mechanism for fullscreen apps running in
 windowed mode.
