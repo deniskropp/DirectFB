@@ -1354,8 +1354,8 @@ dfb_display_frame( vo_driver_t *vo_driver,
 	TEST( vo_frame   != NULL );
 	TEST( frame->surface != NULL );
 
-	src_rect.w = frame->width.cur;
-	src_rect.h = frame->height.cur;
+	src_rect.w = frame->vo_frame.width;
+	src_rect.h = frame->vo_frame.height;
 
 	this->output_cb( this->output_cdata, frame->vo_frame.width,
 			 frame->vo_frame.height, frame->ratio, &rect );
