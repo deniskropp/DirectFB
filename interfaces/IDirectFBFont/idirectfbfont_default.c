@@ -99,9 +99,9 @@ Construct( IDirectFBFont      *thiz,
 
      font->height    = 24;
      font->ascender  = 16;
-     font->descender = 4;
+     font->descender = -4;
 
-     dfb_surface_create( 1024, font->height,
+     dfb_surface_create( 1024, 20,
                          font->pixel_format, CSP_VIDEOHIGH, DSCAPS_NONE,
                          &surface );
 
@@ -127,7 +127,7 @@ Construct( IDirectFBFont      *thiz,
                     data->surface = surface;
                     data->start   = start;
                     data->width   = i - start;
-                    data->height  = font->height;
+                    data->height  = 20;
                     data->left    = 0;
                     data->top     = 0;
                     data->advance = data->width + 1;
