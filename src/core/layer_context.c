@@ -149,11 +149,13 @@ dfb_layer_context_create( CoreLayer         *layer,
 
      /* Set the primary region's default configuration. */
      init_region_config( &context->config, &config );
-
      dfb_layer_region_set_configuration( context->primary, &config, CLRCF_ALL );
 
      /* Create the window stack. */
      context->stack = dfb_windowstack_create( context );
+
+     /* Set the context's default configuration. */
+     dfb_layer_context_set_configuration( context, &context->config );
 
      /* Return the new context. */
      *ret_context = context;
