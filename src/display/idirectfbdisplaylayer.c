@@ -402,6 +402,9 @@ IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     if (numerator < 0  ||  denominator < 1  ||  threshold < 0)
+          return DFB_INVARG;
+
      return dfb_layer_cursor_set_acceleration( data->layer, numerator,
                                                denominator, threshold );
 }
