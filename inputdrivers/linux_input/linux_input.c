@@ -56,6 +56,7 @@
 #include <direct/mem.h>
 #include <direct/messages.h>
 
+#include <misc/conf.h>
 #include <misc/util.h>
 
 #include <core/input_driver.h>
