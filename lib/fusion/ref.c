@@ -422,7 +422,7 @@ fusion_ref_zero_lock (FusionRef *ref)
      if (ref->fake.destroyed)
           ret = DFB_DESTROYED;
      else if (ref->fake.call)
-          ret = FUSION_ACCESSDENIED;
+          ret = DFB_ACCESSDENIED;
      else while (ref->fake.refs && !ret) {
           ref->fake.waiting++;
           pthread_cond_wait (&ref->fake.cond, &ref->fake.lock);
@@ -431,7 +431,7 @@ fusion_ref_zero_lock (FusionRef *ref)
           if (ref->fake.destroyed)
                ret = DFB_DESTROYED;
           else if (ref->fake.call)
-               ret = FUSION_ACCESSDENIED;
+               ret = DFB_ACCESSDENIED;
      }
 
      if (ret != DFB_OK)
