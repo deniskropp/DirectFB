@@ -1145,7 +1145,7 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
           i = SperD;
           w--;
      }
-
+     
      for (w2 = w/2; w2--;) {
           register __u32 Dpix;
 
@@ -1159,7 +1159,7 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 #endif
           *((__u32*)D) = Dpix;
           D += 2;
-
+          
           i += SperD << 1;
      }
 
@@ -1181,7 +1181,7 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
           i = SperD;
           w--;
      }
-
+     
      for (w2 = w/2; w2--;) {
           register __u32 Dpix;
 
@@ -1703,7 +1703,7 @@ static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
 #endif
           y0 = ((__u16*)S)[j>>16]         & 0x00FF;
           y1 = ((__u16*)S)[(j+SperD)>>16] & 0x00FF;
-
+          
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
           g  = y0 + cr_for_g[cr] + cb_for_g[cb];
@@ -1753,7 +1753,7 @@ static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
 #endif
           y0 = (((__u16*)S)[j>>16]         & 0xFF00) >> 8;
           y1 = (((__u16*)S)[(j+SperD)>>16] & 0xFF00) >> 8;
-
+          
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
           g  = y0 + cr_for_g[cr] + cb_for_g[cb];
@@ -2640,7 +2640,7 @@ static void Sop_yuy2_to_Dacc( GenefxState *gfxs )
           y1 = (*S & 0x00FF0000) >> 16;
           cr = (*S & 0xFF000000) >> 24;
 #endif
-
+          
           y0 = y_for_rgb[y0];
           r  = y0 + cr_for_r[cr];
           g  = y0 + cr_for_g[cr] + cb_for_g[cb];
@@ -3023,7 +3023,7 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
 
      K0 = gfxs->Skey & P0_MASK;
      K1 = gfxs->Skey & P1_MASK;
-
+     
      while (w--) {
           __u32 Spix;
           __u32 y, cb, cr;
@@ -3095,10 +3095,10 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
 #define P0_MASK 0x00FFFFFF
 #define P1_MASK 0xFFFF00FF
 #endif
-
+     
      K0 = gfxs->Skey & P0_MASK;
      K1 = gfxs->Skey & P1_MASK;
-
+     
      while (w--) {
           __u32 Spix;
           __u32 y, cb, cr;
@@ -3986,8 +3986,9 @@ static void Bop_a8_set_alphapixel_Aop_argb( GenefxState *gfxs )
           case 0: break;\
           default: {\
                register __u32  s = a+1;\
-               register __u32 s1 = 256-a;\
-               register __u32 sa = (((d >> 24) * s1) >> 8) + a;\
+               register __u32 s1 = 256-s;\
+               register __u32 sa = (d >> 24) + a;\
+               if (sa & 0xff00) sa = 0xff;\
                d = (sa << 24) + \
                     (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
                     (((((d & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
@@ -5371,20 +5372,20 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                }
                break;
           case DFXL_BLIT:
-               if (((state->blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL |
-                                              DSBLIT_SRC_PREMULTIPLY) &&
-                     state->src_blend == DSBF_ONE)
-                    ||
-                    (state->blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL) &&
-                     state->src_blend == DSBF_SRCALPHA))
-                   &&
+               if (state->blittingflags == (DSBLIT_COLORIZE |
+                                            DSBLIT_BLEND_ALPHACHANNEL) &&
+                   state->src_blend == DSBF_SRCALPHA &&
                    state->dst_blend == DSBF_INVSRCALPHA)
                {
-                    if (gfxs->src_format == DSPF_A8 && Bop_a8_set_alphapixel_Aop_PFI[dst_pfi]) {
+                    if (gfxs->src_format == DSPF_A8 &&
+                        Bop_a8_set_alphapixel_Aop_PFI[dst_pfi])
+                    {
                          *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[dst_pfi];
                          break;
                     }
-                    if (gfxs->src_format == DSPF_A1 && Bop_a1_set_alphapixel_Aop_PFI[dst_pfi]) {
+                    if (gfxs->src_format == DSPF_A1 &&
+                        Bop_a1_set_alphapixel_Aop_PFI[dst_pfi])
+                    {
                          *funcs++ = Bop_a1_set_alphapixel_Aop_PFI[dst_pfi];
                          break;
                     }
