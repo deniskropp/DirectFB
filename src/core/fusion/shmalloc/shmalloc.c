@@ -109,6 +109,14 @@ shmalloc_check_shmfs (int world)
                int            len = strlen (mount_point) +
                                     strlen (SH_FILE_NAME) + 11;
 
+               if (statfs (mount_point, &stat)) {
+                    FPERROR ("statfs on tmpfs failed!\n");
+                    continue;
+               }
+
+               if (stat.f_blocks * stat.f_bsize < (4<<20))
+                    continue;
+               
                if (!(name = DFBMALLOC(len))) {
                     FERROR ("malloc failed!\n");
                     fclose (mounts_handle);
@@ -119,17 +127,6 @@ shmalloc_check_shmfs (int world)
                snprintf (name, len, "%s%s%d",
                          mount_point, SH_FILE_NAME, world);
 
-               if (statfs (name, &stat)) {
-                    FPERROR ("statfs on tmpfs mount point failed!\n");
-                    DFBFREE (name);
-                    continue;
-               }
-
-               if (stat.f_blocks * stat.f_bsize < (4<<20)) {
-                    DFBFREE (name);
-                    continue;
-               }
-               
                fclose (mounts_handle);
                
                return name;
@@ -373,11 +370,24 @@ void *__shmalloc_init (int world, bool initialize)
      if (mem)
           return mem;
 
-     /* try to find out where the shmfs is actually mounted */
-     sh_name = shmalloc_check_shmfs (world);
-     if (!sh_name) {
-          FERROR( "Could not find tmpfs mount point!\n" );
-          return NULL;
+     if (dfb_config->tmpfs) {
+          int len = strlen (dfb_config->tmpfs) + strlen (SH_FILE_NAME) + 11;
+
+          if (!(sh_name = DFBMALLOC(len))) {
+               FERROR ("malloc failed!\n");
+               return NULL;
+          }
+
+          snprintf (sh_name, len, "%s%s%d",
+                    dfb_config->tmpfs, SH_FILE_NAME, world);
+     }
+     else {
+          /* try to find out where the tmpfs is actually mounted */
+          sh_name = shmalloc_check_shmfs (world);
+          if (!sh_name) {
+               FERROR( "Could not find tmpfs mount point!\n" );
+               return NULL;
+          }
      }
 
      /* open the virtual file */

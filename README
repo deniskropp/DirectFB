@@ -212,10 +212,13 @@ Running multiple DirectFB applications at the same time
      ./configure --enable-multi
 
    Make sure your Linux kernel supports tmpfs. This is explained in
-   the kernel sources in Documentation/filesystems/tmpfs.txt. Mount a
-   tmpfs filesystem as /dev/shm:
+   the kernel sources in Documentation/filesystems/tmpfs.txt.
+   Mount a tmpfs filesystem as /dev/shm:
 
      mount tmpfs /dev/shm -ttmpfs
+
+   Optionally a mount point can be specified via the "tmpfs" option,
+   see directfbrc(5). The option has to be set for all processes.
 
    A good way to test the multi-application core is to install the lite
    toolkit and DFBTerm, a DirectFB terminal (both available in the

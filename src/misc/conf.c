@@ -67,6 +67,8 @@ static const char *config_usage =
     "Set the default pixel format\n"
     "  session=<num>                  "
     "Select multi app world (zero based, -1 = new)\n"
+    "  tmpfs=<directory>              "
+    "Location of shared memory file\n"
     "  quiet                          "
     "No text output except debugging\n"
     "  [no-]banner                    "
@@ -308,6 +310,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'fbdev': No device name specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "tmpfs" ) == 0) {
+          if (value) {
+               if (dfb_config->tmpfs)
+                    DFBFREE( dfb_config->tmpfs );
+               dfb_config->tmpfs = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'tmpfs': No directory specified!\n");
                return DFB_INVARG;
           }
      } else

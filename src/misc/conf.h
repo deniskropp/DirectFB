@@ -116,6 +116,8 @@ typedef struct
      bool      block_all_signals;                 /* block all signals */
 
      int       session;                           /* select multi app world */
+
+     char     *tmpfs;                             /* location of shm file */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

@@ -92,6 +92,13 @@ world using the lowest unused session number. This will override
 the environment variable "DIRECTFB_SESSION".
 
 .TP
+.BI tmpfs=<directory>
+Uses the given directory (tmpfs mount point) for creation of the
+shared memory file in multi application mode. This option is only
+useful if the automatic detection fails or if non-tmpfs storage
+is desired.
+
+.TP
 .BI quiet
 Suppresses console output from DirectFB. Only error messages will be
 displayed.
