@@ -796,7 +796,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
      dfb_surface_attach( surface, v4l_systemsurface_listener,
                          data, &data->reaction );
 
-     data->thread = dfb_thread_create( CTT_CRITICAL, GrabThread, data );
+     data->thread = dfb_thread_create( CTT_ANY, GrabThread, data );
 
      return DFB_OK;
 }
