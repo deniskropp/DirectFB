@@ -93,7 +93,6 @@ static inline void
 mouse_motion_initialize( SerialMouseData *data )
 {
      data->x_motion.type    = data->y_motion.type    = DIET_AXISMOTION;
-     data->x_motion.flags   = data->y_motion.flags   = DIEF_AXISREL | DIEF_TIMESTAMP;
      data->x_motion.axisrel = data->y_motion.axisrel = 0;
 
      data->x_motion.axis    = DIAI_X;
@@ -112,12 +111,14 @@ mouse_motion_realize( SerialMouseData *data )
 {
      if (data->x_motion.axisrel) {
           gettimeofday( &data->x_motion.timestamp, NULL );
+          data->x_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
           dfb_input_dispatch( data->device, &data->x_motion );
           data->x_motion.axisrel = 0;
      }
 
      if (data->y_motion.axisrel) {
           gettimeofday( &data->y_motion.timestamp, NULL );
+          data->y_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
           dfb_input_dispatch( data->device, &data->y_motion );
           data->y_motion.axisrel = 0;
      }
@@ -131,15 +132,15 @@ mouse_setspeed( SerialMouseData *data )
 
      tcgetattr (data->fd, &tty);
 
-     tty.c_iflag = IGNBRK | IGNPAR;
-     tty.c_oflag = 0;
-     tty.c_lflag = 0;
-     tty.c_line = 0;
+     tty.c_iflag     = IGNBRK | IGNPAR;
+     tty.c_oflag     = 0;
+     tty.c_lflag     = 0;
+     tty.c_line      = 0;
      tty.c_cc[VTIME] = 0;
-     tty.c_cc[VMIN] = 1;
-     tty.c_cflag = CREAD|CLOCAL|HUPCL|B1200;
-
-     tty.c_cflag |= (data->protocol == PROTOCOL_MOUSESYSTEMS) ? CS8|CSTOPB : CS7;
+     tty.c_cc[VMIN]  = 1;
+     tty.c_cflag     = CREAD|CLOCAL|HUPCL|B1200;
+     tty.c_cflag    |= ((data->protocol == PROTOCOL_MOUSESYSTEMS) ?
+                        CS8|CSTOPB : CS7);
 
      tcsetattr (data->fd, TCSAFLUSH, &tty);
 
@@ -215,25 +216,27 @@ mouseEventThread_ms( void *driver_data )
                             before any button change */
                          mouse_motion_realize( data );
 
+                         gettimeofday( &evt.timestamp, NULL );
+
                          if (changed_buttons & 0x20) {
                               evt.type = (buttons & 0x20) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_LEFT;
+                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & 0x10) {
                               evt.type = (buttons & 0x10) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_RIGHT;
+                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if (changed_buttons & MIDDLE) {
                               evt.type = (buttons & MIDDLE) ?
                                    DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_NONE; /* button is always valid */
                               evt.button = DIBI_MIDDLE;
+                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
 

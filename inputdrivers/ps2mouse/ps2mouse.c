@@ -97,10 +97,6 @@ ps2mouse_motion_initialize( PS2MouseData *data )
      data->y_motion.type    =
      data->z_motion.type    = DIET_AXISMOTION;
 
-     data->x_motion.flags   =
-     data->y_motion.flags   =
-     data->z_motion.flags   = DIEF_AXISREL | DIEF_TIMESTAMP;
-
      data->x_motion.axisrel =
      data->y_motion.axisrel =
      data->z_motion.axisrel = 0;
@@ -123,18 +119,21 @@ ps2mouse_motion_realize( PS2MouseData *data )
 {
      if (data->x_motion.axisrel) {
           gettimeofday( &data->x_motion.timestamp, NULL );
+          data->x_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
           dfb_input_dispatch( data->device, &data->x_motion );
           data->x_motion.axisrel = 0;
      }
 
      if (data->y_motion.axisrel) {
           gettimeofday( &data->y_motion.timestamp, NULL );
+          data->y_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
           dfb_input_dispatch( data->device, &data->y_motion );
           data->y_motion.axisrel = 0;
      }
 
      if (data->z_motion.axisrel) {
           gettimeofday( &data->z_motion.timestamp, NULL );
+          data->z_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
           dfb_input_dispatch( data->device, &data->z_motion );
           data->z_motion.axisrel = 0;
      }
@@ -203,23 +202,27 @@ ps2mouseEventThread( void *driver_data )
                             before any button change */
                          ps2mouse_motion_realize( data );
 
-                         evt.flags = DIEF_TIMESTAMP;
-
                          gettimeofday( &evt.timestamp, NULL );
 
                          if ( changed_buttons & 0x01 ) {
-                              evt.type = (buttons & 0x01) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.type = (buttons & 0x01) ?
+                                   DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.button = DIBI_LEFT;
+                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if ( changed_buttons & 0x02 ) {
-                              evt.type = (buttons & 0x02) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.type = (buttons & 0x02) ?
+                                   DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.button = DIBI_RIGHT;
+                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          if ( changed_buttons & 0x04 ) {
-                              evt.type = (buttons & 0x04) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.type = (buttons & 0x04) ?
+                                   DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
                               evt.button = DIBI_MIDDLE;
+                              evt.flags = DIEF_TIMESTAMP;
                               dfb_input_dispatch( data->device, &evt );
                          }
 

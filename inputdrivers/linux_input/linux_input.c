@@ -233,7 +233,7 @@ key_event( struct input_event *levt,
 {
      if (levt->code >= BTN_MOUSE && levt->code <= BTN_STYLUS2) {
           devt->type   = levt->value ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-          devt->flags |= DIEF_BUTTONS;
+          /* don't set DIEF_BUTTONS, it will be set by the input core */
           devt->button = DIBI_FIRST + levt->code - BTN_MOUSE;
      }
      else {

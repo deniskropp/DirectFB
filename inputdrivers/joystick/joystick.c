@@ -68,18 +68,15 @@ static DFBInputEvent joystick_handle_event(struct js_event jse)
 
      switch (jse.type) {
           case JS_EVENT_BUTTON:
-               if (jse.value)
-                    event.type = DIET_BUTTONPRESS;
-               else
-                    event.type = DIET_BUTTONRELEASE;
-
-               event.flags = DIEF_NONE; /* button is always valid */
-               event.button = jse.number;
+               event.type    = (jse.value ?
+                                DIET_BUTTONPRESS : DIET_BUTTONRELEASE);
+               event.flags   = DIEF_NONE; /* button is always valid */
+               event.button  = jse.number;
                break;
           case JS_EVENT_AXIS:
-               event.type = DIET_AXISMOTION;
-               event.flags = DIEF_AXISABS;
-               event.axis = jse.number;
+               event.type    = DIET_AXISMOTION;
+               event.flags   = DIEF_AXISABS;
+               event.axis    = jse.number;
                event.axisabs = jse.value;
                break;
      }
@@ -107,7 +104,8 @@ joystickEventThread (void *driver_data)
           if (len != sizeof(struct js_event))
                continue;
 
-          evt = joystick_handle_event(jse);
+          evt = joystick_handle_event( jse );
+
           dfb_input_dispatch( data->device, &evt );
      }
 
@@ -200,7 +198,8 @@ driver_open_device( InputDevice      *device,
 
           fd = open( devicename, O_RDONLY );
           if (fd < 0) {
-               PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
+               PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n",
+                          devicename );
                return DFB_INIT; /* no joystick available */
           }
      }
