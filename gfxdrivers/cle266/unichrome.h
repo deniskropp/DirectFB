@@ -108,6 +108,9 @@ typedef struct _UcDriverData {
     int             hwrev;      // Hardware revision
     __u8*           hwregs;     // Hardware register base
     struct uc_fifo* fifo;       // Data FIFO.
+
+    __u8            vga1A_save;
+
 } UcDriverData;
 
 

@@ -107,8 +107,8 @@ static void via_enable_mmio(void)
     // Refer to the XFree86 VIA driver for info on how to set it up
     // when used as secondary driver.
 
-    outb(inb(0x3c3) | 0x01, 0x3c3);
-    outb(inb(0x3cc) | 0x01, 0x3c2);
+    //outb(inb(0x3c3) | 0x01, 0x3c3);
+    //outb(inb(0x3cc) | 0x01, 0x3c2);
 
     // Unlock Extended IO Space
 
@@ -117,17 +117,14 @@ static void via_enable_mmio(void)
 
     // Enable MMIO
 
-    // If enabled, this crashes DirectFB. Strange - X uses this setting.
-    // Fortunately, it seems to work anyway.
-
-    //outb(0x1a, 0x3c4);
-    //outb(inb(0x3c5) | 0x68, 0x3c5);
+    outb(0x1a, 0x3c4);
+    outb(inb(0x3c5) | 0x68, 0x3c5);
 }
 
 static void via_disable_mmio(void)
 {
-//  outb(0x1a, 0x3c4);
-//  outb(inb(0x3c5) & 0x97, 0x3c5);
+    outb(0x1a, 0x3c4);
+    outb(inb(0x3c5) & 0x97, 0x3c5);
 }
 
 static int via_wait_idle(void)

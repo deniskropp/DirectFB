@@ -17,6 +17,8 @@
 
 #define VIA_OUT(hwregs, reg, val) *(volatile u32 *)((hwregs) + (reg)) = (val)
 #define VIA_IN(hwregs, reg)       *(volatile u32 *)((hwregs) + (reg))
+#define VGA_OUT8(hwregs, reg, val) *(volatile u8 *)((hwregs) + (reg) + 0x8000) = (val)
+#define VGA_IN8(hwregs, reg)       *(volatile u8 *)((hwregs) + (reg) + 0x8000)
 #define RS16(val)               ((u16)((s16)(val)))
 #define RS12(val)               (((u16)((s16)(val))) & 0xfff)
 
@@ -25,6 +27,8 @@
 
 #define VIA_OUT(hwregs, reg, val)   *(volatile __u32 *)((hwregs) + (reg)) = (val)
 #define VIA_IN(hwregs, reg)         *(volatile __u32 *)((hwregs) + (reg))
+#define VGA_OUT8(hwregs, reg, val)  *(volatile __u8 *)((hwregs) + (reg) + 0x8000) = (val)
+#define VGA_IN8(hwregs, reg)        *(volatile __u8 *)((hwregs) + (reg) + 0x8000)
 
 #define RS16(val)               ((__u16)((__s16)(val)))
 #define RS12(val)               (((__u16)((__s16)(val))) & 0xfff)

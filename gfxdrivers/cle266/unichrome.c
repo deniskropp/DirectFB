@@ -377,6 +377,12 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
     if ((int) ucdrv->hwregs == -1) 
          return DFB_IO;
 
+    // VIA-driver crash workaround.
+    // This clears bit 6 (software reset) in extended VGA register 0x1a
+    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    ucdrv->vga1A_save = VGA_IN8(ucdrv->hwregs, 0x3c5);
+    VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save & 0xbf);
+
     ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
 
     ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE, ucdrv->hwregs);
@@ -441,8 +447,8 @@ static DFBResult driver_init_device(GraphicsDevice* device,
     ucdev->cmd_waitcycles = 0;
     ucdev->idle_waitcycles = 0;
 
-    uc_init_2d_engine(device, ucdev, ucdrv, false);    // False for now - surface allocator crashes
     uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
+    uc_init_2d_engine(device, ucdev, ucdrv, false);    // False for now - surface allocator crashes
 
     return DFB_OK;
 }
@@ -460,6 +466,11 @@ static void driver_close_device(GraphicsDevice *device,
 static void driver_close_driver(GraphicsDevice* device, void* driver_data)
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
+
+    // VIA-driver crash workaround.
+    // This restores extended VGA register 0x1a
+    VGA_OUT8(ucdrv->hwregs, 0x3c4, 0x1a);
+    VGA_OUT8(ucdrv->hwregs, 0x3c5, ucdrv->vga1A_save);
 
     if (ucdrv->fifo) uc_fifo_destroy(ucdrv->fifo);
     if ((int) ucdrv->file != -1) close(ucdrv->file);
