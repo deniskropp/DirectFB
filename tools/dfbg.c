@@ -29,13 +29,13 @@
    SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
 
 /*****************************************************************************/
@@ -90,8 +90,16 @@ main( int argc, char *argv[] )
           return -4;
      }
 
-     /* Set the background according to the users wishes. */
+     /* Acquire administrative cooperative level. */
+     ret = layer->SetCooperativeLevel( layer, DLSCL_ADMINISTRATIVE );
+     if (ret) {
+          DirectFBError( "IDirectFBDisplayLayer::SetCooperativeLevel() failed", ret );
+          layer->Release( layer );
+          dfb->Release( dfb );
+          return -5;
+     }
 
+     /* Set the background according to the users wishes. */
      if (color)
           set_background_color();
      else

@@ -140,8 +140,11 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     /* FIXME: cooperative level */
-
+     if (data->level != DLSCL_EXCLUSIVE) {
+          CAUTION( "letting unprivileged IDirectFBDisplayLayer::GetSurface() "
+                   "call pass until cooperative level handling is finished" );
+     }
+     
      DFB_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL,
@@ -195,7 +198,8 @@ IDirectFBDisplayLayer_SetOpacity( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     /* FIXME: cooperative level */
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
      
      return dfb_layer_set_opacity( data->layer, opacity );
 }
@@ -213,6 +217,9 @@ IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     if (data->level != DLSCL_EXCLUSIVE)
+          return DFB_ACCESSDENIED;
+     
      return dfb_layer_set_field_parity( data->layer, field );
 }
 
@@ -236,7 +243,8 @@ IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
      if (width <= 0 || height <= 0)
           return DFB_INVARG;
 
-     /* FIXME: cooperative level */
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
      
      return dfb_layer_set_screenlocation( data->layer, x, y, width, height );
 }
@@ -249,7 +257,8 @@ IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     /* FIXME: cooperative level */
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
      
      return dfb_layer_set_src_colorkey( data->layer, r, g, b );
 }
@@ -262,7 +271,8 @@ IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     /* FIXME: cooperative level */
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
      
      return dfb_layer_set_dst_colorkey( data->layer, r, g, b );
 }
@@ -294,7 +304,8 @@ IDirectFBDisplayLayer_SetLevel( IDirectFBDisplayLayer *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     /* FIXME: cooperative level */
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
      
      return dfb_layer_set_level( data->layer, level );
 }
@@ -337,9 +348,9 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
 
      switch (data->level) {
           case DLSCL_EXCLUSIVE:
-               break;
+               return dfb_layer_set_configuration( data->layer, config );
 
-          default:
+          case DLSCL_ADMINISTRATIVE:
                ret = dfb_layer_lease( data->layer );
                if (ret)
                     return ret;
@@ -349,9 +360,12 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
                dfb_layer_release( data->layer, false );
 
                return ret;
+
+          default:
+               break;
      }
      
-     return dfb_layer_set_configuration( data->layer, config );
+     return DFB_ACCESSDENIED;
 }
 
 static DFBResult
@@ -360,6 +374,9 @@ IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer         *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
+     
      switch (background_mode) {
           case DLBM_DONTCARE:
           case DLBM_COLOR:
@@ -386,6 +403,9 @@ IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
      if (!surface)
           return DFB_INVARG;
 
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
+     
      surface_data = (IDirectFBSurface_data*)surface->priv;
      if (!surface_data)
           return DFB_DEAD;
@@ -404,6 +424,9 @@ IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
+     
      return dfb_layer_set_background_color( data->layer, &color );
 }
 
@@ -468,7 +491,8 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
      if (!window)
           return DFB_INVARG;
 
-     /* FIXME: cooperative level? */
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
      
      w = dfb_layer_find_window( data->layer, id );
      if (!w)
@@ -483,6 +507,9 @@ static DFBResult
 IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz, int enable )
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
 
      return dfb_layer_cursor_enable( data->layer, enable );
 }
@@ -504,6 +531,9 @@ IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
+     
      return dfb_layer_cursor_warp( data->layer, x, y );
 }
 
@@ -518,6 +548,9 @@ IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
      if (numerator < 0  ||  denominator < 1  ||  threshold < 0)
           return DFB_INVARG;
 
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
+     
      return dfb_layer_cursor_set_acceleration( data->layer, numerator,
                                                denominator, threshold );
 }
@@ -534,6 +567,9 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
 
      if (!shape)
           return DFB_INVARG;
+
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
 
      shape_data = (IDirectFBSurface_data*)shape->priv;
 
@@ -552,6 +588,9 @@ IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
                                         __u8                   opacity )
 {
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (data->level != DLSCL_ADMINISTRATIVE)
+          return DFB_ACCESSDENIED;
 
      return dfb_layer_cursor_set_opacity( data->layer, opacity );
 }
@@ -577,7 +616,8 @@ IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer *thiz,
      if (!adj || !adj->flags)
           return DFB_INVARG;
 
-     /* FIXME: cooperative level */
+     if (data->level == DLSCL_SHARED)
+          return DFB_ACCESSDENIED;
      
      return dfb_layer_set_coloradjustment( data->layer, adj );
 }
