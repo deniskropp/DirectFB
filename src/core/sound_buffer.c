@@ -62,7 +62,7 @@ buffer_destructor( FusionObject *object, bool zombie )
                __FUNCTION__, buffer, buffer->length, buffer->channels,
                buffer->format, buffer->rate, zombie ? " ZOMBIE!" : "" );
 
-     shfree( buffer->data );
+     SHFREE( buffer->data );
 
      fusion_object_destroy( object );
 }
@@ -115,7 +115,7 @@ fs_buffer_create( CoreSound        *core,
      if (!buffer)
           return DFB_FUSION;
 
-     buffer->data = shmalloc( length * bytes * channels );
+     buffer->data = SHMALLOC( length * bytes * channels );
      if (!buffer->data) {
           fusion_object_destroy( &buffer->object );
           return DFB_NOSYSTEMMEMORY;

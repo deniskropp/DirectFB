@@ -228,13 +228,13 @@ fs_core_add_playback( CoreSound    *core,
      DEBUGMSG( "FusionSound/Core: %s (%p)\n", __FUNCTION__, playback );
 
      /* Allocate playlist entry. */
-     entry = shcalloc( 1, sizeof(CorePlaylistEntry) );
+     entry = SHCALLOC( 1, sizeof(CorePlaylistEntry) );
      if (!entry)
           return DFB_NOSYSTEMMEMORY;
 
      /* Link playback to playlist entry. */
      if (fs_playback_link( &entry->playback, playback )) {
-          shfree( entry );
+          SHFREE( entry );
           return DFB_FUSION;
      }
 
@@ -275,7 +275,7 @@ fs_core_remove_playback( CoreSound    *core,
 
                fusion_list_remove( &shared->playlist.entries, l );
 
-               shfree( entry );
+               SHFREE( entry );
           }
      }
      
@@ -350,7 +350,7 @@ sound_thread( CoreThread *thread, void *arg )
 
                     fusion_list_remove( &shared->playlist.entries, l );
 
-                    shfree( entry );
+                    SHFREE( entry );
                }
           }
           
@@ -508,7 +508,7 @@ fs_core_shutdown( CoreSound *core )
 
           fs_playback_unlink( entry->playback );
 
-          shfree( entry );
+          SHFREE( entry );
      }
      
      /* destroy playback object pool */
@@ -541,7 +541,7 @@ fs_core_arena_initialize( FusionArena *arena,
      }*/
 
      /* Allocate shared structure. */
-     shared = shcalloc( 1, sizeof(CoreSoundShared) );
+     shared = SHCALLOC( 1, sizeof(CoreSoundShared) );
      if (!shared) {
           ERRORMSG( "FusionSound/Core: Could not allocate (shared) memory!\n" );
           return DFB_NOSYSTEMMEMORY;
@@ -563,7 +563,7 @@ fs_core_arena_initialize( FusionArena *arena,
      /* Initialize. */
      ret = fs_core_initialize( core );
      if (ret) {
-          shfree( shared );
+          SHFREE( shared );
           return ret;
      }
      
