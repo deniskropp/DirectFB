@@ -1,3 +1,19 @@
+- DrawString() and GetStringWidth() support UTF-8 encoded strings now. They
+  take an additional parameter that specifies the number of bytes to use from 
+  the passed string or -1 for the complete string.
+- Fonts are no longer loaded completely, instead glyphs are loaded on demand
+  and are cached for later use.
+- Font kerning tables are no longer loaded by the core.
+- Removed default font from the core and made it a IDirectFBFont interface.
+  Pass NULL as filename to CreateFont() to get the default font.
+- Added MPEG video provider based on libmpeg3 written by Kim JeongHoe.
+- Performance improvements in the software functions for DrawLine, 16 bit
+  drawing/blitting and 32 bit blending.
+- Added GetPos() and GetLength() functions to the video provider API.
+- Use /dev/tty0 or /dev/vc/0 (for devfs) instead of /dev/console so DirectFB 
+  works on machines with serial consoles.
+- Removed dependency on libm.
+
 0.9.1
 ------
 
