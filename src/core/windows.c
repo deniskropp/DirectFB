@@ -104,12 +104,16 @@ window_destructor( FusionObject *object, bool zombie )
      if (stack) {
           dfb_windowstack_lock( stack );
 
-          dfb_window_destroy( window );
+          dfb_layer_context_ref( stack->context );
 
           if (stack->cursor.window == window)
                stack->cursor.window = NULL;
 
+          dfb_window_destroy( window );
+
           dfb_windowstack_unlock( stack );
+
+          dfb_layer_context_unref( stack->context );
      }
 
      fusion_object_destroy( object );
