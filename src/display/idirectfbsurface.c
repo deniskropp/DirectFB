@@ -338,7 +338,7 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz, __u8 r, __u8 g, __u8 b, __u8 a )
      data->state.color.g   = g;
      data->state.color.b   = b;
      data->state.color.a   = a;
-     data->state.modified |= SMF_DRAWING_FLAGS;
+     data->state.modified |= SMF_COLOR;
      
      /* fill the visible rectangle */
      rect = data->area.current;
