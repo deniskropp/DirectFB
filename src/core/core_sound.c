@@ -56,7 +56,7 @@
 #include <core/playback.h>
 #include <core/sound_buffer.h>
 
-#define DIRECTFB_CORE_ABI     26   /* FIXME */
+#define DIRECTFB_CORE_ABI     27   /* FIXME */
 
 /******************************************************************************/
 
