@@ -139,8 +139,8 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
      memset( desc, 0, sizeof(DFBSurfaceDescription) );
      desc->flags = (DFBSurfaceDescriptionFlags)
                              (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_BPP);
-     desc->width = data->player->Width();
-     desc->height = data->player->Height();
+     desc->width = data->player->GetWidth();
+     desc->height = data->player->GetHeight();
      desc->bpp = BYTES_PER_PIXEL(layers->surface->format)*8;
 
      return DFB_OK;
@@ -328,9 +328,8 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      }
 
 
-#warning If the two lines below fail to compile change them to "GetWidth, GetHeight"
-     data->source.width  = data->player->Width();
-     data->source.height = data->player->Height();
+     data->source.width  = data->player->GetWidth();
+     data->source.height = data->player->GetHeight();
      data->source.format = DSPF_RGB16;
      
      data->source.front_buffer = (SurfaceBuffer*)malloc( sizeof(SurfaceBuffer) );
