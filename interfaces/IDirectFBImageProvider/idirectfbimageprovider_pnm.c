@@ -206,10 +206,28 @@ static DFBResult
 __rawpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 		 char                            *dest )
 {
-	DFBResult err;
-	int       len;
+	DFBResult  err;
+	int        len;
+	int        i, s;
+	__u16     *d    = (__u16*) dest;
 
-	P_GET( dest, (data->width + 7) >> 3 );
+	P_GET( dest, data->width / 8 );
+
+	dest += (len - 1);
+
+	/* start from end */
+	for(i = (len * 8), s = 0; --i >= 0; )
+	{
+		d[i] = (*dest & (1 << s)) 
+			? 0x8000  /* alpha:1, color:black */
+			: 0x7fff; /* alpha:0, color:white */
+		
+		if(++s > 7)
+		{
+			s = 0;
+			dest--;
+		}
+	}
 
 	return( DFB_OK );
 }
@@ -226,7 +244,7 @@ __rawpgm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 	P_GET( dest, data->width );
 
-	d = (__u8*) dest + (len * 3);
+	d = (__u8*) dest + ((len - 1) * 3);
 
 	/* start from end */
 	while(--len >= 0)
@@ -251,15 +269,12 @@ __rawppm_getrow( IDirectFBImageProvider_PNM_data *data,
 	DFBResult err;
 	int       len;
 	int       i;
-	int       p   = data->width * 3;
 	__u8      r;
 	__u8      b;
 
-	P_GET( dest, p );
+	P_GET( dest, data->width * 3 );
 
-	i = len / 3;
-
-	while(i--)
+	for(i = (len / 3); i--; )
 	{
 		r = *dest;
 		b = *(dest + 2);
@@ -280,14 +295,14 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 {
 	DFBResult  err;
 	int        len;
-	int        i, s = 7;
-	__u8       n;
+	int        i;
 	int        w    = data->width;
 	__u8      *buf  = data->rowbuf;
+	__u16     *d    = (__u16*) dest;
 
 	P_LOADBUF();
 
-	for(i = 0, n = 0; i < len; i++)
+	for(i = 0; i < len; i++)
 	{
 		if(buf[i] == 0)
 			break;
@@ -295,10 +310,11 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 		switch(buf[i])
 		{
 			case '0':
+				*d++ = 0x7fff; /* alpha:0, color:white */
 			break;
 
 			case '1':
-				n |= 1 << s;
+				*d++ = 0x8000; /* alpha:1, color:black */
 			break;
 
 			default:
@@ -307,13 +323,6 @@ __plainpbm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 		/* assume next char is a space */
 		i++;
-
-		if(--s < 0)
-		{
-			s = 7;
-			*dest++ = n;
-		}
-
 		if(!--w)
 			break;
 	}
@@ -425,9 +434,9 @@ __plainppm_getrow( IDirectFBImageProvider_PNM_data *data,
 
 static const PFormatData p_db[] =
 {
-	{    DSPF_A1, { {__rawpbm_getrow, 0}, {__plainpbm_getrow,  2} } }, /* PBM */
-	{ DSPF_RGB24, { {__rawpgm_getrow, 0}, {__plainpgm_getrow,  4} } }, /* PGM */
-	{ DSPF_RGB24, { {__rawppm_getrow, 0}, {__plainppm_getrow, 12} } }  /* PPM */
+	{ DSPF_ARGB1555, { {__rawpbm_getrow, 0}, {__plainpbm_getrow,  2} } }, /* PBM */
+	{    DSPF_RGB24, { {__rawpgm_getrow, 0}, {__plainpgm_getrow,  4} } }, /* PGM */
+	{    DSPF_RGB24, { {__rawppm_getrow, 0}, {__plainppm_getrow, 12} } }  /* PPM */
 };
 
 
