@@ -14,7 +14,7 @@ SUBDIRS = \
 bin_SCRIPTS = directfb-config
 
 pkgconfigdir = $(libdir)/pkgconfig
-pkgconfig_DATA = directfb.pc directfb-internal.pc $(pkgconfig_avifile) $(pkgconfig_swf)
+pkgconfig_DATA = directfb.pc directfb-internal.pc
 
 
 EXTRA_DIST = \
