@@ -936,6 +936,20 @@ gfxcard_capabilities()
      return Scard->device_info.caps;
 }
 
+int
+gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
+{
+     if (device->shared->surface_manager)
+          return -1;
+
+     if (device->framebuffer.length < size)
+          return -1;
+
+     device->framebuffer.length -= size;
+     
+     return device->framebuffer.length;
+}
+
 unsigned long
 gfxcard_memory_physical( unsigned int offset )
 {

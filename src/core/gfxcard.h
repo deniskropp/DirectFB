@@ -250,6 +250,9 @@ DFBResult gfxcard_adjust_heap_offset( unsigned int offset );
 SurfaceManager   *gfxcard_surface_manager();
 CardCapabilities  gfxcard_capabilities();
 
+int            gfxcard_reserve_memory( GraphicsDevice *device,
+                                       unsigned int    size );
+
 unsigned long  gfxcard_memory_physical( unsigned int offset );
 void          *gfxcard_memory_virtual( unsigned int offset );
 unsigned int   gfxcard_memory_length();
