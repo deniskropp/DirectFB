@@ -68,13 +68,13 @@ static inline _syscall0(pid_t,gettid)
      #define CAUTION(msg)     do { } while (0)
 #else
 #define INITMSG(x...)    if (!dfb_config->quiet) fprintf( stderr, "(*) "x );
-#define ERRORMSG(x...)   if (!dfb_config->quiet) { fprintf( stderr, "(!) "x ); dfb_trace_print_stack( -1 ); }
+#define ERRORMSG(x...)   if (!dfb_config->quiet) { fprintf( stderr, "(!) "x ); dfb_trace_print_stack( NULL ); }
 
 #define PERRORMSG(x...)  do { if (!dfb_config->quiet) {                        \
                               fprintf( stderr, "(!) "x );                      \
                               fprintf( stderr, "    --> " );                   \
                               perror("");                                      \
-                              dfb_trace_print_stack( -1 );                     \
+                              dfb_trace_print_stack( NULL );                   \
                          } } while (0)
 
 #define DLERRORMSG(x...) do { if (!dfb_config->quiet) {                        \

@@ -829,9 +829,10 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
 {
      const DFBInputEvent *evt = msg_data;
 
-     DFBWindowEvent   we;
-     CoreWindow      *window  = NULL;
-     CoreWindowStack *stack   = ctx;
+     DFBWindowEvent                  we;
+     CoreWindow                     *window = NULL;
+     CoreWindowStack                *stack  = ctx;
+     DFBInputDeviceButtonIdentifier  button = evt->button;
 
      DFB_ASSERT( evt != NULL );
      DFB_ASSERT( stack != NULL );
@@ -1007,7 +1008,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
 
                case DIET_BUTTONRELEASE:
                     if (stack->wm_hack == 2) {
-                         evt->button += 2;
+                         button += 2;
                     }
                     else {
                          dfb_windowstack_unlock( stack );
@@ -1017,7 +1018,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
 
                case DIET_BUTTONPRESS:
                     if (stack->wm_hack == 2) {
-                         evt->button += 2;
+                         button += 2;
                     }
                     else {
                          if (stack->entered_window &&
@@ -1065,7 +1066,7 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
                if (window) {
                     we.type = (evt->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN :
                               DWET_BUTTONUP;
-                    we.button = evt->button;
+                    we.button = button;
                     we.x      = stack->cursor.x - window->x;
                     we.y      = stack->cursor.y - window->y;
 

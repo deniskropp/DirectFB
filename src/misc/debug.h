@@ -32,7 +32,9 @@
 
 #include <core/fusion/fusion_types.h>
 
-void dfb_trace_print_stack( int pid );
+typedef struct __DFB_TraceBuffer TraceBuffer;
+
+void dfb_trace_print_stack( TraceBuffer *buffer );
 void dfb_trace_print_stacks();
 
 #ifdef DFB_DEBUG

@@ -29,6 +29,8 @@
 
 #include <config.h>
 
+#include <pthread.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/mman.h>
@@ -51,14 +53,73 @@
 #include <dlfcn.h>
 #endif
 
-#define MAX_LEVEL 100
-#define MAX_NAME  92
+#define MAX_BUFFERS 200
+#define MAX_LEVEL   100
+#define MAX_NAME    92
 
-static struct {
-     int level;
+struct __DFB_TraceBuffer {
+     pid_t tid;
+     int   level;
      void *trace[MAX_LEVEL];
-} threads[65536];
+};
 
+static TraceBuffer     *buffers[MAX_BUFFERS];
+static int              buffers_num  = 0;
+static pthread_mutex_t  buffers_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_key_t    trace_key;
+
+__attribute__((no_instrument_function))
+static void
+buffer_destroy( void *buffer )
+{
+     int i;
+
+     pthread_mutex_lock( &buffers_lock );
+
+     for (i=0; i<buffers_num; i++) {
+          if (buffers[i] == buffer)
+               break;
+     }
+
+     for (; i<buffers_num-1; i++)
+          buffers[i] = buffers[i+1];
+
+     free( buffer );
+
+     pthread_mutex_unlock( &buffers_lock );
+}
+
+__attribute__((no_instrument_function))
+static inline TraceBuffer *
+get_trace_buffer()
+{
+     TraceBuffer *buffer;
+
+     buffer = pthread_getspecific( trace_key );
+     if (!buffer) {
+          pthread_mutex_lock( &buffers_lock );
+
+          if (!buffers_num)
+               pthread_key_create( &trace_key, buffer_destroy );
+          else if (buffers_num == MAX_BUFFERS) {
+               ERRORMSG( "DirectFB/debug/trace: "
+                         "Maximum number of threads reached!\n" );
+               pthread_mutex_unlock( &buffers_lock );
+               return NULL;
+          }
+
+          pthread_setspecific( trace_key,
+                               buffer = calloc( 1, sizeof(TraceBuffer) ) );
+
+          buffer->tid = gettid();
+
+          buffers[buffers_num++] = buffer;
+
+          pthread_mutex_unlock( &buffers_lock );
+     }
+
+     return buffer;
+}
 
 
 #ifdef DFB_DYNAMIC_LINKING
@@ -73,6 +134,7 @@ static int     num_symbols = 0;
 
 __attribute__((constructor)) void _directfb_load_symbols();
 
+__attribute__((no_instrument_function))
 void
 _directfb_load_symbols()
 {
@@ -154,12 +216,14 @@ _directfb_load_symbols()
      close( fd );
 }
 
+__attribute__((no_instrument_function))
 static int
 compare_symbols(const void *x, const void *y)
 {
      return  *((long*) x)  -  *((long*) y);
 }
 
+__attribute__((no_instrument_function))
 static bool
 lookup_symbol( long offset )
 {
@@ -183,7 +247,7 @@ lookup_symbol( long offset )
 
 __attribute__((no_instrument_function))
 void
-dfb_trace_print_stack( int tid )
+dfb_trace_print_stack( TraceBuffer *buffer )
 {
 #ifdef DFB_DYNAMIC_LINKING
      Dl_info info;
@@ -191,20 +255,20 @@ dfb_trace_print_stack( int tid )
      int     i;
      int     level;
 
-     if (tid < 1)
-          tid = gettid();
+     if (!buffer)
+          buffer = get_trace_buffer();
 
-     level = threads[tid].level;
+     level = buffer->level;
      if (level > MAX_LEVEL) {
           CAUTION( "only showing 100 items" );
           return;
      }
 
-     fprintf( stderr, "\n(-) DirectFB stack trace of %d\n", tid );
+     fprintf( stderr, "\n(-) DirectFB stack trace of %d\n", buffer->tid );
 
      for (i=0; i<level; i++) {
           int   n;
-          void *fn = threads[tid].trace[i];
+          void *fn = buffer->trace[i];
 
           fprintf( stderr, "    " );
 
@@ -243,14 +307,15 @@ __attribute__((no_instrument_function))
 void
 dfb_trace_print_stacks()
 {
-     int i, tid = gettid();
+     int          i;
+     TraceBuffer *buffer = get_trace_buffer();
 
-     if (threads[tid].level)
-          dfb_trace_print_stack( tid );
+     if (buffer->level)
+          dfb_trace_print_stack( buffer );
 
-     for (i=0; i<65536; i++) {
-          if (i != tid && threads[i].level)
-               dfb_trace_print_stack( i );
+     for (i=0; i<buffers_num; i++) {
+          if (buffers[i] != buffer && buffers[i]->level)
+               dfb_trace_print_stack( buffers[i] );
      }
 }
 
@@ -260,11 +325,11 @@ void
 __cyg_profile_func_enter (void *this_fn,
                           void *call_site)
 {
-     int tid   = gettid();
-     int level = threads[tid].level++;
+     TraceBuffer *buffer = get_trace_buffer();
+     int          level  = buffer->level++;
 
      if (level < MAX_LEVEL)
-          threads[tid].trace[level] = this_fn;
+          buffer->trace[level] = this_fn;
 }
 
 __attribute__((no_instrument_function))
@@ -272,7 +337,10 @@ void
 __cyg_profile_func_exit (void *this_fn,
                          void *call_site)
 {
-     threads[gettid()].level--;
+     TraceBuffer *buffer = get_trace_buffer();
+
+     if (buffer->level > 0)
+          buffer->level--;
 }
 
 
@@ -280,7 +348,7 @@ __cyg_profile_func_exit (void *this_fn,
 #else
 
 void
-dfb_trace_print_stack( int tid )
+dfb_trace_print_stack( TraceBuffer *buffer )
 {
 }
 
@@ -312,7 +380,7 @@ dfb_assertion_fail( const char *expression,
 
      fflush( stderr );
 
-     dfb_trace_print_stack( -1 );
+     dfb_trace_print_stack( NULL );
 
      DEBUGMSG( "DirectFB/Assertion: "
                "Sending SIGTRAP to process group %d...\n", pgrp );
@@ -343,7 +411,7 @@ dfb_assumption_fail( const char *expression,
 
      fflush( stderr );
 
-     dfb_trace_print_stack( -1 );
+     dfb_trace_print_stack( NULL );
 }
 
 #endif
