@@ -1,3 +1,832 @@
+2002-04-22	02:38	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.64) (+2 -2)
+	
+	Toggle sign of Z axis when converted to wheel event.
+	Multiply wheel value by 7 instead 4 when changing a window opacity.
+	
+	My wheel mouse seems to always send Z axis values between 1 and -1.
+	Is it normal? Do all wheel mice behave the same way? Is my mouse ill?
+	Why are 4 bit used (5 including sign) for this axis if it never moves
+	more than 1 or -1? This is my first day with a wheel mouse and I have
+	no clue. The mouse isn't running fast enough to have the wheel produce
+	electricity.
+	
+2002-04-20	23:09	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.94) (+1 -1)
+		tools/gendoc.pl (1.13) (+4 -4)
+	
+	minor optical changes
+	
+2002-04-20	22:49	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.37) (+2 -6)
+		src/core/fusion/shmalloc/shbrk.c (1.6) (+8 -6)
+		src/core/gfxcard.c (1.59) (+3 -0)
+	
+	some more NULL pointer checks
+	
+2002-04-20	21:31	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.93) (+13 -1)
+	
+	Finished documentational summary of IDirectFB.
+	
+2002-04-20	19:18	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.92) (+44 -0)
+	
+	Added information about the primary surface and the cooperative level.
+	
+2002-04-20	18:37	<andi@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.61) (+2 -2)
+	
+	align destination in color keyed blits, instead of source. this is much faster since the destination lies most likely in video ram.
+	
+2002-04-20	18:11	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.91) (+14 -2)
+		tools/gendoc.pl (1.12) (+4 -2)
+	
+	Enhanced reference manual generation, wrote initial summary for IDirectFB.
+	
+2002-04-20	15:12	<andi@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.60) (+4 -9)
+	
+	tweaked recent code a bit, which further improves performance on intel with
+	mtrr, all other benchmarks showed no difference, thats why they are not listed.
+	
+	df_dok --stretch-blit --dfb:no-hardware
+	
+	old new code
+	PII-350     Matrox G400  MTRR on  : 61.46 MPixel/sec
+	
+	new new code
+	PII-350     Matrox G400  MTRR on  : 68.13 MPixel/sec
+	
+2002-04-20	14:30	<andi@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.59) (+24 -4)
+	
+	optimized 16Bit StretchBlit in generic driver, see below for results:
+	
+	df_dok --stretch-blit --dfb:no-hardware
+	
+	old code:
+	
+	PII-350     Matrox G400  MTRR on : 60.09 MPixel/sec
+	PII-350     Matrox G400  MTRR off:  9.93 MPixel/sec
+	PPC G4-500  ATI Rage 128	 : 13.20 MPixel/sec
+	
+	new code:
+	
+	PII-350     Matrox G400  MTRR on  : 61.46 MPixel/sec
+	PII-350     Matrox G400  MTRR off : 19.73 MPixel/sec
+	PPC G4-500  ATI Rage 128          : 26.33 MPixel/sec
+	
+2002-04-20	07:45	<dok@convergence.de>
+
+	Files:	src/core/fusion/reactor.c (1.5) (+4 -1)
+	
+	Set reaction list pointer to NULL when freeing an orphaned node.
+	
+2002-04-20	05:10	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.63) (+108 -44)
+	
+	Focus handling fixes and improvements in case a window appears/disappears.
+	More code cleanup and documentation.
+	
+2002-04-20	03:49	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.62) (+366 -273)
+		src/windows/idirectfbwindow.c (1.29) (+14 -11)
+		src/display/idirectfbsurface_window.c (1.18) (+1 -1)
+		src/core/windows.h (1.21) (+9 -16)
+	
+	Window stack code cleanups.
+	Better stack locking.
+	
+2002-04-19	20:55	<dok@convergence.de>
+
+	Files:	TODO (1.17) (+0 -1)
+	
+	Shared memory reinitialization has been done.
+	
+2002-04-19	17:38	<dok@convergence.de>
+
+	Files:	src/core/layers.c (1.27) (+20 -1)
+		src/core/fusion/shmalloc/shbrk.c (1.5) (+1 -1)
+	
+	Free shared layer driver data in dfb_layers_shutdown().
+	
+	Changed fs type from "shm" to "tmpfs".
+	
+	Added temporary workaround for partly implemented FusionProperty
+	in multi application core.
+	
+2002-04-19	12:10	<neo@convergence.de>
+
+	Files:	src/core/layers.c (1.26) (+3 -0)
+	
+	(dfb_layers_shutdown) return if no layersfield exists. Fixes the crash
+	that occured when dfb_core_deinit_emergency() is called during initialization
+	before dfb_layers_initialize() was called.
+	
+2002-04-18	23:49	<dok@convergence.de>
+
+	Files:	src/core/fusion/shmalloc/shbrk.c (1.4) (+7 -4)
+	
+	Fixed a very stupid code block moving error.
+	
+2002-04-18	20:49	<dok@convergence.de>
+
+	Files:	src/core/fusion/shmalloc/shbrk.c (1.3) (+31 -14)
+		src/core/fusion/shmalloc/shmalloc_internal.h (1.4) (+1 -0)
+	
+	Added more cleanup code, less IPC resource leakage after shutdown.
+	Commented code in some functions.
+	Added more assertions.
+	
+2002-04-18	20:48	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.53) (+3 -0)
+		src/core/fusion/fusion.c (1.5) (+2 -0)
+		src/core/windows.c (1.61) (+30 -12)
+		src/core/surfacemanager.c (1.23) (+2 -0)
+		src/core/layers.c (1.25) (+12 -3)
+	
+	Added more cleanup code, less IPC resource leakage after shutdown.
+	Commented code in some functions.
+	Added more assertions.
+	
+2002-04-18	17:39	<dok@convergence.de>
+
+	Files:	README (1.25) (+1 -0)
+		src/core/fusion/shmalloc/shmalloc_internal.h (1.3) (+1 -1)
+		src/core/fusion/shmalloc/shmalloc.c (1.3) (+1 -1)
+		src/core/fusion/shmalloc/shbrk.c (1.2) (+91 -30)
+		src/core/fusion/fusion_internal.h (1.5) (+0 -9)
+		src/core/fusion/fusion.c (1.4) (+2 -40)
+		src/core/fusion/arena.c (1.3) (+1 -1)
+	
+	Added tmpfs mount point detection from Sebastian Klemke <packet@convergence.de>.
+	
+	The shared memory area is now reinitialized during startup if it already
+	existed, but with no DirectFB apps running.
+	
+	Removed some unused code.
+	
+2002-04-17	11:03	<neo@convergence.de>
+
+	Files:	include/directfb.h (1.90) (+16 -1)
+		src/misc/gfx_util.h (1.8) (+4 -3)
+		src/misc/gfx_util.c (1.18) (+13 -5)
+		src/input/idirectfbinputbuffer.c (1.26) (+8 -0)
+		src/directfb.c (1.41) (+1 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.20) (+13 -8)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.18) (+19 -15)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.22) (+14 -9)
+	
+	Changed internal functions dfb_copy_buffer_32() and dfb_scale_linear_32()
+	to take the destination pitch instead of the difference between width and
+	pitch.
+	
+	Added a destination rectangle to IDirectFBImageProvider::RenderTo().
+	
+	Added IDirectFBEventBuffer::HasEvent().
+	
+2002-04-17	05:10	<dok@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.58) (+6 -4)
+	
+	Added missing incrementing of source pointer when doing alignment for
+	colorkeyed blits. Made the source pointer the preferred aligned one.
+	
+2002-04-17	04:00	<dok@convergence.de>
+
+	Files:	TODO (1.16) (+8 -1)
+	
+	Added details about surface manager and multi app core.
+	
+2002-04-17	03:04	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.52) (+1 -1)
+		src/core/fusion/property.h (1.2) (+9 -1)
+		src/core/fusion/property.c (1.2) (+0 -1)
+		src/core/layers.c (1.24) (+24 -3)
+	
+	Compilation fixes for multi application core.
+	
+	Unimplemented multi app FusionProperty is currently mapped
+	to FusionSkirmish, that is ok for non-fullscreen apps.
+	
+2002-04-17	02:34	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.60) (+1 -1)
+	
+	Debug version compiles again.
+	
+2002-04-16	10:06	<neo@convergence.de>
+
+	Files:	include/directfb.h (1.89) (+28 -28)
+	
+	purely cosmetic change (indentation)
+	
+2002-04-15	15:19	<dok@convergence.de>
+
+	Files:	src/misc/util.c (1.8) (+23 -2)
+	
+	Set width and height to zero if one of them is zero or less
+	in dfb_rectangle_intersect and dfb_rectangle_intersect_by_unsafe_region.
+	
+	Added some comments.
+	
+2002-04-15	15:16	<dok@convergence.de>
+
+	Files:	src/display/idirectfbsurface.c (1.40) (+14 -17)
+		src/display/idirectfbsurface_window.c (1.17) (+12 -13)
+		src/display/idirectfbsurface_layer.c (1.20) (+13 -14)
+	
+	Be more tolerant in GetSubSurface. Allow width or height to be less than
+	or equal to zero. The created sub surface will never do drawing/blitting.
+	
+2002-04-15	15:14	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.59) (+2 -4)
+	
+	Let CapsLock key events through.
+	
+2002-04-15	10:12	<neo@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.19) (+2 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.20) (+1 -0)
+	
+	Added missing includes and changed include order.
+	
+2002-04-14	22:37	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.24) (+21 -18)
+	
+	Do not flash LEDs when holding Lock keys. Toggle once the key gets down.
+	
+2002-04-14	21:22	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.88) (+1 -1)
+	
+	Forgot a bit in DWOP_ALL.
+	
+2002-04-14	21:11	<dok@convergence.de>
+
+	Files:	TODO (1.15) (+0 -2)
+		src/windows/idirectfbwindow.c (1.28) (+27 -3)
+		src/display/idirectfbdisplaylayer.c (1.31) (+3 -0)
+		src/core/windows.h (1.20) (+2 -13)
+		src/core/windows.c (1.58) (+52 -47)
+		src/core/layers.c (1.23) (+3 -1)
+		include/directfb.h (1.87) (+23 -2)
+	
+	Added new window options to disable moving,
+	resizing, stacking and destruction by wm hack.
+	
+	Added window option that turns the window into a passive
+	output only window (DWOP_GHOST). It will never get the focus
+	or any input events, clicks will go through. This is useful
+	for status OSDs or subtitling via transparent windows.
+	
+	Added IDirectFBWindow::GetOptions().
+	
+2002-04-14	18:49	<dok@convergence.de>
+
+	Files:	TODO (1.14) (+0 -4)
+	
+	Bye bye probe context and font module probing TODOs.
+	
+2002-04-14	18:46	<dok@convergence.de>
+
+	Files:	include/directfb_internals.h (1.16) (+20 -2)
+		src/media/idirectfbvideoprovider.h (1.1) ( )
+		src/media/idirectfbimageprovider.h (1.1) ( )
+		src/media/idirectfbfont.h (1.7) (+11 -4)
+		src/media/Makefile.am (1.7) (+3 -1)
+		src/interface.c (1.14) (+5 -0)
+		src/idirectfb.c (1.53) (+64 -78)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.22) (+6 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.15) (+6 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.17) (+6 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.19) (+8 -6)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.18) (+5 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.17) (+6 -4)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.21) (+5 -3)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.14) (+2 -2)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.12) (+6 -2)
+	
+	Added probe context structs for all interfaces loaded from modules.
+	All parameters are stored in this struct giving more extendability.
+	
+	Added default probing function 'DFBProbeInterface' that can be used
+	for 'DFBGetInterface' as the 'probe' function.
+	It simply calls the implementation's Probe function with the given context.
+	
+	Reduced code size in IDirectFB, cleaned up and documented code.
+	
+2002-04-14	10:16	<dok@convergence.de>
+
+	Files:	src/display/idirectfbdisplaylayer.c (1.30) (+3 -0)
+	
+	Added sanity checks.
+	
+2002-04-14	10:11	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.86) (+14 -0)
+		src/display/idirectfbdisplaylayer.c (1.29) (+21 -8)
+		src/core/windows.h (1.19) (+11 -5)
+		src/core/windows.c (1.57) (+49 -34)
+		src/core/layers.h (1.19) (+5 -0)
+		src/core/layers.c (1.22) (+61 -42)
+		inputdrivers/ps2mouse/ps2mouse.c (1.28) (+2 -19)
+	
+	Added IDirectFBDisplayLayer::SetCursorAcceleration a la XChangePointerControl.
+	Removed acceleration from PS/2 driver, new acceleration is done in window stack
+	code. Reading from input devices directly will return unaccelerated movements.
+	
+2002-04-14	09:04	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.85) (+4 -2)
+		src/input/idirectfbinputdevice.c (1.20) (+18 -17)
+	
+	Added DIAI_LAST and DIBI_LAST.
+	Added more argument checking in IDirectFBInputDevice,
+	use new constants for array sizes.
+	
+2002-04-14	01:04	<dok@convergence.de>
+
+	Files:	include/directfb_internals.h (1.15) (+3 -1)
+	
+	Fixed debug enabled builds.
+	
+2002-04-13	22:22	<dok@convergence.de>
+
+	Files:	include/directfb_internals.h (1.14) (+5 -0)
+		src/windows/idirectfbwindow.c (1.27) (+2 -6)
+		src/media/idirectfbfont.c (1.22) (+1 -3)
+		src/input/idirectfbinputdevice.c (1.19) (+1 -3)
+		src/input/idirectfbinputbuffer.c (1.25) (+1 -3)
+		src/display/idirectfbsurface_layer.c (1.19) (+1 -3)
+		src/display/idirectfbsurface.c (1.39) (+1 -3)
+		src/display/idirectfbdisplaylayer.c (1.28) (+2 -6)
+		src/idirectfb.c (1.52) (+1 -3)
+		src/directfb.c (1.40) (+0 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.21) (+2 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.14) (+3 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.16) (+1 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.18) (+5 -6)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.17) (+1 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.16) (+1 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.20) (+1 -3)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.13) (+3 -0)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.11) (+2 -3)
+	
+	Added DFB_DEALLOCATE_INTERFACE saving two lines of code in the
+	Destruct method of each interface.
+	
+	Cleaned up deallocation of interfaces after Construct failed.
+	Currently Construct methods have to call DFB_DEALLOCATE_INTERFACE
+	before returning an error.
+	
+2002-04-12	23:43	<dok@convergence.de>
+
+	Files:	src/gfx/convert.h (1.9) (+18 -0)
+		src/misc/conf.h (1.17) (+6 -0)
+		src/misc/conf.c (1.25) (+39 -2)
+		src/gfx/util.h (1.5) (+6 -0)
+	
+	Reworked display layer driver handling.
+	
+	Core structure DisplayLayer is no longer exported.
+	Added structures for driver functions and information.
+	Drivers call 'dfb_layers_register' during initialization.
+	
+	Generalized surface creation/reallocation of display layers.
+	Display layer drivers are cleaner now.
+	
+	Cleaned up layering code and added missing functions.
+	
+	Experimental mouse acceleration in PS/2 driver.
+	
+	Added options "mode=<width>x<height>" and "depth=<bpp>"
+	which select the startup mode and bit depth.
+	
+	Bit depths of fb.modes entries are ignored now when looking
+	for a requested mode. However, the default bit depth is the
+	one of the first entry.
+	
+	Added new fusion primitive 'FusionProperty' which is a lock
+	that automatically chooses between lock and try_lock behaviour.
+	Two different locking methods can be used for short locks, e.g.
+	window stack repaints, and long locks, e.g. exclusive layer access.
+	Both methods wait if the property is 'leased' and fail if the property
+	is 'purchased'. There's no implementation for the multi app core yet.
+	
+2002-04-12	23:42	<dok@convergence.de>
+
+	Files:	TODO (1.13) (+9 -0)
+		src/display/idirectfbsurface_layer.c (1.18) (+3 -1)
+		src/display/idirectfbdisplaylayer.c (1.27) (+39 -129)
+		src/core/fusion/property.h (1.1) ( )
+		src/core/fusion/property.c (1.1) ( )
+		src/core/fusion/Makefile.am (1.6) (+2 -0)
+		src/core/windows.h (1.18) (+30 -16)
+		src/core/windows.c (1.56) (+90 -85)
+		src/core/surfaces.h (1.20) (+9 -0)
+		src/core/surfaces.c (1.35) (+63 -42)
+		src/core/surfacemanager.c (1.22) (+2 -1)
+		src/core/layers.h (1.18) (+191 -116)
+		src/core/layers.c (1.21) (+894 -226)
+		src/core/graphics_driver.h (1.2) (+0 -5)
+		src/core/gfxcard.h (1.23) (+1 -12)
+		src/core/gfxcard.c (1.58) (+0 -10)
+		src/core/fbdev.h (1.10) (+3 -2)
+		src/core/fbdev.c (1.51) (+303 -173)
+		src/core/coretypes.h (1.7) (+0 -1)
+		src/core/coredefs.h (1.11) (+1 -1)
+		src/core/core.c (1.36) (+7 -3)
+		src/idirectfb.c (1.51) (+100 -60)
+		src/directfb.c (1.39) (+25 -16)
+		src/Makefile.am (1.10) (+0 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.20) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.13) (+1 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.17) (+1 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.16) (+1 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.15) (+1 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.19) (+1 -1)
+		inputdrivers/ps2mouse/ps2mouse.c (1.27) (+19 -2)
+		include/directfb.h (1.84) (+1 -0)
+		gfxdrivers/neomagic/neomagic.h (1.5) (+2 -15)
+		gfxdrivers/neomagic/neomagic.c (1.10) (+0 -7)
+		gfxdrivers/neomagic/neo_overlay.c (1.5) (+240 -251)
+		gfxdrivers/neomagic/neo2200.c (1.8) (+3 -0)
+		gfxdrivers/matrox/matrox_bes.c (1.20) (+344 -293)
+		gfxdrivers/matrox/matrox.h (1.11) (+4 -39)
+		gfxdrivers/matrox/matrox.c (1.29) (+11 -14)
+		gfxdrivers/ati128/ati128_overlay.c (1.11) (+297 -253)
+		gfxdrivers/ati128/ati128.h (1.7) (+2 -26)
+		gfxdrivers/ati128/ati128.c (1.13) (+3 -9)
+	
+	Reworked display layer driver handling.
+	
+	Core structure DisplayLayer is no longer exported.
+	Added structures for driver functions and information.
+	Drivers call 'dfb_layers_register' during initialization.
+	
+	Generalized surface creation/reallocation of display layers.
+	Display layer drivers are cleaner now.
+	
+	Cleaned up layering code and added missing functions.
+	
+	Experimental mouse acceleration in PS/2 driver.
+	
+	Added options "mode=<width>x<height>" and "depth=<bpp>"
+	which select the startup mode and bit depth.
+	
+	Bit depths of fb.modes entries are ignored now when looking
+	for a requested mode. However, the default bit depth is the
+	one of the first entry.
+	
+	Added new fusion primitive 'FusionProperty' which is a lock
+	that automatically chooses between lock and try_lock behaviour.
+	Two different locking methods can be used for short locks, e.g.
+	window stack repaints, and long locks, e.g. exclusive layer access.
+	Both methods wait if the property is 'leased' and fail if the property
+	is 'purchased'. There's no implementation for the multi app core yet.
+	
+2002-04-11	01:51	<dok@convergence.de>
+
+	Files:	src/core/surfaces.c (1.34) (+5 -1)
+	
+	Added missing unlocks in dfb_surface_reformat_surface().
+	
+	Return success in dfb_surface_reallocate_buffer() if video instance
+	reallocation failed but a system instance exists.
+	
+	Window resizing deadlocks seem to have gone.
+	
+2002-04-05	14:35	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.50) (+2 -1)
+	
+	Small fix for multi app core compiling.
+	
+2002-03-26	09:38	<dok@convergence.de>
+
+	Files:	src/core/surfaces.c (1.33) (+3 -2)
+	
+	Tweaked surface buffer locking again, fixes the slow software stretch blit
+	after hardware blitting the same surface. So it wasn't the missing '-O3'.
+	
+2002-03-26	04:16	<dok@convergence.de>
+
+	Files:	src/core/vt.c (1.23) (+2 -0)
+	
+	Added a 40ms sleep after switching VTs. It seems to fix mouse problems
+	when starting applications from XFree. I know it's a hack, but it should
+	go away after VT handling rewrite.
+	
+2002-03-26	04:03	<dok@convergence.de>
+
+	Files:	configure.in (1.68) (+2 -2)
+	
+	Enable -O3 for debug mode, too. Stretched blits are REALLY slow without it (1-2 MPixel).
+	
+2002-03-26	03:28	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.23) (+2 -40)
+		src/core/vt.c (1.22) (+17 -0)
+	
+	Moved a bit code from keyboard driver to vt handling where it belongs.
+	
+2002-03-25	19:56	<neo@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.12) (+30 -16)
+		src/media/idirectfbfont.c (1.21) (+9 -4)
+		src/core/gfxcard.c (1.57) (+9 -5)
+		src/core/fonts.h (1.10) (+20 -18)
+	
+	Added support for vertical kerning.
+	Release the FreeType2 library when the last font provider is released.
+	
+2002-03-24	20:11	<dok@convergence.de>
+
+	Files:	src/core/vt.c (1.21) (+2 -2)
+		src/gfx/generic/generic.c (1.57) (+35 -3)
+	
+	Fixed software driver pixelformat tables (NULL padding).
+	
+	Commented out old code in dfb_vt_shutdown.
+	
+2002-03-24	13:46	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.22) (+5 -2)
+		inputdrivers/ps2mouse/ps2mouse.c (1.26) (+0 -9)
+	
+	Do TIOCNOTTY on /dev/tty0 instead of file descriptor 0.
+	This way XDirectFB works when started from linux console,
+	but I don't know why only XDirectFB failed. Don't know either
+	what TIOCNOTTY is, neither TIOCSCTTY. Time for a VT/TTY handling
+	rewrite in DirectFB.
+	
+	However, I added perror messages in case TIOCNOTTY or TIOCSCTTY fails.
+	
+	Strange result (df_window and XDirectFB show same behaviour now):
+	
+	from xterm:                       both ioctls fail
+	from linux console:               second ioctl fails
+	from linux console (with strace): first ioctl fails
+	
+	
+	Removed tcflush calls from PS/2 driver (inappropriate ioctl).
+	
+2002-03-23	04:18	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.55) (+34 -26)
+	
+	Fixed a bug that may have caused broken pulldown menus in GTK!
+	
+	handle_enter_leave_focus() did not check if the pointer is grabbed.
+	
+2002-03-22	19:21	<neo@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/Makefile.am (1.4) (+2 -2)
+		interfaces/IDirectFBVideoProvider/Makefile.am (1.5) (+3 -3)
+		interfaces/IDirectFBImageProvider/Makefile.am (1.4) (+3 -3)
+	
+	Removed -disable-static from LIBADDs.
+	
+2002-03-22	19:21	<dok@convergence.de>
+
+	Files:	README (1.24) (+1 -0)
+	
+	Added Martin Mueller to "Thanks To" section.
+	
+2002-03-22	18:30	<mm@convergence.de>
+
+	Files:	gfxdrivers/neomagic/neo_overlay.c (1.4) (+8 -5)
+	
+	
+	Added brightness control to neomagic video overlay
+	
+2002-03-21	22:03	<dok@convergence.de>
+
+	Files:	TODO (1.12) (+4 -0)
+	
+	added two lines
+	
+2002-03-21	21:59	<dok@convergence.de>
+
+	Files:	src/core/coredefs.h (1.10) (+8 -3)
+		src/misc/util.h (1.9) (+5 -1)
+		src/misc/util.c (1.7) (+21 -0)
+		src/gfx/generic/generic.c (1.56) (+10 -0)
+		src/core/windows.c (1.54) (+7 -1)
+		src/core/surfaces.c (1.32) (+5 -1)
+		src/core/layers.c (1.20) (+1 -3)
+	
+	Fixed crashes that sometimes occur during window resizing when another
+	thread is repainting the window stack.
+	
+	Print caution message after failing video instance reallocation only
+	if there is no system instance. If there is a system instance mark it
+	as valid.
+	
+	Removed redundant macro in 'layers.c'.
+	
+	Added same debug checks to gAcquire() as in dfb_gfxcard_state_acquire().
+	
+	Added dfb_get_millis() which returns the current time in milli seconds
+	after DirectFB startup (after first call of the function actually).
+	
+	Added PID and milli seconds after DirectFB startup to debug messages.
+	
+2002-03-18	21:05	<dok@convergence.de>
+
+	Files:	inputdrivers/dbox2remote/dbox2remote.c (1.7) (+4 -0)
+		src/core/sig.h (1.4) (+19 -0)
+		inputdrivers/sonypi/sonypi.c (1.2) (+4 -0)
+		inputdrivers/serialmouse/serialmouse.c (1.17) (+7 -0)
+		inputdrivers/ps2mouse/ps2mouse.c (1.25) (+4 -0)
+		inputdrivers/lirc/lirc.c (1.6) (+4 -0)
+		inputdrivers/keyboard/keyboard.c (1.21) (+5 -1)
+		inputdrivers/joystick/joystick.c (1.12) (+4 -0)
+		inputdrivers/h3600_ts/h3600_ts.c (1.8) (+4 -0)
+	
+	Added dfb_sig_block_all() which blocks all signals and should be called
+	at the beginning of each input thread. Otherwise signals may
+	arrive at the input thread which in turn (in signal handler) cancels
+	all input threads (including itself) during emergency shutdown.
+	
+2002-03-17	06:25	<dok@convergence.de>
+
+	Files:	TODO (1.11) (+2 -0)
+	
+	Added scrolling or panning for virtual window/layer sizes.
+	
+2002-03-17	06:03	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.53) (+2 -1)
+	
+	Treat windows with color keying enabled as transparent, so the background
+	gets cleared.
+	
+2002-03-17	05:32	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.h (1.22) (+1 -1)
+		src/core/surfaces.h (1.19) (+2 -0)
+		src/core/surfaces.c (1.31) (+17 -10)
+	
+	Reading from a surface with auto video policy which is stored in video
+	memory no longer pulls it into system memory.
+	
+	Changed surface reallocation behaviour. Surfaces already in video memory
+	stay there after reallocation.
+	
+2002-03-17	01:41	<dok@convergence.de>
+
+	Files:	TODO (1.10) (+0 -2)
+	
+	Removed color keyed window entry.
+	
+2002-03-17	01:40	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.83) (+32 -2)
+		src/windows/idirectfbwindow.c (1.26) (+48 -0)
+		src/core/windows.h (1.17) (+5 -2)
+		src/core/windows.c (1.52) (+9 -0)
+	
+	Added color keying for windows (e.g. for shaped windows).
+	
+	Added DFBWindowOptions having DWOP_COLORKEYING for now.
+	Added IDirectFBWindow::SetOptions and SetColorKey(r,g,b).
+	
+2002-03-17	01:34	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.25) (+0 -2)
+	
+	Removed debug printf I forgot.
+	
+2002-03-17	01:23	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.24) (+14 -16)
+		src/gfx/generic/generic.c (1.55) (+3 -3)
+	
+	Fixed colorkeying with simultaneous blending for ARGB surfaces
+	in software and Matrox (G200+) driver.
+	
+2002-03-16	22:57	<andi@convergence.de>
+
+	Files:	README (1.23) (+2 -4)
+		patches/Makefile.am (1.11) (+1 -3)
+	
+	- removed the paragraph from README mentioning the aty128fb and nvidia patches.
+	- removed neofb patch from Makefile.am
+	
+2002-03-15	17:20	<dok@convergence.de>
+
+	Files:	src/core/core.c (1.35) (+1 -0)
+	
+	Deinitialize layers in emergency shutdown (e.g. segfault).
+	
+2002-03-14	01:57	<andi@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.54) (+15 -9)
+	
+	- use lookup tables to convert rgb332 2/3bit color channels to precalculated 8bit values. now blending in rgb332 looks much better without affecting performance.
+	
+2002-03-11	23:54	<dok@convergence.de>
+
+	Files:	patches/README.neofb (1.3) (+0 -0)
+		patches/neofb-0.3.1-linux-2.4.18-pre6.patch.bz2 (1.2) (+0 -0)
+	
+	Finally neofb got itself into 2.4.19-pre3 ;)
+	
+2002-03-11	00:28	<dok@convergence.de>
+
+	Files:	src/core/surfacemanager.c (1.21) (+2 -0)
+		src/core/surfaces.c (1.30) (+12 -8)
+	
+	Sorry, the next time I will compile before committing.
+	
+2002-03-11	00:12	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.49) (+1 -3)
+	
+	Removed to old lines that caused doubled and interlaced modes not work.
+	
+2002-03-10	06:02	<dok@convergence.de>
+
+	Files:	src/core/surfaces.h (1.18) (+57 -39)
+	
+	Minor cleanup, converted defines to enums (CoreSurfaceHealth/Policy).
+	
+2002-03-09	01:51	<dok@convergence.de>
+
+	Files:	TODO (1.9) (+0 -2)
+	
+	Removed one ;)
+	
+2002-03-09	01:49	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.19) (+17 -0)
+	
+	Shift 8bit values to the right in RGB15 and RGB16.
+	
+2002-03-09	01:38	<dok@convergence.de>
+
+	Files:	gfxdrivers/ati128/ati128_overlay.c (1.10) (+3 -1)
+		src/display/idirectfbdisplaylayer.c (1.26) (+1 -6)
+		src/core/layers.h (1.17) (+3 -1)
+		src/core/fbdev.c (1.48) (+2 -2)
+		gfxdrivers/neomagic/neo_overlay.c (1.3) (+3 -1)
+		gfxdrivers/matrox/regs.h (1.8) (+14 -0)
+		gfxdrivers/matrox/matrox_bes.c (1.17) (+53 -44)
+		gfxdrivers/matrox/matrox_bes.c (1.18) (+2 -2)
+		gfxdrivers/matrox/matrox.h (1.10) (+2 -0)
+	
+	Changed internal parameters.
+	
+2002-03-09	00:00	<dok@convergence.de>
+
+	Files:	gfxdrivers/ati128/ati128_overlay.c (1.9) (+10 -3)
+		src/display/idirectfbdisplaylayer.c (1.25) (+29 -4)
+		src/core/layers.h (1.16) (+3 -1)
+		src/core/fbdev.c (1.47) (+10 -3)
+		include/directfb.h (1.82) (+29 -10)
+		gfxdrivers/neomagic/neo_overlay.c (1.2) (+11 -3)
+		gfxdrivers/matrox/matrox_bes.c (1.16) (+11 -3)
+	
+	Added destination colorkeying for display layers.
+	Not implemented by any driver yet.
+	
+	IDirectFBDisplayLayer::SetColorKey() is now called
+	IDirectFBDisplayLayer::SetSrcColorKey().
+	
+	Added IDirectFBDisplayLayer::SetDstColorKey().
+	
+	DLOP_COLORKEYING is DLOP_SRC_COLORKEY now.
+	DLCAPS_COLORKEYING is DLCAPS_SRC_COLORKEY now.
+	
+	Added DLOP_DST_COLORKEY and DLCAPS_DST_COLORKEY.
+	
+2002-03-08	03:45	<dok@convergence.de>
+
+	Files:	ChangeLog (1.17) (+135 -0)
+		TODO (1.8) (+17 -0)
+	
+	Added some more useful things needed before feature freeze.
+	Updated ChangeLog (no, it's not a release yet ;)
+	
 2002-03-08	02:59	<dok@convergence.de>
 
 	Files:	TODO (1.7) (+6 -0)

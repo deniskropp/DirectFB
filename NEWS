@@ -1,3 +1,37 @@
+0.9.10
+------
+
+- Added options "mode=<width>x<height>" and "depth=<bpp>".
+- Added SonyPI Jogdial input driver acting as a third axis and button.
+- Added a destination rectangle to IDirectFBImageProvider::RenderTo().
+- Added IDirectFBEventBuffer::HasEvent().
+- Added IDirectFBDisplayLayer::SetCursorAcceleration().
+- Added IDirectFBWindow::PutAtop and PutBelow for restacking windows relatively.
+- Added destination colorkeying for display layers (like Xv does).
+- Added IDirectFBWindow::SetOptions() and GetOptions().
+- Added color keying option for windows (e.g. for shaped windows).
+- Added window options to disable moving, resizing, stacking and destruction by
+  wm hack. Added an option to turn a window into a passive output only window.
+- Added brightness control to neomagic video overlay (by Martin Mueller).
+- Added tmpfs mount point detection by Sebastian Klemke <packet@convergence.de>.
+- The shared memory area is now reinitialized during startup if it already
+  existed, but with no DirectFB apps running. Other multi app core fixes.
+- Added more cleanup code, less IPC resource leakage after shutdown.
+- Bit depths of fb.modes entries are ignored now when looking for a requested
+  mode. However, the default bit depth is the one of the first entry.
+- Improved RGB332 rendering using precalculated lookup tables with 4/8 entries.
+- Greatly optimized 16Bit StretchBlit in generic driver doubling performance
+  on PowerPC systems (others than Intel/PowerPC not tested).
+- Windows can now be resized and destroyed via wm hack (CapsLock shortcuts).
+- Window stack compositing optimizations.
+- Simplified and cleaned up internal layer driver API.
+- Major code cleanups in windowing and layer core.
+- Fixed NeoMagic driver, that was broken in 0.9.9.
+- Fixed doubled and interlaced video modes.
+- Enhanced reference manual including an introduction to IDirectFB.
+- Many, many bug/stability fixes. More code commented. Bigger TODO file ;)
+
+
 0.9.9
 -----
 
