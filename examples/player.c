@@ -137,7 +137,7 @@ main (int argc, char *argv[])
      /* setup the labels */
      for (i=0; i<4; i++) {
           label[i] = lite_new_label( LITE_BOX(window),
-                                     10 - (i==1?1:0), 10 + i * 25, 85, 18 );
+                                     10, 10 + i * 25, 85, 18 );
 
           lite_set_label_text( label[i], channels[i] );
      }
