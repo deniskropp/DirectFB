@@ -2033,36 +2033,36 @@ extern "C"
       * An input event, item of an input buffer.
       */
      typedef struct {
-          DFBEventClass                 clazz;         /* clazz of event */
+          DFBEventClass                   clazz;      /* clazz of event */
 
-          DFBInputEventType             type;          /* type of event */
-          DFBInputDeviceID              device_id;     /* source of event */
-          DFBInputEventFlags            flags;         /* which fields are
-                                                          valid? */
+          DFBInputEventType               type;       /* type of event */
+          DFBInputDeviceID                device_id;  /* source of event */
+          DFBInputEventFlags              flags;      /* which fields are
+                                                         valid? */
 
-          struct timeval                timestamp;
+          struct timeval                  timestamp;
 
      /* DIET_KEYPRESS, DIET_KEYRELEASE, DIET_KEYREPEAT */
-          DFBInputDeviceKeyIdentifier   keycode;       /* in case of a key
-                                                          event */
-          unsigned char                 key_ascii;
-          unsigned short                key_unicode;
-          DFBInputDeviceModifierKeys    modifiers;     /* modifier keys as
-                                                          a bitmask */
-          DFBInputDeviceLockState       locks;     /* key lock state
-                                                          as a bitmask */
+          DFBInputDeviceKeyIdentifier     keycode;    /* in case of a key
+                                                         event */
+          unsigned char                   key_ascii;
+          unsigned short                  key_unicode;
+          DFBInputDeviceModifierKeys      modifiers;  /* modifier keys
+                                                         as a bitmask */
+          DFBInputDeviceLockState         locks;      /* key lock state
+                                                         as a bitmask */
 
      /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
-          DFBInputDeviceButtonIdentifier     button;   /* in case of a button
-                                                          event */
+          DFBInputDeviceButtonIdentifier  button;     /* in case of a button
+                                                         event */
 
      /* DIET_AXISMOTION */
-          DFBInputDeviceAxisIdentifier       axis;     /* in case of an axis
-                                                          event */
-          int                                axisabs;  /* absolute mouse/
-                                                          joystick coordinate */
-          int                                axisrel;  /* relative mouse/
-                                                          joystick movement */
+          DFBInputDeviceAxisIdentifier    axis;       /* in case of an axis
+                                                         event */
+          int                             axisabs;    /* absolute mouse/
+                                                         joystick coordinate */
+          int                             axisrel;    /* relative mouse/
+                                                         joystick movement */
      } DFBInputEvent;
 
      /*
@@ -2078,8 +2078,8 @@ extern "C"
           DWET_CLOSE          = 0x00000004,  /* closing this window has been
                                                 requested only */
           DWET_DESTROYED      = 0x00000008,  /* window got destroyed by global
-                                                deinitialization function or the
-                                                application itself */
+                                                deinitialization function or
+                                                the application itself */
           DWET_GOTFOCUS       = 0x00000010,  /* window got focus */
           DWET_LOSTFOCUS      = 0x00000020,  /* window lost focus */
 
@@ -2157,10 +2157,10 @@ extern "C"
       * General container for a DirectFB Event.
       */
      typedef union {
-          DFBEventClass            clazz;    /* clazz of event */
-          DFBInputEvent            input;    /* field for input events */
-          DFBWindowEvent           window;   /* field for window events */
-          DFBUserEvent             user;     /* field for user-defined events */
+          DFBEventClass            clazz;   /* clazz of event */
+          DFBInputEvent            input;   /* field for input events */
+          DFBWindowEvent           window;  /* field for window events */
+          DFBUserEvent             user;    /* field for user-defined events */
      } DFBEvent;
 
      #define DFB_EVENT(e)          ((DFBEvent *) (e))
