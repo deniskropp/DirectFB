@@ -38,7 +38,7 @@ idirectfbimageprovider_LTLIBRARIES = \
 	$(PNG_PROVIDER_LTLIB)
 
 if BUILD_STATIC
-#idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
+idirectfbimageprovider_DATA = $(idirectfbimageprovider_LTLIBRARIES:.la=.o)
 endif
 
 
@@ -68,4 +68,4 @@ libidirectfbimageprovider_jpeg_la_LIBADD = $(LIBJPEG)
 libidirectfbimageprovider_jpeg_la_LDFLAGS = -avoid-version -module
 
 
-#include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libobject.make

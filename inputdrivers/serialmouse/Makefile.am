@@ -9,7 +9,7 @@ INCLUDES = \
 serialmouse_LTLIBRARIES = libdirectfb_serialmouse.la
 
 if BUILD_STATIC
-#serialmouse_DATA = $(serialmouse_LTLIBRARIES:.la=.o)
+serialmouse_DATA = $(serialmouse_LTLIBRARIES:.la=.o)
 endif
 
 serialmousedir = $(MODULEDIR)/inputdrivers
@@ -22,5 +22,5 @@ libdirectfb_serialmouse_la_LDFLAGS = \
         $(DFB_LDFLAGS)
 
 
-#include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libobject.make
 	

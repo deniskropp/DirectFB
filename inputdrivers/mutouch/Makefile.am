@@ -9,7 +9,7 @@ INCLUDES = \
 input_LTLIBRARIES = libdirectfb_mutouch.la
 
 if BUILD_STATIC
-#input_DATA = $(input_LTLIBRARIES:.la=.o)
+input_DATA = $(input_LTLIBRARIES:.la=.o)
 endif
 
 inputdir = $(MODULEDIR)/inputdrivers
@@ -22,5 +22,5 @@ libdirectfb_mutouch_la_LDFLAGS = \
         $(DFB_LDFLAGS)
 
 
-#include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libobject.make
 	

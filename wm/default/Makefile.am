@@ -11,7 +11,7 @@ INCLUDES = \
 wmdir = $(MODULEDIR)/wm
 
 if BUILD_STATIC
-#wm_DATA = libdirectfbwm_default.o
+wm_DATA = libdirectfbwm_default.o
 endif
 
 wm_LTLIBRARIES = libdirectfbwm_default.la
@@ -25,4 +25,4 @@ libdirectfbwm_default_la_SOURCES = \
 	default.c
 
 
-#include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libobject.make

@@ -10,7 +10,7 @@ INCLUDES = \
 keyboard_LTLIBRARIES = libdirectfb_keyboard.la
 
 if BUILD_STATIC
-#keyboard_DATA = $(keyboard_LTLIBRARIES:.la=.o)
+keyboard_DATA = $(keyboard_LTLIBRARIES:.la=.o)
 endif
 
 keyboarddir = $(MODULEDIR)/inputdrivers
@@ -24,5 +24,5 @@ libdirectfb_keyboard_la_LDFLAGS = \
         $(DFB_LDFLAGS)
 
 
-#include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libobject.make
 	

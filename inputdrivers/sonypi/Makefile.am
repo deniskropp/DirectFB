@@ -9,7 +9,7 @@ INCLUDES = \
 sonypi_LTLIBRARIES = libdirectfb_sonypi.la
 
 if BUILD_STATIC
-#sonypi_DATA = $(sonypi_LTLIBRARIES:.la=.o)
+sonypi_DATA = $(sonypi_LTLIBRARIES:.la=.o)
 endif
 
 sonypidir = $(MODULEDIR)/inputdrivers
@@ -23,5 +23,5 @@ libdirectfb_sonypi_la_LDFLAGS = \
         $(DFB_LDFLAGS)
 
 
-#include $(top_srcdir)/rules/libobject.make
+include $(top_srcdir)/rules/libobject.make
 	
