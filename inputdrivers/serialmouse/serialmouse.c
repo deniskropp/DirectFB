@@ -177,6 +177,7 @@ void* mouseEventThread_ms(void *device)
                          packet[3] = buf[i+1];
                          if (packet[3] & 0x40)
                               break;
+                         i++;
                          if (packet[3] & 0x20)
                               buttons |= MIDDLE;
                          break;
