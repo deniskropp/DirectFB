@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.11 $
+ * $Revision: 1.12 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -495,9 +495,10 @@ static int
 driver_probe(GraphicsDevice *device)
 {
    Gal_initialize_interface();
-   if(Gal_get_adapter_info(&sAdapterInfo))
-      return 1;
-   return 0;
+   if(!Gal_get_adapter_info(&sAdapterInfo))
+      return 0;
+      
+   return sAdapterInfo.dwFrameBufferBase == dfb_gfxcard_memory_physical( device, 0 );
 }
 
 static void
