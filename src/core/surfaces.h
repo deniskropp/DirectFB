@@ -193,6 +193,13 @@ DFBResult dfb_surface_reformat( CoreSurface           *surface,
                                 DFBSurfacePixelFormat  format );
 
 /*
+ * Change policies of buffers.
+ */
+DFBResult dfb_surface_reconfig( CoreSurface       *surface,
+                                CoreSurfacePolicy  front_policy,
+                                CoreSurfacePolicy  back_policy );
+
+/*
  * helper function
  */
 static inline void dfb_surface_notify_listeners( CoreSurface *surface,

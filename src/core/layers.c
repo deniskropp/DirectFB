@@ -1342,7 +1342,7 @@ allocate_surface( DisplayLayer *layer )
                     break;
 
                case DLBM_BACKSYSTEM:
-                    ONCE("DLBM_BACKSYSTEM is unimplemented");
+                    ONCE("DLBM_BACKSYSTEM in default config is unimplemented");
                     break;
 
                default:
@@ -1369,14 +1369,36 @@ reallocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
                                                   layer->layer_data, config,
                                                   shared->surface );
 
-     /* FIXME: implement buffer mode changes */
-     if (shared->config.buffermode != config->buffermode) {
-          ONCE("Changing the buffermode of layers is unimplemented!");
-          return DFB_UNIMPLEMENTED;
-     }
-
      /* FIXME: write surface management functions
                for easier configuration changes */
+     
+     if (shared->config.buffermode != config->buffermode) {
+          switch (config->buffermode) {
+               case DLBM_BACKVIDEO:
+                    shared->surface->caps |= DSCAPS_FLIPPING;
+                    ret = dfb_surface_reconfig( shared->surface,
+                                                CSP_VIDEOONLY, CSP_VIDEOONLY );
+                    break;
+               case DLBM_BACKSYSTEM:
+                    shared->surface->caps |= DSCAPS_FLIPPING;
+                    ret = dfb_surface_reconfig( shared->surface,
+                                                CSP_VIDEOONLY, CSP_SYSTEMONLY );
+                    break;
+               case DLBM_FRONTONLY:
+                    shared->surface->caps &= ~DSCAPS_FLIPPING;
+                    ret = dfb_surface_reconfig( shared->surface,
+                                                CSP_VIDEOONLY, CSP_VIDEOONLY );
+                    break;
+               
+               default:
+                    BUG("unknown buffermode");
+                    break;
+          }
+          
+          if (ret)
+               return ret;
+     }
+
      ret = dfb_surface_reformat( shared->surface, config->width,
                                  config->height, config->pixelformat );
      if (ret)

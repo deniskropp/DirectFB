@@ -261,7 +261,7 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
 
 
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
-                                            CSNF_SYSTEM | CSNF_VIDEO );
+                                   CSNF_SYSTEM | CSNF_VIDEO );
 
      skirmish_dismiss( &surface->front_lock );
      skirmish_dismiss( &surface->back_lock );
@@ -276,7 +276,7 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
      DFB_ASSERT(surface->back_buffer->policy == surface->front_buffer->policy);
 
      dfb_surfacemanager_lock( surface->manager );
-     
+
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
 
@@ -285,7 +285,7 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
      surface->back_buffer = tmp;
 
      dfb_surfacemanager_unlock( surface->manager );
-     
+
      dfb_surface_notify_listeners( surface, CSNF_FLIP );
 
      skirmish_dismiss( &surface->front_lock );
@@ -457,7 +457,7 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
           if (buffer->system.locked)
                buffer->system.locked--;
-          
+
           if (buffer->video.locked)
                buffer->video.locked--;
 
@@ -468,7 +468,7 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
           if (buffer->system.locked)
                buffer->system.locked--;
-          
+
           if (buffer->video.locked)
                buffer->video.locked--;
 
@@ -579,22 +579,22 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface *surface, int policy,
                                                              b->system.pitch) );
                break;
           case CSP_VIDEOONLY: {
-               DFBResult ret;
+                    DFBResult ret;
 
-               dfb_surfacemanager_lock( surface->manager );
+                    dfb_surfacemanager_lock( surface->manager );
 
-               ret = dfb_surfacemanager_allocate( surface->manager, b );
+                    ret = dfb_surfacemanager_allocate( surface->manager, b );
 
-               dfb_surfacemanager_unlock( surface->manager );
+                    dfb_surfacemanager_unlock( surface->manager );
 
-               if (ret) {
-                    shfree( b );
-                    return ret;
+                    if (ret) {
+                         shfree( b );
+                         return ret;
+                    }
+
+                    b->video.health = CSH_STORED;
+                    break;
                }
-
-               b->video.health = CSH_STORED;
-               break;
-          }
      }
 
      *buffer = b;
@@ -618,10 +618,10 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface   *surface,
 
           shfree( buffer->system.addr );
           buffer->system.addr = shmalloc(
-               DFB_PLANE_MULTIPLY(surface->format,
-                                  surface->height * buffer->system.pitch) );
+                                        DFB_PLANE_MULTIPLY(surface->format,
+                                                           surface->height * buffer->system.pitch) );
      }
-     
+
      if (buffer->video.health) {
           /* FIXME: better support video instance reallocation */
           dfb_surfacemanager_deallocate( surface->manager, buffer );
@@ -658,5 +658,61 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
      dfb_surfacemanager_unlock( surface->manager );
 
      shfree( buffer );
+}
+
+DFBResult dfb_surface_reconfig( CoreSurface       *surface,
+                                CoreSurfacePolicy  front_policy,
+                                CoreSurfacePolicy  back_policy ) 
+{
+     DFBResult ret;
+     SurfaceBuffer *old_front, *old_back;
+
+     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
+         surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
+     {
+          return DFB_UNSUPPORTED;
+     }
+
+     dfb_surfacemanager_lock( surface->manager );
+     skirmish_prevail( &surface->front_lock );
+     skirmish_prevail( &surface->back_lock );
+     dfb_surfacemanager_unlock( surface->manager );
+
+     old_front = surface->front_buffer;
+     old_back = surface->back_buffer;
+
+     ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
+     if (ret) {
+          skirmish_dismiss( &surface->front_lock );
+          skirmish_dismiss( &surface->back_lock );
+          return ret;
+     }
+
+     if (surface->caps & DSCAPS_FLIPPING) {
+          ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
+          if (ret) {
+               dfb_surface_deallocate_buffer( surface, surface->front_buffer );
+               surface->front_buffer = old_front;
+
+               skirmish_dismiss( &surface->front_lock );
+               skirmish_dismiss( &surface->back_lock );
+               return ret;
+          }
+     }
+     else {
+          surface->back_buffer = surface->front_buffer;
+     }
+
+     dfb_surface_deallocate_buffer( surface, old_front );
+     if (old_front != old_back)
+          dfb_surface_deallocate_buffer ( surface, old_back );
+
+     dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT |
+                                   CSNF_SYSTEM | CSNF_VIDEO );
+
+     skirmish_dismiss( &surface->front_lock );
+     skirmish_dismiss( &surface->back_lock );
+
+     return DFB_OK;
 }
 
