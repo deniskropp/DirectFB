@@ -47,6 +47,7 @@
 #include "misc/mem.h"
 #include "misc/util.h"
 
+#include "gfx/util.h"
 
 /*
  * private data struct of IDirectFB
@@ -70,7 +71,7 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
                      IDirectFBSurface_listener, thiz );
 
      thiz->Unlock( thiz );
-     
+
      if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
           data->base.caps & DSCAPS_PRIMARY)
      {
@@ -80,7 +81,7 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 
      if (data->base.font)
           data->base.font->Release (data->base.font);
-     
+
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
@@ -103,6 +104,8 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
                                         DFBRegion *region,
                                         DFBSurfaceFlipFlags flags )
 {
+     DFBRegion reg;
+
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      if (data->base.locked)
@@ -112,24 +115,41 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
           return DFB_INVAREA;
 
 
-     if (flags & DSFLIP_WAITFORSYNC)
-          fbdev_wait_vsync();
-
-
      if (region) {
-          DFBRegion    reg  = *region;
-          DFBRectangle rect = data->base.area.current;
+          reg = *region;
 
           reg.x1 += data->base.area.wanted.x;
           reg.x2 += data->base.area.wanted.x;
           reg.y1 += data->base.area.wanted.y;
           reg.y2 += data->base.area.wanted.y;
 
-          if (rectangle_intersect_by_unsafe_region( &rect, &reg ))
-               window_repaint( data->window, &rect );
+          if (!unsafe_region_rectangle_intersect( &reg, &data->base.area.current ))
+               return DFB_OK;
      }
-     else
-          window_repaint( data->window, &data->base.area.current );
+     else {
+          reg.x1 = data->base.area.current.x;
+          reg.y1 = data->base.area.current.y;
+          reg.x2 = data->base.area.current.x + data->base.area.current.w - 1;
+          reg.y2 = data->base.area.current.y + data->base.area.current.h - 1;
+     }
+
+     if (data->window->surface->caps & DSCAPS_FLIPPING) {
+          DFBRectangle rect = { reg.x1, reg.y1,
+                                reg.x2 - reg.x1 + 1,
+                                reg.y2 - reg.y1 + 1 };
+
+          if (rect.x == 0 && rect.y == 0 &&
+              rect.w == data->window->width &&
+              rect.h == data->window->height)
+               surface_flip_buffers( data->window->surface );
+          else
+               back_to_front_copy( data->window->surface, &rect );
+     }
+
+     if (flags & DSFLIP_WAITFORSYNC)
+          fbdev_wait_vsync();
+
+     window_repaint( data->window, &reg );
 
      return DFB_OK;
 }

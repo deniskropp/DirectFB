@@ -61,6 +61,7 @@
 
 #include "misc/conf.h"
 #include "misc/mem.h"
+#include "misc/util.h"
 
 
 typedef struct _DFBSuspendResumeHandler {
@@ -479,10 +480,10 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
      /*  read the first 32 bytes  */
      fd = open (filename, O_RDONLY);
      if (fd == -1)
-          return DFB_FILENOTFOUND;
-     ctx = DFBMALLOC(32);
+          return errno2dfb( errno );
+
+     ctx = alloca(32);
      if (read (fd, ctx, 32) < 32) {
-          DFBFREE(ctx);
           close (fd);
           return DFB_IO;
      }
@@ -490,9 +491,6 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
 
      ret = DFBGetInterface( &impl, "IDirectFBImageProvider", NULL,
                             image_probe, ctx );
-
-     DFBFREE(ctx);
-
      if (ret)
           return ret;
 

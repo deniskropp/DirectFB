@@ -72,6 +72,15 @@ DFBResult surface_create( int width, int height, int format, int policy,
      s->format = format;
      s->caps = caps;
 
+     switch (policy) {
+          case CSP_SYSTEMONLY:
+               s->caps |= DSCAPS_SYSTEMONLY;
+               break;
+          case CSP_VIDEOONLY:
+               s->caps |= DSCAPS_VIDEOONLY;
+               break;
+     }
+
      ret = surface_allocate_buffer( s, policy, &s->front_buffer );
      if (ret) {
           DFBFREE( s );
@@ -339,7 +348,7 @@ void surface_destroy( CoreSurface *surface )
 
      pthread_mutex_destroy( &surface->front_lock );
      pthread_mutex_destroy( &surface->back_lock );
-     
+
      surface_deallocate_buffer( surface->front_buffer );
 
      if (surface->back_buffer != surface->front_buffer)

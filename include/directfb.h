@@ -475,7 +475,16 @@ extern "C"
       * Capabilities a window can have.
       */
      typedef enum {
-          DWCAPS_ALPHACHANNEL = 0x00000001   /* window has an alphachannel */
+          DWCAPS_ALPHACHANNEL = 0x00000001,  /* The window has an alphachannel
+                                                for pixel-per-pixel blending. */
+          DWCAPS_DOUBLEBUFFER = 0x00000002   /* The window's surface is double
+                                                buffered. This is very useful
+                                                to avoid visibility of content
+                                                that is still in preparation.
+                                                Normally a window's content can
+                                                get visible before an update if
+                                                there is another reason causing
+                                                a window stack repaint. */
      } DFBWindowCapabilities;
 
 

@@ -172,9 +172,9 @@ int window_lowertobottom( CoreWindow *window );
 int window_set_opacity( CoreWindow *window, __u8 opacity );
 
 /*
- * repaints part of a window, if rect is NULL, whole window is repainted
+ * repaints part of a window, if region is NULL the whole window is repainted
  */
-int window_repaint( CoreWindow *window, DFBRectangle *rect );
+int window_repaint( CoreWindow *window, DFBRegion *region );
 
 /*
  * request a window to gain focus

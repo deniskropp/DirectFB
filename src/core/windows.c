@@ -51,8 +51,7 @@
 
 #define min(a,b)     ((a) < (b) ? (a) : (b))
 
-static void windowstack_repaint( CoreWindowStack *stack,
-                                 int x, int y, int width, int height );
+static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
 static ReactionResult windowstack_inputdevice_react( const void *msg_data,
@@ -172,6 +171,9 @@ void window_remove( CoreWindow *window )
 {
      int i;
      CoreWindowStack *stack = window->stack;
+     DFBRegion region = { window->x, window->y,
+                          window->x + window->width - 1,
+                          window->y + window->height - 1 };
 
      pthread_mutex_lock( &stack->update );
 
@@ -208,8 +210,7 @@ void window_remove( CoreWindow *window )
 
      pthread_mutex_unlock( &stack->update );
 
-     windowstack_repaint( stack, window->x, window->y,
-                          window->width, window->height );
+     windowstack_repaint( stack, &region );
 
      {
           DFBWindowEvent evt;
@@ -227,7 +228,11 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
                            unsigned int width, unsigned int height,
                            unsigned int caps )
 {
-     CoreWindow* window;
+     DFBResult               ret;
+     int                     surface_policy;
+     DFBSurfacePixelFormat   surface_format;
+     DFBSurfaceCapabilities  surface_caps;
+     CoreWindow             *window;
 
      window = (CoreWindow*) DFBCALLOC( 1, sizeof(CoreWindow) );
 
@@ -241,13 +246,26 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
 
      window->stack = stack;
 
-     if (caps & DWCAPS_ALPHACHANNEL)
-          surface_create( width, height, DSPF_ARGB, stack->wsp_alpha,
-                          DSCAPS_NONE, &window->surface );
-     else
-          surface_create( width, height, stack->layer->surface->format,
-                          stack->wsp_opaque, DSCAPS_NONE, &window->surface );
+     if (caps & DWCAPS_ALPHACHANNEL) {
+          surface_policy = stack->wsp_alpha;
+          surface_format = DSPF_ARGB;
+     }
+     else {
+          surface_policy = stack->wsp_opaque;
+          surface_format = stack->layer->surface->format;
+     }
 
+     if (caps & DWCAPS_DOUBLEBUFFER)
+          surface_caps = DSCAPS_FLIPPING;
+     else
+          surface_caps = DSCAPS_NONE;
+
+     ret = surface_create( width, height, surface_format, surface_policy,
+                           surface_caps, &window->surface );
+     if (ret) {
+          DFBFREE( window );
+          return NULL;
+     }
 
      window->reactor = reactor_new();
 
@@ -303,8 +321,11 @@ int window_raise( CoreWindow *window )
      pthread_mutex_unlock( &stack->update );
 
      if (update && window->opacity) {
-          windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height );
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
+
+          windowstack_repaint( stack, &region );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -335,8 +356,11 @@ int window_lower( CoreWindow *window )
      pthread_mutex_unlock( &stack->update );
 
      if (update && window->opacity) {
-          windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height );
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
+
+          windowstack_repaint( stack, &region );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -371,8 +395,11 @@ int window_raisetotop( CoreWindow *window )
      pthread_mutex_unlock( &stack->update );
 
      if (update && window->opacity) {
-          windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height );
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
+
+          windowstack_repaint( stack, &region );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -403,8 +430,11 @@ int window_lowertobottom( CoreWindow *window )
      pthread_mutex_unlock( &stack->update );
 
      if (update && window->opacity) {
-          windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height );
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
+
+          windowstack_repaint( stack, &region );
 
           windowstack_handle_enter_leave_focus( stack );
      }
@@ -415,31 +445,26 @@ int window_lowertobottom( CoreWindow *window )
 int window_move( CoreWindow *window, int dx, int dy )
 {
      CoreWindowStack *stack = window->stack;
-     int rx = window->x;
-     int ry = window->y;
-     int rw = window->width;
-     int rh = window->height;
 
      window->x += dx;
      window->y += dy;
 
      if (window->opacity) {
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
 
           if (dx > 0)
-               rw += dx;
-          if (dx < 0) {
-               rw -= dx;
-               rx += dx;
-          }
+               region.x1 -= dx;
+          else if (dx < 0)
+               region.x2 -= dx;
 
           if (dy > 0)
-               rh += dy;
-          if (dy < 0) {
-               rh -= dy;
-               ry += dy;
-          }
+               region.y1 -= dy;
+          else if (dy < 0)
+               region.y2 -= dy;
 
-          windowstack_repaint( stack, rx, ry, rw, rh );
+          windowstack_repaint( stack, &region );
      }
 
      if (!(window->caps & DWHC_GHOST)) {
@@ -467,8 +492,11 @@ int window_resize( CoreWindow *window, unsigned int width, unsigned int height )
      window->height = window->surface->height;
 
      if (window->opacity) {
-          windowstack_repaint( stack, window->x, window->y,
-                               MAX(ow, width), MAX(oh, height) );
+          DFBRegion region = { window->x, window->y,
+                               window->x + MAX(ow, width) - 1,
+                               window->y + MAX(oh, height) - 1 };
+
+          windowstack_repaint( stack, &region );
      }
 
      if (!(window->caps & DWHC_GHOST)) {
@@ -489,12 +517,13 @@ int window_set_opacity( CoreWindow *window, __u8 opacity )
      CoreWindowStack *stack = window->stack;
 
      if (old_opacity != opacity) {
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
 
           window->opacity = opacity;
 
-          /* window_repaint() refuses repainting invisible windows */
-          windowstack_repaint( stack, window->x, window->y,
-                               window->width, window->height );
+          windowstack_repaint( stack, &region );
 
           if ((old_opacity && !opacity) || (!old_opacity && opacity))
                windowstack_handle_enter_leave_focus( stack );
@@ -503,17 +532,27 @@ int window_set_opacity( CoreWindow *window, __u8 opacity )
      return DFB_OK;
 }
 
-int window_repaint( CoreWindow *window, DFBRectangle *rect )
+int window_repaint( CoreWindow *window, DFBRegion *region )
 {
-     if (window->opacity) {
-          CoreWindowStack *stack = window->stack;
+     CoreWindowStack *stack = window->stack;
 
-          if (!rect)
-               windowstack_repaint( stack, window->x, window->y,
-                                    window->width, window->height );
-          else
-               windowstack_repaint( stack, rect->x + window->x,
-                                    rect->y + window->y, rect->w, rect->h );
+     if (!window->opacity)
+          return DFB_OK;
+
+     if (region) {
+          region->x1 += window->x;
+          region->x2 += window->x;
+          region->y1 += window->y;
+          region->y2 += window->y;
+
+          windowstack_repaint( stack, region );
+     }
+     else {
+          DFBRegion reg = { window->x, window->y,
+                            window->x + window->width - 1,
+                            window->y + window->height - 1 };
+
+          windowstack_repaint( stack, &reg );
      }
 
      return DFB_OK;
@@ -613,8 +652,9 @@ int window_request_focus( CoreWindow *window )
 void windowstack_repaint_all( CoreWindowStack *stack )
 {
      CoreSurface *surface = stack->layer->surface;
+     DFBRegion    region  = { 0, 0, surface->width -1, surface->height - 1 };
 
-     windowstack_repaint( stack, 0, 0, surface->width, surface->height );
+     windowstack_repaint( stack, &region );
 }
 
 /*
@@ -721,37 +761,35 @@ static void update_region( CoreWindowStack *stack, int window,
      }
 }
 
-static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
-                                 int width, int height )
+static void windowstack_repaint( CoreWindowStack *stack, DFBRegion *region )
 {
      DisplayLayer *layer   = stack->layer;
      CoreSurface  *surface = layer->surface;
-     DFBRegion     region  = { x, y, x + width - 1, y + height - 1 };
 
      if (layer->exclusive)
           return;
 
-     if (!region_intersect( &region, 0, 0,
+     if (!region_intersect( region, 0, 0,
                             surface->width - 1, surface->height - 1 ))
           return;
 
      pthread_mutex_lock( &stack->update );
 
      update_region( stack, stack->num_windows - 1,
-                    region.x1, region.y1, region.x2, region.y2 );
+                    region->x1, region->y1, region->x2, region->y2 );
 
      if (surface->caps & DSCAPS_FLIPPING) {
-          if (region.x1 == 0 &&
-              region.y1 == 0 &&
-              region.x2 == layer->width - 1 &&
-              region.y2 == layer->height - 1)
+          if (region->x1 == 0 &&
+              region->y1 == 0 &&
+              region->x2 == layer->width - 1 &&
+              region->y2 == layer->height - 1)
           {
                layer->FlipBuffers( layer );
           }
           else {
-               DFBRectangle rect = { region.x1, region.y1,
-                                     region.x2 - region.x1 + 1,
-                                     region.y2 - region.y1 + 1 };
+               DFBRectangle rect = { region->x1, region->y1,
+                                     region->x2 - region->x1 + 1,
+                                     region->y2 - region->y1 + 1 };
 
                back_to_front_copy( surface, &rect );
           }
