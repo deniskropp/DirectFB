@@ -806,10 +806,10 @@ dfb_window_set_opacity( CoreWindow *window,
                
                /* Ungrab pointer/keyboard */
                window_withdraw( window );
+               
+               /* Always try to have a focused window */
+               ensure_focus( stack );
           }
-          
-          /* Always try to have a focused window */
-          ensure_focus( stack );
           
           stack_unlock( stack );
      }
