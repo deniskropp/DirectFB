@@ -1392,7 +1392,7 @@ reallocate_surface( DisplayLayer *layer, DFBDisplayLayerConfig *config )
                
                default:
                     BUG("unknown buffermode");
-                    break;
+                    return DFB_BUG;
           }
           
           if (ret)
