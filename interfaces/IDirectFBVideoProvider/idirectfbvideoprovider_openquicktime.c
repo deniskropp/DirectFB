@@ -22,12 +22,19 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <sys/time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
 #include <malloc.h>
+
+#include <sys/types.h>
+#include <sys/time.h>
+#include <sys/stat.h>
+#include <sys/ioctl.h>
+#include <fcntl.h>
+
+#include <sys/soundcard.h>
 
 #include <pthread.h>
 
@@ -69,13 +76,32 @@ typedef struct {
 
          unsigned char    *buffer;
 
-         pthread_t         thread;
-         pthread_mutex_t   lock;
-
          int               yuv;
          int               playing;
          int               seeked;
+
+         pthread_t         thread;
+         pthread_mutex_t   lock;
     } video;
+
+    struct {
+         int               available;
+
+         int               bits;
+         long              rate;
+         int               channels;
+         long              length;
+
+         int               fd;
+         int               block_size;
+         int               samples_per_block;
+
+         int               playing;
+         int               seeked;
+
+         pthread_t         thread;
+         pthread_mutex_t   lock;
+    } audio;
 
     struct {
          int               supported;
@@ -95,6 +121,12 @@ typedef struct {
     void                  *ctx;
 } IDirectFBVideoProvider_OpenQuicktime_data;
 
+/* OSS sound playback */
+static DFBResult OpenSound ( IDirectFBVideoProvider_OpenQuicktime_data *data );
+static DFBResult CloseSound( IDirectFBVideoProvider_OpenQuicktime_data *data );
+
+
+/* interface implementation */
 
 static void
 IDirectFBVideoProvider_OpenQuicktime_Destruct( IDirectFBVideoProvider *thiz )
@@ -113,6 +145,7 @@ IDirectFBVideoProvider_OpenQuicktime_Destruct( IDirectFBVideoProvider *thiz )
     DFBFREE( data->rgb.lines );
 
     pthread_mutex_destroy( &data->video.lock );
+    pthread_mutex_destroy( &data->audio.lock );
 
     DFBFREE( data->filename );
 
@@ -171,10 +204,10 @@ IDirectFBVideoProvider_OpenQuicktime_GetSurfaceDescription(
     if (!desc)
         return DFB_INVARG;
 
-    desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-    desc->width  = quicktime_video_width( data->file, 0 );
-    desc->height = quicktime_video_height( data->file, 0 );
-    desc->pixelformat = layers->shared->surface->format;
+    desc->flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+    desc->width       = quicktime_video_width( data->file, 0 );
+    desc->height      = quicktime_video_height( data->file, 0 );
+    desc->pixelformat = DSPF_YUY2;
 
     return DFB_OK;
 }
@@ -212,14 +245,12 @@ RGBA_to_RGB16( void *d, void *s, int len )
 {
      int    i;
      __u16 *dst = (__u16*) d;
-     __u32 *src = (__u32*) s;
+     __u8  *src = (__u8*) s;
 
      for (i=0; i<len; i++) {
-          __u32 abgr = src[i];
+          dst[i] = PIXEL_RGB16( src[0], src[1], src[2] );
 
-          dst[i] = ((abgr <<  8) & 0xF800) |
-                   ((abgr >>  5) & 0x07E0) |
-                   ((abgr >> 19) & 0x001F);
+          src += 4;
      }
 }
 
@@ -433,18 +464,20 @@ VideoThread( void *ctx )
 {
      IDirectFBVideoProvider_OpenQuicktime_data *data =
           (IDirectFBVideoProvider_OpenQuicktime_data*) ctx;
+
      struct timeval start, after;
-     long  frame_delay;
-     long  delay = -1;
+
+     long   frame_delay;
+     long   delay = -1;
      double rate;
-     int   drop = 0;
-     long  frame, start_frame = 0;
-     long  frames;
+     int    drop = 0;
+     long   frame, start_frame = 0;
+     long   frames;
 
-     rate = quicktime_frame_rate( data->file, 0 ) / 1000.0;
-     frame_delay = (long) (1000 / quicktime_frame_rate( data->file, 0 ));
+     rate = data->video.rate / 1000.0;
+     frame_delay = (long) (1000 / data->video.rate);
 
-     frames = quicktime_video_length( data->file, 0 );
+     frames = data->video.length;
      if (frames == 1)
           frames = -1;
 
@@ -452,6 +485,11 @@ VideoThread( void *ctx )
 
      while (data->video.playing) {
           pthread_mutex_lock( &data->video.lock );
+
+          if (!data->video.playing) {
+               pthread_mutex_unlock( &data->video.lock );
+               break;
+          }
 
           if (data->video.seeked) {
                drop = 0;
@@ -515,13 +553,92 @@ VideoThread( void *ctx )
 
           select( 0, 0, 0, 0, &after );
 
-          /*  jump to start if arrived at last frame  */
+          /* jump to start if arrived at last frame  */
           if (frame == frames) {
                pthread_mutex_lock( &data->video.lock );
+               pthread_mutex_lock( &data->audio.lock );
                quicktime_seek_start( data->file );
                data->video.seeked = 1;
+               data->audio.seeked = 1;
+               pthread_mutex_unlock( &data->audio.lock );
                pthread_mutex_unlock( &data->video.lock );
           }
+     }
+
+     return NULL;
+}
+
+static void*
+AudioThread( void *ctx )
+{
+     IDirectFBVideoProvider_OpenQuicktime_data *data =
+          (IDirectFBVideoProvider_OpenQuicktime_data*) ctx;
+
+     __s16 buffer[data->audio.samples_per_block * data->audio.channels];
+     __s16 left[data->audio.samples_per_block];
+     __s16 right[data->audio.samples_per_block];
+
+     /* calculate audio position */
+     long audio_pos = (long) ((double)quicktime_video_position (data->file, 0) *
+                              (double)data->audio.rate /
+                              (double)data->video.rate);
+
+     /* seek audio */
+     quicktime_set_audio_position( data->file, audio_pos, 0 );
+
+     data->audio.seeked = 1;
+
+     while (data->audio.playing) {
+          pthread_mutex_lock( &data->audio.lock );
+
+          if (!data->audio.playing) {
+               pthread_mutex_unlock( &data->audio.lock );
+               break;
+          }
+
+          if (data->audio.seeked) {
+               ioctl( data->audio.fd, SNDCTL_DSP_RESET, 0 );
+               data->audio.seeked = 0;
+          }
+
+          if (data->audio.channels == 1) {
+               long pos = quicktime_audio_position( data->file, 0 );
+
+               /* mono */
+               if ((pos < 0) ||
+                   (pos + data->audio.samples_per_block) >= data->audio.length ||
+                   quicktime_decode_audio( data->file, buffer, NULL,
+                                           data->audio.samples_per_block, 0 ))
+                    memset( buffer, 0, data->audio.block_size );
+
+               write( data->audio.fd, buffer, data->audio.block_size );
+          }
+          else {
+               long pos = quicktime_audio_position( data->file, 0 );
+
+               /* stereo */
+               if ((pos < 0) ||
+                   (pos + data->audio.samples_per_block) >= data->audio.length ||
+                   quicktime_decode_audio( data->file, left, NULL,
+                                           data->audio.samples_per_block, 0 ))
+                    memset( buffer, 0, data->audio.block_size );
+               else {
+                    int i;
+
+                    quicktime_set_audio_position( data->file, pos, 0 );
+                    quicktime_decode_audio( data->file, right, NULL,
+                                            data->audio.samples_per_block, 0 );
+
+                    for (i=0; i<data->audio.samples_per_block; i++) {
+                         buffer[i*2+0] = left[i];
+                         buffer[i*2+1] = right[i];
+                    }
+               }
+
+               write( data->audio.fd, buffer, data->audio.block_size );
+          }
+
+          pthread_mutex_unlock( &data->audio.lock );
      }
 
      return NULL;
@@ -570,54 +687,68 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
                return DFB_UNSUPPORTED;
      }
 
-    /* build the destination rectangle */
-    if (dstrect) {
-        if (dstrect->w < 1  ||  dstrect->h < 1)
-            return DFB_INVARG;
+     /* build the destination rectangle */
+     if (dstrect) {
+          if (dstrect->w < 1  ||  dstrect->h < 1)
+               return DFB_INVARG;
 
-        rect = *dstrect;
+          rect = *dstrect;
 
-        rect.x += dst_data->area.wanted.x;
-        rect.y += dst_data->area.wanted.y;
-    }
-    else
-        rect = dst_data->area.wanted;
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
+     }
+     else
+          rect = dst_data->area.wanted;
 
-    /* check destination rect and save it */
-    if (rect.w != data->video.width || rect.h != data->video.height)
-         return DFB_UNSUPPORTED;
+     /* check destination rect and save it */
+     if (rect.w != data->video.width || rect.h != data->video.height)
+          return DFB_UNSUPPORTED;
 
-    pthread_mutex_lock( &data->video.lock );
+     pthread_mutex_lock( &data->video.lock );
 
-    data->dest_rect = rect;
+     data->dest_rect = rect;
 
-    /* build the clip rectangle */
-    if (!rectangle_intersect( &rect, &dst_data->area.current )) {
-         pthread_mutex_unlock( &data->video.lock );
-         return DFB_INVARG;
-    }
+     /* build the clip rectangle */
+     if (!rectangle_intersect( &rect, &dst_data->area.current )) {
+          pthread_mutex_unlock( &data->video.lock );
+          return DFB_INVARG;
+     }
 
-    data->dest_clip = rect;
+     data->dest_clip = rect;
 
-    if (data->destination) {
-        data->destination->Release( data->destination );
-        data->destination = NULL;     /* FIXME: remove listener */
-    }
+     if (data->destination) {
+          data->destination->Release( data->destination );
+          data->destination = NULL;     /* FIXME: remove listener */
+     }
 
-    destination->AddRef( destination );
-    data->destination = destination;   /* FIXME: install listener */
+     destination->AddRef( destination );
+     data->destination = destination;   /* FIXME: install listener */
 
-    data->callback       = callback;
-    data->ctx            = ctx;
-    data->video.yuv      = yuv_mode;
-    data->video.playing  = 1;
+     data->callback       = callback;
+     data->ctx            = ctx;
+     data->video.yuv      = yuv_mode;
+     data->video.playing  = 1;
 
-    if (data->video.thread == -1)
-        pthread_create( &data->video.thread, NULL, VideoThread, data );
+     /* start audio playback thread */
+     if (data->audio.thread == -1 && data->audio.available) {
+          if (OpenSound( data ) == DFB_OK) {
+               pthread_mutex_lock( &data->audio.lock );
 
-    pthread_mutex_unlock( &data->video.lock );
+               data->audio.playing = 1;
 
-    return DFB_OK;
+               pthread_create( &data->audio.thread, NULL, AudioThread, data );
+
+               pthread_mutex_unlock( &data->audio.lock );
+          }
+     }
+
+     /* start video playback thread */
+     if (data->video.thread == -1)
+          pthread_create( &data->video.thread, NULL, VideoThread, data );
+
+     pthread_mutex_unlock( &data->video.lock );
+
+     return DFB_OK;
 }
 
 
@@ -626,19 +757,39 @@ IDirectFBVideoProvider_OpenQuicktime_Stop( IDirectFBVideoProvider *thiz )
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
+     pthread_mutex_lock( &data->video.lock );
+     pthread_mutex_lock( &data->audio.lock );
+
+     /* stop audio thread and close device */
+     if (data->audio.thread != -1) {
+          data->audio.playing = 0;
+
+          pthread_mutex_unlock( &data->audio.lock );
+          pthread_join( data->audio.thread, NULL );
+          pthread_mutex_lock( &data->audio.lock );
+
+          data->audio.thread = -1;
+          CloseSound( data );
+     }
+
+     /* stop video thread */
      if (data->video.thread != -1) {
           data->video.playing = 0;
+
+          pthread_mutex_unlock( &data->video.lock );
           pthread_join( data->video.thread, NULL );
+          pthread_mutex_lock( &data->video.lock );
+
           data->video.thread = -1;
      }
 
-     pthread_mutex_lock( &data->video.lock );
-
+     /* release destination surface */
      if (data->destination) {
           data->destination->Release( data->destination );
           data->destination = NULL;     /* FIXME: remove listener */
      }
 
+     pthread_mutex_unlock( &data->audio.lock );
      pthread_mutex_unlock( &data->video.lock );
 
      return DFB_OK;
@@ -649,25 +800,47 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SeekTo(
                                               IDirectFBVideoProvider *thiz,
                                               double                  seconds )
 {
-     long new_pos, old_pos;
+     long new_pos, old_pos, audio_pos;
 
      INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
 
      pthread_mutex_lock( &data->video.lock );
+     pthread_mutex_lock( &data->audio.lock );
 
+     /* calculate new and old video position */
      new_pos = (long) (data->video.rate * seconds);
      old_pos = quicktime_video_position( data->file, 0 );
 
+     /* nothing to do? */
      if (new_pos == old_pos) {
+          pthread_mutex_unlock( &data->audio.lock );
           pthread_mutex_unlock( &data->video.lock );
           return DFB_OK;
      }
 
+     /* find next/prev keyframe */
      if (new_pos < old_pos)
           new_pos = quicktime_get_keyframe_before( data->file, new_pos, 0 );
      else
           new_pos = quicktime_get_keyframe_after( data->file, new_pos, 0 );
 
+     if (new_pos >= data->video.length) {
+          new_pos = 0;
+     }
+
+     /* calculate new audio position */
+     audio_pos = (long) ((double)new_pos *
+                         (double)data->audio.rate /
+                         (double)data->video.rate);
+
+     /* seek audio */
+     quicktime_set_audio_position( data->file, audio_pos, 0 );
+
+     data->audio.seeked = 1;
+
+     pthread_mutex_unlock( &data->audio.lock );
+
+     /* seek video */
      quicktime_set_video_position( data->file, new_pos, 0 );
 
      data->video.seeked = 1;
@@ -793,8 +966,10 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->filename      = DFBSTRDUP( filename );
 
      data->video.thread  = -1;
+     data->audio.thread  = -1;
 
      pthread_mutex_init( &data->video.lock, NULL );
+     pthread_mutex_init( &data->audio.lock, NULL );
 
 
      /* open quicktime file */
@@ -827,6 +1002,16 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      data->yuv.lines[2] = data->video.buffer +
                           data->video.width * data->video.height * 5 / 4;
 
+     /* setup audio playback */
+     if (quicktime_has_audio( data->file )) {
+          data->audio.available = 1;
+          data->audio.bits      = quicktime_audio_bits( data->file, 0 );
+          data->audio.channels  = quicktime_track_channels( data->file, 0 );
+          data->audio.rate      = quicktime_sample_rate( data->file, 0 );
+          data->audio.length    = quicktime_audio_length( data->file, 0 );
+     }
+
+
 
      /* initialize function pointers */
      thiz->AddRef                = IDirectFBVideoProvider_OpenQuicktime_AddRef;
@@ -849,6 +1034,85 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      thiz->SetColorAdjustment    =
           IDirectFBVideoProvider_OpenQuicktime_SetColorAdjustment;
+
+     return DFB_OK;
+}
+
+
+/* OSS sound support */
+
+static DFBResult
+OpenSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
+{
+     int fd;
+     int prof   = APF_NORMAL;
+     int bits   = data->audio.bits;
+     int bytes  = (bits + 7) / 8;
+     int stereo = (data->audio.channels > 1) ? 1 : 0;
+     int rate   = data->audio.rate;
+
+     /* open audio device */
+     fd = open( "/dev/dsp", O_WRONLY );
+     if (fd < 0) {
+          PERRORMSG( "OpenQuicktime Provider: Opening '/dev/dsp' failed!\n" );
+          return DFB_IO;
+     }
+
+     /* set application profile */
+     ioctl( fd, SNDCTL_DSP_PROFILE, &prof );
+
+     /* set bits per sample */
+     ioctl( fd, SNDCTL_DSP_SAMPLESIZE, &bits );
+     if (bits != data->audio.bits) {
+          ERRORMSG( "OpenQuicktime Provider: "
+                    "Unable to set audio bits to '%d'!\n", data->audio.bits );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* set mono/stereo */
+     if (ioctl( fd, SNDCTL_DSP_STEREO, &stereo ) == -1) {
+          ERRORMSG( "OpenQuicktime Provider: Unable to set '%s' mode!\n",
+                    (data->audio.channels > 1) ? "stereo" : "mono");
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* set sample rate */
+     if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
+          ERRORMSG( "OpenQuicktime Provider: "
+                    "Unable to set sample rate to '%ld'!\n", data->audio.rate );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* query block size */
+     ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &data->audio.block_size );
+     if (data->audio.block_size < 1) {
+          ERRORMSG( "OpenQuicktime Provider: "
+                    "Unable to query block size of '/dev/dsp'!\n" );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* calculate number of samples fitting into block for each channel */
+     data->audio.samples_per_block = data->audio.block_size / bytes /
+                                     data->audio.channels;
+
+     /* store file descriptor */
+     data->audio.fd = fd;
+
+     return DFB_OK;
+}
+
+static DFBResult
+CloseSound( IDirectFBVideoProvider_OpenQuicktime_data *data )
+{
+     /* flush pending sound data so we don't have to wait */
+     ioctl( data->audio.fd, SNDCTL_DSP_RESET, 0 );
+
+     /* close audio device */
+     close( data->audio.fd );
 
      return DFB_OK;
 }
