@@ -313,7 +313,7 @@ uc_map_blitflags( struct uc_hw_texture    *tex,
           }
      }
      else {  // !(bflags & DSBLIT_BLEND_COLORALPHA)
-          if (gotalpha) {
+          if ((bflags & DSBLIT_BLEND_ALPHACHANNEL) && gotalpha) {
                // Av0 = At
 
                // Hw setting:
