@@ -345,7 +345,8 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
            * Because we're constantly writing to the surface we
            * permanently lock it.
            */
-          ret = dfb_surface_hardware_lock( surface, DSLF_WRITE, false );
+          ret = dfb_surface_hardware_lock( surface,
+                                           DSLF_WRITE | CSLF_FORCE, false );
 
           dfb_surfacemanager_unlock( surface->manager );
 
