@@ -247,6 +247,22 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
 void dfb_gfxcard_drawglyph( unichar index, int x, int y,
                             CoreFont *font, CardState *state );
 
+void dfb_gfxcard_sync();
+void dfb_gfxcard_flush_texture_cache();
+void dfb_gfxcard_after_set_var();
+
+DFBResult dfb_gfxcard_adjust_heap_offset( unsigned int offset );
+
+SurfaceManager   *dfb_gfxcard_surface_manager();
+FusionObjectPool *dfb_gfxcard_surface_pool();
+FusionObjectPool *dfb_gfxcard_palette_pool();
+CardCapabilities  dfb_gfxcard_capabilities();
+
+int            dfb_gfxcard_reserve_memory( GraphicsDevice *device,
+                                           unsigned int    size );
+
+unsigned int   dfb_gfxcard_memory_length();
+
 /*
  * Graphics drivers call this function to get access to MMIO regions.
  *
@@ -272,22 +288,8 @@ void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
 
 int dfb_gfxcard_get_accelerator( GraphicsDevice *device );
 
-void dfb_gfxcard_sync();
-void dfb_gfxcard_flush_texture_cache();
-void dfb_gfxcard_after_set_var();
+unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device, unsigned int offset );
+void          *dfb_gfxcard_memory_virtual( GraphicsDevice *device, unsigned int offset );
 
-DFBResult dfb_gfxcard_adjust_heap_offset( unsigned int offset );
-
-SurfaceManager   *dfb_gfxcard_surface_manager();
-FusionObjectPool *dfb_gfxcard_surface_pool();
-FusionObjectPool *dfb_gfxcard_palette_pool();
-CardCapabilities  dfb_gfxcard_capabilities();
-
-int            dfb_gfxcard_reserve_memory( GraphicsDevice *device,
-                                           unsigned int    size );
-
-unsigned long  dfb_gfxcard_memory_physical( unsigned int offset );
-void          *dfb_gfxcard_memory_virtual( unsigned int offset );
-unsigned int   dfb_gfxcard_memory_length();
 #endif
 

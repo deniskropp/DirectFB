@@ -45,6 +45,7 @@
 #include "gfxcard.h"
 #include "surfaces.h"
 #include "surfacemanager.h"
+#include "system.h"
 
 #include "misc/util.h"
 #include "misc/mem.h"
@@ -270,6 +271,9 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 
      CoreSurface *surface = buffer->surface;
 
+     if (!manager->length)
+          return DFB_NOVIDEOMEMORY;
+
      /* calculate the required length depending on limitations */
      pitch = MAX( surface->width, surface->min_width );
      if (manager->pixelpitch_align > 1) {
@@ -452,7 +456,7 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
           case CSH_RESTORE: {
                int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
                char *src = buffer->system.addr;
-               char *dst = dfb_gfxcard_memory_virtual( buffer->video.offset );
+               char *dst = dfb_system_video_memory_virtual( buffer->video.offset );
 
                if (buffer->system.health != CSH_STORED)
                     BUG( "system/video instances both not stored!" );
@@ -493,7 +497,7 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
           int   h   = DFB_PLANE_MULTIPLY(surface->format, surface->height);
-          char *src = dfb_gfxcard_memory_virtual( buffer->video.offset );
+          char *src = dfb_system_video_memory_virtual( buffer->video.offset );
           char *dst = buffer->system.addr;
 
           while (h--) {

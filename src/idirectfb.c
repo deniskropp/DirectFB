@@ -48,9 +48,8 @@
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
+#include <core/system.h>
 #include <core/windows.h>
-
-#include <core/fbdev/fbdev.h>
 
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_layer.h>
@@ -234,7 +233,7 @@ IDirectFB_EnumVideoModes( IDirectFB            *thiz,
      if (!callbackfunc)
           return DFB_INVARG;
 
-     m = dfb_fbdev_modes();
+     m = dfb_system_modes();
      while (m) {
           if (callbackfunc( m->xres, m->yres,
                             m->bpp, callbackdata ) == DFENUM_CANCEL)
@@ -784,7 +783,7 @@ IDirectFB_WaitForSync( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
-     dfb_fbdev_wait_vsync();
+     dfb_system_wait_vsync();
 
      return DFB_OK;
 }

@@ -107,6 +107,8 @@ typedef struct
                                                      this directory */
 
      char    **disable_module;                    /* don't load these modules */
+
+     char     *system;                            /* FBDev, SDL, etc. */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

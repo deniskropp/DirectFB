@@ -41,8 +41,7 @@
 #include <core/state.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
-
-#include <core/fbdev/fbdev.h>
+#include <core/system.h>
 
 #include <idirectfbsurface.h>
 #include <idirectfbsurface_layer.h>
@@ -102,7 +101,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
           if (flags & DSFLIP_WAITFORSYNC)
-               dfb_fbdev_wait_vsync();
+               dfb_system_wait_vsync();
           
           if (region) {
                DFBRegion    reg  = *region;
@@ -113,13 +112,22 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                reg.y1 += data->base.area.wanted.y;
                reg.y2 += data->base.area.wanted.y;
 
-               if (dfb_rectangle_intersect_by_unsafe_region( &rect, &reg ))
+               if (dfb_rectangle_intersect_by_unsafe_region( &rect, &reg )) {
+                    DFBRegion region = { rect.x, rect.y, rect.x + rect.w - 1,
+                                         rect.y + rect.h - 1 };
+
                     dfb_back_to_front_copy( data->base.surface, &rect );
+                    dfb_layer_update_region( data->layer, &region, 0 );
+               }
           }
           else {
                DFBRectangle rect = data->base.area.current;
 
+               DFBRegion region = { rect.x, rect.y, rect.x + rect.w - 1,
+                                    rect.y + rect.h - 1 };
+
                dfb_back_to_front_copy( data->base.surface, &rect );
+               dfb_layer_update_region( data->layer, &region, 0 );
           }
      }
      else

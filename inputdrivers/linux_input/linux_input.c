@@ -43,6 +43,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/input.h>
+#include <core/system.h>
 #include <core/thread.h>
 
 #include <misc/mem.h>
@@ -498,6 +499,9 @@ static int
 driver_get_available()
 {
      int i;
+
+     if (dfb_system_type() != CORE_FBDEV)
+          return 0;
 
      for (i=0; i<MAX_LINUX_INPUT_DEVICES; i++) {
           int  fd;

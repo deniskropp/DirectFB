@@ -645,7 +645,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      {
           struct video_buffer b;
 
-          b.base = (void*)dfb_gfxcard_memory_physical( buffer->video.offset );
+          b.base = (void*)dfb_gfxcard_memory_physical( NULL, buffer->video.offset );
           b.width = surface->width;
           b.height = surface->height;
           b.depth = bpp;

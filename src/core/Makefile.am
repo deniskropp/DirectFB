@@ -1,13 +1,21 @@
 ## Makefile.am for DirectFB/src/core
 
-SUBDIRS = fbdev fusion
+if SDL_CORE
+SDL_DIR = sdl
+SDL_LIB = sdl/libdirectfb_core_sdl.la
+else
+SDL_DIR =
+SDL_LIB =
+endif
+
+SUBDIRS = fbdev fusion $(SDL_DIR)
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
 	-I$(top_srcdir)/src
 
-CFLAGS = $(DFB_CFLAGS) 
+CFLAGS = $(DFB_CFLAGS)
 
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"		\
@@ -29,19 +37,22 @@ internalinclude_HEADERS = \
 	input_driver.h		\
 	layers.h		\
 	palette.h		\
+	sig.h			\
 	state.h			\
 	surfaces.h		\
 	surfacemanager.h	\
-	sig.h			\
+	system.h		\
 	thread.h		\
 	windows.h
 
 
 noinst_LTLIBRARIES = libdirectfb_core.la
 
+
 libdirectfb_core_la_LIBADD = \
-	fbdev/libdirectfb_core_fbdev.la	\
-	fusion/libdirectfb_core_fusion.la
+	fbdev/libdirectfb_core_fbdev.la \
+	fusion/libdirectfb_core_fusion.la \
+	$(SDL_LIB)
 
 libdirectfb_core_la_SOURCES = \
 	core.c			\
@@ -50,9 +61,10 @@ libdirectfb_core_la_SOURCES = \
 	input.c			\
 	layers.c		\
 	palette.c		\
+	sig.c			\
 	state.c			\
 	surfaces.c		\
 	surfacemanager.c	\
-	sig.c			\
+	system.c		\
 	thread.c		\
 	windows.c

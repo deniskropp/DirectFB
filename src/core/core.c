@@ -42,15 +42,13 @@
 #include <core/coretypes.h>
 
 #include <core/core.h>
+#include <core/system.h>
 #include <core/sig.h>
 #include <core/input.h>
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
-
-#include <core/fbdev/fbdev.h>
-#include <core/fbdev/vt.h>
 
 #include <misc/mem.h>
 #include <misc/memcpy.h>
@@ -440,8 +438,7 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      fbdebug_init();
 #endif
 
-     INITCHECK( dfb_vt_initialize() );
-     INITCHECK( dfb_fbdev_initialize() );
+     INITCHECK( dfb_system_initialize() );
      
      INITCHECK( dfb_input_initialize() );
      INITCHECK( dfb_gfxcard_initialize() );
@@ -466,8 +463,7 @@ dfb_core_join( FusionArena *arena, void *ctx )
      
      dfb_core->arena  = arena;
 
-     INITCHECK( dfb_vt_join() );
-     INITCHECK( dfb_fbdev_join() );
+     INITCHECK( dfb_system_join() );
      
      INITCHECK( dfb_input_join() );
      INITCHECK( dfb_gfxcard_join() );
@@ -499,8 +495,7 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
      dfb_layers_shutdown( emergency );
      dfb_gfxcard_shutdown( emergency );
      
-     dfb_fbdev_shutdown( emergency );
-     dfb_vt_shutdown( emergency );
+     dfb_system_shutdown( emergency );
 
 #ifdef DFB_DEBUG
      fbdebug_exit();
@@ -530,8 +525,7 @@ dfb_core_leave( FusionArena *arena, void *ctx, bool emergency )
      dfb_layers_leave( emergency );
      dfb_gfxcard_leave( emergency );
      
-     dfb_fbdev_leave( emergency );
-     dfb_vt_leave( emergency );
+     dfb_system_leave( emergency );
 
      return 0;
 }

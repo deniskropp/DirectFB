@@ -44,9 +44,8 @@
 #include <core/gfxcard.h>
 #include <core/input.h>
 #include <core/state.h>
+#include <core/system.h>
 #include <core/windows.h>
-
-#include <core/fbdev/fbdev.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -1249,12 +1248,14 @@ repaint_stack( CoreWindowStack     *stack,
                                      region->y2 - region->y1 + 1 };
 
                if (flags & DSFLIP_WAITFORSYNC)
-                    dfb_fbdev_wait_vsync();
+                    dfb_system_wait_vsync();
                
                dfb_back_to_front_copy( surface, &rect );
           }
      }
 
+     dfb_layer_update_region( layer, region, flags );
+     
      dfb_layer_release( layer, false );
 }
 

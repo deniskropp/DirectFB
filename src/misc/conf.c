@@ -26,6 +26,7 @@
 
 #include "config.h"
 
+#include <unistd.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -55,6 +56,8 @@ static const char *config_usage =
     "Pass options to DirectFB (see below)\n"
     "\n"
     "DirectFB options:\n\n"
+    "  system=<system>                "
+    "Specify the system (FBDev, SDL, etc.)\n"
     "  fbdev=<device>                 "
     "Open <device> instead of /dev/fb0\n"
     "  mode=<width>x<height>          "
@@ -242,6 +245,10 @@ static void config_allocate()
      dfb_config->buffer_mode              = -1;
 
      sigemptyset( &dfb_config->dont_catch );
+
+     /* default to fbdev if we have root privileges */
+     if (!geteuid())
+          dfb_config->system = DFBSTRDUP( "FBDev" );
 }
 
 const char *dfb_config_usage( void )
@@ -268,6 +275,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                ERRORMSG("DirectFB/Config 'disable_module': expect module name\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "system" ) == 0) {
+          if (value) {
+               if (dfb_config->system)
+                    DFBFREE( dfb_config->system );
+               dfb_config->system = DFBSTRDUP( value );
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'system': No system specified!\n");
                return DFB_INVARG;
           }
      } else

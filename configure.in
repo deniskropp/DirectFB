@@ -220,6 +220,26 @@ AM_CONDITIONAL(BUILDMMX, test x$MMX = xyes)
 ac_ext="$save_ac_ext"
 
 
+dnl Test for SDL
+SDL=no
+  AC_ARG_ENABLE(sdl, [  --enable-sdl            build with SDL support [default=auto]], enable_sdl="$enableval", enable_sdl=yes)
+
+  if test x$enable_sdl = xyes; then
+    AC_PATH_PROG(SDL_CONFIG, sdl-config, no)
+    if test x$SDL_CONFIG = xno; then
+      AC_MSG_WARN([
+*** sdl-config not found -- building without SDL support.])
+    else
+      SDL=yes
+      SDL_CFLAGS=`sdl-config --cflags`
+      SDL_LIBS=`sdl-config --libs`
+    fi
+  fi
+
+  AM_CONDITIONAL(SDL_CORE, test x$SDL = xyes)
+
+
+
 dnl Test for libjpeg
   JPEG=no
 
@@ -588,6 +608,7 @@ src/core/Makefile
 src/core/fbdev/Makefile
 src/core/fusion/Makefile
 src/core/fusion/shmalloc/Makefile
+src/core/sdl/Makefile
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile
 gfxdrivers/matrox/Makefile
@@ -632,6 +653,10 @@ Misc options:
   Debug mode          $enable_debug
   RGB332 support      $enable_rgb332
   Multi App support   $enable_multi
+
+Core Systems:
+  FBDev support       yes
+  SDL support         $enable_sdl
 
 Building Image Providers:
   JPEG                $JPEG

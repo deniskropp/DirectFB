@@ -32,9 +32,7 @@
 
 #include <directfb.h>
 
-typedef struct _VirtualTerminalShared   VirtualTerminalShared;
-
-struct _VirtualTerminalShared {
+typedef struct {
      int num;                      /* number of vt where DirectFB runs */
      int prev;                     /* number of vt DirectFB was started from */
 
@@ -44,9 +42,9 @@ struct _VirtualTerminalShared {
      struct sigaction sig_usr2;    /* previous signal handler for USR2 */
 
      struct vt_mode   vt_mode;     /* previous VT mode */
-};
+} VirtualTerminalShared;
 
-struct _VirtualTerminal {
+typedef struct {
      VirtualTerminalShared *shared;
 
      int fd0;                      /* file descriptor of /dev/tty0 */
@@ -54,7 +52,7 @@ struct _VirtualTerminal {
                                       where N is the number of the allocated VT,
                                       may be equal to 'fd0' if VT allocation
                                       is disabled by "--no-vt-switch" */
-};
+} VirtualTerminal;
 
 extern VirtualTerminal *dfb_vt;
 

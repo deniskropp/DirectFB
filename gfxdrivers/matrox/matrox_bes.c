@@ -41,9 +41,8 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
+#include <core/system.h>
 #include <core/windows.h>
-
-#include <core/fbdev/fbdev.h> /* FIXME! */
 
 #include <misc/mem.h>
 
@@ -375,7 +374,7 @@ besFlipBuffers( DisplayLayer        *layer,
      bes_set_regs( mdrv, mbes, onsync );
 
      if (onsync)
-          dfb_fbdev_wait_vsync();
+          dfb_system_wait_vsync();
      
      return DFB_OK;
 }
@@ -439,10 +438,12 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      volatile __u8 *mmio = mdrv->mmio_base;
 
      if (!onsync) {
+          VideoMode *current_mode = dfb_system_current_mode();
+
           line = mga_in32( mmio, MGAREG_VCOUNT ) + 48;
 
-          if (line > dfb_fbdev->shared->current_mode->yres)
-               line = dfb_fbdev->shared->current_mode->yres;
+          if (line > current_mode->yres)
+               line = current_mode->yres;
      }
      
      mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
@@ -490,6 +491,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      int            field_height;
      CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
+     VideoMode     *current_mode = dfb_system_current_mode();
 
      /* destination box */
      dstBox.x1 = mbes->dest.x;
@@ -502,7 +504,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      drw_h = mbes->dest.h;
      
      /* should horizontal zoom be used? */
-     hzoom = (1000000/Sfbdev->current_var.pixclock >= 135) ? 1 : 0;
+     hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
 
      /* initialize */
      mbes->regs.besGLOBCTL = 0;
@@ -547,7 +549,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                return;
      }
 
-     mbes->regs.besGLOBCTL |= 3*hzoom | (Sfbdev->current_mode->yres & 0xFFF) << 16;
+     mbes->regs.besGLOBCTL |= 3*hzoom | (current_mode->yres & 0xFFF) << 16;
      mbes->regs.besA1ORG    = front_buffer->video.offset;
      mbes->regs.besA2ORG    = front_buffer->video.offset +
                               front_buffer->video.pitch;

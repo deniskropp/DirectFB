@@ -60,7 +60,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      if (mdev->old_matrox)
           mga_out32( mmio, mdev->dst_pixeloffset, YDSTORG );
      else
-          mga_out32( mmio, dfb_gfxcard_memory_physical( buffer->video.offset) &
+          mga_out32( mmio, dfb_gfxcard_memory_physical( NULL, buffer->video.offset) &
                      0x1FFFFFF, DSTORG );
 
      mga_out32( mmio, mdev->dst_pixelpitch, PITCH );
@@ -327,7 +327,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mdev->src_pixelpitch = buffer->video.pitch /
                             DFB_BYTES_PER_PIXEL(surface->format);
 
-     texorg = dfb_gfxcard_memory_physical( buffer->video.offset );
+     texorg = dfb_gfxcard_memory_physical( NULL, buffer->video.offset );
      
      if (mdev->blit_deinterlace) {
           height >>= 1;
@@ -416,7 +416,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
           mdev->src_pixeloffset = buffer->video.offset / bytes_per_pixel;
      else {
           mga_waitfifo( mdrv, mdev, 1);
-          mga_out32( mmio, dfb_gfxcard_memory_physical( buffer->video.offset) &
+          mga_out32( mmio, dfb_gfxcard_memory_physical( NULL, buffer->video.offset) &
                      0x1FFFFFF, SRCORG );
      }
 

@@ -27,68 +27,6 @@
 #ifndef __CORE__FBDEV_H__
 #define __CORE__FBDEV_H__
 
-#include <directfb.h>
-
-#include <linux/fb.h>
-
-/*
- * hold information of a Videomode read from /etc/fb.modes
- * (to be replaced by DirectFB's own config system)
- */
-typedef struct _VideoMode {
-     int xres;
-     int yres;
-     int bpp;
-
-     int pixclock;
-     int left_margin;
-     int right_margin;
-     int upper_margin;
-     int lower_margin;
-     int hsync_len;
-     int vsync_len;
-     int hsync_high;
-     int vsync_high;
-     int csync_high;
-
-     int laced;
-     int doubled;
-
-     int sync_on_green;
-     int external_sync;
-
-     struct _VideoMode *next;
-} VideoMode;
-
-
-typedef struct _FBDevShared             FBDevShared;
-struct _FBDevShared {
-     /* fbdev fixed screeninfo, contains infos about memory and type of card */
-     struct fb_fix_screeninfo fix;
-
-     VideoMode                *modes;        /* linked list of valid
-                                                video modes */
-     VideoMode                *current_mode; /* current video mode */
-
-     struct fb_var_screeninfo current_var;   /* fbdev variable screeninfo
-                                                set by DirectFB */
-     struct fb_var_screeninfo orig_var;      /* fbdev variable screeninfo
-                                                before DirectFB was started */
-     struct fb_cmap           orig_cmap;     /* original palette */
-};
-
-struct _FBDev {
-     FBDevShared             *shared;
-
-     /* virtual framebuffer address */
-     void                    *framebuffer_base;
-     
-     int                      fd;            /* file descriptor for /dev/fb */
-};
-
-extern FBDev *dfb_fbdev;
-
-#define Sfbdev (dfb_fbdev->shared)
 
 /*
  * core init function, opens /dev/fb, get fbdev screeninfo
@@ -102,15 +40,5 @@ DFBResult dfb_fbdev_join();
  */
 DFBResult dfb_fbdev_shutdown( bool emergency );
 DFBResult dfb_fbdev_leave( bool emergency );
-
-/*
- * return when vertical retrace is reached, works with matrox kernel patch
- * only for now
- */
-DFBResult dfb_fbdev_wait_vsync();
-
-VideoMode *dfb_fbdev_modes();
-
-void dfb_primarylayer_register( GraphicsDevice *device );
 
 #endif

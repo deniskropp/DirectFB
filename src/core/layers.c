@@ -47,10 +47,9 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/state.h>
+#include <core/system.h>
 #include <core/surfacemanager.h>
 #include <core/windows.h>
-
-#include <core/fbdev/fbdev.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -926,8 +925,9 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
           
           case DLBM_BACKSYSTEM:
                if (flags & DSFLIP_WAITFORSYNC)
-                    dfb_fbdev_wait_vsync();
+                    dfb_system_wait_vsync();
                dfb_back_to_front_copy( shared->surface, NULL );
+               dfb_layer_update_region( layer, NULL, flags );
                break;
 
           default:
@@ -935,6 +935,24 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
                return DFB_BUG;
      }
 
+     return DFB_OK;
+}
+
+DFBResult
+dfb_layer_update_region( DisplayLayer        *layer,
+                         DFBRegion           *region,
+                         DFBSurfaceFlipFlags  flags )
+{
+     DisplayLayerShared *shared = layer->shared;
+
+     DFB_ASSERT( shared->enabled );
+     
+     if (layer->funcs->UpdateRegion)
+          return layer->funcs->UpdateRegion( layer,
+                                             layer->driver_data,
+                                             layer->layer_data,
+                                             region, flags );
+     
      return DFB_OK;
 }
 

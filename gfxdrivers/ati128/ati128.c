@@ -211,7 +211,7 @@ static void ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      __u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
      ati128_waitidle( adrv, adev );
-     *((__u32*)  dfb_gfxcard_memory_virtual(fts)  ) = adev->fake_texture_color;
+     *((__u32*)  dfb_gfxcard_memory_virtual(NULL,fts)  ) = adev->fake_texture_color;
      ati128_waitidle( adrv, adev );
 
      ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
@@ -279,7 +279,7 @@ static void ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
      __u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
 
      ati128_waitidle( adrv, adev );
-     *((__u32*)  dfb_gfxcard_memory_virtual(fts)  ) = adev->fake_texture_color;
+     *((__u32*)  dfb_gfxcard_memory_virtual(NULL,fts)  ) = adev->fake_texture_color;
      ati128_waitidle( adrv, adev );
 
      ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );

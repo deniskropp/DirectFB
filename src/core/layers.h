@@ -121,6 +121,12 @@ typedef struct {
                                       void                       *layer_data,
                                       DFBSurfaceFlipFlags         flags );
      
+     DFBResult (*UpdateRegion)      ( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      DFBRegion                  *region,
+                                      DFBSurfaceFlipFlags         flags );
+     
      DFBResult (*SetColorAdjustment)( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
@@ -269,8 +275,11 @@ void               dfb_layer_description( const DisplayLayer         *layer,
                                           DFBDisplayLayerDescription *desc );
 DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );
 
-DFBResult          dfb_layer_flip_buffers( DisplayLayer *layer,
-                                          DFBSurfaceFlipFlags flags );
+DFBResult          dfb_layer_flip_buffers ( DisplayLayer        *layer,
+                                            DFBSurfaceFlipFlags  flags );
+DFBResult          dfb_layer_update_region( DisplayLayer        *layer,
+                                            DFBRegion           *region,
+                                            DFBSurfaceFlipFlags  flags );
 
 DFBResult dfb_layer_create_window( DisplayLayer           *layer,
                                    int                     x,

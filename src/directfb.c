@@ -512,7 +512,8 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
      DirectFBError( msg, error );
 
      /* Deinit all stuff here. */
-     dfb_core->refs = 1;
+     if (dfb_core)
+          dfb_core->refs = 1;
      dfb_core_unref();     /* for now, this dirty thing should work */
 
      exit( error );

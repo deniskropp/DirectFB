@@ -46,6 +46,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/system.h>
 #include <core/thread.h>
 
 #include <core/fbdev/vt.h> /* FIXME! */
@@ -289,7 +290,10 @@ driver_get_abi_version()
 static int
 driver_get_available()
 {
-     return 1;
+     if (dfb_system_type() == CORE_FBDEV)
+          return 1;
+
+     return 0;
 }
 
 static void

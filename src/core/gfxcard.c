@@ -50,8 +50,7 @@
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
-
-#include <core/fbdev/fbdev.h>
+#include <core/system.h>
 
 #include <gfx/generic/generic.h>
 #include <gfx/clip.h>
@@ -120,6 +119,7 @@ DFBResult dfb_gfxcard_initialize()
 {
      DFBResult       ret;
      GraphicsDriver *driver;
+     unsigned int    videoram_length;
 
      card = (GraphicsDevice*) DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
@@ -133,11 +133,14 @@ DFBResult dfb_gfxcard_initialize()
 
 
      /* Limit video ram length */
-     if (dfb_config->videoram_limit > 0 &&
-         dfb_config->videoram_limit < Sfbdev->fix.smem_len)
-          Scard->videoram_length = dfb_config->videoram_limit;
-     else
-          Scard->videoram_length = Sfbdev->fix.smem_len;
+     videoram_length = dfb_system_videoram_length();
+     if (videoram_length) {
+          if (dfb_config->videoram_limit > 0 &&
+              dfb_config->videoram_limit < videoram_length)
+               Scard->videoram_length = dfb_config->videoram_limit;
+          else
+               Scard->videoram_length = videoram_length;
+     }
 
      /* Load driver */
      driver = dfb_gfxcard_find_driver();
@@ -1091,47 +1094,6 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      dfb_font_unlock( font );
 }
 
-volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
-                                     unsigned int    offset,
-                                     int             length )
-{
-     void *addr;
-
-     if (length < 0)
-          length = Sfbdev->fix.mmio_len;
-
-     addr = mmap( NULL, length, PROT_READ | PROT_WRITE, MAP_SHARED,
-                  dfb_fbdev->fd, Sfbdev->fix.smem_len + offset );
-     if ((int)(addr) == -1) {
-          PERRORMSG( "DirectFB/core/gfxcard: Could not mmap MMIO region "
-                     "(offset %d, length %d)!\n", offset, length );
-          return NULL;
-     }
-
-     return (volatile void*) addr;
-}
-
-void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
-                             volatile void  *addr,
-                             int             length )
-{
-     if (length < 0)
-          length = Sfbdev->fix.mmio_len;
-
-     if (munmap( (void*) addr, length ) < 0)
-          PERRORMSG( "DirectFB/core/gfxcard: Could not unmap MMIO region "
-                     "at %p (length %d)!\n", addr, length );
-}
-
-int dfb_gfxcard_get_accelerator( GraphicsDevice *device )
-{
-#ifdef FB_ACCEL_MATROX_MGAG400
-     if (!strcmp( Sfbdev->fix.id, "MATROX DH" ))
-          return FB_ACCEL_MATROX_MGAG400;
-#endif
-     return Sfbdev->fix.accel;
-}
-
 void dfb_gfxcard_sync()
 {
      if (card->funcs.EngineSync)
@@ -1198,22 +1160,46 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
      return shared->videoram_length;
 }
 
-unsigned long
-dfb_gfxcard_memory_physical( unsigned int offset )
-{
-     return Sfbdev->fix.smem_start + offset;
-}
-
-void *
-dfb_gfxcard_memory_virtual( unsigned int offset )
-{
-     return (void*)((__u8*)(dfb_fbdev->framebuffer_base) + offset);
-}
-
 unsigned int
 dfb_gfxcard_memory_length()
 {
      return Scard->videoram_length;
+}
+
+volatile void *
+dfb_gfxcard_map_mmio( GraphicsDevice *device,
+                      unsigned int    offset,
+                      int             length )
+{
+     return dfb_system_map_mmio( offset, length );
+}
+
+void
+dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
+                        volatile void  *addr,
+                        int             length )
+{
+     dfb_system_unmap_mmio( addr, length );
+}
+
+int
+dfb_gfxcard_get_accelerator( GraphicsDevice *device )
+{
+     return dfb_system_get_accelerator();
+}
+
+unsigned long
+dfb_gfxcard_memory_physical( GraphicsDevice *device,
+                             unsigned int    offset )
+{
+     return dfb_system_video_memory_physical( offset );
+}
+
+void *
+dfb_gfxcard_memory_virtual( GraphicsDevice *device,
+                            unsigned int    offset )
+{
+     return dfb_system_video_memory_virtual( offset );
 }
 
 /** internal **/

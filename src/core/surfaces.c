@@ -45,6 +45,7 @@
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
+#include <core/system.h>
 
 #include <gfx/util.h>
 #include <misc/util.h>
@@ -490,7 +491,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                else {
                     /* ok, write only goes into video directly */
                     buffer->video.locked++;
-                    *data = dfb_gfxcard_memory_virtual( buffer->video.offset );
+                    *data = dfb_system_video_memory_virtual( buffer->video.offset );
                     *pitch = buffer->video.pitch;
                     if (flags & DSLF_WRITE)
                          buffer->system.health = CSH_RESTORE;
@@ -513,7 +514,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                   as if it had the policy CSP_VIDEOONLY */
           case CSP_VIDEOONLY:
                buffer->video.locked++;
-               *data = dfb_gfxcard_memory_virtual( buffer->video.offset );
+               *data = dfb_system_video_memory_virtual( buffer->video.offset );
                *pitch = buffer->video.pitch;
                video_access_by_software( buffer, flags );
                break;

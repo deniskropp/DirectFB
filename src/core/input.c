@@ -104,6 +104,8 @@ typedef struct {
      InputDeviceShared *devices[MAX_INPUT_DEVICES];
 } CoreInputField;
 
+static bool modules_loaded = false;
+
 static FusionLink     *input_drivers = NULL;
 
 static CoreInputField *inputfield   = NULL;
@@ -161,9 +163,11 @@ dfb_input_initialize()
 #endif
 
 #ifdef DFB_DYNAMIC_LINKING
-     if (!input_drivers)
+     if (!modules_loaded) {
           dfb_core_load_modules( MODULEDIR"/inputdrivers",
                                  input_driver_handle_func, NULL );
+          modules_loaded = true;
+     }
 #endif
 
      init_devices();

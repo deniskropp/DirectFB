@@ -44,6 +44,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/system.h>
 #include <core/thread.h>
 
 #include <misc/conf.h>
@@ -388,6 +389,9 @@ driver_get_available()
      char                 buf[8];
      int                  readlen;
      int                  lines;
+
+     if (dfb_system_type() != CORE_FBDEV)
+          return 0;
 
      protocol = mouse_get_protocol();
      if (protocol == LAST_PROTOCOL)

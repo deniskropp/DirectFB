@@ -24,37 +24,12 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __CORETYPES_H__
-#define __CORETYPES_H__
+#ifndef __SDL__PRIMARY_H__
+#define __SDL__PRIMARY_H__
 
-#include <asm/types.h>
+#include <core/layers.h>
 
-typedef struct _CoreCleanup             CoreCleanup;
-
-typedef struct _CoreFont                CoreFont;
-typedef struct _CorePalette             CorePalette;
-typedef struct _CoreSurface             CoreSurface;
-typedef struct _CoreThread              CoreThread;
-typedef struct _CoreWindow              CoreWindow;
-typedef struct _CoreWindowStack         CoreWindowStack;
-
-typedef struct _SurfaceBuffer           SurfaceBuffer;
-typedef struct _SurfaceManager          SurfaceManager;
-
-typedef struct _CardState               CardState;
-
-typedef struct _Tree                    Tree;
-typedef struct _Chunk                   Chunk;
-
-typedef __u32 unichar;
-
-
-
-typedef struct _DisplayLayer            DisplayLayer;
-typedef struct _InputDevice             InputDevice;
-typedef struct _GraphicsDevice          GraphicsDevice;
-
-
+extern DisplayLayerFuncs sdlPrimaryLayerFuncs;
 
 #endif
 

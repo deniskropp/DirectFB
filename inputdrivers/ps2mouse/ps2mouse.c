@@ -40,6 +40,7 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
+#include <core/system.h>
 #include <core/thread.h>
 
 #include <misc/conf.h>
@@ -344,6 +345,9 @@ driver_get_available()
      int fd;
      int n_dev = 0;
      int i;
+
+     if (dfb_system_type() != CORE_FBDEV)
+          return 0;
 
      for (i=0; i<sizeof(devname)/sizeof(char*); i++) {
           fd = open( devname[i], O_RDWR | O_SYNC );
