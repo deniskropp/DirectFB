@@ -176,7 +176,7 @@ static __u32 matroxDestBlend[] = {
 };
 
 static __u32 matroxModulation[] = {
-     DIFFUSEDALPHA,
+     ALPHACHANNEL,
      ALPHACHANNEL,
      ALPHACHANNEL | DIFFUSEDALPHA,
      ALPHACHANNEL | MODULATEDALPHA
@@ -214,8 +214,10 @@ inline void matrox_validate_Source()
      matrox_w2 = log2( src_pixelpitch );
      matrox_h2 = log2( surface->height );
 
-     texctl = (matrox->state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL) ?
-              TAMASK : TAKEY;
+     if (matrox->state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+          texctl = TAMASK;
+     else
+          texctl = TAKEY;
 
      switch (surface->format) {
           case DSPF_A8:
@@ -391,6 +393,13 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
                     mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
                     mga_out32( mmio_base, 0x100000 >> matrox_h2, TMR3 );
                     mga_out32( mmio_base, MAG_NRST | MIN_NRST, TEXFILTER );
+
+                    if (!(matrox->state->blittingflags &
+                          (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL))) {
+                         mga_waitfifo( mmio_base, 1 );
+                         mga_out32( mmio_base, 1, ALPHACTRL );
+                         m_Blend = 0;
+                    }
                }
                else {
                     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO |
@@ -410,6 +419,13 @@ inline void matrox_set_dwgctl( DFBAccelerationMask accel )
 
                mga_waitfifo( mmio_base, 1 );
                mga_out32( mmio_base, MAG_BILIN | MIN_BILIN, TEXFILTER );
+
+               if (!(matrox->state->blittingflags &
+                     (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL))) {
+                    mga_waitfifo( mmio_base, 1 );
+                    mga_out32( mmio_base, 1, ALPHACTRL );
+                    m_Blend = 0;
+               }
                break;
           }
           default:
