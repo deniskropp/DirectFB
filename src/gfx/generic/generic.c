@@ -179,7 +179,7 @@ static void Cop_to_Aop_32()
           *D++ = (__u32)Cop;
 }
 
-static GFunc Cop_to_Aop_PFI[] = {
+static GFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_to_Aop_16,
      Cop_to_Aop_16,
      Cop_to_Aop_24,
@@ -243,7 +243,7 @@ static void Cop_toK_Aop_32()
      }
 }
 
-static GFunc Cop_toK_Aop_PFI[] = {
+static GFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_toK_Aop_16,
      Cop_toK_Aop_16,
      Cop_toK_Aop_24,
@@ -283,7 +283,7 @@ static void Bop_32_to_Aop()
      dfb_memmove( Aop, Bop, Dlength*4 );
 }
 
-static GFunc Bop_PFI_to_Aop_PFI[] = {
+static GFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_to_Aop,      /* DSPF_RGB15 */
      Bop_16_to_Aop,      /* DSPF_RGB16 */
      Bop_24_to_Aop,      /* DSPF_RGB24 */
@@ -514,7 +514,7 @@ static void Bop_rgb332_Kto_Aop()
 }
 #endif
 
-static GFunc Bop_PFI_Kto_Aop_PFI[] = {
+static GFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_Kto_Aop,
      Bop_rgb16_Kto_Aop,
      Bop_rgb24_Kto_Aop,
@@ -609,7 +609,7 @@ static void Bop_8_Sto_Aop()
      }
 }
 
-static GFunc Bop_PFI_Sto_Aop[] = {
+static GFunc Bop_PFI_Sto_Aop[DFB_NUM_PIXELFORMATS] = {
      Bop_16_Sto_Aop,
      Bop_16_Sto_Aop,
      Bop_24_Sto_Aop,
@@ -752,7 +752,7 @@ static void Bop_rgb332_SKto_Aop()
 }
 #endif
 
-static GFunc Bop_PFI_SKto_Aop[] = {
+static GFunc Bop_PFI_SKto_Aop[DFB_NUM_PIXELFORMATS] = {
      Bop_rgb15_SKto_Aop,
      Bop_rgb16_SKto_Aop,
      Bop_rgb24_SKto_Aop,
@@ -916,7 +916,7 @@ static void Sop_rgb332_Sto_Dacc()
 }
 #endif
 
-static GFunc Sop_PFI_Sto_Dacc[] = {
+static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgb15_Sto_Dacc,
      Sop_rgb16_Sto_Dacc,
      Sop_rgb24_Sto_Dacc,
@@ -1077,7 +1077,7 @@ static void Sop_a8_SKto_Dacc()
      ONCE( "Sop_a8_SKto_Dacc() unimplemented");
 }
 
-static GFunc Sop_PFI_SKto_Dacc[] = {
+static GFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgb15_SKto_Dacc,
      Sop_rgb16_SKto_Dacc,
      Sop_rgb24_SKto_Dacc,
@@ -1310,7 +1310,7 @@ static void Sop_rgb332_to_Dacc()
 }
 #endif
 
-static GFunc Sop_PFI_to_Dacc[] = {
+static GFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgb15_to_Dacc,
      Sop_rgb16_to_Dacc,
      Sop_rgb24_to_Dacc,
@@ -1473,7 +1473,7 @@ static void Sop_rgb332_Kto_Dacc()
 
 #endif
 
-static GFunc Sop_PFI_Kto_Dacc[] = {
+static GFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgb15_Kto_Dacc,
      Sop_rgb16_Kto_Dacc,
      Sop_rgb24_Kto_Dacc,
@@ -1665,7 +1665,7 @@ static void Sacc_to_Aop_rgb332()
 }
 #endif
 
-GFunc Sacc_to_Aop_PFI[] = {
+GFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_rgb15,
      Sacc_to_Aop_rgb16,
      Sacc_to_Aop_rgb24,
@@ -1924,7 +1924,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb332()
 }
 #endif
 
-GFunc Bop_a8_set_alphapixel_Aop_PFI[] = {
+GFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a8_set_alphapixel_Aop_rgb15,
      Bop_a8_set_alphapixel_Aop_rgb16,
      Bop_a8_set_alphapixel_Aop_rgb24,

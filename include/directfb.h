@@ -654,20 +654,23 @@ extern "C"
                                                 2x2 subsampled V and U planes */
      } DFBSurfacePixelFormat;
 
+     /* Number of pixelformats defined */
+     #define DFB_NUM_PIXELFORMATS            11
+
      /* These macros extract information about the pixel format. */
-     #define DFB_BYTES_PER_PIXEL(fmt)       (((fmt) & 0xF00000) >> 20)
+     #define DFB_BYTES_PER_PIXEL(fmt)        (((fmt) & 0xF00000) >> 20)
 
-     #define DFB_BITS_PER_PIXEL(fmt)        (((fmt) & 0x00FF00) >>  8)
+     #define DFB_BITS_PER_PIXEL(fmt)         (((fmt) & 0x00FF00) >>  8)
 
-     #define DFB_PIXELFORMAT_INDEX(fmt)     (((fmt) & 0x0000FF) - 1)
+     #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000FF) - 1)
 
-     #define DFB_BYTES_PER_LINE(fmt,width)  (((((fmt) & 0xFE0000) >> 17) * \
-                                              (width)) >> 3)
+     #define DFB_BYTES_PER_LINE(fmt,width)   (((((fmt) & 0xFE0000) >> 17) * \
+                                               (width)) >> 3)
 
-     #define DFB_PLANAR_PIXELFORMAT(fmt)    ((fmt) & 0x3F000000)
+     #define DFB_PLANAR_PIXELFORMAT(fmt)     ((fmt) & 0x3F000000)
 
-     #define DFB_PLANE_MULTIPLY(fmt,height) ((((((fmt) & 0x3F000000) >> 24) + \
-                                               0x10) * (height)) >> 4 )
+     #define DFB_PLANE_MULTIPLY(fmt,height)  ((((((fmt) & 0x3F000000) >> 24) + \
+                                                0x10) * (height)) >> 4 )
 
      /*
       * Description of the surface that is to be created.
