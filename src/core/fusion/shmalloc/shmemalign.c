@@ -41,12 +41,12 @@ Cambridge, MA 02139, USA.  */
 #include "shmalloc_internal.h"
 
 void *
-shmemalign (size_t alignment, size_t size)
+_fusion_shmemalign (size_t alignment, size_t size)
 {
      void          *result;
      unsigned long  adj;
 
-     result = shmalloc (size + alignment - 1);
+     result = _fusion_shmalloc (size + alignment - 1);
      if (result == NULL)
           return NULL;
 
@@ -60,9 +60,9 @@ shmemalign (size_t alignment, size_t size)
                     break;
 
           if (l == NULL) {
-               l = (struct alignlist *) shmalloc (sizeof (struct alignlist));
+               l = (struct alignlist *) _fusion_shmalloc (sizeof (struct alignlist));
                if (l == NULL) {
-                    shfree (result);
+                    _fusion_shfree (result);
                     return NULL;
                }
 

@@ -46,9 +46,9 @@ Cambridge, MA 02139, USA.
 /* Allocate an array of NMEMB elements each SIZE bytes long.
    The entire array is initialized to zeros.  */
 void *
-shcalloc (size_t nmemb, size_t size)
+_fusion_shcalloc (size_t nmemb, size_t size)
 {
-     void *result = shmalloc (nmemb * size);
+     void *result = _fusion_shmalloc (nmemb * size);
 
      if (result != NULL)
           memset (result, 0, nmemb * size);

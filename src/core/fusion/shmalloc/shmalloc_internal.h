@@ -51,6 +51,31 @@ Cambridge, MA 02139, USA.
 #include "../reactor.h"
 #include "../lock.h"
 
+
+
+/* Allocate SIZE bytes of memory.  */
+void *_fusion_shmalloc (size_t __size);
+
+/* Re-allocate the previously allocated block
+   in __ptr, making the new block SIZE bytes long.  */
+void *_fusion_shrealloc (void *__ptr, size_t __size);
+
+/* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
+void *_fusion_shcalloc (size_t __nmemb, size_t __size);
+
+/* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
+void  _fusion_shfree (void *__ptr);
+
+/* Allocate SIZE bytes allocated to ALIGNMENT bytes.  */
+void *_fusion_shmemalign (size_t __alignment, size_t __size);
+
+/* Allocate SIZE bytes on a page boundary.  */
+void *_fusion_shvalloc (size_t __size);
+
+/* Pick up the current statistics. */
+struct shmstats _fusion_shmstats (void);
+
+
 void *__shmalloc_init (bool initialize);
 void *__shmalloc_brk  (int increment);
 void  __shmalloc_exit (bool shutdown);
@@ -58,7 +83,7 @@ void  __shmalloc_exit (bool shutdown);
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx);
 
 /* Internal version of `shfree' used in `morecore' (shmalloc.c). */
-void _shfree_internal (void *__ptr);
+void _fusion_shfree_internal (void *__ptr);
 
 
 /* The allocator divides the heap into blocks of fixed size; large
@@ -169,8 +194,5 @@ typedef struct {
 
 /* global data at beginning of shared memory */
 extern shmalloc_heap *_sheap;
-
-/* Nonzero if `shmalloc' has been called and done its initialization.  */
-extern int __shmalloc_initialized;
 
 #endif /* shmalloc_internal.h  */

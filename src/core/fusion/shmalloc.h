@@ -54,6 +54,7 @@ extern "C"
 
 #include <stddef.h>
 
+
 /* Allocate SIZE bytes of memory.  */
 void *shmalloc (size_t __size);
 

@@ -49,10 +49,10 @@ Cambridge, MA 02139, USA.
 static size_t pagesize = 0;
 
 void *
-shvalloc (size_t size)
+_fusion_shvalloc (size_t size)
 {
      if (pagesize == 0)
           pagesize = getpagesize ();
 
-     return shmemalign (pagesize, size);
+     return _fusion_shmemalign (pagesize, size);
 }

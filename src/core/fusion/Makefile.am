@@ -41,6 +41,7 @@ libdirectfb_core_fusion_la_SOURCES = \
 	property.c		\
 	reactor.c		\
 	ref.c			\
+	fusion_shmalloc.c	\
 	util.c
 
 if ENABLE_MULTI

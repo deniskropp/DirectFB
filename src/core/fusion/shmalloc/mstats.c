@@ -46,7 +46,7 @@ Cambridge, MA 02139, USA.
 #include "shmalloc_internal.h"
 
 struct shmstats
-shmstats () {
+_fusion_shmstats () {
      struct shmstats result;
 
      result.bytes_total = (char *) __shmalloc_brk (0) - _sheap->heapbase;

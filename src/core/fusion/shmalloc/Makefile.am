@@ -16,7 +16,6 @@ noinst_LTLIBRARIES = libdirectfb_shmalloc.la
 
 libdirectfb_shmalloc_la_SOURCES = \
 	mstats.c			\
-	shbrk.c				\
 	shcalloc.c			\
 	shfree.c			\
 	shmalloc.c			\

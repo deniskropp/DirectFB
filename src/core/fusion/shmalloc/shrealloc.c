@@ -57,17 +57,17 @@ Cambridge, MA 02139, USA.
    new region.  This module has incestuous knowledge of the
    internals of both free and shmalloc. */
 void *
-shrealloc (void *ptr, size_t size)
+_fusion_shrealloc (void *ptr, size_t size)
 {
      void  *result;
      int    type;
      size_t block, blocks, oldlimit;
 
      if (ptr == NULL)
-          return shmalloc (size);
+          return _fusion_shmalloc (size);
      else if (size == 0) {
-          shfree (ptr);
-          return shmalloc (0);
+          _fusion_shfree (ptr);
+          return _fusion_shmalloc (0);
      }
 
      block = BLOCK (ptr);
@@ -77,10 +77,10 @@ shrealloc (void *ptr, size_t size)
           case 0:
                /* Maybe reallocate a large block to a small fragment.  */
                if (size <= BLOCKSIZE / 2) {
-                    result = shmalloc (size);
+                    result = _fusion_shmalloc (size);
                     if (result != NULL) {
                          memcpy (result, ptr, size);
-                         shfree (ptr);
+                         _fusion_shfree (ptr);
                          return result;
                     }
                }
@@ -95,7 +95,7 @@ shrealloc (void *ptr, size_t size)
                     _sheap->heapinfo[block + blocks].busy.info.size
                     = _sheap->heapinfo[block].busy.info.size - blocks;
                     _sheap->heapinfo[block].busy.info.size = blocks;
-                    shfree (ADDRESS (block + blocks));
+                    _fusion_shfree (ADDRESS (block + blocks));
                     result = ptr;
                }
                else if (blocks == _sheap->heapinfo[block].busy.info.size)
@@ -109,19 +109,19 @@ shrealloc (void *ptr, size_t size)
                     /* Prevent free from actually returning memory to the system.  */
                     oldlimit = _sheap->heaplimit;
                     _sheap->heaplimit = 0;
-                    shfree (ptr);
+                    _fusion_shfree (ptr);
                     _sheap->heaplimit = oldlimit;
-                    result = shmalloc (size);
+                    result = _fusion_shmalloc (size);
                     if (result == NULL) {
                          /* Now we're really in trouble.  We have to unfree
                             the thing we just freed.  Unfortunately it might
                             have been coalesced with its neighbors.  */
                          if (_sheap->heapindex == block)
-                              (void) shmalloc (blocks * BLOCKSIZE);
+                              (void) _fusion_shmalloc (blocks * BLOCKSIZE);
                          else {
-                              void *previous = shmalloc ((block - _sheap->heapindex) * BLOCKSIZE);
-                              (void) shmalloc (blocks * BLOCKSIZE);
-                              shfree (previous);
+                              void *previous = _fusion_shmalloc ((block - _sheap->heapindex) * BLOCKSIZE);
+                              (void) _fusion_shmalloc (blocks * BLOCKSIZE);
+                              _fusion_shfree (previous);
                          }
                          return NULL;
                     }
@@ -139,11 +139,11 @@ shrealloc (void *ptr, size_t size)
                else {
                     /* The new size is different; allocate a new space,
                        and copy the lesser of the new size and the old. */
-                    result = shmalloc (size);
+                    result = _fusion_shmalloc (size);
                     if (result == NULL)
                          return NULL;
                     memcpy (result, ptr, min (size, (size_t) 1 << type));
-                    shfree (ptr);
+                    _fusion_shfree (ptr);
                }
                break;
      }

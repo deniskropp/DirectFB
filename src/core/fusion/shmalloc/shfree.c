@@ -48,7 +48,7 @@ Cambridge, MA 02139, USA.
 /* Return memory to the heap.
    Like `shfree' but don't call a __shfree_hook if there is one.  */
 void
-_shfree_internal (void *ptr)
+_fusion_shfree_internal (void *ptr)
 {
      int type;
      size_t block, blocks;
@@ -165,7 +165,7 @@ _shfree_internal (void *ptr)
                     _sheap->chunks_free -= BLOCKSIZE >> type;
                     _sheap->bytes_free -= BLOCKSIZE;
 
-                    shfree (ADDRESS (block));
+                    _fusion_shfree (ADDRESS (block));
                }
                else if (_sheap->heapinfo[block].busy.info.frag.nfree != 0) {
                     /* If some fragments of this block are free, link this
@@ -200,7 +200,7 @@ _shfree_internal (void *ptr)
 
 /* Return memory to the heap.  */
 void
-shfree (void *ptr)
+_fusion_shfree (void *ptr)
 {
      struct alignlist *l;
 
@@ -214,5 +214,5 @@ shfree (void *ptr)
                break;
           }
 
-     _shfree_internal (ptr);
+     _fusion_shfree_internal (ptr);
 }
