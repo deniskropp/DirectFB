@@ -267,6 +267,11 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
 
 void window_destroy( CoreWindow *window )
 {
+     DFBWindowEvent evt;
+
+     evt.type = DWET_CLOSE;
+     window_append_event( window, &evt );
+
      surface_destroy( window->surface );
 
      /* unlock in case a thread does WaitForEvent */
