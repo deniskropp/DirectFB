@@ -129,6 +129,27 @@ fs_playback_create( CoreSound        *core,
 }
 
 DFBResult
+fs_playback_enable( CorePlayback *playback )
+{
+     DFBResult ret = DFB_OK;
+
+     D_ASSERT( playback != NULL );
+     D_ASSERT( playback->buffer != NULL );
+
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock ))
+          return DFB_FUSION;
+
+     /* Enable playback. */
+     playback->disabled = false;
+
+     /* Unlock playback. */
+     fusion_skirmish_dismiss( &playback->lock );
+
+     return ret;
+}
+
+DFBResult
 fs_playback_start( CorePlayback *playback, bool enable )
 {
      DFBResult ret = DFB_OK;

@@ -425,13 +425,16 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
           if (data->pos_write == data->size)
                data->pos_write = 0;
 
-          /* Update the fill level. */
-          data->filled += num;
-
           /* Set new stop position. */
           ret = fs_playback_set_stop( data->playback, data->pos_write );
           if (ret)
                return ret;
+
+          /* (Re)enable playback if buffer has been empty. */
+          fs_playback_enable( data->playback );
+
+          /* Update the fill level. */
+          data->filled += num;
      }
 
      if (ret_bytes)
