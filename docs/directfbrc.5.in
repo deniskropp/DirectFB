@@ -88,18 +88,18 @@ debug output unless you compiled DirectFB with debugging support.
 .TP
 .BI force-windowed
 Forces the primary surface to be a window. This allows to run
-applications that were written to do fullscreen access in a window.
+applications that were written to do full-screen access in a window.
 
 .TP
 .BI [no-]hardware
 Turns hardware acceleration on. By default hardware acceleration is
-autodetected. If you disable hardware acceleration, the driver for
+auto-detected. If you disable hardware acceleration, the driver for
 your graphics card will not be loaded and all graphics operations will
 be performed by the software renderer.
 
 .TP
 .BI [no-]sync
-Flushes all disk buffers before initialising DirectFB. This can be
+Flushes all disk buffers before initializing DirectFB. This can be
 useful if you working with experimental device drivers and expect
 crashes. The default is not to sync.
 
@@ -187,9 +187,9 @@ Swaps left and right mouse buttons. Useful for left-handers.
 
 .TP
 .BI [no-]cursor
-By default DirectFB shows a mouse cursor when an applications make use
+By default DirectFB shows a mouse cursor when an application makes use
 of windows. This options allows to switch the cursor off. Note that
-applications may nevertheless switch it on explicitely.
+applications may nevertheless switch it on explicitly.
 
 .TP
 .BI bg-none
@@ -272,30 +272,30 @@ opened, closed, resized or its contents change DirectFB recomposites
 the window stack at the affected region. This is done by blitting the
 windows together that are visible within that region. Opaque windows
 are blitted directly while translucent windows are blitted using alpha
-blending or color keying. If there's a backbuffer the recomposition is
+blending or color keying. If there's a back buffer the recomposition is
 not visible since only the final result is copied into the front
-buffer. Without a backbuffer each step of the recomposition is visible.
+buffer. Without a back buffer each step of the recomposition is visible.
 This causes noticeable flicker unless all windows are opaque.
 
 Supported values for <mode> are:
 
 .BI auto
 DirectFB decides depending on hardware capabilities. This is the
-default. DirectFB chooses a backbuffer in video memory if the hardware
-supports simple blitting (copying from back- to frontbuffer). If
-there's no acceleration at all the backbuffer is allocated in system
+default. DirectFB chooses a back buffer in video memory if the hardware
+supports simple blitting (copying from back to front buffer). If
+there's no acceleration at all the back buffer is allocated in system
 memory since that gives much better performance for alpha blended
 recomposition in software and avoids reading from the video memory
-when the result is copied to the frontbuffer.
+when the result is copied to the front buffer.
 
 .BI backsystem
-The back buffer is allocated in system memory. This is the recommened
+The back buffer is allocated in system memory. This is the recommend
 choice if your hardware supports simple blitting but no alpha blending
 and you are going to have many alpha blended windows.
 
 .BI backvideo
 Front and back buffer are allocated in video memory. It's not required
-to set this mode explicitely because the 'auto' mode chooses it if
+to set this mode explicitly because the 'auto' mode chooses it if
 blits are accelerated. Without accelerated blits this mode is not
 recommended.
 
