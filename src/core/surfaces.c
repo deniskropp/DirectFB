@@ -388,6 +388,9 @@ dfb_surface_set_palette( CoreSurface *surface,
 {
      DFB_ASSERT( surface != NULL );
 
+     if (surface->palette == palette)
+          return DFB_OK;
+
      if (surface->palette) {
           dfb_palette_detach( surface->palette, &surface->palette_reaction );
           dfb_palette_unlink( surface->palette );
@@ -400,6 +403,8 @@ dfb_surface_set_palette( CoreSurface *surface,
           dfb_palette_attach( palette, palette_listener,
                               surface, &surface->palette_reaction );
      }
+
+     dfb_surface_notify_listeners( surface, CSNF_PALETTE );
 
      return DFB_OK;
 }
