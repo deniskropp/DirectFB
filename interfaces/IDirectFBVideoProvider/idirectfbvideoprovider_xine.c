@@ -134,7 +134,7 @@ IDirectFBVideoProvider_Xine_Destruct(IDirectFBVideoProvider* thiz)
 		xine_exit(data->xine);
 	}
 
-	DFBFREE(data->mrl);
+	D_FREE(data->mrl);
 	DFB_DEALLOCATE_INTERFACE(thiz);
 }
 
@@ -521,14 +521,14 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 	DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Xine)
 
 	data->ref = 1;
-	data->mrl = DFBSTRDUP(filename);
+	data->mrl = D_STRDUP(filename);
 
 	if(!(data->xine = xine_new()))
 		return(DFB_FAILURE);
 
 	if(getenv("XINERC"))
 	{
-		data->cfg = DFBSTRDUP(getenv("XINERC"));
+		data->cfg = D_STRDUP(getenv("XINERC"));
 	} else
 	if((home = xine_get_homedir()))
 	{

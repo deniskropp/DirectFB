@@ -17,10 +17,10 @@
  *
  *  video_out_dfb: unofficial xine video output driver using DirectFB
  *
- * 
+ *
  *  NOTE: adjusting contrast is disabled in __dummy_* when output is RGB
  *
- * 
+ *
  *  TODO: we really need to speed up at 24bpp and 32bpp
  *
  */
@@ -30,7 +30,6 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <directfb_internals.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/state.h>
@@ -144,7 +143,7 @@ rdtsc(void)
 
 /*
  * This formula seems to work properly:
- * 
+ *
  *  R = Y + (1.40200 * (V - 128))
  *  G = Y - (0.71414 * (V - 128)) - (0.34414 * (U - 128))
  *  B = Y + (1.77200 * (U - 128))
@@ -2310,7 +2309,7 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	frame->state.destination = this->main_data->surface;
 	frame->state.modified    = SMF_ALL;
 	
-	this->output_cb(this->output_cdata, frame->width, 
+	this->output_cb(this->output_cdata, frame->width,
 			frame->height, &(frame->dest_rect));
 	
 	if(frame->dest_rect.x < 0)
@@ -2497,7 +2496,7 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 	{
 		this->frame_cb(this->frame_cdata);
 
-	} else 
+	} else
 	if(this->main_data->caps & DSCAPS_DOUBLE)
 	{
 		this->main->Flip(this->main, &(frame->used_area), 0);
@@ -2884,7 +2883,7 @@ init_class(xine_t* xine, void* vo_visual)
 	class->vo_class.get_identifier  = get_identifier;
 	class->vo_class.get_description = get_description;
 	class->vo_class.dispose         = dispose_class;
-	class->xine                     = xine; 
+	class->xine                     = xine;
 
 	return(class);
 
