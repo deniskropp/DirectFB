@@ -67,15 +67,18 @@ DFB_GRAPHICS_DRIVER( matrox )
 #include "matrox_state.h"
 
 
-static bool matroxFillRectangle   ( void *drv, void *dev, DFBRectangle *rect );
-static bool matroxFillRectangle_2P( void *drv, void *dev, DFBRectangle *rect );
-static bool matroxFillRectangle_3P( void *drv, void *dev, DFBRectangle *rect );
+static bool matroxFillRectangle    ( void *drv, void *dev, DFBRectangle *rect );
+static bool matroxFillRectangle_2P ( void *drv, void *dev, DFBRectangle *rect );
+static bool matroxFillRectangle_3P ( void *drv, void *dev, DFBRectangle *rect );
+static bool matroxFillRectangle_422( void *drv, void *dev, DFBRectangle *rect );
 
 static bool matroxBlit2D    ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 static bool matroxBlit2D_2P ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 static bool matroxBlit2D_3P ( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
+static bool matroxBlit2D_422( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 static bool matroxBlit2D_Old( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
@@ -86,13 +89,17 @@ static bool matroxBlit3D_2P ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
 static bool matroxBlit3D_3P ( void *drv, void *dev,
                               DFBRectangle *rect, int dx, int dy );
+static bool matroxBlit3D_422( void *drv, void *dev,
+                              DFBRectangle *rect, int dx, int dy );
 
-static bool matroxStretchBlit   ( void *drv, void *dev,
-                                  DFBRectangle *srect, DFBRectangle *drect );
-static bool matroxStretchBlit_2P( void *drv, void *dev,
-                                  DFBRectangle *srect, DFBRectangle *drect );
-static bool matroxStretchBlit_3P( void *drv, void *dev,
-                                  DFBRectangle *srect, DFBRectangle *drect );
+static bool matroxStretchBlit    ( void *drv, void *dev,
+                                   DFBRectangle *srect, DFBRectangle *drect );
+static bool matroxStretchBlit_2P ( void *drv, void *dev,
+                                   DFBRectangle *srect, DFBRectangle *drect );
+static bool matroxStretchBlit_3P ( void *drv, void *dev,
+                                   DFBRectangle *srect, DFBRectangle *drect );
+static bool matroxStretchBlit_422( void *drv, void *dev,
+                                   DFBRectangle *srect, DFBRectangle *drect );
 
 
 
@@ -408,6 +415,13 @@ matroxG200CheckState( void *drv, void *dev,
                     state->source->format == state->destination->format))
                     break;
                return;
+          case DSPF_YUY2:
+               if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
+                   (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
+                    !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
+                    state->source->format == state->destination->format))
+                    break;
+               return;
           case DSPF_LUT8:
                if (DFB_BLITTING_FUNCTION( accel ))
                     return;
@@ -502,6 +516,8 @@ matroxG400CheckState( void *drv, void *dev,
                return;
           case DSPF_NV12:
           case DSPF_NV21:
+          case DSPF_YUY2:
+          case DSPF_UYVY:
                if ((accel & DFXL_FILLRECTANGLE && !state->drawingflags) ||
                    (accel & (DFXL_BLIT | DFXL_STRETCHBLIT) &&
                     !(state->blittingflags & ~DSBLIT_DEINTERLACE) &&
@@ -628,6 +644,15 @@ matroxSetState( void *drv, void *dev,
                MGA_INVALIDATE( m_blitBlend | m_drawBlend );
      }
 
+
+     if (state->modified & SMF_DESTINATION) {
+          matrox_set_destination( mdrv, mdev, state->destination );
+
+          /* On old cards the clip depends on the destination's pixel offset */
+          if (mdev->old_matrox)
+               state->modified |= SMF_CLIP;
+     }
+
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
@@ -644,6 +669,11 @@ matroxSetState( void *drv, void *dev,
                }
 
                switch (state->destination->format) {
+                    case DSPF_YUY2:
+                    case DSPF_UYVY:
+                         funcs->FillRectangle = matroxFillRectangle_422;
+                         state->set = DFXL_FILLRECTANGLE;
+                         break;
                     case DSPF_I420:
                     case DSPF_YV12:
                          funcs->FillRectangle = matroxFillRectangle_3P;
@@ -673,6 +703,12 @@ matroxSetState( void *drv, void *dev,
                          matrox_validate_Color( mdrv, mdev, state );
 
                     switch (state->destination->format) {
+                         case DSPF_YUY2:
+                         case DSPF_UYVY:
+                              funcs->Blit        = matroxBlit3D_422;
+                              funcs->StretchBlit = matroxStretchBlit_422;
+                              state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
+                              break;
                          case DSPF_I420:
                          case DSPF_YV12:
                               funcs->Blit        = matroxBlit3D_3P;
@@ -699,6 +735,10 @@ matroxSetState( void *drv, void *dev,
                }
                else {
                     switch (state->destination->format) {
+                         case DSPF_YUY2:
+                         case DSPF_UYVY:
+                              funcs->Blit = matroxBlit2D_422;
+                              break;
                          case DSPF_I420:
                          case DSPF_YV12:
                               funcs->Blit = matroxBlit2D_3P;
@@ -723,14 +763,6 @@ matroxSetState( void *drv, void *dev,
           default:
                D_BUG( "unexpected drawing/blitting function!" );
                break;
-     }
-
-     if (state->modified & SMF_DESTINATION) {
-          matrox_set_destination( mdrv, mdev, state->destination );
-
-          /* On old cards the clip depends on the destination's pixel offset */
-          if (mdev->old_matrox)
-               state->modified |= SMF_CLIP;
      }
 
      if (state->modified & SMF_CLIP) {
@@ -853,6 +885,20 @@ matroxFillRectangle_3P( void *drv, void *dev, DFBRectangle *rect )
      mga_out32( mmio, mdev->dst_offset[0], DSTORG );
 
      matrox_set_clip( mdrv, mdev, &mdev->clip );
+
+     return true;
+}
+
+static bool
+matroxFillRectangle_422( void *drv, void *dev, DFBRectangle *rect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     rect->x /= 2;
+     rect->w = (rect->w + 1) / 2;
+
+     matrox_fill_rectangle( mdrv, mdev, rect );
 
      return true;
 }
@@ -1259,6 +1305,26 @@ matroxBlit2D_3P( void *drv, void *dev,
      return true;
 }
 
+static bool
+matroxBlit2D_422( void *drv, void *dev,
+                  DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     dx /= 2;
+     rect->x /= 2;
+     rect->w = (rect->w + 1) / 2;
+
+     matroxDoBlit2D( mdrv, mdev,
+                     rect->x, rect->y,
+                     dx, dy,
+                     rect->w, rect->h,
+                     mdev->src_pitch );
+
+     return true;
+}
+
 /******************************************************************************/
 
 static inline void
@@ -1522,6 +1588,23 @@ matroxStretchBlit_3P( void *drv, void *dev,
 }
 
 static bool
+matroxStretchBlit_422( void *drv, void *dev,
+                       DFBRectangle *srect, DFBRectangle *drect )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     srect->x /= 2;
+     srect->w = (srect->w + 1) / 2;
+     drect->x /= 2;
+     drect->w = (drect->w + 1) / 2;
+
+     matroxBlitTMU( mdrv, mdev, srect, drect, true );
+
+     return true;
+}
+
+static bool
 matroxBlit3D( void *drv, void *dev,
               DFBRectangle *rect, int dx, int dy )
 {
@@ -1559,6 +1642,25 @@ matroxBlit3D_3P( void *drv, void *dev,
      DFBRectangle      drect = { dx, dy, rect->w, rect->h };
 
      matroxBlitTMU_3P( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
+
+     return true;
+}
+
+static bool
+matroxBlit3D_422( void *drv, void *dev,
+                  DFBRectangle *rect, int dx, int dy )
+{
+     MatroxDriverData *mdrv  = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev  = (MatroxDeviceData*) dev;
+
+     DFBRectangle      drect= { dx, dy, rect->w, rect->h };
+
+     rect->x /= 2;
+     rect->w = (rect->w + 1) / 2;
+     drect.x /= 2;
+     drect.w = (drect.w + 1) / 2;
+
+     matroxBlitTMU( mdrv, mdev, rect, &drect, mdev->blit_deinterlace );
 
      return true;
 }

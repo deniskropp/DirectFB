@@ -59,12 +59,16 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(buffer->format);
 
      mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
+     mdev->dst_format = destination->format;
 
      D_ASSERT( mdev->dst_pitch % 32 == 0 );
 
      D_ASSERT( buffer->video.offset % 64 == 0 );
 
      mdev->depth_buffer = depth_buffer != NULL;
+
+     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY)
+          mdev->dst_pitch /= 2;
 
      if (mdev->old_matrox) {
           mdev->dst_offset[0] = buffer->video.offset / bytes_per_pixel;
@@ -116,6 +120,10 @@ void matrox_set_destination( MatroxDriverData *mdrv,
           case DSPF_NV21:
                mga_out32( mmio, PW8 | BYPASS332 | NODITHER, MACCESS );
                break;
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+               mga_out32( mmio, PW32 | NODITHER, MACCESS );
+               break;
           default:
                D_BUG( "unexpected pixelformat!" );
                break;
@@ -141,7 +149,10 @@ void matrox_set_clip( MatroxDriverData *mdrv,
           mga_out32( mmio, (mdev->dst_pitch * clip->y2) & 0xFFFFFF, YBOT );
      }
 
-     mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) | (clip->x1 & 0x0FFF), CXBNDRY );
+     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY)
+          mga_out32( mmio, ((clip->x2/2 & 0x0FFF) << 16) | (clip->x1/2 & 0x0FFF), CXBNDRY );
+     else
+          mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) | (clip->x1 & 0x0FFF), CXBNDRY );
 }
 
 void matrox_validate_Color( MatroxDriverData *mdrv,
@@ -267,6 +278,20 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                color |= color << 16;
                mdev->color[0] = color;
                mdev->color[1] = (cb << 24) | (cr << 16) | (cb << 8) | cr;
+               break;
+          case DSPF_YUY2:
+               RGB_TO_YCBCR( state->color.r,
+                             state->color.g,
+                             state->color.b,
+                             color, cb, cr );
+               color = PIXEL_YUY2( color, cb, cr );
+               break;
+          case DSPF_UYVY:
+               RGB_TO_YCBCR( state->color.r,
+                             state->color.g,
+                             state->color.b,
+                             color, cb, cr );
+               color = PIXEL_UYVY( color, cb, cr );
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
@@ -460,6 +485,12 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 
      mdev->w = surface->width;
      mdev->h = surface->height;
+
+     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY) {
+          mdev->w /= 2;
+          mdev->src_pitch /= 2;
+     }
+
      if (mdev->blit_deinterlace) {
           mdev->h /= 2;
           if (surface->caps & DSCAPS_SEPARATED) {
@@ -495,10 +526,10 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 
      switch (surface->format) {
           case DSPF_YUY2:
-               texctl |= TW422;
+               texctl |= (mdev->dst_format == DSPF_YUY2) ? TW32 : TW422;
                break;
           case DSPF_UYVY:
-               texctl |= TW422UYVY;
+               texctl |= (mdev->dst_format == DSPF_UYVY) ? TW32 : TW422UYVY;
                break;
           case DSPF_I420:
           case DSPF_YV12:
@@ -589,6 +620,9 @@ void matrox_validate_source( MatroxDriverData *mdrv,
      D_ASSERT( mdev->src_pitch % 32 == 0 );
 
      D_ASSERT( buffer->video.offset % 64 == 0 );
+
+     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY)
+          mdev->src_pitch /= 2;
 
      if (mdev->old_matrox) {
           mdev->src_offset[0] = buffer->video.offset / bytes_per_pixel;
