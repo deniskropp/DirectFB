@@ -61,6 +61,7 @@ typedef struct {
      struct termios              old_ts;
      DFBInputDeviceModifierKeys  modifier_state;
      DFBInputDeviceLockState     lock_state;
+     DFBInputDeviceLockState     lock_pressed;
      pthread_t                   thread;
 } KeyboardData;
 
@@ -196,9 +197,14 @@ adjust_pad_keys( DFBInputDeviceKeyIdentifier code )
      return code;
 }
 
-#define TOGGLE_LOCK(flag)       ((data->lock_state & (flag)) ?        \
-                                 (data->lock_state &= ~flag):         \
-                                 (data->lock_state |= flag));
+#define HANDLE_LOCK(flag)     if (keydown) { \
+                                   if (! (data->lock_pressed & (flag))) { \
+                                        data->lock_state   ^= (flag); \
+                                        data->lock_pressed |= (flag); \
+                                   } \
+                              } \
+                              else \
+                                   data->lock_pressed &= ~(flag);
 
 static DFBInputEvent
 keyboard_handle_code( KeyboardData  *data, unsigned char code )
@@ -252,23 +258,20 @@ keyboard_handle_code( KeyboardData  *data, unsigned char code )
                          data->modifier_state &= ~DIMK_ALT;
                     break;
                case DIKC_ALTGR:
-                     if (keydown)
-                          data->modifier_state |= DIMK_ALTGR;
-                     else
-                          data->modifier_state &= ~DIMK_ALTGR;
-                     break;
+                    if (keydown)
+                         data->modifier_state |= DIMK_ALTGR;
+                    else
+                         data->modifier_state &= ~DIMK_ALTGR;
+                    break;
                case DIKC_CAPSLOCK:
-                     if (keydown)
-                          TOGGLE_LOCK( DILS_CAPS );
-                     break;
+                    HANDLE_LOCK( DILS_CAPS );
+                    break;
                case DIKC_NUMLOCK:
-                     if (keydown)
-                          TOGGLE_LOCK( DILS_NUM );
-                     break;
-                case DIKC_SCRLOCK:
-                     if (keydown)
-                          TOGGLE_LOCK( DILS_SCROLL );
-                     break;
+                    HANDLE_LOCK( DILS_NUM );
+                    break;
+               case DIKC_SCRLOCK:
+                    HANDLE_LOCK( DILS_SCROLL );
+                    break;
                default:
                     break;
           }
