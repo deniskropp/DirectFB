@@ -209,6 +209,22 @@ RGBA_to_RGB16( void *d, void *s, int len )
 }
 
 static void
+RGBA_to_RGB24( void *d, void *s, int len )
+{
+     int   i;
+     __u8 *dst = (__u8*) d;
+     __u8 *src = (__u8*) s;
+
+     for (i=0; i<len*3; i+=3) {
+          dst[i+0] = src[2];
+          dst[i+1] = src[1];
+          dst[i+2] = src[0];
+
+          src += 4;
+     }
+}
+
+static void
 RGBA_to_RGB32( void *d, void *s, int len )
 {
      int    i;
@@ -284,6 +300,14 @@ WriteFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                }
                break;
 
+          case DSPF_RGB24:
+               for (i=off_y; i<data->dest_clip.h; i++) {
+                    RGBA_to_RGB24( ptr, data->video.lines[i] + off_x * 4,
+                                   data->dest_clip.w );
+
+                    ptr += pitch;
+               }
+               break;
 
           case DSPF_RGB32:
                for (i=off_y; i<data->dest_clip.h; i++) {
@@ -293,7 +317,6 @@ WriteFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                     ptr += pitch;
                }
                break;
-
 
           case DSPF_ARGB:
                for (i=off_y; i<data->dest_clip.h; i++) {
@@ -418,6 +441,7 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
          case DSPF_RGB332:
          case DSPF_RGB15:
          case DSPF_RGB16:
+         case DSPF_RGB24:
          case DSPF_RGB32:
          case DSPF_ARGB:
               break;
