@@ -57,11 +57,16 @@ static DFBResult unrealize_region( CoreLayerRegion            *region );
 static void
 region_destructor( FusionObject *object, bool zombie )
 {
-     CoreLayerRegion *region = (CoreLayerRegion*) object;
+     CoreLayerRegion  *region  = (CoreLayerRegion*) object;
+     CoreLayerContext *context = region->context;
+     CoreLayer        *layer   = dfb_layer_at( context->layer_id );
+     CoreLayerShared  *shared  = layer->shared;
 
-     DEBUGMSG( "DirectFB/core/layers: "
-               "destroying region %p (%dx%d, %s, %s, %s, %s%s)\n",
-               region, region->config.width, region->config.height,
+     (void) shared;
+
+     DEBUGMSG( "DirectFB/core/layers: destroying region %p (%s, %dx%d, "
+               "%s, %s, %s, %s%s)\n", region, shared->description.name,
+               region->config.width, region->config.height,
                FLAG_IS_SET( region->state,
                             CLRSF_CONFIGURED ) ? "configured" : "unconfigured",
                FLAG_IS_SET( region->state,
