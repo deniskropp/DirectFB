@@ -96,6 +96,9 @@ typedef struct {
                                           leased during window stack repaint */
 
      bool                     exclusive; /* helps to detect dead excl. access */
+
+     Reaction                 surface_reaction;
+     Reaction                 bgimage_reaction;
 } DisplayLayerShared;  
 
 struct _DisplayLayer {
@@ -596,7 +599,8 @@ dfb_layer_enable( DisplayLayer *layer )
           CoreSurface *surface = shared->surface;
 
           /* attach surface listener for palette and field switches */
-          dfb_surface_attach( surface, layer_surface_listener, layer );
+          dfb_surface_attach( surface, layer_surface_listener,
+                              layer, &shared->surface_reaction );
 
           /* set default palette */
           if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ) &&
@@ -631,7 +635,7 @@ dfb_layer_disable( DisplayLayer *layer )
           return ret;
 
      if (shared->surface)
-          dfb_surface_detach( shared->surface, layer_surface_listener, layer );
+          dfb_surface_detach( shared->surface, &shared->surface_reaction );
      
      /* destroy the window stack if there is one */
      if (shared->stack) {
@@ -643,8 +647,7 @@ dfb_layer_disable( DisplayLayer *layer )
           
           /* detach listener from background surface and unlink it */
           if (stack->bg.image) {
-               dfb_surface_detach( stack->bg.image,
-                                   background_image_listener, layer );
+               dfb_surface_detach( stack->bg.image, &shared->bgimage_reaction );
                dfb_surface_unlink( stack->bg.image );
           }
      }
@@ -826,8 +829,7 @@ dfb_layer_set_background_image( DisplayLayer *layer,
      if (stack->bg.image != image) {
           /* detach listener from old surface and unlink it */
           if (stack->bg.image) {
-               dfb_surface_detach( stack->bg.image,
-                                   background_image_listener, layer );
+               dfb_surface_detach( stack->bg.image, &shared->bgimage_reaction );
                dfb_surface_unlink( stack->bg.image );
           }
 
@@ -835,7 +837,8 @@ dfb_layer_set_background_image( DisplayLayer *layer,
           dfb_surface_link( &stack->bg.image, image );
           
           /* attach listener to new surface */
-          dfb_surface_attach( image, background_image_listener, layer );
+          dfb_surface_attach( image, background_image_listener,
+                              layer, &shared->bgimage_reaction );
      }
 
      /* force an update of the window stack */

@@ -72,10 +72,10 @@ FusionObject     *fusion_object_create  ( FusionObjectPool *pool );
 
 FusionResult      fusion_object_attach  ( FusionObject     *object,
                                           React             react,
-                                          void             *ctx );
+                                          void             *ctx,
+                                          Reaction         *reaction );
 FusionResult      fusion_object_detach  ( FusionObject     *object,
-                                          React             react,
-                                          void             *ctx );
+                                          Reaction         *react );
 FusionResult      fusion_object_dispatch( FusionObject     *object,
                                           void             *message );
 

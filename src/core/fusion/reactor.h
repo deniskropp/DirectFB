@@ -27,8 +27,8 @@
 #ifndef __FUSION__REACTOR_H__
 #define __FUSION__REACTOR_H__
 
-#include "fusion_types.h"
-
+#include <core/fusion/fusion_types.h>
+#include <core/fusion/list.h>
 
 typedef enum {
      RS_OK,
@@ -39,14 +39,21 @@ typedef enum {
 typedef ReactionResult (*React) (const void    *msg_data,
                                  void          *ctx);
 
+typedef struct {
+     FusionLink  link;
+     React       react;
+     void       *ctx;
+     int         index;  /* index to reactor nodes */
+} Reaction;
+
 FusionReactor *reactor_new      (const int      msg_size);
 FusionResult   reactor_free     (FusionReactor *reactor);
 FusionResult   reactor_attach   (FusionReactor *reactor,
                                  React          react,
-                                 void          *ctx);
+                                 void          *ctx,
+                                 Reaction      *reaction);
 FusionResult   reactor_detach   (FusionReactor *reactor,
-                                 React          react,
-                                 void          *ctx);
+                                 Reaction      *reaction);
 FusionResult   reactor_dispatch (FusionReactor *reactor,
                                  const void    *msg_data,
                                  bool           self);

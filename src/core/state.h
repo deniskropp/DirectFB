@@ -32,6 +32,8 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
+#include <core/fusion/reactor.h>
+
 typedef enum {
      SMF_DRAWING_FLAGS   = 0x00000001,
      SMF_BLITTING_FLAGS  = 0x00000002,
@@ -84,6 +86,9 @@ struct _CardState {
                                               unlocked when state is released */
 
      pthread_mutex_t         lock;         /* lock for state handling */
+
+     Reaction                destination_reaction;
+     Reaction                source_reaction;
 };
 
 int dfb_state_init( CardState *state );

@@ -52,6 +52,14 @@
 #include <gfx/util.h>
 
 
+typedef struct {
+     FusionLink   link;
+
+     InputDevice *device;
+     Reaction     reaction;
+} StackDevice;
+
+
 static void repaint_stack( CoreWindowStack *stack, DFBRegion *region,
                            DFBSurfaceFlipFlags flags );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
@@ -107,9 +115,6 @@ stack_inputdevice_react( const void *msg_data,
                          void       *ctx );
 static DFBEnumerationResult
 stack_attach_devices( InputDevice *device,
-                      void        *ctx );
-static DFBEnumerationResult
-stack_detach_devices( InputDevice *device,
                       void        *ctx );
 
 /*
@@ -227,9 +232,21 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 void
 dfb_windowstack_destroy( CoreWindowStack *stack )
 {
+     FusionLink *l;
+
      DFB_ASSERT( stack != NULL );
      
-     dfb_input_enumerate_devices( stack_detach_devices, stack );
+     l = stack->devices;
+     while (l) {
+          FusionLink  *next   = l->next;
+          StackDevice *device = (StackDevice*) l;
+          
+          dfb_input_detach( device->device, &device->reaction );
+
+          shfree( device );
+
+          l = next;
+     }
 
      fusion_object_pool_destroy( stack->pool );
 
@@ -1051,16 +1068,21 @@ static DFBEnumerationResult
 stack_attach_devices( InputDevice *device,
                       void        *ctx )
 {
-     dfb_input_attach( device, stack_inputdevice_react, ctx );
+     StackDevice     *dev;
+     CoreWindowStack *stack = (CoreWindowStack*) ctx;
 
-     return DFENUM_OK;
-}
+     dev = shcalloc( 1, sizeof(StackDevice) );
+     if (!dev) {
+          ERRORMSG( "DirectFB/core/windows: Could not allocate %d bytes\n",
+                    sizeof(StackDevice) );
+          return DFENUM_CANCEL;
+     }
 
-static DFBEnumerationResult
-stack_detach_devices( InputDevice *device,
-                      void        *ctx )
-{
-     dfb_input_detach( device, stack_inputdevice_react, ctx );
+     dev->device = device;
+
+     fusion_list_prepend( &stack->devices, &dev->link );
+
+     dfb_input_attach( device, stack_inputdevice_react, ctx, &dev->reaction );
 
      return DFENUM_OK;
 }

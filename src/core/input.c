@@ -31,6 +31,10 @@
 
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <sys/time.h>
 
 #include <pthread.h>
@@ -48,11 +52,14 @@
 
 #include <core/modules.h>
 
+#include <core/surfaces.h>
 #include <core/layers.h>
 #include <core/input.h>
 
 #include <misc/mem.h>
 #include <misc/util.h>
+
+#include <gfx/convert.h>
 
 
 DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
@@ -146,6 +153,8 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
               DFBInputDeviceModifierMask  modifiers,
               DFBInputDeviceLockState     locks );
 
+static bool
+core_input_filter( InputDevice *device, DFBInputEvent *event );
 
 /** public **/
 
@@ -329,16 +338,20 @@ dfb_input_enumerate_devices( InputDeviceCallback  callback,
      }
 }
 
-void
-dfb_input_attach( InputDevice *device, React react, void *ctx )
+FusionResult
+dfb_input_attach( InputDevice *device,
+                  React        react,
+                  void        *ctx,
+                  Reaction    *reaction )
 {
-     reactor_attach( device->shared->reactor, react, ctx );
+     return reactor_attach( device->shared->reactor, react, ctx, reaction );
 }
 
-void
-dfb_input_detach( InputDevice *device, React react, void *ctx )
+FusionResult
+dfb_input_detach( InputDevice *device,
+                  Reaction    *reaction )
 {
-     reactor_detach( device->shared->reactor, react, ctx );
+     return reactor_detach( device->shared->reactor, reaction );
 }
 
 void
@@ -1186,4 +1199,109 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      return DIKS_NULL;
 }
 
+static void
+dump_screen( const char *directory )
+{
+     static int   num = 0;
+     int          fd, i, n;
+     int          len = strlen( directory ) + 20;
+     char         filename[len];
+     char         head[30];
+     void        *data;
+     int          pitch;
+     CoreSurface *surface = dfb_layer_surface( dfb_layer_at(0) );
+
+     do {
+          snprintf( filename, len, "%s/dfb_%04d.ppm", directory, num++ );
+
+          errno = 0;
+
+          fd = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd < 0 && errno != EEXIST) {
+               PERRORMSG("DirectFB/core/input: "
+                         "could not open %s!\n", filename);
+               return;
+          }
+     } while (errno == EEXIST);
+
+     if (dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch,
+                                (surface->caps & DSCAPS_FLIPPING) )) {
+          close( fd );
+          return;
+     }
+
+     snprintf( head, 30, "P6\n%d %d\n255\n", surface->width, surface->height );
+     write( fd, head, strlen(head) );
+
+     for (i=0; i<surface->height; i++) {
+          __u32 buf32[surface->width];
+          __u8  buf24[surface->width * 3];
+
+          switch (surface->format) {
+               case DSPF_RGB15:
+                    span_rgb15_to_rgb32( data, buf32, surface->width );
+                    break;
+               case DSPF_RGB16:
+                    span_rgb16_to_rgb32( data, buf32, surface->width );
+                    break;
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+                    memcpy( buf32, data, surface->width * 4 );
+                    break;
+               default:
+                    ONCE( "screendump for this format not yet implemented" );
+                    dfb_surface_unlock( surface, true );
+                    close( fd );
+                    return;
+          }
+
+          for (n=0; n<surface->width; n++) {
+               buf24[n*3+0] = (buf32[n] >> 16) & 0xff;
+               buf24[n*3+1] = (buf32[n] >>  8) & 0xff;
+               buf24[n*3+2] = (buf32[n]      ) & 0xff;
+          }
+
+          write( fd, buf24, surface->width * 3 );
+
+          ((__u8*)data) += pitch;
+     }
+
+     dfb_surface_unlock( surface, (surface->caps & DSCAPS_FLIPPING) );
+
+     close( fd );
+}
+
+static bool
+core_input_filter( InputDevice *device, DFBInputEvent *event )
+{
+     switch (event->type) {
+          case DIET_KEYPRESS:
+               switch (event->key_symbol) {
+                    case DIKS_PRINT:
+                         if (dfb_config->screenshot_dir) {
+                              dump_screen( dfb_config->screenshot_dir );
+                              return false;
+                         }
+                         break;
+
+                    case DIKS_BREAK:
+                         if ((event->modifiers & DIMM_ALT) &&
+                             (event->modifiers & DIMM_CONTROL))
+                         {
+                              kill( 0, SIGINT );
+                              return false;
+                         }
+                         break;
+
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
+     
+     return true;
+}
 

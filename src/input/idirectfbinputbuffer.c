@@ -62,12 +62,14 @@ typedef struct {
      FusionLink   link;
 
      InputDevice *device;       /* pointer to input core device struct */
+     Reaction     reaction;
 } AttachedDevice;
 
 typedef struct {
      FusionLink   link;
 
      CoreWindow  *window;       /* pointer to core window struct */
+     Reaction     reaction;
 } AttachedWindow;
 
 /*
@@ -115,7 +117,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      while (data->devices) {
           AttachedDevice *device = (AttachedDevice*) data->devices;
 
-          dfb_input_detach( device->device, IDirectFBEventBuffer_InputReact, data );
+          dfb_input_detach( device->device, &device->reaction );
           fusion_list_remove( &data->devices, data->devices );
           DFBFREE( device );
      }
@@ -123,7 +125,7 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      while (data->windows) {
           AttachedWindow *window = (AttachedWindow*) data->windows;
 
-          dfb_window_detach( window->window, IDirectFBEventBuffer_WindowReact, data );
+          dfb_window_detach( window->window, &window->reaction );
           fusion_list_remove( &data->windows, data->windows );
           DFBFREE( window );
      }
@@ -391,9 +393,10 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
      attached = DFBCALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
 
-     dfb_input_attach( device, IDirectFBEventBuffer_InputReact, data );
-
      fusion_list_prepend( &data->devices, &attached->link );
+
+     dfb_input_attach( device, IDirectFBEventBuffer_InputReact,
+                       data, &attached->reaction );
 
      return DFB_OK;
 }
@@ -408,9 +411,10 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
      attached = DFBCALLOC( 1, sizeof(AttachedWindow) );
      attached->window = window;
 
-     dfb_window_attach( window, IDirectFBEventBuffer_WindowReact, data );
-
      fusion_list_prepend( &data->windows, &attached->link );
+
+     dfb_window_attach( window, IDirectFBEventBuffer_WindowReact,
+                        data, &attached->reaction );
 
      return DFB_OK;
 }

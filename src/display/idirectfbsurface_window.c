@@ -80,14 +80,6 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 
      dfb_window_unref( data->window );
      
-     if (data->base.surface) {
-          if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
-               data->base.caps & DSCAPS_PRIMARY)
-          {
-               dfb_window_unref( data->window );
-          }
-     }
-
      IDirectFBSurface_Destruct( thiz );
 }
 

@@ -61,16 +61,6 @@
 /*
  *
  */
-typedef struct {
-     FusionLink link;  /* fusion list link */
-
-     React      react; /* the reaction callback  */
-     void      *ctx;   /* optional callback context */
-} Reaction;
-
-/*
- *
- */
 struct _FusionReactor {
      FusionSkirmish  lock;      /* access synchronization lock         */
 
@@ -140,10 +130,10 @@ reactor_new (const int msg_size)
 FusionResult
 reactor_attach (FusionReactor *reactor,
                 React          react,
-                void          *ctx)
+                void          *ctx,
+                Reaction      *reaction)
 {
-     int       index;
-     Reaction *reaction;
+     int index;
 
      /* lock reactor */
      skirmish_prevail (&reactor->lock);
@@ -183,15 +173,13 @@ reactor_attach (FusionReactor *reactor,
                           NULL, _reactor_receive, reactor);
      }
 
-     /* allocate information for local dispatching */
-     reaction = (Reaction*)calloc (1, sizeof(Reaction));
-
      /* fill out callback information */
      reaction->react = react;
      reaction->ctx   = ctx;
+     reaction->index = index;
 
      /* prepend the reaction to the local reaction list */
-     fusion_list_prepend (&reactor->node[index].reactions, (FusionLink*) reaction);
+     fusion_list_prepend (&reactor->node[index].reactions, &reaction->link);
 
      /* unlock reactor */
      skirmish_dismiss (&reactor->lock);
@@ -201,44 +189,27 @@ reactor_attach (FusionReactor *reactor,
 
 FusionResult
 reactor_detach (FusionReactor *reactor,
-                React          react,
-                void          *ctx)
+                Reaction      *reaction)
 {
-     int         index;
-     FusionLink *link;
-     FusionLink *remove = NULL;
+     int index = reaction->index;
 
+     if (reactor->node[index].id == _fusion_id())
+          FDEBUG( "removing reaction %p from foreign node %d!\n",
+                  reaction, reactor->node[index].id );
+     
      /* lock reactor */
      skirmish_prevail (&reactor->lock);
 
-     /* find our node and return if it hasn't been found */
-     index = _reactor_get_node_index (reactor);
-     if (index < 0) {
-          skirmish_dismiss (&reactor->lock);
-          return FUSION_BUG;
-     }
-
-     /* find the reaction to remove */
-     fusion_list_foreach (link, reactor->node[index].reactions) {
-          Reaction *reaction = (Reaction*) link;
-
-          /* found if reaction callback and context match */
-          if (reaction->react == react && reaction->ctx == ctx) {
-               remove = link;
-               break;
-          }
-     }
-
-     /* remove and free it if found, should return error otherwise (TODO) */
-     if (remove) {
-          fusion_list_remove (&reactor->node[index].reactions, remove);
-          free (remove);
-     }
+     /* remove the reaction */
+     fusion_list_remove (&reactor->node[index].reactions, &reaction->link);
 
      /* if it was the last reaction cancel our receiver thread and free the node */
      if (!reactor->node[index].reactions) {
-          pthread_cancel (reactor->node[index].receiver);
-          pthread_join (reactor->node[index].receiver, NULL);
+          /* if this is our node */
+          if (reactor->node[index].id == _fusion_id()) {
+               pthread_cancel (reactor->node[index].receiver);
+               pthread_join (reactor->node[index].receiver, NULL);
+          }
 
           fusion_ref_destroy (&reactor->node[index].ref);
 
@@ -462,11 +433,8 @@ static void _reactor_process_reactions (FusionLink **reactions, const void *msg_
           link = link->next;
 
           /* if RS_REMOVE has been returned remove the reaction */
-          if (del) {
-               /* remove from list and free */
+          if (del)
                fusion_list_remove (reactions, del);
-               free (del);
-          }
      } while (link);
 }
 
@@ -517,19 +485,8 @@ static int _reactor_get_free_index (const FusionReactor *reactor)
 /*
  *
  */
-typedef struct _Reaction {
-     React  react;
-     void  *ctx;
-
-     struct _Reaction *next;
-     struct _Reaction *prev;
-} Reaction;
-
-/*
- *
- */
 struct _FusionReactor {
-     Reaction        *reactions; /* reactor listeners attached to node  */
+     FusionLink       *reactions; /* reactor listeners attached to node  */
 
      pthread_mutex_t  reactions_lock;
 };
@@ -544,9 +501,8 @@ reactor_new (int msg_size)
 {
      FusionReactor           *reactor;
 
-     reactor = (FusionReactor*)DFBMALLOC( sizeof(FusionReactor) );
-
-     reactor->reactions = NULL;
+     reactor = (FusionReactor*)DFBCALLOC( 1, sizeof(FusionReactor) );
+     
      pthread_mutex_init( &reactor->reactions_lock, NULL );
 
      return reactor;
@@ -555,71 +511,30 @@ reactor_new (int msg_size)
 FusionResult
 reactor_attach (FusionReactor *reactor,
                 React          react,
-                void          *ctx)
+                void          *ctx,
+                Reaction      *reaction)
 {
-     Reaction *reaction;
-
-//     DEBUGMSG("DirectFB/core/fusion: reactor_attach (%p, %p, %p) entered\n",
-//              reactor, react, ctx);
-     
-     reaction = (Reaction*)DFBCALLOC( 1, sizeof(Reaction) );
-
      reaction->react = react;
      reaction->ctx   = ctx;
 
      pthread_mutex_lock( &reactor->reactions_lock );
 
-     if (reactor->reactions) {
-          reaction->next = reactor->reactions;
-          reactor->reactions->prev = reaction;
-     }
-
-     reactor->reactions = reaction;
+     fusion_list_prepend( &reactor->reactions, &reaction->link );
 
      pthread_mutex_unlock( &reactor->reactions_lock );
-     
-//     DEBUGMSG("DirectFB/core/fusion: reactor_attach (%p, %p, %p) exitting\n",
-//              reactor, react, ctx);
 
      return FUSION_SUCCESS;
 }
 
 FusionResult
 reactor_detach (FusionReactor *reactor,
-                React          react,
-                void          *ctx)
+                Reaction      *reaction)
 {
-     Reaction *r;
-
-//     DEBUGMSG("DirectFB/core/fusion: reactor_detach (%p, %p, %p) entered\n",
-//              reactor, react, ctx);
-     
      pthread_mutex_lock( &reactor->reactions_lock );
 
-     r = reactor->reactions;
-
-     while (r) {
-          if (r->react == react  &&  r->ctx == ctx) {
-               if (r->next)
-                    r->next->prev = r->prev;
-
-               if (r->prev)
-                    r->prev->next = r->next;
-               else
-                    reactor->reactions = r->next;
-
-               DFBFREE( r );
-
-               break;
-          }
-
-          r = r->next;
-     }
+     fusion_list_remove( &reactor->reactions, &reaction->link );
 
      pthread_mutex_unlock( &reactor->reactions_lock );
-
-//     DEBUGMSG("DirectFB/core/fusion: reactor_detach (%p, %p, %p) exitting\n",
-//              reactor, react, ctx);
 
      return FUSION_SUCCESS;
 }
@@ -629,75 +544,47 @@ reactor_dispatch (FusionReactor *reactor,
                   const void    *msg_data,
                   bool           self)
 {
-     Reaction *r, *to_free = NULL;
+     FusionLink *l;
 
      if (!self)
           return FUSION_SUCCESS;
 
-//     DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) entered\n", reactor);
-     
      pthread_mutex_lock( &reactor->reactions_lock );
 
-     r = reactor->reactions;
+     l = reactor->reactions;
+     while (l) {
+          FusionLink *next     = l->next;
+          Reaction   *reaction = (Reaction*) l;
 
-     while (r) {
-          switch (r->react( msg_data, r->ctx )) {
+          switch (reaction->react( msg_data, reaction->ctx )) {
                case RS_REMOVE:
-                    if (r->next)
-                         r->next->prev = r->prev;
-
-                    if (r->prev)
-                         r->prev->next = r->next;
-                    else
-                         reactor->reactions = r->next;
-
-                    to_free = r;
+                    fusion_list_remove( &reactor->reactions, l );
                     break;
 
                case RS_DROP:
                     pthread_mutex_unlock( &reactor->reactions_lock );
-//                    DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) exitting\n", reactor);
                     return FUSION_SUCCESS;
 
-               case RS_OK:
-                    ;
+               default:
+                    break;
           }
 
-          r = r->next;
-
-          if (to_free) {
-               DFBFREE( to_free );
-               to_free = NULL;
-          }
+          l = next;
      }
 
      pthread_mutex_unlock( &reactor->reactions_lock );
      
-//     DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) exitting\n", reactor);
-
      return FUSION_SUCCESS;
 }
 
 FusionResult
 reactor_free (FusionReactor *reactor)
 {
-//     DEBUGMSG("DirectFB/core/fusion: reactor_free (%p) entered\n", reactor);
-     
-     pthread_mutex_lock( &reactor->reactions_lock );
+     reactor->reactions = NULL;
 
-     while (reactor->reactions) {
-          Reaction *next = reactor->reactions->next;
-
-          DFBFREE( reactor->reactions );
-
-          reactor->reactions = next;
-     }
-
-     pthread_mutex_unlock( &reactor->reactions_lock );
+     pthread_mutex_destroy( &reactor->reactions_lock );
 
      DFBFREE( reactor );
-     
-//     DEBUGMSG("DirectFB/core/fusion: reactor_free (%p) exitting\n", reactor);
 
      return FUSION_SUCCESS;
 }

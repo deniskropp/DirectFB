@@ -75,6 +75,8 @@ typedef struct {
                                                        state of the buttons */
 
      DFBInputDeviceDescription   desc;              /* device description */
+
+     Reaction                    reaction;
 } IDirectFBInputDevice_data;
 
 
@@ -84,7 +86,7 @@ IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 {
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)thiz->priv;
 
-     dfb_input_detach( data->device, IDirectFBInputDevice_React, data );
+     dfb_input_detach( data->device, &data->reaction );
 
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
@@ -305,7 +307,8 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
      
      dfb_input_device_description( device, &data->desc );
      
-     dfb_input_attach( data->device, IDirectFBInputDevice_React, data );
+     dfb_input_attach( data->device, IDirectFBInputDevice_React,
+                       data, &data->reaction );
 
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;

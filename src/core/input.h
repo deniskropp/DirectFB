@@ -121,8 +121,14 @@ typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
 void dfb_input_enumerate_devices( InputDeviceCallback  callback,
                                   void                *ctx );
 
-void dfb_input_attach( InputDevice *device, React react, void *ctx );
-void dfb_input_detach( InputDevice *device, React react, void *ctx );
+FusionResult dfb_input_attach( InputDevice *device,
+                               React        react,
+                               void        *ctx,
+                               Reaction    *reaction );
+
+FusionResult dfb_input_detach( InputDevice *device,
+                               Reaction    *reaction );
+
 void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 
 void dfb_input_device_description( const InputDevice         *device,

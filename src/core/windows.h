@@ -34,6 +34,7 @@
 #include <core/fusion/object.h>
 #include <core/fusion/lock.h>
 #include <core/fusion/reactor.h>
+#include <core/fusion/list.h>
 
 #include <core/state.h>
 
@@ -128,6 +129,8 @@ struct _CoreWindowStack {
 
           CoreSurface        *image;   /* surface for background image mode */
      } bg;    
+
+     FusionLink         *devices;      /* input devices attached to the stack */
 };
 
 /*
@@ -266,18 +269,18 @@ DFBResult dfb_window_ungrab_pointer( CoreWindow *window );
 
 static inline FusionResult
 dfb_window_attach( CoreWindow *window,
-                   React        react,
-                   void        *ctx )
+                   React       react,
+                   void       *ctx,
+                   Reaction   *reaction )
 {
-     return fusion_object_attach( &window->object, react, ctx );
+     return fusion_object_attach( &window->object, react, ctx, reaction );
 }
 
 static inline FusionResult
 dfb_window_detach( CoreWindow *window,
-                   React        react,
-                   void        *ctx )
+                   Reaction   *reaction )
 {
-     return fusion_object_detach( &window->object, react, ctx );
+     return fusion_object_detach( &window->object, reaction );
 }
 
 static inline FusionResult

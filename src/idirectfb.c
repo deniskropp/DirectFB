@@ -83,6 +83,10 @@ typedef struct {
           int             width;    /* IDirectFB stores window width    */
           int             height;   /* and height and the pixel depth   */
           int             bpp;      /* from SetVideoMode() parameters.  */
+
+          CoreWindow     *window;   /* implicitly created window */
+          Reaction        reaction; /* for the focus listener */
+          bool            focused;  /* primary's window has the focus */
      } primary;                     /* Used for DFSCL_NORMAL's primary. */
 } IDirectFB_data;
 
@@ -127,10 +131,10 @@ static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice  *device,
 static ReactionResult focus_listener( const void *msg_data,
                                       void       *ctx );
 
-static bool input_filter( DFBEvent             *evt,
-                          void                 *ctx );
+static bool input_filter( DFBEvent *evt,
+                          void     *ctx );
 
-static bool primary_focused = false;
+static void drop_window( IDirectFB_data *data );
 
 /*
  * Destructor
@@ -145,6 +149,8 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      if (data->level != DFSCL_NORMAL)
           dfb_layer_release( data->layer, true );
+
+     drop_window( data );
 
      dfb_core_unref();     /* TODO: where should we place this call? */
 
@@ -186,9 +192,10 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
 
      switch (level) {
           case DFSCL_NORMAL:
-               primary_focused = false;
+               data->primary.focused = false;
                dfb_layer_release( data->layer, true );
                break;
+
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE:
                if (dfb_config->force_windowed)
@@ -198,9 +205,13 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     DFBResult ret = dfb_layer_purchase( data->layer );
                     if (ret)
                          return ret;
+                    
+                    drop_window( data );
                }
-               primary_focused = true;
+
+               data->primary.focused = true;
                break;
+
           default:
                return DFB_INVARG;
      }
@@ -414,9 +425,14 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     if (ret)
                          return ret;
 
-                    dfb_window_init( window );
+                    drop_window( data );
+                    
+                    data->primary.window = window;
 
-                    dfb_window_attach( window, focus_listener, NULL );
+                    dfb_window_attach( window, focus_listener,
+                                       data, &data->primary.reaction );
+
+                    dfb_window_init( window );
 
                     dfb_window_set_opacity( window, 0xFF );
 
@@ -644,7 +660,7 @@ IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
           return DFB_INVARG;
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
-     IDirectFBEventBuffer_Construct( *interface, input_filter, NULL );
+     IDirectFBEventBuffer_Construct( *interface, input_filter, data );
 
      context.caps      = caps;
      context.interface = interface;
@@ -967,22 +983,26 @@ CreateEventBuffer_Callback( InputDevice *device, void *ctx )
      return DFENUM_OK;
 }
 
-static ReactionResult focus_listener( const void *msg_data,
-                                      void       *ctx )
+static ReactionResult
+focus_listener( const void *msg_data,
+                void       *ctx )
 {
-     const DFBWindowEvent *evt = (DFBWindowEvent*)msg_data;
+     const DFBWindowEvent *evt  = (DFBWindowEvent*) msg_data;
+     IDirectFB_data       *data = (IDirectFB_data*) ctx;
 
      switch (evt->type) {
           case DWET_DESTROYED:
-               primary_focused = false;
+               dfb_window_unref( data->primary.window );
+               data->primary.window = NULL;
+               data->primary.focused = false;
                return RS_REMOVE;
 
           case DWET_GOTFOCUS:
-               primary_focused = true;
+               data->primary.focused = true;
                break;
 
           case DWET_LOSTFOCUS:
-               primary_focused = false;
+               data->primary.focused = false;
                break;
 
           default:
@@ -993,12 +1013,27 @@ static ReactionResult focus_listener( const void *msg_data,
 }
 
 static bool
-input_filter( DFBEvent             *evt,
-              void                 *ctx )
+input_filter( DFBEvent *evt,
+              void     *ctx )
 {
-     if (evt->clazz == DFEC_INPUT && !primary_focused)
+     IDirectFB_data *data = (IDirectFB_data*) ctx;
+
+     if (evt->clazz == DFEC_INPUT && !data->primary.focused)
           return true;
 
      return false;
+}
+
+static void
+drop_window( IDirectFB_data *data )
+{
+     if (!data->primary.window)
+          return;
+
+     dfb_window_detach( data->primary.window, &data->primary.reaction );
+     dfb_window_unref( data->primary.window );
+
+     data->primary.window  = NULL;
+     data->primary.focused = false;
 }
 

@@ -88,17 +88,17 @@ dfb_palette_pool_destroy( FusionObjectPool *pool )
 static inline FusionResult
 dfb_palette_attach( CorePalette *palette,
                     React        react,
-                    void        *ctx )
+                    void        *ctx,
+                    Reaction    *reaction )
 {
-     return fusion_object_attach( &palette->object, react, ctx );
+     return fusion_object_attach( &palette->object, react, ctx, reaction );
 }
 
 static inline FusionResult
 dfb_palette_detach( CorePalette *palette,
-                    React        react,
-                    void        *ctx )
+                    Reaction    *reaction )
 {
-     return fusion_object_detach( &palette->object, react, ctx );
+     return fusion_object_detach( &palette->object, reaction );
 }
 
 static inline FusionResult

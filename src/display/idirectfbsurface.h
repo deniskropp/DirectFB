@@ -30,6 +30,7 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 #include <core/state.h>
+#include <core/fusion/reactor.h>
 
 /*
  * private data struct of IDirectFBSurface
@@ -71,6 +72,8 @@ typedef struct {
           __u32             value;           /* r/g/b in surface's format */
      } dst_key;                              /* dst key for blitting to
                                                 this surface */
+
+     Reaction               reaction;
 } IDirectFBSurface_data;
 
 /*

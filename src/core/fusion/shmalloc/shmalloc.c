@@ -77,7 +77,8 @@ static void *mem           = NULL;
 static int   size          = 0;
 static char *sh_name       = NULL;
 
-shmalloc_heap *_sheap = NULL;
+shmalloc_heap   *_sheap = NULL;
+static Reaction  reaction;
 
 static char *
 shmalloc_check_shmfs (void)
@@ -429,7 +430,7 @@ void *__shmalloc_init (bool initialize)
           _sheap->reactor  = reactor_new (sizeof(int));
      }
 
-     reactor_attach (_sheap->reactor, __shmalloc_react, NULL);
+     reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
      
      return mem;
 }
@@ -437,7 +438,7 @@ void *__shmalloc_init (bool initialize)
 void *__shmalloc_brk (int increment)
 {
      if (fd < 0) {
-          fprintf (stderr, __FUNCTION__ " called without __shmalloc_init!\n");
+          FDEBUG("called without __shmalloc_init!\n");
           return NULL;
      }
 
@@ -500,7 +501,7 @@ void __shmalloc_exit (bool shutdown)
      
      if (_sheap) {
           /* Detach from reactor */
-          reactor_detach (_sheap->reactor, __shmalloc_react, NULL);
+          reactor_detach (_sheap->reactor, &reaction);
      
           /* Destroy reactor & skirmish */
           if (shutdown) {

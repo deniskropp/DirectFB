@@ -750,9 +750,14 @@ primaryInitLayer         ( GraphicsDevice             *device,
      
      if (dfb_config->mode.format != DSPF_UNKNOWN)
           default_config->pixelformat = dfb_config->mode.format;
-     else if (dfb_config->mode.depth > 0)
+     else if (dfb_config->mode.depth > 0) {
           default_config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-     else {
+          if (default_config->pixelformat == DSPF_UNKNOWN)
+               ERRORMSG("DirectFB/fbdev: Unknown depth (%d) specified!\n",
+                        dfb_config->mode.depth);
+     }
+     
+     if (dfb_config->mode.format == DSPF_UNKNOWN) {
           default_config->pixelformat = DSPF_RGB16;
           
           if (dfb_fbdev_set_mode( NULL, NULL, default_config ))

@@ -139,6 +139,7 @@ struct _CoreSurface
      int                    min_height;    /* minimum allocation height */
 
      CorePalette           *palette;
+     Reaction               palette_reaction;
 
      int                    field;
 
@@ -244,17 +245,17 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
 static inline FusionResult
 dfb_surface_attach( CoreSurface *surface,
                     React        react,
-                    void        *ctx )
+                    void        *ctx,
+                    Reaction    *reaction )
 {
-     return fusion_object_attach( &surface->object, react, ctx );
+     return fusion_object_attach( &surface->object, react, ctx, reaction );
 }
 
 static inline FusionResult
 dfb_surface_detach( CoreSurface *surface,
-                    React        react,
-                    void        *ctx )
+                    Reaction    *reaction )
 {
-     return fusion_object_detach( &surface->object, react, ctx );
+     return fusion_object_detach( &surface->object, reaction );
 }
 
 static inline FusionResult

@@ -30,6 +30,7 @@
 #include <core/fusion/shmalloc.h>
 
 #include <core/coredefs.h>
+#include <core/sig.h>
 
 #include "fusion_internal.h"
 
@@ -175,17 +176,17 @@ fusion_object_create( FusionObjectPool *pool )
 FusionResult
 fusion_object_attach( FusionObject     *object,
                       React             react,
-                      void             *ctx )
+                      void             *ctx,
+                      Reaction         *reaction )
 {
-     return reactor_attach( object->reactor, react, ctx );
+     return reactor_attach( object->reactor, react, ctx, reaction );
 }
 
 FusionResult
 fusion_object_detach( FusionObject     *object,
-                      React             react,
-                      void             *ctx )
+                      Reaction         *reaction )
 {
-     return reactor_detach( object->reactor, react, ctx );
+     return reactor_detach( object->reactor, reaction );
 }
 
 FusionResult
@@ -249,6 +250,8 @@ bone_collector_loop( void *arg )
 {
      FusionLink       *l;
      FusionObjectPool *pool = (FusionObjectPool*) arg;
+
+     dfb_sig_block_all();
 
      while (!pool->shutdown) {
           usleep(100000);

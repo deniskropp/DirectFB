@@ -74,6 +74,8 @@ typedef struct {
      IDirectFBSurface  *surface;
 
      DFBWindowEvent    *position_size_event;
+
+     Reaction           reaction;
 } IDirectFBWindow_data;
 
 
@@ -86,7 +88,7 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           data->surface->Release( data->surface );
 
      if (data->window) {
-          dfb_window_detach( data->window, IDirectFBWindow_React, data );
+          dfb_window_detach( data->window, &data->reaction );
           dfb_window_unref( data->window );
      }
 
@@ -687,7 +689,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      data->ref = 1;
      data->window = window;
 
-     dfb_window_attach( data->window, IDirectFBWindow_React, data );
+     dfb_window_attach( data->window, IDirectFBWindow_React,
+                        data, &data->reaction );
 
      dfb_window_init( data->window );
 

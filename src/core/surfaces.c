@@ -389,7 +389,7 @@ dfb_surface_set_palette( CoreSurface *surface,
      DFB_ASSERT( surface != NULL );
 
      if (surface->palette) {
-          dfb_palette_detach( surface->palette, palette_listener, surface );
+          dfb_palette_detach( surface->palette, &surface->palette_reaction );
           dfb_palette_unlink( surface->palette );
 
           surface->palette = NULL;
@@ -397,7 +397,8 @@ dfb_surface_set_palette( CoreSurface *surface,
 
      if (palette) {
           dfb_palette_link( &surface->palette, palette );
-          dfb_palette_attach( palette, palette_listener, surface );
+          dfb_palette_attach( palette, palette_listener,
+                              surface, &surface->palette_reaction );
      }
 
      return DFB_OK;
@@ -656,7 +657,7 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
 
      /* unlink palette */
      if (surface->palette) {
-          dfb_palette_detach( surface->palette, palette_listener, surface );
+          dfb_palette_detach( surface->palette, &surface->palette_reaction );
           dfb_palette_unlink( surface->palette );
      }
 

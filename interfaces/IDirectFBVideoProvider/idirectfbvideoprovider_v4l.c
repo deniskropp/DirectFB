@@ -96,6 +96,8 @@ typedef struct {
      CoreCleanup             *cleanup;
 
      int                      grab_mode;
+
+     Reaction                 reaction; /* for the destination listener */
 } IDirectFBVideoProvider_V4L_data;
 
 static const unsigned int zero = 0;
@@ -716,7 +718,8 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
      data->destination = surface;
 
-     dfb_surface_attach( surface, v4l_videosurface_listener, data );
+     dfb_surface_attach( surface, v4l_videosurface_listener,
+                         data, &data->reaction );
 
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
           data->thread = dfb_thread_create( CTT_CRITICAL, OverlayThread, data );
@@ -789,7 +792,8 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
      data->destination = surface;
 
-     dfb_surface_attach( surface, v4l_systemsurface_listener, data );
+     dfb_surface_attach( surface, v4l_systemsurface_listener,
+                         data, &data->reaction );
 
      data->thread = dfb_thread_create( CTT_CRITICAL, GrabThread, data );
 
@@ -819,18 +823,11 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
      if (!data->destination)
           return DFB_OK;
 
-     if (data->grab_mode) {
-          if (detach)
-               dfb_surface_detach( data->destination,
-                                   v4l_systemsurface_listener, data );
-     }
-     else {
-          if (detach)
-               dfb_surface_detach( data->destination,
-                                   v4l_systemsurface_listener, data );
-          
+     if (detach)
+          dfb_surface_detach( data->destination, &data->reaction );
+     
+     if (!data->grab_mode)
           data->destination->back_buffer->video.locked--;
-     }
 
      data->destination = NULL;
 

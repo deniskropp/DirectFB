@@ -76,11 +76,11 @@ dfb_state_set_destination( CardState *state, CoreSurface *destination )
      if (state->destination != destination) {
           if (state->destination)
                dfb_surface_detach( state->destination,
-                                   destination_listener, state );
+                                   &state->destination_reaction );
 
           if (destination)
-               dfb_surface_attach( destination,
-                                   destination_listener, state );
+               dfb_surface_attach( destination, destination_listener,
+                                   state, &state->destination_reaction );
 
           state->destination  = destination;
           state->modified    |= SMF_DESTINATION;
@@ -94,10 +94,12 @@ dfb_state_set_source( CardState *state, CoreSurface *source )
 
      if (state->source != source) {
           if (state->source)
-               dfb_surface_detach( state->source, source_listener, state );
+               dfb_surface_detach( state->source,
+                                   &state->source_reaction );
 
           if (source)
-               dfb_surface_attach( source, source_listener, state );
+               dfb_surface_attach( source, source_listener,
+                                   state, &state->source_reaction );
 
           state->source    = source;
           state->modified |= SMF_SOURCE;

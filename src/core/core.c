@@ -404,9 +404,9 @@ dfb_core_shutdown( FusionArena *arena, void *ctx, bool emergency )
           DFBFREE( cleanup );
      }
 
-     dfb_input_shutdown( emergency );
      dfb_layers_shutdown( emergency );
      dfb_gfxcard_shutdown( emergency );
+     dfb_input_shutdown( emergency );
      
      dfb_system_shutdown( emergency );
 
