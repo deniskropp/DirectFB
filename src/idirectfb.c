@@ -42,7 +42,6 @@
 #include <core/input.h>
 #include <core/layers.h>
 #include <core/fbdev.h>
-#include <core/v4l.h>
 
 #include <directfb_internals.h>
 
@@ -468,7 +467,7 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      IDirectFB_data *data;
      DFBInterfaceImplementation *impl = NULL;
 
-     if (!thiz || !interface)
+     if (!thiz || !interface || !filename)
           return DFB_INVARG;
 
      data = (IDirectFB_data*)thiz->priv;
@@ -477,17 +476,9 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
           return DFB_DEAD;
 
 
-     if (filename) {
-          ret = DFBGetInterface( &impl,
-                                 "IDirectFBVideoProvider", NULL,
-                                 video_probe, (void*)filename );
-     }
-     else {
-          ret = DFBGetInterface( &impl,
-                                 "IDirectFBVideoProvider", "V4L",
-                                 NULL, NULL );
-     }
-
+     ret = DFBGetInterface( &impl,
+                            "IDirectFBVideoProvider", NULL,
+                            video_probe, (void*)filename );
      if (ret)
           return ret;
 

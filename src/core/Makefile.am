@@ -42,8 +42,6 @@ libdirectfb_core_la_SOURCES = \
 	surfaces.h		\
 	surfacemanager.c	\
 	surfacemanager.h	\
-	v4l.c			\
-	v4l.h			\
 	vt.c			\
 	vt.h			\
 	sig.c			\
