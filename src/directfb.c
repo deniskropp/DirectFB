@@ -276,7 +276,6 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                DirectFBError( "Failed creating surface for background image", ret );
 
                provider->Release( provider );
-               free( provider );
 
                return DFB_INIT;
           }
@@ -288,14 +287,11 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                image->Release( image );
                free( image );
                provider->Release( provider );
-               free( provider );
 
                return DFB_INIT;
           }
 
           provider->Release( provider );
-          free( provider );
-
 
           image_data = (IDirectFBSurface_data*) image->priv;
 
