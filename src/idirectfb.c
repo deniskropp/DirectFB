@@ -406,8 +406,11 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     CoreWindow            *window;
                     DFBWindowCapabilities  window_caps = DWCAPS_NONE;
 
-                    width  = data->primary.width;
-                    height = data->primary.height;
+                    if (! (desc->flags & DSDESC_WIDTH))
+                         width = data->primary.width;
+
+                    if (! (desc->flags & DSDESC_HEIGHT))
+                         height = data->primary.height;
 
                     x = ((int)config.width  - (int)width)  / 2;
                     y = ((int)config.height - (int)height) / 2;
@@ -424,9 +427,6 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                                                    caps, format, &window );
                     if (ret)
                          return ret;
-
-                    window->options = (DWOP_KEEP_POSITION | DWOP_KEEP_SIZE |
-                                       DWOP_INDESTRUCTIBLE);
 
                     drop_window( data );
                     
@@ -894,20 +894,16 @@ IDirectFB_WaitForSync( IDirectFB *thiz )
 DFBResult
 IDirectFB_Construct( IDirectFB *thiz )
 {
-     DFBDisplayLayerConfig  config;
-
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
      data->ref = 1;
 
      data->level = DFSCL_NORMAL;
 
-     data->layer = dfb_layer_at( DLID_PRIMARY );
-     dfb_layer_get_configuration( data->layer, &config );
+     data->primary.width  = 640;
+     data->primary.height = 480;
 
-     data->primary.width  = config.width;
-     data->primary.height = config.height;
-     data->primary.bpp    = DFB_BITS_PER_PIXEL (config.pixelformat);
+     data->layer = dfb_layer_at( DLID_PRIMARY );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;

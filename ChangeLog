@@ -1,3 +1,1132 @@
+2002-10-23	13:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.111) (+12 -3)
+	
+	Changed WM keys a bit:
+	A (abandon)  - lower focused window to bottom
+	S (show)     - raise focused window to top
+	X (eXchange) - cycle through windows (not having DWOP_KEEP_STACKING set).
+	
+2002-10-23	12:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/reactor.c (1.24) (+11 -7)
+		src/misc/conf.c (1.42) (+3 -1)
+	
+	Don't try to destroy dead reference.
+	Default to graphics-vt only if vt-switch is disabled.
+	
+2002-10-23	12:14	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.116) (+8 -1)
+		directfb.pc.in (1.4) (+1 -1)
+		directfb-config.in (1.5) (+2 -2)
+	
+	Defined THREADFLAGS=-D_REENTRANT and added it to the cflags given by
+	pkg-config and directfb-config.
+	
+2002-10-23	11:10	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.115) (+199 -166)
+	
+	some cleanup
+	
+2002-10-23	10:55	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.114) (+15 -17)
+	
+	beautified configure output
+	
+2002-10-23	10:02	Sven Neumann <sven@convergence.de>
+
+	Files:	src/idirectfb.c (1.81) (+3 -0)
+	
+	Creating a primary surface in normal mode will now result in a fullscreen
+	window with options set to KEEP_POSITION, KEEP_SIZE and INDESTRUCTIBLE
+	which is probably what people expect.
+	
+2002-10-23	09:50	Sven Neumann <sven@convergence.de>
+
+	Files:	src/idirectfb.c (1.80) (+9 -8)
+	
+	Initialize the primary width, height and bpp from the primary layer
+	instead of using some arbitrary values. Ignore width and height from
+	the surface description when creating a primary surface in NORMAL mode
+	since we do that for the other modes as well.
+	
+2002-10-22	21:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.110) (+53 -0)
+		src/core/windows.h (1.37) (+1 -0)
+	
+	Windows can now be cycled via WM-S (to front, focus).
+	Pressing WM-X puts the focused window to the back.
+	
+2002-10-22	20:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.4) (+1 -1)
+	
+	Null pad opacity.
+	
+2002-10-22	20:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	docs/directfbrc.5.in (1.16) (+5 -0)
+		src/misc/conf.h (1.30) (+2 -0)
+		src/misc/conf.c (1.41) (+8 -0)
+		inputdrivers/keyboard/keyboard.c (1.44) (+2 -1)
+	
+	Added "[no]capslock-meta" enabling mapping of CapsLock to Meta on keymap level.
+	
+2002-10-22	19:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.109) (+3 -3)
+	
+	Ensure a focused window in dfb_window_set_opacity() only if window disappeared.
+	
+2002-10-22	19:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.61) (+9 -0)
+		src/core/fusion/lock.c (1.9) (+3 -3)
+	
+	Use base level symbol if shift level symbol is null.
+	Fixed debug message new lines.
+	
+2002-10-22	17:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.18) (+1 -1)
+	
+	Add "0" argument to vsync ioctl.
+	
+2002-10-22	17:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.73) (+20 -12)
+	
+	Don't detach bg image listener manually, keep the reaction in local memory.
+	
+2002-10-22	16:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/directfb.c (1.57) (+2 -0)
+		src/core/fusion/reactor.c (1.23) (+29 -23)
+	
+	Fixed crash when a foreign reaction is removed.
+	Foreign reactions are now disabled during detach, but removed during
+	the foreigners reaction loop.
+	Relase background image surface after setting it.
+	
+2002-10-22	16:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.24) (+1 -1)
+	
+	Accidently committed signal change in DFB_ASSERT.
+	
+2002-10-22	16:07	Sven Neumann <sven@convergence.de>
+
+	Files:	NEWS (1.37) (+8 -2)
+	
+	some updated to the NEWS file
+	
+2002-10-22	16:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/vt.c (1.7) (+2 -2)
+	
+	Reverted change that seems to break mode switching if started via suid root
+	from console.
+	
+2002-10-22	15:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/convert.c (1.6) (+0 -4)
+	
+	Use LUT8 if depth is 8 (e.g. default mode or SetVideoMode()).
+	
+2002-10-22	15:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.22) (+1 -1)
+		patches/matroxfb-vsync-irq-patch-2.4.19.bz2 (1.2) (+0 -0)
+		patches/matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2 (1.1) ( )
+	
+	New vsync irq patch from Ville Syrjala <syrjala@sci.fi> with support for
+	the second head.
+	
+2002-10-22	15:21	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.113) (+1 -1)
+	
+	enable RGB332 support by default.
+	
+2002-10-22	15:12	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/conf.c (1.40) (+14 -15)
+	
+	minor code cleanup
+	
+2002-10-22	15:08	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/modules.h (1.2) (+1 -1)
+	
+	declare ModuleDirectory as extern to fix linking problems on darwin
+	
+2002-10-22	14:37	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.15) (+6 -2)
+		src/misc/conf.c (1.39) (+2 -2)
+	
+	Fixed --dfb-help output.
+	Documented the directfbrc parameter matrox-tv-standard.
+	
+2002-10-22	14:22	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.112) (+20 -26)
+	
+	- fixes for automake 1.6x on non-linux platforms
+	
+2002-10-21	19:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.36) (+1 -1)
+		src/misc/conf.c (1.38) (+3 -0)
+		src/core/fusion/fusion.c (1.14) (+10 -6)
+		src/core/fbdev/vt.c (1.6) (+7 -2)
+	
+	Use graphics-vt by default.
+	Use no-vt-switch by default if started without root privileges.
+	Open mouse device O_EXCL.
+	DirectFB now works while gpm is still running.
+	
+2002-10-21	18:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/fusion.c (1.13) (+3 -1)
+	
+	Fixed crash in debug mode after shutdown.
+	
+2002-10-21	15:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.23) (+5 -2)
+		src/windows/idirectfbwindow.c (1.51) (+3 -3)
+		src/input/idirectfbinputbuffer.c (1.32) (+8 -2)
+		src/core/fusion/fusion_internal.h (1.19) (+5 -3)
+		src/core/fusion/fusion.c (1.12) (+2 -4)
+	
+	Fixed memory corruption caused by a too early free.
+	Really use fusion_get_millis() now for debug output.
+	
+2002-10-20	13:11	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	Makefile.am (1.12) (+3 -1)
+		src/core/Makefile.am (1.20) (+1 -0)
+		configure.in (1.111) (+27 -15)
+	
+	- applied patch by Till Adam <till@adam-lilienthal.de> which fixes build
+	  on MDK9.
+	
+	(This also fixes problems with autoconf-2.53 and 2.54)
+	
+2002-10-18	19:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.108) (+5 -2)
+		src/display/idirectfbsurface_window.c (1.30) (+3 -3)
+		src/core/fusion/reactor.c (1.22) (+3 -9)
+	
+	Fixed segfault in IDirectFBSurface_Window_Flip() if window is destroyed
+	before its surface.
+	Removed unnecessary fusion_ref_zero_lock() in reactor_free().
+	
+2002-10-18	17:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.79) (+5 -2)
+	
+	For a windowed primary surface, accept setting of width and height in the
+	surface description as a second way to set the size (first is SetVideoMode).
+	
+2002-10-18	15:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.22) (+6 -4)
+		src/windows/idirectfbwindow.c (1.50) (+73 -43)
+		src/display/idirectfbsurface.c (1.61) (+13 -5)
+		src/core/fusion/reactor.h (1.6) (+1 -0)
+		src/core/fusion/reactor.c (1.21) (+72 -37)
+		src/core/fusion/fusion.h (1.4) (+16 -14)
+		src/core/fusion/fusion.c (1.11) (+20 -2)
+		src/core/windows.c (1.107) (+6 -2)
+	
+	Assertion message shows pid and milli seconds now.
+	
+	Added more safety and debug output to window destruction code.
+	
+	Added fusion_get_millis(), debug messages of all fusionees
+	have a synchronized milli second counter now.
+	
+	Added some safety and assertions to reactor code.
+	
+2002-10-17	08:55	Sven Neumann <sven@convergence.de>
+
+	Files:	include/directfb.h (1.151) (+1 -0)
+		src/core/windows.h (1.36) (+2 -1)
+		src/core/windows.c (1.106) (+18 -10)
+		src/core/layers.c (1.72) (+1 -1)
+	
+	Set the button mask in DWET_MOTION events.
+	
+2002-10-16	12:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.21) (+2 -0)
+		patches/README.fusion (1.1) ( )
+	
+	Added quick guide.
+	
+2002-10-16	12:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.110) (+29 -21)
+		src/core/fusion/ref.h (1.9) (+1 -1)
+		src/core/fusion/ref.c (1.16) (+162 -14)
+		src/core/fusion/object.c (1.5) (+8 -5)
+		src/core/fusion/fusion_internal.h (1.18) (+2 -1)
+		src/core/fusion/fusion.c (1.10) (+32 -5)
+		patches/fusion-all-linux-2.4.20-pre11.patch.bz2 (1.1) ( )
+	
+	Added experimental kernel device for a much better implementation of
+	the fusion concepts. For now FusionRef is implemented in kernel space.
+	The old implementation using semaphores doesn't work properly because
+	undo counters are hold per process id. But the reference should be valid
+	for all threads (processes with the same fusion id).
+	
+	You have to apply the patch to test it, configure checks for linux/fusion.h
+	and uses the old implementation if the header isn't found.
+	
+	The patch is here for quick testing. Will add a new cvs module with all
+	new files directly checked in and a patch for the modified.
+	
+	The new implementation should be even faster as there is only one system
+	call per fusion_ref_* user space library call.
+	
+	The undo stuff is working as supposed now (per fusion id),
+	but fusion_ref_zero_lock() is not implemented in kernel space yet.
+	
+2002-10-16	11:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.109) (+1 -1)
+	
+	No inlines if debug is enabled.
+	
+2002-10-15	21:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/lock.c (1.8) (+54 -17)
+	
+	Better error handling.
+	
+2002-10-15	19:42	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/misc/conf.h (1.29) (+2 -1)
+	
+	include missing signal.h, fixes compilation on freebsd 4.7
+	
+2002-10-15	18:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.15) (+51 -40)
+	
+	Fixed blocking in fusion_ref_down() if reference counter is already zero.
+	Prints an error message and returns FUSION_BUG now.
+	
+	Improved debug and error output.
+	
+2002-10-15	16:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.14) (+11 -0)
+		src/core/fusion/ref.h (1.8) (+1 -0)
+	
+	Added magic value for debugging memory corruption related stuff.
+	
+2002-10-14	20:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/mpeg2/mpeg2dec.c (1.4) (+3 -3)
+	
+	Decode first picture only.
+	
+2002-10-14	18:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.2) (+8 -4)
+		interfaces/IDirectFBImageProvider/mpeg2/systems.c (1.3) (+12 -10)
+		interfaces/IDirectFBImageProvider/mpeg2/store.c (1.4) (+323 -355)
+		interfaces/IDirectFBImageProvider/mpeg2/recon.c (1.3) (+355 -401)
+		interfaces/IDirectFBImageProvider/mpeg2/mpeg2dec.h (1.2) (+158 -3)
+		interfaces/IDirectFBImageProvider/mpeg2/mpeg2dec.c (1.3) (+161 -196)
+		interfaces/IDirectFBImageProvider/mpeg2/motion.c (1.3) (+108 -115)
+		interfaces/IDirectFBImageProvider/mpeg2/idctref.c (1.3) (+37 -43)
+		interfaces/IDirectFBImageProvider/mpeg2/idct.c (1.3) (+105 -110)
+		interfaces/IDirectFBImageProvider/mpeg2/global.h (1.3) (+48 -268)
+		interfaces/IDirectFBImageProvider/mpeg2/getvlc.h (1.2) (+27 -138)
+		interfaces/IDirectFBImageProvider/mpeg2/getvlc.c (1.3) (+221 -341)
+		interfaces/IDirectFBImageProvider/mpeg2/getpic.c (1.3) (+680 -943)
+		interfaces/IDirectFBImageProvider/mpeg2/gethdr.c (1.3) (+434 -554)
+		interfaces/IDirectFBImageProvider/mpeg2/getblk.c (1.3) (+369 -425)
+		interfaces/IDirectFBImageProvider/mpeg2/getbits.c (1.3) (+67 -70)
+	
+	Moved all global variables into instance struct.
+	Removed some more unneeded stuff, got MPEG2 code < 5000 lines of code.
+	
+2002-10-12	17:19	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	inputdrivers/ucb1x00_ts/ucb1x00_ts.c (1.2) (+66 -1)
+	
+	added filter for incoming events, much smoother now
+	
+2002-10-12	15:17	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.108) (+9 -0)
+		inputdrivers/ucb1x00_ts/ucb1x00_ts.c (1.1) ( )
+		inputdrivers/ucb1x00_ts/Makefile.am (1.1) ( )
+		inputdrivers/ucb1x00_ts/.cvsignore (1.1) ( )
+		inputdrivers/Makefile.am (1.12) (+7 -0)
+	
+	added driver for ucb1x00 based touchscreens (used in the "tuxscreen"
+	device).
+	
+	TODO:
+	  - do not hardcode touchscreen config (read from config file)
+	  - filter incoming events, there is too much noise
+	
+2002-10-11	18:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/mpeg2/getbits.c (1.2) (+12 -12)
+		interfaces/IDirectFBImageProvider/mpeg2/systems.c (1.2) (+5 -5)
+		interfaces/IDirectFBImageProvider/mpeg2/store.c (1.3) (+10 -10)
+		interfaces/IDirectFBImageProvider/mpeg2/recon.c (1.2) (+3 -3)
+		interfaces/IDirectFBImageProvider/mpeg2/mpeg2dec.c (1.2) (+12 -12)
+		interfaces/IDirectFBImageProvider/mpeg2/motion.c (1.2) (+15 -15)
+		interfaces/IDirectFBImageProvider/mpeg2/idctref.c (1.2) (+4 -4)
+		interfaces/IDirectFBImageProvider/mpeg2/idct.c (1.2) (+4 -4)
+		interfaces/IDirectFBImageProvider/mpeg2/global.h (1.2) (+38 -38)
+		interfaces/IDirectFBImageProvider/mpeg2/getvlc.c (1.2) (+56 -56)
+		interfaces/IDirectFBImageProvider/mpeg2/getpic.c (1.2) (+54 -54)
+		interfaces/IDirectFBImageProvider/mpeg2/gethdr.c (1.2) (+139 -139)
+		interfaces/IDirectFBImageProvider/mpeg2/getblk.c (1.2) (+40 -40)
+	
+	Added prefix to all non-static methods.
+	
+2002-10-11	17:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/mpeg2/store.c (1.2) (+17 -23)
+	
+	Fix crash due to static variables.
+	
+2002-10-11	16:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.107) (+2 -0)
+		interfaces/IDirectFBImageProvider/mpeg2/systems.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/store.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/recon.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/mpeg2dec.h (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/mpeg2dec.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/motion.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/idctref.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/idct.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/global.h (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/getvlc.h (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/getvlc.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/getpic.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/gethdr.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/getblk.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/getbits.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/Makefile.am (1.1) ( )
+		interfaces/IDirectFBImageProvider/mpeg2/.cvsignore (1.1) ( )
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_mpeg2.c (1.1) ( )
+		interfaces/IDirectFBImageProvider/Makefile.am (1.5) (+13 -2)
+	
+	Added MPEG2 I-Frame image provider derived from mpeg2decode (mpeg.org).
+	
+	Need to move global variables into instance struct.
+	
+2002-10-11	16:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.60) (+2 -1)
+		src/core/fusion/reactor.c (1.20) (+2 -2)
+	
+	Fixed keyboard handler for screen dump and sending SIGINT.
+	Fixed debug messages (newline).
+	
+2002-10-11	15:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.105) (+26 -6)
+	
+	Added simple test if flipping (updating) a window is necessary.
+	
+2002-10-11	01:38	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	inputdrivers/h3600_ts/h3600_ts.c (1.14) (+1 -1)
+	
+	updated driver to compile again
+	
+2002-10-10	16:27	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/fbdev/fbdev.c (1.17) (+17 -0)
+	
+	if the video mode was tested/set successfully, check if there is enough
+	video ram (this is for broken framebuffer drivers). maked DirectFB work of tuxscreen.
+	
+2002-10-10	16:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.78) (+1 -1)
+	
+	A '|' too much.
+	
+2002-10-10	16:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.77) (+2 -3)
+	
+	Fixed system back buffer fallback.
+	
+2002-10-10	13:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.104) (+2 -2)
+	
+	Minor change in focus handling. Leaving a window unfocuses it.
+	
+2002-10-09	19:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.103) (+3 -0)
+	
+	Return NULL in window_at_pointer() if cursor is disabled
+	reulting in the top most window getting focus.
+	
+2002-10-09	18:28	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.106) (+2 -2)
+		tools/Makefile.am (1.8) (+5 -5)
+	
+	Added -lm to the linker flags for libpng.
+	Don't install dfbdump.
+	
+2002-10-09	17:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/windows/idirectfbwindow.c (1.49) (+1 -1)
+		tools/dfbdump.c (1.3) (+2 -0)
+	
+	Fixed RequestFocus.
+	Added window opacity to dfbdump output.
+	
+2002-10-09	13:09	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/palette.c (1.10) (+1 -1)
+	
+	fixed typo in a comment
+	
+2002-10-08	19:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/windows/idirectfbwindow.c (1.48) (+7 -1)
+	
+	Invisible windows are not allowed to request the focus.
+	
+2002-10-08	17:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/reactor.c (1.19) (+1 -1)
+	
+	fixed bug message
+	
+2002-10-08	16:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.13) (+0 -2)
+	
+	removed debug line
+	
+2002-10-08	16:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/arena.c (1.9) (+16 -10)
+		src/core/fusion/fusion_internal.h (1.17) (+2 -2)
+	
+	Fixed joining, got broken an hour ago.
+	Added assertions.
+	Lock/unlock fix in arena code.
+	
+2002-10-08	15:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.53) (+7 -2)
+	
+	same for single app
+	
+2002-10-08	15:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.52) (+68 -31)
+		src/core/fusion/ref.c (1.12) (+2 -0)
+		src/core/fusion/arena.h (1.5) (+17 -14)
+		src/core/fusion/arena.c (1.8) (+35 -13)
+	
+	Better error handling in init code.
+	
+2002-10-02	19:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.42) (+0 -1)
+		src/display/idirectfbsurface_layer.c (1.28) (+2 -28)
+		src/display/idirectfbdisplaylayer.c (1.42) (+10 -27)
+		src/idirectfb.c (1.76) (+28 -6)
+	
+	Moved layer config stuff from IDirectFBDisplayLayer_Construct to IDirectFB.
+	
+2002-10-02	18:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.41) (+0 -1)
+		src/directfb.c (1.56) (+121 -111)
+	
+	Cleanup of DirectFBCreate.
+	
+2002-10-02	17:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.47) (+10 -13)
+		src/windows/idirectfbwindow.c (1.47) (+5 -2)
+		src/input/idirectfbinputdevice.c (1.31) (+5 -2)
+		src/input/idirectfbinputbuffer.c (1.31) (+10 -6)
+		src/display/idirectfbsurface_window.c (1.29) (+0 -8)
+		src/display/idirectfbsurface.h (1.15) (+3 -0)
+		src/display/idirectfbsurface.c (1.60) (+3 -3)
+		src/core/fusion/shmalloc/shmalloc.c (1.7) (+5 -4)
+		src/core/fusion/reactor.h (1.5) (+12 -5)
+		src/core/fusion/reactor.c (1.18) (+39 -152)
+		src/core/fusion/object.h (1.4) (+3 -3)
+		src/core/fusion/object.c (1.4) (+8 -5)
+		src/core/fusion/lock.c (1.7) (+6 -5)
+		src/core/fusion/fusion_internal.h (1.16) (+13 -5)
+		src/core/fbdev/fbdev.c (1.16) (+7 -2)
+		src/core/windows.h (1.35) (+9 -6)
+		src/core/windows.c (1.102) (+34 -12)
+		src/core/surfaces.h (1.33) (+6 -5)
+		src/core/surfaces.c (1.59) (+4 -3)
+		src/core/state.h (1.12) (+5 -0)
+		src/core/state.c (1.14) (+7 -5)
+		src/core/palette.h (1.8) (+5 -5)
+		src/core/layers.c (1.71) (+10 -7)
+		src/core/input.h (1.24) (+8 -2)
+		src/core/input.c (1.59) (+124 -6)
+		src/core/core.c (1.51) (+1 -1)
+		src/idirectfb.c (1.75) (+52 -17)
+		src/directfb.c (1.55) (+0 -143)
+	
+	Speed up reactor_attach/detach by writing reaction information to a
+	provided memory location which is also passed to reactor_detach.
+	Check depth specified in the configuration.
+	
+2002-10-02	14:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/reactor.c (1.17) (+4 -12)
+	
+	Don't detach reactor threads.
+	
+2002-09-30	17:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.h (1.34) (+1 -1)
+	
+	arg, ref/unref typo
+	
+2002-09-27	18:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.74) (+48 -1)
+		src/windows/idirectfbwindow.c (1.46) (+1 -1)
+		src/input/idirectfbinputdevice.c (1.30) (+1 -1)
+		src/input/idirectfbinputbuffer.h (1.6) (+9 -3)
+		src/input/idirectfbinputbuffer.c (1.30) (+44 -18)
+	
+	Event buffers created by "IDirectFB::CreateEventBuffer" will discard raw input
+	events until the application is fullscreen or has a focused window (primary).
+	Buffers that always get input events can be created via IDirectFBInputDevice.
+	
+2002-09-27	17:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/modules.c (1.5) (+1 -1)
+	
+	oops
+	
+2002-09-27	17:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.50) (+0 -92)
+		src/core/modules.c (1.4) (+23 -0)
+		src/core/core.h (1.11) (+0 -11)
+	
+	Removed more unused stuff.
+	
+2002-09-27	16:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.70) (+6 -2)
+	
+	minor optimization
+	
+2002-09-27	15:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.69) (+1 -1)
+		src/core/fusion/fusion.c (1.9) (+2 -2)
+	
+	Fixed copy'n'paste error.
+	Don't print error message if opening /proc/... failed.
+	
+2002-09-27	14:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.105) (+1 -1)
+	
+	Fixed MMX test.
+	
+2002-09-27	14:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic_mmx.c (1.2) (+4 -4)
+	
+	minor fix
+	
+2002-09-27	13:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/Cacc_add_to_Dacc_MMX.s (1.3) (+0 -0)
+		src/gfx/generic/generic_mmx.c (1.1) ( )
+		src/gfx/generic/Xacc_blend_srcalpha_MMX.s (1.5) (+0 -0)
+		src/gfx/generic/Xacc_blend_invsrcalpha_MMX.s (1.5) (+0 -0)
+		src/gfx/generic/Sop_rgb32_to_Dacc_MMX.s (1.4) (+0 -0)
+		src/gfx/generic/Sop_rgb16_to_Dacc_MMX.s (1.4) (+0 -0)
+		src/gfx/generic/Sop_argb_to_Dacc_MMX.s (1.4) (+0 -0)
+		src/gfx/generic/Sop_argb_Sto_Dacc_MMX.s (1.4) (+0 -0)
+		src/gfx/generic/Sacc_to_Dop_rgb32_MMX.s (1.5) (+0 -0)
+		src/gfx/generic/Sacc_to_Dop_rgb16_MMX.s (1.5) (+0 -0)
+		src/gfx/generic/Sacc_add_to_Dacc_MMX.s (1.3) (+0 -0)
+		src/gfx/generic/Makefile.am (1.9) (+3 -14)
+		src/gfx/generic/Dacc_modulate_argb_MMX.s (1.3) (+0 -0)
+	
+	Assembler routines converted to inline assembler,
+	thanks to Johannes Stezenbach <js@convergence.de>.
+	
+2002-09-27	12:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.40) (+1 -0)
+	
+	Added Billy Biggs <vektor@dumbterm.net>.
+	
+2002-09-27	12:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.2) (+19 -1)
+		src/display/idirectfbdisplaylayer.c (1.41) (+9 -0)
+		src/core/layers.h (1.39) (+7 -0)
+		src/core/layers.c (1.68) (+15 -0)
+		include/directfb.h (1.150) (+17 -0)
+	
+	Applied patch from Billy Biggs <vektor@dumbterm.net> adding
+	IDirectFBDisplayLayer::GetCurrentOutputField(), experimental and may change.
+	
+2002-09-27	12:37	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.21) (+1 -1)
+		src/windows/idirectfbwindow.c (1.45) (+11 -10)
+		src/display/idirectfbsurface_window.c (1.28) (+4 -5)
+		src/core/windows.h (1.33) (+31 -2)
+		src/core/windows.c (1.101) (+1 -17)
+	
+	Destroy windows only in IDIrectFBWindow::Destroy(), do unref otherwise.
+	
+2002-09-26	16:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core_system.h (1.2) (+8 -13)
+		tools/dfbdump.c (1.2) (+23 -2)
+		src/windows/idirectfbwindow.c (1.44) (+1 -0)
+		src/core/fusion/ref.h (1.7) (+7 -0)
+		src/core/fusion/ref.c (1.11) (+98 -14)
+		src/core/system.h (1.2) (+5 -3)
+		src/core/system.c (1.3) (+33 -36)
+		src/core/modules.c (1.3) (+3 -1)
+		src/core/input.c (1.58) (+6 -9)
+	
+	Use new module handling for core systems.
+	Added fusion_ref_stat() for debugging.
+	dfbdump now displays the number of references in front.
+	
+2002-09-25	14:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.86) (+5 -6)
+	
+	Fixed multi app build.
+	
+2002-09-25	11:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/ati128/ati128.c (1.18) (+0 -6)
+		src/core/sdl/sdlinput.c (1.4) (+0 -12)
+		src/core/input_driver.h (1.5) (+0 -4)
+		src/core/input.h (1.23) (+0 -1)
+		src/core/graphics_driver.h (1.4) (+9 -10)
+		src/core/gfxcard.h (1.36) (+3 -3)
+		src/core/gfxcard.c (1.85) (+57 -92)
+		inputdrivers/sonypi/sonypi.c (1.7) (+0 -12)
+		inputdrivers/serialmouse/serialmouse.c (1.24) (+0 -6)
+		inputdrivers/ps2mouse/ps2mouse.c (1.35) (+0 -6)
+		inputdrivers/lirc/lirc.c (1.15) (+0 -6)
+		inputdrivers/linux_input/linux_input.c (1.10) (+0 -12)
+		inputdrivers/keyboard/keyboard.c (1.43) (+0 -6)
+		inputdrivers/joystick/joystick.c (1.19) (+0 -6)
+		inputdrivers/h3600_ts/h3600_ts.c (1.13) (+0 -5)
+		inputdrivers/dbox2remote/dbox2remote.c (1.14) (+0 -12)
+		gfxdrivers/tdfx/tdfx.c (1.18) (+0 -6)
+		gfxdrivers/savage/savage.c (1.7) (+0 -6)
+		gfxdrivers/nvidia/nvidia.c (1.13) (+0 -6)
+		gfxdrivers/neomagic/neomagic.c (1.15) (+0 -6)
+		gfxdrivers/matrox/matrox.c (1.43) (+0 -6)
+	
+	Graphics drivers are handled via new module functions now.
+	Removed obsolete abi version stuff from graphics and input code.
+	
+2002-09-25	10:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.100) (+23 -3)
+	
+	Added the ability to change a window's opacity by holding Alt while holding
+	CapsLock or Meta moving the cursor on the x axis (for wheel less mice).
+	
+2002-09-24	17:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/modules.c (1.2) (+1 -0)
+	
+	Added another assertion.
+	
+2002-09-24	17:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/Makefile.am (1.19) (+2 -0)
+		src/core/modules.h (1.1) ( )
+		src/core/modules.c (1.1) ( )
+		src/core/input_driver.h (1.4) (+8 -7)
+		src/core/input.h (1.22) (+4 -0)
+		src/core/input.c (1.57) (+51 -69)
+		src/core/coretypes.h (1.13) (+2 -0)
+		src/core/coredefs.h (1.20) (+2 -2)
+	
+	Added new module management functions featuring module references/unloading.
+	Input driver modules are already handled this way.
+	
+2002-09-23	15:22	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.100) (+57 -7)
+	
+	Implemented Bop_a8_Kto_Aop, Bop_a8_SKto_Aop, Sop_a8_Kto_Dacc, Sop_a8_SKto_Dacc and Sacc_to_Aop_a8.
+	
+2002-09-23	14:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.104) (+8 -0)
+		directfb.pc.in (1.3) (+1 -1)
+		directfb-config.in (1.4) (+1 -1)
+	
+	Add "-ldl" and "-lpthread" or "-lc_r" conditionally.
+	
+2002-09-23	13:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfb_static_build_example (1.3) (+31 -9)
+	
+	Updated static build script including support for sdl.
+	Uses pkg-config now to determine prefix and module directory.
+	
+2002-09-23	12:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.103) (+2 -2)
+	
+	Added required quotes for test in case CFLAGS have been set.
+	
+2002-09-23	11:47	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.102) (+21 -20)
+	
+	icheck for target host type before libdl and pthreads
+	
+2002-09-23	11:42	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.101) (+22 -6)
+	
+	do not check for libdl on freebsd, check for phreads in libc_r on freebsd.
+	
+2002-09-21	22:12	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/fusion/fusion_internal.h (1.15) (+1 -0)
+	
+	FreeBSD sync: include <sys/param.h> before <sys/user.h>
+	
+2002-09-16	22:51	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/fusion/fusion_internal.h (1.14) (+3 -0)
+	
+	only include asm/page.h on linux
+	
+2002-09-16	22:35	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/fusion/Makefile.am (1.9) (+8 -6)
+		src/core/fusion/util.c (1.5) (+2 -3)
+		src/core/fusion/ref.c (1.10) (+2 -0)
+		src/core/fusion/reactor.c (1.16) (+2 -0)
+		src/core/fusion/property.c (1.8) (+2 -0)
+		src/core/fusion/lock.c (1.6) (+0 -4)
+		src/core/fusion/fusion_shmalloc.c (1.4) (+0 -4)
+		src/core/fusion/fusion.c (1.8) (+0 -4)
+		src/core/fusion/arena.c (1.7) (+0 -5)
+	
+	do not build arena.c fusion.c lock.c util.c and fusion_shmalloc.c when
+	compiling without single application core
+	
+2002-09-13	14:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/palette.h (1.7) (+2 -2)
+	
+	Fixed flag definitions.
+	
+2002-09-11	23:54	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	Makefile.am (1.11) (+1 -1)
+		tools/raw32toraw24.c (1.9) (+1 -5)
+	
+	build tools on non-linux platforms. do not use <asm/byteorder.h> in raw32toraw24.c
+	
+2002-09-11	23:29	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/gfxcard.c (1.84) (+1 -0)
+	
+	include <sys/types.h> because darwins <sys/mman.h> depends on it and doesnt include it by itself...
+	
+2002-09-11	23:26	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/misc/mem.h (1.7) (+4 -0)
+		src/misc/util.h (1.13) (+4 -1)
+		src/misc/memcpy.h (1.3) (+1 -1)
+	
+	- added extern to declaration of dfb_memcpy() to avoid problems with
+	  non-gnu linkers.
+	- only include <asm/page.h> on linux, guess PAGE_SIZE = 4096 on other platforms
+	  (bad)
+	- only define MIN and MAX when undefined (fixes problem on darwin)
+	
+2002-09-11	23:15	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	include/dfb_types.h (1.2) (+1 -1)
+		interfaces/IDirectFBVideoProvider/Makefile.am (1.7) (+10 -4)
+	
+	only build gfxdrivers, tools, inputdrivers and v4l provider on linux
+	
+2002-09-11	23:14	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	Makefile.am (1.10) (+16 -8)
+		configure.in (1.100) (+25 -1)
+	
+	only build gfxdrivers, tools, inputdrivers and v4l provider on linux
+	
+2002-09-11	15:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.42) (+4 -4)
+		gfxdrivers/matrox/matrox.h (1.20) (+1 -1)
+	
+	Avoid naming conflict of log2 with tgmath.
+	
+2002-09-11	13:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.12) (+1 -1)
+	
+	updated
+	
+2002-09-11	12:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.40) (+0 -6)
+		src/misc/colorhash.h (1.2) (+17 -8)
+		src/misc/colorhash.c (1.2) (+107 -35)
+		src/core/palette.c (1.9) (+5 -5)
+		src/core/core.c (1.49) (+9 -0)
+	
+	Color hash is multi app ready now, palette seems broken though.
+	
+2002-09-11	11:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.99) (+7 -0)
+	
+	Force window creation without alpha channel if "no-translucent-windows" option
+	is used.
+	
+2002-09-11	10:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.67) (+3 -4)
+		tools/dfbdump.c (1.1) ( )
+		tools/Makefile.am (1.7) (+9 -3)
+		tools/.cvsignore (1.4) (+1 -0)
+		src/core/layers.h (1.38) (+1 -1)
+	
+	Added debugging tool dumping information about existing windows and surfaces.
+	
+2002-09-11	10:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.58) (+3 -0)
+	
+	Send CSNF_SIZEFORMAT notification.
+	
+2002-09-10	23:37	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.99) (+1 -0)
+		tools/raw32toraw24.c (1.8) (+3 -3)
+		tools/raw16toraw24.c (1.6) (+2 -2)
+		tools/raw15toraw24.c (1.4) (+2 -2)
+		tools/directfb-csource.c (1.11) (+2 -4)
+		src/gfx/generic/generic.c (1.99) (+8 -9)
+		src/core/layers.c (1.66) (+2 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.24) (+3 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.34) (+3 -3)
+		gfxdrivers/nvidia/nvidia.c (1.12) (+2 -2)
+	
+	use AC_C_BIGENDIAN (AFAIK even works when cross-compiling with automake2.53)
+	no longer include <endian.h> which seems to be linux specific,
+	use #ifdef WORDS_BIGENDIAN instead of #if __BYTE_ORDER == __BIG_ENDIAN
+	
+2002-09-10	21:47	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	include/dfb_types.h (1.1) ( )
+	
+	oops
+	
+2002-09-10	21:42	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/ati128/ati128.c (1.17) (+1 -1)
+		tools/raw32toraw24.c (1.7) (+1 -1)
+		src/misc/memcpy.c (1.4) (+1 -1)
+		src/misc/gfx_util.h (1.11) (+1 -1)
+		src/misc/cpu_accel.h (1.3) (+1 -1)
+		src/gfx/generic/generic.h (1.11) (+1 -1)
+		src/gfx/generic/generic.c (1.98) (+1 -1)
+		src/gfx/convert.h (1.17) (+1 -1)
+		src/core/windows.h (1.32) (+1 -1)
+		src/core/layers.h (1.37) (+1 -1)
+		src/core/coretypes.h (1.12) (+1 -1)
+		inputdrivers/linux_input/linux_input.c (1.9) (+1 -1)
+		include/directfb.h (1.149) (+1 -1)
+		include/Makefile.am (1.6) (+2 -1)
+		include/.cvsignore (1.3) (+1 -0)
+		gfxdrivers/tdfx/tdfx.h (1.4) (+1 -1)
+		gfxdrivers/tdfx/tdfx.c (1.17) (+1 -1)
+		gfxdrivers/savage/savage_streams_old.c (1.9) (+1 -1)
+		gfxdrivers/savage/savage4.c (1.6) (+1 -1)
+		gfxdrivers/savage/savage3d.c (1.4) (+1 -1)
+		gfxdrivers/savage/savage2000.c (1.3) (+1 -1)
+		gfxdrivers/savage/savage.c (1.6) (+1 -1)
+		gfxdrivers/savage/mmio.h (1.4) (+1 -1)
+		gfxdrivers/nvidia/nvidia.h (1.5) (+1 -1)
+		gfxdrivers/nvidia/nvidia.c (1.11) (+1 -1)
+		gfxdrivers/neomagic/neomagic.h (1.7) (+1 -1)
+		gfxdrivers/neomagic/neomagic.c (1.14) (+1 -1)
+		gfxdrivers/neomagic/neo2200.c (1.12) (+1 -1)
+		gfxdrivers/matrox/mmio.h (1.10) (+1 -1)
+		gfxdrivers/matrox/matrox.h (1.19) (+1 -1)
+		gfxdrivers/ati128/mmio.h (1.6) (+1 -1)
+		gfxdrivers/ati128/ati128.h (1.9) (+1 -1)
+	
+	do not include <asm/types.h> directly. added dfb_types.h which includes <asm/types.h> on linux and <sys/types.h> on other platforms
+	
+2002-09-10	20:31	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.98) (+3 -0)
+	
+	added AC_CANONICAL_HOST and AC_CANONICAL_TARGET to avoid this problem with libtool on darwin
+	
+	ltconfig: you must specify a host type if you use `--no-verify'
+	Try `ltconfig --help' for more information.
+	configure: error: libtool configure failed
+	
+2002-09-10	18:18	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/savage.c (1.5) (+2 -0)
+		gfxdrivers/savage/savage_streams_old.c (1.8) (+2 -2)
+	
+	s/dfb_fbdev_wait_vsync/dfb_system_wait_vsync/
+	Include <linux/fb.h> in order to get FB_ACCEL_* defines.
+	
+2002-09-10	16:35	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/neomagic/neo2200.c (1.11) (+0 -1)
+		src/windows/idirectfbwindow.c (1.43) (+0 -1)
+		src/misc/conf.c (1.37) (+0 -1)
+		src/media/idirectfbfont.c (1.27) (+0 -1)
+		src/media/idirectfbdatabuffer_streamed.c (1.9) (+0 -1)
+		src/media/idirectfbdatabuffer_memory.c (1.7) (+0 -1)
+		src/media/idirectfbdatabuffer_file.c (1.7) (+0 -1)
+		src/media/idirectfbdatabuffer.c (1.5) (+0 -1)
+		src/input/idirectfbinputdevice.c (1.29) (+0 -1)
+		src/input/idirectfbinputbuffer.c (1.29) (+0 -1)
+		src/display/idirectfbsurface_window.c (1.27) (+0 -1)
+		src/display/idirectfbsurface_layer.c (1.27) (+0 -1)
+		src/display/idirectfbsurface.c (1.59) (+0 -1)
+		src/display/idirectfbpalette.c (1.9) (+0 -1)
+		src/display/idirectfbdisplaylayer.c (1.40) (+0 -1)
+		src/core/fbdev/vt.c (1.5) (+0 -1)
+		src/core/windows.c (1.98) (+0 -1)
+		src/core/surfaces.c (1.57) (+0 -1)
+		src/core/surfacemanager.c (1.35) (+0 -1)
+		src/core/input.c (1.56) (+0 -1)
+		src/core/gfxcard.c (1.83) (+0 -1)
+		src/interface.c (1.18) (+0 -1)
+		src/idirectfb.c (1.73) (+0 -1)
+		src/directfb.c (1.54) (+0 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.46) (+0 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.22) (+0 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.23) (+0 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.33) (+0 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.26) (+0 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.36) (+0 -1)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.30) (+0 -1)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.21) (+0 -1)
+		gfxdrivers/tdfx/tdfx.c (1.16) (+0 -1)
+		gfxdrivers/savage/savage_streams_old.c (1.7) (+0 -1)
+		gfxdrivers/savage/savage4.c (1.5) (+0 -1)
+		gfxdrivers/savage/savage3d.c (1.3) (+0 -1)
+		gfxdrivers/savage/savage2000.c (1.2) (+0 -1)
+		gfxdrivers/savage/savage.c (1.4) (+0 -1)
+		gfxdrivers/nvidia/nvidia.c (1.10) (+0 -1)
+		gfxdrivers/neomagic/neomagic.c (1.13) (+0 -1)
+	
+	no longer include malloc.h
+	(sync from my OSX tree)
+	
+2002-09-10	16:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.45) (+41 -31)
+		src/core/thread.h (1.2) (+2 -1)
+		src/core/thread.c (1.2) (+4 -0)
+	
+	Use high priority for video threads, detach from surface correctly.
+	
+2002-09-10	15:41	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.97) (+17 -11)
+		src/misc/Makefile.am (1.10) (+10 -2)
+		src/core/fbdev/vt.c (1.4) (+2 -0)
+		src/core/fbdev/fbdev.h (1.8) (+2 -0)
+		src/core/gfxcard.h (1.35) (+0 -1)
+		src/core/Makefile.am (1.18) (+10 -2)
+		gfxdrivers/matrox/matrox_bes.c (1.30) (+2 -0)
+		gfxdrivers/matrox/matrox.c (1.41) (+2 -0)
+	
+	support for building DirectFB without fbdev support. (first sync from my OSX tree)
+	
+2002-09-10	15:22	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/surfaces.c (1.56) (+4 -4)
+	
+	Assign new width, height and format before checking if a reallocation
+	is necessary in dfb_surface_reformat().
+	
+2002-09-10	14:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.39) (+0 -1)
+		src/core/sdl/sdlinput.c (1.3) (+213 -3)
+	
+	Finished key translation.
+	
+2002-09-10	12:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.38) (+7 -0)
+	
+	Two 0.9.14 TODOs.
+	
+2002-09-09	17:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.11) (+1 -0)
+	
+	color hash for multi app is broken
+	
+2002-09-09	17:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	NEWS (1.36) (+1 -1)
+	
+	minor clarification
+	
+2002-09-09	17:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.28) (+414 -1)
+		NEWS (1.35) (+26 -0)
+	
+	update
+	
 2002-09-09	16:43	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	TODO (1.37) (+1 -7)
