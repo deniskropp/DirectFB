@@ -44,13 +44,16 @@ static ReactionResult
 react (const void    *msg_data,
        void          *ctx)
 {
+     if (ctx)
+          (*(unsigned int *) ctx)++;
+
      return RS_OK;
 }
 
 static void
 bench_reactor()
 {
-     unsigned int   i;
+     unsigned int   i, react_counter = 0;
      long long      t1, t2;
      FusionReactor *reactor;
      Reaction       reaction;
@@ -91,6 +94,41 @@ bench_reactor()
      reactor_detach( reactor, &reaction );
      
      printf( "reactor attach/detach (2nd)  -> %8.2f k/sec\n", 1000000 / (float)(t2 - t1) );
+
+     
+     /* reactor dispatch */
+     reactor_attach( reactor, react, &react_counter, &reaction );
+     
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<40000; i++) {
+          char msg[16];
+
+          reactor_dispatch( reactor, msg, true );
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "reactor dispatch             -> %8.2f k/sec  (%d%% arrived)\n",
+             40000 / (float)(t2 - t1), react_counter * 100 / 40000 );
+
+#if 0
+     while (react_counter < 40000) {
+          int old_counter = react_counter;
+
+          sched_yield();
+
+          if (old_counter == react_counter)
+               break;
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "reactor dispatch             -> %8.2f k/sec  (%d%% arrived)\n",
+             40000 / (float)(t2 - t1), react_counter * 100 / 40000 );
+#endif     
+     
+     reactor_detach( reactor, &reaction );
 
      
      reactor_free( reactor );
@@ -236,11 +274,11 @@ main( int argc, char *argv[] )
      printf( "\n" );
      
      
-     bench_pthread_mutex();
+/*     bench_pthread_mutex();
      
      bench_skirmish();
      
-     bench_ref();
+     bench_ref();*/
      
      bench_reactor();
 
