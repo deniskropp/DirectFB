@@ -254,7 +254,10 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
          height     <= surface->min_height &&
          old_height <= surface->min_height &&
          old_format == surface->format)
+     {
+          dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT );
           return DFB_OK;
+     }
 
      dfb_surfacemanager_lock( surface->manager );
 
