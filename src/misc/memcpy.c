@@ -126,7 +126,7 @@
     "Using prefetches efficiently is more of an art than a science"
 */
 
-#include "config.h"
+#include <config.h>
 
 #include <sys/time.h>
 #include <time.h>

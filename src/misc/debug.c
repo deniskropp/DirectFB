@@ -37,7 +37,7 @@
 #include "debug.h"
 
 
-#ifdef DFB_DEBUG
+#ifdef DFB_TRACE
 
 #include <dlfcn.h>
 
@@ -52,12 +52,16 @@ static struct {
 
 __attribute__((no_instrument_function))
 void
-dfb_debug_print_stack()
+dfb_trace_print_stack( int pid )
 {
      Dl_info info;
-     int     i, pid = getpid();
-     int     level  = threads[pid].level;
+     int     i;
+     int     level;
 
+     if (!pid)
+          pid = getpid();
+     
+     level = threads[pid].level;
      if (level > MAX_LEVEL) {
           CAUTION( "only showing 100 items" );
           return;
@@ -92,6 +96,21 @@ dfb_debug_print_stack()
      fprintf( stderr, "\n" );
 
      fflush( stderr );
+}
+
+__attribute__((no_instrument_function))
+void
+dfb_trace_print_stacks()
+{
+     int i, pid = getpid();
+
+     if (threads[pid].level)
+          dfb_debug_print_stack( pid );
+     
+     for (i=0; i<65536; i++) {
+          if (i != pid && threads[i].level)
+               dfb_debug_print_stack( i );
+     }
 }
 
 
@@ -129,7 +148,12 @@ __cyg_profile_func_exit (void *this_fn,
 #else
 
 void
-dfb_debug_print_stack()
+dfb_trace_print_stack( int pid )
+{
+}
+
+void
+dfb_trace_print_stacks()
 {
 }
 

@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <config.h>
+
 #include <signal.h>
 
 #include <stdlib.h>
@@ -74,6 +76,9 @@ dfb_sig_remove_handlers()
      }
 }
 
+#ifdef DFB_TRACE
+__attribute__((no_instrument_function))
+#endif
 static void
 dfb_sig_action( int num, siginfo_t *info, void *foo )
 {
@@ -128,7 +133,7 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
                break;
      }
      
-     dfb_debug_print_stack();
+     dfb_trace_print_stacks();
      
      fflush( stderr );
 

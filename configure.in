@@ -265,26 +265,32 @@ fi
 
 
 AC_ARG_ENABLE(debug,
-  [  --enable-debug            enable debugging support [default=no]],,
-  enable_debug=no)
+  [  --enable-debug            enable debug support [default=no]],, enable_debug=no)
 if test "x$enable_debug" = xyes; then
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
-    CFLAGS="$CFLAGS -g3 -finstrument-functions -fno-inline"
+    CFLAGS="$CFLAGS -g3 -fno-inline"
 fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 
 
+AC_ARG_ENABLE(trace,
+  [  --enable-trace            enable call tracing [default=no]],, enable_trace=no)
+if test "x$enable_trace" = xyes; then
+    AC_DEFINE(DFB_TRACE, 1, [Define to 1 if call tracing should be enabled.])
+    CFLAGS="$CFLAGS -finstrument-functions"
+fi
+
+
 AC_ARG_ENABLE(text,
-  [  --enable-text             enable text output [default=yes]],,
-  enable_text=yes)
+  [  --enable-text             enable text output [default=yes]],, enable_text=yes)
 if test "x$enable_text" = xno; then
+    AC_DEFINE(DFB_NOTEXT, 1, [Define to 1 if all text output be disabled.])
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_NOTEXT"
 fi
 
 
 AC_ARG_ENABLE(multi,
-  [  --enable-multi            enable multi application core [default=no]],,
-  enable_multi=no)
+  [  --enable-multi            enable multi application core [default=no]],, enable_multi=no)
 if test "x$enable_multi" = xyes; then
   dnl Test for Fusion Kernel Device
   linux_fusion=yes
@@ -947,6 +953,7 @@ Misc options:
   MMX support           $enable_mmx
   SSE support           $enable_sse
   Debug mode            $enable_debug
+  Trace support         $enable_trace
   Multi App support     $enable_multi
 
 Core Systems:

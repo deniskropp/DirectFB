@@ -453,7 +453,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
                                    continue;
                               case EINVAL:
                                    FERROR ("invalid reactor\n");
-                                   dfb_debug_print_stack();
+                                   dfb_trace_print_stacks();
                                    break;
                               default:
                                    FPERROR ("FUSION_REACTOR_DETACH\n");
