@@ -147,5 +147,19 @@ static const __u32 nvPGRAPH_ARGB[][2] =
      {0x0000020C, 0x0E0D0D0D}
 };
 
+static const __u32 nvPGRAPH_YUY2[][2] = 
+{
+     {0x000001C9, 0x00EEDEEE},
+     {0x00000186, 0x0000E125},
+     {0x0000020C, 0x0E0D0D0D}
+};
+
+static const __u32 nvPGRAPH_UYVY[][2] =
+{
+     {0x000001C9, 0x00FFDFFF},
+     {0x00000186, 0x0000F135},
+     {0x0000020C, 0x0F0D0D0D}
+};
+
 
 #endif /* NVIDIA_TABLES_H */

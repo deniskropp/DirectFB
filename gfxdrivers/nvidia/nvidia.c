@@ -173,24 +173,38 @@ static inline void nv_set_rop( NVidiaDriverData        *nvdrv,
 static void nvCheckState( void *drv, void *dev,
                           CardState *state, DFBAccelerationMask accel )
 {
-     switch (state->destination->format) {
+     CoreSurface *destination = state->destination;
+     CoreSurface *source      = state->source;
+
+     switch (destination->format) {
        case DSPF_ARGB1555:
        case DSPF_RGB16:
        case DSPF_RGB32:
        case DSPF_ARGB:
                break;
-          default:
+       case DSPF_YUY2:
+       case DSPF_UYVY:
+               if (accel != DFXL_BLIT)
+                    return;
+               break;
+       default:
                return;
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* FIXME: RGB16 */
           if (accel == DFXL_STRETCHBLIT ||
-              state->source->format != state->destination->format) {
-               switch (state->source->format) {
+              source->format != destination->format) {
+               switch (source->format) {
                     case DSPF_ARGB1555:
                     case DSPF_RGB32:
                     case DSPF_ARGB:
+                    case DSPF_YUY2:
+                    case DSPF_UYVY:
+                         if ((destination->format == DSPF_YUY2  || 
+                              destination->format == DSPF_UYVY) &&
+                              destination->format != source->format)
+                              return;
                          break;
                     default:
                          return;
@@ -250,7 +264,7 @@ static void nvSetState( void *drv, void *dev,
                              DFXL_DRAWLINE |
                              DFXL_BLIT |
                              DFXL_STRETCHBLIT |
-                    DFXL_TEXTRIANGLES;
+                             DFXL_TEXTRIANGLES;
                break;
 
           default:
@@ -285,6 +299,16 @@ static void nvSetState( void *drv, void *dev,
 
                     case DSPF_ARGB:
                          NV_LOAD_TABLE( PGRAPH, PGRAPH_ARGB )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
+                         break;
+
+                    case DSPF_YUY2:
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_YUY2 )
+                         NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
+                         break;
+
+                    case DSPF_UYVY:
+                         NV_LOAD_TABLE( PGRAPH, PGRAPH_UYVY )
                          NV_LOAD_TABLE( PRAMIN, PRAMIN_RGB32 )
                          break;
             
@@ -337,7 +361,11 @@ static void nvSetState( void *drv, void *dev,
                                                state->color.g,
                                                state->color.b );
                     break;
-            
+
+               case DSPF_YUY2:
+               case DSPF_UYVY:
+                    break;
+
                default:
                     D_BUG( "unexpected pixelformat" );
                     break;
@@ -436,7 +464,7 @@ static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
      volatile NVScaledImage *ScaledImage = nvdrv->ScaledImage;
      CoreSurface            *source      = nvdev->source;
      __u32                   format      = 0;
- 
+     
      switch (source->format) {
           case DSPF_ARGB1555:
                format = 0x00000002;
@@ -448,9 +476,15 @@ static bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle 
           case DSPF_ARGB:
                format = 0x00000003;
                break;
+          case DSPF_YUY2:
+               format = 0x00000005;
+               break;
+          case DSPF_UYVY:
+               format = 0x00000006;
+               break;
           default:
                D_BUG( "unexpected pixelformat" );
-               break;
+               return false;
      }
 
      NV_FIFO_FREE( nvdev, ScaledImage, 1 )
@@ -737,7 +771,7 @@ driver_init_device( GraphicsDevice     *device,
 
 
      snprintf( device_info->name,
-               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "RIVA TNT/TNT2/GeForce" );
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "TNT/TNT2/GeForce" );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
