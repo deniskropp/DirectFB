@@ -679,8 +679,10 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
                                 CoreSurfacePolicy  front_policy,
                                 CoreSurfacePolicy  back_policy ) 
 {
-     DFBResult ret;
-     SurfaceBuffer *old_front, *old_back;
+     DFBResult      ret;
+     SurfaceBuffer *old_front;
+     SurfaceBuffer *old_back;
+     bool           new_front = surface->front_buffer->policy != front_policy;
 
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
          surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
@@ -696,18 +698,22 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
      old_front = surface->front_buffer;
      old_back = surface->back_buffer;
 
-     ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
-     if (ret) {
-          skirmish_dismiss( &surface->front_lock );
-          skirmish_dismiss( &surface->back_lock );
-          return ret;
+     if (new_front) {
+          ret = dfb_surface_allocate_buffer( surface, front_policy, &surface->front_buffer );
+          if (ret) {
+               skirmish_dismiss( &surface->front_lock );
+               skirmish_dismiss( &surface->back_lock );
+               return ret;
+          }
      }
 
      if (surface->caps & DSCAPS_FLIPPING) {
           ret = dfb_surface_allocate_buffer( surface, back_policy, &surface->back_buffer );
           if (ret) {
-               dfb_surface_deallocate_buffer( surface, surface->front_buffer );
-               surface->front_buffer = old_front;
+               if (new_front) {
+                    dfb_surface_deallocate_buffer( surface, surface->front_buffer );
+                    surface->front_buffer = old_front;
+               }
 
                skirmish_dismiss( &surface->front_lock );
                skirmish_dismiss( &surface->back_lock );
@@ -718,7 +724,9 @@ DFBResult dfb_surface_reconfig( CoreSurface       *surface,
           surface->back_buffer = surface->front_buffer;
      }
 
-     dfb_surface_deallocate_buffer( surface, old_front );
+     if (new_front)
+          dfb_surface_deallocate_buffer( surface, old_front );
+
      if (old_front != old_back)
           dfb_surface_deallocate_buffer ( surface, old_back );
 
