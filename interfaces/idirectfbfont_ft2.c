@@ -104,18 +104,28 @@ DFBResult render_glyph( CoreFontData  *thiz,
           return err;
      }
 
+     info->width = face->glyph->bitmap.width;
+     if (info->width + thiz->next_x > surface->width)
+          info->width = surface->width - thiz->next_x;
+
+     info->height = face->glyph->bitmap.rows;
+     if (info->height > surface->height)
+          info->height = surface->height;
+
+     info->left = face->glyph->bitmap_left;
+     info->top  = thiz->ascender - face->glyph->bitmap_top;
+
      dst += thiz->next_x * BYTES_PER_PIXEL(surface->format);
 
-     for (y=0; y<face->glyph->bitmap.rows; y++) {
+     for (y=0; y < info->height; y++) {
           switch (BYTES_PER_PIXEL(surface->format)) {
              case 4:
                span_a8_to_argb( &face->glyph->bitmap.buffer[face->glyph->bitmap.pitch*y],
-                                (__u32*) dst,
-                                face->glyph->bitmap.width );
+                                (__u32*) dst, info->width );
              break;
              case 1:
                memcpy( dst, &face->glyph->bitmap.buffer[face->glyph->bitmap.pitch*y],
-                       face->glyph->bitmap.width );
+                       info->width );
              break;
              default:
                break;
@@ -124,11 +134,6 @@ DFBResult render_glyph( CoreFontData  *thiz,
      }
 
      surface_unlock( surface, 0 );
-
-     info->width  = face->glyph->bitmap.width;
-     info->height = face->glyph->bitmap.rows;
-     info->left   = face->glyph->bitmap_left;
-     info->top    = thiz->ascender - face->glyph->bitmap_top;
 
      return DFB_OK;
 }
@@ -203,6 +208,10 @@ DFBResult Construct( IDirectFBFont *thiz,
      FT_Face  face;
      FT_Error err;
 
+     HEAVYDEBUGMSG( "DirectFB/FontFT2: Construct font '%s' height %d\n", 
+                    filename, 
+                    (desc->flags & DFDESC_HEIGHT) ? desc->height : -1 );
+
      if (!library) {
           err = FT_Init_FreeType( &library );
           if (err) {
@@ -241,10 +250,11 @@ DFBResult Construct( IDirectFBFont *thiz,
      font = (CoreFontData*)malloc( sizeof(CoreFontData) );
      memset( font, 0, sizeof(CoreFontData) );
 
-     font->ascender   = face->ascender  >> 6;
-     font->descender  = face->descender >> 6;
-     font->height     = (face->ascender - face->descender) >> 6;
-     font->maxadvance = face->max_advance_width >> 6;
+     font->ascender   = face->size->metrics.ascender  >> 6;
+     font->descender  = face->size->metrics.descender >> 6;
+     font->height     = (face->size->metrics.ascender - 
+                         face->size->metrics.descender) >> 6;
+     font->maxadvance = face->size->metrics.max_advance >> 6;
 
      HEAVYDEBUGMSG( "DirectFB/FontFT2: font->height = %d\n", font->height );
      HEAVYDEBUGMSG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender);
