@@ -52,6 +52,8 @@ static struct {
 } pixelformats[] = {
      { DSPF_ARGB,     "ARGB"     },
      { DSPF_ARGB1555, "ARGB1555" },
+     { DSPF_ARGB2554, "ARGB2554" },
+     { DSPF_ARGB4444, "ARGB4444" },
      { DSPF_RGB32,    "RGB32"    },
      { DSPF_RGB24,    "RGB24"    },
      { DSPF_RGB16,    "RGB16"    },
@@ -394,6 +396,14 @@ static DFBResult load_image (const char            *filename,
                case DSPF_ARGB1555:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
                          dfb_argb_to_argb1555 ((__u32 *) s, (__u16 *) d, width);
+                    break;
+               case DSPF_ARGB2554:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         dfb_argb_to_argb2554 ((__u32 *) s, (__u16 *) d, width);
+                    break;
+               case DSPF_ARGB4444:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         dfb_argb_to_argb4444 ((__u32 *) s, (__u16 *) d, width);
                     break;
                case DSPF_RGB332:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)

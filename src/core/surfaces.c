@@ -872,6 +872,8 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_ALUT44:
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
           case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_LUT8:
@@ -963,9 +965,11 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           case DSPF_A8:
                alpha = true;
                break;
-               
+
           case DSPF_ARGB:
           case DSPF_ARGB1555:
+          case DSPF_ARGB2554:
+          case DSPF_ARGB4444:
           case DSPF_AiRGB:
                alpha = true;
 
@@ -994,7 +998,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      while (++num < 10000) {
           snprintf( filename, len, "%s/%s_%04d.ppm%s",
                     directory, prefix, num, gz_ext );
-          
+
           if (access( filename, F_OK ) != 0) {
                snprintf( filename, len, "%s/%s_%04d.pgm%s",
                          directory, prefix, num, gz_ext );
@@ -1010,7 +1014,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           dfb_surface_unlock( surface, true );
           return DFB_FAILURE;
      }
-     
+
      /* Create a file with the found index. */
      if (rgb) {
           snprintf( filename, len, "%s/%s_%04d.ppm%s",
@@ -1126,6 +1130,38 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          buf_g[n] = (data16[n] & 0x8000) ? 0xff : 0x00;
                     }
                     break;
+               case DSPF_ARGB2554:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x3E00) >> 6;
+                         buf_p[n3+1] = (data16[n] & 0x01F0) >> 1;
+                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
+
+                         switch (data16[n] >> 14) {
+                              case 0:
+                                   buf_g[n] = 0x00;
+                                   break;
+                              case 1:
+                                   buf_g[n] = 0x55;
+                                   break;
+                              case 2:
+                                   buf_g[n] = 0xAA;
+                                   break;
+                              case 3:
+                                   buf_g[n] = 0xFF;
+                                   break;
+                         }
+                    }
+                    break;
+               case DSPF_ARGB4444:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = (data16[n] & 0x0F00) >> 4;
+                         buf_p[n3+1] = (data16[n] & 0x00F0);
+                         buf_p[n3+2] = (data16[n] & 0x000F) << 4;
+
+                         buf_g[n]  = (data16[n] >> 12);
+                         buf_g[n] |= buf_g[n] << 4;
+                    }
+                    break;
                case DSPF_RGB16:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
                          buf_p[n3+0] = (data16[n] & 0xF800) >> 8;
@@ -1160,7 +1196,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                                        buf_p[n3+3], buf_p[n3+4], buf_p[n3+5] );
                     }
                     break;
-               case DSPF_UYVY: 
+               case DSPF_UYVY:
                     for (n=0, n3=0; n<surface->width/2; n++, n3+=6) {
                          register __u32 y0, cb, y1, cr;
                          cb = (data32[n] & 0x000000FF);

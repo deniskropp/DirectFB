@@ -95,6 +95,14 @@ static void rgba_to_dst_format (__u8 *dst,
                *((__u16*)dst) = PIXEL_ARGB1555( a, r, g, b );
                break;
 
+          case DSPF_ARGB2554:
+               *((__u16*)dst) = PIXEL_ARGB2554( a, r, g, b );
+               break;
+
+          case DSPF_ARGB4444:
+               *((__u16*)dst) = PIXEL_ARGB4444( a, r, g, b );
+               break;
+
           case DSPF_AiRGB:
                *((__u32*)dst) = PIXEL_AiRGB( a, r, g, b );
                break;

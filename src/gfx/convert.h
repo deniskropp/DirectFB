@@ -44,6 +44,16 @@
                                  (((g)&0xF8) << 2) | \
                                  (((b)&0xF8) >> 3) )
 
+#define PIXEL_ARGB2554(a,r,g,b)( (((a)&0xC0) << 8) | \
+                                 (((r)&0xF8) << 6) | \
+                                 (((g)&0xF8) << 1) | \
+                                 (((b)&0xF0) >> 4) )
+
+#define PIXEL_ARGB4444(a,r,g,b)( (((a)&0xF0) << 8) | \
+                                 (((r)&0xF0) << 4) | \
+                                 (((g)&0xF0)     ) | \
+                                 (((b)&0xF0) >> 4) )
+
 #define PIXEL_RGB16(r,g,b)     ( (((r)&0xF8) << 8) | \
                                  (((g)&0xFC) << 3) | \
                                  (((b)&0xF8) >> 3) )
@@ -138,6 +148,16 @@
                                    (((pixel) & 0x0000F800) >>  6) | \
                                    (((pixel) & 0x000000F8) >>  3) )
 
+#define ARGB_TO_ARGB2554(pixel)  ( (((pixel) & 0xC0000000) >> 16) | \
+                                   (((pixel) & 0x00F80000) >> 10) | \
+                                   (((pixel) & 0x0000F800) >>  7) | \
+                                   (((pixel) & 0x000000F0) >>  4) )
+
+#define ARGB_TO_ARGB4444(pixel)  ( (((pixel) & 0xF0000000) >> 16) | \
+                                   (((pixel) & 0x00F00000) >> 12) | \
+                                   (((pixel) & 0x0000F000) >>  8) | \
+                                   (((pixel) & 0x000000F0) >>  4) )
+
 
 /* RGB <-> YCbCr conversion */
 
@@ -213,6 +233,30 @@ dfb_argb_to_argb1555( __u32 *src, __u16 *dst, int len )
           register __u32 argb = src[i];
 
           dst[i] = ARGB_TO_ARGB1555( argb );
+     }
+}
+
+static inline void
+dfb_argb_to_argb2554( __u32 *src, __u16 *dst, int len )
+{
+     int i;
+
+     for (i=0; i<len; i++) {
+          register __u32 argb = src[i];
+
+          dst[i] = ARGB_TO_ARGB2554( argb );
+     }
+}
+
+static inline void
+dfb_argb_to_argb4444( __u32 *src, __u16 *dst, int len )
+{
+     int i;
+
+     for (i=0; i<len; i++) {
+          register __u32 argb = src[i];
+
+          dst[i] = ARGB_TO_ARGB4444( argb );
      }
 }
 
