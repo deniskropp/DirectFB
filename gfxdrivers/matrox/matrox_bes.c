@@ -219,16 +219,6 @@ besTestRegion( CoreLayer                  *layer,
 }
 
 static DFBResult
-besAddRegion( CoreLayer             *layer,
-              void                  *driver_data,
-              void                  *layer_data,
-              void                  *region_data,
-              CoreLayerRegionConfig *config )
-{
-     return DFB_OK;
-}
-
-static DFBResult
 besSetRegion( CoreLayer                  *layer,
               void                       *driver_data,
               void                       *layer_data,
@@ -357,7 +347,6 @@ DisplayLayerFuncs matroxBesFuncs = {
      InitLayer:          besInitLayer,
 
      TestRegion:         besTestRegion,
-     AddRegion:          besAddRegion,
      SetRegion:          besSetRegion,
      RemoveRegion:       besRemoveRegion,
      FlipRegion:         besFlipRegion,
