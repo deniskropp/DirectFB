@@ -39,11 +39,7 @@ dfb_pixelformat_for_depth( int depth )
 {
      switch (depth) {
           case 8:
-#ifdef SUPPORT_RGB332
-               return DSPF_RGB332;
-#else
                return DSPF_LUT8;
-#endif
           case 15:
                return DSPF_RGB15;
           case 16:
