@@ -116,12 +116,24 @@ DFB_GRAPHICS_DRIVER( nvidia )
                 DFXL_FILLTRIANGLE | DFXL_DRAWLINE)
 
 #define NV20_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL | \
-                DSBLIT_COLORIZE)
+               (DSBLIT_NOFX)
 
 #define NV20_SUPPORTED_BLITTINGFUNCTIONS \
-               (DFXL_BLIT | DFXL_STRETCHBLIT)
+               (DFXL_BLIT)
 
+/* GeForce3 Integrated (XBox) */
+#define NV2A_SUPPORTED_DRAWINGFLAGS \
+               (DSDRAW_NOFX)
+
+#define NV2A_SUPPORTED_DRAWINGFUNCTIONS \
+               (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | \
+                DFXL_FILLTRIANGLE | DFXL_DRAWLINE)
+
+#define NV2A_SUPPORTED_BLITTINGFLAGS \
+               (DSBLIT_NOFX)
+
+#define NV2A_SUPPORTED_BLITTINGFUNCTIONS \
+               (DFXL_NONE)
 
 #define DSBLIT_ALPHABLEND (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL)
 #define DSBLIT_MODULATE   (DSBLIT_ALPHABLEND | DSBLIT_COLORIZE)
@@ -653,6 +665,35 @@ static void nv20CheckState( void *drv, void *dev,
      }
 }
 
+static void nv2ACheckState( void *drv, void *dev,
+                            CardState *state, DFBAccelerationMask accel )
+{
+     NVidiaDeviceData *nvdev       = (NVidiaDeviceData*) dev;
+     CoreSurface      *destination = state->destination;
+
+     (void) nvdev;
+
+     switch (destination->format) {
+          case DSPF_ARGB1555:
+          case DSPF_RGB16:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               break;
+          
+          default:
+               return;
+     }
+
+     if (DFB_BLITTING_FUNCTION( accel ))
+          return;
+
+     if (state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
+          return;
+
+     state->accel |= accel;
+}
+
+
 static void nv4SetState( void *drv, void *dev,
                          GraphicsDeviceFuncs *funcs,
                          CardState *state, DFBAccelerationMask accel )
@@ -985,11 +1026,7 @@ static void nv20SetState( void *drv, void *dev,
 
      if (modify & SMF_DESTINATION) {
           buffer = state->destination->back_buffer;
-          offset = buffer->video.offset;
-
-          if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
-               offset += nvdrv->fb_base;
-          offset &= nvdrv->fb_mask;
+          offset = buffer->video.offset & nvdrv->fb_mask;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -1032,11 +1069,7 @@ static void nv20SetState( void *drv, void *dev,
           case DFXL_BLIT:
           case DFXL_STRETCHBLIT:
                buffer = state->source->front_buffer;
-               offset = buffer->video.offset;
-
-               if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
-                    offset += nvdrv->fb_base;
-               offset &= nvdrv->fb_mask;
+               offset = buffer->video.offset & nvdrv->fb_mask;
 
                if (nvdev->src_format != buffer->format     ||
                    nvdev->src_offset != offset             ||
@@ -1060,6 +1093,72 @@ static void nv20SetState( void *drv, void *dev,
                
                state->set |= DFXL_BLIT |
                              DFXL_STRETCHBLIT;
+               break;
+
+          default:
+               D_BUG( "unexpected drawing/blitting function" );
+               break;
+     }
+
+     state->modified = 0;
+}
+
+static void nv2ASetState( void *drv, void *dev,
+                          GraphicsDeviceFuncs *funcs,
+                          CardState *state, DFBAccelerationMask accel )
+{
+     NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
+     volatile __u32   *PGRAPH = nvdrv->PGRAPH;
+     __u32             modify = state->modified;
+     SurfaceBuffer    *buffer;
+     __u32             offset;
+
+     if (nvdev->reloaded) {
+          modify |= nvdev->reloaded;
+          nvdev->reloaded = 0;
+     }
+
+     if (modify & SMF_DESTINATION) {
+          buffer = state->destination->back_buffer;
+          offset = (buffer->video.offset + nvdrv->fb_base) & nvdrv->fb_mask;
+
+          if (nvdev->dst_format != buffer->format     ||
+              nvdev->dst_offset != offset             ||
+              nvdev->dst_pitch  != buffer->video.pitch)
+          {
+               /* set offset & pitch */
+               nv_waitidle( nvdrv, nvdev );
+
+               nv_out32( PGRAPH, 0x820, offset );
+               //nv_out32( PGRAPH, 0x828, offset );
+               nv_out32( PGRAPH, 0x850, buffer->video.pitch );
+               //nv_out32( PGRAPH, 0x858, buffer->video.pitch );
+
+               if (nvdev->dst_format != buffer->format)
+                    nv_set_format( nvdrv, nvdev, buffer->format );
+
+               nvdev->dst_format = buffer->format;
+               nvdev->dst_offset = offset;
+               nvdev->dst_pitch  = buffer->video.pitch;
+          }
+     }
+
+     if (modify & SMF_CLIP)
+          nv_set_clip( nvdrv, nvdev, &state->clip );
+
+     if (modify & (SMF_COLOR | SMF_DESTINATION))
+          nv_set_color( nvdrv, nvdev, &state->color );
+
+     switch (accel) {
+          case DFXL_FILLRECTANGLE:
+          case DFXL_FILLTRIANGLE:
+          case DFXL_DRAWRECTANGLE:
+          case DFXL_DRAWLINE:
+               state->set |= DFXL_FILLRECTANGLE |
+                             DFXL_FILLTRIANGLE  |
+                             DFXL_DRAWRECTANGLE |
+                             DFXL_DRAWLINE;
                break;
 
           default:
@@ -1190,8 +1289,10 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
           case 0x0200: /* GeForce3 */
           case 0x0250: /* GeForce4 Ti */
           case 0x0280: /* GeForce4 Ti AGP8X */
-          case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
                arch = NV_ARCH_20;
+               break;
+          case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
+               arch = NV_ARCH_2A;
                break;
           default:
                break;
@@ -1223,7 +1324,7 @@ driver_init_driver( GraphicsDevice      *device,
      nv_find_architecture( nvdrv );
 
      nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
-     if (nvdrv->chip == 0x2A0) /* GeForce3 Xbox */
+     if (nvdrv->arch == NV_ARCH_2A)
           vram += nvdrv->fb_base & 0x0FFFFFFF;
      nvdrv->fb_mask = ((1 << direct_log2( vram )) - 0x100000) | 0x000FFFC0;
      
@@ -1278,7 +1379,10 @@ driver_init_driver( GraphicsDevice      *device,
                funcs->CheckState       = nv20CheckState;
                funcs->SetState         = nv20SetState;
                funcs->Blit             = nv5Blit;
-               funcs->StretchBlit      = nv5StretchBlit;
+               break;
+          case NV_ARCH_2A:
+               funcs->CheckState       = nv2ACheckState;
+               funcs->SetState         = nv2ASetState;
                break;
           default:
                break;
@@ -1337,6 +1441,12 @@ driver_init_device( GraphicsDevice     *device,
                                             NV20_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV20_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV20_SUPPORTED_BLITTINGFLAGS;
+               break;
+          case NV_ARCH_2A:
+               device_info->caps.accel    = NV2A_SUPPORTED_DRAWINGFUNCTIONS |
+                                            NV2A_SUPPORTED_BLITTINGFUNCTIONS;
+               device_info->caps.drawing  = NV2A_SUPPORTED_DRAWINGFLAGS;
+               device_info->caps.blitting = NV2A_SUPPORTED_BLITTINGFLAGS;
                break;
           default:
                device_info->caps.accel    = 0;

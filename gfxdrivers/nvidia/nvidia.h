@@ -419,10 +419,11 @@ typedef struct {
 
 
 enum {
-     NV_ARCH_04   = 0x04,
-     NV_ARCH_05   = 0x05,
-     NV_ARCH_10   = 0x10,
-     NV_ARCH_20   = 0x20
+     NV_ARCH_04 = 0x04,
+     NV_ARCH_05 = 0x05,
+     NV_ARCH_10 = 0x10,
+     NV_ARCH_20 = 0x20,
+     NV_ARCH_2A = 0x2A
 };
 
 typedef struct {
