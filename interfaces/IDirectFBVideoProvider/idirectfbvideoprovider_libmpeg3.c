@@ -31,9 +31,12 @@
 
 #include "misc/util.h"
 
-#include "core/core.h"
 #include "core/coredefs.h"
+#include "core/coretypes.h"
+
 #include "core/layers.h"
+#include "core/state.h"
+#include "core/surfaces.h"
 #include "core/gfxcard.h"
 
 #include "display/idirectfbsurface.h"
