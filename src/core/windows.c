@@ -953,19 +953,21 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
 
      DFB_ASSERT( stack != NULL );
 
-     /* FIXME: add locking as soon as it wouldn't cause a deadlock anymore */
-     
      if (!stack->cursor.enabled)
           return;
 
+     stack_lock( stack );
+     
      new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
      new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
 
      new_cx = MAX( new_cx, stack->cursor.region.x1 );
      new_cy = MAX( new_cy, stack->cursor.region.y1 );
 
-     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y)
+     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y) {
+          stack_unlock( stack );
           return;
+     }
 
      dx = new_cx - stack->cursor.x;
      dy = new_cy - stack->cursor.y;
@@ -973,6 +975,8 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      stack->cursor.x = new_cx;
      stack->cursor.y = new_cy;
 
+     stack_unlock( stack );
+     
      DFB_ASSERT( stack->cursor.window != NULL );
 
      dfb_window_move( stack->cursor.window, dx, dy );

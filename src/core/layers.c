@@ -1401,7 +1401,8 @@ create_cursor_window( DisplayLayer *layer,
           return ret;
      }
 
-     cursor->options = DWOP_GHOST;
+     cursor->events   = 0;
+     cursor->options |= DWOP_GHOST;
 
      dfb_window_init( cursor );
      dfb_window_set_opacity( cursor, stack->cursor.opacity );

@@ -233,11 +233,13 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
                manager->chunks->offset = offset;
           }
           else {
+               CAUTION("unable to adjust heap offset");
                /* more space needed than free at the beginning */
                /* TODO: move/destroy instances */
           }
      }
      else {
+          CAUTION("unable to adjust heap offset");
           /* very rare case that the first chunk is occupied */
           /* TODO: move/destroy instances */
      }
