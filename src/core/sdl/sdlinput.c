@@ -409,7 +409,7 @@ sdlEventThread( CoreThread *thread, void *driver_data )
           
           motion_realize( data );
 
-          usleep(20000);
+          usleep(10000);
      
           dfb_thread_testcancel( thread );
      }
