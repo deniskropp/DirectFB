@@ -73,12 +73,7 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
 
     data = (IDirectFBVideoProvider_Libmpeg3_data*)thiz->priv;
      
-    if (data->thread != -1)
-    {
-        pthread_cancel( data->thread );
-        pthread_join( data->thread, NULL );
-        data->thread = -1;
-    }
+    thiz->Stop( thiz );
 
     mpeg3_close( data->stream );
     DFBFREE( data->scans );

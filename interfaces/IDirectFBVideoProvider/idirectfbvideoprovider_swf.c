@@ -181,12 +181,7 @@ void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
 
      data = (IDirectFBVideoProvider_Swf_data*)thiz->priv;
      
-     if (data->thread != -1)
-     {
-       pthread_cancel( data->thread );
-       pthread_join( data->thread, NULL );
-       data->thread = -1;
-     }
+     thiz->Stop( thiz );
      
      FlashClose(data->flashHandle);
     

@@ -77,6 +77,11 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 
      delete data->player;
 
+     if (data->destination) {
+          data->destination->Release( data->destination );
+          data->destination = NULL;     /* FIXME: remove listener */
+     }
+     
      reactor_free( data->source.reactor );
 
      free (thiz->priv);
