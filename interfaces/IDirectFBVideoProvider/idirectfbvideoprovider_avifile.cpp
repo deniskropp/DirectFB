@@ -45,6 +45,7 @@ extern "C" {
 
 #include <display/idirectfbsurface.h>
 
+#include <misc/mem.h>
 #include <misc/util.h>
 
 static DFBResult

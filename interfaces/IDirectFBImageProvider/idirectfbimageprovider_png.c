@@ -31,9 +31,6 @@
 
 #include <malloc.h>
 
-#include <misc/util.h>
-#include <misc/mem.h>
-
 #include <directfb.h>
 #include <directfb_internals.h>
 
@@ -46,6 +43,8 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+#include <misc/mem.h>
+#include <misc/util.h>
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx );
