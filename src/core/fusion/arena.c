@@ -101,7 +101,7 @@ FusionResult arena_enter (const char     *name,
           return FUSION_FAILURE;
 
      /* Check if we are the first. */
-     if (fusion_ref_zero_lock( &arena->ref ) == FUSION_SUCCESS) {
+     if (fusion_ref_zero_trylock( &arena->ref ) == FUSION_SUCCESS) {
           FDEBUG ("entering arena '%s' (establishing)\n", name);
           
           /* Call 'initialize' later. */

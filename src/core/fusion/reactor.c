@@ -376,6 +376,23 @@ reactor_free (FusionReactor *reactor)
  *******************************/
 
 void
+_reactor_free_all()
+{
+     FusionLink *l;
+
+     fusion_list_foreach (l, nodes) {
+          FusionLink  *next = l->next;
+          ReactorNode *node = (ReactorNode*) l;
+
+          DFBFREE( node );
+
+          l = next;
+     }
+
+     nodes = NULL;
+}
+
+void
 _reactor_process_message( int reactor_id, const void *msg_data )
 {
      FusionLink  *l;
@@ -429,12 +446,6 @@ _reactor_process_message( int reactor_id, const void *msg_data )
      }
 
      unlock_node( node );
-}
-
-void
-_reactor_init()
-{
-     nodes = NULL;
 }
 
 static void
@@ -724,6 +735,7 @@ reactor_free (FusionReactor *reactor)
      return FUSION_SUCCESS;
 }
 
+/******************************************************************************/
 
 static void
 process_globals( FusionReactor *reactor,

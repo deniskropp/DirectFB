@@ -96,9 +96,6 @@ fusion_init()
      /* Initialize local reference counter. */
      fusion_refs = 1;
 
-     /* Initialize Reactor part. */
-     _reactor_init();
-
      /* Initialize shmalloc part. */
      if (!__shmalloc_init( fusion_id == 1 )) {
           fusion_id = 0;
@@ -134,6 +131,8 @@ fusion_exit()
      dfb_thread_cancel( read_loop );
      dfb_thread_join( read_loop );
      dfb_thread_destroy( read_loop );
+
+     _reactor_free_all();
 
      if (fusion_id == 1) {
           skirmish_destroy( &fusion_shared->arenas_lock );
