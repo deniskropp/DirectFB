@@ -151,7 +151,7 @@ source_listener( const void *msg_data,
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
 
-     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
+     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_FIELD |
                                 CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
           state->modified |= SMF_SOURCE;
 
