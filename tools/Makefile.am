@@ -14,7 +14,7 @@ directfb_csource_SOURCES = directfb-csource.c
 directfb_csource_LDADD   = $(LIBPNG)
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbg
 
 noinst_PROGRAMS = \
 	dfbdump 	\
@@ -22,6 +22,9 @@ noinst_PROGRAMS = \
 	raw15toraw24	\
 	raw16toraw24	\
 	raw32toraw24
+
+dfbg_SOURCES = dfbg.c
+dfbg_LDADD   = ../src/libdirectfb.la
 
 dfbdump_SOURCES = dfbdump.c
 dfbdump_LDADD   = ../src/libdirectfb.la
