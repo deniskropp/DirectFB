@@ -245,9 +245,14 @@ maven_set_regs( MatroxMavenData       *mav,
           maven_write_byte( mav, mdrv, 0xB9, 0x78);
           maven_write_byte( mav, mdrv, 0xBF, 0x02);
 
-          /*  deflicker: 0x00, 0xB1, 0xA2 */
-          maven_write_byte( mav, mdrv, 0x93,
-                            config->options & DLOP_FLICKER_FILTERING ? 0xA2 : 0x00 );
+          /*
+           * Deflicker: 0x00, 0xB1, 0xA2
+           * Doesn't work due to:
+           * - ITU-R BT.656 mode?
+           * - scaler is not used?
+           * - something else?
+           */
+          maven_write_byte( mav, mdrv, 0x93, 0x00 );
      }
 
      maven_set_saturation( mav, mdrv, adj->saturation >> 8 );
