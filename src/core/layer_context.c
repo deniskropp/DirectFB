@@ -595,12 +595,12 @@ dfb_layer_context_set_configuration( CoreLayerContext      *context,
                CoreWindowStack *stack = context->stack;
 
                /* Update hardware flag. */
-               stack->hw_mode = (context->config.buffermode == DLBM_WINDOWS);
+               stack->hw_mode = (region_config.buffermode == DLBM_WINDOWS);
 
                /* Tell the windowing core about the new size. */
                dfb_windowstack_resize( stack,
-                                       context->config.width,
-                                       context->config.height );
+                                       region_config.width,
+                                       region_config.height );
 
                /* FIXME: call only if really needed */
                dfb_windowstack_repaint_all( stack );
