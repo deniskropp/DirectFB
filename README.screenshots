@@ -14,7 +14,7 @@ buffer device. This works for all applications that use the frame
 buffer device, not only for DirectFB applications.
 
 The resulting data is then converted to a more convenient format using
-the netpbm graphics conversion tools.  If the framebuffer is not
+the netpbm graphics conversion tools.  If the frame buffer is not
 running at 24 bit depth, the data has to be propagated to 24bit RGB
 before netpbm can handle it. The tools directory contains the source
 for two small utilities that do just this:
@@ -44,7 +44,7 @@ Step 2 - Read data from /dev/fb0 and write it to a file.
   [32bit]  raw32toraw24 < /dev/fb0 > raw24.tmp
 
 Step 2 - Convert data to ppm using rawtoppm and specify the resolution of
-         the framebuffer.
+         the frame buffer.
 
  example:  rawtoppm 800 600 raw24.tmp > ppm24.tmp
 

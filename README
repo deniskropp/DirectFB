@@ -150,12 +150,12 @@ Configuring DirectFB
    configured via the command-line.
 
 
-Configuring the Linux framebuffer device
-----------------------------------------
+Configuring the Linux frame buffer device
+-----------------------------------------
 
-   DirectFB needs a Linux kernel with framebuffer support. Check the 
+   DirectFB needs a Linux kernel with frame buffer support. Check the 
    documentation in the kernel tree (/usr/src/linux/Documentation/fb/) on 
-   how to enable the framebuffer device for your graphics card. 
+   how to enable the frame buffer device for your graphics card. 
 
    The generic vesa fbdev driver does not support mode switching and you 
    will not get hardware acceleration. To make DirectFB work with veasfb, 
@@ -164,7 +164,7 @@ Configuring the Linux framebuffer device
 	append="video=vesa:ywrap,mtrr"
 
    'ywrap' enables panning with wraparound.
-   'mtrr' enables setting caching type for the framebuffer to write-combining.
+   'mtrr' enables setting caching type for the frame buffer to write-combining.
 
 	vga=791
 
@@ -177,7 +177,7 @@ Configuring the Linux framebuffer device
    16      785     788     791      794       798
    32      786     789     792      795       799
 
-   Other framebuffer devices support mode switching. DirectFB will only 
+   Other frame buffer devices support mode switching. DirectFB will only 
    support modes listed in your /etc/fb.modes file. By default the first 
    entry found is used.
 

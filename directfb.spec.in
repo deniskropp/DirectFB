@@ -18,19 +18,19 @@ BuildRequires:	freetype2-devel >= 2.0.2
 BuildRoot:	%{_tmppath}/%{name}-%{version}
 
 %description
-%oname - A hardware-accelerated graphics library on top of the Linux framebuffer device.
+%oname - A hardware-accelerated graphics library on top of the Linux frame buffer device.
 
 %package -n %libname
 Summary:        Shared library part of %oname
 Group:		System/Libraries
 
 %description -n %libname
-%oname - A hardware-accelerated graphics library on top of the Linux framebuffer device.
+%oname - A hardware-accelerated graphics library on top of the Linux frame buffer device.
 
 %oname is a thin library that provides developers with hardware graphics
 acceleration, input device handling and abstraction, an integrated windowing
 system with support for translucent windows and multiple display layers on top
-of the Linux framebuffer device. It is a complete hardware abstraction layer
+of the Linux frame buffer device. It is a complete hardware abstraction layer
 with software fallbacks for every graphics operation that is not supported by
 the underlying hardware.
 

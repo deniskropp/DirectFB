@@ -106,8 +106,8 @@
 - Redone keyboard handling. Each key now has a unique key_id which is mapped
   to a Unicode-compatible key_symbol using the keymap provided by the driver.
 - Use kernel keymapping table in keyboard driver.
-- Added kernel patch for VMware SVGA framebuffer.
-- Added kernel patch for S3 Savage framebuffer (experimental).
+- Added kernel patch for VMware SVGA frame buffer.
+- Added kernel patch for S3 Savage frame buffer (experimental).
 - Added S3 Savage driver (experimental).
 - The Print key can now be used to dump screenshots in PPM format.
 - Left and right modifiers have seperate key identifiers now.
@@ -197,7 +197,7 @@
 - '/dev/input/js*' support by W. Michael Petullo <mike@flyn.org>.
 - Detailed documentation of dbox2 remote driver code (example driver).
 - More code documentation, especially state handling.
-- Additional framebuffer device can be used to debug the surface manager.
+- Additional frame buffer device can be used to debug the surface manager.
 - All global DirectFB symbols have the prefix "dfb_" now.
 - Enno Brehm <enno@convergence.de> added dlopen on libdirectfb with RTLD_GLOBAL.
 - Completely rewritten shmalloc stuff (used by Multi Application Core)
@@ -263,8 +263,8 @@
 - DirectFB now restores the palette during deinitialization, turns cursor and
   blanking back on and restores the terminal attributes like local echo.
   These fixes help a lot when using DirectFB with the option "--no-vt-switch".
-- Updated NeoMagic framebuffer driver patch for 2.4.10 and above.
-- Updated aty128fb framebuffer driver patch. The patch was tested with kernel
+- Updated NeoMagic frame buffer driver patch for 2.4.10 and above.
+- Updated aty128fb frame buffer driver patch. The patch was tested with kernel
   versions from 2.4.7 - 2.4.12. It may work with older versions too.
 - IDirectFBSurface::SetSrcColorKey has to be called on the source now,
   when blitting to a surface which has source color keying enabled.
@@ -315,7 +315,7 @@
   for third party modules built outside the DirectFB source tree.
 - You can move windows with the mouse when holding down CapsLock.
 - Font width can now be set independent from height, e.g. for non-square pixels.
-- Set gamma ramp, fixes "strange-colors-effect" with some framebuffer drivers.
+- Set gamma ramp, fixes "strange-colors-effect" with some frame buffer drivers.
 - Accept interlaced or double scan modes, 320x200 looks really cool in some way.
 - Deinitialization code cleaned up and reactivated.
 - V4L capturing is now stopped by exit and signal handlers.
@@ -348,7 +348,7 @@
 - Added IDirectFBSurface->DrawLines(), used by df_dok now.
 - Some optimizations in DrawString and core font handling.
 - Fixed font problems with Matrox cards, their texture cache is flushed
-  now after writing the glyph into the framebuffer (i.e. into the texture).
+  now after writing the glyph into the frame buffer (i.e. into the texture).
 - Mouse cursor movements are now clipped by the screen ;-)
 - Fixed 'directfb.h', identifier "id" was also a keyword in Objective C.
 - Added IDirectFBInputBuffer->WaitForEventWithTimeout,
