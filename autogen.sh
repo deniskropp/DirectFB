@@ -28,9 +28,7 @@ DIE=0
 	DIE=1
 }
 
-echo "I am testing that you have the required versions of autoconf, automake"
-echo "and gettext. This test is not foolproof, so if anything goes wrong,"
-echo "see the file HACKING for more information..."
+echo "I am testing that you have the required versions of autoconf, automake."
 echo
 
 echo "Testing autoconf... "
