@@ -178,6 +178,11 @@ primarySetPalette        ( DisplayLayer               *layer,
 
           
 static DFBResult
+primaryWaitVSync         ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data );
+
+static DFBResult
 primaryAllocateSurface   ( DisplayLayer               *layer,
                            void                       *driver_data,
                            void                       *layer_data,
@@ -205,6 +210,7 @@ static DisplayLayerFuncs primaryLayerFuncs = {
      FlipBuffers:        primaryFlipBuffers,
      SetColorAdjustment: primarySetColorAdjustment,
      SetPalette:         primarySetPalette,
+     WaitVSync:          primaryWaitVSync,
           
      AllocateSurface:    primaryAllocateSurface,
      ReallocateSurface:  primaryReallocateSurface,
@@ -659,21 +665,6 @@ system_thread_init()
      return dfb_vt_detach( false );
 }
 
-static DFBResult
-system_wait_vsync()
-{
-     if (dfb_config->pollvsync_none)
-          return DFB_OK;
-
-#ifdef FBIO_WAITFORVSYNC
-     dfb_gfxcard_sync();
-     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
-#endif
-          waitretrace();
-
-     return DFB_OK;
-}
-
 static unsigned long
 system_video_memory_physical( unsigned int offset )
 {
@@ -975,14 +966,14 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
      CoreSurface *surface = dfb_layer_surface( layer );
 
      if ((flags & DSFLIP_WAITFORSYNC) && !dfb_config->pollvsync_after)
-          dfb_system_wait_vsync();
+          dfb_layer_wait_vsync( layer );
      
      ret = dfb_fbdev_pan( surface->back_buffer->video.offset ? 1 : 0 );
      if (ret)
           return ret;
 
      if ((flags & DSFLIP_WAITFORSYNC) && dfb_config->pollvsync_after)
-          dfb_system_wait_vsync();
+          dfb_layer_wait_vsync( layer );
           
      dfb_surface_flip_buffers( surface );
 
@@ -1149,6 +1140,23 @@ primarySetPalette ( DisplayLayer               *layer,
           return errno2dfb(errno);
      }
      
+     return DFB_OK;
+}
+
+static DFBResult
+primaryWaitVSync( DisplayLayer *layer,
+                  void         *driver_data,
+                  void         *layer_data )
+{
+     if (dfb_config->pollvsync_none)
+          return DFB_OK;
+
+#ifdef FBIO_WAITFORVSYNC
+     dfb_gfxcard_sync();
+     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ))
+#endif
+          waitretrace();
+
      return DFB_OK;
 }
 

@@ -376,7 +376,7 @@ besFlipBuffers( DisplayLayer        *layer,
      bes_set_regs( mdrv, mbes, onsync );
 
      if (onsync)
-          dfb_system_wait_vsync();
+          dfb_layer_wait_vsync( dfb_layer_at( DLID_PRIMARY ) );
      
      return DFB_OK;
 }

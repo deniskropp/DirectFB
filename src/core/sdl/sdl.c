@@ -151,12 +151,6 @@ system_get_current_mode()
 }
 
 static DFBResult
-system_wait_vsync()
-{
-     return DFB_OK;
-}
-
-static DFBResult
 system_thread_init()
 {
      return DFB_OK;

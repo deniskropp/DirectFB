@@ -50,9 +50,6 @@ system_suspend();
 static DFBResult
 system_resume();
 
-static DFBResult
-system_wait_vsync();
-
 static VideoMode*
 system_get_modes();
 
@@ -91,7 +88,6 @@ static CoreSystemFuncs system_funcs = {
      Leave:               system_leave,
      Suspend:             system_suspend,
      Resume:              system_resume,
-     WaitVSync:           system_wait_vsync,
      GetModes:            system_get_modes,
      GetCurrentMode:      system_get_current_mode,
      ThreadInit:          system_thread_init,

@@ -195,14 +195,6 @@ dfb_system_thread_init()
      return system_funcs->ThreadInit();
 }
 
-DFBResult
-dfb_system_wait_vsync()
-{
-     DFB_ASSERT( system_funcs != NULL );
-
-     return system_funcs->WaitVSync();
-}
-
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset )
 {

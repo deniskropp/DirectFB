@@ -117,12 +117,6 @@ typedef struct {
      DFBResult      (*Suspend)();
      DFBResult      (*Resume)();
 
-     /*
-      * return when vertical retrace is reached, works with matrox kernel patch
-      * only for now
-      */
-     DFBResult      (*WaitVSync)();
-
      VideoMode*     (*GetModes)();
      VideoMode*     (*GetCurrentMode)();
 
@@ -201,9 +195,6 @@ dfb_system_current_mode();
 
 DFBResult
 dfb_system_thread_init();
-
-DFBResult
-dfb_system_wait_vsync();
 
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset );

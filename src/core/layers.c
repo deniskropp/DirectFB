@@ -1131,15 +1131,11 @@ dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
 DFBResult
 dfb_layer_wait_vsync( DisplayLayer *layer )
 {
-     DFBResult ret;
+     if (!layer->funcs->WaitVSync)
+          return DFB_UNSUPPORTED;
 
-     if (layer->funcs->WaitVSync)
-          ret = layer->funcs->WaitVSync( layer, layer->driver_data,
-                                         layer->layer_data );
-     else
-          ret = dfb_system_wait_vsync();
-
-     return ret;
+     return layer->funcs->WaitVSync( layer, layer->driver_data,
+                                     layer->layer_data );
 }
 
 

@@ -956,7 +956,7 @@ IDirectFB_WaitForSync( IDirectFB *thiz )
 {
      INTERFACE_GET_DATA(IDirectFB)
 
-     dfb_system_wait_vsync();
+     dfb_layer_wait_vsync( data->layer );
 
      return DFB_OK;
 }
