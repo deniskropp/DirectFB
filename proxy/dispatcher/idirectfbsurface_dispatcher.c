@@ -987,6 +987,38 @@ Dispatch_StretchBlit( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_TextureTriangles( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                           VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult          ret;
+     VoodooMessageParser   parser;
+     VoodooInstanceID      instance;
+     const DFBVertex      *vertices;
+     const int            *indices;
+     int                   num;
+     DFBTriangleFormation  formation;
+     void                 *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_GET_DATA( parser, vertices );
+     VOODOO_PARSER_GET_ODATA( parser, indices );
+     VOODOO_PARSER_GET_INT( parser, num );
+     VOODOO_PARSER_GET_INT( parser, formation );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
+     if (ret)
+          return ret;
+
+     real->TextureTriangles( real, surface, vertices, indices, num, formation );
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch_SetDrawingFlags( IDirectFBSurface *thiz, IDirectFBSurface *real,
                           VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1264,6 +1296,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_StretchBlit:
                return Dispatch_StretchBlit( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_TextureTriangles:
+               return Dispatch_TextureTriangles( dispatcher, real, manager, msg );
 
           case IDIRECTFBSURFACE_METHOD_ID_SetDrawingFlags:
                return Dispatch_SetDrawingFlags( dispatcher, real, manager, msg );

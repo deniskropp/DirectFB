@@ -796,14 +796,32 @@ IDirectFBSurface_Requestor_TextureTriangles( IDirectFBSurface     *thiz,
                                              int                   num,
                                              DFBTriangleFormation  formation )
 {
+     int                              i;
+     int                              num_vertices = 0;
+     IDirectFBSurface_Requestor_data *source_data;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      if (!source || !vertices || num < 3)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     if (indices) {
+          for (i=0; i<num; i++) {
+               if (num_vertices <= indices[i])
+                    num_vertices = indices[i] + 1;
+          }
+     }
 
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA_FROM( source, source_data, IDirectFBSurface_Requestor );
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_TextureTriangles, VREQ_QUEUE, NULL,
+                                    VMBT_ID, source_data->instance,
+                                    VMBT_DATA, num_vertices * sizeof(DFBVertex), vertices,
+                                    VMBT_ODATA, num * sizeof(int), indices,
+                                    VMBT_INT, num,
+                                    VMBT_INT, formation,
+                                    VMBT_NONE );
 }
 
 static DFBResult
