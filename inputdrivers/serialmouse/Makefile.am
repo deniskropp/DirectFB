@@ -1,4 +1,4 @@
-## Makefile.am for DirectFB/inputdrivers/msmouse
+## Makefile.am for DirectFB/inputdrivers/serialmouse
 
 INCLUDES = \
 	-I$(top_srcdir)/include	\
