@@ -10,6 +10,7 @@
 #define __u32 u_int32_t
 
 #define __s16 int16_t
+#define __s32 int32_t
 #endif
 
 #endif
