@@ -174,8 +174,12 @@ window_destructor( FusionObject *object, bool zombie )
               window->width, window->height, zombie ? " (ZOMBIE)" : "");
 
      if (window->stack) {
+          stack_lock( window->stack );
+
           dfb_window_deinit( window );
           dfb_window_destroy( window, false );
+
+          stack_unlock( window->stack );
      }
 
      fusion_object_destroy( object );
@@ -229,7 +233,7 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
                                                    sizeof(DFBWindowEvent),
                                                    window_destructor );
      else
-          stack->pool = dfb_layer_window_stack( dfb_layer_at(0) )->pool;
+          stack->pool = dfb_layer_window_stack( dfb_layer_at(DLID_PRIMARY) )->pool;
 
      /* Initialize the modify/update lock */
      skirmish_init( &stack->lock );
@@ -283,6 +287,9 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           l = next;
      }
 
+     if (stack->cursor.window)
+          dfb_window_unlink( stack->cursor.window );
+     
      if (stack->layer_id == DLID_PRIMARY)
           fusion_object_pool_destroy( stack->pool );
 

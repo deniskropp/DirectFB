@@ -317,6 +317,19 @@ dfb_window_unref( CoreWindow *window )
      return fusion_object_unref( &window->object );
 }
 
+static inline FusionResult
+dfb_window_link( CoreWindow **link,
+                 CoreWindow  *window )
+{
+     return fusion_object_link( (FusionObject**) link, &window->object );
+}
+
+static inline FusionResult
+dfb_window_unlink( CoreWindow *window )
+{
+     return fusion_object_unlink( &window->object );
+}
+
 
 void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event );
 

@@ -1770,10 +1770,12 @@ create_cursor_window( DisplayLayer *layer,
      cursor->events   = 0;
      cursor->options |= DWOP_GHOST;
 
+     dfb_window_link( &stack->cursor.window, cursor );
+
+     dfb_window_unref( cursor );
+     
      dfb_window_init( cursor );
      dfb_window_set_opacity( cursor, stack->cursor.opacity );
-
-     stack->cursor.window  = cursor;
 
      return DFB_OK;
 }

@@ -357,7 +357,7 @@ IDirectFBDisplayLayer_SetConfiguration( IDirectFBDisplayLayer *thiz,
 
                ret = dfb_layer_set_configuration( data->layer, config );
 
-               dfb_layer_release( data->layer, false );
+               dfb_layer_release( data->layer, true );
 
                return ret;
 
