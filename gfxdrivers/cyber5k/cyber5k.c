@@ -48,6 +48,7 @@
 #include <core/gfxcard.h>
 #include <core/windows.h>
 #include <core/layers.h>
+#include <core/screens.h>
 #include <core/surfaces.h>
 
 #include <gfx/convert.h>
@@ -706,7 +707,7 @@ driver_get_info( GraphicsDevice     *device,
                "convergence integrated media GmbH" );
 
      info->version.major = 0;
-     info->version.minor = 3;
+     info->version.minor = 4;
 
      info->driver_data_size = sizeof (CyberDriverData);
      info->device_data_size = sizeof (CyberDeviceData);
@@ -748,7 +749,8 @@ driver_init_driver( GraphicsDevice      *device,
 #ifdef FB_ACCEL_IGS_CYBER5K
           case FB_ACCEL_IGS_CYBER5K:          /* CyberPro 5xxx */
 #endif
-               dfb_layers_register( device, driver_data, &cyberUnderlayFuncs );
+               dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
+                                    driver_data, &cyberUnderlayFuncs );
      }
 
      return DFB_OK;

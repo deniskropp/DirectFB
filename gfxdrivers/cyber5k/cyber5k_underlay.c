@@ -25,7 +25,9 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <core/coredefs.h>
+#include <directfb.h>
+
+#include <core/coretypes.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
 
@@ -34,17 +36,17 @@
 #include "cyber5k_overlay.h"
 
 typedef struct {
-     DFBRectangle          dest;
-     DFBDisplayLayerConfig config;
-     int                   enabled;
+     CoreLayerRegionConfig config;
 } CyberUnderlayLayerData;
 
 static void udl_set_all     ( CyberDriverData        *cdrv,
                               CyberUnderlayLayerData *cudl,
-                              CoreLayer              *layer );
+                              CoreLayerRegionConfig  *config,
+                              CoreSurface            *surface );
 static void udl_set_location( CyberDriverData        *cdrv,
                               CyberUnderlayLayerData *cudl,
-                              CoreLayer              *layer );
+                              CoreLayerRegionConfig  *config,
+                              CoreSurface            *surface );
 
 #define CYBER_UNDERLAY_SUPPORTED_OPTIONS     (DLOP_NONE)
 
@@ -57,25 +59,22 @@ udlLayerDataSize()
 }
 
 static DFBResult
-udlInitLayer( GraphicsDevice        *device,
-              CoreLayer             *layer,
-              DisplayLayerInfo      *layer_info,
-              DFBDisplayLayerConfig *default_config,
-              DFBColorAdjustment    *default_adj,
-              void                  *driver_data,
-              void                  *layer_data )
+udlInitLayer( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              DFBDisplayLayerDescription *description,
+              DFBDisplayLayerConfig      *default_config,
+              DFBColorAdjustment         *default_adj )
 {
-     CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
-
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_ALPHACHANNEL |
-                             DLCAPS_OPACITY | DLCAPS_SRC_COLORKEY |
-                             DLCAPS_SCREEN_LOCATION;
-     layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE |
-                             DLTF_BACKGROUND;
+     description->caps = DLCAPS_SURFACE | DLCAPS_ALPHACHANNEL |
+                         DLCAPS_OPACITY | DLCAPS_SRC_COLORKEY |
+                         DLCAPS_SCREEN_LOCATION;
+     description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE |
+                         DLTF_BACKGROUND;
 
      /* set name */
-     snprintf( layer_info->desc.name,
+     snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "CyberPro Underlay" );
 
      /* fill out the default configuration */
@@ -88,12 +87,8 @@ udlInitLayer( GraphicsDevice        *device,
      default_config->buffermode  = DLBM_FRONTONLY;
      default_config->options     = DLOP_NONE;
 
-     /* initialize destination rectangle */
-     dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &cudl->dest );
-
      /* initialize registers */
      cyber_init_overlay();
-
 
      /* workaround */
      cyber_change_overlay_fifo();
@@ -103,57 +98,21 @@ udlInitLayer( GraphicsDevice        *device,
      return DFB_OK;
 }
 
-
 static DFBResult
-udlEnable( CoreLayer *layer,
-           void      *driver_data,
-           void      *layer_data )
+udlTestRegion( CoreLayer                  *layer,
+               void                       *driver_data,
+               void                       *layer_data,
+               CoreLayerRegionConfig      *config,
+               CoreLayerRegionConfigFlags *failed )
 {
-     CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
-     CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
-
-     /* remember */
-     cudl->enabled = 1;
-
-     /* set up layer */
-     udl_set_all( cdrv, cudl, layer );
-
-     return DFB_OK;
-}
-
-static DFBResult
-udlDisable( CoreLayer *layer,
-            void      *driver_data,
-            void      *layer_data )
-{
-     CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
-
-     /* remember */
-     cudl->enabled = 0;
-
-     /* disable and clean up */
-     cyber_enable_overlay(0);
-     cyber_cleanup_alpha();
-     cyber_cleanup_overlay();
-
-     return DFB_OK;
-}
-
-static DFBResult
-udlTestConfiguration( CoreLayer                  *layer,
-                      void                       *driver_data,
-                      void                       *layer_data,
-                      DFBDisplayLayerConfig      *config,
-                      DFBDisplayLayerConfigFlags *failed )
-{
-     DFBDisplayLayerConfigFlags fail = 0;
+     CoreLayerRegionConfigFlags fail = 0;
 
      /* check for unsupported options */
      if (config->options & ~CYBER_UNDERLAY_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
+          fail |= CLRCF_OPTIONS;
 
      /* check pixel format */
-     switch (config->pixelformat) {
+     switch (config->format) {
           case DSPF_RGB332:
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -164,16 +123,16 @@ udlTestConfiguration( CoreLayer                  *layer,
                break;
 
           default:
-               fail |= DLCONF_PIXELFORMAT;
+               fail |= CLRCF_FORMAT;
      }
 
      /* check width */
      if (config->width > 1024 || config->width < 4)
-          fail |= DLCONF_WIDTH;
+          fail |= CLRCF_WIDTH;
 
      /* check height */
      if (config->height > 1024 || config->height < 1)
-          fail |= DLCONF_HEIGHT;
+          fail |= CLRCF_HEIGHT;
 
      /* write back failing fields */
      if (failed)
@@ -187,10 +146,14 @@ udlTestConfiguration( CoreLayer                  *layer,
 }
 
 static DFBResult
-udlSetConfiguration( CoreLayer             *layer,
-                     void                  *driver_data,
-                     void                  *layer_data,
-                     DFBDisplayLayerConfig *config )
+udlSetRegion( CoreLayer                  *layer,
+              void                       *driver_data,
+              void                       *layer_data,
+              void                       *region_data,
+              CoreLayerRegionConfig      *config,
+              CoreLayerRegionConfigFlags  updated,
+              CoreSurface                *surface,
+              CorePalette                *palette )
 {
      CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
      CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
@@ -199,53 +162,52 @@ udlSetConfiguration( CoreLayer             *layer,
      cudl->config = *config;
 
      /* set up layer */
-     if (cudl->enabled)
-          udl_set_all( cdrv, cudl, layer );
+     udl_set_all( cdrv, cudl, config, surface );
 
      return DFB_OK;
 }
 
 static DFBResult
-udlSetScreenLocation( CoreLayer *layer,
-                      void      *driver_data,
-                      void      *layer_data,
-                      float      x,
-                      float      y,
-                      float      width,
-                      float      height )
+udlRemoveRegion( CoreLayer *layer,
+                 void      *driver_data,
+                 void      *layer_data,
+                 void      *region_data )
+{
+     /* disable and clean up */
+     cyber_enable_overlay(0);
+     cyber_cleanup_alpha();
+     cyber_cleanup_overlay();
+
+     return DFB_OK;
+}
+
+static DFBResult
+udlFlipRegion( CoreLayer           *layer,
+               void                *driver_data,
+               void                *layer_data,
+               void                *region_data,
+               CoreSurface         *surface,
+               DFBSurfaceFlipFlags  flags )
 {
      CyberDriverData        *cdrv = (CyberDriverData*) driver_data;
      CyberUnderlayLayerData *cudl = (CyberUnderlayLayerData*) layer_data;
 
-     /* get new destination rectangle */
-     dfb_primary_layer_rectangle( x, y, width, height, &cudl->dest );
+     dfb_surface_flip_buffers( surface );
 
-     /* set up location only */
-     if (cudl->enabled)
-          udl_set_location( cdrv, cudl, layer );
+     udl_set_all( cdrv, cudl, &cudl->config, surface );
 
      return DFB_OK;
-}
-
-static DFBResult
-udlFlipBuffers( CoreLayer           *layer,
-                void                *driver_data,
-                void                *layer_data,
-                DFBSurfaceFlipFlags  flags)
-{
-     return DFB_UNIMPLEMENTED;
 }
 
 
 DisplayLayerFuncs cyberUnderlayFuncs = {
      LayerDataSize:      udlLayerDataSize,
      InitLayer:          udlInitLayer,
-     Enable:             udlEnable,
-     Disable:            udlDisable,
-     TestConfiguration:  udlTestConfiguration,
-     SetConfiguration:   udlSetConfiguration,
-     SetScreenLocation:  udlSetScreenLocation,
-     FlipBuffers:        udlFlipBuffers,
+
+     TestRegion:         udlTestRegion,
+     SetRegion:          udlSetRegion,
+     RemoveRegion:       udlRemoveRegion,
+     FlipRegion:         udlFlipRegion
 };
 
 
@@ -253,10 +215,10 @@ DisplayLayerFuncs cyberUnderlayFuncs = {
 
 static void udl_set_all( CyberDriverData        *cdrv,
                          CyberUnderlayLayerData *cudl,
-                         CoreLayer              *layer )
+                         CoreLayerRegionConfig  *config,
+                         CoreSurface            *surface )
 {
-     CoreSurface   *surface = dfb_layer_surface( layer );
-     SurfaceBuffer *front   = surface->front_buffer;
+     SurfaceBuffer *front = surface->front_buffer;
 
      /* set the pixel format */
      switch (surface->format) {
@@ -297,7 +259,7 @@ static void udl_set_all( CyberDriverData        *cdrv,
                                 surface->width, front->video.pitch );
 
      /* set location and scaling */
-     udl_set_location( cdrv, cudl, layer );
+     udl_set_location( cdrv, cudl, config, surface );
 
      /* tune fifo */
      cyber_change_overlay_fifo();
@@ -317,19 +279,18 @@ static void udl_set_all( CyberDriverData        *cdrv,
 
 static void udl_set_location( CyberDriverData        *cdrv,
                               CyberUnderlayLayerData *cudl,
-                              CoreLayer              *layer )
+                              CoreLayerRegionConfig  *config,
+                              CoreSurface            *surface )
 {
-     CoreSurface *surface = dfb_layer_surface( layer );
-
      /* set location */
-     cyber_set_overlay_window( cudl->dest.x, cudl->dest.y,
-                               cudl->dest.x + cudl->dest.w - 1,
-                               cudl->dest.y + cudl->dest.h - 1 );
+     cyber_set_overlay_window( config->dest.x, config->dest.y,
+                               config->dest.x + config->dest.w - 1,
+                               config->dest.y + config->dest.h - 1 );
 
      /* set scaling */
      cyber_set_overlay_scale( surface->height == 576 ? /* HACK: support interlaced video */
                               OVERLAY_BOBMODE : OVERLAY_WEAVEMODE,
-                              surface->width, cudl->dest.w,
-                              surface->height, cudl->dest.h );
+                              surface->width, config->dest.w,
+                              surface->height, config->dest.h );
 }
 
