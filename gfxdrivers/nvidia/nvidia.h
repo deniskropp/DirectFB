@@ -452,7 +452,6 @@ typedef struct {
 
      /* 3D stuff */
      __u32                   tex_offset; /* texture buffer offset  */
-     __u32                  *tex_origin; /* texture buffer address */
      __u32                   col_offset; /* color buffer offset    */
      __u32                   color3d;
      

@@ -237,16 +237,15 @@ nv_set_color( NVidiaDriverData *nvdrv,
                                   color->b );
 }
 
-/* FIXME: there is a bug when DirectFB is in desktop mode
- *        that prevents texture conversion to work properly */
 static void
 nv_put_texture( NVidiaDriverData *nvdrv,
                 NVidiaDeviceData *nvdev,
                 SurfaceBuffer    *source )
 {
-     __u8 *src_buffer;
-     __u8 *src_origin = dfb_system_video_memory_virtual( source->video.offset );
-     int   src_pitch  = source->video.pitch;
+     __u32 *tex_origin = (__u32*) dfb_system_video_memory_virtual( nvdev->tex_offset );
+     __u8  *src_origin = (__u8*) dfb_system_video_memory_virtual( source->video.offset );
+     int    src_pitch  = source->video.pitch;
+     __u8  *src_buffer;
 
      src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
      if (!src_buffer) {
@@ -256,18 +255,20 @@ nv_put_texture( NVidiaDriverData *nvdrv,
      
      direct_memcpy( src_buffer, src_origin, src_pitch * nvdev->src_height ); 
 
+     nv_waitidle( nvdrv, nvdev );
+     
      switch (source->format) {
           case DSPF_ARGB1555:
-               argb1555_to_tex( nvdev->tex_origin, src_buffer, src_pitch,
+               argb1555_to_tex( tex_origin, src_buffer, src_pitch,
                                 nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_RGB16:
-               rgb16_to_tex( nvdev->tex_origin, src_buffer, src_pitch,
+               rgb16_to_tex( tex_origin, src_buffer, src_pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-               rgb32_to_tex( nvdev->tex_origin, src_buffer, src_pitch,
+               rgb32_to_tex( tex_origin, src_buffer, src_pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           default:
@@ -596,6 +597,8 @@ static void nv4SetState( void *drv, void *dev,
                     if (nvdev->depth_offset != offset             ||
                         nvdev->depth_pitch  != buffer->video.pitch)
                     {
+                         nv_waitidle( nvdrv, nvdev );
+                         
                          nv_out32( PGRAPH, 0x64C, offset );
                          nv_out32( PGRAPH, 0x67C, buffer->video.pitch );
 
@@ -775,6 +778,8 @@ static void nv5SetState( void *drv, void *dev,
                     if (nvdev->depth_offset != offset             ||
                         nvdev->depth_pitch  != buffer->video.pitch)
                     {
+                         nv_waitidle( nvdrv, nvdev );
+                         
                          nv_out32( PGRAPH, 0x64C, offset );
                          nv_out32( PGRAPH, 0x67C, buffer->video.pitch );
 
@@ -1317,7 +1322,6 @@ driver_init_device( GraphicsDevice     *device,
           }
 
           nvdev->tex_offset = offset;
-          nvdev->tex_origin = (__u32*) dfb_system_video_memory_virtual( offset );
           nvdev->col_offset = offset + (512 * 512 * 2);
 
           /* clear color buffer */
