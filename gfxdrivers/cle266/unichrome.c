@@ -435,7 +435,7 @@ static DFBResult driver_init_device(GraphicsDevice* device,
     device_info->caps.blitting = UC_BLITTING_FLAGS_2D | UC_BLITTING_FLAGS_3D;
 
     device_info->limits.surface_byteoffset_alignment = 32;
-    device_info->limits.surface_pixelpitch_alignment = 16;
+    device_info->limits.surface_pixelpitch_alignment = 32;
 
     ucdev->pitch = 0;
     ucdev->draw_rop2d = VIA_ROP_P;
