@@ -50,9 +50,9 @@ static DFBResult
 Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Timidity )
+DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Timidity )
 
 /*
  * private data struct of IFusionSoundMusicProvider
@@ -87,13 +87,13 @@ IFusionSoundMusicProvider_Timidity_Destruct( IFusionSoundMusicProvider *thiz )
 
     pthread_mutex_destroy( &data->lock );
 
-    DFB_DEALLOCATE_INTERFACE( thiz );
+    DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IFusionSoundMusicProvider_Timidity_AddRef( IFusionSoundMusicProvider *thiz )
 {
-    INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+    DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
     data->ref++;
 
@@ -104,7 +104,7 @@ IFusionSoundMusicProvider_Timidity_AddRef( IFusionSoundMusicProvider *thiz )
 static DFBResult
 IFusionSoundMusicProvider_Timidity_Release( IFusionSoundMusicProvider *thiz )
 {
-    INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+    DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
     if (--data->ref == 0) {
         IFusionSoundMusicProvider_Timidity_Destruct( thiz );
@@ -118,7 +118,7 @@ IFusionSoundMusicProvider_Timidity_GetCapabilities(
                                             IFusionSoundMusicProvider   *thiz,
                                             FSMusicProviderCapabilities *caps )
 {
-     INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+     DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      if (!caps)
           return DFB_INVARG;
@@ -133,7 +133,7 @@ IFusionSoundMusicProvider_Timidity_GetStreamDescription(
                                               IFusionSoundMusicProvider *thiz,
                                               FSStreamDescription       *desc )
 {
-    INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+    DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
     if (!desc)
         return DFB_INVARG;
@@ -180,7 +180,7 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
 {
      FSStreamDescription desc;
 
-     INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+     DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      if (!destination)
           return DFB_INVARG;
@@ -254,7 +254,7 @@ IFusionSoundMusicProvider_Timidity_PlayTo(
 static DFBResult
 IFusionSoundMusicProvider_Timidity_Stop( IFusionSoundMusicProvider *thiz )
 {
-     INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+     DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      pthread_mutex_lock( &data->lock );
 
@@ -289,7 +289,7 @@ static DFBResult IFusionSoundMusicProvider_Timidity_SeekTo(
                                            IFusionSoundMusicProvider *thiz,
                                            double                     seconds )
 {
-     INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+     DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      return DFB_UNIMPLEMENTED;
 }
@@ -299,7 +299,7 @@ static DFBResult IFusionSoundMusicProvider_Timidity_GetPos(
                                            IFusionSoundMusicProvider *thiz,
                                            double                    *seconds )
 {
-     INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+     DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      return DFB_UNIMPLEMENTED;
 }
@@ -309,7 +309,7 @@ static DFBResult IFusionSoundMusicProvider_Timidity_GetLength(
                                            IFusionSoundMusicProvider *thiz,
                                            double                    *seconds )
 {
-     INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
+     DIRECT_INTERFACE_GET_DATA (IFusionSoundMusicProvider_Timidity)
 
      return DFB_UNIMPLEMENTED;
 }
@@ -344,7 +344,7 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundMusicProvider_Timidity)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundMusicProvider_Timidity)
 
      /* initialize private data */
      data->ref = 1;

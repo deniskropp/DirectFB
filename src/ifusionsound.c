@@ -28,8 +28,7 @@
 
 #include <fusionsound.h>
 
-#include <interface.h>
-
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include <core/core_sound.h>
@@ -47,9 +46,9 @@ static DFBResult
 Construct( IFusionSound *thiz,
            void         *arg );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IFusionSound, default )
+DIRECT_INTERFACE_IMPLEMENTATION( IFusionSound, default )
 
 /*
  * private data struct of IFusionSound
@@ -68,13 +67,13 @@ IFusionSound_Destruct( IFusionSound *thiz )
 
      fs_core_destroy( data->core );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IFusionSound_AddRef( IFusionSound *thiz )
 {
-     INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA (IFusionSound);
 
      data->ref++;
 
@@ -84,7 +83,7 @@ IFusionSound_AddRef( IFusionSound *thiz )
 static DFBResult
 IFusionSound_Release( IFusionSound *thiz )
 {
-     INTERFACE_GET_DATA (IFusionSound)
+     DIRECT_INTERFACE_GET_DATA (IFusionSound)
 
      if (--data->ref == 0) {
           IFusionSound_Destruct( thiz );
@@ -107,7 +106,7 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
      CoreSoundBuffer          *buffer;
      IFusionSoundBuffer       *interface;
 
-     INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA (IFusionSound);
 
      if (!desc || !ret_interface)
           return DFB_INVARG;
@@ -158,7 +157,7 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( interface, IFusionSoundBuffer );
+     DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundBuffer );
 
      ret = IFusionSoundBuffer_Construct( interface, data->core, buffer,
                                          length, channels, format, rate );
@@ -187,7 +186,7 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      CoreSoundBuffer          *buffer;
      IFusionSoundStream       *interface;
 
-     INTERFACE_GET_DATA (IFusionSound);
+     DIRECT_INTERFACE_GET_DATA (IFusionSound);
 
      if (!ret_interface)
           return DFB_INVARG;
@@ -246,7 +245,7 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( interface, IFusionSoundStream );
+     DIRECT_ALLOCATE_INTERFACE( interface, IFusionSoundStream );
 
      ret = IFusionSoundStream_Construct( interface, data->core, buffer, size,
                                          channels, format, rate, prebuffer );
@@ -266,11 +265,11 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
                                   IFusionSoundMusicProvider **interface )
 {
      DFBResult                            ret;
-     DFBInterfaceFuncs                   *funcs = NULL;
+     DirectInterfaceFuncs                *funcs = NULL;
      IFusionSoundMusicProvider           *musicprovider;
      IFusionSoundMusicProvider_ProbeContext ctx;
 
-     INTERFACE_GET_DATA(IFusionSound)
+     DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      /* Check arguments */
      if (!interface || !filename)
@@ -283,14 +282,13 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
      ctx.filename = filename;
 
      /* Find a suitable implemenation */
-     ret = DFBGetInterface( &funcs,
-                            "IFusionSoundMusicProvider", NULL,
-                            DFBProbeInterface, &ctx );
+     ret = DirectGetInterface( &funcs,
+                               "IFusionSoundMusicProvider", NULL, DirectProbeInterface, &ctx );
 
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( musicprovider, IFusionSoundMusicProvider );
+     DIRECT_ALLOCATE_INTERFACE( musicprovider, IFusionSoundMusicProvider );
 
      /* Construct the interface */
      ret = funcs->Construct( musicprovider, filename );
@@ -317,7 +315,7 @@ Construct( IFusionSound *thiz,
      DFBResult ret;
 
      /* Allocate interface data. */
-     DFB_ALLOCATE_INTERFACE_DATA( thiz, IFusionSound );
+     DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSound );
 
      /* Initialize interface data. */
      data->ref = 1;
@@ -327,7 +325,7 @@ Construct( IFusionSound *thiz,
      if (ret) {
           DirectFBError( "FusionSound: fs_core_create() failed", ret );
 
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
 
           return ret;
      }

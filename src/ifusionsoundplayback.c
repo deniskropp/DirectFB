@@ -27,11 +27,12 @@
 #include <pthread.h>
 
 #include <fusionsound.h>
-#include <interface.h>
 
 #include <fusion/lock.h>
 
 #include <core/playback.h>
+
+#include <direct/interface.h>
 
 #include "ifusionsoundplayback.h"
 
@@ -83,13 +84,13 @@ IFusionSoundPlayback_Destruct( IFusionSoundPlayback *thiz )
      pthread_cond_destroy( &data->wait );
      pthread_mutex_destroy( &data->lock );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IFusionSoundPlayback_AddRef( IFusionSoundPlayback *thiz )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      data->ref++;
 
@@ -99,7 +100,7 @@ IFusionSoundPlayback_AddRef( IFusionSoundPlayback *thiz )
 static DFBResult
 IFusionSoundPlayback_Release( IFusionSoundPlayback *thiz )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      if (--data->ref == 0)
           IFusionSoundPlayback_Destruct( thiz );
@@ -112,7 +113,7 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
                             int                   start,
                             int                   stop )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p, %d -> %d)\n",
               __FUNCTION__, data->playback, start, stop );
@@ -140,7 +141,7 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
 static DFBResult
 IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
@@ -150,7 +151,7 @@ IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
 static DFBResult
 IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
@@ -160,7 +161,7 @@ IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 static DFBResult
 IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
@@ -185,7 +186,7 @@ IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
                                 DFBBoolean           *playing,
                                 int                  *position )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
@@ -202,7 +203,7 @@ static DFBResult
 IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
                                 float                 level )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, level );
 
@@ -218,7 +219,7 @@ static DFBResult
 IFusionSoundPlayback_SetPan( IFusionSoundPlayback *thiz,
                              float                 value )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
@@ -234,7 +235,7 @@ static DFBResult
 IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
                                float                 value )
 {
-     INTERFACE_GET_DATA(IFusionSoundPlayback)
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
@@ -253,11 +254,11 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
                                 CorePlayback         *playback,
                                 int                   length )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundPlayback)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundPlayback)
 
      /* Increase reference counter of the playback. */
      if (fs_playback_ref( playback )) {
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
 
           return DFB_FUSION;
      }
@@ -268,7 +269,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      {
           fs_playback_unref( playback );
 
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
 
           return DFB_FUSION;
      }
