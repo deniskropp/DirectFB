@@ -61,6 +61,8 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
 
+     thiz->Unlock( thiz );
+
      if (!(data->caps & DSCAPS_SUBSURFACE))
           surface_destroy( data->surface );
 
@@ -822,6 +824,8 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     if (!text)
+          return DFB_INVARG;
 
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
