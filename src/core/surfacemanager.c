@@ -90,7 +90,7 @@ void surfacemanager_deinit()
           Chunk *c = chunks;
 
           chunks = c->next;
-          
+
           DFBFREE( c );
      }
 }
@@ -192,6 +192,8 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
 
           pthread_mutex_lock( &kicked->front_lock );
           pthread_mutex_lock( &kicked->back_lock );
+
+          surfacemanager_assure_system( best_occupied->buffer );
 
           best_occupied->buffer->video.health = CSH_INVALID;
           surface_notify_listeners( kicked, CSNF_VIDEO );
