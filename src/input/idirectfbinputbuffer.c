@@ -193,16 +193,20 @@ IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
 static DFBResult
 IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
 {
+     DFBResult ret = DFB_OK;
+
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
      if (!data->events)
           pthread_cond_wait( &data->wait_condition, &data->events_mutex );
+     if (!data->events)
+          ret = DFB_INTERRUPTED;
 
      pthread_mutex_unlock( &data->events_mutex );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -242,11 +246,23 @@ IDirectFBEventBuffer_WaitForEventWithTimeout( IDirectFBEventBuffer *thiz,
                                       &data->events_mutex,
                                       &timeout ) == ETIMEDOUT)
                ret = DFB_TIMEOUT;
+          else if (!data->events)
+               ret = DFB_INTERRUPTED;
      }
 
      pthread_mutex_unlock( &data->events_mutex );
 
      return ret;
+}
+
+static DFBResult
+IDirectFBEventBuffer_WakeUp( IDirectFBEventBuffer *thiz )
+{
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     pthread_cond_broadcast( &data->wait_condition );
+     
+     return DFB_OK;
 }
 
 static DFBResult
@@ -369,16 +385,16 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
      pthread_mutex_init( &data->events_mutex, NULL );
      pthread_cond_init( &data->wait_condition, NULL );
 
-     thiz->AddRef = IDirectFBEventBuffer_AddRef;
-     thiz->Release = IDirectFBEventBuffer_Release;
-     thiz->Reset = IDirectFBEventBuffer_Reset;
-     thiz->WaitForEvent = IDirectFBEventBuffer_WaitForEvent;
-     thiz->WaitForEventWithTimeout =
-          IDirectFBEventBuffer_WaitForEventWithTimeout;
-     thiz->GetEvent = IDirectFBEventBuffer_GetEvent;
-     thiz->PeekEvent = IDirectFBEventBuffer_PeekEvent;
-     thiz->HasEvent = IDirectFBEventBuffer_HasEvent;
-     thiz->PostEvent = IDirectFBEventBuffer_PostEvent;
+     thiz->AddRef                  = IDirectFBEventBuffer_AddRef;
+     thiz->Release                 = IDirectFBEventBuffer_Release;
+     thiz->Reset                   = IDirectFBEventBuffer_Reset;
+     thiz->WaitForEvent            = IDirectFBEventBuffer_WaitForEvent;
+     thiz->WaitForEventWithTimeout = IDirectFBEventBuffer_WaitForEventWithTimeout;
+     thiz->GetEvent                = IDirectFBEventBuffer_GetEvent;
+     thiz->PeekEvent               = IDirectFBEventBuffer_PeekEvent;
+     thiz->HasEvent                = IDirectFBEventBuffer_HasEvent;
+     thiz->PostEvent               = IDirectFBEventBuffer_PostEvent;
+     thiz->WakeUp                  = IDirectFBEventBuffer_WakeUp;
 
      return DFB_OK;
 }

@@ -266,6 +266,8 @@ DirectFBErrorString( DFBResult error )
                return "Internal fusion (IPC) error detected!";
           case DFB_BUFFERTOOLARGE:
                return "Buffer is too large!";
+          case DFB_INTERRUPTED:
+               return "Operation has been interrupted!";
      }
 
      return "<UNKNOWN ERROR CODE>!";

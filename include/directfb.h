@@ -176,7 +176,8 @@ typedef enum {
                             has been destroyed. */
      DFB_FUSION,         /* Internal fusion error detected, most likely
                             related to IPC resources. */
-     DFB_BUFFERTOOLARGE  /* Buffer is too large. */
+     DFB_BUFFERTOOLARGE, /* Buffer is too large. */
+     DFB_INTERRUPTED     /* The operation has been interrupted. */
 } DFBResult;
 
 /*
@@ -2961,6 +2962,20 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
      DFBResult (*PostEvent) (
           IDirectFBEventBuffer     *thiz,
           DFBEvent                 *event
+     );
+     
+     /*
+      * Wake up any thread waiting for events in this buffer.
+      *
+      * This method causes any <i>WaitForEvent()</i> or
+      * <i>WaitForEventWithTimeout()</i> call to return with DFB_INTERRUPTED.
+      *
+      * This method should be used rather than sending wake up messages which
+      * may pollute the queue and consume lots of CPU and memory compared to
+      * this 'single code line method'.
+      */
+     DFBResult (*WakeUp) (
+          IDirectFBEventBuffer     *thiz
      );
 )
 
