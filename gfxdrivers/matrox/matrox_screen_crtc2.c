@@ -118,8 +118,8 @@ crtc2InitOutput( CoreScreen                 *screen,
                          DSOCAPS_SIGNAL_SEL | DSOCAPS_CONNECTOR_SEL;
 
      /* Set supported output connectors and signals. */
-     description->connectors = DSOC_CVBS | DSOC_YC | DSOC_SCART;
-     description->signals    = DSOS_CVBS | DSOS_YC | DSOS_RGB;
+     description->all_connectors = DSOC_CVBS | DSOC_YC | DSOC_SCART;
+     description->all_signals    = DSOS_CVBS | DSOS_YC | DSOS_RGB;
 
      /* Set default configuration. */
      config->flags = DSOCONF_SIGNALS | DSOCONF_CONNECTORS;
@@ -127,18 +127,18 @@ crtc2InitOutput( CoreScreen                 *screen,
      switch (dfb_config->matrox_cable) {
           case 1:
                /* SCART RGB */
-               config->signals    = DSOS_RGB;
-               config->connectors = DSOC_SCART;
+               config->out_signals    = DSOS_RGB;
+               config->out_connectors = DSOC_SCART;
                break;
           case 2:
                /* SCART Composite */
-               config->signals    = DSOS_CVBS;
-               config->connectors = DSOC_SCART;
+               config->out_signals    = DSOS_CVBS;
+               config->out_connectors = DSOC_SCART;
                break;
           default:
                /* Composite / S-Video */
-               config->signals    = DSOS_CVBS | DSOS_YC;
-               config->connectors = DSOC_CVBS | DSOS_YC;
+               config->out_signals    = DSOS_CVBS | DSOS_YC;
+               config->out_connectors = DSOC_CVBS | DSOS_YC;
                break;
      }
 

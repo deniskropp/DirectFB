@@ -321,7 +321,7 @@ dump_outputs( IDirectFBScreen *screen,
           printf( "     Connectors: " );
 
           for (n=0; connectors[n].connector; n++) {
-               if (descs[i].connectors & connectors[n].connector)
+               if (descs[i].all_connectors & connectors[n].connector)
                     printf( "%s ", connectors[n].name );
           }
 
@@ -332,7 +332,7 @@ dump_outputs( IDirectFBScreen *screen,
           printf( "     Signals:    " );
 
           for (n=0; signals[n].signal; n++) {
-               if (descs[i].signals & signals[n].signal)
+               if (descs[i].all_signals & signals[n].signal)
                     printf( "%s ", signals[n].name );
           }
 

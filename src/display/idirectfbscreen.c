@@ -569,10 +569,10 @@ PatchOutputConfig( DFBScreenOutputConfig       *patched,
           patched->encoder = patch->encoder;
 
      if (patch->flags & DSOCONF_SIGNALS)
-          patched->signals = patch->signals;
+          patched->out_signals = patch->out_signals;
 
      if (patch->flags & DSOCONF_CONNECTORS)
-          patched->connectors = patch->connectors;
+          patched->out_connectors = patch->out_connectors;
 
      return DFB_OK;
 }

@@ -1,3 +1,992 @@
+2004-03-22   syrjala	01:04	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.46) (+8 -0)
+	
+	Workaround for segfault due to dfb_system_current_mode() returning NULL.
+	
+2004-03-19   syrjala	10:46	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.63) (+5 -0)
+		gfxdrivers/matrox/regs.h (1.20) (+4 -0)
+		gfxdrivers/matrox/mmio.h (1.15) (+2 -2)
+		gfxdrivers/matrox/matrox.h (1.29) (+2 -0)
+	
+	mga_waitidle() should wait for idle DMA.
+	
+2004-03-16   dok	14:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.c (1.22) (+4 -2)
+	
+	Resolve more symbols.
+	
+2004-03-15   dok	18:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/list.h (1.7) (+4 -4)
+		src/media/idirectfbdatabuffer_streamed.c (1.13) (+5 -13)
+	
+	Fixed and used fusion_list_foreach_safe.
+	
+2004-03-15   dok	18:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.c (1.21) (+1 -8)
+	
+	Print full object path in stack trace.
+	
+2004-03-08   dok	11:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.200) (+2 -2)
+	
+	Turn AC_MSG_ERROR into AC_MSG_WARN.
+	
+2004-03-08   syrjala	06:38	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	configure.in (1.199) (+25 -0)
+		gfxdrivers/matrox/matrox_maven.c (1.9) (+55 -5)
+		gfxdrivers/matrox/Makefile.am (1.10) (+1 -0)
+	
+	Added sysfs support to matrox i2c detection code. Now it works on 2.6 kernels.
+	
+2004-03-02   syrjala	23:59	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.62) (+73 -3)
+	
+	Millennium I doesn't support source color keying.
+	
+2004-03-02   syrjala	23:51	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.61) (+9 -3)
+	
+	Don't try to find the PCI device unless it's actually needed. The
+	framebuffer address check can actually fail with Millennium I/II because
+	matroxfb lies about the address.
+	
+2004-03-02   syrjala	19:33	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.16) (+6 -1)
+		src/misc/conf.h (1.46) (+0 -2)
+		src/misc/conf.c (1.77) (+0 -8)
+		gfxdrivers/mach64/regs.h (1.10) (+1 -0)
+	
+	Added SGRAM autodetection for mach64.
+	
+	Removed [no-]mach64-sgram options.
+	
+2004-03-02   syrjala	16:17	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.60) (+111 -63)
+		gfxdrivers/matrox/matrox_maven.c (1.8) (+30 -12)
+		gfxdrivers/matrox/matrox_crtc2.c (1.24) (+19 -14)
+		gfxdrivers/matrox/matrox_bes.c (1.45) (+7 -5)
+		gfxdrivers/matrox/matrox.h (1.28) (+26 -12)
+	
+	SGRAM auto-detection via /proc/bus/pci.
+	
+	Verify that we have found the correct entry in /proc/bus/pci by checking against the
+	physical frambuffer address.
+	
+	Tried to make /proc/bus/pci code better looking :)
+	
+	Moved mdrv->g450 to mdev->g450_matrox and added device_data pointer to driver_data.
+	
+	Removed "#ifdef FB_ACCEL_MATROX_MGAG400" stuff. Not all instances were covered anyway.
+	
+2004-02-27   dok	16:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.h (1.62) (+2 -2)
+	
+	Remove accidently commited test of "__attribute__((const))".
+	
+2004-02-27   dok	11:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windowstack.c (1.11) (+21 -11)
+	
+	Switch to color keyed cursor if shape doesn't have alpha or if translucent
+	windows are disabled.
+	
+	Color key is hard coded to 0xff 0x00 0xff. This will change upon introduction
+	of real cursor objects in the core.
+	
+2004-02-27   dok	10:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.26) (+0 -2)
+		tools/raw32toraw24.c (1.12) (+3 -5)
+		tools/raw16toraw24.c (1.9) (+5 -7)
+		tools/raw15toraw24.c (1.7) (+3 -5)
+	
+	Fixed redefinitions of _GNU_SOURCE.
+	
+2004-02-27   dok	08:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.192) (+1 -1)
+	
+	Fixed failing assumption upon window destruction, i.e. assume that
+	either the window is not destroyed or the event is DWET_DESTROYED in
+	dfb_window_post_event().
+	
+2004-02-27   dok	08:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.97) (+1 -1)
+		src/core/fusion/arena.c (1.25) (+18 -0)
+	
+	Added DFB_MAGIC stuff to arena.
+	
+2004-02-27   syrjala	05:31	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.15) (+14 -5)
+		src/misc/conf.h (1.45) (+3 -0)
+		src/misc/conf.c (1.76) (+8 -0)
+		gfxdrivers/mach64/regs.h (1.9) (+3 -0)
+		gfxdrivers/mach64/mach64.h (1.9) (+2 -0)
+	
+	Added SGRAM block write support to mach64 driver.
+	Bumped mach64 driver version to 0.12.
+	
+2004-02-27   syrjala	04:58	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.14) (+36 -2)
+		gfxdrivers/mach64/regs.h (1.8) (+2 -0)
+		gfxdrivers/mach64/mach64_overlay.c (1.5) (+19 -11)
+		gfxdrivers/mach64/mach64.h (1.8) (+2 -0)
+	
+	Added detection for Rage Pro chips.
+	
+2004-02-27   syrjala	04:44	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.13) (+36 -9)
+		gfxdrivers/mach64/mach64_state.h (1.6) (+6 -14)
+		gfxdrivers/mach64/mach64_state.c (1.7) (+14 -56)
+		gfxdrivers/mach64/mach64.h (1.7) (+5 -4)
+	
+	Fixed blending once more. Some 3D registers aren't accessible unless
+	SCALE_3D_FCN is set.
+	
+2004-02-25   syrjala	13:21	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.44) (+2 -5)
+	
+	Re-enabled 2x horizontal zoom with RGB32 on G400. The problem was that
+	BESHISCAL wasn't doubled when 2x zoom was enabled.
+	
+2004-02-25   dok	03:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.198) (+1 -1)
+	
+	Add "-D_GNU_SOURCE" to DFB_INTERNAL_CFLAGS instead of CPPFLAGS
+	to have it exported via directfb-internal.pc making external modules
+	much more convenient.
+	
+2004-02-24   syrjala	09:23	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/nvidia/nvidia_overlay.c (1.8) (+7 -7)
+		tools/dfbsummon.c (1.5) (+1 -1)
+		tools/dfbdump.c (1.33) (+3 -3)
+		src/windows/idirectfbwindow.c (1.75) (+1 -1)
+		src/display/idirectfbsurface.c (1.84) (+1 -1)
+		src/core/sdl/primary.c (1.27) (+3 -3)
+		src/core/fbdev/fbdev.c (1.91) (+6 -5)
+		src/core/windows.c (1.191) (+1 -1)
+		src/core/surfaces.c (1.96) (+3 -3)
+		src/core/layer_context.c (1.14) (+5 -5)
+		src/idirectfb.c (1.130) (+7 -3)
+		include/directfb.h (1.211) (+6 -4)
+	
+	Renamed DSCAPS_FLIPPPING to DSCAPS_DOUBLE.
+	
+2004-02-24   syrjala	04:07	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.43) (+4 -5)
+	
+	2x horizontal zoom doesn't work right on G400 with RGB32. It doubles the
+	image width and if you move the image to the right so that over half of it
+	gets cropped the whole image disappears. Without hzoom enabled things seem
+	to work just fine even with the pixel clock running at > 200 MHz.
+	
+2004-02-24   syrjala	02:09	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.59) (+71 -1)
+		gfxdrivers/matrox/regs.h (1.19) (+2 -0)
+		gfxdrivers/matrox/matrox_maven.h (1.4) (+0 -1)
+		gfxdrivers/matrox/matrox_maven.c (1.7) (+12 -82)
+		gfxdrivers/matrox/matrox_crtc2.c (1.23) (+9 -11)
+		gfxdrivers/matrox/matrox_bes.c (1.42) (+116 -94)
+		gfxdrivers/matrox/matrox.h (1.27) (+2 -0)
+	
+	Matrox BES overhaul:
+	- Moved G450/G550 detection out of CRTC2 specific code because BES needs it too.
+	- Max source width is 2048 for G450/G550.
+	- 2x horizontal zoom pixel clock limit is 234 MHz for G450/G550 (from XFree86 source).
+	- Handle destination cropping.
+	- On G400 all horizontal parameters need to be doubled for RGB32.
+	- G450/G550 can handle RGB32 without scaling limitation.
+	- Bumped driver version to 0.7.
+	
+2004-02-23   dok	22:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.137) (+4 -4)
+	
+	Fixed Bop_a8_set_alphapixel_Aop_airgb(), i.e. render opaque pixels of
+	glyphs correctly onto AiRGB surfaces.
+	
+2004-02-23   andros	09:05	
+
+	Files:	gfxdrivers/cle266/uc_ovl_hwmap.c (1.4) (+1 -1)
+	
+	Long standing I420 video bug (trashed display) fixed.
+	
+2004-02-23   andros	08:58	
+
+	Files:	gfxdrivers/cle266/uc_overlay.c (1.14) (+10 -2)
+		gfxdrivers/cle266/uc_ovl_hwset.c (1.14) (+29 -0)
+		gfxdrivers/cle266/uc_ovl_hwmap.c (1.3) (+71 -0)
+		gfxdrivers/cle266/uc_overlay.h (1.7) (+9 -2)
+	
+	Added color adjustment code. It is disabled for now - the DFB->HW mapping is not
+	yet producing correct results.
+	
+2004-02-21   syrjala	04:28	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/display/idirectfbsurface.c (1.83) (+1 -1)
+	
+	Oops.
+	
+2004-02-21   syrjala	04:25	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/display/idirectfbsurface.c (1.82) (+1 -1)
+		src/display/idirectfbsurface_layer.c (1.37) (+3 -0)
+	
+	Destructor forgot to use dfb_layer_region_unref().
+	
+2004-02-20   syrjala	22:58	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/gfxcard.c (1.139) (+11 -11)
+		src/gfx/generic/generic.h (1.16) (+1 -1)
+		src/gfx/generic/generic.c (1.136) (+1 -1)
+	
+	Fixed long standing typo: gAquire() -> gAcquire().
+	
+2004-02-19   syrjala	22:43	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.12) (+129 -79)
+		gfxdrivers/mach64/regs.h (1.7) (+2 -0)
+		gfxdrivers/mach64/mach64_state.h (1.5) (+15 -3)
+		gfxdrivers/mach64/mach64_state.c (1.6) (+107 -20)
+		gfxdrivers/mach64/mach64.h (1.6) (+13 -12)
+	
+	Added support for format conversion blits and DSBLIT_BLEND_COLORALPHA.
+	DSBLIT_BLEND_ALPHACHANNEL, DSBLIT_COLORIZE and TextureTriangle() would
+	require using the texture engine. Unfortunately texture pitch must be a
+	power of two value so this would require changes to the memory allocator :(
+	
+	Changed alignment limits to match hardware capabilities (hopefully).
+	
+	Reset SCALE_3D_CNTL and OVERLAY_SCALE_CNTL driver_close_device().
+	
+	Bumped driver version to 0.11.
+	
+2004-02-16   neo	15:45	Sven Neumann <sven@convergence.de>
+
+	Files:	directfb.spec.in (1.5) (+1 -1)
+	
+	Changed License field to LGPL.
+	
+2004-02-14   syrjala	20:58	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/layer_context.c (1.13) (+3 -3)
+	
+	dfb_layer_context_set_configuration() used old data for window stack
+	update which eventually caused a segfault in gFillRectangle().
+	
+2004-02-13   syrjala	15:50	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.11) (+3 -2)
+	
+	Initialize ALPHA_TEST_CNTL in mach64EngineReset(). Fixes blending.
+	
+	Bumped driver version 0.10.
+	
+2004-02-13   syrjala	01:26	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.10) (+146 -67)
+		gfxdrivers/mach64/regs.h (1.6) (+28 -0)
+		gfxdrivers/mach64/mach64_state.h (1.4) (+8 -0)
+		gfxdrivers/mach64/mach64_state.c (1.5) (+60 -0)
+		gfxdrivers/mach64/mach64.h (1.5) (+9 -5)
+	
+	Added DSDRAW_BLEND support for GT chips.
+	
+	Added mach64EngineReset() and initialized some registers just in case.
+	
+	Divided mach64CheckState() to GT and non-GT variants.
+	
+	DST_BRES_LNTH was written too early which broke blended lines. Strangely enough non-blended
+	lines were fine without this change.
+	
+	Reduced top trapezoid height by one in FillTriangle(). The line in the middle was being
+	drawn twice which looked bad with blending.
+	
+	Bumped driver version to 0.9.
+	
+2004-02-12   syrjala	17:06	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.9) (+1 -1)
+	
+	Bumped driver version to 0.8.
+	
+2004-02-12   syrjala	17:04	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.8) (+109 -7)
+		gfxdrivers/mach64/regs.h (1.5) (+8 -0)
+	
+	Added FillTriangle() support for GT chips.
+	
+2004-02-11   syrjala	10:44	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.7) (+21 -10)
+		gfxdrivers/mach64/mach64_overlay.c (1.4) (+19 -33)
+	
+	Only GT models have front end scaler -> no StretchBlit() for older models.
+	
+	Only set DST_LAST_PEL bit for bresenham lines. It doesn't affect antyhing else.
+	
+	Overlay source size is limited to 720x1024. It's actually 768x1024 for 3D Rage (LT) Pro but we can't tell the difference
+	from the accelerator ID :(
+	
+	Fixed overlay source color keying.
+	
+	Fixed overlay source cropping for planar formats.
+	
+	Bumped driver version to 0.7.
+	
+2004-02-11   dok	05:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.197) (+7 -1)
+		src/misc/debug.c (1.20) (+1 -3)
+		src/media/idirectfbdatabuffer_streamed.c (1.12) (+24 -23)
+		src/input/idirectfbinputbuffer.c (1.43) (+1 -1)
+		src/core/fusion/ref.c (1.29) (+9 -14)
+		src/core/fusion/reactor.c (1.52) (+8 -20)
+		src/core/fusion/property.c (1.17) (+1 -1)
+		src/core/fusion/lock.h (1.10) (+20 -0)
+		src/core/fusion/lock.c (1.20) (+1 -10)
+		src/core/fbdev/vt.c (1.23) (+1 -1)
+		src/core/windows.c (1.190) (+14 -5)
+		src/core/state.c (1.24) (+1 -10)
+		src/core/fonts.c (1.47) (+1 -1)
+		src/core/core.c (1.96) (+0 -2)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.77) (+1 -1)
+	
+	Fixed segfault during destruction of input only windows,
+	e.g. when closing the context menu of an entry in gtk+-directfb.
+	
+	Added utility function fusion_pthread_recursive_mutex_init() which
+	is used everywhere now instead of several pthread_mutexattr_*foo() calls.
+	
+	Moved DWET_DESTROYED notification to the end of dfb_window_destroy().
+	
+	Increased safety of single app core version of fusion_ref_down(),
+	i.e. move the reference watcher call into the locked code section.
+	
+	Moved "-D_REENTRANT" from CFLAGS to CPPFLAGS.
+	Added "-D_GNU_SOURCE" to CPPFLAGS.
+	
+2004-02-11   dok	05:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.h (1.9) (+1 -1)
+	
+	In DFB_MAGIC_ASSERT(obj,magic) do DFB_ASSERT(obj!=NULL) first.
+	
+2004-02-11   dok	04:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.76) (+0 -5)
+	
+	Removed annoying surface listener debug output.
+	
+2004-02-10   dok	12:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_overlay.c (1.13) (+2 -0)
+		gfxdrivers/cle266/uc_ovl_hwset.c (1.13) (+142 -143)
+	
+	Reset input field to zero upon Flip().
+	
+	Don't wait for previous settings to be loaded when setting new ones.
+	
+	Use correct vertical zoom again, green line at bottom is from decoder.
+	
+2004-02-10   syrjala	11:45	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.6) (+58 -9)
+		gfxdrivers/mach64/regs.h (1.4) (+12 -1)
+		gfxdrivers/mach64/mach64_state.h (1.3) (+4 -0)
+		gfxdrivers/mach64/mach64_state.c (1.4) (+29 -8)
+		gfxdrivers/mach64/mach64.h (1.4) (+8 -5)
+	
+	Added stretch blitting support.
+	Bumped driver version to 0.6.
+	
+2004-02-09   andi	19:07	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/mach64/mmio.h (1.3) (+20 -0)
+	
+	- support for powerpc (handle mmio reads and writes correctly)
+	
+2004-02-09   syrjala	09:02	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.5) (+1 -1)
+		gfxdrivers/mach64/regs.h (1.3) (+11 -0)
+		gfxdrivers/mach64/mach64_state.c (1.3) (+3 -12)
+		gfxdrivers/mach64/mach64_overlay.c (1.3) (+68 -13)
+	
+	Added source and destination color keying to the overlay layer.
+	Fixed drawing/blitting color keying bugs.
+	No need to replicate bits to fill whole DP_FRGD_CLR register.
+	Removed a DSPF_RGB24 case that was left in accidentally.
+	Bumped driver version to 0.5.
+	
+2004-02-06   dok	18:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_overlay.c (1.12) (+21 -1)
+		gfxdrivers/cle266/vidregs.h (1.2) (+33 -33)
+		gfxdrivers/cle266/uc_ovl_hwset.c (1.12) (+28 -5)
+		gfxdrivers/cle266/uc_ovl_hwmap.c (1.2) (+10 -5)
+		gfxdrivers/cle266/uc_overlay.h (1.6) (+9 -3)
+	
+	Added DLOP_DEINTERLACING support to video layer.
+	
+2004-02-06   neo	14:06	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/mach64/.cvsignore (1.1) ( )
+	
+	shut up CVS
+	
+2004-02-06   dok	13:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.95) (+1 -1)
+	
+	Commented out annoying assumption in dfb_core_is_master().
+	
+2004-02-06   dok	13:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.196) (+81 -81)
+	
+	Replaced all 'x$foo = xyes' by '"$foo" = "yes"' etc.
+	
+2004-02-06   syrjala	11:56	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.4) (+1 -1)
+		gfxdrivers/mach64/mach64_overlay.c (1.2) (+7 -2)
+	
+	Initialize SCALER_H_COEFF registers.
+	Bumped driver version to 0.4.
+	
+2004-02-05   syrjala	11:54	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/Makefile.am (1.2) (+3 -1)
+		gfxdrivers/mach64/regs.h (1.2) (+119 -0)
+		gfxdrivers/mach64/mmio.h (1.2) (+26 -0)
+		gfxdrivers/mach64/mach64_overlay.c (1.1) ( )
+		gfxdrivers/mach64/mach64.h (1.3) (+8 -5)
+		gfxdrivers/mach64/mach64.c (1.3) (+13 -8)
+	
+	Added overlay support.
+	Bumped driver version to 0.3.
+	
+2004-02-04   syrjala	14:11	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.2) (+38 -19)
+		gfxdrivers/mach64/mach64_state.c (1.2) (+28 -2)
+		gfxdrivers/mach64/mach64.h (1.2) (+14 -2)
+	
+	Fixed state handling.
+	Bumped driver version to 0.2.
+	
+2004-02-04   dok	07:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.c (1.19) (+10 -8)
+	
+	Some optimizations.
+	
+2004-02-04   dok	05:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/Makefile.am (1.19) (+0 -11)
+		tools/gensyms.sh (1.2) (+0 -0)
+		src/misc/debug.c (1.18) (+145 -85)
+	
+	Rewrote symbol lookup used by stack trace dumping code.
+	
+	The symbol list is no longer generated at build time for libdirectfb.
+	
+	Use popen("nm -n ...") to load symbols of any module on demand.
+	
+	Produce gdb like stack dumps (output formatting).
+	
+2004-02-03   dok	23:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.138) (+3 -3)
+		src/core/windowstack.h (1.4) (+9 -9)
+		src/core/windowstack.c (1.10) (+2 -2)
+		src/core/screens.h (1.4) (+1 -1)
+		src/core/screens.c (1.4) (+1 -1)
+		src/core/layers.h (1.61) (+6 -6)
+		src/core/layers.c (1.137) (+5 -5)
+		src/core/layer_region.h (1.5) (+2 -2)
+		src/core/layer_region.c (1.11) (+2 -2)
+		src/core/layer_context.h (1.6) (+2 -2)
+		src/core/layer_context.c (1.12) (+2 -2)
+		src/core/gfxcard.h (1.64) (+3 -3)
+	
+	Removed all "non-static inline" for now.
+	
+2004-02-03   dok	23:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/Makefile.am (1.15) (+3 -0)
+		include/directfb_keyboard.h (1.27) (+512 -510)
+		include/directfb.h (1.210) (+2 -0)
+	
+	Added DFBDisplayLayerBufferMode to the auto generated
+	"enum value / name string" mappings in "directfb_strings.h".
+	
+	Added DLBM_UNKNOWN for null termination of the map.
+	
+	Removed top level indention of "directfb_keyboard.h".
+	
+2004-02-03   dok	17:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.195) (+1 -0)
+	
+	Put DFB_DEBUG into config.h, too.
+	
+2004-02-03   syrjala	14:08	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64_state.h (1.2) (+14 -14)
+	
+	Fixed cosmetic copy-paste error.
+	
+2004-02-03   syrjala	12:57	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	configure.in (1.194) (+26 -3)
+		gfxdrivers/mach64/regs.h (1.1) ( )
+		gfxdrivers/mach64/mmio.h (1.1) ( )
+		gfxdrivers/mach64/mach64_state.h (1.1) ( )
+		gfxdrivers/mach64/mach64_state.c (1.1) ( )
+		gfxdrivers/mach64/mach64.h (1.1) ( )
+		gfxdrivers/mach64/mach64.c (1.1) ( )
+		gfxdrivers/mach64/Makefile.am (1.1) ( )
+		gfxdrivers/Makefile.am (1.13) (+7 -0)
+	
+	Added ATI Mach64 driver.
+	
+2004-02-03   dok	04:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.25) (+1 -1)
+	
+	Check for timeout more often (every 16384 th iteration, was every 65536 th before).
+	
+2004-02-03   dok	03:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.24) (+76 -173)
+	
+	Added benchmarking macros.
+	
+	Each benchmark runs for one second now.
+	
+2004-02-03   dok	03:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.23) (+2 -2)
+	
+	Use recursive mutexes in threaded mutex benchmark.
+	
+2004-02-03   dok	02:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.22) (+24 -5)
+	
+	Replaced getpid() reference benchmark with an flock(2) benchmark.
+	
+2004-02-02   andi	20:52	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_overlay.c (1.11) (+1 -1)
+	
+	- set default overlay mode to YV12 instead of RGB16 (just testing)
+	
+2004-02-02   dok	20:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.193) (+35 -7)
+		src/core/surfaces.c (1.95) (+53 -13)
+		directfb.pc.in (1.7) (+1 -1)
+		directfb-config.in (1.14) (+1 -1)
+	
+	Added configure option "--enable-zlib" that activates gzipped screen shots etc.
+	
+2004-02-02   andi	19:48	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/Makefile.am (1.2) (+1 -0)
+		gfxdrivers/cle266/unichrome.c (1.23) (+11 -0)
+		gfxdrivers/cle266/uc_primary.c (1.1) ( )
+		gfxdrivers/cle266/uc_ovl_hwset.c (1.11) (+6 -4)
+		gfxdrivers/cle266/uc_overlay.h (1.5) (+2 -2)
+		gfxdrivers/cle266/uc_overlay.c (1.10) (+16 -23)
+	
+	- if the environment variable DFB_CLE266_UNDERLAY is set, the videolayer
+	  is treated as underlay. primary layer hooks will be installed, so that
+	  the transparency of the overlay cat be set by using the primary layer
+	  interface.
+	
+	the GetLevel/SetLevel stuff might act strange now. will be fixed later.
+	
+2004-01-30   dok	16:34	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.90) (+2 -1)
+	
+	Fixed an error handler.
+	
+2004-01-30   dok	15:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.c (1.17) (+2 -0)
+	
+	Forgot to decrement num_buffers in buffer_destroy().
+	
+2004-01-30   dok	14:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.192) (+1 -1)
+	
+	Add -finstrument-functions to internal flags if enabled.
+	
+2004-01-29   dok	15:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbdisplaylayer.c (1.66) (+28 -0)
+	
+	Enforce realization of layer region upon GetDisplayLayer()
+	and SetCooperativeLevel() again to fix e.g. SetScreenLocation() for
+	layers without a surface.
+	
+2004-01-28   dok	17:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.32) (+12 -4)
+	
+	Show layer levels.
+	
+2004-01-28   dok	17:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.31) (+6 -1)
+	
+	Print "unknown" if pixel format of context is unknown.
+	
+2004-01-28   dok	08:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbdump.c (1.30) (+91 -72)
+	
+	Dump contexts.
+	
+2004-01-28   dok	07:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/mem.c (1.15) (+9 -0)
+	
+	Avoid multiple dumps of local memory leaks at exit time.
+	
+2004-01-28   dok	07:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.209) (+2 -1)
+		src/display/idirectfbdisplaylayer.c (1.65) (+1 -11)
+		src/core/fusion/vector.c (1.5) (+4 -4)
+		src/core/windowstack.h (1.3) (+0 -5)
+		src/core/windowstack.c (1.9) (+4 -6)
+		src/core/windows_internal.h (1.5) (+0 -1)
+		src/core/windows.h (1.54) (+0 -1)
+		src/core/windows.c (1.189) (+19 -17)
+		src/core/window_display.c (1.7) (+52 -54)
+		src/core/layers_internal.h (1.9) (+19 -14)
+		src/core/layer_region.h (1.4) (+1 -2)
+		src/core/layer_region.c (1.10) (+4 -7)
+		src/core/layer_control.c (1.7) (+17 -0)
+		src/core/layer_context.h (1.5) (+1 -0)
+		src/core/layer_context.c (1.11) (+256 -121)
+		src/core/input.c (1.100) (+1 -1)
+		src/core/core.h (1.17) (+9 -3)
+		src/core/core.c (1.94) (+29 -1)
+		src/idirectfb.c (1.129) (+1 -1)
+		src/directfb.c (1.73) (+2 -0)
+	
+	Further finalization of the new layer code.
+	
+	The primary region of a layer is no longer created and activated
+	during creation of the context.
+	
+	IDirectFB::GetDisplayLayer() no longer causes the layer to be shown or
+	its surface to be created. Even IDirectFBDisplayLayer::SetCoooperativeLevel()
+	and IDirectFBDisplayLayer::SetConfiguration() no longer cause that.
+	
+	A layer is allocated and shown upon:
+	1) IDirectFBDisplayLayer::CreateWindow()
+	2) IDirectFBDisplayLayer::GetSurface()
+	3) IDirectFB::CreateSurface() <- if primary & fullscreen
+	
+	Fixed failing assumption for exclusive access to additional layers.
+	Fixed missing context and region destruction after releasing the layer.
+	
+2004-01-27   syrjala	22:27	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.22) (+3 -6)
+		gfxdrivers/matrox/matrox_spic.c (1.10) (+50 -74)
+	
+	Re-added CRTC2 sub-picture opacity handling.
+	Don't touch sup-picture bits of C2DATACTL in CRTC2 code.
+	Removed mcrtc2->enabled.
+	
+2004-01-26   dok	14:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.21) (+13 -10)
+		include/directfb.h (1.208) (+6 -6)
+		gfxdrivers/cle266/uc_fifo.h (1.8) (+11 -0)
+	
+	Decided to use floats in DFBVertex instead of fixed point.
+	
+2004-01-26   dok	14:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface.c (1.81) (+0 -4)
+	
+	Fix sanity check for DTTF_STRIP.
+	
+2004-01-26   dok	14:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/debug.c (1.16) (+1 -1)
+	
+	Initialize pthread key.
+	
+2004-01-23   syrjala	18:49	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/surfaces.c (1.94) (+3 -2)
+		src/core/sdl/primary.c (1.26) (+1 -1)
+		src/core/fbdev/fbdev.c (1.89) (+1 -1)
+	
+	Use DFB_COLOR_BITS_PER_PIXEL() to calculate surface palette size.
+	
+2004-01-22   dok	17:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.207) (+13 -0)
+		src/display/idirectfbsurface.c (1.80) (+76 -3)
+		src/core/gfxcard.h (1.63) (+3 -0)
+		src/core/gfxcard.c (1.137) (+59 -0)
+	
+	Added IDirectFBSurface::BatchBlit() which increases pixel throughput
+	of many small blits with same source and destination, e.g. custom font
+	rendering like GTK+-DirectFB does.
+	
+	Benchmarks (P3 800 MHz, G450 AGP, 1280x1024, 16bit)
+	
+	Size.......Blit...BatchBlit (10 blits at once)
+	8x8..........9.....35
+	16x16.......36....138
+	32x32......144....259
+	64x64......326....327
+	128x128....363....367
+	256x256....386....390              in MPixels/sec
+	
+2004-01-21   dok	22:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.18) (+3 -1)
+	
+	Fix build for gcc 2.95.
+	
+2004-01-21   dok	18:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.17) (+1 -1)
+	
+	Fixed option "linux-input-ir-only".
+	
+2004-01-20   syrjala	22:09	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/layer_context.c (1.10) (+4 -3)
+	
+	Store default color adjustment into layer context.
+	
+2004-01-20   dok	19:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.16) (+8 -1)
+		src/misc/conf.h (1.44) (+2 -0)
+		src/misc/conf.c (1.75) (+6 -1)
+	
+	Added option "linux-input-ir-only" which tells the linux input driver
+	to ignore all non-IR Linux Input devices.
+	
+2004-01-20   dok	02:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/cle266/uc_accel.c (1.20) (+17 -1)
+	
+	Implemented DTTF_STRIP and DTTF_LIST, too.
+	
+2004-01-20   dok	02:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.206) (+3 -3)
+	
+	Fix doc for DFBTriangleFormation.
+	
+2004-01-19   dok	17:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.15) (+3 -0)
+	
+	Take linux input code as hardware keycode.
+	
+2004-01-19   dok	14:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/Makefile.am (1.9) (+1 -0)
+		src/core/Makefile.am (1.30) (+1 -0)
+		include/Makefile.am (1.14) (+15 -14)
+	
+	dist fixes
+	
+2004-01-16   dok	20:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.75) (+2 -1)
+	
+	Use CSLF_FORCE, fixes failing PlayTo() on a fresh surface.
+	
+2004-01-16   andi	17:54	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/cle266/uc_ovl_hwset.c (1.10) (+2 -1)
+	
+	do not use uc_ovl_setup_fifo(), it does not work as expected and causes display errors.
+	
+2004-01-16   dok	17:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/generic/generic.c (1.135) (+1 -1)
+	
+	Fix a8 font rendering for argb1555, i.e. remove alpha pits around glyphs.
+	
+2004-01-16   dok	06:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.93) (+1 -1)
+		src/core/surfacemanager.c (1.59) (+48 -0)
+		src/core/state.h (1.15) (+3 -3)
+		src/core/state.c (1.23) (+10 -7)
+	
+	Added DFB_MAGIC handling to surface manager and state functions.
+	
+2004-01-16   dok	06:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.92) (+1 -1)
+		src/misc/debug.h (1.8) (+8 -8)
+		src/core/fonts.h (1.18) (+2 -0)
+		src/core/fonts.c (1.46) (+12 -0)
+	
+	Added DFB_MAGIC handling to CoreFont functions.
+	
+	Reduced minimum spell length to eight (including null character).
+	
+2004-01-16   dok	05:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.39) (+1 -0)
+	
+	#include <errno.h>
+	
+2004-01-16   dok	05:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_screen_crtc2.c (1.4) (+33 -5)
+		src/display/idirectfbscreen.c (1.3) (+346 -10)
+		src/core/screens_internal.h (1.3) (+10 -2)
+		src/core/screens.h (1.3) (+97 -16)
+		src/core/screens.c (1.3) (+35 -4)
+		src/core/screen.h (1.3) (+62 -7)
+		src/core/screen.c (1.3) (+330 -24)
+		src/core/gfxcard.h (1.62) (+1 -1)
+		src/core/core.c (1.91) (+1 -1)
+		include/directfb.h (1.205) (+307 -39)
+	
+	Initial version of the screen mixer/encoder/output APIs.
+	
+	An output is connected to an encoder which is connected to a mixer which
+	combines selected display layers ;)
+	
+	Added a lot of types for description and configuration of these components.
+	
+2004-01-15   dok	17:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_screen_crtc2.c (1.3) (+3 -3)
+		tools/dfbinfo.c (1.7) (+6 -6)
+		include/directfb.h (1.204) (+12 -12)
+		include/Makefile.am (1.13) (+1 -1)
+	
+	Renamed DFBScreenEncoderTVNorms to DFBScreenEncoderTVStandards.
+	
+2004-01-15   dok	15:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_screen_crtc2.c (1.2) (+41 -1)
+		tools/dfbinfo.c (1.6) (+122 -5)
+		src/display/idirectfbscreen.c (1.2) (+49 -7)
+		src/core/screens_internal.h (1.2) (+12 -2)
+		src/core/screens.h (1.2) (+23 -5)
+		src/core/screens.c (1.2) (+38 -1)
+		src/core/screen.h (1.2) (+16 -8)
+		src/core/screen.c (1.2) (+32 -0)
+		src/core/core.c (1.90) (+1 -1)
+		include/directfb.h (1.203) (+118 -3)
+		include/Makefile.am (1.12) (+18 -0)
+	
+	Initial support for encoders and outputs.
+	
+	Added IDirectFBScreen::GetEncoderDescriptions() and GetOutputDescriptions().
+	
+	Added all new types to the auto generated "directfb_strings.h" and dfbinfo.
+	
+2004-01-15   dok	13:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.188) (+5 -1)
+	
+	Set stack->cursor.window = NULL in window_destructor() if the cursor window
+	is being destroyed, e.g. during shutdown.
+	
+2004-01-15   dok	13:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.187) (+1 -1)
+	
+	Ooops.
+	
+2004-01-15   dok	13:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.186) (+1 -0)
+	
+	Set keys[i].code = -1 in window_withdraw().
+	
+2004-01-15   dok	13:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.38) (+2 -0)
+	
+	#include <pthread.h>
+	
+2004-01-14   dok	14:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.202) (+7 -2)
+	
+	Fix plane multiplier for YV12 and I420.
+	
+2004-01-13   dok	23:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/input/idirectfbinputbuffer.c (1.42) (+3 -3)
+	
+	Moved write() call after the unlock.
+	
+2004-01-13   dok	19:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.136) (+44 -62)
+		src/core/fbdev/fbdev.c (1.88) (+1 -1)
+		src/core/gfxcard.h (1.61) (+13 -5)
+	
+	Use flags for dfb_gfxcard_lock() instead of four booleans.
+	
+2004-01-13   dok	19:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/object.h (1.13) (+2 -2)
+	
+	Argh, move magic behind link header.
+	
+2004-01-13   dok	17:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.50) (+3732 -2051)
+		src/core/fusion/reactor.c (1.51) (+20 -0)
+		src/core/fusion/object.h (1.12) (+17 -0)
+		src/core/fusion/object.c (1.19) (+6 -0)
+		src/core/core.c (1.89) (+1 -1)
+	
+	Use DFB_MAGIC_SET/ASSERT/CLEAR for FusionObject and FusionReactor.
+	
 2004-01-12   dok	20:34	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	include/directfb.h (1.201) (+13 -3)

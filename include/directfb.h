@@ -1080,10 +1080,8 @@ typedef struct {
      int                                width;        /* pixel width */
      int                                height;       /* pixel height */
      DFBSurfacePixelFormat              pixelformat;  /* pixel format */
-     int                                posx;         /* distance from left
-                                                         layer border */
-     int                                posy;         /* distance from upper
-                                                         layer border */
+     int                                posx;         /* distance from left layer border */
+     int                                posy;         /* distance from upper layer border */
      DFBSurfaceCapabilities             surface_caps; /* pixel format */
 } DFBWindowDescription;
 
@@ -1093,8 +1091,7 @@ typedef struct {
 typedef struct {
      DFBDataBufferDescriptionFlags      flags;       /* field validation */
 
-     const char                        *file;        /* for file based data
-                                                        buffers */
+     const char                        *file;        /* for file based data buffers */
 
      struct {
           const void                   *data;        /* static data pointer */
@@ -1877,10 +1874,10 @@ typedef enum {
  * Description of a screen output.
  */
 typedef struct {
-     DFBScreenOutputCapabilities   caps;       /* Screen capabilities. */
+     DFBScreenOutputCapabilities   caps;           /* Screen capabilities. */
 
-     DFBScreenOutputConnectors     connectors; /* Output connectors. */
-     DFBScreenOutputSignals        signals;    /* Output signals. */
+     DFBScreenOutputConnectors     all_connectors; /* Output connectors. */
+     DFBScreenOutputSignals        all_signals;    /* Output signals. */
 } DFBScreenOutputDescription;
 
 /*
@@ -1900,11 +1897,11 @@ typedef enum {
  * Configuration of an output.
  */
 typedef struct {
-     DFBScreenOutputConfigFlags  flags;      /* Validates struct members. */
+     DFBScreenOutputConfigFlags  flags;          /* Validates struct members. */
 
-     int                         encoder;    /* Chosen encoder. */
-     DFBScreenOutputSignals      signals;    /* Selected encoder signal(s). */
-     DFBScreenOutputConnectors   connectors; /* Selected output connector(s). */
+     int                         encoder;        /* Chosen encoder. */
+     DFBScreenOutputSignals      out_signals;    /* Selected encoder signal(s). */
+     DFBScreenOutputConnectors   out_connectors; /* Selected output connector(s). */
 } DFBScreenOutputConfig;
 
 
