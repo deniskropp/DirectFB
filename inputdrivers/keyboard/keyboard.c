@@ -375,55 +375,17 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-//     char buf[32];
      KeyboardData   *data;
      struct termios  ts;
      const char      cursoroff_str[] = "\033[?1;0;0c";
      const char      blankoff_str[] = "\033[9;0]";
 
-/*     snprintf(buf, 32, "/dev/tty%d", dfb_vt->num);
-     fd = open( buf, O_RDWR );
-     if (fd < 0) {
-          if (errno == ENOENT) {
-               snprintf(buf, 32, "/dev/vc/%d", dfb_vt->num);
-               fd = open( buf, O_RDWR );
-               if (fd < 0) {
-                    if (errno == ENOENT) {
-                         PERRORMSG( "DirectFB/Keyboard: Couldn't open neither `/dev/tty%d' nor `/dev/vc/%d'!\n", dfb_vt->num, dfb_vt->num );
-                    }
-                    else {
-                         PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
-                    }
-
-                    return DFB_INIT;
-               }
-          }
-          else {
-               PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
-               return DFB_INIT;
-          }
-     }*/
-
-     if (dfb_config->kd_graphics) {
-          if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
-               PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
-               return DFB_INIT;
-          }
-     }
-
+     /* put keyboard into medium raw mode */
      if (ioctl( dfb_vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
           PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
           return DFB_INIT;
      }
-
-     if (!dfb_config->no_vt_switch) {
-          if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0)
-               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );
-          
-          if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0)
-               PERRORMSG( "DirectFB/Keyboard: TIOCSCTTY failed!\n" );
-     }
-
+     
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(KeyboardData) );
 

@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/vt.h>
+#include <sys/kd.h>
 #include <errno.h>
 #include <pthread.h>
 
@@ -284,6 +285,22 @@ vt_init_switching()
           }
      }
 
+     if (dfb_config->kd_graphics) {
+          if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
+               PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
+               close( dfb_vt->fd );
+               return DFB_INIT;
+          }
+     }
+
+     if (!dfb_config->no_vt_switch) {
+          if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0)
+               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );
+          
+          if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0)
+               PERRORMSG( "DirectFB/Keyboard: TIOCSCTTY failed!\n" );
+     }
+     
      return DFB_OK;
 }
 
