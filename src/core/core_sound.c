@@ -319,10 +319,11 @@ sound_thread( CoreThread *thread, void *arg )
 
                if (written < 0) {
                     CAUTION( "buffer underrun" );
-                    written = 0;
+                    written   = 0;
+                    last_time = 0;
                }
-
-               last_time = this_time;
+               else
+                    last_time = this_time;
 
                /* do not buffer more than 60 ms */
                if (written > total_rate * 60 / 1000)
@@ -355,7 +356,7 @@ sound_thread( CoreThread *thread, void *arg )
           
           fusion_skirmish_dismiss( &shared->playlist.lock );
           
-          /* Convert mixing buffer to output format clipping each sample. */
+          /* Convert mixing buffer to output format, clipping each sample. */
           for (i=0; i<samples; i++) {
                register int sample = mixing[i];
 
