@@ -166,12 +166,14 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
      if (!data || !dst_data)
           return DFB_DEAD;
 
-     thiz->Stop( thiz );
+//     thiz->Stop( thiz );
+
+     /* URGENT: keep in sync with DrawCallback */
 
 
      /* build the destination rectangle */
      if (dstrect) {
-          if (dstrect->w < 0  ||  dstrect->h < 0)
+          if (dstrect->w < 1  ||  dstrect->h < 1)
                return DFB_INVARG;
 
           rect = *dstrect;
@@ -200,13 +202,28 @@ static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
                             (data->state.modified | SMF_CLIP | SMF_DESTINATION);
 
 
+     if (data->destination) {
+          data->destination->Release( data->destination );
+          data->destination = NULL;     /* FIXME: remove listener */
+     }
+     
      destination->AddRef( destination );
      data->destination = destination;   /* FIXME: install listener */
+
 
      data->callback = callback;
      data->ctx = ctx;
 
-     data->player->Start();
+
+     switch (data->player->GetState( NULL )) {
+          case IAviPlayer::Playing:
+               break;
+          case IAviPlayer::Paused:
+               data->player->Pause(false);
+               break;
+          default:
+               data->player->Start();
+     }
 
      return DFB_OK;
 }
@@ -225,7 +242,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_Stop(
           return DFB_DEAD;
 
      if (data->player->IsPlaying())
-          data->player->Stop();
+          data->player->Pause(true);
 
      if (data->destination) {
           data->destination->Release( data->destination );
