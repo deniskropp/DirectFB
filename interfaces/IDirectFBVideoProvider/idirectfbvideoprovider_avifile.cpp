@@ -80,6 +80,8 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
      if (data->player->IsPlaying())
           data->player->Stop();
 
+     reactor_free( data->source.reactor );
+
      free( thiz->priv );
      thiz->priv = NULL;
 
@@ -409,7 +411,9 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      
      pthread_mutex_init( &data->source.front_lock, NULL );
      pthread_mutex_init( &data->source.back_lock, NULL );
-     pthread_mutex_init( &data->source.listeners_mutex, NULL );
+     
+     data->source.reactor = reactor_new();
+     
      
      data->state.source   = &data->source;
      data->state.modified = SMF_ALL;

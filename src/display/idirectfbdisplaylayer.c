@@ -56,9 +56,8 @@ typedef struct {
 } IDirectFBDisplayLayer_data;
 
      
-DFBResult IDirectFBDisplayLayer_bgsurface_listener( CoreSurface  *surface,
-                                                    unsigned int  flags,
-                                                    void         *ctx );
+ReactionResult IDirectFBDisplayLayer_bgsurface_listener( const void *msg_data,
+                                                         void       *ctx );
 
 
 void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
@@ -68,9 +67,8 @@ void IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
      /* The background may not be set by us in which case the listener
       * isn't in the listener list, but it doesn't hurt. */
      if (data->layer->bg.image)
-          surface_remove_listener( data->layer->bg.image,
-                                   IDirectFBDisplayLayer_bgsurface_listener,
-                                   thiz );
+          reactor_detach( data->layer->bg.image->reactor,
+                          IDirectFBDisplayLayer_bgsurface_listener, thiz );
      
      if (data->surface)
           data->surface->Release( data->surface );
@@ -184,16 +182,13 @@ DFBResult IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
 
      if (data->layer->bg.image != surface_data->surface) {
           if (data->layer->bg.image)
-               surface_remove_listener( data->layer->bg.image,
-                                        IDirectFBDisplayLayer_bgsurface_listener,
-                                        thiz );
+               reactor_detach( data->layer->bg.image->reactor,
+                               IDirectFBDisplayLayer_bgsurface_listener, thiz );
 
           data->layer->bg.image = surface_data->surface;
 
-          surface_install_listener( surface_data->surface,
-                                    IDirectFBDisplayLayer_bgsurface_listener,
-                                    (CSN_DESTROY | CSN_FLIP | CSN_SIZEFORMAT),
-                                    thiz );
+          reactor_attach( data->layer->bg.image->reactor,
+                          IDirectFBDisplayLayer_bgsurface_listener, thiz );
           
           if (data->layer->bg.mode == DLBM_IMAGE)
                windowstack_repaint_all( data->layer->windowstack );
@@ -444,17 +439,17 @@ DFBResult IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
 }
 
 
-DFBResult IDirectFBDisplayLayer_bgsurface_listener( CoreSurface  *surface,
-                                                    unsigned int  flags,
-                                                    void         *ctx )
+ReactionResult IDirectFBDisplayLayer_bgsurface_listener( const void *msg_data,
+                                                         void         *ctx )
 {
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      IDirectFBDisplayLayer      *thiz = (IDirectFBDisplayLayer*)ctx;
      IDirectFBDisplayLayer_data *data = (IDirectFBDisplayLayer_data*)thiz->priv;
 
      if (!data)
-          return SL_REMOVE;
+          return RS_REMOVE;
 
-     if (flags & CSN_DESTROY) {
+     if (notification->flags & CSNF_DESTROY) {
           DEBUGMSG("IDirectFBDisplayLayer: "
                    "CoreSurface for background vanished.\n");
 
@@ -463,11 +458,11 @@ DFBResult IDirectFBDisplayLayer_bgsurface_listener( CoreSurface  *surface,
 
           windowstack_repaint_all( data->layer->windowstack );
 
-          return SL_REMOVE;
+          return RS_REMOVE;
      }
 
-     if (flags & (CSN_FLIP | CSN_SIZEFORMAT))
+     if (notification->flags & (CSNF_FLIP | CSNF_SIZEFORMAT))
           windowstack_repaint_all( data->layer->windowstack );
      
-     return SL_OK;
+     return RS_OK;
 }

@@ -38,7 +38,8 @@
 /* 
  * adds an event to the event queue (function is added to the event listeners)
  */
-static void IDirectFBInputBuffer_React( const void *msg_data, void *ctx );
+static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
+                                                  void       *ctx );
 
 
 typedef struct _InputBufferItem
@@ -227,7 +228,8 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
 
 /* internals */
 
-static void IDirectFBInputBuffer_React( const void *msg_data, void *ctx )
+static ReactionResult IDirectFBInputBuffer_React( const void *msg_data,
+                                                  void       *ctx )
 {
      const DFBInputEvent       *evt = (DFBInputEvent*)msg_data;
      IDirectFBInputBuffer_item *item;
@@ -255,4 +257,6 @@ static void IDirectFBInputBuffer_React( const void *msg_data, void *ctx )
      pthread_mutex_unlock( &data->events_mutex );
 
      pthread_mutex_unlock( &data->wait );
+
+     return RS_OK;
 }

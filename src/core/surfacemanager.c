@@ -287,7 +287,7 @@ DFBResult surfacemanager_allocate( SurfaceBuffer *buffer )
           pthread_mutex_lock( &kicked->back_lock );
 
           best_occupied->buffer->video.health = CSH_INVALID;
-          surface_notify_listeners( kicked, CSN_VIDEO );
+          surface_notify_listeners( kicked, CSNF_VIDEO );
 
           best_occupied = free_chunk( best_occupied );
 
@@ -335,7 +335,7 @@ DFBResult surfacemanager_deallocate( SurfaceBuffer *buffer )
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
 
-     surface_notify_listeners( buffer->surface, CSN_VIDEO );
+     surface_notify_listeners( buffer->surface, CSNF_VIDEO );
 
      free_chunk( chunk );
 
@@ -376,7 +376,7 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
                }
                buffer->video.health = CSH_STORED;
                buffer->video.chunk->tolerations = 0;
-               surface_notify_listeners( surface, CSN_VIDEO );
+               surface_notify_listeners( surface, CSNF_VIDEO );
 
                return DFB_OK;
           }
@@ -409,7 +409,7 @@ DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
                dst += buffer->system.pitch;
           }
           buffer->system.health = CSH_STORED;
-          surface_notify_listeners( surface, CSN_SYSTEM );
+          surface_notify_listeners( surface, CSNF_SYSTEM );
 
           return DFB_OK;
      }

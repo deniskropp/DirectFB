@@ -80,7 +80,7 @@ char * DirectFBCheckVersion (unsigned int required_major,
      return NULL;
 }
 
-static void keyboard_handler( const void *msg_data, void *ctx )
+static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 {
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
 
@@ -88,6 +88,8 @@ static void keyboard_handler( const void *msg_data, void *ctx )
          evt->keycode == DIKC_BACKSPACE &&
          (evt->modifiers & (DIMK_CTRL|DIMK_ALT)) == (DIMK_CTRL|DIMK_ALT))
           kill( getpid(), SIGINT );
+
+     return RS_OK;
 }
 
 DFBResult DirectFBInit( int *argc, char **argv[] )

@@ -58,8 +58,6 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
 void IDirectFBSurface_Destruct( IDirectFBSurface *thiz );
 
 
-SLResult IDirectFBSurface_listener( CoreSurface  *surface,
-                                    unsigned int  flags,
-                                    void         *ctx );
+ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx );
 
 #endif

@@ -449,9 +449,8 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           if (card->AfterSetVar)
                card->AfterSetVar();
           
-          surface_notify_listeners( surface,
-                                    CSN_SIZEFORMAT | CSN_FLIP |
-                                    CSN_VIDEO | CSN_SYSTEM );
+          surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_FLIP |
+                                             CSNF_VIDEO | CSNF_SYSTEM );
      }
 
      return DFB_OK;
@@ -654,6 +653,8 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
 static void primarylayer_deinit( DisplayLayer *layer )
 {
      windowstack_destroy( layer->windowstack );
+
+     /* FIXME: deinit layer->surface */
 }
 
 DFBResult primarylayer_init()
@@ -689,9 +690,10 @@ DFBResult primarylayer_init()
      /* allocate the surface */
      surface = (CoreSurface *) calloc ( 1, sizeof(CoreSurface) );
 
-     pthread_mutex_init( &surface->listeners_mutex, NULL );
      pthread_mutex_init( &surface->front_lock, NULL );
      pthread_mutex_init( &surface->back_lock, NULL );
+
+     surface->reactor = reactor_new();
 
      surface->front_buffer = (SurfaceBuffer *) 
           calloc( 1, sizeof(SurfaceBuffer) );

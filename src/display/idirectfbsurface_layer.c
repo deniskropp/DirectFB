@@ -62,7 +62,7 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
      state_set_destination( &data->state, NULL );
      state_set_source( &data->state, NULL );
      
-     surface_remove_listener( data->surface, IDirectFBSurface_listener, thiz );
+     reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
      
      free( thiz->priv );
      thiz->priv = NULL;

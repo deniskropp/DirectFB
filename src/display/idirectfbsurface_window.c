@@ -62,7 +62,8 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
      state_set_destination( &data->base.state, NULL );
      state_set_source( &data->base.state, NULL );
      
-     surface_remove_listener( data->base.surface, IDirectFBSurface_listener, thiz );
+     reactor_detach( data->base.surface->reactor,
+                     IDirectFBSurface_listener, thiz );
      
      if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
           data->base.caps & DSCAPS_PRIMARY)

@@ -26,19 +26,22 @@
 #include "core.h"
 #include "state.h"
 
-static SLResult destination_listener( CoreSurface *surface, unsigned int flags,
-                                      void *ctx )
+static ReactionResult destination_listener( const void *msg_data,
+                                            void       *ctx )
 {
-     CardState *state = (CardState*)ctx;
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
+     CardState               *state        = (CardState*)ctx;
 
-     if (flags & CSN_DESTROY) {
+     if (notification->flags & CSNF_DESTROY) {
           state->destination = NULL;
           state->modified |= SMF_DESTINATION;
 
-          return SL_REMOVE;
+          return RS_REMOVE;
      }
 
-     if (flags & CSN_SIZEFORMAT) {
+     if (notification->flags & CSNF_SIZEFORMAT) {
+          CoreSurface *surface = notification->surface;
+
           /* if this really happens everything should be clipped */
           if (surface->width <= state->clip.x2)
                state->clip.x1 = surface->width - 1;
@@ -54,60 +57,56 @@ static SLResult destination_listener( CoreSurface *surface, unsigned int flags,
           state->modified |= SMF_CLIP;
      }
 
-     state->modified |= SMF_DESTINATION;
+     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
+                                CSNF_VIDEO | CSNF_FLIP))
+          state->modified |= SMF_DESTINATION;
 
-     return SL_OK;
+     return RS_OK;
 }
 
 void state_set_destination( CardState *state, CoreSurface *destination )
 {
      if (state->destination != destination) {
           if (state->destination)
-               surface_remove_listener( state->destination,
-                                        destination_listener, state );
+               reactor_detach( state->destination->reactor,
+                               destination_listener, state );
 
           if (destination)
-               surface_install_listener( destination,
-                                         destination_listener,
-                                         (CSN_DESTROY | CSN_SIZEFORMAT |
-                                          CSN_VIDEO | CSN_FLIP),
-                                         state );
+               reactor_attach( destination->reactor,
+                               destination_listener, state );
 
           state->destination = destination;
           state->modified |= SMF_DESTINATION;
      }
 }
 
-static SLResult source_listener( CoreSurface *surface, unsigned int flags,
-                                 void *ctx )
+static ReactionResult source_listener( const void *msg_data, void *ctx )
 {
-     CardState *state = (CardState*)ctx;
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
+     CardState               *state        = (CardState*)ctx;
 
-     if (flags & CSN_DESTROY) {
+     if (notification->flags & CSNF_DESTROY) {
           state->source = NULL;
           state->modified |= SMF_SOURCE;
 
-          return SL_REMOVE;
+          return RS_REMOVE;
      }
 
-     state->modified |= SMF_SOURCE;
+     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
+                                CSNF_VIDEO | CSNF_FLIP))
+          state->modified |= SMF_SOURCE;
 
-     return SL_OK;
+     return RS_OK;
 }
 
 void state_set_source( CardState *state, CoreSurface *source )
 {
      if (state->source != source) {
           if (state->source)
-               surface_remove_listener( state->source,
-                                        source_listener, state );
+               reactor_detach( state->source->reactor, source_listener, state );
 
           if (source)
-               surface_install_listener( source,
-                                         source_listener,
-                                         (CSN_DESTROY | CSN_SIZEFORMAT |
-                                          CSN_VIDEO | CSN_FLIP),
-                                         state );
+               reactor_attach( source->reactor, source_listener, state );
 
           state->source = source;
           state->modified |= SMF_SOURCE;

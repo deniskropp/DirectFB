@@ -163,7 +163,8 @@ DFBResult surface_create( int width, int height, int format, int policy,
 
      pthread_mutex_init( &s->front_lock, NULL );
      pthread_mutex_init( &s->back_lock, NULL );
-     pthread_mutex_init( &s->listeners_mutex, NULL );
+     
+     s->reactor = reactor_new();
 
      if (!surfaces) {
           s->next = NULL;
@@ -231,8 +232,8 @@ DFBResult surface_reformat( CoreSurface *surface, int width, int height,
      }
 
 
-     surface_notify_listeners( surface, CSN_SIZEFORMAT |
-                                        CSN_SYSTEM | CSN_VIDEO );
+     surface_notify_listeners( surface, CSNF_SIZEFORMAT |
+                                        CSNF_SYSTEM | CSNF_VIDEO );
 
      pthread_mutex_unlock( &surface->front_lock );
      pthread_mutex_unlock( &surface->back_lock );
@@ -252,65 +253,13 @@ void surface_flip_buffers( CoreSurface *surface )
           surface->front_buffer = surface->back_buffer;
           surface->back_buffer = tmp;
 
-          surface_notify_listeners( surface, CSN_FLIP );
+          surface_notify_listeners( surface, CSNF_FLIP );
 
           pthread_mutex_unlock( &surface->front_lock );
           pthread_mutex_unlock( &surface->back_lock );
      }
      else
           back_to_front_copy( surface, NULL );
-}
-
-void surface_install_listener( CoreSurface *surface,
-                               SurfaceListenerReceive receive,
-                               unsigned int filter, void *ctx )
-{
-     SurfaceListener *l = (SurfaceListener*)malloc( sizeof(SurfaceListener) );
-
-     l->filter = filter;
-     l->receive = receive;
-     l->ctx = ctx;
-     l->next = NULL;
-
-     pthread_mutex_lock( &surface->listeners_mutex );
-
-     if (surface->listeners) {
-          l->next = surface->listeners;
-          surface->listeners = l;
-     }
-     else
-          surface->listeners = l;
-
-     pthread_mutex_unlock( &surface->listeners_mutex );
-}
-
-void surface_remove_listener( CoreSurface *surface,
-                              SurfaceListenerReceive receive,
-                              void *ctx )
-{
-     SurfaceListener *l, *pl;
-
-     pthread_mutex_lock( &surface->listeners_mutex );
-
-     pl = NULL;
-     l = surface->listeners;
-     while (l) {
-          if (l->receive == receive  &&  l->ctx == ctx) {
-               if (pl)
-                    pl->next = l->next;
-               else
-                    surface->listeners = l->next;
-
-               free( l );
-
-               break;
-          }
-
-          pl = l;
-          l = l->next;
-     }
-
-     pthread_mutex_unlock( &surface->listeners_mutex );
 }
 
 DFBResult surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
@@ -457,21 +406,12 @@ void surface_unlock( CoreSurface *surface, int front )
 
 void surface_destroy( CoreSurface *surface )
 {
-     surface_notify_listeners( surface, CSN_DESTROY );
+     surface_notify_listeners( surface, CSNF_DESTROY );
 
      pthread_mutex_lock( &surface->front_lock );
      pthread_mutex_lock( &surface->back_lock );
 
-     pthread_mutex_lock( &surface->listeners_mutex );
-     while (surface->listeners) {
-          SurfaceListener *l = surface->listeners;
-
-          surface->listeners = l->next;
-
-          free( l );
-     }
-     pthread_mutex_unlock( &surface->listeners_mutex );
-     pthread_mutex_destroy( &surface->listeners_mutex );
+     reactor_free( surface->reactor );
 
      surface_destroy_buffer( surface->front_buffer );
 
@@ -495,38 +435,4 @@ void surface_destroy( CoreSurface *surface )
 
      free( surface );
 }
-
-void surface_notify_listeners( CoreSurface *s, unsigned int flags )
-{
-     SurfaceListener *l, *pl;
-
-     pthread_mutex_lock( &s->listeners_mutex );
-
-     pl = NULL;
-     l = s->listeners;
-
-     while (l) {
-          if (l->filter & flags &&
-              l->receive( s, flags, l->ctx ) == SL_REMOVE)
-          {
-               SurfaceListener *tmp  = l;
-
-               if (l == s->listeners)
-                    s->listeners = l->next;
-               else
-                    pl->next = l->next;
-
-               l = l->next;
-
-               free( tmp );
-          }
-          else {
-               pl = l;
-               l = l->next;
-          }
-     }
-
-     pthread_mutex_unlock( &s->listeners_mutex );
-}
-
 

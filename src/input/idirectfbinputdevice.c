@@ -43,7 +43,8 @@
  * processes an event, updates device state 
  * (funcion is added to the event listeners)
  */  
-static void IDirectFBInputDevice_React( const void *msg_data, void *ctx );
+static ReactionResult IDirectFBInputDevice_React( const void *msg_data,
+                                                  void       *ctx );
 
 /*
  * private data struct of IDirectFBInputDevice
@@ -274,7 +275,8 @@ DFBResult IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 
 /* internals */
 
-static void IDirectFBInputDevice_React( const void *msg_data, void *ctx )
+static ReactionResult IDirectFBInputDevice_React( const void *msg_data,
+                                                  void       *ctx )
 {
      const DFBInputEvent       *evt  = (DFBInputEvent*)msg_data;
      IDirectFBInputDevice_data *data = (IDirectFBInputDevice_data*)ctx;
@@ -312,5 +314,7 @@ static void IDirectFBInputDevice_React( const void *msg_data, void *ctx )
           default:
                DEBUGMSG( "DirectFB/IDirectFBInputDevice: Unknown event type detected (0x%x), skipping!\n", evt->type );
      }
+
+     return RS_OK;
 }
 

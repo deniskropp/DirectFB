@@ -28,33 +28,25 @@
 
 #include <pthread.h>
 
-struct _Chunk;
+#include "reactor.h"
 
-#define CSN_SIZEFORMAT   0x00000001     /* width, height, format */
-#define CSN_SYSTEM       0x00000002     /* system instance information */
-#define CSN_VIDEO        0x00000004     /* video instance information */
-#define CSN_DESTROY      0x00000008     /* surface is about to be destroyed */
-#define CSN_FLIP         0x00000010     /* surface buffer pointer swapped */
+struct _Chunk;
 
 typedef struct _CoreSurface CoreSurface;
 
 typedef enum {
-     SL_OK = 0,
-     SL_REMOVE
-} SLResult;
+     CSNF_SIZEFORMAT  = 0x00000001,     /* width, height, format */
+     CSNF_SYSTEM      = 0x00000002,     /* system instance information */
+     CSNF_VIDEO       = 0x00000004,     /* video instance information */
+     CSNF_DESTROY     = 0x00000008,     /* surface is about to be destroyed */
+     CSNF_FLIP        = 0x00000010      /* surface buffer pointer swapped */
+} CoreSurfaceNotificationFlags;
 
-typedef SLResult (*SurfaceListenerReceive)( CoreSurface *surface,
-                                            unsigned int flags, void *ctx );
+typedef struct {
+     CoreSurfaceNotificationFlags  flags;
+     CoreSurface                  *surface;
+} CoreSurfaceNotification;
 
-typedef struct _SurfaceListener
-{
-     unsigned int  filter;
-     void         *ctx;
-
-     SurfaceListenerReceive   receive;
-
-     struct _SurfaceListener *next;
-} SurfaceListener;
 
 typedef struct
 {
@@ -101,9 +93,7 @@ struct _CoreSurface
                                               SurfaceBuffer because of flipping
                                               that just swaps the pointers */
 
-     /* surface attribute listeners */
-     SurfaceListener       *listeners;     /* listeners list and access mutex */
-     pthread_mutex_t        listeners_mutex;
+     Reactor               *reactor;       /* event dispatcher */
 
      /* doubly linked list */
      CoreSurface           *next;
@@ -140,30 +130,24 @@ DFBResult surface_reformat( CoreSurface *surface, int width, int height,
                             DFBSurfacePixelFormat format );
 
 /*
+ * helper function
+ */
+static inline void surface_notify_listeners( CoreSurface *surface,
+                                             CoreSurfaceNotificationFlags flags)
+{
+     CoreSurfaceNotification notification;
+
+     notification.flags   = flags;
+     notification.surface = surface;
+
+     reactor_dispatch( surface->reactor, &notification );
+}
+
+/*
  * really swaps front_buffer and back_buffer if they have the same policy,
  * otherwise it does a back_to_front_copy, notifies listeners
  */
 void surface_flip_buffers( CoreSurface *surface );
-
-/*
- * add a callback function to be called when a notify event is cast
- * via surface_notify() that matches the specified filter
- */
-void surface_install_listener( CoreSurface *surface,
-                               SurfaceListenerReceive receive,
-                               unsigned int filter, void *ctx );
-
-/*
- * remove a listener from the list
- */
-void surface_remove_listener( CoreSurface *surface,
-                              SurfaceListenerReceive receive,
-                              void *ctx );
-
-/*
- * call every listener whose filter contains at least one of the flags
- */
-void surface_notify_listeners( CoreSurface *surface, unsigned int flags );
 
 /*
  * lock a surface for access by software, returns a pointer to the

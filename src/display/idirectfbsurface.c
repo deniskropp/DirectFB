@@ -56,7 +56,7 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      state_set_destination( &data->state, NULL );
      state_set_source( &data->state, NULL );
 
-     surface_remove_listener( data->surface, IDirectFBSurface_listener, thiz );
+     reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
 
      if (!(data->caps & DSCAPS_SUBSURFACE))
           surface_destroy( data->surface );
@@ -1064,8 +1064,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      /* all other values got zero */
      state_set_destination( &data->state, surface );
 
-     surface_install_listener( surface,
-                               IDirectFBSurface_listener, CSN_DESTROY, thiz );
+     reactor_attach( surface->reactor, IDirectFBSurface_listener, thiz );
 
      data->state.clip.x1 = data->clip_rect.x;
      data->state.clip.y1 = data->clip_rect.y;
@@ -1115,23 +1114,26 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 }
 
 
-SLResult IDirectFBSurface_listener( CoreSurface  *surface,
-                                    unsigned int  flags,
-                                    void         *ctx )
+ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
 {
+     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      IDirectFBSurface      *thiz = (IDirectFBSurface*)ctx;
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
 
-     if (data) {
-          DEBUGMSG("IDirectFBSurface: "
-                   "CoreSurface vanished! I'm dead now!!!\n");
+     if (notification->flags & CSNF_DESTROY) {
+          if (data) {
+               DEBUGMSG("IDirectFBSurface: "
+                        "CoreSurface vanished! I'm dead now!!!\n");
 
-          thiz->Unlock( thiz );
+               thiz->Unlock( thiz );
 
-          free( data );
-          thiz->priv = NULL;
+               free( data );
+               thiz->priv = NULL;
+          }
+
+          return RS_REMOVE;
      }
 
-     return SL_REMOVE;
+     return RS_OK;
 }
 

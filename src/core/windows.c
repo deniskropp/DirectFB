@@ -48,8 +48,9 @@
 static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
                                  int width, int height, int erase );
 static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y );
-static void windowstack_inputdevice_react( const void *msg_data, void *ctx );
 static int windowstack_handle_enter_leave_focus( CoreWindowStack *stack );
+static ReactionResult windowstack_inputdevice_react( const void *msg_data,
+                                                     void       *ctx );
 
 
 CoreWindowStack* windowstack_new( DisplayLayer *layer )
@@ -827,7 +828,8 @@ static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y )
      return NULL;
 }
 
-static void windowstack_inputdevice_react( const void *msg_data, void *ctx )
+static ReactionResult windowstack_inputdevice_react( const void *msg_data,
+                                                     void       *ctx )
 {
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
 
@@ -883,13 +885,15 @@ static void windowstack_inputdevice_react( const void *msg_data, void *ctx )
                                                          0, evt->axisrel );
                               break;
                          default:
-                              return;
+                              return RS_OK;
                     }
                }
                break;
           default:
                break;
      }
+
+     return RS_OK;
 }
 
 void windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )

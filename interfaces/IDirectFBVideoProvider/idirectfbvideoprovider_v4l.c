@@ -67,8 +67,7 @@ static const unsigned int zero = 0;
 static const unsigned int one = 1;
 
 static void* FrameThread( void *context );
-static SLResult v4l_surface_listener( CoreSurface *surface,
-                                      unsigned int flags, void *ctx );
+static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx );
 static DFBResult v4l_to_surface( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data );
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data );
@@ -357,12 +356,11 @@ static void* FrameThread( void *ctx )
 }
 
 
-static SLResult v4l_surface_listener( CoreSurface *surface, unsigned int flags,
-                                      void *ctx )
+static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
 {
      v4l_stop( (IDirectFBVideoProvider_V4L_data*)ctx );
 
-     return SL_REMOVE;
+     return RS_REMOVE;
 }
 
 /************/
