@@ -1,3 +1,712 @@
+2002-08-22	22:20	Sven Neumann <sven@convergence.de>
+
+	Files:	NEWS (1.32) (+6 -1)
+		include/directfb.h (1.143) (+8 -7)
+	
+	Updated NEWS.
+	Forced directfb.h into 80 columns.
+	
+2002-08-22	22:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.33) (+3 -2)
+	
+	cheating ;)
+	
+2002-08-22	22:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.79) (+13 -8)
+	
+	Do a skirmish_prevail during shutdown if it's no emergency instead of the
+	skirmish_swoop loop.
+	
+2002-08-22	22:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.19) (+2 -2)
+		src/core/fusion/reactor.c (1.14) (+4 -1)
+		src/core/fusion/fusion_internal.h (1.13) (+2 -2)
+	
+	Added "do { ... } while (0)" to debug macros.
+	
+	Don't print an error if message queue id is removed, but print a debug message.
+	
+2002-08-22	21:58	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/savage_streams_old.c (1.6) (+10 -32)
+		src/core/fbdev/fbdev.h (1.5) (+0 -2)
+		src/core/fbdev/fbdev.c (1.9) (+2 -2)
+	
+	Made init_modes a static function again.
+	
+	Call the original InitLayer function and modify the configuration
+	instead of doing the whole setup in savagePrimaryInitLayer().
+	
+2002-08-22	21:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.47) (+2 -2)
+		src/core/fusion/ref.c (1.9) (+6 -2)
+		src/core/fusion/reactor.c (1.13) (+1 -1)
+		src/core/fbdev/fbdev.c (1.8) (+9 -0)
+		src/core/windows.c (1.93) (+0 -5)
+		src/core/surfaces.h (1.31) (+6 -0)
+		src/core/surfaces.c (1.50) (+121 -92)
+	
+	Shutdown input core before anything else to stop input threads early enough.
+	
+	Don't create a palette for non indexed surfaces by default.
+	Create it on demand during surface reformation.
+	
+	Fixed missing initialization of semop flags regarding global references.
+	
+2002-08-22	21:06	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.35) (+6 -6)
+	
+	Made the GIF provider less verbose.
+	
+2002-08-22	20:42	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/palette.c (1.5) (+21 -24)
+		src/misc/colorhash.h (1.1) ( )
+		src/misc/colorhash.c (1.1) ( )
+		src/misc/Makefile.am (1.9) (+2 -0)
+		src/core/palette.h (1.5) (+2 -0)
+	
+	Added a global (per process) color hash table to speedup palette lookups.
+	
+2002-08-22	19:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/dbox2remote/dbox2remote.c (1.12) (+11 -13)
+		src/core/thread.h (1.1) ( )
+		src/core/thread.c (1.1) ( )
+		src/core/sig.h (1.7) (+1 -9)
+		src/core/sig.c (1.14) (+17 -3)
+		src/core/coretypes.h (1.10) (+2 -1)
+		src/core/Makefile.am (1.16) (+2 -0)
+		inputdrivers/sonypi/sonypi.c (1.6) (+10 -13)
+		inputdrivers/serialmouse/serialmouse.c (1.22) (+17 -24)
+		inputdrivers/ps2mouse/ps2mouse.c (1.33) (+10 -15)
+		inputdrivers/lirc/lirc.c (1.14) (+10 -13)
+		inputdrivers/linux_input/linux_input.c (1.7) (+11 -9)
+		inputdrivers/keyboard/keyboard.c (1.41) (+9 -14)
+		inputdrivers/joystick/joystick.c (1.18) (+10 -15)
+		inputdrivers/h3600_ts/h3600_ts.c (1.12) (+11 -15)
+	
+	Added core functions for thread management
+	to have input drivers pthread independent for easier porting.
+	
+	Input threads get a higher priority now.
+	
+2002-08-22	17:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/fusion_internal.h (1.12) (+1 -0)
+		src/core/fusion/property.c (1.5) (+30 -30)
+	
+	Fixed dead lock in recently implemented FusionProperty (multi app).
+	
+2002-08-22	12:28	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/mmio.h (1.3) (+13 -3)
+		src/core/fbdev/fbdev.h (1.4) (+2 -2)
+		src/core/fbdev/fbdev.c (1.7) (+2 -2)
+		gfxdrivers/savage/savage_streams_old.c (1.5) (+46 -20)
+		gfxdrivers/savage/savage4.c (1.4) (+14 -4)
+		gfxdrivers/savage/savage.c (1.3) (+1 -33)
+	
+	Applied a patch from Alex Song <alexsong@comports.com> that add
+	flipping support to the secondary layer.
+	
+	Export former internal function init_modes() as dfb_fbdev_init_modes().
+	
+2002-08-20	19:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.92) (+7 -1)
+	
+	Modules are installed to ".../lib/directfb-0...-debug/" if debug is enabled
+	to avoid dynamic linker errors.
+	
+2002-08-20	19:35	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.32) (+13 -1)
+	
+	minor update
+	
+2002-08-20	19:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/coredefs.h (1.18) (+1 -1)
+		src/misc/mem.c (1.6) (+9 -0)
+		src/core/fusion/fusion_internal.h (1.11) (+7 -5)
+	
+	Added malloc/calloc/strdup debug output.
+	Beautified debug output and made fusion debug output like the core's DEBUGMSG.
+	
+2002-08-20	17:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.20) (+2 -3)
+		src/core/fbdev/fbdev.c (1.6) (+1 -1)
+		src/core/windows.c (1.92) (+3 -2)
+		src/core/surfaces.h (1.30) (+8 -5)
+		src/core/surfaces.c (1.49) (+18 -13)
+		src/core/layers.c (1.59) (+1 -1)
+		src/core/fonts.c (1.24) (+1 -1)
+		src/idirectfb.c (1.70) (+2 -2)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.21) (+1 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.26) (+2 -2)
+	
+	Surfaces can now be created (in core) using the palette of another surface.
+	Window surfaces are now created with the layer's palette (real reference).
+	
+2002-08-20	17:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.91) (+0 -4)
+	
+	Removed locking recently added.
+	
+2002-08-20	17:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.69) (+6 -4)
+		src/display/idirectfbsurface.c (1.54) (+7 -2)
+		src/display/idirectfbpalette.h (1.2) (+2 -2)
+		src/display/idirectfbpalette.c (1.7) (+18 -56)
+		src/core/surfaces.c (1.48) (+23 -1)
+		src/core/state.c (1.12) (+9 -11)
+		src/core/palette.h (1.4) (+12 -3)
+		src/core/palette.c (1.4) (+26 -4)
+	
+	IDirectFBPalette is now completely independent from surfaces.
+	Added palette notification for entry modifications and palette destruction.
+	Attach a palette listener to a surface's palette to notify surface listeners.
+	
+2002-08-20	16:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.90) (+1 -1)
+	
+	Unref surface after linking it instead of unref during window destruction.
+	
+2002-08-20	16:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.78) (+10 -0)
+		src/core/surfaces.h (1.29) (+1 -2)
+		src/core/surfaces.c (1.47) (+12 -4)
+		src/core/palette.h (1.3) (+64 -4)
+		src/core/palette.c (1.3) (+36 -19)
+		src/core/gfxcard.h (1.33) (+2 -1)
+	
+	CorePalette is a FusionObject now with its own pool.
+	Currently each surface creation causes the creation of a palette object,
+	it's then linked to the surface object and unref'ed.
+	
+2002-08-19	18:21	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.93) (+7 -6)
+	
+	Indentation.
+	
+2002-08-19	16:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.58) (+2 -1)
+		src/core/fusion/shmalloc.h (1.10) (+6 -5)
+	
+	Provide shmalloc/shfree debugging for single app core.
+	Avoid calling shfree() with NULL.
+	
+2002-08-19	13:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.57) (+2 -1)
+		src/core/windows.c (1.89) (+7 -3)
+		src/core/surfacemanager.c (1.32) (+2 -0)
+	
+	Fixed cursor alpha blending.
+	Added 'CAUTION' messages to unimplemented cases of surface heap adjustment.
+	Added locking to window stack cursor handling.
+	
+2002-08-19	13:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.31) (+17 -23)
+	
+	removed obsolete entries, sorted entries by priority
+	
+2002-08-19	12:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.142) (+3 -1)
+		src/windows/idirectfbwindow.c (1.41) (+5 -1)
+		src/core/windows.c (1.88) (+6 -3)
+	
+	Added DWOP_ALPHACHANNEL to enable/disable per-pixel blending after creation.
+	Only supported by windows with the capability DWCAPS_ALPHACHANNEL, which have
+	it enabled by default.
+	
+2002-08-19	11:35	Sven Neumann <sven@convergence.de>
+
+	Files:	autogen.sh (1.6) (+1 -1)
+	
+	Removed bashism (function keyword).
+	
+2002-08-16	18:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.87) (+7 -17)
+	
+	minor simplification
+	
+2002-08-16	14:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.141) (+23 -11)
+		src/display/idirectfbdisplaylayer.c (1.38) (+10 -7)
+		src/core/windows.h (1.31) (+1 -0)
+		src/core/windows.c (1.86) (+10 -5)
+		src/core/surfaces.h (1.28) (+3 -0)
+		src/core/surfaces.c (1.46) (+110 -48)
+		src/core/surfacemanager.c (1.31) (+5 -3)
+		src/core/layers.h (1.34) (+1 -0)
+		src/core/layers.c (1.56) (+5 -4)
+		src/idirectfb.c (1.68) (+1 -1)
+	
+	Added DSCAPS_STATIC_ALLOC and DWDESC_SURFACE_CAPS.
+	
+2002-08-16	13:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.5) (+1 -0)
+	
+	Fixed bug introduced last night.
+	
+2002-08-16	12:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.45) (+3 -13)
+	
+	Don't lock/unlock buffers during surface destruction.
+	
+2002-08-16	08:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.46) (+11 -7)
+		src/core/fbdev/fbdev.h (1.3) (+6 -0)
+		src/core/fbdev/fbdev.c (1.4) (+50 -0)
+		src/core/gfxcard.h (1.32) (+1 -1)
+		src/core/gfxcard.c (1.77) (+10 -56)
+	
+	Framebuffer is now mapped by 'fbdev' instead of 'gfxcard'.
+	Reordered initialization/shutdown/join/leave calls in 'core'.
+	
+2002-08-16	03:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.10) (+0 -1)
+		src/core/fbdev/fbdev.h (1.2) (+1 -0)
+		src/core/fbdev/fbdev.c (1.3) (+3 -1)
+		src/idirectfb.c (1.67) (+1 -1)
+	
+	EnumVideoModes handles bpp again.
+	
+2002-08-16	02:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.9) (+0 -1)
+		src/core/fusion/property.h (1.6) (+48 -56)
+		src/core/fusion/property.c (1.4) (+286 -29)
+		src/core/layers.c (1.55) (+25 -29)
+		TODO (1.30) (+0 -1)
+	
+	Implemented FusionProperty in multi application mode (via three semaphores).
+	Implemented backup/restore of the layer configuration before/after excl. access.
+	
+2002-08-15	21:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbdisplaylayer.c (1.37) (+50 -2)
+	
+	A bit work on cooperative levels.
+	
+2002-08-15	21:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfacemanager.c (1.30) (+4 -0)
+	
+	Avoid endless waiting during deallocation.
+	
+2002-08-15	18:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.140) (+8 -8)
+		src/directfb.c (1.51) (+7 -2)
+	
+	DirectFBError() and DirectFBErrorFatal() return the error code now for easier
+	code (e.g. return DirectFBError(...)).
+	
+2002-08-13	19:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.54) (+1 -1)
+	
+	Made debug message an error message (background surface vanished).
+	
+2002-08-13	17:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.53) (+11 -7)
+	
+	Background image is now persistent (application can exit after setting it).
+	
+2002-08-13	17:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/fusion_internal.h (1.10) (+4 -1)
+	
+	Fusion debug messages are printed only if debugging is enabled at runtime.
+	
+2002-08-13	16:43	Sven Neumann <sven@convergence.de>
+
+	Files:	patches/Makefile.am (1.20) (+1 -1)
+	
+	Updated the Makefile accordingly.
+	
+2002-08-13	16:42	Sven Neumann <sven@convergence.de>
+
+	Files:	patches/README.savagefb (1.3) (+4 -3)
+		patches/savagefb-0.4.0-linux-2.4.19.patch.bz2 (1.1) ( )
+		patches/savagefb-0.4.0-linux-2.4.17.patch.bz2 (1.2) (+0 -0)
+	
+	Updated savagefb-0.4.0 patch based on a patch from Alex Song.
+	
+2002-08-13	16:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/neomagic/neo_overlay.c (1.9) (+16 -1)
+	
+	Implemented ovlFlipBuffers().
+	
+2002-08-13	15:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.29) (+0 -1)
+		src/core/windows.h (1.30) (+7 -3)
+		src/core/windows.c (1.85) (+63 -60)
+		src/core/surfacemanager.h (1.11) (+2 -0)
+		src/core/surfacemanager.c (1.29) (+33 -3)
+		src/core/state.h (1.11) (+3 -5)
+		src/core/state.c (1.11) (+32 -9)
+		src/core/layers.h (1.33) (+1 -0)
+		src/core/layers.c (1.52) (+34 -7)
+		src/core/gfxcard.c (1.76) (+2 -0)
+	
+	CardState is a local resource now, using a mutex instead of a skirmish.
+	The state for window stack updates is now located in the local layer data.
+	Added deinitialization of the surface manager.
+	
+	No resource leak by starting/exitting a small application.
+	
+2002-08-13	11:56	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.92) (+43 -2)
+	
+	Implemented Sop_lut8_Sto_Dacc() and Sop_a8_Sto_Dacc().
+	
+2002-08-13	11:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.25) (+4 -4)
+	
+	more compile fixes
+	
+2002-08-12	23:58	Sven Neumann <sven@convergence.de>
+
+	Files:	data/Makefile.am (1.2) (+1 -17)
+	
+	cleanup
+	
+2002-08-12	20:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.24) (+16 -22)
+	
+	Hopefully compiles again.
+	
+2002-08-12	19:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.28) (+1 -0)
+	
+	Another TODO item: synchronous messages
+	
+2002-08-12	19:27	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.27) (+1 -1)
+	
+	Added TODO item for making CardState local only.
+	
+2002-08-12	19:11	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.45) (+6 -2)
+	
+	Don't install signal handler for slaves.
+	
+2002-08-12	18:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.51) (+9 -6)
+		src/windows/idirectfbwindow.c (1.40) (+4 -4)
+		src/display/idirectfbsurface_window.c (1.25) (+1 -1)
+		src/core/windows.h (1.29) (+7 -4)
+		src/core/windows.c (1.84) (+52 -21)
+	
+	Made CoreWindow a FusionObject.
+	
+2002-08-12	17:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.44) (+2 -1)
+		src/core/fusion/shmalloc.h (1.9) (+5 -0)
+		src/core/fusion/object.h (1.2) (+2 -1)
+		src/core/fusion/object.c (1.2) (+15 -7)
+		src/core/fusion/fusion_shmalloc.c (1.3) (+23 -0)
+	
+	Each object pool has a name now.
+	
+	Added shstrdup().
+	
+2002-08-12	16:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.20) (+2 -0)
+		src/display/idirectfbsurface_window.c (1.24) (+0 -2)
+		src/display/idirectfbsurface.c (1.53) (+11 -8)
+		src/display/idirectfbpalette.c (1.6) (+3 -3)
+		src/core/fusion/ref.c (1.8) (+1 -0)
+		src/core/fusion/reactor.h (1.4) (+4 -4)
+		src/core/fusion/reactor.c (1.12) (+55 -30)
+		src/core/fusion/object.h (1.1) ( )
+		src/core/fusion/object.c (1.1) ( )
+		src/core/fusion/fusion_types.h (1.6) (+5 -2)
+		src/core/fusion/fusion_internal.h (1.9) (+4 -2)
+		src/core/fusion/Makefile.am (1.8) (+2 -0)
+		src/core/fbdev/fbdev.c (1.2) (+3 -6)
+		src/core/windows.c (1.83) (+6 -4)
+		src/core/surfaces.h (1.27) (+63 -7)
+		src/core/surfaces.c (1.43) (+50 -21)
+		src/core/surfacemanager.h (1.10) (+0 -6)
+		src/core/surfacemanager.c (1.28) (+0 -29)
+		src/core/state.c (1.10) (+6 -6)
+		src/core/layers.c (1.50) (+20 -15)
+		src/core/gfxcard.h (1.31) (+2 -1)
+		src/core/gfxcard.c (1.75) (+12 -0)
+		src/core/fonts.c (1.23) (+2 -3)
+		src/core/coredefs.h (1.17) (+2 -0)
+		src/idirectfb.c (1.66) (+5 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.41) (+2 -2)
+	
+	Added FusionObject which is currently used for surfaces and will be used for
+	windows (dynamic resource) or static resources like layers, input devices...
+	
+	Each FusionObject has a reference counter which is automatically decreased
+	if the process dies that increased it. Added bone collector thread that checks
+	for dead objects (zero reference) and calls the destructor (master only).
+	
+	Replaced dfb_surface_destroy() calls with dfb_surface_unref() calls.
+	
+	Each IDirectFBSurface instance increases the reference counter, so be careful
+	to release all sub surfaces.
+	
+2002-08-12	14:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/fusion.c (1.7) (+99 -23)
+	
+	cleanup
+	
+2002-08-11	14:32	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.91) (+9 -20)
+	
+	Reverted my last change since the compiler seems to like the old code better.
+	
+2002-08-11	14:26	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.90) (+20 -9)
+	
+	Cleaned up Bop_a8_set_alphapixel_Aop_rgb24().
+	
+2002-08-11	13:30	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/tree.c (1.14) (+1 -15)
+		src/misc/tree.h (1.8) (+7 -22)
+	
+	Removed unused locking code.
+	
+2002-08-11	12:52	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.91) (+1 -1)
+		src/gfx/generic/generic.c (1.89) (+12 -27)
+	
+	Aligned configure output.
+	Don't use duffs device for Bop_a8_set_alphapixel_Aop_lut8().
+	
+2002-08-09	17:35	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.88) (+56 -14)
+	
+	A better implementation of Bop_a8_set_alphapixel_Aop_lut8(). Much slower
+	but correct for AA glyphs and reasonably fast for monochrome ones.
+	
+2002-08-09	14:18	Sven Neumann <sven@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.87) (+2 -16)
+	
+	Reuse Bop_a8_set_alphapixel_Aop_lut8() for RGB332; it's the same code.
+	
+2002-08-09	13:37	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.74) (+6 -4)
+		src/gfx/generic/generic.c (1.86) (+51 -36)
+	
+	Set the color_index in the font_state as well.
+	
+	Added a simple implementation for Bop_a8_set_alphapixel_Aop_lut8().
+	
+2002-08-09	12:05	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.12) (+7 -0)
+	
+	Document the disable-module directfbrc option.
+	
+2002-08-09	11:21	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.29) (+5 -5)
+	
+	code cleanup
+	
+2002-08-09	10:37	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.32) (+21 -16)
+	
+	Introduced an enum for the stage to improve code readability.
+	Check if we reached our final stage in the inner loop of
+	push_data_until_stage(). PNG images load again :-)
+	
+2002-08-09	09:46	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.31) (+2 -1)
+	
+	Check that png_ptr is not NULL before calling png_destroy_read_struct().
+	
+2002-08-08	20:02	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfb-csource.1.in (1.3) (+4 -4)
+		tools/directfb-csource.c (1.10) (+15 -10)
+		src/gfx/convert.h (1.14) (+12 -5)
+	
+	Added inline function span_rgb32_to_rgb332().
+	Added support for RGB332 surfaces to directfb-csource.
+	
+2002-08-08	17:28	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/arena.c (1.6) (+3 -3)
+		src/core/fusion/shmalloc/shcalloc.c (1.5) (+2 -0)
+		src/core/fusion/ref.h (1.6) (+2 -2)
+		src/core/fusion/ref.c (1.7) (+8 -6)
+		src/core/fusion/reactor.c (1.11) (+1 -1)
+	
+	Added a bool "global" to fusion_ref_up/down(). A global reference is not bound
+	to any fusionee (anonymous reference) and won't be automatically decreased if
+	the fusionee that increased it dies. This will be useful for resource cleanup
+	if a core object is linked to another one (e.g. surface linked to window).
+	
+2002-08-08	16:56	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/savage/savage3d.c (1.2) (+0 -1)
+		gfxdrivers/savage/savage_streams_old.c (1.4) (+1 -1)
+	
+	Removed unnecessary include of core/fbdev.h from savage3d.c.
+	Include core/fbdev/fbdev.h from savage_streams_old.c :-(
+	
+2002-08-08	16:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.90) (+1 -0)
+		src/display/idirectfbsurface_layer.c (1.25) (+15 -14)
+		src/core/fbdev/vt.h (1.1) ( )
+		src/core/fbdev/vt.c (1.1) ( )
+		src/core/fbdev/fbdev.h (1.1) ( )
+		src/core/fbdev/fbdev.c (1.1) ( )
+		src/core/fbdev/Makefile.am (1.1) ( )
+		src/core/fbdev/.cvsignore (1.1) ( )
+		src/core/windows.c (1.82) (+13 -13)
+		src/core/vt.h (1.10) (+0 -0)
+		src/core/vt.c (1.30) (+0 -0)
+		src/core/sig.c (1.13) (+0 -1)
+		src/core/layers.c (1.49) (+16 -15)
+		src/core/gfxcard.c (1.73) (+18 -17)
+		src/core/fbdev.h (1.14) (+0 -0)
+		src/core/fbdev.c (1.73) (+0 -0)
+		src/core/core.c (1.44) (+17 -16)
+		src/core/Makefile.am (1.15) (+4 -7)
+		src/idirectfb.c (1.65) (+2 -1)
+		src/directfb.c (1.50) (+0 -1)
+		inputdrivers/keyboard/keyboard.c (1.40) (+2 -1)
+		gfxdrivers/matrox/matrox_bes.c (1.28) (+2 -1)
+	
+	Moved framebuffer device specific files to "src/core/fbdev/".
+	Only "gfxcard.c" still contains a bit fbdev code.
+	
+	Other files modified depend on the fbdev code which has to be fixed.
+	
+2002-08-08	16:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/media/idirectfbdatabuffer.c (1.4) (+9 -1)
+		src/media/idirectfbimageprovider.h (1.4) (+2 -0)
+		src/media/idirectfbimageprovider.c (1.3) (+10 -0)
+		src/media/idirectfbdatabuffer_streamed.c (1.8) (+1 -1)
+		src/media/idirectfbdatabuffer_memory.c (1.6) (+1 -1)
+		src/media/idirectfbdatabuffer_file.c (1.6) (+1 -1)
+		src/media/idirectfbdatabuffer.h (1.2) (+7 -2)
+	
+	A filename is now contained in the common private data of data buffers.
+	It is set if the databuffer is created for a file. Image providers that do
+	not support data streaming can use it as a fallback.
+	
+2002-08-08	15:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.30) (+3 -13)
+	
+	minor cleanup
+	
+2002-08-08	15:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.29) (+3 -0)
+	
+	Abort data streaming if error is detected.
+	
+2002-08-08	15:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.34) (+14 -0)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.28) (+48 -7)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.25) (+14 -0)
+	
+	Added DFB_UNIMPLEMENTED returning methods for SetRenderCallback().
+	Forgot to add a "return" if no system memory could be allocated.
+	Started implementing the render callback for PNGs, not working yet.
+	
+2002-08-08	14:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/media/idirectfbdatabuffer_streamed.c (1.7) (+1 -1)
+	
+	signed/unsigned switch
+	
+2002-08-08	14:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/media/idirectfbimageprovider.c (1.2) (+5 -0)
+	
+	Added WaitForData() call before peeking 32 bytes.
+	
+2002-08-08	14:54	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.9) (+24 -16)
+	
+	Added another format conversion by reordering the switch statement :-)
+	Put palette info into the DFBSurfaceDescription.
+	
+2002-08-08	14:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.139) (+26 -1)
+		src/idirectfb.c (1.64) (+26 -0)
+	
+	Added DSDESC_PALETTE which can be used to initialize the surface's palette.
+	
+	Added IDirectFBImageProvider::SetRenderCallback() that is not implemented yet.
+	
+2002-08-08	14:20	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/directfb-csource.c (1.8) (+28 -23)
+	
+	the final touch
+	
+2002-08-08	12:02	Sven Neumann <sven@convergence.de>
+
+	Files:	BUGS (1.8) (+1 -0)
+		NEWS (1.31) (+5 -0)
+		ChangeLog (1.25) (+318 -0)
+	
+	Updated NEWS and ChangeLog.
+	Mention the current problem with EnumVideoModes() in BUGS.
+	
 2002-08-08	11:45	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/directfb-csource.c (1.7) (+3 -1)

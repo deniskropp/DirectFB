@@ -11,7 +11,6 @@
 - Added support for interlaced surfaces with seperate field buffers to
   all drawing and blitting functions.
 - Added new drawing flag DSDRAW_XOR.
-- Changed SetSrcColorKey() to take RGB values just like SetDstColorKey().
 - Added support for color lookup tables. Added new surface type DSPF_LUT8
   and IDirectFBSurface::GetPalette() and IDirectFBSurface::SetPalette().
 - Added DSDESC_PALETTE to IDirectFBSurfaceDescription.
@@ -22,19 +21,21 @@
 - Added pre/demultiplication to drawing functions.
 - Added IDirectFBDisplayLayer::GetWindow().
 - Added input driver for linux input driver (/dev/input/eventX).
+- Improved resource management with automatic cleanup (multi app core).
 - Cleaned up vertical retrace handling.
 - Added DFFA_NOCHARMAP to DFBFontAttributes to allow to access glyphs by
   their raw indices.
-- Improved V4L video provider, added support for grabbing and planar YUV.
+- Improved V4L video provider, added support for grabbing and planar YUV. Thanks
+  to Ville Syrjala <syrjala@sci.fi> and Mike Pieper <mike@pieper-family.de>.
 - Fixed color key handling in GIF provider.
 - Improvements to the layer driver API.
 - Renamed DLCAPS_INTERLACED_VIDEO to DLCAPS_DEINTERLACING.
 - Renamed DLOP_INTERLACED_VIDEO to DLOP_DEINTERLACING.
 - Enabled acceleration for the second head of a dual head Matrox card.
 - Updated Matrox vsync IRQ patch.
-- Improved S3 Savage driver and framebuffer.
+- Improved S3 Savage drivers, thanks to Alex Song <alexsong@comports.com>.
 - Added directfb-csource, a C code generator for inline images.
-- Lots of bug-fixes.
+- Lots of bug-fixes, multi app core improvements.
 
 
 0.9.12
