@@ -35,22 +35,13 @@ typedef struct {
 } IDirectFBFont_data;
 
 /*
- * This constructor loads a TrueType font file,
- * after initializing the Core's Font struct it calls
- * the generic interface constructor below
+ * common code to construct the interface (internal usage only)
  */
-DFBResult IDirectFBFont_Construct_TTF( IDirectFBFont *thiz,
-                                       const char *filename,
-                                       DFBFontDescription *desc );
+DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font );
 
 /*
  * deinitialize font and its surface
  */
 void IDirectFBFont_Destruct( IDirectFBFont *thiz );
-
-/*
- * common code to construct the interface (internal usage only)
- */
-DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font );
 
 #endif
