@@ -38,6 +38,10 @@
 
 #include <pthread.h>
 
+#ifdef USE_ZLIB
+#include <zlib.h>
+#endif
+
 #include <core/fusion/shmalloc.h>
 
 #include <directfb.h>
@@ -753,15 +757,21 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                             const char  *directory,
                             const char  *prefix )
 {
-     DFBResult  ret;
-     int        num = -1;
-     int        fd_p, fd_g = -1, i, n;
-     int        len = strlen(directory) + strlen(prefix) + 11;
-     char       filename[len];
-     char       head[30];
-     void      *data;
-     int        pitch;
-     bool       alpha = false;
+     DFBResult          ret;
+     int                num = -1;
+     int                fd_p, fd_g = -1, i, n;
+     int                len = strlen(directory) + strlen(prefix) + 40;
+     char               filename[len];
+     char               head[30];
+     void              *data;
+     int                pitch;
+     bool               alpha = false;
+#ifdef USE_ZLIB
+     gzFile             gz_p, gz_g = NULL;
+     static const char *gz_ext = ".gz";
+#else
+     static const char *gz_ext = "";
+#endif
 
      DFB_ASSERT( surface != NULL );
      DFB_ASSERT( directory != NULL );
@@ -794,7 +804,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
      /* Create a file with the lowest unused pixmap index. */
      do {
-          snprintf( filename, len, "%s/%s_%04d.ppm", directory, prefix, ++num );
+          snprintf( filename, len, "%s/%s_%04d.ppm%s", directory, prefix, ++num, gz_ext );
 
           errno = 0;
 
@@ -811,7 +821,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
      /* Create a graymap for the alpha channel using the same index. */
      if (alpha) {
-          snprintf( filename, len, "%s/%s_%04d.pgm", directory, prefix, num );
+          snprintf( filename, len, "%s/%s_%04d.pgm%s", directory, prefix, num, gz_ext );
 
           fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_g < 0) {
@@ -822,24 +832,39 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
                close( fd_p );
 
-               snprintf( filename, len, "%s/%s_%04d.ppm",
-                         directory, prefix, num );
+               snprintf( filename, len, "%s/%s_%04d.ppm%s",
+                         directory, prefix, num, gz_ext );
                unlink( filename );
 
                return DFB_IO;
           }
      }
 
+#ifdef USE_ZLIB
+     gz_p = gzdopen( fd_p, "wb" );
+
+     if (alpha)
+          gz_g = gzdopen( fd_g, "wb" );
+#endif
+
      /* Write the pixmap header. */
      snprintf( head, 30,
                "P6\n%d %d\n255\n", surface->width, surface->height );
+#ifdef USE_ZLIB
+     gzwrite( gz_p, head, strlen(head) );
+#else
      write( fd_p, head, strlen(head) );
+#endif
 
      /* Write the graymap header. */
      if (alpha) {
           snprintf( head, 30,
                     "P5\n%d %d\n255\n", surface->width, surface->height );
+#ifdef USE_ZLIB
+          gzwrite( gz_g, head, strlen(head) );
+#else
           write( fd_g, head, strlen(head) );
+#endif
      }
 
      /* Write the pixmap (and graymap) data. */
@@ -912,15 +937,30 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           }
 
           /* Write color buffer to pixmap file. */
+#ifdef USE_ZLIB
+          gzwrite( gz_p, buf_p, surface->width * 3 );
+#else
           write( fd_p, buf_p, surface->width * 3 );
+#endif
 
           /* Write alpha buffer to graymap file. */
           if (alpha)
+#ifdef USE_ZLIB
+               gzwrite( gz_g, buf_g, surface->width );
+#else
                write( fd_g, buf_g, surface->width );
+#endif
      }
 
      /* Unlock the surface. */
      dfb_surface_unlock( surface, true );
+
+#ifdef USE_ZLIB
+     gzclose( gz_p );
+
+     if (alpha)
+          gzclose( gz_g );
+#endif
 
      /* Close pixmap file. */
      close( fd_p );

@@ -6,5 +6,5 @@ includedir=@includedir@
 Name: DirectFB
 Description: Graphics and windowing library for the Linux frame buffer device
 Version: @VERSION@
-Libs: -L${libdir} -ldirectfb @THREADLIB@ @DYNLIB@
+Libs: -L${libdir} -ldirectfb @THREADLIB@ @DYNLIB@ @ZLIB_LIBS@
 Cflags: @THREADFLAGS@ -I@INCLUDEDIR@

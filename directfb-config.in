@@ -232,7 +232,7 @@ if test "$echo_libs" = "yes"; then
       libs=-L@libdir@
 
       if test "$lib_directfb" = "yes"; then
-	 libs="$libs -ldirectfb @THREADLIB@"
+	 libs="$libs -ldirectfb @THREADLIB@ @ZLIB_LIBS@"
 
 	 if test -z "$echo_static"; then
 	    libs="$libs @DYNLIB@"
