@@ -712,8 +712,6 @@ if test "$V4L" = "yes"; then
 fi
 
 
-wm97xx_ts=no
-
 dnl check which gfxdrivers to build
 ati=no
 cyber5k=no
@@ -993,61 +991,175 @@ AC_EGREP_CPP(yes, [
 *** VIA Unichrome gfxdriver will not be built.]))
 fi
 
+# lets check for input driver
 
-AC_ARG_ENABLE(linux-input,
-  [  --enable-linux-input      build Linux Input driver [default=no]],
-  enable_linux_input="$enableval", enable_linux_input=no)
+checkfor_dbox2remote=no
+checkfor_elo=no
+checkfor_h3600ts=no
+checkfor_joystick=no
+checkfor_keyboard=no
+checkfor_linux_input=no
+checkfor_lirc=no
+checkfor_mutouch=no
+checkfor_ps2mouse=no
+checkfor_serialmouse=no
+checkfor_sonypijogdial=no
+checkfor_wm97xx=no
 
-AC_ARG_ENABLE(elo-input,
-  [  --enable-elo-input        build ELO Touchscreen input driver [default=no]],
-  enable_elo_input="$enableval", enable_elo_input=no)
+AC_MSG_CHECKING(which inputdrivers should be built)
+AC_ARG_WITH(inputdrivers,
+[  --with-inputdrivers=<list> compile inputdrivers in <list> ]
+[                             inputdrivers may be comma separated ]
+[                             'all' builds all drivers (default), 'none' builds none ]
+[                             Possible inputdrivers are: ]
+[                             dbox2remote, elo-input, h3600_ts, joystick, keyboard, ]
+[                             linuxinput, lirc, mutouch, ps2mouse, ]
+[                             serialmouse, sonypijogdial, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
-  dnl Test for H3600 Touchscreen support
-  AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
-    AC_MSG_WARN([
-*** H3600 Touchscreen driver will not be built.]))
-
-
-dnl Test for SonyPI Jogdial support
-AC_ARG_ENABLE(sonypi-jogdial,
-  [  --enable-sonypi-jogdial   build SonyPI Jogdial driver [default=auto]],,
-  enable_sonypi_jogdial=yes)
-
-if test x$enable_sonypi_jogdial = xyes; then
-  AC_CHECK_HEADER([linux/sonypi.h], sonypi_found=yes, sonypi_found=no)
-  if test "$sonypi_found" = no; then
-    enable_sonypi_jogdial=no
-    AC_MSG_WARN([
-*** no linux/sonypi.h -- SonyPI Jogdial driver will not be built.])
+if test "$inputdrivers" = "all"; then
+  checkfor_dbox2remote=yes
+  checkfor_elo=yes
+  checkfor_h3600ts=yes
+  checkfor_joystick=yes
+  checkfor_keyboard=yes
+  checkfor_linux_input=yes
+  checkfor_lirc=yes
+  checkfor_mutouch=yes
+  checkfor_ps2mouse=yes
+  checkfor_serialmouse=yes
+  checkfor_sonypijogdial=yes
+  checkfor_wm97xx=yes
+  AC_MSG_RESULT(all)
+else 
+  if test "$inputdrivers" != "none"; then
+    inputdrivers=`echo $inputdrivers | sed 's/,/ /g'`
+    for inputdriver in $inputdrivers
+    do
+      case "$inputdriver" in
+          dbox2remote)
+                  checkfor_dbox2remote=yes
+                  ;;
+          elo-input)
+                  checkfor_elo=yes
+                  ;;
+          h3600_ts)
+                  checkfor_h3600ts=yes
+                  ;;
+          joystick)
+                  checkfor_joystick=yes
+                  ;;
+          keyboard)
+                  checkfor_keyboard=yes
+                  ;;
+          linuxinput)
+                  checkfor_linux_input=yes
+                  ;;
+          lirc)
+                  checkfor_lirc=yes
+                  ;;
+          mutouch)
+                  checkfor_mutouch=yes
+                  ;;
+          ps2mouse)
+                  checkfor_ps2mouse=yes
+                  ;;
+          serialmouse)
+                  checkfor_serialmouse=yes
+                  ;;
+          sonypijogdial)
+                  checkfor_sonypijogdial=yes
+                  ;;
+          wm97xx)
+                  checkfor_wm97xx=yes
+                  ;;
+          *)
+                  echo "Unknown inputdriver $inputdriver, exiting!"
+                  exit 1
+                  ;;
+      esac
+    done
+    AC_MSG_RESULT($inputdrivers)
   fi
 fi
 
+enable_dbox2remote=no
+if test "$checkfor_dbox2remote" = "yes"; then
+  dnl Test for dbox2 remote support in the kernel
+    AC_CHECK_HEADER( [dbox/fp.h], enable_dbox2remote=yes, enable_dbox2remote=no
+    AC_MSG_WARN([*** DBox2 Remote input driver will not be built.]))
+fi
 
-  dnl Test for DBox2 Remote support
-  AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
-    AC_MSG_WARN([
-*** DBox2 Remote driver will not be built.]))
+enable_elo_ts=no
+if test "$checkfor_elo" = "yes"; then
+  dnl Test for ELO Touchscreen support
+  enable_elo_ts=yes
+fi
 
+enable_h3600_ts=no
+if test "checkfor_h3600ts" = "yes"; then
+  dnl Test for H3600 Touchscreen support
+  AC_CHECK_HEADER( [linux/h3600_ts.h], enable_h3600_ts=yes, enable_h3600_ts=no  
+    AC_MSG_WARN([*** H3600 Touchscreen driver will not be built.]))
+fi
 
+enable_joystick=no
+if test "$checkfor_joystick" = "yes"; then
+  dnl Test for linux/joystick.h in the kernel
+  
+  AC_CHECK_HEADER([linux/joystick.h], enable_joystick=yes, enable_joystick=no 
+     AC_MSG_WARN([*** no linux/joystick.h -- Joystick driver will not be built.]))
+fi
+
+enable_keyboard=no
+if test "$checkfor_keyboard" = "yes"; then
+    enable_keyboard=yes
+fi
+    
+enable_linux_input=no
+if test "$checkfor_linux_input" = "yes"; then
+    enable_linux_input=yes
+fi
+
+enable_lirc=no
+if test "$checkfor_lirc" = "yes"; then
+    enable_lirc=yes
+fi
+
+enable_mutouch=no
+if test "$checkfor_mutouch" = "yes"; then  
   dnl Allow to enable driver for Microtouch serial touchscreen
   dnl This driver is not built by default since it needs to be configured
   dnl by changing some defines in the source.
-  AC_ARG_ENABLE(mutouch,
-    [  --enable-mutouch          build Microtouch touchscreen driver [default=no]],
-    enable_mutouch="$enableval", enable_mutouch=no)
+    enable_mutouch=yes
+fi
 
+enable_ps2mouse=no
+if test "$checkfor_ps2mouse" = "yes"; then
+    enable_ps2mouse=yes
+fi
 
-  dnl Allow to enable driver for WM97xx Touchscreen support
-  AC_ARG_ENABLE(wm97xx,
-    [  --enable-wm97xx           build WM97xx touchscreen driver [default=no]],
-    enable_wm97xx="$enableval", enable_wm97xx=no)
+enable_serial_mouse=no
+if test "$checkfor_serialmouse" = "yes"; then
+  dnl Test for linux/serial.h in the kernel
+  AC_CHECK_HEADER([linux/serial.h], enable_serial_mouse=yes, enable_serial_mouse=no 
+     AC_MSG_WARN([*** no linux/serial.h -- serial mouse driver will not be built.]))
+fi
 
-  if test "$enable_wm97xx" = yes; then
-    AC_CHECK_HEADER( [linux/wm97xx.h], wm97xx_ts=yes, wm97xx_ts=no
-      AC_MSG_WARN([
-*** WM97XX Touchscreen driver will not be built.]))
-  fi
+enable_sonypi_jogdial=no
+if test "$checkfor_sonypijogdial" = "yes"; then
+  dnl Test for SonyPI Jogdial support
+  AC_CHECK_HEADER([linux/sonypi.h], enable_sonypi_jogdial=yes, enable_sonypi_jogdial=no 
+    AC_MSG_WARN([*** no linux/sonypi.h -- SonyPI Jogdial driver will not be built.]))
+fi
 
+enable_wm97xx_ts=no
+if test "$checkfor_wm97xx" = "yes"; then
+  dnl Test for WM97xx Touchscreen support
+  AC_CHECK_HEADER([linux/wm97xx.h], enable_wm97xx_ts=yes, enable_wm97xx_ts=no 
+    AC_MSG_WARN([*** WM97XX Touchscreen driver will not be built.]))
+fi
+ 
+ dnl *** end of if $testlinux ***
 fi
 
 
@@ -1085,14 +1197,20 @@ AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
 AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 
+AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(ELO_INPUT, test "$enable_elo_input" = "yes")
+AM_CONDITIONAL(H3600_TS, test "$enable_h3600_ts" = "yes")
+AM_CONDITIONAL(JOYSTICK_INPUT, test "$enable_joystick" = "yes")
+AM_CONDITIONAL(KEYBOARD_INPUT, test "$enable_keyboard" = "yes")
 AM_CONDITIONAL(LINUX_INPUT, test "$enable_linux_input" = "yes")
-AM_CONDITIONAL(H3600_TS, test "$h3600_ts" = "yes")
-AM_CONDITIONAL(UCB1X00_TS, test "$have_arm" = "yes")
-AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
-AM_CONDITIONAL(DBOX2REMOTE, test "$dbox2remote" = "yes")
+AM_CONDITIONAL(LIRC_INPUT, test "$enable_lirc" = "yes")
 AM_CONDITIONAL(MUTOUCH_TS, test "$enable_mutouch" = "yes")
-AM_CONDITIONAL(WM97XX_TS, test "$wm97xx_ts" = "yes")
+AM_CONDITIONAL(PS2MOUSE_INPUT, test "$enable_ps2mouse" = "yes")
+AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
+AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
+AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
+
+AM_CONDITIONAL(UCB1X00_TS, test "$have_arm" = "yes")
 
 AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
 AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = "yes")
@@ -1320,19 +1438,19 @@ Building Graphics Drivers:
   VIA UniChrome             $unichrome
 
 Building Input Drivers:
-  DBox2 Remote              $dbox2remote
-  ELO Touchscreen           $enable_elo_input
-  H3600 Touchscreen         $h3600_ts
-  Joystick                  yes
-  Keyboard                  yes
+  DBox2 Remote              $enable_dbox2remote
+  ELO Touchscreen           $enable_elo_ts
+  H3600 Touchscreen         $enable_h3600_ts
+  Joystick                  $enable_joystick
+  Keyboard                  $enable_keyboard
   Linux Input               $enable_linux_input
-  LiRC                      yes
+  LiRC                      $enable_lirc
   MuTouch touchscreen       $enable_mutouch
-  PS/2 Mouse                yes
-  Serial Mouse              yes
+  PS/2 Mouse                $enable_ps2mouse
+  Serial Mouse              $enable_serial_mouse
   SonyPI Jogdial            $enable_sonypi_jogdial
   ucb1x00 Touchscreen       $have_arm
-  WM97xx Touchscreen        $wm97xx_ts]);
+  WM97xx Touchscreen        $enable_wm97xx_ts]);
 fi
 
 AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning

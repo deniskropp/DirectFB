@@ -4,6 +4,26 @@ if ELO_INPUT
 ELO_INPUT_DIR = elo
 endif
 
+if JOYSTICK_INPUT
+JOYSTICK_INPUT_DIR = joystick
+endif
+
+if SERIAL_MOUSE_INPUT
+SERIALMOUSE_INPUT_DIR = serialmouse
+endif
+
+if KEYBOARD_INPUT
+KEYBOARD_INPUT_DIR = keyboard
+endif
+
+if PS2MOUSE_INPUT
+PS2MOUSE_INPUT_DIR = ps2mouse
+endif
+
+if LIRC_INPUT
+LIRC_INPUT_DIR = lirc
+endif
+
 if LINUX_INPUT
 LINUX_INPUT_DIR = linux_input
 endif
@@ -34,12 +54,12 @@ endif
 
 SUBDIRS = \
 	$(ELO_INPUT_DIR)	\
-	joystick		\
-	keyboard		\
+	$(JOYSTICK_INPUT_DIR)	\
+	$(KEYBOARD_INPUT_DIR)	\
 	$(LINUX_INPUT_DIR)	\
-	lirc			\
-	ps2mouse		\
-	serialmouse		\
+	$(LIRC_INPUT_DIR)	\
+	$(PS2MOUSE_INPUT_DIR)	\
+	$(SERIALMOUSE_INPUT_DIR) \
 	$(H3600_TS_DIR)		\
 	$(UCB1X00_TS_DIR)	\
 	$(MUTOUCH_TS_DIR)	\
