@@ -48,10 +48,11 @@ static DFBDisplayLayerDescription  desc;
 
 /*****************************************************************************/
 
-static DFBDisplayLayerID     id     = DLID_PRIMARY;
-static int                   width  = 0;
-static int                   height = 0;
-static DFBSurfacePixelFormat format = DSPF_UNKNOWN;
+static DFBDisplayLayerID         id         = DLID_PRIMARY;
+static int                       width      = 0;
+static int                       height     = 0;
+static DFBSurfacePixelFormat     format     = DSPF_UNKNOWN;
+static DFBDisplayLayerBufferMode buffermode = -1;
 
 /*****************************************************************************/
 
@@ -135,8 +136,9 @@ print_usage (const char *prg_name)
      fprintf (stderr, "Usage: %s [options]\n\n", prg_name);
      fprintf (stderr, "Options:\n");
      fprintf (stderr, "   -l, --layer   <id>              Use the specified layer, default is primary\n");
-     fprintf (stderr, "   -m, --mode    <width>x<height>  Change the layer's resolution\n");
-     fprintf (stderr, "   -f, --format  <pixelformat>     Change the layer's pixel format\n");
+     fprintf (stderr, "   -m, --mode    <width>x<height>  Change the resolution (pixels)\n");
+     fprintf (stderr, "   -f, --format  <pixelformat>     Change the pixel format\n");
+     fprintf (stderr, "   -b, --buffer  <buffermode>      Change the buffer mode (single/video/system)\n");
      fprintf (stderr, "   -h, --help                      Show this help message\n");
      fprintf (stderr, "   -v, --version                   Print version information\n");
      fprintf (stderr, "\n");
@@ -146,7 +148,7 @@ print_usage (const char *prg_name)
      while (format_names[i].format != DSPF_UNKNOWN) {
           DFBSurfacePixelFormat format = format_names[i].format;
 
-          fprintf (stderr, "    %-10s %2d bits, %d bytes",
+          fprintf (stderr, "   %-10s %2d bits, %d bytes",
                    format_names[i].name, DFB_BITS_PER_PIXEL(format),
                    DFB_BYTES_PER_PIXEL(format));
 
@@ -159,7 +161,7 @@ print_usage (const char *prg_name)
           if (DFB_PLANAR_PIXELFORMAT(format)) {
                int planes = DFB_PLANE_MULTIPLY(format, 1000);
                
-               fprintf (stderr, "   PLANAR (%d.%03d)",
+               fprintf (stderr, "   PLANAR (x%d.%03d)",
                         planes / 1000, planes % 1000);
           }
 
@@ -167,6 +169,13 @@ print_usage (const char *prg_name)
 
           ++i;
      }
+     fprintf (stderr, "\n");
+
+     fprintf (stderr, "Valid buffer modes:\n");
+     fprintf (stderr, "   FRONTONLY     or 'single'\n");
+     fprintf (stderr, "   BACKVIDEO     or 'video'\n");
+     fprintf (stderr, "   BACKSYSTEM    or 'system'\n");
+     fprintf (stderr, "   TRIPLE\n");
 
      fprintf (stderr, "\n");
      fprintf (stderr, "Specifying neither mode nor format just displays the current configuration.\n");
@@ -217,6 +226,25 @@ parse_format( const char *arg )
      fprintf (stderr, "\nInvalid format specified!\n\n" );
 
      return DFB_FALSE;
+}
+
+static DFBBoolean
+parse_buffermode( const char *arg )
+{
+     if (!strcasecmp( arg, "single" ) || !strcasecmp( arg, "frontonly" ))
+          buffermode = DLBM_FRONTONLY;
+     else if (!strcasecmp( arg, "system" ) || !strcasecmp( arg, "backsystem" ))
+          buffermode = DLBM_BACKSYSTEM;
+     else if (!strcasecmp( arg, "video" ) || !strcasecmp( arg, "backvideo" ))
+          buffermode = DLBM_BACKVIDEO;
+     else if (!strcasecmp( arg, "triple" ))
+          buffermode = DLBM_TRIPLE;
+     else {
+          fprintf (stderr, "\nInvalid buffer mode specified!\n\n" );
+          return DFB_FALSE;
+     }
+     
+     return DFB_TRUE;
 }
 
 static DFBBoolean
@@ -272,6 +300,18 @@ parse_command_line( int argc, char *argv[] )
 
                continue;
           }
+
+          if (strcmp (arg, "-b") == 0 || strcmp (arg, "--buffer") == 0) {
+               if (++n == argc) {
+                    print_usage (argv[0]);
+                    return DFB_FALSE;
+               }
+
+               if (!parse_buffermode( argv[n] ))
+                    return DFB_FALSE;
+
+               continue;
+          }
           
           print_usage (argv[0]);
 
@@ -307,6 +347,11 @@ set_configuration()
           config.flags       |= DLCONF_PIXELFORMAT;
           config.pixelformat  = format;
      }
+     
+     if (buffermode != -1) {
+          config.flags      |= DLCONF_BUFFERMODE;
+          config.buffermode  = buffermode;
+     }
 
      if (config.flags) {
           ret = layer->SetConfiguration( layer, &config );
@@ -323,15 +368,37 @@ set_configuration()
      }
      
      if (config.flags & DLCONF_WIDTH)
-          printf( "Width   %d\n", config.width );
+          printf( "Width       %d\n", config.width );
 
      if (config.flags & DLCONF_HEIGHT)
-          printf( "Height  %d\n", config.height );
+          printf( "Height      %d\n", config.height );
 
      if (config.flags & DLCONF_PIXELFORMAT)
-          printf( "Format  %s\n",
+          printf( "Format      %s\n",
                   format_names[DFB_PIXELFORMAT_INDEX(config.pixelformat)].name );
 
+     if (config.flags & DLCONF_BUFFERMODE) {
+          printf( "Buffermode  " );
+          
+          switch (config.buffermode) {
+               case DLBM_FRONTONLY:
+                    printf( "FRONTONLY\n" );
+                    break;
+               case DLBM_BACKVIDEO:
+                    printf( "BACKVIDEO\n" );
+                    break;
+               case DLBM_BACKSYSTEM:
+                    printf( "BACKSYSTEM\n" );
+                    break;
+               case DLBM_TRIPLE:
+                    printf( "TRIPLE\n" );
+                    break;
+               default:
+                    printf( "unknown!\n" );
+                    break;
+          }
+     }
+     
      printf( "\n" );
 }
 
