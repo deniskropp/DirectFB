@@ -112,6 +112,8 @@ static const char *config_usage =
      "  matrox-tv-standard=(pal|ntsc)  Matrox TV standard (default=pal)\n"
      "  matrox-cable-type=(composite|scart-rgb|scart-composite)\n"
      "                                 Matrox cable type (default=composite)\n"
+     "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
+     "  mut-device=<device>            Use this device for the MuTouch driver\n"
      "\n"
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -901,6 +903,30 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-capslock-meta" ) == 0) {
           dfb_config->capslock_meta = false;
+     } else
+     if (strcmp (name, "h3600-device" ) == 0) {
+          if (value) {
+               if (dfb_config->h3600_device)
+                    D_FREE( dfb_config->h3600_device );
+
+               dfb_config->h3600_device = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: No H3600 TS device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "mut-device" ) == 0) {
+          if (value) {
+               if (dfb_config->mut_device)
+                    D_FREE( dfb_config->mut_device );
+
+               dfb_config->mut_device = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: No MuTouch device specified!\n" );
+               return DFB_INVARG;
+          }
      }
      else
           return DFB_UNSUPPORTED;

@@ -83,7 +83,6 @@ DFB_INPUT_DRIVER( MuTouch )
 
 #define MuT_REPORT_SIZE		5
 #define MuT_PACKET_SIZE		10
-#define MuT_DEVICE		"/dev/ttyS0"
 #define MuT_SCREENWIDTH		800
 #define MuT_SCREENHEIGHT	600
 #define MuT_MINX		800
@@ -395,7 +394,10 @@ static int driver_get_available( void )
 {
      int fd;
 
-     fd = MuTOpenDevice (MuT_DEVICE);
+     if (!dfb_config->mut_device)
+          return 0;
+
+     fd = MuTOpenDevice (dfb_config->mut_device);
      if (fd < 0)
           return 0;
 
@@ -425,9 +427,9 @@ static DFBResult driver_open_device(CoreInputDevice *device,
      MuTData *data;
 
      /* open device */
-     fd = MuTOpenDevice (MuT_DEVICE);
+     fd = MuTOpenDevice (dfb_config->mut_device);
      if (fd < 0) {
-          D_PERROR("DirectFB/MuTouch: Error opening '"MuT_DEVICE"'!\n");
+          D_PERROR("DirectFB/MuTouch: Error opening '%s'!\n", dfb_config->mut_device);
           return DFB_INIT;
      }
 

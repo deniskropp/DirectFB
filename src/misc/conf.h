@@ -128,6 +128,10 @@ typedef struct
      bool       decorations;                      /* Enable window decorations. */
 
      DFBSurfacePixelFormat font_format;           /* Preferred font format. */
+
+     char      *h3600_device;                     /* H3600 Touchscreen Device */
+
+     char      *mut_device;                       /* MuTouch Device */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

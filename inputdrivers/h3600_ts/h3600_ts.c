@@ -135,7 +135,7 @@ static int driver_get_available()
 {
      int fd;
 
-     fd = open( "/dev/ts", O_RDONLY | O_NOCTTY );
+     fd = open( dfb_config->h3600_device ? : "/dev/ts", O_RDONLY | O_NOCTTY );
      if (fd < 0)
           return 0;
 
@@ -169,7 +169,7 @@ driver_open_device( CoreInputDevice      *device,
      H3600TSData *data;
 
      /* open device */
-     fd = open( "/dev/ts", O_RDONLY | O_NOCTTY );
+     fd = open( dfb_config->h3600_device ? : "/dev/ts", O_RDONLY | O_NOCTTY );
      if (fd < 0) {
           D_PERROR( "DirectFB/H3600: Error opening `/dev/ts'!\n" );
           return DFB_INIT;
