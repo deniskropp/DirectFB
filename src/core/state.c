@@ -50,17 +50,17 @@ static ReactionResult destination_listener( const void *msg_data,
           CoreSurface *surface = notification->surface;
 
           /* if this really happens everything should be clipped */
-          if (surface->width <= state->clip.x2)
+          if (surface->width <= state->clip.x1)
                state->clip.x1 = surface->width - 1;
-          if (surface->height <= state->clip.y2)
+          if (surface->height <= state->clip.y1)
                state->clip.y1 = surface->height - 1;
-          
-          
+
+
           if (surface->width <= state->clip.x2)
                state->clip.x2 = surface->width - 1;
           if (surface->height <= state->clip.y2)
                state->clip.y2 = surface->height - 1;
-          
+
           state->modified |= SMF_CLIP;
      }
 

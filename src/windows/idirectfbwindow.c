@@ -278,7 +278,7 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 
      window_resize( data->window, width, height );
 
-     if (data->surface) {
+/*     if (data->surface) {
           IDirectFBSurface_data *surface_data =
                                     (IDirectFBSurface_data*)data->surface->priv;
 
@@ -295,7 +295,7 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
           surface_data->req_rect.h = data->window->surface->height;
           surface_data->clip_rect.w = data->window->surface->width;
           surface_data->clip_rect.h = data->window->surface->height;
-     }
+     }*/
 
      return DFB_OK;
 }

@@ -59,7 +59,7 @@
      #else
           #define HEAVYDEBUGMSG(x...)
      #endif
-     
+
      #define DEBUGMSG(x...)        {                                          \
                                         if (!dfb_config->no_debug)            \
                                              fprintf( stderr, "(-) "x );      \
@@ -83,6 +83,8 @@
 #define BUG(x) \
         fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n", x, __FILE__, __LINE__ );
 
+#define CAUTION(x) \
+        fprintf( stderr, " (!!!)  *** CAUTION [%s] *** %s (%d)\n", x, __FILE__, __LINE__ );
 
 #endif
 

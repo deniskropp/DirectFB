@@ -292,10 +292,8 @@ DFBResult IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
           newclip.y2 = data->clip_rect.y + data->clip_rect.h - 1;
      }
 
-     if (memcmp( &data->state.clip, &newclip, sizeof(DFBRegion) )) {
-          data->state.clip = newclip;
-          data->state.modified |= SMF_CLIP;
-     }
+     data->state.clip      = newclip;
+     data->state.modified |= SMF_CLIP;
 
      return DFB_OK;
 }
@@ -949,8 +947,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-     IDirectFBSurface      *thiz = (IDirectFBSurface*)ctx;
-     IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
+     IDirectFBSurface        *thiz         = (IDirectFBSurface*)ctx;
+     IDirectFBSurface_data   *data         = (IDirectFBSurface_data*)thiz->priv;
 
      if (notification->flags & CSNF_DESTROY) {
           if (data) {
@@ -964,6 +962,41 @@ ReactionResult IDirectFBSurface_listener( const void *msg_data, void *ctx )
           }
 
           return RS_REMOVE;
+     }
+
+     if (notification->flags & CSNF_SIZEFORMAT) {
+          DFBResult ret;
+
+          if (data->caps & DSCAPS_SUBSURFACE) {
+               DFBRectangle clip = { 0, 0,
+                                     data->surface->width,
+                                     data->surface->height };
+
+               if (!rectangle_intersect( &data->clip_rect, &clip )) {
+                   CAUTION("surface resized, sub surface out of bounds now, "
+                           "setting sub surface area to 0,0 - 1x1");
+
+                   data->clip_rect.x = data->req_rect.x = 0;
+                   data->clip_rect.y = data->req_rect.y = 0;
+                   data->clip_rect.w = data->req_rect.w = 1;
+                   data->clip_rect.h = data->req_rect.h = 1;
+               }
+          }
+          else {
+               data->clip_rect.x = data->req_rect.x = 0;
+               data->clip_rect.y = data->req_rect.y = 0;
+               data->clip_rect.w = data->req_rect.w = data->surface->width;
+               data->clip_rect.h = data->req_rect.h = data->surface->height;
+          }
+
+          /* Reset clip to avoid crashes caused by drawing out of bounds. */
+          ret = thiz->SetClip( thiz, &data->state.clip );
+          if (ret) {
+               CAUTION("resetting clip failed, "
+                       "setting clip to (sub) surface area");
+
+               thiz->SetClip( thiz, NULL );
+          }
      }
 
      return RS_OK;
