@@ -1,5 +1,7 @@
 ## Makefile.am for DirectFB/interfaces/IDirectFBImageProvider
 
+SUBDIRS = mpeg2
+
 idirectfbimageproviderdir = $(MODULEDIR)/interfaces/IDirectFBImageProvider
 
 if GIF_PROVIDER
@@ -20,6 +22,7 @@ else
 PNG_PROVIDER_LTLIB = 
 endif
 
+
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
@@ -28,8 +31,9 @@ INCLUDES = \
 CFLAGS = $(DFB_CFLAGS)
 
 idirectfbimageprovider_LTLIBRARIES = \
-	$(GIF_PROVIDER_LTLIB)	\
-	$(JPEG_PROVIDER_LTLIB)	\
+	libidirectfbimageprovider_mpeg2.la	\
+	$(GIF_PROVIDER_LTLIB)			\
+	$(JPEG_PROVIDER_LTLIB)			\
 	$(PNG_PROVIDER_LTLIB)
 
 libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
@@ -37,6 +41,13 @@ libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
 libidirectfbimageprovider_png_la_LIBADD = $(LIBPNG)
 
 libidirectfbimageprovider_png_la_LDFLAGS = -avoid-version -module
+
+
+libidirectfbimageprovider_mpeg2_la_SOURCES = idirectfbimageprovider_mpeg2.c
+
+libidirectfbimageprovider_mpeg2_la_LIBADD = mpeg2/libmpeg2decode.la
+
+libidirectfbimageprovider_mpeg2_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_gif_la_SOURCES = idirectfbimageprovider_gif.c

@@ -682,6 +682,7 @@ inputdrivers/serialmouse/Makefile
 interfaces/Makefile
 interfaces/IDirectFBFont/Makefile
 interfaces/IDirectFBImageProvider/Makefile
+interfaces/IDirectFBImageProvider/mpeg2/Makefile
 interfaces/IDirectFBVideoProvider/Makefile
 data/Makefile
 tools/Makefile
@@ -715,6 +716,7 @@ Building Image Providers:
   JPEG                $JPEG
   PNG                 $PNG
   GIF                 $enable_gif 
+  MPEG2 I-Frame       yes
 
 Building Video Providers:
   AviFile             $AVIFILE
