@@ -3,6 +3,9 @@ General (roughly sorted by priority)
 
 Modularize pixel formats (eventually with dynamic extension support).
 
+Implement CoreFont sharing between applications
+to save glyph rendering and surface allocations.
+
 Finish VT switching (already working well after 0.9.18 release)
  - Save/redirect video only buffers.
  - Handle auto video buffers being permanently locked in video memory.
@@ -19,6 +22,7 @@ Finish multi application core.
  - Some messages may need to be dispatched synchronized.
  - Add fork handling.
  - Add support for running multiple multi app core instances (fusion worlds).
+ - Run time single/multi app core selection (both enabled during build).
 
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one.
