@@ -27,39 +27,36 @@ static int uc_ovl_datasize()
 
 
 static DFBResult
-uc_ovl_init_layer(GraphicsDevice        *device,
-                  CoreLayer             *layer,
-                  DisplayLayerInfo      *layer_info,
-                  DFBDisplayLayerConfig *default_config,
-                  DFBColorAdjustment    *default_adj,
-                  void                  *driver_data,
-                  void                  *layer_data)
+uc_ovl_init_layer( CoreLayer                   *layer,
+                   void                        *driver_data,
+                   void                        *layer_data,
+                   DFBDisplayLayerDescription  *description,
+                   DFBDisplayLayerConfig       *config,
+                   DFBColorAdjustment          *adjustment )
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
 
     // Set layer type, capabilities and name
 
-    layer_info->desc.caps = UC_OVL_CAPS;
-    layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
-    snprintf(layer_info->desc.name,
+    description->caps = UC_OVL_CAPS;
+    description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
+    snprintf(description->name,
         DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "VIA CLE266 Overlay");
 
-    default_adj->flags = DCAF_NONE;
+    adjustment->flags = DCAF_NONE;
 
     // Fill out the default configuration
 
-    dfb_primary_layer_rectangle(0.0f, 0.0f, 1.0f, 1.0f, &(ucovl->v1.win));
+    config->flags  = DLCONF_WIDTH | DLCONF_HEIGHT |
+                     DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
 
-    default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
-        DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_OPTIONS;
+    config->width  = ucovl->v1.win.w;
+    config->height = ucovl->v1.win.h;
 
-    default_config->width = ucovl->v1.win.w;
-    default_config->height = ucovl->v1.win.h;
-
-    default_config->pixelformat = DSPF_YUY2;
-    default_config->buffermode  = DLBM_FRONTONLY;
-    default_config->options     = DLOP_NONE;
+    config->pixelformat = DSPF_YUY2;
+    config->buffermode  = DLBM_FRONTONLY;
+    config->options     = DLOP_NONE;
 
     // Reset overlay
 
@@ -69,7 +66,7 @@ uc_ovl_init_layer(GraphicsDevice        *device,
     ucovl->hwregs = ucdrv->hwregs;
 
     ucovl->v1.isenabled = false;
-    ucovl->v1.cfg = *default_config;
+    ucovl->v1.cfg = *config;
     ucovl->v1.ox = 0;
     ucovl->v1.oy = 0;
     ucovl->v1.opacity = 255;
@@ -82,14 +79,38 @@ uc_ovl_init_layer(GraphicsDevice        *device,
 
 
 static DFBResult
-uc_ovl_enable(CoreLayer *layer,
-              void      *driver_data,
-              void      *layer_data)
+uc_ovl_set_region( CoreLayer                  *layer,
+                   void                       *driver_data,
+                   void                       *layer_data, 
+                   void                       *region_data,
+                   CoreLayerRegionConfig      *config,
+                   CoreLayerRegionConfigFlags  updated,
+                   CoreSurface                *surface,
+                   CorePalette                *palette )
 {
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
 
+    /* get new destination rectangle */
+    DFBRectangle win = config->dest;;
+
+    // Bounds checking
+    if ((win.x < -8192) || (win.x > 8192) ||
+        (win.y < -8192) || (win.y > 8192) ||
+        (win.w < 32) || (win.w > 4096) ||
+        (win.h < 32) || (win.h > 4096))
+    {
+        DEBUGMSG("Layer size or position is out of bounds.");
+        return DFB_INVAREA;
+    }
+
     ucovl->v1.isenabled = true;
-    return uc_ovl_update(ucovl, UC_OVL_CHANGE, dfb_layer_surface(layer));
+    ucovl->v1.win = win;
+    
+    /* set opacity */
+    ucovl->v1.opacity = config->opacity;
+    VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(config->opacity));
+    
+    return uc_ovl_update(ucovl, UC_OVL_CHANGE, surface);
 }
 
 
@@ -132,13 +153,13 @@ uc_ovl_disable(CoreLayer *layer,
 
 
 static DFBResult
-uc_ovl_test_configuration(CoreLayer                  *layer,
-                          void                       *driver_data,
-                          void                       *layer_data,
-                          DFBDisplayLayerConfig      *config,
-                          DFBDisplayLayerConfigFlags *failed)
+uc_ovl_test_region(CoreLayer                  *layer,
+                   void                       *driver_data,
+                   void                       *layer_data,
+                   CoreLayerRegionConfig      *config,
+                   CoreLayerRegionConfigFlags *failed)
 {
-    DFBDisplayLayerConfigFlags fail = 0;
+    CoreLayerRegionConfigFlags fail = 0;
 
     // Check layer options
 
@@ -147,7 +168,7 @@ uc_ovl_test_configuration(CoreLayer                  *layer,
 
     // Check pixelformats
 
-    switch (config->pixelformat) {
+    switch (config->format) {
           case DSPF_YUY2:
               break;
           case DSPF_UYVY:
@@ -172,13 +193,6 @@ uc_ovl_test_configuration(CoreLayer                  *layer,
     if (config->height > 4096 || config->height < 32)
         fail |= DLCONF_HEIGHT;
 
-    // Check buffer mode
-
-    if (config->flags & DLCONF_BUFFERMODE) {
-        if (config->buffermode & DLBM_BACKSYSTEM)
-            fail |= DLCONF_BUFFERMODE;
-    }
-
     if (failed) *failed = fail;
     if (fail) return DFB_UNSUPPORTED;
 
@@ -187,85 +201,16 @@ uc_ovl_test_configuration(CoreLayer                  *layer,
 
 
 static DFBResult
-uc_ovl_set_configuration(CoreLayer             *layer,
-                         void                  *driver_data,
-                         void                  *layer_data,
-                         DFBDisplayLayerConfig *config )
-{
-    UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-
-    ucovl->v1.cfg = *config;
-
-    return uc_ovl_update(ucovl, UC_OVL_CHANGE, dfb_layer_surface(layer));
-}
-
-
-static DFBResult
-uc_ovl_set_opacity(CoreLayer *layer,
-                   void      *driver_data,
-                   void      *layer_data,
-                   __u8       opacity)
-{
-    UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-    ucovl->v1.opacity = opacity;
-    VIDEO_OUT(ucovl->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(opacity));
-    return DFB_OK;
-}
-
-
-static DFBResult
-uc_ovl_set_location(CoreLayer *layer,
-                    void      *driver_data,
-                    void      *layer_data,
-                    float      x,
-                    float      y,
-                    float      width,
-                    float      height)
-{
-    UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-    DFBRectangle win;
-
-    /* get new destination rectangle */
-    dfb_primary_layer_rectangle(x, y, width, height, &win);
-
-    // Bounds checking
-    if ((win.x < -8192) || (win.x > 8192) ||
-        (win.y < -8192) || (win.y > 8192) ||
-        (win.w < 32) || (win.w > 4096) ||
-        (win.h < 32) || (win.h > 4096))
-    {
-        DEBUGMSG("Layer size or position is out of bounds.");
-        return DFB_INVAREA;
-    }
-
-    ucovl->v1.win = win;
-
-    return uc_ovl_update(ucovl, UC_OVL_CHANGE, dfb_layer_surface(layer));
-}
-
-
-static DFBResult
-uc_ovl_set_dst_color_key(CoreLayer *layer,
-                         void      *driver_data,
-                         void      *layer_data,
-                         __u8       r,
-                         __u8       g,
-                         __u8       b)
-{
-    return DFB_UNIMPLEMENTED;
-}
-
-
-static DFBResult
-uc_ovl_flip_buffers(CoreLayer           *layer,
+uc_ovl_flip_region( CoreLayer           *layer,
                     void                *driver_data,
                     void                *layer_data,
-                    DFBSurfaceFlipFlags  flags)
+                    void                *region_data,
+                    CoreSurface         *surface,
+                    DFBSurfaceFlipFlags  flags )
 {
     //printf("Entering %s ... \n", __PRETTY_FUNCTION__);
 
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-    CoreSurface *surface = dfb_layer_surface(layer);
     DFBResult    ret;
 
     if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
@@ -274,7 +219,7 @@ uc_ovl_flip_buffers(CoreLayer           *layer,
 
     dfb_surface_flip_buffers(surface);
 
-    ret = uc_ovl_update(ucovl, UC_OVL_FLIP, dfb_layer_surface(layer));
+    ret = uc_ovl_update(ucovl, UC_OVL_FLIP, surface);
     if (ret)
         return ret;
 
@@ -332,14 +277,9 @@ uc_ovl_set_level(CoreLayer    *layer,
 DisplayLayerFuncs ucOverlayFuncs = {
     LayerDataSize:      uc_ovl_datasize,
     InitLayer:          uc_ovl_init_layer,
-    Enable:             uc_ovl_enable,
-    Disable:            uc_ovl_disable,
-    TestConfiguration:  uc_ovl_test_configuration,
-    SetConfiguration:   uc_ovl_set_configuration,
-    SetOpacity:         uc_ovl_set_opacity,
-    SetScreenLocation:  uc_ovl_set_location,
-    SetDstColorKey:     uc_ovl_set_dst_color_key,
-    FlipBuffers:        uc_ovl_flip_buffers,
+    SetRegion:          uc_ovl_set_region,
+    TestRegion:         uc_ovl_test_region,
+    FlipRegion:         uc_ovl_flip_region,
     WaitVSync:          uc_ovl_wait_vsync,
     GetLevel:           uc_ovl_get_level,
     SetLevel:           uc_ovl_set_level,

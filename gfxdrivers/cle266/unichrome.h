@@ -13,6 +13,8 @@
 #include <core/coredefs.h>
 #include <core/surfaces.h>
 #include <core/layers.h>
+#include <core/layer_control.h>
+
 #include <directfb.h>
 
 #define UNICHROME_DEVICE "/dev/cle266vgaio"

@@ -14,6 +14,8 @@
 #include "vidregs.h"
 #include "mmio.h"
 
+#include <core/system.h>
+
 /**
  * Set up the extended video FIFO.
  * @note It will be turned on if ucovl->scrwidth > 1024.
@@ -75,6 +77,7 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     int sw, sh, sp, sfmt;   // Source width, height, pitch and format
     int dx, dy;             // Destination position
     int dw, dh;             // Destination width and height
+    VideoMode *videomode;
     DFBRectangle scr;       // Screen size
 
     bool write_buffers = false;
@@ -93,7 +96,11 @@ DFBResult uc_ovl_update(UcOverlayData* ucovl, int action,
     qwpitch = 0;
 
     // Get screen size
-    dfb_primary_layer_rectangle(0.0f, 0.0f, 1.0f, 1.0f, &scr);
+    videomode = dfb_system_current_mode();
+    scr.w = videomode->xres;
+    scr.h = videomode->yres;
+    scr.x = 0;
+    scr.y = 0;
 
     if (ucovl->scrwidth != scr.w) {
         uc_ovl_setup_fifo(ucovl, scr.w);    // This could wait for next VBI.
