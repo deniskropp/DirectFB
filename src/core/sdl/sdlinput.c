@@ -30,12 +30,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/ioctl.h>
-
-#include <fcntl.h>
-
 #include <directfb.h>
 
 #include <SDL.h>
@@ -472,6 +466,8 @@ driver_open_device( InputDevice      *device,
      fusion_skirmish_prevail( &dfb_sdl->lock );
      
      SDL_EnableUNICODE( true );
+
+     SDL_EnableKeyRepeat( 250, 33 );
 
      fusion_skirmish_dismiss( &dfb_sdl->lock );
      
