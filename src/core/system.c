@@ -60,7 +60,7 @@ dfb_system_register_module( CoreSystemFuncs *funcs )
 {
      CoreSystemModule *module;
 
-     module = DFBCALLOC( 1, sizeof(CoreSystemModule) );
+     module = calloc( 1, sizeof(CoreSystemModule) );
 
      module->funcs       = funcs;
      module->abi_version = funcs->GetAbiVersion();
@@ -69,8 +69,8 @@ dfb_system_register_module( CoreSystemFuncs *funcs )
 }
 
 
-DFBResult
-dfb_system_initialize()
+static DFBResult
+lookup_system()
 {
      FusionLink *l;
 
@@ -95,12 +95,30 @@ dfb_system_initialize()
           return DFB_NOIMPL;
      }
 
+     return DFB_OK;
+}
+
+DFBResult
+dfb_system_initialize()
+{
+     DFBResult ret;
+
+     ret = lookup_system();
+     if (ret)
+          return ret;
+
      return system_funcs->Initialize();
 }
 
 DFBResult
 dfb_system_join()
 {
+     DFBResult ret;
+
+     ret = lookup_system();
+     if (ret)
+          return ret;
+
      return system_funcs->Join();
 }
 

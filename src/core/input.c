@@ -325,7 +325,7 @@ dfb_input_register_module( InputDriverFuncs *funcs )
 {
      InputDriver *driver;
 
-     driver = DFBCALLOC( 1, sizeof(InputDriver) );
+     driver = calloc( 1, sizeof(InputDriver) );
 
      driver->funcs       = funcs;
      driver->abi_version = funcs->GetAbiVersion();

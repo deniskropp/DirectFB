@@ -317,7 +317,7 @@ void dfb_graphics_register_module( GraphicsDriverFuncs *funcs )
 {
      GraphicsDriver *driver;
 
-     driver = DFBCALLOC( 1, sizeof(GraphicsDriver) );
+     driver = calloc( 1, sizeof(GraphicsDriver) );
 
      driver->funcs       = funcs;
      driver->abi_version = funcs->GetAbiVersion();

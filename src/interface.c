@@ -62,7 +62,7 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
 {
      DFBInterfaceImplementation *impl;
 
-     impl = DFBCALLOC( 1, sizeof(DFBInterfaceImplementation) );
+     impl = calloc( 1, sizeof(DFBInterfaceImplementation) );
 
      impl->funcs          = funcs;
      impl->type           = funcs->GetType();
