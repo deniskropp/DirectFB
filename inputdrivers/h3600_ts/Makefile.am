@@ -18,9 +18,9 @@ libdirectfb_h3600_ts_la_SOURCES =	\
 	h3600_ts.c
 
 libdirectfb_h3600_ts_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

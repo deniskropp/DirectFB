@@ -34,9 +34,9 @@ libdirectfb_matrox_la_SOURCES =	\
 
 libdirectfb_matrox_la_LDFLAGS = \
 	$(SYSFS_LIBS)		\
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 libdirectfb_matrox_la_LIBADD = -lm
 

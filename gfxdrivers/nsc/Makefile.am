@@ -23,12 +23,12 @@ nscdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_nsc_la_SOURCES =	\
 	nsc.c	\
-        nsc_galfns.c
+	nsc_galfns.c
 
 libdirectfb_nsc_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

@@ -26,7 +26,7 @@ libdirectfb_cyber5k_la_SOURCES = \
 	mmio.h
 
 libdirectfb_cyber5k_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 

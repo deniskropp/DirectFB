@@ -17,9 +17,9 @@ serialmousedir = $(MODULEDIR)/inputdrivers
 libdirectfb_serialmouse_la_SOURCES = serialmouse.c
 
 libdirectfb_serialmouse_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

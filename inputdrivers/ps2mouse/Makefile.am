@@ -18,9 +18,9 @@ libdirectfb_ps2mouse_la_SOURCES =	\
 	ps2mouse.c
 
 libdirectfb_ps2mouse_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

@@ -19,9 +19,9 @@ libdirectfb_keyboard_la_SOURCES =	\
 	keyboard.c
 
 libdirectfb_keyboard_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

@@ -18,9 +18,9 @@ libdirectfb_ucb1x00_ts_la_SOURCES =	\
 	ucb1x00_ts.c
 
 libdirectfb_ucb1x00_ts_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

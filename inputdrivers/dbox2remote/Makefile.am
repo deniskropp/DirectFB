@@ -18,9 +18,9 @@ libdirectfb_dbox2remote_la_SOURCES =	\
 	dbox2remote.c
 
 libdirectfb_dbox2remote_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
-        $(DFB_LDFLAGS)
+	$(DFB_LDFLAGS)
 
 
 include $(top_srcdir)/rules/libobject.make

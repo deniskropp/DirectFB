@@ -28,7 +28,7 @@ libdirectfb_savage_la_SOURCES = \
 	savage_streams_old.h
 
 libdirectfb_savage_la_LDFLAGS = \
-        -export-dynamic		\
+	-export-dynamic		\
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 
