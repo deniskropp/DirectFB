@@ -120,28 +120,31 @@ DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) )
 static DFBResult
 dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFBResult ret;
-     int       videoram_length;
+     DFBResult             ret;
+     int                   videoram_length;
+     GraphicsDeviceShared *shared;
 
      DFB_ASSERT( card == NULL );
 
      card         = data_local;
      card->shared = data_shared;
 
+     shared = card->shared;
+
      /* fill generic driver info */
-     gGetDriverInfo( &card->shared->driver_info );
+     gGetDriverInfo( &shared->driver_info );
 
      /* fill generic device info */
-     gGetDeviceInfo( &card->shared->device_info );
+     gGetDeviceInfo( &shared->device_info );
 
      /* Limit video ram length */
      videoram_length = dfb_system_videoram_length();
      if (videoram_length) {
           if (dfb_config->videoram_limit > 0 &&
               dfb_config->videoram_limit < videoram_length)
-               card->shared->videoram_length = dfb_config->videoram_limit;
+               shared->videoram_length = dfb_config->videoram_limit;
           else
-               card->shared->videoram_length = videoram_length;
+               shared->videoram_length = videoram_length;
      }
 
      /* Build a list of available drivers. */
@@ -153,27 +156,27 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
 
           card->driver_data = DFBCALLOC( 1,
-                                         card->shared->driver_info.driver_data_size );
+                                         shared->driver_info.driver_data_size );
 
-          card->device_data = card->shared->device_data =
-               SHCALLOC( 1, card->shared->driver_info.device_data_size );
+          card->device_data   =
+          shared->device_data = SHCALLOC( 1, shared->driver_info.device_data_size );
 
           ret = funcs->InitDriver( card, &card->funcs,
                                    card->driver_data, card->device_data );
           if (ret) {
-               SHFREE( card->shared->device_data );
-               SHFREE( card->shared->module_name );
+               SHFREE( shared->device_data );
+               SHFREE( shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
           }
 
-          ret = funcs->InitDevice( card, &card->shared->device_info,
+          ret = funcs->InitDevice( card, &shared->device_info,
                                    card->driver_data, card->device_data );
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
-               SHFREE( card->shared->device_data );
-               SHFREE( card->shared->module_name );
+               SHFREE( shared->device_data );
+               SHFREE( shared->module_name );
                DFBFREE( card->driver_data );
                card = NULL;
                return ret;
@@ -184,12 +187,12 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      }
 
      INITMSG( "DirectFB/GraphicsDevice: %s %s %d.%d (%s)\n",
-              card->shared->device_info.vendor, card->shared->device_info.name,
-              card->shared->driver_info.version.major,
-              card->shared->driver_info.version.minor, card->shared->driver_info.vendor );
+              shared->device_info.vendor, shared->device_info.name,
+              shared->driver_info.version.major,
+              shared->driver_info.version.minor, shared->driver_info.vendor );
 
      if (dfb_config->software_only) {
-          memset( &card->shared->device_info.caps, 0, sizeof(CardCapabilities) );
+          memset( &shared->device_info.caps, 0, sizeof(CardCapabilities) );
 
           if (card->funcs.CheckState) {
                card->funcs.CheckState = NULL;
@@ -199,13 +202,12 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
           }
      }
      else
-          card->caps = card->shared->device_info.caps;
+          card->caps = shared->device_info.caps;
 
-     card->shared->surface_manager = dfb_surfacemanager_create( card->shared->videoram_length,
-                card->shared->device_info.limits.surface_byteoffset_alignment,
-                card->shared->device_info.limits.surface_pixelpitch_alignment );
+     shared->surface_manager = dfb_surfacemanager_create( shared->videoram_length,
+                                                          &shared->device_info.limits );
 
-     fusion_property_init( &card->shared->lock );
+     fusion_property_init( &shared->lock );
 
      return DFB_OK;
 }
@@ -213,12 +215,15 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFBResult ret;
+     DFBResult             ret;
+     GraphicsDeviceShared *shared;
 
      DFB_ASSERT( card == NULL );
 
      card         = data_local;
      card->shared = data_shared;
+
+     shared = card->shared;
 
      /* Build a list of available drivers. */
      dfb_modules_explore_directory( &dfb_graphics_drivers );
@@ -229,9 +234,9 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
 
           card->driver_data = DFBCALLOC( 1,
-                                         card->shared->driver_info.driver_data_size );
+                                         shared->driver_info.driver_data_size );
 
-          card->device_data = card->shared->device_data;
+          card->device_data = shared->device_data;
 
           ret = funcs->InitDriver( card, &card->funcs,
                                    card->driver_data, card->device_data );
@@ -241,7 +246,7 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
                return ret;
           }
      }
-     else if (card->shared->module_name) {
+     else if (shared->module_name) {
           ERRORMSG( "DirectFB/core/gfxcard: "
                     "Could not load driver used by the running session!\n" );
           card = NULL;
@@ -255,7 +260,7 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
                    "acceleration disabled (by 'no-hardware')\n" );
      }
      else
-          card->caps = card->shared->device_info.caps;
+          card->caps = shared->device_info.caps;
 
      return DFB_OK;
 }

@@ -61,6 +61,7 @@ typedef struct {
 typedef struct {
      unsigned int            surface_byteoffset_alignment;
      unsigned int            surface_pixelpitch_alignment;
+     unsigned int            surface_bytepitch_alignment;
 } CardLimitations;
 
 DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );

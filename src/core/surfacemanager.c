@@ -90,6 +90,7 @@ struct _SurfaceManager {
      /* card limitations for surface offsets and their pitch */
      unsigned int    byteoffset_align;
      unsigned int    pixelpitch_align;
+     unsigned int    bytepitch_align;
 };
 
 
@@ -99,9 +100,8 @@ static void occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *
 
 
 SurfaceManager *
-dfb_surfacemanager_create( unsigned int length,
-                           unsigned int byteoffset_align,
-                           unsigned int pixelpitch_align )
+dfb_surfacemanager_create( unsigned int     length,
+                           CardLimitations *limits )
 {
      Chunk          *chunk;
      SurfaceManager *manager;
@@ -122,8 +122,9 @@ dfb_surfacemanager_create( unsigned int length,
      manager->chunks           = chunk;
      manager->length           = length;
      manager->available        = length;
-     manager->byteoffset_align = byteoffset_align;
-     manager->pixelpitch_align = pixelpitch_align;
+     manager->byteoffset_align = limits->surface_byteoffset_alignment;
+     manager->pixelpitch_align = limits->surface_pixelpitch_alignment;
+     manager->bytepitch_align  = limits->surface_bytepitch_alignment;
 
      fusion_skirmish_init( &manager->lock );
 
@@ -284,12 +285,19 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 
      /* calculate the required length depending on limitations */
      pitch = MAX( surface->width, surface->min_width );
+
      if (manager->pixelpitch_align > 1) {
           pitch += manager->pixelpitch_align - 1;
           pitch -= pitch % manager->pixelpitch_align;
      }
 
      pitch = DFB_BYTES_PER_LINE( surface->format, pitch );
+
+     if (manager->bytepitch_align > 1) {
+          pitch += manager->bytepitch_align - 1;
+          pitch -= pitch % manager->bytepitch_align;
+     }
+
      length = DFB_PLANE_MULTIPLY( surface->format,
                                   MAX( surface->height,
                                        surface->min_height ) * pitch );

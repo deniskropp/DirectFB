@@ -33,12 +33,13 @@
 #include <directfb.h>
 #include <core/core.h>
 
+#include <core/gfxcard.h>
+
 #define CSLF_FORCE 0x80000000
 
 
-SurfaceManager *dfb_surfacemanager_create( unsigned int length,
-                                           unsigned int byteoffset_align,
-                                           unsigned int pixelpitch_align );
+SurfaceManager *dfb_surfacemanager_create( unsigned int     length,
+                                           CardLimitations *limits );
 
 void dfb_surfacemanager_destroy( SurfaceManager *manager );
 
