@@ -386,7 +386,8 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
            * If policy is 'system only' there's no accelerated blitting
            * available.
            */
-          if (state->source->front_buffer->policy == CSP_SYSTEMONLY) {
+          if (state->source &&
+              state->source->front_buffer->policy == CSP_SYSTEMONLY) {
                /* unset 'destination modified' bit */
                state->modified &= ~SMF_SOURCE;
 
