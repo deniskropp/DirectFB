@@ -87,6 +87,8 @@ divineEventThread( CoreThread *thread, void *driver_data )
           /* directly dispatch the event */
           dfb_input_dispatch( data->device, &event );
         }
+      else
+        usleep( 20000 ); /* avoid 100% CPU usage in case poll() doesn't work */
     }
 
   PERRORMSG ("divine thread died\n");
