@@ -328,6 +328,7 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
      }
 
 
+#warning If the two lines below fail to compile change them to "GetWidth, GetHeight"
      data->source.width  = data->player->Width();
      data->source.height = data->player->Height();
      data->source.format = DSPF_RGB16;
