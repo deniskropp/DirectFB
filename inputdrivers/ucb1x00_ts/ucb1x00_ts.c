@@ -70,7 +70,7 @@ typedef struct {
      struct timeval  stamp;
 } TS_EVENT;
 
-struct {
+static struct {
      int xmin;
      int xmax;
      int ymin;
