@@ -32,20 +32,23 @@
 #include <direct/system.h>
 
 
-#ifdef HAVE_LINUX_UNISTD_H
 
+
+#ifdef HAVE_LINUX_UNISTD_H
 #include <linux/unistd.h>
 
-#ifndef __NR_gettid
-#warning __NR_gettid was not found in "linux/unistd.h", using getpid for gettid
+#ifdef __NR_gettid
+static inline _syscall0(pid_t,gettid)
+#else
+#warning __NR_gettid was not found in "linux/unistd.h", using getpid instead
 #define gettid getpid
 #endif
 
-static inline _syscall0(pid_t,gettid)
-
 #else
+
 #include <unistd.h>
 #define gettid getpid
+
 #endif
 
 
