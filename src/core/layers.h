@@ -71,7 +71,7 @@ typedef enum {
 
      CLRCF_PARITY     = 0x00100000,
 
-     CLRCF_ALL        = 0x0013133F
+     CLRCF_ALL        = 0x0013131F
 } CoreLayerRegionConfigFlags;
 
 typedef struct {
