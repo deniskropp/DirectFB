@@ -192,8 +192,6 @@ fusion_exit()
      /* Master has to deinitialize shared data. */
      if (_fusion_id == 1) {
           fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
-          
-          fusion_dbg_print_memleaks();
      }
 
      _fusion_shared = NULL;

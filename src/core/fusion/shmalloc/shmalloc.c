@@ -543,10 +543,16 @@ void __shmalloc_exit (bool shutdown)
           if (shutdown) {
                FusionReactor *reactor = _sheap->reactor;
 
-               /* Avoid further dispatching by next call */
+               /* Avoid further dispatching by next calls */
                _sheap->reactor = NULL;
 
+               if (_sheap->root_node)
+                    SHFREE(_sheap->root_node);
+
                fusion_reactor_free (reactor);
+
+               fusion_dbg_print_memleaks();
+               
                fusion_skirmish_destroy (&_sheap->lock);
           }
 
