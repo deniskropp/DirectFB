@@ -395,9 +395,7 @@ static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
 
 #endif /* ARCH_X86 */
 
-/* save library size on platforms without special memcpy impl. */
 
-#if defined (ARCH_X86) || defined (ARCH_PPC)
 static struct {
      char                 *name;
      char                 *desc;
@@ -426,7 +424,6 @@ static struct {
 #endif /* USE_PPCASM */
      { NULL, NULL, NULL, 0, 0}
 };
-#endif
 
 
 #ifdef ARCH_X86
