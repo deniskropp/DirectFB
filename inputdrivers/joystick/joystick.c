@@ -198,7 +198,7 @@ driver_open_device( InputDevice      *device,
           fd = open( devicename, O_RDONLY );
           if (fd < 0) {
                PERRORMSG( "DirectFB/Joystick: Could not open `%s'!\n", devicename );
-               return DFB_INIT; // no joystick available
+               return DFB_INIT; /* no joystick available */
           }
      }
 

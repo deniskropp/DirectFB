@@ -71,7 +71,7 @@ static __u32 arch_accel (void)
            "=d" (edx)                   \
          : "a" (op)                     \
          : "cc")
-#else   // PIC version : save ebx
+#else   /* PIC version : save ebx */
 #define cpuid(op,eax,ebx,ecx,edx)       \
     asm ("pushl %%ebx\n\t"              \
          "cpuid\n\t"                    \

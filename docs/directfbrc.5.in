@@ -194,12 +194,14 @@ applications may nevertheless switch it on explicitely.
 .TP
 .BI bg-none
 Completely disables background handling. Doesn't make much sense since
-the mouse and moving windows will leave ugly traces.
+the mouse and moving windows will leave ugly traces on the background.
 
 .TP
 .BI bg-color=AARRGGBB
 Controls the color of the background. The color is specified in
-hexadecimal notation.
+hexadecimal notation. The alpha value defaults to full opacity and may
+be omitted. For example to choose a bright magenta background, you'd
+use bg-color=FF00FF.
 
 .TP
 .BI bg-image=<filename>
@@ -261,40 +263,40 @@ Window surfaces are stored in video memory.
 .TP
 .BI desktop-buffer-mode=<mode>
 Allows to control the desktop buffer mode. Whenever a window is moved,
-opened, closed, resized or simply updates its contents DirectFB recomposites
-the window stack at the affected region. This is done by an optimized
-algorithm blitting the windows together that are visible within that
-region. Opaque windows are blitted without any effect and transparent windows
-are blitted using alpha blending or color keying. If there's a backbuffer
-the recomposition is not visible and the result is copied into the front
-buffer. Without a backbuffer each step of the recomposition is visible
-which produces flicker unless there are opaque windows only. 
+opened, closed, resized or its contents change DirectFB recomposites
+the window stack at the affected region. This is done by blitting the
+windows together that are visible within that region. Opaque windows
+are blitted directly while translucent windows are blitted using alpha
+blending or color keying. If there's a backbuffer the recomposition is
+not visible since only the final result is copied into the front
+buffer. Without a backbuffer each step of the recomposition is visible.
+This causes noticeable flicker unless all windows are opaque.
 
 Supported values for <mode> are:
 
 .BI auto
 DirectFB decides depending on hardware capabilities. This is the
 default. DirectFB chooses a backbuffer in video memory if the hardware
-supports simple blitting (e.g. to copy from back- to frontbuffer). If
+supports simple blitting (copying from back- to frontbuffer). If
 there's no acceleration at all the backbuffer is allocated in system
-memory which gives much better performance during alpha blended
+memory since that gives much better performance for alpha blended
 recomposition in software and avoids reading from the video memory
 when the result is copied to the frontbuffer.
 
-.BI backvideo
-Front and back buffer are allocated in video memory. Setting this mode
-explicitly is not required because the 'auto' mode chooses it if there's
-support for accelerated blits. Without accelerated blits this mode is
-not recommended.
-
 .BI backsystem
-The back buffer is allocated in system memory. If your hardware only supports
-simple blitting but no alpha blending and you are going to have many alpha
-blended windows then 'backsystem' is the recommended mode.
+The back buffer is allocated in system memory. This is the recommened
+choice if your hardware supports simple blitting but no alpha blending
+and you are going to have many alpha blended windows.
+
+.BI backvideo
+Front and back buffer are allocated in video memory. It's not required
+to set this mode explicitely because the 'auto' mode chooses it if
+blits are accelerated. Without accelerated blits this mode is not
+recommended.
 
 .BI frontonly
-There is no back buffer. If you are using opaque
-windows only without color keying you should try this mode.
+There is no back buffer. This is the best choice if you are using
+opaque windows only and don't use any color keying.
 
 .TP
 .BI vsync-after

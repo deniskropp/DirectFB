@@ -33,7 +33,6 @@ void ati128_set_source( ATI128DriverData *adrv,
                         ATI128DeviceData *adev,
                         CardState        *state );
 
-//inline void ati128_set_drawingflags( CardState *state, DFBAccelerationMask accel );
 void ati128_set_blittingflags( ATI128DriverData *adrv,
                                ATI128DeviceData *adev,
                                CardState        *state );

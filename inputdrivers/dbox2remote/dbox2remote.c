@@ -83,11 +83,11 @@ static KeyCode keycodes_new_remote[] = {
 
      { DIKC_OK, 0x000e },
      { DIKC_HOME, 0x001F },
-     { DIKC_VENDOR, 0x0018 },                     // "d-box" key
+     { DIKC_VENDOR, 0x0018 },                     /* "d-box" key */
      { DIKC_POWER, 0x0010 },
 
-     { DIKC_PAGEDOWN, 0x0053 },                   // dbox1 only
-     { DIKC_PAGEUP, 0x0054 },                     // dbox1 only
+     { DIKC_PAGEDOWN, 0x0053 },                   /* dbox1 only  */
+     { DIKC_PAGEUP, 0x0054 },                     /* dbox1 only  */
 
      { DIKC_VOLUMEUP, 0x0015 },
      { DIKC_VOLUMEDOWN, 0x0016 },
@@ -119,12 +119,12 @@ static KeyCode keycodes_old_remote[] = {
      { DIKC_BLUE, 0x5c3b },
 
      { DIKC_OK, 0x5c30 },
-     { DIKC_HOME, 0x5c20 },                       // radio key
-     { DIKC_VENDOR, 0x5c27 },                     // TV key
+     { DIKC_HOME, 0x5c20 },                       /* radio key  */
+     { DIKC_VENDOR, 0x5c27 },                     /* TV key     */
      { DIKC_POWER, 0x5c0c },
 
-     { DIKC_PAGEDOWN, 0x5c53 },                   // dbox1 only
-     { DIKC_PAGEUP, 0x5c54 },                     // dbox1 only
+     { DIKC_PAGEDOWN, 0x5c53 },                   /* dbox1 only */
+     { DIKC_PAGEUP, 0x5c54 },                     /* dbox1 only */
 
      { DIKC_VOLUMEUP, 0x5c16 },
      { DIKC_VOLUMEDOWN, 0x5c17 },

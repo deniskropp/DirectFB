@@ -316,10 +316,11 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 
      /* if we found a place */
      if (best_free) {
-/*          debug_linear_fill( manager, best_free->offset,
-                             best_free->length, 0x90, 0x90, 0x90 );
-
-          debug_pause( manager );*/
+          /*
+             debug_linear_fill( manager, best_free->offset,
+                                best_free->length, 0x90, 0x90, 0x90 );
+             debug_pause( manager );
+          */
 
           occupy_chunk( best_free, buffer, length );
      } else

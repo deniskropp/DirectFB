@@ -38,7 +38,7 @@ static inline key_t keygen (const char *name, const long type)
   return (FUSION_KEY_PREFIX | type | key);
 }
 
-//#define FUSION_DEBUG
+/* #define FUSION_DEBUG */
 
 #ifndef FUSION_DEBUG
 # define FDEBUG(x...) do {} while (0)

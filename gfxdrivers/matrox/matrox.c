@@ -962,15 +962,15 @@ driver_init_device( GraphicsDevice     *device,
 
 
      mga_waitfifo( mdrv, mdev, 11 );
-     mga_out32( mmio, 0, TDUALSTAGE0 );   // multi texture registers
+     mga_out32( mmio, 0, TDUALSTAGE0 );   /* multi texture registers */
      mga_out32( mmio, 0, TDUALSTAGE1 );
-     mga_out32( mmio, 0, ALPHAXINC );     // alpha increments
+     mga_out32( mmio, 0, ALPHAXINC );     /* alpha increments        */
      mga_out32( mmio, 0, ALPHAYINC );
-     mga_out32( mmio, 0, DR6 );           // red increments
+     mga_out32( mmio, 0, DR6 );           /* red increments          */
      mga_out32( mmio, 0, DR7 );
-     mga_out32( mmio, 0, DR10 );          // green increments
+     mga_out32( mmio, 0, DR10 );          /* green increments        */
      mga_out32( mmio, 0, DR11 );
-     mga_out32( mmio, 0, DR14 );          // blue increments
+     mga_out32( mmio, 0, DR14 );          /* blue increments         */
      mga_out32( mmio, 0, DR15 );
      mga_out32( mmio, 0, BCOL );
 

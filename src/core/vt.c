@@ -63,7 +63,7 @@
 #endif
 
 #ifndef SI_KERNEL
-// glibc 2.1.x doesn't have this in /usr/include/bits/siginfo.h
+     /* glibc 2.1.x doesn't have this in /usr/include/bits/siginfo.h */
      #define SI_KERNEL 0x80
 #endif
 

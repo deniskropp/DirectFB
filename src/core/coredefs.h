@@ -24,12 +24,13 @@
 #ifndef __COREDEFS_H__
 #define __COREDEFS_H__
 
-//#define HEAVYDEBUG
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <signal.h>
 #include <unistd.h>
+
+/* #define HEAVYDEBUG */
+
 #include <misc/conf.h>
 
 #ifdef PIC

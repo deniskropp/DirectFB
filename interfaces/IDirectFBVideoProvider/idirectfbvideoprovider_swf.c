@@ -84,7 +84,7 @@ typedef struct {
 } IDirectFBVideoProvider_Swf_data;
 
 
-//------------------------------------
+/* ------------------------------------ */
 int
 readFile (const char *filename, char **buffer, long *size)
 {
@@ -185,7 +185,7 @@ static void* FrameThread( void *ctx )
   }
 }
 
-//------------------------------------------
+/* ------------------------------------------ */
 static 
 void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
 {

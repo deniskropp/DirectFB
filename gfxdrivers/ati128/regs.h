@@ -402,7 +402,7 @@
 #define FOG_TABLE_INDEX                 0x1a14
 #define FOG_TABLE_DATA                  0x1a18
 
-// MISC_3D_STATE
+/* MISC_3D_STATE */
 #define MISC_3D_STATE_SCALE_3D_FN_NOP                         (0x00000000 << 8)
 #define MISC_3D_STATE_SCALE_3D_FN_SCALE                       (0x00000001 << 8)
 #define MISC_3D_STATE_SCALE_3D_FN_TMAP_SHADE                  (0x00000002 << 8)
@@ -449,7 +449,7 @@
 
 
 
-// Z_STEN_CNTL
+/* Z_STEN_CNTL */
 #define Z_STEN_CNTL_Z_PIX_WIDTH_16                            (0x00000000 <<  1)
 #define Z_STEN_CNTL_Z_PIX_WIDTH_24                            (0x00000001 <<  1)
 #define Z_STEN_CNTL_Z_PIX_WIDTH_32                            (0x00000002 <<  1)
@@ -488,7 +488,7 @@
 #define Z_STEN_CNTL_STENCIL_ZFAIL_OP_DEC                      (0x00000004 << 24)
 #define Z_STEN_CNTL_STENCIL_ZFAIL_OP_INV                      (0x00000005 << 24)
 
-// TEX_CNTL
+/* TEX_CNTL */
 #define TEX_CNTL_Z_EN_OFF                                     (0x00000000 <<  0)
 #define TEX_CNTL_Z_EN_ON                                      (0x00000001 <<  0)
 #define TEX_CNTL_Z_MASK_DIS                                   (0x00000000 <<  1)
@@ -531,7 +531,7 @@
 //#define TEX_CNTL_LOD_BIAS
 
 
-// PRIM_TEX_CNTL
+/* PRIM_TEX_CNTL */
 #define PRIM_TEX_CNTL_PRIM_MIN_BLEND_FN_NEAREST               (0x00000000 <<  0)
 #define PRIM_TEX_CNTL_PRIM_MIN_BLEND_FN_LINEAR                (0x00000001 <<  0)
 #define PRIM_TEX_CNTL_PRIM_MIN_BLEND_FN_MIPNEAREST            (0x00000002 <<  0)
@@ -575,7 +575,7 @@
 //#define PRIM_TEX_CNTL_PRIM_PSEUDOCOLOR_DATATYPE_
 
 
-// SETP_CNTL
+/* SETP_CNTL */
 #define SETUP_CNTL_DONT_START_TRI_OFF                         (0x00000000 <<  0)
 #define SETUP_CNTL_DONT_START_TRI_ON                          (0x00000001 <<  0)
 #define SETUP_CNTL_Z_BIAS                                     (0x00000000 <<  1)
@@ -607,7 +607,7 @@
 //#define SETUP_CNTL_SU_STATE
 #define SETUP_CNTL_SET_UP_CONTINUE                            (0x00000001 << 31)
 
-// PM4_VC_FPU_SETUP
+/* PM4_VC_FPU_SETUP */
 #define PM4_VC_FPU_SETUP_FRONT_DIR_CW                         (0x00000000 <<  0)
 #define PM4_VC_FPU_SETUP_FRONT_DIR_CCW                        (0x00000001 <<  0)
 #define PM4_VC_FPU_SETUP_BACKFACE_CULLING_FN_CULL             (0x00000000 <<  1)
@@ -644,11 +644,11 @@
 #define PM4_VC_FPU_SETUP_VC_WM_SEL_16DW                       (0x00000001 << 16)
 #define PM4_VC_FPU_SETUP_VC_WM_SEL_32DW                       (0x00000002 << 16)
 
-// SEC_TEX_CNTL
+/* SEC_TEX_CNTL */
 #define SEC_TEX_CNTL_SEC_SRC_SEL_ST_0                         (0x00000000 <<  0)
 #define SEC_TEX_CNTL_SEC_SRC_SEL_ST_1                         (0x00000001 <<  0)
 
-// [PRIM_ | SEC_] SEC_TEX_COMBINE_CNTL
+/* [PRIM_ | SEC_] SEC_TEX_COMBINE_CNTL */
 #define TEX_COMBINE_CNTL_COMB_FNC_DIS                         (0x00000000 << 0)
 #define TEX_COMBINE_CNTL_COMB_FNC_COPY                        (0x00000001 <<  0)
 #define TEX_COMBINE_CNTL_COMB_FNC_COPY_INP                    (0x00000002 <<  0)
@@ -691,7 +691,7 @@
 #define TEX_COMBINE_CNTL_INP_FACTOR_ALPHA_PREV_ALPHA          (0x00000004 << 25)
 
 
-// SCALE_3D_CNTL
+/* SCALE_3D_CNTL */
 #define SCALE_3D_CNTL_SCALE_DITHER_ERR_DIFF                   (0x00000000 <<  1)
 #define SCALE_3D_CNTL_SCALE_DITHER_TABLE                      (0x00000001 <<  1)
 #define SCALE_3D_CNTL_TEX_CACHE_SIZE_FULL                     (0x00000000 <<  2)

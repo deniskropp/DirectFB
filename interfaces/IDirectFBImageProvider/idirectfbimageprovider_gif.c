@@ -284,7 +284,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           int height;
           int transparency;
 
-          ReadGIF( f, 1, &width, &height, &transparency, NULL, 1 ); // 1 = read header only
+          ReadGIF( f, 1, &width, &height, &transparency, NULL, 1 ); /* 1 = read header only */
 
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
@@ -315,14 +315,14 @@ static DFBResult IDirectFBImageProvider_GIF_GetImageDescription(
           int   transparency;
           __u32 key_rgb;
 
-          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, 1 ); // 1 = read header only
+          ReadGIF( f, 1, &width, &height, &transparency, &key_rgb, 1 ); /* 1 = read header only */
 
           if (transparency) {
                dsc->caps = DICAPS_COLORKEY;
 
-               dsc->colorkey_r = 0;//(key_rgb & 0xff0000) >> 16;
-               dsc->colorkey_g = 0xFF;//(key_rgb & 0x00ff00) >>  8;
-               dsc->colorkey_b = 0;//(key_rgb & 0x0000ff);
+               dsc->colorkey_r = 0;    // (key_rgb & 0xff0000) >> 16;
+               dsc->colorkey_g = 0xFF; // (key_rgb & 0x00ff00) >>  8;
+               dsc->colorkey_b = 0;    // (key_rgb & 0x0000ff);
           }
           else
                dsc->caps = DICAPS_NONE;

@@ -331,7 +331,7 @@ static void ati128DrawLine( void *drv, void *dev, DFBRegion *line )
      int x_dir, y_dir, y_major;
      int err, inc, dec;
 
-     // Determine x & y deltas and x & y direction bits.
+     /* Determine x & y deltas and x & y direction bits. */
      if (line->x1 < line->x2) {
           dx = line->x2 - line->x1;
           x_dir = 1 << 31;
@@ -349,7 +349,8 @@ static void ati128DrawLine( void *drv, void *dev, DFBRegion *line )
           dy = line->y1 - line->y2;
           y_dir = 0 << 15;
      }
-     // Determine x & y min and max values; also determine y major bit.
+
+     /* Determine x & y min and max values; also determine y major bit. */
      if (dx < dy) {
           small = dx;
           large = dy;
@@ -360,7 +361,8 @@ static void ati128DrawLine( void *drv, void *dev, DFBRegion *line )
           large = dx;
           y_major = 0 << 2;
      }
-     // Calculate Bresenham parameters and draw line.
+
+     /* Calculate Bresenham parameters and draw line. */
      err = -large;
      inc = small * 2;
      dec = large *(-2);
@@ -374,7 +376,7 @@ static void ati128DrawLine( void *drv, void *dev, DFBRegion *line )
         outline bit for line drawing */
      ati128_out32( mmio, DP_CNTL_XDIR_YDIR_YMAJOR,
                    y_major | y_dir | x_dir );
-     // set bresenham registers and start drawing
+     /* set bresenham registers and start drawing */
      ati128_out32( mmio, DST_BRES_ERR, err );
      ati128_out32( mmio, DST_BRES_INC, inc );
      ati128_out32( mmio, DST_BRES_DEC, dec );
