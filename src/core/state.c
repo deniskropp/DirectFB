@@ -142,7 +142,7 @@ destination_listener( const void *msg_data,
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
 
-     dfb_state_lock( state );
+//     dfb_state_lock( state );
      
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT |
                                 CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
@@ -152,7 +152,7 @@ destination_listener( const void *msg_data,
           dfb_surface_unref( state->destination );
           state->destination = NULL;
 
-          dfb_state_unlock( state );
+//          dfb_state_unlock( state );
 
           return RS_REMOVE;
      }
@@ -175,7 +175,7 @@ destination_listener( const void *msg_data,
           state->modified |= SMF_CLIP;
      }
 
-     dfb_state_unlock( state );
+//     dfb_state_unlock( state );
      
      return RS_OK;
 }
@@ -187,7 +187,7 @@ source_listener( const void *msg_data,
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      CardState               *state        = (CardState*)ctx;
 
-     dfb_state_lock( state );
+//     dfb_state_lock( state );
      
      if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_FIELD |
                                 CSNF_VIDEO | CSNF_FLIP | CSNF_PALETTE))
@@ -197,12 +197,12 @@ source_listener( const void *msg_data,
           dfb_surface_unref( state->source );
           state->source = NULL;
 
-          dfb_state_unlock( state );
+//          dfb_state_unlock( state );
           
           return RS_REMOVE;
      }
 
-     dfb_state_unlock( state );
+//     dfb_state_unlock( state );
      
      return RS_OK;
 }
