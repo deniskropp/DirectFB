@@ -2,11 +2,7 @@ Contents
 --------
 1. Creating a build environment for DirectFB unter Mac OS X
 2. Compiling DirectFB and DirectFB-examples
-    2.1 without SDL support
-    2.2 with SDL support
 3. Running the examples
-    3.1 without SDL support
-    3.2 with SDL support
 
 
 1. Creating a build environment for DirectFB unter Mac OS X 10.3
@@ -24,47 +20,22 @@ Contents
         * pkgconfig
         * libjpeg
         * libpng3
-        * sdl (only if you want to bother with SDL)
 
   - edit ~/.profile and add the follwing line:
     export PKG_CONFIG_PATH=/usr/local/lib/pkgconfig
 
 2. Compiling DirectFB
-   2.1 without SDL support
       cd DirectFB
       ./autogen.sh
       make
       sudo make install
-      cd ../DirectFB-examples
-      ./autogen.sh
-      make
-      sudo make install
-
-   2.2 with SDL support
-      cd DirectFB
-      ./autogen.sh --disable-osx
-      make
-      sudo make install
-       !!!!
-      edit the installed /usr/local/include/directfb/directfb.h and add
-      #define main SDL_Main
-      !!!!
       cd ../DirectFB-examples
       ./autogen.sh
       make
       sudo make install
 
 3. Running the examples
-   3.1 without SDL support
-       just type df_andi
-   3.2 with SDL support
-       just type df_andi
-       You will notice that input does not work, that's because it seems to be
-       neccessary to process input events in the thread that set the video mode.
-       (under linux it works anyway but we seem to violate the specs)
-   
-       see http://www.libsdl.org/pipermail/sdl/2004-February/060190.html
-
-       Stupid workaround: Call SDL_PumpEvents() periodically in your DirectFB
-       application, it works then.
-  
+      If your screen is garbled, try to specity your OSX desktop resolution
+      in /etc/directfbrc
+      eg.:
+       mode = 1280x1024

@@ -110,6 +110,8 @@ if test "$enable_osx" = "yes"; then
     enable_osx=no
     AC_MSG_WARN([
 *** no Carbon/Carbon.h found -- building without OSX support.])
+  else
+    OSX_LIBS="-framework Carbon"
   fi
 fi
 
@@ -184,7 +186,6 @@ esac
 
 have_linux=no
 have_cygwin=no
-need_sdlhack=no
 need_libc_r=no
 need_libdl=yes
 want_ppcasm=yes
@@ -224,7 +225,6 @@ case "$target_or_host" in
     ;;    
 
   *-darwin*)
-    need_sdlhack=yes
     need_libc_r=no
     need_libdl=yes
     want_ppcasm=no
@@ -466,11 +466,14 @@ if test "$enable_sdl" = "yes"; then
   else
     SDL_CFLAGS=`$SDL_CONFIG --cflags`
     SDL_LIBS=`$SDL_CONFIG --libs`
-    if test "$need_sdlhack" = "yes"; then
-      if test "$enable_osx" = "no"; then
-        OSX_LIBS="-L/sw/lib/ -lSDLmain -lSDL -framework Cocoa"
-      fi
-    fi
+    if test "$enable_osx" = "yes"; then
+      AC_MSG_WARN([
+*** SDL is now unsupported on OSX.]) 
+      enable_sdl=no
+   else
+      SDL_CFLAGS=`$SDL_CONFIG --cflags`
+      SDL_LIBS=`$SDL_CONFIG --libs`
+    fi 
   fi
 fi
 
