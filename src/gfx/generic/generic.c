@@ -2289,7 +2289,7 @@ static void Bop_a8_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u8   s = (a>>3)+1;\
+               register __u32  s = (a>>3)+1;\
                register __u32 t1 = (d & 0x7c1f);\
                register __u32 t2 = (d & 0x03e0);\
                d = ((a & 0x80) << 8) | \
@@ -2318,7 +2318,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb16( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u8   s = (a>>2)+1;\
+               register __u32  s = (a>>2)+1;\
                register __u32 t1 = (d & 0xf81f);\
                register __u32 t2 = (d & 0x07e0);\
                d  = ((((rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
@@ -2381,7 +2381,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb32( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u16  s = a+1;\
+               register __u32  s = a+1;\
                register __u32 t1 = (d & 0x00ff00ff);\
                register __u32 t2 = (d & 0x0000ff00);\
                d = ((((rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
@@ -2411,7 +2411,7 @@ static void Bop_a8_set_alphapixel_Aop_argb( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u16  s = a+1;\
+               register __u32  s = a+1;\
                register __u32 s1 = 256-s;\
                register __u32 sa = (d >> 24) + a;\
                if (sa & 0xff00) sa = 0xff;\
