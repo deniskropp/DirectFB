@@ -109,6 +109,15 @@ static DFBResult dfb_fbdev_open()
                return errno2dfb( errno );
           }
      }
+     else if (getenv( "FRAMEBUFFER" ) && *getenv( "FRAMEBUFFER" ) != '\0') {
+          dfb_fbdev->fd = open( getenv ("FRAMEBUFFER"), O_RDWR );
+          if (dfb_fbdev->fd < 0) {
+               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
+                          getenv ("FRAMEBUFFER"));
+
+               return errno2dfb( errno );
+          }
+     }
      else {
           dfb_fbdev->fd = open( "/dev/fb0", O_RDWR );
           if (dfb_fbdev->fd < 0) {
