@@ -173,7 +173,7 @@ void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
                                    (IDirectFBImageProvider_GIF_data*)thiz->priv;
 
      free( data->filename );
-     
+
      free( thiz->priv );
      thiz->priv = NULL;
 
@@ -497,8 +497,8 @@ __u32* ReadImage( FILE *fd, int len, int height,
 
      while ((v = LWZReadByte(fd,FALSE,c)) >= 0 ) {
           __u32 *dst = image + (ypos * len + xpos);
-          *dst++ = cmap[CM_RED][v] << 16 | cmap[CM_GREEN][v] << 8
-                                         | cmap[CM_BLUE][v];
+          *dst++ = 0xFF000000 | cmap[CM_RED][v] << 16 |
+                   cmap[CM_GREEN][v] << 8 | cmap[CM_BLUE][v];
 
           ++xpos;
           if (xpos == len) {
