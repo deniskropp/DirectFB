@@ -340,11 +340,11 @@ uc_map_blitflags( struct uc_hw_texture    *tex,
 
                tex->regHTXnTBLAsat_0 = HC_HTXnTBLAsat_MASK |
                                        HC_HTXnTBLAa_TOPA | HC_HTXnTBLAa_HTXnTBLRA |
-                                       HC_HTXnTBLAb_TOPA | HC_HTXnTBLAa_HTXnTBLRA |
-                                       HC_HTXnTBLAc_TOPA | HC_HTXnTBLAa_HTXnTBLRA;
-               tex->regHTXnTBLCop_0 |= HC_HTXnTBLAop_Sub |
-                                       HC_HTXnTBLAbias_HTXnTBLRAbias | HC_HTXnTBLAshift_No;
-               tex->regHTXnTBLRAa_0 = 0xff << 8;
+                                       HC_HTXnTBLAb_TOPA | HC_HTXnTBLAb_HTXnTBLRA |
+                                       HC_HTXnTBLAc_TOPA | HC_HTXnTBLAc_HTXnTBLRA;
+               tex->regHTXnTBLCop_0 |= HC_HTXnTBLAop_Add |
+                                       HC_HTXnTBLAbias_Inv | HC_HTXnTBLAbias_HTXnTBLRAbias | HC_HTXnTBLAshift_No;
+               tex->regHTXnTBLRAa_0 = 0x0;
                tex->regHTXnTBLRFog_0 = 0x0;
           }
      }

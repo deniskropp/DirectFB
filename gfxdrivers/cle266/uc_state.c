@@ -84,13 +84,8 @@ uc_select_blittype( CardState* state,
      }
 
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
-          if (uc_has_src_format_3d( state->source->format )) {
-               if (!DFB_PIXELFORMAT_HAS_ALPHA(state->source->format) && 
-                   DFB_PIXELFORMAT_HAS_ALPHA(state->destination->format))
-                    return UC_TYPE_UNSUPPORTED;
-
+          if (uc_has_src_format_3d( state->source->format ))
                return UC_TYPE_3D;
-          }
      }
 
      return UC_TYPE_UNSUPPORTED;
@@ -141,7 +136,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      struct uc_fifo *fifo  = ucdrv->fifo;
 
      __u32 rop3d     = HC_HROP_P;
-     __u32 regEnable = HC_HenCW_MASK;
+     __u32 regEnable = HC_HenCW_MASK | HC_HenAW_MASK;
 
      StateModificationFlags modified = state->modified;
 
