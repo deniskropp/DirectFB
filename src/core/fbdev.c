@@ -447,7 +447,8 @@ DFBResult dfb_primarylayer_join()
      layer->SetConfiguration = primarySetConfiguration;
      layer->SetScreenLocation = primarySetScreenLocation;
      layer->SetOpacity = primarySetOpacity;
-     layer->SetColorKey = primarySetColorKey;
+     layer->SetSrcColorKey = primarySetSrcColorKey;
+     layer->SetDstColorKey = primarySetDstColorKey;
      layer->FlipBuffers = primaryFlipBuffers;
 
      return DFB_OK;
