@@ -44,6 +44,8 @@
 
 static void tdfxFillRectangle2D( DFBRectangle *rect );
 static void tdfxFillRectangle3D( DFBRectangle *rect );
+static void tdfxFillTriangle2D( DFBTriangle *tri );
+static void tdfxFillTriangle3D( DFBTriangle *tri );
 static void tdfxDrawLine2D( DFBRegion *line );
 //static void tdfxDrawLine3D( DFBRegion *line );
 
@@ -355,7 +357,7 @@ static void tdfxEngineSync()
                (DSDRAW_BLEND)
 
 #define TDFX_SUPPORTED_DRAWINGFUNCTIONS \
-               (DFXL_FILLRECTANGLE | DFXL_DRAWLINE)
+               (DFXL_FILLRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE)
 
 #define TDFX_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_SRC_COLORKEY)
@@ -415,23 +417,21 @@ static void tdfxSetState( CardState *state, DFBAccelerationMask accel )
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWLINE:
+          case DFXL_FILLTRIANGLE:
                if (state->drawingflags & DSDRAW_BLEND) {
                     tdfx_validate_color1();
                     tdfx_validate_alphaMode();
                     tdfx_validate_destination3D();
-
-                    tdfx_validate_colorFore();
-                    tdfx_validate_destination2D();
                     
                     tdfx->FillRectangle = tdfxFillRectangle3D;
-                    tdfx->DrawLine = tdfxDrawLine2D;
+                    tdfx->FillTriangle = tdfxFillTriangle3D;
                }
                else {
                     tdfx_validate_colorFore();
                     tdfx_validate_destination2D();
 
                     tdfx->FillRectangle = tdfxFillRectangle2D;
-                    tdfx->DrawLine = tdfxDrawLine2D;
+                    tdfx->FillTriangle = tdfxFillTriangle2D;
                }
 
                state->set |= DFXL_FILLRECTANGLE | DFXL_DRAWLINE;
@@ -549,6 +549,87 @@ static void tdfxDrawLine2D( DFBRegion *line )
      voodoo3D->triangleCMD = 0;
 }*/
 
+static inline void sort_triangle( DFBTriangle *tri )
+{
+     int temp;
+
+     if (tri->y1 > tri->y2) {
+          temp = tri->x1;
+          tri->x1 = tri->x2;
+          tri->x2 = temp;
+          
+          temp = tri->y1;
+          tri->y1 = tri->y2;
+          tri->y2 = temp;
+     }
+
+     if (tri->y2 > tri->y3) {
+          temp = tri->x2;
+          tri->x2 = tri->x3;
+          tri->x3 = temp;
+          
+          temp = tri->y2;
+          tri->y2 = tri->y3;
+          tri->y3 = temp;
+     }
+
+     if (tri->y1 > tri->y2) {
+          temp = tri->x1;
+          tri->x1 = tri->x2;
+          tri->x2 = temp;
+          
+          temp = tri->y1;
+          tri->y1 = tri->y2;
+          tri->y2 = temp;
+     }
+}
+
+static void tdfxFillTriangle2D( DFBTriangle *tri )
+{
+     tdfx_waitfifo( 7 );
+
+     sort_triangle( tri );
+
+     voodoo2D->srcXY = ((tri->y1 & 0x1FFF) << 16) | (tri->x1 & 0x1FFF);
+     voodoo2D->command = 8 | (1 << 8) | (0xCC << 24);
+
+     if (tri->y2 == tri->y3) {
+          if (tri->x2 < tri->x3) {
+               voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+               voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+               voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+          }
+          else {
+               voodoo2D->launchArea[0] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+               voodoo2D->launchArea[1] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+               voodoo2D->launchArea[2] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+          }
+     }
+     else {
+          voodoo2D->launchArea[0] = ((tri->y2 & 0x1FFF) << 16) | (tri->x2 & 0x1FFF);
+          voodoo2D->launchArea[1] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+          voodoo2D->launchArea[2] = ((tri->y3 & 0x1FFF) << 16) | (tri->x3 & 0x1FFF);
+     }
+}
+
+static void tdfxFillTriangle3D( DFBTriangle *tri )
+{
+     tdfx_waitfifo( 7 );
+
+     sort_triangle( tri );
+
+     voodoo3D->vertexAx = S12_4(tri->x1);
+     voodoo3D->vertexAy = S12_4(tri->y1);
+
+     voodoo3D->vertexBx = S12_4(tri->x2);
+     voodoo3D->vertexBy = S12_4(tri->y2);
+
+     voodoo3D->vertexCx = S12_4(tri->x3);
+     voodoo3D->vertexCy = S12_4(tri->y3);
+
+     voodoo3D->triangleCMD = (1 << 31);
+}
+
 static void tdfxBlit( DFBRectangle *rect, int dx, int dy )
 {
      __u32 cmd = 1 | (1 <<8) | (0xCC << 24);//SST_2D_GO | SST_2D_SCRNTOSCRNBLIT | (ROP_COPY << 24);      
@@ -631,7 +712,6 @@ int driver_init( int fd, GfxCard *card )
      card->SetState = tdfxSetState;
      card->EngineSync = tdfxEngineSync;          
 
-     card->FillRectangle = tdfxFillRectangle2D;
      card->DrawRectangle = tdfxDrawRectangle;
      card->DrawLine = tdfxDrawLine2D;
      card->Blit = tdfxBlit;

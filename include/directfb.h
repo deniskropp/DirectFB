@@ -164,6 +164,18 @@ extern "C"
      } DFBRegion;
 
      /*
+      * Triangle.
+      */
+     typedef struct {
+          int            x1;  /* X coordinate of first edge */
+          int            y1;  /* Y coordinate of first edge */
+          int            x2;  /* X coordinate of second edge */
+          int            y2;  /* Y coordinate of second edge */
+          int            x3;  /* X coordinate of third edge */
+          int            y3;  /* Y coordinate of third edge */
+     } DFBTriangle;
+     
+     /*
       * A color defined by channels with 8bit each.
       */
      typedef struct {
@@ -320,6 +332,7 @@ extern "C"
           DFXL_DRAWRECTANGLE  = 0x00000002,  /* DrawRectangle */
           DFXL_DRAWLINE       = 0x00000004,  /* DrawLine */
           DFXL_DRAWSTRING     = 0x00000008,  /* DrawString */
+          DFXL_FILLTRIANGLE   = 0x00000010,  /* FillTriangle */
 
           DFXL_BLIT           = 0x00010000,  /* Blit */
           DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit */
@@ -1171,6 +1184,19 @@ extern "C"
                int                      y1,
                int                      x2,
                int                      y2
+          );
+
+          /*
+           * Fill a non-textured triangle.
+           */
+          DFBResult (*FillTriangle) (
+               IDirectFBSurface         *thiz,
+               int                      x1,
+               int                      y1,
+               int                      x2,
+               int                      y2,
+               int                      x3,
+               int                      y3
           );
 
 

@@ -716,6 +716,37 @@ DFBResult IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
+DFBResult IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
+                                         int x1, int y1,
+                                         int x2, int y2,
+                                         int x3, int y3 )
+{
+     DFBTriangle tri = { x1, y1, x2, y2, x3, y3 };
+     IDirectFBSurface_data *data;
+
+     if (!thiz)
+          return DFB_INVARG;
+
+     data = (IDirectFBSurface_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     tri.x1 += data->req_rect.x;
+     tri.y1 += data->req_rect.y;
+     tri.x2 += data->req_rect.x;
+     tri.y2 += data->req_rect.y;
+     tri.x3 += data->req_rect.x;
+     tri.y3 += data->req_rect.y;
+
+     gfxcard_filltriangle( &tri, &data->state );
+
+     return DFB_OK;
+}
+
 DFBResult IDirectFBSurface_SetBlittingFlags( IDirectFBSurface *thiz,
                                              DFBSurfaceBlittingFlags flags )
 {
@@ -1033,6 +1064,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->FillRectangle = IDirectFBSurface_FillRectangle;
      thiz->DrawLine = IDirectFBSurface_DrawLine;
      thiz->DrawRectangle = IDirectFBSurface_DrawRectangle;
+     thiz->FillTriangle = IDirectFBSurface_FillTriangle;
 
      thiz->SetFont = IDirectFBSurface_SetFont;
      thiz->DrawString = IDirectFBSurface_DrawString;

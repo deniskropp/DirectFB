@@ -452,6 +452,29 @@ void gfxcard_drawline( DFBRegion *line, CardState *state )
      }
 }
 
+void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
+{
+     if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
+         gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
+     {
+/* FIXME          if (card->caps.flags & CCF_CLIPPING  ||
+               clip_triangle( &state->clip, tri ))*/
+          {
+               card->FillTriangle( tri );
+          }
+          gfxcard_state_release( state );
+     }
+     else
+     {
+/* FIXME          if (clip_triangle( &state->clip, tri ) &&
+               gAquire( state, DFXL_DRAWLINE ))
+          {
+               gDrawLine( line );
+               gRelease( state );
+          }*/
+     }
+}
+
 void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 {
      if (!clip_blit_precheck( &state->clip, rect->w, rect->h, dx, dy ))

@@ -120,6 +120,8 @@ typedef struct {
 
      void (*DrawLine) ( DFBRegion *line );
 
+     void (*FillTriangle) ( DFBTriangle *tri );
+     
      void (*Blit)( DFBRectangle *rect, int dx, int dy );
 
      void (*StretchBlit) ( DFBRectangle *srect, DFBRectangle *drect );
@@ -169,6 +171,8 @@ void gfxcard_fillrectangle( DFBRectangle *rect, CardState *state );
 void gfxcard_drawrectangle( DFBRectangle *rect, CardState *state );
 
 void gfxcard_drawline( DFBRegion *line, CardState *state );
+
+void gfxcard_filltriangle( DFBTriangle *tri, CardState *state );
 
 void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
 
