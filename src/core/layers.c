@@ -1079,7 +1079,6 @@ dfb_layer_update_region( DisplayLayer        *layer,
      DFB_ASSERT( layer->funcs );
      DFB_ASSERT( layer->shared );
      DFB_ASSERT( layer->shared->enabled );
-     DFB_ASSERT( region != NULL );
      
      if (layer->funcs->UpdateRegion)
           return layer->funcs->UpdateRegion( layer,
