@@ -88,6 +88,8 @@ static void config_print_usage()
              "Mouse Protocol (serial mouse)\n"
              " --lefty                           "
              "Swap left and right mouse buttons\n"
+             " --[no-]cursor                     "
+             "Show cursor on start up (default)\n"
              " --bg-none                         "
              "Disable Background Clear\n"
              " --bg-color=AARRGGBB               "
@@ -158,11 +160,12 @@ static void config_allocate()
      dfb_config->layer_bg_color.r = 0x24;//29;
      dfb_config->layer_bg_color.g = 0x50;//69;
      dfb_config->layer_bg_color.b = 0x9f;
-     dfb_config->layer_bg_mode = DLBM_COLOR;
+     dfb_config->layer_bg_mode    = DLBM_COLOR;
 
-     dfb_config->mouse_motion_compression = 1;
-     dfb_config->window_policy = -1;
-     dfb_config->buffer_mode = -1;
+     dfb_config->show_cursor              =  1;
+     dfb_config->mouse_motion_compression =  1;
+     dfb_config->window_policy            = -1;
+     dfb_config->buffer_mode              = -1;
 }
 
 DFBResult config_set( const char *name, const char *value )
@@ -212,6 +215,12 @@ DFBResult config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-deinit-check" ) == 0) {
           dfb_config->no_deinit_check = 1;
+     } else
+     if (strcmp (name, "no-cursor" ) == 0) {
+          dfb_config->show_cursor = 0;
+     } else
+     if (strcmp (name, "cursor" ) == 0) {
+          dfb_config->show_cursor = 1;
      } else
      if (strcmp (name, "motion-compression" ) == 0) {
           dfb_config->mouse_motion_compression = 1;

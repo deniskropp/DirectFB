@@ -317,7 +317,8 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      windowstack_repaint_all( layers->shared->windowstack );
 
-     layer_cursor_enable( layers, 1 );
+     if (dfb_config->show_cursor)
+          layer_cursor_enable( layers, 1 );
 
      return DFB_OK;
 }

@@ -78,6 +78,8 @@ typedef struct
 
      int       lefty;                             /* Left handed mouse, swaps
                                                      left/right mouse buttons */
+     int       show_cursor;                       /* Show default mouse cursor
+                                                     on start up */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;
