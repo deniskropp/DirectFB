@@ -67,12 +67,12 @@ extern const unsigned int directfb_binary_age;
 extern const unsigned int directfb_interface_age;
 
 /*
- * Check against certain DirectFB version.
+ * Check for a certain DirectFB version.
  * In case of an error a message is returned describing the mismatch.
  */
-char * DirectFBCheckVersion (unsigned int required_major,
-                             unsigned int required_minor,
-                             unsigned int required_micro);
+const char * DirectFBCheckVersion( unsigned int required_major,
+                                   unsigned int required_minor,
+                                   unsigned int required_micro );
 
 
 /*
@@ -284,7 +284,7 @@ DFBResult DirectFBSetOption(
                       );
 
 /*
- * Creates the super interface
+ * Creates the super interface.
  */
 DFBResult DirectFBCreate(
                           IDirectFB **interface  /* pointer to the
@@ -298,57 +298,59 @@ DFBResult DirectFBCreate(
  * in functions like SetVideoMode or CreateSurface for the primary.
  */
 typedef enum {
-     DFSCL_NORMAL        = 0x00000000,  /* Normal shared access, primary surface
-                                           will be the buffer of an implicitly
-                                           created window at the resolution
-                                           given by SetVideoMode(). */
+     DFSCL_NORMAL        = 0x00000000,  /* Normal shared access, primary
+                                           surface will be the buffer of an
+                                           implicitly created window at the
+                                           resolution given by SetVideoMode().
+                                           */
      DFSCL_FULLSCREEN,                  /* Application grabs the primary layer,
-                                           SetVideoMode automates layer control,
-                                           primary surface is the primary layer
-                                           surface. */
+                                           SetVideoMode automates layer
+                                           control. Primary surface is the
+                                           primary layer surface. */
      DFSCL_EXCLUSIVE                    /* All but the primary layer will be
                                            disabled, the application has full
                                            control over layers if desired,
                                            other applications have no
-                                           input/output/control, primary surface
-                                           is the primary layer surface. */
+                                           input/output/control. Primary
+                                           surface is the primary layer
+                                           surface. */
 } DFBCooperativeLevel;
 
 /*
- * Capabilities of a display layer
+ * Capabilities of a display layer.
  */
 typedef enum {
-     DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface that can
-                                                be drawn to. This may not be
-                                                provided by layers that display
-                                                realtime data, e.g. from an MPEG
-                                                decoder chip. Playback control
-                                                may be provided by an external
-                                                API. */
-     DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending with
-                                                layer(s) below based on a global
-                                                alpha factor. */
-     DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending with
-                                                layer(s) below based on each
-                                                pixel's alpha value. */
-     DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the screen
-                                                can be changed, this includes
-                                                position and size as normalized
-                                                values. Default is 0.0f, 0.0f,
-                                                1.0f, 1.0f. */
-     DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be enabled
-                                                for smooth output on interlaced
-                                                display devices. */
+     DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface that
+                                                can be drawn to. This may not
+                                                be provided by layers that
+                                                display realtime data, e.g.
+                                                from an MPEG decoder chip.
+                                                Playback control may be
+                                                provided by an external API. */
+     DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending
+                                                with layer(s) below based on a
+                                                global alpha factor. */
+     DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending
+                                                with layer(s) below based on
+                                                each pixel's alpha value. */
+     DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the
+                                                screen can be changed, this
+                                                includes position and size as
+                                                normalized values. The default
+                                                is 0.0f, 0.0f, 1.0f, 1.0f. */
+     DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be
+                                                enabled for smooth output on
+                                                interlaced display devices. */
      DLCAPS_DEINTERLACING     = 0x00000020,  /* The layer provides optional
                                                 deinterlacing for displaying
                                                 interlaced video data on
                                                 progressive display devices. */
-     DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be declared
-                                                as transparent. */
-     DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color of layers below
-                                                can be specified as the color
-                                                of the only locations where the
-                                                layer is visible. */
+     DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be
+                                                declared as transparent. */
+     DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color of layers
+                                                below can be specified as the
+                                                color of the only locations
+                                                where the layer is visible. */
      DLCAPS_BRIGHTNESS        = 0x00000100,  /* Adjustment of brightness is
                                                 supported. */
      DLCAPS_CONTRAST          = 0x00000200,  /* Adjustment of contrast is
@@ -380,7 +382,7 @@ typedef enum {
 } DFBDisplayLayerOptions;
 
 /*
- * Layer Buffer Mode
+ * Layer Buffer Mode.
  */
 typedef enum {
      DLBM_FRONTONLY  = 0x00000000,      /* no backbuffer */
@@ -413,25 +415,27 @@ typedef enum {
 
      DSCAPS_PRIMARY      = 0x00000001,  /* It's the primary surface. */
      DSCAPS_SYSTEMONLY   = 0x00000002,  /* Surface data is permanently stored
-                                           in system memory.<br>There's no video
-                                           memory allocation/storage. */
+                                           in system memory. <br>There's no
+                                           video memory allocation/storage. */
      DSCAPS_VIDEOONLY    = 0x00000004,  /* Surface data is permanently stored
-                                           in video memory.<br>There's no system
-                                           memory allocation/storage. */
+                                           in video memory. <br>There's no
+                                           system memory allocation/storage. */
      DSCAPS_FLIPPING     = 0x00000010,  /* Surface is double buffered or needs
                                            Flip() calls to make updates/changes
                                            visible/usable. */
-     DSCAPS_SUBSURFACE   = 0x00000020,  /* Surface is just a sub area of another
-                                           one sharing the surface data. */
-     DSCAPS_INTERLACED   = 0x00000040,  /* Each buffer contains interlaced video
-                                           (or graphics) data consisting of two
-                                           fields.<br>Their lines are stored
-                                           interleaved. One field's height is a
-                                           half of the surface's height. */
-     DSCAPS_SEPERATED    = 0x00000080   /* For usage with DSCAPS_INTERLACED.<br>
-                                           DSCAPS_SEPERATED specifies that the
-                                           fields are NOT interleaved line by
-                                           line in the buffer.<br>The first
+     DSCAPS_SUBSURFACE   = 0x00000020,  /* Surface is just a sub area of
+                                           another one sharing the surface
+                                           data. */
+     DSCAPS_INTERLACED   = 0x00000040,  /* Each buffer contains interlaced
+                                           video (or graphics) data consisting
+                                           of two fields. <br>Their lines are
+                                           stored interleaved. One field's
+                                           height is a half of the surface's
+                                           height. */
+     DSCAPS_SEPERATED    = 0x00000080   /* For usage with DSCAPS_INTERLACED.
+                                           <br> DSCAPS_SEPERATED specifies that
+                                           the fields are NOT interleaved line
+                                           by line in the buffer. <br>The first
                                            field is followed by the second one
                                            in the buffer. */
 } DFBSurfaceCapabilities;
@@ -527,9 +531,9 @@ typedef enum {
      DLTF_NONE           = 0x00000000,  /* Unclassified, no specific type. */
 
      DLTF_GRAPHICS       = 0x00000001,  /* Can be used for graphics output. */
-     DLTF_VIDEO          = 0x00000002,  /* Can be used for live video output. */
+     DLTF_VIDEO          = 0x00000002,  /* Can be used for live video output.*/
      DLTF_STILL_PICTURE  = 0x00000004,  /* Can be used for single frames. */
-     DLTF_BACKGROUND     = 0x00000008,  /* Can be used as a background layer. */
+     DLTF_BACKGROUND     = 0x00000008,  /* Can be used as a background layer.*/
 
      DLTF_ALL            = 0x0000000F   /* All type flags set. */
 } DFBDisplayLayerTypeFlags;
@@ -638,7 +642,8 @@ typedef enum {
       DFFA_NOKERNING     = 0x00000001,  /* don't use kerning */
       DFFA_NOHINTING     = 0x00000002,  /* don't use hinting */
       DFFA_MONOCHROME    = 0x00000004,  /* don't use anti-aliasing */
-      DFFA_NOCHARMAP     = 0x00000008   /* no char map, map glyph indices 1:1 */
+      DFFA_NOCHARMAP     = 0x00000008   /* no char map, glyph indices are
+                                           specified directly */
 } DFBFontAttributes;
 
 /*
@@ -892,7 +897,7 @@ typedef enum {
  * Color Adjustment used to adjust video colors.
  *
  * All fields are in the range 0x0 to 0xFFFF with
- *  0x8000 as default value (no adjustment).
+ * 0x8000 as the default value (no adjustment).
  */
 typedef struct {
      DFBColorAdjustmentFlags  flags;
@@ -1201,13 +1206,12 @@ typedef enum {
  * for a windowstack repaint
  */
 typedef enum {
-     DLBM_DONTCARE            = 0, /* windowstack repainting does not
-                                      clear the layer before */
+     DLBM_DONTCARE            = 0, /* do not clear the layer before
+                                      repainting the windowstack */
      DLBM_COLOR,                   /* fill with solid color
                                       (SetBackgroundColor) */
      DLBM_IMAGE,                   /* use an image (SetBackgroundImage) */
-     DLBM_TILE                     /* use a tiled image
-                                      (SetBackgroundImage) */
+     DLBM_TILE                     /* use a tiled image (SetBackgroundImage) */
 } DFBDisplayLayerBackgroundMode;
 
 /*
@@ -1299,7 +1303,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      /*
       * Set location on screen as normalized values.
       *
-      * So the whole screen is 0, 0 - 1, 1.
+      * So the whole screen is 0.0, 0.0, -1.0, 1.0.
       */
      DFBResult (*SetScreenLocation) (
           IDirectFBDisplayLayer              *thiz,
@@ -3256,4 +3260,3 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
 #endif
 
 #endif
-

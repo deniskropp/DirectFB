@@ -77,9 +77,9 @@ const unsigned int directfb_micro_version = DIRECTFB_MICRO_VERSION;
 const unsigned int directfb_binary_age    = DIRECTFB_BINARY_AGE;
 const unsigned int directfb_interface_age = DIRECTFB_INTERFACE_AGE;
 
-char * DirectFBCheckVersion (unsigned int required_major,
-                             unsigned int required_minor,
-                             unsigned int required_micro)
+const char * DirectFBCheckVersion( unsigned int required_major,
+                                   unsigned int required_minor,
+                                   unsigned int required_micro )
 {
      if (required_major > DIRECTFB_MAJOR_VERSION)
           return "DirectFB version too old (major mismatch)";
