@@ -82,34 +82,6 @@ DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
 
 #define LM_to_uint(a,b) (((b)<<8)|(a))
 
-static struct {
-     unsigned int  Width;
-     unsigned int  Height;
-     __u8          ColorMap[3][MAXCOLORMAPSIZE];
-     unsigned int  BitPixel;
-     unsigned int  ColorResolution;
-     __u32         Background;
-     unsigned int  AspectRatio;
-     int GrayScale;
-} GifScreen;
-
-static struct {
-     int transparent;
-     int delayTime;
-     int inputFlag;
-     int disposal;
-} Gif89 = { -1, -1, -1, 0 };
-
-static bool verbose       = false;
-static bool showComment   = true;
-static bool ZeroDataBlock = false;
-
-static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
-                       int *width, int *height, bool *transparency,
-                       __u32 *key_rgb, bool alpha, bool headeronly);
-
-static bool ReadOK( IDirectFBDataBuffer *buffer, void *data, unsigned int len );
-
 /*
  * private data struct of IDirectFBImageProvider_GIF
  */
@@ -117,7 +89,47 @@ typedef struct {
      int                  ref;      /* reference counter */
 
      IDirectFBDataBuffer *buffer;
+     
+     
+     unsigned int  Width;
+     unsigned int  Height;
+     __u8          ColorMap[3][MAXCOLORMAPSIZE];
+     unsigned int  BitPixel;
+     unsigned int  ColorResolution;
+     __u32         Background;
+     unsigned int  AspectRatio;
+     
+     
+     int GrayScale;
+     int transparent;
+     int delayTime;
+     int inputFlag;
+     int disposal;
+
+
+     __u8 buf[280];
+     int curbit, lastbit, done, last_byte;
+     
+     
+     int fresh;
+     int code_size, set_code_size;
+     int max_code, max_code_size;
+     int firstcode, oldcode;
+     int clear_code, end_code;
+     int table[2][(1<< MAX_LWZ_BITS)];
+     int stack[(1<<(MAX_LWZ_BITS))*2], *sp;
 } IDirectFBImageProvider_GIF_data;
+
+static bool verbose       = false;
+static bool showComment   = false;
+static bool ZeroDataBlock = false;
+
+static __u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
+                       int *width, int *height, bool *transparency,
+                       __u32 *key_rgb, bool alpha, bool headeronly);
+
+static bool ReadOK( IDirectFBDataBuffer *buffer, void *data, unsigned int len );
+
 
 static DFBResult
 IDirectFBImageProvider_GIF_AddRef  ( IDirectFBImageProvider *thiz );
@@ -162,6 +174,10 @@ Construct( IDirectFBImageProvider *thiz,
      data->ref    = 1;
      data->buffer = buffer;
 
+     data->GrayScale   = -1;
+     data->transparent = -1;
+     data->delayTime   = -1;
+     
      buffer->AddRef( buffer );
 
      thiz->AddRef = IDirectFBImageProvider_GIF_AddRef;
@@ -244,7 +260,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           void  *dst;
           int    pitch, src_width, src_height;
 
-          image_data = ReadGIF( data->buffer, 1, &src_width, &src_height,
+          image_data = ReadGIF( data, 1, &src_width, &src_height,
                                 &transparency, NULL,
                                 DFB_PIXELFORMAT_HAS_ALPHA (format),
                                 false );
@@ -288,7 +304,7 @@ IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
           
-     ReadGIF( data->buffer, 1, &width, &height,
+     ReadGIF( data, 1, &width, &height,
               &transparency, NULL, false, true );
 
      dsc->flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
@@ -310,7 +326,7 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
      
      INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
-     ReadGIF( data->buffer, 1, &width, &height,
+     ReadGIF( data, 1, &width, &height,
               &transparency, &key_rgb, false, true );
 
      if (transparency) {
@@ -368,49 +384,47 @@ static int GetDataBlock(IDirectFBDataBuffer *buffer, __u8 *buf)
      return count;
 }
 
-static int GetCode(IDirectFBDataBuffer *buffer, int code_size, int flag)
+static int GetCode(IDirectFBImageProvider_GIF_data *data, int code_size, int flag)
 {
-     static __u8 buf[280];
-     static int curbit, lastbit, done, last_byte;
      int i, j, ret;
      unsigned char count;
 
      if (flag) {
-          curbit = 0;
-          lastbit = 0;
-          done = false;
+          data->curbit = 0;
+          data->lastbit = 0;
+          data->done = false;
           return 0;
      }
 
-     if ( (curbit+code_size) >= lastbit) {
-          if (done) {
-               if (curbit >= lastbit) {
+     if ( (data->curbit+code_size) >= data->lastbit) {
+          if (data->done) {
+               if (data->curbit >= data->lastbit) {
                     GIFERRORMSG("ran off the end of my bits" );
                }
              return -1;
           }
-          buf[0] = buf[last_byte-2];
-          buf[1] = buf[last_byte-1];
+          data->buf[0] = data->buf[data->last_byte-2];
+          data->buf[1] = data->buf[data->last_byte-1];
 
-          if ((count = GetDataBlock( buffer, &buf[2] )) == 0) {
-               done = true;
+          if ((count = GetDataBlock( data->buffer, &data->buf[2] )) == 0) {
+               data->done = true;
           }
 
-          last_byte = 2 + count;
-          curbit = (curbit - lastbit) + 16;
-          lastbit = (2+count) * 8;
+          data->last_byte = 2 + count;
+          data->curbit = (data->curbit - data->lastbit) + 16;
+          data->lastbit = (2+count) * 8;
      }
 
      ret = 0;
-     for (i = curbit, j = 0; j < code_size; ++i, ++j) {
-          ret |= ((buf[ i / 8 ] & (1 << (i % 8))) != 0) << j;
+     for (i = data->curbit, j = 0; j < code_size; ++i, ++j) {
+          ret |= ((data->buf[ i / 8 ] & (1 << (i % 8))) != 0) << j;
      }
-     curbit += code_size;
+     data->curbit += code_size;
 
      return ret;
 }
 
-static int DoExtension( IDirectFBDataBuffer *buffer, int label )
+static int DoExtension( IDirectFBImageProvider_GIF_data *data, int label )
 {
      unsigned char buf[256] = { 0 };
      char *str;
@@ -424,21 +438,21 @@ static int DoExtension( IDirectFBDataBuffer *buffer, int label )
                break;
           case 0xfe:              /* Comment Extension */
                str = "Comment Extension";
-               while (GetDataBlock( buffer, (__u8*) buf ) != 0) {
+               while (GetDataBlock( data->buffer, (__u8*) buf ) != 0) {
                     if (showComment)
                          GIFERRORMSG("gif comment: %s", buf );
                     }
                return false;
           case 0xf9:              /* Graphic Control Extension */
                str = "Graphic Control Extension";
-               (void) GetDataBlock( buffer, (__u8*) buf );
-               Gif89.disposal    = (buf[0] >> 2) & 0x7;
-               Gif89.inputFlag   = (buf[0] >> 1) & 0x1;
-               Gif89.delayTime   = LM_to_uint( buf[1], buf[2] );
+               (void) GetDataBlock( data->buffer, (__u8*) buf );
+               data->disposal    = (buf[0] >> 2) & 0x7;
+               data->inputFlag   = (buf[0] >> 1) & 0x1;
+               data->delayTime   = LM_to_uint( buf[1], buf[2] );
                if ((buf[0] & 0x1) != 0) {
-                    Gif89.transparent = buf[3];
+                    data->transparent = buf[3];
                }
-               while (GetDataBlock( buffer, (__u8*) buf ) != 0)
+               while (GetDataBlock( data->buffer, (__u8*) buf ) != 0)
                     ;
                return false;
           default:
@@ -450,78 +464,71 @@ static int DoExtension( IDirectFBDataBuffer *buffer, int label )
      if (verbose)
           GIFERRORMSG("got a '%s' extension", str );
 
-     while (GetDataBlock( buffer, (__u8*) buf ) != 0)
+     while (GetDataBlock( data->buffer, (__u8*) buf ) != 0)
           ;
 
      return false;
 }
 
-static int LWZReadByte( IDirectFBDataBuffer *buffer, int flag, int input_code_size )
+static int LWZReadByte( IDirectFBImageProvider_GIF_data *data, int flag, int input_code_size )
 {
-     static int fresh = false;
      int code, incode;
-     static int code_size, set_code_size;
-     static int max_code, max_code_size;
-     static int firstcode, oldcode;
-     static int clear_code, end_code;
-     static int table[2][(1<< MAX_LWZ_BITS)];
-     static int stack[(1<<(MAX_LWZ_BITS))*2], *sp;
      int i;
 
      if (flag) {
-          set_code_size = input_code_size;
-          code_size = set_code_size+1;
-          clear_code = 1 << set_code_size ;
-          end_code = clear_code + 1;
-          max_code_size = 2*clear_code;
-          max_code = clear_code+2;
+          data->set_code_size = input_code_size;
+          data->code_size = data->set_code_size+1;
+          data->clear_code = 1 << data->set_code_size ;
+          data->end_code = data->clear_code + 1;
+          data->max_code_size = 2*data->clear_code;
+          data->max_code = data->clear_code+2;
 
-          GetCode(buffer, 0, true);
+          GetCode(data, 0, true);
 
-          fresh = true;
+          data->fresh = true;
 
-          for (i = 0; i < clear_code; ++i) {
-               table[0][i] = 0;
-               table[1][i] = i;
+          for (i = 0; i < data->clear_code; ++i) {
+               data->table[0][i] = 0;
+               data->table[1][i] = i;
           }
           for (; i < (1<<MAX_LWZ_BITS); ++i) {
-               table[0][i] = table[1][0] = 0;
+               data->table[0][i] = data->table[1][0] = 0;
           }
-          sp = stack;
+          data->sp = data->stack;
 
           return 0;
      }
-     else if (fresh) {
-          fresh = false;
+     else if (data->fresh) {
+          data->fresh = false;
           do {
-               firstcode = oldcode = GetCode( buffer, code_size, false );
-          } while (firstcode == clear_code);
+               data->firstcode = data->oldcode = GetCode( data, data->code_size, false );
+          } while (data->firstcode == data->clear_code);
 
-          return firstcode;
+          return data->firstcode;
      }
 
-     if (sp > stack) {
-          return *--sp;
+     if (data->sp > data->stack) {
+          return *--data->sp;
      }
 
-     while ((code = GetCode( buffer, code_size, false )) >= 0) {
-          if (code == clear_code) {
-               for (i = 0; i < clear_code; ++i) {
-                    table[0][i] = 0;
-                    table[1][i] = i;
+     while ((code = GetCode( data, data->code_size, false )) >= 0) {
+          if (code == data->clear_code) {
+               for (i = 0; i < data->clear_code; ++i) {
+                    data->table[0][i] = 0;
+                    data->table[1][i] = i;
                }
                for (; i < (1<<MAX_LWZ_BITS); ++i) {
-                    table[0][i] = table[1][i] = 0;
+                    data->table[0][i] = data->table[1][i] = 0;
                }
-               code_size = set_code_size+1;
-               max_code_size = 2*clear_code;
-               max_code = clear_code+2;
-               sp = stack;
-               firstcode = oldcode = GetCode( buffer, code_size, false );
+               data->code_size = data->set_code_size+1;
+               data->max_code_size = 2*data->clear_code;
+               data->max_code = data->clear_code+2;
+               data->sp = data->stack;
+               data->firstcode = data->oldcode = GetCode( data, data->code_size, false );
 
-               return firstcode;
+               return data->firstcode;
           }
-          else if (code == end_code) {
+          else if (code == data->end_code) {
                int count;
                __u8 buf[260];
 
@@ -529,7 +536,7 @@ static int LWZReadByte( IDirectFBDataBuffer *buffer, int flag, int input_code_si
                     return -2;
                }
 
-               while ((count = GetDataBlock( buffer, buf )) > 0)
+               while ((count = GetDataBlock( data->buffer, buf )) > 0)
                     ;
 
                if (count != 0)
@@ -541,37 +548,37 @@ static int LWZReadByte( IDirectFBDataBuffer *buffer, int flag, int input_code_si
 
           incode = code;
 
-          if (code >= max_code) {
-               *sp++ = firstcode;
-               code = oldcode;
+          if (code >= data->max_code) {
+               *data->sp++ = data->firstcode;
+               code = data->oldcode;
           }
 
-          while (code >= clear_code) {
-               *sp++ = table[1][code];
-               if (code == table[0][code]) {
+          while (code >= data->clear_code) {
+               *data->sp++ = data->table[1][code];
+               if (code == data->table[0][code]) {
                     GIFERRORMSG("circular table entry BIG ERROR");
                }
-               code = table[0][code];
+               code = data->table[0][code];
           }
 
-          *sp++ = firstcode = table[1][code];
+          *data->sp++ = data->firstcode = data->table[1][code];
 
-          if ((code = max_code) <(1<<MAX_LWZ_BITS)) {
-               table[0][code] = oldcode;
-               table[1][code] = firstcode;
-               ++max_code;
-               if ((max_code >= max_code_size)
-                   && (max_code_size < (1<<MAX_LWZ_BITS)))
+          if ((code = data->max_code) <(1<<MAX_LWZ_BITS)) {
+               data->table[0][code] = data->oldcode;
+               data->table[1][code] = data->firstcode;
+               ++data->max_code;
+               if ((data->max_code >= data->max_code_size)
+                   && (data->max_code_size < (1<<MAX_LWZ_BITS)))
                {
-                    max_code_size *= 2;
-                    ++code_size;
+                    data->max_code_size *= 2;
+                    ++data->code_size;
                }
           }
 
-          oldcode = incode;
+          data->oldcode = incode;
 
-          if (sp > stack) {
-               return *--sp;
+          if (data->sp > data->stack) {
+               return *--data->sp;
           }
      }
      return code;
@@ -626,7 +633,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      return color;
 }
 
-static __u32* ReadImage( IDirectFBDataBuffer *buffer, int width, int height,
+static __u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int height,
                          __u8 cmap[3][MAXCOLORMAPSIZE], __u32 key_rgb,
                          bool interlace, bool ignore )
 {
@@ -638,10 +645,10 @@ static __u32* ReadImage( IDirectFBDataBuffer *buffer, int width, int height,
      /*
      **  Initialize the decompression routines
      */
-     if (! ReadOK( buffer, &c, 1 ))
+     if (! ReadOK( data->buffer, &c, 1 ))
           GIFERRORMSG("EOF / read error on image data" );
 
-     if (LWZReadByte( buffer, true, c ) < 0)
+     if (LWZReadByte( data, true, c ) < 0)
           GIFERRORMSG("error reading image" );
 
      /*
@@ -651,7 +658,7 @@ static __u32* ReadImage( IDirectFBDataBuffer *buffer, int width, int height,
           if (verbose)
                GIFERRORMSG("skipping image..." );
 
-          while (LWZReadByte( buffer, false, c ) >= 0)
+          while (LWZReadByte( data, false, c ) >= 0)
                ;
           return NULL;
      }
@@ -665,10 +672,10 @@ static __u32* ReadImage( IDirectFBDataBuffer *buffer, int width, int height,
                       interlace ? " interlaced" : "" );
      }
 
-     while ((v = LWZReadByte( buffer, false, c )) >= 0 ) {
+     while ((v = LWZReadByte( data, false, c )) >= 0 ) {
           __u32 *dst = image + (ypos * width + xpos);
 
-          if (v == Gif89.transparent) {
+          if (v == data->transparent) {
                *dst++ = key_rgb;
           }
           else {
@@ -723,14 +730,14 @@ static __u32* ReadImage( IDirectFBDataBuffer *buffer, int width, int height,
 
 fini:
 
-     if (LWZReadByte( buffer, false, c ) >= 0) {
+     if (LWZReadByte( data, false, c ) >= 0) {
           GIFERRORMSG("too much input data, ignoring extra...");
      }
      return image;
 }
 
 
-static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
+static __u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
                        int *width, int *height, bool *transparency,
                        __u32 *key_rgb, bool alpha, bool headeronly)
 {
@@ -745,13 +752,13 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
      char      version[4];
 
      /* FIXME: support streamed buffers */
-     ret = buffer->SeekTo( buffer, 0 );
+     ret = data->buffer->SeekTo( data->buffer, 0 );
      if (ret) {
           DirectFBError( "(DirectFB/ImageProvider_GIF) Unable to seek", ret );
           return NULL;
      }
 
-     if (! ReadOK( buffer, buf, 6 )) {
+     if (! ReadOK( data->buffer, buf, 6 )) {
           GIFERRORMSG("error reading magic number" );
      }
 
@@ -766,35 +773,35 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
           GIFERRORMSG("bad version number, not '87a' or '89a'" );
      }
 
-     if (! ReadOK(buffer,buf,7)) {
+     if (! ReadOK(data->buffer,buf,7)) {
           GIFERRORMSG("failed to read screen descriptor" );
      }
 
-     GifScreen.Width           = LM_to_uint( buf[0], buf[1] );
-     GifScreen.Height          = LM_to_uint( buf[2], buf[3] );
-     GifScreen.BitPixel        = 2 << (buf[4] & 0x07);
-     GifScreen.ColorResolution = (((buf[4] & 0x70) >> 3) + 1);
-     GifScreen.Background      = buf[5];
-     GifScreen.AspectRatio     = buf[6];
+     data->Width           = LM_to_uint( buf[0], buf[1] );
+     data->Height          = LM_to_uint( buf[2], buf[3] );
+     data->BitPixel        = 2 << (buf[4] & 0x07);
+     data->ColorResolution = (((buf[4] & 0x70) >> 3) + 1);
+     data->Background      = buf[5];
+     data->AspectRatio     = buf[6];
 
      if (BitSet(buf[4], LOCALCOLORMAP)) {    /* Global Colormap */
-          if (ReadColorMap( buffer, GifScreen.BitPixel, GifScreen.ColorMap )) {
+          if (ReadColorMap( data->buffer, data->BitPixel, data->ColorMap )) {
                GIFERRORMSG("error reading global colormap" );
           }
      }
 
-     if (GifScreen.AspectRatio != 0 && GifScreen.AspectRatio != 49) {
-          /* float r = ( (float) GifScreen.AspectRatio + 15.0 ) / 64.0; */
+     if (data->AspectRatio != 0 && data->AspectRatio != 49) {
+          /* float r = ( (float) data->AspectRatio + 15.0 ) / 64.0; */
           GIFERRORMSG("warning - non-square pixels");
      }
 
-     Gif89.transparent = -1;
-     Gif89.delayTime   = -1;
-     Gif89.inputFlag   = -1;
-     Gif89.disposal    = 0;
+     data->transparent = -1;
+     data->delayTime   = -1;
+     data->inputFlag   = -1;
+     data->disposal    = 0;
 
      for (;;) {
-          if (! ReadOK( buffer, &c, 1)) {
+          if (! ReadOK( data->buffer, &c, 1)) {
                GIFERRORMSG("EOF / read error on image data" );
           }
 
@@ -807,10 +814,10 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
           }
 
           if (c == '!') {         /* Extension */
-               if (! ReadOK( buffer, &c, 1)) {
+               if (! ReadOK( data->buffer, &c, 1)) {
                     GIFERRORMSG("OF / read error on extention function code");
                }
-               DoExtension( buffer, c );
+               DoExtension( data, c );
             continue;
           }
 
@@ -821,13 +828,13 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
 
           ++imageCount;
 
-          if (! ReadOK( buffer, buf, 9 )) {
+          if (! ReadOK( data->buffer, buf, 9 )) {
                GIFERRORMSG("couldn't read left/top/width/height");
           }
 
           *width  = LM_to_uint( buf[4], buf[5] );
           *height = LM_to_uint( buf[6], buf[7] );
-          *transparency = (Gif89.transparent != -1);
+          *transparency = (data->transparent != -1);
 
           if (headeronly && !(*transparency && key_rgb))
                return NULL;
@@ -836,12 +843,12 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
 
           if (useGlobalColormap) {
                if (*transparency && (key_rgb || !headeronly))
-                    colorKey = FindColorKey( GifScreen.BitPixel,
-                                             GifScreen.ColorMap );
+                    colorKey = FindColorKey( data->BitPixel,
+                                             data->ColorMap );
           }
           else {
                bitPixel = 2 << (buf[8] & 0x07);
-               if (ReadColorMap( buffer, bitPixel, localColorMap ))
+               if (ReadColorMap( data->buffer, bitPixel, localColorMap ))
                     GIFERRORMSG("error reading local colormap" );
 
                if (*transparency && (key_rgb || !headeronly))
@@ -857,9 +864,9 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
           if (alpha)
                colorKey &= 0x00FFFFFF;
 
-          return ReadImage( buffer, *width, *height,
+          return ReadImage( data, *width, *height,
                             (useGlobalColormap ?
-                             GifScreen.ColorMap : localColorMap), colorKey,
+                             data->ColorMap : localColorMap), colorKey,
                             BitSet( buf[8], INTERLACE ),
                             imageCount != imageNumber);
      }
