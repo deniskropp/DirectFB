@@ -124,23 +124,19 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           
           /* start input thread */
           if (device->EventThread) {
-#ifdef KRANK
                int                 policy;
                struct sched_param  sp;
-#endif
 
                pthread_create( &device->event_thread, NULL,
                                device->EventThread, device );
 
-#ifdef KRANK
                pthread_getschedparam( device->event_thread, &policy, &sp );
 
-               policy = SCHED_FIFO;
+               policy = SCHED_RR;
 
                sp.sched_priority = sched_get_priority_max( policy );
 
                pthread_setschedparam( device->event_thread, policy, &sp );
-#endif
           }
 
           /* add it to the list */

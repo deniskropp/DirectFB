@@ -25,6 +25,7 @@
 #define __DIRECTFB_H__
 
 #include <asm/types.h>
+#include <sys/time.h> /* struct timeval */
 
 #ifdef __cplusplus
 extern "C"
@@ -1738,7 +1739,8 @@ extern "C"
           DIEF_MODIFIERS      = 0x04,   /* modifiers are valid */
           DIEF_BUTTON         = 0x08,   /* button is valid */
           DIEF_AXISABS        = 0x10,   /* axis and axisabs are valid */
-          DIEF_AXISREL        = 0x20    /* axis and axisrel are valid */
+          DIEF_AXISREL        = 0x20,   /* axis and axisrel are valid */
+          DIEF_TIMESTAMP      = 0x40    /* timestamp is valid */
      } DFBInputEventFlags;
 
      /*
@@ -1748,6 +1750,8 @@ extern "C"
           DFBInputEventType             type;          /* type of event */
           DFBInputEventFlags            flags;         /* which fields are
                                                           valid? */
+
+          struct timeval                timestamp;
 
      /* DIET_KEYPRESS, DIET_KEYRELEASE, DIET_KEYREPEAT */
           DFBInputDeviceKeyIdentifier   keycode;       /* in case of a key

@@ -31,6 +31,7 @@
 #include <sys/ioctl.h>
 #include <sys/kd.h>
 #include <sys/vt.h>
+#include <sys/time.h>
 
 #include <termios.h>
 
@@ -56,7 +57,7 @@ static DFBInputEvent y_motion;
 static inline void ps2mouse_motion_initialize()
 {
      x_motion.type = y_motion.type = DIET_AXISMOTION;
-     x_motion.flags = y_motion.flags = DIEF_AXISREL;
+     x_motion.flags = y_motion.flags = DIEF_AXISREL | DIEF_TIMESTAMP;
      x_motion.axisrel = y_motion.axisrel = 0;
 
      x_motion.axis = DIAI_X;
@@ -72,11 +73,13 @@ static inline void ps2mouse_motion_compress( int dx, int dy )
 static inline void ps2mouse_motion_realize( InputDevice *ps2mouse )
 {
      if (x_motion.axisrel) {
+          gettimeofday( &x_motion.timestamp, NULL );
           reactor_dispatch( ps2mouse->reactor, &x_motion );
           x_motion.axisrel = 0;
      }
 
      if (y_motion.axisrel) {
+          gettimeofday( &y_motion.timestamp, NULL );
           reactor_dispatch( ps2mouse->reactor, &y_motion );
           y_motion.axisrel = 0;
      }
@@ -132,21 +135,22 @@ static void* ps2mouseEventThread(void *device)
                             before any button change */
                          ps2mouse_motion_realize( device );
 
+                         evt.flags = DIEF_BUTTON | DIEF_TIMESTAMP;
+                         
+                         gettimeofday( &evt.timestamp, NULL );
+                         
                          if (changed_buttons & 0x01) {
                               evt.type = (buttons & 0x01) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_LEFT;
                               reactor_dispatch( ps2mouse->reactor, &evt );
                          }
                          if (changed_buttons & 0x02) {
                               evt.type = (buttons & 0x02) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_RIGHT;
                               reactor_dispatch( ps2mouse->reactor, &evt );
                          }
                          if (changed_buttons & 0x04) {
                               evt.type = (buttons & 0x04) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                              evt.flags = DIEF_BUTTON;
                               evt.button = DIBI_MIDDLE;
                               reactor_dispatch( ps2mouse->reactor, &evt );
                          }
