@@ -14,6 +14,10 @@
 #include "skull.h"
 
 
+#undef  CLAMP
+#define CLAMP(x, low, high)  (((x) > (high)) ? (high) : (((x) < (low)) ? (low) : (x)))
+
+
 IDirectFB            *dfb;
 IDirectFBSurface     *primary;
 IDirectFBInputDevice *keyboard;
@@ -30,7 +34,8 @@ float	ScaleFactor = 1.0;
 
 unsigned int Width, Height;
 
-Vertex Light = {0.0, 0.0, 1.0};
+Vertex Light1 = {0.0,  0.0, 1.0};
+Vertex Light2 = {0.2, -0.2, 0.4};
 
 
 static Tri3D Triangles[SKULL_TRIANGLES];
@@ -43,15 +48,19 @@ static void ClearBuffer (void)
   primary->FillRectangle (primary, 0, 0, Width, Height);
 }
 
-static void DrawTriangle (float color, Tri3D* tri)
+static void DrawTriangle (float light1, float light2, Tri3D* tri)
 {
-  __u8 gray = (__u8)(color * 255.0);
+  __u8 r, g, b;
   int X, Y;
 
   X = Width >> 1;
   Y = Height >> 1;
 
-  primary->SetColor (primary, gray, (gray*gray)/255, gray/4, 0xff);
+  r = light1 * 255.0;
+  g = (light1 * light1) * 255.0;
+  b = light1 * 64.0 + light2 * 64.0;
+
+  primary->SetColor (primary, r, g, b, 0xff);
     
   switch (PrimitiveType)
     {
@@ -90,6 +99,7 @@ static void DrawIt (void)
   Vertex *untransPoints = SkullVerticies;
   Vertex A, B;
   float length;
+  float light1, light2;
 
   ClearBuffer();
 
@@ -181,20 +191,23 @@ static void DrawIt (void)
 
 	  length = (float)sqrt((double)length);
 
-	  length =  -((first->normal.x * Light.x) +
-		      (first->normal.y * Light.y) +
-		      (first->normal.z * Light.z)) / length;
+	  light1 = -((first->normal.x * Light1.x) + 
+		     (first->normal.y * Light1.y) +
+		     (first->normal.z * Light1.z)) / length;
+          light1 = CLAMP (light1, 0.0, 1.0);
 
-	  if(length < 0.0)
-	    length = 0.0;
-	  else if(length > 1.0)
-	    length = 1.0;
+          light2 = -((first->normal.x * Light2.x) +
+                     (first->normal.y * Light2.y) +
+                     (first->normal.z * Light2.z)) / length;
+          light2 = CLAMP (light2, 0.0, 1.0);
 	}
       else
-	length = 1.0;
-
+        {
+          light1 = 1.0;
+          light2 = 0.0;
+        }
       
-      DrawTriangle(length, first);
+      DrawTriangle(light1, light2, first);
 
       first = first->next;
     }
@@ -351,7 +364,7 @@ int main (int argc, char *argv[])
 	dyL += rand()%5 - 2;
       
       if(dxL | dyL)
-      	RotateLight(&Light, dxL, dyL);
+      	RotateLight(&Light1, dxL, dyL);
       
       DrawIt();
       if(DoubleBuffer)
