@@ -406,8 +406,11 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     CoreWindow            *window;
                     DFBWindowCapabilities  window_caps = DWCAPS_NONE;
 
-                    width  = data->primary.width;
-                    height = data->primary.height;
+                    if (! (desc->flags & DSDESC_WIDTH))
+                         width = data->primary.width;
+
+                    if (! (desc->flags & DSDESC_HEIGHT))
+                         height = data->primary.height;
 
                     x = ((int)config.width  - (int)width)  / 2;
                     y = ((int)config.height - (int)height) / 2;
