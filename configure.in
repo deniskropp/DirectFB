@@ -57,6 +57,24 @@ AM_INIT_AUTOMAKE($PACKAGE, $VERSION, no-define)
 AM_CONFIG_HEADER(config.h)
 AM_MAINTAINER_MODE
 AC_DISABLE_STATIC
+
+
+case x"$target" in
+  xNONE | x)
+    target_or_host="$host" ;;
+  *)
+    target_or_host="$target" ;;
+esac
+
+
+case "$target_or_host" in
+  *-cygwin)
+    AC_ENABLE_STATIC
+    AC_DISABLE_SHARED
+    ;;
+esac
+
+
 AC_PROG_CC
 ifdef([AM_PROG_AS],[AM_PROG_AS],[])
 AM_PROG_LIBTOOL
@@ -144,13 +162,6 @@ fi
 have_x86=no
 have_arm=no
 
-case x"$target" in
-  xNONE | x)
-    target_or_host="$host" ;;
-  *)
-    target_or_host="$target" ;;
-esac
-
 case "$target_or_host" in
   i*86-*-*)
     have_x86=yes
@@ -172,6 +183,7 @@ esac
 
 
 have_linux=no
+have_cygwin=no
 need_sdlhack=no
 need_libc_r=no
 need_libdl=yes
@@ -180,6 +192,11 @@ want_ppcasm=yes
 case "$target_or_host" in
   *-linux*)
     have_linux=yes
+    ;;
+
+  *-cygwin)
+    have_cygwin=yes
+    need_libdl=no
     ;;
 
   *-freebsd*)
@@ -250,10 +267,9 @@ dnl Dynamic Linker
 DYNLIB=""
 if test "$need_libdl" = "yes"; then
   if test "$enable_shared" = "yes"; then
-    AC_CHECK_LIB(dl, dlopen, ,
+    AC_CHECK_LIB(dl, dlopen, DYNLIB="-ldl",
       AC_MSG_ERROR([
 *** DirectFB requires libdl.]))
-    DYNLIB="-ldl"
   fi
 fi
 
