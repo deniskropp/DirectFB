@@ -53,6 +53,7 @@ static const DirectFBScreenEncoderTVStandardsNames(tv_standards);
 static const DirectFBScreenOutputCapabilitiesNames(output_caps);
 static const DirectFBScreenOutputConnectorsNames(connectors);
 static const DirectFBScreenOutputSignalsNames(signals);
+static const DirectFBScreenMixerCapabilitiesNames(mixer_caps);
 
 /*****************************************************************************/
 
@@ -239,6 +240,61 @@ enum_display_layers( IDirectFBScreen *screen )
 /*****************************************************************************/
 
 static void
+dump_mixers( IDirectFBScreen *screen,
+             int              num )
+{
+     int                       i, n;
+     DFBResult                 ret;
+     DFBScreenMixerDescription descs[num];
+
+     ret = screen->GetMixerDescriptions( screen, descs );
+     if (ret) {
+          DirectFBError( "IDirectFBScreen::GetMixerDescriptions", ret );
+          return;
+     }
+
+     for (i=0; i<num; i++) {
+          printf( "   Mixer (%d)\n", i );
+
+          /* Caps */
+          printf( "     Caps:              " );
+
+          for (n=0; mixer_caps[n].capability; n++) {
+               if (descs[i].caps & mixer_caps[n].capability)
+                    printf( "%s ", mixer_caps[n].name );
+          }
+
+          printf( "\n" );
+
+
+          /* Layers */
+          printf( "     Layers:            " );
+
+          for (n=0; n<64; n++) {
+               if (DFB_DISPLAYLAYER_IDS_HAVE( descs[i].layers, n ))
+                    printf( "(%02x) ", n );
+          }
+
+          printf( "\n" );
+
+
+          /* Sub mode layers */
+          if (descs[i].caps & DSMCAPS_SUB_LAYERS) {
+               printf( "     Layers (sub mode): %d of ", descs[i].num_layers );
+
+               for (n=0; n<64; n++) {
+                    if (DFB_DISPLAYLAYER_IDS_HAVE( descs[i].sub_layers, n ))
+                         printf( "(%02x) ", n );
+               }
+
+               printf( "\n" );
+          }
+     }
+
+     printf( "\n" );
+}
+
+static void
 dump_encoders( IDirectFBScreen *screen,
                int              num )
 {
@@ -253,7 +309,10 @@ dump_encoders( IDirectFBScreen *screen,
      }
 
      for (i=0; i<num; i++) {
-          printf( "   Encoder (%d)  Type: ", i );
+          printf( "   Encoder (%d)\n", i );
+
+          /* Type */
+          printf( "     Type:         ", i );
 
           for (n=0; encoder_type[n].type; n++) {
                if (descs[i].type == encoder_type[n].type)
@@ -378,6 +437,10 @@ screen_callback( DFBScreenID           id,
 
      printf( "\n\n" );
 
+
+     /* Mixers */
+     if (desc.mixers)
+          dump_mixers( screen, desc.mixers );
 
      /* Encoders */
      if (desc.encoders)
