@@ -386,15 +386,13 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
      CoreSurface           *surface;
      IDirectFBSurface_data *dst_data;
      __u8                  *src_y, *src_u, *src_v;
+     __u8                  *dst_y, *dst_u, *dst_v;
      int                    x, y, off_x, off_y;
 
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
      surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &pitch, 0 );
-
-     pitch /= 2;
-     dst   += data->dest_clip.y * pitch + data->dest_clip.x;
 
      src_y  = data->yuv.lines[0];
      src_u  = data->yuv.lines[1];
@@ -410,7 +408,48 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
      /* this code might not work with offsets not being a multiple of 2 */
 
      switch (surface->format) {
+          case DSPF_I420:
+          case DSPF_YV12:
+               dst_y  = (__u8*) dst;
+               dst_y += data->dest_clip.y * pitch + data->dest_clip.x;
+
+               if (surface->format == DSPF_I420) {
+                    dst_u = (__u8*) dst + pitch * data->video.height;
+                    dst_v = dst_u + pitch/2 * data->video.height / 2;
+
+                    dst_u += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
+                    dst_v += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
+               }
+               else {
+                    dst_v = (__u8*) dst + pitch * data->video.height;
+                    dst_u = dst_v + pitch/2 * data->video.height / 2;
+
+                    dst_u += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
+                    dst_v += data->dest_clip.y/2 * pitch/2 + data->dest_clip.x/2;
+               }
+
+               for (y=0; y<data->dest_clip.h; y++) {
+                    memcpy( dst_y, src_y, data->dest_clip.w );
+
+                    src_y += data->video.width;
+                    dst_y += pitch;
+
+                    if (y & 1) {
+                         src_u += data->video.width/2;
+                         src_v += data->video.width/2;
+                         dst_u += pitch/2;
+                         dst_v += pitch/2;
+                    }
+                    else {
+                         memcpy( dst_u, src_u, data->dest_clip.w/2 );
+                         memcpy( dst_v, src_v, data->dest_clip.w/2 );
+                    }
+               }
+               break;
+
           case DSPF_YUY2:
+               dst += data->dest_clip.y * pitch + data->dest_clip.x;
+
                for (y=0; y<data->dest_clip.h; y++) {
                     for (x=0; x<data->dest_clip.w; x++) {
                          if (x & 1)
@@ -426,11 +465,13 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                          src_v += data->video.width/2;
                     }
 
-                    dst += pitch;
+                    dst += pitch/2;
                }
                break;
 
           case DSPF_UYVY:
+               dst += data->dest_clip.y * pitch + data->dest_clip.x;
+
                for (y=0; y<data->dest_clip.h; y++) {
                     for (x=0; x<data->dest_clip.w; x++) {
                          if (x & 1)
@@ -446,7 +487,7 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
                          src_v += data->video.width/2;
                     }
 
-                    dst += pitch;
+                    dst += pitch/2;
                }
                break;
 
@@ -641,6 +682,9 @@ AudioThread( void *ctx )
           pthread_mutex_unlock( &data->audio.lock );
      }
 
+     /* tell sound driver that we stopped playback */
+     ioctl( data->audio.fd, SNDCTL_DSP_POST, 0 );
+
      return NULL;
 }
 
@@ -666,6 +710,8 @@ IDirectFBVideoProvider_OpenQuicktime_PlayTo( IDirectFBVideoProvider *thiz,
 
      /* check if destination format is supported */
      switch (dst_data->surface->format) {
+          case DSPF_I420:
+          case DSPF_YV12:
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (!data->yuv.supported)
