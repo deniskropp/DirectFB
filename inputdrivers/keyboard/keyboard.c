@@ -292,7 +292,7 @@ keyboardEventThread( DirectThread *thread, void *driver_data )
 static int
 driver_get_available()
 {
-     if (dfb_system_type() == CORE_FBDEV)
+     if (dfb_system_type() == CORE_FBDEV && dfb_config->vt)
           return 1;
 
      return 0;
