@@ -58,6 +58,11 @@ DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, AviFile )
 
 }
 
+/*
+ * This is only for C++ to use our C constructor.
+ */
+static class Foo { public: Foo() {} } foo;
+
 #include <aviplay.h>
 #include <fourcc.h>
 
