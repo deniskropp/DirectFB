@@ -175,6 +175,7 @@ window_destructor( FusionObject *object, bool zombie )
 CoreWindowStack*
 dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 {
+     int               i;
      CardCapabilities  caps;
      CoreWindowStack  *stack;
 
@@ -226,6 +227,9 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
      /* Setup size and cursor clipping region */
      dfb_windowstack_resize( stack, width, height );
 
+     for (i=0; i<8; i++)
+          stack->keys[i].code = -1;
+     
      /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack );
 
@@ -999,7 +1003,7 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
      stack_lock( stack );
      
      for (i=0; i<8; i++) {
-          if (stack->keys[i].symbol != DIKS_NULL) {
+          if (stack->keys[i].code != -1) {
                DFBWindowEvent we;
 
                we.type       = DWET_KEYUP;
@@ -1009,7 +1013,7 @@ dfb_windowstack_flush_keys( CoreWindowStack *stack )
 
                dfb_window_dispatch( stack->keys[i].owner, &we );
 
-               stack->keys[i].symbol = DIKS_NULL;
+               stack->keys[i].code = -1;
           }
      }
      
@@ -1937,7 +1941,7 @@ window_withdraw( CoreWindow *window )
           stack->pointer_window = NULL;
 
      for (i=0; i<8; i++) {
-          if (stack->keys[i].symbol != DIKS_NULL &&
+          if (stack->keys[i].code != -1 &&
               stack->keys[i].owner == window)
           {
                DFBWindowEvent we;
@@ -1949,7 +1953,7 @@ window_withdraw( CoreWindow *window )
 
                dfb_window_dispatch( window, &we );
 
-               stack->keys[i].symbol = DIKS_NULL;
+               stack->keys[i].code = -1;
           }
      }
 }
@@ -2011,8 +2015,9 @@ get_keyboard_window( CoreWindowStack     *stack,
      DFB_ASSERT( evt != NULL );
      DFB_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
 
-     if (evt->key_symbol == DIKS_NULL)
-          return NULL;
+     if (evt->key_code == -1)
+          return stack->keyboard_window ?
+                 stack->keyboard_window : stack->focused_window;;
      
      if (evt->type == DIET_KEYPRESS) {
           int         i;
@@ -2020,10 +2025,10 @@ get_keyboard_window( CoreWindowStack     *stack,
           CoreWindow *window;
 
           for (i=0; i<8; i++) {
-               if (stack->keys[i].symbol == evt->key_symbol)
+               if (stack->keys[i].code == evt->key_code)
                     return stack->keys[i].owner;
 
-               if (free_key == -1 && stack->keys[i].symbol == DIKS_NULL)
+               if (free_key == -1 && stack->keys[i].code == -1)
                     free_key = i;
           }
 
@@ -2046,8 +2051,8 @@ get_keyboard_window( CoreWindowStack     *stack,
           int i;
 
           for (i=0; i<8; i++) {
-               if (stack->keys[i].symbol == evt->key_symbol) {
-                    stack->keys[i].symbol = DIKS_NULL;
+               if (stack->keys[i].code == evt->key_code) {
+                    stack->keys[i].code = -1;
                          
                     return stack->keys[i].owner;
                }
