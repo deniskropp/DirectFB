@@ -1,5 +1,6 @@
 different bugs and issues
 -------------------------
+- fix palette mode for multi app core (color hash)
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 
 automake/autoconf etc.
