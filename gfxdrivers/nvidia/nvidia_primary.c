@@ -154,22 +154,46 @@ nvcrtc1GetScreenSize( CoreScreen *screen,
                       int        *ret_width,
                       int        *ret_height )
 {
-     VideoMode *mode;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+     volatile __u8    *PCIO  = nvdrv->PCIO;
+     int               w, h;
+     int               val;
 
-     /* FIXME: detect video mode from hardware configuration */
-     mode = dfb_system_current_mode();
+     /* stolen from RivaTV */
+     
+	/* NV_PCRTC_HORIZ_DISPLAY_END */
+	nv_out8( PCIO, 0x3D4, 0x01 );
+	w = nv_in8( PCIO, 0x3D5 );
+	/* NV_PCRTC_HORIZ_EXTRA_DISPLAY_END_8 */
+	nv_out8( PCIO, 0x3D4, 0x2D );
+	w |= (nv_in8( PCIO, 0x3D5) & 0x02) << 7;
+     w  = (w + 1) << 3;
+	
+     /* NV_PCRTC_VERT_DISPLAY_END */
+	nv_out8( PCIO, 0x3D4, 0x12 );
+	h = nv_in8( PCIO, 0x3D5 );     
+     /* NV_PCRTC_OVERFLOW_VERT_DISPLAY_END_[89] */
+	nv_out8( PCIO, 0x3D4, 0x07 );
+	val = nv_in8( PCIO, 0x3D5 );
+	h |= (val & 0x02) << 7;
+     h |= (val & 0x40) << 3;
+     h++;
+	/* NV_PCRTC_EXTRA_VERT_DISPLAY_END_10 */
+	nv_out8( PCIO, 0x3D4, 0x25 );
+	h |= (nv_in8( PCIO, 0x3D5 ) & 0x02) << 9;
+	/* NV_PCRTC_???_VERT_DISPLAY_END_11 */
+	nv_out8( PCIO, 0x3D4, 0x41 );
+	h |= (nv_in8( PCIO, 0x3D5) & 0x04) << 9;
+	/* NV_PCRTC_MAX_SCAN_LINE_DOUBLE_SCAN */
+	nv_out8( PCIO, 0x3D4, 0x09 );
+	h >>= (nv_in8( PCIO, 0x3D5 ) & 0x80) >> 7;
 
-     if (!mode)
-          mode = dfb_system_modes();
+     D_DEBUG( "DirectFB/NVidia/Crtc1: "
+              "detected screen resolution %dx%d.\n", w, h );
 
-     if (!mode) {
-           D_WARN( "no default mode found" );
-           return DFB_UNSUPPORTED;
-     }
-
-     *ret_width  = mode->xres;
-     *ret_height = mode->yres;
-
+     *ret_width  = w;
+     *ret_height = h;
+     
      return DFB_OK;
 }
 
