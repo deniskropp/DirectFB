@@ -125,11 +125,11 @@ case "$target_or_host" in
     ;;
 esac
 
-AM_CONDITIONAL(BUILDPPCASM, test x$have_ppc = xyes)
 
 have_linux=no
 need_libc_r=no
 need_libdl=yes
+want_ppcasm=yes
 
 case "$target_or_host" in
   *-linux*)
@@ -139,6 +139,7 @@ case "$target_or_host" in
   *-freebsd*)
     need_libc_r=yes
     need_libdl=no
+    want_ppcasm=yes
     CPPFLAGS="$CPPFLAGS -I/usr/local/include"
     LDFLAGS="$LDFLAGS -L/usr/local/lib"
     ;;
@@ -146,20 +147,35 @@ case "$target_or_host" in
   *-openbsd*)
     need_libc_r=yes
     need_libdl=no
+    want_ppcasm=no
     CPPFLAGS="$CPPFLAGS -I/usr/local/include"
     LDFLAGS="$LDFLAGS -L/usr/local/lib"
     ;;
 
   *-netbsd*)
+    need_libc_r=no
     need_libdl=no
+    want_ppcasm=yes
     CPPFLAGS="$CPPFLAGS -I/usr/pkg/include"
     LDFLAGS="$LDFLAGS -L/usr/pkg/lib"
+    ;;    
+
+  *-darwin*)
+    need_libc_r=no
+    need_libdl=yes
+    want_ppcasm=no
+    CPPFLAGS="$CPPFLAGS -I/sw/include"
+    LDFLAGS="$LDFLAGS -L/sw/lib"
     ;;
 esac
 
-
 AM_CONDITIONAL(HAVE_LINUX, test x$have_linux = xyes)    
 
+AM_CONDITIONAL(BUILDPPCASM, test x$have_ppc = xyes && test x$want_ppcasm = xyes)
+
+if test x$have_ppc = xyes && test x$want_ppcasm = xyes; then
+    AC_DEFINE(USE_PPCASM,1,[Define to 1 if ppc assembly is available.])
+fi
 
 dnl Threads
 

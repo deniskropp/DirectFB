@@ -14,13 +14,18 @@ directfb_csource_SOURCES = directfb-csource.c
 directfb_csource_LDADD   = $(LIBPNG)
 endif
 
+if HAVE_LINUX
+LINUXONLY_TOOLS =	\
+	dfbsummon	\
+        fusion_bench
+endif
+
 bin_PROGRAMS = $(DFB_CSOURCE) dfbg dfbdump dfbinfo
 
 noinst_PROGRAMS = \
-	dfbsummon	\
-	fusion_bench	\
-	raw15toraw24	\
-	raw16toraw24	\
+	$(LINUXONLY_TOOLS)	\
+	raw15toraw24		\
+	raw16toraw24		\
 	raw32toraw24
 
 dfbg_SOURCES = dfbg.c

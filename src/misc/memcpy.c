@@ -141,7 +141,7 @@
 #include "misc/mem.h"
 #include "misc/cpu_accel.h"
 
-#ifdef ARCH_PPC
+#ifdef USE_PPCASM
 #include "ppcasm_memcpy.h"
 #endif
 
@@ -416,12 +416,12 @@ static struct {
 #endif /* USE_SSE  */
 #endif /* USE_MMX  */
 #endif /* ARCH_X86 */
-#ifdef ARCH_PPC
+#ifdef USE_PPCASM
      { "ppcasm_memcpy()",            ppcasm_memcpy, 0, 0},
 #ifdef __LINUX__
      { "ppcasm_cacheable_memcpy()",   ppcasm_cacheable_memcpy, 0, 0},
 #endif /* __LINUX__ */
-#endif /* ARCH_PPC */
+#endif /* USE_PPCASM */
      { NULL, NULL, 0, 0}
 };
 #endif
