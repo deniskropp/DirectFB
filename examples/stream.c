@@ -83,7 +83,7 @@ main (int argc, char *argv[])
           feed_stream (stream);
 
           /* Wait for end of stream (ring buffer holds ~3/4 sec). */
-          sleep (1);
+          stream->Wait (stream, 0);
 
           stream->Release (stream);
      }

@@ -240,6 +240,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * This method blocks until there's enough space in the ring buffer
       * so that writing data of the specified <i>length</i> wouldn't block.
+      *
+      * Specifying a <i>length</i> of zero waits until playback has finished.
       */
      DFBResult (*Wait) (
           IFusionSoundStream       *thiz,

@@ -247,21 +247,25 @@ IFusionSoundStream_Wait( IFusionSoundStream *thiz,
      if (!buffer)
           return DFB_DESTROYED;
 
-     if (length < 1 || length >= data->size)
+     if (length < 0 || length >= data->size)
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->lock );
      
      while (true) {
-          int num;
+          if (length) {
+               int num;
 
-          /* Calculate number of free samples in the buffer. */
-          if (data->pos_write < data->pos_read)
-               num = data->pos_read - data->pos_write - 1;
-          else
-               num = data->size - data->pos_write + data->pos_read - 1;
-          
-          if (num >= length)
+               /* Calculate number of free samples in the buffer. */
+               if (data->pos_write < data->pos_read)
+                    num = data->pos_read - data->pos_write - 1;
+               else
+                    num = data->size - data->pos_write + data->pos_read - 1;
+
+               if (num >= length)
+                    break;
+          }
+          else if (!data->playing)
                break;
 
           pthread_cond_wait( &data->wait, &data->lock );
