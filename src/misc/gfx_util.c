@@ -673,6 +673,19 @@ unsigned int clip_rectangle( DFBRegion    *clip,
      return result;
 }
 
+int clip_triangle_precheck( DFBRegion   *clip,
+                            DFBTriangle *tri )
+{
+    int x, y, w, h;
+  
+    x = MIN (MIN (tri->x1, tri->x2), tri->x3);
+    y = MIN (MIN (tri->y1, tri->y2), tri->y3);
+    w = MAX (MAX (tri->x1, tri->x2), tri->x3) - x;
+    h = MAX (MAX (tri->y1, tri->y2), tri->y3) - y;
+    
+    return clip_blit_precheck (clip, w, h, x, y);
+}
+
 int clip_blit_precheck( DFBRegion *clip,
                         int w, int h, int dx, int dy )
 {

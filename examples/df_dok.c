@@ -592,14 +592,15 @@ int main( int argc, char *argv[] )
           pixels = 0;
           t = clock();
           for (i=0; i<i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               int x1 = rand()%(SW-SX);
-               int y1 = rand()%(SH-SY);
-               int x2 = x1 + rand()%SX;
-               int y2 = y1 + rand()%SY;
+               int x = rand()%(SW-SX) + SX/2;
+               int y = rand()%(SH-SY) + SY/2;
+               int dx = rand()%(2*SX) - SX;
+               int dy = rand()%(2*SY) - SY;
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
                                   rand()%0xFF, 0xFF );
-               primary->DrawLine( primary, x1, y1, x2, y2 );
-               pixels += MAX(x2 - x1, y2 - y1);
+               primary->DrawLine( primary, 
+                                  x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
+               pixels += MAX( abs (dx), abs (dy) );
           }
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawline = (pixels/dt)/1000000.0f;
@@ -617,15 +618,16 @@ int main( int argc, char *argv[] )
           t = clock();
           primary->SetDrawingFlags( primary, DSDRAW_BLEND );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
-               int x1 = rand()%(SW-SX);
-               int y1 = rand()%(SH-SY);
-               int x2 = x1 + rand()%SX;
-               int y2 = y1 + rand()%SY;
+               int x = rand()%(SW-SX) + SX/2;
+               int y = rand()%(SH-SY) + SY/2;
+               int dx = rand()%(2*SX) - SX;
+               int dy = rand()%(2*SY) - SY;
                
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
                                   rand()%0xFF, rand()%0x64 );
-               primary->DrawLine( primary, x1, y1, x2, y2 );
-               pixels += MAX(x2 - x1, y2 - y1);
+               primary->DrawLine( primary, 
+                                  x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
+               pixels += MAX( abs (dx), abs (dy) );
           }
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawline_blend = (pixels/dt) / 1000000.0f;

@@ -41,8 +41,9 @@ void scale_nearest_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
 
 int clip_line( DFBRegion *clip, DFBRegion *line );
 
-unsigned int clip_rectangle( DFBRegion    *clip,
-                             DFBRectangle *rect );
+unsigned int clip_rectangle( DFBRegion *clip, DFBRectangle *rect );
+
+int clip_triangle_precheck( DFBRegion *clip, DFBTriangle *tri );
 
 int clip_blit_precheck( DFBRegion *clip, int w, int h, int dx, int dy );
 
