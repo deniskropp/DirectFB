@@ -1,8 +1,11 @@
+0.9.2
+------
+
 - fix for loading jpegs unscaled into 24bpp surfaces
 - 15bpp support for jpeg provider
 - v4l provider support for devfs (/dev/v4l/video*)
 - API change for DFBSurfaceDescription (pixelformat field instead of bpp
-  field, removed DSCAPS_ALPHA.) 
+  field, removed DSCAPS_ALPHA.)
 - DrawString() and GetStringWidth() support UTF-8 encoded strings now. They
   take an additional parameter that specifies the number of bytes to use from 
   the passed string or -1 for the complete string.
@@ -11,7 +14,7 @@
 - Font kerning tables are no longer loaded by the core.
 - Removed default font from the core and made it a IDirectFBFont interface.
   Pass NULL as filename to CreateFont() to get the default font.
-- Added MPEG video provider based on libmpeg3 written by Kim JeongHoe.
+- Added MPEG video provider written by Kim JeongHoe based on libmpeg3.
 - Performance improvements in the software functions for DrawLine(), 16 bit
   drawing functions and DrawString() in all depth.
 - Added GetPos() and GetLength() functions to the video provider API.
