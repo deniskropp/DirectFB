@@ -100,13 +100,13 @@ typedef struct {
 static const unsigned int zero = 0;
 static const unsigned int one = 1;
 
-static void* VideoThread( void *context );
-static void* SystemThread( void *context );
+static void* OverlayThread( void *context );
+static void* GrabThread( void *context );
 static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx );
 static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ctx );
-static DFBResult v4l_to_videosurface( CoreSurface *surface, DFBRectangle *rect,
+static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data );
-static DFBResult v4l_to_systemsurface( CoreSurface *surface, DFBRectangle *rect,
+static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                                  IDirectFBVideoProvider_V4L_data *data );
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
@@ -201,6 +201,9 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 {
      DFBRectangle           rect;
      IDirectFBSurface_data *dst_data;
+     int                    needs_grab_mode = 0;
+     CoreSurface           *surface = 0;
+     DFBResult              ret;
 
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
@@ -235,10 +238,45 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      data->callback = callback;
      data->ctx      = ctx;
 
-     if (dst_data->caps & DSCAPS_SYSTEMONLY)
-         return v4l_to_systemsurface( dst_data->surface, &rect, data );
+     surface = dst_data->surface;
+
+     if (dst_data->caps & DSCAPS_SYSTEMONLY) {
+
+          dfb_surfacemanager_lock( surface->manager );
+
+	  ret = dfb_surfacemanager_assure_system( surface->manager, 
+						  surface->back_buffer );
+	  if (!ret)
+	       surface->back_buffer->system.locked++;
+
+	  dfb_surfacemanager_unlock( surface->manager );
+
+	  if (ret)
+	       return ret;
+     } else {
+
+          dfb_surfacemanager_lock( surface->manager );
+
+	  ret = dfb_surfacemanager_assure_video( surface->manager, 
+						 surface->back_buffer );
+	  if (!ret)
+	       surface->back_buffer->video.locked++;
+
+	  dfb_surfacemanager_unlock( surface->manager );
+
+	  if (ret)
+	       return ret;
+     }
+
+     if (dst_data->caps & DSCAPS_SYSTEMONLY
+	 || surface->caps & DSCAPS_FLIPPING
+	 || !(VID_TYPE_OVERLAY & data->vcap.type))
+          needs_grab_mode = 1;
+
+     if (needs_grab_mode)
+          return v4l_to_surface_grab( surface, &rect, data );
      else
-         return v4l_to_videosurface( dst_data->surface, &rect, data );
+          return v4l_to_surface_overlay( surface, &rect, data );
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
@@ -414,7 +452,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
  * bogus thread to generate callback,
  * because video4linux does not support syncing in overlay mode
  */
-static void* VideoThread( void *ctx )
+static void* OverlayThread( void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
@@ -445,7 +483,7 @@ static void* VideoThread( void *ctx )
 /*
  * thread to capture data from v4l buffers and generate callback
  */
-static void* SystemThread( void *ctx )
+static void* GrabThread( void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
           (IDirectFBVideoProvider_V4L_data*)ctx;
@@ -559,27 +597,18 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
 
 /************/
 
-static DFBResult v4l_to_videosurface( CoreSurface *surface, DFBRectangle *rect,
-                                      IDirectFBVideoProvider_V4L_data *data )
+static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
+					 IDirectFBVideoProvider_V4L_data *data )
 {
-     DFBResult ret;
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     if (surface->caps & DSCAPS_FLIPPING)
+     /*
+      * Sanity check. Overlay to system surface isn't possible.
+      */
+     if (surface->caps & DSCAPS_SYSTEMONLY)
           return DFB_UNSUPPORTED;
-
-     dfb_surfacemanager_lock( surface->manager );
-
-     ret = dfb_surfacemanager_assure_video( surface->manager, buffer );
-     if (!ret)
-          buffer->video.locked++;
-
-     dfb_surfacemanager_unlock( surface->manager );
-
-     if (ret)
-          return ret;
-
+     
      switch (surface->format) {
           case DSPF_YUY2:
                bpp = 16;
@@ -699,34 +728,19 @@ static DFBResult v4l_to_videosurface( CoreSurface *surface, DFBRectangle *rect,
      reactor_attach( surface->reactor, v4l_videosurface_listener, data );
 
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
-          pthread_create( &data->thread, NULL, VideoThread, data );
+          pthread_create( &data->thread, NULL, OverlayThread, data );
 
      return DFB_OK;
 }
 
-static DFBResult v4l_to_systemsurface( CoreSurface *surface, DFBRectangle *rect,
+static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                                        IDirectFBVideoProvider_V4L_data *data )
 {
-     DFBResult ret;
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
-     if (surface->caps & DSCAPS_FLIPPING)
-          return DFB_UNSUPPORTED;
-
      if (!data->vmbuf.frames)
           return DFB_UNSUPPORTED;
-
-     dfb_surfacemanager_lock( surface->manager );
-
-     ret = dfb_surfacemanager_assure_system( surface->manager, buffer );
-     if (!ret)
-          buffer->system.locked++;
-
-     dfb_surfacemanager_unlock( surface->manager );
-
-     if (ret)
-          return ret;
 
      switch (surface->format) {
           case DSPF_YUY2:
@@ -764,7 +778,10 @@ static DFBResult v4l_to_systemsurface( CoreSurface *surface, DFBRectangle *rect,
                break;
           default:
                BUG( "unknown pixel format" );
-               buffer->system.locked--;
+	       if (surface->caps & DSCAPS_SYSTEMONLY)
+		    buffer->system.locked--;
+	       else
+		    buffer->video.locked--;
                return DFB_BUG;
      }
 
@@ -777,8 +794,11 @@ static DFBResult v4l_to_systemsurface( CoreSurface *surface, DFBRectangle *rect,
 
           PERRORMSG("DirectFB/v4l: "
                     "Could not start capturing (VIDIOCMCAPTURE failed)!\n");
-
-          buffer->system.locked--;
+	  
+	  if (surface->caps & DSCAPS_SYSTEMONLY)
+	       buffer->system.locked--;
+	  else
+	       buffer->video.locked--;
           return ret;
      }
 
@@ -789,7 +809,7 @@ static DFBResult v4l_to_systemsurface( CoreSurface *surface, DFBRectangle *rect,
 
      reactor_attach( surface->reactor, v4l_systemsurface_listener, data );
 
-     pthread_create( &data->thread, NULL, SystemThread, data );
+     pthread_create( &data->thread, NULL, GrabThread, data );
 
      return DFB_OK;
 }
@@ -802,13 +822,15 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data )
           data->thread = -1;
      }
 
-     if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0) {
-          DFBResult ret = errno2dfb( errno );
-
-          PERRORMSG( "DirectFB/v4l: "
-                     "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
-
-          return ret;
+     if (VID_TYPE_OVERLAY & data->vcap.type) {
+          if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0) {
+	       DFBResult ret = errno2dfb( errno );
+ 
+	       PERRORMSG( "DirectFB/v4l: "
+			  "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
+ 
+	       return ret;
+	  }
      }
 
      if (!data->destination)
