@@ -182,5 +182,11 @@ shstrdup (const char* string)
      return DFBSTRDUP( string );
 }
 
+bool
+fusion_is_shared (const void *ptr)
+{
+     return true;
+}
+
 #endif
 
