@@ -70,6 +70,26 @@ FusionResult fusion_skirmish_dismiss (FusionSkirmish *skirmish);
  */
 FusionResult fusion_skirmish_destroy (FusionSkirmish *skirmish);
 
+
+/*
+ * Utility function to initialize recursive mutexes.
+ */
+static inline int fusion_pthread_recursive_mutex_init( pthread_mutex_t *mutex )
+{
+     int                 ret;
+     pthread_mutexattr_t attr;
+
+     pthread_mutexattr_init( &attr );
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+
+     ret = pthread_mutex_init( mutex, &attr );
+
+     pthread_mutexattr_destroy( &attr );
+
+     return ret;
+}
+
+
 #ifdef __cplusplus
 }
 #endif

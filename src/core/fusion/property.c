@@ -211,7 +211,7 @@ fusion_property_init (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
 
-     pthread_mutex_init (&property->fake.lock, NULL);
+     fusion_pthread_recursive_mutex_init (&property->fake.lock);
      pthread_cond_init (&property->fake.cond, NULL);
 
      property->fake.state = FUSION_PROPERTY_AVAILABLE;

@@ -476,7 +476,7 @@ vt_init_switching()
                return DFB_INIT;
           }
 
-          pthread_mutex_init( &dfb_vt->lock, NULL );
+          fusion_pthread_recursive_mutex_init( &dfb_vt->lock );
           pthread_cond_init( &dfb_vt->wait, NULL );
 
           dfb_vt->vt_sig = -1;

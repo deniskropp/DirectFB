@@ -55,7 +55,7 @@ dfb_font_create( CoreDFB *core )
 
      font->core = core;
 
-     pthread_mutex_init( &font->lock, NULL );
+     fusion_pthread_recursive_mutex_init( &font->lock );
 
      /* the proposed pixel_format, may be changed by the font provider */
      font->pixel_format = (dfb_config->argb_font &&

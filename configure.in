@@ -102,6 +102,8 @@ fi
 
 CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
 
+CPPFLAGS="-D_GNU_SOURCE $CPPFLAGS"
+
 AC_ARG_ENABLE(extra-warnings,
   [  --enable-extra-warnings   enable extra warnings [default=no]],,
   enable_extra_warnings=no)
@@ -217,7 +219,8 @@ fi
 AC_SUBST(THREADFLAGS)
 AC_SUBST(THREADLIB)
 
-CFLAGS="$THREADFLAGS $CFLAGS"
+CPPFLAGS="$THREADFLAGS $CPPFLAGS"
+
 
 dnl Dynamic Linker
 DYNLIB=""
@@ -1062,7 +1065,10 @@ Build options:
   Build shared libs     $enable_shared
   Build static libs     $enable_static
   Module directory      $MODULEDIR
+  CPPFLAGS              $CPPFLAGS
   CFLAGS                $CFLAGS
+  LDFLAGS               $LDFLAGS
+  LIBS                  $LIBS
 
 Misc options:
   MMX support           $enable_mmx

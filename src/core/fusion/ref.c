@@ -300,7 +300,7 @@ fusion_ref_init (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
 
-     pthread_mutex_init (&ref->fake.lock, NULL);
+     fusion_pthread_recursive_mutex_init (&ref->fake.lock);
      pthread_cond_init (&ref->fake.cond, NULL);
 
      ref->fake.refs      = 0;
@@ -332,8 +332,6 @@ fusion_ref_up (FusionRef *ref, bool global)
 FusionResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
-     FusionResult ret = FUSION_SUCCESS;
-
      DFB_ASSERT( ref != NULL );
 
      pthread_mutex_lock (&ref->fake.lock);
@@ -344,24 +342,21 @@ fusion_ref_down (FusionRef *ref, bool global)
           return FUSION_BUG;
      }
 
-     if (ref->fake.destroyed)
-          ret = FUSION_DESTROYED;
-     else
-          ref->fake.refs--;
+     if (ref->fake.destroyed) {
+          pthread_mutex_unlock (&ref->fake.lock);
+          return FUSION_DESTROYED;
+     }
 
-     if (ref->fake.waiting)
-          pthread_cond_broadcast (&ref->fake.cond);
-
-     pthread_mutex_unlock (&ref->fake.lock);
-
-     if (!ref->fake.refs && ref->fake.call) {
+     if (! --ref->fake.refs && ref->fake.call) {
           FusionCall *call = ref->fake.call;
 
           if (call->handler)
                call->handler( 0, ref->fake.call_arg, NULL, call->ctx );
      }
 
-     return ret;
+     pthread_mutex_unlock (&ref->fake.lock);
+
+     return FUSION_SUCCESS;
 }
 
 FusionResult

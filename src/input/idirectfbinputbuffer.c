@@ -412,7 +412,7 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
      data->filter     = filter;
      data->filter_ctx = filter_ctx;
 
-     pthread_mutex_init( &data->events_mutex, NULL );
+     fusion_pthread_recursive_mutex_init( &data->events_mutex );
      pthread_cond_init( &data->wait_condition, NULL );
 
      thiz->AddRef                  = IDirectFBEventBuffer_AddRef;

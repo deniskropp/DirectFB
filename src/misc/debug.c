@@ -25,8 +25,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define _GNU_SOURCE
-
 #include <config.h>
 
 #include <pthread.h>
@@ -69,7 +67,7 @@ struct __DFB_TraceBuffer {
 
 static TraceBuffer     *buffers[MAX_BUFFERS];
 static int              buffers_num  = 0;
-static pthread_mutex_t  buffers_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  buffers_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
 static pthread_key_t    trace_key    = -1;
 
 __attribute__((no_instrument_function))

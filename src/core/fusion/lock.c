@@ -25,8 +25,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define _GNU_SOURCE
-
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -177,16 +175,9 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 FusionResult
 fusion_skirmish_init (FusionSkirmish *skirmish)
 {
-     pthread_mutexattr_t attr;
-
      DFB_ASSERT( skirmish != NULL );
 
-     pthread_mutexattr_init( &attr );
-     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-
-     pthread_mutex_init( &skirmish->fake.lock, &attr );
-
-     pthread_mutexattr_destroy( &attr );
+     fusion_pthread_recursive_mutex_init( &skirmish->fake.lock );
 
      return FUSION_SUCCESS;
 }

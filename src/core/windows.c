@@ -142,12 +142,16 @@ window_destructor( FusionObject *object, bool zombie )
      DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d%s)\n", window,
               window->width, window->height, zombie ? " ZOMBIE" : "");
 
+     dfb_windowstack_lock( stack );
+
      dfb_window_destroy( window );
 
      window_remove( window );
 
      if (stack->cursor.window == window)
           stack->cursor.window = NULL;
+
+     dfb_windowstack_unlock( stack );
 
      fusion_object_destroy( object );
 }
@@ -379,10 +383,6 @@ dfb_window_destroy( CoreWindow *window )
      /* Make sure the window is no longer visible. */
      dfb_window_set_opacity( window, 0 );
 
-     /* Notify listeners. */
-     evt.type = DWET_DESTROYED;
-     dfb_window_post_event( window, &evt );
-
      /* Indicate destruction. */
      window->destroyed = true;
 
@@ -405,6 +405,11 @@ dfb_window_destroy( CoreWindow *window )
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
+
+
+     /* Notify listeners. */
+     evt.type = DWET_DESTROYED;
+     dfb_window_post_event( window, &evt );
 }
 
 void
@@ -1110,7 +1115,11 @@ window_remove( CoreWindow *window )
      window->initialized = false;
 
      /* Unlink the primary region of the context. */
-     dfb_layer_region_unlink( &window->primary_region );
+     if (window->primary_region) {
+          dfb_layer_region_unlink( &window->primary_region );
+     }
+     else
+          DFB_ASSUME( window->caps & DWCAPS_INPUTONLY );
 
      window->stack = NULL;
 }

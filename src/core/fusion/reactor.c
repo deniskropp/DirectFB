@@ -25,8 +25,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define _GNU_SOURCE
-
 #include <config.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -587,18 +585,14 @@ lock_node( int reactor_id, bool add )
      }
 
      if (add) {
-          pthread_mutexattr_t  attr;
-          ReactorNode         *node = DFBCALLOC( 1, sizeof(ReactorNode) );
+          ReactorNode *node = DFBCALLOC( 1, sizeof(ReactorNode) );
 
-          if (!node)
+          if (!node) {
+               CAUTION( "out of memory" );
                return NULL;
+          }
 
-          pthread_mutexattr_init( &attr );
-          pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-
-          pthread_mutex_init( &node->lock, &attr );
-
-          pthread_mutexattr_destroy( &attr );
+          fusion_pthread_recursive_mutex_init( &node->lock );
 
 
           pthread_mutex_lock( &node->lock );
@@ -654,8 +648,7 @@ process_globals( FusionReactor *reactor,
 FusionReactor *
 fusion_reactor_new (int msg_size)
 {
-     pthread_mutexattr_t  attr;
-     FusionReactor       *reactor;
+     FusionReactor *reactor;
 
      DFB_ASSERT( msg_size > 0 );
 
@@ -663,13 +656,8 @@ fusion_reactor_new (int msg_size)
      if (!reactor)
           return NULL;
 
-     pthread_mutexattr_init( &attr );
-     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-
-     pthread_mutex_init( &reactor->reactions_lock, &attr );
-     pthread_mutex_init( &reactor->globals_lock, &attr );
-
-     pthread_mutexattr_destroy( &attr );
+     fusion_pthread_recursive_mutex_init( &reactor->reactions_lock );
+     fusion_pthread_recursive_mutex_init( &reactor->globals_lock );
 
      return reactor;
 }

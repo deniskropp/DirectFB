@@ -566,7 +566,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           return ret;
      }
 
-     pthread_mutex_init( &data->lock, NULL );
+     fusion_pthread_recursive_mutex_init( &data->lock );
 
 #ifdef HAVE_V4L2
 	data->is_v4l2 = 0;

@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -39,6 +39,7 @@
 
 #include <core/fusion/reactor.h>
 #include <core/fusion/list.h>
+#include <core/fusion/lock.h>
 
 #include <directfb.h>
 #include <directfb_internals.h>
@@ -102,10 +103,10 @@ IDirectFBDataBuffer_Streamed_Destruct( IDirectFBDataBuffer *thiz )
 {
      IDirectFBDataBuffer_Streamed_data *data =
           (IDirectFBDataBuffer_Streamed_data*) thiz->priv;
-     
+
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->chunks_mutex );
-     
+
      IDirectFBDataBuffer_Destruct( thiz );
 }
 
@@ -126,11 +127,11 @@ IDirectFBDataBuffer_Streamed_Flush( IDirectFBDataBuffer *thiz )
      INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      pthread_mutex_lock( &data->chunks_mutex );
-     
+
      DestroyAllChunks( data );
-     
+
      pthread_mutex_unlock( &data->chunks_mutex );
-     
+
      return DFB_OK;
 }
 
@@ -160,7 +161,7 @@ IDirectFBDataBuffer_Streamed_GetLength( IDirectFBDataBuffer *thiz,
 
      /* Return total length of all chunks. */
      *length = data->length;
-     
+
      return DFB_OK;
 }
 
@@ -169,14 +170,14 @@ IDirectFBDataBuffer_Streamed_WaitForData( IDirectFBDataBuffer *thiz,
                                           unsigned int         length )
 {
      INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
-     
+
      pthread_mutex_lock( &data->chunks_mutex );
 
      while (data->length < length)
           pthread_cond_wait( &data->wait_condition, &data->chunks_mutex );
 
      pthread_mutex_unlock( &data->chunks_mutex );
-     
+
      return DFB_OK;
 }
 
@@ -241,7 +242,7 @@ IDirectFBDataBuffer_Streamed_GetData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->chunks_mutex );
-     
+
      if (!data->chunks) {
           pthread_mutex_unlock( &data->chunks_mutex );
           return DFB_BUFFEREMPTY;
@@ -259,9 +260,9 @@ IDirectFBDataBuffer_Streamed_GetData( IDirectFBDataBuffer *thiz,
      /* Return number of bytes read. */
      if (read_out)
           *read_out = len;
-     
+
      pthread_mutex_unlock( &data->chunks_mutex );
-     
+
      return DFB_OK;
 }
 
@@ -280,7 +281,7 @@ IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->chunks_mutex );
-     
+
      if (!data->chunks || (unsigned int) offset >= data->length) {
           pthread_mutex_unlock( &data->chunks_mutex );
           return DFB_BUFFEREMPTY;
@@ -295,9 +296,9 @@ IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
      /* Return number of bytes read. */
      if (read_out)
           *read_out = len;
-     
+
      pthread_mutex_unlock( &data->chunks_mutex );
-     
+
      return DFB_OK;
 }
 
@@ -309,7 +310,7 @@ IDirectFBDataBuffer_Streamed_HasData( IDirectFBDataBuffer *thiz )
      /* If there's no chunk there's no data. */
      if (!data->chunks)
           return DFB_BUFFEREMPTY;
-     
+
      return DFB_OK;
 }
 
@@ -332,21 +333,21 @@ IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
           return DFB_NOSYSTEMMEMORY;
 
      pthread_mutex_lock( &data->chunks_mutex );
-     
+
      /* Prepend new chunk. */
      fusion_list_prepend( &data->chunks, &chunk->link );
 
      /* If no chunk has been there before it's the last one. */
      if (!data->last)
           data->last = data->chunks;
-     
+
      /* Increase total length. */
      data->length += length;
 
      pthread_cond_broadcast( &data->wait_condition );
-     
+
      pthread_mutex_unlock( &data->chunks_mutex );
-     
+
      return DFB_OK;
 }
 
@@ -361,9 +362,9 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
      if (ret)
           return ret;
 
-     pthread_mutex_init( &data->chunks_mutex, NULL );
+     fusion_pthread_recursive_mutex_init( &data->chunks_mutex );
      pthread_cond_init( &data->wait_condition, NULL );
-     
+
      thiz->Release                = IDirectFBDataBuffer_Streamed_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Streamed_Flush;
      thiz->SeekTo                 = IDirectFBDataBuffer_Streamed_SeekTo;
@@ -471,7 +472,7 @@ ReadChunkData( IDirectFBDataBuffer_Streamed_data *data,
                     destroy_chunk( chunk );
                }
           }
-          
+
           /* Proceed with previous link. */
           l = prev;
      }

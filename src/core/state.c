@@ -25,8 +25,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define _GNU_SOURCE
-
 #include <config.h>
 
 #include <string.h>
@@ -56,8 +54,6 @@ static ReactionResult source_listener     ( const void *msg_data,
 int
 dfb_state_init( CardState *state )
 {
-     pthread_mutexattr_t attr;
-
      DFB_ASSERT( state != NULL );
 
      memset( state, 0, sizeof(CardState) );
@@ -66,12 +62,7 @@ dfb_state_init( CardState *state )
      state->src_blend = DSBF_SRCALPHA;
      state->dst_blend = DSBF_INVSRCALPHA;
 
-     pthread_mutexattr_init( &attr );
-     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-
-     pthread_mutex_init( &state->lock, &attr );
-
-     pthread_mutexattr_destroy( &attr );
+     fusion_pthread_recursive_mutex_init( &state->lock );
 
      DFB_MAGIC_SET( state, CardState );
 
