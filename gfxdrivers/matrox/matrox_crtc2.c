@@ -273,8 +273,8 @@ crtc2SetConfiguration( DisplayLayer          *layer,
 
      crtc2OnOff( mdrv, mcrtc2, 0 );
      crtc2_set_regs( mdrv, mcrtc2 );
-     crtc2_set_buffer( mdrv, mcrtc2, layer );
      crtc2OnOff( mdrv, mcrtc2, 1 );
+     crtc2_set_buffer( mdrv, mcrtc2, layer );
      maven_program( &mcrtc2->md, &mcrtc2->mr );
      if (config->options & DLOP_FLICKER_FILTERING)
           maven_set_deflicker( &mcrtc2->md, 2 );
@@ -586,6 +586,8 @@ static void crtc2_set_buffer( MatroxDriverData     *mdrv,
      CoreSurface   *surface      = dfb_layer_surface( layer );
      SurfaceBuffer *front_buffer = surface->front_buffer;
      volatile __u8 *mmio         = mdrv->mmio_base;
+     int            vdisplay     = (dfb_config->matrox_ntsc ? 486/2 : 576/2) + 2;
+     int            line;
 
      /* interleaved fields */
      mcrtc2->regs.c2OFFSET = front_buffer->video.pitch * 2;
@@ -611,6 +613,11 @@ static void crtc2_set_buffer( MatroxDriverData     *mdrv,
           default:
                break;
      }
+
+     line = mga_in32( mmio, C2VCOUNT ) & 0x00000FFF;
+     if (line + 6 > vdisplay && line < vdisplay)
+          while ((mga_in32( mmio, C2VCOUNT ) & 0x00000FFF) != vdisplay)
+               ;
 
      mga_out32( mmio, mcrtc2->regs.c2OFFSET, C2OFFSET );
      mga_out32( mmio, mcrtc2->regs.c2STARTADD1, C2STARTADD1 );
