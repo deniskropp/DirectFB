@@ -1112,8 +1112,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;
-                    surface->back_buffer->system.pitch = DFB_BYTES_PER_LINE(mode->format,
-                                                                            var.xres);
+                    surface->back_buffer->system.pitch =
+                         (DFB_BYTES_PER_LINE(mode->format, var.xres) + 3) & ~3;
 
                     if (surface->back_buffer->system.addr)
                          shfree( surface->back_buffer->system.addr );
