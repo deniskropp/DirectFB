@@ -78,6 +78,7 @@ typedef struct _UcDeviceData {
 
     __u32 pitch;                    // Current combined src/dst pitch (2D)
     __u32 color;                    // Current fill color
+    __u32 color3d;                  // Current color for 3D operations
     __u32 colormask;                // Current color mask
     __u32 alphamask;                // Current alpha mask
     __u32 draw_rop2d;               // Current logical drawing ROP (2D)

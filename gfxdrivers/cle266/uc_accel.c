@@ -223,7 +223,7 @@ bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
     UC_ACCEL_BEGIN()
 
     //printf("%s: r = {%d, %d, %d, %d}, c = 0x%08x\n", __PRETTY_FUNCTION__,
-    //  r->x, r->y, r->w, r->h, ucdev->color);
+    //  r->x, r->y, r->w, r->h, ucdev->color3d);
 
     int cmdB = HC_ACMD_HCmdB | HC_HVPMSK_X | HC_HVPMSK_Y | HC_HVPMSK_Cd;
     int cmdA = HC_ACMD_HCmdA | HC_HPMType_Tri | HC_HVCycle_AFP |
@@ -238,10 +238,10 @@ bool uc_fill_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color);
-    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y, ucdev->color);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y, ucdev->color3d);
     UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y + r->h - 1, 0);
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h - 1, ucdev->color);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h - 1, ucdev->color3d);
 
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
@@ -264,11 +264,11 @@ bool uc_draw_rectangle_3d(void* drv, void* dev, DFBRectangle* r)
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color);
-    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y, ucdev->color);
-    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y + r->h - 1, ucdev->color);
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h - 1, ucdev->color);
-    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x + r->w - 1, r->y + r->h - 1, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y + r->h - 1, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, r->x, r->y, ucdev->color3d);
 
     UC_FIFO_ADD(fifo, cmdA_End);
 
@@ -290,8 +290,8 @@ bool uc_draw_line_3d(void* drv, void* dev, DFBRegion* line)
     UC_FIFO_ADD(fifo, cmdB);
     UC_FIFO_ADD(fifo, cmdA);
 
-    UC_FIFO_ADD_XYC(fifo, line->x1, line->y1, ucdev->color);
-    UC_FIFO_ADD_XYC(fifo, line->x2, line->y2, ucdev->color);
+    UC_FIFO_ADD_XYC(fifo, line->x1, line->y1, ucdev->color3d);
+    UC_FIFO_ADD_XYC(fifo, line->x2, line->y2, ucdev->color3d);
 
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.

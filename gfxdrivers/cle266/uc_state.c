@@ -140,6 +140,9 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
     if (state->modified & (SMF_COLOR | SMF_DESTINATION)) {
         ucdev->color = uc_map_color(state->destination->format,
             state->color);
+        
+        ucdev->color3d = PIXEL_ARGB( state->color.a , state->color.r,
+                                     state->color.g , state->color.b );    
     }
 
     if (state->modified & SMF_DRAWING_FLAGS)
