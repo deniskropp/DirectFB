@@ -201,14 +201,13 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
                                         IDirectFBSurface       *destination,
                                         const DFBRectangle     *dest_rect )
 {
-     int err;
-     void *dst;
-     int pitch;
-     int src_width, src_height;
-     DFBRectangle rect = { 0, 0, 0, 0 };
-     __u32 *image_data = NULL;
-     DFBSurfacePixelFormat format;
-     DFBSurfaceCapabilities caps;
+     int    err;
+     void  *dst;
+     int    pitch;
+     int    src_width, src_height;
+     __u32 *image_data;
+     DFBRectangle           rect = { 0, 0, 0, 0 };
+     DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
 
@@ -226,10 +225,6 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
 
      src_width = imlib_image_get_width();
      src_height = imlib_image_get_height();
-
-     err = destination->GetCapabilities( destination, &caps );
-     if (err)
-          return err;
 
      err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)
