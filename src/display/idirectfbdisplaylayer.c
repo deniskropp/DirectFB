@@ -140,7 +140,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     if (data->level != DLSCL_EXCLUSIVE) {
+     if (data->level == DLSCL_SHARED) {
           CAUTION( "letting unprivileged IDirectFBDisplayLayer::GetSurface() "
                    "call pass until cooperative level handling is finished" );
      }

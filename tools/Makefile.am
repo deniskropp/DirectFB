@@ -14,10 +14,9 @@ directfb_csource_SOURCES = directfb-csource.c
 directfb_csource_LDADD   = $(LIBPNG)
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbg dfbinfo
+bin_PROGRAMS = $(DFB_CSOURCE) dfbg dfbdump dfbinfo
 
 noinst_PROGRAMS = \
-	dfbdump 	\
 	dfbsummon	\
 	fusion_bench	\
 	raw15toraw24	\
