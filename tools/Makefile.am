@@ -1,6 +1,10 @@
 ## Makefile.am for DirectFB/tools
 
-INCLUDES = -I$(top_srcdir)/include
+INCLUDES = \
+	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/src
+
+CFLAGS = $(DFB_CFLAGS)
 
 if DIRECTFB_CSOURCE
 bin_PROGRAMS = directfb-csource

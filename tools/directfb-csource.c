@@ -33,26 +33,34 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
+#include <assert.h>
 #include <libgen.h>
 
 #include <png.h>
 
-#include <directfb.h>
+#include "directfb.h"
+
+#include "gfx/convert.h"
+
 
 #ifndef FALSE
 #define FALSE 0
 #define TRUE (!FALSE)
 #endif
 
+
 static struct {
      DFBSurfacePixelFormat  format;
      const char             *name;
-} pixelformat_names[] = {
-     { DSPF_RGB32, "DSPF_RGB32" },
-     { DSPF_ARGB,  "DSPF_ARGB"  }
+} pixelformats[] = {
+     { DSPF_RGB15, "RGB15" },
+     { DSPF_RGB16, "RGB16" },
+     { DSPF_RGB24, "RGB24" },
+     { DSPF_RGB32, "RGB32" },
+     { DSPF_ARGB,  "ARGB"  },
+     { DSPF_A8,    "A8"    }
 };
-static int n_pixelformats = (sizeof (pixelformat_names) /
-                             sizeof (pixelformat_names[0]));
+static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
 
 static DFBResult  load_image  (DFBSurfaceDescription *desc,
@@ -65,11 +73,12 @@ static void       print_usage (const char            *prg_name);
 int main (int         argc,
           const char *argv[])
 {
-     DFBSurfaceDescription  desc;
+     DFBSurfaceDescription  desc   = { 0 };
+     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
      const char *name     = NULL;
      const char *filename = NULL;
      char *vname;
-     int   i, n;
+     int   i, j, n;
 
      /* parse command line */
      for (n = 1; n < argc; n++) {
@@ -82,6 +91,13 @@ int main (int         argc,
                     fprintf (stderr, "directfb-csource version %s\n",
                              DIRECTFB_VERSION);
                     return EXIT_SUCCESS;
+               }
+               if (strncmp (argv[n] + 2, "format=", 7) == 0 && !format) {
+                    for (j = 0; j < n_pixelformats && !format; j++)
+                         if (!strcasecmp (pixelformats[j].name, argv[n] + 9))
+                              format = pixelformats[j].format;
+                    if (format)
+                         continue;
                }
                if (strncmp (argv[n] + 2, "name=", 5) == 0 && !name) {
                     name = argv[n] + 7;
@@ -119,6 +135,11 @@ int main (int         argc,
           }
      }
 
+     if (format) {
+          desc.flags = DSDESC_PIXELFORMAT;
+          desc.pixelformat = format;
+     }
+
      if (load_image (&desc, filename) != DFB_OK)
           return EXIT_FAILURE;
 
@@ -129,22 +150,29 @@ static void print_usage (const char *prg_name)
 {
      fprintf (stderr, "directfb-csource version %s\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
-     fprintf (stderr, "   --name=<identifer>  specifies variable name\n");
-     fprintf (stderr, "   --help              show this help message\n");
-     fprintf (stderr, "   --version           print version information\n");
+     fprintf (stderr, "   --name=<identifer>     specifies variable name\n");
+     fprintf (stderr, "   --format=<identifer>   specifies surface format\n");
+     fprintf (stderr, "   --help                 show this help message\n");
+     fprintf (stderr, "   --version              print version information\n");
      fprintf (stderr, "\n");
 }
 
 static DFBResult load_image (DFBSurfaceDescription *desc,
                              const char            *filename)
 {
-     FILE        *fp;
-     png_structp  png_ptr  = NULL;
-     png_infop    info_ptr = NULL;
-     png_uint_32  width, height;
-     int          type;
-     char         header[8];
-     int          bytes;
+     DFBSurfacePixelFormat dest_format;
+     DFBSurfacePixelFormat src_format;
+     FILE          *fp;
+     png_structp    png_ptr  = NULL;
+     png_infop      info_ptr = NULL;
+     png_uint_32    width, height;
+     unsigned char *data     = NULL;
+     int            type;
+     char           header[8];
+     int            bytes, pitch;
+
+     dest_format = ((desc->flags & DSDESC_PIXELFORMAT) ?
+                    desc->pixelformat : DSPF_UNKNOWN);
 
      desc->flags = 0;
      desc->preallocated[0].data = NULL;
@@ -187,16 +215,21 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      png_get_IHDR (png_ptr, info_ptr,
                    &width, &height, &bytes, &type, NULL, NULL, NULL);
 
-     /* promote everything to ARGB or RGB32 (for now) */
-     switch (type)
-       {
-       case PNG_COLOR_TYPE_PALETTE:
-         png_set_palette_to_rgb (png_ptr);
-         break;
-       case PNG_COLOR_TYPE_GRAY:
-       case PNG_COLOR_TYPE_GRAY_ALPHA:
-         png_set_gray_to_rgb (png_ptr);
-         break;
+     src_format = (type & PNG_COLOR_MASK_ALPHA) ? DSPF_ARGB : DSPF_RGB32;
+     switch (type) {
+          case PNG_COLOR_TYPE_PALETTE:
+            /* FIXME: LUT8 */
+               png_set_palette_to_rgb (png_ptr);
+               break;
+          case PNG_COLOR_TYPE_GRAY:
+               if (dest_format == DSPF_A8) {
+                    src_format = DSPF_A8;
+                    break;
+               }
+               /* fallthru */
+          case PNG_COLOR_TYPE_GRAY_ALPHA:
+               png_set_gray_to_rgb (png_ptr);
+               break;
        }
 
      if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS))
@@ -217,28 +250,70 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      png_set_bgr (png_ptr);
 #endif
 
-     desc->width       = width;
-     desc->height      = height;
-     desc->pixelformat = ((type & PNG_COLOR_MASK_ALPHA) ?
-                          DSPF_ARGB : DSPF_RGB32);
+     pitch = width * DFB_BYTES_PER_PIXEL (src_format);
+     data  = malloc (height * pitch);
+     if (!data)
+          goto cleanup;
 
-     desc->preallocated[0].pitch = (width *
-                                    DFB_BYTES_PER_PIXEL (desc->pixelformat));
-     desc->preallocated[0].data = malloc (height * desc->preallocated[0].pitch);
-
-     if (desc->preallocated[0].data) {
+     {
           int i;
           png_bytep bptrs[height];
           
           for (i = 0; i < height; i++)
-               bptrs[i] = ((unsigned char *) desc->preallocated[0].data
-                           + desc->preallocated[0].pitch * i);
+               bptrs[i] = data + i * pitch;
 
           png_read_image (png_ptr, bptrs);
      }
 
+     if (!dest_format)
+          dest_format = src_format;
+
+     if (DFB_BYTES_PER_PIXEL(src_format) != DFB_BYTES_PER_PIXEL(dest_format)) {
+          unsigned char *s, *d, *dest;
+          int            d_pitch, h;
+
+          assert (DFB_BYTES_PER_PIXEL (src_format) == 4);
+          
+          d_pitch = width * DFB_BYTES_PER_PIXEL (dest_format);
+          dest = malloc (height * d_pitch);
+          if (!dest)
+               goto cleanup;
+
+          h = height;
+          switch (dest_format) {
+               case DSPF_RGB15:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         span_argb_to_rgb15 ((__u32 *) s, (__u16 *) d, width);
+                    break;
+               case DSPF_RGB16:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         span_argb_to_rgb16 ((__u32 *) s, (__u16 *) d, width);
+                    break;
+               case DSPF_A8:
+                    for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
+                         span_argb_to_a8 ((__u32 *) s, (__u8 *) d, width);
+                    break;
+               case DSPF_RGB24:
+                    /* FIXME */
+               default:
+                    fprintf (stderr, "Sorry, conversion unsupported.\n");
+                    goto cleanup;
+          }
+
+          free (data);
+          data = dest;
+          pitch = d_pitch;
+     }
+
      desc->flags = (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
                     DSDESC_PREALLOCATED);
+     desc->width       = width;
+     desc->height      = height;
+     desc->pixelformat = dest_format;
+     desc->preallocated[0].pitch = pitch;
+     desc->preallocated[0].data  = data;
+     
+     data = NULL;
 
  cleanup:
      if (fp)
@@ -246,6 +321,9 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
 
      if (png_ptr)
           png_destroy_read_struct (&png_ptr, &info_ptr, NULL);
+
+     if (data)
+          free (data);
 
      return ((desc->flags) ? DFB_OK : DFB_FAILURE);
 }
@@ -309,8 +387,8 @@ static DFBResult dump_image (DFBSurfaceDescription *desc,
           return DFB_INVARG;
 
      for (i = 0; i < n_pixelformats && !format; i++)
-          if (pixelformat_names[i].format == desc->pixelformat)
-               format = pixelformat_names[i].name;
+          if (pixelformats[i].format == desc->pixelformat)
+               format = pixelformats[i].name;
 
      if (!format)
           return DFB_INVARG;
@@ -349,7 +427,7 @@ static DFBResult dump_image (DFBSurfaceDescription *desc,
      fprintf (csource.fp,
               "  height                  : %d,\n", desc->height);
      fprintf (csource.fp,
-              "  pixelformat             : %s,\n", format);
+              "  pixelformat             : DSPF_%s,\n", format);
      fprintf (csource.fp,
               "  preallocated : {{ data  : (void *) %s_data,\n", name);
      fprintf (csource.fp,
