@@ -2605,22 +2605,8 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 		dest_rect.y = 0;
 	dest_rect.y += this->main_data->area.wanted.y;
 
-	{
-		uint32_t maxw = this->main_data->surface->width - dest_rect.x;
-		uint32_t maxh = this->main_data->surface->height - dest_rect.y;
-
-		if(dest_rect.w < 1 || dest_rect.w > maxw)
-		{
-			dest_rect.x = this->main_data->area.wanted.x;
-			dest_rect.w = this->main_data->area.wanted.w;
-		}
-
-		if(dest_rect.h < 1 || dest_rect.h > maxh)
-		{
-			dest_rect.y = this->main_data->area.wanted.y;
-			dest_rect.h = this->main_data->area.wanted.h;
-		}
-	}
+	if(dest_rect.w < 1 || dest_rect.h < 1)
+		dest_rect = this->main_data->area.wanted;
 
 	if(!dfb_rectangle_intersect(&dest_rect,
 			&(this->main_data->area.current)))
@@ -2905,7 +2891,6 @@ FAILURE:
 static int
 dfb_redraw_needed(vo_driver_t* vo_driver)
 {
-	/* not needed */
 	return(0);
 }
 
@@ -3124,7 +3109,8 @@ static vo_info_t vo_info_dfb =
 plugin_info_t xine_plugin_info[] =
 {
   /* type, API, "name", version, special_info, init_function */
-  { PLUGIN_VIDEO_OUT, 18, "DFB", XINE_VERSION_CODE, &vo_info_dfb, init_class},
+  { PLUGIN_VIDEO_OUT, VIDEO_OUT_DRIVER_IFACE_VERSION, "DFB",
+	  XINE_VERSION_CODE, &vo_info_dfb, init_class},
   { PLUGIN_NONE, 0, "", 0, NULL, NULL}
 };
 
