@@ -597,9 +597,7 @@ static void nv4SetState( void *drv, void *dev,
                         nvdev->depth_pitch  != buffer->video.pitch)
                     {
                          nv_out32( PGRAPH, 0x64C, offset );
-                         nv_out32( PGRAPH, 0x67C,
-                                   buffer->video.pitch /
-                                   (DFB_BITS_PER_PIXEL( nvdev->dst_format )>>4) );
+                         nv_out32( PGRAPH, 0x67C, buffer->video.pitch );
 
                          nvdev->depth_offset = offset;
                          nvdev->depth_pitch  = buffer->video.pitch;
@@ -778,9 +776,7 @@ static void nv5SetState( void *drv, void *dev,
                         nvdev->depth_pitch  != buffer->video.pitch)
                     {
                          nv_out32( PGRAPH, 0x64C, offset );
-                         nv_out32( PGRAPH, 0x67C,
-                                   buffer->video.pitch /
-                                   (DFB_BITS_PER_PIXEL( nvdev->dst_format )>>4) );
+                         nv_out32( PGRAPH, 0x67C, buffer->video.pitch );
 
                          nvdev->depth_offset = offset;
                          nvdev->depth_pitch  = buffer->video.pitch;
