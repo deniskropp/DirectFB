@@ -77,6 +77,8 @@ struct _SurfaceManager {
      int             length;
      int             available;
 
+     int             min_toleration;
+
      bool            suspended;
 
      /* offset of the surface heap */
@@ -87,8 +89,6 @@ struct _SurfaceManager {
      unsigned int    pixelpitch_align;
 };
 
-
-static int min_toleration = 8;
 
 static Chunk* split_chunk( Chunk *c, int length );
 static Chunk* free_chunk( SurfaceManager *manager, Chunk *chunk );
@@ -313,7 +313,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
                     if (!c->buffer->video.locked              &&
                         c->buffer->policy != CSP_VIDEOONLY    &&
                         c->buffer->policy <= buffer->policy   &&
-                        ((c->tolerations > min_toleration/8) ||
+                        ((c->tolerations > manager->min_toleration/8 + 2) ||
                          buffer->policy == CSP_VIDEOONLY))
                     {
                          /* found a nice place to chill */
@@ -566,7 +566,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 
      chunk->buffer = NULL;
 
-     min_toleration--;
+     manager->min_toleration--;
 
      if (chunk->prev  &&  !chunk->prev->buffer) {
           Chunk *prev = chunk->prev;
@@ -620,6 +620,6 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int 
 
      chunk->buffer = buffer;
 
-     min_toleration++;
+     manager->min_toleration++;
 }
 
