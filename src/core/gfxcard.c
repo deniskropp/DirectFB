@@ -575,48 +575,99 @@ void gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      state_unlock( state );
 }
 
+
+typedef struct {
+   int xi;
+   int xf;
+   int mi;
+   int mf;
+   int _2dy;
+} DDA;
+
+#define ABS(x) ((x) < 0 ? -(x) : (x))
+
+#define SETUP_DDA(xs,ys,xe,ye,dda)       \
+     do {                                \
+          int dx = xe - xs;              \
+          int dy = ye - ys;              \
+          dda.xi = xs;                   \
+          if (dy != 0) {                 \
+               dda.mi = dx / dy;         \
+               dda.mf = 2*(dx % dy);     \
+               dda.xf = -dy;             \
+               dda._2dy = 2 * dy;        \
+          }                              \
+     } while (0)
+
+
+#define INC_DDA(dda)                     \
+     do {                                \
+          dda.xi += dda.mi;              \
+          dda.xf += dda.mf;              \
+          if (dda.mf < 0) {              \
+               if (dda.xf < 0) {         \
+                    dda.xi--;            \
+                    dda.xf += dda._2dy;  \
+               }                         \
+          } else {                       \
+               if (dda.xf > 0) {         \
+                    dda.xi++;            \
+                    dda.xf -= dda._2dy;  \
+               }                         \
+          }                              \
+     } while (0)
+
+
 /**
- *  render a triangle with horizontal baseline (x2,y2)-(x3,y3)
+ *  render a triangle using two parallel DDA's
  */
 static
 void fill_tri( DFBTriangle *tri, CardState *state )
 {
-     int y, yend, dy, dx2, dx3;
+     int y, yend;
+     DDA dda1, dda2;
      int clip_x1 = state->clip.x1;
      int clip_x2 = state->clip.x2;
-     DFBRectangle rect;
 
-     dy = tri->y3 - tri->y1;
-     if (dy == 0)
-        return;
-
-     y = MIN(tri->y1, tri->y3);
+     y = tri->y1;
+     yend = tri->y3;
 
      if (y < state->clip.y1)
-        y = state->clip.y1;
-
-     yend = MAX(tri->y1, tri->y3);
+          y = state->clip.y1;
 
      if (yend > state->clip.y2)
-        yend = state->clip.y2;
+          yend = state->clip.y2;
 
-     dx3 = tri->x3 - tri->x1;
-     dx2 = tri->x2 - tri->x1;
+     SETUP_DDA(tri->x1, tri->y1, tri->x3, tri->y3, dda1);
+     SETUP_DDA(tri->x1, tri->y1, tri->x2, tri->y2, dda2);
 
      while (y < yend) {
-          int x1 = tri->x1 + dx3 * (y - tri->y1) / dy;
-          int x2 = tri->x1 + dx2 * (y - tri->y1) / dy;
-          if (x1 < x2) { rect.x = x1; rect.w = x2 - x1; }
-          else         { rect.x = x2; rect.w = x1 - x2; }
-          if (clip_x1 > rect.x)
-               rect.x = clip_x1;
+          DFBRectangle rect;
+
+          if (y == tri->y2) {
+               if (tri->y2 == tri->y3)
+                    return;
+               SETUP_DDA(tri->x2, tri->y2, tri->x3, tri->y3, dda2);
+          }
+
+          rect.w = ABS(dda1.xi - dda2.xi);
+          rect.x = MIN(dda1.xi, dda2.xi);
+
           if (clip_x2 < rect.x + rect.w)
                rect.w = clip_x2 - rect.x;
+
           if (rect.w > 0) {
+               if (clip_x1 > rect.x)
+                    rect.x = clip_x1;
                rect.y = y;
                rect.h = 1;
+
                gFillRectangle (&rect);
           }
+
+          INC_DDA(dda1);
+          INC_DDA(dda2);
+
           y++;
      }
 }
@@ -629,43 +680,22 @@ void gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
      if (gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
          gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ) &&
          Scard->device_info.caps.flags & CCF_CLIPPING) {
-               card->funcs.FillTriangle( card->driver_data,
-                                         card->device_data, tri );
-
+          card->funcs.FillTriangle( card->driver_data,
+                                    card->device_data, tri );
           gfxcard_state_release( state );
      }
      else {
-          DFBTriangle t1, t2;
-          int split_x, split_y;
-
           sort_triangle( tri );
 
-          gAquire( state, DFXL_FILLTRIANGLE );
-
-          if (tri->y3 - tri->y1 != 0)
-               split_x = tri->x1 + (tri->x3 - tri->x1) * (tri->y2 - tri->y1) / (tri->y3 - tri->y1);
-          else
-               split_x = (tri->x3 + tri->x1) / 2;
-
-          split_y = tri->y2;
-
-          t1.x1 = tri->x1; t1.y1 = tri->y1;
-          t1.x2 = split_x; t1.y2 = split_y;
-          t1.x3 = tri->x2; t1.y3 = tri->y2;
-
-          t2.x1 = tri->x3; t2.y1 = tri->y3;
-          t2.x2 = tri->x2; t2.y2 = tri->y2;
-          t2.x3 = split_x; t2.y3 = split_y;
-
-          fill_tri( &t1, state );
-          fill_tri( &t2, state );
-
-          gRelease( state );
+          if (tri->y3 - tri->y1 > 0) {
+               gAquire( state, DFXL_FILLTRIANGLE );
+               fill_tri( tri, state );
+               gRelease( state );
+          }
      }
 
      state_unlock( state );
 }
-
 
 
 void gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
