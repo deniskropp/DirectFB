@@ -303,7 +303,7 @@ extern "C"
                                                      screen can be changed, this
                                                      includes position and size
                                                      as normalized values,
-                                                     default is 0, 0 - 1, 1. */
+                                                     default is 0, 0, 1, 1. */
           DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be
                                                      enabled for this layer. */
           DLCAPS_INTERLACED_VIDEO  = 0x00000020,  /* The layer can display
@@ -1303,10 +1303,8 @@ extern "C"
       * Flags controlling the text layout.
       */
      typedef enum {
-          DSTF_LEFT           = 0x00000000,  /* use this rather than '0',
-                                                type is valid (for C++) */
-          DSTF_CENTER         = 0x00000001,  /* prints the string center
-                                                aligned rather than left */
+          DSTF_LEFT           = 0x00000000,  /* left aligned */
+          DSTF_CENTER         = 0x00000001,  /* horizontally centered */
           DSTF_RIGHT          = 0x00000002,  /* right aligned */
 
           DSTF_TOP            = 0x00000004,  /* y specifies the top
@@ -1323,7 +1321,7 @@ extern "C"
       */
      typedef enum {
           DSLF_READ           = 0x00000001,  /* request read access while
-                                                surface is locked*/
+                                                surface is locked */
           DSLF_WRITE          = 0x00000002   /* request write access */
      } DFBSurfaceLockFlags;
 
