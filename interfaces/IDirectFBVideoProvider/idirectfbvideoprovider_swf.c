@@ -50,6 +50,16 @@
 #include <misc/util.h>
 #include <misc/mem.h>
 
+static DFBResult
+Probe( const char *filename );
+
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, SWF )
 
 /*
  * private data struct of IDirectFBVideoProvider
@@ -393,17 +403,8 @@ static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment(
 
 /* exported symbols */
 
-const char *get_type()
-{
-     return "IDirectFBVideoProvider";
-}
-
-const char *get_implementation()
-{
-     return "Swf";
-}
-
-DFBResult Probe( const char *filename )
+static DFBResult
+Probe( const char *filename )
 {
     if (strstr( filename, ".swf" ) ||
         strstr( filename, ".SWF" ))
@@ -412,7 +413,8 @@ DFBResult Probe( const char *filename )
     return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      IDirectFBVideoProvider_Swf_data *data;
      char *buffer;

@@ -27,24 +27,21 @@
 #include <directfb.h>
 #include <core/coretypes.h>
 
-typedef struct
-{
-     char *filename;
-     char *type;
-     char *implementation;
+typedef struct {
+     const char * (*GetType)();
+     const char * (*GetImplementation)();
+     DFBResult    (*Allocate)( void **interface );
+     DFBResult    (*Probe)( void *data, ... );
+     DFBResult    (*Construct)( void *interface, ... );
+} DFBInterfaceFuncs;
 
-     int   references;
-
-     DFBResult (*Allocate)( void **interface );
-     DFBResult (*Probe)( void *data, ... );
-     DFBResult (*Construct)( void *interface, ... );
-} DFBInterfaceImplementation;
-
-DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
+DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                            char *type,
                            char *implementation,
-                           int (*probe)( DFBInterfaceImplementation *impl, void *ctx ),
+                           int (*probe)( DFBInterfaceFuncs *impl, void *ctx ),
                            void *probe_ctx );
+
+void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
      (p) = (i*)calloc( 1, sizeof(i) );

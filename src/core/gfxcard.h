@@ -177,6 +177,34 @@ typedef struct _GraphicsDeviceFuncs {
 
 } GraphicsDeviceFuncs;
 
+typedef struct {
+     int       (*GetAbiVersion)  ();
+     int       (*Probe)          (GraphicsDevice      *device);
+     void      (*GetDriverInfo)  (GraphicsDevice      *device,
+                                  GraphicsDriverInfo  *driver_info);
+
+     DFBResult (*InitDriver)     (GraphicsDevice      *device,
+                                  GraphicsDeviceFuncs *funcs,
+                                  void                *driver_data);
+
+     DFBResult (*InitDevice)     (GraphicsDevice      *device,
+                                  GraphicsDeviceInfo  *device_info,
+                                  void                *driver_data,
+                                  void                *device_data);
+
+     /* temporary function to have hardware layers in single app core,
+        this will change after restructuring layer driver data handling */
+     DFBResult (*InitLayers)     (void                *driver_data,
+                                  void                *device_data);
+
+
+     void      (*CloseDevice)    (GraphicsDevice      *device,
+                                  void                *driver_data,
+                                  void                *device_data);
+     void      (*CloseDriver)    (GraphicsDevice      *device,
+                                  void                *driver_data);
+} GraphicsDriverFuncs;
+
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver
  */
@@ -190,6 +218,8 @@ DFBResult dfb_gfxcard_leave();
 DFBResult dfb_gfxcard_suspend();
 DFBResult dfb_gfxcard_resume();
 #endif
+
+void dfb_graphics_register_module( GraphicsDriverFuncs *funcs );
 
 /*
  * initializes card struct, maps framebuffer, chooses accelerated driver

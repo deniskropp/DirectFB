@@ -42,6 +42,17 @@
 #include <misc/mem.h>
 #include <misc/util.h>
 
+static DFBResult
+Probe( const char *head, const char *filename );
+
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
+
 
 #ifndef NODEBUG
 #define GIFERRORMSG(x...)     { fprintf( stderr, "(GIFLOADER) "x ); \
@@ -123,17 +134,8 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc );
 
 
-char *get_type()
-{
-     return "IDirectFBImageProvider";
-}
-
-char *get_implementation()
-{
-     return "GIF";
-}
-
-DFBResult Probe( const char *head, const char *filename )
+static DFBResult
+Probe( const char *head, const char *filename )
 {
      if (strncmp (head, "GIF8", 4) == 0)
           return DFB_OK;
@@ -141,8 +143,9 @@ DFBResult Probe( const char *head, const char *filename )
      return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBImageProvider *thiz,
-                     const char *filename )
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename )
 {
      IDirectFBImageProvider_GIF_data *data;
 

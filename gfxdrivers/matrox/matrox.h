@@ -107,6 +107,8 @@ typedef struct {
      } regs;
 } MatroxDeviceData;
 
+void matrox_init_bes( void *drv, void *dev );
+
 static inline unsigned int log2( unsigned int val )
 {
      unsigned int ret = 0;

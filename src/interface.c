@@ -32,180 +32,191 @@
 #include <directfb.h>
 #include <directfb_internals.h>
 
-#include "core/coredefs.h"
+#include <core/coredefs.h>
+#include <core/fusion/list.h>
 
-#include "misc/mem.h"
-#include "misc/util.h"
+#include <misc/mem.h>
+#include <misc/util.h>
 
+typedef struct {
+     FusionLink         link;
 
-static pthread_mutex_t              implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
+     char              *filename;
+     void              *module_handle;
 
-static int                          n_implementations = 0;
-static DFBInterfaceImplementation **implementations   = NULL;
+     DFBInterfaceFuncs *funcs;
+     
+     const char        *type;
+     const char        *implementation;
 
-DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
+     int                references;
+} DFBInterfaceImplementation;
+
+static pthread_mutex_t  implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
+static FusionLink      *implementations       = NULL;
+
+void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
+{
+     DFBInterfaceImplementation *impl;
+
+     impl = DFBCALLOC( 1, sizeof(DFBInterfaceImplementation) );
+
+     impl->funcs          = funcs;
+     impl->type           = funcs->GetType();
+     impl->implementation = funcs->GetImplementation();
+
+     fusion_list_prepend( &implementations, &impl->link );
+}
+
+DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                            char *type,
                            char *implementation,
-                           int (*probe)( DFBInterfaceImplementation *impl, void *ctx ),
+                           int (*probe)( DFBInterfaceFuncs *funcs, void *ctx ),
                            void *probe_ctx )
 {
-     int                         i;
+#ifdef DFB_DYNAMIC_LINKING
+     int                         len;
      DIR                        *dir;
      char                       *interface_dir;
      struct dirent              *entry;
-     DFBInterfaceImplementation *impl;
-
-     interface_dir = DFBMALLOC( strlen(MODULEDIR"/interfaces/") + strlen(type) + 1 );
-
-     sprintf( interface_dir, MODULEDIR"/interfaces/%s", type );
+#endif
+     
+     FusionLink *link;
 
      pthread_mutex_lock( &implementations_mutex );
 
-     for (i=0; i<n_implementations; i++) {
-          if (type && strcmp( type, implementations[i]->type ))
+     /*
+      * Check existing implementations first.
+      */
+     fusion_list_foreach( link, implementations ) {
+          DFBInterfaceImplementation *impl = (DFBInterfaceImplementation*) link;
+
+          if (type && strcmp( type, impl->type ))
                continue;
 
-          if (implementation && strcmp( implementation,
-                                        implementations[i]->implementation ))
+          if (implementation && strcmp( implementation, impl->implementation ))
                continue;
 
-          if (probe && !probe( implementations[i], probe_ctx ))
+          if (probe && !probe( impl->funcs, probe_ctx ))
                continue;
           else {
-               *iimpl = implementations[i];
-               implementations[i]->references++;
+               if (!impl->references) {
+                    INITMSG( "DirectFB/Interface: "
+                             "Using '%s' implementation of '%s'.\n",
+                             impl->implementation, impl->type );
+               }
+               
+               *funcs = impl->funcs;
+               impl->references++;
 
                pthread_mutex_unlock( &implementations_mutex );
-               DFBFREE( interface_dir );
 
                return DFB_OK;
           }
      }
 
-
+#ifdef DFB_DYNAMIC_LINKING
+     /*
+      * Try to load it dynamically.
+      */
+     len = strlen(MODULEDIR"/interfaces/") + strlen(type) + 1;
+     interface_dir = alloca( len );
+     snprintf( interface_dir, len, MODULEDIR"/interfaces/%s", type );
+     
      dir = opendir( interface_dir );
-
      if (!dir) {
           PERRORMSG( "DirectFB/interfaces: "
                      "Could not open interface directory `%s'!\n",
                      interface_dir );
 
           pthread_mutex_unlock( &implementations_mutex );
-          DFBFREE( interface_dir );
 
           return errno2dfb( errno );
      }
 
-     impl = DFBCALLOC( 1, sizeof(DFBInterfaceImplementation) );
-
+     /*
+      * Iterate directory.
+      */
      while ( (entry = readdir(dir) ) != NULL ) {
-          void *handle;
-          char buf[4096];
+          void *handle = NULL;
+          char  buf[4096];
 
           if (strlen(entry->d_name) < 4 ||
               entry->d_name[strlen(entry->d_name)-1] != 'o' ||
               entry->d_name[strlen(entry->d_name)-2] != 's')
                continue;
 
-          sprintf( buf, "%s/%s", interface_dir, entry->d_name );
+          snprintf( buf, 4096, "%s/%s", interface_dir, entry->d_name );
 
-          for (i=0; i<n_implementations; i++) {
-               if (!strcmp( implementations[i]->filename, buf ))
-                    continue;
+          /*
+           * Check if it got already loaded.
+           */
+          fusion_list_foreach( link, implementations ) {
+               DFBInterfaceImplementation *impl =
+                    (DFBInterfaceImplementation*) link;
+          
+               if (!strcmp( impl->filename, buf )) {
+                    handle = impl->module_handle;
+                    break;
+               }
           }
 
-          handle = dlopen( buf, RTLD_LAZY );
+          /*
+           * If already loaded take the next one.
+           */
+          if (handle)
+               continue;
+
+          /*
+           * Open it and check.
+           */
+          handle = dlopen( buf, RTLD_LAZY | RTLD_GLOBAL );
           if (handle) {
-               char *(*get)() = NULL;
+               DFBInterfaceImplementation *impl =
+                    (DFBInterfaceImplementation*) implementations;
 
-               get = dlsym( handle, "get_type"  );
-               if (!get) {
-                    DLERRORMSG( "DirectFB/interface: "
-                                "Could not link `get_type' of `%s'!\n",
-                                buf );
+               /*
+                * If module handle is set, it's not the newly opened module.
+                */
+               if (impl->module_handle) {
                     dlclose( handle );
                     continue;
                }
-               impl->type = get();
-
-               get = dlsym( handle, "get_implementation"  );
-               if (!get) {
-                    DLERRORMSG( "DirectFB/interface: "
-                                "Could not link `get_implementation' of `%s'!\n",
-                                buf );
-                    dlclose( handle );
-                    continue;
-               }
-               impl->implementation = get();
-
-               impl->Allocate = dlsym( handle, "Allocate"  );
-/*               if (!impl->Allocate) {
-                    DLERRORMSG( "DirectFB/interface: "
-                                "Could not link `Allocate' of `%s'!\n",
-                                buf );
-                    dlclose( handle );
-                    continue;
-               }*/
-
-               impl->Probe = dlsym( handle, "Probe"  );
-               if (!impl->Probe) {
-                    DLERRORMSG( "DirectFB/interface: "
-                                "Could not link `Probe' of `%s'!\n",
-                                buf );
-                    dlclose( handle );
-                    continue;
-               }
-
-               impl->Construct = dlsym( handle, "Construct"  );
-               if (!impl->Construct) {
-                    DLERRORMSG( "DirectFB/interface: "
-                                "Could not link `Construct' of `%s'!\n",
-                                buf );
-                    dlclose( handle );
-                    continue;
-               }
-
+               
                HEAVYDEBUGMSG( "DirectFB/interface: Found `%s_%s'.\n",
                               impl->type, impl->implementation );
 
-               if (type && strcmp( type, impl->type )) {
-                    dlclose( handle );
+               /*
+                * Keep filename and module handle.
+                */
+               impl->filename      = DFBSTRDUP( buf );
+               impl->module_handle = handle;
+               
+               /*
+                * Almost the same stuff like above, TODO: make function.
+                */
+               if (type && strcmp( type, impl->type ))
                     continue;
-               }
 
                if (implementation && strcmp( implementation,
                                              impl->implementation ))
-               {
-                    dlclose( handle );
                     continue;
-               }
 
-               if (probe && !probe( impl, probe_ctx )) {
-                    dlclose( handle );
+               if (probe && !probe( impl->funcs, probe_ctx )) {
                     continue;
                }
                else {
-                    *iimpl = impl;
-
-                    impl->references = 1;
-                    impl->filename = DFBSTRDUP( buf );
-
                     INITMSG( "DirectFB/Interface: "
                              "Loaded '%s' implementation of '%s'.\n",
                              impl->implementation, impl->type );
-
-                    implementations = DFBREALLOC( implementations,
-                     sizeof(DFBInterfaceImplementation) * ++n_implementations );
-
-                    implementations[n_implementations-1] = impl;
+                    
+                    *funcs = impl->funcs;
+                    impl->references++;
 
                     pthread_mutex_unlock( &implementations_mutex );
-                    DFBFREE( interface_dir );
 
                     return DFB_OK;
                }
-
-               dlclose( handle );
           }
           else
                DLERRORMSG( "DirectFB/core/gfxcards: Unable to dlopen `%s'!\n",
@@ -216,9 +227,7 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      closedir( dir );
 
      pthread_mutex_unlock( &implementations_mutex );
-     DFBFREE( interface_dir );
-
-     DFBFREE( impl );
+#endif
 
      return DFB_NOIMPL;
 }

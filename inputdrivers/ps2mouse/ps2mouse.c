@@ -47,6 +47,12 @@
 #include <misc/conf.h>
 #include <misc/mem.h>
 
+#include <core/input_driver.h>
+
+
+DFB_INPUT_DRIVER( ps2mouse )
+
+
 /* Stolen from the linux kernel (pc_keyb.h) */
 #define PS2_SET_RES             0xE8    /* Set resolution */
 #define PS2_SET_SCALE11         0xE6    /* Set 1:1 scaling */
@@ -338,13 +344,13 @@ init_ps2( int fd, int verbose )
 
 /* exported symbols */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_get_available()
 {
      int fd;
@@ -366,7 +372,7 @@ driver_get_available()
      return n_dev;
 }
 
-void
+static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
@@ -381,7 +387,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 9;
 }
 
-DFBResult
+static DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
@@ -435,7 +441,7 @@ driver_open_device( InputDevice      *device,
      return DFB_OK;
 }
 
-void
+static void
 driver_close_device( void *driver_data )
 {
      PS2MouseData *data = (PS2MouseData*) driver_data;

@@ -50,13 +50,17 @@
 #include <misc/conf.h>
 #include <misc/mem.h>
 
+#include <core/input_driver.h>
+
+
+DFB_INPUT_DRIVER( keyboard )
+
 typedef struct {
      InputDevice                *device;
      struct termios              old_ts;
      DFBInputDeviceModifierKeys  modifier_state;
      pthread_t                   thread;
 } KeyboardData;
-
 
 static unsigned char
 keyboard_get_ascii( unsigned short kb_value )
@@ -264,21 +268,21 @@ keyboardEventThread( void *driver_data )
      return NULL;
 }
 
-/* exported symbols */
+/* driver functions */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_get_available()
 {
      return 1;
 }
 
-void
+static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
@@ -293,7 +297,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 9;
 }
 
-DFBResult
+static DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
@@ -347,9 +351,9 @@ driver_open_device( InputDevice      *device,
 
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(KeyboardData) );
-     
+
      data->device = device;
-     
+
      tcgetattr( dfb_vt->fd, &data->old_ts );
 
      ts = data->old_ts;
@@ -370,9 +374,9 @@ driver_open_device( InputDevice      *device,
 
      snprintf( info->vendor,
                DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
-     
+
      info->prefered_id = DIDID_KEYBOARD;
-     
+
      info->desc.type   = DIDTF_KEYBOARD;
      info->desc.caps   = DICAPS_KEYS;
 
@@ -385,7 +389,7 @@ driver_open_device( InputDevice      *device,
      return DFB_OK;
 }
 
-void
+static void
 driver_close_device( void *driver_data )
 {
      const char    cursoron_str[] = "\033[?0;0;0c";
@@ -395,7 +399,7 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      pthread_cancel( data->thread );
      pthread_join( data->thread, NULL );
-     
+
      write( dfb_vt->fd, cursoron_str, strlen(cursoron_str) );
      write( dfb_vt->fd, blankon_str, strlen(blankon_str) );
 

@@ -49,6 +49,10 @@
 #include <misc/conf.h>
 #include <misc/mem.h>
 
+#include <core/input_driver.h>
+
+
+DFB_INPUT_DRIVER( serialmouse )
 
 #define DEV_NAME "/dev/mouse"
 #define MIDDLE   0x08
@@ -367,13 +371,13 @@ static MouseProtocol mouse_get_protocol()
 
 /* exported symbols */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_get_available()
 {
      struct serial_struct serial_info;
@@ -432,7 +436,7 @@ driver_get_available()
      return 0;
 }
 
-void
+static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
@@ -447,7 +451,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 2;
 }
 
-DFBResult
+static DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
@@ -506,7 +510,7 @@ driver_open_device( InputDevice      *device,
      return DFB_OK;
 }
 
-void
+static void
 driver_close_device( void *driver_data )
 {
      SerialMouseData *data = (SerialMouseData*) driver_data;

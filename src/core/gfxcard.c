@@ -34,6 +34,7 @@
 
 #include <core/fusion/shmalloc.h>
 #include <core/fusion/arena.h>
+#include <core/fusion/list.h>
 
 #include "directfb.h"
 
@@ -57,34 +58,13 @@
 #include "misc/mem.h"
 #include "misc/util.h"
 
-
 typedef struct {
-     int       (*GetAbiVersion)  ();
-     int       (*Probe)          (GraphicsDevice      *device);
-     void      (*GetDriverInfo)  (GraphicsDevice      *device,
-                                  GraphicsDriverInfo  *driver_info);
+     FusionLink            link;
 
-     DFBResult (*InitDriver)     (GraphicsDevice      *device,
-                                  GraphicsDeviceFuncs *funcs,
-                                  void                *driver_data);
-
-     DFBResult (*InitDevice)     (GraphicsDevice      *device,
-                                  GraphicsDeviceInfo  *device_info,
-                                  void                *driver_data,
-                                  void                *device_data);
-
-     /* temporary function to have hardware layers in single app core,
-        this will change after restructuring layer driver data handling */
-     DFBResult (*InitLayers)     (void                *driver_data,
-                                  void                *device_data);
-
-
-     void      (*CloseDevice)    (GraphicsDevice      *device,
-                                  void                *driver_data,
-                                  void                *device_data);
-     void      (*CloseDriver)    (GraphicsDevice      *device,
-                                  void                *driver_data);
-} GraphicsDriverModule;
+     GraphicsDriverFuncs  *funcs;
+     
+     int                   abi_version;
+} GraphicsDriver;
 
 /*
  * struct for graphics cards
@@ -93,26 +73,24 @@ typedef struct {
      /* fbdev fixed screeninfo, contains infos about memory and type of card */
      struct fb_fix_screeninfo fix;
 
-     char               *driver_module;
+     GraphicsDriverInfo    driver_info;
+     GraphicsDeviceInfo    device_info;
+     void                 *device_data;
 
-     GraphicsDriverInfo  driver_info;
-     GraphicsDeviceInfo  device_info;
-     void               *device_data;
+     FusionSkirmish        lock;
 
-     FusionSkirmish      lock;
-
-     SurfaceManager     *surface_manager;
+     SurfaceManager       *surface_manager;
 
      /*
       * Points to the current state of the graphics card.
       */
-     CardState          *state;
+     CardState            *state;
 } GraphicsDeviceShared;
 
 struct _GraphicsDevice {
      GraphicsDeviceShared *shared;
 
-     GraphicsDriverModule *driver;
+     GraphicsDriver       *driver;
      void                 *driver_data;
      void                 *device_data; /* copy of shared->device_data */
 
@@ -126,23 +104,21 @@ struct _GraphicsDevice {
 };
 
 
+static FusionLink     *graphics_drivers = NULL;
 
 static GraphicsDevice *card = NULL;
 #define Scard (card->shared)
 
 
-static CoreModuleLoadResult  dfb_gfxcard_driver_handle_func( void *handle,
-                                                             char *name,
-                                                             void *ctx );
-static GraphicsDriverModule* dfb_gfxcard_find_driver();
+static GraphicsDriver *dfb_gfxcard_find_driver();
 
 
 /** public **/
 
 DFBResult dfb_gfxcard_initialize()
 {
-     DFBResult             ret;
-     GraphicsDriverModule *driver;
+     DFBResult       ret;
+     GraphicsDriver *driver;
 
      card = (GraphicsDevice*) DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
@@ -184,7 +160,8 @@ DFBResult dfb_gfxcard_initialize()
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
 
-          ret = driver->InitDriver( card, &card->funcs, card->driver_data );
+          ret = driver->funcs->InitDriver( card,
+                                           &card->funcs, card->driver_data );
           if (ret) {
                munmap( card->framebuffer.base, card->framebuffer.length );
                DFBFREE( card->driver_data );
@@ -197,10 +174,10 @@ DFBResult dfb_gfxcard_initialize()
           Scard->device_data = shcalloc( 1,
                                          Scard->driver_info.device_data_size );
 
-          ret = driver->InitDevice( card, &Scard->device_info,
-                                    card->driver_data, Scard->device_data );
+          ret = driver->funcs->InitDevice( card, &Scard->device_info,
+                                           card->driver_data, Scard->device_data );
           if (ret) {
-               driver->CloseDriver( card, card->driver_data );
+               driver->funcs->CloseDriver( card, card->driver_data );
                munmap( card->framebuffer.base, card->framebuffer.length );
                shmfree( Scard->device_data );
                DFBFREE( card->driver_data );
@@ -235,8 +212,8 @@ DFBResult dfb_gfxcard_initialize()
 #ifndef FUSION_FAKE
 DFBResult dfb_gfxcard_join()
 {
-     DFBResult             ret;
-     GraphicsDriverModule *driver;
+     DFBResult       ret;
+     GraphicsDriver *driver;
 
      card = (GraphicsDevice*)DFBCALLOC( 1, sizeof(GraphicsDevice) );
 
@@ -260,7 +237,8 @@ DFBResult dfb_gfxcard_join()
           card->driver_data = DFBCALLOC( 1,
                                          Scard->driver_info.driver_data_size );
 
-          ret = driver->InitDriver( card, &card->funcs, card->driver_data );
+          ret = driver->funcs->InitDriver( card,
+                                           &card->funcs, card->driver_data );
           if (ret) {
                munmap( card->framebuffer.base, card->framebuffer.length );
                DFBFREE( card->driver_data );
@@ -283,9 +261,9 @@ DFBResult dfb_gfxcard_shutdown()
      dfb_gfxcard_sync();
 
      if (card->driver) {
-          card->driver->CloseDevice( card,
-                                     card->driver_data, card->device_data );
-          card->driver->CloseDriver( card, card->driver_data );
+          card->driver->funcs->CloseDevice( card,
+                                            card->driver_data, card->device_data );
+          card->driver->funcs->CloseDriver( card, card->driver_data );
 
           shmfree( card->device_data );
           DFBFREE( card->driver_data );
@@ -310,7 +288,7 @@ DFBResult dfb_gfxcard_leave()
      dfb_gfxcard_sync();
 
      if (card->driver) {
-          card->driver->CloseDriver( card, card->driver_data );
+          card->driver->funcs->CloseDriver( card, card->driver_data );
 
           DFBFREE( card->driver_data );
           DFBFREE( card->driver );
@@ -339,10 +317,24 @@ DFBResult dfb_gfxcard_resume()
 }
 #endif
 
+void dfb_graphics_register_module( GraphicsDriverFuncs *funcs )
+{
+     GraphicsDriver *driver;
+
+     driver = DFBCALLOC( 1, sizeof(GraphicsDriver) );
+
+     driver->funcs       = funcs;
+     driver->abi_version = funcs->GetAbiVersion();
+
+     fusion_list_prepend( &graphics_drivers, &driver->link );
+}
+
 DFBResult dfb_gfxcard_init_layers()
 {
-     if (card->driver && card->driver->InitLayers)
-          card->driver->InitLayers( card->driver_data, card->device_data );
+     GraphicsDriver *driver = card->driver;
+
+     if (driver && driver->funcs->InitLayers)
+          driver->funcs->InitLayers( card->driver_data, card->device_data );
 
      return DFB_OK;
 }
@@ -1182,81 +1174,58 @@ dfb_gfxcard_memory_length()
 
 /** internal **/
 
-#define GFXCARD_DRIVER_LINK(driver,fp,fn,handle,name) \
-     (driver)->##fp = dlsym( handle, fn );                            \
-     if (!(driver)->##fp) {                                           \
-          DLERRORMSG( "DirectFB/core/gfxcard: "                       \
-                      "Could not link '%s' of `%s'!\n", fn, name );   \
-          return MODULE_REJECTED;                                     \
-     }
-
-static CoreModuleLoadResult dfb_gfxcard_driver_handle_func( void *handle,
-                                                        char *name,
-                                                        void *ctx )
+#ifdef DFB_DYNAMIC_LINKING
+static CoreModuleLoadResult graphics_driver_handle_func( void *handle,
+                                                         char *name,
+                                                         void *ctx )
 {
-     GraphicsDriverModule *driver = (GraphicsDriverModule*)ctx;
+     GraphicsDriver *driver = (GraphicsDriver*) graphics_drivers;
 
-     GFXCARD_DRIVER_LINK( driver, CloseDevice,
-                          "driver_close_device", handle, name );
+     if (!driver)
+          return MODULE_REJECTED;
 
-     GFXCARD_DRIVER_LINK( driver, CloseDriver,
-                          "driver_close_driver", handle, name );
-
-     GFXCARD_DRIVER_LINK( driver, GetAbiVersion,
-                          "driver_get_abi_version", handle, name );
-
-     GFXCARD_DRIVER_LINK( driver, GetDriverInfo,
-                          "driver_get_info", handle, name );
-
-     GFXCARD_DRIVER_LINK( driver, InitDevice,
-                          "driver_init_device", handle, name );
-
-     GFXCARD_DRIVER_LINK( driver, InitDriver,
-                          "driver_init_driver", handle, name );
-
-     GFXCARD_DRIVER_LINK( driver, InitLayers,
-                          "driver_init_layers", handle, name );
-
-     GFXCARD_DRIVER_LINK( driver, Probe,
-                          "driver_probe", handle, name );
-
-     if (driver->GetAbiVersion() != DFB_GRAPHICS_DRIVER_ABI_VERSION) {
+     if (driver->abi_version != DFB_GRAPHICS_DRIVER_ABI_VERSION) {
           ERRORMSG( "DirectFB/core/gfxcard: '%s' "
                     "was built for ABI version %d, but %d is required!\n", name,
-                    driver->GetAbiVersion(), DFB_GRAPHICS_DRIVER_ABI_VERSION );
+                    driver->abi_version, DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
+          fusion_list_remove( &graphics_drivers, graphics_drivers );
+
+          DFBFREE( driver );
+          
           return MODULE_REJECTED;
      }
 
-     if (driver->Probe( card )) {
-          driver->GetDriverInfo( card, &card->shared->driver_info );
-          return MODULE_LOADED_STOP;
-     }
-
-     return MODULE_REJECTED;
+     return MODULE_LOADED_CONTINUE;
 }
+#endif
 
 /*
  * loads/probes/unloads one driver module after another until a suitable
  * driver is found and returns its symlinked functions
  */
-static GraphicsDriverModule* dfb_gfxcard_find_driver()
+static GraphicsDriver* dfb_gfxcard_find_driver()
 {
-     GraphicsDriverModule *driver;
-     char                 *driver_dir = MODULEDIR"/gfxdrivers";
+     FusionLink *link;
 
      if (dfb_config->software_only)
           return NULL;
 
-     driver = DFBCALLOC( 1, sizeof(GraphicsDriverModule) );
+#ifdef DFB_DYNAMIC_LINKING
+     dfb_core_load_modules( MODULEDIR"/gfxdrivers",
+                            graphics_driver_handle_func, NULL );
+#endif
 
-     if (dfb_core_load_modules( driver_dir,
-                                dfb_gfxcard_driver_handle_func, (void*)driver ))
-     {
-          DFBFREE( driver );
-          driver = NULL;
+     fusion_list_foreach( link, graphics_drivers ) {
+          GraphicsDriver *driver = (GraphicsDriver*) link;
+
+          if (driver->funcs->Probe( card )) {
+               driver->funcs->GetDriverInfo( card, &Scard->driver_info );
+
+               return driver;
+          }
      }
 
-     return driver;
+     return NULL;
 }
 

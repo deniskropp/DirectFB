@@ -15,7 +15,5 @@ libdirectfb_keyboard_la_SOURCES =	\
 
 libdirectfb_keyboard_la_LDFLAGS = \
         -export-dynamic		\
-	-disable-static		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
-

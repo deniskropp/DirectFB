@@ -21,7 +21,5 @@ libdirectfb_ati128_la_SOURCES =	\
 
 libdirectfb_ati128_la_LDFLAGS = \
         -export-dynamic		\
-	-disable-static		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
-

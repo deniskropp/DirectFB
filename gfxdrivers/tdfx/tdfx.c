@@ -45,6 +45,11 @@
 #include <gfx/util.h>
 #include <misc/conf.h>
 
+#include <core/graphics_driver.h>
+
+
+DFB_GRAPHICS_DRIVER( tdfx )
+
 #include "tdfx.h"
 
 static void tdfxFillRectangle2D( void *drv, void *dev, DFBRectangle *rect );
@@ -691,13 +696,13 @@ static void tdfxStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangl
 
 /* exported symbols */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_GRAPHICS_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_3DFX_BANSHEE
@@ -709,7 +714,7 @@ driver_probe( GraphicsDevice *device )
      return 0;
 }
 
-void
+static void
 driver_get_info( GraphicsDevice     *device,
                  GraphicsDriverInfo *info )
 {
@@ -729,7 +734,7 @@ driver_get_info( GraphicsDevice     *device,
      info->device_data_size = sizeof (TDFXDeviceData);
 }
 
-DFBResult
+static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data )
@@ -756,7 +761,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 
-DFBResult
+static DFBResult
 driver_init_device( GraphicsDevice     *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
@@ -811,12 +816,14 @@ driver_init_device( GraphicsDevice     *device,
      return DFB_OK;
 }
 
-void
-driver_init_layers()
+static DFBResult
+driver_init_layers( void *driver_data,
+                    void *device_data )
 {
+     return DFB_OK;
 }
 
-void
+static void
 driver_close_device( GraphicsDevice *device,
                      void           *driver_data,
                      void           *device_data )
@@ -853,7 +860,7 @@ driver_close_device( GraphicsDevice *device,
      DEBUGMSG( "DirectFB/TDFX:  Triangles Out: %d\n", tdrv->voodoo3D->fbiTrianglesOut );
 }
 
-void
+static void
 driver_close_driver( GraphicsDevice *device,
                      void           *driver_data )
 {

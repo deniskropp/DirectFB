@@ -44,6 +44,10 @@
 #include <misc/conf.h>
 #include <misc/mem.h>
 
+#include <core/input_driver.h>
+
+
+DFB_INPUT_DRIVER( h3600_ts )
 
 typedef struct {
      int            fd;
@@ -121,12 +125,12 @@ static void* h3600tsEventThread( void *driver_data )
 
 /* exported symbols */
 
-int driver_get_abi_version()
+static int driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
-int driver_get_available()
+static int driver_get_available()
 {
      int fd;
 
@@ -139,7 +143,7 @@ int driver_get_available()
      return 1;
 }
 
-void
+static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
@@ -154,7 +158,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 2;
 }
 
-DFBResult
+static DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
@@ -199,7 +203,7 @@ driver_open_device( InputDevice      *device,
      return DFB_OK;
 }
 
-void
+static void
 driver_close_device( void *driver_data )
 {
      H3600TSData *data = (H3600TSData*) driver_data;

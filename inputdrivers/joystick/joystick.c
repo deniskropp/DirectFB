@@ -46,6 +46,10 @@
 
 #include <core/input.h>
 
+#include <core/input_driver.h>
+
+
+DFB_INPUT_DRIVER( joystick )
 
 typedef struct {
      int          fd;
@@ -110,13 +114,13 @@ joystickEventThread (void *driver_data)
 
 /* exported symbols */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_get_available()
 {
      int  i, fd;
@@ -154,7 +158,7 @@ driver_get_available()
      return joy_count;
 }
 
-void
+static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
@@ -169,7 +173,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 9;
 }
 
-DFBResult
+static DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
@@ -228,7 +232,7 @@ driver_open_device( InputDevice      *device,
      return DFB_OK;
 }
 
-void
+static void
 driver_close_device( void *driver_data )
 {
      JoystickData *data = (JoystickData*) driver_data;

@@ -40,6 +40,10 @@
 
 #include <misc/mem.h>
 
+#include <core/input_driver.h>
+
+
+DFB_INPUT_DRIVER( lirc )
 
 typedef struct {
      DFBInputDeviceKeyIdentifier  key;
@@ -268,7 +272,7 @@ lircEventThread( void *driver_data )
 
           if (readlen < 1)
                continue;
-          
+
           evt.keycode = lirc_parse_line( buf );
           if (evt.keycode != DIKC_UNKNOWN) {
                evt.type = DIET_KEYPRESS;
@@ -287,13 +291,13 @@ lircEventThread( void *driver_data )
 
 /* exported symbols */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_get_available()
 {
      int fd;
@@ -316,7 +320,7 @@ driver_get_available()
      return 1;
 }
 
-void
+static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
@@ -331,7 +335,7 @@ driver_get_info( InputDriverInfo *info )
      info->version.minor = 2;
 }
 
-DFBResult
+static DFBResult
 driver_open_device( InputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
@@ -364,7 +368,7 @@ driver_open_device( InputDevice      *device,
 
      snprintf( info->vendor,
                DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
-     
+
      info->prefered_id = DIDID_REMOTE;
 
      info->desc.type   = DIDTF_REMOTE;
@@ -375,17 +379,17 @@ driver_open_device( InputDevice      *device,
 
      data->fd     = fd;
      data->device = device;
-     
+
      /* start input thread */
      pthread_create( &data->thread, NULL, lircEventThread, data );
 
      /* set private data pointer */
      *driver_data = data;
-     
+
      return DFB_OK;
 }
 
-void
+static void
 driver_close_device( void *driver_data )
 {
      LircData *data = (LircData*) driver_data;
@@ -393,7 +397,7 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      pthread_cancel( data->thread );
      pthread_join( data->thread, NULL );
-     
+
      /* close socket */
      close( data->fd );
 

@@ -15,7 +15,5 @@ libdirectfb_ps2mouse_la_SOURCES =	\
 
 libdirectfb_ps2mouse_la_LDFLAGS = \
         -export-dynamic		\
-	-disable-static		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
-

@@ -17,7 +17,5 @@ libdirectfb_neomagic_la_SOURCES =	\
 
 libdirectfb_neomagic_la_LDFLAGS = \
         -export-dynamic		\
-	-disable-static		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
-

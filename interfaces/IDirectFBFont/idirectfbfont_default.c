@@ -46,28 +46,32 @@
 #include <misc/utf8.h>
 #include <misc/mem.h>
 
+static DFBResult
+Probe( void *data );
+
+static DFBResult
+Construct( IDirectFBFont      *thiz,
+           const char         *filename,
+           DFBFontDescription *desc );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBFont, Default )
+
 
 #define FONTFILE DATADIR"/font.data"
 
 
-char *get_type()
-{
-     return "IDirectFBFont";
-}
-
-char *get_implementation()
-{
-     return "Default";
-}
-
-DFBResult Probe( void *data )
+static DFBResult
+Probe( void *data )
 {
      return DFB_OK;
 }
 
-DFBResult Construct( IDirectFBFont *thiz,
-                     const char *filename,
-                     DFBFontDescription *desc )
+static DFBResult
+Construct( IDirectFBFont      *thiz,
+           const char         *filename,
+           DFBFontDescription *desc )
 {
      CoreFont *font;
      CoreSurface *surface;

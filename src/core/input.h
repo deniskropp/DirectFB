@@ -76,6 +76,16 @@ typedef struct {
      DFBInputDeviceDescription desc;  /* Capabilities, type, etc. */
 } InputDeviceInfo;
 
+typedef struct {
+     int       (*GetAbiVersion)  ();
+     int       (*GetAvailable)   ();
+     void      (*GetDriverInfo)  (InputDriverInfo  *driver_info);
+     DFBResult (*OpenDevice)     (InputDevice      *device,
+                                  unsigned int      number,
+                                  InputDeviceInfo  *device_info,
+                                  void            **driver_data);
+     void      (*CloseDevice)    (void             *driver_data);
+} InputDriverFuncs;
 
 /*
  * core init function, probes all input drivers and creates devices of them
@@ -93,6 +103,8 @@ DFBResult dfb_input_leave();
 DFBResult dfb_input_suspend();
 DFBResult dfb_input_resume();
 #endif
+
+void dfb_input_register_module( InputDriverFuncs *funcs );
 
 typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
                                                      void        *ctx);

@@ -23,7 +23,9 @@ internalinclude_HEADERS = \
 	fbdev.h			\
 	fonts.h			\
 	gfxcard.h		\
+	graphics_driver.h	\
 	input.h			\
+	input_driver.h		\
 	layers.h		\
 	state.h			\
 	surfaces.h		\

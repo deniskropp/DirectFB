@@ -1110,7 +1110,7 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
                         IDirectFBGL       **interface )
 {
      DFBResult ret;
-     DFBInterfaceImplementation *impl = NULL;
+     DFBInterfaceFuncs *funcs = NULL;
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1124,18 +1124,15 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
           return DFB_INVAREA;
 
 
-     ret = DFBGetInterface( &impl, "IDirectFBGL", NULL, NULL, NULL );
+     ret = DFBGetInterface( &funcs, "IDirectFBGL", NULL, NULL, NULL );
      if (ret)
           return ret;
 
-     if (!impl->Allocate)
-          return DFB_UNIMPLEMENTED;
-
-     ret = impl->Allocate( (void**)interface );
+     ret = funcs->Allocate( (void**)interface );
      if (ret)
           return ret;
 
-     ret = impl->Construct( *interface, thiz );
+     ret = funcs->Construct( *interface, thiz );
 
      if (ret) {
         DFBFREE(*interface);

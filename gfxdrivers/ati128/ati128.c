@@ -42,6 +42,12 @@
 
 #include <gfx/convert.h>
 
+#include <core/graphics_driver.h>
+
+
+DFB_GRAPHICS_DRIVER( ati128 )
+
+
 #include "regs.h"
 #include "mmio.h"
 #include "ati128_state.h"
@@ -553,13 +559,13 @@ static void ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 
 /* exported symbols */
 
-int
+static int
 driver_get_abi_version()
 {
      return DFB_GRAPHICS_DRIVER_ABI_VERSION;
 }
 
-int
+static int
 driver_probe( GraphicsDevice *device )
 {
 #ifdef FB_ACCEL_ATI_RAGE128
@@ -572,7 +578,7 @@ driver_probe( GraphicsDevice *device )
 }
 
 
-void
+static void
 driver_get_info( GraphicsDevice     *device,
                  GraphicsDriverInfo *info )
 {
@@ -592,7 +598,7 @@ driver_get_info( GraphicsDevice     *device,
      info->device_data_size = sizeof (ATI128DeviceData);
 }
 
-DFBResult
+static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data )
@@ -617,7 +623,7 @@ driver_init_driver( GraphicsDevice      *device,
 }
 
 
-DFBResult
+static DFBResult
 driver_init_device( GraphicsDevice     *device,
                     GraphicsDeviceInfo *device_info,
                     void               *driver_data,
@@ -673,7 +679,16 @@ driver_init_device( GraphicsDevice     *device,
      return DFB_OK;
 }
 
-void
+static DFBResult
+driver_init_layers( void *driver_data,
+                    void *device_data )
+{
+     ati128_init_layers( driver_data, device_data );
+     
+     return DFB_OK;
+}
+
+static void
 driver_close_device( GraphicsDevice *device,
                      void           *driver_data,
                      void           *device_data )
@@ -728,7 +743,7 @@ driver_close_device( GraphicsDevice *device,
      ati128_out32( mmio, TEX_CNTL, 0x00000000 );
 }
 
-void
+static void
 driver_close_driver( GraphicsDevice *device,
                      void           *driver_data )
 {

@@ -551,11 +551,11 @@ IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
 }
 
 static int
-image_probe( DFBInterfaceImplementation *impl, void *ctx )
+image_probe( DFBInterfaceFuncs *funcs, void *ctx )
 {
      CreateImageProvider_Context *context = (CreateImageProvider_Context*) ctx;
 
-     if (impl->Probe( context->header, context->filename ) == DFB_OK)
+     if (funcs->Probe( context->header, context->filename ) == DFB_OK)
           return 1;
 
      return 0;
@@ -566,10 +566,10 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBImageProvider **interface )
 {
-     int       fd;
-     DFBResult ret;
-     DFBInterfaceImplementation  *impl = NULL;
+     int                          fd;
+     DFBResult                    ret;
      CreateImageProvider_Context  ctx;
+     DFBInterfaceFuncs           *funcs = NULL;
 
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -589,14 +589,14 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
 
      ctx.filename = filename;
 
-     ret = DFBGetInterface( &impl, "IDirectFBImageProvider", NULL,
+     ret = DFBGetInterface( &funcs, "IDirectFBImageProvider", NULL,
                             image_probe, (void*)&ctx );
      if (ret)
           return ret;
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBImageProvider );
 
-     ret = impl->Construct( *interface, filename );
+     ret = funcs->Construct( *interface, filename );
 
      if (ret) {
         free(*interface);
@@ -608,9 +608,9 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
 
 
 static int
-video_probe( DFBInterfaceImplementation *impl, void *ctx )
+video_probe( DFBInterfaceFuncs *funcs, void *ctx )
 {
-     if (impl->Probe( (char*)ctx ) == DFB_OK)
+     if (funcs->Probe( (char*)ctx ) == DFB_OK)
           return 1;
 
      return 0;
@@ -621,8 +621,8 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBVideoProvider **interface )
 {
-     DFBResult ret;
-     DFBInterfaceImplementation *impl = NULL;
+     DFBResult          ret;
+     DFBInterfaceFuncs *funcs = NULL;
 
      INTERFACE_GET_DATA(IDirectFB)
 
@@ -630,7 +630,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
           return DFB_INVARG;
 
 
-     ret = DFBGetInterface( &impl,
+     ret = DFBGetInterface( &funcs,
                             "IDirectFBVideoProvider", NULL,
                             video_probe, (void*)filename );
      if (ret)
@@ -638,7 +638,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBVideoProvider );
 
-     ret = impl->Construct( *interface, filename );
+     ret = funcs->Construct( *interface, filename );
 
      if (ret) {
         free(*interface);
@@ -654,26 +654,27 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
                       DFBFontDescription  *desc,
                       IDirectFBFont      **interface )
 {
-     DFBResult ret;
-     DFBInterfaceImplementation *impl = NULL;
+     DFBResult          ret;
+     DFBInterfaceFuncs *funcs = NULL;
 
      INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
 
+     /* TODO: FIXME: Probe Font Loaders! */
      if (filename) {
-         if (!desc)
-         return DFB_INVARG;
+          if (!desc)
+               return DFB_INVARG;
 
           /* the only supported real font format yet. */
-          ret = DFBGetInterface( &impl,
+          ret = DFBGetInterface( &funcs,
                                  "IDirectFBFont", "FT2",
                                  NULL, NULL );
      }
      else {
           /* use the default bitmap font */
-          ret = DFBGetInterface( &impl,
+          ret = DFBGetInterface( &funcs,
                                  "IDirectFBFont", "Default",
                                  NULL, NULL );
      }
@@ -683,7 +684,7 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBFont );
 
-     ret = impl->Construct( *interface, filename, desc );
+     ret = funcs->Construct( *interface, filename, desc );
 
      if (ret) {
         free(*interface);

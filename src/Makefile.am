@@ -16,7 +16,9 @@ AM_CPPFLAGS = \
 
 internalincludedir = $(INTERNALINCLUDEDIR)
 
-internalinclude_HEADERS = idirectfb.h
+internalinclude_HEADERS = \
+	idirectfb.h			\
+	interface_implementation.h
 
 
 lib_LTLIBRARIES = libdirectfb.la
@@ -42,3 +44,19 @@ libdirectfb_la_LIBADD = \
 	core/libdirectfb_core.la
 
 EXTRA_DIST = export_list.sym
+
+
+#
+## and now rebuild the static version with the *correct* object files
+#
+clean-local:
+	rm -f libdirectfb_fixed.a
+
+all-local: libdirectfb_fixed.a
+
+libdirectfb_fixed.a: .libs/libdirectfb.a
+	rm -f libdirectfb_fixed.a
+	ar cru libdirectfb_fixed.a `find -name "*.o"`
+	cp -af libdirectfb_fixed.a .libs/libdirectfb.a
+
+.libs/libdirectfb.a:

@@ -35,6 +35,7 @@
 #include <core/fusion/shmalloc.h>
 #include <core/fusion/reactor.h>
 #include <core/fusion/arena.h>
+#include <core/fusion/list.h>
 
 #include "directfb.h"
 
@@ -51,23 +52,20 @@
 
 #define MAX_INPUT_DEVICES 100
 
-
 typedef struct {
-     int       (*GetAbiVersion)  ();
-     int       (*GetAvailable)   ();
-     void      (*GetDriverInfo)  (InputDriverInfo  *driver_info);
-     DFBResult (*OpenDevice)     (InputDevice      *device,
-                                  unsigned int      number,
-                                  InputDeviceInfo  *device_info,
-                                  void            **driver_data);
-     void      (*CloseDevice)    (void             *driver_data);
-     int                         nr_devices;
-} InputDriverModule;
+     FusionLink         link;
+
+     InputDriverFuncs  *funcs;
+
+     InputDriverInfo    info;
+
+     int                abi_version;
+     int                nr_devices;
+} InputDriver;
 
 typedef struct {
      DFBInputDeviceID   id;            /* unique device id */
 
-     InputDriverInfo    driver_info;
      InputDeviceInfo    device_info;
 
      FusionReactor     *reactor;       /* event dispatcher */
@@ -76,7 +74,7 @@ typedef struct {
 struct _InputDevice {
      InputDeviceShared *shared;
 
-     InputDriverModule *driver;
+     InputDriver       *driver;
      void              *driver_data;
 
      InputDevice       *next;
@@ -87,28 +85,37 @@ typedef struct {
      InputDeviceShared *devices[MAX_INPUT_DEVICES];
 } CoreInputField;
 
+static FusionLink     *input_drivers = NULL;
+
 static CoreInputField *inputfield   = NULL;
 static InputDevice    *inputdevices = NULL;
 
 
+static void init_devices();
+
+#ifdef DFB_DYNAMIC_LINKING
 static CoreModuleLoadResult input_driver_handle_func( void *handle,
                                                       char *name,
                                                       void *ctx );
+#endif
 
 
 /** public **/
 
 DFBResult dfb_input_initialize()
 {
-     char *driver_dir = MODULEDIR"/inputdrivers";
-
      inputfield = shcalloc( 1, sizeof (CoreInputField) );
 
 #ifndef FUSION_FAKE
      arena_add_shared_field( dfb_core->arena, inputfield, "Core/Input" );
 #endif
 
-     dfb_core_load_modules( driver_dir, input_driver_handle_func, NULL );
+#ifdef DFB_DYNAMIC_LINKING
+     dfb_core_load_modules( MODULEDIR"/inputdrivers",
+                            input_driver_handle_func, NULL );
+#endif
+
+     init_devices();
 
      return DFB_OK;
 }
@@ -158,7 +165,7 @@ DFBResult dfb_input_shutdown()
      while (d) {
           InputDevice *next = d->next;
 
-          d->driver->CloseDevice( d->driver_data );
+          d->driver->funcs->CloseDevice( d->driver_data );
           d->driver->nr_devices--;
 
           reactor_free( d->shared->reactor );
@@ -201,7 +208,7 @@ DFBResult dfb_input_suspend()
      InputDevice *d = inputdevices;
 
      while (d) {
-          d->driver->CloseDevice( d->driver_data );
+          d->driver->funcs->CloseDevice( d->driver_data );
 
           d = d->next;
      }
@@ -218,9 +225,9 @@ DFBResult dfb_input_resume()
           DFBResult ret;
 
           for (i=0; i<d->driver->nr_devices; i++) {
-               ret = d->driver->OpenDevice( d, i,
-                                            &d->shared->device_info,
-                                            &d->driver_data );
+               ret = d->driver->funcs->OpenDevice( d, i,
+                                                   &d->shared->device_info,
+                                                   &d->driver_data );
                if (ret)
                     return ret;
           }
@@ -231,6 +238,18 @@ DFBResult dfb_input_resume()
      return DFB_OK;
 }
 #endif
+
+void dfb_input_register_module( InputDriverFuncs *funcs )
+{
+     InputDriver *driver;
+
+     driver = DFBCALLOC( 1, sizeof(InputDriver) );
+
+     driver->funcs       = funcs;
+     driver->abi_version = funcs->GetAbiVersion();
+
+     fusion_list_prepend( &input_drivers, &driver->link );
+}
 
 void dfb_input_enumerate_devices( InputDeviceCallback  callback,
                                   void                *ctx )
@@ -316,133 +335,106 @@ static void input_add_device( InputDevice *device )
      inputfield->devices[ inputfield->num++ ] = device->shared;
 }
 
+#ifdef DFB_DYNAMIC_LINKING
 static CoreModuleLoadResult input_driver_handle_func( void *handle,
                                                       char *name,
                                                       void *ctx )
 {
-     int n;
-     InputDriverModule *driver = DFBCALLOC( 1, sizeof(InputDriverModule) );
+     InputDriver *driver = (InputDriver*) input_drivers;
 
-     driver->GetAbiVersion = dlsym( handle, "driver_get_abi_version" );
-     if (!driver->GetAbiVersion) {
-          DLERRORMSG( "DirectFB/core/input: "
-                      "Could not dlsym `driver_get_abi_version' from `%s'!\n", name );
-          DFBFREE( driver );
+     if (!driver)
           return MODULE_REJECTED;
-     }
 
-     driver->GetAvailable = dlsym( handle, "driver_get_available" );
-     if (!driver->GetAvailable) {
-          DLERRORMSG( "DirectFB/core/input: "
-                      "Could not dlsym `driver_get_available' from `%s'!\n", name );
-          DFBFREE( driver );
-          return MODULE_REJECTED;
-     }
-
-     driver->GetDriverInfo = dlsym( handle, "driver_get_info" );
-     if (!driver->GetDriverInfo) {
-          DLERRORMSG( "DirectFB/core/input: "
-                      "Could not dlsym `driver_get_info' from `%s'!\n", name );
-          DFBFREE( driver );
-          return MODULE_REJECTED;
-     }
-
-     driver->OpenDevice = dlsym( handle, "driver_open_device" );
-     if (!driver->OpenDevice) {
-          DLERRORMSG( "DirectFB/core/input: "
-                      "Could not dlsym `driver_open_device' from `%s'!\n", name );
-          DFBFREE( driver );
-          return MODULE_REJECTED;
-     }
-
-     driver->CloseDevice = dlsym( handle, "driver_close_device" );
-     if (!driver->CloseDevice) {
-          DLERRORMSG( "DirectFB/core/input: "
-                      "Could not dlsym `driver_close_device' from `%s'!\n", name );
-          DFBFREE( driver );
-          return MODULE_REJECTED;
-     }
-
-     if (driver->GetAbiVersion() != DFB_INPUT_DRIVER_ABI_VERSION) {
+     if (driver->abi_version != DFB_INPUT_DRIVER_ABI_VERSION) {
           ERRORMSG( "DirectFB/core/input: '%s' "
                     "was built for ABI version %d, but %d is required!\n", name,
-                    driver->GetAbiVersion(), DFB_INPUT_DRIVER_ABI_VERSION );
+                    driver->abi_version, DFB_INPUT_DRIVER_ABI_VERSION );
+
+          fusion_list_remove( &input_drivers, input_drivers );
+
           DFBFREE( driver );
+          
           return MODULE_REJECTED;
-     }
-
-     driver->nr_devices = driver->GetAvailable();
-     if (!driver->nr_devices) {
-          DFBFREE( driver );
-          return MODULE_REJECTED;
-     }
-
-     for (n=0; n<driver->nr_devices; n++) {
-          InputDevice     *device;
-          InputDeviceInfo  device_info;
-          void            *driver_data;
-          InputDriverInfo  driver_info;
-
-          device = DFBCALLOC( 1, sizeof(InputDevice) );
-          device->shared = shcalloc( 1, sizeof(InputDeviceShared) );
-
-          memset( &device_info, 0, sizeof(InputDeviceInfo) );
-
-          device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
-
-          if (driver->OpenDevice( device, n, &device_info, &driver_data )) {
-               reactor_free( device->shared->reactor );
-               shmfree( device->shared );
-               DFBFREE( device );
-               continue;
-          }
-
-          memset( &driver_info, 0, sizeof(InputDriverInfo) );
-
-          driver->GetDriverInfo( &driver_info );
-
-          device->shared->id          = device_info.prefered_id;
-          device->shared->driver_info = driver_info;
-          device->shared->device_info = device_info;
-
-          device->driver       = driver;
-          device->driver_data  = driver_data;
-
-          /*  uniquify driver ID  */
-          if (inputdevices) {
-               InputDevice *dev = inputdevices;
-
-               do {
-                    if (dev->shared->id == device->shared->id) {
-                         /* give it a new one beyond the last predefined id */
-                         if (device->shared->id < DIDID_REMOTE)
-                              device->shared->id = DIDID_REMOTE;
-                         device->shared->id++;
-                         dev = inputdevices;
-                         continue;
-                    }
-               } while ((dev = dev->next) != NULL);
-          }
-
-          if (driver->nr_devices > 1) {
-               INITMSG( "DirectFB/InputDevice: %s(%d) %d.%d (%s)\n",
-                        device->shared->driver_info.name, n+1,
-                        device->shared->driver_info.version.major,
-                        device->shared->driver_info.version.minor,
-                        device->shared->driver_info.vendor );
-          }
-          else {
-               INITMSG( "DirectFB/InputDevice: %s %d.%d (%s)\n",
-                        device->shared->driver_info.name,
-                        device->shared->driver_info.version.major,
-                        device->shared->driver_info.version.minor,
-                        device->shared->driver_info.vendor );
-          }
-
-          /* add it to the list */
-          input_add_device( device );
      }
 
      return MODULE_LOADED_CONTINUE;
 }
+#endif
 
+static void init_devices()
+{
+     FusionLink *link;
+
+     fusion_list_foreach( link, input_drivers ) {
+          int          n;
+          InputDriver *driver = (InputDriver*) link;
+
+          driver->funcs->GetDriverInfo( &driver->info );
+
+          driver->nr_devices = driver->funcs->GetAvailable();
+          if (!driver->nr_devices)
+               continue;
+
+          for (n=0; n<driver->nr_devices; n++) {
+               InputDevice     *device;
+               InputDeviceInfo  device_info;
+               void            *driver_data;
+
+               device = DFBCALLOC( 1, sizeof(InputDevice) );
+               device->shared = shcalloc( 1, sizeof(InputDeviceShared) );
+
+               memset( &device_info, 0, sizeof(InputDeviceInfo) );
+
+               device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
+
+               if (driver->funcs->OpenDevice( device, n,
+                                              &device_info, &driver_data )) {
+                    reactor_free( device->shared->reactor );
+                    shmfree( device->shared );
+                    DFBFREE( device );
+                    continue;
+               }
+
+
+               device->shared->id          = device_info.prefered_id;
+               device->shared->device_info = device_info;
+
+               device->driver       = driver;
+               device->driver_data  = driver_data;
+
+               /*  uniquify driver ID  */
+               if (inputdevices) {
+                    InputDevice *dev = inputdevices;
+
+                    do {
+                         if (dev->shared->id == device->shared->id) {
+                              /* give it a new one beyond the last predefined id */
+                              if (device->shared->id < DIDID_REMOTE)
+                                   device->shared->id = DIDID_REMOTE;
+                              device->shared->id++;
+                              dev = inputdevices;
+                              continue;
+                         }
+                    } while ((dev = dev->next) != NULL);
+               }
+
+               if (driver->nr_devices > 1) {
+                    INITMSG( "DirectFB/InputDevice: %s (%d) %d.%d (%s)\n",
+                             device_info.name, n+1,
+                             driver->info.version.major,
+                             driver->info.version.minor,
+                             driver->info.vendor );
+               }
+               else {
+                    INITMSG( "DirectFB/InputDevice: %s %d.%d (%s)\n",
+                             device_info.name,
+                             driver->info.version.major,
+                             driver->info.version.minor,
+                             driver->info.vendor );
+               }
+
+               /* add it to the list */
+               input_add_device( device );
+          }
+     }
+}

@@ -15,7 +15,5 @@ libdirectfb_lirc_la_SOURCES =	\
 
 libdirectfb_lirc_la_LDFLAGS = \
         -export-dynamic		\
-	-disable-static		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
-

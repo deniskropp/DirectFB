@@ -210,7 +210,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           printf( "\n" );
           printf( "       ----------------------- DirectFB v%d.%d.%d ---------------------\n",
                   DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
-          printf( "              (c)2000-2001  convergence integrated media GmbH  \n" );
+          printf( "              (c)2000-2002  convergence integrated media GmbH  \n" );
           printf( "        -----------------------------------------------------------\n" );
           printf( "\n" );
      }

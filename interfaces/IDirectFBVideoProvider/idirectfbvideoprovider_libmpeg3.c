@@ -59,6 +59,16 @@
 
 #include <libmpeg3.h>
 
+static DFBResult
+Probe( const char *filename );
+
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Libmpeg3 )
 
 /*
  * private data struct of IDirectFBVideoProvider
@@ -948,17 +958,8 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment(
 
 /* exported symbols */
 
-const char *get_type()
-{
-     return "IDirectFBVideoProvider";
-}
-
-const char *get_implementation()
-{
-     return "Libmpeg3";
-}
-
-DFBResult Probe( const char *filename )
+static DFBResult
+Probe( const char *filename )
 {
      mpeg3_t *q;
 
@@ -981,7 +982,8 @@ DFBResult Probe( const char *filename )
      return DFB_OK;
 }
 
-DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int i;
      IDirectFBVideoProvider_Libmpeg3_data *data;

@@ -80,4 +80,7 @@ typedef struct {
      } ov0;
 } ATI128DeviceData;
 
+void
+ati128_init_layers( void *drv, void *dev );
+
 #endif

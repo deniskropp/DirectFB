@@ -29,6 +29,9 @@
 #include <stdio.h>
 #include <misc/conf.h>
 
+#ifdef PIC
+#define DFB_DYNAMIC_LINKING
+#endif
 
 #define MAX_INPUTDEVICES 100
 #define MAX_LAYERS       100

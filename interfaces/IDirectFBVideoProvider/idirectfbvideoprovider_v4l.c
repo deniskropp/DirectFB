@@ -55,6 +55,16 @@
 #include <misc/util.h>
 #include <misc/mem.h>
 
+static DFBResult
+Probe( const char *filename );
+
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, V4L )
 
 /*
  * private data struct of IDirectFBVideoProvider
@@ -322,17 +332,8 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 
 /* exported symbols */
 
-const char *get_type()
-{
-     return "IDirectFBVideoProvider";
-}
-
-const char *get_implementation()
-{
-     return "V4L";
-}
-
-DFBResult Probe( const char *filename )
+static DFBResult
+Probe( const char *filename )
 {
      if (strncmp( filename, "/dev/video", 10 ) == 0)
           return DFB_OK;
@@ -343,7 +344,8 @@ DFBResult Probe( const char *filename )
      return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int fd;
      IDirectFBVideoProvider_V4L_data *data;

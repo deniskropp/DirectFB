@@ -265,7 +265,8 @@ static void ati128_ov0_deinit( DisplayLayer *layer )
 
 /* exported symbols */
 
-void driver_init_layers( void *drv, void *dev )
+void
+ati128_init_layers( void *drv, void *dev )
 {
      DisplayLayer     *layer;
      volatile __u8    *mmio;

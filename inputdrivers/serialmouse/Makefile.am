@@ -14,7 +14,5 @@ libdirectfb_serialmouse_la_SOURCES = serialmouse.c
 
 libdirectfb_serialmouse_la_LDFLAGS = \
         -export-dynamic		\
-	-disable-static		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
-

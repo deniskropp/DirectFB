@@ -1,0 +1,72 @@
+#!/bin/sh
+
+#
+# It's your choice!
+#
+# DIET=/opt/diet/bin/diet
+
+INPUT_DRIVERS="ps2mouse keyboard"
+GRAPHICS_DRIVERS="matrox"
+
+IDIRECTFBFONT_FT2=yes
+
+IDIRECTFBIMAGEPROVIDER_JPEG=no
+IDIRECTFBIMAGEPROVIDER_PNG=yes
+IDIRECTFBIMAGEPROVIDER_GIF=no
+
+PREFIX="/usr/local"
+
+CFLAGS="-DFONT=\"$PREFIX/share/directfb-examples/fonts/decker.ttf\" -DDATADIR=\"$PREFIX/share/directfb-examples\""
+
+
+#
+# Check usage
+#
+if [ x"$1" = x ]; then
+	echo "Usage: $0 <program>"
+	exit 1
+fi
+
+
+#
+# Input drivers
+#
+INPUT="-L/usr/local/lib/directfb/inputdrivers"
+for i in $INPUT_DRIVERS; do
+	INPUT="$INPUT -ldirectfb_$i -Wl,-udirectfb_$i"
+done
+
+#
+# Graphics drivers
+#
+GRAPHICS="-L/usr/local/lib/directfb/gfxdrivers"
+for i in $GRAPHICS_DRIVERS; do
+	GRAPHICS="$GRAPHICS -ldirectfb_$i -Wl,-udirectfb_$i"
+done
+
+#
+# IDirectFBFont
+#
+INTERFACES="$INTERFACES -L/usr/local/lib/directfb/interfaces/IDirectFBFont"
+if [ x"$IDIRECTFBFONT_FT2" = xyes ]; then
+	INTERFACES="$INTERFACES -lidirectfbfont_ft2 -Wl,-uIDirectFBFont_FT2 -lfreetype"
+fi
+
+#
+# IDirectFBImageProvider
+#
+INTERFACES="$INTERFACES -L/usr/local/lib/directfb/interfaces/IDirectFBImageProvider"
+if [ x"$IDIRECTFBIMAGEPROVIDER_JPEG" = xyes ]; then
+	INTERFACES="$INTERFACES -lidirectfbimageprovider_jpeg -Wl,-uIDirectFBImageProvider_JPEG -ljpeg"
+fi
+if [ x"$IDIRECTFBIMAGEPROVIDER_PNG" = xyes ]; then
+	INTERFACES="$INTERFACES -lidirectfbimageprovider_png -Wl,-uIDirectFBImageProvider_PNG -lpng -lz -lm"
+fi
+if [ x"$IDIRECTFBIMAGEPROVIDER_GIF" = xyes ]; then
+	INTERFACES="$INTERFACES -lidirectfbimageprovider_gif -Wl,-uIDirectFBImageProvider_GIF"
+fi
+
+#
+# Build it.
+#
+$DIET gcc $CFLAGS -o $1 $1.c -static $INPUT $GRAPHICS $INTERFACES -ldirectfb -lpthread

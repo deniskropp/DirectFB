@@ -43,6 +43,7 @@
 
 #include <misc/mem.h>
 
+
 #include "regs.h"
 #include "mmio.h"
 #include "matrox.h"
@@ -89,7 +90,8 @@ static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
 
 /**********************/
 
-DFBResult besEnable( DisplayLayer *layer )
+static DFBResult
+besEnable( DisplayLayer *layer )
 {
      if (!layer->shared->surface) {
           DFBResult               ret;
@@ -126,7 +128,8 @@ DFBResult besEnable( DisplayLayer *layer )
      return DFB_OK;
 }
 
-DFBResult besDisable( DisplayLayer *layer )
+static DFBResult
+besDisable( DisplayLayer *layer )
 {
      /* FIXME: The surface should be destroyed, and the window stack? */
      layer->shared->enabled = 0;
@@ -136,9 +139,10 @@ DFBResult besDisable( DisplayLayer *layer )
      return DFB_OK;
 }
 
-DFBResult besTestConfiguration( DisplayLayer               *layer,
-                                DFBDisplayLayerConfig      *config,
-                                DFBDisplayLayerConfigFlags *failed )
+static DFBResult
+besTestConfiguration( DisplayLayer               *layer,
+                      DFBDisplayLayerConfig      *config,
+                      DFBDisplayLayerConfigFlags *failed )
 {
      int max_width = 1024;
      DFBDisplayLayerConfigFlags fail = 0;
@@ -191,8 +195,9 @@ DFBResult besTestConfiguration( DisplayLayer               *layer,
      return DFB_OK;
 }
 
-DFBResult besSetConfiguration( DisplayLayer          *layer,
-                               DFBDisplayLayerConfig *config )
+static DFBResult
+besSetConfiguration( DisplayLayer          *layer,
+                     DFBDisplayLayerConfig *config )
 {
      DFBResult                  ret;
      int                        width, height;
@@ -267,8 +272,9 @@ DFBResult besSetConfiguration( DisplayLayer          *layer,
      return DFB_OK;
 }
 
-DFBResult besSetOpacity( DisplayLayer *layer,
-                         __u8          opacity )
+static DFBResult
+besSetOpacity( DisplayLayer *layer,
+               __u8          opacity )
 {
      switch (opacity) {
           case 0:
@@ -284,11 +290,12 @@ DFBResult besSetOpacity( DisplayLayer *layer,
      return DFB_OK;
 }
 
-DFBResult besSetScreenLocation( DisplayLayer *layer,
-                                float         x,
-                                float         y,
-                                float         width,
-                                float         height )
+static DFBResult
+besSetScreenLocation( DisplayLayer *layer,
+                      float         x,
+                      float         y,
+                      float         width,
+                      float         height )
 {
      layer->shared->screen.x = x;
      layer->shared->screen.y = y;
@@ -301,19 +308,22 @@ DFBResult besSetScreenLocation( DisplayLayer *layer,
      return DFB_OK;
 }
 
-DFBResult besSetColorKey( DisplayLayer *layer,
-                          __u32         key )
+static DFBResult
+besSetColorKey( DisplayLayer *layer,
+                __u32         key )
 {
      return DFB_UNSUPPORTED;
 }
 
-DFBResult besFlipBuffers( DisplayLayer *layer )
+static DFBResult
+besFlipBuffers( DisplayLayer *layer )
 {
      return DFB_UNIMPLEMENTED;
 }
 
-DFBResult besSetColorAdjustment( DisplayLayer       *layer,
-                                 DFBColorAdjustment *adj )
+static DFBResult
+besSetColorAdjustment( DisplayLayer       *layer,
+                       DFBColorAdjustment *adj )
 {
      if (adj->flags & ~(DCAF_BRIGHTNESS | DCAF_CONTRAST))
           return DFB_UNSUPPORTED;
@@ -330,14 +340,15 @@ DFBResult besSetColorAdjustment( DisplayLayer       *layer,
      return DFB_OK;
 }
 
-void matrox_bes_deinit( DisplayLayer *layer )
+static void
+matrox_bes_deinit( DisplayLayer *layer )
 {
      mga_out32( mdrv->mmio_base, 0, BESCTL );
 }
 
 /* exported symbols */
 
-void driver_init_layers( void *drv, void *dev )
+void matrox_init_bes( void *drv, void *dev )
 {
      DisplayLayer     *layer;
      volatile __u8    *mmio;

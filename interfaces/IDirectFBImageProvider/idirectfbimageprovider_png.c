@@ -45,6 +45,17 @@
 
 #include <misc/gfx_util.h>
 
+static DFBResult
+Probe( const char *head, const char *filename );
+
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
+
 
 static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
                                 int pitch, DFBSurfacePixelFormat format );
@@ -77,17 +88,8 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc );
 
 
-char *get_type()
-{
-     return "IDirectFBImageProvider";
-}
-
-char *get_implementation()
-{
-     return "PNG";
-}
-
-DFBResult Probe( const char *head, const char *filename )
+static DFBResult
+Probe( const char *head, const char *filename )
 {
      if (strncmp (head, "\211PNG\r\n\032\n", 8) == 0)
           return DFB_OK;
@@ -95,8 +97,9 @@ DFBResult Probe( const char *head, const char *filename )
      return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBImageProvider *thiz,
-                     const char *filename )
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename )
 {
      IDirectFBImageProvider_PNG_data *data;
 
@@ -121,7 +124,8 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
-static void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
+static void
+IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_PNG_data *data =
                                    (IDirectFBImageProvider_PNG_data*)thiz->priv;
@@ -136,7 +140,8 @@ static void IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 #endif
 }
 
-static DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
+static DFBResult
+IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -145,7 +150,8 @@ static DFBResult IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
+static DFBResult
+IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
@@ -156,9 +162,9 @@ static DFBResult IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thi
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_PNG_RenderTo(
-                                               IDirectFBImageProvider *thiz,
-                                               IDirectFBSurface *destination )
+static DFBResult
+IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
+                                     IDirectFBSurface *destination )
 {
      int err, loader_result = 1;
      void *dst;
@@ -222,8 +228,9 @@ static DFBResult IDirectFBImageProvider_PNG_RenderTo(
 
 /* Loading routines */
 
-static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
-                                int pitch, DFBSurfacePixelFormat format )
+static DFBResult
+load_png_argb( FILE *f, __u8 *dst, int width, int height,
+               int pitch, DFBSurfacePixelFormat format )
 {
      png_structp png_ptr;
      png_infop   info_ptr;
@@ -301,9 +308,9 @@ static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
-                                              IDirectFBImageProvider *thiz,
-                                              DFBSurfaceDescription *dsc )
+static DFBResult
+IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                                  DFBSurfaceDescription *dsc )
 {
      FILE *f;
 
@@ -354,9 +361,9 @@ static DFBResult IDirectFBImageProvider_PNG_GetSurfaceDescription(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_PNG_GetImageDescription(
-                                                   IDirectFBImageProvider *thiz,
-                                                   DFBImageDescription    *dsc )
+static DFBResult
+IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                DFBImageDescription    *dsc )
 {
      FILE *f;
 

@@ -354,7 +354,7 @@ void dfb_core_cleanup_remove( CoreCleanup *cleanup )
 /*
  * module loading functions
  */
-
+#ifdef DFB_DYNAMIC_LINKING
 DFBResult dfb_core_load_modules( char *module_dir,
                                  CoreModuleLoadResult (*handle_func)(void *handle,
                                                                      char *name,
@@ -411,7 +411,7 @@ DFBResult dfb_core_load_modules( char *module_dir,
 
      return ret;
 }
-
+#endif
 
 /****************************/
 

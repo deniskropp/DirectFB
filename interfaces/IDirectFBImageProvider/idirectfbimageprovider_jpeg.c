@@ -46,6 +46,16 @@
 #include <setjmp.h>
 #include <math.h>
 
+static DFBResult
+Probe( const char *head, const char *filename );
+
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, JPEG )
 
 /*
  * private data struct of IDirectFBImageProvider_JPEG
@@ -79,14 +89,16 @@ struct my_error_mgr {
      jmp_buf  setjmp_buffer;          /* for return to caller */
 };
 
-static void jpeglib_panic(j_common_ptr cinfo)
+static void
+jpeglib_panic(j_common_ptr cinfo)
 {
      struct my_error_mgr *myerr = (struct my_error_mgr*) cinfo->err;
      longjmp(myerr->setjmp_buffer, 1);
 }
 
 
-static void copy_line32( __u32 *dst, __u8 *src, int width)
+static void
+copy_line32( __u32 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -97,7 +109,8 @@ static void copy_line32( __u32 *dst, __u8 *src, int width)
      }
 }
 
-static void copy_line24( __u8 *dst, __u8 *src, int width)
+static void
+copy_line24( __u8 *dst, __u8 *src, int width)
 {
      while (width--) {
           dst[0] = src[2];
@@ -109,7 +122,8 @@ static void copy_line24( __u8 *dst, __u8 *src, int width)
      }
 }
 
-static void copy_line16( __u16 *dst, __u8 *src, int width)
+static void
+copy_line16( __u16 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -120,7 +134,8 @@ static void copy_line16( __u16 *dst, __u8 *src, int width)
      }
 }
 
-static void copy_line15( __u16 *dst, __u8 *src, int width)
+static void
+copy_line15( __u16 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -132,7 +147,8 @@ static void copy_line15( __u16 *dst, __u8 *src, int width)
 }
 
 #ifdef SUPPORT_RGB332
-static void copy_line8( __u8 *dst, __u8 *src, int width)
+static void
+copy_line8( __u8 *dst, __u8 *src, int width)
 {
      __u32 r, g , b;
      while (width--) {
@@ -144,17 +160,8 @@ static void copy_line8( __u8 *dst, __u8 *src, int width)
 }
 #endif
 
-char *get_type()
-{
-     return "IDirectFBImageProvider";
-}
-
-char *get_implementation()
-{
-     return "JPEG";
-}
-
-DFBResult Probe( const char *head, const char *filename )
+static DFBResult
+Probe( const char *head, const char *filename )
 {
      if (strncmp (head + 6, "JFIF", 4) == 0 ||
          strncmp (head + 6, "Exif", 4) == 0)
@@ -163,8 +170,9 @@ DFBResult Probe( const char *head, const char *filename )
      return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBImageProvider *thiz,
-                     const char *filename )
+static DFBResult
+Construct( IDirectFBImageProvider *thiz,
+           const char             *filename )
 {
      IDirectFBImageProvider_JPEG_data *data;
 
@@ -189,7 +197,8 @@ DFBResult Construct( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
-static void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
+static void
+IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 {
      IDirectFBImageProvider_JPEG_data *data =
                                   (IDirectFBImageProvider_JPEG_data*)thiz->priv;
@@ -204,7 +213,8 @@ static void IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 #endif
 }
 
-static DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
+static DFBResult
+IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
@@ -213,7 +223,8 @@ static DFBResult IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thi
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
+static DFBResult
+IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
@@ -224,9 +235,9 @@ static DFBResult IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *th
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
-                                           IDirectFBImageProvider *thiz,
-                                           IDirectFBSurface       *destination )
+static DFBResult
+IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
+                                      IDirectFBSurface       *destination )
 {
      int err;
      void *dst;
@@ -383,8 +394,8 @@ static DFBResult IDirectFBImageProvider_JPEG_RenderTo(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
-                                                   IDirectFBImageProvider *thiz,
+static DFBResult
+IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription  *dsc )
 {
      FILE *f;
@@ -435,9 +446,9 @@ static DFBResult IDirectFBImageProvider_JPEG_GetSurfaceDescription(
      return DFB_OK;
 }
 
-static DFBResult IDirectFBImageProvider_JPEG_GetImageDescription(
-                                                   IDirectFBImageProvider *thiz,
-                                                   DFBImageDescription    *dsc )
+static DFBResult
+IDirectFBImageProvider_JPEG_GetImageDescription( IDirectFBImageProvider *thiz,
+                                                 DFBImageDescription    *dsc )
 {
      INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 

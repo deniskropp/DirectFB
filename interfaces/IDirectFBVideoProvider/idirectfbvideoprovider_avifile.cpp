@@ -44,6 +44,18 @@ extern "C" {
 #include <display/idirectfbsurface.h>
 
 #include <misc/util.h>
+
+static DFBResult
+Probe( const char *filename );
+
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz,
+           const char             *filename );
+
+#include <interface_implementation.h>
+
+DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, AviFile )
+
 }
 
 #include <aviplay.h>
@@ -371,17 +383,8 @@ static void AviFile_DrawCallback( const CImage *image, void *p )
 
 extern "C" {
 
-const char *get_type()
-{
-     return "IDirectFBVideoProvider";
-}
-
-const char *get_implementation()
-{
-     return "AviFile";
-}
-
-DFBResult Probe( const char *filename )
+static DFBResult
+Probe( const char *filename )
 {
      if (strstr( filename, ".avi" ) ||
          strstr( filename, ".AVI" ) ||
@@ -392,7 +395,8 @@ DFBResult Probe( const char *filename )
      return DFB_UNSUPPORTED;
 }
 
-DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      IDirectFBVideoProvider_AviFile_data *data;
 
