@@ -868,10 +868,10 @@ gfxcard_capabilities()
      return Scard->device_info.caps;
 }
 
-void *
+unsigned long
 gfxcard_memory_physical( unsigned int offset )
 {
-     return (void*)(Scard->fix.smem_start + offset);
+     return Scard->fix.smem_start + offset;
 }
 
 void *
