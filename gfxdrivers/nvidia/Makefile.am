@@ -13,7 +13,8 @@ nvidiadir = $(MODULEDIR)/gfxdrivers
 libdirectfb_nvidia_la_SOURCES =	\
 	nvidia.c	 \
 	nvidia_overlay.c \
-	nvidia.h
+	nvidia.h         \
+	nvidia_tables.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
         -export-dynamic		\
