@@ -57,19 +57,20 @@ IDirectFBInputDevice_React( const void *msg_data,
  * private data struct of IDirectFBInputDevice
  */
 typedef struct {
-     int                           ref;            /* refetence counter */
-     InputDevice                   *device;        /* pointer to input core
-                                                      device struct*/
+     int                         ref;               /* refetence counter */
+     InputDevice                *device;            /* pointer to input core
+                                                       device struct*/
 
-     int                           axis[8];        /* position of all axes */
-     DFBInputDeviceKeyState        keystates[256]; /* state of all keys */
-     DFBInputDeviceModifierKeys    modifiers;      /* bitmask reflecting the
-                                                      state of the modifier
-                                                      keys */
-     DFBInputDeviceLockState       locks;          /* bitmask reflecting the 
-						      state of the key locks */
-     DFBInputDeviceButtonMask      buttonmask;     /* bitmask reflecting the
-                                                      state of the buttons */
+     int                         axis[DIAI_LAST+1]; /* position of all axes */
+     DFBInputDeviceKeyState      keystates[DIKC_NUMBER_OF_KEYS];
+                                                    /* state of all keys */
+     DFBInputDeviceModifierKeys  modifiers;         /* bitmask reflecting the
+                                                       state of the modifier
+                                                       keys */
+     DFBInputDeviceLockState     locks;             /* bitmask reflecting the 
+						       state of the key locks */
+     DFBInputDeviceButtonMask    buttonmask;        /* bitmask reflecting the
+                                                       state of the buttons */
 
 } IDirectFBInputDevice_data;
 
@@ -173,7 +174,7 @@ IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice        *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!state)
+     if (!state || keycode < DIKC_UNKNOWN || keycode >= DIKC_NUMBER_OF_KEYS)
           return DFB_INVARG;
 
      *state = data->keystates[keycode];
@@ -230,7 +231,7 @@ IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice           *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!state || button < 0 || button > 7)
+     if (!state || button < DIBI_FIRST || button > DIBI_LAST)
           return DFB_INVARG;
 
      *state = (data->buttonmask & (1 << button)) ? DIBS_DOWN : DIBS_UP;
@@ -245,7 +246,7 @@ IDirectFBInputDevice_GetAxis( IDirectFBInputDevice         *thiz,
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     if (!pos)
+     if (!pos || axis < DIAI_FIRST || axis > DIAI_LAST)
           return DFB_INVARG;
 
      *pos = data->axis[axis];
@@ -339,7 +340,7 @@ IDirectFBInputDevice_React( const void *msg_data,
                break;
 
           case DIET_BUTTONRELEASE:
-               data->buttonmask &= ~(1 << evt->button );
+               data->buttonmask &= ~(1 << evt->button);
                break;
 
           case DIET_AXISMOTION:

@@ -483,8 +483,9 @@ extern "C"
           DIBI_RIGHT          = 0x00000001,  /* right mouse button */
           DIBI_MIDDLE         = 0x00000002,  /* middle mouse button */
 
-          DIBI_FIRST          = DIBI_LEFT    /* other buttons:
+          DIBI_FIRST          = DIBI_LEFT,   /* other buttons:
                                                 DIBI_FIRST + zero based index */
+          DIBI_LAST           = 0x0000001F   /* 32 buttons maximum */
      } DFBInputDeviceButtonIdentifier;
 
      /*
@@ -499,8 +500,9 @@ extern "C"
           DIAI_Y              = 0x00000001,  /* Y axis */
           DIAI_Z              = 0x00000002,  /* Z axis */
 
-          DIAI_FIRST          = DIAI_X       /* other axis:
+          DIAI_FIRST          = DIAI_X,      /* other axis:
                                                 DIAI_FIRST + zero based index */
+          DIAI_LAST           = 0x0000001F   /* 32 axes maximum */
      } DFBInputDeviceAxisIdentifier;
 
      /*
