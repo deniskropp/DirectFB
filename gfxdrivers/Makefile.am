@@ -90,6 +90,12 @@ else
 UNICHROME_DIR =
 endif
 
+if GFX_R200
+R200_DIR = r200
+else
+R200_DIR =
+endif
+
 SUBDIRS = \
 	$(ATI_DIR)	\
 	$(RADEON_DIR)	\
@@ -105,4 +111,6 @@ SUBDIRS = \
 	$(I830_DIR)	\
 	$(CLE266_DIR)	\
 	$(UNICHROME_DIR) \
-	$(GEODE_DIR)
+	$(GEODE_DIR)	\
+	$(R200_DIR)
+

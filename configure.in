@@ -730,6 +730,7 @@ cle266=no
 unichrome=no
 nvidia=no
 radeon=no
+r200=no
 tdfx=no
 savage=no
 sis315=no
@@ -743,7 +744,7 @@ AC_ARG_WITH(gfxdrivers,
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
 [                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
-[                            neomagic, nsc, nvidia, radeon, savage, sis315,]
+[                            neomagic, nsc, nvidia, radeon, r200, savage, sis315,]
 [                            tdfx, unichrome], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
@@ -757,7 +758,8 @@ if test "$gfxdrivers" = "all"; then
   checkfor_neomagic=yes
   checkfor_nsc=yes
   checkfor_nvidia=yes
-  checkfor_radeon=yes
+  checkfor_radeon=yes 
+  checkfor_r200=yes
   checkfor_savage=yes
   checkfor_sis315=yes
   checkfor_tdfx=yes
@@ -801,6 +803,9 @@ else
                   ;;
           radeon)
                   checkfor_radeon=yes
+                  ;;
+          r200)
+                  checkfor_r200=yes
                   ;;
           savage)
                   checkfor_savage=yes
@@ -850,6 +855,20 @@ if test "$checkfor_radeon" = "yes"; then
   radeon=no
   AC_MSG_WARN([
 *** ATI Radeon gfxdriver will not be built.]))
+fi
+
+if test "$checkfor_r200" = "yes"; then
+  dnl Test for r200 frame buffer support in the kernel
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_ATI_RADEON
+  yes
+#endif
+  ],
+  r200=yes,
+  r200=no
+  AC_MSG_WARN([
+*** ATI R200 gfxdriver will not be built.]))
 fi
 
 if test "$checkfor_mach64" = "yes"; then
@@ -1229,6 +1248,7 @@ AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
 AM_CONDITIONAL(GFX_NSC, test "$nsc" = "yes")
 AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
+AM_CONDITIONAL(GFX_R200, test "$r200" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
 AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
 AM_CONDITIONAL(GFX_TDFX, test "$tdfx" = "yes")
@@ -1372,6 +1392,7 @@ gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/radeon/Makefile
+gfxdrivers/r200/Makefile
 gfxdrivers/savage/Makefile
 gfxdrivers/sis315/Makefile
 gfxdrivers/tdfx/Makefile
@@ -1466,6 +1487,7 @@ Building Graphics Drivers:
   ATI Mach64                $mach64
   ATI Radeon                $radeon
   ATI Rage 128              $ati
+  ATI R200                  $r200
   Intel i810                $i810
   Intel i830                $i830
   Matrox                    $matrox
