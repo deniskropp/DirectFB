@@ -60,18 +60,6 @@ DFB_GRAPHICS_DRIVER( nvidia )
 #include "nvidia.h"
 
 
-typedef struct {
-     /* for fifo/performance monitoring */
-     unsigned int fifo_space;
-     unsigned int waitfifo_sum;
-     unsigned int waitfifo_calls;
-     unsigned int fifo_waitcycles;
-     unsigned int idle_waitcycles;
-     unsigned int fifo_cache_hits;
-
-     __u32        Color;
-} NVidiaDeviceData;
-
 #ifdef WORDS_BIGENDIAN
 /*
    access Nop field instead of FifoFree, since they are swapped,
@@ -521,6 +509,8 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
+
+     nvdrv->device = device;
 
      nvdrv->PGRAPH = (volatile __u32*)(nvdrv->mmio_base + 0x400000);
      nvdrv->PRAMIN = (volatile __u32*)(nvdrv->mmio_base + 0x710000);

@@ -428,6 +428,20 @@ typedef struct
 } RivaInstances;
 
 typedef struct {
+     /* for fifo/performance monitoring */
+     unsigned int fifo_space;
+     unsigned int waitfifo_sum;
+     unsigned int waitfifo_calls;
+     unsigned int fifo_waitcycles;
+     unsigned int idle_waitcycles;
+     unsigned int fifo_cache_hits;
+
+     __u32        Color;
+} NVidiaDeviceData;
+
+typedef struct {
+     GraphicsDevice *device;
+
      volatile __u8             *mmio_base;
      volatile __u32            *PGRAPH;
      volatile __u32            *FIFO;
