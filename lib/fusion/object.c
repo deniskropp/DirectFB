@@ -118,7 +118,7 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
           }
      }
 
-     D_BUG( "{%s} unknown object: %d\n", pool->name, call_arg );
+     D_BUG( "{%s} unknown object: %d", pool->name, call_arg );
 
      /* Unlock the pool. */
      fusion_skirmish_dismiss( &pool->lock );
