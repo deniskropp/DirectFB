@@ -71,7 +71,7 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
 #include <linux/videodev2.h>
 #endif
 
@@ -100,7 +100,7 @@ typedef struct {
 
      char                    *filename;
      int                      fd;
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
 #define NUMBER_OF_BUFFERS 2
      bool is_v4l2;
 
@@ -151,7 +151,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_cleanup( void *data, int emergency );
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
 static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirectFBVideoProvider_V4L_data * data);
 #endif
 
@@ -201,7 +201,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
      if (!caps)
           return DFB_INVARG;
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
 
           *caps = 0;
@@ -248,7 +248,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 
           if (data->vcap.type & VID_TYPE_SCALES)
                *caps |= DVCAPS_SCALE;
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif	
      return DFB_OK;
@@ -269,7 +269,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
           return DFB_DEAD;
 
      desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT | DSDESC_CAPS;
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
           desc->width = 720;  /* fimxe: depends on the selected standard: query standard and set accordingly */
           desc->height = 576;
@@ -278,7 +278,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
 #endif
           desc->width  = data->vcap.maxwidth;
           desc->height = data->vcap.maxheight;
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
      desc->pixelformat = dfb_primary_layer_pixelformat();
@@ -336,7 +336,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 
      surface = dst_data->surface;
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
           ret = v4l2_playto(surface, &rect, data);
      }
@@ -369,7 +369,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                ret = v4l_to_surface_grab( surface, &rect, data );
           else
                ret = v4l_to_surface_overlay( surface, &rect, data );
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
      if (DFB_OK != ret && !data->grab_mode)
@@ -426,7 +426,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
      if (!adj)
           return DFB_INVARG;
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
           struct v4l2_control ctrl;
 
@@ -469,7 +469,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
           adj->contrast   = pic.contrast;
           adj->hue        = pic.hue;
           adj->saturation = pic.colour;
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
      return DFB_OK;
@@ -489,7 +489,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
      if (adj->flags == DCAF_NONE)
           return DFB_OK;
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
           struct v4l2_control ctrl;
           if (adj->flags & DCAF_BRIGHTNESS && data->brightness.id != 0) {
@@ -536,7 +536,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 
                return ret;
           }
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
 
@@ -579,7 +579,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      data->is_v4l2 = 0;
 
      /* look if the device is a v4l2 device */
@@ -604,7 +604,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           data->buffer = mmap( NULL, data->vmbuf.size,
                                PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
 
@@ -1039,7 +1039,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
           data->thread = NULL;
      }
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
           /* turn off streaming */
           int type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -1057,7 +1057,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
                               "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
           }
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
 
@@ -1068,7 +1068,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
           return DFB_OK;
      }
 
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      if ( 0 != data->is_v4l2 ) {
           /* unmap all buffers, if necessary */
           if (0 != data->framebuffer_or_system) {
@@ -1086,7 +1086,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 #endif
           if (!data->grab_mode)
                dfb_surface_unlock( destination, false );
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
      }
 #endif
 
@@ -1126,7 +1126,7 @@ static void v4l_cleanup( void *ctx, int emergency )
 }
 
 /* v4l2 specific stuff */
-#ifdef HAVE_V4L2
+#ifdef DFB_HAVE_V4L2
 int wait_for_buffer(int vid, struct v4l2_buffer *cur)
 {
      fd_set rdset;

@@ -645,7 +645,7 @@ if test "$V4L" = "yes"; then
         #endif
       ],
       V4L2=yes
-      AC_DEFINE( HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
+      AC_DEFINE( DFB_HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
     )
   fi
 fi
