@@ -247,8 +247,8 @@ dfb_layers_resume()
           if (l->shared->enabled) {
                l->funcs->Enable( l, l->driver_data, l->layer_data );
                
-               l->funcs->SetConfiguration( l, &l->shared->config,
-                                           l->driver_data, l->layer_data );
+               l->funcs->SetConfiguration( l, l->driver_data,
+                                           l->layer_data, &l->shared->config );
 
                if (l->shared->stack)
                     dfb_windowstack_repaint_all( l->shared->stack );
