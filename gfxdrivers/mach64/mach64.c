@@ -53,7 +53,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
-#include <misc/util.h>
+#include <misc/conf.h>
 
 #include <core/graphics_driver.h>
 
@@ -87,8 +87,8 @@ DFB_GRAPHICS_DRIVER( mach64 )
                (DSDRAW_DST_COLORKEY | DSDRAW_BLEND)
 
 #define MACH64GT_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY | DSBLIT_BLEND_COLORALPHA)
-/* FIXME: DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE */
+               (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY | DSBLIT_BLEND_COLORALPHA | \
+                DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
 
 #define MACH64GT_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE)
@@ -907,6 +907,7 @@ driver_init_driver( GraphicsDevice      *device,
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64GT:
+               dfb_config->argb_font = true;
                funcs->CheckState        = mach64GTCheckState;
                funcs->FlushTextureCache = mach64GTFlushTextureCache;
           case FB_ACCEL_ATI_MACH64VT:
@@ -965,6 +966,10 @@ driver_init_device( GraphicsDevice     *device,
                if (!mdev->rage_pro)
                     snprintf( device_info->name,
                               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mach64 GT" );
+
+               /* Max texture size is 1024x1024 */
+               device_info->limits.surface_max_power_of_two_pixelpitch = 1024;
+               device_info->limits.surface_max_power_of_two_height     = 1024;
                break;
      }
 

@@ -160,6 +160,16 @@ static inline int D_ICEIL(float f)
         return (ai - bi + 1) >> 1;
 }
 
+static inline int direct_log2( int val )
+{
+     register int ret = 0;
 
+     while (val >> ++ret);
+
+     if ((1 << --ret) < val)
+          ret++;
+
+     return ret;
+}
 
 #endif

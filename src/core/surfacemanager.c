@@ -96,6 +96,10 @@ struct _SurfaceManager {
      unsigned int    byteoffset_align;
      unsigned int    pixelpitch_align;
      unsigned int    bytepitch_align;
+
+     unsigned int    max_power_of_two_pixelpitch;
+     unsigned int    max_power_of_two_bytepitch;
+     unsigned int    max_power_of_two_height;
 };
 
 
@@ -130,6 +134,9 @@ dfb_surfacemanager_create( unsigned int     length,
      manager->byteoffset_align = limits->surface_byteoffset_alignment;
      manager->pixelpitch_align = limits->surface_pixelpitch_alignment;
      manager->bytepitch_align  = limits->surface_bytepitch_alignment;
+     manager->max_power_of_two_pixelpitch = limits->surface_max_power_of_two_pixelpitch;
+     manager->max_power_of_two_bytepitch  = limits->surface_max_power_of_two_bytepitch;
+     manager->max_power_of_two_height     = limits->surface_max_power_of_two_height;
 
      fusion_skirmish_init( &manager->lock );
 
@@ -315,12 +322,20 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      /* calculate the required length depending on limitations */
      pitch = MAX( surface->width, surface->min_width );
 
+     if (pitch < manager->max_power_of_two_pixelpitch &&
+         surface->height < manager->max_power_of_two_height)
+          pitch = 1 << direct_log2( pitch );
+     
      if (manager->pixelpitch_align > 1) {
           pitch += manager->pixelpitch_align - 1;
           pitch -= pitch % manager->pixelpitch_align;
      }
 
      pitch = DFB_BYTES_PER_LINE( buffer->format, pitch );
+
+     if (pitch < manager->max_power_of_two_bytepitch &&
+         surface->height < manager->max_power_of_two_height)
+          pitch = 1 << direct_log2( pitch );
 
      if (manager->bytepitch_align > 1) {
           pitch += manager->bytepitch_align - 1;

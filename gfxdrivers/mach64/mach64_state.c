@@ -111,11 +111,9 @@ void mach64_set_source( Mach64DriverData *mdrv,
      }
      mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
-#if 0
-     mdev->tex_pitch = dfb_log2( pitch );
-     mdev->tex_height = dfb_log2( source->height );
+     mdev->tex_pitch = direct_log2( pitch );
+     mdev->tex_height = direct_log2( source->height );
      mdev->tex_size = MAX( mdev->tex_pitch, mdev->tex_height );
-#endif
 
      mach64_waitfifo( mdrv, mdev, 2 );
 
