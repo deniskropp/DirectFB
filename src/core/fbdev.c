@@ -183,9 +183,21 @@ DFBResult fbdev_open()
           if (fbdev_set_mode(NULL, fbdev->modes, DLBM_FRONTONLY))
           {
                ERRORMSG("DirectFB/core/fbdev: "
-                        "No valid modes found in /etc/fb.modes, "
-                        "current mode not suitable!\n");
+                        "No supported modes found in /etc/fb.modes and "
+                        "current mode not supported!\n");
 
+               ERRORMSG( "DirectFB/core/fbdev: Current mode's pixelformat: "
+                         "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
+                         fbdev->orig_var.red.length,
+                         fbdev->orig_var.red.offset,
+                         fbdev->orig_var.green.length,
+                         fbdev->orig_var.green.offset,
+                         fbdev->orig_var.blue.length,
+                         fbdev->orig_var.blue.offset,
+                         fbdev->orig_var.transp.length,
+                         fbdev->orig_var.transp.offset,
+                         fbdev->orig_var.bits_per_pixel );
+               
                DFBFREE( fbdev->modes );
                fbdev->modes = NULL;
 
