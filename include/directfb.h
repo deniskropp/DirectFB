@@ -2687,6 +2687,7 @@ typedef struct {
      /* used by DWET_BUTTONDOWN, DWET_BUTTONUP */
      DFBInputDeviceButtonIdentifier  button;     /* button being
                                                     pressed or released */
+     /* used by DWET_MOTION, DWET_BUTTONDOWN, DWET_BUTTONUP */
      DFBInputDeviceButtonMask        buttons;    /* mask of currently
                                                     pressed buttons */
 } DFBWindowEvent;

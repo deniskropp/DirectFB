@@ -1315,7 +1315,7 @@ dfb_layer_cursor_warp( DisplayLayer *layer, int x, int y )
      dx = x - stack->cursor.x;
      dy = y - stack->cursor.y;
 
-     dfb_windowstack_handle_motion( stack, dx, dy );
+     dfb_windowstack_handle_motion( stack, dx, dy, 0 );
 
      return DFB_OK;
 }

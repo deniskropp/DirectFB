@@ -306,6 +306,7 @@ void dfb_windowstack_repaint_all( CoreWindowStack *stack );
 /*
  * moves the cursor and handles events
  */
-void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy );
+void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy,
+                                    DFBInputDeviceButtonMask  buttons);
 
 #endif

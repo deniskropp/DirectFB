@@ -966,9 +966,10 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
 }
 
 void
-dfb_windowstack_handle_motion( CoreWindowStack *stack,
-                               int              dx,
-                               int              dy )
+dfb_windowstack_handle_motion( CoreWindowStack          *stack,
+                               int                       dx,
+                               int                       dy,
+                               DFBInputDeviceButtonMask  buttons )
 {
      int            new_cx, new_cy;
      DFBWindowEvent we;
@@ -1046,8 +1047,9 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
           case 0:
                stack_lock( stack );
 
-               we.cx   = stack->cursor.x;
-               we.cy   = stack->cursor.y;
+               we.cx      = stack->cursor.x;
+               we.cy      = stack->cursor.y;
+               we.buttons = buttons;
 
                if (stack->pointer_window) {
                     we.type = DWET_MOTION;
@@ -1491,10 +1493,14 @@ stack_inputdevice_react( const void *msg_data,
 
                     switch (evt->axis) {
                          case DIAI_X:
-                              dfb_windowstack_handle_motion( stack, rel, 0 );
+                              dfb_windowstack_handle_motion( stack,
+                                                             rel, 0,
+                                                             evt->buttons );
                               break;
                          case DIAI_Y:
-                              dfb_windowstack_handle_motion( stack, 0, rel );
+                              dfb_windowstack_handle_motion( stack,
+                                                             0, rel,
+                                                             evt->buttons );
                               break;
                          case DIAI_Z:
                               handle_wheel( stack, - evt->axisrel );
@@ -1507,11 +1513,13 @@ stack_inputdevice_react( const void *msg_data,
                     switch (evt->axis) {
                          case DIAI_X:
                               dfb_windowstack_handle_motion( stack,
-                                                             evt->axisabs - stack->cursor.x, 0 );
+                                                             evt->axisabs - stack->cursor.x, 0,
+                                                             evt->buttons );
                               break;
                          case DIAI_Y:
-                              dfb_windowstack_handle_motion( stack, 0,
-                                                             evt->axisabs - stack->cursor.y);
+                              dfb_windowstack_handle_motion( stack,
+                                                             0, evt->axisabs - stack->cursor.y,
+                                                             evt->buttons );
                               break;
                          default:
                               return RS_OK;
