@@ -68,6 +68,7 @@ struct __D_DirectTraceBuffer {
      pid_t tid;
      char *name;
      int   level;
+     bool  in_trace;
      void *trace[MAX_LEVEL];
 };
 
@@ -199,7 +200,29 @@ load_symbols( const char *filename )
      SymbolTable *table;
      FILE        *pipe;
      char         line[1024];
+     char         file[1024];
      char         command[ strlen(filename) + 32 ];
+
+     if (access( filename, R_OK ) < 0 && errno == ENOENT) {
+          char  buf[32];
+          char *tmp;
+
+          snprintf( buf, sizeof(buf), "/proc/self/exe" );
+
+          if (readlink( buf, file, sizeof(file) ) < 0) {
+               D_PERROR( "Direct/Trace: readlink( \"%s\" ) failed!\n", buf );
+               return NULL;
+          }
+
+          tmp = strrchr( file, '/' ) + 1;
+          if (!tmp)
+               return NULL;
+
+          if (strcmp( filename, tmp ))
+               return NULL;
+
+          filename = file;
+     }
 
      snprintf( command, sizeof(command), "nm -n %s", filename );
 
@@ -326,6 +349,9 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      if (!buffer)
           buffer = get_trace_buffer();
 
+     if (buffer->in_trace)
+          return;
+
      level = buffer->level;
      if (level > MAX_LEVEL) {
           D_WARN( "only showing %d of %d items", MAX_LEVEL, level );
@@ -334,6 +360,8 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      else if (level == 0) {
           return;
      }
+
+     buffer->in_trace = true;
 
      if (buffer->name)
           fprintf( stderr, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
@@ -378,6 +406,8 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
      fprintf( stderr, "\n" );
 
      fflush( stderr );
+
+     buffer->in_trace = false;
 }
 
 __attribute__((no_instrument_function))
