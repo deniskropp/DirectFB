@@ -95,7 +95,8 @@ typedef struct {
 
      CoreCleanup             *cleanup;
 
-     int                      grab_mode;
+     bool                     grab_mode;
+     bool                     running;
 
      Reaction                 reaction; /* for the destination listener */
 } IDirectFBVideoProvider_V4L_data;
@@ -458,12 +459,10 @@ static void* OverlayThread( CoreThread *thread, void *ctx )
      int field = 0;
      struct timeval tv;
 
-     while (1) {
+     while (data->running) {
           tv.tv_sec = 0;
           tv.tv_usec = 20000;
           select( 0, 0, 0, 0, &tv );
-
-          dfb_thread_testcancel( thread );
 
           if (data->destination &&
               data->destination->caps & DSCAPS_INTERLACED) {
@@ -491,6 +490,8 @@ static void* GrabThread( CoreThread *thread, void *ctx )
      int dst_pitch, src_pitch, h;
      int frame = 0;
 
+     DEBUGMSG( "DirectFB/v4l: %s started.\n", __FUNCTION__ );
+
      src_pitch = DFB_BYTES_PER_LINE( surface->format, surface->width );
 
      while (frame < data->vmbuf.frames) {
@@ -500,10 +501,8 @@ static void* GrabThread( CoreThread *thread, void *ctx )
      }
 
      frame = 0;
-     while (1) {
+     while (data->running) {
           ioctl( data->fd, VIDIOCSYNC, &frame );
-
-          dfb_thread_testcancel( thread );
 
           h = surface->height;
           src = data->buffer + data->vmbuf.offsets[frame];
@@ -561,7 +560,9 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
           v4l_stop( data, false );
           return RS_REMOVE;
      }*/
-     CoreSurface *surface = data->destination;
+     CoreSurface *surface = notification->surface;
+
+     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      if (notification->flags & CSNF_VIDEO) {
           if (surface && surface->back_buffer->video.health == CSH_INVALID) {
@@ -582,7 +583,9 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
           v4l_stop( data, false );
           return RS_REMOVE;
      }*/
-     CoreSurface *surface = data->destination;
+     CoreSurface *surface = notification->surface;
+
+     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      if (notification->flags & CSNF_SYSTEM) {
           if (surface && surface->back_buffer->system.health == CSH_INVALID) {
@@ -602,6 +605,8 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 {
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
+
+     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      /*
       * Sanity check. Overlay to system surface isn't possible.
@@ -721,6 +726,8 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
      dfb_surface_attach( surface, v4l_videosurface_listener,
                          data, &data->reaction );
 
+     data->running = true;
+     
      if (data->callback || surface->caps & DSCAPS_INTERLACED)
           data->thread = dfb_thread_create( CTT_CRITICAL, OverlayThread, data );
 
@@ -731,6 +738,8 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                                       IDirectFBVideoProvider_V4L_data *data )
 {
      int bpp, palette;
+
+     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
 
      if (!data->vmbuf.frames)
           return DFB_UNSUPPORTED;
@@ -794,6 +803,8 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
      dfb_surface_attach( surface, v4l_systemsurface_listener,
                          data, &data->reaction );
 
+     data->running = true;
+     
      data->thread = dfb_thread_create( CTT_ANY, GrabThread, data );
 
      return DFB_OK;
@@ -801,8 +812,10 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 {
+     DEBUGMSG( "DirectFB/v4l: %s...\n", __FUNCTION__ );
+
      if (data->thread) {
-          dfb_thread_cancel( data->thread );
+          data->running = false;
           dfb_thread_join( data->thread );
           dfb_thread_destroy( data->thread );
           data->thread = NULL;
