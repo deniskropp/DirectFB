@@ -34,12 +34,12 @@
 #include <directfb.h>
 typedef DFBResult DirectResult;    /* FIXME */
 
-
+#ifndef __cplusplus
 typedef enum {
      false = 0,
      true  = !false
 } bool;
-
+#endif
 
 typedef __u32 unichar;
 
