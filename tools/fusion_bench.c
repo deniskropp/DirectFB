@@ -60,7 +60,7 @@ static unsigned int loops;
 #define BENCH_START()    do { sync(); usleep(100000); sync(); t1 = dfb_get_millis(); loops = 0; } while (0)
 #define BENCH_STOP()     do { t2 = dfb_get_millis(); } while (0)
 
-#define BENCH_LOOP()     while ((loops++ & 0xffff) || (dfb_get_millis() - t1 < 1000))
+#define BENCH_LOOP()     while ((loops++ & 0x3fff) || (dfb_get_millis() - t1 < 1000))
 
 #define BENCH_RESULT()   (loops / (float)(t2 - t1))
 
