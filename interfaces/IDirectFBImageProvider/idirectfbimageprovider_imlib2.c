@@ -253,7 +253,7 @@ IDirectFBImageProvider_IMLIB2_GetSurfaceDescription( IDirectFBImageProvider *thi
    dsc->width = imlib_image_get_width();
    dsc->height = imlib_image_get_height();
    dsc->pixelformat = imlib_image_has_alpha() ?
-                         DSPF_ARGB : dfb_layers->shared->surface->format;
+                         DSPF_ARGB : dfb_primary_layer_pixelformat();
 
    return DFB_OK;
 }
