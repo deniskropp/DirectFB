@@ -935,10 +935,9 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                          width += kerning;
                     }
                     width += glyph->advance;
-
-                    prev = current;
-                    string = utf8_next_char (string);
                }
+               prev = current;
+               string = utf8_next_char (string);
           }
           if (flags & DSTF_RIGHT) {
                x -= width;

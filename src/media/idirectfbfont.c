@@ -222,15 +222,15 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
                
           if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
             
-            if (prev && data->font->GetKerning && 
-                (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
-                 *width += kerning;
-            }
+               if (prev && data->font->GetKerning && 
+                   (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
+                    *width += kerning;
+               }
             *width += glyph->advance;
-
-            prev = current;
-            string = utf8_next_char (string);
           }
+
+          prev = current;
+          string = utf8_next_char (string);
      }
 
      return DFB_OK;
