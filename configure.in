@@ -78,7 +78,7 @@ AC_CHECK_LIB(dl, dlopen, ,
   AC_MSG_ERROR([*** DirectFB requires libdl.]))
 
 if test "x$GCC" = xyes; then
-  DFB_CFLAGS="-O3 -fexpensive-optimizations -ffast-math -Wall"
+  DFB_CFLAGS="-O3 -ffast-math -Wall"
 fi
 
 
@@ -108,7 +108,7 @@ if test "x$enable_debug" = xyes; then
     AC_DEFINE(DFB_DEBUG)
     DFB_CFLAGS="$DFB_CFLAGS -g3"
 else
-    DFB_CFLAGS="$DFB_CFLAGS -g0"
+    DFB_CFLAGS="$DFB_CFLAGS -fomit-frame-pointer -g0"
 fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 
