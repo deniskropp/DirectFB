@@ -76,7 +76,7 @@ typedef struct {
      FusionLink               *last;            /* last chunk is the
                                                    first to read */
 
-     int                       length;          /* total length of all chunks */
+     unsigned int              length;          /* total length of all chunks */
 
      pthread_mutex_t           chunks_mutex;    /* mutex lock for accessing
                                                    the chunk list */
