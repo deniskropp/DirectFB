@@ -63,10 +63,10 @@ driver_probe( GraphicsDevice *device )
 {
      switch (gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
-          case 42:        // NM2200
-          case 43:        // NM2230
-          case 44:        // NM2360
-          case 45:        // NM2380
+          case 95:        // NM2200
+          case 96:        // NM2230
+          case 97:        // NM2360
+          case 98:        // NM2380
                return 1;
      }
 
@@ -94,10 +94,10 @@ driver_get_info( GraphicsDevice     *device,
 
      switch (gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
-          case 42:        // NM2200
-          case 43:        // NM2230
-          case 44:        // NM2360
-          case 45:        // NM2380
+          case 95:        // NM2200
+          case 96:        // NM2230
+          case 97:        // NM2360
+          case 98:        // NM2380
                neo2200_get_info( device, info );
                break;
      }
@@ -117,10 +117,10 @@ driver_init_driver( GraphicsDevice      *device,
 
      switch (gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
-          case 42:        // NM2200
-          case 43:        // NM2230
-          case 44:        // NM2360
-          case 45:        // NM2380
+          case 95:        // NM2200
+          case 96:        // NM2230
+          case 97:        // NM2360
+          case 98:        // NM2380
                return neo2200_init_driver( device, funcs, driver_data );
      }
 
@@ -138,10 +138,10 @@ driver_init_device( GraphicsDevice     *device,
 
      switch (gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
-          case 42:        // NM2200
-          case 43:        // NM2230
-          case 44:        // NM2360
-          case 45:        // NM2380
+          case 95:        // NM2200
+          case 96:        // NM2230
+          case 97:        // NM2360
+          case 98:        // NM2380
                return neo2200_init_device( device, device_info,
                                            driver_data, device_data );
      }
@@ -164,10 +164,10 @@ driver_close_device( GraphicsDevice *device,
 
      switch (gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
-          case 42:        // NM2200
-          case 43:        // NM2230
-          case 44:        // NM2360
-          case 45:        // NM2380
+          case 95:        // NM2200
+          case 96:        // NM2230
+          case 97:        // NM2360
+          case 98:        // NM2380
                neo2200_close_device( device, driver_data, device_data );
      }
 
@@ -202,10 +202,10 @@ driver_close_driver( GraphicsDevice *device,
 
      switch (gfxcard_get_accelerator( device )) {
           /* no support for other NeoMagic cards yet */
-          case 42:        // NM2200
-          case 43:        // NM2230
-          case 44:        // NM2360
-          case 45:        // NM2380
+          case 95:        // NM2200
+          case 96:        // NM2230
+          case 97:        // NM2360
+          case 98:        // NM2380
                neo2200_close_driver( device, driver_data );
      }
 
