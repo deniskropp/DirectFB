@@ -292,24 +292,20 @@ static void nv4CheckState( void *drv, void *dev,
                case DSPF_UYVY:
                     if (accel == DFXL_TEXTRIANGLES)
                          return;
-                    if ((destination->format == DSPF_YUY2    ||
-                         destination->format == DSPF_UYVY)   &&
-                        destination->format != source->format)
-                         return;
                     break;
                
                default:
                     return;
           }
 
-          state->accel |= accel;
+          state->accel |= NV4_SUPPORTED_BLITTINGFUNCTIONS;
      }
      else {
           /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV4_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= accel;
+          state->accel |= NV4_SUPPORTED_DRAWINGFUNCTIONS;
      }
 }
 
@@ -360,24 +356,20 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_UYVY:
                     if (accel == DFXL_TEXTRIANGLES)
                          return;
-                    if ((destination->format == DSPF_YUY2    ||
-                         destination->format == DSPF_UYVY)   &&
-                        destination->format != source->format)
-                         return;
                     break;
                
                default:
                     return;
           }
 
-          state->accel |= accel;
+          state->accel |= NV5_SUPPORTED_BLITTINGFUNCTIONS;
      }
      else {
           /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV5_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= accel;
+          state->accel |= NV5_SUPPORTED_DRAWINGFUNCTIONS;
      }
 }
 
@@ -407,37 +399,34 @@ static void nv20CheckState( void *drv, void *dev,
                return;
 
           /* can't do modulation */
-          if ((state->blittingflags & DSBLIT_COLORIZE) &&
-              (state->blittingflags & DSBLIT_BLEND_COLORALPHA))
-               return;
+          if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+               if (state->src_blend != DSBF_SRCALPHA       ||
+                   state->dst_blend != DSBF_INVSRCALPHA    ||
+                   (state->blittingflags & DSBLIT_COLORIZE))
+                    return;
+          }
           
           switch (source->format) {
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:     
-                    break;
-               
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if ((destination->format == DSPF_YUY2    ||
-                         destination->format == DSPF_UYVY)   &&
-                        destination->format != source->format)
-                         return;
                     break;
                
                default:
                     return;
           }
 
-          state->accel |= accel;
+          state->accel |= NV20_SUPPORTED_BLITTINGFUNCTIONS;
      }
      else {
           /* check unsupported drawing flags first */
           if (state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
                return;
 
-          state->accel |= accel;
+          state->accel |= NV20_SUPPORTED_DRAWINGFUNCTIONS;
      }
 }
 
