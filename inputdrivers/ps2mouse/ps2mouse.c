@@ -155,7 +155,6 @@ ps2mouseEventThread( void *driver_data )
             if ( pos == 0  &&  (buf[i] & 0xc0) ) {
                 continue;
             }
-
             packet[pos++] = buf[i];
             if ( pos == data->packetLength ) {
                 int dx, dy, dz;
@@ -163,7 +162,7 @@ ps2mouseEventThread( void *driver_data )
 
                 pos = 0;
 
-                if ( !(packet[0] & 0x08) ) {    
+                if ( !(packet[0] & 0x08) ) {
                     /* We've lost sync! */
                     i--;    /* does this make sense? oh well, it will resync eventually (or will it!?)*/
                     continue;
@@ -172,13 +171,13 @@ ps2mouseEventThread( void *driver_data )
                 buttons = packet[0] & 0x07;
                 dx = (packet[0] & 0x10) ?   packet[1]-256  :  packet[1];
                 dy = (packet[0] & 0x20) ? -(packet[2]-256) : -packet[2];
-				if (data->mouseId == PS2_ID_IMPS2){
-					dz = (packet[4] & 0x80) ? packet[4] | 0xf0 : packet[4] & 0x0f;  /* Just strip off the extra buttons if present and sign extend the 4 bit value */
-				}
-				else {
-					dz = 0;
-				}
-
+                if (data->mouseId == PS2_ID_IMPS2){
+                    /* Just strip off the extra buttons if present and sign extend the 4 bit value */
+                    dz = (__s8)((packet[3] & 0x80) ? packet[3] | 0xf0 : packet[3] & 0x0F);
+                }
+                else {
+                    dz = 0;
+                }
                 ps2mouse_motion_compress( data, dx, dy, dz );
 
                 if ( !dfb_config->mouse_motion_compression )
@@ -211,7 +210,7 @@ ps2mouseEventThread( void *driver_data )
                         evt.button = DIBI_MIDDLE;
                         input_dispatch( data->device, &evt );
                     }
-
+                    
                     last_buttons = buttons;
                 }
             }
@@ -259,8 +258,8 @@ static int ps2Write( int fd, unsigned char *data, size_t len) {
             error++;
         }
     }
-  usleep (30000);
-  tcflush (fd, TCIFLUSH);
+    usleep (30000);
+    tcflush (fd, TCIFLUSH);
 
     return(error);
 }
@@ -392,7 +391,6 @@ driver_open_device( InputDevice      *device,
 
      /* set private data pointer */
      *driver_data = data;
-
      return DFB_OK;
 }
 
