@@ -31,24 +31,25 @@
 #include <string.h>
 #include <malloc.h>
 
-#include "directfb.h"
-#include "directfb_internals.h"
+#include <directfb.h>
+#include <directfb_internals.h>
 
-#include "core/core.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coretypes.h>
 
-#include "core/fbdev.h"
-#include "core/gfxcard.h"
-#include "core/state.h"
-#include "core/layers.h"
-#include "core/surfaces.h"
+#include <core/gfxcard.h>
+#include <core/state.h>
+#include <core/layers.h>
+#include <core/surfaces.h>
 
-#include "idirectfbsurface.h"
-#include "idirectfbsurface_layer.h"
+#include <core/fbdev/fbdev.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
-#include "gfx/util.h"
+#include <idirectfbsurface.h>
+#include <idirectfbsurface_layer.h>
+
+#include <misc/util.h>
+#include <misc/mem.h>
+#include <gfx/util.h>
 
 
 

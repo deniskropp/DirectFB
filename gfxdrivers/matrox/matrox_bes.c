@@ -39,10 +39,11 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
-#include <core/fbdev.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
+
+#include <core/fbdev/fbdev.h> /* FIXME! */
 
 #include <misc/mem.h>
 

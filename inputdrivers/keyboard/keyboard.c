@@ -48,8 +48,9 @@
 #include <core/coretypes.h>
 
 #include <core/input.h>
-#include <core/vt.h>
 #include <core/sig.h>
+
+#include <core/fbdev/vt.h> /* FIXME! */
 
 #include <misc/conf.h>
 #include <misc/mem.h>

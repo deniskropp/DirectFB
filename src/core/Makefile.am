@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/src/core
 
-SUBDIRS = fusion
+SUBDIRS = fbdev fusion
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
@@ -22,7 +22,6 @@ internalinclude_HEADERS = \
 	coredefs.h		\
 	coretypes.h		\
 	core.h			\
-	fbdev.h			\
 	fonts.h			\
 	gfxcard.h		\
 	graphics_driver.h	\
@@ -34,18 +33,17 @@ internalinclude_HEADERS = \
 	surfaces.h		\
 	surfacemanager.h	\
 	sig.h			\
-	windows.h		\
-	vt.h
+	windows.h
 
 
 noinst_LTLIBRARIES = libdirectfb_core.la
 
 libdirectfb_core_la_LIBADD = \
+	fbdev/libdirectfb_core_fbdev.la	\
 	fusion/libdirectfb_core_fusion.la
 
 libdirectfb_core_la_SOURCES = \
 	core.c			\
-	fbdev.c			\
 	fonts.c			\
 	gfxcard.c		\
 	input.c			\
@@ -55,5 +53,4 @@ libdirectfb_core_la_SOURCES = \
 	surfaces.c		\
 	surfacemanager.c	\
 	sig.c			\
-	windows.c		\
-	vt.c
+	windows.c

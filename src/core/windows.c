@@ -35,23 +35,23 @@
 
 #include <core/fusion/shmalloc.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "layers.h"
-#include "fbdev.h"
-#include "gfxcard.h"
-#include "input.h"
-#include "state.h"
+#include <core/layers.h>
+#include <core/gfxcard.h>
+#include <core/input.h>
+#include <core/state.h>
+#include <core/windows.h>
 
-#include "windows.h"
+#include <core/fbdev/fbdev.h>
 
-#include "misc/conf.h"
-#include "misc/util.h"
-#include "misc/mem.h"
-#include "gfx/util.h"
+#include <misc/conf.h>
+#include <misc/util.h>
+#include <misc/mem.h>
+#include <gfx/util.h>
 
 
 static void repaint_stack( CoreWindowStack *stack, DFBRegion *region,

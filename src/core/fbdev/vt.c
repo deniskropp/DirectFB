@@ -38,17 +38,18 @@
 
 #include <core/fusion/shmalloc.h>
 
-#include "directfb.h"
-#include "directfb_internals.h"
+#include <directfb.h>
+#include <directfb_internals.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
+#include <misc/util.h>
+#include <misc/mem.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
-#include "gfxcard.h"
-#include "vt.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
+#include <core/gfxcard.h>
+
+#include <core/fbdev/vt.h>
 
 /*
  *  FIXME: the following looks like a bad hack.

@@ -579,6 +579,7 @@ src/misc/Makefile
 src/gfx/Makefile
 src/gfx/generic/Makefile
 src/core/Makefile
+src/core/fbdev/Makefile
 src/core/fusion/Makefile
 src/core/fusion/shmalloc/Makefile
 gfxdrivers/Makefile

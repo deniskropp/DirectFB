@@ -41,7 +41,6 @@
 #include <core/core.h>
 #include <core/coretypes.h>
 
-#include <core/fbdev.h>
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/input.h>
@@ -50,6 +49,8 @@
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/windows.h>
+
+#include <core/fbdev/fbdev.h>
 
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_layer.h>

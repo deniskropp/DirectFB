@@ -37,24 +37,25 @@
 #include <core/fusion/arena.h>
 #include <core/fusion/property.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "input.h"
-#include "gfxcard.h"
-#include "fbdev.h"
-#include "layers.h"
-#include "state.h"
-#include "surfacemanager.h"
-#include "windows.h"
+#include <core/input.h>
+#include <core/gfxcard.h>
+#include <core/layers.h>
+#include <core/state.h>
+#include <core/surfacemanager.h>
+#include <core/windows.h>
 
-#include "gfx/convert.h"
-#include "gfx/util.h"
-#include "misc/mem.h"
-#include "misc/util.h"
+#include <core/fbdev/fbdev.h>
+
+#include <gfx/convert.h>
+#include <gfx/util.h>
+#include <misc/mem.h>
+#include <misc/util.h>
 
 
 #define CURSORFILE         DATADIR"/cursor.dat"

@@ -34,7 +34,6 @@
 #include <core/coredefs.h>
 #include <core/core.h>
 #include <core/sig.h>
-#include <core/vt.h>
 
 #include <misc/conf.h>
 

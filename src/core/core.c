@@ -36,25 +36,26 @@
 #include <core/fusion/arena.h>
 #include <core/fusion/list.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "core.h"
-#include "vt.h"
-#include "sig.h"
-#include "input.h"
-#include "fbdev.h"
-#include "gfxcard.h"
-#include "layers.h"
-#include "surfaces.h"
-#include "surfacemanager.h"
+#include <core/core.h>
+#include <core/sig.h>
+#include <core/input.h>
+#include <core/gfxcard.h>
+#include <core/layers.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
 
-#include "misc/mem.h"
-#include "misc/memcpy.h"
-#include "misc/util.h"
-#include "misc/fbdebug.h"
+#include <core/fbdev/fbdev.h>
+#include <core/fbdev/vt.h>
+
+#include <misc/mem.h>
+#include <misc/memcpy.h>
+#include <misc/util.h>
+#include <misc/fbdebug.h>
 
 /*
  * one entry in the cleanup stack

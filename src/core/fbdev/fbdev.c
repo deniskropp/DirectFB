@@ -42,26 +42,25 @@
 #include <core/fusion/reactor.h>
 #include <core/fusion/arena.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "fbdev.h"
-#include "core.h"
-#include "layers.h"
-#include "gfxcard.h"
-#include "palette.h"
-#include "surfaces.h"
-#include "surfacemanager.h"
-#include "state.h"
-#include "windows.h"
+#include <core/fbdev/fbdev.h>
+#include <core/layers.h>
+#include <core/gfxcard.h>
+#include <core/palette.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
+#include <core/state.h>
+#include <core/windows.h>
 
-#include "gfx/convert.h"
+#include <gfx/convert.h>
 
-#include "misc/mem.h"
-#include "misc/util.h"
+#include <misc/mem.h>
+#include <misc/util.h>
 
 
 FBDev *dfb_fbdev = NULL;

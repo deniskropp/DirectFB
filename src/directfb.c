@@ -55,7 +55,6 @@
 #include "core/gfxcard.h"
 #include "core/surfaces.h"
 #include "core/windows.h"
-#include "core/vt.h"
 
 #include "gfx/convert.h"
 

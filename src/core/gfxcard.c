@@ -38,27 +38,28 @@
 #include <core/fusion/arena.h>
 #include <core/fusion/list.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "gfxcard.h"
-#include "fbdev.h"
-#include "fonts.h"
-#include "state.h"
-#include "surfaces.h"
-#include "surfacemanager.h"
+#include <core/gfxcard.h>
+#include <core/fonts.h>
+#include <core/state.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
 
-#include "gfx/generic/generic.h"
-#include "gfx/clip.h"
-#include "gfx/util.h"
+#include <core/fbdev/fbdev.h>
 
-#include "misc/gfx_util.h"
-#include "misc/utf8.h"
-#include "misc/mem.h"
-#include "misc/util.h"
+#include <gfx/generic/generic.h>
+#include <gfx/clip.h>
+#include <gfx/util.h>
+
+#include <misc/gfx_util.h>
+#include <misc/utf8.h>
+#include <misc/mem.h>
+#include <misc/util.h>
 
 typedef struct {
      FusionLink            link;
