@@ -49,7 +49,7 @@ static void DrawTriangle (float color, Tri3D* tri)
   X = Width >> 1;
   Y = Height >> 1;
 
-  primary->SetColor (primary, gray, gray, gray, 0xff);
+  primary->SetColor (primary, gray, (gray*gray)/255, gray/4, 0xff);
     
   switch (PrimitiveType)
     {
