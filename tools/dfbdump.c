@@ -68,6 +68,24 @@ buffer_sizes( CoreSurface *surface, bool video )
      return (mem + 0x3ff) & ~0x3ff;
 }
 
+static int
+buffer_locks( CoreSurface *surface, bool video )
+{
+     SurfaceBuffer *front = surface->front_buffer;
+     SurfaceBuffer *back  = surface->back_buffer;
+     SurfaceBuffer *idle  = surface->idle_buffer;
+
+     int locks = video ? front->video.locked : front->system.locked;
+
+     if (surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE))
+          locks += video ? back->video.locked : back->system.locked;
+
+     if (surface->caps & DSCAPS_TRIPLE)
+          locks += video ? idle->video.locked : idle->system.locked;
+     
+     return locks;
+}
+
 static bool
 surface_callback( FusionObjectPool *pool,
                   FusionObject     *object,
@@ -160,8 +178,8 @@ surface_callback( FusionObjectPool *pool,
      vmem = buffer_sizes( surface, true );
      smem = buffer_sizes( surface, false );
 
-     printf( "%5dk  ", vmem >> 10 );
-     printf( "%5dk  ", smem >> 10 );
+     printf( "%5dk%c  ", vmem >> 10, buffer_locks( surface, true ) ? '°' : ' ' );
+     printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
 
      mem->video  += vmem;
      mem->system += smem;
@@ -192,15 +210,15 @@ dump_surfaces()
      MemoryUsage mem = { 0, 0 };
 
      printf( "\n"
-             "-----------------------------[ Surfaces ]-----------------------------\n" );
-     printf( "Reference  . Refs  Width Height  Format    Video  System  Capabilities\n" );
-     printf( "----------------------------------------------------------------------\n" );
+             "-----------------------------[ Surfaces ]-------------------------------\n" );
+     printf( "Reference  . Refs  Width Height  Format     Video   System  Capabilities\n" );
+     printf( "------------------------------------------------------------------------\n" );
 
      fusion_object_pool_enum( dfb_gfxcard_surface_pool(),
                               surface_callback, &mem );
 
-     printf( "                                          ------  ------\n" );
-     printf( "                                         %6dk %6dk  -> %dk total\n",
+     printf( "                                          ------   ------\n" );
+     printf( "                                         %6dk  %6dk   -> %dk total\n",
              mem.video >> 10, mem.system >> 10, (mem.video + mem.system) >> 10);
 }
 
