@@ -412,6 +412,15 @@ extern "C"
           DWCAPS_ALPHACHANNEL = 0x00000001   /* window has an alphachannel */
      } DFBWindowCapabilities;
 
+  
+     /*
+      * Flags describing how to load a font.
+      */
+     typedef enum {
+           DFFA_NOKERNING     = 0x00000001,  /* don't use kerning */
+           DFFA_NOHINTING     = 0x00000002   /* don't use hinting */
+     } DFBFontAttributes;
+
      /*
       * Flags defining which fields of a DFBFontDescription are valid.
       */
@@ -910,8 +919,7 @@ extern "C"
      } DFBSurfaceFlipFlags;
 
      /*
-      * Flags controlling the interpretation of the coordinates
-      * passed to DrawString().
+      * Flags controlling the text layout.
       */
      typedef enum {
           DSTF_LEFT           = 0x00000000,  /* use this rather than '0',
@@ -1250,6 +1258,16 @@ extern "C"
           DFBResult (*SetFont) (
                IDirectFBSurface         *thiz,
                IDirectFBFont            *font
+          );
+
+          /*
+           * Get the font associated with a surface.
+           *
+           * This function increases the font's reference count.
+           */          
+          DFBResult (*GetFont) (
+               IDirectFBSurface         *thiz,
+               IDirectFBFont           **font
           );
 
           /*

@@ -156,7 +156,7 @@ DFBResult gfxcard_init()
 #ifdef USE_MMX
      if  (intel_cpu_features() & (1 << 23)) {
           if (config->no_mmx) {
-               INITMSG( "MMX detected, but disabled by --nommx \n");
+               INITMSG( "MMX detected, but disabled by --no-mmx \n");
           }
           else {
                sprintf( card->info.driver_name, "Generic (MMX)" );

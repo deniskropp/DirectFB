@@ -257,11 +257,11 @@ int main( int argc, char *argv[] )
 
   DFBCHECK(dfb->GetCardCapabilities( dfb, &caps ));
 
-  if (!(caps.drawing_flags & DSDRAW_BLEND))
-    {
-      printf( "\n\tpss requires a graphics card with alpha blending support!\n\n" );
-      return 1;
-    }
+/*    if (!(caps.drawing_flags & DSDRAW_BLEND)) */
+/*      { */
+/*        printf( "\n\tpss requires a graphics card with alpha blending support!\n\n" ); */
+/*        return 1; */
+/*      } */
 
   /* get an interface to the primary keyboard and create an
      input buffer for it */

@@ -616,6 +616,31 @@ DFBResult IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
      return DFB_OK;
 }
 
+DFBResult IDirectFBSurface_GetFont( IDirectFBSurface *thiz,
+                                    IDirectFBFont **font )
+{
+     IDirectFBSurface_data *data;
+
+     if (!thiz)
+          return DFB_INVARG;
+
+     data = (IDirectFBSurface_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     if (!data->font)
+          return DFB_MISSINGFONT;
+
+     if (!font)
+          return DFB_INVARG;
+
+     data->font->AddRef (data->font);
+     *font = data->font;
+
+     return DFB_OK;
+}
+
 DFBResult IDirectFBSurface_SetDrawingFlags( IDirectFBSurface *thiz,
                                             DFBSurfaceDrawingFlags flags )
 {

@@ -39,8 +39,6 @@
 
 #include <media/idirectfbfont.h>
 
-#define FTLOADFLAGS     (FT_LOAD_DEFAULT /*| FT_LOAD_NO_HINTING*/)
-
 static FT_Library library = NULL;
 
 
@@ -67,15 +65,18 @@ DFBResult render_glyph( CoreFontData  *thiz,
      __u8 *dst;
      FT_Error err;
      FT_Face  face;
+     FT_Int   load_flags;
      int y;
      int index;
      int pitch;
 
      face = thiz->impl_data;
 
+     load_flags = (FT_Int) face->generic.data;
+
      index = FT_Get_Char_Index(face, glyph);
 
-     err = FT_Load_Glyph( face, index, FTLOADFLAGS );
+     err = FT_Load_Glyph( face, index, load_flags );
      if (err) {
           ERRORMSG( "DirectB/FontFT2: "
                     "Could not load glyph for character #%d!\n", glyph );
@@ -145,13 +146,16 @@ DFBResult get_glyph_info( CoreFontData  *thiz,
 {
      FT_Error err;
      FT_Face  face;
+     FT_Int   load_flags;
      int index;
 
      face = thiz->impl_data;
 
      index = FT_Get_Char_Index(face, glyph);
 
-     err = FT_Load_Glyph( face, index, FTLOADFLAGS );
+     load_flags = (FT_Int) face->generic.data;
+
+     err = FT_Load_Glyph( face, index, load_flags);
      if (err) {
           ERRORMSG( "DirectB/FontFT2: "
                     "Could not load glyph for character #%d!\n", glyph );
@@ -228,6 +232,7 @@ DFBResult Construct( IDirectFBFont *thiz,
      CoreFontData *font;
      FT_Face  face;
      FT_Error err;
+     FT_Int   load_flags;
 
      HEAVYDEBUGMSG( "DirectFB/FontFT2: Construct font '%s' height %d\n", 
                     filename, 
@@ -258,6 +263,14 @@ DFBResult Construct( IDirectFBFont *thiz,
                return DFB_FAILURE;
           }
      }
+     
+     load_flags = FT_LOAD_DEFAULT;
+     if ((desc->flags & DFDESC_ATTRIBUTES) &&
+         (desc->attributes & DFFA_NOHINTING)) {
+          load_flags |= FT_LOAD_NO_HINTING; 
+     }
+     face->generic.data = (void *) load_flags;
+     face->generic.finalizer = NULL;
 
      font = (CoreFontData*)malloc( sizeof(CoreFontData) );
      memset( font, 0, sizeof(CoreFontData) );
@@ -276,7 +289,15 @@ DFBResult Construct( IDirectFBFont *thiz,
 
      font->GetGlyphInfo = get_glyph_info;
      font->RenderGlyph  = render_glyph;
-     font->GetKerning   = get_kerning;
+
+     if (face->face_flags & FT_FACE_FLAG_KERNING) {
+          font->GetKerning = get_kerning;
+     }
+
+     if ((desc->flags & DFDESC_ATTRIBUTES) &&
+         (desc->attributes & DFFA_NOKERNING)) {
+          font->GetKerning = NULL;
+     }
 
      IDirectFBFont_Construct( thiz, font );
 
