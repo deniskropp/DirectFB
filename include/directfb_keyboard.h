@@ -433,6 +433,8 @@ extern "C"
           DIKS_TWEN                     = DFB_KEY( SPECIAL, 0x60 ),
 
           DIKS_BREAK                    = DFB_KEY( SPECIAL, 0x61 ),
+          DIKS_EXIT                     = DFB_KEY( SPECIAL, 0x62 ),
+          DIKS_SETUP                    = DFB_KEY( SPECIAL, 0x63 ),
 
           /*
            * Unicode private area - DirectFB Function keys
