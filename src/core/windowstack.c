@@ -57,6 +57,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <gfx/convert.h>
 #include <gfx/util.h>
 
 #include <core/layers_internal.h>
@@ -663,8 +664,9 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
                                   int              hot_x,
                                   int              hot_y )
 {
-     DFBResult ret;
-     int       dx, dy;
+     DFBResult   ret;
+     int         dx, dy;
+     CoreWindow *cursor;
 
      DFB_ASSERT( stack != NULL );
      DFB_ASSERT( shape != NULL );
@@ -676,28 +678,36 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     if (!stack->cursor.window) {
+     cursor = stack->cursor.window;
+     if (!cursor) {
           ret = create_cursor_window( stack, shape->width, shape->height );
           if (ret) {
                dfb_windowstack_unlock( stack );
                return ret;
           }
+          cursor = stack->cursor.window;
      }
-     else if (stack->cursor.window->width  != shape->width  ||
-              stack->cursor.window->height != shape->height)
-     {
-          ret = dfb_window_resize( stack->cursor.window,
-                                   shape->width, shape->height );
+     else if (cursor->width != shape->width || cursor->height != shape->height) {
+          ret = dfb_window_resize( cursor, shape->width, shape->height );
           if (ret) {
                dfb_windowstack_unlock( stack );
                return ret;
           }
      }
 
-     dfb_gfx_copy( shape, stack->cursor.window->surface, NULL );
+     dfb_gfx_copy( shape, cursor->surface, NULL );
 
-     dx = stack->cursor.x - hot_x - stack->cursor.window->x;
-     dy = stack->cursor.y - hot_y - stack->cursor.window->y;
+     if (DFB_PIXELFORMAT_HAS_ALPHA( shape->format ) && dfb_config->translucent_windows) {
+          cursor->options = (cursor->options & ~DWOP_COLORKEYING) | DWOP_ALPHACHANNEL;
+     }
+     else {
+          cursor->options = (cursor->options & ~DWOP_ALPHACHANNEL) | DWOP_COLORKEYING;
+
+          cursor->color_key = dfb_color_to_pixel( cursor->surface->format, 0xff, 0x00, 0xff );
+     }
+
+     dx = stack->cursor.x - hot_x - cursor->x;
+     dy = stack->cursor.y - hot_y - cursor->y;
 
      if (dx || dy)
           dfb_window_move( stack->cursor.window, dx, dy );
