@@ -36,7 +36,7 @@ feed_stream (IFusionSoundStream *stream)
                DirectFBError ("IFusionSoundStream::Write", ret);
                return;
           }
-
+          
           /* This write won't block anymore. */
           ret = stream->Write (stream, buf, 16384);
           if (ret) {
@@ -79,20 +79,11 @@ main (int argc, char *argv[])
           DirectFBError ("IFusionSound::CreateStream", ret);
      }
      else {
-          int d;
-
           /* Fill the ring buffer with our generated data. */
           feed_stream (stream);
 
           /* Wait for end of stream (ring buffer holds ~3/4 sec). */
-          //stream->Wait (stream, 0);
-
-          do {
-               usleep(10);
-               stream->GetPresentationDelay( stream, &d );
-
-               printf("Delay: %d ms\n", d);
-          } while ( d );
+          stream->Wait (stream, 0);
 
           stream->Release (stream);
      }
