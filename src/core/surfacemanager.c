@@ -201,7 +201,7 @@ DFBResult dfb_surfacemanager_adjust_heap_offset( SurfaceManager *manager,
 
      if (manager->chunks->buffer == NULL) {
           /* first chunk is free */
-          if (offset < manager->chunks->offset + manager->chunks->length) {
+          if (offset <= manager->chunks->offset + manager->chunks->length) {
                /* ok, just recalculate offset and length */
                manager->chunks->length = manager->chunks->offset + manager->chunks->length - offset;
                manager->chunks->offset = offset;
