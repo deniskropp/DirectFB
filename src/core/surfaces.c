@@ -706,6 +706,11 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           surface->min_height = height;
      }
 
+     skirmish_init( &surface->lock );
+     
+     skirmish_init( &surface->front_lock );
+     skirmish_init( &surface->back_lock );
+
      if (palette) {
           dfb_surface_set_palette( surface, palette );
      }
@@ -717,19 +722,14 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
           if (ret)
                return ret;
 
+          if (format == DSPF_LUT8)
+               dfb_palette_generate_rgb332_map( palette );
+
           dfb_surface_set_palette( surface, palette );
 
           dfb_palette_unref( palette );
      }
      
-     skirmish_init( &surface->lock );
-     
-     skirmish_init( &surface->front_lock );
-     skirmish_init( &surface->back_lock );
-
-     if (format == DSPF_LUT8)
-          dfb_palette_generate_rgb332_map( surface->palette );
-
      surface->manager = dfb_gfxcard_surface_manager();
      
      return DFB_OK;

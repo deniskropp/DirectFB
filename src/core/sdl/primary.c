@@ -542,6 +542,9 @@ primaryReallocateSurface ( DisplayLayer               *layer,
           if (ret)
                return ret;
 
+          if (config->pixelformat == DSPF_LUT8)
+               dfb_palette_generate_rgb332_map( palette );
+          
           dfb_surface_set_palette( surface, palette );
 
           dfb_palette_unref( palette );
