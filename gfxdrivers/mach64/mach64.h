@@ -33,11 +33,12 @@
 #include <core/layers.h>
 
 typedef enum {
-     m_source      = 0x01,
-     m_color       = 0x02,
-     m_srckey      = 0x04,
-     m_dstkey      = 0x08,
-     m_disable_key = 0x10
+     m_source       = 0x01,
+     m_color        = 0x02,
+     m_srckey       = 0x04,
+     m_srckey_scale = 0x08,
+     m_dstkey       = 0x10,
+     m_disable_key  = 0x20
 } Mach64StateBits;
 
 #define MACH64_VALIDATE(b)      (mdev->valid |= (b))
@@ -60,6 +61,8 @@ typedef struct {
 
      __u32 src_key_mask;
      __u32 dst_key_mask;
+
+     CoreSurface *source;
 } Mach64DeviceData;
 
 typedef struct {

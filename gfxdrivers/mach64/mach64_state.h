@@ -50,6 +50,10 @@ void mach64_set_src_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev,
                               CardState        *state );
 
+void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
+                                    Mach64DeviceData *mdev,
+                                    CardState        *state );
+
 void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev,
                               CardState        *state );

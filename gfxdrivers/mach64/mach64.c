@@ -74,7 +74,7 @@ DFB_GRAPHICS_DRIVER( mach64 )
                (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
 
 #define MACH64_SUPPORTED_BLITTINGFUNCTIONS \
-               (DFXL_BLIT)
+               (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 /* required implementations */
 
@@ -142,10 +142,10 @@ static void mach64SetState( void *drv, void *dev,
           mdev->valid = 0;
      } else if (state->modified) {
           if (state->modified & SMF_SOURCE)
-               MACH64_INVALIDATE( m_source | m_srckey );
+               MACH64_INVALIDATE( m_source | m_srckey | m_srckey_scale );
 
           if (state->modified & SMF_SRC_COLORKEY)
-               MACH64_INVALIDATE( m_srckey );
+               MACH64_INVALIDATE( m_srckey | m_srckey_scale );
 
           if (state->modified & SMF_DESTINATION)
                MACH64_INVALIDATE( m_color | m_dstkey );
@@ -157,7 +157,7 @@ static void mach64SetState( void *drv, void *dev,
                MACH64_INVALIDATE( m_dstkey );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               MACH64_INVALIDATE( m_srckey | m_dstkey | m_disable_key );
+               MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey | m_disable_key );
 
           if (state->modified & SMF_DRAWING_FLAGS)
                MACH64_INVALIDATE( m_dstkey | m_disable_key );
@@ -191,6 +191,18 @@ static void mach64SetState( void *drv, void *dev,
 
           state->set = DFXL_BLIT;
           break;
+     case DFXL_STRETCHBLIT:
+          mach64_set_source( mdrv, mdev, state );
+
+          if (state->blittingflags & DSBLIT_DST_COLORKEY)
+               mach64_set_dst_colorkey( mdrv, mdev, state );
+          else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+               mach64_set_src_colorkey_scale( mdrv, mdev, state );
+          else
+               mach64_disable_colorkey( mdrv, mdev );
+
+          state->set = DFXL_STRETCHBLIT;
+          break;
      default:
           BUG( "unexpected drawing/blitting function" );
           break;
@@ -215,7 +227,7 @@ static bool mach64FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
      mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
 
-     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      mach64_out32( mmio, DST_Y_X, (rect->x << 16) | rect->y );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | rect->h );
 
@@ -236,12 +248,12 @@ static bool mach64DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
      mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
 
-     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      mach64_out32( mmio, DST_Y_X, (rect->x << 16) | rect->y );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
 
-     mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | DST_X_RIGHT_TO_LEFT | DST_Y_BOTTOM_TO_TOP );
+     mach64_out32( mmio, DST_CNTL, DST_X_RIGHT_TO_LEFT | DST_Y_BOTTOM_TO_TOP );
      mach64_out32( mmio, DST_Y_X, (x2 << 16) | y2 );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
@@ -315,7 +327,7 @@ static bool mach64Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     __u32 dst_cntl = DST_LAST_PEL;
+     __u32 dst_cntl = 0;
 
      if (rect->x <= dx) {
           rect->x += rect->w - 1;
@@ -342,6 +354,42 @@ static bool mach64Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
      mach64_out32( mmio, DST_CNTL, dst_cntl );
      mach64_out32( mmio, DST_Y_X, (dx << 16) | dy );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | rect->h );
+
+     return true;
+}
+
+static bool mach64StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+     volatile __u8    *mmio = mdrv->mmio_base;
+     CoreSurface *source = mdev->source;
+     SurfaceBuffer *buffer = source->front_buffer;
+
+     mach64_waitfifo( mdrv, mdev, 14 );
+
+     mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
+     mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
+
+     mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SCALE );
+
+     mach64_out32( mmio, SCALE_WIDTH, srect->w );
+     mach64_out32( mmio, SCALE_HEIGHT, srect->h );
+
+     mach64_out32( mmio, SCALE_X_INC, (srect->w << 16) / drect->w );
+     mach64_out32( mmio, SCALE_Y_INC, (srect->h << 16) / drect->h );
+
+     mach64_out32( mmio, SCALE_OFF, buffer->video.offset +
+                   srect->y * buffer->video.pitch +
+                   srect->x * DFB_BYTES_PER_PIXEL( source->format ) );
+     mach64_out32( mmio, SCALE_HACC, 0 );
+     mach64_out32( mmio, SCALE_VACC, 0 );
+     mach64_out32( mmio, SCALE_DST_Y_X, (drect->x << 16) | drect->y );
+
+     mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
+
+     mach64_out32( mmio, SCALE_3D_CNTL, 0 );
 
      return true;
 }
@@ -376,7 +424,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 5;
+     info->version.minor = 6;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
@@ -406,6 +454,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->DrawRectangle = mach64DrawRectangle;
      funcs->DrawLine      = mach64DrawLine;
      funcs->Blit          = mach64Blit;
+     funcs->StretchBlit   = mach64StretchBlit;
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64VT:
