@@ -31,6 +31,7 @@
 #include <directfb.h>
 
 #include <core/core.h>
+#include <misc/util.h>
 
 #include "idirectfbfont.h"
 
@@ -141,51 +142,100 @@ DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 }
 
 /*
- * Get the logical width of the specified string as if it were drawn 
- * with this font. The pixel width may slightly extend this value.
+ * Get the logical and ink extensions of the specified string as if it were 
+ * drawn with this font.
  */
-DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
-                                        const char *text, int bytes,
-                                        int *width )
+DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
+                                          const char *text, int bytes,
+                                          DFBRectangle *logical_rect,
+                                          DFBRectangle *ink_rect )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+     CoreFontData  *font;
      CoreGlyphData *glyph;
      unichar  prev = 0;
      unichar  current;
+     int      width = 0;
      int      offset;
      int      kerning;
-
 
      if (!data)
           return DFB_DEAD;
 
-     if (!width)
-          return DFB_INVARG;
-
      if (!text)
           return DFB_INVARG;
 
-     *width = 0;
+     font = data->font;
+
+     if (ink_rect) {
+          memset (ink_rect, 0, sizeof (DFBRectangle));
+     }
 
      if (bytes < 0)
           bytes = strlen (text);
 
-     for (offset = 0; offset < bytes; offset += utf8_skip[(__u8)text[offset]]) {
+     for (offset = 0; 
+          offset < bytes; 
+          offset += utf8_skip[(__u8)text[offset]]) {
+
           current = utf8_get_char (&text[offset]);
                
-          if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
+          if (fonts_get_glyph_data (font, current, &glyph) == DFB_OK) {
             
-               if (prev && data->font->GetKerning && 
-                   (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
-                    *width += kerning;
+               if (prev && font->GetKerning && 
+                   (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
+                    width += kerning;
                }
-            *width += glyph->advance;
+               if (ink_rect) {
+                    DFBRectangle glyph_rect = { width + glyph->left, glyph->top,
+                                                glyph->width, glyph->height }; 
+                    rectangle_union (ink_rect, &glyph_rect);
+               } 
+
+               width += glyph->advance;
           }
 
           prev = current;
      }
 
+     if (logical_rect) {
+          logical_rect->x = 0;
+          logical_rect->y = - font->ascender;
+          logical_rect->w = width;
+          logical_rect->h = font->height;
+     }
+
+     if (ink_rect) {
+          if (ink_rect->w < 0) {
+               ink_rect->x += ink_rect->w;
+               ink_rect->w = -ink_rect->w;
+          }
+          ink_rect->y -= font->ascender;
+     }
+
      return DFB_OK;
+}
+
+/*
+ * Get the logical width of the specified string as if it were drawn 
+ * with this font. The drawn string may extend this value.
+ */
+DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
+                                        const char *text, int bytes,
+                                        int *width )
+{
+     DFBRectangle rect;
+     DFBResult    result;
+
+     if (!width)
+          return DFB_INVARG;
+
+     result = IDirectFBFont_GetStringExtents (thiz, text, bytes, &rect, NULL);
+
+     if (result == DFB_OK)
+          *width = rect.w;
+
+     return result;
 }
 
 DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font )
@@ -206,6 +256,7 @@ DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font )
      thiz->GetHeight = IDirectFBFont_GetHeight;
      thiz->GetMaxAdvance = IDirectFBFont_GetMaxAdvance;
      thiz->GetStringWidth = IDirectFBFont_GetStringWidth;
+     thiz->GetStringExtents = IDirectFBFont_GetStringExtents;
 
      return DFB_OK;
 }

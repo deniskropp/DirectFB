@@ -215,8 +215,15 @@ sub parse_interface (NAME)
                                  }
                            }
                         else
-                           {
-                              $detailed .= " $1" if /^\s*\*?\s*(.+)$/;
+                           {  
+			      if (/^\s*\*?\s*$/)
+			         {
+        			    $detailed .= " </P><P>";
+				 }
+			      elsif (/^\s*\*?\s*(.+)$/)
+				 {
+				    $detailed .= " $1";
+				 }
                            }
                      }
                }

@@ -1888,22 +1888,56 @@ extern "C"
           );
 
 
-        /** String width measurement **/
+        /** String extents measurement **/
 
           /*
            * Get the logical width of the specified UTF-8 string
-           * as if it were drawn with this font. The actual
-           * pixel width may slightly extend this value.
+           * as if it were drawn with this font.
            *
            * Bytes specifies the number of bytes to take from
            * the string or -1 for the complete NULL-terminated
            * string.
+           * 
+           * The returned width may be different than the actual
+           * drawn width of the text since this function returns
+           * the logical width that should be used to layout the 
+           * text. A negative width indicates right-to-left rendering.
            */
           DFBResult (*GetStringWidth) (
                IDirectFBFont       *thiz,
                const char          *text,
                int                  bytes,
                int                 *width
+          );
+         
+          /*
+           * Get the logical and real extents of the specified
+           * UTF-8 string as if it were drawn with this font. 
+           *
+           * Bytes specifies the number of bytes to take from
+           * the string or -1 for the complete NULL-terminated
+           * string.
+           *
+           * The logical rectangle describes the typographic extents
+           * and should be used to layout text. The ink rectangle
+           * describes the smallest rectangle containing all pixels 
+           * that are touched when drawing the string. If you only
+           * need one of the rectangles, pass NULL for the other one.
+           *
+           * The ink rectangle is guaranteed to be a valid rectangle
+           * with positive width and height, while the logical 
+           * rectangle may have negative width indicating right-to-left 
+           * layout.
+           *
+           * The rectangles offsets are reported relative to the 
+           * baseline and refer to the text being drawn using DSTF_LEFT.
+           */
+          DFBResult (*GetStringExtents) ( 
+               IDirectFBFont       *thiz,
+               const char          *text, 
+               int                  bytes,
+               DFBRectangle        *logical_rect,
+               DFBRectangle        *ink_rect 
           );
      )
 

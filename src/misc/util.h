@@ -55,7 +55,9 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
 int rectangle_intersect( DFBRectangle *rectangle,
                          DFBRectangle *clip );
 
-
+/* returns the result in the first rectangle */
+void rectangle_union ( DFBRectangle *rect1,
+                       DFBRectangle *rect2 );
 
 /* floor and ceil implementation to get rid of libm */
 

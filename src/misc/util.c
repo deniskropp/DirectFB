@@ -69,7 +69,7 @@ DFBResult errno2dfb( int erno )
 }
 
 int region_intersect( DFBRegion *region,
-                                    int x1, int y1, int x2, int y2 )
+                      int x1, int y1, int x2, int y2 )
 {
      if (region->x2 < x1 ||
          region->y2 < y1 ||
@@ -86,7 +86,7 @@ int region_intersect( DFBRegion *region,
 }
 
 int unsafe_region_intersect( DFBRegion *region,
-                                           int x1, int y1, int x2, int y2 )
+                             int x1, int y1, int x2, int y2 )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -115,7 +115,7 @@ int unsafe_region_intersect( DFBRegion *region,
 }
 
 int unsafe_region_rectangle_intersect( DFBRegion *region,
-                                                     DFBRectangle *rect )
+                                       DFBRectangle *rect )
 {
      return unsafe_region_intersect( region,
                                      rect->x,
@@ -125,7 +125,7 @@ int unsafe_region_rectangle_intersect( DFBRegion *region,
 }
 
 int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
-                                                        DFBRegion    *region )
+                                          DFBRegion    *region )
 {
      if (region->x1 > region->x2) {
           int temp = region->x1;
@@ -159,10 +159,10 @@ int rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
 }
 
 int rectangle_intersect( DFBRectangle *rectangle,
-                                       DFBRectangle *clip )
+                         DFBRectangle *clip )
 {
-     DFBRegion region = { clip->x, clip->y, clip->x + clip->w - 1,
-                                            clip->y + clip->h - 1 };
+     DFBRegion region = { clip->x, clip->y, 
+                          clip->x + clip->w - 1, clip->y + clip->h - 1 };
 
      if (region.x1 > rectangle->x) {
           rectangle->w -= region.x1 - rectangle->x;
@@ -175,11 +175,37 @@ int rectangle_intersect( DFBRectangle *rectangle,
      }
      
      if (region.x2 <= rectangle->x + rectangle->w)
-        rectangle->w = region.x2 - rectangle->x + 1;
+          rectangle->w = region.x2 - rectangle->x + 1;
 
      if (region.y2 <= rectangle->y + rectangle->h)
-        rectangle->h = region.y2 - rectangle->y + 1;
+          rectangle->h = region.y2 - rectangle->y + 1;
 
      return (rectangle->w > 0  &&  rectangle->h > 0);
 }
 
+void rectangle_union ( DFBRectangle *rect1,
+                       DFBRectangle *rect2 )
+{
+     if (!rect2->w || !rect2->h)
+          return;
+
+     if (rect1->w) {
+          int temp = MIN (rect1->x, rect2->x);
+          rect1->w = MAX (rect1->x + rect1->w, rect2->x + rect2->w) - temp;
+          rect1->x = temp;
+     } 
+     else {
+          rect1->x = rect2->x;
+          rect1->w = rect2->w;
+     }
+
+     if (rect1->h) {
+          int temp = MIN (rect1->y, rect2->y);
+          rect1->h = MAX (rect1->y + rect1->h, rect2->y + rect2->h) - temp;
+          rect1->y = temp;
+     }
+     else {
+          rect1->y = rect2->y;
+          rect1->h = rect2->h;
+     }
+}
