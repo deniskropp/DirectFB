@@ -5049,12 +5049,12 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Cop = PIXEL_UYVY( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_I420:
+          case DSPF_YV12:
           case DSPF_NV12:
           case DSPF_NV16:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
-          case DSPF_YV12:
           case DSPF_NV21:
                RGB_TO_YCBCR( color.r, color.g, color.b,
                              gfxs->Cop, gfxs->CrCop, gfxs->CbCop );
