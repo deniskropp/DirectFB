@@ -266,8 +266,9 @@ dnl Test for avifile
   AM_CONDITIONAL(AVIFILE_PROVIDER, test x$AVIFILE = xyes)
 
 
-
 dnl Test for libflash
+  FLASH=no
+
   if test -z "$LIBFLASH"; then
     AC_CHECK_LIB(flash, FlashGetInfo,
       AC_CHECK_HEADER(flash.h,
@@ -280,27 +281,24 @@ dnl Test for libflash
 AM_CONDITIONAL(FLASH_PROVIDER, test x$FLASH = xyes)
 
 
-AC_ARG_WITH(libmpeg3, [  --with-libmpeg3=path    path to libmpeg3 build])
-case "x$with_libmpeg3" in
-  x)
-    LIBMPEG3_DIR=
-    ;;
-  *)  
-    LIBMPEG3_DIR=$with_libmpeg3
-    MPEG3=yes
-    ;;
-esac  
-AC_SUBST(LIBMPEG3_DIR)
+dnl Test for libmpeg3
+  MPEG3=no
 
-AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
+  AC_ARG_WITH(libmpeg3, [  --with-libmpeg3=path    path to libmpeg3 build])
+  case "x$with_libmpeg3" in
+    x)
+      LIBMPEG3_DIR=
+      ;;
+    *)  
+      LIBMPEG3_DIR=$with_libmpeg3
+      MPEG3=yes
+      ;;
+  esac  
 
+  AC_SUBST(LIBMPEG3_DIR)
 
-AC_MSG_CHECKING(if libmpeg3 media provider will be built)
-if test x$MPEG3 = xyes; then
-  AC_MSG_RESULT(yes)
-else
-  AC_MSG_RESULT(no)
-fi
+  AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
+
 
 
 dnl Test for ati framebuffer support in the kernel
@@ -419,3 +417,29 @@ interfaces/IDirectFBVideoProvider/Makefile
 tools/Makefile
 docs/Makefile
 ], [chmod +x directfb-config])
+
+
+AC_MSG_RESULT([
+Build options: 
+  MMX support       $have_mmx
+  Debug mode        $enable_debug
+
+Building Image Providers:
+  libjpeg Provider  $enable_jpeg
+  libpng Provider   $enable_png 
+  GIF Provider      $enable_gif 
+
+Building Video Providers:
+  AviFile           $enable_avifile
+  libmpeg3          $MPEG3
+  libflash          $FLASH
+
+Building Font implementations:
+  FreeType2         $enable_freetype
+
+Building Graphics Drivers:
+  Matrox G200/G400  $matrox
+  ATI Rage 128      $ati
+  NeoMagic          yes
+  3Dfx Voodoo       $tdfx
+]);
