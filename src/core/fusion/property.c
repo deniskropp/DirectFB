@@ -52,7 +52,7 @@ fusion_property_init (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     while (ioctl (fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
+     while (ioctl (_fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -73,7 +73,7 @@ fusion_property_lease (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     while (ioctl (fusion_fd, FUSION_PROPERTY_LEASE, &property->id)) {
+     while (ioctl (_fusion_fd, FUSION_PROPERTY_LEASE, &property->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -99,7 +99,7 @@ fusion_property_purchase (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     while (ioctl (fusion_fd, FUSION_PROPERTY_PURCHASE, &property->id)) {
+     while (ioctl (_fusion_fd, FUSION_PROPERTY_PURCHASE, &property->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -125,7 +125,7 @@ fusion_property_cede (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     while (ioctl (fusion_fd, FUSION_PROPERTY_CEDE, &property->id)) {
+     while (ioctl (_fusion_fd, FUSION_PROPERTY_CEDE, &property->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -149,7 +149,7 @@ fusion_property_holdup (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     while (ioctl (fusion_fd, FUSION_PROPERTY_HOLDUP, &property->id)) {
+     while (ioctl (_fusion_fd, FUSION_PROPERTY_HOLDUP, &property->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -173,7 +173,7 @@ fusion_property_destroy (FusionProperty *property)
 {
      DFB_ASSERT( property != NULL );
      
-     while (ioctl (fusion_fd, FUSION_PROPERTY_DESTROY, &property->id)) {
+     while (ioctl (_fusion_fd, FUSION_PROPERTY_DESTROY, &property->id)) {
           switch (errno) {
                case EINTR:
                     continue;

@@ -106,8 +106,8 @@ typedef struct {
 /*
  * from fusion.c
  */
-extern int fusion_id;
-extern int fusion_fd;
+extern int _fusion_id;
+extern int _fusion_fd;
 
 extern FusionShared *fusion_shared;
 

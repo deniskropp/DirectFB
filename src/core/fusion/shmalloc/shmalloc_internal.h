@@ -204,6 +204,8 @@ typedef struct {
 } shmalloc_heap;
 
 /* global data at beginning of shared memory */
-extern shmalloc_heap *_sheap;
+extern shmalloc_heap *_fusion_shmalloc_heap;
+
+#define _sheap _fusion_shmalloc_heap
 
 #endif /* shmalloc_internal.h  */

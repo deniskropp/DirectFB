@@ -67,7 +67,7 @@ skirmish_init (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
-     while (ioctl (fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id)) {
+     while (ioctl (_fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -88,7 +88,7 @@ skirmish_prevail (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
-     while (ioctl (fusion_fd, FUSION_SKIRMISH_PREVAIL, &skirmish->id)) {
+     while (ioctl (_fusion_fd, FUSION_SKIRMISH_PREVAIL, &skirmish->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -112,7 +112,7 @@ skirmish_swoop (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
-     while (ioctl (fusion_fd, FUSION_SKIRMISH_SWOOP, &skirmish->id)) {
+     while (ioctl (_fusion_fd, FUSION_SKIRMISH_SWOOP, &skirmish->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -138,7 +138,7 @@ skirmish_dismiss (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
-     while (ioctl (fusion_fd, FUSION_SKIRMISH_DISMISS, &skirmish->id)) {
+     while (ioctl (_fusion_fd, FUSION_SKIRMISH_DISMISS, &skirmish->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -162,7 +162,7 @@ skirmish_destroy (FusionSkirmish *skirmish)
 {
      DFB_ASSERT( skirmish != NULL );
      
-     while (ioctl (fusion_fd, FUSION_SKIRMISH_DESTROY, &skirmish->id)) {
+     while (ioctl (_fusion_fd, FUSION_SKIRMISH_DESTROY, &skirmish->id)) {
           switch (errno) {
                case EINTR:
                     continue;

@@ -64,7 +64,7 @@ fusion_ref_init (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (fusion_fd, FUSION_REF_NEW, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_NEW, &ref->ref_id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -85,7 +85,7 @@ fusion_ref_up (FusionRef *ref, bool global)
 {
      DFB_ASSERT( ref != NULL );
 
-     while (ioctl (fusion_fd, global ?
+     while (ioctl (_fusion_fd, global ?
                    FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->ref_id))
      {
           switch (errno) {
@@ -114,7 +114,7 @@ fusion_ref_down (FusionRef *ref, bool global)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (fusion_fd, global ?
+     while (ioctl (_fusion_fd, global ?
                    FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->ref_id))
      {
           switch (errno) {
@@ -146,7 +146,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( refs != NULL );
 
-     while ((val = ioctl (fusion_fd, FUSION_REF_STAT, &ref->ref_id)) < 0) {
+     while ((val = ioctl (_fusion_fd, FUSION_REF_STAT, &ref->ref_id)) < 0) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -172,7 +172,7 @@ fusion_ref_zero_lock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (fusion_fd, FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_ZERO_LOCK, &ref->ref_id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -196,7 +196,7 @@ fusion_ref_zero_trylock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->ref_id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -222,7 +222,7 @@ fusion_ref_unlock (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
      
-     while (ioctl (fusion_fd, FUSION_REF_UNLOCK, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_UNLOCK, &ref->ref_id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -246,7 +246,7 @@ fusion_ref_destroy (FusionRef *ref)
 {
      DFB_ASSERT( ref != NULL );
 
-     while (ioctl (fusion_fd, FUSION_REF_DESTROY, &ref->ref_id)) {
+     while (ioctl (_fusion_fd, FUSION_REF_DESTROY, &ref->ref_id)) {
           switch (errno) {
                case EINTR:
                     continue;

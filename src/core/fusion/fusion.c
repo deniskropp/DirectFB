@@ -58,7 +58,7 @@ static void *fusion_read_loop( CoreThread *thread, void *arg );
  **************************/
 
 static int    fusion_refs   =  0;
-int           fusion_fd     = -1;
+int           _fusion_fd    = -1;
 FusionShared *fusion_shared = NULL;
 
 static CoreThread *read_loop;
@@ -67,29 +67,29 @@ static CoreThread *read_loop;
  *  Public API  *
  ****************/
 
-int fusion_id = 0;  /* non-zero if Fusion is initialized */
+int _fusion_id = 0;  /* non-zero if Fusion is initialized */
 
 int
 fusion_init()
 {
      /* Check against multiple initialization. */
-     if (fusion_id) {
+     if (_fusion_id) {
           /* Increment local reference counter. */
           fusion_refs++;
 
-          return fusion_id;
+          return _fusion_id;
      }
 
      /* Open Fusion Kernel Device. */
-     fusion_fd = dfb_try_open ("/dev/fusion",
-                               "/dev/misc/fusion", O_RDWR | O_NONBLOCK);
-     if (fusion_fd < 0)
+     _fusion_fd = dfb_try_open ("/dev/fusion",
+                                "/dev/misc/fusion", O_RDWR | O_NONBLOCK);
+     if (_fusion_fd < 0)
           return -1;
 
      /* Get our Fusion ID. */
-     if (ioctl( fusion_fd, FUSION_GET_ID, &fusion_id)) {
+     if (ioctl( _fusion_fd, FUSION_GET_ID, &_fusion_id)) {
           FPERROR( "FUSION_GET_ID failed!\n" );
-          close( fusion_fd );
+          close( _fusion_fd );
           return -1;
      }
 
@@ -97,14 +97,14 @@ fusion_init()
      fusion_refs = 1;
 
      /* Initialize shmalloc part. */
-     if (!__shmalloc_init( fusion_id == 1 )) {
-          fusion_id = 0;
+     if (!__shmalloc_init( _fusion_id == 1 )) {
+          _fusion_id = 0;
 
-          close( fusion_fd );
+          close( _fusion_fd );
           return -1;
      }
 
-     if (fusion_id == 1) {
+     if (_fusion_id == 1) {
           fusion_shared = __shmalloc_allocate_root( sizeof(FusionShared) );
 
           skirmish_init( &fusion_shared->arenas_lock );
@@ -116,7 +116,7 @@ fusion_init()
 
      read_loop = dfb_thread_create( CTT_MESSAGING, fusion_read_loop, NULL );
 
-     return fusion_id;
+     return _fusion_id;
 }
 
 void
@@ -132,19 +132,19 @@ fusion_exit()
      dfb_thread_join( read_loop );
      dfb_thread_destroy( read_loop );
 
-     if (fusion_id == 1) {
+     if (_fusion_id == 1) {
           skirmish_destroy( &fusion_shared->arenas_lock );
      }
 
      fusion_shared = NULL;
 
-     __shmalloc_exit( fusion_id == 1 );
+     __shmalloc_exit( _fusion_id == 1 );
 
      _reactor_free_all();
 
-     fusion_id = 0;
+     _fusion_id = 0;
      
-     close( fusion_fd );
+     close( _fusion_fd );
 }
 
 long long
@@ -173,13 +173,13 @@ fusion_read_loop( CoreThread *thread, void *arg )
      fd_set set;
 
      FD_ZERO(&set);
-     FD_SET(fusion_fd,&set);
+     FD_SET(_fusion_fd,&set);
      
      FDEBUG( "entering loop...\n" );
 
      dfb_thread_testcancel( thread );
      
-     while ((result = select (fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
+     while ((result = select (_fusion_fd+1, &set, NULL, NULL, NULL)) >= 0 ||
             errno == EINTR)
      {
           char *buf_p = buf;
@@ -187,14 +187,14 @@ fusion_read_loop( CoreThread *thread, void *arg )
           dfb_thread_testcancel( thread );
           
           FD_ZERO(&set);
-          FD_SET(fusion_fd,&set);
+          FD_SET(_fusion_fd,&set);
           
           if (result <= 0)
                continue;
           
           //FDEBUG( "going to read...\n" );
           
-          len = read (fusion_fd, buf, 1024);
+          len = read (_fusion_fd, buf, 1024);
           
           //FDEBUG( "read %d bytes.\n", len );
           

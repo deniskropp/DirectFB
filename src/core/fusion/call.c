@@ -74,7 +74,7 @@ fusion_call_init (FusionCall        *call,
      call_new.handler = handler;
      call_new.ctx     = ctx;
 
-     while (ioctl (fusion_fd, FUSION_CALL_NEW, &call_new)) {
+     while (ioctl (_fusion_fd, FUSION_CALL_NEW, &call_new)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -93,7 +93,7 @@ fusion_call_init (FusionCall        *call,
 
      /* Store call and fusion id for local (direct) calls. */
      call->call_id   = call_new.call_id;
-     call->fusion_id = fusion_id;
+     call->fusion_id = _fusion_id;
      
      return FUSION_SUCCESS;
 }
@@ -109,8 +109,8 @@ fusion_call_execute (FusionCall *call,
      if (!call->handler)
           return FUSION_DESTROYED;
 
-     if (call->fusion_id == fusion_id) {
-          int ret = call->handler( fusion_id, call_arg, call_ptr, call->ctx );
+     if (call->fusion_id == _fusion_id) {
+          int ret = call->handler( _fusion_id, call_arg, call_ptr, call->ctx );
 
           if (ret_val)
                *ret_val = ret;
@@ -122,7 +122,7 @@ fusion_call_execute (FusionCall *call,
           execute.call_arg = call_arg;
           execute.call_ptr = call_ptr;
 
-          while (ioctl (fusion_fd, FUSION_CALL_EXECUTE, &execute)) {
+          while (ioctl (_fusion_fd, FUSION_CALL_EXECUTE, &execute)) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -152,7 +152,7 @@ fusion_call_return (int call_id, int val)
 {
      FusionCallReturn call_ret = { call_id, val };
      
-     while (ioctl (fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
+     while (ioctl (_fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -177,7 +177,7 @@ fusion_call_destroy (FusionCall *call)
      DFB_ASSERT( call != NULL );
      DFB_ASSERT( call->handler != NULL );
      
-     while (ioctl (fusion_fd, FUSION_CALL_DESTROY, &call->call_id)) {
+     while (ioctl (_fusion_fd, FUSION_CALL_DESTROY, &call->call_id)) {
           switch (errno) {
                case EINTR:
                     continue;

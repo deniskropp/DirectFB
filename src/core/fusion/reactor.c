@@ -109,7 +109,7 @@ reactor_new (int msg_size)
           return NULL;
 
      /* create a new reactor */
-     while (ioctl (fusion_fd, FUSION_REACTOR_NEW, &reactor->id)) {
+     while (ioctl (_fusion_fd, FUSION_REACTOR_NEW, &reactor->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -143,7 +143,7 @@ reactor_attach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
-     while (ioctl (fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
+     while (ioctl (_fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -161,7 +161,7 @@ reactor_attach (FusionReactor *reactor,
      
      node = lock_node( reactor->id, true );
      if (!node) {
-          while (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
+          while (ioctl (_fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -216,7 +216,7 @@ reactor_detach (FusionReactor *reactor,
 
           fusion_list_remove( &node->reactions, &reaction->link );
 
-          while (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
+          while (ioctl (_fusion_fd, FUSION_REACTOR_DETACH, &reactor->id)) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -324,7 +324,7 @@ reactor_dispatch (FusionReactor *reactor,
      dispatch.msg_size   = reactor->msg_size;
      dispatch.msg_data   = msg_data;
 
-     while (ioctl (fusion_fd, FUSION_REACTOR_DISPATCH, &dispatch)) {
+     while (ioctl (_fusion_fd, FUSION_REACTOR_DISPATCH, &dispatch)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -351,7 +351,7 @@ reactor_free (FusionReactor *reactor)
      skirmish_prevail( &reactor->globals_lock );
      skirmish_destroy( &reactor->globals_lock );
      
-     while (ioctl (fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
+     while (ioctl (_fusion_fd, FUSION_REACTOR_DESTROY, &reactor->id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -435,7 +435,7 @@ _reactor_process_message( int reactor_id, const void *msg_data )
 
                     fusion_list_remove( &node->reactions, &reaction->link );
 
-                    while (ioctl (fusion_fd, FUSION_REACTOR_DETACH, &reactor_id)) {
+                    while (ioctl (_fusion_fd, FUSION_REACTOR_DETACH, &reactor_id)) {
                          switch (errno) {
                               case EINTR:
                                    continue;

@@ -78,7 +78,7 @@ static void *mem           = NULL;
 static int   size          = 0;
 static char *sh_name       = NULL;
 
-shmalloc_heap   *_sheap = NULL;
+shmalloc_heap   *_fusion_shmalloc_heap = NULL;
 static Reaction  reaction;
 
 static char *
