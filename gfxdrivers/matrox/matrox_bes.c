@@ -31,6 +31,8 @@
 
 #include <directfb.h>
 
+#include <core/fusion/shmalloc.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
@@ -38,6 +40,8 @@
 #include <core/layers.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
+
+#include <misc/mem.h>
 
 #include "regs.h"
 #include "mmio.h"
