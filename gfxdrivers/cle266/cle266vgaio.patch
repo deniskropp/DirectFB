@@ -1,0 +1,24 @@
+diff -urP linux-2.4.21/drivers/char/Config.in linux-2.4.21-cle266/drivers/char/Config.in
+--- linux-2.4.21/drivers/char/Config.in	2003-08-14 11:04:16.000000000 +0200
++++ linux-2.4.21-cle266/drivers/char/Config.in	2003-09-07 00:30:30.000000000 +0200
+@@ -289,6 +289,8 @@
+ fi
+ endmenu
+ 
++dep_tristate 'DirectFB CLE266 Support (EXPERIMENTAL)' CONFIG_CLE266VGAIO $CONFIG_DEVFS_FS
++
+ if [ "$CONFIG_GART_IOMMU" = "y" ]; then
+ 	bool '/dev/agpgart (AGP Support)' CONFIG_AGP
+ 	define_bool CONFIG_AGP_AMD_8151 y
+
+diff -urP linux-2.4.21/drivers/char/Makefile linux-2.4.21-cle266/drivers/char/Makefile
+--- linux-2.4.21/drivers/char/Makefile	2003-08-14 11:04:16.000000000 +0200
++++ linux-2.4.21-cle266/drivers/char/Makefile	2003-09-06 23:45:45.000000000 +0200
+@@ -265,6 +265,7 @@
+ obj-y       += ftape/ftape.o
+ endif
+ 
++obj-$(CONFIG_CLE266VGAIO) += cle266vgaio.o
+ obj-$(CONFIG_H8) += h8.o
+ obj-$(CONFIG_PPDEV) += ppdev.o
+ obj-$(CONFIG_DZ) += dz.o

@@ -1,0 +1,27 @@
+#Patching instructions for the cle266vgaio module and the 2.4 kernel
+#This procedure is optional. It is only for those who want to make the
+#module a part of the kernel. See Installation.txt.
+
+# 1. Copy the files into your kernel source tree
+
+cp cle266vgaio.c /usr/src/linux/drivers/char/
+cp cle266vgaio.patch /usr/src/linux
+cd /usr/src/linux
+
+# 2. Test the patch without applying it (optional)
+#2.4.21 should work without warnings, 2.4.20 may print some messages,
+#but otherwise work. Later versions should/may work as well...
+
+patch -p1 --dry-run < cle266vgaio.patch
+
+# 3. Do the actual patching
+
+patch -p1 < ../cle266dfb.patch
+
+# 4. Run make menuconfig and enable the module.
+
+#You find it under "Character devices", right before
+#the AGP support settings. It is labeled
+#"DirectFB CLE266 Support (EXPERIMENTAL)"
+
+# 5. Build the kernel as usual, eg write: make dep bzImage

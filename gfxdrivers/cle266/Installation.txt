@@ -1,0 +1,17 @@
+# How to compile the cle266 driver:
+
+# 1a. Build the kernel module. You will have to install it
+# (with insmod) before you run a directfb application.
+# Your kernel must also use devfs.
+# The module file is named cle266vgaio.o (or .ko on 2.6 kernels)
+
+# If you use a 2.4 kernel, write
+
+make -f cle266vgaio.mk v24 
+
+# If you use a 2.6 kernel, write
+
+make -f cle266vgaio.mk v26
+
+# 1b. Optionally, you can patch your 2.4 kernel. (Sorry, I have no patch
+for 2.6) See Patching.txt

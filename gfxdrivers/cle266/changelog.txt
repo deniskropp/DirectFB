@@ -1,0 +1,32 @@
+v0.2.1 - changes from v0.2.0
+----------------------------
+
+* Bugfix: 2D/3D engine synchronization.
+  Operations performed by the DirectFB software renderer weren't
+  always written to VRAM, because the GPU was still working.
+
+* Bugfix: Added graphics device name (VIA/S3G UniChrome).
+
+* André Kriehn contributed 2.6 kernel support for the cle266vgaio
+  module. Thanks!
+
+* Added cle266vgaio module kernel 2.4 patch. Works without warnings
+  on 2.4.21 - with warnings on 2.4.20. Other versions untested.
+  
+* Added DirectFB 0.9.19 configure.in
+
+
+v0.2.0 - changes from v0.1.0
+----------------------------
+
+* Got the 3D GPU working
+
+* Added a video overlay layer
+
+
+v0.1.0 - changes from v0.0.1
+----------------------------
+
+* Added color-keying for opaque blitting and drawing.
+
+* Added code for blended blitting and drawing etc.

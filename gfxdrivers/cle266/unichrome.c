@@ -1,0 +1,487 @@
+/*
+   Copyright (c) 2003 Andreas Robinson, All rights reserved.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+*/
+
+
+/*
+
+EPIA-M benchmarks (df_dok)
+
+                              SW    v0.0.1  v0.1.0 v0.2.0 
+
+Anti-aliased Text            98.97    -       -       -     KChars/sec S
+Anti-aliased Text (blend)    28.85    -       -       -     KChars/sec S
+Fill Rectangles              25.21  443.46  437.05  432.39  Mpixel/sec *
+Fill Rectangles (blend)       5.54    -     130.12  128.42  MPixel/sec
+Fill Triangles               24.84  173.44  129.76  127.86  MPixel/sec *
+Fill Triangles (blend)        5.46    -     129.81  127.86  MPixel/sec
+Draw Rectangles              11.82  58.98    59.07   52.48  KRects/sec
+Draw Rectangles (blend)       1.98    -      32.13   22.76  KRects/sec
+Draw Lines                   42.67  283.81  292.33  193.87  KLines/sec *
+Draw Lines (blend)            8.54    -     142.62  101.23  KLines/sec
+Blit                         21.48    -     117.38  114.26  MPixel/sec
+Blit colorkeyed              22.54    -     117.34  114.26  MPixel/sec
+Blit w/ format conversion    16.22    -       -     103.41  MPixel/sec
+Blit from 32bit (blend)       4.19    -       -      87.72  MPixel/sec *
+Blit from 8bit palette       11.02    -       -     110.13  MPixel/sec
+Blit from 8bit pal. (blend)   3.78    -       -     110.20  MPixel/sec
+Stretch Blit                 23.19    -       -      99.53  MPixel/sec
+Stretch Blit colorkeyed      25.04    -       -       5.00  MPixel/sec S * 
+
+v0.2.0                         M9000  M10000
+
+Anti-aliased Text               -       -     KChars/sec S
+Anti-aliased Text (blend)       -       -     KChars/sec S
+Fill Rectangles               401.82  432.39  Mpixel/sec *
+Fill Rectangles (blend)       129.05  128.42  MPixel/sec
+Fill Triangles                128.46  127.86  MPixel/sec *
+Fill Triangles (blend)        128.46  127.86  MPixel/sec
+Draw Rectangles                55.51   52.48  KRects/sec
+Draw Rectangles (blend)        26.90   22.76  KRects/sec
+Draw Lines                    225.00  193.87  KLines/sec *
+Draw Lines (blend)            121.29  101.23  KLines/sec
+Blit                          112.36  114.26  MPixel/sec
+Blit colorkeyed               112.28  114.26  MPixel/sec
+Blit w/ format conversion     103.92  103.41  MPixel/sec
+Blit from 32bit (blend)        87.89   87.72  MPixel/sec *
+Blit from 8bit palette        110.56  110.13  MPixel/sec
+Blit from 8bit pal. (blend)   110.56  110.20  MPixel/sec
+Stretch Blit                  108.67   99.53  MPixel/sec
+Stretch Blit colorkeyed         4.79    5.00  MPixel/sec S * 
+
+
+Notes:
+
+All blits use a modified df_dok which blits from video RAM.
+The numbers for software rendering are taken from an unmodified df_dok
+since software rendering in video RAM is Very Slow.
+
+Operations marked with a an S are performed by the software renderer.
+Operations marked with an asterisk (*) could use some optimization.
+
+v0.0.1 and v0.1.0 are tested on an EPIA-M9000
+
+*/
+
+// DirectFB headers
+
+#include <directfb.h>
+#include <core/coretypes.h>
+#include <core/gfxcard.h>
+#include <core/graphics_driver.h>
+#include <core/surfacemanager.h>
+
+// System headers
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include <stdio.h>
+
+// Driver headers
+
+#include "unichrome.h"
+#include "uc_state.h"
+#include "uc_accel.h"
+#include "uc_fifo.h"
+#include "mmio.h"
+
+
+extern DisplayLayerFuncs ucOverlayFuncs;
+
+DFB_GRAPHICS_DRIVER(unichrome)
+
+//----------
+
+/** Allocate and lock a surface to be used as VQ buffer. */
+
+static DFBResult uc_alloc_vq(UcDriverData *ucdrv)
+{
+    DFBResult result;
+    int h;
+
+    if (ucdrv->vq_locked || ucdrv->vq_start) return DFB_OK;
+
+    //printf("VQ alloc start\n");
+
+    h = 256;    // Number of kb to allocate
+
+    ucdrv->vq_size = 256 * h * DFB_BYTES_PER_PIXEL(DSPF_ARGB);
+    result = dfb_surface_create(256, h, DSPF_ARGB, CSP_VIDEOONLY,
+        DSCAPS_VIDEOONLY, NULL, &ucdrv->vq_surface);
+    if (result != DFB_OK) return result;
+
+    //printf("VQ alloc ok\n");
+
+    result = dfb_surface_hardware_lock(ucdrv->vq_surface,
+        DSLF_READ | DSLF_WRITE, 1);
+    ucdrv->vq_locked = (result == DFB_OK);
+
+    //printf("VQ lock ok\n");
+
+    ucdrv->vq_start = ucdrv->vq_surface->front_buffer->video.offset;
+    ucdrv->vq_end = ucdrv->vq_start + ucdrv->vq_size - 1;
+
+    //printf("VQ alloc: %d\n", result);
+
+    return result;
+}
+
+/** Free the VQ buffer. */
+
+void uc_free_vq(UcDriverData *ucdrv)
+{
+    if (ucdrv->vq_locked) dfb_surface_unlock(ucdrv->vq_surface, 1);
+    if (ucdrv->vq_surface) dfb_surface_unref(ucdrv->vq_surface);
+    ucdrv->vq_locked = false;
+    ucdrv->vq_surface = NULL;
+}
+
+
+/**
+ * Initialize the hardware. 
+ * @param enable    enable VQ if true (else disable it.)
+ */
+
+DFBResult uc_init_2d_engine(UcDriverData *ucdrv, bool enable)
+{
+    DFBResult result = DFB_OK;
+    volatile __u8* hwregs = ucdrv->hwregs;
+
+    if (enable && !ucdrv->vq_locked) {
+        result = uc_alloc_vq(ucdrv);
+        if (result != DFB_OK) {
+            enable = false;
+        }
+    }
+
+    // Init 2D engine registers to reset 2D engine
+
+    VIA_OUT(hwregs, 0x04, 0x0);
+    VIA_OUT(hwregs, 0x08, 0x0);
+    VIA_OUT(hwregs, 0x0c, 0x0);
+    VIA_OUT(hwregs, 0x10, 0x0);
+    VIA_OUT(hwregs, 0x14, 0x0);
+    VIA_OUT(hwregs, 0x18, 0x0);
+    VIA_OUT(hwregs, 0x1c, 0x0);
+    VIA_OUT(hwregs, 0x20, 0x0);
+    VIA_OUT(hwregs, 0x24, 0x0);
+    VIA_OUT(hwregs, 0x28, 0x0);
+    VIA_OUT(hwregs, 0x2c, 0x0);
+    VIA_OUT(hwregs, 0x30, 0x0);
+    VIA_OUT(hwregs, 0x34, 0x0);
+    VIA_OUT(hwregs, 0x38, 0x0);
+    VIA_OUT(hwregs, 0x3c, 0x0);
+    VIA_OUT(hwregs, 0x40, 0x0);
+
+    // Init AGP and VQ registers
+
+    VIA_OUT(hwregs, 0x43c, 0x00100000);
+    VIA_OUT(hwregs, 0x440, 0x00000000);
+    VIA_OUT(hwregs, 0x440, 0x00333004);
+    VIA_OUT(hwregs, 0x440, 0x60000000);
+    VIA_OUT(hwregs, 0x440, 0x61000000);
+    VIA_OUT(hwregs, 0x440, 0x62000000);
+    VIA_OUT(hwregs, 0x440, 0x63000000);
+    VIA_OUT(hwregs, 0x440, 0x64000000);
+    VIA_OUT(hwregs, 0x440, 0x7D000000);
+
+    VIA_OUT(hwregs, 0x43c, 0xfe020000);
+    VIA_OUT(hwregs, 0x440, 0x00000000);
+
+    if (enable) { // Enable VQ
+
+        uc_alloc_vq(ucdrv);
+
+        VIA_OUT(hwregs, 0x43c, 0x00fe0000);
+        VIA_OUT(hwregs, 0x440, 0x080003fe);
+        VIA_OUT(hwregs, 0x440, 0x0a00027c);
+        VIA_OUT(hwregs, 0x440, 0x0b000260);
+        VIA_OUT(hwregs, 0x440, 0x0c000274);
+        VIA_OUT(hwregs, 0x440, 0x0d000264);
+        VIA_OUT(hwregs, 0x440, 0x0e000000);
+        VIA_OUT(hwregs, 0x440, 0x0f000020);
+        VIA_OUT(hwregs, 0x440, 0x1000027e);
+        VIA_OUT(hwregs, 0x440, 0x110002fe);
+        VIA_OUT(hwregs, 0x440, 0x200f0060);
+
+        VIA_OUT(hwregs, 0x440, 0x00000006);
+        VIA_OUT(hwregs, 0x440, 0x40008c0f);
+        VIA_OUT(hwregs, 0x440, 0x44000000);
+        VIA_OUT(hwregs, 0x440, 0x45080c04);
+        VIA_OUT(hwregs, 0x440, 0x46800408);
+
+        VIA_OUT(hwregs, 0x440, 0x52000000 |
+            ((ucdrv->vq_start & 0xFF000000) >> 24) |
+            ((ucdrv->vq_end & 0xFF000000) >> 16));
+        VIA_OUT(hwregs, 0x440, 0x50000000 | (ucdrv->vq_start & 0xFFFFFF));
+        VIA_OUT(hwregs, 0x440, 0x51000000 | (ucdrv->vq_end & 0xFFFFFF));
+        VIA_OUT(hwregs, 0x440, 0x53000000 | (ucdrv->vq_size >> 3));
+    }
+    else { // Disable VQ
+
+        VIA_OUT(hwregs, 0x43c, 0x00fe0000);
+        VIA_OUT(hwregs, 0x440, 0x00000004);
+        VIA_OUT(hwregs, 0x440, 0x40008c0f);
+        VIA_OUT(hwregs, 0x440, 0x44000000);
+        VIA_OUT(hwregs, 0x440, 0x45080c04);
+        VIA_OUT(hwregs, 0x440, 0x46800408);
+
+        uc_free_vq(ucdrv);
+    }
+
+    return result;
+}
+
+void uc_init_3d_engine(volatile __u8* hwregs, int hwrev, bool init_all)
+{
+    __u32 i;
+
+    if (init_all) {
+
+        // Clear NotTex registers (?)
+
+        VIA_OUT(hwregs, 0x43C, 0x00010000);
+        for (i = 0; i <= 0x7d; i++)
+            VIA_OUT(hwregs, 0x440, i << 24);
+
+        // Clear texture unit 0 (?)
+
+        VIA_OUT(hwregs, 0x43C, 0x00020000);
+        for (i = 0; i <= 0x94; i++)
+            VIA_OUT(hwregs, 0x440, i << 24);
+        VIA_OUT(hwregs, 0x440, 0x82400000);
+
+        // Clear texture unit 1 (?)
+
+        VIA_OUT(hwregs, 0x43C, 0x01020000);
+        for (i = 0; i <= 0x94; i++)
+            VIA_OUT(hwregs, 0x440, i << 24);
+        VIA_OUT(hwregs, 0x440, 0x82400000);
+
+        // Clear general texture settings (?)
+
+        VIA_OUT(hwregs, 0x43C, 0xfe020000);
+        for (i = 0; i <= 0x03; i++)
+            VIA_OUT(hwregs, 0x440, i << 24);
+
+        // Clear palette settings (?)
+
+        VIA_OUT(hwregs, 0x43C, 0x00030000);
+        for (i = 0; i <= 0xff; i++)
+            VIA_OUT(hwregs, 0x440, 0);
+
+        VIA_OUT(hwregs, 0x43C, 0x00100000);
+        VIA_OUT(hwregs, 0x440, 0x00333004);
+        VIA_OUT(hwregs, 0x440, 0x10000002);
+        VIA_OUT(hwregs, 0x440, 0x60000000);
+        VIA_OUT(hwregs, 0x440, 0x61000000);
+        VIA_OUT(hwregs, 0x440, 0x62000000);
+        VIA_OUT(hwregs, 0x440, 0x63000000);
+        VIA_OUT(hwregs, 0x440, 0x64000000);
+
+        VIA_OUT(hwregs, 0x43C, 0x00fe0000);
+
+        if (hwrev >= 3)
+            VIA_OUT(hwregs, 0x440,0x40008c0f);
+        else
+            VIA_OUT(hwregs, 0x440,0x4000800f);
+
+        VIA_OUT(hwregs, 0x440,0x44000000);
+        VIA_OUT(hwregs, 0x440,0x45080C04);
+        VIA_OUT(hwregs, 0x440,0x46800408);
+        VIA_OUT(hwregs, 0x440,0x50000000);
+        VIA_OUT(hwregs, 0x440,0x51000000);
+        VIA_OUT(hwregs, 0x440,0x52000000);
+        VIA_OUT(hwregs, 0x440,0x53000000);
+
+    }
+
+    VIA_OUT(hwregs, 0x43C,0x00fe0000);
+    VIA_OUT(hwregs, 0x440,0x08000001);
+    VIA_OUT(hwregs, 0x440,0x0A000183);
+    VIA_OUT(hwregs, 0x440,0x0B00019F);
+    VIA_OUT(hwregs, 0x440,0x0C00018B);
+    VIA_OUT(hwregs, 0x440,0x0D00019B);
+    VIA_OUT(hwregs, 0x440,0x0E000000);
+    VIA_OUT(hwregs, 0x440,0x0F000000);
+    VIA_OUT(hwregs, 0x440,0x10000000);
+    VIA_OUT(hwregs, 0x440,0x11000000);
+    VIA_OUT(hwregs, 0x440,0x20000000);
+}
+
+/** Wait until the engine is idle. */
+
+static void uc_engine_sync(void* drv, void* dev)
+{
+    UcDriverData* ucdrv = (UcDriverData*) drv;
+    UcDeviceData* ucdev = (UcDeviceData*) dev;
+
+    int loop = -1;
+
+//    printf("uc_engine_sync ");
+    
+    while (loop++ < MAXLOOP) {
+        if ((VIA_IN(ucdrv->hwregs, VIA_REG_STATUS) & 0xfffeffff) == 0x00020000)
+            break;
+    }
+
+//    printf("waiting for %d (0x%x) cycles.\n", loop, loop);
+
+    ucdev->idle_waitcycles += loop;
+    ucdev->must_wait = 0;
+}
+
+
+// DirectFB interfacing functions --------------------------------------------
+
+static int driver_probe(GraphicsDevice *device)
+{
+    struct stat s;
+    return stat(UNICHROME_DEVICE, &s) + 1;
+}
+
+static void driver_get_info(GraphicsDevice* device,
+                            GraphicsDriverInfo* info)
+{
+    // Fill in driver info structure.
+
+    snprintf(info->name,
+        DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
+        "VIA UniChrome Driver");
+
+    snprintf(info->vendor,
+        DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
+        "-");
+
+    snprintf(info->url,
+        DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH,
+        "http://cle266dfb.sourceforge.net");
+
+     snprintf(info->license,
+         DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH,
+         "LGPL");
+
+    info->version.major = 0;
+    info->version.minor = 2;
+
+    info->driver_data_size = sizeof (UcDriverData);
+    info->device_data_size = sizeof (UcDeviceData);
+}
+
+
+static DFBResult driver_init_driver(GraphicsDevice* device,
+                                    GraphicsDeviceFuncs* funcs,
+                                    void* driver_data)
+{
+    UcDriverData *ucdrv = (UcDriverData*) driver_data;
+    int fd;
+
+    //printf("Entering %s\n", __PRETTY_FUNCTION__);
+
+    ucdrv->file = -1;
+    fd = open(UNICHROME_DEVICE, O_RDWR | O_SYNC, 0);
+    if (fd < 0) return DFB_IO;
+    ucdrv->file = fd;
+
+    ucdrv->hwregs = mmap(NULL, 0x1000000,
+        PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    if ((int) ucdrv->hwregs == -1) return DFB_IO;
+
+    ucdrv->hwrev = 3;   // FIXME: Get the real hardware revision number!!!
+
+    ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE, ucdrv->hwregs);
+    if (ucdrv->fifo == NULL) {
+        close(ucdrv->file);
+        ucdrv->file = -1;
+        return DFB_NOSYSTEMMEMORY;
+    }
+
+    ucdrv->vq_surface = NULL;
+    ucdrv->vq_locked = false;
+
+    // Driver specific initialization
+
+    funcs->CheckState    = uc_check_state;
+    funcs->SetState      = uc_set_state;
+    funcs->EngineSync    = uc_engine_sync;
+
+    funcs->FillRectangle = uc_fill_rectangle;
+    funcs->DrawRectangle = uc_draw_rectangle;
+    funcs->DrawLine      = uc_draw_line;
+    funcs->FillTriangle  = uc_fill_triangle;
+    funcs->Blit          = uc_blit;
+    funcs->StretchBlit   = uc_stretch_blit;
+
+    dfb_layers_register(device, driver_data, &ucOverlayFuncs);
+
+    return DFB_OK;
+}
+
+static DFBResult driver_init_device(GraphicsDevice* device,
+                                    GraphicsDeviceInfo* device_info,
+                                    void* driver_data,
+                                    void* device_data)
+{
+    UcDriverData *ucdrv = (UcDriverData*) driver_data;
+    UcDeviceData *ucdev = (UcDeviceData*) device_data;
+
+    //printf("Entering %s\n", __PRETTY_FUNCTION__);
+
+    snprintf(device_info->name,
+        DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "UniChrome");
+    snprintf(device_info->vendor,
+        DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "VIA/S3G");
+
+    device_info->caps.flags = CCF_CLIPPING;
+    device_info->caps.accel =
+        UC_DRAWING_FUNCTIONS_2D | UC_DRAWING_FUNCTIONS_3D |
+        UC_BLITTING_FUNCTIONS_2D | UC_BLITTING_FUNCTIONS_3D;
+
+    device_info->caps.drawing  = UC_DRAWING_FLAGS_2D | UC_DRAWING_FLAGS_3D;
+    device_info->caps.blitting = UC_BLITTING_FLAGS_2D | UC_BLITTING_FLAGS_3D;
+
+    device_info->limits.surface_byteoffset_alignment = 8;
+    device_info->limits.surface_pixelpitch_alignment = 8;
+
+    ucdev->pitch = 0;
+    ucdev->draw_rop2d = VIA_ROP_P;
+    ucdev->draw_rop3d = HC_HROP_P;
+    ucdev->color = 0;
+    ucdev->bflags = 0;
+
+    ucdev->must_wait = 0;
+    ucdev->cmd_waitcycles = 0;
+    ucdev->idle_waitcycles = 0;
+
+    uc_init_2d_engine(ucdrv, false);    // False for now - surface allocator crashes
+    uc_init_3d_engine(ucdrv->hwregs, ucdrv->hwrev, 1);
+
+    return DFB_OK;
+}
+
+static void driver_close_device(GraphicsDevice *device,
+                                void *driver_data, void *device_data)
+{
+    UcDriverData* ucdrv = (UcDriverData*) driver_data;
+    uc_engine_sync(driver_data, device_data);
+    uc_init_2d_engine(ucdrv, false);
+}
+
+static void driver_close_driver(GraphicsDevice* device, void* driver_data)
+{
+    UcDriverData* ucdrv = (UcDriverData*) driver_data;
+
+    if (ucdrv->fifo) uc_fifo_destroy(ucdrv->fifo);
+    if ((int) ucdrv->file != -1) close(ucdrv->file);
+
+    ucdrv->fifo = NULL;
+    ucdrv->file = -1;
+}

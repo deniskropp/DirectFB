@@ -60,6 +60,12 @@ else
 I810_DIR =
 endif
 
+if GFX_CLE266
+CLE266_DIR = cle266
+else
+CLE266_DIR =
+endif
+
 SUBDIRS = \
 	$(ATI_DIR)	\
 	$(RADEON_DIR)	\
@@ -70,4 +76,5 @@ SUBDIRS = \
 	$(NEOMAGIC_DIR)	\
 	$(SAVAGE_DIR)	\
 	$(I810_DIR)	\
+	$(CLE266_DIR)	\
 	$(GEODE_DIR)

@@ -1,0 +1,549 @@
+// Misc. reverse-engineered hardware information.
+
+Open GL man pages: http://www.3dlabs.com/support/developer/index.htm
+
+/* Supported alpha-test operations
+ *
+ * If the result of a test is true, a pixel is passed
+ * to the destination, otherwise it is discarded.
+ *
+ * This may or may not come in handy for some DirectFB operations...
+ * Is alpha-keying supported in DFB?
+ *
+ * OpenGL -> Unichrome-register mapping is done by (x - GL_NEVER) << 8
+ * The value goes into regHATMD. HC_HenAT_MASK must be set in regEnable.
+ * The default should be GL_ALWAYS...
+ *
+ * GL name				Passes if
+ *
+ * GL_NEVER				Never
+ * GL_LESS				alpha < ref
+ * GL_EQUAL				alpha = ref
+ * GL_LEQUAL			alpha <= ref
+ * GL_GREATER			alpha > ref
+ * GL_NOTEQUAL			alpha != ref
+ * GL_GEQUAL			alpha >= ref
+ * GL_ALWAYS			Always (default)
+ */
+ 
+ /* GL -> UC ROP mapping
+const __u32 UC_ROP[16] = 
+{
+	HC_HROP_BLACK,    // GL_CLEAR           0
+	HC_HROP_DPa,      // GL_AND             s & d
+	HC_HROP_PDna,     // GL_AND_REVERSE     s & ~d
+	HC_HROP_P,        // GL_COPY            s
+	HC_HROP_DPna,     // GL_AND_INVERTED    ~s & d
+	HC_HROP_D,        // GL_NOOP            d
+	HC_HROP_DPx,      // GL_XOR             s ^ d
+	HC_HROP_DPo,      // GL_OR              s | d
+	HC_HROP_DPon,     // GL_NOR             ~(s | d)
+	HC_HROP_DPxn,     // GL_EQUIV           ~(s ^ d)
+	HC_HROP_Dn,       // GL_INVERT          ~d
+	HC_HROP_PDno,     // GL_OR_REVERSE      s | ~d
+	HC_HROP_Pn,       // GL_COPY_INVERTED   ~s
+	HC_HROP_DPno,     // GL_OR_INVERTED     ~s | d
+	HC_HROP_DPan,     // GL_NAND            ~(s & d)
+	HC_HROP_WHITE     // GL_SET             1
+};
+*/
+
+/* Using the texture environment
+
+// The following is based on a lot of guesses and is probably partly wrong.
+
+// Texture unit 0 or 1, generic blending function:
+//
+// C = (Ca * Op(Cb, Cc) + Cbias) << Cshift
+// A = (Aa * Op(Ab, Ac) + Abias) << Ashift
+// Op() is addition, subtraction, max or min
+//
+// Cx (where x = {a, b, c}) can in turn have one of three functions;
+//
+// Cx = src, Cx = 1 - src and a third named "p5", whatever that is
+// The same applies to Ax = src, Ax = 1 - src, Ax = p5(src)
+//
+// src is one of several sources:
+//
+// 0:			zero
+// Dif:			diffuse vertex color
+// Spec:		specular vertex color                         
+// Tex:			texture color (i.e a pixel in a texture)
+// Cur:			Guess: Color from tex unit 0, if using unit 1.
+// Adif:		diffuse vertex alpha
+// Fog:			fog color
+// Atex:		texture alpha
+// Acur:		Same as cur (only the alpha part)
+// HTXnBLRC:	A constant stored in HC_SubA_HTXnTBLRCa, *Cb, *Cc, *Aa or, *Fog
+// Ctexnext:	--- Unknown --- 
+//
+// Not all sources can be used for all parameters, e.g Cbias.
+// See the register listing from where it says "Define the input texture"
+// and onwards.
+//
+// Finally, the Cshift/Ashift operation has a number of settings
+// either shift_1, shift_2, shift_No or shift_DotP
+//
+// Guessing: shift_1 and shift_2 = multiply by two and four
+// shift_No = disable
+// shift_DotP = --- Unknown --- Maybe DotP = Dot product, but with
+// what? Itself or another parameter? Anyway, we're not doing
+// bump mapping in DirectFB, so it's not needed here.
+//
+// As is indicated above, you can (probably) chain together the texture
+// blending functions for the two texture units by using the Cur and Acur
+// sources, allowing more complex shading.
+
+*/
+
+Unichrome partial register map
+
+Register: Command A
+
+Section HC_HCmdHeader_MASK      0xfe000000
+==========================================
+
+Section HC_HE3Fire_MASK         0x00100000
+
+Section HC_HPMType_MASK         0x000f0000
+==========================================
+        HC_HPMType_Point        0x00000000		Draw point
+        HC_HPMType_Line         0x00010000		Draw line
+        HC_HPMType_Tri          0x00020000		Draw triangle
+        HC_HPMType_TriWF        0x00040000		????
+
+Section HC_HEFlag_MASK          0x0000e000
+==========================================
+        HC_HEFlag_NoAA          0x00000000		No anti-aliasing
+        HC_HEFlag_ab            0x00008000		Guess: Enable AA on triangle line ab
+        HC_HEFlag_bc            0x00004000		Guess: Enable AA on triangle line bc
+        HC_HEFlag_ca            0x00002000		Guess: Enable AA on triangle line ca
+
+Section HC_HShading_MASK        0x00001c00
+==========================================
+        HC_HShading_Solid       0x00000000
+        HC_HShading_FlatA       0x00000400		No shading: Use vertex A color	
+		HC_HShading_FlatB       0x00000800		No shading: Use vertex B color
+        HC_HShading_FlatC       0x00000c00		No shading: Use vertex C color
+        HC_HShading_Gouraud     0x00001000		Enable Gouraud shading
+        
+Notes on HC_HShading:
+
+The _Flat[A,B,C] options select what vertex has the color when you draw
+flat shaded objects
+
+Section HC_HPMValidN_MASK       0x00000200
+Section HC_HPLEND_MASK          0x00000100
+
+Section HC_HVCycle_MASK         0x000000ff	These settings control how vertices
+==========================================	are handled and let you draw several
+Section HC_HVCycle_Style_MASK   0x000000c0	primitives (eg a triangle fan) with
+------------------------------------------	only one command.
+        HC_HVCycle_Full         0x00000000
+        HC_HVCycle_AFP          0x00000040
+        HC_HVCycle_One          0x000000c0
+										
+										
+Section HC_HVCycle_ChgA_MASK    0x00000030
+------------------------------------------
+        HC_HVCycle_NewA         0x00000000	Replace vertex A
+        HC_HVCycle_AA           0x00000010	Old vertex A is new vertex A
+        HC_HVCycle_AB           0x00000020	Old vertex A is new vertex B
+        HC_HVCycle_AC           0x00000030	Old vertex A is new vertex C
+
+Section HC_HVCycle_ChgB_MASK    0x0000000c
+------------------------------------------
+        HC_HVCycle_NewB         0x00000000	...
+        HC_HVCycle_BA           0x00000004
+        HC_HVCycle_BB           0x00000008
+        HC_HVCycle_BC           0x0000000c
+
+Section HC_HVCycle_ChgC_MASK    0x00000003
+------------------------------------------
+        HC_HVCycle_NewC         0x00000000	...
+        HC_HVCycle_CA           0x00000001
+        HC_HVCycle_CB           0x00000002
+        HC_HVCycle_CC           0x00000003
+
+***********************************************************
+
+Register: Command B
+
+Section HC_HLPrst_MASK          0x00010000
+Section HC_HLLastP_MASK         0x00008000
+
+Section HC_HVPMSK_MASK          0x00007f80	Marks what data fields are present in a vertex.
+==========================================	
+        HC_HVPMSK_X             0x00004000	Vertex has X coordinate
+        HC_HVPMSK_Y             0x00002000	Vertex has Y coordinate
+        HC_HVPMSK_Z             0x00001000	Vertex has Z coordinate
+        HC_HVPMSK_W             0x00000800	Vertex has W coordinate
+        HC_HVPMSK_Cd            0x00000400	Vertex has diffuse color
+        HC_HVPMSK_Cs            0x00000200	Vertex has specular/fog color
+        HC_HVPMSK_S             0x00000100	Vertex has S (hor.) texture coordinate
+        HC_HVPMSK_T             0x00000080	Vertex has T (vert.) texture coordinate
+
+Section HC_HBFace_MASK          0x00000040
+Section HC_H2nd1VT_MASK         0x0000003f
+
+***********************************************************
+
+Register: Enable (HC_SubA_HEnable)
+
+==========================================
+
+        HC_HenTXEnvMap_MASK     0x00200000		????
+        HC_HenVertexCNT_MASK    0x00100000		????
+        HC_HenCPUDAZ_MASK       0x00080000		????
+        HC_HenDASZWC_MASK       0x00040000		????
+        HC_HenFBCull_MASK       0x00020000		Polygon culling
+        HC_HenCW_MASK           0x00010000		???? Is always on in the DRI code.
+        HC_HenAA_MASK           0x00008000		Drawing anti-aliasing
+        HC_HenST_MASK           0x00004000		Stencil test
+        HC_HenZT_MASK           0x00002000		Z test
+        HC_HenZW_MASK           0x00001000		Z buffer
+        HC_HenAT_MASK           0x00000800		Alpha test
+        HC_HenAW_MASK           0x00000400		Alpha buffer
+        HC_HenSP_MASK           0x00000200		Polygon stipple
+        HC_HenLP_MASK           0x00000100		Line stipple
+        HC_HenTXCH_MASK         0x00000080		???? Texture related ...
+        HC_HenTXMP_MASK         0x00000040		???? Texture related ...
+        HC_HenTXPP_MASK         0x00000020		???? Texture related ...
+        HC_HenTXTR_MASK         0x00000010		???? Texture related ...
+        HC_HenCS_MASK           0x00000008		????
+        HC_HenFOG_MASK          0x00000004		Fog
+        HC_HenABL_MASK          0x00000002		Alpha blending
+        HC_HenDT_MASK           0x00000001		Color dithering
+
+***********************************************************
+
+Stencil function
+
+Reg.	HC_SubA_HSBBasL			????			Should exist...
+Reg.	HC_SubA_HSBBasH			????			Should exist...
+
+Reg.	HC_SubA_HSBFM			????
+==========================================
+Section HC_HSBFM_MASK           0x00030000		Buffer data format
+------------------------------------------
+???
+
+Section HC_HSBLoc_MASK          0x0000c000		Buffer memory type
+------------------------------------------		(agp, or video etc)
+????
+
+Section HC_HSBPit_MASK          0x00003fff		Buffer row pitch
+
+Reg.    HC_SubA_HSTREF          0x0023
+==========================================
+        HC_HSTREF_MASK          0x00ff0000		???? Reference value
+
+Section HC_HSTOPMSK_MASK        0x0000ff00		???? Operation?
+------------------------------------------
+????
+
+Section HC_HSTBMSK_MASK         0x000000ff		???? Destination bitmask
+------------------------------------------
+????
+
+Reg.    HC_SubA_HSTMD           0x0024
+==========================================
+Section HC_HSTMD_MASK           0x00070000		Test function
+------------------------------------------
+        HC_HSTMD_NeverPass      0x00000000
+        HC_HSTMD_LT             0x00010000
+        HC_HSTMD_EQ             0x00020000
+        HC_HSTMD_LE             0x00030000
+        HC_HSTMD_GT             0x00040000
+        HC_HSTMD_NE             0x00050000
+        HC_HSTMD_GE             0x00060000
+        HC_HSTMD_AllPass        0x00070000
+
+Section HC_HSTOPSF_MASK         0x000001c0		Fail operation
+------------------------------------------
+        HC_HSTOPSF_KEEP         0x00000000
+        HC_HSTOPSF_ZERO         0x00000040
+        HC_HSTOPSF_REPLACE      0x00000080
+        HC_HSTOPSF_INCRSAT      0x000000c0
+        HC_HSTOPSF_DECRSAT      0x00000100
+        HC_HSTOPSF_INVERT       0x00000140
+        HC_HSTOPSF_INCR         0x00000180
+        HC_HSTOPSF_DECR         0x000001c0
+
+Section HC_HSTOPSPZF_MASK       0x00000038		Z-fail operation
+------------------------------------------
+        HC_HSTOPSPZF_KEEP       0x00000000
+        HC_HSTOPSPZF_ZERO       0x00000008
+        HC_HSTOPSPZF_REPLACE    0x00000010
+        HC_HSTOPSPZF_INCRSAT    0x00000018
+        HC_HSTOPSPZF_DECRSAT    0x00000020
+        HC_HSTOPSPZF_INVERT     0x00000028
+        HC_HSTOPSPZF_INCR       0x00000030
+        HC_HSTOPSPZF_DECR       0x00000038
+
+Section HC_HSTOPSPZP_MASK       0x00000007		Z-pass operation 
+------------------------------------------
+        HC_HSTOPSPZP_KEEP       0x00000000
+        HC_HSTOPSPZP_ZERO       0x00000001
+        HC_HSTOPSPZP_REPLACE    0x00000002
+        HC_HSTOPSPZP_INCRSAT    0x00000003
+        HC_HSTOPSPZP_DECRSAT    0x00000004
+        HC_HSTOPSPZP_INVERT     0x00000005
+        HC_HSTOPSPZP_INCR       0x00000006
+        HC_HSTOPSPZP_DECR       0x00000007
+
+***********************************************************
+
+Destination buffer (e.g the frame buffer)
+
+Reg.    HC_SubA_HDBBasL         0x0040			Physical address, low 24 bits
+Reg.    HC_SubA_HDBBasH         0x0041			Physical address, high 8 bits
+
+Reg.    HC_SubA_HDBFM           0x0042			Pixel format and row pitch
+==========================================
+Section HC_HDBFM_MASK           0x001f0000		Pixel format
+------------------------------------------
+        HC_HDBFM_RGB555         0x00000000
+        HC_HDBFM_RGB565         0x00010000
+        HC_HDBFM_ARGB4444       0x00020000
+        HC_HDBFM_ARGB1555       0x00030000
+        HC_HDBFM_BGR555         0x00040000
+        HC_HDBFM_BGR565         0x00050000
+        HC_HDBFM_ABGR4444       0x00060000
+        HC_HDBFM_ABGR1555       0x00070000
+        HC_HDBFM_ARGB0888       0x00080000
+        HC_HDBFM_ARGB8888       0x00090000
+        HC_HDBFM_ABGR0888       0x000a0000
+        HC_HDBFM_ABGR8888       0x000b0000
+
+Section HC_HDBLoc_MASK          0x0000c000
+------------------------------------------
+        HC_HDBLoc_Local         0x00000000
+        HC_HDBLoc_Sys           0x00004000
+
+Section HC_HDBPit_MASK          0x00003fff		Row pitch
+
+Reg.    HC_SubA_HFBBMSKL        0x0043			Bitmask, low 24 bits.
+												Pixels are ANDed with this
+												value before being written.
+
+Reg.    HC_SubA_HROP            0x0044
+==========================================
+Section HC_HROP_MASK            0x00000f00		Raster operation
+------------------------------------------
+        HC_HROP_BLACK           0x00000000
+        HC_HROP_DPon            0x00000100
+        HC_HROP_DPna            0x00000200
+        HC_HROP_Pn              0x00000300
+        HC_HROP_PDna            0x00000400
+        HC_HROP_Dn              0x00000500
+        HC_HROP_DPx             0x00000600
+        HC_HROP_DPan            0x00000700
+        HC_HROP_DPa             0x00000800
+        HC_HROP_DPxn            0x00000900
+        HC_HROP_D               0x00000a00
+        HC_HROP_DPno            0x00000b00
+        HC_HROP_P               0x00000c00
+        HC_HROP_PDno            0x00000d00
+        HC_HROP_DPo             0x00000e00
+        HC_HROP_WHITE           0x00000f00
+
+Section HC_HFBBMSKH_MASK        0x000000ff		High 8 bits of HFBBMSKL
+
+***********************************************************
+
+Alpha buffer
+
+Reg.    HC_SubA_HABBasL         0x0030			Physical address, low 24 bits
+Reg.    HC_SubA_HABBasH         0x0031			Physical address, high 8 bits
+Reg.    HC_SubA_HABFM           0x0032			Pixel format and row pitch
+==========================================
+Section HC_HABFM_MASK           0x00030000
+Section HC_HABLoc_MASK          0x0000c000
+Section HC_HABPit_MASK          0x000007ff
+
+Alpha test
+
+Reg.    HC_SubA_HATMD           0x0033			Alpha test function and reference
+==========================================
+Section HC_HATMD_MASK           0x00000700		Alpha-test function
+------------------------------------------
+        HC_HATMD_NeverPass      0x00000000
+        HC_HATMD_LT             0x00000100
+        HC_HATMD_EQ             0x00000200
+        HC_HATMD_LE             0x00000300
+        HC_HATMD_GT             0x00000400
+        HC_HATMD_NE             0x00000500
+        HC_HATMD_GE             0x00000600
+        HC_HATMD_AllPass        0x00000700
+
+Section HC_HATREF_MASK          0x000000ff		Reference value to compare with.
+------------------------------------------
+
+Alpha blend
+
+Reg.    HC_SubA_HABLCsat        0x0034
+==========================================
+#define HC_HABLCsat_MASK        0x00010000
+#define HC_HABLCa_MASK          0x0000fc00
+#define HC_HABLCa_C_MASK        0x0000c000
+#define HC_HABLCa_OPC_MASK      0x00003c00
+#define HC_HABLFCa_MASK         0x000003f0
+#define HC_HABLFCa_C_MASK       0x00000300
+#define HC_HABLFCa_OPC_MASK     0x000000f0
+#define HC_HABLCbias_MASK       0x0000000f
+#define HC_HABLCbias_C_MASK     0x00000008
+#define HC_HABLCbias_OPC_MASK   0x00000007
+
+Reg.    HC_SubA_HABLCop         0x0035
+==========================================
+#define HC_HABLdot_MASK         0x00010000
+#define HC_HABLCop_MASK         0x00004000
+#define HC_HABLCb_MASK          0x00003f00
+#define HC_HABLCb_C_MASK        0x00003000
+#define HC_HABLCb_OPC_MASK      0x00000f00
+#define HC_HABLFCb_MASK         0x000000fc
+#define HC_HABLFCb_C_MASK       0x000000c0
+#define HC_HABLFCb_OPC_MASK     0x0000003c
+#define HC_HABLCshift_MASK      0x00000003
+
+Reg.    HC_SubA_HABLAsat        0x0036
+==========================================
+#define HC_HABLAsat_MASK        0x00010000
+#define HC_HABLAa_MASK          0x0000fc00
+#define HC_HABLAa_A_MASK        0x0000c000
+#define HC_HABLAa_OPA_MASK      0x00003c00
+#define HC_HABLFAa_MASK         0x000003f0
+#define HC_HABLFAa_A_MASK       0x00000300
+#define HC_HABLFAa_OPA_MASK     0x000000f0
+#define HC_HABLAbias_MASK       0x0000000f
+#define HC_HABLAbias_A_MASK     0x00000008
+#define HC_HABLAbias_OPA_MASK   0x00000007
+
+Reg.    HC_SubA_HABLAop         0x0037
+==========================================
+#define HC_HABLAop_MASK         0x00004000
+#define HC_HABLAb_MASK          0x00003f00
+#define HC_HABLAb_OPA_MASK      0x00000f00
+#define HC_HABLFAb_MASK         0x000000fc
+#define HC_HABLFAb_OPA_MASK     0x0000003c
+#define HC_HABLAshift_MASK      0x00000003
+
+Reg.    HC_SubA_HABLRCa         0x0038
+Reg.    HC_SubA_HABLRFCa        0x0039
+Reg.    HC_SubA_HABLRCbias      0x003a
+Reg.    HC_SubA_HABLRCb         0x003b
+Reg.    HC_SubA_HABLRFCb        0x003c
+
+Reg.    HC_SubA_HABLRAa         0x003d
+==========================================
+#define HC_HABLRAa_MASK         0x00ff0000
+#define HC_HABLRFAa_MASK        0x0000ff00
+#define HC_HABLRAbias_MASK      0x000000ff
+
+Reg.    HC_SubA_HABLRAb         0x003e
+==========================================
+#define HC_HABLRAb_MASK         0x0000ff00
+#define HC_HABLRFAb_MASK        0x000000ff
+
+
+***********************************************************
+
+Texture engine
+
+/* Attribute of texture n
+ */
+
+Reg.    HC_SubA_HTXnLiBasL      0x0000+i	Low 24-bits of base address i
+======================================
+There are 18 registers. Replace i with a value i = [0, 11] hex.
+
+MSB 8 bits of texture addresses
+
+Reg.    HC_SubA_HTXnL012BasH    0x0020	Map 0 - 2
+Reg.    HC_SubA_HTXnL345BasH    0x0021	Map 3 - 5
+Reg.    HC_SubA_HTXnL678BasH    0x0022	Map 6 - 8
+Reg.    HC_SubA_HTXnL9abBasH    0x0023	Map 9 - b
+Reg.    HC_SubA_HTXnLcdeBasH    0x0024	Map c - e
+Reg.    HC_SubA_HTXnLf1011BasH  0x0025	Map f - 11
+
+Reg.    HC_SubA_HTXnL0Pit       0x002b + i
+==========================================
+There are 18 registers. Replace i with a value i = [0, 11] hex.
+
+Section HC_HTXnLnPit_MASK       0x00003fff	Byte-pitch (map 0 only)
+Section HC_HTXnEnPit_MASK       0x00080000	Enable byte-pitch
+Section HC_HTXnLnPitE_MASK      0x00f00000	Log2 pitch
+
+Width exponents (log2 of texture width)
+
+Reg.    HC_SubA_HTXnL0_5WE      0x004b		Map 0 - 5
+Reg.    HC_SubA_HTXnL6_bWE      0x004c		Map 6 - b
+Reg.    HC_SubA_HTXnLc_11WE     0x004d		Map c - 11
+
+Height exponents (log2 of texture width)
+
+Reg.    HC_SubA_HTXnL0_5HE      0x0051		Map 0 - 5
+Reg.    HC_SubA_HTXnL6_bHE      0x0052		Map 6 - b
+Reg.    HC_SubA_HTXnLc_11HE     0x0053		Map c - 11
+
+
+
+Reg.    HC_SubA_HTXnL0OS        0x0077
+Reg.    HC_SubA_HTXnTB          0x0078
+Reg.    HC_SubA_HTXnMPMD        0x0079		Texture mapping params
+==========================================
+Section HC_HTXnMPMD_SMASK       0x00070000	S axis wrapping function
+------------------------------------------
+        HC_HTXnMPMD_Ssingle     0x00000000
+        HC_HTXnMPMD_Sclamp      0x00010000
+        HC_HTXnMPMD_Srepeat     0x00020000
+        HC_HTXnMPMD_Smirror     0x00030000
+        HC_HTXnMPMD_Swrap       0x00040000
+
+Section HC_HTXnMPMD_TMASK       0x00380000	T axis wrapping function
+------------------------------------------
+        HC_HTXnMPMD_Tsingle     0x00000000
+        HC_HTXnMPMD_Tclamp      0x00080000
+        HC_HTXnMPMD_Trepeat     0x00100000
+        HC_HTXnMPMD_Tmirror     0x00180000
+        HC_HTXnMPMD_Twrap       0x00200000
+
+Section HC_HTXnLODDTf_MASK      0x00000007	????
+Section HC_HTXnXY2ST_MASK       0x00000008	????
+
+Reg.    HC_SubA_HTXnCLODu       0x007a
+
+Reg.    HC_SubA_HTXnFM          0x007b		Texture pixel format and mem type
+==========================================
+Section HC_HTXnFM_MASK          0x00ff0000	Texture pixel format, see HC_HTXnFM_MASK
+											in regs3d.h for a list of formats.
+Section HC_HTXnLoc_MASK         0x00000003
+------------------------------------------
+        HC_HTXnLoc_Local        0x00000000
+        HC_HTXnLoc_Sys          0x00000002
+        HC_HTXnLoc_AGP          0x00000003
+
+Reg.    HC_SubA_HTXnTRCH        0x007c
+Reg.    HC_SubA_HTXnTRCL        0x007d
+Reg.    HC_SubA_HTXnTBC         0x007e
+Reg.    HC_SubA_HTXnTRAH        0x007f
+
+Blending, fog etc.
+
+Reg.    HC_SubA_HTXnTBLCsat     0x0080
+Reg.    HC_SubA_HTXnTBLCop      0x0081
+Reg.    HC_SubA_HTXnTBLMPfog    0x0082
+Reg.    HC_SubA_HTXnTBLAsat     0x0083
+Reg.    HC_SubA_HTXnTBLRCa      0x0085
+Reg.    HC_SubA_HTXnTBLRCb      0x0086
+Reg.    HC_SubA_HTXnTBLRCc      0x0087
+Reg.    HC_SubA_HTXnTBLRCbias   0x0088
+Reg.    HC_SubA_HTXnTBLRAa      0x0089
+Reg.    HC_SubA_HTXnTBLRFog     0x008a
+Reg.    HC_SubA_HTXnBumpM00     0x0090
+Reg.    HC_SubA_HTXnBumpM01     0x0091
+Reg.    HC_SubA_HTXnBumpM10     0x0092
+Reg.    HC_SubA_HTXnBumpM11     0x0093
+Reg.    HC_SubA_HTXnLScale      0x0094
+Reg.    HC_SubA_HTXSMD          0x0000
