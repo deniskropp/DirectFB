@@ -100,10 +100,10 @@ dfb_vt_initialize()
      dfb_vt = D_CALLOC( 1, sizeof(VirtualTerminal) );
 
      setsid();
-     dfb_vt->fd0 = open( "/dev/tty0", O_WRONLY );
+     dfb_vt->fd0 = open( "/dev/tty0", O_RDONLY );
      if (dfb_vt->fd0 < 0) {
           if (errno == ENOENT) {
-               dfb_vt->fd0 = open( "/dev/vc/0", O_RDWR );
+               dfb_vt->fd0 = open( "/dev/vc/0", O_RDONLY );
                if (dfb_vt->fd0 < 0) {
                     if (errno == ENOENT) {
                          D_PERROR( "DirectFB/core/vt: Couldn't open "
@@ -142,7 +142,6 @@ dfb_vt_initialize()
 
 
      if (!dfb_config->vt_switch) {
-          dfb_vt->fd   = dfb_vt->fd0;
           dfb_vt->num = dfb_vt->prev;
 
           /* move vt to framebuffer */
@@ -276,6 +275,10 @@ dfb_vt_shutdown( bool emergency )
      else {
           /* restore con2fbmap */
           vt_set_fb( dfb_vt->num, dfb_vt->old_fb );
+
+          if (close( dfb_vt->fd ) < 0)
+               D_PERROR( "DirectFB/core/vt: Unable to "
+                          "close file descriptor of current VT!\n" );
      }
 
      if (close( dfb_vt->fd0 ) < 0)
@@ -301,7 +304,7 @@ dfb_vt_detach( bool force )
           int            fd;
           struct vt_stat vt_state;
 
-          fd = open( "/dev/tty", O_RDWR );
+          fd = open( "/dev/tty", O_RDONLY );
           if (fd < 0) {
                if (errno == ENXIO)
                     return DFB_OK;
