@@ -87,7 +87,7 @@ dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect 
 }
 
 void
-dfb_back_to_front_copy( CoreSurface *surface, DFBRegion *region )
+dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
 {
      SurfaceBuffer *tmp;
      DFBRectangle   rect;

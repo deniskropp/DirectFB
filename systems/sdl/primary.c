@@ -270,9 +270,15 @@ primaryUpdateRegion( CoreLayer           *layer,
                      void                *layer_data,
                      void                *region_data,
                      CoreSurface         *surface,
-                     DFBRegion           *update )
+                     const DFBRegion     *update )
 {
-     return dfb_sdl_update_screen( update );
+     if (update) {
+          DFBRegion region = *update;
+
+          return dfb_sdl_update_screen( &region );
+     }
+
+     return dfb_sdl_update_screen( NULL );
 }
 
 static DFBResult
@@ -453,7 +459,7 @@ dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
 }
 
 static DFBResult
-dfb_sdl_update_screen_handler( DFBRegion *region )
+dfb_sdl_update_screen_handler( const DFBRegion *region )
 {
      DFBResult    ret;
      CoreSurface *surface = dfb_sdl->primary;

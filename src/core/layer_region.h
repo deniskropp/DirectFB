@@ -74,7 +74,7 @@ DFBResult dfb_layer_region_get_surface  ( CoreLayerRegion      *region,
                                           CoreSurface         **ret_surface );
 
 DFBResult dfb_layer_region_flip_update  ( CoreLayerRegion      *region,
-                                          DFBRegion            *update,
+                                          const DFBRegion      *update,
                                           DFBSurfaceFlipFlags   flags );
 
 

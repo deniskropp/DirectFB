@@ -199,7 +199,7 @@ typedef struct {
                                  void                       *layer_data,
                                  void                       *region_data,
                                  CoreSurface                *surface,
-                                 DFBRegion                  *update );
+                                 const DFBRegion            *update );
 
      /*
       * Control hardware deinterlacing.

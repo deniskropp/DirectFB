@@ -269,11 +269,19 @@ primaryUpdateRegion( CoreLayer           *layer,
                      void                *layer_data,
                      void                *region_data,
                      CoreSurface         *surface,
-                     DFBRegion           *update )
+                     const DFBRegion     *update )
 {
-     if (surface && (surface->caps & DSCAPS_FLIPPING))
-          return dfb_osx_update_screen( update );
-     
+
+     if (surface && (surface->caps & DSCAPS_FLIPPING)) {
+          if (update) {
+               DFBRegion region = *update;
+
+               return dfb_osx_update_screen( &region );
+          }
+          else
+               return dfb_osx_update_screen( NULL );
+     }
+
      return DFB_OK;
 }
 
@@ -296,32 +304,32 @@ primaryAllocateSurface( CoreLayer              *layer,
      else {
           DFBResult ret;
           CoreSurface *surface = NULL;
-          
+
           surface = dfb_core_create_surface( NULL );
           if (!surface)
                return DFB_FAILURE;
-          
+
           /* reallocation just needs an allocated buffer structure */
-          surface->idle_buffer = surface->back_buffer = surface->front_buffer 
+          surface->idle_buffer = surface->back_buffer = surface->front_buffer
                                = SHCALLOC( 1, sizeof(SurfaceBuffer) );
-          
+
           surface->front_buffer->policy = CSP_SYSTEMONLY;
           surface->front_buffer->format = config->format;
-          
+
           *ret_surface = surface;
-                    
+
           ret = dfb_surface_init( NULL, surface,
                              config->width, config->height,
                              config->format, caps, NULL );
-          
+
           if (ret)
              return ret;
-          
+
           /* activate object */
           fusion_object_activate( &surface->object );
 
-          return ret;                                                                                             
-     }     
+          return ret;
+     }
 }
 
 static DFBResult
@@ -413,7 +421,7 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      int          pitch;
      int          dst_pitch;
      DFBResult    ret;
-     
+
      D_ASSERT( surface != NULL );
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
@@ -452,7 +460,7 @@ dfb_osx_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
      boolean_t exactMatch;
      CFDictionaryRef mode;
-    
+
      fusion_skirmish_prevail( &dfb_osx->lock );
 
      mode = CGDisplayBestModeForParameters( screen, DFB_BITS_PER_PIXEL(config->format),
@@ -472,9 +480,9 @@ dfb_osx_set_video_mode_handler( CoreLayerRegionConfig *config )
 
      if (config->buffermode == DLBM_FRONTONLY) {
           /* update primary surface information */
-          dfb_osx->primary->front_buffer->system.addr = CGDisplayBaseAddress( screen );  
+          dfb_osx->primary->front_buffer->system.addr = CGDisplayBaseAddress( screen );
           dfb_osx->primary->front_buffer->system.pitch =  CGDisplayBytesPerRow( screen );
-     }                                 
+     }
      fusion_skirmish_dismiss( &dfb_osx->lock );
 
      return DFB_OK;
