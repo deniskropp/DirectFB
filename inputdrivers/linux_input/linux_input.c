@@ -43,6 +43,10 @@
 #include "input_fake.h"
 #endif
 
+#ifndef EVIOCGRAB
+#define EVIOCGRAB _IOW('E', 0x90, int)
+#endif
+
 #include <directfb.h>
 #include <directfb_keyboard.h>
 
@@ -578,7 +582,7 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     int              fd;
+     int              fd, ret;
      char             buf[32];
      LinuxInputData  *data;
 
@@ -588,6 +592,15 @@ driver_open_device( InputDevice      *device,
      fd = open( buf, O_RDONLY );
      if (fd < 0) {
           D_PERROR( "DirectFB/linux_input: could not open device" );
+          return DFB_INIT;
+     }
+
+     /* grab device */
+     ret = ioctl( fd, EVIOCGRAB, 1 );
+     /* 2.4 kernels don't have EVIOCGRAB so ignore -EINVAL */
+     if (ret && ret != -EINVAL) {
+          D_PERROR( "DirectFB/linux_input: could not grab device" );
+          close( fd );
           return DFB_INIT;
      }
 
@@ -636,6 +649,9 @@ driver_close_device( void *driver_data )
      dfb_thread_cancel( data->thread );
      dfb_thread_join( data->thread );
      dfb_thread_destroy( data->thread );
+
+     /* release device */
+     ioctl( data->fd, EVIOCGRAB, 0 );
 
      /* close file */
      close( data->fd );
