@@ -103,7 +103,7 @@ dfb_palette_create( unsigned int size, CorePalette **ret_palette )
      /* reset cache */
      palette->search_cache.index = -1;
 
-     /* Resturn the new palette. */
+     /* return the new palette */
      *ret_palette = palette;
 
      return DFB_OK;
