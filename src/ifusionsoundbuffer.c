@@ -375,7 +375,7 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      data->left     = 0x100;
      data->right    = 0x100;
 
-     pthread_mutex_init( &data->lock, NULL );
+     fusion_pthread_recursive_mutex_init( &data->lock );
 
      /* Initialize method table. */
      thiz->AddRef         = IFusionSoundBuffer_AddRef;

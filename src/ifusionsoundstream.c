@@ -24,8 +24,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -396,9 +394,8 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
                               int                 rate,
                               int                 prebuffer )
 {
-     DFBResult            ret;
-     pthread_mutexattr_t  attr;
-     CorePlayback        *playback;
+     DFBResult     ret;
+     CorePlayback *playback;
 
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundStream)
 
@@ -443,13 +440,7 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      data->prebuffer = prebuffer;
 
      /* Initialize lock and condition. */
-     pthread_mutexattr_init( &attr );
-     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-
-     pthread_mutex_init( &data->lock, &attr );
-
-     pthread_mutexattr_destroy( &attr );
-
+     fusion_pthread_recursive_mutex_init( &data->lock );
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */

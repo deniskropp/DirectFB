@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -34,6 +34,8 @@
 #include <media/ifusionsoundmusicprovider.h>
 
 #include <core/coredefs.h>
+
+#include <core/fusion/lock.h>
 
 #include <misc/mem.h>
 
@@ -347,7 +349,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      /* initialize private data */
      data->ref = 1;
      data->filename = DFBSTRDUP( filename );
-     pthread_mutex_init( &data->lock, NULL );
+     fusion_pthread_recursive_mutex_init( &data->lock );
 
      /* initialize function pointers */
      thiz->AddRef               = IFusionSoundMusicProvider_Timidity_AddRef;

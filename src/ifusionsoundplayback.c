@@ -24,8 +24,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#define _GNU_SOURCE
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -268,8 +266,6 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
                                 CorePlayback         *playback,
                                 int                   length )
 {
-     pthread_mutexattr_t attr;
-
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundPlayback)
 
      /* Increase reference counter of the playback. */
@@ -297,13 +293,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      data->volume   = 1.0f;
 
      /* Initialize lock and condition. */
-     pthread_mutexattr_init( &attr );
-     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
-
-     pthread_mutex_init( &data->lock, &attr );
-
-     pthread_mutexattr_destroy( &attr );
-
+     fusion_pthread_recursive_mutex_init( &data->lock );
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */
