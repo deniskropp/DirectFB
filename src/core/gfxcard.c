@@ -120,6 +120,10 @@ DFBResult dfb_gfxcard_initialize()
 
      Scard = (GraphicsDeviceShared*) shcalloc( 1, sizeof(GraphicsDeviceShared) );
 
+#ifndef FUSION_FAKE
+     arena_add_shared_field( dfb_core->arena, "Scard", Scard );
+#endif
+     
      /* fill generic driver info */
      gGetDriverInfo( &Scard->driver_info );
 
@@ -197,10 +201,6 @@ DFBResult dfb_gfxcard_initialize()
      Scard->surface_pool = dfb_surface_pool_create();
 
      skirmish_init( &Scard->lock );
-
-#ifndef FUSION_FAKE
-     arena_add_shared_field( dfb_core->arena, "Scard", Scard );
-#endif
 
      return DFB_OK;
 }

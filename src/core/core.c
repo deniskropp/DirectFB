@@ -471,11 +471,6 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
      ret = dfb_layers_initialize();
      if (ret)
           return ret;
-     
-     
-     ret = dfb_layers_init_all();
-     if (ret)
-          return ret;
 
      return 0;
 }
@@ -514,11 +509,6 @@ dfb_core_join( FusionArena *arena, void *ctx )
           return ret;
      
      ret = dfb_layers_join();
-     if (ret)
-          return ret;
-
-
-     ret = dfb_layers_join_all();
      if (ret)
           return ret;
      

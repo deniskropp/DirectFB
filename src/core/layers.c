@@ -143,6 +143,9 @@ static DFBResult deallocate_surface  ( DisplayLayer          *layer );
 DFBResult
 dfb_layers_initialize()
 {
+     int       i;
+     DFBResult ret;
+
      DFB_ASSERT( layersfield == NULL );
 
      layersfield = shcalloc( 1, sizeof (CoreLayersField) );
@@ -151,6 +154,65 @@ dfb_layers_initialize()
      arena_add_shared_field( dfb_core->arena, "Core/Layers", layersfield );
 #endif
 
+     for (i=0; i<dfb_num_layers; i++) {
+          int                 layer_data_size;
+          DisplayLayerShared *shared;
+          DisplayLayer       *layer = dfb_layers[i];
+          
+          /* allocate shared data */
+          shared = shcalloc( 1, sizeof(DisplayLayerShared) );
+
+          /* zero based counting */
+          shared->id = i;
+          
+          /* init property for exclusive access and window stack repaints */
+          fusion_property_init( &shared->lock );
+
+          /* allocate shared layer driver data */
+          layer_data_size = layer->funcs->LayerDataSize();
+          if (layer_data_size > 0)
+               shared->layer_data = shcalloc( 1, layer_data_size );
+
+          /* set default opacity */
+          shared->opacity = 0xFF;
+
+          /* set default screen location */
+          shared->screen.x = 0.0f;
+          shared->screen.y = 0.0f;
+          shared->screen.w = 1.0f;
+          shared->screen.h = 1.0f;
+
+          /* initialize the layer gaining the default configuration,
+             the default color adjustment and the layer information */
+          ret = layer->funcs->InitLayer( layer->device, layer,
+                                         &shared->layer_info,
+                                         &shared->config,
+                                         &shared->adjustment,
+                                         layer->driver_data,
+                                         shared->layer_data );
+          if (ret) {
+               fusion_property_destroy( &shared->lock );
+               shfree( shared->layer_data );
+               shfree( shared );
+          }
+
+          /* make a copy for faster access */
+          layer->layer_data = shared->layer_data;
+          
+          /* store pointer to shared data */
+          layer->shared = shared;
+          
+          /* add it to the shared list */
+          layersfield->layers[ layersfield->num++ ] = shared;
+     }
+
+     /* enable the primary layer now */
+     ret = dfb_layer_enable( dfb_layers[DLID_PRIMARY] );
+     if (ret) {
+          ERRORMSG("DirectFB/Core/layers: Failed to enable primary layer!\n");
+          return ret;
+     }
+     
      return DFB_OK;
 }
 
@@ -158,12 +220,28 @@ dfb_layers_initialize()
 DFBResult
 dfb_layers_join()
 {
+     int i;
+
      DFB_ASSERT( layersfield == NULL );
      
      if (arena_get_shared_field( dfb_core->arena, "Core/Layers",
                                  (void**) &layersfield ))
           return DFB_INIT;
 
+     if (dfb_num_layers != layersfield->num)
+          CAUTION("Number of layers does not match!");
+
+     for (i=0; i<dfb_num_layers; i++) {
+          DisplayLayer       *layer  = dfb_layers[i];
+          DisplayLayerShared *shared = layersfield->layers[i];
+
+          /* make a copy for faster access */
+          layer->layer_data = shared->layer_data;
+          
+          /* store pointer to shared data */
+          layer->shared = shared;
+     }
+     
      return DFB_OK;
 }
 #endif
@@ -368,100 +446,9 @@ dfb_layers_replace_primary( GraphicsDevice     *device,
      primary->driver_data = driver_data;
 }
 
-DFBResult
-dfb_layers_init_all()
-{
-     DFBResult ret;
-     int       i;
-
-     for (i=0; i<dfb_num_layers; i++) {
-          int                 layer_data_size;
-          DisplayLayerShared *shared;
-          DisplayLayer       *layer = dfb_layers[i];
-          
-          /* allocate shared data */
-          shared = shcalloc( 1, sizeof(DisplayLayerShared) );
-
-          /* zero based counting */
-          shared->id = i;
-          
-          /* init property for exclusive access and window stack repaints */
-          fusion_property_init( &shared->lock );
-
-          /* allocate shared layer driver data */
-          layer_data_size = layer->funcs->LayerDataSize();
-          if (layer_data_size > 0)
-               shared->layer_data = shcalloc( 1, layer_data_size );
-
-          /* set default opacity */
-          shared->opacity = 0xFF;
-
-          /* set default screen location */
-          shared->screen.x = 0.0f;
-          shared->screen.y = 0.0f;
-          shared->screen.w = 1.0f;
-          shared->screen.h = 1.0f;
-
-          /* initialize the layer gaining the default configuration,
-             the default color adjustment and the layer information */
-          ret = layer->funcs->InitLayer( layer->device, layer,
-                                         &shared->layer_info,
-                                         &shared->config,
-                                         &shared->adjustment,
-                                         layer->driver_data,
-                                         shared->layer_data );
-          if (ret) {
-               fusion_property_destroy( &shared->lock );
-               shfree( shared->layer_data );
-               shfree( shared );
-          }
-
-          /* make a copy for faster access */
-          layer->layer_data = shared->layer_data;
-          
-          /* store pointer to shared data */
-          layer->shared = shared;
-          
-          /* add it to the shared list */
-          layersfield->layers[ layersfield->num++ ] = shared;
-     }
-
-     /* enable the primary layer now */
-     ret = dfb_layer_enable( dfb_layers[DLID_PRIMARY] );
-     if (ret) {
-          ERRORMSG("DirectFB/Core/layers: Failed to enable primary layer!\n");
-          return ret;
-     }
-
-     return DFB_OK;
-}
-
-#ifndef FUSION_FAKE
-DFBResult
-dfb_layers_join_all()
-{
-     int i;
-
-     if (dfb_num_layers != layersfield->num)
-          CAUTION("Number of layers does not match!");
-
-     for (i=0; i<dfb_num_layers; i++) {
-          DisplayLayer       *layer  = dfb_layers[i];
-          DisplayLayerShared *shared = layersfield->layers[i];
-
-          /* make a copy for faster access */
-          layer->layer_data = shared->layer_data;
-          
-          /* store pointer to shared data */
-          layer->shared = shared;
-     }
-
-     return DFB_OK;
-}
-#endif
-
-void dfb_layers_enumerate( DisplayLayerCallback  callback,
-                           void                 *ctx )
+void
+dfb_layers_enumerate( DisplayLayerCallback  callback,
+                      void                 *ctx )
 {
      int i;
 

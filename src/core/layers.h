@@ -172,9 +172,6 @@ typedef struct {
 DFBResult dfb_layers_initialize();
 DFBResult dfb_layers_join();
 
-DFBResult dfb_layers_init_all();
-DFBResult dfb_layers_join_all();
-
 
 DFBResult dfb_layers_shutdown( bool emergency );
 DFBResult dfb_layers_leave( bool emergency );
