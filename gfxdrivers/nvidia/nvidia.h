@@ -80,7 +80,7 @@ typedef struct
 {
     __u32 reserved00[4];
     __u16 FifoFree;
-    __u16 Nop[1];
+    __u16 Nop;
     __u32 reserved01[0x03B];
 
     __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -106,7 +106,7 @@ typedef struct
 typedef struct {
      __u32 reserved00[4];
      __u16 FifoFree;
-     __u16 Nop[1];
+     __u16 Nop;
      __u32 reserved01[0x03B];
 
      __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -155,7 +155,7 @@ typedef struct {
 typedef struct {
      __u32 reserved00[4];
      __u16 FifoFree;
-     __u16 Nop[1];
+     __u16 Nop;
      __u32 reserved01[0x03B];
 
      __u32 NoOperation;             /* ignored                          0100-0103*/
@@ -204,7 +204,7 @@ typedef struct
 {
     __u32 reserved00[4];
     __u16 FifoFree;
-    __u16 Nop[1];
+    __u16 Nop;
     __u32 reserved01[0x0BC];
     __u32 TopLeft;
     __u32 WidthHeight;
@@ -281,7 +281,7 @@ typedef struct
 {
     __u32 reserved00[4];
     __u16 FifoFree;
-    __u16 Nop[1];
+    __u16 Nop;
     __u32 reserved01[0x0BC];
     __u32 Color;             /* source color               0304-0307*/
     __u32 Reserved02[0x03e];

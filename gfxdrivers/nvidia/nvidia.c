@@ -34,6 +34,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <malloc.h>
+#include <endian.h>
 
 #include <directfb.h>
 
@@ -85,6 +86,11 @@ typedef struct {
      volatile RivaSurface      *Surface;
 } NVidiaDriverData;
 
+#if __BYTE_ORDER == __BIG_ENDIAN
+/* 
+   access Nop field instead of FifoFree, since they are swapped,
+   (Nop is really FifoFree here)
+*/
 #define RIVA_FIFO_FREE(nvdev,ptr,space)                     \
 {                                                           \
      (nvdev)->waitfifo_sum += (space);                      \
@@ -92,7 +98,7 @@ typedef struct {
                                                             \
      if ((nvdev)->fifo_space < (space)) {                   \
           do {                                              \
-               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \
+               (nvdev)->fifo_space = (ptr)->Nop      >> 2;  \
                (nvdev)->fifo_waitcycles++;                  \
           } while ((nvdev)->fifo_space < (space));          \
      }                                                      \
@@ -102,7 +108,25 @@ typedef struct {
                                                             \
      (nvdev)->fifo_space -= (space);                        \
 }
-
+#else
+#define RIVA_FIFO_FREE(nvdev,ptr,space)                     \
+{                                                           \
+     (nvdev)->waitfifo_sum += (space);                      \
+     (nvdev)->waitfifo_calls++;                             \
+                                                            \
+     if ((nvdev)->fifo_space < (space)) {                   \
+          do {                                              \
+               (nvdev)->fifo_space = (ptr)->FifoFree >> 2;  \ 
+               (nvdev)->fifo_waitcycles++;                  \
+          } while ((nvdev)->fifo_space < (space));          \
+     }                                                      \
+     else {                                                 \
+          (nvdev)->fifo_cache_hits++;                       \
+     }                                                      \
+                                                            \
+     (nvdev)->fifo_space -= (space);                        \
+}
+#endif
 
 static inline void nv_waitidle( NVidiaDriverData *nvdrv,
                                 NVidiaDeviceData *nvdev )
@@ -307,7 +331,7 @@ static void nvDrawLine( void *drv, void *dev, DFBRegion *line )
      NVidiaDeviceData  *nvdev = (NVidiaDeviceData*) dev;
      volatile RivaLine *Line  = nvdrv->Line;
 
-     RIVA_FIFO_FREE( nvdev, Line, 3 );
+     RIVA_FIFO_FREE( nvdev, Line, 4 );
 
      Line->Color = nvdev->Color;
 
