@@ -187,13 +187,21 @@ struct dfb_driver_s {
      int                     accel;
      
      CardState               state;
+     
      IDirectFBSurface       *dest;
      IDirectFBSurface_data  *dest_data;
+     DFBSurfacePixelFormat   dest_format;
+     
      IDirectFBSurface       *ovl;
      IDirectFBSurface_data  *ovl_data;
+     int                     ovl_width;
+     int                     ovl_height;
+     bool                    ovl_changed;   
      
-     DFBSurfacePixelFormat   dest_format;
      DFBSurfacePixelFormat   frame_format;
+     int                     frame_width;
+     int                     frame_height;
+     int                     frame_interlaced;
      
      struct {
           MixerFlags         set;
@@ -203,9 +211,8 @@ struct dfb_driver_s {
      } mixer;
 
      int                     deinterlace;
-     int                     interlaced;
-
-     bool                    overlay_changed;
+     int                     aspect_ratio;
+     double                  output_ratio;
      
      DVOutputCallback        output_cb;
      void*                   output_cdata;

@@ -261,6 +261,8 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
      bool                clamp  = false;
      int                 i;
      
+     lprintf( "regenerating tables\n" );
+     
      if (flags & MF_B) {
           if (this->mixer.b == 0)
                this->mixer.set &= ~MF_B;
@@ -387,6 +389,8 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
           void     *clamp_b;
           uint32_t  alpha;
           int       cpp;
+         
+          lprintf( "regenerating clamp tables\n" );
           
           uv_min = (m->uv.min - m->uv.off) * 255;
           uv_max = (m->uv.max - m->uv.off) * 255;
@@ -398,9 +402,11 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
           b_min = 0x00 +                             ((uv_min * ub_cfc) >> 20);
           b_max = 0xff +                             ((uv_max * ub_cfc) >> 20);
           
-          lprintf( "video_out_dfb: Red   [min:%4i max:%4i]\n", r_min, r_max );
-          lprintf( "video_out_dfb: Green [min:%4i max:%4i]\n", g_min, g_max );
-          lprintf( "video_out_dfb: Blue  [min:%4i max:%4i]\n", b_min, b_max );
+          lprintf( "colors range after conversion:\n"
+                   "\tRed   [min:%4i max:%4i]\n"
+                   "\tGreen [min:%4i max:%4i]\n"
+                   "\tBlue  [min:%4i max:%4i]\n",
+                   r_min, r_max, g_min, g_max, b_min, b_max );
           
           cpp = DFB_BYTES_PER_PIXEL(format);
           
@@ -425,7 +431,7 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
 
                clamp_buf = xine_xmalloc_aligned( 4, size, &proc_table.clamp.buf );
                if (!clamp_buf) {
-                    lprintf( "video_out_dfb: memory allocation failed!!!\n" );
+                    lprintf( "memory allocation failed!!!\n" );
                     _x_abort();
                }
 
@@ -549,7 +555,14 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
 static uint32_t
 vo_dfb_get_capabilities( vo_driver_t *vo_driver )
 {
-     return (VO_CAP_YV12 | VO_CAP_YUY2);
+     dfb_driver_t *this = (dfb_driver_t*) vo_driver;
+     uint32_t      caps = VO_CAP_YV12 | VO_CAP_YUY2;
+
+     if (this->ovl)
+          caps |= VO_CAP_UNSCALED_OVERLAY;
+    
+     lprintf( "capabilities = 0x%08x\n", caps );     
+     return caps;
 }
 
 static void
@@ -601,19 +614,21 @@ vo_dfb_frame_field( vo_frame_t *vo_frame,
      }
      
      switch (field) {
-          case VO_TOP_FIELD: 
-               this->interlaced  = 1;
+          case VO_TOP_FIELD:
                frame->interlaced = true;
+               this->frame_interlaced  = 1;
                dfb_surface_set_field( frame->surface, 0 );
+               lprintf( "frame %p is interlaced (Top Field)\n", frame );
                break;
-          case VO_BOTTOM_FIELD: 
-               this->interlaced  = 2;
+          case VO_BOTTOM_FIELD:
                frame->interlaced = true; 
+               this->frame_interlaced  = 2;
                dfb_surface_set_field( frame->surface, 1 );
+               lprintf( "frame %p is interlaced (Bottom Field)\n", frame );
                break;
           case VO_BOTH_FIELDS: 
-               this->interlaced  = 0;
                frame->interlaced = false;
+               this->frame_interlaced = 0;
                break;
           default:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
@@ -647,7 +662,7 @@ vo_dfb_alloc_frame( vo_driver_t *vo_driver )
 
      frame = (dfb_frame_t*) xine_xmalloc( sizeof(dfb_frame_t) );
      if (!frame) {
-          lprintf( "video_out_dfb: frame allocation failed!!!\n" );
+          lprintf( "frame allocation failed!!!\n" );
           return NULL;
      }
 
@@ -772,13 +787,22 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
           SurfaceBuffer         *buffer;
           DFBSurfacePixelFormat  frame_format;
           DFBResult              err;
+
+          lprintf( "reformatting frame %p\n", frame );
           
           frame_format = (in_format) ? DSPF_YV12 : DSPF_YUY2;
-          if (this->frame_format != frame_format) {
+          if (this->frame_format != frame_format    ||
+              this->frame_width  != vo_frame->width ||
+              this->frame_height != vo_frame->height)
+          {
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                        "video_out_dfb: frame format changed to %s\n",
-                        (in_format) ? "YV12" : "YUY2" );
+                        "video_out_dfb: frame format changed to %dx%d %s\n",
+                        vo_frame->width, vo_frame->height,
+                        in_format ? "YV12" : "YUY2" );
+               
                this->frame_format = frame_format;
+               this->frame_width  = vo_frame->width;
+               this->frame_height = vo_frame->height;
           }
           
           if (!frame->surface)
@@ -790,7 +814,8 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
                                            width, height, this->dest_format );
 
           if (err != DFB_OK) {
-               lprintf( "video_out_dfb: "
+               xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                        "video_out_dfb: "
                         "error creating/reformatting frame surface (%s)\n",
                         DirectFBErrorString( err ) );
                goto failure;
@@ -988,25 +1013,33 @@ vo_dfb_overlay_begin( vo_driver_t *vo_driver,
 {
      dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-     if (this->ovl && changed) {
-          IDirectFBSurface_data *ovl_data = this->ovl_data;
-          DFBColor               color    = { 0, 0, 0, 0 }; 
-          DFBRectangle           rect     = ovl_data->area.current;
-          DFBRegion              clip;
+     if (this->ovl) {
+          IDirectFBSurface_data *ovl_data   = this->ovl_data;
+          int                    ovl_width  = ovl_data->area.current.w;
+          int                    ovl_height = ovl_data->area.current.h;
 
-          xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                   "video_out_dfb: "
-                   "overlay changed, clearing subpicture surface\n" );
-          
-          dfb_region_from_rectangle( &clip, &rect );
-          
-          dfb_state_set_destination( &this->state, ovl_data->surface );
-          dfb_state_set_color( &this->state, &color );         
-          dfb_state_set_clip( &this->state, &clip );
-          
-          dfb_gfxcard_fillrectangles( &rect, 1, &this->state );
+          if (this->ovl_width  != ovl_width  ||
+              this->ovl_height != ovl_height || changed) {
+               DFBColor     color = { 0, 0, 0, 0 }; 
+               DFBRectangle rect  = ovl_data->area.current;
+               DFBRegion    clip;
 
-          this->overlay_changed = true;
+               xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                        "video_out_dfb: "
+                        "overlay changed, clearing subpicture surface\n" );
+          
+               dfb_region_from_rectangle( &clip, &rect );
+          
+               dfb_state_set_destination( &this->state, ovl_data->surface );
+               dfb_state_set_color( &this->state, &color );         
+               dfb_state_set_clip( &this->state, &clip );
+          
+               dfb_gfxcard_fillrectangles( &rect, 1, &this->state );
+
+               this->ovl_width   = ovl_width;
+               this->ovl_height  = ovl_height;
+               this->ovl_changed = true;
+          }
      }
 }          
  
@@ -1017,6 +1050,7 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
 {
      dfb_driver_t *this    = (dfb_driver_t*) vo_driver;
      dfb_frame_t  *frame   = (dfb_frame_t*) vo_frame;
+     bool          use_ovl = false;
      int           x       = overlay->x;
      int           y       = overlay->y;
      DFBRegion     clip;
@@ -1033,11 +1067,16 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
           return;
 
      if (!overlay->rgb_clut || !overlay->clip_rgb_clut) {
-          xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                   "video_out_dfb: regenerating palette for overlay %p\n",
-                   overlay );
+          lprintf( "regenerating palette for overlay %p\n", overlay );
           vo_dfb_set_palette( this, overlay );
-          this->overlay_changed = true;
+          this->ovl_changed = true;
+     }
+
+     if (this->ovl) {
+          use_ovl = (overlay->unscaled || 
+                     (vo_frame->width  == this->ovl_data->area.wanted.w &&
+                      vo_frame->height == this->ovl_data->area.wanted.h));
+          //lprintf( "%s using hardware osd\n", use_ovl ? "" : "not" );
      }
 
      /* FIXME: apparently bottom-right borders of the overlay get cut away */
@@ -1048,11 +1087,11 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
      subclip.y1 = y + overlay->clip_top;
      subclip.x2 = x + overlay->clip_right;
      subclip.y2 = y + overlay->clip_bottom;
-
-     if (this->ovl) {
+     
+     if (use_ovl) {
           IDirectFBSurface_data *ovl_data = this->ovl_data;
           
-          if (!this->overlay_changed)
+          if (!this->ovl_changed)
                return;
 
           clip.x1 = ovl_data->area.wanted.x + max( x, 0 );
@@ -1229,12 +1268,13 @@ vo_dfb_overlay_end( vo_driver_t *vo_driver,
 {
      dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-     if (this->ovl && this->overlay_changed) {
+     if (this->ovl && this->ovl_changed) {
           if (this->ovl_data->caps & DSCAPS_FLIPPING) 
                this->ovl->Flip( this->ovl, NULL, DSFLIP_ONSYNC );
          dfb_state_set_destination( &this->state, this->dest_data->surface );
-         this->overlay_changed = false;
      }
+
+     this->ovl_changed = false;
 }          
 
 static int
@@ -1251,6 +1291,7 @@ vo_dfb_display_frame( vo_driver_t *vo_driver,
      dfb_frame_t  *frame     = (dfb_frame_t*) vo_frame;
      DFBRectangle  dst_rect  = { 0, 0, 0, 0 };
      DFBRectangle  src_rect  = { 0, 0, };
+     double        src_ratio;
 
      _x_assert( frame->surface != NULL );
      
@@ -1259,10 +1300,11 @@ vo_dfb_display_frame( vo_driver_t *vo_driver,
 
      src_rect.w = max( vo_frame->width,  2 );
      src_rect.h = max( vo_frame->height, 2 );
-
+     src_ratio  = this->output_ratio ? : vo_frame->ratio;
+     
      this->output_cb( this->output_cdata, src_rect.w, src_rect.h,
-                      vo_frame->ratio ? : 1.0, &dst_rect );
-
+                      src_ratio ? : 1.0, &dst_rect );
+     
      dst_rect.x += this->dest_data->area.wanted.x;
      dst_rect.y += this->dest_data->area.wanted.y;
 
@@ -1306,8 +1348,14 @@ vo_dfb_get_property( vo_driver_t *vo_driver,
           case VO_PROP_INTERLACED:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
                         "video_out_dfb: interlaced is %i\n",
-                        this->interlaced );
-               return this->interlaced;
+                        this->frame_interlaced );
+               return this->frame_interlaced;
+
+          case VO_PROP_ASPECT_RATIO:
+               xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                        "video_out_dfb: aspect ratio is %i (%.4f)\n",
+                        this->aspect_ratio, this->output_ratio );
+               return this->aspect_ratio;
                    
           case VO_PROP_BRIGHTNESS:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
@@ -1332,6 +1380,24 @@ vo_dfb_get_property( vo_driver_t *vo_driver,
                         this->config.max_num_frames );
                return this->config.max_num_frames;
          
+          case VO_PROP_WINDOW_WIDTH:
+               if (this->dest) {
+                    xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                             "video_out_dfb: destination surface width is %i\n",
+                             this->dest_data->area.wanted.w );
+                    return this->dest_data->area.wanted.w;
+               }
+               break;
+
+          case VO_PROP_WINDOW_HEIGHT:
+               if (this->dest) {
+                    xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                             "video_out_dfb: destination surface height is %i\n",
+                             this->dest_data->area.wanted.h );
+                    return this->dest_data->area.wanted.h;
+               }
+               break;
+               
           default:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
                         "video_out_dfb: tryed to get unsupported property %i\n",
@@ -1340,6 +1406,36 @@ vo_dfb_get_property( vo_driver_t *vo_driver,
      }
      
      return 0;
+}
+
+static inline void
+vo_dfb_set_output_ratio( dfb_driver_t *this,
+                         int           ratio )
+{
+     double frame_width  = (this->frame_width ? : 1);
+     double frame_height = (this->frame_height ? : 1);
+
+     if (this->aspect_ratio != ratio) {
+          switch (ratio) {
+               case XINE_VO_ASPECT_AUTO:
+                    this->output_ratio = 0.0;
+                    break;
+               case XINE_VO_ASPECT_SQUARE:
+                    this->output_ratio = frame_width/frame_height;
+                    break;
+               case XINE_VO_ASPECT_4_3:
+                    this->output_ratio = 4.0/3.0;
+                    break;
+               case XINE_VO_ASPECT_ANAMORPHIC:
+                    this->output_ratio = 16.0/9.0;
+                    break;
+               case XINE_VO_ASPECT_DVB:
+                    this->output_ratio = 2.0;
+                    break;
+               default:
+                    break;
+          }
+     }
 }
 
 static int
@@ -1356,6 +1452,16 @@ vo_dfb_set_property( vo_driver_t *vo_driver,
                              "video_out_dfb: setting deinterlacing to %i\n",
                              value );
                     this->deinterlace = value;
+               }
+               break;
+
+          case VO_PROP_ASPECT_RATIO:
+               if (value >= 0 && value <= 4) {
+                    xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                             "video_out_dfb: setting aspect ratio to %i\n",
+                             value );
+                    vo_dfb_set_output_ratio( this, value );
+                    this->aspect_ratio = value;
                }
                break;
           
@@ -1417,6 +1523,11 @@ vo_dfb_get_property_min_max( vo_driver_t *vo_driver,
           case VO_PROP_INTERLACED:
                *min = -1;
                *max = +2;
+               break;
+
+          case VO_PROP_ASPECT_RATIO:
+               *min =  0;
+               *max = +4;
                break;
                
           case VO_PROP_BRIGHTNESS:
@@ -1539,8 +1650,10 @@ vo_dfb_set_subpicture( dfb_driver_t     *this,
                format_names[DFB_PIXELFORMAT_INDEX(format)].name );
 
      subpicture->AddRef( subpicture );
-     this->ovl      = subpicture;
-     this->ovl_data = (IDirectFBSurface_data*) subpicture->priv;
+     this->ovl        = subpicture;
+     this->ovl_data   = (IDirectFBSurface_data*) subpicture->priv;
+     this->ovl_width  = -1;
+     this->ovl_height = -1;
 
      return true;
 }
@@ -1557,7 +1670,10 @@ vo_dfb_gui_data_exchange( vo_driver_t *vo_driver,
           case XINE_GUI_SEND_DRAWABLE_CHANGED:
                if (data) {
                     IDirectFBSurface *surface = (IDirectFBSurface*) data;
-                    return vo_dfb_set_destination( this, surface );
+                    
+                    if (surface != this->dest)
+                         return vo_dfb_set_destination( this, surface );
+                    return 1;
                }
                break;
 
@@ -1680,7 +1796,7 @@ open_plugin( video_driver_class_t *vo_class,
 
      this = (dfb_driver_t*) xine_xmalloc( sizeof(dfb_driver_t) );
      if (!this) {
-          lprintf( "video_out_dfb: memory allocation failed!!!\n" );
+          lprintf( "memory allocation failed!!!\n" );
           return NULL;
      }
  
@@ -1700,6 +1816,10 @@ open_plugin( video_driver_class_t *vo_class,
      this->xine                           = class->xine;
 
      vo_dfb_init_config( this );
+
+     xprintf( this->xine, XINE_VERBOSITY_LOG,
+              "video_out_dfb: using %s conversion matrix\n",
+              proc_matrices[this->config.proc_matrix].name );
      
 #ifdef USE_MMX
      if ((xine_mm_accel() & MM_MMX) == MM_MMX) {
@@ -1812,7 +1932,7 @@ init_class( xine_t *xine,
 
      class = (dfb_driver_class_t*) xine_xmalloc( sizeof(dfb_driver_class_t) );
      if (!class) {
-          lprintf( "video_out_dfb: memory allocation failed!!!\n" );
+          lprintf( "memory allocation failed!!!\n" );
           return NULL;
      }
 
