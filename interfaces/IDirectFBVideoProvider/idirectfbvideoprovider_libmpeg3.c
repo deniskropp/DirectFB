@@ -284,17 +284,17 @@ IDirectFBVideoProvider_Libmpeg3_PlayTo( IDirectFBVideoProvider *thiz,
 
         rect = *dstrect;
 
-        rect.x += dst_data->req_rect.x;
-        rect.y += dst_data->req_rect.y;
+        rect.x += dst_data->area.wanted.x;
+        rect.y += dst_data->area.wanted.y;
     }
     else
-        rect = dst_data->req_rect;
+        rect = dst_data->area.wanted;
 
         /* save for later blitting operation */
     data->dest_rect = rect;
 
         /* build the clip rectangle */
-    if (!rectangle_intersect( &rect, &dst_data->clip_rect ))
+    if (!rectangle_intersect( &rect, &dst_data->area.current ))
         return DFB_INVARG;
 
         /* put the destination clip into the state */
