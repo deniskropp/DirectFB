@@ -270,7 +270,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      DFB_ASSERT( max_samples >= 0 );
 
      /* Make sure stop position is greater than start position. */
-     if (stop >= 0 && pos > stop)
+     if (stop >= 0 && pos >= stop)
           stop += buffer->length;
 
      /* Mix the data into the buffer. */

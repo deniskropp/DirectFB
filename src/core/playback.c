@@ -43,6 +43,7 @@ struct __FS_CorePlayback {
      CoreSoundBuffer *buffer;
      bool             notify;
 
+     bool             disabled;
      bool             running;
      int              position;
      int              stop;
@@ -114,7 +115,6 @@ fs_playback_create( CoreSound        *core,
      playback->left   = 0x100;
      playback->right  = 0x100;
      playback->pitch  = 0x100;
-     playback->stop   = buffer->length;
 
      fusion_skirmish_init( &playback->lock );
 
@@ -128,11 +128,12 @@ fs_playback_create( CoreSound        *core,
 }
 
 DFBResult
-fs_playback_start( CorePlayback *playback )
+fs_playback_start( CorePlayback *playback, bool enable )
 {
-     DFBResult ret;
+     DFBResult ret = DFB_OK;
 
      DFB_ASSERT( playback != NULL );
+     DFB_ASSERT( playback->buffer != NULL );
 
      /* Lock playlist. */
      if (fs_core_playlist_lock( playback->core ))
@@ -144,17 +145,22 @@ fs_playback_start( CorePlayback *playback )
           return DFB_FUSION;
      }
 
+     /* If the playback is disabled, it won't begin to play. */
+     if (enable)
+          playback->disabled = false;
+
      /* Start the playback if it's not running already. */
      if (!playback->running) {
-          ret = fs_core_add_playback( playback->core, playback );
-          if (ret) {
-               fusion_skirmish_dismiss( &playback->lock );
-               fs_core_playlist_unlock( playback->core );
-               return ret;
+          if (playback->disabled) {
+               ret = DFB_TEMPUNAVAIL;
           }
+          else {
+               ret = fs_core_add_playback( playback->core, playback );
 
-          /* Notify listeners about the start of the playback. */
-          fs_playback_notify( playback, CPNF_START, 0 );
+               /* Notify listeners about the start of the playback. */
+               if (ret == DFB_OK)
+                    fs_playback_notify( playback, CPNF_START, 0 );
+          }
      }
 
      /* Unlock playback. */
@@ -163,11 +169,11 @@ fs_playback_start( CorePlayback *playback )
      /* Unlock playlist. */
      fs_core_playlist_unlock( playback->core );
 
-     return DFB_OK;
+     return ret;
 }
 
 DFBResult
-fs_playback_stop( CorePlayback *playback )
+fs_playback_stop( CorePlayback *playback, bool disable )
 {
      DFB_ASSERT( playback != NULL );
 
@@ -188,6 +194,10 @@ fs_playback_stop( CorePlayback *playback )
           /* Notify listeners about the end of the playback. */
           fs_playback_notify( playback, CPNF_STOP, 0 );
      }
+
+     /* If this the playback is disabled, it can only be started with enable = true. */
+     if (disable)
+          playback->disabled = true;
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );

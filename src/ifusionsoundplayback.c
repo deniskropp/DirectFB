@@ -91,7 +91,7 @@ IFusionSoundPlayback_Destruct( IFusionSoundPlayback *thiz )
      fs_playback_detach( data->playback, &data->reaction );
 
      if (!data->stream)
-          fs_playback_stop( data->playback );
+          fs_playback_stop( data->playback, false );
 
      fs_playback_unref( data->playback );
 
@@ -138,14 +138,14 @@ IFusionSoundPlayback_Start( IFusionSoundPlayback *thiz,
      if (start < 0 || start >= data->length)
           return DFB_INVARG;
 
-     if (stop > data->length)
+     if (stop >= data->length)
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->lock );
 
      fs_playback_set_position( data->playback, start );
-     fs_playback_set_stop( data->playback, stop ? stop : data->length );
-     fs_playback_start( data->playback );
+     fs_playback_set_stop( data->playback, stop );
+     fs_playback_start( data->playback, false );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -159,7 +159,7 @@ IFusionSoundPlayback_Stop( IFusionSoundPlayback *thiz )
 
      DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
 
-     return fs_playback_stop( data->playback );
+     return fs_playback_stop( data->playback, false );
 }
 
 static DFBResult
@@ -169,7 +169,7 @@ IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 
      DEBUGMSG( "%s (%p)\n", __FUNCTION__, data->playback );
 
-     return fs_playback_start( data->playback );
+     return fs_playback_start( data->playback, false );
 }
 
 static DFBResult

@@ -88,7 +88,7 @@ IFusionSoundBuffer_Destruct( IFusionSoundBuffer *thiz )
 
      /* Stop and throw away looping playback. */
      if (data->looping) {
-          fs_playback_stop( data->looping );
+          fs_playback_stop( data->looping, false );
           fs_playback_unref( data->looping );
      }
 
@@ -245,7 +245,7 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
           fs_playback_set_stop( playback, -1 );
 
           /* Start the playback. */
-          ret = fs_playback_start( playback );
+          ret = fs_playback_start( playback, false );
           if (ret) {
                fs_playback_unref( playback );
                pthread_mutex_unlock( &data->lock );
@@ -270,7 +270,7 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                fs_playback_set_volume( playback, data->left, data->right );
 
           /* Start the playback. */
-          ret = fs_playback_start( playback );
+          ret = fs_playback_start( playback, false );
 
           /*
            * Already throw away playback object. It has a global reference while
@@ -291,7 +291,7 @@ IFusionSoundBuffer_Stop( IFusionSoundBuffer *thiz )
 
      /* Stop and throw away looping playback. */
      if (data->looping) {
-          fs_playback_stop( data->looping );
+          fs_playback_stop( data->looping, false );
           fs_playback_unref( data->looping );
 
           data->looping = NULL;

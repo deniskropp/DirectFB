@@ -74,7 +74,7 @@ IFusionSoundStream_Destruct( IFusionSoundStream *thiz )
 
      fs_playback_detach( data->playback, &data->reaction );
 
-     fs_playback_stop( data->playback );
+     fs_playback_stop( data->playback, true );
 
      fs_playback_unref( data->playback );
 
@@ -173,8 +173,7 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           if (!data->playing && data->prebuffer >= 0 && data->filled >= data->prebuffer) {
                DEBUGMSG( "%s: starting playback now!\n", __FUNCTION__ );
 
-               data->playing = true;
-               fs_playback_start( data->playback );
+               fs_playback_start( data->playback, true );
           }
 
           /* Update input parameters. */
@@ -257,7 +256,7 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
      INTERFACE_GET_DATA(IFusionSoundStream)
 
      /* Stop the playback. */
-     fs_playback_stop( data->playback );
+     fs_playback_stop( data->playback, true );
 
      pthread_mutex_lock( &data->lock );
 
@@ -357,8 +356,8 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
           goto error_attach;
      }
 
-     /* Set the stop position to the beginning of the buffer. */
-     fs_playback_set_stop( playback, 0 );
+     /* Disable the playback. */
+     fs_playback_stop( playback, true );
 
      /* Initialize private data. */
      data->ref       = 1;
@@ -425,8 +424,7 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
           int num = MIN( length, data->size - data->pos_write );
 
           /* Write data. */
-          ret = fs_buffer_lock( data->buffer, data->pos_write,
-                                num, &lock_data, &lock_bytes );
+          ret = fs_buffer_lock( data->buffer, data->pos_write, num, &lock_data, &lock_bytes );
           if (ret)
                return ret;
 
@@ -441,17 +439,17 @@ IFusionSoundStream_FillBuffer( IFusionSoundStream_data *data,
           /* Update write position. */
           data->pos_write += num;
 
-          /* Set new stop position. */
-          ret = fs_playback_set_stop( data->playback, data->pos_write );
-          if (ret)
-               return ret;
-
           /* Handle wrap around. */
           if (data->pos_write == data->size)
                data->pos_write = 0;
 
           /* Update the fill level. */
           data->filled += num;
+
+          /* Set new stop position. */
+          ret = fs_playback_set_stop( data->playback, data->pos_write );
+          if (ret)
+               return ret;
      }
 
      if (ret_bytes)

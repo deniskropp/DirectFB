@@ -65,9 +65,11 @@ DFBResult fs_playback_create      ( CoreSound        *core,
                                     bool              notify,
                                     CorePlayback    **ret_playback );
 
-DFBResult fs_playback_start       ( CorePlayback     *playback );
+DFBResult fs_playback_start       ( CorePlayback     *playback,
+                                    bool              enable );
 
-DFBResult fs_playback_stop        ( CorePlayback     *playback );
+DFBResult fs_playback_stop        ( CorePlayback     *playback,
+                                    bool              disable );
 
 DFBResult fs_playback_set_stop    ( CorePlayback     *playback,
                                     int               stop );
