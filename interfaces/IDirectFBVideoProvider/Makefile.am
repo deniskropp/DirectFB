@@ -20,7 +20,7 @@ clean-local:
 all-local: libidirectfbvideoprovider_libmpeg3.so
 
 libidirectfbvideoprovider_libmpeg3.so: idirectfbvideoprovider_libmpeg3.o $(LIBMPEG3_DIR)/libmpeg3.a
-	$(LD) -shared -export-dynamic -o $@ $+ $(THREAD_LIBS) -lm
+	$(CC) -shared $+ -ldl -lpthread -lm -Wl,-soname -Wl,libidirectfbvideoprovider_libmpeg3.so -o $@
 
 idirectfbvideoprovider_SCRIPTS = libidirectfbvideoprovider_libmpeg3.so
 
