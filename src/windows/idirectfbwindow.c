@@ -602,7 +602,7 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 
      evt.type = DWET_CLOSE;
 
-     IDirectFBWindow_React( &evt, (void**)data );
+     dfb_window_dispatch( data->window, &evt );
 
      return DFB_OK;
 }
