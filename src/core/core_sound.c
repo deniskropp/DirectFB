@@ -178,7 +178,7 @@ fs_core_destroy( CoreSound *core )
                                core->master ? NULL : fs_core_arena_leave,
                                core, false, NULL ) == FUSION_INUSE)
      {
-          /* FIXME: quick hack to solve the dfb-slave-but-da-master problem. */
+          /* FIXME: quick hack to solve the dfb-slave-but-fs-master problem. */
           
           ONCE( "waiting for sound slaves to terminate" );
 
@@ -464,8 +464,6 @@ fs_core_join( CoreSound *core )
 {
      /* really nothing to be done here, yet ;) */
 
-     (void) core;
-
      return DFB_OK;
 }
 
@@ -473,8 +471,6 @@ static DFBResult
 fs_core_leave( CoreSound *core )
 {
      /* really nothing to be done here, yet ;) */
-
-     (void) core;
      
      return DFB_OK;
 }
@@ -581,14 +577,14 @@ static int
 fs_core_arena_join( FusionArena *arena,
                     void        *ctx )
 {
-     DFBResult  ret;
-     CoreSound *core   = ctx;
-     void      *shared;
+     DFBResult        ret;
+     CoreSound       *core   = ctx;
+     CoreSoundShared *shared;
 
      DEBUGMSG( "FusionSound/Core: Joining...\n" );
 
      /* Get shared data. */
-     if (fusion_arena_get_shared_field( arena, "Core/Shared", &shared ))
+     if (fusion_arena_get_shared_field( arena, "Core/Shared", (void**)&shared ))
           return DFB_FUSION;
      
      core->shared = shared;
@@ -609,9 +605,6 @@ fs_core_arena_leave( FusionArena *arena,
      DFBResult  ret;
      CoreSound *core = ctx;
 
-     (void) arena;
-     (void) emergency;
-     
      DEBUGMSG( "FusionSound/Core: Leaving...\n" );
 
      /* Leave. */
@@ -629,9 +622,6 @@ fs_core_arena_shutdown( FusionArena *arena,
 {
      DFBResult  ret;
      CoreSound *core = ctx;
-
-     (void) arena;
-     (void) emergency;
 
      DEBUGMSG( "FusionSound/Core: Shutting down...\n" );
 
