@@ -266,6 +266,9 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                DFBDisplayLayerConfig config;
 
                switch (bpp) {
+                    case 8:
+                         config.pixelformat = DSPF_RGB332;
+                         break;
                     case 15:
                          config.pixelformat = DSPF_RGB15;
                          break;
@@ -400,7 +403,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                                                         data->primary.height,
                                                         (caps & DSCAPS_FLIPPING) ?
                                                         DWCAPS_DOUBLEBUFFER : 0,
-                                                        DSPF_UNKNOWN,
+                                                        format,
                                                         &window );
 
                     if (ret)
