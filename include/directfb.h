@@ -637,7 +637,8 @@ typedef enum {
 typedef enum {
       DFFA_NOKERNING     = 0x00000001,  /* don't use kerning */
       DFFA_NOHINTING     = 0x00000002,  /* don't use hinting */
-      DFFA_MONOCHROME    = 0x00000004   /* don't use anti-aliasing */
+      DFFA_MONOCHROME    = 0x00000004,  /* don't use anti-aliasing */
+      DFFA_NOCHARMAP     = 0x00000008   /* no char map, map glyph indices 1:1 */
 } DFBFontAttributes;
 
 /*
@@ -1994,6 +1995,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       * Draw an UTF-8 string at the specified position with the
       * given color following the specified flags.
       *
+      * If font was loaded with the DFFA_CHARMAP flag, the string 
+      * specifies UTF-8 encoded raw glyph indices.
+      * 
       * Bytes specifies the number of bytes to take from the
       * string or -1 for the complete NULL-terminated string. You
       * need to set a font using the SetFont() method before
@@ -2013,6 +2017,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       * specified position with the given color following the
       * specified flags.
       *
+      * If font was loaded with the DFFA_NOCHARMAP flag, index specifies
+      * the raw glyph index in the font.
+      * 
       * You need to set a font using the SetFont() method before
       * calling this function.
       */

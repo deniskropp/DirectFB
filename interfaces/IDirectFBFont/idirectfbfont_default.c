@@ -112,13 +112,22 @@ Construct( IDirectFBFont      *thiz,
 
      {
           CoreGlyphData *data;
+          int use_unicode;
           int start = 0;
+	  int index = 0;
+          int key;
           unsigned char points[1024];
           unsigned char *glyphs =  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
                                    "abcdefghijklmnopqrstuvwxyz"
                                    "01234567890!\"$\%&/()=?^<>"
                                    "|,;.:-_{[]}\\`+*~#'";
 
+	  if ((desc->flags & DFDESC_ATTRIBUTES) &&
+	      (desc->attributes & DFFA_NOCHARMAP))
+               use_unicode = 0;
+	  else
+	       use_unicode = 1;
+	  
           fread( points, 1024, 1, f );
 
           for (i=0; i<1024; i++) {
@@ -131,28 +140,37 @@ Construct( IDirectFBFont      *thiz,
                     data->left    = 0;
                     data->top     = 0;
                     data->advance = data->width + 1;
-                    HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n",
-                                   *glyphs, start, i-start );
+                    HEAVYDEBUGMSG( "DirectFB/core/fonts: "
+				   "glyph '%c' at %d, width %d\n",
+                                   glyphs[index], start, i-start );
 
                     if (font->maxadvance < data->advance)
                          font->maxadvance = data->advance;
 
-                    dfb_tree_insert (font->glyph_infos,
-                                     (void *) dfb_utf8_get_char (glyphs),
-                                     data);
+		    if (use_unicode)
+                         key = dfb_utf8_get_char (glyphs+index);
+		    else
+                         key = index;
+		    
+                    dfb_tree_insert (font->glyph_infos, (void*) key, data);
 
                     start = i + 1;
-                    glyphs++;
+		    index++;
                }
-               if (*glyphs == 0)
+               if (glyphs[index] == '\0')
                     break;
           }
 
           /*  space  */
           data = DFBCALLOC(1, sizeof (CoreGlyphData));
           data->advance = 5;
-          dfb_tree_insert (font->glyph_infos,
-                           (void *) dfb_utf8_get_char (" "), data);
+
+	  if (use_unicode)
+               key = dfb_utf8_get_char (" ");
+          else
+               key = index;
+	    
+          dfb_tree_insert (font->glyph_infos, (void*) key, data);
      }
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
