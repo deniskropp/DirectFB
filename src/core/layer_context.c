@@ -629,7 +629,7 @@ dfb_layer_context_set_screenlocation( CoreLayerContext *context,
      }
 
      /* Calculate new absolute screen coordinates. */
-     dfb_screen_rectangle( &context->screen, &config.dest );
+     dfb_screen_rectangle( location, &config.dest );
 
      /* Set the modified configuration. */
      ret = dfb_layer_region_set_configuration( context->primary,
