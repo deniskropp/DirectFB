@@ -221,6 +221,8 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                     *funcs = impl->funcs;
                     impl->references++;
 
+                    closedir( dir );
+                    
                     pthread_mutex_unlock( &implementations_mutex );
 
                     return DFB_OK;
