@@ -212,9 +212,15 @@ dfb_vt_join()
 DFBResult
 dfb_vt_shutdown( bool emergency )
 {
+     const char cursoron_str[] = "\033[?0;0;0c";
+     const char blankon_str[] = "\033[9;10]";
+     
      if (!dfb_vt)
           return DFB_OK;
 
+     write( dfb_vt->fd, cursoron_str, strlen(cursoron_str) );
+     write( dfb_vt->fd, blankon_str, strlen(blankon_str) );
+     
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );

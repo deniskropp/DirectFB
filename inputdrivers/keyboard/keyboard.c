@@ -430,17 +430,12 @@ driver_get_keymap_entry( InputDevice               *device,
 static void
 driver_close_device( void *driver_data )
 {
-     const char    cursoron_str[] = "\033[?0;0;0c";
-     const char    blankon_str[] = "\033[9;10]";
      KeyboardData *data = (KeyboardData*) driver_data;
 
      /* stop input thread */
      dfb_thread_cancel( data->thread );
      dfb_thread_join( data->thread );
      dfb_thread_destroy( data->thread );
-
-     write( data->vt->fd, cursoron_str, strlen(cursoron_str) );
-     write( data->vt->fd, blankon_str, strlen(blankon_str) );
 
      if (tcsetattr( data->vt->fd, TCSAFLUSH, &data->old_ts ) < 0)
           PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
