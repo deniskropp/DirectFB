@@ -1,3 +1,301 @@
+2002-10-28	13:20	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.127) (+27 -1)
+		src/misc/memcpy.c (1.7) (+93 -86)
+	
+	Check if binutils support SSE assembly and compile the SSE code
+	conditionally.
+	
+2002-10-28	12:39	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.126) (+1 -1)
+	
+	oops
+	
+2002-10-28	12:35	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.125) (+36 -40)
+		src/core/sdl/Makefile.am (1.3) (+2 -2)
+	
+	Simplified the configure tests for MMX, fbdev and sdl.
+	Set SDL_CFLAGS and SDL_LIBS using $SDL_CONFIG so that people can specify
+	which sdl-config to use.
+	Use SDL_CFLAGS and SDL_LIBS in the Makefile.
+	
+2002-10-28	12:07	Sven Neumann <sven@convergence.de>
+
+	Files:	NEWS (1.38) (+7 -7)
+		directfb.spec.in (1.3) (+3 -3)
+		directfb.pc.in (1.5) (+1 -1)
+		configure.in (1.124) (+7 -7)
+		README.screenshots (1.4) (+2 -2)
+		README (1.47) (+6 -6)
+	
+	Corrected spelling of frame buffer.
+	
+2002-10-28	11:56	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.123) (+4 -4)
+	
+	moved some lines around
+	
+2002-10-28	11:32	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/memcpy.c (1.6) (+6 -0)
+	
+	Don't build MMX code if MMX was disabled by configure.
+	
+2002-10-28	11:13	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/memcpy.c (1.5) (+59 -51)
+	
+	Reformatted some comments; no changes.
+	
+2002-10-28	11:03	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.17) (+7 -0)
+		src/misc/conf.c (1.43) (+2 -0)
+	
+	Document the new pixelformat parameter in directfbrc.
+	
+2002-10-28	10:37	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/fbdev/fbdev.c (1.19) (+1 -1)
+	
+	Fixed obvious typo which caused --dfb:depth to fail.
+	
+2002-10-27	18:17	Sven Neumann <sven@convergence.de>
+
+	Files:	directfb.spec.in (1.2) (+19 -17)
+	
+	Improvements to the spec file by Till Adam.
+	
+2002-10-27	16:56	Sven Neumann <sven@convergence.de>
+
+	Files:	Makefile.am (1.14) (+2 -1)
+	
+	Include the generated spec file in the tarball as well to make it
+	possible to build RPMs directly from the tarball.
+	
+2002-10-27	13:19	Sven Neumann <sven@convergence.de>
+
+	Files:	inputdrivers/ps2mouse/ps2mouse.c (1.37) (+30 -23)
+	
+	code cleanup, no changes
+	
+2002-10-27	13:01	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.46) (+34 -0)
+	
+	Explain how to use the multi-application core.
+	
+2002-10-27	11:18	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.122) (+0 -12)
+	
+	Removed cflags_set hack from configure.in. We don't need it any longer
+	since we don't touch CFLAGS.
+	
+2002-10-27	11:12	Sven Neumann <sven@convergence.de>
+
+	Files:	autogen.sh (1.8) (+2 -1)
+		tools/Makefile.am (1.9) (+1 -1)
+		src/windows/Makefile.am (1.5) (+1 -1)
+		src/misc/Makefile.am (1.11) (+1 -1)
+		src/media/Makefile.am (1.10) (+1 -1)
+		src/input/Makefile.am (1.5) (+1 -1)
+		src/gfx/generic/Makefile.am (1.10) (+1 -1)
+		src/gfx/Makefile.am (1.6) (+1 -1)
+		src/display/Makefile.am (1.6) (+1 -1)
+		src/core/sdl/Makefile.am (1.2) (+1 -1)
+		src/core/fusion/shmalloc/Makefile.am (1.3) (+1 -1)
+		src/core/fusion/Makefile.am (1.10) (+1 -1)
+		src/core/fbdev/Makefile.am (1.2) (+1 -1)
+		src/core/Makefile.am (1.21) (+1 -1)
+		src/Makefile.am (1.11) (+1 -1)
+		interfaces/IDirectFBVideoProvider/Makefile.am (1.8) (+2 -2)
+		interfaces/IDirectFBImageProvider/mpeg2/Makefile.am (1.2) (+1 -1)
+		interfaces/IDirectFBImageProvider/Makefile.am (1.6) (+1 -1)
+		interfaces/IDirectFBFont/Makefile.am (1.5) (+1 -1)
+		inputdrivers/ucb1x00_ts/Makefile.am (1.2) (+1 -1)
+		inputdrivers/sonypi/Makefile.am (1.2) (+1 -1)
+		inputdrivers/serialmouse/Makefile.am (1.5) (+1 -1)
+		inputdrivers/ps2mouse/Makefile.am (1.5) (+1 -1)
+		inputdrivers/lirc/Makefile.am (1.3) (+1 -1)
+		inputdrivers/linux_input/Makefile.am (1.3) (+1 -1)
+		inputdrivers/keyboard/Makefile.am (1.5) (+1 -1)
+		inputdrivers/joystick/Makefile.am (1.5) (+1 -1)
+		inputdrivers/h3600_ts/Makefile.am (1.3) (+1 -1)
+		inputdrivers/dbox2remote/Makefile.am (1.3) (+1 -1)
+		gfxdrivers/tdfx/Makefile.am (1.4) (+1 -1)
+		gfxdrivers/savage/Makefile.am (1.3) (+1 -1)
+		gfxdrivers/nvidia/Makefile.am (1.3) (+1 -1)
+		gfxdrivers/neomagic/Makefile.am (1.5) (+1 -1)
+		gfxdrivers/matrox/Makefile.am (1.6) (+1 -1)
+		gfxdrivers/cyber5k/Makefile.am (1.2) (+1 -1)
+		gfxdrivers/ati128/Makefile.am (1.5) (+1 -1)
+		configure.in (1.121) (+1 -0)
+	
+	Applied patches from Andreas Oberritter <obi@tuxbox.org>:
+	
+	Call libtoolize from autogen.sh since newer automake versions don't do
+	this for us anymore.
+	Use AM_CFLAGS instead of CFLAGS, which is a user variable.
+	Check for C++ compiler in configure.
+	
+2002-10-27	10:58	Sven Neumann <sven@convergence.de>
+
+	Files:	.cvsignore (1.8) (+1 -0)
+		directfb.spec.in (1.1) ( )
+		configure.in (1.120) (+1 -0)
+		Makefile.am (1.13) (+6 -5)
+	
+	Added directfb.spec.in based on a spec file provided
+	by Till Adam <till@adam-lilienthal.de>.
+	
+2002-10-26	19:21	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/interface.c (1.19) (+5 -0)
+	
+	- dont use RTLD_GLOBAL if it is undefined (compilation fix for OpenBSD)
+	
+2002-10-26	19:15	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/core/core.c (1.54) (+5 -0)
+	
+	- dont use RTLD_GLOBAL if it is undefined (compilation fix for OpenBSD)
+	
+2002-10-26	19:10	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	README (1.45) (+5 -3)
+		configure.in (1.119) (+22 -12)
+	
+	- fixed typo, mention OpenBSD
+	- initial OpenBSD support (incomplete)
+	
+2002-10-26	18:20	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.44) (+13 -12)
+	
+	reformatted
+	
+2002-10-26	16:01	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	README (1.43) (+25 -1)
+	
+	- added section on supported operating systems
+	
+2002-10-26	12:58	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	src/misc/util.c (1.11) (+3 -0)
+	
+	- NetBSD compile fix: only use ENOTSUP if it is defined (missing in NetBSD)
+	
+2002-10-26	12:53	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	configure.in (1.118) (+12 -9)
+	
+	- added support for NetBSD (tested on NetBSD-1.6)
+	
+2002-10-25	17:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.13) (+5 -0)
+		src/idirectfb.c (1.84) (+28 -5)
+	
+	The option "pixelformat=" does work with windowed fullscreen apps, too.
+	If ARGB is specified, the window will be alpha blended.
+	
+2002-10-25	16:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.83) (+2 -2)
+	
+	Windowed fullscreen apps can now be given a window size via the mode= option.
+	
+2002-10-25	14:51	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.117) (+17 -0)
+		gfxdrivers/cyber5k/regs.h (1.1) ( )
+		gfxdrivers/cyber5k/mmio.h (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k_underlay.c (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k_overlay.h (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k_overlay.c (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k_alpha.h (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k_alpha.c (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k.h (1.1) ( )
+		gfxdrivers/cyber5k/cyber5k.c (1.1) ( )
+		gfxdrivers/cyber5k/Makefile.am (1.1) ( )
+		gfxdrivers/cyber5k/.cvsignore (1.1) ( )
+		gfxdrivers/Makefile.am (1.7) (+7 -1)
+	
+	Whuuuhuuu, Cyber Pro DirectFB driver release in 0.9.14 ;)
+	
+2002-10-25	14:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.38) (+151 -144)
+	
+	Moved all static variables into instance struct to make GIF loader thread safe.
+	
+2002-10-25	13:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.37) (+3 -3)
+	
+	Fixed evil bug: wrong parameter order to qsort resulted in unsorted color
+	map in FindColorKey. Fixes color keying of a very few GIFs.
+	
+2002-10-25	13:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/linux_input/linux_input.c (1.11) (+8 -1)
+	
+	Applied patch from Johannes Stezenbach <js@convergence.de> fixing some keys.
+	
+2002-10-24	11:32	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.42) (+26 -11)
+	
+	improved README
+	
+2002-10-23	16:59	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.41) (+32 -10)
+	
+	updates
+	
+2002-10-23	16:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/thread.c (1.3) (+4 -0)
+		src/core/fusion/object.c (1.6) (+7 -9)
+		src/core/thread.h (1.3) (+1 -0)
+	
+	Use thread functions for bone collector loop.
+	Added thread type CTT_CLEANUP with priority -15.
+	
+2002-10-23	15:59	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2 (1.2) (+10 -9)
+	
+	Update from Ville, return -EFAULT if argument is not a valid pointer.
+	
+2002-10-23	15:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_bes.c (1.31) (+8 -6)
+	
+	YUV 4:2:0 chroma plane setup fix from Ville Syrjala <syrjala@sci.fi>.
+	
+2002-10-23	15:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/shmalloc/shmalloc.c (1.8) (+1 -1)
+	
+	Use 0x20000000 instead of 0x70000000 as the shared memory base address
+	to avoid collision with stack on MIPS.
+	
+2002-10-23	14:56	Sven Neumann <sven@convergence.de>
+
+	Files:	ChangeLog (1.29) (+1129 -0)
+		src/idirectfb.c (1.82) (+8 -12)
+	
+	Reverted my changes regarding the primary surface for NORMAL mode.
+	The old behaviour made more sense actually.
+	
 2002-10-23	13:12	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	src/core/windows.c (1.111) (+12 -3)
