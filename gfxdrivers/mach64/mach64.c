@@ -162,6 +162,9 @@ static void mach64EngineReset( void *drv, void *dev )
 
           mach64_out32( mmio, SCALE_3D_CNTL, 0 );
      }
+
+     if (mdev->chip >= CHIP_3D_RAGE_PRO)
+          mach64_out32( mmio, HW_DEBUG, mdev->hw_debug );
 }
 
 static void mach64EngineSync( void *drv, void *dev )
@@ -1487,23 +1490,21 @@ driver_init_device( GraphicsDevice     *device,
 
      /* 3D Rage Pro is the first chip that supports auto fast fill/block write. */
      if (mdev->chip >= CHIP_3D_RAGE_PRO) {
-          __u32 hw_debug = mach64_in32( mmio, HW_DEBUG );
+          mdev->hw_debug = mach64_in32( mmio, HW_DEBUG );
 
-          /* Save HW_DEBUG. */
-          mdev->hw_debug = hw_debug;
+          /* Save original HW_DEBUG. */
+          mdev->hw_debug_orig = mdev->hw_debug;
 
           /* Enable auto fast fill and fast fill/block write scissoring. */
-          hw_debug &= ~(AUTO_FF_DIS | INTER_PRIM_DIS);
+          mdev->hw_debug &= ~(AUTO_FF_DIS | INTER_PRIM_DIS);
 
           if ((mach64_in32( mmio, CONFIG_STAT0 ) & CFG_MEM_TYPE) == CFG_MEM_TYPE_SGRAM) {
                /* Enable auto block write and auto color register updates. */
-               hw_debug &= ~(AUTO_BLKWRT_DIS | AUTO_BLKWRT_COLOR_DIS);
+               mdev->hw_debug &= ~(AUTO_BLKWRT_DIS | AUTO_BLKWRT_COLOR_DIS);
 
                device_info->limits.surface_byteoffset_alignment = 64;
                device_info->limits.surface_bytepitch_alignment  = 64;
           }
-
-          mach64_out32( mmio, HW_DEBUG, hw_debug );
      }
 
      return DFB_OK;
@@ -1551,8 +1552,8 @@ driver_close_device( GraphicsDevice *device,
      }
 
      if (mdev->chip >= CHIP_3D_RAGE_PRO) {
-          /* Restore HW_DEBUG. */
-          mach64_out32( mmio, HW_DEBUG, mdev->hw_debug );
+          /* Restore original HW_DEBUG. */
+          mach64_out32( mmio, HW_DEBUG, mdev->hw_debug_orig );
      }
 }
 

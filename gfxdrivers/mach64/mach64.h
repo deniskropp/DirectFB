@@ -82,6 +82,7 @@ typedef struct {
      Mach64StateBits valid;
 
      __u32 hw_debug;
+     __u32 hw_debug_orig;
 
      __u32 pix_width;
 
