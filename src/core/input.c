@@ -132,7 +132,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
 
                pthread_getschedparam( device->event_thread, &policy, &sp );
 
-               policy = SCHED_RR;
+               //policy = SCHED_RR;
 
                sp.sched_priority = sched_get_priority_max( policy );
 

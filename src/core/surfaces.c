@@ -66,8 +66,12 @@ DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
           case CSP_VIDEOLOW:
           case CSP_VIDEOHIGH:
                b->system.health = CSH_STORED;
+
                b->system.pitch = surface->width *
                                  BYTES_PER_PIXEL(surface->format);
+               if (b->system.pitch & 3)
+                    b->system.pitch += 4 - (b->system.pitch & 3);
+
                b->system.addr = malloc( surface->height * b->system.pitch );
                break;
           case CSP_VIDEOONLY: {
@@ -95,8 +99,12 @@ DFBResult surface_reallocate_buffer( SurfaceBuffer *buffer )
 
      if (buffer->system.health) {
           buffer->system.health = CSH_STORED;
+
           buffer->system.pitch = surface->width *
                                  BYTES_PER_PIXEL(surface->format);
+          if (buffer->system.pitch & 3)
+               buffer->system.pitch += 4 - (buffer->system.pitch & 3);
+
           buffer->system.addr = realloc( buffer->system.addr,
                                          surface->height*buffer->system.pitch );
 
