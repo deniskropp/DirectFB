@@ -27,6 +27,9 @@
 
 #include <string.h>
 #include <malloc.h>
+#include <errno.h>
+
+#include <sys/time.h>
 
 #include <directfb.h>
 
@@ -153,6 +156,42 @@ static DFBResult IDirectFBInputBuffer_WaitForEvent( IDirectFBInputBuffer *thiz )
      return DFB_OK;
 }
 
+static DFBResult IDirectFBInputBuffer_WaitForEventWithTimeout(
+                                                  IDirectFBInputBuffer *thiz,
+                                                  long int             seconds,
+                                                  long int        nano_seconds )
+{
+     DFBResult                  ret  = DFB_OK;
+     IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
+
+     if (!data)
+          return DFB_DEAD;
+
+     pthread_mutex_lock( &data->events_mutex );
+     
+     if (!data->events) {
+          struct timeval  now;
+          struct timespec timeout;
+
+          gettimeofday( &now, NULL );
+
+          timeout.tv_sec  = now.tv_sec + seconds;
+          timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
+          
+          timeout.tv_sec  += timeout.tv_nsec / 1000000000;
+          timeout.tv_nsec %= 1000000000;
+          
+          if (pthread_cond_timedwait( &data->wait_condition,
+                                      &data->events_mutex,
+                                      &timeout ) == ETIMEDOUT)
+               ret = DFB_TIMEOUT;
+     }
+
+     pthread_mutex_unlock( &data->events_mutex );
+     
+     return ret;
+}
+
 static DFBResult IDirectFBInputBuffer_GetEvent( IDirectFBInputBuffer *thiz, 
                                                 DFBInputEvent *event )
 {
@@ -227,6 +266,8 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
      thiz->Release = IDirectFBInputBuffer_Release;
      thiz->Reset = IDirectFBInputBuffer_Reset;
      thiz->WaitForEvent = IDirectFBInputBuffer_WaitForEvent;
+     thiz->WaitForEventWithTimeout =
+          IDirectFBInputBuffer_WaitForEventWithTimeout;
      thiz->GetEvent = IDirectFBInputBuffer_GetEvent;
      thiz->PeekEvent = IDirectFBInputBuffer_PeekEvent;
      

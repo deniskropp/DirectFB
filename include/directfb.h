@@ -141,7 +141,8 @@ extern "C"
           DFB_IO,             /* general I/O error */
           DFB_BUSY,           /* resource/device busy */
           DFB_NOIMPL,         /* no implementation for that interface */
-          DFB_MISSINGFONT     /* no font has been set */
+          DFB_MISSINGFONT,    /* no font has been set */
+          DFB_TIMEOUT         /* operation timed out */
      } DFBResult;
 
      /*
@@ -1570,6 +1571,16 @@ extern "C"
            */
           DFBResult (*WaitForEvent) (
                IDirectFBInputBuffer     *thiz
+          );
+
+          /*
+           * Block until next event to occurs or timeout is reached.
+           * Thread is idle in the meantime.
+           */
+          DFBResult (*WaitForEventWithTimeout) (
+               IDirectFBInputBuffer     *thiz,
+               long int                  seconds,
+               long int                  nano_seconds
           );
 
           /*

@@ -294,6 +294,9 @@ void DirectFBError( const char *msg, DFBResult error )
           case DFB_MISSINGFONT:
                fprintf( stderr, "No font has been set!\n" );
                break;
+          case DFB_TIMEOUT:
+               fprintf( stderr, "Operation timed out!\n" );
+               break;
           default:
                fprintf( stderr, "UNKNOWN ERROR CODE!\n" );
                break;
