@@ -965,7 +965,7 @@ typedef enum {
      DSPF_NV12      = DFB_SURFACE_PIXELFORMAT( 15, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
 
      /* 16 bit   YUV (8 bit Y plane followed by one 16 bit half width CbCr [15:0] plane) */
-     DSPF_NV16      = DFB_SURFACE_PIXELFORMAT( 16, 24, 0, 0, 0, 1, 0, 0, 2, 0, 0 ),
+     DSPF_NV16      = DFB_SURFACE_PIXELFORMAT( 16, 24, 0, 0, 0, 1, 0, 0, 1, 0, 0 ),
 
      /* 16 bit  ARGB (2 byte, alpha 2@14, red 5@9, green 5@4, blue 4@0) */
      DSPF_ARGB2554  = DFB_SURFACE_PIXELFORMAT( 17, 14, 2, 1, 0, 2, 0, 0, 0, 0, 0 ),
