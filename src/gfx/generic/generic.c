@@ -2080,13 +2080,17 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                     if (modulation) {
 
+                         /* read the destination if needed */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                                     DSBLIT_BLEND_COLORALPHA)) {
+                                                     DSBLIT_BLEND_COLORALPHA) &&
+                             state->dst_blend != DSBF_ZERO)
+                         {
                               *funcs++ = Sop_is_Aop;
                               *funcs++ = Dacc_is_Aacc;
                               *funcs++ = Sop_PFI_to_Dacc[pindex];
                          }
 
+                         /* read the source */
                          *funcs++ = Sop_is_Bop;
                          *funcs++ = Dacc_is_Bacc;
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
@@ -2103,6 +2107,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Sop_PFI_Sto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
                          }
 
+                         /* modulate the source if requested */
                          if (Dacc_modulation[modulation]) {
                               /* modulation source */
                               Cacc.a = color.a + 1;
@@ -2113,26 +2118,36 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               *funcs++ = Dacc_modulation[modulation];
                          }
 
+                         /* do blend functions and combine both accumulators */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                                     DSBLIT_BLEND_COLORALPHA)) {
+                                                     DSBLIT_BLEND_COLORALPHA))
+                         {
+                              /* Xacc will be blended and written to while
+                                 Sacc and Dacc point to the SRC and DST
+                                 as referenced by the blending functions */
                               *funcs++ = Sacc_is_Bacc;
                               *funcs++ = Dacc_is_Aacc;
 
-                              *funcs++ = Xacc_is_Aacc;
-                              *funcs++ = Xacc_blend[state->dst_blend - 1];
-
+                              /* blend the destination if needed */
+                              if (state->dst_blend != DSBF_ZERO) {
+                                   *funcs++ = Xacc_is_Aacc;
+                                   *funcs++ = Xacc_blend[state->dst_blend - 1];
+                              }
+                              
+                              /* blend the source */
                               *funcs++ = Xacc_is_Bacc;
                               *funcs++ = Xacc_blend[state->src_blend - 1];
-
-                              *funcs++ = Sacc_add_to_Dacc; /* don't do this when we know
-                                                              Sacc is completely 0 */
-
-                              *funcs++ = Sacc_is_Aacc;
+                              
+                              /* add the destination to the source */
+                              if (state->dst_blend != DSBF_ZERO) {
+                                   *funcs++ = Sacc_is_Aacc;
+                                   *funcs++ = Dacc_is_Bacc;
+                                   *funcs++ = Sacc_add_to_Dacc;
+                              }
                          }
-                         else {
-                              *funcs++ = Sacc_is_Bacc;
-                         }
-
+                         
+                         /* write source to destination */
+                         *funcs++ = Sacc_is_Bacc;
                          *funcs++ = Sacc_to_Aop_PFI[pindex];
                     }
                     else if (state->source->format == state->destination->format) {
