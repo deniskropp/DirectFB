@@ -29,7 +29,10 @@
 
 #include <sys/types.h>
 #include <sys/user.h>
+#ifdef __linux__
 #include <asm/page.h>
+#endif
+
 #include <string.h>
 
 #include <config.h>
