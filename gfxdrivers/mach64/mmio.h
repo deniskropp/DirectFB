@@ -48,19 +48,39 @@ mach64_in8(volatile __u8 *mmioaddr, __u32 reg)
 static inline void
 mach64_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
 {
+#ifdef __powerpc__
+     if (reg >= 0x400)     
+          asm volatile("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg-0x800),
+                              "r"(mmioaddr) : "memory");
+     else
+          asm volatile("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg),
+                              "r"(mmioaddr) : "memory");
+#else                              
      if (reg >= 0x400)
           *((volatile __u32*)(mmioaddr+reg-0x800)) = value;
      else
           *((volatile __u32*)(mmioaddr+reg)) = value;
+#endif
 }
 
 static inline __u32
 mach64_in32(volatile __u8 *mmioaddr, __u32 reg)
 {
+#ifdef __powerpc__
+     __u32 value;
+     
+     if (reg >= 0x400)
+          asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg-0x800), "r"(mmioaddr));
+     else
+          asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg), "r"(mmioaddr));
+          
+     return value;
+#else               
      if (reg >= 0x400)
           return *((volatile __u32*)(mmioaddr+reg-0x800));
      else
           return *((volatile __u32*)(mmioaddr+reg));
+#endif
 }
 
 static void
