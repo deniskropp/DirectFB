@@ -86,6 +86,8 @@ CoreWindowStack* windowstack_new( DisplayLayer *layer )
 
      /* initialize state for repaints */
      stack->state.modified = SMF_ALL;
+     stack->state.src_blend = DSBF_SRCALPHA;
+     stack->state.dst_blend = DSBF_INVSRCALPHA;
      state_set_destination( &stack->state, layer->surface );
 
      return stack;
@@ -616,90 +618,134 @@ void windowstack_repaint_all( CoreWindowStack *stack )
  * internals
  */
 
+static void update_region( CoreWindowStack *stack, int window,
+                           int x1, int y1, int x2, int y2 )
+{
+     int i = window;
+     unsigned int edges = 0;
+     DFBRegion region = { x1, y1, x2, y2 };
+     DisplayLayer *layer = stack->layer;
+
+     while (i >= 0) {
+          if (stack->windows[i]->opacity > 0) {
+               int       wx2    = stack->windows[i]->x +
+                                  stack->windows[i]->width - 1;
+               int       wy2    = stack->windows[i]->y +
+                                  stack->windows[i]->height - 1;
+
+               if (region_intersect( &region, stack->windows[i]->x,
+                                     stack->windows[i]->y, wx2, wy2 ))
+                    break;
+          }
+
+          i--;
+     }
+
+     if (i >= 0) {
+          if (region.x1 == x1)
+               edges |= 0x1;
+          if (region.y1 == y1)
+               edges |= 0x2;
+          if (region.x2 == x2)
+               edges |= 0x4;
+          if (region.y2 == y2)
+               edges |= 0x8;
+
+          switch (edges) {
+               case 0xF:
+                    if (stack->windows[i]->opacity == 0xff  &&
+                        !(stack->windows[i]->caps & DWCAPS_ALPHACHANNEL))
+                         break;
+               default:
+                    update_region( stack, i-1, x1, y1, x2, y2 );
+                    break;
+          }
+
+          {
+               CoreWindow *window = stack->windows[i];
+               DFBRectangle sr = { 0, 0, window->width, window->height };
+
+               stack->state.source        = window->surface;
+               stack->state.blittingflags = DSBLIT_NOFX;
+               stack->state.clip          = region;
+               stack->state.modified     |= SMF_SOURCE |
+                                            SMF_BLITTING_FLAGS | SMF_CLIP;
+
+               if (window->caps & DWCAPS_ALPHACHANNEL)
+                    stack->state.blittingflags |= DSBLIT_BLEND_ALPHACHANNEL;
+
+               if (window->opacity != 0xFF) {
+                    stack->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
+
+                    if (stack->state.color.a != window->opacity) {
+                         stack->state.color.a = window->opacity;
+                         stack->state.modified |= SMF_COLOR;
+                    }
+               }
+
+               gfxcard_blit( &sr, window->x, window->y, &stack->state );
+          }
+     }
+     else {
+          if (layer->bg.mode != DLBM_DONTCARE) {
+               DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
+
+               stack->state.clip      = region;
+               stack->state.modified |= SMF_CLIP;
+
+               switch (layer->bg.mode) {
+                    case DLBM_COLOR:
+                         stack->state.color = layer->bg.color;
+                         stack->state.modified |= SMF_COLOR;
+                         gfxcard_fillrectangle( &rect, &stack->state );
+                         break;
+                    case DLBM_IMAGE:
+                         stack->state.source = layer->bg.image;
+                         stack->state.blittingflags = DSBLIT_NOFX;
+                         stack->state.modified |= SMF_SOURCE | SMF_BLITTING_FLAGS;
+                         gfxcard_blit( &rect, x1, y1, &stack->state );
+                         break;
+                    case DLBM_DONTCARE:
+                         break;
+               }
+          }
+     }
+}
+
 static void windowstack_repaint( CoreWindowStack *stack, int x, int y,
                                  int width, int height, int erase )
 {
-     int i;
-     DisplayLayer *layer = stack->layer;
-     CoreSurface *surface = layer->surface;
-     DFBRegion update_region = { x, y, x + width - 1, y + height - 1 };
+     DisplayLayer *layer   = stack->layer;
+     CoreSurface  *surface = layer->surface;
+     DFBRegion     region  = { x, y, x + width - 1, y + height - 1 };
 
      if (layer->exclusive)
           return;
 
-     if (!region_intersect( &update_region, 0, 0, surface->width - 1,
-                                                  surface->height - 1 ))
+     if (!region_intersect( &region, 0, 0,
+                            surface->width - 1, surface->height - 1 ))
           return;
 
      pthread_mutex_lock( &stack->update );
 
-     stack->state.clip = update_region;
-     stack->state.src_blend = DSBF_SRCALPHA;
-     stack->state.dst_blend = DSBF_INVSRCALPHA;
-     stack->state.modified |= SMF_CLIP | SMF_SRC_BLEND | SMF_DST_BLEND;
-
-     if (erase) {
-          DFBRectangle rect = { update_region.x1, update_region.y1,
-                                update_region.x2 - update_region.x1 + 1,
-                                update_region.y2 - update_region.y1 + 1 };
-
-          switch (layer->bg.mode) {
-               case DLBM_DONTCARE:
-                    break;
-               case DLBM_COLOR:
-                    stack->state.drawingflags = DSDRAW_NOFX;
-                    stack->state.color = layer->bg.color;
-                    stack->state.modified |= SMF_COLOR | SMF_DRAWING_FLAGS;
-                    gfxcard_fillrectangle( &rect, &stack->state );
-                    break;
-               case DLBM_IMAGE:
-                    stack->state.source = layer->bg.image;
-                    stack->state.blittingflags = DSBLIT_NOFX;
-                    stack->state.modified |= SMF_SOURCE | SMF_BLITTING_FLAGS;
-                    gfxcard_blit( &rect, update_region.x1, update_region.y1,
-                                  &stack->state );
-                    break;
-          }
-     }
-
-     for (i=0; i<stack->num_windows; i++) {
-          CoreWindow *window = stack->windows[i];
-          DFBRectangle sr = { 0, 0, window->width, window->height };
-
-          if (window->opacity == 0)
-               continue;
-
-          stack->state.source = window->surface;
-          stack->state.blittingflags = DSBLIT_NOFX;
-          stack->state.modified |= SMF_SOURCE | SMF_BLITTING_FLAGS;
-
-          if (window->caps & DWCAPS_ALPHACHANNEL)
-               stack->state.blittingflags |= DSBLIT_BLEND_ALPHACHANNEL;
-
-          if (window->opacity != 0xFF) {
-               stack->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
-
-               if (stack->state.color.a != window->opacity) {
-                    stack->state.color.a = window->opacity;
-                    stack->state.modified |= SMF_COLOR;
-               }
-          }
-
-          gfxcard_blit( &sr, window->x, window->y, &stack->state );
-     }
-
+/*     stack->state.clip      = region;
+     stack->state.modified |= SMF_CLIP;*/
+    
+     update_region( stack, stack->num_windows - 1,
+                    region.x1, region.y1, region.x2, region.y2 );
+     
      if (surface->caps & DSCAPS_FLIPPING) {
-          if (update_region.x1 == 0 &&
-              update_region.y1 == 0 &&
-              update_region.x2 == layer->width - 1 &&
-              update_region.y2 == layer->height - 1)
+          if (region.x1 == 0 &&
+              region.y1 == 0 &&
+              region.x2 == layer->width - 1 &&
+              region.y2 == layer->height - 1)
           {
                layer->FlipBuffers( layer );
           }
           else {
-               DFBRectangle rect = { update_region.x1, update_region.y1,
-                                     update_region.x2 - update_region.x1 + 1,
-                                     update_region.y2 - update_region.y1 + 1 };
+               DFBRectangle rect = { region.x1, region.y1,
+                                     region.x2 - region.x1 + 1,
+                                     region.y2 - region.y1 + 1 };
 
                back_to_front_copy( surface, &rect );
           }
