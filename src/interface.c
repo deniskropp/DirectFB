@@ -178,7 +178,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                /*
                 * If module handle is set, it's not the newly opened module.
                 */
-               if (impl->module_handle) {
+               if (!impl || impl->module_handle) {
                     dlclose( handle );
                     continue;
                }
