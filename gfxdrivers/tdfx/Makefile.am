@@ -3,6 +3,7 @@
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/lib	\
+	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/src
 
 tdfx_LTLIBRARIES = libdirectfb_tdfx.la

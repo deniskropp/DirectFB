@@ -14,6 +14,7 @@ endif
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
+	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/lib
 
 AM_CPPFLAGS = \

@@ -1,3 +1,6 @@
 usr/share/man/man5/*
 usr/bin/dfbg
+usr/bin/dfbinfo
+usr/bin/dfbdump
+usr/bin/dfblayer
 usr/share/man/man1/dfbg*
