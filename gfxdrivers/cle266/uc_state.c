@@ -59,11 +59,13 @@ inline enum uc_state_type uc_select_blittype(CardState* state,
             !(accel & DFXL_STRETCHBLIT)) return UC_TYPE_2D;
     }
 
+// 3d blitting is broken
+/*
     if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
         if (uc_map_src_format_3d(state->source->format) >= 0) 
             return UC_TYPE_3D;
     }
-
+*/
     return UC_TYPE_UNSUPPORTED;
 }
 
@@ -72,18 +74,8 @@ inline enum uc_state_type uc_select_blittype(CardState* state,
 void uc_check_state(void *drv, void *dev,
                     CardState *state, DFBAccelerationMask accel)
 {
-    DFBSurfaceCapabilities caps;
-
     if (!uc_is_destination_supported(state->destination->format)) return;
 
-    // Do we need to check surface capability flags?
-    // eg DSCAPS_VIDEOONLY (must be set) or DSCAPS_SEPARATED (must not be set)
-
-    caps = state->destination->caps;
-    if (!((caps & DSCAPS_VIDEOONLY) && !(caps & DSCAPS_SEPARATED))) {
-        // Non-video memory surfaces and separated surfaces are not supported.
-        return;
-    }
 
     if (DFB_DRAWING_FUNCTION(accel)) {
 
@@ -101,13 +93,6 @@ void uc_check_state(void *drv, void *dev,
         return;
     }
     else { // DFB_BLITTING_FUNCTION(accel)
-
-        caps = state->source->caps;
-
-        if (!((caps & DSCAPS_VIDEOONLY) && !(caps & DSCAPS_SEPARATED))) {
-            // Non-video memory surfaces and separated surfaces not supported.
-            return;
-        }
 
         switch (uc_select_blittype(state, accel))
         {
