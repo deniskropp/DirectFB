@@ -3,6 +3,7 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <unistd.h>
 
 #include <pthread.h>
 
@@ -454,6 +455,24 @@ bench_mutex()
      printf( "\n" );
 }
 
+static void
+bench_getpid()
+{
+     int             i;
+     long long       t1, t2;
+
+     t1 = dfb_get_millis();
+     
+     for (i=0; i<4000000; i++) {
+          getpid();
+     }
+     
+     t2 = dfb_get_millis();
+     
+     printf( "getpid                                -> %8.2f k/sec\n", (double)2000000 / (double)(t2 - t1) );
+     printf( "\n" );
+}
+
 #define RUN(x...)   sync(); sleep(1); x
 
 int
@@ -479,6 +498,8 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
      
+     
+     RUN( bench_getpid() );
      
      RUN( bench_mutex() );
      RUN( bench_mutex_threaded() );
