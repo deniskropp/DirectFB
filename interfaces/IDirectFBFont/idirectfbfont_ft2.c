@@ -491,6 +491,9 @@ Construct( IDirectFBFont      *thiz,
           return DFB_FAILURE;
      }
 
+     if (dfb_config->a1_font)
+          format = DSPF_A1;
+
      if (desc->flags & DFDESC_ATTRIBUTES) {
           if (desc->attributes & DFFA_NOHINTING)
                load_flags |= FT_LOAD_NO_HINTING;
@@ -498,16 +501,16 @@ Construct( IDirectFBFont      *thiz,
                disable_charmap = true;
           if (desc->attributes & DFFA_NOKERNING)
                disable_kerning = true;
-
-          if ((desc->attributes & DFFA_MONOCHROME) || dfb_config->a1_font) {
-#ifdef FT_LOAD_TARGET_MONO  /* added in FreeType-2.1.3 */
-               load_flags |= FT_LOAD_TARGET_MONO;
-#else
-               load_flags |= FT_LOAD_MONOCHROME;
-#endif
-
+          if (desc->attributes & DFFA_MONOCHROME)
                format = DSPF_A1;
-          }
+     }
+
+     if (format == DSPF_A1) {
+#ifdef FT_LOAD_TARGET_MONO  /* added in FreeType-2.1.3 */
+          load_flags |= FT_LOAD_TARGET_MONO;
+#else
+          load_flags |= FT_LOAD_MONOCHROME;
+#endif
      }
 
      if (!disable_charmap) {
