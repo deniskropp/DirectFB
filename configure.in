@@ -83,7 +83,12 @@ fi
 
 
 dnl compiling for x86, asm checks and inb/outb/iopl
-case "$host" in
+case "$target" in
+NONE)
+  case "$host" in
+    i*86-*-*) have_x86=on ;;
+    *) have_x86=off ;;
+  esac ;;
 i*86-*-*) have_x86=on ;;
 *) have_x86=off ;;
 esac
