@@ -548,7 +548,10 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 
      window = data->window;
 
-     if ((window->options & DWOP_GHOST) || !window->opacity)
+     if (window->options & DWOP_GHOST)
+          return DFB_UNSUPPORTED;
+
+     if (!window->opacity && !(window->caps & DWCAPS_INPUTONLY))
           return DFB_UNSUPPORTED;
 
      dfb_window_request_focus( window );
