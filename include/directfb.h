@@ -811,7 +811,19 @@ extern "C"
       * <i>SetCooperativeLevel</i> fails with DFB_ACCESSDENIED. Applications
       * that want to be "window aware" shouldn't exit on this error.
       *
-      * <i>To be continued...</i>
+      * The <b>video mode</b> can be changed via <i>SetVideoMode</i> and is the
+      * size and depth of the primary surface, i.e. the screen when in exclusive
+      * cooperative level. Without exclusive access <i>SetVideoMode</i> sets the
+      * size of the implicitly created window.
+      * 
+      * <b>Event buffers</b> can be created with an option to automatically
+      * attach input devices matching the specified capabilities. If DICAPS_NONE
+      * is passed an event buffer with nothing attached to is created. An event
+      * buffer can be attached to input devices and windows.
+      *
+      * <b>Fonts, images and videos</b> are created by this interface. There are
+      * different implementations for different content types. On creation a
+      * suitable implementation is automatically chosen.
       */
      DEFINE_INTERFACE(   IDirectFB,
 
