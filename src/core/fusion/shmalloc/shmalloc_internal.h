@@ -148,14 +148,19 @@ struct list {
      struct list *prev;
 };
 
+#define SHMEMDESC_FUNC_NAME_LENGTH 48
+#define SHMEMDESC_FILE_NAME_LENGTH 24
+
 /* Used for debugging. */
 typedef struct {
-     void         *mem;
+     const void   *mem;
      size_t        bytes;
-     char         *allocated_in_func;
-     char         *allocated_in_file;
-     unsigned int  allocated_in_line;
+     char          func[SHMEMDESC_FUNC_NAME_LENGTH];
+     char          file[SHMEMDESC_FILE_NAME_LENGTH];
+     unsigned int  line;
 } SHMemDesc;
+
+
 
 typedef struct {
      /* Pointer to first block of the heap.  */
@@ -197,6 +202,7 @@ typedef struct {
 
      /* Used for debugging. */
      int        alloc_count;
+     int        alloc_capacity;
      SHMemDesc *alloc_list;
 } shmalloc_heap;
 

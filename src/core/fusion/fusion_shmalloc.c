@@ -49,26 +49,57 @@
 void
 fusion_dbg_print_memleaks()
 {
-     unsigned int i;
+     int i;
 
      DFB_ASSERT( _sheap != NULL );
 
      fusion_skirmish_prevail( &_sheap->lock );
 
      if (_sheap->alloc_count) {
-          DEBUGMSG( "Shared memory allocations remaining (%d): \n",
-                    _sheap->alloc_count);
+          DEBUGMSG( "Shared memory allocations remaining (%d): \n", _sheap->alloc_count);
 
           for (i=0; i<_sheap->alloc_count; i++) {
                SHMemDesc *d = &_sheap->alloc_list[i];
 
                DEBUGMSG( "%7d bytes at %p allocated in %s (%s: %u)\n",
-                         d->bytes, d->mem, d->allocated_in_func,
-                         d->allocated_in_file, d->allocated_in_line);
+                         d->bytes, d->mem, d->func, d->file, d->line );
           }
      }
 
      fusion_skirmish_dismiss( &_sheap->lock );
+}
+
+static SHMemDesc *
+allocate_shmem_desc()
+{
+     int cap = _sheap->alloc_capacity;
+
+     if (!cap)
+          cap = 64;
+     else if (cap == _sheap->alloc_count)
+          cap <<= 1;
+
+     if (cap != _sheap->alloc_capacity) {
+          _sheap->alloc_capacity = cap;
+          _sheap->alloc_list     = _fusion_shrealloc( _sheap->alloc_list, sizeof(SHMemDesc) * cap );
+
+          DFB_ASSERT( _sheap->alloc_list != NULL );
+     }
+
+     return &_sheap->alloc_list[_sheap->alloc_count++];
+}
+
+static void
+fill_shmem_desc( SHMemDesc  *desc, const void *mem,  int bytes,
+                 const char *func, const char *file, int line )
+{
+     desc->mem   = mem;
+     desc->bytes = bytes;
+
+     snprintf( desc->func, SHMEMDESC_FUNC_NAME_LENGTH, func );
+     snprintf( desc->file, SHMEMDESC_FILE_NAME_LENGTH, file );
+
+     desc->line = line;
 }
 
 /* Allocate SIZE bytes of memory.  */
@@ -88,20 +119,9 @@ fusion_dbg_shmalloc( char *file, int line,
 
      ret = _fusion_shmalloc( __size );
      if (ret) {
-          SHMemDesc *d;
+          SHMemDesc *desc = allocate_shmem_desc();
 
-          _sheap->alloc_count++;
-          _sheap->alloc_list = _fusion_shrealloc( _sheap->alloc_list,
-                                                  (sizeof(SHMemDesc) *
-                                                   _sheap->alloc_count) );
-
-          d = &_sheap->alloc_list[_sheap->alloc_count-1];
-
-          d->mem               = ret;
-          d->bytes             = __size;
-          d->allocated_in_func = func;
-          d->allocated_in_file = file;
-          d->allocated_in_line = line;
+          fill_shmem_desc( desc, ret, __size, func, file, line );
      }
 
      fusion_skirmish_dismiss( &_sheap->lock );
@@ -127,20 +147,9 @@ fusion_dbg_shcalloc( char *file, int line,
 
      ret = _fusion_shcalloc( __nmemb, __size );
      if (ret) {
-          SHMemDesc *d;
+          SHMemDesc *desc = allocate_shmem_desc();
 
-          _sheap->alloc_count++;
-          _sheap->alloc_list = _fusion_shrealloc( _sheap->alloc_list,
-                                                  (sizeof(SHMemDesc) *
-                                                   _sheap->alloc_count) );
-
-          d = &_sheap->alloc_list[_sheap->alloc_count-1];
-
-          d->mem               = ret;
-          d->bytes             = __size * __nmemb;
-          d->allocated_in_func = func;
-          d->allocated_in_file = file;
-          d->allocated_in_line = line;
+          fill_shmem_desc( desc, ret, __size * __nmemb, func, file, line );
      }
 
      fusion_skirmish_dismiss( &_sheap->lock );
@@ -170,11 +179,12 @@ fusion_dbg_shrealloc( char *file, int line,
      fusion_skirmish_prevail( &_sheap->lock );
 
      for (i=0; i<_sheap->alloc_count; i++) {
-          if (_sheap->alloc_list[i].mem == __ptr) {
+          SHMemDesc *desc = &_sheap->alloc_list[i];
+
+          if (desc->mem == __ptr) {
                void *new_mem = _fusion_shrealloc( __ptr, __size );
 
-               _sheap->alloc_list[i].mem   = new_mem;
-               _sheap->alloc_list[i].bytes = new_mem ? __size : 0;
+               fill_shmem_desc( desc, new_mem, __size, func, file, line );
 
                fusion_skirmish_dismiss( &_sheap->lock );
 
@@ -184,8 +194,7 @@ fusion_dbg_shrealloc( char *file, int line,
 
      fusion_skirmish_dismiss( &_sheap->lock );
 
-     ERRORMSG ( "%s: trying to reallocate unknown chunk %p (%s)\n"
-                "          in %s (%s: %u) !!!\n",
+     ERRORMSG ( "%s: trying to reallocate unknown chunk %p (%s) in %s (%s: %u) !!!\n",
                 __FUNCTION__, __ptr, what, func, file, line);
      kill( 0, SIGTRAP );
 
@@ -205,13 +214,15 @@ fusion_dbg_shfree( char *file, int line,
      fusion_skirmish_prevail( &_sheap->lock );
 
      for (i=0; i<_sheap->alloc_count; i++) {
-          if (_sheap->alloc_list[i].mem == __ptr) {
+          SHMemDesc *desc = &_sheap->alloc_list[i];
+
+          if (desc->mem == __ptr) {
                _fusion_shfree( __ptr );
 
                _sheap->alloc_count--;
 
-               dfb_memcpy( &_sheap->alloc_list[i], &_sheap->alloc_list[i+1],
-                           (_sheap->alloc_count - i) * sizeof(SHMemDesc) );
+               if (i < _sheap->alloc_count)
+                    dfb_memcpy( desc, desc + 1, (_sheap->alloc_count - i) * sizeof(SHMemDesc) );
 
                fusion_skirmish_dismiss( &_sheap->lock );
 
@@ -248,21 +259,11 @@ fusion_dbg_shstrdup( char *file, int line,
 
      ret = _fusion_shmalloc( len );
      if (ret) {
-          SHMemDesc *d;
+          SHMemDesc *desc = allocate_shmem_desc();
+
+          fill_shmem_desc( desc, ret, len, func, file, line );
 
           dfb_memcpy( ret, string, len );
-
-          _sheap->alloc_count++;
-          _sheap->alloc_list = _fusion_shrealloc( _sheap->alloc_list,
-                                                  (sizeof(SHMemDesc) *
-                                                   _sheap->alloc_count) );
-
-          d = &_sheap->alloc_list[_sheap->alloc_count-1];
-          d->mem   = ret;
-          d->bytes = len;
-          d->allocated_in_func = func;
-          d->allocated_in_file = file;
-          d->allocated_in_line = line;
      }
 
      fusion_skirmish_dismiss( &_sheap->lock );

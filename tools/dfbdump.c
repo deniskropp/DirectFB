@@ -33,12 +33,15 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include <directfb.h>
 #include <directfb_strings.h>
 
-#include <core/fusion/ref.h>
 #include <core/fusion/object.h>
+#include <core/fusion/ref.h>
+#include <core/fusion/shmalloc.h>
+#include <core/fusion/shmalloc/shmalloc_internal.h>
 
 #include <core/core.h>
 #include <core/layer_control.h>
@@ -465,6 +468,27 @@ main( int argc, char *argv[] )
 
      dump_surfaces();
      dump_layers();
+
+     if (argc > 1 && !strcmp( argv[1], "-s" )) {
+          unsigned int i;
+
+          DFB_ASSERT( _sheap != NULL );
+
+          fusion_skirmish_prevail( &_sheap->lock );
+
+          if (_sheap->alloc_count) {
+               printf( "\nShared memory allocations (%d): \n", _sheap->alloc_count);
+
+               for (i=0; i<_sheap->alloc_count; i++) {
+                    SHMemDesc *d = &_sheap->alloc_list[i];
+
+                    printf( "   %7d bytes at %p allocated in %s (%s: %u)\n",
+                            d->bytes, d->mem, d->func, d->file, d->line );
+               }
+          }
+
+          fusion_skirmish_dismiss( &_sheap->lock );
+     }
 
      printf( "\n" );
 
