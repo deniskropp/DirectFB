@@ -606,7 +606,7 @@ typedef struct {
  * It will fill up the buffer until it's done  rendering the 
  * triangle.  
  */
-static inline void 
+static inline bool 
 i810fill_tri( DFBTriangle    *tri, 
 	      I810DriverData *i810drv,
 	      I810DeviceData *i810dev )
@@ -631,7 +631,7 @@ i810fill_tri( DFBTriangle    *tri,
 	total = (yend - y) * 5;
 	if (total + BUFFER_PADDING > RINGBUFFER_SIZE/4) {
 		BUG("fill_triangle: buffer size is too small\n"); 
-		return;
+		return false;
 	}
 	
 	BEGIN_LRING(i810drv, i810dev, total);
@@ -641,7 +641,7 @@ i810fill_tri( DFBTriangle    *tri,
 
 		if (y == tri->y2) {
 			if (tri->y2 == tri->y3)
-				return;
+				return true;
 			SETUP_DDA(tri->x2, tri->y2, tri->x3, tri->y3, dda2);
 		}
 		
@@ -665,6 +665,7 @@ i810fill_tri( DFBTriangle    *tri,
 		y++;
 	}
 	END_LRING(i810drv);
+	return true;
 }
 
 static bool
@@ -672,13 +673,14 @@ i810FillTriangle( void *drv, void *dev, DFBTriangle *tri)
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
 	I810DeviceData *i810dev = (I810DeviceData *) dev;
+	bool err = true;
 
 	dfb_sort_triangle(tri);
 	
 	if (tri->y3 - tri->y1 > 0) 
-		i810fill_tri(tri, i810drv, i810dev);
+		err = i810fill_tri(tri, i810drv, i810dev);
 
-	return true;
+	return err;
 }
 
 static int
