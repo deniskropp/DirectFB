@@ -68,11 +68,17 @@ static int src_pitch = 0;
 static int dst_bpp   = 0;
 static int src_bpp   = 0;
 
+static DFBSurfaceCapabilities dst_caps = DSCAPS_NONE;
+static DFBSurfaceCapabilities src_caps = DSCAPS_NONE;
+
 static DFBSurfacePixelFormat src_format = DSPF_UNKNOWN;
 static DFBSurfacePixelFormat dst_format = DSPF_UNKNOWN;
 
 static int dst_height = 0;
 static int src_height = 0;
+
+static int dst_field_offset = 0;
+static int src_field_offset = 0;
 
 DFBColor color;
 
@@ -2423,7 +2429,8 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
 
 int gAquire( CardState *state, DFBAccelerationMask accel )
 {
-     GFunc *funcs = gfuncs;
+     GFunc       *funcs       = gfuncs;
+     CoreSurface *destination = state->destination;
 
      int dst_pfi, src_pfi = 0;
 
@@ -2431,14 +2438,18 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
      pthread_mutex_lock( &generic_lock );
 
-     dst_height = state->destination->height;
-     dst_format = state->destination->format;
+     dst_caps   = destination->caps;
+     dst_height = destination->height;
+     dst_format = destination->format;
      dst_bpp    = DFB_BYTES_PER_PIXEL( dst_format );
      dst_pfi    = DFB_PIXELFORMAT_INDEX( dst_format );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          src_height = state->source->height;
-          src_format = state->source->format;
+          CoreSurface *source = state->source;
+
+          src_caps   = source->caps;
+          src_height = source->height;
+          src_format = source->format;
           src_bpp    = DFB_BYTES_PER_PIXEL( src_format );
           src_pfi    = DFB_PIXELFORMAT_INDEX( src_format );
 
@@ -2552,6 +2563,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                return 0;
           }
 
+          src_field_offset = src_height/2 * src_pitch;
+          
           state->source_locked = 1;
      }
      else
@@ -2568,8 +2581,11 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           return 0;
      }
 
+     dst_field_offset = dst_height/2 * dst_pitch;
+     
      dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
 
+     
      switch (accel) {
           case DFXL_FILLRECTANGLE:
           case DFXL_DRAWRECTANGLE:
@@ -2929,17 +2945,111 @@ void gRelease( CardState *state )
           } while (*funcs);        \
      }                             \
 
+
+static int Aop_field = 0;
+
+static void Aop_xy( void *org, int x, int y, int pitch )
+{
+     Aop = org;
+
+     if (dst_caps & DSCAPS_SEPERATED) {
+          Aop_field = y & 1;
+          if (Aop_field)
+               Aop += dst_field_offset;
+
+          y /= 2;
+     }
+
+     Aop += y * pitch  +  x * dst_bpp;
+}
+
+static void Aop_next( int pitch )
+{
+     if (dst_caps & DSCAPS_SEPERATED) {
+          Aop_field = !Aop_field;
+          
+          if (Aop_field)
+               Aop += dst_field_offset;
+          else
+               Aop += pitch - dst_field_offset;
+     }
+     else
+          Aop += pitch;
+}
+
+static void Aop_prev( int pitch )
+{
+     if (dst_caps & DSCAPS_SEPERATED) {
+          Aop_field = !Aop_field;
+          
+          if (Aop_field)
+               Aop += dst_field_offset - pitch;
+          else
+               Aop -= dst_field_offset;
+     }
+     else
+          Aop -= pitch;
+}
+
+
+static int Bop_field = 0;
+
+static void Bop_xy( void *org, int x, int y, int pitch )
+{
+     Bop = org;
+
+     if (src_caps & DSCAPS_SEPERATED) {
+          Bop_field = y & 1;
+          if (Bop_field)
+               Bop += src_field_offset;
+
+          y /= 2;
+     }
+
+     Bop += y * pitch  +  x * src_bpp;
+}
+
+static void Bop_next( int pitch )
+{
+     if (src_caps & DSCAPS_SEPERATED) {
+          Bop_field = !Bop_field;
+          
+          if (Bop_field)
+               Bop += src_field_offset;
+          else
+               Bop += pitch - src_field_offset;
+     }
+     else
+          Bop += pitch;
+}
+
+static void Bop_prev( int pitch )
+{
+     if (src_caps & DSCAPS_SEPERATED) {
+          Bop_field = !Bop_field;
+          
+          if (Bop_field)
+               Bop += src_field_offset - pitch;
+          else
+               Bop -= src_field_offset;
+     }
+     else
+          Bop -= pitch;
+}
+
+
 void gFillRectangle( DFBRectangle *rect )
 {
      CHECK_PIPELINE();
 
-     Aop = dst_org  +  rect->y * dst_pitch  +  rect->x * dst_bpp;
      Dlength = rect->w;
 
+     Aop_xy( dst_org, rect->x, rect->y, dst_pitch );
+     
      while (rect->h--) {
           RUN_PIPELINE();
 
-          Aop += dst_pitch;
+          Aop_next( dst_pitch );
      }
 }
 
@@ -2967,15 +3077,15 @@ void gDrawLine( DFBRegion *line )
           return;
      }
 
-     sdy = SIGN(dy) * SIGN(dx) * dst_pitch;
+     sdy = SIGN(dy) * SIGN(dx);
      x   = dyabs >> 1;
      y   = dxabs >> 1;
      if (dx > 0) {
-       px  = line->x1 * dst_bpp;
-       py  = line->y1 * dst_pitch;
+       px  = line->x1;
+       py  = line->y1;
      } else {
-       px  = line->x2 * dst_bpp;
-       py  = line->y2 * dst_pitch;
+       px  = line->x2;
+       py  = line->y2;
      }
 
      if (dxabs >= dyabs) { /* the line is more horizontal than vertical */
@@ -2983,32 +3093,32 @@ void gDrawLine( DFBRegion *line )
           for (i=0, Dlength=1; i<dxabs; i++, Dlength++) {
                y += dyabs;
                if (y >= dxabs) {
-                    Aop = dst_org + py + px;
+                    Aop_xy( dst_org, px, py, dst_pitch );
                     RUN_PIPELINE();
-                    px += Dlength * dst_bpp;
+                    px += Dlength;
                     Dlength = 0;
                     y -= dxabs;
                     py += sdy;
                }
           }
-          Aop = dst_org + py + px;
+          Aop_xy( dst_org, px, py, dst_pitch );
           RUN_PIPELINE();
      }
      else { /* the line is more vertical than horizontal */
 
           Dlength = 1;
-          Aop = dst_org + py + px;
+          Aop_xy( dst_org, px, py, dst_pitch );
           RUN_PIPELINE();
 
           for (i=0; i<dyabs; i++) {
                x += dxabs;
                if (x >= dyabs) {
                     x -= dyabs;
-                    px += dst_bpp;
+                    px++;
                }
                py += sdy;
 
-               Aop = dst_org + py + px;
+               Aop_xy( dst_org, px, py, dst_pitch );
                RUN_PIPELINE();
           }
      }
@@ -3022,29 +3132,30 @@ static inline void gDoBlit( int sx,     int sy,
 {
      if (dy > sy) {
           /* we must blit from bottom to top */
-          Aop = dorg + (dy + height-1) * dpitch + dx * dst_bpp;
-          Bop = sorg + (sy + height-1) * spitch + sx * src_bpp;
           Dlength = width;
 
+          Aop_xy( dorg, dx, dy + height - 1, dpitch );
+          Bop_xy( sorg, sx, sy + height - 1, spitch );
+          
           while (height--) {
                RUN_PIPELINE();
 
-               Aop -= dpitch;
-               Bop -= spitch;
+               Aop_prev( dpitch );
+               Bop_prev( spitch );
           }
      }
      else {
           /* we must blit from top to bottom */
-          Aop = dorg  +  dy * dpitch  +  dx * dst_bpp;
-          Bop = sorg  +  sy * spitch  +  sx * src_bpp;
-
           Dlength = width;
 
+          Aop_xy( dorg, dx, dy, dpitch );
+          Bop_xy( sorg, sx, sy, spitch );
+          
           while (height--) {
                RUN_PIPELINE();
 
-               Aop += dpitch;
-               Bop += spitch;
+               Aop_next( dpitch );
+               Bop_next( spitch );
           }
      }
 }
@@ -3086,24 +3197,24 @@ void gStretchBlit( DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
-     Aop = dst_org  +  drect->y * dst_pitch  +  drect->x * dst_bpp;
-     Bop = src_org  +  srect->y * src_pitch  +  srect->x * src_bpp;
-
      Dlength = drect->w;
      SperD = (srect->w << 16) / drect->w;
 
      f = (srect->h << 16) / drect->h;
 
+     Aop_xy( dst_org, drect->x, drect->y, dst_pitch );
+     Bop_xy( src_org, srect->x, srect->y, src_pitch );
+
      while (drect->h--) {
           RUN_PIPELINE();
 
-          Aop += dst_pitch;
+          Aop_next( dst_pitch );
 
           i += f;
 
           while (i > 0xFFFF) {
                i -= 0x10000;
-               Bop += src_pitch;
+               Bop_next( src_pitch );
           }
      }
 }
