@@ -308,7 +308,6 @@ static void matroxG200CheckState( void *drv, void *dev,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
-          case DSPF_A8:
                break;
           default:
                return;
