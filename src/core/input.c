@@ -32,6 +32,8 @@
 #include <string.h>
 #include <malloc.h>
 
+#include <sys/time.h>
+
 #include <pthread.h>
 
 #include <core/fusion/shmalloc.h>
