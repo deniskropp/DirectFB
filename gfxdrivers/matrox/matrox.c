@@ -125,11 +125,22 @@ static void matroxFlushTextureCache( void *drv, void *dev )
 #define MATROX_G200G400_BLITTING_FUNCTIONS  (DFXL_BLIT          | \
                                              DFXL_STRETCHBLIT)
 
+
+#define MATROX_USE_TMU(state, accel)                                     \
+     ((state)->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |              \
+                                DSBLIT_BLEND_COLORALPHA   |              \
+                                DSBLIT_COLORIZE)               ||        \
+      (state)->destination->format != (state)->source->format  ||        \
+      (accel) == DFXL_STRETCHBLIT)
+
+
+
 static void matroxOldCheckState( void *drv, void *dev,
                                  CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
+          case DSPF_RGB332:
           case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -162,6 +173,7 @@ static void matroxG100CheckState( void *drv, void *dev,
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
+          case DSPF_RGB332:
           case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -183,12 +195,7 @@ static void matroxG100CheckState( void *drv, void *dev,
                return;
 
           /* using the texture mapping unit? */
-          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                      DSBLIT_BLEND_COLORALPHA   |
-                                      DSBLIT_COLORIZE)             ||
-              state->destination->format != state->source->format  ||
-              accel == DFXL_STRETCHBLIT)
-          {
+          if (MATROX_USE_TMU( state, accel )) {
                /* TMU has no 32bit support */
                switch (state->source->format) {
                     case DSPF_RGB15:
@@ -219,6 +226,7 @@ static void matroxG200CheckState( void *drv, void *dev,
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
+          case DSPF_RGB332:
           case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -236,7 +244,12 @@ static void matroxG200CheckState( void *drv, void *dev,
           state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
      }
      else {
+          int use_tmu = MATROX_USE_TMU( state, accel );
+
           switch (state->source->format) {
+               case DSPF_RGB332:
+                    if (use_tmu)
+                         return;
                case DSPF_RGB15:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -247,16 +260,22 @@ static void matroxG200CheckState( void *drv, void *dev,
                     return;
           }
 
-          if (state->source->width < 8 ||
-              state->source->height < 8 ||
-              state->source->width > 2048 ||
-              state->source->height > 2048)
-               return;
-
           if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
                return;
 
-          state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
+          if (use_tmu) {
+               if (state->source->width < 8 ||
+                   state->source->height < 8 ||
+                   state->source->width > 2048 ||
+                   state->source->height > 2048)
+                    return;
+
+               state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
+          }
+          else {
+               /* source and destination formats equal, no stretching is done */
+               state->accel |= accel;
+          }
      }
 }
 
@@ -265,6 +284,7 @@ static void matroxG400CheckState( void *drv, void *dev,
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
+          case DSPF_RGB332:
           case DSPF_RGB15:
           case DSPF_RGB16:
           case DSPF_RGB32:
@@ -282,7 +302,12 @@ static void matroxG400CheckState( void *drv, void *dev,
           state->accel |= MATROX_G200G400_DRAWING_FUNCTIONS;
      }
      else {
+          int use_tmu = MATROX_USE_TMU( state, accel );
+
           switch (state->source->format) {
+               case DSPF_RGB332:
+                    if (use_tmu)
+                         return;
                case DSPF_RGB15:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -295,16 +320,22 @@ static void matroxG400CheckState( void *drv, void *dev,
                     return;
           }
 
-          if (state->source->width < 8 ||
-              state->source->height < 8 ||
-              state->source->width > 2048 ||
-              state->source->height > 2048)
-               return;
-
           if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
                return;
 
-          state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
+          if (use_tmu) {
+               if (state->source->width < 8 ||
+                   state->source->height < 8 ||
+                   state->source->width > 2048 ||
+                   state->source->height > 2048)
+                    return;
+
+               state->accel |= MATROX_G200G400_BLITTING_FUNCTIONS;
+          }
+          else {
+               /* source and destination formats equal, no stretching is done */
+               state->accel |= accel;
+          }
      }
 }
 

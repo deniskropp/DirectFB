@@ -61,6 +61,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 
      switch (destination->format) {
           case DSPF_A8:
+          case DSPF_RGB332:
                mga_out32( mmio, PW8  | NODITHER, MACCESS );
                break;
           case DSPF_RGB15:
@@ -136,6 +137,13 @@ void matrox_validate_color( MatroxDriverData *mdrv,
           return;
 
      switch (state->destination->format) {
+          case DSPF_RGB332:
+               color = PIXEL_RGB332( state->color.r,
+                                     state->color.g,
+                                     state->color.b );
+               color |= color << 8;
+               color |= color << 16;
+               break;
           case DSPF_RGB15:
                color = PIXEL_RGB15( state->color.r,
                                     state->color.g,
@@ -167,7 +175,8 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                break;
           case DSPF_A8:
                color = state->color.a;
-               color |= color << 24 | color << 16 | color << 8;
+               color |= color << 8;
+               color |= color << 16;
                break;
           default:
                BUG( "unexpected pixelformat!" );
@@ -392,20 +401,38 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
 {
      volatile __u8 *mmio    = mdrv->mmio_base;
      CoreSurface   *surface = state->source;
+     __u32          key;
      __u32          mask;
 
      if (mdev->m_srckey)
           return;
 
      mask = (1 << MIN( 24, DFB_BITS_PER_PIXEL(surface->format) )) - 1;
+     key  = state->src_colorkey & mask;
 
      mga_waitfifo( mdrv, mdev, 2);
-     mga_out32( mmio, state->src_colorkey, FCOL );
 
-     if (DFB_BYTES_PER_PIXEL(state->source->format) > 2)
-          mga_out32( mmio, mask, BCOL );
-     else
-          mga_out32( mmio, (mask << 16) | mask, BCOL );
+     mga_out32( mmio, 0xFFFFFFFF /*mask*/, BCOL );
+
+     switch (DFB_BYTES_PER_PIXEL(state->source->format)) {
+          case 1:
+               mga_out32( mmio, key | (key <<  8) |
+                                      (key << 16) |
+                                      (key << 24), FCOL );
+               break;
+          case 2:
+               mga_out32( mmio, key | (key << 16), FCOL );
+               break;
+          case 3:
+               mga_out32( mmio, key | (key << 24), FCOL );
+               break;
+          case 4:
+               mga_out32( mmio, key, FCOL );
+               break;
+          default:
+               BUG( "unexpected bytes per pixel" );
+               break;
+     }
 
      mdev->m_srckey = 1;
      mdev->m_color = 0;
