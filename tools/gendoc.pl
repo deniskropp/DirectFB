@@ -2,7 +2,7 @@
 #
 #   (c) Copyright 2000-2002  convergence integrated media GmbH.
 #   (c) Copyright 2002       convergence GmbH.
-#   
+#
 #   All rights reserved.
 #
 #   Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -135,7 +135,7 @@ sub parse_interface (NAME)
       print INTERFACE "    </THEAD>\n";
 
       print INTERFACE "    <TBODY>\n";
-      
+
       while (<>)
          {
             chomp;
@@ -246,7 +246,7 @@ sub parse_interface (NAME)
          }
 
       print INTERFACE "    </TBODY>\n";
-      
+
       print INTERFACE "  </TABLE></CENTER>\n",
                       "</P>\n";
 
@@ -263,20 +263,22 @@ sub parse_enum
       %entries = ();
       @list = ();
 
+      $pre = "";
+
       while (<>)
          {
             chomp;
-                                                  
+
             $entry = "";
 
-            # complete one line entry with assignment
-            if ( /^\s*(\w+)\s*=\s*([\w\d]+)\s*,?\s*\/\*\s*(.+)\*\/\s*$/ )
+            # entry with assignment (complete comment)
+            if ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\s]+)\s*,?\s*\/\*\s*(.+)\s*\*\/\s*$/ )
                {
                   $entry = $1;
                   $entries{ $entry } = $3;
                }
-            # with comment opening
-            elsif ( /^\s*(\w+)\s*=\s*([\w\d]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
+            # entry with assignment (opening comment)
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\s]+)\s*,?\s*\/\*\s*(.+)\s*$/ )
                {
                   $entry = $1;
 
@@ -286,7 +288,7 @@ sub parse_enum
                      {
                         chomp;
 
-                        if ( /^\s*(.+)\*\/\s*$/ )
+                        if ( /^\s*(.+)\s*\*\/\s*$/ )
                            {
                               $entries{ $entry } .= " $1";
                               last;
@@ -297,13 +299,19 @@ sub parse_enum
                            }
                   }
                }
-            # complete one line entry
-            elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\*\/\s*$/ )
+            # entry with assignment (none or preceding comment)
+            elsif ( /^\s*(\w+)\s*=\s*([\w\d\(\)\,\s]+)\s*,?\s*$/ )
+               {
+                  $entry = $1;
+                  $entries{ $entry } = $pre;
+               }
+            # entry without assignment (complete comment)
+            elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\s*\*\/\s*$/ )
                {
                   $entry = $1;
                   $entries{ $entry } = $2;
                }
-            # with comment opening
+            # entry without assignment (opening comment)
             elsif ( /^\s*(\w+)\s*,?\s*\/\*\s*(.+)\s*$/ )
                {
                   $entry = $1;
@@ -314,7 +322,7 @@ sub parse_enum
                      {
                         chomp;
 
-                        if ( /^\s*(.+)\*\/\s*$/ )
+                        if ( /^\s*(.+)\s*\*\/\s*$/ )
                            {
                               $entries{ $entry } .= " $1";
                               last;
@@ -325,6 +333,38 @@ sub parse_enum
                            }
                      }
                }
+            # entry without assignment (none or preceding comment)
+            elsif ( /^\s*(\w+)\s*,?\s*$/ )
+               {
+                  $entry = $1;
+                  $entries{ $entry } = $pre;
+               }
+            # preceding comment (complete)
+            elsif ( /^\s*\/\*\s*(.+)\s*\*\/\s*$/ )
+               {
+                  $pre = $1;
+               }
+            # preceding comment (opening)
+            elsif ( /^\s*\/\*\s*(.+)\s*$/ )
+               {
+                  $pre = $1;
+
+                  while (<>)
+                     {
+                        chomp;
+
+                        if ( /^\s*(.+)\s*\*\/\s*$/ )
+                           {
+                              $pre .= " $1";
+                              last;
+                           }
+                        elsif ( /^\s*(.+)\s*$/ )
+                           {
+                              $pre .= " $1";
+                           }
+                     }
+               }
+            # end of enum
             elsif ( /^\s*\}\s*(\w+)\s*\;\s*$/ )
                {
                   $enum = $1;
@@ -332,6 +372,11 @@ sub parse_enum
                   $types{$enum} = 1;
 
                   last;
+               }
+            # blank line?
+            else
+               {
+                  $pre = "";
                }
 
             if ($entry ne "")
