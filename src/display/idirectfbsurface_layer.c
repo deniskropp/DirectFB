@@ -61,12 +61,12 @@ typedef struct {
 void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 {
      IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
-     
+
      state_set_destination( &data->state, NULL );
      state_set_source( &data->state, NULL );
-     
+
      reactor_detach( data->surface->reactor, IDirectFBSurface_listener, thiz );
-     
+
      free( thiz->priv );
      thiz->priv = NULL;
 
@@ -77,14 +77,10 @@ void IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 
 DFBResult IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
+     INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
-     if (!data)
-          return DFB_DEAD;
-
-     if (--data->ref == 0) {
+     if (--data->base.ref == 0)
           IDirectFBSurface_Layer_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -93,10 +89,7 @@ DFBResult IDirectFBSurface_Layer_Flip( IDirectFBSurface *thiz,
                                        DFBRegion *region,
                                        DFBSurfaceFlipFlags flags )
 {
-     IDirectFBSurface_Layer_data *data=(IDirectFBSurface_Layer_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -139,15 +132,9 @@ DFBResult IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface     *thiz,
                                                 IDirectFBSurface     **surface )
 {
      DFBRectangle req, clip;
-     IDirectFBSurface_Layer_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
-     data = (IDirectFBSurface_Layer_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -187,7 +174,7 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
 
      if (!(caps & DSCAPS_SUBSURFACE)  &&  !req_rect) {
           DFBDisplayLayerConfig config;
-          
+
           config.flags      = DLCONF_BUFFERMODE;
 
           if (caps & DSCAPS_FLIPPING) {
@@ -203,7 +190,7 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
           }
           else
                config.buffermode = DLBM_FRONTONLY;
-               
+
           err = layer->SetConfiguration( layer, &config );
           if (err) {
                free( thiz );

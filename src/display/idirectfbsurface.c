@@ -77,15 +77,7 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
 DFBResult IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      data->ref++;
 
@@ -94,19 +86,10 @@ DFBResult IDirectFBSurface_AddRef( IDirectFBSurface *thiz )
 
 DFBResult IDirectFBSurface_Release( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_data *data;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     if (--data->ref == 0) {
+     if (--data->ref == 0)
           IDirectFBSurface_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -115,18 +98,10 @@ DFBResult IDirectFBSurface_Release( IDirectFBSurface *thiz )
 DFBResult IDirectFBSurface_GetPixelFormat( IDirectFBSurface *thiz,
                                            DFBSurfacePixelFormat *format )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!format)
           return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      *format = data->surface->format;
 
@@ -137,15 +112,10 @@ DFBResult IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
                                                 IDirectFBSurface    *source,
                                                 DFBAccelerationMask *mask )
 {
-     IDirectFBSurface_data *data;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!thiz || !mask)
+     if (!mask)
           return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (source) {
           IDirectFBSurface_data *src_data = (IDirectFBSurface_data*)source->priv;
@@ -156,6 +126,7 @@ DFBResult IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE );
      gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE );
      gfxcard_state_check( &data->state, DFXL_DRAWLINE );
+     gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE );
 
      if (source) {
           gfxcard_state_check( &data->state, DFXL_BLIT );
@@ -170,15 +141,7 @@ DFBResult IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
 DFBResult IDirectFBSurface_GetSize( IDirectFBSurface *thiz,
                                     unsigned int *width, unsigned int *height )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!width && !height)
           return DFB_INVARG;
@@ -195,15 +158,7 @@ DFBResult IDirectFBSurface_GetSize( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_GetVisibleRectangle( IDirectFBSurface *thiz,
                                                 DFBRectangle     *rect )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!rect)
           return DFB_INVARG;
@@ -219,15 +174,7 @@ DFBResult IDirectFBSurface_GetVisibleRectangle( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_GetCapabilities( IDirectFBSurface *thiz,
                                             DFBSurfaceCapabilities *caps )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!caps)
           return DFB_INVARG;
@@ -243,15 +190,9 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 {
      int front;
      DFBResult ret;
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (!flags || !ptr || !pitch)
           return DFB_INVARG;
@@ -275,15 +216,7 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
 DFBResult IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->locked)
           surface_unlock( data->surface, data->locked - 1 );
@@ -296,15 +229,7 @@ DFBResult IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 DFBResult IDirectFBSurface_Flip( IDirectFBSurface *thiz, DFBRegion *region,
                                  DFBSurfaceFlipFlags flags )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->locked)
           return DFB_LOCKED;
@@ -345,15 +270,9 @@ DFBResult IDirectFBSurface_Flip( IDirectFBSurface *thiz, DFBRegion *region,
 DFBResult IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
 {
      DFBRegion newclip;
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (clip) {
           newclip = *clip;
@@ -384,15 +303,7 @@ DFBResult IDirectFBSurface_SetClip( IDirectFBSurface *thiz, DFBRegion *clip )
 DFBResult IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
                                      __u8 r, __u8 g, __u8 b, __u8 a )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      data->state.color.a = a;
      data->state.color.r = r;
@@ -407,36 +318,27 @@ DFBResult IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetSrcBlendFunction( IDirectFBSurface *thiz,
                                                 DFBSurfaceBlendFunction src )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     switch (src) {
-          case DSBF_ZERO:
-          case DSBF_ONE:
-          case DSBF_SRCCOLOR:
-          case DSBF_INVSRCCOLOR:
-          case DSBF_SRCALPHA:
-          case DSBF_INVSRCALPHA:
-          case DSBF_DESTALPHA:
-          case DSBF_INVDESTALPHA:
-          case DSBF_DESTCOLOR:
-          case DSBF_INVDESTCOLOR:
-          case DSBF_SRCALPHASAT:
-               break;
-          default:
-               return DFB_INVARG;
-     }
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->state.src_blend != src) {
-          data->state.src_blend = src;
-          data->state.modified |= SMF_SRC_BLEND;
+          switch (src) {
+               case DSBF_ZERO:
+               case DSBF_ONE:
+               case DSBF_SRCCOLOR:
+               case DSBF_INVSRCCOLOR:
+               case DSBF_SRCALPHA:
+               case DSBF_INVSRCALPHA:
+               case DSBF_DESTALPHA:
+               case DSBF_INVDESTALPHA:
+               case DSBF_DESTCOLOR:
+               case DSBF_INVDESTCOLOR:
+               case DSBF_SRCALPHASAT:
+                    data->state.src_blend = src;
+                    data->state.modified |= SMF_SRC_BLEND;
+                    return DFB_OK;
+          }
+
+          return DFB_INVARG;
      }
 
      return DFB_OK;
@@ -445,36 +347,27 @@ DFBResult IDirectFBSurface_SetSrcBlendFunction( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetDstBlendFunction( IDirectFBSurface *thiz,
                                                 DFBSurfaceBlendFunction dst )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
-
-     switch (dst) {
-          case DSBF_ZERO:
-          case DSBF_ONE:
-          case DSBF_SRCCOLOR:
-          case DSBF_INVSRCCOLOR:
-          case DSBF_SRCALPHA:
-          case DSBF_INVSRCALPHA:
-          case DSBF_DESTALPHA:
-          case DSBF_INVDESTALPHA:
-          case DSBF_DESTCOLOR:
-          case DSBF_INVDESTCOLOR:
-          case DSBF_SRCALPHASAT:
-               break;
-          default:
-               return DFB_INVARG;
-     }
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->state.dst_blend != dst) {
-          data->state.dst_blend = dst;
-          data->state.modified |= SMF_SRC_BLEND;
+          switch (dst) {
+               case DSBF_ZERO:
+               case DSBF_ONE:
+               case DSBF_SRCCOLOR:
+               case DSBF_INVSRCCOLOR:
+               case DSBF_SRCALPHA:
+               case DSBF_INVSRCALPHA:
+               case DSBF_DESTALPHA:
+               case DSBF_INVDESTALPHA:
+               case DSBF_DESTCOLOR:
+               case DSBF_INVDESTCOLOR:
+               case DSBF_SRCALPHASAT:
+                    data->state.dst_blend = dst;
+                    data->state.modified |= SMF_SRC_BLEND;
+                    return DFB_OK;
+          }
+
+          return DFB_INVARG;
      }
 
      return DFB_OK;
@@ -485,15 +378,9 @@ DFBResult IDirectFBSurface_SetPorterDuff( IDirectFBSurface *thiz,
 {
      DFBSurfaceBlendFunction src;
      DFBSurfaceBlendFunction dst;
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      switch (rule) {
           case DSPD_NONE:
@@ -552,15 +439,7 @@ DFBResult IDirectFBSurface_SetPorterDuff( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
                                            unsigned int key )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->state.src_colorkey != key) {
           data->state.src_colorkey = key;
@@ -573,15 +452,7 @@ DFBResult IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
                                            unsigned int key )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->state.dst_colorkey != key) {
           data->state.dst_colorkey = key;
@@ -594,15 +465,7 @@ DFBResult IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
                                     IDirectFBFont *font )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->locked)
           return DFB_LOCKED;
@@ -622,15 +485,7 @@ DFBResult IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_GetFont( IDirectFBSurface *thiz,
                                     IDirectFBFont **font )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (!data->font)
           return DFB_MISSINGFONT;
@@ -647,15 +502,7 @@ DFBResult IDirectFBSurface_GetFont( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetDrawingFlags( IDirectFBSurface *thiz,
                                             DFBSurfaceDrawingFlags flags )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->state.drawingflags != flags) {
           data->state.drawingflags = flags;
@@ -669,15 +516,9 @@ DFBResult IDirectFBSurface_FillRectangle( IDirectFBSurface *thiz,
                                           int x, int y, int w, int h )
 {
      DFBRectangle rect = { x, y, w, h };
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -698,15 +539,9 @@ DFBResult IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
                                      int x1, int y1, int x2, int y2 )
 {
      DFBRegion line = { x1, y1, x2, y2 };
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -724,16 +559,10 @@ DFBResult IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
                                       DFBRegion *lines, unsigned int num_lines )
 {
-     IDirectFBSurface_data *data;
-     DFBRegion             *local_lines = alloca(sizeof(DFBRegion) * num_lines);
+     DFBRegion *local_lines = alloca(sizeof(DFBRegion) * num_lines);
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -761,15 +590,9 @@ DFBResult IDirectFBSurface_DrawRectangle( IDirectFBSurface *thiz,
                                           int x, int y, int w, int h )
 {
      DFBRectangle rect = { x, y, w, h };
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -791,15 +614,9 @@ DFBResult IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
                                          int x3, int y3 )
 {
      DFBTriangle tri = { x1, y1, x2, y2, x3, y3 };
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -819,15 +636,7 @@ DFBResult IDirectFBSurface_FillTriangle( IDirectFBSurface *thiz,
 DFBResult IDirectFBSurface_SetBlittingFlags( IDirectFBSurface *thiz,
                                              DFBSurfaceBlittingFlags flags )
 {
-     IDirectFBSurface_data *data;
-
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
      if (data->state.blittingflags != flags) {
           data->state.blittingflags = flags;
@@ -844,16 +653,14 @@ DFBResult IDirectFBSurface_Blit( IDirectFBSurface *thiz,
 {
      DFBRectangle srect;
      IDirectFBSurface_data *src_data;
-     IDirectFBSurface_data *data;
 
-     if (!thiz || !source)
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+
+     if (!source)
           return DFB_INVARG;
 
-     data = (IDirectFBSurface_data*)thiz->priv;
      src_data = (IDirectFBSurface_data*)source->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -894,18 +701,15 @@ DFBResult IDirectFBSurface_StretchBlit( IDirectFBSurface *thiz,
                                         DFBRectangle *destination_rect )
 {
      DFBRectangle srect, drect;
-     IDirectFBSurface_data *data;
      IDirectFBSurface_data *src_data;
 
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (!thiz || !source)
+
+     if (!source)
           return DFB_INVARG;
 
-     data = (IDirectFBSurface_data*)thiz->priv;
      src_data = (IDirectFBSurface_data*)source->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -972,16 +776,10 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                                        int x, int y,
                                        DFBSurfaceTextFlags flags )
 {
-     IDirectFBSurface_data *data;
      IDirectFBFont_data *font_data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;
@@ -1029,15 +827,9 @@ DFBResult IDirectFBSurface_GetSubSurface( IDirectFBSurface       *thiz,
                                           IDirectFBSurface       **surface )
 {
      DFBRectangle req, clip;
-     IDirectFBSurface_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
+     INTERFACE_GET_DATA(IDirectFBSurface)
 
-     data = (IDirectFBSurface_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
 
      if (data->locked)
           return DFB_LOCKED;

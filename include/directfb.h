@@ -142,7 +142,9 @@ extern "C"
           DFB_NOIMPL,         /* no implementation for that interface */
           DFB_MISSINGFONT,    /* no font has been set */
           DFB_TIMEOUT,        /* operation timed out */
-          DFB_MISSINGIMAGE    /* no image has been set */
+          DFB_MISSINGIMAGE,   /* no image has been set */
+          DFB_THIZNULL,       /* 'thiz' pointer is NULL */
+          DFB_IDNOTFOUND      /* layer/device/... id not found */
      } DFBResult;
 
      /*
@@ -202,7 +204,14 @@ extern "C"
      void DirectFBErrorFatal(
                               const char  *msg,    /* optional message */
                               DFBResult    result  /* result code to interpret */
-                            );
+                           );
+
+     /*
+      * Returns a string describing 'result'.
+      */
+     const char *DirectFBErrorString(
+                              DFBResult    result
+                           );
 
      /*
       * Parses the command-line and initializes some variables. You
@@ -597,7 +606,7 @@ extern "C"
           unsigned int                       height;
      } DFBFontDescription;
 
-     /* 
+     /*
       * Information about an IDirectFBVideoProvider.
       */
      typedef enum {
@@ -610,7 +619,7 @@ extern "C"
           DVCAPS_SATURATION = 0x00000080   /* supports Saturation adjustment */
      } DFBVideoProviderCapabilities;
 
-     /* 
+     /*
       * Flags defining which fields of a DFBColorAdjustment are valid.
       */
      typedef enum {
@@ -621,7 +630,7 @@ extern "C"
           DCAF_SATURATION   = 0x00000008   /* saturation field is valid  */
      } DFBColorAdjustmentFlags;
 
-     /* 
+     /*
       * Color Adjustment used to adjust video colors.
       *
       * All fields are in the range 0x0 to 0xFFFF with
@@ -629,7 +638,7 @@ extern "C"
       */
      typedef struct {
           DFBColorAdjustmentFlags  flags;
-       
+
           __u16                    brightness;
           __u16                    contrast;
           __u16                    hue;
@@ -868,7 +877,7 @@ extern "C"
           DLCONF_BUFFERMODE        = 0x00000008,
           DLCONF_OPTIONS           = 0x00000010
      } DFBDisplayLayerConfigFlags;
-     
+
      /*
       * Layer configuration
       */
@@ -1050,7 +1059,7 @@ extern "C"
           );
 
           /*
-           * Enable/disable the mouse cursor for this layer. 
+           * Enable/disable the mouse cursor for this layer.
            *
            * Windows on a layer will only receive motion events if
            * the cursor is enabled. This function is only available
@@ -2290,7 +2299,7 @@ extern "C"
                IDirectFBVideoProvider   *thiz,
                DFBColorAdjustment       *adj
           );
-          
+
           /*
            * Adjusts the video colors.
            */

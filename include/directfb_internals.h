@@ -31,7 +31,7 @@ typedef struct
      char *implementation;
 
      int   references;
-     
+
      DFBResult (*Probe)( void *data, ... );
      DFBResult (*Construct)( void *interface, ... );
 } DFBInterfaceImplementation;
@@ -44,8 +44,19 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
 
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
      (p) = (i*)calloc( 1, sizeof(i) );
-     
-     
+
+#define INTERFACE_GET_DATA(i) \
+     i##_data *data;                    \
+                                        \
+     if (!thiz)                         \
+          return DFB_THIZNULL;          \
+                                        \
+     data = (i##_data*) thiz->priv;     \
+                                        \
+     if (!data)                         \
+          return DFB_DEAD;
+
+
 extern IDirectFB *idirectfb_singleton;
 
 typedef void (*DFBSuspendResumeFunc)( int suspend, void *ctx );

@@ -64,10 +64,10 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 
      state_set_destination( &data->base.state, NULL );
      state_set_source( &data->base.state, NULL );
-     
+
      reactor_detach( data->base.surface->reactor,
                      IDirectFBSurface_listener, thiz );
-     
+
      if (!(data->base.caps & DSCAPS_SUBSURFACE)  &&
           data->base.caps & DSCAPS_PRIMARY)
      {
@@ -85,14 +85,10 @@ void IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 
 DFBResult IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
 {
-     IDirectFBSurface_data *data = (IDirectFBSurface_data*)thiz->priv;
+     INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
-     if (!data)
-          return DFB_DEAD;
-
-     if (--data->ref == 0) {
+     if (--data->base.ref == 0)
           IDirectFBSurface_Window_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -101,11 +97,7 @@ DFBResult IDirectFBSurface_Window_Flip( IDirectFBSurface *thiz,
                                         DFBRegion *region,
                                         DFBSurfaceFlipFlags flags )
 {
-     IDirectFBSurface_Window_data *data =
-          (IDirectFBSurface_Window_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      if (data->base.locked)
           return DFB_LOCKED;
@@ -137,15 +129,8 @@ DFBResult IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
                                                  IDirectFBSurface    **surface )
 {
      DFBRectangle req, clip;
-     IDirectFBSurface_Window_data *data;
 
-     if (!thiz)
-          return DFB_INVARG;
-
-     data = (IDirectFBSurface_Window_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
 //     if (data->locked)
 //          return DFB_LOCKED;

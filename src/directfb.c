@@ -36,7 +36,7 @@
 #include "directfb.h"
 #include "directfb_internals.h"
 #include "directfb_version.h"
- 
+
 #include "misc/conf.h"
 
 #include "core/core.h"
@@ -148,16 +148,19 @@ DFBResult DirectFBSetOption( char *name, char *value)
      DFBResult ret;
 
      if (dfb_config == NULL) {
-          ERRORMSG( "DirectFB/DirectFBSetOption: DirectFBInit has to be "
-          "called before DirectFBSetOption!\n" );
+          ERRORMSG( "DirectFBSetOption: DirectFBInit has to be "
+                    "called before DirectFBSetOption!\n" );
           return DFB_INIT;
      }
 
      if (idirectfb_singleton) {
-          ERRORMSG( "DirectFB/DirectFBSetOption: DirectFBSetOption has to be "
-          "called before DirectFBCreate!\n" );
+          ERRORMSG( "DirectFBSetOption: DirectFBSetOption has to be "
+                    "called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
+
+     if (!name)
+          return DFB_INVARG;
 
      ret = config_set(name, value);
      if (ret)
@@ -177,10 +180,13 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      DFBDisplayLayerConfig layer_config;
 
      if (dfb_config == NULL) {
-          ERRORMSG( "DirectFB/DirectFBCreate: DirectFBInit has to be called "
-                    "before DirectFBCreate!\n" );
+          ERRORMSG( "DirectFBCreate: DirectFBInit has to be "
+                    "called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
+
+     if (!interface)
+          return DFB_INVARG;
 
      if (idirectfb_singleton) {
           idirectfb_singleton->AddRef( idirectfb_singleton );
@@ -192,7 +198,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           printf( "\n" );
           printf( "       ----------------------- DirectFB v%d.%d.%d ---------------------\n",
                   DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
-          printf( "                (c)2000  convergence integrated media GmbH  \n" );
+          printf( "              (c)2000-2001  convergence integrated media GmbH  \n" );
           printf( "        -----------------------------------------------------------\n" );
           printf( "\n" );
      }
@@ -302,72 +308,63 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 void DirectFBError( const char *msg, DFBResult error )
 {
      if (msg)
-          fprintf( stderr, "(#) DirectFBError [%s]: ", msg );
+          fprintf( stderr, "(#) DirectFBError [%s]: %s\n", msg,
+                   DirectFBErrorString( error ) );
      else
-          fprintf( stderr, "(#) DirectFBError: " );
+          fprintf( stderr, "(#) DirectFBError: %s\n",
+                   DirectFBErrorString( error ) );
+}
 
+const char *DirectFBErrorString( DFBResult error )
+{
      switch (error) {
           case DFB_OK:
-               fprintf( stderr, "Everything OK!\n" );
-               break;
+               return "Everything OK!";
           case DFB_FAILURE:
-               fprintf( stderr, "General failure!\n" );
-               break;
+               return "General failure!";
           case DFB_INIT:
-               fprintf( stderr, "General initialization failure!\n" );
-               break;
+               return "General initialization failure!";
           case DFB_BUG:
-               fprintf( stderr, "Internal bug!\n" );
-               break;
+               return "Internal bug!";
           case DFB_DEAD:
-               fprintf( stderr, "Interface is dead!\n" );
-               break;
+               return "Interface is dead!";
           case DFB_UNSUPPORTED:
-               fprintf( stderr, "Not supported!\n" );
-               break;
+               return "Not supported!";
           case DFB_UNIMPLEMENTED:
-               fprintf( stderr, "Unimplemented!\n" );
-               break;
+               return "Unimplemented!";
           case DFB_ACCESSDENIED:
-               fprintf( stderr, "Access denied!\n" );
-               break;
+               return "Access denied!";
           case DFB_INVARG:
-               fprintf( stderr, "Invalid argument(s)!\n" );
-               break;
+               return "Invalid argument(s)!";
           case DFB_NOSYSTEMMEMORY:
-               fprintf( stderr, "Out of system memory!\n" );
-               break;
+               return "Out of system memory!";
           case DFB_NOVIDEOMEMORY:
-               fprintf( stderr, "Out of video memory!\n" );
-               break;
+               return "Out of video memory!";
           case DFB_LOCKED:
-               fprintf( stderr, "Resource (already) locked!\n" );
-               break;
+               return "Resource (already) locked!";
           case DFB_BUFFEREMPTY:
-               fprintf( stderr, "Buffer is empty!\n" );
-               break;
+               return "Buffer is empty!";
           case DFB_FILENOTFOUND:
-               fprintf( stderr, "File not found!\n" );
-               break;
+               return "File not found!";
           case DFB_IO:
-               fprintf( stderr, "General I/O failure!\n" );
-               break;
+               return "General I/O failure!";
           case DFB_NOIMPL:
-               fprintf( stderr, "Interface implementation not available!\n" );
-               break;
+               return "Interface implementation not available!";
           case DFB_MISSINGFONT:
-               fprintf( stderr, "No font has been set!\n" );
-               break;
+               return "No font has been set!";
           case DFB_TIMEOUT:
-               fprintf( stderr, "Operation timed out!\n" );
-               break;
+               return "Operation timed out!";
           case DFB_MISSINGIMAGE:
-               fprintf( stderr, "No image has been set!\n" );
-               break;
-          default:
-               fprintf( stderr, "UNKNOWN ERROR CODE!\n" );
-               break;
+               return "No image has been set!";
+          case DFB_BUSY:
+               return "Resource in use (busy)!";
+          case DFB_THIZNULL:
+               return "'thiz' pointer is NULL!";
+          case DFB_IDNOTFOUND:
+               return "ID not found!";
      }
+
+     return "<UNKNOWN ERROR CODE>!";
 }
 
 void DirectFBErrorFatal( const char *msg, DFBResult error )

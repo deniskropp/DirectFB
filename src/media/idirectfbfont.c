@@ -29,6 +29,7 @@
 #include <malloc.h>
 
 #include "directfb.h"
+#include "directfb_internals.h"
 
 #include "core/coretypes.h"
 
@@ -44,10 +45,7 @@
  */
 DFBResult IDirectFBFont_AddRef( IDirectFBFont *thiz )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBFont)
 
      data->ref++;
 
@@ -59,14 +57,10 @@ DFBResult IDirectFBFont_AddRef( IDirectFBFont *thiz )
  */
 DFBResult IDirectFBFont_Release( IDirectFBFont *thiz )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
+     INTERFACE_GET_DATA(IDirectFBFont)
 
-     if (!data)
-          return DFB_DEAD;
-
-     if (--data->ref == 0) {
+     if (--data->ref == 0)
           IDirectFBFont_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -76,10 +70,7 @@ DFBResult IDirectFBFont_Release( IDirectFBFont *thiz )
  */
 DFBResult IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!ascender)
           return DFB_INVARG;
@@ -95,10 +86,7 @@ DFBResult IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
  */
 DFBResult IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!descender)
           return DFB_INVARG;
@@ -113,10 +101,7 @@ DFBResult IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
  */
 DFBResult IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!height)
           return DFB_INVARG;
@@ -131,10 +116,7 @@ DFBResult IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
  */
 DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!maxadvance)
           return DFB_INVARG;
@@ -145,7 +127,7 @@ DFBResult IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 }
 
 /*
- * Get the logical and ink extensions of the specified string as if it were 
+ * Get the logical and ink extensions of the specified string as if it were
  * drawn with this font.
  */
 DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
@@ -153,17 +135,16 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
                                           DFBRectangle *logical_rect,
                                           DFBRectangle *ink_rect )
 {
-     IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
-     CoreFont *font;
+     CoreFont      *font;
      CoreGlyphData *glyph;
-     unichar  prev = 0;
-     unichar  current;
-     int      width = 0;
-     int      offset;
-     int      kerning;
+     unichar        prev = 0;
+     unichar        current;
+     int            width = 0;
+     int            offset;
+     int            kerning;
 
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBFont)
+
 
      if (!text)
           return DFB_INVARG;
@@ -177,23 +158,23 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      if (bytes < 0)
           bytes = strlen (text);
 
-     for (offset = 0; 
-          offset < bytes; 
+     for (offset = 0;
+          offset < bytes;
           offset += utf8_skip[(__u8)text[offset]]) {
 
           current = utf8_get_char (&text[offset]);
-               
+
           if (fonts_get_glyph_data (font, current, &glyph) == DFB_OK) {
-            
-               if (prev && font->GetKerning && 
+
+               if (prev && font->GetKerning &&
                    (* font->GetKerning) (font, prev, current, &kerning) == DFB_OK) {
                     width += kerning;
                }
                if (ink_rect) {
                     DFBRectangle glyph_rect = { width + glyph->left, glyph->top,
-                                                glyph->width, glyph->height }; 
+                                                glyph->width, glyph->height };
                     rectangle_union (ink_rect, &glyph_rect);
-               } 
+               }
 
                width += glyph->advance;
           }
@@ -220,7 +201,7 @@ DFBResult IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 }
 
 /*
- * Get the logical width of the specified string as if it were drawn 
+ * Get the logical width of the specified string as if it were drawn
  * with this font. The drawn string may extend this value.
  */
 DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
@@ -233,7 +214,7 @@ DFBResult IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
      if (!width)
           return DFB_INVARG;
 
-     result = IDirectFBFont_GetStringExtents (thiz, text, bytes, &rect, NULL);
+     result = thiz->GetStringExtents (thiz, text, bytes, &rect, NULL);
 
      if (result == DFB_OK)
           *width = rect.w;

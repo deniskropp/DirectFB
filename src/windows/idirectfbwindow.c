@@ -49,7 +49,7 @@
 
 #include "idirectfbwindow.h"
 
-/* 
+/*
  * adds an window event to the event queue
  */
 static ReactionResult IDirectFBWindow_React( const void *msg_data,
@@ -69,14 +69,14 @@ typedef struct {
 
      IDirectFBSurface              *surface;
 
-     IDirectFBWindowBuffer_item    *events;         /* linked list containing 
+     IDirectFBWindowBuffer_item    *events;         /* linked list containing
                                                        events */
-                                                                                                      
-     pthread_mutex_t                events_mutex;   /* mutex lock for accessing 
+
+     pthread_mutex_t                events_mutex;   /* mutex lock for accessing
                                                        the event queue */
-                                                     
+
      pthread_cond_t                 wait_condition; /* condition used for idle
-                              	                       wait in WaitForEvent() */
+                                                       wait in WaitForEvent() */
 } IDirectFBWindow_data;
 
 
@@ -88,13 +88,13 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           data->surface->Release( data->surface );
 
      reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
-     
+
      window_remove( data->window );
      window_destroy( data->window );
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
-     
+
      free( data );
      thiz->priv = NULL;
 
@@ -105,10 +105,7 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
 static DFBResult IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      data->ref++;
 
@@ -117,14 +114,10 @@ static DFBResult IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 
 static DFBResult IDirectFBWindow_Release( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data)
-          return DFB_DEAD;
-
-     if (--data->ref == 0) {
+     if (--data->ref == 0)
           IDirectFBWindow_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -132,10 +125,7 @@ static DFBResult IDirectFBWindow_Release( IDirectFBWindow *thiz )
 static DFBResult IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
                                               int *x, int *y )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (!x && !y)
           return DFB_INVARG;
@@ -153,10 +143,7 @@ static DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
                                           unsigned int    *width,
                                           unsigned int    *height )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (!width && !height)
           return DFB_INVARG;
@@ -173,10 +160,7 @@ static DFBResult IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
 static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
                                              IDirectFBSurface **surface )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (!surface)
           return DFB_INVARG;
@@ -206,10 +190,7 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 static DFBResult IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
                                              __u8 opacity )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->window->opacity != opacity)
           return window_set_opacity( data->window, opacity );
@@ -220,10 +201,10 @@ static DFBResult IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
 static DFBResult IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
                                              __u8 *opacity )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (!data)
-          return DFB_DEAD;
+     if (!opacity)
+          return DFB_INVARG;
 
      *opacity = data->window->opacity;
 
@@ -232,60 +213,42 @@ static DFBResult IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
 
 static DFBResult IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_request_focus( data->window );
 }
 
 static DFBResult IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_grab_keyboard( data->window );
 }
 
 static DFBResult IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_ungrab_keyboard( data->window );
 }
 
 static DFBResult IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_grab_pointer( data->window );
 }
 
 static DFBResult IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_ungrab_pointer( data->window );
 }
 
 static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (dx == 0  &&  dy == 0)
           return DFB_OK;
@@ -295,10 +258,7 @@ static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 
 static DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->window->x == x  &&  data->window->y == y)
           return DFB_OK;
@@ -311,10 +271,7 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
                                          unsigned int     width,
                                          unsigned int     height )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->window->width == width  &&  data->window->height == height)
           return DFB_OK;
@@ -345,53 +302,38 @@ static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 
 static DFBResult IDirectFBWindow_Raise( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_raise( data->window );
 }
 
 static DFBResult IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_lower( data->window );
 }
 
 static DFBResult IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_raisetotop( data->window );
 }
 
 static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      return window_lowertobottom( data->window );
 }
 
 static DFBResult IDirectFBWindow_WaitForEvent( IDirectFBWindow *thiz )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      pthread_mutex_lock( &data->events_mutex );
-     
+
      if (!data->events)
           pthread_cond_wait( &data->wait_condition, &data->events_mutex );
 
@@ -405,14 +347,13 @@ static DFBResult IDirectFBWindow_WaitForEventWithTimeout(
                                                   long int             seconds,
                                                   long int        nano_seconds )
 {
-     DFBResult                  ret  = DFB_OK;
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
+     DFBResult ret = DFB_OK;
 
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
 
      pthread_mutex_lock( &data->events_mutex );
-     
+
      if (!data->events) {
           struct timeval  now;
           struct timespec timeout;
@@ -421,10 +362,10 @@ static DFBResult IDirectFBWindow_WaitForEventWithTimeout(
 
           timeout.tv_sec  = now.tv_sec + seconds;
           timeout.tv_nsec = (now.tv_usec * 1000) + nano_seconds;
-          
+
           timeout.tv_sec  += timeout.tv_nsec / 1000000000;
           timeout.tv_nsec %= 1000000000;
-          
+
           if (pthread_cond_timedwait( &data->wait_condition,
                                       &data->events_mutex,
                                       &timeout ) == ETIMEDOUT)
@@ -432,56 +373,52 @@ static DFBResult IDirectFBWindow_WaitForEventWithTimeout(
      }
 
      pthread_mutex_unlock( &data->events_mutex );
-     
+
      return ret;
 }
 
 static DFBResult IDirectFBWindow_GetEvent( IDirectFBWindow *thiz,
                                            DFBWindowEvent  *event )
 {
-     IDirectFBWindowBuffer_item     *e;
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
+     IDirectFBWindowBuffer_item *e;
 
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
 
      pthread_mutex_lock( &data->events_mutex );
-     
+
      if (!data->events) {
           pthread_mutex_unlock( &data->events_mutex );
           return DFB_BUFFEREMPTY;
      }
      e = data->events;
-     
+
      *event = e->evt;
-     
+
      data->events = e->next;
      free( e );
-     
+
      pthread_mutex_unlock( &data->events_mutex );
-     
+
      return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_PeekEvent( IDirectFBWindow *thiz,
                                             DFBWindowEvent  *event )
 {
-     IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
-
-     if (!data)
-          return DFB_DEAD;
+     INTERFACE_GET_DATA(IDirectFBWindow)
 
      pthread_mutex_lock( &data->events_mutex );
-     
+
      if (!data->events) {
           pthread_mutex_unlock( &data->events_mutex );
           return DFB_BUFFEREMPTY;
      }
 
      *event = data->events->evt;
-     
+
      pthread_mutex_unlock( &data->events_mutex );
-     
+
      return DFB_OK;
 }
 
@@ -502,11 +439,11 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 
      pthread_mutex_init( &data->events_mutex, NULL );
      pthread_cond_init( &data->wait_condition, NULL );
-     
+
      reactor_attach( data->window->reactor, IDirectFBWindow_React, data );
 
      window_init( data->window );
-     
+
      thiz->AddRef = IDirectFBWindow_AddRef;
      thiz->Release = IDirectFBWindow_Release;
      thiz->GetPosition = IDirectFBWindow_GetPosition;
@@ -544,23 +481,23 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
      IDirectFBWindowBuffer_item *item;
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
-     
+
      item = (IDirectFBWindowBuffer_item*)
           calloc( 1, sizeof(IDirectFBWindowBuffer_item) );
 
      item->evt = *evt;
 
      pthread_mutex_lock( &data->events_mutex );
-     
+
      if (!data->events) {
           data->events = item;
      }
      else {
           IDirectFBWindowBuffer_item *e = data->events;
-          
+
           while (e->next)
                e = e->next;
-               
+
           e->next = item;
      }
 
@@ -570,7 +507,7 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
 
      if (evt->type == DWET_CLOSE)
           return RS_REMOVE;
-     
+
      return RS_OK;
 }
 
