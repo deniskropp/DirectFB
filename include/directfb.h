@@ -489,6 +489,8 @@ typedef enum {
  * Layer Buffer Mode.
  */
 typedef enum {
+     DLBM_UNKNOWN    = 0x00000000,
+
      DLBM_FRONTONLY  = 0x00000001,      /* no backbuffer */
      DLBM_BACKVIDEO  = 0x00000002,      /* backbuffer in video memory */
      DLBM_BACKSYSTEM = 0x00000004,      /* backbuffer in system memory */
