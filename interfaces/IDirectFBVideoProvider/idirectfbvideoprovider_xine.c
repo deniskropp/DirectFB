@@ -42,8 +42,6 @@
 
 #include <xine.h>
 #include <xine/xineutils.h>
-#include <xine/configfile.h>
-#include <xine/xine_internal.h>
 #include <xine/video_out.h>
 
 
@@ -305,16 +303,7 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 
 	} else
 	if (!data->is_playing)
-	{
-		if (data->post)
-		{
-			xine_post_out_t *audio_source;
-
-			audio_source = xine_get_audio_source( data->stream );
-			xine_post_wire_audio_port( audio_source,
-						data->post->audio_input[0] );
-		}
-	
+	{	
 		xine_set_param( data->stream, XINE_PARAM_AUDIO_MUTE, 0 );
 		xine_play( data->stream, 0, 0 );
 		data->is_playing = 1;
@@ -396,7 +385,7 @@ IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
 		{
 			if (xine_get_pos_length( data->stream, NULL, &pos, NULL ))
 				break;
-			usleep( 5000 );
+			usleep( 1000 );
 		}
 
 		*seconds = (double) pos / 1000.0;
@@ -649,6 +638,7 @@ Construct(IDirectFBVideoProvider *thiz, const char *filename)
 	{
 		const char* const *post_list;
 		int                post_plugin;
+		xine_post_out_t   *audio_source;
 
 		post_list = xine_list_post_plugins_typed( data->xine,
 				XINE_POST_TYPE_AUDIO_VISUALIZATION );
@@ -660,6 +650,12 @@ Construct(IDirectFBVideoProvider *thiz, const char *filename)
 
 		data->post = xine_post_init( data->xine, post_list[post_plugin],
 						0, &data->ao, &data->vo );
+		if (data->post)
+		{
+			audio_source = xine_get_audio_source( data->stream );
+			xine_post_wire_audio_port( audio_source, 
+						   data->post->audio_input[0] );
+		}
 	}
 
 
