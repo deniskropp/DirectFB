@@ -634,10 +634,12 @@ dfb_layer_disable( DisplayLayer *layer )
 
           shared->stack = NULL;
           
-          /* detach listener from background surface */
-          if (stack->bg.image)
+          /* detach listener from background surface and unlink it */
+          if (stack->bg.image) {
                dfb_surface_detach( stack->bg.image,
                                    background_image_listener, layer );
+               dfb_surface_unlink( stack->bg.image );
+          }
      }
      
      /* deallocate the surface */
@@ -815,14 +817,16 @@ dfb_layer_set_background_image( DisplayLayer *layer,
 
      /* if the surface is changed */
      if (stack->bg.image != image) {
-          /* detach listener from old surface */
-          if (stack->bg.image)
+          /* detach listener from old surface and unlink it */
+          if (stack->bg.image) {
                dfb_surface_detach( stack->bg.image,
                                    background_image_listener, layer );
+               dfb_surface_unlink( stack->bg.image );
+          }
 
-          /* set new surface */
-          stack->bg.image = image;
-
+          /* link surface object */
+          dfb_surface_link( &stack->bg.image, image );
+          
           /* attach listener to new surface */
           dfb_surface_attach( image, background_image_listener, layer );
      }
