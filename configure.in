@@ -310,6 +310,7 @@ include/directfb_version.h
 patches/Makefile
 src/Makefile
 src/display/Makefile
+src/media/Makefile
 src/windows/Makefile
 src/input/Makefile
 src/misc/Makefile

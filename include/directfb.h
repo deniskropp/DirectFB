@@ -1220,7 +1220,9 @@ extern "C"
 
           /*
            * Draw an UTF-8 string at the specified position with the 
-           * given color following the specified flags. 
+           * given color following the specified flags. You need to 
+           * set a font using the SetFont() method before you use this
+           * function.
            */
           DFBResult (*DrawString) (
                IDirectFBSurface         *thiz,
@@ -1827,8 +1829,9 @@ extern "C"
         /** String width measurement **/
 
           /*
-           * Get the pixel width of the specified string
-           * as if it were drawn with this font.
+           * Get the logical width of the specified string
+           * as if it were drawn with this font. The actual
+           * pixel width may slightly extend this value.
            */
           DFBResult (*GetStringWidth) (
                IDirectFBFont       *thiz,

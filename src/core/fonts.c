@@ -27,16 +27,9 @@
 
 #include <directfb.h>
 
-#include "gfx/convert.h"
-
 #include "fonts.h"
-#include "core.h"
 #include "coredefs.h"
 
-
-static CoreFontData default_font;
-
-#define FONTFILE DATADIR"/fonts/font.data"
 
 void fonts_destruct (CoreFontData *font)
 {
@@ -62,9 +55,6 @@ DFBResult fonts_get_glyph_data (CoreFontData    *font,
 {
      CoreGlyphData *data;
     
-     if (!font)
-       font = fonts_get_default ();
-
      if (!font->glyph_infos)
        font->glyph_infos = tree_new();
 
@@ -117,6 +107,16 @@ DFBResult fonts_get_glyph_data (CoreFontData    *font,
 
      return DFB_OK;
 }
+
+
+/*  old code for default font, will go into a bitmap font interface 
+
+#include "gfx/convert.h"
+
+static CoreFontData default_font;
+
+#define FONTFILE DATADIR"/fonts/font.data"
+
 
 static void fonts_default_deinit()
 {
@@ -189,7 +189,6 @@ DFBResult fonts_load_default()
                     break;
           }
                
-          /*  space  */
           data = calloc (1, sizeof (CoreGlyphData));
           data->advance = 5;
           tree_insert (default_font.glyph_infos, 
@@ -225,3 +224,4 @@ CoreFontData* fonts_get_default()
      return &default_font;
 }
 
+*/

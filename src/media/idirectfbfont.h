@@ -21,26 +21,27 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IDIRECTFB_H__
-#define __IDIRECTFB_H__
+#ifndef __DIRECTFBFONT_H__
+#define __DIRECTFBFONT_H__
+
+#include <core/fonts.h>
 
 /*
- * private data struct of IDirectFB
+ * private data struct of IDirectFBFont
  */
 typedef struct {
-     int                 ref;      /* reference counter */
-     DFBCooperativeLevel level;    /* current cooperative level */
-
-     struct {
-          int            width;    /* IDirectFB stores window width    */
-          int            height;   /* and height and the pixel depth   */
-          int            bpp;      /* from SetVideoMode() parameters.  */
-     } primary;                    /* Used for DFSCL_NORMAL's primary. */
-} IDirectFB_data;
+     int           ref;   /* reference counter */
+     CoreFontData *font;  /* pointer to core data */
+} IDirectFBFont_data;
 
 /*
- * IDirectFB constructor/destructor
+ * common code to construct the interface (internal usage only)
  */
-DFBResult IDirectFB_Construct( IDirectFB *thiz );
+DFBResult IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFontData *font );
+
+/*
+ * deinitialize font and its surfaces
+ */
+void IDirectFBFont_Destruct( IDirectFBFont *thiz );
 
 #endif

@@ -39,7 +39,7 @@ typedef struct {
      DFBRectangle           clip_rect;       /* clipped (sub) area in surface */
      int                    locked;          /* is it locked? TODO: use core */
      CoreSurface            *surface;        /* buffer to show */
-     CoreFontData           *font;           /* font to use */
+     IDirectFBFont          *font;           /* font to use */
      CardState              state;           /* render state to use */
 } IDirectFBSurface_data;
 

@@ -99,8 +99,6 @@ DFBResult core_init()
      
      INITCHECK( primarylayer_init() );
      INITCHECK( gfxcard_init_layers() );
-     
-     INITCHECK( fonts_load_default() );
 
      return DFB_OK;
 }

@@ -87,10 +87,4 @@ DFBResult fonts_get_glyph_data(CoreFontData    *font,
                                unichar          glyph,
                                CoreGlyphData  **glyph_data);
 
-/*
- * loads default DirectFB bitmap font
- */
-DFBResult     fonts_load_default();
-CoreFontData* fonts_get_default();
-
 #endif

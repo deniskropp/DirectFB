@@ -41,7 +41,7 @@
 #include <misc/util.h>
 #include <gfx/util.h>
 
-#include <idirectfb.h>
+#include <media/idirectfbfont.h>
 
 #include "idirectfbsurface.h"
 
@@ -60,6 +60,9 @@ void IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
      
      if (!(data->caps & DSCAPS_SUBSURFACE))
           surface_destroy( data->surface );
+
+     if (data->font)
+          data->font->Release (data->font);
 
      free( thiz->priv );
      thiz->priv = NULL;
@@ -604,11 +607,11 @@ DFBResult IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
      if (!font)
           return DFB_INVARG;
 
-     {
-          IDirectFBFont_data *font_data = (IDirectFBFont_data*)font->priv;
-          data->font = font_data->font;
-          /* FIXME: AddRef */
-     }
+     if (data->font)
+          data->font->Release (data->font);
+
+     font->AddRef (font);
+     data->font = font;
 
      return DFB_OK;
 }
@@ -903,6 +906,7 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                                        DFBSurfaceTextFlags flags )
 {
      IDirectFBSurface_data *data;
+     IDirectFBFont_data *font_data;
 
      if (!thiz)
           return DFB_INVARG;
@@ -915,41 +919,34 @@ DFBResult IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     if (!(flags & DSTF_TOP))
-          y -= data->font->ascender;
+     /*  FIXME: return value  */
+     if (!data->font)
+          return DFB_NOIMPL;
+
+     if (!(flags & DSTF_TOP)) {
+          int ascender = 0;
+       
+          data->font->GetAscender (data->font, &ascender);
+          y -= ascender;
+     }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          CoreGlyphData       *glyph;
-          const unsigned char *string = text;
-          unichar              prev   = 0;
-          unichar              current;
-          int                  width  = 0;
-          int                  kerning;
+          int width = 0;
 
-          while (*string) {
-               current = utf8_get_char (string);
-               
-               if (fonts_get_glyph_data (data->font, current, &glyph) == DFB_OK) {
-                  
-                    if (prev && data->font->GetKerning && 
-                        (* data->font->GetKerning) (data->font, prev, current, &kerning) == DFB_OK) {
-                         width += kerning;
-                    }
-                    width += glyph->advance;
+          if (data->font->GetStringWidth (data->font, text, &width) == DFB_OK) {
+               if (flags & DSTF_RIGHT) {
+                    x -= width;
                }
-               prev = current;
-               string = utf8_next_char (string);
-          }
-          if (flags & DSTF_RIGHT) {
-               x -= width;
-          }
-          else if (flags & DSTF_CENTER) {
-               x -= width >> 1;
+               else if (flags & DSTF_CENTER) {
+                    x -= width >> 1;
+               }
           }
      }
 
+     font_data = (IDirectFBFont_data *)data->font->priv;
+
      gfxcard_drawstring( text, data->req_rect.x + x, data->req_rect.y + y,
-                         data->font, &data->state );
+                         font_data->font, &data->state );
 
      return DFB_OK;
 }
@@ -1028,7 +1025,6 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
         data->clip_rect = data->req_rect;
 
      data->surface = surface;
-     data->font = fonts_get_default();
 
      /* all other values got zero */
      state_set_destination( &data->state, surface );
