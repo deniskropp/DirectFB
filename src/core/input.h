@@ -86,8 +86,6 @@ typedef struct {
 } InputDriverFuncs;
 
 
-void dfb_input_register_module( InputDriverFuncs *funcs );
-
 typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
                                                      void        *ctx);
 
