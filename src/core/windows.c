@@ -1035,7 +1035,7 @@ dfb_window_ungrab_key( CoreWindow                 *window,
 
 DFBResult
 dfb_window_repaint( CoreWindow          *window,
-                    DFBRegion           *region,
+                    const DFBRegion     *region,
                     DFBSurfaceFlipFlags  flags )
 {
      DFBResult        ret;

@@ -224,7 +224,7 @@ dfb_window_change_events( CoreWindow         *window,
  */
 DFBResult
 dfb_window_repaint( CoreWindow          *window,
-                    DFBRegion           *region,
+                    const DFBRegion     *region,
                     DFBSurfaceFlipFlags  flags );
 
 /*

@@ -116,26 +116,22 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
      if (data->base.locked)
           return DFB_LOCKED;
 
-     if (!data->base.area.current.w || !data->base.area.current.h)
+     if (!data->base.area.current.w || !data->base.area.current.h ||
+         (region && (region->x1 > region->x2 || region->y1 > region->y2)))
           return DFB_INVAREA;
 
+
+     dfb_region_from_rectangle( &reg, &data->base.area.current );
+
      if (region) {
-          reg = *region;
+          DFBRegion clip = DFB_REGION_INIT_TRANSLATED( region,
+                                                       data->base.area.wanted.x,
+                                                       data->base.area.wanted.y );
 
-          reg.x1 += data->base.area.wanted.x;
-          reg.x2 += data->base.area.wanted.x;
-          reg.y1 += data->base.area.wanted.y;
-          reg.y2 += data->base.area.wanted.y;
+          if (!dfb_region_region_intersect( &reg, &clip ))
+               return DFB_INVAREA;
+     }
 
-          if (!dfb_unsafe_region_rectangle_intersect( &reg, &data->base.area.current ))
-               return DFB_OK;
-     }
-     else {
-          reg.x1 = data->base.area.current.x;
-          reg.y1 = data->base.area.current.y;
-          reg.x2 = data->base.area.current.x + data->base.area.current.w - 1;
-          reg.y2 = data->base.area.current.y + data->base.area.current.h - 1;
-     }
 
      if (flags & DSFLIP_PIPELINE) {
           dfb_gfxcard_wait_serial( &data->window->serial2 );
