@@ -119,13 +119,13 @@ main( int argc, char *argv[] )
 static void
 print_usage (const char *prg_name)
 {
-     fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
-     fprintf (stderr, "DirectFB Background Configuration Tool\n\n");
-     fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
-     fprintf (stderr, "   -c, --color     interpret the filename as a color (AARRGGBB)\n");
-     fprintf (stderr, "   -t, --tile      tile background with the image\n");
-     fprintf (stderr, "   -h, --help      show this help message\n");
-     fprintf (stderr, "   -v, --version   print version information\n");
+     fprintf (stderr, "\nDirectFB Desktop Background Configuration (version %s)\n\n", DIRECTFB_VERSION);
+     fprintf (stderr, "Usage: %s [options] <imagefile>|<color>\n\n", prg_name);
+     fprintf (stderr, "Options:\n");
+     fprintf (stderr, "   -c, --color     Set <color> in AARRGGBB format (hexadecimal).\n");
+     fprintf (stderr, "   -t, --tile      Set tiled mode.\n");
+     fprintf (stderr, "   -h, --help      Show this help message\n");
+     fprintf (stderr, "   -v, --version   Print version information\n");
      fprintf (stderr, "\n");
 }
 

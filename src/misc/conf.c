@@ -234,9 +234,9 @@ static void config_allocate()
      dfb_config = (DFBConfig*) calloc( 1, sizeof(DFBConfig) );
 
      dfb_config->layer_bg_color.a         = 0xFF;
-     dfb_config->layer_bg_color.r         = 0x24;
-     dfb_config->layer_bg_color.g         = 0x50;
-     dfb_config->layer_bg_color.b         = 0x9f;
+     dfb_config->layer_bg_color.r         = 0x10;
+     dfb_config->layer_bg_color.g         = 0x7c;
+     dfb_config->layer_bg_color.b         = 0xe8;
      dfb_config->layer_bg_mode            = DLBM_COLOR;
 
      dfb_config->banner                   = true;

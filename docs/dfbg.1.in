@@ -8,7 +8,7 @@
 dfbg \- DirectFB background configuration tool
 
 .SH SYNOPSIS
-\fBdfbg\fP [\fIoptions\fP] <\fIimagefile\fP>
+\fBdfbg\fP [\fIoptions\fP] <\fIfilename\fP>|<color>
 
 .SH DESCRIPTION
 \fBdfbg\fP is a small utility to configure the background of the DirectFB
@@ -18,13 +18,12 @@ desktop. It loads the specified image and sets it as background image.
 .SH OPTIONS
 .TP
 .B -c, --color
-Tile the background with the image instead of scaling it to fit the
-screen size.
+Set color fill mode using <color> in AARRGGBB format (hexadecimal).
+The alpha component can be omitted in most configurations.
 
 .TP
 .B -t, --tile
-Tile the background with the image instead of scaling it to fit the
-screen size.
+Set tiled mode instead of scaling the image to fit the screen size.
 
 .TP
 .B -v, --version
@@ -33,6 +32,21 @@ Output version information.
 .TP
 .B -h, --help
 Print brief help and exit.
+
+.SH EXAMPLES
+
+Set background color to DirectFB's default color
+
+	dfbg -c ff107ce8
+
+Set image stretched to fit the screen
+
+	dfbg bg.png
+
+Set image tiled
+
+	dfbg -t bg.png
+
 
 .SH OTHER INFO
 The canonical place to find informations about DirectFB is at
