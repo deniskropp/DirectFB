@@ -54,9 +54,9 @@ DFB_INPUT_DRIVER( divine )
  * declaration of private data
  */
 typedef struct {
-  int          fd;
-  InputDevice *device;
-  CoreThread  *thread;
+     int          fd;
+     InputDevice *device;
+     CoreThread  *thread;
 } DiVineData;
 
 
@@ -67,33 +67,30 @@ typedef struct {
 static void*
 divineEventThread( CoreThread *thread, void *driver_data )
 {
-  DiVineData     *data = (DiVineData*) driver_data;
-  int             readlen;
-  DFBInputEvent   event;
-  struct pollfd   pfd;
+     DiVineData     *data = (DiVineData*) driver_data;
+     int             readlen;
+     DFBInputEvent   event;
+     struct pollfd   pfd;
 
-  /* fill poll info */
-  pfd.fd     = data->fd;
-  pfd.events = POLLIN;
-     
-  /* wait for the next event */
-  while (poll (&pfd, 1, -1) > 0 || errno == EINTR)
-    {
-      dfb_thread_testcancel( thread );
+     /* fill poll info */
+     pfd.fd     = data->fd;
+     pfd.events = POLLIN;
 
-      /* read the next event from the pipe */
-      if (read( data->fd, &event, sizeof(DFBInputEvent) ) == sizeof(DFBInputEvent))
-        {
-          /* directly dispatch the event */
-          dfb_input_dispatch( data->device, &event );
-        }
-      else
-        usleep( 20000 ); /* avoid 100% CPU usage in case poll() doesn't work */
-    }
+     /* wait for the next event */
+     while (poll( &pfd, 1, -1 ) > 0 || errno == EINTR) {
+          dfb_thread_testcancel( thread );
 
-  PERRORMSG ("divine thread died\n");
+          /* read the next event from the pipe */
+          if (read( data->fd, &event, sizeof(DFBInputEvent) ) == sizeof(DFBInputEvent)) {
+               /* directly dispatch the event */
+               dfb_input_dispatch( data->device, &event );
+          } else
+               usleep( 20000 ); /* avoid 100% CPU usage in case poll() doesn't work */
+     }
 
-  return NULL;
+     PERRORMSG( "divine thread died\n" );
+
+     return NULL;
 }
 
 /* exported symbols */
@@ -107,7 +104,7 @@ divineEventThread( CoreThread *thread, void *driver_data )
 static int
 driver_get_abi_version()
 {
-  return DFB_INPUT_DRIVER_ABI_VERSION;
+     return DFB_INPUT_DRIVER_ABI_VERSION;
 }
 
 /*
@@ -117,27 +114,25 @@ driver_get_abi_version()
 static int
 driver_get_available()
 {
-  int fd;
+     int fd;
 
-  /* create the pipe if not already existent */
-  if (mkfifo (PIPE_PATH, 0660) && errno != EEXIST)
-    {
-      PERRORMSG( "DirectFB/DiVine: could not create pipe '%s'\n", PIPE_PATH );
-      return 0;
-    }
+     /* create the pipe if not already existent */
+     if (mkfifo( PIPE_PATH, 0660 ) && errno != EEXIST) {
+          PERRORMSG( "DirectFB/DiVine: could not create pipe '%s'\n", PIPE_PATH );
+          return 0;
+     }
 
-  /* try to open pipe */
-  fd = open (PIPE_PATH, O_RDONLY | O_NONBLOCK);
-  if (fd < 0)
-    {
-      PERRORMSG( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
-      return 0;
-    }
+     /* try to open pipe */
+     fd = open( PIPE_PATH, O_RDONLY | O_NONBLOCK );
+     if (fd < 0) {
+          PERRORMSG( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
+          return 0;
+     }
 
-  /* close pipe */
-  close (fd);
+     /* close pipe */
+     close( fd );
 
-  return 1;
+     return 1;
 }
 
 /*
@@ -148,10 +143,10 @@ static void
 driver_get_info( InputDriverInfo *info )
 {
      /* fill driver info structure */
-     snprintf ( info->name,
-                DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "DiVine Driver" );
-     snprintf ( info->vendor,
-                DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Convergence GmbH" );
+     snprintf( info->name,
+               DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "DiVine Driver" );
+     snprintf( info->vendor,
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "Convergence GmbH" );
 
      info->version.major = 0;
      info->version.minor = 1;
@@ -168,49 +163,48 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-  int         fd;
-  DiVineData *data;
+     int         fd;
+     DiVineData *data;
 
-  /* open pipe */
-  fd = open (PIPE_PATH, O_RDONLY | O_NONBLOCK);
-  if (fd < 0)
-    {
-      PERRORMSG( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
-      return DFB_INIT;
-    }
+     /* open pipe */
+     fd = open( PIPE_PATH, O_RDONLY | O_NONBLOCK );
+     if (fd < 0) {
+          PERRORMSG( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
+          return DFB_INIT;
+     }
 
-  /* set device name */
-  snprintf( info->desc.name,
-            DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "DirectFB Virtual Input" );
+     /* set device name */
+     snprintf( info->desc.name,
+               DFB_INPUT_DEVICE_DESC_NAME_LENGTH, "DirectFB Virtual Input" );
 
-  /* set device vendor */
-  snprintf( info->desc.vendor,
-            DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "" );
+     /* set device vendor */
+     snprintf( info->desc.vendor,
+               DFB_INPUT_DEVICE_DESC_VENDOR_LENGTH, "" );
 
-  /* set one of the primary input device IDs */
-  info->prefered_id = DIDID_ANY;
+     /* set one of the primary input device IDs */
+     info->prefered_id = DIDID_ANY;
 
-  /* set type flags */
-  info->desc.type = DIDTF_KEYBOARD | DIDTF_MOUSE |
-                    DIDTF_JOYSTICK | DIDTF_REMOTE | DIDTF_VIRTUAL;
+     /* set type flags */
+     info->desc.type = DIDTF_KEYBOARD | DIDTF_MOUSE |
+                       DIDTF_JOYSTICK | DIDTF_REMOTE | DIDTF_VIRTUAL;
 
-  /* set capabilities */
-  info->desc.caps = DICAPS_ALL;
+     /* set capabilities */
+     info->desc.caps = DICAPS_ALL;
 
 
-  /* allocate and fill private data */
-  data = DFBCALLOC( 1, sizeof(DiVineData) );
+     /* allocate and fill private data */
+     data = DFBCALLOC( 1, sizeof(DiVineData) );
 
-  data->fd     = fd;
-  data->device = device;
+     data->fd     = fd;
+     data->device = device;
 
-  /* start input thread */
-  data->thread = dfb_thread_create( CTT_INPUT, divineEventThread, data );
+     /* start input thread */
+     data->thread = dfb_thread_create( CTT_INPUT, divineEventThread, data );
 
-  /* set private data pointer */
-  *driver_data = data;
+     /* set private data pointer */
+     *driver_data = data;
 
-  return DFB_OK;
+     return DFB_OK;
 }
 
 /*
@@ -221,7 +215,7 @@ driver_get_keymap_entry( InputDevice               *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-  return DFB_UNSUPPORTED;
+     return DFB_UNSUPPORTED;
 }
 
 /*
@@ -230,16 +224,16 @@ driver_get_keymap_entry( InputDevice               *device,
 static void
 driver_close_device( void *driver_data )
 {
-  DiVineData *data = (DiVineData*) driver_data;
+     DiVineData *data = (DiVineData*) driver_data;
 
-  /* stop input thread */
-  dfb_thread_cancel( data->thread );
-  dfb_thread_join( data->thread );
-  dfb_thread_destroy( data->thread );
+     /* stop input thread */
+     dfb_thread_cancel( data->thread );
+     dfb_thread_join( data->thread );
+     dfb_thread_destroy( data->thread );
 
-  /* close pipe */
-  close( data->fd );
+     /* close pipe */
+     close( data->fd );
 
-  /* free private data */
-  DFBFREE ( data );
+     /* free private data */
+     DFBFREE( data );
 }

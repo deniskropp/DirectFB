@@ -36,139 +36,130 @@
 
 
 struct _DiVine {
-  int fd; /* The file descriptor of the connection (pipe) */
+     int fd; /* The file descriptor of the connection (pipe) */
 };
 
 DiVine *
-divine_open (const char *path)
+divine_open( const char *path )
 {
-  int     fd;
-  DiVine *divine;
+     int     fd;
+     DiVine *divine;
 
-  /* Open the pipe specified by 'path' */
-  fd = open (path, O_WRONLY);
-  if (fd < 0)
-    {
-      perror (path);
-      return NULL;
-    }
+     /* Open the pipe specified by 'path' */
+     fd = open( path, O_WRONLY );
+     if (fd < 0) {
+          perror( path );
+          return NULL;
+     }
 
-  /* Allocate connection object */
-  divine = calloc (1, sizeof(DiVine));
-  if (!divine)
-    {
-      fprintf (stderr, "Out of memory!!!\n");
-      return NULL;
-    }
+     /* Allocate connection object */
+     divine = calloc( 1, sizeof(DiVine) );
+     if (!divine) {
+          fprintf( stderr, "Out of memory!!!\n" );
+          return NULL;
+     }
 
-  /* Fill out connection information */
-  divine->fd = fd;
+     /* Fill out connection information */
+     divine->fd = fd;
 
-  /* Return connection object */
-  return divine;
+     /* Return connection object */
+     return divine;
 }
 
 void
-divine_send_symbol (DiVine *divine, DFBInputDeviceKeySymbol symbol)
+divine_send_symbol( DiVine *divine, DFBInputDeviceKeySymbol symbol )
 {
-  DFBInputEvent event;
-
-  /* Construct 'press' event */
-  event.flags      = DIEF_KEYSYMBOL;
-  event.type       = DIET_KEYPRESS;
-  event.key_symbol = symbol;
-
-  /* Write 'press' event to pipe */
-  write (divine->fd, &event, sizeof(DFBInputEvent));
-
-  /* Turn into 'release' event */
-  event.type = DIET_KEYRELEASE;
-
-  /* Write 'release' event to pipe */
-  write (divine->fd, &event, sizeof(DFBInputEvent));
-}
-
-void
-divine_send_ansi (DiVine *divine, int size, const char *ansistr)
-{
-  int i;
-
-  for (i = 0; i < size; i++)
-  {
-      DFBInputEvent event;
-      int f = 0;
+     DFBInputEvent event;
 
      /* Construct 'press' event */
-      event.flags = DIEF_KEYSYMBOL;
-      event.type  = DIET_KEYPRESS;
-      f = 0;
+     event.flags      = DIEF_KEYSYMBOL;
+     event.type       = DIET_KEYPRESS;
+     event.key_symbol = symbol;
 
-     /* watch for escape sequences */
-      switch (ansistr[i])
-      {
-        case 27:
-           if (ansistr[i+1] == 91)
-	   {
-	      switch (ansistr[i+2])
-	      {
-	        case 49:  switch (ansistr[i+3])
-		          {
-		             case 49:  event.key_symbol = DIKS_F1; break;
-		             case 50:  event.key_symbol = DIKS_F2; break;
-		             case 51:  event.key_symbol = DIKS_F3; break;
-		             case 52:  event.key_symbol = DIKS_F4; break;
-		             case 53:  event.key_symbol = DIKS_F5; break;
-		             case 54:  event.key_symbol = DIKS_F6; break;
-		             case 55:  event.key_symbol = DIKS_F7; break;
-    		             case 56:  event.key_symbol = DIKS_F8; break;
-		             default:   break;
-		          }
-			  f = 3;  break;
-                case 50:  switch (ansistr[i+3])
-	                  {
-	                     case 48:  event.key_symbol = DIKS_F9;     break;
-		             case 49:  event.key_symbol = DIKS_F10;    break;
-  		             case 51:  event.key_symbol = DIKS_F11;    break;
-		             case 52:  event.key_symbol = DIKS_F12;    break;
-			     case 126: event.key_symbol = DIKS_INSERT; break;
-			     default: break;
-			  }
-			  f =  3; break;
-                case 51: event.key_symbol = DIKS_DELETE;       f = 3; break;
-	        case 53: event.key_symbol = DIKS_PAGE_UP;      f = 3; break;
-	        case 54: event.key_symbol = DIKS_PAGE_DOWN;    f = 3; break;
-	        case 55: event.key_symbol = DIKS_HOME;         f = 3; break;
-	        case 56: event.key_symbol = DIKS_STOP;         f = 3; break;
-		case 65: event.key_symbol = DIKS_CURSOR_UP;    f = 2; break;
-		case 66: event.key_symbol = DIKS_CURSOR_DOWN;  f = 2; break;
-		case 67: event.key_symbol = DIKS_CURSOR_LEFT;  f = 2; break;
-		case 68: event.key_symbol = DIKS_CURSOR_RIGHT; f = 2; break;
-		default:  break;
-	      }
-	       break;
-	    } 
-        else      event.key_symbol = DIKS_ESCAPE;    break;
-	case 127: event.key_symbol = DIKS_BACKSPACE; break;
-	case 10:  event.key_symbol = DIKS_ENTER;     break;
-        default:  event.key_symbol = ansistr[i];     break;
-      }
-      i= i + f;
+     /* Write 'press' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
 
-      write (divine->fd, &event, sizeof( DFBInputEvent));
+     /* Turn into 'release' event */
+     event.type = DIET_KEYRELEASE;
 
-      event.type = DIET_KEYRELEASE;
-
-      write (divine->fd, &event, sizeof(DFBInputEvent));
-  }
+     /* Write 'release' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
 }
-	
 
 void
-divine_close (DiVine *divine)
+divine_send_ansi( DiVine *divine, int size, const char *ansistr )
 {
-  /* Close the pipe */
-  close (divine->fd);
+     int i;
 
-  /* Free connection object */
-  free (divine);
+     for (i = 0; i < size; i++) {
+          DFBInputEvent event;
+          int f = 0;
+
+          /* Construct 'press' event */
+          event.flags = DIEF_KEYSYMBOL;
+          event.type  = DIET_KEYPRESS;
+          f = 0;
+
+          /* watch for escape sequences */
+          switch (ansistr[i]) {
+               case 27:
+                    if (ansistr[i+1] == 91) {
+                         switch (ansistr[i+2]) {
+                              case 49:  switch (ansistr[i+3]) {
+                                        case 49:  event.key_symbol = DIKS_F1; break;
+                                        case 50:  event.key_symbol = DIKS_F2; break;
+                                        case 51:  event.key_symbol = DIKS_F3; break;
+                                        case 52:  event.key_symbol = DIKS_F4; break;
+                                        case 53:  event.key_symbol = DIKS_F5; break;
+                                        case 54:  event.key_symbol = DIKS_F6; break;
+                                        case 55:  event.key_symbol = DIKS_F7; break;
+                                        case 56:  event.key_symbol = DIKS_F8; break;
+                                        default:   break;
+                                   }
+                                   f = 3;  break;
+                              case 50:  switch (ansistr[i+3]) {
+                                        case 48:  event.key_symbol = DIKS_F9;     break;
+                                        case 49:  event.key_symbol = DIKS_F10;    break;
+                                        case 51:  event.key_symbol = DIKS_F11;    break;
+                                        case 52:  event.key_symbol = DIKS_F12;    break;
+                                        case 126: event.key_symbol = DIKS_INSERT; break;
+                                        default: break;
+                                   }
+                                   f =  3; break;
+                              case 51: event.key_symbol = DIKS_DELETE;       f = 3; break;
+                              case 53: event.key_symbol = DIKS_PAGE_UP;      f = 3; break;
+                              case 54: event.key_symbol = DIKS_PAGE_DOWN;    f = 3; break;
+                              case 55: event.key_symbol = DIKS_HOME;         f = 3; break;
+                              case 56: event.key_symbol = DIKS_STOP;         f = 3; break;
+                              case 65: event.key_symbol = DIKS_CURSOR_UP;    f = 2; break;
+                              case 66: event.key_symbol = DIKS_CURSOR_DOWN;  f = 2; break;
+                              case 67: event.key_symbol = DIKS_CURSOR_LEFT;  f = 2; break;
+                              case 68: event.key_symbol = DIKS_CURSOR_RIGHT; f = 2; break;
+                              default:  break;
+                         }
+                         break;
+                    } else      event.key_symbol = DIKS_ESCAPE;    break;
+               case 127: event.key_symbol = DIKS_BACKSPACE; break;
+               case 10:  event.key_symbol = DIKS_ENTER;     break;
+               default:  event.key_symbol = ansistr[i];     break;
+          }
+          i= i + f;
+
+          write( divine->fd, &event, sizeof( DFBInputEvent) );
+
+          event.type = DIET_KEYRELEASE;
+
+          write( divine->fd, &event, sizeof(DFBInputEvent) );
+     }
+}
+
+
+void
+divine_close( DiVine *divine )
+{
+     /* Close the pipe */
+     close( divine->fd );
+
+     /* Free connection object */
+     free( divine );
 }
