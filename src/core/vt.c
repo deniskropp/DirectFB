@@ -44,6 +44,10 @@
 #include "vt.h"
 
 
+#define SIG_SWITCH_FROM  (SIGUNUSED + 10)
+#define SIG_SWITCH_TO    (SIGUNUSED + 11)
+
+
 VirtualTerminal *vt = NULL;
 
 static DFBResult vt_init_switching();
@@ -61,8 +65,8 @@ void vt_close()
      if (ioctl( vt->fd, VT_SETMODE, &vt->vt_mode) < 0)
           PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
 
-     sigaction( SIGUSR1, &vt->sig_usr1, NULL );
-     sigaction( SIGUSR2, &vt->sig_usr2, NULL );
+     sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
+     sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
 
      if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
@@ -188,7 +192,7 @@ DFBResult vt_open()
      return DFB_OK;
 }
 
-static void vt_switch( int signal )
+static void vt_switch( int signal, siginfo_t *info, void *p )
 {
      static pthread_mutex_t switch_lock = PTHREAD_MUTEX_INITIALIZER;
      static pthread_cond_t  switch_cond = PTHREAD_COND_INITIALIZER;
@@ -196,8 +200,34 @@ static void vt_switch( int signal )
      DEBUGMSG( "DirectFB/core/vt: "
                "vt_switch signal handler activated (%d)\n", getpid() );
 
+     if (info->si_code != SI_KERNEL) {
+          DEBUGMSG( "DirectFB/core/vt: vt_switch signal handler aborting "
+                    "(si_code != SI_KERNEL)\n" );
+
+          DEBUGMSG( "DirectFB/core/vt: "
+                    "going to call previous signal handler...\n" );
+
+          if (signal == SIG_SWITCH_FROM) {
+               if (vt->sig_usr1.sa_flags & SA_SIGINFO)
+                    vt->sig_usr1.sa_sigaction( signal, info, p );
+               else
+                    vt->sig_usr1.sa_handler( signal );
+          }
+          else if (signal == SIG_SWITCH_TO) {
+               if (vt->sig_usr2.sa_flags & SA_SIGINFO)
+                    vt->sig_usr2.sa_sigaction( signal, info, p );
+               else
+                    vt->sig_usr2.sa_handler( signal );
+          }
+
+          DEBUGMSG( "DirectFB/core/vt: "
+                    "...previous signal handler returned.\n" );
+          
+          return;
+     }
+
      switch (signal) {
-          case SIGUSR1:
+          case SIG_SWITCH_FROM:
                DEBUGMSG( "DirectFB/core/vt: Locking hardware...\n" );
 
                if (pthread_mutex_trylock( &card->lock )) {
@@ -215,20 +245,21 @@ static void vt_switch( int signal )
 
                DEBUGMSG( "DirectFB/core/vt: Releasing VT...\n" );
 
-               if (ioctl( vt->fd, VT_RELDISP, 1 ) < 0)
+               if (ioctl( vt->fd, VT_RELDISP, 1 ) < 0) {
                     PERRORMSG( "DirectFB/core/vt: "
                                "Unable to allow switch-from!\n" );
+               }
+               else {
+                    DEBUGMSG( "DirectFB/core/vt: ...VT released.\n" );
 
-               DEBUGMSG( "DirectFB/core/vt: ...VT released.\n" );
-
-               pthread_mutex_lock( &switch_lock );
-               DEBUGMSG( "DirectFB/core/vt: Chilling until acquisition...\n" );
-               pthread_cond_wait( &switch_cond, &switch_lock );
-               DEBUGMSG( "DirectFB/core/vt: ...chilled out.\n" );
-               pthread_mutex_unlock( &switch_lock );
+                    pthread_mutex_lock( &switch_lock );
+                    DEBUGMSG( "DirectFB/core/vt: Chilling until acquisition...\n" );
+                    pthread_cond_wait( &switch_cond, &switch_lock );
+                    DEBUGMSG( "DirectFB/core/vt: ...chilled out.\n" );
+                    pthread_mutex_unlock( &switch_lock );
+               }
 
                pthread_mutex_unlock( &card->lock );
-
 
                DEBUGMSG( "DirectFB/core/vt: ...hardware unlocked.\n" );
 
@@ -236,25 +267,27 @@ static void vt_switch( int signal )
 
                break;
 
-          case SIGUSR2:
+          case SIG_SWITCH_TO:
                DEBUGMSG( "DirectFB/core/vt: Acquiring VT...\n" );
 
-               if (ioctl( vt->fd, VT_RELDISP, 2 ) < 0)
+               if (ioctl( vt->fd, VT_RELDISP, 2 ) < 0) {
                     PERRORMSG( "DirectFB/core/vt: "
                                "Unable to allow switch-to!\n" );
+               }
+               else {
+                    DEBUGMSG( "DirectFB/core/vt: ...VT acquired.\n" );
 
-               DEBUGMSG( "DirectFB/core/vt: ...VT acquired.\n" );
-
-               pthread_mutex_lock( &switch_lock );
-               DEBUGMSG( "DirectFB/core/vt: Kicking chillers' ass...\n" );
-               pthread_cond_broadcast( &switch_cond );
-               DEBUGMSG( "DirectFB/core/vt: ...chillers kick ass.\n" );
-               pthread_mutex_unlock( &switch_lock );
+                    pthread_mutex_lock( &switch_lock );
+                    DEBUGMSG( "DirectFB/core/vt: Kicking chillers' ass...\n" );
+                    pthread_cond_broadcast( &switch_cond );
+                    DEBUGMSG( "DirectFB/core/vt: ...chillers kick ass.\n" );
+                    pthread_mutex_unlock( &switch_lock );
+               }
 
                break;
 
           default:
-               BUG( "vt_switch received signal other than SIGUSR1 or SIGUSR2" );
+               BUG( "signal != SIG_SWITCH_FROM or SIG_SWITCH_TO" );
      }
 
      DEBUGMSG( "DirectFB/core/vt: "
@@ -295,10 +328,11 @@ static DFBResult vt_init_switching()
      }
 
      memset( &sig_tty, 0, sizeof( sig_tty ) );
-     sig_tty.sa_handler = vt_switch;
+     sig_tty.sa_sigaction = vt_switch;
+     sig_tty.sa_flags     = SA_SIGINFO | SA_RESTART;
      sigemptyset( &sig_tty.sa_mask );
-     if (sigaction( SIGUSR1, &sig_tty, &vt->sig_usr1 ) ||
-         sigaction( SIGUSR2, &sig_tty, &vt->sig_usr2 ))
+     if (sigaction( SIG_SWITCH_FROM, &sig_tty, &vt->sig_usr1 ) ||
+         sigaction( SIG_SWITCH_TO, &sig_tty, &vt->sig_usr2 ))
      {
           PERRORMSG( "DirectFB/core/vt: sigaction failed!\n" );
           return errno2dfb( errno );
@@ -309,8 +343,8 @@ static DFBResult vt_init_switching()
 
           PERRORMSG( "DirectFB/core/vt: VT_GETMODE failed!\n" );
 
-          sigaction( SIGUSR1, &vt->sig_usr1, NULL );
-          sigaction( SIGUSR2, &vt->sig_usr2, NULL );
+          sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
+          sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
 
           return errno2dfb( erno );
      }
@@ -319,16 +353,16 @@ static DFBResult vt_init_switching()
 
      vt_mode.mode   = VT_PROCESS;
      vt_mode.waitv  = 0;
-     vt_mode.relsig = SIGUSR1;
-     vt_mode.acqsig = SIGUSR2;
+     vt_mode.relsig = SIG_SWITCH_FROM;
+     vt_mode.acqsig = SIG_SWITCH_TO;
 
      if (ioctl( vt->fd, VT_SETMODE, &vt_mode) < 0) {
           int erno = errno;
 
           PERRORMSG( "DirectFB/core/vt: VT_SETMODE failed!\n" );
 
-          sigaction( SIGUSR1, &vt->sig_usr1, NULL );
-          sigaction( SIGUSR2, &vt->sig_usr2, NULL );
+          sigaction( SIG_SWITCH_FROM, &vt->sig_usr1, NULL );
+          sigaction( SIG_SWITCH_TO, &vt->sig_usr2, NULL );
 
           return errno2dfb( erno );
      }

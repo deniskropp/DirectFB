@@ -57,7 +57,7 @@ void sig_handler( int num )
 
      core_deinit_emergency();
      
-     kill( 0, SIGHUP );
+     kill( 0, num );
 }
 
 void sig_install_handlers()
