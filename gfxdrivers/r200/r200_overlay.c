@@ -397,7 +397,7 @@ ov0_calc_offsets( R200DeviceData       *rdev,
 }
 
 static inline __u32
-ov0_calc_dstkey( __u8 r, __u8 b, __u8 g )
+ov0_calc_dstkey( __u8 r, __u8 g, __u8 b )
 {
      __u32 Kr, Kg, Kb;
      
