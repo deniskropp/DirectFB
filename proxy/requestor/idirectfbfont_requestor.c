@@ -124,16 +124,39 @@ IDirectFBFont_Requestor_GetAscender( IDirectFBFont *thiz, int *ret_ascender )
 }
 
 static DFBResult
-IDirectFBFont_Requestor_GetDescender( IDirectFBFont *thiz, int *descender )
+IDirectFBFont_Requestor_GetDescender( IDirectFBFont *thiz, int *ret_descender )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     int                    descender;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
 
-     if (!descender)
+     if (!ret_descender)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBFONT_METHOD_ID_GetDescender, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_INT( parser, descender );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_descender = descender;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -174,31 +197,82 @@ IDirectFBFont_Requestor_GetHeight( IDirectFBFont *thiz,
 }
 
 static DFBResult
-IDirectFBFont_Requestor_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
+IDirectFBFont_Requestor_GetMaxAdvance( IDirectFBFont *thiz, int *ret_maxadvance )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     int                    maxadvance;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
 
-     if (!maxadvance)
+     if (!ret_maxadvance)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBFONT_METHOD_ID_GetMaxAdvance, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_INT( parser, maxadvance );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_maxadvance = maxadvance;
+
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBFont_Requestor_GetKerning( IDirectFBFont *thiz,
                                     unsigned int prev_index, unsigned int current_index,
-                                    int *kern_x, int *kern_y)
+                                    int *ret_kern_x, int *ret_kern_y)
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     int                    kern_x;
+     int                    kern_y;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
 
-     if (!kern_x && !kern_y)
+     if (!ret_kern_x && !ret_kern_y)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBFONT_METHOD_ID_GetMaxAdvance, VREQ_RESPOND, &response,
+                                   VMBT_UINT, prev_index,
+                                   VMBT_UINT, current_index,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_INT( parser, kern_x );
+     VOODOO_PARSER_GET_INT( parser, kern_y );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_kern_x = kern_x;
+     *ret_kern_y = kern_y;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -207,14 +281,59 @@ IDirectFBFont_Requestor_GetStringExtents( IDirectFBFont *thiz,
                                           DFBRectangle *logical_rect,
                                           DFBRectangle *ink_rect )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const DFBRectangle    *logical;
+     const DFBRectangle    *ink;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
 
      if (!text || (!logical_rect && !ink_rect))
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     if (bytes < 0)
+          bytes = strlen (text);
+
+     if (bytes == 0) {
+          if (logical_rect)
+               memset( logical_rect, 0, sizeof(DFBRectangle) );
+
+          if (ink_rect)
+               memset( ink_rect, 0, sizeof(DFBRectangle) );
+
+          return DFB_OK;
+     }
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBFONT_METHOD_ID_GetStringExtents, VREQ_RESPOND, &response,
+                                   VMBT_DATA, bytes, text,
+                                   VMBT_INT, bytes,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, logical );
+     VOODOO_PARSER_GET_DATA( parser, ink );
+     VOODOO_PARSER_END( parser );
+
+     if (logical_rect)
+          *logical_rect = *logical;
+
+     if (ink_rect)
+          *ink_rect = *ink;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
 }
 
 static DFBResult

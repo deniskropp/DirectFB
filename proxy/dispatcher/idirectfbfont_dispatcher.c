@@ -213,6 +213,25 @@ Dispatch_GetAscender( IDirectFBFont *thiz, IDirectFBFont *real,
 }
 
 static DirectResult
+Dispatch_GetDescender( IDirectFBFont *thiz, IDirectFBFont *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     int          descender;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     ret = real->GetDescender( real, &descender );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, descender,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetHeight( IDirectFBFont *thiz, IDirectFBFont *real,
                     VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -228,6 +247,54 @@ Dispatch_GetHeight( IDirectFBFont *thiz, IDirectFBFont *real,
      return voodoo_manager_respond( manager, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, height,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetMaxAdvance( IDirectFBFont *thiz, IDirectFBFont *real,
+                        VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     int          max_advance;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     ret = real->GetMaxAdvance( real, &max_advance );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, max_advance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetKerning( IDirectFBFont *thiz, IDirectFBFont *real,
+                     VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     unsigned int         prev;
+     unsigned int         next;
+     int                  kern_x;
+     int                  kern_y;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, prev );
+     VOODOO_PARSER_GET_UINT( parser, next );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetKerning( real, prev, next, &kern_x, &kern_y );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_INT, kern_x,
+                                    VMBT_INT, kern_y,
                                     VMBT_NONE );
 }
 
@@ -255,6 +322,35 @@ Dispatch_GetStringWidth( IDirectFBFont *thiz, IDirectFBFont *real,
      return voodoo_manager_respond( manager, msg->header.serial,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, width,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetStringExtents( IDirectFBFont *thiz, IDirectFBFont *real,
+                           VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     const char          *text;
+     int                  bytes;
+     DFBRectangle         logical;
+     DFBRectangle         ink;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, text );
+     VOODOO_PARSER_GET_INT( parser, bytes );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetStringExtents( real, text, bytes, &logical, &ink );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBRectangle), &logical,
+                                    VMBT_DATA, sizeof(DFBRectangle), &ink,
                                     VMBT_NONE );
 }
 
@@ -294,10 +390,25 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
      switch (msg->method) {
           case IDIRECTFBFONT_METHOD_ID_GetAscender:
                return Dispatch_GetAscender( dispatcher, real, manager, msg );
+
+          case IDIRECTFBFONT_METHOD_ID_GetDescender:
+               return Dispatch_GetDescender( dispatcher, real, manager, msg );
+
           case IDIRECTFBFONT_METHOD_ID_GetHeight:
                return Dispatch_GetHeight( dispatcher, real, manager, msg );
+
+          case IDIRECTFBFONT_METHOD_ID_GetMaxAdvance:
+               return Dispatch_GetMaxAdvance( dispatcher, real, manager, msg );
+
+          case IDIRECTFBFONT_METHOD_ID_GetKerning:
+               return Dispatch_GetKerning( dispatcher, real, manager, msg );
+
           case IDIRECTFBFONT_METHOD_ID_GetStringWidth:
                return Dispatch_GetStringWidth( dispatcher, real, manager, msg );
+
+          case IDIRECTFBFONT_METHOD_ID_GetStringExtents:
+               return Dispatch_GetStringExtents( dispatcher, real, manager, msg );
+
           case IDIRECTFBFONT_METHOD_ID_GetGlyphExtents:
                return Dispatch_GetGlyphExtents( dispatcher, real, manager, msg );
      }
