@@ -232,13 +232,6 @@ static DFBResult load_image (const char            *filename,
 
      src_format = (type & PNG_COLOR_MASK_ALPHA) ? DSPF_ARGB : DSPF_RGB32;
      switch (type) {
-          case PNG_COLOR_TYPE_PALETTE:
-               if (dest_format == DSPF_LUT8) {
-                    src_format = DSPF_LUT8;
-                    break;
-               }
-               png_set_palette_to_rgb (png_ptr);
-               break;
           case PNG_COLOR_TYPE_GRAY:
                if (dest_format == DSPF_A8) {
                     src_format = DSPF_A8;
@@ -249,6 +242,13 @@ static DFBResult load_image (const char            *filename,
                png_set_gray_to_rgb (png_ptr);
                break;
 
+          case PNG_COLOR_TYPE_PALETTE:
+               if (dest_format == DSPF_LUT8) {
+                    src_format = DSPF_LUT8;
+                    break;
+               }
+               png_set_palette_to_rgb (png_ptr);
+               /* fallthru */
           case PNG_COLOR_TYPE_RGB:
           case PNG_COLOR_TYPE_RGB_ALPHA:
                if (dest_format == DSPF_RGB24) {
@@ -475,7 +475,7 @@ static DFBResult dump_image (const char            *name,
      fprintf (csource.fp, "\";\n\n");
 
      /* dump palette */
-     if (palette && palette_size > 0) {
+     if (palette_size > 0) {
           fprintf (csource.fp,
                    "static DFBColor %s_palette[%d] = {\n", name, palette_size);
           for (i = 0; i < palette_size; i++)
@@ -483,17 +483,18 @@ static DFBResult dump_image (const char            *name,
                         "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
                         palette[i].a, palette[i].r, palette[i].g, palette[i].b,
                         i+1 < palette_size ? ',' : ' ');
-          fprintf (csource.fp, "};\n");
-          fprintf (csource.fp,
-                   "static int %s_palette_size = %d;\n\n", name, palette_size);
+          fprintf (csource.fp, "};\n\n");
      }
 
      /* dump description */
      fprintf (csource.fp,
               "static DFBSurfaceDescription %s_desc = {\n", name);
      fprintf (csource.fp,
-              "  flags                   : (DSDESC_WIDTH | DSDESC_HEIGHT |\n"
-              "                             DSDESC_PIXELFORMAT | DSDESC_PREALLOCATED),\n");
+              "  flags                   : DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |\n"
+              "                            DSDESC_PREALLOCATED");
+     if (palette_size > 0)
+          fprintf (csource.fp, " | DSDESC_PALETTE");
+     fprintf (csource.fp, ",\n");     
      fprintf (csource.fp,
               "  width                   : %d,\n", desc->width);
      fprintf (csource.fp,
@@ -501,10 +502,17 @@ static DFBResult dump_image (const char            *name,
      fprintf (csource.fp,
               "  pixelformat             : DSPF_%s,\n", format);
      fprintf (csource.fp,
-              "  preallocated : {{ data  : (void *) %s_data,\n", name);
+              "  preallocated : {{  data : (void *) %s_data,\n", name);
      fprintf (csource.fp,
-              "                    pitch : %d\n", desc->preallocated[0].pitch);
-     fprintf (csource.fp, "  }}\n};\n\n");
+              "                    pitch : %d  }}", desc->preallocated[0].pitch);
+     if (palette_size > 0) {
+          fprintf (csource.fp, ",\n");
+          fprintf (csource.fp,
+                   "  palette :    {  entries : %s_palette,\n", name);
+          fprintf (csource.fp,
+                   "                     size : %d  }", palette_size);
+     }
+     fprintf (csource.fp, "\n};\n\n");
 
      return DFB_OK;
 }
