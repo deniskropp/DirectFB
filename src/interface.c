@@ -148,6 +148,9 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
           void *handle = NULL;
           char  buf[4096];
 
+          DFBInterfaceImplementation *old_impl =
+               (DFBInterfaceImplementation*) implementations;
+          
           if (strlen(entry->d_name) < 4 ||
               entry->d_name[strlen(entry->d_name)-1] != 'o' ||
               entry->d_name[strlen(entry->d_name)-2] != 's')
@@ -162,7 +165,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                DFBInterfaceImplementation *impl =
                     (DFBInterfaceImplementation*) link;
           
-               if (!strcmp( impl->filename, buf )) {
+               if (impl->filename && !strcmp( impl->filename, buf )) {
                     handle = impl->module_handle;
                     break;
                }
@@ -188,9 +191,9 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
                     (DFBInterfaceImplementation*) implementations;
 
                /*
-                * If module handle is set, it's not the newly opened module.
+                * Check if it registered itself.
                 */
-               if (!impl || impl->module_handle) {
+               if (impl == old_impl) {
                     dlclose( handle );
                     continue;
                }
