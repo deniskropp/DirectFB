@@ -6,21 +6,27 @@
 - Added IDirectFBPalette::GetCapabilities().
 - Added IDirectFBPalette::CreateCopy().
 - Added IDirectFBSurface::SetSrcColorKeyIndex() and SetDstColorKeyIndex().
-- Added experimental blitting flag DSBLIT_DEINTERLACE
-  which is implemented in the Matrox driver for now.
+- Added experimental blitting flag DSBLIT_DEINTERLACE which is implemented
+  only in the Matrox driver for now.
 - Added LUT8 and RGB332 acceleration to NeoMagic driver.
 - Added Meta (or Windows) key to wm hack (moving window etc.).
+- Added MPEG2 I-Frame image provider derived from mpeg2decode (mpeg.org).
+- Added driver for ucb1x00 based touchscreens.
+- Added dfbdump, a DirectFB debugging tool.
 - Started abstraction of the "core system" featuring the "fbdev" system like
   before and a new experimental "sdl" system. Yepp, DirectFB running on SDL.
   Use "--dfb:system=sdl" to run applications under X.
+- Enabled support for RGB332 by default.
 - Implemented YUV rectangle filling support for planar and non-planar
   formats in software driver (Ville Syrjala <syrjala@sci.fi>).
 - Matrox second head support via additional layers.
   New option "matrox-crtc2" to activate this (Ville Syrjala <syrjala@sci.fi>).
+- Updated matrox vsync irq patch to support the second head.
 - Planar YUV blitting support in Matrox driver (Ville Syrjala <syrjala@sci.fi>).
 - Fixed nVidia driver for big endian hosts.
 - The window stack and video mode are now restored even if a fullscreen
   application simply exits or gets killed by any signal (multi app core).
+- Renamed DSCAPS_SEPERATED to DSCAPS_SEPARATED.
 - Some bug fixes, especially (de/re)initialization, allocation related.
 
 
