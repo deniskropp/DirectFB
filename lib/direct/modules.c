@@ -46,6 +46,8 @@
 #include <dlfcn.h>
 #endif
 
+D_DEBUG_DOMAIN( Direct_Modules, "Direct/Modules", "Module loading and registration" );
+
 /******************************************************************************/
 
 #ifdef DYNAMIC_LINKING
@@ -96,7 +98,7 @@ direct_modules_register( DirectModuleDir *directory,
      D_ASSERT( name != NULL );
      D_ASSERT( funcs != NULL );
 
-     D_DEBUG( "Direct/Modules: Registering '%s' ('%s')\n", name, directory->path );
+     D_DEBUG_AT( Direct_Modules, "Registering '%s' ('%s')\n", name, directory->path );
 
 #ifdef DYNAMIC_LINKING
      if ((entry = lookup_by_name( directory, name )) != NULL) {
@@ -131,7 +133,7 @@ direct_modules_register( DirectModuleDir *directory,
 
      direct_list_prepend( &directory->entries, &entry->link );
 
-     D_DEBUG( "Direct/Modules: ...registered.\n" );
+     D_DEBUG_AT( Direct_Modules, "...registered.\n" );
 }
 
 int
@@ -368,7 +370,7 @@ open_module( DirectModuleEntry *module )
 
      snprintf( buf, buf_len, "%s/%s", directory->path, module->file );
 
-     D_DEBUG( "Direct/Modules: Loading '%s'...\n", buf );
+     D_DEBUG_AT( Direct_Modules, "Loading '%s'...\n", buf );
 
      handle = dlopen( buf, RTLD_LAZY );
      if (!handle)

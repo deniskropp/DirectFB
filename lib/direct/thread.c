@@ -43,6 +43,8 @@
 #include <direct/thread.h>
 #include <direct/util.h>
 
+D_DEBUG_DOMAIN( Direct_Thread, "Direct/Thread", "Thread management" );
+
 
 /* FIXME: DIRECT_THREAD_WAIT_INIT is required, but should be optional. */
 #define DIRECT_THREAD_WAIT_INIT
@@ -247,7 +249,7 @@ direct_thread_cancel( DirectThread *thread )
 
      D_ASSUME( !thread->canceled );
 
-     D_DEBUG( "Direct/Thread: Canceling %d.\n", thread->tid );
+     D_DEBUG_AT( Direct_Thread, "Canceling %d.\n", thread->tid );
 
      thread->canceled = true;
 
@@ -315,11 +317,11 @@ direct_thread_destroy( DirectThread *thread )
 
      if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
           if (thread->canceled)
-               D_DEBUG( "Direct/Thread: '%s' (%d) is canceled but not joined!\n",
-                        thread->name, thread->tid );
+               D_DEBUG_AT( Direct_Thread, "'%s' (%d) is canceled but not joined!\n",
+                           thread->name, thread->tid );
           else
-               D_DEBUG( "Direct/Thread: '%s' (%d) is still running!\n",
-                        thread->name, thread->tid );
+               D_DEBUG_AT( Direct_Thread, "'%s' (%d) is still running!\n",
+                           thread->name, thread->tid );
 
           if (thread->name)
                D_ERROR( "Direct/Thread: Killing '%s' (%d)!\n", thread->name, thread->tid );
@@ -439,8 +441,8 @@ direct_thread_main( void *arg )
      /* Call main routine. */
      ret = thread->main( thread, thread->arg );
 
-     D_DEBUG( "Direct/Thread: Returning %p from '%s' (%s, %d)...\n",
-              ret, thread->name, thread_type_name(thread->type), thread->tid );
+     D_DEBUG_AT( Direct_Thread, "Returning %p from '%s' (%s, %d)...\n",
+                 ret, thread->name, thread_type_name(thread->type), thread->tid );
 
      D_MAGIC_ASSERT( thread, DirectThread );
 

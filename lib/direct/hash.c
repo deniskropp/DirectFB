@@ -35,6 +35,9 @@
 #include <direct/messages.h>
 
 
+D_DEBUG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
+
+
 #define REMOVED  ((void *) -1)
 
 typedef struct {
@@ -89,7 +92,7 @@ direct_hash_create( int          size,
      if (size < 17)
           size = 17;
 
-     D_DEBUG( "Direct/Hash: Creating hash table with initial capacity of %d...\n", size );
+     D_DEBUG_AT( Direct_Hash, "Creating hash table with initial capacity of %d...\n", size );
 
      hash = D_CALLOC( 1, sizeof (DirectHash) );
      if (!hash) {
@@ -140,8 +143,8 @@ direct_hash_insert( DirectHash *hash,
           int      i, size = hash->size * 3;
           Element *elements;
 
-          D_DEBUG( "Direct/Hash: Resizing from %d to %d... (count %d, removed %d)\n",
-                   hash->size, size, hash->count, hash->removed );
+          D_DEBUG_AT( Direct_Hash, "Resizing from %d to %d... (count %d, removed %d)\n",
+                      hash->size, size, hash->count, hash->removed );
 
           elements = D_CALLOC( size, sizeof(Element) );
           if (!elements) {
@@ -166,7 +169,7 @@ direct_hash_insert( DirectHash *hash,
 
      pos = key % hash->size;
 
-     D_DEBUG( "Direct/Hash: Attempting to insert key 0x%08x at position %d...\n", key, pos );
+     D_DEBUG_AT( Direct_Hash, "Attempting to insert key 0x%08x at position %d...\n", key, pos );
 
      element = &hash->elements[pos];
 
@@ -190,8 +193,8 @@ direct_hash_insert( DirectHash *hash,
 
      hash->count++;
 
-     D_DEBUG( "Direct/Hash: ...inserted at %d, new count = %d, removed = %d, size = %d.\n",
-              pos, hash->count, hash->removed, hash->size );
+     D_DEBUG_AT( Direct_Hash, "...inserted at %d, new count = %d, removed = %d, size = %d.\n",
+                 pos, hash->count, hash->removed, hash->size );
 
      return DFB_OK;
 }
@@ -215,8 +218,8 @@ direct_hash_remove( DirectHash  *hash,
      hash->count--;
      hash->removed++;
 
-     D_DEBUG( "Direct/Hash: Removed key 0x%08x at %d, new count = %d, removed = %d, size = %d.\n",
-              key, pos, hash->count, hash->removed, hash->size );
+     D_DEBUG_AT( Direct_Hash, "Removed key 0x%08x at %d, new count = %d, removed = %d, size = %d.\n",
+                 key, pos, hash->count, hash->removed, hash->size );
 }
 
 void *

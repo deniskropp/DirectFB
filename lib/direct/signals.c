@@ -46,6 +46,8 @@
 #include <direct/trace.h>
 #include <direct/util.h>
 
+D_DEBUG_DOMAIN( Direct_Signals, "Direct/Signals", "Signal handling" );
+
 
 struct __D_DirectSignalHandler {
      DirectLink               link;
@@ -87,7 +89,7 @@ static void remove_handlers();
 DirectResult
 direct_signals_initialize()
 {
-     D_DEBUG( "Direct/Signals: Initializing...\n" );
+     D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
      install_handlers();
 
@@ -97,7 +99,7 @@ direct_signals_initialize()
 DirectResult
 direct_signals_shutdown()
 {
-     D_DEBUG( "Direct/Signals: Shutting down...\n" );
+     D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 
      remove_handlers();
 
@@ -109,7 +111,7 @@ direct_signals_block_all()
 {
      sigset_t signals;
 
-     D_DEBUG( "Direct/Signals: Blocking all signals from now on!\n" );
+     D_DEBUG_AT( Direct_Signals, "Blocking all signals from now on!\n" );
 
      sigfillset( &signals );
 
@@ -128,8 +130,8 @@ direct_signal_handler_add( int                       num,
      D_ASSERT( func != NULL );
      D_ASSERT( ret_handler != NULL );
 
-     D_DEBUG( "Direct/Signal: "
-              "Adding handler %p for signal %d with context %p...\n", func, num, ctx );
+     D_DEBUG_AT( Direct_Signals,
+                 "Adding handler %p for signal %d with context %p...\n", func, num, ctx );
 
      handler = D_CALLOC( 1, sizeof(DirectSignalHandler) );
      if (!handler) {
@@ -157,8 +159,8 @@ direct_signal_handler_remove( DirectSignalHandler *handler )
 {
      D_MAGIC_ASSERT( handler, DirectSignalHandler );
 
-     D_DEBUG( "Direct/Signal: Removing handler %p for signal %d with context %p...\n",
-              handler->func, handler->num, handler->ctx );
+     D_DEBUG_AT( Direct_Signals, "Removing handler %p for signal %d with context %p...\n",
+                 handler->func, handler->num, handler->ctx );
 
      pthread_mutex_lock( &handlers_lock );
      direct_list_remove( &handlers, &handler->link );
