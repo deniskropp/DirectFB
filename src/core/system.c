@@ -261,6 +261,15 @@ dfb_system_thread_init()
      return system_funcs->ThreadInit();
 }
 
+bool
+dfb_system_input_filter( InputDevice   *device,
+                         DFBInputEvent *event )
+{
+     DFB_ASSERT( system_funcs != NULL );
+
+     return system_funcs->InputFilter( device, event );
+}
+
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset )
 {

@@ -306,7 +306,7 @@ dfb_gfxcard_suspend()
      DFB_ASSERT( card != NULL );
      DFB_ASSERT( card->shared != NULL );
 
-     dfb_gfxcard_sync();
+     dfb_gfxcard_lock( true, true, true, true );
 
      return dfb_surfacemanager_suspend( card->shared->surface_manager );
 }
@@ -316,6 +316,8 @@ dfb_gfxcard_resume()
 {
      DFB_ASSERT( card != NULL );
      DFB_ASSERT( card->shared != NULL );
+
+     dfb_gfxcard_unlock();
 
      return dfb_surfacemanager_resume( card->shared->surface_manager );
 }

@@ -74,7 +74,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_systems );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           2
+#define DFB_CORE_SYSTEM_ABI_VERSION           3
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80
@@ -127,6 +127,12 @@ typedef struct {
       */
      DFBResult      (*ThreadInit)();
 
+     /*
+      * Called upon incoming input events.
+      * Return true to drop the event, e.g. after doing special handling of it.
+      */
+     bool           (*InputFilter)( InputDevice *device, DFBInputEvent *event );
+     
      /*
       * Graphics drivers call this function to get access to MMIO regions.
       *
@@ -185,6 +191,10 @@ dfb_system_current_mode();
 
 DFBResult
 dfb_system_thread_init();
+
+bool
+dfb_system_input_filter( InputDevice   *device,
+                         DFBInputEvent *event );
 
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset );

@@ -2330,13 +2330,16 @@ get_keyboard_window( CoreWindowStack     *stack,
                     free_key = i;
           }
 
+          window = stack->keyboard_window ?
+                   stack->keyboard_window : stack->focused_window;
+
+          if (!window)
+               return NULL;
+
           if (free_key == -1) {
                CAUTION( "maximum number of owned keys reached" );
                return NULL;
           }
-
-          window = stack->keyboard_window ?
-                   stack->keyboard_window : stack->focused_window;
 
           stack->keys[free_key].symbol = evt->key_symbol;
           stack->keys[free_key].id     = evt->key_id;

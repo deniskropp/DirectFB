@@ -48,6 +48,12 @@ typedef struct {
      struct sigaction sig_usr2;    /* previous signal handler for USR2 */
 
      struct vt_mode   vt_mode;     /* previous VT mode */
+
+     CoreThread      *thread;
+     pthread_mutex_t  lock;
+     pthread_cond_t   wait;
+
+     int              vt_sig;
 } VirtualTerminal;
 
 extern VirtualTerminal *dfb_vt;
@@ -65,5 +71,7 @@ DFBResult dfb_vt_shutdown( bool emergency );
 DFBResult dfb_vt_leave( bool emergency );
 
 DFBResult dfb_vt_detach( bool force );
+
+bool dfb_vt_switch( int num );
 
 #endif

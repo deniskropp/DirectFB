@@ -77,6 +77,8 @@ struct _SurfaceManager {
      int             length;
      int             available;
 
+     bool            suspended;
+
      /* offset of the surface heap */
      unsigned int    heap_offset;
 
@@ -156,6 +158,8 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 
      dfb_surfacemanager_lock( manager );
 
+     manager->suspended = true;
+
      c = manager->chunks;
      while (c) {
           if (c->buffer &&
@@ -170,12 +174,18 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
      }
 
      dfb_surfacemanager_unlock( manager );
-
+     
      return DFB_OK;
 }
 
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager )
 {
+     dfb_surfacemanager_lock( manager );
+     
+     manager->suspended = false;
+     
+     dfb_surfacemanager_unlock( manager );
+     
      return DFB_OK;
 }
 
@@ -266,7 +276,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
 
      CoreSurface *surface = buffer->surface;
 
-     if (!manager->length)
+     if (!manager->length || manager->suspended)
           return DFB_NOVIDEOMEMORY;
 
      /* calculate the required length depending on limitations */

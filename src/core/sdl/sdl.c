@@ -197,6 +197,13 @@ system_thread_init()
      return DFB_OK;
 }
 
+static bool
+system_input_filter( InputDevice   *device,
+                     DFBInputEvent *event )
+{
+     return false;
+}
+
 static unsigned long
 system_video_memory_physical( unsigned int offset )
 {

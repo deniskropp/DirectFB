@@ -277,16 +277,16 @@ dfb_core_unref()
 DFBResult
 dfb_core_suspend()
 {
-#ifndef FUSION_FAKE
-     return DFB_UNSUPPORTED;
-#else
      DFBResult ret;
 
-     ret = dfb_core_input.Suspend();
+     if (!dfb_core->master)
+          return DFB_ACCESSDENIED;
+     
+     ret = dfb_core_layers.Suspend();
      if (ret)
           return ret;
 
-     ret = dfb_core_layers.Suspend();
+     ret = dfb_core_input.Suspend();
      if (ret)
           return ret;
 
@@ -295,22 +295,17 @@ dfb_core_suspend()
           return ret;
 
      return DFB_OK;
-#endif
 }
 
 DFBResult
 dfb_core_resume()
 {
-#ifndef FUSION_FAKE
-     return DFB_UNSUPPORTED;
-#else
      DFBResult ret;
 
-     ret = dfb_core_gfxcard.Resume();
-     if (ret)
-          return ret;
+     if (!dfb_core->master)
+          return DFB_ACCESSDENIED;
 
-     ret = dfb_core_layers.Resume();
+     ret = dfb_core_gfxcard.Resume();
      if (ret)
           return ret;
 
@@ -318,8 +313,11 @@ dfb_core_resume()
      if (ret)
           return ret;
 
+     ret = dfb_core_layers.Resume();
+     if (ret)
+          return ret;
+
      return DFB_OK;
-#endif
 }
 
 void

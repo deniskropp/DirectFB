@@ -651,6 +651,32 @@ system_thread_init()
      return dfb_vt_detach( false );
 }
 
+static bool
+system_input_filter( InputDevice   *device,
+                     DFBInputEvent *event )
+{
+     switch (event->type) {
+          case DIET_KEYPRESS:
+               if (DFB_KEY_TYPE(event->key_symbol) == DIKT_FUNCTION &&
+                   event->modifiers == (DIMM_CONTROL | DIMM_ALT))
+                    return dfb_vt_switch( event->key_symbol - DIKS_F1 + 1 );
+
+               break;
+
+          case DIET_KEYRELEASE:
+               if (DFB_KEY_TYPE(event->key_symbol) == DIKT_FUNCTION &&
+                   event->modifiers == (DIMM_CONTROL | DIMM_ALT))
+                    return true;
+
+               break;
+
+          default:
+               break;
+     }
+
+     return false;
+}
+
 static unsigned long
 system_video_memory_physical( unsigned int offset )
 {

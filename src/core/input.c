@@ -49,6 +49,7 @@
 
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+#include <core/system.h>
 #include <core/layers.h>
 #include <core/input.h>
 #include <core/windows.h>
@@ -86,6 +87,8 @@ typedef struct {
 
 typedef struct {
      DFBInputDeviceID             id;            /* unique device id */
+
+     int                          num;
 
      InputDeviceInfo              device_info;
 
@@ -277,12 +280,22 @@ dfb_input_suspend()
 
      DFB_ASSERT( inputfield != NULL );
 
+     DEBUGMSG( "DirectFB/core/input: suspending...\n" );
+
      while (d) {
+          DEBUGMSG( "DirectFB/core/input: Closing '%s' (%d) %d.%d (%s)\n",
+                    d->shared->device_info.desc.name, d->shared->num + 1,
+                    d->driver->info.version.major,
+                    d->driver->info.version.minor,
+                    d->driver->info.vendor );
+          
           d->driver->funcs->CloseDevice( d->driver_data );
 
           d = d->next;
      }
 
+     DEBUGMSG( "DirectFB/core/input: suspended.\n" );
+     
      return DFB_OK;
 }
 
@@ -293,21 +306,31 @@ dfb_input_resume()
 
      DFB_ASSERT( inputfield != NULL );
 
+     DEBUGMSG( "DirectFB/core/input: resuming...\n" );
+     
      while (d) {
-          int       i;
           DFBResult ret;
 
-          for (i=0; i<d->driver->nr_devices; i++) {
-               ret = d->driver->funcs->OpenDevice( d, i,
-                                                   &d->shared->device_info,
-                                                   &d->driver_data );
-               if (ret)
-                    return ret;
+          DEBUGMSG( "DirectFB/core/input: Reopening '%s' (%d) %d.%d (%s)\n",
+                    d->shared->device_info.desc.name, d->shared->num + 1,
+                    d->driver->info.version.major,
+                    d->driver->info.version.minor,
+                    d->driver->info.vendor );
+          
+          ret = d->driver->funcs->OpenDevice( d, d->shared->num,
+                                              &d->shared->device_info,
+                                              &d->driver_data );
+          if (ret) {
+               ERRORMSG( "DirectFB/core/input: Failed reopening device "
+                         "during resume (%s)!\n",
+                         d->shared->device_info.desc.name );
           }
 
           d = d->next;
      }
 
+     DEBUGMSG( "DirectFB/core/input: resumed.\n" );
+     
      return DFB_OK;
 }
 
@@ -417,9 +440,9 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      event->clazz     = DFEC_INPUT;
      event->device_id = device->shared->id;
 
-     if (core_input_filter( device, event ))
+     if (!core_input_filter( device, event ))
           fusion_reactor_dispatch( device->shared->reactor, event,
-                            true, dfb_input_globals );
+                                   true, dfb_input_globals );
 }
 
 DFBInputDeviceID
@@ -623,6 +646,7 @@ init_devices()
 
 
                device->shared->id          = make_id(device_info.prefered_id);
+               device->shared->num         = n;
                device->shared->device_info = device_info;
 
                device->driver       = driver;
@@ -1366,13 +1390,16 @@ dump_screen( const char *directory )
 static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event )
 {
+     if (dfb_system_input_filter( device, event ))
+          return true;
+     
      switch (event->type) {
           case DIET_KEYPRESS:
                switch (event->key_symbol) {
                     case DIKS_PRINT:
                          if (dfb_config->screenshot_dir) {
                               dump_screen( dfb_config->screenshot_dir );
-                              return false;
+                              return true;
                          }
                          break;
 
@@ -1386,7 +1413,7 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                               dfb_gfxcard_holdup();
                               dfb_layer_holdup( dfb_layer_at(0) );
 #endif
-                              return false;
+                              return true;
                          }
                          break;
 
@@ -1399,6 +1426,6 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                break;
      }
      
-     return true;
+     return false;
 }
 

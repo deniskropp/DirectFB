@@ -332,13 +332,35 @@ dfb_layers_suspend()
 
      DFB_ASSERT( layersfield != NULL );
      
+     DEBUGMSG( "DirectFB/core/layers: suspending...\n" );
+     
      for (i=layersfield->num-1; i>=0; i--) {
-          DisplayLayer *l = dfb_layers[i];
+          if (fusion_property_purchase( &dfb_layers[i]->shared->lock )) {
+               int n;
 
-          if (l->shared->enabled)
-               l->funcs->Disable( l, l->driver_data, l->layer_data );
+               for (n=i+1; n<layersfield->num; n++)
+                    fusion_property_cede( &dfb_layers[n]->shared->lock );
+
+               return DFB_LOCKED;
+          }
+     }
+     
+     for (i=layersfield->num-1; i>=0; i--) {
+          DisplayLayer *layer = dfb_layers[i];
+
+          /* Flush pressed keys. */
+          if (layer->shared->stack)
+               dfb_windowstack_flush_keys( layer->shared->stack );
+
+          if (layer->shared->enabled)
+               layer->funcs->Disable( layer,
+                                      layer->driver_data, layer->layer_data );
+          
+          layer->shared->exclusive = true;
      }
 
+     DEBUGMSG( "DirectFB/core/layers: suspended.\n" );
+     
      return DFB_OK;
 }
 
@@ -349,20 +371,30 @@ dfb_layers_resume()
 
      DFB_ASSERT( layersfield != NULL );
      
+     DEBUGMSG( "DirectFB/core/layers: resuming...\n" );
+     
      for (i=0; i<layersfield->num; i++) {
-          DisplayLayer *l = dfb_layers[i];
+          DisplayLayer *layer = dfb_layers[i];
 
-          if (l->shared->enabled) {
-               l->funcs->Enable( l, l->driver_data, l->layer_data );
+          if (layer->shared->enabled) {
+               layer->funcs->Enable( layer,
+                                     layer->driver_data, layer->layer_data );
                
-               l->funcs->SetConfiguration( l, l->driver_data,
-                                           l->layer_data, &l->shared->config );
-
-               if (l->shared->stack)
-                    dfb_windowstack_repaint_all( l->shared->stack );
+               layer->funcs->SetConfiguration( layer, layer->driver_data,
+                                               layer->layer_data,
+                                               &layer->shared->config );
           }
+          
+          fusion_property_cede( &layer->shared->lock );
+          
+          if (layer->shared->stack)
+               dfb_windowstack_repaint_all( layer->shared->stack );
+          
+          layer->shared->exclusive = false;
      }
 
+     DEBUGMSG( "DirectFB/core/layers: resumed.\n" );
+     
      return DFB_OK;
 }
 

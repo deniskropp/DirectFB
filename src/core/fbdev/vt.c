@@ -47,6 +47,7 @@
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
+#include <core/thread.h>
 
 #include <core/fbdev/fbdev.h>
 #include <core/fbdev/vt.h>
@@ -67,7 +68,7 @@
 #endif
 
 #ifndef SI_KERNEL
-     /* glibc 2.1.x doesn't have this in /usr/include/bits/siginfo.h */
+/* glibc 2.1.x doesn't have this in /usr/include/bits/siginfo.h */
      #define SI_KERNEL 0x80
 #endif
 
@@ -77,6 +78,7 @@ VirtualTerminal *dfb_vt = NULL;
 static DFBResult vt_init_switching();
 static int       vt_get_fb( int vt );
 static void      vt_set_fb( int vt, int fb );
+static void     *vt_thread( CoreThread *thread, void *arg );
 
 DFBResult
 dfb_vt_initialize()
@@ -208,20 +210,27 @@ dfb_vt_shutdown( bool emergency )
 {
      if (!dfb_vt)
           return DFB_OK;
-#if 0
+
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
-               PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
+               PERRORMSG( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );
 
-          //sigaction( SIG_SWITCH_FROM, &dfb_vt->sig_usr1, NULL );
-          //sigaction( SIG_SWITCH_TO, &dfb_vt->sig_usr2, NULL );
+          sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
+          sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
+     
+          dfb_thread_cancel( dfb_vt->thread );
+          dfb_thread_join( dfb_vt->thread );
+          dfb_thread_destroy( dfb_vt->thread );
+          
+          pthread_mutex_destroy( &dfb_vt->lock );
+          pthread_cond_destroy( &dfb_vt->wait );
      }
-#endif
+
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT ) < 0)
                PERRORMSG( "DirectFB/Keyboard: KD_TEXT failed!\n" );
      }
-     
+
      if (dfb_config->vt_switch) {
           DEBUGMSG( "switching back...\n" );
 
@@ -296,8 +305,78 @@ dfb_vt_detach( bool force )
 
           close( fd );
      }
-     
+
      return DFB_OK;
+}
+
+bool
+dfb_vt_switch( int num )
+{
+     if (!dfb_config->vt_switching)
+          return false;
+
+     DEBUGMSG( "DirectFB/fbdev/vt: switching to vt %d...\n", num );
+
+     if (ioctl( dfb_vt->fd0, VT_ACTIVATE, num ) < 0)
+          PERRORMSG( "DirectFB/fbdev/vt: VT_ACTIVATE failed\n" );
+     
+     return true;
+}
+
+static void *
+vt_thread( CoreThread *thread, void *arg )
+{
+     pthread_mutex_lock( &dfb_vt->lock );
+     
+     while (true) {
+          dfb_thread_testcancel( thread );
+          
+          DEBUGMSG( "DirectFB/fbdev/vt: %s (%d)\n",
+                    __FUNCTION__, dfb_vt->vt_sig);
+          
+          switch (dfb_vt->vt_sig) {
+               default:
+                    BUG( "unexpected vt_sig" );
+                    /* fall through */
+
+               case -1:
+                    pthread_cond_wait( &dfb_vt->wait, &dfb_vt->lock );
+                    continue;
+
+               case SIGUSR1:
+                    if (ioctl( dfb_vt->fd, VT_RELDISP,
+                               dfb_core_suspend() == DFB_OK ? 1 : 0 ) < 0)
+                         PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
+
+                    break;
+
+               case SIGUSR2:
+                    dfb_core_resume();
+
+                    if (ioctl( dfb_vt->fd, VT_RELDISP, 2 ) < 0)
+                         PERRORMSG( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
+
+                    break;
+          }
+
+          dfb_vt->vt_sig = -1;
+     }
+
+     return NULL;
+}
+
+static void
+vt_switch_handler( int signum )
+{
+     DEBUGMSG( "DirectFB/fbdev/vt: %s (%d)\n", __FUNCTION__, signum);
+
+     pthread_mutex_lock( &dfb_vt->lock );
+
+     dfb_vt->vt_sig = signum;
+
+     pthread_cond_signal( &dfb_vt->wait );
+     
+     pthread_mutex_unlock( &dfb_vt->lock );
 }
 
 static DFBResult
@@ -343,12 +422,52 @@ vt_init_switching()
 
      if (dfb_config->vt_switch) {
           if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0);
-/*               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );*/
-          
+/*               PERRORMSG( "DirectFB/fbdev/vt: TIOCNOTTY failed!\n" );*/
+
           if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0);
-/*               PERRORMSG( "DirectFB/Keyboard: TIOCSCTTY failed!\n" );*/
+/*               PERRORMSG( "DirectFB/fbdev/vt: TIOCSCTTY failed!\n" );*/
      }
-     
+
+     if (dfb_config->vt_switching) {
+          struct vt_mode vt;
+          struct sigaction sig_tty;
+
+          memset( &sig_tty, 0, sizeof( sig_tty ) );
+          sig_tty.sa_handler = vt_switch_handler;
+          sigemptyset( &sig_tty.sa_mask );
+
+          if (sigaction( SIGUSR1, &sig_tty, &dfb_vt->sig_usr1 ) ||
+              sigaction( SIGUSR2, &sig_tty, &dfb_vt->sig_usr2 )) {
+               PERRORMSG( "DirectFB/fbdev/vt: sigaction failed!\n" );
+               close( dfb_vt->fd );
+               return DFB_INIT;
+          }
+
+
+          vt.mode   = VT_PROCESS;
+          vt.waitv  = 0;
+          vt.relsig = SIGUSR1;
+          vt.acqsig = SIGUSR2;
+
+          if (ioctl( dfb_vt->fd, VT_SETMODE, &vt ) < 0) {
+               PERRORMSG( "DirectFB/fbdev/vt: VT_SETMODE failed!\n" );
+
+               sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
+               sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
+
+               close( dfb_vt->fd );
+
+               return DFB_INIT;
+          }
+
+          pthread_mutex_init( &dfb_vt->lock, NULL );
+          pthread_cond_init( &dfb_vt->wait, NULL );
+          
+          dfb_vt->vt_sig = -1;
+
+          dfb_vt->thread = dfb_thread_create( CTT_CRITICAL, vt_thread, NULL );
+     }
+
      return DFB_OK;
 }
 
@@ -378,7 +497,7 @@ vt_set_fb( int vt, int fb )
           PERRORMSG( "DirectFB/FBDev/vt: Could not fstat fb device!\n" );
           return;
      }
-          
+
      if (fb >= 0)
           c2m.framebuffer = fb;
      else
