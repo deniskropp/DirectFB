@@ -391,7 +391,7 @@ ovlSetDstColorKey( DisplayLayer *layer,
 		i810ovl->regs->dclrkv = PIXEL_RGB16(r, g, b);
 		break;
 	case DSPF_RGB24:
-		i810ovl->regs->dclrkv = PIXEL_RGB24(r, g, b);
+		i810ovl->regs->dclrkv = PIXEL_RGB32(r, g, b);
 		break;
 	default:
 		BUG("unexpected pixelformat");
