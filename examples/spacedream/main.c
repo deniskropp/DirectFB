@@ -96,7 +96,7 @@ static void* render_loop (void *arg)
 {
      IDirectFBSurface *view = (IDirectFBSurface*)arg;
 
-     view->SetBlittingFlags( view, DSBLIT_SRC_COLORKEY /*| DSBLIT_COLORIZE*/ );
+     view->SetBlittingFlags( view, DSBLIT_SRC_COLORKEY | DSBLIT_COLORIZE );
      view->SetSrcColorKey( view, 0xF81F ); /* FIXME: format!!! */
 
      while (started_rendering()) {
@@ -109,13 +109,13 @@ static void* render_loop (void *arg)
 
           for (i=0; i<STARFIELD_SIZE; i++) {
                int map = (int)(t_starfield[i].pos.v[Z]) >> 8;
-          //     int light = 0xFF - ((t_starfield[i].pos[Z] & 0xF) << 3);
+               int light = 0xFF - ((int)(t_starfield[i].pos.v[Z] * t_starfield[i].pos.v[Z]) >> 12);
 
-               if (map >= 0) {
+               if (map >= 0 && light > 0) {
                     if (map >= NUM_STARS)
                          map = NUM_STARS - 1;
 
-               //     view->SetColor( view, light, light, light, 0xff );
+                    view->SetColor( view, light, light, light, 0xff );
                     view->Blit( view, stars[map], NULL,
                                 (int)(t_starfield[i].pos.v[X]),
                                 (int)(t_starfield[i].pos.v[Y]) );
