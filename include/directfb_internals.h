@@ -46,7 +46,9 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 #define DFB_ALLOCATE_INTERFACE(p,i)     \
      (p) = (i*)calloc( 1, sizeof(i) );
 
-#ifndef DFB_DEBUG
+#ifdef DFB_DEBUG
+#define DFB_DEALLOCATE_INTERFACE(p)
+#else
 #define DFB_DEALLOCATE_INTERFACE(p)     \
      free( (p) );
 #endif
