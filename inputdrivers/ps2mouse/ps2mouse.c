@@ -136,168 +136,168 @@ ps2mouseEventThread( void *driver_data )
 {
      PS2MouseData *data  = (PS2MouseData*) driver_data;
 
-    unsigned char packet[4];
-    unsigned char pos = 0;
-    unsigned char last_buttons = 0;
+     unsigned char packet[4];
+     unsigned char pos = 0;
+     unsigned char last_buttons = 0;
 
-    int readlen;
-    unsigned char buf[256];
+     int readlen;
+     unsigned char buf[256];
 
-    ps2mouse_motion_initialize( data );
+     ps2mouse_motion_initialize( data );
 
-    while ( (readlen = read(data->fd, buf, 256)) > 0 ) {
-        int i;
+     while ( (readlen = read(data->fd, buf, 256)) > 0 ) {
+          int i;
 
-        pthread_testcancel();
+          pthread_testcancel();
 
-        for ( i = 0; i < readlen; i++ ) {
+          for ( i = 0; i < readlen; i++ ) {
 
-            if ( pos == 0  &&  (buf[i] & 0xc0) ) {
-                continue;
-            }
-            packet[pos++] = buf[i];
-            if ( pos == data->packetLength ) {
-                int dx, dy, dz;
-                int buttons;
-
-                pos = 0;
-
-                if ( !(packet[0] & 0x08) ) {
-                    /* We've lost sync! */
-                    i--;    /* does this make sense? oh well, it will resync eventually (or will it!?)*/
+               if ( pos == 0  &&  (buf[i] & 0xc0) ) {
                     continue;
-                }
+               }
+               packet[pos++] = buf[i];
+               if ( pos == data->packetLength ) {
+                    int dx, dy, dz;
+                    int buttons;
 
-                buttons = packet[0] & 0x07;
-                dx = (packet[0] & 0x10) ?   packet[1]-256  :  packet[1];
-                dy = (packet[0] & 0x20) ? -(packet[2]-256) : -packet[2];
-                if (data->mouseId == PS2_ID_IMPS2){
-                    /* Just strip off the extra buttons if present and sign extend the 4 bit value */
-                    dz = (__s8)((packet[3] & 0x80) ? packet[3] | 0xf0 : packet[3] & 0x0F);
-                }
-                else {
-                    dz = 0;
-                }
-                ps2mouse_motion_compress( data, dx, dy, dz );
+                    pos = 0;
 
-                if ( !dfb_config->mouse_motion_compression )
-                    ps2mouse_motion_realize( data );
-
-                if ( last_buttons != buttons ) {
-                    DFBInputEvent evt;
-                    unsigned char changed_buttons = last_buttons ^ buttons;
-
-                    /* make sure the compressed motion event is dispatched
-                       before any button change */
-                    ps2mouse_motion_realize( data );
-
-                    evt.flags = DIEF_BUTTON | DIEF_TIMESTAMP;
-
-                    gettimeofday( &evt.timestamp, NULL );
-
-                    if ( changed_buttons & 0x01 ) {
-                        evt.type = (buttons & 0x01) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                        evt.button = DIBI_LEFT;
-                        input_dispatch( data->device, &evt );
+                    if ( !(packet[0] & 0x08) ) {
+                         /* We've lost sync! */
+                         i--;    /* does this make sense? oh well, it will resync eventually (or will it!?)*/
+                         continue;
                     }
-                    if ( changed_buttons & 0x02 ) {
-                        evt.type = (buttons & 0x02) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                        evt.button = DIBI_RIGHT;
-                        input_dispatch( data->device, &evt );
+
+                    buttons = packet[0] & 0x07;
+                    dx = (packet[0] & 0x10) ?   packet[1]-256  :  packet[1];
+                    dy = (packet[0] & 0x20) ? -(packet[2]-256) : -packet[2];
+                    if (data->mouseId == PS2_ID_IMPS2) {
+                         /* Just strip off the extra buttons if present and sign extend the 4 bit value */
+                         dz = (__s8)((packet[3] & 0x80) ? packet[3] | 0xf0 : packet[3] & 0x0F);
                     }
-                    if ( changed_buttons & 0x04 ) {
-                        evt.type = (buttons & 0x04) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
-                        evt.button = DIBI_MIDDLE;
-                        input_dispatch( data->device, &evt );
+                    else {
+                         dz = 0;
                     }
-                    
-                    last_buttons = buttons;
-                }
-            }
-        }
-        /* make sure the compressed motion event is dispatched,
-           necessary if the last packet was a motion event */
-        ps2mouse_motion_realize( data );
-    }
+                    ps2mouse_motion_compress( data, dx, dy, dz );
 
-    if ( readlen <= 0 && errno != EINTR )
-        PERRORMSG ("psmouse thread died\n");
+                    if ( !dfb_config->mouse_motion_compression )
+                         ps2mouse_motion_realize( data );
 
-    pthread_testcancel();
+                    if ( last_buttons != buttons ) {
+                         DFBInputEvent evt;
+                         unsigned char changed_buttons = last_buttons ^ buttons;
 
-    return (NULL);
+                         /* make sure the compressed motion event is dispatched
+                            before any button change */
+                         ps2mouse_motion_realize( data );
+
+                         evt.flags = DIEF_BUTTON | DIEF_TIMESTAMP;
+
+                         gettimeofday( &evt.timestamp, NULL );
+
+                         if ( changed_buttons & 0x01 ) {
+                              evt.type = (buttons & 0x01) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.button = DIBI_LEFT;
+                              input_dispatch( data->device, &evt );
+                         }
+                         if ( changed_buttons & 0x02 ) {
+                              evt.type = (buttons & 0x02) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.button = DIBI_RIGHT;
+                              input_dispatch( data->device, &evt );
+                         }
+                         if ( changed_buttons & 0x04 ) {
+                              evt.type = (buttons & 0x04) ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
+                              evt.button = DIBI_MIDDLE;
+                              input_dispatch( data->device, &evt );
+                         }
+
+                         last_buttons = buttons;
+                    }
+               }
+          }
+          /* make sure the compressed motion event is dispatched,
+             necessary if the last packet was a motion event */
+          ps2mouse_motion_realize( data );
+     }
+
+     if ( readlen <= 0 && errno != EINTR )
+          PERRORMSG ("psmouse thread died\n");
+
+     pthread_testcancel();
+
+     return(NULL);
 }
 
 
-static 
-int ps2GetId(int fd)
+static int
+ps2GetId(int fd)
 {
-    unsigned char c = PS2_SEND_ID;
-    struct timeval tv;
-    fd_set fds;
+     unsigned char c = PS2_SEND_ID;
+     struct timeval tv;
+     fd_set fds;
 
-    tcflush (fd, TCIOFLUSH);
+     tcflush (fd, TCIOFLUSH);
 
-    tv.tv_sec = 0;
-    tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
+     tv.tv_sec = 0;
+     tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
 
-    FD_ZERO(&fds);
-    FD_SET(fd, &fds);
+     FD_ZERO(&fds);
+     FD_SET(fd, &fds);
 
-    write(fd, &c, 1);
+     write(fd, &c, 1);
 
-    if (select(fd+1, &fds, NULL, NULL, &tv) == 0) {
-       printf ("timeout!!\n");
-       return -1;
-    }
+     if (select(fd+1, &fds, NULL, NULL, &tv) == 0) {
+          ERRORMSG( "DirectFB/PS2Mouse: timeout waiting for ack!!\n" );
+          return -1;
+     }
 
-    read(fd, &c, 1);
+     read(fd, &c, 1);
 
-    if ( c != PS2_ACK )
-        return -2;
+     if ( c != PS2_ACK )
+          return -2;
 
-    read(fd, &c, 1);
+     read(fd, &c, 1);
 
-    tcflush (fd, TCIOFLUSH);
+     tcflush (fd, TCIOFLUSH);
 
-    return(c);
+     return(c);
 }
 
 
-static 
-int ps2Write( int fd, const unsigned char *data, size_t len)
+static int
+ps2Write( int fd, const unsigned char *data, size_t len)
 {
-    int i;
-    int error = 0;
+     int i;
+     int error = 0;
 
-    tcflush (fd, TCIOFLUSH);
+     tcflush (fd, TCIOFLUSH);
 
-    for ( i = 0; i < len; i++ ) {
-        unsigned char c = 0;
-        struct timeval tv;
-        fd_set fds;
+     for ( i = 0; i < len; i++ ) {
+          unsigned char c = 0;
+          struct timeval tv;
+          fd_set fds;
 
-        tv.tv_sec = 0;
-        tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
+          tv.tv_sec = 0;
+          tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
 
-        FD_ZERO(&fds);
-        FD_SET(fd, &fds);
+          FD_ZERO(&fds);
+          FD_SET(fd, &fds);
 
-        write(fd, &data[i], 1);
+          write(fd, &data[i], 1);
 
-        if (select(fd+1, &fds, NULL, NULL, &tv))
-            read(fd, &c, 1);
+          if (select(fd+1, &fds, NULL, NULL, &tv))
+               read(fd, &c, 1);
 
-        if ( c != PS2_ACK )
-{printf("error @byte %i\n", i);
-            error++;
-}
-    }
+          if ( c != PS2_ACK ) {
+               ERRORMSG( "DirectFB/PS2Mouse: error @byte %i\n", i );
+               error++;
+          }
+     }
 
-    tcflush (fd, TCIOFLUSH);
-if (error)
-   printf ("missed %i ack's!\n", error);
-    return(error);
+     tcflush (fd, TCIOFLUSH);
+     if (error)
+          ERRORMSG( "DirectFB/PS2Mouse: missed %i ack's!\n", error);
+     return(error);
 }
 
 
@@ -368,30 +368,25 @@ driver_open_device( InputDevice      *device,
 
      /* Do a basic init in case the mouse is confused */
      if (ps2Write(fd, basic_init, sizeof (basic_init)) != 0)
-         printf ("imps2: PS/2 mouse failed init\n");
-
-     if (ps2Write(fd, basic_init, sizeof (basic_init)) != 0)
-         printf ("imps2: PS/2 mouse failed 2nd init\n");
+          ERRORMSG( "DirectFB/PS2Mouse: PS/2 mouse failed init\n" );
 
      mouseId = ps2GetId(fd);
 
-printf ("mouseId == %i\n", mouseId);
 #if 0
      if (mouseId == 250)
-         mouseId = PS2_ID_IMPS2;
+          mouseId = PS2_ID_IMPS2;
      mouseId = PS2_ID_PS2;
 #endif
 
      if ( mouseId != PS2_ID_IMPS2 )
-         mouseId = PS2_ID_PS2;
-printf ("mouseId == %i\n", mouseId);
+          mouseId = PS2_ID_PS2;
 
      ps2Write(fd, ps2_init, sizeof (ps2_init));
 
      if ( mouseId == PS2_ID_IMPS2 ) {
-         if (ps2Write(fd, imps2_init, sizeof (imps2_init)) != 0)
-            printf ("imps2: PS/2 mouse failed IMPS/2 init\n");
-         packetLength = 4;
+          if (ps2Write(fd, imps2_init, sizeof (imps2_init)) != 0)
+               ERRORMSG ("DirectFB/PS2Mouse: PS/2 mouse failed IMPS/2 init\n");
+          packetLength = 4;
      }
 
      /* fill device info structure */
@@ -410,12 +405,12 @@ printf ("mouseId == %i\n", mouseId);
 
      /* allocate and fill private data */
      data = DFBCALLOC( 1, sizeof(PS2MouseData) );
-     
+
      data->fd           = fd;
      data->device       = device;
      data->mouseId      = mouseId;
      data->packetLength = packetLength;
-     
+
      /* start input thread */
      pthread_create( &data->thread, NULL, ps2mouseEventThread, data );
 
@@ -433,7 +428,7 @@ driver_close_device( void *driver_data )
      /* stop input thread */
      pthread_cancel( data->thread );
      pthread_join( data->thread, NULL );
-     
+
      /* close device */
      close( data->fd );
 

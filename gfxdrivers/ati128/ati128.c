@@ -53,7 +53,7 @@
 
 #ifndef __powerpc__
 #define ATI128_SUPPORTED_DRAWINGFLAGS \
-               (DSDRAW_NOFX)//BLEND)
+               (DSDRAW_BLEND)
 #else
 #define ATI128_SUPPORTED_DRAWINGFLAGS \
                (DSDRAW_NOFX)
@@ -667,12 +667,8 @@ driver_init_device( GraphicsDevice     *device,
      ati128_out32( mmio, SCALE_3D_CNTL, 0x00000000 );
      ati128_out32( mmio, TEX_CNTL, 0x00000000 );
 
-#if 0
      /* reserve 32bit pixel for fake texture at end of framebuffer */
-     card->framebuffer.length -= 4*32;
-
-     adev->ATI_fake_texture_src = card->framebuffer.length;
-#endif
+     adev->ATI_fake_texture_src = gfxcard_reserve_memory( device, 4*32 );
 
      return DFB_OK;
 }
