@@ -342,8 +342,7 @@ parse_int( const AnyOption *option, const char *arg )
 static bool
 parse_enum( const AnyOption *option, const char *arg )
 {
-     bool ok  = false;
-     int  val = 0;
+     int val = 0;
 
      if (! strcasecmp( arg, "help" )) {
           const ValueName *vn = option->data;
@@ -366,6 +365,8 @@ parse_enum( const AnyOption *option, const char *arg )
      while (arg[0]) {
           char            *p;
           int              len;
+          int              vc = 0;
+          bool             ok = false;
           const ValueName *vn = option->data;
 
           p = strchr( arg, ',' );
@@ -375,13 +376,25 @@ parse_enum( const AnyOption *option, const char *arg )
                len = strlen( arg );
 
           do {
+               int vlen = strlen(vn->name);
+
                if (strncasecmp( vn->name, arg, len ))
                     continue;
 
-               val |= vn->value;
-
+               vc = vn->value;
                ok = true;
+
+               if (vlen == len)
+                    break;
           } while (vn++->value);
+
+          if (ok)
+               val |= vc;
+          else {
+               fprintf( stderr, "\nInvalid argument to '%s' or '%s' specified, "
+                        "pass 'help' for a list!\n\n", option->short_name, option->long_name );
+               return false;
+          }
 
           arg += len;
 
@@ -389,13 +402,9 @@ parse_enum( const AnyOption *option, const char *arg )
                arg++;
      }
 
-     if (ok)
-          *((int*)option->value) = val;
-     else
-          fprintf( stderr, "\nInvalid argument to '%s' or '%s' specified, pass 'help' for a list!\n\n",
-                   option->short_name, option->long_name );
+     *((int*)option->value) = val;
 
-     return ok;
+     return true;
 }
 
 static bool
