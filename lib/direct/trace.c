@@ -38,6 +38,7 @@
 #include <fcntl.h>
 #include <string.h>
 
+#include <direct/build.h>
 #include <direct/list.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -46,13 +47,13 @@
 
 
 #ifdef PIC
-#define DFB_DYNAMIC_LINKING
+#define DYNAMIC_LINKING
 #endif
 
 
-#ifdef DFB_TRACE
+#if DIRECT_BUILD_TRACE
 
-#ifdef DFB_DYNAMIC_LINKING
+#ifdef DYNAMIC_LINKING
 #include <dlfcn.h>
 #endif
 
@@ -127,7 +128,7 @@ get_trace_buffer()
 }
 
 
-#ifdef DFB_DYNAMIC_LINKING
+#ifdef DYNAMIC_LINKING
 
 typedef struct {
      long offset;
@@ -307,7 +308,7 @@ __attribute__((no_instrument_function))
 void
 direct_trace_print_stack( DirectTraceBuffer *buffer )
 {
-#ifdef DFB_DYNAMIC_LINKING
+#ifdef DYNAMIC_LINKING
      Dl_info info;
 #endif
      int     i;
@@ -329,7 +330,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 
           fprintf( stderr, "  #%-2d 0x%08lx in ", level - i - 1, (unsigned long) fn );
 
-#ifdef DFB_DYNAMIC_LINKING
+#ifdef DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
                if (info.dli_fname) {
                     const char *symbol = NULL;//info.dli_sname;

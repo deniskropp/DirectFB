@@ -29,8 +29,11 @@
 
 #include <stdarg.h>
 
+#include <direct/build.h>
 #include <direct/messages.h>
 
+
+#if !DIRECT_BUILD_NOTEXT
 
 void
 direct_messages_info( const char *format, ... )
@@ -152,4 +155,6 @@ direct_messages_warn( const char *func,
 
      fflush( stderr );
 }
+
+#endif
 

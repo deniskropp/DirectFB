@@ -28,8 +28,9 @@
 #ifndef __DIRECT__MESSAGES_H__
 #define __DIRECT__MESSAGES_H__
 
+#include <direct/build.h>
 
-#if defined(DFB_NOTEXT)
+#if DIRECT_BUILD_NOTEXT
      #define D_INFO(x...)       do { } while (0)
      #define D_ERROR(x...)      do { } while (0)
      #define D_PERROR(x...)     do { } while (0)
