@@ -1,3 +1,55 @@
+0.9.18
+------
+
+- National Semiconductors Geode driver by Sarma Kolluru <Sarma.Kolluru@nsc.com>.
+  Great thanks to NSC for their support!!!
+- nVidia Overlay support by Oliver Schwartz <Oliver.Schwartz@gmx.de>, currently
+  hard coded to XBox. For plain nVidia graphics adapter you need to change line
+  618ff of nvidia_overlay.c (uncomment line 618, comment out line 620).
+- Added multi application support to SDL backend.
+- Added triple buffering for display layers.
+- Added DPMS support via IDirectFBDisplayLayer::SetScreenPowerMode().
+- Added IDirectFB::GetClipboardTimeStamp().
+- Added optional time stamp return value to IDirectFB::SetClipboardData().
+- Added DFB_KEY_IS_ASCII for your convenience.
+- Split DSFLIP_WAITFORSYNC into DSFLIP_WAIT and DSFLIP_ONSYNC.
+- Added DSPF_ALUT44, a new pixel format having 4 bits of alpha and 4 bits
+  being an index to a color lookup table.
+- Added DIEF_GLOBAL indicating that the event was received without focus.
+- Added IDirectFBWindow::SetOpaqueRegion() which excludes one rectangle of
+  the window from alpha blending, e.g. for blended borders around fast opaque
+  content. This is especially useful if the content has no valid alpha values.
+- Added DWOP_OPAQUE_REGION which enables the opaque region.
+- Made all unsigned width, height in the API signed.
+- Made text drawing honor DSDRAW_BLEND flag to render translucent text.
+- Added Intel i810 driver from Tony Daplas < adaplas at users.sourceforge.net >.
+- New Fusion synchronous RPC mechanism speeds up fbdev layer flipping by slaves.
+  Benchmark shows that RPC flips take as long as three non-RPC flips.
+- Non global input event buffers now also get events if any window of the
+  application is focused.
+- The cursor is no longer enabled in DirectFBCreate(), but automatically when
+  the first window is created unless the cursor was enabled/disabled before.
+  Option "no-cursor" now forces the cursor to be disabled forever.
+- Implemented more software driver routines for DSPF_LUT8.
+- Always blit from top to bottom if source and destination buffers differ
+  in the software driver.
+- Fixed state handling and other bugs in the ATI driver.
+- Significantly improved speed of DrawString() with matrox driver,
+  other fixes and improvements to the matrox driver.
+- Multi application core fixes and improvements.
+- Improved graphics card locking for coexistence with DRI drivers.
+- Improved video memory management.
+- Improved matroxfb-vsync-irq and matroxfb-32mb patch.
+- Added Matrox TV output cable type selection.
+- Added README describing Matrox TV-out functionality.
+- Fixed DSCAPS_SEPARATED with planar formats in software driver.
+- Fixed tiled layer background mode.
+- Fixed bug which resulted in black screens with some framebuffer drivers.
+- Fixed segfault in MPEG2 I-Frame image provider by avoiding alloca.
+- Nicer debug output (show time in seconds with three digits after the comma).
+- Many bug fixes, gcc-3.3 fixes, build cleanups, optimizations, updated patches.
+
+
 0.9.17
 ------
 
