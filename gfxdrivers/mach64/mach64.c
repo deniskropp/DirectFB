@@ -101,6 +101,9 @@ DFB_GRAPHICS_DRIVER( mach64 )
       ((state)->blittingflags & DSBLIT_BLEND_COLORALPHA) ||             \
       ((state)->source->format != (state)->destination->format))
 
+#define S13( val ) ((val) & 0x3fff)
+#define S14( val ) ((val) & 0x7fff)
+
 static bool mach64Blit2D( void *drv, void *dev,
                           DFBRectangle *rect, int dx, int dy );
 static bool mach64Blit3D( void *drv, void *dev,
@@ -429,7 +432,7 @@ static bool mach64FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      mach64_waitfifo( mdrv, mdev, 3 );
 
      mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
-     mach64_out32( mmio, DST_Y_X, (rect->x << 16) | rect->y );
+     mach64_out32( mmio, DST_Y_X, (S13( rect->x ) << 16) | S14( rect->y ) );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | rect->h );
 
      return true;
@@ -447,12 +450,12 @@ static bool mach64DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      mach64_waitfifo( mdrv, mdev, 8 );
 
      mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
-     mach64_out32( mmio, DST_Y_X, (rect->x << 16) | rect->y );
+     mach64_out32( mmio, DST_Y_X, (S13( rect->x ) << 16) | S14( rect->y ) );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
 
      mach64_out32( mmio, DST_CNTL, DST_X_RIGHT_TO_LEFT | DST_Y_BOTTOM_TO_TOP );
-     mach64_out32( mmio, DST_Y_X, (x2 << 16) | y2 );
+     mach64_out32( mmio, DST_Y_X, (S13( x2 ) << 16) | S14( y2 ) );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
 
@@ -488,7 +491,7 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
           mach64_waitfifo( mdrv, mdev, 3 );
 
           mach64_out32( mmio, DST_CNTL, dst_cntl);
-          mach64_out32( mmio, DST_Y_X, (line->x1 << 16) | line->y1 );
+          mach64_out32( mmio, DST_Y_X, (S13( line->x1 ) << 16) | S14( line->y1 ) );
           mach64_out32( mmio, DST_HEIGHT_WIDTH, ((dx+1) << 16) | (dy+1) );
 
           return true;
@@ -505,7 +508,7 @@ static bool mach64DrawLine( void *drv, void *dev, DFBRegion *line )
      mach64_waitfifo( mdrv, mdev, 6 );
 
      mach64_out32( mmio, DST_CNTL, DST_LAST_PEL | dst_cntl );
-     mach64_out32( mmio, DST_Y_X, (line->x1 << 16) | line->y1 );
+     mach64_out32( mmio, DST_Y_X, (S13( line->x1 ) << 16) | S14( line->y1 ) );
 
      mach64_out32( mmio, DST_BRES_ERR, -dx );
      mach64_out32( mmio, DST_BRES_INC,  2*dy );
@@ -544,7 +547,7 @@ static void mach64_fill_trapezoid( Mach64DriverData *mdrv,
      mach64_waitfifo( mdrv, mdev, 9 );
 
      mach64_out32( mmio, DST_CNTL, dst_cntl );
-     mach64_out32( mmio, DST_Y_X, (X1l << 16) | Y );
+     mach64_out32( mmio, DST_Y_X, (S13( X1l ) << 16) | S14( Y ) );
 
      mach64_out32( mmio, TRAIL_BRES_ERR, -dY );
      mach64_out32( mmio, TRAIL_BRES_INC,  2*dXr );
@@ -553,7 +556,7 @@ static void mach64_fill_trapezoid( Mach64DriverData *mdrv,
      mach64_out32( mmio, DST_BRES_ERR, -dY );
      mach64_out32( mmio, DST_BRES_INC,  2*dXl );
      mach64_out32( mmio, DST_BRES_DEC, -2*dY );
-     mach64_out32( mmio, DST_BRES_LNTH, (X1r << 16) | (dY+1) | DRAW_TRAP | LINE_DIS );
+     mach64_out32( mmio, DST_BRES_LNTH, (S14( X1r ) << 16) | (dY+1) | DRAW_TRAP | LINE_DIS );
 }
 
 static bool mach64FillTriangle( void *drv, void *dev, DFBTriangle *tri )
@@ -622,11 +625,11 @@ static void mach64DoBlit2D( Mach64DriverData *mdrv,
 
      mach64_waitfifo( mdrv, mdev, 5 );
 
-     mach64_out32( mmio, SRC_Y_X, (srect->x << 16) | srect->y );
+     mach64_out32( mmio, SRC_Y_X, (S13( srect->x ) << 16) | S14( srect->y ) );
      mach64_out32( mmio, SRC_HEIGHT1_WIDTH1, (srect->w << 16) | srect->h );
 
      mach64_out32( mmio, DST_CNTL, dst_cntl );
-     mach64_out32( mmio, DST_Y_X, (drect->x << 16) | drect->y );
+     mach64_out32( mmio, DST_Y_X, (S13( drect->x ) << 16) | S14( drect->y ) );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
 }
 
@@ -654,7 +657,7 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
      mach64_out32( mmio, SCALE_VACC, 0 );
 
      mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
-     mach64_out32( mmio, DST_Y_X, (drect->x << 16) | drect->y );
+     mach64_out32( mmio, DST_Y_X, (S13( drect->x ) << 16) | S14( drect->y ) );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
 }
 
