@@ -363,7 +363,7 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           usleep( 100000 );
      }
 
-     fusion_exit();
+     fusion_exit( emergency );
 
      direct_thread_remove_init_handler( core->init_handler );
 

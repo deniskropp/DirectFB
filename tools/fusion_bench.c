@@ -474,7 +474,7 @@ main( int argc, char *argv[] )
 
      bench_reactor();
 
-     fusion_exit();
+     fusion_exit( false );
 
      return ret;
 }

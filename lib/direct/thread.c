@@ -311,15 +311,18 @@ direct_thread_destroy( DirectThread *thread )
      D_MAGIC_ASSERT( thread, DirectThread );
 
      D_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
-     D_ASSUME( thread->joined );
+     //D_ASSUME( thread->joined );
 
      if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
           if (thread->canceled)
-               D_BUG( "thread canceled but not joined" );
+               D_DEBUG( "thread canceled but not joined" );
           else
-               D_BUG( "thread still running" );
+               D_DEBUG( "thread still running" );
 
-          D_ERROR( "Direct/Thread: Killing %d!\n", thread->tid );
+          if (thread->name)
+               D_ERROR( "Direct/Thread: Killing '%s' (%d)!\n", thread->name, thread->tid );
+          else
+               D_ERROR( "Direct/Thread: Killing %d!\n", thread->tid );
 
           pthread_kill( thread->thread, SIGKILL );
      }

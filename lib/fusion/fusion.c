@@ -204,7 +204,7 @@ fusion_init( int world, int abi_version, int *world_ret )
 }
 
 void
-fusion_exit()
+fusion_exit( bool emergency )
 {
      int               foo;
      FusionSendMessage msg;
@@ -215,29 +215,31 @@ fusion_exit()
      if (--fusion_refs)
           return;
 
-     /* Wake up the read loop thread. */
-     msg.fusion_id = _fusion_id;
-     msg.msg_id    = 0;
-     msg.msg_data  = &foo;
-     msg.msg_size  = sizeof(foo);
+     if (!emergency) {
+          /* Wake up the read loop thread. */
+          msg.fusion_id = _fusion_id;
+          msg.msg_id    = 0;
+          msg.msg_data  = &foo;
+          msg.msg_size  = sizeof(foo);
 
-     while (ioctl( _fusion_fd, FUSION_SEND_MESSAGE, &msg ) < 0) {
-          if (errno != EINTR) {
-               D_PERROR ("FUSION_SEND_MESSAGE");
-               break;
+          while (ioctl( _fusion_fd, FUSION_SEND_MESSAGE, &msg ) < 0) {
+               if (errno != EINTR) {
+                    D_PERROR ("FUSION_SEND_MESSAGE");
+                    break;
+               }
           }
+
+          /* Wait for its termination. */
+          direct_thread_join( read_loop );
      }
 
-     /* Wait for its termination. */
-     direct_thread_join( read_loop );
      direct_thread_destroy( read_loop );
 
      direct_signal_handler_remove( signal_handler );
 
      /* Master has to deinitialize shared data. */
-     if (_fusion_id == 1) {
+     if (_fusion_id == 1)
           fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
-     }
 
      _fusion_shared = NULL;
 
@@ -429,7 +431,7 @@ fusion_init( int world, int abi_version, int *ret_world )
 }
 
 void
-fusion_exit()
+fusion_exit( bool emergency )
 {
      fusion_dbg_print_memleaks();
 

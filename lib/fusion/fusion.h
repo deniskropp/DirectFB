@@ -38,8 +38,10 @@ int fusion_init( int world, int abi_version, int *world_ret );
 
 /*
  * Deinitializes fusion.
+ *
+ * If 'emergency' is true the function won't join but kill the dispatcher thread.
  */
-void fusion_exit();
+void fusion_exit( bool emergency );
 
 /*
  * Return the current Fusion ID.
