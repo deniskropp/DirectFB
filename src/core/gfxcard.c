@@ -1454,6 +1454,9 @@ static void dfb_gfxcard_load_driver()
      if (dfb_system_type() != CORE_FBDEV)
           return;
 
+     if (!card->shared->module_name)
+          return;
+
      fusion_list_foreach (link, dfb_graphics_drivers.entries) {
           ModuleEntry *module = (ModuleEntry*) link;
 
