@@ -91,6 +91,8 @@ typedef struct {
      FusionProperty           lock;    /* purchased during exclusive access,
                                           leased during window stack repaint */
 
+     bool                     exclusive; /* FIXME: workaround unimplemented
+                                            FusionProperty in multi app core */
 } DisplayLayerShared;  
 
 struct _DisplayLayer {
@@ -176,6 +178,9 @@ dfb_layers_shutdown()
           
           /* Destroy property */
           fusion_property_destroy( &l->shared->lock );
+
+          /* Free shared layer driver data */
+          shfree( l->shared->layer_data );
 
           /* Free shared layer data */
           shfree( l->shared );
@@ -288,7 +293,7 @@ dfb_layers_init_all()
           /* init property for exclusive access and window stack repaints */
           fusion_property_init( &shared->lock );
 
-          /* allocate shared layer data */
+          /* allocate shared layer driver data */
           shared->layer_data = shcalloc( 1, layer->funcs->LayerDataSize() );
 
           /* set default opacity */
@@ -384,6 +389,10 @@ DFBResult
 dfb_layer_lease( DisplayLayer *layer )
 {
      DFB_ASSERT( layer->shared->enabled );
+
+     /* FIXME: workaround */
+     if (layer->shared->exclusive)
+          return DFB_LOCKED;
      
      if (fusion_property_lease( &layer->shared->lock ))
           return DFB_LOCKED;
@@ -399,9 +408,16 @@ dfb_layer_purchase( DisplayLayer *layer )
 {
      DFB_ASSERT( layer->shared->enabled );
      
+     /* FIXME: workaround */
+     if (layer->shared->exclusive)
+          return DFB_LOCKED;
+     
      if (fusion_property_purchase( &layer->shared->lock ))
           return DFB_LOCKED;
 
+     /* FIXME: workaround */
+     layer->shared->exclusive = true;
+     
      return DFB_OK;
 }
 
@@ -414,6 +430,9 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
      DFB_ASSERT( layer->shared->enabled );
      
      fusion_property_cede( &layer->shared->lock );
+     
+     /* FIXME: workaround */
+     layer->shared->exclusive = false;
      
      if (repaint)
           dfb_windowstack_repaint_all( layer->shared->stack );

@@ -35,7 +35,7 @@
 #define SH_FILE_NAME     "/fusion.shm"
 #define SH_DEFAULT_NAME  "/dev/shm" SH_FILE_NAME
 #define SH_MOUNTS_FILE   "/proc/mounts"
-#define SH_SHMFS_TYPE    "shm"
+#define SH_SHMFS_TYPE    "tmpfs"
 #define SH_BUFSIZE       256
 
 static int   fd            = -1;
