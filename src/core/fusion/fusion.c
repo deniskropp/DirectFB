@@ -248,8 +248,8 @@ fusion_get_millis()
      
      gettimeofday( &tv, NULL );
 
-     return (tv.tv_sec - _fusion_shared->start_time.tv_sec) * 1000 +
-            (tv.tv_usec - _fusion_shared->start_time.tv_usec) / 1000;
+     return (tv.tv_sec - _fusion_shared->start_time.tv_sec) * 1000LL +
+            (tv.tv_usec - _fusion_shared->start_time.tv_usec) / 1000LL;
 }
 
 int
