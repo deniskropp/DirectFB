@@ -118,8 +118,13 @@ ovInitLayer( CoreLayer                  *layer,
      adjustment->saturation = 0x8000;
 
      /* reset overlay */
-     mach64_waitfifo( mdrv, mdev, 2 );
+     mach64_waitfifo( mdrv, mdev, 7 );
 
+     mach64_out32( mmio, SCALER_H_COEFF0, 0x00002000 );
+     mach64_out32( mmio, SCALER_H_COEFF1, 0x0D06200D );
+     mach64_out32( mmio, SCALER_H_COEFF2, 0x0D0A1C0D );
+     mach64_out32( mmio, SCALER_H_COEFF3, 0x0C0E1A0C );
+     mach64_out32( mmio, SCALER_H_COEFF4, 0x0C14140C );
      mach64_out32( mmio, SCALER_COLOR_CNTL, 0x00101000 );
      mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
 
@@ -326,7 +331,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      h_inc = ((__u64) surface->width << 12) / config->dest.w;
 
-     lcd_gen_ctrl = mach64_in_lcd( mmio, LCD_GEN_CTRL ) & LCD_ON;
+     lcd_gen_ctrl = mach64_in_lcd( mmio, LCD_GEN_CTRL );
      lcd_vert_stretching = mach64_in_lcd( mmio, LCD_VERT_STRETCHING );
 
      if ((lcd_gen_ctrl & LCD_ON) && (lcd_vert_stretching & VERT_STRETCH_EN))
