@@ -1624,11 +1624,6 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
 
-     if (data->caps & DSCAPS_SUBSURFACE) {
-          D_ONCE( "GL on sub surface not supported yet" );
-          return DFB_UNSUPPORTED;
-     }
-
 
      ret = DirectGetInterface( &funcs, "IDirectFBGL", NULL, NULL, NULL );
      if (ret)
@@ -1638,7 +1633,7 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
      if (ret)
           return ret;
 
-     ret = funcs->Construct( *interface, data->surface );
+     ret = funcs->Construct( *interface, thiz );
      if (ret)
           *interface = NULL;
 
