@@ -126,8 +126,8 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
 
                if (font->next_x + data->width > font->row_width) {
                     if (font->row_width == 0)
-                        font->row_width = ((font->maxadvance * 16) > 2048 ?
-                                           2048 : font->maxadvance * 16);
+                        font->row_width = ((font->maxadvance * 32) > 2048 ?
+                                           2048 : font->maxadvance * 32);
 
                     font->next_x = 0;
                     font->rows++;
