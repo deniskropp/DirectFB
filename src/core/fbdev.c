@@ -57,6 +57,7 @@ FBDev *fbdev = NULL;
 
 /* internal functions */
 static DFBResult read_modes();
+static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 
 
 #if defined(HAVE_INB_OUTB_IOPL)
@@ -71,37 +72,6 @@ void waitretrace (void)
 }
 #endif
 
-/*
- * some fbdev drivers use the palette as gamma ramp in >8bpp modes, to have
- * correct colors, the gamme ramp has to be initialized.
- */
-
-static DFBResult fbdev_set_gamma_ramp()
-{
-     __u16 i;     
-     __u16 *linear_gamma = (__u16*)alloca( 2 * 256 );
-     
-     struct fb_cmap cmap = { 0, 256, linear_gamma, linear_gamma, linear_gamma };     
-
-     if (!fbdev) {
-          BUG( "fbdev_set_gamme_ramp() called while fbdev == NULL!" );
-
-          return DFB_BUG;
-     }
-
-     for (i = 0; i<256; i++) {
-          linear_gamma[i] = i;
-     }
-     
-     if (ioctl( fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not set gamma ramp" );
-
-          return errno2dfb(errno);
-     }
-     
-     return DFB_OK;
-}
 
 /*
  * sets (layer != NULL) or tests (layer == NULL) video mode,
@@ -217,6 +187,7 @@ DFBResult fbdev_open()
           fbdev->modes->upper_margin = fbdev->orig_var.upper_margin;
           fbdev->modes->lower_margin = fbdev->orig_var.lower_margin;
           fbdev->modes->pixclock = fbdev->orig_var.pixclock;
+          
 
           if (fbdev->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
                fbdev->modes->hsync_high = 1;
@@ -424,8 +395,6 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
 
           ioctl( fbdev->fd, FBIOGET_VSCREENINFO, &var );
           
-          fbdev_set_gamma_ramp();
-
 
           mode->format = fbdev_get_pixelformat( &var );
           if (mode->format == DSPF_UNKNOWN) {
@@ -433,6 +402,9 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
                ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var );
                return DFB_UNSUPPORTED;
           }
+          
+          /* set gamma ramp */
+          fbdev_set_gamma_ramp( mode->format );
 
           /* if mode->bpp contains 16 bit we won't find the mode again! */
           if (mode->format == DSPF_RGB15)
@@ -600,6 +572,87 @@ static DFBResult read_modes()
      return DFB_OK;
 }
 
+/*
+ * some fbdev drivers use the palette as gamma ramp in >8bpp modes, to have
+ * correct colors, the gamme ramp has to be initialized.
+ */
+
+static __u16 calc_gamma(int n, int max)
+{
+    int ret = 65535.0 * ((float)((float)n/(max))); 
+    if (ret > 65535) ret = 65535;
+    if (ret <	  0) ret =     0;
+    return ret;
+}
+
+
+static DFBResult fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
+{
+     int i;
+     
+     int red_size   = 0;
+     int green_size = 0;
+     int blue_size  = 0;
+
+     struct fb_cmap cmap;
+      
+     if (!fbdev) {
+          BUG( "fbdev_set_gamme_ramp() called while fbdev == NULL!" );
+
+          return DFB_BUG;
+     }
+
+     switch (format) {
+          case DSPF_RGB15:
+               red_size   = 32;
+               green_size = 32;
+               blue_size  = 32;
+               break;
+          case DSPF_RGB16:                              
+               red_size   = 32;
+               green_size = 64;
+               blue_size  = 32;
+               break;
+          case DSPF_RGB24:
+          case DSPF_RGB32:
+          case DSPF_ARGB:
+               red_size   = 256;
+               green_size = 256;
+               blue_size  = 256;
+               break;
+          default:
+               return DSPF_UNKNOWN;
+               break;
+     }
+               
+     cmap.start  = 0;
+     /* assume green to have most weight */     
+     cmap.len    = green_size;     
+     cmap.red   = (__u16*)alloca( 2 * green_size );
+     cmap.green = (__u16*)alloca( 2 * green_size );
+     cmap.blue  = (__u16*)alloca( 2 * green_size );
+     cmap.transp = NULL;
+          
+
+     for (i = 0; i < red_size; i++)
+          cmap.red[i] = calc_gamma( i, red_size );
+
+     for (i = 0; i < green_size; i++)
+          cmap.green[i] = calc_gamma( i, green_size );
+
+     for (i = 0; i < blue_size; i++)
+          cmap.blue[i] = calc_gamma( i, blue_size );
+
+     if (ioctl( fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not set gamma ramp" );
+
+          return errno2dfb(errno);
+     }
+     
+     return DFB_OK;
+     
+}
 
 
 
