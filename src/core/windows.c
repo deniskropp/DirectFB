@@ -221,8 +221,9 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
      stack->cursor.denominator = 1;
      stack->cursor.threshold   = 4;
 
-     /* Set default background mode. */
-     stack->bg.mode = DLBM_COLOR;
+     /* Set default background mode, primary layer is handled by directfb.c */
+     stack->bg.mode = (stack->layer_id == DLID_PRIMARY) ? DLBM_DONTCARE :
+                                                          DLBM_COLOR;
 
      /* Setup size and cursor clipping region */
      dfb_windowstack_resize( stack, width, height );

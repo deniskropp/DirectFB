@@ -259,11 +259,44 @@ int
 main( int argc, char *argv[] )
 {
      DFBResult ret;
+     long long millis;
+     long int  seconds, minutes, hours, days;
 
      /* DirectFB initialization. */
      ret = init_directfb( &argc, &argv );
      if (ret)
           goto out;
+
+     millis = fusion_get_millis();
+
+     seconds  = millis / 1000;
+     millis  %= 1000;
+
+     minutes  = seconds / 60;
+     seconds %= 60;
+
+     hours    = minutes / 60;
+     minutes %= 60;
+
+     days     = hours / 24;
+     hours   %= 24;
+
+     switch (days) {
+          case 0:
+               printf( "\nDirectFB uptime: %02ld:%02ld:%02ld\n",
+                       hours, minutes, seconds );
+               break;
+          
+          case 1:
+               printf( "\nDirectFB uptime: %ld day, %02ld:%02ld:%02ld\n",
+                       days, hours, minutes, seconds );
+               break;
+
+          default:
+               printf( "\nDirectFB uptime: %ld days, %02ld:%02ld:%02ld\n",
+                       days, hours, minutes, seconds );
+               break;
+     }
 
      dump_surfaces();
      dump_windows();
@@ -274,3 +307,4 @@ out:
 
      return ret;
 }
+
