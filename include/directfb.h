@@ -111,7 +111,7 @@ DECLARE_INTERFACE( IDirectFBWindow )
 DECLARE_INTERFACE( IDirectFBInputDevice )
 
 /*
- * An even buffer puts events from devices or windows into a FIFO.
+ * An event buffer puts events from devices or windows into a FIFO.
  */
 DECLARE_INTERFACE( IDirectFBEventBuffer )
 
