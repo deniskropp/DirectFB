@@ -827,8 +827,8 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
-               /* never ever! */
-               break;
+               buffer->system.locked++;
+               return DFB_OK;
 
           case CSP_VIDEOHIGH:
           case CSP_VIDEOLOW:

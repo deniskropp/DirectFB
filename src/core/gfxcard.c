@@ -456,7 +456,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       * If the front buffer policy of the source is 'system only'
       * no accelerated blitting is available.
       */
-     if (state->source &&
+     if (!(card->caps.flags & CCF_READSYSMEM) && state->source &&
          state->source->front_buffer->policy == CSP_SYSTEMONLY)
      {
           /* Clear 'accelerated blitting functions'. */
