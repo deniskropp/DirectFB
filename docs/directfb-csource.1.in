@@ -2,7 +2,7 @@
 .\"
 .\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
 
-.TH DIRECTFB-CSOURCE 1 "7 Aug 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DIRECTFB-CSOURCE 1 "8 Aug 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 directfb-csource \- C code generation utility for DirectFB surfaces
@@ -27,9 +27,9 @@ filename.
 .TP
 \fI--format=pixelformat
 Specifies the pixel-format of the generated inline surface. Possible
-values are ARGB, RGB32, RGB24, RGB16, RGB15, A8 and LUT8. By default
-the format is ARGB if the PNG image has an alpha channel or RGB32
-otherwise.
+values are ARGB, RGB32, RGB24, RGB16, RGB15, RGB332, A8 and LUT8.
+By default the format is ARGB if the PNG image has an alpha channel
+or RGB32 otherwise.
 
 .TP
 \fI--version
