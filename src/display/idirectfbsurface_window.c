@@ -165,39 +165,38 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface  *thiz,
                                        DFBRectangle      *rect,
                                        IDirectFBSurface **surface )
 {
-     DFBRectangle wanted, granted;
+     DFBRectangle wanted, granted;  
 
      INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
+     /* Check arguments */
      if (!data->base.surface)
           return DFB_DESTROYED;
 
+     if (!surface)
+          return DFB_INVARG;
 
-     if (!data->base.area.current.w || !data->base.area.current.h)
-          return DFB_INVAREA;
-
-
+     /* Compute wanted rectangle */
      if (rect) {
-          if (rect->w < 0  ||  rect->h < 0)
-               return DFB_INVARG;
-
           wanted = *rect;
 
           wanted.x += data->base.area.wanted.x;
           wanted.y += data->base.area.wanted.y;
 
-/*          if (!rectangle_intersect( &wanted, &data->base.area.wanted ))
-               return DFB_INVAREA;*/
+          if (wanted.w <= 0 || wanted.h <= 0) {
+               wanted.w = 0;
+               wanted.h = 0;
+          }
      }
      else
           wanted = data->base.area.wanted;
 
+     /* Compute granted rectangle */
      granted = wanted;
 
-     if (!dfb_rectangle_intersect( &granted, &data->base.area.granted ))
-          return DFB_INVAREA;
+     dfb_rectangle_intersect( &granted, &data->base.area.granted );
 
-
+     /* Allocate and construct */
      DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      return IDirectFBSurface_Window_Construct( *surface, &wanted, &granted,

@@ -1066,37 +1066,34 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
 
      INTERFACE_GET_DATA(IDirectFBSurface)
 
+     /* Check arguments */
      if (!data->surface)
           return DFB_DESTROYED;
 
      if (!surface)
           return DFB_INVARG;
 
-     if (!data->area.current.w || !data->area.current.h)
-          return DFB_INVAREA;
-
-
+     /* Compute wanted rectangle */
      if (rect) {
-          if (rect->w < 0  ||  rect->h < 0)
-               return DFB_INVARG;
-
           wanted = *rect;
 
           wanted.x += data->area.wanted.x;
           wanted.y += data->area.wanted.y;
 
-/*          if (!rectangle_intersect( &wanted, &data->area.wanted ))
-               return DFB_INVAREA;*/
+          if (wanted.w <= 0 || wanted.h <= 0) {
+               wanted.w = 0;
+               wanted.h = 0;
+          }
      }
      else
           wanted = data->area.wanted;
 
+     /* Compute granted rectangle */
      granted = wanted;
 
-     if (!dfb_rectangle_intersect( &granted, &data->area.granted ))
-          return DFB_INVAREA;
+     dfb_rectangle_intersect( &granted, &data->area.granted );
 
-
+     /* Allocate and construct */
      DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      return IDirectFBSurface_Construct( *surface, &wanted, &granted,
@@ -1132,11 +1129,8 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
           return ret;
 
      ret = funcs->Construct( *interface, thiz );
-
-     if (ret) {
-        DFBFREE(*interface);
-        *interface = NULL;
-     }
+     if (ret)
+          *interface = NULL;
 
      return ret;
 }
@@ -1160,16 +1154,19 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      data->ref = 1;
      data->caps = caps;
 
+     /* The area that was requested */
      if (wanted)
           data->area.wanted = *wanted;
      else
           data->area.wanted = rect;
 
+     /* The area that will never be exceeded */
      if (granted)
           data->area.granted = *granted;
      else
           data->area.granted = data->area.wanted;
 
+     /* The currently accessable rectangle */
      data->area.current = data->area.granted;
      dfb_rectangle_intersect( &data->area.current, &rect );
 
