@@ -516,6 +516,22 @@ allocate_device_keymap( InputDevice *device )
 #endif
 }
 
+static int
+make_id( DFBInputDeviceID prefered )
+{
+     InputDevice *device = inputdevices;
+
+     while (device) {
+          if (device->shared->id == prefered)
+               return make_id( (prefered < DIDID_ANY) ?
+                               DIDID_ANY : (prefered + 1) );
+
+          device = device->next;
+     }
+
+     return prefered;
+}
+
 static void
 init_devices()
 {
@@ -575,27 +591,11 @@ init_devices()
                }
 
 
-               device->shared->id          = device_info.prefered_id;
+               device->shared->id          = make_id(device_info.prefered_id);
                device->shared->device_info = device_info;
 
                device->driver       = driver;
                device->driver_data  = driver_data;
-
-               /*  uniquify driver ID  */
-               if (inputdevices) {
-                    InputDevice *dev = inputdevices;
-
-                    do {
-                         if (dev->shared->id == device->shared->id) {
-                              device->shared->id++;
-                              /* give it a new one beyond the last predefined id */
-                              if (device->shared->id < DIDID_ANY)
-                                   device->shared->id = DIDID_ANY;
-                              dev = inputdevices;
-                              continue;
-                         }
-                    } while ((dev = dev->next) != NULL);
-               }
 
                if (driver->nr_devices > 1) {
                     INITMSG( "DirectFB/InputDevice: %s (%d) %d.%d (%s)\n",
