@@ -57,6 +57,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/trace.h>
@@ -66,6 +67,9 @@
 
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
+
+
+D_DEBUG_DOMAIN( Core_Windows, "Core/Windows", "DirectFB Window Core" );
 
 
 typedef struct {
@@ -97,8 +101,8 @@ window_destructor( FusionObject *object, bool zombie )
      CoreWindow      *window = (CoreWindow*) object;
      CoreWindowStack *stack  = window->stack;
 
-     D_DEBUG("DirectFB/core/windows: destroying %p (%d,%d - %dx%d%s)\n", window,
-              DFB_RECTANGLE_VALS( &window->config.bounds ), zombie ? " ZOMBIE" : "");
+     D_DEBUG_AT( Core_Windows, "destroying %p (%d,%d - %dx%d%s)\n", window,
+                 DFB_RECTANGLE_VALS( &window->config.bounds ), zombie ? " ZOMBIE" : "");
 
      D_ASSUME( window->stack != NULL );
 
@@ -458,9 +462,8 @@ dfb_window_destroy( CoreWindow *window )
      D_ASSERT( window != NULL );
      D_ASSERT( DFB_WINDOW_INITIALIZED( window ) );
 
-     D_DEBUG( "DirectFB/core/windows: "
-              "dfb_window_destroy (%p) [%4d,%4d - %4dx%4d]\n",
-              window, DFB_RECTANGLE_VALS( &window->config.bounds ) );
+     D_DEBUG_AT( Core_Windows, "dfb_window_destroy (%p) [%4d,%4d - %4dx%4d]\n",
+                 window, DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
      D_ASSUME( window->stack != NULL );
 
@@ -732,6 +735,9 @@ dfb_window_resize( CoreWindow   *window,
      DFBResult         ret;
      CoreWindowConfig  config;
      CoreWindowStack  *stack = window->stack;
+
+     D_DEBUG_AT( Core_Windows, "dfb_window_resize (%p) [%4d,%4d - %4dx%4d -> %dx%d]\n",
+                 window, DFB_RECTANGLE_VALS( &window->config.bounds ), width, height );
 
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
