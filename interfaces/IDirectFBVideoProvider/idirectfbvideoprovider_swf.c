@@ -2,33 +2,25 @@
    (c) Copyright 2000  convergence integrated media GmbH.
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de> and
+   Written by Denis Oliver Kropp <dok@convergence.de>,
+              Andreas Hundt <andi@convergence.de>,
+              Sven Neumann <sven@convergence.de> and
               Joachim Steiger <roh@convergence.de>.
 
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
 
-   The contents of this software are proprietary and confidential to
-   convergence integrated media GmbH. Use of this information is
-   to be in accordance with the terms of the license agreement you
-   entered into with convergence integrated media GmbH. Individuals
-   having access to this software are responsible for maintaining the
-   confidentiality of the content and for keeping the software secure
-   when not in use. Transfer to any party is strictly forbidden other
-   than as expressly permitted in writing by convergence integrated
-   media GmbH.  Unauthorized transfer to or possession by any
-   unauthorized party may be a criminal offense.
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
 
-   convergence integrated media GmbH MAKES NO WARRANTIES EITHER
-   EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE IMPLIED
-   WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE,
-   OR NON-INFRINGEMENT.
-   convergence integrated media GmbH SHALL NOT BE LIABLE FOR ANY
-   DAMAGES SUFFERED BY LICENSEE AS A RESULT OF USING, MODIFYING OR
-   DISTRIBUTING THIS SOFTWARE OR ITS DERIVATIVES.
-
-   convergence integrated media GmbH
-   Rosenthaler Str.51
-   D-10178 Berlin / Germany
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
 */
 
 #include <sys/time.h>
