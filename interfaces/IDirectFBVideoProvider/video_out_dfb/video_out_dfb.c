@@ -233,16 +233,16 @@ __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 			register int y;
 
 			y = *yuv_data + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*data = y;
+			y *= ctr;
+			y >>= 14;
+			*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
 			*(data + 1) = *(yuv_data + 1);
 
 			y = *(yuv_data + 2) + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*(data + 2) = y;
+			y *= ctr;
+			y >>= 14;
+			*(data + 2) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
 			*(data + 3) = *(yuv_data + 3);
 
@@ -312,30 +312,34 @@ __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 			*dest = *(yuv_data + 1);
 
 			y = *yuv_data + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*(dest + 1) = y;
+			y *= ctr;
+			y >>= 14;
+			*(dest + 1) = (y < 0) ? 0 :
+				      ((y > 0xff) ? 0xff : y);
 
 			*(dest + 2) = *(yuv_data + 3);
 
 			y = *(yuv_data + 2) + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*(dest + 3) = y;
+			y *= ctr;
+			y >>= 14;
+			*(dest + 3) = (y < 0) ? 0 :
+				      ((y > 0xff) ? 0xff : y);
 
 			*(dest + 4) = *(yuv_data + 5);
 
 			y = *(yuv_data + 4) + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*(dest + 5) = y;
+			y *= ctr;
+			y >>= 14;
+			*(dest + 5) = (y < 0) ? 0 :
+				      ((y > 0xff) ? 0xff : y);
 
 			*(dest + 6) = *(yuv_data + 7);
 
 			y = *(yuv_data + 6) + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*(dest + 7) = y;
+			y *= ctr;
+			y >>= 14;
+			*(dest + 7) = (y < 0) ? 0 :
+				      ((y > 0xff) ? 0xff : y);
 
 			yuv_data += 8;
 			dest     += 8;
@@ -363,92 +367,138 @@ __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-/* NOT TESTED */
 static void
 __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint8_t* y_off    = (uint8_t*) data;
-	uint8_t* u_off    = (frame->surface->format == DSPF_YV12)
-			     ? data + (pitch * frame->height)
-			     : data + (pitch * frame->height) +
-			       ((pitch * frame->height) >> 2);
-	uint8_t* v_off    = (frame->surface->format == DSPF_YV12)
-			    ? data + (pitch * frame->height) +
-			      ((pitch * frame->height) >> 2)
-			    : data + (pitch * frame->height);
-	uint32_t line  = frame->width >> 2;
-	uint32_t n     = (frame->width * frame->height) >> 3;
-	uint32_t l     = frame->vo_frame.pitches[0];
-	int32_t bright = this->brightness.l_val;
-	int32_t ctr    = this->contrast.l_val;
-
-
-	do
+	uint8_t* u_off;
+	uint8_t* v_off;
+	uint32_t line     = frame->width >> 2;
+	uint32_t n        = (frame->width * frame->height) >> 3;
+	uint32_t l        = frame->vo_frame.pitches[0];
+	int32_t bright    = this->brightness.l_val;
+	int32_t ctr       = this->contrast.l_val;
+	
+	
+	if(frame->surface->format == DSPF_YV12)
 	{
-		register int y;
+		v_off = (uint8_t*) data + (pitch * frame->height);
+		u_off = (uint8_t*) v_off + ((pitch * frame->height) >> 2);
+	} else
+	{
+		u_off = (uint8_t*) data + (pitch * frame->height);
+		v_off = (uint8_t*) u_off + ((pitch * frame->height) >> 2);
+	}
 
-		y = *yuv_data + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*y_off = y;
-
-		y = *(yuv_data + 2) + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + 1) = y;
-
-		y = *(yuv_data + 4) + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + 2) = y;
-
-		y = *(yuv_data + 6) + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + 3) = y;
-
-		y = *(yuv_data + l) + bright;
-		y = (y * ctr) >> 7;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + pitch) = y;
-
-		y = *(yuv_data + l + 2) + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + pitch + 1) = y;
-
-		y = *(yuv_data + l + 4) + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + pitch + 2) = y;
-
-		y = *(yuv_data + l + 6) + bright;
-		y = (y * ctr) >> 14;
-		y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-		*(y_off + pitch + 3) = y;
-
-		*u_off       = (*(yuv_data + 1) + *(yuv_data + l + 1)) >> 1;
-		*(u_off + 1) = (*(yuv_data + 5) + *(yuv_data + l + 5)) >> 1;
-
-		*v_off       = (*(yuv_data + 3) + *(yuv_data + l + 3)) >> 1;
-		*(v_off + 1) = (*(yuv_data + 7) + *(yuv_data + l + 7)) >> 1;
-
-		yuv_data += 8;
-		y_off    += 4;
-		u_off    += 2;
-		v_off    += 2;
-
-		if(!(--line))
+	if(!bright && ctr == 0x4000)
+	{
+		do
 		{
-			line      = frame->width >> 2;
-			yuv_data += l;
-			y_off    += pitch;
-		}
+			*y_off       = *yuv_data;
+			*(y_off + 1) = *(yuv_data + 2);
+			*(y_off + 2) = *(yuv_data + 4);
+			*(y_off + 3) = *(yuv_data + 6);
+			
+			*(y_off + pitch)     = *(yuv_data + l);
+			*(y_off + pitch + 1) = *(yuv_data + l + 2);
+			*(y_off + pitch + 2) = *(yuv_data + l + 4);
+			*(y_off + pitch + 3) = *(yuv_data + l + 6);
 
-	} while(--n);
+			*u_off       = (*(yuv_data + 1) + *(yuv_data + l + 1)) >> 1;
+			*(u_off + 1) = (*(yuv_data + 5) + *(yuv_data + l + 5)) >> 1;
 
+			*v_off       = (*(yuv_data + 3) + *(yuv_data + l + 3)) >> 1;
+			*(v_off + 1) = (*(yuv_data + 7) + *(yuv_data + l + 7)) >> 1;
+
+			yuv_data += 8;
+			y_off    += 4;
+			u_off    += 2;
+			v_off    += 2;
+
+			if(!(--line))
+			{
+				line      = frame->width >> 2;
+				yuv_data += l;
+				y_off    += pitch;
+			}
+
+		} while(--n);
+	} else
+	{
+		do
+		{
+			register int y;
+
+			y = *yuv_data + bright;
+			y *= ctr;
+			y >>= 14;
+			*y_off = (y < 0) ? 0 :
+				 ((y > 0xff) ? 0xff : y);
+
+			y = *(yuv_data + 2) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + 1) = (y < 0) ? 0 :
+				       ((y > 0xff) ? 0xff : y);
+
+			y = *(yuv_data + 4) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + 2) = (y < 0) ? 0 :
+				       ((y > 0xff) ? 0xff : y);
+
+			y = *(yuv_data + 6) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + 3) = (y < 0) ? 0 :
+				       ((y > 0xff) ? 0xff : y);
+
+			y = *( yuv_data + l) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + pitch) = (y < 0) ? 0 :
+				           ((y > 0xff) ? 0xff : y);
+
+			y = *(yuv_data + l + 2) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + pitch + 1) = (y < 0) ? 0 :
+				               ((y > 0xff) ? 0xff : y);
+
+			y = *(yuv_data + l + 4) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + pitch + 2) = (y < 0) ? 0 :
+				               ((y > 0xff) ? 0xff : y);
+
+			y = *(yuv_data + l + 6) + bright;
+			y *= ctr;
+			y >>= 14;
+			*(y_off + pitch + 3) = (y < 0) ? 0 :
+				               ((y > 0xff) ? 0xff : y);
+
+			*u_off       = (*(yuv_data + 1) + *(yuv_data + l + 1)) >> 1;
+			*(u_off + 1) = (*(yuv_data + 5) + *(yuv_data + l + 5)) >> 1;
+
+			*v_off       = (*(yuv_data + 3) + *(yuv_data + l + 3)) >> 1;
+			*(v_off + 1) = (*(yuv_data + 7) + *(yuv_data + l + 7)) >> 1;
+
+			yuv_data += 8;
+			y_off    += 4;
+			u_off    += 2;
+			v_off    += 2;
+
+			if(!(--line))
+			{
+				line      = frame->width >> 2;
+				yuv_data += l;
+				y_off    += pitch;
+			}
+
+		} while(--n);
+	}
 }
 
 
@@ -1118,14 +1168,16 @@ __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				register int y;
 
 				y = *y_data + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*data = y;
+				y *= ctr;
+				y >>= 14;
+				*data = (y < 0) ? 0 :
+					((y > 0xff) ? 0xff : y);
 
 				y = *(y_data + 1) + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*(data + 2) = y;
+				y *= ctr;
+				y >>= 14;
+				*(data + 2) = (y < 0) ? 0 :
+					      ((y > 0xff) ? 0xff : y);
 
 			} else
 			{
@@ -1147,14 +1199,16 @@ __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				register int y;
 
 				y = *y_data + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*data = y;
+				y *= ctr;
+				y >>= 14;
+				*data = (y < 0) ? 0 :
+					((y > 0xff) ? 0xff : y);
 
 				y = *(y_data + 1) + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*(data + 2) = y;
+				y *= ctr;
+				y >>= 14;
+				*(data + 2) = (y < 0) ? 0 :
+					      ((y > 0xff) ? 0xff : y);
 			
 			} else
 			{
@@ -1261,14 +1315,16 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 				register int y;
 			
 				y = *y_data + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*(data + 1) = y;
+				y *= ctr;
+				y >>= 14;
+				*(data + 1) = (y < 0) ? 0 :
+					      ((y > 0xff) ? 0xff : y);
 
 				y = *(y_data + 1) + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*(data + 3) = y;
+				y *= ctr;
+				y >>= 14;
+				*(data + 3) = (y < 0) ? 0 :
+					      ((y > 0xff) ? 0xff : y);
 
 			} else
 			{
@@ -1290,14 +1346,16 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 				register int y;
 				
 				y = *y_data + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*(data + 1) = y;
+				y *= ctr;
+				y >>= 14;
+				*(data + 1) = (y < 0) ? 0 :
+					      ((y > 0xff) ? 0xff : y);
 
 				y = *(y_data + 1) + bright;
-				y = (y * ctr) >> 14;
-				y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-				*(data + 3) = y;
+				y *= ctr;
+				y >>= 14;
+				*(data + 3) = (y < 0) ? 0 :
+					      ((y > 0xff) ? 0xff : y);
 
 			} else
 			{
@@ -1315,7 +1373,6 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 }
 
 
-/* NOT TESTED */
 static void
 __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1358,20 +1415,19 @@ __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 
 	xine_fast_memcpy(data,
 			(frame->surface->format == DSPF_YV12)
-				? frame->vo_frame.base[1]
-				: frame->vo_frame.base[2],
-			frame->vo_frame.pitches[1] * (frame->height >> 1));
+				? frame->vo_frame.base[2]
+				: frame->vo_frame.base[1],
+			(pitch * frame->height) >> 2);
 	data += (pitch * frame->height) >> 2;
 
 	xine_fast_memcpy(data,
 			(frame->surface->format == DSPF_YV12)
-				? frame->vo_frame.base[2]
-				: frame->vo_frame.base[1],
-			frame->vo_frame.pitches[2] * (frame->height >> 1));
+				? frame->vo_frame.base[1]
+				: frame->vo_frame.base[2],
+			(pitch * frame->height) >> 2);
 }
 
 
-/* NOT TESTED */
 static void
 __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1382,10 +1438,9 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 
 	if(!bright && ctr == 0x4000)
 	{
-		xine_fast_memcpy(data,
-				frame->vo_frame.base[0],
+		xine_fast_memcpy(data, frame->vo_frame.base[0],
 				pitch * frame->height);
-		data += (pitch * frame->height);
+		data += pitch * frame->height;
 
 	} else
 	{
@@ -1397,14 +1452,14 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 			register int y;
 
 			y = *y_data + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*data = y;
+			y *= ctr;
+			y >>= 14;
+			*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
 			y = *(y_data + 1) + bright;
-			y = (y * ctr) >> 14;
-			y = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-			*(data + 1) = y;
+			y *= ctr;
+			y >>= 14;
+			*(data + 1) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
 
 			y_data += 2;
 			data   += 2;
@@ -1412,18 +1467,16 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 		} while(--n);
 	}
 
-	xine_fast_memcpy(data,
-			(frame->surface->format == DSPF_YV12)
-				? frame->vo_frame.base[1]
-				: frame->vo_frame.base[2],
-			frame->vo_frame.pitches[1] * (frame->height >> 1));
-	data += (pitch * frame->height) >> 2;
-
-	xine_fast_memcpy(data,
-			(frame->surface->format == DSPF_YV12)
+	xine_fast_memcpy(data, (frame->surface->format == DSPF_YV12)
 				? frame->vo_frame.base[2]
 				: frame->vo_frame.base[1],
-			frame->vo_frame.pitches[2] * (frame->height >> 1));
+			(pitch * frame->height) >> 2);
+	data += (pitch * frame->height) >> 2;
+
+	xine_fast_memcpy(data, (frame->surface->format == DSPF_YV12)
+			       ? frame->vo_frame.base[1]
+			       : frame->vo_frame.base[2],
+			(pitch * frame->height) >> 2);
 }
 
 
