@@ -53,6 +53,8 @@ public:
                                                    float                           y,
                                                    float                           width,
                                                    float                           height);
+     void                   SetScreenPosition     (int                             x,
+                                                   int                             y);
      void                   SetSrcColorKey        (__u8                            r,
                                                    __u8                            g,
                                                    __u8                            b);
