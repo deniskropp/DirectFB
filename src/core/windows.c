@@ -173,7 +173,7 @@ create_region( CoreDFB                 *core,
           config.buffermode = DLBM_FRONTONLY;
 
      if (((context->config.options & DLOP_ALPHACHANNEL) ||
-          (window->caps & DWCAPS_ALPHACHANNEL)) && DFB_PIXELFORMAT_HAS_ALPHA(format))
+          (window->config.options & DWOP_ALPHACHANNEL)) && DFB_PIXELFORMAT_HAS_ALPHA(format))
           config.options |= DLOP_ALPHACHANNEL;
 
      config.options |= DLOP_OPACITY;
@@ -345,7 +345,8 @@ dfb_window_create( CoreWindowStack        *stack,
      config.events   = DWET_ALL;
 
      /* Auto enable blending for ARGB only, not LUT8. */
-     if ((caps & DWCAPS_ALPHACHANNEL) && pixelformat == DSPF_ARGB)
+     if ((caps & DWCAPS_ALPHACHANNEL) &&
+         DFB_PIXELFORMAT_HAS_ALPHA(pixelformat) && pixelformat != DSPF_LUT8)
           config.options |= DWOP_ALPHACHANNEL;
 
      /* Create the window object. */
