@@ -2,6 +2,8 @@ CLUT/ALUT support.
 
 Module unloading.
 
+Rework/cleanup vsync handling during flip operations.
+
 Allow software driven interlaced video field switches
 (functionality exists but not yet exported to apps).
 
