@@ -170,7 +170,7 @@ main (int argc, char *argv[])
      }
 
      /* setup the play/pause button */
-     playbutton = lite_new_button( LITE_BOX(window), 150, 110, 50, 50 );
+     ret = lite_new_button( &playbutton, LITE_BOX(window), 150, 110, 50, 50 );
      lite_set_button_image( playbutton, BS_NORMAL, "stop.png" );
      lite_set_button_image( playbutton, BS_DISABLED, "stop_disabled.png" );
      lite_set_button_image( playbutton, BS_HILITE, "stop_highlighted.png" );
