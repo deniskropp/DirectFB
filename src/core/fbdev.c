@@ -716,12 +716,17 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
      if (thiz->buffermode == DLBM_FRONTONLY)
           return DFB_UNSUPPORTED;
 
+     /* FIXME: has to be done "during" pan */
+     surface_flip_buffers( thiz->surface );
+     
      if (thiz->buffermode == DLBM_BACKVIDEO) {
           DFBResult ret;
            
           ret = fbdev_pan( thiz->surface->front_buffer->video.offset ? 1 : 0 );
-          if (ret)
+          if (ret) {
+               surface_flip_buffers( thiz->surface ); /* FIXME */
                return ret;
+          }
      }
 
 #if defined(HAVE_INB_OUTB_IOPL)
@@ -731,8 +736,6 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
      }
 #endif
 
-     surface_flip_buffers( thiz->surface );
-     
      return DFB_OK;
 }
 
