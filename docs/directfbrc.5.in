@@ -70,18 +70,17 @@ and can only be used in the resolution that is set on boot time.
 Sets the default pixel depth in bits per pixel. If unspecified
 DirectFB will use the depth specified in the first mode from
 .I /etc/fb.modes
-DirectFB supports color depths of 15, 16, 24 and 32 (support for 8 bit
-can optionally be compiled in as well). What values are available
-depends on the frame buffer device you are using. Some frame buffer
-devices (namely vesafb) don't support mode switches at all and can
-only be used in the pixel depth that is set on boot time.
+DirectFB supports color depths of 8, 15, 16, 24 and 32. Which values
+are available depends on the frame buffer device you are using. Some
+frame buffer devices (namely vesafb) don't support mode switches at
+all and can only be used in the pixel depth that is set at boot time.
 
 .TP
 .BI pixelformat=<pixelformat>
 Sets the default pixel format. This is similar to the depth parameter
 described above but allows more fine-grained control. Possible values
 for pixelformat are LUT8, RGB332, RGB16, RGB24 and RGB32. Some drivers
-may also support the more exotic pixel formats A8, ARGB, ARGB1555,
+may also support the more exotic pixel formats A8, ALUT44, ARGB, ARGB1555,
 I420, UYVY, YUY2 and YV12.
 
 .TP
@@ -105,7 +104,7 @@ is desired.
 
 .TP
 .BI memcpy=<method>
-With this option the probing of memcpy() routines can be skipped
+With this option the probing of memcpy() routines can be skipped,
 saving a lot of startup time. Pass "help" for a list of possible
 values.
 
@@ -158,6 +157,14 @@ and support for MMX was compiled in.
 Instead of using A8 surfaces (alpha masks), load glyphs into ARGB
 surfaces. This uses more memory but some graphics cards do weird
 things with A8 surfaces. Try this option if your fonts look strange.
+
+.TP
+.BI [no-]a1-font
+Instead of using A8 surfaces (alpha masks), load glyphs into A1
+surfaces. If the graphics driver doesn't support colorizing + blending
+blits, this option will speed up font rendering, but reduce quality.
+In general you'll never need this option, because software based A8
+fonts are highly optimized and fast enough.
 
 .TP
 .BI [no-]sighandler
@@ -266,8 +273,8 @@ use bg-color=FF00FF.
 
 .TP
 .BI bg-image=<filename>
-Fills the background with the given image file. The image is stretched to
-fit to the screen dimensions.
+Fills the background with the given image from file. The image is stretched
+to fit to the screen dimensions.
 
 .TP
 .BI bg-tile=<filename>
@@ -297,6 +304,7 @@ Controls the signal produced by the TV output of Matrox cards.
 Some older Matrox G400 cards have SGRAM and a number of graphics
 operations are considerably faster on these cards if this feature
 is enabled. Don't try to enable it if your card doesn't have SGRAM!
+Otherwise you'd have to reboot.
 
 .TP
 .BI [no-]matrox-crtc2
@@ -307,12 +315,6 @@ enable additional layers using the second head.
 .BI screenshot-dir=<directory>
 If specified DirectFB will dump the screen contents in PPM format
 into this directory when the <Print> key gets pressed.
-
-.TP
-.BI fbdebug=<device>
-Allows to specify a second frame buffer device that is used to display
-how surface memory is allocated on the video card. This is highly
-experimental and only useful for debugging.
 
 .TP
 .BI window-surface-policy=<policy>
