@@ -1,3 +1,34 @@
+0.9.4
+------
+
+- Software driver pipeline optimization giving me 70% speed up for solid lines.
+- Several bugfixes for image loading, Matrox driver, mode handling and more.
+- Removed 'realloc()s' that caused callback functions to write into the
+  old memory location if 'realloc()' returns a new one.
+- API rewrite for IDirectFBDisplayLayer with new capabilities, e.g. flicker
+  filtering, better configuration handling by 'Get/Set/TestConfiguration()'.
+- Sub surface handling improved, especially for surface resizing.
+- More safety and sanity checks and new error codes
+  (DFB_MISSINGIMAGE, DFB_INVAREA, DFB_THIZNULL and DFB_IDNOTFOUND).
+- Additions to IDirectFBVideoProvider: 'GetCapabilities()' retrieves info about
+  the provider, 'Set/GetColorAdjustment()' set/get values like contrast etc.
+- Cursor can be enabled/disabled and opacity can be set independently.
+  Also cursor appears centered now.
+- Experimental support for VT switching during runtime ;-)
+- New command line option "--force-windowed" which already works with most of
+  the examples, levels other than DFSCL_NORMAL give DFB_ACCESSDENIED.
+- GIF loading to ARGB fixed, transparent GIFs are now supported as ARGB.
+- Several fixes to video mode list and pixelformat handling in
+  'read_modes()', 'fbdev_set_mode()' and 'fbdev_get_pixelformat()'.
+- Added IDirectFBSurface->DrawLines(), used by df_dok now.
+- Some optimizations in DrawString and core font handling.
+- Fixed font problems with Matrox cards, their texture cache is flushed
+  now after writing the glyph into the framebuffer (i.e. into the texture).
+- Mouse cursor movements are now clipped by the screen ;-)
+- Fixed 'directfb.h', identifier "id" was also a keyword in Objective C.
+- Added IDirectFBInputBuffer->WaitForEventWithTimeout,
+  was missing in last release.
+
 0.9.3
 ------
 
@@ -9,7 +40,7 @@
 - New "thanks to" section in README.
 - Window stack repaints optimized through recursive function.
 - Added DirectFBSetOption from Till Adam <till@adam-lilienthal.de>.
-- Added IDirectFBWindow/IDirectFBInputBuffer->WaitForEventWithTimeout.
+- Added IDirectFBInputBuffer->WaitForEventWithTimeout.
 - Changed to pthread conditions in waiting code.
 - Matrox driver fixed when blitting from 32bit without blending.
 - Added DFBInputDeviceTypeFlags, removed DIDID_TYPE.
