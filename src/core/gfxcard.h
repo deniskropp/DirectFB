@@ -244,7 +244,8 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
 void dfb_gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
                              CoreFont *font, CardState *state );
-
+void dfb_gfxcard_drawglyph( unichar index, int x, int y,
+                            CoreFont *font, CardState *state );
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.

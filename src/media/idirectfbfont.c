@@ -137,8 +137,44 @@ IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 }
 
 /*
- * Get the logical and ink extensions of the specified string as if it were
- * drawn with this font.
+ * Get the kerning to apply between two glyphs.
+ */
+static DFBResult
+IDirectFBFont_GetKerning( IDirectFBFont *thiz,
+                          int  prev_index, int  current_index,
+                          int *kern_x, int *kern_y)
+{
+     CoreFont *font;
+     int x, y;
+
+     INTERFACE_GET_DATA(IDirectFBFont)
+
+     if (!prev_index || !current_index)
+          return DFB_INVARG;
+
+     if (!kern_x && !kern_y)
+          return DFB_INVARG;
+
+     font = data->font;
+
+     dfb_font_lock( font );
+
+     if (! font->GetKerning ||
+         font->GetKerning (font, prev_index, current_index, &x, &y) != DFB_OK)
+          x = y = 0;
+
+     if (kern_x)
+          *kern_x = x;
+     if (kern_y)
+          *kern_y = y;
+
+     dfb_font_unlock( font );
+
+     return DFB_OK;
+}
+
+/*
+ * Get the logical and ink extents of the specified string.
  */
 static DFBResult
 IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
@@ -159,6 +195,9 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 
 
      if (!text)
+          return DFB_INVARG;
+
+     if (!logical_rect && !ink_rect)
           return DFB_INVARG;
 
      font = data->font;
@@ -220,8 +259,7 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
 }
 
 /*
- * Get the logical width of the specified string as if it were drawn
- * with this font. The drawn string may extend this value.
+ * Get the logical width of the specified string.
  */
 static DFBResult
 IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
@@ -240,6 +278,50 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
           *width = rect.w;
 
      return result;
+}
+
+/*
+ * Get the extents of the specified glyph.
+ */
+static DFBResult
+IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
+                               int           index,
+                               DFBRectangle *rect,
+                               int          *advance )
+{
+     CoreFont      *font;
+     CoreGlyphData *glyph;
+
+     INTERFACE_GET_DATA(IDirectFBFont)
+
+     if (!glyph)
+          return DFB_INVARG;
+
+     if (!rect && !advance)
+          return DFB_INVARG;
+
+     font = data->font;
+
+     dfb_font_lock( font );
+
+     if (dfb_font_get_glyph_data (font, index, &glyph) != DFB_OK) {
+          dfb_font_unlock( font );
+          return DFB_FAILURE;
+     }
+
+     if (rect) {
+          rect->x = glyph->left;
+          rect->y = glyph->top - font->ascender;
+          rect->w = glyph->width;
+          rect->h = glyph->height;
+     }
+     if (advance) {
+          *advance = glyph->advance;
+     }
+
+     dfb_font_unlock( font );
+     
+     return DFB_OK;
 }
 
 DFBResult
@@ -261,8 +343,10 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->GetDescender = IDirectFBFont_GetDescender;
      thiz->GetHeight = IDirectFBFont_GetHeight;
      thiz->GetMaxAdvance = IDirectFBFont_GetMaxAdvance;
+     thiz->GetKerning = IDirectFBFont_GetKerning;
      thiz->GetStringWidth = IDirectFBFont_GetStringWidth;
      thiz->GetStringExtents = IDirectFBFont_GetStringExtents;
+     thiz->GetGlyphExtents = IDirectFBFont_GetGlyphExtents;
 
      return DFB_OK;
 }

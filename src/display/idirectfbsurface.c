@@ -1122,6 +1122,59 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
+                            int index, int x, int y,
+                            DFBSurfaceTextFlags flags )
+{
+     IDirectFBFont_data *font_data;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!index)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->locked)
+          return DFB_LOCKED;
+
+     if (!data->font)
+          return DFB_MISSINGFONT;
+
+     if (!(flags & DSTF_TOP)) {
+          int ascender = 0;
+
+          data->font->GetAscender (data->font, &ascender);
+          y -= ascender;
+     }
+
+     if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
+          DFBRectangle  rect;
+
+          if (data->font->GetGlyphExtents (data->font, index, &rect, NULL) == DFB_OK) {
+               if (flags & DSTF_RIGHT) {
+                    x -= rect.w;
+               }
+               else if (flags & DSTF_CENTER) {
+                    x -= rect.w >> 1;
+               }
+          }
+     }
+
+     font_data = (IDirectFBFont_data *)data->font->priv;
+
+     dfb_gfxcard_drawglyph( index,
+                            data->area.wanted.x + x, data->area.wanted.y + y,
+                            font_data->font, &data->state );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_GetSubSurface( IDirectFBSurface   *thiz,
                                 DFBRectangle       *rect,
                                 IDirectFBSurface  **surface )
@@ -1286,6 +1339,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetFont = IDirectFBSurface_SetFont;
      thiz->GetFont = IDirectFBSurface_GetFont;
      thiz->DrawString = IDirectFBSurface_DrawString;
+     thiz->DrawGlyph = IDirectFBSurface_DrawGlyph;
 
      thiz->GetSubSurface = IDirectFBSurface_GetSubSurface;
 

@@ -1861,7 +1861,7 @@ extern "C"
         /** Text functions **/
 
           /*
-           * Set the font used by DrawString().
+           * Set the font used by DrawString() and DrawGlyph().
            */
           DFBResult (*SetFont) (
                IDirectFBSurface         *thiz,
@@ -1896,6 +1896,21 @@ extern "C"
                DFBSurfaceTextFlags       flags
           );
 
+          /*
+           * Draw a single glyph specified by its Unicode index at the
+           * specified position with the given color following the
+           * specified flags.
+           *
+           * You need to set a font using the SetFont() method before
+           * calling this function.
+           */
+          DFBResult (*DrawGlyph) (
+               IDirectFBSurface         *thiz,
+               int                       index,
+               int                       x,
+               int                       y,
+               DFBSurfaceTextFlags       flags
+          );
 
         /** Lightweight helpers **/
 
@@ -2786,6 +2801,17 @@ extern "C"
                int                 *maxadvance
           );
 
+          /*
+           * Get the kerning to apply between two glyphs specified by
+           * their Unicode indices.
+           */
+          DFBResult (*GetKerning) (
+               IDirectFBFont       *thiz,
+               int                  prev_index,
+               int                  current_index,
+               int                 *kern_x,
+               int                 *kern_y
+          );
 
         /** String extents measurement **/
 
@@ -2826,7 +2852,7 @@ extern "C"
            * rectangle may have negative width indicating right-to-left
            * layout.
            *
-           * The rectangles offsets are reported relative to the
+           * The rectangle offsets are reported relative to the
            * baseline and refer to the text being drawn using
            * DSTF_LEFT.
            */
@@ -2837,7 +2863,28 @@ extern "C"
                DFBRectangle        *logical_rect,
                DFBRectangle        *ink_rect
           );
-     )
+ 
+          /*
+           * Get the extents of a glyph specified by its Unicode
+           * index.
+           *
+           * The rectangle describes the the smallest rectangle
+           * containing all pixels that are touched when drawing the
+           * glyph. It is reported relative to the baseline. If you
+           * only need the advance, pass NULL for the rectangle.
+           *
+           * The advance describes the horizontal offset to the next
+           * glyph (without kerning applied). It may be a negative
+           * value indicating left-to-right rendering. If you don't
+           * need this value, pass NULL for advance.
+           */
+         DFBResult (*GetGlyphExtents) (
+               IDirectFBFont       *thiz,
+               int                  index,
+               DFBRectangle        *rect,
+               int                 *advance
+          );
+      )
 
      /*
       * Capabilities of an image.

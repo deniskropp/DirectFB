@@ -1088,6 +1088,79 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      dfb_state_unlock( &font_state );
 }
 
+void dfb_gfxcard_drawglyph( unichar index, int x, int y,
+                            CoreFont *font, CardState *state )
+{
+     CoreGlyphData *data;
+     DFBRectangle   rect;
+
+     dfb_font_lock( font );
+
+     if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK ||
+         data->width <= 0 || data->height <= 0) {
+
+          dfb_font_unlock( font );
+          return;
+     }
+
+     x += data->left;
+     y += data->top;
+
+     if (! dfb_clip_blit_precheck( &state->clip,
+                                   data->width, data->height, x, y )) {
+          dfb_font_unlock( font );
+          return;
+     }
+
+     if (!font_state_init) {
+          memset( &font_state, 0, sizeof(CardState) );
+
+          dfb_state_init( &font_state );
+          
+          font_state.blittingflags = FONT_BLITTINGFLAGS;
+          font_state.src_blend     = DSBF_SRCALPHA;
+          font_state.dst_blend     = DSBF_INVSRCALPHA;
+          font_state.modified      = SMF_ALL;
+          
+          font_state_init = true;
+     }
+
+     dfb_state_lock( &font_state );
+
+     dfb_state_set_destination( &font_state, state->destination );
+
+     /* set clip and color */
+     font_state.clip         = state->clip;
+     font_state.color        = state->color;
+     font_state.modified    |= SMF_CLIP | SMF_COLOR;
+
+     dfb_state_set_source( &font_state, data->surface );
+
+     rect.x = data->start;
+     rect.y = 0;
+     rect.w = data->width;
+     rect.h = data->height;
+
+     if (dfb_gfxcard_state_check( &font_state, DFXL_BLIT ) &&
+         dfb_gfxcard_state_acquire( &font_state, DFXL_BLIT )) {
+
+          if (!(Scard->device_info.caps.flags & CCF_CLIPPING))
+               dfb_clip_blit( &font_state.clip, &rect, &x, &y );
+
+          card->funcs.Blit( card->driver_data, card->device_data, &rect, x, y);
+          dfb_gfxcard_state_release( &font_state );
+     }
+     else if (gAquire( &font_state, DFXL_BLIT )) {
+
+          dfb_clip_blit( &font_state.clip, &rect, &x, &y );
+          gBlit( &rect, x, y );
+          gRelease( &font_state );
+     }
+
+     dfb_font_unlock( font );
+     dfb_state_unlock( &font_state );
+}
+
 volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,
                                      unsigned int    offset,
                                      int             length )
