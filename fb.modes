@@ -48,6 +48,11 @@ mode "1600x1200 60Hz 16bit"
 endmode
 
 
+mode "640x400 93Hz 16bit"
+    geometry 640 400 640 400 16
+    timings 28272 48 32 17 22 128 12
+endmode
+
 mode "400x300 100Hz 16bit"
     geometry 400 300 400 300 16
     timings 31747 40 16 16 1 40 3
