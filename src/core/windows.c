@@ -600,9 +600,10 @@ dfb_window_putbelow( CoreWindow *window,
 }
 
 
-#define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
+#define TRANSLUCENT_WINDOW(w) ((w)->opacity < 0xff || \
                                (w)->caps & DWCAPS_ALPHACHANNEL || \
                                (w)->options & DWOP_COLORKEYING)
+
 #define VISIBLE_WINDOW(w)     (!((w)->caps & DWCAPS_INPUTONLY) && \
                                (w)->opacity > 0)
 
@@ -1064,7 +1065,7 @@ update_region( CoreWindowStack *stack,
           if (region.y2 != y2)
                edges |= 0x8;
 
-          if (TRANSPARENT_WINDOW(stack->windows[i]))
+          if (TRANSLUCENT_WINDOW(stack->windows[i]))
                update_region( stack, i-1, x1, y1, x2, y2 );
           else if (edges) {
                /* left */
