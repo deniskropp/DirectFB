@@ -1785,6 +1785,29 @@ handle_wm_key( CoreWindowStack     *stack,
      return true;
 }
 
+static bool
+is_wm_key( DFBInputDeviceKeySymbol key_symbol )
+{
+     switch (DFB_LOWER_CASE(key_symbol)) {
+          case DIKS_SMALL_X:
+          case DIKS_SMALL_S:
+          case DIKS_SMALL_C:
+          case DIKS_SMALL_E:
+          case DIKS_SMALL_A:
+          case DIKS_SMALL_W:
+          case DIKS_SMALL_D:
+          case DIKS_SMALL_P:
+          case DIKS_PRINT:
+               break;
+
+          default:
+               return false;
+     }
+
+     return true;
+}
+
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -1792,6 +1815,8 @@ handle_key_press( CoreWindowStack     *stack,
                   StackData           *data,
                   const DFBInputEvent *event )
 {
+     CoreWindow *window;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( event != NULL );
@@ -1799,6 +1824,10 @@ handle_key_press( CoreWindowStack     *stack,
 
      if (data->wm_level) {
           switch (event->key_symbol) {
+               case DIKS_META:
+                    data->wm_level |= 1;
+                    break;
+
                case DIKS_CONTROL:
                     data->wm_level |= 2;
                     break;
@@ -1808,7 +1837,9 @@ handle_key_press( CoreWindowStack     *stack,
                     break;
 
                default:
-                    handle_wm_key( stack, data, event );
+                    if (handle_wm_key( stack, data, event ))
+                         return DFB_OK;
+
                     break;
           }
      }
@@ -1816,12 +1847,10 @@ handle_key_press( CoreWindowStack     *stack,
           data->wm_level |= 1;
           data->wm_cycle  = 0;
      }
-     else {
-          CoreWindow *window = get_keyboard_window( stack, data, event );
 
-          if (window)
-               send_key_event( window, data, event );
-     }
+     window = get_keyboard_window( stack, data, event );
+     if (window)
+          send_key_event( window, data, event );
 
      return DFB_OK;
 }
@@ -1831,6 +1860,8 @@ handle_key_release( CoreWindowStack     *stack,
                     StackData           *data,
                     const DFBInputEvent *event )
 {
+     CoreWindow *window;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( event != NULL );
@@ -1851,15 +1882,16 @@ handle_key_release( CoreWindowStack     *stack,
                     break;
 
                default:
+                    if (is_wm_key( event->key_symbol ))
+                         return DFB_OK;
+
                     break;
           }
      }
-     else {
-          CoreWindow *window = get_keyboard_window( stack, data, event );
 
-          if (window)
-               send_key_event( window, data, event );
-     }
+     window = get_keyboard_window( stack, data, event );
+     if (window)
+          send_key_event( window, data, event );
 
      return DFB_OK;
 }
