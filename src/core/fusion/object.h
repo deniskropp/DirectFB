@@ -53,10 +53,10 @@ typedef enum {
 } FusionObjectState;
 
 struct _FusionObject {
-     int                magic;
-
      FusionLink         link;
      FusionObjectPool  *pool;
+
+     int                magic;
 
      int                id;
 
