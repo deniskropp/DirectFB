@@ -61,10 +61,7 @@ typedef struct
 				uint8_t* data, uint32_t pitch);
 
 	void (*yv12) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-
-	void (*i420) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
+				uint8_t* data, uint32_t pitch); /* yv12 and i420 */
 
 	void (*rgb15) (dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch);
