@@ -96,7 +96,9 @@ typedef struct {
      DFBResult (*SetSrcColorKey)    ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data,
-                                      __u32                       key );
+                                      __u8                        r,
+                                      __u8                        g,
+                                      __u8                        b );
      
      DFBResult (*SetDstColorKey)    ( DisplayLayer               *layer,
                                       void                       *driver_data,

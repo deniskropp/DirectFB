@@ -320,7 +320,8 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
                oldfuncs[i] = newfuncs[i];
      }
 
-     /* replace driver data pointer */
+     /* replace device and driver data pointer */
+     primary->device      = device;
      primary->driver_data = driver_data;
 }
 
@@ -334,7 +335,8 @@ dfb_layers_replace_primary( GraphicsDevice     *device,
      DFB_ASSERT( primary != NULL );
      DFB_ASSERT( funcs != NULL );
 
-     /* replace the function table and driver data pointer */
+     /* replace device, function table and driver data pointer */
+     primary->device      = device;
      primary->funcs       = funcs;
      primary->driver_data = driver_data;
 }
@@ -911,19 +913,11 @@ DFBResult
 dfb_layer_set_src_colorkey( DisplayLayer *layer,
                             __u8 r, __u8 g, __u8 b )
 {
-     __u32               key;
-     DisplayLayerShared *shared = layer->shared;
-
      if (!layer->funcs->SetSrcColorKey)
           return DFB_UNSUPPORTED;
 
-     if (shared->surface)
-          key = color_to_pixel( shared->surface->format, r, g, b );
-     else
-          key = PIXEL_RGB32( r, g, b );
-
      return layer->funcs->SetSrcColorKey( layer, layer->driver_data,
-                                          layer->layer_data, key );
+                                          layer->layer_data, r, g, b );
 }
 
 DFBResult

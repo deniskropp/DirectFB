@@ -121,7 +121,9 @@ static DFBResult
 primarySetSrcColorKey    ( DisplayLayer               *layer,
                            void                       *driver_data,
                            void                       *layer_data,
-                           __u32                       key );
+                           __u8                        r,
+                           __u8                        g,
+                           __u8                        b );
      
 static DFBResult
 primarySetDstColorKey    ( DisplayLayer               *layer,
@@ -704,7 +706,9 @@ static DFBResult
 primarySetSrcColorKey    ( DisplayLayer               *layer,
                            void                       *driver_data,
                            void                       *layer_data,
-                           __u32                       key )
+                           __u8                        r,
+                           __u8                        g,
+                           __u8                        b )
 {
      return DFB_UNSUPPORTED;
 }
