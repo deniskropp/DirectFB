@@ -170,11 +170,15 @@ dfb_thread_main( void *arg )
                break;
 
           case CTT_CLEANUP:
-               setpriority( PRIO_PROCESS, 0, -15 );
+               setpriority( PRIO_PROCESS, 0, -5 );
                break;
 
           case CTT_CRITICAL:
                setpriority( PRIO_PROCESS, 0, -20 );
+               break;
+
+          case CTT_MESSAGING:
+               setpriority( PRIO_PROCESS, 0, -15 );
                break;
 
           default:

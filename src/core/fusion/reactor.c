@@ -38,9 +38,8 @@
 #include <sys/shm.h>
 #endif
 
-#include <pthread.h>
-
 #include <core/sig.h>
+#include <core/thread.h>
 #include <misc/mem.h>
 
 #include "fusion_types.h"
@@ -72,7 +71,7 @@ struct _FusionReactor {
      struct {
           int           id;        /* fusion id                           */
           FusionLink   *reactions; /* local list of reactions             */
-          pthread_t     receiver;  /* receiving thread of the node        */
+          CoreThread   *receiver;  /* receiving thread of the node        */
           FusionRef     ref;       /* reference for receiver              */
      } node[MAX_REACTOR_NODES];
 };
@@ -80,7 +79,7 @@ struct _FusionReactor {
 /*
  * Thread that receives the messages and handles local reactions.
  */
-static void *_reactor_receive (void *arg);
+static void *_reactor_receive (CoreThread *thread, void *arg);
 
 /*
  * Locally dispatch a message.
@@ -169,8 +168,9 @@ reactor_attach (FusionReactor *reactor,
           fusion_ref_up (&reactor->node[index].ref, false);
           
           /* start our local receiver thread and detach it */
-          pthread_create (&reactor->node[index].receiver,
-                          NULL, _reactor_receive, reactor);
+          reactor->node[index].receiver = dfb_thread_create (CTT_MESSAGING,
+                                                             _reactor_receive,
+                                                             reactor);
      }
 
      /* fill out callback information */
@@ -221,8 +221,8 @@ reactor_detach (FusionReactor *reactor,
                if (!reactor->node[index].reactions) {
                     /* if this is our node */
                     if (reactor->node[index].id == _fusion_id()) {
-                         pthread_cancel (reactor->node[index].receiver);
-                         pthread_join (reactor->node[index].receiver, NULL);
+                         dfb_thread_cancel (reactor->node[index].receiver);
+                         dfb_thread_join (reactor->node[index].receiver);
                     }
 
                     fusion_ref_destroy (&reactor->node[index].ref);
@@ -291,8 +291,8 @@ reactor_dispatch (FusionReactor *reactor,
                     /* if there's no remaining reaction (reactions may be removed
                        because of RS_REMOVE) free the node */
                     if (!reactor->node[i].reactions) {
-                         pthread_cancel (reactor->node[i].receiver);
-                         pthread_join (reactor->node[i].receiver, NULL);
+                         dfb_thread_cancel (reactor->node[i].receiver);
+                         dfb_thread_join (reactor->node[i].receiver);
 
                          fusion_ref_destroy (&reactor->node[i].ref);
 
@@ -366,7 +366,7 @@ reactor_free (FusionReactor *reactor)
  *  File internal functions  *
  *****************************/
 
-void *_reactor_receive (void *arg)
+void *_reactor_receive (CoreThread *thread, void *arg)
 {
      int            index;
      void          *message;
@@ -386,7 +386,7 @@ void *_reactor_receive (void *arg)
      message = alloca (sizeof(long) + reactor->msg_size);
 
      while (true) {
-          pthread_testcancel();
+          dfb_thread_testcancel (thread);
 
           /* receive the next messages matching our fusion id */
           if (msgrcv (reactor->queue, message,
@@ -403,7 +403,7 @@ void *_reactor_receive (void *arg)
                return NULL;
           }
 
-          pthread_testcancel();
+          dfb_thread_testcancel (thread);
 
           /* lock reactor */
           switch (skirmish_prevail (&reactor->lock)) {
@@ -516,6 +516,7 @@ static int _reactor_get_free_index (const FusionReactor *reactor)
 
 #else /* !FUSION_FAKE */
 
+#include <pthread.h>
 
 /***************************
  *  Internal declarations  *
