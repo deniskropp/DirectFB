@@ -36,6 +36,10 @@
 #include "input_fake.h"
 #endif
 
+#ifndef EVIOCGLED
+#define EVIOCGLED(len) _IOC(_IOC_READ, 'E', 0x19, len)
+#endif
+
 #ifndef EVIOCGRAB
 #define EVIOCGRAB _IOW('E', 0x90, int)
 #endif
