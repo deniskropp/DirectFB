@@ -84,13 +84,24 @@ DFB_GRAPHICS_DRIVER( mach64 )
                (DSDRAW_DST_COLORKEY | DSDRAW_BLEND)
 
 #define MACH64GT_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
+               (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY | DSBLIT_BLEND_COLORALPHA)
+/* FIXME: DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE */
 
 #define MACH64GT_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE)
 
 #define MACH64GT_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT)
+
+#define USE_SCALER( state, accel )                                      \
+     (((accel) == DFXL_STRETCHBLIT) ||                                  \
+      ((state)->blittingflags & DSBLIT_BLEND_COLORALPHA) ||             \
+      ((state)->source->format != (state)->destination->format))
+
+static bool mach64Blit2D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy );
+static bool mach64Blit3D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy );
 
 /* required implementations */
 
@@ -159,9 +170,9 @@ static void mach64CheckState( void *drv, void *dev,
           if (state->blittingflags & ~MACH64_SUPPORTED_BLITTINGFLAGS)
                return;
 
-          /* Can't do source and destination color keying at the same time */
-          if ((state->blittingflags & (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)) ==
-              (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY))
+          /* Can't do source and destination color keying at the same time. */
+          if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
+              state->blittingflags & DSBLIT_DST_COLORKEY)
                return;
 
           state->accel |= MACH64_SUPPORTED_BLITTINGFUNCTIONS;
@@ -198,16 +209,18 @@ static void mach64GTCheckState( void *drv, void *dev,
           default:
                return;
           }
-          /* FIXME: format conversion */
-          if (state->source->format != state->destination->format)
-               return;
 
           if (state->blittingflags & ~MACH64GT_SUPPORTED_BLITTINGFLAGS)
                return;
 
-          /* Can't do source and destination color keying at the same time */
-          if ((state->blittingflags & (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)) ==
-              (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY))
+          /* Can't do alpha modulation. */
+          if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL &&
+              state->blittingflags & DSBLIT_BLEND_COLORALPHA)
+               return;
+
+          /* Can't do source and destination color keying at the same time. */
+          if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
+              state->blittingflags & DSBLIT_DST_COLORKEY)
                return;
 
           state->accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
@@ -220,13 +233,12 @@ static void mach64SetState( void *drv, void *dev,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
 
      if (state->modified == SMF_ALL) {
           mdev->valid = 0;
      } else if (state->modified) {
           if (state->modified & SMF_SOURCE)
-               MACH64_INVALIDATE( m_source | m_srckey | m_srckey_scale );
+               MACH64_INVALIDATE( m_source | m_srckey | m_srckey_scale | m_blit_3d );
 
           if (state->modified & SMF_SRC_COLORKEY)
                MACH64_INVALIDATE( m_srckey | m_srckey_scale );
@@ -241,13 +253,13 @@ static void mach64SetState( void *drv, void *dev,
                MACH64_INVALIDATE( m_dstkey );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey | m_disable_key );
+               MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey | m_disable_key | m_blit_3d | m_blit_2d );
 
           if (state->modified & SMF_DRAWING_FLAGS)
-               MACH64_INVALIDATE( m_dstkey | m_disable_key );
+               MACH64_INVALIDATE( m_dstkey | m_disable_key | m_draw_3d | m_draw_2d );
 
           if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
-               MACH64_INVALIDATE( m_draw_blend );
+               MACH64_INVALIDATE( m_draw_3d | m_blit_3d );
      }
 
      if (state->modified & SMF_DESTINATION)
@@ -260,21 +272,10 @@ static void mach64SetState( void *drv, void *dev,
      case DFXL_FILLTRIANGLE:
           if (state->drawingflags & DSDRAW_BLEND) {
                mach64_set_color_3d( mdrv, mdev, state );
-               mach64_set_draw_blend( mdrv, mdev, state );
-
-               mach64_waitfifo( mdrv, mdev, 3 );
-
-               mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp );
-               mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
-               mach64_out32( mmio, SCALE_3D_CNTL, mdev->draw_blend );
+               mach64_set_draw_3d( mdrv, mdev, state );
           } else {
                mach64_set_color( mdrv, mdev, state );
-
-               mach64_waitfifo( mdrv, mdev, 3 );
-
-               mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp );
-               mach64_out32( mmio, DP_SRC, FRGD_SRC_FRGD_CLR );
-               mach64_out32( mmio, SCALE_3D_CNTL, 0 );
+               mach64_set_draw_2d( mdrv, mdev, state );
           }
 
           if (state->drawingflags & DSDRAW_DST_COLORKEY)
@@ -285,40 +286,40 @@ static void mach64SetState( void *drv, void *dev,
           state->set = DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE;
           break;
      case DFXL_BLIT:
-          mach64_set_source( mdrv, mdev, state );
-
-          mach64_waitfifo( mdrv, mdev, 3 );
-
-          mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
-          mach64_out32( mmio, DP_SRC, FRGD_SRC_BLIT );
-          mach64_out32( mmio, SCALE_3D_CNTL, 0 );
-
-          if (state->blittingflags & DSBLIT_DST_COLORKEY)
-               mach64_set_dst_colorkey( mdrv, mdev, state );
-          else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-               mach64_set_src_colorkey( mdrv, mdev, state );
-          else
-               mach64_disable_colorkey( mdrv, mdev );
-
-          state->set = DFXL_BLIT;
-          break;
      case DFXL_STRETCHBLIT:
           mach64_set_source( mdrv, mdev, state );
 
-          mach64_waitfifo( mdrv, mdev, 3 );
+          if (USE_SCALER( state, accel )) {
+               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                           DSBLIT_COLORIZE))
+                    mach64_set_color_3d( mdrv, mdev, state );
 
-          mach64_out32( mmio, DP_PIX_WIDTH, mdev->dst_bpp | mdev->src_bpp );
-          mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
-          mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SCALE );
+               mach64_set_blit_3d( mdrv, mdev, state );
 
-          if (state->blittingflags & DSBLIT_DST_COLORKEY)
-               mach64_set_dst_colorkey( mdrv, mdev, state );
-          else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-               mach64_set_src_colorkey_scale( mdrv, mdev, state );
-          else
-               mach64_disable_colorkey( mdrv, mdev );
+               if (state->blittingflags & DSBLIT_DST_COLORKEY)
+                    mach64_set_dst_colorkey( mdrv, mdev, state );
+               else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                    mach64_set_src_colorkey_scale( mdrv, mdev, state );
+               else
+                    mach64_disable_colorkey( mdrv, mdev );
 
-          state->set = DFXL_STRETCHBLIT;
+               funcs->Blit = mach64Blit3D;
+
+               state->set = DFXL_BLIT | DFXL_STRETCHBLIT;
+          } else {
+               mach64_set_blit_2d( mdrv, mdev, state );
+
+               if (state->blittingflags & DSBLIT_DST_COLORKEY)
+                    mach64_set_dst_colorkey( mdrv, mdev, state );
+               else if (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                    mach64_set_src_colorkey( mdrv, mdev, state );
+               else
+                    mach64_disable_colorkey( mdrv, mdev );
+
+               funcs->Blit = mach64Blit2D;
+
+               state->set = DFXL_BLIT;
+          }
           break;
      default:
           BUG( "unexpected drawing/blitting function" );
@@ -366,8 +367,8 @@ static bool mach64DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 
      mach64_out32( mmio, DST_CNTL, DST_X_RIGHT_TO_LEFT | DST_Y_BOTTOM_TO_TOP );
      mach64_out32( mmio, DST_Y_X, (x2 << 16) | y2 );
-     mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | (rect->h - 1) );
-     mach64_out32( mmio, DST_HEIGHT_WIDTH, ((rect->w - 1) << 16) | 1 );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (1 << 16) | rect->h );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | 1 );
 
      return true;
 }
@@ -510,44 +511,44 @@ static bool mach64FillTriangle( void *drv, void *dev, DFBTriangle *tri )
      return true;
 }
 
-static bool mach64Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
+static void mach64DoBlit2D( Mach64DriverData *mdrv,
+                            Mach64DeviceData *mdev,
+                            DFBRectangle *srect,
+                            DFBRectangle *drect )
 {
-     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
-     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
      __u32 dst_cntl = 0;
 
-     if (rect->x <= dx) {
-          rect->x += rect->w - 1;
-          dx += rect->w - 1;
+     if (srect->x <= drect->x) {
+          srect->x += srect->w - 1;
+          drect->x += drect->w - 1;
           dst_cntl |= DST_X_RIGHT_TO_LEFT;
      } else
           dst_cntl |= DST_X_LEFT_TO_RIGHT;
 
-     if (rect->y <= dy) {
-          rect->y += rect->h - 1;
-          dy += rect->h - 1;
+     if (srect->y <= drect->y) {
+          srect->y += srect->h - 1;
+          drect->y += drect->h - 1;
           dst_cntl |= DST_Y_BOTTOM_TO_TOP;
      } else
           dst_cntl |= DST_Y_TOP_TO_BOTTOM;
 
      mach64_waitfifo( mdrv, mdev, 5 );
 
-     mach64_out32( mmio, SRC_Y_X, (rect->x << 16) | rect->y );
-     mach64_out32( mmio, SRC_HEIGHT1_WIDTH1, (rect->w << 16) | rect->h );
+     mach64_out32( mmio, SRC_Y_X, (srect->x << 16) | srect->y );
+     mach64_out32( mmio, SRC_HEIGHT1_WIDTH1, (srect->w << 16) | srect->h );
 
      mach64_out32( mmio, DST_CNTL, dst_cntl );
-     mach64_out32( mmio, DST_Y_X, (dx << 16) | dy );
-     mach64_out32( mmio, DST_HEIGHT_WIDTH, (rect->w << 16) | rect->h );
-
-     return true;
+     mach64_out32( mmio, DST_Y_X, (drect->x << 16) | drect->y );
+     mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
 }
 
-static bool mach64StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRectangle *drect )
+static void mach64DoBlitScale( Mach64DriverData *mdrv,
+                               Mach64DeviceData *mdev,
+                               DFBRectangle *srect,
+                               DFBRectangle *drect )
 {
-     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
-     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
      CoreSurface *source = mdev->source;
      SurfaceBuffer *buffer = source->front_buffer;
@@ -569,6 +570,41 @@ static bool mach64StretchBlit( void *drv, void *dev, DFBRectangle *srect, DFBRec
 
      mach64_out32( mmio, DST_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
+}
+
+static bool mach64Blit2D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     DFBRectangle drect = { dx, dy, rect->w, rect->h };
+
+     mach64DoBlit2D( mdrv, mdev, rect, &drect );
+
+     return true;
+}
+
+static bool mach64Blit3D( void *drv, void *dev,
+                          DFBRectangle *rect, int dx, int dy )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     DFBRectangle drect = { dx, dy, rect->w, rect->h };
+
+     mach64DoBlitScale( mdrv, mdev, rect, &drect );
+
+     return true;
+}
+
+static bool mach64StretchBlit( void *drv, void *dev,
+                               DFBRectangle *srect, DFBRectangle *drect )
+{
+     Mach64DriverData *mdrv = (Mach64DriverData*) drv;
+     Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
+
+     mach64DoBlitScale( mdrv, mdev, srect, drect );
 
      return true;
 }
@@ -603,7 +639,7 @@ driver_get_info( GraphicsDevice     *device,
                "Ville Syrjala" );
 
      info->version.major = 0;
-     info->version.minor = 10;
+     info->version.minor = 11;
 
      info->driver_data_size = sizeof (Mach64DriverData);
      info->device_data_size = sizeof (Mach64DeviceData);
@@ -634,8 +670,9 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->DrawRectangle = mach64DrawRectangle;
      funcs->DrawLine      = mach64DrawLine;
      funcs->FillTriangle  = mach64FillTriangle;
-     funcs->Blit          = mach64Blit;
      funcs->StretchBlit   = mach64StretchBlit;
+
+     /* Set dynamically: funcs->Blit */
 
      switch (mdrv->accelerator) {
           case FB_ACCEL_ATI_MACH64GT:
@@ -699,8 +736,9 @@ driver_init_device( GraphicsDevice     *device,
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
 
-     device_info->limits.surface_byteoffset_alignment = 32 * 4;
-     device_info->limits.surface_pixelpitch_alignment = 32;
+     device_info->limits.surface_byteoffset_alignment = 64;
+     device_info->limits.surface_bytepitch_alignment  = 16;
+     device_info->limits.surface_pixelpitch_alignment = 8;
 
      return DFB_OK;
 }
@@ -710,7 +748,9 @@ driver_close_device( GraphicsDevice *device,
                      void           *driver_data,
                      void           *device_data )
 {
+     Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
+     volatile __u8    *mmio = mdrv->mmio_base;
 
      DEBUGMSG( "DirectFB/Mach64: FIFO Performance Monitoring:\n" );
      DEBUGMSG( "DirectFB/Mach64:  %9d mach64_waitfifo calls\n",
@@ -733,6 +773,16 @@ driver_close_device( GraphicsDevice *device,
      DEBUGMSG( "DirectFB/Mach64:  Average fifo space cache hits: %02d%%\n",
                (int)(100 * mdev->fifo_cache_hits/
                (float)(mdev->waitfifo_calls)) );
+
+     switch (mdrv->accelerator) {
+          case FB_ACCEL_ATI_MACH64GT:
+               mach64_waitfifo( mdrv, mdev, 1 );
+               mach64_out32( mmio, SCALE_3D_CNTL, 0 );
+          case FB_ACCEL_ATI_MACH64VT:
+               mach64_waitfifo( mdrv, mdev, 1 );
+               mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
+               break;
+     }
 }
 
 static void
