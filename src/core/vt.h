@@ -24,12 +24,23 @@
 #ifndef __VT_H__
 #define __VT_H__
 
+#include <signal.h>
+#include <linux/vt.h>
 
 typedef struct {
-     int num;                      /* number of vt, where DirectFB runs */                                      
-     int prev;                     /* nurber of vt, where DirectFB was
-                                      started from */
-     int fd;                       /* file descriptor of /dev/console */
+     int fd0;                      /* file descriptor of /dev/tty0 */
+     int fd;                       /* file descriptor of /dev/ttyN
+                                      where N is the number of the allocated VT,
+                                      may be equal to 'fd0' if VT allocation
+                                      is disabled by "--no-vt-switch" */
+
+     int num;                      /* number of vt where DirectFB runs */
+     int prev;                     /* number of vt DirectFB was started from */
+
+     struct sigaction sig_usr1;    /* previous signal handler for USR1 */
+     struct sigaction sig_usr2;    /* previous signal handler for USR2 */
+
+     struct vt_mode   vt_mode;     /* previous VT mode */
 } VirtualTerminal;
 
 extern VirtualTerminal   *vt;

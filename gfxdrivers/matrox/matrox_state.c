@@ -254,7 +254,7 @@ inline void matrox_validate_Source()
      else
           texctl2 = DECALDIS | CKSTRANSDIS;
 
-     mga_waitfifo( mmio_base, 10);
+     mga_waitfifo( mmio_base, 12);
 
      mga_out32( mmio_base, 0x100000 >> matrox_w2, TMR0 );
      mga_out32( mmio_base, 0, TMR1 );

@@ -29,7 +29,9 @@
 #include <string.h>
 
 #include <sys/types.h>
+#include <sys/ioctl.h>
 #include <signal.h>
+#include <pthread.h>
 
 #include "directfb.h"
 #include "directfb_internals.h"
@@ -47,13 +49,14 @@
 #include "core/gfxcard.h"
 #include "core/surfaces.h"
 #include "core/windows.h"
+#include "core/vt.h"
 
 #include "display/idirectfbsurface.h"
 
 #include "idirectfb.h"
 
 
-static IDirectFB *idirectfb_singleton = NULL;
+IDirectFB *idirectfb_singleton = NULL;
 
 /*
  * Version checking
@@ -89,11 +92,44 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
 
      if (evt->type == DIET_KEYPRESS &&
-         evt->keycode == DIKC_BACKSPACE &&
          (evt->modifiers & (DIMK_CTRL|DIMK_ALT)) == (DIMK_CTRL|DIMK_ALT))
-          kill( getpid(), SIGINT );
+     {
+          switch (evt->keycode) {
+               case DIKC_BACKSPACE:
+                    kill( getpid(), SIGINT );
+                    break;
 
-     return RS_OK;
+               case DIKC_F1 ... DIKC_F12: {
+                    int num = evt->keycode - DIKC_F1 + 1;
+
+                    DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
+                              "Locking/unlocking hardware to "
+                              "increase the chance of idle hardware...\n" );
+
+                    pthread_mutex_lock( &card->lock );
+                    pthread_mutex_unlock( &card->lock );
+
+                    DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
+                              "Switching to VT %d...\n", num );
+
+                    if (ioctl( vt->fd, VT_ACTIVATE, num ))
+                         PERRORMSG( "DirectFB/directfb/keyboard_handler: "
+                                    "VT_ACTIVATE for VT %d failed!\n", num );
+
+                    //ioctl( vt->fd, VT_WAITACTIVE, num );
+
+                    DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
+                              "...hopefully switched to VT %d.\n", num );
+
+                    break;
+               }
+
+               default:
+                    return RS_OK;
+          }
+     }
+
+     return RS_DROP; /* stop dispatching of the event */
 }
 
 DFBResult DirectFBInit( int *argc, char **argv[] )

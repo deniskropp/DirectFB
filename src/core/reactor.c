@@ -133,16 +133,40 @@ void reactor_detach (Reactor *reactor,
 void reactor_dispatch (Reactor    *reactor,
                        const void *msg_data)
 {
-     Reaction *r;
+     Reaction *r, *to_free = NULL;
 
      pthread_mutex_lock( &reactor->reactions_lock );
   
      r = reactor->reactions;
 
      while (r) {
-          r->react( msg_data, r->ctx );
+          switch (r->react( msg_data, r->ctx )) {
+               case RS_REMOVE:
+                    if (r->next)
+                         r->next->prev = r->prev;
+
+                    if (r->prev)
+                         r->prev->next = r->next;
+                    else
+                         reactor->reactions = r->next;
+
+                    to_free = r;
+                    break;
+
+               case RS_DROP:
+                    pthread_mutex_unlock( &reactor->reactions_lock );
+                    return;
+
+               case RS_OK:
+                    ;
+          }
 
           r = r->next;
+
+          if (to_free) {
+               free( to_free );
+               to_free = NULL;
+          }
      }
 
      pthread_mutex_unlock( &reactor->reactions_lock );

@@ -27,7 +27,8 @@
 
 typedef enum {
      RS_OK,
-     RS_REMOVE
+     RS_REMOVE,
+     RS_DROP
 } ReactionResult;
 
 typedef ReactionResult (*React) (const void *msg_data, void *ctx);

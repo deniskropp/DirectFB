@@ -46,6 +46,8 @@ DFBResult DFBGetInterface( DFBInterfaceImplementation **iimpl,
      (p) = (i*)calloc( 1, sizeof(i) );
      
      
+extern IDirectFB *idirectfb_singleton;
+
 typedef void (*DFBSuspendResumeFunc)( int suspend, void *ctx );
 
 void DFBAddSuspendResumeFunc( DFBSuspendResumeFunc func, void *ctx );

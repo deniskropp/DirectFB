@@ -150,6 +150,7 @@ DFBResult surfacemanager_suspend()
               c->buffer->policy != CSP_VIDEOONLY &&
               c->buffer->video.health == CSH_STORED)
           {
+               surfacemanager_assure_system( c->buffer );
                c->buffer->video.health = CSH_RESTORE;
           }
 
@@ -373,6 +374,9 @@ DFBResult surfacemanager_assure_video( SurfaceBuffer *buffer )
                char *src = buffer->system.addr;
                char *dst = card->framebuffer.base + buffer->video.offset;
 
+               if (buffer->system.health != CSH_STORED)
+                    BUG( "system/video instances both not stored!" );
+
                while (h--) {
                     memcpy( dst, src,
                             surface->width * BYTES_PER_PIXEL(surface->format) );
@@ -401,7 +405,7 @@ DFBResult surfacemanager_assure_system( SurfaceBuffer *buffer )
      }
 
      if (buffer->system.health == CSH_STORED)
-               return DFB_OK;
+          return DFB_OK;
      else if (buffer->video.health == CSH_STORED) {
           int h = surface->height;
           char *src = card->framebuffer.base + buffer->video.offset;

@@ -57,16 +57,16 @@ void sig_handler( int num )
 
      core_deinit_emergency();
      
-     exit( num );
+     kill( 0, SIGHUP );
 }
 
 void sig_install_handlers()
 {
-     int *sigs = sigs_to_handle;
+   int *sigs = sigs_to_handle;
 
-     while (*sigs != -1) {
-          signal( *sigs, sig_handler );
-          sigs++;
-     }
+   while (*sigs != -1) {
+      signal( *sigs, sig_handler );
+      sigs++;
+   }
 }
 

@@ -30,17 +30,23 @@
 #include <sys/ioctl.h>
 #include <sys/vt.h>
 #include <errno.h>
+#include <pthread.h>
 
 #include "directfb.h"
+#include "directfb_internals.h"
+
+#include <misc/util.h>
 
 #include "core.h"
 #include "coredefs.h"
-
+#include "coretypes.h"
+#include "gfxcard.h"
 #include "vt.h"
 
 
-VirtualTerminal     *vt = NULL;
+VirtualTerminal *vt = NULL;
 
+static DFBResult vt_init_switching();
 
 /*
  * deallocates virtual terminal
@@ -52,25 +58,33 @@ void vt_close()
           return;
      }
 
+     if (ioctl( vt->fd, VT_SETMODE, &vt->vt_mode) < 0)
+          PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
+
+     sigaction( SIGUSR1, &vt->sig_usr1, NULL );
+     sigaction( SIGUSR2, &vt->sig_usr2, NULL );
+
      if (!dfb_config->no_vt_switch) {
           DEBUGMSG( "switching back...\n" );
-          ioctl( vt->fd, VT_ACTIVATE, vt->prev );
-          ioctl( vt->fd, VT_WAITACTIVE, vt->prev );
+          ioctl( vt->fd0, VT_ACTIVATE, vt->prev );
+          ioctl( vt->fd0, VT_WAITACTIVE, vt->prev );
           DEBUGMSG( "switched back...\n" );
-          ioctl( vt->fd, VT_DISALLOCATE, vt->num );
+          ioctl( vt->fd0, VT_DISALLOCATE, vt->num );
+
+          close( vt->fd );
      }
-     
-     close( vt->fd );
-     
+
+     close( vt->fd0 );
+
      free( vt );
      vt = NULL;
 }
 
 DFBResult vt_open()
 {
-     int n;
+     DFBResult ret;
      struct vt_stat vs;
-     
+
      if (vt) {
           BUG( "vt_open() called again!" );
           return DFB_BUG;
@@ -79,11 +93,11 @@ DFBResult vt_open()
      vt = (VirtualTerminal*)malloc( sizeof(VirtualTerminal) );
 
      setsid();
-     vt->fd = open( "/dev/tty0", O_WRONLY );
-     if (vt->fd < 0) {
+     vt->fd0 = open( "/dev/tty0", O_WRONLY );
+     if (vt->fd0 < 0) {
           if (errno == ENOENT) {
-               vt->fd = open( "/dev/vc/0", O_RDWR );
-               if (vt->fd < 0) {
+               vt->fd0 = open( "/dev/vc/0", O_RDWR );
+               if (vt->fd0 < 0) {
                     if (errno == ENOENT) {
                          PERRORMSG( "DirectFB/core/vt: Couldn't open "
                                     "neither `/dev/tty0' nor `/dev/vc/0'!\n" );
@@ -92,26 +106,26 @@ DFBResult vt_open()
                          PERRORMSG( "DirectFB/core/vt: "
                                     "Error opening `/dev/vc/0'!\n" );
                     }
-     
+
                     free( vt );
                     vt = NULL;
-     
+
                     return DFB_INIT;
                }
           }
           else {
                PERRORMSG( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
-     
+
                free( vt );
                vt = NULL;
-     
+
                return DFB_INIT;
           }
      }
 
-     if (ioctl( vt->fd, VT_GETSTATE, &vs ) < 0) {
+     if (ioctl( vt->fd0, VT_GETSTATE, &vs ) < 0) {
           PERRORMSG( "DirectFB/core/vt: VT_GETSTATE failed!\n" );
-          close( vt->fd );
+          close( vt->fd0 );
           free( vt );
           vt = NULL;
           return DFB_INIT;
@@ -119,38 +133,206 @@ DFBResult vt_open()
      vt->prev = vs.v_active;
 
      if (dfb_config->no_vt_switch) {
+          vt->fd  = vt->fd0;
           vt->num = vt->prev;
      }
      else {
-          n = ioctl( vt->fd, VT_OPENQRY, &vt->num );
+          int n;
+
+          n = ioctl( vt->fd0, VT_OPENQRY, &vt->num );
           if (n < 0 || vt->num == -1) {
                PERRORMSG( "DirectFB/core/vt: Cannot allocate VT!\n" );
-               close( vt->fd );
+               close( vt->fd0 );
                free( vt );
                vt = NULL;
                return DFB_INIT;
           }
 
-          while (ioctl( vt->fd, VT_ACTIVATE, vt->num ) < 0) {
+          while (ioctl( vt->fd0, VT_ACTIVATE, vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_ACTIVATE failed!\n" );
-               close( vt->fd );
+               close( vt->fd0 );
                free( vt );
                vt = NULL;
                return DFB_INIT;
           }
 
-          while (ioctl( vt->fd, VT_WAITACTIVE, vt->num ) < 0) {
+          while (ioctl( vt->fd0, VT_WAITACTIVE, vt->num ) < 0) {
                if (errno == EINTR)
                     continue;
                PERRORMSG( "DirectFB/core/vt: VT_WAITACTIVE failed!\n" );
-               close( vt->fd );
+               close( vt->fd0 );
                free( vt );
                vt = NULL;
                return DFB_INIT;
           }
+     }
+
+     ret = vt_init_switching();
+     if (ret) {
+          if (!dfb_config->no_vt_switch) {
+               DEBUGMSG( "switching back...\n" );
+               ioctl( vt->fd0, VT_ACTIVATE, vt->prev );
+               ioctl( vt->fd0, VT_WAITACTIVE, vt->prev );
+               DEBUGMSG( "...switched back\n" );
+               ioctl( vt->fd0, VT_DISALLOCATE, vt->num );
+          }
+
+          close( vt->fd0 );
+          free( vt );
+          vt = NULL;
+          return ret;
      }
 
      return DFB_OK;
 }
+
+static void vt_switch( int signal )
+{
+     static pthread_mutex_t switch_lock = PTHREAD_MUTEX_INITIALIZER;
+     static pthread_cond_t  switch_cond = PTHREAD_COND_INITIALIZER;
+
+     DEBUGMSG( "DirectFB/core/vt: "
+               "vt_switch signal handler activated (%d)\n", getpid() );
+
+     switch (signal) {
+          case SIGUSR1:
+               DEBUGMSG( "DirectFB/core/vt: Locking hardware...\n" );
+
+               if (pthread_mutex_trylock( &card->lock )) {
+                    DEBUGMSG( "DirectFB/core/vt: "
+                              "Not allowing VT switch, hardware is in use!\n" );
+                    if (ioctl( vt->fd, VT_RELDISP, 0 ) < 0)
+                         PERRORMSG( "DirectFB/core/vt: "
+                                    "Unable to disallow switch-from!\n" );
+                    return;
+               }
+
+               gfxcard_sync();
+
+               idirectfb_singleton->Suspend( idirectfb_singleton );
+
+               DEBUGMSG( "DirectFB/core/vt: Releasing VT...\n" );
+
+               if (ioctl( vt->fd, VT_RELDISP, 1 ) < 0)
+                    PERRORMSG( "DirectFB/core/vt: "
+                               "Unable to allow switch-from!\n" );
+
+               DEBUGMSG( "DirectFB/core/vt: ...VT released.\n" );
+
+               pthread_mutex_lock( &switch_lock );
+               DEBUGMSG( "DirectFB/core/vt: Chilling until acquisition...\n" );
+               pthread_cond_wait( &switch_cond, &switch_lock );
+               DEBUGMSG( "DirectFB/core/vt: ...chilled out.\n" );
+               pthread_mutex_unlock( &switch_lock );
+
+               pthread_mutex_unlock( &card->lock );
+
+
+               DEBUGMSG( "DirectFB/core/vt: ...hardware unlocked.\n" );
+
+               idirectfb_singleton->Resume( idirectfb_singleton );
+
+               break;
+
+          case SIGUSR2:
+               DEBUGMSG( "DirectFB/core/vt: Acquiring VT...\n" );
+
+               if (ioctl( vt->fd, VT_RELDISP, 2 ) < 0)
+                    PERRORMSG( "DirectFB/core/vt: "
+                               "Unable to allow switch-to!\n" );
+
+               DEBUGMSG( "DirectFB/core/vt: ...VT acquired.\n" );
+
+               pthread_mutex_lock( &switch_lock );
+               DEBUGMSG( "DirectFB/core/vt: Kicking chillers' ass...\n" );
+               pthread_cond_broadcast( &switch_cond );
+               DEBUGMSG( "DirectFB/core/vt: ...chillers kick ass.\n" );
+               pthread_mutex_unlock( &switch_lock );
+
+               break;
+
+          default:
+               BUG( "vt_switch received signal other than SIGUSR1 or SIGUSR2" );
+     }
+
+     DEBUGMSG( "DirectFB/core/vt: "
+               "Returning from signal handler (%d)\n", getpid() );
+}
+
+static DFBResult vt_init_switching()
+{
+     struct sigaction sig_tty;
+     struct vt_mode   vt_mode;
+
+     char buf[32];
+
+     sprintf(buf, "/dev/tty%d", vt->num);
+     vt->fd = open( buf, O_RDWR );
+     if (vt->fd < 0) {
+          if (errno == ENOENT) {
+               sprintf(buf, "/dev/vc/%d", vt->num);
+               vt->fd = open( buf, O_RDWR );
+               if (vt->fd < 0) {
+                    if (errno == ENOENT) {
+                         PERRORMSG( "DirectFB/core/vt: Couldn't open "
+                                    "neither `/dev/tty%d' nor `/dev/vc/%d'!\n",
+                                    vt->num, vt->num );
+                    }
+                    else {
+                         PERRORMSG( "DirectFB/core/vt: "
+                                    "Error opening `%s'!\n", buf );
+                    }
+
+                    return errno2dfb( errno );
+               }
+          }
+          else {
+               PERRORMSG( "DirectFB/core/vt: Error opening `%s'!\n", buf );
+               return errno2dfb( errno );
+          }
+     }
+
+     memset( &sig_tty, 0, sizeof( sig_tty ) );
+     sig_tty.sa_handler = vt_switch;
+     sigemptyset( &sig_tty.sa_mask );
+     if (sigaction( SIGUSR1, &sig_tty, &vt->sig_usr1 ) ||
+         sigaction( SIGUSR2, &sig_tty, &vt->sig_usr2 ))
+     {
+          PERRORMSG( "DirectFB/core/vt: sigaction failed!\n" );
+          return errno2dfb( errno );
+     }
+
+     if (ioctl( vt->fd, VT_GETMODE, &vt_mode ) < 0) {
+          int erno = errno;
+
+          PERRORMSG( "DirectFB/core/vt: VT_GETMODE failed!\n" );
+
+          sigaction( SIGUSR1, &vt->sig_usr1, NULL );
+          sigaction( SIGUSR2, &vt->sig_usr2, NULL );
+
+          return errno2dfb( erno );
+     }
+
+     vt->vt_mode = vt_mode;
+
+     vt_mode.mode   = VT_PROCESS;
+     vt_mode.waitv  = 0;
+     vt_mode.relsig = SIGUSR1;
+     vt_mode.acqsig = SIGUSR2;
+
+     if (ioctl( vt->fd, VT_SETMODE, &vt_mode) < 0) {
+          int erno = errno;
+
+          PERRORMSG( "DirectFB/core/vt: VT_SETMODE failed!\n" );
+
+          sigaction( SIGUSR1, &vt->sig_usr1, NULL );
+          sigaction( SIGUSR2, &vt->sig_usr2, NULL );
+
+          return errno2dfb( erno );
+     }
+
+     return DFB_OK;
+}
+
