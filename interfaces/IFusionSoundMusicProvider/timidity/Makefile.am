@@ -9,6 +9,7 @@ libtimidity_la_SOURCES = \
 	common.c	\
 	controls.c	\
 	filter.c	\
+	filter.h	\
 	instrum.c	\
 	mix.c		\
 	output.c	\
@@ -23,12 +24,12 @@ libtimidity_la_SOURCES = \
 	config.h	\
 	controls.h	\
 	filter.h	\
-	instnum.h	\
+	instrum.h	\
 	mix.h		\
 	output.h	\
 	playmidi.h	\
 	readmidi.h	\
-	readsample.h	\
+	resample.h	\
 	tables.h	\
 	timidity.h
 
