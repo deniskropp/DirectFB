@@ -380,9 +380,11 @@ static bool ati128DrawLine( void *drv, void *dev, DFBRegion *line )
      inc = small * 2;
      dec = large *(-2);
 
-     ati128_waitfifo( adrv, adev, 7 );
+     ati128_waitfifo( adrv, adev, 8 );
      /* set the destination datatype */
      ati128_out32( mmio, DP_DATATYPE, adev->ATI_dst_bpp | BRUSH_SOLIDCOLOR | ROP3_SRCCOPY );
+     ati128_out32( mmio, DP_MIX, ROP3_PATCOPY );
+     
      /* set start coorinates */
      ati128_out32( mmio, DST_Y_X, (S14(line->y1) << 16) | S12(line->x1));
      /* allow setting of last pel bit and polygon
