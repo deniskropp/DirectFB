@@ -246,6 +246,10 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      old_height = surface->height;
      old_format = surface->format;
 
+     surface->width  = width;
+     surface->height = height;
+     surface->format = format;
+     
      if (width      <= surface->min_width &&
          old_width  <= surface->min_width &&
          height     <= surface->min_height &&
@@ -253,10 +257,6 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
          old_format == surface->format)
           return DFB_OK;
 
-     surface->width  = width;
-     surface->height = height;
-     surface->format = format;
-     
      dfb_surfacemanager_lock( surface->manager );
 
      skirmish_prevail( &surface->front_lock );
