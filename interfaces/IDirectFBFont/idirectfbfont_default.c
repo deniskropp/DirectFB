@@ -126,7 +126,7 @@ Construct( IDirectFBFont      *thiz,
                     data = DFBMALLOC(sizeof (CoreGlyphData));
                     data->surface = surface;
                     data->start   = start;
-                    data->width   = i - start;
+                    data->width   = i - start + 1;
                     data->height  = 20;
                     data->left    = 0;
                     data->top     = 0;
@@ -134,14 +134,14 @@ Construct( IDirectFBFont      *thiz,
                     HEAVYDEBUGMSG( "DirectFB/core/fonts: glyph '%c' at %d, width %d\n",
                                    *glyphs, start, i-start );
 
-                    if (font->maxadvance < data->width)
-                         font->maxadvance = data->width;
+                    if (font->maxadvance < data->advance)
+                         font->maxadvance = data->advance;
 
                     dfb_tree_insert (font->glyph_infos,
                                      (void *) dfb_utf8_get_char (glyphs),
                                      data);
 
-                    start = i+1;
+                    start = i + 1;
                     glyphs++;
                }
                if (*glyphs == 0)
