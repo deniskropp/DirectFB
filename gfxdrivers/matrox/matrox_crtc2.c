@@ -384,7 +384,7 @@ crtc2SetFieldParity( DisplayLayer *layer,
 {
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
 
-     mcrtc2->field = field;
+     mcrtc2->field = !field;
 
      return DFB_OK;
 }
