@@ -590,10 +590,10 @@ IDirectFBSurface_Requestor_FillRectangle( IDirectFBSurface *thiz,
 {
      DFBRectangle rect = { x, y, w, h };
 
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
      if (w <= 0 || h <= 0)
           return DFB_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
                                     IDIRECTFBSURFACE_METHOD_ID_FillRectangle, VREQ_NONE, NULL,
@@ -638,10 +638,10 @@ IDirectFBSurface_Requestor_DrawRectangle( IDirectFBSurface *thiz,
 {
      DFBRectangle rect = { x, y, w, h };
 
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
      if (w <= 0 || h <= 0)
           return DFB_INVARG;
-
-     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      return voodoo_manager_request( data->manager, data->instance,
                                     IDIRECTFBSURFACE_METHOD_ID_DrawRectangle, VREQ_NONE, NULL,
