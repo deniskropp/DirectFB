@@ -43,12 +43,7 @@
 #include "directfb.h"
 
 #include "gfx/convert.h"
-
-
-#ifndef FALSE
-#define FALSE 0
-#define TRUE (!FALSE)
-#endif
+#include "misc/util.h"
 
 
 static struct {
@@ -66,20 +61,26 @@ static struct {
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
 
-static DFBResult  load_image  (DFBSurfaceDescription *desc,
-                               const char            *filename);
-static DFBResult  dump_image  (DFBSurfaceDescription *desc,
-                               const char            *name);
-static void       print_usage (const char            *prg_name);
+static DFBResult  load_image  (const char             *filename,
+                               DFBSurfaceDescription  *desc,
+                               DFBColor              **palette,
+                               int                    *palette_size);
+static DFBResult  dump_image  (const char             *name,
+                               DFBSurfaceDescription  *desc,
+                               DFBColor               *palette,
+                               int                     palette_size);
+static void       print_usage (const char             *prg_name);
 
 
 int main (int         argc,
           const char *argv[])
 {
-     DFBSurfaceDescription  desc   = { 0 };
-     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
-     const char *name     = NULL;
-     const char *filename = NULL;
+     DFBSurfaceDescription  desc    = { 0 };
+     DFBSurfacePixelFormat  format  = DSPF_UNKNOWN;
+     DFBColor   *palette      = NULL;
+     int         palette_size = 0;
+     const char *name         = NULL;
+     const char *filename     = NULL;
      char *vname;
      int   i, j, n;
 
@@ -143,10 +144,10 @@ int main (int         argc,
           desc.pixelformat = format;
      }
 
-     if (load_image (&desc, filename) != DFB_OK)
+     if (load_image (filename, &desc, &palette, &palette_size) != DFB_OK)
           return EXIT_FAILURE;
 
-     return dump_image (&desc, vname);
+     return dump_image (vname, &desc, palette, palette_size);
 }
 
 static void print_usage (const char *prg_name)
@@ -160,8 +161,10 @@ static void print_usage (const char *prg_name)
      fprintf (stderr, "\n");
 }
 
-static DFBResult load_image (DFBSurfaceDescription *desc,
-                             const char            *filename)
+static DFBResult load_image (const char            *filename,
+                             DFBSurfaceDescription *desc,
+                             DFBColor              *palette[],
+                             int                   *palette_size)
 {
      DFBSurfacePixelFormat dest_format;
      DFBSurfacePixelFormat src_format;
@@ -174,8 +177,8 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
      char           header[8];
      int            bytes, pitch;
 
-     dest_format = ((desc->flags & DSDESC_PIXELFORMAT) ?
-                    desc->pixelformat : DSPF_UNKNOWN);
+     dest_format =
+       (desc->flags & DSDESC_PIXELFORMAT) ? desc->pixelformat : DSPF_UNKNOWN;
 
      desc->flags = 0;
      desc->preallocated[0].data = NULL;
@@ -247,16 +250,35 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
                break;
 
           case PNG_COLOR_TYPE_RGB:
-               if (dest_format == DSPF_RGB24) {
-                    src_format = DSPF_RGB24;
-                    break;
-               }
-               /* fallthru */
           case PNG_COLOR_TYPE_RGB_ALPHA:
+               if (dest_format == DSPF_RGB24) {
+                    png_set_strip_alpha (png_ptr);
+                    src_format = DSPF_RGB24;
+               }
                break;
        }
 
      switch (src_format) {
+          case DSPF_LUT8:
+               *palette_size = info_ptr->num_palette;
+               if (*palette_size) {
+                    png_byte *alpha;
+                    int       i, num;
+
+                    *palette = malloc (sizeof (DFBColor) * *palette_size);
+                    for (i = 0; i < *palette_size; i++) {
+                         (*palette)[i].a = 0xFF;
+                         (*palette)[i].r = info_ptr->palette[i].red;
+                         (*palette)[i].g = info_ptr->palette[i].green;
+                         (*palette)[i].b = info_ptr->palette[i].blue;
+                    }
+                    if (png_get_valid (png_ptr, info_ptr, PNG_INFO_tRNS)) {
+                         png_get_tRNS (png_ptr, info_ptr, &alpha, &num, NULL);
+                         for (i = 0; i < MIN (num, *palette_size); i++)
+                              (*palette)[i].a = alpha[i];
+                    }
+               }
+               break;
           case DSPF_RGB32:
                 png_set_filler (png_ptr, 0xFF,
 #if __BYTE_ORDER == __BIG_ENDIAN
@@ -361,7 +383,7 @@ static DFBResult load_image (DFBSurfaceDescription *desc,
 typedef struct {
      FILE  *fp;
      int     pos;
-     int     pad;
+     bool    pad;
 } CSourceData;
 
 
@@ -373,7 +395,7 @@ save_uchar (CSourceData   *csource,
           fprintf (csource->fp, "\"\n  \"");
 
           csource->pos = 3;
-          csource->pad = FALSE;
+          csource->pad = false;
      }
      if (d < 33 || d > 126) {
           fprintf (csource->fp, "\\%o", d);
@@ -397,13 +419,15 @@ save_uchar (CSourceData   *csource,
           fputc (d, csource->fp);
           csource->pos += 1;
      }
-     csource->pad = FALSE;
+     csource->pad = false;
 
      return;
 }
 
-static DFBResult dump_image (DFBSurfaceDescription *desc,
-                             const char            *name)
+static DFBResult dump_image (const char            *name,
+                             DFBSurfaceDescription *desc,
+                             DFBColor              *palette,
+                             int                    palette_size)
 {
      CSourceData    csource = { stdout, 0, 0 };
      const char    *format  = NULL;
@@ -445,6 +469,18 @@ static DFBResult dump_image (DFBSurfaceDescription *desc,
 
      fprintf (csource.fp, "\";\n\n");
 
+     /* dump palette */
+     if (palette && palette_size > 0) {
+          fprintf (csource.fp,
+                   "static DFBColor %s_palette[%d] = {\n", name, palette_size);
+          for (i = 0; i < palette_size; i++)
+               fprintf (csource.fp,
+                        "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
+                        palette[i].a, palette[i].r, palette[i].g, palette[i].b,
+                        i+1 < palette_size ? ',' : ' ');
+          fprintf (csource.fp, "};\n\n");
+     }
+
      /* dump description */
      fprintf (csource.fp,
               "static DFBSurfaceDescription %s_desc = {\n", name);
@@ -463,6 +499,5 @@ static DFBResult dump_image (DFBSurfaceDescription *desc,
               "                    pitch : %d\n", desc->preallocated[0].pitch);
      fprintf (csource.fp, "  }}\n};\n\n");
 
-
-     return EXIT_SUCCESS;
+     return DFB_OK;
 }
