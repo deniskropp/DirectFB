@@ -1082,7 +1082,7 @@ build_updated_config( CoreLayerContext           *context,
           flags |= CLRCF_HEIGHT | CLRCF_SOURCE;
 
           ret_config->height   = update->height;
-          ret_config->source.h = update->width;
+          ret_config->source.h = update->height;
      }
 
      /* Change pixel format. */
