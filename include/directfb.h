@@ -131,6 +131,11 @@ DECLARE_INTERFACE( IDirectFBImageProvider )
 DECLARE_INTERFACE( IDirectFBVideoProvider )
 
 /*
+ * Streaming or static data for image or video providers.
+ */
+DECLARE_INTERFACE( IDirectFBDataBuffer )
+
+/*
  * OpenGL context of a surface.
  */
 DECLARE_INTERFACE( IDirectFBGL )
@@ -608,6 +613,16 @@ typedef enum {
 } DFBWindowDescriptionFlags;
 
 /*
+ * Flags defining which fields of a DFBDataBufferDescription are valid.
+ */
+typedef enum {
+     DBDESC_FILE         = 0x00000001,  /* Create a static buffer for the
+                                           specified filename. */
+     DBDESC_MEMORY       = 0x00000002   /* Create a static buffer for the
+                                           specified memory area. */
+} DFBDataBufferDescriptionFlags;
+
+/*
  * Capabilities a window can have.
  */
 typedef enum {
@@ -816,6 +831,21 @@ typedef struct {
      int                                posy;        /* distance from upper
                                                         layer border */
 } DFBWindowDescription;
+
+/*
+ * Description of a data buffer that is to be created.
+ */
+typedef struct {
+     DFBDataBufferDescriptionFlags      flags;       /* field validation */
+
+     const char                        *file;        /* for file based data
+                                                        buffers */
+
+     struct {
+          void                         *data;        /* static data pointer */
+          unsigned int                  length;      /* length of buffer */
+     } memory;
+} DFBDataBufferDescription;
 
 /*
  * Return value of callback function of enumerations.
@@ -1126,18 +1156,6 @@ DEFINE_INTERFACE(   IDirectFB,
      );
 
      /*
-      * Create a streamed video provider that uses the callback
-      * function to retrieve data. Callback is called one time
-      * during creation to determine the data type.
-      */
-     /*DFBResult (*CreateStreamedVideoProvider) (
-          IDirectFB                *thiz,
-          DFBGetDataCallback        callback,
-          void                     *callback_data,
-          IDirectFBVideoProvider  **interface
-     );*/
-
-     /*
       * Load a font from the specified file given a description
       * of how to load the glyphs.
       */
@@ -1146,6 +1164,18 @@ DEFINE_INTERFACE(   IDirectFB,
           const char               *filename,
           DFBFontDescription       *desc,
           IDirectFBFont           **interface
+     );
+
+     /*
+      * Create a data buffer.
+      *
+      * If no description is specified (NULL) a streamed data buffer
+      * is created.
+      */
+     DFBResult (*CreateDataBuffer) (
+          IDirectFB                *thiz,
+          DFBDataBufferDescription *desc,
+          IDirectFBDataBuffer     **interface
      );
 
 
@@ -3286,6 +3316,154 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*SetColorAdjustment) (
           IDirectFBVideoProvider   *thiz,
           DFBColorAdjustment       *adj
+     );
+)
+
+/***********************
+ * IDirectFBDataBuffer *
+ ***********************/
+
+/*
+ * <i>No summary yet...</i>
+ */
+DEFINE_INTERFACE(   IDirectFBDataBuffer,
+
+
+   /** Buffer handling **/
+
+     /*
+      * Flushes all data in this buffer.
+      *
+      * This method only applies to streaming buffers.
+      */
+     DFBResult (*Flush) (
+          IDirectFBDataBuffer      *thiz
+     );
+
+     /*
+      * Seeks to a given position.
+      *
+      * This method only applies to static buffers.
+      */
+     DFBResult (*SeekTo) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int              offset
+     );
+
+     /*
+      * Get the current position within a static buffer.
+      *
+      * This method only applies to static buffers.
+      */
+     DFBResult (*GetPosition) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int             *offset
+     );
+
+     /*
+      * Get the length of a static or streaming buffer.
+      *
+      * The length of a static buffer is its static size.
+      * A streaming buffer has a variable length reflecting
+      * the amount of buffered data. 
+      */
+     DFBResult (*GetLength) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int             *length
+     );
+
+
+   /** Waiting for data **/
+
+     /*
+      * Wait for data to be available.
+      * Thread is idle in the meantime.
+      *
+      * This method blocks until at least the specified number of bytes
+      * is available.
+      */
+     DFBResult (*WaitForData) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int              length
+     );
+
+     /*
+      * Wait for data to be available within an amount of time.
+      * Thread is idle in the meantime.
+      *
+      * This method blocks until at least the specified number of bytes
+      * is available or the timeout is reached.
+      */
+     DFBResult (*WaitForDataWithTimeout) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int              length,
+          unsigned int              seconds,
+          unsigned int              milli_seconds
+     );
+
+
+   /** Retrieving data **/
+
+     /*
+      * Fetch data from a streaming or static buffer.
+      *
+      * Static buffers will increase the data pointer.
+      * Streaming buffers will flush the data portion.
+      *
+      * The maximum number of bytes to fetch is specified by "length",
+      * the actual number of bytes fetched is returned via "read".
+      */
+     DFBResult (*GetData) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int              length,
+          void                     *data,
+          unsigned int             *read
+     );
+
+     /*
+      * Peek data from a streaming or static buffer.
+      *
+      * Unlike GetData() this method won't increase the data
+      * pointer or flush any portions of the data held.
+      *
+      * Additionally an offset from the current data pointer
+      * or beginning of the streaming buffer can be specified.
+      *
+      * The maximum number of bytes to peek is specified by "length",
+      * the actual number of bytes peeked is returned via "read".
+      */
+     DFBResult (*PeekData) (
+          IDirectFBDataBuffer      *thiz,
+          unsigned int              length,
+          unsigned int              offset,
+          void                     *data,
+          unsigned int             *read
+     );
+
+     /*
+      * Check if there is data available.
+      *
+      * This method returns DFB_OK if there is data available,
+      * DFB_BUFFER_EMPTY otherwise.
+      */
+     DFBResult (*HasData) (
+          IDirectFBDataBuffer      *thiz
+     );
+
+
+   /** Providing data **/
+
+     /*
+      * Appends a block of data to a streaming buffer.
+      *
+      * This method does not wait until the data got fetched.
+      *
+      * Static buffers don't support this method.
+      */
+     DFBResult (*PutData) (
+          IDirectFBDataBuffer      *thiz,
+          const void               *data,
+          unsigned int              length
      );
 )
 

@@ -2545,9 +2545,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_RGB32:
                case DSPF_ARGB:
                case DSPF_A8:
-#ifdef SUPPORT_RGB332
                case DSPF_RGB332:
-#endif
                     break;
                case DSPF_YUY2:
                case DSPF_UYVY:

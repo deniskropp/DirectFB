@@ -10,6 +10,7 @@ CFLAGS = $(DFB_CFLAGS)
 internalincludedir = $(INTERNALINCLUDEDIR)/media
 
 internalinclude_HEADERS = \
+	idirectfbdatabuffer.h		\
 	idirectfbfont.h			\
 	idirectfbimageprovider.h	\
 	idirectfbvideoprovider.h
@@ -18,4 +19,8 @@ internalinclude_HEADERS = \
 noinst_LTLIBRARIES = libdirectfb_media.la
 
 libdirectfb_media_la_SOURCES = \
+	idirectfbdatabuffer.c		\
+	idirectfbdatabuffer_file.c	\
+	idirectfbdatabuffer_memory.c	\
+	idirectfbdatabuffer_streamed.c	\
 	idirectfbfont.c

@@ -34,39 +34,40 @@
 #include <malloc.h>
 #include <string.h>
 
-#include "directfb.h"
-#include "directfb_version.h"
-#include "directfb_internals.h"
+#include <directfb.h>
+#include <directfb_version.h>
+#include <directfb_internals.h>
 
-#include "core/core.h"
-#include "core/coretypes.h"
+#include <core/core.h>
+#include <core/coretypes.h>
 
-#include "core/fbdev.h"
-#include "core/state.h"
-#include "core/gfxcard.h"
-#include "core/input.h"
-#include "core/layers.h"
-#include "core/surfaces.h"
-#include "core/surfacemanager.h"
-#include "core/windows.h"
+#include <core/fbdev.h>
+#include <core/state.h>
+#include <core/gfxcard.h>
+#include <core/input.h>
+#include <core/layers.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
+#include <core/windows.h>
 
-#include "display/idirectfbsurface.h"
-#include "display/idirectfbsurface_layer.h"
-#include "display/idirectfbsurface_window.h"
-#include "display/idirectfbdisplaylayer.h"
-#include "input/idirectfbinputbuffer.h"
-#include "input/idirectfbinputdevice.h"
-#include "media/idirectfbfont.h"
-#include "media/idirectfbimageprovider.h"
-#include "media/idirectfbvideoprovider.h"
+#include <display/idirectfbsurface.h>
+#include <display/idirectfbsurface_layer.h>
+#include <display/idirectfbsurface_window.h>
+#include <display/idirectfbdisplaylayer.h>
+#include <input/idirectfbinputbuffer.h>
+#include <input/idirectfbinputdevice.h>
+#include <media/idirectfbfont.h>
+#include <media/idirectfbimageprovider.h>
+#include <media/idirectfbvideoprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
-#include "idirectfb.h"
+#include <idirectfb.h>
 
-#include "gfx/convert.h"
+#include <gfx/convert.h>
 
-#include "misc/conf.h"
-#include "misc/mem.h"
-#include "misc/util.h"
+#include <misc/conf.h>
+#include <misc/mem.h>
+#include <misc/util.h>
 
 /*
  * private data struct of IDirectFB
@@ -337,7 +338,9 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
+#ifdef SUPPORT_RGB332
           case DSPF_RGB332:
+#endif
           case DSPF_UYVY:
           case DSPF_YUY2:
           case DSPF_YV12:
@@ -698,6 +701,46 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
 }
 
 static DFBResult
+IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
+                            DFBDataBufferDescription  *desc,
+                            IDirectFBDataBuffer      **interface )
+{
+     INTERFACE_GET_DATA(IDirectFB)
+
+     if (!interface)
+          return DFB_INVARG;
+
+     if (!desc) {
+          DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+
+          return IDirectFBDataBuffer_Streamed_Construct( *interface );
+     }
+          
+     if (desc->flags & DBDESC_FILE) {
+          if (!desc->file)
+               return DFB_INVARG;
+
+          DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+
+          return IDirectFBDataBuffer_File_Construct( *interface,
+                                                     desc->file );
+     }
+     
+     if (desc->flags & DBDESC_MEMORY) {
+          if (!desc->memory.data || !desc->memory.length)
+               return DFB_INVARG;
+
+          DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+
+          return IDirectFBDataBuffer_Memory_Construct( *interface,
+                                                       desc->memory.data,
+                                                       desc->memory.length );
+     }
+
+     return DFB_INVARG;
+}
+
+static DFBResult
 IDirectFB_Suspend( IDirectFB *thiz )
 {
      return dfb_core_suspend();
@@ -763,6 +806,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;
+     thiz->CreateDataBuffer = IDirectFB_CreateDataBuffer;
      thiz->Suspend = IDirectFB_Suspend;
      thiz->Resume = IDirectFB_Resume;
      thiz->WaitIdle = IDirectFB_WaitIdle;
