@@ -597,9 +597,14 @@ extern "C"
       * Description of how to load glyphs from a font file.
       *
       * The attributes control how the glyphs are rendered. Width and
-      * height can be used to specify the face size. The index field
-      * controls which face is loaded from a font file that provides a
-      * collection of faces.
+      * height can be used to specify the desired face size in pixels.
+      * If you are loading a non-scalable font, you shouldn't specify
+      * a font size. Please note that the height value in the
+      * FontDescription doesn't correspond to the height returned by
+      * the font's GetHeight() method.
+      * 
+      * The index field controls which face is loaded from a font file
+      * that provides a collection of faces. This is rarely needed.
       */
      typedef struct {
           DFBFontDescriptionFlags            flags;
@@ -2793,7 +2798,9 @@ extern "C"
           /*
            * Get the logical height of this font. This is the vertical
            * distance from one baseline to the next when writing
-           * several lines of text.
+           * several lines of text. Note that this value does not
+           * correspond the height value specified when loading the
+           * font.
            */
           DFBResult (*GetHeight) (
                IDirectFBFont       *thiz,

@@ -120,11 +120,12 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                     font->next_x = 0;
                     font->rows++;
 
-                    font->surfaces = DFBREALLOC(font->surfaces,
-                                              sizeof (void *) * font->rows);
+                    font->surfaces = DFBREALLOC( font->surfaces,
+                                                 sizeof(void *) * font->rows );
 
                     dfb_surface_create( font->row_width,
-                                        MAX( font->height, 8 ),
+                                        MAX( font->ascender - font->descender,
+                                             8 ),
                                         font->pixel_format,
                                         CSP_VIDEOHIGH, DSCAPS_NONE,
                                         &font->surfaces[font->rows - 1] );
