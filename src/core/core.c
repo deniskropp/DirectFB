@@ -98,13 +98,12 @@ static int core_transfer( FusionArena *arena, void *ctx );
  */
 void core_deinit_check()
 {
-#if 0
-     if (dfb_core_local->refs) {
+     if (dfb_core->refs) {
           DEBUGMSG( "DirectFB/core: WARNING - Application "
                     "exitted without deinitialization of DirectFB!\n" );
-          core_deinit();
+          if (dfb_core->master)
+               core_deinit_emergency();
      }
-#endif
 
 #ifdef DFB_DEBUG
      dbg_print_memleaks();
@@ -214,7 +213,6 @@ void core_deinit_emergency()
 
 #ifdef FUSION_FAKE
      if (dfb_core->master) {
-#if 0
           while (core_cleanups) {
                CoreCleanup *cleanup = core_cleanups;
 
@@ -226,6 +224,7 @@ void core_deinit_emergency()
                DFBFREE( cleanup );
           }
 
+#if 0
           if (card) {
                int i;
 
@@ -252,9 +251,9 @@ void core_deinit_emergency()
 #else
      arena_exit( dfb_core->arena,
                  core_shutdown, core_leave, core_transfer );
+#endif
 
      fusion_exit();
-#endif
 
      DFBFREE( dfb_core );
      dfb_core = NULL;
