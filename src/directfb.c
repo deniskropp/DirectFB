@@ -170,7 +170,7 @@ DirectFBCreate( IDirectFB **interface )
           fprintf( stderr, "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
                            DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
           fprintf( stderr, "             (c) 2000-2002  convergence integrated media GmbH  \n" );
-          fprintf( stderr, "             (c) 2002       convergence GmbH                   \n" );
+          fprintf( stderr, "             (c) 2002-2003  convergence GmbH                   \n" );
           fprintf( stderr, "        -----------------------------------------------------------\n" );
           fprintf( stderr, "\n" );
      }
