@@ -20,7 +20,7 @@
 - Planar YUV blitting support in Matrox driver (Ville Syrjala <syrjala@sci.fi>).
 - Fixed nVidia driver for big endian hosts.
 - The window stack and video mode are now restored even if a fullscreen
-  application simply exits or gets killed by any signal.
+  application simply exits or gets killed by any signal (multi app core).
 - Some bug fixes, especially (de/re)initialization, allocation related.
 
 
