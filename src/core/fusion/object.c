@@ -316,6 +316,12 @@ bone_collector_loop( CoreThread *thread, void *arg )
                     case FUSION_SUCCESS:
                          FDEBUG("{%s} dead object: %p\n", pool->name, object);
 
+                         if (object->state == FOS_INIT) {
+                              CAUTION( "won't destroy incomplete object, leaking memory" );
+                              fusion_list_remove( &pool->objects, &object->link );
+                              break;
+                         }
+
                          /* Set "deinitializing" state. */
                          object->state = FOS_DEINIT;
 
