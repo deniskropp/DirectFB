@@ -84,7 +84,6 @@ typedef struct {
      DFBInputDeviceModifierMask   modifiers_l;
      DFBInputDeviceModifierMask   modifiers_r;
      DFBInputDeviceLockState      locks;
-     DFBInputDeviceLockState      locks_pressed;
      DFBInputDeviceButtonMask     buttons;
 
      FusionReactor               *reactor;       /* event dispatcher */
@@ -865,16 +864,13 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
      if (event->type == DIET_KEYPRESS) {
           switch (event->key_id) {
                case DIKI_CAPS_LOCK:
-                    shared->locks ^= (DILS_CAPS & ~shared->locks_pressed);
-                    shared->locks_pressed |= DILS_CAPS;
+                    shared->locks ^= DILS_CAPS;
                     break;
                case DIKI_NUM_LOCK:
-                    shared->locks ^= (DILS_NUM & ~shared->locks_pressed);
-                    shared->locks_pressed |= DILS_NUM;
+                    shared->locks ^= DILS_NUM;
                     break;
                case DIKI_SCROLL_LOCK:
-                    shared->locks ^= (DILS_SCROLL & ~shared->locks_pressed);
-                    shared->locks_pressed |= DILS_SCROLL;
+                    shared->locks ^= DILS_SCROLL;
                     break;
                default:
                     ;
@@ -883,21 +879,6 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
           /* write back to event */
           if (missing & DIEF_LOCKS)
                event->locks = shared->locks;
-     }
-     else {
-          switch (event->key_id) {
-               case DIKI_CAPS_LOCK:
-                    shared->locks_pressed &= ~DILS_CAPS;
-                    break;
-               case DIKI_NUM_LOCK:
-                    shared->locks_pressed &= ~DILS_NUM;
-                    break;
-               case DIKI_SCROLL_LOCK:
-                    shared->locks_pressed &= ~DILS_SCROLL;
-                    break;
-               default:
-                    ;
-          }
      }
 }
 
