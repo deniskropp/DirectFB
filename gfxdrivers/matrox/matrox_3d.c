@@ -427,18 +427,18 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                float dzdx, dzdy;
 
                DERIV(dz, z);
-#define DEPTH_SCALE 65535.0f  /* what the...? */
-               if (dzdx>DEPTH_SCALE*(1<<15) || dzdx<-DEPTH_SCALE*(1<<15)) {
+
+               if (dzdx>65535.0f*(1<<15) || dzdx<-65535.0f*(1<<15)) {
                     /* probably a sliver triangle */
                     dzdx = 0.0;
                     dzdy = 0.0;
                }
 
-               Zstart = vTL->z + dzdx*adjx + dzdy*adjy + (1 << 24);
+               Zstart = vTL->z + dzdx*adjx + dzdy*adjy;
 
                /* FIXME: 16 bit assumed */
-               if (Zstart > 65535.0F*(1 << 15)) {
-                    Zstart = 65535.0F*(1 << 15);
+               if (Zstart > 65535.0f*(1 << 15)) {
+                    Zstart = 65535.0f*(1 << 15);
                     dzdx = 0.0F;
                     dzdy = 0.0F;
                }
@@ -524,6 +524,8 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      }
 }
 
+#define INVWMAX 128.0F
+
 bool
 matroxTextureTriangles( void *drv, void *dev,
                         DFBVertex *vertices, int num,
@@ -535,14 +537,38 @@ matroxTextureTriangles( void *drv, void *dev,
      volatile __u8    *mmio = mdrv->mmio_base;
      __u32             dwgctl;
 
-     float wScale = 1 << 20;
+     float wScale;
+
+#if 0
+     float InvWScale = 1.0f;
+     float nearVal   = 1.0f;
+
+     if (nearVal > 0) {
+          /* limit InvWScale/wMin in (0,INVWMAX] to avoid over- and underflow.
+             InvWScale is used by texture setup in mga_tritemp.h */
+          int exp2;
+
+          if (frexp(INVWMAX * nearVal,&exp2) != 0) {
+               if (exp2 >= 2) {
+                    InvWScale = 1 << (exp2-1);
+               }
+               else if (exp2 <= 0) {
+                    InvWScale = 1.0 / (1 << (-exp2+1));
+               }
+          }
+     }
+#else
+#define InvWScale 128.0f
+#endif
+
+     wScale = InvWScale * (float) (1 << 20);
 
      for (i=0; i<num; i++) {
           DFBVertex *v = &vertices[i];
 
           v->x -= 0.5f;
           v->y -= 0.5f;
-          v->z *= 1 << 20;
+          v->z *= (float) (1 << 15) * 65535.0f;
           v->w *= wScale;
 
           v->s *= v->w * (float) mdev->w / (float) (1 << mdev->w2);
@@ -550,7 +576,7 @@ matroxTextureTriangles( void *drv, void *dev,
      }
 
      if (mdev->depth_buffer)
-          dwgctl = ATYPE_ZI | ZMODE_ZGT;
+          dwgctl = ATYPE_ZI | ZMODE_ZLTE;
      else
           dwgctl = ATYPE_I  | ZMODE_NOZCMP;
 

@@ -149,6 +149,11 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
 
      if (!cd_state_inited) {
           dfb_state_init( &cd_state );
+
+          cd_state.color.r = 0xff;
+          cd_state.color.g = 0xff;
+          cd_state.color.b = 0xff;
+
           cd_state_inited = true;
      }
 
