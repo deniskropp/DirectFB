@@ -390,10 +390,11 @@ static void
 get_device_info( int              fd,
                  InputDeviceInfo *info )
 {
-     unsigned int  num_keys    = 0;
-     unsigned int  num_buttons = 0;
-     unsigned int  num_rels    = 0;
-     unsigned int  num_abs     = 0;
+     unsigned int  num_keys     = 0;
+     unsigned int  num_ext_keys = 0;
+     unsigned int  num_buttons  = 0;
+     unsigned int  num_rels     = 0;
+     unsigned int  num_abs      = 0;
 
      unsigned long evbit[NBITS(EV_MAX)];
      unsigned long keybit[NBITS(KEY_MAX)];
@@ -416,13 +417,14 @@ get_device_info( int              fd,
           /* get keyboard bits */
           ioctl( fd, EVIOCGBIT(EV_KEY, KEY_MAX), keybit );
 
-          for (i=0; i<KEY_UNKNOWN; i++)
+	  /**  count typical keyboard keys only */
+          for (i=KEY_Q; i<KEY_M; i++)
                if (test_bit( i, keybit ))
                     num_keys++;
 
           for (i=KEY_OK; i<KEY_MAX; i++)
                if (test_bit( i, keybit ))
-                    num_keys++;
+                    num_ext_keys++;
 
           for (i=BTN_MISC; i<KEY_OK; i++)
                if (test_bit( i, keybit ))
@@ -457,9 +459,15 @@ get_device_info( int              fd,
      else if (num_abs && num_buttons) /* Or a Joystick? */
           info->desc.type |= DIDTF_JOYSTICK;
 
-     /* A Keyboard? */
-     if (num_keys) {
+     /* A Keyboard, do we have at least some letters? */
+     if (num_keys > 20) {
           info->desc.type |= DIDTF_KEYBOARD;
+          info->desc.caps |= DICAPS_KEYS;
+     }
+
+     /* A Remote Control? */
+     if (num_ext_keys) {
+          info->desc.type |= DIDTF_REMOTE;
           info->desc.caps |= DICAPS_KEYS;
      }
 
@@ -478,6 +486,8 @@ get_device_info( int              fd,
      /* Decide which primary input device to be. */
      if (info->desc.type & DIDTF_KEYBOARD)
           info->prefered_id = DIDID_KEYBOARD;
+     else if (info->desc.type & DIDTF_REMOTE)
+          info->prefered_id = DIDID_REMOTE;
      else if (info->desc.type & DIDTF_JOYSTICK)
           info->prefered_id = DIDID_JOYSTICK;
      else
