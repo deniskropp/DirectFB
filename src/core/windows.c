@@ -315,10 +315,11 @@ dfb_window_create( CoreWindowStack        *stack,
      /* Create the window object. */
      w = (CoreWindow*) fusion_object_create( stack->pool );
 
-     /* Create the window's surface. */
+     /* Create the window's surface using the layer's palette. */
      if (! (caps & DWCAPS_INPUTONLY)) {
           ret = dfb_surface_create( width, height, pixelformat, surface_policy,
-                                    surface_caps, &surface );
+                                    surface_caps, layer_surface->palette,
+                                    &surface );
           if (ret) {
                fusion_object_destroy( &w->object );
                return ret;

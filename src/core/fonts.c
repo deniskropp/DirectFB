@@ -130,7 +130,7 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                                         MAX( font->ascender - font->descender,
                                              8 ),
                                         font->pixel_format,
-                                        CSP_VIDEOHIGH, DSCAPS_NONE,
+                                        CSP_VIDEOHIGH, DSCAPS_NONE, NULL,
                                         &font->surfaces[font->rows - 1] );
                }
 

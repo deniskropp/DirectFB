@@ -888,7 +888,7 @@ primaryAllocateSurface   ( DisplayLayer               *layer,
      
      /* initialize surface structure */
      ret = dfb_surface_init( surface, config->width, config->height,
-                             config->pixelformat, caps );
+                             config->pixelformat, caps, NULL );
      if (ret) {
           shfree( surface );
           return ret;

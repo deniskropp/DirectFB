@@ -1454,7 +1454,7 @@ allocate_surface( DisplayLayer *layer )
 
      return dfb_surface_create( shared->config.width, shared->config.height,
                                 shared->config.pixelformat, CSP_VIDEOONLY,
-                                caps, &shared->surface );
+                                caps, NULL, &shared->surface );
 }
 
 static DFBResult

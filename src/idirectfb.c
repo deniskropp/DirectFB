@@ -466,7 +466,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
           }
 
           ret = dfb_surface_create_preallocated( width, height,
-                                                 format, policy, caps,
+                                                 format, policy, caps, NULL,
                                                  desc->preallocated[0].data,
                                                  desc->preallocated[1].data,
                                                  desc->preallocated[0].pitch,
@@ -477,7 +477,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
      }
      else {
           ret = dfb_surface_create( width, height, format,
-                                    policy, caps, &surface );
+                                    policy, caps, NULL, &surface );
           if (ret)
                return ret;
      }

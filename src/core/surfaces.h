@@ -177,6 +177,7 @@ DFBResult dfb_surface_create( int                      width,
                               DFBSurfacePixelFormat    format,
                               CoreSurfacePolicy        policy,
                               DFBSurfaceCapabilities   caps,
+                              CorePalette             *palette,
                               CoreSurface            **surface );
 
 /*
@@ -188,6 +189,7 @@ DFBResult dfb_surface_create_preallocated( int                      width,
                                            DFBSurfacePixelFormat    format,
                                            CoreSurfacePolicy        policy,
                                            DFBSurfaceCapabilities   caps,
+                                           CorePalette             *palette,
                                            void                    *front_data,
                                            void                    *back_data,
                                            int                      front_pitch,
@@ -197,11 +199,12 @@ DFBResult dfb_surface_create_preallocated( int                      width,
 /*
  * initialize surface structure, not required for surface_create_*
  */
-DFBResult dfb_surface_init ( CoreSurface           *surface,
-                             int                    width,
-                             int                    height,
-                             DFBSurfacePixelFormat  format,
-                             DFBSurfaceCapabilities caps );
+DFBResult dfb_surface_init ( CoreSurface            *surface,
+                             int                     width,
+                             int                     height,
+                             DFBSurfacePixelFormat   format,
+                             DFBSurfaceCapabilities  caps,
+                             CorePalette            *palette );
 
 /*
  * reallocates data for the specified surface

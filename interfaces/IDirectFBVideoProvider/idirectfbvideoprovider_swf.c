@@ -446,9 +446,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      dfb_surface_create( (int) data->flashInfo.frameWidth  / 20,
                          (int) data->flashInfo.frameHeight / 20,
-                         DSPF_RGB16,
-                         CSP_SYSTEMONLY,
-                         DSCAPS_SYSTEMONLY,
+                         DSPF_RGB16, CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY, NULL,
                          &(data->source));
 
      data->flashDisplay.pixels = data->source->back_buffer->system.addr;

@@ -101,9 +101,8 @@ Construct( IDirectFBFont      *thiz,
      font->ascender  = 16;
      font->descender = -4;
 
-     dfb_surface_create( 1024, 20,
-                         font->pixel_format, CSP_VIDEOHIGH, DSCAPS_NONE,
-                         &surface );
+     dfb_surface_create( 1024, 20, font->pixel_format,
+                         CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &surface );
 
      font->rows = 1;
      font->row_width = 1024;

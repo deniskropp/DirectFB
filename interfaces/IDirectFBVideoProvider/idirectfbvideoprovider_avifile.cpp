@@ -425,8 +425,8 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      ret = dfb_surface_create_preallocated( data->player->GetWidth(),
                                             data->player->GetHeight(),
                                             DSPF_RGB16, CSP_SYSTEMONLY,
-                                            DSCAPS_SYSTEMONLY, NULL, NULL, 0, 0,
-                                            &data->source );
+                                            DSCAPS_SYSTEMONLY, NULL,
+                                            NULL, NULL, 0, 0, &data->source );
      if (ret) {
           delete data->player;
           DFB_DEALLOCATE_INTERFACE(thiz);

@@ -124,14 +124,15 @@ FusionObjectPool *dfb_surface_pool_create()
 
 DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat format,
                               CoreSurfacePolicy policy,
-                              DFBSurfaceCapabilities caps, CoreSurface **surface )
+                              DFBSurfaceCapabilities caps, CorePalette *palette,
+                              CoreSurface **surface )
 {
      DFBResult    ret;
      CoreSurface *s;
 
      s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
 
-     ret = dfb_surface_init( s, width, height, format, caps );
+     ret = dfb_surface_init( s, width, height, format, caps, palette );
      if (ret) {
           fusion_object_destroy( &s->object );
           return ret;
@@ -176,6 +177,7 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
 DFBResult dfb_surface_create_preallocated( int width, int height,
                                            DFBSurfacePixelFormat format,
                                            CoreSurfacePolicy policy, DFBSurfaceCapabilities caps,
+                                           CorePalette *palette,
                                            void *front_buffer, void *back_buffer,
                                            int front_pitch, int back_pitch,
                                            CoreSurface **surface )
@@ -188,7 +190,7 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
 
      s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
 
-     ret = dfb_surface_init( s, width, height, format, caps );
+     ret = dfb_surface_init( s, width, height, format, caps, palette );
      if (ret) {
           fusion_object_destroy( &s->object );
           return ret;
@@ -565,11 +567,12 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
      DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) exitting\n", surface);
 }
 
-DFBResult dfb_surface_init ( CoreSurface           *surface,
-                             int                    width,
-                             int                    height,
-                             DFBSurfacePixelFormat  format,
-                             DFBSurfaceCapabilities caps )
+DFBResult dfb_surface_init ( CoreSurface            *surface,
+                             int                     width,
+                             int                     height,
+                             DFBSurfacePixelFormat   format,
+                             DFBSurfaceCapabilities  caps,
+                             CorePalette            *palette )
 {
      switch (format) {
           case DSPF_A8:
@@ -601,17 +604,19 @@ DFBResult dfb_surface_init ( CoreSurface           *surface,
           surface->min_height = height;
      }
 
-     if (1 /* FIXME: DFB_PIXELFORMAT_IS_INDEXED( format )*/) {
-          CorePalette *palette = dfb_palette_create( 256 );
-
+     if (!palette /* FIXME: DFB_PIXELFORMAT_IS_INDEXED( format )*/) {
+          palette = dfb_palette_create( 256 );
           if (!palette)
                return DFB_FAILURE;
 
           dfb_palette_link( &surface->palette, palette );
           dfb_palette_unref( palette );
-
-          dfb_palette_attach( palette, palette_listener, surface );
      }
+     else {
+          dfb_palette_link( &surface->palette, palette );
+     }
+     
+     dfb_palette_attach( palette, palette_listener, surface );
      
      skirmish_init( &surface->lock );
      
