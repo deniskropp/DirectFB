@@ -269,7 +269,7 @@ AC_ARG_ENABLE(debug,
   enable_debug=no)
 if test "x$enable_debug" = xyes; then
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -DDFB_DEBUG"
-    CFLAGS="$CFLAGS -g3 -fno-inline"
+    CFLAGS="$CFLAGS -g3 -finstrument-functions -fno-inline"
 fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 

@@ -38,6 +38,7 @@
 #include <core/sig.h>
 
 #include <misc/conf.h>
+#include <misc/debug.h>
 
 typedef struct {
      int              signum;
@@ -108,7 +109,6 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
                               return;
                          }
                          
-                         fprintf( stderr, " <--\n" );
                          break;
 
                     case SEGV_ACCERR:
@@ -127,6 +127,8 @@ dfb_sig_action( int num, siginfo_t *info, void *foo )
                fprintf( stderr, " <--\n" );
                break;
      }
+     
+     dfb_debug_print_stack();
      
      fflush( stderr );
 

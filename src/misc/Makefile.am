@@ -28,6 +28,7 @@ internalinclude_HEADERS = \
         $(ppcasm_headers)	\
 	conf.h			\
 	cpu_accel.h		\
+	debug.h			\
 	gfx_util.h		\
 	mem.h			\
 	memcpy.h		\
@@ -41,6 +42,7 @@ noinst_LTLIBRARIES = libdirectfb_misc.la
 libdirectfb_misc_la_SOURCES =	\
 	conf.c			\
 	cpu_accel.c		\
+	debug.c			\
 	gfx_util.c		\
 	mem.c			\
 	memcpy.c		\

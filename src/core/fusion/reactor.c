@@ -42,6 +42,7 @@
 
 #include <core/thread.h>
 #include <misc/mem.h>
+#include <misc/debug.h>
 
 #include "fusion_types.h"
 #include "list.h"
@@ -452,6 +453,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
                                    continue;
                               case EINVAL:
                                    FERROR ("invalid reactor\n");
+                                   dfb_debug_print_stack();
                                    break;
                               default:
                                    FPERROR ("FUSION_REACTOR_DETACH\n");
