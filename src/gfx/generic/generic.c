@@ -63,7 +63,9 @@ static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
 
 static int use_mmx = 0;
 
+#ifdef USE_MMX
 static void gInit_MMX();
+#endif
 
 /********************************* Cop_to_Aop_PFI *****************************/
 
