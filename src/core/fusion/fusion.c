@@ -297,7 +297,7 @@ fusion_read_loop( CoreThread *thread, void *arg )
 #else
 
 int
-fusion_init( int world, int *world_ret )
+fusion_init( int world, int *ret_world )
 {
      if (ret_world)
           *ret_world = 0;
