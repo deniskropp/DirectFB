@@ -479,6 +479,18 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          config.pixelformat  = format;
                     }
                     
+                    /*
+                     * If SetVideoMode hasn't been called,
+                     * check if the user ran the app with the 'mode=' option.
+                     */
+                    if (!data->primary.bpp) {
+                         if (dfb_config->mode.width)
+                              config.width = dfb_config->mode.width;
+
+                         if (dfb_config->mode.height)
+                              config.height = dfb_config->mode.height;
+                    }
+                    
                     ret = dfb_layer_set_configuration( data->layer, &config );
                     if (ret) {
                          if (! (caps & (DSCAPS_SYSTEMONLY|DSCAPS_VIDEOONLY))) {
