@@ -1493,7 +1493,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface)
 
      data->ref = 1;
-     data->caps = caps;
+     data->caps = caps | surface->caps;
 
      if (dfb_surface_ref( surface ) != FUSION_SUCCESS) {
           DFB_DEALLOCATE_INTERFACE(thiz);

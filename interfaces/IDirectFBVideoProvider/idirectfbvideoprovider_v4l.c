@@ -108,9 +108,9 @@ static void* GrabThread( CoreThread *thread, void *context );
 static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx );
 static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ctx );
 static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
-                                 IDirectFBVideoProvider_V4L_data *data );
+                                         IDirectFBVideoProvider_V4L_data *data );
 static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
-                                 IDirectFBVideoProvider_V4L_data *data );
+                                      IDirectFBVideoProvider_V4L_data *data );
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach );
 static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data );
 static void v4l_cleanup( void *data, int emergency );
@@ -119,7 +119,7 @@ static void v4l_cleanup( void *data, int emergency );
 static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_V4L_data *data =
-          (IDirectFBVideoProvider_V4L_data*)thiz->priv;
+     (IDirectFBVideoProvider_V4L_data*)thiz->priv;
 
      v4l_deinit( data );
 
@@ -152,8 +152,8 @@ static DFBResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thi
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
-                                           IDirectFBVideoProvider       *thiz,
-                                           DFBVideoProviderCapabilities *caps )
+                                                            IDirectFBVideoProvider       *thiz,
+                                                            DFBVideoProviderCapabilities *caps )
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
@@ -174,8 +174,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
-                                                 IDirectFBVideoProvider *thiz,
-                                                 DFBSurfaceDescription  *desc )
+                                                                 IDirectFBVideoProvider *thiz,
+                                                                 DFBSurfaceDescription  *desc )
 {
      IDirectFBVideoProvider_V4L_data *data;
 
@@ -197,11 +197,11 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
-                                            IDirectFBVideoProvider *thiz,
-                                            IDirectFBSurface       *destination,
-                                            const DFBRectangle     *dstrect,
-                                            DVFrameCallback         callback,
-                                            void                   *ctx )
+                                                  IDirectFBVideoProvider *thiz,
+                                                  IDirectFBSurface       *destination,
+                                                  const DFBRectangle     *dstrect,
+                                                  DVFrameCallback         callback,
+                                                  void                   *ctx )
 {
      DFBRectangle           rect;
      IDirectFBSurface_data *dst_data;
@@ -237,35 +237,34 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
           return DFB_INVAREA;
 
      v4l_stop( data, true );
-     
+
      data->callback = callback;
      data->ctx      = ctx;
 
      surface = dst_data->surface;
 
      data->grab_mode = 0;
-     if (dst_data->caps & DSCAPS_SYSTEMONLY
-	 || surface->caps & DSCAPS_FLIPPING
-	 || !(VID_TYPE_OVERLAY & data->vcap.type))
+     if (surface->caps & DSCAPS_SYSTEMONLY
+         || surface->caps & DSCAPS_FLIPPING
+         || !(VID_TYPE_OVERLAY & data->vcap.type))
           data->grab_mode = 1;
-
-     if (!(dst_data->caps & DSCAPS_SYSTEMONLY)) {
+     else {
           dfb_surfacemanager_lock( surface->manager );
 
-	  ret = dfb_surfacemanager_assure_video( surface->manager, 
-						 surface->back_buffer );
+          ret = dfb_surfacemanager_assure_video( surface->manager, 
+                                                 surface->back_buffer );
 
-	  /*
-	   * Because we're constantly writing to the surface we
-	   * permanently lock it.
-	   */
-	  if (DFB_OK == ret && !data->grab_mode)
-	       surface->back_buffer->video.locked++;
+          /*
+           * Because we're constantly writing to the surface we
+           * permanently lock it.
+           */
+          if (DFB_OK == ret)
+               surface->back_buffer->video.locked++;
 
-	  dfb_surfacemanager_unlock( surface->manager );
+          dfb_surfacemanager_unlock( surface->manager );
 
-	  if (ret)
-	       return ret;
+          if (ret)
+               return ret;
      }
 
      if (data->grab_mode)
@@ -280,7 +279,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
-                                                 IDirectFBVideoProvider *thiz )
+                                                IDirectFBVideoProvider *thiz )
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
@@ -288,8 +287,8 @@ static DFBResult IDirectFBVideoProvider_V4L_Stop(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
-                                              IDirectFBVideoProvider *thiz,
-                                              double                  seconds )
+                                                  IDirectFBVideoProvider *thiz,
+                                                  double                  seconds )
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
@@ -297,13 +296,13 @@ static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetPos(
-                                              IDirectFBVideoProvider *thiz,
-                                              double                 *seconds )
+                                                  IDirectFBVideoProvider *thiz,
+                                                  double                 *seconds )
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!seconds)
-        return DFB_INVARG;
+          return DFB_INVARG;
 
      *seconds = 0.0;
 
@@ -311,13 +310,13 @@ static DFBResult IDirectFBVideoProvider_V4L_GetPos(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetLength(
-                                              IDirectFBVideoProvider *thiz,
-                                              double                 *seconds )
+                                                     IDirectFBVideoProvider *thiz,
+                                                     double                 *seconds )
 {
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!seconds)
-        return DFB_INVARG;
+          return DFB_INVARG;
 
      *seconds = 0.0;
 
@@ -325,20 +324,20 @@ static DFBResult IDirectFBVideoProvider_V4L_GetLength(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  DFBColorAdjustment     *adj )
+                                                              IDirectFBVideoProvider *thiz,
+                                                              DFBColorAdjustment     *adj )
 {
      struct video_picture pic;
 
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!adj)
-        return DFB_INVARG;
+          return DFB_INVARG;
 
      ioctl( data->fd, VIDIOCGPICT, &pic );
 
      adj->flags =
-          DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
+     DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
      adj->brightness = pic.brightness;
      adj->contrast   = pic.contrast;
      adj->hue        = pic.hue;
@@ -348,15 +347,15 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
-     IDirectFBVideoProvider *thiz,
-     DFBColorAdjustment     *adj )
+                                                              IDirectFBVideoProvider *thiz,
+                                                              DFBColorAdjustment     *adj )
 {
      struct video_picture pic;
 
      INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!adj)
-        return DFB_INVARG;
+          return DFB_INVARG;
 
      if (adj->flags == DCAF_NONE)
           return DFB_OK;
@@ -404,11 +403,11 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int fd;
-     
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)
 
      data->ref = 1;
-     
+
      fd = open( filename, O_RDWR );
      if (fd < 0) {
           DFBResult ret = errno2dfb( errno );
@@ -432,7 +431,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      thiz->Release   = IDirectFBVideoProvider_V4L_Release;
      thiz->GetCapabilities = IDirectFBVideoProvider_V4L_GetCapabilities;
      thiz->GetSurfaceDescription =
-          IDirectFBVideoProvider_V4L_GetSurfaceDescription;
+     IDirectFBVideoProvider_V4L_GetSurfaceDescription;
      thiz->PlayTo    = IDirectFBVideoProvider_V4L_PlayTo;
      thiz->Stop      = IDirectFBVideoProvider_V4L_Stop;
      thiz->SeekTo    = IDirectFBVideoProvider_V4L_SeekTo;
@@ -454,7 +453,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 static void* OverlayThread( CoreThread *thread, void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
-          (IDirectFBVideoProvider_V4L_data*)ctx;
+     (IDirectFBVideoProvider_V4L_data*)ctx;
 
      int field = 0;
      struct timeval tv;
@@ -474,7 +473,7 @@ static void* OverlayThread( CoreThread *thread, void *ctx )
           }
 
           if (data->callback)
-              data->callback( data->ctx );
+               data->callback( data->ctx );
      }
 
      return NULL;
@@ -486,7 +485,7 @@ static void* OverlayThread( CoreThread *thread, void *ctx )
 static void* GrabThread( CoreThread *thread, void *ctx )
 {
      IDirectFBVideoProvider_V4L_data *data =
-          (IDirectFBVideoProvider_V4L_data*)ctx;
+     (IDirectFBVideoProvider_V4L_data*)ctx;
      CoreSurface *surface = data->destination;
      __u8 *src, *dst;
      int dst_pitch, src_pitch, h;
@@ -502,6 +501,7 @@ static void* GrabThread( CoreThread *thread, void *ctx )
 
      frame = 0;
      while (1) {
+          printf("v4l: frame\n");
           ioctl( data->fd, VIDIOCSYNC, &frame );
 
           dfb_thread_testcancel( thread );
@@ -521,7 +521,8 @@ static void* GrabThread( CoreThread *thread, void *ctx )
                     dst += dst_pitch;
                     src += src_pitch;
                }
-          } else if (surface->format == DSPF_YV12) {
+          }
+          else if (surface->format == DSPF_YV12) {
                h = surface->height / 4;
                src += h * src_pitch;
                while (h--) {
@@ -556,7 +557,7 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*) msg_data;
      IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data*) ctx;
-     
+
 /*     if ((notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT))) {
           v4l_stop( data, false );
           return RS_REMOVE;
@@ -565,8 +566,8 @@ static ReactionResult v4l_videosurface_listener( const void *msg_data, void *ctx
 
      if (notification->flags & CSNF_VIDEO) {
           if (surface && surface->back_buffer->video.health == CSH_INVALID) {
-              v4l_stop( data, false );
-              return RS_REMOVE;
+               v4l_stop( data, false );
+               return RS_REMOVE;
           }
      }
 
@@ -577,7 +578,7 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*) msg_data;
      IDirectFBVideoProvider_V4L_data *data = (IDirectFBVideoProvider_V4L_data*) ctx;
-     
+
 /*     if ((notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT))) {
           v4l_stop( data, false );
           return RS_REMOVE;
@@ -598,17 +599,19 @@ static ReactionResult v4l_systemsurface_listener( const void *msg_data, void *ct
 /************/
 
 static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rect,
-					 IDirectFBVideoProvider_V4L_data *data )
+                                         IDirectFBVideoProvider_V4L_data *data )
 {
      int bpp, palette;
      SurfaceBuffer *buffer = surface->back_buffer;
 
+     printf("v4l: overlay\n");
+     
      /*
       * Sanity check. Overlay to system surface isn't possible.
       */
      if (surface->caps & DSCAPS_SYSTEMONLY)
           return DFB_UNSUPPORTED;
-     
+
      switch (surface->format) {
           case DSPF_YUY2:
                bpp = 16;
@@ -729,10 +732,12 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 }
 
 static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
-                                       IDirectFBVideoProvider_V4L_data *data )
+                                      IDirectFBVideoProvider_V4L_data *data )
 {
      int bpp, palette;
 
+     printf("v4l: grab\n");
+     
      if (!data->vmbuf.frames)
           return DFB_UNSUPPORTED;
 
@@ -784,7 +789,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
           PERRORMSG("DirectFB/v4l: "
                     "Could not start capturing (VIDIOCMCAPTURE failed)!\n");
-	  
+
           return ret;
      }
 
@@ -803,6 +808,8 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
 static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 {
+     printf("v4l: stop\n");
+     
      if (data->thread) {
           dfb_thread_cancel( data->thread );
           dfb_thread_join( data->thread );
@@ -812,13 +819,13 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 
      if (VID_TYPE_OVERLAY & data->vcap.type) {
           if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0) {
-	           DFBResult ret = errno2dfb( errno );
- 
-	           PERRORMSG( "DirectFB/v4l: "
-			              "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
- 
-	           return ret;
-	      }
+               DFBResult ret = errno2dfb( errno );
+
+               PERRORMSG( "DirectFB/v4l: "
+                          "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
+
+               return ret;
+          }
      }
 
      if (!data->destination)
@@ -826,7 +833,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
 
      if (detach)
           dfb_surface_detach( data->destination, &data->reaction );
-     
+
      if (!data->grab_mode)
           data->destination->back_buffer->video.locked--;
 
@@ -852,7 +859,7 @@ static void v4l_deinit( IDirectFBVideoProvider_V4L_data *data )
 static void v4l_cleanup( void *ctx, int emergency )
 {
      IDirectFBVideoProvider_V4L_data *data =
-          (IDirectFBVideoProvider_V4L_data*)ctx;
+     (IDirectFBVideoProvider_V4L_data*)ctx;
 
      if (emergency)
           v4l_stop( data, false );
