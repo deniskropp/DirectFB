@@ -13,7 +13,7 @@ DirectFB README
 Requirements
 ------------
 
-   - Linux kernel 2.4.x with framebuffer device support compiled in.
+   - Linux kernel 2.4.x with working framebuffer device (check /proc/fb).
 
    - freetype 2.0.1
    - libpng2
@@ -28,7 +28,7 @@ Requirements
    installed. We have provided packages on our web-site at
    http://www.directfb.org/download/contrib/.
 
-   - If you have avifile, but not the correct version, you can explicitely 
+   - If you have avifile, but not the correct version, you can explicitly 
      disable building it by passing --disable-avifile to configure.
    - To build the SWF video provider, you need libflash.
    - To build the MPEG video provider, download and compile libmpeg3 and 
