@@ -166,7 +166,7 @@ send_button_event( CoreWindow          *window,
      we.type   = (event->type == DIET_BUTTONPRESS) ? DWET_BUTTONDOWN : DWET_BUTTONUP;
      we.x      = window->stack->cursor.x - window->x;
      we.y      = window->stack->cursor.y - window->y;
-     we.button = (data->wm_level == 2) ? (event->button + 2) : event->button;
+     we.button = (data->wm_level & 2) ? (event->button + 2) : event->button;
 
      post_event( window, data, &we );
 }
@@ -1785,28 +1785,6 @@ handle_wm_key( CoreWindowStack     *stack,
      return true;
 }
 
-static bool
-is_wm_key( DFBInputDeviceKeySymbol key_symbol )
-{
-     switch (DFB_LOWER_CASE(key_symbol)) {
-          case DIKS_SMALL_X:
-          case DIKS_SMALL_S:
-          case DIKS_SMALL_C:
-          case DIKS_SMALL_E:
-          case DIKS_SMALL_A:
-          case DIKS_SMALL_W:
-          case DIKS_SMALL_D:
-          case DIKS_SMALL_P:
-          case DIKS_PRINT:
-               break;
-
-          default:
-               return false;
-     }
-
-     return true;
-}
-
 /**************************************************************************************************/
 
 static DFBResult
@@ -1814,49 +1792,35 @@ handle_key_press( CoreWindowStack     *stack,
                   StackData           *data,
                   const DFBInputEvent *event )
 {
-     CoreWindow *window;
-
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( event != NULL );
      D_ASSERT( event->type == DIET_KEYPRESS );
 
-     switch (data->wm_level) {
-          case 3:
-          case 2:
-               handle_wm_key( stack, data, event );
-               break;
+     if (data->wm_level) {
+          switch (event->key_symbol) {
+               case DIKS_CONTROL:
+                    data->wm_level |= 2;
+                    break;
 
-          case 1:
-               switch (event->key_symbol) {
-                    case DIKS_CONTROL:
-                         data->wm_level = 2;
-                         return DFB_OK;
+               case DIKS_ALT:
+                    data->wm_level |= 4;
+                    break;
 
-                    case DIKS_ALT:
-                         data->wm_level = 3;
-                         return DFB_OK;
+               default:
+                    handle_wm_key( stack, data, event );
+                    break;
+          }
+     }
+     else if (event->key_symbol == DIKS_META) {
+          data->wm_level |= 1;
+          data->wm_cycle  = 0;
+     }
+     else {
+          CoreWindow *window = get_keyboard_window( stack, data, event );
 
-                    default:
-                         if (handle_wm_key( stack, data, event ))
-                              return DFB_OK;
-               }
-
-               /* fall through */
-
-          case 0:
-               if (event->key_symbol == DIKS_META)
-                    data->wm_level = 1;
-
-               window = get_keyboard_window( stack, data, event );
-               if (window)
-                    send_key_event( window, data, event );
-
-               break;
-
-          default:
-               D_BUG( "unknown wm level" );
-               return DFB_BUG;
+          if (window)
+               send_key_event( window, data, event );
      }
 
      return DFB_OK;
@@ -1867,47 +1831,34 @@ handle_key_release( CoreWindowStack     *stack,
                     StackData           *data,
                     const DFBInputEvent *event )
 {
-     CoreWindow *window;
-
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( event != NULL );
      D_ASSERT( event->type == DIET_KEYRELEASE );
 
-     switch (data->wm_level) {
-          case 3:
-               if (event->key_symbol == DIKS_ALT)
-                    data->wm_level = 1;
-
-               break;
-
-          case 2:
-               if (event->key_symbol == DIKS_CONTROL)
-                    data->wm_level = 1;
-
-               break;
-
-          case 1:
-               if (is_wm_key( event->key_symbol ))
+     if (data->wm_level) {
+          switch (event->key_symbol) {
+               case DIKS_META:
+                    data->wm_level &= ~1;
                     break;
 
-               if (event->key_symbol == DIKS_META) {
-                    data->wm_level = 0;
-                    data->wm_cycle = 0;
-               }
+               case DIKS_CONTROL:
+                    data->wm_level &= ~2;
+                    break;
 
-               /* fall through */
+               case DIKS_ALT:
+                    data->wm_level &= ~4;
+                    break;
 
-          case 0:
-               window = get_keyboard_window( stack, data, event );
-               if (window)
-                    send_key_event( window, data, event );
+               default:
+                    break;
+          }
+     }
+     else {
+          CoreWindow *window = get_keyboard_window( stack, data, event );
 
-               break;
-
-          default:
-               D_BUG( "unknown wm level" );
-               return DFB_BUG;
+          if (window)
+               send_key_event( window, data, event );
      }
 
      return DFB_OK;
@@ -1938,18 +1889,12 @@ handle_button_press( CoreWindowStack     *stack,
 
                break;
 
-          case 3:
-          case 2:
-          case 0:
+          default:
                window = data->pointer_window ? data->pointer_window : data->entered_window;
                if (window)
                     send_button_event( window, data, event );
 
                break;
-
-          default:
-               D_BUG( "unknown wm level" );
-               return DFB_BUG;
      }
 
      return DFB_OK;
@@ -1974,18 +1919,12 @@ handle_button_release( CoreWindowStack     *stack,
           case 1:
                break;
 
-          case 3:
-          case 2:
-          case 0:
+          default:
                window = data->pointer_window ? data->pointer_window : data->entered_window;
                if (window)
                     send_button_event( window, data, event );
 
                break;
-
-          default:
-               D_BUG( "unknown wm level" );
-               return DFB_BUG;
      }
 
      return DFB_OK;
@@ -2028,7 +1967,10 @@ handle_motion( CoreWindowStack *stack,
      dfb_window_move( stack->cursor.window, dx, dy );
 
      switch (data->wm_level) {
-          case 3: {
+          case 7:
+          case 6:
+          case 5:
+          case 4: {
                     CoreWindow *window = data->entered_window;
 
                     if (window) {
@@ -2045,6 +1987,7 @@ handle_motion( CoreWindowStack *stack,
                     break;
                }
 
+          case 3:
           case 2: {
                     CoreWindow *window = data->entered_window;
 
