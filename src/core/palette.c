@@ -54,8 +54,10 @@ static void palette_destructor( FusionObject *object, bool zombie )
 
      fusion_object_dispatch( &palette->object, &notification );
 
-     if (palette->hash_attached)
+     if (palette->hash_attached) {
           colorhash_invalidate( palette );
+          colorhash_detach( palette );
+     }
 
      shfree( palette->entries );
 
