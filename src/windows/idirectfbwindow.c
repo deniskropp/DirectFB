@@ -68,6 +68,10 @@
 
 #include <windows/idirectfbwindow.h>
 
+
+D_DEBUG_DOMAIN( IDirectFB_Window, "IDirectFBWindow", "DirectFB Window Interface" );
+
+
 /*
  * adds an window event to the event queue
  */
@@ -103,31 +107,31 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 {
      IDirectFBWindow_data *data = (IDirectFBWindow_data*)thiz->priv;
 
-     D_DEBUG("IDirectFBWindow_Destruct...\n");
+     D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_Destruct()\n" );
 
      if (!data->detached) {
-          D_DEBUG("IDirectFBWindow_Destruct - detaching...\n");
+          D_DEBUG_AT( IDirectFB_Window, "  -> detaching...\n" );
 
           dfb_window_detach( data->window, &data->reaction );
-
-          D_DEBUG("IDirectFBWindow_Destruct - detached.\n");
      }
 
      if (!data->destroyed) {
-          D_DEBUG("IDirectFBWindow_Destruct - unrefing...\n");
+          D_DEBUG_AT( IDirectFB_Window, "  -> unrefing...\n" );
 
           dfb_window_unref( data->window );
-
-          D_DEBUG("IDirectFBWindow_Destruct - unref done.\n");
      }
+
+     D_DEBUG_AT( IDirectFB_Window, "  -> releasing surface...\n" );
 
      if (data->surface)
           data->surface->Release( data->surface );
 
+     D_DEBUG_AT( IDirectFB_Window, "  -> releasing cursor shape...\n" );
+
      if (data->cursor.shape)
           data->cursor.shape->Release( data->cursor.shape );
 
-     D_DEBUG("IDirectFBWindow_Destruct - done.\n");
+     D_DEBUG_AT( IDirectFB_Window, "  -> done.\n" );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -768,7 +772,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     D_DEBUG("IDirectFBWindow_Destroy\n");
+     D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_Destroy()\n" );
 
      dfb_window_destroy( data->window );
 
@@ -782,8 +786,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
-     D_DEBUG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
-              DFB_RECTANGLE_VALS( &window->config.bounds ) );
+     D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_Construct() <- %d, %d - %dx%d\n",
+                 DFB_RECTANGLE_VALS( &window->config.bounds ) );
 
      data->ref    = 1;
      data->window = window;
@@ -842,20 +846,20 @@ IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent *evt  = msg_data;
      IDirectFBWindow_data *data = ctx;
 
-     D_HEAVYDEBUG("IDirectFBWindow_React\n");
+     D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_React()\n");
 
      switch (evt->type) {
           case DWET_DESTROYED:
-               D_DEBUG("IDirectFBWindow_React - window destroyed\n");
+               D_DEBUG_AT( IDirectFB_Window, "  -> window destroyed\n" );
 
                if (!data->destroyed) {
                     data->destroyed = true;
 
-                    D_DEBUG("IDirectFBWindow_React - unrefing...\n");
+                    D_DEBUG_AT( IDirectFB_Window, "  -> unrefing...\n" );
 
                     dfb_window_unref( data->window );
 
-                    D_DEBUG("IDirectFBWindow_React - unref done.\n");
+                    D_DEBUG_AT( IDirectFB_Window, "  -> unref done.\n" );
                }
 
                data->detached = true;
