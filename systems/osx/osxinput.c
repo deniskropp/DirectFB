@@ -61,12 +61,71 @@ typedef struct {
      int           stop;
 } OSXInputData;
 
-static bool
-translate_key( char key, DFBInputEvent *evt )
+static DFBInputEvent motionX = {
+     type:     DIET_UNKNOWN,
+     axisabs:  0
+};
+          
+static DFBInputEvent motionY = {
+     type:     DIET_UNKNOWN,
+     axisabs:  0
+};
+
+static void 
+motion_compress( int x, int y )
 {
-     evt->flags = DIEF_KEYSYMBOL;
-     evt->key_symbol = key;
-     return true;
+     if (motionX.axisabs != x) {
+          motionX.type    = DIET_AXISMOTION;
+          motionX.flags   = DIEF_AXISABS;
+          motionX.axis    = DIAI_X;
+          motionX.axisabs = x;
+     }
+
+    if (motionY.axisabs != y) {
+          motionY.type    = DIET_AXISMOTION;
+          motionY.flags   = DIEF_AXISABS;
+          motionY.axis    = DIAI_Y;
+          motionY.axisabs = y;
+     }
+}
+
+static void*
+motion_realize( OSXInputData *data )
+{
+     if (motionX.type != DIET_UNKNOWN) {
+          dfb_input_dispatch( data->device, &motionX );
+
+          motionX.type = DIET_UNKNOWN;
+     }
+
+     if (motionY.type != DIET_UNKNOWN) {
+          dfb_input_dispatch( data->device, &motionY );
+
+          motionY.type = DIET_UNKNOWN;
+     }
+}
+
+                    
+static bool
+translate_key( unsigned short key, DFBInputEvent *evt )
+{
+     unsigned char charcode = (unsigned char)key;
+     unsigned char keycode  = (unsigned char)(key>>8);
+     
+     printf("keycode: %d char: %d\n",keycode,charcode);
+     
+     if (charcode) {
+          evt->flags = DIEF_KEYSYMBOL;
+          evt->key_symbol = charcode;
+          return true;
+     }
+     else if (keycode) {
+          evt->flags = DIEF_KEYID;
+          evt->key_id = keycode;
+          return true;
+     }
+         
+     return false;
 }
 
 /*
@@ -92,18 +151,29 @@ osxEventThread( DirectThread *thread, void *driver_data )
                switch (event.what) {
                     case keyDown:
                     case keyUp:
-                         if (event.what == keyDown)
-                              evt.type = DIET_KEYPRESS;
-                         else
+                    case autoKey:
+                         if (event.what == keyUp)
                               evt.type = DIET_KEYRELEASE;
+                         else
+                              evt.type = DIET_KEYPRESS;
 
-                         if (translate_key( event.message & charCodeMask, &evt )) {
+                         if (translate_key( event.message & (charCodeMask | keyCodeMask), &evt )) {
                               dfb_input_dispatch( data->device, &evt );
                          }
 
                          break;
-
+                    case mouseDown:
+                         evt.type = DIET_BUTTONPRESS;
+                         evt.button = DIBI_LEFT;
+                         dfb_input_dispatch( data->device, &evt );
+                         break;
+                    case mouseUp:
+                         evt.type = DIET_BUTTONRELEASE;
+                         evt.button = DIBI_LEFT;
+                         dfb_input_dispatch( data->device, &evt );
+                         break;
                     default:
+                         printf("%d\n",event.what);
                          break;
                }
 
@@ -182,11 +252,10 @@ driver_open_device( InputDevice      *device,
      info->prefered_id = DIDID_KEYBOARD;
 
      /* set type flags */
-     info->desc.type   = DIDTF_KEYBOARD;
+     info->desc.type   = DIDTF_KEYBOARD | DIDTF_MOUSE;
 
      /* set capabilities */
      info->desc.caps   = DICAPS_ALL;
-
 
      /* allocate and fill private data */
      data = D_CALLOC( 1, sizeof(OSXInputData) );
