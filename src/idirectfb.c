@@ -525,6 +525,9 @@ DFBResult IDirectFB_Suspend( IDirectFB *thiz )
      layers_suspend();
      surfacemanager_suspend();
 
+     /* reset card state */
+     card->state = NULL;
+
      return DFB_OK;
 }
 
