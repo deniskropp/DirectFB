@@ -1,3 +1,4 @@
+- fix for loading jpegs unscaled into 24bpp surfaces
 - 15bpp support for jpeg provider
 - v4l provider support for devfs (/dev/v4l/video*)
 - API change for DFBSurfaceDescription (pixelformat field instead of bpp
