@@ -1,3 +1,416 @@
+2002-09-09	16:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.37) (+1 -7)
+	
+	updated
+	
+2002-09-09	16:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/property.c (1.7) (+2 -2)
+		src/core/fusion/reactor.c (1.15) (+1 -1)
+	
+	debug output adjusted
+	
+2002-09-09	16:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.65) (+2 -4)
+		src/core/fusion/property.c (1.6) (+140 -121)
+	
+	Added orphan detection to FusionProperty.
+	
+	The window stack and video mode are now restored even if a fullscreen
+	application simply exits or gets killed by any signal.
+	
+2002-09-09	14:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.64) (+9 -0)
+		src/core/layers.h (1.36) (+2 -0)
+	
+	Added function for retrieving the window pool from a layer.
+	
+2002-09-09	14:02	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/object.c (1.3) (+26 -0)
+		src/core/fusion/object.h (1.3) (+15 -5)
+	
+	Added fusion_object_pool_enum() for enumeration of all objects.
+	
+2002-09-09	11:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.40) (+1 -1)
+	
+	Now half line, not half texture ;)
+	
+2002-09-09	11:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.39) (+3 -0)
+	
+	Half line adjustment for deinterlace blits.
+	
+2002-09-06	17:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbdisplaylayer.c (1.39) (+1 -1)
+	
+	Fixed CreateWindow with DWDESC_SURFACE_CAPS.
+	
+2002-09-05	17:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/palette.c (1.8) (+1 -1)
+	
+	Made black RGB332 entry transparent for testing.
+	
+2002-09-05	17:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.15) (+2 -25)
+		src/core/fbdev/fbdev.h (1.7) (+27 -0)
+	
+	Reexported "dfb_fbdev" as a hot fix to have the Matrox driver compile again.
+	
+2002-09-05	17:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.55) (+3 -22)
+	
+	Changed LED behaviour.
+	
+2002-09-05	15:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.97) (+3 -1)
+	
+	Added Meta (or Windows) key to wm hack.
+	
+2002-09-05	15:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.55) (+8 -8)
+		src/core/sdl/primary.c (1.3) (+3 -0)
+		src/core/fbdev/fbdev.c (1.14) (+3 -0)
+	
+	Don't generate RGB332 entries if palette already existed.
+	Generate RGB332 entries after creation of layer palettes.
+	
+2002-09-05	13:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.148) (+75 -3)
+		src/display/idirectfbsurface.c (1.58) (+32 -0)
+		src/display/idirectfbpalette.c (1.8) (+68 -6)
+		src/core/sdl/primary.c (1.2) (+6 -3)
+		src/core/fbdev/fbdev.c (1.13) (+6 -3)
+		src/core/surfaces.c (1.54) (+12 -6)
+		src/core/palette.h (1.6) (+11 -10)
+		src/core/palette.c (1.7) (+11 -6)
+		src/idirectfb.c (1.72) (+48 -0)
+		src/directfb.c (1.53) (+2 -0)
+	
+	Added IDirectFB::CreatePalette().
+	Added IDirectFBSurface::SetPalette().
+	Added IDirectFBPalette::GetCapabilities().
+	Added IDirectFBPalette::CreateCopy().
+	
+2002-09-05	12:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.63) (+4 -3)
+		src/core/sdl/sdlinput.c (1.2) (+2 -2)
+	
+	Fixed warning in "layers.c".
+	Small fix in SDL input driver.
+	
+2002-09-05	11:54	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.96) (+1 -1)
+	
+	Fixed summary (SDL support yes/no).
+	
+2002-09-05	11:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	AUTHORS (1.6) (+1 -0)
+		gfxdrivers/matrox/regs.h (1.12) (+8 -7)
+		gfxdrivers/matrox/matrox_state.c (1.36) (+30 -38)
+		gfxdrivers/matrox/matrox.h (1.18) (+15 -2)
+		gfxdrivers/matrox/matrox.c (1.38) (+396 -76)
+	
+	Another patch from Ville Syrjala <syrjala@sci.fi> adding planar YUV blitting.
+	
+	- DoBlit2D_Old(), DoBlit2d and DoBlitTMU() initiate the blits
+	- The are called from Blit2D_Old(), Blit2D() and BlitTMU().
+	- StretchBlit() and Blit3D() simply call BlitTMU() with proper arguments.
+	- Clipping registers are updated for chroma planes also.
+	- Register programming is not done in validate_source() or
+	validate_Source() anymore. All source related programming is done from the
+	blit functions.
+	- I changed the code for all cards. Only tested on G400 as I've misplaced
+	my G200 smewhere and I don't own any other cards.
+	
+	Added him to "helping developers" in AUTHORS.
+	
+2002-09-05	11:36	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	docs/directfbrc.5.in (1.14) (+5 -0)
+		src/misc/conf.h (1.28) (+3 -1)
+		src/misc/conf.c (1.36) (+26 -0)
+		gfxdrivers/matrox/regs.h (1.11) (+23 -0)
+		gfxdrivers/matrox/mmio.h (1.9) (+7 -0)
+		gfxdrivers/matrox/matrox_spic.c (1.1) ( )
+		gfxdrivers/matrox/matrox_maven.h (1.1) ( )
+		gfxdrivers/matrox/matrox_maven.c (1.1) ( )
+		gfxdrivers/matrox/matrox_crtc2.c (1.1) ( )
+		gfxdrivers/matrox/matrox.h (1.17) (+2 -0)
+		gfxdrivers/matrox/matrox.c (1.37) (+11 -1)
+		gfxdrivers/matrox/Makefile.am (1.5) (+4 -0)
+	
+	Second head support via additional layers by Ville Syrjala <syrjala@sci.fi>.
+	New option "matrox-crtc2" to activate this.
+	
+2002-09-04	16:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/convert.h (1.16) (+26 -0)
+		src/gfx/generic/generic.c (1.97) (+62 -14)
+	
+	This patch from Ville Syrjala <syrjala@sci.fi> adds YUV rectangle filling
+	support for planar and non-planar formats.
+	
+2002-09-04	16:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.27) (+1 -1)
+		gfxdrivers/matrox/matrox.h (1.16) (+1 -1)
+		gfxdrivers/matrox/matrox.c (1.36) (+7 -7)
+		NEWS (1.34) (+1 -1)
+	
+	Millenium -> Millennium (thanks to Ville Syrjala <syrjala@sci.fi>).
+	
+2002-09-04	16:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.36) (+5 -0)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.44) (+2 -1)
+	
+	Added Matrox CLUT as a todo item.
+	Set DSCAPS_INTERLACED in the surface description of the v4l provider.
+	
+2002-09-03	11:37	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.13) (+6 -0)
+	
+	Document the new system parameter.
+	
+2002-08-30	19:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/interface.c (1.17) (+1 -1)
+		src/core/system.c (1.2) (+21 -3)
+		src/core/input.c (1.54) (+1 -1)
+		src/core/gfxcard.c (1.82) (+1 -1)
+	
+	Fixed crash with debug mode (with linked in modules).
+	Fixed multi app core system init.
+	
+2002-08-30	17:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.95) (+25 -0)
+		src/misc/conf.h (1.27) (+2 -0)
+		src/misc/conf.c (1.35) (+18 -0)
+		src/display/idirectfbsurface_layer.c (1.26) (+12 -4)
+		src/core/sdl/sdlinput.c (1.1) ( )
+		src/core/sdl/sdl.h (1.1) ( )
+		src/core/sdl/sdl.c (1.1) ( )
+		src/core/sdl/primary.h (1.1) ( )
+		src/core/sdl/primary.c (1.1) ( )
+		src/core/sdl/Makefile.am (1.1) ( )
+		src/core/sdl/.cvsignore (1.1) ( )
+		src/core/fbdev/vt.h (1.3) (+4 -6)
+		src/core/fbdev/fbdev.h (1.6) (+0 -72)
+		src/core/fbdev/fbdev.c (1.12) (+246 -102)
+		src/core/windows.c (1.96) (+4 -3)
+		src/core/system.h (1.1) ( )
+		src/core/system.c (1.1) ( )
+		src/core/surfaces.c (1.53) (+3 -2)
+		src/core/surfacemanager.c (1.34) (+6 -2)
+		src/core/layers.h (1.35) (+11 -2)
+		src/core/layers.c (1.62) (+21 -3)
+		src/core/input.c (1.53) (+5 -1)
+		src/core/gfxcard.h (1.34) (+18 -16)
+		src/core/gfxcard.c (1.81) (+43 -57)
+		src/core/coretypes.h (1.11) (+0 -2)
+		src/core/core_system.h (1.1) ( )
+		src/core/core.c (1.48) (+5 -11)
+		src/core/Makefile.am (1.17) (+18 -6)
+		src/idirectfb.c (1.71) (+3 -4)
+		src/directfb.c (1.52) (+2 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.43) (+1 -1)
+		inputdrivers/serialmouse/serialmouse.c (1.23) (+4 -0)
+		inputdrivers/ps2mouse/ps2mouse.c (1.34) (+4 -0)
+		inputdrivers/linux_input/linux_input.c (1.8) (+4 -0)
+		inputdrivers/keyboard/keyboard.c (1.42) (+5 -1)
+		gfxdrivers/matrox/matrox_state.c (1.35) (+3 -3)
+		gfxdrivers/matrox/matrox_bes.c (1.29) (+9 -7)
+		gfxdrivers/ati128/ati128.c (1.16) (+2 -2)
+	
+	Started abstraction of the "core system" featuring the "fbdev" system like before
+	and a new experimental "sdl" system. Yepp, DirectFB running on SDL.
+	
+	Use "--dfb:system=sdl" to run applications under X.
+	
+2002-08-30	11:55	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/dbox2remote/dbox2remote.c (1.13) (+76 -76)
+	
+	Fixed driver, compiles again.
+	
+2002-08-29	00:45	Sven Neumann <sven@convergence.de>
+
+	Files:	gfxdrivers/nvidia/nvidia.c (1.9) (+1 -1)
+	
+	Removed a spurious space that broke the build.
+	
+2002-08-28	21:34	Andreas Hundt <andi@fischlustig.de>
+
+	Files:	gfxdrivers/nvidia/nvidia.c (1.8) (+27 -3)
+		gfxdrivers/nvidia/nvidia.h (1.4) (+5 -5)
+	
+	- fix for big endian hosts, driver should work now
+	- wait for 4 instead of 3 fifo slots for line drawing ( this fixes crashing
+	  of df_dok on my Geforce 2MX
+	
+2002-08-27	17:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.52) (+4 -4)
+		src/windows/idirectfbwindow.c (1.42) (+1 -1)
+		src/misc/gfx_util.c (1.26) (+4 -4)
+		src/misc/conf.h (1.26) (+3 -1)
+		src/gfx/generic/generic.c (1.96) (+5 -5)
+		src/gfx/convert.h (1.15) (+3 -49)
+		src/gfx/convert.c (1.5) (+54 -0)
+		src/display/idirectfbsurface.c (1.57) (+2 -2)
+	
+	Outlined some inlines.
+	
+2002-08-27	17:23	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/palette.c (1.6) (+3 -1)
+	
+	Added missing call to colorhash_detach().
+	
+2002-08-27	14:03	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.94) (+1 -1)
+		src/display/idirectfbsurface_window.c (1.26) (+7 -3)
+		src/display/idirectfbsurface.c (1.56) (+76 -1)
+		include/directfb.h (1.147) (+26 -0)
+		gfxdrivers/neomagic/neo2200.c (1.10) (+13 -1)
+	
+	Added IDirectFBSurface::SetSrcColorKeyIndex() and SetDstColorKeyIndex().
+	
+	Added LUT8 and RGB332 acceleration to NeoMagic driver (now version 0.3).
+	
+	Added referencing of the window to IDirectFBSurface_Window implementation.
+	
+	Increased version number to 0.9.14.
+	
+2002-08-26	22:28	Sven Neumann <sven@convergence.de>
+
+	Files:	autogen.sh (1.7) (+1 -1)
+	
+	Call 'libtoolize --version' instead of libtool.
+	
+2002-08-26	19:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	include/directfb.h (1.146) (+2 -2)
+		src/gfx/generic/generic.c (1.95) (+6 -6)
+		src/core/windows.c (1.95) (+1 -1)
+	
+	DSCAPS_SEPERATED -> DSCAPS_SEPARATED
+	
+2002-08-26	17:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.94) (+3 -0)
+	
+	Use DSBLIT_DEINTERLACE if window surface has DSCAPS_INTERLACED.
+	
+2002-08-26	17:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.35) (+48 -36)
+		src/gfx/generic/generic.c (1.94) (+1 -0)
+		include/directfb.h (1.145) (+5 -1)
+		gfxdrivers/matrox/matrox_state.c (1.34) (+17 -6)
+		gfxdrivers/matrox/matrox.h (1.15) (+2 -0)
+	
+	Added experimental blitting flag DSBLIT_DEINTERLACE and implemented it in
+	the Matrox driver, not tested yet.
+	
+2002-08-26	17:13	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/state.c (1.13) (+1 -1)
+	
+	Added CSNF_FIELD as a notification causing the 'source modified' bit to be set.
+	
+2002-08-26	15:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.35) (+2 -4)
+	
+	minor update
+	
+2002-08-23	18:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.34) (+0 -3)
+		src/display/idirectfbsurface.c (1.55) (+21 -0)
+		src/core/surfaces.h (1.32) (+6 -5)
+		src/core/surfaces.c (1.51) (+26 -4)
+		src/core/layers.c (1.61) (+2 -2)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.42) (+3 -3)
+		include/directfb.h (1.144) (+12 -0)
+	
+	removed field switching todo
+	
+2002-08-23	18:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/mem.c (1.7) (+0 -2)
+	
+	Keep alloc_list after debug outputting it to avoid crash by further deinits.
+	
+2002-08-23	15:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.52) (+18 -1)
+		src/misc/fbdebug.h (1.3) (+3 -0)
+		src/misc/fbdebug.c (1.4) (+6 -0)
+		src/core/fbdev/fbdev.c (1.11) (+4 -2)
+		src/core/surfacemanager.c (1.33) (+6 -0)
+		src/core/layers.c (1.60) (+10 -0)
+	
+	fixed init/deinit related things
+	
+2002-08-23	14:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.80) (+3 -2)
+		src/core/fbdev/vt.h (1.2) (+1 -3)
+		src/core/fbdev/vt.c (1.3) (+28 -26)
+		src/core/fbdev/fbdev.c (1.10) (+1 -0)
+		src/core/input.c (1.51) (+5 -4)
+	
+	Fixed two mem leaks (two unreachable blocks after exit).
+	Don't reload input and graphics modules.
+	
+2002-08-23	13:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/vt.c (1.2) (+1 -1)
+	
+	Use shcalloc instead of shmalloc.
+	
+2002-08-23	12:43	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.93) (+1 -1)
+	
+	Added "-g" to non-debug mode to have line numbers in gdb without
+	enabling the DirectFB debugging code.
+	
+2002-08-23	12:24	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/interface.c (1.16) (+2 -0)
+	
+	Added missing closedir().
+	
+2002-08-22	22:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.26) (+709 -0)
+		NEWS (1.33) (+5 -4)
+	
+	updated
+	
 2002-08-22	22:20	Sven Neumann <sven@convergence.de>
 
 	Files:	NEWS (1.32) (+6 -1)
@@ -6662,7 +7075,7 @@
 		gfxdrivers/matrox/matrox_bes.c (1.3) (+6 -1)
 		gfxdrivers/matrox/matrox.h (1.4) (+5 -1)
 	
-	Added acceleration for older Matrox cards (Mystique and Millennium I & II).
+	Added acceleration for older Matrox cards (Mystique and Millenium I & II).
 	Tested on a Mystique with SGRAM
 	
 	Supported are:
