@@ -20,9 +20,7 @@ Finish surface manager.
 
 Module unloading.
 
-Add cooperative levels to input devices and implement
-a grabbing mechanism for fullscreen apps running in
-windowed mode.
+Add cooperative levels to input devices.
 
 Rework VT handling. Readd VT switching and Suspend/Resume.
 
@@ -45,3 +43,4 @@ Refactoring/cleanups
 - Split up IDirectFB::CreateSurface code
 - Cleanup flipping/back_to_front_copy stuff
 - Surface locking (internal, rw lock?)
+- Reduce sched_yield() usage
