@@ -286,6 +286,12 @@ Thanks to
    Andreas Oberritter <obi@tuxbox.org>
    Simon Ueng <simon@ftech.com.tw>
 
+Special thanks to Ville Syrjala for his great work on the
+Matrox TV-Out support and for his several patches including
+fixes and enhancements for the whole library. He also did
+several ports like UAE or mplayer for DirectFB. Check out his
+site at 'http://www.sci.fi/~syrjala/'.
+
 
 Legal stuff
 -----------
