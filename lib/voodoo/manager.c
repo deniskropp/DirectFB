@@ -950,6 +950,7 @@ manager_dispatch_loop( DirectThread *thread, void *arg )
 {
      VoodooManager *manager = arg;
 
+     /* Lock the input buffer. */
      pthread_mutex_lock( &manager->input.lock );
 
      while (!manager->quit) {
@@ -961,13 +962,18 @@ manager_dispatch_loop( DirectThread *thread, void *arg )
           D_DEBUG( "Voodoo/Dispatch: START %d, END %d, MAX %d\n",
                    manager->input.start, manager->input.end, manager->input.max );
 
-          if ((manager->input.end - manager->input.start) < 4 ||
-              (manager->input.max != IN_BUF_MAX && manager->input.end < manager->input.max))
-          {
+          /* Wait for at least four bytes which contain the length of the message. */
+          while (manager->input.end - manager->input.start < 4) {
                pthread_cond_wait( &manager->input.wait, &manager->input.lock );
-               continue;
+
+               if (manager->quit)
+                    break;
           }
 
+          if (manager->quit)
+               break;
+
+          /* Get the message header. */
           header  = (VoodooMessageHeader *)(manager->input.buffer + manager->input.start);
           aligned = VOODOO_MSG_ALIGN( header->size );
 
@@ -977,6 +983,7 @@ manager_dispatch_loop( DirectThread *thread, void *arg )
           D_ASSERT( header->size >= sizeof(VoodooMessageHeader) );
           D_ASSERT( header->size <= MAX_MSG_SIZE );
 
+          /* Extend the buffer if the message doesn't fit into the default boundary. */
           if (aligned > manager->input.max - manager->input.start) {
                D_ASSERT( manager->input.max == IN_BUF_MAX );
 
@@ -986,43 +993,54 @@ manager_dispatch_loop( DirectThread *thread, void *arg )
 
                pthread_cond_broadcast( &manager->input.wait );
           }
-          else if (aligned <= manager->input.end - manager->input.start) {
-               pthread_mutex_unlock( &manager->input.lock );
 
-               switch (header->type) {
-                    case VMSG_SUPER:
-                         handle_super( manager, (VoodooSuperMessage*) header );
-                         break;
-
-                    case VMSG_REQUEST:
-                         handle_request( manager, (VoodooRequestMessage*) header );
-                         break;
-
-                    case VMSG_RESPONSE:
-                         handle_response( manager, (VoodooResponseMessage*) header );
-                         break;
-
-                    default:
-                         D_BUG( "invalid message type %d", header->type );
-                         break;
-               }
-
-               pthread_mutex_lock( &manager->input.lock );
-
-               manager->input.start += aligned;
-
-               if (manager->input.start == manager->input.end) {
-                    manager->input.start = manager->input.end = 0;
-
-                    manager->input.max = IN_BUF_MAX;
-
-                    pthread_cond_broadcast( &manager->input.wait );
-               }
-          }
-          else
+          /* Wait until the complete message is received. */
+          while (aligned > manager->input.end - manager->input.start) {
                pthread_cond_wait( &manager->input.wait, &manager->input.lock );
+
+               if (manager->quit)
+                    break;
+          }
+
+          if (manager->quit)
+               break;
+
+          /* Unlock the input buffer. */
+          pthread_mutex_unlock( &manager->input.lock );
+
+          switch (header->type) {
+               case VMSG_SUPER:
+                    handle_super( manager, (VoodooSuperMessage*) header );
+                    break;
+
+               case VMSG_REQUEST:
+                    handle_request( manager, (VoodooRequestMessage*) header );
+                    break;
+
+               case VMSG_RESPONSE:
+                    handle_response( manager, (VoodooResponseMessage*) header );
+                    break;
+
+               default:
+                    D_BUG( "invalid message type %d", header->type );
+                    break;
+          }
+
+          /* Lock the input buffer. */
+          pthread_mutex_lock( &manager->input.lock );
+
+          manager->input.start += aligned;
+
+          if (manager->input.start == manager->input.end) {
+               manager->input.start = manager->input.end = 0;
+
+               manager->input.max = IN_BUF_MAX;
+
+               pthread_cond_broadcast( &manager->input.wait );
+          }
      }
 
+     /* Unlock the input buffer. */
      pthread_mutex_unlock( &manager->input.lock );
 
      return NULL;
@@ -1043,7 +1061,7 @@ manager_input_loop( DirectThread *thread, void *arg )
           pf.fd     = manager->fd;
           pf.events = POLLIN;
 
-          switch (poll( &pf, 1, 100 )) {
+          switch (poll( &pf, 1, 1000 )) {
                case -1:
                     if (errno != EINTR) {
                          D_PERROR( "Voodoo/Input: Could not poll() the socket!\n" );
@@ -1067,24 +1085,25 @@ manager_input_loop( DirectThread *thread, void *arg )
           if (!manager->quit) {
                len = recv( manager->fd, manager->input.buffer + manager->input.end,
                            manager->input.max - manager->input.end, MSG_DONTWAIT );
-               switch (len) {
-                    case -1:
-                         if (errno != EINTR) {
+               if (len < 0) {
+                    switch (errno) {
+                         case EINTR:
+                         case EAGAIN:
+                              break;
+                         default:
                               D_PERROR( "Voodoo/Input: Could not recv() data!\n" );
                               usleep( 200000 );
-                         }
-                         break;
-
-                    case 0:
-                         handle_disconnect( manager );
-                         break;
-
-                    default:
-                         D_DEBUG( "Voodoo/Input: Received %d bytes...\n", len );
-                         manager->input.end += len;
-                         pthread_cond_broadcast( &manager->input.wait );
-                         break;
+                    }
                }
+               else if (len > 0) {
+                    D_DEBUG( "Voodoo/Input: Received %d bytes...\n", len );
+
+                    manager->input.end += len;
+
+                    pthread_cond_broadcast( &manager->input.wait );
+               }
+               else
+                    handle_disconnect( manager );
           }
 
           pthread_mutex_unlock( &manager->input.lock );
@@ -1100,52 +1119,62 @@ manager_output_loop( DirectThread *thread, void *arg )
      struct pollfd  pf;
      VoodooManager *manager = arg;
 
-     pthread_mutex_lock( &manager->output.lock );
-
      while (!manager->quit) {
           D_MAGIC_ASSERT( manager, VoodooManager );
 
-          if (manager->output.start == manager->output.end) {
-               pthread_cond_wait( &manager->output.wait, &manager->output.lock );
-               continue;
-          }
+          pf.fd     = manager->fd;
+          pf.events = POLLOUT;
 
-          len = send( manager->fd, manager->output.buffer + manager->output.start,
-                      manager->output.end - manager->output.start, MSG_DONTWAIT );
-          if (len < 0) {
-               if (errno == EAGAIN) {
-                    pf.fd     = manager->fd;
-                    pf.events = POLLOUT;
-
-                    pthread_mutex_unlock( &manager->output.lock );
-
-                    if (poll( &pf, 1, 100 ) < 0 && errno != EINTR) {
+          switch (poll( &pf, 1, 1000 )) {
+               case -1:
+                    if (errno != EINTR) {
                          D_PERROR( "Voodoo/Output: Could not poll() the socket!\n" );
                          usleep( 200000 );
                     }
+                    /* fall through */
 
-                    pthread_mutex_lock( &manager->output.lock );
-               }
-               else if (errno != EINTR) {
-                    D_PERROR( "Voodoo/Output: Could not send() data!\n" );
-                    pthread_mutex_unlock( &manager->output.lock );
-                    usleep( 200000 );
-                    pthread_mutex_lock( &manager->output.lock );
-               }
-
-               continue;
+               case 0:
+                    continue;
           }
 
-          manager->output.start += len;
+          pthread_mutex_lock( &manager->output.lock );
 
-          if (manager->output.start == manager->output.end) {
-               manager->output.start = manager->output.end = 0;
+          while (manager->output.start == manager->output.end) {
+               D_ASSUME( manager->output.start == 0 );
+               D_ASSUME( manager->output.end == 0 );
 
-               pthread_cond_broadcast( &manager->output.wait );
+               pthread_cond_wait( &manager->output.wait, &manager->output.lock );
+
+               if (manager->quit)
+                    break;
           }
+
+          if (!manager->quit) {
+               len = send( manager->fd, manager->output.buffer + manager->output.start,
+                           manager->output.end - manager->output.start, MSG_DONTWAIT );
+               if (len < 0) {
+                    switch (errno) {
+                         case EINTR:
+                         case EAGAIN:
+                              break;
+                         default:
+                              D_PERROR( "Voodoo/Output: Could not send() data!\n" );
+                              usleep( 200000 );
+                    }
+               }
+               else {
+                    manager->output.start += len;
+
+                    if (manager->output.start == manager->output.end) {
+                         manager->output.start = manager->output.end = 0;
+
+                         pthread_cond_broadcast( &manager->output.wait );
+                    }
+               }
+          }
+
+          pthread_mutex_unlock( &manager->output.lock );
      }
-
-     pthread_mutex_unlock( &manager->output.lock );
 
      return NULL;
 }
