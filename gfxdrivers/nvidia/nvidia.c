@@ -107,7 +107,7 @@ static void nvEngineSync( void *drv, void *dev )
 }
 
 #define NV4_SUPPORTED_DRAWINGFLAGS \
-               (DSDRAW_BLEND)
+               (DSDRAW_NOFX)
 
 #define NV4_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | \
