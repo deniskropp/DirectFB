@@ -858,27 +858,43 @@ primaryInitLayer( CoreLayer                  *layer,
      adjustment->saturation = 0x8000;
 
      /* fill out the default configuration */
-     config->flags       = DLCONF_WIDTH       | DLCONF_HEIGHT |
-                           DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
-     config->buffermode  = DLBM_FRONTONLY;
+     config->flags      = DLCONF_WIDTH       | DLCONF_HEIGHT |
+                          DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
+     config->buffermode = DLBM_FRONTONLY;
+     config->width      = default_mode->xres;
+     config->height     = default_mode->yres;
 
-     if (dfb_config->mode.width)
-          config->width  = dfb_config->mode.width;
-     else
-          config->width  = default_mode->xres;
+     if (dfb_config->mode.width || dfb_config->mode.height) {
+          VideoMode *videomode = dfb_fbdev->shared->modes;
 
-     if (dfb_config->mode.height)
-          config->height = dfb_config->mode.height;
-     else
-          config->height = default_mode->yres;
+          while (videomode) {
+               if (videomode->xres == dfb_config->mode.width &&
+                   videomode->yres == dfb_config->mode.height)
+               {
+                    config->width  = dfb_config->mode.width;
+                    config->height = dfb_config->mode.height;
 
-     if (dfb_config->mode.format != DSPF_UNKNOWN)
+                    break;
+               }
+
+               videomode = videomode->next;
+          }
+
+          if (!videomode)
+               D_ERROR( "DirectFB/fbdev: Unsupported mode (%dx%d) specified!\n",
+                        dfb_config->mode.width, dfb_config->mode.height );
+     }
+
+     if (dfb_config->mode.format != DSPF_UNKNOWN) {
           config->pixelformat = dfb_config->mode.format;
+     }
      else if (dfb_config->mode.depth > 0) {
-          config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-          if (config->pixelformat == DSPF_UNKNOWN)
-               D_ERROR("DirectFB/fbdev: Unknown depth (%d) specified!\n",
-                        dfb_config->mode.depth);
+          DFBSurfacePixelFormat format = dfb_pixelformat_for_depth( dfb_config->mode.depth );
+
+          if (format != DSPF_UNKNOWN)
+               config->pixelformat = format;
+          else
+               D_ERROR("DirectFB/fbdev: Unknown depth (%d) specified!\n", dfb_config->mode.depth);
      }
 
      if (config->pixelformat == DSPF_UNKNOWN) {
