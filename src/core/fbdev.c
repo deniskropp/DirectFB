@@ -988,7 +988,8 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      struct fb_var_screeninfo var;
 
      DEBUGMSG("DirectFB/core/fbdev: dfb_fbdev_set_mode (layer: %p, "
-              "mode: %p, buffermode: %d)\n", layer, mode, config ? config->buffermode, DLBM_FRONTONLY);
+              "mode: %p, buffermode: %d)\n", layer, mode,
+              config ? config->buffermode : DLBM_FRONTONLY);
 
      if (!mode)
           mode = Sfbdev->current_mode ? Sfbdev->current_mode : Sfbdev->modes;
@@ -1247,8 +1248,8 @@ static DFBResult dfb_fbdev_read_modes()
                          m = m->next;
                     }
                     memcpy (m, &temp_mode, sizeof(VideoMode));
-                    DEBUGMSG( "DirectFB/core/fbdev: %20s %4dx%4d  %d bit  %s%s\n", label, temp_mode.xres, temp_mode.yres,
-                              temp_mode.bpp, temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
+                    DEBUGMSG( "DirectFB/core/fbdev: %20s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
+                              temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
                }
           }
      }
