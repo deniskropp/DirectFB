@@ -1166,10 +1166,9 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )
 {
-     int                      steps[bytes];
-     unichar                  chars[bytes];
-     CoreGlyphData           *glyphs[bytes];
-     DFBSurfaceBlittingFlags  blittingflags;
+     int            steps[bytes];
+     unichar        chars[bytes];
+     CoreGlyphData *glyphs[bytes];
 
      unichar prev = 0;
 
@@ -1226,30 +1225,21 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      font->state.modified    |= SMF_DESTINATION;
 
      /* set clip */
-     if (!DFB_REGION_EQUAL(font->state.clip, state->clip)) {
-          font->state.clip      = state->clip;
-          font->state.modified |= SMF_CLIP;
-     }
+     dfb_state_set_clip( &font->state, &state->clip );
 
      /* set color */
-     if (!DFB_COLOR_EQUAL(font->state.color, state->color) ||
-         font->state.color_index != state->color_index)
-     {
-          font->state.color        = state->color;
-          font->state.color_index  = state->color_index;
-          font->state.modified    |= SMF_COLOR;
-     }
+     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
+          dfb_state_set_color_index( &font->state, state->color_index );
+     else
+          dfb_state_set_color( &font->state, &state->color );
 
      /* set blitting flags */
      if (state->drawingflags & DSDRAW_BLEND)
-          blittingflags = font->state.blittingflags | DSBLIT_BLEND_COLORALPHA;
+          dfb_state_set_blitting_flags( &font->state,
+                                        font->state.blittingflags | DSBLIT_BLEND_COLORALPHA );
      else
-          blittingflags = font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA;
-
-     if (font->state.blittingflags != blittingflags) {
-          font->state.blittingflags  = blittingflags;
-          font->state.modified      |= SMF_BLITTING_FLAGS;
-     }
+          dfb_state_set_blitting_flags( &font->state,
+                                        font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA );
 
      /* blit glyphs */
      for (offset = 0; offset < bytes; offset += steps[offset]) {
@@ -1372,18 +1362,24 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      font->state.destination  = state->destination;
      font->state.modified    |= SMF_DESTINATION;
 
-     /* set clip and color */
-     font->state.clip        = state->clip;
-     font->state.color       = state->color;
-     font->state.color_index = state->color_index;
+     /* set clip */
+     dfb_state_set_clip( &font->state, &state->clip );
 
-     if (state->drawingflags & DSDRAW_BLEND)
-          font->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
+     /* set color */
+     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
+          dfb_state_set_color_index( &font->state, state->color_index );
      else
-          font->state.blittingflags &= ~DSBLIT_BLEND_COLORALPHA;
+          dfb_state_set_color( &font->state, &state->color );
 
-     font->state.modified |= SMF_CLIP | SMF_COLOR | SMF_BLITTING_FLAGS;
+     /* set blitting flags */
+     if (state->drawingflags & DSDRAW_BLEND)
+          dfb_state_set_blitting_flags( &font->state,
+                                        font->state.blittingflags | DSBLIT_BLEND_COLORALPHA );
+     else
+          dfb_state_set_blitting_flags( &font->state,
+                                        font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA );
 
+     /* set blitting source */
      dfb_state_set_source( &font->state, data->surface );
 
      rect.x = data->start;

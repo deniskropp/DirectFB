@@ -411,9 +411,11 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
                         __u8 r, __u8 g, __u8 b, __u8 a )
 {
      DFBColor                old_color;
+     unsigned int            old_index;
      DFBSurfaceDrawingFlags  old_flags;
      DFBRectangle            rect;
      CoreSurface            *surface;
+     DFBColor                color = { a, r, g, b };
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -429,24 +431,18 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
 
      /* save current color and drawing flags */
      old_color = data->state.color;
+     old_index = data->state.color_index;
      old_flags = data->state.drawingflags;
 
      /* set drawing flags */
-     if (old_flags != DSDRAW_NOFX) {
-          data->state.drawingflags  = DSDRAW_NOFX;
-          data->state.modified     |= SMF_DRAWING_FLAGS;
-     }
+     dfb_state_set_drawing_flags( &data->state, DSDRAW_NOFX );
 
      /* set color */
-     data->state.color.r = r;
-     data->state.color.g = g;
-     data->state.color.b = b;
-     data->state.color.a = a;
-
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-          data->state.color_index = dfb_palette_search( surface->palette, r, g, b, a );
-
-     data->state.modified |= SMF_COLOR;
+          dfb_state_set_color_index( &data->state,
+                                     dfb_palette_search( surface->palette, r, g, b, a ) );
+     else
+          dfb_state_set_color( &data->state, &color );
 
      /* fill the visible rectangle */
      rect = data->area.current;
@@ -457,14 +453,13 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
           dfb_clear_depth( data->surface, &data->state.clip );
 
      /* restore drawing flags */
-     if (old_flags != DSDRAW_NOFX) {
-          data->state.drawingflags  = old_flags;
-          data->state.modified     |= SMF_DRAWING_FLAGS;
-     }
+     dfb_state_set_drawing_flags( &data->state, old_flags );
 
      /* restore color */
-     data->state.color     = old_color;
-     data->state.modified |= SMF_COLOR;
+     if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          dfb_state_set_color_index( &data->state, old_index );
+     else
+          dfb_state_set_color( &data->state, &old_color );
 
      return DFB_OK;
 }
@@ -507,8 +502,7 @@ IDirectFBSurface_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
           data->clip_set = 0;
      }
 
-     data->state.clip      = newclip;
-     data->state.modified |= SMF_CLIP;
+     dfb_state_set_clip( &data->state, &newclip );
 
      return DFB_OK;
 }
@@ -518,6 +512,7 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
                            __u8 r, __u8 g, __u8 b, __u8 a )
 {
      CoreSurface *surface;
+     DFBColor     color = { a, r, g, b };
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -525,16 +520,11 @@ IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     data->state.color.a = a;
-     data->state.color.r = r;
-     data->state.color.g = g;
-     data->state.color.b = b;
+     dfb_state_set_color( &data->state, &color );
 
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
-          data->state.color_index = dfb_palette_search( surface->palette,
-                                                        r, g, b, a );
-
-     data->state.modified |= SMF_COLOR;
+          dfb_state_set_color_index( &data->state,
+                                     dfb_palette_search( surface->palette, r, g, b, a ) );
 
      return DFB_OK;
 }
@@ -562,9 +552,9 @@ IDirectFBSurface_SetColorIndex( IDirectFBSurface *thiz,
      if (index > palette->num_entries)
           return DFB_INVARG;
 
-     data->state.color        = palette->entries[index];
-     data->state.color_index  = index;
-     data->state.modified    |= SMF_COLOR;
+     dfb_state_set_color( &data->state, &palette->entries[index] );
+
+     dfb_state_set_color_index( &data->state, index );
 
      return DFB_OK;
 }
@@ -575,28 +565,23 @@ IDirectFBSurface_SetSrcBlendFunction( IDirectFBSurface        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->state.src_blend != src) {
-          switch (src) {
-               case DSBF_ZERO:
-               case DSBF_ONE:
-               case DSBF_SRCCOLOR:
-               case DSBF_INVSRCCOLOR:
-               case DSBF_SRCALPHA:
-               case DSBF_INVSRCALPHA:
-               case DSBF_DESTALPHA:
-               case DSBF_INVDESTALPHA:
-               case DSBF_DESTCOLOR:
-               case DSBF_INVDESTCOLOR:
-               case DSBF_SRCALPHASAT:
-                    data->state.src_blend = src;
-                    data->state.modified |= SMF_SRC_BLEND;
-                    return DFB_OK;
-          }
-
-          return DFB_INVARG;
+     switch (src) {
+          case DSBF_ZERO:
+          case DSBF_ONE:
+          case DSBF_SRCCOLOR:
+          case DSBF_INVSRCCOLOR:
+          case DSBF_SRCALPHA:
+          case DSBF_INVSRCALPHA:
+          case DSBF_DESTALPHA:
+          case DSBF_INVDESTALPHA:
+          case DSBF_DESTCOLOR:
+          case DSBF_INVDESTCOLOR:
+          case DSBF_SRCALPHASAT:
+               dfb_state_set_src_blend( &data->state, src );
+               return DFB_OK;
      }
 
-     return DFB_OK;
+     return DFB_INVARG;
 }
 
 static DFBResult
@@ -605,28 +590,23 @@ IDirectFBSurface_SetDstBlendFunction( IDirectFBSurface        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->state.dst_blend != dst) {
-          switch (dst) {
-               case DSBF_ZERO:
-               case DSBF_ONE:
-               case DSBF_SRCCOLOR:
-               case DSBF_INVSRCCOLOR:
-               case DSBF_SRCALPHA:
-               case DSBF_INVSRCALPHA:
-               case DSBF_DESTALPHA:
-               case DSBF_INVDESTALPHA:
-               case DSBF_DESTCOLOR:
-               case DSBF_INVDESTCOLOR:
-               case DSBF_SRCALPHASAT:
-                    data->state.dst_blend = dst;
-                    data->state.modified |= SMF_SRC_BLEND;
-                    return DFB_OK;
-          }
-
-          return DFB_INVARG;
+     switch (dst) {
+          case DSBF_ZERO:
+          case DSBF_ONE:
+          case DSBF_SRCCOLOR:
+          case DSBF_INVSRCCOLOR:
+          case DSBF_SRCALPHA:
+          case DSBF_INVSRCALPHA:
+          case DSBF_DESTALPHA:
+          case DSBF_INVDESTALPHA:
+          case DSBF_DESTCOLOR:
+          case DSBF_INVDESTCOLOR:
+          case DSBF_SRCALPHASAT:
+               dfb_state_set_dst_blend( &data->state, dst );
+               return DFB_OK;
      }
 
-     return DFB_OK;
+     return DFB_INVARG;
 }
 
 static DFBResult
@@ -680,15 +660,8 @@ IDirectFBSurface_SetPorterDuff( IDirectFBSurface         *thiz,
                return DFB_INVARG;
      }
 
-     if (data->state.src_blend != src) {
-          data->state.src_blend = src;
-          data->state.modified |= SMF_SRC_BLEND;
-     }
-
-     if (data->state.dst_blend != dst) {
-          data->state.dst_blend = dst;
-          data->state.modified |= SMF_DST_BLEND;
-     }
+     dfb_state_set_src_blend( &data->state, src );
+     dfb_state_set_dst_blend( &data->state, dst );
 
      return DFB_OK;
 }
@@ -784,10 +757,7 @@ IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
      else
           data->dst_key.value = dfb_color_to_pixel( surface->format, r, g, b );
 
-     if (data->state.dst_colorkey != data->dst_key.value) {
-          data->state.dst_colorkey = data->dst_key.value;
-          data->state.modified    |= SMF_DST_COLORKEY;
-     }
+     dfb_state_set_dst_colorkey( &data->state, data->dst_key.value );
 
      return DFB_OK;
 }
@@ -821,10 +791,7 @@ IDirectFBSurface_SetDstColorKeyIndex( IDirectFBSurface *thiz,
 
      data->dst_key.value = index;
 
-     if (data->state.dst_colorkey != data->dst_key.value) {
-          data->state.dst_colorkey = data->dst_key.value;
-          data->state.modified    |= SMF_DST_COLORKEY;
-     }
+     dfb_state_set_dst_colorkey( &data->state, data->dst_key.value );
 
      return DFB_OK;
 }
@@ -874,10 +841,7 @@ IDirectFBSurface_SetDrawingFlags( IDirectFBSurface       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->state.drawingflags != flags) {
-          data->state.drawingflags = flags;
-          data->state.modified |= SMF_DRAWING_FLAGS;
-     }
+     dfb_state_set_drawing_flags( &data->state, flags );
 
      return DFB_OK;
 }
@@ -1048,10 +1012,7 @@ IDirectFBSurface_SetBlittingFlags( IDirectFBSurface        *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     if (data->state.blittingflags != flags) {
-          data->state.blittingflags = flags;
-          data->state.modified |= SMF_BLITTING_FLAGS;
-     }
+     dfb_state_set_blitting_flags( &data->state, flags );
 
      return DFB_OK;
 }
@@ -1111,12 +1072,8 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
      dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
-     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
-          if (data->state.src_colorkey != src_data->src_key.value) {
-               data->state.src_colorkey = src_data->src_key.value;
-               data->state.modified |= SMF_SRC_COLORKEY;
-          }
-     }
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
+          dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_blit( &srect,
                        data->area.wanted.x + dx,
@@ -1181,20 +1138,16 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
      dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
-     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
-          if (data->state.src_colorkey != src_data->src_key.value) {
-               data->state.src_colorkey = src_data->src_key.value;
-               data->state.modified |= SMF_SRC_COLORKEY;
-          }
-     }
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
+          dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dx %= srect.w;
      if (dx > 0)
-       dx -= srect.w;
+          dx -= srect.w;
 
      dy %= srect.h;
      if (dy > 0)
-       dy -= srect.h;
+          dy -= srect.h;
 
      dfb_gfxcard_tileblit( &srect,
                            data->area.wanted.x + dx,
@@ -1267,12 +1220,8 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
      dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
-     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
-          if (data->state.src_colorkey != src_data->src_key.value) {
-               data->state.src_colorkey = src_data->src_key.value;
-               data->state.modified |= SMF_SRC_COLORKEY;
-          }
-     }
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
+          dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_batchblit( rects, points, num, &data->state );
 
@@ -1361,12 +1310,8 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
      dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
-     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
-          if (data->state.src_colorkey != src_data->src_key.value) {
-               data->state.src_colorkey = src_data->src_key.value;
-               data->state.modified |= SMF_SRC_COLORKEY;
-          }
-     }
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
+          dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_stretchblit( &srect, &drect, &data->state );
 
@@ -1444,12 +1389,8 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
      dfb_state_set_source( &data->state, src_data->surface );
 
      /* fetch the source color key from the source if necessary */
-     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY) {
-          if (data->state.src_colorkey != src_data->src_key.value) {
-               data->state.src_colorkey = src_data->src_key.value;
-               data->state.modified |= SMF_SRC_COLORKEY;
-          }
-     }
+     if (data->state.blittingflags & DSBLIT_SRC_COLORKEY)
+          dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_texture_triangles( translated, num, formation, &data->state );
 
@@ -1735,12 +1676,10 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      dfb_state_init( &data->state );
      dfb_state_set_destination( &data->state, surface );
 
-     data->state.clip.x1 = data->area.current.x;
-     data->state.clip.y1 = data->area.current.y;
-     data->state.clip.x2 = data->area.current.x + data->area.current.w - 1;
-     data->state.clip.y2 = data->area.current.y + data->area.current.h - 1;
-     data->state.dst_blend = DSBF_INVSRCALPHA;
-     data->state.src_blend = DSBF_SRCALPHA;
+     data->state.clip.x1  = data->area.current.x;
+     data->state.clip.y1  = data->area.current.y;
+     data->state.clip.x2  = data->area.current.x + data->area.current.w - 1;
+     data->state.clip.y2  = data->area.current.y + data->area.current.h - 1;
      data->state.modified = SMF_ALL;
 
      thiz->AddRef = IDirectFBSurface_AddRef;

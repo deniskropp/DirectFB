@@ -140,5 +140,47 @@ do {                                                        \
                                                                           DRAWING_FLAGS,  \
                                                                           state, flags )
 
+#define dfb_state_set_color_index(state,index)    _dfb_state_set_checked( color_index,    \
+                                                                          COLOR,          \
+                                                                          state, index )
+
+#define dfb_state_set_src_blend(state,blend)      _dfb_state_set_checked( src_blend,      \
+                                                                          SRC_BLEND,      \
+                                                                          state, blend )
+
+#define dfb_state_set_dst_blend(state,blend)      _dfb_state_set_checked( dst_blend,      \
+                                                                          DST_BLEND,      \
+                                                                          state, blend )
+
+#define dfb_state_set_src_colorkey(state,key)     _dfb_state_set_checked( src_colorkey,   \
+                                                                          SRC_COLORKEY,   \
+                                                                          state, key )
+
+#define dfb_state_set_dst_colorkey(state,key)     _dfb_state_set_checked( dst_colorkey,   \
+                                                                          DST_COLORKEY,   \
+                                                                          state, key )
+
+static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( clip != NULL );
+
+     if (! DFB_REGION_EQUAL( state->clip, *clip )) {
+          state->clip      = *clip;
+          state->modified |= SMF_CLIP;
+     }
+}
+
+static inline void dfb_state_set_color( CardState *state, const DFBColor *color )
+{
+     D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( color != NULL );
+
+     if (! DFB_COLOR_EQUAL( state->color, *color )) {
+          state->color     = *color;
+          state->modified |= SMF_COLOR;
+     }
+}
+
 #endif
 

@@ -598,10 +598,7 @@ draw_window( CoreWindow *window, CardState *state,
           flags |= DSBLIT_SRC_COLORKEY;
 
           /* Set window color key. */
-          if (state->src_colorkey != window->color_key) {
-               state->src_colorkey  = window->color_key;
-               state->modified     |= SMF_SRC_COLORKEY;
-          }
+          dfb_state_set_src_colorkey( state, window->color_key );
      }
 
      /* Use automatic deinterlacing. */
@@ -609,10 +606,7 @@ draw_window( CoreWindow *window, CardState *state,
           flags |= DSBLIT_DEINTERLACE;
 
      /* Set blitting flags. */
-     if (state->blittingflags != flags) {
-          state->blittingflags  = flags;
-          state->modified      |= SMF_BLITTING_FLAGS;
-     }
+     dfb_state_set_blitting_flags( state, flags );
 
      /* Set blitting source. */
      state->source    = window->surface;
@@ -647,16 +641,12 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                DFBColor    *color = &stack->bg.color;
 
                /* Set the background color. */
-               state->color     = *color;
-               state->modified |= SMF_COLOR;
-
-               /* Lookup index of background color. */
                if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
-                    state->color_index = dfb_palette_search( dest->palette,
-                                                             color->r,
-                                                             color->g,
-                                                             color->b,
-                                                             color->a );
+                    dfb_state_set_color_index( state,
+                                               dfb_palette_search( dest->palette, color->r,
+                                                                   color->g, color->b, color->a ) );
+               else
+                    dfb_state_set_color( state, color );
 
                /* Simply fill the background. */
                dfb_gfxcard_fillrectangle( &dst, state );
@@ -672,10 +662,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                state->modified |= SMF_SOURCE;
 
                /* Set blitting flags. */
-               if (state->blittingflags != DSBLIT_NOFX) {
-                    state->blittingflags  = DSBLIT_NOFX;
-                    state->modified      |= SMF_BLITTING_FLAGS;
-               }
+               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
 
                /* Check the size of the background image. */
                if (bg->width == stack->width && bg->height == stack->height) {
@@ -687,8 +674,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                     DFBRectangle src  = { 0, 0, bg->width, bg->height };
 
                     /* Change clipping region. */
-                    state->clip      = *region;
-                    state->modified |= SMF_CLIP;
+                    dfb_state_set_clip( state, region );
 
                     /*
                      * Scale image to fill the whole screen
@@ -703,8 +689,7 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                     dfb_gfxcard_stretchblit( &src, &dst, state );
 
                     /* Restore clipping region. */
-                    state->clip      = clip;
-                    state->modified |= SMF_CLIP;
+                    dfb_state_set_clip( state, &clip );
                }
 
                /* Reset blitting source. */
@@ -719,16 +704,15 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                DFBRegion     clip = state->clip;
                DFBRectangle  src  = { 0, 0, bg->width, bg->height };
 
-               /* Set blitting flags. */
-               if (state->blittingflags != DSBLIT_NOFX) {
-                    state->blittingflags  = DSBLIT_NOFX;
-                    state->modified      |= SMF_BLITTING_FLAGS;
-               }
+               /* Set blitting source. */
+               state->source    = bg;
+               state->modified |= SMF_SOURCE;
 
-               /* Set blitting source and clipping region. */
-               state->source    = stack->bg.image;
-               state->clip      = *region;
-               state->modified |= SMF_SOURCE | SMF_CLIP;
+               /* Set blitting flags. */
+               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
+
+               /* Change clipping region. */
+               dfb_state_set_clip( state, region );
 
                /* Tiled blit (aligned). */
                dfb_gfxcard_tileblit( &src,
@@ -738,10 +722,12 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                                      (region->y2 / src.h + 1) * src.h,
                                      state );
 
-               /* Reset blitting source and restore clipping region. */
+               /* Restore clipping region. */
+               dfb_state_set_clip( state, &clip );
+
+               /* Reset blitting source. */
                state->source    = NULL;
-               state->clip      = clip;
-               state->modified |= SMF_SOURCE | SMF_CLIP;
+               state->modified |= SMF_SOURCE;
 
                break;
           }
@@ -910,21 +896,28 @@ repaint_stack( CoreWindowStack     *stack,
      if (!stack->active || !region->surface)
           return;
 
-     state->destination = region->surface;
-     state->clip        = *update;
-     state->modified   |= SMF_DESTINATION | SMF_CLIP;
+     /* Set destination. */
+     state->destination  = region->surface;
+     state->modified    |= SMF_DESTINATION;
 
+     /* Set clipping region. */
+     dfb_state_set_clip( state, update );
+
+     /* Compose updated region. */
      update_region( stack, data, state,
                     fusion_vector_size( &data->windows ) - 1,
                     update->x1, update->y1, update->x2, update->y2 );
 
+     /* Flip the updated region .*/
      dfb_layer_region_flip_update( region, update, flags );
 
-     state->destination = NULL;
+     /* Reset destination. */
+     state->destination  = NULL;
+     state->modified    |= SMF_DESTINATION;
 }
 
 /*
-     recurseve procedure to call repaint
+     recursive procedure to call repaint
      skipping opaque windows that are above the window
      that changed
 */
