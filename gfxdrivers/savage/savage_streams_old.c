@@ -524,7 +524,7 @@ savageSecondaryFlipBuffers(  DisplayLayer        *layer,
      secondary_calc_regs(sdrv, slay, layer, &slay->config);
      secondary_set_regs(sdrv, slay);
 
-     if (flags & DSFLIP_WAITFORSYNC)
+     if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( dfb_layer_at( DLID_PRIMARY ) );
 
      return DFB_OK;

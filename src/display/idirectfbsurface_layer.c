@@ -99,7 +99,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
 
 
      if (flags & DSFLIP_BLIT || region || data->base.caps & DSCAPS_SUBSURFACE) {
-          if (flags & DSFLIP_WAITFORSYNC)
+          if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
                dfb_layer_wait_vsync( data->layer );
           
           if (region) {
@@ -128,6 +128,9 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                dfb_back_to_front_copy( data->base.surface, &rect );
                dfb_layer_update_region( data->layer, &region, 0 );
           }
+
+          if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
+               dfb_layer_wait_vsync( data->layer );
      }
      else
           return dfb_layer_flip_buffers( data->layer, flags );

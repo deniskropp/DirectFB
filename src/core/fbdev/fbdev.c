@@ -965,7 +965,8 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
      DFBResult    ret;
      CoreSurface *surface = dfb_layer_surface( layer );
 
-     if ((flags & DSFLIP_WAITFORSYNC) && !dfb_config->pollvsync_after)
+     if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
+         !dfb_config->pollvsync_after)
           dfb_layer_wait_vsync( layer );
 
      ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
@@ -973,9 +974,10 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
      if (ret)
           return ret;
 
-     if ((flags & DSFLIP_WAITFORSYNC) && dfb_config->pollvsync_after)
+     if ((flags & DSFLIP_WAIT) &&
+         (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
           dfb_layer_wait_vsync( layer );
-          
+
      dfb_surface_flip_buffers( surface );
 
      return DFB_OK;

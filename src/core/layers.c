@@ -1049,10 +1049,14 @@ dfb_layer_flip_buffers( DisplayLayer *layer, DFBSurfaceFlipFlags flags )
                                                  layer->layer_data, flags );
           
           case DLBM_BACKSYSTEM:
-               if (flags & DSFLIP_WAITFORSYNC)
+               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
                     dfb_layer_wait_vsync( layer );
+
                dfb_back_to_front_copy( shared->surface, NULL );
                dfb_layer_update_region( layer, NULL, flags );
+
+               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
+                    dfb_layer_wait_vsync( layer );
                break;
 
           default:

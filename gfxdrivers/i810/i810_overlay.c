@@ -414,7 +414,6 @@ ovlFlipBuffers( DisplayLayer        *layer,
 	I810DriverData       *i810drv = (I810DriverData *) driver_data;
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
 	CoreSurface          *surface = dfb_layer_surface ( layer );
-	bool                  onsync  = (flags & DSFLIP_WAITFORSYNC);
 	u32 current_buffer;
 
 	dfb_surface_flip_buffers( surface );
@@ -432,7 +431,7 @@ ovlFlipBuffers( DisplayLayer        *layer,
 	ovl_calc_regs (i810drv, i810ovl, layer, &i810ovl->config); 
 	update_overlay(i810drv, i810ovl);
 	
-	if (onsync)
+	if (flags & DSFLIP_WAIT)
 		dfb_layer_wait_vsync( dfb_layer_at( DLID_PRIMARY ) );
 
 	return DFB_OK;

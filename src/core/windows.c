@@ -1481,15 +1481,18 @@ repaint_stack( CoreWindowStack     *stack,
                                      region->x2 - region->x1 + 1,
                                      region->y2 - region->y1 + 1 };
 
-               if (flags & DSFLIP_WAITFORSYNC)
+               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC)
                     dfb_layer_wait_vsync( layer );
-               
-               dfb_back_to_front_copy( surface, &rect );
-          }
-     }
 
-     dfb_layer_update_region( layer, region, flags );
-     
+               dfb_back_to_front_copy( surface, &rect );
+               dfb_layer_update_region( layer, region, flags );
+
+               if ((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAIT)
+                    dfb_layer_wait_vsync( layer );
+          }
+     } else
+          dfb_layer_update_region( layer, region, flags );
+
      dfb_layer_release( layer, false );
 }
 

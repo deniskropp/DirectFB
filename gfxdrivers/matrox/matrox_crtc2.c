@@ -296,7 +296,7 @@ crtc2FlipBuffers( DisplayLayer        *layer,
      }
      crtc2_set_buffer( mdrv, mcrtc2, layer );
 
-     if (flags & DSFLIP_WAITFORSYNC)
+     if (flags & DSFLIP_WAIT)
           crtc2_wait_vsync( mdrv );
 
      return DFB_OK;

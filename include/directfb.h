@@ -1781,11 +1781,13 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
  * Flipping flags controlling the behaviour of Flip().
  */
 typedef enum {
-     DSFLIP_WAITFORSYNC  = 0x00000001,  /* flip during vertical retrace,
-                                           blocks until it occurs */
-     DSFLIP_BLIT         = 0x00000002   /* copy backbuffer into
+     DSFLIP_WAIT         = 0x00000001,  /* blocks until vertical retrace */
+     DSFLIP_BLIT         = 0x00000002,  /* copy backbuffer into
                                            frontbuffer rather than
                                            just swapping these buffers */
+     DSFLIP_ONSYNC       = 0x00000004,  /* flip during vertical retrace */
+
+     DSFLIP_WAITFORSYNC  = DSFLIP_WAIT | DSFLIP_ONSYNC
 } DFBSurfaceFlipFlags;
 
 /*

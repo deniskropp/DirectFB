@@ -368,16 +368,15 @@ besFlipBuffers( DisplayLayer        *layer,
      MatroxDriverData   *mdrv    = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes    = (MatroxBesLayerData*) layer_data;
      CoreSurface        *surface = dfb_layer_surface( layer );
-     bool                onsync  = (flags & DSFLIP_WAITFORSYNC);
      
      dfb_surface_flip_buffers( surface );
      
      bes_calc_regs( mdrv, mbes, layer, &mbes->config );
-     bes_set_regs( mdrv, mbes, onsync );
+     bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
-     if (onsync)
+     if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( dfb_layer_at( DLID_PRIMARY ) );
-     
+
      return DFB_OK;
 }
 
