@@ -170,6 +170,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int i;
 
                D_ASSERT( funcs->InitEncoder != NULL );
+               D_ASSERT( funcs->SetEncoderConfig != NULL );
 
                shared->encoders = SHCALLOC( shared->description.encoders,
                                             sizeof(CoreScreenEncoder) );
@@ -191,6 +192,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int i;
 
                D_ASSERT( funcs->InitOutput != NULL );
+               D_ASSERT( funcs->SetOutputConfig != NULL );
 
                shared->outputs = SHCALLOC( shared->description.outputs,
                                            sizeof(CoreScreenOutput) );

@@ -78,8 +78,8 @@ crtc2InitScreen( CoreScreen           *screen,
                DFB_SCREEN_DESC_NAME_LENGTH, "Matrox CRTC2 Screen" );
 
      /* Set number of encoders and outputs. */
-     description->encoders = 1;
-     description->outputs  = 1;
+     description->encoders = 0;
+     description->outputs  = 0;
 
      return DFB_OK;
 }
