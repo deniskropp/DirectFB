@@ -35,11 +35,13 @@
 ################################################################
 
 
-html_create( INDEX, "index.html", "DirectFB Interfaces" );
+html_create( INDEX, "index.html", "Index Page" );
 html_create( TYPES, "types.html", "DirectFB Types" );
 
 print INDEX "<P>\n",
-            "  <CENTER><TABLE width=90% border=0 cellpadding=2>\n";
+            "  <CENTER>\n",
+            "    <H3>Interfaces</H3>\n",
+            "    <TABLE width=90% border=0 cellpadding=2>\n";
 
 while (<>) {
    chomp;
@@ -106,11 +108,42 @@ while (<>) {
    }
 }
 
-print INDEX "  </CENTER></TABLE>\n",
+print INDEX "  </TABLE></CENTER>\n",
             "</P>\n";
+
+print_list( \%types, "Types" );
+print_list( \%definitions, "Definitions" );
+
 
 html_close( INDEX );
 html_close( TYPES );
+
+
+
+
+
+sub print_list ($$) {
+   local (*list, $title) = @_;
+
+   print INDEX "<P>\n",
+               "  <CENTER>\n",
+               "    <H3>$title</H3>\n",
+               "    <TABLE width=90% border=0 cellpadding=2>\n";
+
+   foreach $key (sort keys %list)
+      {
+         print INDEX "    <TR><TD valign=top>\n",
+                     "      <A href=\"types.html#$key\">$key</A>\n",
+                     "    </TD><TD valign=top>\n",
+                     "      $list{$key}\n",
+                     "    </TD></TR>\n";
+      }
+
+   print INDEX "  </TABLE></CENTER>\n",
+               "</P>\n";
+}
+
+
 
 
 
@@ -422,7 +455,7 @@ sub parse_enum
                {
                   $enum = $1;
 
-                  $types{$enum} = 1;
+                  $types{$enum} = $comment;
 
                   last;
                }
@@ -571,7 +604,7 @@ sub parse_struct
                {
                   $struct = $1;
 
-                  $types{$struct} = 1;
+                  $types{$struct} = $comment;
 
                   last;
                }
@@ -710,7 +743,7 @@ sub parse_func (TYPE, NAME)
                }
             elsif ( /^\s*\)\;\s*$/ )
                {
-                  $types{$name} = 1;
+                  $types{$name} = $comment;
 
                   last;
                }
@@ -768,8 +801,10 @@ sub parse_macro (NAME, PARAMS)
             last unless /\\$/;
          }
 
+      $definitions{"$macro $params"} = $comment;
+
       print TYPES "<p>\n",
-                  "  <a name=$macro>\n",
+                  "  <a name=\"$macro $params\">\n",
                   "  <font color=#7070D0 size=+1>$macro $params</font>\n",
                   "  <br>\n",
                   "  $comment\n",
