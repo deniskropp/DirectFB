@@ -577,6 +577,32 @@ IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 }
 
 static DFBResult
+IDirectFBWindow_GrabKey( IDirectFBWindow            *thiz,
+                         DFBInputDeviceKeySymbol     symbol,
+                         DFBInputDeviceModifierMask  modifiers )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_grab_key( data->window, symbol, modifiers );
+}
+
+static DFBResult
+IDirectFBWindow_UngrabKey( IDirectFBWindow            *thiz,
+                           DFBInputDeviceKeySymbol     symbol,
+                           DFBInputDeviceModifierMask  modifiers )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return dfb_window_ungrab_key( data->window, symbol, modifiers );
+}
+
+static DFBResult
 IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
@@ -832,6 +858,8 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->UngrabKeyboard = IDirectFBWindow_UngrabKeyboard;
      thiz->GrabPointer = IDirectFBWindow_GrabPointer;
      thiz->UngrabPointer = IDirectFBWindow_UngrabPointer;
+     thiz->GrabKey = IDirectFBWindow_GrabKey;
+     thiz->UngrabKey = IDirectFBWindow_UngrabKey;
      thiz->Move = IDirectFBWindow_Move;
      thiz->MoveTo = IDirectFBWindow_MoveTo;
      thiz->Resize = IDirectFBWindow_Resize;

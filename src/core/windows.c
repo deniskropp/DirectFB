@@ -59,6 +59,14 @@ typedef struct {
      GlobalReaction  reaction;
 } StackDevice;
 
+typedef struct {
+     FusionLink                  link;
+
+     DFBInputDeviceKeySymbol     symbol;
+     DFBInputDeviceModifierMask  modifiers;
+
+     CoreWindow                 *owner;
+} GrabbedKey;
 
 static void repaint_stack( CoreWindowStack *stack, DFBRegion *region,
                            DFBSurfaceFlipFlags flags );
@@ -256,6 +264,15 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           dfb_input_detach_global( device->device, &device->reaction );
 
           shfree( device );
+
+          l = next;
+     }
+
+     l = stack->grabbed_keys;
+     while (l) {
+          FusionLink *next = l->next;
+          
+          shfree( l );
 
           l = next;
      }
@@ -954,6 +971,72 @@ dfb_window_ungrab_pointer( CoreWindow *window )
 
      stack_unlock( stack );
      
+     return DFB_OK;
+}
+
+DFBResult
+dfb_window_grab_key( CoreWindow                 *window,
+                     DFBInputDeviceKeySymbol     symbol,
+                     DFBInputDeviceModifierMask  modifiers )
+{
+     int              i;
+     FusionLink      *l;
+     GrabbedKey      *grab;
+     CoreWindowStack *stack = window->stack;
+
+     stack_lock( stack );
+
+     fusion_list_foreach (l, stack->grabbed_keys) {
+          GrabbedKey *key = (GrabbedKey*) l;
+
+          if (key->symbol == symbol && key->modifiers == modifiers) {
+               stack_unlock( stack );
+               return DFB_LOCKED;
+          }
+     }
+
+     grab = shcalloc( 1, sizeof(GrabbedKey) );
+
+     grab->symbol    = symbol;
+     grab->modifiers = modifiers;
+     grab->owner     = window;
+
+     fusion_list_prepend( &stack->grabbed_keys, &grab->link );
+
+     for (i=0; i<8; i++)
+          if (stack->keys[i].code != -1 && stack->keys[i].symbol == symbol)
+               stack->keys[i].code = -1;
+     
+     stack_unlock( stack );
+
+     return DFB_OK;
+}
+
+DFBResult
+dfb_window_ungrab_key( CoreWindow                 *window,
+                       DFBInputDeviceKeySymbol     symbol,
+                       DFBInputDeviceModifierMask  modifiers )
+{
+     FusionLink      *l;
+     CoreWindowStack *stack = window->stack;
+
+     stack_lock( stack );
+
+     fusion_list_foreach (l, stack->grabbed_keys) {
+          GrabbedKey *key = (GrabbedKey*) l;
+
+          if (key->symbol    == symbol &&
+              key->modifiers == modifiers &&
+              key->owner     == window)
+          {
+               fusion_list_remove( &stack->grabbed_keys, &key->link );
+               shfree( key );
+               break;
+          }
+     }
+
+     stack_unlock( stack );
+
      return DFB_OK;
 }
 
@@ -1962,6 +2045,7 @@ static void
 window_withdraw( CoreWindow *window )
 {
      int              i;
+     FusionLink      *l;
      CoreWindowStack *stack;
 
      DFB_ASSERT( window != NULL );
@@ -1996,6 +2080,19 @@ window_withdraw( CoreWindow *window )
 
                stack->keys[i].code = -1;
           }
+     }
+     
+     l = stack->grabbed_keys;
+     while (l) {
+          FusionLink *next = l->next;
+          GrabbedKey *key  = (GrabbedKey*) l;
+
+          if (key->owner == window) {
+               fusion_list_remove( &stack->grabbed_keys, &key->link );
+               shfree( key );
+          }
+
+          l = next;
      }
 }
 
@@ -2052,14 +2149,27 @@ static CoreWindow *
 get_keyboard_window( CoreWindowStack     *stack,
                      const DFBInputEvent *evt )
 {
+     FusionLink *l;
+
      DFB_ASSERT( stack != NULL );
      DFB_ASSERT( evt != NULL );
      DFB_ASSERT( evt->type == DIET_KEYPRESS || evt->type == DIET_KEYRELEASE );
 
+     /* Check explicit key grabs first. */
+     fusion_list_foreach (l, stack->grabbed_keys) {
+          GrabbedKey *key = (GrabbedKey*) l;
+
+          if (key->symbol    == evt->key_symbol &&
+              key->modifiers == stack->modifiers)
+               return key->owner;
+     }
+
+     /* Don't do implicit grabs on keys without a hardware index. */
      if (evt->key_code == -1)
           return stack->keyboard_window ?
-                 stack->keyboard_window : stack->focused_window;;
+                 stack->keyboard_window : stack->focused_window;
      
+     /* Implicitly grab (press) key or ungrab (release) it. */
      if (evt->type == DIET_KEYPRESS) {
           int         i;
           int         free_key = -1;

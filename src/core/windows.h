@@ -98,6 +98,8 @@ struct _CoreWindowStack {
      CoreWindow         *focused_window;  /* window having the focus */
      CoreWindow         *entered_window;  /* window under the pointer */
 
+     FusionLink         *grabbed_keys;    /* List of currently grabbed keys. */
+     
      struct {
           DFBInputDeviceKeySymbol      symbol;
           DFBInputDeviceKeyIdentifier  id;
@@ -275,10 +277,16 @@ dfb_window_repaint( CoreWindow          *window,
 void
 dfb_window_request_focus( CoreWindow *window );
 
-DFBResult dfb_window_grab_keyboard( CoreWindow *window );
-DFBResult dfb_window_ungrab_keyboard( CoreWindow *window );
-DFBResult dfb_window_grab_pointer( CoreWindow *window );
-DFBResult dfb_window_ungrab_pointer( CoreWindow *window );
+DFBResult dfb_window_grab_keyboard  ( CoreWindow                 *window );
+DFBResult dfb_window_ungrab_keyboard( CoreWindow                 *window );
+DFBResult dfb_window_grab_pointer   ( CoreWindow                 *window );
+DFBResult dfb_window_ungrab_pointer ( CoreWindow                 *window );
+DFBResult dfb_window_grab_key       ( CoreWindow                 *window,
+                                      DFBInputDeviceKeySymbol     symbol,
+                                      DFBInputDeviceModifierMask  modifiers );
+DFBResult dfb_window_ungrab_key     ( CoreWindow                 *window,
+                                      DFBInputDeviceKeySymbol     symbol,
+                                      DFBInputDeviceModifierMask  modifiers );
 
 
 static inline FusionResult

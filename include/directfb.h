@@ -2889,26 +2889,26 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Get the unique window ID.
       */
      DFBResult (*GetID) (
-          IDirectFBWindow          *thiz,
-          DFBWindowID              *window_id
+          IDirectFBWindow               *thiz,
+          DFBWindowID                   *window_id
      );
 
      /*
       * Get the current position of this window.
       */
      DFBResult (*GetPosition) (
-          IDirectFBWindow          *thiz,
-          int                      *x,
-          int                      *y
+          IDirectFBWindow               *thiz,
+          int                           *x,
+          int                           *y
      );
 
      /*
       * Get the size of the window in pixels.
       */
      DFBResult (*GetSize) (
-          IDirectFBWindow          *thiz,
-          unsigned int             *width,
-          unsigned int             *height
+          IDirectFBWindow               *thiz,
+          unsigned int                  *width,
+          unsigned int                  *height
      );
 
 
@@ -2918,8 +2918,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Create an event buffer for this window and attach it.
       */
      DFBResult (*CreateEventBuffer) (
-          IDirectFBWindow          *thiz,
-          IDirectFBEventBuffer    **buffer
+          IDirectFBWindow               *thiz,
+          IDirectFBEventBuffer         **buffer
      );
 
      /*
@@ -2929,8 +2929,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       *
       */
      DFBResult (*AttachEventBuffer) (
-          IDirectFBWindow          *thiz,
-          IDirectFBEventBuffer     *buffer
+          IDirectFBWindow               *thiz,
+          IDirectFBEventBuffer          *buffer
      );
 
      /*
@@ -2940,8 +2940,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * window's event mask. The default event mask is DWET_ALL.
       */
      DFBResult (*EnableEvents) (
-          IDirectFBWindow          *thiz,
-          DFBWindowEventType        mask
+          IDirectFBWindow               *thiz,
+          DFBWindowEventType             mask
      );
 
      /*
@@ -2951,8 +2951,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * the window's event mask. The default event mask is DWET_ALL.
       */
      DFBResult (*DisableEvents) (
-          IDirectFBWindow          *thiz,
-          DFBWindowEventType        mask
+          IDirectFBWindow               *thiz,
+          DFBWindowEventType             mask
      );
 
 
@@ -2966,8 +2966,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * that region.
       */
      DFBResult (*GetSurface) (
-          IDirectFBWindow          *thiz,
-          IDirectFBSurface        **surface
+          IDirectFBWindow               *thiz,
+          IDirectFBSurface             **surface
      );
 
 
@@ -2977,16 +2977,16 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Set options controlling appearance and behaviour of the window.
       */
      DFBResult (*SetOptions) (
-          IDirectFBWindow          *thiz,
-          DFBWindowOptions          options
+          IDirectFBWindow               *thiz,
+          DFBWindowOptions               options
      );
      
      /*
       * Get options controlling appearance and behaviour of the window.
       */
      DFBResult (*GetOptions) (
-          IDirectFBWindow          *thiz,
-          DFBWindowOptions         *options
+          IDirectFBWindow               *thiz,
+          DFBWindowOptions              *options
      );
      
      /*
@@ -2997,10 +2997,10 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * point.
       */
      DFBResult (*SetColorKey) (
-          IDirectFBWindow          *thiz,
-          __u8                      r,
-          __u8                      g,
-          __u8                      b
+          IDirectFBWindow               *thiz,
+          __u8                           r,
+          __u8                           g,
+          __u8                           b
      );
      
      /*
@@ -3011,8 +3011,8 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * visible at this point.
       */
      DFBResult (*SetColorKeyIndex) (
-          IDirectFBWindow          *thiz,
-          unsigned int              index
+          IDirectFBWindow               *thiz,
+          unsigned int                   index
      );
      
      /*
@@ -3023,16 +3023,16 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * it has no alpha channel.
       */
      DFBResult (*SetOpacity) (
-          IDirectFBWindow          *thiz,
-          __u8                      opacity
+          IDirectFBWindow               *thiz,
+          __u8                           opacity
      );
 
      /*
       * Get the current opacity factor of this window.
       */
      DFBResult (*GetOpacity) (
-          IDirectFBWindow          *thiz,
-          __u8                     *opacity
+          IDirectFBWindow               *thiz,
+          __u8                          *opacity
      );
 
      /*
@@ -3044,10 +3044,10 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Passing NULL will unbind a set shape and release its surface.
       */
      DFBResult (*SetCursorShape) (
-          IDirectFBWindow          *thiz,
-          IDirectFBSurface         *shape,
-          int                       hot_x,
-          int                       hot_y
+          IDirectFBWindow               *thiz,
+          IDirectFBSurface              *shape,
+          int                            hot_x,
+          int                            hot_y
      );
 
 
@@ -3057,7 +3057,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Pass the focus to this window.
       */
      DFBResult (*RequestFocus) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
@@ -3065,7 +3065,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * sent to this window ignoring the focus.
       */
      DFBResult (*GrabKeyboard) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
@@ -3073,7 +3073,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * dispatching.
       */
      DFBResult (*UngrabKeyboard) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
@@ -3081,7 +3081,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * sent to this window ignoring the focus.
       */
      DFBResult (*GrabPointer) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
@@ -3089,7 +3089,27 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * dispatching.
       */
      DFBResult (*UngrabPointer) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
+     );
+
+     /*
+      * Grab a specific key, i.e. all following events of this key are
+      * sent to this window ignoring the focus.
+      */
+     DFBResult (*GrabKey) (
+          IDirectFBWindow               *thiz,
+          DFBInputDeviceKeySymbol        symbol,
+          DFBInputDeviceModifierMask     modifiers
+     );
+
+     /*
+      * Ungrab a specific key, i.e. switch to standard key event
+      * dispatching.
+      */
+     DFBResult (*UngrabKey) (
+          IDirectFBWindow               *thiz,
+          DFBInputDeviceKeySymbol        symbol,
+          DFBInputDeviceModifierMask     modifiers
      );
 
    
@@ -3099,27 +3119,27 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Move the window by the specified distance.
       */
      DFBResult (*Move) (
-          IDirectFBWindow          *thiz,
-          int                       dx,
-          int                       dy
+          IDirectFBWindow               *thiz,
+          int                            dx,
+          int                            dy
      );
 
      /*
       * Move the window to the specified coordinates.
       */
      DFBResult (*MoveTo) (
-          IDirectFBWindow          *thiz,
-          int                       x,
-          int                       y
+          IDirectFBWindow               *thiz,
+          int                            x,
+          int                            y
      );
 
      /*
       * Resize the window.
       */
      DFBResult (*Resize) (
-          IDirectFBWindow          *thiz,
-          unsigned int              width,
-          unsigned int              height
+          IDirectFBWindow               *thiz,
+          unsigned int                   width,
+          unsigned int                   height
      );
 
 
@@ -3129,52 +3149,52 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * Put the window into a specific stacking class.
       */
      DFBResult (*SetStackingClass) (
-          IDirectFBWindow          *thiz,
-          DFBWindowStackingClass    stacking_class
+          IDirectFBWindow               *thiz,
+          DFBWindowStackingClass         stacking_class
      );
 
      /*
       * Raise the window by one within the window stack.
       */
      DFBResult (*Raise) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
       * Lower the window by one within the window stack.
       */
      DFBResult (*Lower) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
       * Put the window on the top of the window stack.
       */
      DFBResult (*RaiseToTop) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
       * Send a window to the bottom of the window stack.
       */
      DFBResult (*LowerToBottom) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
       * Put a window on top of another window.
       */
      DFBResult (*PutAtop) (
-          IDirectFBWindow          *thiz,
-          IDirectFBWindow          *lower
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *lower
      );
 
      /*
       * Put a window below another window.
       */
      DFBResult (*PutBelow) (
-          IDirectFBWindow          *thiz,
-          IDirectFBWindow          *upper
+          IDirectFBWindow               *thiz,
+          IDirectFBWindow               *upper
      );
 
 
@@ -3187,7 +3207,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * It does NOT actually close it.
       */
      DFBResult (*Close) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 
      /*
@@ -3199,7 +3219,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       * interface will return DFB_DESTROYED after that.
       */
      DFBResult (*Destroy) (
-          IDirectFBWindow          *thiz
+          IDirectFBWindow               *thiz
      );
 )
 
