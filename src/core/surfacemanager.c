@@ -49,10 +49,14 @@
 #include <core/surfacemanager.h>
 #include <core/system.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
+
+
+D_DEBUG_DOMAIN( Core_SM, "Core/SurfaceMgr", "DirectFB Surface Manager" );
 
 /*
  * initially there is one big free chunk,
@@ -325,7 +329,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      if (pitch < manager->max_power_of_two_pixelpitch &&
          surface->height < manager->max_power_of_two_height)
           pitch = 1 << direct_log2( pitch );
-     
+
      if (manager->pixelpitch_align > 1) {
           pitch += manager->pixelpitch_align - 1;
           pitch -= pitch % manager->pixelpitch_align;
@@ -401,9 +405,9 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      if (best_occupied) {
           CoreSurface *kicked = best_occupied->buffer->surface;
 
-          D_DEBUG( "DirectFB/core/surfacemanager: Kicking out buffer at %d (%d) with tolerations %d...\n",
-                    best_occupied->offset,
-                    best_occupied->length, best_occupied->tolerations );
+          D_DEBUG_AT( Core_SM, "Kicking out buffer at %d (%d) with tolerations %d...\n",
+                      best_occupied->offset,
+                      best_occupied->length, best_occupied->tolerations );
 
           dfb_surfacemanager_assure_system( manager, best_occupied->buffer );
 
@@ -421,9 +425,7 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      }
 
 
-     D_DEBUG( "DirectFB/core/surfacemanager: "
-               "Couldn't allocate enough heap space "
-               "for video memory surface!\n" );
+     D_DEBUG_AT( Core_SM, "Couldn't allocate enough heap space for video memory surface!\n" );
 
      /* no luck */
      return DFB_NOVIDEOMEMORY;
@@ -442,8 +444,6 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      if (buffer->video.health == CSH_INVALID)
           return DFB_OK;
 
-     //D_DEBUG( "deallocating...\n" );
-
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
 
@@ -461,8 +461,6 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 
      if (chunk)
           free_chunk( manager, chunk );
-
-     //D_DEBUG( "deallocated.\n" );
 
      return DFB_OK;
 }
@@ -625,9 +623,8 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           return chunk;
      }
      else {
-          D_DEBUG( "DirectFB/core/surfacemanager: "
-                    "Deallocating %d bytes at offset %d.\n",
-                    chunk->length, chunk->offset );
+          D_DEBUG_AT( Core_SM, "Deallocating %d bytes at offset %d.\n",
+                      chunk->length, chunk->offset );
      }
 
      if (chunk->buffer->policy == CSP_VIDEOONLY)
@@ -640,7 +637,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
      if (chunk->prev  &&  !chunk->prev->buffer) {
           Chunk *prev = chunk->prev;
 
-          //D_DEBUG( "  merging with previous chunk at %d\n", prev->offset );
+          //D_DEBUG_AT( Core_SM, "  -> merging with previous chunk at %d\n", prev->offset );
 
           prev->length += chunk->length;
 
@@ -648,7 +645,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
           if (prev->next)
                prev->next->prev = prev;
 
-          //D_DEBUG("freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
+          //D_DEBUG_AT( Core_SM, "  -> freeing %p (prev %p, next %p)\n", chunk, chunk->prev, chunk->next);
 
           D_MAGIC_CLEAR( chunk );
 
@@ -659,7 +656,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
      if (chunk->next  &&  !chunk->next->buffer) {
           Chunk *next = chunk->next;
 
-          //D_DEBUG( "  merging with next chunk at %d\n", next->offset );
+          //D_DEBUG_AT( Core_SM, "  -> merging with next chunk at %d\n", next->offset );
 
           chunk->length += next->length;
 
@@ -686,9 +683,7 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int 
 
      chunk = split_chunk( chunk, length );
 
-     D_DEBUG( "DirectFB/core/surfacemanager: "
-               "Allocating %d bytes at offset %d.\n",
-               chunk->length, chunk->offset );
+     D_DEBUG_AT( Core_SM, "Allocating %d bytes at offset %d.\n", chunk->length, chunk->offset );
 
      buffer->video.health = CSH_RESTORE;
      buffer->video.offset = chunk->offset;
