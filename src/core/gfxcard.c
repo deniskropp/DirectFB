@@ -928,7 +928,7 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      dfb_font_lock( font );
 
      /* simple prechecks */
-     if (y > state->clip.y2 ||
+     if (x > state->clip.x2 || y > state->clip.y2 ||
          y + font->ascender - font->descender <= state->clip.y1) {
           dfb_font_unlock( font );
           return;
