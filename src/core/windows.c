@@ -1299,36 +1299,44 @@ handle_wheel( CoreWindowStack *stack, int dz )
 static int
 handle_enter_leave_focus( CoreWindowStack *stack )
 {
-     CoreWindow    *before = stack->entered_window;
-     CoreWindow    *after = window_at_pointer( stack, -1, -1 );
+     /* if pointer is not grabbed */
+     if (!stack->pointer_window) {
+          CoreWindow    *before = stack->entered_window;
+          CoreWindow    *after = window_at_pointer( stack, -1, -1 );
 
-     if (before != after) {
-          DFBWindowEvent we;
+          /* and the window under the cursor is another one now */
+          if (before != after) {
+               DFBWindowEvent we;
 
-          we.cx   = stack->cx;
-          we.cy   = stack->cy;
+               /* set cursor position */
+               we.cx = stack->cx;
+               we.cy = stack->cy;
 
-          if (before) {
-               we.type = DWET_LEAVE;
-               we.x    = we.cx - before->x;
-               we.y    = we.cy - before->y;
+               /* send leave event */
+               if (before) {
+                    we.type = DWET_LEAVE;
+                    we.x    = we.cx - before->x;
+                    we.y    = we.cy - before->y;
 
-               dfb_window_dispatch( before, &we );
+                    dfb_window_dispatch( before, &we );
+               }
+
+               /* request focus and send enter event */
+               if (after) {
+                    dfb_window_request_focus( after );
+
+                    we.type = DWET_ENTER;
+                    we.x    = we.cx - after->x;
+                    we.y    = we.cy - after->y;
+
+                    dfb_window_dispatch( after, &we );
+               }
+
+               /* update pointer to window under the cursor */
+               stack->entered_window = after;
+
+               return 1;
           }
-
-          if (after) {
-               dfb_window_request_focus( after );
-
-               we.type = DWET_ENTER;
-               we.x    = we.cx - after->x;
-               we.y    = we.cy - after->y;
-
-               dfb_window_dispatch( after, &we );
-          }
-
-          stack->entered_window = after;
-
-          return 1;
      }
 
      return 0;
