@@ -104,6 +104,8 @@ typedef struct
 
      char     *screenshot_dir;                    /* dump screen content into
                                                      this directory */
+
+     char    **disable_module;                    /* don't load these modules */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

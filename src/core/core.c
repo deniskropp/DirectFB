@@ -335,6 +335,31 @@ dfb_core_cleanup_remove( CoreCleanup *cleanup )
  * module loading functions
  */
 #ifdef DFB_DYNAMIC_LINKING
+
+static
+int suppress_module (const char *name)
+{
+     int i = 0;
+
+     if (!dfb_config->disable_module)
+          return 0;
+     
+     while (dfb_config->disable_module[i]) {
+          if (strncmp (dfb_config->disable_module[i], name + 12,
+		       strlen(dfb_config->disable_module[i])) == 0)
+	  {
+               INITMSG( "DirectFB/Core: suppress module '%s'\n", 
+			dfb_config->disable_module[i] );
+               return 1;
+	  }
+
+	  i++;
+     }
+
+     return 0;
+}
+
+
 DFBResult
 dfb_core_load_modules( char *module_dir,
                        CoreModuleLoadResult (*handle_func)(void *handle,
@@ -367,6 +392,9 @@ dfb_core_load_modules( char *module_dir,
                continue;
 
           snprintf( buf, buf_len, "%s/%s", module_dir, entry->d_name );
+
+          if (suppress_module (entry->d_name))
+               continue;
 
           handle = dlopen( buf, RTLD_LAZY );
           if (handle) {

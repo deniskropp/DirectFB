@@ -117,6 +117,8 @@ static const char *config_usage =
     "Dump screen content on <Print> key presses\n"
     "  fbdebug=<device>               "
     "Use a second frame buffer device for debugging\n"
+    "  disable-module=<module_name>   "
+    "suppress loading this module\n"
     "\n"
     " Window surface swapping policy:\n"
     "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -205,6 +207,26 @@ const char *dfb_config_usage( void )
 
 DFBResult dfb_config_set( const char *name, const char *value )
 {
+     if (strcmp (name, "disable-module" ) == 0) {
+          if (value) {
+	       int n = 0;
+
+	       while (dfb_config->disable_module &&
+		      dfb_config->disable_module[n])
+		    n++;
+
+	       dfb_config->disable_module = 
+		    DFBREALLOC( dfb_config->disable_module,
+                                sizeof(char*) * (n + 2) );
+
+	       dfb_config->disable_module[n] = DFBSTRDUP( value );
+               dfb_config->disable_module[n+1] = NULL;
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'disable_module': expect module name\n");
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "fbdev" ) == 0) {
           if (value) {
                if (dfb_config->fb_device)
