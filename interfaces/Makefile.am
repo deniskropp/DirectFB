@@ -40,6 +40,7 @@ endif
 INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src \
+	-DDATADIR=\"@DATADIR@\"	\
 	$(LIBMPEG3_INCLUDES)
 
 CFLAGS = $(DFB_CFLAGS) $(FREETYPE_CFLAGS)
@@ -47,6 +48,7 @@ CXXFLAGS = $(DFB_CXXFLAGS) $(AVIFILE_CFLAGS)
 
 
 interfaces_LTLIBRARIES = \
+	libidirectfbfont_default.la		\
 	libidirectfbfont_ft2.la			\
 	libidirectfbimageprovider_png.la	\
 	libidirectfbimageprovider_gif.la	\
@@ -55,6 +57,11 @@ interfaces_LTLIBRARIES = \
 	$(AVIFILE_PROVIDER_LTLIB)		\
 	$(FLASH_PROVIDER_LTLIB)
 
+
+
+libidirectfbfont_default_la_SOURCES = idirectfbfont_default.c
+
+libidirectfbfont_default_la_LDFLAGS = -avoid-version -module -disable-static
 
 
 libidirectfbfont_ft2_la_SOURCES = idirectfbfont_ft2.c

@@ -518,13 +518,22 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      if (!data)
           return DFB_DEAD;
 
-     if (!desc || !filename || !interface)
+     if (!desc || !interface)
           return DFB_INVARG;
 
-     /* The only supported font format yet. */
-     ret = DFBGetInterface( &impl,
-                            "IDirectFBFont", "FT2",
-                            NULL, NULL );
+     if (filename) {
+          /* the only supported real font format yet. */
+          ret = DFBGetInterface( &impl,
+                                 "IDirectFBFont", "FT2",
+                                 NULL, NULL );
+     }
+     else {
+          /* use the default bitmap font */ 
+          ret = DFBGetInterface( &impl,
+                                 "IDirectFBFont", "Default",
+                                 NULL, NULL );
+     }
+
      if (ret)
           return ret;
 
