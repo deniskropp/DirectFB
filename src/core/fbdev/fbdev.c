@@ -617,7 +617,7 @@ system_wait_vsync()
 
 #ifdef FBIO_WAITFORVSYNC
      dfb_gfxcard_sync();
-     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC ))
+     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, 0 ))
 #endif
           waitretrace();
 
