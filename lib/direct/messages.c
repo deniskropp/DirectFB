@@ -28,6 +28,8 @@
 #include <config.h>
 
 #include <stdarg.h>
+#include <string.h>
+#include <stdio.h>
 
 #include <direct/build.h>
 #include <direct/messages.h>
