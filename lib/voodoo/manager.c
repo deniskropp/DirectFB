@@ -32,10 +32,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdarg.h>
+#include <time.h>
 
 #include <sys/types.h>
 #include <sys/poll.h>
 #include <sys/socket.h>
+#include <sys/time.h>
 
 #include <netinet/in.h>
 #include <netinet/ip.h>
@@ -1184,10 +1186,21 @@ manager_output_loop( DirectThread *thread, void *arg )
           pthread_mutex_lock( &manager->output.lock );
 
           while (manager->output.start == manager->output.end) {
+               struct timeval  now;
+               struct timespec timeout;
+
                D_ASSUME( manager->output.start == 0 );
                D_ASSUME( manager->output.end == 0 );
 
-               pthread_cond_wait( &manager->output.wait, &manager->output.lock );
+               gettimeofday( &now, NULL );
+
+               timeout.tv_sec  = now.tv_sec;
+               timeout.tv_nsec = (now.tv_usec + 50000) * 1000;
+
+               timeout.tv_sec  += timeout.tv_nsec / 1000000000;
+               timeout.tv_nsec %= 1000000000;
+
+               pthread_cond_timedwait( &manager->output.wait, &manager->output.lock, &timeout );
 
                if (manager->quit)
                     break;
