@@ -1,3 +1,9 @@
+directfb (0.9.19+0.9.20WIP-1) unstable; urgency=low
+
+  * no changes to debian package, just changed version number.
+
+ -- Andreas Hundt <andi@fischlustig.de>  Tue,  29 Jul 2003 15:00:00 +0200
+
 directfb (0.9.18+0.9.19WIP-1) unstable; urgency=low
 
   * unofficial debian packages
