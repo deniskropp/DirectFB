@@ -4,10 +4,6 @@ different bugs and issues
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 
 
-Fix graphical bugs in:
-	df_dok --dfb:force-windowed,pixelformat=ARGB
-
-
 automake/autoconf etc.
 ----------------------
 - while linking -ldl is repeated up to 12 times (looks silly)
