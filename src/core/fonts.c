@@ -85,6 +85,10 @@ void dfb_font_destroy( CoreFont *font )
 
      dfb_font_unlock( font );
 
+     dfb_state_set_source( &font->state, NULL );
+     dfb_state_set_destination( &font->state, NULL );
+     dfb_state_destroy( &font->state );
+     
      pthread_mutex_destroy( &font->lock );
 
      DFBFREE( font );
