@@ -256,6 +256,23 @@ besSetDstColorKey( DisplayLayer *layer,
 {
      volatile __u8 *mmio = mdrv->mmio_base;
      
+     switch (Sfbdev->current_mode->format) {
+          case DSPF_RGB15:
+               r >>= 3;
+               g >>= 3;
+               b >>= 3;
+               break;
+          
+          case DSPF_RGB16:
+               r >>= 3;
+               g >>= 2;
+               b >>= 3;
+               break;
+          
+          default:
+               ;
+     }
+     
      mga_out_dac( mmio, XCOLKEY0RED,   r );
      mga_out_dac( mmio, XCOLKEY0GREEN, g );
      mga_out_dac( mmio, XCOLKEY0BLUE,  b );
