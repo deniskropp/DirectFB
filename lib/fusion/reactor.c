@@ -522,7 +522,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
      if (!node)
           return;
 
-     D_MAGIC_ASSERT( node->reactor, FusionReactor );
+     D_MAGIC_ASSUME( node->reactor, FusionReactor );
 
 //     D_DEBUG_AT( Fusion_Reactor, "    -> node %p, reactor %p\n", node, node->reactor );
 
