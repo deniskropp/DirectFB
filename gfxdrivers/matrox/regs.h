@@ -317,3 +317,17 @@
 
 #define SDXL          0x0002
 #define SDXR          0x0020
+
+
+/* DAC registers */
+
+#define XKEYOPMODE     0x51
+
+#define XCOLMSK0RED    0x52
+#define XCOLMSK0GREEN  0x53
+#define XCOLMSK0BLUE   0x54
+
+#define XCOLKEY0RED    0x55
+#define XCOLKEY0GREEN  0x56
+#define XCOLKEY0BLUE   0x57
+

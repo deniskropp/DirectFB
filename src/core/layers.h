@@ -115,7 +115,9 @@ struct _DisplayLayer
      DFBResult (*SetSrcColorKey)    ( DisplayLayer               *thiz,
                                       __u32                       key );
      DFBResult (*SetDstColorKey)    ( DisplayLayer               *thiz,
-                                      __u32                       key );
+                                      __u8                        r,
+                                      __u8                        g,
+                                      __u8                        b );
      DFBResult (*FlipBuffers)       ( DisplayLayer *thiz );
      DFBResult (*SetColorAdjustment)( DisplayLayer               *thiz,
                                       DFBColorAdjustment         *adj );

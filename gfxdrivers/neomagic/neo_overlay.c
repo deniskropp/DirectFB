@@ -202,7 +202,9 @@ neoOverlaySetSrcColorKey( DisplayLayer *layer,
 
 static DFBResult
 neoOverlaySetDstColorKey( DisplayLayer *layer,
-                          __u32         key )
+                          __u8          r,
+                          __u8          g,
+                          __u8          b )
 {
      return DFB_UNIMPLEMENTED;
 }

@@ -186,7 +186,9 @@ static DFBResult ov0SetSrcColorKey( DisplayLayer *layer,
 }
 
 static DFBResult ov0SetDstColorKey( DisplayLayer *layer,
-                                    __u32         key )
+                                    __u8          r,
+                                    __u8          g,
+                                    __u8          b )
 {
      return DFB_UNSUPPORTED;
 }

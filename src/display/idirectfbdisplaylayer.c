@@ -244,14 +244,9 @@ IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
                                       __u8                   g,
                                       __u8                   b )
 {
-     __u32 key;
-
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     /* FIXME: which format should be used? */
-     key = color_to_pixel( data->layer->shared->surface->format, r, g, b );
-     
-     return data->layer->SetDstColorKey( data->layer, key );
+     return data->layer->SetDstColorKey( data->layer, r, g, b );
 }
 
 static DFBResult

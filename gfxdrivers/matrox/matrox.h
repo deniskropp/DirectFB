@@ -104,6 +104,8 @@ typedef struct {
 
           __u32 besVISCAL;
           __u32 besHISCAL;
+
+          __u8  xKEYOPMODE;
      } regs;
 } MatroxDeviceData;
 

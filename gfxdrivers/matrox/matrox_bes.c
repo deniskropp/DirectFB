@@ -62,7 +62,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
 static MatroxDriverData *mdrv = NULL;
 static MatroxDeviceData *mdev = NULL;
 
-#define BES_SUPPORTED_OPTIONS   (DLOP_INTERLACED_VIDEO)
+#define BES_SUPPORTED_OPTIONS   (DLOP_INTERLACED_VIDEO | DLOP_DST_COLORKEY)
 
 
 static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
@@ -250,9 +250,17 @@ besSetSrcColorKey( DisplayLayer *layer,
 
 static DFBResult
 besSetDstColorKey( DisplayLayer *layer,
-                   __u32         key )
+                   __u8          r,
+                   __u8          g,
+                   __u8          b )
 {
-     return DFB_UNIMPLEMENTED;
+     volatile __u8 *mmio = mdrv->mmio_base;
+     
+     mga_out_dac( mmio, XCOLKEY0RED, r );
+     mga_out_dac( mmio, XCOLKEY0GREEN, g );
+     mga_out_dac( mmio, XCOLKEY0BLUE, b );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -307,7 +315,7 @@ void matrox_init_bes( void *drv, void *dev )
      layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
 
      layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS |
-                   DLCAPS_CONTRAST | DLCAPS_INTERLACED_VIDEO;
+                   DLCAPS_CONTRAST | DLCAPS_INTERLACED_VIDEO | DLCAPS_DST_COLORKEY;
 
      snprintf( layer->shared->description,
                DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Matrox Backend Scaler" );
@@ -345,20 +353,15 @@ void matrox_init_bes( void *drv, void *dev )
 
      layer->deinit = matrox_bes_deinit;
 
-     mga_out_dac( mmio, 0x51, 0x00 ); /* keying off */
+     mga_out_dac( mmio, XKEYOPMODE, 0x00 ); /* keying off */
 
-     /*
-      * The following lines are disabled because of
-      * some nasty things by hardware or gcc that disturb
-      * the mga_out_dac above. Using usleep between writes
-      * helped but is evil. And we don't need the following
-      * lines anyway.
-      */
-#ifdef NASTY_CACHING_OR_COMPILER_STUFF
-     mga_out_dac( mmio, 0x52, 0xFF ); /* full mask */
-     mga_out_dac( mmio, 0x53, 0xFF );
-     mga_out_dac( mmio, 0x54, 0xFF );
-#endif
+     mga_out_dac( mmio, XCOLMSK0RED,   0xFF ); /* full mask */
+     mga_out_dac( mmio, XCOLMSK0GREEN, 0xFF );
+     mga_out_dac( mmio, XCOLMSK0BLUE,  0xFF );
+
+     mga_out_dac( mmio, XCOLKEY0RED,   0x00 ); /* default to black */
+     mga_out_dac( mmio, XCOLKEY0GREEN, 0x00 );
+     mga_out_dac( mmio, XCOLKEY0BLUE,  0x00 );
 
      mga_out32( mmio, 0x80, BESLUMACTL );
 
@@ -406,6 +409,8 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev )
 
      mga_out32( mmio, mdev->regs.besVISCAL, BESVISCAL );
      mga_out32( mmio, mdev->regs.besHISCAL, BESHISCAL );
+
+     mga_out_dac( mmio, XKEYOPMODE, mdev->regs.xKEYOPMODE );
 }
 
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
@@ -413,20 +418,21 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
 {
      int tmp, hzoom, intrep;
 
-     DFBRegion    dstBox;
-     int          drw_w;
-     int          drw_h;
-     int          field_height;
-     CoreSurface *surface = layer->shared->surface;
+     DFBRegion           dstBox;
+     int                 drw_w;
+     int                 drw_h;
+     int                 field_height;
+     DisplayLayerShared *shared  = layer->shared;
+     CoreSurface        *surface = shared->surface;
 
 
-     drw_w = (int)(layer->shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
-     drw_h = (int)(layer->shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
+     drw_w = (int)(shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
+     drw_h = (int)(shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
 
-     dstBox.x1 = (int)(layer->shared->screen.x * (float)Sfbdev->current_mode->xres + 0.5f);
-     dstBox.y1 = (int)(layer->shared->screen.y * (float)Sfbdev->current_mode->yres + 0.5f);
-     dstBox.x2 = (int)((layer->shared->screen.x + layer->shared->screen.w) * (float)Sfbdev->current_mode->xres + 0.5f);
-     dstBox.y2 = (int)((layer->shared->screen.y + layer->shared->screen.h) * (float)Sfbdev->current_mode->yres + 0.5f);
+     dstBox.x1 = (int)(shared->screen.x * (float)Sfbdev->current_mode->xres + 0.5f);
+     dstBox.y1 = (int)(shared->screen.y * (float)Sfbdev->current_mode->yres + 0.5f);
+     dstBox.x2 = (int)((shared->screen.x + shared->screen.w) * (float)Sfbdev->current_mode->xres + 0.5f);
+     dstBox.y2 = (int)((shared->screen.y + shared->screen.h) * (float)Sfbdev->current_mode->yres + 0.5f);
 
      hzoom = (1000000/Sfbdev->current_var.pixclock >= 135) ? 1 : 0;
 
@@ -460,8 +466,8 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
           case DSPF_RGB32:
                mdev->regs.besGLOBCTL |= BESRGB32;
 
-               drw_w = layer->shared->width;
-               dstBox.x2 = dstBox.x1 + layer->shared->width;
+               drw_w = shared->width;
+               dstBox.x2 = dstBox.x1 + shared->width;
                break;
 
           default:
@@ -505,45 +511,48 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mdev->regs.besVCOORD   = (dstBox.y1 << 16) | (dstBox.y2 - 1);
 
      mdev->regs.besHSRCST   = 0;
-     mdev->regs.besHSRCEND  = (layer->shared->width - 1) << 16;
-     mdev->regs.besHSRCLST  = (layer->shared->width - 1) << 16;
+     mdev->regs.besHSRCEND  = (shared->width - 1) << 16;
+     mdev->regs.besHSRCLST  = (shared->width - 1) << 16;
 
-     mdev->regs.besLUMACTL  = (layer->shared->adjustment.contrast >> 8) |
-                              ((__u8)(((int)layer->shared->adjustment.brightness >> 8)
+     mdev->regs.besLUMACTL  = (shared->adjustment.contrast >> 8) |
+                              ((__u8)(((int)shared->adjustment.brightness >> 8)
                                        - 128)) << 16;
-
+     
      mdev->regs.besV1WGHT   = 0;
      mdev->regs.besV2WGHT   = 0x18000;
 
-     mdev->regs.besV1SRCLST = layer->shared->height - 1;
-     mdev->regs.besV2SRCLST = layer->shared->height - 2;
+     mdev->regs.besV1SRCLST = shared->height - 1;
+     mdev->regs.besV2SRCLST = shared->height - 2;
 
      mdev->regs.besPITCH    = surface->front_buffer->video.pitch /
                               DFB_BYTES_PER_PIXEL(surface->format);
 
-     field_height           = layer->shared->height;
+     field_height           = shared->height;
 
-     if (layer->shared->options & DLOP_INTERLACED_VIDEO) {
+     if (shared->options & DLOP_INTERLACED_VIDEO) {
           field_height        /= 2;
           mdev->regs.besPITCH *= 2;
      }
      else
           mdev->regs.besCTL_field = 0;
 
-     if (layer->shared->surface->format == DSPF_RGB32)
+     if (shared->surface->format == DSPF_RGB32)
           mdev->regs.besHISCAL = 0x20000;
      else {
-          intrep = ((drw_w == layer->shared->width) || (drw_w < 2)) ? 0 : 1;
-          tmp = (((layer->shared->width - intrep) << 16) / (drw_w - intrep)) << hzoom;
+          intrep = ((drw_w == shared->width) || (drw_w < 2)) ? 0 : 1;
+          tmp = (((shared->width - intrep) << 16) / (drw_w - intrep)) << hzoom;
           if (tmp >= (32 << 16))
                tmp = (32 << 16) - 1;
           mdev->regs.besHISCAL = tmp & 0x001ffffc;
      }
-
+     
      intrep = ((drw_h == field_height) || (drw_h < 2)) ? 0 : 1;
      tmp = ((field_height - intrep) << 16) / (drw_h - intrep);
      if(tmp >= (32 << 16))
           tmp = (32 << 16) - 1;
      mdev->regs.besVISCAL = tmp & 0x001ffffc;
+
+     /* enable color keying? */
+     mdev->regs.xKEYOPMODE = (shared->options & DLOP_DST_COLORKEY) ? 1 : 0;
 }
 
