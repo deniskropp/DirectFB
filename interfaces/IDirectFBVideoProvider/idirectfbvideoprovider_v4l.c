@@ -673,6 +673,11 @@ static void* GrabThread( CoreThread *thread, void *ctx )
           frame++;
      }
 
+     if (dfb_surface_ref( surface )) {
+          ERRORMSG( "DirectFB/v4l: dfb_surface_ref() failed!\n" );
+          return NULL;
+     }
+
      frame = 0;
      while (data->running) {
           ioctl( data->fd, VIDIOCSYNC, &frame );
@@ -744,6 +749,8 @@ static void* GrabThread( CoreThread *thread, void *ctx )
           if (++frame == data->vmbuf.frames)
                frame = 0;
      }
+
+     dfb_surface_unref( surface );
 
      return NULL;
 }
