@@ -120,6 +120,8 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      dfb_core_unref();     /* TODO: where should we place this call? */
 
+     idirectfb_singleton = NULL;
+
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 

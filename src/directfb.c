@@ -58,7 +58,7 @@
 #include "idirectfb.h"
 
 
-static IDirectFB *idirectfb_singleton = NULL;
+IDirectFB *idirectfb_singleton = NULL;
 
 /*
  * Version checking

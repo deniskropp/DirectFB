@@ -57,4 +57,6 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
      if (!data)                         \
           return DFB_DEAD;
 
+extern IDirectFB *idirectfb_singleton;
+
 #endif /* __DIRECTFB_INTERNALS_H__ */
