@@ -27,8 +27,9 @@
 #ifndef __CONF_H__
 #define __CONF_H__
 
-#include <directfb.h>
+#include <signal.h>
 
+#include <directfb.h>
 #include <core/fusion/fusion_types.h>
 
 typedef struct
