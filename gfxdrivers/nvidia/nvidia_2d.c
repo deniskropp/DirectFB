@@ -54,8 +54,8 @@ bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      NVRectangle      *Rectangle = nvdrv->Rectangle;
      
      if (nvdev->dst_422) {
-          rect->x = (rect->x + 1) >> 1;
-          rect->w = (rect->w + 1) >> 1;
+          rect->x =  rect->x    >> 1;
+          rect->w = (rect->w+1) >> 1;
      }
 
      nv_waitfifo( nvdev, subchannelof(Rectangle), 3 );
@@ -131,9 +131,9 @@ bool nv4Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      }
 
      if (nvdev->dst_422) {
-          dx      = (dx      + 1) >> 1;
-          rect->x = (rect->x + 1) >> 1;
-          rect->w = (rect->w + 1) >> 1;
+          dx      =  dx         >> 1;
+          rect->x =  rect->x    >> 1;
+          rect->w = (rect->w+1) >> 1;
      }
 
      nv_waitfifo( nvdev, subchannelof(Blt), 3 );
@@ -156,9 +156,9 @@ bool nv5Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      }
 
      if (nvdev->dst_422) {
-          dx      = (dx      + 1) >> 1;
-          rect->x = (rect->x + 1) >> 1;
-          rect->w = (rect->w + 1) >> 1;
+          dx      =  dx         >> 1;
+          rect->x =  rect->x    >> 1;
+          rect->w = (rect->w+1) >> 1;
      }
 
      nv_waitfifo( nvdev, subchannelof(Blt), 3 );
@@ -179,10 +179,10 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      __u32             format      = 0;
      
      if (nvdev->dst_422) {
-          sr->x = (sr->x + 1) >> 1;
-          sr->w = (sr->w + 1) >> 1;
-          dr->x = (dr->x + 1) >> 1;
-          dr->w = (dr->w + 1) >> 1;
+          sr->x =  sr->x    >> 1;
+          sr->w = (sr->w+1) >> 1;
+          dr->x =  dr->x    >> 1;
+          dr->w = (dr->w+1) >> 1;
      }
      
      switch (nvdev->src_format) {
@@ -236,10 +236,10 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      __u32             format      = 0;
 
      if (nvdev->dst_422) {
-          sr->x = (sr->x + 1) >> 1;
-          sr->w = (sr->w + 1) >> 1;
-          dr->x = (dr->x + 1) >> 1;
-          dr->w = (dr->w + 1) >> 1;
+          sr->x =  sr->x    >> 1;
+          sr->w = (sr->w+1) >> 1;
+          dr->x =  dr->x    >> 1;
+          dr->w = (dr->w+1) >> 1;
      } 
      
      switch (nvdev->src_format) {
