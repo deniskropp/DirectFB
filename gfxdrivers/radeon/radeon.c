@@ -125,8 +125,8 @@ static void radeonCheckState( void *drv, void *dev,
        and the source has the minimum size */
     if ( !( accel & ~RADEON_SUPPORTED_BLITTINGFUNCTIONS )
       && !( state->blittingflags & ~RADEON_SUPPORTED_BLITTINGFLAGS )
-      && state->source && state->source->width >= 8
-      && state->source->height >= 8 )
+      && state->source && state->source->format == state->destination->format
+      && state->source->width >= 8 && state->source->height >= 8 )
     {
 	switch ( state->source->format ) {
 	case DSPF_RGB332:

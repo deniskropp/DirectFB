@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -53,10 +53,10 @@ void radeon_set_destination( RADEONDriverData *adrv,
     switch ( state->destination->format ) {
     case DSPF_RGB332:		
 	adev->RADEON_dp_gui_master_cntl = GMC_DST_8BPP;
-	break;          
+	break;
     case DSPF_ARGB1555:		
 	adev->RADEON_dp_gui_master_cntl = GMC_DST_15BPP;
-	break;          
+	break;
     case DSPF_RGB16:
 	adev->RADEON_dp_gui_master_cntl = GMC_DST_16BPP;
 	break;
@@ -106,7 +106,7 @@ void radeon_set_source( RADEONDriverData *adrv,
 	radeon_out32( adrv->mmio_base, CLR_CMP_MASK, 0x0000FFFF );
 	break;
     case DSPF_RGB32:
-    case DSPF_ARGB:                             
+    case DSPF_ARGB:
 	radeon_out32( adrv->mmio_base, CLR_CMP_MASK, 0xFFFFFFFF );
 	break;
     default:
@@ -163,7 +163,7 @@ void radeon_set_color( RADEONDriverData *adrv,
 				  state->color.g,
 				  state->color.b );
 	break;
-    case DSPF_RGB32:                              
+    case DSPF_RGB32:
 	fill_color = PIXEL_RGB32( state->color.r,
 				  state->color.g,
 				  state->color.b );
@@ -193,6 +193,7 @@ void radeon_set_color( RADEONDriverData *adrv,
     radeon_out32( adrv->mmio_base, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
 
     adev->v_color = 1;
+    adev->v_blittingflags = 0;
 }
 
 void radeon_set_src_colorkey( RADEONDriverData *adrv,
@@ -231,4 +232,5 @@ void radeon_set_blittingflags( RADEONDriverData *adrv,
 
     adev->blittingflags = state->blittingflags;
     adev->v_blittingflags = 1;
+    adev->v_color = 0;
 }
