@@ -413,7 +413,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
                state->checked &= 0xFFFF;
      }
 
-     /* If function needs to be checked... */
+     /* if function needs to be checked... */
      if (!(state->checked & accel)) {
           /* unset function */
           state->accel &= ~accel;
@@ -429,10 +429,15 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      return (state->accel & accel);
 }
 
+/*
+ * This function returns non zero after successful locking the surface(s)
+ * for access by hardware. Propagate state changes to driver.
+ */
 int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
      DFBSurfaceLockFlags lock_flags;
 
+     /* Debug checks */
      if (!state->destination) {
           BUG("state check: no destination");
           return 0;
@@ -442,6 +447,7 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           return 0;
      }
 
+     /* find locking flags */
      if (DFB_BLITTING_FUNCTION( accel ))
           lock_flags = (state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
                                                  DSBLIT_BLEND_COLORALPHA   |
@@ -452,9 +458,12 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                                                DSDRAW_DST_COLORKEY ) ?
                        DSLF_READ | DSLF_WRITE : DSLF_WRITE;
 
+     /* lock surface manager */
      surfacemanager_lock( card->shared->surface_manager );
 
+     /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
+          /* ...lock source for reading */
           if (surface_hardware_lock( state->source, DSLF_READ, 1 )) {
                surfacemanager_unlock( card->shared->surface_manager );
                return 0;
@@ -465,25 +474,34 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      else
           state->source_locked = 0;
 
+     /* lock destination */
      if (surface_hardware_lock( state->destination, lock_flags, 0 )) {
-          if (DFB_BLITTING_FUNCTION( accel ))
+          if (state->source_locked)
                surface_unlock( state->source, 1 );
 
           surfacemanager_unlock( card->shared->surface_manager );
           return 0;
      }
 
+     /* unlock surface manager */
      surfacemanager_unlock( card->shared->surface_manager );
 
+     /* synchronize card access */
      skirmish_prevail( &Scard->lock );
 
+     /* if we are switching to another state... */
      if (state != Scard->state) {
+          /* ...set all modification bits and clear 'set functions' */
           state->modified |= SMF_ALL;
           state->set       = 0;
 
           Scard->state = state;
      }
 
+     /*
+      * If function hasn't been set or state is modified call the driver
+      * function to propagate the state changes.
+      */
      if (!(state->set & accel) || state->modified)
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
@@ -491,6 +509,9 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      return 1;
 }
 
+/*
+ * Unlock destination and possibly the source.
+ */
 void gfxcard_state_release( CardState *state )
 {
      surface_unlock( state->destination, 0 );
