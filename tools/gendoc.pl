@@ -67,6 +67,8 @@ while (<>) {
             }
          }
       }
+
+      substitute_method_links (\$comment);
    }
    elsif ( /^\s*DECLARE_INTERFACE\s*\(\s*(\w+)\s\)\s*$/ ) {
       $interface_abstracts{$1} = $comment;
@@ -109,6 +111,99 @@ print INDEX "  </CENTER></TABLE>\n",
 
 html_close( INDEX );
 html_close( TYPES );
+
+
+
+sub substitute_method_links ($)
+   {
+      my $str = shift(@_);
+
+      $$str =~ s/(I\w+)\:\:(\w+)\(\)/\<a\ href=\"\1\_\2\.html\"\>\1\:\:\2\(\)\<\/a\>/g;
+   }
+
+sub parse_comment ($$) {
+   my ($head, $body) = @_;
+   my $headline_mode = 1;
+
+   $$head = "";
+   $$body = "";
+
+
+   while (<>)
+      {
+         chomp;
+         last if /^\s*\*\/\s*$/;
+
+         if ($headline_mode == 1)
+            {
+               if (/^\s*\*?\s*$/)
+                  {
+                     $headline_mode = 0;
+                  }
+               elsif (/^\s*\*?\s*(.+)$/)
+                  {
+                     $$head .= " $1";
+                  }
+            }
+         else
+            {
+               if (/^\s*\*?\s*$/)
+                  {
+                     $$body .= " </P><P>";
+                  }
+               elsif (/^\s*\*?\s*(.+)$/)
+                  {
+                     $$body .= " $1";
+                  }
+            }
+      }
+
+   substitute_method_links ($head);
+   substitute_method_links ($body);
+}
+
+sub parse_params () {
+   my @entries;
+
+   while (<>)
+      {
+         chomp;
+         last if /^\s*\)\;\s*$/;
+
+         if ( /^\s*(const )?\s*([\w\ ]+)\s+(\**)(\w+,?)\s*$/ )
+            {
+               my $const = $1;
+               my $type  = $2;
+               my $ptr   = $3;
+               my $name  = $4;
+
+               $type =~ s/\s*$//g;
+
+               if ($types{$type})
+                  {
+                     $type = "$const<A href=\"types.html#$type\">$type</A>";
+                  }
+               elsif ($interface_abstracts{$type})
+                  {
+                     $type = "$const<A href=\"$type.html\">$type</A>";
+                  }
+               else
+                  {
+                     $type = "$const$type";
+                  }
+
+               my $rec = {
+                  TYPE   => $type,
+                  PTR    => $ptr,
+                  NAME   => $name
+               };
+
+               push (@entries, $rec);
+            }
+      }
+
+   return @entries;
+}
 
 #
 # Reads stdin until the end of the interface is reached.
@@ -158,7 +253,7 @@ sub parse_interface (NAME)
                                   "      <B><SMALL>$section</SMALL></B>\n",
                                   "    </TD><TD valign=top>\n",
                                   "      <A href=\"${interface}_$1.html\">",
-                                         "<B>$1</B></A>\n",
+                                  "      <B>$1</B></A>\n",
                                   "    </TD><TD valign=top>\n",
                                   "      $headline\n",
                                   "    </TD></TR>\n";
@@ -169,38 +264,20 @@ sub parse_interface (NAME)
                                "</A>", $1 );
 
                   print FUNCTION "<P>$headline</P><P>\n",
-                                 "  <TABLE border=0 cellspacing=0 cellpadding=4 bgcolor=#C0C0C0>\n",
-                                 "    <TR><TD colspan=3><I><FONT color=black>$1 (</FONT></I></TD></TR>\n";
+                                 "  <TABLE border=0 cellspacing=0 cellpadding=2 bgcolor=#C0C0C0>\n",
+                                 "    <TR><TD colspan=5><I><FONT color=black>$1 (</FONT></I></TD></TR>\n";
 
-                  while (<>)
+                  my @params = parse_params();
+
+                  for my $param (@params)
                      {
-                        chomp;
-                        last if /^\s*\)\;\s*$/;
-
-
-                        if ( /^\s*(const )?([\w\ ]+)\s+(\**\w+)\s*,?\s*$/ )
-                           {
-                              $const = $1;
-                              $type  = $2;
-                              $name  = $3;
-
-                              $type =~ s/\ *$//;
-
-                              if ($types{$type})
-                                 {
-                                    $type = "$const<A href=\"types.html#$type\">$type</A>";
-                                 }
-                              elsif ($interface_abstracts{$type})
-                                 {
-                                    $type = "<A href=\"$type.html\">$const$type</A>";
-                                 }
-
-                              print FUNCTION "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
-                                             "      $type\n",
-                                             "    </TD><TD valign=top>\n",
-                                             "      <FONT color=black><B>$name</B></FONT>\n",
-                                             "    </TD></TR>\n";
-                           }
+                        print FUNCTION "    <TR><TD width=50>&nbsp;</TD><TD valign=top>\n",
+                                       "      $param->{TYPE}\n",
+                                       "    </TD><TD width=20>&nbsp;</TD><TD align=right>\n",
+                                       "      <FONT color=black><B>$param->{PTR}</B></FONT>\n",
+                                       "    </TD><TD valign=top>\n",
+                                       "      <FONT color=black><B>$param->{NAME}</B></FONT>\n",
+                                       "    </TD></TR>\n";
                      }
 
                   print FUNCTION "    <TR><TD colspan=3><I><FONT color=black>);</FONT></I></TD></TR>\n",
@@ -217,39 +294,7 @@ sub parse_interface (NAME)
                }
             elsif ( /^\s*\/\*\s*$/ )
                {
-                  $headline = "";
-                  $detailed = "";
-
-                  $headline_mode = 1;
-
-                  while (<>)
-                     {
-                        chomp;
-                        last if /^\s*\*\/\s*$/;
-
-                        if ($headline_mode == 1)
-                           {
-                              if (/^\s*\*?\s*$/)
-                                 {
-                                    $headline_mode = 0;
-                                 }
-                              elsif (/^\s*\*?\s*(.+)$/)
-                                 {
-                                    $headline .= " $1";
-                                 }
-                           }
-                        else
-                           {
-                              if (/^\s*\*?\s*$/)
-                                 {
-                                    $detailed .= " </P><P>";
-                                 }
-                              elsif (/^\s*\*?\s*(.+)$/)
-                                 {
-                                    $detailed .= " $1";
-                                 }
-                           }
-                     }
+                  parse_comment( \$headline, \$detailed );
                }
          }
 

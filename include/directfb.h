@@ -854,15 +854,15 @@ typedef enum {
 /*
  * Description of how to load glyphs from a font file.
  *
- * The attributes control how the glyphs are rendered. Width and
- * height can be used to specify the desired face size in pixels.
- * If you are loading a non-scalable font, you shouldn't specify
- * a font size. Please note that the height value in the
- * FontDescription doesn't correspond to the height returned by
- * the font's GetHeight() method.
+ * The attributes control how the glyphs are rendered. Width and height can be used to specify the
+ * desired face size in pixels. If you are loading a non-scalable font, you shouldn't specify a
+ * font size.
  *
- * The index field controls which face is loaded from a font file
- * that provides a collection of faces. This is rarely needed.
+ * Please note that the height value in the DFBFontDescription doesn't correspond to the height
+ * returned by IDirectFBFont::GetHeight().
+ *
+ * The index field controls which face is loaded from a font file that provides a collection of
+ * faces. This is rarely needed.
  */
 typedef struct {
      DFBFontDescriptionFlags            flags;
@@ -1324,7 +1324,7 @@ DEFINE_INTERFACE(   IDirectFB,
       * along with drawing/blitting flags supported by the hardware.
       *
       * For more detailed information use
-      * IDirectFBSurface->GetAccelerationMask().
+      * IDirectFBSurface::GetAccelerationMask().
       */
      DFBResult (*GetCardCapabilities) (
           IDirectFB                *thiz,
@@ -1336,7 +1336,7 @@ DEFINE_INTERFACE(   IDirectFB,
       *
       * Calls the given callback for all available video modes.
       * Useful to select a certain mode to be used with
-      * IDirectFB->SetVideoMode().
+      * IDirectFB::SetVideoMode().
       */
      DFBResult (*EnumVideoModes) (
           IDirectFB                *thiz,
@@ -1377,7 +1377,7 @@ DEFINE_INTERFACE(   IDirectFB,
       * Calls the given callback for each available screen.
       * The callback is passed the screen id that can be
       * used to retrieve an interface to a specific screen using
-      * IDirectFB->GetScreen().
+      * IDirectFB::GetScreen().
       */
      DFBResult (*EnumScreens) (
           IDirectFB                *thiz,
@@ -1403,7 +1403,7 @@ DEFINE_INTERFACE(   IDirectFB,
       * Calls the given callback for each available display
       * layer. The callback is passed the layer id that can be
       * used to retrieve an interface to a specific layer using
-      * IDirectFB->GetDisplayLayer().
+      * IDirectFB::GetDisplayLayer().
       */
      DFBResult (*EnumDisplayLayers) (
           IDirectFB                *thiz,
@@ -1413,6 +1413,9 @@ DEFINE_INTERFACE(   IDirectFB,
 
      /*
       * Retrieve an interface to a specific display layer.
+      *
+      * The default <i>layer_id</i> is DLID_PRIMARY.
+      * Others can be obtained using IDirectFB::EnumDisplayLayers().
       */
      DFBResult (*GetDisplayLayer) (
           IDirectFB                *thiz,
@@ -1429,7 +1432,7 @@ DEFINE_INTERFACE(   IDirectFB,
       * Calls the given callback for all available input devices.
       * The callback is passed the device id that can be used to
       * retrieve an interface on a specific device using
-      * IDirectFB->GetInputDevice().
+      * IDirectFB::GetInputDevice().
       */
      DFBResult (*EnumInputDevices) (
           IDirectFB                *thiz,
@@ -1970,7 +1973,7 @@ DEFINE_INTERFACE(   IDirectFBScreen,
       * Calls the given callback for each available display
       * layer. The callback is passed the layer id that can be
       * used to retrieve an interface to a specific layer using
-      * IDirectFB->GetDisplayLayer().
+      * IDirectFB::GetDisplayLayer().
       */
      DFBResult (*EnumDisplayLayers) (
           IDirectFBScreen                    *thiz,
