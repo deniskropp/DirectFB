@@ -196,15 +196,25 @@ window_callback( FusionObjectPool *pool,
      return true;
 }
 
+static DFBEnumerationResult
+layer_callback( DisplayLayer *layer,
+                void         *ctx)
+{
+     CoreWindowStack *stack = dfb_layer_window_stack( layer );
+     
+     printf( "\nWindows on layer %d\n", dfb_layer_id( layer ) );
+     printf( "-------------------\n\n" );
+
+     if (stack)
+          fusion_object_pool_enum( stack->pool, window_callback, stack );
+
+     return DFENUM_OK;
+}
+
 static void
 dump_windows()
 {
-     CoreWindowStack *stack = dfb_layer_window_stack( dfb_layer_at(0) );
-     
-     printf( "\nWindows\n" );
-     printf( "---------\n\n" );
-
-     fusion_object_pool_enum( stack->pool, window_callback, stack );
+     dfb_layers_enumerate( layer_callback, NULL );
 }
 
 int
