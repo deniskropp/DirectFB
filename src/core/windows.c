@@ -915,13 +915,13 @@ static ReactionResult windowstack_inputdevice_react( const void *msg_data,
                     switch (evt->axis) {
                          case DIAI_X:
                               windowstack_handle_motion( stack,
-                                                         evt->axis - stack->cx,
+                                                         evt->axisabs - stack->cx,
                                                          0 );
                               break;
                          case DIAI_Y:
                               windowstack_handle_motion( stack,
                                                          0,
-                                                         evt->axis - stack->cy);
+                                                         evt->axisabs - stack->cy);
                               break;
                          default:
                               return RS_OK;
