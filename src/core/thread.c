@@ -157,12 +157,12 @@ dfb_thread_join( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
      DFB_ASSERT( thread->thread != -1 );
-     DFB_ASSERT( !pthread_equal( thread->thread, pthread_self() ) );
-
+     
+     DFB_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
      DFB_ASSUME( !thread->joining );
      DFB_ASSUME( !thread->joined );
 
-     if (!thread->joining) {
+     if (!thread->joining && !pthread_equal( thread->thread, pthread_self() )) {
           thread->joining = true;
 
           DEBUGMSG( "DirectFB/core/threads: Joining %d...\n", thread->pid );
@@ -188,9 +188,10 @@ dfb_thread_destroy( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
 
+     DFB_ASSUME( !pthread_equal( thread->thread, pthread_self() ) );
      DFB_ASSUME( thread->joined );
 
-     if (!thread->joined) {
+     if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
           if (thread->canceled)
                BUG("thread canceled but not joined");
           else
