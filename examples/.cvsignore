@@ -1,0 +1,7 @@
+Makefile
+Makefile.in
+.deps
+.libs
+gmon.out
+simple
+stream

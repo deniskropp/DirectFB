@@ -1,0 +1,102 @@
+/*
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
+   (c) Copyright 2002-2003  convergence GmbH.
+   
+   All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@directfb.org>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <sven@convergence.de>.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#ifndef __FUSIONSOUND_CORE_SOUND_BUFFER_H__
+#define __FUSIONSOUND_CORE_SOUND_BUFFER_H__
+
+#include <fusionsound.h>
+
+#include <core/fusion/object.h>
+
+#include <core/types_sound.h>
+
+typedef enum {
+     CABNF_PLAYBACK_ADVANCED  = 0x00000001,
+     CABNF_PLAYBACK_ENDED     = 0x00000002
+} CoreSoundBufferNotificationFlags;
+
+typedef struct {
+     CoreSoundBufferNotificationFlags   flags;
+     CoreSoundBuffer                   *buffer;
+
+     int                                pos;      /* Next sample to read in
+                                                     case of PLAYBACK_ADVANCED.
+                                                     Next sample that would
+                                                     have been read in case
+                                                     of PLAYBACK_ENDED. */
+} CoreSoundBufferNotification;
+
+/*
+ * Creates a pool of sound buffer objects.
+ */
+FusionObjectPool *fs_buffer_pool_create();
+
+/*
+ * Generates fs_buffer_ref(), fs_buffer_attach() etc.
+ */
+FUSION_OBJECT_METHODS( CoreSoundBuffer, fs_buffer )
+
+
+DFBResult fs_buffer_create   ( CoreSound          *core,
+                               int                 length,
+                               int                 channels,
+                               DASampleFormat      format,
+                               int                 rate,
+                               bool                notify,
+                               CoreSoundBuffer   **ret_buffer );
+
+DFBResult fs_buffer_lock     ( CoreSoundBuffer    *buffer,
+                               int                 pos,
+                               int                 length,
+                               void              **ret_data,
+                               int                *ret_bytes );
+
+DFBResult fs_buffer_unlock   ( CoreSoundBuffer    *buffer );
+
+DFBResult fs_buffer_playback ( CoreSoundBuffer    *buffer,
+                               int                 pos,
+                               __u16               pan,
+                               bool                loop );
+
+DFBResult fs_buffer_set_break( CoreSoundBuffer    *buffer,
+                               int                 pos );
+
+DFBResult fs_buffer_stop_all ( CoreSoundBuffer    *buffer );
+
+DFBResult fs_buffer_mixto    ( CoreSoundBuffer    *buffer,
+                               int                 pos,
+                               int                *dest,
+                               int                 max_samples,
+                               __u16               pan,
+                               bool                loop,
+                               int                *ret_pos );
+
+DFBResult fs_buffer_playback_notify( CoreSoundBuffer                  *buffer,
+                                     CoreSoundBufferNotificationFlags  flags,
+                                     int                               pos );
+
+#endif
+

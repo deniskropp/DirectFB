@@ -1,0 +1,17 @@
+autom4te.cache
+config.log
+config.h
+config.h.in
+config.cache
+libtool
+config.status
+stamp-h
+Makefile
+Makefile.in
+aclocal.m4
+configure
+config.cache
+stamp-h.in
+stamp-h1
+confdefs.h
+fusionsound.pc
