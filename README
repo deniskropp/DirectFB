@@ -15,7 +15,7 @@ Requirements
 
    - Linux kernel 2.2.x with working framebuffer device (check /proc/fb).
 
-   - freetype 2.0.1
+   - freetype (version >= 2.0.1)
    - libpng2
    - libjpeg62
    - zlib
@@ -49,11 +49,11 @@ Additional Requirements for some Demos
 Recommendations
 ---------------
 
-   To take full advantage of hardware acceleration, a Matrox G200 or G400 
-   graphics card is recommened for this version of DirectFB. The drivers for 
-   ATI128, Voodoo 3/4/5/Banshee and NeoMagic cards included with this release
-   are work in progress and only yet support a subset of the possible 
-   accelerations.
+   To take full advantage of hardware acceleration, 
+   a Matrox G200/G400/G450/G550 graphics card is recommened for this 
+   version of DirectFB. The drivers for ATI128, Voodoo 3/4/5/Banshee and 
+   NeoMagic cards included with this release are work in progress and only 
+   yet support a subset of the possible accelerations.
 
 
 Installation
