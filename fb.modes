@@ -8,6 +8,10 @@ mode "640x480 75Hz 16bit"
     timings 31747 120 16 16 1 64 3
 endmode
  
+mode "720x576 50Hz 16bit"
+    geometry 720 576 720 576 16
+    timings 31208 144 40 32 10 128 3
+endmode
 
 mode "768x576 75Hz 16bit"
     # D: 49.188 MHz, H: 46.580 kHz, V: 75.008 Hz
