@@ -4,7 +4,11 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
+if ENABLE_DEBUG
+CFLAGS = $(DFB_CFLAGS)
+else
 CFLAGS = $(DFB_CFLAGS) -fomit-frame-pointer
+endif
 
 noinst_LTLIBRARIES = libdirectfb_generic.la
 

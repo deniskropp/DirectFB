@@ -110,6 +110,7 @@ if test "x$enable_debug" = xyes; then
     AC_DEFINE(DFB_DEBUG)
     CFLAGS="$CFLAGS -g3"
 fi
+AM_CONDITIONAL(ENABLE_DEBUG, test "x$enable_debug" = xyes)
 echo debug $enable_debug
 
 have_mmx=$have_x86
