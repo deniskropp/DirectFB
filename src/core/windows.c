@@ -325,6 +325,7 @@ dfb_window_create( CoreWindowStack        *stack,
           }
 
           dfb_surface_link( &w->surface, surface );
+          dfb_surface_unref( surface );
      }
 
      w->id      = new_window_id( stack );
@@ -403,7 +404,6 @@ dfb_window_destroy( CoreWindow *window, bool unref )
 
      if (window->surface) {
           dfb_surface_unlink( window->surface );
-          dfb_surface_unref( window->surface );
           window->surface = NULL;
      }
 
