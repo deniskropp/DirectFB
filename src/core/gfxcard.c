@@ -586,35 +586,32 @@ typedef struct {
 
 #define ABS(x) ((x) < 0 ? -(x) : (x))
 
-#define SETUP_DDA(xs,ys,xe,ye,dda)       \
-     do {                                \
-          int dx = xe - xs;              \
-          int dy = ye - ys;              \
-          dda.xi = xs;                   \
-          if (dy != 0) {                 \
-               dda.mi = dx / dy;         \
-               dda.mf = 2*(dx % dy);     \
-               dda.xf = -dy;             \
-               dda._2dy = 2 * dy;        \
-          }                              \
+#define SETUP_DDA(xs,ys,xe,ye,dda)         \
+     do {                                  \
+          int dx = xe - xs;                \
+          int dy = ye - ys;                \
+          dda.xi = xs;                     \
+          if (dy != 0) {                   \
+               dda.mi = dx / dy;           \
+               dda.mf = 2*(dx % dy);       \
+               dda.xf = -dy;               \
+               dda._2dy = 2 * dy;          \
+               if (dda.mf < 0) {           \
+                    dda.mf += 2 * ABS(dy); \
+                    dda.mi--;              \
+               }                           \
+          }                                \
      } while (0)
 
 
-#define INC_DDA(dda)                     \
-     do {                                \
-          dda.xi += dda.mi;              \
-          dda.xf += dda.mf;              \
-          if (dda.mf < 0) {              \
-               if (dda.xf < 0) {         \
-                    dda.xi--;            \
-                    dda.xf += dda._2dy;  \
-               }                         \
-          } else {                       \
-               if (dda.xf > 0) {         \
-                    dda.xi++;            \
-                    dda.xf -= dda._2dy;  \
-               }                         \
-          }                              \
+#define INC_DDA(dda)                       \
+     do {                                  \
+          dda.xi += dda.mi;                \
+          dda.xf += dda.mf;                \
+          if (dda.xf > 0) {                \
+               dda.xi++;                   \
+               dda.xf -= dda._2dy;         \
+          }                                \
      } while (0)
 
 
