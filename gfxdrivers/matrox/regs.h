@@ -36,6 +36,27 @@
 
 #define OPMODE           0x1E54
 
+/* CRTC2 registers */
+#define C2CTL            0x3C10
+#define C2HPARAM         0x3C14
+#define C2HSYNC          0x3C18
+#define C2VPARAM         0x3C1C
+#define C2VSYNC          0x3C20
+#define C2PRELOAD        0x3C24
+#define C2STARTADD0      0x3C28
+#define C2STARTADD1      0x3C2C
+#define C2PL2STARTADD0   0x3C30
+#define C2PL2STARTADD1   0x3C34
+#define C2PL3STARTADD0   0x3C38
+#define C2PL3STARTADD1   0x3C3C
+#define C2OFFSET         0x3C40
+#define C2MISC           0x3C44
+#define C2VCOUNT         0x3C48
+#define C2DATACTL        0x3C4C
+#define C2SUBPICLUT      0x3C50
+#define C2SPICSTARTADD0  0x3C54
+#define C2SPICSTARTADD1  0x3C58
+
 /* Backend scaler registers */
 #define BESA1ORG         0x3D00
 #define BESA2ORG         0x3D04
@@ -325,6 +346,8 @@
 
 
 /* DAC registers */
+
+#define XMISCCTRL      0x1e
 
 #define XKEYOPMODE     0x51
 

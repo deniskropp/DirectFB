@@ -89,6 +89,8 @@ typedef struct {
 } MatroxDeviceData;
 
 extern DisplayLayerFuncs matroxBesFuncs;
+extern DisplayLayerFuncs matroxCrtc2Funcs;
+extern DisplayLayerFuncs matroxSpicFuncs;
 
 static inline unsigned int log2( unsigned int val )
 {

@@ -114,8 +114,12 @@ static const char *config_usage =
     "Allow translucent windows\n"
     "  videoram-limit=<amount>        "
     "Limit amount of Video RAM in kb\n"
+    "  matrox-tv-standard=(pal|ntsc)    "
+    "Matrox TV standard (default=pal)"
     "  [no-]matrox-sgram              "
     "Use Matrox SGRAM features\n"
+    "  [no-]matrox-crtc2              "
+    "Experimental Matrox CRTC2 support\n"
     "  screenshot-dir=<directory>     "
     "Dump screen content on <Print> key presses\n"
     "  fbdebug=<device>               "
@@ -620,8 +624,30 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "matrox-tv-standard" ) == 0) {
+          if (value) {
+               if (strcmp( value, "pal" ) == 0) {
+                    dfb_config->matrox_ntsc = false;
+               } else
+               if (strcmp( value, "ntsc" ) == 0) {
+                    dfb_config->matrox_ntsc = true;
+               } else {
+                    ERRORMSG( "DirectFB/Config: Unknown TV standard "
+                              "'%s'!\n", value );
+                    return DFB_INVARG;
+               }
+          }
+          else {
+               ERRORMSG( "DirectFB/Config: "
+                         "No TV standard specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
      if (strcmp (name, "matrox-sgram" ) == 0) {
           dfb_config->matrox_sgram = true;
+     } else
+     if (strcmp (name, "matrox-crtc2" ) == 0) {
+          dfb_config->matrox_crtc2 = true;
      } else
      if (strcmp (name, "no-matrox-sgram" ) == 0) {
           dfb_config->matrox_sgram = false;

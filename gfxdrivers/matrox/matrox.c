@@ -886,6 +886,16 @@ driver_init_driver( GraphicsDevice      *device,
          mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)
           dfb_layers_register( device, driver_data, &matroxBesFuncs );
 
+     /* G400/G450/G550 CRTC2 Support */
+#ifdef FB_ACCEL_MATROX_MGAG400
+     if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400 &&
+         dfb_config->matrox_crtc2)
+     {
+          dfb_layers_register( device, driver_data, &matroxCrtc2Funcs );
+          dfb_layers_register( device, driver_data, &matroxSpicFuncs );
+     }
+#endif
+
      return DFB_OK;
 }
 
@@ -977,7 +987,7 @@ driver_init_device( GraphicsDevice     *device,
 
      /* set hardware limitations */
      device_info->limits.surface_byteoffset_alignment = 32 * 4;
-     device_info->limits.surface_pixelpitch_alignment = 32;
+     device_info->limits.surface_pixelpitch_alignment = 64;
 
 
      mga_waitfifo( mdrv, mdev, 11 );

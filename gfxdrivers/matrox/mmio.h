@@ -102,5 +102,12 @@ mga_out_dac( volatile uint8 *mmioaddr, uint8 reg, uint8 val )
      mga_out8( mmioaddr, val, DAC_DATA );
 }
 
+static inline volatile uint8
+mga_in_dac( volatile uint8 *mmioaddr, uint8 reg )
+{
+     mga_out8( mmioaddr, reg, DAC_INDEX );
+     return mga_in8( mmioaddr, DAC_DATA );
+}
+
 #endif
 

@@ -247,6 +247,11 @@ operations are considerably faster on these cards if this feature
 is enabled. Don't try to enable it if your card doesn't have SGRAM!
 
 .TP
+.BI [no-]matrox-crtc2
+If you have a dual head G400/G450/G550 you can use this option enable
+additional layers using the second head.
+
+.TP
 .BI screenshot-dir=<directory>
 If specified DirectFB will dump the screen contents in PPM format
 into this directory when the <Print> key gets pressed.

@@ -73,7 +73,9 @@ typedef struct
      bool      argb_font;                         /* whether to load fontmap
                                                      as argb and not a8 */
 
-     bool      matrox_sgram;                      /* Use Matrox SGRAM features*/
+     bool      matrox_ntsc;                       /* Matrox TV standard */
+     bool      matrox_sgram;                      /* Use Matrox SGRAM features */
+     bool      matrox_crtc2;                      /* Experimental CRTC2 stuff */
      bool      sync;                              /* Do sync() in core_init() */
      bool      vt_switching;                      /* Allow VT switching by
                                                      pressing Ctrl+Alt+<F?> */

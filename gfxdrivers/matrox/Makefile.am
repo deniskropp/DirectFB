@@ -14,6 +14,10 @@ libdirectfb_matrox_la_SOURCES =	\
 	matrox.c	\
 	matrox.h	\
 	matrox_bes.c	\
+	matrox_crtc2.c	\
+	matrox_maven.c	\
+	matrox_maven.h	\
+	matrox_spic.c	\
 	matrox_state.c	\
 	matrox_state.h	\
 	regs.h		\
