@@ -2379,6 +2379,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           DFBSurfaceTextFlags       flags
      );
 
+
    /** Lightweight helpers **/
 
      /*
@@ -2408,6 +2409,27 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*GetGL) (
           IDirectFBSurface         *thiz,
           IDirectFBGL             **interface
+     );
+
+
+   /** Debug **/
+
+     /*
+      * Dump the contents of the surface to one or two files.
+      *
+      * Creates a PPM file containing the RGB data and a PGM file with
+      * the alpha data if present.
+      *
+      * The complete filenames will be
+      * <b>directory</b>/<b>prefix</b>_<i>####</i>.ppm for RGB and
+      * <b>directory</b>/<b>prefix</b>_<i>####</i>.pgm for the alpha channel
+      * if present. Example: "/directory/prefix_0000.ppm". No existing files
+      * will be overwritten.
+      */
+     DFBResult (*Dump) (
+          IDirectFBSurface         *thiz,
+          const char               *directory,
+          const char               *prefix
      );
 )
 

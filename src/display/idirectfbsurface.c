@@ -1495,6 +1495,34 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
      return ret;
 }
 
+static DFBResult
+IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
+                       const char         *directory,
+                       const char         *prefix )
+{
+     DFBResult    ret;
+     CoreSurface *surface;
+
+     INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!directory || !prefix)
+          return DFB_INVARG;
+
+     if (!data->area.current.w || !data->area.current.h)
+          return DFB_INVAREA;
+
+     if (data->caps & DSCAPS_SUBSURFACE) {
+          ONCE( "sub surface dumping not supported yet" );
+          return DFB_UNSUPPORTED;
+     }
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     return dfb_surface_dump( surface, directory, prefix );
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -1593,6 +1621,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetSubSurface = IDirectFBSurface_GetSubSurface;
 
      thiz->GetGL = IDirectFBSurface_GetGL;
+     
+     thiz->Dump = IDirectFBSurface_Dump;
 
      dfb_surface_attach( surface,
                          IDirectFBSurface_listener, thiz, &data->reaction );
