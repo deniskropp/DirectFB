@@ -3032,8 +3032,6 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
           return false;
      
      
-     pthread_mutex_lock( &generic_lock );
-     
      dst_caps   = destination->caps;
      dst_height = destination->height;
      dst_format = destination->format;
@@ -3059,6 +3057,12 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
 
      color = state->color;
 
+     
+     dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
+     
+     pthread_mutex_lock( &generic_lock );
+     
+     
      switch (dst_format) {
           case DSPF_ARGB1555:
                Cop = PIXEL_ARGB1555( color.a, color.r, color.g, color.b );
@@ -3115,6 +3119,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                break;
           default:
                ONCE("unsupported destination format");
+               dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
                pthread_mutex_unlock( &generic_lock );
                return false;
      }
@@ -3137,6 +3142,7 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                         state->blittingflags != DSBLIT_NOFX)
                     {
                          ONCE("only copying blits supported for YUV in software");
+                         dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
                          pthread_mutex_unlock( &generic_lock );
                          return false;
                     }
@@ -3147,12 +3153,11 @@ bool gAquire( CardState *state, DFBAccelerationMask accel )
                     break;
                default:
                     ONCE("unsupported source format");
+                    dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
                     pthread_mutex_unlock( &generic_lock );
                     return false;
           }
      }
-
-     dfb_surfacemanager_lock( dfb_gfxcard_surface_manager() );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (dfb_surface_software_lock( source,
