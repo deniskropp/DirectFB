@@ -109,7 +109,7 @@ typedef struct {
 extern int _fusion_id;
 extern int _fusion_fd;
 
-extern FusionShared *fusion_shared;
+extern FusionShared *_fusion_shared;
 
 /*
  * from reactor.c

@@ -59,7 +59,7 @@ static void *fusion_read_loop( CoreThread *thread, void *arg );
 
 static int    fusion_refs   =  0;
 int           _fusion_fd    = -1;
-FusionShared *fusion_shared = NULL;
+FusionShared *_fusion_shared = NULL;
 
 static CoreThread *read_loop;
 
@@ -105,14 +105,14 @@ fusion_init()
      }
 
      if (_fusion_id == 1) {
-          fusion_shared = __shmalloc_allocate_root( sizeof(FusionShared) );
+          _fusion_shared = __shmalloc_allocate_root( sizeof(FusionShared) );
 
-          skirmish_init( &fusion_shared->arenas_lock );
+          skirmish_init( &_fusion_shared->arenas_lock );
 
-          gettimeofday( &fusion_shared->start_time, NULL );
+          gettimeofday( &_fusion_shared->start_time, NULL );
      }
      else
-          fusion_shared = __shmalloc_get_root();
+          _fusion_shared = __shmalloc_get_root();
 
      read_loop = dfb_thread_create( CTT_MESSAGING, fusion_read_loop, NULL );
 
@@ -133,10 +133,10 @@ fusion_exit()
      dfb_thread_destroy( read_loop );
 
      if (_fusion_id == 1) {
-          skirmish_destroy( &fusion_shared->arenas_lock );
+          skirmish_destroy( &_fusion_shared->arenas_lock );
      }
 
-     fusion_shared = NULL;
+     _fusion_shared = NULL;
 
      __shmalloc_exit( _fusion_id == 1 );
 
@@ -152,13 +152,13 @@ fusion_get_millis()
 {
      struct timeval tv;
      
-     if (!fusion_shared)
+     if (!_fusion_shared)
           return dfb_get_millis();
      
      gettimeofday( &tv, NULL );
 
-     return (tv.tv_sec - fusion_shared->start_time.tv_sec) * 1000 +
-            (tv.tv_usec - fusion_shared->start_time.tv_usec) / 1000;
+     return (tv.tv_sec - _fusion_shared->start_time.tv_sec) * 1000 +
+            (tv.tv_usec - _fusion_shared->start_time.tv_usec) / 1000;
 }
 
 /*****************************

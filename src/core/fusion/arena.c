@@ -157,9 +157,9 @@ FusionResult arena_enter (const char     *name,
            skirmish_destroy( &arena->lock );
 
            /* Lock the list and remove the arena. */
-           skirmish_prevail( &fusion_shared->arenas_lock );
-           fusion_list_remove( &fusion_shared->arenas, &arena->link );
-           skirmish_dismiss( &fusion_shared->arenas_lock );
+           skirmish_prevail( &_fusion_shared->arenas_lock );
+           fusion_list_remove( &_fusion_shared->arenas, &arena->link );
+           skirmish_dismiss( &_fusion_shared->arenas_lock );
 
            /* Free allocated memory. */
            shfree( arena->name );
@@ -297,9 +297,9 @@ FusionResult arena_exit (FusionArena   *arena,
           skirmish_destroy( &arena->lock );
           
           /* Lock the list and remove the arena. */
-          skirmish_prevail( &fusion_shared->arenas_lock );
-          fusion_list_remove( &fusion_shared->arenas, &arena->link );
-          skirmish_dismiss( &fusion_shared->arenas_lock );
+          skirmish_prevail( &_fusion_shared->arenas_lock );
+          fusion_list_remove( &_fusion_shared->arenas, &arena->link );
+          skirmish_dismiss( &_fusion_shared->arenas_lock );
 
           /* Free allocated memory. */
           shfree( arena->name );
@@ -331,10 +331,10 @@ lock_arena( const char *name, bool add )
      FusionLink *l;
 
      /* Lock the list. */
-     skirmish_prevail( &fusion_shared->arenas_lock );
+     skirmish_prevail( &_fusion_shared->arenas_lock );
 
      /* For each exisiting arena... */
-     fusion_list_foreach (l, fusion_shared->arenas) {
+     fusion_list_foreach (l, _fusion_shared->arenas) {
           FusionArena *arena = (FusionArena*) l;
 
           /* Lock the arena.
@@ -355,7 +355,7 @@ lock_arena( const char *name, bool add )
                }
 
                /* Unlock the list. */
-               skirmish_dismiss( &fusion_shared->arenas_lock );
+               skirmish_dismiss( &_fusion_shared->arenas_lock );
 
                /* Return locked arena. */
                return arena;
@@ -378,20 +378,20 @@ lock_arena( const char *name, bool add )
           arena->name = shstrdup( name );
 
           /* Add it to the list. */
-          fusion_list_prepend( &fusion_shared->arenas, &arena->link );
+          fusion_list_prepend( &_fusion_shared->arenas, &arena->link );
           
           /* Lock the newly created arena. */
           skirmish_prevail( &arena->lock );
 
           /* Unlock the list. */
-          skirmish_dismiss( &fusion_shared->arenas_lock );
+          skirmish_dismiss( &_fusion_shared->arenas_lock );
 
           /* Returned locked new arena. */
           return arena;
      }
      
      /* Unlock the list. */
-     skirmish_dismiss( &fusion_shared->arenas_lock );
+     skirmish_dismiss( &_fusion_shared->arenas_lock );
 
      return NULL;
 }
