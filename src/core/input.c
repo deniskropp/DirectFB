@@ -339,6 +339,8 @@ dfb_input_suspend( CoreDFB *core )
           InputDriver       *driver = device->driver;
           InputDeviceShared *shared = device->shared;
 
+          (void) shared;
+
           D_MAGIC_ASSERT( device, CoreInputDevice );
 
           D_DEBUG( "DirectFB/Input: Closing '%s' (%d) %d.%d (%s)\n",
