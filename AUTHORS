@@ -4,12 +4,12 @@ Main Developers
 Denis Oliver Kropp <dok@directfb.org>
 Andreas Hundt <andi@fischlustig.de>
 Sven Neumann <sven@convergence.de>
+Ville Syrjala <syrjala@sci.fi>
 
 
 Helping Developers
 ------------------
 
-Ville Syrjala <syrjala@sci.fi>            (Matrox gfx driver)
 Daniel Foesch <dfoesch@cs.nmsu.edu>       (nVidia gfx driver)
 David Wood <DWood@daedalcorp.com>         (Voodoo gfx driver)
 Alex Song <alexsong@comports.com>         (Savage gfx driver)
