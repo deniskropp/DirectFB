@@ -123,10 +123,6 @@ static DFBResult IDirectFBInputDevice_AttachInputBuffer(
 {
      INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     CAUTION("Releasing an IDirectFBInputBuffer does only detach "
-             "from the device it was created from, following input events "
-             "will cause a crash!");
-
      return IDirectFBInputBuffer_Attach( buffer, data->device );
 }
 

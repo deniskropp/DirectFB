@@ -34,6 +34,7 @@
 #include <pthread.h>
 
 #include <core/fusion/reactor.h>
+#include <core/fusion/list.h>
 
 #include <directfb.h>
 #include <directfb_internals.h>
@@ -61,16 +62,21 @@ typedef struct _InputBufferItem
      struct _InputBufferItem *next;
 } IDirectFBInputBuffer_item;
 
+typedef struct {
+     FusionLink   link;
+
+     InputDevice *device;       /* pointer to input core device struct */
+} AttachedDevice;
+
 /*
  * private data struct of IDirectFBInputDevice
  */
 typedef struct {
      int                           ref;           /* reference counter */
 
-     InputDevice                   *device;       /* pointer to input core
-                                                     device struct */
+     FusionLink                   *devices;       /* attached devices */
 
-     IDirectFBInputBuffer_item     *events;       /* linked list containing
+     IDirectFBInputBuffer_item    *events;        /* linked list containing
                                                      events */
 
      pthread_mutex_t               events_mutex;  /* mutex lock for accessing
@@ -86,7 +92,13 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
 {
      IDirectFBInputBuffer_data *data = (IDirectFBInputBuffer_data*)thiz->priv;
 
-     input_detach( data->device, IDirectFBInputBuffer_React, data );
+     while (data->devices) {
+          AttachedDevice *device = (AttachedDevice*) data->devices;
+
+          input_detach( device->device, IDirectFBInputBuffer_React, data );
+          fusion_list_remove( &data->devices, data->devices );
+          DFBFREE( device );
+     }
 
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
@@ -253,12 +265,11 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
      data = (IDirectFBInputBuffer_data*)(thiz->priv);
 
      data->ref = 1;
-     data->device = device;
 
      pthread_mutex_init( &data->events_mutex, NULL );
      pthread_cond_init( &data->wait_condition, NULL );
 
-     input_attach( data->device, IDirectFBInputBuffer_React, data );
+     IDirectFBInputBuffer_Attach( thiz, device );
 
      thiz->AddRef = IDirectFBInputBuffer_AddRef;
      thiz->Release = IDirectFBInputBuffer_Release;
@@ -275,9 +286,16 @@ DFBResult IDirectFBInputBuffer_Construct( IDirectFBInputBuffer *thiz,
 DFBResult IDirectFBInputBuffer_Attach( IDirectFBInputBuffer *thiz,
                                        InputDevice          *device )
 {
+     AttachedDevice *attached;
+
      INTERFACE_GET_DATA(IDirectFBInputBuffer)
 
+     attached = DFBCALLOC( 1, sizeof(AttachedDevice) );
+     attached->device = device;
+
      input_attach( device, IDirectFBInputBuffer_React, data );
+
+     fusion_list_prepend( &data->devices, &attached->link );
 
      return DFB_OK;
 }
