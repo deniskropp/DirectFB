@@ -276,6 +276,9 @@ static void savage4SetState( void *drv, void *dev,
      if (state->modified & SMF_CLIP)
           savage4_set_clip( sdrv, sdev, &state->clip );
      
+     if (state->modified & SMF_SRC_COLORKEY)
+          sdev->src_colorkey = state->src_colorkey;
+
      state->modified = 0;
 }
 
