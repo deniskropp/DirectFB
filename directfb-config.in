@@ -3,6 +3,7 @@
 prefix=@prefix@
 exec_prefix=@exec_prefix@
 exec_prefix_set=no
+moduledir=@MODULEDIR@
 
 usage()
 {
@@ -14,6 +15,11 @@ Options:
 	[--version]
 	[--libs]
 	[--cflags]
+	[--input=<driver>[,<driver>]...]
+	[--graphics=<driver>[,<driver>]...]
+	[--font=<impl>[,<impl>]...]
+	[--imageprovider=<impl>[,<impl>]...]
+	[--videoprovider=<impl>[,<impl>]...]
 Libraries:
 	directfb
 	avifile
@@ -66,6 +72,94 @@ while test $# -gt 0; do
     avifile)
       lib_avifile=yes
       ;;
+    --input=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /'`; do
+        echo_input="$echo_input -Wl,-udirectfb_$i -l$i"
+      done
+
+      echo_static=yes
+      ;;
+    --graphics=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /'`; do
+        echo_graphics="$echo_graphics -Wl,-udirectfb_$i -l$i"
+      done
+
+      echo_static=yes
+      ;;
+    --font=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /'`; do
+        echo_font="$echo_font -Wl,-uIDirectFBFont_$i -lidirectfbfont_$i"
+
+        case $i in
+          ft2)
+            echo_font="$echo_font -lfreetype"
+            ;;
+        esac
+      done
+
+      echo_static=yes
+      ;;
+    --imageprovider=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /'`; do
+        echo_imageprovider="$echo_imageprovider -Wl,-uIDirectFBImageProvider_$i -lidirectfbimageprovider_$i"
+
+        case $i in
+          imlib2)
+            echo_imageprovider="$echo_imageprovider -lImlib2 -lttf -lm -L/usr/X11R6/lib -lXext -lX11"
+            ;;
+          jpeg)
+            echo_imageprovider="$echo_imageprovider -ljpeg"
+            ;;
+          png)
+            echo_imageprovider="$echo_imageprovider -lpng -lz -lm"
+            ;;
+          mpeg2)
+            echo_imageprovider="$echo_imageprovider -lm"
+            ;;
+        esac
+      done
+
+      echo_static=yes
+      ;;
+    --videoprovider=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /'`; do
+        echo_videoprovider="$echo_videoprovider -Wl,-uIDirectFBVideoProvider_$i -lidirectfbvideoprovider_$i"
+
+        case $i in
+          libmpeg3)
+            echo_videoprovider="$echo_videoprovider -lmpeg3"
+            ;;
+          swf)
+            echo_videoprovider="$echo_videoprovider -ljpeg -lz"
+            ;;
+          openquicktime)
+            echo_videoprovider="$echo_videoprovider -lopenquicktime -lz -lglib -lm"
+            ;;
+        esac
+      done
+
+      echo_static=yes
+      ;;
     *)
       usage 1 1>&2
       ;;
@@ -83,9 +177,9 @@ fi
 
 if test "$echo_cflags" = "yes"; then
       if test @INCLUDEDIR@ != /usr/include ; then
-        cflags="@THREADFLAGS@ -I@INCLUDEDIR@"
+        cflags="-I@INCLUDEDIR@"
       fi
-      echo $cflags
+      echo $cflags @THREADFLAGS@
 fi
 
 if test "$echo_libs" = "yes"; then
@@ -101,3 +195,26 @@ if test "$echo_libs" = "yes"; then
       echo $libs
 fi      
 
+if test -n "$echo_static"; then
+	echo -static
+fi
+
+if test -n "$echo_input"; then
+	echo -L$moduledir/inputdrivers $echo_input
+fi
+
+if test -n "$echo_graphics"; then
+	echo -L$moduledir/gfxdrivers $echo_graphics
+fi
+
+if test -n "$echo_font"; then
+	echo -L$moduledir/interfaces/IDirectFBFont $echo_font
+fi
+
+if test -n "$echo_imageprovider"; then
+	echo -L$moduledir/interfaces/IDirectFBImageProvider $echo_imageprovider
+fi
+
+if test -n "$echo_videoprovider"; then
+	echo -L$moduledir/interfaces/IDirectFBVideoProvider $echo_videoprovider
+fi
