@@ -315,9 +315,11 @@ direct_thread_destroy( DirectThread *thread )
 
      if (!thread->joined && !pthread_equal( thread->thread, pthread_self() )) {
           if (thread->canceled)
-               D_DEBUG( "thread canceled but not joined" );
+               D_DEBUG( "Direct/Thread: '%s' (%d) is canceled but not joined!\n",
+                        thread->name, thread->tid );
           else
-               D_DEBUG( "thread still running" );
+               D_DEBUG( "Direct/Thread: '%s' (%d) is still running!\n",
+                        thread->name, thread->tid );
 
           if (thread->name)
                D_ERROR( "Direct/Thread: Killing '%s' (%d)!\n", thread->name, thread->tid );
