@@ -136,7 +136,7 @@ static void config_allocate()
      dfb_config->buffer_mode = -1;
 }
 
-static DFBResult config_set( const char *name, const char *value )
+DFBResult config_set( const char *name, const char *value )
 {
      if (strcmp (name, "quiet" ) == 0) {
           dfb_config->quiet = 1;

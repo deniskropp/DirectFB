@@ -90,4 +90,10 @@ DFBResult config_init( int *argc, char **argv[] );
  */
 DFBResult config_read( const char *filename );
 
+
+/*
+ * Set indiviual option. Used by config_init(), config_read() and
+ * DirectFBSetOption()
+ */
+DFBResult config_set( const char *name, const char *value );
 #endif

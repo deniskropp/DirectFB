@@ -103,6 +103,30 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
      return DFB_OK;
 }
 
+DFBResult DirectFBSetOption( char *name, char *value)
+{
+     DFBResult ret;
+
+     if (dfb_config == NULL) {
+          ERRORMSG( "DirectFB/DirectFBSetOption: DirectFBInit has to be "
+		  "called before DirectFBSetOption!\n" );
+          return DFB_INIT;
+     }
+
+     if (idirectfb_singleton) {
+          ERRORMSG( "DirectFB/DirectFBSetOption: DirectFBSetOption has to be "
+		  "called before DirectFBCreate!\n" );
+          return DFB_INIT;
+     }
+     
+     ret = config_set(name, value);
+     if (ret)
+          return ret;
+
+     return DFB_OK;
+}
+
+
 /*
  * Programs have to call this to get the super interface
  * which is needed to access other functions

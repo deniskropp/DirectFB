@@ -6,4 +6,6 @@ directfb_interface_age
 DirectFBCheckVersion
 DirectFBError
 DirectFBErrorFatal
+DirectFBInit
+DirectFBSetOption
 DirectFBCreate

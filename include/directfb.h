@@ -215,6 +215,16 @@ extern "C"
                            );
 
      /*
+      * Sets configuration parameters supported on command line
+      * and in config file. Has to be called before DirectFBCreate but after
+      * DirectFBInit.
+      */
+     DFBResult DirectFBSetOption(
+                             char  *name,
+                             char  *value
+                           );
+     
+     /*
       * Create the super interface
       */
      DFBResult DirectFBCreate(
