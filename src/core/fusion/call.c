@@ -239,7 +239,7 @@ fusion_call_execute (FusionCall *call,
      if (!call->handler)
           return FUSION_DESTROYED;
 
-     ret = call->handler( fusion_id, call_arg, call_ptr, call->ctx );
+     ret = call->handler( 1, call_arg, call_ptr, call->ctx );
 
      if (ret_val)
           *ret_val = ret;
