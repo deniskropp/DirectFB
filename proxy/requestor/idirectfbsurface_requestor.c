@@ -350,7 +350,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      /* HACK for performance */
-     flags &= ~DSFLIP_WAITFORSYNC;
+//     flags &= ~DSFLIP_WAITFORSYNC;
 
      if (flags & DSFLIP_WAIT) {
           DirectResult           ret;
