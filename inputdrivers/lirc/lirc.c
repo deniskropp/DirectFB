@@ -187,8 +187,8 @@ lircEventThread( CoreThread *thread, void *driver_data )
 
           /* repeated key? */
           if (symbol == last) {
-               /* swallow the first two repeats */
-               if (++repeats < 3)
+               /* swallow the first three repeats */
+               if (++repeats < 4)
                     continue;
           }
           else {

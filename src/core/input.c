@@ -1508,6 +1508,14 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                     }
                     break;
 
+<<<<<<< input.c
+/*
+               case DIKS_BREAK:
+                    if ((event->modifiers & DIMM_ALT) &&
+                        (event->modifiers & DIMM_CONTROL))
+                    {
+#ifdef FUSION_FAKE
+=======
                case DIKS_ESCAPE:
                     if (event->modifiers == DIMM_META) {
 #ifndef FUSION_FAKE
@@ -1528,12 +1536,14 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                          dfb_layer_context_unref( context );
 
 #else
+>>>>>>> 1.96
                          kill( 0, SIGINT );
 #endif
 
                          return true;
                     }
                     break;
+*/
 
                default:
                     break;
