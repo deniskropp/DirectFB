@@ -824,6 +824,9 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
           case DIKS_CURSOR_DOWN:
                return DIKI_DOWN;
           
+          case DIKS_ALTGR:
+               return DIKI_ALTGR;
+          
           case DIKS_CONTROL:
                return DIKI_CONTROL_L;
           
@@ -833,8 +836,14 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
           case DIKS_ALT:
                return DIKI_ALT_L;
           
-          case DIKS_ALTGR:
-               return DIKI_ALTGR;
+          case DIKS_META:
+               return DIKI_META_L;
+          
+          case DIKS_SUPER:
+               return DIKI_SUPER_L;
+          
+          case DIKS_HYPER:
+               return DIKI_HYPER_L;
           
           case DIKS_TAB:
                return DIKI_TAB;
@@ -923,6 +932,9 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
           
+          case DIKI_ALTGR:
+               return DIKS_ALTGR;
+          
           case DIKI_CONTROL_L:
           case DIKI_CONTROL_R:
                return DIKS_CONTROL;
@@ -935,8 +947,17 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_ALT_R:
                return DIKS_ALT;
           
-          case DIKI_ALTGR:
-               return DIKS_ALTGR;
+          case DIKI_META_L:
+          case DIKI_META_R:
+               return DIKS_META;
+          
+          case DIKI_SUPER_L:
+          case DIKI_SUPER_R:
+               return DIKS_SUPER;
+          
+          case DIKI_HYPER_L:
+          case DIKI_HYPER_R:
+               return DIKS_HYPER;
           
           case DIKI_TAB:
                return DIKS_TAB;
