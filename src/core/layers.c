@@ -380,48 +380,47 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
 DFBResult
 dfb_layer_cursor_enable( DisplayLayer *layer, int enable )
 {
-     DFBResult           ret    = DFB_OK;
      DisplayLayerShared *shared = layer->shared;
+     CoreWindowStack    *stack  = shared->windowstack;
 
      if (enable) {
-          if (!shared->windowstack->cursor_window)        /* no cursor yet?      */
-               ret = dfb_layer_cursor_load_default( layer ); /* install the default */
+          if (!stack->cursor_window) {
+               DFBResult ret;
 
-          if (ret == DFB_OK)
-               ret = dfb_window_set_opacity( shared->windowstack->cursor_window,
-                                             shared->windowstack->cursor_opacity );
-          if (ret == DFB_OK)
-               shared->windowstack->cursor = 1;
+               ret = dfb_layer_cursor_load_default( layer );
+               if (ret)
+                    return ret;
+          }
+
+          dfb_window_set_opacity( stack->cursor_window,
+                                  stack->cursor_opacity );
+
+          stack->cursor = 1;
      }
      else {
-          if (shared->windowstack->cursor_window)
-               ret = dfb_window_set_opacity( shared->windowstack->cursor_window, 0 );
+          if (stack->cursor_window)
+               dfb_window_set_opacity( stack->cursor_window, 0 );
 
-          if (ret == DFB_OK)
-               shared->windowstack->cursor = 0;
+          stack->cursor = 0;
      }
-     return ret;
+
+     return DFB_OK;
 }
 
 DFBResult
 dfb_layer_cursor_set_opacity( DisplayLayer *layer, __u8 opacity )
 {
-     DFBResult        ret   = DFB_OK;
      CoreWindowStack *stack = layer->shared->windowstack;
 
      if (stack->cursor) {
-          if (!stack->cursor_window)                         /* no cursor yet?  */
-               ret = dfb_layer_cursor_load_default( layer ); /* install default */
+          DFB_ASSERT( stack->cursor_window );
 
-          if (ret == DFB_OK)
-               ret = dfb_window_set_opacity( stack->cursor_window, opacity );
-
+          dfb_window_set_opacity( stack->cursor_window, opacity );
      }
 
-     if (ret == DFB_OK)
-          stack->cursor_opacity = opacity;
+     stack->cursor_opacity = opacity;
 
-     return ret;
+     return DFB_OK;
 }
 
 DFBResult

@@ -27,6 +27,9 @@
 //#define HEAVYDEBUG
 
 #include <stdio.h>
+#include <sys/types.h>
+#include <signal.h>
+#include <unistd.h>
 #include <misc/conf.h>
 
 #ifdef PIC
@@ -37,8 +40,8 @@
 #define MAX_LAYERS       100
 
 
-#define INITMSG(x...)    { if (!dfb_config->quiet) fprintf( stderr, "(*) "x ); }
-#define ERRORMSG(x...)   { if (!dfb_config->quiet) fprintf( stderr, "(!) "x ); }
+#define INITMSG(x...)    if (!dfb_config->quiet) fprintf( stderr, "(*) "x );
+#define ERRORMSG(x...)   if (!dfb_config->quiet) fprintf( stderr, "(!) "x );
 
 #define PERRORMSG(x...)  if (!dfb_config->quiet) {                             \
                               fprintf( stderr, "(!) "x );                      \
@@ -60,23 +63,26 @@
      #else
           #define HEAVYDEBUGMSG(x...)
      #endif
-     
+
      #define DEBUGMSG(x...)   if (!dfb_config->no_debug) {                     \
                                    fprintf( stderr, "(-) "x );                 \
                               }
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
-                                   ERRORMSG("DirectFB/Assertion: '" #exp       \
-                                            "' failed!\n");                    \
+                                   DEBUGMSG( "*** Assertion [%s] failed! "     \
+                                             "*** %s (%d)\n", #exp,            \
+                                             __FILE__, __LINE__ );             \
+                                   kill( getpid(), SIGTRAP );                  \
                               }
 
-     #define ONCE(x){                                                          \
-                         static int print = 1;                                 \
-                         if (print)                                            \
-                              DEBUGMSG( "*** [%s] *** %s (%d)\n",              \
-                                        x, __FILE__, __LINE__ );               \
-                         print = 0;                                            \
-                    }
+     #define ONCE(msg)        if (1) {                                         \
+                                   static int print = 1;                       \
+                                   if (print) {                                \
+                                        DEBUGMSG( "*** [%s] *** %s (%d)\n",    \
+                                                  msg, __FILE__, __LINE__ );   \
+                                        print = 0;                             \
+                                   }                                           \
+                              }
 
 #else
      #define HEAVYDEBUGMSG(x...)

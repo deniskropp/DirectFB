@@ -1750,8 +1750,8 @@ extern "C"
           DIKC_INSERT, DIKC_DELETE, DIKC_HOME, DIKC_END,
           DIKC_PAGEUP, DIKC_PAGEDOWN,
           DIKC_CAPSLOCK, DIKC_NUMLOCK, DIKC_SCRLOCK, DIKC_PRINT, DIKC_PAUSE,
-          
-	  DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS,
+
+          DIKC_KP_DIV, DIKC_KP_MULT, DIKC_KP_MINUS, DIKC_KP_PLUS,
           DIKC_KP_ENTER, DIKC_KP_SPACE, DIKC_KP_TAB, DIKC_KP_F1,
           DIKC_KP_F2, DIKC_KP_F3, DIKC_KP_F4, DIKC_KP_HOME, DIKC_KP_LEFT,
           DIKC_KP_UP, DIKC_KP_RIGHT, DIKC_KP_DOWN, DIKC_KP_PRIOR,
@@ -1759,16 +1759,16 @@ extern "C"
           DIKC_KP_BEGIN, DIKC_KP_INSERT, DIKC_KP_DELETE, DIKC_KP_EQUAL,
           DIKC_KP_DECIMAL, DIKC_KP_SEPARATOR,
 
-          DIKC_KP_0, DIKC_KP_1, DIKC_KP_2, DIKC_KP_3, DIKC_KP_4, 
-          DIKC_KP_5, DIKC_KP_6, DIKC_KP_7, DIKC_KP_8, DIKC_KP_9, 
+          DIKC_KP_0, DIKC_KP_1, DIKC_KP_2, DIKC_KP_3, DIKC_KP_4,
+          DIKC_KP_5, DIKC_KP_6, DIKC_KP_7, DIKC_KP_8, DIKC_KP_9,
 
           DIKC_OK, DIKC_CANCEL, DIKC_SELECT, DIKC_GOTO, DIKC_CLEAR,
           DIKC_POWER, DIKC_POWER2, DIKC_OPTION,
           DIKC_MENU, DIKC_HELP, DIKC_INFO, DIKC_TIME, DIKC_VENDOR,
 
-          DIKC_ARCHIVE, DIKC_PROGRAM, DIKC_CHANNEL, DIKC_FAVORITES, 
-          DIKC_EPG, DIKC_PVR, DIKC_MHP, DIKC_LANGUAGE, DIKC_TITLE, 
-          DIKC_SUBTITLE, DIKC_ANGLE, DIKC_ZOOM, DIKC_MODE, 
+          DIKC_ARCHIVE, DIKC_PROGRAM, DIKC_CHANNEL, DIKC_FAVORITES,
+          DIKC_EPG, DIKC_PVR, DIKC_MHP, DIKC_LANGUAGE, DIKC_TITLE,
+          DIKC_SUBTITLE, DIKC_ANGLE, DIKC_ZOOM, DIKC_MODE,
           DIKC_KEYBOARD, DIKC_PC, DIKC_SCREEN,
 
           DIKC_TV, DIKC_TV2, DIKC_VCR, DIKC_VCR2, DIKC_SAT, DIKC_SAT2,
@@ -1903,14 +1903,14 @@ extern "C"
                DFBInputDeviceModifierKeys    *modifiers
           );
 
-	  /*
+          /*
            * Get the current state of the key locks.
            */
           DFBResult (*GetLockState) (
                IDirectFBInputDevice          *thiz,
                DFBInputDeviceLockState       *locks
           );
-	   
+
           /*
            * Get a mask of currently pressed buttons.
            *
@@ -2012,7 +2012,7 @@ extern "C"
           DFBInputDeviceModifierKeys    modifiers;     /* modifier keys as
                                                           a bitmask */
           DFBInputDeviceLockState       locks;     /* key lock state
-							  as a bitmask */
+                                                          as a bitmask */
 
      /* DIET_BUTTONPRESS, DIET_BUTTONRELEASE */
           DFBInputDeviceButtonIdentifier     button;   /* in case of a button
@@ -2109,12 +2109,12 @@ extern "C"
       * Event for usage by the user of this library.
       */
      typedef struct {
-          DFBEventClass                      clazz;      /* clazz of event */  
+          DFBEventClass                      clazz;      /* clazz of event */
 
           unsigned int                       type;       /* custom type */
           void                              *data;       /* custom data */
      } DFBUserEvent;
-     
+
      /*
       * General container for a DirectFB Event.
       */
@@ -2389,6 +2389,22 @@ extern "C"
            */
           DFBResult (*LowerToBottom) (
                IDirectFBWindow     *thiz
+          );
+
+          /*
+           * Put a window on top of another window.
+           */
+          DFBResult (*PutAtop) (
+               IDirectFBWindow     *thiz,
+               IDirectFBWindow     *lower
+          );
+
+          /*
+           * Put a window below another window.
+           */
+          DFBResult (*PutBelow) (
+               IDirectFBWindow     *thiz,
+               IDirectFBWindow     *upper
           );
 
 

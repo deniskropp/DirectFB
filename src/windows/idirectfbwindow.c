@@ -255,7 +255,7 @@ static DFBResult IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
           return DFB_DESTROYED;
 
      if (data->window->opacity != opacity)
-          return dfb_window_set_opacity( data->window, opacity );
+          dfb_window_set_opacity( data->window, opacity );
 
      return DFB_OK;
 }
@@ -283,7 +283,9 @@ static DFBResult IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
      if (!data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_request_focus( data->window );
+     dfb_window_request_focus( data->window );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
@@ -336,7 +338,9 @@ static DFBResult IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
      if (dx == 0  &&  dy == 0)
           return DFB_OK;
 
-     return dfb_window_move( data->window, dx, dy );
+     dfb_window_move( data->window, dx, dy );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
@@ -349,8 +353,10 @@ static DFBResult IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
      if (data->window->x == x  &&  data->window->y == y)
           return DFB_OK;
 
-     return dfb_window_move( data->window,
-                         x - data->window->x, y - data->window->y );
+     dfb_window_move( data->window,
+                      x - data->window->x, y - data->window->y );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_Resize( IDirectFBWindow *thiz,
@@ -375,7 +381,9 @@ static DFBResult IDirectFBWindow_Raise( IDirectFBWindow *thiz )
      if (!data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_raise( data->window );
+     dfb_window_raise( data->window );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_Lower( IDirectFBWindow *thiz )
@@ -385,7 +393,9 @@ static DFBResult IDirectFBWindow_Lower( IDirectFBWindow *thiz )
      if (!data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_lower( data->window );
+     dfb_window_lower( data->window );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
@@ -395,7 +405,9 @@ static DFBResult IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
      if (!data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_raisetotop( data->window );
+     dfb_window_raisetotop( data->window );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
@@ -405,7 +417,59 @@ static DFBResult IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
      if (!data->window)
           return DFB_DESTROYED;
 
-     return dfb_window_lowertobottom( data->window );
+     dfb_window_lowertobottom( data->window );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
+                                          IDirectFBWindow *lower )
+{
+     IDirectFBWindow_data *lower_data;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!lower)
+          return DFB_INVARG;
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     lower_data = (IDirectFBWindow_data*) lower->priv;
+     if (!lower_data)
+          return DFB_DEAD;
+
+     if (!lower_data->window)
+          return DFB_DESTROYED;
+
+     dfb_window_putatop( data->window, lower_data->window );
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
+                                           IDirectFBWindow *upper )
+{
+     IDirectFBWindow_data *upper_data;
+
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!upper)
+          return DFB_INVARG;
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     upper_data = (IDirectFBWindow_data*) upper->priv;
+     if (!upper_data)
+          return DFB_DEAD;
+
+     if (!upper_data->window)
+          return DFB_DESTROYED;
+
+     dfb_window_putbelow( data->window, upper_data->window );
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_Close( IDirectFBWindow *thiz )
@@ -479,6 +543,8 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Lower = IDirectFBWindow_Lower;
      thiz->RaiseToTop = IDirectFBWindow_RaiseToTop;
      thiz->LowerToBottom = IDirectFBWindow_LowerToBottom;
+     thiz->PutAtop = IDirectFBWindow_PutAtop;
+     thiz->PutBelow = IDirectFBWindow_PutBelow;
      thiz->Close = IDirectFBWindow_Close;
      thiz->Destroy = IDirectFBWindow_Destroy;
 

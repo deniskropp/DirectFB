@@ -107,85 +107,123 @@ struct _CoreWindowStack
 /*
  * allocates a WindowStack, initializes it, registers it for input events
  */
-CoreWindowStack* dfb_windowstack_new( struct _DisplayLayer *layer );
+CoreWindowStack*
+dfb_windowstack_new( struct _DisplayLayer *layer );
 
-void dfb_windowstack_destroy( CoreWindowStack *stack );
+void
+dfb_windowstack_destroy( CoreWindowStack *stack );
 
 /*
  * inserts a window into the windowstack pointed to by window->stack,
  * this function is called by window_create.
  */
-void dfb_window_insert( CoreWindow *window, int before );
+void
+dfb_window_insert( CoreWindow *window, int before );
 
 /*
  * removes a window from the windowstack pointed to by window->stack,
  * this function is NOT called by window_destroy, it has to be called BEFORE.
  */
-void dfb_window_remove( CoreWindow *window );
+void
+dfb_window_remove( CoreWindow *window );
 
 /*
  * creates a window on a given stack
  */
-CoreWindow* dfb_window_create( CoreWindowStack *stack, int x, int y,
-                               unsigned int width, unsigned int height,
-                               DFBWindowCapabilities caps,
-                               DFBSurfacePixelFormat pixelformat );
+CoreWindow*
+dfb_window_create( CoreWindowStack       *stack,
+                   int                    x,
+                   int                    y,
+                   unsigned int           width,
+                   unsigned int           height,
+                   DFBWindowCapabilities  caps,
+                   DFBSurfacePixelFormat  pixelformat );
 
 /*
  * must be called after window_create
  */
-void dfb_window_init( CoreWindow *window );
+void
+dfb_window_init( CoreWindow *window );
 
 /*
  * deinitializes a window and removes it from the window stack
  */
-void dfb_window_destroy( CoreWindow *window );
+void
+dfb_window_destroy( CoreWindow *window );
 
 /*
  * moves a window relative to its current position
  */
-int dfb_window_move( CoreWindow *window, int deltax, int deltay );
+void
+dfb_window_move( CoreWindow *window,
+                 int         deltax,
+                 int         deltay );
 
 /*
  * resizes a window
  */
-int dfb_window_resize( CoreWindow *window,
-                       unsigned int width, unsigned int height );
+DFBResult
+dfb_window_resize( CoreWindow   *window,
+                   unsigned int  width,
+                   unsigned int  height );
 
 /*
  * move a window up one step in window stack
  */
-int dfb_window_raise( CoreWindow *window );
+void
+dfb_window_raise( CoreWindow *window );
 
 /*
  * move a window down one step in window stack
  */
-int dfb_window_lower( CoreWindow *window );
+void
+dfb_window_lower( CoreWindow *window );
 
 /*
  * makes a window the first (topmost) window in the window stack
  */
-int dfb_window_raisetotop( CoreWindow *window );
+void
+dfb_window_raisetotop( CoreWindow *window );
 
 /*
  * makes a window the last (downmost) window in the window stack
  */
-int dfb_window_lowertobottom( CoreWindow *window );
+void
+dfb_window_lowertobottom( CoreWindow *window );
+
+/*
+ * stacks the window on top of another one
+ */
+void
+dfb_window_putatop( CoreWindow *window,
+                    CoreWindow *lower );
+
+/*
+ * stacks the window below another one
+ */
+void
+dfb_window_putbelow( CoreWindow *window,
+                     CoreWindow *upper );
 
 /*
  * sets the global alpha factor of a window
  */
-int dfb_window_set_opacity( CoreWindow *window, __u8 opacity );
+void
+dfb_window_set_opacity( CoreWindow *window,
+                        __u8        opacity );
 
 /*
  * repaints part of a window, if region is NULL the whole window is repainted
  */
-int dfb_window_repaint( CoreWindow *window, DFBRegion *region );
+void
+dfb_window_repaint( CoreWindow *window,
+                    DFBRegion  *region );
 
 /*
  * request a window to gain focus
  */
-int dfb_window_request_focus( CoreWindow *window );
+void
+dfb_window_request_focus( CoreWindow *window );
 
 DFBResult dfb_window_grab_keyboard( CoreWindow *window );
 DFBResult dfb_window_ungrab_keyboard( CoreWindow *window );

@@ -56,8 +56,30 @@ static int  handle_enter_leave_focus( CoreWindowStack *stack );
 static void handle_wheel( CoreWindowStack *stack, int z );
 static DFBWindowID new_window_id( CoreWindowStack *stack );
 
-static ReactionResult stack_inputdevice_react( const void *msg_data,
-                                               void       *ctx );
+/*
+ * Returns the stacking index of the window within its stack
+ * or -1 if not found.
+ */
+static inline int
+get_window_index( CoreWindow *window );
+
+/*
+ * Moves the window within the stack from the old stacking index
+ * to the new one. Returns if restacking actually happened.
+ */
+static bool
+restack_window( CoreWindowStack *stack, int old_index, int new_index );
+
+/*
+ * Called by restacking functions. If the window is visible the region
+ * of the stack will be updated and the focus validated.
+ */
+static void
+window_restacked( CoreWindow *window );
+
+static ReactionResult
+stack_inputdevice_react( const void *msg_data,
+                         void       *ctx );
 static DFBEnumerationResult
 stack_attach_devices( InputDevice *device,
                       void        *ctx );
@@ -65,7 +87,8 @@ static DFBEnumerationResult
 stack_detach_devices( InputDevice *device,
                       void        *ctx );
 
-CoreWindowStack* dfb_windowstack_new( DisplayLayer *layer )
+CoreWindowStack*
+dfb_windowstack_new( DisplayLayer *layer )
 {
      CardCapabilities  caps;
      CoreWindowStack  *stack;
@@ -107,7 +130,8 @@ CoreWindowStack* dfb_windowstack_new( DisplayLayer *layer )
      return stack;
 }
 
-void dfb_windowstack_destroy( CoreWindowStack *stack )
+void
+dfb_windowstack_destroy( CoreWindowStack *stack )
 {
      int i;
 
@@ -128,7 +152,9 @@ void dfb_windowstack_destroy( CoreWindowStack *stack )
      shfree( stack );
 }
 
-void dfb_window_insert( CoreWindow *window, int before )
+void
+dfb_window_insert( CoreWindow *window,
+                   int         before )
 {
      int i;
      CoreWindowStack *stack = window->stack;
@@ -165,7 +191,8 @@ void dfb_window_insert( CoreWindow *window, int before )
           handle_enter_leave_focus( stack );
 }
 
-void dfb_window_remove( CoreWindow *window )
+void
+dfb_window_remove( CoreWindow *window )
 {
      int i;
      CoreWindowStack *stack = window->stack;
@@ -232,10 +259,14 @@ void dfb_window_remove( CoreWindow *window )
      skirmish_dismiss( &stack->update );
 }
 
-CoreWindow* dfb_window_create( CoreWindowStack *stack, int x, int y,
-                               unsigned int width, unsigned int height,
-                               DFBWindowCapabilities caps,
-                               DFBSurfacePixelFormat pixelformat )
+CoreWindow*
+dfb_window_create( CoreWindowStack       *stack,
+                   int                    x,
+                   int                    y,
+                   unsigned int           width,
+                   unsigned int           height,
+                   DFBWindowCapabilities  caps,
+                   DFBSurfacePixelFormat  pixelformat )
 {
      DFBResult               ret;
      CoreSurface            *surface;
@@ -291,7 +322,8 @@ CoreWindow* dfb_window_create( CoreWindowStack *stack, int x, int y,
      return window;
 }
 
-void dfb_window_init( CoreWindow *window )
+void
+dfb_window_init( CoreWindow *window )
 {
      int i;
      CoreWindowStack *stack = window->stack;
@@ -303,7 +335,8 @@ void dfb_window_init( CoreWindow *window )
      dfb_window_insert( window, i );
 }
 
-void dfb_window_destroy( CoreWindow *window )
+void
+dfb_window_destroy( CoreWindow *window )
 {
      DFBWindowEvent evt;
 
@@ -317,151 +350,154 @@ void dfb_window_destroy( CoreWindow *window )
      shfree( window );
 }
 
-int dfb_window_raise( CoreWindow *window )
+void
+dfb_window_raise( CoreWindow *window )
 {
-     int i;
-     int update = 0;
-     CoreWindowStack *stack = window->stack;
+     int              index;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
 
      skirmish_prevail( &stack->update );
 
-     for (i=0; i<stack->num_windows; i++)
-          if (stack->windows[i] == window)
-               break;
+     index = get_window_index( window );
+     if (index < 0)
+          return;
 
-     if (i < stack->num_windows-1  &&  !(stack->windows[i+1]->caps & DWHC_GHOST)) {
-          CoreWindow *temp = stack->windows[i+1];
-          stack->windows[i+1] = stack->windows[i];
-          stack->windows[i] = temp;
-
-          update = 1;
-     }
+     update = restack_window( stack, index, index + 1 );
 
      skirmish_dismiss( &stack->update );
 
-     if (update && window->opacity) {
-          DFBRegion region = { window->x, window->y,
-                               window->x + window->width - 1,
-                               window->y + window->height - 1 };
-
-          repaint_stack( stack, &region );
-
-          handle_enter_leave_focus( stack );
-     }
-
-     return DFB_OK;
+     if (update)
+          window_restacked( window );
 }
 
-int dfb_window_lower( CoreWindow *window )
+void
+dfb_window_lower( CoreWindow *window )
 {
-     int i;
-     int update = 0;
-     CoreWindowStack *stack = window->stack;
+     int              index;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
 
      skirmish_prevail( &stack->update );
 
-     for (i=0; i<stack->num_windows; i++)
-          if (stack->windows[i] == window)
-               break;
+     index = get_window_index( window );
+     if (index < 0)
+          return;
 
-     if (i > 0) {
-          CoreWindow *temp = stack->windows[i];
-          stack->windows[i] = stack->windows[i-1];
-          stack->windows[i-1] = temp;
-
-          update = 1;
-     }
+     update = restack_window( stack, index, index - 1 );
 
      skirmish_dismiss( &stack->update );
 
-     if (update && window->opacity) {
-          DFBRegion region = { window->x, window->y,
-                               window->x + window->width - 1,
-                               window->y + window->height - 1 };
-
-          repaint_stack( stack, &region );
-
-          handle_enter_leave_focus( stack );
-     }
-
-     return DFB_OK;
+     if (update)
+          window_restacked( window );
 }
 
-int dfb_window_raisetotop( CoreWindow *window )
+void
+dfb_window_raisetotop( CoreWindow *window )
 {
-     int i;
-     int update = 0;
-     CoreWindowStack *stack = window->stack;
+     int              index;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
 
      skirmish_prevail( &stack->update );
 
-     for (i=0; i<stack->num_windows; i++)
-          if (stack->windows[i] == window)
-               break;
+     index = get_window_index( window );
+     if (index < 0)
+          return;
 
-     for (; i<stack->num_windows-1; i++) {
-          if (!(stack->windows[i+1]->caps & DWHC_GHOST)) {
-               CoreWindow *temp = stack->windows[i];
-               stack->windows[i] = stack->windows[i+1];
-               stack->windows[i+1] = temp;
-
-               update = 1;
-          }
-          else
-               break;
-     }
+     update = restack_window( stack, index, stack->num_windows - 1 );
 
      skirmish_dismiss( &stack->update );
 
-     if (update && window->opacity) {
-          DFBRegion region = { window->x, window->y,
-                               window->x + window->width - 1,
-                               window->y + window->height - 1 };
-
-          repaint_stack( stack, &region );
-
-          handle_enter_leave_focus( stack );
-     }
-
-     return DFB_OK;
+     if (update)
+          window_restacked( window );
 }
 
-int dfb_window_lowertobottom( CoreWindow *window )
+void
+dfb_window_lowertobottom( CoreWindow *window )
 {
-     int i;
-     int update = 0;
-     CoreWindowStack *stack = window->stack;
+     int              index;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
 
      skirmish_prevail( &stack->update );
 
-     for (i=0; i<stack->num_windows; i++)
-          if (stack->windows[i] == window)
-               break;
+     index = get_window_index( window );
+     if (index < 0)
+          return;
 
-     for (; i>0; i--) {
-          CoreWindow *temp = stack->windows[i];
-          stack->windows[i] = stack->windows[i-1];
-          stack->windows[i-1] = temp;
-
-          update = 1;
-     }
+     update = restack_window( stack, index, 0 );
 
      skirmish_dismiss( &stack->update );
 
-     if (update && window->opacity) {
-          DFBRegion region = { window->x, window->y,
-                               window->x + window->width - 1,
-                               window->y + window->height - 1 };
-
-          repaint_stack( stack, &region );
-
-          handle_enter_leave_focus( stack );
-     }
-
-     return DFB_OK;
+     if (update)
+          window_restacked( window );
 }
 
-int dfb_window_move( CoreWindow *window, int dx, int dy )
+void
+dfb_window_putatop( CoreWindow *window,
+                    CoreWindow *lower )
+{
+     int              index;
+     int              lower_index;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
+
+     skirmish_prevail( &stack->update );
+
+     index = get_window_index( window );
+     if (index < 0)
+          return;
+
+     lower_index = get_window_index( lower );
+     if (lower_index < 0)
+          return;
+
+     if (index < lower_index)
+          update = restack_window( stack, index, lower_index );
+     else
+          update = restack_window( stack, index, lower_index + 1 );
+
+     skirmish_dismiss( &stack->update );
+
+     if (update)
+          window_restacked( window );
+}
+
+void
+dfb_window_putbelow( CoreWindow *window,
+                     CoreWindow *upper )
+{
+     int              index;
+     int              upper_index;
+     bool             update = false;
+     CoreWindowStack *stack  = window->stack;
+
+     skirmish_prevail( &stack->update );
+
+     index = get_window_index( window );
+     if (index < 0)
+          return;
+
+     upper_index = get_window_index( upper );
+     if (upper_index < 0)
+          return;
+
+     if (index > upper_index)
+          update = restack_window( stack, index, upper_index );
+     else
+          update = restack_window( stack, index, upper_index - 1 );
+
+     skirmish_dismiss( &stack->update );
+
+     if (update)
+          window_restacked( window );
+}
+
+void
+dfb_window_move( CoreWindow *window,
+                 int         dx,
+                 int         dy )
 {
      CoreWindowStack *stack = window->stack;
 
@@ -494,18 +530,23 @@ int dfb_window_move( CoreWindow *window, int dx, int dy )
           evt.y = window->y;
           dfb_window_dispatch( window, &evt );
      }
-
-     return DFB_OK;
 }
 
-int dfb_window_resize( CoreWindow *window, unsigned int width, unsigned int height )
+DFBResult
+dfb_window_resize( CoreWindow   *window,
+                   unsigned int  width,
+                   unsigned int  height )
 {
+     DFBResult        ret;
      CoreWindowStack *stack = window->stack;
-     int ow = window->width;
-     int oh = window->height;
+     int              ow    = window->width;
+     int              oh    = window->height;
 
-     dfb_surface_reformat( window->surface, width, height,
-                           window->surface->format );
+     ret = dfb_surface_reformat( window->surface,
+                                 width, height,
+                                 window->surface->format );
+     if (ret)
+          return ret;
 
      window->width = window->surface->width;
      window->height = window->surface->height;
@@ -530,7 +571,9 @@ int dfb_window_resize( CoreWindow *window, unsigned int width, unsigned int heig
      return DFB_OK;
 }
 
-int dfb_window_set_opacity( CoreWindow *window, __u8 opacity )
+void
+dfb_window_set_opacity( CoreWindow *window,
+                        __u8        opacity )
 {
      int old_opacity = window->opacity;
      CoreWindowStack *stack = window->stack;
@@ -550,16 +593,16 @@ int dfb_window_set_opacity( CoreWindow *window, __u8 opacity )
           if ((old_opacity && !opacity) || (!old_opacity && opacity))
                handle_enter_leave_focus( stack );
      }
-
-     return DFB_OK;
 }
 
-int dfb_window_repaint( CoreWindow *window, DFBRegion *region )
+void
+dfb_window_repaint( CoreWindow *window,
+                    DFBRegion  *region )
 {
      CoreWindowStack *stack = window->stack;
 
      if (!window->opacity)
-          return DFB_OK;
+          return;
 
      if (region) {
           region->x1 += window->x;
@@ -576,11 +619,10 @@ int dfb_window_repaint( CoreWindow *window, DFBRegion *region )
 
           repaint_stack( stack, &reg );
      }
-
-     return DFB_OK;
 }
 
-DFBResult dfb_window_grab_keyboard( CoreWindow *window )
+DFBResult
+dfb_window_grab_keyboard( CoreWindow *window )
 {
      DFBResult retval = DFB_OK;
      CoreWindowStack *stack = window->stack;
@@ -597,7 +639,8 @@ DFBResult dfb_window_grab_keyboard( CoreWindow *window )
      return retval;
 }
 
-DFBResult dfb_window_ungrab_keyboard( CoreWindow *window )
+DFBResult
+dfb_window_ungrab_keyboard( CoreWindow *window )
 {
      CoreWindowStack *stack = window->stack;
 
@@ -611,7 +654,8 @@ DFBResult dfb_window_ungrab_keyboard( CoreWindow *window )
      return DFB_OK;
 }
 
-DFBResult dfb_window_grab_pointer( CoreWindow *window )
+DFBResult
+dfb_window_grab_pointer( CoreWindow *window )
 {
      DFBResult retval = DFB_OK;
      CoreWindowStack *stack = window->stack;
@@ -628,7 +672,8 @@ DFBResult dfb_window_grab_pointer( CoreWindow *window )
      return retval;
 }
 
-DFBResult dfb_window_ungrab_pointer( CoreWindow *window )
+DFBResult
+dfb_window_ungrab_pointer( CoreWindow *window )
 {
      CoreWindowStack *stack = window->stack;
 
@@ -644,38 +689,43 @@ DFBResult dfb_window_ungrab_pointer( CoreWindow *window )
      return DFB_OK;
 }
 
-void dfb_window_attach( CoreWindow *window, React react, void *ctx )
+void
+dfb_window_attach( CoreWindow *window,
+                   React       react,
+                   void       *ctx )
 {
      reactor_attach( window->reactor, react, ctx );
 }
 
-void dfb_window_detach( CoreWindow *window, React react, void *ctx )
+void
+dfb_window_detach( CoreWindow *window,
+                   React       react,
+                   void       *ctx )
 {
      reactor_detach( window->reactor, react, ctx );
 }
 
-void dfb_window_dispatch( CoreWindow *window, DFBWindowEvent *event )
+void
+dfb_window_dispatch( CoreWindow     *window,
+                     DFBWindowEvent *event )
 {
      event->window_id = window->id;
 
      reactor_dispatch( window->reactor, event, true );
 }
 
-int dfb_window_request_focus( CoreWindow *window )
+void
+dfb_window_request_focus( CoreWindow *window )
 {
      DFBWindowEvent evt;
 
      CoreWindowStack *stack   = window->stack;
      CoreWindow      *current = stack->focused_window;
 
-
-     if (window->caps & DWHC_GHOST) {
-          BUG( "Ghost Window requested focus!" );
-          return DFB_BUG;
-     }
+     DFB_ASSERT( !(window->caps & DWHC_GHOST) );
 
      if (current == window)
-          return DFB_OK;
+          return;
 
      if (current) {
           evt.type = DWET_LOSTFOCUS;
@@ -686,11 +736,10 @@ int dfb_window_request_focus( CoreWindow *window )
      dfb_window_dispatch( window, &evt );
 
      stack->focused_window = window;
-
-     return DFB_OK;
 }
 
-void dfb_windowstack_repaint_all( CoreWindowStack *stack )
+void
+dfb_windowstack_repaint_all( CoreWindowStack *stack )
 {
      CoreSurface *surface = stack->layer->surface;
      DFBRegion    region  = { 0, 0, surface->width -1, surface->height - 1 };
@@ -723,13 +772,18 @@ stack_detach_devices( InputDevice *device,
 #define TRANSPARENT_WINDOW(w) ((w)->opacity < 0xff || \
                                (w)->caps & DWCAPS_ALPHACHANNEL)
 
-static void update_region( CoreWindowStack *stack, int window,
-                           int x1, int y1, int x2, int y2 )
+static void
+update_region( CoreWindowStack *stack,
+               int              start,
+               int              x1,
+               int              y1,
+               int              x2,
+               int              y2 )
 {
-     int i = window;
-     unsigned int edges = 0;
-     DFBRegion region = { x1, y1, x2, y2 };
-     DisplayLayerShared *layer = stack->layer;
+     int                 i      = start;
+     unsigned int        edges  = 0;
+     DFBRegion           region = { x1, y1, x2, y2 };
+     DisplayLayerShared *layer  = stack->layer;
 
      /* check for empty region */
      if (x1 > x2  ||  y1 > y2)
@@ -854,7 +908,9 @@ static void update_region( CoreWindowStack *stack, int window,
      }
 }
 
-static void repaint_stack( CoreWindowStack *stack, DFBRegion *region )
+static void
+repaint_stack( CoreWindowStack *stack,
+               DFBRegion       *region )
 {
      DisplayLayerShared *layer   = stack->layer;
      CoreSurface        *surface = layer->surface;
@@ -895,7 +951,10 @@ static void repaint_stack( CoreWindowStack *stack, DFBRegion *region )
      skirmish_dismiss( &stack->update );
 }
 
-static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y )
+static CoreWindow*
+window_at_pointer( CoreWindowStack *stack,
+                   int              x,
+                   int              y )
 {
      int i;
 
@@ -916,8 +975,9 @@ static CoreWindow* window_at_pointer( CoreWindowStack *stack, int x, int y )
      return NULL;
 }
 
-static ReactionResult stack_inputdevice_react( const void *msg_data,
-                                               void       *ctx )
+static ReactionResult
+stack_inputdevice_react( const void *msg_data,
+                         void       *ctx )
 {
      const DFBInputEvent *evt = (DFBInputEvent*)msg_data;
 
@@ -1045,7 +1105,10 @@ static ReactionResult stack_inputdevice_react( const void *msg_data,
      return RS_OK;
 }
 
-void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
+void
+dfb_windowstack_handle_motion( CoreWindowStack *stack,
+                               int              dx,
+                               int              dy )
 {
      int new_cx, new_cy;
      DFBWindowEvent we;
@@ -1103,7 +1166,8 @@ void dfb_windowstack_handle_motion( CoreWindowStack *stack, int dx, int dy )
 }
 
 
-static void handle_wheel( CoreWindowStack *stack, int dz )
+static void
+handle_wheel( CoreWindowStack *stack, int dz )
 {
      DFBWindowEvent we;
      CoreWindow *window = NULL;
@@ -1141,7 +1205,8 @@ static void handle_wheel( CoreWindowStack *stack, int dz )
 }
 
 
-static int handle_enter_leave_focus( CoreWindowStack *stack )
+static int
+handle_enter_leave_focus( CoreWindowStack *stack )
 {
      CoreWindow    *before = stack->entered_window;
      CoreWindow    *after = window_at_pointer( stack, -1, -1 );
@@ -1178,7 +1243,8 @@ static int handle_enter_leave_focus( CoreWindowStack *stack )
      return 0;
 }
 
-static DFBWindowID new_window_id( CoreWindowStack *stack )
+static DFBWindowID
+new_window_id( CoreWindowStack *stack )
 {
      static DFBWindowID id_pool = 0;
 
@@ -1195,4 +1261,85 @@ static DFBWindowID new_window_id( CoreWindowStack *stack )
      }
 
      return id_pool++;
+}
+
+static inline int
+get_window_index( CoreWindow *window )
+{
+     int               i       = 0;
+     CoreWindowStack  *stack   = window->stack;
+     int               num     = stack->num_windows;
+     CoreWindow      **windows = stack->windows;
+
+     for (; i<num; i++)
+          if (windows[i] == window)
+               return i;
+
+     BUG( "window not found" );
+
+     return -1;
+}
+
+static bool
+restack_window( CoreWindowStack *stack,
+                int              old_index,
+                int              new_index )
+{
+     bool ret = false;
+
+     if (new_index < 0)
+          new_index = 0;
+     else if (new_index >= stack->num_windows)
+          new_index = stack->num_windows;
+
+     if (old_index < 0)
+          old_index = 0;
+     else if (old_index >= stack->num_windows)
+          old_index = stack->num_windows;
+
+     if (old_index == new_index)
+          return false;
+
+     if (old_index < new_index) {
+          int i;
+
+          for (i=old_index; i<new_index; i++) {
+               if (!(stack->windows[i+1]->caps & DWHC_GHOST)) {
+                    CoreWindow *temp = stack->windows[i];
+                    stack->windows[i] = stack->windows[i+1];
+                    stack->windows[i+1] = temp;
+
+                    ret = true;
+               }
+               else
+                    break;
+          }
+     }
+     else {
+          int i;
+
+          for (i=old_index; i>new_index; i--) {
+               CoreWindow *temp = stack->windows[i];
+               stack->windows[i] = stack->windows[i-1];
+               stack->windows[i-1] = temp;
+
+               ret = true;
+          }
+     }
+
+     return ret;
+}
+
+static void
+window_restacked( CoreWindow *window )
+{
+     if (window->opacity) {
+          DFBRegion region = { window->x, window->y,
+                               window->x + window->width - 1,
+                               window->y + window->height - 1 };
+
+          repaint_stack( window->stack, &region );
+
+          handle_enter_leave_focus( window->stack );
+     }
 }

@@ -212,7 +212,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      if (!dfb_config->quiet && !dfb_config->no_banner) {
           printf( "\n" );
-          printf( "       ----------------------- DirectFB v%d.%d.%d ---------------------\n",
+          printf( "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
                   DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
           printf( "              (c)2000-2002  convergence integrated media GmbH  \n" );
           printf( "        -----------------------------------------------------------\n" );
