@@ -237,6 +237,7 @@ Using the builtin "window manager"
      - Press A to lower the focused window to the bottom.
      - Press S to raise the focused window to the top.
      - Press X to cycle the focus through the windows.
+     - Press P to enable and show the mouse cursor.
 
    You might want to use the "capslock-meta" option (see directfbrc(5))
    if you don't have a <Meta> key.
