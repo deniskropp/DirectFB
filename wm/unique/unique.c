@@ -2290,6 +2290,18 @@ foo_rects( WindowData   *data,
      outer.w = window->width  + sizes[UFI_W].w + sizes[UFI_E].w;
      outer.h = window->height + sizes[UFI_N].h + sizes[UFI_S].h;
 
+     if (outer.w <= sizes[UFI_NW].w + sizes[UFI_NE].w)
+          outer.w = sizes[UFI_NW].w + sizes[UFI_NE].w + 1;
+
+     if (outer.w <= sizes[UFI_SW].w + sizes[UFI_SE].w)
+          outer.w = sizes[UFI_SW].w + sizes[UFI_SE].w + 1;
+
+     if (outer.h <= sizes[UFI_NW].h + sizes[UFI_SW].h)
+          outer.h = sizes[UFI_NW].h + sizes[UFI_SW].h + 1;
+
+     if (outer.h <= sizes[UFI_NE].h + sizes[UFI_SE].h)
+          outer.h = sizes[UFI_NE].h + sizes[UFI_SE].h + 1;
+
      ret_rects[UFI_N].x  = sizes[UFI_NW].w;
      ret_rects[UFI_N].y  = 0;
      ret_rects[UFI_N].w  = outer.w - sizes[UFI_NW].w - sizes[UFI_NE].w;
