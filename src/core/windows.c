@@ -1091,6 +1091,19 @@ dfb_window_request_focus( CoreWindow *window )
 
      switch_focus( stack, window );
 
+     if (stack->entered_window && stack->entered_window != window) {
+          DFBWindowEvent  we;
+          CoreWindow     *entered = stack->entered_window;
+
+          we.type = DWET_LEAVE;
+          we.x    = stack->cursor.x - entered->x;
+          we.y    = stack->cursor.y - entered->y;
+
+          dfb_window_dispatch( entered, &we );
+
+          stack->entered_window = NULL;
+     }
+     
      stack_unlock( stack );
 }
 
