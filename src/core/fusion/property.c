@@ -39,7 +39,6 @@
 
 
 #ifndef FUSION_FAKE
-#error Not yet implemented.
 #else
 
 #include <pthread.h>

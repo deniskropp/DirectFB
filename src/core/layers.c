@@ -149,9 +149,6 @@ dfb_layers_initialize()
 DFBResult
 dfb_layers_join()
 {
-     int       i;
-     DFBResult ret;
-
      DFB_ASSERT( layersfield == NULL );
      
      if (arena_get_shared_field( dfb_core->arena,
@@ -325,6 +322,30 @@ dfb_layers_init_all()
 
      return DFB_OK;
 }
+
+#ifndef FUSION_FAKE
+DFBResult
+dfb_layers_join_all()
+{
+     int i;
+
+     if (dfb_num_layers != layersfield->num)
+          CAUTION("Number of layers does not match!");
+
+     for (i=0; i<dfb_num_layers; i++) {
+          DisplayLayer       *layer  = dfb_layers[i];
+          DisplayLayerShared *shared = layersfield->layers[i];
+
+          /* make a copy for faster access */
+          layer->layer_data = shared->layer_data;
+          
+          /* store pointer to shared data */
+          layer->shared = shared;
+     }
+
+     return DFB_OK;
+}
+#endif
 
 void dfb_layers_enumerate( DisplayLayerCallback  callback,
                            void                 *ctx )

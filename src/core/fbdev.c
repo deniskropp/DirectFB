@@ -394,7 +394,7 @@ DFBResult dfb_fbdev_join()
           return ret;
      }
 
-     dfb_layers_register( device, &primaryLayerFuncs );
+     dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
      
      return DFB_OK;
 }

@@ -30,7 +30,15 @@ extern "C"
 
 
 #ifndef FUSION_FAKE
-     #error Not yet implemented.
+     #warning Not yet fully implemented.
+     
+     typedef FusionSkirmish FusionProperty;
+
+     #define fusion_property_init     skirmish_init
+     #define fusion_property_lease    skirmish_prevail
+     #define fusion_property_purchase skirmish_prevail
+     #define fusion_property_cede     skirmish_dismiss
+     #define fusion_property_destroy  skirmish_destroy
 #else
 
      typedef enum {
