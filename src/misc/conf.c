@@ -119,7 +119,13 @@ static void config_print_usage()
            );
 }
 
+/*
+ * The following function isn't used because the configuration should
+ * only go away if the application is completely terminated. In that case
+ * the memory is freed anyway.
+ */
 
+#if 0
 static void config_cleanup()
 {
      if (!dfb_config) {
@@ -136,6 +142,7 @@ static void config_cleanup()
      DFBFREE( dfb_config );
      dfb_config = NULL;
 }
+#endif
 
 /*
  * allocates config and fills it with defaults
