@@ -952,32 +952,7 @@ driver_init_driver( GraphicsDevice      *device,
      nv_find_architecture( nvdrv );
 
      nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
-     
-     /* videoram size returned by fb_fix_screeninfo
-      * may be less than effective size */
-     switch (vram >> 20) {
-          case 0 ... 4:
-               nvdrv->fb_mask = 0x003FFFC0;
-               break;
-          case 5 ... 8:
-               nvdrv->fb_mask = 0x007FFFC0;
-               break;
-          case 9 ... 16:
-               nvdrv->fb_mask = 0x00FFFFC0;
-               break;
-          case 17 ... 32:
-               nvdrv->fb_mask = 0x01FFFFC0;
-               break;
-          case 33 ... 64:
-               nvdrv->fb_mask = 0x03FFFFC0;
-               break;
-          case 65 ... 128:
-               nvdrv->fb_mask = 0x07FFFFC0;
-               break;
-          default:
-               nvdrv->fb_mask = 0x00FFFFC0;
-               break;
-     }
+     nvdrv->fb_mask = ((1 << direct_log2( vram )) - 0x100000) | 0x000FFFC0;
      
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
