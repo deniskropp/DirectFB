@@ -162,13 +162,29 @@ extern "C"
      } DFBResult;
 
      /*
-      * Rectangle specified by point and a dimension.
+      * Point specified by x/y coordinates.
       */
      typedef struct {
-          int            x;   /* X coordinate of top-left point */
-          int            y;   /* Y coordinate of top-left point */
-          int            w;   /* width of that rectangle */
-          int            h;   /* height of that rectangle */
+          int            x;   /* X coordinate of it */
+          int            y;   /* Y coordinate of it */
+     } DFBPoint;
+
+     /*
+      * Dimension specified by width and height.
+      */
+     typedef struct {
+          int            w;   /* width of it */
+          int            h;   /* height of it */
+     } DFBDimension;
+
+     /*
+      * Rectangle specified by a point and a dimension.
+      */
+     typedef struct {
+          int            x;   /* X coordinate of its top-left point */
+          int            y;   /* Y coordinate of its top-left point */
+          int            w;   /* width of it */
+          int            h;   /* height of it */
      } DFBRectangle;
 
      /*
