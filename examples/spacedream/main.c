@@ -97,7 +97,6 @@ static void* render_loop (void *arg)
      IDirectFBSurface *view = (IDirectFBSurface*)arg;
 
      view->SetBlittingFlags( view, DSBLIT_SRC_COLORKEY | DSBLIT_COLORIZE );
-     view->SetSrcColorKey( view, 0xF81F ); /* FIXME: format!!! */
 
      while (started_rendering()) {
           int i;
@@ -150,6 +149,8 @@ void load_stars()
           DFBCHECK( provider->RenderTo( provider, stars[i] ) );
 
           provider->Release( provider );
+          
+          stars[i]->SetSrcColorKey( stars[i], 0xFF, 0x00, 0xFF );
      }
 }
 

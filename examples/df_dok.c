@@ -521,7 +521,6 @@ static unsigned long long blit_colorkeyed( long t )
 {
      long i;
 
-     primary->SetSrcColorKey( primary, 0);
      primary->SetBlittingFlags( primary, DSBLIT_SRC_COLORKEY );
      for (i=0; i%100 || myclock()<(t+DEMOTIME); i++) {
        primary->Blit( primary, colorkeyed, NULL,
@@ -677,6 +676,8 @@ int main( int argc, char *argv[] )
      DFBCHECK(provider->RenderTo( provider, colorkeyed ));
      provider->Release( provider );
 
+     colorkeyed->SetSrcColorKey( colorkeyed, 0x00, 0x00, 0x00);
+     
      /* create a surface and render an image to it */
      DFBCHECK(dfb->CreateImageProvider( dfb, DATADIR"/examples/pngtest.png",
                                         &provider ));
