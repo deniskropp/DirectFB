@@ -387,9 +387,8 @@ static DFBResult IDirectFBVideoProvider_Swf_GetColorAdjustment(
      return DFB_UNIMPLEMENTED;
 }
 
-static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment(
-                                                              IDirectFBVideoProvider *thiz,
-                                                              DFBColorAdjustment     *adj )
+static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
+                                                                const DFBColorAdjustment *adj )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Swf)
 
@@ -477,20 +476,17 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
                            (void *) data->flashHandle);
 
 
-     thiz->AddRef    = IDirectFBVideoProvider_Swf_AddRef;
-     thiz->Release   = IDirectFBVideoProvider_Swf_Release;
-     thiz->GetCapabilities = IDirectFBVideoProvider_Swf_GetCapabilities;
-     thiz->GetSurfaceDescription =
-     IDirectFBVideoProvider_Swf_GetSurfaceDescription;
-     thiz->PlayTo    = IDirectFBVideoProvider_Swf_PlayTo;
-     thiz->Stop      = IDirectFBVideoProvider_Swf_Stop;
-     thiz->SeekTo    = IDirectFBVideoProvider_Swf_SeekTo;
-     thiz->GetPos    = IDirectFBVideoProvider_Swf_GetPos;
-     thiz->GetLength = IDirectFBVideoProvider_Swf_GetLength;
-     thiz->GetColorAdjustment =
-     IDirectFBVideoProvider_Swf_GetColorAdjustment;
-     thiz->SetColorAdjustment =
-     IDirectFBVideoProvider_Swf_SetColorAdjustment;
+     thiz->AddRef                = IDirectFBVideoProvider_Swf_AddRef;
+     thiz->Release               = IDirectFBVideoProvider_Swf_Release;
+     thiz->GetCapabilities       = IDirectFBVideoProvider_Swf_GetCapabilities;
+     thiz->GetSurfaceDescription = IDirectFBVideoProvider_Swf_GetSurfaceDescription;
+     thiz->PlayTo                = IDirectFBVideoProvider_Swf_PlayTo;
+     thiz->Stop                  = IDirectFBVideoProvider_Swf_Stop;
+     thiz->SeekTo                = IDirectFBVideoProvider_Swf_SeekTo;
+     thiz->GetPos                = IDirectFBVideoProvider_Swf_GetPos;
+     thiz->GetLength             = IDirectFBVideoProvider_Swf_GetLength;
+     thiz->GetColorAdjustment    = IDirectFBVideoProvider_Swf_GetColorAdjustment;
+     thiz->SetColorAdjustment    = IDirectFBVideoProvider_Swf_SetColorAdjustment;
 
      return DFB_OK;
 }

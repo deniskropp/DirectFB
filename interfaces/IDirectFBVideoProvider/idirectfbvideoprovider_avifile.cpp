@@ -339,9 +339,8 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetColorAdjustment(
      return DFB_UNIMPLEMENTED;
 }
 
-static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  DFBColorAdjustment     *adj )
+static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
+                                                                    const DFBColorAdjustment *adj )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
 

@@ -975,9 +975,8 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment(
      return DFB_UNSUPPORTED;
 }
 
-static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment(
-                                                  IDirectFBVideoProvider *thiz,
-                                                  DFBColorAdjustment     *adj )
+static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
+                                                                     const DFBColorAdjustment *adj )
 {
      DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
 

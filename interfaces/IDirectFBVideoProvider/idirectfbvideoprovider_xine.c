@@ -48,7 +48,7 @@
 
 
 
-static DFBResult 
+static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
@@ -454,8 +454,8 @@ IDirectFBVideoProvider_Xine_GetColorAdjustment( IDirectFBVideoProvider *thiz,
 
 
 static DFBResult
-IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider *thiz,
-                                                DFBColorAdjustment     *adj )
+IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
+                                                const DFBColorAdjustment *adj )
 {
 	DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
@@ -659,7 +659,7 @@ Construct( IDirectFBVideoProvider *thiz,
 
 		post_plugin = xine_config_register_enum( data->xine,
 					"gui.post_audio_plugin", 0,
-					(char**) plug_list, 
+					(char**) plug_list,
 					"Audio visualization plugin",
 					NULL, 0, NULL, NULL );
 
@@ -668,7 +668,7 @@ Construct( IDirectFBVideoProvider *thiz,
 		if (data->post)
 		{
 			audio_source = xine_get_audio_source( data->stream );
-			xine_post_wire_audio_port( audio_source, 
+			xine_post_wire_audio_port( audio_source,
 						   data->post->audio_input[0] );
 		}
 	}
@@ -699,7 +699,7 @@ get_error( IDirectFBVideoProvider_Xine_data *data )
 		case XINE_ERROR_NO_INPUT_PLUGIN:
 		{
 			D_ERROR( "DirectFB/VideoProvider_Xine: "
-				 "there is no input plugin to handle '%s'.\n", 
+				 "there is no input plugin to handle '%s'.\n",
 				 data->mrl );
 			data->err = DFB_UNSUPPORTED;
 		}
