@@ -136,9 +136,7 @@ static void IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )

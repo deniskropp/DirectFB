@@ -75,9 +75,7 @@ IDirectFBDisplayLayer_Destruct( IDirectFBDisplayLayer *thiz )
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
@@ -155,10 +153,8 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
           ret = IDirectFBSurface_Layer_Construct( surface, &rect,
                                                   NULL, data->layer,
                                                   layer_surface->caps );
-          if (ret) {
-               DFBFREE( surface );
+          if (ret)
                return ret;
-          }
 
           data->surface = surface;
      }

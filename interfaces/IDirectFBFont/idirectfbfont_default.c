@@ -85,6 +85,7 @@ Construct( IDirectFBFont      *thiz,
      f = fopen( FONTFILE, "r" );
      if (!f) {
           PERRORMSG( "Could not load default font '" FONTFILE "'!\n" );
+          DFB_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
@@ -166,9 +167,7 @@ Construct( IDirectFBFont      *thiz,
 
      fclose( f );
 
-     IDirectFBFont_Construct (thiz, font);
-
-     return DFB_OK;
+     return IDirectFBFont_Construct (thiz, font);
 }
 
 

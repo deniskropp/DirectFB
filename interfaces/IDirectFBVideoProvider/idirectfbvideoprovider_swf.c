@@ -198,9 +198,7 @@ void IDirectFBVideoProvider_Swf_Destruct(IDirectFBVideoProvider *thiz )
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBVideoProvider_Swf_AddRef(IDirectFBVideoProvider *thiz )
@@ -433,6 +431,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      {
        printf( "DirectFB/Swf: Loading Swf file failed.\n");
        DFBFREE( data );
+       DFB_DEALLOCATE_INTERFACE( thiz );
        return DFB_FAILURE;
      }
      
@@ -441,6 +440,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      {
        printf( "DirectFB/Swf: Creation of Swfplayer failed.\n");
        DFBFREE( data );
+       DFB_DEALLOCATE_INTERFACE( thiz );
        return DFB_FAILURE;
      }
 

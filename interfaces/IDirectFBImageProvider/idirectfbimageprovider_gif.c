@@ -180,9 +180,7 @@ static void IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )

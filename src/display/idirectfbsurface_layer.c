@@ -201,9 +201,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
 
           err = dfb_layer_set_configuration( layer, &config );
           if (err) {
-#ifndef DFB_DEBUG
-               DFBFREE( thiz );
-#endif
+               DFB_DEALLOCATE_INTERFACE( thiz );
                return err;
           }
      }

@@ -91,9 +91,7 @@ static void IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      DFBFREE( data );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
@@ -233,10 +231,8 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
           ret = IDirectFBSurface_Window_Construct( *surface,
                                                    NULL, NULL, data->window,
                                                    DSCAPS_FLIPPING );
-          if (ret) {
-               DFBFREE( *surface );
+          if (ret)
                return ret;
-          }
 
           data->surface = *surface;
      }

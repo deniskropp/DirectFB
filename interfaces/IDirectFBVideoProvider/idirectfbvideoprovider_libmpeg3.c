@@ -160,9 +160,7 @@ IDirectFBVideoProvider_Libmpeg3_Destruct( IDirectFBVideoProvider *thiz )
     DFBFREE( thiz->priv );
     thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-    DFBFREE( thiz );
-#endif
+    DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult

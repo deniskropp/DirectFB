@@ -228,7 +228,6 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      ret = IDirectFB_Construct( idirectfb_singleton );
      if (ret) {
-          DFBFREE( idirectfb_singleton );
           idirectfb_singleton = NULL;
           return ret;
      }

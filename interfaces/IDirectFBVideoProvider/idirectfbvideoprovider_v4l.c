@@ -110,9 +110,7 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )
@@ -356,6 +354,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
           PERRORMSG( "DirectFB/v4l: Cannot open `%s'!\n", filename );
 
+          DFB_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
 

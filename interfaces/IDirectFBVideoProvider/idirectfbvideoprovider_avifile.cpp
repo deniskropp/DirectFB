@@ -102,12 +102,10 @@ static void IDirectFBVideoProvider_AviFile_Destruct(
 
      reactor_free( data->source.reactor );
 
-     free (thiz->priv);
+     DFBFREE (thiz->priv);
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     free( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBVideoProvider_AviFile_AddRef(
@@ -406,7 +404,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      IDirectFBVideoProvider_AviFile_data *data;
 
      data = (IDirectFBVideoProvider_AviFile_data*)
-          calloc( 1, sizeof(IDirectFBVideoProvider_AviFile_data) );
+          DFBCALLOC( 1, sizeof(IDirectFBVideoProvider_AviFile_data) );
 
      thiz->priv = data;
 
@@ -421,7 +419,8 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      catch (FatalError e) {
           ERRORMSG( "DirectFB/AviFile: CreateAviPlayer failed: %s\n",
                     e.GetDesc() );
-          free( data );
+          DFBFREE( data );
+          DFB_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 

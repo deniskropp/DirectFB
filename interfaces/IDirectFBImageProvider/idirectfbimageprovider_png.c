@@ -135,9 +135,7 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
      DFBFREE( thiz->priv );
      thiz->priv = NULL;
 
-#ifndef DFB_DEBUG
-     DFBFREE( thiz );
-#endif
+     DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
