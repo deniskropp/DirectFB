@@ -62,7 +62,7 @@ DFB_GRAPHICS_DRIVER( cyber5k )
 
 
 /* HACK */
-volatile __u8 *mmio_base = NULL;
+volatile __u8 *cyber_mmio = NULL;
 
 
 /* FIXME: support for destination color keying */
@@ -742,7 +742,7 @@ driver_init_driver( GraphicsDevice      *device,
           return DFB_IO;
 
      /* HACK */
-     mmio_base = cdrv->mmio_base;
+     cyber_mmio = cdrv->mmio_base;
 
      /* fill acceleration function table */
      funcs->EngineSync    = cyber5kEngineSync;

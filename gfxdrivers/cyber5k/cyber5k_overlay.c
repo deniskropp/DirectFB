@@ -33,50 +33,50 @@
 #include "regs.h"
 #include "mmio.h"
 
-int overlay_byte_per_pixel = 2;
-int overlay_init = 0;
+static int overlay_byte_per_pixel = 2;
+static int overlay_init = 0;
 
-unsigned char savedReg74, savedReg75; /*FIFO control registers for 2D Graphics*/
-unsigned char savedRegD9[2], savedRegDA[2], savedRegDD[2]; /*FIFO control registers for Overlay*/
+static unsigned char savedReg74, savedReg75; /*FIFO control registers for 2D Graphics*/
+static unsigned char savedRegD9[2], savedRegDA[2], savedRegDD[2]; /*FIFO control registers for Overlay*/
 /*Following is our FIFO policy number, should be programmed to
 0x3CE/0x74, 0x3CE/0x75, 0x3CE(0x3C4)/0xD9, 0x3CE(0x3C4)/0xDA,
 0x3CE(0x3c4)/0xDD respectively in order to get a best memory bandwidth.
 Current value is a group of experence value based on 70MHZ EDO/SG RAM.*/
-unsigned char bFIFOPolicyNum[5] = {0x10, 0x10, 0x1C, 0x1C, 0x06};
+static unsigned char bFIFOPolicyNum[5] = {0x10, 0x10, 0x1C, 0x1C, 0x06};
 
 
 void cyber_videoreg_mask( unsigned char index, unsigned char value, unsigned char mask )
 {
      unsigned char tmp;
 
-     cyber_out8( mmio_base, GRAINDEX, index );
-     tmp = cyber_in8( mmio_base, GRADATA );
+     cyber_out8( cyber_mmio, GRAINDEX, index );
+     tmp = cyber_in8( cyber_mmio, GRADATA );
      tmp &= mask;
      tmp |= value;
-     cyber_out8( mmio_base, GRADATA, tmp );
+     cyber_out8( cyber_mmio, GRADATA, tmp );
 }
 
 void cyber_seqreg_mask( unsigned char index, unsigned char value, unsigned char mask )
 {
      unsigned char tmp;
 
-     cyber_out8( mmio_base, SEQINDEX, index );
-     tmp = cyber_in8( mmio_base, SEQDATA );
+     cyber_out8( cyber_mmio, SEQINDEX, index );
+     tmp = cyber_in8( cyber_mmio, SEQDATA );
 
      tmp &= mask;
      tmp |= value;
-     cyber_out8( mmio_base, SEQDATA, tmp );
+     cyber_out8( cyber_mmio, SEQDATA, tmp );
 }
 
 void cyber_overlayreg_mask( unsigned char index, unsigned char value, unsigned char mask ) {
      unsigned char tmp;
 
-     cyber_out8( mmio_base, GRAINDEX, index );
-     tmp = cyber_in8( mmio_base, GRADATA );
+     cyber_out8( cyber_mmio, GRAINDEX, index );
+     tmp = cyber_in8( cyber_mmio, GRADATA );
 
      tmp &= mask;
      tmp |= value;
-     cyber_out8(mmio_base, GRADATA, tmp);
+     cyber_out8(cyber_mmio, GRADATA, tmp);
 }
 
 void cyber_cleanup_overlay()
@@ -171,24 +171,24 @@ void cyber_init_overlay(void)
 /* values instead (see below)                                               */
 
 /*
-     cyber_out8(mmio_base, GRAINDEX, 0x74);
-     savedReg74 = cyber_in8(mmio_base, GRADATA);
-     cyber_out8(mmio_base, GRAINDEX, 0x75);
-     savedReg75 = cyber_in8(mmio_base, GRADATA);
+     cyber_out8(cyber_mmio, GRAINDEX, 0x74);
+     savedReg74 = cyber_in8(cyber_mmio, GRADATA);
+     cyber_out8(cyber_mmio, GRAINDEX, 0x75);
+     savedReg75 = cyber_in8(cyber_mmio, GRADATA);
 
-     cyber_out8(mmio_base, GRAINDEX, 0xD9);
-     savedRegD9[0] = cyber_in8(mmio_base, GRADATA);
-     cyber_out8(mmio_base, GRAINDEX, 0xDA);
-     savedRegDA[0] = cyber_in8(mmio_base, GRADATA);
-     cyber_out8(mmio_base, GRAINDEX, 0xDD);
-     savedRegDD[0] = cyber_in8(mmio_base, GRADATA);
+     cyber_out8(cyber_mmio, GRAINDEX, 0xD9);
+     savedRegD9[0] = cyber_in8(cyber_mmio, GRADATA);
+     cyber_out8(cyber_mmio, GRAINDEX, 0xDA);
+     savedRegDA[0] = cyber_in8(cyber_mmio, GRADATA);
+     cyber_out8(cyber_mmio, GRAINDEX, 0xDD);
+     savedRegDD[0] = cyber_in8(cyber_mmio, GRADATA);
 
-     cyber_out8(mmio_base, SEQINDEX, 0xD9);
-     savedRegD9[1] = cyber_in8(mmio_base, SEQDATA);
-     cyber_out8(mmio_base, SEQINDEX, 0xDA);
-     savedRegDA[1] = cyber_in8(mmio_base, SEQDATA);
-     cyber_out8(mmio_base, SEQINDEX, 0xDD);
-     savedRegDD[1] = cyber_in8(mmio_base, SEQDATA);
+     cyber_out8(cyber_mmio, SEQINDEX, 0xD9);
+     savedRegD9[1] = cyber_in8(cyber_mmio, SEQDATA);
+     cyber_out8(cyber_mmio, SEQINDEX, 0xDA);
+     savedRegDA[1] = cyber_in8(cyber_mmio, SEQDATA);
+     cyber_out8(cyber_mmio, SEQINDEX, 0xDD);
+     savedRegDD[1] = cyber_in8(cyber_mmio, SEQDATA);
      */
 
 

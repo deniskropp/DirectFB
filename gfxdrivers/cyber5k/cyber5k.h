@@ -31,7 +31,7 @@
 #include <core/layers.h>
 
 /* HACK */
-extern volatile __u8 *mmio_base;
+extern volatile __u8 *cyber_mmio;
 
 
 typedef struct {

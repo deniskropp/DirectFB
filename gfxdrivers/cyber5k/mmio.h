@@ -67,8 +67,6 @@ cyber_in32(volatile __u8 *mmioaddr, __u32 reg)
      return *((__u32*)(mmioaddr+reg));
 }
 
-int grodis;
-
 /* Wait for idle accelerator */
 static inline void
 cyber_waitidle( CyberDriverData *cdrv, CyberDeviceData *cdev )
@@ -76,53 +74,51 @@ cyber_waitidle( CyberDriverData *cdrv, CyberDeviceData *cdev )
 /*     while (cyber_in8(mmioaddr, COP_STAT) & (CMDFF_FULL | HOSTFF_NOTEMPTY)) {
           grodis = 0;
      }*/
-     while ( cyber_in8(cdrv->mmio_base, COP_STAT) & (COP_BUSY|CMDFF_FULL|HOSTFF_NOTEMPTY) ) {
-          grodis = 0;
-     }
+     while ( cyber_in8(cdrv->mmio_base, COP_STAT) & (COP_BUSY|CMDFF_FULL|HOSTFF_NOTEMPTY) );
 }
 
 /* ------------------------------------------------------------------------ */
 
 static inline void cyber_crtcw(int reg, int val) 
 {
-     cyber_out8( mmio_base, CRTINDEX, reg );
-     cyber_out8( mmio_base, CRTDATA, val );
+     cyber_out8( cyber_mmio, CRTINDEX, reg );
+     cyber_out8( cyber_mmio, CRTDATA, val );
 }
 
 static inline void cyber_grphw(int reg, int val)
 {
-     cyber_out8( mmio_base, GRAINDEX, reg );
-     cyber_out8( mmio_base, GRADATA, val );
+     cyber_out8( cyber_mmio, GRAINDEX, reg );
+     cyber_out8( cyber_mmio, GRADATA, val );
 }
 
 static inline unsigned int cyber_grphr(int reg)
 {
-     cyber_out8( mmio_base, GRAINDEX, reg );
-     return cyber_in8( mmio_base, GRADATA );
+     cyber_out8( cyber_mmio, GRAINDEX, reg );
+     return cyber_in8( cyber_mmio, GRADATA );
 }
 
 static inline void cyber_attrw(int reg, int val)
 {
-     cyber_in8( mmio_base, ATTRRESET );
-     cyber_out8( mmio_base, ATTRINDEX, reg );
-     cyber_in8( mmio_base, ATTRDATAR );
-     cyber_out8( mmio_base, ATTRDATAW, val );
+     cyber_in8( cyber_mmio, ATTRRESET );
+     cyber_out8( cyber_mmio, ATTRINDEX, reg );
+     cyber_in8( cyber_mmio, ATTRDATAR );
+     cyber_out8( cyber_mmio, ATTRDATAW, val );
 }
 
 static inline void cyber_seqw(int reg, int val)
 {
-     cyber_out8( mmio_base, SEQINDEX, reg );
-     cyber_out8( mmio_base, SEQDATA, val );
+     cyber_out8( cyber_mmio, SEQINDEX, reg );
+     cyber_out8( cyber_mmio, SEQDATA, val );
 }
 
 static inline void cyber_tvw(int reg, int val)
 {
-     cyber_out8( mmio_base, 0xb0000 + reg, val );
+     cyber_out8( cyber_mmio, 0xb0000 + reg, val );
 }
 
 static inline unsigned int cyber_tvr(int reg)
 {
-     return cyber_in8( mmio_base, 0xb0000 + reg );
+     return cyber_in8( cyber_mmio, 0xb0000 + reg );
 }
 
 #endif
