@@ -94,7 +94,7 @@ static int  blit                 (unsigned long);
 static int  blit_colorkeyed      (unsigned long);
 static int  blit_convert         (unsigned long);
 static int  blit_blend           (unsigned long);
-static int  blit_stretch         (unsigned long);
+static int  stretch_blit         (unsigned long);
 
 
 typedef struct {
@@ -161,12 +161,26 @@ static Demo demos[] = {
     "Here we go with alpha again!",
     "BitBlt with Alpha Channel", "blit-blend",
     0, 0.0, "MPixel/sec", blit_blend },
-  { "Stretched Blit", 
+  { "Stretch Blit", 
     "Stretching!!!!!",
-    "Stretched Blit", "blit-stretch",
-    0, 0.0, "MPixel/sec", blit_stretch },
-  { NULL, NULL, NULL, NULL, 0, 0.0, NULL, NULL }
+    "Stretch Blit", "stretch-blit",
+    0, 0.0, "MPixel/sec", stretch_blit }
 };
+static int num_demos = sizeof( demos ) / sizeof (demos[0]);
+
+
+static void print_usage()
+{
+     int i;
+
+     printf ("DirectFB Benchmarking Demo\n\n");
+     printf ("Usage: df_dok [options]\n\n");
+     printf ("Options:\n");
+     for (i = 0; i < num_demos; i++) {
+          printf ("  --%-20s %s\n", demos[i].option, demos[i].desc);
+     }
+     printf ("\nIf no options are given, all benchmarks are run.\n");
+}
 
 static void shutdown()
 {
@@ -249,7 +263,7 @@ static void showResult()
      primary->SetColor( primary, 0xFF, 0xFF, 0xFF, 0x40 );
      primary->SetDrawingFlags( primary, DSDRAW_BLEND );
 
-     for (i = 0; demos[i].desc != NULL; i++) {
+     for (i = 0; i < num_demos; i++) {
           if (!demos[i].requested)
                continue;
 
@@ -262,7 +276,7 @@ static void showResult()
      meter->Release( meter );
     
      y = 75;
-     for (i = 0; demos[i].desc != NULL; i++) {
+     for (i = 0; i < num_demos; i++) {
           if (!demos[i].requested)
                continue;
 
@@ -495,7 +509,7 @@ static int blit_blend(unsigned long t)
      return SX*SY*i;
 }
 
-static int blit_stretch(unsigned long t)
+static int stretch_blit(unsigned long t)
 {
      int i, j;
      int pixels = 0;
@@ -525,24 +539,33 @@ int main( int argc, char *argv[] )
 
      DFBCHECK(DirectFBInit( &argc, &argv ));
 
-     /* create the super interface */
-     DFBCHECK(DirectFBCreate( &dfb ));
-
      /* parse command line */
      if (argc == 1) {
-          for (i = 0; demos[i].desc != NULL; i++) {
+          for (i = 0; i < num_demos; i++) {
                demos[i].requested = 1;
           }
      }
      while (--argc > 0) {
           if (strncmp (argv[argc], "--", 2) == 0) {
-               for (i = 0; demos[i].desc != NULL; i++) {
+               for (i = 0; i < num_demos; i++) {
                     if (strcmp (argv[argc] + 2, demos[i].option) == 0) {
                          demos[i].requested = 1;
+                         break;
                     }
                }
+               if (i == num_demos) {
+                    print_usage();
+                    return 1;
+               }
+          } 
+          else {
+               print_usage();
+               return 1;
           }
      }
+
+     /* create the super interface */
+     DFBCHECK(DirectFBCreate( &dfb ));
 
      /* get an interface to the primary keyboard
         and create an input buffer for it */
@@ -660,7 +683,7 @@ int main( int argc, char *argv[] )
      sync();
      sleep(2);
      
-     for (i = 0; demos[i].desc != NULL; i++) {
+     for (i = 0; i < num_demos; i++) {
            unsigned long t;
            float dt;
            int pixels;
