@@ -387,7 +387,7 @@ void *_reactor_receive (void *arg)
           return NULL;
      }
 
-     if (fusion_ref_up (&reactor->node[index].ref))
+     if (fusion_ref_up (&reactor->node[index].ref, false))
           return NULL;
 
      /* allocate local buffer for received messages */

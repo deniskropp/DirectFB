@@ -62,12 +62,12 @@ FusionResult fusion_ref_init         (FusionRef *ref);
 /*
  * Lock, increase, unlock.
  */
-FusionResult fusion_ref_up           (FusionRef *ref);
+FusionResult fusion_ref_up           (FusionRef *ref, bool global);
 
 /*
  * Lock, decrease, unlock.
  */
-FusionResult fusion_ref_down         (FusionRef *ref);
+FusionResult fusion_ref_down         (FusionRef *ref, bool global);
 
 /*
  * Wait for zero and lock.

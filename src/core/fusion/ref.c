@@ -85,7 +85,7 @@ FusionResult fusion_ref_init (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_up (FusionRef *ref)
+FusionResult fusion_ref_up (FusionRef *ref, bool global)
 {
      struct sembuf op[2];
 
@@ -95,7 +95,8 @@ FusionResult fusion_ref_up (FusionRef *ref)
      op[0].sem_flg = SEM_UNDO;
      op[1].sem_num = 1;
      op[1].sem_op  = 1;
-     op[1].sem_flg = SEM_UNDO;
+     if (!global)
+          op[1].sem_flg = SEM_UNDO;
 
      while (semop (ref->sem_id, op, 2)) {
           FPERROR ("semop");
@@ -133,7 +134,7 @@ FusionResult fusion_ref_up (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_down (FusionRef *ref)
+FusionResult fusion_ref_down (FusionRef *ref, bool global)
 {
      struct sembuf op[2];
 
@@ -143,7 +144,8 @@ FusionResult fusion_ref_down (FusionRef *ref)
      op[0].sem_flg = SEM_UNDO;
      op[1].sem_num = 1;
      op[1].sem_op  = -1;
-     op[1].sem_flg = SEM_UNDO;
+     if (!global)
+          op[1].sem_flg = SEM_UNDO;
 
      while (semop (ref->sem_id, op, 2)) {
           FPERROR ("semop");
@@ -305,7 +307,7 @@ FusionResult fusion_ref_init (FusionRef *ref)
      return FUSION_SUCCESS;
 }
 
-FusionResult fusion_ref_up (FusionRef *ref)
+FusionResult fusion_ref_up (FusionRef *ref, bool global)
 {
      FusionResult ret = FUSION_SUCCESS;
 
@@ -321,7 +323,7 @@ FusionResult fusion_ref_up (FusionRef *ref)
      return ret;
 }
 
-FusionResult fusion_ref_down (FusionRef *ref)
+FusionResult fusion_ref_down (FusionRef *ref, bool global)
 {
      FusionResult ret = FUSION_SUCCESS;
 

@@ -130,7 +130,7 @@ FusionArena *arena_enter (const char     *name,
           skirmish_prevail (&shared->lock);
 
           fusion_ref_init (&shared->ref);
-          fusion_ref_up (&shared->ref);
+          fusion_ref_up (&shared->ref, false);
 
           FDEBUG ("entered arena `%s´ (establishing)\n", name);
 
@@ -150,7 +150,7 @@ FusionArena *arena_enter (const char     *name,
                return NULL;
           }
 
-          fusion_ref_up (&shared->ref);
+          fusion_ref_up (&shared->ref, false);
 
           FDEBUG ("entered arena `%s´ (joining)\n", name);
 
@@ -254,7 +254,7 @@ void arena_exit (FusionArena   *arena,
           }
      }
 
-     fusion_ref_down (&arena->shared->ref);
+     fusion_ref_down (&arena->shared->ref, false);
 
      if (fusion_ref_zero_trylock (&arena->shared->ref) == FUSION_SUCCESS) {
           shutdown (arena, arena->ctx, emergency);
