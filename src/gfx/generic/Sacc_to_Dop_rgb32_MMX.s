@@ -33,12 +33,9 @@ Sacc_to_Aop_rgb32_MMX:
         movl    Dlength@GOT(%ebx), %eax
         movl    (%eax), %ecx
 
-	movl	preload@GOT(%ebx), %eax
-	movq	(%eax), %mm1
-	movl	postload@GOT(%ebx), %eax
-	movq	(%eax), %mm2
-	movl    pm@GOT(%ebx), %eax
-        movq	(%eax), %mm3
+	movq	preload@GOTOFF(%ebx), %mm1
+	movq	postload@GOTOFF(%ebx), %mm2
+	movq    pm@GOTOFF(%ebx), %mm3
 
 .align 8
 .CONVERT:

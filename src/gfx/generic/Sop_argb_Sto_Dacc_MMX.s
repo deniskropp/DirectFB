@@ -36,8 +36,7 @@ Sop_argb_Sto_Dacc_MMX:
 
         xor     %edx, %edx
 
-	movl	zeros@GOT(%ebx), %eax
-        movq    (%eax), %mm0
+	movq	zeros@GOTOFF(%ebx), %mm0
 
 .align 8
 .LOAD:

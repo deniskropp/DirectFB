@@ -38,10 +38,9 @@ Xacc_blend_invsrcalpha_MMX:
         
 	movl	color@GOT(%ebx), %eax
 	movd	(%eax), %mm0
-	movl	zeros@GOT(%ebx), %eax
-	movq	(%eax), %mm6
-	movl    einser@GOT(%ebx), %eax
-        movq	(%eax), %mm7
+
+	movq	zeros@GOTOFF(%ebx), %mm6
+	movq	einser@GOTOFF(%ebx), %mm7
 
 
 	punpcklbw %mm6, %mm0		# mm0 = 00aa 00rr 00gg 00bb

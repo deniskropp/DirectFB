@@ -32,10 +32,8 @@ Sop_rgb32_to_Dacc_MMX:
         movl    Dlength@GOT(%ebx), %eax
         movl    (%eax), %ecx
         
-	movl    alpha@GOT(%ebx), %eax
-        movq	(%eax), %mm7
-	movl    zeros@GOT(%ebx), %eax
-        movq	(%eax), %mm6
+	movq	alpha@GOTOFF(%ebx), %mm7
+	movq	zeros@GOTOFF(%ebx), %mm6
 
 .align 8
 .CONVERT: 

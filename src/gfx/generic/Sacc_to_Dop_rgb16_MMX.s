@@ -34,12 +34,9 @@ Sacc_to_Aop_rgb16_MMX:
         movl    Dlength@GOT(%ebx), %eax
         movl    (%eax), %ecx
 
-	movl	preload@GOT(%ebx), %eax
-	movq	(%eax), %mm7
-	movl	mask@GOT(%ebx), %eax
-	movq	(%eax), %mm5
-	movl    pm@GOT(%ebx), %eax
-        movq	(%eax), %mm4
+	movq	preload@GOTOFF(%ebx), %mm7
+	movq	mask@GOTOFF(%ebx), %mm5
+        movq	pm@GOTOFF(%ebx), %mm4
         
 .align 8
 .CONVERT:

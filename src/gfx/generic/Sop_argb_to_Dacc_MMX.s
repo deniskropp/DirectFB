@@ -31,8 +31,7 @@ Sop_argb_to_Dacc_MMX:
         movl    Dlength@GOT(%ebx), %eax
         movl    (%eax), %ecx
         
-	movl	zeros@GOT(%ebx), %eax
-	movq	(%eax), %mm0
+	movq	zeros@GOTOFF(%ebx), %mm0
 
 .align 8
 .CONVERT:
