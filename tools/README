@@ -4,6 +4,9 @@ This directory holds some tools you might find useful.
 	statically linked DirectFB application. Modify the script to adapt
 	it to your needs.
 
+  dfbdump  is a simple debugging tool for DirectFB that shows a list of
+        surfaces and windows. It needs the multi-application core.
+
   directfb-csource  creates header files from PNG images. Check the
         directfb-csource man-page for more details.
 
