@@ -351,6 +351,9 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      DFBSurfacePixelFormat old_format;
      DFBResult ret;
 
+     D_DEBUG_AT( Core_Surface, "dfb_surface_reformat( %p, %dx%d, %s )\n",
+                 surface, width, height, dfb_pixelformat_name( format ) );
+
      D_ASSERT( width > 0 );
      D_ASSERT( height > 0 );
 
@@ -362,6 +365,8 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      {
           return DFB_UNSUPPORTED;
      }
+
+     dfb_surfacemanager_lock( surface->manager );
 
      old_width  = surface->width;
      old_height = surface->height;
@@ -378,10 +383,9 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
          old_format == surface->format)
      {
           dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT );
+          dfb_surfacemanager_unlock( surface->manager );
           return DFB_OK;
      }
-
-     dfb_surfacemanager_lock( surface->manager );
 
      ret = dfb_surface_reallocate_buffer( surface, format, surface->front_buffer );
      if (ret) {
@@ -449,17 +453,33 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
           CorePalette *palette;
 
           ret = dfb_palette_create( core, 1 << DFB_COLOR_BITS_PER_PIXEL( format ), &palette );
-          if (ret)
-               return ret;
+          if (ret) {
+               D_DERROR( ret, "Core/Surface: Could not create a palette with %d entries!\n",
+                         1 << DFB_COLOR_BITS_PER_PIXEL( format ) );
+          }
+          else {
+               switch (format) {
+                    case DSPF_LUT8:
+                         dfb_palette_generate_rgb332_map( palette );
+                         break;
 
-          dfb_surface_set_palette( surface, palette );
+                    case DSPF_ALUT44:
+                         dfb_palette_generate_rgb121_map( palette );
+                         break;
 
-          dfb_palette_unref( palette );
+                    default:
+                         D_WARN( "unknown indexed format" );
+               }
+
+               dfb_surface_set_palette( surface, palette );
+
+               dfb_palette_unref( palette );
+          }
      }
 
-     dfb_surfacemanager_unlock( surface->manager );
-
      dfb_surface_notify_listeners( surface, CSNF_SIZEFORMAT | CSNF_SYSTEM | CSNF_VIDEO );
+
+     dfb_surfacemanager_unlock( surface->manager );
 
      return DFB_OK;
 }
