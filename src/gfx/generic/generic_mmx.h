@@ -229,6 +229,8 @@ static void Sop_yuy2_to_Dacc_MMX( GenefxState *gfxs )
      static __u16 __aligned(8) alpha[] = {  0xFF00,  0xFF00,  0xFF00,  0xFF00 };
      
      __asm__ __volatile__ (
+               "shrl      $1, %1\n\t"       // gfx->length /= 2
+               "jz        2f\n\t"           // return if 0
                "pxor      %%mm7, %%mm7\n\t"
                ".align 16\n"
                "1:\n\t"
@@ -269,9 +271,10 @@ static void Sop_yuy2_to_Dacc_MMX( GenefxState *gfxs )
                "addl        $16,    %0\n\t"
                "decl         %1\n\t"
                "jnz          1b\n\t"
-               "emms"
+               "emms\n\t"
+               "2:"
                : /* no outputs */
-               : "D" (gfxs->Dacc), "c" (gfxs->length/2), "S" (gfxs->Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
                  "m" (*sub), "m" (*mask), "m" (*mul0), "m" (*mul1), "m" (*alpha)
                : "memory" );
 }
@@ -284,6 +287,8 @@ static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
      static __u16 __aligned(8) alpha[] = {  0xFF00,  0xFF00,  0xFF00,  0xFF00 };
       
      __asm__ __volatile__ (
+               "shrl      $1, %1\n\t"       // gfx->length /= 2
+               "jz        2f\n\t"           // return if 0
                "pxor      %%mm7, %%mm7\n\t"
                ".align 16\n"
                "1:\n\t"
@@ -325,9 +330,10 @@ static void Sop_uyvy_to_Dacc_MMX( GenefxState *gfxs )
                "addl        $16,    %0\n\t"
                "decl         %1\n\t"
                "jnz          1b\n\t"
-               "emms"
+               "emms\n\t"
+               "2:"
                : /* no outputs */
-               : "D" (gfxs->Dacc), "c" (gfxs->length/2), "S" (gfxs->Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
                  "m" (*sub), "m" (*mul0), "m" (*mul1), "m" (*alpha)
                : "memory" );
 }
