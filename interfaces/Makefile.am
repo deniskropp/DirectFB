@@ -29,6 +29,8 @@ LIBMPEG3_INCLUDES = -I$(LIBMPEG3_DIR)
 
 endif
 
+EXTRA_DIST = idirectfbvideoprovider_libmpeg3.c
+
 
 if FLASH_PROVIDER
 FLASH_PROVIDER_LTLIB = libidirectfbvideoprovider_swf.la
