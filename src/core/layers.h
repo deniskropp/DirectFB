@@ -31,6 +31,7 @@
 #include <pthread.h>
 
 #include <core/fusion/lock.h>
+#include <core/fusion/reactor.h>
 
 #include <directfb.h>
 #include <core/coretypes.h>
@@ -361,5 +362,12 @@ DFBResult dfb_layer_cursor_warp( DisplayLayer *layer,
 
 
 CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
+
+
+/* global reactions */
+ReactionResult _dfb_layer_surface_listener   ( const void *msg_data,
+                                               void       *ctx );
+ReactionResult _dfb_layer_background_image_listener( const void *msg_data,
+                                                     void       *ctx );
 
 #endif

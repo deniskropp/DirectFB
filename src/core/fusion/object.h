@@ -68,16 +68,23 @@ FusionResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
                                               void                  *ctx );
 
 
-FusionObject     *fusion_object_create  ( FusionObjectPool *pool );
+FusionObject     *fusion_object_create        ( FusionObjectPool *pool );
 
-FusionResult      fusion_object_attach  ( FusionObject     *object,
-                                          React             react,
-                                          void             *ctx,
-                                          Reaction         *reaction );
-FusionResult      fusion_object_detach  ( FusionObject     *object,
-                                          Reaction         *react );
-FusionResult      fusion_object_dispatch( FusionObject     *object,
-                                          void             *message );
+FusionResult      fusion_object_attach        ( FusionObject     *object,
+                                                React             react,
+                                                void             *ctx,
+                                                Reaction         *reaction );
+FusionResult      fusion_object_detach        ( FusionObject     *object,
+                                                Reaction         *react );
+FusionResult      fusion_object_attach_global ( FusionObject     *object,
+                                                int               react_index,
+                                                void             *ctx,
+                                                GlobalReaction   *reaction );
+FusionResult      fusion_object_detach_global ( FusionObject     *object,
+                                                GlobalReaction   *react );
+FusionResult      fusion_object_dispatch      ( FusionObject     *object,
+                                                void             *message,
+                                                const React      *globals );
 
 FusionResult      fusion_object_ref     ( FusionObject     *object );
 FusionResult      fusion_object_unref   ( FusionObject     *object );

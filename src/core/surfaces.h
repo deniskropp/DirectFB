@@ -140,7 +140,7 @@ struct _CoreSurface
      int                    min_height;    /* minimum allocation height */
 
      CorePalette           *palette;
-     Reaction               palette_reaction;
+     GlobalReaction         palette_reaction;
 
      int                    field;
 
@@ -231,17 +231,9 @@ DFBResult dfb_surface_set_palette( CoreSurface *surface,
 /*
  * helper function
  */
-static inline FusionResult
+FusionResult
 dfb_surface_notify_listeners( CoreSurface                  *surface,
-                              CoreSurfaceNotificationFlags  flags)
-{
-     CoreSurfaceNotification notification;
-
-     notification.flags   = flags;
-     notification.surface = surface;
-
-     return fusion_object_dispatch( &surface->object, &notification );
-}
+                              CoreSurfaceNotificationFlags  flags);
 
 static inline FusionResult
 dfb_surface_attach( CoreSurface *surface,
@@ -257,6 +249,23 @@ dfb_surface_detach( CoreSurface *surface,
                     Reaction    *reaction )
 {
      return fusion_object_detach( &surface->object, reaction );
+}
+
+static inline FusionResult
+dfb_surface_attach_global( CoreSurface     *surface,
+                           int             react_index,
+                           void           *ctx,
+                           GlobalReaction *reaction )
+{
+     return fusion_object_attach_global( &surface->object, react_index,
+                                         ctx, reaction );
+}
+
+static inline FusionResult
+dfb_surface_detach_global( CoreSurface    *surface,
+                           GlobalReaction *reaction )
+{
+     return fusion_object_detach_global( &surface->object, reaction );
 }
 
 static inline FusionResult
@@ -315,6 +324,10 @@ void dfb_surface_unlock( CoreSurface *surface, int front );
  */
 void dfb_surface_destroy( CoreSurface *surface, bool unref );
 
+
+/* global reactions */
+ReactionResult _dfb_surface_palette_listener( const void *msg_data,
+                                              void       *ctx );
 
 #endif
 

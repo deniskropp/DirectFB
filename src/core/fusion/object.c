@@ -190,10 +190,28 @@ fusion_object_detach( FusionObject     *object,
 }
 
 FusionResult
-fusion_object_dispatch( FusionObject     *object,
-                        void             *message )
+fusion_object_attach_global( FusionObject     *object,
+                             int               react_index,
+                             void             *ctx,
+                             GlobalReaction   *reaction )
 {
-     return reactor_dispatch( object->reactor, message, true );
+     return reactor_attach_global( object->reactor,
+                                   react_index, ctx, reaction );
+}
+
+FusionResult
+fusion_object_detach_global( FusionObject     *object,
+                             GlobalReaction   *reaction )
+{
+     return reactor_detach_global( object->reactor, reaction );
+}
+
+FusionResult
+fusion_object_dispatch( FusionObject     *object,
+                        void             *message,
+                        const React      *globals )
+{
+     return reactor_dispatch( object->reactor, message, true, globals );
 }
 
 FusionResult

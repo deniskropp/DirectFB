@@ -156,6 +156,10 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 static bool
 core_input_filter( InputDevice *device, DFBInputEvent *event );
 
+static const React dfb_input_globals[] = {
+     NULL
+};
+
 /** public **/
 
 DFBResult
@@ -391,7 +395,8 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
      event->device_id = device->shared->id;
 
      if (core_input_filter( device, event ))
-          reactor_dispatch( device->shared->reactor, event, true );
+          reactor_dispatch( device->shared->reactor, event,
+                            true, dfb_input_globals );
 }
 
 DFBInputDeviceID

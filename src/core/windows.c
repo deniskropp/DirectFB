@@ -152,6 +152,10 @@ stack_unlock( CoreWindowStack *stack )
      skirmish_dismiss( &stack->lock );
 }
 
+static const React dfb_window_globals[] = {
+     NULL
+};
+
 /*
  * Window destructor.
  */
@@ -966,7 +970,7 @@ dfb_window_dispatch( CoreWindow     *window,
           event->cy        = stack->cursor.y;
      }
 
-     fusion_object_dispatch( &window->object, event );
+     fusion_object_dispatch( &window->object, event, dfb_window_globals );
 }
 
 void

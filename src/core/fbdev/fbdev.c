@@ -396,6 +396,18 @@ system_initialize()
           dfb_fbdev->shared->orig_cmap.len = 0;
      }
 
+     dfb_fbdev->shared->temp_cmap.len    = 256;
+     dfb_fbdev->shared->temp_cmap.red    = shcalloc( 256, 2 );
+     dfb_fbdev->shared->temp_cmap.green  = shcalloc( 256, 2 );
+     dfb_fbdev->shared->temp_cmap.blue   = shcalloc( 256, 2 );
+     dfb_fbdev->shared->temp_cmap.transp = shcalloc( 256, 2 );
+
+     dfb_fbdev->shared->current_cmap.len    = 256;
+     dfb_fbdev->shared->current_cmap.red    = shcalloc( 256, 2 );
+     dfb_fbdev->shared->current_cmap.green  = shcalloc( 256, 2 );
+     dfb_fbdev->shared->current_cmap.blue   = shcalloc( 256, 2 );
+     dfb_fbdev->shared->current_cmap.transp = shcalloc( 256, 2 );
+
      /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
 
@@ -513,6 +525,16 @@ system_shutdown( bool emergency )
           shfree( dfb_fbdev->shared->orig_cmap.blue );
           shfree( dfb_fbdev->shared->orig_cmap.transp );
      }
+
+     shfree( dfb_fbdev->shared->temp_cmap.red );
+     shfree( dfb_fbdev->shared->temp_cmap.green );
+     shfree( dfb_fbdev->shared->temp_cmap.blue );
+     shfree( dfb_fbdev->shared->temp_cmap.transp );
+
+     shfree( dfb_fbdev->shared->current_cmap.red );
+     shfree( dfb_fbdev->shared->current_cmap.green );
+     shfree( dfb_fbdev->shared->current_cmap.blue );
+     shfree( dfb_fbdev->shared->current_cmap.transp );
 
      munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
      
@@ -1644,7 +1666,7 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
      int green_max  = 0;
      int blue_max   = 0;
 
-     struct fb_cmap cmap;
+     struct fb_cmap *cmap;
 
      if (!dfb_fbdev) {
           BUG( "dfb_fbdev_set_gamma_ramp() called while dfb_fbdev == NULL!" );
@@ -1689,49 +1711,39 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
          blue_max  = blue_size;
      }
 
-     cmap.start  = 0;
      /* assume green to have most weight */
-     cmap.len    = green_size;
-     cmap.red   = (__u16*)alloca( 2 * 256 );
-     cmap.green = (__u16*)alloca( 2 * 256 );
-     cmap.blue  = (__u16*)alloca( 2 * 256 );
-     cmap.transp = NULL;
+     dfb_fbdev->shared->temp_cmap.len = green_size;
 
-     dfb_fbdev->shared->temp_cmap = cmap;
-
-     cmap.red   = (__u16*)alloca( 2 * 256 );
-     cmap.green = (__u16*)alloca( 2 * 256 );
-     cmap.blue  = (__u16*)alloca( 2 * 256 );
+     cmap = &dfb_fbdev->shared->current_cmap;
 
      for (i = 0; i < red_size; i++)
-          cmap.red[i] = dfb_fbdev_calc_gamma( i, red_max );
+          cmap->red[i] = dfb_fbdev_calc_gamma( i, red_max );
 
      for (i = 0; i < green_size; i++)
-          cmap.green[i] = dfb_fbdev_calc_gamma( i, green_max );
+          cmap->green[i] = dfb_fbdev_calc_gamma( i, green_max );
 
      for (i = 0; i < blue_size; i++)
-          cmap.blue[i] = dfb_fbdev_calc_gamma( i, blue_max );
+          cmap->blue[i] = dfb_fbdev_calc_gamma( i, blue_max );
 
      /* ++Tony: Some drivers use the upper byte, some use the lower */
      if (dfb_fbdev->shared->fix.visual == FB_VISUAL_DIRECTCOLOR) {
          for (i = 0; i < red_size; i++)
-	     cmap.red[i] |= cmap.red[i] << 8;
+	     cmap->red[i] |= cmap->red[i] << 8;
 
          for (i = 0; i < green_size; i++)
-             cmap.green[i] |= cmap.green[i] << 8;
+             cmap->green[i] |= cmap->green[i] << 8;
 
          for (i = 0; i < blue_size; i++)
-             cmap.blue[i] |= cmap.blue[i] << 8;
+             cmap->blue[i] |= cmap->blue[i] << 8;
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &cmap ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, cmap ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
                      "Could not set gamma ramp" );
 
           return errno2dfb(errno);
      }
 
-     dfb_fbdev->shared->current_cmap = cmap;
      return DFB_OK;
 }
 

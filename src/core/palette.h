@@ -102,6 +102,23 @@ dfb_palette_detach( CorePalette *palette,
 }
 
 static inline FusionResult
+dfb_palette_attach_global( CorePalette    *palette,
+                           int             react_index,
+                           void           *ctx,
+                           GlobalReaction *reaction )
+{
+     return fusion_object_attach_global( &palette->object,
+                                         react_index, ctx, reaction );
+}
+
+static inline FusionResult
+dfb_palette_detach_global( CorePalette    *palette,
+                           GlobalReaction *reaction )
+{
+     return fusion_object_detach_global( &palette->object, reaction );
+}
+
+static inline FusionResult
 dfb_palette_ref( CorePalette *palette )
 {
      return fusion_object_ref( &palette->object );

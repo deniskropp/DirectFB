@@ -470,7 +470,7 @@ void *__shmalloc_brk (int increment)
           size = new_size;
 
           if (_sheap && _sheap->reactor)
-               reactor_dispatch (_sheap->reactor, (const void *) &size, false);
+               reactor_dispatch (_sheap->reactor, (const void *) &size, false, NULL);
      }
 
      return mem + size - increment;

@@ -41,6 +41,7 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
+#include <core/layers.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
@@ -58,43 +59,16 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface        *surface,
 static void dfb_surface_deallocate_buffer     ( CoreSurface        *surface,
                                                 SurfaceBuffer      *buffer );
 
-static ReactionResult palette_listener( const void *msg_data,
-                                        void       *ctx );
-
-/* internal functions needed to avoid side effects */
-
 static void video_access_by_hardware( SurfaceBuffer       *buffer,
-                                      DFBSurfaceLockFlags  flags )
-{
-     if (flags & DSLF_READ) {
-          if (buffer->video.access & VAF_SOFTWARE_WRITE) {
-               dfb_gfxcard_flush_texture_cache();
-               buffer->video.access &= ~VAF_SOFTWARE_WRITE;
-          }
-          buffer->video.access |= VAF_HARDWARE_READ;
-     }
-     if (flags & DSLF_WRITE)
-          buffer->video.access |= VAF_HARDWARE_WRITE;
-}
-
+                                      DFBSurfaceLockFlags  flags );
 static void video_access_by_software( SurfaceBuffer       *buffer,
-                                      DFBSurfaceLockFlags  flags )
-{
-     if (flags & DSLF_WRITE) {
-          if (buffer->video.access & VAF_HARDWARE_READ) {
-               dfb_gfxcard_sync();
-               buffer->video.access &= ~VAF_HARDWARE_READ;
-          }
-          buffer->video.access |= VAF_SOFTWARE_WRITE;
-     }
-     if (flags & (DSLF_READ | DSLF_WRITE)) {
-          if (buffer->video.access & VAF_HARDWARE_WRITE) {
-               dfb_gfxcard_sync();
-               buffer->video.access &= ~VAF_HARDWARE_WRITE;
-          }
-          buffer->video.access |= VAF_SOFTWARE_READ;
-     }
-}
+                                      DFBSurfaceLockFlags  flags );
+
+static const React dfb_surface_globals[] = {
+/* 0 */   _dfb_layer_surface_listener,
+/* 1 */   _dfb_layer_background_image_listener,
+          NULL
+};
 
 static void surface_destructor( FusionObject *object, bool zombie )
 {
@@ -226,6 +200,19 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      *surface = s;
 
      return DFB_OK;
+}
+
+FusionResult
+dfb_surface_notify_listeners( CoreSurface                  *surface,
+                              CoreSurfaceNotificationFlags  flags)
+{
+     CoreSurfaceNotification notification;
+
+     notification.flags   = flags;
+     notification.surface = surface;
+
+     return fusion_object_dispatch( &surface->object,
+                                    &notification, dfb_surface_globals );
 }
 
 DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
@@ -392,7 +379,7 @@ dfb_surface_set_palette( CoreSurface *surface,
           return DFB_OK;
 
      if (surface->palette) {
-          dfb_palette_detach( surface->palette, &surface->palette_reaction );
+          dfb_palette_detach_global( surface->palette, &surface->palette_reaction );
           dfb_palette_unlink( surface->palette );
 
           surface->palette = NULL;
@@ -400,8 +387,8 @@ dfb_surface_set_palette( CoreSurface *surface,
 
      if (palette) {
           dfb_palette_link( &surface->palette, palette );
-          dfb_palette_attach( palette, palette_listener,
-                              surface, &surface->palette_reaction );
+          dfb_palette_attach_global( palette, 0 /* FIXME: macro/enum? */,
+                                     surface, &surface->palette_reaction );
      }
 
      dfb_surface_notify_listeners( surface, CSNF_PALETTE_CHANGE );
@@ -662,7 +649,8 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref )
 
      /* unlink palette */
      if (surface->palette) {
-          dfb_palette_detach( surface->palette, &surface->palette_reaction );
+          dfb_palette_detach_global( surface->palette,
+                                     &surface->palette_reaction );
           dfb_palette_unlink( surface->palette );
      }
 
@@ -904,9 +892,9 @@ static void dfb_surface_deallocate_buffer( CoreSurface   *surface,
      shfree( buffer );
 }
 
-static ReactionResult
-palette_listener( const void *msg_data,
-                  void       *ctx )
+ReactionResult
+_dfb_surface_palette_listener( const void *msg_data,
+                               void       *ctx )
 {
      CorePaletteNotification *notification = (CorePaletteNotification*)msg_data;
      CoreSurface             *surface      = (CoreSurface*) ctx;
@@ -918,5 +906,40 @@ palette_listener( const void *msg_data,
           dfb_surface_notify_listeners( surface, CSNF_PALETTE_UPDATE );
 
      return RS_OK;
+}
+
+/* internal functions needed to avoid side effects */
+
+static void video_access_by_hardware( SurfaceBuffer       *buffer,
+                                      DFBSurfaceLockFlags  flags )
+{
+     if (flags & DSLF_READ) {
+          if (buffer->video.access & VAF_SOFTWARE_WRITE) {
+               dfb_gfxcard_flush_texture_cache();
+               buffer->video.access &= ~VAF_SOFTWARE_WRITE;
+          }
+          buffer->video.access |= VAF_HARDWARE_READ;
+     }
+     if (flags & DSLF_WRITE)
+          buffer->video.access |= VAF_HARDWARE_WRITE;
+}
+
+static void video_access_by_software( SurfaceBuffer       *buffer,
+                                      DFBSurfaceLockFlags  flags )
+{
+     if (flags & DSLF_WRITE) {
+          if (buffer->video.access & VAF_HARDWARE_READ) {
+               dfb_gfxcard_sync();
+               buffer->video.access &= ~VAF_HARDWARE_READ;
+          }
+          buffer->video.access |= VAF_SOFTWARE_WRITE;
+     }
+     if (flags & (DSLF_READ | DSLF_WRITE)) {
+          if (buffer->video.access & VAF_HARDWARE_WRITE) {
+               dfb_gfxcard_sync();
+               buffer->video.access &= ~VAF_HARDWARE_WRITE;
+          }
+          buffer->video.access |= VAF_SOFTWARE_READ;
+     }
 }
 

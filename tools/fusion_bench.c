@@ -84,7 +84,7 @@ bench_reactor()
      for (i=0; i<N_DISPATCH; i++) {
           char msg[16];
 
-          reactor_dispatch( reactor, msg, true );
+          reactor_dispatch( reactor, msg, true, NULL );
      }
      
      t2 = dfb_get_millis();

@@ -14,15 +14,6 @@ Finish multi application core.
  - Add fork handling
  - Detaching foreign reactions from a reactor is not implemented
    anymore and won't be supported again. Get rid of such usage.
- - dfb_surface_set_palette() installs a listener that needs
-   to exist as long as the palette is linked to the surface,
-   but if the process that did this call exits, the listener
-   is dead, but the palette is still linked to the surface.
-   The layer_surface_listener() currently does a workaround
-   by attaching an extra listener (running in the master
-   fusionee if it's the primary layer).
-   Maybe it requires an implementation of "global reactions"
-   to fix that.
 
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one

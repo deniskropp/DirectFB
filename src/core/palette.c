@@ -41,6 +41,11 @@
 static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
+static const React dfb_palette_globals[] = {
+/* 0 */   _dfb_surface_palette_listener,
+          NULL
+};
+
 static void palette_destructor( FusionObject *object, bool zombie )
 {
      CorePaletteNotification  notification;
@@ -52,7 +57,8 @@ static void palette_destructor( FusionObject *object, bool zombie )
      notification.flags   = CPNF_DESTROY;
      notification.palette = palette;
 
-     fusion_object_dispatch( &palette->object, &notification );
+     fusion_object_dispatch( &palette->object, &notification,
+                             dfb_palette_globals );
 
      if (palette->hash_attached) {
           dfb_colorhash_invalidate( palette );
@@ -191,6 +197,7 @@ dfb_palette_update( CorePalette *palette, int first, int last )
           dfb_colorhash_invalidate( palette );
 
      /* post message about palette update */
-     fusion_object_dispatch( &palette->object, &notification );
+     fusion_object_dispatch( &palette->object, &notification,
+                             dfb_palette_globals );
 }
 
