@@ -363,8 +363,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     width  = data->primary.width;
                     height = data->primary.height;
 
-                    x = (config.width  - width)  / 2;
-                    y = (config.height - height) / 2;
+                    x = ((int)config.width  - (int)width)  / 2;
+                    y = ((int)config.height - (int)height) / 2;
 
                     if ((desc->flags & DSDESC_PIXELFORMAT)
                         && desc->pixelformat == DSPF_ARGB)

@@ -239,8 +239,8 @@ DFBResult
 dfb_window_create( CoreWindowStack        *stack,
                    int                     x,
                    int                     y,
-                   unsigned int            width,
-                   unsigned int            height,
+                   int                     width,
+                   int                     height,
                    DFBWindowCapabilities   caps,
                    DFBSurfacePixelFormat   pixelformat,
                    CoreWindow            **window )
@@ -650,8 +650,8 @@ dfb_window_move( CoreWindow *window,
 
 DFBResult
 dfb_window_resize( CoreWindow   *window,
-                   unsigned int  width,
-                   unsigned int  height )
+                   int           width,
+                   int           height )
 {
      DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;

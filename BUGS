@@ -2,8 +2,6 @@ different bugs and issues
 -------------------------
 - sometimes a deadlock occurs in deinitialization done by the signal handler
 - after switching back from fullscreen mode the original mode is not restored
-- windows that cover all four borders of the desktop (larger than desktop)
-  are not visible (clipping bug?)
 
 automake/autoconf etc.
 ----------------------

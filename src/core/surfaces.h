@@ -129,8 +129,8 @@ struct _CoreSurface
      FusionLink             link;
 
      /* size/format and instances */
-     unsigned int           width;         /* pixel width of the surface */
-     unsigned int           height;        /* pixel height of the surface */
+     int                    width;         /* pixel width of the surface */
+     int                    height;        /* pixel height of the surface */
      DFBSurfacePixelFormat  format;        /* pixel format of the surface */
      DFBSurfaceCapabilities caps;
 

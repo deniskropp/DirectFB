@@ -49,8 +49,8 @@ struct _CoreWindow {
 
      int                     x;            /* x position in pixels */
      int                     y;            /* y position in pixels */
-     unsigned int            width;        /* width in pixels */
-     unsigned int            height;       /* width in pixels */
+     int                     width;        /* width in pixels */
+     int                     height;       /* width in pixels */
 
      DFBWindowCapabilities   caps;         /* window capabilities, to enable
                                               blending etc. */
@@ -143,8 +143,8 @@ DFBResult
 dfb_window_create( CoreWindowStack        *stack,
                    int                     x,
                    int                     y,
-                   unsigned int            width,
-                   unsigned int            height,
+                   int                     width,
+                   int                     height,
                    DFBWindowCapabilities   caps,
                    DFBSurfacePixelFormat   pixelformat,
                    CoreWindow            **window );
@@ -180,8 +180,8 @@ dfb_window_move( CoreWindow *window,
  */
 DFBResult
 dfb_window_resize( CoreWindow   *window,
-                   unsigned int  width,
-                   unsigned int  height );
+                   int           width,
+                   int           height );
 
 /*
  * changes stacking class

@@ -871,8 +871,8 @@ DFBResult
 dfb_layer_create_window( DisplayLayer           *layer,
                          int                     x,
                          int                     y,
-                         unsigned int            width,
-                         unsigned int            height,
+                         int                     width,
+                         int                     height,
                          DFBWindowCapabilities   caps,
                          DFBSurfacePixelFormat   pixelformat,
                          CoreWindow            **window )
