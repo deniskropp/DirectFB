@@ -391,7 +391,7 @@ dfb_surface_set_palette( CoreSurface *surface,
 
      if (palette) {
           dfb_palette_link( &surface->palette, palette );
-          dfb_palette_attach_global( palette, 0 /* FIXME: macro/enum? */,
+          dfb_palette_attach_global( palette, DFB_SURFACE_PALETTE_LISTENER,
                                      surface, &surface->palette_reaction );
      }
 

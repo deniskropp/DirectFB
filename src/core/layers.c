@@ -629,7 +629,7 @@ dfb_layer_enable( DisplayLayer *layer )
                                          layer->layer_data, surface->palette );
           
           /* attach surface listener for palette and field switches */
-          dfb_surface_attach_global( surface, 0 /* FIXME: macro? */,
+          dfb_surface_attach_global( surface, DFB_LAYER_SURFACE_LISTENER,
                                      (void*)layer->shared->id,
                                      &shared->surface_reaction );
 
@@ -870,7 +870,7 @@ dfb_layer_set_background_image( DisplayLayer *layer,
           }
 
           /* attach listener to new surface */
-          dfb_surface_attach_global( image, 1 /* FIXME: macro? */,
+          dfb_surface_attach_global( image, DFB_LAYER_BACKGROUND_IMAGE_LISTENER,
                                      (void*)layer->shared->id,
                                      &shared->bgimage_reaction );
      }

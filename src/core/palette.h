@@ -143,5 +143,12 @@ dfb_palette_unlink( CorePalette *palette )
      return fusion_object_unlink( &palette->object );
 }
 
+
+/* global reactions */
+
+typedef enum {
+     DFB_SURFACE_PALETTE_LISTENER
+} DFB_PALETTE_GLOBALS;
+
 #endif
 

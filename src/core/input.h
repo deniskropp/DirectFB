@@ -149,4 +149,10 @@ DFBResult dfb_input_device_get_keymap_entry( InputDevice               *device,
                                              int                        keycode,
                                              DFBInputDeviceKeymapEntry *entry );
 
+/* global reactions */
+
+typedef enum {
+     DFB_WINDOW_STACK_INPUTDEVICE_REACT
+} DFB_INPUT_GLOBALS;
+
 #endif

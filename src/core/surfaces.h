@@ -329,5 +329,10 @@ void dfb_surface_destroy( CoreSurface *surface, bool unref );
 ReactionResult _dfb_surface_palette_listener( const void *msg_data,
                                               void       *ctx );
 
+typedef enum {
+     DFB_LAYER_SURFACE_LISTENER,
+     DFB_LAYER_BACKGROUND_IMAGE_LISTENER
+} DFB_SURFACE_GLOBALS;
+
 #endif
 

@@ -1271,7 +1271,7 @@ stack_attach_devices( InputDevice *device,
 
      fusion_list_prepend( &stack->devices, &dev->link );
 
-     dfb_input_attach_global( device, 0 /* FIXME: macro/enum? */,
+     dfb_input_attach_global( device, DFB_WINDOW_STACK_INPUTDEVICE_REACT,
                               ctx, &dev->reaction );
 
      return DFENUM_OK;
