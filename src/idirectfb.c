@@ -542,26 +542,19 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          x = (config.width  - width)  / 2;
                          y = (config.height - height) / 2;
 
-                         if (desc->flags & DSDESC_PIXELFORMAT) {
-                              if (desc->pixelformat == DSPF_ARGB ||
-                                  desc->pixelformat == DSPF_AiRGB)
+                         if (desc->flags & DSDESC_PIXELFORMAT)
+                              format = desc->pixelformat;
+                         else
+                              format = dfb_config->mode.format;
+
+                         switch (format) {
+                              case DSPF_ARGB:
+                              case DSPF_AiRGB:
                                    window_caps |= DWCAPS_ALPHACHANNEL;
-                         }
-                         else {
-                              switch (dfb_config->mode.format) {
-                                   case DSPF_UNKNOWN:
-                                        break;
+                                   break;
 
-                                   case DSPF_ARGB:
-                                   case DSPF_AiRGB:
-                                        window_caps |= DWCAPS_ALPHACHANNEL;
-                                        /* fall through */
-
-                                   default:
-                                        format = dfb_config->mode.format;
-                                        break;
-
-                              }
+                              default:
+                                   break;
                          }
 
                          if (caps & DSCAPS_DOUBLE)
