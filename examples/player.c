@@ -134,7 +134,7 @@ main (int argc, char *argv[])
      }
 
      /* initialize */
-     if (lite_open())
+     if (lite_open( &argc, &argv ))
           return 1;
 
      /* init sound */
