@@ -1,6 +1,10 @@
 /*
-   (c) Copyright 2001  Kim JeongHoe <king@mizi.com>
+   (c) Copyright 2001  convergence integrated media GmbH.
    All rights reserved.
+
+   Written by Denis Oliver Kropp <dok@convergence.de>,
+              Andreas Hundt <andi@convergence.de> and
+              Sven Neumann <sven@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -94,6 +98,8 @@ IDirectFBVideoProvider_OpenQuicktime_Destruct( IDirectFBVideoProvider *thiz )
 
     DFBFREE( data->video.buffer );
     DFBFREE( data->video.lines );
+
+    pthread_mutex_destroy( &data->video.lock );
 
     DFBFREE( data->filename );
 
