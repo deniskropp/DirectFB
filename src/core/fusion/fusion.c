@@ -223,10 +223,7 @@ fusion_read_loop( CoreThread *thread, void *arg )
           }
      }
 
-     if (len < 0)
-          FPERROR( "reading from fusion device failed\n" );
-     else
-          FERROR( "read zero bytes from fusion device\n" );
+     FPERROR( "reading from fusion device failed\n" );
 
      return NULL;
 }
