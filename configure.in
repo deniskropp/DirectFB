@@ -561,6 +561,7 @@ fi
 AM_CONDITIONAL(V4L_PROVIDER, test x$V4L = xyes)
 
 
+wm97xx_ts=no
 
 dnl check which gfxdrivers to build
 ati=no
@@ -836,12 +837,20 @@ AC_ARG_ENABLE(linux-input,
   AC_ARG_ENABLE(mutouch,
     [  --enable-mutouch          build Microtouch touchscreen driver [default=no]],
     enable_mutouch="$enableval", enable_mutouch=no)
-fi
+
+
+  AC_ARG_ENABLE(wm97xx,
+    [  --enable-wm97xx           build WM97xx touchscreen driver [default=yes]],
+    enable_wm97xx="$enableval", enable_wm97xx=yes)
 
   dnl Test for WM97xx Touchscreen support
-  AC_CHECK_HEADER( [linux/wm97xx.h], wm97xx_ts=yes, wm97xx_ts=no  
-    AC_MSG_WARN([
+  if test "$enable_wm97xx" = yes; then
+    AC_CHECK_HEADER( [linux/wm97xx.h], wm97xx_ts=yes, wm97xx_ts=no
+      AC_MSG_WARN([
 *** WM97XX Touchscreen driver will not be built.]))
+  fi
+
+fi
 
 
 AC_ARG_WITH(tools,
