@@ -412,6 +412,11 @@ DEFINE_INTERFACE( IFusionSoundStream,
       *
       * Returns the amount of time in milli seconds that passes
       * until the last sample stored in the buffer is audible.
+      * This includes any buffered data (by hardware or driver)
+      * as well as the ring buffer status of the stream.
+      *
+      * Even if the stream is not playing, e.g. due to pre-buffering,
+      * the method behaves as if the playback has just been started.
       */
      DFBResult (*GetPresentationDelay) (
           IFusionSoundStream       *thiz,
