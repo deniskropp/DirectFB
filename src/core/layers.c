@@ -558,7 +558,7 @@ dfb_layer_release( DisplayLayer *layer, bool repaint )
      
      fusion_property_cede( &layer->shared->lock );
      
-     if (repaint)
+     if (repaint && layer->shared->stack)
           dfb_windowstack_repaint_all( layer->shared->stack );
 }
 
