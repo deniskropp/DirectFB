@@ -148,7 +148,7 @@ DFBResult fbdev_open()
 
      if (ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &fbdev->current_var ) < 0) {
           PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not disable font acceleration!\n" );
+                     "Could not disable console acceleration!\n" );
           DFBFREE( fbdev );
           fbdev = NULL;
 
@@ -208,6 +208,23 @@ DFBResult fbdev_open()
           }
      }
 
+     fbdev->orig_cmap.start  = 0;
+     fbdev->orig_cmap.len    = 256;
+     fbdev->orig_cmap.red    = (__u16*)DFBMALLOC( 2 * 256 );
+     fbdev->orig_cmap.green  = (__u16*)DFBMALLOC( 2 * 256 );
+     fbdev->orig_cmap.blue   = (__u16*)DFBMALLOC( 2 * 256 );
+     fbdev->orig_cmap.transp = NULL;
+     
+     if (ioctl( fbdev->fd, FBIOGETCMAP, &fbdev->orig_cmap ) < 0) {
+          PERRORMSG( "DirectFB/core/fbdev: "
+                     "Could not retrieve palette for backup!\n" );
+          DFBFREE( fbdev->orig_cmap.red );
+          DFBFREE( fbdev->orig_cmap.green );
+          DFBFREE( fbdev->orig_cmap.blue );
+          fbdev->orig_cmap.len = 0;
+     }
+
+     
      return DFB_OK;
 }
 
@@ -232,6 +249,16 @@ void fbdev_deinit()
                      "Could not restore variable screen information!\n" );
      }
 
+     if (fbdev->orig_cmap.len) {
+          if (ioctl( fbdev->fd, FBIOPUTCMAP, &fbdev->orig_cmap ) < 0)
+               PERRORMSG( "DirectFB/core/fbdev: "
+                          "Could not restore palette!\n" );
+          
+          DFBFREE( fbdev->orig_cmap.red );
+          DFBFREE( fbdev->orig_cmap.green );
+          DFBFREE( fbdev->orig_cmap.blue );
+     }
+     
      close( fbdev->fd );
 
      DFBFREE( fbdev );

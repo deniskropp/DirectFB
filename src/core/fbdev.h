@@ -65,6 +65,7 @@ typedef struct {
                                                 set by DirectFB */
      struct fb_var_screeninfo orig_var;      /* fbdev variable screeninfo
                                                 before DirectFB was started */
+     struct fb_cmap           orig_cmap;     /* original palette */
 } FBDev;
 
 extern FBDev *fbdev;

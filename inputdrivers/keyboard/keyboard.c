@@ -51,7 +51,7 @@
 #include <misc/conf.h>
 
 
-//static int fd = -1;
+static struct termios old_ts;
 
 static DFBInputDeviceModifierKeys modifier_state = 0;
 
@@ -314,10 +314,12 @@ int driver_init(InputDevice *device)
           return DFB_INIT;
      }
 
-     ioctl( 0, TIOCNOTTY, 0 );
-     ioctl( vt->fd, TIOCSCTTY, 0 );
+//     ioctl( 0, TIOCNOTTY, 0 );
+//     ioctl( vt->fd, TIOCSCTTY, 0 );
+     
+     tcgetattr( vt->fd, &old_ts );
 
-     tcgetattr( vt->fd, &ts );
+     ts = old_ts;
      ts.c_cc[VTIME] = 0;
      ts.c_cc[VMIN] = 1;
      ts.c_lflag &= ~(ICANON|ECHO|ISIG);
@@ -347,13 +349,18 @@ int driver_init(InputDevice *device)
 
 void driver_deinit(InputDevice *device)
 {
-/*     if (fd < 0)
-          return;*/
+     const char cursoron_str[] = "\033[?0;0;0c";
+     const char blankon_str[] = "\033[9;10]";
 
-     ioctl( vt->fd, KDSKBMODE, K_XLATE );
-     ioctl( vt->fd, KDSETMODE, KD_TEXT );
-/*     close( fd );
-
-     fd = -1;*/
+     write( vt->fd, cursoron_str, strlen(cursoron_str) );
+     write( vt->fd, blankon_str, strlen(blankon_str) );
+     
+     if (tcsetattr( vt->fd, TCSAFLUSH, &old_ts ) < 0)
+          PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
+     
+     if (ioctl( vt->fd, KDSKBMODE, K_XLATE ) < 0)
+          PERRORMSG("DirectFB/keyboard: Could not set mode to XLATE!\n");
+     if (ioctl( vt->fd, KDSETMODE, KD_TEXT ) < 0)
+          PERRORMSG("DirectFB/keyboard: Could not set terminal mode to text!\n");
 }
 
