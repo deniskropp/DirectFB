@@ -1110,6 +1110,8 @@ primarySetPalette ( DisplayLayer               *layer,
      DFB_ASSERT( layer != NULL );
      DFB_ASSERT( palette != NULL );
 
+     cmap->len = palette->num_entries <= 256 ? : 256;
+
      for (i = 0; i < (int)cmap->len; i++) {
           cmap->red[i]     = palette->entries[i].r;
           cmap->green[i]   = palette->entries[i].g;
