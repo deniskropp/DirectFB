@@ -1462,8 +1462,9 @@ repaint_stack( CoreWindowStack     *stack,
      if (dfb_layer_lease( layer ))
           return;
 
-     state->clip      = *region;
-     state->modified |= SMF_CLIP;
+     state->destination = surface;
+     state->clip        = *region;
+     state->modified   |= SMF_DESTINATION | SMF_CLIP;
 
      update_region( stack, state, stack->num_windows - 1,
                     region->x1, region->y1, region->x2, region->y2 );
@@ -1494,6 +1495,8 @@ repaint_stack( CoreWindowStack     *stack,
           dfb_layer_update_region( layer, region, flags );
 
      dfb_layer_release( layer, false );
+     
+     state->destination = NULL;
 }
 
 static CoreWindow*
