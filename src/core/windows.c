@@ -1285,7 +1285,7 @@ stack_inputdevice_react( const void *msg_data,
                               dfb_windowstack_handle_motion( stack, 0, rel );
                               break;
                          case DIAI_Z:
-                              handle_wheel( stack, evt->axisrel );
+                              handle_wheel( stack, - evt->axisrel );
                               break;
                          default:
                               return RS_OK;
@@ -1328,7 +1328,7 @@ handle_wheel( CoreWindowStack *stack, int dz )
 
      if (window) {
           if (stack->wm_hack) {
-               int opacity = window->opacity + dz*4;
+               int opacity = window->opacity + dz*7;
 
                if (opacity < 0x01)
                     opacity = 1;
