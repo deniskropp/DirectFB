@@ -1,3 +1,436 @@
+0.9.21
+------
+
+API
+- Added DFBLocation which is like DFBRectangle but has normalized coordinates.
+- Added macros to compare rectangles, regions, locations, colors etc.
+- Added diagonal cursor keys.
+- Added more types to the auto generated "directfb_strings.h".
+- Added DFBVertex containing transformed x, y, z, w, s and t coordinates.
+- Added DSCAPS_DOUBLE and changed DSCAPS_FLIPPING to be a
+  combination of DSCAPS_DOUBLE and DSCAPS_TRIPLE.
+- Added "const" to some parameters.
+- Added DFXL_DRAWSTRING for IDirectFBSurface::GetAccelerationMask().
+- Added prefix "ret_" to all output parameters.
+- Added DFBSpan containing x and width of a span.
+- When specified use the pixelformat of the surface description
+  to create a windowed primary surface.
+- Added DFB_VERSIONMISMATCH and DFB_NOSHAREDMEMORY error codes.
+- Added DFBInsets specifying a distance from each
+  edge of a rectangle: left, top, right, bottom.
+- Added DLCAPS_SOURCES which indicates that the layer supports multiple 
+  sources that can be selected, e.g. from frame buffer (surface) or from
+  hardware decoders (using buffers outside of the frame buffer).
+- Added DFBDisplayLayerSourceID with pre-defined DLSID_SURFACE.
+- Added number of supported sources to DFBDisplayLayerDescription.
+- Added DFBDisplayLayerSourceDescription containing the ID and a name.
+- Added DLCONF_SOURCE along with a field in DFBDisplayLayerConfig to
+  select the source to be used.
+
+API | IDirectFB
+- Added IDirectFB::EnumScreens() and IDirectFB::GetScreen().
+
+API | IDirectFBEventBuffer
+- Added IDirectFBEventBuffer::CreateFileDescriptor() returning a file
+  descriptor that can be read from, including support for select().
+
+API | IDirectFBDisplayLayer
+- Added IDirectFBDisplayLayer::GetScreen().
+- Moved IDirectFBDisplayLayer::SetScreenPowerMode()
+  to IDirectFBScreen, called SetPowerMode().
+- Added IDirectFBDisplayLayer::SetSourceRectangle() for source cropping etc.
+- Added IDirectFBDisplayLayer::GetSourceDescriptions().
+
+API | IDirectFBScreen
+- New interface IDirectFBScreen for mixer, encoder and output settings.
+- An output is connected to an encoder which is connected to a mixer which
+  combines selected display layers.
+- Added a lot of types for description and configuration of these components.
+  (see the API Reference Manual for more details)
+
+API | IDirectFBSurface
+- Added IDirectFBSurface::TextureTriangles() using a surface as the texture,
+  a pointer to a DFBVertex array, an optional index array, the array size and
+  the DFBTriangleFormation which can be DTTF_LIST, DTTF_STRIP or DTTF_FAN.
+- Added IDirectFBSurface::BatchBlit() which increases pixel throughput  
+  of many small blits with same source and destination, e.g. custom font
+  rendering like GTK+-DirectFB does.
+- Preliminary depth buffer support using DSCAPS_DEPTH to allocate and use it,
+  currently hard coded to 16 bit, only useful for TextureTriangles().
+- Added DSFLIP_PIPELINE for advanced synchronization with the accelerator,
+  currently implemented for Flip() on window surfaces. This feature is for
+  accelerators with a command buffer that can store more graphics operations
+  than required to render one frame.
+- Added IDirectFBSurface::FillSpans() which is passed a DFBSpan array.
+
+Runtime Options
+- Added "force-desktop" to run fullscreen applications in the background.
+- Added "a1-font" to force usage of monochrome fonts (FreeType2).
+- Added "linux-input-ir-only" which tells the linux input driver
+  to ignore all non-IR Linux Input devices.
+- Added "wm=<wm>" to select the window manager module to use.
+- Added "[no-]trace".
+- Users can enable/disable debug output separately,
+  e.g. using "no-debug,debug=direct,no-debug=direct/memcpy".
+- Added "vt-switching" which is enabled by default.
+- Added "no-vt" which disables usage of VT code completely.
+- Added "no-decorations" to disable automatic window decorations
+  of the "UniQuE" window manager implementation.
+
+Build Options
+- Allow "--enable-static" and "--enable-trace" at the same time.
+- Added "--enable-zlib" that activates gzipped screen shots etc.
+- Added "--enable-voodoo", default is no.
+- V4L2 has to be enabled explicitly via "--enable-video4linux2".
+- Detect cygwin, default to static builds and don't require libdl.
+- In static build mode, add an ".o" version of the ".a" module file.
+  Applications can link statically against the ".o" files without having
+  to specify an extra linker option for each module, e.g. "-Wl,-udirectfb_sdl".
+- Applied patch from "Oskar Liljeblad <oskar@osk.mine.nu>"   
+  which adds the configure option "--disable-sonypi-jogdial".
+- Added "--disable-wm97xx" to disable WM97xx driver.
+- With "--disable-gettid" one can enforce usage of getpid(),
+  e.g. on broken systems where gettid() simply segfaults,
+  though the system call is present in <linux/unistd.h>.
+- Added "--enable-unique", disabled by default.
+
+Pixel Formats
+- Added DSPF_AiRGB, i.e. DSPF_ARGB with inverted alpha channel.
+- Added DSPF_A1, e.g. for monochrome fonts.
+- Removed DSPF_RGB15 in the flavor of DSPF_ARGB1555.
+- Added DFB_COLOR_BITS_PER_PIXEL(format), DFB_ALPHA_BITS_PER_PIXEL(format)
+  and DFB_PIXELFORMAT_INV_ALPHA(format).
+- Added DFB_PIXELFORMAT_ALIGNMENT(format) which is non-zero if alignment
+  is required to do byte aligned access, e.g. 7 for DSPF_A1.
+- Added DSPF_NV12 (planar YUV).
+  (8 bit Y plane followed by one 16 bit quarter size CbCr [15:0] plane)
+- Added DSPF_NV16 (planar YUV).
+  (8 bit Y plane followed by one 16 bit half width CbCr [15:0] plane)
+
+System
+- Use gettid() instead of getpid() if available.
+
+Graphics Core
+- Minimize state changes during text drawing.
+- Drivers can choose between byte/pixel pitch alignment, or even use both.
+- Added convenience macros and inline functions for setting state members.
+- Added CoreGraphicsSerial storing the "serial" of a certain graphics operation.
+- Added GetSerial() and WaitSerial() to the graphics driver API:
+  GetSerial() returns the serial of the last queued graphics operation.
+  WaitSerial() waits until the operation with the specified serial is finished.
+- Store the serial of the most recent accelerated graphics operation that has
+  been queued for writing to a surface buffer.
+- dfb_layer_region_flip_update() is no longer waiting for an idle accelerator, 
+  if the buffer that is becoming the front has or had a write operation queued.
+  Instead it waits exactly for the last operation that is or was about to write
+  to this buffer. If WaitSerial() is not supported by the driver and/or hardware,
+  the fallback, of course, is to wait for each and every operation to finish.
+- Wait for only the last write operation queued for a buffer,
+  if the software needs to access it.
+- Speed up tiled blitting by clipping in advance.
+- Implemented software clipping for hardware accelerated DrawRectangle().
+- Use hardware accelerated FillRectangle() if DrawRectangle() is not accelerated.
+- Removed the surface listeners attached by dfb_state_set_destination() and  
+  dfb_state_set_source().
+- Added dfb_state_update() which does the work of the removed listeners
+  if direct_serial_update() returns true. Updating the source is optional.
+  Only surfaces set via dfb_state_set_*() are handled.
+- Use dfb_state_update() in dfb_gfxcard_state_acquire() and gAcquire().
+- Added parameter "write_front" to dfb_surface_flip_buffers() which is useful  
+  for triple buffering. If true, the new back buffer will be the front buffer. 
+  Drivers should detect if the current front buffer is not being shown already,
+  in which case the idle buffer might be still shown and should not be written.
+- Added "__u32 dfb_color_to_aycbcr( const DFBColor *color )".
+
+Display Layer Core
+- Refactored display layer core.
+- Added contexts alojg with regions allocated within them.
+- Drivers are only aware of regions. Usually a driver supports one region
+  per layer. Hardware windows are implemented via hardware regions.
+
+Input Core
+- Added dfb_input_add_global() and dfb_input_set_global() to register global 
+  reactions at run time, e.g. from another library or module in which case the   
+  static reaction table can't be initialized with the address of those functions.
+- Cleaned up input core code, e.g. by replacing the "inlined" singly linked list
+  code by using a "DirectLink" and the "direct_list_*()" functions, or by adding
+  usage of D_MAGIC_ASSERT() etc.
+
+Windowing Core
+- Pressing <Meta>-<Ctrl> + Left/Right Click generates 3rd/4th button event.
+- Switch to color keyed cursor if shape doesn't have alpha or if translucent
+  windows are disabled.
+- Changed <Meta>-'S' to raise the lowest window, e.g. to revert a <Meta>-'A'.
+- Added <Meta>-<Escape> to switch from fullscreen mode to the desktop.
+  (currently not advisable if a flipping fullscreen app is still rendering)
+- Modularized window management for different implementations on desktop
+  and embedded systems.
+- Added new experimental window manager "UniQuE" with window decorations.
+- Added a CoreWindowConfig containing position, size, opacity, stacking,
+  options, events, color key and opaque region.
+
+Software Driver
+- Added DSBLIT_DEINTERLACE support to gBlit.
+- Implemented missing blending modes.
+- Implemented lots of missing format specific code.
+- Implemented stretchblitting for YUV.
+- Fix a8 font rendering for argb1555, i.e. remove alpha pits around glyphs.
+- Replaced gDrawLine() by gFillRectangle() in rectangle outline drawing code.
+- Allocate accumulators dynamically.
+- Lots of optimizations and fixes.
+
+Debugging Support
+- Major speed up by using thread specific data instead of gettid().
+- Use popen("nm -n ...") to load symbols of any module on demand.
+- Show static symbols in stack traces.
+- Produce gdb like stack dumps (output formatting).
+- Added thread names to debug output, stack traces etc.
+- Added interface instance tracking in debug mode, showing remaining
+  instances at exit time (like it's done for allocated memory).
+- Added debug domains which can be enabled/disabled separately.
+- Added "<Meta>-<BackSpace>" debugging shortcut for
+  dumping the stack of each thread of the master process.
+- Align debug output of domains.
+- Indent debug output if trace support is enabled
+  by using direct_trace_debug_indent() which sets the flag TF_DEBUG for the
+  current frame and returns the current debug message indention level by
+  examining the stack, counting any upper frames that produced debug output.
+- Added tons of assertions and assumption, mostly to new code.
+- Added support for A8,YUY2 and UYVY surfaces in dfb_surface_dump().
+
+Fixes (excerpt)
+- No need to call SetOpacity() before RequestFocus() for input only windows.
+- Don't allow GetWindow() on the cursor window.
+- Don't wait for Fusion Dispatch Thread during emergency shutdown.
+- Fixed missing MMX initialization in slaves, only the master used MMX before.
+- Use RTLD_NOW to detect undefined symbols before the module is used at all.
+
+libdirect
+- Migrated base functionality (threads, signals, interfaces, debugging,
+  lists, modules etc.) into a separate library that can even be used by apps.
+- Added direct_clock_set_start() that is called by Fusion's initialization
+  to synchronize time stamps of debug messages.
+- Added a minimalistic hash table implementation for usage with IDs as keys.
+- Added DirectResult which is the DFBResult outside of DirectFB.
+- Added message macro D_UNIMPLEMENTED which prints a warning once.
+- Added a name argument to direct_thread_create(),
+  printed during creation and termination of threads.
+- Added direct_thread_self(), direct_thread_get_name(thread)
+  and direct_thread_self_name().
+- Added DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER.
+- Added direct_list_append() and changed the list structure to have
+  the first element's 'prev' pointing to the last element of the list.
+- Added DirectThreadInitHandler which can be installed/uninstalled using   
+  direct_thread_add_init_handler() and direct_thread_remove_init_handler().
+  The registered init handler function is called at the beginning of new threads.
+- Allow per file debug mode forcing via definition of DIRECT_FORCE_DEBUG.
+- Added D_DERROR(ret,message) which acts like D_PERROR(message), but takes
+  a DirectResult (DFBResult) instead of using errno.
+- Added D_ARRAY_SIZE(array) to calculate the size of an array.
+- Added D_FORMAT_PRINTF(n) to check the format of (debug) messages.
+- Added flag manipulation macros D_FLAGS_*.
+- Added D_CONST_FUNC to declare const functions.
+- Added DirectSerial providing a 64 bit serial number with functions
+  for initialization, increasing, copying and updating.
+- Added D_DEBUG_ENABLED which is defined depending on three other macros.
+  It's defined to be 1, if the D_DEBUG* macros produce code. Useful for
+  embracing code that it's just required for the debugging output.
+- Added D_OOM() which prints the warning "out of memory" and gives
+  DFB_NOSYSTEMMEMORY if used as (return) value.
+- Added D_OOSHM() which is the same as D_OOM() in single app build.
+  Only in multi app build it prints the warning "out of shared memory"
+  and gives DFB_NOSHAREDMEMORY if used as a (return) value.
+- Renamed direct_list_contains() to direct_list_contains_element_EXPENSIVE()
+  to ensure that developers know that they shouldn't use it in non-debug code.
+- Added direct_list_count_elements_EXPENSIVE().
+- Added direct_util_count_bits(), slow version,
+  but at least optimized for bit sets with lower bits set only.
+
+libfusion
+- Migrated Fusion into a separate library to be used without DirectFB,
+  e.g. using FusionSound without initializing DirectFB.
+- Added fusion_object_globalize() doing the often used combination of
+  fusion_object_link() and fusion_object_unref(), i.e. increasing the global
+  reference counter and decreasing the local reference counter.
+- Removed FusionResult using DirectResult instead.
+- Use new Fusion API for entering the world (including version checking).
+- Added fusion_ref_inherit() using the new ioctl FUSION_REF_INHERIT.
+- Added fusion_object_inherit() to inherit the local reference count
+  from another object of any type.
+- Added "docs/ReferenceMaps.txt" which explains references
+  and visualizes different cases of inter object referencing.
+- Heavily cleaned up code of FusionReactor and added lots of debug messages and
+  comments. You should add "no-debug = fusion/reactor" to disable these loads
+  of debug messages, while still showing other messages if "debug" is used.
+- Cleaned up FusionObject code and debug messages.
+- Added some assertions and assumptions to the shared memory code.
+- Added a parameter to fusion_skirmish_init() and fusion_reactor_init() to  
+  set the name of the skirmish or reactor using the ioctl FUSION_ENTRY_SET_INFO.
+- Don't create a skirmish for each reactor's global reactions, but use a single
+  skirmish for all reactors which is created during Fusion's initialization.
+- Added fusion_reactor_set_lock() to use another skirmish for the global
+  reactions of the reactor.
+- Added "fusion_object_set_lock()" to set the skirmish for the global reactions
+  of the object's reactor, while default is the skirmish used to lock the pool.
+
+libvoodoo
+- Added network transparency to DirectFB, called Voodoo.
+
+Reference Manual
+- Parse preceding comments within enums.
+- Fixed hyper link generation for "const" parameters.
+- Improved layout of types page and added macros.
+- Added callback definitions to types page.
+- Automatically generate links if comments include function names,
+  e.g.: "... IDirectFB::GetDisplayLayer() ...".
+- Show index of types and definitions on the index page.
+
+directfb-config
+- Options "--fusionsound" and "--voodoo" to generate static linking
+  parameters for FusionSound and Voodoo respectively.
+- Use new ".o" versions for all modules (static linking).
+
+directfb-csource
+- Support for combining multiple images into one surface.
+
+dfbdump
+- Dump layer contexts.
+- Option "-s" shows a list of all shared memory allocations (debug mode only).
+
+dfbinfo
+- Show all mixers, encoders and outputs.
+- Show display layer sources.
+
+dfblayer
+- Added option "-L, --level <level>" to change the level of a layer.
+
+dfbscreen
+- Added configuration tool for mixers, encoders and outputs.
+
+fusion_bench
+- Replaced getpid() reference benchmark with an flock(2) benchmark.
+- Use recursive mutexes in threaded mutex benchmark.
+- Each benchmark runs for one second now.
+- Added shmalloc/shfree benchmark.
+
+FreeType2 Font Loader
+- Added DSPF_A1 (monochrome font) support.
+- Speed up kerning cache.
+
+Video4Linux Video Provider
+- Added deinterlacing support for grabbing mode,
+  i.e. added dfb_surface_set_field() calls to grabbing thread and added   
+  second frame callback to the loop (to make 50Hz out of the 25Hz of v4l).
+- Use CSLF_FORCE, fixes failing PlayTo() on a fresh surface.
+- Some other fixes.
+
+FBDev System
+- Print error message if the given mode (via "mode=" option) is not supported.
+
+OSX System
+- Added native OSX support without using SDL.
+
+Matrox
+- Backend Scaler (BES) fixes and improvements.
+- SGRAM auto-detection via /proc/bus/pci.
+- Added sysfs support to i2c detection code. Now it works on 2.6 kernels.
+- Use better constants for black/white level calculation on G450/G550 CRTC2.
+- Implemented TextureTriangles().
+- Added texture LUT support (G200) and some other 8bpp improvements.
+- Added support for DSPF_NV12 (BES).
+- Cleanups and optimizations.
+
+VIA CLE266
+- Added video underlay mode.
+- Added DLOP_DEINTERLACING support to video layer.
+- Use fbdev to map registers, obsoletes cle266vgaio.
+  Code still works with cle266vgaio for vesafb users...
+- Implemented DSBLIT_DEINTERLACE.
+- Implemented TextureTriangles().
+- Fixed the broken fonts problem.
+- Thanks to Bryce Nichols <bryce@bnichols.org> for reducing the hardware
+  rounding errors in 16 bit mode by rendering the upper left and lower right
+  triangle pair instead of the upper right and lower left.
+- Other major improvements and fixes.
+
+VIA Unichrome (CLE266)
+- New driver based on the CLE266 driver.
+- Support for multiple north bridges.
+- DVD Sub Picture Layer support.
+- Destination Color Keying for the Video Layer.
+
+nVidia
+- Impressive improvements by Claudio Ciccani <klan82@cheapnet.it>.
+- Added support for ARGB1555, RGB32 and ARGB.
+- Added support for blit with conversion (ARGB1555,RGB32,ARGB to all).
+- Added support for YUY2 and UYVY on Primary Layer.
+- Added support for adjusting Brightness, Contrast, Saturation and Hue.
+- Destination Color Keying for Video Layer.
+- Implemented TextureTriangles().
+- Implemented StretchBlit().
+- Implemented alpha blended blitting and drawing.
+- Added experimental support for Colorizing.
+- Added sysfs support.
+- Added a really fast Flip() function.
+- Experimental WaitForSync() support.
+- Fixed ram amount detection on Xbox (thanks to Oliver Schwartz).
+- Giant cleanup and rewite of the objects configuration routines:
+  we use runtime configuration istead of fixed tables now.
+- Cleanups and fixes.
+
+SiS 315
+- Added by Andreas Oberritter <obi@tuxbox.org>.
+- Rectangle Filling/Drawing, Line Drawing in 8, 16 and 32 bit
+- Blitting (with Source Color Keying) in 8 and 16 bit
+- Destination Color Keying, Clipping
+
+ATI Mach64
+- Added by Ville Syrjala <syrjala@sci.fi>.
+- Drawing and (Stretch)Blitting with keying, blending, conversion etc.
+- Video Overlay with source and destination color keying.
+- SGRAM block write support.
+- Added texture engine blitting code using power of two textures.
+
+ATI Radeon
+- Video Overlay support by Vadim Catana <vcatana@registru.md>.
+- State handling fixes.
+
+NSC Geode
+- Improvements by Ed Millard <emillard@direcway.com>.
+- Blitting on GX1, though it is constrained by hardware to only blit
+  surfaces whose width matches the stride of the frame buffer.
+
+LibMpeg3 Video Provider
+- Added FusionSound support for audio playback.
+- Moved to DirectFB-extra package.
+
+Linux Input
+- Take Linux Input key code as hardware keycode.
+- Use EVIOCGRAB ioctl to grab the device.
+- Primary mouse should actually be a mouse.
+- Added keyboard LED support.
+- Copied keymap support from the keyboard driver.
+- Support more axes.
+
+LIRC Input
+- Emulate keyboard like key repeat behaviour using select() with timeout
+  and a counter to drop the first two repeats.
+
+PS/2 Mouse Input
+- Added /dev/misc/psaux.
+- Just use one of "/dev/psaux" and "/dev/misc/psaux" if both are available.
+- Don't try them at all if uname() yields release "2.5.*" or "2.6.*".
+
+Serial Mouse Input
+- GPM repeater support by Micha Nelissen <micha@neli.hopto.org>.
+
+ELO Touchscreen Input
+- Added by Brandon M. Reynolds <breynolds@comtime.com>.
+
+SDL Input
+- Wheel event support by Tom Bridgwater <genuss@gmail.com>.
+
+
 0.9.20
 ------
 
