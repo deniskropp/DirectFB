@@ -101,6 +101,7 @@ fusion_reactor_new (int msg_size)
 {
      FusionReactor *reactor;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( msg_size > 0 );
 
      /* allocate shared reactor data */
@@ -140,7 +141,9 @@ fusion_reactor_attach (FusionReactor *reactor,
 {
      ReactorNode *node;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( reactor != NULL );
+     DFB_ASSERT( react != NULL );
      DFB_ASSERT( reaction != NULL );
 
      while (ioctl (_fusion_fd, FUSION_REACTOR_ATTACH, &reactor->id)) {
@@ -197,6 +200,7 @@ fusion_reactor_detach (FusionReactor *reactor,
 {
      ReactorNode *node;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
@@ -259,7 +263,7 @@ fusion_reactor_attach_global (FusionReactor  *reactor,
      reaction->ctx         = ctx;
      reaction->attached    = true;
 
-     /* prepend the reaction to the local reaction list */
+     /* prepend the reaction to the global reaction list */
      fusion_list_prepend (&reactor->globals, &reaction->link);
 
      fusion_skirmish_dismiss( &reactor->globals_lock );
@@ -305,6 +309,7 @@ fusion_reactor_dispatch (FusionReactor *reactor,
 {
      FusionReactorDispatch dispatch;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( msg_data != NULL );
 
@@ -346,6 +351,7 @@ fusion_reactor_dispatch (FusionReactor *reactor,
 FusionResult
 fusion_reactor_free (FusionReactor *reactor)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( reactor != NULL );
 
      fusion_skirmish_prevail( &reactor->globals_lock );
@@ -410,6 +416,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
      FusionLink  *l;
      ReactorNode *node;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( msg_data != NULL );
 
      node = lock_node( reactor_id, false );
@@ -610,6 +617,8 @@ fusion_reactor_new (int msg_size)
      pthread_mutexattr_t  attr;
      FusionReactor       *reactor;
 
+     DFB_ASSERT( msg_size > 0 );
+     
      reactor = (FusionReactor*)DFBCALLOC( 1, sizeof(FusionReactor) );
      if (!reactor)
           return NULL;
@@ -754,6 +763,8 @@ fusion_reactor_dispatch (FusionReactor *reactor,
 FusionResult
 fusion_reactor_free (FusionReactor *reactor)
 {
+     DFB_ASSERT( reactor != NULL );
+     
      reactor->reactions = NULL;
 
      pthread_mutex_destroy( &reactor->reactions_lock );

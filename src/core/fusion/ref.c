@@ -49,6 +49,7 @@
 FusionResult
 fusion_ref_init (FusionRef *ref)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
      
      while (ioctl (_fusion_fd, FUSION_REF_NEW, &ref->id)) {
@@ -70,6 +71,7 @@ fusion_ref_init (FusionRef *ref)
 FusionResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
 
      while (ioctl (_fusion_fd, global ?
@@ -99,6 +101,7 @@ fusion_ref_up (FusionRef *ref, bool global)
 FusionResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
      
      while (ioctl (_fusion_fd, global ?
@@ -130,6 +133,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 {
      int val;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
      DFB_ASSERT( refs != NULL );
 
@@ -157,6 +161,7 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 FusionResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
      
      while (ioctl (_fusion_fd, FUSION_REF_ZERO_LOCK, &ref->id)) {
@@ -181,6 +186,7 @@ fusion_ref_zero_lock (FusionRef *ref)
 FusionResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
      
      while (ioctl (_fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->id)) {
@@ -207,6 +213,7 @@ fusion_ref_zero_trylock (FusionRef *ref)
 FusionResult
 fusion_ref_unlock (FusionRef *ref)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
      
      while (ioctl (_fusion_fd, FUSION_REF_UNLOCK, &ref->id)) {
@@ -231,6 +238,7 @@ fusion_ref_unlock (FusionRef *ref)
 FusionResult
 fusion_ref_destroy (FusionRef *ref)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( ref != NULL );
 
      while (ioctl (_fusion_fd, FUSION_REF_DESTROY, &ref->id)) {

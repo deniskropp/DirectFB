@@ -75,6 +75,8 @@ fusion_init( int world, int *world_ret )
 {
      char buf[20];
 
+     DFB_ASSERT( world >= 0 );
+
      /* Check against multiple initialization. */
      if (_fusion_id) {
           /* Increment local reference counter. */
@@ -114,6 +116,7 @@ fusion_init( int world, int *world_ret )
      if (ioctl( _fusion_fd, FUSION_GET_ID, &_fusion_id )) {
           FPERROR( "FUSION_GET_ID failed!\n" );
           close( _fusion_fd );
+          _fusion_fd = -1;
           return -1;
      }
 
@@ -132,6 +135,7 @@ fusion_init( int world, int *world_ret )
           _fusion_id = 0;
 
           close( _fusion_fd );
+          _fusion_fd = -1;
           return -1;
      }
 
@@ -179,6 +183,7 @@ fusion_exit()
      _fusion_id = 0;
      
      close( _fusion_fd );
+     _fusion_fd = -1;
 }
 
 FusionResult
@@ -186,6 +191,8 @@ fusion_kill( int fusion_id, int signal, int timeout_ms )
 {
      FusionKill param;
 
+     DFB_ASSERT( _fusion_fd != -1 );
+     
      param.fusion_id  = fusion_id;
      param.signal     = signal;
      param.timeout_ms = timeout_ms;
@@ -294,6 +301,11 @@ fusion_read_loop( CoreThread *thread, void *arg )
 int
 fusion_init( int world, int *world_ret )
 {
+     DFB_ASSERT( world >= 0 );
+
+     if (ret_world)
+          *ret_world = 0;
+     
      return 1;
 }
 

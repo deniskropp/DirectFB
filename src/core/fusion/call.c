@@ -51,6 +51,7 @@ fusion_call_init (FusionCall        *call,
 {
      FusionCallNew call_new;
 
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( call != NULL );
      DFB_ASSERT( call->handler == NULL );
      DFB_ASSERT( handler != NULL );
@@ -89,8 +90,9 @@ fusion_call_execute (FusionCall *call,
                      void       *call_ptr,
                      int        *ret_val)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( call != NULL );
-
+     
      if (!call->handler)
           return FUSION_DESTROYED;
 
@@ -137,6 +139,8 @@ fusion_call_return (int call_id, int val)
 {
      FusionCallReturn call_ret = { call_id, val };
      
+     DFB_ASSERT( _fusion_fd != -1 );
+     
      while (ioctl (_fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
           switch (errno) {
                case EINTR:
@@ -159,6 +163,7 @@ fusion_call_return (int call_id, int val)
 FusionResult
 fusion_call_destroy (FusionCall *call)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( call != NULL );
      DFB_ASSERT( call->handler != NULL );
      

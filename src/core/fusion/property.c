@@ -50,6 +50,7 @@
 FusionResult
 fusion_property_init (FusionProperty *property)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
      
      while (ioctl (_fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
@@ -71,6 +72,7 @@ fusion_property_init (FusionProperty *property)
 FusionResult
 fusion_property_lease (FusionProperty *property)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
      
      while (ioctl (_fusion_fd, FUSION_PROPERTY_LEASE, &property->id)) {
@@ -97,6 +99,7 @@ fusion_property_lease (FusionProperty *property)
 FusionResult
 fusion_property_purchase (FusionProperty *property)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
      
      while (ioctl (_fusion_fd, FUSION_PROPERTY_PURCHASE, &property->id)) {
@@ -123,6 +126,7 @@ fusion_property_purchase (FusionProperty *property)
 FusionResult
 fusion_property_cede (FusionProperty *property)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
      
      while (ioctl (_fusion_fd, FUSION_PROPERTY_CEDE, &property->id)) {
@@ -147,6 +151,7 @@ fusion_property_cede (FusionProperty *property)
 FusionResult
 fusion_property_holdup (FusionProperty *property)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
      
      while (ioctl (_fusion_fd, FUSION_PROPERTY_HOLDUP, &property->id)) {
@@ -171,6 +176,7 @@ fusion_property_holdup (FusionProperty *property)
 FusionResult
 fusion_property_destroy (FusionProperty *property)
 {
+     DFB_ASSERT( _fusion_fd != -1 );
      DFB_ASSERT( property != NULL );
      
      while (ioctl (_fusion_fd, FUSION_PROPERTY_DESTROY, &property->id)) {
@@ -202,6 +208,8 @@ fusion_property_destroy (FusionProperty *property)
 FusionResult
 fusion_property_init (FusionProperty *property)
 {
+     DFB_ASSERT( property != NULL );
+     
      pthread_mutex_init (&property->fake.lock, NULL);
      pthread_cond_init (&property->fake.cond, NULL);
 
@@ -218,6 +226,8 @@ fusion_property_lease (FusionProperty *property)
 {
      FusionResult ret = FUSION_SUCCESS;
 
+     DFB_ASSERT( property != NULL );
+     
      pthread_mutex_lock (&property->fake.lock);
 
      /* Wait as long as the property is leased by another party. */
@@ -243,6 +253,8 @@ fusion_property_purchase (FusionProperty *property)
 {
      FusionResult ret = FUSION_SUCCESS;
 
+     DFB_ASSERT( property != NULL );
+     
      pthread_mutex_lock (&property->fake.lock);
 
      /* Wait as long as the property is leased by another party. */
@@ -270,6 +282,8 @@ fusion_property_purchase (FusionProperty *property)
 FusionResult
 fusion_property_cede (FusionProperty *property)
 {
+     DFB_ASSERT( property != NULL );
+     
      pthread_mutex_lock (&property->fake.lock);
 
      /* Simple error checking, maybe we should also check the owner. */
@@ -292,7 +306,9 @@ fusion_property_cede (FusionProperty *property)
 FusionResult
 fusion_property_holdup (FusionProperty *property)
 {
-     return FUSION_FAILURE;
+     DFB_ASSERT( property != NULL );
+     
+     return FUSION_SUCCESS;
 }
 
 /*
@@ -301,6 +317,8 @@ fusion_property_holdup (FusionProperty *property)
 FusionResult
 fusion_property_destroy (FusionProperty *property)
 {
+     DFB_ASSERT( property != NULL );
+     
      pthread_cond_destroy (&property->fake.cond);
      pthread_mutex_destroy (&property->fake.lock);
      
