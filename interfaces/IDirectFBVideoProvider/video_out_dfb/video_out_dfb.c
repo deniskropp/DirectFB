@@ -55,53 +55,51 @@
 #define U_BLUE_FACTOR   29032
 
 
-/* LookUp Tables */
 
-static uint8_t y_table[256];
+static struct
+{
+	uint8_t y[256];  /* luma    */
+	uint8_t cr[256]; /* chroma  */
+	int16_t vr[256]; /* v red   */
+	int16_t vg[256]; /* v green */
+	int16_t ug[256]; /* u green */
+	int16_t ub[256]; /* u blue  */
 
-static uint8_t cr_table[256];
-
-static int16_t v_red_table[256];
-
-static int16_t v_green_table[256];
-
-static int16_t u_green_table[256];
-
-static int16_t u_blue_table[256];
+} __attribute__ ((aligned( 2 ))) dm_table;
 
 
 #define GEN_Y() \
 {\
 	int y;\
 	y  = ((i + brightness) * contrast) >> 7;\
-	y_table[i] = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);\
+	dm_table.y[i] = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);\
 }
 
 #define GEN_CR() \
 {\
 	int cr;\
 	cr = (((i - 128) * saturation) >> 7) + 128;\
-	cr_table[i] = (cr < 0) ? 0 : ((cr > 0xff) ? 0xff : cr);\
+	dm_table.cr[i] = (cr < 0) ? 0 : ((cr > 0xff) ? 0xff : cr);\
 }
 
 #define GEN_VR() \
 {\
-	v_red_table[i] = ((cr_table[i] - 128) * V_RED_FACTOR) >> 14;\
+	dm_table.vr[i] = ((dm_table.cr[i] - 128) * V_RED_FACTOR) >> 14;\
 }
 
 #define GEN_VG() \
 {\
-	v_green_table[i] = ((cr_table[i] - 128) * -V_GREEN_FACTOR) >> 14;\
+	dm_table.vg[i] = ((dm_table.cr[i] - 128) * -V_GREEN_FACTOR) >> 14;\
 }
 
 #define GEN_UG() \
 {\
-	u_green_table[i] = ((cr_table[i] - 128) * -U_GREEN_FACTOR) >> 14;\
+	dm_table.ug[i] = ((dm_table.cr[i] - 128) * -U_GREEN_FACTOR) >> 14;\
 }
 
 #define GEN_UB() \
 {\
-	u_blue_table[i] = ((cr_table[i] - 128) * U_BLUE_FACTOR) >> 14;\
+	dm_table.ub[i] = ((dm_table.cr[i] - 128) * U_BLUE_FACTOR) >> 14;\
 }
 
 
@@ -123,15 +121,15 @@ static int16_t u_blue_table[256];
 {\
 	register int u = ui;\
 	register int v = vi;\
-	cr1 = v_red_table[v];\
-	cr2 = v_green_table[v] + u_green_table[u];\
-	cr3 = u_blue_table[u];\
+	cr1 = dm_table.vr[v];\
+	cr2 = dm_table.vg[v] + dm_table.ug[u];\
+	cr3 = dm_table.ub[u];\
 }
 
 #define YUV2RGB( yi ) \
 {\
 	register int y;\
-	y = y_table[yi];\
+	y = dm_table.y[yi];\
 	r = y + cr1;\
 	g = y + cr2;\
 	b = y + cr3;\
@@ -188,15 +186,15 @@ DFB_PFUNCTION( yuy2, yuy2 )
 
 		if (mmf & MMF_S)
 		{
-			pix  = cr_table[*(src + 1)] << 8;
-			pix |= cr_table[*(src + 3)] << 24;
+			pix  = dm_table.cr[*(src + 1)] << 8;
+			pix |= dm_table.cr[*(src + 3)] << 24;
 		} else
 			pix  = *((uint32_t*) src) & 0xff00ff00;
 
 		if (mmf & (MMF_B | MMF_C))
 		{
-			pix |= y_table[*src];
-			pix |= y_table[*(src + 2)] << 16;
+			pix |= dm_table.y[*src];
+			pix |= dm_table.y[*(src + 2)] << 16;
 		} else
 		{
 			pix |= *src;
@@ -208,15 +206,15 @@ DFB_PFUNCTION( yuy2, yuy2 )
 
 		if (mmf & MMF_S)
 		{
-			pix  = cr_table[*(src + 5)] << 8;
-			pix |= cr_table[*(src + 7)] << 24;
+			pix  = dm_table.cr[*(src + 5)] << 8;
+			pix |= dm_table.cr[*(src + 7)] << 24;
 		} else
 			pix  = *((uint32_t*) (src + 4)) & 0xff00ff00;
 
 		if (mmf & (MMF_B | MMF_C))
 		{
-			pix |= y_table[*(src + 4)];
-			pix |= y_table[*(src + 6)] << 16;
+			pix |= dm_table.y[*(src + 4)];
+			pix |= dm_table.y[*(src + 6)] << 16;
 		} else
 		{
 			pix |= *(src + 4);
@@ -246,15 +244,15 @@ DFB_PFUNCTION( yuy2, uyvy )
 
 		if (mmf & MMF_S)
 		{
-			pix  = cr_table[*(src + 1)];
-			pix |= cr_table[*(src + 3)] << 16;
+			pix  = dm_table.cr[*(src + 1)];
+			pix |= dm_table.cr[*(src + 3)] << 16;
 		} else
 			pix  = (*((uint32_t*) src) >> 8) & 0xff00ff;
 		
 		if (mmf & (MMF_B | MMF_C))
 		{
-			pix |= y_table[*src] << 8;
-			pix |= y_table[*(src + 2)] << 24;
+			pix |= dm_table.y[*src] << 8;
+			pix |= dm_table.y[*(src + 2)] << 24;
 		} else
 		{
 			pix |= *src << 8;
@@ -266,15 +264,15 @@ DFB_PFUNCTION( yuy2, uyvy )
 		
 		if (mmf & MMF_S)
 		{
-			pix  = cr_table[*(src + 5)];
-			pix |= cr_table[*(src + 7)] << 16;
+			pix  = dm_table.cr[*(src + 5)];
+			pix |= dm_table.cr[*(src + 7)] << 16;
 		} else
 			pix  = (*((uint32_t*) (src + 4)) >> 8) & 0xff00ff;
 
 		if (mmf & (MMF_B | MMF_C))
 		{
-			pix |= y_table[*(src + 4)] << 8;
-			pix |= y_table[*(src + 6)] << 24;
+			pix |= dm_table.y[*(src + 4)] << 8;
+			pix |= dm_table.y[*(src + 6)] << 24;
 		} else
 		{
 			pix |= *(src + 4) << 8;
@@ -319,17 +317,17 @@ DFB_PFUNCTION( yuy2, yv12 )
 
 		if (mmf & (MMF_B | MMF_C))
 		{
-			chunk  = y_table[*src];
-			chunk |= y_table[*(src + 2)] << 8;
-			chunk |= y_table[*(src + 4)] << 16;
-			chunk |= y_table[*(src + 6)] << 24;
+			chunk  = dm_table.y[*src];
+			chunk |= dm_table.y[*(src + 2)] << 8;
+			chunk |= dm_table.y[*(src + 4)] << 16;
+			chunk |= dm_table.y[*(src + 6)] << 24;
 
 			*((uint32_t*) dsty) = chunk;
 
-			chunk  = y_table[*(src + p)];
-			chunk |= y_table[*(src + p + 2)] << 8;
-			chunk |= y_table[*(src + p + 4)] << 16;
-			chunk |= y_table[*(src + p + 6)] << 24;
+			chunk  = dm_table.y[*(src + p)];
+			chunk |= dm_table.y[*(src + p + 2)] << 8;
+			chunk |= dm_table.y[*(src + p + 4)] << 16;
+			chunk |= dm_table.y[*(src + p + 6)] << 24;
 
 			*((uint32_t*) (dsty + pitch)) = chunk;
 		} else
@@ -355,20 +353,20 @@ DFB_PFUNCTION( yuy2, yv12 )
 			
 			cr          = (*(src + 1)    +
 			               *(src + p + 1)) >> 1;
-			*dstu       = cr_table[cr];
+			*dstu       = dm_table.cr[cr];
 
 
 			cr          = (*(src + 5)   +
                                        *(src + p + 5)) >> 1;
-			*(dstu + 1) = cr_table[cr];
+			*(dstu + 1) = dm_table.cr[cr];
 
 			cr          = (*(src + 3)   +
 			               *(src + p + 3)) >> 1;
-			*dstv       = cr_table[cr];
+			*dstv       = dm_table.cr[cr];
 
 			cr          = (*(src + 7)   +
 			               *(src + p + 7)) >> 1;
-			*(dstv + 1) = cr_table[cr];
+			*(dstv + 1) = dm_table.cr[cr];
 		} else
 		{
 			*dstu       = (*(src + 1)   +
@@ -603,8 +601,8 @@ DFB_PFUNCTION( yv12, yuy2 )
 			
 			if (mmf & MMF_S)
 			{
-				pix  = cr_table[srcu[i]] << 8;
-				pix |= cr_table[srcv[i]] << 24;
+				pix  = dm_table.cr[srcu[i]] << 8;
+				pix |= dm_table.cr[srcv[i]] << 24;
 			} else
 			{
 				pix  = srcu[i] << 8;
@@ -613,8 +611,8 @@ DFB_PFUNCTION( yv12, yuy2 )
 			
 			if (mmf & (MMF_B | MMF_C))
 			{
-				pix |= y_table[*srcy];
-				pix |= y_table[*(srcy + 1)] << 16;
+				pix |= dm_table.y[*srcy];
+				pix |= dm_table.y[*(srcy + 1)] << 16;
 			} else
 			{
 				pix |= *srcy;
@@ -627,8 +625,8 @@ DFB_PFUNCTION( yv12, yuy2 )
 
 			if (mmf & (MMF_B | MMF_C))
 			{
-				pix |= y_table[*(srcy + yp)];
-				pix |= y_table[*(srcy + yp + 1)] << 16;
+				pix |= dm_table.y[*(srcy + yp)];
+				pix |= dm_table.y[*(srcy + yp + 1)] << 16;
 			} else
 			{
 				pix |= *(srcy + yp);
@@ -669,8 +667,8 @@ DFB_PFUNCTION( yv12, uyvy )
 
 			if (mmf & MMF_S)
 			{
-				pix  = cr_table[srcu[i]];
-				pix |= cr_table[srcv[i]] << 16;
+				pix  = dm_table.cr[srcu[i]];
+				pix |= dm_table.cr[srcv[i]] << 16;
 			} else
 			{
 				pix  = srcu[i];
@@ -679,8 +677,8 @@ DFB_PFUNCTION( yv12, uyvy )
 
 			if (mmf & (MMF_B | MMF_C))
 			{
-				pix |= y_table[*srcy] << 8;
-				pix |= y_table[*(srcy + 1)] << 24;
+				pix |= dm_table.y[*srcy] << 8;
+				pix |= dm_table.y[*(srcy + 1)] << 24;
 			} else
 			{
 				pix |= *srcy << 8;
@@ -693,8 +691,8 @@ DFB_PFUNCTION( yv12, uyvy )
 			
 			if (mmf & (MMF_B | MMF_C))
 			{
-				pix |= y_table[*(srcy + yp)] << 8;
-				pix |= y_table[*(srcy + yp + 1)] << 24;
+				pix |= dm_table.y[*(srcy + yp)] << 8;
+				pix |= dm_table.y[*(srcy + yp + 1)] << 24;
 			} else
 			{
 				pix |= *(srcy + yp) << 8;
@@ -747,7 +745,7 @@ DFB_PFUNCTION( yv12, yv12 )
 	{
 		do
 		{
-			*dsty++ = y_table[*srcy++];
+			*dsty++ = dm_table.y[*srcy++];
 
 		} while (--ys);
 
@@ -758,8 +756,8 @@ DFB_PFUNCTION( yv12, yv12 )
 	{
 		do
 		{
-			*dstu++ = cr_table[*srcu++];
-			*dstv++ = cr_table[*srcv++];
+			*dstu++ = dm_table.cr[*srcu++];
+			*dstv++ = dm_table.cr[*srcv++];
 
 		} while (--crs);
 
@@ -1105,6 +1103,9 @@ dfb_proc_frame( vo_frame_t *vo_frame )
 		dst   = (uint8_t*) frame->surface->back_buffer->system.addr;
 		pitch = (uint32_t) frame->surface->back_buffer->system.pitch;
 
+		if ((long) dst & 7)
+			puts( "\nMEMORY NOT ALIGNED !!\n" );
+
 		SPEED( frame->procf( (dfb_driver_t*) vo_frame->driver,
 					 frame, dst, pitch ) );
 	}
@@ -1156,9 +1157,13 @@ failure:
 
 
 static void
-dfb_update_frame_format( vo_driver_t *vo_driver, vo_frame_t *vo_frame,
-			 uint32_t width, uint32_t height, double ratio,
-			 int format, int flags )
+dfb_update_frame_format( vo_driver_t *vo_driver,
+                         vo_frame_t  *vo_frame,
+                         uint32_t     width,
+                         uint32_t     height,
+                         double       ratio,
+                         int          format,
+                         int          flags )
 {
 	dfb_driver_t *this   = (dfb_driver_t*) vo_driver;
 	dfb_frame_t  *frame  = (dfb_frame_t*) vo_frame;
@@ -1176,8 +1181,8 @@ dfb_update_frame_format( vo_driver_t *vo_driver, vo_frame_t *vo_frame,
 	frame->imgfmt.prev = frame->imgfmt.cur;
 	frame->dstfmt.prev = frame->dstfmt.cur;
 
-	frame->width.cur   = ((width + 3) >> 2) << 2;
-	frame->height.cur  = height + (height & 1);
+	frame->width.cur   = (width + 3) & ~3;
+	frame->height.cur  = (height + 1) & ~1;
 	frame->imgfmt.cur  = format;
 	frame->dstfmt.cur  = this->dest_data->surface->format;
 	frame->ratio       = ratio;
@@ -1284,8 +1289,9 @@ failure:
 
 
 static void
-dfb_overlay_blend( vo_driver_t *vo_driver, vo_frame_t *vo_frame,
-			vo_overlay_t *overlay )
+dfb_overlay_blend( vo_driver_t  *vo_driver,
+                      vo_frame_t   *vo_frame,
+                      vo_overlay_t *overlay )
 {
 	dfb_frame_t *frame = (dfb_frame_t*) vo_frame;
 
@@ -1335,7 +1341,8 @@ dfb_redraw_needed( vo_driver_t *vo_driver )
 
 
 static void
-dfb_display_frame( vo_driver_t *vo_driver, vo_frame_t *vo_frame )
+dfb_display_frame( vo_driver_t *vo_driver,
+                   vo_frame_t  *vo_frame )
 {
 	dfb_driver_t *this      = (dfb_driver_t*) vo_driver;
 	dfb_frame_t  *frame     = (dfb_frame_t*) vo_frame;
@@ -1350,8 +1357,8 @@ dfb_display_frame( vo_driver_t *vo_driver, vo_frame_t *vo_frame )
 	src_rect.w = frame->width.cur;
 	src_rect.h = frame->height.cur;
 
-	this->output_cb( this->output_cdata, frame->width.cur,
-			 frame->height.cur, frame->ratio, &rect );
+	this->output_cb( this->output_cdata, frame->vo_frame.width,
+			 frame->vo_frame.height, frame->ratio, &rect );
 
 	dst_rect    = rect;
 	dst_rect.x += this->dest_data->area.wanted.x;
@@ -1401,7 +1408,8 @@ failure:
 
 
 static void
-dfb_tables_regen( dfb_driver_t *this, int flags )
+dfb_tables_regen( dfb_driver_t *this,
+                  int           flags )
 {
 	int brightness = this->mixer.b + this->correction.used;
 	int contrast   = this->mixer.c;
@@ -1472,7 +1480,8 @@ dfb_tables_regen( dfb_driver_t *this, int flags )
 
 
 static int
-dfb_get_property( vo_driver_t *vo_driver, int property )
+dfb_get_property( vo_driver_t *vo_driver,
+                  int          property )
 {
 	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
@@ -1528,7 +1537,9 @@ failure:
 
 
 static int
-dfb_set_property( vo_driver_t *vo_driver, int property, int value )
+dfb_set_property( vo_driver_t *vo_driver,
+                  int          property,
+                  int          value )
 {
 	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
@@ -1593,8 +1604,10 @@ failure:
 
 
 static void
-dfb_get_property_min_max( vo_driver_t *vo_driver, int property,
-		          int *min, int *max )
+dfb_get_property_min_max( vo_driver_t *vo_driver,
+                          int          property,
+                          int         *min,
+                          int         *max )
 {
 	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
@@ -1639,7 +1652,8 @@ failure:
 
 static int
 dfb_gui_data_exchange( vo_driver_t *vo_driver,
-		       int data_type, void *data )
+                       int          data_type,
+                       void        *data )
 {
 	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
@@ -1755,7 +1769,8 @@ dfb_dispose( vo_driver_t *vo_driver )
 
 
 static vo_driver_t*
-open_plugin( video_driver_class_t *vo_class, const void *vo_visual )
+open_plugin( video_driver_class_t *vo_class,
+             const void           *vo_visual )
 {
 	dfb_driver_class_t *class  = (dfb_driver_class_t*) vo_class;
 	dfb_visual_t       *visual = (dfb_visual_t*) vo_visual;
@@ -1769,7 +1784,7 @@ open_plugin( video_driver_class_t *vo_class, const void *vo_visual )
 		fprintf( stderr, "DFB [Unofficial DirectFB video driver]\n" );
 
 	TEST( this = (dfb_driver_t*) calloc( 1, sizeof(dfb_driver_t) ) );
-
+	
 	this->verbosity = class->xine->verbosity;
 
 	this->vo_driver.get_capabilities     = dfb_get_capabilities;
@@ -1913,11 +1928,12 @@ dispose_class( video_driver_class_t *vo_class )
 
 
 static void*
-init_class( xine_t *xine, void *vo_visual )
+init_class( xine_t *xine,
+            void   *vo_visual )
 {
 	dfb_driver_class_t *class = NULL;
 
-	TEST(xine != NULL);
+	TEST( xine != NULL );
 
 	TEST( class = (dfb_driver_class_t*) calloc( 1, sizeof(dfb_driver_class_t) ) );
 
