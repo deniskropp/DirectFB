@@ -229,10 +229,9 @@ ps2mouseEventThread( void *driver_data )
 }
 
 
-static int
-ps2GetId( int fd, int verbose )
+static
+int ps2WriteChar( int fd, unsigned char c, int verbose )
 {
-     unsigned char c = PS2_SEND_ID;
      struct timeval tv;
      fd_set fds;
 
@@ -249,19 +248,31 @@ ps2GetId( int fd, int verbose )
      if ( select(fd+1, &fds, NULL, NULL, &tv) == 0 ) {
           if ( verbose )
                ERRORMSG( "DirectFB/PS2Mouse: timeout waiting for ack!!\n" );
-          return PS2_ID_ERROR;
+          return -1;
      }
 
-     read(fd, &c, 1);
+     read( fd, &c, 1 );
 
      if ( c != PS2_ACK )
+          return -2;
+
+     return 0;
+}
+
+
+static
+int ps2GetId( int fd, int verbose )
+{
+     unsigned char c;
+
+     if ( ps2WriteChar(fd, PS2_SEND_ID, verbose) < 0 )
           return PS2_ID_ERROR;
 
-     read(fd, &c, 1);
+     read( fd, &c, 1 );
 
-     tcflush (fd, TCIOFLUSH);
+     tcflush( fd, TCIOFLUSH );
 
-     return(c);
+     return( c );
 }
 
 
@@ -271,25 +282,8 @@ ps2Write( int fd, const unsigned char *data, size_t len, int verbose)
      int i;
      int error = 0;
 
-     tcflush (fd, TCIOFLUSH);
-
      for ( i = 0; i < len; i++ ) {
-          unsigned char c = 0;
-          struct timeval tv;
-          fd_set fds;
-
-          tv.tv_sec = 0;
-          tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
-
-          FD_ZERO( &fds );
-          FD_SET( fd, &fds );
-
-          write( fd, &data[i], 1 );
-
-          if ( select(fd+1, &fds, NULL, NULL, &tv) )
-               read(fd, &c, 1);
-
-          if ( c != PS2_ACK ) {
+          if ( ps2WriteChar(fd, data[i], verbose) < 0 ) {
                if ( verbose )
                     ERRORMSG( "DirectFB/PS2Mouse: error @byte %i\n", i );
                error++;
@@ -301,7 +295,7 @@ ps2Write( int fd, const unsigned char *data, size_t len, int verbose)
      if ( error && verbose )
           ERRORMSG( "DirectFB/PS2Mouse: missed %i ack's!\n", error);
 
-     return(error);
+     return( error );
 }
 
 
