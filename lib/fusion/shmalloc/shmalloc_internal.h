@@ -76,9 +76,10 @@ void  _fusion_shfree (void *__ptr);
 
 
 
-void *__shmalloc_init (int world, bool initialize);
-void *__shmalloc_brk  (int increment);
-void  __shmalloc_exit (bool shutdown);
+void *__shmalloc_init  (int world, bool initialize);
+void  __shmalloc_attach();
+void *__shmalloc_brk   (int increment);
+void  __shmalloc_exit  (bool shutdown, bool detach);
 
 void *__shmalloc_allocate_root (size_t size);
 void *__shmalloc_get_root();

@@ -178,7 +178,7 @@ fusion_init( int world, int abi_version, int *world_ret )
 
                _fusion_shared = NULL;
 
-               __shmalloc_exit( false );
+               __shmalloc_exit( false, false );
 
                _fusion_id = 0;
 
@@ -188,6 +188,8 @@ fusion_init( int world, int abi_version, int *world_ret )
                return -1;
           }
      }
+
+     __shmalloc_attach();
 
      direct_clock_set_start( &_fusion_shared->start_time );
 
@@ -240,7 +242,7 @@ fusion_exit()
      _fusion_shared = NULL;
 
      /* Deinitialize or leave shared memory. */
-     __shmalloc_exit( _fusion_id == 1 );
+     __shmalloc_exit( _fusion_id == 1, true );
 
      /* Reset local dispatch nodes. */
      _fusion_reactor_free_all();

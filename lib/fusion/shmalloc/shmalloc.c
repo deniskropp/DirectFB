@@ -374,7 +374,8 @@ _fusion_shmalloc (size_t size)
 
 /******************************************************************************/
 
-void *__shmalloc_init (int world, bool initialize)
+void *
+__shmalloc_init (int world, bool initialize)
 {
      struct stat st;
 
@@ -473,12 +474,17 @@ void *__shmalloc_init (int world, bool initialize)
           _sheap->reactor  = fusion_reactor_new (sizeof(int));
      }
 
-     fusion_reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
-
      return mem;
 }
 
-void *__shmalloc_brk (int increment)
+void
+__shmalloc_attach()
+{
+     fusion_reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
+}
+
+void *
+__shmalloc_brk (int increment)
 {
      D_DEBUG( "Fusion/SHM: __shmalloc_brk( %d + %d -> %d )\n", size, increment, size + increment );
 
@@ -548,14 +554,15 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
      return RS_OK;
 }
 
-void __shmalloc_exit (bool shutdown)
+void __shmalloc_exit (bool shutdown, bool detach)
 {
      if (!mem)
           return;
 
      if (_sheap) {
           /* Detach from reactor */
-          fusion_reactor_detach (_sheap->reactor, &reaction);
+          if (detach)
+               fusion_reactor_detach (_sheap->reactor, &reaction);
 
           /* Destroy reactor & skirmish */
           if (shutdown) {
