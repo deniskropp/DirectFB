@@ -60,6 +60,31 @@ DECLARE_INTERFACE( IFusionSoundPlayback )
 DECLARE_INTERFACE( IFusionSoundMusicProvider )
 
 /*
+ * Parses the command-line and initializes some variables. You absolutely need to
+ * call this before doing anything else. Removes all options used by FusionSound from argv.
+ */
+DFBResult FusionSoundInit(
+                           int   *argc,   /* pointer to main()'s argc */
+                           char **argv[]  /* pointer to main()'s argv */
+                         );
+
+/*
+ * Sets configuration parameters supported on command line and in config file.
+ * Can only be called before FusionSoundCreate but after FusionSoundInit.
+ */
+DFBResult FusionSoundSetOption(
+                                const char *name,
+                                const char *value
+                              );
+
+/*
+ * Creates the super interface.
+ */
+DFBResult FusionSoundCreate(
+                             IFusionSound **ret_interface  /* pointer to the created interface */
+                           );
+
+/*
  * The sample format is the way of storing audible information.
  *
  * Data is always stored in <b>native endian</b>. This keeps the library and

@@ -36,25 +36,27 @@
 
 #include <sys/soundcard.h>
 
+#include <direct/build.h>
 #include <direct/list.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <fusion/arena.h>
+#include <fusion/build.h>
+#include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/object.h>
 
-#include <core/coredefs.h>
-#include <core/core.h>
-#include <core/thread.h>
-
-#include <misc/util.h>
+#include <misc/conf.h>   /* FIXME */
 
 #include <core/core_sound.h>
 #include <core/playback.h>
 #include <core/sound_buffer.h>
+
+#define DIRECTFB_CORE_ABI     16   /* FIXME */
 
 /******************************************************************************/
 
@@ -88,13 +90,15 @@ struct __FS_CoreSoundShared {
 struct __FS_CoreSound {
      int              refs;
 
+     int              fusion_id;
+
      FusionArena     *arena;
 
      CoreSoundShared *shared;
 
      bool             master;
      int              fd;
-     CoreThread      *sound_thread;
+     DirectThread    *sound_thread;
 };
 
 /******************************************************************************/
@@ -113,12 +117,16 @@ static int fs_core_arena_shutdown  ( FusionArena *arena,
 /******************************************************************************/
 
 static CoreSound       *core_sound      = NULL;
-static pthread_mutex_t  core_sound_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  core_sound_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 
 DFBResult
 fs_core_create( CoreSound **ret_core )
 {
      int        ret;
+     int        world;
+#if FUSION_BUILD_MULTI
+     char       buf[16];
+#endif
      CoreSound *core;
 
      D_ASSERT( ret_core != NULL );
@@ -148,6 +156,27 @@ fs_core_create( CoreSound **ret_core )
           pthread_mutex_unlock( &core_sound_lock );
           return DFB_NOSYSTEMMEMORY;
      }
+
+     core->fusion_id = fusion_init( dfb_config->session,
+#if DIRECT_BUILD_DEBUG
+                                    -DIRECTFB_CORE_ABI,
+#else
+                                    DIRECTFB_CORE_ABI,
+#endif
+                                    &world );
+     if (core->fusion_id < 0) {
+          D_FREE( core );
+          pthread_mutex_unlock( &core_sound_lock );
+          return DFB_FUSION;
+     }
+
+#if FUSION_BUILD_MULTI
+     D_DEBUG( "FusionSound/Core: world %d, fusion id %d\n", world, core->fusion_id );
+
+     snprintf( buf, sizeof(buf), "%d", world );
+
+     setenv( "DIRECTFB_SESSION", buf, true );
+#endif
 
      /* Initialize the references. */
      core->refs = 1;
@@ -191,14 +220,35 @@ fs_core_destroy( CoreSound *core )
      }
 
      /* Exit the FusionSound core arena. */
-     while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
-                               core->master ? NULL : fs_core_arena_leave,
-                               core, false, NULL ) == FUSION_INUSE)
+     if (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
+                            core->master ? NULL : fs_core_arena_leave,
+                            core, false, NULL ) == FUSION_INUSE)
      {
+          D_WARN( "forking to wait until all slaves terminated" );
+
           /* FIXME: quick hack to solve the dfb-slave-but-fs-master problem. */
-          D_ONCE( "waiting for sound slaves to terminate" );
-          usleep( 100000 );
+          switch (fork()) {
+               case -1:
+                    D_PERROR( "FusionSound/Core: fork() failed!\n" );
+
+                    while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
+                                              core->master ? NULL : fs_core_arena_leave,
+                                              core, false, NULL ) == FUSION_INUSE)
+                         usleep( 100000 );
+
+                    break;
+
+               case 0:
+                    while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
+                                              core->master ? NULL : fs_core_arena_leave,
+                                              core, false, NULL ) == FUSION_INUSE)
+                         usleep( 100000 );
+
+                    _exit(0);
+          }
      }
+
+     fusion_exit();
 
      /* Deallocate local core structure. */
      D_FREE( core );
@@ -329,7 +379,7 @@ fs_core_output_delay( CoreSound *core )
 /******************************************************************************/
 
 static void *
-sound_thread( CoreThread *thread, void *arg )
+sound_thread( DirectThread *thread, void *arg )
 {
      CoreSound       *core    = arg;
      CoreSoundShared *shared  = core->shared;
@@ -350,7 +400,7 @@ sound_thread( CoreThread *thread, void *arg )
           audio_buf_info  info;
           DirectLink     *next, *l;
 
-          dfb_thread_testcancel( thread );
+          direct_thread_testcancel( thread );
 
           if (! ioctl( core->fd, SNDCTL_DSP_GETOSPACE, &info )) {
                int buffered = info.fragsize * info.fragstotal - info.bytes;
@@ -505,7 +555,7 @@ fs_core_initialize( CoreSound *core )
      shared->playback_pool = fs_playback_pool_create();
 
      /* create sound thread */
-     core->sound_thread = dfb_thread_create( CTT_CRITICAL, sound_thread, core );
+     core->sound_thread = direct_thread_create( DTT_CRITICAL, sound_thread, core, "Sound Mixer" );
 
      return DFB_OK;
 }
@@ -541,9 +591,9 @@ fs_core_shutdown( CoreSound *core )
      D_ASSERT( shared->playback_pool != NULL );
 
      /* stop sound thread */
-     dfb_thread_cancel( core->sound_thread );
-     dfb_thread_join( core->sound_thread );
-     dfb_thread_destroy( core->sound_thread );
+     direct_thread_cancel( core->sound_thread );
+     direct_thread_join( core->sound_thread );
+     direct_thread_destroy( core->sound_thread );
 
      /* flush pending sound data so we don't have to wait */
      ioctl( core->fd, SNDCTL_DSP_RESET, 0 );

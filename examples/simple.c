@@ -13,26 +13,21 @@
 int main (int argc, char *argv[])
 {
      DFBResult            ret;
-     IDirectFB           *dfb;
      IFusionSound        *sound;
      IFusionSoundBuffer  *buffer;
 
-     ret = DirectFBInit (&argc, &argv);
+     ret = FusionSoundInit (&argc, &argv);
      if (ret)
-          DirectFBErrorFatal ("DirectFBInit", ret);
+          DirectFBErrorFatal ("FusionSoundInit", ret);
 
      if (argc != 2) {
           fprintf (stderr, "\nUsage: %s <filename>\n", argv[0]);
           return -1;
      }
 
-     ret = DirectFBCreate (&dfb);
+     ret = FusionSoundCreate (&sound);
      if (ret)
-          DirectFBErrorFatal ("DirectFBCreate", ret);
-
-     ret = dfb->GetInterface (dfb, "IFusionSound", NULL, NULL, (void**) &sound);
-     if (ret)
-          DirectFBErrorFatal ("IDirectFB::GetInterface", ret);
+          DirectFBErrorFatal ("FusionSoundCreate", ret);
 
      buffer = load_sample (sound, argv[1]);
      if (buffer) {
@@ -44,8 +39,6 @@ int main (int argc, char *argv[])
      }
 
      sound->Release (sound);
-     dfb->Release (dfb);
 
      return 0;
 }
-

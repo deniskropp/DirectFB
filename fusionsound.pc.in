@@ -7,5 +7,5 @@ Name: FusionSound
 Requires: directfb
 Description: Multi application sound streaming and mixing
 Version: @VERSION@
-Libs: 
+Libs: -L${libdir} -lfusionsound
 Cflags: -I@INCLUDEDIR@

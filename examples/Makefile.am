@@ -2,7 +2,7 @@
 
 INCLUDES = -I$(top_srcdir)/include $(DFB_CFLAGS) $(LITE_CFLAGS)
 
-LIBADDS = $(DFB_LIBS) -lm
+LIBADDS = $(DFB_LIBS) -lm $(top_builddir)/src/libfusionsound.la
 
 EXTRA_DIST = \
 	test.wav	\
