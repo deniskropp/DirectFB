@@ -242,7 +242,7 @@ if test "x$have_x86" = xyes; then
 
   AC_DEFINE(HAVE_INB_OUTB_IOPL,1,
             [Define to 1 if inb, outb and iopl are available.])
-  AC_MSG_CHECKING([for sysio.h])
+  AC_MSG_CHECKING([for sys/io.h])
   AC_TRY_COMPILE([#include <sys/io.h>], [char x = inb(0); (void)x;], 
     AC_DEFINE(HAVE_SYSIO,1,
               [Define to 1 if you have the <sys/io.h> header file.])
@@ -776,7 +776,7 @@ AC_EGREP_CPP(yes, [
 fi
 
 dnl Test for cle266 framebuffer support in the kernel
-if test x$checkfor_cle266 = xyes; then
+if test x$checkfor_cle266 = xyes && test x$have_sysio = xyes; then
 AC_EGREP_CPP(yes, [
   yes
 ], cle266=yes, 
