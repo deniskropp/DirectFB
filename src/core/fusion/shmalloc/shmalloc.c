@@ -161,8 +161,6 @@ shmalloc (size_t size)
      register size_t i;
      struct list *next;
 
-     printf("shmalloc (%d)\n", size);
-
      /* Some programs will call shmalloc (0). We let them pass. */
 #if 1
      if (size == 0)
