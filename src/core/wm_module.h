@@ -36,20 +36,26 @@
 static void      wm_get_info       ( CoreWMInfo             *info );
 
 static DFBResult wm_initialize     ( CoreDFB                *core,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
 static DFBResult wm_join           ( CoreDFB                *core,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
 static DFBResult wm_shutdown       ( bool                    emergency,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
 static DFBResult wm_leave          ( bool                    emergency,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
-static DFBResult wm_suspend        ( void                   *wm_data );
+static DFBResult wm_suspend        ( void                   *wm_data,
+                                     void                   *shared_data );
 
-static DFBResult wm_resume         ( void                   *wm_data );
+static DFBResult wm_resume         ( void                   *wm_data,
+                                     void                   *shared_data );
 
 
 /** Stack **/

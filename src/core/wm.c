@@ -60,6 +60,9 @@ typedef struct {
 typedef struct {
      char       *name;
      CoreWMInfo  info;
+     void       *data;
+
+     int         abi;
 } CoreWMShared;
 
 DFB_CORE_PART( wm, sizeof(CoreWMLocal), sizeof(CoreWMShared) )
@@ -124,13 +127,11 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Load the module. */
      ret = load_module( dfb_config->wm );
-     if (ret) {
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
-     }
+     if (ret)
+          goto error;
 
      D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->GetWMInfo != NULL );
      D_ASSERT( wm_local->funcs->Initialize != NULL );
 
      /* Query module information. */
@@ -140,46 +141,67 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
      D_ASSERT( wm_shared->info.stack_data_size > 0 );
      D_ASSERT( wm_shared->info.window_data_size > 0 );
 
-     D_INFO( "DirectFB/WM: %s %d.%d (%s)\n",
+     D_INFO( "DirectFB/Core/WM: %s %d.%d (%s)\n",
              wm_shared->info.name, wm_shared->info.version.major,
              wm_shared->info.version.minor, wm_shared->info.vendor );
+
+     ret = DFB_NOSYSTEMMEMORY;
 
      /* Store module name in shared memory. */
      wm_shared->name = SHSTRDUP( wm_local->module->name );
      if (!wm_shared->name) {
           D_WARN( "out of (shared) memory" );
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
+          goto error;
      }
 
-     /* Allocate window manager data. */
-     wm_local->data = D_CALLOC( 1, wm_shared->info.wm_data_size );
-     if (!wm_local->data) {
-          D_WARN( "out of memory" );
-          SHFREE( wm_shared->name );
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
+     /* Allocate shared window manager data. */
+     if (wm_shared->info.wm_shared_size) {
+          wm_shared->data = SHCALLOC( 1, wm_shared->info.wm_shared_size );
+          if (!wm_shared->data) {
+               D_WARN( "out of (shared) memory" );
+               goto error;
+          }
+     }
+
+     /* Allocate local window manager data. */
+     if (wm_shared->info.wm_data_size) {
+          wm_local->data = D_CALLOC( 1, wm_shared->info.wm_data_size );
+          if (!wm_local->data) {
+               D_WARN( "out of memory" );
+               goto error;
+          }
      }
 
      /* Initialize window manager. */
-     ret = wm_local->funcs->Initialize( core, wm_local->data );
+     ret = wm_local->funcs->Initialize( core, wm_local->data, wm_shared->data );
      if (ret) {
-          SHFREE( wm_shared->name );
-          D_FREE( wm_local->data );
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
+          D_DERROR( ret, "DirectFB/Core/WM: Could not initialize window manager!\n" );
+          goto error;
      }
 
      return DFB_OK;
+
+error:
+     if (wm_local->data)
+          D_FREE( wm_local->data );
+
+     if (wm_shared->data)
+          SHFREE( wm_shared->data );
+
+     if (wm_shared->name)
+          SHFREE( wm_shared->name );
+
+     wm_local = NULL;
+     wm_shared = NULL;
+
+     return ret;
 }
 
 static DFBResult
 dfb_wm_join( CoreDFB *core, void *data_local, void *data_shared )
 {
-     DFBResult ret;
+     DFBResult  ret;
+     CoreWMInfo info;
 
      D_ASSERT( wm_local == NULL );
      D_ASSERT( wm_shared == NULL );
@@ -189,34 +211,52 @@ dfb_wm_join( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Load the module that is used by the running session. */
      ret = load_module( wm_shared->name );
-     if (ret) {
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
-     }
+     if (ret)
+          goto error;
 
      D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->GetWMInfo != NULL );
      D_ASSERT( wm_local->funcs->Join != NULL );
+
+     /* Query module information. */
+     wm_local->funcs->GetWMInfo( &info );
+
+     /* Check version numbers. */
+     if (info.version.major != wm_shared->info.version.major ||
+         info.version.minor != wm_shared->info.version.minor)
+     {
+          D_ERROR( "DirectFB/Core/WM: Version of running instance (%d.%d) does not match %d.%d!\n",
+                   wm_shared->info.version.major, wm_shared->info.version.minor,
+                   info.version.major, info.version.minor );
+          ret = DFB_UNSUPPORTED;
+          goto error;
+     }
 
      /* Allocate window manager data. */
      wm_local->data = D_CALLOC( 1, wm_shared->info.wm_data_size );
      if (!wm_local->data) {
           D_WARN( "out of memory" );
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
+          ret = DFB_NOSYSTEMMEMORY;
+          goto error;
      }
 
      /* Join window manager. */
-     ret = wm_local->funcs->Join( core, wm_local->data );
+     ret = wm_local->funcs->Join( core, wm_local->data, wm_shared->data );
      if (ret) {
-          D_FREE( wm_local->data );
-          wm_local = NULL;
-          wm_shared = NULL;
-          return ret;
+          D_DERROR( ret, "DirectFB/Core/WM: Could not join window manager!\n" );
+          goto error;
      }
 
      return DFB_OK;
+
+error:
+     if (wm_local->data)
+          D_FREE( wm_local->data );
+
+     wm_local = NULL;
+     wm_shared = NULL;
+
+     return ret;
 }
 
 static DFBResult
@@ -230,13 +270,18 @@ dfb_wm_shutdown( CoreDFB *core, bool emergency )
      D_ASSERT( wm_shared != NULL );
 
      /* Shutdown window manager. */
-     ret = wm_local->funcs->Shutdown( emergency, wm_local->data );
+     ret = wm_local->funcs->Shutdown( emergency, wm_local->data, wm_shared->data );
 
      /* Unload the module. */
      direct_module_unref( wm_local->module );
 
-     /* Deallocate window manager data. */
-     D_FREE( wm_local->data );
+     /* Deallocate local window manager data. */
+     if (wm_local->data)
+          D_FREE( wm_local->data );
+
+     /* Deallocate shared window manager data. */
+     if (wm_shared->data)
+          SHFREE( wm_shared->data );
 
      /* Free module name in shared memory. */
      SHFREE( wm_shared->name );
@@ -258,13 +303,14 @@ dfb_wm_leave( CoreDFB *core, bool emergency )
      D_ASSERT( wm_shared != NULL );
 
      /* Leave window manager. */
-     ret = wm_local->funcs->Leave( emergency, wm_local->data );
+     ret = wm_local->funcs->Leave( emergency, wm_local->data, wm_shared->data );
 
      /* Unload the module. */
      direct_module_unref( wm_local->module );
 
-     /* Deallocate window manager data. */
-     D_FREE( wm_local->data );
+     /* Deallocate local window manager data. */
+     if (wm_local->data)
+          D_FREE( wm_local->data );
 
      wm_local = NULL;
      wm_shared = NULL;
@@ -278,8 +324,9 @@ dfb_wm_suspend( CoreDFB *core )
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->Suspend != NULL );
+     D_ASSERT( wm_shared != NULL );
 
-     return wm_local->funcs->Suspend( wm_local->data );
+     return wm_local->funcs->Suspend( wm_local->data, wm_shared->data );
 }
 
 static DFBResult
@@ -288,8 +335,9 @@ dfb_wm_resume( CoreDFB *core )
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->Resume != NULL );
+     D_ASSERT( wm_shared != NULL );
 
-     return wm_local->funcs->Resume( wm_local->data );
+     return wm_local->funcs->Resume( wm_local->data, wm_shared->data );
 }
 
 /**************************************************************************************************/

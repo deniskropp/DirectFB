@@ -41,7 +41,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_WM_ABI_VERSION           1
+#define DFB_CORE_WM_ABI_VERSION           2
 
 #define DFB_CORE_WM_INFO_NAME_LENGTH     60
 #define DFB_CORE_WM_INFO_VENDOR_LENGTH   80
@@ -63,6 +63,7 @@ typedef struct {
      char           license[DFB_CORE_WM_INFO_LICENSE_LENGTH];
 
      unsigned int   wm_data_size;
+     unsigned int   wm_shared_size;
      unsigned int   stack_data_size;
      unsigned int   window_data_size;
 } CoreWMInfo;
@@ -91,19 +92,26 @@ typedef struct {
      void      (*GetWMInfo)        ( CoreWMInfo             *info );
 
      DFBResult (*Initialize)       ( CoreDFB                *core,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
      DFBResult (*Join)             ( CoreDFB                *core,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
      DFBResult (*Shutdown)         ( bool                    emergency,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
      DFBResult (*Leave)            ( bool                    emergency,
-                                     void                   *wm_data );
+                                     void                   *wm_data,
+                                     void                   *shared_data );
 
-     DFBResult (*Suspend)          ( void                   *wm_data );
-     DFBResult (*Resume)           ( void                   *wm_data );
+     DFBResult (*Suspend)          ( void                   *wm_data,
+                                     void                   *shared_data );
+
+     DFBResult (*Resume)           ( void                   *wm_data,
+                                     void                   *shared_data );
 
 
    /** Stack **/
