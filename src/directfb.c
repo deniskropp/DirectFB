@@ -99,7 +99,7 @@ DFBResult DirectFBInit( int *argc, char **argv[] )
      ret = config_init( argc, argv );
      if (ret)
           return ret;
-     
+
      return DFB_OK;
 }
 
@@ -109,16 +109,16 @@ DFBResult DirectFBSetOption( char *name, char *value)
 
      if (dfb_config == NULL) {
           ERRORMSG( "DirectFB/DirectFBSetOption: DirectFBInit has to be "
-		  "called before DirectFBSetOption!\n" );
+          "called before DirectFBSetOption!\n" );
           return DFB_INIT;
      }
 
      if (idirectfb_singleton) {
           ERRORMSG( "DirectFB/DirectFBSetOption: DirectFBSetOption has to be "
-		  "called before DirectFBCreate!\n" );
+          "called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
-     
+
      ret = config_set(name, value);
      if (ret)
           return ret;
@@ -155,7 +155,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           printf( "        -----------------------------------------------------------\n" );
           printf( "\n" );
      }
-     
+
      ret = core_init();
      if (ret)
           return ret;
@@ -186,7 +186,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      if (dfb_config->buffer_mode == -1) {
           if (card->caps.accel & DFXL_BLIT) {
                ret = layers->SetBufferMode( layers, DLBM_BACKVIDEO );
-          }      
+          }
           else {
                ret = layers->SetBufferMode( layers, DLBM_BACKSYSTEM );
           }
@@ -200,7 +200,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                     "Setting primary layer buffer mode failed! "
                     "-> No support for virtual resolutions?\n" );
      }
-     
+
      /* set desktop background */
      layers->bg.mode  = dfb_config->layer_bg_mode;
      layers->bg.color = dfb_config->layer_bg_color;
@@ -216,27 +216,27 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                DirectFBError( "Failed loading background image", ret );
                return DFB_INIT;
           }
-          
+
           desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           desc.width = layers->width;
           desc.height = layers->height;
           desc.pixelformat = layers->surface->format;
-          
+
 
           ret = (*interface)->CreateSurface( *interface, &desc, &image );
           if (ret) {
                DirectFBError( "Failed creating surface for background image", ret );
-               
+
                provider->Release( provider );
                free( provider );
-     
+
                return DFB_INIT;
           }
-          
+
           ret = provider->RenderTo( provider, image );
           if (ret) {
                DirectFBError( "Failed loading background image", ret );
-               
+
                image->Release( image );
                free( image );
                provider->Release( provider );
@@ -250,7 +250,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
 
           image_data = (IDirectFBSurface_data*) image->priv;
-          
+
           layers->bg.image = image_data->surface;
      }
 
@@ -320,6 +320,9 @@ void DirectFBError( const char *msg, DFBResult error )
                break;
           case DFB_TIMEOUT:
                fprintf( stderr, "Operation timed out!\n" );
+               break;
+          case DFB_MISSINGIMAGE:
+               fprintf( stderr, "No image has been set!\n" );
                break;
           default:
                fprintf( stderr, "UNKNOWN ERROR CODE!\n" );
