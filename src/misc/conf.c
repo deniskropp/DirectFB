@@ -282,6 +282,7 @@ static void config_allocate()
      dfb_config->vt                       = true;
      dfb_config->vt_switch                = true;
      dfb_config->vt_switching             = true;
+     dfb_config->kd_graphics              = true;
      dfb_config->translucent_windows      = true;
      dfb_config->mouse_motion_compression = true;
      dfb_config->mouse_gpm_source         = false;
