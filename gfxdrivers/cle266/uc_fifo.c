@@ -83,6 +83,8 @@ static void uc_fifo_flush_sys(struct uc_fifo* fifo)
     reg_tspace = fifo->reg_tspace;
     hwregs = fifo->hwregs;
 
+    uc_fifo_pad(fifo);
+
 #ifdef UC_FIFO_DUMP_DATA
     printf("Flushing FIFO ... \n");
 #endif
@@ -92,26 +94,26 @@ static void uc_fifo_flush_sys(struct uc_fifo* fifo)
         if (*p == HALCYON_HEADER2) {
             p++;
             check2Dcmd = !(*p == HALCYON_SUB_ADDR0);
-            *reg_tset = *p;
 #ifdef UC_FIFO_DUMP_DATA
             printf("tset = 0x%08x\n", *p);
 #endif
+            *reg_tset = *p;
             p++;
         }
         else if (check2Dcmd && ((*p & HALCYON_HEADER1MASK) == HALCYON_HEADER1)) {
             addr = (*p) & 0x0000001f;
             p++;
-            *(hwregs + addr) = *p;
 #ifdef UC_FIFO_DUMP_DATA
             printf("2D (0x%02x) = 0x%x\n", addr << 2, *p);
 #endif
+            *(hwregs + addr) = *p;
             p++;
         }
         else if ((*p & HALCYON_FIREMASK) == HALCYON_FIRECMD) {
-            *reg_tspace = *p;
 #ifdef UC_FIFO_DUMP_DATA
             printf("tspace = 0x%08x\n", *p);
 #endif
+            *reg_tspace = *p;
             p++;
 
             if ((p != q) && ((*p & HALCYON_FIREMASK) == HALCYON_FIRECMD))
@@ -121,10 +123,10 @@ static void uc_fifo_flush_sys(struct uc_fifo* fifo)
                 check2Dcmd = 1;
         }
         else {
-            *reg_tspace = *p;
 #ifdef UC_FIFO_DUMP_DATA
             printf("tspace = 0x%08x\n", *p);
 #endif
+            *reg_tspace = *p;
             p++;
         }
     }
