@@ -34,20 +34,9 @@
 
 
 /*
- * Hidden capability for software cursor,
- * this window will be "super topmost" and cannot get focus/events etc.
+ * Hidden capability for software cursor, window will be the "super topmost".
  */
-#define DWHC_GHOST     0x80000000
-
-/*
- * linked list of DFBWindowEvents
- */
-typedef struct _CoreWindowEvent
-{
-     DFBWindowEvent event;
-
-     struct _CoreWindowEvent *next;
-} CoreWindowEvent;
+#define DWHC_TOPMOST     0x80000000
 
 /*
  * a window

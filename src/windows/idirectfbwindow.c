@@ -247,19 +247,42 @@ static DFBResult IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 static DFBResult IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
                                              DFBWindowOptions  options )
 {
+     DFBWindowOptions changed;
+
      INTERFACE_GET_DATA(IDirectFBWindow)
 
+     /* Check arguments */
      if (!data->window)
           return DFB_DESTROYED;
 
      if (options & ~DWOP_ALL)
           return DFB_INVARG;
 
-     if (data->window->options != options) {
-          data->window->options = options;
+     /* Examine toggled options */
+     changed = data->window->options ^ options;
 
+     /* Set new options */
+     data->window->options = options;
+
+     /* Redraw window if appearance influencing options have been toggled */
+     if (changed & DWOP_COLORKEYING)
           dfb_window_repaint( data->window, NULL );
-     }
+
+     return DFB_OK;
+}
+
+static DFBResult IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
+                                             DFBWindowOptions *options )
+{
+     INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (!data->window)
+          return DFB_DESTROYED;
+
+     if (!options)
+          return DFB_INVARG;
+
+     *options = data->window->options;
 
      return DFB_OK;
 }
@@ -572,6 +595,7 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->GetSize = IDirectFBWindow_GetSize;
      thiz->GetSurface = IDirectFBWindow_GetSurface;
      thiz->SetOptions = IDirectFBWindow_SetOptions;
+     thiz->GetOptions = IDirectFBWindow_GetOptions;
      thiz->SetColorKey = IDirectFBWindow_SetColorKey;
      thiz->SetOpacity = IDirectFBWindow_SetOpacity;
      thiz->GetOpacity = IDirectFBWindow_GetOpacity;

@@ -3,8 +3,6 @@ Allow software driven field switches
 
 Changing window capabilities after creation.
 
-Window options like focusable, moveable, resizeable.
-
 Enable/disable events at a window.
 
 Add cooperative levels to input devices and implement

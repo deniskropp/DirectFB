@@ -521,9 +521,10 @@ extern "C"
       * Capabilities a window can have.
       */
      typedef enum {
+          DWCAPS_NONE         = 0x00000000,  /* None of these. */
           DWCAPS_ALPHACHANNEL = 0x00000001,  /* The window has an alphachannel
                                                 for pixel-per-pixel blending. */
-          DWCAPS_DOUBLEBUFFER = 0x00000002   /* The window's surface is double
+          DWCAPS_DOUBLEBUFFER = 0x00000002,  /* The window's surface is double
                                                 buffered. This is very useful
                                                 to avoid visibility of content
                                                 that is still in preparation.
@@ -531,6 +532,7 @@ extern "C"
                                                 get visible before an update if
                                                 there is another reason causing
                                                 a window stack repaint. */
+          DWCAPS_ALL          = 0x00000003   /* All valid flags. */
      } DFBWindowCapabilities;
 
 
@@ -2239,7 +2241,18 @@ extern "C"
      typedef enum {
           DWOP_NONE           = 0x00000000,  /* none of these */
           DWOP_COLORKEYING    = 0x00000001,  /* enable color key */
-          DWOP_ALL            = 0x00000001   /* all possible options */
+          DWOP_KEEP_POSITION  = 0x00000010,  /* window can't be moved
+                                                with the mouse */
+          DWOP_KEEP_SIZE      = 0x00000020,  /* window can't be resized
+                                                with the mouse */
+          DWOP_KEEP_STACKING  = 0x00000040,  /* window can't be raised
+                                                or lowered with the mouse */
+          DWOP_GHOST          = 0x00001000,  /* never get focus or input,
+                                                clicks will go through,
+                                                implies DWOP_KEEP... */
+          DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
+                                                by internal shortcut */
+          DWOP_ALL            = 0x00001071   /* all possible options */
      } DFBWindowOptions;
 
      /*******************
@@ -2321,6 +2334,14 @@ extern "C"
           DFBResult (*SetOptions) (
                IDirectFBWindow     *thiz,
                DFBWindowOptions     options
+          );
+          
+          /*
+           * Get options controlling appearance and behaviour of the window.
+           */
+          DFBResult (*GetOptions) (
+               IDirectFBWindow     *thiz,
+               DFBWindowOptions    *options
           );
           
           /*

@@ -353,6 +353,9 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
      if (desc->flags & DWDESC_CAPS)
           caps = desc->caps;
 
+     if (caps & ~DWCAPS_ALL)
+          return DFB_INVARG;
+
      if (!width || width > 4096 || !height || height > 4096)
           return DFB_INVARG;
 

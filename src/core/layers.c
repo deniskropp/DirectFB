@@ -1158,13 +1158,15 @@ create_cursor_window( DisplayLayer *layer,
      ret = dfb_window_create( stack,
                               stack->cursor.x,
                               stack->cursor.y, width, height,
-                              DWHC_GHOST | DWCAPS_ALPHACHANNEL,
+                              DWHC_TOPMOST | DWCAPS_ALPHACHANNEL,
                               DSPF_UNKNOWN, &cursor );
      if (ret) {
           ERRORMSG( "DirectFB/Core/layers: "
                     "failed creating a window for software cursor!\n" );
           return ret;
      }
+
+     cursor->options = DWOP_GHOST;
 
      dfb_window_init( cursor );
      dfb_window_set_opacity( cursor, stack->cursor.opacity );

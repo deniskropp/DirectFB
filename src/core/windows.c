@@ -161,7 +161,8 @@ void
 dfb_window_insert( CoreWindow *window,
                    int         before )
 {
-     int i;
+     int              i;
+     DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;
 
      if (before < 0  ||  before > stack->num_windows)
@@ -181,16 +182,13 @@ dfb_window_insert( CoreWindow *window,
 
      skirmish_dismiss( &stack->update );
 
-     if (!(window->caps & DWHC_GHOST)) {
-          DFBWindowEvent evt;
-
-          evt.type = DWET_POSITION_SIZE;
-          evt.x = window->x;
-          evt.y = window->y;
-          evt.w = window->width;
-          evt.h = window->height;
-          dfb_window_dispatch( window, &evt );
-     }
+     /* Send configuration */
+     evt.type = DWET_POSITION_SIZE;
+     evt.x    = window->x;
+     evt.y    = window->y;
+     evt.w    = window->width;
+     evt.h    = window->height;
+     dfb_window_dispatch( window, &evt );
 
      if (window->opacity)
           handle_enter_leave_focus( stack );
@@ -256,7 +254,7 @@ dfb_window_remove( CoreWindow *window )
 
      if (!stack->focused_window) {
           for (i=stack->num_windows-1; i>=0; i--) {
-               if (!(stack->windows[i]->caps & DWHC_GHOST)) {
+               if (!(stack->windows[i]->options & DWOP_GHOST)) {
                     skirmish_dismiss( &stack->update );
                     dfb_window_request_focus( stack->windows[i] );
                     skirmish_prevail( &stack->update );
@@ -341,7 +339,7 @@ dfb_window_init( CoreWindow *window )
      CoreWindowStack *stack = window->stack;
 
      for (i=0; i<stack->num_windows; i++)
-          if (stack->windows[i]->caps & DWHC_GHOST)
+          if (stack->windows[i]->caps & DWHC_TOPMOST)
                break;
 
      dfb_window_insert( window, i );
@@ -511,6 +509,7 @@ dfb_window_move( CoreWindow *window,
                  int         dx,
                  int         dy )
 {
+     DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;
 
      window->x += dx;
@@ -534,14 +533,11 @@ dfb_window_move( CoreWindow *window,
           repaint_stack( stack, &region );
      }
 
-     if (!(window->caps & DWHC_GHOST)) {
-          DFBWindowEvent evt;
-
-          evt.type = DWET_POSITION;
-          evt.x = window->x;
-          evt.y = window->y;
-          dfb_window_dispatch( window, &evt );
-     }
+     /* Send new position */
+     evt.type = DWET_POSITION;
+     evt.x = window->x;
+     evt.y = window->y;
+     dfb_window_dispatch( window, &evt );
 }
 
 DFBResult
@@ -550,6 +546,7 @@ dfb_window_resize( CoreWindow   *window,
                    unsigned int  height )
 {
      DFBResult        ret;
+     DFBWindowEvent   evt;
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
@@ -587,14 +584,11 @@ dfb_window_resize( CoreWindow   *window,
           }
      }
 
-     if (!(window->caps & DWHC_GHOST)) {
-          DFBWindowEvent evt;
-
-          evt.type = DWET_SIZE;
-          evt.w = window->width;
-          evt.h = window->height;
-          dfb_window_dispatch( window, &evt );
-     }
+     /* Send new size */
+     evt.type = DWET_SIZE;
+     evt.w = window->width;
+     evt.h = window->height;
+     dfb_window_dispatch( window, &evt );
 
      return DFB_OK;
 }
@@ -1012,9 +1006,9 @@ window_at_pointer( CoreWindowStack *stack,
      for (i=stack->num_windows-1; i>=0; i--) {
           CoreWindow *w = stack->windows[i];
 
-          if (!(w->caps & DWHC_GHOST)  &&  w->opacity  &&
-                                           x >= w->x  &&  x < w->x+w->width &&
-                                           y >= w->y  &&  y < w->y+w->height)
+          if (!(w->options & DWOP_GHOST) && w->opacity &&
+                                            x >= w->x  &&  x < w->x+w->width &&
+                                            y >= w->y  &&  y < w->y+w->height)
                return w;
      }
 
@@ -1070,13 +1064,18 @@ stack_inputdevice_react( const void *msg_data,
                               }
                               return RS_OK;
 
-                         case DIKC_D:
-                              if (stack->entered_window) {
-                                   CoreWindow *window = stack->entered_window;
+                         case DIKC_D: {
+                              CoreWindow *window = stack->entered_window;
+
+                              if (window &&
+                                  !(window->options & DWOP_INDESTRUCTIBLE))
+                              {
                                    dfb_window_remove( window );
                                    dfb_window_destroy( window );
                               }
+
                               return RS_OK;
+                         }
 
                          default:
                               ;
@@ -1087,7 +1086,8 @@ stack_inputdevice_react( const void *msg_data,
                     return RS_OK;
 
                case DIET_BUTTONPRESS:
-                    if (stack->entered_window)
+                    if (stack->entered_window &&
+                        !(stack->entered_window->options & DWOP_KEEP_STACKING))
                          dfb_window_raisetotop( stack->entered_window );
                     return RS_OK;
 
@@ -1221,14 +1221,15 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
      dfb_window_move( stack->cursor.window, dx, dy );
 
      switch (stack->wm_hack) {
-          case 2:
-               if (stack->entered_window) {
-                    CoreWindow *window = stack->entered_window;
-                    int         width  = window->width + dx;
-                    int         height = window->height + dy;
+          case 2: {
+               CoreWindow *window = stack->entered_window;
+               
+               if (window && !(window->options & DWOP_KEEP_SIZE)) {
+                    int width  = window->width  + dx;
+                    int height = window->height + dy;
 
-                    if (width  <   10) width  = 10;
-                    if (height <   10) height = 10;
+                    if (width  <   48) width  = 48;
+                    if (height <   48) height = 48;
                     if (width  > 2048) width  = 2048;
                     if (height > 2048) height = 2048;
 
@@ -1237,12 +1238,16 @@ dfb_windowstack_handle_motion( CoreWindowStack *stack,
                }
 
                break;
+          }
 
-          case 1:
-               if (stack->entered_window)
-                    dfb_window_move( stack->entered_window, dx, dy );
+          case 1: {
+               CoreWindow *window = stack->entered_window;
+
+               if (window && !(window->options & DWOP_KEEP_POSITION))
+                    dfb_window_move( window, dx, dy );
 
                break;
+          }
 
           case 0:
                we.cx   = stack->cursor.x;
@@ -1423,7 +1428,7 @@ restack_window( CoreWindowStack *stack,
           int i;
 
           for (i=old_index; i<new_index; i++) {
-               if (!(stack->windows[i+1]->caps & DWHC_GHOST)) {
+               if (!(stack->windows[i+1]->caps & DWHC_TOPMOST)) {
                     CoreWindow *temp = stack->windows[i];
                     stack->windows[i] = stack->windows[i+1];
                     stack->windows[i+1] = temp;
