@@ -205,15 +205,21 @@ DFBResult
 dfb_layer_context_activate( CoreLayerContext *context )
 {
      int              index;
+     CoreLayer       *layer;
      CoreLayerRegion *region;
 
+     D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
+
      D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->funcs != NULL );
 
      /* Lock the context. */
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
-
-     D_DEBUG_AT( Core_Layers, "%s (%p)\n", __FUNCTION__, context );
 
      D_ASSUME( !context->active );
 
@@ -230,6 +236,11 @@ dfb_layer_context_activate( CoreLayerContext *context )
      }
 
      context->active = true;
+
+     /* set new adjustment */
+     if (layer->funcs->SetColorAdjustment)
+          layer->funcs->SetColorAdjustment( layer, layer->driver_data,
+                                            layer->layer_data, &context->adjustment );
 
      /* Resume window stack. */
      if (context->stack)
