@@ -55,8 +55,14 @@
 
 typedef struct {
      bool                  listener_running;
-     DFBRectangle          dest;
      DFBDisplayLayerConfig config;
+
+     struct {
+          float            x;
+          float            y;
+          float            w;
+          float            h;
+     } location;
 
      /* Stored registers */
      struct {
@@ -151,7 +157,10 @@ besInitLayer( GraphicsDevice             *device,
      
      
      /* initialize destination rectangle */
-     dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &mbes->dest );
+     mbes->location.x = 0.125f;
+     mbes->location.y = 0.125f;
+     mbes->location.w = 0.25f;
+     mbes->location.h = 0.25f;
      
      /* disable backend scaler */
      mga_out32( mmio, 0, BESCTL );
@@ -315,8 +324,11 @@ besSetScreenLocation( DisplayLayer *layer,
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      
-     /* get new destination rectangle */
-     dfb_primary_layer_rectangle( x, y, width, height, &mbes->dest );
+     /* set new destination rectangle */
+     mbes->location.x = x;
+     mbes->location.y = y;
+     mbes->location.w = width;
+     mbes->location.h = height;
 
      bes_calc_regs( mdrv, mbes, layer, &mbes->config );
      bes_set_regs( mdrv, mbes, true );
@@ -487,6 +499,7 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 {
      int tmp, hzoom, intrep;
 
+     DFBRectangle   dest;
      DFBRegion      dstBox;
      int            drw_w, drw_h;
      int            field_height;
@@ -495,14 +508,17 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      VideoMode     *current_mode = dfb_system_current_mode();
 
      /* destination box */
-     dstBox.x1 = mbes->dest.x;
-     dstBox.y1 = mbes->dest.y;
-     dstBox.x2 = mbes->dest.x + mbes->dest.w;
-     dstBox.y2 = mbes->dest.y + mbes->dest.h;
+     dfb_primary_layer_rectangle( mbes->location.x, mbes->location.y,
+                                  mbes->location.w, mbes->location.h, &dest );
+     
+     dstBox.x1 = dest.x;
+     dstBox.y1 = dest.y;
+     dstBox.x2 = dest.x + dest.w;
+     dstBox.y2 = dest.y + dest.h;
 
      /* destination size */
-     drw_w = mbes->dest.w;
-     drw_h = mbes->dest.h;
+     drw_w = dest.w;
+     drw_h = dest.h;
      
      /* should horizontal zoom be used? */
      hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
