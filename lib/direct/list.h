@@ -35,10 +35,12 @@ struct __D_DirectLink {
      int         magic;
 
      DirectLink *next;
-     DirectLink *prev; /* 'prev' of the first element points to the last element of the list ;) */
+     DirectLink *prev; /* The 'prev' pointer of the first element always points
+                          to the last element of the list, for fast appending ;-) */
 };
 
-static inline void direct_list_prepend( DirectLink **list, DirectLink *link )
+static inline void
+direct_list_prepend( DirectLink **list, DirectLink *link )
 {
      DirectLink *first = *list;
 
@@ -59,7 +61,8 @@ static inline void direct_list_prepend( DirectLink **list, DirectLink *link )
      D_MAGIC_SET( link, DirectLink );
 }
 
-static inline void direct_list_append( DirectLink **list, DirectLink *link )
+static inline void
+direct_list_append( DirectLink **list, DirectLink *link )
 {
      DirectLink *first = *list;
 
@@ -81,10 +84,15 @@ static inline void direct_list_append( DirectLink **list, DirectLink *link )
      D_MAGIC_SET( link, DirectLink );
 }
 
-static inline bool direct_list_contains( DirectLink *list, DirectLink *link )
+static inline bool
+direct_list_contains_element_EXPENSIVE( DirectLink *list, DirectLink *link )
 {
      D_MAGIC_ASSERT_IF( list, DirectLink );
-     D_MAGIC_ASSERT( link, DirectLink );
+     
+     if (!link->prev && !link->next)
+          return false;
+     
+//     D_MAGIC_ASSERT( link, DirectLink );
 
      while (list) {
           if (list == link)
@@ -96,12 +104,29 @@ static inline bool direct_list_contains( DirectLink *list, DirectLink *link )
      return false;
 }
 
-static inline void direct_list_remove( DirectLink **list, DirectLink *link )
+static inline int
+direct_list_count_elements_EXPENSIVE( DirectLink *list )
+{
+     int count = 0;
+
+     while (list) {
+          D_MAGIC_ASSERT( list, DirectLink );
+
+          count++;
+          
+          list = list->next;
+     }
+
+     return count;
+}
+
+static inline void
+direct_list_remove( DirectLink **list, DirectLink *link )
 {
      DirectLink *next;
      DirectLink *prev;
 
-     D_ASSERT( direct_list_contains( *list, link ) );
+     D_ASSERT( direct_list_contains_element_EXPENSIVE( *list, link ) );
 
      D_MAGIC_ASSERT( *list, DirectLink );
      D_MAGIC_ASSERT( link, DirectLink );
@@ -128,9 +153,10 @@ static inline void direct_list_remove( DirectLink **list, DirectLink *link )
      D_MAGIC_CLEAR( link );
 }
 
-static inline bool direct_list_check_link( const DirectLink *link )
+static inline bool
+direct_list_check_link( const DirectLink *link )
 {
-     D_ASSERT( link == NULL || link->magic == D_MAGIC( "DirectLink" ) );
+     D_MAGIC_ASSERT_IF( link, DirectLink );
 
      return link != NULL;
 }
