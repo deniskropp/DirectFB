@@ -363,59 +363,54 @@ int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      if (!card->funcs.CheckState)
           return 0;
 
+     /* Debug checks */
+     if (!state->destination) {
+          BUG("state check: no destination");
+          return 0;
+     }
+     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
+          BUG("state check: no source");
+          return 0;
+     }
+
+     /*
+      * If back_buffer policy is 'system only' there's no acceleration
+      * available.
+      */
+     if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
+
+          /* clear 'accelerated functions' */
+          state->accel = 0;
+
+          /* return immediately */
+          return 0;
+     }
+
+     /*
+      * If front_buffer policy is 'system only' there's no accelerated
+      * blitting available.
+      */
+     if (state->source &&
+         state->source->front_buffer->policy == CSP_SYSTEMONLY) {
+       
+          /* clear 'accelerated blitting functions' */
+          state->accel &= 0xFFFF;
+
+          /* return if blitting function was requested */
+          if (DFB_BLITTING_FUNCTION( accel ))
+               return 0;
+     }
+
      /* If destination has been changed... */
      if (state->modified & SMF_DESTINATION) {
           /* ...force rechecking for all functions. */
           state->checked = 0;
-
-          /* Debug check */
-          if (!state->destination) {
-               BUG("state check: no destination");
-               return 0;
-          }
-
-          /*
-           * If policy is 'system only' there's no acceleration available.
-           */
-          if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
-               /* unset 'destination modified' bit */
-               state->modified &= ~SMF_DESTINATION;
-
-               /* clear 'accelerated functions' */
-               state->accel = 0;
-
-               /* return immediately */
-               return 0;
-          }
      }
 
      /* If source has been changed... */
      if (state->modified & SMF_SOURCE) {
           /* ...force rechecking for all blitting functions. */
           state->checked &= 0xFFFF;
-
-          /* Debug check */
-          if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
-               BUG("state check: no source");
-               return 0;
-          }
-
-          /*
-           * If policy is 'system only' there's no accelerated blitting
-           * available.
-           */
-          if (state->source &&
-              state->source->front_buffer->policy == CSP_SYSTEMONLY) {
-               /* unset 'destination modified' bit */
-               state->modified &= ~SMF_SOURCE;
-
-               /* clear 'accelerated blitting functions' */
-               state->accel &= 0xFFFF;
-
-               /* return if blitting function was requested */
-               if (DFB_BLITTING_FUNCTION( accel ))
-                    return 0;
-          }
      }
 
      /* If blend functions have been changed force recheck. */
