@@ -52,6 +52,8 @@
 
 FusionResult ref_init (FusionRef *ref)
 {
+  union semun semopts;
+
   /* create two semaphores, one for locking, one for counting */
   ref->sem_id = semget (IPC_PRIVATE, 2, IPC_CREAT | 0660);
   if (ref->sem_id < 0)
@@ -65,7 +67,8 @@ FusionResult ref_init (FusionRef *ref)
     }
 
   /* initialize the lock */
-  if (semctl (ref->sem_id, 0, SETVAL, 1))
+  semopts.val = 1;
+  if (semctl (ref->sem_id, 0, SETVAL, semopts))
     {
       FPERROR ("semctl");
 
@@ -278,7 +281,10 @@ FusionResult ref_unlock (FusionRef *ref)
 
 FusionResult ref_destroy (FusionRef *ref)
 {
-  if (semctl (ref->sem_id, 0, IPC_RMID, 0))
+  union semun semopts;
+  
+  semopts.val = 0;
+  if (semctl (ref->sem_id, 0, IPC_RMID, semopts))
     {
       FPERROR ("semctl");
 

@@ -55,6 +55,8 @@
 
 int skirmish_init (FusionSkirmish *skirmish)
 {
+  union semun semopts;
+  
   skirmish->sem_id = semget (IPC_PRIVATE, 1, IPC_CREAT | 0660);
   if (skirmish->sem_id < 0)
     {
@@ -62,8 +64,9 @@ int skirmish_init (FusionSkirmish *skirmish)
 
       return -1;
     }
-
-  if (semctl (skirmish->sem_id, 0, SETVAL, 1))
+  
+  semopts.val = 1;
+  if (semctl (skirmish->sem_id, 0, SETVAL, semopts))
     {
       perror (__FUNCTION__": semctl");
 
@@ -128,7 +131,10 @@ int skirmish_dismiss (FusionSkirmish *skirmish)
 
 void skirmish_destroy (FusionSkirmish *skirmish)
 {
-  if (semctl (skirmish->sem_id, 0, IPC_RMID, 0))
+  union semun semopts;
+  
+  semopts.val = 0;
+  if (semctl (skirmish->sem_id, 0, IPC_RMID, semopts))
     {
       perror (__FUNCTION__": semctl");
     }
