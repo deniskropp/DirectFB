@@ -190,9 +190,9 @@ load_symbols( const char *filename )
      SymbolTable *table;
      FILE        *pipe;
      char         line[1024];
-     char         command[ strlen(filename) + 8 ];
+     char         command[ strlen(filename) + 32 ];
 
-     snprintf( command, sizeof(command), "nm -n %s", filename );
+     snprintf( command, sizeof(command), "nm --defined-only -n %s", filename );
 
      pipe = popen( command, "r" );
      if (!pipe) {
@@ -220,10 +220,13 @@ load_symbols( const char *filename )
           long offset = 0;
           int  length = strlen(line);
 
-          if (length < 13 || line[8] != ' ' || line[10] != ' ' || line[length-1] != '\n')
+          if (length < 13 || line[length-1] != '\n')
                continue;
 
           if (line[9] != 't' && line[9] != 'T')
+               continue;
+
+          if (line[8] != ' ' || line[10] != ' ' || line[11] == '.')
                continue;
 
           for (n=0; n<8; n++) {
@@ -326,18 +329,17 @@ dfb_trace_print_stack( TraceBuffer *buffer )
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i];
 
-          fprintf( stderr, "  #%-2d %p in ", level - i - 1, fn );
+          fprintf( stderr, "  #%-2d 0x%08lx in ", level - i - 1, (unsigned long) fn );
 
 #ifdef DFB_DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
                if (info.dli_fname) {
                     const char *fname;
-                    const char *symbol = lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+                    const char *symbol = info.dli_sname;
 
                     if (!symbol) {
-                         if (info.dli_sname)
-                              symbol = info.dli_sname;
-                         else
+                         symbol = lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+                         if (!symbol)
                               symbol = "??";
                     }
 
