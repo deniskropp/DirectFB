@@ -62,10 +62,12 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
 
 
 typedef struct {
-     int                            ref;
-     CoreWindow                    *window;
+     int                ref;
+     CoreWindow        *window;
 
-     IDirectFBSurface              *surface;
+     IDirectFBSurface  *surface;
+
+     DFBWindowEvent    *position_size_event;
 } IDirectFBWindow_data;
 
 
@@ -125,6 +127,12 @@ static DFBResult IDirectFBWindow_CreateEventBuffer(
 
      IDirectFBEventBuffer_AttachWindow( b, data->window );
 
+     if (data->position_size_event) {
+          dfb_window_dispatch( data->window, data->position_size_event );
+          DFBFREE( data->position_size_event );
+          data->position_size_event = NULL;
+     }
+
      *buffer = b;
 
      return DFB_OK;
@@ -136,7 +144,15 @@ static DFBResult IDirectFBWindow_AttachEventBuffer(
 {
      INTERFACE_GET_DATA(IDirectFBWindow)
 
-     return IDirectFBEventBuffer_AttachWindow( buffer, data->window );
+     IDirectFBEventBuffer_AttachWindow( buffer, data->window );
+
+     if (data->position_size_event) {
+          dfb_window_dispatch( data->window, data->position_size_event );
+          DFBFREE( data->position_size_event );
+          data->position_size_event = NULL;
+     }
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBWindow_GetID( IDirectFBWindow *thiz,
@@ -478,8 +494,17 @@ static ReactionResult IDirectFBWindow_React( const void *msg_data,
      const DFBWindowEvent       *evt = (DFBWindowEvent*)msg_data;
      IDirectFBWindow_data       *data = (IDirectFBWindow_data*)ctx;
 
-     if (evt->type == DWET_DESTROYED)
+     if (evt->type == DWET_POSITION_SIZE) {
+          if (!data->position_size_event)
+               data->position_size_event = DFBMALLOC( sizeof(DFBWindowEvent) );
+
+          *data->position_size_event = *evt;
+     }
+
+     if (evt->type == DWET_DESTROYED) {
           data->window = NULL;
+          return RS_REMOVE;
+     }
 
      return RS_OK;
 }
