@@ -96,7 +96,8 @@ ov0InitLayer( CoreLayer                  *layer,
 {
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
-
+     __u32                   vram  = dfb_gfxcard_memory_length();
+     
      /* set capabilities and type */
      description->caps =  DLCAPS_SURFACE      | DLCAPS_SCREEN_LOCATION |
                           DLCAPS_BRIGHTNESS   | DLCAPS_CONTRAST        |
@@ -127,6 +128,14 @@ ov0InitLayer( CoreLayer                  *layer,
      adjustment->saturation = 0x8000;
      adjustment->hue        = 0x8000;
 
+     /* set video buffers start and limit */
+     nvdrv->PVIDEO[0x920/4] = 0;
+     nvdrv->PVIDEO[0x924/4] = 0;
+     if (nvdrv->chip != 0x02a0) {
+          nvdrv->PVIDEO[0x908/4] = vram - 1;
+          nvdrv->PVIDEO[0x90C/4] = vram - 1;
+     }
+ 
      /* reset overlay */
      nvov0->brightness = 0;
      nvov0->contrast   = 4096;
