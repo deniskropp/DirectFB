@@ -448,7 +448,7 @@ static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
      if (notification->flags & CSNF_VIDEO) {
           CoreSurface *surface = data->destination;
 
-          if (surface && surface->back_buffer->video.health != CSH_STORED) {
+          if (surface && surface->back_buffer->video.health == CSH_INVALID) {
                v4l_stop( data );
                return RS_REMOVE;
           }
