@@ -23,5 +23,5 @@ libdirectfb_h3600_ts_la_LDFLAGS = \
         $(DFB_LDFLAGS)
 
 
-include $(top_srcdir)/rules/libobject.make
+#include $(top_srcdir)/rules/libobject.make
 	

@@ -31,4 +31,4 @@ libdirectfb_fbdev_la_SOURCES = \
 	vt.c
 
 
-include $(top_srcdir)/rules/libobject.make
+#include $(top_srcdir)/rules/libobject.make

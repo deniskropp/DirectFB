@@ -25,4 +25,4 @@ libdirectfbwm_default_la_SOURCES = \
 	default.c
 
 
-include $(top_srcdir)/rules/libobject.make
+#include $(top_srcdir)/rules/libobject.make

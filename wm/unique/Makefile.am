@@ -98,7 +98,7 @@ libuniquewm_la_LDFLAGS = \
 	$(DFB_LDFLAGS)
 
 
-include $(top_srcdir)/rules/libobject.make
+#include $(top_srcdir)/rules/libobject.make
 
 #
 ## and now rebuild the static version with the *correct* object files
