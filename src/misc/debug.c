@@ -332,7 +332,6 @@ dfb_trace_print_stack( TraceBuffer *buffer )
 #ifdef DFB_DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
                if (info.dli_fname) {
-                    const char *fname;
                     const char *symbol = info.dli_sname;
 
                     if (!symbol) {
@@ -341,13 +340,7 @@ dfb_trace_print_stack( TraceBuffer *buffer )
                               symbol = "??";
                     }
 
-                    fname = strrchr( info.dli_fname, '/' );
-                    if (fname)
-                         fname++;
-                    else
-                         fname = info.dli_fname;
-
-                    fprintf( stderr, "%s () from %s\n", symbol, fname );
+                    fprintf( stderr, "%s () from %s\n", symbol, info.dli_fname );
                }
                else if (info.dli_sname) {
                     fprintf( stderr, "%s ()\n", info.dli_sname );
