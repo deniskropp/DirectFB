@@ -1013,7 +1013,7 @@ extern "C"
           DLBM_COLOR,                   /* fill with solid color
                                            (SetBackgroundColor) */
           DLBM_IMAGE,                   /* use an image (SetBackgroundImage) */
-          DLBM_TILE                     /* use a tiled image 
+          DLBM_TILE                     /* use a tiled image
                                            (SetBackgroundImage) */
      } DFBDisplayLayerBackgroundMode;
 
@@ -1778,6 +1778,9 @@ extern "C"
           DIKC_REWIND, DIKC_FASTFORWARD, DIKC_PREVIOUS, DIKC_NEXT,
 
           DIKC_DIGITS, DIKC_TEEN, DIKC_TWEN, DIKC_ASTERISK, DIKC_HASH,
+
+          DIKC_IPAQ_CAL, DIKC_IPAQ_NOTE, DIKC_IPAQ_Q, DIKC_IPAQ_ARROW,
+          DIKC_IPAQ_MEMO, DIKC_IPAQ_SUSPEND,
 
           DIKC_NUMBER_OF_KEYS
      } DFBInputDeviceKeyIdentifier;

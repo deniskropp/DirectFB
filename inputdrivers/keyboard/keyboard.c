@@ -123,6 +123,20 @@ static unsigned char keyboard_translate(unsigned short kb_value)
                if (key_index <= 9)
                     return DIKC_0 + key_index;
                break;
+          case 0xe: /* special IPAQ H3600 case - AH */
+               switch (key_index) {
+                    case 0x20:     return DIKC_IPAQ_CAL; /* calendar button */
+                    case 0x1a:     return DIKC_IPAQ_ARROW; /* arrow button */
+                    case 0x1c:     return DIKC_IPAQ_MEMO; /* memo button */
+                    case 0x21:     return DIKC_IPAQ_SUSPEND; /* power suspend */
+               }
+               break;
+          case 0xd: /* another special IPAQ H3600 case - AH */
+               switch (key_index) {
+                    case 0x2:     return DIKC_IPAQ_NOTE; /* notepad button */
+                    case 0x1:     return DIKC_IPAQ_Q; /* Q button */
+               }
+               break;
      }
 
      switch (kb_value) {
