@@ -192,13 +192,17 @@ FusionResult
 reactor_detach (FusionReactor *reactor,
                 Reaction      *reaction)
 {
-     int index = reaction->index;
+     bool foreign;
+     int  index;
 
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
      DFB_ASSERT( reaction->attached );
 
-     if (reactor->node[index].id != _fusion_id())
+     index   = reaction->index;
+     foreign = reactor->node[index].id != _fusion_id();
+
+     if (foreign)
           FDEBUG( "removing reaction %p from foreign node %d!\n",
                   reaction, reactor->node[index].id );
      
@@ -209,21 +213,23 @@ reactor_detach (FusionReactor *reactor,
      if (reaction->attached) {
           reaction->attached = false;
           
-          /* remove the reaction */
-          fusion_list_remove (&reactor->node[index].reactions, &reaction->link);
+          if (!foreign) {
+               /* remove the reaction */
+               fusion_list_remove (&reactor->node[index].reactions, &reaction->link);
 
-          /* if it was the last reaction cancel our receiver thread and free the node */
-          if (!reactor->node[index].reactions) {
-               /* if this is our node */
-               if (reactor->node[index].id == _fusion_id()) {
-                    pthread_cancel (reactor->node[index].receiver);
-                    pthread_join (reactor->node[index].receiver, NULL);
+               /* if it was the last reaction cancel our receiver thread and free the node */
+               if (!reactor->node[index].reactions) {
+                    /* if this is our node */
+                    if (reactor->node[index].id == _fusion_id()) {
+                         pthread_cancel (reactor->node[index].receiver);
+                         pthread_join (reactor->node[index].receiver, NULL);
+                    }
+
+                    fusion_ref_destroy (&reactor->node[index].ref);
+
+                    reactor->node[index].id = 0;
+                    reactor->nodes--;
                }
-
-               fusion_ref_destroy (&reactor->node[index].ref);
-
-               reactor->node[index].id = 0;
-               reactor->nodes--;
           }
      }
 
@@ -451,17 +457,17 @@ static void _reactor_process_reactions (FusionLink **reactions, const void *msg_
           Reaction   *reaction = (Reaction*) l;
           FusionLink *next     = l->next;
 
-          //FDEBUG(" -- before react (%p)\n", reaction->react);
-          
-          /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
-          if (reaction->react (msg_data, reaction->ctx) == RS_REMOVE) {
-               reaction->attached = false;
+          if (reaction->attached) {
+               /* invoke reaction callback, mark deletion if it returns RS_REMOVE */
+               if (reaction->react (msg_data, reaction->ctx) == RS_REMOVE) {
+                    reaction->attached = false;
 
-               fusion_list_remove (reactions, l);
+                    fusion_list_remove (reactions, l);
+               }
           }
+          else
+               fusion_list_remove (reactions, l);
 
-          //FDEBUG(" -- after react (%p)\n", reaction->react);
-          
           /* fetch the next list entry */
           l = next;
      }

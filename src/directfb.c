@@ -375,6 +375,8 @@ apply_configuration( IDirectFB *dfb )
           image_data = (IDirectFBSurface_data*) image->priv;
 
           dfb_layer_set_background_image( layer, image_data->surface );
+          
+          image->Release( image );
      }
 
      /* now set the background mode */
