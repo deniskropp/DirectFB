@@ -42,6 +42,8 @@
           }                                                               \
      }
 
+#define SGN(x)        (((x) > 0) ? 1 : -1)
+
 #define NUM_STARS     4
 
 IDirectFB            *dfb;
@@ -55,13 +57,16 @@ int xres;
 int yres;
 
 typedef struct {
-     int x;
-     int y;
-     int z;
+     float x;
+     float y;
+     float z;
 } Star;
 
-static Star starfield[100];
-static Star t_starfield[100];
+
+#define STARFIELD_SIZE 500
+
+static Star starfield[STARFIELD_SIZE];
+static Star t_starfield[STARFIELD_SIZE];
 
 /* for main thread */
 static inline void start_rendering()
@@ -89,7 +94,7 @@ static void* render_loop (void *arg)
 {
      IDirectFBSurface *view = (IDirectFBSurface*)arg;
 
-     view->SetBlittingFlags( view, DSBLIT_SRC_COLORKEY | DSBLIT_COLORIZE );
+     view->SetBlittingFlags( view, DSBLIT_SRC_COLORKEY /*| DSBLIT_COLORIZE*/ );
      view->SetSrcColorKey( view, 0xF81F ); /* FIXME: format!!! */
 
      while (started_rendering()) {
@@ -100,14 +105,17 @@ static void* render_loop (void *arg)
           view->SetColor( view, 0, 0, 0, 0 );
           view->FillRectangle( view, 0, 0, xres, yres );
 
-          for (i=0; i<100; i++) {
-               int map = t_starfield[i].z >> 4;
-               int light = 0xFF - ((t_starfield[i].z & 0xF) << 3);
+          for (i=0; i<STARFIELD_SIZE; i++) {
+               int map = (int)t_starfield[i].z >> 6;
+          //     int light = 0xFF - ((t_starfield[i].z & 0xF) << 3);
 
-               if (map >= 0  &&  map < NUM_STARS) {
-                    view->SetColor( view, light, light, light, 0xff );
+               if (map >= 0) {
+                    if (map >= NUM_STARS)
+                         map = NUM_STARS - 1;
+
+               //     view->SetColor( view, light, light, light, 0xff );
                     view->Blit( view, stars[map],
-                                NULL, t_starfield[i].x, t_starfield[i].y );
+                                NULL, (int)t_starfield[i].x, (int)t_starfield[i].y );
                }
           }
 
@@ -146,10 +154,14 @@ void generate_starfield()
 {
      int i;
 
-     for (i=0; i<100; i++) {
+     for (i=0; i<STARFIELD_SIZE; i++) {
           starfield[i].x = rand()%xres - xres/2;
           starfield[i].y = rand()%yres - yres/2;
-          starfield[i].z = rand()%(NUM_STARS<<4);
+          starfield[i].z = (rand()%(NUM_STARS<<7)) - (NUM_STARS<<6);
+
+          starfield[i].x *= 2;
+          starfield[i].y *= 2;
+          starfield[i].z *= 2;
      }
 }
 
@@ -162,7 +174,7 @@ void move_starfield()
      dy = rand()%3-1;
      dz = rand()%3-1;
 
-     for (i=0; i<100; i++) {
+     for (i=0; i<STARFIELD_SIZE; i++) {
           starfield[i].x += dx;
           starfield[i].y += dy;
           starfield[i].z += dz;
@@ -171,13 +183,24 @@ void move_starfield()
 
 void transform_starfield()
 {
+     static float rot = 0;
      int i;
 
-     for (i=0; i<100; i++) {
-          t_starfield[i].x = starfield[i].x + xres/2;
-          t_starfield[i].y = starfield[i].y + yres/2;
-          t_starfield[i].z = starfield[i].z;
+     for (i=0; i<STARFIELD_SIZE; i++) {
+          t_starfield[i].x = starfield[i].x * cos(rot) + starfield[i].z * sin(rot);
+          t_starfield[i].y = starfield[i].y;
+          t_starfield[i].z = starfield[i].x * -sin(rot) + starfield[i].z * cos(rot);
+
+          if (t_starfield[i].z >= 0) {
+               t_starfield[i].x /= (t_starfield[i].z / 300.0f) + 1.0f;
+               t_starfield[i].y /= (t_starfield[i].z / 400.0f) + 1.0f;
+          }
+
+          t_starfield[i].x += xres/2;
+          t_starfield[i].y += yres/2;
      }
+
+     rot += 0.01f;
 }
 
 void unload_stars()
@@ -278,7 +301,7 @@ int main( int argc, char *argv[] )
                }
           }
 
-          move_starfield();
+//          move_starfield();
 
           /* finish rendering before retransforming the world */
           finish_rendering();
