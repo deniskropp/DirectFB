@@ -165,6 +165,9 @@ void dfb_system_register_module( CoreSystemFuncs *funcs );
 
 
 DFBResult
+dfb_system_lookup();
+
+DFBResult
 dfb_system_initialize();
 
 DFBResult

@@ -423,7 +423,6 @@ system_join()
 {
 #ifndef FUSION_FAKE
      DFBResult ret;
-     struct fb_var_screeninfo var;
 
      if (dfb_fbdev) {
           BUG( "dfb_fbdev_join() called and display != NULL" );
@@ -460,33 +459,6 @@ system_join()
           return DFB_INIT;
      }
      
-     /*
-      * Disable console acceleration.
-      */
-     if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &var ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not get variable screen information!\n" );
-          munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
-          close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return DFB_INIT;
-     }
-
-     var.accel_flags = 0;
-
-     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &var ) < 0) {
-          PERRORMSG( "DirectFB/core/fbdev: "
-                     "Could not disable console acceleration!\n" );
-          munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
-          close( dfb_fbdev->fd );
-          DFBFREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return DFB_INIT;
-     }
-
      /* Register primary layer functions */
      dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
      
@@ -645,6 +617,8 @@ system_thread_init()
 {
      if (dfb_vt)
           ioctl( dfb_vt->fd0, TIOCNOTTY, 0 );
+     else
+          ioctl( 0, TIOCNOTTY, 0 );
 
      return DFB_OK;
 }

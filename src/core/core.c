@@ -165,6 +165,15 @@ dfb_core_ref()
           sync();
      }
 
+     ret = dfb_system_lookup();
+     if (ret)
+          return ret;
+     
+#ifndef FUSION_FAKE
+     if (dfb_config->vt_switch)
+          dfb_system_thread_init();
+#endif
+
      dfb_find_best_memcpy();
 
      fid = fusion_init();

@@ -51,8 +51,8 @@ static CoreSystemFuncs *system_funcs   = NULL;
 static CoreSystemInfo   system_info;
 
 
-static DFBResult
-lookup_system()
+DFBResult
+dfb_system_lookup()
 {
      FusionLink *l;
 
@@ -88,11 +88,7 @@ lookup_system()
 DFBResult
 dfb_system_initialize()
 {
-     DFBResult ret;
-
-     ret = lookup_system();
-     if (ret)
-          return ret;
+     DFB_ASSERT( system_funcs != NULL );
 
      return system_funcs->Initialize();
 }
@@ -100,11 +96,7 @@ dfb_system_initialize()
 DFBResult
 dfb_system_join()
 {
-     DFBResult ret;
-
-     ret = lookup_system();
-     if (ret)
-          return ret;
+     DFB_ASSERT( system_funcs != NULL );
 
      return system_funcs->Join();
 }
@@ -113,11 +105,14 @@ DFBResult
 dfb_system_shutdown( bool emergency )
 {
      if (system_module) {
+          DFBResult ret = system_funcs->Shutdown( emergency );
+
           dfb_module_unref( system_module );
 
           system_module = NULL;
+          system_funcs = NULL;
 
-          return system_funcs->Shutdown( emergency );
+          return ret;
      }
 
      return DFB_OK;
@@ -127,11 +122,14 @@ DFBResult
 dfb_system_leave( bool emergency )
 {
      if (system_module) {
+          DFBResult ret = system_funcs->Leave( emergency );
+
           dfb_module_unref( system_module );
 
           system_module = NULL;
+          system_funcs = NULL;
 
-          return system_funcs->Leave( emergency );
+          return ret;
      }
 
      return DFB_OK;
@@ -147,6 +145,8 @@ volatile void *
 dfb_system_map_mmio( unsigned int    offset,
                      int             length )
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->MapMMIO( offset, length );
 }
 
@@ -154,54 +154,72 @@ void
 dfb_system_unmap_mmio( volatile void  *addr,
                        int             length )
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      system_funcs->UnmapMMIO( addr, length );
 }
 
 int
 dfb_system_get_accelerator()
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->GetAccelerator();
 }
 
 VideoMode *
 dfb_system_modes()
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->GetModes();
 }
 
 VideoMode *
 dfb_system_current_mode()
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->GetCurrentMode();
 }
 
 DFBResult
 dfb_system_thread_init()
 {
-     return system_funcs ? system_funcs->ThreadInit() : DFB_OK;
+     DFB_ASSERT( system_funcs != NULL );
+
+     return system_funcs->ThreadInit();
 }
 
 DFBResult
 dfb_system_wait_vsync()
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->WaitVSync();
 }
 
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset )
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->VideoMemoryPhysical( offset );
 }
 
 void *
 dfb_system_video_memory_virtual( unsigned int offset )
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->VideoMemoryVirtual( offset );
 }
 
 unsigned int
 dfb_system_videoram_length()
 {
+     DFB_ASSERT( system_funcs != NULL );
+
      return system_funcs->VideoRamLength();
 }
 
