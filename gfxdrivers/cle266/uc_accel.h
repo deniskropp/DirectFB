@@ -10,8 +10,7 @@
 #ifndef __UC_ACCEL_H__
 #define __UC_ACCEL_H__
 
-#define UC_ENABLE_3D
-//#undef UC_ENABLE_3D
+#include "unichrome.h"
 
 // 2D accelerator capabilites
 
