@@ -67,6 +67,12 @@ static int src_pitch = 0;
 static int dst_bpp   = 0;
 static int src_bpp   = 0;
 
+static DFBSurfacePixelFormat src_format = DSPF_UNKNOWN;
+static DFBSurfacePixelFormat dst_format = DSPF_UNKNOWN;
+
+static int dst_height = 0;
+static int src_height = 0;
+
 DFBColor color;
 
 /*
@@ -278,21 +284,21 @@ static void Bop_32_to_Aop()
 }
 
 static GFunc Bop_PFI_to_Aop_PFI[] = {
-     Bop_16_to_Aop,
-     Bop_16_to_Aop,
-     Bop_24_to_Aop,
-     Bop_32_to_Aop,
-     Bop_32_to_Aop,
-     Bop_8_to_Aop,
-     Bop_16_to_Aop,
+     Bop_16_to_Aop,      /* DSPF_RGB15 */
+     Bop_16_to_Aop,      /* DSPF_RGB16 */
+     Bop_24_to_Aop,      /* DSPF_RGB24 */
+     Bop_32_to_Aop,      /* DSPF_RGB32 */
+     Bop_32_to_Aop,      /* DSPF_ARGB */
+     Bop_8_to_Aop,       /* DSPF_A8 */
+     Bop_16_to_Aop,      /* DSPF_YUY2 */
 #ifdef SUPPORT_RGB332
-     Bop_8_to_Aop,
+     Bop_8_to_Aop,       /* DSPF_RGB332 */
 #else
      NULL,
 #endif
-     Bop_16_to_Aop,
-     NULL,
-     NULL
+     Bop_16_to_Aop,      /* DSPF_UYVY */
+     Bop_8_to_Aop,       /* DSPF_I420 */
+     Bop_8_to_Aop        /* DSPF_YV12 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -1946,14 +1952,11 @@ void Xacc_blend_invsrcalpha_MMX();
 
 static void Xacc_blend_zero()
 {
-     ONCE("should not be called, please optimize, developer!");
-
      memset( Xacc, 0, sizeof(Accumulator) * Dlength );
 }
 
 static void Xacc_blend_one()
 {
-     ONCE("should not be called, please optimize, developer!");
 }
 
 static void Xacc_blend_srccolor()
@@ -2373,16 +2376,23 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
 int gAquire( CardState *state, DFBAccelerationMask accel )
 {
      GFunc *funcs = gfuncs;
-     int   pindex = DFB_PIXELFORMAT_INDEX(state->destination->format);
+
+     int dst_pfi, src_pfi = 0;
 
      DFBSurfaceLockFlags lock_flags;
 
      pthread_mutex_lock( &generic_lock );
 
-     dst_bpp = DFB_BYTES_PER_PIXEL( state->destination->format );
+     dst_height = state->destination->height;
+     dst_format = state->destination->format;
+     dst_bpp    = DFB_BYTES_PER_PIXEL( dst_format );
+     dst_pfi    = DFB_PIXELFORMAT_INDEX( dst_format );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          src_bpp = DFB_BYTES_PER_PIXEL( state->source->format );
+          src_height = state->source->height;
+          src_format = state->source->format;
+          src_bpp    = DFB_BYTES_PER_PIXEL( src_format );
+          src_pfi    = DFB_PIXELFORMAT_INDEX( src_format );
 
           lock_flags = state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
                                                 DSBLIT_BLEND_COLORALPHA   |
@@ -2396,7 +2406,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
      color = state->color;
 
-     switch (state->destination->format) {
+     switch (dst_format) {
 #ifdef SUPPORT_RGB332
           case DSPF_RGB332:
                Cop = PIXEL_RGB332( color.r, color.g, color.b );
@@ -2424,19 +2434,29 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_UYVY:
           case DSPF_I420:
           case DSPF_YV12:
+               if (accel != DFXL_BLIT || src_format != dst_format ||
+                   state->blittingflags != DSBLIT_NOFX)
+               {
+                    ONCE("only copying blits supported for YUV in software");
+                    pthread_mutex_unlock( &generic_lock );
+                    return 0;
+               }
                break;
           default:
                ONCE("unsupported pixelformat");
+               pthread_mutex_unlock( &generic_lock );
                return 0;
      }
 
      /* Debug checks */
      if (!state->destination) {
           BUG("state check: no destination");
+          pthread_mutex_unlock( &generic_lock );
           return 0;
      }
      if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
           BUG("state check: no source");
+          pthread_mutex_unlock( &generic_lock );
           return 0;
      }
      
@@ -2458,8 +2478,8 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      if (dfb_surface_software_lock( state->destination,
                                     lock_flags, &dst_org, &dst_pitch, 0 )) {
 
-          if (DFB_BLITTING_FUNCTION( accel ))
-                    dfb_surface_unlock( state->source, 1 );
+          if (state->source_locked)
+               dfb_surface_unlock( state->source, 1 );
 
           dfb_surfacemanager_unlock( dfb_gfxcard_surface_manager() );
           pthread_mutex_unlock( &generic_lock );
@@ -2481,10 +2501,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                               Cop = 0;
                               if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                                    Dkey = state->dst_colorkey;
-                                   *funcs++ = Cop_toK_Aop_PFI[pindex];
+                                   *funcs++ = Cop_toK_Aop_PFI[dst_pfi];
                               }
                               else
-                                   *funcs++ = Cop_to_Aop_PFI[pindex];
+                                   *funcs++ = Cop_to_Aop_PFI[dst_pfi];
                               break;
                          }
                          else if (state->dst_blend == DSBF_ONE) {
@@ -2497,10 +2517,10 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                     *funcs++ = Dacc_is_Aacc;
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          Skey = state->dst_colorkey;
-                         *funcs++ = Sop_PFI_Kto_Dacc[pindex];
+                         *funcs++ = Sop_PFI_Kto_Dacc[dst_pfi];
                     }
                     else
-                         *funcs++ = Sop_PFI_to_Dacc[pindex];
+                         *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
                     /* source blending */
                     Cacc.a = color.a;
@@ -2580,25 +2600,25 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
                     /* write to destination */
                     *funcs++ = Sacc_is_Aacc;
-                    *funcs++ = Sacc_to_Aop_PFI[pindex];
+                    *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                }
                else {
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          Dkey = state->dst_colorkey;
-                         *funcs++ = Cop_toK_Aop_PFI[pindex];
+                         *funcs++ = Cop_toK_Aop_PFI[dst_pfi];
                     }
                     else
-                         *funcs++ = Cop_to_Aop_PFI[pindex];
+                         *funcs++ = Cop_to_Aop_PFI[dst_pfi];
                }
                break;
           case DFXL_BLIT:
-               if ((state->source->format == DSPF_A8) &&
+               if ((src_format == DSPF_A8) &&
                    (state->blittingflags ==
                      (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)) &&
                    (state->src_blend == DSBF_SRCALPHA) &&
                    (state->dst_blend == DSBF_INVSRCALPHA))
                {
-                    *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[pindex];
+                    *funcs++ = Bop_a8_set_alphapixel_Aop_PFI[dst_pfi];
                     break;
                }
           /* fallthru */
@@ -2614,7 +2634,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          {
                               *funcs++ = Sop_is_Aop;
                               *funcs++ = Dacc_is_Aacc;
-                              *funcs++ = Sop_PFI_to_Dacc[pindex];
+                              *funcs++ = Sop_PFI_to_Dacc[dst_pfi];
 
                               if (state->blittingflags & DSBLIT_DST_PREMULTIPLY)
                                    *funcs++ = Dacc_premultiply;
@@ -2626,15 +2646,15 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                               Skey = state->src_colorkey;
                               if (accel == DFXL_BLIT)
-                                   *funcs++ = Sop_PFI_Kto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Kto_Dacc[src_pfi];
                               else
-                                   *funcs++ = Sop_PFI_SKto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_SKto_Dacc[src_pfi];
                          }
                          else {
                               if (accel == DFXL_BLIT)
-                                   *funcs++ = Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_to_Dacc[src_pfi];
                               else
-                                   *funcs++ = Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Sto_Dacc[src_pfi];
                          }
 
                          /* modulate the source if requested */
@@ -2686,24 +2706,24 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          
                          /* write source to destination */
                          *funcs++ = Sacc_is_Bacc;
-                         *funcs++ = Sacc_to_Aop_PFI[pindex];
+                         *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                     }
-                    else if (state->source->format == state->destination->format) {
+                    else if (src_format == dst_format) {
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Bop_PFI_Kto_Aop_PFI[pindex];
+                                   *funcs++ = Bop_PFI_Kto_Aop_PFI[dst_pfi];
                               }
                               else
-                                   *funcs++ = Bop_PFI_to_Aop_PFI[pindex];
+                                   *funcs++ = Bop_PFI_to_Aop_PFI[dst_pfi];
                          }
                          else {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Bop_PFI_SKto_Aop[pindex];
+                                   *funcs++ = Bop_PFI_SKto_Aop[dst_pfi];
                               }
                               else
-                                   *funcs++ = Bop_PFI_Sto_Aop[pindex];
+                                   *funcs++ = Bop_PFI_Sto_Aop[dst_pfi];
                          }
                     }
                     else {
@@ -2715,28 +2735,30 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Sop_PFI_Kto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Kto_Dacc[src_pfi];
                               }
                               else
-                                   *funcs++ = Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_to_Dacc[src_pfi];
                          }
                          else { // DFXL_STRETCHBLIT
 
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Sop_PFI_SKto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_SKto_Dacc[src_pfi];
                               }
                               else
-                                   *funcs++ = Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Sto_Dacc[src_pfi];
 
                          }
 
-                         *funcs++ = Sacc_to_Aop_PFI[pindex];
+                         *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                     }
                     break;
                }
           default:
                ONCE("unimplemented drawing/blitting function");
+               gRelease( state );
+               return 0;
      }
 
      *funcs = NULL;
@@ -2854,6 +2876,41 @@ void gDrawLine( DFBRegion *line )
      }
 }
 
+static inline void gDoBlit( int sx,     int sy,
+                            int width,  int height,
+                            int dx,     int dy,
+                            int spitch, int dpitch,
+                            void *sorg, void *dorg )
+{
+     if (dy > sy) {
+          /* we must blit from bottom to top */
+          Aop = dorg + (dy + height-1) * dpitch + dx * dst_bpp;
+          Bop = sorg + (sy + height-1) * spitch + sx * src_bpp;
+          Dlength = width;
+
+          while (height--) {
+               RUN_PIPELINE();
+
+               Aop -= dpitch;
+               Bop -= spitch;
+          }
+     }
+     else {
+          /* we must blit from top to bottom */
+          Aop = dorg  +  dy * dpitch  +  dx * dst_bpp;
+          Bop = sorg  +  sy * spitch  +  sx * src_bpp;
+
+          Dlength = width;
+
+          while (height--) {
+               RUN_PIPELINE();
+
+               Aop += dpitch;
+               Bop += spitch;
+          }
+     }
+}
+
 void gBlit( DFBRectangle *rect, int dx, int dy )
 {
      CHECK_PIPELINE();
@@ -2865,32 +2922,22 @@ void gBlit( DFBRectangle *rect, int dx, int dy )
           /* we must blit from left to right*/
           Ostep = 1;
 
-     if (dy > rect->y) {
-          /* we must blit from bottom to top */
-          Aop = dst_org + (dy      + rect->h-1) * dst_pitch +      dx * dst_bpp;
-          Bop = src_org + (rect->y + rect->h-1) * src_pitch + rect->x * src_bpp;
-          Dlength = rect->w;
+     gDoBlit( rect->x, rect->y, rect->w, rect->h, dx, dy,
+              src_pitch, dst_pitch, src_org, dst_org );
 
-          while (rect->h--) {
-               RUN_PIPELINE();
-
-               Aop -= dst_pitch;
-               Bop -= src_pitch;
-          }
-     }
-     else {
-          /* we must blit from top to bottom */
-          Aop = dst_org  +       dy * dst_pitch  +       dx * dst_bpp;
-          Bop = src_org  +  rect->y * src_pitch  +  rect->x * src_bpp;
-
-          Dlength = rect->w;
-
-          while (rect->h--) {
-               RUN_PIPELINE();
-
-               Aop += dst_pitch;
-               Bop += src_pitch;
-          }
+     /* do other planes */
+     if (src_format == DSPF_I420 || src_format == DSPF_YV12) {
+          void *sorg = src_org + src_height * src_pitch;
+          void *dorg = dst_org + dst_height * dst_pitch;
+          
+          gDoBlit( rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
+                   src_pitch/2, dst_pitch/2, sorg, dorg );
+          
+          sorg += src_height * src_pitch / 4;
+          dorg += dst_height * dst_pitch / 4;
+          
+          gDoBlit( rect->x/2, rect->y/2, rect->w/2, rect->h/2, dx/2, dy/2,
+                   src_pitch/2, dst_pitch/2, sorg, dorg );
      }
 }
 

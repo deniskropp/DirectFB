@@ -85,22 +85,21 @@
                                    kill( 0, SIGTRAP );                         \
                               }
 
-     #define ONCE(msg)        if (1) {                                         \
-                                   static int print = 1;                       \
-                                   if (print) {                                \
-                                        DEBUGMSG( "*** [%s] *** %s (%d)\n",    \
-                                                  msg, __FILE__, __LINE__ );   \
-                                        print = 0;                             \
-                                   }                                           \
-                              }
-
 #else
      #define HEAVYDEBUGMSG(x...)
      #define DEBUGMSG(x...)
      #define DFB_ASSERT(exp)
-     #define ONCE(x)
 #endif
 
+
+#define ONCE(msg)   do {                                                       \
+                         static int print = 1;                                 \
+                         if (print) {                                          \
+                              fprintf( stderr, "(!) *** [%s] *** %s (%d)\n",   \
+                                       msg, __FILE__, __LINE__ );              \
+                              print = 0;                                       \
+                         }                                                     \
+                    } while (0)
 
 #define BUG(x)     fprintf( stderr, " (!?!)  *** BUG ALERT [%s] *** %s (%d)\n",\
                             x, __FILE__, __LINE__ )
