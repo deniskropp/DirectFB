@@ -442,6 +442,7 @@ int main( int argc, char *argv[] )
 
           showStatus( "Anti-aliased Text" );
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
@@ -451,6 +452,7 @@ int main( int argc, char *argv[] )
                                     rand()%(SH-fontheight),
                                     DSTF_TOPLEFT );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawstring = 36*(i/dt)/1000.0f;
           printf( "DrawString:             %6.2f secs (%6.2f KChars/sec)\n",
@@ -462,6 +464,7 @@ int main( int argc, char *argv[] )
 
           showStatus( "Rectangle Filling" );
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
@@ -469,6 +472,7 @@ int main( int argc, char *argv[] )
 	       primary->FillRectangle( primary,
 				       rand()%(SW-SX), rand()%(SH-SY), SX, SY );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.fillrectangle = SX*SY*(i/dt)/1000000.0f;
           printf( "FillRectangle:          %6.2f secs (%6.2f MPixel/sec)\n",
@@ -481,6 +485,7 @@ int main( int argc, char *argv[] )
           showStatus( "Alpha Blended Rectangle Filling" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetDrawingFlags( primary, DSDRAW_BLEND );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -489,6 +494,7 @@ int main( int argc, char *argv[] )
 	       primary->FillRectangle( primary,
 				       rand()%(SW-SX), rand()%(SH-SY), SX, SY );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.fillrectangle_blend = SX*SY*(i/dt)/1000000.0f;
           printf( "FillRectangle (blend):  %6.2f secs (%6.2f MPixel/sec)\n",
@@ -500,6 +506,7 @@ int main( int argc, char *argv[] )
 
           showStatus( "Triangle Filling" );
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                int x = rand()%(SW-SX);
@@ -509,6 +516,7 @@ int main( int argc, char *argv[] )
                                   rand()%0xFF, 0xFF );
 	       primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.filltriangle = SX*SY*(i/dt)/1000000.0f / 2.0f;
           printf( "FillTriangle:           %6.2f secs (%6.2f MPixel/sec)\n",
@@ -521,6 +529,7 @@ int main( int argc, char *argv[] )
           showStatus( "Alpha Blended Triangle Filling" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetDrawingFlags( primary, DSDRAW_BLEND );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -531,6 +540,7 @@ int main( int argc, char *argv[] )
                                   rand()%0xFF, rand()%0x64 );
 	       primary->FillTriangle( primary, x, y, x+SX-1, y+SY/2, x, y+SY-1 );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.filltriangle_blend = SX*SY*(i/dt)/1000000.0f / 2.0f;
           printf( "FillTriangle (blend):   %6.2f secs (%6.2f MPixel/sec)\n",
@@ -543,6 +553,7 @@ int main( int argc, char *argv[] )
           showStatus( "Rectangle Outlines" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->SetColor( primary, rand()%0xFF, rand()%0xFF,
@@ -550,6 +561,7 @@ int main( int argc, char *argv[] )
                primary->DrawRectangle( primary, rand()%(SW-SX), rand()%(SH-SY),
                                        SX, SY );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawrectangle = (SX*2+SY*2-4)*(i/dt)/1000000.0f;
           printf( "DrawRectangle:          %6.2f secs (%6.2f MPixel/sec)\n",
@@ -562,6 +574,7 @@ int main( int argc, char *argv[] )
           showStatus( "Alpha Blended Rectangle Outlines" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetDrawingFlags( primary, DSDRAW_BLEND );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -570,6 +583,7 @@ int main( int argc, char *argv[] )
                primary->DrawRectangle( primary, rand()%(SW-SX), rand()%(SH-SY),
                                        SX, SY );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawrectangle_blend = (SX*2+SY*2-4)*(i/dt)/1000000.0f;
           printf( "DrawRectangle (blend):  %6.2f secs (%6.2f MPixel/sec)\n",
@@ -583,6 +597,7 @@ int main( int argc, char *argv[] )
 
           sync();
           pixels = 0;
+          dfb->WaitIdle( dfb );
           t = clock();
           for (i=0; i<i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                int x = rand()%(SW-SX) + SX/2;
@@ -595,6 +610,7 @@ int main( int argc, char *argv[] )
                                   x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
                pixels += MAX( abs (dx), abs (dy) );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawline = (pixels/dt)/1000000.0f;
           printf( "DrawLine:               %6.2f secs (%6.2f MPixel/sec)\n",
@@ -608,6 +624,7 @@ int main( int argc, char *argv[] )
 
           sync();
           pixels = 0;
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetDrawingFlags( primary, DSDRAW_BLEND );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -622,6 +639,7 @@ int main( int argc, char *argv[] )
                                   x - dx/2, y - dy/2, x + dx/2, y + dy/2 );
                pixels += MAX( abs (dx), abs (dy) );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.drawline_blend = (pixels/dt) / 1000000.0f;
           printf( "DrawLine (blend):       %6.2f secs (%6.2f MPixel/sec)\n",
@@ -635,12 +653,14 @@ int main( int argc, char *argv[] )
           showStatus( "Simple BitBlt" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
                primary->Blit( primary, simple, NULL,
                               (SW!=SX) ? rand()%(SW-SX) : 0,
                               (SH-SY) ? rand()%(SH-SY) : 0 );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.blit = SX*SY*(i/dt)/1000000.0f;
           printf( "Blit %dbit:             %6.2f secs (%6.2f MPixel/sec)\n",
@@ -653,6 +673,7 @@ int main( int argc, char *argv[] )
           showStatus( "BitBlt with Color Keying" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetBlittingFlags( primary, DSBLIT_SRC_COLORKEY );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -660,11 +681,11 @@ int main( int argc, char *argv[] )
                               (SW!=SX) ? rand()%(SW-SX) : 0,
                               (SY-SH) ? rand()%(SH-SY) : 0 );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.blit_colorkey = SX*SY*(i/dt)/1000000.0f;
           printf( "Blit %dbit (colorkey):  %6.2f secs (%6.2f MPixel/sec)\n",
                   BYTES_PER_PIXEL(pixelformat)*8, dt, result.blit_colorkey );
-
 
           
           showMessage( "What if the source surface has another format?" );
@@ -672,6 +693,7 @@ int main( int argc, char *argv[] )
           showStatus( "BitBlt with on-the-fly format conversion" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetBlittingFlags( primary, DSBLIT_NOFX );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -679,6 +701,7 @@ int main( int argc, char *argv[] )
                               (SW!=SX) ? rand()%(SW-SX) : 0,
                               (SY-SH) ? rand()%(SH-SY) : 0 );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.blit_32 = SX*SY*(i/dt)/1000000.0f;
           printf( "Blit %dbit:             %6.2f secs (%6.2f MPixel/sec)\n",
@@ -691,6 +714,7 @@ int main( int argc, char *argv[] )
           showStatus( "BitBlt with Alpha Channel" );
 
           sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetBlittingFlags( primary, DSBLIT_BLEND_ALPHACHANNEL );
           for (i=0; i%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); i++) {
@@ -698,6 +722,7 @@ int main( int argc, char *argv[] )
                               (SW!=SX) ? rand()%(SW-SX) : 0,
                               (SY-SH) ? rand()%(SH-SY) : 0 );
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.blit_alpha = SX*SY*(i/dt)/1000000.0f;
           printf( "Blit 32bit with alpha:  %6.2f secs (%6.2f MPixel/sec)\n",
@@ -709,8 +734,9 @@ int main( int argc, char *argv[] )
 
           showStatus( "Stretched Blit" );
 
-          sync();
           pixels = 0;
+          sync();
+          dfb->WaitIdle( dfb );
           t = clock();
           primary->SetBlittingFlags( primary, DSBLIT_NOFX );
           for (j=1; j%100 || clock()<(t+CLOCKS_PER_SEC*DEMOTIME); j++) {
@@ -725,6 +751,7 @@ int main( int argc, char *argv[] )
                     pixels += dr.w * dr.h;
                }
           }
+          dfb->WaitIdle( dfb );
           dt = (clock() - t) / (float)CLOCKS_PER_SEC;
           result.stretchblit = (pixels/dt)/1000000.0f;
           printf( "StretchBlit:            %6.2f secs (%6.2f MPixel/sec)\n",

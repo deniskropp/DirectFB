@@ -532,6 +532,18 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      return ret;
 }
 
+DFBResult IDirectFB_WaitIdle( IDirectFB *thiz )
+{
+     IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
+     
+     if (!data)
+          return DFB_DEAD;
+
+     gfxcard_sync();
+
+     return DFB_OK;
+}
+
 DFBResult IDirectFB_Suspend( IDirectFB *thiz )
 {
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
@@ -594,6 +606,7 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      thiz->CreateImageProvider = IDirectFB_CreateImageProvider;
      thiz->CreateVideoProvider = IDirectFB_CreateVideoProvider;
      thiz->CreateFont = IDirectFB_CreateFont;
+     thiz->WaitIdle = IDirectFB_WaitIdle;
      thiz->Suspend = IDirectFB_Suspend;
      thiz->Resume = IDirectFB_Resume;
 

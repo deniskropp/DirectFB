@@ -665,7 +665,15 @@ extern "C"
           );
 
 
-        /** Hacks **/
+        /** Misc **/
+
+          /*
+           * Wait until graphics card is idle,
+           * i.e. finish all drawing/blitting functions.
+           */
+          DFBResult (*WaitIdle) (
+               IDirectFB                *thiz
+          );
 
           /*
            * Suspend
