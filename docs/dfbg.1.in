@@ -17,16 +17,21 @@ desktop. It loads the specified image and sets it as background image.
 
 .SH OPTIONS
 .TP
-\fI--tile
+.B -c, --color
 Tile the background with the image instead of scaling it to fit the
 screen size.
 
 .TP
-\fI--version
+.B -t, --tile
+Tile the background with the image instead of scaling it to fit the
+screen size.
+
+.TP
+.B -v, --version
 Output version information.
 
 .TP
-\fI--help
+.B -h, --help
 Print brief help and exit.
 
 .SH OTHER INFO

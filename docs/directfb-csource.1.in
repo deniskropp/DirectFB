@@ -19,24 +19,24 @@ illustrates this.
 
 .SH OPTIONS
 .TP
-\fI--name=identifier
+.B --name=identifier
 Specifies the identifier name (prefix) for the generated variables.
 If this option is not used, the identifier is generated from the
 filename.
 
 .TP
-\fI--format=pixelformat
+.B --format=pixelformat
 Specifies the pixel-format of the generated inline surface. Possible
 values are ARGB, RGB32, RGB24, RGB16, RGB15, RGB332, A8 and LUT8.
 By default the format is ARGB if the PNG image has an alpha channel
 or RGB32 otherwise.
 
 .TP
-\fI--version
+.B --version
 Output version information.
 
 .TP
-\fI--help
+.B --help
 Print brief help and exit.
 
 

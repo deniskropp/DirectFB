@@ -51,12 +51,14 @@ static IDirectFB             *dfb   = NULL;
 static IDirectFBDisplayLayer *layer = NULL;
 
 static const char *filename = NULL;
+static bool        color    = false;
 static bool        tiled    = false;
 
 /*****************************************************************************/
 
 static bool parse_command_line( int argc, char *argv[] );
-static void load_background_image( void );
+static void set_background_color( void );
+static void set_background_image( void );
 
 /*****************************************************************************/
 
@@ -76,6 +78,9 @@ main( int argc, char *argv[] )
      if (!parse_command_line( argc, argv ))
           return -2;
 
+     DirectFBSetOption( "bg-none", NULL );
+     DirectFBSetOption( "no-cursor", NULL );
+
      /* Create the super interface. */
      ret = DirectFBCreate( &dfb );
      if (ret) {
@@ -91,8 +96,12 @@ main( int argc, char *argv[] )
           return -4;
      }
 
-     /* Load and display the background image. */
-     load_background_image();
+     /* Set the background according to the users wishes. */
+
+     if (color)
+          set_background_color();
+     else
+          set_background_image();
 
      /* Release the display layer. */
      layer->Release( layer );
@@ -111,6 +120,7 @@ print_usage (const char *prg_name)
      fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
      fprintf (stderr, "DirectFB Background Configuration Tool\n\n");
      fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
+     fprintf (stderr, "   -c, --color     interpret the filename as a color (AARRGGBB)\n");
      fprintf (stderr, "   -t, --tile      tile background with the image\n");
      fprintf (stderr, "   -h, --help      show this help message\n");
      fprintf (stderr, "   -v, --version   print version information\n");
@@ -143,6 +153,10 @@ parse_command_line( int argc, char *argv[] )
                fprintf (stderr, "dfbg version %s\n", DIRECTFB_VERSION);
                return false;
           }
+          if (strcmp (a, "-c") == 0 || strcmp (a, "--color") == 0) {
+               color = true;
+               continue;
+          }
           if (strcmp (a, "-t") == 0 || strcmp (a, "--tile") == 0) {
                tiled = true;
                continue;
@@ -158,7 +172,40 @@ parse_command_line( int argc, char *argv[] )
 }
 
 static void
-load_background_image()
+set_background_color()
+{
+     DFBResult  ret;
+     char      *error;
+     __u32      argb;
+
+     if (*filename == '#')
+          filename++;
+
+     argb = strtoul( filename, &error, 16 );
+
+     if (*error) {
+          fprintf( stderr,
+                   "Invalid characters in color string: '%s'\n", error );
+          return;
+     }
+
+     ret = layer->SetBackgroundColor( layer,
+                                      (argb & 0xFF0000)   >> 16,
+                                      (argb & 0xFF00)     >> 8,
+                                      (argb & 0xFF)       >> 0,
+                                      (argb & 0xFF000000) >> 24 );
+     if (ret) {
+          DirectFBError( "IDirectFBDisplayLayer::SetBackgroundColor() failed", ret );
+          return;
+     }
+     
+     ret = layer->SetBackgroundMode( layer, DLBM_COLOR );
+     if (ret)
+          DirectFBError( "IDirectFBDisplayLayer::SetBackgroundMode() failed", ret );
+}
+
+static void
+set_background_image()
 {
      DFBResult               ret;
      DFBSurfaceDescription   desc;
