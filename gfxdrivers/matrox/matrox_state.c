@@ -383,8 +383,6 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
      mask = MGA_KEYMASK(surface->format);
      key  = state->src_colorkey & mask;
 
-     printf("0x%08x, 0x%08x\n", mask, key);
-
      mga_waitfifo( mdrv, mdev, 2);
 
      mga_out32( mmio, ((mask & 0xFFFF) << 16) | (key & 0xFFFF), TEXTRANS );
