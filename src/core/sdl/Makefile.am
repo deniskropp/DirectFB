@@ -24,6 +24,7 @@ libdirectfb_sdl_la_LDFLAGS = \
 	$(SDL_LIBS)	\
 	-export-dynamic	\
 	-avoid-version	\
+	-module		\
 	$(DFB_LDFLAGS)
 
 libdirectfb_sdl_la_SOURCES = \
@@ -36,6 +37,7 @@ libdirectfb_sdlinput_la_LDFLAGS = \
 	$(SDL_LIBS)	\
 	-export-dynamic	\
 	-avoid-version	\
+	-module		\
 	$(DFB_LDFLAGS)
 
 libdirectfb_sdlinput_la_SOURCES = \
