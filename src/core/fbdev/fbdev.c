@@ -757,7 +757,7 @@ primaryInitLayer         ( GraphicsDevice             *device,
                         dfb_config->mode.depth);
      }
      
-     if (dfb_config->mode.format == DSPF_UNKNOWN) {
+     if (default_config->pixelformat == DSPF_UNKNOWN) {
           default_config->pixelformat = DSPF_RGB16;
           
           if (dfb_fbdev_set_mode( NULL, NULL, default_config ))
