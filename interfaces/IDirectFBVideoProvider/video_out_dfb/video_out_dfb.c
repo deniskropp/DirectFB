@@ -18,26 +18,26 @@
  *  video_out_dfb: unofficial xine video output driver using DirectFB
  *
  *
- *  NOTE: adjusting contrast is disabled in __dummy_* when output is RGB
- *
- *
- *  TODO: speed up at 24bpp and 32bpp
- *
  */
 
-#include <config.h>
+#ifdef HAVE_CONFIG_H
+ #include "config.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
 #include <directfb.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+
 #include <display/idirectfbsurface.h>
+
 #include <misc/util.h>
 
 #include <xine.h>
@@ -46,1413 +46,1032 @@
 #include <xine/video_out.h>
 
 #include "video_out_dfb.h"
-#include "video_out_dfb_tables.h"
+
+
+
+#define V_RED_FACTOR    22970
+#define V_GREEN_FACTOR  11700
+#define U_GREEN_FACTOR   5638
+#define U_BLUE_FACTOR   29032
+
+
+/* LookUp Tables */
+
+static uint8_t y_table[256];
+
+static uint8_t cr_table[256];
+
+static int16_t v_red_table[256];
+
+static int16_t v_green_table[256];
+
+static int16_t u_green_table[256];
+
+static int16_t u_blue_table[256];
+
+
+#define GEN_Y() \
+{\
+	int y;\
+	y  = ((i + brightness) * contrast) >> 7;\
+	y_table[i] = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);\
+}
+
+#define GEN_CR() \
+{\
+	int cr;\
+	cr = (((i - 128) * saturation) >> 7) + 128;\
+	cr_table[i] = (cr < 0) ? 0 : ((cr > 0xff) ? 0xff : cr);\
+}
+
+#define GEN_VR() \
+{\
+	v_red_table[i] = ((cr_table[i] - 128) * V_RED_FACTOR) >> 14;\
+}
+
+#define GEN_VG() \
+{\
+	v_green_table[i] = ((cr_table[i] - 128) * -V_GREEN_FACTOR) >> 14;\
+}
+
+#define GEN_UG() \
+{\
+	u_green_table[i] = ((cr_table[i] - 128) * -U_GREEN_FACTOR) >> 14;\
+}
+
+#define GEN_UB() \
+{\
+	u_blue_table[i] = ((cr_table[i] - 128) * U_BLUE_FACTOR) >> 14;\
+}
+
+
+
+
 #include "video_out_dfb_blend.h"
+
 #ifdef ARCH_X86
-#include "video_out_dfb_mmx.h"
-#endif
-
-
-#define THIS  "video_out_dfb"
-
-
-#define TEST(exp) \
-{\
-	if(!(exp))\
-	{\
-		fprintf(stderr, THIS \
-			": at line %i [" #exp "] failed !!\n", \
-			__LINE__);\
-		goto FAILURE;\
-	}\
-}
-
-#define SAY(fmt, ...) \
-{\
-	if(this->verbosity)\
-		fprintf(stderr, THIS ": " fmt "\n", ## __VA_ARGS__);\
-}
-
-#define DBUG(fmt, ...) \
-{\
-	if(this->verbosity == XINE_VERBOSITY_DEBUG)\
-		fprintf(stderr, THIS ": " fmt "\n", ## __VA_ARGS__);\
-}
-
-#define ONESHOT(fmt, ...) \
-{\
-	if(this->verbosity)\
-	{\
-		static int one = 1;\
-		if(one)\
-		{\
-			fprintf(stderr, THIS ": " fmt "\n", ## __VA_ARGS__);\
-			one = 0;\
-		}\
-	}\
-}
-
-#define release(ptr) \
-{\
-	if(ptr) free(ptr);\
-	ptr = NULL;\
-}
-
-
-#ifdef DFB_DEBUG
-
-static inline uint64_t
-rdtsc(void)
-{
-	uint64_t t;
-
-	__asm__ __volatile__(
-		".byte 0x0f, 0x31\n\t"
-		: "=A" (t));
-
-	return(t);
-}
-
-#define SPEED(x) \
-{\
-	if(test)\
-	{\
-		uint64_t t = rdtsc();\
-		x;\
-		t = rdtsc() - t;\
-		fprintf(stderr, THIS ": [%lli] speed test\n", t);\
-		test--;\
-	} else\
-	{\
-		x;\
-	}\
-}
-
-#else
-
-#define SPEED(x)  x;\
-
+ #include "video_out_dfb_mmx.h"
 #endif
 
 
 
-/*
- *
- * I'm using this formula for YUV->RGB:
- *
- *   R = Y + (1.40200 * (V - 128))
- *   G = Y - (0.71414 * (V - 128)) - (0.34414 * (U - 128))
- *   B = Y + (1.77200 * (U - 128))
- *
- *
- * Conversion is done as follows:
- *
- *   r = y + v_red_table[v];
- *   g = y - (v_green_table[v] + u_green_table[u]);
- *   b = y + u_blue_table[u];
- *
- * then values are clamped to 0-256.
- *
- * You can play with the "video.dfb.gamma_correction"
- * entry in ~/.xine/config to adjust colors conversion:
- * this variable specifies a value that is added to y
- * (default is -16 because many encoders use a range
- *  of 16-255 for luminance).
- *
- */
+
+#define PACCEL  dummy
+
+/* initialize chroma components */
+#define LOADCR( ui, vi ) \
+{\
+	register int u = ui;\
+	register int v = vi;\
+	cr1 = v_red_table[v];\
+	cr2 = v_green_table[v] + u_green_table[u];\
+	cr3 = u_blue_table[u];\
+}
+
+#define YUV2RGB( yi ) \
+{\
+	register int y;\
+	y = y_table[yi];\
+	r = y + cr1;\
+	g = y + cr2;\
+	b = y + cr3;\
+}
+
+#define CLAMP2RGB8() \
+{\
+	r = (r < 0) ? 0 : ((r > 0xff) ? 0xe0 : (r & 0xe0));\
+	g = (g < 0) ? 0 : ((g > 0xff) ? 0x1c : ((g & 0xe0) >> 3));\
+	b = (b < 0) ? 0 : ((b > 0xff) ? 0x03 : (b >> 6));\
+}
+
+#define CLAMP2RGB15() \
+{\
+	r = (r < 0) ? 0 : ((r > 0xff) ? 0x7c00 : ((r & 0xf8) << 7));\
+	g = (g < 0) ? 0 : ((g > 0xff) ? 0x03e0 : ((g & 0xf8) << 2));\
+	b = (b < 0) ? 0 : ((b > 0xff) ? 0x001f : (b >> 3));\
+}
+
+#define CLAMP2RGB16() \
+{\
+	r = (r < 0) ? 0 : ((r > 0xff) ? 0xf800 : ((r & 0xf8) << 8));\
+	g = (g < 0) ? 0 : ((g > 0xff) ? 0x07e0 : ((g & 0xfc) << 3));\
+	b = (b < 0) ? 0 : ((b > 0xff) ? 0x001f : (b >> 3));\
+}
+
+#define CLAMP2RGB24() \
+{\
+	r = (r < 0) ? 0 : ((r > 0xff) ? 0xff : r);\
+	g = (g < 0) ? 0 : ((g > 0xff) ? 0xff : g);\
+	b = (b < 0) ? 0 : ((b > 0xff) ? 0xff : b);\
+}
+
+#define CLAMP2RGB32() \
+{\
+	r = (r < 0) ? 0 : ((r > 0xff) ? 0x00ff0000 : (r << 16));\
+	g = (g < 0) ? 0 : ((g > 0xff) ? 0x0000ff00 : (g << 8));\
+	b = (b < 0) ? 0 : ((b > 0xff) ? 0x000000ff : b);\
+}
 
 
+/******************************** Begin YUY2 callbacks **********************************/
 
-
-static void
-__dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, yuy2 )
 {
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n        = (frame->width * frame->height) >> 1;
-	int32_t bright    = this->brightness.l_val;
-	int32_t ctr       = this->contrast.l_val;
-
+	uint8_t *src = frame->vo_frame.base[0];
+	int      n   = (frame->width.cur * frame->height.cur) >> 2;
+	int      mmf = this->mixer.modified;
 
 	do
 	{
-		register int y;
+		register uint32_t pix;
 
-		y = *yuv_data + bright;
-		y *= ctr;
-		y >>= 14;
-		*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
+		if (mmf & MMF_S)
+		{
+			pix  = cr_table[*(src + 1)] << 8;
+			pix |= cr_table[*(src + 3)] << 24;
+		} else
+			pix  = *((uint32_t*) src) & 0xff00ff00;
 
-		*(data + 1) = *(yuv_data + 1);
+		if (mmf & (MMF_B | MMF_C))
+		{
+			pix |= y_table[*src];
+			pix |= y_table[*(src + 2)] << 16;
+		} else
+		{
+			pix |= *src;
+			pix |= *(src + 2) << 16;
+		}
 
-		y = *(yuv_data + 2) + bright;
-		y *= ctr;
-		y >>= 14;
-		*(data + 2) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
+		*((uint32_t*) dst) = pix;
 
-		*(data + 3) = *(yuv_data + 3);
 
-		data     += 4;
-		yuv_data += 4;
+		if (mmf & MMF_S)
+		{
+			pix  = cr_table[*(src + 5)] << 8;
+			pix |= cr_table[*(src + 7)] << 24;
+		} else
+			pix  = *((uint32_t*) (src + 4)) & 0xff00ff00;
 
-	} while(--n);
+		if (mmf & (MMF_B | MMF_C))
+		{
+			pix |= y_table[*(src + 4)];
+			pix |= y_table[*(src + 6)] << 16;
+		} else
+		{
+			pix |= *(src + 4);
+			pix |= *(src + 6) << 16;
+		}
+
+		*((uint32_t*) (dst + 4)) = pix;
+
+
+		dst += 8;
+		src += 8;
+
+	} while (--n);
 }
 
 
-static void
-__dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, uyvy )
 {
-	uint8_t* dest     = (uint8_t*) data;
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n        = (frame->width * frame->height) >> 2;
-	int32_t bright    = this->brightness.l_val;
-	int32_t ctr       = this->contrast.l_val;
+	uint8_t *src = frame->vo_frame.base[0];
+	int      n   = (frame->width.cur * frame->height.cur) >> 2;
+	int      mmf = this->mixer.modified;
 
-
-	if(bright || ctr != 0x4000)
+	do
 	{
-		do
+		register uint32_t pix;
+
+		if (mmf & MMF_S)
 		{
-			register int y;
-
-			*dest = *(yuv_data + 1);
-
-			y = *yuv_data + bright;
-			y *= ctr;
-			y >>= 14;
-			*(dest + 1) = (y < 0) ? 0 :
-				      ((y > 0xff) ? 0xff : y);
-
-			*(dest + 2) = *(yuv_data + 3);
-
-			y = *(yuv_data + 2) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(dest + 3) = (y < 0) ? 0 :
-				      ((y > 0xff) ? 0xff : y);
-
-			*(dest + 4) = *(yuv_data + 5);
-
-			y = *(yuv_data + 4) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(dest + 5) = (y < 0) ? 0 :
-				      ((y > 0xff) ? 0xff : y);
-
-			*(dest + 6) = *(yuv_data + 7);
-
-			y = *(yuv_data + 6) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(dest + 7) = (y < 0) ? 0 :
-				      ((y > 0xff) ? 0xff : y);
-
-			yuv_data += 8;
-			dest     += 8;
-
-		} while(--n);
-
-	} else
-	{
-		do
+			pix  = cr_table[*(src + 1)];
+			pix |= cr_table[*(src + 3)] << 16;
+		} else
+			pix  = (*((uint32_t*) src) >> 8) & 0xff00ff;
+		
+		if (mmf & (MMF_B | MMF_C))
 		{
-			*dest       = *(yuv_data + 1);
-			*(dest + 1) = *yuv_data;
-			*(dest + 2) = *(yuv_data + 3);
-			*(dest + 3) = *(yuv_data + 2);
-			*(dest + 4) = *(yuv_data + 5);
-			*(dest + 5) = *(yuv_data + 4);
-			*(dest + 6) = *(yuv_data + 7);
-			*(dest + 7) = *(yuv_data + 6);
+			pix |= y_table[*src] << 8;
+			pix |= y_table[*(src + 2)] << 24;
+		} else
+		{
+			pix |= *src << 8;
+			pix |= *(src + 2) << 24;
+		}
 
-			yuv_data += 8;
-			dest     += 8;
+		*((uint32_t*) dst) = pix;
 
-		} while(--n);
-	}
+		
+		if (mmf & MMF_S)
+		{
+			pix  = cr_table[*(src + 5)];
+			pix |= cr_table[*(src + 7)] << 16;
+		} else
+			pix  = (*((uint32_t*) (src + 4)) >> 8) & 0xff00ff;
+
+		if (mmf & (MMF_B | MMF_C))
+		{
+			pix |= y_table[*(src + 4)] << 8;
+			pix |= y_table[*(src + 6)] << 24;
+		} else
+		{
+			pix |= *(src + 4) << 8;
+			pix |= *(src + 6) << 24;
+		}
+
+		*((uint32_t*) (dst + 4)) = pix;
+
+		
+		dst += 8;
+		src += 8;
+
+	} while (--n);
 }
 
 
-static void
-__dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, yv12 )
 {
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint8_t* y_off    = (uint8_t*) data;
-	uint8_t* u_off;
-	uint8_t* v_off;
-	uint32_t line     = frame->width >> 2;
-	uint32_t n        = (frame->width * frame->height) >> 3;
-	uint32_t l        = frame->vo_frame.pitches[0];
-	int32_t bright    = this->brightness.l_val;
-	int32_t ctr       = this->contrast.l_val;
-	
-	
-	if(frame->surface->format == DSPF_YV12)
+	uint8_t *src  = frame->vo_frame.base[0];
+	uint8_t *dsty = dst;
+	uint8_t *dstu;
+	uint8_t *dstv;
+	int      line = frame->width.cur >> 2;
+	int      n    = (frame->width.cur * frame->height.cur) >> 3;
+	int      p    = frame->vo_frame.pitches[0];
+	int      mmf  = this->mixer.modified;
+
+	if (frame->dstfmt.cur == DSPF_YV12)
 	{
-		v_off = (uint8_t*) data + (pitch * frame->height);
-		u_off = (uint8_t*) v_off + ((pitch * frame->height) >> 2);
+		dstv = (uint8_t*) dsty + (pitch * frame->height.cur);
+		dstu = (uint8_t*) dstv + ((pitch * frame->height.cur) >> 2);
 	} else
 	{
-		u_off = (uint8_t*) data + (pitch * frame->height);
-		v_off = (uint8_t*) u_off + ((pitch * frame->height) >> 2);
+		dstu = (uint8_t*) dsty + (pitch * frame->height.cur);
+		dstv = (uint8_t*) dstu + ((pitch * frame->height.cur) >> 2);
 	}
 
-	if(!bright && ctr == 0x4000)
+	do
 	{
-		do
+		register uint32_t chunk;
+
+		if (mmf & (MMF_B | MMF_C))
 		{
-			*y_off       = *yuv_data;
-			*(y_off + 1) = *(yuv_data + 2);
-			*(y_off + 2) = *(yuv_data + 4);
-			*(y_off + 3) = *(yuv_data + 6);
+			chunk  = y_table[*src];
+			chunk |= y_table[*(src + 2)] << 8;
+			chunk |= y_table[*(src + 4)] << 16;
+			chunk |= y_table[*(src + 6)] << 24;
+
+			*((uint32_t*) dsty) = chunk;
+
+			chunk  = y_table[*(src + p)];
+			chunk |= y_table[*(src + p + 2)] << 8;
+			chunk |= y_table[*(src + p + 4)] << 16;
+			chunk |= y_table[*(src + p + 6)] << 24;
+
+			*((uint32_t*) (dsty + pitch)) = chunk;
+		} else
+		{
+			chunk  = *src;
+			chunk |= *(src + 2) << 8;
+			chunk |= *(src + 4) << 16;
+			chunk |= *(src + 6) << 24;
+
+			*((uint32_t*) dsty) = chunk;
+
+			chunk  = *(src + p);
+			chunk |= *(src + p + 2) << 8;
+			chunk |= *(src + p + 4) << 16;
+			chunk |= *(src + p + 6) << 24;
+
+			*((uint32_t*) (dsty + pitch)) = chunk;
+		}
+
+		if (mmf & MMF_S)
+		{
+			register uint32_t cr;
 			
-			*(y_off + pitch)     = *(yuv_data + l);
-			*(y_off + pitch + 1) = *(yuv_data + l + 2);
-			*(y_off + pitch + 2) = *(yuv_data + l + 4);
-			*(y_off + pitch + 3) = *(yuv_data + l + 6);
+			cr          = (*(src + 1)    +
+			               *(src + p + 1)) >> 1;
+			*dstu       = cr_table[cr];
 
-			*u_off       = (*(yuv_data + 1) + *(yuv_data + l + 1)) >> 1;
-			*(u_off + 1) = (*(yuv_data + 5) + *(yuv_data + l + 5)) >> 1;
 
-			*v_off       = (*(yuv_data + 3) + *(yuv_data + l + 3)) >> 1;
-			*(v_off + 1) = (*(yuv_data + 7) + *(yuv_data + l + 7)) >> 1;
+			cr          = (*(src + 5)   +
+                                       *(src + p + 5)) >> 1;
+			*(dstu + 1) = cr_table[cr];
 
-			yuv_data += 8;
-			y_off    += 4;
-			u_off    += 2;
-			v_off    += 2;
+			cr          = (*(src + 3)   +
+			               *(src + p + 3)) >> 1;
+			*dstv       = cr_table[cr];
 
-			if(!(--line))
-			{
-				line      = frame->width >> 2;
-				yuv_data += l;
-				y_off    += pitch;
-			}
-
-		} while(--n);
-	} else
-	{
-		do
+			cr          = (*(src + 7)   +
+			               *(src + p + 7)) >> 1;
+			*(dstv + 1) = cr_table[cr];
+		} else
 		{
-			register int y;
+			*dstu       = (*(src + 1)   +
+		                       *(src + p + 1)) >> 1;
 
-			y = *yuv_data + bright;
-			y *= ctr;
-			y >>= 14;
-			*y_off = (y < 0) ? 0 :
-				 ((y > 0xff) ? 0xff : y);
+			*(dstu + 1) = (*(src + 5)   +
+		                       *(src + p + 5)) >> 1;
 
-			y = *(yuv_data + 2) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + 1) = (y < 0) ? 0 :
-				       ((y > 0xff) ? 0xff : y);
+			*dstv       = (*(src + 3)   +
+			               *(src + p + 3)) >> 1;
 
-			y = *(yuv_data + 4) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + 2) = (y < 0) ? 0 :
-				       ((y > 0xff) ? 0xff : y);
+			*(dstv + 1) = (*(src + 7)   +
+			               *(src + p + 7)) >> 1;
+		}
 
-			y = *(yuv_data + 6) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + 3) = (y < 0) ? 0 :
-				       ((y > 0xff) ? 0xff : y);
+		src  += 8;
+		dsty += 4;
+		dstu += 2;
+		dstv += 2;
 
-			y = *( yuv_data + l) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + pitch) = (y < 0) ? 0 :
-				           ((y > 0xff) ? 0xff : y);
+		if (!(--line))
+		{
+			line  = frame->width.cur >> 2;
+			src  += p;
+			dsty += pitch;
+		}
 
-			y = *(yuv_data + l + 2) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + pitch + 1) = (y < 0) ? 0 :
-				               ((y > 0xff) ? 0xff : y);
-
-			y = *(yuv_data + l + 4) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + pitch + 2) = (y < 0) ? 0 :
-				               ((y > 0xff) ? 0xff : y);
-
-			y = *(yuv_data + l + 6) + bright;
-			y *= ctr;
-			y >>= 14;
-			*(y_off + pitch + 3) = (y < 0) ? 0 :
-				               ((y > 0xff) ? 0xff : y);
-
-			*u_off       = (*(yuv_data + 1) + *(yuv_data + l + 1)) >> 1;
-			*(u_off + 1) = (*(yuv_data + 5) + *(yuv_data + l + 5)) >> 1;
-
-			*v_off       = (*(yuv_data + 3) + *(yuv_data + l + 3)) >> 1;
-			*(v_off + 1) = (*(yuv_data + 7) + *(yuv_data + l + 7)) >> 1;
-
-			yuv_data += 8;
-			y_off    += 4;
-			u_off    += 2;
-			v_off    += 2;
-
-			if(!(--line))
-			{
-				line      = frame->width >> 2;
-				yuv_data += l;
-				y_off    += pitch;
-			}
-
-		} while(--n);
-	}
+	} while (--n);
 }
 
 
-static void
-__dummy_yuy2_be_rgb8(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, rgb8 )
 {
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n     = (frame->width * frame->height) >> 1;
-	int32_t bright = this->brightness.l_val;
+	uint8_t  *src = frame->vo_frame.base[0];
+	int       n   = (frame->width.cur * frame->height.cur) >> 1;
+	int       cr1, cr2, cr3;
+	int       r, g, b;
 
 	do
 	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
+		LOADCR( *(src + 1), *(src + 3) );
 
-		{
-			register int u, v;
+		YUV2RGB( *src );
+		CLAMP2RGB8();
 
-			u = *(yuv_data + 1);
-			v = *(yuv_data + 3);
+		*dst = (r | g | b);
 
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
+		YUV2RGB( *(src + 2) );
+		CLAMP2RGB8();
 
-		y = *yuv_data + bright;
+		*(dst + 1) = (r | g | b);
 
-		r = y + m1;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 6;
+		dst += 2;
+		src += 4;
 
-		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
-		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
-
-		*data = ((r & 0xe0) | (g & 0x1c) | b);
-
-		y = *(yuv_data + 2) + bright;
-
-		r = y + m1;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 6;
-
-		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
-		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
-
-		*(data + 1) = ((r & 0xe0) | (g & 0x1c) | b);
-
-
-		yuv_data += 4;
-		data     += 2;
-
-	} while(--n);
-
+	} while (--n);
 }
 
 
-static void
-__dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, rgb15 )
 {
-	uint16_t* dest    = (uint16_t*) data;
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n     = (frame->width * frame->height) >> 1;
-	int32_t bright = this->brightness.l_val;
+	uint8_t *src = frame->vo_frame.base[0];
+	int      n   = (frame->width.cur * frame->height.cur) >> 1;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
 
 	do
 	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
+		LOADCR( *(src + 1), *(src + 3) );
 
-		{
-			register int u, v;
+		YUV2RGB( *src );
+		CLAMP2RGB15();
 
-			u = *(yuv_data + 1);
-			v = *(yuv_data + 3);
+		*((uint16_t*) dst)  = (r | g | b);
 
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
+		YUV2RGB( *(src + 2) );
+		CLAMP2RGB15();
 
-		y = *yuv_data + bright;
+		*((uint16_t*) (dst + 2)) = (r | g | b);
 
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 3;
+		dst += 4;
+		src += 4;
 
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		*(dest++) = ((r << 10) | (g << 5) | b);
-
-		y = *(yuv_data + 2) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		*(dest++) = ((r << 10) | (g << 5) | b);
-
-		
-		yuv_data += 4;
-
-	} while(--n);
-
+	} while (--n);
 }
 
 
-static void
-__dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, rgb16 )
 {
-	uint16_t* dest    = (uint16_t*) data;
-	uint8_t* yuv_data = frame->vo_frame.base[0];
-	uint32_t n     = (frame->width * frame->height) >> 1;
-	int32_t bright = this->brightness.l_val;
-
-
+	uint8_t *src = frame->vo_frame.base[0];
+	int      n   = (frame->width.cur * frame->height.cur) >> 1;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
+	
 	do
 	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
+		LOADCR( *(src + 1), *(src + 3) );
 
-		{
-			register int u, v;
+		YUV2RGB( *src );
+		CLAMP2RGB16();
 
-			u = *(yuv_data + 1);
-			v = *(yuv_data + 3);
+		*((uint16_t*) dst) = (r | g | b);
 
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
+		YUV2RGB( *(src + 2) );
+		CLAMP2RGB16();
 
-		y = *yuv_data + bright;
+		*((uint16_t*) (dst + 2)) = (r | g | b);
 
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 2;
-		b = (y + m3) >> 3;
+		dst += 4;
+		src += 4;
 
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x3f) ? 0x3f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		*(dest++) = ((r << 11) | (g << 5) | b);
-
-		y = *(yuv_data + 2) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 2;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x3f) ? 0x3f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		*(dest++) = ((r << 11) | (g << 5) | b);
-
-		
-		yuv_data += 4;
-
-	} while(--n);
-
+	} while (--n);
 }
 
 
 /* unrolling here seems to speed up */
-static void
-__dummy_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, rgb24 )
 {
-	uint8_t* yuv_data  = frame->vo_frame.base[0];
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val;
-
+	uint8_t *src = frame->vo_frame.base[0];
+	int      n   = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
 
 	do
 	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
+		LOADCR( *(src + 1), *(src + 3) );
 
-		{
-			register int u, v;
+		YUV2RGB( *src );
+		CLAMP2RGB24();
 
-			u = *(yuv_data + 1);
-			v = *(yuv_data + 3);
+		*dst       = b;
+		*(dst + 1) = g;
+		*(dst + 2) = r;
 
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
+		YUV2RGB( *(src + 2) );
+		CLAMP2RGB24();
 
-		y = *yuv_data + bright;
+		*(dst + 3) = b;
+		*(dst + 4) = g;
+		*(dst + 5) = r;
 
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
+		LOADCR( *(src + 5), *(src + 7) );
 
-		*data       = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 1) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 2) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
+		YUV2RGB( *(src + 4) );
+		CLAMP2RGB24();
 
-		y = *(yuv_data + 2) + bright;
+		*(dst + 6) = b;
+		*(dst + 7) = g;
+		*(dst + 8) = r;
 
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
+		YUV2RGB( *(src + 6) );
+		CLAMP2RGB24();
 
-		*(data + 3) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 4) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 5) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
+		*(dst + 9)  = b;
+		*(dst + 10) = g;
+		*(dst + 11) = r;
 
-		{
-			register int u, v;
+		dst += 12;
+		src += 8;
 
-			u = *(yuv_data + 5);
-			v = *(yuv_data + 7);
-
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
-
-		y = *(yuv_data + 4) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 6) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 7) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 8) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(yuv_data + 6) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 9)  = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 10) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 11) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		data     += 12;
-		yuv_data += 8;
-
-	} while(--n);
-
+	} while (--n);
 }
 
 
 /* unrolling here seems to speed up */
-static void
-__dummy_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
+static
+DFB_PFUNCTION( yuy2, rgb32 )
 {
-	uint8_t* yuv_data  = frame->vo_frame.base[0];
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val;
-
+	uint8_t *src = frame->vo_frame.base[0];
+	int      n   = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
 
 	do
 	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
+		LOADCR( *(src + 1), *(src + 3) );
 
+		YUV2RGB( *src );
+		CLAMP2RGB32();
+
+		*((uint32_t*) dst) = (r | g | b);
+
+		YUV2RGB( *(src + 2) );
+		CLAMP2RGB32();
+
+		*((uint32_t*) (dst + 4)) = (r | g | b);
+
+		LOADCR( *(src + 5), *(src + 7) );
+
+		YUV2RGB( *(src + 4) );
+		CLAMP2RGB32();
+
+		*((uint32_t*) (dst + 8)) = (r | g | b);
+
+		YUV2RGB( *(src + 6) );
+		CLAMP2RGB32();
+
+		*((uint32_t*) (dst + 12)) = (r | g | b);
+
+		dst += 16;
+		src += 8;
+
+	} while (--n);
+}
+
+/******************************** End of YV12 callbacks *********************************/
+
+
+
+/******************************** Begin YV12 callbacks **********************************/
+
+static
+DFB_PFUNCTION( yv12, yuy2 )
+{
+	uint8_t  *srcy = frame->vo_frame.base[0];
+	uint8_t  *srcu = frame->vo_frame.base[1];
+	uint8_t  *srcv = frame->vo_frame.base[2];
+	int       yp   = frame->vo_frame.pitches[0];
+	int       n    = frame->height.cur >> 1;
+	int       mmf  = this->mixer.modified;
+	int       i;
+
+	do
+	{
+		for (i = 0; i < (frame->width.cur >> 1); i++)
 		{
-			register int u, v;
+			register uint32_t pix;
+			
+			if (mmf & MMF_S)
+			{
+				pix  = cr_table[srcu[i]] << 8;
+				pix |= cr_table[srcv[i]] << 24;
+			} else
+			{
+				pix  = srcu[i] << 8;
+				pix |= srcv[i] << 24;
+			}
+			
+			if (mmf & (MMF_B | MMF_C))
+			{
+				pix |= y_table[*srcy];
+				pix |= y_table[*(srcy + 1)] << 16;
+			} else
+			{
+				pix |= *srcy;
+				pix |= *(srcy + 1) << 16;
+			}
 
-			u = *(yuv_data + 1);
-			v = *(yuv_data + 3);
+			*((uint32_t*) dst) = pix;
 
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
+			pix &= 0xff00ff00;
+
+			if (mmf & (MMF_B | MMF_C))
+			{
+				pix |= y_table[*(srcy + yp)];
+				pix |= y_table[*(srcy + yp + 1)] << 16;
+			} else
+			{
+				pix |= *(srcy + yp);
+				pix |= *(srcy + yp + 1) << 16;
+			}
+
+			*((uint32_t*) (dst + pitch)) = pix;
+
+			dst  += 4;
+			srcy += 2;
 		}
 
-		y = *yuv_data + bright;
+		dst  += pitch;
+		srcy += yp;
+		srcu += yp >> 1;
+		srcv += yp >> 1;
+	
+	} while (--n);
+}
 
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
 
-		*data       = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 1) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 2) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
+static
+DFB_PFUNCTION( yv12, uyvy )
+{
+	uint8_t *srcy = frame->vo_frame.base[0];
+	uint8_t *srcu = frame->vo_frame.base[1];
+	uint8_t *srcv = frame->vo_frame.base[2];
+	int      yp   = frame->vo_frame.pitches[0];
+	int      n    = frame->height.cur >> 1;
+	int      mmf  = this->mixer.modified;
+	int      i;
 
-		y = *(yuv_data + 2) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 4) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 5) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 6) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
+	do
+	{
+		for (i = 0; i < (frame->width.cur >> 1); i++)
 		{
-			register int u, v;
+			register uint32_t pix;
 
-			u = *(yuv_data + 5);
-			v = *(yuv_data + 7);
+			if (mmf & MMF_S)
+			{
+				pix  = cr_table[srcu[i]];
+				pix |= cr_table[srcv[i]] << 16;
+			} else
+			{
+				pix  = srcu[i];
+				pix |= srcv[i] << 16;
+			}
 
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
+			if (mmf & (MMF_B | MMF_C))
+			{
+				pix |= y_table[*srcy] << 8;
+				pix |= y_table[*(srcy + 1)] << 24;
+			} else
+			{
+				pix |= *srcy << 8;
+				pix |= *(srcy + 1) << 24;
+			}
+
+			*((uint32_t*) dst) = pix;
+
+			pix &= 0x00ff00ff;
+			
+			if (mmf & (MMF_B | MMF_C))
+			{
+				pix |= y_table[*(srcy + yp)] << 8;
+				pix |= y_table[*(srcy + yp + 1)] << 24;
+			} else
+			{
+				pix |= *(srcy + yp) << 8;
+				pix |= *(srcy + yp + 1) << 24;
+			}
+			
+			*((uint32_t*) (dst + pitch)) = pix;
+
+			dst  += 4;
+			srcy += 2;
 		}
 
-		y = *(yuv_data + 4) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 8)  = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 9)  = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 10) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(yuv_data + 6) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 12) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 13) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 14) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
+		dst  += pitch;
+		srcy += yp;
+		srcu += yp >> 1;
+		srcv += yp >> 1;
+	
+	} while (--n);
+}
 
 
-		data     += 16;
-		yuv_data += 8;
+static
+DFB_PFUNCTION( yv12, yv12 )
+{
+	uint8_t *srcy  = frame->vo_frame.base[0];
+	uint8_t *srcu;
+	uint8_t *srcv;
+	uint8_t *dsty  = dst;
+	uint8_t *dstu;
+	uint8_t *dstv;
+	int      ys    = pitch * frame->height.cur;
+	int      crs   = (pitch * frame->height.cur) >> 2;
+	int      mmf   = this->mixer.modified;
 
-	} while(--n);
+	if (frame->dstfmt.cur == DSPF_YV12)
+	{
+		srcu = frame->vo_frame.base[1];
+		srcv = frame->vo_frame.base[2];
+		dstv  = (uint8_t*) dsty + ys;
+		dstu  = (uint8_t*) dstv + crs;
+	} else
+	{
+		srcu = frame->vo_frame.base[2];
+		srcv = frame->vo_frame.base[1];
+		dstu  = (uint8_t*) dsty + ys;
+		dstv  = (uint8_t*) dstu + crs;
+	}
+
+	if (mmf & (MMF_B | MMF_C))
+	{
+		do
+		{
+			*dsty++ = y_table[*srcy++];
+
+		} while (--ys);
+
+	} else
+		xine_fast_memcpy( dsty, srcy, ys );
+
+	if (mmf && MMF_S)
+	{
+		do
+		{
+			*dstu++ = cr_table[*srcu++];
+			*dstv++ = cr_table[*srcv++];
+
+		} while (--crs);
+
+	} else
+	{
+		xine_fast_memcpy( dstu, srcu, crs );
+		xine_fast_memcpy( dstv, srcv, crs );
+	}
+}
+
+
+static
+DFB_PFUNCTION( yv12, rgb8 )
+{
+	uint8_t *srcy = frame->vo_frame.base[0];
+	uint8_t *srcu = frame->vo_frame.base[1];
+	uint8_t *srcv = frame->vo_frame.base[2];
+	int      yp   = frame->vo_frame.pitches[0];
+	int      line = frame->width.cur >> 1;
+	int      n    = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
+
+	do
+	{
+		LOADCR( *srcu++, *srcv++ );
+
+		YUV2RGB( *srcy );
+		CLAMP2RGB8();
+
+		*dst = (r | g | b);
+
+		YUV2RGB( *(srcy + 1) );
+		CLAMP2RGB8();
+
+		*(dst + 1) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp) );
+		CLAMP2RGB8();
+
+		*(dst + pitch) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp + 1) );
+		CLAMP2RGB8();
+
+		*(dst + pitch + 1) = (r | g | b);
+
+		dst  += 2;
+		srcy += 2;
+
+		if (!(--line))
+		{
+			line  = frame->width.cur >> 1;
+			srcy += yp;
+			dst  += pitch;
+		}
+
+	} while (--n);
 
 }
 
 
-
-static yuv_render_t yuy2_cc =
+static
+DFB_PFUNCTION( yv12, rgb15 )
 {
-	yuy2:	__dummy_yuy2_be_yuy2,
-	uyvy:	__dummy_yuy2_be_uyvy,
-	yv12:	__dummy_yuy2_be_yv12,
-	rgb8:   __dummy_yuy2_be_rgb8,
-	rgb15:	__dummy_yuy2_be_rgb15,
-	rgb16:	__dummy_yuy2_be_rgb16,
-	rgb24:  __dummy_yuy2_be_rgb24,
-	rgb32:	__dummy_yuy2_be_rgb32
+	uint8_t *srcy = frame->vo_frame.base[0];
+	uint8_t *srcu = frame->vo_frame.base[1];
+	uint8_t *srcv = frame->vo_frame.base[2];
+	int      yp   = frame->vo_frame.pitches[0];
+	int      line = frame->width.cur >> 1;
+	int      n    = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
+
+	do
+	{
+		LOADCR( *srcu++, *srcv++ );
+
+		YUV2RGB( *srcy );
+		CLAMP2RGB15();
+
+		*((uint16_t*) dst)  = (r | g | b);
+
+		YUV2RGB( *(srcy + 1) );
+		CLAMP2RGB15();
+
+		*((uint16_t*) (dst + 2)) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp) );
+		CLAMP2RGB15();
+
+		*((uint16_t*) (dst + pitch)) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp + 1) );
+		CLAMP2RGB15();
+
+		*((uint16_t*) (dst + pitch + 2)) = (r | g | b);
+
+		dst  += 4;
+		srcy += 2;
+
+		if (!(--line))
+		{
+			line  = frame->width.cur >> 1;
+			srcy += yp;
+			dst  += pitch;
+		}
+
+	} while (--n);
+}
+
+
+static
+DFB_PFUNCTION( yv12, rgb16 )
+{
+	uint8_t *srcy = frame->vo_frame.base[0];
+	uint8_t *srcu = frame->vo_frame.base[1];
+	uint8_t *srcv = frame->vo_frame.base[2];
+	int      yp   = frame->vo_frame.pitches[0];
+	int      line = frame->width.cur >> 1;
+	int      n    = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
+
+	do
+	{
+		LOADCR( *srcu++, *srcv++ );
+
+		YUV2RGB( *srcy );
+		CLAMP2RGB16();
+
+		*((uint16_t*) dst) = (r | g | b);
+
+		YUV2RGB( *(srcy + 1) );
+		CLAMP2RGB16();
+
+		*((uint16_t*) (dst + 2)) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp) );
+		CLAMP2RGB16();
+
+		*((uint16_t*) (dst + pitch)) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp + 1) );
+		CLAMP2RGB16();
+
+		*((uint16_t*) (dst + pitch + 2)) = (r | g | b);
+
+		dst  += 4;
+		srcy += 2;
+
+		if (!(--line))
+		{
+			line  = frame->width.cur >> 1;
+			srcy += yp;
+			dst  += pitch;
+		}
+
+	} while (--n);
+}
+
+
+static
+DFB_PFUNCTION( yv12, rgb24 )
+{
+	uint8_t *srcy = frame->vo_frame.base[0];
+	uint8_t *srcu = frame->vo_frame.base[1];
+	uint8_t *srcv = frame->vo_frame.base[2];
+	int      yp   = frame->vo_frame.pitches[0];
+	int      line = frame->width.cur >> 1;
+	int      n    = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
+
+	do
+	{
+		LOADCR( *srcu++, *srcv++ );
+
+		YUV2RGB( *srcy );
+		CLAMP2RGB24();
+
+		*dst       = b;
+		*(dst + 1) = g;
+		*(dst + 2) = r;
+
+		YUV2RGB( *(srcy + 1) );
+		CLAMP2RGB24();
+
+		*(dst + 3) = b;
+		*(dst + 4) = g;
+		*(dst + 5) = r;
+
+		YUV2RGB( *(srcy + yp) );
+		CLAMP2RGB24();
+
+		*(dst + pitch)     = b;
+		*(dst + pitch + 1) = g;
+		*(dst + pitch + 2) = r;
+
+		YUV2RGB( *(srcy + yp + 1) );
+		CLAMP2RGB24();
+
+		*(dst + pitch + 3) = b;
+		*(dst + pitch + 4) = g;
+		*(dst + pitch + 5) = r;
+
+		dst  += 6;
+		srcy += 2;
+
+		if (!(--line))
+		{
+			line  = frame->width.cur >> 1;
+			srcy += yp;
+			dst  += pitch;
+		}
+
+	} while (--n);
+}
+
+
+static
+DFB_PFUNCTION( yv12, rgb32 )
+{
+	uint8_t *srcy = frame->vo_frame.base[0];
+	uint8_t *srcu = frame->vo_frame.base[1];
+	uint8_t *srcv = frame->vo_frame.base[2];
+	int      yp   = frame->vo_frame.pitches[0];
+	int      line = frame->width.cur >> 1;
+	int      n    = (frame->width.cur * frame->height.cur) >> 2;
+	int      cr1, cr2, cr3;
+	int      r, g, b;
+
+	do
+	{
+		LOADCR( *srcu++, *srcv++ );
+
+		YUV2RGB( *srcy );
+		CLAMP2RGB32();
+
+		*((uint32_t*) dst) = (r | g | b);
+
+		YUV2RGB( *(srcy + 1) );
+		CLAMP2RGB32();
+
+		*((uint32_t*) (dst + 4)) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp) );
+		CLAMP2RGB32();
+
+		*((uint32_t*) (dst + pitch)) = (r | g | b);
+
+		YUV2RGB( *(srcy + yp + 1) );
+		CLAMP2RGB32();
+
+		*((uint32_t*) (dst + pitch + 4)) = (r | g | b);
+
+		dst  += 8;
+		srcy += 2;
+
+		if (!(--line))
+		{
+			line  = frame->width.cur >> 1;
+			srcy += yp;
+			dst  += pitch;
+		}
+
+	} while (--n);
+}
+
+/******************************** End of YV12 callbacks *********************************/
+
+
+static const DVProcFunc PACCEL[2][DFB_NUM_PIXELFORMATS] =
+{
+	/* YUY2 */
+	{
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb15 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb16 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb24 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb32 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb32 ),
+		NULL,
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, yuy2 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb8 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, uyvy ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, yv12 ),
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, yv12 ),
+		NULL,
+		NULL,
+		DFB_PFUNCTION_NAME( PACCEL, yuy2, rgb32 )
+	},
+	/* YV12 */
+	{
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb15 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb16 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb24 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb32 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb32 ),
+		NULL,
+		DFB_PFUNCTION_NAME( PACCEL, yv12, yuy2 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb8 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, uyvy ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, yv12 ),
+		DFB_PFUNCTION_NAME( PACCEL, yv12, yv12 ),
+		NULL,
+		NULL,
+		DFB_PFUNCTION_NAME( PACCEL, yv12, rgb32 )
+	}
 };
 
 
-
-
-
-
- static void
-__dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = frame->height >> 1;
-	int32_t bright = this->brightness.l_val;
-	int32_t ctr    = this->contrast.l_val;
-
-
-	do
-	{
-		uint32_t i;
-
-		for(i = 0; i < line; i++)
-		{
-			*(data + 1) = u_data[i];
-			*(data + 3) = v_data[i];
-
-			if(bright || ctr != 0x4000)
-			{
-				register int y;
-
-				y = *y_data + bright;
-				y *= ctr;
-				y >>= 14;
-				*data = (y < 0) ? 0 :
-					((y > 0xff) ? 0xff : y);
-
-				y = *(y_data + 1) + bright;
-				y *= ctr;
-				y >>= 14;
-				*(data + 2) = (y < 0) ? 0 :
-					      ((y > 0xff) ? 0xff : y);
-
-			} else
-			{
-				*data       = *y_data;
-				*(data + 2) = *(y_data + 1);
-			}
-
-			data   += 4;
-			y_data += 2;
-		}
-
-		for(i = 0; i < line; i++)
-		{
-			*(data + 1) = *(u_data++);
-			*(data + 3) = *(v_data++);
-
-			if(bright || ctr != 0x4000)
-			{
-				register int y;
-
-				y = *y_data + bright;
-				y *= ctr;
-				y >>= 14;
-				*data = (y < 0) ? 0 :
-					((y > 0xff) ? 0xff : y);
-
-				y = *(y_data + 1) + bright;
-				y *= ctr;
-				y >>= 14;
-				*(data + 2) = (y < 0) ? 0 :
-					      ((y > 0xff) ? 0xff : y);
-			
-			} else
-			{
-				*data       = *y_data;
-				*(data + 2) = *(y_data + 1);
-			}
-
-			data   += 4;
-			y_data += 2;
-		}
-	
-	} while(--n);
-
-}
-
-
-static void
-__dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = frame->height >> 1;
-	int32_t bright = this->brightness.l_val;
-	int32_t ctr    = this->contrast.l_val;
-
-
-	do
-	{
-		uint32_t i;
-
-		for(i = 0; i < line; i++)
-		{
-			*data       = u_data[i];
-			*(data + 2) = v_data[i];
-
-			if(bright || ctr != 0x4000)
-			{
-				register int y;
-			
-				y = *y_data + bright;
-				y *= ctr;
-				y >>= 14;
-				*(data + 1) = (y < 0) ? 0 :
-					      ((y > 0xff) ? 0xff : y);
-
-				y = *(y_data + 1) + bright;
-				y *= ctr;
-				y >>= 14;
-				*(data + 3) = (y < 0) ? 0 :
-					      ((y > 0xff) ? 0xff : y);
-
-			} else
-			{
-				*(data + 1) = *y_data;
-				*(data + 3) = *(y_data + 1);
-			}
-
-			data   += 4;
-			y_data += 2;
-		}
-
-		for(i = 0; i < line; i++)
-		{
-			*data       = *(u_data++);
-			*(data + 2) = *(v_data++);
-
-			if(bright || ctr != 0x4000)
-			{
-				register int y;
-
-				y = *y_data + bright;
-				y *= ctr;
-				y >>= 14;
-				*(data + 1) = (y < 0) ? 0 :
-					      ((y > 0xff) ? 0xff : y);
-
-				y = *(y_data + 1) + bright;
-				y *= ctr;
-				y >>= 14;
-				*(data + 3) = (y < 0) ? 0 :
-					      ((y > 0xff) ? 0xff : y);
-
-			} else
-			{
-				*(data + 1) = *y_data;
-				*(data + 3) = *(y_data + 1);
-			}
-				
-
-			data   += 4;
-			y_data += 2;
-		}
-	
-	} while(--n);
-
-}
-
-
-static void
-__dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint32_t n      = (frame->width * frame->height) >> 1;
-	int32_t bright  = this->brightness.l_val;
-	int32_t ctr     = this->contrast.l_val;
-
-
-	do
-	{
-		register int y;
-
-		y = *y_data + bright;
-		y *= ctr;
-		y >>= 14;
-		*data = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-
-		y = *(y_data + 1) + bright;
-		y *= ctr;
-		y >>= 14;
-		*(data + 1) = (y < 0) ? 0 : ((y > 0xff) ? 0xff : y);
-
-		y_data += 2;
-		data   += 2;
-
-	} while(--n);
-
-	xine_fast_memcpy(data, (frame->surface->format == DSPF_YV12)
-				? frame->vo_frame.base[2]
-				: frame->vo_frame.base[1],
-			(pitch * frame->height) >> 2);
-	data += (pitch * frame->height) >> 2;
-
-	xine_fast_memcpy(data, (frame->surface->format == DSPF_YV12)
-			       ? frame->vo_frame.base[1]
-			       : frame->vo_frame.base[2],
-			(pitch * frame->height) >> 2);
-}
-
-
-static void
-__dummy_yv12_be_rgb8(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val;
-
-
-	do
-	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
-
-		{
-			register int u, v;
-
-			u = *(u_data++);
-			v = *(v_data++);
-
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
-
-		y = *y_data + bright;
-
-		r = y + m1;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 6;
-
-		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
-		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
-
-		*data = ((r & 0xe0) | (g & 0x1c) | b);
-
-		y = *(y_data + 1) + bright;
-
-		r = y + m1;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 6;
-
-		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
-		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
-
-		*(data + 1) = ((r & 0xe0) | (g & 0x1c) | b);
-
-		y = *(y_data + frame->width) + bright;
-
-		r = y + m1;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 6;
-
-		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
-		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
-
-		*(data + pitch) = ((r & 0xe0) | (g & 0x1c) | b);
-
-		y = *(y_data + frame->width + 1) + bright;
-
-		r = y + m1;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 6;
-
-		r = ((r < 0) ? 0 : ((r > 0xff) ? 0xe0 : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1c : g));
-		b = ((b < 0) ? 0 : ((b > 0x03) ? 0x03 : b));
-
-		*(data + pitch + 1) = ((r & 0xe0) | (g & 0x1c) | b);
-
-		y_data += 2;
-		data   += 2;
-
-		if(!(--line))
-		{
-			line    = frame->width >> 1;
-			y_data += frame->width;
-			data   += pitch;
-		}
-
-	} while(--n);
-
-}
-
-
-static void
-__dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint16_t* dest  = (uint16_t*) data;
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	uint32_t dp    = 0;
-	int32_t bright = this->brightness.l_val;
-
-
-	do
-	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
-		uint32_t dn = dp + frame->width;
-
-		{
-			register int u, v;
-
-			u = *(u_data++);
-			v = *(v_data++);
-
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
-
-		y = *y_data + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dp] = ((r << 10) | (g << 5) | b);
-
-		y = *(y_data + 1) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dp + 1] = ((r << 10) | (g << 5) | b);
-
-		y = *(y_data + frame->width) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dn] = ((r << 10) | (g << 5) | b);
-
-		y = *(y_data + frame->width + 1) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 3;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x1f) ? 0x1f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dn + 1] = ((r << 10) | (g << 5) | b);
-
-		y_data += 2;
-		dp     += 2;
-
-		if(!(--line))
-		{
-			line    = frame->width >> 1;
-			y_data += frame->width;
-			dp     += frame->width;
-		}
-
-	} while(--n);
-
-}
-
-
-static void
-__dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint16_t* dest  = (uint16_t*) data;
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	uint32_t dp    = 0;
-	int32_t bright = this->brightness.l_val;
-
-
-	do
-	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
-		uint32_t dn = dp + frame->width;
-
-		{
-			register int u, v;
-
-			u = *(u_data++);
-			v = *(v_data++);
-
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
-
-		y = *y_data + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 2;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x3f) ? 0x3f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dp] = ((r << 11) | (g << 5) | b);
-
-		y = *(y_data + 1) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 2;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x3f) ? 0x3f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dp + 1] = ((r << 11) | (g << 5) | b);
-
-		y = *(y_data + frame->width) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 2;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x3f) ? 0x3f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dn] = ((r << 11) | (g << 5) | b);
-
-		y = *(y_data + frame->width + 1) + bright;
-
-		r = (y + m1) >> 3;
-		g = (y - m2) >> 2;
-		b = (y + m3) >> 3;
-
-		r = ((r < 0) ? 0 : ((r > 0x1f) ? 0x1f : r));
-		g = ((g < 0) ? 0 : ((g > 0x3f) ? 0x3f : g));
-		b = ((b < 0) ? 0 : ((b > 0x1f) ? 0x1f : b));
-
-		dest[dn + 1] = ((r << 11) | (g << 5) | b);
-
-
-		y_data += 2;
-		dp     += 2;
-
-		if(!(--line))
-		{
-			line    = frame->width >> 1;
-			y_data += frame->width;
-			dp     += frame->width;
-		}
-
-	} while(--n);
-
-}
-
-
-static void
-__dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val;
-
-
-	do
-	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
-		uint8_t* datan = data + pitch;
-
-		{
-			register int u, v;
-
-			u = *(u_data++);
-			v = *(v_data++);
-
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
-
-		y = *y_data + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*data       = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 1) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 2) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(y_data + 1) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 3) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 4) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 5) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(y_data + frame->width) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*datan       = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(datan + 1) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(datan + 2) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(y_data + frame->width + 1) + bright;
-
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(datan + 3) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(datan + 4) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(datan + 5) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-
-		data   += 6;
-		y_data += 2;
-
-		if(!(--line))
-		{
-			line    = frame->width >> 1;
-			y_data += frame->width;
-			data   += pitch;
-		}
-
-	} while(--n);
-
-}
-
-
-static void
-__dummy_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch)
-{
-	uint8_t* y_data = frame->vo_frame.base[0];
-	uint8_t* u_data = frame->vo_frame.base[1];
-	uint8_t* v_data = frame->vo_frame.base[2];
-	uint32_t line  = frame->width >> 1;
-	uint32_t n     = (frame->width * frame->height) >> 2;
-	int32_t bright = this->brightness.l_val;
-
-
-	do
-	{
-		register int y;
-		int m1, m2, m3;
-		int r, g, b;
-		uint8_t* datan = data + pitch;
-
-		{
-			register int u, v;
-
-			u = *(u_data++);
-			v = *(v_data++);
-
-			m1 = v_red_table[v];
-			m2 = v_green_table[v] + u_green_table[u];
-			m3 = u_blue_table[u];
-		}
-
-		y = *y_data + bright;
-		
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*data       = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 1) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 2) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(y_data + 1) + bright;
-				
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(data + 4) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(data + 5) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(data + 6) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(y_data + frame->width) + bright;
-				
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*datan       = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(datan + 1) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(datan + 2) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		y = *(y_data + frame->width + 1) + bright;
-				
-		r = y + m1;
-		g = y - m2;
-		b = y + m3;
-
-		*(datan + 4) = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		*(datan + 5) = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-		*(datan + 6) = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-
-		
-		data   += 8;
-		y_data += 2;
-
-		if(!(--line))
-		{
-			line    = frame->width >> 1;
-			y_data += frame->width;
-			data   += pitch;
-		}
-
-	} while(--n);
-
-}
-
-
-
-static yuv_render_t yv12_cc =
-{
-	yuy2:	__dummy_yv12_be_yuy2,
-	uyvy:	__dummy_yv12_be_uyvy,
-	yv12:	__dummy_yv12_be_yv12,
-	rgb8:   __dummy_yv12_be_rgb8,
-	rgb15:	__dummy_yv12_be_rgb15,
-	rgb16:	__dummy_yv12_be_rgb16,
-	rgb24:  __dummy_yv12_be_rgb24,
-	rgb32:	__dummy_yv12_be_rgb32
-};
+#undef PACCEL
 
 
 
@@ -1461,477 +1080,527 @@ static yuv_render_t yv12_cc =
 
 
 static uint32_t
-dfb_get_capabilities(vo_driver_t* vo_driver)
+dfb_get_capabilities( vo_driver_t *vo_driver )
 {
-	return(VO_CAP_YV12 | VO_CAP_YUY2);
+	return (VO_CAP_YV12 | VO_CAP_YUY2);
 }
 
 
 static void
-dfb_proc_frame(vo_frame_t* vo_frame)
+dfb_proc_frame( vo_frame_t *vo_frame )
 {
-	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-#ifdef DFB_DEBUG
-	static int test = 8;
-#endif
-	
-	TEST(vo_frame != NULL);
-	TEST(frame->surface != NULL);
+	dfb_frame_t *frame = (dfb_frame_t*) vo_frame;
+
+	TEST( vo_frame != NULL );
+	TEST( frame->surface != NULL );
+	TEST( frame->procf != NULL );
 
 	vo_frame->proc_called = 1;
 
-	if(frame->proc_needed)
+	if (frame->proc_needed)
 	{
-		uint8_t* data;
-		uint32_t pitch;
+		uint8_t  *dst;
+		uint32_t  pitch;
 
-		data  = (uint8_t*) frame->surface->back_buffer->system.addr;
+		dst   = (uint8_t*) frame->surface->back_buffer->system.addr;
 		pitch = (uint32_t) frame->surface->back_buffer->system.pitch;
 
-		SPEED(frame->realize((dfb_driver_t*) vo_frame->driver,
-					 frame, data, pitch));
+		SPEED( frame->procf( (dfb_driver_t*) vo_frame->driver,
+					 frame, dst, pitch ) );
 	}
 
-FAILURE:
+failure:
 	return;
 }
 
 
 static void
-dfb_frame_dispose(vo_frame_t* vo_frame)
+dfb_frame_dispose( vo_frame_t *vo_frame )
 {
-	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
+	dfb_frame_t *frame = (dfb_frame_t*) vo_frame;
 
-	if(frame)
+	if (frame)
 	{
-		if(frame->surface)
-			dfb_surface_unref(frame->surface);
-		release(frame->chunks[0]);
-		release(frame->chunks[1]);
-		release(frame->chunks[2]);
-		free(frame);
+		if (frame->surface)
+			dfb_surface_unref( frame->surface );
+		release( frame->chunks[0] );
+		release( frame->chunks[1] );
+		release( frame->chunks[2] );
+		free( frame );
 	}
 }
 
 
 static vo_frame_t*
-dfb_alloc_frame(vo_driver_t* vo_driver)
+dfb_alloc_frame( vo_driver_t *vo_driver )
 {
-	dfb_frame_t* frame = NULL;
+	dfb_frame_t *frame = NULL;
 
-	TEST(vo_driver != NULL);
+	TEST( vo_driver != NULL );
 
-	TEST(frame = (dfb_frame_t*) calloc(1, sizeof(dfb_frame_t)));
+	TEST( frame = (dfb_frame_t*) calloc( 1, sizeof(dfb_frame_t) ) );
 
-	pthread_mutex_init(&(frame->vo_frame.mutex), NULL);
+	pthread_mutex_init( &frame->vo_frame.mutex, NULL );
 
 	frame->vo_frame.proc_slice = NULL;
  	frame->vo_frame.proc_frame = dfb_proc_frame;
 	frame->vo_frame.field      = NULL;
 	frame->vo_frame.dispose    = dfb_frame_dispose;
 	frame->vo_frame.driver     = vo_driver;
-	frame->state.src_blend     = DSBF_SRCALPHA;
-	frame->state.dst_blend     = DSBF_INVSRCALPHA;
-	frame->state.modified      = SMF_ALL;
 
-	D_MAGIC_SET(&(frame->state), CardState);
+	return (vo_frame_t*) frame;
 
-	return((vo_frame_t*) frame);
-
-FAILURE:
-	return(NULL);
+failure:
+	return NULL;
 }
 
 
 static void
-dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
-		uint32_t width, uint32_t height, double ratio,
-		int format, int flags)
+dfb_update_frame_format( vo_driver_t *vo_driver, vo_frame_t *vo_frame,
+			 uint32_t width, uint32_t height, double ratio,
+			 int format, int flags )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
-	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-	yuv_render_t* yuv_cc;
+	dfb_driver_t *this   = (dfb_driver_t*) vo_driver;
+	dfb_frame_t  *frame  = (dfb_frame_t*) vo_frame;
+	int           bsz[3] = {0, 0, 0}; 
+	int           sfmt;
+	int           dfmt;
 
-	TEST(vo_driver  != NULL);
-	TEST(vo_frame   != NULL);
-	TEST(this->main != NULL);
-	TEST(this->main_data != NULL);
+	TEST( vo_driver  != NULL );
+	TEST( vo_frame   != NULL );
+	TEST( this->dest != NULL );
+	TEST( this->dest_data != NULL );
 
-	/* width must be a multiple of 4 */
-	frame->width  = width + ((width & 3) ? (4 - (width & 3)) : 0);
-	/* height must be a multiple of 2 */
-	frame->height = height + (height & 1);
-	frame->ratio  = ratio;
+	frame->width.prev  = frame->width.cur;
+	frame->height.prev = frame->height.cur;
+	frame->imgfmt.prev = frame->imgfmt.cur;
+	frame->dstfmt.prev = frame->dstfmt.cur;
 
+	frame->width.cur   = ((width + 3) >> 2) << 2;
+	frame->height.cur  = height + (height & 1);
+	frame->imgfmt.cur  = format;
+	frame->dstfmt.cur  = this->dest_data->surface->format;
+	frame->ratio       = ratio;
 	frame->proc_needed = 1;
 
-	if(frame->surface)
+	if (frame->width.cur  != frame->width.prev  ||
+	    frame->height.cur != frame->height.prev ||
+	    frame->imgfmt.cur != frame->imgfmt.prev ||
+	    frame->dstfmt.cur != frame->dstfmt.prev)
 	{
-		CoreSurface *surface = frame->surface;
-
-		if (surface->width  != frame->width  ||
-		    surface->height != frame->height ||
-		    surface->format != this->main_data->surface->format)
-		{
-			dfb_surface_reformat(NULL, surface, frame->width, frame->height,
-					     this->main_data->surface->format);
-		}
-	} else
-	{
-		dfb_surface_create(NULL, frame->width, frame->height,
-				   this->main_data->surface->format,
-				   CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY,
-				   NULL, &(frame->surface));
-		if(!frame->surface)
-		{
-			DBUG("couldn't create a surface for frame %p", frame);
-			goto FAILURE;
-		}
+		if (frame->surface)
+			dfb_surface_reformat( NULL, frame->surface, frame->width.cur,
+					      frame->height.cur, frame->dstfmt.cur );
+		release( frame->chunks[0] );
+		release( frame->chunks[1] );
+		release( frame->chunks[2] );
 	}
 
-	frame->state.source    = frame->surface;
-	frame->state.modified |= SMF_SOURCE;
-
-	release(frame->chunks[0]);
-	release(frame->chunks[1]);
-	release(frame->chunks[2]);
-	
-	if(format == XINE_IMGFMT_YUY2)
+	if (!frame->surface)
 	{
-		ONESHOT("video frame format is YUY2");
+		dfb_surface_create( NULL, frame->width.cur, frame->height.cur,
+				    frame->dstfmt.cur, CSP_SYSTEMONLY,
+				    DSCAPS_SYSTEMONLY, NULL, &frame->surface );
+		if (!frame->surface)
+			goto failure;
+	}
 
-		yuv_cc = &yuy2_cc;
-		vo_frame->pitches[0] = frame->width << 1;
+	if (frame->imgfmt.cur == XINE_IMGFMT_YUY2)
+	{
+		ONESHOT( "video frame format is YUY2" );
 
-		if(frame->surface->format == DSPF_YUY2 &&
-		   !this->brightness.l_val && this->contrast.l_val == 0x4000)
+		sfmt = 0;
+		vo_frame->pitches[0] = frame->width.cur << 1;
+
+		if (frame->dstfmt.cur == DSPF_YUY2 &&
+		    this->mixer.modified == 0)
 		{
 			frame->proc_needed = 0;
 			vo_frame->base[0]  = (uint8_t*)
 					frame->surface->back_buffer->system.addr;
 		} else
-		{
-			vo_frame->base[0] = (uint8_t*) xine_xmalloc_aligned(16,
-							vo_frame->pitches[0] *
-							frame->height,
-							&(frame->chunks[0]));
-			TEST(vo_frame->base[0] != NULL);
-		}
-
+			bsz[0] = frame->vo_frame.pitches[0] * frame->height.cur;
+			
 	} else /* assume XINE_IMGFMT_YV12 */
 	{
-		ONESHOT("video frame format is YV12");
+		ONESHOT( "video frame format is YV12" );
 
-		yuv_cc = &yv12_cc;
-		vo_frame->pitches[0] = frame->width;
-		vo_frame->pitches[1] = frame->width >> 1;
-		vo_frame->pitches[2] = frame->width >> 1;
+		sfmt = 1;
+		vo_frame->pitches[0] = frame->width.cur;
+		vo_frame->pitches[1] = frame->width.cur >> 1;
+		vo_frame->pitches[2] = frame->width.cur >> 1;
 
-		if((frame->surface->format == DSPF_YV12 ||
-			frame->surface->format == DSPF_I420) &&
-		    !this->brightness.l_val && this->contrast.l_val == 0x4000)
+		if ((frame->dstfmt.cur == DSPF_YV12  ||
+		     frame->dstfmt.cur == DSPF_I420) &&
+		    this->mixer.modified == 0)
 		{
 			frame->proc_needed = 0;
 			vo_frame->base[0]  = (uint8_t*)
 					frame->surface->back_buffer->system.addr;
-			if(frame->surface->format == DSPF_YV12)
+			vo_frame->base[2]  = (uint8_t*) vo_frame->base[0] +
+					(frame->width.cur * frame->height.cur);
+			vo_frame->base[1]  = (uint8_t*) vo_frame->base[2] +
+					((frame->width.cur * frame->height.cur) >> 2);
+
+			if (frame->dstfmt.cur == DSPF_I420)
 			{
-				vo_frame->base[2] = (uint8_t*) vo_frame->base[0] +
-							(frame->width * frame->height);
-				vo_frame->base[1] = (uint8_t*) vo_frame->base[2] +
-							((frame->width * frame->height) >> 2);
-			} else
-			{
-				vo_frame->base[1] = (uint8_t*) vo_frame->base[0] +
-							(frame->width * frame->height);
-				vo_frame->base[2] = (uint8_t*) vo_frame->base[1] +
-							((frame->width * frame->height) >> 2);
+				uint8_t *tmp;
+				tmp               = vo_frame->base[1];
+				vo_frame->base[1] = vo_frame->base[2];
+				vo_frame->base[2] = tmp;
 			}
 		} else
 		{
-			vo_frame->base[0] = (uint8_t*) xine_xmalloc_aligned(16,
-							vo_frame->pitches[0] *
-							frame->height,
-							&(frame->chunks[0]));
-			vo_frame->base[1] = (uint8_t*) xine_xmalloc_aligned(16,
-							vo_frame->pitches[1] *
-							(frame->height >> 1) + 2,
-							&(frame->chunks[1]));
-			vo_frame->base[2] = (uint8_t*) xine_xmalloc_aligned(16,
-							vo_frame->pitches[2] *
-							(frame->height >> 1) + 2,
-							&(frame->chunks[2]));
-			TEST(vo_frame->base[0] != NULL);
-			TEST(vo_frame->base[1] != NULL);
-			TEST(vo_frame->base[2] != NULL);
+			bsz[0] = vo_frame->pitches[0] * frame->height.cur;
+			bsz[1] = vo_frame->pitches[1] * (frame->height.cur >> 1) + 2;
+			bsz[2] = vo_frame->pitches[2] * (frame->height.cur >> 1) + 2;
 		}
-
 	}
 
-	switch(frame->surface->format)
-	{
-		case DSPF_YUY2:
-			frame->realize = yuv_cc->yuy2;
-		break;
-
-		case DSPF_UYVY:
-			frame->realize = yuv_cc->uyvy;
-		break;
-
-		case DSPF_YV12:
-		case DSPF_I420:
-			frame->realize = yuv_cc->yv12;
-		break;
-
-		case DSPF_RGB332:
-			frame->realize = yuv_cc->rgb8;
-		break;
-
-		case DSPF_ARGB1555:
-			frame->realize = yuv_cc->rgb15;
-		break;
-
-		case DSPF_RGB16:
-			frame->realize = yuv_cc->rgb16;
-		break;
-
-		case DSPF_RGB24:
-			frame->realize = yuv_cc->rgb24;
-		break;
-
-		case DSPF_RGB32:
-		case DSPF_ARGB:
-		case DSPF_AiRGB:
-			frame->realize = yuv_cc->rgb32;
-		break;
+	if (!frame->chunks[0] && bsz[0])
+		TEST( vo_frame->base[0] = (uint8_t*)
+				xine_xmalloc_aligned( 16, bsz[0], &frame->chunks[0] ) );
 	
-		default:
-		break;
-	}
+	if (!frame->chunks[1] && bsz[1])
+		TEST( vo_frame->base[1] = (uint8_t*)
+				xine_xmalloc_aligned( 16, bsz[1], &frame->chunks[1] ) );
+
+	if (!frame->chunks[2] && bsz[2])
+		TEST( vo_frame->base[2] = (uint8_t*)
+				xine_xmalloc_aligned( 16, bsz[2], &frame->chunks[2] ) );
+
+	dfmt         = DFB_PIXELFORMAT_INDEX( frame->dstfmt.cur );
+	frame->procf = this->proc.funcs[sfmt][dfmt];
 
 	return;
-	
-FAILURE:
-	if(frame->surface)
+
+failure:
+	if (frame->surface)
 	{
-		dfb_surface_unref(frame->surface);
+		dfb_surface_unref( frame->surface );
 		frame->surface = NULL;
 	}
 }
 
 
 static void
-dfb_overlay_blend(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
-			vo_overlay_t* overlay)
+dfb_overlay_blend( vo_driver_t *vo_driver, vo_frame_t *vo_frame,
+			vo_overlay_t *overlay )
 {
-	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
+	dfb_frame_t *frame = (dfb_frame_t*) vo_frame;
 
-	TEST(vo_frame  != NULL);
-	TEST(overlay   != NULL);
-	TEST(frame->surface != NULL);
+	TEST( vo_frame  != NULL );
+	TEST( overlay   != NULL );
+	TEST( frame->surface != NULL );
 
-	if(!overlay->rle)
+	if (!overlay->rle)
 		return;
 
-	switch(frame->surface->format)
+	if (overlay->x < 0 || overlay->x > frame->width.cur)
+		return;
+
+	if (overlay->y < 0 || overlay->y > frame->height.cur)
+		return;
+		
+	switch (frame->dstfmt.cur)
 	{
 		case DSPF_YUY2:
-			dfb_overlay_blend_yuy2(frame, overlay);
+			dfb_overlay_blend_yuy2( frame, overlay );
 		break;
 
 		case DSPF_UYVY:
-			dfb_overlay_blend_uyvy(frame, overlay);
+			dfb_overlay_blend_uyvy( frame, overlay );
 		break;
 
 		case DSPF_YV12:
  		case DSPF_I420:
-			dfb_overlay_blend_yv12(frame, overlay);
+			dfb_overlay_blend_yv12( frame, overlay );
 		break;
 
 		default:
-			dfb_overlay_blend_rgb(frame, overlay);
+			dfb_overlay_blend_rgb( frame, overlay );
 		break;
 	}
 
-FAILURE:
+failure:
 	return;
 }
 
 
-static void
-dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
+static int
+dfb_redraw_needed( vo_driver_t *vo_driver )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
-	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-	DFBRectangle dest_rect;
-	DFBRegion used_area;
-
-	TEST(vo_driver  != NULL);
-	TEST(vo_frame   != NULL);
-	TEST(frame->surface != NULL);
-
-	this->output_cb(this->output_cdata, frame->width, frame->height,
-				frame->ratio, &dest_rect);
-
-	used_area.x1 = dest_rect.x;
-	used_area.y1 = dest_rect.y;
-	used_area.x2 = dest_rect.x + dest_rect.w;
-	used_area.y2 = dest_rect.y + dest_rect.h;
-
-	if(dest_rect.x < 0)
-		dest_rect.x = 0;
-	dest_rect.x += this->main_data->area.wanted.x;
-
-	if(dest_rect.y < 0)
-		dest_rect.y = 0;
-	dest_rect.y += this->main_data->area.wanted.y;
-
-	if(dest_rect.w < 1 || dest_rect.h < 1)
-		dest_rect = this->main_data->area.wanted;
-
-	if(!dfb_rectangle_intersect(&dest_rect,
-			&(this->main_data->area.current)))
-		goto FAILURE;
-
-	frame->state.clip.x1     = dest_rect.x;
-	frame->state.clip.y1     = dest_rect.y;
-	frame->state.clip.x2     = dest_rect.x + dest_rect.w - 1;
-	frame->state.clip.y2     = dest_rect.y + dest_rect.h - 1;
-	frame->state.destination = this->main_data->surface;
-	frame->state.modified   |= (SMF_CLIP | SMF_DESTINATION);
+	return 0;
+}
 
 
-	if(dest_rect.w != frame->width ||
-		dest_rect.h != frame->height)
+static void
+dfb_display_frame( vo_driver_t *vo_driver, vo_frame_t *vo_frame )
+{
+	dfb_driver_t *this      = (dfb_driver_t*) vo_driver;
+	dfb_frame_t  *frame     = (dfb_frame_t*) vo_frame;
+	DFBRectangle  rect      = {0, 0, 0, 0};
+	DFBRectangle  src_rect  = {0, 0, };
+	DFBRectangle  dst_rect;
+
+	TEST( vo_driver  != NULL );
+	TEST( vo_frame   != NULL );
+	TEST( frame->surface != NULL );
+
+	src_rect.w = frame->width.cur;
+	src_rect.h = frame->height.cur;
+
+	this->output_cb( this->output_cdata, frame->width.cur,
+			 frame->height.cur, frame->ratio, &rect );
+
+	dst_rect    = rect;
+	dst_rect.x += this->dest_data->area.wanted.x;
+	dst_rect.y += this->dest_data->area.wanted.y;
+
+	if (dst_rect.w < 1 || dst_rect.h < 1)
+		rect = dst_rect = this->dest_data->area.wanted;
+
+	if (!dfb_rectangle_intersect( &dst_rect,
+				&this->dest_data->area.current ))
+		goto failure;
+   
+	this->state.clip.x1   = dst_rect.x;
+	this->state.clip.x2   = dst_rect.x + dst_rect.w - 1;
+	this->state.clip.y1   = dst_rect.y;
+	this->state.clip.y2   = dst_rect.y + dst_rect.h - 1;
+	this->state.source    = frame->surface;
+	this->state.modified |= (SMF_CLIP | SMF_SOURCE);
+
+	if (dst_rect.w == src_rect.w && dst_rect.h == src_rect.h)
+		dfb_gfxcard_blit( &src_rect, dst_rect.x,
+				  dst_rect.y, &this->state );
+	else
+		dfb_gfxcard_stretchblit( &src_rect, &dst_rect, &this->state );
+
+	if (this->frame_cb)
 	{
-		DFBRectangle rect = {0, 0, frame->width, frame->height};
-
-		dfb_gfxcard_stretchblit(&rect, &dest_rect, &(frame->state));
+		this->frame_cb( this->frame_cdata );
 	} else
+	if (this->dest_data->caps & DSCAPS_FLIPPING)
 	{
-		DFBRectangle rect = {0, 0, frame->width, frame->height};
-
-		dfb_gfxcard_blit(&rect, dest_rect.x,
-					dest_rect.y, &(frame->state));
+		DFBRegion reg = 
+		{
+			.x1 = rect.x,
+			.x2 = rect.x + rect.w,
+			.y1 = rect.y,
+			.y2 = rect.y + rect.h
+		};
+		
+		this->dest->Flip( this->dest, &reg, 0 );
 	}
 
-	if(this->frame_cb)
+failure:
+	if (vo_frame)
+		vo_frame->free( vo_frame );
+}
+
+
+static void
+dfb_tables_regen( dfb_driver_t *this, int flags )
+{
+	int brightness = this->mixer.b + this->correction.used;
+	int contrast   = this->mixer.c;
+	int saturation = this->mixer.s;
+	int i;
+
+	if (flags & MMF_B)
 	{
-		this->frame_cb(this->frame_cdata);
-	} else
-	if(this->main_data->caps & DSCAPS_FLIPPING)
-	{
-		this->main->Flip(this->main, &used_area, 0);
+		if (this->mixer.b == 0)
+			this->mixer.modified &= ~MMF_B;
+		else
+			this->mixer.modified |=  MMF_B;
 	}
 
+	if (flags & MMF_C)
+	{
+		if (this->mixer.c == 128)
+			this->mixer.modified &= ~MMF_C;
+		else
+			this->mixer.modified |=  MMF_C;
+	}
 
-FAILURE:
-	if(vo_frame)
-		vo_frame->free(vo_frame);
+	if (flags & MMF_S)
+	{
+		if (this->mixer.s == 128)
+			this->mixer.modified &= ~MMF_S;
+		else
+			this->mixer.modified |=  MMF_S;
+	}
+
+#ifdef ARCH_X86
+	if (this->proc.accel == MM_MMX)
+	{
+		if (flags & MMF_B)
+			MMX_GEN_BR();
+
+		if (flags & MMF_C)
+			MMX_GEN_CN();
+
+		if (flags & MMF_S)
+		{
+			MMX_GEN_ST();
+			MMX_GEN_VR();
+			MMX_GEN_VG();
+			MMX_GEN_UG();
+			MMX_GEN_UB();
+		}
+
+		return;
+	}
+#endif
+
+	for (i = 0; i < 256; i++)
+	{
+		if (flags & (MMF_B | MMF_C))
+			GEN_Y();
+
+		if (flags & MMF_S)
+		{
+			GEN_CR();
+			GEN_VR();
+			GEN_VG();
+			GEN_UG();
+			GEN_UB();
+		}
+	}
 }
 
 
 static int
-dfb_get_property(vo_driver_t* vo_driver, int property)
+dfb_get_property( vo_driver_t *vo_driver, int property )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-	TEST(vo_driver != NULL);
+	TEST( vo_driver != NULL );
 
-	switch(property)
+	switch (property)
 	{
+		case VO_PROP_INTERLACED:
+		{
+			DBUG( "frame is %s interlaced", 
+			       (this->state.blittingflags & DSBLIT_DEINTERLACE)
+			       ? "" : "not" );
+			return (this->state.blittingflags & DSBLIT_DEINTERLACE);
+		}
+		break;
+		
 		case VO_PROP_BRIGHTNESS:
 		{
-			DBUG("brightness is %i", this->brightness.l_val -
-						this->correction.used);
-			return(this->brightness.l_val - this->correction.used);
+			DBUG( "brightness is %i", this->mixer.b );
+			return this->mixer.b;
 		}
 		break;
 
 		case VO_PROP_CONTRAST:
 		{
-			DBUG("contrast is %i", this->contrast.l_val);
-			return(this->contrast.l_val);
+			DBUG( "contrast is %i", this->mixer.c );
+			return this->mixer.c;
+		}
+		break;
+
+		case VO_PROP_SATURATION:
+		{
+			DBUG( "saturation is %i", this->mixer.s );
+			return this->mixer.s;
 		}
 		break;
 
 		case VO_PROP_MAX_NUM_FRAMES:
 		{
-			DBUG("maximum number of frames is %i", this->max_num_frames);
-			return(this->max_num_frames);
+			DBUG( "maximum number of frames is %i", this->max_num_frames );
+			return this->max_num_frames;
 		}
 		break;
 
 		default:
-			DBUG("tryed to get unsupported property %i", property);
+			DBUG( "tryed to get unsupported property %i", property );
 		break;
 	}
 	
-FAILURE:
-	return(0);
+failure:
+	return 0;
 }
 
 
 static int
-dfb_set_property(vo_driver_t* vo_driver, int property, int value)
+dfb_set_property( vo_driver_t *vo_driver, int property, int value )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-	TEST(vo_driver != NULL);
+	TEST( vo_driver != NULL );
 
-	switch(property)
+	switch (property)
 	{
+		case VO_PROP_INTERLACED:
+		{
+			if (value)
+				this->state.blittingflags |= DSBLIT_DEINTERLACE;
+			else
+				this->state.blittingflags &= ~DSBLIT_DEINTERLACE;
+
+			this->state.modified |= SMF_BLITTING_FLAGS;
+		}
+		break;
+		
 		case VO_PROP_BRIGHTNESS:
 		{
-			if(value > -129 && value < 128)
+			if (value >= -128 && value <= 127)
 			{
-				int brightness = value + this->correction.used;
-
-				DBUG("setting brightness to %i", value);
-				this->brightness.l_val     = brightness;
-				this->brightness.mm_val[0] = brightness;
-				this->brightness.mm_val[1] = brightness;
-				this->brightness.mm_val[2] = brightness;
-				this->brightness.mm_val[3] = brightness;
+				DBUG( "setting brightness to %i", value );
+				this->mixer.b = value;
+				dfb_tables_regen( this, MMF_B );
 			}
 		}
 		break;
 
 		case VO_PROP_CONTRAST:
 		{
-			if(value > -1 && value < 32768)
+			if (value >= 0 && value <= 255)
 			{				
-				DBUG("setting contrast to %i", value);
-				this->contrast.l_val     = value;
-				this->contrast.mm_val[0] = value;
-				this->contrast.mm_val[1] = value;
-				this->contrast.mm_val[2] = value;
-				this->contrast.mm_val[3] = value;
+				DBUG( "setting contrast to %i", value );
+				this->mixer.c = value;
+				dfb_tables_regen( this, MMF_C );
+			}
+		}
+		break;
+
+		case VO_PROP_SATURATION:
+		{
+			if (value >= 0 && value <= 255)
+			{
+				DBUG( "setting saturation to %i", value );
+				this->mixer.s = value;
+				dfb_tables_regen( this, MMF_S );
 			}
 		}
 		break;
 		
 		default:
-			DBUG("tryed to set unsupported property %i", property);
+			DBUG( "tryed to set unsupported property %i", property );
 		break;
 	}
 
-	return(value);
+	return value;
 	
-FAILURE:
-	return(0);
+failure:
+	return 0;
 }
 
 
 static void
-dfb_get_property_min_max(vo_driver_t* vo_driver,
-			int property, int *min, int *max)
+dfb_get_property_min_max( vo_driver_t *vo_driver, int property,
+		          int *min, int *max )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-	TEST(vo_driver != NULL);
+	TEST( vo_driver != NULL );
 
-	switch(property)
+	switch (property)
 	{
 		case VO_PROP_BRIGHTNESS:
 		{
@@ -1943,67 +1612,67 @@ dfb_get_property_min_max(vo_driver_t* vo_driver,
 		case VO_PROP_CONTRAST:
 		{
 			*min = 0;
-			*max = 0x7fff;
+			*max = 255;
+		}
+		break;
+
+		case VO_PROP_SATURATION:
+		{
+			*min = 0;
+			*max = 255;
 		}
 		break;
 
 		default:
 		{
-			DBUG("requested min/max for unsupported property %i", property);
+			DBUG( "requested min/max for unsupported property %i", property );
 			*min = 0;
 			*max = 0;
 		}
 		break;
 	}
 
-FAILURE:
+failure:
 	return;
 }
 
 
 static int
-dfb_gui_data_exchange(vo_driver_t* vo_driver,
-				int data_type, void* data)
+dfb_gui_data_exchange( vo_driver_t *vo_driver,
+		       int data_type, void *data )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-	TEST(vo_driver != NULL);
+	TEST( vo_driver != NULL );
 
-	switch(data_type)
+	switch (data_type)
 	{
 		/* update destination Surface */
 		case XINE_GUI_SEND_DRAWABLE_CHANGED:
 		{
-			IDirectFBSurface* surface = (IDirectFBSurface*) data;
+			IDirectFBSurface *surface = (IDirectFBSurface*) data;
 
-			if(!surface || !surface->priv)
+			if (!surface || !surface->priv)
 			{
-				fprintf(stderr, THIS ": bad surface\n");
-				return(0);
+				fprintf( stderr, THIS ": bad surface\n" );
+				return 0;
 			}
 
-			if(this->main)
-				this->main->Release(this->main);
+			if (this->dest)
+				this->dest->Release( this->dest );
 
-			this->main      = surface;
-			this->main_data = (IDirectFBSurface_data*) surface->priv;
+			this->dest      = surface;
+			this->dest_data = (IDirectFBSurface_data*) surface->priv;
 
-			/* reset brightness value */
-			this->brightness.l_val     -= this->correction.used;
-			this->brightness.mm_val[0] -= this->correction.used;
-			this->brightness.mm_val[1] -= this->correction.used;
-			this->brightness.mm_val[2] -= this->correction.used;
-			this->brightness.mm_val[3] -= this->correction.used;
-
-			switch(this->main_data->surface->format)
+			switch (this->dest_data->surface->format)
 			{
 				case DSPF_YUY2:
 				case DSPF_UYVY:
 				case DSPF_YV12:
 				case DSPF_I420:
 				{
-					DBUG("we have a new surface [format: YUV(%#x)]",
-						this->main_data->surface->format);
+					DBUG( "we have a new surface [format: YUV(%#x)]",
+					      this->dest_data->surface->format );
 					this->correction.used = 0;
 				}
 				break;
@@ -2016,96 +1685,92 @@ dfb_gui_data_exchange(vo_driver_t* vo_driver,
 				case DSPF_ARGB:
 				case DSPF_AiRGB:
 				{
-					DBUG("we have a new surface [format: RGB(%#x)]",
-						this->main_data->surface->format);
+					DBUG( "we have a new surface [format: RGB(%#x)]",
+					      this->dest_data->surface->format );
 					this->correction.used = this->correction.defined;
 				}
 				break;
 
 				default:
 				{
-					SAY("unsupported surface format [%#x]",
-						this->main_data->surface->format);
-					this->main      = NULL;
-					this->main_data = NULL;
-					return(0);
+					SAY( "unsupported surface format [%#x]",
+					     this->dest_data->surface->format );
+					this->dest      = NULL;
+					this->dest_data = NULL;
+					return 0;
 				}
+				break;
 			}
 
-			this->brightness.l_val     += this->correction.used;
-			this->brightness.mm_val[0] += this->correction.used;
-			this->brightness.mm_val[1] += this->correction.used;
-			this->brightness.mm_val[2] += this->correction.used;
-			this->brightness.mm_val[3] += this->correction.used;
+			dfb_tables_regen( this, MMF_A );
 
-			this->main->AddRef(this->main);
+			this->state.destination  = this->dest_data->surface;
+			this->state.modified    |= SMF_DESTINATION;
 
-			return(1);
+			this->dest->AddRef( this->dest );
+
+			return 1;
 		}
 		break;
 
 		/* register DVFrameCallback */
 		case XINE_GUI_SEND_TRANSLATE_GUI_TO_VIDEO:
 		{
-			dfb_frame_callback_t* frame_callback;
+			dfb_frame_callback_t *frame_callback;
 
 			frame_callback = (dfb_frame_callback_t*) data;
 
 			this->frame_cb    = frame_callback->frame_cb;
 			this->frame_cdata = frame_callback->cdata;
 
-			DBUG("registered new DVFrameCallback");
+			DBUG( "%s DVFrameCallback",
+			      (this->frame_cb) ? "registered new" : "unregistered" );
 
-			return(1);
+			return 1;
 		}
 		break;
 		
 		default:
-			DBUG("unknown data type %i", data_type);
+			DBUG( "unknown data type %i", data_type );
 		break;
 	}
 	
-FAILURE:
-	return(0);
-}
-
-
-static int
-dfb_redraw_needed(vo_driver_t* vo_driver)
-{
-	return(0);
+failure:
+	return 0;
 }
 
 
 static void
-dfb_dispose(vo_driver_t* vo_driver)
+dfb_dispose( vo_driver_t *vo_driver )
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_driver_t *this = (dfb_driver_t*) vo_driver;
 
-	if(this)
+	if (this)
 	{
-		if(this->main)
-			this->main->Release(this->main);
-		free(this);
+		if (this->dest)
+			this->dest->Release( this->dest );
+		free( this );
 	}
 }
 
 
 static vo_driver_t*
-open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
+open_plugin( video_driver_class_t *vo_class, const void *vo_visual )
 {
-	dfb_driver_class_t* class = (dfb_driver_class_t*) vo_class;
-	dfb_visual_t* visual      = (dfb_visual_t*) vo_visual;
-	dfb_driver_t* this        = NULL;
+	dfb_driver_class_t *class  = (dfb_driver_class_t*) vo_class;
+	dfb_visual_t       *visual = (dfb_visual_t*) vo_visual;
+	config_values_t    *config = class->xine->config;
+	dfb_driver_t       *this   = NULL;
 
-	TEST(vo_class  != NULL);
-	TEST(vo_visual != NULL);
-	TEST(visual->output_cb != NULL);
+	TEST( vo_visual != NULL );
+	TEST( visual->output_cb != NULL );
 
-	if(class->xine->verbosity)
-		fprintf(stderr, "DFB [Unofficial DirectFB video driver]\n");
+	if (class->xine->verbosity)
+		fprintf( stderr, "DFB [Unofficial DirectFB video driver]\n" );
 
-	TEST(this = (dfb_driver_t*) calloc(1, sizeof(dfb_driver_t)));
+	TEST( this = (dfb_driver_t*) calloc( 1, sizeof(dfb_driver_t) ) );
+
+	this->verbosity = class->xine->verbosity;
 
 	this->vo_driver.get_capabilities     = dfb_get_capabilities;
 	this->vo_driver.alloc_frame          = dfb_alloc_frame;
@@ -2121,74 +1786,65 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 	this->vo_driver.redraw_needed        = dfb_redraw_needed;
 	this->vo_driver.dispose              = dfb_dispose;
 
-	this->verbosity = class->xine->verbosity;
 
+	this->max_num_frames     = config->register_num( config,
+					"video.dfb.max_num_frames", 15,
+					"Maximum number of allocated frames (at least 5)",
+					NULL, 10, NULL, NULL );
+
+	this->correction.defined = config->register_range( config,
+					"video.dfb.gamma_correction", -16,
+					-128, 127, "RGB gamma correction",
+					NULL, 10, NULL, NULL );
+
+	this->proc.funcs[0] = &dummy[0][0];
+	this->proc.funcs[1] = &dummy[1][0];
+	
 #ifdef ARCH_X86
+	if ((xine_mm_accel() & MM_MMX) == MM_MMX)
 	{
-		int accel = xine_mm_accel();
-
-		if((accel & MM_MMX) == MM_MMX)
+		int use_mmx = config->register_bool( config, 
+					"video.dfb.enable_mmx", 1,
+					"Enable MMX when available",
+					NULL, 10, NULL,NULL );
+		if (use_mmx)
 		{
-			SAY("MMX detected and enabled");
-			yuy2_cc.yuy2  = __mmx_yuy2_be_yuy2;
-			yuy2_cc.uyvy  = __mmx_yuy2_be_uyvy;
-			yuy2_cc.yv12  = __mmx_yuy2_be_yv12;
-			yuy2_cc.rgb8  = __mmx_yuy2_be_rgb8;
-			yuy2_cc.rgb15 = __mmx_yuy2_be_rgb15;
-			yuy2_cc.rgb16 = __mmx_yuy2_be_rgb16;
-			yuy2_cc.rgb24 = __mmx_yuy2_be_rgb24;
-			yuy2_cc.rgb32 = __mmx_yuy2_be_rgb32;
-			yv12_cc.yuy2  = __mmx_yv12_be_yuy2;
-			yv12_cc.uyvy  = __mmx_yv12_be_uyvy;
-			yv12_cc.yv12  = __mmx_yv12_be_yv12;
-			yv12_cc.rgb8  = __mmx_yv12_be_rgb8;
-			yv12_cc.rgb15 = __mmx_yv12_be_rgb15;
-			yv12_cc.rgb16 = __mmx_yv12_be_rgb16;
-			yv12_cc.rgb24 = __mmx_yv12_be_rgb24;
-			yv12_cc.rgb32 = __mmx_yv12_be_rgb32;
-		}
-
+			SAY( "MMX detected and enabled" );
+			this->proc.accel    = MM_MMX;
+			this->proc.funcs[0] = &mmx[0][0];
+			this->proc.funcs[1] = &mmx[1][0];
+		} else
+			SAY( "MMX detected but disabled" );
 	}
 #endif
 
+	this->state.src_blend    = DSBF_SRCALPHA;
+	this->state.dst_blend    = DSBF_INVSRCALPHA;
+	this->state.drawingflags = DSDRAW_BLEND;
+	this->state.modified     = SMF_ALL;
+	
+	D_MAGIC_SET( &this->state, CardState );
+
+	if (visual->surface)
 	{
-		config_values_t* config = class->xine->config;
+		this->dest      = visual->surface;
+		this->dest_data = (IDirectFBSurface_data*) this->dest->priv;
 
-		if(config)
+		if (!this->dest_data)
 		{
-			this->max_num_frames = config->register_num(config,
-						"video.dfb.max_num_frames", 15,
-						"Maximum number of allocated frames (at least 5)",
-						NULL, 10, NULL, NULL);
-
-			this->correction.defined = config->register_range(config,
-						"video.dfb.gamma_correction", -16,
-						-128, 127, "RGB gamma correction",
-						NULL, 10, NULL, NULL);
-		}
-	}
-
-
-	if(visual->surface)
-	{
-		this->main      = visual->surface;
-		this->main_data = (IDirectFBSurface_data*) this->main->priv;
-
-		if(!this->main_data)
-		{
-			fprintf(stderr, THIS ": bad surface\n");
-			goto FAILURE;
+			fprintf( stderr, THIS ": bad surface\n" );
+			goto failure;
 		}
 
-		switch(this->main_data->surface->format)
+		switch (this->dest_data->surface->format)
 		{
 			case DSPF_YUY2:
 			case DSPF_UYVY:
 			case DSPF_YV12:
 			case DSPF_I420:
 			{
-				DBUG("surface format is YUV [%#x]",
-					this->main_data->surface->format);
+				DBUG( "surface format is YUV [%#x]",
+				      this->dest_data->surface->format );
 				this->correction.used = 0;
 			}
 			break;
@@ -2201,77 +1857,69 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 			case DSPF_ARGB:
 			case DSPF_AiRGB:
 			{
-				DBUG("surface format is RGB [%#x]",
-					this->main_data->surface->format);
+				DBUG( "surface format is RGB [%#x]",
+				      this->dest_data->surface->format );
 				this->correction.used = this->correction.defined;
 			}
 			break;
 
 			default:
-			{
-				SAY("unsupported surface format [%#x]",
-						this->main_data->surface->format);
-				goto FAILURE;
-			}
-			break;
+				SAY( "unsupported surface format [%#x]",
+				      this->dest_data->surface->format );
+			goto failure;
 		}
 
-		this->main->AddRef(this->main);
+		this->state.destination = this->dest_data->surface;
+		
+		this->dest->AddRef( this->dest );
 	}
 
-	this->brightness.l_val     = this->correction.used;
-	this->brightness.mm_val[0] = this->correction.used;
-	this->brightness.mm_val[1] = this->correction.used;
-	this->brightness.mm_val[2] = this->correction.used;
-	this->brightness.mm_val[3] = this->correction.used;
-	
-	this->contrast.l_val     = 0x4000;
-	this->contrast.mm_val[0] = 0x4000;
-	this->contrast.mm_val[1] = 0x4000;
-	this->contrast.mm_val[2] = 0x4000;
-	this->contrast.mm_val[3] = 0x4000;
+	this->mixer.b = 0;
+	this->mixer.c = 128;
+	this->mixer.s = 128;
+
+	dfb_tables_regen( this, MMF_A );
 
 	this->output_cb    = visual->output_cb;
 	this->output_cdata = visual->cdata;
+	
+	return (vo_driver_t*) this;
 
-
-	return((vo_driver_t*) this);
-
-FAILURE:
-	release(this);
-	return(NULL);
+failure:
+	release( this );
+	return NULL;
 }
 
 
 static char*
-get_identifier(video_driver_class_t* vo_class)
+get_identifier( video_driver_class_t *vo_class )
 {
-	return("DFB");
+	return "DFB";
 }
 
 
 static char*
-get_description(video_driver_class_t* vo_class)
+get_description( video_driver_class_t *vo_class)
 {
-	return("Unofficial DirectFB video driver.");
+	return "Unofficial DirectFB video driver.";
 }
 
 
 static void
-dispose_class(video_driver_class_t* vo_class)
+dispose_class( video_driver_class_t *vo_class )
 {
-	release(vo_class);
+	release( vo_class );
 }
 
 
 static void*
-init_class(xine_t* xine, void* vo_visual)
+init_class( xine_t *xine, void *vo_visual )
 {
-	dfb_driver_class_t* class = NULL;
+	dfb_driver_class_t *class = NULL;
 
 	TEST(xine != NULL);
 
-	TEST(class = (dfb_driver_class_t*) calloc(1, sizeof(dfb_driver_class_t)));
+	TEST( class = (dfb_driver_class_t*) calloc( 1, sizeof(dfb_driver_class_t) ) );
 
 	class->vo_class.open_plugin     = open_plugin;
 	class->vo_class.get_identifier  = get_identifier;
@@ -2279,12 +1927,11 @@ init_class(xine_t* xine, void* vo_visual)
 	class->vo_class.dispose         = dispose_class;
 	class->xine                     = xine;
 
-	return(class);
+	return class;
 
-FAILURE:
-	return(NULL);
+failure:
+	return NULL;
 }
-
 
 
 static vo_info_t vo_info_dfb =

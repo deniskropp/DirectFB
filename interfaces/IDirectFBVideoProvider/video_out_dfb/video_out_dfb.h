@@ -25,65 +25,72 @@
 #define VIDEO_OUT_DFB_H
 
 
+#define THIS  "video_out_dfb"
+
+
 
 typedef struct dfb_frame_s  dfb_frame_t;
 typedef struct dfb_driver_s dfb_driver_t;
 
 
+typedef void (*DVProcFunc)       ( dfb_driver_t *this,
+                                   dfb_frame_t  *frame,
+				   uint8_t      *dst,
+				   uint32_t      pitch );
+
+typedef const DVProcFunc* DVProcFuncs;
+
+typedef void (*DVOutputCallback) ( void         *cdata,
+                                   int           width,
+                                   int           height,
+                                   double        ratio,
+                                   DFBRectangle *dest_rect );
+
 
 struct dfb_frame_s
 {
-	vo_frame_t     vo_frame;
-
-	int            width;
-	int            height;
-	double         ratio;
-
-	char           proc_needed;
+	vo_frame_t   vo_frame;
 	
-	CardState      state;
-	CoreSurface*   surface;
+	struct
+	{
+		int  cur;
+		int  prev;
+	} width;
 
-	void*          chunks[3];
+	struct
+	{
+		int  cur;
+		int  prev;
+	} height;
 
-	void (*realize) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
+	struct
+	{
+		int  cur;
+		int  prev;
+	} imgfmt;
 
+	struct
+	{
+		int  cur;
+		int  prev;
+	} dstfmt;
+
+	double       ratio;
+
+	CoreSurface *surface;
+	void        *chunks[3];
+	
+	char         proc_needed;
+	DVProcFunc   procf;
 };
 
 
-typedef struct
-{
-	void (*yuy2)  (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
 
-	void (*uyvy)  (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-
-	void (*yv12)  (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch); /* yv12 and i420 */
-
-	void (*rgb8)  (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-
-	void (*rgb15) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-
-	void (*rgb16) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-	
-	void (*rgb24) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-
-	void (*rgb32) (dfb_driver_t* this, dfb_frame_t* frame,
-				uint8_t* data, uint32_t pitch);
-
-} yuv_render_t;
-
-
-
-typedef void (*DVOutputCallback) (void* cdata, int width, int height,
-				  double ratio, DFBRectangle* dest_rect);
+/* Mixer Modified Flags */
+#define MMF_B  0x00000001
+#define MMF_C  0x00000002
+#define MMF_S  0x00000004
+#define MMF_A  (MMF_B|MMF_C|MMF_S)
 
 
 struct dfb_driver_s
@@ -93,31 +100,30 @@ struct dfb_driver_s
 	char                   verbosity;
 	int                    max_num_frames;
 
-	IDirectFBSurface*      main;
-	IDirectFBSurface_data* main_data;
+	CardState              state;
+	IDirectFBSurface      *dest;
+	IDirectFBSurface_data *dest_data;
 
 	struct
 	{
-		char defined;
-		char used;
-
-	} correction; /* gamma correction */
-
-	struct
-	{
-		int   l_val;
-		short mm_val[4];
-
-	} brightness;
+		char           defined;
+		char           used;
+	} correction;
 
 	struct
 	{
-		int   l_val;
-		short mm_val[4];
+		int            modified;
+		int            b;
+		int            c;
+		int            s;
+	} mixer;
 
-	} contrast;
+	struct
+	{
+		int            accel;
+	        DVProcFuncs    funcs[2];
+	} proc;
 
-	
 	DVOutputCallback       output_cb;
 	void*                  output_cdata;
 
@@ -130,18 +136,18 @@ typedef struct
 {
 	video_driver_class_t  vo_class;
 
-	xine_t*               xine;
+	xine_t               *xine;
 
 } dfb_driver_class_t;
 
 
 typedef struct
 {
-	IDirectFBSurface* surface;
+	IDirectFBSurface *surface;
 
 	DVOutputCallback  output_cb;
 
-	void*             cdata;
+	void             *cdata;
 
 } dfb_visual_t;
 
@@ -165,9 +171,9 @@ typedef struct
 
 typedef struct
 {
-	DVFrameCallback frame_cb;
+	DVFrameCallback  frame_cb;
 
-	void*           cdata;
+	void            *cdata;
 
 } dfb_frame_callback_t;
 
@@ -175,8 +181,90 @@ typedef struct
  * You can register a DVFrameCallback using xine_port_send_gui_data()
  * with XINE_GUI_SEND_TRASLATE_GUI_TO_VIDEO as second argument and
  * a dfb_frame_callback_t* as third argument.
- * 
+ *
  */
+
+
+/************************** Internal Macros ******************************/
+
+
+#define DFB_PFUNCTION_GEN_NAME( a, s, d )  __##a##_##s##_be_##d
+
+#define DFB_PFUNCTION_NAME( a, s, d )  DFB_PFUNCTION_GEN_NAME( a, s, d )
+
+#define DFB_PFUNCTION( s, d ) \
+void  DFB_PFUNCTION_NAME( PACCEL, s, d ) ( dfb_driver_t *this,  \
+                                           dfb_frame_t  *frame, \
+                                           uint8_t      *dst,   \
+                                           uint32_t      pitch )
+
+#define TEST( exp ) \
+{\
+	if (!(exp))\
+	{\
+		fprintf( stderr, THIS \
+			 ": at line %i [" #exp "] failed !!\n", \
+			 __LINE__ );\
+		goto failure;\
+	}\
+}
+
+#define SAY( fmt, ... ) \
+{\
+	if (this->verbosity)\
+		fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
+}
+
+#define DBUG( fmt, ... ) \
+{\
+	if (this->verbosity == XINE_VERBOSITY_DEBUG)\
+		fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
+}
+
+#define ONESHOT( fmt, ... ) \
+{\
+	if (this->verbosity)\
+	{\
+		static int one = 1;\
+		if (one)\
+		{\
+			fprintf( stderr, THIS ": " fmt "\n", ## __VA_ARGS__ );\
+			one = 0;\
+		}\
+	}\
+}
+
+#define release( ptr ) \
+{\
+	if (ptr)\
+		free( ptr );\
+	ptr = NULL;\
+}
+
+
+#ifdef DFB_DEBUG
+
+#include <direct/clock.h>
+
+#define SPEED( f ) \
+{\
+	static int test = 15;\
+	if (test)\
+	{\
+		long long t = direct_clock_get_micros();\
+		f;\
+		t = direct_clock_get_micros() - t;\
+		fprintf( stderr, THIS ": [%lli micros.] speed test\n", t );\
+		test--;\
+	} else\
+		f;\
+}
+
+#else /* ! DFB_DEBUG */
+
+#define SPEED( f )  f;
+
+#endif /* DFB_DEBUG */
  
 
 
