@@ -73,5 +73,8 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBScreenOutputSignals DSOS UNKNOWN ScreenOutputSignals signal directfb.h \
 	   | grep -v DSOS_ALL >> $@
 
+	$(MKNAMES) DFBScreenMixerCapabilities DSMCAPS NONE ScreenMixerCapabilities capability directfb.h \
+	   | grep -v DSMCAPS_ALL >> $@
+
 	@echo '' >> $@
 	@echo '#endif' >> $@
