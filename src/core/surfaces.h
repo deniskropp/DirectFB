@@ -66,12 +66,12 @@ typedef enum {
 typedef enum {
      CSP_SYSTEMONLY      = 0x00000000,  /* never try to swap
                                            into video memory */
-     CSP_VIDEOONLY       = 0x00000001,  /* always and only
-                                           store in video memory */
-     CSP_VIDEOLOW        = 0x00000002,  /* try to store in video memory,
+     CSP_VIDEOLOW        = 0x00000001,  /* try to store in video memory,
                                            low priority */
-     CSP_VIDEOHIGH       = 0x00000003   /* try to store in video memory,
+     CSP_VIDEOHIGH       = 0x00000002,  /* try to store in video memory,
                                            high priority */
+     CSP_VIDEOONLY       = 0x00000003   /* always and only
+                                           store in video memory */
 } CoreSurfacePolicy;
 
 typedef enum {

@@ -288,38 +288,31 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      c = manager->chunks;
      while (c) {
           if (c->length >= length) {
-               if (c->buffer  &&
-                   !c->buffer->video.locked &&
-                   c->buffer->policy != CSP_VIDEOONLY  &&
-                   ((c->tolerations > min_toleration/8) ||
-                   buffer->policy == CSP_VIDEOONLY))
-               {
-                    /* found a nice place to chill */
-                    if (!best_occupied  ||
-                         best_occupied->length > c->length  ||
-                         best_occupied->tolerations < c->tolerations)
-                         /* first found or better one? */
-                         best_occupied = c;
-
+               if (c->buffer) {
                     c->tolerations++;
                     if (c->tolerations > 0xff)
                          c->tolerations = 0xff;
-               } else
-               if (!c->buffer) {
+                    
+                    if (!c->buffer->video.locked              &&
+                        c->buffer->policy != CSP_VIDEOONLY    &&
+                        c->buffer->policy <= buffer->policy   &&
+                        ((c->tolerations > min_toleration/8) ||
+                         buffer->policy == CSP_VIDEOONLY))
+                    {
+                         /* found a nice place to chill */
+                         if (!best_occupied  ||
+                              best_occupied->length > c->length  ||
+                              best_occupied->tolerations < c->tolerations)
+                              /* first found or better one? */
+                              best_occupied = c;
+                    }
+               }
+               else {
                     /* found a nice place to chill */
                     if (!best_free  ||  best_free->length > c->length)
                          /* first found or better one? */
                          best_free = c;
-               } else {
-                    c->tolerations++;
-                    if (c->tolerations > 0xff)
-                         c->tolerations = 0xff;
                }
-          } else
-          if (c->buffer) {
-               c->tolerations++;
-               if (c->tolerations > 0xff)
-                    c->tolerations = 0xff;
           }
 
           c = c->next;
