@@ -232,11 +232,13 @@ besEnable( DisplayLayer *layer,
      context->mdrv = (MatroxDriverData*) driver_data;
      context->mbes = (MatroxBesLayerData*) layer_data;
 
-     /* attach our surface listener */
-     reactor_attach( surface->reactor, besSurfaceListener, context );
+     if (!mbes->listener_running) {
+          /* attach our surface listener */
+          reactor_attach( surface->reactor, besSurfaceListener, context );
 
-     /* keep track of the listener */
-     mbes->listener_running = true;
+          /* keep track of the listener */
+          mbes->listener_running = true;
+     }
      
      /* enable backend scaler */
      besOnOff( mdrv, mbes, 1 );
@@ -407,7 +409,16 @@ besFlipBuffers( DisplayLayer *layer,
                 void         *driver_data,
                 void         *layer_data )
 {
-     return DFB_UNIMPLEMENTED;
+     MatroxDriverData   *mdrv    = (MatroxDriverData*) driver_data;
+     MatroxBesLayerData *mbes    = (MatroxBesLayerData*) layer_data;
+     CoreSurface        *surface = dfb_layer_surface( layer );
+     
+     dfb_surface_flip_buffers( surface );
+     
+     bes_calc_regs( mdrv, mbes, layer, &mbes->config );
+     bes_set_regs( mdrv, mbes );
+     
+     return DFB_OK;
 }
 
 static DFBResult
