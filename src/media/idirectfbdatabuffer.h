@@ -64,7 +64,7 @@ DFBResult IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
  * memory based static data buffer
  */
 DFBResult IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
-                                                void                *data,
+                                                const void          *data,
                                                 unsigned int         length );
 
 #endif

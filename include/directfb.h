@@ -935,7 +935,7 @@ typedef struct {
                                                         buffers */
 
      struct {
-          void                         *data;        /* static data pointer */
+          const void                   *data;        /* static data pointer */
           unsigned int                  length;      /* length of buffer */
      } memory;
 } DFBDataBufferDescription;

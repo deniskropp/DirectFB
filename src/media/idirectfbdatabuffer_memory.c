@@ -59,7 +59,7 @@
 typedef struct {
      IDirectFBDataBuffer_data  base;
 
-     void                     *buffer;
+     const void               *buffer;
      unsigned int              length;
 
      unsigned int              pos;
@@ -236,7 +236,7 @@ IDirectFBDataBuffer_Memory_PutData( IDirectFBDataBuffer *thiz,
 
 DFBResult
 IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
-                                      void                *data_buffer,
+                                      const void          *data_buffer,
                                       unsigned int         length )
 {
      DFBResult ret;
