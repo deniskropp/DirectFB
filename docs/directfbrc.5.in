@@ -80,8 +80,9 @@ only be used in the pixel depth that is set on boot time.
 .BI pixelformat=<pixelformat>
 Sets the default pixel format. This is similar to the depth parameter
 described above but allows more fine-grained control. Possible values
-for pixelformat are A8, ARGB, I420, LUT8, RGB15, RGB16, RGB24, RGB32,
-RGB322, UYVY, YUY2 and YV12.
+for pixelformat are LUT8, RGB332, RGB16, RGB24 and RGB32. Some drivers
+may also support the more exotic pixel formats A8, ARGB, ARGB1555,
+I420, UYVY, YUY2 and YV12.
 
 .TP
 .BI quiet
