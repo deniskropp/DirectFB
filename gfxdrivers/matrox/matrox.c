@@ -35,6 +35,8 @@
 
 #include <linux/fb.h>
 
+#include <math.h>
+
 #include <directfb.h>
 
 #include <direct/messages.h>
@@ -152,7 +154,8 @@ static bool matroxBlit3D    ( void *drv, void *dev,
       (accel) & (DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES))
 
 
-static void matroxEngineReset( void *drv, void *dev )
+static void
+matroxEngineReset( void *drv, void *dev )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -178,10 +181,11 @@ static void matroxEngineReset( void *drv, void *dev )
      mga_out32( mmio, 0, TMR2 );
      mga_out32( mmio, 0, TMR4 );
      mga_out32( mmio, 0, TMR5 );
-     mga_out32( mmio, 0x10000, TMR8 );
+     mga_out32( mmio, 0x100000, TMR8 );
 }
 
-static void matroxEngineSync( void *drv, void *dev )
+static void
+matroxEngineSync( void *drv, void *dev )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -189,7 +193,8 @@ static void matroxEngineSync( void *drv, void *dev )
      mga_waitidle( mdrv, mdev );
 }
 
-static void matroxFlushTextureCache( void *drv, void *dev )
+static void
+matroxFlushTextureCache( void *drv, void *dev )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -198,8 +203,9 @@ static void matroxFlushTextureCache( void *drv, void *dev )
      mga_out32( mdrv->mmio_base, 0, TEXORG1 );
 }
 
-static void matrox2064WCheckState( void *drv, void *dev,
-                                   CardState *state, DFBAccelerationMask accel )
+static void
+matrox2064WCheckState( void *drv, void *dev,
+                       CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -245,8 +251,9 @@ static void matrox2064WCheckState( void *drv, void *dev,
      }
 }
 
-static void matroxOldCheckState( void *drv, void *dev,
-                                 CardState *state, DFBAccelerationMask accel )
+static void
+matroxOldCheckState( void *drv, void *dev,
+                     CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -292,8 +299,9 @@ static void matroxOldCheckState( void *drv, void *dev,
      }
 }
 
-static void matroxG100CheckState( void *drv, void *dev,
-                                  CardState *state, DFBAccelerationMask accel )
+static void
+matroxG100CheckState( void *drv, void *dev,
+                      CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -360,8 +368,9 @@ static void matroxG100CheckState( void *drv, void *dev,
      }
 }
 
-static void matroxG200CheckState( void *drv, void *dev,
-                                  CardState *state, DFBAccelerationMask accel )
+static void
+matroxG200CheckState( void *drv, void *dev,
+                      CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -428,8 +437,9 @@ static void matroxG200CheckState( void *drv, void *dev,
      }
 }
 
-static void matroxG400CheckState( void *drv, void *dev,
-                                  CardState *state, DFBAccelerationMask accel )
+static void
+matroxG400CheckState( void *drv, void *dev,
+                      CardState *state, DFBAccelerationMask accel )
 {
      /* FIXME: 24bit support */
      switch (state->destination->format) {
@@ -499,9 +509,10 @@ static void matroxG400CheckState( void *drv, void *dev,
      }
 }
 
-static void matroxSetState( void *drv, void *dev,
-                            GraphicsDeviceFuncs *funcs,
-                            CardState *state, DFBAccelerationMask accel )
+static void
+matroxSetState( void *drv, void *dev,
+                GraphicsDeviceFuncs *funcs,
+                CardState *state, DFBAccelerationMask accel )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -615,7 +626,8 @@ static void matroxSetState( void *drv, void *dev,
 
 /******************************************************************************/
 
-static bool matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool
+matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -636,7 +648,8 @@ static bool matroxFillRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
-static bool matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
+static bool
+matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -673,7 +686,8 @@ static bool matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      return true;
 }
 
-static bool matroxDrawLine( void *drv, void *dev, DFBRegion *line )
+static bool
+matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -701,10 +715,11 @@ static bool matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 
 /******************************************************************************/
 
-static void matrox_fill_trapezoid( MatroxDriverData *mdrv,
-                                   MatroxDeviceData *mdev,
-                                   int Xl, int Xr, int X2l,
-                                   int X2r, int Y, int dY )
+static void
+matrox_fill_trapezoid( MatroxDriverData *mdrv,
+                       MatroxDeviceData *mdev,
+                       int Xl, int Xr, int X2l,
+                       int X2r, int Y, int dY )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -737,7 +752,8 @@ static void matrox_fill_trapezoid( MatroxDriverData *mdrv,
      mga_out32( mmio, (RS16(Y) << 16) | RS16(dY), YDSTLEN | EXECUTE );
 }
 
-static bool matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
+static bool
+matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -792,11 +808,13 @@ static bool matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 
 /******************************************************************************/
 
-static void matroxDoBlit2D_Old( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
-                                int sx, int sy,
-                                int dx, int dy,
-                                int w,  int h,
-                                int pitch, int offset )
+static void
+matroxDoBlit2D_Old( MatroxDriverData *mdrv,
+                    MatroxDeviceData *mdev,
+                    int sx, int sy,
+                    int dx, int dy,
+                    int w,  int h,
+                    int pitch, int offset )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -842,8 +860,9 @@ static void matroxDoBlit2D_Old( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mga_out32( mmio, (RS16(dy) << 16) | RS16(h), YDSTLEN | EXECUTE );
 }
 
-static bool matroxBlit2D_Old( void *drv, void *dev,
-                              DFBRectangle *rect, int dx, int dy )
+static bool
+matroxBlit2D_Old( void *drv, void *dev,
+                  DFBRectangle *rect, int dx, int dy )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -908,11 +927,13 @@ static bool matroxBlit2D_Old( void *drv, void *dev,
 
 /******************************************************************************/
 
-static void matroxDoBlit2D( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
-                            int sx, int sy,
-                            int dx, int dy,
-                            int w,  int h,
-                            int pitch )
+static void
+matroxDoBlit2D( MatroxDriverData *mdrv,
+                MatroxDeviceData *mdev,
+                int sx, int sy,
+                int dx, int dy,
+                int w,  int h,
+                int pitch )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -956,8 +977,9 @@ static void matroxDoBlit2D( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mga_out32( mmio, (RS16(dy) << 16) | RS16(h), YDSTLEN | EXECUTE );
 }
 
-static bool matroxBlit2D( void *drv, void *dev,
-                          DFBRectangle *rect, int dx, int dy )
+static bool
+matroxBlit2D( void *drv, void *dev,
+              DFBRectangle *rect, int dx, int dy )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -1022,13 +1044,15 @@ static bool matroxBlit2D( void *drv, void *dev,
 
 /******************************************************************************/
 
-static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
-                             int sx, int sy,
-                             int dx, int dy,
-                             int sw, int sh,
-                             int dw, int dh,
-                             int w2, int h2,
-                             bool filter )
+static inline void
+matroxDoBlitTMU( MatroxDriverData *mdrv,
+                 MatroxDeviceData *mdev,
+                 int sx, int sy,
+                 int dx, int dy,
+                 int sw, int sh,
+                 int dw, int dh,
+                 int w2, int h2,
+                 bool filter )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
 
@@ -1066,9 +1090,12 @@ static void matroxDoBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      mga_out32( mmio, (RS16(dy) << 16) | RS16(dh), YDSTLEN | EXECUTE );
 }
 
-static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
-                           DFBRectangle *srect, DFBRectangle *drect,
-                           bool filter )
+static inline void
+matroxBlitTMU( MatroxDriverData *mdrv,
+               MatroxDeviceData *mdev,
+               DFBRectangle *srect,
+               DFBRectangle *drect,
+               bool filter )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
      __u32          texctl;
@@ -1096,8 +1123,12 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      /* Cb plane */
      mga_waitfifo( mdrv, mdev, 9 );
      mga_out32( mmio, texctl, TEXCTL );
-     mga_out32( mmio, (mdev->w/2-1)<<18 | ((8-mdev->w2-1)&63)<<9 | (mdev->w2-1), TEXWIDTH );
-     mga_out32( mmio, (mdev->h/2-1)<<18 | ((8-mdev->h2-1)&63)<<9 | (mdev->h2-1), TEXHEIGHT );
+     mga_out32( mmio, ( (((__u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
+                        (((__u32)(3 - mdev->w2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
+                        (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->src_cb_offset, TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
@@ -1128,22 +1159,25 @@ static void matroxBlitTMU( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                       mdev->w2-1, mdev->h2-1, true );
 
      /* Restore registers */
-     mga_waitfifo( mdrv, mdev, 9 );
+     mga_waitfifo( mdrv, mdev, 6 );
      mga_out32( mmio, mdev->texctl, TEXCTL );
-     mga_out32( mmio, (mdev->w-1)<<18 | ((8-mdev->w2)&63)<<9 | mdev->w2, TEXWIDTH );
-     mga_out32( mmio, (mdev->h-1)<<18 | ((8-mdev->h2)&63)<<9 | mdev->h2, TEXHEIGHT );
+     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->src_offset, TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch, PITCH );
      mga_out32( mmio, mdev->dst_offset, DSTORG );
 
-     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y1) & 0xFFFFFF, YTOP );
-     mga_out32( mmio, (mdev->dst_pitch * mdev->clip.y2) & 0xFFFFFF, YBOT );
-     mga_out32( mmio, ((mdev->clip.x2 & 0x0FFF) << 16) | (mdev->clip.x1 & 0x0FFF), CXBNDRY );
+     matrox_set_clip( mdrv, mdev, &mdev->clip );
 }
 
-static bool matroxStretchBlit( void *drv, void *dev,
-                               DFBRectangle *srect, DFBRectangle *drect )
+static bool
+matroxStretchBlit( void *drv, void *dev,
+                   DFBRectangle *srect, DFBRectangle *drect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
@@ -1153,8 +1187,9 @@ static bool matroxStretchBlit( void *drv, void *dev,
      return true;
 }
 
-static bool matroxBlit3D( void *drv, void *dev,
-                          DFBRectangle *rect, int dx, int dy )
+static bool
+matroxBlit3D( void *drv, void *dev,
+              DFBRectangle *rect, int dx, int dy )
 {
      MatroxDriverData *mdrv  = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev  = (MatroxDeviceData*) dev;
@@ -1168,72 +1203,58 @@ static bool matroxBlit3D( void *drv, void *dev,
 
 /******************************************************************************/
 
-#if 0
-static void
-texture_trap( MatroxDriverData *mdrv,
-              MatroxDeviceData *mdev,
-              int X1l, int X1r,
-              int X2l, int X2r,
-              int Y1,  int Y2,
-              int S1l, int S1r, int S2l, int S2r,
-              int T1l, int T1r, int T2l, int T2r )
-{
-     volatile __u8 *mmio = mdrv->mmio_base;
 
-     int dxl = X2l - X1l;
-     int dxr = X2r - X1r;
-
-     int dXl = abs(dxl);
-     int dXr = abs(dxr);
-
-     int dY = Y2 - Y1;
-
-     __u32 sgn = 0;
-
-     if (dxl < 0)
-          sgn |= SDXL;
-     if (dxr < 0)
-          sgn |= SDXR;
-
-
-     mga_waitfifo( mdrv, mdev, 4 );
-
-     mga_out32( mmio, 0x8, TMR0 );
-     mga_out32( mmio, 0x8, TMR3 );
-     mga_out32( mmio, 0, TMR6 );
-     mga_out32( mmio, 0, TMR7 );
-
-
-     mga_waitfifo( mdrv, mdev, 9 );
-
-     mga_out32( mmio, dY, AR0 );
-     mga_out32( mmio, - dXl, AR1 );
-     mga_out32( mmio, - dXl, AR2 );
-     mga_out32( mmio, - dXr, AR4 );
-     mga_out32( mmio, - dXr, AR5 );
-     mga_out32( mmio, dY, AR6 );
-
-     mga_out32( mmio, sgn, SGN );
-     mga_out32( mmio, (RS16(X1r) << 16) | RS16(X1l), FXBNDRY );
-     mga_out32( mmio, (RS16(Y1) << 16) | RS16(dY), YDSTLEN | EXECUTE );
-}
+#ifdef ARCH_X86
+#define RINT(x) my_rint(x)
+#define CEIL(x) my_ceil(x)
+#define FLOOR(x) my_floor(x)
+#else
+#define RINT(x) ((__s32)(x))
+#define CEIL(x) ((__s32)ceil(x))
+#define FLOOR(x) ((__s32)floor(x))
 #endif
 
-typedef struct {
-     DFBVertex *v0, *v1;  /* Y(v0) < Y(v1) */
-     float      dx;          /* X(v1) - X(v0) */
-     float      dy;          /* Y(v1) - Y(v0) */
-     float      dxOOA;          /* dx * oneOverArea */
-     float      dyOOA;          /* dy * oneOverArea */
+static __inline__ long my_rint(const float x)
+{
+  register float arg = x;
+  long result;
+  __asm__ ("fistl %0" : "=m" (result) : "t" (arg));
+  return result;
+}
 
-     float      adjx,adjy; /* subpixel offset after rounding to integer */
-     int        err;        /* error term ready for hardware */
-     int        idx,idy;    /* delta-x & delta-y ready for hardware */
-     int        sx,sy;          /* first sample point x,y coord */
-     int        lines;      /* number of lines to be sampled on this edge */
-} EdgeT;
+static __inline__ long my_ceil(const float x)
+{
+  register float arg = x;
+  volatile long value;
+  volatile short cw, cwtmp;
 
-#define RINT(x)  ((int)(x+0.5f))
+  __asm__ volatile ("fnstcw %0" : "=m" (cw) : );
+  cwtmp = (cw & 0xf3ff) | 0x0800; /* rounding up */
+  __asm__ volatile ("fldcw %1\n"
+                    "fistl %0\n"
+                    "fldcw %2"
+                    : "=m" (value)
+                    : "m" (cwtmp), "m" (cw), "t" (arg));
+  return value;
+}
+
+static __inline__ long my_floor(const float x)
+{
+  register float arg = x;
+  volatile long value;
+  volatile short cw, cwtmp;
+
+  __asm__ volatile ("fnstcw %0" : "=m" (cw) : );
+  cwtmp = (cw & 0xf3ff) | 0x0400;
+  __asm__ volatile ("fldcw %1\n"
+                    "fistl %0\n"
+                    "fldcw %2"
+                    : "=m" (value)
+                    : "m" (cwtmp), "m" (cw), "t" (arg));
+  return value;
+}
+
+
 #define F2COL(x) (RINT(x) & 0x00ffffff)
 
 #define mgaF1800(x) (((__s32) (x)) & 0x0003ffff)
@@ -1311,6 +1332,22 @@ typedef struct {
        sgn |= SDXR;                                      \
      }                                                 \
    } while(0)
+
+
+typedef struct {
+     DFBVertex *v0, *v1;  /* Y(v0) < Y(v1) */
+     float      dx;          /* X(v1) - X(v0) */
+     float      dy;          /* Y(v1) - Y(v0) */
+     float      dxOOA;          /* dx * oneOverArea */
+     float      dyOOA;          /* dy * oneOverArea */
+
+     float      adjx,adjy; /* subpixel offset after rounding to integer */
+     int        err;        /* error term ready for hardware */
+     int        idx,idy;    /* delta-x & delta-y ready for hardware */
+     int        sx,sy;          /* first sample point x,y coord */
+     int        lines;      /* number of lines to be sampled on this edge */
+} EdgeT;
+
 
 static void
 texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
@@ -1390,16 +1427,16 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
           int   ivMax_y;
           float temp;
 
-          ivMax_y = D_ICEIL(vMax->y);
-          eTop.sy = eMaj.sy = D_ICEIL(vMin->y);
-          eBot.sy = D_ICEIL(vMid->y);
+          ivMax_y = CEIL(vMax->y);
+          eTop.sy = eMaj.sy = CEIL(vMin->y);
+          eBot.sy = CEIL(vMid->y);
 
           eMaj.lines = ivMax_y - eMaj.sy;
           if (eMaj.lines > 0) {
                float dxdy = eMaj.dx / eMaj.dy;
                eMaj.adjy = (float) eMaj.sy - vMin->y;
                temp = vMin->x + eMaj.adjy*dxdy;
-               eMaj.sx = D_ICEIL(temp);
+               eMaj.sx = CEIL(temp);
                eMaj.adjx = (float) eMaj.sx - vMin->x;
                if (eMaj.lines == 1) {
                     eMaj.idy = 1;
@@ -1408,7 +1445,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                }
                else {
                     eMaj.idy = RINT(eMaj.dy * DELTASCALE);
-                    eMaj.idx = D_IFLOOR(eMaj.idy * dxdy);
+                    eMaj.idx = FLOOR(eMaj.idy * dxdy);
                     eMaj.err = RINT(((float) eMaj.sx - temp) * (float)eMaj.idy);
                }
           }
@@ -1423,7 +1460,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                float dxdy = eBot.dx / eBot.dy;
                eBot.adjy = (float) eBot.sy - vMid->y;
                temp = vMid->x + eBot.adjy*dxdy;
-               eBot.sx = D_ICEIL(temp);
+               eBot.sx = CEIL(temp);
                eBot.adjx = (float) eBot.sx - vMid->x;
                if (eBot.lines == 1) {
                     eBot.idy = 1;
@@ -1432,7 +1469,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                }
                else {
                     eBot.idy = RINT(eBot.dy * DELTASCALE);
-                    eBot.idx = D_IFLOOR(eBot.idy * dxdy);
+                    eBot.idx = FLOOR(eBot.idy * dxdy);
                     eBot.err = RINT(((float) eBot.sx - temp) * (float)eBot.idy);
                }
           }
@@ -1445,7 +1482,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                float dxdy = eTop.dx / eTop.dy;
                eTop.adjy = eMaj.adjy;
                temp = vMin->x + eTop.adjy*dxdy;
-               eTop.sx = D_ICEIL(temp);
+               eTop.sx = CEIL(temp);
                eTop.adjx = (float) eTop.sx - vMin->x;
                if (eTop.lines == 1) {
                     eTop.idy = 1;
@@ -1459,7 +1496,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                }
                else {
                     eTop.idy = RINT(eTop.dy * DELTASCALE);
-                    eTop.idx = D_IFLOOR(eTop.idy * dxdy);
+                    eTop.idx = FLOOR(eTop.idy * dxdy);
                     eTop.err = RINT(((float) eTop.sx - temp) * (float)eTop.idy);
                }
           }
@@ -1534,22 +1571,10 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                float dtdx, dtdy;
                float dvdx, dvdy;
 
+               mga_waitfifo( mdrv, mdev, 9 );
+
                DERIV(ds,s);
-#if 0
-               MGA_S(RINT( (vTL->s+dsdx*adjx+dsdy*adjy) * 0x100000 ),
-                     RINT( dsdx * 0x100000 ), RINT( dsdy * 0x100000 ));
 
-               DERIV(dt,t);
-
-               MGA_T(RINT( (vTL->t+dtdx*adjx+dtdy*adjy) * 0x100000),
-                     RINT( dtdx * 0x100000 ), RINT( dtdy * 0x100000 ));
-
-               DERIV(dv,w);
-               {
-                    int sq = RINT( (vTL->w+dvdx*adjx+dvdy*adjy) * 0x10000 );
-                    MGA_Q((sq == 0) ? 1 : sq,RINT(dvdx*0x10000),RINT(dvdy*0x10000));
-               }
-#else
                MGA_S(RINT( (vTL->s+dsdx*adjx+dsdy*adjy) ),
                      RINT( dsdx ), RINT( dsdy ));
 
@@ -1563,11 +1588,12 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                     int sq = RINT( (vTL->w+dvdx*adjx+dvdy*adjy) );
                     MGA_Q((sq == 0) ? 1 : sq,RINT(dvdx),RINT(dvdy));
                }
-#endif
           }
 
           {
                __u32 sgn = 0;
+
+               mga_waitfifo( mdrv, mdev, 9 );
 
                /* Draw part #1 */
                if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400) {
@@ -1580,12 +1606,14 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                }
 
                mga_out32( mmio, sgn,                            SGN );
-               mga_out32( mmio, eLeft->sx | (eRight->sx << 16), FXBNDRY );
-               mga_out32( mmio, lines     | (eLeft->sy  << 16), YDSTLEN | EXECUTE );
+               mga_out32( mmio, ((__u32)(eLeft->sx) & 0xFFFF) | ((__u32)(eRight->sx) << 16), FXBNDRY );
+               mga_out32( mmio, lines     | ((__u32)(eLeft->sy)  << 16), YDSTLEN | EXECUTE );
 
                if (Shape != 3) { /* has only one half? */
                     return;
                }
+
+               mga_waitfifo( mdrv, mdev, 6 );
 
                /* Draw part #2 */
                if (ltor) {
@@ -1621,16 +1649,26 @@ static bool matroxTextureTriangles( void *drv, void *dev,
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
      volatile __u8    *mmio = mdrv->mmio_base;
 
+     float wScale = 1 << 20;
+
+
+     for (i=0; i<num; i++) {
+          DFBVertex *v = &vertices[i];
+
+          v->x -= 0.5f;
+          v->y -= 0.5f;
+          v->z *= 1 << 15;
+          v->w *= wScale;
+
+          v->s *= v->w * (float) mdev->w / (float) (1 << mdev->w2);
+          v->t *= v->w * (float) mdev->h / (float) (1 << mdev->h2);
+//          v->t *= (1 << (20 - mdev->h2)) * (float) mdev->h * v->w;
+     }
+
      mga_waitfifo( mdrv, mdev, 2 );
 
      mga_out32( mmio, BOP_COPY | SHFTZERO | ATYPE_I | OP_TEXTURE_TRAP, DWGCTL );
      mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_ANISO, TEXFILTER );
-
-     for (i=0; i<num; i++) {
-          vertices[i].s *= (1 << (20 - mdev->w2)) * (float) mdev->w;
-          vertices[i].t *= (1 << (20 - mdev->h2)) * (float) mdev->h;
-          vertices[i].w *= 1 << 16;
-     }
 
      switch (formation) {
           case DTTF_LIST:
@@ -1669,7 +1707,7 @@ static bool matroxTextureTriangles( void *drv, void *dev,
      mga_out32( mmio, 0, TMR2 );
      mga_out32( mmio, 0, TMR4 );
      mga_out32( mmio, 0, TMR5 );
-     mga_out32( mmio, 0x10000, TMR8 );
+     mga_out32( mmio, 0x100000, TMR8 );
 
      return true;
 }
@@ -1707,9 +1745,10 @@ static __u32 pci_config_in32( unsigned int bus,
      return val;
 }
 
-static DFBResult matrox_find_pci_device( unsigned int *bus,
-                                         unsigned int *slot,
-                                         unsigned int *func )
+static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
+                                         unsigned int     *bus,
+                                         unsigned int     *slot,
+                                         unsigned int     *func )
 {
      unsigned int   vendor, device, devfn;
      unsigned long  addr0, addr1;
@@ -1746,7 +1785,7 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
           case PCI_DEVICE_ID_MATROX_G100_AGP:
           case PCI_DEVICE_ID_MATROX_MIL_2:
           case PCI_DEVICE_ID_MATROX_MIL_2_AGP:
-               if (addr0 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+               if (addr0 == mdev->fb.physical) {
                     fclose( file );
                     return DFB_OK;
                }
@@ -1755,13 +1794,13 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
           case PCI_DEVICE_ID_MATROX_MYS:
                if ((pci_config_in32( *bus, *slot, *func, 0x08 ) & 0xFF) >= 0x02) {
                     /* Mystique 220 */
-                    if (addr0 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+                    if (addr0 == mdev->fb.physical) {
                          fclose( file );
                          return DFB_OK;
                     }
                } else {
                     /* Mystique */
-                    if (addr1 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+                    if (addr1 == mdev->fb.physical) {
                          fclose( file );
                          return DFB_OK;
                     }
@@ -1769,7 +1808,7 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
                break;
 
           case PCI_DEVICE_ID_MATROX_MIL:
-               if (addr1 == dfb_gfxcard_memory_physical( NULL, 0 )) {
+               if (addr1 == mdev->fb.physical) {
                     fclose( file );
                     return DFB_OK;
                }
@@ -1777,8 +1816,7 @@ static DFBResult matrox_find_pci_device( unsigned int *bus,
           }
      }
 
-     D_ERROR( "DirectFB/Matrox: "
-               "Can't find device in `/proc/bus/pci'!\n" );
+     D_ERROR( "DirectFB/Matrox: Can't find device in `/proc/bus/pci'!\n" );
 
      fclose( file );
      return DFB_INIT;
@@ -1829,16 +1867,14 @@ driver_init_driver( GraphicsDevice      *device,
                     void                *driver_data,
                     void                *device_data )
 {
-     MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
+     MatroxDriverData *mdrv = driver_data;
 
      mdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!mdrv->mmio_base)
           return DFB_IO;
 
-     mdrv->device_data = (MatroxDeviceData*) device_data;
-
-     mdrv->maven_fd = -1;
-
+     mdrv->device_data = device_data;
+     mdrv->maven_fd    = -1;
      mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
 
      switch (mdrv->accelerator) {
@@ -1915,9 +1951,12 @@ driver_init_device( GraphicsDevice     *device,
      bool              g450, g550, sgram = false;
      DFBResult         ret;
 
+     mdev->fb.physical = dfb_gfxcard_memory_physical( device, 0 );
+     mdev->fb.offset   = mdev->fb.physical & 0x1FFFFFF;
+
      switch (mdrv->accelerator) {
           case FB_ACCEL_MATROX_MGAG400:
-               if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+               if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))
                     return ret;
 
                g550  = ((pci_config_in32( bus, slot, func, 0x00 ) >> 16) ==
@@ -1930,7 +1969,7 @@ driver_init_device( GraphicsDevice     *device,
                mdev->g450_matrox = g450 || g550;
                break;
           case FB_ACCEL_MATROX_MGAG200:
-               if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+               if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))
                     return ret;
 
                sgram = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
@@ -1950,7 +1989,7 @@ driver_init_device( GraphicsDevice     *device,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium I" );
                break;
           case FB_ACCEL_MATROX_MGA1064SG:
-               if ((ret = matrox_find_pci_device( &bus, &slot, &func )))
+               if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))
                     return ret;
 
                mdev->old_matrox = true;
@@ -2014,8 +2053,9 @@ driver_init_device( GraphicsDevice     *device,
      }
 
      /* set hardware limitations */
-     device_info->limits.surface_byteoffset_alignment = 512;
-     device_info->limits.surface_pixelpitch_alignment = 64;
+     device_info->limits.surface_byteoffset_alignment = 128;
+     device_info->limits.surface_pixelpitch_alignment = 32;
+     device_info->limits.surface_bytepitch_alignment  = 64;
 
      /* soft reset to fix eventually corrupted TMU read offset on G200 */
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200) {

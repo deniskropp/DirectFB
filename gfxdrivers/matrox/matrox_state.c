@@ -59,21 +59,31 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      mdev->planar    = DFB_PLANAR_PIXELFORMAT( destination->format );
      mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
 
+     D_ASSERT( mdev->dst_pitch % 32 == 0 );
+
+     D_ASSERT( buffer->video.offset % 64 == 0 );
+
+
      if (mdev->old_matrox) {
           mdev->dst_offset = buffer->video.offset / bytes_per_pixel;
+
           if (destination->format == DSPF_I420) {
                mdev->dst_cb_offset = mdev->dst_offset + destination->height * mdev->dst_pitch;
                mdev->dst_cr_offset = mdev->dst_cb_offset + destination->height * mdev->dst_pitch / 4;
-          } else if (destination->format == DSPF_YV12) {
+          }
+          else if (destination->format == DSPF_YV12) {
                mdev->dst_cr_offset = mdev->dst_offset + destination->height * mdev->dst_pitch;
                mdev->dst_cb_offset = mdev->dst_cr_offset + destination->height * mdev->dst_pitch / 4;
           }
-     } else {
-          mdev->dst_offset = dfb_gfxcard_memory_physical( NULL, buffer->video.offset ) & 0x1FFFFFF;
+     }
+     else {
+          mdev->dst_offset = mdev->fb.offset + buffer->video.offset;
+
           if (destination->format == DSPF_I420) {
                mdev->dst_cb_offset = mdev->dst_offset + destination->height * buffer->video.pitch;
                mdev->dst_cr_offset = mdev->dst_cb_offset + destination->height * buffer->video.pitch / 4;
-          } else if (destination->format == DSPF_YV12) {
+          }
+          else if (destination->format == DSPF_YV12) {
                mdev->dst_cr_offset = mdev->dst_offset + destination->height * buffer->video.pitch;
                mdev->dst_cb_offset = mdev->dst_cr_offset + destination->height * buffer->video.pitch / 4;
           }
@@ -135,8 +145,7 @@ void matrox_set_clip( MatroxDriverData *mdrv,
           mga_out32( mmio, (mdev->dst_pitch * clip->y2) & 0xFFFFFF, YBOT );
      }
 
-     mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) |
-                       (clip->x1 & 0x0FFF), CXBNDRY );
+     mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) | (clip->x1 & 0x0FFF), CXBNDRY );
 }
 
 void matrox_validate_Color( MatroxDriverData *mdrv,
@@ -353,7 +362,11 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
      mdev->field     = surface->field;
 
-     mdev->src_offset = dfb_gfxcard_memory_physical( NULL, buffer->video.offset ) & 0x1FFFFFF;
+     D_ASSERT( mdev->src_pitch % 32 == 0 );
+
+     D_ASSERT( buffer->video.offset % 32 == 0 );
+
+     mdev->src_offset = mdev->fb.offset + buffer->video.offset;
      if (surface->format == DSPF_I420) {
           mdev->src_cb_offset = mdev->src_offset + surface->height * buffer->video.pitch;
           mdev->src_cr_offset = mdev->src_cb_offset + surface->height * buffer->video.pitch / 4;
@@ -434,10 +447,17 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mdev->texctl  = texctl;
 
      mga_waitfifo( mdrv, mdev, 5 );
-     mga_out32( mmio, texctl, TEXCTL );
+     mga_out32( mmio, texctl,  TEXCTL );
      mga_out32( mmio, texctl2, TEXCTL2 );
-     mga_out32( mmio, (mdev->w-1)<<18 | ((__u32)(8-mdev->w2)&63)<<9 | mdev->w2, TEXWIDTH );
-     mga_out32( mmio, (mdev->h-1)<<18 | ((__u32)(8-mdev->h2)&63)<<9 | mdev->h2, TEXHEIGHT );
+
+     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+
+     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+
      mga_out32( mmio, mdev->src_offset, TEXORG );
 
      MGA_VALIDATE( m_Source );
@@ -457,6 +477,11 @@ void matrox_validate_source( MatroxDriverData *mdrv,
 
      mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
 
+     D_ASSERT( mdev->src_pitch % 32 == 0 );
+
+     D_ASSERT( buffer->video.offset % 64 == 0 );
+
+
      if (mdev->old_matrox) {
           mdev->src_offset = buffer->video.offset / bytes_per_pixel;
           if (surface->format == DSPF_I420) {
@@ -467,7 +492,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
                mdev->src_cb_offset = mdev->src_cr_offset + surface->height * mdev->src_pitch / 4;
           }
      } else {
-          mdev->src_offset = dfb_gfxcard_memory_physical( NULL, buffer->video.offset ) & 0x1FFFFFF;
+          mdev->src_offset = mdev->fb.offset + buffer->video.offset;
           if (surface->format == DSPF_I420) {
                mdev->src_cb_offset = mdev->src_offset + surface->height * buffer->video.pitch;
                mdev->src_cr_offset = mdev->src_cb_offset + surface->height * buffer->video.pitch / 4;

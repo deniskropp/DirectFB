@@ -31,3 +31,5 @@ libdirectfb_matrox_la_LDFLAGS = \
         -export-dynamic		\
 	-avoid-version		\
         $(DFB_LDFLAGS)
+
+libdirectfb_matrox_la_LIBADD = -lm

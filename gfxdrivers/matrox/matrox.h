@@ -106,6 +106,11 @@ typedef struct {
      __u32 idle_status;
 
      DFBRegion clip;
+
+     struct {
+          unsigned long offset;
+          unsigned long physical;
+     } fb;
 } MatroxDeviceData;
 
 typedef struct {
@@ -128,12 +133,14 @@ extern ScreenFuncs matroxCrtc2ScreenFuncs;
 
 static inline int mga_log2( int val )
 {
-     int ret = 0;
+     register int ret = 0;
 
-     while (val >> ret)
+     while (val >> ++ret);
+
+     if ((1 << --ret) < val)
           ret++;
 
-     return ((1 << ret) >= val) ? ret : (ret + 1);
+     return ret;
 }
 
 #endif
