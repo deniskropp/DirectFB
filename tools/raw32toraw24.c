@@ -1,10 +1,10 @@
-#include <endian.h>
 #include <unistd.h>
 #include <stdio.h>
 
 #include <dfb_types.h>
+#include "config.h"
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
 #include <asm/byteorder.h>
 #endif
 
@@ -16,7 +16,7 @@ int main()
      do {
           fread( &pixel32, 4, 1, stdin );
           
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           __swab32( pixel32 );
 #endif
           

@@ -26,7 +26,6 @@
 
 #include "config.h"
 
-#include <endian.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -349,7 +348,7 @@ static void Bop_rgb15_Kto_Aop()
                          *D = dpixel;
                     }
                     else {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                          tmp[0] = (__u16)(dpixel >> 16);
 #else
                          tmp[1] = (__u16)(dpixel >> 16);
@@ -357,7 +356,7 @@ static void Bop_rgb15_Kto_Aop()
                     }
                }
                else {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                     tmp[1] = (__u16)dpixel;
 #else
                     tmp[0] = (__u16)dpixel;
@@ -404,7 +403,7 @@ static void Bop_rgb16_Kto_Aop()
                          *D = dpixel;
                     }
                     else {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                          tmp[0] = (__u16)(dpixel >> 16);
 #else
                          tmp[1] = (__u16)(dpixel >> 16);
@@ -412,7 +411,7 @@ static void Bop_rgb16_Kto_Aop()
                     }
                }
                else {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                     tmp[1] = (__u16)dpixel;
 #else
                     tmp[0] = (__u16)dpixel;
@@ -563,7 +562,7 @@ static void Bop_16_Sto_Aop()
      w2 = (w >> 1);
      while (w2--) {
           int SperD2 = (SperD << 1);
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           *D++ =  S[i>>16] << 16 | S[(i+SperD)>>16];
 #else
           *D++ = (S[(i+SperD)>>16] << 16) | S[i>>16];
@@ -1169,7 +1168,7 @@ static void Sop_rgb15_to_Dacc()
      while (l) {
           __u32 spixel2 = *((__u32*)S);
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           D[0].a = 0xFF;
           D[0].r = (spixel2 & 0x7C000000) >> 23;
           D[0].g = (spixel2 & 0x03E00000) >> 18;
@@ -1230,7 +1229,7 @@ static void Sop_rgb16_to_Dacc()
      while (l) {
           __u32 spixel2 = *((__u32*)S);
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           D[0].a = 0xFF;
           D[0].r = (spixel2 & 0xF8000000) >> 24;
           D[0].g = (spixel2 & 0x07E00000) >> 19;
@@ -1631,7 +1630,7 @@ static void Sacc_to_Aop_rgb16()
           __u32 *D2 = (__u32*) D;
 
           if (!(S[0].a & 0xF000) && !(S[1].a & 0xF000)) {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                *D2 = PIXEL_RGB16( (S[1].r & 0xFF00) ? 0xFF : S[1].r,
                                   (S[1].g & 0xFF00) ? 0xFF : S[1].g,
                                   (S[1].b & 0xFF00) ? 0xFF : S[1].b ) |

@@ -24,8 +24,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <endian.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -56,6 +54,7 @@
 #include <misc/mem.h>
 #include <misc/util.h>
 
+#include "config.h"
 
 #define CURSORFILE         DATADIR"/cursor.dat"
 
@@ -1381,7 +1380,7 @@ load_default_cursor( DisplayLayer *layer )
 
                return ret;
           }
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           {
                int i = 40;
                __u32 *tmp_data = data;

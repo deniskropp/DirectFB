@@ -28,7 +28,6 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
-#include <endian.h>
 
 #include <sys/types.h>
 #include <sys/time.h>
@@ -62,6 +61,8 @@
 #include <display/idirectfbsurface.h>
 
 #include <libmpeg3.h>
+
+#include "config.h"
 
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
@@ -1096,7 +1097,7 @@ OpenSound( IDirectFBVideoProvider_Libmpeg3_data *data )
      if (data->audio.bits == 8)
           format = AFMT_U8;
      else if (data->audio.bits == 16) {
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           format = AFMT_S16_BE;
 #else
           format = AFMT_S16_LE;

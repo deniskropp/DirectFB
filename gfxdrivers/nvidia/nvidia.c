@@ -33,7 +33,6 @@
 #include <sys/mman.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
-#include <endian.h>
 
 #include <directfb.h>
 
@@ -50,6 +49,7 @@
 
 #include <core/graphics_driver.h>
 
+#include "config.h"
 
 DFB_GRAPHICS_DRIVER( nvidia )
 
@@ -85,7 +85,7 @@ typedef struct {
      volatile RivaSurface      *Surface;
 } NVidiaDriverData;
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
 /* 
    access Nop field instead of FifoFree, since they are swapped,
    (Nop is really FifoFree here)

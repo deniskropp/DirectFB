@@ -24,14 +24,12 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <endian.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <png.h>
 #include <string.h>
-
 
 #include <directfb.h>
 #include <directfb_internals.h>
@@ -50,6 +48,8 @@
 #include <misc/gfx_util.h>
 #include <misc/mem.h>
 #include <misc/util.h>
+
+#include "config.h"
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx );
@@ -389,7 +389,7 @@ png_info_callback   (png_structp png_read_ptr,
      if (data->bpp == 16)
           png_set_strip_16( data->png_ptr );
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
      if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
           png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_BEFORE );
 

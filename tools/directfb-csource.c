@@ -29,8 +29,6 @@
 
 #include "config.h"
 
-#include <endian.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -225,7 +223,7 @@ static DFBResult load_image (const char            *filename,
      if (bytes == 16)
           png_set_strip_16 (png_ptr);
 
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
      png_set_swap_alpha (png_ptr);
 #else
      png_set_bgr (png_ptr);
@@ -281,7 +279,7 @@ static DFBResult load_image (const char            *filename,
                break;
           case DSPF_RGB32:
                 png_set_filler (png_ptr, 0xFF,
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
                                 PNG_FILLER_BEFORE
 #else
                                 PNG_FILLER_AFTER

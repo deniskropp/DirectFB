@@ -1,6 +1,6 @@
-#include <endian.h>
 #include <unistd.h>
 #include <stdio.h>
+#include <config.h>
 
 int main()
 {
@@ -10,7 +10,7 @@ int main()
      do {
           fread( &wrd, 2, 1, stdin);
           
-#if __BYTE_ORDER == __BIG_ENDIAN
+#ifdef WORDS_BIGENDIAN
           swab(&wrd, &wrd, 2);          
 #endif
           
