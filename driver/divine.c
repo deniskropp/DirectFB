@@ -26,6 +26,7 @@
 
 #include "config.h"
 
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
@@ -43,7 +44,8 @@
 #include <core/input.h>
 #include <core/thread.h>
 
-#include <misc/mem.h>
+#include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <core/input_driver.h>
 
@@ -89,7 +91,7 @@ divineEventThread( CoreThread *thread, void *driver_data )
                usleep( 20000 ); /* avoid 100% CPU usage in case poll() doesn't work */
      }
 
-     PERRORMSG( "divine thread died\n" );
+     D_PERROR( "divine thread died\n" );
 
      return NULL;
 }
@@ -107,14 +109,14 @@ driver_get_available()
 
      /* create the pipe if not already existent */
      if (mkfifo( PIPE_PATH, 0660 ) && errno != EEXIST) {
-          PERRORMSG( "DirectFB/DiVine: could not create pipe '%s'\n", PIPE_PATH );
+          D_PERROR( "DirectFB/DiVine: could not create pipe '%s'\n", PIPE_PATH );
           return 0;
      }
 
      /* try to open pipe */
      fd = open( PIPE_PATH, O_RDONLY | O_NONBLOCK );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
+          D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
           return 0;
      }
 
@@ -158,7 +160,7 @@ driver_open_device( InputDevice      *device,
      /* open pipe */
      fd = open( PIPE_PATH, O_RDONLY | O_NONBLOCK );
      if (fd < 0) {
-          PERRORMSG( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
+          D_PERROR( "DirectFB/DiVine: could not open pipe '%s'\n", PIPE_PATH );
           return DFB_INIT;
      }
 
@@ -182,7 +184,7 @@ driver_open_device( InputDevice      *device,
 
 
      /* allocate and fill private data */
-     data = DFBCALLOC( 1, sizeof(DiVineData) );
+     data = D_CALLOC( 1, sizeof(DiVineData) );
 
      data->fd     = fd;
      data->device = device;
@@ -224,5 +226,5 @@ driver_close_device( void *driver_data )
      close( data->fd );
 
      /* free private data */
-     DFBFREE( data );
+     D_FREE( data );
 }
