@@ -152,28 +152,27 @@ typedef struct {
 } FormatString;
  
 static const FormatString format_strings[] = {
-     { "A8",     DSPF_A8 },
-     { "ARGB",   DSPF_ARGB },
-     { "I420",   DSPF_I420 },
-     { "LUT8",   DSPF_LUT8 },
-     { "RGB15",  DSPF_RGB15 },
-     { "RGB16",  DSPF_RGB16 },
-     { "RGB24",  DSPF_RGB24 },
-     { "RGB32",  DSPF_RGB32 },
+     { "A8",     DSPF_A8     },
+     { "ARGB",   DSPF_ARGB   },
+     { "I420",   DSPF_I420   },
+     { "LUT8",   DSPF_LUT8   },
+     { "RGB15",  DSPF_RGB15  },
+     { "RGB16",  DSPF_RGB16  },
+     { "RGB24",  DSPF_RGB24  },
+     { "RGB32",  DSPF_RGB32  },
      { "RGB332", DSPF_RGB332 },
-     { "UYVY",   DSPF_UYVY },
-     { "YUY2",   DSPF_YUY2 },
-     { "YV12",   DSPF_YV12 }
+     { "UYVY",   DSPF_UYVY   },
+     { "YUY2",   DSPF_YUY2   },
+     { "YV12",   DSPF_YV12   }
 };
 
-#define NUM_FORMAT_STRINGS    (sizeof(format_strings)/sizeof(FormatString))
+#define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))
 
 static int
 format_string_compare (const void *key,
                        const void *base)
 {
-  return strcmp ((const char *) key,
-                 ((const FormatString *) base)->string);
+  return strcmp ((const char *) key, ((const FormatString *) base)->string);
 }
 
 static DFBSurfacePixelFormat
@@ -251,7 +250,7 @@ static void config_allocate()
      sigemptyset( &dfb_config->dont_catch );
 
      /* default to fbdev if we have root privileges */
-     if (!geteuid())
+     if (geteuid() == 0)
           dfb_config->system = DFBSTRDUP( "FBDev" );
      else
           dfb_config->vt_switch = false;
