@@ -103,8 +103,10 @@ static void dfb_core_deinit_check()
      if (dfb_core && dfb_core->refs) {
           DEBUGMSG( "DirectFB/core: WARNING - Application "
                     "exitted without deinitialization of DirectFB!\n" );
-          if (dfb_core->master)
-               dfb_core_deinit_emergency();
+          if (dfb_core->master) {
+               dfb_core->refs = 1;
+               dfb_core_unref();
+          }
      }
 
 #ifdef DFB_DEBUG
@@ -219,11 +221,11 @@ DFBResult dfb_core_suspend()
      ret = dfb_input_suspend();
      if (ret)
           return ret;
-     
+
      ret = dfb_layers_suspend();
      if (ret)
           return ret;
-     
+
      ret = dfb_gfxcard_suspend();
      if (ret)
           return ret;
@@ -242,15 +244,15 @@ DFBResult dfb_core_resume()
      ret = dfb_gfxcard_resume();
      if (ret)
           return ret;
-     
+
      ret = dfb_layers_resume();
      if (ret)
           return ret;
-     
+
      ret = dfb_input_resume();
      if (ret)
           return ret;
-     
+
      return DFB_OK;
 #endif
 }
