@@ -63,16 +63,16 @@ libidirectfbvideoprovider_avifile_la_SOURCES = idirectfbvideoprovider_avifile.cp
 
 libidirectfbvideoprovider_avifile_la_LIBADD = $(AVIFILE_LIBS)
 
-libidirectfbvideoprovider_avifile_la_LDFLAGS = -avoid-version -module -disable-static
+libidirectfbvideoprovider_avifile_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbvideoprovider_swf_la_SOURCES = idirectfbvideoprovider_swf.c
 
 libidirectfbvideoprovider_swf_la_LIBADD = $(LIBFLASH)
 
-libidirectfbvideoprovider_swf_la_LDFLAGS = -avoid-version -module -disable-static
+libidirectfbvideoprovider_swf_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c
 
-libidirectfbvideoprovider_v4l_la_LDFLAGS = -avoid-version -module -disable-static
+libidirectfbvideoprovider_v4l_la_LDFLAGS = -avoid-version -module

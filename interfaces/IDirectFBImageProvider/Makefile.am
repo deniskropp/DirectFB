@@ -36,16 +36,16 @@ libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
 
 libidirectfbimageprovider_png_la_LIBADD = $(LIBPNG)
 
-libidirectfbimageprovider_png_la_LDFLAGS = -avoid-version -module -disable-static
+libidirectfbimageprovider_png_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_gif_la_SOURCES = idirectfbimageprovider_gif.c
 
-libidirectfbimageprovider_gif_la_LDFLAGS = -avoid-version -module -disable-static
+libidirectfbimageprovider_gif_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_jpeg_la_SOURCES = idirectfbimageprovider_jpeg.c
 
 libidirectfbimageprovider_jpeg_la_LIBADD = $(LIBJPEG)
 
-libidirectfbimageprovider_jpeg_la_LDFLAGS = -avoid-version -module -disable-static
+libidirectfbimageprovider_jpeg_la_LDFLAGS = -avoid-version -module
