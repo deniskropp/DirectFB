@@ -59,7 +59,7 @@ DFB_INPUT_DRIVER( divine )
  */
 typedef struct {
      int           fd;
-     InputDevice  *device;
+     CoreInputDevice  *device;
      DirectThread *thread;
 } DiVineData;
 
@@ -149,7 +149,7 @@ driver_get_info( InputDriverInfo *info )
  * Called during initialization, resuming or taking over mastership.
  */
 static DFBResult
-driver_open_device( InputDevice      *device,
+driver_open_device( CoreInputDevice      *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
                     void            **driver_data )
@@ -202,7 +202,7 @@ driver_open_device( InputDevice      *device,
  * Fetch one entry from the device's keymap if supported.
  */
 static DFBResult
-driver_get_keymap_entry( InputDevice               *device,
+driver_get_keymap_entry( CoreInputDevice               *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
