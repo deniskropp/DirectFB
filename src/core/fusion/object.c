@@ -29,8 +29,7 @@
 #include <core/fusion/object.h>
 #include <core/fusion/shmalloc.h>
 
-#include <core/coredefs.h>
-#include <core/sig.h>
+#include <core/thread.h>
 
 #include "fusion_internal.h"
 
@@ -43,11 +42,11 @@ struct _FusionObjectPool {
      int                     message_size;
      FusionObjectDestructor  destructor;
 
-     pthread_t               bone_collector;
+     CoreThread             *bone_collector;
      bool                    shutdown;
 };
 
-static void *bone_collector_loop( void *arg );
+static void *bone_collector_loop( CoreThread *thread, void *arg );
 
 FusionObjectPool *
 fusion_object_pool_create( const char             *name,
@@ -77,7 +76,8 @@ fusion_object_pool_create( const char             *name,
      pool->destructor   = destructor;
 
      /* Run bone collector thread. */
-     pthread_create( &pool->bone_collector, NULL, bone_collector_loop, pool );
+     pool->bone_collector = dfb_thread_create( CTT_CLEANUP,
+                                               bone_collector_loop, pool );
 
      return pool;
 }
@@ -89,7 +89,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
 
      /* Stop bone collector thread. */
      pool->shutdown = true;
-     pthread_join( pool->bone_collector, NULL );
+     dfb_thread_join( pool->bone_collector );
 
      /* Destroy the pool lock. */
      skirmish_destroy( &pool->lock );
@@ -246,12 +246,10 @@ fusion_object_destroy( FusionObject     *object )
 /******************************************************************************/
 
 static void *
-bone_collector_loop( void *arg )
+bone_collector_loop( CoreThread *thread, void *arg )
 {
      FusionLink       *l;
      FusionObjectPool *pool = (FusionObjectPool*) arg;
-
-     dfb_sig_block_all();
 
      while (!pool->shutdown) {
           usleep(100000);

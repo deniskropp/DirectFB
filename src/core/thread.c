@@ -169,6 +169,10 @@ dfb_thread_main( void *arg )
                setpriority( PRIO_PROCESS, 0, -10 );
                break;
 
+          case CTT_CLEANUP:
+               setpriority( PRIO_PROCESS, 0, -15 );
+               break;
+
           case CTT_CRITICAL:
                setpriority( PRIO_PROCESS, 0, -20 );
                break;

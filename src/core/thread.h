@@ -35,6 +35,7 @@
 typedef enum {
      CTT_ANY,
      CTT_INPUT,
+     CTT_CLEANUP,
      CTT_CRITICAL
 } CoreThreadType;
 
