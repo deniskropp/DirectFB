@@ -28,6 +28,13 @@ Finish module unloading (done for most cases).
 
 Convert all D_DEBUG usage to D_DEBUG_AT using some D_DEBUG_DOMAINs.
 
+Move config system to libdirect with more features.
+
+Write well documented driver skeletons.
+
+Add core cursor component with animated shape support and better integrated
+changes caused by entering different windows.
+
 Add cooperative levels to input devices, implement sharing/distinction for
 applications (e.g. PS/2 Keyboard + PS/2 Mouse driver XDirectFB on Monitor out,
 USB-Keyboard + USB-Mouse drive XDirectFB and/or other applications on TV Out,
