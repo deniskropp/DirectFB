@@ -29,6 +29,9 @@
 #include <unistd.h>
 #include <string.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 
 #include <pthread.h>
 
@@ -706,6 +709,97 @@ DFBResult dfb_surface_init ( CoreSurface            *surface,
      return DFB_OK;
 }
 
+DFBResult dfb_surface_dump( CoreSurface *surface,
+                            const char  *directory,
+                            const char  *prefix )
+{
+     DFBResult  ret;
+     int        num = 0;
+     int        fd, i, n;
+     int        len = strlen(directory) + strlen(prefix) + 11;
+     char       filename[len];
+     char       head[30];
+     void      *data;
+     int        pitch;
+
+     do {
+          snprintf( filename, len, "%s/%s_%04d.ppm", directory, prefix, num++ );
+
+          errno = 0;
+
+          fd = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
+          if (fd < 0 && errno != EEXIST) {
+               PERRORMSG("DirectFB/core/input: "
+                         "could not open %s!\n", filename);
+               return DFB_IO;
+          }
+     } while (errno == EEXIST);
+
+     ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
+     if (ret) {
+          close( fd );
+          return ret;
+     }
+
+     snprintf( head, 30, "P6\n%d %d\n255\n", surface->width, surface->height );
+     write( fd, head, strlen(head) );
+
+     for (i=0; i<surface->height; i++) {
+          int    n3;
+          __u8  *data8  = data;
+          __u16 *data16 = data;
+          __u32 *data32 = data;
+
+          __u8 buf[surface->width * 3];
+          
+          switch (surface->format) {
+               case DSPF_ARGB1555:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = (data16[n] & 0x7C00) >> 7;
+                         buf[n3+1] = (data16[n] & 0x03E0) >> 2;
+                         buf[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+               case DSPF_RGB16:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = (data16[n] & 0xF800) >> 8;
+                         buf[n3+1] = (data16[n] & 0x07E0) >> 3;
+                         buf[n3+2] = (data16[n] & 0x001F) << 3;
+                    }
+                    break;
+               case DSPF_RGB24:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = data8[n3+2];
+                         buf[n3+1] = data8[n3+1];
+                         buf[n3+2] = data8[n3+0];
+                    }
+                    break;
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf[n3+0] = (data32[n] & 0xFF0000) >> 16;
+                         buf[n3+1] = (data32[n] & 0x00FF00) >>  8;
+                         buf[n3+2] = (data32[n] & 0x0000FF);
+                    }
+                    break;
+               default:
+                    ONCE( "surface dump for this format is unsupported" );
+                    dfb_surface_unlock( surface, true );
+                    close( fd );
+                    return DFB_UNSUPPORTED;
+          }
+
+          write( fd, buf, surface->width * 3 );
+
+          data += pitch;
+     }
+
+     dfb_surface_unlock( surface, true );
+
+     close( fd );
+
+     return DFB_OK;
+}
 
 /** internal **/
 

@@ -1404,96 +1404,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 }
 
 static void
-dump_screen( const char *directory )
-{
-     static int   num = 0;
-     int          fd, i, n;
-     int          len = strlen( directory ) + 20;
-     char         filename[len];
-     char         head[30];
-     void        *data;
-     int          pitch;
-     CoreSurface *surface = dfb_layer_surface( dfb_layer_at(0) );
-
-     do {
-          snprintf( filename, len, "%s/dfb_%04d.ppm", directory, num++ );
-
-          errno = 0;
-
-          fd = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
-          if (fd < 0 && errno != EEXIST) {
-               PERRORMSG("DirectFB/core/input: "
-                         "could not open %s!\n", filename);
-               return;
-          }
-     } while (errno == EEXIST);
-
-     if (dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch,
-                                surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE) )) {
-          close( fd );
-          return;
-     }
-
-     snprintf( head, 30, "P6\n%d %d\n255\n", surface->width, surface->height );
-     write( fd, head, strlen(head) );
-
-     for (i=0; i<surface->height; i++) {
-          int    n3;
-          __u8  *data8  = data;
-          __u16 *data16 = data;
-          __u32 *data32 = data;
-
-          __u8 buf[surface->width * 3];
-          
-          switch (surface->format) {
-               case DSPF_ARGB1555:
-                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = (data16[n] & 0x7C00) >> 7;
-                         buf[n3+1] = (data16[n] & 0x03E0) >> 2;
-                         buf[n3+2] = (data16[n] & 0x001F) << 3;
-                    }
-                    break;
-               case DSPF_RGB16:
-                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = (data16[n] & 0xF800) >> 8;
-                         buf[n3+1] = (data16[n] & 0x07E0) >> 3;
-                         buf[n3+2] = (data16[n] & 0x001F) << 3;
-                    }
-                    break;
-               case DSPF_RGB24:
-                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = data8[n3+2];
-                         buf[n3+1] = data8[n3+1];
-                         buf[n3+2] = data8[n3+0];
-                    }
-                    break;
-               case DSPF_RGB32:
-               case DSPF_ARGB:
-                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
-                         buf[n3+0] = (data32[n] & 0xFF0000) >> 16;
-                         buf[n3+1] = (data32[n] & 0x00FF00) >>  8;
-                         buf[n3+2] = (data32[n] & 0x0000FF);
-                    }
-                    break;
-               default:
-                    ONCE( "screendump for this format not yet implemented" );
-                    dfb_surface_unlock( surface, true );
-                    close( fd );
-                    return;
-          }
-
-          write( fd, buf, surface->width * 3 );
-
-          data += pitch;
-     }
-
-     dfb_surface_unlock( surface,
-                         surface->caps & (DSCAPS_FLIPPING | DSCAPS_TRIPLE) );
-
-     close( fd );
-}
-
-static void
 release_key( InputDevice *device, DFBInputDeviceKeyIdentifier id )
 {
      DFBInputEvent evt;
@@ -1558,37 +1468,33 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
      if (dfb_system_input_filter( device, event ))
           return true;
      
-     switch (event->type) {
-          case DIET_KEYPRESS:
-               switch (event->key_symbol) {
-                    case DIKS_PRINT:
-                         if (dfb_config->screenshot_dir) {
-                              dump_screen( dfb_config->screenshot_dir );
-                              return true;
-                         }
-                         break;
+     if (event->type == DIET_KEYPRESS) {
+          switch (event->key_symbol) {
+               case DIKS_PRINT:
+                    if (dfb_config->screenshot_dir) {
+                         dfb_surface_dump( dfb_layer_surface( dfb_layer_at(0) ),
+                                           dfb_config->screenshot_dir, "dfb" );
+                         return true;
+                    }
+                    break;
 
-                    case DIKS_BREAK:
-                         if ((event->modifiers & DIMM_ALT) &&
-                             (event->modifiers & DIMM_CONTROL))
-                         {
+               case DIKS_BREAK:
+                    if ((event->modifiers & DIMM_ALT) &&
+                        (event->modifiers & DIMM_CONTROL))
+                    {
 #ifdef FUSION_FAKE
-                              kill( 0, SIGINT );
+                         kill( 0, SIGINT );
 #else
-                              dfb_gfxcard_holdup();
-                              dfb_layer_holdup( dfb_layer_at(0) );
+                         dfb_gfxcard_holdup();
+                         dfb_layer_holdup( dfb_layer_at(0) );
 #endif
-                              return true;
-                         }
-                         break;
+                         return true;
+                    }
+                    break;
 
-                    default:
-                         break;
-               }
-               break;
-
-          default:
-               break;
+               default:
+                    break;
+          }
      }
      
      return false;

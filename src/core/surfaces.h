@@ -255,6 +255,16 @@ DFBResult dfb_surface_soft_lock( CoreSurface          *surface,
  */
 void dfb_surface_unlock( CoreSurface *surface, int front );
 
+/*
+ * Creates one or two files with the surface content (front buffer).
+ *
+ * The complete path will be <directory>/<prefix>_####.ppm for RGB and
+ * <directory>/<prefix>_####.pgm for the alpha channel if present.
+ */
+DFBResult dfb_surface_dump( CoreSurface *surface,
+                            const char  *directory,
+                            const char  *prefix );
+
 /* global reactions */
 ReactionResult _dfb_surface_palette_listener( const void *msg_data,
                                               void       *ctx );

@@ -224,7 +224,7 @@ dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 
      /* Set default background mode, primary layer is handled by directfb.c */
      stack->bg.mode = (stack->layer_id == DLID_PRIMARY) ? DLBM_DONTCARE :
-                                                          DLBM_COLOR;
+                      DLBM_COLOR;
 
      /* Setup size and cursor clipping region */
      dfb_windowstack_resize( stack, width, height );
@@ -349,14 +349,13 @@ dfb_window_create( CoreWindowStack        *stack,
      }
      else if (pixelformat == DSPF_UNKNOWN)
           pixelformat = layer_surface->format;
-     
+
      /* Choose window surface policy */
      if (surface_caps & DSCAPS_VIDEOONLY) {
           surface_policy = CSP_VIDEOONLY;
      }
      else if (!(surface_caps & DSCAPS_SYSTEMONLY) &&
-              layer_surface->back_buffer->policy != CSP_SYSTEMONLY)
-     {
+              layer_surface->back_buffer->policy != CSP_SYSTEMONLY) {
           if (dfb_config->window_policy != -1) {
                /* Use the explicitly specified policy. */
                surface_policy = dfb_config->window_policy;
@@ -1377,8 +1376,8 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
      switch (stack->bg.mode) {
           case DLBM_COLOR: {
                     DFBRectangle rect = { region->x1, region->y1,
-                                          region->x2 - region->x1 + 1,
-                                          region->y2 - region->y1 + 1 };
+                         region->x2 - region->x1 + 1,
+                         region->y2 - region->y1 + 1};
 
                     state->color     = stack->bg.color;
                     state->modified |= SMF_COLOR;
@@ -1388,8 +1387,8 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                }
           case DLBM_IMAGE: {
                     DFBRectangle rect = { region->x1, region->y1,
-                                          region->x2 - region->x1 + 1,
-                                          region->y2 - region->y1 + 1 };
+                         region->x2 - region->x1 + 1,
+                         region->y2 - region->y1 + 1};
 
                     DFB_ASSERT( stack->bg.image != NULL );
 
@@ -1409,13 +1408,13 @@ draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
                }
           case DLBM_TILE: {
                     DFBRectangle rect = { 0, 0,
-                                          stack->bg.image->width,
-                                          stack->bg.image->height };
+                         stack->bg.image->width,
+                         stack->bg.image->height};
 
                     DFBRegion orig_clip = state->clip;
 
                     DFB_ASSERT( stack->bg.image != NULL );
-                    
+
                     if (state->blittingflags != DSBLIT_NOFX) {
                          state->blittingflags  = DSBLIT_NOFX;
                          state->modified      |= SMF_BLITTING_FLAGS;
@@ -1458,7 +1457,7 @@ update_region( CoreWindowStack *stack,
                int              y2 )
 {
      int       i      = start;
-     DFBRegion region = { x1, y1, x2, y2 };
+     DFBRegion region = { x1, y1, x2, y2};
 
      /* check for empty region */
      DFB_ASSERT (x1 <= x2  &&  y1 <= y2);
@@ -1482,24 +1481,21 @@ update_region( CoreWindowStack *stack,
           CoreWindow *window = stack->windows[i];
 
           if ((window->options & DWOP_ALPHACHANNEL) &&
-              (window->options & DWOP_OPAQUE_REGION))
-          {
+              (window->options & DWOP_OPAQUE_REGION)) {
                DFBRegion opaque = region;
 
                if (!dfb_region_intersect( &opaque,
                                           window->x + window->opaque.x1,
                                           window->y + window->opaque.y1,
                                           window->x + window->opaque.x2,
-                                          window->y + window->opaque.y2 ))
-               {
+                                          window->y + window->opaque.y2 )) {
                     update_region( stack, state, i-1, x1, y1, x2, y2 );
 
                     draw_window( window, state, &region, true );
                }
                else {
                     if ((window->opacity < 0xff) ||
-                        (window->options & DWOP_COLORKEYING))
-                    {
+                        (window->options & DWOP_COLORKEYING)) {
                          /* draw everything below */
                          update_region( stack, state, i-1, x1, y1, x2, y2 );
                     }
@@ -1524,28 +1520,28 @@ update_region( CoreWindowStack *stack,
                     /* left */
                     if (opaque.x1 != region.x1) {
                          DFBRegion r = { region.x1, opaque.y1,
-                                         opaque.x1 - 1, opaque.y2 };
+                              opaque.x1 - 1, opaque.y2};
                          draw_window( window, state, &r, true );
                     }
-                    
+
                     /* upper */
                     if (opaque.y1 != region.y1) {
                          DFBRegion r = { region.x1, region.y1,
-                                         region.x2, opaque.y1 - 1 };
+                              region.x2, opaque.y1 - 1};
                          draw_window( window, state, &r, true );
                     }
-                    
+
                     /* right */
                     if (opaque.x2 != region.x2) {
                          DFBRegion r = { opaque.x2 + 1, opaque.y1,
-                                         region.x2, opaque.y2 };
+                              region.x2, opaque.y2};
                          draw_window( window, state, &r, true );
                     }
-                    
+
                     /* lower */
                     if (opaque.y2 != region.y2) {
                          DFBRegion r = { region.x1, opaque.y2 + 1,
-                                         region.x2, region.y2 };
+                              region.x2, region.y2};
                          draw_window( window, state, &r, true );
                     }
 
@@ -1555,8 +1551,7 @@ update_region( CoreWindowStack *stack,
           }
           else {
                if ((window->opacity < 0xff) ||
-                   (window->options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)))
-               {
+                   (window->options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL))) {
                     /* draw everything below */
                     update_region( stack, state, i-1, x1, y1, x2, y2 );
                }
@@ -1577,7 +1572,7 @@ update_region( CoreWindowStack *stack,
                     if (region.y2 != y2)
                          update_region( stack, state, i-1, x1, region.y2+1, x2, y2 );
                }
-               
+
                draw_window( window, state, &region, true );
           }
      }
@@ -1666,130 +1661,120 @@ window_at_pointer( CoreWindowStack *stack,
 
           if (!(w->options & DWOP_GHOST) && w->opacity &&
               x >= w->x  &&  x < w->x + w->width &&
-              y >= w->y  &&  y < w->y + w->height)
-          {
+              y >= w->y  &&  y < w->y + w->height) {
                int wx = x - w->x;
                int wy = y - w->y;
 
                if ( !(w->options & DWOP_SHAPED)  ||
-                        !(w->options &(DWOP_ALPHACHANNEL|DWOP_COLORKEYING))
-                        || !w->surface ||
-                        ((w->options & DWOP_OPAQUE_REGION) &&
-                        (wx >= w->opaque.x1  &&  wx <= w->opaque.x2 &&
-                        wy >= w->opaque.y1  &&  wy <= w->opaque.y2)))
-               {
+                    !(w->options &(DWOP_ALPHACHANNEL|DWOP_COLORKEYING))
+                    || !w->surface ||
+                    ((w->options & DWOP_OPAQUE_REGION) &&
+                     (wx >= w->opaque.x1  &&  wx <= w->opaque.x2 &&
+                      wy >= w->opaque.y1  &&  wy <= w->opaque.y2))) {
                     return w;
                }
-               else
-               {
+               else {
                     void        *data;
                     int          pitch;
                     CoreSurface *surface = w->surface;
 
-                    if( dfb_surface_soft_lock( surface, DSLF_READ,
-                                               &data, &pitch, true ) == DFB_OK )
-                    {
-                        if(w->options & DWOP_ALPHACHANNEL)
-                        {
-                            int alpha = -1;
-                            
-                            DFB_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
-                            
-                            switch (surface->format) 
-                            {
-                                case DSPF_ARGB:
-                                    alpha = *(__u32*)(data +
-                                                        4 * wx + pitch * wy) >> 24;
-                                    break;
-                                case DSPF_ARGB1555:
-                                    alpha = *(__u16*)(data + 2 * wx +
-                                                        pitch * wy) & 0x8000;
-                                    alpha = alpha ? 0xff : 0x00;
-                                    break;
-                                case DSPF_ALUT44:
-                                    alpha = *(__u8*)(data +
-                                                        wx + pitch * wy) & 0xf0;
-                                    alpha |= alpha >> 4;
-                                    break;
-                                case DSPF_LUT8: {
-                                    CorePalette *palette = surface->palette;
-                                    __u8         pix     = *((__u8*) data + wx +
-                                                                pitch * wy);
+                    if ( dfb_surface_soft_lock( surface, DSLF_READ,
+                                                &data, &pitch, true ) == DFB_OK ) {
+                         if (w->options & DWOP_ALPHACHANNEL) {
+                              int alpha = -1;
 
-                                    if (palette && pix < palette->num_entries) {
-                                            alpha = palette->entries[pix].a;
-                                            break;
-                                    }
+                              DFB_ASSERT( DFB_PIXELFORMAT_HAS_ALPHA( surface->format ) );
 
-                                    /* fall through */
-                                }
+                              switch (surface->format) {
+                                   case DSPF_ARGB:
+                                        alpha = *(__u32*)(data +
+                                                          4 * wx + pitch * wy) >> 24;
+                                        break;
+                                   case DSPF_ARGB1555:
+                                        alpha = *(__u16*)(data + 2 * wx +
+                                                          pitch * wy) & 0x8000;
+                                        alpha = alpha ? 0xff : 0x00;
+                                        break;
+                                   case DSPF_ALUT44:
+                                        alpha = *(__u8*)(data +
+                                                         wx + pitch * wy) & 0xf0;
+                                        alpha |= alpha >> 4;
+                                        break;
+                                   case DSPF_LUT8: {
+                                        CorePalette *palette = surface->palette;
+                                        __u8         pix     = *((__u8*) data + wx +
+                                                                 pitch * wy);
 
-                                default:
-                                    break;
-                            }
+                                        if (palette && pix < palette->num_entries) {
+                                             alpha = palette->entries[pix].a;
+                                             break;
+                                        }
 
-                            if (alpha) /* alpha == -1 on error */
-                            { 
-                                dfb_surface_unlock( surface, true );
-                                return w;
-                            }
+                                        /* fall through */
+                                   }
 
-                        }
-                        if(w->options & DWOP_COLORKEYING)
-                        {
-                            int pixel = 0;
-                            
-                            switch (surface->format) 
-                            {
-                                case DSPF_ARGB:
-                                case DSPF_RGB32:
-                                    pixel = *(__u32*)(data +
-                                                        4 * wx + pitch * wy)
-                                                        & 0x00ffffff;
-                                    break;
-                                    
-                                case DSPF_RGB24:   //endianess? boh...
-                                    pixel = (*(__u32*)(data +
-                                                        3 * wx + pitch * wy))
-                                                        & 0x00ffffff;
-                                    break;
-                                    
-                                case DSPF_RGB16:
-                                    pixel = *(__u16*)(data + 2 * wx +
-                                                        pitch * wy);
-                                    break;
-                                    
-                                case DSPF_ARGB1555:
-                                    pixel = *(__u16*)(data + 2 * wx +
-                                                        pitch * wy)
-                                                        & 0x7fff;
-                                    break;
-                                    
-                                case DSPF_RGB332:
-                                case DSPF_LUT8:
-                                    pixel = *(__u8*)(data +
-                                                        wx + pitch * wy);
-                                    break;
-                                    
-                                case DSPF_ALUT44:
-                                    pixel = *(__u8*)(data +
-                                                        wx + pitch * wy)
-                                                        & 0x0f;
-                                    break;
-                                    
-                                default:
-                                    break;
-                            }
-                            
-                            if ( pixel != w->color_key ) 
-                            { 
-                                dfb_surface_unlock( surface, true );
-                                return w;
-                            }
-                        
-                        }
-                        
-                        dfb_surface_unlock( surface, true );
+                                   default:
+                                        break;
+                              }
+
+                              if (alpha) { /* alpha == -1 on error */
+                                   dfb_surface_unlock( surface, true );
+                                   return w;
+                              }
+
+                         }
+                         if (w->options & DWOP_COLORKEYING) {
+                              int pixel = 0;
+
+                              switch (surface->format) {
+                                   case DSPF_ARGB:
+                                   case DSPF_RGB32:
+                                        pixel = *(__u32*)(data +
+                                                          4 * wx + pitch * wy)
+                                                & 0x00ffffff;
+                                        break;
+
+                                   case DSPF_RGB24:   //endianess? boh...
+                                        pixel = (*(__u32*)(data +
+                                                           3 * wx + pitch * wy))
+                                                & 0x00ffffff;
+                                        break;
+
+                                   case DSPF_RGB16:
+                                        pixel = *(__u16*)(data + 2 * wx +
+                                                          pitch * wy);
+                                        break;
+
+                                   case DSPF_ARGB1555:
+                                        pixel = *(__u16*)(data + 2 * wx +
+                                                          pitch * wy)
+                                                & 0x7fff;
+                                        break;
+
+                                   case DSPF_RGB332:
+                                   case DSPF_LUT8:
+                                        pixel = *(__u8*)(data +
+                                                         wx + pitch * wy);
+                                        break;
+
+                                   case DSPF_ALUT44:
+                                        pixel = *(__u8*)(data +
+                                                         wx + pitch * wy)
+                                                & 0x0f;
+                                        break;
+
+                                   default:
+                                        break;
+                              }
+
+                              if ( pixel != w->color_key ) {
+                                   dfb_surface_unlock( surface, true );
+                                   return w;
+                              }
+
+                         }
+
+                         dfb_surface_unlock( surface, true );
                     }
                }
           }
@@ -1850,6 +1835,7 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                          case DIKS_SMALL_X:
                          case DIKS_SMALL_D:
                          case DIKS_SMALL_P:
+                         case DIKS_PRINT:
                               stack_unlock( stack );
                               return RS_OK;
 
@@ -1938,21 +1924,34 @@ _dfb_window_stack_inputdevice_react( const void *msg_data,
                               return RS_OK;
 
                          case DIKS_SMALL_D: {
-                                   CoreWindow *window = stack->entered_window;
+                              CoreWindow *window = stack->entered_window;
 
-                                   if (window &&
-                                       !(window->options & DWOP_INDESTRUCTIBLE)) {
-                                        dfb_window_deinit( window );
-                                        dfb_window_destroy( window, false );
-                                   }
-
-                                   stack_unlock( stack );
-                                   return RS_OK;
+                              if (window &&
+                                  !(window->options & DWOP_INDESTRUCTIBLE)) {
+                                   dfb_window_deinit( window );
+                                   dfb_window_destroy( window, false );
                               }
+
+                              stack_unlock( stack );
+                              return RS_OK;
+                         }
 
                          case DIKS_SMALL_P:
                               dfb_layer_cursor_set_opacity( layer, 0xff );
                               dfb_layer_cursor_enable( layer, true );
+
+                              stack_unlock( stack );
+                              return RS_OK;
+
+                         case DIKS_PRINT:
+                              if (dfb_config->screenshot_dir) {
+                                   CoreWindow *window = stack->focused_window;
+     
+                                   if (window && window->surface)
+                                        dfb_surface_dump( window->surface,
+                                                          dfb_config->screenshot_dir,
+                                                          "dfb_window" );
+                              }
 
                               stack_unlock( stack );
                               return RS_OK;
@@ -2233,8 +2232,8 @@ window_remove( CoreWindow *window )
      FusionLink      *l;
      CoreWindowStack *stack  = window->stack;
      DFBRegion        region = { window->x, window->y,
-                                 window->x + window->width - 1,
-                                 window->y + window->height - 1};
+          window->x + window->width - 1,
+          window->y + window->height - 1};
 
      DFB_ASSERT( window->stack != NULL );
 
