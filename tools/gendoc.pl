@@ -815,9 +815,9 @@ sub html_create (FILEHANDLE, FILENAME, TITLE, SUBTITLE)
       if ($subtitle)
          {
             print $FILE "    <TABLE border=0 cellspacing=0 cellpadding=0>\n",
-                        "      <TR><TD align=right width=50%>\n",
+                        "      <TR><TD nowrap align=right width=50%>\n",
                         "        <BIG>$title&nbsp;</BIG>\n",
-                        "      </TD><TD align=left width=50%>\n",
+                        "      </TD><TD nowrap align=left width=50%>\n",
                         "        <BIG><FONT color=orange>&nbsp;$subtitle</FONT></BIG>\n",
                         "      </TD></TR>\n",
                         "    </TABLE>\n";
