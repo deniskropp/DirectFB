@@ -326,8 +326,8 @@ sound_thread( CoreThread *thread, void *arg )
 
                last_time = this_time;
 
-               /* do not buffer more than 150 ms */
-               if (written > total_rate * 150 / 1000)
+               /* do not buffer more than 50 ms */
+               if (written > total_rate * 50 / 1000)
                     usleep( 20000 );
                
                dfb_thread_testcancel( thread );
@@ -435,8 +435,8 @@ fs_core_initialize( CoreSound *core )
           return DFB_UNSUPPORTED;
      }
 
-     if (shared->config.block_size > 1024)
-          shared->config.block_size = 1024;
+     if (shared->config.block_size > 4096)
+          shared->config.block_size = 4096;
 
      /* calculate number of samples fitting into one block */
      shared->config.samples_per_block = shared->config.block_size / bytes;
