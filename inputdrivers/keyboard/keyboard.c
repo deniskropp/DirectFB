@@ -81,6 +81,7 @@ keyboard_translate( unsigned short kb_value )
           case KT_FN:
                if (key_index < 20)
                     return DFB_FUNCTION_KEY( key_index + 1 );
+               break;
           case KT_LETTER:
           case KT_LATIN:
                switch (key_index) {
