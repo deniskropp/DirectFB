@@ -44,3 +44,4 @@ Refactoring/cleanups
 
 - Split up IDirectFB::CreateSurface code
 - Cleanup flipping/back_to_front_copy stuff
+- Surface locking (internal, rw lock?)
