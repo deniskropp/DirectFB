@@ -130,8 +130,8 @@ ov0InitLayer( CoreLayer                  *layer,
      if (nvdrv->chip != 0x2a0) {
           nvdrv->PVIDEO[0x920/4] = 0;
           nvdrv->PVIDEO[0x924/4] = 0;
-          nvdrv->PVIDEO[0x908/4] = vram & 0x7ffffc0;
-          nvdrv->PVIDEO[0x90C/4] = vram & 0x7ffffc0;
+          nvdrv->PVIDEO[0x908/4] = (vram - 1) & nvdrv->fb_mask;
+          nvdrv->PVIDEO[0x90C/4] = (vram - 1) & nvdrv->fb_mask;
      }
 
      /* reset overlay */
@@ -706,9 +706,10 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      __u32          pitch   = buffer->video.pitch;
     
      if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
-          nvov0->regs.NV_PVIDEO_BASE = (nvdrv->fb_base + buffer->video.offset) & 0x3fffff0;
+          nvov0->regs.NV_PVIDEO_BASE = (nvdrv->fb_base + buffer->video.offset)
+                                        & nvdrv->fb_mask;
      else
-          nvov0->regs.NV_PVIDEO_BASE = buffer->video.offset & 0x7fffff0;
+          nvov0->regs.NV_PVIDEO_BASE = buffer->video.offset & nvdrv->fb_mask;
 
      nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16) | config->width;
      nvov0->regs.NV_PVIDEO_POINT_IN  = (config->source.y << 20) | (config->source.x << 4);

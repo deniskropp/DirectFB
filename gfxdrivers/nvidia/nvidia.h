@@ -480,6 +480,8 @@ typedef struct {
      __u32                          arch; /* NVArch */
      
      __u32                          fb_base;
+     __u32                          fb_mask;
+
      volatile __u8                 *mmio_base;
      volatile __u32                *PVIDEO;
      volatile __u32                *PFB;

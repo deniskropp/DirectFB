@@ -400,7 +400,7 @@ static void nv4SetState( void *drv, void *dev,
 
      if (modify & SMF_DESTINATION) {
           SurfaceBuffer *buffer = state->destination->back_buffer;
-          __u32          offset = buffer->video.offset & 0xFFFFFF;
+          __u32          offset = buffer->video.offset & nvdrv->fb_mask;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -425,7 +425,7 @@ static void nv4SetState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           SurfaceBuffer *buffer = state->source->front_buffer;
-          __u32          offset = buffer->video.offset & 0xFFFFFF;
+          __u32          offset = buffer->video.offset & nvdrv->fb_mask;
 
           if (nvdev->src_format != buffer->format     ||
               nvdev->src_offset != offset             ||
@@ -510,7 +510,7 @@ static void nv5SetState( void *drv, void *dev,
 
      if (modify & SMF_DESTINATION) {
           SurfaceBuffer *buffer = state->destination->back_buffer;
-          __u32          offset = buffer->video.offset & 0x1FFFFFF;
+          __u32          offset = buffer->video.offset & nvdrv->fb_mask;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -535,7 +535,7 @@ static void nv5SetState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           SurfaceBuffer *buffer = state->source->front_buffer;
-          __u32          offset = buffer->video.offset & 0x1FFFFFF;
+          __u32          offset = buffer->video.offset & nvdrv->fb_mask;
 
           if (nvdev->src_format != buffer->format     ||
               nvdev->src_offset != offset             ||
@@ -636,7 +636,7 @@ static void nv20SetState( void *drv, void *dev,
 
           if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
                offset += nvdrv->fb_base;
-          offset &= 0x3FFFFFF;
+          offset &= nvdrv->fb_mask;
 
           if (nvdev->dst_format != buffer->format     ||
               nvdev->dst_offset != offset             ||
@@ -665,7 +665,7 @@ static void nv20SetState( void *drv, void *dev,
 
           if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
                offset += nvdrv->fb_base;
-          offset &= 0x3FFFFFF;
+          offset &= nvdrv->fb_mask;
 
           if (nvdev->src_format != buffer->format     ||
               nvdev->src_offset != offset             ||
@@ -945,13 +945,40 @@ driver_init_driver( GraphicsDevice      *device,
                     void                *device_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+     __u32             vram  = dfb_system_videoram_length();
 
      nvdrv->device = device;
      nvdrv->arch   = NV_ARCH_04;
-
      nv_find_architecture( nvdrv );
 
-     nvdrv->fb_base   = (__u32) dfb_gfxcard_memory_physical( device, 0 ); 
+     nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
+     
+     /* videoram size returned by fb_fix_screeninfo
+      * may be less than effective size */
+     switch (vram >> 20) {
+          case 0 ... 4:
+               nvdrv->fb_mask = 0x003FFFC0;
+               break;
+          case 5 ... 8:
+               nvdrv->fb_mask = 0x007FFFC0;
+               break;
+          case 9 ... 16:
+               nvdrv->fb_mask = 0x00FFFFC0;
+               break;
+          case 17 ... 32:
+               nvdrv->fb_mask = 0x01FFFFC0;
+               break;
+          case 33 ... 64:
+               nvdrv->fb_mask = 0x03FFFFC0;
+               break;
+          case 65 ... 128:
+               nvdrv->fb_mask = 0x07FFFFC0;
+               break;
+          default:
+               nvdrv->fb_mask = 0x00FFFFC0;
+               break;
+     }
+     
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
@@ -1053,13 +1080,13 @@ driver_init_device( GraphicsDevice     *device,
           device_info->caps.blitting = NV4_SUPPORTED_BLITTINGFLAGS;
      }
 
-     device_info->limits.surface_byteoffset_alignment = 32 * 4;
+     device_info->limits.surface_byteoffset_alignment = 64; 
      device_info->limits.surface_pixelpitch_alignment = 32;
 
      dfb_config->pollvsync_after = 1;
      
      /* reserve memory for colors buffer (must be aligned at 256) */
-     len    = 128 + ((dfb_system_videoram_length() - 128) & 0xFF);
+     len    = 128 + ((dfb_gfxcard_memory_length() - 128) & 0xFF);
      offset = dfb_gfxcard_reserve_memory( nvdrv->device, len );
      if (offset < 0) {
           D_ERROR( "DirectFB/NVidia: "
@@ -1073,7 +1100,7 @@ driver_init_device( GraphicsDevice     *device,
      /* set default 3d state */
      nvdev->state3d.colorkey = 0;
      if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
-          nvdev->state3d.offset = (nvdrv->fb_base + offset) & 0x3FFFFFF;
+          nvdev->state3d.offset = (nvdrv->fb_base + offset) & nvdrv->fb_mask;
      else
           nvdev->state3d.offset = offset;
      nvdev->state3d.format   = 0x111115A1;

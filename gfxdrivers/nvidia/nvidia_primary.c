@@ -213,11 +213,9 @@ nvfb0FlipRegion( CoreLayer           *layer,
      
      dfb_gfxcard_sync();
 
-     if (nvdrv->chip == 0x2A0) {
+     if (nvdrv->chip == 0x2A0)
           offset += nvdrv->fb_base;
-          offset &= 0x3FFFFFC;
-     } else
-          offset &= 0x7FFFFFC;
+     offset &= nvdrv->fb_mask;
      
      nvdrv->PCRTC[0x800/4] = offset;
      
