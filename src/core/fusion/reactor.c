@@ -179,6 +179,8 @@ fusion_reactor_attach (FusionReactor *reactor,
 
                return FUSION_FAILURE;
           }
+          
+          return FUSION_FAILURE;
      }
      
      /* fill out callback information */
@@ -204,10 +206,10 @@ fusion_reactor_detach (FusionReactor *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
-     if (!reaction->attached) {
-          FDEBUG( "fusion_reactor_detach() called on reaction that isn't attached\n" );
+     DFB_ASSUME( reaction->attached );
+     
+     if (!reaction->attached)
           return FUSION_SUCCESS;
-     }
 
      node = lock_node( reactor->id, false );
      if (!node) {
@@ -235,6 +237,9 @@ fusion_reactor_detach (FusionReactor *reactor,
 
                return FUSION_FAILURE;
           }
+     }
+     else {
+          FDEBUG("reaction detached in the meantime");
      }
 
      unlock_node( node );
@@ -280,11 +285,10 @@ fusion_reactor_detach_global (FusionReactor  *reactor,
      DFB_ASSERT( reactor != NULL );
      DFB_ASSERT( reaction != NULL );
 
-     if (!reaction->attached) {
-          FDEBUG( "fusion_reactor_detach_global() called "
-                  "on reaction that isn't attached\n" );
+     DFB_ASSUME( reaction->attached );
+     
+     if (!reaction->attached)
           return FUSION_SUCCESS;
-     }
 
      ret = fusion_skirmish_prevail( &reactor->globals_lock );
      if (ret)
@@ -421,7 +425,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
 
      node = lock_node( reactor_id, false );
      if (!node) {
-          //FDEBUG( "no node to dispatch message\n" );
+          FDEBUG( "no node to dispatch message\n" );
           return;
      }
      
@@ -528,7 +532,17 @@ lock_node( int reactor_id, bool add )
 
           if (node->reactor_id == reactor_id) {
                pthread_mutex_lock( &node->lock );
+               
+               /* FIXME: Don't cleanup asynchronously. */
+               if (!node->reactions && !add) {
+                    fusion_list_remove( &nodes, &node->link );
+                    pthread_mutex_destroy( &node->lock );
+                    DFBFREE( node );
+                    node = NULL;
+               }
+               
                pthread_mutex_unlock( &nodes_lock );
+               
                return node;
           }
 
@@ -552,6 +566,9 @@ lock_node( int reactor_id, bool add )
      if (add) {
           pthread_mutexattr_t  attr;
           ReactorNode         *node = DFBCALLOC( 1, sizeof(ReactorNode) );
+
+          if (!node)
+               return NULL;
 
           pthread_mutexattr_init( &attr );
           pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );

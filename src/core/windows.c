@@ -175,8 +175,8 @@ window_destructor( FusionObject *object, bool zombie )
 {
      CoreWindow *window = (CoreWindow*) object;
 
-     DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d)%s\n", window,
-              window->width, window->height, zombie ? " (ZOMBIE)" : "");
+     DEBUGMSG("DirectFB/core/windows: destroying %p (%dx%d%s)\n", window,
+              window->width, window->height, zombie ? " ZOMBIE" : "");
 
      dfb_window_destroy( window );
      

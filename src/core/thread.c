@@ -216,8 +216,7 @@ dfb_thread_main( void *arg )
      dfb_system_thread_init();
      
      /* Have all signals handled by the main thread. */
-     if (dfb_core && dfb_core->master)
-          dfb_sig_block_all();
+     dfb_sig_block_all();
      
      /* Adjust scheduling priority. */
      switch (thread->type) {

@@ -96,7 +96,7 @@
                                                                                \
                               fprintf( stderr,                                 \
                                        "(!) [%5d: %4lld.%03lld] *** "          \
-                                       "Break! [%s] *** %s:%d %s()\n",         \
+                                       "Break! [%s] *** %s:%d in %s()\n",      \
                                        pid, millis/1000, millis%1000,          \
                                        msg, __FILE__, __LINE__, __FUNCTION__ );\
                               fflush( stderr );                                \
@@ -129,7 +129,7 @@
                                    fprintf( stderr,                            \
                                             "(!) [%5d: %4lld.%03lld] *** "     \
                                             "Assertion [%s] failed! *** %s:"   \
-                                            "%d %s()\n", pid, millis/1000,     \
+                                            "%d in %s()\n", pid, millis/1000,  \
                                             millis%1000, #exp,                 \
                                             __FILE__, __LINE__, __FUNCTION__ );\
                                    fflush( stderr );                           \
@@ -144,7 +144,7 @@
                                    fprintf( stderr,                            \
                                             "(?) [%5d: %4lld.%03lld] *** "     \
                                             "Assumption [%s] failed! *** %s:"  \
-                                            "%d %s()\n", pid, millis/1000,     \
+                                            "%d in %s()\n", pid, millis/1000,  \
                                             millis%1000, #exp,                 \
                                             __FILE__, __LINE__, __FUNCTION__ );\
                                    fflush( stderr );                           \

@@ -78,8 +78,8 @@ static void surface_destructor( FusionObject *object, bool zombie )
 {
      CoreSurface *surface = (CoreSurface*) object;
 
-     DEBUGMSG("DirectFB/core/surfaces: destroying %p (%dx%d)%s\n", surface,
-              surface->width, surface->height, zombie ? " (ZOMBIE)" : "");
+     DEBUGMSG("DirectFB/core/surfaces: destroying %p (%dx%d%s)\n", surface,
+              surface->width, surface->height, zombie ? " ZOMBIE" : "");
 
      /* announce surface destruction */
      dfb_surface_notify_listeners( surface, CSNF_DESTROY );
