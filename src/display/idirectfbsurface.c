@@ -147,20 +147,24 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
      if (!mask)
           return DFB_INVARG;
 
-     if (source) {
-          IDirectFBSurface_data *src_data = (IDirectFBSurface_data*)source->priv;
-
-          dfb_state_set_source( &data->state, src_data->surface );
-     }
-
      dfb_gfxcard_state_check( &data->state, DFXL_FILLRECTANGLE );
      dfb_gfxcard_state_check( &data->state, DFXL_DRAWRECTANGLE );
      dfb_gfxcard_state_check( &data->state, DFXL_DRAWLINE );
      dfb_gfxcard_state_check( &data->state, DFXL_FILLTRIANGLE );
 
      if (source) {
+          IDirectFBSurface_data *src_data = source->priv;
+
+          dfb_state_set_source( &data->state, src_data->surface );
+
           dfb_gfxcard_state_check( &data->state, DFXL_BLIT );
           dfb_gfxcard_state_check( &data->state, DFXL_STRETCHBLIT );
+     }
+
+     if (data->font) {
+          IDirectFBFont_data *font_data = data->font->priv;
+
+          dfb_gfxcard_drawstring_check_state( font_data->font, &data->state );
      }
 
      *mask = data->state.accel;

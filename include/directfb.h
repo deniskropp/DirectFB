@@ -643,16 +643,19 @@ typedef enum {
  */
 typedef enum {
      DFXL_NONE           = 0x00000000,  /* None of these. */
+
      DFXL_FILLRECTANGLE  = 0x00000001,  /* FillRectangle() is accelerated. */
      DFXL_DRAWRECTANGLE  = 0x00000002,  /* DrawRectangle() is accelerated. */
      DFXL_DRAWLINE       = 0x00000004,  /* DrawLine() is accelerated. */
      DFXL_FILLTRIANGLE   = 0x00000008,  /* FillTriangle() is accelerated. */
 
-     DFXL_BLIT           = 0x00010000,  /* Blit() is accelerated. */
+     DFXL_BLIT           = 0x00010000,  /* Blit() and TileBlit() are accelerated. */
      DFXL_STRETCHBLIT    = 0x00020000,  /* StretchBlit() is accelerated. */
      DFXL_TEXTRIANGLES   = 0x00040000,  /* TextureTriangles() is accelerated. */
 
-     DFXL_ALL            = 0x0007000F   /* All drawing/blitting functions. */
+     DFXL_DRAWSTRING     = 0x01000000,  /* DrawString() and DrawGlyph() are accelerated. */
+
+     DFXL_ALL            = 0x0107000F   /* All drawing/blitting functions. */
 } DFBAccelerationMask;
 
 #define DFB_DRAWING_FUNCTION(a)    ((a) & 0x0000FFFF)

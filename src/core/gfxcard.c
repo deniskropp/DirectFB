@@ -405,12 +405,16 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           return false;
 
      /* Destination may have been destroyed. */
-     if (!state->destination)
+     if (!state->destination) {
+          D_BUG( "no destination" );
           return false;
+     }
 
      /* Source may have been destroyed. */
-     if (DFB_BLITTING_FUNCTION( accel ) && !state->source)
+     if (DFB_BLITTING_FUNCTION( accel ) && !state->source) {
+          D_BUG( "no source" );
           return false;
+     }
 
      /*
       * If back_buffer policy is 'system only' there's no acceleration
@@ -418,7 +422,8 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
       */
      if (state->destination->back_buffer->policy == CSP_SYSTEMONLY) {
           /* Clear 'accelerated functions'. */
-          state->accel = 0;
+          state->accel   = 0;
+          state->checked = DFXL_ALL;
 
           /* Return immediately. */
           return false;
@@ -432,7 +437,8 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
          state->source->front_buffer->policy == CSP_SYSTEMONLY)
      {
           /* Clear 'accelerated blitting functions'. */
-          state->accel &= 0x0000FFFF;
+          state->accel   &= 0x0000FFFF;
+          state->checked |= 0xFFFF0000;
 
           /* Return if a blitting function was requested. */
           if (DFB_BLITTING_FUNCTION( accel ))
@@ -464,8 +470,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->accel &= ~accel;
 
           /* Call driver to (re)set the bit if the function is supported. */
-          card->funcs.CheckState( card->driver_data,
-                                  card->device_data, state, accel );
+          card->funcs.CheckState( card->driver_data, card->device_data, state, accel );
 
           /* Add the function to 'checked functions'. */
           state->checked |= accel;
@@ -1347,9 +1352,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      dfb_state_lock( state );
      dfb_font_lock( font );
 
-     if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK ||
-         !data->width) {
-
+     if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK || !data->width) {
           dfb_font_unlock( font );
           dfb_state_unlock( state );
           return;
@@ -1373,10 +1376,12 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      font->state.clip        = state->clip;
      font->state.color       = state->color;
      font->state.color_index = state->color_index;
+
      if (state->drawingflags & DSDRAW_BLEND)
           font->state.blittingflags |= DSBLIT_BLEND_COLORALPHA;
      else
           font->state.blittingflags &= ~DSBLIT_BLEND_COLORALPHA;
+
      font->state.modified |= SMF_CLIP | SMF_COLOR | SMF_BLITTING_FLAGS;
 
      dfb_state_set_source( &font->state, data->surface );
@@ -1401,6 +1406,49 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
           gBlit( &font->state, &rect, x, y );
           gRelease( &font->state );
      }
+
+     font->state.destination = NULL;
+
+     dfb_font_unlock( font );
+     dfb_state_unlock( state );
+}
+
+void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
+{
+     CoreGlyphData *data;
+
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+     D_ASSERT( state != NULL );
+     D_ASSERT( font != NULL );
+
+     dfb_state_lock( state );
+     dfb_font_lock( font );
+
+     if (dfb_font_get_glyph_data (font, 'a', &data)) {
+          dfb_font_unlock( font );
+          dfb_state_unlock( state );
+          return;
+     }
+
+     /* set destination */
+     font->state.destination  = state->destination;
+     font->state.modified    |= SMF_DESTINATION;
+
+     /* set blitting flags */
+     if (state->drawingflags & DSDRAW_BLEND)
+          dfb_state_set_blitting_flags( &font->state,
+                                        font->state.blittingflags | DSBLIT_BLEND_COLORALPHA );
+     else
+          dfb_state_set_blitting_flags( &font->state,
+                                        font->state.blittingflags & ~DSBLIT_BLEND_COLORALPHA );
+
+     /* set the source */
+     dfb_state_set_source( &font->state, data->surface );
+
+     /* check for blitting and report */
+     if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ))
+          state->accel |= DFXL_DRAWSTRING;
 
      font->state.destination = NULL;
 

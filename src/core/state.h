@@ -80,16 +80,12 @@ struct _CardState {
 
      /* hardware abstraction and state handling helpers */
 
-     DFBAccelerationMask     accel;        /* cache for checked commands
-                                              if they are accelerated */
-     DFBAccelerationMask     checked;      /* commands for which a state has
-                                              already checked */
-     DFBAccelerationMask     set;          /* commands for which a state has
-                                              been set */
+     DFBAccelerationMask     accel;        /* cache for checked commands if they are accelerated */
+     DFBAccelerationMask     checked;      /* commands for which a state has already been checked */
+     DFBAccelerationMask     set;          /* commands for which a state is valid */
 
-     int                     source_locked;/* when state is acquired for a blit
-                                              mark that the source needs to be
-                                              unlocked when state is released */
+     int                     source_locked;/* when state is acquired for a blit mark that the
+                                              source needs to be unlocked when state is released */
 
      pthread_mutex_t         lock;         /* lock for state handling */
 
@@ -108,21 +104,41 @@ void dfb_state_destroy( CardState *state );
 void dfb_state_set_destination( CardState *state, CoreSurface *destination );
 void dfb_state_set_source( CardState *state, CoreSurface *source );
 
-#define dfb_state_lock(state)                \
-do {                                         \
-     D_ASSERT( (state) != NULL );          \
-     D_MAGIC_ASSERT( (state), CardState ); \
-                                             \
-     pthread_mutex_lock( &(state)->lock );   \
+
+#define dfb_state_lock(state)                               \
+do {                                                        \
+     D_MAGIC_ASSERT( state, CardState );                    \
+                                                            \
+     pthread_mutex_lock( &(state)->lock );                  \
 } while (0)
 
-#define dfb_state_unlock(state)              \
-do {                                         \
-     D_ASSERT( (state) != NULL );          \
-     D_MAGIC_ASSERT( (state), CardState ); \
-                                             \
-     pthread_mutex_unlock( &(state)->lock ); \
+#define dfb_state_unlock(state)                             \
+do {                                                        \
+     D_MAGIC_ASSERT( state, CardState );                    \
+                                                            \
+     pthread_mutex_unlock( &(state)->lock );                \
 } while (0)
+
+
+
+#define _dfb_state_set_checked(member,flag,state,value)     \
+do {                                                        \
+     D_MAGIC_ASSERT( state, CardState );                    \
+                                                            \
+     if ((value) != (state)->member) {                      \
+          (state)->member    = (value);                     \
+          (state)->modified |= SMF_##flag;                  \
+     }                                                      \
+} while (0)
+
+
+#define dfb_state_set_blitting_flags(state,flags) _dfb_state_set_checked( blittingflags,  \
+                                                                          BLITTING_FLAGS, \
+                                                                          state, flags )
+
+#define dfb_state_set_drawing_flags(state,flags)  _dfb_state_set_checked( drawingflags,   \
+                                                                          DRAWING_FLAGS,  \
+                                                                          state, flags )
 
 #endif
 
