@@ -707,18 +707,18 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      SurfaceBuffer *buffer  = surface->front_buffer;
      __u32          pitch   = buffer->video.pitch;
 
-     if (nvdrv->chip == 0x2A0) /* GeForce3 XBox */
+     if (nvdrv->chip == 0x2a0) /* GeForce3 XBox */
           nvov0->regs.NV_PVIDEO_BASE = (nvdrv->fb_base + buffer->video.offset)
                                         & nvdrv->fb_mask;
      else
           nvov0->regs.NV_PVIDEO_BASE = buffer->video.offset & nvdrv->fb_mask;
 
-     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16) | config->width;
-     nvov0->regs.NV_PVIDEO_POINT_IN  = (config->source.y << 20) | (config->source.x << 4);
+     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16)   | (config->width & 0xffff);
+     nvov0->regs.NV_PVIDEO_POINT_IN  = (config->source.y << 20) | ((config->source.x << 4) & 0xffff);
      nvov0->regs.NV_PVIDEO_DS_DX     = (config->source.w << 20) / config->dest.w;
      nvov0->regs.NV_PVIDEO_DT_DY     = (config->source.h << 20) / config->dest.h;
-     nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16) | config->dest.x;
-     nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16) | config->dest.w;
+     nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16)   | (config->dest.x & 0xffff);
+     nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16)   | (config->dest.w & 0xffff);
 
      if(config->format != DSPF_UYVY)
           pitch |= 1 << 16;

@@ -53,10 +53,15 @@ bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
      NVRectangle      *Rectangle = nvdrv->Rectangle;
      
+     if (nvdrv->arch >= NV_ARCH_05) {
+          nv_waitfifo( nvdev, subchannelof(Rectangle), 1 );
+          Rectangle->SetOperation = 3;
+     }
+     
      nv_waitfifo( nvdev, subchannelof(Rectangle), 3 );
      Rectangle->Color       = nvdev->color;
-     Rectangle->TopLeft     = (rect->y << 16) | rect->x;
-     Rectangle->WidthHeight = (rect->h << 16) | rect->w;
+     Rectangle->TopLeft     = (rect->y << 16) | (rect->x & 0xFFFF);
+     Rectangle->WidthHeight = (rect->h << 16) | (rect->w & 0xFFFF);
 
      return true;
 }
@@ -66,12 +71,17 @@ bool nvFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
      NVidiaDriverData *nvdrv    = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev    = (NVidiaDeviceData*) dev;
      NVTriangle       *Triangle = nvdrv->Triangle;
+
+     if (nvdrv->arch >= NV_ARCH_05) {
+          nv_waitfifo( nvdev, subchannelof(Triangle), 1 );
+          Triangle->SetOperation = 3;
+     }
      
      nv_waitfifo( nvdev, subchannelof(Triangle), 4 );
      Triangle->Color          = nvdev->color;
-     Triangle->TrianglePoint0 = (tri->y1 << 16) | tri->x1;
-     Triangle->TrianglePoint1 = (tri->y2 << 16) | tri->x2;
-     Triangle->TrianglePoint2 = (tri->y3 << 16) | tri->x3;
+     Triangle->TrianglePoint0 = (tri->y1 << 16) | (tri->x1 & 0xFFFF);
+     Triangle->TrianglePoint1 = (tri->y2 << 16) | (tri->x2 & 0xFFFF);
+     Triangle->TrianglePoint2 = (tri->y3 << 16) | (tri->x3 & 0xFFFF);
 
      return true;
 }
@@ -82,20 +92,24 @@ bool nvDrawRectangle2D( void *drv, void *dev, DFBRectangle *rect )
      NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
      NVRectangle      *Rectangle = nvdrv->Rectangle;
 
+     if (nvdrv->arch >= NV_ARCH_05) {
+          nv_waitfifo( nvdev, subchannelof(Rectangle), 1 );
+          Rectangle->SetOperation = 3;
+     }
+     
      nv_waitfifo( nvdev, subchannelof(Rectangle), 9 );
-
      Rectangle->Color       = nvdev->color;
-
-     Rectangle->TopLeft     = (rect->y << 16) | rect->x;
-     Rectangle->WidthHeight = (1 << 16) | rect->w;
-
-     Rectangle->TopLeft     = ((rect->y + rect->h - 1) << 16) | rect->x;
-     Rectangle->WidthHeight = (1 << 16) | rect->w;
-
-     Rectangle->TopLeft     = ((rect->y + 1) << 16) | rect->x;
+     /* top */
+     Rectangle->TopLeft     = (rect->y << 16) | (rect->x & 0xFFFF);
+     Rectangle->WidthHeight = (1       << 16) | (rect->w & 0xFFFF);
+     /* bottom */
+     Rectangle->TopLeft     = ((rect->y + rect->h - 1) << 16) | (rect->x & 0xFFFF);
+     Rectangle->WidthHeight = (1                       << 16) | (rect->w & 0xFFFF);
+     /* left */
+     Rectangle->TopLeft     = ((rect->y + 1) << 16) | (rect->x & 0xFFFF);
      Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
-
-     Rectangle->TopLeft     = ((rect->y + 1) << 16) | (rect->x + rect->w - 1);
+     /* right */
+     Rectangle->TopLeft     = ((rect->y + 1) << 16) | ((rect->x + rect->w - 1) & 0xFFFF);
      Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
 
      return true;
@@ -106,11 +120,16 @@ bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line )
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      NVLine           *Line  = nvdrv->Line;
+
+     if (nvdrv->arch >= NV_ARCH_05) {
+          nv_waitfifo( nvdev, subchannelof(Line), 1 );
+          Line->SetOperation = 3;
+     }
      
      nv_waitfifo( nvdev, subchannelof(Line), 3 );
      Line->Color         = nvdev->color;
-     Line->Lin[0].point0 = (line->y1 << 16) | line->x1;
-     Line->Lin[0].point1 = (line->y2 << 16) | line->x2;
+     Line->Lin[0].point0 = (line->y1 << 16) | (line->x1 & 0xFFFF);
+     Line->Lin[0].point1 = (line->y2 << 16) | (line->x2 & 0xFFFF);
 
      return true;
 }
@@ -127,9 +146,9 @@ bool nv4Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      }
 
      nv_waitfifo( nvdev, subchannelof(Blt), 3 );
-     Blt->TopLeftSrc  = (rect->y << 16) | rect->x;
-     Blt->TopLeftDst  = (dy << 16) | dx;
-     Blt->WidthHeight = (rect->h << 16) | rect->w;
+     Blt->TopLeftSrc  = (rect->y << 16) | (rect->x & 0xFFFF);
+     Blt->TopLeftDst  = (dy      << 16) | (dx      & 0xFFFF);
+     Blt->WidthHeight = (rect->h << 16) | (rect->w & 0xFFFF);
 
      return true;
 }
@@ -139,16 +158,16 @@ bool nv5Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      NVScreenBlt      *Blt   = nvdrv->Blt;
-     
-     if (nvdev->blitfx || nvdev->src_format != nvdev->dst_format) {
+ 
+     if (nvdev->blitfx != 3 || nvdev->src_format != nvdev->dst_format) {
           DFBRectangle dr = { dx, dy, rect->w, rect->h };
           return nv5StretchBlit( drv, dev, rect, &dr );
      }
 
      nv_waitfifo( nvdev, subchannelof(Blt), 3 );
-     Blt->TopLeftSrc   = (rect->y << 16) | rect->x;
-     Blt->TopLeftDst   = (dy << 16) | dx;
-     Blt->WidthHeight  = (rect->h << 16) | rect->w;
+     Blt->TopLeftSrc   = (rect->y << 16) | (rect->x & 0xFFFF);
+     Blt->TopLeftDst   = (dy      << 16) | (dx      & 0xFFFF);
+     Blt->WidthHeight  = (rect->h << 16) | (rect->w & 0xFFFF);
 
      return true;
 }
@@ -184,18 +203,18 @@ bool nv4StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      ScaledImage->SetColorFormat = format;
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 6 );
-     ScaledImage->ClipPoint      = (dr->y << 16) | dr->x;
-     ScaledImage->ClipSize       = (dr->h << 16) | dr->w;
-     ScaledImage->ImageOutPoint  = (dr->y << 16) | dr->x;
-     ScaledImage->ImageOutSize   = (dr->h << 16) | dr->w;
-     ScaledImage->DuDx           = (sr->w << 20) / dr->w;
-     ScaledImage->DvDy           = (sr->h << 20) / dr->h;
+     ScaledImage->ClipPoint      = (dr->y << 16) | (dr->x & 0xFFFF);
+     ScaledImage->ClipSize       = (dr->h << 16) | (dr->w & 0xFFFF);
+     ScaledImage->ImageOutPoint  = (dr->y << 16) | (dr->x & 0xFFFF);
+     ScaledImage->ImageOutSize   = (dr->h << 16) | (dr->w & 0xFFFF);
+     ScaledImage->DuDx           = (sr->w << 20) /  dr->w;
+     ScaledImage->DvDy           = (sr->h << 20) /  dr->h;
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 4 );
      ScaledImage->ImageInSize    = (nvdev->src_height << 16) | nvdev->src_width;
      ScaledImage->ImageInFormat  = nvdev->src_pitch;
      ScaledImage->ImageInOffset  = nvdev->src_offset;
-     ScaledImage->ImageInPoint   = (sr->y << 20) | (sr->x << 4);
+     ScaledImage->ImageInPoint   = (sr->y << 20) | ((sr->x << 4) & 0xFFFF);
      
      return true;
 }
@@ -216,8 +235,13 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
                format = 0x00000007;
                break;
           case DSPF_RGB32:
-          case DSPF_ARGB:
                format = 0x00000004;
+               break;
+          case DSPF_ARGB:
+               if (nvdev->blitfx == 3 || (nvdev->blitfx & 0x00000010))
+                    format = 0x00000003;
+               else
+                    format = 0x00000004;
                break;
           case DSPF_YUY2:
                format = 0x00000005;
@@ -232,21 +256,21 @@ bool nv5StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 2 );
      ScaledImage->SetColorFormat = format;
-     ScaledImage->SetOperation   = nvdev->blitfx;
+     ScaledImage->SetOperation   = nvdev->blitfx & 0x0000000F;
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 6 );
-     ScaledImage->ClipPoint      = (dr->y << 16) | dr->x;
-     ScaledImage->ClipSize       = (dr->h << 16) | dr->w;
-     ScaledImage->ImageOutPoint  = (dr->y << 16) | dr->x;
-     ScaledImage->ImageOutSize   = (dr->h << 16) | dr->w;
-     ScaledImage->DuDx           = (sr->w << 20) / dr->w;
-     ScaledImage->DvDy           = (sr->h << 20) / dr->h;
+     ScaledImage->ClipPoint      = (dr->y << 16) | (dr->x & 0xFFFF);
+     ScaledImage->ClipSize       = (dr->h << 16) | (dr->w & 0xFFFF);
+     ScaledImage->ImageOutPoint  = (dr->y << 16) | (dr->x & 0xFFFF);
+     ScaledImage->ImageOutSize   = (dr->h << 16) | (dr->w & 0xFFFF);
+     ScaledImage->DuDx           = (sr->w << 20) /  dr->w;
+     ScaledImage->DvDy           = (sr->h << 20) /  dr->h;
 
      nv_waitfifo( nvdev, subchannelof(ScaledImage), 4 );
      ScaledImage->ImageInSize    = (nvdev->src_height << 16) | nvdev->src_width;
      ScaledImage->ImageInFormat  = nvdev->src_pitch | 0x01010000;
      ScaledImage->ImageInOffset  = nvdev->src_offset;
-     ScaledImage->ImageInPoint   = (sr->y << 20) | (sr->x << 4);
+     ScaledImage->ImageInPoint   = (sr->y << 20) | ((sr->x << 4) & 0xFFFF);
      
      return true;
 }

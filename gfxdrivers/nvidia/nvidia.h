@@ -349,6 +349,7 @@ enum {
  * (PRAMIN + (address)*16)
  */
 enum {
+     ADDR_DMA         = 0x1140,
      ADDR_SURFACES2D  = 0x1142,
      ADDR_CLIP        = 0x1143,
      ADDR_RECTANGLE   = 0x1144,
