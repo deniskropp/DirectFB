@@ -31,7 +31,7 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
-#include <core/coredefs.h>
+#include <core/core.h>
 #include <core/sig.h>
 #include <core/system.h>
 #include <core/thread.h>
@@ -164,7 +164,8 @@ dfb_thread_main( void *arg )
           sched_yield();
 
      /* Have all signals handled by the main thread. */
-     dfb_sig_block_all();
+     if (dfb_core && dfb_core->master)
+          dfb_sig_block_all();
 
      /* Adjust scheduling priority. */
      switch (thread->type) {
