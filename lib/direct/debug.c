@@ -147,6 +147,8 @@ direct_debug( const char *format, ... )
 
      vsnprintf( buf, sizeof(buf), format, ap );
 
+     va_end( ap );
+
      fprintf( stderr, "(-) [%-15s %3lld.%03lld] (%5d) %s",
               name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL, direct_gettid(), buf );
 
@@ -158,21 +160,24 @@ void
 direct_debug_at( DirectDebugDomain *domain,
                  const char        *format, ... )
 {
+     const char *dname = domain->name;
+
      pthread_mutex_lock( &domains_lock );
 
      if (check_domain( domain )) {
           char        buf[512];
           long long   millis = direct_clock_get_millis();
           const char *name   = direct_thread_self_name();
-
-          va_list ap;
+          va_list     ap;
 
           va_start( ap, format );
 
           vsnprintf( buf, sizeof(buf), format, ap );
 
+          va_end( ap );
+
           fprintf( stderr, "(-) [%-15s %3lld.%03lld] (%5d) %s: %s", name ? name : "  NO NAME  ",
-                   millis / 1000LL, millis % 1000LL, direct_gettid(), domain->name, buf );
+                   millis / 1000LL, millis % 1000LL, direct_gettid(), dname, buf );
 
           fflush( stderr );
      }
@@ -196,6 +201,8 @@ direct_break( const char *func,
      va_start( ap, format );
 
      vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
 
      fprintf( stderr,
               "(!) [%-15s %3lld.%03lld] (%5d) *** Break [%s] *** [%s:%d in %s()]\n",

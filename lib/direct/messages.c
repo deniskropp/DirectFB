@@ -48,6 +48,8 @@ direct_messages_info( const char *format, ... )
 
      vsnprintf( buf, sizeof(buf), format, ap );
 
+     va_end( ap );
+
      fprintf( stderr, "(*) %s", buf );
 
      fflush( stderr );
@@ -64,6 +66,8 @@ direct_messages_error( const char *format, ... )
      va_start( ap, format );
 
      vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
 
      fprintf( stderr, "(!) %s", buf );
 
@@ -84,6 +88,8 @@ direct_messages_perror( int erno, const char *format, ... )
 
      vsnprintf( buf, sizeof(buf), format, ap );
 
+     va_end( ap );
+
      fprintf( stderr, "(!) %s    --> %s\n", buf, strerror( erno ) );
 
      fflush( stderr );
@@ -102,6 +108,8 @@ direct_messages_dlerror( const char *dlerr, const char *format, ... )
      va_start( ap, format );
 
      vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
 
      fprintf( stderr, "(!) %s    --> %s\n", buf, dlerr );
 
@@ -124,6 +132,8 @@ direct_messages_once( const char *func,
      va_start( ap, format );
 
      vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
 
      fprintf( stderr, " (!!!)  *** ONCE [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
@@ -160,6 +170,8 @@ direct_messages_bug( const char *func,
 
      vsnprintf( buf, sizeof(buf), format, ap );
 
+     va_end( ap );
+
      fprintf( stderr, " (!?!)  *** BUG [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      fflush( stderr );
@@ -181,6 +193,8 @@ direct_messages_warn( const char *func,
      va_start( ap, format );
 
      vsnprintf( buf, sizeof(buf), format, ap );
+
+     va_end( ap );
 
      fprintf( stderr, " (!!!)  *** WARNING [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
