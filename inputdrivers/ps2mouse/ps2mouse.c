@@ -228,38 +228,67 @@ ps2mouseEventThread( void *driver_data )
     return (NULL);
 }
 
-/* 
-    These 2 functions were HEAVILY inpsired (*cough*)
-    from the gpm package (written by the great 
-    Alessandro Rubini and others) 
-*/
-static int ps2GetId(int fd) {
+
+static 
+int ps2GetId(int fd)
+{
     unsigned char c = PS2_SEND_ID;
+    struct timeval tv;
+    fd_set fds;
+
+    tv.tv_sec = 0;
+    tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
+
+    FD_ZERO(&fds);
+    FD_SET(fd, &fds);
 
     write(fd, &c, 1);
-    read(fd, &c, 1);
-    if ( c != PS2_ACK ) {
-        return(-1);
+    tcflush (fd, TCIFLUSH);
+    usleep (30000);
+
+    if (select(fd+1, &fds, NULL, NULL, &tv) == 0) {
+       printf ("timeout!!\n");
+       return -1;
     }
+
+    read(fd, &c, 1);
+
+    if ( c != PS2_ACK )
+        return -2;
+
     read(fd, &c, 1);
 
     return(c);
 }
 
-static int ps2Write( int fd, unsigned char *data, size_t len) {
+
+static 
+int ps2Write( int fd, const unsigned char *data, size_t len)
+{
     int i;
     int error = 0;
 
     for ( i = 0; i < len; i++ ) {
-        unsigned char c;
+        unsigned char c = 0;
+        struct timeval tv;
+        fd_set fds;
+
+        tv.tv_sec = 0;
+        tv.tv_usec = 100000;       /*  timeout 1/10 sec  */
+
+        FD_ZERO(&fds);
+        FD_SET(fd, &fds);
+
         write(fd, &data[i], 1);
-        read(fd, &c, 1);
-        if ( c != PS2_ACK ) {
+        tcflush (fd, TCIFLUSH);
+        usleep (30000);
+
+        if (select(1, &fds, NULL, NULL, &tv))
+            read(fd, &c, 1);
+
+        if ( c != PS2_ACK )
             error++;
-        }
     }
-    usleep (30000);
-    tcflush (fd, TCIFLUSH);
 
     return(error);
 }
@@ -312,10 +341,10 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     static unsigned char basic_init[] = { PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100};
-     static unsigned char imps2_init[] = { PS2_SET_SAMPLE, 200, PS2_SET_SAMPLE, 100, PS2_SET_SAMPLE, 80,};
-     static unsigned char ps2_init[] = { PS2_SET_SCALE11, PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100, PS2_SET_RES, 3,};
-     
+     static const unsigned char basic_init[] = { PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100};
+     static const unsigned char imps2_init[] = { PS2_SET_SAMPLE, 200, PS2_SET_SAMPLE, 100, PS2_SET_SAMPLE, 80,};
+     static const unsigned char ps2_init[] = { PS2_SET_SCALE11, PS2_ENABLE_DEV, PS2_SET_SAMPLE, 100, PS2_SET_RES, 3,};
+
      int           fd, mouseId;
      int           packetLength = 3;
      PS2MouseData *data;
@@ -330,39 +359,30 @@ driver_open_device( InputDevice      *device,
           }
      }
 
-     /* Probe for Intellimouse - this should eventually be rolled into the main PS2 driver */
-
      /* Do a basic init in case the mouse is confused */
      ps2Write(fd, basic_init, sizeof (basic_init));
 
-     /* Now try again and make sure we have a PS/2 mouse */
-     if ( ps2Write(fd, basic_init, sizeof (basic_init)) != 0 ) {
-         fprintf(stderr, "imps2: PS/2 mouse failed second init");
-         return (DFB_INIT);
-     }
+     if (ps2Write(fd, basic_init, sizeof (basic_init)) != 0)
+         printf ("imps2: PS/2 mouse failed init\n");
 
-     /* Try to switch to 3 button mode */
-     if ( ps2Write(fd, imps2_init, sizeof (imps2_init)) != 0 ) {
-         fprintf(stderr, "imps2: PS/2 mouse failed 3 button mode switch");
-         return (DFB_INIT);
-     }
+     if (ps2Write(fd, imps2_init, sizeof (imps2_init)) != 0)
+         printf ("imps2: PS/2 mouse failed (3 Button) init\n");
 
      mouseId = ps2GetId(fd);
-     if ( mouseId == (-1) ) {
-         fprintf(stderr, "imps2: PS/2 mouse failed to read id, assuming standard PS/2");
+
+printf ("mouseId == %i\n", mouseId);
+     if (mouseId == 250)
+         mouseId = PS2_ID_IMPS2;
+
+     if ( mouseId != PS2_ID_IMPS2 )
          mouseId = PS2_ID_PS2;
-     }
+printf ("mouseId == %i\n", mouseId);
 
-     /* And do the real initialisation */
-     if ( ps2Write(fd, ps2_init, sizeof (ps2_init)) != 0 ) {
-         fprintf(stderr, "imps2: PS/2 mouse failed setup, continuing...");
-     }
+     ps2Write(fd, ps2_init, sizeof (ps2_init));
 
-     if ( mouseId == PS2_ID_IMPS2 ){
+     if ( mouseId == PS2_ID_IMPS2 )
          packetLength = 4;
-     }
-     
-     
+
      /* fill device info structure */
      snprintf( info->name,
                DFB_INPUT_DEVICE_INFO_NAME_LENGTH,
@@ -370,9 +390,8 @@ driver_open_device( InputDevice      *device,
 
      snprintf( info->vendor,
                DFB_INPUT_DEVICE_INFO_VENDOR_LENGTH, "Unknown" );
-     
+
      info->prefered_id     = DIDID_MOUSE;
-     
      info->desc.type       = DIDTF_MOUSE;
      info->desc.caps       = DICAPS_AXIS | DICAPS_BUTTONS;
      info->desc.max_axis   = (mouseId == PS2_ID_IMPS2) ? DIAI_Z : DIAI_Y;
