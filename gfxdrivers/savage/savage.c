@@ -6,7 +6,8 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Sven Neumann <sven@convergence.de> and
+	      Alex Song <alexsong@comports.com>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -57,8 +58,6 @@ DFB_GRAPHICS_DRIVER( savage )
 #include "savage4.h"
 #include "savage2000.h"
 #include "savage_bci.h"
-#include "savage_streams_old.h"
-
 
 /* exported symbols */
 
@@ -83,14 +82,12 @@ driver_probe( GraphicsDevice *device )
           case FB_ACCEL_SAVAGE4:        /* Savage4 series      */
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                return 1;
           
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000         */
                return 1;
-          
-          case FB_ACCEL_S3TWISTER_P:    /* unsupported for now */
-          case FB_ACCEL_S3TWISTER_K:
-               return 0;
      }
 
      return 0;
@@ -129,6 +126,8 @@ driver_get_info( GraphicsDevice     *device,
           case FB_ACCEL_SAVAGE4:        /* Savage4 series  */
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                savage4_get_info( device, info );
                break;
           
@@ -164,6 +163,8 @@ driver_init_driver( GraphicsDevice      *device,
           case FB_ACCEL_SAVAGE4:        /* Savage4 series  */
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                return savage4_init_driver( device, funcs, driver_data );
           
           case FB_ACCEL_SAVAGE2000:     /* Savage 2000     */
@@ -202,6 +203,8 @@ driver_init_device( GraphicsDevice     *device,
           case FB_ACCEL_SAVAGE4:        /* Savage4 series  */
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                savage4_init_device( device, device_info,
                                     driver_data, device_data );
                break;
@@ -258,6 +261,8 @@ driver_init_layers( void *driver_data,
           case FB_ACCEL_SAVAGE4:
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                savage_streams_old_init( driver_data, device_data );
                break;
 
@@ -295,6 +300,8 @@ driver_close_device( GraphicsDevice *device,
           case FB_ACCEL_SAVAGE4:        /* Savage4 series  */
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                savage4_close_device( device, driver_data, device_data );
                break;
           
@@ -350,6 +357,8 @@ driver_close_driver( GraphicsDevice *device,
           case FB_ACCEL_SAVAGE4:        /* Savage4 series  */
           case FB_ACCEL_PROSAVAGE_PM:
           case FB_ACCEL_PROSAVAGE_KM:
+          case FB_ACCEL_S3TWISTER_P:
+          case FB_ACCEL_S3TWISTER_K:
                savage4_close_driver( device, driver_data );
                break;
           

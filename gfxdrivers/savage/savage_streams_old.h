@@ -6,7 +6,8 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Sven Neumann <sven@convergence.de> and
+	      Alex Song <alexsong@comports.com>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -28,16 +29,14 @@
 #define __SAVAGE_STREAMS_OLD_H__
 
 #include "savage.h"
+#include <core/layers.h>
 
-                   
-DFBResult savage_streams_old_init( SavageDriverData *sdrv,
-                                   SavageDeviceData *sdev );
-void      savage_streams_old_restore( SavageDriverData *sdrv,
-                                      SavageDeviceData *sdev );
-
+extern DisplayLayerFuncs savageSecondaryFuncs;
+extern DisplayLayerFuncs savagePrimaryFuncs;
+extern DisplayLayerFuncs pfuncs;
+extern void *pdriver_data;
 
 /* Streams Processor Registers */
-
 #define SAVAGE_PRIMARY_STREAM_CONTROL                       0x8180
 #define SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_CLUT            0x00000000
 #define SAVAGE_PRIMARY_STREAM_CONTROL_PSIDF_ARGB            0x01000000
@@ -62,31 +61,81 @@ void      savage_streams_old_restore( SavageDriverData *sdrv,
 #define SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB16         0x05000000
 #define SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB24         0x06000000
 #define SAVAGE_SECONDARY_STREAM_CONTROL_SSIDF_RGB32         0x07000000
+#define SAVAGE_SECONDARY_STREAM_CONTROL_H_DOWNSCALE4        0x00020000
+#define SAVAGE_SECONDARY_STREAM_CONTROL_H_DOWNSCALE8        0x00030000
+#define SAVAGE_SECONDARY_STREAM_CONTROL_H_DOWNSCALE16       0x00040000
+#define SAVAGE_SECONDARY_STREAM_CONTROL_H_DOWNSCALE32       0x00050000
+#define SAVAGE_SECONDARY_STREAM_CONTROL_H_DOWNSCALE64       0x00060000
 #define SAVAGE_SECONDARY_STREAM_CONTROL_LUMA_ONLY_INTERPOL  0x80000000
 
 #define SAVAGE_CHROMA_KEY_UPPER_BOUND                       0x8194
+
 #define SAVAGE_SECONDARY_STREAM_HORIZONTAL_SCALING          0x8198
+
 #define SAVAGE_COLOR_ADJUSTMENT                             0x819C
+
 #define SAVAGE_BLEND_CONTROL                                0x81a0
-#define SAVAGE_PRIMARY_STREAM_FRAME_BUFFER_ADRESS0          0x81c0
-#define SAVAGE_PRIMARY_STREAM_FRAME_BUFFER_ADRESS1          0x81c4
+#define SAVAGE_BLEND_CONTROL_COMP_SSTREAM                   0x00000000
+#define SAVAGE_BLEND_CONTROL_COMP_PSTREAM                   0x01000000
+#define SAVAGE_BLEND_CONTROL_COMP_DISSOLVE                  0x02000000
+#define SAVAGE_BLEND_CONTROL_COMP_FADE                      0x03000000
+#define SAVAGE_BLEND_CONTROL_COMP_ALPHA                     0x04000000
+#define SAVAGE_BLEND_CONTROL_COMP_PCOLORKEY                 0x05000000
+#define SAVAGE_BLEND_CONTROL_COMP_SCOLORKEY                 0x06000000
+#define KP_KS(kp,ks) ((kp<<10)|(ks<<2))
+
+#define SAVAGE_PRIMARY_STREAM_FRAME_BUFFER_ADDRESS0         0x81c0
+
+#define SAVAGE_PRIMARY_STREAM_FRAME_BUFFER_ADDRESS1         0x81c4
+
 #define SAVAGE_PRIMARY_STREAM_STRIDE                        0x81c8
+
 #define SAVAGE_SECONDARY_STREAM_MULTIPLE_BUFFER_SUPPORT     0x81cc
+
 #define SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS0       0x81d0
+
 #define SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS1       0x81d4
+
 #define SAVAGE_SECONDARY_STREAM_STRIDE                      0x81d8
+
 #define SAVAGE_SECONDARY_STREAM_VERTICAL_SCALING            0x81e0
+
 #define SAVAGE_SECONDARY_STREAM_VERTICAL_INITIAL_VALUE      0x81e4
+
 #define SAVAGE_SECONDARY_STREAM_SOURCE_LINE_COUNT           0x81e8
+
 #define SAVAGE_STREAMS_FIFO                                 0x81ec
+
 #define SAVAGE_PRIMARY_STREAM_WINDOW_START                  0x81f0
+
 #define SAVAGE_PRIMARY_STREAM_WINDOW_SIZE                   0x81f4
+
 #define SAVAGE_SECONDARY_STREAM_WINDOW_START                0x81f8
+
 #define SAVAGE_SECONDARY_STREAM_WINDOW_SIZE                 0x81fc
-#define SAVAGE_PRIMARY_STREAM_FRAMEBUFFER_SIZE              0x8300
-#define SAVAGE_SECONDARY_STREAM_FRAMEBUFFER_SIZE            0x8304
+
+#define SAVAGE_PRIMARY_STREAM_FIFO_MONITOR0                 0x8200
+
+#define SAVAGE_SECONDARY_STREAM_FIFO_MONITOR0               0x8204
+
+#define SAVAGE_SECONDARY_STREAM_FB_CB_ADDRESS               0x8208
+
+#define SAVAGE_SECONDARY_STREAM_FB_CR_ADDRESS               0x820C
+
+#define SAVAGE_PRIMARY_STREAM_FIFO_MONITOR1                 0x8210
+
+#define SAVAGE_SECONDARY_STREAM_FIFO_MONITOR1               0x8214
+
+#define SAVAGE_SECONDARY_STREAM_CBCR_STRIDE                 0x8218
+
+#define SAVAGE_PRIMARY_STREAM_FRAME_BUFFER_SIZE             0x8300
+
+#define SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_SIZE           0x8304
+
 #define SAVAGE_SECONDARY_STREAM_FRAME_BUFFER_ADDRESS2       0x8308
 
+/* macros */
+#define OS_XY(x,y) (((x+1)<<16)|(y+1))
+#define OS_WH(x,y) (((x-1)<<16)|(y))
 
-#endif
-
+#endif /* __SAVAGE_STREAMS_OLD_H__ */

@@ -55,9 +55,6 @@ typedef struct {
      unsigned int fifo_space;
 
      unsigned int bci_ptr;
-
-     /* HACK around unfinished internal layer API */
-     DisplayLayer *secondary;
 } SavageDeviceData;
 
 typedef struct {

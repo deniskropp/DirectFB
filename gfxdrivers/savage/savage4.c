@@ -53,8 +53,20 @@
 #include "savage4.h"
 #include "mmio.h"
 #include "savage_bci.h"
+/*
+ * (comment stolen from xfree86 savage driver).
+ * There are two different streams engines used in the Savage line.
+ * The old engine is in the 3D, 4, Pro, and Twister.
+ * The new engine is in the 2000, MX, IX, and Super.
+ */
 #include "savage_streams_old.h"
 
+/* #define SAVAGE_DEBUG */
+#ifdef SAVAGE_DEBUG
+#define SVGDBG(x...) fprintf(stderr, "savage4:");fprintf(stderr,x)
+#else
+#define SVGDBG(x...)
+#endif
 
 /* required implementations */
 
@@ -63,6 +75,7 @@ static void savage4EngineSync( void *drv, void *dev )
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
      
+     SVGDBG("savage4enginesync\n");
      savage4_waitidle( sdrv, sdev );
 }
 
@@ -186,6 +199,8 @@ static inline void savage4_set_clip( Savage4DriverData *sdrv,
                                      Savage4DeviceData *sdev,
                                      DFBRegion         *clip )
 {
+     SVGDBG("savage4_set_clip x1:%i y1:%i x2:%i y2:%i\n",
+            clip->x1, clip->y1, clip->x2, clip->y2);
      savage4_waitfifo( sdrv, sdev, 3 );
 
      BCI_SEND( BCI_CMD_NOP | BCI_CMD_CLIP_NEW );
@@ -197,6 +212,7 @@ static inline void savage4_set_clip( Savage4DriverData *sdrv,
 static void savage4CheckState( void *drv, void *dev,
                                CardState *state, DFBAccelerationMask accel )
 {
+     SVGDBG("savage4checkstate\n");
      switch (state->destination->format) {
           case DSPF_RGB15:
           case DSPF_RGB16:
@@ -231,6 +247,7 @@ static void savage4SetState( void *drv, void *dev,
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
      
+     SVGDBG("savage4setstate\n");
      if (state->modified) {
           if (state->modified & SMF_DESTINATION)
                sdev->v_gbd = sdev->v_color = 0;
@@ -400,16 +417,19 @@ static void savage4Blit( void *drv, void *dev,
                    BCI_CMD_CLIP_CURRENT | BCI_CMD_DEST_GBD | 
                    BCI_CMD_SRC_PBD_COLOR | (0xcc << 16) );
  
-     if (dx < rect->x) {
-          cmd |= BCI_CMD_RECT_XP;
+     SVGDBG("savage4Blit1 x:%i y:%i w:%i h:%i dx:%i dy:%i\n",
+            rect->x, rect->y, rect->w, rect->h, dx, dy);
+
+     if (dx < rect->x && dx >= 0) {
+          cmd |= BCI_CMD_RECT_XP; /* left to right */
      } 
      else {
           dx      += rect->w - 1;
           rect->x += rect->w - 1;
      }
 
-     if (dy < rect->y) { 
-          cmd |= BCI_CMD_RECT_YP;
+     if (dy < rect->y && dy >= 0) { 
+          cmd |= BCI_CMD_RECT_YP; /* top to bottom */
      }
      else {
           dy      += rect->h - 1;
@@ -437,10 +457,7 @@ static void savage4StretchBlit( void *drv, void *dev,
 
 static void savage4AfterSetVar( void *drv, void *dev )
 {
-     SavageDriverData *sdrv = (SavageDriverData*) drv;
-     SavageDeviceData *sdev = (SavageDeviceData*) dev;
-     
-     savage_streams_old_restore( sdrv, sdev );
+     SVGDBG("savage4aftersetvar\n");
 }
 
 /* exported symbols */
@@ -449,6 +466,7 @@ void
 savage4_get_info( GraphicsDevice     *device,
                   GraphicsDriverInfo *info )
 {
+     SVGDBG("savage4getinfo\n");
      info->version.major = 0;
      info->version.minor = 3;
 
@@ -461,6 +479,7 @@ savage4_init_driver( GraphicsDevice      *device,
                      GraphicsDeviceFuncs *funcs,
                      void                *driver_data )
 {
+     SVGDBG("savage4initdriver\n");
      funcs->CheckState    = savage4CheckState;
      funcs->SetState      = savage4SetState;
      funcs->EngineSync    = savage4EngineSync;          
@@ -474,6 +493,13 @@ savage4_init_driver( GraphicsDevice      *device,
      funcs->Blit          = savage4Blit;
      funcs->StretchBlit   = savage4StretchBlit;
 
+     /* setup primary layer functions */
+     dfb_layers_hook_primary(device, driver_data, &savagePrimaryFuncs,
+                             &pfuncs, &pdriver_data);
+
+     /* setup secondary layer functions */
+     dfb_layers_register(device, driver_data, &savageSecondaryFuncs);
+
      return DFB_OK;
 }
 
@@ -485,6 +511,8 @@ savage4_init_device( GraphicsDevice     *device,
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      volatile __u8    *mmio = sdrv->mmio_base;
+
+     SVGDBG("savage4initdevice\n");
 
      /* fill device info */
      snprintf( device_info->name,
@@ -539,11 +567,13 @@ savage4_close_device( GraphicsDevice *device,
                       void           *driver_data,
                       void           *device_data )
 {
+     SVGDBG("savage4closedevice\n");
 }
 
 void
 savage4_close_driver( GraphicsDevice *device,
                       void           *driver_data )
 {
+     SVGDBG("savage4closedriver\n");
 }
-
+/* end of code */
