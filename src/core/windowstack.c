@@ -95,8 +95,8 @@ static DFBResult   create_cursor_window( CoreWindowStack *stack,
                                          int              height );
 
 static DFBEnumerationResult
-stack_attach_devices( InputDevice *device,
-                      void        *ctx );
+stack_attach_devices( CoreInputDevice *device,
+                      void            *ctx );
 
 
 /******************************************************************************/
@@ -659,8 +659,8 @@ _dfb_windowstack_background_image_listener( const void *msg_data,
  */
 
 static DFBEnumerationResult
-stack_attach_devices( InputDevice *device,
-                      void        *ctx )
+stack_attach_devices( CoreInputDevice *device,
+                      void            *ctx )
 {
      StackDevice     *dev;
      CoreWindowStack *stack = (CoreWindowStack*) ctx;

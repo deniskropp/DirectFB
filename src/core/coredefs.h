@@ -33,10 +33,11 @@
 #define DFB_DYNAMIC_LINKING
 #endif
 
-#define MAX_INPUTDEVICES 30
-#define MAX_LAYERS       40
-#define MAX_SCREENS      20
+#define MAX_INPUTDEVICES 32
+#define MAX_LAYERS       24
+#define MAX_SCREENS      16
 
+#define MAX_INPUT_GLOBALS 8
 
 #endif
 

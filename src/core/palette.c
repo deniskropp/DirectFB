@@ -45,7 +45,7 @@
 static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
 static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
-static const React dfb_palette_globals[] = {
+static const ReactionFunc dfb_palette_globals[] = {
 /* 0 */   _dfb_surface_palette_listener,
           NULL
 };

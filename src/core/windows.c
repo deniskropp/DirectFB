@@ -86,7 +86,7 @@ core_window_filter( CoreWindow *window, const DFBWindowEvent *event );
 
 /**************************************************************************************************/
 
-static const React dfb_window_globals[] = {
+static const ReactionFunc dfb_window_globals[] = {
      NULL
 };
 

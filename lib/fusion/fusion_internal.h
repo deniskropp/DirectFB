@@ -55,6 +55,8 @@ typedef struct {
 
      DirectLink     *arenas;
      FusionSkirmish  arenas_lock;
+
+     FusionSkirmish  reactor_globals;
 } FusionShared;
 
 /*******************************************

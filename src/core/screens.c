@@ -70,6 +70,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Initialize all registered screens. */
      for (i=0; i<num_screens; i++) {
+          char                  buf[24];
           CoreScreenShared     *shared;
           CoreScreen           *screen = screens[i];
           ScreenFuncs          *funcs  = screen->funcs;
@@ -81,8 +82,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           /* Assign ID (zero based index). */
           shared->screen_id = i;
 
+          snprintf( buf, sizeof(buf), "Screen %d", i );
+
           /* Initialize the lock. */
-          if (fusion_skirmish_init( &shared->lock )) {
+          if (fusion_skirmish_init( &shared->lock, buf )) {
                SHFREE( shared );
                return DFB_FUSION;
           }

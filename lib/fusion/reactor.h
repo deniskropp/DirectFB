@@ -28,8 +28,10 @@
 #ifndef __FUSION__REACTOR_H__
 #define __FUSION__REACTOR_H__
 
-#include <fusion/types.h>
 #include <direct/list.h>
+
+#include <fusion/types.h>
+#include <fusion/lock.h>
 
 typedef enum {
      RS_OK,
@@ -37,43 +39,94 @@ typedef enum {
      RS_DROP
 } ReactionResult;
 
-typedef ReactionResult (*React) (const void    *msg_data,
-                                 void          *ctx);
+typedef ReactionResult (*ReactionFunc)( const void *msg_data,
+                                        void       *ctx );
 
 typedef struct {
-     DirectLink  link;
-     React       react;
-     void       *ctx;
-     bool        attached;
+     DirectLink    link;
+     ReactionFunc  func;
+     void         *ctx;
+     bool          attached;
 } Reaction;
 
 typedef struct {
      DirectLink  link;
-     int         react_index;
+     int         index;
      void       *ctx;
      bool        attached;
 } GlobalReaction;
 
-FusionReactor *fusion_reactor_new           (int             msg_size);
-DirectResult   fusion_reactor_free          (FusionReactor  *reactor);
-DirectResult   fusion_reactor_attach        (FusionReactor  *reactor,
-                                             React           react,
-                                             void           *ctx,
-                                             Reaction       *reaction);
-DirectResult   fusion_reactor_detach        (FusionReactor  *reactor,
-                                             Reaction       *reaction);
-DirectResult   fusion_reactor_attach_global (FusionReactor  *reactor,
-                                             int             react_index,
-                                             void           *ctx,
-                                             GlobalReaction *reaction);
-DirectResult   fusion_reactor_detach_global (FusionReactor  *reactor,
-                                             GlobalReaction *reaction);
-DirectResult   fusion_reactor_dispatch      (FusionReactor  *reactor,
-                                             const void     *msg_data,
-                                             bool            self,
-                                             const React    *globals);
+
+/*
+ * Create a new reactor configured for the specified message data size.
+ */
+FusionReactor *fusion_reactor_new          ( int                 msg_size,
+                                             const char         *name );
+
+/*
+ * Destroy the reactor.
+ */
+DirectResult   fusion_reactor_free         ( FusionReactor      *reactor );
 
 
+/*
+ * Makes the reactor use the specified lock for managing global reactions.
+ *
+ * After creating the reactor a global default lock is set which is created
+ * by Fusion once during initialization.
+ *
+ * To avoid dead locks caused by alternating lock orders of the global reaction
+ * lock and another lock, the default lock is replaced by the other lock.
+ */
+DirectResult   fusion_reactor_set_lock     ( FusionReactor      *reactor,
+                                             FusionSkirmish     *skirmish );
+
+/*
+ * Attach a local reaction to the reactor.
+ */
+DirectResult   fusion_reactor_attach       ( FusionReactor      *reactor,
+                                             ReactionFunc        func,
+                                             void               *ctx,
+                                             Reaction           *reaction );
+
+/*
+ * Detach an attached local reaction from the reactor.
+ */
+DirectResult   fusion_reactor_detach       ( FusionReactor      *reactor,
+                                             Reaction           *reaction );
+
+
+/*
+ * Attach a global reaction to the reactor.
+ *
+ * It's always called directly, no matter which Fusionee calls fusion_reactor_dispatch().
+ * Any data referenced by the reaction function has to be in shared memory, unless it uses a
+ * mechanism to lookup a local counter part or representative, based on shared information.
+ *
+ * A global reaction is not defined directly as a function pointer, because that's always a
+ * local address. Instead, it's specified by an index into a built in function table that
+ * must be passed to fusion_reactor_dispatch() each time it is called.
+ */
+DirectResult   fusion_reactor_attach_global( FusionReactor      *reactor,
+                                             int                 index,
+                                             void               *ctx,
+                                             GlobalReaction     *reaction );
+
+/*
+ * Detach an attached global reaction from the reactor.
+ */
+DirectResult   fusion_reactor_detach_global( FusionReactor      *reactor,
+                                             GlobalReaction     *reaction );
+
+/*
+ * Dispatch a message to any attached reaction.
+ *
+ * Setting 'self' to false excludes the caller's local reactions.
+ */
+DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
+                                             const void         *msg_data,
+                                             bool                self,
+                                             const ReactionFunc *globals );
 
 #endif
 

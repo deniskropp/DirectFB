@@ -103,7 +103,7 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_sdl_core = core;
 
-     fusion_skirmish_init( &dfb_sdl->lock );
+     fusion_skirmish_init( &dfb_sdl->lock, "SDL System" );
 
      fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
 
@@ -221,8 +221,8 @@ system_thread_init()
 }
 
 static bool
-system_input_filter( InputDevice   *device,
-                     DFBInputEvent *event )
+system_input_filter( CoreInputDevice *device,
+                     DFBInputEvent   *event )
 {
      return false;
 }

@@ -60,7 +60,7 @@ dfb_clipboard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      core_clip = data_shared;
 
-     fusion_skirmish_init( &core_clip->lock );
+     fusion_skirmish_init( &core_clip->lock, "Clipboard Core" );
 
      return DFB_OK;
 }

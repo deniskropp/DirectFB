@@ -38,13 +38,13 @@ static void
 driver_get_info( InputDriverInfo *info );
 
 static DFBResult
-driver_open_device( InputDevice      *device,
+driver_open_device( CoreInputDevice  *device,
                     unsigned int      number,
                     InputDeviceInfo  *info,
                     void            **driver_data );
 
 static DFBResult
-driver_get_keymap_entry( InputDevice               *device,
+driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry );
 

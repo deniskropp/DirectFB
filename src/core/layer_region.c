@@ -101,12 +101,12 @@ region_destructor( FusionObject *object, bool zombie )
      /* Unlink the context from the structure. */
      dfb_layer_context_unlink( &region->context );
 
-     /* Deinitialize the lock. */
-     fusion_skirmish_destroy( &region->lock );
-
      /* Free driver's region data. */
      if (region->region_data)
           SHFREE( region->region_data );
+
+     /* Deinitialize the lock. */
+     fusion_skirmish_destroy( &region->lock );
 
      /* Destroy the object. */
      fusion_object_destroy( object );
@@ -149,11 +149,14 @@ dfb_layer_region_create( CoreLayerContext  *context,
      }
 
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &region->lock )) {
+     if (fusion_skirmish_init( &region->lock, "Layer Region" )) {
           dfb_layer_context_unlink( &region->context );
           fusion_object_destroy( &region->object );
           return DFB_FUSION;
      }
+     
+     /* Change global reaction lock. */
+     fusion_object_set_lock( &region->object, &region->lock );
 
      /* Activate the object. */
      fusion_object_activate( &region->object );

@@ -397,10 +397,13 @@ lock_arena( const char *name, bool add )
      /* If no arena name matched, create a new arena
         before unlocking the list again. */
      if (add) {
+          char         buf[64];
           FusionArena *arena = SHCALLOC( 1, sizeof(FusionArena) );
 
+          snprintf( buf, sizeof(buf), "Arena '%s'", name );
+
           /* Initialize lock and reference counter. */
-          fusion_skirmish_init( &arena->lock );
+          fusion_skirmish_init( &arena->lock, buf );
           fusion_ref_init( &arena->ref );
 
           /* Give it the requested name. */

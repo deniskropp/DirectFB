@@ -58,7 +58,7 @@
 D_DEBUG_DOMAIN( UniQuE_Context, "UniQuE/Context", "UniQuE's Stack Context" );
 
 
-static const React unique_context_globals[] = {
+static const ReactionFunc unique_context_globals[] = {
      _unique_wm_module_context_listener,
      NULL
 };

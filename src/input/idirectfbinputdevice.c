@@ -63,7 +63,7 @@ IDirectFBInputDevice_React( const void *msg_data,
  */
 typedef struct {
      int                         ref;               /* reference counter */
-     InputDevice                *device;            /* pointer to input core
+     CoreInputDevice            *device;            /* pointer to input core
                                                        device struct*/
 
      int                         axis[DIAI_LAST+1]; /* position of all axes */
@@ -301,7 +301,7 @@ IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz,
 
 DFBResult
 IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
-                                InputDevice          *device )
+                                CoreInputDevice      *device )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBInputDevice)
 

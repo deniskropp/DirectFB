@@ -50,24 +50,36 @@
 
 #if FUSION_BUILD_MULTI
 
+D_DEBUG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" );
+
+
 DirectResult
-fusion_skirmish_init (FusionSkirmish *skirmish)
+fusion_skirmish_init (FusionSkirmish *skirmish,
+                      const char     *name)
 {
+     FusionEntryInfo info;
+
      D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
+     
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n", skirmish, name ? : "" );
 
-     while (ioctl (_fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               default:
-                    break;
-          }
+     while (ioctl( _fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id )) {
+          if (errno == EINTR)
+               continue;
 
-          D_PERROR ("FUSION_SKIRMISH_NEW");
-
-          return DFB_FAILURE;
+          D_PERROR( "FUSION_SKIRMISH_NEW" );
+          return DFB_FUSION;
      }
+
+     D_DEBUG_AT( Fusion_Skirmish, "  -> new skirmish %p [%d]\n", skirmish, skirmish->id );
+     
+     info.type = FT_SKIRMISH;
+     info.id   = skirmish->id;
+
+     strncpy( info.name, name, sizeof(info.name) );
+
+     ioctl( _fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
      return DFB_OK;
 }
@@ -82,16 +94,14 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
           switch (errno) {
                case EINTR:
                     continue;
+
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
                     return DFB_DESTROYED;
-               default:
-                    break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_PREVAIL");
-
-          return DFB_FAILURE;
+          return DFB_FUSION;
      }
 
      return DFB_OK;
@@ -107,18 +117,17 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
           switch (errno) {
                case EINTR:
                     continue;
+
                case EAGAIN:
                     return DFB_BUSY;
+
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
                     return DFB_DESTROYED;
-               default:
-                    break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_SWOOP");
-
-          return DFB_FAILURE;
+          return DFB_FUSION;
      }
 
      return DFB_OK;
@@ -134,16 +143,14 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
           switch (errno) {
                case EINTR:
                     continue;
+
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
                     return DFB_DESTROYED;
-               default:
-                    break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_DISMISS");
-
-          return DFB_FAILURE;
+          return DFB_FUSION;
      }
 
      return DFB_OK;
@@ -155,20 +162,20 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
      D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_SKIRMISH_DESTROY, &skirmish->id)) {
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p [%d] )\n", skirmish, skirmish->id );
+     
+     while (ioctl( _fusion_fd, FUSION_SKIRMISH_DESTROY, &skirmish->id )) {
           switch (errno) {
                case EINTR:
                     continue;
+                    
                case EINVAL:
                     D_ERROR ("Fusion/Lock: invalid skirmish\n");
                     return DFB_DESTROYED;
-               default:
-                    break;
           }
 
           D_PERROR ("FUSION_SKIRMISH_DESTROY");
-
-          return DFB_FAILURE;
+          return DFB_FUSION;
      }
 
      return DFB_OK;
@@ -177,7 +184,8 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 #else  /* FUSION_BUILD_MULTI */
 
 DirectResult
-fusion_skirmish_init (FusionSkirmish *skirmish)
+fusion_skirmish_init (FusionSkirmish *skirmish,
+                      const char     *name)
 {
      D_ASSERT( skirmish != NULL );
 

@@ -77,10 +77,10 @@ DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
                          DFB_INPUT_DRIVER_ABI_VERSION );
 
 
-#define MAX_INPUT_DEVICES 100
-
 typedef struct {
      DirectLink               link;
+
+     int                      magic;
 
      DirectModuleEntry       *module;
 
@@ -99,6 +99,8 @@ typedef struct {
 } InputDeviceKeymap;
 
 typedef struct {
+     int                          magic;
+
      DFBInputDeviceID             id;            /* unique device id */
 
      int                          num;
@@ -113,87 +115,87 @@ typedef struct {
      DFBInputDeviceButtonMask     buttons;
 
      FusionReactor               *reactor;       /* event dispatcher */
+     FusionSkirmish               lock;
 } InputDeviceShared;
 
-struct _InputDevice {
-     InputDeviceShared *shared;
+struct __DFB_CoreInputDevice {
+     DirectLink          link;
 
-     InputDriver       *driver;
-     void              *driver_data;
+     int                 magic;
 
-     InputDevice       *next;
+     InputDeviceShared  *shared;
+
+     InputDriver        *driver;
+     void               *driver_data;
 };
 
 typedef struct {
      int                num;
-     InputDeviceShared *devices[MAX_INPUT_DEVICES];
-} CoreInputField;
+     InputDeviceShared *devices[MAX_INPUTDEVICES];
+} CoreInput;
 
-static DirectLink     *input_drivers = NULL;
+static DirectLink *drivers;
+static DirectLink *devices;
 
-static CoreInputField *inputfield   = NULL;
-static InputDevice    *inputdevices = NULL;
-
-
-DFB_CORE_PART( input, 0, sizeof(CoreInputField) )
+static CoreInput  *core_input;
 
 
-static void
-init_devices();
-
-static void
-allocate_device_keymap( InputDevice *device );
-
-static DFBInputDeviceKeymapEntry *
-get_keymap_entry( InputDevice *device,
-                  int          code );
-
-static bool
-lookup_from_table( InputDevice        *device,
-                   DFBInputEvent      *event,
-                   DFBInputEventFlags  lookup );
-
-static void
-fixup_key_event( InputDevice   *device,
-                 DFBInputEvent *event );
-
-static void
-fixup_mouse_event( InputDevice   *device,
-                   DFBInputEvent *event );
-
-static DFBInputDeviceKeyIdentifier
-symbol_to_id( DFBInputDeviceKeySymbol symbol );
-
-static DFBInputDeviceKeySymbol
-id_to_symbol( DFBInputDeviceKeyIdentifier id,
-              DFBInputDeviceModifierMask  modifiers,
-              DFBInputDeviceLockState     locks );
-
-static void
-flush_keys( InputDevice *device );
-
-static bool
-core_input_filter( InputDevice *device, DFBInputEvent *event );
+DFB_CORE_PART( input, 0, sizeof(CoreInput) )
 
 
-#define MAX_GLOBALS 8
+/**************************************************************************************************/
 
-static React dfb_input_globals[MAX_GLOBALS+1] = {
+static void init_devices();
+
+static void allocate_device_keymap( CoreInputDevice *device );
+
+static DFBInputDeviceKeymapEntry *get_keymap_entry( CoreInputDevice *device,
+                                                    int              code );
+
+/**************************************************************************************************/
+
+static bool lookup_from_table( CoreInputDevice    *device,
+                               DFBInputEvent      *event,
+                               DFBInputEventFlags  lookup );
+
+static void fixup_key_event  ( CoreInputDevice    *device,
+                               DFBInputEvent      *event );
+
+static void fixup_mouse_event( CoreInputDevice    *device,
+                               DFBInputEvent      *event );
+
+static void flush_keys       ( CoreInputDevice    *device );
+
+static bool core_input_filter( CoreInputDevice    *device,
+                               DFBInputEvent      *event );
+
+/**************************************************************************************************/
+
+static DFBInputDeviceKeyIdentifier symbol_to_id( DFBInputDeviceKeySymbol     symbol );
+
+static DFBInputDeviceKeySymbol     id_to_symbol( DFBInputDeviceKeyIdentifier id,
+                                                 DFBInputDeviceModifierMask  modifiers,
+                                                 DFBInputDeviceLockState     locks );
+
+/**************************************************************************************************/
+
+static ReactionFunc dfb_input_globals[MAX_INPUT_GLOBALS+1] = {
 /* 0 */   _dfb_windowstack_inputdevice_listener,
           NULL
 };
 
 DFBResult
-dfb_input_add_global( React react, int *ret_index )
+dfb_input_add_global( ReactionFunc  func,
+                      int          *ret_index )
 {
      int i;
 
-     D_ASSERT( react != NULL );
+     D_ASSERT( func != NULL );
      D_ASSERT( ret_index != NULL );
 
-     for (i=0; i<MAX_GLOBALS; i++) {
+     for (i=0; i<MAX_INPUT_GLOBALS; i++) {
           if (!dfb_input_globals[i]) {
-               dfb_input_globals[i] = react;
+               dfb_input_globals[i] = func;
 
                *ret_index = i;
 
@@ -205,15 +207,16 @@ dfb_input_add_global( React react, int *ret_index )
 }
 
 DFBResult
-dfb_input_set_global( React react, int index )
+dfb_input_set_global( ReactionFunc func,
+                      int          index )
 {
-     D_ASSERT( react != NULL );
+     D_ASSERT( func != NULL );
      D_ASSERT( index >= 0 );
-     D_ASSERT( index < MAX_GLOBALS );
+     D_ASSERT( index < MAX_INPUT_GLOBALS );
 
      D_ASSUME( dfb_input_globals[index] == NULL );
 
-     dfb_input_globals[index] = react;
+     dfb_input_globals[index] = func;
 
      return DFB_OK;
 }
@@ -223,9 +226,9 @@ dfb_input_set_global( React react, int index )
 static DFBResult
 dfb_input_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     D_ASSERT( inputfield == NULL );
+     D_ASSERT( core_input == NULL );
 
-     inputfield = data_shared;
+     core_input = data_shared;
 
      direct_modules_explore_directory( &dfb_input_modules );
 
@@ -239,29 +242,24 @@ dfb_input_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      int i;
 
-     D_ASSERT( inputfield == NULL );
+     D_ASSERT( core_input == NULL );
 
-     inputfield = data_shared;
+     core_input = data_shared;
 
-     for (i=0; i<inputfield->num; i++) {
-          InputDevice *device;
+     for (i=0; i<core_input->num; i++) {
+          CoreInputDevice *device;
 
-          device = D_CALLOC( 1, sizeof(InputDevice) );
+          device = D_CALLOC( 1, sizeof(CoreInputDevice) );
+          if (!device) {
+               return D_OOM();
+          }
 
-          device->shared = inputfield->devices[i];
+          device->shared = core_input->devices[i];
 
           /* add it to the list */
-          if (!inputdevices) {
-               inputdevices = device;
-          }
-          else {
-               InputDevice *dev = inputdevices;
+          direct_list_append( &devices, &device->link );
 
-               while (dev->next)
-                    dev = dev->next;
-
-               dev->next = device;
-          }
+          D_MAGIC_SET( device, CoreInputDevice );
      }
 
      return DFB_OK;
@@ -270,16 +268,18 @@ dfb_input_join( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_input_shutdown( CoreDFB *core, bool emergency )
 {
-     InputDevice *d = inputdevices;
+     DirectLink      *n;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
-     while (d) {
-          InputDevice       *next   = d->next;
-          InputDeviceShared *shared = d->shared;
-          InputDriver       *driver = d->driver;
+     direct_list_foreach_safe (device, n, devices) {
+          InputDriver       *driver = device->driver;
+          InputDeviceShared *shared = device->shared;
 
-          driver->funcs->CloseDevice( d->driver_data );
+          D_MAGIC_ASSERT( device, CoreInputDevice );
+
+          driver->funcs->CloseDevice( device->driver_data );
 
           if (!--driver->nr_devices) {
                direct_module_unref( driver->module );
@@ -293,15 +293,15 @@ dfb_input_shutdown( CoreDFB *core, bool emergency )
 
           SHFREE( shared );
 
-          D_FREE( d );
+          D_MAGIC_CLEAR( device );
 
-          d = next;
+          D_FREE( device );
      }
 
-     inputdevices  = NULL;
-     input_drivers = NULL;
+     devices = NULL;
+     drivers = NULL;
 
-     inputfield = NULL;
+     core_input = NULL;
 
      return DFB_OK;
 }
@@ -309,20 +309,19 @@ dfb_input_shutdown( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_input_leave( CoreDFB *core, bool emergency )
 {
-     InputDevice *d = inputdevices;
+     DirectLink      *n;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
-     while (d) {
-          InputDevice *next = d->next;
+     direct_list_foreach_safe (device, n, devices) {
+          D_MAGIC_ASSERT( device, CoreInputDevice );
 
-          D_FREE( d );
-
-          d = next;
+          D_FREE( device );
      }
 
-     inputdevices = NULL;
-     inputfield = NULL;
+     devices    = NULL;
+     core_input = NULL;
 
      return DFB_OK;
 }
@@ -330,24 +329,26 @@ dfb_input_leave( CoreDFB *core, bool emergency )
 static DFBResult
 dfb_input_suspend( CoreDFB *core )
 {
-     InputDevice *d = inputdevices;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
      D_DEBUG( "DirectFB/Input: suspending...\n" );
 
-     while (d) {
+     direct_list_foreach (device, devices) {
+          InputDriver       *driver = device->driver;
+          InputDeviceShared *shared = device->shared;
+
+          D_MAGIC_ASSERT( device, CoreInputDevice );
+
           D_DEBUG( "DirectFB/Input: Closing '%s' (%d) %d.%d (%s)\n",
-                    d->shared->device_info.desc.name, d->shared->num + 1,
-                    d->driver->info.version.major,
-                    d->driver->info.version.minor,
-                    d->driver->info.vendor );
+                   shared->device_info.desc.name, shared->num + 1,
+                   driver->info.version.major,
+                   driver->info.version.minor, driver->info.vendor );
 
-          d->driver->funcs->CloseDevice( d->driver_data );
+          driver->funcs->CloseDevice( device->driver_data );
 
-          flush_keys( d );
-
-          d = d->next;
+          flush_keys( device );
      }
 
      D_DEBUG( "DirectFB/Input: suspended.\n" );
@@ -358,31 +359,29 @@ dfb_input_suspend( CoreDFB *core )
 static DFBResult
 dfb_input_resume( CoreDFB *core )
 {
-     InputDevice *d = inputdevices;
+     DFBResult        ret;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
      D_DEBUG( "DirectFB/Input: resuming...\n" );
 
-     while (d) {
-          DFBResult ret;
+     direct_list_foreach (device, devices) {
+          D_MAGIC_ASSERT( device, CoreInputDevice );
 
           D_DEBUG( "DirectFB/Input: Reopening '%s' (%d) %d.%d (%s)\n",
-                    d->shared->device_info.desc.name, d->shared->num + 1,
-                    d->driver->info.version.major,
-                    d->driver->info.version.minor,
-                    d->driver->info.vendor );
+                    device->shared->device_info.desc.name, device->shared->num + 1,
+                    device->driver->info.version.major,
+                    device->driver->info.version.minor,
+                    device->driver->info.vendor );
 
-          ret = d->driver->funcs->OpenDevice( d, d->shared->num,
-                                              &d->shared->device_info,
-                                              &d->driver_data );
+          ret = device->driver->funcs->OpenDevice( device, device->shared->num,
+                                                   &device->shared->device_info,
+                                                   &device->driver_data );
           if (ret) {
-               D_ERROR( "DirectFB/Input: Failed reopening device "
-                         "during resume (%s)!\n",
-                         d->shared->device_info.desc.name );
+               D_DERROR( ret, "DirectFB/Input: Failed reopening device "
+                         "during resume (%s)!\n", device->shared->device_info.desc.name );
           }
-
-          d = d->next;
      }
 
      D_DEBUG( "DirectFB/Input: resumed.\n" );
@@ -395,36 +394,40 @@ dfb_input_enumerate_devices( InputDeviceCallback         callback,
                              void                       *ctx,
                              DFBInputDeviceCapabilities  caps )
 {
-     InputDevice *d = inputdevices;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
-     while (d) {
-          if ((d->shared->device_info.desc.caps & caps) && callback( d, ctx ) == DFENUM_CANCEL)
+     direct_list_foreach (device, devices) {
+          D_MAGIC_ASSERT( device, CoreInputDevice );
+
+          if ((device->shared->device_info.desc.caps & caps) && callback( device, ctx ) == DFENUM_CANCEL)
                break;
-
-          d = d->next;
      }
 }
 
 DirectResult
-dfb_input_attach( InputDevice *device,
-                  React        react,
-                  void        *ctx,
-                  Reaction    *reaction )
+dfb_input_attach( CoreInputDevice *device,
+                  ReactionFunc     func,
+                  void            *ctx,
+                  Reaction        *reaction )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
-     return fusion_reactor_attach( device->shared->reactor, react, ctx, reaction );
+     return fusion_reactor_attach( device->shared->reactor, func, ctx, reaction );
 }
 
 DirectResult
-dfb_input_detach( InputDevice *device,
-                  Reaction    *reaction )
+dfb_input_detach( CoreInputDevice *device,
+                  Reaction        *reaction )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
@@ -432,24 +435,27 @@ dfb_input_detach( InputDevice *device,
 }
 
 DirectResult
-dfb_input_attach_global( InputDevice    *device,
-                         int             react_index,
-                         void           *ctx,
-                         GlobalReaction *reaction )
+dfb_input_attach_global( CoreInputDevice *device,
+                         int              index,
+                         void            *ctx,
+                         GlobalReaction  *reaction )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
-     return fusion_reactor_attach_global( device->shared->reactor,
-                                   react_index, ctx, reaction );
+     return fusion_reactor_attach_global( device->shared->reactor, index, ctx, reaction );
 }
 
 DirectResult
-dfb_input_detach_global( InputDevice    *device,
-                         GlobalReaction *reaction )
+dfb_input_detach_global( CoreInputDevice *device,
+                         GlobalReaction  *reaction )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
@@ -457,12 +463,19 @@ dfb_input_detach_global( InputDevice    *device,
 }
 
 void
-dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
+dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
      D_ASSERT( event != NULL );
+
+     D_ASSUME( device->shared->reactor != NULL );
+
+     if (!device->shared->reactor)
+          return;
 
      if (!(event->flags & DIEF_TIMESTAMP)) {
           gettimeofday( &event->timestamp, NULL );
@@ -517,37 +530,41 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
 }
 
 DFBInputDeviceID
-dfb_input_device_id( const InputDevice *device )
+dfb_input_device_id( const CoreInputDevice *device )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
      return device->shared->id;
 }
 
-InputDevice *
+CoreInputDevice *
 dfb_input_device_at( DFBInputDeviceID id )
 {
-     InputDevice *d = inputdevices;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
-     while (d) {
-          if (d->shared->id == id)
-               return d;
+     direct_list_foreach (device, devices) {
+          D_MAGIC_ASSERT( device, CoreInputDevice );
 
-          d = d->next;
+          if (device->shared->id == id)
+               return device;
      }
 
      return NULL;
 }
 
 void
-dfb_input_device_description( const InputDevice         *device,
+dfb_input_device_description( const CoreInputDevice     *device,
                               DFBInputDeviceDescription *desc )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
@@ -555,13 +572,15 @@ dfb_input_device_description( const InputDevice         *device,
 }
 
 DFBResult
-dfb_input_device_get_keymap_entry( InputDevice               *device,
+dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
                                    int                        keycode,
                                    DFBInputDeviceKeymapEntry *entry )
 {
      DFBInputDeviceKeymapEntry *keymap_entry;
 
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( entry != NULL );
 
@@ -577,34 +596,26 @@ dfb_input_device_get_keymap_entry( InputDevice               *device,
 /** internal **/
 
 static void
-input_add_device( InputDevice *device )
+input_add_device( CoreInputDevice *device )
 {
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
-     if (inputfield->num == MAX_INPUT_DEVICES) {
+     if (core_input->num == MAX_INPUTDEVICES) {
           D_ERROR( "DirectFB/Input: Maximum number of devices reached!\n" );
           return;
      }
 
-     if (!inputdevices) {
-          inputdevices = device;
-     }
-     else {
-          InputDevice *dev = inputdevices;
+     direct_list_append( &devices, &device->link );
 
-          while (dev->next)
-               dev = dev->next;
-
-          dev->next = device;
-     }
-
-     inputfield->devices[ inputfield->num++ ] = device->shared;
+     core_input->devices[ core_input->num++ ] = device->shared;
 }
 
 static void
-allocate_device_keymap( InputDevice *device )
+allocate_device_keymap( CoreInputDevice *device )
 {
      int                        i;
      DFBInputDeviceKeymapEntry *entries;
@@ -613,7 +624,9 @@ allocate_device_keymap( InputDevice *device )
      int                        num_entries = desc->max_keycode -
                                               desc->min_keycode + 1;
 
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
 
      entries = SHCALLOC( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
 
@@ -636,16 +649,15 @@ allocate_device_keymap( InputDevice *device )
 static int
 make_id( DFBInputDeviceID prefered )
 {
-     InputDevice *device = inputdevices;
+     CoreInputDevice *device;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
-     while (device) {
+     direct_list_foreach (device, devices) {
+          D_MAGIC_ASSERT( device, CoreInputDevice );
+
           if (device->shared->id == prefered)
-               return make_id( (prefered < DIDID_ANY) ?
-                               DIDID_ANY : (prefered + 1) );
-
-          device = device->next;
+               return make_id( (prefered < DIDID_ANY) ? DIDID_ANY : (prefered + 1) );
      }
 
      return prefered;
@@ -656,7 +668,7 @@ init_devices()
 {
      DirectLink *link;
 
-     D_ASSERT( inputfield != NULL );
+     D_ASSERT( core_input != NULL );
 
      direct_list_foreach( link, dfb_input_modules.entries ) {
           int                     n;
@@ -696,49 +708,59 @@ init_devices()
           driver->module = module;
           driver->funcs  = funcs;
 
-          direct_list_prepend( &input_drivers, &driver->link );
+          direct_list_prepend( &drivers, &driver->link );
 
 
           for (n=0; n<driver->nr_devices; n++) {
-               InputDevice     *device;
-               InputDeviceInfo  device_info;
-               void            *driver_data;
+               char               buf[128];
+               CoreInputDevice   *device;
+               InputDeviceInfo    device_info;
+               InputDeviceShared *shared;
+               void              *driver_data;
 
-               device = D_CALLOC( 1, sizeof(InputDevice) );
-               device->shared = SHCALLOC( 1, sizeof(InputDeviceShared) );
+               /* FIXME */
+               device = D_CALLOC( 1, sizeof(CoreInputDevice) );
+               shared = SHCALLOC( 1, sizeof(InputDeviceShared) );
 
                memset( &device_info, 0, sizeof(InputDeviceInfo) );
 
                device_info.desc.min_keycode = -1;
                device_info.desc.max_keycode = -1;
 
-               device->shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent) );
+               D_MAGIC_SET( device, CoreInputDevice );
 
                if (funcs->OpenDevice( device, n, &device_info, &driver_data )) {
-                    fusion_reactor_free( device->shared->reactor );
-                    SHFREE( device->shared );
+                    fusion_reactor_free( shared->reactor );
+                    SHFREE( shared );
+                    D_MAGIC_CLEAR( device );
                     D_FREE( device );
                     continue;
                }
 
+               if (driver->nr_devices > 1)
+                    snprintf( buf, sizeof(buf), "%s (%d)", device_info.desc.name, n+1 );
+               else
+                    snprintf( buf, sizeof(buf), "%s", device_info.desc.name );
 
-               device->shared->id          = make_id(device_info.prefered_id);
-               device->shared->num         = n;
-               device->shared->device_info = device_info;
 
-               device->driver       = driver;
-               device->driver_data  = driver_data;
+               fusion_skirmish_init( &shared->lock, buf );
 
-               if (driver->nr_devices > 1) {
-                    D_INFO( "DirectFB/Input: %s (%d) %d.%d (%s)\n",
-                            device_info.desc.name, n+1, driver->info.version.major,
-                            driver->info.version.minor, driver->info.vendor );
-               }
-               else {
-                    D_INFO( "DirectFB/Input: %s %d.%d (%s)\n",
-                            device_info.desc.name, driver->info.version.major,
-                            driver->info.version.minor, driver->info.vendor );
-               }
+               shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf );
+
+               fusion_reactor_set_lock( shared->reactor, &shared->lock );
+
+
+               shared->id          = make_id(device_info.prefered_id);
+               shared->num         = n;
+               shared->device_info = device_info;
+
+               device->shared      = shared;
+               device->driver      = driver;
+               device->driver_data = driver_data;
+
+               D_INFO( "DirectFB/Input: %s %d.%d (%s)\n",
+                       buf, driver->info.version.major,
+                       driver->info.version.minor, driver->info.vendor );
 
                if (device_info.desc.min_keycode > device_info.desc.max_keycode) {
                     D_BUG("min_keycode > max_keycode");
@@ -756,13 +778,15 @@ init_devices()
 }
 
 static DFBInputDeviceKeymapEntry *
-get_keymap_entry( InputDevice *device,
-                  int          code )
+get_keymap_entry( CoreInputDevice *device,
+                  int              code )
 {
      InputDeviceKeymap         *map;
      DFBInputDeviceKeymapEntry *entry;
 
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
@@ -812,13 +836,15 @@ get_keymap_entry( InputDevice *device,
 }
 
 static bool
-lookup_from_table( InputDevice        *device,
+lookup_from_table( CoreInputDevice    *device,
                    DFBInputEvent      *event,
                    DFBInputEventFlags  lookup )
 {
      DFBInputDeviceKeymapEntry *entry;
 
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
      D_ASSERT( event != NULL );
@@ -851,13 +877,15 @@ lookup_from_table( InputDevice        *device,
 }
 
 static int
-find_key_code_by_id( InputDevice                 *device,
+find_key_code_by_id( CoreInputDevice             *device,
                      DFBInputDeviceKeyIdentifier  id )
 {
      int                i;
      InputDeviceKeymap *map;
 
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
@@ -874,13 +902,15 @@ find_key_code_by_id( InputDevice                 *device,
 }
 
 static int
-find_key_code_by_symbol( InputDevice             *device,
+find_key_code_by_symbol( CoreInputDevice         *device,
                          DFBInputDeviceKeySymbol  symbol )
 {
      int                i;
      InputDeviceKeymap *map;
 
-     D_ASSERT( inputfield != NULL );
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
      D_ASSERT( device->shared != NULL );
 
@@ -926,11 +956,13 @@ find_key_code_by_symbol( InputDevice             *device,
  * Fields remaining will be set to the default, e.g. key_code to -1.
  */
 static void
-fixup_key_event( InputDevice *device, DFBInputEvent *event )
+fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
 {
      DFBInputEventFlags  valid   = event->flags & FIXUP_KEY_FIELDS;
      DFBInputEventFlags  missing = valid ^ FIXUP_KEY_FIELDS;
      InputDeviceShared  *shared  = device->shared;
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
 
      /* Add missing flags */
      event->flags |= missing;
@@ -1138,9 +1170,11 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
 }
 
 static void
-fixup_mouse_event( InputDevice *device, DFBInputEvent *event )
+fixup_mouse_event( CoreInputDevice *device, DFBInputEvent *event )
 {
      InputDeviceShared *shared = device->shared;
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
 
      if (event->flags & DIEF_BUTTONS) {
           shared->buttons = event->buttons;
@@ -1447,9 +1481,11 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 }
 
 static void
-release_key( InputDevice *device, DFBInputDeviceKeyIdentifier id )
+release_key( CoreInputDevice *device, DFBInputDeviceKeyIdentifier id )
 {
      DFBInputEvent evt;
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
 
      evt.type   = DIET_KEYRELEASE;
      evt.flags  = DIEF_KEYID;
@@ -1459,8 +1495,10 @@ release_key( InputDevice *device, DFBInputDeviceKeyIdentifier id )
 }
 
 static void
-flush_keys( InputDevice *device )
+flush_keys( CoreInputDevice *device )
 {
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
      if (device->shared->modifiers_l) {
           if (device->shared->modifiers_l & DIMM_ALT)
                release_key( device, DIKI_ALT_L );
@@ -1547,8 +1585,10 @@ dump_primary_layer_surface()
 }
 
 static bool
-core_input_filter( InputDevice *device, DFBInputEvent *event )
+core_input_filter( CoreInputDevice *device, DFBInputEvent *event )
 {
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
      if (dfb_system_input_filter( device, event ))
           return true;
 

@@ -100,6 +100,7 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Initialize all registered layers. */
      for (i=0; i<dfb_num_layers; i++) {
+          char               buf[24];
           CoreLayerShared   *shared;
           CoreLayer         *layer = dfb_layers[i];
           DisplayLayerFuncs *funcs = layer->funcs;
@@ -110,8 +111,10 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
           /* Assign ID (zero based index). */
           shared->layer_id = i;
 
+          snprintf( buf, sizeof(buf), "Display Layer %d", i );
+
           /* Initialize the lock. */
-          if (fusion_skirmish_init( &shared->lock )) {
+          if (fusion_skirmish_init( &shared->lock, buf )) {
                SHFREE( shared );
                return DFB_FUSION;
           }

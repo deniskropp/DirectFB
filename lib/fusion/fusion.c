@@ -142,18 +142,12 @@ fusion_init( int world, int abi_version, int *world_ret )
      /* Get our Fusion ID. */
      if (ioctl( _fusion_fd, FUSION_ENTER, &enter )) {
           D_PERROR( "Fusion/Init: FUSION_ENTER failed!\n" );
-          close( _fusion_fd );
-          _fusion_fd = -1;
-          direct_shutdown();
-          return -1;
+          goto error;
      }
 
      if (!enter.fusion_id) {
           D_ERROR( "Fusion/Init: Got no ID from FUSION_ENTER! Kernel module might be too old.\n" );
-          close( _fusion_fd );
-          _fusion_fd = -1;
-          direct_shutdown();
-          return -1;
+          goto error;
      }
 
      _fusion_id = enter.fusion_id;
@@ -164,19 +158,11 @@ fusion_init( int world, int abi_version, int *world_ret )
 
      /* Initialize shmalloc part. */
      if (!__shmalloc_init( world, _fusion_id == 1 )) {
-          fprintf( stderr, "\n"
-                           "Shared memory initialization failed.\n"
-                           "Please make sure that a tmpfs mount point with "
-                             "at least 4MB of free space\n"
-                           "is writable, see the DirectFB README "
-                             "for more instructions.\n" );
-
-          _fusion_id = 0;
-
-          close( _fusion_fd );
-          _fusion_fd = -1;
-          direct_shutdown();
-          return -1;
+          D_ERROR( "Fusion/Init: Shared memory initialization failed.\n"
+                   "\n"
+                   "Please make sure that a tmpfs mount point with at least 4MB of free space\n"
+                   "is available for read/write, see the DirectFB README for more instructions.\n" );
+          goto error;
      }
 
      if (_fusion_id == 1) {
@@ -184,7 +170,14 @@ fusion_init( int world, int abi_version, int *world_ret )
 
           _fusion_shared->abi_version = abi_version;
 
-          fusion_skirmish_init( &_fusion_shared->arenas_lock );
+          fusion_skirmish_init( &_fusion_shared->arenas_lock,     "Fusion Arenas" );
+          fusion_skirmish_init( &_fusion_shared->reactor_globals, "Fusion Reactor Globals" );
+
+          _sheap->reactor = fusion_reactor_new( sizeof(long), "Shared Memory Heap" );
+          if (!_sheap->reactor) {
+               __shmalloc_exit( true, true );
+               goto error_reactor;
+          }
 
           gettimeofday( &_fusion_shared->start_time, NULL );
      }
@@ -194,17 +187,8 @@ fusion_init( int world, int abi_version, int *world_ret )
           if (_fusion_shared->abi_version != abi_version) {
                D_ERROR( "Fusion/Init: ABI version mismatch (my: %d, their: %d)\n",
                         abi_version, _fusion_shared->abi_version );
-
-               _fusion_shared = NULL;
-
                __shmalloc_exit( false, false );
-
-               _fusion_id = 0;
-
-               close( _fusion_fd );
-               _fusion_fd = -1;
-               direct_shutdown();
-               return -1;
+               goto error;
           }
      }
 
@@ -220,6 +204,20 @@ fusion_init( int world, int abi_version, int *world_ret )
           *world_ret = world;
 
      return _fusion_id;
+
+
+error_reactor:
+     fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
+     fusion_skirmish_destroy( &_fusion_shared->reactor_globals );
+
+error:
+     _fusion_shared = NULL;
+     _fusion_id = 0;
+
+     close( _fusion_fd );
+     _fusion_fd = -1;
+     direct_shutdown();
+     return -1;
 }
 
 void
@@ -257,8 +255,10 @@ fusion_exit( bool emergency )
      direct_signal_handler_remove( signal_handler );
 
      /* Master has to deinitialize shared data. */
-     if (_fusion_id == 1)
+     if (_fusion_id == 1) {
+          fusion_skirmish_destroy( &_fusion_shared->reactor_globals );
           fusion_skirmish_destroy( &_fusion_shared->arenas_lock );
+     }
 
      _fusion_shared = NULL;
 

@@ -469,9 +469,7 @@ __shmalloc_init (int world, bool initialize)
 
           _sheap->heapbase = (char *) _sheap->heapinfo;
 
-          fusion_skirmish_init (&_sheap->lock);
-
-          _sheap->reactor  = fusion_reactor_new (sizeof(int));
+          fusion_skirmish_init( &_sheap->lock, "Shared Memory Heap" );
      }
 
      return mem;
@@ -480,7 +478,10 @@ __shmalloc_init (int world, bool initialize)
 void
 __shmalloc_attach()
 {
-     fusion_reactor_attach (_sheap->reactor, __shmalloc_react, NULL, &reaction);
+     D_ASSERT( _sheap != NULL );
+     D_ASSERT( _sheap->reactor != NULL );
+     
+     fusion_reactor_attach( _sheap->reactor, __shmalloc_react, NULL, &reaction );
 }
 
 void *
@@ -517,7 +518,7 @@ __shmalloc_brk (int increment)
           size = new_size;
 
           if (_sheap && _sheap->reactor)
-               fusion_reactor_dispatch (_sheap->reactor, (const void *) &size, false, NULL);
+               fusion_reactor_dispatch( _sheap->reactor, (const void *) &size, false, NULL );
      }
 
      return mem + size - increment;
@@ -525,16 +526,21 @@ __shmalloc_brk (int increment)
 
 ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 {
-     void   *new_mem;
-     struct  stat st;
+     struct stat  st;
+     void        *new_mem;
+     const long  *size_msg = msg_data;
+
+     D_ASSERT( msg_data != NULL );
 
      D_ASSERT( fd >= 0 );
 
-     /* Query size of memory. */
+     /* Query size of file. */
      if (fstat (fd, &st) < 0) {
-          D_PERROR( "Fusion/SHM: fstating shared memory file failed!\n" );
+          D_PERROR( "Fusion/SHM: fstat() on shared memory file failed!\n" );
           return RS_OK;
      }
+
+     D_ASSUME( st.st_size == *size_msg );
 
      if (size != st.st_size) {
           D_DEBUG("Fusion/SHM: __shmalloc_react (%d -> %ld)\n", size, st.st_size );
@@ -556,48 +562,56 @@ ReactionResult __shmalloc_react (const void *msg_data, void *ctx)
 
 void __shmalloc_exit (bool shutdown, bool detach)
 {
+     D_ASSUME( mem != NULL );
+     D_ASSUME( _sheap != NULL );
+
      if (!mem)
           return;
 
      if (_sheap) {
+          FusionReactor *reactor = _sheap->reactor;
+          
           /* Detach from reactor */
-          if (detach)
+          if (detach) {
+               D_ASSERT( reactor != NULL );
+               
                fusion_reactor_detach (_sheap->reactor, &reaction);
+          }
 
           /* Destroy reactor & skirmish */
           if (shutdown) {
-               FusionReactor *reactor = _sheap->reactor;
+               D_ASSERT( reactor != NULL );
 
-               /* Avoid further dispatching by next calls */
+               /* Avoid further dispatching by following free() calls */
                _sheap->reactor = NULL;
 
-               if (_sheap->root_node)
-                    SHFREE(_sheap->root_node);
+               fusion_reactor_free( reactor );
 
-               fusion_reactor_free (reactor);
+               if (_sheap->root_node)
+                    SHFREE( _sheap->root_node );
 
                fusion_dbg_print_memleaks();
 
-               fusion_skirmish_destroy (&_sheap->lock);
+               fusion_skirmish_destroy( &_sheap->lock );
           }
 
           _sheap = NULL;
      }
 
-     munmap (mem, size);
+     munmap( mem, size );
      mem = NULL;
 
-     close (fd);
+     close( fd );
      fd = -1;
 
      if (shutdown)
-          unlink (sh_name);
+          unlink( sh_name );
 
-     D_FREE (sh_name);
+     D_FREE( sh_name );
      sh_name = NULL;
 }
 
-void *__shmalloc_allocate_root (size_t size)
+void *__shmalloc_allocate_root( size_t size )
 {
      D_ASSERT( _sheap != NULL );
      D_ASSERT( _sheap->root_node == NULL );
@@ -614,7 +628,7 @@ void *__shmalloc_get_root()
      return _sheap->root_node;
 }
 
-bool fusion_is_shared (const void *ptr)
+bool fusion_is_shared( const void *ptr )
 {
      return((unsigned int) ptr >= SH_BASE &&
             (unsigned int) ptr <  SH_BASE + SH_MAX_SIZE);

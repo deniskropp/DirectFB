@@ -163,13 +163,13 @@ static DFBEnumerationResult EnumDisplayLayers_Callback( CoreLayer   *layer,
 static DFBEnumerationResult GetDisplayLayer_Callback  ( CoreLayer   *layer,
                                                         void        *ctx );
 
-static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice *device,
-                                                        void        *ctx );
-static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice *device,
-                                                        void        *ctx );
+static DFBEnumerationResult EnumInputDevices_Callback ( CoreInputDevice *device,
+                                                        void            *ctx );
+static DFBEnumerationResult GetInputDevice_Callback   ( CoreInputDevice *device,
+                                                        void            *ctx );
 
-static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice *device,
-                                                        void        *ctx );
+static DFBEnumerationResult CreateEventBuffer_Callback( CoreInputDevice *device,
+                                                        void            *ctx );
 
 static ReactionResult focus_listener( const void *msg_data,
                                       void       *ctx );
@@ -1350,7 +1350,7 @@ GetDisplayLayer_Callback( CoreLayer *layer, void *ctx )
 }
 
 static DFBEnumerationResult
-EnumInputDevices_Callback( InputDevice *device, void *ctx )
+EnumInputDevices_Callback( CoreInputDevice *device, void *ctx )
 {
      DFBInputDeviceDescription  desc;
      EnumInputDevices_Context  *context = (EnumInputDevices_Context*) ctx;
@@ -1362,7 +1362,7 @@ EnumInputDevices_Callback( InputDevice *device, void *ctx )
 }
 
 static DFBEnumerationResult
-GetInputDevice_Callback( InputDevice *device, void *ctx )
+GetInputDevice_Callback( CoreInputDevice *device, void *ctx )
 {
      GetInputDevice_Context *context = (GetInputDevice_Context*) ctx;
 
@@ -1377,7 +1377,7 @@ GetInputDevice_Callback( InputDevice *device, void *ctx )
 }
 
 static DFBEnumerationResult
-CreateEventBuffer_Callback( InputDevice *device, void *ctx )
+CreateEventBuffer_Callback( CoreInputDevice *device, void *ctx )
 {
      DFBInputDeviceDescription   desc;
      CreateEventBuffer_Context  *context = (CreateEventBuffer_Context*) ctx;

@@ -50,7 +50,7 @@
 D_DEBUG_DOMAIN( UniQuE_Device, "UniQuE/Device", "UniQuE's Devices" );
 
 
-static const React unique_device_globals[] = {
+static const ReactionFunc unique_device_globals[] = {
      _unique_input_switch_device_listener,
      NULL
 };
@@ -175,7 +175,7 @@ unique_device_create( UniqueContext        *context,
      device->arg     = arg;
 
      /* Create reactor for dispatching generated events. */
-     device->reactor = fusion_reactor_new( sizeof(UniqueInputEvent) );
+     device->reactor = fusion_reactor_new( sizeof(UniqueInputEvent), "UniQuE Device" );
      if (!device->reactor) {
           SHFREE( device );
           return DFB_FUSION;
@@ -307,13 +307,13 @@ unique_device_disconnect( UniqueDevice    *device,
 
 DFBResult
 unique_device_attach( UniqueDevice *device,
-                      React         react,
+                      ReactionFunc  func,
                       void         *ctx,
                       Reaction     *reaction )
 {
      D_MAGIC_ASSERT( device, UniqueDevice );
 
-     return fusion_reactor_attach( device->reactor, react, ctx, reaction );
+     return fusion_reactor_attach( device->reactor, func, ctx, reaction );
 }
 
 DFBResult
@@ -327,13 +327,13 @@ unique_device_detach( UniqueDevice *device,
 
 DFBResult
 unique_device_attach_global( UniqueDevice   *device,
-                             int             react_index,
+                             int             index,
                              void           *ctx,
                              GlobalReaction *reaction )
 {
      D_MAGIC_ASSERT( device, UniqueDevice );
 
-     return fusion_reactor_attach_global( device->reactor, react_index, ctx, reaction );
+     return fusion_reactor_attach_global( device->reactor, index, ctx, reaction );
 }
 
 DFBResult

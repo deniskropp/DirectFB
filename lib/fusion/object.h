@@ -80,6 +80,9 @@ DirectResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
 
 FusionObject     *fusion_object_create  ( FusionObjectPool *pool );
 
+DirectResult      fusion_object_set_lock( FusionObject     *object,
+                                          FusionSkirmish   *lock );
+
 DirectResult      fusion_object_activate( FusionObject     *object );
 
 DirectResult      fusion_object_destroy ( FusionObject     *object );
@@ -88,14 +91,14 @@ DirectResult      fusion_object_destroy ( FusionObject     *object );
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
                                                                                \
 static inline DirectResult                                                     \
-prefix##_attach( type     *object,                                             \
-                 React     react,                                              \
-                 void     *ctx,                                                \
-                 Reaction *reaction )                                          \
+prefix##_attach( type         *object,                                         \
+                 ReactionFunc  func,                                           \
+                 void         *ctx,                                            \
+                 Reaction     *ret_reaction )                                  \
 {                                                                              \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_reactor_attach( ((FusionObject*)object)->reactor,           \
-                                   react, ctx, reaction );                     \
+                                   func, ctx, ret_reaction );                  \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
@@ -109,13 +112,13 @@ prefix##_detach( type     *object,                                             \
                                                                                \
 static inline DirectResult                                                     \
 prefix##_attach_global( type           *object,                                \
-                        int             react_index,                           \
+                        int             index,                                 \
                         void           *ctx,                                   \
                         GlobalReaction *reaction )                             \
 {                                                                              \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_reactor_attach_global( ((FusionObject*)object)->reactor,    \
-                                          react_index, ctx, reaction );        \
+                                          index, ctx, reaction );              \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
@@ -128,9 +131,9 @@ prefix##_detach_global( type           *object,                                \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
-prefix##_dispatch( type        *object,                                        \
-                   void        *message,                                       \
-                   const React *globals )                                      \
+prefix##_dispatch( type               *object,                                 \
+                   void               *message,                                \
+                   const ReactionFunc *globals )                               \
 {                                                                              \
      D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
      return fusion_reactor_dispatch( ((FusionObject*)object)->reactor,         \

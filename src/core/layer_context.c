@@ -141,7 +141,7 @@ dfb_layer_context_create( CoreLayer         *layer,
      D_DEBUG( "DirectFB/core/layers: %s -> %p\n", __FUNCTION__, context );
 
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &context->lock )) {
+     if (fusion_skirmish_init( &context->lock, "Layer Context" )) {
           fusion_object_destroy( &context->object );
           return DFB_FUSION;
      }
@@ -162,6 +162,9 @@ dfb_layer_context_create( CoreLayer         *layer,
 
      /* Initialize the primary region's configuration. */
      init_region_config( context, &context->primary.config );
+     
+     /* Change global reaction lock. */
+     fusion_object_set_lock( &context->object, &context->lock );
 
      /* Activate the object. */
      fusion_object_activate( &context->object );

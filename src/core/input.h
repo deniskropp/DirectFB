@@ -44,10 +44,10 @@ DECLARE_MODULE_DIRECTORY( dfb_input_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_INPUT_DRIVER_ABI_VERSION         6
+#define DFB_INPUT_DRIVER_ABI_VERSION         7
 
-#define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   60
-#define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 80
+#define DFB_INPUT_DRIVER_INFO_NAME_LENGTH   48
+#define DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH 64
 
 
 typedef struct {
@@ -77,54 +77,66 @@ typedef struct {
 typedef struct {
      int       (*GetAvailable)   ();
      void      (*GetDriverInfo)  (InputDriverInfo            *driver_info);
-     DFBResult (*OpenDevice)     (InputDevice                *device,
+     DFBResult (*OpenDevice)     (CoreInputDevice            *device,
                                   unsigned int                number,
                                   InputDeviceInfo            *device_info,
                                   void                      **driver_data);
-     DFBResult (*GetKeymapEntry) (InputDevice                *device,
+     DFBResult (*GetKeymapEntry) (CoreInputDevice            *device,
                                   void                       *driver_data,
                                   DFBInputDeviceKeymapEntry  *entry);
      void      (*CloseDevice)    (void                       *driver_data);
 } InputDriverFuncs;
 
 
-typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
-                                                     void        *ctx);
+typedef DFBEnumerationResult (*InputDeviceCallback) (CoreInputDevice *device,
+                                                     void            *ctx);
 
 void dfb_input_enumerate_devices( InputDeviceCallback         callback,
                                   void                       *ctx,
                                   DFBInputDeviceCapabilities  caps );
 
-DirectResult dfb_input_attach( InputDevice *device,
-                               React        react,
-                               void        *ctx,
-                               Reaction    *reaction );
 
-DirectResult dfb_input_detach( InputDevice *device,
-                               Reaction    *reaction );
+DirectResult dfb_input_attach       ( CoreInputDevice *device,
+                                      ReactionFunc     func,
+                                      void            *ctx,
+                                      Reaction        *reaction );
 
-DirectResult dfb_input_attach_global( InputDevice    *device,
-                                      int             react_index,
-                                      void           *ctx,
-                                      GlobalReaction *reaction );
+DirectResult dfb_input_detach       ( CoreInputDevice *device,
+                                      Reaction        *reaction );
 
-DirectResult dfb_input_detach_global( InputDevice    *device,
-                                      GlobalReaction *reaction );
+DirectResult dfb_input_attach_global( CoreInputDevice *device,
+                                      int              index,
+                                      void            *ctx,
+                                      GlobalReaction  *reaction );
 
-DFBResult dfb_input_add_global( React react, int *ret_index );
-DFBResult dfb_input_set_global( React react, int index );
+DirectResult dfb_input_detach_global( CoreInputDevice *device,
+                                      GlobalReaction  *reaction );
 
-void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 
-void dfb_input_device_description( const InputDevice         *device,
-                                   DFBInputDeviceDescription *desc );
+DFBResult    dfb_input_add_global   ( ReactionFunc     func,
+                                      int             *ret_index );
 
-DFBInputDeviceID  dfb_input_device_id( const InputDevice *device );
-InputDevice      *dfb_input_device_at( DFBInputDeviceID   id );
+DFBResult    dfb_input_set_global   ( ReactionFunc     func,
+                                      int              index );
 
-DFBResult dfb_input_device_get_keymap_entry( InputDevice               *device,
-                                             int                        keycode,
-                                             DFBInputDeviceKeymapEntry *entry );
+
+void         dfb_input_dispatch     ( CoreInputDevice *device,
+                                      DFBInputEvent   *event );
+
+
+
+void              dfb_input_device_description( const CoreInputDevice     *device,
+                                                DFBInputDeviceDescription *desc );
+
+DFBInputDeviceID  dfb_input_device_id         ( const CoreInputDevice     *device );
+
+CoreInputDevice  *dfb_input_device_at         ( DFBInputDeviceID           id );
+
+
+
+DFBResult         dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
+                                                     int                        keycode,
+                                                     DFBInputDeviceKeymapEntry *entry );
 
 /* global reactions */
 

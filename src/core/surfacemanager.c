@@ -142,7 +142,7 @@ dfb_surfacemanager_create( unsigned int     length,
      manager->max_power_of_two_bytepitch  = limits->surface_max_power_of_two_bytepitch;
      manager->max_power_of_two_height     = limits->surface_max_power_of_two_height;
 
-     fusion_skirmish_init( &manager->lock );
+     fusion_skirmish_init( &manager->lock, "Surface Manager" );
 
      D_MAGIC_SET( chunk, _Chunk_ );
 

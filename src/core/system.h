@@ -135,7 +135,7 @@ typedef struct {
       * Called upon incoming input events.
       * Return true to drop the event, e.g. after doing special handling of it.
       */
-     bool           (*InputFilter)( InputDevice *device, DFBInputEvent *event );
+     bool           (*InputFilter)( CoreInputDevice *device, DFBInputEvent *event );
 
      /*
       * Graphics drivers call this function to get access to MMIO regions.
@@ -198,8 +198,8 @@ DFBResult
 dfb_system_thread_init();
 
 bool
-dfb_system_input_filter( InputDevice   *device,
-                         DFBInputEvent *event );
+dfb_system_input_filter( CoreInputDevice *device,
+                         DFBInputEvent   *event );
 
 unsigned long
 dfb_system_video_memory_physical( unsigned int offset );

@@ -68,8 +68,8 @@ static unsigned int loops;
 
 
 static ReactionResult
-react (const void    *msg_data,
-       void          *ctx)
+reaction_callback (const void *msg_data,
+                   void       *ctx)
 {
      return RS_OK;
 }
@@ -82,7 +82,7 @@ bench_reactor()
      Reaction        reaction2;
      GlobalReaction  global_reaction;
 
-     reactor = fusion_reactor_new( 16 );
+     reactor = fusion_reactor_new( 16, "Benchmark" );
      if (!reactor) {
           fprintf( stderr, "Fusion Error\n" );
           return;
@@ -93,7 +93,7 @@ bench_reactor()
      BENCH_START();
 
      BENCH_LOOP() {
-          fusion_reactor_attach( reactor, react, NULL, &reaction );
+          fusion_reactor_attach( reactor, reaction_callback, NULL, &reaction );
           fusion_reactor_detach( reactor, &reaction );
      }
 
@@ -103,12 +103,12 @@ bench_reactor()
 
 
      /* reactor attach/detach (2nd) */
-     fusion_reactor_attach( reactor, react, NULL, &reaction );
+     fusion_reactor_attach( reactor, reaction_callback, NULL, &reaction );
 
      BENCH_START();
 
      BENCH_LOOP() {
-          fusion_reactor_attach( reactor, react, NULL, &reaction2 );
+          fusion_reactor_attach( reactor, reaction_callback, NULL, &reaction2 );
           fusion_reactor_detach( reactor, &reaction2 );
      }
 
@@ -120,7 +120,7 @@ bench_reactor()
 
 
      /* reactor attach/detach (global) */
-     fusion_reactor_attach( reactor, react, NULL, &reaction );
+     fusion_reactor_attach( reactor, reaction_callback, NULL, &reaction );
 
      BENCH_START();
 
@@ -137,7 +137,7 @@ bench_reactor()
 
 
      /* reactor dispatch */
-     fusion_reactor_attach( reactor, react, NULL, &reaction );
+     fusion_reactor_attach( reactor, reaction_callback, NULL, &reaction );
 
      BENCH_START();
 
@@ -241,7 +241,7 @@ bench_skirmish()
      DirectResult   ret;
      FusionSkirmish skirmish;
 
-     ret = fusion_skirmish_init( &skirmish );
+     ret = fusion_skirmish_init( &skirmish, "Benchmark" );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -286,7 +286,7 @@ bench_skirmish_threaded()
      DirectResult   ret;
      FusionSkirmish skirmish;
 
-     ret = fusion_skirmish_init( &skirmish );
+     ret = fusion_skirmish_init( &skirmish, "Threaded Benchmark" );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;

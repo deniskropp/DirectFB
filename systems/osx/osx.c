@@ -89,7 +89,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_osx_core = core;
 
      /* Initialize OSX */
-     fusion_skirmish_init( &dfb_osx->lock );
+     fusion_skirmish_init( &dfb_osx->lock, "OSX System" );
 
      fusion_call_init( &dfb_osx->call, dfb_osx_call_handler, NULL );
 
@@ -205,7 +205,7 @@ system_thread_init()
 }
 
 static bool
-system_input_filter( InputDevice   *device,
+system_input_filter( CoreInputDevice   *device,
                      DFBInputEvent *event )
 {
      return false;

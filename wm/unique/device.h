@@ -81,7 +81,7 @@ DFBResult unique_device_disconnect   ( UniqueDevice           *device,
                                        CoreInputDevice        *source );
 
 DFBResult unique_device_attach       ( UniqueDevice           *device,
-                                       React                   react,
+                                       ReactionFunc            func,
                                        void                   *ctx,
                                        Reaction               *reaction );
 
@@ -89,7 +89,7 @@ DFBResult unique_device_detach       ( UniqueDevice           *device,
                                        Reaction               *reaction );
 
 DFBResult unique_device_attach_global( UniqueDevice           *device,
-                                       int                     react_index,
+                                       int                     index,
                                        void                   *ctx,
                                        GlobalReaction         *reaction );
 

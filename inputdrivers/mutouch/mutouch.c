@@ -137,7 +137,7 @@ DFB_INPUT_DRIVER( MuTouch )
 typedef struct __MuTData__ {
      int fd;
      DirectThread *thread;
-     InputDevice *device;
+     CoreInputDevice *device;
      unsigned short x;
      unsigned short y;
      unsigned short screen_width;
@@ -416,7 +416,7 @@ static void driver_get_info( InputDriverInfo *info )
      info->version.minor = 2;
 }
 
-static DFBResult driver_open_device(InputDevice *device,
+static DFBResult driver_open_device(CoreInputDevice *device,
                                     unsigned int number,
                                     InputDeviceInfo *info,
                                     void **driver_data)
@@ -470,7 +470,7 @@ static DFBResult driver_open_device(InputDevice *device,
 /*
  * Fetch one entry from the device's keymap if supported.
  */
-static DFBResult driver_get_keymap_entry(InputDevice *device,
+static DFBResult driver_get_keymap_entry(CoreInputDevice *device,
                                          void        *driver_data,
                                          DFBInputDeviceKeymapEntry *entry)
 {

@@ -278,8 +278,8 @@ dfb_system_thread_init()
 }
 
 bool
-dfb_system_input_filter( InputDevice   *device,
-                         DFBInputEvent *event )
+dfb_system_input_filter( CoreInputDevice *device,
+                         DFBInputEvent   *event )
 {
      D_ASSERT( system_funcs != NULL );
 

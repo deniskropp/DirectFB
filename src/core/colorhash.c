@@ -65,7 +65,7 @@ dfb_colorhash_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      hash_field = data_shared;
 
-     fusion_skirmish_init( &hash_field->hash_lock );
+     fusion_skirmish_init( &hash_field->hash_lock, "Colorhash Core" );
 
      return DFB_OK;
 }

@@ -66,10 +66,10 @@ typedef struct
 } EventBufferItem;
 
 typedef struct {
-     DirectLink   link;
+     DirectLink       link;
 
-     InputDevice *device;       /* pointer to input core device struct */
-     Reaction     reaction;
+     CoreInputDevice *device;       /* pointer to input core device struct */
+     Reaction         reaction;
 } AttachedDevice;
 
 typedef struct {
@@ -508,7 +508,7 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
 /* directfb internals */
 
 DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
-                                                  InputDevice          *device )
+                                                  CoreInputDevice      *device )
 {
      AttachedDevice *attached;
 

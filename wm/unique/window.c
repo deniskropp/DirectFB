@@ -51,7 +51,7 @@
 D_DEBUG_DOMAIN( UniQuE_Window, "UniQuE/Window", "UniQuE's Window" );
 
 
-static const React unique_window_globals[] = {
+static const ReactionFunc unique_window_globals[] = {
      _unique_wm_module_window_listener,
      NULL
 };
