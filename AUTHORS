@@ -22,5 +22,6 @@ Holger Wächtler <holger@convergence.de>         (Linux Input driver)
 David Wood <DWood@daedalcorp.com>               (Voodoo gfx driver)
 Liam Girdwood <liam.girdwood@wolfsonmicro.com>  (WM97xx Touchscreen driver)
 Brandon M. Reynolds <breynolds@comtime.com>     (ELO Touchscreen driver)
+Claudio Ciccani <klan82@cheapnet.it>            (nVidia gfx driver)
 
 See also "Thanks To" section in README.
