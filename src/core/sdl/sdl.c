@@ -67,12 +67,21 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( void **data )
 {
+     char *driver;
+
      DFB_ASSERT( dfb_sdl == NULL );
 
      dfb_sdl = (DFBSDL*) shcalloc( 1, sizeof(DFBSDL) );
      if (!dfb_sdl) {
           ERRORMSG( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
+     }
+
+     driver = getenv( "SDL_VIDEODRIVER" );
+     if (driver && !strcasecmp( driver, "directfb" )) {
+          INITMSG( "DirectFB/SDL: "
+                   "SDL_VIDEODRIVER is 'directfb', unsetting it.\n" );
+          unsetenv( "SDL_VIDEODRIVER" );
      }
      
      /* Initialize SDL */
