@@ -310,8 +310,8 @@ vt_init_switching()
      }
 
      if (dfb_config->vt_switch) {
-          if (ioctl( 0/*dfb_vt->fd0*/, TIOCNOTTY, 0 ) < 0)
-               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );
+          if (ioctl( dfb_vt->fd0, TIOCNOTTY, 0 ) < 0);
+/*               PERRORMSG( "DirectFB/Keyboard: TIOCNOTTY failed!\n" );*/
           
           if (ioctl( dfb_vt->fd, TIOCSCTTY, 0 ) < 0);
 /*               PERRORMSG( "DirectFB/Keyboard: TIOCSCTTY failed!\n" );*/
