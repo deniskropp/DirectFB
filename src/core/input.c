@@ -1471,7 +1471,7 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
      if (event->type == DIET_KEYPRESS) {
           switch (event->key_symbol) {
                case DIKS_PRINT:
-                    if (dfb_config->screenshot_dir) {
+                    if (!event->modifiers && dfb_config->screenshot_dir) {
                          dfb_surface_dump( dfb_layer_surface( dfb_layer_at(0) ),
                                            dfb_config->screenshot_dir, "dfb" );
                          return true;
