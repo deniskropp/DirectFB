@@ -1198,7 +1198,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                case DLBM_FRONTONLY:
                     surface->caps &= ~DSCAPS_FLIPPING;
                     if (surface->back_buffer != surface->front_buffer) {
-                         if (surface->back_buffer->system.health)
+                         if (surface->back_buffer->system.addr)
                               shfree( surface->back_buffer->system.addr );
 
                          shfree( surface->back_buffer );
@@ -1212,8 +1212,10 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                          surface->back_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
                     }
                     else {
-                         if (surface->back_buffer->system.health)
+                         if (surface->back_buffer->system.addr) {
                               shfree( surface->back_buffer->system.addr );
+                              surface->back_buffer->system.addr = NULL;
+                         }
 
                          surface->back_buffer->system.health = CSH_INVALID;
                     }

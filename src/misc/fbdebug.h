@@ -30,6 +30,7 @@
 #include <core/fusion/lock.h>
 
 #include <core/coretypes.h>
+#include <core/fusion/fusion_types.h>
 
 
 typedef struct _FBDebugArea FBDebugArea;
@@ -39,6 +40,8 @@ typedef struct _FBDebugArea FBDebugArea;
 
 DFBResult fbdebug_init();
 void      fbdebug_exit();
+
+bool      fbdebug_initialized();
 
 void      fbdebug_get_size ( unsigned int  *width,
                              unsigned int  *height );

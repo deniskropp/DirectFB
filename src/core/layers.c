@@ -212,6 +212,9 @@ dfb_layers_shutdown( bool emergency )
 
      /* Free shared layer field */
      shfree( layersfield );
+     layersfield = NULL;
+
+     dfb_num_layers = 0;
 
      return DFB_OK;
 }
@@ -221,6 +224,9 @@ DFBResult
 dfb_layers_leave( bool emergency )
 {
      int i;
+
+     if (!layersfield)
+          return DFB_OK;
 
      /* Free all local data */
      for (i=0; i<layersfield->num; i++) {
@@ -233,6 +239,10 @@ dfb_layers_leave( bool emergency )
           /* Free local layer data */
           DFBFREE( layer );
      }
+
+     layersfield = NULL;
+     
+     dfb_num_layers = 0;
 
      return DFB_OK;
 }

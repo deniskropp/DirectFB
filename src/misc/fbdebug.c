@@ -157,6 +157,12 @@ fbdebug_exit()
      fd = -1;
 }
 
+bool
+fbdebug_initialized()
+{
+     return (fd != -1);
+}
+
 void
 fbdebug_get_size( unsigned int *width,
                   unsigned int *height )

@@ -634,6 +634,9 @@ static void debug_linear_fill( SurfaceManager *manager,
 {
      int s, l, x, y, w = 1;
 
+     if (!fbdebug_initialized())
+          return;
+
      s = start  * (long long)manager->debug.total / manager->length;
      l = length * (long long)manager->debug.total / manager->length;
 
@@ -662,6 +665,9 @@ static void debug_linear_fill( SurfaceManager *manager,
 static void debug_dump( SurfaceManager *manager )
 {
      Chunk *c;
+
+     if (!fbdebug_initialized())
+          return;
 
      debug_linear_fill( manager, 0, manager->heap_offset, 0, 0, 0 );
 

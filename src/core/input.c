@@ -152,6 +152,8 @@ input_driver_handle_func( void *handle, char *name, void *ctx );
 DFBResult
 dfb_input_initialize()
 {
+     DFB_ASSERT( inputfield == NULL );
+
      inputfield = shcalloc( 1, sizeof (CoreInputField) );
 
 #ifndef FUSION_FAKE
@@ -176,10 +178,11 @@ dfb_input_join()
      int          i;
      FusionResult ret;
 
+     DFB_ASSERT( inputfield == NULL );
+
      ret = arena_get_shared_field( dfb_core->arena,
                                   (void**) &inputfield, "Core/Input" );
      if (ret) {
-          printf("%d\n", ret);
           return DFB_INIT;
      }
 
@@ -213,6 +216,9 @@ dfb_input_shutdown( bool emergency )
 {
      InputDevice *d = inputdevices;
 
+     if (!inputfield)
+          return DFB_OK;
+
      while (d) {
           InputDevice       *next   = d->next;
           InputDeviceShared *shared = d->shared;
@@ -237,6 +243,9 @@ dfb_input_shutdown( bool emergency )
 
      inputdevices = NULL;
 
+     shfree( inputfield );
+     inputfield = NULL;
+
      return DFB_OK;
 }
 
@@ -245,6 +254,9 @@ DFBResult
 dfb_input_leave( bool emergency )
 {
      InputDevice *d = inputdevices;
+
+     if (!inputfield)
+          return DFB_OK;
 
      while (d) {
           InputDevice *next = d->next;
@@ -255,6 +267,7 @@ dfb_input_leave( bool emergency )
      }
 
      inputdevices = NULL;
+     inputfield = NULL;
 
      return DFB_OK;
 }
@@ -265,6 +278,8 @@ DFBResult
 dfb_input_suspend()
 {
      InputDevice *d = inputdevices;
+
+     DFB_ASSERT( inputfield != NULL );
 
      while (d) {
           d->driver->funcs->CloseDevice( d->driver_data );
@@ -279,6 +294,8 @@ DFBResult
 dfb_input_resume()
 {
      InputDevice *d = inputdevices;
+
+     DFB_ASSERT( inputfield != NULL );
 
      while (d) {
           int       i;
