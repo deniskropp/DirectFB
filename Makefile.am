@@ -26,7 +26,9 @@ pkgconfig_DATA = directfb.pc directfb-internal.pc
 
 EXTRA_DIST = \
 	README.screenshots	\
-	fb.modes
+	fb.modes \
+	directfb.spec
+	
 
 ## Some special rules that may be useful ...
 .PHONY: html directfb-csource

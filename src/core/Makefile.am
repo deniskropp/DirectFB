@@ -37,6 +37,7 @@ internalincludedir = $(INTERNALINCLUDEDIR)/core
 internalinclude_HEADERS = \
 	coredefs.h		\
 	coretypes.h		\
+	core_system.h		\
 	core.h			\
 	fonts.h			\
 	gfxcard.h		\
