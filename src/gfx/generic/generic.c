@@ -3852,29 +3852,25 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Cop = color.a;
                break;
           case DSPF_YUY2:
-               gfxs->Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CbCop = CB_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CrCop = CR_FROM_RGB( color.r, color.g, color.b );
-               gfxs->Cop   = PIXEL_YUY2( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
+               RGB_TO_YCBCR( color.r, color.g, color.b,
+                             gfxs->Cop, gfxs->CbCop gfxs->CrCop );
+               gfxs->Cop = PIXEL_YUY2( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_RGB332:
                gfxs->Cop = PIXEL_RGB332( color.r, color.g, color.b );
                break;
           case DSPF_UYVY:
-               gfxs->Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CbCop = CB_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CrCop = CR_FROM_RGB( color.r, color.g, color.b );
+               RGB_TO_YCBCR( color.r, color.g, color.b,
+                             gfxs->Cop, gfxs->CbCop gfxs->CrCop );
                gfxs->Cop   = PIXEL_UYVY( gfxs->Cop, gfxs->CbCop, gfxs->CrCop );
                break;
           case DSPF_I420:
-               gfxs->Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CbCop = CB_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CrCop = CR_FROM_RGB( color.r, color.g, color.b );
+               RGB_TO_YCBCR( color.r, color.g, color.b,
+                             gfxs->Cop, gfxs->CbCop gfxs->CrCop );
                break;
           case DSPF_YV12:
-               gfxs->Cop   =  Y_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CbCop = CR_FROM_RGB( color.r, color.g, color.b );
-               gfxs->CrCop = CB_FROM_RGB( color.r, color.g, color.b );
+               RGB_TO_YCBCR( color.r, color.g, color.b,
+                             gfxs->Cop, gfxs->CrCop gfxs->CbCop );
                break;
           case DSPF_LUT8:
                gfxs->Cop  = state->color_index;

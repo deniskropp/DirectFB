@@ -30,6 +30,8 @@
 
 #include <directfb.h>
 
+#include <direct/util.h>
+
 
 /* pixel packing */
 
@@ -137,16 +139,31 @@
                                    (((pixel) & 0x000000F8) >>  3) )
 
 
-/* RGB to YUV */
+/* RGB <-> YCbCr conversion */
 
-#define Y_FROM_RGB(r,g,b)      ( ( 0.2290 * r + 0.5670 * g + 0.1440 * b) * \
-                                   219 / 255 + 16 )
+#define YCBCR_TO_RGB( y, cb, cr, r, g, b ) do { \
+     int _y, _cb, _cr, _r, _g, _b; \
+     _y  = ((y) - 16) * 76309; \
+     _cb = (cb) - 128; \
+     _cr = (cr) - 128; \
+     _r = (_y                + _cr * 104597 + 0x8000) >> 16; \
+     _g = (_y - _cb *  25675 - _cr *  53279 + 0x8000) >> 16; \
+     _b = (_y + _cb * 132201                + 0x8000) >> 16; \
+     (r) = CLAMP( _r, 0, 255 ); \
+     (g) = CLAMP( _g, 0, 255 ); \
+     (b) = CLAMP( _b, 0, 255 ); \
+} while (0)
 
-#define CB_FROM_RGB(r,g,b)     ( (-0.1687 * r - 0.3313 * g + 0.5000 * b) * \
-                                   112 / 127 + 128)
-
-#define CR_FROM_RGB(r,g,b)     ( ( 0.5000 * r - 0.4187 * g - 0.0813 * b) * \
-                                   112 / 127 + 128)
+#define RGB_TO_YCBCR( r, g, b, y, cb, cr ) do { \
+     int _r, _g, _b, _y, _cb, _cr; \
+     _r = (r); _g = (g); _b = (b); \
+     _y  = ((_r * 16829 + _g *  33039 + _b *  6416 + 0x8000) >> 16) + 16; \
+     _cb = ((_r * -9714 + _g * -19071 + _b * 28784 + 0x8000) >> 16) + 128; \
+     _cr = ((_r * 28784 + _g * -24103 + _b * -4681 + 0x8000) >> 16) + 128; \
+     (y)  = CLAMP( _y,  16, 235 ); \
+     (cb) = CLAMP( _cb, 16, 240 ); \
+     (cr) = CLAMP( _cr, 16, 240 ); \
+} while (0)
 
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );

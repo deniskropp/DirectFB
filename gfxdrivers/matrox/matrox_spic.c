@@ -178,7 +178,7 @@ spicSetRegion( CoreLayer                  *layer,
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
      volatile __u8       *mmio  = mdrv->mmio_base;
-     __u8                 r, g, b, y, cb, cr;
+     __u8                 y, cb, cr;
      int                  i;
 
      /* remember configuration */
@@ -187,12 +187,10 @@ spicSetRegion( CoreLayer                  *layer,
      spic_set_buffer( mdrv, mspic, surface );
 
      for (i = 0; i < 16; i++) {
-          r  = palette->entries[i].r;
-          g  = palette->entries[i].g;
-          b  = palette->entries[i].b;
-          y  =  Y_FROM_RGB( r, g, b );
-          cb = CB_FROM_RGB( r, g, b );
-          cr = CR_FROM_RGB( r, g, b );
+          RGB_TO_YCBCR( palette->entries[i].r,
+                        palette->entries[i].g,
+                        palette->entries[i].b,
+                        y, cb, cr );
 
           mspic->regs.c2SUBPICLUT = (cr << 24) | (cb << 16) | (y << 8) | i;
           mga_out32( mmio, mspic->regs.c2SUBPICLUT, C2SUBPICLUT );
