@@ -224,6 +224,7 @@
 #     define ZW15      0x00000010
 #     define ZW24      0x00000018
 #     define BYPASS332 0x10000000
+#     define TLUTLOAD  0x20000000
 #     define NODITHER  0x40000000
 #     define DIT555    0x80000000
 

@@ -115,6 +115,8 @@ typedef struct {
           unsigned long offset;
           unsigned long physical;
      } fb;
+     unsigned int tlut_offset;
+     CorePalette *rgb332_palette;
 } MatroxDeviceData;
 
 typedef struct {

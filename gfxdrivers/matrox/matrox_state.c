@@ -36,6 +36,7 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+#include <core/palette.h>
 
 #include <gfx/convert.h>
 #include <misc/util.h>
@@ -101,6 +102,8 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 
      switch (buffer->format) {
           case DSPF_A8:
+          case DSPF_ALUT44:
+          case DSPF_LUT8:
           case DSPF_RGB332:
                mga_out32( mmio, PW8, MACCESS );
                break;
@@ -181,6 +184,16 @@ void matrox_validate_color( MatroxDriverData *mdrv,
           return;
 
      switch (state->destination->format) {
+          case DSPF_ALUT44:
+               color = (state->color.a & 0xF0) | state->color_index;
+               color |= color << 8;
+               color |= color << 16;
+               break;
+          case DSPF_LUT8:
+               color = state->color_index;
+               color |= color << 8;
+               color |= color << 16;
+               break;
           case DSPF_RGB332:
                color = PIXEL_RGB332( state->color.r,
                                      state->color.g,
@@ -347,6 +360,41 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
      MGA_INVALIDATE( m_drawBlend );
 }
 
+static void matrox_tlutload( MatroxDriverData *mdrv,
+                             MatroxDeviceData *mdev,
+                             CorePalette      *palette )
+{
+     volatile __u8  *mmio = mdrv->mmio_base;
+     volatile __u16 *dst  = dfb_gfxcard_memory_virtual( NULL, mdev->tlut_offset );
+     int             i;
+
+     for (i = 0; i < palette->num_entries; i++)
+          *dst++ = PIXEL_RGB16( palette->entries[i].r,
+                                palette->entries[i].g,
+                                palette->entries[i].b );
+
+     mga_waitfifo( mdrv, mdev, 9 );
+     mga_out32( mmio, BLTMOD_BU32RGB | BOP_COPY | SHFTZERO |
+                SGNZERO | LINEAR | ATYPE_RSTR | OP_BITBLT, DWGCTL );
+     mga_out32( mmio, 1024, PITCH );
+     if (mdev->old_matrox) {
+          mga_out32( mmio, mdev->tlut_offset / 2, AR3 );
+          mga_out32( mmio, palette->num_entries, AR0 );
+          mga_out32( mmio, 0, YDSTORG );
+     }
+     else {
+          mga_out32( mmio, 0, AR3 );
+          mga_out32( mmio, palette->num_entries, AR0 );
+          mga_out32( mmio, mdev->fb.offset + mdev->tlut_offset, SRCORG );
+          mga_out32( mmio, 0, DSTORG );
+
+          MGA_INVALIDATE( m_source );
+     }
+     mga_out32( mmio, 0, FXBNDRY );
+     mga_out32( mmio, PW16 | TLUTLOAD, MACCESS );
+     mga_out32( mmio, palette->num_entries, YDSTLEN | EXECUTE );
+}
+
 void matrox_validate_Source( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
@@ -424,6 +472,16 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
           case DSPF_RGB32:
           case DSPF_ARGB:
                texctl |= TW32;
+               break;
+          case DSPF_LUT8:
+               matrox_tlutload( mdrv, mdev, surface->palette );
+               texctl |= TW8;
+               state->modified |= SMF_DESTINATION;
+               break;
+          case DSPF_RGB332:
+               matrox_tlutload( mdrv, mdev, mdev->rgb332_palette );
+               texctl |= TW8;
+               state->modified |= SMF_DESTINATION;
                break;
           default:
                D_BUG( "unexpected pixelformat!" );

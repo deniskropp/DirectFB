@@ -48,6 +48,7 @@
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+#include <core/palette.h>
 
 #include <gfx/util.h>
 
@@ -250,6 +251,10 @@ matrox2064WCheckState( void *drv, void *dev,
           case DSPF_ARGB:
           case DSPF_A8:
                break;
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
+                    return;
+               break;
           default:
                return;
      }
@@ -297,6 +302,10 @@ matroxOldCheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_A8:
+               break;
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
+                    return;
                break;
           default:
                return;
@@ -346,6 +355,10 @@ matroxG100CheckState( void *drv, void *dev,
           case DSPF_ARGB:
           case DSPF_A8:
                break;
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ))
+                    return;
+               break;
           default:
                return;
      }
@@ -364,6 +377,8 @@ matroxG100CheckState( void *drv, void *dev,
           if (MATROX_USE_TMU( state, accel )) {
                /* TMU has no 32bit support */
                switch (state->source->format) {
+                    case DSPF_LUT8:
+                    case DSPF_RGB332:
                     case DSPF_ARGB1555:
                     case DSPF_RGB16:
                          break;
@@ -416,6 +431,10 @@ matroxG200CheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
                break;
+          case DSPF_LUT8:
+               if (DFB_BLITTING_FUNCTION( accel ) || state->drawingflags & DSDRAW_BLEND)
+                    return;
+               break;
           default:
                return;
      }
@@ -439,9 +458,8 @@ matroxG200CheckState( void *drv, void *dev,
                     if (state->destination->format != DSPF_I420 &&
                         state->destination->format != DSPF_YV12)
                          return;
+               case DSPF_LUT8:
                case DSPF_RGB332:
-                    if (use_tmu)
-                         return;
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
@@ -496,6 +514,11 @@ matroxG400CheckState( void *drv, void *dev,
           case DSPF_RGB32:
           case DSPF_ARGB:
           case DSPF_A8:
+               break;
+          case DSPF_LUT8:
+          case DSPF_ALUT44:
+               if (DFB_BLITTING_FUNCTION( accel ) || state->drawingflags & DSDRAW_BLEND)
+                    return;
                break;
           default:
                return;
@@ -1619,6 +1642,16 @@ driver_init_device( GraphicsDevice     *device,
 
      mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
 
+     switch (mdrv->accelerator) {
+          case FB_ACCEL_MATROX_MGAG100:
+          case FB_ACCEL_MATROX_MGAG200:
+               if ((ret = dfb_palette_create( NULL, 256, &mdev->rgb332_palette )) != DFB_OK)
+                    return ret;
+               dfb_palette_generate_rgb332_map( mdev->rgb332_palette );
+
+               mdev->tlut_offset = dfb_gfxcard_reserve_memory( device, 2 * 256 );
+     }
+
      return DFB_OK;
 }
 
@@ -1629,6 +1662,9 @@ driver_close_device( GraphicsDevice *device,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
+
+     if (mdev->rgb332_palette)
+          dfb_palette_unref( mdev->rgb332_palette );
 
      /* reset DSTORG as matroxfb does not */
      mga_waitfifo( mdrv, mdev, 1 );
