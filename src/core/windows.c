@@ -744,7 +744,7 @@ dfb_window_request_focus( CoreWindow *window )
      CoreWindowStack *stack   = window->stack;
      CoreWindow      *current = stack->focused_window;
 
-     DFB_ASSERT( !(window->caps & DWHC_GHOST) );
+     DFB_ASSERT( !(window->options & DWOP_GHOST) );
 
      if (current == window)
           return;
