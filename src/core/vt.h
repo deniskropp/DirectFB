@@ -43,7 +43,7 @@ typedef struct {
      struct vt_mode   vt_mode;     /* previous VT mode */
 } VirtualTerminal;
 
-extern VirtualTerminal   *vt;
+extern VirtualTerminal   *core_vt;
 
 /*
  * allocates and switches to a new virtual terminal

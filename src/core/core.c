@@ -186,7 +186,7 @@ void core_deinit_emergency()
      }
 
      input_deinit();
-     if (vt)
+     if (core_vt)
           vt_close();
 
      sig_remove_handlers();

@@ -115,11 +115,11 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
                          DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
                                    "Switching to VT %d...\n", num );
 
-                         if (ioctl( vt->fd, VT_ACTIVATE, num ))
+                         if (ioctl( core_vt->fd, VT_ACTIVATE, num ))
                               PERRORMSG( "DirectFB/directfb/keyboard_handler: "
                                          "VT_ACTIVATE for VT %d failed!\n", num );
 
-                         //ioctl( vt->fd, VT_WAITACTIVE, num );
+                         //ioctl( core_vt->fd, VT_WAITACTIVE, num );
 
                          DEBUGMSG( "DirectFB/directfb/keyboard_handler: "
                                    "...hopefully switched to VT %d.\n", num );

@@ -69,7 +69,7 @@ static void* keyboardEventThread(void *device)
      unsigned char buf[256];
 
      // Read keyboard data
-     while ((readlen = read(vt->fd, buf, 256)) >= 0) {
+     while ((readlen = read (core_vt->fd, buf, 256)) >= 0) {
           int i;
 
           pthread_testcancel();
@@ -111,8 +111,9 @@ static DFBInputEvent keyboard_handle_code(unsigned char code)
 
      entry.kb_table = K_NORMTAB;
      entry.kb_index = code;
+     entry.kb_value = 0;
 
-     ioctl( vt->fd,KDGKBENT,&entry );
+     ioctl( core_vt->fd, KDGKBENT, &entry );
 
      {
           DFBInputEvent event;
@@ -157,11 +158,11 @@ static DFBInputEvent keyboard_handle_code(unsigned char code)
                else
                     entry.kb_table = K_SHIFTTAB;
 
-               ioctl( vt->fd, KDGKBENT, &entry );
+               ioctl( core_vt->fd, KDGKBENT, &entry );
           }
           else if (modifier_state & DIMK_ALTGR) {
                entry.kb_table = K_ALTTAB;
-               ioctl( vt->fd,KDGKBENT, &entry );
+               ioctl( core_vt->fd, KDGKBENT, &entry );
           }
 
           event.modifiers = modifier_state;
@@ -279,15 +280,15 @@ int driver_init(InputDevice *device)
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";
 
-/*     sprintf(buf, "/dev/tty%d", vt->num);
+/*     sprintf(buf, "/dev/tty%d", core_vt->num);
      fd = open( buf, O_RDWR );
      if (fd < 0) {
           if (errno == ENOENT) {
-               sprintf(buf, "/dev/vc/%d", vt->num);
+               sprintf(buf, "/dev/vc/%d", core_vt->num);
                fd = open( buf, O_RDWR );
                if (fd < 0) {
                     if (errno == ENOENT) {
-                         PERRORMSG( "DirectFB/Keyboard: Couldn't open neither `/dev/tty%d' nor `/dev/vc/%d'!\n", vt->num, vt->num );
+                         PERRORMSG( "DirectFB/Keyboard: Couldn't open neither `/dev/tty%d' nor `/dev/vc/%d'!\n", core_vt->num, core_vt->num );
                     }
                     else {
                          PERRORMSG( "DirectFB/Keyboard: Error opening `%s'!\n", buf );
@@ -303,35 +304,35 @@ int driver_init(InputDevice *device)
      }*/
 
      if (dfb_config->kd_graphics) {
-          if (ioctl( vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
+          if (ioctl( core_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
                PERRORMSG( "DirectFB/Keyboard: KD_GRAPHICS failed!\n" );
                return DFB_INIT;
           }
      }
 
-     if (ioctl( vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
+     if (ioctl( core_vt->fd, KDSKBMODE, K_MEDIUMRAW ) < 0) {
           PERRORMSG( "DirectFB/Keyboard: K_MEDIUMRAW failed!\n" );
           return DFB_INIT;
      }
 
      if (!dfb_config->no_vt_switch) {
           ioctl( 0, TIOCNOTTY, 0 );
-          ioctl( vt->fd, TIOCSCTTY, 0 );
+          ioctl( core_vt->fd, TIOCSCTTY, 0 );
      }
 
-     tcgetattr( vt->fd, &old_ts );
+     tcgetattr( core_vt->fd, &old_ts );
 
      ts = old_ts;
      ts.c_cc[VTIME] = 0;
      ts.c_cc[VMIN] = 1;
      ts.c_lflag &= ~(ICANON|ECHO|ISIG);
      ts.c_iflag = 0;
-     tcsetattr( vt->fd, TCSAFLUSH, &ts );
+     tcsetattr( core_vt->fd, TCSAFLUSH, &ts );
 
-     tcsetpgrp( vt->fd, getpgrp() );
+     tcsetpgrp( core_vt->fd, getpgrp() );
 
-     write( vt->fd, cursoroff_str, strlen(cursoroff_str) );
-     write( vt->fd, blankoff_str, strlen(blankoff_str) );
+     write( core_vt->fd, cursoroff_str, strlen(cursoroff_str) );
+     write( core_vt->fd, blankoff_str, strlen(blankoff_str) );
 
 
      device->info.driver_name = "Keyboard";
@@ -354,15 +355,15 @@ void driver_deinit(InputDevice *device)
      const char cursoron_str[] = "\033[?0;0;0c";
      const char blankon_str[] = "\033[9;10]";
 
-     write( vt->fd, cursoron_str, strlen(cursoron_str) );
-     write( vt->fd, blankon_str, strlen(blankon_str) );
+     write( core_vt->fd, cursoron_str, strlen(cursoron_str) );
+     write( core_vt->fd, blankon_str, strlen(blankon_str) );
 
-     if (tcsetattr( vt->fd, TCSAFLUSH, &old_ts ) < 0)
+     if (tcsetattr( core_vt->fd, TCSAFLUSH, &old_ts ) < 0)
           PERRORMSG("DirectFB/keyboard: tcsetattr for original values failed!\n");
 
-     if (ioctl( vt->fd, KDSKBMODE, K_XLATE ) < 0)
+     if (ioctl( core_vt->fd, KDSKBMODE, K_XLATE ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set mode to XLATE!\n");
-     if (ioctl( vt->fd, KDSETMODE, KD_TEXT ) < 0)
+     if (ioctl( core_vt->fd, KDSETMODE, KD_TEXT ) < 0)
           PERRORMSG("DirectFB/keyboard: Could not set terminal mode to text!\n");
 }
 
