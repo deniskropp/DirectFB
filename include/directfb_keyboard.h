@@ -50,6 +50,7 @@ extern "C"
      #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
      
      #define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF00)
+     #define DFB_KEY_INDEX(symbol)      ((symbol) & 0x00FF)
      
      #define DFB_KEY_IS_ASCII(symbol)   ((symbol) < 128)
      
