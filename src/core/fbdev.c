@@ -482,8 +482,10 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
 DFBResult fbdev_wait_vsync()
 {
 #ifdef FBIO_WAITFORVSYNC
-     if (!dfb_config->pollvsync_none)
+     if (!dfb_config->pollvsync_none) {
+          gfxcard_sync();
           ioctl( display->fd, FBIO_WAITFORVSYNC );
+     }
 #endif
 
      return DFB_OK;
@@ -742,17 +744,14 @@ DFBResult primaryFlipBuffers( DisplayLayer *thiz )
      if (thiz->buffermode == DLBM_FRONTONLY)
           return DFB_UNSUPPORTED;
 
-     /* FIXME: has to be done "during" pan */
-     surface_flip_buffers( thiz->surface );
-
      if (thiz->buffermode == DLBM_BACKVIDEO) {
           DFBResult ret;
 
-          ret = fbdev_pan( thiz->surface->front_buffer->video.offset ? 1 : 0 );
-          if (ret) {
-               surface_flip_buffers( thiz->surface ); /* FIXME */
+          ret = fbdev_pan( thiz->surface->back_buffer->video.offset ? 1 : 0 );
+          if (ret)
                return ret;
-          }
+
+          surface_flip_buffers( thiz->surface );
      }
 
 #if defined(HAVE_INB_OUTB_IOPL)

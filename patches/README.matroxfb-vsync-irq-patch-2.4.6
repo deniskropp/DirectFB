@@ -1,0 +1,4 @@
+This patch adds the ioctl FBIO_WAITFORVSYNC.
+The calling process' state will be set to TASK_INTERRUPTIBLE,
+it will be waken up by the interrupt handler for the vertical retrace.
+Processes can now wait for the vertical retrace without CPU usage.
