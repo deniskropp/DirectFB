@@ -580,6 +580,7 @@ inputdrivers/h3600_ts/Makefile
 inputdrivers/sonypi/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
+inputdrivers/linux_input/Makefile
 inputdrivers/lirc/Makefile
 inputdrivers/dbox2remote/Makefile
 inputdrivers/ps2mouse/Makefile
