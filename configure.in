@@ -611,7 +611,7 @@ fi
 dnl Test for video4linux
 V4L=no
 
-if test $have_linux = yes; then
+if test "$have_linux" = "yes"; then
   AC_ARG_ENABLE(video4linux,
     [  --enable-video4linux      build Video4Linux video provider [default=yes]],
     enable_v4l="$enableval", enable_v4l=yes)
@@ -623,8 +623,20 @@ if test $have_linux = yes; then
   *** Video4Linux headers not found -- Video4Linux video provider will not be built.])
     )
   fi
+fi
 
-  if test $V4L = yes; then
+AM_CONDITIONAL(V4L_PROVIDER, test "$V4L" = "yes")
+
+
+dnl Test for video4linux
+V4L2=no
+
+if test "$V4L" = "yes"; then
+  AC_ARG_ENABLE(video4linux2,
+    [  --enable-video4linux2     build with Video4Linux2 support [default=no]],
+    enable_v4l2="$enableval", enable_v4l2=no)
+
+  if test "$enable_v4l2" = "yes"; then
     dnl Test for video4linux 2
     AC_EGREP_CPP(yes, [
         #include <linux/videodev2.h>
@@ -632,12 +644,11 @@ if test $have_linux = yes; then
           yes
         #endif
       ],
+      V4L2=yes
       AC_DEFINE( HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
     )
   fi
 fi
-
-AM_CONDITIONAL(V4L_PROVIDER, test "$V4L" = "yes")
 
 
 wm97xx_ts=no
@@ -1172,7 +1183,7 @@ Building Image Providers:
   PNG                       $PNG
 
 Building Video Providers:
-  Video4Linux               $V4L
+  Video4Linux               $V4L (v2: $V4L2)
 
 Building Font implementations:
   FreeType2                 $FREETYPE
