@@ -29,12 +29,14 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "coredefs.h"
-#include "core.h"
-#include "sig.h"
-#include "vt.h"
+#include <core/coredefs.h>
+#include <core/core.h>
+#include <core/sig.h>
+#include <core/vt.h>
+
+#include <misc/conf.h>
 
 typedef struct {
      int              signum;
@@ -87,7 +89,9 @@ void dfb_sig_install_handlers()
      for (i=0; i<NUM_SIGS_TO_HANDLE; i++) {
           sigs_handled[i].signum = -1;
 
-          if (!sigismember( &dfb_config->dont_catch, sigs_to_handle[i] )) {
+          if (dfb_config->sighandler &&
+              !sigismember( &dfb_config->dont_catch, sigs_to_handle[i] ))
+          {
                struct sigaction action;
                int              signum = sigs_to_handle[i];
 

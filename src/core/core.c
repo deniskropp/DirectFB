@@ -155,8 +155,7 @@ dfb_core_ref()
      if (dfb_core && dfb_core->refs++)
           return DFB_OK;
 
-     if (dfb_config->sighandler)
-          dfb_sig_install_handlers();
+     dfb_sig_install_handlers();
 
      if (dfb_config->deinit_check)
           atexit( dfb_core_deinit_check );
