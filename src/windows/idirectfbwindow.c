@@ -122,6 +122,9 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      if (data->cursor.shape)
           data->cursor.shape->Release( data->cursor.shape );
      
+     if (data->position_size_event)
+          DFBFREE( data->position_size_event );
+     
      DEBUGMSG("IDirectFBWindow_Destruct - done.\n");
 
      DFB_DEALLOCATE_INTERFACE( thiz );
@@ -818,6 +821,8 @@ DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window )
 {
+     DFBWindowEventType old_events;
+
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      DEBUGMSG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
@@ -827,10 +832,15 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      data->window = window;
      data->layer  = dfb_layer_at( window->stack->layer_id );
 
-     dfb_window_attach( data->window, IDirectFBWindow_React,
+     dfb_window_attach( window, IDirectFBWindow_React,
                         data, &data->reaction );
 
-     dfb_window_init( data->window );
+     old_events = window->events;
+     window->events |= DWET_POSITION_SIZE;
+     
+     dfb_window_init( window );
+     
+     window->events = old_events;
 
      /* Wait for initial DWET_POSITION_SIZE event */
      while (!data->position_size_event)
