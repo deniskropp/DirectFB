@@ -2233,7 +2233,6 @@ deallocate_surface( CoreLayer *layer, CoreLayerRegion *region )
      DFB_ASSERT( layer->funcs != NULL );
      DFB_ASSERT( layer->shared != NULL );
      DFB_ASSERT( region != NULL );
-     DFB_ASSERT( region->surface != NULL );
 
      shared  = layer->shared;
      funcs   = layer->funcs;
