@@ -169,6 +169,13 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
                }
           }
 
+          if (D_FLAGS_IS_SET( shared->description.caps, DLCAPS_SCREEN_LOCATION ))
+               D_FLAGS_SET( shared->description.caps, DLCAPS_SCREEN_POSITION | DLCAPS_SCREEN_SIZE );
+
+          if (D_FLAGS_ARE_SET( shared->description.caps,
+                               DLCAPS_SCREEN_POSITION | DLCAPS_SCREEN_SIZE ))
+               D_FLAGS_SET( shared->description.caps, DLCAPS_SCREEN_LOCATION );
+
           /* Initialize the vector for the contexts. */
           fusion_vector_init( &shared->contexts.stack, 4 );
 

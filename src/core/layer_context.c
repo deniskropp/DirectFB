@@ -163,10 +163,15 @@ dfb_layer_context_create( CoreLayer         *layer,
      context->adjustment = shared->default_adjustment;
 
      /* Initialize screen location. */
-     context->screen.x = 0.0f;
-     context->screen.y = 0.0f;
-     context->screen.w = 1.0f;
-     context->screen.h = 1.0f;
+     context->screen.location.x = 0.0f;
+     context->screen.location.y = 0.0f;
+     context->screen.location.w = 1.0f;
+     context->screen.location.h = 1.0f;
+
+     if (D_FLAGS_IS_SET( shared->description.caps, DLCAPS_SCREEN_LOCATION ))
+          context->screen.mode = CLLM_LOCATION;
+     else if (D_FLAGS_IS_SET( shared->description.caps, DLCAPS_SCREEN_POSITION ))
+          context->screen.mode = CLLM_CENTER;
 
      /* Initialize the primary region's configuration. */
      init_region_config( context, &context->primary.config );
@@ -830,7 +835,9 @@ dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
           return DFB_FUSION;
 
      /* Do nothing if the location didn't change. */
-     if (DFB_LOCATION_EQUAL( context->screen, *location )) {
+     if (context->screen.mode == CLLM_LOCATION &&
+         DFB_LOCATION_EQUAL( context->screen.location, *location ))
+     {
           dfb_layer_context_unlock( context );
           return DFB_OK;
      }
@@ -843,8 +850,11 @@ dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
 
      /* Try to set the new configuration. */
      ret = update_primary_region_config( context, &config, CLRCF_DEST );
-     if (ret == DFB_OK)
-          context->screen = *location;
+     if (ret == DFB_OK) {
+          context->screen.location  = *location;
+          context->screen.rectangle = config.dest;
+          context->screen.mode      = CLLM_LOCATION;
+     }
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -882,8 +892,8 @@ dfb_layer_context_set_screenposition( CoreLayerContext  *context,
      /* Try to set the new configuration. */
      ret = update_primary_region_config( context, &config, CLRCF_DEST );
      if (ret == DFB_OK) {
-          context->primary.config.dest.x = x;
-          context->primary.config.dest.y = y;
+          context->screen.rectangle = config.dest;
+          context->screen.mode      = CLLM_POSITION;
      }
 
      /* Unlock the context. */
@@ -1153,7 +1163,7 @@ init_region_config( CoreLayerContext      *context,
      config->source.h   = config->height;
 
      /* Initialize screen rectangle. */
-     screen_rectangle( context, &context->screen, &config->dest );
+     screen_rectangle( context, &context->screen.location, &config->dest );
 
      /* Set default opacity. */
      config->opacity = 0xff;
@@ -1194,7 +1204,7 @@ build_updated_config( CoreLayer                   *layer,
           ret_config->height = update->height;
      }
 
-     /* Reset source and destination rectangle. */
+     /* Update source and destination rectangle. */
      if (update->flags & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
           int width, height;
 
@@ -1205,12 +1215,26 @@ build_updated_config( CoreLayer                   *layer,
           ret_config->source.w = ret_config->width;
           ret_config->source.h = ret_config->height;
 
-          dfb_screen_get_screen_size( layer->screen, &width, &height );
+          switch (context->screen.mode) {
+               case CLLM_CENTER:
+                    dfb_screen_get_screen_size( layer->screen, &width, &height );
 
-          ret_config->dest.x = (width  - ret_config->width)  / 2;
-          ret_config->dest.y = (height - ret_config->height) / 2;
-          ret_config->dest.w = ret_config->width;
-          ret_config->dest.h = ret_config->height;
+                    ret_config->dest.x = (width  - ret_config->width)  / 2;
+                    ret_config->dest.y = (height - ret_config->height) / 2;
+                    /* fall through */
+
+               case CLLM_POSITION:
+                    ret_config->dest.w = ret_config->width;
+                    ret_config->dest.h = ret_config->height;
+                    break;
+
+               case CLLM_LOCATION:
+               case CLLM_RECTANGLE:
+                    break;
+
+               default:
+                    D_BREAK( "invalid layout mode" );
+          }
      }
 
      /* Change pixel format. */

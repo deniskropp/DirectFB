@@ -37,6 +37,10 @@
 #include "coretypes.h"
 #include "coredefs.h"
 
+
+#define DIRECTFB_CORE_ABI     28
+
+
 /*
  * Cleanup function, callback of a cleanup stack entry.
  */

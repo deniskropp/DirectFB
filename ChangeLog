@@ -1,3 +1,78 @@
+2005-02-18   syrjala	22:08:40	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.h (1.35) (+3 -7)
+		gfxdrivers/matrox/regs.h (1.25) (+4 -1)
+		gfxdrivers/matrox/matrox_state.c (1.51) (+82 -52)
+	
+	- Dropped I420/YV12 support for old chips.
+	- NV12/NV21 Blit() for >= G200.
+	- NV12/NV21 StretchBlit() for >= G400.
+	- Accelerated I420/YV12/NV12/NV21 FillRectangle().
+	- Separated all planar stuff to their own functions.
+	- Tried to make CheckState() functions a bit better looking.
+	
+2005-02-18   syrjala	22:08:39	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.80) (+469 -198)
+	
+	- Dropped I420/YV12 support for old chips.
+	- NV12/NV21 Blit() for >= G200.
+	- NV12/NV21 StretchBlit() for >= G400.
+	- Accelerated I420/YV12/NV12/NV21 FillRectangle().
+	- Separated all planar stuff to their own functions.
+	- Tried to make CheckState() functions a bit better looking.
+	
+2005-02-18   syrjala	15:39:13	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.30) (+86 -108)
+		gfxdrivers/matrox/regs.h (1.24) (+76 -0)
+		gfxdrivers/matrox/matrox_spic.c (1.15) (+47 -54)
+	
+	- Defined constants for CRTC2 register values.
+	- Alpha ramp support for CRTC2.
+	- Added support for progressive chroma on CRTC2.
+	- Added support for progressive half-height sub-picture.
+	
+2005-02-18   syrjala	15:25:26	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_maven.c (1.19) (+5 -3)
+	
+	Cosmetics.
+	
+2005-02-18   syrjala	15:22:33	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/matrox/matrox_maven.c (1.18) (+8 -3)
+	
+	Added comment about flicker filter not working.
+	
+2005-02-18   syrjala	13:33:56	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	src/core/layer_context.c (1.41) (+7 -6)
+	
+	init_region_config() forgot to initialize surface_caps.
+	
+2005-02-18   syrjala	06:45:48	Ville Syrjala <syrjala@sci.fi>
+
+	Files:	gfxdrivers/mach64/mach64.c (1.29) (+2 -1)
+		src/misc/conf.h (1.54) (+2 -7)
+		src/misc/conf.c (1.94) (+44 -16)
+		src/core/fonts.c (1.53) (+1 -2)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.19) (+48 -10)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.35) (+35 -2)
+		gfxdrivers/matrox/matrox.c (1.79) (+2 -1)
+	
+	Replaced argb-font and a1-font options with a more flexible font-format option.
+	
+2005-02-17   dok	12:59:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.54) (+940 -0)
+		src/display/idirectfbsurface.c (1.105) (+90 -40)
+		include/directfb.h (1.259) (+17 -3)
+	
+	Added IDirectFBSurface::FillRectangles().
+	
+	Generated new ChangeLog.
+	
 2005-02-17   dok	10:12:48	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	lib/fusion/shmalloc/shmalloc.c (1.6) (+17 -13)

@@ -70,8 +70,6 @@
 #include <misc/util.h>
 
 
-#define DIRECTFB_CORE_ABI     27
-
 extern CorePart dfb_core_clipboard;
 extern CorePart dfb_core_colorhash;
 extern CorePart dfb_core_gfxcard;

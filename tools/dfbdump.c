@@ -266,9 +266,9 @@ context_callback( FusionObjectPool *pool,
           printf( "unknown  " );
 
      printf( "%.1f, %.1f -> %.1f, %.1f   ",
-             context->screen.x, context->screen.y,
-             context->screen.x + context->screen.w,
-             context->screen.y + context->screen.h );
+             context->screen.location.x,  context->screen.location.y,
+             context->screen.location.x + context->screen.location.w,
+             context->screen.location.y + context->screen.location.h );
 
      printf( "%2d     ", fusion_vector_size( &context->regions ) );
 

@@ -90,6 +90,13 @@ struct __DFB_CoreLayer {
      CardState          state;
 };
 
+typedef enum {
+     CLLM_LOCATION,      /* Keep normalized area. */
+     CLLM_CENTER,        /* Center layer after resizing destination area. */
+     CLLM_POSITION,      /* Keep pixel position, but resize area. */
+     CLLM_RECTANGLE      /* Keep pixel based area. */
+} CoreLayerLayoutMode;
+
 struct __DFB_CoreLayerContext {
      FusionObject                object;
 
@@ -114,7 +121,12 @@ struct __DFB_CoreLayerContext {
      __u8                        opacity;    /* If enabled this value controls
                                                 blending of the whole layer. */
 
-     DFBLocation                 screen;     /* Screen location of the layer. */
+     struct {
+          DFBLocation            location;   /* Normalized screen location. */
+          DFBRectangle           rectangle;  /* Pixel based position and size. */
+
+          CoreLayerLayoutMode    mode;       /* ...and how resizing influences them. */
+     } screen;
 
      DFBColorAdjustment          adjustment; /* Color adjustment of the layer.*/
 
