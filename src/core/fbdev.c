@@ -792,10 +792,13 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                                  VideoMode *mode,
                                  DFBDisplayLayerBufferMode buffermode )
 {
+     int                      vyres;
      struct fb_var_screeninfo var;
 
      if (!mode)
           mode = Sfbdev->current_mode ? Sfbdev->current_mode : Sfbdev->modes;
+
+     vyres = mode->yres * ((buffermode == DLBM_BACKVIDEO) ? 2 : 1);
 
      var = Sfbdev->current_var;
 
@@ -840,7 +843,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
      var.xres = mode->xres;
      var.yres = mode->yres;
      var.xres_virtual = mode->xres;
-     var.yres_virtual = mode->yres * ((buffermode == DLBM_BACKVIDEO) ? 2 : 1);
+     var.yres_virtual = vyres;
 
      var.pixclock = mode->pixclock;
      var.left_margin = mode->left_margin;
@@ -886,7 +889,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
 
 
           mode->format = fbdev_get_pixelformat( &var );
-          if (mode->format == DSPF_UNKNOWN) {
+          if (mode->format == DSPF_UNKNOWN || var.yres_virtual < vyres) {
                /* restore mode */
                ioctl( fbdev->fd, FBIOPUT_VSCREENINFO, &Sfbdev->current_var );
                return DFB_UNSUPPORTED;

@@ -262,8 +262,16 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
      if (layers->SetConfiguration( layers, &layer_config )) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
-                    "Setting primary layer buffer mode failed! "
-                    "-> No support for virtual resolutions (panning)?\n" );
+                    "Setting desktop buffer mode failed!\n"
+                    "     -> No virtual resolution support or not enough memory?\n"
+                    "        Falling back to system back buffer.\n" );
+
+          layer_config.buffermode = DLBM_BACKSYSTEM;
+
+          if (layers->SetConfiguration( layers, &layer_config ))
+               ERRORMSG( "DirectFB/DirectFBCreate: "
+                         "Setting system memory desktop back buffer failed!\n"
+                         "     -> Using front buffer only mode.\n" );
      }
 
      /* set desktop background */
