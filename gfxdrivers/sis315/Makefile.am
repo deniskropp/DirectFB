@@ -10,8 +10,10 @@ sis315dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_sis315_la_SOURCES =	\
 	sis315.c		\
+	sis315.h		\
 	sis315_accel.c		\
 	sis315_accel.h		\
+	sis315_compat.h		\
 	sis315_mmio.c		\
 	sis315_mmio.h		\
 	sis315_regs.h		\
