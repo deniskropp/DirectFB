@@ -49,19 +49,26 @@ typedef struct {
 } CoreLayerContexts;
 
 typedef struct {
-     DFBDisplayLayerID           layer_id;
+     int                                index;
+     DFBDisplayLayerSourceDescription   description;
+} CoreLayerSource;
 
-     DFBDisplayLayerDescription  description;
-     DFBDisplayLayerConfig       default_config;
-     DFBColorAdjustment          default_adjustment;
+typedef struct {
+     DFBDisplayLayerID                  layer_id;
 
-     void                       *layer_data;
+     DFBDisplayLayerDescription         description;
+     DFBDisplayLayerConfig              default_config;
+     DFBColorAdjustment                 default_adjustment;
 
-     FusionSkirmish              lock;
+     CoreLayerSource                   *sources;
 
-     CoreLayerContexts           contexts;
+     void                              *layer_data;
 
-     bool                        suspended;
+     FusionSkirmish                     lock;
+
+     CoreLayerContexts                  contexts;
+
+     bool                               suspended;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {

@@ -552,8 +552,13 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
           /* Normal buffer mode? */
           if (region_config.buffermode != DLBM_WINDOWS) {
+               bool surface = (shared->description.caps & DLCAPS_SURFACE);
+
+               if (shared->description.caps & DLCAPS_SOURCES)
+                    surface = (region_config.source_id == DLSID_SURFACE);
+
                /* (Re)allocate the region's surface. */
-               if (shared->description.caps & DLCAPS_SURFACE) {
+               if (surface) {
                     flags |= CLRCF_SURFACE | CLRCF_PALETTE;
 
                     if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED ))
@@ -569,6 +574,8 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                          return ret;
                     }
                }
+               else if (region->surface)
+                    deallocate_surface( layer, region );
 
                /* Set the new region configuration. */
                dfb_layer_region_set_configuration( region, &region_config, flags );
@@ -582,7 +589,7 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                if (D_FLAGS_IS_SET( region->state, CLRSF_ENABLED )) {
                     dfb_layer_region_disable( region );
 
-                    if (shared->description.caps & DLCAPS_SURFACE)
+                    if (region->surface)
                          deallocate_surface( layer, region );
                }
           }
@@ -1071,6 +1078,7 @@ init_region_config( CoreLayerContext      *context,
      config->format     = context->config.pixelformat;
      config->buffermode = context->config.buffermode;
      config->options    = context->config.options;
+     config->source_id  = context->config.source;
 
      /* Initialize source rectangle. */
      config->source.x   = 0;
@@ -1139,6 +1147,12 @@ build_updated_config( CoreLayerContext            *context,
      if (update->flags & DLCONF_OPTIONS) {
           flags |= CLRCF_OPTIONS;
           ret_config->options = update->options;
+     }
+
+     /* Change source id. */
+     if (update->flags & DLCONF_SOURCE) {
+          flags |= CLRCF_SOURCE_ID;
+          ret_config->source_id = update->source;
      }
 
      /* Return translated flags. */

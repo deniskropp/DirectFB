@@ -71,6 +71,7 @@ D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
  */
 typedef struct {
      int                              ref;     /* reference counter */
+     DFBDisplayLayerDescription       desc;    /* description of the layer's caps */
      DFBDisplayLayerCooperativeLevel  level;   /* current cooperative level */
      CoreScreen                      *screen;  /* layer's screen */
      CoreLayer                       *layer;   /* core layer data */
@@ -140,16 +141,13 @@ static DFBResult
 IDirectFBDisplayLayer_GetDescription( IDirectFBDisplayLayer      *thiz,
                                       DFBDisplayLayerDescription *desc )
 {
-     DFBDisplayLayerDescription description;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
      if (!desc)
           return DFB_INVARG;
 
-     dfb_layer_get_description( data->layer, &description );
-
-     *desc = description;
+     *desc = data->desc;
 
      return DFB_OK;
 }
@@ -730,6 +728,26 @@ IDirectFBDisplayLayer_WaitForSync( IDirectFBDisplayLayer *thiz )
      return dfb_layer_wait_vsync( data->layer );
 }
 
+static DFBResult
+IDirectFBDisplayLayer_GetSourceDescriptions( IDirectFBDisplayLayer            *thiz,
+                                             DFBDisplayLayerSourceDescription *ret_descriptions )
+{
+     int i;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!ret_descriptions)
+          return DFB_INVARG;
+
+     if (! (data->desc.caps & DLCAPS_SOURCES))
+          return DFB_UNSUPPORTED;
+
+     for (i=0; i<data->desc.sources; i++)
+          dfb_layer_get_source_info( data->layer, i, &ret_descriptions[i] );
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer )
@@ -759,6 +777,8 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      data->context = context;
      data->region  = region;
      data->stack   = dfb_layer_context_windowstack( context );
+
+     dfb_layer_get_description( data->layer, &data->desc );
 
      thiz->AddRef                = IDirectFBDisplayLayer_AddRef;
      thiz->Release               = IDirectFBDisplayLayer_Release;
@@ -793,6 +813,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorOpacity      = IDirectFBDisplayLayer_SetCursorOpacity;
      thiz->SetFieldParity        = IDirectFBDisplayLayer_SetFieldParity;
      thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
+     thiz->GetSourceDescriptions = IDirectFBDisplayLayer_GetSourceDescriptions;
 
      return DFB_OK;
 }

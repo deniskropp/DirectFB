@@ -390,6 +390,7 @@ DFBResult DirectFBCreate(
 
 typedef unsigned int DFBScreenID;
 typedef unsigned int DFBDisplayLayerID;
+typedef unsigned int DFBDisplayLayerSourceID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 
@@ -492,8 +493,9 @@ typedef enum {
                                                 (z position) is supported. */
      DLCAPS_FIELD_PARITY      = 0x00002000,  /* Field parity can be selected */
      DLCAPS_WINDOWS           = 0x00004000,  /* Hardware window support. */
+     DLCAPS_SOURCES           = 0x00008000,  /* Sources can be selected. */
 
-     DLCAPS_ALL               = 0x00007FFF
+     DLCAPS_ALL               = 0x0000FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -1066,12 +1068,24 @@ typedef struct {
      char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];  /* Display layer name. */
 
      int                                level;       /* Default level. */
-     int                                regions;     /* Number of concurrent
-                                                        regions supported.<br>
+     int                                regions;     /* Number of concurrent regions supported.<br>
                                                         -1 = unlimited,
                                                          0 = unknown/one,
                                                         >0 = actual number */
+     int                                sources;     /* Number of selectable sources. */
 } DFBDisplayLayerDescription;
+
+
+#define DFB_DISPLAY_LAYER_SOURCE_DESC_NAME_LENGTH    24
+
+/*
+ * Description of a display layer source.
+ */
+typedef struct {
+     DFBDisplayLayerSourceID            source_id;          /* ID of the source. */
+
+     char name[DFB_DISPLAY_LAYER_SOURCE_DESC_NAME_LENGTH];  /* Name of the source. */
+} DFBDisplayLayerSourceDescription;
 
 
 #define DFB_SCREEN_DESC_NAME_LENGTH          32
@@ -1658,10 +1672,13 @@ DEFINE_INTERFACE(   IDirectFB,
 )
 
 /* predefined layer ids */
-#define DLID_PRIMARY          0x00
+#define DLID_PRIMARY          0x0000
+
+/* predefined layer source ids */
+#define DLSID_SURFACE         0x0000
 
 /* predefined screen ids */
-#define DSCID_PRIMARY         0x00
+#define DSCID_PRIMARY         0x0000
 
 /* predefined input device ids */
 #define DIDID_KEYBOARD        0x0000    /* primary keyboard       */
@@ -1706,8 +1723,9 @@ typedef enum {
      DLCONF_PIXELFORMAT       = 0x00000004,
      DLCONF_BUFFERMODE        = 0x00000008,
      DLCONF_OPTIONS           = 0x00000010,
+     DLCONF_SOURCE            = 0x00000020,
 
-     DLCONF_ALL               = 0x0000001F
+     DLCONF_ALL               = 0x0000003F
 } DFBDisplayLayerConfigFlags;
 
 /*
@@ -1722,8 +1740,7 @@ typedef struct {
      DFBSurfacePixelFormat         pixelformat; /* Pixel format */
      DFBDisplayLayerBufferMode     buffermode;  /* Buffer mode */
      DFBDisplayLayerOptions        options;     /* Enable capabilities */
-
-     int                           source;
+     DFBDisplayLayerSourceID       source;      /* Selected layer source */
 } DFBDisplayLayerConfig;
 
 /*
@@ -2581,6 +2598,21 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*WaitForSync) (
           IDirectFBDisplayLayer              *thiz
+     );
+
+
+   /** Retrieving information **/
+
+     /*
+      * Get a description of available sources.
+      *
+      * All descriptions are written to the array pointed to by
+      * <b>ret_descriptions</b>. The number of sources is returned by
+      * IDirectFBDisplayLayer::GetDescription().
+      */
+     DFBResult (*GetSourceDescriptions) (
+          IDirectFBDisplayLayer              *thiz,
+          DFBDisplayLayerSourceDescription   *ret_descriptions
      );
 )
 

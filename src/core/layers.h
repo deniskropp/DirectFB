@@ -40,6 +40,8 @@ struct __DFB_CoreLayerRegionConfig {
 
      DFBDisplayLayerOptions    options;    /* various configuration options */
 
+     DFBDisplayLayerSourceID   source_id;  /* selected source */
+
      DFBRectangle              source;     /* viewport within source (input) */
      DFBRectangle              dest;       /* viewport on screen (output) */
 
@@ -61,6 +63,8 @@ typedef enum {
 
      CLRCF_OPTIONS    = 0x00000010,
 
+     CLRCF_SOURCE_ID  = 0x00000020,
+
      CLRCF_SOURCE     = 0x00000100,
      CLRCF_DEST       = 0x00000200,
 
@@ -74,7 +78,7 @@ typedef enum {
      CLRCF_SURFACE    = 0x10000000,
      CLRCF_PALETTE    = 0x20000000,
 
-     CLRCF_ALL        = 0x3013131F
+     CLRCF_ALL        = 0x3013133F
 } CoreLayerRegionConfigFlags;
 
 typedef struct {
@@ -100,6 +104,16 @@ typedef struct {
                                   DFBDisplayLayerDescription *description,
                                   DFBDisplayLayerConfig      *config,
                                   DFBColorAdjustment         *adjustment );
+
+     /*
+      * Called once by the master for each source.
+      * Driver fills description.
+      */
+     DFBResult (*InitSource)    ( CoreLayer                         *layer,
+                                  void                              *driver_data,
+                                  void                              *layer_data,
+                                  int                                source,
+                                  DFBDisplayLayerSourceDescription  *description );
 
 
    /** Layer Control **/

@@ -535,7 +535,24 @@ DFBResult
 dfb_layer_wait_vsync( CoreLayer *layer )
 {
      D_ASSERT( layer != NULL );
+     D_ASSERT( layer->screen != NULL );
 
      return dfb_screen_wait_vsync( layer->screen );
+}
+
+DFBResult
+dfb_layer_get_source_info( CoreLayer                        *layer,
+                           int                               source,
+                           DFBDisplayLayerSourceDescription *ret_desc )
+{
+     D_ASSERT( layer != NULL );
+     D_ASSERT( layer->shared != NULL );
+     D_ASSERT( source >= 0 );
+     D_ASSERT( source < layer->shared->description.sources );
+     D_ASSERT( ret_desc != NULL );
+
+     *ret_desc = layer->shared->sources[source].description;
+
+     return DFB_OK;
 }
 

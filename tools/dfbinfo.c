@@ -202,8 +202,9 @@ display_layer_callback( DFBDisplayLayerID           id,
 
      printf( "\n" );
 
+
      /* Type */
-     printf( "        Type: " );
+     printf( "        Type:    " );
 
      for (i=0; layer_types[i].type; i++) {
           if (desc.type & layer_types[i].type)
@@ -212,8 +213,9 @@ display_layer_callback( DFBDisplayLayerID           id,
 
      printf( "\n" );
 
+
      /* Caps */
-     printf( "        Caps: " );
+     printf( "        Caps:    " );
 
      for (i=0; layer_caps[i].capability; i++) {
           if (desc.caps & layer_caps[i].capability)
@@ -221,6 +223,40 @@ display_layer_callback( DFBDisplayLayerID           id,
      }
 
      printf( "\n" );
+
+
+     /* Sources */
+     if (desc.caps & DLCAPS_SOURCES) {
+          DFBResult                         ret;
+          IDirectFBDisplayLayer            *layer;
+          DFBDisplayLayerSourceDescription  descs[desc.sources];
+
+          ret = dfb->GetDisplayLayer( dfb, id, &layer );
+          if (ret) {
+               DirectFBError( "DirectFB::GetDisplayLayer() failed", ret );
+          }
+          else {
+               ret = layer->GetSourceDescriptions( layer, descs );
+               if (ret) {
+                    DirectFBError( "DirectFBDisplayLayer::GetSourceDescriptions() failed", ret );
+               }
+               else {
+                    printf( "        Sources: " );
+
+                    for (i=0; i<desc.sources; i++) {
+                         if (i > 0)
+                              printf( ", %s", descs[i].name );
+                         else
+                              printf( "%s", descs[i].name );
+                    }
+
+                    printf( "\n" );
+               }
+
+               layer->Release( layer );
+          }
+     }
+
 
      printf( "\n" );
 

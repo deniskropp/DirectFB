@@ -64,4 +64,8 @@ DFBResult dfb_layer_set_level               ( CoreLayer          *layer,
 
 DFBResult dfb_layer_wait_vsync              ( CoreLayer          *layer );
 
+DFBResult dfb_layer_get_source_info         ( CoreLayer                        *layer,
+                                              int                               source,
+                                              DFBDisplayLayerSourceDescription *ret_desc );
+
 #endif

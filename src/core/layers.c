@@ -87,6 +87,8 @@ DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) )
 
 /** public **/
 
+/** FIXME: Add proper error paths! **/
+
 static DFBResult
 dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
@@ -114,10 +116,9 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
           snprintf( buf, sizeof(buf), "Display Layer %d", i );
 
           /* Initialize the lock. */
-          if (fusion_skirmish_init( &shared->lock, buf )) {
-               SHFREE( shared );
-               return DFB_FUSION;
-          }
+          ret = fusion_skirmish_init( &shared->lock, buf );
+          if (ret)
+               return ret;
 
           /* Allocate driver's layer data. */
           if (funcs->LayerDataSize) {
@@ -125,11 +126,8 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
                if (size > 0) {
                     shared->layer_data = SHCALLOC( 1, size );
-                    if (!shared->layer_data) {
-                         fusion_skirmish_destroy( &shared->lock );
-                         SHFREE( shared );
-                         return DFB_NOSYSTEMMEMORY;
-                    }
+                    if (!shared->layer_data)
+                         return D_OOSHM();
                }
           }
 
@@ -142,18 +140,33 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                   &shared->default_config,
                                   &shared->default_adjustment );
           if (ret) {
-               D_ERROR("DirectFB/Core/layers: "
-                        "Failed to initialize layer %d!\n", shared->layer_id);
-
-               fusion_skirmish_destroy( &shared->lock );
-
-               if (shared->layer_data)
-                    SHFREE( shared->layer_data );
-
-               SHFREE( shared );
-
+               D_DERROR( ret, "DirectFB/Core/layers: "
+                         "Failed to initialize layer %d!\n", shared->layer_id );
                return ret;
           }
+
+          if (shared->description.caps & DLCAPS_SOURCES) {
+               int n;
+
+               shared->sources = SHCALLOC( shared->description.sources, sizeof(CoreLayerSource) );
+               if (!shared->sources)
+                    return D_OOSHM();
+
+               for (n=0; n<shared->description.sources; n++) {
+                    CoreLayerSource *source = &shared->sources[n];
+
+                    source->index = n;
+
+                    ret = funcs->InitSource( layer, layer->driver_data,
+                                             shared->layer_data, n, &source->description );
+                    if (ret) {
+                         D_DERROR( ret, "DirectFB/Core/layers: Failed to initialize source %d "
+                                   "of layer %d!\n", n, shared->layer_id );
+                         return ret;
+                    }
+               }
+          }
+
 
           /* Initialize the vector for the contexts. */
           fusion_vector_init( &shared->contexts.stack, 4 );
