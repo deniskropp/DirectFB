@@ -559,8 +559,26 @@ extern "C"
      typedef enum {
           DFDESC_ATTRIBUTES   = 0x00000001,  /* attributes field is valid */
           DFDESC_HEIGHT       = 0x00000002,  /* height is specified */
-          DFDESC_WIDTH        = 0x00000004   /* width is specified */
+          DFDESC_WIDTH        = 0x00000004,  /* width is specified */
+          DFDESC_INDEX        = 0x00000008   /* index is specified */
      } DFBFontDescriptionFlags;
+
+     /*
+      * Description of how to load glyphs from a font file.
+      *
+      * The attributes control how the glyphs are rendered. Width and
+      * height can be used to specify the face size. The index field
+      * controls which face is loaded from a font file that provides a
+      * collection of faces.
+      */
+     typedef struct {
+          DFBFontDescriptionFlags            flags;
+
+          DFBFontAttributes                  attributes;
+          unsigned int                       height;
+          unsigned int                       width;
+          unsigned int                       index;
+     } DFBFontDescription;
 
      /*
       * Pixel format of a surface.
@@ -714,9 +732,9 @@ extern "C"
      );
 
      /*
-      * Called for each block of continous data requested,
-      * e.g. by a Video Provider. Write as many data as you can but
-      * not more than specified by length. Return the number of bytes written
+      * Called for each block of continous data requested, e.g. by a
+      * Video Provider. Write as many data as you can but not more
+      * than specified by length. Return the number of bytes written
       * or 'EOF' if no data is available anymore.
       */
      typedef int (*DFBGetDataCallback) (
@@ -724,17 +742,6 @@ extern "C"
           unsigned int                       length,
           void                              *callbackdata
      );
-
-     /*
-      * Description of how to load the glyphs from the font file.
-      */
-     typedef struct {
-          DFBFontDescriptionFlags            flags;
-
-          DFBFontAttributes                  attributes;
-          unsigned int                       height;
-          unsigned int                       width;
-     } DFBFontDescription;
 
      /*
       * Information about an IDirectFBVideoProvider.
