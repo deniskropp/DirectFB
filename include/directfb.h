@@ -403,13 +403,16 @@ typedef enum {
      DSDESC_WIDTH        = 0x00000002,  /* width field is valid */
      DSDESC_HEIGHT       = 0x00000004,  /* height field is valid */
      DSDESC_PIXELFORMAT  = 0x00000008,  /* pixelformat field is valid */
-     DSDESC_PREALLOCATED = 0x00000010   /* Surface uses data that has been
+     DSDESC_PREALLOCATED = 0x00000010,  /* Surface uses data that has been
                                            preallocated by the application.
                                            The field array 'preallocated'
                                            has to be set using the first
                                            element for the front buffer
                                            and eventually the second one
                                            for the back buffer. */
+     DSDESC_PALETTE      = 0x00000020   /* Initialize the surfaces palette
+                                           with the entries specified in the
+                                           description. */
 } DFBSurfaceDescriptionFlags;
 
 /*
@@ -777,6 +780,11 @@ typedef struct {
                                                         existing buffer */
           int                           pitch;       /* pitch of buffer */
      } preallocated[2];
+
+     struct {
+          DFBColor                     *entries;
+          unsigned int                  size;
+     } palette;
 } DFBSurfaceDescription;
 
 /*
@@ -3148,6 +3156,12 @@ typedef struct {
      __u8                     colorkey_b;  /* colorkey blue channel     */
 } DFBImageDescription;
 
+/*
+ * Called whenever a chunk of the image is decoded.
+ * Has to be registered with IDirectFBImageProvider::SetRenderCallback().
+ */
+typedef void (*DIRenderCallback)(DFBRectangle *rect, void *ctx);
+
 /**************************
  * IDirectFBImageProvider *
  **************************/
@@ -3204,6 +3218,17 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
           IDirectFBImageProvider   *thiz,
           IDirectFBSurface         *destination,
           const DFBRectangle       *destination_rect
+     );
+
+     /*
+      * Registers a callback for progressive image loading.
+      *
+      * The function is called each time a chunk of the image is decoded.
+      */
+     DFBResult (*SetRenderCallback) (
+          IDirectFBImageProvider   *thiz,
+          DIRenderCallback          callback,
+          void                     *callback_data
      );
 )
 

@@ -46,6 +46,7 @@
 #include <core/gfxcard.h>
 #include <core/input.h>
 #include <core/layers.h>
+#include <core/palette.h>
 #include <core/surfaces.h>
 #include <core/surfacemanager.h>
 #include <core/windows.h>
@@ -289,6 +290,21 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
      return DFB_OK;
 }
 
+static void
+init_palette( CoreSurface *surface, DFBSurfaceDescription *desc )
+{
+     CorePalette *palette = surface->palette;
+
+     if (!palette || !(desc->flags & DSDESC_PALETTE))
+          return;
+
+     dfb_memcpy( palette->entries, desc->palette.entries,
+                 MIN( desc->palette.size,
+                      palette->num_entries ) * sizeof(DFBColor));
+
+     dfb_palette_update( surface, palette );
+}
+
 static DFBResult
 IDirectFB_CreateSurface( IDirectFB              *thiz,
                          DFBSurfaceDescription  *desc,
@@ -323,6 +339,10 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return DFB_INVARG;
      }
 
+     if (desc->flags & DSDESC_PALETTE)
+          if (!desc->palette.entries || !desc->palette.size)
+               return DFB_INVARG;
+     
      if (desc->flags & DSDESC_CAPS)
           caps = desc->caps;
 
@@ -386,6 +406,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                     dfb_window_set_opacity( window, 0xFF );
 
+                    init_palette( window->surface, desc );
+
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                     return IDirectFBSurface_Window_Construct( *interface, NULL,
@@ -403,6 +425,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                               return ret;
                     }
 
+                    init_palette( dfb_layer_surface( data->layer ), desc );
+                    
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
                     
                     return IDirectFBSurface_Layer_Construct( *interface, NULL,
@@ -455,6 +479,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                return ret;
      }
 
+     init_palette( surface, desc );
+     
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
      return IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
