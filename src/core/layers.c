@@ -1502,21 +1502,24 @@ background_image_listener( const void *msg_data,
  * listen to the layer's surface
  */
 static ReactionResult
-layer_surface_listener( const void *msg_data,
-                        void       *ctx )
+layer_surface_listener( const void *msg_data, void *ctx )
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      DisplayLayer            *layer        = (DisplayLayer*) ctx;
      CoreSurface             *surface      = notification->surface;
      DisplayLayerFuncs       *funcs        = layer->funcs;
+     CoreSurfaceNotificationFlags flags    = notification->flags;
 
      if (notification->flags & CSNF_DESTROY)
           return RS_REMOVE;
 
-     if (notification->flags & CSNF_PALETTE  &&  surface->palette)
-          if (funcs->SetPalette)
-               funcs->SetPalette( layer, layer->driver_data,
-                                  layer->layer_data, surface->palette );
+     if ((flags & CSNF_PALETTE) && surface->palette && funcs->SetPalette)
+          funcs->SetPalette( layer, layer->driver_data,
+                             layer->layer_data, surface->palette );
+
+     if ((flags & (CSNF_SET_EVEN | CSNF_SET_ODD)) && funcs->SetField)
+          funcs->SetField( layer, layer->driver_data,
+                           layer->layer_data, (flags & CSNF_SET_ODD) ? 1 : 0 );
 
      return RS_OK;
 }

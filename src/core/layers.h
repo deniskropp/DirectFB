@@ -57,7 +57,7 @@ typedef struct {
                                       void                       *layer_data );
 
      /*
-      * internal layer driver API (alpha version)
+      * internal layer driver API
       */
 
      DFBResult (*Enable)            ( DisplayLayer               *layer,
@@ -130,6 +130,11 @@ typedef struct {
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       CorePalette                *palette );
+
+     DFBResult (*SetField)          ( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      int                         field );
      
      /*
       * optional to override default surface (re)allocation

@@ -100,35 +100,6 @@ static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 #define BES_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING | DLOP_DST_COLORKEY)
 
 
-typedef struct {
-     MatroxDriverData   *mdrv;
-     MatroxBesLayerData *mbes;
-} BESListenerContext;
-
-static ReactionResult besSurfaceListener (const void *msg_data, void *ctx)
-{
-     BESListenerContext      *context      = (BESListenerContext*) ctx;
-     CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
-
-     if (notification->flags & (CSNF_SET_EVEN | CSNF_SET_ODD)) {
-          context->mbes->regs.besCTL_field =
-               (notification->flags & CSNF_SET_ODD) ? 0x2000000 : 0;
-
-          mga_out32( context->mdrv->mmio_base,
-                     context->mbes->regs.besCTL |
-                     context->mbes->regs.besCTL_field, BESCTL );
-     }
-
-     if (notification->flags & CSNF_DESTROY) {
-          context->mbes->listener_running = false;
-          DFBFREE( context );
-          return RS_REMOVE;
-     }
-
-     return RS_OK;
-}
-
-
 /**********************/
 
 static int
@@ -219,28 +190,8 @@ besEnable( DisplayLayer *layer,
            void         *driver_data,
            void         *layer_data )
 {
-     BESListenerContext *context;
-     CoreSurface        *surface = dfb_layer_surface( layer );
-     MatroxDriverData   *mdrv    = (MatroxDriverData*) driver_data;
-     MatroxBesLayerData *mbes    = (MatroxBesLayerData*) layer_data;
-     
-     /* safety check, listener must have been stopped before (during disable) */
-     DFB_ASSERT( !mbes->listener_running );
-     
-     /* allocate context for surface listener */
-     context = DFBCALLOC( 1, sizeof(BESListenerContext) );
-
-     /* listener needs these */
-     context->mdrv = (MatroxDriverData*) driver_data;
-     context->mbes = (MatroxBesLayerData*) layer_data;
-
-     if (!mbes->listener_running) {
-          /* attach our surface listener */
-          reactor_attach( surface->reactor, besSurfaceListener, context );
-
-          /* keep track of the listener */
-          mbes->listener_running = true;
-     }
+     MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
+     MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      
      /* enable backend scaler */
      besOnOff( mdrv, mbes, 1 );
@@ -444,6 +395,23 @@ besSetColorAdjustment( DisplayLayer       *layer,
      return DFB_OK;
 }
 
+static DFBResult
+besSetField( DisplayLayer *layer,
+             void         *driver_data,
+             void         *layer_data,
+             int           field )
+{
+     MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
+     MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
+     
+     mbes->regs.besCTL_field = field ? 0x2000000 : 0;
+
+     mga_out32( mdrv->mmio_base,
+                mbes->regs.besCTL | mbes->regs.besCTL_field, BESCTL );
+     
+     return DFB_OK;
+}
+
 
 DisplayLayerFuncs matroxBesFuncs = {
      LayerDataSize:      besLayerDataSize,
@@ -456,7 +424,8 @@ DisplayLayerFuncs matroxBesFuncs = {
      SetScreenLocation:  besSetScreenLocation,
      SetDstColorKey:     besSetDstColorKey,
      FlipBuffers:        besFlipBuffers,
-     SetColorAdjustment: besSetColorAdjustment
+     SetColorAdjustment: besSetColorAdjustment,
+     SetField:           besSetField
 };
 
 
