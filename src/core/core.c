@@ -314,6 +314,7 @@ dfb_core_deinit_emergency()
           DFBFREE( cleanup );
      }
 
+     dfb_layers_shutdown();
      dfb_gfxcard_shutdown();
      dfb_input_shutdown();
      dfb_vt_shutdown();
