@@ -31,4 +31,10 @@ void dfb_back_to_front_copy( CoreSurface *surface, DFBRectangle *rect );
 
 void dfb_sort_triangle( DFBTriangle *tri );
 
+static inline bool dfb_colors_equal( const DFBColor *c1, const DFBColor *c2 )
+{
+     return ((c1->a == c2->a) && (c1->r == c2->r) &&
+             (c1->g == c2->g) && (c1->b == c2->b));
+}
+
 #endif

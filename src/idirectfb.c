@@ -67,15 +67,28 @@
  * private data struct of IDirectFB
  */
 typedef struct {
-     int                 ref;      /* reference counter */
-     DFBCooperativeLevel level;    /* current cooperative level */
+     int                  ref;      /* reference counter */
+     DFBCooperativeLevel  level;    /* current cooperative level */
+
+     DisplayLayer        *layer;    /* primary display layer */
 
      struct {
-          int            width;    /* IDirectFB stores window width    */
-          int            height;   /* and height and the pixel depth   */
-          int            bpp;      /* from SetVideoMode() parameters.  */
-     } primary;                    /* Used for DFSCL_NORMAL's primary. */
+          int             width;    /* IDirectFB stores window width    */
+          int             height;   /* and height and the pixel depth   */
+          int             bpp;      /* from SetVideoMode() parameters.  */
+     } primary;                     /* Used for DFSCL_NORMAL's primary. */
 } IDirectFB_data;
+
+typedef struct {
+     DFBDisplayLayerCallback  callback;
+     void                    *callback_ctx;
+} EnumDisplayLayers_Context;
+
+typedef struct {
+     IDirectFBDisplayLayer **interface;
+     DFBDisplayLayerID       id;
+     DFBResult               ret;
+} GetDisplayLayer_Context;
 
 typedef struct {
      DFBInputDeviceCallback  callback;
@@ -97,12 +110,16 @@ typedef struct {
      const char *filename;
 } CreateImageProvider_Context;
 
-static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice *device,
-                                                        void        *ctx );
-static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice *device,
-                                                        void        *ctx );
-static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice *device,
-                                                        void        *ctx );
+static DFBEnumerationResult EnumDisplayLayers_Callback( DisplayLayer *layer,
+                                                        void         *ctx );
+static DFBEnumerationResult GetDisplayLayer_Callback  ( DisplayLayer *layer,
+                                                        void         *ctx );
+static DFBEnumerationResult EnumInputDevices_Callback ( InputDevice  *device,
+                                                        void         *ctx );
+static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice  *device,
+                                                        void         *ctx );
+static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice  *device,
+                                                        void         *ctx );
 
 /*
  * Destructor
@@ -116,7 +133,7 @@ IDirectFB_Destruct( IDirectFB *thiz )
      IDirectFB_data *data = (IDirectFB_data*)thiz->priv;
 
      if (data->level != DFSCL_NORMAL)
-          dfb_layer_unlock( dfb_layers );
+          dfb_layer_release( data->layer, true );
 
      dfb_core_unref();     /* TODO: where should we place this call? */
 
@@ -163,7 +180,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
 
      switch (level) {
           case DFSCL_NORMAL:
-               dfb_layer_unlock( dfb_layers );
+               dfb_layer_release( data->layer, true );
                break;
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE:
@@ -171,7 +188,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
-                    DFBResult ret = dfb_layer_lock( dfb_layers );
+                    DFBResult ret = dfb_layer_purchase( data->layer );
                     if (ret)
                          return ret;
                }
@@ -276,7 +293,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
                config.flags = DLCONF_WIDTH | DLCONF_HEIGHT | /*DLCONF_BUFFERMODE |*/
                               DLCONF_PIXELFORMAT | DLCONF_OPTIONS;
 
-               ret = dfb_layer_set_configuration( dfb_layers, &config );
+               ret = dfb_layer_set_configuration( data->layer, &config );
                if (ret)
                     return ret;
 
@@ -300,12 +317,16 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
      unsigned int width = 256;
      unsigned int height = 256;
      int policy = CSP_VIDEOLOW;
-     DFBSurfacePixelFormat format = dfb_layers->shared->surface->format;
+     DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps = 0;
+     DFBDisplayLayerConfig  config;
      CoreSurface *surface = NULL;
 
      INTERFACE_GET_DATA(IDirectFB)
 
+     dfb_layer_get_configuration( data->layer, &config );
+
+     format = config.pixelformat;
 
      if (!desc || !interface)
           return DFB_INVARG;
@@ -360,31 +381,33 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     width  = data->primary.width;
                     height = data->primary.height;
 
-                    x = (dfb_layers->shared->width  - width)  / 2;
-                    y = (dfb_layers->shared->height - height) / 2;
+                    x = (config.width  - width)  / 2;
+                    y = (config.height - height) / 2;
 
                     if ((desc->flags & DSDESC_PIXELFORMAT)
                         && desc->pixelformat == DSPF_ARGB)
                     {
-                         window = dfb_window_create( dfb_layers->shared->windowstack,
-                                                     x, y,
-                                                     data->primary.width,
-                                                     data->primary.height,
-                                                     DWCAPS_ALPHACHANNEL |
-                                                     DWCAPS_DOUBLEBUFFER,
-                                                     DSPF_UNKNOWN );
+                         ret = dfb_layer_create_window( data->layer,
+                                                        x, y,
+                                                        data->primary.width,
+                                                        data->primary.height,
+                                                        DWCAPS_ALPHACHANNEL |
+                                                        DWCAPS_DOUBLEBUFFER,
+                                                        DSPF_UNKNOWN,
+                                                        &window );
                     }
                     else
-                         window = dfb_window_create( dfb_layers->shared->windowstack,
-                                                     x, y,
-                                                     data->primary.width,
-                                                     data->primary.height,
-                                                     (caps & DSCAPS_FLIPPING) ?
-                                                     DWCAPS_DOUBLEBUFFER : 0,
-                                                     DSPF_UNKNOWN );
+                         ret = dfb_layer_create_window( data->layer,
+                                                        x, y,
+                                                        data->primary.width,
+                                                        data->primary.height,
+                                                        (caps & DSCAPS_FLIPPING) ?
+                                                        DWCAPS_DOUBLEBUFFER : 0,
+                                                        DSPF_UNKNOWN,
+                                                        &window );
 
-                    if (!window)
-                         return DFB_FAILURE;
+                    if (ret)
+                         return ret;
 
                     dfb_window_init( window );
 
@@ -401,7 +424,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                     return IDirectFBSurface_Layer_Construct( *interface, NULL,
-                                                             NULL, dfb_layers,
+                                                             NULL, data->layer,
                                                              caps );
           }
      }
@@ -460,19 +483,17 @@ IDirectFB_EnumDisplayLayers( IDirectFB               *thiz,
                              DFBDisplayLayerCallback  callbackfunc,
                              void                    *callbackdata )
 {
-     DisplayLayer *dl = dfb_layers;
+     EnumDisplayLayers_Context context;
 
      INTERFACE_GET_DATA(IDirectFB)
 
      if (!callbackfunc)
           return DFB_INVARG;
 
-     while (dl) {
-          if (callbackfunc( dl->shared->id, dl->shared->caps, callbackdata ) == DFENUM_CANCEL)
-               break;
+     context.callback     = callbackfunc;
+     context.callback_ctx = callbackdata;
 
-          dl = dl->next;
-     }
+     dfb_layers_enumerate( EnumDisplayLayers_Callback, &context );
 
      return DFB_OK;
 }
@@ -480,31 +501,21 @@ IDirectFB_EnumDisplayLayers( IDirectFB               *thiz,
 static DFBResult
 IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
                            DFBDisplayLayerID       id,
-                           IDirectFBDisplayLayer **layer )
+                           IDirectFBDisplayLayer **interface )
 {
-     DisplayLayer *dl = dfb_layers;
+     GetDisplayLayer_Context context;
 
      INTERFACE_GET_DATA(IDirectFB)
 
-     if (!layer)
+     if (!interface)
           return DFB_INVARG;
 
-     while (dl) {
-          if (dl->shared->id == id) {
-               DFBResult ret;
+     context.interface = interface;
+     context.id        = id;
 
-               ret = dfb_layer_enable( dl );
-               if (ret)
-                    return ret;
+     dfb_layers_enumerate( GetDisplayLayer_Callback, &context );
 
-               DFB_ALLOCATE_INTERFACE( *layer, IDirectFBDisplayLayer );
-
-               return IDirectFBDisplayLayer_Construct( *layer, dl );
-          }
-          dl = dl->next;
-     }
-
-     return DFB_IDNOTFOUND;
+     return context.ret;
 }
 
 static DFBResult
@@ -771,6 +782,7 @@ IDirectFB_Construct( IDirectFB *thiz )
      data->primary.width  = 500;
      data->primary.height = 500;
 
+     data->layer = dfb_layer_at( DLID_PRIMARY );
 
      thiz->AddRef = IDirectFB_AddRef;
      thiz->Release = IDirectFB_Release;
@@ -799,6 +811,34 @@ IDirectFB_Construct( IDirectFB *thiz )
 /*
  * internal functions
  */
+
+static DFBEnumerationResult
+EnumDisplayLayers_Callback( DisplayLayer *layer, void *ctx )
+{
+     EnumDisplayLayers_Context *context = (EnumDisplayLayers_Context*) ctx;
+
+     return context->callback( dfb_layer_id( layer ),
+                               dfb_layer_capabilities( layer ),
+                               context->callback_ctx );
+}
+
+static DFBEnumerationResult
+GetDisplayLayer_Callback( DisplayLayer *layer, void *ctx )
+{
+     GetDisplayLayer_Context *context = (GetDisplayLayer_Context*) ctx;
+
+     if (dfb_layer_id( layer ) != context->id)
+          return DFENUM_OK;
+
+     if ((context->ret = dfb_layer_enable( layer )) == DFB_OK) {
+          DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
+
+          IDirectFBDisplayLayer_Construct( *context->interface, layer );
+     }
+
+     return DFENUM_CANCEL;
+}
+
 static DFBEnumerationResult
 EnumInputDevices_Callback( InputDevice *device, void *ctx )
 {
@@ -821,7 +861,7 @@ GetInputDevice_Callback( InputDevice *device, void *ctx )
 
      IDirectFBInputDevice_Construct( *context->interface, device );
 
-     return DFENUM_OK;
+     return DFENUM_CANCEL;
 }
 
 static DFBEnumerationResult

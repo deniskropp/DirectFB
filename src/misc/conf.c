@@ -54,6 +54,10 @@ static const char *config_usage =
     "DirectFB options:\n\n"
     "  fbdev=<device>                 "
     "Open <device> instead of /dev/fb0\n"
+    "  mode=<width>x<height>          "
+    "Set the default resolution\n"
+    "  depth=<pixeldepth>             "
+    "Set the default pixel depth\n"
     "  quiet                          "
     "No text output except debugging\n"
     "  no-banner                      "
@@ -188,7 +192,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->fb_device = DFBSTRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config --fbdev: No device name specified!\n");
+               ERRORMSG("DirectFB/Config 'fbdev': No device name specified!\n");
                return DFB_INVARG;
           }
      } else
@@ -199,7 +203,40 @@ DFBResult dfb_config_set( const char *name, const char *value )
                dfb_config->fbdebug_device = DFBSTRDUP( value );
           }
           else {
-               ERRORMSG("DirectFB/Config --fbdebug: No device name specified!\n");
+               ERRORMSG("DirectFB/Config 'fbdebug': No device name specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "mode" ) == 0) {
+          int width, height;
+
+          if (value) {
+               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+                    ERRORMSG("DirectFB/Config 'mode': Could not parse mode!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->mode.width  = width;
+               dfb_config->mode.height = height;
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'mode': No mode specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "depth" ) == 0) {
+          int depth;
+
+          if (value) {
+               if (sscanf( value, "%d", &depth ) < 1) {
+                    ERRORMSG("DirectFB/Config 'depth': Could not parse value!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->mode.depth = depth;
+          }
+          else {
+               ERRORMSG("DirectFB/Config 'depth': No value specified!\n");
                return DFB_INVARG;
           }
      } else

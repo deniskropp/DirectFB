@@ -26,13 +26,14 @@
 
 #include <asm/types.h>
 
+#include <core/layers.h>
+
 typedef struct {
+     int            accelerator;
      volatile __u8 *mmio_base;
 } MatroxDriverData;
 
 typedef struct {
-     int accelerator;
-
      /* Old cards are older than G200/G400, e.g. Mystique or Millenium */
      int old_matrox;
 
@@ -71,45 +72,9 @@ typedef struct {
 
      int matrox_w2;
      int matrox_h2;
-
-     /* Stored registers */
-     struct {
-          /* BES */
-          __u32 besGLOBCTL;
-          __u32 besA1ORG;
-          __u32 besA2ORG;
-          __u32 besA1CORG;
-          __u32 besA2CORG;
-          __u32 besA1C3ORG;
-          __u32 besA2C3ORG;
-          __u32 besCTL;
-
-          __u32 besCTL_field;
-
-          __u32 besHCOORD;
-          __u32 besVCOORD;
-
-          __u32 besHSRCST;
-          __u32 besHSRCEND;
-          __u32 besHSRCLST;
-
-          __u32 besLUMACTL;
-          __u32 besPITCH;
-
-          __u32 besV1WGHT;
-          __u32 besV2WGHT;
-
-          __u32 besV1SRCLST;
-          __u32 besV2SRCLST;
-
-          __u32 besVISCAL;
-          __u32 besHISCAL;
-
-          __u8  xKEYOPMODE;
-     } regs;
 } MatroxDeviceData;
 
-void matrox_init_bes( void *drv, void *dev );
+extern DisplayLayerFuncs matroxBesFuncs;
 
 static inline unsigned int log2( unsigned int val )
 {

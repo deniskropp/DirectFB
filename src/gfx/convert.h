@@ -106,6 +106,24 @@
 #define RGB32_TO_ARGB(pixel)   ( 0xFF000000 | (pixel) )
 
 
+static inline DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth )
+{
+     switch (depth) {
+          case 8:
+               return DSPF_RGB332;
+          case 15:
+               return DSPF_RGB15;
+          case 16:
+               return DSPF_RGB16;
+          case 24:
+               return DSPF_RGB24;
+          case 32:
+               return DSPF_RGB32;
+     }
+
+     return DSPF_UNKNOWN;
+}
+
 static inline __u32 color_to_pixel( DFBSurfacePixelFormat format,
                                     __u8 r, __u8 g, __u8 b )
 {

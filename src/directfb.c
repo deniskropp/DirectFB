@@ -190,8 +190,9 @@ DFBResult DirectFBSetOption( char *name, char *value )
  */
 DFBResult DirectFBCreate( IDirectFB **interface )
 {
-     DFBResult             ret;
-     DFBDisplayLayerConfig layer_config;
+     DFBResult              ret;
+     DisplayLayer          *layer;
+     DFBDisplayLayerConfig  layer_config;
 
      if (dfb_config == NULL) {
           /*  don't use ERRORMSG() here, it uses dfb_config  */
@@ -250,6 +251,9 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      }
 #endif
 
+     /* the primary layer */
+     layer = dfb_layer_at( DLID_PRIMARY );
+     
      /* set buffer mode for desktop */
      layer_config.flags = DLCONF_BUFFERMODE;
 
@@ -264,7 +268,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
      else
           layer_config.buffermode = dfb_config->buffer_mode;
 
-     if (dfb_layer_set_configuration( dfb_layers, &layer_config )) {
+     if (dfb_layer_set_configuration( layer, &layer_config )) {
           ERRORMSG( "DirectFB/DirectFBCreate: "
                     "Setting desktop buffer mode failed!\n"
                     "     -> No virtual resolution support or not enough memory?\n"
@@ -272,17 +276,19 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           layer_config.buffermode = DLBM_BACKSYSTEM;
 
-          if (dfb_layer_set_configuration( dfb_layers, &layer_config ))
+          if (dfb_layer_set_configuration( layer, &layer_config ))
                ERRORMSG( "DirectFB/DirectFBCreate: "
                          "Setting system memory desktop back buffer failed!\n"
                          "     -> Using front buffer only mode.\n" );
      }
 
-     /* set desktop background */
-     dfb_layers->shared->bg.mode  = dfb_config->layer_bg_mode;
-     dfb_layers->shared->bg.color = dfb_config->layer_bg_color;
+     /* set desktop background color */
+     dfb_layer_set_background_color( layer, &dfb_config->layer_bg_color );
 
-     if (dfb_config->layer_bg_mode == DLBM_IMAGE || dfb_config->layer_bg_mode == DLBM_TILE) {
+     /* set desktop background image */
+     if (dfb_config->layer_bg_mode == DLBM_IMAGE ||
+         dfb_config->layer_bg_mode == DLBM_TILE)
+     {
           DFBSurfaceDescription   desc;
           IDirectFBImageProvider *provider;
           IDirectFBSurface       *image;
@@ -295,15 +301,17 @@ DFBResult DirectFBCreate( IDirectFB **interface )
           }
 
           if (dfb_config->layer_bg_mode == DLBM_IMAGE) {
-               desc.flags = DSDESC_WIDTH | DSDESC_HEIGHT;
-               desc.width  = dfb_layers->shared->width;
-               desc.height = dfb_layers->shared->height;
+               dfb_layer_get_configuration( layer, &layer_config );
+
+               desc.flags  = DSDESC_WIDTH | DSDESC_HEIGHT;
+               desc.width  = layer_config.width;
+               desc.height = layer_config.height;
           }
           else {
                provider->GetSurfaceDescription( provider, &desc );
           }
           desc.flags |= DSDESC_PIXELFORMAT;
-          desc.pixelformat = dfb_layers->shared->surface->format;
+          desc.pixelformat = dfb_primary_layer_pixelformat();
 
           ret = (*interface)->CreateSurface( *interface, &desc, &image );
           if (ret) {
@@ -319,7 +327,6 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                DirectFBError( "Failed loading background image", ret );
 
                image->Release( image );
-               DFBFREE( image );
                provider->Release( provider );
 
                return DFB_INIT;
@@ -329,13 +336,15 @@ DFBResult DirectFBCreate( IDirectFB **interface )
 
           image_data = (IDirectFBSurface_data*) image->priv;
 
-          dfb_layers->shared->bg.image = image_data->surface;
+          dfb_layer_set_background_image( layer, image_data->surface );
      }
 
-     dfb_windowstack_repaint_all( dfb_layers->shared->windowstack );
+     /* now set the background mode */
+     dfb_layer_set_background_mode( layer, dfb_config->layer_bg_mode );
 
+     /* enable the cursor */
      if (dfb_config->show_cursor)
-          dfb_layer_cursor_enable( dfb_layers, 1 );
+          dfb_layer_cursor_enable( layer, 1 );
 
      return DFB_OK;
 }

@@ -328,6 +328,7 @@ extern "C"
       * capability is required and used.
       */
      typedef enum {
+          DLOP_NONE                = 0x00000000,  /* None of these. */
           DLOP_ALPHACHANNEL        = 0x00000001,  /* Make usage of alpha channel
                                                      for blending on a pixel per
                                                      pixel basis. */

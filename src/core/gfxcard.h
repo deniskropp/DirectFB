@@ -61,7 +61,7 @@ typedef struct {
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION           5
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION           6
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     60
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   80
@@ -192,12 +192,6 @@ typedef struct {
                                   void                *driver_data,
                                   void                *device_data);
 
-     /* temporary function to have hardware layers in single app core,
-        this will change after restructuring layer driver data handling */
-     DFBResult (*InitLayers)     (void                *driver_data,
-                                  void                *device_data);
-
-
      void      (*CloseDevice)    (GraphicsDevice      *device,
                                   void                *driver_data,
                                   void                *device_data);
@@ -220,11 +214,6 @@ DFBResult dfb_gfxcard_resume();
 #endif
 
 void dfb_graphics_register_module( GraphicsDriverFuncs *funcs );
-
-/*
- * initializes card struct, maps framebuffer, chooses accelerated driver
- */
-DFBResult dfb_gfxcard_init_layers();
 
 int dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 int dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );

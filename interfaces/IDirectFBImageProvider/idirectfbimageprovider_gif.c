@@ -284,7 +284,7 @@ static DFBResult IDirectFBImageProvider_GIF_GetSurfaceDescription(
           dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->width  = width;
           dsc->height = height;
-          dsc->pixelformat = dfb_layers->shared->surface->format;
+          dsc->pixelformat = dfb_primary_layer_pixelformat();
 
           fclose (f);
      }

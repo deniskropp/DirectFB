@@ -352,7 +352,7 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
           if (png_type & PNG_COLOR_MASK_ALPHA)
                dsc->pixelformat = DSPF_ARGB;
           else
-               dsc->pixelformat= dfb_layers->shared->surface->format;
+               dsc->pixelformat = dfb_primary_layer_pixelformat();
 
           png_destroy_read_struct(&png_ptr, (png_infopp)NULL, (png_infopp)NULL);
           fclose( f );

@@ -1,0 +1,175 @@
+/*
+   (c) Copyright 2001  Denis Oliver Kropp <dok@directfb.org>
+   All rights reserved.
+
+   This library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU Lesser General Public
+   License as published by the Free Software Foundation; either
+   version 2 of the License, or (at your option) any later version.
+
+   This library is distributed in the hope that it will be useful,
+   but WITHOUT ANY WARRANTY; without even the implied warranty of
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
+
+   You should have received a copy of the GNU Lesser General Public
+   License along with this library; if not, write to the
+   Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+   Boston, MA 02111-1307, USA.
+*/
+
+#include <config.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <unistd.h>
+#include <errno.h>
+#include <signal.h>
+
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+
+#include <core/coredefs.h>
+
+#include "fusion_types.h"
+#include "property.h"
+
+#include "fusion_internal.h"
+
+
+#ifndef FUSION_FAKE
+#error Not yet implemented.
+#else
+
+#include <pthread.h>
+
+/***************************
+ *  Internal declarations  *
+ ***************************/
+
+
+
+/*******************
+ *  Internal data  *
+ *******************/
+
+
+
+/****************
+ *  Public API  *
+ ****************/
+
+/*
+ * Initializes the property
+ */
+void
+fusion_property_init (FusionProperty *property)
+{
+     pthread_mutex_init (&property->lock, NULL);
+     pthread_cond_init (&property->cond, NULL);
+
+     property->state = FUSION_PROPERTY_AVAILABLE;
+}
+
+/*
+ * Lease the property causing others to wait before leasing or purchasing.
+ */
+FusionResult
+fusion_property_lease (FusionProperty *property)
+{
+     FusionResult ret = FUSION_SUCCESS;
+
+     pthread_mutex_lock (&property->lock);
+
+     /* Wait as long as the property is leased by another party. */
+     while (property->state == FUSION_PROPERTY_LEASED)
+          pthread_cond_wait (&property->cond, &property->lock);
+
+     /* Fail if purchased by another party, otherwise succeed. */
+     if (property->state == FUSION_PROPERTY_PURCHASED)
+          ret = FUSION_INUSE;
+     else
+          property->state = FUSION_PROPERTY_LEASED;
+
+     pthread_mutex_unlock (&property->lock);
+
+     return ret;
+}
+
+/*
+ * Purchase the property disallowing others to lease or purchase it.
+ */
+FusionResult
+fusion_property_purchase (FusionProperty *property)
+{
+     FusionResult ret = FUSION_SUCCESS;
+
+     pthread_mutex_lock (&property->lock);
+
+     /* Wait as long as the property is leased by another party. */
+     while (property->state == FUSION_PROPERTY_LEASED)
+          pthread_cond_wait (&property->cond, &property->lock);
+
+     /* Fail if purchased by another party, otherwise succeed. */
+     if (property->state == FUSION_PROPERTY_PURCHASED)
+          ret = FUSION_INUSE;
+     else {
+          property->state = FUSION_PROPERTY_PURCHASED;
+
+          /* Wake up any other waiting party. */
+          pthread_cond_broadcast (&property->cond);
+     }
+
+     pthread_mutex_unlock (&property->lock);
+
+     return ret;
+}
+
+/*
+ * Cede the property allowing others to lease or purchase it.
+ */
+void
+fusion_property_cede (FusionProperty *property)
+{
+     pthread_mutex_lock (&property->lock);
+
+     /* Simple error checking, maybe we should also check the owner. */
+     DFB_ASSERT( property->state != FUSION_PROPERTY_AVAILABLE );
+
+     /* Put back into 'available' state. */
+     property->state = FUSION_PROPERTY_AVAILABLE;
+
+     /* Wake up one waiting party if there are any. */
+     pthread_cond_signal (&property->cond);
+     
+     pthread_mutex_unlock (&property->lock);
+}
+
+/*
+ * Destroys the property
+ */
+void
+fusion_property_destroy (FusionProperty *property)
+{
+     /* Simple error checking. */
+//     DFB_ASSERT( property->state == FUSION_PROPERTY_AVAILABLE );
+     
+     pthread_cond_destroy (&property->cond);
+     pthread_mutex_destroy (&property->lock);
+}
+
+
+/*******************************
+ *  Fusion internal functions  *
+ *******************************/
+
+
+
+/*****************************
+ *  File internal functions  *
+ *****************************/
+
+
+#endif /* !FUSION_FAKE */
+

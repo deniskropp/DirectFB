@@ -154,13 +154,6 @@ driver_init_device( GraphicsDevice     *device,
      return DFB_BUG;
 }
 
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data )
-{
-     return neo_init_overlay( driver_data, device_data );
-}
-
 static void
 driver_close_device( GraphicsDevice *device,
                      void           *driver_data,

@@ -35,3 +35,12 @@ Rework VT handling. Readd VT switching and Suspend/Resume.
 Finish multi application core.
 
 Finish surface manager.
+
+
+
+
+Refactoring/cleanups required:
+
+- Extract config stuff from DirectFBCreate
+- Move layer config stuff from IDirectFBSurface_Layer_Construct to IDirectFB
+- Split up IDirectFB::CreateSurface code

@@ -479,6 +479,9 @@ neo2200_init_driver( GraphicsDevice      *device,
      funcs->Blit = neo2200Blit;
      //     funcs->StretchBlit = neoStretchBlit;
 
+     /* overlay support */
+     dfb_layers_register( device, driver_data, &neoOverlayFuncs );
+     
      return DFB_OK;
 }
 

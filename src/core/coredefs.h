@@ -77,7 +77,7 @@
                                    DEBUGMSG( "*** Assertion [%s] failed! "     \
                                              "*** %s (%d)\n", #exp,            \
                                              __FILE__, __LINE__ );             \
-                                   kill( getpid(), SIGTRAP );                  \
+                                   kill( 0, SIGTRAP );                         \
                               }
 
      #define ONCE(msg)        if (1) {                                         \

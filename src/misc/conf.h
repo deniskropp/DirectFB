@@ -85,6 +85,12 @@ typedef struct
 
      char     *fbdebug_device;                    /* Device for framebuffer
                                                      based debug output */
+
+     struct {
+          int  width;                             /* default width */
+          int  height;                            /* default height */
+          int  depth;                             /* default depth */
+     } mode;
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

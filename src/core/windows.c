@@ -88,14 +88,14 @@ stack_detach_devices( InputDevice *device,
                       void        *ctx );
 
 CoreWindowStack*
-dfb_windowstack_new( DisplayLayer *layer )
+dfb_windowstack_new( DisplayLayer *layer, int width, int height )
 {
      CardCapabilities  caps;
      CoreWindowStack  *stack;
 
      stack = (CoreWindowStack*) shcalloc( 1, sizeof(CoreWindowStack) );
 
-     stack->layer = layer->shared;
+     stack->layer_id = dfb_layer_id( layer );
 
      stack->wsp_opaque = stack->wsp_alpha = CSP_SYSTEMONLY;
 
@@ -113,19 +113,19 @@ dfb_windowstack_new( DisplayLayer *layer )
 
      skirmish_init( &stack->update );
 
-     dfb_input_enumerate_devices( stack_attach_devices, stack );
-
      stack->cursor_region.x1 = 0;
      stack->cursor_region.y1 = 0;
-     stack->cursor_region.x2 = layer->shared->width - 1;
-     stack->cursor_region.y2 = layer->shared->height - 1;
+     stack->cursor_region.x2 = width - 1;
+     stack->cursor_region.y2 = height - 1;
+
+     dfb_input_enumerate_devices( stack_attach_devices, stack );
 
      /* initialize state for repaints */
      dfb_state_init( &stack->state );
      stack->state.modified  = SMF_ALL;
      stack->state.src_blend = DSBF_SRCALPHA;
      stack->state.dst_blend = DSBF_INVSRCALPHA;
-     dfb_state_set_destination( &stack->state, layer->shared->surface );
+     dfb_state_set_destination( &stack->state, dfb_layer_surface( layer ) );
 
      return stack;
 }
@@ -263,25 +263,26 @@ dfb_window_remove( CoreWindow *window )
      skirmish_dismiss( &stack->update );
 }
 
-CoreWindow*
-dfb_window_create( CoreWindowStack       *stack,
-                   int                    x,
-                   int                    y,
-                   unsigned int           width,
-                   unsigned int           height,
-                   DFBWindowCapabilities  caps,
-                   DFBSurfacePixelFormat  pixelformat )
+DFBResult
+dfb_window_create( CoreWindowStack        *stack,
+                   int                     x,
+                   int                     y,
+                   unsigned int            width,
+                   unsigned int            height,
+                   DFBWindowCapabilities   caps,
+                   DFBSurfacePixelFormat   pixelformat,
+                   CoreWindow            **window )
 {
      DFBResult               ret;
      CoreSurface            *surface;
      int                     surface_policy;
      DFBSurfacePixelFormat   surface_format;
      DFBSurfaceCapabilities  surface_caps;
-     CoreWindow             *window;
+     CoreWindow             *w;
 
      if (caps & DWCAPS_ALPHACHANNEL) {
           if (pixelformat != DSPF_UNKNOWN && pixelformat != DSPF_ARGB)
-               return NULL;
+               return DFB_INVARG;
 
           surface_policy = stack->wsp_alpha;
           surface_format = DSPF_ARGB;
@@ -292,7 +293,7 @@ dfb_window_create( CoreWindowStack       *stack,
           if (pixelformat != DSPF_UNKNOWN)
                surface_format = pixelformat;
           else
-               surface_format = stack->layer->surface->format;
+               surface_format = stack->state.destination->format;
      }
 
      if (caps & DWCAPS_DOUBLEBUFFER)
@@ -303,27 +304,29 @@ dfb_window_create( CoreWindowStack       *stack,
      ret = dfb_surface_create( width, height, surface_format, surface_policy,
                                surface_caps, &surface );
      if (ret)
-          return NULL;
+          return ret;
 
-     window = (CoreWindow*) shcalloc( 1, sizeof(CoreWindow) );
+     w = (CoreWindow*) shcalloc( 1, sizeof(CoreWindow) );
 
-     window->id      = new_window_id( stack );
+     w->id      = new_window_id( stack );
 
-     window->surface = surface;
+     w->surface = surface;
 
-     window->x       = x;
-     window->y       = y;
-     window->width   = width;
-     window->height  = height;
+     w->x       = x;
+     w->y       = y;
+     w->width   = width;
+     w->height  = height;
 
-     window->caps    = caps;
-     window->opacity = 0;
+     w->caps    = caps;
+     w->opacity = 0;
 
-     window->stack   = stack;
+     w->stack   = stack;
 
-     window->reactor = reactor_new(sizeof(DFBWindowEvent));
+     w->reactor = reactor_new(sizeof(DFBWindowEvent));
 
-     return window;
+     *window = w;
+
+     return DFB_OK;;
 }
 
 void
@@ -761,8 +764,8 @@ dfb_window_request_focus( CoreWindow *window )
 void
 dfb_windowstack_repaint_all( CoreWindowStack *stack )
 {
-     CoreSurface *surface = stack->layer->surface;
-     DFBRegion    region  = { 0, 0, surface->width -1, surface->height - 1 };
+     CoreSurface *surface = stack->state.destination;
+     DFBRegion    region  = { 0, 0, surface->width - 1, surface->height - 1 };
 
      repaint_stack( stack, &region );
 }
@@ -804,7 +807,6 @@ update_region( CoreWindowStack *stack,
      int                 i      = start;
      unsigned int        edges  = 0;
      DFBRegion           region = { x1, y1, x2, y2 };
-     DisplayLayerShared *layer  = stack->layer;
 
      /* check for empty region */
      DFB_ASSERT (x1 <= x2  &&  y1 <= y2);
@@ -895,55 +897,53 @@ update_region( CoreWindowStack *stack,
           }
      }
      else {
-          if (layer->bg.mode != DLBM_DONTCARE) {
+          switch (stack->bg.mode) {
+               case DLBM_COLOR: {
+                    DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
 
-               switch (layer->bg.mode) {
-                    case DLBM_COLOR: {
-                         DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
+                    stack->state.color     = stack->bg.color;
+                    stack->state.modified |= SMF_COLOR;
 
-                         stack->state.color     = layer->bg.color;
-                         stack->state.modified |= SMF_COLOR;
-
-                         dfb_gfxcard_fillrectangle( &rect, &stack->state );
-                         break;
-                    }
-                    case DLBM_IMAGE: {
-                         DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
-
-                         if (stack->state.blittingflags != DSBLIT_NOFX) {
-                              stack->state.blittingflags  = DSBLIT_NOFX;
-                              stack->state.modified      |= SMF_BLITTING_FLAGS;
-                         }
-
-                         stack->state.source    = layer->bg.image;
-                         stack->state.modified |= SMF_SOURCE;
-
-                         dfb_gfxcard_blit( &rect, x1, y1, &stack->state );
-                         break;
-                    }
-                    case DLBM_TILE: {
-                         DFBRectangle rect =
-                         { 0, 0, layer->bg.image->width, layer->bg.image->height };
-
-                         if (stack->state.blittingflags != DSBLIT_NOFX) {
-                              stack->state.blittingflags  = DSBLIT_NOFX;
-                              stack->state.modified      |= SMF_BLITTING_FLAGS;
-                         }
-
-                         stack->state.source    = layer->bg.image;
-                         stack->state.modified |= SMF_SOURCE;
-
-                         dfb_gfxcard_tileblit( &rect,
-                                               (x1 / rect.w) * rect.w,
-                                               (y1 / rect.h) * rect.h,
-                                               (x2 / rect.w + 1) * rect.w,
-                                               (y2 / rect.h + 1) * rect.h,
-                                               &stack->state );
-                         break;
-                    }
-                    default:
-                         ;
+                    dfb_gfxcard_fillrectangle( &rect, &stack->state );
+                    break;
                }
+               case DLBM_IMAGE: {
+                    DFBRectangle rect = { x1, y1, x2 - x1 + 1, y2 - y1 + 1 };
+
+                    if (stack->state.blittingflags != DSBLIT_NOFX) {
+                         stack->state.blittingflags  = DSBLIT_NOFX;
+                         stack->state.modified      |= SMF_BLITTING_FLAGS;
+                    }
+
+                    stack->state.source    = stack->bg.image;
+                    stack->state.modified |= SMF_SOURCE;
+
+                    dfb_gfxcard_blit( &rect, x1, y1, &stack->state );
+                    break;
+               }
+               case DLBM_TILE: {
+                    DFBRectangle rect = { 0, 0,
+                                          stack->bg.image->width,
+                                          stack->bg.image->height };
+
+                    if (stack->state.blittingflags != DSBLIT_NOFX) {
+                         stack->state.blittingflags  = DSBLIT_NOFX;
+                         stack->state.modified      |= SMF_BLITTING_FLAGS;
+                    }
+
+                    stack->state.source    = stack->bg.image;
+                    stack->state.modified |= SMF_SOURCE;
+
+                    dfb_gfxcard_tileblit( &rect,
+                                          (x1 / rect.w) * rect.w,
+                                          (y1 / rect.h) * rect.h,
+                                          (x2 / rect.w + 1) * rect.w,
+                                          (y2 / rect.h + 1) * rect.h,
+                                          &stack->state );
+                    break;
+               }
+               default:
+                    ;
           }
      }
 }
@@ -952,14 +952,14 @@ static void
 repaint_stack( CoreWindowStack *stack,
                DFBRegion       *region )
 {
-     DisplayLayerShared *layer   = stack->layer;
-     CoreSurface        *surface = layer->surface;
-
-     if (layer->exclusive)
-          return;
+     DisplayLayer *layer   = dfb_layer_at( stack->layer_id );
+     CoreSurface  *surface = dfb_layer_surface( layer );
 
      if (!dfb_region_intersect( region, 0, 0,
                                 surface->width - 1, surface->height - 1 ))
+          return;
+
+     if (dfb_layer_lease( layer ))
           return;
 
      skirmish_prevail( &stack->update );
@@ -973,11 +973,10 @@ repaint_stack( CoreWindowStack *stack,
      if (surface->caps & DSCAPS_FLIPPING) {
           if (region->x1 == 0 &&
               region->y1 == 0 &&
-              region->x2 == layer->width - 1 &&
-              region->y2 == layer->height - 1 && 0)
+              region->x2 == surface->width - 1 &&
+              region->y2 == surface->height - 1 && 0)
           {
-               /* FIXME */
-               //layer->FlipBuffers( layer );
+               dfb_layer_flip_buffers( layer );
           }
           else {
                DFBRectangle rect = { region->x1, region->y1,
@@ -989,6 +988,8 @@ repaint_stack( CoreWindowStack *stack,
      }
 
      skirmish_dismiss( &stack->update );
+
+     dfb_layer_release( layer, false );
 }
 
 static CoreWindow*
@@ -1024,9 +1025,13 @@ stack_inputdevice_react( const void *msg_data,
      DFBWindowEvent   we;
      CoreWindow      *window = NULL;
      CoreWindowStack *stack  = (CoreWindowStack*)ctx;
+     DisplayLayer    *layer  = dfb_layer_at( stack->layer_id );
 
-     if (stack->layer->exclusive)
+     /* FIXME: this is a bad check for exclusive access */
+     if (dfb_layer_lease( layer ) )
           return RS_OK;
+
+     dfb_layer_release( layer, false );
 
      if (stack->wm_hack) {
           switch (evt->type) {

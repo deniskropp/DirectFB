@@ -161,7 +161,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
           (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT);
      desc->width  = data->player->GetWidth();
      desc->height = data->player->GetHeight();
-     desc->pixelformat = dfb_layers->shared->surface->format;
+     desc->pixelformat = dfb_primary_layer_pixelformat();
 
      return DFB_OK;
 }

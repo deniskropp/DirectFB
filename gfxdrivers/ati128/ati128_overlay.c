@@ -1,9 +1,10 @@
 /*
-   (c) Copyright 2000  convergence integrated media GmbH.
+   (c) Copyright 2000-2002  convergence integrated media GmbH.
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@convergence.de>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <neo@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -21,250 +22,95 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-
-#include <directfb.h>
-
-#include <core/fusion/shmalloc.h>
-
 #include <core/coredefs.h>
-#include <core/coretypes.h>
-#include <core/gfxcard.h>
-#include <core/fbdev.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
-#include <core/windows.h>
-
-#include <misc/mem.h>
 
 #include "regs.h"
 #include "mmio.h"
 #include "ati128.h"
 
-static void ov0_set_regs( ATI128DriverData *adrv, ATI128DeviceData *adev );
-static void ov0_calc_regs( ATI128DriverData *adrv, ATI128DeviceData *adev,
-                           DisplayLayer *layer );
+typedef struct {
+     DFBRectangle          dest;
+     DFBDisplayLayerConfig config;
 
-/* FIXME: no driver globals */
-static ATI128DriverData *adrv = NULL;
-static ATI128DeviceData *adev = NULL;
+     /* overlay registers */
+     struct {
+          __u32 H_INC;
+          __u32 STEP_BY;
+          __u32 Y_X_START;
+          __u32 Y_X_END;
+          __u32 V_INC;
+          __u32 P1_BLANK_LINES_AT_TOP;
+          __u32 P23_BLANK_LINES_AT_TOP;
+          __u32 VID_BUF_PITCH0_VALUE;
+          __u32 VID_BUF_PITCH1_VALUE;
+          __u32 P1_X_START_END;
+          __u32 P2_X_START_END;
+          __u32 P3_X_START_END;
+          __u32 VID_BUF0_BASE_ADRS;
+          __u32 VID_BUF1_BASE_ADRS;
+          __u32 VID_BUF2_BASE_ADRS;
+          __u32 P1_V_ACCUM_INIT;
+          __u32 P23_V_ACCUM_INIT;
+          __u32 P1_H_ACCUM_INIT;
+          __u32 P23_H_ACCUM_INIT;
+          __u32 SCALE_CNTL;
+     } regs;
+} ATIOverlayLayerData;
 
-#define OV0_SUPPORTED_OPTIONS   (0)
+static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 );
+static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
+                           DisplayLayer *layer, DFBDisplayLayerConfig *config );
 
+#define OV0_SUPPORTED_OPTIONS   (DLOP_NONE)
 
 /**********************/
 
-static DFBResult ov0Enable( DisplayLayer *layer )
+static int
+ov0LayerDataSize()
 {
-     if (!layer->shared->surface) {
-          DFBResult ret;
-
-          /* FIXME HARDCODER! */
-          ret = dfb_surface_create( layer->shared->width, layer->shared->height,
-                                    DSPF_YUY2, CSP_VIDEOONLY, DSCAPS_VIDEOONLY,
-                                    &layer->shared->surface );
-          if (ret)
-               return ret;
-     }
-
-     if (!layer->shared->windowstack)
-          layer->shared->windowstack = dfb_windowstack_new( layer );
-
-     layer->shared->enabled = 1;
-
-     ov0_calc_regs( adrv, adev, layer );
-     ov0_set_regs( adrv, adev );
-
-     return DFB_OK;
+     return sizeof(ATIOverlayLayerData);
 }
-
-static DFBResult ov0Disable( DisplayLayer *layer )
+     
+static DFBResult
+ov0InitLayer( GraphicsDevice             *device,
+              DisplayLayer               *layer,
+              DisplayLayerInfo           *layer_info,
+              DFBDisplayLayerConfig      *default_config,
+              DFBColorAdjustment         *default_adj,
+              void                       *driver_data,
+              void                       *layer_data )
 {
-     /* FIXME: The surface should be destroyed, and the window stack? */
-     layer->shared->enabled = 0;
+     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
+     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
+     volatile __u8       *mmio = adrv->mmio_base;
+     
+     /* set capabilities */
+     layer_info->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
 
-     ati128_out32( adrv->mmio_base, OV0_SCALE_CNTL, 0 );
-
-     return DFB_OK;
-}
-
-static DFBResult ov0TestConfiguration( DisplayLayer               *layer,
-                                       DFBDisplayLayerConfig      *config,
-                                       DFBDisplayLayerConfigFlags *failed )
-{
-     DFBDisplayLayerConfigFlags fail = 0;
-
-     if (config->flags & DLCONF_OPTIONS &&
-         config->options & ~OV0_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
-
-     if (config->flags & DLCONF_PIXELFORMAT) {
-          switch (config->pixelformat) {
-               case DSPF_YUY2:
-               case DSPF_UYVY:
-               case DSPF_I420:
-               case DSPF_YV12:
-                    break;
-
-               default:
-                    fail |= DLCONF_PIXELFORMAT;
-          }
-     }
-
-     if (config->flags & DLCONF_WIDTH)
-          if (config->width > 2048 || config->width < 1)
-               fail |= DLCONF_WIDTH;
-
-     if (config->flags & DLCONF_HEIGHT)
-          if (config->height > 1024 || config->height < 1)
-               fail |= DLCONF_HEIGHT;
-
-     if (failed)
-          *failed = fail;
-
-     if (fail)
-          return DFB_UNSUPPORTED;
-
-     return DFB_OK;
-}
-
-static DFBResult ov0SetConfiguration( DisplayLayer          *layer,
-                                      DFBDisplayLayerConfig *config )
-{
-     ov0_calc_regs( adrv, adev, layer );
-     ov0_set_regs( adrv, adev );
-
-     return DFB_OK;
-}
-
-static DFBResult ov0SetOpacity( DisplayLayer *layer,
-                                __u8          opacity )
-{
-     switch (opacity) {
-          case 0:
-               ati128_out32( adrv->mmio_base, OV0_SCALE_CNTL,
-                             adev->ov0.SCALE_CNTL & 0xBFFFFFFF );
-               break;
-          case 0xFF:
-               ati128_out32( adrv->mmio_base, OV0_SCALE_CNTL,
-                             adev->ov0.SCALE_CNTL );
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-
-     return DFB_OK;
-}
-
-static DFBResult ov0SetScreenLocation( DisplayLayer *layer,
-                                       float         x,
-                                       float         y,
-                                       float         width,
-                                       float         height )
-{
-     layer->shared->screen.x = x;
-     layer->shared->screen.y = y;
-     layer->shared->screen.w = width;
-     layer->shared->screen.h = height;
-
-     ov0_calc_regs( adrv, adev, layer );
-     ov0_set_regs( adrv, adev );
-
-     return DFB_OK;
-}
-
-static DFBResult ov0SetSrcColorKey( DisplayLayer *layer,
-                                    __u32         key )
-{
-     return DFB_UNSUPPORTED;
-}
-
-static DFBResult ov0SetDstColorKey( DisplayLayer *layer,
-                                    __u8          r,
-                                    __u8          g,
-                                    __u8          b )
-{
-     return DFB_UNSUPPORTED;
-}
-
-static DFBResult ov0FlipBuffers( DisplayLayer *layer )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult ov0SetColorAdjustment( DisplayLayer       *layer,
-                                        DFBColorAdjustment *adj )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static void ati128_ov0_deinit( DisplayLayer *layer )
-{
-     ati128_out32( adrv->mmio_base, OV0_SCALE_CNTL, 0 );
-}
-
-/* exported symbols */
-
-void
-ati128_init_layers( void *drv, void *dev )
-{
-     DisplayLayer     *layer;
-     volatile __u8    *mmio;
-
-     /* FIXME: no driver globals */
-     adrv = (ATI128DriverData*) drv;
-     adev = (ATI128DeviceData*) dev;
-
-     mmio = adrv->mmio_base;
-
-
-     layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
-
-     layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
-
-     layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
-
-     snprintf( layer->shared->description,
+     /* set name */
+     snprintf( layer_info->name,
                DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "ATI128 Overlay" );
 
-     layer->shared->enabled    = 0;
+     /* fill out the default configuration */
+     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                                   DLCONF_OPTIONS;
+     default_config->width       = 640;
+     default_config->height      = 480;
+     default_config->pixelformat = DSPF_YUY2;
+     default_config->buffermode  = DLBM_FRONTONLY;
+     default_config->options     = DLOP_NONE;
 
-     layer->shared->width      = 640;
-     layer->shared->height     = 480;
-     layer->shared->buffermode = DLBM_FRONTONLY;
-     layer->shared->options    = 0;
-
-     layer->shared->screen.x   = 0.0f;
-     layer->shared->screen.y   = 0.0f;
-     layer->shared->screen.w   = 1.0f;
-     layer->shared->screen.h   = 1.0f;
-
-     layer->shared->opacity    = 0xFF;
-
-     layer->shared->bg.mode    = DLBM_DONTCARE;
-
-     layer->Enable             = ov0Enable;
-     layer->Disable            = ov0Disable;
-     layer->TestConfiguration  = ov0TestConfiguration;
-     layer->SetConfiguration   = ov0SetConfiguration;
-     layer->SetOpacity         = ov0SetOpacity;
-     layer->SetScreenLocation  = ov0SetScreenLocation;
-     layer->SetSrcColorKey     = ov0SetSrcColorKey;
-     layer->SetDstColorKey     = ov0SetDstColorKey;
-     layer->FlipBuffers        = ov0FlipBuffers;
-     layer->SetColorAdjustment = ov0SetColorAdjustment;
-
-     layer->deinit             = ati128_ov0_deinit;
-
-     /* gets filled by layers_add: layer->shared->id */
-     dfb_layers_add( layer );
-
+     /* fill out default color adjustment,
+        only fields set in flags will be accepted from applications */
+     default_adj->flags = DCAF_NONE;
+     
+     
+     /* initialize destination rectangle */
+     dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &aov0->dest );
+     
      /* reset overlay */
      ati128_out32( mmio, OV0_SCALE_CNTL, 0x80000000 );
      ati128_out32( mmio, OV0_EXCLUSIVE_HORZ, 0 );
@@ -273,13 +119,207 @@ ati128_init_layers( void *drv, void *dev )
      ati128_out32( mmio, OV0_COLOR_CNTL, 0x00101000 );
      ati128_out32( mmio, OV0_KEY_CNTL, 0x10 );
      ati128_out32( mmio, OV0_TEST, 0 );
+     
+     return DFB_OK;
 }
 
+
+static void
+ov0OnOff( ATI128DriverData    *adrv,
+          ATIOverlayLayerData *aov0,
+          int                  on )
+{
+     /* set/clear enable bit */
+     if (on)
+          aov0->regs.SCALE_CNTL |= R128_SCALER_ENABLE;
+     else
+          aov0->regs.SCALE_CNTL &= ~R128_SCALER_ENABLE;
+
+     /* write back to card */
+     ati128_out32( adrv->mmio_base, OV0_SCALE_CNTL, aov0->regs.SCALE_CNTL );
+}
+
+static DFBResult
+ov0Enable( DisplayLayer *layer,
+           void         *driver_data,
+           void         *layer_data )
+{
+     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
+     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
+     
+     /* enable overlay */
+     ov0OnOff( adrv, aov0, 1 );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ov0Disable( DisplayLayer *layer,
+            void         *driver_data,
+            void         *layer_data )
+{
+     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
+     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
+
+     /* disable overlay */
+     ov0OnOff( adrv, aov0, 0 );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ov0TestConfiguration( DisplayLayer               *layer,
+                      void                       *driver_data,
+                      void                       *layer_data,
+                      DFBDisplayLayerConfig      *config,
+                      DFBDisplayLayerConfigFlags *failed )
+{
+     DFBDisplayLayerConfigFlags fail = 0;
+
+     /* check for unsupported options */
+     if (config->options & ~OV0_SUPPORTED_OPTIONS)
+          fail |= DLCONF_OPTIONS;
+
+     /* check pixel format */
+     switch (config->pixelformat) {
+          case DSPF_YUY2:
+          case DSPF_UYVY:
+          case DSPF_I420:
+          case DSPF_YV12:
+               break;
+
+          default:
+               fail |= DLCONF_PIXELFORMAT;
+     }
+
+     /* check width */
+     if (config->width > 2048 || config->width < 1)
+          fail |= DLCONF_WIDTH;
+
+     /* check height */
+     if (config->height > 1024 || config->height < 1)
+          fail |= DLCONF_HEIGHT;
+
+     /* write back failing fields */
+     if (failed)
+          *failed = fail;
+
+     /* return failure if any field failed */
+     if (fail)
+          return DFB_UNSUPPORTED;
+
+     return DFB_OK;
+}
+
+static DFBResult
+ov0SetConfiguration( DisplayLayer          *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     DFBDisplayLayerConfig *config )
+{
+     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
+     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
+
+     /* remember configuration */
+     aov0->config = *config;
+     
+     ov0_calc_regs( adrv, aov0, layer, config );
+     ov0_set_regs( adrv, aov0 );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ov0SetOpacity( DisplayLayer *layer,
+               void         *driver_data,
+               void         *layer_data,
+               __u8          opacity )
+{
+     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
+     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
+     
+     switch (opacity) {
+          case 0:
+               ov0OnOff( adrv, aov0, 0 );
+               break;
+          case 0xFF:
+               ov0OnOff( adrv, aov0, 1 );
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+ov0SetScreenLocation( DisplayLayer *layer,
+                      void         *driver_data,
+                      void         *layer_data,
+                      float         x,
+                      float         y,
+                      float         width,
+                      float         height )
+{
+     ATI128DriverData    *adrv = (ATI128DriverData*) driver_data;
+     ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
+     
+     /* get new destination rectangle */
+     dfb_primary_layer_rectangle( x, y, width, height, &aov0->dest );
+
+     ov0_calc_regs( adrv, aov0, layer, &aov0->config );
+     ov0_set_regs( adrv, aov0 );
+     
+     return DFB_OK;
+}
+
+static DFBResult
+ov0SetDstColorKey( DisplayLayer *layer,
+                   void         *driver_data,
+                   void         *layer_data,
+                   __u8          r,
+                   __u8          g,
+                   __u8          b )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+ov0FlipBuffers( DisplayLayer *layer,
+                void         *driver_data,
+                void         *layer_data )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+ov0SetColorAdjustment( DisplayLayer       *layer,
+                       void               *driver_data,
+                       void               *layer_data,
+                       DFBColorAdjustment *adj )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+
+DisplayLayerFuncs atiOverlayFuncs = {
+     LayerDataSize:      ov0LayerDataSize,
+     InitLayer:          ov0InitLayer,
+     Enable:             ov0Enable,
+     Disable:            ov0Disable,
+     TestConfiguration:  ov0TestConfiguration,
+     SetConfiguration:   ov0SetConfiguration,
+     SetOpacity:         ov0SetOpacity,
+     SetScreenLocation:  ov0SetScreenLocation,
+     SetDstColorKey:     ov0SetDstColorKey,
+     FlipBuffers:        ov0FlipBuffers,
+     SetColorAdjustment: ov0SetColorAdjustment
+};
 
 
 /* internal */
 
-static void ov0_set_regs( ATI128DriverData *adrv, ATI128DeviceData *adev )
+static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 )
 {
      volatile __u8 *mmio = adrv->mmio_base;
 
@@ -287,70 +327,70 @@ static void ov0_set_regs( ATI128DriverData *adrv, ATI128DeviceData *adev )
      while (!(ati128_in32( mmio, OV0_REG_LOAD_CNTL ) & (1 << 3)));
 
      ati128_out32( mmio, OV0_H_INC,
-                   adev->ov0.H_INC );
+                   aov0->regs.H_INC );
 
      ati128_out32( mmio, OV0_STEP_BY,
-                   adev->ov0.STEP_BY );
+                   aov0->regs.STEP_BY );
 
      ati128_out32( mmio, OV0_Y_X_START,
-                   adev->ov0.Y_X_START );
+                   aov0->regs.Y_X_START );
 
      ati128_out32( mmio, OV0_Y_X_END,
-                   adev->ov0.Y_X_END );
+                   aov0->regs.Y_X_END );
 
      ati128_out32( mmio, OV0_V_INC,
-                   adev->ov0.V_INC );
+                   aov0->regs.V_INC );
 
      ati128_out32( mmio, OV0_P1_BLANK_LINES_AT_TOP,
-                   adev->ov0.P1_BLANK_LINES_AT_TOP );
+                   aov0->regs.P1_BLANK_LINES_AT_TOP );
 
      ati128_out32( mmio, OV0_P23_BLANK_LINES_AT_TOP,
-                   adev->ov0.P23_BLANK_LINES_AT_TOP );
+                   aov0->regs.P23_BLANK_LINES_AT_TOP );
 
      ati128_out32( mmio, OV0_VID_BUF_PITCH0_VALUE,
-                   adev->ov0.VID_BUF_PITCH0_VALUE );
+                   aov0->regs.VID_BUF_PITCH0_VALUE );
 
      ati128_out32( mmio, OV0_VID_BUF_PITCH1_VALUE,
-                   adev->ov0.VID_BUF_PITCH1_VALUE );
+                   aov0->regs.VID_BUF_PITCH1_VALUE );
 
      ati128_out32( mmio, OV0_P1_X_START_END,
-                   adev->ov0.P1_X_START_END );
+                   aov0->regs.P1_X_START_END );
 
      ati128_out32( mmio, OV0_P2_X_START_END,
-                   adev->ov0.P2_X_START_END );
+                   aov0->regs.P2_X_START_END );
 
      ati128_out32( mmio, OV0_P3_X_START_END,
-                   adev->ov0.P3_X_START_END );
+                   aov0->regs.P3_X_START_END );
 
      ati128_out32( mmio, OV0_VID_BUF0_BASE_ADRS,
-                   adev->ov0.VID_BUF0_BASE_ADRS );
+                   aov0->regs.VID_BUF0_BASE_ADRS );
 
      ati128_out32( mmio, OV0_VID_BUF1_BASE_ADRS,
-                   adev->ov0.VID_BUF1_BASE_ADRS );
+                   aov0->regs.VID_BUF1_BASE_ADRS );
 
      ati128_out32( mmio, OV0_VID_BUF2_BASE_ADRS,
-                   adev->ov0.VID_BUF2_BASE_ADRS );
+                   aov0->regs.VID_BUF2_BASE_ADRS );
 
      ati128_out32( mmio, OV0_P1_V_ACCUM_INIT,
-                   adev->ov0.P1_V_ACCUM_INIT );
+                   aov0->regs.P1_V_ACCUM_INIT );
 
      ati128_out32( mmio, OV0_P23_V_ACCUM_INIT,
-                   adev->ov0.P23_V_ACCUM_INIT );
+                   aov0->regs.P23_V_ACCUM_INIT );
 
      ati128_out32( mmio, OV0_P1_H_ACCUM_INIT,
-                   adev->ov0.P1_H_ACCUM_INIT );
+                   aov0->regs.P1_H_ACCUM_INIT );
 
      ati128_out32( mmio, OV0_P23_H_ACCUM_INIT,
-                   adev->ov0.P23_H_ACCUM_INIT );
+                   aov0->regs.P23_H_ACCUM_INIT );
 
      ati128_out32( mmio, OV0_SCALE_CNTL,
-                   adev->ov0.SCALE_CNTL );
+                   aov0->regs.SCALE_CNTL );
 
      ati128_out32( mmio, OV0_REG_LOAD_CNTL, 0 );
 }
 
-static void ov0_calc_regs( ATI128DriverData *adrv, ATI128DeviceData *adev,
-                           DisplayLayer *layer )
+static void ov0_calc_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0,
+                           DisplayLayer *layer, DFBDisplayLayerConfig *config )
 {
      int h_inc, v_inc, step_by, tmp;
      int p1_h_accum_init, p23_h_accum_init;
@@ -360,19 +400,24 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATI128DeviceData *adev,
      int            dst_w;
      int            dst_h;
      __u32          offset_u = 0, offset_v = 0;
-     CoreSurface   *surface = layer->shared->surface;
-     SurfaceBuffer *front = surface->front_buffer;
+     
+     CoreSurface   *surface      = dfb_layer_surface( layer );
+     SurfaceBuffer *front_buffer = surface->front_buffer;
 
+     
+     /* destination box */
+     dstBox.x1 = aov0->dest.x;
+     dstBox.y1 = aov0->dest.y;
+     dstBox.x2 = aov0->dest.x + aov0->dest.w;
+     dstBox.y2 = aov0->dest.y + aov0->dest.h;
 
-     /* calculate destination size */
-     dst_w = (int)(layer->shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
-     dst_h = (int)(layer->shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
+     /* destination size */
+     dst_w = aov0->dest.w;
+     dst_h = aov0->dest.h;
+     
+     /* clear everything but the enable bit that may be set*/
+     aov0->regs.SCALE_CNTL &= R128_SCALER_ENABLE;
 
-     /* calculate destination region */
-     dstBox.x1 = (int)(layer->shared->screen.x * (float)Sfbdev->current_mode->xres + 0.5f);
-     dstBox.y1 = (int)(layer->shared->screen.y * (float)Sfbdev->current_mode->yres + 0.5f);
-     dstBox.x2 = (int)((layer->shared->screen.x + layer->shared->screen.w) * (float)Sfbdev->current_mode->xres + 0.5f);
-     dstBox.y2 = (int)((layer->shared->screen.y + layer->shared->screen.h) * (float)Sfbdev->current_mode->yres + 0.5f);
 
      /* calculate incrementors */
      h_inc   = (surface->width  << 12) / dst_w;
@@ -401,61 +446,60 @@ static void ov0_calc_regs( ATI128DriverData *adrv, ATI128DeviceData *adev,
      /* choose pixel format and calculate buffer offsets for planar modes */
      switch (surface->format) {
           case DSPF_UYVY:
-               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_YVYU422;
+               aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YVYU422;
                break;
 
           case DSPF_YUY2:
-               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_VYUY422;
+               aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_VYUY422;
                break;
 
           case DSPF_I420:
-               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
+               aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
 
-               offset_u = front->video.offset +
-                          surface->height * front->video.pitch;
+               offset_u = front_buffer->video.offset +
+                          surface->height * front_buffer->video.pitch;
                offset_v = offset_u +
-                          (surface->height >> 1) * (front->video.pitch >> 1);
+                          (surface->height >> 1) * (front_buffer->video.pitch >> 1);
                break;
 
           case DSPF_YV12:
-               adev->ov0.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
+               aov0->regs.SCALE_CNTL = R128_SCALER_SOURCE_YUV12;
 
-               offset_v = front->video.offset +
-                          surface->height * front->video.pitch;
+               offset_v = front_buffer->video.offset +
+                          surface->height * front_buffer->video.pitch;
                offset_u = offset_v +
-                          (surface->height >> 1) * (front->video.pitch >> 1);
+                          (surface->height >> 1) * (front_buffer->video.pitch >> 1);
                break;
 
           default:
                BUG("unexpected pixelformat");
-               adev->ov0.SCALE_CNTL = 0;
+               aov0->regs.SCALE_CNTL = 0;
                return;
      }
 
-     adev->ov0.SCALE_CNTL            |= R128_SCALER_ENABLE |
-                                        R128_SCALER_DOUBLE_BUFFER |
-                                        R128_SCALER_BURST_PER_PLANE |
-                                        R128_SCALER_Y2R_TEMP |
-                                        R128_SCALER_PIX_EXPAND;
+     aov0->regs.SCALE_CNTL            |= R128_SCALER_DOUBLE_BUFFER |
+                                         R128_SCALER_BURST_PER_PLANE |
+                                         R128_SCALER_Y2R_TEMP |
+                                         R128_SCALER_PIX_EXPAND;
 
-     adev->ov0.H_INC                  = h_inc | ((h_inc >> 1) << 16);
-     adev->ov0.V_INC                  = v_inc;
-     adev->ov0.STEP_BY                = step_by | (step_by << 8);
-     adev->ov0.Y_X_START              = dstBox.x1 | (dstBox.y1 << 16);
-     adev->ov0.Y_X_END                = dstBox.x2 | (dstBox.y2 << 16);
-     adev->ov0.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->height - 1) << 16);
-     adev->ov0.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->height + 1) >> 1) - 1) << 16);
-     adev->ov0.VID_BUF_PITCH0_VALUE   = front->video.pitch;
-     adev->ov0.VID_BUF_PITCH1_VALUE   = front->video.pitch >> 1;
-     adev->ov0.P1_X_START_END         = surface->width - 1;
-     adev->ov0.P2_X_START_END         = (surface->width >> 1) - 1;
-     adev->ov0.P3_X_START_END         = (surface->width >> 1) - 1;
-     adev->ov0.VID_BUF0_BASE_ADRS     = front->video.offset & 0x03fffff0;
-     adev->ov0.VID_BUF1_BASE_ADRS     = (offset_u & 0x03fffff0) | 1;
-     adev->ov0.VID_BUF2_BASE_ADRS     = (offset_v & 0x03fffff0) | 1;
-     adev->ov0.P1_H_ACCUM_INIT        = p1_h_accum_init;
-     adev->ov0.P23_H_ACCUM_INIT       = p23_h_accum_init;
-     adev->ov0.P1_V_ACCUM_INIT        = p1_v_accum_init;
-     adev->ov0.P23_V_ACCUM_INIT       = p23_v_accum_init;
+     aov0->regs.H_INC                  = h_inc | ((h_inc >> 1) << 16);
+     aov0->regs.V_INC                  = v_inc;
+     aov0->regs.STEP_BY                = step_by | (step_by << 8);
+     aov0->regs.Y_X_START              = dstBox.x1 | (dstBox.y1 << 16);
+     aov0->regs.Y_X_END                = dstBox.x2 | (dstBox.y2 << 16);
+     aov0->regs.P1_BLANK_LINES_AT_TOP  = 0x00000fff | ((surface->height - 1) << 16);
+     aov0->regs.P23_BLANK_LINES_AT_TOP = 0x000007ff | ((((surface->height + 1) >> 1) - 1) << 16);
+     aov0->regs.VID_BUF_PITCH0_VALUE   = front_buffer->video.pitch;
+     aov0->regs.VID_BUF_PITCH1_VALUE   = front_buffer->video.pitch >> 1;
+     aov0->regs.P1_X_START_END         = surface->width - 1;
+     aov0->regs.P2_X_START_END         = (surface->width >> 1) - 1;
+     aov0->regs.P3_X_START_END         = (surface->width >> 1) - 1;
+     aov0->regs.VID_BUF0_BASE_ADRS     = front_buffer->video.offset & 0x03fffff0;
+     aov0->regs.VID_BUF1_BASE_ADRS     = (offset_u & 0x03fffff0) | 1;
+     aov0->regs.VID_BUF2_BASE_ADRS     = (offset_v & 0x03fffff0) | 1;
+     aov0->regs.P1_H_ACCUM_INIT        = p1_h_accum_init;
+     aov0->regs.P23_H_ACCUM_INIT       = p23_h_accum_init;
+     aov0->regs.P1_V_ACCUM_INIT        = p1_v_accum_init;
+     aov0->regs.P23_V_ACCUM_INIT       = p23_v_accum_init;
 }
 

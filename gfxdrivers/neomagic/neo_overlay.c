@@ -2,8 +2,9 @@
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    All rights reserved.
 
-   Written by Denis Oliver Kropp <dok@convergence.de> and
-              Andreas Hundt <andi@convergence.de>.
+   Written by Denis Oliver Kropp <dok@convergence.de>,
+              Andreas Hundt <andi@fischlustig.de> and
+              Sven Neumann <neo@convergence.de>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -21,272 +22,83 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-
-#include <directfb.h>
-
-#include <core/fusion/shmalloc.h>
-
 #include <core/coredefs.h>
-#include <core/coretypes.h>
-#include <core/gfxcard.h>
-#include <core/fbdev.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
-#include <core/windows.h>
-
-#include <misc/mem.h>
 
 #include "neomagic.h"
 
-static void
-neo_overlay_set_regs ( NeoDriverData *ndrv,
-                       NeoDeviceData *ndev );
+typedef struct {
+     DFBRectangle          dest;
+     DFBDisplayLayerConfig config;
 
-static void
-neo_overlay_calc_regs( NeoDriverData *ndrv,
-                       NeoDeviceData *ndev,
-                       DisplayLayer  *layer );
+     /* overlay registers */
+     struct {
+          __u32 OFFSET;
+          __u16 PITCH;
+          __u16 X1;
+          __u16 X2;
+          __u16 Y1;
+          __u16 Y2;
+          __u16 HSCALE;
+          __u16 VSCALE;
+          __u8  CONTROL;
+     } regs;
+} NeoOverlayLayerData;
 
-/* FIXME: no driver globals */
-static NeoDriverData *ndrv = NULL;
-static NeoDeviceData *ndev = NULL;
+static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl );
+static void ovl_calc_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl,
+                           DisplayLayer *layer, DFBDisplayLayerConfig *config );
 
-#define NEO_OVERLAY_SUPPORTED_OPTIONS   (0)
-
+#define NEO_OVERLAY_SUPPORTED_OPTIONS   (DLOP_NONE)
 
 /**********************/
 
+static int
+ovlLayerDataSize()
+{
+     return sizeof(NeoOverlayLayerData);
+}
+     
 static DFBResult
-neoOverlayEnable( DisplayLayer *layer )
+ovlInitLayer( GraphicsDevice             *device,
+              DisplayLayer               *layer,
+              DisplayLayerInfo           *layer_info,
+              DFBDisplayLayerConfig      *default_config,
+              DFBColorAdjustment         *default_adj,
+              void                       *driver_data,
+              void                       *layer_data )
 {
-     if (!layer->shared->surface) {
-          DFBResult ret;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+     
+     /* set capabilities */
+     layer_info->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
+                        DLCAPS_BRIGHTNESS;
 
-          /* FIXME HARDCODER! */
-          ret = dfb_surface_create( layer->shared->width, layer->shared->height,
-                                    DSPF_YUY2, CSP_VIDEOONLY, DSCAPS_VIDEOONLY,
-                                    &layer->shared->surface );
-          if (ret)
-               return ret;
-     }
-
-     if (!layer->shared->windowstack)
-          layer->shared->windowstack = dfb_windowstack_new( layer );
-
-     layer->shared->enabled = 1;
-
-     neo_overlay_calc_regs( ndrv, ndev, layer );
-     neo_overlay_set_regs( ndrv, ndev );
-
-     return DFB_OK;
-}
-
-static DFBResult
-neoOverlayDisable( DisplayLayer *layer )
-{
-     /* FIXME: The surface should be destroyed, and the window stack? */
-     layer->shared->enabled = 0;
-
-     neo_unlock();
-     OUTGR(0xb0, 0x00);
-     neo_lock();
-
-     return DFB_OK;
-}
-
-static DFBResult
-neoOverlayTestConfiguration( DisplayLayer               *layer,
-                             DFBDisplayLayerConfig      *config,
-                             DFBDisplayLayerConfigFlags *failed )
-{
-     DFBDisplayLayerConfigFlags fail = 0;
-
-     if (config->flags & DLCONF_OPTIONS &&
-         config->options & ~NEO_OVERLAY_SUPPORTED_OPTIONS)
-          fail |= DLCONF_OPTIONS;
-
-     if (config->flags & DLCONF_PIXELFORMAT) {
-          switch (config->pixelformat) {
-               case DSPF_YUY2:
-                    break;
-
-               default:
-                    fail |= DLCONF_PIXELFORMAT;
-          }
-     }
-
-     if (config->flags & DLCONF_WIDTH)
-          if (config->width > 1024 || config->width < 160)
-               fail |= DLCONF_WIDTH;
-
-     if (config->flags & DLCONF_HEIGHT)
-          if (config->height > 1024 || config->height < 1)
-               fail |= DLCONF_HEIGHT;
-
-     if (failed)
-          *failed = fail;
-
-     if (fail)
-          return DFB_UNSUPPORTED;
-
-     return DFB_OK;
-}
-
-static DFBResult
-neoOverlaySetConfiguration( DisplayLayer          *layer,
-                            DFBDisplayLayerConfig *config )
-{
-     neo_overlay_calc_regs( ndrv, ndev, layer );
-     neo_overlay_set_regs( ndrv, ndev );
-
-     return DFB_OK;
-}
-
-static DFBResult
-neoOverlaySetOpacity( DisplayLayer *layer,
-                      __u8          opacity )
-{
-     switch (opacity) {
-          case 0:
-               neo_unlock();
-               OUTGR(0xb0, 0x00);
-               neo_lock();
-               break;
-          case 0xFF:
-               neo_unlock();
-               OUTGR(0xb0, ndev->OVERLAY.CONTROL);
-               neo_lock();
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-
-     return DFB_OK;
-}
-
-static DFBResult
-neoOverlaySetScreenLocation( DisplayLayer *layer,
-                             float         x,
-                             float         y,
-                             float         width,
-                             float         height )
-{
-
-     layer->shared->screen.x = x;
-     layer->shared->screen.y = y;
-     layer->shared->screen.w = width;
-     layer->shared->screen.h = height;
-
-     neo_overlay_calc_regs( ndrv, ndev, layer );
-     neo_overlay_set_regs( ndrv, ndev );
-
-     return DFB_OK;
-}
-
-static DFBResult
-neoOverlaySetSrcColorKey( DisplayLayer *layer,
-                          __u32         key )
-{
-     return DFB_UNSUPPORTED;
-}
-
-static DFBResult
-neoOverlaySetDstColorKey( DisplayLayer *layer,
-                          __u8          r,
-                          __u8          g,
-                          __u8          b )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
-neoOverlayFlipBuffers( DisplayLayer *layer )
-{
-     return DFB_UNIMPLEMENTED;
-}
-
-static DFBResult
-neoOverlaySetColorAdjustment( DisplayLayer       *layer,
-                              DFBColorAdjustment *adj )
-{
-     if (adj->flags & DCAF_BRIGHTNESS) {
-		neo_unlock();
-		OUTGR(0xc4, (signed char)((adj->brightness >> 8) -128));
-		neo_lock();
-		return DFB_OK;
-     } else
-		return DFB_UNIMPLEMENTED;
-}
-
-static void
-neo_overlay_deinit( DisplayLayer *layer )
-{
-     neo_unlock();
-     OUTGR(0xb0, 0x00);
-     neo_lock();
-}
-
-/* exported symbols */
-
-DFBResult
-neo_init_overlay( void *driver_data,
-                  void *device_data )
-{
-     DisplayLayer *layer;
-
-     /* FIXME: no driver globals */
-     ndrv = (NeoDriverData*) driver_data;
-     ndev = (NeoDeviceData*) device_data;
-
-     /* create a layer */
-     layer = (DisplayLayer*)DFBCALLOC( 1, sizeof(DisplayLayer) );
-
-     layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
-
-     layer->shared->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | DLCAPS_BRIGHTNESS;
-
-     snprintf( layer->shared->description,
+     /* set name */
+     snprintf( layer_info->name,
                DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "NeoMagic Overlay" );
 
-     layer->shared->enabled    = 0;
+     /* fill out the default configuration */
+     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
+                                   DLCONF_OPTIONS;
+     default_config->width       = 640;
+     default_config->height      = 480;
+     default_config->pixelformat = DSPF_YUY2;
+     default_config->buffermode  = DLBM_FRONTONLY;
+     default_config->options     = DLOP_NONE;
 
-     layer->shared->width      = 640;
-     layer->shared->height     = 480;
-     layer->shared->buffermode = DLBM_FRONTONLY;
-     layer->shared->options    = 0;
-
-     layer->shared->screen.x   = 0.0f;
-     layer->shared->screen.y   = 0.0f;
-     layer->shared->screen.w   = 1.0f;
-     layer->shared->screen.h   = 1.0f;
-
-     layer->shared->opacity    = 0xFF;
-
-     layer->shared->bg.mode    = DLBM_DONTCARE;
-
-     layer->Enable             = neoOverlayEnable;
-     layer->Disable            = neoOverlayDisable;
-     layer->TestConfiguration  = neoOverlayTestConfiguration;
-     layer->SetConfiguration   = neoOverlaySetConfiguration;
-     layer->SetOpacity         = neoOverlaySetOpacity;
-     layer->SetScreenLocation  = neoOverlaySetScreenLocation;
-     layer->SetSrcColorKey     = neoOverlaySetSrcColorKey;
-     layer->SetDstColorKey     = neoOverlaySetDstColorKey;
-     layer->FlipBuffers        = neoOverlayFlipBuffers;
-     layer->SetColorAdjustment = neoOverlaySetColorAdjustment;
-
-     layer->deinit             = neo_overlay_deinit;
-
-     /* gets filled by layers_add: layer->shared->id */
-     dfb_layers_add( layer );
-
+     /* fill out default color adjustment,
+        only fields set in flags will be accepted from applications */
+     default_adj->flags      = DCAF_BRIGHTNESS;
+     default_adj->brightness = 0x8000;
+     
+     
+     /* initialize destination rectangle */
+     dfb_primary_layer_rectangle( 0.0f, 0.0f, 1.0f, 1.0f, &novl->dest );
+     
+     
      /* FIXME: use mmio */
      iopl(3);
 
@@ -304,77 +116,254 @@ neo_init_overlay( void *driver_data,
      OUTGR(0x0a, 0x01);
 
      neo_lock();
+     
+     return DFB_OK;
+}
+
+
+static void
+ovlOnOff( NeoDriverData       *ndrv,
+          NeoOverlayLayerData *novl,
+          int                  on )
+{
+     /* set/clear enable bit */
+     if (on)
+          novl->regs.CONTROL = 0x01;
+     else
+          novl->regs.CONTROL = 0x00;
+
+     /* write back to card */
+     neo_unlock();
+     OUTGR(0xb0, novl->regs.CONTROL);
+     neo_lock();
+}
+
+static DFBResult
+ovlEnable( DisplayLayer *layer,
+           void         *driver_data,
+           void         *layer_data )
+{
+     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+     
+     /* enable overlay */
+     ovlOnOff( ndrv, novl, 1 );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ovlDisable( DisplayLayer *layer,
+            void         *driver_data,
+            void         *layer_data )
+{
+     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+
+     /* disable overlay */
+     ovlOnOff( ndrv, novl, 0 );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ovlTestConfiguration( DisplayLayer               *layer,
+                      void                       *driver_data,
+                      void                       *layer_data,
+                      DFBDisplayLayerConfig      *config,
+                      DFBDisplayLayerConfigFlags *failed )
+{
+     DFBDisplayLayerConfigFlags fail = 0;
+
+     /* check for unsupported options */
+     if (config->options & ~NEO_OVERLAY_SUPPORTED_OPTIONS)
+          fail |= DLCONF_OPTIONS;
+
+     /* check pixel format */
+     switch (config->pixelformat) {
+          case DSPF_YUY2:
+               break;
+
+          default:
+               fail |= DLCONF_PIXELFORMAT;
+     }
+
+     /* check width */
+     if (config->width > 1024 || config->width < 160)
+          fail |= DLCONF_WIDTH;
+
+     /* check height */
+     if (config->height > 1024 || config->height < 1)
+          fail |= DLCONF_HEIGHT;
+
+     /* write back failing fields */
+     if (failed)
+          *failed = fail;
+
+     /* return failure if any field failed */
+     if (fail)
+          return DFB_UNSUPPORTED;
+
+     return DFB_OK;
+}
+
+static DFBResult
+ovlSetConfiguration( DisplayLayer          *layer,
+                     void                  *driver_data,
+                     void                  *layer_data,
+                     DFBDisplayLayerConfig *config )
+{
+     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+
+     /* remember configuration */
+     novl->config = *config;
+     
+     ovl_calc_regs( ndrv, novl, layer, config );
+     ovl_set_regs( ndrv, novl );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ovlSetOpacity( DisplayLayer *layer,
+               void         *driver_data,
+               void         *layer_data,
+               __u8          opacity )
+{
+     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+     
+     switch (opacity) {
+          case 0:
+               ovlOnOff( ndrv, novl, 0 );
+               break;
+          case 0xFF:
+               ovlOnOff( ndrv, novl, 1 );
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+ovlSetScreenLocation( DisplayLayer *layer,
+                      void         *driver_data,
+                      void         *layer_data,
+                      float         x,
+                      float         y,
+                      float         width,
+                      float         height )
+{
+     NeoDriverData       *ndrv = (NeoDriverData*) driver_data;
+     NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
+     
+     /* get new destination rectangle */
+     dfb_primary_layer_rectangle( x, y, width, height, &novl->dest );
+
+     ovl_calc_regs( ndrv, novl, layer, &novl->config );
+     ovl_set_regs( ndrv, novl );
+     
+     return DFB_OK;
+}
+
+static DFBResult
+ovlSetDstColorKey( DisplayLayer *layer,
+                   void         *driver_data,
+                   void         *layer_data,
+                   __u8          r,
+                   __u8          g,
+                   __u8          b )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+ovlFlipBuffers( DisplayLayer *layer,
+                void         *driver_data,
+                void         *layer_data )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+ovlSetColorAdjustment( DisplayLayer       *layer,
+                       void               *driver_data,
+                       void               *layer_data,
+                       DFBColorAdjustment *adj )
+{
+     neo_unlock();
+     OUTGR(0xc4, (signed char)((adj->brightness >> 8) -128));
+     neo_lock();
 
      return DFB_OK;
 }
 
 
+DisplayLayerFuncs neoOverlayFuncs = {
+     LayerDataSize:      ovlLayerDataSize,
+     InitLayer:          ovlInitLayer,
+     Enable:             ovlEnable,
+     Disable:            ovlDisable,
+     TestConfiguration:  ovlTestConfiguration,
+     SetConfiguration:   ovlSetConfiguration,
+     SetOpacity:         ovlSetOpacity,
+     SetScreenLocation:  ovlSetScreenLocation,
+     SetDstColorKey:     ovlSetDstColorKey,
+     FlipBuffers:        ovlFlipBuffers,
+     SetColorAdjustment: ovlSetColorAdjustment
+};
+
 
 /* internal */
 
-static void
-neo_overlay_set_regs( NeoDriverData *ndrv,
-                      NeoDeviceData *ndev )
+static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl )
 {
-     iopl (3);
-
      neo_unlock();
 
-     OUTGR(0xb1, ((ndev->OVERLAY.X2 >> 4) & 0xf0) | (ndev->OVERLAY.X1 >> 8));
-     OUTGR(0xb2, ndev->OVERLAY.X1);
-     OUTGR(0xb3, ndev->OVERLAY.X2);
-     OUTGR(0xb4, ((ndev->OVERLAY.Y2 >> 4) & 0xf0) | (ndev->OVERLAY.Y1 >> 8));
-     OUTGR(0xb5, ndev->OVERLAY.Y1);
-     OUTGR(0xb6, ndev->OVERLAY.Y2);
-     OUTGR(0xb7, ndev->OVERLAY.OFFSET >> 16);
-     OUTGR(0xb8, ndev->OVERLAY.OFFSET >>  8);
-     OUTGR(0xb9, ndev->OVERLAY.OFFSET);
-     OUTGR(0xba, ndev->OVERLAY.PITCH >> 8);
-     OUTGR(0xbb, ndev->OVERLAY.PITCH);
+     OUTGR(0xb1, ((novl->regs.X2 >> 4) & 0xf0) | (novl->regs.X1 >> 8));
+     OUTGR(0xb2, novl->regs.X1);
+     OUTGR(0xb3, novl->regs.X2);
+     OUTGR(0xb4, ((novl->regs.Y2 >> 4) & 0xf0) | (novl->regs.Y1 >> 8));
+     OUTGR(0xb5, novl->regs.Y1);
+     OUTGR(0xb6, novl->regs.Y2);
+     OUTGR(0xb7, novl->regs.OFFSET >> 16);
+     OUTGR(0xb8, novl->regs.OFFSET >>  8);
+     OUTGR(0xb9, novl->regs.OFFSET);
+     OUTGR(0xba, novl->regs.PITCH >> 8);
+     OUTGR(0xbb, novl->regs.PITCH);
      OUTGR(0xbc, 0x2e);  /* Neo2160: 0x4f */
      OUTGR(0xbd, 0x02);
      OUTGR(0xbe, 0x00);
      OUTGR(0xbf, 0x02);
 
-     OUTGR(0xc0, ndev->OVERLAY.HSCALE >> 8);
-     OUTGR(0xc1, ndev->OVERLAY.HSCALE);
-     OUTGR(0xc2, ndev->OVERLAY.VSCALE >> 8);
-     OUTGR(0xc3, ndev->OVERLAY.VSCALE);
-
-     OUTGR(0xb0, ndev->OVERLAY.CONTROL);
+     OUTGR(0xc0, novl->regs.HSCALE >> 8);
+     OUTGR(0xc1, novl->regs.HSCALE);
+     OUTGR(0xc2, novl->regs.VSCALE >> 8);
+     OUTGR(0xc3, novl->regs.VSCALE);
 
      neo_lock();
 }
 
-static void
-neo_overlay_calc_regs( NeoDriverData *ndrv,
-                       NeoDeviceData *ndev,
-                       DisplayLayer  *layer )
+static void ovl_calc_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl,
+                           DisplayLayer *layer, DFBDisplayLayerConfig *config )
 {
-     DFBRectangle        dst;
-     DisplayLayerShared *shared  = layer->shared;
-     CoreSurface        *surface = shared->surface;
-     SurfaceBuffer      *front   = surface->front_buffer;
-
-     /* calculate destination rectangle */
-     dst.x = (int)(shared->screen.x * (float)Sfbdev->current_mode->xres + 0.5f);
-     dst.y = (int)(shared->screen.y * (float)Sfbdev->current_mode->yres + 0.5f);
-     dst.w = (int)(shared->screen.w * (float)Sfbdev->current_mode->xres + 0.5f);
-     dst.h = (int)(shared->screen.h * (float)Sfbdev->current_mode->yres + 0.5f);
+     CoreSurface   *surface      = dfb_layer_surface( layer );
+     SurfaceBuffer *front_buffer = surface->front_buffer;
 
      /* fill register struct */
-     ndev->OVERLAY.CONTROL = 0x01;
+     novl->regs.X1     = novl->dest.x;
+     novl->regs.X2     = novl->dest.x + novl->dest.w - 1;
 
-     ndev->OVERLAY.X1      = dst.x;
-     ndev->OVERLAY.X2      = dst.x + dst.w - 1;
+     novl->regs.Y1     = novl->dest.y;
+     novl->regs.Y2     = novl->dest.y + novl->dest.h - 1;
 
-     ndev->OVERLAY.Y1      = dst.y;
-     ndev->OVERLAY.Y2      = dst.y + dst.h - 1;
+     novl->regs.OFFSET = front_buffer->video.offset;
+     novl->regs.PITCH  = front_buffer->video.pitch;
 
-     ndev->OVERLAY.OFFSET  = front->video.offset;
-     ndev->OVERLAY.PITCH   = front->video.pitch;
-
-     ndev->OVERLAY.HSCALE  = (surface->width  << 12) / (dst.w + 1);
-     ndev->OVERLAY.VSCALE  = (surface->height << 12) / (dst.h + 1);
+     novl->regs.HSCALE = (surface->width  << 12) / (novl->dest.w + 1);
+     novl->regs.VSCALE = (surface->height << 12) / (novl->dest.h + 1);
 }
 

@@ -48,10 +48,6 @@ driver_init_device( GraphicsDevice     *device,
                     void               *driver_data,
                     void               *device_data );
 
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data );
-
 static void
 driver_close_device( GraphicsDevice *device,
                      void           *driver_data,
@@ -67,7 +63,6 @@ static GraphicsDriverFuncs driver_funcs = {
      GetDriverInfo:      driver_get_info,
      InitDriver:         driver_init_driver,
      InitDevice:         driver_init_device,
-     InitLayers:         driver_init_layers,
      CloseDevice:        driver_close_device,
      CloseDriver:        driver_close_driver
 };

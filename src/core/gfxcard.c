@@ -341,16 +341,6 @@ void dfb_graphics_register_module( GraphicsDriverFuncs *funcs )
      fusion_list_prepend( &graphics_drivers, &driver->link );
 }
 
-DFBResult dfb_gfxcard_init_layers()
-{
-     GraphicsDriver *driver = card->driver;
-
-     if (driver && driver->funcs->InitLayers)
-          driver->funcs->InitLayers( card->driver_data, card->device_data );
-
-     return DFB_OK;
-}
-
 /*
  * This function returns non zero if acceleration is available
  * for the specific function using the given state.

@@ -54,6 +54,8 @@
 #include "state.h"
 #include "windows.h"
 
+#include "gfx/convert.h"
+
 #include "misc/mem.h"
 #include "misc/util.h"
 
@@ -61,20 +63,114 @@
 FBDev *dfb_fbdev = NULL;
 
 
-static DFBResult primaryEnable( DisplayLayer *thiz );
-static DFBResult primaryDisable( DisplayLayer *thiz );
-static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
-                                           DFBDisplayLayerConfig      *config,
-                                           DFBDisplayLayerConfigFlags *failed );
-static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
-                                          DFBDisplayLayerConfig *config );
-static DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity );
-static DFBResult primarySetScreenLocation( DisplayLayer *thiz, float x, float y,
-                                     float w, float h );
-static DFBResult primarySetSrcColorKey( DisplayLayer *thiz, __u32 key );
-static DFBResult primarySetDstColorKey( DisplayLayer *thiz, __u8 r, __u8 g, __u8 b );
-static DFBResult primaryFlipBuffers( DisplayLayer *thiz );
-static void dfb_primarylayer_deinit( DisplayLayer *layer );
+static int
+primaryLayerDataSize     ();
+     
+static DFBResult
+primaryInitLayer         ( GraphicsDevice             *device,
+                           DisplayLayer               *layer,
+                           DisplayLayerInfo           *layer_info,
+                           DFBDisplayLayerConfig      *default_config,
+                           DFBColorAdjustment         *default_adj,
+                           void                       *driver_data,
+                           void                       *layer_data );
+
+static DFBResult
+primaryEnable            ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data );
+
+static DFBResult
+primaryDisable           ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data );
+
+static DFBResult
+primaryTestConfiguration ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config,
+                           DFBDisplayLayerConfigFlags *failed );
+
+static DFBResult
+primarySetConfiguration  ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config );
+
+static DFBResult
+primarySetOpacity        ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           __u8                        opacity );
+     
+static DFBResult
+primarySetScreenLocation ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           float                       x,
+                           float                       y,
+                           float                       width,
+                           float                       height );
+     
+static DFBResult
+primarySetSrcColorKey    ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           __u32                       key );
+     
+static DFBResult
+primarySetDstColorKey    ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           __u8                        r,
+                           __u8                        g,
+                           __u8                        b );
+     
+static DFBResult
+primaryFlipBuffers       ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data );
+     
+static DFBResult
+primarySetColorAdjustment( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBColorAdjustment         *adj );
+
+          
+static DFBResult
+primaryAllocateSurface   ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config,
+                           CoreSurface               **surface );
+
+static DFBResult
+primaryReallocateSurface ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config,
+                           CoreSurface                *surface );
+
+static DisplayLayerFuncs primaryLayerFuncs = {
+     LayerDataSize:      primaryLayerDataSize,
+     InitLayer:          primaryInitLayer,
+     Enable:             primaryEnable,
+     Disable:            primaryDisable,
+     TestConfiguration:  primaryTestConfiguration,
+     SetConfiguration:   primarySetConfiguration,
+     SetOpacity:         primarySetOpacity,
+     SetScreenLocation:  primarySetScreenLocation,
+     SetSrcColorKey:     primarySetSrcColorKey,
+     SetDstColorKey:     primarySetDstColorKey,
+     FlipBuffers:        primaryFlipBuffers,
+     SetColorAdjustment: primarySetColorAdjustment,
+          
+     AllocateSurface:    primaryAllocateSurface,
+     ReallocateSurface:  primaryReallocateSurface,
+     /* default DeallocateSurface copes with our chunkless video buffers */
+};
 
 static DFBResult dfb_fbdev_read_modes();
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
@@ -268,6 +364,8 @@ DFBResult dfb_fbdev_initialize()
           Sfbdev->orig_cmap.len = 0;
      }
 
+     dfb_layers_register( NULL, NULL, &primaryLayerFuncs );
+
 #ifndef FUSION_FAKE
      arena_add_shared_field( dfb_core->arena, Sfbdev, "Sfbdev" );
 #endif
@@ -296,6 +394,8 @@ DFBResult dfb_fbdev_join()
           return ret;
      }
 
+     dfb_layers_register( device, &primaryLayerFuncs );
+     
      return DFB_OK;
 }
 #endif
@@ -362,151 +462,112 @@ DFBResult dfb_fbdev_wait_vsync()
 
 #ifdef FBIO_WAITFORVSYNC
      dfb_gfxcard_sync();
-     ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC );
+     if (ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC ))
 #endif
+     if (!dfb_config->pollvsync_after)
+          waitretrace();
 
      return DFB_OK;
 }
 
-DFBResult dfb_primarylayer_initialize()
+
+/** primary layer functions **/
+
+typedef struct {
+     int foo;
+} PrimaryLayerData;
+
+static int
+primaryLayerDataSize     ()
 {
-     CoreSurface *surface;
-     DFBResult err;
+     return sizeof(PrimaryLayerData);
+}
+     
+static DFBResult
+primaryInitLayer         ( GraphicsDevice             *device,
+                           DisplayLayer               *layer,
+                           DisplayLayerInfo           *layer_info,
+                           DFBDisplayLayerConfig      *default_config,
+                           DFBColorAdjustment         *default_adj,
+                           void                       *driver_data,
+                           void                       *layer_data )
+{
+     VideoMode *default_mode = dfb_fbdev->shared->modes;
 
-     DisplayLayer *layer = (DisplayLayer*) DFBCALLOC( 1, sizeof(DisplayLayer) );
+     /* set capabilities */
+     layer_info->caps = DLCAPS_SURFACE;
 
-     layer->shared = (DisplayLayerShared*) shcalloc( 1, sizeof(DisplayLayerShared) );
-
-     layer->shared->id = DLID_PRIMARY;
-     layer->shared->caps = DLCAPS_SURFACE;
-     snprintf( layer->shared->description,
+     /* set name */
+     snprintf( layer_info->name,
                DFB_DISPLAY_LAYER_INFO_NAME_LENGTH, "Primary Layer" );
 
-     layer->deinit = dfb_primarylayer_deinit;
+     /* fill out the default configuration */
+     default_config->flags       = DLCONF_WIDTH | DLCONF_HEIGHT |
+                                   DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE;
+     default_config->buffermode  = DLBM_FRONTONLY;
 
-     layer->shared->screen.x = 0.0f;
-     layer->shared->screen.y = 0.0f;
-     layer->shared->screen.w = 1.0f;
-     layer->shared->screen.h = 1.0f;
+     if (dfb_config->mode.width)
+          default_config->width  = dfb_config->mode.width;
+     else
+          default_config->width  = default_mode->xres;
 
-     layer->shared->enabled = 1;
-     layer->shared->opacity = 0xFF;
-
-     layer->Enable = primaryEnable;
-     layer->Disable = primaryDisable;
-     layer->TestConfiguration = primaryTestConfiguration;
-     layer->SetConfiguration = primarySetConfiguration;
-     layer->SetScreenLocation = primarySetScreenLocation;
-     layer->SetOpacity = primarySetOpacity;
-     layer->SetSrcColorKey = primarySetSrcColorKey;
-     layer->SetDstColorKey = primarySetDstColorKey;
-     layer->FlipBuffers = primaryFlipBuffers;
-
-     /* allocate the surface */
-     surface = (CoreSurface *) shcalloc( 1, sizeof(CoreSurface) );
-
-     skirmish_init( &surface->front_lock );
-     skirmish_init( &surface->back_lock );
-
-     surface->manager = dfb_gfxcard_surface_manager();
-     surface->reactor = reactor_new(sizeof(CoreSurfaceNotification));
-
-     surface->front_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
-     surface->back_buffer  = surface->front_buffer;
-
-     layer->shared->surface = surface;
-
-     /* set the mode to initialize the surface */
-     err = dfb_fbdev_set_mode( layer, NULL, DLBM_FRONTONLY );
-     if (err) {
-          ERRORMSG( "DirectFB/core/primarylayer: Setting default mode failed! "
-                    "(%s)\n", DirectFBErrorString( err ) );
-          DFBFREE( layer );
-          return err;
-     }
-
-     layer->shared->bg.mode = DLBM_DONTCARE;
-
-     layer->shared->windowstack = dfb_windowstack_new( layer );
-
-     dfb_layers_add( layer );
+     if (dfb_config->mode.height)
+          default_config->height = dfb_config->mode.height;
+     else
+          default_config->height = default_mode->yres;
+     
+     if (dfb_config->mode.depth)
+          default_config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
+     else
+          default_config->pixelformat = dfb_pixelformat_for_depth( default_mode->bpp );
 
      return DFB_OK;
 }
 
-#ifndef FUSION_FAKE
-DFBResult dfb_primarylayer_join()
+static DFBResult
+primaryEnable            ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data )
 {
-     DisplayLayer *layer = dfb_layers;
-
-     layer->deinit = dfb_primarylayer_deinit;
-
-     layer->Enable = primaryEnable;
-     layer->Disable = primaryDisable;
-     layer->TestConfiguration = primaryTestConfiguration;
-     layer->SetConfiguration = primarySetConfiguration;
-     layer->SetScreenLocation = primarySetScreenLocation;
-     layer->SetOpacity = primarySetOpacity;
-     layer->SetSrcColorKey = primarySetSrcColorKey;
-     layer->SetDstColorKey = primarySetDstColorKey;
-     layer->FlipBuffers = primaryFlipBuffers;
-
-     return DFB_OK;
-}
-#endif
-
-/** primary layer internal **/
-
-static DFBResult primaryEnable( DisplayLayer *thiz )
-{
+     /* always enabled */
      return DFB_OK;
 }
 
-static DFBResult primaryDisable( DisplayLayer *thiz )
+static DFBResult
+primaryDisable           ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data )
 {
+     /* cannot be disabled */
      return DFB_UNSUPPORTED;
 }
 
-static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
-                                           DFBDisplayLayerConfig      *config,
-                                           DFBDisplayLayerConfigFlags *failed )
+static DFBResult
+primaryTestConfiguration ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config,
+                           DFBDisplayLayerConfigFlags *failed )
 {
      VideoMode                  *videomode = NULL;
      DFBDisplayLayerConfigFlags  fail = 0;
 
      if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT | DLCONF_PIXELFORMAT)) {
-          DFBSurfacePixelFormat pixelformat;
-          unsigned int          width, height, bpp;
+          unsigned int bpp;
 
-          if (config->flags & DLCONF_WIDTH)
-               width = config->width;
-          else
-               width = thiz->shared->width;
-
-          if (config->flags & DLCONF_HEIGHT)
-               height = config->height;
-          else
-               height = thiz->shared->height;
-
-          if (config->flags & DLCONF_PIXELFORMAT)
-               pixelformat = config->pixelformat;
-          else
-               pixelformat = thiz->shared->surface->format;
-
-          switch (pixelformat) {
+          switch (config->pixelformat) {
                case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
                     bpp = 15;
                     break;
 
                default:
-                    bpp = DFB_BYTES_PER_PIXEL(pixelformat) * 8;
+                    bpp = DFB_BYTES_PER_PIXEL(config->pixelformat) * 8;
           }
 
           videomode = Sfbdev->modes;
           while (videomode) {
-               if (videomode->xres == width  &&
-                   videomode->yres == height  &&
-                   videomode->bpp == bpp)
+               if (videomode->xres == config->width  &&
+                   videomode->yres == config->height)
                     break;
 
                videomode = videomode->next;
@@ -515,13 +576,15 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
           if (!videomode)
                fail |= (config->flags & (DLCONF_WIDTH  |
                                          DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
+          else
+               videomode->bpp = bpp;
      }
      if (config->flags & DLCONF_BUFFERMODE) {
           if (dfb_fbdev_set_mode( NULL, videomode, config->buffermode ))
                fail |= DLCONF_BUFFERMODE;
      }
      else if (videomode) {
-          if (dfb_fbdev_set_mode( NULL, videomode, thiz->shared->buffermode ))
+          if (dfb_fbdev_set_mode( NULL, videomode, config->buffermode ))
                fail |= (config->flags & (DLCONF_WIDTH  |
                                          DLCONF_HEIGHT | DLCONF_PIXELFORMAT));
      }
@@ -538,15 +601,14 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
      return DFB_OK;
 }
 
-static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
-                                          DFBDisplayLayerConfig *config )
+static DFBResult
+primarySetConfiguration  ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config )
 {
      VideoMode    *videomode;
      unsigned int  bpp;
-
-     if (!config)
-          return dfb_fbdev_set_mode( thiz, Sfbdev->current_mode,
-                                     thiz->shared->buffermode );
 
      switch (config->pixelformat) {
           case DSPF_RGB15:  /* special case where VideoMode->bpp = 15 */
@@ -560,8 +622,7 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      videomode = Sfbdev->modes;
      while (videomode) {
           if (videomode->xres == config->width  &&
-              videomode->yres == config->height &&
-              videomode->bpp  == bpp)
+              videomode->yres == config->height)
                break;
 
           videomode = videomode->next;
@@ -570,10 +631,16 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      if (!videomode)
           return DFB_UNSUPPORTED;
 
-     return dfb_fbdev_set_mode( thiz, videomode, config->buffermode );
+     videomode->bpp = bpp;
+
+     return dfb_fbdev_set_mode( layer, videomode, config->buffermode );
 }
 
-static DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity )
+static DFBResult
+primarySetOpacity        ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           __u8                        opacity )
 {
      /* opacity is not supported for normal primary layer */
      if (opacity != 0xFF)
@@ -581,68 +648,130 @@ static DFBResult primarySetOpacity( DisplayLayer *thiz, __u8 opacity )
 
      return DFB_OK;
 }
-
-static DFBResult primarySetScreenLocation( DisplayLayer *thiz, float x, float y,
-                                     float w, float h )
+     
+static DFBResult
+primarySetScreenLocation ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           float                       x,
+                           float                       y,
+                           float                       width,
+                           float                       height )
 {
      /* can only be fullscreen (0, 0, 1, 1) */
-     if (x != 0  ||  y != 0  ||  w != 1  ||  h != 1)
+     if (x != 0  ||  y != 0  ||  width != 1  ||  height != 1)
           return DFB_UNSUPPORTED;
 
      return DFB_OK;
 }
-
-static DFBResult primarySetSrcColorKey( DisplayLayer *thiz, __u32 key )
+     
+static DFBResult
+primarySetSrcColorKey    ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           __u32                       key )
 {
      return DFB_UNSUPPORTED;
 }
-
-static DFBResult primarySetDstColorKey( DisplayLayer *thiz, __u8 r, __u8 g, __u8 b )
+     
+static DFBResult
+primarySetDstColorKey    ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           __u8                        r,
+                           __u8                        g,
+                           __u8                        b )
 {
      return DFB_UNSUPPORTED;
 }
-
-static DFBResult primaryFlipBuffers( DisplayLayer *thiz )
+     
+static DFBResult
+primaryFlipBuffers       ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data )
 {
-     if (thiz->shared->buffermode == DLBM_FRONTONLY)
-          return DFB_UNSUPPORTED;
+     DFBResult    ret;
+     CoreSurface *surface = dfb_layer_surface( layer );
 
-     if (thiz->shared->buffermode == DLBM_BACKVIDEO) {
-          DFBResult ret;
-
-          ret = dfb_fbdev_pan( thiz->shared->surface->back_buffer->video.offset ? 1 : 0 );
-          if (ret)
-               return ret;
-     }
-
-     dfb_surface_flip_buffers( thiz->shared->surface );
+     ret = dfb_fbdev_pan( surface->back_buffer->video.offset ? 1 : 0 );
+     if (ret)
+          return ret;
 
      if (!dfb_config->pollvsync_none && dfb_config->pollvsync_after)
           waitretrace();
+          
+     dfb_surface_flip_buffers( surface );
+
+     return DFB_OK;
+}
+     
+static DFBResult
+primarySetColorAdjustment( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBColorAdjustment         *adj )
+{
+     /* maybe we could use the gamma ramp here */
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
+primaryAllocateSurface   ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config,
+                           CoreSurface               **ret_surface )
+{
+     DFBResult               ret;
+     CoreSurface            *surface;
+     DFBSurfaceCapabilities  caps = DSCAPS_VIDEOONLY;
+
+     /* determine further capabilities */
+     if (config->buffermode != DLBM_FRONTONLY)
+          caps |= DSCAPS_FLIPPING;
+
+     /* allocate surface structure */
+     surface = (CoreSurface*) shcalloc( 1, sizeof(CoreSurface) );
+     if (!surface)
+          return DFB_NOSYSTEMMEMORY;
+
+     /* reallocation just needs an allocated buffer structure */
+     surface->back_buffer  =
+     surface->front_buffer = shcalloc( 1, sizeof(SurfaceBuffer) );
+
+     if (!surface->front_buffer) {
+          shfree( surface );
+          return DFB_NOSYSTEMMEMORY;
+     }
+     
+     /* initialize surface structure */
+     ret = dfb_surface_init( surface, config->width, config->height,
+                             config->pixelformat, caps );
+     if (ret) {
+          shfree( surface );
+          return ret;
+     }
+
+     /* add it to the surface list */
+     dfb_surfacemanager_add_surface( dfb_gfxcard_surface_manager(), surface );
+
+     /* return surface */
+     *ret_surface = surface;
 
      return DFB_OK;
 }
 
-static void dfb_primarylayer_deinit( DisplayLayer *layer )
+static DFBResult
+primaryReallocateSurface ( DisplayLayer               *layer,
+                           void                       *driver_data,
+                           void                       *layer_data,
+                           DFBDisplayLayerConfig      *config,
+                           CoreSurface                *surface )
 {
-     CoreSurface *surface = layer->shared->surface;
+     /* reallocation is done during SetConfiguration,
+        because the pitch can only be determined AFTER setting the mode */
 
-     dfb_windowstack_destroy( layer->shared->windowstack );
-
-     reactor_free( surface->reactor );
-
-     if (surface->back_buffer->system.health)
-          shfree( surface->back_buffer->system.addr );
-
-     shfree( surface->front_buffer );
-
-     if (surface->back_buffer != surface->front_buffer)
-          shfree( surface->back_buffer );
-
-     skirmish_destroy( &surface->front_lock );
-     skirmish_destroy( &surface->back_lock );
-
-     shfree( surface );
+     return DFB_OK;
 }
 
 
@@ -778,6 +907,9 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
      int                      vyres;
      struct fb_var_screeninfo var;
 
+     DEBUGMSG("DirectFB/core/fbdev: dfb_fbdev_set_mode (layer: %p, "
+              "mode: %p, buffermode: %d)\n", layer, mode, buffermode);
+
      if (!mode)
           mode = Sfbdev->current_mode ? Sfbdev->current_mode : Sfbdev->modes;
 
@@ -866,7 +998,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
 
      /* If layer is NULL the mode was only tested, otherwise apply changes. */
      if (layer) {
-          CoreSurface *surface = layer->shared->surface;
+          CoreSurface *surface = dfb_layer_surface( layer );
 
           ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &var );
 
@@ -889,15 +1021,13 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer *layer,
           if (mode->format == DSPF_RGB15)
                mode->bpp = 15;
 
-          surface->format = mode->format;
-
           Sfbdev->current_var = var;
           Sfbdev->current_mode = mode;
-
-          layer->shared->width = surface->width = mode->xres;
-          layer->shared->height = surface->height = mode->yres;
-          layer->shared->buffermode = buffermode;
-
+          
+          surface->width  = mode->xres;
+          surface->height = mode->yres;
+          surface->format = mode->format;
+          
           dfb_gfxcard_adjust_heap_offset( var.yres_virtual *
                                           var.xres_virtual *
                                           ((var.bits_per_pixel + 7) / 8) );

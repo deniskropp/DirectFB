@@ -46,7 +46,6 @@ typedef __u32 unichar;
 
 
 typedef struct _DisplayLayer            DisplayLayer;
-typedef struct _DisplayLayerShared      DisplayLayerShared;
 typedef struct _InputDevice             InputDevice;
 typedef struct _FBDev                   FBDev;
 typedef struct _VirtualTerminal         VirtualTerminal;

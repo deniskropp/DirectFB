@@ -46,12 +46,6 @@
 #include "misc/util.h"
 #include "misc/mem.h"
 
-static DFBResult dfb_surface_init ( CoreSurface           *surface,
-                                    int                    width,
-                                    int                    height,
-                                    DFBSurfacePixelFormat  format,
-                                    DFBSurfaceCapabilities caps );
-
 static DFBResult dfb_surface_allocate_buffer  ( CoreSurface    *surface,
                                                 int             policy,
                                                 SurfaceBuffer **buffer );
@@ -276,21 +270,23 @@ void dfb_surface_flip_buffers( CoreSurface *surface )
 {
      SurfaceBuffer *tmp;
 
-     if (surface->back_buffer->policy == surface->front_buffer->policy) {
-          skirmish_prevail( &surface->front_lock );
-          skirmish_prevail( &surface->back_lock );
+     DFB_ASSERT(surface->back_buffer->policy == surface->front_buffer->policy);
 
-          tmp = surface->front_buffer;
-          surface->front_buffer = surface->back_buffer;
-          surface->back_buffer = tmp;
+     dfb_surfacemanager_lock( surface->manager );
+     
+     skirmish_prevail( &surface->front_lock );
+     skirmish_prevail( &surface->back_lock );
 
-          dfb_surface_notify_listeners( surface, CSNF_FLIP );
+     tmp = surface->front_buffer;
+     surface->front_buffer = surface->back_buffer;
+     surface->back_buffer = tmp;
 
-          skirmish_dismiss( &surface->front_lock );
-          skirmish_dismiss( &surface->back_lock );
-     }
-     else
-          dfb_back_to_front_copy( surface, NULL );
+     dfb_surfacemanager_unlock( surface->manager );
+     
+     dfb_surface_notify_listeners( surface, CSNF_FLIP );
+
+     skirmish_dismiss( &surface->front_lock );
+     skirmish_dismiss( &surface->back_lock );
 }
 
 DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
@@ -326,18 +322,19 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
-               buffer->system.locked = 1;
+               buffer->system.locked++;
                *data = buffer->system.addr;
                *pitch = buffer->system.pitch;
                break;
           case CSP_VIDEOLOW:
-               /* read access or no video instance? system lock! */
+               /* no valid video instance
+                  or read access and valid system? system lock! */
                if ((buffer->video.health != CSH_STORED ||
                     (flags & DSLF_READ && buffer->system.health == CSH_STORED))
                    && !buffer->video.locked)
                {
                     dfb_surfacemanager_assure_system( surface->manager, buffer );
-                    buffer->system.locked = 1;
+                    buffer->system.locked++;
                     *data = buffer->system.addr;
                     *pitch = buffer->system.pitch;
                     if (flags & DSLF_WRITE &&
@@ -346,7 +343,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                }
                else {
                     /* ok, write only goes into video directly */
-                    buffer->video.locked = 1;
+                    buffer->video.locked++;
                     *data = dfb_gfxcard_memory_virtual( buffer->video.offset );
                     *pitch = buffer->video.pitch;
                     if (flags & DSLF_WRITE)
@@ -358,7 +355,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                /* no video instance yet? system lock! */
                if (buffer->video.health != CSH_STORED) {
                     /* no video health, no fetch */
-                    buffer->system.locked = 1;
+                    buffer->system.locked++;
                     *data = buffer->system.addr;
                     *pitch = buffer->system.pitch;
                     break;
@@ -369,7 +366,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                /* FALL THROUGH, for the rest we have to do a video lock
                   as if it had the policy CSP_VIDEOONLY */
           case CSP_VIDEOONLY:
-               buffer->video.locked = 1;
+               buffer->video.locked++;
                *data = dfb_gfxcard_memory_virtual( buffer->video.offset );
                *pitch = buffer->video.pitch;
                video_access_by_software( buffer, flags );
@@ -427,7 +424,7 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
                /* fall through */
 
           case CSP_VIDEOONLY:
-               buffer->video.locked = 1;
+               buffer->video.locked++;
                video_access_by_hardware( buffer, flags );
                return DFB_OK;
 
@@ -453,49 +450,70 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
 void dfb_surface_unlock( CoreSurface *surface, int front )
 {
      if (front) {
-          surface->front_buffer->system.locked = 0;
-          surface->front_buffer->video.locked  = 0;
+          SurfaceBuffer *buffer = surface->front_buffer;
+
+          if (buffer->system.locked)
+               buffer->system.locked--;
+          
+          if (buffer->video.locked)
+               buffer->video.locked--;
+
           skirmish_dismiss( &surface->front_lock );
      }
      else {
-          surface->back_buffer->system.locked = 0;
-          surface->back_buffer->video.locked  = 0;
+          SurfaceBuffer *buffer = surface->back_buffer;
+
+          if (buffer->system.locked)
+               buffer->system.locked--;
+          
+          if (buffer->video.locked)
+               buffer->video.locked--;
+
           skirmish_dismiss( &surface->back_lock );
      }
 }
 
 void dfb_surface_destroy( CoreSurface *surface )
 {
+     /* acquire a lock for both buffers first */
      dfb_surfacemanager_lock( surface->manager );
      skirmish_prevail( &surface->front_lock );
      skirmish_prevail( &surface->back_lock );
      dfb_surfacemanager_unlock( surface->manager );
 
-     dfb_surface_notify_listeners( surface, CSNF_DESTROY );
-
-     skirmish_destroy( &surface->front_lock );
-     skirmish_destroy( &surface->back_lock );
-
+     /* deallocate first buffer */
      dfb_surface_deallocate_buffer( surface, surface->front_buffer );
 
+     /* deallocate second buffer if it's another one */
      if (surface->back_buffer != surface->front_buffer)
           dfb_surface_deallocate_buffer( surface, surface->back_buffer );
 
+     /* anounce surface destruction */
+     dfb_surface_notify_listeners( surface, CSNF_DESTROY );
+
+     /* destroy the reactor */
      reactor_free( surface->reactor );
 
+     /* unlock and destroy the locks */
+     dfb_surfacemanager_lock( surface->manager );
+     skirmish_dismiss( &surface->front_lock );
+     skirmish_dismiss( &surface->back_lock );
+     skirmish_destroy( &surface->front_lock );
+     skirmish_destroy( &surface->back_lock );
+     dfb_surfacemanager_unlock( surface->manager );
+
+     /* remove it from the surface list */
      dfb_surfacemanager_remove_surface( surface->manager, surface );
 
+     /* deallocate structure */
      shfree( surface );
 }
 
-
-/** internal **/
-
-static DFBResult dfb_surface_init ( CoreSurface           *surface,
-                                    int                    width,
-                                    int                    height,
-                                    DFBSurfacePixelFormat  format,
-                                    DFBSurfaceCapabilities caps )
+DFBResult dfb_surface_init ( CoreSurface           *surface,
+                             int                    width,
+                             int                    height,
+                             DFBSurfacePixelFormat  format,
+                             DFBSurfaceCapabilities caps )
 {
      switch (format) {
           case DSPF_A8:
@@ -528,6 +546,9 @@ static DFBResult dfb_surface_init ( CoreSurface           *surface,
 
      return DFB_OK;
 }
+
+
+/** internal **/
 
 static DFBResult dfb_surface_allocate_buffer( CoreSurface *surface, int policy,
                                               SurfaceBuffer **buffer )

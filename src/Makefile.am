@@ -31,7 +31,6 @@ libdirectfb_la_SOURCES = 	\
 libdirectfb_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
 	-release $(LT_RELEASE)					\
-	-export-symbols $(srcdir)/export_list.sym		\
 	$(DFB_LDFLAGS)
 
 libdirectfb_la_LIBADD = \

@@ -623,6 +623,9 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->Blit          = ati128Blit;
      funcs->StretchBlit   = ati128StretchBlit;
 
+     /* overlay support */
+     dfb_layers_register( device, driver_data, &atiOverlayFuncs );
+     
      return DFB_OK;
 }
 
@@ -680,15 +683,6 @@ driver_init_device( GraphicsDevice     *device,
      /* reserve 32bit pixel for fake texture at end of framebuffer */
      adev->ATI_fake_texture_src = dfb_gfxcard_reserve_memory( device, 4*32 );
 
-     return DFB_OK;
-}
-
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data )
-{
-     ati128_init_layers( driver_data, device_data );
-     
      return DFB_OK;
 }
 

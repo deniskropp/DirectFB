@@ -435,9 +435,11 @@ dfb_core_initialize( FusionArena *arena, void *ctx )
 
      INITCHECK( dfb_vt_initialize() );
      INITCHECK( dfb_input_initialize() );
+     INITCHECK( dfb_layers_initialize() );
      INITCHECK( dfb_fbdev_initialize() );
      INITCHECK( dfb_gfxcard_initialize() );
-     INITCHECK( dfb_layers_initialize() );
+     
+     INITCHECK( dfb_layers_init_all() );
 
      return 0;
 }
@@ -454,10 +456,12 @@ dfb_core_join( FusionArena *arena, void *ctx )
 
      INITCHECK( dfb_vt_join() );
      INITCHECK( dfb_input_join() );
+     INITCHECK( dfb_layers_join() );
      INITCHECK( dfb_fbdev_join() );
      INITCHECK( dfb_gfxcard_join() );
-     INITCHECK( dfb_layers_join() );
 
+     INITCHECK( dfb_layers_join_all() );
+     
      return 0;
 }
 
@@ -504,9 +508,9 @@ dfb_core_leave( FusionArena *arena, void *ctx )
 {
      DEBUGMSG( "DirectFB/Core: leaving!\n" );
 
-     dfb_layers_leave();
      dfb_gfxcard_leave();
      dfb_fbdev_leave();
+     dfb_layers_leave();
      dfb_input_leave();
      dfb_vt_leave();
 

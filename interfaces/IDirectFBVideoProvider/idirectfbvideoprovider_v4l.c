@@ -174,7 +174,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      desc->width  = 768;
      desc->height = 576;
-     desc->pixelformat = dfb_layers->shared->surface->format;
+     desc->pixelformat = dfb_primary_layer_pixelformat();
 
      return DFB_OK;
 }

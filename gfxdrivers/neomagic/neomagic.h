@@ -28,6 +28,7 @@
 #include <sys/io.h>
 
 #include <core/gfxcard.h>
+#include <core/layers.h>
 
 typedef struct {
      unsigned int waitfifo_sum;
@@ -35,27 +36,13 @@ typedef struct {
      unsigned int fifo_waitcycles;
      unsigned int idle_waitcycles;
      unsigned int fifo_cache_hits;
-
-     struct {
-          __u32 OFFSET;
-          __u16 PITCH;
-          __u16 X1;
-          __u16 X2;
-          __u16 Y1;
-          __u16 Y2;
-          __u16 HSCALE;
-          __u16 VSCALE;
-          __u8  CONTROL;
-     } OVERLAY;
 } NeoDeviceData;
 
 typedef struct {
      volatile __u8 *mmio_base;
 } NeoDriverData;
 
-DFBResult
-neo_init_overlay( void *driver_data,
-                  void *device_data );
+extern DisplayLayerFuncs neoOverlayFuncs;
 
 void
 neo2200_get_info( GraphicsDevice     *device,

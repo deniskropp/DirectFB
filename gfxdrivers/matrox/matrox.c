@@ -826,7 +826,9 @@ driver_init_driver( GraphicsDevice      *device,
      if (!mdrv->mmio_base)
           return DFB_IO;
 
-     switch (dfb_gfxcard_get_accelerator( device )) {
+     mdrv->accelerator = dfb_gfxcard_get_accelerator( device );
+
+     switch (mdrv->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                funcs->CheckState = matroxG400CheckState;
@@ -860,6 +862,12 @@ driver_init_driver( GraphicsDevice      *device,
 
      /* will be set dynamically: funcs->Blit */
 
+     
+     /* G200/G400/G450/G550 Backend Scaler Support */
+     if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200 ||
+         mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)
+          dfb_layers_register( device, driver_data, &matroxBesFuncs );
+
      return DFB_OK;
 }
 
@@ -873,9 +881,7 @@ driver_init_device( GraphicsDevice     *device,
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     mdev->accelerator = dfb_gfxcard_get_accelerator( device );
-
-     switch (mdev->accelerator) {
+     switch (mdrv->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                snprintf( device_info->name,
@@ -916,7 +922,7 @@ driver_init_device( GraphicsDevice     *device,
      /* set hardware capabilities */
      device_info->caps.flags = CCF_CLIPPING;
 
-     switch (mdev->accelerator) {
+     switch (mdrv->accelerator) {
 #ifdef FB_ACCEL_MATROX_MGAG400
           case FB_ACCEL_MATROX_MGAG400:
                device_info->caps.accel    = MATROX_G200G400_DRAWING_FUNCTIONS |
@@ -976,15 +982,6 @@ driver_init_device( GraphicsDevice     *device,
      mga_out32( mmio, 0x10000, TMR8 );
 
      mdev->atype_blk_rstr = dfb_config->matrox_sgram ? ATYPE_BLK : ATYPE_RSTR;
-
-     return DFB_OK;
-}
-
-static DFBResult
-driver_init_layers( void *driver_data,
-                    void *device_data )
-{
-     matrox_init_bes( driver_data, device_data );
 
      return DFB_OK;
 }

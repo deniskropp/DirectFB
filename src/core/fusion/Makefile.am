@@ -23,6 +23,7 @@ internalinclude_HEADERS = \
 	fusion.h	\
 	list.h		\
 	lock.h		\
+	property.h	\
 	reactor.h	\
 	ref.h		\
 	shmalloc.h	\
@@ -37,6 +38,7 @@ libdirectfb_core_fusion_la_SOURCES = \
 	fusion_internal.h	\
 	list.c			\
 	lock.c			\
+	property.c		\
 	reactor.c		\
 	ref.c			\
 	util.c

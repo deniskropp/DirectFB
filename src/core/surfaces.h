@@ -175,6 +175,15 @@ DFBResult dfb_surface_create_preallocated( int                      width,
                                            CoreSurface            **surface );
 
 /*
+ * initialize surface structure, not required for surface_create_*
+ */
+DFBResult dfb_surface_init ( CoreSurface           *surface,
+                             int                    width,
+                             int                    height,
+                             DFBSurfacePixelFormat  format,
+                             DFBSurfaceCapabilities caps );
+
+/*
  * reallocates data for the specified surface
  */
 DFBResult dfb_surface_reformat( CoreSurface           *surface,

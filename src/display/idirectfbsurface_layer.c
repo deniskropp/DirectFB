@@ -120,7 +120,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
           }
      }
      else
-          return data->layer->FlipBuffers( data->layer );
+          return dfb_layer_flip_buffers( data->layer );
 
      return DFB_OK;
 }
@@ -201,7 +201,9 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
 
           err = dfb_layer_set_configuration( layer, &config );
           if (err) {
+#ifndef DFB_DEBUG
                DFBFREE( thiz );
+#endif
                return err;
           }
      }

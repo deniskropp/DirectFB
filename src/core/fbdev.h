@@ -104,7 +104,8 @@ DFBResult dfb_fbdev_wait_vsync();
 
 VideoMode *dfb_fbdev_modes();
 
-DFBResult dfb_primarylayer_initialize();
-DFBResult dfb_primarylayer_join();
+
+
+void dfb_primarylayer_register( GraphicsDevice *device );
 
 #endif

@@ -402,7 +402,8 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
 
-     free_chunk( chunk );
+     if (chunk)
+          free_chunk( chunk );
 
 #ifdef DFB_DEBUG
      debug_dump( manager );

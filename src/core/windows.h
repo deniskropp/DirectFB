@@ -52,8 +52,7 @@ typedef struct _CoreWindowEvent
 /*
  * a window
  */
-struct _CoreWindow
-{
+struct _CoreWindow {
      DFBWindowID           id;
 
      int                   x;               /* x position in pixels */
@@ -79,9 +78,10 @@ struct _CoreWindow
 /*
  * a window stack
  */
-struct _CoreWindowStack
-{
-     DisplayLayerShared *layer;
+struct _CoreWindowStack {
+     DFBDisplayLayerID   layer_id;
+
+     CoreSurface        *surface;
 
      int                 num_windows;     /* number of windows on the stack */
      CoreWindow        **windows;         /* array of windows */
@@ -103,15 +103,28 @@ struct _CoreWindowStack
 
      int                 wm_hack;
 
-     int                 wsp_opaque;
-     int                 wsp_alpha;
+     int                 wsp_opaque;      /* surface policy for opaque windows */
+     int                 wsp_alpha;       /* surface policy for windows with
+                                             an alphachannel */
+     
+     /* stores information on handling the background on exposure */
+     struct {
+          DFBDisplayLayerBackgroundMode mode;    
+                                       /* background handling mode:
+                                          don't care, solid color or image */
+
+          DFBColor            color;   /* color for solid background mode */
+
+
+          CoreSurface        *image;   /* surface for background image mode */
+     } bg;    
 };
 
 /*
  * allocates a WindowStack, initializes it, registers it for input events
  */
 CoreWindowStack*
-dfb_windowstack_new( struct _DisplayLayer *layer );
+dfb_windowstack_new( DisplayLayer *layer, int width, int height );
 
 void
 dfb_windowstack_destroy( CoreWindowStack *stack );
@@ -133,14 +146,15 @@ dfb_window_remove( CoreWindow *window );
 /*
  * creates a window on a given stack
  */
-CoreWindow*
-dfb_window_create( CoreWindowStack       *stack,
-                   int                    x,
-                   int                    y,
-                   unsigned int           width,
-                   unsigned int           height,
-                   DFBWindowCapabilities  caps,
-                   DFBSurfacePixelFormat  pixelformat );
+DFBResult
+dfb_window_create( CoreWindowStack        *stack,
+                   int                     x,
+                   int                     y,
+                   unsigned int            width,
+                   unsigned int            height,
+                   DFBWindowCapabilities   caps,
+                   DFBSurfacePixelFormat   pixelformat,
+                   CoreWindow            **window );
 
 /*
  * must be called after window_create

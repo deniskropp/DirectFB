@@ -437,7 +437,7 @@ IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
           dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
           dsc->height = cinfo.output_height;
           dsc->width  = cinfo.output_width;
-          dsc->pixelformat = dfb_layers->shared->surface->format;
+          dsc->pixelformat = dfb_primary_layer_pixelformat();
 
           jpeg_destroy_decompress(&cinfo);
           fclose(f);
