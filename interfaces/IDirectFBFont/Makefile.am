@@ -20,7 +20,7 @@ idirectfbfont_LTLIBRARIES = \
 	$(FREETYPE_PROVIDER_LTLIB)
 
 
-libidirectfbfont_default_la_SOURCES = idirectfbfont_default.c
+libidirectfbfont_default_la_SOURCES = idirectfbfont_default.c default_font.h
 
 libidirectfbfont_default_la_LDFLAGS = -avoid-version -module
 

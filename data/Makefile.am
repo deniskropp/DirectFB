@@ -2,6 +2,6 @@
 
 miscdatadir = $(DATADIR)
 
-miscdata_DATA = cursor.dat font.data
+miscdata_DATA = cursor.dat
 
 EXTRA_DIST = $(miscdata_DATA)

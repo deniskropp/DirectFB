@@ -24,11 +24,6 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-
-
 #include <directfb.h>
 
 #include <core/fonts.h>
@@ -44,6 +39,13 @@
 #include <misc/utf8.h>
 #include <misc/mem.h>
 
+#include "default_font.h"
+
+#define DEFAULT_FONT_HEIGHT     24
+#define DEFAULT_FONT_ASCENDER   16
+#define DEFAULT_FONT_DESCENDER  -4
+
+
 static DFBResult
 Probe( IDirectFBFont_ProbeContext *ctx );
 
@@ -55,9 +57,6 @@ Construct( IDirectFBFont      *thiz,
 #include <interface_implementation.h>
 
 DFB_INTERFACE_IMPLEMENTATION( IDirectFBFont, Default )
-
-
-#define FONTFILE DATADIR"/font.data"
 
 
 static DFBResult
@@ -75,38 +74,33 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc )
 {
-     CoreFont *font;
-     CoreSurface *surface;
-     FILE *f;
-     __u8 *dst;
-     int pitch;
-     int i;
+     CoreFont      *font;
+     CoreSurface   *surface;
+     __u8          *dst;
+     unsigned char *pixels;
+     int            pitch;
+     int            i;
 
      HEAVYDEBUGMSG( "DirectFB/FontDefault: Construct default font");
-
-     f = fopen( FONTFILE, "r" );
-     if (!f) {
-          PERRORMSG( "Could not load default font '" FONTFILE "'!\n" );
-          DFB_DEALLOCATE_INTERFACE( thiz );
-          return DFB_FAILURE;
-     }
 
      font = dfb_font_create();
 
      DFB_ASSERT( font->pixel_format == DSPF_ARGB || 
                  font->pixel_format == DSPF_A8 );
 
-     font->height    = 24;
-     font->ascender  = 16;
-     font->descender = -4;
+     font->height    = DEFAULT_FONT_HEIGHT;
+     font->ascender  = DEFAULT_FONT_ASCENDER;
+     font->descender = DEFAULT_FONT_DESCENDER;
 
-     dfb_surface_create( 1024, 20, font->pixel_format,
+     dfb_surface_create( font_desc.width, font_desc.height, font->pixel_format,
                          CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &surface );
 
      font->rows = 1;
-     font->row_width = 1024;
+     font->row_width = font_desc.width;
      font->surfaces = DFBMALLOC(sizeof (void *));
      font->surfaces[0] = surface;
+
+     pixels = font_data;
 
      {
           CoreGlyphData *data;
@@ -114,11 +108,11 @@ Construct( IDirectFBFont      *thiz,
           int start = 0;
 	  int index = 0;
           int key;
-          unsigned char points[1024];
-          unsigned char *glyphs =  "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                                   "abcdefghijklmnopqrstuvwxyz"
-                                   "01234567890!\"$\%&/()=?^<>"
-                                   "|,;.:-_{[]}\\`+*~#'";
+          const char *glyphs =
+            "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+            "abcdefghijklmnopqrstuvwxyz"
+            "01234567890!\"$\%&/()=?^<>"
+            "|,;.:-_{[]}\\`+*~#'";
 
 	  if (desc && (desc->flags & DFDESC_ATTRIBUTES) &&
 	      (desc->attributes & DFFA_NOCHARMAP))
@@ -126,15 +120,13 @@ Construct( IDirectFBFont      *thiz,
 	  else
 	       use_unicode = 1;
 	  
-          fread( points, 1024, 1, f );
-
-          for (i=0; i<1024; i++) {
-               if (points[i] == 0xFF) {
+          for (i = 0; i < font_desc.width; i++) {
+               if (pixels[i] == 0xFF) {
                     data = DFBMALLOC(sizeof (CoreGlyphData));
                     data->surface = surface;
                     data->start   = start;
                     data->width   = i - start + 1;
-                    data->height  = 20;
+                    data->height  = font_desc.height - 1;
                     data->left    = 0;
                     data->top     = 0;
                     data->advance = ((desc && (desc->flags &
@@ -177,18 +169,14 @@ Construct( IDirectFBFont      *thiz,
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, (void **) &dst, &pitch, 0 );
 
-     for (i = 0; i < 20; i++) {
+     for (i = 1; i < font_desc.height; i++) {
+          pixels += font_desc.preallocated[0].pitch;
           switch (surface->format) {
                case DSPF_ARGB:
-                    {
-                         char buf[1024];
-
-                         fread( buf, 1024, 1, f);
-                         span_a8_to_argb(buf, (__u32*)dst, 1024);
-                    }
+                    span_a8_to_argb(pixels, (__u32*)dst, font_desc.width);
                     break;
                case DSPF_A8:
-                    fread( dst, 1024, 1, f);
+                 dfb_memcpy(dst, pixels, font_desc.width);
                     break;
                default:
                     break;
@@ -197,8 +185,6 @@ Construct( IDirectFBFont      *thiz,
      }
 
      dfb_surface_unlock( surface, 0 );
-
-     fclose( f );
 
      return IDirectFBFont_Construct (thiz, font);
 }
