@@ -177,9 +177,15 @@ static GFunc Cop_to_Aop_PFI[] = {
      Cop_to_Aop_32,
      Cop_to_Aop_32,
      Cop_to_Aop_8,
-     Cop_to_Aop_16,
+     NULL,
+#ifdef SUPPORT_RGB332
      Cop_to_Aop_8,
-     Cop_to_Aop_16
+#else     
+     NULL,
+#endif
+     NULL,
+     NULL,
+     NULL
 };
 
 /********************************* Cop_toK_Aop_PFI ****************************/
@@ -241,6 +247,8 @@ static GFunc Cop_toK_Aop_PFI[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -274,8 +282,14 @@ static GFunc Bop_PFI_to_Aop_PFI[] = {
      Bop_32_to_Aop,
      Bop_8_to_Aop,
      Bop_16_to_Aop,
+#ifdef SUPPORT_RGB332
      Bop_8_to_Aop,
-     Bop_16_to_Aop
+#else
+     NULL,
+#endif
+     Bop_16_to_Aop,
+     NULL,
+     NULL
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -502,6 +516,8 @@ static GFunc Bop_PFI_Kto_Aop_PFI[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -580,6 +596,8 @@ static GFunc Bop_PFI_Sto_Aop[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -721,6 +739,8 @@ static GFunc Bop_PFI_SKto_Aop[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -883,6 +903,8 @@ static GFunc Sop_PFI_Sto_Dacc[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -1038,6 +1060,8 @@ static GFunc Sop_PFI_SKto_Dacc[] = {
      Sop_a8_SKto_Dacc,
      NULL,
      NULL,     /* FIXME: RGB332 */
+     NULL,
+     NULL,
      NULL
 };
 
@@ -1273,6 +1297,8 @@ static GFunc Sop_PFI_to_Dacc[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -1434,6 +1460,8 @@ static GFunc Sop_PFI_Kto_Dacc[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -1574,6 +1602,8 @@ GFunc Sacc_to_Aop_PFI[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 
@@ -1831,6 +1861,8 @@ GFunc Bop_a8_set_alphapixel_Aop_PFI[] = {
 #else
      NULL,
 #endif
+     NULL,
+     NULL,
      NULL
 };
 

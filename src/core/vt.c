@@ -205,8 +205,8 @@ dfb_vt_shutdown()
           if (ioctl( dfb_vt->fd, VT_SETMODE, &Sdfb_vt->vt_mode ) < 0)
                PERRORMSG( "DirectFB/core/vt: Unable to restore VT mode!!!\n" );
 
-          sigaction( SIG_SWITCH_FROM, &Sdfb_vt->sig_usr1, NULL );
-          sigaction( SIG_SWITCH_TO, &Sdfb_vt->sig_usr2, NULL );
+          //sigaction( SIG_SWITCH_FROM, &Sdfb_vt->sig_usr1, NULL );
+          //sigaction( SIG_SWITCH_TO, &Sdfb_vt->sig_usr2, NULL );
      }
 
      if (!dfb_config->no_vt_switch) {
