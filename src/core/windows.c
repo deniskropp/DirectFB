@@ -396,6 +396,8 @@ dfb_window_create( CoreWindowStack        *stack,
 
      w->events  = DWET_ALL;
 
+     fusion_object_activate( &w->object );
+     
      *window = w;
 
      return DFB_OK;;

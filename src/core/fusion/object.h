@@ -41,12 +41,20 @@ extern "C"
 
 typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie );
 
-struct _FusionObject {
-     FusionLink        link;
-     FusionObjectPool *pool;
+typedef enum {
+     FOS_INIT,
+     FOS_ACTIVE,
+     FOS_DEINIT
+} FusionObjectState;
 
-     FusionRef         ref;
-     FusionReactor    *reactor;
+struct _FusionObject {
+     FusionLink         link;
+     FusionObjectPool  *pool;
+
+     FusionObjectState  state;
+
+     FusionRef          ref;
+     FusionReactor     *reactor;
 };
 
 
@@ -69,6 +77,8 @@ FusionResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
 
 
 FusionObject     *fusion_object_create        ( FusionObjectPool *pool );
+
+FusionResult      fusion_object_activate      ( FusionObject     *object );
 
 FusionResult      fusion_object_attach        ( FusionObject     *object,
                                                 React             react,

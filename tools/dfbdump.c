@@ -49,6 +49,9 @@ surface_callback( FusionObjectPool *pool,
      int         *total   = (int*) ctx;
      int          mem;
 
+     if (object->state != FOS_ACTIVE)
+          return true;
+
      ret = fusion_ref_stat( &object->ref, &refs );
      if (ret) {
           printf( "Fusion error %d!\n", ret );

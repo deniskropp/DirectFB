@@ -145,6 +145,8 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
           s->back_buffer = s->front_buffer;
 
 
+     fusion_object_activate( &s->object );
+     
      *surface = s;
 
      return DFB_OK;
@@ -197,6 +199,8 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
           s->back_buffer = s->front_buffer;
 
 
+     fusion_object_activate( &s->object );
+     
      *surface = s;
 
      return DFB_OK;

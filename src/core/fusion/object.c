@@ -139,6 +139,9 @@ fusion_object_create( FusionObjectPool *pool )
      if (!object)
           return NULL;
 
+     /* Set "initializing" state. */
+     object->state = FOS_INIT;
+
      /* Initialize the reference counter. */
      if (fusion_ref_init( &object->ref )) {
           shfree( object );
@@ -161,16 +164,25 @@ fusion_object_create( FusionObjectPool *pool )
 
      FDEBUG("{%s} adding %p\n", pool->name, object);
      
-     /* Add the object to the pool. */
-     fusion_list_prepend( &pool->objects, &object->link );
-
      /* Set pool back pointer. */
      object->pool = pool;
+
+     /* Add the object to the pool. */
+     fusion_list_prepend( &pool->objects, &object->link );
 
      /* Unlock the pool's object list. */
      skirmish_dismiss( &pool->lock );
      
      return object;
+}
+
+FusionResult
+fusion_object_activate( FusionObject *object )
+{
+     /* Set "active" state. */
+     object->state = FOS_ACTIVE;
+     
+     return FUSION_SUCCESS;
 }
 
 FusionResult
@@ -252,10 +264,24 @@ fusion_object_destroy( FusionObject     *object )
 {
      DFB_ASSERT( object != NULL );
 
+     /* Set "deinitializing" state. */
+     object->state = FOS_DEINIT;
+     
      /* Remove the object from the pool. */
      if (object->pool) {
-          fusion_list_remove( &object->pool->objects, &object->link );
-          object->pool = NULL;
+          FusionObjectPool *pool = object->pool;
+
+          /* Lock the pool's object list. */
+          skirmish_prevail( &pool->lock );
+
+          /* Remove the object from the pool. */
+          if (object->pool) {
+               object->pool = NULL;
+               fusion_list_remove( &pool->objects, &object->link );
+          }
+          
+          /* Unlock the pool's object list. */
+          skirmish_dismiss( &pool->lock );
      }
      
      fusion_ref_destroy( &object->ref );
@@ -288,13 +314,15 @@ bone_collector_loop( CoreThread *thread, void *arg )
 
                switch (fusion_ref_zero_trylock( &object->ref )) {
                     case FUSION_SUCCESS:
-                         FDEBUG("{%s} dead object: %p\n",
-                                pool->name, object);
+                         FDEBUG("{%s} dead object: %p\n", pool->name, object);
+
+                         /* Set "deinitializing" state. */
+                         object->state = FOS_DEINIT;
 
                          /* Remove the object from the pool. */
-                         fusion_list_remove( &pool->objects, &object->link );
                          object->pool = NULL;
-
+                         fusion_list_remove( &pool->objects, &object->link );
+                         
                          /* Call the destructor. */
                          pool->destructor( object, false );
 
@@ -329,6 +357,9 @@ bone_collector_loop( CoreThread *thread, void *arg )
 
           FDEBUG("{%s} undestroyed object: %p (refs: %d)\n",
                  pool->name, object, refs);
+          
+          /* Set "deinitializing" state. */
+          object->state = FOS_DEINIT;
           
           /* Remove the object from the pool. */
           fusion_list_remove( &pool->objects, &object->link );

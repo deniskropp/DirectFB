@@ -109,6 +109,9 @@ dfb_palette_create( unsigned int size, CorePalette **ret_palette )
      /* reset cache */
      palette->search_cache.index = -1;
 
+     /* activate object */
+     fusion_object_activate( &palette->object );
+     
      /* return the new palette */
      *ret_palette = palette;
 
