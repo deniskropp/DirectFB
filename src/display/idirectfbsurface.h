@@ -25,7 +25,7 @@
 #define __DIRECTFBSURFACE_H__
 
 /*
- * private data struct of IDirectFB
+ * private data struct of IDirectFBSurface
  */
 typedef struct {
      int                    ref;             /* reference counter */
@@ -56,7 +56,7 @@ typedef struct {
           __u32             value;           /* r/g/b in surface's format */
      } src_key;                              /* src key for blitting from
                                                 this surface */
-     
+
      struct {
           __u8              r;               /* red component */
           __u8              g;               /* green component */
