@@ -3532,18 +3532,17 @@ void gRelease( CardState *state )
 
 #define CHECK_PIPELINE()           \
      {                             \
-          if (!*gfuncs)            \
+          if (!gfuncs[0])          \
                return;             \
      }                             \
 
-#define RUN_PIPELINE()             \
-     {                             \
-          GFunc *funcs = gfuncs;   \
-                                   \
-          do {                     \
-               (*funcs++)();       \
-          } while (*funcs);        \
-     }                             \
+#define RUN_PIPELINE()                  \
+     {                                  \
+          int i;                        \
+                                        \
+          for (i=0; gfuncs[i]; ++i)     \
+               gfuncs[i]();             \
+     }                                  \
 
 
 static int Aop_field = 0;
