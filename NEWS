@@ -1,3 +1,30 @@
+0.9.15
+------
+
+- IDirectFB::CreateEventBuffer() no longer attaches input devices and doesn't
+  take input capabilities. It just creates an empty event buffer.
+- Added IDirectFB::CreateInputEventBuffer() which implements both the 0.9.14
+  and pre 0.9.14 behaviour of CreateEventBuffer().
+- Added DFBBoolean (with DFB_TRUE and DFB_FALSE).
+- DFBWindowEvent fields cx, cy, buttons, locks and modifiers are always valid.
+- Added implicit key grabbing while a key is held down in a window.
+  Fixes interoparability ugliness between XDirectFB and DFBTerm (e.g. Ctrl-D).
+- Great improvement of performance and stability of the multi application core
+  via new Fusion Kernel Device. SysV IPC usage completely dropped.
+- Added Fusion benchmark application (no graphics, just for testing).
+- Added desktop background configuration tool for multi app sessions.
+- Implemented additional config file loading for each application.
+  E.g. running ".../foo" loads "/etc/directfbrc.foo" and "~/.directfbrc.foo".
+- Option 'no-hardware' now only disables acceleration, but driver is loaded
+  and additional layers can still be used.
+- Options 'mode=' and 'pixelformat=' are now always fully supported.
+  Fullscreen applications forced to run windowed (with 'force-windowed' option)
+  will have a window with the size and format specified.
+- Fixed fatal bug in FreeType2 font loader that made many apps look wrong.
+- Fixed off-by-one bug in image loading code. Fixes color keyed blits in df_dok.
+- Some other bug fixes and optimizations.
+
+
 0.9.14
 ------
 

@@ -1,3 +1,509 @@
+2002-11-12	22:56	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.53) (+11 -11)
+	
+	Moved description of Linux Fusion prior to how to build with multi app,
+	because users maybe don't read further before doing that.
+	
+2002-11-12	22:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.4) (+3 -3)
+	
+	Vsync fix from Ville Syrjala.
+	
+2002-11-12	22:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/lock.c (1.14) (+13 -5)
+		src/core/fusion/ref.c (1.22) (+82 -12)
+		src/core/fusion/reactor.c (1.29) (+85 -7)
+		src/core/fusion/property.c (1.11) (+13 -5)
+	
+	Improved ioctl error handling (EINTR, EINVAL etc.).
+	
+2002-11-12	21:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/arena.c (1.12) (+8 -5)
+		src/core/fusion/fusion.c (1.18) (+6 -0)
+	
+	Some bug fixes.
+	
+2002-11-12	20:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core.c (1.55) (+2 -2)
+		src/misc/colorhash.c (1.3) (+3 -3)
+		src/core/fusion/shmalloc/shmalloc_internal.h (1.7) (+5 -0)
+		src/core/fusion/shmalloc/shmalloc.c (1.9) (+18 -0)
+		src/core/fusion/util.c (1.6) (+0 -0)
+		src/core/fusion/reactor.c (1.28) (+0 -12)
+		src/core/fusion/lock.c (1.13) (+0 -7)
+		src/core/fusion/fusion_internal.h (1.21) (+9 -50)
+		src/core/fusion/fusion.c (1.17) (+16 -7)
+		src/core/fusion/arena.h (1.6) (+5 -4)
+		src/core/fusion/arena.c (1.11) (+130 -143)
+		src/core/fusion/Makefile.am (1.12) (+0 -1)
+		src/core/fbdev/fbdev.c (1.23) (+2 -2)
+		src/core/layers.c (1.79) (+3 -3)
+		src/core/input.c (1.62) (+3 -3)
+		src/core/gfxcard.c (1.91) (+2 -2)
+	
+	Rewrote FusionArena code using shmalloc and linked lists.
+	
+	No remaining bit of SysV IPC! There isn't even any SysV IPC header included.
+	
+2002-11-12	19:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfbg.c (1.4) (+1 -1)
+	
+	Fixed DLBM_TILE : DLBM_IMAGE order.
+	
+2002-11-12	18:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.78) (+1 -1)
+	
+	Check layer->shared->stack before repainting.
+	
+2002-11-12	15:11	Sven Neumann <sven@convergence.de>
+
+	Files:	docs/dfbg.1.in (1.2) (+8 -3)
+		tools/dfbg.c (1.3) (+51 -4)
+		docs/directfb-csource.1.in (1.4) (+4 -4)
+	
+	Added --color option to dfbg.
+	
+2002-11-12	14:22	Sven Neumann <sven@convergence.de>
+
+	Files:	configure.in (1.131) (+2 -1)
+		docs/dfbg.1.in (1.1) ( )
+		docs/Makefile.am (1.5) (+2 -0)
+		docs/.cvsignore (1.5) (+2 -1)
+	
+	Added a man-page for dfbg.
+	
+2002-11-12	14:08	Sven Neumann <sven@convergence.de>
+
+	Files:	tools/dfbg.c (1.2) (+71 -33)
+	
+	Added --tile command-line option to dfbg.
+	
+2002-11-12	02:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/.cvsignore (1.6) (+1 -0)
+		tools/ipc_cleanup (1.3) (+2 -3)
+		tools/dfbg.c (1.1) ( )
+		tools/Makefile.am (1.11) (+4 -1)
+	
+	Added background configuration tool.
+	
+	Updated ipc_cleanup.
+	
+2002-11-11	17:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_crtc2.c (1.3) (+5 -4)
+		src/core/fbdev/fbdev.c (1.22) (+3 -1)
+		patches/matroxfb-vsync-c2vline-irq-patch-2.4.19.bz2 (1.3) (+7 -9)
+	
+	Updated vsync irq patch from Ville Syrjala.
+	
+2002-11-11	15:32	Sven Neumann <sven@convergence.de>
+
+	Files:	src/misc/conf.c (1.45) (+1 -1)
+	
+	check prog != NULL before calling strlen() on it
+	
+2002-11-11	15:01	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/gfx/util.c (1.7) (+11 -1)
+	
+	Made dfb_back_to_front_copy() thread safe as skirmish is now a recursive lock.
+	
+2002-11-11	15:00	Sven Neumann <sven@convergence.de>
+
+	Files:	README (1.52) (+20 -19)
+		docs/directfbrc.5.in (1.18) (+2 -1)
+	
+	Fixed some spelling errors and documented the new behaviour of 'no-hardware'.
+	
+2002-11-11	05:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/windows.c (1.117) (+15 -10)
+	
+	Use hardware key code for auto grabbing pressed keys (using the symbol
+	was buggy because of modifiers being changed while a key is pressed).
+	
+2002-11-11	05:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fbdev/fbdev.c (1.21) (+8 -1)
+	
+	Check return value of iopl() instead of segfaulting.
+	
+2002-11-11	03:58	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.51) (+8 -4)
+		tools/fusion_bench.c (1.8) (+26 -36)
+		src/misc/util.h (1.14) (+1 -0)
+		src/misc/util.c (1.12) (+31 -0)
+		src/core/fusion/ref.c (1.21) (+8 -333)
+		src/core/fusion/reactor.h (1.7) (+1 -2)
+		src/core/fusion/reactor.c (1.27) (+169 -333)
+		src/core/fusion/property.c (1.10) (+5 -318)
+		src/core/fusion/lock.c (1.12) (+5 -140)
+		src/core/fusion/fusion_internal.h (1.20) (+7 -2)
+		src/core/fusion/fusion.c (1.16) (+78 -296)
+		src/core/fusion/arena.c (1.10) (+9 -9)
+		src/core/windows.c (1.116) (+1 -1)
+		src/core/coredefs.h (1.25) (+4 -4)
+		configure.in (1.130) (+6 -11)
+		TODO (1.44) (+0 -1)
+	
+	Rewrote multi app reactor code, *much* simpler and cleaner now.
+	Improved performance and stability. No message queues anymore.
+	
+	Old version via message queue:
+	
+	reactor attach/detach                 ->     8.03 k/sec
+	reactor attach/detach (2nd)           ->   323.21 k/sec
+	reactor dispatch                      ->   333.33 k/sec  (100% arrived)
+	
+	New version via Fusion Kernel Device:
+	
+	reactor attach/detach                 ->   375.09 k/sec
+	reactor attach/detach (2nd)           ->   403.88 k/sec
+	reactor dispatch                      ->   754.15 k/sec  (100% arrived)
+	
+	Now the master is the only DirectFB application with more than one
+	additional thread.
+	
+	Only one single SysV IPC resource is left (shm segment of arena).
+	Everything else is already handled by the Fusion Kernel Device.
+	
+	Support for multi app without kernel device is dropped.
+	
+2002-11-10	19:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/thread.c (1.6) (+3 -2)
+	
+	Don't block signals in DirectFB threads of slaves.
+	
+2002-11-09	01:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	BUGS (1.14) (+0 -4)
+	
+	df_dok related bugs are fixed.
+	
+2002-11-09	01:18	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.28) (+2 -2)
+	
+	32 was the old value, not 16.
+	
+2002-11-08	23:15	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/dfb_static_build_example (1.4) (+7 -1)
+	
+	If multiple arguments are passed,
+	use the first one for output and others for input.
+	
+2002-11-08	22:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fonts.c (1.27) (+33 -4)
+		src/core/fonts.h (1.13) (+1 -0)
+	
+	Attach listener to glyph surfaces to have at least one listener attached.
+	Set glyph surface size back to the old value (maxadvance * 32).
+	
+2002-11-08	21:33	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/misc/gfx_util.c (1.27) (+8 -8)
+	
+	Fixed off-by-one bug in image loading code (multiplication by alpha).
+	Fixes broken color keyed blits in df_dok.
+	
+2002-11-08	21:09	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.88) (+3 -0)
+	
+	Fullscreen applications not calling SetVideoMode() and not setting the format in
+	the surface description of the primary take care of the "pixelformat=" option.
+	
+2002-11-08	20:16	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.87) (+12 -0)
+	
+	Fullscreen applications that are started with the "mode=" option and don't
+	call SetVideoMode() now switch to the mode specified with the option.
+	
+2002-11-08	18:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.33) (+5 -6)
+	
+	Fixed FT2ImplKerningData struct. After adding "fixed_advance" to FT2ImplData
+	FT2ImplKerningData didn't match FT2ImplData anymore. Now it's really derived
+	from FT2ImplData.
+	
+2002-11-08	17:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.90) (+18 -3)
+		src/misc/conf.c (1.44) (+35 -4)
+	
+	Implemented additional config file loading for each application.
+	
+	E.g. running "df_dok" or "/foo/bar/df_dok" will look for config files
+	"/etc/directfbrc.df_dok" and "~/.directfbrc.df_dok".
+	
+	'no-hardware' now only disables acceleration, but driver is loaded and
+	additional layers are used.
+	
+2002-11-07	23:41	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_default.c (1.23) (+3 -2)
+	
+	Check for desc != NULL.
+	
+2002-11-07	22:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/system.c (1.5) (+1 -1)
+	
+	Check for NULL.
+	
+2002-11-07	22:00	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/core_system.h (1.3) (+4 -0)
+		src/core/sdl/sdl.c (1.2) (+6 -0)
+		src/core/fbdev/fbdev.c (1.20) (+9 -0)
+		src/core/thread.c (1.5) (+3 -0)
+		src/core/system.h (1.3) (+8 -0)
+		src/core/system.c (1.4) (+6 -0)
+	
+	Added system hook ThreadInit() that is called at the beginning of new threads.
+	The fbdev system detaches the thread from the controlling tty.
+	Otherwise mode restoring done by input threads (if layer is orphaned) goes
+	to the tty the app has been started from. The main thread has been detached
+	eversince.
+	
+2002-11-07	21:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.77) (+6 -1)
+	
+	Fix deadlock during lease of orphaned layer.
+	
+2002-11-07	12:38	Sven Neumann <sven@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.32) (+7 -2)
+	
+	Adapted to changes in FreeType-2.1.3 to get optimal monochrome rendering.
+	
+2002-11-05	22:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/idirectfb.c (1.86) (+0 -2)
+		src/display/idirectfbsurface_window.c (1.31) (+4 -1)
+	
+	Show window of windowed fullscreen apps on first Flip.
+	
+2002-11-05	22:49	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/state.c (1.16) (+6 -6)
+	
+	Commented out state locking in listeners to avoid a deadlock between
+	state/reactor lock (locked in different order by two threads).
+	
+2002-11-05	17:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/reactor.c (1.26) (+3 -8)
+	
+	Interpret EINVAL like EIDRM in receiver.
+	
+2002-11-05	14:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/gfxcard.c (1.89) (+2 -4)
+		src/core/fusion/lock.h (1.6) (+5 -1)
+		src/core/fusion/lock.c (1.11) (+29 -0)
+		src/core/fusion/Makefile.am (1.11) (+1 -1)
+	
+	Made skirmish recursive mutex in single app core. Multi app skirmish
+	has to be made recursive, too.
+	
+2002-11-04	19:19	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/windows.c (1.115) (+1 -1)
+	
+	check if the window has a surface before trying to access its palette
+	
+2002-11-04	19:04	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/fusion.c (1.15) (+17 -2)
+	
+	devfs support
+	
+2002-11-04	17:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/state.c (1.15) (+52 -11)
+	
+	Added state locking to dfb_state_set_source/destination() and the installed
+	listeners. References to the surfaces are now increased/decreased.
+	More stable now, but had to use Unix98 recursive mutex.
+	
+2002-11-04	16:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/property.c (1.9) (+143 -18)
+		tools/fusion_bench.c (1.7) (+36 -0)
+		src/core/fusion/property.h (1.7) (+1 -1)
+	
+	Use new in-kernel fusion property.
+	
+2002-11-02	05:20	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/display/idirectfbsurface.c (1.63) (+3 -3)
+	
+	dfb_surface_attach() was called too early.
+	
+2002-11-02	01:44	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/lock.c (1.10) (+143 -12)
+		src/core/fusion/lock.h (1.5) (+6 -6)
+	
+	Use Fusion Kernel Device.
+	
+2002-11-01	23:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.129) (+1 -1)
+		src/core/windows.h (1.39) (+2 -2)
+		src/core/windows.c (1.114) (+42 -48)
+		src/core/layers.c (1.76) (+1 -1)
+		src/idirectfb.c (1.85) (+22 -4)
+		include/directfb_keyboard.h (1.22) (+4 -1)
+		include/directfb.h (1.153) (+26 -1)
+	
+	Added DFBBoolean.
+	
+	DFBWindowEvent fields cx, cy, buttons, locks and modifiers
+	are always set now (except for DWET_DESTROYED).
+	
+	API change
+	----------
+	
+	IDirectFB::CreateEventBuffer() no longer attaches input devices and doesn't
+	take input capabilities.
+	
+	IDirectFB::CreateInputEventBuffer() implements the old behaviour with an
+	additional argument "global". If global is DFB_FALSE events will only be
+	delivered if this instance of IDirectFB has a focused primary (either running
+	fullscreen or running in windowed mode with the window being focused).
+	
+	Version is 0.9.15 now.
+	
+2002-11-01	22:37	Sven Neumann <sven@convergence.de>
+
+	Files:	TODO (1.43) (+2 -0)
+		src/core/windows.c (1.113) (+9 -0)
+		src/core/layers.c (1.75) (+2 -2)
+	
+	Don't write out of bounds if the default cursor is loaded into a non-ARGB
+	surface (--dfb:no-translucent-windows).
+	
+	Switch the display layer palette to the one of the focused
+	window. Added TODO item since this needs more changes.
+	
+2002-11-01	21:38	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/surfaces.c (1.60) (+5 -0)
+	
+	notify listeners about a palette change in dfb_surface_set_palette()
+	
+2002-11-01	21:37	Sven Neumann <sven@convergence.de>
+
+	Files:	src/core/palette.c (1.11) (+5 -2)
+	
+	Use the size of the palette in dfb_palette_generate_rgb332_map() instead
+	of assuming 256 entries.
+	
+2002-11-01	17:26	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/layers.c (1.74) (+6 -1)
+		src/core/windows.h (1.38) (+17 -0)
+		src/core/windows.c (1.112) (+117 -5)
+	
+	Implemented implicit grabbing of keys when they are pressed.
+	Subsequent events of this key are sent to the owner.
+	Releasing a key ungrabs it. If a window is closed while grabbing a
+	key, the window gets a pseudo release event. If fullscreen mode is
+	entered all keys are flushed (ungrabbed sending release events).
+	
+2002-11-01	13:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.6) (+64 -8)
+	
+	Added threaded skirmish benchmark.
+	
+2002-10-30	19:45	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.5) (+10 -4)
+	
+	Number of reactor_dispatch() calls depends on single/multi app config.
+	
+2002-10-30	19:40	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.4) (+2 -2)
+	
+	oops
+	
+2002-10-30	19:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.3) (+41 -3)
+	
+	Added reactor_dispatch() benchmark.
+	
+2002-10-30	19:17	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/fusion_bench.c (1.2) (+65 -4)
+	
+	Added reactor attach/detach benchmark.
+	
+2002-10-30	18:12	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.20) (+1 -0)
+	
+	Forgot initialisation of waiting counter.
+	
+2002-10-30	17:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.19) (+6 -2)
+		src/core/fusion/ref.h (1.10) (+1 -0)
+	
+	Only call pthread_cond_broadcast() if someone is waiting.
+	
+2002-10-30	17:52	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.18) (+2 -0)
+	
+	Added missing pthread_cond_init.
+	
+2002-10-30	17:38	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	tools/.cvsignore (1.5) (+1 -0)
+		tools/fusion_bench.c (1.1) ( )
+		tools/Makefile.am (1.10) (+4 -0)
+	
+	Added Fusion benchmark application.
+	
+2002-10-30	14:25	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/directfb.c (1.58) (+7 -7)
+	
+	Use stderr for the banner, like all other messages.
+	
+2002-10-29	18:39	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/fusion/ref.c (1.17) (+2 -2)
+	
+	Don't interpret negative ref count as a negative errno until ref counter
+	bug is fixed.
+	
+2002-10-29	15:10	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.32) (+13 -0)
+	
+	last commit before 0.9.14 release
+	
 2002-10-29	14:54	Sven Neumann <sven@convergence.de>
 
 	Files:	tools/README (1.5) (+3 -0)
