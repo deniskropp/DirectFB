@@ -137,70 +137,8 @@ static DFBResult ov0TestConfiguration( DisplayLayer               *layer,
 static DFBResult ov0SetConfiguration( DisplayLayer          *layer,
                                       DFBDisplayLayerConfig *config )
 {
-     DFBResult                  ret;
-     int                        width, height;
-     DFBSurfacePixelFormat      format;
-     DFBDisplayLayerBufferMode  buffermode;
-     DFBDisplayLayerOptions     options;
-
-     ret = ov0TestConfiguration( layer, config, NULL );
-     if (ret)
-          return ret;
-
-     if (config->flags & DLCONF_WIDTH)
-          width = config->width;
-     else
-          width = layer->shared->width;
-
-     if (config->flags & DLCONF_HEIGHT)
-          height = config->height;
-     else
-          height = layer->shared->height;
-
-     if (config->flags & DLCONF_PIXELFORMAT)
-          format = config->pixelformat;
-     else
-          format = layer->shared->surface->format;
-
-     if (config->flags & DLCONF_BUFFERMODE)
-          buffermode = config->buffermode;
-     else
-          buffermode = layer->shared->buffermode;
-
-     if (config->flags & DLCONF_OPTIONS)
-          options = config->options;
-     else
-          options = layer->shared->options;
-
-     if (layer->shared->buffermode != buffermode) {
-          ONCE("Changing the buffermode of the overlay is unimplemented!");
-          return DFB_UNIMPLEMENTED;
-     }
-
-     if (layer->shared->width != width ||
-         layer->shared->height != height ||
-         layer->shared->surface->format != format ||
-         layer->shared->options != options)
-     {
-          /* FIXME: write surface management functions
-                    for easier configuration changes */
-
-          ret = dfb_surface_reformat( layer->shared->surface, width, height, format );
-          if (ret)
-               return ret;
-
-          layer->shared->options = options;
-          layer->shared->width   = width;
-          layer->shared->height  = height;
-
-          layer->shared->windowstack->cursor_region.x1 = 0;
-          layer->shared->windowstack->cursor_region.y1 = 0;
-          layer->shared->windowstack->cursor_region.x2 = layer->shared->width - 1;
-          layer->shared->windowstack->cursor_region.y2 = layer->shared->height - 1;
-
-          ov0_calc_regs( adrv, adev, layer );
-          ov0_set_regs( adrv, adev );
-     }
+     ov0_calc_regs( adrv, adev, layer );
+     ov0_set_regs( adrv, adev );
 
      return DFB_OK;
 }
