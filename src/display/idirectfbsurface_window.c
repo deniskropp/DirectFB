@@ -136,6 +136,14 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           reg.y2 = data->base.area.current.y + data->base.area.current.h - 1;
      }
 
+     if (flags & DSFLIP_PIPELINE) {
+          dfb_gfxcard_wait_serial( &data->window->serial2 );
+
+          data->window->serial2 = data->window->serial1;
+
+          dfb_state_get_serial( &data->base.state, &data->window->serial1 );
+     }
+
      if (data->base.surface->caps & DSCAPS_FLIPPING) {
           if (!(flags & DSFLIP_BLIT) && reg.x1 == 0 && reg.y1 == 0 &&
               reg.x2 == data->window->width - 1 && reg.y2 == data->window->height - 1)
@@ -148,11 +156,6 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
           dfb_window_set_opacity( data->window, 0xff );
      else
           dfb_window_repaint( data->window, &reg, flags, false, false );
-
-     if (flags & DSFLIP_PIPELINE) {
-          dfb_gfxcard_wait_serial( &data->window->serial );
-          dfb_state_get_serial( &data->base.state, &data->window->serial );
-     }
 
      return DFB_OK;
 }

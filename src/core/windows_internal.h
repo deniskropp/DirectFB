@@ -99,7 +99,8 @@ struct __DFB_CoreWindow {
 
      void                   *window_data;    /* private data of window manager */
 
-     CoreGraphicsSerial      serial;
+     CoreGraphicsSerial      serial1;
+     CoreGraphicsSerial      serial2;
 };
 
 /*
