@@ -135,12 +135,11 @@ static void mach64EngineReset( void *drv, void *dev )
      mach64_out32( mmio, DP_MIX, FRGD_MIX_SRC | BKGD_MIX_DST );
 
      if (mdrv->accelerator == FB_ACCEL_ATI_MACH64GT) {
-          mach64_waitfifo( mdrv, mdev, 13 );
+          mach64_waitfifo( mdrv, mdev, 12 );
 
           /* Some 3D registers aren't accessible without this. */
           mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
-          mach64_out32( mmio, ALPHA_TST_CNTL, ALPHA_DST_SEL_DSTALPHA );
           mach64_out32( mmio, TEX_CNTL, 0 );
           mach64_out32( mmio, Z_CNTL, 0 );
 
@@ -673,7 +672,7 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
      CoreSurface   *source = mdev->source;
      SurfaceBuffer *buffer = source->front_buffer;
 
-     __u32 scale_3d_cntl = mdev->blit_blend;
+     __u32 scale_3d_cntl = SCALE_3D_FCN_SCALE | mdev->blit_blend;
 
      if (!filter)
           scale_3d_cntl |= SCALE_PIX_REP;
@@ -714,7 +713,7 @@ static void mach64DoBlitTex( Mach64DriverData *mdrv,
      CoreSurface   *source = mdev->source;
      SurfaceBuffer *buffer = source->front_buffer;
 
-     __u32 scale_3d_cntl = mdev->blit_blend;
+     __u32 scale_3d_cntl = SCALE_3D_FCN_TEXTURE | MIP_MAP_DISABLE | mdev->blit_blend;
      int sx, sy;
 
      /* Need to add 0.5 to get correct rendering. */
