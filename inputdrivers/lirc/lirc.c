@@ -125,34 +125,91 @@ static DFBInputDeviceKeySymbol lirc_parse_line(const char *line)
 static void*
 lircEventThread( CoreThread *thread, void *driver_data )
 {
-     LircData      *data  = (LircData*) driver_data;
-     int            readlen;
-     char           buf[128];
-     DFBInputEvent  evt;
+     int                      repeats = 0;
+     DFBInputDeviceKeySymbol  last    = DIKS_NULL;
+     LircData                *data    = (LircData*) driver_data;
 
-     memset( &evt, 0, sizeof(DFBInputEvent) );
+     while (true) {
+          struct timeval          tv;
+          fd_set                  set;
+          int                     result;
+          int                     readlen;
+          char                    buf[128];
+          DFBInputEvent           evt;
+          DFBInputDeviceKeySymbol symbol;
 
-     while ((readlen = read( data->fd, buf, 128 )) > 0 || errno == EINTR) {
+          FD_ZERO(&set);
+          FD_SET(data->fd,&set);
+
+          tv.tv_sec  = 0;
+          tv.tv_usec = 200000;
+
+          result = select (data->fd+1, &set, NULL, NULL, &tv);
+
+          switch (result) {
+               case -1:
+                    /* error */
+                    if (errno == EINTR)
+                         continue;
+
+                    PERRORMSG("DirectFB/LIRC: select() failed\n");
+                    return NULL;
+
+               case 0:
+                    /* timeout, release last key */
+                    if (last != DIKS_NULL) {
+                         evt.flags      = DIEF_KEYSYMBOL;
+                         evt.type       = DIET_KEYRELEASE;
+                         evt.key_symbol = last;
+
+                         dfb_input_dispatch( data->device, &evt );
+
+                         last = DIKS_NULL;
+                    }
+                    continue;
+
+               default:
+                    /* data arrived */
+                    break;
+          }
+
           dfb_thread_testcancel( thread );
 
+          /* read data */
+          readlen = read( data->fd, buf, 128 );
           if (readlen < 1)
                continue;
 
-          evt.key_symbol = lirc_parse_line( buf );
+          /* get new key */
+          symbol = lirc_parse_line( buf );
+          if (symbol == DIKS_NULL)
+               continue;
 
-          if (evt.key_symbol != DIKS_NULL) {
-               evt.type = DIET_KEYPRESS;
-               evt.flags = DIEF_KEYSYMBOL;
-               dfb_input_dispatch( data->device, &evt );
+          /* repeated key? */
+          if (symbol == last) {
+               /* swallow the first two repeats */
+               if (++repeats < 3)
+                    continue;
+          }
+          else if (last != DIKS_NULL) {
+               /* release last key first */
+               evt.flags      = DIEF_KEYSYMBOL;
+               evt.type       = DIET_KEYRELEASE;
+               evt.key_symbol = last;
 
-               evt.type = DIET_KEYRELEASE;
-               evt.flags = DIEF_KEYSYMBOL;
                dfb_input_dispatch( data->device, &evt );
           }
-     }
 
-     if (readlen <= 0 && errno != EINTR)
-          PERRORMSG ("lirc thread died\n");
+          /* send the press event */
+          evt.flags      = DIEF_KEYSYMBOL;
+          evt.type       = DIET_KEYRELEASE;
+          evt.key_symbol = symbol;
+
+          dfb_input_dispatch( data->device, &evt );
+
+          /* remember last key */
+          last = symbol;
+     }
 
      return NULL;
 }
