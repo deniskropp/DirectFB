@@ -77,6 +77,11 @@
 DFB_CORE_SYSTEM( fbdev )
 
 
+#ifndef FBIO_WAITFORVSYNC
+#define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
+#endif
+
+
 static int fbdev_ioctl_call_handler( int   caller,
                                      int   call_arg,
                                      void *call_ptr,
