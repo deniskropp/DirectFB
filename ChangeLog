@@ -1,3 +1,348 @@
+2001-10-25	15:17	<dok@convergence.de>
+
+	Files:	src/display/idirectfbsurface.c (1.28) (+3 -6)
+	
+	Removed commented out code,
+	wrote an explanation instead why the state isn't modified.
+	
+2001-10-25	14:47	<neo@convergence.de>
+
+	Files:	examples/df_dok.c (1.26) (+2 -1)
+		examples/spacedream/main.c (1.5) (+2 -1)
+	
+	Adapted examples to latest API changes (surface->SetSrcColorKey).
+	
+2001-10-25	14:33	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.60) (+12 -6)
+		src/gfx/convert.h (1.5) (+29 -0)
+		src/display/idirectfbsurface.h (1.6) (+16 -0)
+		src/display/idirectfbsurface.c (1.27) (+39 -6)
+	
+	Important API change:
+	
+	IDirectFBSurface::SetSrcColorKey has to be called on the source now,
+	when blitting to a surface which has source color keying enabled.
+	
+	For IDirectFBSurface::SetSrcColorKey and IDirectFBSurface::SetDstColorKey:
+	The color key is now specified by three values each 8bit: r, g and b.
+	They will be converted to the pixelformat of the surface automatically.
+	
+2001-10-22	17:53	<andi@convergence.de>
+
+	Files:	patches/Makefile.am (1.5) (+2 -2)
+	
+	forgot to change filenames.
+	
+2001-10-22	17:52	<andi@convergence.de>
+
+	Files:	patches/README.aty128fb-2.4.12-benh.patch (1.1) ( )
+		patches/aty128fb-2.4.6-benh-andi.patch.bz2 (1.2) (+0 -0)
+		patches/aty128fb-2.4.12-benh.patch.bz2 (1.1) ( )
+		patches/README.aty128fb-2.4.6-benh-andi.patch (1.2) (+0 -0)
+	
+	updated aty128fb framebuffer driver patch.
+	
+	the patch was tested with kernel versions from 2.4.7 - 2.4.12. It may work
+	with older versions too.
+	
+2001-10-21	15:50	<dok@convergence.de>
+
+	Files:	configure.in (1.44) (+1 -1)
+		src/gfx/generic/generic.c (1.33) (+24 -23)
+		src/core/surfaces.h (1.10) (+5 -1)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.15) (+22 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.12) (+17 -10)
+		include/directfb.h (1.59) (+15 -3)
+		gfxdrivers/matrox/regs.h (1.6) (+6 -0)
+		gfxdrivers/matrox/matrox_state.c (1.18) (+13 -4)
+		gfxdrivers/matrox/matrox_bes.c (1.4) (+103 -23)
+		gfxdrivers/matrox/matrox.c (1.19) (+88 -3)
+		examples/df_layer.c (1.4) (+82 -25)
+	
+	Added DSPF_UYVY and clarified description of both YUV formats.
+	
+	Added surface capability DSCAPS_INTERLACED which indicates that the surface
+	contains interlaced video data (two fields of half the height of the surface
+	are stored interleaved line by line). This capability will be set by drivers
+	when a layer is configured with DLOP_INTERLACED enabled. Video providers are
+	then able to notify the layer driver about field changes (for software driven
+	field changes).
+	
+	Added surface notifications CSNF_SET_EVEN and CSNF_SET_ODD (internal),
+	drivers can listen to them to support (de)interlacing with software driven
+	field changes.
+	
+	Added DVCAPS_INTERLACED to indicate that a video provider supports
+	notification of field changes if the destination has DSCAPS_INTERLACED set.
+	
+	V4L provider supports (de)interlacing and both YUV formats.
+	
+	Added support for (de)interlaced video with the Matrox Backend Scaler.
+	
+	Added support for YUY2 as a blitting source on the G200.
+	
+	Added support for YUY2 and UYVY as a blitting source on the G400.
+	
+	Made some features available on the G100, stretched blits and format conversion
+	are now available, but for 15/16 bit sources only. Colorizing is available, too.
+	Blending could be available, but only in stipple mode and no ARGB32;-(
+	
+	Added support for deinterlacing in df_layer, also demonstrating how to test
+	layer configurations. Will fallback to UYVY or even take the current format.
+	
+	AviFile provider returns an error if support for YUY2 or UYVY is not available.
+	
+	Increased version number to 0.9.7.
+	
+2001-10-20	23:41	<andi@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.32) (+92 -28)
+	
+	optimized RGB15 and RGB16 color keyed blit (doubled performance on some
+	cpus)
+	
+	df_dok benchmarks (MPixel/s):
+	
+	Apple PowerBook G3 400Mhz:
+	15.2  -> 30.8
+	
+	Sony Vaio PIII 700 Mhz:
+	69.5 -> 112.9
+	
+	PowerPC 823 66 Mhz:
+	2.65 -> 3.49
+	
+2001-10-20	22:35	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.18) (+5 -0)
+	
+	5 lines added to have G100 support as well ;)
+	
+2001-10-20	15:01	<andi@convergence.de>
+
+	Files:	src/core/fbdev.c (1.30) (+9 -6)
+	
+	- dont call fbdev_set_gamma_ramp() when using RGB332
+	- allow RGB15 mode on fbdev drivers that report to use one bit for alpha
+	
+2001-10-20	08:52	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.14) (+4 -0)
+	
+	It's now possible to use the V4L Provider on YUV surfaces.
+	
+2001-10-20	08:02	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.29) (+20 -5)
+		src/core/fbdev.h (1.6) (+4 -0)
+	
+	Added support for the following fb.modes options:
+	
+	'gsync true'   - Sync On Green enabled
+	'csync high'   - Composite Sync high
+	'extsync true' - External Sync
+	
+2001-10-20	07:47	<dok@convergence.de>
+
+	Files:	src/idirectfb.c (1.30) (+1 -1)
+	
+	When reading the first 32 byte of a file in CreateImageProvider,
+	open the file/device O_NONBLOCK! With a BTTV and DFBSee trying to create
+	an image provider for /dev/video the read never returned.
+	
+2001-10-20	06:49	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.17) (+235 -60)
+		gfxdrivers/matrox/matrox_state.c (1.17) (+46 -20)
+		gfxdrivers/matrox/matrox_bes.c (1.3) (+6 -1)
+		gfxdrivers/matrox/matrox.h (1.4) (+5 -1)
+	
+	Added acceleration for older Matrox cards (Mystique and Millenium I & II).
+	Tested on a Mystique with SGRAM
+	
+	Supported are:
+	- Solid rectangle/triangle filling
+	- Solid line/rectangle drawing
+	- Blitting with or without source color keying
+	
+	Mystique seems to has a texture mapping unit, but I didn't get it working
+	correctly, scaled images looked tiled/interleaved, but it was slower than
+	software anyway, so it propably wouldn't trade off.
+	
+	
+	Fixed BCOL setting (colorkey mask), all 32 bit must be filled for these cards.
+	
+	Added second simple blitting function 'matroxBlit2D_Old',
+	because BitBlt programming is too different between new and old cards.
+	
+	Source and destination surface offset handling is totally different, too.
+	
+	Cleaned up CheckState functions, optimized invalidation rules in SetState.
+	(Don't know why source registers had been invalidated on destination changes).
+	
+	
+	Tested on a Mystique with SGRAM on an Athlon 1.33GHz:
+	- Rectangle Filling 823 MPixel/sec
+	- Blitting 46 MPixel/sec (software was about 30)
+	
+	Without "--matrox-sgram" feature:
+	- Rectangle Filling 94 MPixel/sec !
+	
+2001-10-19	21:12	<dok@convergence.de>
+
+	Files:	src/misc/conf.c (1.13) (+3 -3)
+	
+	changed the default background color to a more "cooler" blue
+	
+2001-10-19	21:07	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.28) (+24 -11)
+		src/misc/conf.h (1.10) (+3 -0)
+		src/misc/conf.c (1.12) (+21 -1)
+	
+	Added option "--fbdev=<device>" which lets you
+	specify another device than "/dev/fb0".
+	
+2001-10-19	20:50	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.12) (+21 -20)
+		src/core/vt.h (1.3) (+1 -1)
+		src/core/vt.c (1.15) (+73 -73)
+		src/core/core.c (1.17) (+1 -1)
+		src/directfb.c (1.26) (+2 -2)
+	
+	Renamed global symbol "vt" to "core_vt".
+	
+2001-10-19	20:30	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.58) (+13 -11)
+		tools/gendoc.pl (1.9) (+25 -7)
+	
+	Each interface con now have a long description, put it above DEFINE_INTERFACE.
+	Description of structs is now put into types page.
+	
+	Added some text for IDirectFB.
+	
+2001-10-15	02:29	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.34) (+16 -0)
+	
+	After a window gets closed make sure another window gets the focus if any.
+	
+2001-10-15	00:55	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.11) (+7 -5)
+	
+	Reenabled changing of controlling tty when vt switching is used.
+	This is needed, otherwise mode switching ioctls have no effect.
+	
+2001-10-12	12:24	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.16) (+4 -4)
+	
+	Use video alpha method when modifying destinations alpha channel.
+	Text and blended blits look much better now when done on a window with alpha.
+	
+2001-10-12	00:03	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.10) (+18 -11)
+		src/core/fbdev.h (1.5) (+1 -0)
+		src/core/fbdev.c (1.27) (+28 -1)
+	
+	Several enhancements make DirectFB now really usable with "--no-vt-switch",
+	with this option you are able to run DirectFB programs without super user
+	privileges. You need read/write access to /dev/fb and you should start it from
+	the console, i.e. not within X.
+	
+	DirectFB now restores the palette during deinitialization.
+	DirectFB now turns cursor and blanking back on.
+	DirectFB now restores the terminal attributes like local echo.
+	
+2001-10-10	13:21	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.16) (+25 -0)
+	
+	Added checks for supported source formats.
+	
+2001-10-09	08:49	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.15) (+35 -15)
+	
+	Better check for supported/unsupported pixelformats.
+	
+2001-10-08	07:08	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.7) (+14 -14)
+		src/gfx/generic/generic.c (1.31) (+10 -7)
+		src/core/gfxcard.c (1.31) (+8 -6)
+	
+	Source surfaces are now locked before destination surfaces.
+	Commented out error message of FreeType2 Font loader when
+	the file could not be opened.
+	
+2001-10-07	03:55	<dok@convergence.de>
+
+	Files:	patches/neofb-0.2.1-linux-2.4.10.patch.bz2 (1.1) ( )
+	
+	Ready for 2.4.10 neofb.
+	
+2001-10-07	03:07	<andi@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.30) (+2 -2)
+	
+	fixed warning
+	
+2001-10-07	03:02	<andi@convergence.de>
+
+	Files:	src/misc/gfx_util.c (1.13) (+6 -0)
+	
+	added 8bit RGB332 pixelformat. This is usefull to test DirectFB on old unix
+	workstations which had 8-bit framebuffers on board (sparc,pa-risc,mips)
+	Implementation in not complete yet.
+	
+	If you want RGB332 for any reason, you have to enable it at compile time using
+	 ./configure  --enable-rgb332
+	
+2001-10-07	03:01	<andi@convergence.de>
+
+	Files:	acconfig.h (1.2) (+1 -0)
+		src/gfx/generic/generic.c (1.29) (+135 -1)
+		src/gfx/convert.h (1.4) (+6 -0)
+		src/core/fbdev.c (1.26) (+69 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.7) (+22 -1)
+		include/directfb.h (1.57) (+3 -1)
+		configure.in (1.43) (+9 -1)
+	
+	added 8bit RGB332 pixelformat. This is usefull to test DirectFB on old unix
+	workstations which had 8-bit framebuffers on board (sparc,pa-risc,mips)
+	Implementation in not complete yet.
+	
+	If you want RGB332 for any reason, you have to enable it at compile time using
+	 ./configure  --enable-rgb332
+	
+2001-10-05	19:27	<andi@convergence.de>
+
+	Files:	src/core/layers.c (1.8) (+5 -4)
+		src/gfx/generic/generic.c (1.28) (+6 -3)
+	
+	fixed gcc-3.0 warnings.
+	
+2001-10-05	13:17	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.25) (+14 -2)
+	
+	Do a more verbose error message if no supported modes were found in
+	/etc/fb.modes and the current mode is not supported, too.
+	Pixelformat of current mode is printed in this case.
+	
+2001-10-02	22:07	<dok@convergence.de>
+
+	Files:	ChangeLog (1.13) (+34 -0)
+		NEWS (1.21) (+1 -0)
+	
+	R34D7 4 D4 R3L3453
+	
 2001-10-02	22:04	<dok@convergence.de>
 
 	Files:	examples/df_layer.c (1.3) (+14 -0)

@@ -1,3 +1,30 @@
+0.9.7
+-----
+
+- Added deinterlacing for interlaced video sources to Matrox Backend Scaler.
+- Added DSPF_UYVY and clarified description of both YUV formats.
+- Added acceleration for Matrox Mystique, Millenium I&II, G100.
+- Added support for YUV in V4L video provider.
+- Added support for deinterlacing in df_layer example.
+- Added option "--fbdev=<device>" to specify another device than "/dev/fb0".
+- Added support for 'gsync true', 'csync high' and 'extsync true' in fb.modes.
+- Added 8bit RGB332 pixelformat, implementation is not complete yet.
+  If you want RGB332, you have to enable it using ./configure --enable-rgb332.
+- Optimized RGB15/RGB16 color keyed blit (doubled performance on some CPUs).
+- Allow RGB15 mode on fbdev drivers that report to use one bit for alpha.
+- Fixed blocking of CreateImageProvider when called on /dev/video with BTTV.
+- DirectFB now restores the palette during deinitialization, turns cursor and
+  blanking back on and restores the terminal attributes like local echo.
+  These fixes help a lot when using DirectFB with the option "--no-vt-switch".
+- Updated NeoMagic framebuffer driver patch for 2.4.10 and above.
+- Updated aty128fb framebuffer driver patch. The patch was tested with kernel
+  versions from 2.4.7 - 2.4.12. It may work with older versions too.
+- IDirectFBSurface::SetSrcColorKey has to be called on the source now,
+  when blitting to a surface which has source color keying enabled.
+- SetSrcColorKey and SetDstColorKey take three values now: r, g and b.
+  They will be converted to the pixelformat of the surface automatically.
+- Some minor fixes.
+
 0.9.6
 -----
 
