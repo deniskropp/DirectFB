@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <sys/user.h>
+#include <asm/page.h>
 
 #include <config.h>
 
