@@ -8,8 +8,10 @@ endif
 
 man_MANS = \
 	$(csource_mans)	\
+	dfbg.1		\
 	directfbrc.5
 
 EXTRA_DIST = \
+	dfbg.1.in		\
 	directfbrc.5.in		\
 	directfb-csource.1.in

@@ -785,8 +785,9 @@ interfaces/IDirectFBVideoProvider/Makefile
 data/Makefile
 tools/Makefile
 docs/Makefile
-docs/directfbrc.5
+docs/dfbg.1
 docs/directfb-csource.1
+docs/directfbrc.5
 docs/html/Makefile
 ], [chmod +x directfb-config])
 

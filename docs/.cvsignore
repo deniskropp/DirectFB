@@ -1,4 +1,5 @@
 Makefile
 Makefile.in
-directfbrc.5
+dfbg.1
 directfb-csource.1
+directfbrc.5
