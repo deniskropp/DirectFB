@@ -577,15 +577,15 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
           return DFB_INVARG;
 
      /*  read the first 32 bytes  */
-     fd = open (filename, O_RDONLY | O_NONBLOCK);
+     fd = open( filename, O_RDONLY | O_NONBLOCK );
      if (fd == -1)
           return errno2dfb( errno );
 
-     if (read (fd, ctx.header, 32) < 32) {
-          close (fd);
+     if (read( fd, ctx.header, 32 ) < 32) {
+          close( fd );
           return DFB_IO;
      }
-     close (fd);
+     close( fd );
 
      ctx.filename = filename;
 
@@ -599,7 +599,7 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
      ret = funcs->Construct( *interface, filename );
 
      if (ret) {
-        free(*interface);
+        free( *interface );
         *interface = NULL;
      }
 
@@ -629,6 +629,8 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      if (!interface || !filename)
           return DFB_INVARG;
 
+     if (access( filename, R_OK ) != 0)
+          return errno2dfb( errno );
 
      ret = DFBGetInterface( &funcs,
                             "IDirectFBVideoProvider", NULL,
@@ -667,6 +669,9 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
           if (!desc)
                return DFB_INVARG;
 
+          if (access( filename, R_OK ) != 0)
+               return errno2dfb( errno );
+
           /* the only supported real font format yet. */
           ret = DFBGetInterface( &funcs,
                                  "IDirectFBFont", "FT2",
@@ -687,8 +692,8 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
      ret = funcs->Construct( *interface, filename, desc );
 
      if (ret) {
-        free(*interface);
-        *interface = NULL;
+          free(*interface);
+          *interface = NULL;
      }
 
      return ret;
