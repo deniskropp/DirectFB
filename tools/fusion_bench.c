@@ -50,6 +50,7 @@
 #include <fusion/property.h>
 #include <fusion/reactor.h>
 #include <fusion/ref.h>
+#include <fusion/shmalloc.h>
 
 #include <misc/util.h>
 
@@ -57,12 +58,13 @@
 static long long    t1, t2;
 static unsigned int loops;
 
-#define BENCH_START()    do { sync(); usleep(100000); sync(); t1 = dfb_get_millis(); loops = 0; } while (0)
-#define BENCH_STOP()     do { t2 = dfb_get_millis(); } while (0)
+#define BENCH_START()       do { sync(); usleep(100000); sync(); t1 = dfb_get_millis(); loops = 0; } while (0)
+#define BENCH_STOP()        do { t2 = dfb_get_millis(); } while (0)
 
-#define BENCH_LOOP()     while ((loops++ & 0x3fff) || (dfb_get_millis() - t1 < 1000))
+#define BENCH_LOOP()        while ((++loops & 0xfff) || (dfb_get_millis() - t1 < 1000))
 
-#define BENCH_RESULT()   (loops / (float)(t2 - t1))
+#define BENCH_RESULT()      (loops / (float)(t2 - t1))
+#define BENCH_RESULT_BY(x)  ((loops * x) / (float)(t2 - t1))
 
 
 static ReactionResult
@@ -432,6 +434,43 @@ bench_flock()
      fclose( tmp );
 }
 
+static void
+bench_shmalloc()
+{
+     void      *mem[256];
+     const int  sizes[8] = { 12, 36, 200, 120, 39, 3082, 8, 1040 };
+
+     BENCH_START();
+
+     BENCH_LOOP() {
+          int i;
+
+          for (i=0; i<128; i++)
+               mem[i] = SHMALLOC( sizes[i&7] );
+
+          for (i=0; i<64; i++)
+               SHFREE( mem[i] );
+
+          for (i=128; i<192; i++)
+               mem[i] = SHMALLOC( sizes[i&7] );
+
+          for (i=64; i<128; i++)
+               SHFREE( mem[i] );
+
+          for (i=192; i<256; i++)
+               mem[i] = SHMALLOC( sizes[i&7] );
+
+          for (i=128; i<256; i++)
+               SHFREE( mem[i] );
+     }
+
+     BENCH_STOP();
+
+     printf( "shm alloc/free                        -> %8.2f k/sec\n", BENCH_RESULT_BY(256) );
+
+     printf( "\n" );
+}
+
 int
 main( int argc, char *argv[] )
 {
@@ -457,7 +496,6 @@ main( int argc, char *argv[] )
 
      printf( "\n" );
 
-
      bench_flock();
 
      bench_mutex();
@@ -474,8 +512,10 @@ main( int argc, char *argv[] )
 
      bench_reactor();
 
+     bench_shmalloc();
+
      fusion_exit( false );
 
-     return ret;
+     return 0;
 }
 
