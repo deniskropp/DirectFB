@@ -169,6 +169,8 @@ dfb_vt_initialize()
                dfb_vt = NULL;
                return DFB_INIT;
           }
+
+          usleep( 40000 );
      }
 
      ret = vt_init_switching();
