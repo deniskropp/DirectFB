@@ -158,13 +158,14 @@ MpegThread( void *ctx )
 {
     IDirectFBVideoProvider_Libmpeg3_data *data =
         (IDirectFBVideoProvider_Libmpeg3_data*) ctx;
-    struct timeval start, now, after;
+    struct timeval start, after;
     long frame_delay;
     long delay = -1;
     double rate;
     DFBRectangle rect, drect, srect;
     int drop = 0;
     long frame;
+    long frames;
 
     rate = mpeg3_frame_rate( data->stream, 0 ) / 1000.0;
     frame_delay = (long) (1000 / mpeg3_frame_rate( data->stream, 0 ));
@@ -173,11 +174,14 @@ MpegThread( void *ctx )
     rect.w = mpeg3_video_width( data->stream, 0 );
     rect.h = mpeg3_video_height( data->stream, 0 );
 
+    frames = mpeg3_video_frames( data->stream, 0 );
+    if (frames == 1)
+          frames = -1;
+
     gettimeofday(&start, 0);
 
     while ( 1 ) {
         pthread_testcancel();
-        gettimeofday (&now, 0);
         if ( drop )
         {
             mpeg3_drop_frames( data->stream, drop, 0 );
@@ -201,6 +205,7 @@ MpegThread( void *ctx )
             data->callback (data->ctx);
 
         frame = mpeg3_get_frame( data->stream, 0 );
+        
         gettimeofday (&after, 0);
         delay = (after.tv_sec - start.tv_sec) * 1000 +
             (after.tv_usec - start.tv_usec) / 1000;
@@ -220,6 +225,12 @@ MpegThread( void *ctx )
         after.tv_sec = 0;
         after.tv_usec = delay * 1000;
         select( 0, 0, 0, 0, &after );
+
+        /*  jump to start if arrived at last frame  */
+        if (frame == frames) {
+             mpeg3_set_frame( data->stream, 0, 0);  
+             gettimeofday(&start, 0);
+        }
     }
 
     return NULL;
@@ -467,11 +478,6 @@ DFBResult Construct( IDirectFBVideoProvider *thiz, const char *filename )
         }
     }
 
-/*     
-    pthread_mutex_init( &data->source.front_lock, NULL );
-    pthread_mutex_init( &data->source.back_lock, NULL );
-    pthread_mutex_init( &data->source.listeners_mutex, NULL );
-*/   
     data->thread = -1;
 
     thiz->AddRef = IDirectFBVideoProvider_Libmpeg3_AddRef;
