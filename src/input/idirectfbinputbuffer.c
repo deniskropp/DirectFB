@@ -100,6 +100,14 @@ static void IDirectFBInputBuffer_Destruct( IDirectFBInputBuffer *thiz )
           DFBFREE( device );
      }
 
+     while (data->events) {
+          IDirectFBInputBuffer_item *next = data->events->next;
+
+          DFBFREE( data->events );
+
+          data->events = next;
+     }
+
      pthread_cond_destroy( &data->wait_condition );
      pthread_mutex_destroy( &data->events_mutex );
 
