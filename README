@@ -213,10 +213,10 @@ Running multiple DirectFB applications at the same time
    DirectFB applications communicate thru a layer we called fusion. This
    layer is implemented in user space using semaphores and message queues.
    If you are brave you can try the fusion kernel module which takes a
-   different approach and might gain better performance. To do so, check
-   out the linux-fusion module from our CVS repository. DirectFB will 
-   use the kernel module if the linux/fusion.h header file is found by
-   configure.
+   different approach and might gain better performance and more stability.
+   To do so, check out the linux-fusion module from our CVS repository.
+   DirectFB will use the kernel module if the linux/fusion.h header file is
+   found by configure.
 
 
 Documentation
