@@ -246,6 +246,8 @@ dfb_window_create( CoreWindowStack        *stack,
      DFBSurfacePixelFormat   surface_format;
      DFBSurfaceCapabilities  surface_caps;
      CoreWindow             *w;
+     DisplayLayer           *layer = dfb_layer_at( stack->layer_id );
+     CoreSurface            *layer_surface = dfb_layer_surface( layer );
 
      if (caps & DWCAPS_ALPHACHANNEL) {
           if (pixelformat != DSPF_UNKNOWN && pixelformat != DSPF_ARGB)
@@ -262,6 +264,9 @@ dfb_window_create( CoreWindowStack        *stack,
           else
                surface_format = stack->state.destination->format;
      }
+
+     if (layer_surface->back_buffer->policy == CSP_SYSTEMONLY)
+          surface_policy = CSP_SYSTEMONLY;
 
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps = DSCAPS_FLIPPING;
