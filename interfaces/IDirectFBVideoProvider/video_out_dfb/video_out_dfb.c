@@ -21,7 +21,7 @@
  *  NOTE: adjusting contrast is disabled in __dummy_* when output is RGB
  *
  *
- *  TODO: speed up at 24bpp and 32bpp, add support for overlays on YUV
+ *  TODO: speed up at 24bpp and 32bpp
  *
  */
 
@@ -47,6 +47,7 @@
 
 #include "video_out_dfb.h"
 #include "video_out_dfb_tables.h"
+#include "video_out_dfb_blend.h"
 
 
 #define THIS  "video_out_dfb"
@@ -2594,71 +2595,11 @@ FAILURE:
 
 
 static void
-dfb_overlay_clut_yuv2rgb(dfb_driver_t* this, dfb_frame_t* frame,
-					vo_overlay_t* overlay)
-{
-	clut_t* clut;
-	uint32_t i;
-
-	if(!overlay->rgb_clut)
-	{
-		clut = (clut_t*) overlay->color;
-
-		for(i = 0; i < (sizeof(overlay->color) / sizeof(clut_t)); i++)
-		{
-			DFBColor* color = (DFBColor*) &clut[i];
-			int y, r, g, b;
-
-			y = clut[i].y + this->correction.defined;
-
-			r = y + v_red_table[clut[i].cb];
-			g = y - v_green_table[clut[i].cb] -
-				u_green_table[clut[i].cr];
-			b = y + u_blue_table[clut[i].cr];
-
-			color->r = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-			color->g = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-			color->b = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		}
-
-		overlay->rgb_clut++;
-	}
-
-	if(!overlay->clip_rgb_clut)
-	{
-		clut = (clut_t*) overlay->clip_color;
-
-		for(i = 0; i < (sizeof(overlay->clip_color) / sizeof(clut_t)); i++)
-		{
-			DFBColor* color = (DFBColor*) &clut[i];
-			int y, r, g, b;
-
-			y = clut[i].y + this->correction.defined;
-			
-			r = y + v_red_table[clut[i].cb];
-			g = y - v_green_table[clut[i].cb] -
-				u_green_table[clut[i].cr];
-			b = y + u_blue_table[clut[i].cr];
-
-			color->r = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
-			color->g = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
-			color->b = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
-		}
-
-		overlay->clip_rgb_clut++;
-	}
-}
-
-
-static void
 dfb_overlay_blend(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 			vo_overlay_t* overlay)
 {
-	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
 	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-	uint32_t i, x, y;
 
-	TEST(vo_driver != NULL);
 	TEST(vo_frame  != NULL);
 	TEST(overlay   != NULL);
 	TEST(frame->surface != NULL);
@@ -2669,84 +2610,21 @@ dfb_overlay_blend(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	switch(frame->surface->format)
 	{
 		case DSPF_YUY2:
+			dfb_overlay_blend_yuy2(frame, overlay);
+		break;
+
 		case DSPF_UYVY:
+			dfb_overlay_blend_uyvy(frame, overlay);
+		break;
+
 		case DSPF_YV12:
-		case DSPF_I420:
-			ONESHOT("blending overlays over YUV surfaces is not supported");
-		return;
+ 		case DSPF_I420:
+			dfb_overlay_blend_yv12(frame, overlay);
+		break;
 
 		default:
+			dfb_overlay_blend_rgb(frame, overlay);
 		break;
-	}
-
-	dfb_overlay_clut_yuv2rgb(this, frame, overlay);
-
-	frame->state.destination  = frame->surface;
-	frame->state.drawingflags = DSDRAW_BLEND;
-	frame->state.modified    |= (SMF_DESTINATION | SMF_DRAWING_FLAGS);
-
-	/* based on X11 osd */
-	for(i = 0, x= 0, y = 0; i < overlay->num_rle; i++)
-	{
-		uint32_t len   = overlay->rle[i].len;
-		uint32_t color = overlay->rle[i].color & 0xff;
-
-		while(len > 0)
-		{
-			DFBColor* c_palette = (DFBColor*) overlay->color;
-			uint8_t*  t_palette = (uint8_t*) overlay->trans;
-			uint32_t width;
-
-			width = (len > overlay->width)
-				 ? overlay->width : len;
-			len -= width;
-
-			if(y >= overlay->clip_top && y <= overlay->clip_bottom
-					&& x <= overlay->clip_right)
-			{
-				if(x < overlay->clip_left &&
-					(x + width + 1) >= overlay->clip_left)
-				{
-					width -= overlay->clip_left - x;
-					len   += overlay->clip_left - x;
-				} else
-				if(x > overlay->clip_left)
-				{
-					c_palette = (DFBColor*) overlay->clip_color;
-					t_palette = (uint8_t*) overlay->clip_trans;
-
-					if((x + width - 1) > overlay->clip_right)
-					{
-						width -= overlay->clip_right - x;
-						len   += overlay->clip_right - x;
-					}
-				}
-			}
-
-			if(t_palette[color])
-			{
-				DFBRectangle rect;
-				
-				frame->state.color     = c_palette[color];
-				frame->state.color.a   = t_palette[color] * 17;
-				frame->state.modified |= SMF_COLOR;
-
-				rect.x = overlay->x + x;
-				rect.y = overlay->y + y;
-				rect.w = width;
-				rect.h = 1;
-
-				dfb_gfxcard_fillrectangle(&rect, &(frame->state));
-			}
-
-			x += width;
-
-			if(x >= overlay->width)
-			{
-				x = 0;
-				y++;
-			}
-		}
 	}
 
 FAILURE:

@@ -171,19 +171,7 @@ typedef struct
  * a dfb_frame_callback_t* as third argument.
  * 
  */
-
-
-
-/* CLUT == Color LookUp Table */
-typedef struct
-{
-	uint8_t cb    : 8;
-	uint8_t cr    : 8;
-	uint8_t y     : 8;
-	uint8_t foo   : 8;
-
-} __attribute__ ((packed)) clut_t;
-
+ 
 
 
 #endif /* VIDEO_OUT_DFB_H */
