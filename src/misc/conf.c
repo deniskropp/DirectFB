@@ -82,6 +82,8 @@ static const char *config_usage =
     "Enable debug output\n"
     "  force-windowed                 "
     "Primary surface always is a window\n"
+    "  force-desktop                  "
+    "Primary surface is the desktop background\n"
     "  [no-]hardware                  "
     "Hardware acceleration\n"
     "  [no-]sync                      "
@@ -514,6 +516,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;
+     } else
+     if (strcmp (name, "force-desktop" ) == 0) {
+          dfb_config->force_desktop = true;
      } else
      if (strcmp (name, "hardware" ) == 0) {
           dfb_config->software_only = false;

@@ -205,7 +205,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
 
           case DFSCL_FULLSCREEN:
           case DFSCL_EXCLUSIVE:
-               if (dfb_config->force_windowed)
+               if (dfb_config->force_windowed || dfb_config->force_desktop)
                     return DFB_ACCESSDENIED;
 
                if (data->level == DFSCL_NORMAL) {
@@ -413,69 +413,103 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                     should the primary surface be a singleton?
                     or should we return an error? */
           switch (data->level) {
-               case DFSCL_NORMAL: {
-                    int                    x, y;
-                    CoreWindow            *window;
-                    DFBWindowCapabilities  window_caps = DWCAPS_NONE;
+               case DFSCL_NORMAL:
+                    if (dfb_config->force_desktop) {
+                         CoreSurface *surface;
 
-                    if (caps & DSCAPS_TRIPLE)
-                         return DFB_UNSUPPORTED;
+                         if (caps & DSCAPS_VIDEOONLY)
+                              policy = CSP_VIDEOONLY;
+                         else if (caps & DSCAPS_SYSTEMONLY)
+                              policy = CSP_SYSTEMONLY;
 
-                    if (! (desc->flags & DSDESC_WIDTH))
-                         width = data->primary.width;
+                         if (desc->flags & DSDESC_PIXELFORMAT)
+                              format = desc->pixelformat;
+                         else if (dfb_config->mode.format)
+                              format = dfb_config->mode.format;
 
-                    if (! (desc->flags & DSDESC_HEIGHT))
-                         height = data->primary.height;
+                         ret = dfb_surface_create( config.width, config.height,
+                                                   format, policy, caps, NULL,
+                                                   &surface );
+                         if (ret)
+                              return ret;
 
-                    x = (config.width  - width)  / 2;
-                    y = (config.height - height) / 2;
+                         init_palette( surface, desc );
 
-                    if (desc->flags & DSDESC_PIXELFORMAT) {
-                         if (desc->pixelformat == DSPF_ARGB)
-                              window_caps |= DWCAPS_ALPHACHANNEL;
+                         DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+
+                         ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
+                         if (ret == DFB_OK) {
+                              dfb_layer_set_background_image( data->layer, surface );
+                              dfb_layer_set_background_mode( data->layer, DLBM_IMAGE );
+                         }
+
+                         dfb_surface_unref( surface );
+
+                         return ret;
                     }
                     else {
-                         switch (dfb_config->mode.format) {
-                              case DSPF_UNKNOWN:
-                                   break;
+                         int                    x, y;
+                         CoreWindow            *window;
+                         DFBWindowCapabilities  window_caps = DWCAPS_NONE;
 
-                              case DSPF_ARGB:
+                         if (caps & DSCAPS_TRIPLE)
+                              return DFB_UNSUPPORTED;
+
+                         if (! (desc->flags & DSDESC_WIDTH))
+                              width = data->primary.width;
+
+                         if (! (desc->flags & DSDESC_HEIGHT))
+                              height = data->primary.height;
+
+                         x = (config.width  - width)  / 2;
+                         y = (config.height - height) / 2;
+
+                         if (desc->flags & DSDESC_PIXELFORMAT) {
+                              if (desc->pixelformat == DSPF_ARGB)
                                    window_caps |= DWCAPS_ALPHACHANNEL;
-                                   /* fall through */
-
-                              default:
-                                   format = dfb_config->mode.format;
-                                   break;
-
                          }
+                         else {
+                              switch (dfb_config->mode.format) {
+                                   case DSPF_UNKNOWN:
+                                        break;
+
+                                   case DSPF_ARGB:
+                                        window_caps |= DWCAPS_ALPHACHANNEL;
+                                        /* fall through */
+
+                                   default:
+                                        format = dfb_config->mode.format;
+                                        break;
+
+                              }
+                         }
+
+                         if (caps & DSCAPS_FLIPPING)
+                              window_caps |= DWCAPS_DOUBLEBUFFER;
+
+                         ret = dfb_layer_create_window( data->layer, x, y,
+                                                        width, height, window_caps,
+                                                        caps, format, &window );
+                         if (ret)
+                              return ret;
+
+                         drop_window( data );
+
+                         data->primary.window = window;
+
+                         dfb_window_attach( window, focus_listener,
+                                            data, &data->primary.reaction );
+
+                         dfb_window_init( window );
+
+                         init_palette( window->surface, desc );
+
+                         DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+
+                         return IDirectFBSurface_Window_Construct( *interface, NULL,
+                                                                   NULL, window,
+                                                                   caps );
                     }
-
-                    if (caps & DSCAPS_FLIPPING)
-                         window_caps |= DWCAPS_DOUBLEBUFFER;
-
-                    ret = dfb_layer_create_window( data->layer, x, y,
-                                                   width, height, window_caps,
-                                                   caps, format, &window );
-                    if (ret)
-                         return ret;
-
-                    drop_window( data );
-
-                    data->primary.window = window;
-
-                    dfb_window_attach( window, focus_listener,
-                                       data, &data->primary.reaction );
-
-                    dfb_window_init( window );
-
-                    init_palette( window->surface, desc );
-
-                    DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
-
-                    return IDirectFBSurface_Window_Construct( *interface, NULL,
-                                                              NULL, window,
-                                                              caps );
-               }
                case DFSCL_FULLSCREEN:
                case DFSCL_EXCLUSIVE:
                     config.flags |= DLCONF_BUFFERMODE;
