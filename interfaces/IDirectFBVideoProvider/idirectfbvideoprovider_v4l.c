@@ -95,6 +95,8 @@ typedef struct {
      void                    *ctx;
 
      CoreCleanup             *cleanup;
+
+     int                      grab_mode;
 } IDirectFBVideoProvider_V4L_data;
 
 static const unsigned int zero = 0;
@@ -201,7 +203,6 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 {
      DFBRectangle           rect;
      IDirectFBSurface_data *dst_data;
-     int                    needs_grab_mode = 0;
      CoreSurface           *surface = 0;
      DFBResult              ret;
 
@@ -240,15 +241,18 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 
      surface = dst_data->surface;
 
+     data->grab_mode = 0;
+     if (dst_data->caps & DSCAPS_SYSTEMONLY
+	 || surface->caps & DSCAPS_FLIPPING
+	 || !(VID_TYPE_OVERLAY & data->vcap.type))
+          data->grab_mode = 1;
+
      if (dst_data->caps & DSCAPS_SYSTEMONLY) {
 
           dfb_surfacemanager_lock( surface->manager );
 
 	  ret = dfb_surfacemanager_assure_system( surface->manager, 
 						  surface->back_buffer );
-	  if (!ret)
-	       surface->back_buffer->system.locked++;
-
 	  dfb_surfacemanager_unlock( surface->manager );
 
 	  if (ret)
@@ -259,7 +263,12 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 
 	  ret = dfb_surfacemanager_assure_video( surface->manager, 
 						 surface->back_buffer );
-	  if (!ret)
+
+	  /*
+	   * Because we're constantly writing to the surface we
+	   * permanently lock it.
+	   */
+	  if (DFB_OK == ret && !data->grab_mode)
 	       surface->back_buffer->video.locked++;
 
 	  dfb_surfacemanager_unlock( surface->manager );
@@ -268,15 +277,15 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 	       return ret;
      }
 
-     if (dst_data->caps & DSCAPS_SYSTEMONLY
-	 || surface->caps & DSCAPS_FLIPPING
-	 || !(VID_TYPE_OVERLAY & data->vcap.type))
-          needs_grab_mode = 1;
-
-     if (needs_grab_mode)
-          return v4l_to_surface_grab( surface, &rect, data );
+     if (data->grab_mode)
+          ret = v4l_to_surface_grab( surface, &rect, data );
      else
-          return v4l_to_surface_overlay( surface, &rect, data );
+          ret = v4l_to_surface_overlay( surface, &rect, data );
+
+     if (DFB_OK != ret && !data->grab_mode)
+          surface->back_buffer->video.locked--;
+
+     return ret;
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
@@ -641,7 +650,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                break;
           default:
                BUG( "unknown pixel format" );
-               buffer->video.locked--;
                return DFB_BUG;
      }
 
@@ -660,7 +668,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                PERRORMSG( "DirectFB/v4l: "
                           "VIDIOCSFBUF failed, must run being root!\n" );
 
-               buffer->video.locked--;
                return ret;
           }
      }
@@ -672,7 +679,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
                PERRORMSG( "DirectFB/v4l: VIDIOCGPICT failed!\n" );
 
-               buffer->video.locked--;
                return ret;
           }
 
@@ -684,7 +690,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
                PERRORMSG( "DirectFB/v4l: VIDIOCSPICT failed!\n" );
 
-               buffer->video.locked--;
                return ret;
           }
      }
@@ -705,7 +710,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 
                PERRORMSG( "DirectFB/v4l: VIDIOCSWIN failed!\n" );
 
-               buffer->video.locked--;
                return ret;
           }
      }
@@ -719,7 +723,6 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
           PERRORMSG( "DirectFB/v4l: "
                      "Could not start capturing (VIDIOCCAPTURE failed)!\n" );
 
-          buffer->video.locked--;
           return ret;
      }
 
@@ -737,7 +740,6 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                                        IDirectFBVideoProvider_V4L_data *data )
 {
      int bpp, palette;
-     SurfaceBuffer *buffer = surface->back_buffer;
 
      if (!data->vmbuf.frames)
           return DFB_UNSUPPORTED;
@@ -778,10 +780,6 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                break;
           default:
                BUG( "unknown pixel format" );
-	       if (surface->caps & DSCAPS_SYSTEMONLY)
-		    buffer->system.locked--;
-	       else
-		    buffer->video.locked--;
                return DFB_BUG;
      }
 
@@ -795,10 +793,6 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
           PERRORMSG("DirectFB/v4l: "
                     "Could not start capturing (VIDIOCMCAPTURE failed)!\n");
 	  
-	  if (surface->caps & DSCAPS_SYSTEMONLY)
-	       buffer->system.locked--;
-	  else
-	       buffer->video.locked--;
           return ret;
      }
 
@@ -836,10 +830,9 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data )
      if (!data->destination)
           return DFB_OK;
 
-     if (data->destination->caps & DSCAPS_SYSTEMONLY)
-          data->destination->back_buffer->system.locked--;
-     else
+     if (!data->grab_mode)
           data->destination->back_buffer->video.locked--;
+
      data->destination = NULL;
 
      return DFB_OK;
