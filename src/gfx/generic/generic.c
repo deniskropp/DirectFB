@@ -479,7 +479,7 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
                     D[i] = pixel;
           }
      }
-#ifdef __MIPSEB__   /* FIXME: fix little endian */
+#ifdef WORDS_BIGENDIAN   /* FIXME: fix little endian */
      else if (((long) S & 3) == ((long) D & 3)) {
           __u32 *D32;
           __u32 *S32;
