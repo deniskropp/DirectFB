@@ -142,6 +142,8 @@ void core_deinit()
      fbdev_deinit();
      input_deinit();
      vt_close();
+
+     sig_remove_handlers();
 }
 
 void core_deinit_emergency()
@@ -160,6 +162,8 @@ void core_deinit_emergency()
      }
      
      vt_close();
+
+     sig_remove_handlers();
 }
 
 CoreCleanup *core_cleanup_add( CoreCleanupFunc cleanup,
