@@ -82,7 +82,7 @@ void direct_assumption( const char *exp,
 
 
 #define D_DEBUG_DOMAIN(identifier,name,description)                                  \
-     static DirectDebugDomain identifier = { 0, false, false, name, description };
+     static DirectDebugDomain identifier = { 0, false, false, name, description }
 
 
 #define D_DEBUG(x...)                                                                \
@@ -152,7 +152,7 @@ void direct_assumption( const char *exp,
 #define D_MAGIC_ASSERT(o,m)   do {} while (0)
 
 #define D_HEAVYDEBUG(x...)    do {} while (0)
-#define D_DEBUG_DOMAIN(i,n,d) do {} while (0)
+#define D_DEBUG_DOMAIN(i,n,d)
 #define D_DEBUG(x...)         do {} while (0)
 #define D_DEBUG_AT(d,x...)    do {} while (0)
 #define D_ASSERT(exp)         do {} while (0)
