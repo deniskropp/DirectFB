@@ -609,6 +609,8 @@ DFBResult window_ungrab_pointer( CoreWindow *window )
 
      pthread_mutex_unlock( &stack->update );
 
+     windowstack_handle_enter_leave_focus( stack );
+
      return DFB_OK;
 }
 
