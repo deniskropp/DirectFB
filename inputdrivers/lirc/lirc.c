@@ -207,8 +207,9 @@ lircEventThread( CoreThread *thread, void *driver_data )
 
           dfb_input_dispatch( data->device, &evt );
 
-          /* remember last key */
-          last = symbol;
+          /* remember last key and reset repeat counter*/
+          last    = symbol;
+          repeats = 0;
      }
 
      return NULL;
