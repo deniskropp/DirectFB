@@ -585,12 +585,18 @@ feed_thread( DirectThread *thread, void *arg )
                return NULL;
           }
 
+          if (feed->stop)
+               return;
+
           while (src->GetEvent( src, &event ) == DFB_OK) {
                ret = dst->PostEvent( dst, &event );
                if (ret) {
                     DirectFBError( "IDirectFBEventBuffer::PostEvent", ret );
                     return NULL;
                }
+
+               if (feed->stop)
+                    return;
           }
      }
 
