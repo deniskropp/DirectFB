@@ -1,8 +1,9 @@
+#include "config.h"
+
 #include <unistd.h>
 #include <stdio.h>
 
-#include <dfb_types.h>
-#include "config.h"
+#include "dfb_types.h"
 
 int main()
 {
@@ -10,8 +11,8 @@ int main()
      __u32 pixel32;
      
      do {
-          fread( &pixel32, 4, 1, stdin );
-          
+          fread (&pixel32, 4, 1, stdin);
+
 #ifdef WORDS_BIGENDIAN
           pixel32 = (pixel32 << 16) | (pixel32 >> 16);
 #endif
@@ -22,7 +23,7 @@ int main()
           fwrite (&byt, 1, 1, stdout);
           byt = (pixel32 & 0x0000ff);
           fwrite (&byt, 1, 1, stdout);
-     } while (!feof(stdin));
+     } while (!feof (stdin));
      
      return 0;
 }

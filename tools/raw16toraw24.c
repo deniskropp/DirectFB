@@ -1,6 +1,7 @@
+#include "config.h"
+
 #include <unistd.h>
 #include <stdio.h>
-#include <config.h>
 
 int main()
 {
@@ -8,10 +9,10 @@ int main()
      unsigned short wrd;
      
      do {
-          fread( &wrd, 2, 1, stdin);
+          fread (&wrd, 2, 1, stdin);
           
 #ifdef WORDS_BIGENDIAN
-          swab(&wrd, &wrd, 2);          
+          swab (&wrd, &wrd, 2);          
 #endif
           
           byt = (wrd & 0xf800) >> 8;
@@ -20,7 +21,7 @@ int main()
           fwrite (&byt, 1, 1, stdout);
           byt = (wrd & 0x001F) << 3;
           fwrite (&byt, 1, 1, stdout);
-     } while (!feof(stdin));
+     } while (!feof (stdin));
 
      return 0;     
 }
