@@ -35,9 +35,8 @@
 
 #include <core/coredefs.h>
 
-#include <fusion/lock.h>
-
 #include <direct/mem.h>
+#include <direct/util.h>
 
 #include "config.h"
 
@@ -349,7 +348,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      /* initialize private data */
      data->ref = 1;
      data->filename = D_STRDUP( filename );
-     fusion_pthread_recursive_mutex_init( &data->lock );
+     direct_util_recursive_pthread_mutex_init( &data->lock );
 
      /* initialize function pointers */
      thiz->AddRef               = IFusionSoundMusicProvider_Timidity_AddRef;

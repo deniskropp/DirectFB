@@ -353,7 +353,7 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      data->prebuffer = prebuffer;
 
      /* Initialize lock and condition. */
-     fusion_pthread_recursive_mutex_init( &data->lock );
+     direct_util_recursive_pthread_mutex_init( &data->lock );
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */

@@ -28,11 +28,10 @@
 
 #include <fusionsound.h>
 
-#include <fusion/lock.h>
-
 #include <core/playback.h>
 
 #include <direct/interface.h>
+#include <direct/util.h>
 
 #include "ifusionsoundplayback.h"
 
@@ -282,7 +281,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      data->volume   = 1.0f;
 
      /* Initialize lock and condition. */
-     fusion_pthread_recursive_mutex_init( &data->lock );
+     direct_util_recursive_pthread_mutex_init( &data->lock );
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */

@@ -220,7 +220,7 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
 
      /* Limit ring buffer size to five seconds. */
      if (size > rate * 5)
-          return DFB_BUFFERTOOLARGE;
+          return DFB_LIMITEXCEEDED;
 
      switch (channels) {
           case 1:

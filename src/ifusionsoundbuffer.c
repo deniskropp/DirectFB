@@ -28,12 +28,11 @@
 
 #include <fusionsound.h>
 
-#include <fusion/lock.h>
-
 #include <core/playback.h>
 #include <core/sound_buffer.h>
 
 #include <direct/interface.h>
+#include <direct/util.h>
 
 #include "ifusionsoundplayback.h"
 
@@ -350,7 +349,7 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      data->left     = 0x100;
      data->right    = 0x100;
 
-     fusion_pthread_recursive_mutex_init( &data->lock );
+     direct_util_recursive_pthread_mutex_init( &data->lock );
 
      /* Initialize method table. */
      thiz->AddRef         = IFusionSoundBuffer_AddRef;
