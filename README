@@ -220,6 +220,23 @@ Running multiple DirectFB applications at the same time
    found by configure.
 
 
+Using the builtin "window manager"
+----------------------------------
+
+   Since DirectFB lacks a real window manager, we added a hack to the
+   window stack to allow for basic window management. While pressing
+   the <Meta> (or Windows) key or alternatively <Caps-Lock> you can do
+   the following:
+
+     - Drag your mouse to move the focused window.
+     - Drag and press <Ctrl> to resize the focused window.
+     - Drag and press <Alt> to change the opacity of the focused window.
+     - Press C to close the focused window.
+     - Press A to lower the focused window to the bottom.
+     - Press S to raise the focused window to the top.
+     - Press X to cycle the focus through the windows.
+
+
 Documentation
 -------------
 
