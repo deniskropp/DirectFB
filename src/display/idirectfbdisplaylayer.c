@@ -234,6 +234,36 @@ IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
+IDirectFBDisplayLayer_GetLevel( IDirectFBDisplayLayer *thiz,
+                                int                   *level )
+{
+     DFBResult ret;
+     int       lvl;
+
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!level)
+          return DFB_INVARG;
+
+     ret = dfb_layer_get_level( data->layer, &lvl );
+     if (ret)
+          return ret;
+
+     *level = lvl;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBDisplayLayer_SetLevel( IDirectFBDisplayLayer *thiz,
+                                int                    level )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_set_level( data->layer, level );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_GetConfiguration( IDirectFBDisplayLayer *thiz,
                                         DFBDisplayLayerConfig *config )
 {
@@ -494,6 +524,8 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetScreenLocation = IDirectFBDisplayLayer_SetScreenLocation;
      thiz->SetSrcColorKey = IDirectFBDisplayLayer_SetSrcColorKey;
      thiz->SetDstColorKey = IDirectFBDisplayLayer_SetDstColorKey;
+     thiz->GetLevel = IDirectFBDisplayLayer_GetLevel;
+     thiz->SetLevel = IDirectFBDisplayLayer_SetLevel;
      thiz->GetConfiguration = IDirectFBDisplayLayer_GetConfiguration;
      thiz->TestConfiguration = IDirectFBDisplayLayer_TestConfiguration;
      thiz->SetConfiguration = IDirectFBDisplayLayer_SetConfiguration;

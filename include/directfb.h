@@ -317,8 +317,10 @@ extern "C"
           DLCAPS_CONTRAST          = 0x00000200,  /* supports Contrast
                                                      adjustment   */
           DLCAPS_HUE               = 0x00000400,  /* supports Hue adjustment */
-          DLCAPS_SATURATION        = 0x00000800   /* supports Saturation
+          DLCAPS_SATURATION        = 0x00000800,  /* supports Saturation
                                                      adjustment */
+          DLCAPS_LEVELS            = 0x00001000   /* level (z position) can be
+                                                     adjusted */
      } DFBDisplayLayerCapabilities;
 
      /*
@@ -1194,6 +1196,33 @@ extern "C"
                __u8                                r,
                __u8                                g,
                __u8                                b
+          );
+
+          /*
+           * Get the current display layer level.
+           *
+           * The level describes the z axis position of a layer.
+           * The primary layer is always on level zero unless a special
+           * driver adds support for level adjustment on the primary layer.
+           * Layers above have a positive level, e.g. video overlays.
+           * Layers below have a negative level, e.g. video underlays
+           * or background layers.
+           */
+          DFBResult (*GetLevel) (
+               IDirectFBDisplayLayer              *thiz,
+               int                                *level
+          );
+
+          /*
+           * Set the display layer level.
+           *
+           * Moves the layer to the specified level. The order of all other
+           * layers won't be changed. Note that only a few layers support
+           * level adjustment which is reflected by their capabilities.
+           */
+          DFBResult (*SetLevel) (
+               IDirectFBDisplayLayer              *thiz,
+               int                                 level
           );
 
 

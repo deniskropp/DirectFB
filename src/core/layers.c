@@ -892,6 +892,26 @@ dfb_layer_set_dst_colorkey( DisplayLayer *layer,
 }
 
 DFBResult
+dfb_layer_get_level( DisplayLayer *layer, int *level )
+{
+     if (!layer->funcs->GetLevel)
+          return DFB_UNSUPPORTED;
+     
+     return layer->funcs->GetLevel( layer, layer->driver_data,
+                                    layer->layer_data, level );
+}
+
+DFBResult
+dfb_layer_set_level( DisplayLayer *layer, int level )
+{
+     if (!layer->funcs->SetLevel)
+          return DFB_UNSUPPORTED;
+     
+     return layer->funcs->SetLevel( layer, layer->driver_data,
+                                    layer->layer_data, level );
+}
+
+DFBResult
 dfb_layer_set_screenlocation( DisplayLayer *layer,
                               float x, float y,
                               float width, float height )

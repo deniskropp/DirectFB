@@ -102,6 +102,16 @@ typedef struct {
                                       __u8                        g,
                                       __u8                        b );
      
+     DFBResult (*GetLevel)          ( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      int                        *level );
+     
+     DFBResult (*SetLevel)          ( DisplayLayer               *layer,
+                                      void                       *driver_data,
+                                      void                       *layer_data,
+                                      int                         level );
+     
      DFBResult (*FlipBuffers)       ( DisplayLayer               *layer,
                                       void                       *driver_data,
                                       void                       *layer_data );
@@ -250,6 +260,9 @@ DFBResult dfb_layer_set_src_colorkey( DisplayLayer *layer,
 
 DFBResult dfb_layer_set_dst_colorkey( DisplayLayer *layer,
                                       __u8 r, __u8 g, __u8 b );
+
+DFBResult dfb_layer_get_level( DisplayLayer *layer, int *level );
+DFBResult dfb_layer_set_level( DisplayLayer *layer, int level );
 
 DFBResult dfb_layer_set_screenlocation( DisplayLayer *layer,
                                         float x, float y,
