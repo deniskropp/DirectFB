@@ -1370,7 +1370,8 @@ update_region( CoreWindowStack *stack,
 
                dfb_gfxcard_blit( &srect, region.x1, region.y1, state );
 
-               state->source = NULL;
+               state->source    = NULL;
+               state->modified |= SMF_SOURCE;
           }
      }
      else {
@@ -1397,7 +1398,8 @@ update_region( CoreWindowStack *stack,
 
                     dfb_gfxcard_blit( &rect, x1, y1, state );
                     
-                    state->source = NULL;
+                    state->source    = NULL;
+                    state->modified |= SMF_SOURCE;
                     break;
                }
                case DLBM_TILE: {
@@ -1405,13 +1407,19 @@ update_region( CoreWindowStack *stack,
                                           stack->bg.image->width,
                                           stack->bg.image->height };
 
+                    DFBRegion orig_clip = state->clip;
+
                     if (state->blittingflags != DSBLIT_NOFX) {
                          state->blittingflags  = DSBLIT_NOFX;
                          state->modified      |= SMF_BLITTING_FLAGS;
                     }
 
                     state->source    = stack->bg.image;
-                    state->modified |= SMF_SOURCE;
+                    state->clip.x1   = x1;
+                    state->clip.y1   = y1;
+                    state->clip.x2   = x2;
+                    state->clip.y2   = y2;
+                    state->modified |= SMF_SOURCE | SMF_CLIP;
 
                     dfb_gfxcard_tileblit( &rect,
                                           (x1 / rect.w) * rect.w,
@@ -1420,7 +1428,9 @@ update_region( CoreWindowStack *stack,
                                           (y2 / rect.h + 1) * rect.h,
                                           state );
                     
-                    state->source = NULL;
+                    state->source    = NULL;
+                    state->clip      = orig_clip;
+                    state->modified |= SMF_SOURCE | SMF_CLIP;
                     break;
                }
                default:
