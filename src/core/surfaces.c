@@ -478,6 +478,8 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
 void dfb_surface_destroy( CoreSurface *surface )
 {
+     DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) entered\n", surface);
+     
      /* acquire a lock for both buffers first */
      dfb_surfacemanager_lock( surface->manager );
      skirmish_prevail( &surface->front_lock );
@@ -510,6 +512,8 @@ void dfb_surface_destroy( CoreSurface *surface )
 
      /* deallocate structure */
      shfree( surface );
+     
+     DEBUGMSG("DirectFB/core/surfaces: dfb_surface_destroy (%p) exitting\n", surface);
 }
 
 DFBResult dfb_surface_init ( CoreSurface           *surface,

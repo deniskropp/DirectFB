@@ -85,8 +85,13 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           data->surface->Release( data->surface );
 
      if (data->window) {
-          dfb_window_deinit( data->window );
-          dfb_window_destroy( data->window );
+          reactor_detach( data->window->reactor, IDirectFBWindow_React, data );
+          
+          /* recheck, threading... */
+          if (data->window) {
+               dfb_window_deinit( data->window );
+               dfb_window_destroy( data->window );
+          }
      }
 
      DFBFREE( data );

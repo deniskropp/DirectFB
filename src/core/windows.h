@@ -68,6 +68,8 @@ struct _CoreWindow {
      CoreWindowStack        *stack;        /* window stack the window belongs */
 
      FusionReactor          *reactor;      /* event dispatcher */
+
+     bool                    destroyed;    /* window is (being) destroyed */
 };
 
 /*

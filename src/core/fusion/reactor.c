@@ -549,6 +549,9 @@ void reactor_attach (FusionReactor *reactor,
 {
      Reaction *reaction;
 
+//     DEBUGMSG("DirectFB/core/fusion: reactor_attach (%p, %p, %p) entered\n",
+//              reactor, react, ctx);
+     
      reaction = (Reaction*)DFBCALLOC( 1, sizeof(Reaction) );
 
      reaction->react = react;
@@ -564,6 +567,9 @@ void reactor_attach (FusionReactor *reactor,
      reactor->reactions = reaction;
 
      pthread_mutex_unlock( &reactor->reactions_lock );
+     
+//     DEBUGMSG("DirectFB/core/fusion: reactor_attach (%p, %p, %p) exitting\n",
+//              reactor, react, ctx);
 }
 
 void reactor_detach (FusionReactor *reactor,
@@ -572,6 +578,9 @@ void reactor_detach (FusionReactor *reactor,
 {
      Reaction *r;
 
+//     DEBUGMSG("DirectFB/core/fusion: reactor_detach (%p, %p, %p) entered\n",
+//              reactor, react, ctx);
+     
      pthread_mutex_lock( &reactor->reactions_lock );
 
      r = reactor->reactions;
@@ -595,6 +604,9 @@ void reactor_detach (FusionReactor *reactor,
      }
 
      pthread_mutex_unlock( &reactor->reactions_lock );
+
+//     DEBUGMSG("DirectFB/core/fusion: reactor_detach (%p, %p, %p) exitting\n",
+//              reactor, react, ctx);
 }
 
 void reactor_dispatch (FusionReactor *reactor,
@@ -606,6 +618,8 @@ void reactor_dispatch (FusionReactor *reactor,
      if (!self)
           return;
 
+//     DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) entered\n", reactor);
+     
      pthread_mutex_lock( &reactor->reactions_lock );
 
      r = reactor->reactions;
@@ -626,6 +640,7 @@ void reactor_dispatch (FusionReactor *reactor,
 
                case RS_DROP:
                     pthread_mutex_unlock( &reactor->reactions_lock );
+//                    DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) exitting\n", reactor);
                     return;
 
                case RS_OK:
@@ -641,10 +656,14 @@ void reactor_dispatch (FusionReactor *reactor,
      }
 
      pthread_mutex_unlock( &reactor->reactions_lock );
+     
+//     DEBUGMSG("DirectFB/core/fusion: reactor_dispatch (%p) exitting\n", reactor);
 }
 
 void reactor_free (FusionReactor *reactor)
 {
+//     DEBUGMSG("DirectFB/core/fusion: reactor_free (%p) entered\n", reactor);
+     
      pthread_mutex_lock( &reactor->reactions_lock );
 
      while (reactor->reactions) {
@@ -658,6 +677,8 @@ void reactor_free (FusionReactor *reactor)
      pthread_mutex_unlock( &reactor->reactions_lock );
 
      DFBFREE( reactor );
+     
+//     DEBUGMSG("DirectFB/core/fusion: reactor_free (%p) exitting\n", reactor);
 }
 
 

@@ -75,6 +75,7 @@
                                    fprintf( stderr, "(-) [%d: %lld] ",         \
                                             getpid(), dfb_get_millis() );      \
                                    fprintf( stderr, x );                       \
+                                   fflush( stderr );                           \
                               }
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \

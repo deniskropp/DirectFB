@@ -329,11 +329,15 @@ dfb_window_deinit( CoreWindow *window )
 {
      CoreWindowStack *stack = window->stack;
 
-     stack_lock( stack );
+     DEBUGMSG("DirectFB/core/windows: dfb_window_deinit (%p) entered\n", window);
+
+     if (stack) {
+          stack_lock( stack );
+          window_remove( window );
+          stack_unlock( stack );
+     }
      
-     window_remove( window );
-     
-     stack_unlock( stack );
+     DEBUGMSG("DirectFB/core/windows: dfb_window_deinit (%p) exitting\n", window);
 }
 
 void
@@ -341,6 +345,16 @@ dfb_window_destroy( CoreWindow *window )
 {
      DFBWindowEvent evt;
 
+     if (window->destroyed) {
+          DEBUGMSG("DirectFB/core/windows: in dfb_window_destroy (%p), "
+                   "already destroyed!\n", window);
+          return;
+     }
+
+     DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) entered\n", window);
+
+     window->destroyed = true;
+     
      evt.type = DWET_DESTROYED;
      dfb_window_dispatch( window, &evt );
 
@@ -349,6 +363,8 @@ dfb_window_destroy( CoreWindow *window )
      reactor_free( window->reactor );
 
      shfree( window );
+     
+     DEBUGMSG("DirectFB/core/windows: dfb_window_destroy (%p) exitting\n", window);
 }
 
 void
@@ -1576,7 +1592,7 @@ window_remove( CoreWindow *window )
           for (; i<stack->num_windows; i++)
                stack->windows[i] = stack->windows[i+1];
 
-          if (stack->windows) {
+          if (stack->num_windows) {
                stack->windows =
                     shrealloc( stack->windows,
                                sizeof(CoreWindow*) * stack->num_windows );
@@ -1598,6 +1614,8 @@ window_remove( CoreWindow *window )
           /* Always try to have a focused window */
           ensure_focus( stack );
      }
+
+     window->stack = NULL;
 }
 
 static bool
