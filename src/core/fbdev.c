@@ -448,6 +448,9 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
      DFBSurfacePixelFormat      pixelformat;
      unsigned int               width, height, bpp;
 
+     if (!config)
+          return fbdev_set_mode( thiz, fbdev->current_mode, thiz->buffermode );
+
      if (config->flags & DLCONF_OPTIONS  &&  config->options)
           return DFB_UNSUPPORTED;
 

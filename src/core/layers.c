@@ -129,6 +129,8 @@ DFBResult layers_resume()
           l = l->next;
      }
 
+     layers->SetConfiguration (layers, NULL);
+
      DEBUGMSG( "DirectFB/core/layers: ...resumed\n" );
      
      return DFB_OK;
