@@ -438,6 +438,7 @@ gfxdrivers/nvidia/Makefile
 inputdrivers/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
+inputdrivers/lirc/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
 interfaces/Makefile

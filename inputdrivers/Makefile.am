@@ -3,5 +3,6 @@
 SUBDIRS = \
 	joystick	\
 	keyboard 	\
+	lirc		\
 	ps2mouse	\
 	serialmouse
