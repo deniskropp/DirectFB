@@ -364,9 +364,9 @@ __attribute__((no_instrument_function))
 static void *
 direct_thread_main( void *arg )
 {
-     void         *ret;
-     DirectLink   *l;
-     DirectThread *thread = (DirectThread*) arg;
+     void                    *ret;
+     DirectThread            *thread = arg;
+     DirectThreadInitHandler *handler;
 
      D_MAGIC_ASSERT( thread, DirectThread );
 
@@ -378,11 +378,8 @@ direct_thread_main( void *arg )
      /* Call all init handlers. */
      pthread_mutex_lock( &handler_lock );
 
-     direct_list_foreach (l, handlers) {
-          DirectThreadInitHandler *handler = (DirectThreadInitHandler*) l;
-
+     direct_list_foreach (handler, handlers)
           handler->func( thread, handler->arg );
-     }
 
      pthread_mutex_unlock( &handler_lock );
 
