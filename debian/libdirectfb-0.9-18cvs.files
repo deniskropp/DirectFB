@@ -1,0 +1,3 @@
+usr/lib/lib*.so.*
+usr/lib/directfb*
+usr/share/directfb*

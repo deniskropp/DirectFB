@@ -1,0 +1,19 @@
+This package provides the directfb libraries as found in the
+debian-installer. You need it, when you want to develop udebs dependant
+on libdirectfb.
+
+Since this package depends on the "normal" libdirectfb-dev package
+you need to tell the linker explicitly when to link against this
+version of libdirectfb. You can do this by two means:
+
+1) This package provides a pkgconfig directory:
+   /usr/lib/udeblib/pkgconfig
+   Use this pkgconfig by setting PKG_CONFIG_PATH to the above directory
+
+2) Before building set LDFLAGS=-L/usr/lib/udeblib. In some
+   cases this is the only way to get the linker to link against this
+   library, solution 1) can fail sometimes.
+
+After building check if your programs have been linked correctly
+against libdirectfb-udeb by running ldd $YOUR_PROGRAM and checking if
+the linked directfb library contains the string "udeb".

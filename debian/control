@@ -1,0 +1,88 @@
+Source: directfb
+Priority: optional
+Maintainer: Fredrik Hallenberg <hallon@debian.org>
+Build-Depends: debhelper (>> 3.0.0), libflash-dev, libfreetype6-dev,
+	libjpeg62-dev, libpng3-dev, zlib1g-dev (>= 1:1.1.3), libmpeg3-dev, autoconf,
+	xlibs-dev
+Standards-Version: 3.5.6
+
+Package: libdirectfb-0.9-18cvs
+Section: libs
+Architecture: any
+Replaces: directfb0, libdirectfb8
+Conflicts: directfb0, libdirectfb8
+Depends: ${shlibs:Depends}
+Description: frame buffer graphics library (for 2.4+ kernels)
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+
+Package: libdirectfb-bin
+Section: libs
+Architecture: any
+Conflicts: libdirectfb-0.9-15
+Depends: libdirectfb-0.9-18cvs (= ${Source-Version}), ${shlibs:Depends}
+Description: binaries for libdirectfb
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This packages contains the DirectFB background configuration tool
+ and the directfbrc man page.
+
+Package: libdirectfb-extra
+Section: libs
+Architecture: any
+Depends: libdirectfb-0.9-18cvs (= ${Source-Version}), ${shlibs:Depends}
+Description: extra image/video providers for libdirectfb
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This packages contains the following image/video providers:
+ .
+   * MPEG video
+   * Flash
+
+Package: libdirectfb-dev
+Section: libs
+Architecture: any
+Replaces: directfb-dev, libdirectfb8
+Conflicts: directfb-dev, libdirectfb8
+Depends: libdirectfb-0.9-18cvs (= ${Source-Version}), libc6-dev, libflash-dev, libpng3-dev
+Section: devel
+Description: frame buffer graphics library, development files
+ DirectFB is a graphics library which was designed with embedded systems 
+ in mind. It offers maximum hardware accelerated performance at a minimum 
+ of resource usage and overhead. 
+ .
+ This package contains the files needed to compile and link 
+ programs which use DirectFB.
+
+Package: libdirectfb-0.9-18cvs-udeb
+Section: debian-installer
+Architecture: any
+Depends: ${shlibs:Depends}
+Description: frame buffer graphics library
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead. This package contains the shared
+ libraries for use with the debian installer.
+
+Package: libdirectfb-udeb-dev
+Section: devel
+Architecture: any
+Depends: libdirectfb-dev
+Provides: libdirectfb-0.9-18cvs-udeb
+Description: frame buffer graphics library, development files
+ DirectFB is a graphics library which was designed with embedded systems
+ in mind. It offers maximum hardware accelerated performance at a minimum
+ of resource usage and overhead.
+ .
+ This package contains the files needed to compile and link
+ programs for the debian intaller which use DirectFB. You won't need
+ this apckage if you are involved with the development of the debian
+ installer.
+ .
+ Be sure to read the README in the documentation, when you intend to
+ use this package for development.
