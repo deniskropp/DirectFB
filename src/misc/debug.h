@@ -29,6 +29,8 @@
 
 #include <config.h>
 
+#include <core/fusion/fusion_types.h>
+
 void dfb_trace_print_stack( int pid );
 void dfb_trace_print_stacks();
 
@@ -42,6 +44,25 @@ void dfb_assumption_fail( const char *expression,
                           const char *filename,
                           int         line,
                           const char *function );
+
+#define DFB_MAGIC(spell)        ( (((spell)[2] << 24) | \
+                                   ((spell)[3] << 16) | \
+                                   ((spell)[4] <<  8) | \
+                                   ((spell)[5]      )) ^  \
+                                  (((spell)[6] << 24) | \
+                                   ((spell)[7] << 16) | \
+                                   ((spell)[8] <<  8) | \
+                                   ((spell)[9]      )) )
+
+#define DFB_MAGIC_CLEAR(o)      do { (o)->magic = 0; } while (0)
+#define DFB_MAGIC_SET(o,m)      do { (o)->magic = DFB_MAGIC(#m); } while (0)
+#define DFB_MAGIC_ASSERT(o,m)   DFB_ASSERT( (o)->magic == DFB_MAGIC(#m) )
+
+#else
+
+#define DFB_MAGIC_CLEAR(o)      do {} while (0)
+#define DFB_MAGIC_SET(o,m)      do {} while (0)
+#define DFB_MAGIC_ASSERT(o,m)   do {} while (0)
 #endif
 
 #endif

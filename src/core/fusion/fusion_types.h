@@ -63,11 +63,6 @@ typedef struct _FusionObject       FusionObject;
 typedef struct _FusionObjectPool   FusionObjectPool;
 
 
-#define FUSION_MAGIC(spell)   ( ~((spell)[0] << 24) | \
-                                ~((spell)[1] << 16) | \
-                                ~((spell)[2] <<  8) )
-
-
 #ifdef __cplusplus
 }
 #endif

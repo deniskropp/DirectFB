@@ -29,7 +29,7 @@
 
 #include "fusion_types.h"
 
-#define FUSION_VECTOR_MAGIC     FUSION_MAGIC("VEC")
+#include <misc/debug.h>
 
 typedef struct {
      int    magic;
@@ -60,7 +60,7 @@ static inline bool
 fusion_vector_empty( const FusionVector *vector )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
 
      return vector->count == 0;
 }
@@ -69,7 +69,7 @@ static inline int
 fusion_vector_size( const FusionVector *vector )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
 
      return vector->count;
 }
@@ -78,7 +78,7 @@ static inline void *
 fusion_vector_at( const FusionVector *vector, int index )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( index >= 0 );
      DFB_ASSERT( index < vector->count );
 
@@ -91,7 +91,7 @@ fusion_vector_contains( const FusionVector *vector, void *element )
      int i;
 
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( element != NULL );
 
      /* Start with more recently added elements. */
@@ -108,7 +108,7 @@ fusion_vector_index_of( const FusionVector *vector, void *element )
      int i;
 
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( element != NULL );
 
      /* Start with more recently added elements. */

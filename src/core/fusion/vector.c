@@ -26,6 +26,7 @@
 
 #include <core/coredefs.h>
 
+#include <misc/debug.h>
 #include <misc/memcpy.h>
 
 #include <core/fusion/object.h>
@@ -35,6 +36,8 @@
 
 static inline bool ensure_capacity( FusionVector *vector )
 {
+     DFB_ASSERT( vector != NULL );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( vector->capacity > 0 );
 
      if (!vector->elements) {
@@ -66,17 +69,18 @@ fusion_vector_init( FusionVector *vector, int capacity )
      DFB_ASSERT( vector != NULL );
      DFB_ASSERT( capacity > 0 );
 
-     vector->magic    = FUSION_VECTOR_MAGIC;
      vector->elements = NULL;
      vector->count    = 0;
      vector->capacity = capacity;
+
+     DFB_MAGIC_SET( vector, FusionVector );
 }
 
 void
 fusion_vector_destroy( FusionVector *vector )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( vector->count == 0 || vector->elements != NULL );
 
      if (vector->elements) {
@@ -84,7 +88,7 @@ fusion_vector_destroy( FusionVector *vector )
           vector->elements = NULL;
      }
 
-     vector->magic = 0;
+     DFB_MAGIC_CLEAR( vector );
 }
 
 FusionResult
@@ -92,7 +96,7 @@ fusion_vector_add( FusionVector *vector,
                    void         *element )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( element != NULL );
 
      /* Make sure there's a free entry left. */
@@ -111,7 +115,7 @@ fusion_vector_insert( FusionVector *vector,
                       int           index )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( element != NULL );
      DFB_ASSERT( index >= 0 );
      DFB_ASSERT( index <= vector->count );
@@ -139,7 +143,7 @@ fusion_vector_remove( FusionVector *vector,
                       int           index )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( index >= 0 );
      DFB_ASSERT( index < vector->count );
 
@@ -158,7 +162,7 @@ FusionResult
 fusion_vector_remove_last( FusionVector *vector )
 {
      DFB_ASSERT( vector != NULL );
-     DFB_ASSERT( vector->magic == FUSION_VECTOR_MAGIC );
+     DFB_MAGIC_ASSERT( vector, FusionVector );
      DFB_ASSERT( vector->count > 0 );
 
      /* Decrease the element counter. */
