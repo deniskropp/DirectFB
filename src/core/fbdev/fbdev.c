@@ -1872,10 +1872,10 @@ static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format )
           blue_max  = blue_size;
      }
 
-     /* assume green to have most weight */
-     dfb_fbdev->shared->temp_cmap.len = green_size;
-
      cmap = &dfb_fbdev->shared->current_cmap;
+
+     /* assume green to have most weight */
+     cmap->len = green_size;
 
      for (i = 0; i < red_size; i++)
           cmap->red[i] = dfb_fbdev_calc_gamma( i, red_max );
