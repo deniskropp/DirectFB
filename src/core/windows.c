@@ -402,7 +402,8 @@ dfb_window_create( CoreWindowStack        *stack,
      w->caps    = caps;
      w->opacity = 0;
 
-     if (caps & DWCAPS_ALPHACHANNEL)
+     /* Auto enable blending for ARGB only, not LUT8. */
+     if ((caps & DWCAPS_ALPHACHANNEL) && pixelformat == DSPF_ARGB)
           w->options = DWOP_ALPHACHANNEL;
 
      w->stack   = stack;
