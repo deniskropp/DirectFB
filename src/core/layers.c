@@ -260,15 +260,19 @@ dfb_layers_shutdown( bool emergency )
      for (i=layersfield->num-1; i>=0; i--) {
           DisplayLayer *l = dfb_layers[i];
 
+#if 0 /* FIXME: always need to detach global reactions */
           if (emergency && l->shared->enabled) {
                /* Just turn it off during emergency shutdown */
                l->funcs->Disable( l, l->driver_data, l->layer_data );
           }
           else {
+#endif
                /* Disable layer, destroy surface and
                   window stack (including windows and their surfaces) */
                dfb_layer_disable( l );
+#if 0
           }
+#endif
           
           /* Destroy property */
           fusion_property_destroy( &l->shared->lock );
