@@ -74,6 +74,9 @@ typedef struct {
      int                  ref;      /* reference counter */
 
      IDirectFBDataBuffer *buffer;
+
+     DIRenderCallback     render_callback;
+     void                *render_callback_context;
 } IDirectFBImageProvider_JPEG_data;
 
 static DFBResult
@@ -433,6 +436,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
               rect.h == (int)cinfo.output_height &&
               direct)
           {
+               int y = 0;
+
                /* image must not be scaled */
                row_ptr = dst;
 
@@ -467,6 +472,14 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                               return DFB_BUG;
                     }
                     row_ptr += pitch;
+
+                    y++;
+
+                    if (data->render_callback) {
+                         DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
+
+                         data->render_callback( &rect, data->render_callback_context );
+                    }
                }
           }
           else {     /* image must be scaled */
@@ -474,9 +487,19 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                row_ptr = image_data;
 
                while (cinfo.output_scanline < cinfo.output_height) {
+                    int y = 0;
+
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
                     row_ptr += cinfo.output_width * 4;
+
+                    y++;
+
+                    if (data->render_callback) {
+                         DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
+
+                         data->render_callback( &rect, data->render_callback_context );
+                    }
                }
 
                dfb_scale_linear_32( image_data,
@@ -502,7 +525,12 @@ IDirectFBImageProvider_JPEG_SetRenderCallback( IDirectFBImageProvider *thiz,
                                                DIRenderCallback        callback,
                                                void                   *context )
 {
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_JPEG)
+
+     data->render_callback         = callback;
+     data->render_callback_context = context;
+
+     return DFB_OK;
 }
 
 static DFBResult

@@ -319,7 +319,7 @@ IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
      data->render_callback         = callback;
      data->render_callback_context = context;
 
-     return DFB_UNIMPLEMENTED;
+     return DFB_OK;
 }
 
 /* Loading routines */
@@ -554,6 +554,12 @@ png_row_callback   (png_structp png_read_ptr,
 
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
+
+     if (data->render_callback) {
+          DFBRectangle rect = { 0, row_num, data->width, 1 };
+
+          data->render_callback( &rect, data->render_callback_context );
+     }
 }
 
 /* Called after reading the entire image */
