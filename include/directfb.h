@@ -39,12 +39,16 @@ extern "C"
 #endif
 
 /*
+ * @internal
+ *
  * Forward declaration macro for interfaces.
  */
 #define DECLARE_INTERFACE( IFACE )                \
      typedef struct _##IFACE IFACE;
 
 /*
+ * @internal
+ *
  * Macro for an interface definition.
  */
 #define DEFINE_INTERFACE( IFACE, IDATA... )       \
@@ -369,9 +373,24 @@ typedef unsigned int DFBInputDeviceID;
 
 typedef unsigned long long DFBDisplayLayerIDs;
 
+/*
+ * Adds the id to the bitmask of layer ids.
+ */
 #define DFB_DISPLAYLAYER_IDS_ADD(ids,id)     (ids) |=  (1 << (id))
+
+/*
+ * Removes the id from the bitmask of layer ids.
+ */
 #define DFB_DISPLAYLAYER_IDS_REMOVE(ids,id)  (ids) &= ~(1 << (id))
+
+/*
+ * Checks if the bitmask of layer ids contains the id.
+ */
 #define DFB_DISPLAYLAYER_IDS_HAVE(ids,id)    ((ids) & (1 << (id)))
+
+/*
+ * Empties (clears) the bitmask of layer ids.
+ */
 #define DFB_DISPLAYLAYER_IDS_EMPTY(ids)      (ids) = 0
 
 /*
@@ -662,7 +681,15 @@ typedef enum {
      DFXL_ALL            = 0x0107000F   /* All drawing/blitting functions. */
 } DFBAccelerationMask;
 
+
+/*
+ * @internal
+ */
 #define DFB_DRAWING_FUNCTION(a)    ((a) & 0x0000FFFF)
+
+/*
+ * @internal
+ */
 #define DFB_BLITTING_FUNCTION(a)   ((a) & 0xFFFF0000)
 
 /*
@@ -848,6 +875,8 @@ typedef struct {
 } DFBFontDescription;
 
 /*
+ * @internal
+ *
  * Pixel format of a surface.
  * Contains information about the format (see following definition).
  *
@@ -867,7 +896,6 @@ typedef struct {
  * k) color and/or alpha lookup table present<br>
  * l) alpha channel is inverted
  */
-
 #define DFB_SURFACE_PIXELFORMAT( index, color_bits, alpha_bits, has_alpha,     \
                                  row_bits, row_bytes, align, mul_f, mul_d,     \
                                  has_lut, inv_alpha )                          \
