@@ -330,6 +330,12 @@ dfb_window_create( CoreWindowStack        *stack,
      CoreSurface            *layer_surface = dfb_layer_surface( layer );
      CardCapabilities        card_caps;
 
+     DFB_ASSERT( width > 0 );
+     DFB_ASSERT( height > 0 );
+
+     if (width > 4096 || height > 4096)
+          return DFB_BUFFERTOOLARGE;
+     
      surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED |
                      DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
 
@@ -783,6 +789,12 @@ dfb_window_resize( CoreWindow   *window,
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
+
+     DFB_ASSERT( width > 0 );
+     DFB_ASSERT( height > 0 );
+
+     if (width > 4096 || height > 4096)
+          return DFB_BUFFERTOOLARGE;
 
      stack_lock( stack );
 

@@ -246,7 +246,7 @@ DFBResult dfb_surface_soft_lock( CoreSurface          *surface,
                                  DFBSurfaceLockFlags   flags,
                                  void                **data,
                                  int                  *pitch,
-                                 int                   front );
+                                 bool                  front );
 
 /*
  * unlocks a previously locked surface

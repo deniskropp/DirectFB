@@ -127,6 +127,12 @@ DFBResult dfb_surface_create( int width, int height, DFBSurfacePixelFormat forma
      DFBResult    ret;
      CoreSurface *s;
 
+     DFB_ASSERT( width > 0 );
+     DFB_ASSERT( height > 0 );
+     
+     if (width * (long long) height > 4096*4096)
+          return DFB_BUFFERTOOLARGE;
+
      s = (CoreSurface*) fusion_object_create( dfb_gfxcard_surface_pool() );
 
      ret = dfb_surface_init( s, width, height, format, caps, palette );
@@ -196,6 +202,9 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      DFBResult    ret;
      CoreSurface *s;
 
+     DFB_ASSERT( width > 0 );
+     DFB_ASSERT( height > 0 );
+     
      if (policy == CSP_VIDEOONLY)
           return DFB_UNSUPPORTED;
 
@@ -260,6 +269,12 @@ DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
      DFBSurfacePixelFormat old_format;
      DFBResult ret;
 
+     DFB_ASSERT( width > 0 );
+     DFB_ASSERT( height > 0 );
+
+     if (width * (long long) height > 4096*4096)
+          return DFB_BUFFERTOOLARGE;
+     
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM ||
          surface->back_buffer->flags  & SBF_FOREIGN_SYSTEM)
      {
@@ -493,7 +508,7 @@ void dfb_surface_set_field( CoreSurface *surface, int field )
 }
 
 DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
-                                 void **data, int *pitch, int front )
+                                 void **data, int *pitch, bool front )
 {
      DFBResult ret;
 
@@ -509,7 +524,7 @@ DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
 }
 
 DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
-                                     void **data, int *pitch, int front )
+                                     void **data, int *pitch, bool front )
 {
      SurfaceBuffer *buffer;
 
@@ -582,7 +597,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 }
 
 DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
-                                     unsigned int flags, int front )
+                                     unsigned int flags, bool front )
 {
      SurfaceBuffer *buffer;
 
@@ -721,6 +736,10 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      char       head[30];
      void      *data;
      int        pitch;
+
+     DFB_ASSERT( surface != NULL );
+     DFB_ASSERT( directory != NULL );
+     DFB_ASSERT( prefix != NULL );
 
      do {
           snprintf( filename, len, "%s/%s_%04d.ppm", directory, prefix, num++ );
