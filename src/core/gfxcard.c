@@ -62,7 +62,7 @@ typedef struct {
      FusionLink            link;
 
      GraphicsDriverFuncs  *funcs;
-     
+
      int                   abi_version;
 } GraphicsDriver;
 
@@ -267,7 +267,6 @@ DFBResult dfb_gfxcard_shutdown()
 
           shfree( card->device_data );
           DFBFREE( card->driver_data );
-          DFBFREE( card->driver );
      }
 
      munmap( (char*)card->framebuffer.base, card->framebuffer.length );
@@ -291,7 +290,6 @@ DFBResult dfb_gfxcard_leave()
           card->driver->funcs->CloseDriver( card, card->driver_data );
 
           DFBFREE( card->driver_data );
-          DFBFREE( card->driver );
      }
 
      munmap( (char*)card->framebuffer.base, card->framebuffer.length );
@@ -856,7 +854,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
           for (; dy < h; dy+= rect->h) {
                for (dx = odx; dx < w; dx+= rect->w) {
 
-                    if (!dfb_clip_blit_precheck( &state->clip, 
+                    if (!dfb_clip_blit_precheck( &state->clip,
                                                  rect->w, rect->h, dx, dy ))
                          continue;
 
@@ -878,9 +876,9 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
 
                for (; dy < h; dy+= rect->h) {
                     for (dx = odx; dx < w; dx+= rect->w) {
-                         
-                         if (!dfb_clip_blit_precheck( &state->clip, 
-                                                      rect->w, rect->h, 
+
+                         if (!dfb_clip_blit_precheck( &state->clip,
+                                                      rect->w, rect->h,
                                                       dx, dy ))
                               continue;
 
@@ -1192,7 +1190,7 @@ static CoreModuleLoadResult graphics_driver_handle_func( void *handle,
           fusion_list_remove( &graphics_drivers, graphics_drivers );
 
           DFBFREE( driver );
-          
+
           return MODULE_REJECTED;
      }
 

@@ -170,9 +170,6 @@ DFBResult dfb_input_shutdown()
 
           reactor_free( d->shared->reactor );
 
-          if (d->driver->nr_devices == 0)
-               DFBFREE( d->driver );
-
           DFBFREE( d );
 
           d = next;
@@ -353,7 +350,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           fusion_list_remove( &input_drivers, input_drivers );
 
           DFBFREE( driver );
-          
+
           return MODULE_REJECTED;
      }
 
