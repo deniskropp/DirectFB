@@ -135,10 +135,24 @@
                                    kill( pid, SIGTRAP );                       \
                               }
 
+     #define DFB_ASSUME(exp)  if (!(exp)) {                                    \
+                                   int       pid    = getpid();                \
+                                   long long millis = fusion_get_millis();     \
+                                                                               \
+                                   fprintf( stderr,                            \
+                                            "(?) [%5d: %4lld.%03lld] *** "     \
+                                            "Assumption [%s] failed! *** %s "  \
+                                            "(%d)\n", pid, millis/1000,        \
+                                            millis%1000, #exp,                 \
+                                            __FILE__, __LINE__ );              \
+                                   fflush( stderr );                           \
+                              }
+
 #else
      #define HEAVYDEBUGMSG(x...)   do { } while (0)
      #define DEBUGMSG(x...)        do { } while (0)
      #define DFB_ASSERT(exp)       do { } while (0)
+     #define DFB_ASSUME(exp)       do { } while (0)
 #endif
 
 

@@ -38,16 +38,30 @@
 
 #include <misc/mem.h>
 
+
+/* FIXME: DFB_THREAD_WAIT_INIT is required, but should be optional. */
+#define DFB_THREAD_WAIT_INIT
+
+/* FIXME: DFB_THREAD_WAIT_CREATE is required if _WAIT_INIT is not used. */
+#if !defined(DFB_THREAD_WAIT_INIT) && !defined(DFB_THREAD_WAIT_CREATE)
+#define DFB_THREAD_WAIT_CREATE
+#endif
+
+
 struct _CoreThread {
-     pthread_t       thread;  /* The pthread thread identifier. */
+     pthread_t       thread;   /* The pthread thread identifier. */
 
-     CoreThreadType  type;    /* The thread's type, e.g. input thread. */
-     CoreThreadMain  main;    /* The thread's main routine (or entry point). */
-     void           *arg;     /* Custom argument passed to the main routine. */
+     CoreThreadType  type;     /* The thread's type, e.g. input thread. */
+     CoreThreadMain  main;     /* The thread's main routine (or entry point). */
+     void           *arg;      /* Custom argument passed to the main routine. */
 
-     bool            init;    /* Set to true before calling the main routine. */
-     bool            cancel;  /* True if dfb_thread_cancel() has been called. */
-     bool            joined;  /* True if dfb_thread_join() succeeded. */
+     bool            canceled; /* Set when dfb_thread_cancel() is called. */
+     bool            joining;  /* Set when dfb_thread_join() is called. */
+     bool            joined;   /* Set when dfb_thread_join() has finished. */
+
+#ifdef DFB_THREAD_WAIT_INIT
+     bool            init;     /* Set to true before calling the main routine. */
+#endif
 };
 
 /*
@@ -86,6 +100,7 @@ dfb_thread_create( CoreThreadType  thread_type,
      /* Create and run the thread. */
      pthread_create( &thread->thread, NULL, dfb_thread_main, thread );
 
+#ifdef DFB_THREAD_WAIT_INIT
      DEBUGMSG( "DirectFB/core/threads: Waiting for thread to run...\n" );
      
      /* Wait for completion of the thread's initialization. */
@@ -93,7 +108,11 @@ dfb_thread_create( CoreThreadType  thread_type,
           sched_yield();
 
      DEBUGMSG( "DirectFB/core/threads: Thread is running.\n" );
-     
+#endif     
+
+     DEBUGMSG( "DirectFB/core/threads: ...created thread of type %d (%lu).\n",
+               thread_type, thread->thread );
+
      return thread;
 }
 
@@ -101,8 +120,14 @@ void
 dfb_thread_cancel( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
+     DFB_ASSERT( thread->thread != -1 );
+     DFB_ASSERT( !pthread_equal( thread->thread, pthread_self() ) );
 
-     thread->cancel = true;
+     DFB_ASSUME( !thread->canceled );
+
+     DEBUGMSG( "DirectFB/core/threads: Canceling %lu.\n", thread->thread );
+
+     thread->canceled = true;
 
      pthread_cancel( thread->thread );
 }
@@ -112,18 +137,18 @@ dfb_thread_is_canceled( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
 
-     return thread->cancel;
+     return thread->canceled;
 }
 
 void
 dfb_thread_testcancel( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
-
+     DFB_ASSERT( thread->thread != -1 );
      DFB_ASSERT( pthread_equal( thread->thread, pthread_self() ) );
 
      /* Quick check before calling the pthread function. */
-     if (thread->cancel)
+     if (thread->canceled)
           pthread_testcancel();
 }
 
@@ -131,10 +156,23 @@ void
 dfb_thread_join( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
+     DFB_ASSERT( thread->thread != -1 );
+     DFB_ASSERT( !pthread_equal( thread->thread, pthread_self() ) );
 
-     pthread_join( thread->thread, NULL );
+     DFB_ASSUME( !thread->joining );
+     DFB_ASSUME( !thread->joined );
 
-     thread->joined = true;
+     if (!thread->joining) {
+          thread->joining = true;
+
+          DEBUGMSG( "DirectFB/core/threads: Joining %lu...\n", thread->thread );
+
+          pthread_join( thread->thread, NULL );
+
+          thread->joined = true;
+
+          DEBUGMSG( "DirectFB/core/threads: ...joined %lu.\n", thread->thread );
+     }
 }
 
 bool
@@ -150,11 +188,15 @@ dfb_thread_destroy( CoreThread *thread )
 {
      DFB_ASSERT( thread != NULL );
 
+     DFB_ASSUME( thread->joined );
+
      if (!thread->joined) {
-          if (thread->cancel)
+          if (thread->canceled)
                BUG("thread canceled but not joined");
           else
                BUG("thread still running");
+
+          ERRORMSG( "DirectFB/core/threads: Killing %lu!\n", thread->thread );
 
           pthread_kill( thread->thread, SIGKILL );
      }
@@ -171,12 +213,19 @@ dfb_thread_main( void *arg )
 
      dfb_system_thread_init();
      
-     DEBUGMSG( "DirectFB/core/threads:"
-               "  (thread) Waiting for pthread_create completion...\n" );
+#ifdef DFB_THREAD_WAIT_CREATE
+     if (thread->thread == -1) {
+          DEBUGMSG( "DirectFB/core/threads: "
+                    "    (thread) Waiting for pthread_create()...\n" );
      
-     /* Wait for completion of pthread_create(). */
-     while ((int) thread->thread == -1)
-          sched_yield();
+          /* Wait for completion of pthread_create(). */
+          while ((int) thread->thread == -1)
+               sched_yield();
+
+          DEBUGMSG( "DirectFB/core/threads: "
+                    "    (thread) ...pthread_create() finished.\n" );
+     }
+#endif
 
      /* Have all signals handled by the main thread. */
      if (dfb_core && dfb_core->master)
@@ -204,14 +253,21 @@ dfb_thread_main( void *arg )
                break;
      }
      
+#ifdef DFB_THREAD_WAIT_INIT
      /* Indicate that our initialization has completed. */
      thread->init = true;
 
-     DEBUGMSG( "DirectFB/core/threads:  (thread) Initialization done.\n" );
+     DEBUGMSG( "DirectFB/core/threads:     (thread) Initialization done.\n" );
 
      sched_yield();
+#endif
+
+     if (thread->joining) {
+          DEBUGMSG( "DirectFB/core/threads: "
+                    "    (thread) Being joined before entering main routine.\n" );
+          return NULL;
+     }
 
      /* Call main routine. */
      return thread->main( thread, thread->arg );
 }
-
