@@ -2,7 +2,6 @@
 
 if HAVE_LINUX
 LINUXONLY_DIRS =	\
-	tools	 	\
 	gfxdrivers	\
 	inputdrivers
 else
@@ -14,6 +13,7 @@ SUBDIRS = \
 	patches 		\
 	include 		\
 	src 			\
+	tools			\
 	$(LINUXONLY_DIRS)	\
 	interfaces 		\
 	data			\
