@@ -343,8 +343,8 @@ bool uc_stretch_blit(void* drv, void* dev,
 
     float s1 = ((float) sr->x) / w;
     float t1 = ((float) sr->y) / h;
-    float s2 = ((float) sr->x + sr->w - 1) / w;
-    float t2 = ((float) sr->y + sr->h - 1) / h;
+    float s2 = ((float) sr->x + sr->w) / w;
+    float t2 = ((float) sr->y + sr->h) / h;
 
     __u32 c = 0xffffffff; // Not really needed.
 
@@ -364,9 +364,9 @@ bool uc_stretch_blit(void* drv, void* dev,
     UC_FIFO_ADD(fifo, cmdA);
 
     UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y, 1.0, c, s1, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w-1, dr->y+dr->h-1, 1.0, c, s2, t2);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w-1, dr->y, 1.0, c, s2, t1);
-    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y+dr->h-1, 1.0, c, s1, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y+dr->h, 1.0, c, s2, t2);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x+dr->w, dr->y, 1.0, c, s2, t1);
+    UC_FIFO_ADD_XYWCST(fifo, dr->x, dr->y+dr->h, 1.0, c, s1, t2);
 
     UC_FIFO_ADD(fifo, cmdA_End);
     UC_FIFO_ADD(fifo, cmdA_End);    // Added to make even number of dwords.
