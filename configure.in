@@ -1177,6 +1177,8 @@ systems/sdl/Makefile
 
 wm/Makefile
 wm/default/Makefile
+wm/unique/Makefile
+wm/unique/classes/Makefile
 
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile

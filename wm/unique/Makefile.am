@@ -1,0 +1,99 @@
+## Makefile.am for DirectFB/wm/unique
+
+SUBDIRS = classes
+
+INCLUDES = \
+	-I$(top_srcdir)/include		\
+	-I$(top_builddir)/include	\
+	-I$(top_builddir)/lib		\
+	-I$(top_srcdir)/lib		\
+	-I$(top_srcdir)/src		\
+	-I$(top_srcdir)/wm
+
+
+noinst_PROGRAMS = test_color
+
+test_color_SOURCES = test_color.c
+
+test_color_LDADD = \
+	libuniquewm.la					\
+	$(top_builddir)/lib/direct/libdirect.la		\
+	$(top_builddir)/lib/fusion/libfusion.la		\
+	$(top_builddir)/src/libdirectfb.la
+
+
+# Set module installation directory
+wmdir = $(MODULEDIR)/wm
+
+# Build wm module
+wm_LTLIBRARIES = libdirectfbwm_unique.la
+
+if BUILD_STATIC
+wm_DATA = libdirectfbwm_unique.o
+endif
+
+libdirectfbwm_unique_la_SOURCES = \
+	unique.c
+
+# Link module against uniquewm library
+libdirectfbwm_unique_la_LIBADD = libuniquewm.la
+
+libdirectfbwm_unique_la_LDFLAGS = \
+	-avoid-version	\
+	-module
+
+# Set header installation directory
+includedir = @INCLUDEDIR@/unique
+
+# Install uniquewm's library header files
+include_HEADERS = \
+	context.h	\
+	stret.h		\
+	types.h		\
+	uniquewm.h
+
+# Build uniquewm library
+lib_LTLIBRARIES = libuniquewm.la
+
+libuniquewm_la_SOURCES = \
+	context.c		\
+	internal.h		\
+	stret.c			\
+	uniquewm.c
+	
+libuniquewm_la_LIBADD = \
+	classes/libunique_classes.la
+
+libuniquewm_la_LDFLAGS = \
+	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\
+	-release $(LT_RELEASE)					\
+	$(DFB_LDFLAGS)
+
+                        
+include $(top_srcdir)/rules/libobject.make
+
+#
+## and now rebuild the static version with the *correct* object files
+#
+if BUILD_STATIC
+
+clean-local:
+	rm -f libuniquewm_fixed.a
+
+all-local: libuniquewm_fixed.a
+
+libuniquewm_fixed.a: .libs/libuniquewm.a
+	rm -f libuniquewm_fixed.a
+	${AR} cru libuniquewm_fixed.a `find -name "*.o" | grep -v '.libs'`
+	${RANLIB} libuniquewm_fixed.a
+	cp -af libuniquewm_fixed.a .libs/libuniquewm.a
+
+.libs/libuniquewm.a: libuniquewm.la
+
+else
+
+clean-local:
+
+all-local:
+
+endif

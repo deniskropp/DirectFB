@@ -25,14 +25,17 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __STRET_H__
-#define __STRET_H__
+#ifndef __UNIQUE__STRET_H__
+#define __UNIQUE__STRET_H__
+
+#include <directfb.h>
+
+#include <unique/types.h>
 
 /*
  * A 'StReT' is a Stack Region Tree.
  */
 
-typedef struct __S_StretRegion     StretRegion;
 
 typedef enum {
      SRF_NONE       = 0x00000000,
@@ -60,6 +63,8 @@ typedef struct {
 } StretRegionClass;
 
 typedef int StretRegionClassID;
+
+#define SRCID_UNKNOWN    -1
 
 
 DFBResult stret_class_register  ( const StretRegionClass *clazz,
@@ -101,6 +106,9 @@ DFBResult stret_region_resize ( StretRegion         *region,
 DFBResult stret_region_restack( StretRegion         *region,
                                 int                  index );
 
+
+DFBResult stret_region_get_abs( StretRegion         *region,
+                                DFBRegion           *ret_bounds );
 
 DFBResult stret_region_visible( StretRegion         *region,
                                 const DFBRegion     *base,

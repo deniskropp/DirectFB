@@ -1,3 +1,3 @@
 ## Makefile.am for DirectFB/wm
 
-SUBDIRS = default
+SUBDIRS = default unique

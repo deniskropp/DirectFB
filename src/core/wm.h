@@ -41,7 +41,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_WM_ABI_VERSION           2
+#define DFB_CORE_WM_ABI_VERSION           3
 
 #define DFB_CORE_WM_INFO_NAME_LENGTH     60
 #define DFB_CORE_WM_INFO_VENDOR_LENGTH   80
@@ -52,6 +52,8 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 typedef struct {
      int            major;
      int            minor;
+
+     int            binary;
 } CoreWMVersion;
 
 typedef struct {
@@ -123,6 +125,12 @@ typedef struct {
      DFBResult (*CloseStack)       ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data );
+
+     DFBResult (*ResizeStack)      ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     int                     width,
+                                     int                     height );
 
      DFBResult (*ProcessInput)     ( CoreWindowStack        *stack,
                                      void                   *wm_data,
@@ -225,9 +233,7 @@ typedef struct {
                                      void                   *wm_data,
                                      void                   *window_data,
                                      DFBRegion              *region,
-                                     DFBSurfaceFlipFlags     flags,
-                                     bool                    force_complete,
-                                     bool                    force_invisible );
+                                     DFBSurfaceFlipFlags     flags );
 } CoreWMFuncs;
 
 
@@ -237,6 +243,10 @@ void dfb_wm_get_info( CoreWMInfo *info );
 DFBResult dfb_wm_init_stack    ( CoreWindowStack        *stack );
 
 DFBResult dfb_wm_close_stack   ( CoreWindowStack        *stack );
+
+DFBResult dfb_wm_resize_stack  ( CoreWindowStack        *stack,
+                                 int                     width,
+                                 int                     height );
 
 DFBResult dfb_wm_process_input ( CoreWindowStack        *stack,
                                  const DFBInputEvent    *event );
@@ -298,8 +308,6 @@ DFBResult dfb_wm_update_stack  ( CoreWindowStack        *stack,
 
 DFBResult dfb_wm_update_window ( CoreWindow             *window,
                                  DFBRegion              *region,
-                                 DFBSurfaceFlipFlags     flags,
-                                 bool                    force_complete,
-                                 bool                    force_invisible );
+                                 DFBSurfaceFlipFlags     flags );
 
 #endif

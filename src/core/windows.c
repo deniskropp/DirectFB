@@ -861,9 +861,7 @@ dfb_window_ungrab_key( CoreWindow                 *window,
 DFBResult
 dfb_window_repaint( CoreWindow          *window,
                     DFBRegion           *region,
-                    DFBSurfaceFlipFlags  flags,
-                    bool                 force_complete,
-                    bool                 force_invisible )
+                    DFBSurfaceFlipFlags  flags )
 {
      DFBResult        ret;
      CoreWindowStack *stack = window->stack;
@@ -871,22 +869,13 @@ dfb_window_repaint( CoreWindow          *window,
      D_ASSERT( window != NULL );
      D_ASSERT( window->stack != NULL );
 
+     DFB_REGION_ASSERT_IF( region );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     if (region)
-          ret = dfb_wm_update_window( window, region, flags, force_complete, force_invisible );
-     else {
-          DFBRegion reg;
-
-          reg.x1 = 0;
-          reg.y1 = 0;
-          reg.x2 = window->width  - 1;
-          reg.y2 = window->height - 1;
-
-          ret = dfb_wm_update_window( window, &reg, flags, force_complete, force_invisible );
-     }
+     ret = dfb_wm_update_window( window, region, flags );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );

@@ -63,11 +63,15 @@
 
 #include <core/wm_module.h>
 
+#include <unique/context.h>
+#include <unique/stret.h>
+#include <unique/internal.h>
 
-D_DEBUG_DOMAIN( WM_Default, "WM/Default", "Default window manager module" );
+
+D_DEBUG_DOMAIN( WM_Unique, "WM/UniQuE", "UniQuE - Universal Quark Emitter" );
 
 
-DFB_WINDOW_MANAGER( default )
+DFB_WINDOW_MANAGER( unique )
 
 
 typedef struct {
@@ -78,53 +82,6 @@ typedef struct {
 
      CoreWindow                   *owner;
 } GrabbedKey;
-
-/**************************************************************************************************/
-
-typedef struct {
-     CoreDFB                      *core;
-} WMData;
-
-typedef struct {
-     int                           magic;
-
-     CoreWindowStack              *stack;
-
-     DFBInputDeviceButtonMask      buttons;
-     DFBInputDeviceModifierMask    modifiers;
-     DFBInputDeviceLockState       locks;
-
-     int                           wm_level;
-     int                           wm_cycle;
-
-     FusionVector                  windows;
-
-     CoreWindow                   *pointer_window;     /* window grabbing the pointer */
-     CoreWindow                   *keyboard_window;    /* window grabbing the keyboard */
-     CoreWindow                   *focused_window;     /* window having the focus */
-     CoreWindow                   *entered_window;     /* window under the pointer */
-
-     DirectLink                   *grabbed_keys;       /* List of currently grabbed keys. */
-
-     struct {
-          DFBInputDeviceKeySymbol      symbol;
-          DFBInputDeviceKeyIdentifier  id;
-          int                          code;
-          CoreWindow                  *owner;
-     } keys[8];
-} StackData;
-
-typedef struct {
-     int                           magic;
-
-     CoreWindow                   *window;
-
-     StackData                    *stack_data;
-
-     int                           priority;           /* derived from stacking class */
-
-     CoreLayerRegionConfig         config;
-} WindowData;
 
 /**************************************************************************************************/
 
@@ -573,329 +530,14 @@ ensure_focus( CoreWindowStack *stack,
 /**************************************************************************************************/
 
 static void
-draw_window( CoreWindow *window, CardState *state,
-             DFBRegion *region, bool alpha_channel )
-{
-     DFBRectangle            src;
-     DFBSurfaceBlittingFlags flags = DSBLIT_NOFX;
-
-     D_ASSERT( window != NULL );
-     D_ASSERT( state != NULL );
-     D_ASSERT( region != NULL );
-
-     /* Initialize source rectangle. */
-     dfb_rectangle_from_region( &src, region );
-
-     /* Subtract window offset. */
-     src.x -= window->x;
-     src.y -= window->y;
-
-     /* Use per pixel alpha blending. */
-     if (alpha_channel && (window->options & DWOP_ALPHACHANNEL))
-          flags |= DSBLIT_BLEND_ALPHACHANNEL;
-
-     /* Use global alpha blending. */
-     if (window->opacity != 0xFF) {
-          flags |= DSBLIT_BLEND_COLORALPHA;
-
-          /* Set opacity as blending factor. */
-          if (state->color.a != window->opacity) {
-               state->color.a   = window->opacity;
-               state->modified |= SMF_COLOR;
-          }
-     }
-
-     /* Use source color keying. */
-     if (window->options & DWOP_COLORKEYING) {
-          flags |= DSBLIT_SRC_COLORKEY;
-
-          /* Set window color key. */
-          dfb_state_set_src_colorkey( state, window->color_key );
-     }
-
-     /* Use automatic deinterlacing. */
-     if (window->surface->caps & DSCAPS_INTERLACED)
-          flags |= DSBLIT_DEINTERLACE;
-
-     /* Set blitting flags. */
-     dfb_state_set_blitting_flags( state, flags );
-
-     /* Set blitting source. */
-     state->source    = window->surface;
-     state->modified |= SMF_SOURCE;
-
-     /* Blit from the window to the region being updated. */
-     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
-
-     /* Reset blitting source. */
-     state->source    = NULL;
-     state->modified |= SMF_SOURCE;
-}
-
-static void
-draw_background( CoreWindowStack *stack, CardState *state, DFBRegion *region )
-{
-     DFBRectangle dst;
-
-     D_ASSERT( stack != NULL );
-     D_ASSERT( state != NULL );
-     D_ASSERT( region != NULL );
-
-     D_ASSERT( stack->bg.image != NULL || (stack->bg.mode != DLBM_IMAGE &&
-                                           stack->bg.mode != DLBM_TILE) );
-
-     /* Initialize destination rectangle. */
-     dfb_rectangle_from_region( &dst, region );
-
-     switch (stack->bg.mode) {
-          case DLBM_COLOR: {
-               CoreSurface *dest  = state->destination;
-               DFBColor    *color = &stack->bg.color;
-
-               /* Set the background color. */
-               if (DFB_PIXELFORMAT_IS_INDEXED( dest->format ))
-                    dfb_state_set_color_index( state,
-                                               dfb_palette_search( dest->palette, color->r,
-                                                                   color->g, color->b, color->a ) );
-               else
-                    dfb_state_set_color( state, color );
-
-               /* Simply fill the background. */
-               dfb_gfxcard_fillrectangle( &dst, state );
-
-               break;
-          }
-
-          case DLBM_IMAGE: {
-               CoreSurface *bg = stack->bg.image;
-
-               /* Set blitting source. */
-               state->source    = bg;
-               state->modified |= SMF_SOURCE;
-
-               /* Set blitting flags. */
-               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
-
-               /* Check the size of the background image. */
-               if (bg->width == stack->width && bg->height == stack->height) {
-                    /* Simple blit for 100% fitting background image. */
-                    dfb_gfxcard_blit( &dst, dst.x, dst.y, state );
-               }
-               else {
-                    DFBRegion    clip = state->clip;
-                    DFBRectangle src  = { 0, 0, bg->width, bg->height };
-
-                    /* Change clipping region. */
-                    dfb_state_set_clip( state, region );
-
-                    /*
-                     * Scale image to fill the whole screen
-                     * clipped to the region being updated.
-                     */
-                    dst.x = 0;
-                    dst.y = 0;
-                    dst.w = stack->width;
-                    dst.h = stack->height;
-
-                    /* Stretch blit for non fitting background images. */
-                    dfb_gfxcard_stretchblit( &src, &dst, state );
-
-                    /* Restore clipping region. */
-                    dfb_state_set_clip( state, &clip );
-               }
-
-               /* Reset blitting source. */
-               state->source    = NULL;
-               state->modified |= SMF_SOURCE;
-
-               break;
-          }
-
-          case DLBM_TILE: {
-               CoreSurface  *bg   = stack->bg.image;
-               DFBRegion     clip = state->clip;
-               DFBRectangle  src  = { 0, 0, bg->width, bg->height };
-
-               /* Set blitting source. */
-               state->source    = bg;
-               state->modified |= SMF_SOURCE;
-
-               /* Set blitting flags. */
-               dfb_state_set_blitting_flags( state, DSBLIT_NOFX );
-
-               /* Change clipping region. */
-               dfb_state_set_clip( state, region );
-
-               /* Tiled blit (aligned). */
-               dfb_gfxcard_tileblit( &src,
-                                     (region->x1 / src.w) * src.w,
-                                     (region->y1 / src.h) * src.h,
-                                     (region->x2 / src.w + 1) * src.w,
-                                     (region->y2 / src.h + 1) * src.h,
-                                     state );
-
-               /* Restore clipping region. */
-               dfb_state_set_clip( state, &clip );
-
-               /* Reset blitting source. */
-               state->source    = NULL;
-               state->modified |= SMF_SOURCE;
-
-               break;
-          }
-
-          case DLBM_DONTCARE:
-               break;
-
-          default:
-               D_BUG( "unknown background mode" );
-               break;
-     }
-}
-
-static void
-update_region( CoreWindowStack *stack,
-               StackData       *data,
-               CardState       *state,
-               int              start,
-               int              x1,
-               int              y1,
-               int              x2,
-               int              y2 )
-{
-     int       i      = start;
-     DFBRegion region = { x1, y1, x2, y2 };
-
-     D_ASSERT( stack != NULL );
-     D_ASSERT( data != NULL );
-     D_ASSERT( state != NULL );
-     D_ASSERT( start < fusion_vector_size( &data->windows ) );
-     D_ASSERT( x1 <= x2 );
-     D_ASSERT( y1 <= y2 );
-
-     /* Find next intersecting window. */
-     while (i >= 0) {
-          CoreWindow *window = fusion_vector_at( &data->windows, i );
-
-          if (VISIBLE_WINDOW( window )) {
-               int wx2 = window->x + window->width  - 1;
-               int wy2 = window->y + window->height - 1;
-
-               if (dfb_region_intersect( &region, window->x, window->y, wx2, wy2 ))
-                    break;
-          }
-
-          i--;
-     }
-
-     /* Intersecting window found? */
-     if (i >= 0) {
-          CoreWindow *window = fusion_vector_at( &data->windows, i );
-
-          if (FLAGS_ARE_SET( window->options, DWOP_ALPHACHANNEL | DWOP_OPAQUE_REGION )) {
-               DFBRegion opaque;
-
-               opaque.x1 = window->x + window->opaque.x1;
-               opaque.y1 = window->y + window->opaque.y1;
-               opaque.x2 = window->x + window->opaque.x2;
-               opaque.y2 = window->y + window->opaque.y2;
-
-               if (!dfb_region_region_intersect( &opaque, &region )) {
-                    update_region( stack, data, state, i-1, x1, y1, x2, y2 );
-
-                    draw_window( window, state, &region, true );
-               }
-               else {
-                    if ((window->opacity < 0xff) || (window->options & DWOP_COLORKEYING)) {
-                         /* draw everything below */
-                         update_region( stack, data, state, i-1, x1, y1, x2, y2 );
-                    }
-                    else {
-                         /* left */
-                         if (opaque.x1 != x1)
-                              update_region( stack, data, state, i-1, x1, opaque.y1, opaque.x1-1, opaque.y2 );
-
-                         /* upper */
-                         if (opaque.y1 != y1)
-                              update_region( stack, data, state, i-1, x1, y1, x2, opaque.y1-1 );
-
-                         /* right */
-                         if (opaque.x2 != x2)
-                              update_region( stack, data, state, i-1, opaque.x2+1, opaque.y1, x2, opaque.y2 );
-
-                         /* lower */
-                         if (opaque.y2 != y2)
-                              update_region( stack, data, state, i-1, x1, opaque.y2+1, x2, y2 );
-                    }
-
-                    /* left */
-                    if (opaque.x1 != region.x1) {
-                         DFBRegion r = { region.x1, opaque.y1, opaque.x1 - 1, opaque.y2 };
-                         draw_window( window, state, &r, true );
-                    }
-
-                    /* upper */
-                    if (opaque.y1 != region.y1) {
-                         DFBRegion r = { region.x1, region.y1, region.x2, opaque.y1 - 1 };
-                         draw_window( window, state, &r, true );
-                    }
-
-                    /* right */
-                    if (opaque.x2 != region.x2) {
-                         DFBRegion r = { opaque.x2 + 1, opaque.y1, region.x2, opaque.y2 };
-                         draw_window( window, state, &r, true );
-                    }
-
-                    /* lower */
-                    if (opaque.y2 != region.y2) {
-                         DFBRegion r = { region.x1, opaque.y2 + 1, region.x2, region.y2 };
-                         draw_window( window, state, &r, true );
-                    }
-
-                    /* inner */
-                    draw_window( window, state, &opaque, false );
-               }
-          }
-          else {
-               if (TRANSLUCENT_WINDOW( window )) {
-                    /* draw everything below */
-                    update_region( stack, data, state, i-1, x1, y1, x2, y2 );
-               }
-               else {
-                    /* left */
-                    if (region.x1 != x1)
-                         update_region( stack, data, state, i-1, x1, region.y1, region.x1-1, region.y2 );
-
-                    /* upper */
-                    if (region.y1 != y1)
-                         update_region( stack, data, state, i-1, x1, y1, x2, region.y1-1 );
-
-                    /* right */
-                    if (region.x2 != x2)
-                         update_region( stack, data, state, i-1, region.x2+1, region.y1, x2, region.y2 );
-
-                    /* lower */
-                    if (region.y2 != y2)
-                         update_region( stack, data, state, i-1, x1, region.y2+1, x2, y2 );
-               }
-
-               draw_window( window, state, &region, true );
-          }
-     }
-     else
-          draw_background( stack, state, &region );
-}
-
-/**************************************************************************************************/
-/**************************************************************************************************/
-
-static void
 repaint_stack( CoreWindowStack     *stack,
                StackData           *data,
                CoreLayerRegion     *region,
-               const DFBRegion     *update,
+               const DFBRegion     *updates,
+               int                  num,
                DFBSurfaceFlipFlags  flags )
 {
+     int        i;
      CoreLayer *layer;
      CardState *state;
 
@@ -903,8 +545,8 @@ repaint_stack( CoreWindowStack     *stack,
      D_ASSERT( stack->context != NULL );
      D_ASSERT( data != NULL );
      D_ASSERT( region != NULL );
-
-     DFB_REGION_ASSERT( update );
+     D_ASSERT( updates != NULL );
+     D_ASSERT( num > 0 );
 
      layer = dfb_layer_at( stack->context->layer_id );
      state = &layer->state;
@@ -912,137 +554,36 @@ repaint_stack( CoreWindowStack     *stack,
      if (!stack->active || !region->surface)
           return;
 
-/*     D_DEBUG_AT( WM_Default, "repaint_stack( %d, %d - %dx%d, flags 0x%08x )\n",
-                 DFB_RECTANGLE_VALS_FROM_REGION( update ), flags );
-*/
+     D_DEBUG_AT( WM_Unique, "repaint_stack( num %d, flags 0x%08x )\n", num, flags );
+
      /* Set destination. */
      state->destination  = region->surface;
      state->modified    |= SMF_DESTINATION;
 
-     /* Set clipping region. */
-     dfb_state_set_clip( state, update );
+     for (i=0; i<num; i++) {
+          const DFBRegion *update = &updates[i];
 
-     /* Compose updated region. */
-     update_region( stack, data, state,
-                    fusion_vector_size( &data->windows ) - 1,
-                    update->x1, update->y1, update->x2, update->y2 );
+          D_DEBUG_AT( WM_Unique, "    (%2d) %4d, %4d - %4dx%4d\n", i,
+                      DFB_RECTANGLE_VALS_FROM_REGION( update ) );
+
+          /* Set clipping region. */
+          dfb_state_set_clip( state, update );
+
+          /* Compose updated region. */
+          stret_region_update( data->root, update, state );
+     }
 
      /* Reset destination. */
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
-     /* Flip the updated region .*/
-     dfb_layer_region_flip_update( region, update, flags );
-}
 
-/*
-     recursive procedure to call repaint
-     skipping opaque windows that are above the window
-     that changed
-*/
-static void
-wind_of_change( CoreWindowStack     *stack,
-                StackData           *data,
-                CoreLayerRegion     *region,
-                DFBRegion           *update,
-                DFBSurfaceFlipFlags  flags,
-                int                  current,
-                int                  changed )
-{
-     D_ASSERT( stack != NULL );
-     D_ASSERT( data != NULL );
-     D_ASSERT( region != NULL );
-     D_ASSERT( update != NULL );
+     for (i=0; i<num; i++) {
+          const DFBRegion *update = &updates[i];
 
-     D_ASSERT( changed >= 0 );
-     D_ASSERT( current >= changed );
-     D_ASSERT( current < fusion_vector_size( &data->windows ) );
-
-     /*
-          got to the window that changed, redraw.
-     */
-     if (current == changed)
-          repaint_stack( stack, data, region, update, flags );
-     else {
-          DFBRegion   opaque;
-          CoreWindow *window = fusion_vector_at( &data->windows, current );
-
-          /*
-               can skip opaque region
-          */
-          if ((
-              //can skip all opaque window?
-              (window->opacity == 0xff) &&
-              !(window->options & (DWOP_COLORKEYING | DWOP_ALPHACHANNEL)) &&
-              (opaque=*update,dfb_region_intersect( &opaque,
-                                                    window->x, window->y,
-                                                    window->x + window->width - 1,
-                                                    window->y + window->height -1 ) )
-              )||(
-                 //can skip opaque region?
-                 (window->options & DWOP_ALPHACHANNEL) &&
-                 (window->options & DWOP_OPAQUE_REGION) &&
-                 (window->opacity == 0xff) &&
-                 !(window->options & DWOP_COLORKEYING) &&
-                 (opaque=*update,dfb_region_intersect( &opaque,
-                                                       window->x + window->opaque.x1,
-                                                       window->y + window->opaque.y1,
-                                                       window->x + window->opaque.x2,
-                                                       window->y + window->opaque.y2 ))
-                 )) {
-               /* left */
-               if (opaque.x1 != update->x1) {
-                    DFBRegion left = { update->x1, opaque.y1, opaque.x1-1, opaque.y2};
-                    wind_of_change( stack, data, region, &left, flags, current-1, changed );
-               }
-               /* upper */
-               if (opaque.y1 != update->y1) {
-                    DFBRegion upper = { update->x1, update->y1, update->x2, opaque.y1-1};
-                    wind_of_change( stack, data, region, &upper, flags, current-1, changed );
-               }
-               /* right */
-               if (opaque.x2 != update->x2) {
-                    DFBRegion right = { opaque.x2+1, opaque.y1, update->x2, opaque.y2};
-                    wind_of_change( stack, data, region, &right, flags, current-1, changed );
-               }
-               /* lower */
-               if (opaque.y2 != update->y2) {
-                    DFBRegion lower = { update->x1, opaque.y2+1, update->x2, update->y2};
-                    wind_of_change( stack, data, region, &lower, flags, current-1, changed );
-               }
-          }
-          /*
-               pass through
-          */
-          else
-               wind_of_change( stack, data, region, update, flags, current-1, changed );
+          /* Flip the updated region .*/
+          dfb_layer_region_flip_update( region, update, flags );
      }
-}
-
-static void
-repaint_stack_for_window( CoreWindowStack     *stack,
-                          StackData           *data,
-                          CoreLayerRegion     *region,
-                          DFBRegion           *update,
-                          DFBSurfaceFlipFlags  flags,
-                          int                  window )
-{
-     D_ASSERT( stack != NULL );
-     D_ASSERT( data != NULL );
-     D_ASSERT( region != NULL );
-     D_ASSERT( update != NULL );
-     D_ASSERT( window >= 0 );
-     D_ASSERT( window < fusion_vector_size( &data->windows ) );
-
-     if (fusion_vector_has_elements( &data->windows ) && window >= 0) {
-          int num = fusion_vector_size( &data->windows );
-
-          D_ASSERT( window < num );
-
-          wind_of_change( stack, data, region, update, flags, num - 1, window );
-     }
-     else
-          repaint_stack( stack, data, region, update, flags );
 }
 
 /**************************************************************************************************/
@@ -1072,7 +613,7 @@ update_stack( CoreWindowStack     *stack,
      if (ret)
           return ret;
 
-     repaint_stack( stack, data, primary, region, flags );
+     repaint_stack( stack, data, primary, region, 1, flags );
 
      /* Unref primary region. */
      dfb_layer_region_unref( primary );
@@ -1082,52 +623,88 @@ update_stack( CoreWindowStack     *stack,
 
 static DFBResult
 update_window( CoreWindow          *window,
-               WindowData          *window_data,
-               const DFBRegion     *region,
+               WindowData          *data,
+               DFBRegion           *region,
                DFBSurfaceFlipFlags  flags,
-               bool                 force_complete,
-               bool                 force_invisible )
+               bool                 complete )
 {
-     DFBRegion        area;
-     StackData       *data;
      CoreWindowStack *stack;
+     StackData       *stack_data;
+     DFBRegion        regions[32];
+     int              num_regions;
 
      D_ASSERT( window != NULL );
-     D_ASSERT( window_data != NULL );
-     D_ASSERT( window_data->stack_data != NULL );
-     D_ASSERT( window_data->stack_data->stack != NULL );
-     
-     DFB_REGION_ASSERT_IF( region );
+     D_ASSERT( data != NULL );
+     D_ASSERT( data->stack_data != NULL );
+     D_ASSERT( data->stack_data->stack != NULL );
 
-     data  = window_data->stack_data;
-     stack = data->stack;
-
-     if (!VISIBLE_WINDOW(window) && !force_invisible)
-          return DFB_OK;
+     stack_data = data->stack_data;
+     stack      = stack_data->stack;
 
      if (stack->hw_mode)
           return DFB_OK;
 
-     if (region) {
-          area = (DFBRegion) DFB_REGION_INIT_TRANSLATED( region,
-                                                         window->x,
-                                                         window->y );
-     }
-     else {
-          area.x1 = window->x;
-          area.y1 = window->y;
-          area.x2 = window->x + window->width  - 1;
-          area.y2 = window->y + window->height - 1;
-     }
+     if (complete || stret_region_visible( data->region, region, regions, 32, &num_regions )) {
+          if (region) {
+               dfb_region_translate( region, window->x, window->y );
+               repaint_stack( stack, stack_data, window->primary_region, region, 1, flags );
+          }
+          else {
+               DFBRegion bounds;
 
-     if (!dfb_unsafe_region_intersect( &area, 0, 0, stack->width - 1, stack->height - 1 ))
+               stret_region_get_abs( data->region, &bounds );
+
+               repaint_stack( stack, stack_data, window->primary_region, &bounds, 1, flags );
+          }
+     }
+     else if (num_regions > 0)
+          repaint_stack( stack, stack_data, window->primary_region, regions, num_regions, flags );
+
+     return DFB_OK;
+}
+
+static DFBResult
+update_frame( CoreWindow          *window,
+              WindowData          *data,
+              DFBRegion           *region,
+              DFBSurfaceFlipFlags  flags,
+              bool                 complete )
+{
+     CoreWindowStack *stack;
+     StackData       *stack_data;
+     DFBRegion        regions[32];
+     int              num_regions;
+
+     D_ASSERT( window != NULL );
+     D_ASSERT( data != NULL );
+     D_ASSERT( data->stack_data != NULL );
+     D_ASSERT( data->stack_data->stack != NULL );
+
+     DFB_REGION_ASSERT_IF( region );
+
+     stack_data = data->stack_data;
+     stack      = stack_data->stack;
+
+     if (stack->hw_mode)
           return DFB_OK;
 
-     if (force_complete)
-          repaint_stack( stack, data, window->primary_region, &area, flags );
-     else
-          repaint_stack_for_window( stack, data, window->primary_region,
-                                    &area, flags, get_index( data, window ) );
+     if (complete || stret_region_visible( data->frame, region, regions, 32, &num_regions )) {
+          if (region) {
+               dfb_region_translate( region,
+                                     window->x - data->insets.l, window->y - data->insets.t );
+
+               repaint_stack( stack, stack_data, window->primary_region, region, 1, flags );
+          }
+          else {
+               DFBRegion bounds;
+
+               stret_region_get_abs( data->frame, &bounds );
+
+               repaint_stack( stack, stack_data, window->primary_region, &bounds, 1, flags );
+          }
+     }
+     else if (num_regions > 0)
+          repaint_stack( stack, stack_data, window->primary_region, regions, num_regions, flags );
 
      return DFB_OK;
 }
@@ -1164,6 +741,8 @@ insert_window( CoreWindowStack *stack,
 
      /* Insert the window at the acquired position. */
      fusion_vector_insert( &data->windows, window, index );
+
+     stret_region_restack( window_data->frame, index );
 }
 
 static void
@@ -1266,6 +845,8 @@ move_window( CoreWindow *window,
      window->x += dx;
      window->y += dy;
 
+     stret_region_move( data->frame, dx, dy );
+
      if (window->region) {
           data->config.dest.x += dx;
           data->config.dest.y += dy;
@@ -1273,7 +854,9 @@ move_window( CoreWindow *window,
           dfb_layer_region_set_configuration( window->region, &data->config, CLRCF_DEST );
      }
      else if (VISIBLE_WINDOW(window)) {
-          DFBRegion region = { 0, 0, window->width - 1, window->height - 1 };
+          DFBRegion region = { 0, 0,
+                               window->width  + data->insets.l + data->insets.r - 1,
+                               window->height + data->insets.t + data->insets.b - 1 };
 
           if (dx > 0)
                region.x1 -= dx;
@@ -1285,7 +868,7 @@ move_window( CoreWindow *window,
           else if (dy < 0)
                region.y2 -= dy;
 
-          update_window( window, data, &region, 0, false, false );
+          update_frame( window, data, &region, DSFLIP_NONE, false );
      }
 
      /* Send new position */
@@ -1310,8 +893,6 @@ resize_window( CoreWindow *window,
      CoreWindowStack *stack = window->stack;
      int              ow    = window->width;
      int              oh    = window->height;
-     
-     D_DEBUG_AT( WM_Default, "resize_window( %d, %d )\n", width, height );
 
      D_ASSERT( wm_data != NULL );
 
@@ -1333,19 +914,69 @@ resize_window( CoreWindow *window,
      window->width  = width;
      window->height = height;
 
-     dfb_region_intersect( &window->opaque, 0, 0, width - 1, height - 1 );
+     stret_region_resize( data->region, width, height );
+
+     if (data->has_frame)
+          stret_region_resize( data->frame,
+                               width  + data->insets.l + data->insets.r,
+                               height + data->insets.t + data->insets.b );
 
      if (VISIBLE_WINDOW (window)) {
-          if (ow > window->width) {
-               DFBRegion region = { window->width, 0, ow - 1, MIN(window->height, oh) - 1 };
+          int dw = ow - width;
+          int dh = oh - height;
 
-               update_window( window, data, &region, 0, false, false );
+          if (data->has_frame) {
+               DFBInsets *in = &data->insets;
+
+               if (dw < 0) {
+                    DFBRegion region = { in->l + width + dw, 0, in->l + width - 1, in->t - 1 };
+
+                    update_frame( window, data, &region, 0, false );
+
+                    dw = 0;
+               }
+
+               if (dh < 0) {
+                    DFBRegion region = { 0, in->t + height + dh, in->l - 1, in->t + height - 1 };
+
+                    update_frame( window, data, &region, 0, false );
+
+                    dh = 0;
+               }
+
+               dw += in->r;
+               dh += in->b;
+
+               if (dw > 0) {
+                    DFBRegion region = { in->l + width, 0, in->l + width + dw - 1, in->t + height - 1 };
+
+                    update_frame( window, data, &region, 0, false );
+               }
+
+               if (dh > 0) {
+                    DFBRegion region = { 0, in->t + height, in->l + width + dw - 1, in->t + height + dh - 1 };
+
+                    update_frame( window, data, &region, 0, false );
+               }
           }
+          else {
+               if (dw < 0)
+                    dw = 0;
 
-          if (oh > window->height) {
-               DFBRegion region = { 0, window->height, MAX(window->width, ow) - 1, oh - 1 };
+               if (dh < 0)
+                    dh = 0;
 
-               update_window( window, data, &region, 0, false, false );
+               if (dw > 0) {
+                    DFBRegion region = { width, 0, width + dw - 1, height - 1 };
+
+                    update_window( window, data, &region, 0, false );
+               }
+
+               if (dh > 0) {
+                    DFBRegion region = { 0, height, width + dw - 1, height + dh - 1 };
+
+                    update_window( window, data, &region, 0, false );
+               }
           }
      }
 
@@ -1456,7 +1087,9 @@ restack_window( CoreWindow             *window,
      /* Actually change the stacking order now. */
      fusion_vector_move( &data->windows, old, index );
 
-     update_window( window, window_data, NULL, DSFLIP_NONE, (index < old), false );
+     stret_region_restack( window_data->frame, index );
+
+     update_frame( window, window_data, NULL, DSFLIP_NONE, (index < old) );
 
      return DFB_OK;
 }
@@ -1488,13 +1121,23 @@ set_opacity( CoreWindow *window,
 
           window->opacity = opacity;
 
+          if (show)
+               stret_region_enable( window_data->frame, SRF_ACTIVE );
+
+          if (! (window->options & (DWOP_ALPHACHANNEL | DWOP_COLORKEYING))) {
+               if (opacity == 0xff && old != 0xff)
+                    stret_region_enable( window_data->region, SRF_OPAQUE );
+               else if (opacity != 0xff && old == 0xff)
+                    stret_region_disable( window_data->region, SRF_OPAQUE );
+          }
+
           if (window->region) {
                window_data->config.opacity = opacity;
 
                dfb_layer_region_set_configuration( window->region, &window_data->config, CLRCF_OPACITY );
           }
           else
-               update_window( window, window_data, NULL, DSFLIP_NONE, false, true );
+               update_frame( window, window_data, NULL, DSFLIP_NONE, false );
 
 
           /* Check focus after window appeared or disappeared */
@@ -1503,6 +1146,8 @@ set_opacity( CoreWindow *window,
 
           /* If window disappeared... */
           if (hide) {
+               stret_region_disable( window_data->frame, SRF_ACTIVE );
+
                /* Ungrab pointer/keyboard */
                withdraw_window( stack, data, window, window_data );
 
@@ -2085,7 +1730,7 @@ handle_motion( CoreWindowStack *stack,
           case 1: {
                     CoreWindow *window = data->entered_window;
 
-                    if (window && !(window->options & DWOP_KEEP_POSITION))
+                    if (window)// && !(window->options & DWOP_KEEP_POSITION))
                          dfb_window_move( window, dx, dy );
 
                     break;
@@ -2219,12 +1864,13 @@ wm_get_info( CoreWMInfo *info )
 {
      info->version.major  = 0;
      info->version.minor  = 2;
-     info->version.binary = 1;
+     info->version.binary = UNIQUE_WM_ABI_VERSION;
 
-     snprintf( info->name, DFB_CORE_WM_INFO_NAME_LENGTH, "Default" );
-     snprintf( info->vendor, DFB_CORE_WM_INFO_VENDOR_LENGTH, "Convergence GmbH" );
+     snprintf( info->name, DFB_CORE_WM_INFO_NAME_LENGTH, "UniQuE" );
+     snprintf( info->vendor, DFB_CORE_WM_INFO_VENDOR_LENGTH, "Denis Oliver Kropp" );
 
      info->wm_data_size     = sizeof(WMData);
+     info->wm_shared_size   = sizeof(WMShared);
      info->stack_data_size  = sizeof(StackData);
      info->window_data_size = sizeof(WindowData);
 }
@@ -2232,9 +1878,18 @@ wm_get_info( CoreWMInfo *info )
 static DFBResult
 wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 {
-     WMData *data = wm_data;
+     DFBResult  ret;
+     WMData    *data   = wm_data;
+     WMShared  *shared = shared_data;
 
-     data->core = core;
+     data->core       = core;
+     data->shared     = shared;
+     data->module_abi = UNIQUE_WM_ABI_VERSION;
+
+     ret = unique_wm_module_init( core, wm_data, shared_data, true );
+     if (ret)
+          return ret;
+
 
      return DFB_OK;
 }
@@ -2242,9 +1897,18 @@ wm_initialize( CoreDFB *core, void *wm_data, void *shared_data )
 static DFBResult
 wm_join( CoreDFB *core, void *wm_data, void *shared_data )
 {
-     WMData *data = wm_data;
+     DFBResult  ret;
+     WMData    *data   = wm_data;
+     WMShared  *shared = shared_data;
 
-     data->core = core;
+     data->core       = core;
+     data->shared     = shared;
+     data->module_abi = UNIQUE_WM_ABI_VERSION;
+
+     ret = unique_wm_module_init( core, wm_data, shared_data, false );
+     if (ret)
+          return ret;
+
 
      return DFB_OK;
 }
@@ -2252,12 +1916,16 @@ wm_join( CoreDFB *core, void *wm_data, void *shared_data )
 static DFBResult
 wm_shutdown( bool emergency, void *wm_data, void *shared_data )
 {
+     unique_wm_module_deinit( true, emergency );
+
      return DFB_OK;
 }
 
 static DFBResult
 wm_leave( bool emergency, void *wm_data, void *shared_data )
 {
+     unique_wm_module_deinit( false, emergency );
+
      return DFB_OK;
 }
 
@@ -2281,11 +1949,16 @@ wm_init_stack( CoreWindowStack *stack,
                void            *stack_data )
 {
      int        i;
-     StackData *data = stack_data;
+     DFBResult  ret;
+     StackData *data   = stack_data;
+     WMData    *wmdata = wm_data;
+     WMShared  *shared;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
+
+     shared = wmdata->shared;
 
      data->stack = stack;
 
@@ -2293,6 +1966,30 @@ wm_init_stack( CoreWindowStack *stack,
 
      for (i=0; i<8; i++)
           data->keys[i].code = -1;
+
+     ret = stret_region_create( shared->classes[UCI_ROOT], data, 0,
+                                SRF_ACTIVE | SRF_OUTPUT,
+                                0, 0, INT_MAX, INT_MAX,
+                                NULL, &data->root );
+     if (ret) {
+          fusion_vector_destroy( &data->windows );
+          return ret;
+     }
+
+     ret = unique_context_create( data, &data->context );
+     if (ret) {
+          D_DERROR( ret, "WM/UniQuE: Could not create context!\n" );
+          stret_region_destroy( data->root );
+          fusion_vector_destroy( &data->windows );
+          return ret;
+     }
+
+     if (unique_context_globalize( data->context )) {
+          unique_context_unref( data->context );
+          stret_region_destroy( data->root );
+          fusion_vector_destroy( &data->windows );
+          return DFB_FUSION;
+     }
 
      D_MAGIC_SET( data, StackData );
 
@@ -2316,6 +2013,9 @@ wm_close_stack( CoreWindowStack *stack,
 
      D_ASSUME( fusion_vector_is_empty( &data->windows ) );
 
+     unique_context_close( data->context );
+     unique_context_unlink( &data->context );
+
      if (fusion_vector_has_elements( &data->windows )) {
           int         i;
           CoreWindow *window;
@@ -2327,6 +2027,8 @@ wm_close_stack( CoreWindowStack *stack,
      }
 
      fusion_vector_destroy( &data->windows );
+
+     stret_region_destroy( data->root );
 
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
@@ -2342,9 +2044,15 @@ wm_resize_stack( CoreWindowStack *stack,
                  int              width,
                  int              height )
 {
+     StackData *data = stack_data;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
+
+     D_MAGIC_ASSERT( data, StackData );
+
+     stret_region_resize( data->root, width, height );
 
      return DFB_OK;
 }
@@ -2364,7 +2072,7 @@ wm_process_input( CoreWindowStack     *stack,
 
      D_MAGIC_ASSERT( data, StackData );
 
-     D_HEAVYDEBUG( "WM/Default: Processing input event (device %d, type 0x%08x, flags 0x%08x)...\n",
+     D_HEAVYDEBUG( "WM/Unique: Processing input event (device %d, type 0x%08x, flags 0x%08x)...\n",
                    event->device_id, event->type, event->flags );
 
      /* FIXME: handle multiple devices */
@@ -2546,8 +2254,12 @@ wm_add_window( CoreWindowStack *stack,
                CoreWindow      *window,
                void            *window_data )
 {
-     WindowData *data  = window_data;
-     StackData  *sdata = stack_data;
+     DFBResult         ret;
+     WMShared         *shared;
+     WMData           *wmdata  = wm_data;
+     StackData        *sdata   = stack_data;
+     WindowData       *data    = window_data;
+     StretRegionFlags  flags   = SRF_NONE;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2557,10 +2269,54 @@ wm_add_window( CoreWindowStack *stack,
 
      D_MAGIC_ASSERT( sdata, StackData );
 
+     shared = wmdata->shared;
+
      /* Initialize window data. */
      data->window     = window;
      data->stack_data = stack_data;
      data->priority   = get_priority( window );
+     data->has_frame  = ! (window->caps & DWHC_TOPMOST);
+
+     if (! (window->options & DWOP_GHOST))
+          flags |= SRF_INPUT;
+
+     if (! (window->caps & DWCAPS_INPUTONLY))
+          flags |= SRF_OUTPUT;
+
+     if (window->options & DWOP_SHAPED)
+          flags |= SRF_SHAPED;
+
+     if (data->has_frame) {
+          data->insets = (DFBInsets) { 4, 4, 4, 4 };
+
+          ret = stret_region_create( shared->classes[UCI_FRAME], data, 0, SRF_OUTPUT,
+                                     window->x - data->insets.l,
+                                     window->y - data->insets.t,
+                                     window->width  + data->insets.l + data->insets.r,
+                                     window->height + data->insets.t + data->insets.b,
+                                     sdata->root, &data->frame );
+          if (ret)
+               return ret;
+
+
+          ret = stret_region_create( shared->classes[UCI_WINDOW], data, true, flags | SRF_ACTIVE,
+                                     data->insets.l, data->insets.t, window->width, window->height,
+                                     data->frame, &data->region );
+          if (ret) {
+               stret_region_destroy( data->frame );
+               return ret;
+          }
+     }
+     else {
+          ret = stret_region_create( shared->classes[UCI_WINDOW], data, true, flags,
+                                     window->x, window->y, window->width, window->height,
+                                     sdata->root, &data->region );
+          if (ret)
+               return ret;
+
+          data->frame = data->region;
+     }
+
 
      if (window->region)
           dfb_layer_region_get_configuration( window->region, &data->config );
@@ -2596,6 +2352,11 @@ wm_remove_window( CoreWindowStack *stack,
      D_MAGIC_ASSERT( sdata, StackData );
 
      remove_window( stack, sdata, window, data );
+
+     stret_region_destroy( data->region );
+
+     if (data->has_frame)
+          stret_region_destroy( data->frame );
 
      D_MAGIC_CLEAR( data );
 
@@ -2784,6 +2545,6 @@ wm_update_window( CoreWindow          *window,
 
      DFB_REGION_ASSERT_IF( region );
 
-     return update_window( window, window_data, region, flags, false, false );
+     return update_window( window, window_data, region, flags, false );
 }
 

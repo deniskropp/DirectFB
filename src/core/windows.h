@@ -161,9 +161,7 @@ dfb_window_set_opacity( CoreWindow *window,
 DFBResult
 dfb_window_repaint( CoreWindow          *window,
                     DFBRegion           *region,
-                    DFBSurfaceFlipFlags  flags,
-                    bool                 force_complete,
-                    bool                 force_invisible );
+                    DFBSurfaceFlipFlags  flags );
 
 /*
  * request a window to gain focus

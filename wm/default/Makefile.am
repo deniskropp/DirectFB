@@ -22,9 +22,7 @@ libdirectfbwm_default_la_LDFLAGS = \
 	-module
 
 libdirectfbwm_default_la_SOURCES = \
-	default.c	\
-	stret.c		\
-	stret.h
+	default.c
 
 
 include $(top_srcdir)/rules/libobject.make

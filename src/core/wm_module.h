@@ -68,6 +68,12 @@ static DFBResult wm_close_stack    ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data );
 
+static DFBResult wm_resize_stack   ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     int                     width,
+                                     int                     height );
+
 static DFBResult wm_process_input  ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data,
@@ -167,9 +173,7 @@ static DFBResult wm_update_window  ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
                                      DFBRegion              *region,
-                                     DFBSurfaceFlipFlags     flags,
-                                     bool                    force_complete,
-                                     bool                    force_invisible );
+                                     DFBSurfaceFlipFlags     flags );
 
 
 static CoreWMFuncs wm_funcs = {
@@ -184,6 +188,7 @@ static CoreWMFuncs wm_funcs = {
 
      InitStack:           wm_init_stack,
      CloseStack:          wm_close_stack,
+     ResizeStack:         wm_resize_stack,
      ProcessInput:        wm_process_input,
      FlushKeys:           wm_flush_keys,
      WindowAt:            wm_window_at,

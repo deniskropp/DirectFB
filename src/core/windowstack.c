@@ -195,6 +195,9 @@ dfb_windowstack_resize( CoreWindowStack *stack,
      stack->cursor.region.x2 = width - 1;
      stack->cursor.region.y2 = height - 1;
 
+     /* Notify the window manager. */
+     dfb_wm_resize_stack( stack, width, height );
+
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
 }
@@ -478,7 +481,7 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      if (dx || dy)
           dfb_window_move( stack->cursor.window, dx, dy );
      else
-          dfb_window_repaint( stack->cursor.window, NULL, 0, false, false );
+          dfb_window_repaint( stack->cursor.window, NULL, DSFLIP_NONE );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -717,7 +720,7 @@ finish:
 
      dfb_surface_unlock( window->surface, 0 );
 
-     dfb_window_repaint( window, NULL, 0, false, false );
+     dfb_window_repaint( window, NULL, DSFLIP_NONE );
 
      return ret;
 }
