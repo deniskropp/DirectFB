@@ -31,12 +31,14 @@
 
 #ifdef __linux__
 #include <asm/page.h>
-#else
-#define PAGE_SIZE 4096 // FIXME: dont assume
 #endif
 
 #include <stdlib.h>
 #include <string.h>
+
+#ifndef PAGE_SIZE
+#define PAGE_SIZE     (sysconf( _SC_PAGE_SIZE ))
+#endif
 
 #define PAGE_ALIGN(x) ((((x) + PAGE_SIZE - 1) / PAGE_SIZE) * PAGE_SIZE)
 
