@@ -330,8 +330,9 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                break;
           case CSP_VIDEOLOW:
                /* read access or no video instance? system lock! */
-               if ((/*flags & DSLF_READ  ||*/
-                    buffer->video.health != CSH_STORED) && !buffer->video.locked)
+               if ((buffer->video.health != CSH_STORED ||
+                    (flags & DSLF_READ && buffer->system.health == CSH_STORED))
+                   && !buffer->video.locked)
                {
                     dfb_surfacemanager_assure_system( surface->manager, buffer );
                     buffer->system.locked = 1;
