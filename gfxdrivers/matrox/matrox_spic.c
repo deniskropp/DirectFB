@@ -56,6 +56,8 @@
 #include "matrox_maven.h"
 
 typedef struct {
+     DFBDisplayLayerConfig config;
+
      /* Stored registers */
      struct {
           /* CRTC2 sub picture */
@@ -70,7 +72,7 @@ typedef struct {
 static void spic_set_buffer( MatroxDriverData *mdrv, MatroxSpicLayerData *mspic,
                              DisplayLayer *layer );
 
-#define SPIC_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING)
+#define SPIC_SUPPORTED_OPTIONS   (DLOP_ALPHACHANNEL | DLOP_OPACITY)
 
 /**********************/
 
@@ -90,7 +92,7 @@ spicInitLayer( GraphicsDevice        *device,
                void                  *layer_data )
 {
      /* set capabilities and type */
-     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_DEINTERLACING;
+     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_ALPHACHANNEL | DLCAPS_OPACITY;
      layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
@@ -168,6 +170,11 @@ spicTestConfiguration( DisplayLayer               *layer,
      if (config->options & ~SPIC_SUPPORTED_OPTIONS)
           fail |= DLCONF_OPTIONS;
 
+     /* Can't have both at the same time */
+     if (config->options & DLOP_ALPHACHANNEL &&
+         config->options & DLOP_OPACITY)
+          fail |= DLCONF_OPTIONS;
+
      switch (config->pixelformat) {
           case DSPF_LUT8:
                break;
@@ -198,6 +205,9 @@ spicSetConfiguration( DisplayLayer          *layer,
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
+
+     /* remember configuration */
+     mspic->config = *config;
 
      spic_set_buffer( mdrv, mspic, layer );
 
@@ -255,19 +265,26 @@ spicSetOpacity( DisplayLayer *layer,
           case 0xFF:
                /* c2subpicen = 1 */
                mspic->regs.c2DATACTL |= (1 << 3);
-               /* c2statickeyen = 0 */
-               mspic->regs.c2DATACTL &= ~(1 << 5);
                break;
           default:
+               if (!(mspic->config.options & DLOP_OPACITY))
+                    return DFB_UNSUPPORTED;
+
                /* c2subpicen = 1 */
                mspic->regs.c2DATACTL |= (1 << 3);
-               /* c2statickeyen = 1 */
-               mspic->regs.c2DATACTL |= (1 << 5);
-               /* c2statickey */
-               mspic->regs.c2DATACTL &= ~0x1F000000;
-               mspic->regs.c2DATACTL |= ((opacity + 2) << 20) & 0x1F000000;
                break;
      }
+
+     if (mspic->config.options & DLOP_ALPHACHANNEL)
+          /* c2statickeyen = 0 */
+          mspic->regs.c2DATACTL &= ~(1 << 5);
+     else
+          /* c2statickeyen = 1 */
+          mspic->regs.c2DATACTL |= (1 << 5);
+
+     /* c2statickey */
+     mspic->regs.c2DATACTL &= ~0x1F000000;
+     mspic->regs.c2DATACTL |= ((opacity + 1) << 20) & 0x1F000000;
 
      mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL);
 
