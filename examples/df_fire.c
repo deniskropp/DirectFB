@@ -149,6 +149,7 @@ int main( int argc, char *argv[] )
 
           dfb->GetDisplayLayer( dfb, DLID_PRIMARY, &layer );
           layer->SetBufferMode( layer, DLBM_BACKSYSTEM );
+          layer->EnableCursor( layer, 1 );
           layer->GetSize( layer, &xres, &yres );
           dfb->SetVideoMode( dfb, xres, yres, 16 );
           dfb->SetCooperativeLevel( dfb, DFSCL_NORMAL );

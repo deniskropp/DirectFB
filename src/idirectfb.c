@@ -575,8 +575,6 @@ DFBResult IDirectFB_Construct( IDirectFB *thiz )
      thiz->Suspend = IDirectFB_Suspend;
      thiz->Resume = IDirectFB_Resume;
 
-     layer_cursor_enable( layers, 1 );
-
      return DFB_OK;
 }
 
