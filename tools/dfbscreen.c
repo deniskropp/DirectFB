@@ -350,8 +350,6 @@ parse_enum( const AnyOption *option, const char *arg )
                len = strlen( arg );
 
           do {
-               int nl = strlen( vn->name );
-
                if (strncasecmp( vn->name, arg, len ))
                     continue;
 
