@@ -511,7 +511,7 @@ DFBResult IDirectFB_CreateImageProvider( IDirectFB *thiz, const char *filename,
      ret = impl->Construct( *interface, filename );
 
      if (ret) {
-        DFBFREE(*interface);
+        free(*interface);
         *interface = NULL;
      }
 
@@ -551,7 +551,7 @@ DFBResult IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      ret = impl->Construct( *interface, filename );
 
      if (ret) {
-        DFBFREE(*interface);
+        free(*interface);
         *interface = NULL;
      }
 
@@ -594,7 +594,7 @@ DFBResult IDirectFB_CreateFont( IDirectFB *thiz, const char *filename,
      ret = impl->Construct( *interface, filename, desc );
 
      if (ret) {
-        DFBFREE(*interface);
+        free(*interface);
         *interface = NULL;
      }
 
