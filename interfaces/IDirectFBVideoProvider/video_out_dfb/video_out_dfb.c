@@ -21,7 +21,7 @@
  *  NOTE: adjusting contrast is disabled in __dummy_* when output is RGB
  *
  *
- *  TODO: speed up at 24bpp and 32bpp, add support for overlays
+ *  TODO: speed up at 24bpp and 32bpp, add support for overlays on YUV
  *
  */
 
@@ -47,7 +47,6 @@
 #include "video_out_dfb_tables.h"
 
 
-
 #define THIS  "video_out_dfb"
 
 
@@ -58,17 +57,6 @@
 		fprintf(stderr, THIS \
 			": at line %i [" #exp "] failed !!\n", \
 			__LINE__);\
-		goto FAILURE;\
-	}\
-}
-
-#define DFBCHECK(x) \
-{\
-	int err = x;\
-	if(err != DFB_OK)\
-	{\
-		fprintf( stderr, "%s <%d>:\n\t", __FILE__, __LINE__ );\
-		DirectFBErrorFatal( #x, err );\
 		goto FAILURE;\
 	}\
 }
@@ -105,7 +93,7 @@
 }
 
 
-#ifdef DEBUG
+#ifdef DFB_DEBUG
 
 static inline uint64_t
 rdtsc(void)
@@ -382,11 +370,11 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 {
 	uint8_t* yuv_data = frame->vo_frame.base[0];
 	uint8_t* y_off    = (uint8_t*) data;
-	uint8_t* u_off    = (frame->tmp->format == DSPF_YV12)
+	uint8_t* u_off    = (frame->surface->format == DSPF_YV12)
 			     ? data + (pitch * frame->height)
 			     : data + (pitch * frame->height) +
 			       ((pitch * frame->height) >> 2);
-	uint8_t* v_off    = (frame->tmp->format == DSPF_YV12)
+	uint8_t* v_off    = (frame->surface->format == DSPF_YV12)
 			    ? data + (pitch * frame->height) +
 			      ((pitch * frame->height) >> 2)
 			    : data + (pitch * frame->height);
@@ -1369,14 +1357,14 @@ __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 	}
 
 	xine_fast_memcpy(data,
-			(frame->tmp->format == DSPF_YV12)
+			(frame->surface->format == DSPF_YV12)
 				? frame->vo_frame.base[1]
 				: frame->vo_frame.base[2],
 			frame->vo_frame.pitches[1] * (frame->height >> 1));
 	data += (pitch * frame->height) >> 2;
 
 	xine_fast_memcpy(data,
-			(frame->tmp->format == DSPF_YV12)
+			(frame->surface->format == DSPF_YV12)
 				? frame->vo_frame.base[2]
 				: frame->vo_frame.base[1],
 			frame->vo_frame.pitches[2] * (frame->height >> 1));
@@ -1425,14 +1413,14 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 	}
 
 	xine_fast_memcpy(data,
-			(frame->tmp->format == DSPF_YV12)
+			(frame->surface->format == DSPF_YV12)
 				? frame->vo_frame.base[1]
 				: frame->vo_frame.base[2],
 			frame->vo_frame.pitches[1] * (frame->height >> 1));
 	data += (pitch * frame->height) >> 2;
 
 	xine_fast_memcpy(data,
-			(frame->tmp->format == DSPF_YV12)
+			(frame->surface->format == DSPF_YV12)
 				? frame->vo_frame.base[2]
 				: frame->vo_frame.base[1],
 			frame->vo_frame.pitches[2] * (frame->height >> 1));
@@ -2229,24 +2217,24 @@ dfb_get_capabilities(vo_driver_t* vo_driver)
 static void
 dfb_proc_frame(vo_frame_t* vo_frame)
 {
-	dfb_driver_t* this  = NULL;
+	dfb_driver_t* this = NULL;
 	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
 	uint8_t* data;
 	uint32_t pitch;
-#ifdef DEBUG
+#ifdef DFB_DEBUG
 	static int test = 8;
 #endif
 	
-	TEST(vo_frame   != NULL);
-	TEST(frame->tmp != NULL);
+	TEST(vo_frame != NULL);
+	TEST(frame->surface != NULL);
 
 	vo_frame->proc_called = 1;
 
 	this  = (dfb_driver_t*) vo_frame->driver;
-	data  = (uint8_t*) frame->tmp->back_buffer->system.addr;
-	pitch = (uint32_t) frame->tmp->back_buffer->system.pitch;
-	
-	SPEED(frame->render(this, frame, data, pitch));
+	data  = (uint8_t*) frame->surface->back_buffer->system.addr;
+	pitch = (uint32_t) frame->surface->back_buffer->system.pitch;
+
+	SPEED(frame->realize(this, frame, data, pitch));
 
 FAILURE:
 	return;
@@ -2260,8 +2248,8 @@ dfb_frame_dispose(vo_frame_t* vo_frame)
 
 	if(frame)
 	{
-		if(frame->tmp)
-			dfb_surface_unref(frame->tmp);
+		if(frame->surface)
+			dfb_surface_unref(frame->surface);
 		release(frame->chunks[0]);
 		release(frame->chunks[1]);
 		release(frame->chunks[2]);
@@ -2286,6 +2274,11 @@ dfb_alloc_frame(vo_driver_t* vo_driver)
 	frame->vo_frame.field      = NULL;
 	frame->vo_frame.dispose    = dfb_frame_dispose;
 	frame->vo_frame.driver     = vo_driver;
+	frame->state.src_blend     = DSBF_SRCALPHA;
+	frame->state.dst_blend     = DSBF_INVSRCALPHA;
+	frame->state.modified      = SMF_ALL;
+
+	D_MAGIC_SET(&(frame->state), CardState);
 
 	return((vo_frame_t*) frame);
 
@@ -2314,75 +2307,25 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	frame->height = height + (height & 1);
 	frame->format = format;
 	
-	if(frame->tmp)
+	if(frame->surface)
 	{
-		dfb_surface_unref(frame->tmp);
-		frame->tmp = NULL;
+		dfb_surface_unref(frame->surface);
+		frame->surface = NULL;
 	}
 	
-	DFBCHECK(dfb_surface_create(NULL, frame->width, frame->height,
+	dfb_surface_create(NULL, frame->width, frame->height,
 				this->main_data->surface->format,
 				CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY,
-				NULL, &(frame->tmp)));	
-	
-	memcpy(&(frame->state), &(this->main_data->state), sizeof(CardState));
-
-	frame->state.modified    = (SMF_CLIP | SMF_DESTINATION | SMF_SOURCE);
-	frame->state.source      = frame->tmp;
-	frame->state.destination = this->main_data->surface;
-	
-	this->output_cb(this->output_cdata, frame->width, 
-			frame->height, &(frame->dest_rect));
-	
-	if(frame->dest_rect.x < 0)
-		frame->dest_rect.x = 0;
-	frame->dest_rect.x += this->main_data->area.wanted.x;
-	
-	if(frame->dest_rect.y < 0)
-		frame->dest_rect.y = 0;
-	frame->dest_rect.y += this->main_data->area.wanted.y;
-	
+				NULL, &(frame->surface));
+	if(!frame->surface)
 	{
-		uint32_t maxw = this->main_data->surface->width - frame->dest_rect.x;
-		uint32_t maxh = this->main_data->surface->height - frame->dest_rect.y;	
-		
-		if(frame->dest_rect.w < 1 || frame->dest_rect.w > maxw)
-		{
-			frame->dest_rect.x = this->main_data->area.wanted.x;
-			frame->dest_rect.w = this->main_data->area.wanted.w;
-		}
-		
-		if(frame->dest_rect.h < 1 || frame->dest_rect.h > maxh)
-		{
-			frame->dest_rect.y = this->main_data->area.wanted.y;
-			frame->dest_rect.h = this->main_data->area.wanted.h;
-		}
-	}
-
-	frame->used_area.x1 = frame->dest_rect.x;
-	frame->used_area.y1 = frame->dest_rect.y;
-	frame->used_area.x2 = frame->dest_rect.x + frame->dest_rect.w;
-	frame->used_area.y2 = frame->dest_rect.y + frame->dest_rect.h;
-	
-	if(!dfb_rectangle_intersect(&(frame->dest_rect),
-				&(this->main_data->area.current)))
-	{
-		DBUG("error intersecting rectangle {%i,%i,%i,%i} with rectangle {%i,%i,%i,%i}",
-				frame->dest_rect.x, frame->dest_rect.y,
-				frame->dest_rect.w, frame->dest_rect.h,
-				this->main_data->area.current.x,
-				this->main_data->area.current.y,
-				this->main_data->area.current.w,
-				this->main_data->area.current.h);
+		DBUG("couldn't create a surface for frame %p", frame);
 		goto FAILURE;
 	}
-		
-	frame->state.clip.x1 = frame->dest_rect.x;
-	frame->state.clip.y1 = frame->dest_rect.y;
-	frame->state.clip.x2 = frame->dest_rect.x + frame->dest_rect.w - 1;
-	frame->state.clip.y2 = frame->dest_rect.y + frame->dest_rect.h - 1;
-		
-	
+
+	frame->state.source    = frame->surface;
+	frame->state.modified |= SMF_SOURCE;
+
 	release(frame->chunks[0]);
 	release(frame->chunks[1]);
 	release(frame->chunks[2]);
@@ -2425,37 +2368,37 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 		break;
 	}
 
-	switch(frame->tmp->format)
+	switch(frame->surface->format)
 	{
 		case DSPF_YUY2:
-			frame->render = yuv_cc->yuy2;
+			frame->realize = yuv_cc->yuy2;
 		break;
 
 		case DSPF_UYVY:
-			frame->render = yuv_cc->uyvy;
+			frame->realize = yuv_cc->uyvy;
 		break;
 
 		case DSPF_YV12:
 		case DSPF_I420:
-			frame->render = yuv_cc->yv12;
+			frame->realize = yuv_cc->yv12;
 		break;
 
 		case DSPF_ARGB1555:
-			frame->render = yuv_cc->rgb15;
+			frame->realize = yuv_cc->rgb15;
 		break;
 
 		case DSPF_RGB16:
-			frame->render = yuv_cc->rgb16;
+			frame->realize = yuv_cc->rgb16;
 		break;
 
 		case DSPF_RGB24:
-			frame->render = yuv_cc->rgb24;
+			frame->realize = yuv_cc->rgb24;
 		break;
 
 		case DSPF_RGB32:
 		case DSPF_ARGB:
 		case DSPF_AiRGB:
-			frame->render = yuv_cc->rgb32;
+			frame->realize = yuv_cc->rgb32;
 		break;
 	
 		default:
@@ -2465,11 +2408,172 @@ dfb_update_frame_format(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
 	return;
 	
 FAILURE:
-	if(frame->tmp)
+	if(frame->surface)
 	{
-		dfb_surface_unref(frame->tmp);
-		frame->tmp = NULL;
+		dfb_surface_unref(frame->surface);
+		frame->surface = NULL;
 	}
+}
+
+
+static void
+dfb_overlay_clut_yuv2rgb(dfb_driver_t* this, dfb_frame_t* frame,
+					vo_overlay_t* overlay)
+{
+	clut_t* clut;
+	uint32_t i;
+
+	if(!overlay->rgb_clut)
+	{
+		clut = (clut_t*) overlay->color;
+
+		for(i = 0; i < (sizeof(overlay->color) / sizeof(clut_t)); i++)
+		{
+			DFBColor* color = (DFBColor*) &clut[i];
+			int y, r, g, b;
+
+			y = clut[i].y + this->correction.defined;
+
+			r = y + v_red_table[clut[i].cb];
+			g = y - v_green_table[clut[i].cb] -
+				u_green_table[clut[i].cr];
+			b = y + u_blue_table[clut[i].cr];
+
+			color->r = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
+			color->g = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
+			color->b = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
+		}
+
+		overlay->rgb_clut++;
+	}
+
+	if(!overlay->clip_rgb_clut)
+	{
+		clut = (clut_t*) overlay->clip_color;
+
+		for(i = 0; i < (sizeof(overlay->clip_color) / sizeof(clut_t)); i++)
+		{
+			DFBColor* color = (DFBColor*) &clut[i];
+			int y, r, g, b;
+
+			y = clut[i].y + this->correction.defined;
+			
+			r = y + v_red_table[clut[i].cb];
+			g = y - v_green_table[clut[i].cb] -
+				u_green_table[clut[i].cr];
+			b = y + u_blue_table[clut[i].cr];
+
+			color->r = ((r < 0) ? 0 : ((r > 0xff) ? 0xff : r));
+			color->g = ((g < 0) ? 0 : ((g > 0xff) ? 0xff : g));
+			color->b = ((b < 0) ? 0 : ((b > 0xff) ? 0xff : b));
+		}
+
+		overlay->clip_rgb_clut++;
+	}
+}
+
+
+static void
+dfb_overlay_blend(vo_driver_t* vo_driver, vo_frame_t* vo_frame,
+			vo_overlay_t* overlay)
+{
+	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
+	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
+	uint32_t i, x, y;
+
+	TEST(vo_driver != NULL);
+	TEST(vo_frame  != NULL);
+	TEST(overlay   != NULL);
+	TEST(frame->surface != NULL);
+
+	if(!overlay->rle)
+		return;
+
+	switch(frame->surface->format)
+	{
+		case DSPF_YUY2:
+		case DSPF_UYVY:
+		case DSPF_YV12:
+		case DSPF_I420:
+			ONESHOT("blending overlays over YUV surfaces is not supported");
+		return;
+
+		default:
+		break;
+	}
+
+	dfb_overlay_clut_yuv2rgb(this, frame, overlay);
+
+	frame->state.destination  = frame->surface;
+	frame->state.drawingflags = DSDRAW_BLEND;
+	frame->state.modified    |= (SMF_DESTINATION | SMF_DRAWING_FLAGS);
+
+	/* based on X11 osd */
+	for(i = 0, x= 0, y = 0; i < overlay->num_rle; i++)
+	{
+		uint32_t len   = overlay->rle[i].len;
+		uint32_t color = overlay->rle[i].color & 0xff;
+
+		while(len > 0)
+		{
+			DFBColor* c_palette = (DFBColor*) overlay->color;
+			uint8_t*  t_palette = (uint8_t*) overlay->trans;
+			uint32_t width;
+
+			width = (len > overlay->width)
+				 ? overlay->width : len;
+			len -= width;
+
+			if(y >= overlay->clip_top && y <= overlay->clip_bottom
+					&& x <= overlay->clip_right)
+			{
+				if(x < overlay->clip_left &&
+					(x + width + 1) >= overlay->clip_left)
+				{
+					width -= overlay->clip_left - x;
+					len   += overlay->clip_left - x;
+				} else
+				if(x > overlay->clip_left)
+				{
+					c_palette = (DFBColor*) overlay->clip_color;
+					t_palette = (uint8_t*) overlay->clip_trans;
+
+					if((x + width - 1) > overlay->clip_right)
+					{
+						width -= overlay->clip_right - x;
+						len   += overlay->clip_right - x;
+					}
+				}
+			}
+
+			if(t_palette[color])
+			{
+				DFBRectangle rect;
+				
+				frame->state.color     = c_palette[color];
+				frame->state.color.a   = t_palette[color] * 17;
+				frame->state.modified |= SMF_COLOR;
+
+				rect.x = overlay->x + x;
+				rect.y = overlay->y + y;
+				rect.w = width;
+				rect.h = 1;
+
+				dfb_gfxcard_fillrectangle(&rect, &(frame->state));
+			}
+
+			x += width;
+
+			if(x >= overlay->width)
+			{
+				x = 0;
+				y++;
+			}
+		}
+	}
+
+FAILURE:
+	return;
 }
 
 
@@ -2478,34 +2582,79 @@ dfb_display_frame(vo_driver_t* vo_driver, vo_frame_t* vo_frame)
 {
 	dfb_driver_t* this = (dfb_driver_t*) vo_driver;
 	dfb_frame_t* frame = (dfb_frame_t*) vo_frame;
-		
+	DFBRectangle dest_rect;
+	DFBRegion used_area;
+
 	TEST(vo_driver  != NULL);
 	TEST(vo_frame   != NULL);
-	TEST(frame->tmp != NULL);
-	
-	if(frame->dest_rect.w != frame->width ||
-		frame->dest_rect.h != frame->height)
+	TEST(frame->surface != NULL);
+
+	this->output_cb(this->output_cdata, frame->width,
+			frame->height, &dest_rect);
+
+	used_area.x1 = dest_rect.x;
+	used_area.y1 = dest_rect.y;
+	used_area.x2 = dest_rect.x + dest_rect.w;
+	used_area.y2 = dest_rect.y + dest_rect.h;
+
+	if(dest_rect.x < 0)
+		dest_rect.x = 0;
+	dest_rect.x += this->main_data->area.wanted.x;
+
+	if(dest_rect.y < 0)
+		dest_rect.y = 0;
+	dest_rect.y += this->main_data->area.wanted.y;
+
+	{
+		uint32_t maxw = this->main_data->surface->width - dest_rect.x;
+		uint32_t maxh = this->main_data->surface->height - dest_rect.y;
+
+		if(dest_rect.w < 1 || dest_rect.w > maxw)
+		{
+			dest_rect.x = this->main_data->area.wanted.x;
+			dest_rect.w = this->main_data->area.wanted.w;
+		}
+
+		if(dest_rect.h < 1 || dest_rect.h > maxh)
+		{
+			dest_rect.y = this->main_data->area.wanted.y;
+			dest_rect.h = this->main_data->area.wanted.h;
+		}
+	}
+
+	if(!dfb_rectangle_intersect(&dest_rect,
+			&(this->main_data->area.current)))
+		goto FAILURE;
+
+	frame->state.clip.x1     = dest_rect.x;
+	frame->state.clip.y1     = dest_rect.y;
+	frame->state.clip.x2     = dest_rect.x + dest_rect.w - 1;
+	frame->state.clip.y2     = dest_rect.y + dest_rect.h - 1;
+	frame->state.destination = this->main_data->surface;
+	frame->state.modified   |= (SMF_CLIP | SMF_DESTINATION);
+
+
+	if(dest_rect.w != frame->width ||
+		dest_rect.h != frame->height)
 	{
 		DFBRectangle rect = {0, 0, frame->width, frame->height};
-		
-		dfb_gfxcard_stretchblit(&rect,
-				&(frame->dest_rect), &(frame->state));
+
+		dfb_gfxcard_stretchblit(&rect, &dest_rect, &(frame->state));
 	} else
 	{
 		DFBRectangle rect = {0, 0, frame->width, frame->height};
-		
-		dfb_gfxcard_blit(&rect, frame->dest_rect.x,
-				frame->dest_rect.y, &(frame->state));
+
+		dfb_gfxcard_blit(&rect, dest_rect.x,
+					dest_rect.y, &(frame->state));
 	}
 
 	if(this->frame_cb)
 	{
 		this->frame_cb(this->frame_cdata);
-
-	} else 
-	if(this->main_data->caps & DSCAPS_DOUBLE)
+	} else
+	if(this->main_data->caps & DSCAPS_FLIPPING)
 	{
-		this->main->Flip(this->main, &(frame->used_area), 0);
+		this->main->Flip(this->main, &used_area, 0);
 	}
 
 
@@ -2795,7 +2944,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 	this->vo_driver.alloc_frame          = dfb_alloc_frame;
 	this->vo_driver.update_frame_format  = dfb_update_frame_format;
 	this->vo_driver.overlay_begin        = NULL;
-	this->vo_driver.overlay_blend        = NULL;
+	this->vo_driver.overlay_blend        = dfb_overlay_blend;
 	this->vo_driver.overlay_end          = NULL;
 	this->vo_driver.display_frame        = dfb_display_frame;
 	this->vo_driver.get_property         = dfb_get_property;

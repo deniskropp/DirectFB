@@ -38,15 +38,13 @@ struct dfb_frame_s
 	int            width;
 	int            height;
 	int            format;
-
+	
 	CardState      state;
-	CoreSurface*   tmp;
-	DFBRectangle   dest_rect;
-	DFBRegion      used_area;
+	CoreSurface*   surface;
 
 	void*          chunks[3];
 
-	void (*render) (dfb_driver_t* this, dfb_frame_t* frame,
+	void (*realize) (dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch);
 
 };
@@ -172,6 +170,19 @@ typedef struct
  * a dfb_frame_callback_t* as third argument.
  * 
  */
+
+
+
+/* CLUT == Color LookUp Table */
+typedef struct
+{
+	uint8_t cb    : 8;
+	uint8_t cr    : 8;
+	uint8_t y     : 8;
+	uint8_t foo   : 8;
+
+} __attribute__ ((packed)) clut_t;
+
 
 
 #endif /* VIDEO_OUT_DFB_H */
