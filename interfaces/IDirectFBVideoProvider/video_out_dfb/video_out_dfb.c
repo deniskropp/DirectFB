@@ -25,6 +25,8 @@
  *
  */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -163,7 +165,7 @@ static const uint32_t b6_mask[] = {0xfcfcfcfc, 0xfcfcfcfc};
 
 
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -209,7 +211,7 @@ __mmx_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 			: "memory");
 	}
 }
-
+#endif
 
 static void
 __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
@@ -254,7 +256,7 @@ __dummy_yuy2_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 	}
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -290,7 +292,7 @@ __mmx_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yuy2_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
@@ -501,7 +503,7 @@ __dummy_yuy2_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 	}
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -567,7 +569,7 @@ __mmx_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
@@ -626,7 +628,7 @@ __dummy_yuy2_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -692,7 +694,7 @@ __mmx_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
@@ -752,7 +754,7 @@ __dummy_yuy2_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -823,7 +825,7 @@ __mmx_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 /* unrolling here seems to speed up */
 static void
@@ -910,7 +912,7 @@ __dummy_yuy2_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -972,7 +974,7 @@ __mmx_yuy2_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 /* unrolling here seems to speed up */
 static void
@@ -1077,7 +1079,7 @@ static yuv_render_t yuy2_cc =
 
 
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1139,7 +1141,7 @@ __mmx_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
  static void
 __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1224,7 +1226,7 @@ __dummy_yv12_be_yuy2(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1286,7 +1288,7 @@ __mmx_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1372,7 +1374,7 @@ __dummy_yv12_be_uyvy(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1426,7 +1428,7 @@ __mmx_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 				: frame->vo_frame.base[2],
 			(pitch * frame->height) >> 2);
 }
-
+#endif
 
 static void
 __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1479,7 +1481,7 @@ __dummy_yv12_be_yv12(dfb_driver_t* this, dfb_frame_t* frame,
 			(pitch * frame->height) >> 2);
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1577,7 +1579,7 @@ __mmx_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1673,7 +1675,7 @@ __dummy_yv12_be_rgb15(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1771,7 +1773,7 @@ __mmx_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
@@ -1868,7 +1870,7 @@ __dummy_yv12_be_rgb16(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -1976,7 +1978,7 @@ __mmx_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
@@ -2063,7 +2065,7 @@ __dummy_yv12_be_rgb24(dfb_driver_t* this, dfb_frame_t* frame,
 
 }
 
-
+#ifdef ARCH_X86
 static void
 __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 				uint8_t* data, uint32_t pitch)
@@ -2154,7 +2156,7 @@ __mmx_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
 		: "memory");
 
 }
-
+#endif
 
 static void
 __dummy_yv12_be_rgb32(dfb_driver_t* this, dfb_frame_t* frame,
@@ -2994,9 +2996,9 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 
 	this->verbosity = class->xine->verbosity;
 
+#ifdef ARCH_X86
 	{
 		int accel = xine_mm_accel();
-
 		if((accel & MM_MMX) == MM_MMX)
 		{
 			SAY("MMX detected and enabled");
@@ -3016,7 +3018,7 @@ open_plugin(video_driver_class_t* vo_class, const void *vo_visual)
 		}
 
 	}
-
+#endif
 	{
 		config_values_t* config = class->xine->config;
 
