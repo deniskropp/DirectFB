@@ -80,23 +80,28 @@ Enables/disables debug output.
 
 .TP
 .BI force-windowed
-Primary surface always is a window.
+Forces the primary surface to be a window. This allows to run
+applications that were written to do fullscreen access in a window.
 
 .TP
 .BI [no-]hardware
-Hardware acceleration.
+Turns hardware acceleration on or off.
 
 .TP
 .BI [no-]sync
-Do `sync()' (default=no).
+Flushes all disk buffers before initialising DirectFB. This can be
+useful if you working with experimental device drivers and expect
+crashes.
 
 .TP
 .BI no-mmx
-Disables MMX support.
+Disables the use of MMX routines even if support for MMX was detected.
 
 .TP
 .BI argb-font
-Load glyphs into ARGB surfaces.
+Instead of using A8 surfaces (alpha masks), load glyphs into ARGB
+surfaces. This uses more memory but some gfx cards do weird things
+with A8 surfaces. Try this option if your fonts look strange.
 
 .TP
 .BI dont-catch=<num>[[,<num>]...]
@@ -219,10 +224,10 @@ above are passed to DirectFB application on the command-line.
 
 .TP
 .B df_neo --dfb:no-hardware
-starts df_neo without hardware acceleration
+Starts df_neo without hardware acceleration.
 .TP
 .B df_neo --dfb:help
-lists the DirectFB options that can be passed to df_neo
+Lists the DirectFB options that can be passed to df_neo.
 
 
 .SH OTHER INFO
