@@ -1969,7 +1969,7 @@ switch_focus( CoreWindowStack *stack, CoreWindow *to )
      }
 
      if (to) {
-          if (to->surface->palette) {
+          if (to->surface && to->surface->palette) {
                DisplayLayer *layer   = dfb_layer_at( stack->layer_id );
                CoreSurface  *surface = dfb_layer_surface( layer );
 
