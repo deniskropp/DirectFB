@@ -63,28 +63,31 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Xine )
 
 typedef struct
 {
-	int                 ref;
-	DFBResult           err;
+	int                    ref;
+	DFBResult              err;
 	
-	char               *mrl;
-	char               *cfg;
+	char                  *mrl;
+	char                  *cfg;
 
-	xine_t             *xine;
-	xine_video_port_t  *vo;
-	xine_audio_port_t  *ao;
-	xine_post_t        *post;
-	xine_stream_t      *stream;
-	xine_event_queue_t *queue;
+	xine_t                *xine;
+	xine_video_port_t     *vo;
+	xine_audio_port_t     *ao;
+	xine_post_t           *post;
+	xine_stream_t         *stream;
+	xine_event_queue_t    *queue;
 
-	int                 width; /* video width */
-	int                 height; /* video height */
-	int                 length; /* duration */
+	int                    width; /* video width */
+	int                    height; /* video height */
+	int                    length; /* duration */
 
-	char                is_playing;
-	char                is_paused;
+	char                   is_playing;
+	char                   is_paused;
 
-	IDirectFBSurface   *dest;
-	DFBRectangle        dest_rect;
+	IDirectFBSurface      *dest;
+	IDirectFBSurface_data *dest_data;
+	
+	char                   full_area;
+	DFBRectangle           dest_rect;
 
 } IDirectFBVideoProvider_Xine_data;
 
@@ -260,20 +263,19 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                     DVFrameCallback         callback,
                                     void                   *ctx )
 {
-	IDirectFBSurface_data *dest_data;
-	dfb_frame_callback_t   frame_callback;
+	dfb_frame_callback_t frame_callback;
 
 	DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
 	if (!dest)
 		return DFB_INVARG;
 
-	dest_data = (IDirectFBSurface_data*) dest->priv;
-	if (!dest_data)
+	data->dest      = dest;
+	data->dest_data = (IDirectFBSurface_data*) dest->priv;
+	
+	if (!data->dest_data)
 		return DFB_DESTROYED;
-
-	data->dest = dest;
-
+	
 	memset( &data->dest_rect, 0, sizeof( DFBRectangle ) );
 
 	if (dest_rect)
@@ -282,11 +284,9 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 			return DFB_INVARG;
 
 		data->dest_rect = *dest_rect;
+		data->full_area = 0;
 	} else
-	{
-		data->dest_rect.w = dest_data->area.wanted.w;
-		data->dest_rect.h = dest_data->area.wanted.h;
-	}
+		data->full_area = 1;
 
 	if (!xine_port_send_gui_data( data->vo, XINE_GUI_SEND_DRAWABLE_CHANGED,
 					(void*) data->dest ))
@@ -756,7 +756,11 @@ frame_output( void *cdata, int width, int height,
 
 	data->width  = width;
 	data->height = height;
-	*dest_rect   = data->dest_rect;
+
+	if (data->full_area)
+		*dest_rect = data->dest_data->area.wanted;
+	else
+		*dest_rect = data->dest_rect;
 }
 
 
