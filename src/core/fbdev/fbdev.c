@@ -1394,12 +1394,12 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
      
                case DSPF_ARGB:
                     var.transp.length = 8;
-                    var.red.length    = 5;
-                    var.green.length  = 6;
-                    var.blue.length   = 5;
+                    var.red.length    = 8;
+                    var.green.length  = 8;
+                    var.blue.length   = 8;
                     var.transp.offset = 24;
-                    var.red.offset    = 11;
-                    var.green.offset  = 5;
+                    var.red.offset    = 16;
+                    var.green.offset  = 8;
                     var.blue.offset   = 0;
                     break;
      
