@@ -46,6 +46,7 @@
 
 #include <misc/gfx_util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 static DFBResult
@@ -603,7 +604,7 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      DFB_ASSERT( n_colors <= MAXCOLORMAPSIZE );
 
      for (i = 0; i < 3; i++) {
-          memcpy( csort, cmap[i], n_colors );
+          dfb_memcpy( csort, cmap[i], n_colors );
           qsort( csort, n_colors, 1, SortColors );
           
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {

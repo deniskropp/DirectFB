@@ -43,6 +43,7 @@
 
 #include <misc/conf.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 #include <core/input_driver.h>
 
@@ -121,7 +122,7 @@ filter_event(TS_EVENT *ts_event)
      } else lastb = 0;
 
      /* Store this event in the circular buffer. */
-     memcpy(&event_buffer[event_index], ts_event, sizeof(TS_EVENT));
+     dfb_memcpy(&event_buffer[event_index], ts_event, sizeof(TS_EVENT));
 
      /* Don't try to average and filter if we only have one reading. */
      if(evcnt > 1) {

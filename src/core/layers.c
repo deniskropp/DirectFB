@@ -53,6 +53,7 @@
 #include <gfx/convert.h>
 #include <gfx/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 #include "config.h"
@@ -446,7 +447,7 @@ dfb_layers_hook_primary( GraphicsDevice     *device,
 
      /* copy content of original function table */
      if (primary_funcs)
-          memcpy( primary_funcs, primary->funcs, sizeof(DisplayLayerFuncs) );
+          dfb_memcpy( primary_funcs, primary->funcs, sizeof(DisplayLayerFuncs) );
 
      /* copy pointer to original driver data */
      if (primary_driver_data)

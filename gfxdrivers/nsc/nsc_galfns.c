@@ -1,6 +1,6 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.8 $
+ * $Revision: 1.9 $
  * $Author: dok $
  *
  * File Contents: This file contains the main functions of the Geode 
@@ -150,6 +150,8 @@
 #include <errno.h>
 #include <sys/ioctl.h>
 #endif
+
+#include <misc/memcpy.h>
 
 #include <core/fbdev/fbdev.h>
 
@@ -1098,9 +1100,9 @@ Gal_set_cursor_shape32(unsigned long memoffset,
    sCursorShape.dwSubfunction = GALFN_SETCURSORSHAPE;
    sCursorShape.dwMemOffset = memoffset;
 
-   memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
+   dfb_memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
 
-   memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
+   dfb_memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &sCursorShape))
       return 0;
@@ -1127,9 +1129,9 @@ Gal_set_cursor_shape64(unsigned long memoffset,
    sCursorShape.dwSubfunction = GALFN_SETCURSORSHAPE_RCLD;
    sCursorShape.dwMemOffset = memoffset;
 
-   memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
+   dfb_memcpy(sCursorShape.dwAndMask, andmask, sizeof(sCursorShape.dwAndMask));
 
-   memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
+   dfb_memcpy(sCursorShape.dwXorMask, xormask, sizeof(sCursorShape.dwXorMask));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &sCursorShape))
       return 0;
@@ -1910,7 +1912,7 @@ Gal_pnl_set_params(unsigned long flags, PPnl_PanelParams pParam)
    INIT_GAL(&pStat);
    pStat.dwSubfunction = GALFN_PNLSETPARAMS;
    pParam->Flags = flags;
-   memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
+   dfb_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &pStat))
       return 0;
@@ -1935,13 +1937,13 @@ Gal_pnl_get_params(unsigned long flags, PPnl_PanelParams pParam)
 
    INIT_GAL(&pStat);
    pStat.dwSubfunction = GALFN_PNLGETPARAMS;
-   memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
+   dfb_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
    pStat.PanelParams.Flags = flags;
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &pStat))
       return 0;
    else {
-      memcpy(pParam, &(pStat.PanelParams), sizeof(Pnl_PanelParams));
+      dfb_memcpy(pParam, &(pStat.PanelParams), sizeof(Pnl_PanelParams));
       return 1;
    }
 }
@@ -1961,7 +1963,7 @@ Gal_pnl_init(PPnl_PanelParams pParam)
 
    INIT_GAL(&pStat);
    pStat.dwSubfunction = GALFN_PNLINITPANEL;
-   memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
+   dfb_memcpy(&(pStat.PanelParams), pParam, sizeof(Pnl_PanelParams));
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &pStat))
       return 0;
@@ -2986,7 +2988,7 @@ Gal_set_video_palette(unsigned long *palette)
       sSetVideo.identity = 1;
    } else {
       sSetVideo.identity = 0;
-      memcpy(sSetVideo.palette, palette, 256 * sizeof(*palette));
+      dfb_memcpy(sSetVideo.palette, palette, 256 * sizeof(*palette));
    }
 
    if (ioctl(dfb_fbdev->fd, FBIOGAL_API, &sSetVideo))

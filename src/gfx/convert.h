@@ -31,7 +31,7 @@
 #include <directfb.h>
 #include <dfb_types.h>
 
-#include "misc/memcpy.h"
+#include <misc/memcpy.h>
 
 
 /* pixel packing */

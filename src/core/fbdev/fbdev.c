@@ -66,6 +66,7 @@
 #include <gfx/convert.h>
 
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 #include "vt.h"
@@ -1813,7 +1814,7 @@ static DFBResult dfb_fbdev_read_modes()
                          m->next = shcalloc(1, sizeof(VideoMode));
                          m = m->next;
                     }
-                    memcpy (m, &temp_mode, sizeof(VideoMode));
+                    dfb_memcpy (m, &temp_mode, sizeof(VideoMode));
                     DEBUGMSG( "DirectFB/core/fbdev: %20s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
                               temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
                }

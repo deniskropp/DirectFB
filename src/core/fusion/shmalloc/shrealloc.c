@@ -52,6 +52,8 @@ Cambridge, MA 02139, USA.
 
 #include <string.h>
 
+#include <misc/memcpy.h>
+
 #define min(A, B) ((A) < (B) ? (A) : (B))
 
 
@@ -84,7 +86,7 @@ _fusion_shrealloc (void *ptr, size_t size)
                if (size <= BLOCKSIZE / 2) {
                     result = _fusion_shmalloc (size);
                     if (result != NULL) {
-                         memcpy (result, ptr, size);
+                         dfb_memcpy (result, ptr, size);
                          _fusion_shfree (ptr);
                          return result;
                     }
@@ -147,7 +149,7 @@ _fusion_shrealloc (void *ptr, size_t size)
                     result = _fusion_shmalloc (size);
                     if (result == NULL)
                          return NULL;
-                    memcpy (result, ptr, min (size, (size_t) 1 << type));
+                    dfb_memcpy (result, ptr, min (size, (size_t) 1 << type));
                     _fusion_shfree (ptr);
                }
                break;

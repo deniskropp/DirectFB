@@ -55,6 +55,7 @@
 #include <core/windows.h>
 
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 #include <gfx/convert.h>
@@ -1449,7 +1450,7 @@ dump_screen( const char *directory )
                     break;
                case DSPF_RGB32:
                case DSPF_ARGB:
-                    memcpy( buf32, data, surface->width * 4 );
+                    dfb_memcpy( buf32, data, surface->width * 4 );
                     break;
                default:
                     ONCE( "screendump for this format not yet implemented" );

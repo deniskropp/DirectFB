@@ -31,6 +31,7 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 #include "matrox.h"
@@ -567,9 +568,9 @@ DFBResult maven_init( MatroxMavenData  *mav,
           };
 
           if (dfb_config->matrox_ntsc)
-               memcpy( mav->regs, ntscregs, 64 );
+               dfb_memcpy( mav->regs, ntscregs, 64 );
           else
-               memcpy( mav->regs, palregs, 64 );
+               dfb_memcpy( mav->regs, palregs, 64 );
 
           if (mav->g450) {
                if (dfb_config->matrox_ntsc) {

@@ -60,6 +60,7 @@ Cambridge, MA 02139, USA.
 #include <signal.h>
 
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 #include <core/fusion/fusion_internal.h>
 
@@ -182,8 +183,11 @@ morecore (size_t size)
                return NULL;
           }
 
-          memset (newinfo, 0, newsize * sizeof (shmalloc_info));
-          memcpy (newinfo, _sheap->heapinfo, _sheap->heapsize * sizeof (shmalloc_info));
+          dfb_memcpy (newinfo, _sheap->heapinfo,
+                      _sheap->heapsize * sizeof (shmalloc_info));
+
+          memset (newinfo + _sheap->heapsize,
+                  0, (newsize - _sheap->heapsize) * sizeof (shmalloc_info));
 
           oldinfo = _sheap->heapinfo;
 

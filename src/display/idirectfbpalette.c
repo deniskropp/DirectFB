@@ -40,6 +40,8 @@
 
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
+
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
@@ -164,7 +166,7 @@ IDirectFBPalette_GetEntries( IDirectFBPalette *thiz,
      if (!entries  ||  offset + num_entries > palette->num_entries)
           return DFB_INVARG;
 
-     memcpy( entries, palette->entries + offset, num_entries * sizeof(DFBColor));
+     dfb_memcpy( entries, palette->entries + offset, num_entries * sizeof(DFBColor));
      
      return DFB_OK;
 }

@@ -53,6 +53,8 @@
 
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
+
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
@@ -951,7 +953,7 @@ IDirectFBSurface_DrawLines( IDirectFBSurface *thiz,
      }
      else
           /* clipping may modify lines, so we copy them */
-          memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
+          dfb_memcpy( local_lines, lines, sizeof(DFBRegion) * num_lines );
 
      dfb_gfxcard_drawlines( local_lines, num_lines, &data->state );
 

@@ -29,7 +29,7 @@
 #include <core/core.h>
 #include <core/coredefs.h>
 
-#include "misc/memcpy.h"
+#include <misc/memcpy.h>
 
 #include "convert.h"
 

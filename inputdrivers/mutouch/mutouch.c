@@ -67,6 +67,7 @@
 
 #include <misc/conf.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 #include <core/input_driver.h>
 
@@ -160,7 +161,7 @@ static inline void MuTSendPacket(int file, unsigned char *packet, unsigned char 
 {
      unsigned char tmp_packet[MuT_PACKET_SIZE];
 
-     memcpy (&tmp_packet[1], packet, len);
+     dfb_memcpy (&tmp_packet[1], packet, len);
      *tmp_packet = MuT_LEAD_BYTE;
      tmp_packet[len + 1] = MuT_TRAIL_BYTE;
      write (file, tmp_packet, len + 2);

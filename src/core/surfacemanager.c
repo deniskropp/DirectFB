@@ -35,20 +35,20 @@
 #include <core/fusion/list.h>
 #include <core/fusion/shmalloc.h>
 
-#include "directfb.h"
+#include <directfb.h>
 
-#include "core.h"
-#include "coredefs.h"
-#include "coretypes.h"
+#include <core/core.h>
+#include <core/coredefs.h>
+#include <core/coretypes.h>
 
-#include "gfxcard.h"
-#include "surfaces.h"
-#include "surfacemanager.h"
-#include "system.h"
+#include <core/gfxcard.h>
+#include <core/surfaces.h>
+#include <core/surfacemanager.h>
+#include <core/system.h>
 
-#include "misc/util.h"
-#include "misc/mem.h"
-#include "misc/memcpy.h"
+#include <misc/util.h>
+#include <misc/mem.h>
+#include <misc/memcpy.h>
 
 /*
  * initially there is one big free chunk,

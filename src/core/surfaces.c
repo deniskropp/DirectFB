@@ -50,6 +50,7 @@
 #include <gfx/util.h>
 #include <misc/util.h>
 #include <misc/mem.h>
+#include <misc/memcpy.h>
 
 static DFBResult dfb_surface_allocate_buffer  ( CoreSurface        *surface,
                                                 CoreSurfacePolicy   policy,
@@ -201,8 +202,8 @@ DFBResult dfb_surface_create_preallocated( int width, int height,
      s->front_buffer->system.addr   = front_buffer;
 
      if (caps & DSCAPS_FLIPPING) {
-          s->back_buffer = (SurfaceBuffer *) shcalloc( 1, sizeof(SurfaceBuffer) );
-          memcpy( s->back_buffer, s->front_buffer, sizeof(SurfaceBuffer) );
+          s->back_buffer = (SurfaceBuffer *) shmalloc( sizeof(SurfaceBuffer) );
+          dfb_memcpy( s->back_buffer, s->front_buffer, sizeof(SurfaceBuffer) );
 
           s->back_buffer->system.pitch  = back_pitch;
           s->back_buffer->system.addr   = back_buffer;
