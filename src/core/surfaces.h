@@ -52,6 +52,25 @@ typedef struct {
 } CoreSurfaceNotification;
 
 typedef enum {
+     CSH_INVALID         = 0x00000000,  /* surface isn't stored */
+     CSH_STORED          = 0x00000001,  /* surface is stored,
+                                           well and kicking */
+     CSH_RESTORE         = 0x00000002   /* surface needs to be
+                                           reloaded into area */
+} CoreSurfaceHealth;
+
+typedef enum {
+     CSP_SYSTEMONLY      = 0x00000000,  /* never try to swap
+                                           into video memory */
+     CSP_VIDEOONLY       = 0x00000001,  /* always and only
+                                           store in video memory */
+     CSP_VIDEOLOW        = 0x00000002,  /* try to store in video memory,
+                                           low priority */
+     CSP_VIDEOHIGH       = 0x00000003   /* try to store in video memory,
+                                           high priority */
+} CoreSurfacePolicy;
+
+typedef enum {
      SBF_NONE            = 0x00000000,
      SBF_FOREIGN_SYSTEM  = 0x00000001   /* system memory is preallocated by
                                            application, won't be freed */
@@ -69,31 +88,31 @@ typedef enum {
 
 struct _SurfaceBuffer
 {
-     SurfaceBufferFlags     flags;      /* additional information */
-     int                    policy;     /* swapping policy for surfacemanager */
+     SurfaceBufferFlags      flags;     /* additional information */
+     CoreSurfacePolicy       policy;    /* swapping policy for surfacemanager */
 
      struct {
-          int               health;     /* currently stored in system memory? */
+          CoreSurfaceHealth  health;    /* currently stored in system memory? */
 
-          int               pitch;      /* number of bytes til next line */
-          void             *addr;       /* address pointing to surface data */
+          int                pitch;     /* number of bytes til next line */
+          void              *addr;      /* address pointing to surface data */
      } system;
 
      struct {
-          int               health;     /* currently stored in video memory? */
-          int               locked;     /* video instance is locked, don't
+          CoreSurfaceHealth  health;    /* currently stored in video memory? */
+          int                locked;    /* video instance is locked, don't
                                            try to kick out, could deadlock */
 
-          VideoAccessFlags  access;     /* information about recent read/write
+          VideoAccessFlags   access;    /* information about recent read/write
                                            accesses to video buffer memory */
 
-          int               pitch;      /* number of bytes til next line */
-          int               offset;     /* byte offset from the beginning
+          int                pitch;     /* number of bytes til next line */
+          int                offset;    /* byte offset from the beginning
                                            of the framebuffer */
-          struct _Chunk    *chunk;      /* points to the allocated chunk */
+          struct _Chunk     *chunk;     /* points to the allocated chunk */
      } video;
 
-     CoreSurface           *surface;    /* always pointing to the surface this
+     CoreSurface            *surface;   /* always pointing to the surface this
                                            buffer belongs to, surfacemanger
                                            always depends on this! */
 };
@@ -128,43 +147,38 @@ struct _CoreSurface
 };
 
 /*
- * values for CoreSurface.(system|video).health
- */
-#define CSH_INVALID      0x00 /* surface isn't stored and isn't ought to be */
-#define CSH_STORED       0x01 /* surface is stored, well and kicking */
-#define CSH_RESTORE      0x02 /* surface needs to be reloaded into area */
-
-/*
- * values for CoreSurface.policy
- */
-#define CSP_SYSTEMONLY   0x00 /* never try to swap into video memory */
-#define CSP_VIDEOONLY    0x01 /* always and only store in video memory */
-#define CSP_VIDEOLOW     0x02 /* try to store in video memory, low priority */
-#define CSP_VIDEOHIGH    0x03 /* try to store in video memory, high priority */
-
-
-/*
  * creates a surface with specified width and height in the specified
  * pixelformat using the specified swapping policy
  */
-DFBResult dfb_surface_create( int width, int height, int format, int policy,
-                              DFBSurfaceCapabilities caps, CoreSurface **surface );
+DFBResult dfb_surface_create( int                      width,
+                              int                      height,
+                              DFBSurfacePixelFormat    format,
+                              CoreSurfacePolicy        policy,
+                              DFBSurfaceCapabilities   caps,
+                              CoreSurface            **surface );
 
 /*
  * like surface_create, but with preallocated system memory that won't be
  * freed on surface destruction
  */
-DFBResult dfb_surface_create_preallocated( int width, int height, int format,
-                                           int policy, DFBSurfaceCapabilities caps,
-                                           void *front_buffer, void *back_buffer,
-                                           int front_pitch, int back_pitch,
-                                           CoreSurface **surface );
+DFBResult dfb_surface_create_preallocated( int                      width,
+                                           int                      height,
+                                           DFBSurfacePixelFormat    format,
+                                           CoreSurfacePolicy        policy,
+                                           DFBSurfaceCapabilities   caps,
+                                           void                    *front_data,
+                                           void                    *back_data,
+                                           int                      front_pitch,
+                                           int                      back_pitch,
+                                           CoreSurface            **surface );
 
 /*
  * reallocates data for the specified surface
  */
-DFBResult dfb_surface_reformat( CoreSurface *surface, int width, int height,
-                                DFBSurfacePixelFormat format );
+DFBResult dfb_surface_reformat( CoreSurface           *surface,
+                                int                    width,
+                                int                    height,
+                                DFBSurfacePixelFormat  format );
 
 /*
  * helper function
@@ -191,8 +205,11 @@ void dfb_surface_flip_buffers( CoreSurface *surface );
  * It locks the surface maneger, does a surface_software_lock, and unlocks
  * the surface manager.
  */
-DFBResult dfb_surface_soft_lock( CoreSurface *surface, unsigned int flags,
-                                 void **data, unsigned int *pitch, int front );
+DFBResult dfb_surface_soft_lock( CoreSurface          *surface,
+                                 DFBSurfaceLockFlags   flags,
+                                 void                **data,
+                                 int                  *pitch,
+                                 int                   front );
 
 /*
  * unlocks a previously locked surface
@@ -208,3 +225,4 @@ void dfb_surface_destroy( CoreSurface *surface );
 
 
 #endif
+
