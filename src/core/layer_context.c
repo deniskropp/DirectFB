@@ -478,6 +478,12 @@ dfb_layer_context_test_configuration( CoreLayerContext            *context,
 
                if (failed & CLRCF_OPTIONS)
                     flags |= DLCONF_OPTIONS;
+
+               if (failed & CLRCF_SOURCE_ID)
+                    flags |= DLCONF_SOURCE;
+
+               if (failed & CLRCF_ALPHA_RAMP)
+                    flags |= DLCONF_ALPHA_RAMP;
           }
 
           *ret_failed = flags;
@@ -635,6 +641,16 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      if (config->flags & DLCONF_OPTIONS)
           context->config.options = config->options;
+
+     if (config->flags & DLCONF_SOURCE)
+          context->config.source = config->source;
+
+     if (config->flags & DLCONF_ALPHA_RAMP) {
+          context->config.alpha_ramp[0] = config->alpha_ramp[0];
+          context->config.alpha_ramp[1] = config->alpha_ramp[1];
+          context->config.alpha_ramp[2] = config->alpha_ramp[2];
+          context->config.alpha_ramp[3] = config->alpha_ramp[3];
+     }
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
@@ -1153,6 +1169,16 @@ build_updated_config( CoreLayerContext            *context,
      if (update->flags & DLCONF_SOURCE) {
           flags |= CLRCF_SOURCE_ID;
           ret_config->source_id = update->source;
+     }
+
+     /* Change alpha ramp. */
+     if (update->flags & DLCONF_ALPHA_RAMP) {
+          flags |= CLRCF_ALPHA_RAMP;
+
+          ret_config->alpha_ramp[0] = update->alpha_ramp[0];
+          ret_config->alpha_ramp[1] = update->alpha_ramp[1];
+          ret_config->alpha_ramp[2] = update->alpha_ramp[2];
+          ret_config->alpha_ramp[3] = update->alpha_ramp[3];
      }
 
      /* Return translated flags. */

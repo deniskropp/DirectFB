@@ -450,52 +450,42 @@ typedef enum {
 typedef enum {
      DLCAPS_NONE              = 0x00000000,
 
-     DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface that
-                                                can be drawn to. This may not
-                                                be provided by layers that
-                                                display realtime data, e.g.
-                                                from an MPEG decoder chip.
-                                                Playback control may be
-                                                provided by an external API. */
-     DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending
-                                                with layer(s) below based on a
-                                                global alpha factor. */
-     DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending
-                                                with layer(s) below based on
-                                                each pixel's alpha value. */
-     DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the
-                                                screen can be changed, this
-                                                includes position and size as
-                                                normalized values. The default
-                                                is 0.0f, 0.0f, 1.0f, 1.0f. */
-     DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be
-                                                enabled for smooth output on
-                                                interlaced display devices. */
-     DLCAPS_DEINTERLACING     = 0x00000020,  /* The layer provides optional
-                                                deinterlacing for displaying
-                                                interlaced video data on
-                                                progressive display devices. */
-     DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be
-                                                declared as transparent. */
-     DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color of layers
-                                                below can be specified as the
-                                                color of the only locations
-                                                where the layer is visible. */
-     DLCAPS_BRIGHTNESS        = 0x00000100,  /* Adjustment of brightness is
-                                                supported. */
-     DLCAPS_CONTRAST          = 0x00000200,  /* Adjustment of contrast is
-                                                supported. */
-     DLCAPS_HUE               = 0x00000400,  /* Adjustment of hue is
-                                                supported. */
-     DLCAPS_SATURATION        = 0x00000800,  /* Adjustment of saturation is
-                                                supported. */
+     DLCAPS_SURFACE           = 0x00000001,  /* The layer has a surface that can be drawn to. This
+                                                may not be provided by layers that display realtime
+                                                data, e.g. from an MPEG decoder chip. Playback
+                                                control may be provided by an external API. */
+     DLCAPS_OPACITY           = 0x00000002,  /* The layer supports blending with layer(s) below
+                                                based on a global alpha factor. */
+     DLCAPS_ALPHACHANNEL      = 0x00000004,  /* The layer supports blending with layer(s) below
+                                                based on each pixel's alpha value. */
+     DLCAPS_SCREEN_LOCATION   = 0x00000008,  /* The layer location on the screen can be changed,
+                                                this includes position and size as normalized
+                                                values. The default is 0.0f, 0.0f, 1.0f, 1.0f. */
+     DLCAPS_FLICKER_FILTERING = 0x00000010,  /* Flicker filtering can be enabled for smooth output
+                                                on interlaced display devices. */
+     DLCAPS_DEINTERLACING     = 0x00000020,  /* The layer provides optional deinterlacing for
+                                                displaying interlaced video data on progressive
+                                                display devices. */
+     DLCAPS_SRC_COLORKEY      = 0x00000040,  /* A specific color can be declared as transparent. */
+     DLCAPS_DST_COLORKEY      = 0x00000080,  /* A specific color of layers below can be specified
+                                                as the color of the only locations where the layer
+                                                is visible. */
+     DLCAPS_BRIGHTNESS        = 0x00000100,  /* Adjustment of brightness is supported. */
+     DLCAPS_CONTRAST          = 0x00000200,  /* Adjustment of contrast is supported. */
+     DLCAPS_HUE               = 0x00000400,  /* Adjustment of hue is supported. */
+     DLCAPS_SATURATION        = 0x00000800,  /* Adjustment of saturation is supported. */
      DLCAPS_LEVELS            = 0x00001000,  /* Adjustment of the layer's level
                                                 (z position) is supported. */
      DLCAPS_FIELD_PARITY      = 0x00002000,  /* Field parity can be selected */
      DLCAPS_WINDOWS           = 0x00004000,  /* Hardware window support. */
      DLCAPS_SOURCES           = 0x00008000,  /* Sources can be selected. */
+     DLCAPS_ALPHA_RAMP        = 0x00010000,  /* Alpha values for formats with one or two alpha bits
+                                                can be chosen, i.e. using ARGB1555 or ARGB2554 the
+                                                user can define the meaning of the two or four
+                                                possibilities. In short, this feature provides a
+                                                lookup table for the alpha of these formats. */
 
-     DLCAPS_ALL               = 0x0000FFFF
+     DLCAPS_ALL               = 0x0001FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -1721,23 +1711,29 @@ typedef enum {
      DLCONF_BUFFERMODE        = 0x00000008,
      DLCONF_OPTIONS           = 0x00000010,
      DLCONF_SOURCE            = 0x00000020,
+     DLCONF_ALPHA_RAMP        = 0x00000040,
 
-     DLCONF_ALL               = 0x0000003F
+     DLCONF_ALL               = 0x0000007F
 } DFBDisplayLayerConfigFlags;
 
 /*
  * Layer configuration
  */
 typedef struct {
-     DFBDisplayLayerConfigFlags    flags;       /* Which fields of the
-                                                   configuration are set */
+     DFBDisplayLayerConfigFlags    flags;         /* Which fields of the
+                                                     configuration are set */
 
-     int                           width;       /* Pixel width */
-     int                           height;      /* Pixel height */
-     DFBSurfacePixelFormat         pixelformat; /* Pixel format */
-     DFBDisplayLayerBufferMode     buffermode;  /* Buffer mode */
-     DFBDisplayLayerOptions        options;     /* Enable capabilities */
-     DFBDisplayLayerSourceID       source;      /* Selected layer source */
+     int                           width;         /* Pixel width */
+     int                           height;        /* Pixel height */
+     DFBSurfacePixelFormat         pixelformat;   /* Pixel format */
+     DFBDisplayLayerBufferMode     buffermode;    /* Buffer mode */
+     DFBDisplayLayerOptions        options;       /* Enable capabilities */
+     DFBDisplayLayerSourceID       source;        /* Selected layer source */
+     __u8                          alpha_ramp[4]; /* Alpha values for 1 or 2 bit lookup.
+                                                     See description of DLCAPS_ALPHA_RAMP.
+                                                     Either all four values or the first and the
+                                                     last one are used, depending on the format.
+                                                     Default values are: 0x00, 0x55, 0xaa, 0xff. */
 } DFBDisplayLayerConfig;
 
 /*

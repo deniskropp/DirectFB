@@ -33,24 +33,26 @@
 #include <core/coretypes.h>
 
 struct __DFB_CoreLayerRegionConfig {
-     int                       width;      /* width of the source in pixels */
-     int                       height;     /* height of the source in pixels */
-     DFBSurfacePixelFormat     format;     /* pixel format of the source */
-     DFBDisplayLayerBufferMode buffermode; /* surface buffer configuration */
+     int                       width;             /* width of the source in pixels */
+     int                       height;            /* height of the source in pixels */
+     DFBSurfacePixelFormat     format;            /* pixel format of the source */
+     DFBDisplayLayerBufferMode buffermode;        /* surface buffer configuration */
 
-     DFBDisplayLayerOptions    options;    /* various configuration options */
+     DFBDisplayLayerOptions    options;           /* various configuration options */
 
-     DFBDisplayLayerSourceID   source_id;  /* selected source */
+     DFBDisplayLayerSourceID   source_id;         /* selected source */
 
-     DFBRectangle              source;     /* viewport within source (input) */
-     DFBRectangle              dest;       /* viewport on screen (output) */
+     DFBRectangle              source;            /* viewport within source (input) */
+     DFBRectangle              dest;              /* viewport on screen (output) */
 
-     __u8                      opacity;    /* global region alpha */
+     __u8                      opacity;           /* global region alpha */
 
-     DFBColor                  src_key;    /* source color key */
-     DFBColor                  dst_key;    /* destination color key */
+     DFBColor                  src_key;           /* source color key */
+     DFBColor                  dst_key;           /* destination color key */
 
-     int                       parity;     /* field parity (for interlaced) */
+     int                       parity;            /* field parity (for interlaced) */
+
+     __u8                      alpha_ramp[4];     /* alpha values for 1 or 2 bit lookup */
 };
 
 typedef enum {
@@ -69,6 +71,7 @@ typedef enum {
      CLRCF_DEST       = 0x00000200,
 
      CLRCF_OPACITY    = 0x00001000,
+     CLRCF_ALPHA_RAMP = 0x00002000,
 
      CLRCF_SRCKEY     = 0x00010000,
      CLRCF_DSTKEY     = 0x00020000,
@@ -78,7 +81,7 @@ typedef enum {
      CLRCF_SURFACE    = 0x10000000,
      CLRCF_PALETTE    = 0x20000000,
 
-     CLRCF_ALL        = 0x3013133F
+     CLRCF_ALL        = 0x3013333F
 } CoreLayerRegionConfigFlags;
 
 typedef struct {

@@ -154,7 +154,7 @@ dfb_layer_region_create( CoreLayerContext  *context,
           fusion_object_destroy( &region->object );
           return DFB_FUSION;
      }
-     
+
      /* Change global reaction lock. */
      fusion_object_set_lock( &region->object, &region->lock );
 
@@ -564,6 +564,9 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
           if (flags & CLRCF_OPTIONS)
                new_config.options = config->options;
 
+          if (flags & CLRCF_SOURCE_ID)
+               new_config.source_id = config->source_id;
+
           if (flags & CLRCF_SOURCE)
                new_config.source = config->source;
 
@@ -572,6 +575,13 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
 
           if (flags & CLRCF_OPACITY)
                new_config.opacity = config->opacity;
+
+          if (flags & CLRCF_ALPHA_RAMP) {
+               new_config.alpha_ramp[0] = config->alpha_ramp[0];
+               new_config.alpha_ramp[1] = config->alpha_ramp[1];
+               new_config.alpha_ramp[2] = config->alpha_ramp[2];
+               new_config.alpha_ramp[3] = config->alpha_ramp[3];
+          }
 
           if (flags & CLRCF_SRCKEY)
                new_config.src_key = config->src_key;
