@@ -2801,8 +2801,8 @@ static void Bop_a8_set_alphapixel_Aop_rgb16( GenefxState *gfxs )
      __u8  *S   = gfxs->Bop;
      __u16 *D   = gfxs->Aop;
      __u32  Cop = gfxs->Cop;
-     __u32  rb  = gfxs->Cop & 0xf81f;
-     __u32  g   = gfxs->Cop & 0x07e0;
+     __u32  rb  = Cop & 0xf81f;
+     __u32  g   = Cop & 0x07e0;
 
 #define SET_ALPHA_PIXEL_RGB16(d,a)\
      switch (a) {\
@@ -2974,11 +2974,19 @@ static void Bop_a8_set_alphapixel_Aop_rgb332( GenefxState *gfxs )
      __u8  *S   = gfxs->Bop;
      __u8  *D   = gfxs->Aop;
      __u32  Cop = gfxs->Cop;
+     __u32  rgb = ((Cop & 0xe0) << 16) | ((Cop & 0x1c) << 8) | (Cop & 0x03);
 
-/* FIXME: implement correctly! */
 #define SET_ALPHA_PIXEL_RGB332(d,a) \
-     if (a & 0x80) \
-          d = Cop;
+     switch (a) {\
+          case 0xff: d = Cop;\
+          case 0: break;\
+          default: {\
+               register __u32 s = a + 1;\
+               register __u32 t = ((d & 0xe0) << 16) | ((d & 0x1c) << 8) | (d & 0x03);\
+               register __u32 c = ((rgb-t)*s + (t<<8)) & 0xe01c0300;\
+               d = (c >> 24) | ((c >> 16) & 0xff) | ((c >> 8) & 0xff);\
+          }\
+     }
 
      SET_ALPHA_PIXEL_DUFFS_DEVICE( D, S, w, RGB332 );
 #undef SET_ALPHA_PIXEL_RGB332
