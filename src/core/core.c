@@ -108,6 +108,10 @@ void core_deinit()
      if (!cleanup_stack)
           return;
 
+     /* FIXME: cleanup the cleanup code, many deadlock problems... */
+     core_deinit_emergency();
+     return;
+
      while (cleanup_stack) {
           Cleanup *cleanup = cleanup_stack;
           void (*cleanup_func)() = cleanup_stack->cleanup;
