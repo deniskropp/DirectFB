@@ -558,7 +558,8 @@ AC_ARG_WITH(gfxdrivers,
   [                        gfxdrivers may be comma separated ]
   [                        'all' builds all drivers, 'none' builds none ]
   [                        Possible gfxdrivers are: ]
-  [                        ati128, cyber5k, i810, matox, neomagic, nvidia, savage, tdfx],
+  [                        ati128, cyber5k, i810, matox, neomagic, nvidia,]
+  [                        savage, tdfx],
   gfxdrivers="$withval", gfxdrivers="all")
 
 if test "$gfxdrivers" = "all"; then
@@ -709,7 +710,7 @@ dnl Test for neomagic frame buffer support in the kernel
 *** Neomagic gfxdriver will not be built.]))
 fi
 
-if test x$checkfor_i810 = xyes; then
+if test x$checkfor_i810 = xyes && test x$have_sysio = xyes; then
 dnl Test for i810 frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
