@@ -687,7 +687,7 @@ static void nv2ACheckState( void *drv, void *dev,
      if (DFB_BLITTING_FUNCTION( accel ))
           return;
 
-     if (state->drawingflags & ~NV20_SUPPORTED_DRAWINGFLAGS)
+     if (state->drawingflags & ~NV2A_SUPPORTED_DRAWINGFLAGS)
           return;
 
      state->accel |= accel;
@@ -1326,7 +1326,7 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->fb_base = (__u32) dfb_gfxcard_memory_physical( device, 0 );
      if (nvdrv->arch == NV_ARCH_2A)
           vram += nvdrv->fb_base & 0x0FFFFFFF;
-     nvdrv->fb_mask = ((1 << direct_log2( vram )) - 0x100000) | 0x000FFFC0;
+     nvdrv->fb_mask = ((1 << direct_log2( vram )) - 1) & ~63;
      
      nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)

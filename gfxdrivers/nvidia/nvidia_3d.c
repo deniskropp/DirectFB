@@ -348,7 +348,11 @@ rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
                pix0 = RGB32_TO_RGB16( pix0 );
                pix1 = ((__u32*) src)[i+1];
                pix1 = RGB32_TO_RGB16( pix1 );
+#ifdef WORDS_BIGENDIAN
+               dst[(u|v)/4] = (pix0 << 16) | pix1;
+#else
                dst[(u|v)/4] = pix0 | (pix1 << 16);
+#endif
           }
           
           if (width & 1) {
@@ -376,7 +380,11 @@ argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
                pix0 = ARGB_TO_ARGB4444( pix0 );
                pix1 = ((__u32*) src)[i+1];
                pix1 = ARGB_TO_ARGB4444( pix1 );
+#ifdef WORDS_BIGENDIAN
+               dst[(u|v)/4] = (pix0 << 16) | pix1;
+#else
                dst[(u|v)/4] = pix0 | (pix1 << 16);
+#endif
           }
 
           if (width & 1) {
