@@ -97,6 +97,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                          unichar          glyph,
                          CoreGlyphData  **glyph_data )
 {
+     DFBResult      ret;
      CoreGlyphData *data;
 
      if ((data = dfb_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
@@ -106,16 +107,16 @@ dfb_font_get_glyph_data( CoreFont        *font,
 
      if (!data) {
           data = (CoreGlyphData *) DFBCALLOC(1, sizeof (CoreGlyphData));
-          if (!data) {
+          if (!data)
                return DFB_NOSYSTEMMEMORY;
-          }
 
           if (font->GetGlyphInfo &&
               (* font->GetGlyphInfo) (font, glyph, data) == DFB_OK &&
               data->width > 0 && data->height > 0)
           {
-
                if (font->next_x + data->width > font->row_width) {
+                    CoreSurface *surface;
+
                     if (font->row_width == 0) {
                          int width = 8192 / font->height;
 
@@ -127,18 +128,27 @@ dfb_font_get_glyph_data( CoreFont        *font,
                          font->row_width = width;
                     }
 
+                    ret = dfb_surface_create( font->row_width,
+                                              MAX( font->height + 1, 8 ),
+                                              font->pixel_format,
+                                              CSP_VIDEOLOW, DSCAPS_NONE, NULL,
+                                              &surface );
+                    if (ret) {
+                         ERRORMSG( "DirectFB/core/fonts: "
+                                   "Could not create glyph surface! (%s)\n",
+                                   DirectFBErrorString( ret ) );
+
+                         DFBFREE( data );
+                         return ret;
+                    }
+                    
                     font->next_x = 0;
                     font->rows++;
 
                     font->surfaces = DFBREALLOC( font->surfaces,
                                                  sizeof(void *) * font->rows );
 
-                    /* FIXME: error checking! */
-                    dfb_surface_create( font->row_width,
-                                        MAX( font->height + 1, 8 ),
-                                        font->pixel_format,
-                                        CSP_VIDEOLOW, DSCAPS_NONE, NULL,
-                                        &font->surfaces[font->rows - 1] );
+                    font->surfaces[font->rows - 1] = surface;
                }
 
                if ((* font->RenderGlyph)
