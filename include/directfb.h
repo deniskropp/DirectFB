@@ -875,9 +875,7 @@ typedef enum {
      DSPF_ALUT44    = DFB_SURFACE_PIXELFORMAT( 12,  4, 4, 1, 0, 1, 0, 0, 1, 0 ),
 
      /* 32 bit  ARGB (4 byte, inv. alpha 8@24, red 8@16, green 8@8, blue 8@0) */
-     DSPF_AiRGB     = DFB_SURFACE_PIXELFORMAT( 13, 24, 8, 1, 0, 4, 0, 0, 0, 1 ),
-
-     DSPF_RGB15     = DSPF_ARGB1555     /* same as DSPF_ARGB1555 */
+     DSPF_AiRGB     = DFB_SURFACE_PIXELFORMAT( 13, 24, 8, 1, 0, 4, 0, 0, 0, 1 )
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
