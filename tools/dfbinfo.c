@@ -254,7 +254,7 @@ dump_mixers( IDirectFBScreen *screen,
      }
 
      for (i=0; i<num; i++) {
-          printf( "   Mixer (%d)\n", i );
+          printf( "   Mixer (%d) %s\n", i, descs[i].name );
 
           /* Caps */
           printf( "     Caps:                    " );
@@ -282,7 +282,7 @@ dump_mixers( IDirectFBScreen *screen,
 
           /* Sub mode layers */
           if (descs[i].caps & DSMCAPS_SUB_LAYERS) {
-               printf( "     Layers (sub mode): %2d of ", descs[i].num_layers );
+               printf( "     Layers (sub mode): %2d of ", descs[i].sub_num );
 
                for (n=0; n<DFB_DISPLAYLAYER_IDS_MAX; n++) {
                     if (DFB_DISPLAYLAYER_IDS_HAVE( descs[i].sub_layers, n ))
@@ -313,7 +313,7 @@ dump_encoders( IDirectFBScreen *screen,
      }
 
      for (i=0; i<num; i++) {
-          printf( "   Encoder (%d)\n", i );
+          printf( "   Encoder (%d) %s\n", i, descs[i].name );
 
           /* Type */
           printf( "     Type:           " );
@@ -383,7 +383,7 @@ dump_outputs( IDirectFBScreen *screen,
      }
 
      for (i=0; i<num; i++) {
-          printf( "   Output (%d)\n", i );
+          printf( "   Output (%d) %s\n", i, descs[i].name );
 
 
           /* Caps */

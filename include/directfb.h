@@ -1750,19 +1750,24 @@ typedef enum {
      DSMCAPS_BACKGROUND   = 0x00000008  /* Background color is configurable. */
 } DFBScreenMixerCapabilities;
 
+
+#define DFB_SCREEN_MIXER_DESC_NAME_LENGTH    24
+
 /*
  * Description of a mixer.
  */
 typedef struct {
      DFBScreenMixerCapabilities  caps;
 
-     DFBDisplayLayerIDs          layers;     /* Visible layers if the
-                                                full tree is selected. */
+     DFBDisplayLayerIDs          layers;             /* Visible layers if the
+                                                        full tree is selected. */
 
-     int                         num_layers; /* Number of layers that can
-                                                be selected in sub mode. */
-     DFBDisplayLayerIDs          sub_layers; /* Layers available for sub mode
-                                                with layer selection. */
+     int                         sub_num;            /* Number of layers that can
+                                                        be selected in sub mode. */
+     DFBDisplayLayerIDs          sub_layers;         /* Layers available for sub mode
+                                                        with layer selection. */
+
+     char name[DFB_SCREEN_MIXER_DESC_NAME_LENGTH];   /* Mixer name */
 } DFBScreenMixerDescription;
 
 /*
@@ -1846,14 +1851,19 @@ typedef enum {
      DSOS_YCBCR          = 0x00000010  /* Y/Cb/Cr signal */
 } DFBScreenOutputSignals;
 
+
+#define DFB_SCREEN_OUTPUT_DESC_NAME_LENGTH    24
+
 /*
  * Description of a screen output.
  */
 typedef struct {
-     DFBScreenOutputCapabilities   caps;           /* Screen capabilities. */
+     DFBScreenOutputCapabilities   caps;             /* Screen capabilities. */
 
-     DFBScreenOutputConnectors     all_connectors; /* Output connectors. */
-     DFBScreenOutputSignals        all_signals;    /* Output signals. */
+     DFBScreenOutputConnectors     all_connectors;   /* Output connectors. */
+     DFBScreenOutputSignals        all_signals;      /* Output signals. */
+
+     char name[DFB_SCREEN_OUTPUT_DESC_NAME_LENGTH];  /* Output name */
 } DFBScreenOutputDescription;
 
 /*
@@ -1925,15 +1935,20 @@ typedef enum {
      DSESM_PROGRESSIVE    = 0x00000002  /* Progressive scan mode */
 } DFBScreenEncoderScanMode;
 
+
+#define DFB_SCREEN_ENCODER_DESC_NAME_LENGTH    24
+
 /*
  * Description of a display encoder.
  */
 typedef struct {
-     DFBScreenEncoderCapabilities  caps;          /* Encoder capabilities. */
-     DFBScreenEncoderType          type;          /* Type of encoder. */
+     DFBScreenEncoderCapabilities  caps;               /* Encoder capabilities. */
+     DFBScreenEncoderType          type;               /* Type of encoder. */
 
-     DFBScreenEncoderTVStandards   tv_standards;  /* Supported TV standards. */
-     DFBScreenOutputSignals        out_signals;   /* Supported output signals. */
+     DFBScreenEncoderTVStandards   tv_standards;       /* Supported TV standards. */
+     DFBScreenOutputSignals        out_signals;        /* Supported output signals. */
+
+     char name[DFB_SCREEN_ENCODER_DESC_NAME_LENGTH];   /* Encoder name */
 } DFBScreenEncoderDescription;
 
 /*
