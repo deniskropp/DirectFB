@@ -1138,12 +1138,13 @@ init_region_config( CoreLayerContext      *context,
      memset( config, 0, sizeof(CoreLayerRegionConfig) );
 
      /* Initialize values from layer config. */
-     config->width      = context->config.width;
-     config->height     = context->config.height;
-     config->format     = context->config.pixelformat;
-     config->buffermode = context->config.buffermode;
-     config->options    = context->config.options;
-     config->source_id  = context->config.source;
+     config->width        = context->config.width;
+     config->height       = context->config.height;
+     config->format       = context->config.pixelformat;
+     config->buffermode   = context->config.buffermode;
+     config->options      = context->config.options;
+     config->source_id    = context->config.source;
+     config->surface_caps = context->config.surface_caps;
 
      /* Initialize source rectangle. */
      config->source.x   = 0;
