@@ -192,6 +192,13 @@ of windows. This options allows to switch the cursor off. Note that
 applications may nevertheless switch it on explicitly.
 
 .TP
+.BI disable-module=<modulename>
+Suppress loading of this module. The module name is the filename
+without the \fBlibdirectfb_\fP prefix and without extension (for
+example \fBkeyboard\fP to disable loading of the keyboard input
+module).
+
+.TP
 .BI bg-none
 Completely disables background handling. Doesn't make much sense since
 the mouse and moving windows will leave ugly traces on the background.
