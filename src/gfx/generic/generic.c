@@ -889,7 +889,24 @@ static void Sop_argb_Sto_Dacc()
 
 static void Sop_a8_Sto_Dacc()
 {
-     ONCE( "Sop_a8_Sto_Dacc() unimplemented" );
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          D->a = s;
+          D->r = 0xFF;
+          D->g = 0xFF;
+          D->b = 0xFF;
+
+          i += SperD;
+
+          D++;
+     }
 }
 
 #ifdef SUPPORT_RGB332
@@ -916,6 +933,30 @@ static void Sop_rgb332_Sto_Dacc()
 }
 #endif
 
+static void Sop_lut8_Sto_Dacc()
+{
+     int    w = Dlength;
+     int    i = 0;
+
+     Accumulator *D = Dacc;
+     __u8        *S = (__u8*)Sop;
+
+     DFBColor *entries = Slut->entries;
+
+     while (w--) {
+          __u8 s = S[i>>16];
+
+          D->a = entries[s].a;
+          D->r = entries[s].r;
+          D->g = entries[s].g;
+          D->b = entries[s].b;
+
+          i += SperD;
+
+          D++;
+     }
+}
+
 static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_rgb15_Sto_Dacc,
      Sop_rgb16_Sto_Dacc,
@@ -932,7 +973,7 @@ static GFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      NULL,
      NULL,
      NULL,
-     NULL
+     Sop_lut8_Sto_Dacc
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
