@@ -310,7 +310,7 @@ accept_connection( VoodooServer *server )
 {
      DirectResult     ret;
      struct sockaddr  addr;
-     socklen_t        addrlen;
+     socklen_t        addrlen = sizeof(addr);
      Connection      *connection;
 
      connection = D_CALLOC( 1, sizeof(Connection) );
