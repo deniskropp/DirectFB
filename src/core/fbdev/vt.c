@@ -36,6 +36,8 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include <linux/fb.h>
+
 #include <core/fusion/shmalloc.h>
 
 #include <directfb.h>

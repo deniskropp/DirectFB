@@ -32,6 +32,8 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
+#include <linux/fb.h>
+
 #include <directfb.h>
 
 #include <core/fusion/shmalloc.h>

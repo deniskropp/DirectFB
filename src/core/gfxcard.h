@@ -27,7 +27,6 @@
 #ifndef __GFXCARD_H__
 #define __GFXCARD_H__
 
-#include <linux/fb.h>
 #include <pthread.h>
 
 #include <core/fusion/lock.h>

@@ -27,6 +27,8 @@
 #ifndef __CORE__FBDEV_H__
 #define __CORE__FBDEV_H__
 
+#include <linux/fb.h>
+
 #include <core/system.h>
 
 typedef struct {

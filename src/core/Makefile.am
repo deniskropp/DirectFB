@@ -8,7 +8,15 @@ SDL_DIR =
 SDL_LIB =
 endif
 
-SUBDIRS = fbdev fusion $(SDL_DIR)
+if FBDEV_CORE
+FBDEV_DIR = fbdev
+FBDEV_LIB = fbdev/libdirectfb_core_fbdev.la
+else
+FBDEV_DIR =
+FBDEV_LIB =
+endif
+
+SUBDIRS = fusion $(FBDEV_DIR) $(SDL_DIR)
 
 INCLUDES = \
 	-I$(top_srcdir)/include		\
@@ -50,8 +58,8 @@ noinst_LTLIBRARIES = libdirectfb_core.la
 
 
 libdirectfb_core_la_LIBADD = \
-	fbdev/libdirectfb_core_fbdev.la \
 	fusion/libdirectfb_core_fusion.la \
+	$(FBDEV_LIB) \
 	$(SDL_LIB)
 
 libdirectfb_core_la_SOURCES = \
