@@ -1173,7 +1173,8 @@ primaryAllocateSurface( CoreLayer              *layer,
                              config->width, config->height,
                              config->format, caps, NULL );
      if (ret) {
-          SHFREE( surface );
+          SHFREE( surface->front_buffer );
+          fusion_object_destroy( &surface->object );
           return ret;
      }
 
