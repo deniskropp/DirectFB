@@ -411,8 +411,21 @@ AC_EGREP_CPP(yes, [
 
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 
-dnl Only compile NeoMagic driver when HAVE_SYSIO is defined
 
+dnl Test for savage framebuffer support in the kernel
+AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_SAVAGE3D
+  yes
+#endif
+], savage=yes,
+  savage=no   
+  AC_MSG_WARN(*** Savage gfxdriver will not be built.))
+
+AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
+
+
+dnl Only compile NeoMagic driver when HAVE_SYSIO is defined
 AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
 
 
@@ -519,6 +532,7 @@ gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
 gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
+gfxdrivers/savage/Makefile
 inputdrivers/Makefile
 inputdrivers/h3600_ts/Makefile
 inputdrivers/sonypi/Makefile
@@ -576,6 +590,7 @@ Building Graphics Drivers:
   NeoMagic            $neomagic
   3Dfx Voodoo         $tdfx
   nVidia RIVA TNT     $nvidia
+  S3 Savage           $savage
 
 Building Input Drivers:
   DBox2 Remote        $dbox2remote
