@@ -409,11 +409,11 @@ typedef enum {
  * Layer Buffer Mode.
  */
 typedef enum {
-     DLBM_FRONTONLY  = 0x00000000,      /* no backbuffer */
-     DLBM_BACKVIDEO  = 0x00000001,      /* backbuffer in video memory */
-     DLBM_BACKSYSTEM = 0x00000002,      /* backbuffer in system memory */
-     DLBM_TRIPLE     = 0x00000004,      /* triple buffering */
-     DLBM_WINDOWS    = 0x00000008       /* no layer buffers at all,
+     DLBM_FRONTONLY  = 0x00000001,      /* no backbuffer */
+     DLBM_BACKVIDEO  = 0x00000002,      /* backbuffer in video memory */
+     DLBM_BACKSYSTEM = 0x00000004,      /* backbuffer in system memory */
+     DLBM_TRIPLE     = 0x00000008,      /* triple buffering */
+     DLBM_WINDOWS    = 0x00000010       /* no layer buffers at all,
                                            using buffer of each window */
 } DFBDisplayLayerBufferMode;
 
