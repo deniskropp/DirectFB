@@ -1149,12 +1149,12 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
      if (dy > 0)
           dy -= srect.h;
 
-     dfb_gfxcard_tileblit( &srect,
-                           data->area.wanted.x + dx,
-                           data->area.wanted.y + dy,
-                           data->area.wanted.x + data->area.wanted.w,
-                           data->area.wanted.y + data->area.wanted.h,
-                           &data->state );
+     dx += data->area.wanted.x;
+     dy += data->area.wanted.y;
+
+     dfb_gfxcard_tileblit( &srect, dx, dy,
+                           dx + data->area.wanted.w + srect.w - 1,
+                           dy + data->area.wanted.h + srect.h - 1, &data->state );
 
      return DFB_OK;
 }

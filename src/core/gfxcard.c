@@ -1068,12 +1068,13 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
+void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy2,
                            CardState *state )
 {
-     int          x, y;
-     int          odx;
-     DFBRectangle srect;
+     int           x, y;
+     int           odx;
+     DFBRectangle  srect;
+     DFBRegion    *clip;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1085,26 +1086,60 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
      D_ASSERT( rect->w >= 1 );
      D_ASSERT( rect->h >= 1 );
 
-     odx = dx;
+
+     odx = dx1;
 
      dfb_state_lock( state );
+
+     clip = &state->clip;
+
+     /* Check if anything is drawn at all. */
+     if (!dfb_clip_blit_precheck( clip, dx2-dx1+1, dy2-dy1+1, dx1, dy1 )) {
+          dfb_state_unlock( state );
+          return;
+     }
+
+     /* Remove clipped tiles. */
+     if (dx1 < clip->x1) {
+          int outer = clip->x1 - dx1;
+
+          dx1 += outer - (outer % rect->w);
+     }
+
+     if (dy1 < clip->y1) {
+          int outer = clip->y1 - dy1;
+
+          dy1 += outer - (outer % rect->h);
+     }
+
+     if (dx2 > clip->x2) {
+          int outer = clip->x2 - dx2;
+
+          dx2 -= outer - (outer % rect->w);
+     }
+
+     if (dy2 > clip->y2) {
+          int outer = clip->y2 - dy2;
+
+          dy2 -= outer - (outer % rect->h);
+     }
+
 
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
 
-          for (; dy < h; dy += rect->h) {
-               for (dx = odx; dx < w; dx += rect->w) {
+          for (; dy1 < dy2; dy1 += rect->h) {
+               for (dx1 = odx; dx1 < dx2; dx1 += rect->w) {
 
-                    if (!dfb_clip_blit_precheck( &state->clip,
-                                                 rect->w, rect->h, dx, dy ))
+                    if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
                          continue;
 
-                    x = dx;
-                    y = dy;
+                    x = dx1;
+                    y = dy1;
                     srect = *rect;
 
                     if (!(card->caps.flags & CCF_CLIPPING))
-                         dfb_clip_blit( &state->clip, &srect, &x, &y );
+                         dfb_clip_blit( clip, &srect, &x, &y );
 
                     card->funcs.Blit( card->driver_data, card->device_data,
                                       &srect, x, y );
@@ -1115,19 +1150,17 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
      else {
           if (gAcquire( state, DFXL_BLIT )) {
 
-               for (; dy < h; dy += rect->h) {
-                    for (dx = odx; dx < w; dx += rect->w) {
+               for (; dy1 < dy2; dy1 += rect->h) {
+                    for (dx1 = odx; dx1 < dx2; dx1 += rect->w) {
 
-                         if (!dfb_clip_blit_precheck( &state->clip,
-                                                      rect->w, rect->h,
-                                                      dx, dy ))
+                         if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
                               continue;
 
-                         x = dx;
-                         y = dy;
+                         x = dx1;
+                         y = dy1;
                          srect = *rect;
 
-                         dfb_clip_blit( &state->clip, &srect, &x, &y );
+                         dfb_clip_blit( clip, &srect, &x, &y );
 
                          gBlit( state, &srect, x, y );
                     }

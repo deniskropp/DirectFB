@@ -289,7 +289,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state );
 void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                             int num, CardState *state );
 
-void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx, int dy, int w, int h,
+void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy2,
                            CardState *state );
 
 void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
