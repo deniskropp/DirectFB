@@ -219,12 +219,6 @@ DFBResult fbdev_open()
 DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 {
      switch (var->bits_per_pixel) {
-          case 8:
-               if (var->transp.length == 8 && var->transp.offset ==  0)
-                    return DSPF_A8;
-
-               break;
-
           case 15:
                if (var->red.length    == 5 && var->red.offset    == 10 &&
                    var->green.length  == 5 && var->green.offset  ==  5 &&
@@ -269,6 +263,14 @@ DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 
                break;
      }
+     
+     ERRORMSG( "DirectFB/core/fbdev: Unsupported pixelformat: "
+               "rgba %d/%d, %d/%d, %d/%d, %d/%d (%dbit)\n",
+                var->red.length,    var->red.offset,
+                var->green.length,  var->green.offset,
+                var->blue.length,   var->blue.offset,
+                var->transp.length, var->transp.offset,
+                var->bits_per_pixel );
 
      return DSPF_UNKNOWN;
 }
@@ -315,34 +317,44 @@ DFBResult fbdev_set_mode( DisplayLayer *layer,
           mode = display->current_mode ? display->current_mode : display->modes;
 
      var = display->current_var;
-
-     var.activate = layer ? FB_ACTIVATE_NOW : FB_ACTIVATE_TEST;
-     var.xres = mode->xres;
-     var.yres = mode->yres;
-     var.xres_virtual = mode->xres;
-     var.yres_virtual = mode->yres * ((buffermode == DLBM_BACKVIDEO) ? 2 : 1);
+          
      var.bits_per_pixel = mode->bpp;
+
      /* 
       * since parsing of the argb parameter in fbset is broken, DirectFB
       * sets RGB555 mode, when 15bpp is is given in an /etc/fb.modes entry
       */ 
-     if (mode->bpp == 15) {
-          var.bits_per_pixel = 16;
-          var.red.length   = 5;
-          var.green.length = 5;
-          var.blue.length  = 5;
-          var.red.offset   = 10;
-          var.green.offset = 5;
-          var.blue.offset  = 0;
+     switch (mode->bpp) {
+          case 15:
+               var.bits_per_pixel = 16;
+               var.red.length   = 5;
+               var.green.length = 5;
+               var.blue.length  = 5;
+               var.red.offset   = 10;
+               var.green.offset = 5;
+               var.blue.offset  = 0;
+               break;
+          case 16:
+               var.red.length   = 5;
+               var.green.length = 6;
+               var.blue.length  = 5;
+               var.red.offset   = 11;
+               var.green.offset = 5;
+               var.blue.offset  = 0;
+               break;
+          case 24:
+          case 32:
+               break;
+          default:
+               return DFB_UNSUPPORTED;
      }
-     else if (mode->bpp == 16) {
-          var.red.length   = 5;
-          var.green.length = 6;
-          var.blue.length  = 5;
-          var.red.offset   = 11;
-          var.green.offset = 5;
-          var.blue.offset  = 0;
-     }
+
+     var.activate = layer ? FB_ACTIVATE_NOW : FB_ACTIVATE_TEST;
+
+     var.xres = mode->xres;
+     var.yres = mode->yres;
+     var.xres_virtual = mode->xres;
+     var.yres_virtual = mode->yres * ((buffermode == DLBM_BACKVIDEO) ? 2 : 1);
 
      var.pixclock = mode->pixclock;
      var.left_margin = mode->left_margin;
