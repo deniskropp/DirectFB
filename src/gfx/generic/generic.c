@@ -688,25 +688,82 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
 {
-     int                w    = gfxs->length;
-     __u16             *S    = gfxs->Bop;
-     __u16             *D    = gfxs->Aop;
-     __u32              Dkey = gfxs->Dkey;
+     int    w, l = gfxs->length;
+     __u32 *D    = gfxs->Aop;
+     __u32 *S    = gfxs->Bop;
+     __u32  Dkey = gfxs->Dkey;
 
-     while (w--) {
-          if (Dkey == *D) {
-               *D = *S;
-          }
-          D++;
-          S++;
+     __u32 DDkey = (Dkey << 16) | Dkey;
+
+     if (((long)D)&2) {         /* align */
+          __u16 *tmp = gfxs->Aop;
+          --l;
+          if (*((__u16*)D) == Dkey)
+               *tmp = *((__u16*)S);
+
+          D = (__u32*)((__u16*)D+1);
+          S = (__u32*)((__u16*)S+1);
      }
+
+     w = (l >> 1);
+     while (w) {
+          __u32 dpixel = *D;
+          __u16 *tmp = (__u16*)D;
+
+          if (dpixel == DDkey) {
+               if ((dpixel & 0xFFFF0000) == (DDkey & 0xFFFF0000)) {
+                    if ((dpixel & 0x0000FFFF) == (DDkey & 0x0000FFFF)) {
+                         *D = *S;
+                    }
+                    else {
+#ifdef WORDS_BIGENDIAN
+                         tmp[0] = (__u16)(*S >> 16);
+#else
+                         tmp[1] = (__u16)(*S >> 16);
+#endif
+                    }
+               }
+               else {
+#ifdef WORDS_BIGENDIAN
+                    tmp[1] = (__u16)*S;
+#else
+                    tmp[0] = (__u16)*S;
+#endif
+               }
+          }
+          ++S;
+          ++D;
+          --w;
+     }
+
+     if (l & 1) {                 /* do the last potential pixel */
+          if (*((__u16*)D) == Dkey)
+               *((__u16*)D) = *((__u16*)S);
+     }
+
+}
+
+static void Bop_rgb32_toK_Aop( GenefxState *gfxs )
+{
+      int                w    = gfxs->length;
+      __u32             *S    = gfxs->Bop;
+      __u32             *D    = gfxs->Aop;
+      __u32              Dkey = gfxs->Dkey;
+
+      while (w--) {
+           if (Dkey == *D) {
+                *D = *S;
+           }
+           D++;
+           S++;
+      }
 }
 
 static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,
      Bop_rgb16_toK_Aop,
      NULL,
-     NULL,
+     Bop_rgb32_toK_Aop,
      NULL,
      NULL,
      NULL,
