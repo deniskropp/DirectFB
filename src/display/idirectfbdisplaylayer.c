@@ -562,7 +562,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, true );
+     return IDirectFBWindow_Construct( *window, w, data->layer );
 }
 
 static DFBResult
@@ -586,7 +586,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, false );
+     return IDirectFBWindow_Construct( *window, w, data->layer );
 }
 
 static DFBResult

@@ -37,6 +37,6 @@
  */
 DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                                      CoreWindow      *window,
-                                     bool             init );
+                                     CoreLayer       *layer );
 
 #endif

@@ -54,7 +54,6 @@
 #include <core/windows.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h> /* FIXME */
-#include <core/layers_internal.h> /* FIXME */
 
 #include <display/idirectfbsurface.h>
 #include <display/idirectfbsurface_window.h>
@@ -837,7 +836,7 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
-                           bool             init )
+                           CoreLayer       *layer )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
@@ -846,7 +845,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
 
      data->ref    = 1;
      data->window = window;
-     data->layer  = dfb_layer_at( window->stack->context->layer_id );
+     data->layer  = layer;
 
      dfb_window_attach( window, IDirectFBWindow_React, data, &data->reaction );
 
