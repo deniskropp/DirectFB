@@ -1627,8 +1627,8 @@ static bool matroxTextureTriangles( void *drv, void *dev,
      mga_out32( mmio, (0x10<<21) | MAG_BILIN | MIN_ANISO, TEXFILTER );
 
      for (i=0; i<num; i++) {
-          vertices[i].s *= 1 << 20;
-          vertices[i].t *= 1 << 20;
+          vertices[i].s *= (1 << (20 - mdev->w2)) * (float) mdev->w;
+          vertices[i].t *= (1 << (20 - mdev->h2)) * (float) mdev->h;
           vertices[i].w *= 1 << 16;
      }
 
