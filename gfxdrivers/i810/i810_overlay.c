@@ -432,8 +432,8 @@ ovlFlipBuffers( DisplayLayer        *layer,
 	ovl_calc_regs (i810drv, i810ovl, layer, &i810ovl->config); 
 	update_overlay(i810drv, i810ovl);
 	
-	if (onsync) 
-		dfb_system_wait_vsync();
+	if (onsync)
+		dfb_layer_wait_vsync( dfb_layer_at( DLID_PRIMARY ) );
 
 	return DFB_OK;
 }
