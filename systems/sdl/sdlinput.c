@@ -359,6 +359,20 @@ sdlEventThread( DirectThread *thread, void *driver_data )
                               case SDL_BUTTON_RIGHT:
                                    evt.button = DIBI_RIGHT;
                                    break;
+                              case SDL_BUTTON_WHEELUP:
+                              case SDL_BUTTON_WHEELDOWN:
+                                   if (event.type != SDL_MOUSEBUTTONDOWN) {
+                                        fusion_skirmish_prevail( &dfb_sdl->lock );
+                                        continue;
+                                   }
+                                   evt.type  = DIET_AXISMOTION;
+                                   evt.flags = DIEF_AXISREL;
+                                   evt.axis  = DIAI_Z;
+                                   if (event.button.button == SDL_BUTTON_WHEELUP)
+                                        evt.axisrel = -1;
+                                   else
+                                        evt.axisrel = 1;
+                                   break;
                               default:
                                    fusion_skirmish_prevail( &dfb_sdl->lock );
                                    continue;
