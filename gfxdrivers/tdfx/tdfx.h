@@ -24,6 +24,8 @@
 #ifndef __TDFX_H__
 #define __TDFX_H__
 
+#include <asm/types.h>
+
 
 #define S12_4(val)    (((__u32)((__s32)((val) << 4))) & 0xffff)
 #define S12_4_(a,b)   (((__u32)((__s32)(((a) << 4) + (b)))) & 0xffff)
@@ -46,7 +48,7 @@
 typedef volatile struct {
     __u32 status;
     __u32 intrCtrl;
-    
+
     __u32 vertexAx;
     __u32 vertexAy;
     __u32 vertexBx;
@@ -120,25 +122,25 @@ typedef volatile struct {
 
     __u32 ftriangleCMD;
     __u32 fbzColorPath;
-    __u32 fogMode; 
+    __u32 fogMode;
     __u32 alphaMode;
-    __u32 fbzMode;  
-    __u32 lfbMode;  
+    __u32 fbzMode;
+    __u32 lfbMode;
     __u32 clipLeftRight;
     __u32 clipTopBottom;
 
     __u32 nopCMD;
     __u32 fastfillCMD;
     __u32 swapbufferCMD;
-    __u32 fogColor;    
-    __u32 zaColor;     
-    __u32 chromaKey;   
+    __u32 fogColor;
+    __u32 zaColor;
+    __u32 chromaKey;
     __u32 chromaRange;
     __u32 userIntrCMD;
-    __u32 stipple; 
-    __u32 color0;  
-    __u32 color1;  
-    
+    __u32 stipple;
+    __u32 color0;
+    __u32 color1;
+
     __u32 fbiPixelsIn;
     __u32 fbiChromaFail;
     __u32 fbiZfuncFail;
@@ -148,14 +150,14 @@ typedef volatile struct {
     __u32 fogTable[32];
 
     __u32 reserved1[3];
-    
+
     __u32 colBufferAddr;
     __u32 colBufferStride;
     __u32 auxBufferAddr;
     __u32 auxBufferStride;
-    
+
     __u32 reserved2;
-    
+
     __u32 clipLeftRight1;
     __u32 clipTopBottom1;
 

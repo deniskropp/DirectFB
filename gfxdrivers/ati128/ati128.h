@@ -24,6 +24,9 @@
 #ifndef ___ATI128_H__
 #define ___ATI128_H__
 
+#include <asm/types.h>
+#include <core/coretypes.h>
+
 extern volatile __u8 *mmio_base;
 
 extern __u32 ATI_dst_bpp;

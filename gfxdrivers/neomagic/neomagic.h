@@ -26,6 +26,9 @@
 
 #include <asm/types.h>
 
+#include <directfb.h>
+#include <core/coretypes.h>
+
 
 #define NEO_BS0_BLT_BUSY        0x00000001
 #define NEO_BS0_FIFO_AVAIL      0x00000002

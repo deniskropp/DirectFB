@@ -24,6 +24,9 @@
 #ifndef ___MATROX_H__
 #define ___MATROX_H__
 
+#include <asm/types.h>
+#include <core/coretypes.h>
+
 extern volatile __u8 *mmio_base;
 
 extern GfxCard *matrox;
