@@ -125,7 +125,12 @@ dfb_core_init( int *argc, char **argv[] )
 {
 #ifdef DFB_DYNAMIC_LINKING
      if (!dfb_lib_handle)
+#ifdef RTLD_GLOBAL
           dfb_lib_handle = dlopen(SOPATH, RTLD_GLOBAL|RTLD_LAZY);
+#else
+          /* RTLD_GLOBAL is not defined on OpenBSD */
+          dfb_lib_handle = dlopen(SOPATH, RTLD_LAZY);
+#endif
 #endif
     
      return DFB_OK;
