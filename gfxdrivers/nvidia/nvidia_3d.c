@@ -298,23 +298,27 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
 #define UMASK 0xAAAAAAAA
 
 static inline void
-argb1555_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+a8_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 {
-     int u, v, i;
+     __u32 u, v;
+     int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
-          for (i = 0, u = 0; i < width/2; i++, u = (u + UINC) & UMASK) {
-               register __u32 pix0, pix1;
-               pix0 = ((__u32*) src)[i];
-               pix1 = pix0 >> 16;
-               pix0 = ARGB1555_TO_RGB16( pix0 );
-               pix1 = ARGB1555_TO_RGB16( pix1 );
-               dst[(u|v)/4] = pix0 | (pix1 << 16);
+          for (i = 0, u = 0; i < width; i += 2, u = (u + UINC) & UMASK) {
+#ifdef WORDS_BIGENDIAN
+               dst[(u|v)/4] = ((src[i+0] & 0xF0) << 24) |
+                              ((src[i+1] & 0xF0) <<  8) |
+                              0x0FFF0FFF;
+#else
+               dst[(u|v)/4] = ((src[i+0] & 0xF0) <<  8) |
+                              ((src[i+1] & 0xF0) << 24) |
+                              0x0FFF0FFF;
+#endif
           }
           
           if (width & 1) {
                u = (u + UINC) & UMASK;
-               dst[(u|v)/4] = ARGB1555_TO_RGB16( ((__u16*) src)[width-1] );
+               dst[(u|v)/4] = ((src[width-1] & 0xF0) << 8) | 0x0FFF;
           }             
                
           src += pitch;
@@ -324,7 +328,8 @@ argb1555_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 static inline void
 rgb16_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 {
-     int u, v, i;
+     __u32 u, v;
+     int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
           for (i = 0, u = 0; i < width/2; i++, u = (u + UINC) & UMASK)
@@ -342,7 +347,8 @@ rgb16_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 static inline void
 rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 {
-     int u, v, i;
+     __u32 u, v;
+     int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
           for (i = 0, u = 0; i < width; i += 2, u = (u + UINC) & UMASK) {
@@ -370,7 +376,8 @@ rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 static inline void
 argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 {
-     int u, v, i;
+     __u32 u, v;
+     int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
           for (i = 0, u = 0; i < width; i += 2, u = (u + UINC) & UMASK) {
@@ -435,10 +442,11 @@ void nv_put_texture( NVidiaDriverData *nvdrv,
      nv_waitidle( nvdrv, nvdev );
      
      switch (source->format) {
-          case DSPF_ARGB1555:
-               argb1555_to_tex( tex_origin, src_buffer, src_pitch,
-                                nvdev->src_width, nvdev->src_height );
+          case DSPF_A8:
+               a8_to_tex( tex_origin, src_buffer, src_pitch,
+                          nvdev->src_width, nvdev->src_height );
                break;
+          case DSPF_ARGB1555:
           case DSPF_RGB16:
                rgb16_to_tex( tex_origin, src_buffer, src_pitch,
                              nvdev->src_width, nvdev->src_height );
@@ -448,12 +456,8 @@ void nv_put_texture( NVidiaDriverData *nvdrv,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB:
-               if ((nvdev->state3d.format & 0x00000F00) == 0x00000400) /* ARGB4444 */
-                    argb_to_tex( tex_origin, src_buffer, src_pitch,
-                                 nvdev->src_width, nvdev->src_height );
-               else
-                    rgb32_to_tex( tex_origin, src_buffer, src_pitch,
-                                  nvdev->src_width, nvdev->src_height );
+               argb_to_tex( tex_origin, src_buffer, src_pitch,
+                            nvdev->src_width, nvdev->src_height );
                break;
           default:
                D_BUG( "unexpected pixelformat" );
