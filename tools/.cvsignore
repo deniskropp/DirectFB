@@ -2,5 +2,6 @@
 .deps
 Makefile
 Makefile.in
+raw15toraw24
 raw16toraw24
 raw32toraw24
