@@ -1,0 +1,30 @@
+This patch adds a new framebuffer driver for NeoMagic PCI chips
+mainly found in notebooks.
+
+Chdir to the linux source tree and apply the patch with:
+
+	patch -p1 < thepatch
+
+
+
+0.3
+ - hardware accelerated clear and move for 2200 and above
+ - maximum allowed dotclock is handled now
+
+0.2.1
+ - correct panning after X usage (dok)
+ - added module and kernel parameters (dok)
+ - no stretching if external display is enabled (dok)
+
+0.2
+ - initial version (dok)
+
+
+TODO
+- ioctl for internal/external switching
+- blanking
+- 32bit depth support, maybe impossible
+- disable automatic pan on sync, need specs
+
+BUGS
+- white margin on bootup (colormap problem?)
