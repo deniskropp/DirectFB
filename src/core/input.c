@@ -373,6 +373,22 @@ dfb_input_device_description( const InputDevice *device )
      return device->shared->device_info.desc;
 }
 
+DFBResult
+dfb_input_device_get_keymap_entry( InputDevice               *device,
+                                   int                        keycode,
+                                   DFBInputDeviceKeymapEntry *entry )
+{
+     DFBInputDeviceKeymapEntry *keymap_entry;
+
+     keymap_entry = get_keymap_entry( device, keycode );
+     if (!keymap_entry)
+          return DFB_FAILURE;
+
+     *entry = *keymap_entry;
+     
+     return DFB_OK;
+}
+
 /** internal **/
 
 static void
@@ -528,8 +544,13 @@ init_devices()
                              driver->info.vendor );
                }
 
-               if (device_info.desc.min_keycode >= 0 &&
-                   device_info.desc.max_keycode >= 0)
+               if (device_info.desc.min_keycode > device_info.desc.max_keycode) {
+                    BUG("min_keycode > max_keycode");
+                    device_info.desc.min_keycode = -1;
+                    device_info.desc.max_keycode = -1;
+               }
+               else if (device_info.desc.min_keycode >= 0 &&
+                        device_info.desc.max_keycode >= 0)
                     allocate_device_keymap( device );
 
                /* add it to the list */

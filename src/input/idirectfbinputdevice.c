@@ -60,7 +60,7 @@ IDirectFBInputDevice_React( const void *msg_data,
  * private data struct of IDirectFBInputDevice
  */
 typedef struct {
-     int                         ref;               /* refetence counter */
+     int                         ref;               /* reference counter */
      InputDevice                *device;            /* pointer to input core
                                                        device struct*/
 
@@ -75,6 +75,7 @@ typedef struct {
      DFBInputDeviceButtonMask    buttonmask;        /* bitmask reflecting the
                                                        state of the buttons */
 
+     DFBInputDeviceDescription   desc;              /* device description */
 } IDirectFBInputDevice_data;
 
 
@@ -165,9 +166,29 @@ IDirectFBInputDevice_GetDescription( IDirectFBInputDevice      *thiz,
      if (!desc)
           return DFB_INVARG;
 
-     *desc = dfb_input_device_description( data->device );
+     *desc = data->desc;
 
      return DFB_OK;
+}
+
+static DFBResult
+IDirectFBInputDevice_GetKeymapEntry( IDirectFBInputDevice      *thiz,
+                                     int                        keycode,
+                                     DFBInputDeviceKeymapEntry *entry )
+{
+     INTERFACE_GET_DATA(IDirectFBInputDevice)
+
+     if (!entry)
+          return DFB_INVARG;
+
+     if (data->desc.min_keycode < 0 || data->desc.max_keycode < 0)
+          return DFB_UNSUPPORTED;
+
+     if (keycode < data->desc.min_keycode ||
+         keycode > data->desc.max_keycode)
+          return DFB_INVARG;
+     
+     return dfb_input_device_get_keymap_entry( data->device, keycode, entry );
 }
 
 static DFBResult
@@ -287,17 +308,19 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 
      data = (IDirectFBInputDevice_data*)(thiz->priv);
 
-     data->ref = 1;
+     data->ref    = 1;
      data->device = device;
-
+     data->desc   = dfb_input_device_description( device );
+     
      dfb_input_attach( data->device, IDirectFBInputDevice_React, data );
 
      thiz->AddRef = IDirectFBInputDevice_AddRef;
      thiz->Release = IDirectFBInputDevice_Release;
      thiz->GetID = IDirectFBInputDevice_GetID;
+     thiz->GetDescription = IDirectFBInputDevice_GetDescription;
+     thiz->GetKeymapEntry = IDirectFBInputDevice_GetKeymapEntry;
      thiz->CreateEventBuffer = IDirectFBInputDevice_CreateEventBuffer;
      thiz->AttachEventBuffer = IDirectFBInputDevice_AttachEventBuffer;
-     thiz->GetDescription = IDirectFBInputDevice_GetDescription;
      thiz->GetKeyState = IDirectFBInputDevice_GetKeyState;
      thiz->GetModifiers = IDirectFBInputDevice_GetModifiers;
      thiz->GetLockState = IDirectFBInputDevice_GetLockState;

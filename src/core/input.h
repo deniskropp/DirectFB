@@ -125,5 +125,8 @@ void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 DFBInputDeviceDescription dfb_input_device_description( const InputDevice *device );
 unsigned int              dfb_input_device_id( const InputDevice *device );
 
+DFBResult dfb_input_device_get_keymap_entry( InputDevice               *device,
+                                             int                        keycode,
+                                             DFBInputDeviceKeymapEntry *entry );
 
 #endif

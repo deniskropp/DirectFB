@@ -1932,6 +1932,18 @@ extern "C"
           );
 
 
+        /** Key mapping **/
+
+          /*
+           * Fetch one entry from the keymap for a specific hardware keycode.
+           */
+          DFBResult (*GetKeymapEntry) (
+               IDirectFBInputDevice          *thiz,
+               int                            keycode,
+               DFBInputDeviceKeymapEntry     *entry
+          );
+
+
         /** Event buffers **/
 
           /*
