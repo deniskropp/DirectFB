@@ -203,8 +203,8 @@ Running multiple DirectFB applications at the same time
    Device is required which implements critical parts of fusion and thus
    leads to better performance and more stability. To install this kernel
    module (only available for Linux yet), check out the linux-fusion
-   module from our CVS repository. DirectFB will use the kernel module if
-   the linux/fusion.h header file is found by configure.
+   module from our CVS repository or use the patch provided by this
+   release (in the patches directory).
 
    Compile DirectFB with multi-application core enabled:
 
