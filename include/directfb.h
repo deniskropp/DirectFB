@@ -490,7 +490,7 @@ typedef enum {
      DLCAPS_SCREEN_POSITION   = 0x00100000,
      DLCAPS_SCREEN_SIZE       = 0x00200000,
 
-     DLCAPS_ALL               = 0x0003FFFF
+     DLCAPS_ALL               = 0x0033FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
