@@ -1,20 +1,25 @@
 .\" Hey Emacs! This file is -*- nroff -*- source.
 .\"
-.\" This man page is Copyright (C) 2002 Sven Neumann <neo@directfb.org>
+.\" This man page is Copyright (C) 2002-2003 Sven Neumann <neo@directfb.org>
 
-.TH DIRECTFB-CSOURCE 1 "8 Aug 2002" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
+.TH DIRECTFB-CSOURCE 1 "24 Oct 2003" "Version @DIRECTFB_VERSION@" "DirectFB Manual Pages"
 
 .SH NAME
 directfb-csource \- C code generation utility for DirectFB surfaces
 
 .SH SYNOPSIS
-\fBdirectfb-csource\fP [\fIoptions\fP] <\fIimagefile\fP>
+\fBdirectfb-csource\fP [\fIoptions\fP] <\fIimagefiles\fP>
 
 .SH DESCRIPTION
-\fBdirectfb-csource\fP is a small utility that reads a PNG (Portable
-Network Graphics) image file and generates C code that can be used to
-compile the image into a DirectFB application. The example below
-illustrates this.
+\fBdirectfb-csource\fP is a small utility that reads PNG (Portable
+Network Graphics) image files and generates C code that can be used to
+compile an image into a DirectFB application.  Below is a simple
+example to illustrate this.
+
+If multiple PNG image files are passed to \fBdirectfb-csource\fP, they
+are combined into a single surface. The different images can then be
+blitted from this surface using the array of rectangles that is also
+dumped. This can be useful for example for icons or sprites.
 
 
 .SH OPTIONS
@@ -22,7 +27,8 @@ illustrates this.
 .B --name=identifier
 Specifies the identifier name (prefix) for the generated variables.
 If this option is not used, the identifier is generated from the
-filename.
+filename. You have to specify an identifer name when processing
+multiple images.
 
 .TP
 .B --format=pixelformat

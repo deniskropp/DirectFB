@@ -60,19 +60,24 @@ static struct {
 static int n_pixelformats = sizeof (pixelformats) / sizeof (pixelformats[0]);
 
 
-static DFBResult  load_image   (const char             *filename,
-                                DFBSurfaceDescription  *desc,
-                                DFBColor               *palette,
-                                int                    *palette_size);
-static DFBResult  dump_image   (const char             *name,
-                                DFBSurfaceDescription  *desc,
-                                DFBColor               *palette,
-                                int                     palette_size);
-static DFBResult  merge_images (DFBSurfaceDescription  *images,
-                                int                     num_images,
-                                DFBSurfaceDescription  *dest,
-                                DFBRectangle           *rectangles);
-static void       print_usage  (const char             *prg_name);
+static DFBResult  load_image      (const char             *filename,
+                                   DFBSurfaceDescription  *desc,
+                                   DFBColor               *palette,
+                                   int                    *palette_size);
+static DFBResult  merge_images    (DFBSurfaceDescription  *images,
+                                   int                     num_images,
+                                   DFBSurfaceDescription  *dest,
+                                   DFBRectangle           *rectangles);
+static DFBResult  dump_image      (const char             *name,
+                                   DFBSurfaceDescription  *desc,
+                                   DFBColor               *palette,
+                                   int                     palette_size);
+static DFBResult  dump_rectangles (const char             *name,
+                                   DFBRectangle           *rectangles,
+                                   const char            **names,
+                                   int                     num_rects);
+static char *     variable_name   (const char             *name);
+static void       print_usage     (const char             *prg_name);
 
 
 int main (int         argc,
@@ -80,14 +85,16 @@ int main (int         argc,
 {
      DFBSurfaceDescription  desc   = { flags: 0 };
      DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
-     DFBColor    palette[256];
+     DFBColor  palette[256];
+
      const char *filename[argc];
      const char *name           = NULL;
      int         palette_size   = 0;
      int         num_images     = 0;
      int         i, n;
 
-     /* parse command line */
+     /*  parse command line  */
+
      for (n = 1; n < argc; n++) {
           if (strncmp (argv[n], "--", 2) == 0) {
 
@@ -122,6 +129,8 @@ int main (int         argc,
           filename[num_images++] = argv[n];
      }
 
+     /*  check parameters  */
+
      if (! num_images) {
           print_usage (argv[0]);
           return EXIT_FAILURE;
@@ -133,6 +142,8 @@ int main (int         argc,
           return EXIT_FAILURE;
      }
 
+     /*  load the first image  */
+
      if (format) {
           desc.flags = DSDESC_PIXELFORMAT;
           desc.pixelformat = format;
@@ -141,11 +152,14 @@ int main (int         argc,
      if (load_image (filename[0], &desc, palette, &palette_size) != DFB_OK)
           return EXIT_FAILURE;
 
-     if (num_images == 1) {
+     /*  dump it and quit if this is the only image on the command line  */
+
+     if (num_images == 1)
           return dump_image (name ? name : basename (strdup (filename[0])),
                              &desc, palette, palette_size);
-     }
-     else {
+
+     /*  merge multiple images into one surface  */
+     {
           DFBSurfaceDescription  image[num_images];
           DFBRectangle           rect[num_images];
           DFBColor               foo[256];
@@ -163,6 +177,11 @@ int main (int         argc,
           }
 
           if (merge_images (image, num_images, &desc, rect) != DFB_OK)
+               return EXIT_FAILURE;
+
+          /*  dump the rectangles, then the surface  */
+
+          if (dump_rectangles (name, rect, filename, num_images) != DFB_OK)
                return EXIT_FAILURE;
 
           return dump_image (name, &desc, palette, palette_size);
@@ -415,152 +434,6 @@ static DFBResult load_image (const char            *filename,
      return ((desc->flags) ? DFB_OK : DFB_FAILURE);
 }
 
-
-typedef struct {
-     FILE  *fp;
-     int     pos;
-     bool    pad;
-} CSourceData;
-
-
-static inline void
-save_uchar (CSourceData   *csource,
-	    unsigned char  d)
-{
-     if (csource->pos > 70) {
-          fprintf (csource->fp, "\"\n  \"");
-
-          csource->pos = 3;
-          csource->pad = false;
-     }
-     if (d < 33 || d > 126) {
-          fprintf (csource->fp, "\\%o", d);
-          csource->pos += 1 + 1 + (d > 7) + (d > 63);
-          csource->pad = d < 64;
-          return;
-     }
-     if (d == '\\') {
-          fprintf (csource->fp, "\\\\");
-          csource->pos += 2;
-     }
-     else if (d == '"') {
-          fprintf (csource->fp, "\\\"");
-          csource->pos += 2;
-     }
-     else if (csource->pad && d >= '0' && d <= '9') {
-          fprintf (csource->fp, "\"\"%c", d);
-          csource->pos += 3;
-     }
-     else {
-          fputc (d, csource->fp);
-          csource->pos += 1;
-     }
-     csource->pad = false;
-
-     return;
-}
-
-static DFBResult dump_image (const char            *name,
-                             DFBSurfaceDescription *desc,
-                             DFBColor              *palette,
-                             int                    palette_size)
-{
-     CSourceData    csource = { stdout, 0, 0 };
-     const char    *format  = NULL;
-     char          *vname   = strdup (name);
-     unsigned char *data;
-     unsigned long  len;
-     int            i;
-
-     for (i = 0; vname[i]; i++) {
-          switch (vname[i]) {
-               case 'a'...'z':
-               case 'A'...'Z':
-               case '0'...'9':
-               case '_':
-                    break;
-               default:
-                    vname[i] = '_';
-          }
-     }
-
-     if (desc->flags != (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
-                         DSDESC_PREALLOCATED))
-          return DFB_INVARG;
-
-     for (i = 0; i < n_pixelformats && !format; i++)
-          if (pixelformats[i].format == desc->pixelformat)
-               format = pixelformats[i].name;
-
-     if (!format)
-          return DFB_INVARG;
-
-     data = (unsigned char *) desc->preallocated[0].data;
-     len = desc->height * desc->preallocated[0].pitch;
-
-     if (!len)
-          return DFB_INVARG;
-
-     /* dump comment */
-     fprintf (csource.fp,
-              "/* DirectFB surface dump created by directfb-csource %s */\n\n",
-              DIRECTFB_VERSION);
-
-     /* dump data */
-     fprintf (csource.fp,
-              "static unsigned char %s_data[] = \n", vname);
-     fprintf (csource.fp, "  \"");
-
-     csource.pos = 3;
-     do
-          save_uchar (&csource, *data++);
-     while (--len);
-
-     fprintf (csource.fp, "\";\n\n");
-
-     /* dump palette */
-     if (palette_size > 0) {
-          fprintf (csource.fp,
-                   "static DFBColor %s_palette[%d] = {\n", vname, palette_size);
-          for (i = 0; i < palette_size; i++)
-               fprintf (csource.fp,
-                        "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
-                        palette[i].a, palette[i].r, palette[i].g, palette[i].b,
-                        i+1 < palette_size ? ',' : ' ');
-          fprintf (csource.fp, "};\n\n");
-     }
-
-     /* dump description */
-     fprintf (csource.fp,
-              "static DFBSurfaceDescription %s_desc = {\n", vname);
-     fprintf (csource.fp,
-              "  flags                   : DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |\n"
-              "                            DSDESC_PREALLOCATED");
-     if (palette_size > 0)
-          fprintf (csource.fp, " | DSDESC_PALETTE");
-     fprintf (csource.fp, ",\n");
-     fprintf (csource.fp,
-              "  width                   : %d,\n", desc->width);
-     fprintf (csource.fp,
-              "  height                  : %d,\n", desc->height);
-     fprintf (csource.fp,
-              "  pixelformat             : DSPF_%s,\n", format);
-     fprintf (csource.fp,
-              "  preallocated : {{  data : (void *) %s_data,\n", vname);
-     fprintf (csource.fp,
-              "                    pitch : %d  }}", desc->preallocated[0].pitch);
-     if (palette_size > 0) {
-          fprintf (csource.fp, ",\n");
-          fprintf (csource.fp,
-                   "  palette :    {  entries : %s_palette,\n", vname);
-          fprintf (csource.fp,
-                   "                     size : %d  }", palette_size);
-     }
-     fprintf (csource.fp, "\n};\n\n");
-
-     return DFB_OK;
-}
-
 static DFBResult merge_images (DFBSurfaceDescription *images,
                                int                    num_images,
                                DFBSurfaceDescription *dest,
@@ -640,4 +513,222 @@ static DFBResult merge_images (DFBSurfaceDescription *images,
   dest->preallocated[0].data  = data;
 
   return DFB_OK;
+}
+
+
+typedef struct {
+     FILE  *fp;
+     int     pos;
+     bool    pad;
+} CSourceData;
+
+static inline void save_uchar (CSourceData   *csource,
+                               unsigned char  d)
+{
+     if (csource->pos > 70) {
+          fprintf (csource->fp, "\"\n  \"");
+
+          csource->pos = 3;
+          csource->pad = false;
+     }
+     if (d < 33 || d > 126) {
+          fprintf (csource->fp, "\\%o", d);
+          csource->pos += 1 + 1 + (d > 7) + (d > 63);
+          csource->pad = d < 64;
+          return;
+     }
+     if (d == '\\') {
+          fprintf (csource->fp, "\\\\");
+          csource->pos += 2;
+     }
+     else if (d == '"') {
+          fprintf (csource->fp, "\\\"");
+          csource->pos += 2;
+     }
+     else if (csource->pad && d >= '0' && d <= '9') {
+          fprintf (csource->fp, "\"\"%c", d);
+          csource->pos += 3;
+     }
+     else {
+          fputc (d, csource->fp);
+          csource->pos += 1;
+     }
+     csource->pad = false;
+
+     return;
+}
+
+static DFBResult dump_image (const char            *name,
+                             DFBSurfaceDescription *desc,
+                             DFBColor              *palette,
+                             int                    palette_size)
+{
+     CSourceData    csource = { stdout, 0, 0 };
+     const char    *format  = NULL;
+     char          *vname   = variable_name (name);
+     unsigned char *data;
+     unsigned long  len;
+     int            i;
+
+     if (desc->flags != (DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |
+                         DSDESC_PREALLOCATED))
+          return DFB_INVARG;
+
+     for (i = 0; i < n_pixelformats && !format; i++)
+          if (pixelformats[i].format == desc->pixelformat)
+               format = pixelformats[i].name;
+
+     if (!format)
+          return DFB_INVARG;
+
+     data = (unsigned char *) desc->preallocated[0].data;
+     len = desc->height * desc->preallocated[0].pitch;
+
+     if (!len)
+          return DFB_INVARG;
+
+     /* dump comment */
+     fprintf (csource.fp,
+              "/* DirectFB surface dump created by directfb-csource %s */\n\n",
+              DIRECTFB_VERSION);
+
+     /* dump data */
+     fprintf (csource.fp,
+              "static unsigned char %s_data[] = \n", vname);
+     fprintf (csource.fp, "  \"");
+
+     csource.pos = 3;
+     do
+          save_uchar (&csource, *data++);
+     while (--len);
+
+     fprintf (csource.fp, "\";\n\n");
+
+     /* dump palette */
+     if (palette_size > 0) {
+          fprintf (csource.fp,
+                   "static DFBColor %s_palette[%d] = {\n", vname, palette_size);
+          for (i = 0; i < palette_size; i++)
+               fprintf (csource.fp,
+                        "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
+                        palette[i].a, palette[i].r, palette[i].g, palette[i].b,
+                        i+1 < palette_size ? ',' : ' ');
+          fprintf (csource.fp, "};\n\n");
+     }
+
+     /* dump description */
+     fprintf (csource.fp,
+              "static DFBSurfaceDescription %s_desc = {\n", vname);
+     fprintf (csource.fp,
+              "  flags                   : DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |\n"
+              "                            DSDESC_PREALLOCATED");
+     if (palette_size > 0)
+          fprintf (csource.fp, " | DSDESC_PALETTE");
+     fprintf (csource.fp, ",\n");
+     fprintf (csource.fp,
+              "  width                   : %d,\n", desc->width);
+     fprintf (csource.fp,
+              "  height                  : %d,\n", desc->height);
+     fprintf (csource.fp,
+              "  pixelformat             : DSPF_%s,\n", format);
+     fprintf (csource.fp,
+              "  preallocated : {{  data : (void *) %s_data,\n", vname);
+     fprintf (csource.fp,
+              "                    pitch : %d  }}", desc->preallocated[0].pitch);
+     if (palette_size > 0) {
+          fprintf (csource.fp, ",\n");
+          fprintf (csource.fp,
+                   "  palette :    {  entries : %s_palette,\n", vname);
+          fprintf (csource.fp,
+                   "                     size : %d  }", palette_size);
+     }
+     fprintf (csource.fp, "\n};\n\n");
+
+     free (vname);
+
+     return DFB_OK;
+}
+
+static DFBResult dump_rectangles (const char    *name,
+                                  DFBRectangle  *rectangles,
+                                  const char   **names,
+                                  int            num_rects)
+{
+     DFBRectangle *rect;
+     const char   *blanks = "                                  ";
+     char         *vname  = strdup (name);
+     FILE         *fp     = stdout;
+     int           len, i;
+
+     if (num_rects < 1)
+          return DFB_INVARG;
+
+     fprintf (fp,
+              "/* DirectFB multi-surface dump created by directfb-csource %s */\n\n",
+              DIRECTFB_VERSION);
+
+     fprintf (fp,
+              "static struct {\n"
+              "  const char   *name;\n"
+              "  DFBRectangle  rect;\n"
+              "} %s_rects[] = {\n", vname);
+
+     for (i = 0, len = 0; i < num_rects; i++)
+          len = MAX (len, strlen (names[i]));
+
+     len = len + 4 - strlen (blanks);
+
+     for (i = 0, rect = rectangles; i < num_rects; i++, rect++) {
+
+          char *v = variable_name (names[i]);
+
+          if (i)
+               fprintf (fp, ",\n");
+
+          if (len < 0) {
+               int l = fprintf (fp, "  { \"%s\", ", v);
+
+               fprintf (fp, blanks - len + l);
+               fprintf (fp, "{ x : %4d, y : %4d, w : %4d, h : %4d } }",
+                        rect->x, rect->y, rect->w, rect->h);
+          }
+          else {
+               fprintf (fp,
+                        "  { \"%s\",\n"
+                        "    { x : %4d, y : %4d, w : %4d, h : %4d } }",
+                        v, rect->x, rect->y, rect->w, rect->h);
+          }
+
+          free (v);
+     }
+     fprintf (fp, "\n};\n\n");
+
+     free (vname);
+
+     return DFB_OK;
+}
+
+static char *
+variable_name (const char *name)
+{
+     char *vname = strdup (name);
+     char *v     = vname;
+
+     while (DFB_TRUE) {
+          switch (*v) {
+               case 0:
+                   return vname;
+               case '.':
+                   *v = 0;
+                   return vname;
+               case 'a'...'z':
+               case 'A'...'Z':
+               case '0'...'9':
+               case '_':
+                   break;
+              default:
+                   *v = '_';
+          }
+          v++;
+     }
 }
