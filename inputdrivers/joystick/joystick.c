@@ -46,7 +46,7 @@ char devicename[10] ="/dev/jsX";
 DFBInputEvent joystick_handle_event(struct js_event jse);
 
 
-int joystick_probe()
+int driver_probe()
 {
      int i;
      int joy_count = 0;
@@ -63,7 +63,7 @@ int joystick_probe()
      return joy_count;
 }
 
-int joystick_init(InputDevice *device)
+int driver_init(InputDevice *device)
 {
      devicename[7] = (char)(device->number+48);
      fd[device->number] = open( devicename, O_RDONLY);
@@ -72,11 +72,11 @@ int joystick_init(InputDevice *device)
           return DFB_INIT; // no joystick available
      }
 
-     sprintf( device->driver.name, "Joystick" );
-     sprintf( device->driver.vendor, "convergence integrated media GmbH" );
+     sprintf( device->info.driver_name, "Joystick" );
+     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
 
-     device->driver.version.major = 0;
-     device->driver.version.minor = 9;
+     device->info.driver_version.major = 0;
+     device->info.driver_version.minor = 9;
 
      device->id = DIDID_JOYSTICK + device->number;
 
@@ -137,7 +137,7 @@ DFBInputEvent joystick_handle_event(struct js_event jse)
 }
 
 
-void joystick_deinit(InputDevice *device)
+void driver_deinit(InputDevice *device)
 {
      close( fd[device->number] );
 }

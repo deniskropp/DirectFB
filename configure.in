@@ -318,12 +318,15 @@ src/misc/Makefile
 src/gfx/Makefile
 src/gfx/generic/Makefile
 src/core/Makefile
-src/core/inputdevices/Makefile
 gfxdrivers/Makefile
 gfxdrivers/ati128/Makefile
 gfxdrivers/matrox/Makefile
 gfxdrivers/neomagic/Makefile
 gfxdrivers/tdfx/Makefile
+inputdrivers/Makefile
+inputdrivers/joystick/Makefile
+inputdrivers/keyboard/Makefile
+inputdrivers/ps2mouse/Makefile
 interfaces/Makefile
 tools/Makefile
 docs/Makefile

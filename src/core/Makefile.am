@@ -1,7 +1,5 @@
 ## Makefile.am for DirectFB/src/core
 
-SUBDIRS = inputdevices
-
 INCLUDES = \
 	-I$(top_srcdir)/include		\
 	-I$(top_builddir)/include	\
@@ -10,7 +8,6 @@ INCLUDES = \
 noinst_LTLIBRARIES = libdirectfb_core.la
 
 libdirectfb_core_la_LIBADD = \
-	inputdevices/libdirectfb_inputdevices.la	\
 	$(THREAD_LIBS)
 
 libdirectfb_core_la_LDFLAGS = -export-dynamic

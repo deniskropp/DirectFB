@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <dlfcn.h>
 
 #include <string.h>
 #include <malloc.h>
@@ -35,26 +36,107 @@
 #include "coredefs.h"
 #include "input.h"
 
-#include "inputdevices/keyboard.h"
-#include "inputdevices/joystick.h"
-#include "inputdevices/ps2mouse.h"
-
 #include "layers.h"
 
-static struct       /* TODO: port to dynamic driver modules */
-{
-     int  (*Probe)();
-     int  (*Init)(InputDevice *device);
-     void (*DeInit)(InputDevice *device);
-} drivers[] = {
-     { keyboard_probe, keyboard_init, keyboard_deinit },
-     { ps2mouse_probe, ps2mouse_init, ps2mouse_deinit },
-     { joystick_probe, joystick_init, joystick_deinit },
-     { NULL, NULL, NULL }
-};
 
 InputDevice *inputdevices = NULL;
 
+
+static CoreModuleLoadResult input_driver_handle_func( void *handle,
+                                                      char *name,
+                                                      void *ctx )
+{
+     int n, nr_devices;
+     InputDriver *driver = malloc( sizeof(InputDriver) );
+     
+     driver->Probe  = dlsym( handle, "driver_probe" );
+     if (!driver->Probe) {
+          DLERRORMSG( "DirectFB/core/input: "
+                      "Could not dlsym `driver_probe' from `%s'!\n", name );
+          free( driver );
+          return MODULE_REJECTED;
+     }
+
+     driver->Init   = dlsym( handle, "driver_init" );
+     if (!driver->Init) {
+          DLERRORMSG( "DirectFB/core/input: "
+                      "Could not dlsym `driver_init' from `%s'!\n", name );
+          free( driver );
+          return MODULE_REJECTED;
+     }
+
+     driver->DeInit = dlsym( handle, "driver_deinit" );
+     if (!driver->DeInit) {
+          DLERRORMSG( "DirectFB/core/input: "
+                      "Could not dlsym `driver_deinit' from `%s'!\n", name );
+          free( driver );
+          return MODULE_REJECTED;
+     }
+
+     
+     nr_devices = driver->Probe();
+     if (!nr_devices) {
+          free( driver );
+          return MODULE_REJECTED;
+     }
+
+     for (n=0; n<nr_devices; n++) {
+          InputDevice *device;
+
+          device = (InputDevice*) calloc( 1, sizeof(InputDevice) );
+
+          device->number = n;
+
+          if (driver->Init( device ) != DFB_OK) {
+               free( device );
+               continue;
+          }
+
+          device->info.driver = driver;
+
+          INITMSG( "DirectFB/InputDevice: %s %d.%d (%s)\n",
+                   device->info.driver_name,
+                   device->info.driver_version.major,
+                   device->info.driver_version.minor,
+                   device->info.driver_vendor );
+
+          /* start input thread */
+          if (device->EventThread) {
+#ifdef KRANK
+               int                 policy;
+               struct sched_param  sp;
+#endif
+
+               pthread_create( &device->event_thread, NULL,
+                               device->EventThread, device );
+
+#ifdef KRANK
+               pthread_getschedparam( device->event_thread, &policy, &sp );
+
+               policy = SCHED_FIFO;
+
+               sp.sched_priority = sched_get_priority_max( policy );
+
+               pthread_setschedparam( device->event_thread, policy, &sp );
+#endif
+          }
+
+          /* add it to the list */
+          if (!inputdevices) {
+               inputdevices = device;
+          }
+          else {
+               InputDevice *dev = inputdevices;
+
+               while (dev->next) {
+                    dev = dev->next;
+               }
+               dev->next = device;
+          }
+     }
+
+     return MODULE_LOADED_CONTINUE;
+}
 
 /*
  * cancels input threads, deinitializes drivers, deallocates device structs
@@ -76,7 +158,9 @@ void input_deinit()
           
           pthread_cancel( d->event_thread );
           pthread_join( d->event_thread, NULL );
-          d->deinit( d );
+
+          d->info.driver->DeInit( d );
+
           free( d );
 
           d = next;
@@ -87,67 +171,10 @@ void input_deinit()
 
 DFBResult input_init_devices()
 {
-     int i;
+     char *driver_dir = LIBDIR"/inputdrivers";
 
-     for (i=0; drivers[i].Probe; i++) {
-          int n, nr_devices = drivers[i].Probe();
-
-          for (n=0; n<nr_devices; n++) {
-               InputDevice *device;
-
-               device = (InputDevice*) calloc( 1, sizeof(InputDevice) );
-
-               device->number = n;
-
-               if (drivers[i].Init( device ) != DFB_OK) {
-                    free( device );
-                    continue;
-               }
-
-               /* remember (de)init function */
-               device->init = drivers[i].Init;
-               device->deinit = drivers[i].DeInit;
-
-               INITMSG( "DirectFB/InputDevice: %s %d.%d (%s)\n",
-                        device->driver.name, device->driver.version.major,
-                        device->driver.version.minor, device->driver.vendor );
-
-               /* start input thread */
-               if (device->EventThread) {
-#ifdef KRANK
-                    int                 policy;
-                    struct sched_param  sp;
-#endif
-
-                    pthread_create( &device->event_thread, NULL,
-                                    device->EventThread, device );
-
-#ifdef KRANK
-                    pthread_getschedparam( device->event_thread, &policy, &sp );
-
-                    policy = SCHED_FIFO;
-
-                    sp.sched_priority = sched_get_priority_max( policy );
-
-                    pthread_setschedparam( device->event_thread, policy, &sp );
-#endif
-               }
-
-               /* add it to the list */
-               if (!inputdevices) {
-                    inputdevices = device;
-               }
-               else {
-                    InputDevice *dev = inputdevices;
-
-                    while (dev->next) {
-                         dev = dev->next;
-                    }
-                    dev->next = device;
-               }
-          }
-     }
-
+     core_load_modules( driver_dir, input_driver_handle_func, NULL );
+     
      core_cleanup_push( input_deinit );
 
      return DFB_OK;

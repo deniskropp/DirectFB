@@ -1,0 +1,22 @@
+## Makefile.am for DirectFB/inputdrivers/joystick
+
+INCLUDES = \
+	-I$(top_srcdir)/include	\
+	-I$(top_srcdir)/src
+
+CFLAGS = $(DFB_CFLAGS)
+
+joystick_LTLIBRARIES = libdirectfb_joystick.la
+
+joystickdir = $(LIBDIR)/inputdrivers
+
+libdirectfb_joystick_la_SOURCES =	\
+	joystick.c	\
+	joystick.h
+
+libdirectfb_joystick_la_LDFLAGS = \
+        -export-dynamic		\
+	-disable-static		\
+	-avoid-version		\
+        $(DFB_LDFLAGS)
+

@@ -28,6 +28,8 @@
 
 #include <pthread.h>
 
+typedef struct _InputDevice InputDevice;
+
 /*
  * callback function for input device listener
  */
@@ -42,20 +44,28 @@ typedef struct _InputDeviceListener {
      struct _InputDeviceListener   *next;
 } InputDeviceListener;
 
-typedef struct _InputDevice {
+typedef struct {
+     int  (*Probe)();
+     int  (*Init)(InputDevice *device);
+     void (*DeInit)(InputDevice *device);
+} InputDriver;
+
+struct _InputDevice {
 
      /* these must be filled by the driver */
      struct {
-          char                     name[20];      /* device name,
+          char              driver_name[20];      /* device name,
                                                      e.g. PS/2 Mouse */
-          char                     vendor[40];    /* driver vendor name,
+          char              driver_vendor[40];    /* driver vendor name,
                                                      e.g. convergence */
 
           struct {
-               int                 major;         /* major version */
-               int                 minor;         /* minor version */
-          } version;                              /* major.minor, e.g. 0.1 */
-     } driver;
+               int          major;                /* major version */
+               int          minor;                /* minor version */
+          } driver_version;                       /* major.minor, e.g. 0.1 */
+
+          InputDriver      *driver;
+     } info;
 
      DFBInputDeviceDescription     desc;          /* number of axis etc. */
      unsigned int                  id;            /* device id (TYPE/INDEX) */
@@ -79,14 +89,9 @@ typedef struct _InputDevice {
 
      pthread_t                     event_thread;       /* EventThread handle */
 
-     /*
-      * Device driver (de)initialization function.
-      */
-     int                           (*init)(struct _InputDevice *device);
-     void                          (*deinit)(struct _InputDevice *device);
 
      struct _InputDevice           *next;
-} InputDevice;
+};
 
 extern InputDevice *inputdevices;
 

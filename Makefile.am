@@ -6,6 +6,7 @@ SUBDIRS = \
 	src 		\
 	tools 		\
 	gfxdrivers	\
+	inputdrivers	\
 	interfaces 	\
 	examples 	\
 	docs

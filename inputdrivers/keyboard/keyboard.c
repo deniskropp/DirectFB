@@ -65,12 +65,12 @@ char keyboard_translate(int kb_value);
 char keyboard_get_ascii(int kb_value);
 
 
-int keyboard_probe()
+int driver_probe()
 {
      return 1;
 }
 
-int keyboard_init(InputDevice *device)
+int driver_init(InputDevice *device)
 {
      char buf[32];
      struct termios ts;
@@ -129,11 +129,11 @@ int keyboard_init(InputDevice *device)
 
 
 
-     sprintf( device->driver.name, "Keyboard" );
-     sprintf( device->driver.vendor, "convergence integrated media GmbH" );
+     sprintf( device->info.driver_name, "Keyboard" );
+     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
 
-     device->driver.version.major = 0;
-     device->driver.version.minor = 9;
+     device->info.driver_version.major = 0;
+     device->info.driver_version.minor = 9;
      
      device->id = DIDID_KEYBOARD;
      device->desc.caps = DICAPS_KEYS;
@@ -143,7 +143,7 @@ int keyboard_init(InputDevice *device)
      return DFB_OK;
 }
 
-void keyboard_deinit(InputDevice *device)
+void driver_deinit(InputDevice *device)
 {
      if (fd < 0)
           return;

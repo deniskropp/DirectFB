@@ -38,8 +38,6 @@
 
 #include "misc/util.h"
 
-#include "inputdevices/keyboard.h"
-
 /*
  * one entry on the cleanup stack
  */
@@ -133,7 +131,7 @@ void core_deinit()
 
 void core_deinit_emergency()
 {
-     keyboard_deinit(NULL);
+//     keyboard_deinit(NULL);
      vt_close();
      
      cleanup_stack = NULL;

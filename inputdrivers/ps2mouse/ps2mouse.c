@@ -48,7 +48,7 @@
 static int fd = -1;
 
 
-int ps2mouse_probe()
+int driver_probe()
 {
      fd = open( "/dev/psaux", O_RDONLY );
      if (fd < 0) {
@@ -62,7 +62,7 @@ int ps2mouse_probe()
      return 1;
 }
 
-int ps2mouse_init(InputDevice *device)
+int driver_init(InputDevice *device)
 {
      fd = open( "/dev/psaux", O_RDONLY );
      if (fd < 0) {
@@ -73,11 +73,11 @@ int ps2mouse_init(InputDevice *device)
           }
      }
 
-     sprintf( device->driver.name, "PS/2 Mouse" );
-     sprintf( device->driver.vendor, "convergence integrated media GmbH" );
+     sprintf( device->info.driver_name, "PS/2 Mouse" );
+     sprintf( device->info.driver_vendor, "convergence integrated media GmbH" );
 
-     device->driver.version.major = 0;
-     device->driver.version.minor = 9;
+     device->info.driver_version.major = 0;
+     device->info.driver_version.minor = 9;
 
      device->id = DIDID_MOUSE;
      device->desc.caps = DICAPS_AXIS | DICAPS_BUTTONS;
@@ -89,7 +89,7 @@ int ps2mouse_init(InputDevice *device)
      return DFB_OK;
 }
 
-void ps2mouse_deinit(InputDevice *device)
+void driver_deinit(InputDevice *device)
 {
      if (device->number != 0)
           return;
