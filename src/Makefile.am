@@ -41,17 +41,6 @@ libdirectfb_la_LIBADD = \
 	core/libdirectfb_core.la
 
 
-if ENABLE_TRACE
-
-install-exec-local:
-	$(top_srcdir)/tools/gensyms.sh .libs/libdirectfb.la @MODULEDIR@
-
-else
-
-install-exec-local:
-
-endif
-
 #
 ## and now rebuild the static version with the *correct* object files
 #

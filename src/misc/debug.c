@@ -42,6 +42,9 @@
 
 #include <core/coredefs.h>
 
+#include <core/fusion/list.h>
+
+#include <misc/memcpy.h>
 #include <misc/util.h>
 
 #include "debug.h"
@@ -55,7 +58,8 @@
 
 #define MAX_BUFFERS 200
 #define MAX_LEVEL   100
-#define MAX_NAME    92
+
+#define NAME_LEN    92
 
 struct __DFB_TraceBuffer {
      pid_t tid;
@@ -128,66 +132,102 @@ get_trace_buffer()
 
 typedef struct {
      long offset;
-     char name[MAX_NAME];
+     char name[NAME_LEN];
 } Symbol;
 
-static Symbol *symbols     = NULL;
-static int     num_symbols = 0;
+typedef struct {
+     FusionLink  link;
 
-__attribute__((constructor)) void _directfb_load_symbols();
+     char       *filename;
+     Symbol     *symbols;
+     int         capacity;
+     int         num_symbols;
+} SymbolTable;
+
+static FusionLink      *tables      = NULL;
+static pthread_mutex_t  tables_lock = PTHREAD_MUTEX_INITIALIZER;
 
 __attribute__((no_instrument_function))
-void
-_directfb_load_symbols()
+static void
+add_symbol( SymbolTable *table, long offset, const char *name )
 {
-     int          i, j;
-     int          num = 0;
-     int          fd;
-     struct stat  stat;
-     char        *map;
+     Symbol *symbol;
 
-     if (symbols) {
-          free( symbols );
-          symbols = NULL;
+     if (table->num_symbols == table->capacity) {
+          Symbol *symbols;
+          int     capacity = table->capacity * 2;
+
+          if (!capacity)
+               capacity = 256;
+
+          symbols = malloc( capacity * sizeof(Symbol) );
+          if (!symbols) {
+               CAUTION( "out of memory" );
+               return;
+          }
+
+          dfb_memcpy( symbols, table->symbols, table->num_symbols * sizeof(Symbol) );
+
+          free( table->symbols );
+
+          table->symbols  = symbols;
+          table->capacity = capacity;
      }
 
-     fd = open( MODULEDIR"/symbols.dynamic", O_RDONLY );
-     if (fd < 0) {
-          perror( "open "MODULEDIR"/symbols.dynamic" );
-          return;
+     symbol = &table->symbols[ table->num_symbols++ ];
+
+     symbol->offset = offset;
+
+     strncpy( symbol->name, name, NAME_LEN - 1 );
+
+     symbol->name[NAME_LEN - 1] = 0;
+}
+
+__attribute__((no_instrument_function))
+static SymbolTable *
+load_symbols( const char *filename )
+{
+     SymbolTable *table;
+     FILE        *pipe;
+     char         line[1024];
+     char         command[ strlen(filename) + 8 ];
+
+     snprintf( command, sizeof(command), "nm -n %s", filename );
+
+     pipe = popen( command, "r" );
+     if (!pipe) {
+          PERRORMSG( "DirectFB/debug: popen( \"%s\", \"r\" ) failed!\n", command );
+          return NULL;
      }
 
-     if (fstat( fd, &stat )) {
-          perror( "stat "MODULEDIR"/symbols.dynamic" );
-          close( fd );
-          return;
+     table = calloc( 1, sizeof(SymbolTable) );
+     if (!table) {
+          CAUTION( "out of memory" );
+          pclose( pipe );
+          return NULL;
      }
 
-     map = mmap( NULL, stat.st_size, PROT_READ, MAP_SHARED, fd, 0 );
-     if (map == MAP_FAILED) {
-          perror( "mmap "MODULEDIR"/symbols.dynamic" );
-          close( fd );
-          return;
+     table->filename = strdup( filename );
+     if (!table->filename) {
+          CAUTION( "out of memory" );
+          free( table );
+          pclose( pipe );
+          return NULL;
      }
 
-     for (i=0; i<stat.st_size; i++) {
-          if (map[i] == '\n')
-               num++;
-     }
-
-     symbols = malloc( num * sizeof(Symbol) );
-     if (!symbols) {
-          fprintf( stderr, "%s: Out of system memory!\n", __FUNCTION__ );
-          close( fd );
-          return;
-     }
-
-     for (i=0,j=0; i<num && j<stat.st_size-11; i++) {
+     while (fgets( line, sizeof(line), pipe )) {
           int  n;
           long offset = 0;
+          int  length = strlen(line);
+
+          if (length < 13 || line[8] != ' ' || line[10] != ' ' || line[length-1] != '\n')
+               continue;
+
+          if (line[9] != 't' && line[9] != 'T')
+               continue;
 
           for (n=0; n<8; n++) {
-               char c = map[j++];
+               char c = line[n];
 
                offset <<= 4;
 
@@ -197,25 +237,14 @@ _directfb_load_symbols()
                     offset |= c - 'a' + 10;
           }
 
-          symbols[i].offset = offset;
+          line[length-1] = 0;
 
-          j += 3;
-
-          for (n=0; map[j] != '\n'; n++, j++) {
-               if (n < MAX_NAME - 1) {
-                    symbols[i].name[n] = map[j];
-               }
-          }
-
-          symbols[i].name[MIN(n, MAX_NAME - 1)] = 0;
-
-          j++;
+          add_symbol( table, offset, line + 11 );
      }
 
-     num_symbols = num;
+     pclose( pipe );
 
-     munmap( map, stat.st_size );
-     close( fd );
+     return table;
 }
 
 __attribute__((no_instrument_function))
@@ -226,22 +255,48 @@ compare_symbols(const void *x, const void *y)
 }
 
 __attribute__((no_instrument_function))
-static bool
-lookup_symbol( long offset )
+static SymbolTable *
+find_table( const char *filename )
 {
-     Symbol *symbol;
+     FusionLink *l;
 
-     if (!symbols)
-          return false;
+     fusion_list_foreach (l, tables) {
+          SymbolTable *table = (SymbolTable*) l;
 
-     symbol = bsearch( &offset, symbols, num_symbols,
+          if (!strcmp( filename, table->filename ))
+               return table;
+     }
+
+     return NULL;
+}
+
+__attribute__((no_instrument_function))
+static const char *
+lookup_symbol( const char *filename, long offset )
+{
+     Symbol      *symbol;
+     SymbolTable *table;
+
+     pthread_mutex_lock( &tables_lock );
+
+     table = find_table( filename );
+     if (!table) {
+          table = load_symbols( filename );
+          if (!table) {
+               pthread_mutex_unlock( &tables_lock );
+               return false;
+          }
+
+          fusion_list_prepend( &tables, &table->link );
+     }
+
+     pthread_mutex_unlock( &tables_lock );
+
+
+     symbol = bsearch( &offset, table->symbols, table->num_symbols,
                        sizeof(Symbol), compare_symbols );
-     if (!symbol)
-          return false;
 
-     fprintf( stderr, "%s()\n", symbol->name );
-
-     return true;
+     return symbol ? symbol->name : NULL;
 }
 
 #endif
@@ -268,36 +323,41 @@ dfb_trace_print_stack( TraceBuffer *buffer )
 
      fprintf( stderr, "\n(-) DirectFB stack trace of %d\n", buffer->tid );
 
-     for (i=0; i<level; i++) {
-          int   n;
+     for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i];
 
-          fprintf( stderr, "    " );
-
-          for (n=0; n<i; n++)
-               fprintf( stderr, "  " );
-
-          fprintf( stderr, "'-> " );
+          fprintf( stderr, "  #%-2d %p in ", level - i - 1, fn );
 
 #ifdef DFB_DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
-               if (info.dli_sname)
-                    fprintf( stderr, "%s()\n", info.dli_sname );
-               else if (info.dli_fname) {
-                    if (!strstr(SOPATH, info.dli_fname) ||
-                        !lookup_symbol((long)(fn - info.dli_fbase)))
-                    {
-                         fprintf( stderr, "%p (%x) from %s (%p)\n",
-                                  fn, fn - info.dli_fbase, info.dli_fname,
-                                  info.dli_fbase );
+               if (info.dli_fname) {
+                    const char *fname;
+                    const char *symbol = lookup_symbol(info.dli_fname, (long)(fn - info.dli_fbase));
+
+                    if (!symbol) {
+                         if (info.dli_sname)
+                              symbol = info.dli_sname;
+                         else
+                              symbol = "??";
                     }
+
+                    fname = strrchr( info.dli_fname, '/' );
+                    if (fname)
+                         fname++;
+                    else
+                         fname = info.dli_fname;
+
+                    fprintf( stderr, "%s () from %s\n", symbol, fname );
+               }
+               else if (info.dli_sname) {
+                    fprintf( stderr, "%s ()\n", info.dli_sname );
                }
                else
-                    fprintf( stderr, "%p\n", fn );
+                    fprintf( stderr, "?? ()\n" );
           }
           else
 #endif
-               fprintf( stderr, "%p\n", fn );
+               fprintf( stderr, "?? ()\n" );
      }
 
      fprintf( stderr, "\n" );
