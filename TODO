@@ -38,6 +38,11 @@ Rework VT handling. Readd VT switching and Suspend/Resume.
 Virtual window/layer resolution with scrolling/panning.
 
 
+Drivers
+--------
+
+- CLUT support in Matrox driver
+
 
 Refactoring/cleanups
 ---------------------

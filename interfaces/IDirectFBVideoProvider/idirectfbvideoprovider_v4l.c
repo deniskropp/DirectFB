@@ -186,10 +186,11 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      if (!data)
           return DFB_DEAD;
 
-     desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
+     desc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT | DSDESC_CAPS;
      desc->width  = 768;
      desc->height = 576;
      desc->pixelformat = dfb_primary_layer_pixelformat();
+     desc->caps = DSCAPS_INTERLACED;
 
      return DFB_OK;
 }
