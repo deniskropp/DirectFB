@@ -147,6 +147,11 @@ static DFBResult wm_set_opacity    ( CoreWindow             *window,
                                      void                   *window_data,
                                      __u8                    opacity );
 
+static DFBResult wm_set_options    ( CoreWindow             *window,
+                                     void                   *wm_data,
+                                     void                   *window_data,
+                                     DFBWindowOptions        options );
+
 static DFBResult wm_grab           ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
@@ -202,6 +207,7 @@ static CoreWMFuncs wm_funcs = {
      ResizeWindow:        wm_resize_window,
      RestackWindow:       wm_restack_window,
      SetOpacity:          wm_set_opacity,
+     SetOptions:          wm_set_options,
      Grab:                wm_grab,
      Ungrab:              wm_ungrab,
      RequestFocus:        wm_request_focus,

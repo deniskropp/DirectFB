@@ -150,3 +150,9 @@ stret_iteration_next( StretIteration  *iteration,
      return NULL;
 }
 
+void
+stret_iteration_abort( StretIteration *iteration )
+{
+     D_MAGIC_CLEAR( iteration );
+}
+

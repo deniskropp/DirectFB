@@ -85,6 +85,11 @@ typedef struct {
 
 /**************************************************************************************************/
 
+static void update_foo_flags( WindowData *data );
+static void update_foo_frame( WindowData *data );
+
+/**************************************************************************************************/
+
 static void
 post_event( CoreWindow     *window,
             StackData      *data,
@@ -929,10 +934,13 @@ resize_window( CoreWindow *window,
 
      stret_region_resize( data->region, width, height );
 
-     if (data->has_frame)
+     if (data->has_frame) {
           stret_region_resize( data->frame,
                                width  + data->insets.l + data->insets.r,
                                height + data->insets.t + data->insets.b );
+
+          update_foo_frame( data );
+     }
 
      if (VISIBLE_WINDOW (window)) {
           int dw = ow - width;
@@ -2260,60 +2268,143 @@ wm_warp_cursor( CoreWindowStack *stack,
 
 /**************************************************************************************************/
 
-static DFBResult
-create_frame( WMShared   *shared,
-              WindowData *data,
-              int         width,
-              int         height )
+static void
+foo_rects( WindowData   *data,
+           DFBRectangle *ret_rects )
+{
+     DFBDimension  outer;
+     DFBRectangle *sizes;
+     CoreWindow   *window;
+
+     D_ASSERT( data != NULL );
+
+     D_ASSERT( data->shared != NULL );
+     D_ASSERT( ret_rects != NULL );
+
+     window = data->window;
+
+     D_ASSERT( window != NULL );
+
+     sizes = data->shared->foo_rects;
+
+     outer.w = window->width  + sizes[UFI_W].w + sizes[UFI_E].w;
+     outer.h = window->height + sizes[UFI_N].h + sizes[UFI_S].h;
+
+     ret_rects[UFI_N].x  = sizes[UFI_NW].w;
+     ret_rects[UFI_N].y  = 0;
+     ret_rects[UFI_N].w  = outer.w - sizes[UFI_NW].w - sizes[UFI_NE].w;
+     ret_rects[UFI_N].h  = sizes[UFI_N].h;
+
+     ret_rects[UFI_NE].x = outer.w - sizes[UFI_NE].w;
+     ret_rects[UFI_NE].y = 0;
+     ret_rects[UFI_NE].w = sizes[UFI_NE].w;
+     ret_rects[UFI_NE].h = sizes[UFI_NE].h;
+
+     ret_rects[UFI_E].x  = outer.w - sizes[UFI_E].w;
+     ret_rects[UFI_E].y  = sizes[UFI_NE].h;
+     ret_rects[UFI_E].w  = sizes[UFI_E].w;
+     ret_rects[UFI_E].h  = outer.h - sizes[UFI_NE].h - sizes[UFI_SE].h;
+
+     ret_rects[UFI_SE].x = outer.w - sizes[UFI_SE].w;
+     ret_rects[UFI_SE].y = outer.h - sizes[UFI_SE].h;
+     ret_rects[UFI_SE].w = sizes[UFI_SE].w;
+     ret_rects[UFI_SE].h = sizes[UFI_SE].h;
+
+     ret_rects[UFI_S].x  = sizes[UFI_SW].w;
+     ret_rects[UFI_S].y  = outer.h - sizes[UFI_S].h;
+     ret_rects[UFI_S].w  = outer.w - sizes[UFI_SE].w - sizes[UFI_SW].w;
+     ret_rects[UFI_S].h  = sizes[UFI_S].h;
+
+     ret_rects[UFI_SW].x = 0;
+     ret_rects[UFI_SW].y = outer.h - sizes[UFI_SW].h;
+     ret_rects[UFI_SW].w = sizes[UFI_SW].w;
+     ret_rects[UFI_SW].h = sizes[UFI_SW].h;
+
+     ret_rects[UFI_W].x  = 0;
+     ret_rects[UFI_W].y  = sizes[UFI_NW].h;
+     ret_rects[UFI_W].w  = sizes[UFI_W].w;
+     ret_rects[UFI_W].h  = outer.h - sizes[UFI_NW].h - sizes[UFI_SW].h;
+
+     ret_rects[UFI_NW].x = 0;
+     ret_rects[UFI_NW].y = 0;
+     ret_rects[UFI_NW].w = sizes[UFI_NW].w;
+     ret_rects[UFI_NW].h = sizes[UFI_NW].h;
+}
+
+static void
+update_foo_frame( WindowData *data )
 {
      int           i;
-     DFBResult     ret;
      DFBRectangle  rects[8];
-     DFBRectangle *sizes = shared->foo_rects;
+     CoreWindow   *window;
 
-     rects[UFI_N].x  = sizes[UFI_NW].w;
-     rects[UFI_N].y  = 0;
-     rects[UFI_N].w  = width - sizes[UFI_NW].w - sizes[UFI_NE].w;
-     rects[UFI_N].h  = sizes[UFI_N].h;
+     D_MAGIC_ASSERT( data, WindowData );
 
-     rects[UFI_NE].x = width - sizes[UFI_NE].w;
-     rects[UFI_NE].y = 0;
-     rects[UFI_NE].w = sizes[UFI_NE].w;
-     rects[UFI_NE].h = sizes[UFI_NE].h;
+     if (!data->foos[0])
+          return;
 
-     rects[UFI_E].x  = width - sizes[UFI_E].w;
-     rects[UFI_E].y  = sizes[UFI_NE].h;
-     rects[UFI_E].w  = sizes[UFI_E].w;
-     rects[UFI_E].h  = height - sizes[UFI_NE].h - sizes[UFI_SE].h;
+     window = data->window;
 
-     rects[UFI_SE].x = width - sizes[UFI_SE].w;
-     rects[UFI_SE].y = height - sizes[UFI_SE].h;
-     rects[UFI_SE].w = sizes[UFI_SE].w;
-     rects[UFI_SE].h = sizes[UFI_SE].h;
+     D_ASSERT( window != NULL );
 
-     rects[UFI_S].x  = sizes[UFI_SW].w;
-     rects[UFI_S].y  = height - sizes[UFI_S].h;
-     rects[UFI_S].w  = width - sizes[UFI_SE].w - sizes[UFI_SW].w;
-     rects[UFI_S].h  = sizes[UFI_S].h;
+     foo_rects( data, rects );
 
-     rects[UFI_SW].x = 0;
-     rects[UFI_SW].y = height - sizes[UFI_SW].h;
-     rects[UFI_SW].w = sizes[UFI_SW].w;
-     rects[UFI_SW].h = sizes[UFI_SW].h;
+     for (i=0; i<8; i++)
+          data->foos[i]->bounds = DFB_REGION_INIT_FROM_RECTANGLE( &rects[i] );
+}
 
-     rects[UFI_W].x  = 0;
-     rects[UFI_W].y  = sizes[UFI_NW].h;
-     rects[UFI_W].w  = sizes[UFI_W].w;
-     rects[UFI_W].h  = height - sizes[UFI_NW].h - sizes[UFI_SW].h;
+static void
+update_foo_flags( WindowData *data )
+{
+     int i;
 
-     rects[UFI_NW].x = 0;
-     rects[UFI_NW].y = 0;
-     rects[UFI_NW].w = sizes[UFI_NW].w;
-     rects[UFI_NW].h = sizes[UFI_NW].h;
+     D_MAGIC_ASSERT( data, WindowData );
+
+     D_ASSERT( data->window != NULL );
+
+     if (! (data->window->options & DWOP_GHOST)) {
+          if (data->foos[0]) {
+               for (i=0; i<8; i++)
+                    data->foos[i]->flags |= SRF_INPUT;
+          }
+
+          data->region->flags |= SRF_INPUT;
+     }
+     else {
+          if (data->foos[0]) {
+               for (i=0; i<8; i++)
+                    data->foos[i]->flags &= ~SRF_INPUT;
+          }
+
+          data->region->flags &= ~SRF_INPUT;
+     }
+}
+
+static DFBResult
+create_foo( WindowData *data )
+{
+     int               i;
+     DFBResult         ret;
+     DFBRectangle      rects[8];
+     CoreWindow       *window;
+     WMShared         *shared;
+     StretRegionFlags  flags = SRF_ACTIVE | SRF_OUTPUT;
+
+     D_ASSERT( data != NULL );
+
+     window = data->window;
+     shared = data->shared;
+
+     D_ASSERT( shared != NULL );
+     D_ASSERT( window != NULL );
+
+     foo_rects( data, rects );
+
+     if (! (window->options & DWOP_GHOST))
+          flags |= SRF_INPUT;
 
      for (i=0; i<8; i++) {
-          ret = stret_region_create( shared->classes[UCI_FOO], data, i,
-                                     SRF_ACTIVE | SRF_OUTPUT | SRF_INPUT,
+          ret = stret_region_create( shared->classes[UCI_FOO], data, i, flags,
                                      rects[i].x, rects[i].y, rects[i].w, rects[i].h,
                                      data->frame, &data->foos[i] );
           if (ret)
@@ -2360,7 +2451,7 @@ wm_add_window( CoreWindowStack *stack,
      data->shared     = shared;
      data->stack_data = stack_data;
      data->priority   = get_priority( window );
-     data->has_frame  = ! (window->caps & DWCAPS_NODECORATION);
+     data->has_frame  = ! (window->caps & (DWCAPS_NODECORATION | DWCAPS_INPUTONLY));
 
      if (! (window->options & DWOP_GHOST) && ! (window->caps & DWHC_TOPMOST))
           flags |= SRF_INPUT;
@@ -2393,9 +2484,7 @@ wm_add_window( CoreWindowStack *stack,
           }
 
 
-          ret = create_frame( shared, data,
-                              data->insets.l + window->width  + data->insets.r,
-                              data->insets.t + window->height + data->insets.b );
+          ret = create_foo( data );
           if (ret) {
                stret_region_destroy( data->region );
                stret_region_destroy( data->frame );
@@ -2412,11 +2501,10 @@ wm_add_window( CoreWindowStack *stack,
           data->frame = data->region;
      }
 
+     D_MAGIC_SET( data, WindowData );
 
      if (window->region)
           dfb_layer_region_get_configuration( window->region, &data->config );
-
-     D_MAGIC_SET( data, WindowData );
 
      /* Actually add the window to the stack. */
      insert_window( stack, sdata, window, data );
@@ -2532,6 +2620,23 @@ wm_set_opacity( CoreWindow *window,
      D_ASSERT( window_data != NULL );
 
      set_opacity( window, window_data, opacity );
+
+     return DFB_OK;
+}
+
+static DFBResult
+wm_set_options( CoreWindow       *window,
+                void             *wm_data,
+                void             *window_data,
+                DFBWindowOptions  options )
+{
+     D_ASSERT( window != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( window_data != NULL );
+
+     window->options = options;
+
+     update_foo_flags( window_data );
 
      return DFB_OK;
 }

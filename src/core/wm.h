@@ -41,7 +41,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_wm_modules );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_WM_ABI_VERSION           3
+#define DFB_CORE_WM_ABI_VERSION           4
 
 #define DFB_CORE_WM_INFO_NAME_LENGTH     60
 #define DFB_CORE_WM_INFO_VENDOR_LENGTH   80
@@ -206,6 +206,11 @@ typedef struct {
                                      void                   *window_data,
                                      __u8                    opacity );
 
+     DFBResult (*SetOptions)       ( CoreWindow             *window,
+                                     void                   *wm_data,
+                                     void                   *window_data,
+                                     DFBWindowOptions        options );
+
      DFBResult (*Grab)             ( CoreWindow             *window,
                                      void                   *wm_data,
                                      void                   *window_data,
@@ -292,6 +297,9 @@ DFBResult dfb_wm_restack_window( CoreWindow             *window,
 
 DFBResult dfb_wm_set_opacity   ( CoreWindow             *window,
                                  __u8                    opacity );
+
+DFBResult dfb_wm_set_options   ( CoreWindow             *window,
+                                 DFBWindowOptions        options );
 
 DFBResult dfb_wm_grab          ( CoreWindow             *window,
                                  CoreWMGrab             *grab );

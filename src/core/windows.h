@@ -156,6 +156,13 @@ dfb_window_set_opacity( CoreWindow *window,
                         __u8        opacity );
 
 /*
+ * sets the window options
+ */
+void
+dfb_window_set_options( CoreWindow       *window,
+                        DFBWindowOptions  options );
+
+/*
  * repaints part of a window, if region is NULL the whole window is repainted
  */
 DFBResult

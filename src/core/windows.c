@@ -724,6 +724,22 @@ dfb_window_set_opacity( CoreWindow *window,
      dfb_windowstack_unlock( stack );
 }
 
+void
+dfb_window_set_options( CoreWindow       *window,
+                        DFBWindowOptions  options )
+{
+     CoreWindowStack *stack = window->stack;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return;
+
+     dfb_wm_set_options( window, options );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+}
+
 DFBResult
 dfb_window_grab_keyboard( CoreWindow *window )
 {

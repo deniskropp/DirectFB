@@ -467,10 +467,10 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      dfb_gfx_copy( shape, cursor->surface, NULL );
 
      if (DFB_PIXELFORMAT_HAS_ALPHA( shape->format ) && dfb_config->translucent_windows) {
-          cursor->options = (cursor->options & ~DWOP_COLORKEYING) | DWOP_ALPHACHANNEL;
+          dfb_window_set_options( cursor, (cursor->options & ~DWOP_COLORKEYING) | DWOP_ALPHACHANNEL );
      }
      else {
-          cursor->options = (cursor->options & ~DWOP_ALPHACHANNEL) | DWOP_COLORKEYING;
+          dfb_window_set_options( cursor, (cursor->options & ~DWOP_ALPHACHANNEL) | DWOP_COLORKEYING );
 
           cursor->color_key = dfb_color_to_pixel( cursor->surface->format, 0xff, 0x00, 0xff );
      }
@@ -750,8 +750,9 @@ create_cursor_window( CoreWindowStack *stack,
           return ret;
      }
 
-     window->events   = 0;
-     window->options |= DWOP_GHOST;
+     window->events = 0;
+
+     dfb_window_set_options( window, window->options | DWOP_GHOST );
 
      dfb_window_link( &stack->cursor.window, window );
 

@@ -51,11 +51,13 @@ typedef struct {
 } StretIteration;
 
 
-void         stret_iteration_init( StretIteration  *iteration,
-                                   StretRegion     *region );
+void         stret_iteration_init ( StretIteration  *iteration,
+                                    StretRegion     *region );
 
-StretRegion *stret_iteration_next( StretIteration  *iteration,
-                                   const DFBRegion *clip );
+StretRegion *stret_iteration_next ( StretIteration  *iteration,
+                                    const DFBRegion *clip );
+
+void         stret_iteration_abort( StretIteration  *iteration );
 
 #endif
 

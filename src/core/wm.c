@@ -655,6 +655,19 @@ dfb_wm_set_opacity( CoreWindow *window,
 }
 
 DFBResult
+dfb_wm_set_options( CoreWindow       *window,
+                    DFBWindowOptions  options )
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->SetOptions != NULL );
+
+     D_ASSERT( window != NULL );
+
+     return wm_local->funcs->SetOptions( window, wm_local->data, window->window_data, options );
+}
+
+DFBResult
 dfb_wm_grab( CoreWindow *window,
              CoreWMGrab *grab )
 {

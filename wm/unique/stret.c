@@ -378,9 +378,10 @@ stret_region_get_size( StretRegion  *region,
 
 
 typedef struct {
-     int        num;
-     int        max;
-     DFBRegion *regions;
+     int          num;
+     int          max;
+     DFBRegion   *regions;
+     StretRegion *region;
 } ClipOutContext;
 
 static void
@@ -403,7 +404,7 @@ clip_out( StretIteration *iteration,
 
      while (true) {
           region = stret_iteration_next( iteration, &area );
-          if (!region) {
+          if (!region || region == context->region) {
                context->num++;
 
                if (context->num <= context->max) {
@@ -419,6 +420,9 @@ clip_out( StretIteration *iteration,
                }
                else
                     D_DEBUG_AT( UniQuE_StReT, "  Maximum number of regions exceeded, dropping...\n" );
+
+               if (region)
+                    stret_iteration_abort( iteration );
 
                return;
           }
@@ -460,6 +464,8 @@ clip_out( StretIteration *iteration,
 
           clip_out( &fork, context, x1, cutout.y2 + 1, x2, y2 );
      }
+
+     stret_iteration_abort( iteration );
 }
 
 DFBResult
@@ -518,6 +524,7 @@ stret_region_visible( StretRegion     *region,
      context.num     = 0;
      context.max     = max_num;
      context.regions = ret_regions;
+     context.region  = region;
 
      x0 = region->bounds.x1;
      y0 = region->bounds.y1;
