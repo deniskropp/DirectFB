@@ -266,6 +266,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
 
      s->front_buffer->flags   = SBF_FOREIGN_SYSTEM | SBF_WRITTEN;
      s->front_buffer->policy  = policy;
+     s->front_buffer->format  = format;
      s->front_buffer->surface = s;
 
      s->front_buffer->system.health = CSH_STORED;
