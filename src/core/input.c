@@ -227,7 +227,7 @@ DFBResult dfb_input_resume()
 
           d = d->next;
      }
-     
+
      return DFB_OK;
 }
 #endif
@@ -275,7 +275,9 @@ dfb_input_dispatch( InputDevice *device, DFBInputEvent *event )
           default:
                ;
      }
-     
+
+     event->id = device->shared->id;
+
      reactor_dispatch( device->shared->reactor, event, true );
 }
 
@@ -387,7 +389,7 @@ static CoreModuleLoadResult input_driver_handle_func( void *handle,
           memset( &device_info, 0, sizeof(InputDeviceInfo) );
 
           device->shared->reactor = reactor_new( sizeof(DFBInputEvent) );
-          
+
           if (driver->OpenDevice( device, n, &device_info, &driver_data )) {
                reactor_free( device->shared->reactor );
                shmfree( device->shared );
