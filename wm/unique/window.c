@@ -845,13 +845,13 @@ resize_window( UniqueWindow *window,
                if (dw > 0) {
                     DFBRegion region = { width, 0, width + dw - 1, height - 1 };
 
-                    update_window( window, &region, 0, false );
+                    update_frame( window, &region, 0, false );
                }
 
                if (dh > 0) {
                     DFBRegion region = { 0, height, width + dw - 1, height + dh - 1 };
 
-                    update_window( window, &region, 0, false );
+                    update_frame( window, &region, 0, false );
                }
           }
      }
