@@ -48,6 +48,12 @@ else
 SAVAGE_DIR =
 endif
 
+if GFX_SIS315
+SIS315_DIR = sis315
+else
+SIS315_DIR =
+endif
+
 if GFX_CYBER5K
 CYBER5K_DIR = cyber5k
 else
@@ -75,6 +81,7 @@ SUBDIRS = \
 	$(NVIDIA_DIR)	\
 	$(NEOMAGIC_DIR)	\
 	$(SAVAGE_DIR)	\
+	$(SIS315_DIR)	\
 	$(I810_DIR)	\
 	$(CLE266_DIR)	\
 	$(GEODE_DIR)

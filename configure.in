@@ -599,6 +599,7 @@ nvidia=no
 radeon=no
 tdfx=no
 savage=no
+sis315=no
 
 if test x$have_linux = xyes; then
 
@@ -609,7 +610,7 @@ AC_ARG_WITH(gfxdrivers,
   [                          'all' builds all drivers, 'none' builds none ]
   [                          Possible gfxdrivers are: ]
   [                          ati128, cle266, cyber5k, i810, matrox, neomagic,]
-  [                          nsc, nvidia, radeon, savage, tdfx],
+  [                          nsc, nvidia, radeon, savage, sis315, tdfx],
   gfxdrivers="$withval", gfxdrivers="all")
 
 if test "$gfxdrivers" = "all"; then
@@ -623,6 +624,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_nvidia=yes
   checkfor_radeon=yes
   checkfor_savage=yes
+  checkfor_sis315=yes
   checkfor_tdfx=yes
   AC_MSG_RESULT(all)
 else 
@@ -660,6 +662,9 @@ else
                   ;;
           savage)
                   checkfor_savage=yes
+                  ;;
+          sis315)
+                  checkfor_sis315=yes
                   ;;
           tdfx)
                   checkfor_tdfx=yes
@@ -772,6 +777,20 @@ dnl Test for savage frame buffer support in the kernel
 *** Savage gfxdriver will not be built.]))
 fi
 
+if test x$checkfor_sis315 = xyes; then
+dnl Test for sis315 frame buffer support in the kernel
+  AC_EGREP_CPP(yes, [
+#include <linux/fb.h>
+#ifdef FB_ACCEL_SIS_GLAMOUR_2
+  yes
+#endif
+  ],
+  sis315=yes,
+  sis315=no   
+  AC_MSG_WARN([
+*** SiS 315 gfxdriver will not be built.]))
+fi
+
 if test x$checkfor_neomagic = xyes && test x$have_sysio = xyes; then
 dnl Test for neomagic frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
@@ -874,6 +893,7 @@ AM_CONDITIONAL(GFX_NSC, test x$nsc = xyes)
 AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 AM_CONDITIONAL(GFX_RADEON, test x$radeon = xyes)
 AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
+AM_CONDITIONAL(GFX_SIS315, test x$sis315 = xyes)
 AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
 
 AM_CONDITIONAL(LINUX_INPUT, test x$enable_linux_input = xyes)
@@ -971,6 +991,7 @@ gfxdrivers/tdfx/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/radeon/Makefile
 gfxdrivers/savage/Makefile
+gfxdrivers/sis315/Makefile
 inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
 inputdrivers/h3600_ts/Makefile
@@ -1047,6 +1068,7 @@ Building Graphics Drivers:
   NSC Geode             $nsc
   nVidia RIVA TNT       $nvidia
   S3 Savage             $savage
+  SiS 315               $sis315
   TVIA CyberPro         $cyber5k
   VIA CLE266		$cle266
 
