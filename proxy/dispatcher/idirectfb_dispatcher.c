@@ -830,6 +830,38 @@ Dispatch_EnumInputDevices( IDirectFB *thiz, IDirectFB *real,
 }
 
 static DirectResult
+Dispatch_GetInputDevice( IDirectFB *thiz, IDirectFB *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult          ret;
+     DFBScreenID           device_id;
+     IDirectFBInputDevice *device;
+     VoodooInstanceID      instance;
+     VoodooMessageParser   parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, device_id );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetInputDevice( real, device_id, &device );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_dispatcher( manager, "IDirectFBInputDevice",
+                                        device, data->self, NULL, &instance, NULL );
+     if (ret) {
+          device->Release( device );
+          return ret;
+     }
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, instance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetScreen( IDirectFB *thiz, IDirectFB *real,
                     VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -976,6 +1008,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFB_METHOD_ID_EnumInputDevices:
                return Dispatch_EnumInputDevices( dispatcher, real, manager, msg );
+
+          case IDIRECTFB_METHOD_ID_GetInputDevice:
+               return Dispatch_GetInputDevice( dispatcher, real, manager, msg );
 
           case IDIRECTFB_METHOD_ID_CreateEventBuffer:
                return Dispatch_CreateEventBuffer( dispatcher, real, manager, msg );

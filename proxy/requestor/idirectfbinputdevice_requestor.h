@@ -25,29 +25,20 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __IDIRECTFBEVENTBUFFER_REQUESTOR_H__
-#define __IDIRECTFBEVENTBUFFER_REQUESTOR_H__
+#ifndef __IDIRECTFBINPUTDEVICE_REQUESTOR_H__
+#define __IDIRECTFBINPUTDEVICE_REQUESTOR_H__
 
-#include <direct/types.h>
-#include <voodoo/types.h>
-
-#include <directfb.h>
+#include <voodoo/manager.h>
 
 /*
- * private data struct of IDirectFBEventBuffer_Requestor
+ * private data struct of IDirectFBInputDevice_Requestor
  */
 typedef struct {
-     int                   ref;      /* reference counter */
+     int                  ref;      /* reference counter */
 
-     VoodooManager        *manager;
-     VoodooInstanceID      instance;
-
-     IDirectFBEventBuffer *src;
-     IDirectFBEventBuffer *dst;
-
-     bool                  stop;
-     DirectThread         *thread;
-} IDirectFBEventBuffer_Requestor_data;
+     VoodooManager       *manager;
+     VoodooInstanceID     instance;
+} IDirectFBInputDevice_Requestor_data;
 
 #endif
 

@@ -45,6 +45,9 @@ idirectfbfont_LTLIBRARIES = \
 idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_dispatcher.la
 
+idirectfbinputdevice_LTLIBRARIES = \
+	libidirectfbinputdevice_dispatcher.la
+
 idirectfbpalette_LTLIBRARIES = \
 	libidirectfbpalette_dispatcher.la
 
@@ -81,6 +84,10 @@ libidirectfbfont_dispatcher_la_LIBADDD = $(LIBS)
 libidirectfbimageprovider_dispatcher_la_SOURCES = idirectfbimageprovider_dispatcher.c
 libidirectfbimageprovider_dispatcher_la_LDFLAGS = -avoid-version -module
 libidirectfbimageprovider_dispatcher_la_LIBADDD = $(LIBS)
+
+libidirectfbinputdevice_dispatcher_la_SOURCES = idirectfbinputdevice_dispatcher.c
+libidirectfbinputdevice_dispatcher_la_LDFLAGS = -avoid-version -module
+libidirectfbinputdevice_dispatcher_la_LIBADDD = $(LIBS)
 
 libidirectfbpalette_dispatcher_la_SOURCES = idirectfbpalette_dispatcher.c
 libidirectfbpalette_dispatcher_la_LDFLAGS = -avoid-version -module

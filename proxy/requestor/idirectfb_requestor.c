@@ -424,16 +424,34 @@ IDirectFB_Requestor_EnumInputDevices( IDirectFB              *thiz,
 static DFBResult
 IDirectFB_Requestor_GetInputDevice( IDirectFB             *thiz,
                                     DFBInputDeviceID       id,
-                                    IDirectFBInputDevice **interface )
+                                    IDirectFBInputDevice **ret_interface )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface = NULL;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!interface)
+     if (!ret_interface)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFB_METHOD_ID_GetInputDevice, VREQ_RESPOND, &response,
+                                   VMBT_ID, id,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret == DFB_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBInputDevice",
+                                            response->instance, NULL, &interface );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface;
+
+     return ret;
 }
 
 static DFBResult
