@@ -113,11 +113,12 @@ IFusionSoundStream_GetDescription( IFusionSoundStream  *thiz,
           return DFB_INVARG;
 
      desc->flags = FSSDF_BUFFERSIZE | FSSDF_CHANNELS |
-                   FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
+                   FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE | FSSDF_PREBUFFER;
      desc->buffersize   = data->size;
      desc->channels     = data->channels;
      desc->sampleformat = data->format;
      desc->samplerate   = data->rate;
+     desc->prebuffer    = data->prebuffer;
 
      return DFB_OK;
 }
