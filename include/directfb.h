@@ -2252,7 +2252,7 @@ extern "C"
                                                 implies DWOP_KEEP... */
           DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
                                                 by internal shortcut */
-          DWOP_ALL            = 0x00001071   /* all possible options */
+          DWOP_ALL            = 0x00003071   /* all possible options */
      } DFBWindowOptions;
 
      /*******************
