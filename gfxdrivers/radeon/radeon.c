@@ -293,6 +293,35 @@ static bool radeonBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 }
 
 
+static DFBResult
+radeonWaitVSync( DisplayLayer *layer,
+		 void         *driver_data,
+		 void         *layer_data )
+{
+    RADEONDriverData	*rdrv	= ( RADEONDriverData* ) driver_data;
+    int			i;
+
+    if ( dfb_config->pollvsync_none )
+	return DFB_OK;
+
+    /* Clear the CRTC_VBLANK_SAVE bit */
+    radeon_out32( rdrv->mmio_base, CRTC_STATUS, CRTC_VBLANK_SAVE_CLEAR );
+
+    /* Wait for it to go back up */
+    for ( i = 0; i < 1000; i++ ) {
+	if ( radeon_in32( rdrv->mmio_base, CRTC_STATUS ) & CRTC_VBLANK_SAVE )
+	    break;
+	usleep(1);
+    }
+
+    return DFB_OK;
+}
+
+DisplayLayerFuncs radeonPrimaryFuncs = {
+     WaitVSync:          radeonWaitVSync
+};
+
+
 /* exported symbols */
 
 static int
@@ -332,11 +361,16 @@ driver_init_driver( GraphicsDevice      *device,
                     void                *driver_data )
 {
     RADEONDriverData *adrv = ( RADEONDriverData* ) driver_data;
+#ifdef FBIO_WAITFORVSYNC
+    static const int zero = 0;
+#endif
 
+    /* gain access to memory mapped registers */
     adrv->mmio_base = ( volatile __u8* ) dfb_gfxcard_map_mmio( device, 0, -1 );
     if (!adrv->mmio_base)
 	return DFB_IO;
 
+    /* fill acceleration function table */
     funcs->CheckState		= radeonCheckState;
     funcs->SetState		= radeonSetState;
     funcs->EngineSync		= radeonEngineSync;
@@ -345,6 +379,14 @@ driver_init_driver( GraphicsDevice      *device,
     funcs->DrawRectangle	= radeonDrawRectangle;
     funcs->DrawLine		= radeonDrawLine;
     funcs->Blit			= radeonBlit;
+
+    /* provide our own WaitVSync function if the ioctl for it isn't available
+     * in order to avoid the non-portable VGA ports
+     */
+#ifdef FBIO_WAITFORVSYNC
+    if ( ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ) )
+#endif
+	dfb_layers_hook_primary( device, driver_data, &radeonPrimaryFuncs, NULL, NULL );
 
     return DFB_OK;
 }
@@ -374,6 +416,8 @@ driver_init_device( GraphicsDevice     *device,
 
     device_info->limits.surface_byteoffset_alignment = 32 * 4;
     device_info->limits.surface_pixelpitch_alignment = 32;
+
+    dfb_config->pollvsync_after = 1;
 
     /* initialize card */
     radeon_waitfifo( adrv, adev, 1 );

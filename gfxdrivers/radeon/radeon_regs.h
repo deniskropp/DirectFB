@@ -28,9 +28,15 @@
 #ifndef REG_RADEON_H
 #define REG_RADEON_H
 
+
+#define CRTC_STATUS			0x005c
+#define CRTC_VBLANK_SAVE		 0x00000002
+#define CRTC_VBLANK_SAVE_CLEAR		 0x00000002
+
 #define RBBM_STATUS			0x0e40
 #define	RBBM_FIFOCNT_MASK		 0x0000007f
 #define RBBM_ACTIVE			 0x80000000
+
 
 /******************************************************************************
  *                  GUI Block Memory Mapped Registers                         *
