@@ -439,7 +439,7 @@ static ReactionResult v4l_surface_listener( const void *msg_data, void *ctx )
 {
      CoreSurfaceNotification *notification = (CoreSurfaceNotification*)msg_data;
      
-     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT | CSNF_VIDEO)) {
+     if (notification->flags & (CSNF_DESTROY | CSNF_SIZEFORMAT)) {
           v4l_stop( (IDirectFBVideoProvider_V4L_data*)ctx );
           return RS_REMOVE;
      }
