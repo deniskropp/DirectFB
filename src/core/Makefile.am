@@ -82,6 +82,7 @@ libdirectfb_core_la_SOURCES = \
 	palette.c		\
 	screen.c		\
 	screens.c		\
+	screens_internal.h	\
 	sig.c			\
 	state.c			\
 	surfaces.c		\

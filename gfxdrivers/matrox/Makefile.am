@@ -9,6 +9,7 @@ matrox_LTLIBRARIES = libdirectfb_matrox.la
 matroxdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_matrox_la_SOURCES =	\
+	i2c-dev.h		\
 	matrox.c		\
 	matrox.h		\
 	matrox_bes.c		\
