@@ -413,7 +413,7 @@ static int GetCode(IDirectFBDataBuffer *buffer, int code_size, int flag)
 
 static int DoExtension( IDirectFBDataBuffer *buffer, int label )
 {
-     static unsigned char buf[256];
+     unsigned char buf[256] = { 0 };
      char *str;
 
      switch (label) {
@@ -448,7 +448,8 @@ static int DoExtension( IDirectFBDataBuffer *buffer, int label )
           break;
      }
 
-     GIFERRORMSG("got a '%s' extension", str );
+     if (verbose)
+          GIFERRORMSG("got a '%s' extension", str );
 
      while (GetDataBlock( buffer, (__u8*) buf ) != 0)
           ;
@@ -648,9 +649,9 @@ static __u32* ReadImage( IDirectFBDataBuffer *buffer, int width, int height,
      **  If this is an "uninteresting picture" ignore it.
      */
      if (ignore) {
-          if (verbose) {
+          if (verbose)
                GIFERRORMSG("skipping image..." );
-          }
+
           while (LWZReadByte( buffer, false, c ) >= 0)
                ;
           return NULL;
@@ -784,8 +785,7 @@ static __u32* ReadGIF( IDirectFBDataBuffer *buffer, int imageNumber,
      }
 
      if (GifScreen.AspectRatio != 0 && GifScreen.AspectRatio != 49) {
-          float r;
-          r = ( (float) GifScreen.AspectRatio + 15.0 ) / 64.0;
+          /* float r = ( (float) GifScreen.AspectRatio + 15.0 ) / 64.0; */
           GIFERRORMSG("warning - non-square pixels");
      }
 
