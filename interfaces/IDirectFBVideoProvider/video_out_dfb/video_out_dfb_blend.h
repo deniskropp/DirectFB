@@ -290,6 +290,79 @@ DFB_BFUNCTION( nv12 )
 }
 
 static
+DFB_BFUNCTION( nv21 )
+{
+     uint8_t  *Dy  = blender->plane[0] + blender->x;
+     uint16_t *Dvu = (uint16_t*) blender->plane[1] + blender->x/2;
+     uint32_t  y   = color->yuv.y;
+     uint32_t  u   = color->yuv.u << 8;
+     uint32_t  v   = color->yuv.v;
+     int       w   = blender->len;
+     int       n;
+     
+     if (color->yuv.a < 0xff) {
+          uint32_t a0 = (color->yuv.a << 16) / 0xff;
+          uint32_t a1 = 0x10000 - a0;
+          
+          y *= a0;
+
+          for (n = w; n--;) {
+               *Dy = (y + (*Dy * a1)) >> 16;
+               Dy++;
+          }
+
+          if (blender->y & 1) {
+               u *= a0;
+               v *= a0;
+
+               if ((uint32_t)Dvu & 2) { 
+                    *Dvu = (((v + ((*Dvu & 0x00ff) * a1)) >> 16)         ) |
+                           (((u + ((*Dvu & 0xff00) * a1)) >> 16) & 0xff00);
+                    Dvu++;
+                    w -= 2;
+               }
+               
+               for (n = w/4; n--;) {
+                    register uint32_t Dpix;
+
+                    Dpix  = ((v + ((W0(Dvu) & 0x00ff) * a1)) >> 16);
+                    Dpix |= ((u + ((W0(Dvu) & 0xff00) * a1)) >> 16) & 0x0000ff00;
+                    Dpix |= ((v + ((W1(Dvu) & 0x00ff) * a1))      ) & 0x00ff0000;
+                    Dpix |= ((u + ((W1(Dvu) & 0xff00) * a1))      ) & 0xff000000;
+                    
+                    *((uint32_t*)Dvu) = Dpix;
+                    Dvu += 2;
+               }
+
+               if (w & 2) {
+                    *Dvu = (((v + ((*Dvu & 0x00ff) * a1)) >> 16)         ) |
+                           (((u + ((*Dvu & 0xff00) * a1)) >> 16) & 0xff00);
+               }
+          }
+     }
+     else {
+          memset( Dy, y, w );
+          
+          if (blender->y & 1) {
+               register uint32_t Dpix = u | v | ((u|v) << 16);
+               
+               if ((uint32_t)Dvu & 2) {
+                    *Dvu++ = Dpix;
+                    w -= 2;
+               }
+               
+               for (n = w/4; n--;) {
+                    *((uint32_t*)Dvu) = Dpix;
+                    Dvu += 2;
+               }
+
+               if (w & 2)
+                    *Dvu = Dpix;
+          }
+     }    
+}
+
+static
 DFB_BFUNCTION( rgb332 )
 {
      uint8_t  *D = blender->plane[0] + blender->x;

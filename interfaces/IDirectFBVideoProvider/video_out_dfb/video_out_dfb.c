@@ -182,7 +182,7 @@ static DVProcFunc ProcFuncs[2][DFB_NUM_PIXELFORMATS] = {
           DFB_PFUNCTION_NAME( generic, yuy2, nv16 ),   // NV16
           DFB_PFUNCTION_NAME( generic, yuy2, rgb16 ),  // ARGB2554
           DFB_PFUNCTION_NAME( generic, yuy2, rgb16 ),  // ARGB4444
-          NULL                                         // NV21
+          DFB_PFUNCTION_NAME( generic, yuy2, nv21 )    // NV21
      },
      { /* YV12 */
           DFB_PFUNCTION_NAME( generic, yv12, rgb16 ),
@@ -204,7 +204,7 @@ static DVProcFunc ProcFuncs[2][DFB_NUM_PIXELFORMATS] = {
           DFB_PFUNCTION_NAME( generic, yv12, nv16 ),
           DFB_PFUNCTION_NAME( generic, yv12, rgb16 ),
           DFB_PFUNCTION_NAME( generic, yv12, rgb16 ),
-          NULL
+          DFB_PFUNCTION_NAME( generic, yv12, nv21 )
      }
 };
 
@@ -237,7 +237,7 @@ static DVBlendFunc BlendFuncs[DFB_NUM_PIXELFORMATS] =
      DFB_BFUNCTION_NAME( generic, nv12 ),
      DFB_BFUNCTION_NAME( generic, argb2554 ),
      DFB_BFUNCTION_NAME( generic, argb4444 ),
-     NULL
+     DFB_BFUNCTION_NAME( generic, nv21 )
 };
 
 /*************************** End of Blend methods ****************************/
@@ -295,6 +295,7 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
           case DSPF_YV12:
           case DSPF_I420:
           case DSPF_NV12:
+          case DSPF_NV21:
           case DSPF_NV16:
                for (i = 0; i < 256; i++) {
                     int lm, uv;
@@ -350,13 +351,14 @@ vo_dfb_tables_regen( dfb_driver_t          *this,
                case DSPF_YUY2:
                case DSPF_YV12:
                case DSPF_I420:
+               case DSPF_NV12:
+               case DSPF_NV21:
+               case DSPF_NV16:
                     for (i = 0; i < 4; i++) {
                          proc_table.mmx.lm_cfc[i] = (0x2000 * c) >> 7;
                          proc_table.mmx.uv_cfc[i] = (0x2000 * s) >> 7;
                     }
                     break;
-               case DSPF_NV12:
-               case DSPF_NV16:
                case DSPF_ARGB2554:
                case DSPF_ARGB4444:
                     /* unsupported */
@@ -707,6 +709,7 @@ vo_dfb_allocate_yv12( dfb_frame_t           *frame,
                vo_frame->base[2]    = frame->out_plane[2];
                break;
           case DSPF_NV12:
+          case DSPF_NV21:
           case DSPF_NV16:
                vo_frame->pitches[0] = frame->out_pitch[0];
                vo_frame->pitches[1] = frame->width / 2;
@@ -833,12 +836,9 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
                     frame->out_plane[2] = frame->out_plane[1] +
                                           frame->out_pitch[1]*height/2;
                     break;
-               case DSPF_NV12: 
-                    frame->out_pitch[1] = frame->out_pitch[0] & ~1; 
-                    frame->out_plane[1] = frame->out_plane[0] +
-                                          frame->out_pitch[0]*height;
-                    break;
-               case DSPF_NV16: 
+               case DSPF_NV12:
+               case DSPF_NV21:
+               case DSPF_NV16:
                     frame->out_pitch[1] = frame->out_pitch[0] & ~1; 
                     frame->out_plane[1] = frame->out_plane[0] +
                                           frame->out_pitch[0]*height;
@@ -892,6 +892,7 @@ vo_dfb_set_palette( dfb_driver_t *this,
                case DSPF_YV12:
                case DSPF_I420:
                case DSPF_NV12:
+               case DSPF_NV21:
                case DSPF_NV16:           
                for (i = 0; i < OVL_PALETTE_SIZE; i++, clut += 4) {
                     int y, u, v;
@@ -941,6 +942,7 @@ vo_dfb_set_palette( dfb_driver_t *this,
                case DSPF_YV12:
                case DSPF_I420:
                case DSPF_NV12:
+               case DSPF_NV21:
                case DSPF_NV16:           
                for (i = 0; i < OVL_PALETTE_SIZE; i++, clut += 4) {
                     int y, u, v;
@@ -1150,6 +1152,7 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
                     blender.period[1]  = 0x00000001;
                     /* fall through */
                case DSPF_NV12:
+               case DSPF_NV21:
                     blender.plane[1]  += clip.y1/2 * blender.pitch[1];
                     blender.period[0]  = 0x00000001;
                     break;
@@ -1446,7 +1449,8 @@ vo_dfb_set_destination( dfb_driver_t     *this,
                         IDirectFBSurface *destination )
 {
      DirectFBPixelFormatNames(format_names);
-     DFBSurfacePixelFormat format = DSPF_UNKNOWN;    
+     DFBSurfacePixelFormat format = DSPF_UNKNOWN;
+     DFBResult             err;
 
      if (this->dest) {
           this->dest->Release( this->dest );
@@ -1460,7 +1464,14 @@ vo_dfb_set_destination( dfb_driver_t     *this,
           return false;
      }
 
-     destination->GetPixelFormat( destination, &format );
+     err = destination->GetPixelFormat( destination, &format );
+     if (err != DFB_OK) {
+          xprintf( this->xine, XINE_VERBOSITY_LOG,
+                   "video_out_dfb: "
+                   "IDirectFBSurface::GetPixelFormat() returned \"%s\"!!\n",
+                   DirectFBErrorString( err ));
+          return false;
+     }
 
      if (!ProcFuncs[0][DFB_PIXELFORMAT_INDEX(format)] ||
          !ProcFuncs[1][DFB_PIXELFORMAT_INDEX(format)])
@@ -1493,6 +1504,7 @@ vo_dfb_set_subpicture( dfb_driver_t     *this,
 {
      DirectFBPixelFormatNames(format_names);   
      DFBSurfacePixelFormat format = DSPF_UNKNOWN;
+     DFBResult             err;
      
      if (this->ovl) {
           this->ovl->Release( this->ovl );
@@ -1506,7 +1518,14 @@ vo_dfb_set_subpicture( dfb_driver_t     *this,
           return false;
      }
                
-     subpicture->GetPixelFormat( subpicture, &format );
+     err = subpicture->GetPixelFormat( subpicture, &format );
+     if (err != DFB_OK) {
+          xprintf( this->xine, XINE_VERBOSITY_LOG,
+                   "video_out_dfb: "
+                   "IDirectFBSurface::GetPixelFormat() returned \"%s\"!!\n",
+                   DirectFBErrorString( err ));
+          return false;
+     }
      
      if (DFB_PIXELFORMAT_IS_INDEXED(format)) {
           xprintf( this->xine, XINE_VERBOSITY_DEBUG,
@@ -1693,6 +1712,9 @@ open_plugin( video_driver_class_t *vo_class,
                DFB_PFUNCTION_ASSIGN( mmx, yuy2, uyvy, DSPF_UYVY );
                DFB_PFUNCTION_ASSIGN( mmx, yuy2, yv12, DSPF_YV12 );
                DFB_PFUNCTION_ASSIGN( mmx, yuy2, yv12, DSPF_I420 );
+               DFB_PFUNCTION_ASSIGN( mmx, yuy2, nv12, DSPF_NV12 );
+               DFB_PFUNCTION_ASSIGN( mmx, yuy2, nv21, DSPF_NV21 );
+               DFB_PFUNCTION_ASSIGN( mmx, yuy2, nv16, DSPF_NV16 );
                DFB_PFUNCTION_ASSIGN( mmx, yuy2, rgb332, DSPF_RGB332 );
                DFB_PFUNCTION_ASSIGN( mmx, yuy2, argb1555, DSPF_ARGB1555 );
                DFB_PFUNCTION_ASSIGN( mmx, yuy2, rgb16, DSPF_RGB16 );
@@ -1705,6 +1727,9 @@ open_plugin( video_driver_class_t *vo_class,
                DFB_PFUNCTION_ASSIGN( mmx, yv12, uyvy, DSPF_UYVY );
                DFB_PFUNCTION_ASSIGN( mmx, yv12, yv12, DSPF_YV12 );
                DFB_PFUNCTION_ASSIGN( mmx, yv12, yv12, DSPF_I420 );
+               DFB_PFUNCTION_ASSIGN( mmx, yv12, nv12, DSPF_NV12 );
+               DFB_PFUNCTION_ASSIGN( mmx, yv12, nv21, DSPF_NV21 );
+               DFB_PFUNCTION_ASSIGN( mmx, yv12, nv16, DSPF_NV16 );
                DFB_PFUNCTION_ASSIGN( mmx, yv12, rgb332, DSPF_RGB332 );
                DFB_PFUNCTION_ASSIGN( mmx, yv12, argb1555, DSPF_ARGB1555 );
                DFB_PFUNCTION_ASSIGN( mmx, yv12, rgb16, DSPF_RGB16 );
@@ -1723,7 +1748,7 @@ open_plugin( video_driver_class_t *vo_class,
      this->mixer.b     =  0;
      this->mixer.c     = +128;
      this->mixer.s     = +128;
-     this->mixer.set   =  0;
+     this->mixer.set   =  MF_NONE;
      this->deinterlace = -1;
 
      memset( &proc_table, 0, sizeof(proc_table) );
