@@ -904,6 +904,8 @@ typedef enum {
 
 #define DFB_PLANAR_PIXELFORMAT(fmt)     (((fmt) & 0x3F000000) ? 1 : 0)
 
+#define DFB_PIXELFORMAT_INV_ALPHA(fmt)  (((fmt) & 0x80000000) >> 31)
+
 
 /*
  * Description of the surface that is to be created.
