@@ -21,8 +21,8 @@ Requirements
    - zlib
 
    The build of the image and font providers can be disabled but we strongly
-   suggest that you don't do this since the code examples and DirectFB apps
-   depend on the functionality provided by them.
+   suggest that you don't do this since the code examples and a lot of
+   DirectFB apps depend on the functionality provided by them.
 
    The video providers require some libraries (avifile, libflash and
    libmpeg3) that are not commonly installed. We have provided packages on
@@ -34,10 +34,10 @@ Requirements
 Additional Requirements for some Demos
 --------------------------------------
 
-   - PS/2 or serial mouse (MS protocol) for windowing, USB and ADB mice also 
-     work via PS/2 emulation.
+   - A PS/2 or serial mouse (MS protocol) for windowing, USB and ADB mice
+     also work via PS/2 emulation.
      Please stop gpm before using the mouse in DirectFB.
-   - Video card supported by video4linux for df_video.
+   - A video card supported by video4linux for df_video.
    - A joystick for df_joystick.
 
 
@@ -46,9 +46,9 @@ Recommendations
 
    To take full advantage of hardware acceleration, 
    a Matrox G200/G400/G450/G550 graphics card is recommened for this 
-   version of DirectFB. The drivers for ATI128, Voodoo 3/4/5/Banshee and 
-   NeoMagic cards included with this release are work in progress and only 
-   yet support a subset of the possible accelerations.
+   version of DirectFB. The drivers for ATI128, Voodoo 3/4/5/Banshee,
+   NeoMagic and S3 Savage cards included with this release are work in
+   progress and only yet support a subset of the possible accelerations.
 
 
 Installation
