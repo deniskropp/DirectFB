@@ -211,7 +211,7 @@ IDirectFB_Requestor_CreateSurface( IDirectFB                    *thiz,
      ret = response->result;
      if (ret == DFB_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, &interface );
+                                            response->instance, NULL, &interface );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -302,7 +302,7 @@ IDirectFB_Requestor_GetScreen( IDirectFB        *thiz,
      ret = response->result;
      if (ret == DFB_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBScreen",
-                                            response->instance, &interface );
+                                            response->instance, NULL, &interface );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -329,16 +329,34 @@ IDirectFB_Requestor_EnumDisplayLayers( IDirectFB               *thiz,
 static DFBResult
 IDirectFB_Requestor_GetDisplayLayer( IDirectFB              *thiz,
                                      DFBDisplayLayerID       id,
-                                     IDirectFBDisplayLayer **interface )
+                                     IDirectFBDisplayLayer **ret_interface )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     void                  *interface = NULL;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!interface)
+     if (!ret_interface)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFB_METHOD_ID_GetDisplayLayer, VREQ_RESPOND, &response,
+                                   VMBT_ID, id,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret == DFB_OK)
+          ret = voodoo_construct_requestor( data->manager, "IDirectFBDisplayLayer",
+                                            response->instance, NULL, &interface );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_interface = interface;
+
+     return ret;
 }
 
 static DFBResult
@@ -435,7 +453,7 @@ IDirectFB_Requestor_CreateInputEventBuffer( IDirectFB                   *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer",
-                                        buffer, data->instance, &instance, (void**) &dispatcher );
+                                        buffer, data->instance, NULL, &instance, (void**) &dispatcher );
      if (ret) {
           buffer->Release( buffer );
           return ret;
@@ -546,7 +564,7 @@ IDirectFB_Requestor_CreateFont( IDirectFB                 *thiz,
      ret = response->result;
      if (ret == DFB_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBFont",
-                                            response->instance, &interface );
+                                            response->instance, NULL, &interface );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -602,7 +620,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                 *thiz,
 
      /* Create the dispatcher. */
      ret = voodoo_construct_dispatcher( data->manager, "IDirectFBDataBuffer",
-                                        buffer, data->instance, &instance, (void**) &dispatcher );
+                                        buffer, data->instance, NULL, &instance, (void**) &dispatcher );
      if (ret) {
           buffer->Release( buffer );
           return ret;

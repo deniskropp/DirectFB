@@ -2369,7 +2369,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*CreateWindow) (
           IDirectFBDisplayLayer              *thiz,
-          DFBWindowDescription               *desc,
+          const DFBWindowDescription         *desc,
           IDirectFBWindow                   **interface
      );
 

@@ -46,6 +46,7 @@ static DFBResult Construct( IDirectFBImageProvider *thiz,
                             IDirectFBImageProvider *real,
                             VoodooManager          *manager,
                             VoodooInstanceID        super,
+                            void                   *arg,
                             VoodooInstanceID       *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -245,6 +246,7 @@ Construct( IDirectFBImageProvider *thiz,
            IDirectFBImageProvider *real,
            VoodooManager          *manager,
            VoodooInstanceID        super,
+           void                   *arg,      /* Optional arguments to constructor */
            VoodooInstanceID       *ret_instance )
 {
      DFBResult ret;

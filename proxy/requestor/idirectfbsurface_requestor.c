@@ -78,7 +78,8 @@
 static DFBResult Probe();
 static DFBResult Construct( IDirectFBSurface *thiz,
                             VoodooManager    *manager,
-                            VoodooInstanceID  instance );
+                            VoodooInstanceID  instance,
+                            void             *arg );
 
 #include <direct/interface_implementation.h>
 
@@ -288,7 +289,7 @@ IDirectFBSurface_Requestor_GetPalette( IDirectFBSurface  *thiz,
      ret = response->result;
      if (ret == DFB_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBPalette",
-                                            response->instance, &interface );
+                                            response->instance, NULL, &interface );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -348,11 +349,6 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
-     if (region) {
-          D_ONCE( "unimplemented" );
-          return DFB_UNSUPPORTED;
-     }
-
      /* HACK for performance */
      flags &= ~DSFLIP_WAITFORSYNC;
 
@@ -362,6 +358,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
 
           ret = voodoo_manager_request( data->manager, data->instance,
                                         IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_RESPOND, &response,
+                                        VMBT_ODATA, region,
                                         VMBT_INT, flags,
                                         VMBT_NONE );
           if (ret)
@@ -376,6 +373,7 @@ IDirectFBSurface_Requestor_Flip( IDirectFBSurface    *thiz,
 
      return voodoo_manager_request( data->manager, data->instance,
                                     IDIRECTFBSURFACE_METHOD_ID_Flip, VREQ_NONE, NULL,
+                                    VMBT_ODATA, sizeof(DFBRegion), region,
                                     VMBT_INT, flags,
                                     VMBT_NONE );
 }
@@ -866,7 +864,7 @@ IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
      ret = response->result;
      if (ret == DFB_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBSurface",
-                                            response->instance, &interface );
+                                            response->instance, NULL, &interface );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -916,7 +914,8 @@ Probe()
 static DFBResult
 Construct( IDirectFBSurface *thiz,
            VoodooManager    *manager,
-           VoodooInstanceID  instance )
+           VoodooInstanceID  instance,
+           void             *arg )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Requestor)
 

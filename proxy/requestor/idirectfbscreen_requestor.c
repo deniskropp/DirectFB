@@ -48,7 +48,8 @@
 static DFBResult Probe();
 static DFBResult Construct( IDirectFBScreen  *thiz,
                             VoodooManager    *manager,
-                            VoodooInstanceID  instance );
+                            VoodooInstanceID  instance,
+                            void             *arg );
 
 #include <direct/interface_implementation.h>
 
@@ -355,7 +356,8 @@ Probe()
 static DFBResult
 Construct( IDirectFBScreen  *thiz,
            VoodooManager    *manager,
-           VoodooInstanceID  instance )
+           VoodooInstanceID  instance,
+           void             *arg )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBScreen_Requestor)
 

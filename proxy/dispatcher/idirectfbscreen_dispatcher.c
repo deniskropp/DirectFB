@@ -52,6 +52,7 @@ static DFBResult Construct( IDirectFBScreen  *thiz,
                             IDirectFBScreen  *real,
                             VoodooManager    *manager,
                             VoodooInstanceID  super,
+                            void             *arg,
                             VoodooInstanceID *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -342,6 +343,7 @@ Construct( IDirectFBScreen  *thiz,
            IDirectFBScreen  *real,
            VoodooManager    *manager,
            VoodooInstanceID  super,
+           void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
      DFBResult ret;

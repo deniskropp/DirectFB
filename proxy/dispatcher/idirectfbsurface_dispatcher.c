@@ -75,6 +75,7 @@ static DFBResult Construct( IDirectFBSurface *thiz,
                             IDirectFBSurface *real,
                             VoodooManager    *manager,
                             VoodooInstanceID  super,
+                            void             *arg,
                             VoodooInstanceID *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -676,7 +677,7 @@ Dispatch_GetPalette( IDirectFBSurface *thiz, IDirectFBSurface *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBPalette", palette,
-                                        data->super, &instance, NULL );
+                                        data->super, NULL, &instance, NULL );
      if (ret) {
           palette->Release( palette );
           return ret;
@@ -715,17 +716,19 @@ static DirectResult
 Dispatch_Flip( IDirectFBSurface *thiz, IDirectFBSurface *real,
                VoodooManager *manager, VoodooRequestMessage *msg )
 {
-     DirectResult        ret;
-     VoodooMessageParser parser;
-     DFBSurfaceFlipFlags flags;
+     DirectResult         ret;
+     VoodooMessageParser  parser;
+     const DFBRegion     *region;
+     DFBSurfaceFlipFlags  flags;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
      VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ODATA( parser, region );
      VOODOO_PARSER_GET_INT( parser, flags );
      VOODOO_PARSER_END( parser );
 
-     ret = real->Flip( real, NULL, flags );
+     ret = real->Flip( real, region, flags );
 
      if (flags & DSFLIP_WAIT)
           return voodoo_manager_respond( manager, msg->header.serial,
@@ -1170,7 +1173,7 @@ Dispatch_GetSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBSurface", surface,
-                                        data->super, &instance, NULL );
+                                        data->super, NULL, &instance, NULL );
      if (ret) {
           surface->Release( surface );
           return ret;
@@ -1287,6 +1290,7 @@ Construct( IDirectFBSurface *thiz,
            IDirectFBSurface *real,
            VoodooManager    *manager,
            VoodooInstanceID  super,
+           void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
      DFBResult ret;

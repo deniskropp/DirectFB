@@ -38,6 +38,7 @@
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 #include <voodoo/client.h>
@@ -48,7 +49,8 @@
 static DFBResult Probe();
 static DFBResult Construct( IDirectFBEventBuffer *thiz,
                             VoodooManager        *manager,
-                            VoodooInstanceID      instance );
+                            VoodooInstanceID      instance,
+                            void                 *arg );
 
 #include <direct/interface_implementation.h>
 
@@ -61,18 +63,37 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBEventBuffer, Requestor )
  * private data struct of IDirectFBEventBuffer_Requestor
  */
 typedef struct {
-     int                  ref;      /* reference counter */
+     int                   ref;      /* reference counter */
 
-     VoodooManager       *manager;
-     VoodooInstanceID     instance;
+     VoodooManager        *manager;
+     VoodooInstanceID      instance;
+
+     IDirectFBEventBuffer *src;
+     IDirectFBEventBuffer *dst;
+
+     bool                  stop;
+     DirectThread         *thread;
 } IDirectFBEventBuffer_Requestor_data;
+
+/**************************************************************************************************/
+
+static void *feed_thread( DirectThread *thread, void *arg );
 
 /**************************************************************************************************/
 
 static void
 IDirectFBEventBuffer_Requestor_Destruct( IDirectFBEventBuffer *thiz )
 {
+     IDirectFBEventBuffer_Requestor_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->stop = true;
+
+     data->src->WakeUp( data->src );
+
+     direct_thread_join( data->thread );
+     direct_thread_destroy( data->thread );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -212,13 +233,17 @@ Probe()
 static DFBResult
 Construct( IDirectFBEventBuffer *thiz,
            VoodooManager        *manager,
-           VoodooInstanceID      instance )
+           VoodooInstanceID      instance,
+           void                 *arg )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer_Requestor)
 
      data->ref      = 1;
      data->manager  = manager;
      data->instance = instance;
+
+     data->src      = arg;
+     data->dst      = thiz;
 
      thiz->AddRef                  = IDirectFBEventBuffer_Requestor_AddRef;
      thiz->Release                 = IDirectFBEventBuffer_Requestor_Release;
@@ -232,6 +257,48 @@ Construct( IDirectFBEventBuffer *thiz,
      thiz->WakeUp                  = IDirectFBEventBuffer_Requestor_WakeUp;
      thiz->CreateFileDescriptor    = IDirectFBEventBuffer_Requestor_CreateFileDescriptor;
 
+     data->thread = direct_thread_create( DTT_INPUT, feed_thread, data, "Event Buffer Feed" );
+
      return DFB_OK;
+}
+
+/**************************************************************************************************/
+
+static void *
+feed_thread( DirectThread *thread, void *arg )
+{
+     DFBResult                            ret;
+     IDirectFBEventBuffer_Requestor_data *data = arg;
+     IDirectFBEventBuffer                *src  = data->src;
+     IDirectFBEventBuffer                *dst  = data->dst;
+
+     while (!data->stop) {
+          DFBEvent event;
+
+          ret = src->WaitForEvent( src );
+          if (ret) {
+               if (ret == DFB_INTERRUPTED)
+                    continue;
+
+               DirectFBError( "IDirectFBEventBuffer::WaitForEvent", ret );
+               return NULL;
+          }
+
+          if (data->stop)
+               return NULL;
+
+          while (src->GetEvent( src, &event ) == DFB_OK) {
+               ret = dst->PostEvent( dst, &event );
+               if (ret) {
+                    DirectFBError( "IDirectFBEventBuffer::PostEvent", ret );
+                    return NULL;
+               }
+
+               if (data->stop)
+                    return NULL;
+          }
+     }
+
+     return NULL;
 }
 

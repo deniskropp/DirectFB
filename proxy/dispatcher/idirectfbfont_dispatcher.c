@@ -46,6 +46,7 @@ static DFBResult Construct( IDirectFBFont    *thiz,
                             IDirectFBFont    *real,
                             VoodooManager    *manager,
                             VoodooInstanceID  super,
+                            void             *arg,
                             VoodooInstanceID *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -239,6 +240,33 @@ Dispatch_GetStringWidth( IDirectFBFont *thiz, IDirectFBFont *real,
 }
 
 static DirectResult
+Dispatch_GetGlyphExtents( IDirectFBFont *thiz, IDirectFBFont *real,
+                          VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult        ret;
+     VoodooMessageParser parser;
+     unsigned int        index;
+     DFBRectangle        extents;
+     int                 advance;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, index );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetGlyphExtents( real, index, &extents, &advance );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(extents), &extents,
+                                    VMBT_INT, advance,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBFont/Dispatcher: "
@@ -249,6 +277,8 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
                return Dispatch_GetHeight( dispatcher, real, manager, msg );
           case IDIRECTFBFONT_METHOD_ID_GetStringWidth:
                return Dispatch_GetStringWidth( dispatcher, real, manager, msg );
+          case IDIRECTFBFONT_METHOD_ID_GetGlyphExtents:
+               return Dispatch_GetGlyphExtents( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
@@ -268,6 +298,7 @@ Construct( IDirectFBFont    *thiz,
            IDirectFBFont    *real,
            VoodooManager    *manager,
            VoodooInstanceID  super,
+           void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
      DFBResult ret;

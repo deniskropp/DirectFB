@@ -69,16 +69,6 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFB, Dispatcher )
 typedef struct {
      DirectLink            link;
 
-     IDirectFBEventBuffer *src;
-     IDirectFBEventBuffer *dst;
-
-     bool                  stop;
-     DirectThread         *thread;
-} EventBufferFeed;
-
-typedef struct {
-     DirectLink            link;
-
      VoodooInstanceID      instance;
      IDirectFBDataBuffer  *requestor;
 } DataBufferEntry;
@@ -93,7 +83,6 @@ typedef struct {
 
      VoodooInstanceID       self;         /* The instance of this dispatcher itself. */
 
-     DirectLink            *feeds;
      DirectLink            *data_buffers; /* list of known data buffers */
 } IDirectFB_Dispatcher_data;
 
@@ -106,22 +95,6 @@ IDirectFB_Dispatcher_Destruct( IDirectFB *thiz )
      IDirectFB_Dispatcher_data *data = thiz->priv;
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
-
-     direct_list_foreach_safe (l, n, data->feeds) {
-          EventBufferFeed *feed = (EventBufferFeed*) l;
-
-          feed->stop = true;
-
-          feed->src->WakeUp( feed->src );
-
-          direct_thread_join( feed->thread );
-          direct_thread_destroy( feed->thread );
-
-          feed->src->Release( feed->src );
-          feed->dst->Release( feed->dst );
-
-          D_FREE( feed );
-     }
 
      direct_list_foreach_safe (l, n, data->data_buffers) {
           DataBufferEntry *entry = (DataBufferEntry*) l;
@@ -565,44 +538,6 @@ Dispatch_GetCardCapabilities( IDirectFB *thiz, IDirectFB *real,
                                     VMBT_NONE );
 }
 
-static void *
-feed_thread( DirectThread *thread, void *arg )
-{
-     DFBResult             ret;
-     EventBufferFeed      *feed = arg;
-     IDirectFBEventBuffer *src  = feed->src;
-     IDirectFBEventBuffer *dst  = feed->dst;
-
-     while (!feed->stop) {
-          DFBEvent event;
-
-          ret = src->WaitForEvent( src );
-          if (ret) {
-               if (ret == DFB_INTERRUPTED)
-                    continue;
-
-               DirectFBError( "IDirectFBEventBuffer::WaitForEvent", ret );
-               return NULL;
-          }
-
-          if (feed->stop)
-               return NULL;
-
-          while (src->GetEvent( src, &event ) == DFB_OK) {
-               ret = dst->PostEvent( dst, &event );
-               if (ret) {
-                    DirectFBError( "IDirectFBEventBuffer::PostEvent", ret );
-                    return NULL;
-               }
-
-               if (feed->stop)
-                    return NULL;
-          }
-     }
-
-     return NULL;
-}
-
 static DirectResult
 Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
                                  VoodooManager *manager, VoodooRequestMessage *msg )
@@ -614,7 +549,6 @@ Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
      DFBInputDeviceCapabilities  caps;
      DFBBoolean                  global;
      VoodooMessageParser         parser;
-     EventBufferFeed            *feed;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
 
@@ -629,24 +563,11 @@ Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
-                                       instance, (void**) &requestor );
+                                       instance, buffer, (void**) &requestor );
      if (ret) {
           buffer->Release( buffer );
           return ret;
      }
-
-     feed = D_CALLOC( 1, sizeof(EventBufferFeed) );
-     if (!feed) {
-          D_WARN( "out of memory" );
-          requestor->Release( requestor );
-          return DFB_NOSYSTEMMEMORY;
-     }
-
-     feed->src = buffer;
-     feed->dst = requestor;
-     feed->thread = direct_thread_create( DTT_INPUT, feed_thread, feed, "Event Buffer Feed" );
-
-     direct_list_prepend( &data->feeds, &feed->link );
 
      return DFB_OK;
 }
@@ -682,7 +603,7 @@ Dispatch_CreateImageProvider( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBImageProvider",
-                                        provider, data->self, &instance, NULL );
+                                        provider, data->self, NULL, &instance, NULL );
      if (ret) {
           provider->Release( provider );
           return ret;
@@ -714,7 +635,7 @@ Dispatch_CreateSurface( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBSurface",
-                                        surface, data->self, &instance, NULL );
+                                        surface, data->self, NULL, &instance, NULL );
      if (ret) {
           surface->Release( surface );
           return ret;
@@ -770,6 +691,38 @@ Dispatch_EnumScreens( IDirectFB *thiz, IDirectFB *real,
                                     DFB_OK, VOODOO_INSTANCE_NONE,
                                     VMBT_INT, context.num,
                                     VMBT_DATA, context.num * sizeof(IDirectFB_Dispatcher_EnumScreens_Item), context.items,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetDisplayLayer( IDirectFB *thiz, IDirectFB *real,
+                          VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult             ret;
+     DFBDisplayLayerID        id;
+     IDirectFBDisplayLayer   *layer;
+     VoodooInstanceID         instance;
+     VoodooMessageParser      parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, id );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->GetDisplayLayer( real, id, &layer );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_dispatcher( manager, "IDirectFBDisplayLayer",
+                                        layer, data->self, NULL, &instance, NULL );
+     if (ret) {
+          layer->Release( layer );
+          return ret;
+     }
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, instance,
                                     VMBT_NONE );
 }
 
@@ -842,7 +795,7 @@ Dispatch_GetScreen( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBScreen",
-                                        screen, data->self, &instance, NULL );
+                                        screen, data->self, NULL, &instance, NULL );
      if (ret) {
           screen->Release( screen );
           return ret;
@@ -876,7 +829,7 @@ Dispatch_CreateFont( IDirectFB *thiz, IDirectFB *real,
           return ret;
 
      ret = voodoo_construct_dispatcher( manager, "IDirectFBFont",
-                                        font, data->self, &instance, NULL );
+                                        font, data->self, NULL, &instance, NULL );
      if (ret) {
           font->Release( font );
           return ret;
@@ -904,7 +857,7 @@ Dispatch_CreateDataBuffer( IDirectFB *thiz, IDirectFB *real,
      VOODOO_PARSER_END( parser );
 
      ret = voodoo_construct_requestor( manager, "IDirectFBDataBuffer",
-                                       instance, (void**) &requestor );
+                                       instance, NULL, (void**) &requestor );
      if (ret)
           return ret;
 
@@ -959,6 +912,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFB_METHOD_ID_GetScreen:
                return Dispatch_GetScreen( dispatcher, real, manager, msg );
+
+          case IDIRECTFB_METHOD_ID_GetDisplayLayer:
+               return Dispatch_GetDisplayLayer( dispatcher, real, manager, msg );
 
           case IDIRECTFB_METHOD_ID_EnumInputDevices:
                return Dispatch_EnumInputDevices( dispatcher, real, manager, msg );

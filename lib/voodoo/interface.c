@@ -38,6 +38,7 @@ DirectResult
 voodoo_construct_requestor( VoodooManager     *manager,
                             const char        *name,
                             VoodooInstanceID   instance,
+                            void              *arg,
                             void             **ret_requestor )
 {
      DirectResult          ret;
@@ -59,7 +60,7 @@ voodoo_construct_requestor( VoodooManager     *manager,
      if (ret)
           return ret;
 
-     ret = funcs->Construct( requestor, manager, instance );
+     ret = funcs->Construct( requestor, manager, instance, arg );
      if (ret)
           return ret;
 
@@ -73,6 +74,7 @@ voodoo_construct_dispatcher( VoodooManager     *manager,
                              const char        *name,
                              void              *interface,
                              VoodooInstanceID   super,
+                             void              *arg,
                              VoodooInstanceID  *ret_instance,
                              void             **ret_dispatcher )
 {
@@ -97,7 +99,7 @@ voodoo_construct_dispatcher( VoodooManager     *manager,
      if (ret)
           return ret;
 
-     ret = funcs->Construct( dispatcher, interface, manager, super, &instance );
+     ret = funcs->Construct( dispatcher, interface, manager, super, arg, &instance );
      if (ret)
           return ret;
 

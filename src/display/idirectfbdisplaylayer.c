@@ -496,9 +496,9 @@ IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer  *thiz,
-                                    DFBWindowDescription   *desc,
-                                    IDirectFBWindow       **window )
+IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
+                                    const DFBWindowDescription  *desc,
+                                    IDirectFBWindow            **window )
 {
      CoreWindow            *w;
      DFBResult              ret;

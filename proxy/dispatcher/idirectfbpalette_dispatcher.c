@@ -42,10 +42,11 @@
 
 
 static DFBResult Probe();
-static DFBResult Construct( IDirectFBPalette    *thiz,
-                            IDirectFBPalette    *real,
+static DFBResult Construct( IDirectFBPalette *thiz,
+                            IDirectFBPalette *real,
                             VoodooManager    *manager,
                             VoodooInstanceID  super,
+                            void             *arg,
                             VoodooInstanceID *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -350,6 +351,7 @@ Construct( IDirectFBPalette *thiz,
            IDirectFBPalette *real,
            VoodooManager    *manager,
            VoodooInstanceID  super,
+           void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
      DFBResult ret;

@@ -46,7 +46,8 @@
 static DFBResult Probe();
 static DFBResult Construct( IDirectFBFont    *thiz,
                             VoodooManager    *manager,
-                            VoodooInstanceID  instance );
+                            VoodooInstanceID  instance,
+                            void             *arg );
 
 #include <direct/interface_implementation.h>
 
@@ -242,16 +243,47 @@ static DFBResult
 IDirectFBFont_Requestor_GetGlyphExtents( IDirectFBFont *thiz,
                                          unsigned int   index,
                                          DFBRectangle  *rect,
-                                         int           *advance )
+                                         int           *ret_advance )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const DFBRectangle    *extents;
+     int                    advance;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
 
-     if (!rect && !advance)
+     if (!rect && !ret_advance)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBFONT_METHOD_ID_GetGlyphExtents, VREQ_RESPOND, &response,
+                                   VMBT_UINT, index,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, extents );
+     VOODOO_PARSER_GET_INT( parser, advance );
+     VOODOO_PARSER_END( parser );
+
+     if (rect)
+          *rect = *extents;
+
+     if (advance)
+          *ret_advance = advance;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
 }
 
 /**************************************************************************************************/
@@ -266,7 +298,8 @@ Probe()
 static DFBResult
 Construct( IDirectFBFont    *thiz,
            VoodooManager    *manager,
-           VoodooInstanceID  instance )
+           VoodooInstanceID  instance,
+           void             *arg )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBFont_Requestor)
 

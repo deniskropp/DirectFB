@@ -45,6 +45,7 @@ static DFBResult Construct( IDirectFBFoo     *thiz,
                             IDirectFBFoo     *real,
                             VoodooManager    *manager,
                             VoodooInstanceID  super,
+                            void             *arg,
                             VoodooInstanceID *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -136,6 +137,7 @@ Construct( IDirectFBFoo     *thiz,     /* Dispatcher interface */
            IDirectFBFoo     *real,     /* Real interface implementation */
            VoodooManager    *manager,  /* Manager of the Voodoo framework */
            VoodooInstanceID  super,    /* Instance ID of the super interface */
+           void             *arg,      /* Optional arguments to constructor */
            VoodooInstanceID *ret_instance )
 {
      DFBResult        ret;

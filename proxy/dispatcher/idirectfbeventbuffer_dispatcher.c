@@ -50,6 +50,7 @@ static DFBResult Construct( IDirectFBEventBuffer *thiz,
                             IDirectFBEventBuffer *real,
                             VoodooManager        *manager,
                             VoodooInstanceID      super,
+                            void                 *arg,
                             VoodooInstanceID     *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -227,6 +228,7 @@ Construct( IDirectFBEventBuffer *thiz,
            IDirectFBEventBuffer *real,
            VoodooManager        *manager,
            VoodooInstanceID      super,
+           void                 *arg,      /* Optional arguments to constructor */
            VoodooInstanceID     *ret_instance )
 {
      DFBResult ret;

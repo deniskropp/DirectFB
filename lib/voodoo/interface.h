@@ -35,6 +35,7 @@ DirectResult
 voodoo_construct_requestor( VoodooManager     *manager,
                             const char        *name,
                             VoodooInstanceID   instance,
+                            void              *arg,
                             void             **ret_interface );
 
 DirectResult
@@ -42,6 +43,7 @@ voodoo_construct_dispatcher( VoodooManager     *manager,
                              const char        *name,
                              void              *interface,
                              VoodooInstanceID   super,
+                             void              *arg,
                              VoodooInstanceID  *ret_instance,
                              void             **ret_dispatcher );
 

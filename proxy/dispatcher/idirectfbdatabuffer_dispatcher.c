@@ -49,6 +49,7 @@ static DFBResult Construct( IDirectFBDataBuffer *thiz,
                             IDirectFBDataBuffer *real,
                             VoodooManager       *manager,
                             VoodooInstanceID     super,
+                            void                *arg,
                             VoodooInstanceID    *ret_instance );
 
 #include <direct/interface_implementation.h>
@@ -225,7 +226,7 @@ IDirectFBDataBuffer_Dispatcher_CreateImageProvider( IDirectFBDataBuffer     *thi
      ret = response->result;
      if (ret == DFB_OK)
           ret = voodoo_construct_requestor( data->manager, "IDirectFBImageProvider",
-                                            response->instance, &interface );
+                                            response->instance, NULL, &interface );
 
      voodoo_manager_finish_request( data->manager, response );
 
@@ -547,6 +548,7 @@ Construct( IDirectFBDataBuffer *thiz,
            IDirectFBDataBuffer *real,
            VoodooManager       *manager,
            VoodooInstanceID     super,
+           void                *arg,
            VoodooInstanceID    *ret_instance )
 {
      DFBResult        ret;

@@ -27,6 +27,9 @@ idirectfb_LTLIBRARIES = \
 idirectfbdatabuffer_LTLIBRARIES = \
 	libidirectfbdatabuffer_dispatcher.la
 
+idirectfbdisplaylayer_LTLIBRARIES = \
+	libidirectfbdisplaylayer_dispatcher.la
+
 idirectfbeventbuffer_LTLIBRARIES = \
 	libidirectfbeventbuffer_dispatcher.la
 
@@ -45,12 +48,18 @@ idirectfbscreen_LTLIBRARIES = \
 idirectfbsurface_LTLIBRARIES = \
 	libidirectfbsurface_dispatcher.la
 
+idirectfbwindow_LTLIBRARIES = \
+	libidirectfbwindow_dispatcher.la
+
 
 libidirectfb_dispatcher_la_SOURCES = idirectfb_dispatcher.c
 libidirectfb_dispatcher_la_LDFLAGS = -avoid-version -module
 
 libidirectfbdatabuffer_dispatcher_la_SOURCES = idirectfbdatabuffer_dispatcher.c
 libidirectfbdatabuffer_dispatcher_la_LDFLAGS = -avoid-version -module
+
+libidirectfbdisplaylayer_dispatcher_la_SOURCES = idirectfbdisplaylayer_dispatcher.c
+libidirectfbdisplaylayer_dispatcher_la_LDFLAGS = -avoid-version -module
 
 libidirectfbeventbuffer_dispatcher_la_SOURCES = idirectfbeventbuffer_dispatcher.c
 libidirectfbeventbuffer_dispatcher_la_LDFLAGS = -avoid-version -module
@@ -69,3 +78,6 @@ libidirectfbscreen_dispatcher_la_LDFLAGS = -avoid-version -module
 
 libidirectfbsurface_dispatcher_la_SOURCES = idirectfbsurface_dispatcher.c
 libidirectfbsurface_dispatcher_la_LDFLAGS = -avoid-version -module
+
+libidirectfbwindow_dispatcher_la_SOURCES = idirectfbwindow_dispatcher.c
+libidirectfbwindow_dispatcher_la_LDFLAGS = -avoid-version -module
