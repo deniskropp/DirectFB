@@ -12,6 +12,7 @@ aclocal.m4
 configure
 config.cache
 stamp-h.in
+stamp-h1
 directfb-config
 directfb.pc
 directfb-internal.pc

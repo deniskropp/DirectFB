@@ -513,49 +513,61 @@ static void primarylayer_deinit( DisplayLayer *layer )
 
 /** fbdev internal **/
 
+static int fbdev_compatible_format( struct fb_var_screeninfo *var,
+                                    int al, int rl, int gl, int bl,
+                                    int ao, int ro, int go, int bo )
+{
+     int ah, rh, gh, bh;
+     int vah, vrh, vgh, vbh;
+
+     ah = al + ao - 1;
+     rh = rl + ro - 1;
+     gh = gl + go - 1;
+     bh = bl + bo - 1;
+
+     vah = var->transp.length + var->transp.offset - 1;
+     vrh = var->red.length + var->red.offset - 1;
+     vgh = var->green.length + var->green.offset - 1;
+     vbh = var->blue.length + var->blue.offset - 1;
+
+     if (ah == vah && al >= var->transp.length &&
+         rh == vrh && rl >= var->red.length &&
+         gh == vgh && gl >= var->green.length &&
+         bh == vbh && bl >= var->blue.length)
+          return 1;
+
+     return 0;
+}
+
 static DFBSurfacePixelFormat fbdev_get_pixelformat( struct fb_var_screeninfo *var )
 {
      switch (var->bits_per_pixel) {
           case 15:
-               if (var->red.length    == 5 && var->red.offset    == 10 &&
-                   var->green.length  == 5 && var->green.offset  ==  5 &&
-                   var->blue.length   == 5 && var->blue.offset   ==  0)
+               if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
                     return DSPF_RGB15;
 
                break;
 
           case 16:
-               if (var->red.length    == 5 && var->red.offset    == 10 &&
-                   var->green.length  == 5 && var->green.offset  ==  5 &&
-                   var->blue.length   == 5 && var->blue.offset   ==  0)
+               if (fbdev_compatible_format( var, 0, 5, 5, 5, 0, 10, 5, 0 ))
                     return DSPF_RGB15;
 
-               if (var->red.length    == 5 && var->red.offset    == 11 &&
-                   var->green.length  == 6 && var->green.offset  ==  5 &&
-                   var->blue.length   == 5 && var->blue.offset   ==  0)
+               if (fbdev_compatible_format( var, 0, 5, 6, 5, 0, 11, 5, 0 ))
                     return DSPF_RGB16;
 
                break;
 
           case 24:
-               if (var->red.length    == 8 && var->red.offset    == 16 &&
-                   var->green.length  == 8 && var->green.offset  ==  8 &&
-                   var->blue.length   == 8 && var->blue.offset   ==  0)
+               if (fbdev_compatible_format( var, 0, 8, 8, 8, 0, 16, 8, 0 ))
                     return DSPF_RGB24;
 
                break;
 
           case 32:
-               if (var->transp.length == 0 &&
-                   var->red.length    == 8 && var->red.offset    == 16 &&
-                   var->green.length  == 8 && var->green.offset  ==  8 &&
-                   var->blue.length   == 8 && var->blue.offset   ==  0)
+               if (fbdev_compatible_format( var, 0, 8, 8, 8, 0, 16, 8, 0 ))
                     return DSPF_RGB32;
 
-               if (var->transp.length == 8 && var->transp.offset == 24 &&
-                   var->red.length    == 8 && var->red.offset    == 16 &&
-                   var->green.length  == 8 && var->green.offset  ==  8 &&
-                   var->blue.length   == 8 && var->blue.offset   ==  0)
+               if (fbdev_compatible_format( var, 8, 8, 8, 8, 24, 16, 8, 0 ))
                     return DSPF_ARGB;
 
                break;
