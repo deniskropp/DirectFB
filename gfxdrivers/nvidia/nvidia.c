@@ -100,7 +100,7 @@ DFB_GRAPHICS_DRIVER( nvidia )
                 DFXL_FILLTRIANGLE | DFXL_DRAWLINE)
 
 #define NV5_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_BLEND_COLORALPHA)
+               (DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE)
 
 #define NV5_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT)
@@ -332,11 +332,16 @@ static void nv5CheckState( void *drv, void *dev,
           if (state->blittingflags & ~NV5_SUPPORTED_BLITTINGFLAGS)
                return;
 
+          /* can't do modulation */
+          if ((state->blittingflags & DSBLIT_COLORIZE) &&
+              (state->blittingflags & DSBLIT_BLEND_COLORALPHA))
+               return;
+          
           switch (source->format) {
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
-               case DSPF_ARGB:
+               case DSPF_ARGB:     
                     break;
                
                case DSPF_YUY2:
@@ -573,6 +578,10 @@ static void nv5SetState( void *drv, void *dev,
                          nvdev->alpha    = state->color.a;
                     }
                } else
+               if (state->blittingflags & DSBLIT_COLORIZE) {
+                    nvdev->blitfx   = 0x00000004;
+                    PGRAPH[0x60C/4] = nvdev->color3d;
+               } else
                     nvdev->blitfx = 0x00000000;
 
                state->set |= DFXL_BLIT |
@@ -697,6 +706,10 @@ static void nv20SetState( void *drv, void *dev,
                          PGRAPH[0x608/4] = state->color.a << 23;
                          nvdev->alpha    = state->color.a;
                     }
+               } else
+               if (state->blittingflags & DSBLIT_COLORIZE) {
+                    nvdev->blitfx   = 0x00000004;
+                    PGRAPH[0x60C/4] = nvdev->color3d;
                } else
                     nvdev->blitfx = 0x00000000;
                
@@ -876,7 +889,7 @@ nv_find_architecture( NVidiaDriverData *nvdrv )
 
           fclose( fp );
      }
-    
+     
      switch (chip) {
           case 0x0020: /* RIVA TNT */
                arch = NV_ARCH_04;
