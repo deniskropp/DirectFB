@@ -100,27 +100,38 @@ void waitretrace (void)
 
 static DFBResult fbdev_open()
 {
-     fbdev->fd = open( "/dev/fb0", O_RDWR );
-     if (fbdev->fd < 0) {
-          if (errno == ENOENT) {
-               fbdev->fd = open( "/dev/fb/0", O_RDWR );
-               if (fbdev->fd < 0) {
-                    if (errno == ENOENT) {
-                         PERRORMSG( "DirectFB/core/fbdev: Couldn't open "
-                                    "neither `/dev/fb0' nor `/dev/fb/0'!\n" );
+     if (dfb_config->fb_device) {
+          fbdev->fd = open( dfb_config->fb_device, O_RDWR );
+          if (fbdev->fd < 0) {
+               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
+                          dfb_config->fb_device);
+
+               return errno2dfb( errno );
+          }
+     }
+     else {
+          fbdev->fd = open( "/dev/fb0", O_RDWR );
+          if (fbdev->fd < 0) {
+               if (errno == ENOENT) {
+                    fbdev->fd = open( "/dev/fb/0", O_RDWR );
+                    if (fbdev->fd < 0) {
+                         if (errno == ENOENT) {
+                              PERRORMSG( "DirectFB/core/fbdev: Couldn't open "
+                                         "neither `/dev/fb0' nor `/dev/fb/0'!\n" );
+                         }
+                         else {
+                              PERRORMSG( "DirectFB/core/fbdev: "
+                                         "Error opening `/dev/fb/0'!\n" );
+                         }
+
+                         return errno2dfb( errno );
                     }
-                    else {
-                         PERRORMSG( "DirectFB/core/fbdev: "
-                                    "Error opening `/dev/fb/0'!\n" );
-                    }
+               }
+               else {
+                    PERRORMSG( "DirectFB/core/fbdev: Error opening `/dev/fb0'!\n");
 
                     return errno2dfb( errno );
                }
-          }
-          else {
-               PERRORMSG( "DirectFB/core/fbdev: Error opening `/dev/fb0'!\n");
-
-               return errno2dfb( errno );
           }
      }
 
@@ -142,20 +153,6 @@ DFBResult fbdev_initialize()
 
      Sfbdev = (FBDevShared*) shcalloc( 1, sizeof(FBDevShared) );
 
-
-     if (dfb_config->fb_device) {
-          fbdev->fd = open( dfb_config->fb_device, O_RDWR );
-          if (fbdev->fd < 0) {
-               PERRORMSG( "DirectFB/core/fbdev: Error opening `%s'!\n",
-                          dfb_config->fb_device);
-
-               shmfree( Sfbdev );
-               DFBFREE( fbdev );
-               fbdev = NULL;
-
-               return DFB_INIT;
-          }
-     }
 
      ret = fbdev_open();
      if (ret) {
