@@ -121,8 +121,23 @@ fusion_init()
 #if LINUX_FUSION
      fd = open ("/dev/fusion", O_RDWR);
      if (fd < 0) {
-          FPERROR ("opening /dev/fusion\n");
-          return -1;
+          if (errno == ENOENT) {
+               fd = open ("/dev/misc/fusion", O_RDWR);
+               if (fd < 0) {
+                    if (errno == ENOENT) {
+                         FPERROR ("opening /dev/fusion and /dev/misc/fusion\n");
+                         return -1;
+                    }
+                    else {
+                         FPERROR ("opening /dev/misc/fusion\n");
+                         return -1;
+                    }
+               }
+          }
+          else {
+               FPERROR ("opening /dev/fusion\n");
+               return -1;
+          }
      }
 #endif
 
