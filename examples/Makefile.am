@@ -1,6 +1,6 @@
 ## Makefile.am for DirectFB/examples
 
-SUBDIRS = df_knuckles df_neo
+SUBDIRS = df_knuckles df_neo spacedream
 
 miscdatadir = $(DATADIR)
 
