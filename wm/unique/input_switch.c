@@ -212,6 +212,9 @@ _unique_input_switch_device_listener( const void *msg_data,
      const UniqueInputEvent *event = msg_data;
      UniqueInputSwitch      *inpsw = ctx;
 
+     (void) event;
+     (void) inpsw;
+
      D_ASSERT( event != NULL );
 
      D_MAGIC_ASSERT( inpsw, UniqueInputSwitch );
