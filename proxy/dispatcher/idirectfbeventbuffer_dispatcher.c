@@ -60,21 +60,14 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBEventBuffer, Dispatcher )
 
 /**************************************************************************************************/
 
-/*
- * private data struct of IDirectFBEventBuffer_Dispatcher
- */
-typedef struct {
-     int                   ref;      /* reference counter */
-
-     IDirectFBEventBuffer *real;
-} IDirectFBEventBuffer_Dispatcher_data;
-
-/**************************************************************************************************/
-
 static void
 IDirectFBEventBuffer_Dispatcher_Destruct( IDirectFBEventBuffer *thiz )
 {
+     IDirectFBEventBuffer_Dispatcher_data *data = thiz->priv;
+
      D_DEBUG( "%s (%p)\n", __FUNCTION__, thiz );
+
+     data->real->Release( data->real );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -107,7 +100,7 @@ IDirectFBEventBuffer_Dispatcher_Reset( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->Reset( data->real );
 }
 
 static DFBResult
@@ -115,7 +108,7 @@ IDirectFBEventBuffer_Dispatcher_WaitForEvent( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->WaitForEvent( data->real );
 }
 
 static DFBResult
@@ -125,7 +118,7 @@ IDirectFBEventBuffer_Dispatcher_WaitForEventWithTimeout( IDirectFBEventBuffer *t
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->WaitForEventWithTimeout( data->real, seconds, milli_seconds );
 }
 
 static DFBResult
@@ -133,7 +126,7 @@ IDirectFBEventBuffer_Dispatcher_WakeUp( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->WakeUp( data->real );
 }
 
 static DFBResult
@@ -142,7 +135,7 @@ IDirectFBEventBuffer_Dispatcher_GetEvent( IDirectFBEventBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->GetEvent( data->real, event );
 }
 
 static DFBResult
@@ -151,7 +144,7 @@ IDirectFBEventBuffer_Dispatcher_PeekEvent( IDirectFBEventBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->PeekEvent( data->real, event );
 }
 
 static DFBResult
@@ -159,7 +152,7 @@ IDirectFBEventBuffer_Dispatcher_HasEvent( IDirectFBEventBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->HasEvent( data->real );
 }
 
 static DFBResult
@@ -168,7 +161,7 @@ IDirectFBEventBuffer_Dispatcher_PostEvent( IDirectFBEventBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->PostEvent( data->real, event );
 }
 
 static DFBResult
@@ -177,7 +170,7 @@ IDirectFBEventBuffer_Dispatcher_CreateFileDescriptor( IDirectFBEventBuffer *thiz
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer_Dispatcher)
 
-     return DFB_UNIMPLEMENTED;
+     return data->real->CreateFileDescriptor( data->real, fd );
 }
 
 /**************************************************************************************************/
@@ -231,18 +224,23 @@ Construct( IDirectFBEventBuffer *thiz,
            void                 *arg,      /* Optional arguments to constructor */
            VoodooInstanceID     *ret_instance )
 {
-     DFBResult ret;
+     DFBResult        ret;
+     VoodooInstanceID instance;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer_Dispatcher)
 
-     ret = voodoo_manager_register( manager, false, thiz, real, Dispatch, ret_instance );
+     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
 
-     data->ref  = 1;
-     data->real = real;
+     *ret_instance = instance;
+
+     data->real    = real;
+     data->self    = instance;
+     data->super   = super;
+     data->manager = manager;
 
      thiz->AddRef                  = IDirectFBEventBuffer_Dispatcher_AddRef;
      thiz->Release                 = IDirectFBEventBuffer_Dispatcher_Release;

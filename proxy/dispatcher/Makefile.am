@@ -16,9 +16,10 @@ idirectfbwindowdir        = $(INTERFACES_DIR)/IDirectFBWindow
 idirectfbvideoproviderdir = $(INTERFACES_DIR)/IDirectFBVideoProvider
 
 INCLUDES = \
-	-I$(top_srcdir)/include	\
-	-I$(top_srcdir)/lib	\
-	-I$(top_srcdir)/src 	\
+	-I$(top_srcdir)/include		\
+	-I$(top_srcdir)/lib		\
+	-I$(top_srcdir)/src 		\
+	-I$(top_srcdir)/proxy/requestor	\
 	-DDATADIR=\"@DATADIR@\"
 
 idirectfb_LTLIBRARIES = \

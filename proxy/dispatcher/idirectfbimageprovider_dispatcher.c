@@ -201,7 +201,7 @@ Dispatch_RenderTo( IDirectFBImageProvider *thiz, IDirectFBImageProvider *real,
      VOODOO_PARSER_GET_ODATA( parser, rect );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
      if (ret)
           return ret;
 
@@ -253,7 +253,7 @@ Construct( IDirectFBImageProvider *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_Dispatcher)
 
-     ret = voodoo_manager_register( manager, false, thiz, real, Dispatch, ret_instance );
+     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, ret_instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

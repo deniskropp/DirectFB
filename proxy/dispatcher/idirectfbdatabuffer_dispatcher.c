@@ -560,7 +560,7 @@ Construct( IDirectFBDataBuffer *thiz,
      if (ret)
           return ret;
 
-     ret = voodoo_manager_register( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
      if (ret) {
           IDirectFBDataBuffer_Destruct( thiz );
           return ret;

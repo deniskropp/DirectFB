@@ -65,7 +65,7 @@
 
 typedef struct {
      bool                        super;
-     IAny                       *dispatcher;
+     IAny                       *proxy;
      IAny                       *real;
      VoodooDispatch              dispatch;
 } VoodooInstance;
@@ -89,7 +89,8 @@ struct __V_VoodooManager {
 
      struct {
           pthread_mutex_t        lock;
-          DirectHash            *hash;
+          DirectHash            *local;
+          DirectHash            *remote;
           VoodooInstanceID       last;
      } instances;
 
@@ -196,8 +197,16 @@ voodoo_manager_create( int             fd,
      DUMP_SOCKET_OPTION( SO_RCVBUF );
 
      /* Create the hash table for dispatcher instances. */
-     ret = direct_hash_create( 251, &manager->instances.hash );
+     ret = direct_hash_create( 251, &manager->instances.local );
      if (ret) {
+          D_FREE( manager );
+          return ret;
+     }
+
+     /* Create the hash table for requestor instances. */
+     ret = direct_hash_create( 251, &manager->instances.remote );
+     if (ret) {
+          direct_hash_destroy( manager->instances.local );
           D_FREE( manager );
           return ret;
      }
@@ -291,12 +300,12 @@ instance_iterator( DirectHash *hash,
 
 
      D_DEBUG( "Voodoo/Manager: Releasing dispatcher interface %p %s(instance %lu)...\n",
-              instance->dispatcher, instance->super ? "[super] " : "", key );
+              instance->proxy, instance->super ? "[super] " : "", key );
 
-     D_ASSERT( instance->dispatcher != NULL );
-     D_ASSERT( instance->dispatcher->Release != NULL );
+     D_ASSERT( instance->proxy != NULL );
+     D_ASSERT( instance->proxy->Release != NULL );
 
-     instance->dispatcher->Release( instance->dispatcher );
+     instance->proxy->Release( instance->proxy );
 
 
      D_DEBUG( "Voodoo/Manager: Releasing real interface %p %s(instance %lu)...\n",
@@ -345,9 +354,11 @@ voodoo_manager_destroy( VoodooManager *manager )
      pthread_mutex_destroy( &manager->output.lock );
 
      /* Release all remaining interfaces. */
-     direct_hash_iterate( manager->instances.hash, instance_iterator, (void*) false );
-     direct_hash_iterate( manager->instances.hash, instance_iterator, (void*) true );
-     direct_hash_destroy( manager->instances.hash );
+     direct_hash_iterate( manager->instances.local, instance_iterator, (void*) false );
+     direct_hash_iterate( manager->instances.local, instance_iterator, (void*) true );
+     direct_hash_destroy( manager->instances.local );
+
+     direct_hash_destroy( manager->instances.remote );
 
      D_MAGIC_CLEAR( manager );
 
@@ -722,12 +733,12 @@ voodoo_manager_respond( VoodooManager          *manager,
 }
 
 DirectResult
-voodoo_manager_register( VoodooManager    *manager,
-                         bool              super,
-                         void             *dispatcher,
-                         void             *real,
-                         VoodooDispatch    dispatch,
-                         VoodooInstanceID *ret_instance )
+voodoo_manager_register_local( VoodooManager    *manager,
+                               bool              super,
+                               void             *dispatcher,
+                               void             *real,
+                               VoodooDispatch    dispatch,
+                               VoodooInstanceID *ret_instance )
 {
      DirectResult      ret;
      VoodooInstance   *instance;
@@ -745,21 +756,21 @@ voodoo_manager_register( VoodooManager    *manager,
           return DFB_NOSYSTEMMEMORY;
      }
 
-     instance->super      = super;
-     instance->dispatcher = dispatcher;
-     instance->real       = real;
-     instance->dispatch   = dispatch;
+     instance->super    = super;
+     instance->proxy    = dispatcher;
+     instance->real     = real;
+     instance->dispatch = dispatch;
 
      pthread_mutex_lock( &manager->instances.lock );
 
      instance_id = ++manager->instances.last;
 
-     ret = direct_hash_insert( manager->instances.hash, instance_id, instance );
+     ret = direct_hash_insert( manager->instances.local, instance_id, instance );
 
      pthread_mutex_unlock( &manager->instances.lock );
 
      if (ret) {
-          D_ERROR( "Voodoo/Manager: Adding a new instance to the hash table failed!\n" );
+          D_ERROR( "Voodoo/Manager: Adding a new instance to the dispatcher hash table failed!\n" );
           D_FREE( instance );
           return ret;
      }
@@ -773,10 +784,10 @@ voodoo_manager_register( VoodooManager    *manager,
 }
 
 DirectResult
-voodoo_manager_lookup( VoodooManager     *manager,
-                       VoodooInstanceID   instance_id,
-                       void             **ret_dispatcher,
-                       void             **ret_real )
+voodoo_manager_lookup_local( VoodooManager     *manager,
+                             VoodooInstanceID   instance_id,
+                             void             **ret_dispatcher,
+                             void             **ret_real )
 {
      VoodooInstance *instance;
 
@@ -786,7 +797,7 @@ voodoo_manager_lookup( VoodooManager     *manager,
 
      pthread_mutex_lock( &manager->instances.lock );
 
-     instance = direct_hash_lookup( manager->instances.hash, instance_id );
+     instance = direct_hash_lookup( manager->instances.local, instance_id );
 
      pthread_mutex_unlock( &manager->instances.lock );
 
@@ -794,10 +805,76 @@ voodoo_manager_lookup( VoodooManager     *manager,
           return DFB_NOSUCHINSTANCE;
 
      if (ret_dispatcher)
-          *ret_dispatcher = instance->dispatcher;
+          *ret_dispatcher = instance->proxy;
 
      if (ret_real)
           *ret_real = instance->real;
+
+     return DFB_OK;
+}
+
+DirectResult
+voodoo_manager_register_remote( VoodooManager    *manager,
+                                bool              super,
+                                void             *requestor,
+                                VoodooInstanceID  instance_id )
+{
+     DirectResult    ret;
+     VoodooInstance *instance;
+
+     D_MAGIC_ASSERT( manager, VoodooManager );
+     D_ASSERT( requestor != NULL );
+     D_ASSERT( instance_id != VOODOO_INSTANCE_NONE );
+
+     instance = D_CALLOC( 1, sizeof(VoodooInstance) );
+     if (!instance) {
+          D_WARN( "out of memory" );
+          return DFB_NOSYSTEMMEMORY;
+     }
+
+     instance->super = super;
+     instance->proxy = requestor;
+
+     pthread_mutex_lock( &manager->instances.lock );
+
+     ret = direct_hash_insert( manager->instances.remote, instance_id, instance );
+
+     pthread_mutex_unlock( &manager->instances.lock );
+
+     if (ret) {
+          D_ERROR( "Voodoo/Manager: Adding a new instance to the requestor hash table failed!\n" );
+          D_FREE( instance );
+          return ret;
+     }
+
+     D_DEBUG( "Voodoo/Manager: "
+              "Added remote instance %lu, requestor %p.\n", instance_id, requestor );
+
+     return DFB_OK;
+}
+
+
+DirectResult
+voodoo_manager_lookup_remote( VoodooManager     *manager,
+                              VoodooInstanceID   instance_id,
+                              void             **ret_requestor )
+{
+     VoodooInstance *instance;
+
+     D_MAGIC_ASSERT( manager, VoodooManager );
+     D_ASSERT( instance_id != VOODOO_INSTANCE_NONE );
+     D_ASSERT( ret_requestor != NULL );
+
+     pthread_mutex_lock( &manager->instances.lock );
+
+     instance = direct_hash_lookup( manager->instances.remote, instance_id );
+
+     pthread_mutex_unlock( &manager->instances.lock );
+
+     if (!instance)
+          return DFB_NOSUCHINSTANCE;
+
+     *ret_requestor = instance->proxy;
 
      return DFB_OK;
 }
@@ -879,7 +956,7 @@ dispatch_async_thread( void *arg )
      VoodooInstance       *instance = context->instance;
      VoodooRequestMessage *request  = context->request;
 
-     ret = instance->dispatch( instance->dispatcher, instance->real, manager, request );
+     ret = instance->dispatch( instance->proxy, instance->real, manager, request );
 
      if (ret && (request->flags & VREQ_RESPOND))
           voodoo_manager_respond( manager, request->header.serial,
@@ -911,7 +988,7 @@ handle_request( VoodooManager        *manager,
 
      pthread_mutex_lock( &manager->instances.lock );
 
-     instance = direct_hash_lookup( manager->instances.hash, request->instance );
+     instance = direct_hash_lookup( manager->instances.local, request->instance );
      if (!instance) {
           pthread_mutex_unlock( &manager->instances.lock );
 
@@ -947,7 +1024,7 @@ handle_request( VoodooManager        *manager,
           pthread_detach( thread );
      }
      else {
-          ret = instance->dispatch( instance->dispatcher, instance->real, manager, request );
+          ret = instance->dispatch( instance->proxy, instance->real, manager, request );
 
           if (ret && (request->flags & VREQ_RESPOND))
                voodoo_manager_respond( manager, request->header.serial,

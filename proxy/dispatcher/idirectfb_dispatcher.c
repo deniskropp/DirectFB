@@ -564,6 +564,36 @@ Dispatch_SetVideoMode( IDirectFB *thiz, IDirectFB *real,
 }
 
 static DirectResult
+Dispatch_CreateEventBuffer( IDirectFB *thiz, IDirectFB *real,
+                            VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult          ret;
+     IDirectFBEventBuffer *buffer;
+     IDirectFBEventBuffer *requestor;
+     VoodooInstanceID      instance;
+     VoodooMessageParser   parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFB_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->CreateEventBuffer( real, &buffer );
+     if (ret)
+          return ret;
+
+     ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
+                                       instance, buffer, (void**) &requestor );
+     if (ret) {
+          buffer->Release( buffer );
+          return ret;
+     }
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch_CreateInputEventBuffer( IDirectFB *thiz, IDirectFB *real,
                                  VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -947,6 +977,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
           case IDIRECTFB_METHOD_ID_EnumInputDevices:
                return Dispatch_EnumInputDevices( dispatcher, real, manager, msg );
 
+          case IDIRECTFB_METHOD_ID_CreateEventBuffer:
+               return Dispatch_CreateEventBuffer( dispatcher, real, manager, msg );
+
           case IDIRECTFB_METHOD_ID_CreateInputEventBuffer:
                return Dispatch_CreateInputEventBuffer( dispatcher, real, manager, msg );
 
@@ -995,7 +1028,7 @@ Construct( IDirectFB *thiz, VoodooManager *manager, VoodooInstanceID *ret_instan
           return ret;
      }
 
-     ret = voodoo_manager_register( manager, true, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, true, thiz, real, Dispatch, &instance );
      if (ret) {
           real->Release( real );
           DIRECT_DEALLOCATE_INTERFACE( thiz );

@@ -40,6 +40,7 @@
 
 #include <input/idirectfbinputbuffer.h>
 
+#include <idirectfbeventbuffer_dispatcher.h>
 #include <idirectfbwindow_dispatcher.h>
 
 #include "idirectfbsurface_requestor.h"
@@ -94,10 +95,11 @@ static DFBResult
 IDirectFBWindow_Requestor_CreateEventBuffer( IDirectFBWindow       *thiz,
                                              IDirectFBEventBuffer **ret_interface )
 {
-     DFBResult             ret;
-     IDirectFBEventBuffer *buffer;
-     IDirectFBEventBuffer *dispatcher;
-     VoodooInstanceID      instance;
+     DFBResult              ret;
+     IDirectFBEventBuffer  *buffer;
+     IDirectFBEventBuffer  *dispatcher;
+     VoodooInstanceID       instance;
+     VoodooResponseMessage *response;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
@@ -119,7 +121,7 @@ IDirectFBWindow_Requestor_CreateEventBuffer( IDirectFBWindow       *thiz,
 
      /* Send the request including the instance ID of the dispatcher. */
      ret = voodoo_manager_request( data->manager, data->instance,
-                                   IDIRECTFBWINDOW_METHOD_ID_CreateEventBuffer, VREQ_NONE, NULL,
+                                   IDIRECTFBWINDOW_METHOD_ID_CreateEventBuffer, VREQ_RESPOND, &response,
                                    VMBT_ID,  instance,
                                    VMBT_NONE );
      if (ret) {
@@ -127,21 +129,48 @@ IDirectFBWindow_Requestor_CreateEventBuffer( IDirectFBWindow       *thiz,
           return ret;
      }
 
-     /* Return the real interface. */
-     *ret_interface = buffer;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     /* Return the dispatcher interface. */
+     *ret_interface = dispatcher;
 
      return DFB_OK;
 }
 
 static DFBResult
-IDirectFBWindow_Requestor_AttachEventBuffer( IDirectFBWindow       *thiz,
-                                             IDirectFBEventBuffer  *buffer )
+IDirectFBWindow_Requestor_AttachEventBuffer( IDirectFBWindow      *thiz,
+                                             IDirectFBEventBuffer *buffer )
 {
+     DFBResult                             ret;
+     IDirectFBEventBuffer_Dispatcher_data *buffer_data;
+     VoodooResponseMessage                *response;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!buffer)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Dispatcher );
+
+     /* Send the request including the instance ID of the dispatcher. */
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_AttachEventBuffer, VREQ_RESPOND, &response,
+                                   VMBT_ID, buffer_data->self,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
 }
 
 static DFBResult

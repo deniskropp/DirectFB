@@ -32,36 +32,46 @@
 #include <voodoo/message.h>
 
 
-DirectResult voodoo_manager_super         ( VoodooManager           *manager,
-                                            const char              *name,
-                                            VoodooInstanceID        *ret_instance );
+DirectResult voodoo_manager_super          ( VoodooManager           *manager,
+                                             const char              *name,
+                                             VoodooInstanceID        *ret_instance );
 
-DirectResult voodoo_manager_request       ( VoodooManager           *manager,
-                                            VoodooInstanceID         instance,
-                                            VoodooMethodID           method,
-                                            VoodooRequestFlags       flags,
-                                            VoodooResponseMessage  **ret_response,
-                                            VoodooMessageBlockType   block_type, ... );
+DirectResult voodoo_manager_request        ( VoodooManager           *manager,
+                                             VoodooInstanceID         instance,
+                                             VoodooMethodID           method,
+                                             VoodooRequestFlags       flags,
+                                             VoodooResponseMessage  **ret_response,
+                                             VoodooMessageBlockType   block_type, ... );
 
-DirectResult voodoo_manager_finish_request( VoodooManager           *manager,
-                                            VoodooResponseMessage   *response );
+DirectResult voodoo_manager_finish_request ( VoodooManager           *manager,
+                                             VoodooResponseMessage   *response );
 
-DirectResult voodoo_manager_respond       ( VoodooManager           *manager,
-                                            VoodooMessageSerial      request,
-                                            DirectResult             result,
-                                            VoodooInstanceID         instance,
-                                            VoodooMessageBlockType   block_type, ... );
+DirectResult voodoo_manager_respond        ( VoodooManager           *manager,
+                                             VoodooMessageSerial      request,
+                                             DirectResult             result,
+                                             VoodooInstanceID         instance,
+                                             VoodooMessageBlockType   block_type, ... );
 
-DirectResult voodoo_manager_register      ( VoodooManager           *manager,
-                                            bool                     super,
-                                            void                    *dispatcher,
-                                            void                    *real,
-                                            VoodooDispatch           dispatch,
-                                            VoodooInstanceID        *ret_instance );
+DirectResult voodoo_manager_register_local ( VoodooManager           *manager,
+                                             bool                     super,
+                                             void                    *dispatcher,
+                                             void                    *real,
+                                             VoodooDispatch           dispatch,
+                                             VoodooInstanceID        *ret_instance );
 
-DirectResult voodoo_manager_lookup        ( VoodooManager           *manager,
-                                            VoodooInstanceID         instance,
-                                            void                   **ret_dispatcher,
-                                            void                   **ret_real );
+DirectResult voodoo_manager_lookup_local   ( VoodooManager           *manager,
+                                             VoodooInstanceID         instance,
+                                             void                   **ret_dispatcher,
+                                             void                   **ret_real );
+
+DirectResult voodoo_manager_register_remote( VoodooManager           *manager,
+                                             bool                     super,
+                                             void                    *requestor,
+                                             VoodooInstanceID         instance );
+
+DirectResult voodoo_manager_lookup_remote  ( VoodooManager           *manager,
+                                             VoodooInstanceID         instance,
+                                             void                   **ret_requestor );
+
 
 #endif

@@ -647,7 +647,7 @@ Dispatch_GetAccelerationMask( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VOODOO_PARSER_END( parser );
 
      if (instance != VOODOO_INSTANCE_NONE) {
-          ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+          ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
           if (ret)
                return ret;
      }
@@ -703,7 +703,7 @@ Dispatch_SetPalette( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VOODOO_PARSER_GET_ID( parser, instance );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &palette );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &palette );
      if (ret)
           return ret;
 
@@ -901,7 +901,7 @@ Dispatch_Blit( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VOODOO_PARSER_GET_DATA( parser, point );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
      if (ret)
           return ret;
 
@@ -929,7 +929,7 @@ Dispatch_TileBlit( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VOODOO_PARSER_GET_DATA( parser, point );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
      if (ret)
           return ret;
 
@@ -957,7 +957,7 @@ Dispatch_StretchBlit( IDirectFBSurface *thiz, IDirectFBSurface *real,
      VOODOO_PARSER_GET_ODATA( parser, drect );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
      if (ret)
           return ret;
 
@@ -1097,7 +1097,7 @@ Dispatch_SetFont( IDirectFBSurface *thiz, IDirectFBSurface *real,
           return DFB_OK;
      }
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &font );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &font );
      if (ret)
           return ret;
 
@@ -1297,7 +1297,7 @@ Construct( IDirectFBSurface *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Dispatcher)
 
-     ret = voodoo_manager_register( manager, false, thiz, real, Dispatch, ret_instance );
+     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, ret_instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

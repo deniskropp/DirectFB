@@ -46,6 +46,9 @@
 
 #include <idirectfbeventbuffer_dispatcher.h>
 
+#include "idirectfbeventbuffer_requestor.h"
+
+
 static DFBResult Probe();
 static DFBResult Construct( IDirectFBEventBuffer *thiz,
                             VoodooManager        *manager,
@@ -56,24 +59,6 @@ static DFBResult Construct( IDirectFBEventBuffer *thiz,
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBEventBuffer, Requestor )
 
-
-/**************************************************************************************************/
-
-/*
- * private data struct of IDirectFBEventBuffer_Requestor
- */
-typedef struct {
-     int                   ref;      /* reference counter */
-
-     VoodooManager        *manager;
-     VoodooInstanceID      instance;
-
-     IDirectFBEventBuffer *src;
-     IDirectFBEventBuffer *dst;
-
-     bool                  stop;
-     DirectThread         *thread;
-} IDirectFBEventBuffer_Requestor_data;
 
 /**************************************************************************************************/
 
@@ -237,6 +222,8 @@ Construct( IDirectFBEventBuffer *thiz,
            void                 *arg )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer_Requestor)
+
+     voodoo_manager_register_remote( manager, false, thiz, instance );
 
      data->ref      = 1;
      data->manager  = manager;

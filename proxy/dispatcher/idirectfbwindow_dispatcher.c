@@ -37,6 +37,8 @@
 #include <voodoo/interface.h>
 #include <voodoo/manager.h>
 
+#include <idirectfbeventbuffer_requestor.h>
+
 #include "idirectfbwindow_dispatcher.h"
 
 
@@ -494,12 +496,41 @@ Dispatch_CreateEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
 
      ret = voodoo_construct_requestor( manager, "IDirectFBEventBuffer",
                                        instance, buffer, (void**) &requestor );
-     if (ret) {
+     if (ret)
           buffer->Release( buffer );
-          return ret;
-     }
 
-     return DFB_OK;
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_AttachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                            VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult                         ret;
+     IDirectFBEventBuffer                *buffer;
+     IDirectFBEventBuffer_Requestor_data *buffer_data;
+     VoodooInstanceID                     instance;
+     VoodooMessageParser                  parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup_remote( manager, instance, (void**) &buffer );
+     if (ret)
+          return ret;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Requestor );
+
+     ret = real->AttachEventBuffer( real, buffer_data->src );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
 }
 
 static DirectResult
@@ -639,7 +670,7 @@ Dispatch_SetCursorShape( IDirectFBWindow *thiz, IDirectFBWindow *real,
      VOODOO_PARSER_GET_DATA( parser, hot );
      VOODOO_PARSER_END( parser );
 
-     ret = voodoo_manager_lookup( manager, instance, NULL, &surface );
+     ret = voodoo_manager_lookup_local( manager, instance, NULL, &surface );
      if (ret)
           return ret;
 
@@ -851,6 +882,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
           case IDIRECTFBWINDOW_METHOD_ID_CreateEventBuffer:
                return Dispatch_CreateEventBuffer( dispatcher, real, manager, msg );
 
+          case IDIRECTFBWINDOW_METHOD_ID_AttachEventBuffer:
+               return Dispatch_AttachEventBuffer( dispatcher, real, manager, msg );
+
           case IDIRECTFBWINDOW_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
 
@@ -943,7 +977,7 @@ Construct( IDirectFBWindow  *thiz,     /* Dispatcher interface */
      D_ASSERT( ret_instance != NULL );
 
      /* Register the dispatcher, getting a new instance ID that refers to it. */
-     ret = voodoo_manager_register( manager, false, thiz, real, Dispatch, &instance );
+     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, &instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

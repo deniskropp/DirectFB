@@ -438,16 +438,45 @@ IDirectFB_Requestor_GetInputDevice( IDirectFB             *thiz,
 
 static DFBResult
 IDirectFB_Requestor_CreateEventBuffer( IDirectFB             *thiz,
-                                       IDirectFBEventBuffer **interface)
+                                       IDirectFBEventBuffer **ret_interface)
 {
+     DFBResult             ret;
+     IDirectFBEventBuffer *buffer;
+     IDirectFBEventBuffer *dispatcher;
+     VoodooInstanceID      instance;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB_Requestor)
 
-     if (!interface)
+     if (!ret_interface)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     /* Create the real interface. */
+     DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBEventBuffer );
 
-     return DFB_UNIMPLEMENTED;
+     IDirectFBEventBuffer_Construct( buffer, NULL, NULL );
+
+     /* Create the dispatcher. */
+     ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer", buffer,
+                                        data->instance, NULL, &instance, (void**) &dispatcher );
+     if (ret) {
+          buffer->Release( buffer );
+          return ret;
+     }
+
+     /* Send the request including the instance ID of the dispatcher. */
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFB_METHOD_ID_CreateEventBuffer, VREQ_NONE, NULL,
+                                   VMBT_ID,  instance,
+                                   VMBT_NONE );
+     if (ret) {
+          dispatcher->Release( dispatcher );
+          return ret;
+     }
+
+     /* Return the dispatcher interface. */
+     *ret_interface = dispatcher;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -472,8 +501,8 @@ IDirectFB_Requestor_CreateInputEventBuffer( IDirectFB                   *thiz,
      IDirectFBEventBuffer_Construct( buffer, NULL, NULL );
 
      /* Create the dispatcher. */
-     ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer",
-                                        buffer, data->instance, NULL, &instance, (void**) &dispatcher );
+     ret = voodoo_construct_dispatcher( data->manager, "IDirectFBEventBuffer", buffer,
+                                        data->instance, NULL, &instance, (void**) &dispatcher );
      if (ret) {
           buffer->Release( buffer );
           return ret;
@@ -491,8 +520,8 @@ IDirectFB_Requestor_CreateInputEventBuffer( IDirectFB                   *thiz,
           return ret;
      }
 
-     /* Return the real interface. */
-     *ret_interface = buffer;
+     /* Return the dispatcher interface. */
+     *ret_interface = dispatcher;
 
      return DFB_OK;
 }

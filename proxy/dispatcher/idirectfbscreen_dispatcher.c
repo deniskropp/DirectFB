@@ -350,7 +350,7 @@ Construct( IDirectFBScreen  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBScreen_Dispatcher)
 
-     ret = voodoo_manager_register( manager, false, thiz, real, Dispatch, ret_instance );
+     ret = voodoo_manager_register_local( manager, false, thiz, real, Dispatch, ret_instance );
      if (ret) {
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;

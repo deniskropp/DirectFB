@@ -28,6 +28,10 @@
 #ifndef __IDIRECTFBEVENTBUFFER_DISPATCHER_H__
 #define __IDIRECTFBEVENTBUFFER_DISPATCHER_H__
 
+#include <voodoo/types.h>
+
+#include <directfb.h>
+
 #define IDIRECTFBEVENTBUFFER_METHOD_ID_AddRef                     1
 #define IDIRECTFBEVENTBUFFER_METHOD_ID_Release                    2
 #define IDIRECTFBEVENTBUFFER_METHOD_ID_Reset                      3
@@ -39,5 +43,20 @@
 #define IDIRECTFBEVENTBUFFER_METHOD_ID_PostEvent                  9
 #define IDIRECTFBEVENTBUFFER_METHOD_ID_WakeUp                    10
 #define IDIRECTFBEVENTBUFFER_METHOD_ID_CreateFileDescriptor      11
+
+/*
+ * private data struct of IDirectFBEventBuffer_Dispatcher
+ */
+typedef struct {
+     int                   ref;      /* reference counter */
+
+     IDirectFBEventBuffer *real;
+
+     VoodooInstanceID      self;         /* The instance of this dispatcher itself. */
+     VoodooInstanceID      super;        /* The instance of the super interface. */
+
+     VoodooManager        *manager;
+} IDirectFBEventBuffer_Dispatcher_data;
+
 
 #endif
