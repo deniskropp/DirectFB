@@ -95,9 +95,9 @@ void *__shmalloc_init (bool initialize)
 
      /* open the virtual file */
      if (initialize)
-          fd = open (sh_name, O_RDWR | O_CREAT, 0600);
+          fd = open (sh_name, O_RDWR | O_CREAT, 0660);
      else
-          fd = open (sh_name, O_RDWR, 0600);
+          fd = open (sh_name, O_RDWR);
      if (fd < 0) {
           perror ("opening shared memory file");
           return NULL;
