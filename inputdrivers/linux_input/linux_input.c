@@ -35,7 +35,10 @@
 
 
 #include <linux/input.h>
+#ifndef KEY_OK
+/* Linux kernel 2.5.42+ defines additional keys in linux/input.h */
 #include "input_fake.h"
+#endif
 
 #include <directfb.h>
 #include <directfb_keyboard.h>
@@ -417,7 +420,11 @@ get_device_info( int              fd,
                if (test_bit( i, keybit ))
                     num_keys++;
 
-          for (i=BTN_MISC; i<KEY_MAX; i++)
+          for (i=KEY_OK; i<KEY_MAX; i++)
+               if (test_bit( i, keybit ))
+                    num_keys++;
+
+          for (i=BTN_MISC; i<KEY_OK; i++)
                if (test_bit( i, keybit ))
                     num_buttons++;
      }
