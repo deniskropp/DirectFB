@@ -127,7 +127,7 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
 
      DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
 
-     IDirectFBEventBuffer_Construct( b );
+     IDirectFBEventBuffer_Construct( b, NULL, NULL );
 
      IDirectFBEventBuffer_AttachWindow( b, data->window );
 

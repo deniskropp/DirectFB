@@ -76,6 +76,9 @@ typedef struct {
 typedef struct {
      int                           ref;           /* reference counter */
 
+     EventBufferFilterCallback     filter;
+     void                         *filter_ctx;
+
      FusionLink                   *devices;       /* attached devices */
 
      FusionLink                   *windows;       /* attached windows */
@@ -104,7 +107,8 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
 
 
 
-static void IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
+static void
+IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
 {
      IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)thiz->priv;
 
@@ -138,7 +142,8 @@ static void IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      DFB_DEALLOCATE_INTERFACE( thiz );
 }
 
-static DFBResult IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
+static DFBResult
+IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
@@ -147,7 +152,8 @@ static DFBResult IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
+static DFBResult
+IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
@@ -157,7 +163,8 @@ static DFBResult IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
+static DFBResult
+IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
 {
      IDirectFBEventBuffer_item     *e;
 
@@ -179,7 +186,8 @@ static DFBResult IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
+static DFBResult
+IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
@@ -193,10 +201,10 @@ static DFBResult IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
      return DFB_OK;
 }
 
-static DFBResult IDirectFBEventBuffer_WaitForEventWithTimeout(
-                                                  IDirectFBEventBuffer *thiz,
-                                                  unsigned int          seconds,
-                                                  unsigned int          milli_seconds )
+static DFBResult
+IDirectFBEventBuffer_WaitForEventWithTimeout( IDirectFBEventBuffer *thiz,
+                                              unsigned int          seconds,
+                                              unsigned int          milli_seconds )
 {
      struct timeval  now;
      struct timespec timeout;
@@ -237,8 +245,9 @@ static DFBResult IDirectFBEventBuffer_WaitForEventWithTimeout(
      return ret;
 }
 
-static DFBResult IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
-                                                DFBEvent             *event )
+static DFBResult
+IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
+                               DFBEvent             *event )
 {
      IDirectFBEventBuffer_item     *e;
 
@@ -278,8 +287,9 @@ static DFBResult IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
-                                                 DFBEvent             *event )
+static DFBResult
+IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
+                                DFBEvent             *event )
 {
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
@@ -312,19 +322,24 @@ static DFBResult IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
-static DFBResult IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
+static DFBResult
+IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
 {
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      return (data->events ? DFB_OK : DFB_BUFFEREMPTY);
 }
 
-static DFBResult IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
-                                                 DFBEvent             *event )
+static DFBResult
+IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
+                                DFBEvent             *event )
 {
      IDirectFBEventBuffer_item *item;
      
      INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (data->filter && data->filter( event, data->filter_ctx ))
+          return DFB_OK;
 
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
@@ -336,11 +351,16 @@ static DFBResult IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
-DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz )
+DFBResult
+IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
+                                EventBufferFilterCallback  filter,
+                                void                      *filter_ctx )
 {
      DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer)
 
-     data->ref = 1;
+     data->ref        = 1;
+     data->filter     = filter;
+     data->filter_ctx = filter_ctx;
 
      pthread_mutex_init( &data->events_mutex, NULL );
      pthread_cond_init( &data->wait_condition, NULL );
@@ -426,6 +446,9 @@ static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
      IDirectFBEventBuffer_item *item;
      IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
 
+     if (data->filter && data->filter( (DFBEvent*) msg_data, data->filter_ctx ))
+          return RS_OK;
+     
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 
@@ -444,6 +467,9 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      IDirectFBEventBuffer_item *item;
      IDirectFBEventBuffer_data *data = (IDirectFBEventBuffer_data*)ctx;
 
+     if (data->filter && data->filter( (DFBEvent*) msg_data, data->filter_ctx ))
+          return RS_OK;
+     
      item = (IDirectFBEventBuffer_item*)
           DFBCALLOC( 1, sizeof(IDirectFBEventBuffer_item) );
 

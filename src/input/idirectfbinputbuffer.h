@@ -24,15 +24,21 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECTFBEVENTBUFFER_H__
-#define __DIRECTFBEVENTBUFFER_H__
+#ifndef __IDIRECTFBEVENTBUFFER_H__
+#define __IDIRECTFBEVENTBUFFER_H__
 
+#include <core/fusion/fusion_types.h>
 #include <core/input.h>
+
+typedef bool (*EventBufferFilterCallback)( DFBEvent             *evt,
+                                           void                 *ctx );
 
 /*
  * initializes event buffer, adds it to input listeners and initializes mutexes
  */
-DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz );
+DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
+                                          EventBufferFilterCallback  filter,
+                                          void                      *filter_ctx );
 
 DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
                                                   InputDevice          *device );

@@ -124,6 +124,14 @@ static DFBEnumerationResult GetInputDevice_Callback   ( InputDevice  *device,
 static DFBEnumerationResult CreateEventBuffer_Callback( InputDevice  *device,
                                                         void         *ctx );
 
+static ReactionResult focus_listener( const void *msg_data,
+                                      void       *ctx );
+
+static bool input_filter( DFBEvent             *evt,
+                          void                 *ctx );
+
+static bool primary_focused = false;
+
 /*
  * Destructor
  *
@@ -178,6 +186,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
 
      switch (level) {
           case DFSCL_NORMAL:
+               primary_focused = false;
                dfb_layer_release( data->layer, true );
                break;
           case DFSCL_FULLSCREEN:
@@ -190,6 +199,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
                     if (ret)
                          return ret;
                }
+               primary_focused = true;
                break;
           default:
                return DFB_INVARG;
@@ -405,6 +415,8 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                          return ret;
 
                     dfb_window_init( window );
+
+                    dfb_window_attach( window, focus_listener, NULL );
 
                     dfb_window_set_opacity( window, 0xFF );
 
@@ -632,7 +644,7 @@ IDirectFB_CreateEventBuffer( IDirectFB                   *thiz,
           return DFB_INVARG;
 
      DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
-     IDirectFBEventBuffer_Construct( *interface );
+     IDirectFBEventBuffer_Construct( *interface, input_filter, NULL );
 
      context.caps      = caps;
      context.interface = interface;
@@ -953,5 +965,40 @@ CreateEventBuffer_Callback( InputDevice *device, void *ctx )
      IDirectFBEventBuffer_AttachInputDevice( *context->interface, device );
 
      return DFENUM_OK;
+}
+
+static ReactionResult focus_listener( const void *msg_data,
+                                      void       *ctx )
+{
+     const DFBWindowEvent *evt = (DFBWindowEvent*)msg_data;
+
+     switch (evt->type) {
+          case DWET_DESTROYED:
+               primary_focused = false;
+               return RS_REMOVE;
+
+          case DWET_GOTFOCUS:
+               primary_focused = true;
+               break;
+
+          case DWET_LOSTFOCUS:
+               primary_focused = false;
+               break;
+
+          default:
+               break;
+     }
+
+     return RS_OK;
+}
+
+static bool
+input_filter( DFBEvent             *evt,
+              void                 *ctx )
+{
+     if (evt->clazz == DFEC_INPUT && !primary_focused)
+          return true;
+
+     return false;
 }
 

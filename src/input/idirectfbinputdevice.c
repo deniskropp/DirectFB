@@ -134,7 +134,7 @@ IDirectFBInputDevice_CreateEventBuffer( IDirectFBInputDevice  *thiz,
 
      DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
 
-     IDirectFBEventBuffer_Construct( b );
+     IDirectFBEventBuffer_Construct( b, NULL, NULL );
 
      IDirectFBEventBuffer_AttachInputDevice( b, data->device );
 
