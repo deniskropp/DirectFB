@@ -74,13 +74,13 @@ static inline key_t keygen (const char *name, const long type)
 #ifndef FUSION_DEBUG
 # define FDEBUG(x...) do {} while (0)
 #else
-     #define FDEBUG(x...)   if (dfb_config->debug) {                           \
+     #define FDEBUG(x...)   do { if (dfb_config->debug) {                      \
                                  fprintf( stderr,                              \
                                      "(-) [%d: %5lld] DirectFB/core/fusion: ", \
                                      getpid(), dfb_get_millis() );             \
                                  fprintf( stderr, x );                         \
                                  fflush( stderr );                             \
-                            }
+                            } } while (0)
 #endif
 
 #define FERROR(x...) do \

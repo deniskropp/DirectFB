@@ -73,12 +73,12 @@
           #define HEAVYDEBUGMSG(x...)
      #endif
 
-     #define DEBUGMSG(x...)   if (dfb_config->debug) {                         \
+     #define DEBUGMSG(x...)   do { if (dfb_config->debug) {                    \
                                    fprintf( stderr, "(-) [%d: %5lld] ",        \
                                             getpid(), dfb_get_millis() );      \
                                    fprintf( stderr, x );                       \
                                    fflush( stderr );                           \
-                              }
+                              } } while (0)
 
      #define DFB_ASSERT(exp)  if (!(exp)) {                                    \
                                    DEBUGMSG( "*** Assertion [%s] failed! "     \
