@@ -616,8 +616,8 @@ system_map_mmio( unsigned int    offset,
           return NULL;
      }
 
-     return(volatile void*) ((__u8*) addr + (dfb_fbdev->shared->fix.mmio_start &
-                                             dfb_fbdev->shared->page_mask));
+     return(volatile void*) ((__u8*) addr /*+ (dfb_fbdev->shared->fix.mmio_start &
+                                             dfb_fbdev->shared->page_mask)*/);
 }
 
 static void
@@ -627,8 +627,8 @@ system_unmap_mmio( volatile void  *addr,
      if (length <= 0)
           length = dfb_fbdev->shared->fix.mmio_len;
 
-     if (munmap( (void*) ((__u8*) addr - (dfb_fbdev->shared->fix.mmio_start &
-                                          dfb_fbdev->shared->page_mask)), length ) < 0)
+     if (munmap( (void*) ((__u8*) addr /*- (dfb_fbdev->shared->fix.mmio_start &
+                                          dfb_fbdev->shared->page_mask)*/), length ) < 0)
           D_PERROR( "DirectFB/FBDev: Could not unmap MMIO region "
                      "at %p (length %d)!\n", addr, length );
 }
