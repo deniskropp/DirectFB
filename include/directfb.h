@@ -419,6 +419,9 @@ extern "C"
                                                 functions */
      } DFBAccelerationMask;
 
+     #define DFB_DRAWING_FUNCTION(a)    ((a) & 0x0000FFFF)
+     #define DFB_BLITTING_FUNCTION(a)   ((a) & 0xFFFF0000)
+
      /*
       * Rough information about hardware capabilities.
       */
@@ -560,6 +563,10 @@ extern "C"
           /* YVYU could be the next */
      } DFBSurfacePixelFormat;
 
+     /* These macros extract information about the pixel format. */
+     #define DFB_BYTES_PER_PIXEL(format)    (((format) & 0xFF0000) >> 16)
+     #define DFB_BITS_PER_PIXEL(format)     (((format) & 0x00FF00) >>  8)
+     #define DFB_PIXELFORMAT_INDEX(format)  (((format) & 0x0000FF) - 1)
 
      /*
       * Description of the surface that is to be created.
@@ -1252,12 +1259,6 @@ extern "C"
                                                 surface is locked*/
           DSLF_WRITE          = 0x00000002   /* request write access */
      } DFBSurfaceLockFlags;
-
-
-     /* These macros extract information about the pixel format. */
-     #define BYTES_PER_PIXEL(format)    (((format) & 0xFF0000) >> 16)
-     #define BITS_PER_PIXEL(format)     (((format) & 0x00FF00) >>  8)
-     #define PIXELFORMAT_INDEX(format)  (((format) & 0x0000FF) - 1)
 
      /*
       * Available Porter/Duff rules.

@@ -149,7 +149,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                          a = *src >> 24;
                          switch (a) {
                          case 0x0:
-                              memset ((__u8 *)dst, 0, BYTES_PER_PIXEL (dst_format));
+                              memset ((__u8 *)dst, 0, DFB_BYTES_PER_PIXEL (dst_format));
                               break;
                          case 0xFF:
                               rgba_to_dst_format ((__u8 *)dst, 
@@ -167,7 +167,7 @@ void copy_buffer_32( void *dst, __u32 *src, int w, int h, int dskip,
                                                   a, dst_format);
                               break;
                          }
-                         (__u8 *)dst += BYTES_PER_PIXEL (dst_format);
+                         (__u8 *)dst += DFB_BYTES_PER_PIXEL (dst_format);
                          src++;
                     }
                     (__u8 *)dst += dskip;
@@ -357,7 +357,7 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
           rgba_to_dst_format( dst, 
                               r >> 24, g >> 24, b >> 24, a >> 16, dst_format );
 
-          dst += BYTES_PER_PIXEL (dst_format);
+          dst += DFB_BYTES_PER_PIXEL (dst_format);
           x += x_step;
      }
 
@@ -423,8 +423,8 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
           }
 
           (__u8 *)outbuf =
-          dst + i * (BYTES_PER_PIXEL (dst_format) * dw + dskip);
-          (__u8 *)outbuf_end = outbuf + BYTES_PER_PIXEL (dst_format) * dw;
+          dst + i * (DFB_BYTES_PER_PIXEL (dst_format) * dw + dskip);
+          (__u8 *)outbuf_end = outbuf + DFB_BYTES_PER_PIXEL (dst_format) * dw;
           x = scaled_x_offset;
           x_start = x >> SCALE_SHIFT;
           dest_x = 0;
@@ -438,14 +438,14 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
                x += x_step;
                x_start = x >> SCALE_SHIFT;
                dest_x++;
-               (__u8 *)outbuf += BYTES_PER_PIXEL (dst_format);
+               (__u8 *)outbuf += DFB_BYTES_PER_PIXEL (dst_format);
           }
 
           new_outbuf = scale_line (run_weights, filter.n_x, filter.n_y, outbuf,
                                    outbuf_end, line_bufs, x >> SCALE_SHIFT,
                                    x_step, sw, dst_format);
 
-          dest_x += (new_outbuf - outbuf) / BYTES_PER_PIXEL (dst_format);
+          dest_x += (new_outbuf - outbuf) / DFB_BYTES_PER_PIXEL (dst_format);
           x = dest_x * x_step + scaled_x_offset;
           outbuf = new_outbuf;
 
@@ -456,7 +456,7 @@ void scale_linear_32( void *dst, __u32 *src, int sw, int sh, int dw, int dh,
                             x >> SCALE_SHIFT, sw, dst_format);
 
                x += x_step;
-               (__u8 *)outbuf += BYTES_PER_PIXEL (dst_format);
+               (__u8 *)outbuf += DFB_BYTES_PER_PIXEL (dst_format);
           }
 
           y += y_step;

@@ -353,7 +353,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      }
      if (state->modified & SMF_SOURCE) {
           state->checked &= 0xFFFF;
-          if (!state->source  &&  accel & 0xFFFF0000) {
+          if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
                BUG("state check: no source");
                return 0;
           }
@@ -362,7 +362,7 @@ int gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
               state->source->front_buffer->policy == CSP_SYSTEMONLY) {
                state->modified &= ~SMF_SOURCE;
                state->accel &= 0xFFFF;
-               if (accel & 0xFFFF0000)
+               if (DFB_BLITTING_FUNCTION( accel ))
                     return 0;
           }
      }
@@ -396,12 +396,12 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           BUG("state check: no destination");
           return 0;
      }
-     if (!state->source  &&  accel & 0xFFFF0000) {
+     if (!state->source  &&  DFB_BLITTING_FUNCTION( accel )) {
           BUG("state check: no source");
           return 0;
      }
 
-     if (accel & 0xFFFF0000)
+     if (DFB_BLITTING_FUNCTION( accel ))
           lock_flags = (state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
                                                  DSBLIT_BLEND_COLORALPHA   |
                                                  DSBLIT_DST_COLORKEY ) ?
@@ -413,7 +413,7 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 
      surfacemanager_lock( card->shared->surface_manager );
 
-     if (accel & 0xFFFF0000) {
+     if (DFB_BLITTING_FUNCTION( accel )) {
           if (surface_hardware_lock( state->source, DSLF_READ, 1 )) {
                surfacemanager_unlock( card->shared->surface_manager );
                return 0;
@@ -425,7 +425,7 @@ int gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           state->source_locked = 0;
 
      if (surface_hardware_lock( state->destination, lock_flags, 0 )) {
-          if (accel & 0xFFFF0000)
+          if (DFB_BLITTING_FUNCTION( accel ))
                surface_unlock( state->source, 1 );
 
           surfacemanager_unlock( card->shared->surface_manager );

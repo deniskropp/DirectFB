@@ -162,7 +162,7 @@ static inline void neo2200_validate_bltMode_dst( Neo2200DriverData *ndrv,
 
   ndev->dstOrg = buffer->video.offset;
   ndev->dstPitch = buffer->video.pitch;
-  ndev->dstPixelWidth = BYTES_PER_PIXEL(dst->format);
+  ndev->dstPixelWidth = DFB_BYTES_PER_PIXEL(dst->format);
 
 
   neo2200_waitfifo( ndrv, ndev, 2 );
@@ -185,7 +185,7 @@ static inline void neo2200_validate_src( Neo2200DriverData *ndrv,
 
   ndev->srcOrg = buffer->video.offset;
   ndev->srcPitch = buffer->video.pitch;
-  ndev->srcPixelWidth = BYTES_PER_PIXEL(src->format);
+  ndev->srcPixelWidth = DFB_BYTES_PER_PIXEL(src->format);
 
   neo2200_waitfifo( ndrv, ndev, 1 );
   ndrv->neo2200->pitch = (ndev->dstPitch << 16) | (ndev->srcPitch & 0xffff);

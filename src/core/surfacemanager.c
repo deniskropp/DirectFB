@@ -224,7 +224,7 @@ DFBResult surfacemanager_allocate( SurfaceManager *manager,
           pitch -= pitch % manager->pixelpitch_align;
      }
 
-     pitch *= BYTES_PER_PIXEL(surface->format);
+     pitch *= DFB_BYTES_PER_PIXEL(surface->format);
      length = pitch * surface->height;
 
      if (manager->byteoffset_align > 1) {
@@ -361,7 +361,7 @@ DFBResult surfacemanager_assure_video( SurfaceManager *manager,
 
                while (h--) {
                     memcpy( dst, src,
-                            surface->width * BYTES_PER_PIXEL(surface->format) );
+                            surface->width * DFB_BYTES_PER_PIXEL(surface->format) );
                     src += buffer->system.pitch;
                     dst += buffer->video.pitch;
                }
@@ -396,7 +396,7 @@ DFBResult surfacemanager_assure_system( SurfaceManager *manager,
 
           while (h--) {
                memcpy( dst, src,
-                       surface->width * BYTES_PER_PIXEL(surface->format) );
+                       surface->width * DFB_BYTES_PER_PIXEL(surface->format) );
                src += buffer->video.pitch;
                dst += buffer->system.pitch;
           }

@@ -150,7 +150,7 @@ static void nvCheckState( void *drv, void *dev,
                return;
      }
 
-     if (accel & 0xFFFF0000) {
+     if (DFB_BLITTING_FUNCTION( accel )) {
           switch (state->source->format) {
                case DSPF_RGB16:
                     break;

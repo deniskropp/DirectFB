@@ -140,7 +140,7 @@ static void matroxOldCheckState( void *drv, void *dev,
                return;
      }
 
-     if (accel & 0xFFFF) {
+     if (DFB_DRAWING_FUNCTION( accel )) {
           if (state->drawingflags & ~MATROX_OLD_DRAWING_FLAGS)
                return;
 
@@ -172,7 +172,7 @@ static void matroxG100CheckState( void *drv, void *dev,
                return;
      }
 
-     if (accel & 0xFFFF) {
+     if (DFB_DRAWING_FUNCTION( accel )) {
           if (state->drawingflags & ~MATROX_G100_DRAWING_FLAGS)
                return;
 
@@ -229,7 +229,7 @@ static void matroxG200CheckState( void *drv, void *dev,
                return;
      }
 
-     if (accel & 0xFFFF) {
+     if (DFB_DRAWING_FUNCTION( accel )) {
           if (state->drawingflags & ~MATROX_G200G400_DRAWING_FLAGS)
                return;
 
@@ -275,7 +275,7 @@ static void matroxG400CheckState( void *drv, void *dev,
                return;
      }
 
-     if (accel & 0xFFFF) {
+     if (DFB_DRAWING_FUNCTION( accel )) {
           if (state->drawingflags & ~MATROX_G200G400_DRAWING_FLAGS)
                return;
 

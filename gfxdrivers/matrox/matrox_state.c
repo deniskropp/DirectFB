@@ -45,7 +45,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 {
      volatile __u8 *mmio            = mdrv->mmio_base;
      SurfaceBuffer *buffer          = destination->back_buffer;
-     int            bytes_per_pixel = BYTES_PER_PIXEL(destination->format);
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(destination->format);
 
      mdev->dst_pixelpitch  = buffer->video.pitch / bytes_per_pixel;
      mdev->dst_pixeloffset = buffer->video.offset / bytes_per_pixel;
@@ -273,7 +273,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      if (mdev->m_Source)
           return;
 
-     mdev->src_pixelpitch = buffer->video.pitch / BYTES_PER_PIXEL(surface->format);
+     mdev->src_pixelpitch = buffer->video.pitch / DFB_BYTES_PER_PIXEL(surface->format);
 
      mdev->matrox_w2 = log2( surface->width );
      mdev->matrox_h2 = log2( surface->height );
@@ -340,7 +340,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
      volatile __u8 *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
-     int            bytes_per_pixel = BYTES_PER_PIXEL(surface->format);
+     int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
 
      if (mdev->m_source)
           return;
@@ -368,16 +368,16 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
 
      mga_waitfifo( mdrv, mdev, 2);
 
-     if (BYTES_PER_PIXEL(state->source->format) > 2) {
+     if (DFB_BYTES_PER_PIXEL(state->source->format) > 2) {
           mga_out32( mmio, (0xFFFF << 16) |
                      (state->src_colorkey & 0xFFFF),
                      TEXTRANS );
-          mga_out32( mmio, (((1 << (BITS_PER_PIXEL(state->source->format)-16)) - 1) << 16) |
+          mga_out32( mmio, (((1 << (DFB_BITS_PER_PIXEL(state->source->format)-16)) - 1) << 16) |
                      ((state->src_colorkey & 0xFFFF0000) >> 16),
                      TEXTRANSHIGH );
      }
      else {
-          mga_out32( mmio, (((1 << BITS_PER_PIXEL(state->source->format)) - 1) << 16) |
+          mga_out32( mmio, (((1 << DFB_BITS_PER_PIXEL(state->source->format)) - 1) << 16) |
                      (state->src_colorkey & 0xFFFF),
                      TEXTRANS );
           mga_out32( mmio, 0, TEXTRANSHIGH );
@@ -397,12 +397,12 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
      if (mdev->m_srckey)
           return;
 
-     mask = (1 << MIN( 24, BITS_PER_PIXEL(surface->format) )) - 1;
+     mask = (1 << MIN( 24, DFB_BITS_PER_PIXEL(surface->format) )) - 1;
 
      mga_waitfifo( mdrv, mdev, 2);
      mga_out32( mmio, state->src_colorkey, FCOL );
 
-     if (BYTES_PER_PIXEL(state->source->format) > 2)
+     if (DFB_BYTES_PER_PIXEL(state->source->format) > 2)
           mga_out32( mmio, mask, BCOL );
      else
           mga_out32( mmio, (mask << 16) | mask, BCOL );

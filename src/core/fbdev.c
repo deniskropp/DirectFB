@@ -484,7 +484,7 @@ static DFBResult primaryTestConfiguration( DisplayLayer               *thiz,
                     break;
 
                default:
-                    bpp = BYTES_PER_PIXEL(pixelformat) * 8;
+                    bpp = DFB_BYTES_PER_PIXEL(pixelformat) * 8;
           }
 
           videomode = Sfbdev->modes;
@@ -561,7 +561,7 @@ static DFBResult primarySetConfiguration( DisplayLayer          *thiz,
                break;
 
           default:
-               bpp = BYTES_PER_PIXEL(pixelformat) * 8;
+               bpp = DFB_BYTES_PER_PIXEL(pixelformat) * 8;
      }
 
      if (config->flags & DLCONF_BUFFERMODE)
@@ -919,7 +919,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
           surface->front_buffer->policy = CSP_VIDEOONLY;
           surface->front_buffer->video.health = CSH_STORED;
           surface->front_buffer->video.pitch = var.xres_virtual *
-                                               BYTES_PER_PIXEL(mode->format);
+                                               DFB_BYTES_PER_PIXEL(mode->format);
           surface->front_buffer->video.offset = 0;
 
           switch (buffermode) {
@@ -948,7 +948,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                     surface->back_buffer->policy = CSP_VIDEOONLY;
                     surface->back_buffer->video.health = CSH_STORED;
                     surface->back_buffer->video.pitch = var.xres_virtual *
-                                                  BYTES_PER_PIXEL(mode->format);
+                                                  DFB_BYTES_PER_PIXEL(mode->format);
                     surface->back_buffer->video.offset =
                                    surface->back_buffer->video.pitch * var.yres;
                     break;
@@ -961,7 +961,7 @@ static DFBResult fbdev_set_mode( DisplayLayer *layer,
                     surface->back_buffer->video.health = CSH_INVALID;
                     surface->back_buffer->system.health = CSH_STORED;
                     surface->back_buffer->system.pitch = var.xres *
-                                                  BYTES_PER_PIXEL(mode->format);
+                                                  DFB_BYTES_PER_PIXEL(mode->format);
 
                     if (surface->back_buffer->system.addr)
                          shmfree( surface->back_buffer->system.addr );

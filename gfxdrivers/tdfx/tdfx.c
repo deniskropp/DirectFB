@@ -158,7 +158,7 @@ static inline void tdfx_validate_source2D( TDFXDriverData *tdrv,
 
      voodoo2D->srcBaseAddr = buffer->video.offset & 0xFFFFFF;
      voodoo2D->srcFormat   = (buffer->video.pitch & 0x3FFF) |
-                             (blitFormat[PIXELFORMAT_INDEX(source->format)] << 16);
+                             (blitFormat[DFB_PIXELFORMAT_INDEX(source->format)] << 16);
 
      tdev->v_source2D = 1;
 }
@@ -178,7 +178,7 @@ static inline void tdfx_validate_destination2D( TDFXDriverData *tdrv,
 
      voodoo2D->dstBaseAddr = buffer->video.offset;
      voodoo2D->dstFormat   = (buffer->video.pitch & 0x3FFF) |
-                             (blitFormat[PIXELFORMAT_INDEX(destination->format)] << 16);
+                             (blitFormat[DFB_PIXELFORMAT_INDEX(destination->format)] << 16);
 
      tdev->v_destination2D = 1;
 }

@@ -2206,16 +2206,16 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
 int gAquire( CardState *state, DFBAccelerationMask accel )
 {
      GFunc *funcs = gfuncs;
-     int   pindex = PIXELFORMAT_INDEX(state->destination->format);
+     int   pindex = DFB_PIXELFORMAT_INDEX(state->destination->format);
 
      DFBSurfaceLockFlags lock_flags;
 
      pthread_mutex_lock( &generic_lock );
 
-     dst_bpp = BYTES_PER_PIXEL( state->destination->format );
+     dst_bpp = DFB_BYTES_PER_PIXEL( state->destination->format );
 
-     if (accel & 0xFFFF0000) {
-          src_bpp = BYTES_PER_PIXEL( state->source->format );
+     if (DFB_BLITTING_FUNCTION( accel )) {
+          src_bpp = DFB_BYTES_PER_PIXEL( state->source->format );
 
           lock_flags = state->blittingflags & ( DSBLIT_BLEND_ALPHACHANNEL |
                                                 DSBLIT_BLEND_COLORALPHA   |
@@ -2263,7 +2263,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
 
      surfacemanager_lock( gfxcard_surface_manager() );
 
-     if (accel & 0xFFFF0000) {
+     if (DFB_BLITTING_FUNCTION( accel )) {
           if (surface_software_lock( state->source,
                                      DSLF_READ, &src_org, &src_pitch, 1 )) {
                surfacemanager_unlock( gfxcard_surface_manager() );
@@ -2279,7 +2279,7 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
      if (surface_software_lock( state->destination,
                                 lock_flags, &dst_org, &dst_pitch, 0 )) {
 
-          if (accel & 0xFFFF0000)
+          if (DFB_BLITTING_FUNCTION( accel ))
                     surface_unlock( state->source, 1 );
 
           surfacemanager_unlock( gfxcard_surface_manager() );
@@ -2445,15 +2445,15 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                               Skey = state->src_colorkey;
                               if (accel == DFXL_BLIT)
-                                   *funcs++ = Sop_PFI_Kto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Kto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                               else
-                                   *funcs++ = Sop_PFI_SKto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_SKto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                          }
                          else {
                               if (accel == DFXL_BLIT)
-                                   *funcs++ = Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                               else
-                                   *funcs++ = Sop_PFI_Sto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                          }
 
                          /* modulate the source if requested */
@@ -2528,19 +2528,19 @@ int gAquire( CardState *state, DFBAccelerationMask accel )
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Sop_PFI_Kto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Kto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                               }
                               else
-                                   *funcs++ = Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                          }
                          else { // DFXL_STRETCHBLIT
 
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY ) {
                                    Skey = state->src_colorkey;
-                                   *funcs++ = Sop_PFI_SKto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_SKto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
                               }
                               else
-                                   *funcs++ = Sop_PFI_Sto_Dacc[PIXELFORMAT_INDEX(state->source->format)];
+                                   *funcs++ = Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(state->source->format)];
 
                          }
 
@@ -2747,14 +2747,14 @@ void gInit_MMX()
      use_mmx = 1;
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
-     Sop_PFI_Sto_Dacc[PIXELFORMAT_INDEX(DSPF_ARGB)] = Sop_argb_Sto_Dacc_MMX;
+     Sop_PFI_Sto_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)] = Sop_argb_Sto_Dacc_MMX;
 /********************************* Sop_PFI_to_Dacc ****************************/
-     Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(DSPF_RGB16)] = Sop_rgb16_to_Dacc_MMX;
-     Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(DSPF_RGB32)] = Sop_rgb32_to_Dacc_MMX;
-     Sop_PFI_to_Dacc[PIXELFORMAT_INDEX(DSPF_ARGB )] = Sop_argb_to_Dacc_MMX;
+     Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)] = Sop_rgb16_to_Dacc_MMX;
+     Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Sop_rgb32_to_Dacc_MMX;
+     Sop_PFI_to_Dacc[DFB_PIXELFORMAT_INDEX(DSPF_ARGB )] = Sop_argb_to_Dacc_MMX;
 /********************************* Sacc_to_Aop_PFI ****************************/
-     Sacc_to_Aop_PFI[PIXELFORMAT_INDEX(DSPF_RGB16)] = Sacc_to_Aop_rgb16_MMX;
-     Sacc_to_Aop_PFI[PIXELFORMAT_INDEX(DSPF_RGB32)] = Sacc_to_Aop_rgb32_MMX;
+     Sacc_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB16)] = Sacc_to_Aop_rgb16_MMX;
+     Sacc_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Sacc_to_Aop_rgb32_MMX;
 /********************************* Xacc_blend *********************************/
      Xacc_blend[DSBF_SRCALPHA-1] = Xacc_blend_srcalpha_MMX;
      Xacc_blend[DSBF_INVSRCALPHA-1] = Xacc_blend_invsrcalpha_MMX;

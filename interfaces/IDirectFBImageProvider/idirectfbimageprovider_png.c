@@ -290,7 +290,7 @@ static DFBResult load_png_argb( FILE *f, __u8 *dst, int width, int height,
 
           scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
                            png_height, width, height,
-                           pitch-width*BYTES_PER_PIXEL(format), format );
+                           pitch-width*DFB_BYTES_PER_PIXEL(format), format );
 
           DFBFREE( bptrs[0] );
      }

@@ -63,7 +63,7 @@ DFBResult surface_create( int width, int height, int format, int policy,
      DFBResult    ret;
      CoreSurface *s;
 
-     if (BYTES_PER_PIXEL( format ) == 0) {
+     if (DFB_BYTES_PER_PIXEL( format ) == 0) {
           BUG( "unknown pixel format" );
           return DFB_BUG;
      }
@@ -396,7 +396,7 @@ static DFBResult surface_allocate_buffer( CoreSurface *surface, int policy,
                b->system.health = CSH_STORED;
 
                b->system.pitch = surface->width *
-                                 BYTES_PER_PIXEL(surface->format);
+                                 DFB_BYTES_PER_PIXEL(surface->format);
                if (b->system.pitch & 3)
                     b->system.pitch += 4 - (b->system.pitch & 3);
 
@@ -435,7 +435,7 @@ static DFBResult surface_reallocate_buffer( CoreSurface   *surface,
           buffer->system.health = CSH_STORED;
 
           buffer->system.pitch = surface->width *
-                                 BYTES_PER_PIXEL(surface->format);
+                                 DFB_BYTES_PER_PIXEL(surface->format);
           if (buffer->system.pitch & 3)
                buffer->system.pitch += 4 - (buffer->system.pitch & 3);
 

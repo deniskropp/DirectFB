@@ -229,7 +229,7 @@ DFBResult IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      (__u8*)(*ptr) += data->area.current.y * (*pitch) +
                       data->area.current.x *
-                      BYTES_PER_PIXEL(data->surface->format);
+                      DFB_BYTES_PER_PIXEL(data->surface->format);
 
      data->locked = front + 1;
 
