@@ -28,7 +28,7 @@ noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)
 
 dfbdump_SOURCES = dfbdump.c
-dfbdump_LDADD   = ../src/libdirectfb.la
+dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la
 
 dfbg_SOURCES = dfbg.c
 dfbg_LDADD   = ../src/libdirectfb.la
