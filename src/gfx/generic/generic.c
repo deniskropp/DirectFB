@@ -1590,7 +1590,7 @@ static void Cacc_to_Dacc()
 
 
 
-static void Cacc_add_to_Dacc_noMMX()
+static void Cacc_add_to_Dacc_C()
 {
      int          w = Dlength;
      Accumulator *D = Dacc;
@@ -1605,9 +1605,9 @@ static void Cacc_add_to_Dacc_noMMX()
      }
 }
 
-GFunc Cacc_add_to_Dacc = Cacc_add_to_Dacc_noMMX;
+GFunc Cacc_add_to_Dacc = Cacc_add_to_Dacc_C;
 
-static void Sacc_add_to_Dacc_noMMX()
+static void Sacc_add_to_Dacc_C()
 {
      int          w = Dlength;
      Accumulator *S = Sacc;
@@ -1624,7 +1624,7 @@ static void Sacc_add_to_Dacc_noMMX()
      }
 }
 
-GFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_noMMX;
+GFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
 
 static void Sop_is_Aop() { Sop = Aop;}
 static void Sop_is_Bop() { Sop = Bop;}
