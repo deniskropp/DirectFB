@@ -1050,15 +1050,9 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           return DFB_FAILURE;
      }
 
-#ifdef WORDS_BIGENDIAN
-                         buf_p[n3+0] = data8[n3+0];
-                         buf_p[n3+1] = data8[n3+1];
-                         buf_p[n3+2] = data8[n3+2];
-#else
      /* Create a file with the found index. */
      if (rgb) {
           snprintf( filename, len, "%s/%s_%04d.ppm%s",
-#endif
                     directory, prefix, num, gz_ext );
 
           fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
@@ -1212,9 +1206,15 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                     break;
                case DSPF_RGB24:
                     for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+#ifdef WORDS_BIGENDIAN
+                         buf_p[n3+0] = data8[n3+0];
+                         buf_p[n3+1] = data8[n3+1];
+                         buf_p[n3+2] = data8[n3+2];
+#else
                          buf_p[n3+0] = data8[n3+2];
                          buf_p[n3+1] = data8[n3+1];
                          buf_p[n3+2] = data8[n3+0];
+#endif
                     }
                     break;
                case DSPF_RGB32:
