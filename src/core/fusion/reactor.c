@@ -269,7 +269,8 @@ void reactor_dispatch (FusionReactor *reactor,
                printf(__FUNCTION__": node '%d' with id '%d' is dead, freeing it!\n",
                       i, reactor->node[i].id);
                fusion_ref_destroy (&reactor->node[i].ref);
-               reactor->node[i].id = 0;
+               reactor->node[i].id        = 0;
+               reactor->node[i].reactions = NULL;
                reactor->nodes--;
                continue;
           }
@@ -343,6 +344,8 @@ void reactor_free (FusionReactor *reactor)
 
                FERROR ("reactor_free: fusionee '%d' still attached (reactions: %p)!\n",
                        reactor->node[i].id, reactor->node[i].reactions);
+               
+               fusion_ref_destroy (&reactor->node[i].ref);
           }
 
           //kill (getpid(), 5);
