@@ -128,6 +128,12 @@ void window_remove( CoreWindow *window );
 CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
                            unsigned int width, unsigned int height,
                            unsigned int caps );
+
+/*
+ * must be called after window_create
+ */
+void window_init( CoreWindow *window );
+
 /*
  * deinitializes a window and removes it from the window stack
  */

@@ -222,7 +222,6 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
                            unsigned int width, unsigned int height,
                            unsigned int caps )
 {
-     int i;
      CoreWindow* window;
 
      window = (CoreWindow*) calloc( 1, sizeof(CoreWindow) );
@@ -247,13 +246,19 @@ CoreWindow* window_create( CoreWindowStack *stack, int x, int y,
 
      window->reactor = reactor_new();
 
+     return window;
+}
+
+void window_init( CoreWindow *window )
+{
+     int i;
+     CoreWindowStack *stack = window->stack;
+
      for (i=0; i<stack->num_windows; i++)
           if (stack->windows[i]->caps & DWHC_GHOST)
                break;
 
      window_insert( window, i );
-
-     return window;
 }
 
 void window_destroy( CoreWindow *window )

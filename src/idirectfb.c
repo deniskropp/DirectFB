@@ -271,6 +271,8 @@ DFBResult IDirectFB_CreateSurface( IDirectFB *thiz, DFBSurfaceDescription *desc,
                                                  data->primary.width,
                                                  data->primary.height, 0 );
 
+                    window_init( window );
+
                     window_set_opacity( window, 0xFF );
 
                     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );

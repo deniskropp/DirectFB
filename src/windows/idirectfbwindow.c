@@ -459,6 +459,8 @@ DFBResult IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      pthread_cond_init( &data->wait_condition, NULL );
      
      reactor_attach( data->window->reactor, IDirectFBWindow_React, data );
+
+     window_init( data->window );
      
      thiz->AddRef = IDirectFBWindow_AddRef;
      thiz->Release = IDirectFBWindow_Release;

@@ -240,6 +240,8 @@ DFBResult layer_create_cursor_window( DisplayLayer *layer,
           return DFB_FAILURE;
      }
 
+     window_init( cursor );
+
      layer->windowstack->cursor = cursor;
 
      return DFB_OK;
