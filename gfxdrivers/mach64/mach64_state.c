@@ -28,6 +28,7 @@
 #include <directfb.h>
 
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -110,9 +111,19 @@ void mach64_set_source( Mach64DriverData *mdrv,
      }
      mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
+#if 0
+     mdev->tex_pitch = dfb_log2( pitch );
+     mdev->tex_height = dfb_log2( source->height );
+     mdev->tex_size = MAX( mdev->tex_pitch, mdev->tex_height );
+#endif
+
      mach64_waitfifo( mdrv, mdev, 2 );
+
+     mach64_out32( mmio, TEX_SIZE_PITCH, (mdev->tex_pitch  << 0) |
+                                         (mdev->tex_size   << 4) |
+                                         (mdev->tex_height << 8) );
+
      mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
-     mach64_out32( mmio, SCALE_PITCH, pitch );
 
      mdev->source = source;
 
@@ -188,11 +199,15 @@ void mach64_set_color_3d( Mach64DriverData *mdrv,
      if (MACH64_IS_VALID( m_color_3d ))
           return;
 
-     mach64_waitfifo( mdrv, mdev, 4 );
+     mach64_waitfifo( mdrv, mdev, 6 );
      mach64_out32( mmio, RED_START, state->color.r << 16 );
      mach64_out32( mmio, GREEN_START, state->color.g << 16 );
      mach64_out32( mmio, BLUE_START, state->color.b << 16 );
      mach64_out32( mmio, ALPHA_START, state->color.a << 16 );
+
+     /* These (and RED_START) are shared with some scaler registers. */
+     mach64_out32( mmio, RED_X_INC, 0 );
+     mach64_out32( mmio, GREEN_X_INC, 0 );
 
      MACH64_INVALIDATE( m_blit_blend );
      MACH64_VALIDATE( m_color_3d );
@@ -324,7 +339,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
 
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                  DSBLIT_COLORIZE))
-          scale_3d_cntl = SCALE_3D_FCN_TEXTURE;
+          scale_3d_cntl = SCALE_3D_FCN_TEXTURE | MIP_MAP_DISABLE;
      else
           scale_3d_cntl = SCALE_3D_FCN_SCALE;
 

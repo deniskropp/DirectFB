@@ -72,6 +72,10 @@ typedef struct {
 
      __u32 src_cntl;
 
+     int tex_pitch;
+     int tex_height;
+     int tex_size;
+
      CoreSurface *source;
 } Mach64DeviceData;
 
