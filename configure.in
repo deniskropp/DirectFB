@@ -497,6 +497,14 @@ dnl Test for libmpeg3
 
 AM_CONDITIONAL(LIBMPEG3_PROVIDER, test x$MPEG3 = xyes)
 
+dnl check which gfxdrivers to build
+ati=no
+matrox=no
+nvidea=no
+tdfx=no
+savage=no
+dnl neomagic is already set
+
 if test x$have_linux = xyes; then
 
 dnl Test for ati framebuffer support in the kernel
@@ -510,8 +518,6 @@ AC_EGREP_CPP(yes, [
   AC_MSG_WARN([
 *** ATI Rage 128 gfxdriver will not be built.]))
 
-AM_CONDITIONAL(GFX_ATI, test x$ati = xyes)
-
 dnl Test for matrox framebuffer support in the kernel
 AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -522,8 +528,6 @@ AC_EGREP_CPP(yes, [
   matrox=no  
   AC_MSG_WARN([
 *** Matrox G200/400/450/550 gfxdriver will not be built.]))
-
-AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
 
 
 dnl Test for tdfx framebuffer support in the kernel
@@ -537,8 +541,6 @@ AC_EGREP_CPP(yes, [
   AC_MSG_WARN([
 *** 3DFX Voodoo/Banshee gfxdriver will not be built.]))
 
-AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
-
 
 dnl Test for nvidia framebuffer support in the kernel
 AC_EGREP_CPP(yes, [
@@ -550,8 +552,6 @@ AC_EGREP_CPP(yes, [
   nvidia=no  
   AC_MSG_WARN([
 *** nVidia RIVA TNT gfxdriver will not be built.]))
-
-AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
 
 
 dnl Test for savage framebuffer support in the kernel
@@ -565,32 +565,18 @@ AC_EGREP_CPP(yes, [
   AC_MSG_WARN([
 *** Savage gfxdriver will not be built.]))
 
-AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
-
-
-dnl Only compile NeoMagic driver when HAVE_SYSIO is defined
-AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
-
 AC_ARG_ENABLE(linux-input, [  --enable-linux-input    build Linux Input driver [default=no]], enable_linux_input="$enableval", enable_linux_input=no)
-AM_CONDITIONAL(LINUX_INPUT, test x$enable_linux_input = xyes)
-
 
 dnl Test for H3600 Touchscreen support
 AC_CHECK_HEADER( [linux/h3600_ts.h], h3600_ts=yes, h3600_ts=no  
   AC_MSG_WARN([
 *** H3600 Touchscreen driver will not be built.]))
 
-AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
-
-dnl only build ucb1x00 driver on arm
-AM_CONDITIONAL(UCB1X00_TS, test x$have_arm = xyes)
-
 dnl Test for SonyPI Jogdial support
 AC_CHECK_HEADER( [linux/sonypi.h], sonypi=yes, sonypi=no  
   AC_MSG_WARN([
 *** SonyPI Jogdial driver will not be built.]))
 
-AM_CONDITIONAL(SONYPI, test x$sonypi = xyes)
 
 
 dnl Test for DBox2 Remote support
@@ -598,10 +584,21 @@ AC_CHECK_HEADER( [dbox/fp.h], dbox2remote=yes, dbox2remote=no
   AC_MSG_WARN([
 *** DBox2 Remote driver will not be built.]))
 
-AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
 
 fi
 
+AM_CONDITIONAL(GFX_SAVAGE, test x$savage = xyes)
+AM_CONDITIONAL(GFX_NVIDIA, test x$nvidia = xyes)
+AM_CONDITIONAL(GFX_TDFX, test x$tdfx = xyes)
+AM_CONDITIONAL(GFX_MATROX, test x$matrox = xyes)
+AM_CONDITIONAL(GFX_ATI, test x$ati = xyes)
+AM_CONDITIONAL(GFX_NEOMAGIC, test x$neomagic = xyes)
+
+AM_CONDITIONAL(LINUX_INPUT, test x$enable_linux_input = xyes)
+AM_CONDITIONAL(H3600_TS, test x$h3600_ts = xyes)
+AM_CONDITIONAL(UCB1X00_TS, test x$have_arm = xyes)
+AM_CONDITIONAL(SONYPI, test x$sonypi = xyes)
+AM_CONDITIONAL(DBOX2REMOTE, test x$dbox2remote = xyes)
 
 DFB_CFLAGS="$DFB_CFLAGS $DFB_INTERNAL_CFLAGS"
 DFB_CXXFLAGS="$DFB_CFLAGS"
@@ -658,9 +655,6 @@ AC_SUBST(AVIFILE_CFLAGS)
 AC_SUBST(AVIFILE_LIBS)
 AC_SUBST(LIBMPEG3)
 AC_SUBST(LIBFLASH)
-AC_SUBST(GFX_ATI)
-AC_SUBST(GFX_MATROX)
-AC_SUBST(GFX_TDFX)
 
 AC_SUBST(DATADIR)
 AC_SUBST(MODULEDIR)
