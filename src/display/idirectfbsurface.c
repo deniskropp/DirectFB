@@ -82,11 +82,22 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
 
      dfb_state_destroy( &data->state );
 
+     if (data->font) {
+          IDirectFBFont      *font      = data->font;
+          IDirectFBFont_data *font_data = font->priv;
+
+          if (font_data) {
+               if (data->surface)
+                    dfb_font_drop_destination( font_data->font, data->surface );
+
+               font->Release( font );
+          }
+          else
+               D_WARN( "font dead?" );
+     }
+
      if (data->surface)
           dfb_surface_unref( data->surface );
-
-     if (data->font)
-          data->font->Release (data->font);
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
