@@ -169,10 +169,10 @@ void dfb_copy_buffer_32( void *dst, __u32 *src, int w, int h, int dpitch,
                                                   0xFF, dst_format, palette);
                               break;
                          default:
-                              rb = (*src & 0x00FF00FF) * a;
+                              rb = (*src & 0x00FF00FF) * (a+1);
                               rgba_to_dst_format ((__u8 *)dst,
                                                   rb >> 24,
-                                                  ((*src & 0x0000FF00) * a) >> 16,
+                                                  ((*src & 0x0000FF00) * (a+1)) >> 16,
                                                   (rb & 0x0000FF00) >> 8,
                                                   a, dst_format, palette);
                               break;
@@ -320,9 +320,9 @@ static void scale_pixel( int *weights, int n_x, int n_y,
 
                ta = ((*q & 0xFF000000) >> 24) * pixel_weights[j];
 
-               b += ta * ((*q & 0xFF));
-               g += ta * ((*q & 0xFF00) >> 8);
-               r += ta * ((*q & 0xFF0000) >> 16);
+               b += ta * (((*q & 0xFF)) + 1);
+               g += ta * (((*q & 0xFF00) >> 8) + 1);
+               r += ta * (((*q & 0xFF0000) >> 16) + 1);
                a += ta;
           }
       }
@@ -363,9 +363,9 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
 
                     ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
 
-                    b += ta * ((*q & 0xFF));
-                    g += ta * ((*q & 0xFF00) >> 8);
-                    r += ta * ((*q & 0xFF0000) >> 16);
+                    b += ta * (((*q & 0xFF)) + 1);
+                    g += ta * (((*q & 0xFF00) >> 8) + 1);
+                    r += ta * (((*q & 0xFF0000) >> 16) + 1);
                     a += ta;
 
                     q++;
