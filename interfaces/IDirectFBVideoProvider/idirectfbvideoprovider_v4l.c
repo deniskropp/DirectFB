@@ -640,8 +640,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
                palette = VIDEO_PALETTE_RGB32;
                break;
           default:
-               BUG( "unknown pixel format" );
-               return DFB_BUG;
+               return DFB_UNSUPPORTED;
      }
 
      {
@@ -771,8 +770,7 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                palette = VIDEO_PALETTE_RGB32;
                break;
           default:
-               BUG( "unknown pixel format" );
-               return DFB_BUG;
+               return DFB_UNSUPPORTED;
      }
 
      data->vmmap.width = surface->width;
