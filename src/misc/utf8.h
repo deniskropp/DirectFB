@@ -33,7 +33,8 @@
 
 extern const char dfb_utf8_skip[256];
 
-#define dfb_utf8_next_char(p) (char *)((p) + utf8_skip[*(unsigned char *)(p)])
+#define dfb_utf8_next_char(p) \
+     (char *)((p) + dfb_utf8_skip[*(unsigned char *)(p)])
 
 static inline char *dfb_utf8_prev_char (const char *p)
 {
