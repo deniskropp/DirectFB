@@ -1,3 +1,1191 @@
+2002-06-05	00:27	<dok@convergence.de>
+
+	Files:	configure.in (1.79) (+2 -0)
+		include/Makefile.am (1.4) (+18 -1)
+		include/.cvsignore (1.2) (+1 -0)
+	
+	'directfb_keynames.h' will be generated and installed for applications.
+	It's a mapping from a key symbol to its name.
+	
+2002-06-04	22:50	<neo@convergence.de>
+
+	Files:	README.screenshots (1.3) (+24 -13)
+		docs/directfbrc.5.in (1.10) (+2 -1)
+	
+	Updated README.screenshots.
+	Added ppm(5) to SEE ALSO section in directfbrc(5).
+	
+2002-06-04	21:51	<dok@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.9) (+5 -0)
+		src/misc/conf.h (1.22) (+3 -0)
+		src/misc/conf.c (1.32) (+13 -0)
+		src/gfx/convert.h (1.11) (+12 -0)
+		src/directfb.c (1.44) (+83 -0)
+	
+	Added option "screenshot-dir=<directory>" that enables PPM screen dumps
+	when the <Print> key is pressed.
+	
+2002-06-04	19:30	<neo@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.13) (+1 -1)
+	
+	slightly reordered key identifiers
+	
+2002-06-04	19:10	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.41) (+25 -4)
+	
+	Added Meta/Super/Hyper  key_id <-> key_symbol translation.
+	
+2002-06-04	19:06	<neo@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.12) (+11 -6)
+		src/core/windows.c (1.72) (+2 -2)
+		src/core/input.c (1.40) (+24 -23)
+		inputdrivers/lirc/lirc.c (1.10) (+3 -3)
+		inputdrivers/keyboard/keyboard.c (1.34) (+4 -4)
+	
+	Renamed DIKS_*LOCK to DIKS_*_LOCK and DIKI_*LOCK to DIKI_*_LOCK.
+	Renamed DIKI_CTRL_* to DIKI_CONTROL_*.
+	Added left/right versions of DIKI_ALT, DIKI_META, DIKI_SUPER, DIKI_HYPER.
+	
+2002-06-04	18:40	<neo@convergence.de>
+
+	Files:	src/misc/utf8.c (1.7) (+34 -59)
+		src/misc/utf8.h (1.6) (+1 -1)
+	
+	Cleaned up dfb_utf8_get_char(), make it use the dfb_utf8_skip table.
+	Declare the dfb_utf8_skip table as const.
+	
+2002-06-04	17:58	<dok@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.11) (+2 -2)
+		src/gfx/generic/generic.c (1.65) (+0 -2)
+		src/core/windows.c (1.71) (+7 -7)
+		src/core/input.c (1.39) (+6 -4)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.26) (+2 -0)
+		inputdrivers/keyboard/keyboard.c (1.33) (+25 -9)
+	
+	Added support for left/right shift/control via identifiers.
+	Added support for special pc105 keyboards (adding Meta and Super).
+	Fixed warning in v4l provider with gcc 3.1.
+	Removed commented out and finally obsolete line in generic driver.
+	
+2002-06-04	17:28	<neo@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.10) (+16 -6)
+	
+	Added more dead keys as found in X11. Ordered dead keys alphabetically.
+	
+2002-06-04	16:37	<dok@convergence.de>
+
+	Files:	TODO (1.24) (+2 -0)
+	
+	some day CLUT/ALUT support would be nice
+	
+2002-06-04	16:35	<dok@convergence.de>
+
+	Files:	TODO (1.23) (+0 -2)
+	
+	Removed keycode TODO.
+	
+2002-06-04	08:30	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.62) (+9 -2)
+	
+	Two minor changes that help a lot getting DirectFB running for everyone:
+	- Always 8 bit modes to the mode list, too, depth of fb.modes is ignored anyway.
+	- Default to 16 bit if no depth is specified and first mode in fb.modes is
+	  8 bit while RGB332 support is not compiled in.
+	
+	The only way to have it not running now is to explicitly set "depth = 8"
+	in the configuration without support for RGB332.
+	
+2002-06-04	07:50	<dok@convergence.de>
+
+	Files:	src/core/vt.c (1.29) (+4 -2)
+	
+	#if 0'ed old code, added 40ms sleep after shutdown vt switch, too.
+	
+2002-06-04	07:16	<dok@convergence.de>
+
+	Files:	src/core/Makefile.am (1.13) (+4 -3)
+		src/core/vt.c (1.28) (+4 -4)
+		src/core/core.c (1.41) (+2 -2)
+	
+	Commented out 'normal' errors at startup, VT rewrite after release ;(
+	Added time and date when core.c got built to initialization output.
+	
+2002-06-04	06:40	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox_state.c (1.28) (+1 -1)
+	
+	Little tweak for format conversion blits (163 -> 192 MPixel/sec on G550).
+	
+2002-06-04	04:44	<dok@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.9) (+2 -0)
+		src/directfb.c (1.43) (+17 -18)
+		inputdrivers/keyboard/keyboard.c (1.32) (+2 -1)
+	
+	- Added DIKS_BREAK.
+	- Ctrl+Alt+Break sends a SIGINT now (like Ctrl+Alt+BackSpace a while ago).
+	
+2002-06-04	00:09	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.25) (+17 -4)
+	
+	Return DFB_UNSUPPORTED in PlayTo if destination is double buffered.
+	Increase buffer's video instance locking counter,
+	buffer is sticked to video memory then.
+	
+2002-06-03	20:04	<neo@convergence.de>
+
+	Files:	NEWS (1.26) (+32 -0)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.21) (+2 -2)
+	
+	Store cached kerning values as 16:15:1. Shouldn't be relevant but makes
+	more sense.
+	Updated NEWS file.
+	
+2002-06-03	19:07	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.22) (+3 -2)
+		src/misc/memcpy.c (1.3) (+1 -1)
+	
+	Fixed alpha channel detection in GetImageDescription, libpng seems
+	to want pointers to width, height and bpp, too.
+	
+	Do some more cycles for memcpy test.
+	
+2002-06-03	18:06	<neo@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.67) (+37 -42)
+	
+	dfb_gfxcard_state_check(): Always check front and back buffer policies and
+	set acceleration bits accordingly.
+	
+2002-06-03	11:39	<neo@convergence.de>
+
+	Files:	src/display/idirectfbsurface.c (1.44) (+1 -1)
+	
+	Need to set SMF_COLOR not SMF_DRAWING_FLAGS to indicate the color change
+	in IDirectFBSurface_Clear().
+	
+2002-06-03	10:32	<neo@convergence.de>
+
+	Files:	src/display/idirectfbsurface.c (1.43) (+4 -2)
+		src/gfx/clip.h (1.4) (+11 -8)
+		src/gfx/clip.c (1.4) (+7 -9)
+	
+	In IDirectFBSurface_Clear() pass a copy of data->area.current to
+	dfb_gfxcard_fillrectangle() since the latter modifies the rectangle.
+	
+	Added more const statements to the internal clip API to make it easier
+	to understand what the functions do.
+	
+2002-06-03	09:52	<neo@convergence.de>
+
+	Files:	src/misc/util.c (1.10) (+9 -7)
+		src/misc/util.h (1.11) (+8 -8)
+	
+	Declared parameters that are not changed as const. Might help the compiler,
+	definitely helps the developers.
+	
+2002-06-02	14:41	<neo@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.66) (+11 -4)
+	
+	Check the dimensions of the rectangle passed to dfb_gfxcard_tileblit().
+	If an invalid rectangle is passed, print a BUG warning and return instead
+	of going into an endless loop.
+	
+2002-06-01	06:07	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.102) (+30 -3)
+		src/display/idirectfbsurface.c (1.42) (+61 -1)
+	
+	Added IDirectFBSurface::Clear(), see the documentation details.
+	
+2002-05-31	22:44	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.20) (+3 -3)
+	
+	Reduced kerning cache size to 33% by adding ":20, :11 and :1" to the fields.
+	
+2002-05-31	22:09	<dok@convergence.de>
+
+	Files:	src/core/layers.c (1.37) (+1 -1)
+	
+	fixed warning
+	
+2002-05-31	00:27	<dok@convergence.de>
+
+	Files:	src/core/layers.c (1.36) (+28 -6)
+		src/core/surfaces.h (1.23) (+7 -0)
+		src/core/surfaces.c (1.37) (+75 -19)
+	
+	Added function by Antonino Daplas, changing the buffermode of layers may
+	work now, untested.
+	
+2002-05-30	15:06	<dok@convergence.de>
+
+	Files:	src/gfx/generic/generic.c (1.64) (+53 -3)
+	
+	Sacc_to_Aop_rgb16 does aligned writes now, gives 1-3% on my Intel machine.
+	Please test "df_dok --fill-rect-blend", add "--dfb:no-mmx" on machines with MMX.
+	Also try the difference in system memory with "--system".
+	
+2002-05-30	11:14	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.19) (+77 -19)
+	
+	Added caching of kerning values for characters from 32 to 127.
+	
+	The cache is about 100kb, but it gives a reasonable boost for font rendering
+	in system memory or hardware accelerated. We could make it configurable.
+	
+	"df_dok --draw-string --system" went from ~305 KChars to ~358 KChars on an
+	Athlon 1.33GHz. I guess the boost will be even bigger on ARM 50MHz with a G200.
+	
+	Using A8 fonts, that look well now, on an Athlon 1.33GHz with a G550:
+	
+	Anti-aliased Text                      3.00 secs (  945.85 KChars/sec)
+	
+	A bit smaller font and we have a million anti aliased characters per second ;)
+	
+2002-05-30	09:22	<dok@convergence.de>
+
+	Files:	gfxdrivers/matrox/matrox.c (1.32) (+3 -2)
+		gfxdrivers/matrox/regs.h (1.10) (+2 -0)
+		gfxdrivers/matrox/matrox_state.c (1.27) (+3 -0)
+		gfxdrivers/matrox/matrox.h (1.13) (+2 -2)
+	
+	argb-font is no longer required on G400 and above!
+	
+	Fixed A8 font rendering by enabling "Inverted Decal information" for A8 ;)
+	(by the time I get used to those lighting flow charts)
+	
+	If G200 is detected, argb-font is set automatically,
+	there's no reason anymore to set it manually the configuration at all!
+	
+	Set proper minify/magnify threshold, irrelevant change, but be correct ;)
+	
+	Fixed log2 for values that are a power of two, didn't change anything though.
+	
+2002-05-30	05:24	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.31) (+3 -2)
+	
+	Fixed Delete on keypad.
+	
+2002-05-29	20:12	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.101) (+12 -0)
+		src/input/idirectfbinputdevice.c (1.23) (+28 -5)
+		src/core/input.h (1.20) (+3 -0)
+		src/core/input.c (1.38) (+23 -2)
+	
+	Added IDirectFBInputDevice::GetKeymapEntry() which fetches a
+	DFBInputDeviceKeymapEntry for a specific hardware keycode.
+	
+2002-05-29	11:37	<neo@convergence.de>
+
+	Files:	.cvsignore (1.7) (+6 -6)
+	
+	Added autom4te.cache to .cvsignore (for automake-2.5x).
+	
+2002-05-29	11:19	<neo@convergence.de>
+
+	Files:	patches/Makefile.am (1.17) (+2 -0)
+		patches/savagefb-0.4.0-linux-2.4.17.patch.bz2 (1.1) ( )
+		patches/README.savagefb (1.1) ( )
+	
+	Added 0.4.0 version of savagefb that is supposed to add acceleration for
+	fills and blits. Unfortunately it doesn't yet work correctly. Don't use
+	unless you want to work on it.
+	
+2002-05-29	03:54	<dok@convergence.de>
+
+	Files:	configure.in (1.78) (+16 -1)
+		gfxdrivers/savage/savage_streams_old.h (1.1) ( )
+		gfxdrivers/savage/savage_streams_old.c (1.1) ( )
+		gfxdrivers/savage/savage_bci.h (1.1) ( )
+		gfxdrivers/savage/savage4.h (1.1) ( )
+		gfxdrivers/savage/savage4.c (1.1) ( )
+		gfxdrivers/savage/savage3d.h (1.1) ( )
+		gfxdrivers/savage/savage3d.c (1.1) ( )
+		gfxdrivers/savage/savage2000.h (1.1) ( )
+		gfxdrivers/savage/savage2000.c (1.1) ( )
+		gfxdrivers/savage/savage.h (1.1) ( )
+		gfxdrivers/savage/savage.c (1.1) ( )
+		gfxdrivers/savage/mmio.h (1.1) ( )
+		gfxdrivers/savage/Makefile.am (1.1) ( )
+		gfxdrivers/savage/.cvsignore (1.1) ( )
+		gfxdrivers/Makefile.am (1.6) (+6 -1)
+	
+	Savage driver release, untested for a long time.
+	
+2002-05-29	03:11	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.37) (+43 -20)
+	
+	Added prototypes.
+	
+2002-05-29	03:00	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.36) (+29 -13)
+	
+	Use shcalloc() for the keymap and retrieve all entries once during
+	initialization if multi app core is used.
+	
+2002-05-28	23:48	<dok@convergence.de>
+
+	Files:	docs/html/Makefile.am (1.2) (+3 -1)
+		tools/gendoc.pl (1.15) (+4 -4)
+		src/input/idirectfbinputdevice.c (1.22) (+6 -9)
+		src/core/input_driver.h (1.3) (+6 -0)
+		src/core/input.h (1.19) (+10 -7)
+		src/core/input.c (1.35) (+171 -23)
+		inputdrivers/sonypi/sonypi.c (1.5) (+11 -0)
+		inputdrivers/serialmouse/serialmouse.c (1.19) (+11 -0)
+		inputdrivers/ps2mouse/ps2mouse.c (1.30) (+11 -0)
+		inputdrivers/lirc/lirc.c (1.9) (+11 -0)
+		inputdrivers/keyboard/keyboard.c (1.30) (+158 -173)
+		inputdrivers/joystick/joystick.c (1.15) (+11 -0)
+		inputdrivers/h3600_ts/h3600_ts.c (1.10) (+11 -0)
+		inputdrivers/dbox2remote/dbox2remote.c (1.10) (+11 -0)
+		include/directfb_keyboard.h (1.8) (+38 -0)
+		include/directfb.h (1.100) (+30 -26)
+	
+	Added keymap support to input core.
+	
+	Added a driver function to retrieve a complete keymap entry for a keycode.
+	
+	Keyboard driver event thread is much simpler now, it passes the hardware
+	keycode and if it has been pressed or released to the input core via
+	dfb_input_dispatch() and the input core looks up symbol and identifier and
+	handles modifier/lock masks. The keyboard driver then simply writes back
+	the lock state to the LEDs.
+	
+	Added DFBInputDeviceKeymapEntry that will soon be useful with some API calls.
+	
+2002-05-28	17:52	<neo@convergence.de>
+
+	Files:	autogen.sh (1.5) (+1 -0)
+	
+	oops, we need to call aclocal of course.
+	
+2002-05-28	17:46	<neo@convergence.de>
+
+	Files:	autogen.sh (1.4) (+83 -71)
+	
+	Cleaned up autogen.sh and improved its output in case of problems.
+	
+2002-05-28	01:36	<dok@convergence.de>
+
+	Files:	directfb-config.in (1.3) (+2 -2)
+		src/core/input.c (1.34) (+2 -1)
+	
+	Fixed directfb-config.
+	Converted debug printf to DEBUGMSG.
+	
+2002-05-28	01:06	<neo@convergence.de>
+
+	Files:	acconfig.h (1.6) (+0 -0)
+		configure.in (1.77) (+13 -9)
+	
+	Use the third argument of AC_DEFINE to pass descriptions for our defines.
+	Removed unneeded acconfig.h. Works without warnings with autoconf versions
+	2.13 and 2.53 now.
+	
+2002-05-27	23:39	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.33) (+1 -0)
+	
+	Last commit included key_id to key_symbol translation (id_to_symbol)
+	and generic handling of modifier and lock mask.
+	
+2002-05-27	23:37	<dok@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.7) (+5 -7)
+		src/core/input.c (1.32) (+224 -17)
+	
+	Added DIKS_BEGIN.
+	
+	Removed key pad identifiers that are physically the same key as the numbers.
+	
+2002-05-27	19:54	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.29) (+1 -0)
+	
+	really fixed now
+	
+2002-05-27	19:48	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.28) (+2 -1)
+	
+	Fixed PageUp/Down, Insert, Delete.
+	
+2002-05-27	19:26	<dok@convergence.de>
+
+	Files:	inputdrivers/keyboard/keyboard.c (1.27) (+2 -0)
+	
+	Fixed backspace, why does the kernel return 0x7f for backspace?
+	
+2002-05-27	19:04	<dok@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.6) (+2 -2)
+	
+	DFB_LOWER/UPPER_CASE was wrong
+	
+2002-05-27	17:42	<neo@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.5) (+4 -47)
+		src/core/input.c (1.31) (+4 -10)
+		inputdrivers/lirc/lirc.c (1.8) (+6 -11)
+		inputdrivers/keyboard/keyboard.c (1.26) (+7 -3)
+	
+	Completed the PAGE_UP, PAGE_DOWN, ... changes.
+	Removed DIKS_KP_* symbols and NUMPAD DeviceKeyType. The numpad keys
+	should return the same symbols as the 'normal' keys they respond to.
+	
+2002-05-27	17:10	<neo@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.4) (+7 -7)
+	
+	PAGEUP -> PAGE_UP, PAGEDOWN -> PAGE_DOWN.
+	Same for VOLUME[UP|DOWN] and CHANNEL[UP|DOWN].
+	
+2002-05-27	17:00	<dok@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.3) (+2 -2)
+	
+	fixed macro compilation
+	
+2002-05-27	16:58	<dok@convergence.de>
+
+	Files:	include/directfb_keyboard.h (1.2) (+5 -2)
+	
+	Added DFB_LOWER_CASE and DFB_UPPER_CASE which can be wrapped around a symbol.
+	
+2002-05-27	15:52	<dok@convergence.de>
+
+	Files:	src/core/fusion/lock.h (1.4) (+7 -1)
+		tools/raw32toraw24.c (1.6) (+7 -7)
+		tools/raw16toraw24.c (1.5) (+6 -6)
+		tools/raw15toraw24.c (1.3) (+6 -6)
+		tools/gendoc.pl (1.14) (+5 -3)
+		src/windows/idirectfbwindow.h (1.5) (+6 -3)
+		src/windows/idirectfbwindow.c (1.33) (+6 -3)
+		src/misc/util.h (1.10) (+6 -3)
+		src/misc/util.c (1.9) (+6 -3)
+		src/misc/utf8.h (1.5) (+6 -4)
+		src/misc/utf8.c (1.6) (+6 -4)
+		src/misc/tree.h (1.7) (+6 -3)
+		src/misc/tree.c (1.13) (+6 -4)
+		src/misc/memcpy.h (1.2) (+6 -4)
+		src/misc/memcpy.c (1.2) (+6 -4)
+		src/misc/mem.h (1.6) (+6 -3)
+		src/misc/mem.c (1.5) (+6 -3)
+		src/misc/gfx_util.h (1.9) (+6 -3)
+		src/misc/gfx_util.c (1.19) (+6 -3)
+		src/misc/fbdebug.h (1.2) (+6 -3)
+		src/misc/fbdebug.c (1.2) (+6 -4)
+		src/misc/cpu_accel.h (1.2) (+6 -4)
+		src/misc/cpu_accel.c (1.3) (+6 -4)
+		src/misc/conf.h (1.21) (+6 -3)
+		src/misc/conf.c (1.31) (+6 -3)
+		src/media/idirectfbvideoprovider.h (1.2) (+5 -2)
+		src/media/idirectfbimageprovider.h (1.2) (+5 -2)
+		src/media/idirectfbfont.h (1.8) (+5 -2)
+		src/media/idirectfbfont.c (1.23) (+6 -3)
+		src/input/idirectfbinputdevice.h (1.3) (+6 -3)
+		src/input/idirectfbinputdevice.c (1.21) (+16 -13)
+		src/input/idirectfbinputbuffer.h (1.5) (+6 -3)
+		src/input/idirectfbinputbuffer.c (1.27) (+6 -3)
+		src/gfx/generic/generic.h (1.10) (+6 -4)
+		src/gfx/generic/generic.c (1.63) (+6 -3)
+		src/gfx/util.h (1.6) (+6 -3)
+		src/gfx/util.c (1.6) (+6 -3)
+		src/gfx/convert.h (1.10) (+6 -3)
+		src/gfx/convert.c (1.4) (+6 -3)
+		src/gfx/clip.h (1.3) (+6 -3)
+		src/gfx/clip.c (1.3) (+6 -3)
+		src/display/idirectfbsurface_window.h (1.5) (+6 -3)
+		src/display/idirectfbsurface_window.c (1.19) (+6 -3)
+		src/display/idirectfbsurface_layer.h (1.5) (+6 -3)
+		src/display/idirectfbsurface_layer.c (1.21) (+6 -3)
+		src/display/idirectfbsurface.h (1.11) (+6 -3)
+		src/display/idirectfbsurface.c (1.41) (+6 -3)
+		src/display/idirectfbdisplaylayer.h (1.5) (+6 -3)
+		src/display/idirectfbdisplaylayer.c (1.33) (+6 -3)
+		src/core/fusion/shmalloc/shvalloc.c (1.4) (+7 -1)
+		src/core/fusion/shmalloc/shrealloc.c (1.4) (+7 -1)
+		src/core/fusion/shmalloc/shmemalign.c (1.4) (+7 -1)
+		src/core/fusion/shmalloc/shmalloc_internal.h (1.6) (+7 -1)
+		src/core/fusion/shmalloc/shmalloc.c (1.5) (+7 -1)
+		src/core/fusion/shmalloc/shfree.c (1.4) (+7 -1)
+		src/core/fusion/shmalloc/shcalloc.c (1.4) (+7 -1)
+		src/core/fusion/shmalloc/mstats.c (1.4) (+7 -1)
+		src/core/fusion/util.c (1.4) (+7 -1)
+		src/core/fusion/shmalloc.h (1.7) (+7 -1)
+		src/core/fusion/ref.h (1.5) (+7 -1)
+		src/core/fusion/ref.c (1.6) (+7 -1)
+		src/core/fusion/reactor.h (1.3) (+7 -1)
+		src/core/fusion/reactor.c (1.7) (+7 -1)
+		src/core/fusion/property.h (1.5) (+7 -1)
+		src/core/fusion/property.c (1.3) (+7 -1)
+	
+	Adding sophisticated keycode/keysymbol handling to DirectFB for more
+	sophisticated applications like XDirectFB and the new keymap stuff in GDK.
+	Writing input drivers for keyboards will also be easier.
+	
+	There are to types of key mappings, a basic one (the one before) which is
+	suited for games and an advanced one for applications which need full
+	coverage of the Unicode 3.x character space and the ability to query the
+	keyboard layout.
+	
+	The DFBInputDeviceKeyIdentifier is now contained in "event.key_id" instead
+	of "event.keycode". "event.key_code" is the hardware keycode which is usually
+	not of interest.
+	
+	A new enum DFBInputDeviceKeySymbol is a super-set of the Unicode 3.x character
+	space which is compatible to Latin-1, so "key_ascii" has been removed in favor
+	of "event.key_symbol".
+	
+	DirectFB header files (which include "directfb_keyboard.h" now) are installed
+	to "$prefix/include/directfb/". Applications honoring the CFLAGS within the
+	pkg-config file should have no problem with that.
+	
+	Updated all copyright headers.
+	
+	The keymap stuff is still work in progress, but the functionality to have
+	all applications running again already exists.
+	
+	
+	Short porting instructions:
+	- Replace keycode by key_id and DIKC by DIKI
+	  and/or
+	  replace keycode by key_symbol and DIKC by DIKS
+	- Note that the remote control keys have been removed from the
+	  basic mapping to reduce overhead
+	- Note that the cursor keys in the advanced mapping have a DIKS_CURSOR prefix
+	- Note that the letters have DIKS_SMALL and DIKS_CAPITAL prefixes
+	
+2002-05-27	15:51	<dok@convergence.de>
+
+	Files:	configure.in (1.76) (+2 -0)
+		src/core/fusion/lock.c (1.5) (+7 -1)
+		src/core/fusion/list.h (1.4) (+7 -1)
+		src/core/fusion/list.c (1.4) (+7 -1)
+		src/core/fusion/fusion_types.h (1.5) (+7 -1)
+		src/core/fusion/fusion_shmalloc.c (1.2) (+7 -1)
+		src/core/fusion/fusion_internal.h (1.8) (+26 -0)
+		src/core/fusion/fusion.h (1.3) (+7 -1)
+		src/core/fusion/fusion.c (1.6) (+7 -1)
+		src/core/fusion/arena.h (1.4) (+7 -1)
+		src/core/fusion/arena.c (1.5) (+7 -1)
+		src/core/windows.h (1.24) (+6 -3)
+		src/core/windows.c (1.70) (+19 -16)
+		src/core/vt.h (1.9) (+6 -3)
+		src/core/vt.c (1.27) (+6 -3)
+		src/core/surfaces.h (1.22) (+6 -3)
+		src/core/surfaces.c (1.36) (+6 -3)
+		src/core/surfacemanager.h (1.9) (+6 -3)
+		src/core/surfacemanager.c (1.26) (+6 -3)
+		src/core/state.h (1.9) (+6 -3)
+		src/core/state.c (1.8) (+6 -3)
+		src/core/sig.h (1.6) (+6 -3)
+		src/core/sig.c (1.10) (+6 -3)
+		src/core/layers.h (1.24) (+6 -3)
+		src/core/layers.c (1.35) (+6 -3)
+		src/core/input_driver.h (1.2) (+6 -3)
+		src/core/input.h (1.18) (+7 -4)
+		src/core/input.c (1.30) (+216 -3)
+		src/core/graphics_driver.h (1.3) (+6 -3)
+		src/core/gfxcard.h (1.27) (+6 -3)
+		src/core/gfxcard.c (1.65) (+5 -3)
+		src/core/fonts.h (1.11) (+6 -4)
+		src/core/fonts.c (1.19) (+6 -4)
+		src/core/fbdev.h (1.12) (+6 -3)
+		src/core/fbdev.c (1.61) (+6 -3)
+		src/core/coretypes.h (1.8) (+6 -3)
+		src/core/coredefs.h (1.14) (+6 -3)
+		src/core/core.h (1.10) (+6 -3)
+		src/core/core.c (1.40) (+6 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.24) (+6 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.17) (+8 -5)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.20) (+5 -3)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_avifile.cpp (1.21) (+5 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_png.c (1.21) (+6 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.19) (+6 -3)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.24) (+6 -3)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.18) (+4 -3)
+		interfaces/IDirectFBFont/idirectfbfont_default.c (1.13) (+6 -4)
+		inputdrivers/sonypi/sonypi.c (1.4) (+7 -4)
+		inputdrivers/serialmouse/serialmouse.c (1.18) (+12 -10)
+		inputdrivers/ps2mouse/ps2mouse.c (1.29) (+7 -4)
+		inputdrivers/lirc/lirc.c (1.7) (+159 -186)
+		inputdrivers/keyboard/keyboard.c (1.25) (+129 -164)
+		inputdrivers/joystick/joystick.c (1.14) (+7 -4)
+		inputdrivers/h3600_ts/h3600_ts.c (1.9) (+6 -3)
+		inputdrivers/dbox2remote/dbox2remote.c (1.9) (+6 -3)
+		include/directfb_version.h.in (1.3) (+6 -4)
+		include/directfb_keyboard.h (1.1) ( )
+		include/directfb_internals.h (1.17) (+5 -2)
+		include/directfb.h (1.99) (+86 -121)
+		include/Makefile.am (1.3) (+8 -4)
+		gfxdrivers/tdfx/tdfx.h (1.3) (+6 -3)
+		gfxdrivers/tdfx/tdfx.c (1.15) (+6 -3)
+		gfxdrivers/nvidia/nvidia.h (1.3) (+6 -3)
+		gfxdrivers/nvidia/nvidia.c (1.7) (+6 -3)
+		gfxdrivers/neomagic/neomagic.h (1.6) (+6 -3)
+		gfxdrivers/neomagic/neomagic.c (1.12) (+6 -3)
+		gfxdrivers/neomagic/neo_overlay.c (1.6) (+4 -2)
+		gfxdrivers/neomagic/neo2200.c (1.9) (+6 -3)
+		gfxdrivers/matrox/regs.h (1.9) (+6 -3)
+		gfxdrivers/matrox/mmio.h (1.8) (+6 -3)
+		gfxdrivers/matrox/matrox_state.h (1.4) (+6 -3)
+		gfxdrivers/matrox/matrox_state.c (1.26) (+6 -3)
+		gfxdrivers/matrox/matrox_bes.c (1.21) (+6 -3)
+		gfxdrivers/matrox/matrox.h (1.12) (+6 -3)
+		gfxdrivers/matrox/matrox.c (1.31) (+6 -3)
+		gfxdrivers/ati128/regs.h (1.5) (+6 -3)
+		gfxdrivers/ati128/mmio.h (1.5) (+6 -3)
+		gfxdrivers/ati128/ati128_state.h (1.4) (+6 -3)
+		gfxdrivers/ati128/ati128_state.c (1.6) (+6 -3)
+		gfxdrivers/ati128/ati128_overlay.c (1.12) (+4 -2)
+		gfxdrivers/ati128/ati128.h (1.8) (+6 -3)
+		gfxdrivers/ati128/ati128.c (1.15) (+6 -3)
+		directfb.pc.in (1.2) (+1 -1)
+		directfb-internal.pc.in (1.5) (+3 -2)
+	
+	Adding sophisticated keycode/keysymbol handling to DirectFB for more
+	sophisticated applications like XDirectFB and the new keymap stuff in GDK.
+	Writing input drivers for keyboards will also be easier.
+	
+	There are to types of key mappings, a basic one (the one before) which is
+	suited for games and an advanced one for applications which need full
+	coverage of the Unicode 3.x character space and the ability to query the
+	keyboard layout.
+	
+	The DFBInputDeviceKeyIdentifier is now contained in "event.key_id" instead
+	of "event.keycode". "event.key_code" is the hardware keycode which is usually
+	not of interest.
+	
+	A new enum DFBInputDeviceKeySymbol is a super-set of the Unicode 3.x character
+	space which is compatible to Latin-1, so "key_ascii" has been removed in favor
+	of "event.key_symbol".
+	
+	DirectFB header files (which include "directfb_keyboard.h" now) are installed
+	to "$prefix/include/directfb/". Applications honoring the CFLAGS within the
+	pkg-config file should have no problem with that.
+	
+	Updated all copyright headers.
+	
+	The keymap stuff is still work in progress, but the functionality to have
+	all applications running again already exists.
+	
+	
+	Short porting instructions:
+	- Replace keycode by key_id and DIKC by DIKI
+	  and/or
+	  replace keycode by key_symbol and DIKC by DIKS
+	- Note that the remote control keys have been removed from the
+	  basic mapping to reduce overhead
+	- Note that the cursor keys in the advanced mapping have a DIKS_CURSOR prefix
+	- Note that the letters have DIKS_SMALL and DIKS_CAPITAL prefixes
+	
+2002-05-26	00:51	<dok@convergence.de>
+
+	Files:	README (1.29) (+1 -0)
+		src/core/fbdev.c (1.60) (+14 -5)
+	
+	Applied patch from Antonino Daplas <adaplas@users.sourceforge.net> checking
+	for CGA/MDA emulation before polling for the vertical retrace.
+	
+2002-05-24	11:22	<neo@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.8) (+25 -23)
+		src/misc/cpu_accel.c (1.2) (+1 -1)
+		src/misc/conf.c (1.30) (+5 -5)
+		src/core/fusion/fusion_internal.h (1.7) (+1 -1)
+		src/core/vt.c (1.26) (+1 -1)
+		src/core/surfacemanager.c (1.25) (+5 -4)
+		src/core/coredefs.h (1.13) (+3 -2)
+		interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_swf.c (1.16) (+2 -2)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.23) (+5 -5)
+		inputdrivers/joystick/joystick.c (1.13) (+1 -1)
+		inputdrivers/dbox2remote/dbox2remote.c (1.8) (+7 -7)
+		gfxdrivers/neomagic/neomagic.c (1.11) (+24 -24)
+		gfxdrivers/matrox/matrox.c (1.30) (+5 -5)
+		gfxdrivers/ati128/regs.h (1.4) (+9 -9)
+		gfxdrivers/ati128/ati128_state.h (1.3) (+0 -1)
+		gfxdrivers/ati128/ati128.c (1.14) (+6 -4)
+	
+	More work on the man-page.
+	
+	Converted C++ style comments to classic C comments where appropriate.
+	Searching for '//' should now only show parts of the code that need to
+	be reviewed.
+	
+2002-05-24	08:51	<dok@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.7) (+16 -14)
+	
+	Splitted desktop-buffer-mode text moving parts of it to the different modes.
+	
+2002-05-24	08:35	<dok@convergence.de>
+
+	Files:	BUGS (1.4) (+2 -0)
+	
+	Added planar pixel format blitting bug and G550 blending to ARGB bug.
+	
+2002-05-24	08:26	<dok@convergence.de>
+
+	Files:	configure.in (1.75) (+0 -2)
+		inputdrivers/sonypi/sonypi.c (1.3) (+2 -2)
+	
+	Removed unnecessary AC_SUBST.
+	Changed z axis delta for Jogdial to 1.
+	
+2002-05-23	22:07	<dok@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.6) (+20 -2)
+	
+	Added a text to desktop-buffer-mode.
+	
+2002-05-23	20:27	<neo@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.5) (+47 -29)
+	
+	more work on the man-page
+	
+2002-05-23	15:25	<neo@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.4) (+32 -21)
+		src/misc/conf.h (1.20) (+23 -21)
+		src/misc/conf.c (1.29) (+85 -54)
+		src/gfx/generic/generic.c (1.62) (+1 -1)
+		src/core/windows.c (1.69) (+1 -1)
+		src/core/vt.c (1.25) (+4 -4)
+		src/core/coredefs.h (1.12) (+2 -2)
+		src/core/core.c (1.39) (+2 -2)
+		src/directfb.c (1.42) (+1 -1)
+	
+	Declare boolean config variables as bool. Renamed some no-variables to
+	their positive counterparts. Added the possibility to use no- with lots
+	of config variables.
+	
+	Changed "no-window-opacity" option to "translucent-windows".
+	
+	Changed the man-page accordingly.
+	
+2002-05-23	14:22	<neo@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.3) (+63 -22)
+	
+	described more parameters
+	
+2002-05-22	18:39	<dok@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.17) (+1 -2)
+	
+	Use metrics->height.
+	
+2002-05-22	16:03	<neo@convergence.de>
+
+	Files:	include/directfb.h (1.98) (+22 -15)
+		interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.16) (+13 -8)
+	
+	Added index field to FontDescription that allows to control which face is
+	loaded from a font file that provides a collection of faces.
+	
+2002-05-22	13:56	<neo@convergence.de>
+
+	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.15) (+82 -38)
+	
+	Implemented font probing in the FT2 font provider.
+	
+2002-05-20	22:19	<dok@convergence.de>
+
+	Files:	TODO (1.22) (+0 -2)
+		src/windows/idirectfbwindow.c (1.32) (+36 -0)
+		src/core/windows.h (1.23) (+1 -0)
+		src/core/windows.c (1.68) (+5 -0)
+		include/directfb.h (1.97) (+26 -2)
+	
+	Added IDirectFBWindow::EnableEvents(mask) and DisableEvents(mask).
+	
+2002-05-20	19:53	<dok@convergence.de>
+
+	Files:	TODO (1.21) (+1 -0)
+	
+	Added reallocate_surface() todo.
+	
+2002-05-20	19:47	<dok@convergence.de>
+
+	Files:	src/core/layers.c (1.34) (+23 -2)
+	
+	Support DLBM_BACKVIDEO in generic allocate_surface() for layers.
+	
+2002-05-19	10:02	<dok@convergence.de>
+
+	Files:	src/core/input.c (1.29) (+1 -0)
+		src/core/windows.c (1.67) (+1 -0)
+	
+	Set event class in dfb_window_dispatch() and dfb_input_dispatch() to be sure.
+	
+2002-05-19	09:50	<dok@convergence.de>
+
+	Files:	src/windows/idirectfbwindow.c (1.31) (+1 -1)
+	
+	Fixed IDirectFBWindow::Close() sending no event that got broken
+	during introduction of IDirectFBEventBuffer.
+	
+2002-05-19	01:20	<dok@convergence.de>
+
+	Files:	patches/Makefile.am (1.16) (+1 -1)
+		patches/vmwarefb-0.6.0-linux-2.4.19-pre8.patch.bz2 (1.1) ( )
+		patches/vmwarefb-0.5.2-linux-2.4.19-pre8.patch.bz2 (1.2) (+0 -0)
+	
+	Console acceleration, fixes coexistence with X, removed VGA cruft (not needed).
+	
+	You need to add "video=vmware:noaccel" to use DirectFB and do a Power OFF,
+	it's a bug in VMware which is fixed in the VMware that is not yet released ;)
+	
+2002-05-19	00:19	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.59) (+2 -2)
+	
+	Align system memory back buffer pitch.
+	
+2002-05-18	02:10	<neo@convergence.de>
+
+	Files:	docs/directfbrc.5.in (1.2) (+12 -7)
+	
+	documented more options
+	
+2002-05-17	20:15	<neo@convergence.de>
+
+	Files:	configure.in (1.74) (+13 -4)
+	
+	Define BINARY_VERSION as the earliest version that this release has
+	binary compatibility with. Use BINARY_VERSION in MODULEDIR. Don't a
+	version number in INTERNALINCLUDEDIR.
+	
+2002-05-17	18:36	<neo@convergence.de>
+
+	Files:	configure.in (1.73) (+2 -1)
+		docs/directfbrc.5.in (1.1) ( )
+		docs/Makefile.am (1.3) (+4 -0)
+		docs/.cvsignore (1.3) (+1 -0)
+	
+	First draft for a directfbrc(5) man page. Work in progress...
+	
+2002-05-17	15:56	<dok@convergence.de>
+
+	Files:	patches/Makefile.am (1.15) (+1 -1)
+		patches/vmwarefb-0.5.2-linux-2.4.19-pre8.patch.bz2 (1.1) ( )
+		patches/vmwarefb-0.5.0-linux-2.4.19-pre8.patch.gz (1.2) (+0 -0)
+		patches/Makefile.am (1.14) (+1 -1)
+	
+	s/gz/bz2/
+	
+2002-05-17	15:54	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.h (1.26) (+1 -1)
+	
+	Forgot to increase the graphics driver abi version.
+	
+2002-05-17	15:52	<dok@convergence.de>
+
+	Files:	include/directfb.h (1.96) (+30 -1)
+		src/display/idirectfbdisplaylayer.c (1.32) (+32 -0)
+		src/core/layers.h (1.23) (+13 -0)
+		src/core/layers.c (1.33) (+20 -0)
+	
+	Added IDirectFBDisplayLayer::GetLevel() and SetLevel() which can be used to
+	query/change the z order of display layers. Added DLCAPS_LEVELS.
+	
+2002-05-14	16:38	<dok@convergence.de>
+
+	Files:	patches/Makefile.am (1.13) (+4 -3)
+		patches/vmwarefb-0.5.0-linux-2.4.19-pre8.patch.gz (1.1) ( )
+	
+	VMware SVGA framebuffer driver to have DirectFB running under X in a window ;)
+	Or fullscreen with XDGA (nearly as fast as native).
+	
+	http://master.dyndns.tv/vmwarefb.png
+	http://master.dyndns.tv/vmwaredfb.png
+	
+2002-05-11	22:49	<dok@convergence.de>
+
+	Files:	src/core/windows.c (1.66) (+5 -0)
+	
+	If the desktop buffer mode is backsystem, create system only window surfaces.
+	
+2002-05-11	22:34	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.58) (+8 -8)
+	
+	Use fix_screeninfo.line_length after setting the mode to get the byte pitch
+	instead of using the virtual resolution which may differ.
+	
+2002-05-10	19:03	<dok@convergence.de>
+
+	Files:	README (1.28) (+1 -0)
+		configure.in (1.72) (+4 -3)
+	
+	Append version number to directories (e.g. '/usr/local/lib/directfb-0.9.11').
+	Thanks to Fredrik Hallenberg <hallon@lysator.liu.se>,
+	the Debian package maintainer of DirectFB.
+	
+2002-05-10	18:27	<dok@convergence.de>
+
+	Files:	src/core/layers.c (1.32) (+9 -2)
+	
+	Avoid locks during emergency shutdown, just turn off layers.
+	
+2002-05-09	23:06	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.57) (+3 -0)
+	
+	fixed segfault on startup when no fb device is available
+	
+2002-05-08	00:29	<dok@convergence.de>
+
+	Files:	TODO (1.20) (+1 -1)
+		src/windows/idirectfbwindow.c (1.30) (+109 -54)
+		src/core/windows.h (1.22) (+24 -14)
+		src/core/windows.c (1.65) (+79 -5)
+		src/core/gfxcard.c (1.64) (+4 -4)
+		include/directfb.h (1.95) (+76 -50)
+		configure.in (1.71) (+1 -1)
+	
+	Added IDirectFBWindow::SetStackingClass(). The default stacking class
+	DWSC_MIDDLE. There are DWSC_LOWER and DWSC_UPPER, too. A window cannot
+	be outside of its stacking class, so DWSC_MIDDLE windows are always above
+	DWSC_LOWER windows and so on...
+	
+2002-05-06	17:10	<count@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.23) (+4 -0)
+	
+	set _BSD_SOURCE when using dietlibc - required for <linux/videodev.h>
+	
+2002-05-06	16:36	<count@convergence.de>
+
+	Files:	src/core/fusion/property.h (1.4) (+2 -0)
+	
+	added missing include - required to compile with dietlibc
+	
+2002-05-04	12:13	<dok@convergence.de>
+
+	Files:	src/core/fonts.c (1.18) (+1 -1)
+		src/core/gfxcard.c (1.63) (+37 -34)
+	
+	dfb_gfxcard_drawstring() uses an extra state now instead of modifying the
+	original state. This gives more performance for hardware accelerated text.
+	
+2002-05-04	05:40	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.h (1.25) (+6 -1)
+		src/core/fusion/ref.h (1.4) (+53 -39)
+		src/core/fusion/ref.c (1.5) (+106 -0)
+		src/core/fusion/property.h (1.3) (+2 -0)
+		src/core/fusion/lock.h (1.3) (+30 -30)
+		src/core/fusion/list.h (1.3) (+6 -6)
+		src/core/fusion/fusion_types.h (1.4) (+0 -4)
+		src/core/layers.h (1.22) (+5 -0)
+		src/core/layers.c (1.31) (+9 -1)
+		src/core/input.h (1.17) (+5 -0)
+	
+	Implemented FusionRef for single app core.
+	Fixed warnings from last checkin (when compiling with single app core).
+	
+2002-05-04	04:46	<dok@convergence.de>
+
+	Files:	src/core/layers.c (1.30) (+12 -4)
+	
+	Workaround works better now, fullscreen apps are now usable with multi app core.
+	
+2002-05-04	04:10	<dok@convergence.de>
+
+	Files:	src/misc/conf.c (1.28) (+2 -0)
+	
+	Added "dont-catch" to usage string.
+	
+2002-05-04	04:06	<dok@convergence.de>
+
+	Files:	TODO (1.19) (+0 -1)
+		src/misc/conf.h (1.19) (+2 -0)
+		src/misc/conf.c (1.27) (+34 -0)
+		src/core/fusion/reactor.c (1.6) (+3 -0)
+		src/core/fusion/list.c (1.3) (+2 -0)
+		src/core/fusion/arena.h (1.3) (+16 -16)
+		src/core/fusion/arena.c (1.4) (+18 -19)
+		src/core/vt.h (1.8) (+2 -2)
+		src/core/vt.c (1.24) (+2 -2)
+		src/core/surfaces.h (1.21) (+5 -7)
+		src/core/surfacemanager.c (1.24) (+5 -18)
+		src/core/sig.h (1.5) (+2 -0)
+		src/core/sig.c (1.9) (+10 -6)
+		src/core/layers.h (1.21) (+2 -7)
+		src/core/layers.c (1.29) (+2 -2)
+		src/core/input.h (1.16) (+2 -7)
+		src/core/input.c (1.28) (+2 -2)
+		src/core/gfxcard.h (1.24) (+2 -7)
+		src/core/gfxcard.c (1.62) (+2 -2)
+		src/core/fbdev.h (1.11) (+2 -2)
+		src/core/fbdev.c (1.56) (+2 -2)
+		src/core/core.c (1.38) (+32 -56)
+	
+	Added option "dont-catch" followed by a comma seperated list of signals
+	that won't be caught by DirectFB's signal handler.
+	
+	Removed all takeover/transfer stuff from arena.
+	
+	Added 'emergency' indicator to exit functions of arena.
+	
+	Added 'emergency' indicators to all deinit/leave functions.
+	
+2002-05-02	19:08	<dok@convergence.de>
+
+	Files:	src/core/fusion/Makefile.am (1.7) (+1 -0)
+		src/core/fusion/shmalloc/shvalloc.c (1.3) (+2 -2)
+		src/core/fusion/shmalloc/shrealloc.c (1.3) (+15 -15)
+		src/core/fusion/shmalloc/shmemalign.c (1.3) (+4 -4)
+		src/core/fusion/shmalloc/shmalloc_internal.h (1.5) (+26 -4)
+		src/core/fusion/shmalloc/shmalloc.c (1.4) (+242 -49)
+		src/core/fusion/shmalloc/shfree.c (1.3) (+4 -4)
+		src/core/fusion/shmalloc/shcalloc.c (1.3) (+2 -2)
+		src/core/fusion/shmalloc/shbrk.c (1.9) (+0 -0)
+		src/core/fusion/shmalloc/mstats.c (1.3) (+1 -1)
+		src/core/fusion/shmalloc/Makefile.am (1.2) (+0 -1)
+		src/core/fusion/shmalloc.h (1.6) (+1 -0)
+		src/core/fusion/fusion_shmalloc.c (1.1) ( )
+	
+	Made all shmalloc functions internal _fusion_shmalloc functions.
+	Added new public functions locking the heap and calling the internal functions.
+	Cleaned up initialization.
+	
+2002-04-28	20:18	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.55) (+36 -2)
+	
+	Disable console acceleration when joining a session, the framebuffer
+	configuration of fusionees attaching from another tty is different.
+	
+	A small "dfbd" running as root but with a user's group now makes it
+	possible to run XDirectFB completely without root privileges.
+	
+2002-04-28	19:57	<dok@convergence.de>
+
+	Files:	src/core/fusion/shmalloc/shbrk.c (1.8) (+2 -0)
+	
+	Do chmod after creation because of umask.
+	
+2002-04-28	19:31	<dok@convergence.de>
+
+	Files:	src/core/fusion/shmalloc/shbrk.c (1.7) (+2 -2)
+	
+	Create shared memory with permissions 0660 instead of 0600.
+	
+2002-04-28	19:25	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.61) (+28 -24)
+	
+	Fixed thinko in recent addition.
+	
+2002-04-28	18:58	<dok@convergence.de>
+
+	Files:	src/core/gfxcard.c (1.60) (+8 -3)
+		src/misc/mem.h (1.5) (+3 -0)
+		src/misc/conf.h (1.18) (+3 -0)
+		src/misc/conf.c (1.26) (+25 -4)
+		src/core/fusion/util.c (1.3) (+2 -0)
+		src/core/fusion/fusion_internal.h (1.6) (+0 -1)
+	
+	New option "videoram-limit=<amount-in-kb>".
+	Moved PAGE_ALIGN macro to 'misc/mem.h'.
+	
+2002-04-27	21:31	<andi@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.19) (+6 -2)
+	
+	devfs support for libmpeg3 provider (try to open /dev/sound/dsp )
+	
+2002-04-27	19:09	<neo@convergence.de>
+
+	Files:	README (1.27) (+5 -10)
+		configure.in (1.70) (+10 -8)
+	
+	Allow to disable libmpeg3 and flash providers at configure time.
+	Updated README.
+	
+2002-04-27	18:35	<dok@convergence.de>
+
+	Files:	README (1.26) (+7 -0)
+	
+	added a table of all vesa modes
+	
+2002-04-27	18:22	<dok@convergence.de>
+
+	Files:	BUGS (1.3) (+4 -0)
+		TODO (1.18) (+3 -1)
+	
+	minor update
+	
+2002-04-27	18:07	<andi@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_libmpeg3.c (1.18) (+23 -6)
+	
+	bugfix: set correct audio format on big endian machines
+	
+2002-04-27	14:56	<andi@convergence.de>
+
+	Files:	interfaces/IDirectFBVideoProvider/Makefile.am (1.6) (+12 -24)
+	
+	removed libmpeg3 build hack, since the latest versions build a shared library.
+	
+2002-04-27	14:55	<andi@convergence.de>
+
+	Files:	configure.in (1.69) (+10 -14)
+	
+	removed libmpeg3 build hack, since the latest versions build a shared library.
+	
+2002-04-26	02:29	<dok@convergence.de>
+
+	Files:	src/core/fbdev.c (1.54) (+1 -5)
+		src/core/layers.h (1.20) (+18 -0)
+		src/core/layers.c (1.28) (+41 -3)
+	
+	Added 'dfb_layers_hook_primary()' that allows drivers to wrap/extend/replace
+	the implementation of the primary layer. The driver can provide an alternative
+	implementation for one or more functions of the primary layer and gets the
+	original content of the function table to use existing functionality.
+	The alternation grade ranges from "i-can-set-the-opacity" to "what-is-fbdev".
+	
+	It's now allowed to return zero in LayerDataSize(),
+	primaryLayerDataSize() does that now, it had pseudo data before.
+	
+2002-04-25	22:06	<dok@convergence.de>
+
+	Files:	patches/Makefile.am (1.12) (+2 -1)
+		patches/savagefb-0.3.2-linux-2.4.19-pre7.patch.bz2 (1.1) ( )
+	
+	Savage Framebuffer driver release.
+	
+2002-04-22	16:57	<dok@convergence.de>
+
+	Files:	ChangeLog (1.18) (+829 -0)
+		NEWS (1.25) (+34 -0)
+	
+	released
+	
 2002-04-22	02:38	<dok@convergence.de>
 
 	Files:	src/core/windows.c (1.64) (+2 -2)

@@ -72,7 +72,7 @@ keyboard_get_symbol( int                             code,
 {
      unsigned char type  = KTYP(value);
      unsigned char index = KVAL(value);
-     int           base  = level == DIKSI_BASE;
+     int           base  = (level == DIKSI_BASE);
 
      switch (type) {
           case KT_FN:
@@ -370,7 +370,7 @@ driver_get_keymap_entry( InputDevice               *device,
           entry->locks |= DILS_CAPS;
 
      /* is NumLock effective? */
-     if (identifier >= DIKI_KP_0 && identifier <= DIKI_KP_9)
+     if (identifier >= DIKI_KP_DECIMAL && identifier <= DIKI_KP_9)
           entry->locks |= DILS_NUM;
 
      /* write identifier to entry */

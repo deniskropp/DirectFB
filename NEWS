@@ -12,18 +12,20 @@
 - Added kernel patch for VMware SVGA framebuffer.
 - Added kernel patch for S3 Savage framebuffer (experimental).
 - Added S3 Savage driver (experimental).
+- The Print key can now be used to dump screenshots in PPM format.
+- Left and right modifiers have seperate key identifiers now.
 - Introduced kerning cache in FT2 font provider.
 - Added module probing to FT2 font provider.
 - Speed up text rendering by using a special state.
 - Allow to change the buffermode of layers.
-- Support DLBM_BACKVIDEO for layer surfaces.
+- Support buffermode changes for additional layers.
 - Fixed A8 font blitting bug in Matrox driver.
 - Install directfb headers in a directfb subdirectory.
 - Install and look for modules in versioned subdirectory.
 - Fixed vsync polling when MDA emulation is active.
 - Cleaned up config options (directfbrc and command-line options).
 - New option "videoram-limit=<amount-in-kb>".
-- New otion "dont-catch" to disable signal handlers.
+- New option "dont-catch" to disable signal handlers.
 - Added directfbrc(5) man-page.
 - Made shared memory handling thread-safe (multi-application core).
 - Optimizations in software driver.
