@@ -280,19 +280,6 @@ DFBResult          dfb_layer_update_region( DisplayLayer        *layer,
                                             DFBRegion           *region,
                                             DFBSurfaceFlipFlags  flags );
 
-DFBResult dfb_layer_create_window( DisplayLayer           *layer,
-                                   int                     x,
-                                   int                     y,
-                                   int                     width,
-                                   int                     height,
-                                   DFBWindowCapabilities   caps,
-                                   DFBSurfaceCapabilities  surface_caps,
-                                   DFBSurfacePixelFormat   pixelformat,
-                                   CoreWindow            **window );
-
-CoreWindow *dfb_layer_find_window( DisplayLayer           *layer,
-                                   DFBWindowID             id );
-
 DFBResult dfb_layer_set_src_colorkey( DisplayLayer *layer,
                                       __u8 r, __u8 g, __u8 b );
 
@@ -320,14 +307,29 @@ DFBResult dfb_layer_set_coloradjustment (DisplayLayer       *layer,
 DFBResult dfb_layer_get_coloradjustment (DisplayLayer       *layer,
                                          DFBColorAdjustment *adj);
 
-DFBResult dfb_layer_get_cursor_position (DisplayLayer       *layer,
-                                         int                *x,
-                                         int                *y);
-
 DFBSurfacePixelFormat dfb_primary_layer_pixelformat();
 void                  dfb_primary_layer_rectangle( float x, float y,
                                                    float w, float h,
                                                    DFBRectangle *rect );
+
+/*
+ * window control
+ */
+DFBResult dfb_layer_create_window( DisplayLayer           *layer,
+                                   int                     x,
+                                   int                     y,
+                                   int                     width,
+                                   int                     height,
+                                   DFBWindowCapabilities   caps,
+                                   DFBSurfaceCapabilities  surface_caps,
+                                   DFBSurfacePixelFormat   pixelformat,
+                                   CoreWindow            **window );
+
+CoreWindow *dfb_layer_find_window( DisplayLayer           *layer,
+                                   DFBWindowID             id );
+
+CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
+
 
 /*
  * cursor control
@@ -353,7 +355,10 @@ DFBResult dfb_layer_cursor_warp( DisplayLayer *layer,
                                  int           y );
 
 
-CoreWindowStack *dfb_layer_window_stack( DisplayLayer *layer );
+DFBResult dfb_layer_get_cursor_position (DisplayLayer       *layer,
+                                         int                *x,
+                                         int                *y);
+
 
 
 /* global reactions */
