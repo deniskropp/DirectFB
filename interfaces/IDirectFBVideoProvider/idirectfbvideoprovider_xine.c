@@ -91,10 +91,10 @@ typedef struct
 
 
 
-static void DFBxine_frame_output(void* cdata, int width, int height,
+static void frame_output(void* cdata, int width, int height,
 					double ratio, DFBRectangle* dest_rect);
 
-static void DFBxine_event_listner(void* cdata, const xine_event_t* event);
+static void event_listner(void* cdata, const xine_event_t* event);
 
 
 
@@ -112,8 +112,10 @@ IDirectFBVideoProvider_Xine_Destruct(IDirectFBVideoProvider* thiz)
 	{
 		if(data->stream)
 		{
-			if(data->is_playing)
-				xine_stop(data->stream);
+			xine_set_param(data->stream, 
+					XINE_PARAM_AUDIO_MUTE, 0);
+			
+			xine_stop(data->stream);
 
 			xine_close(data->stream);
 
@@ -247,9 +249,6 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 	if(!dest_data)
 		return(DFB_DEAD);
 
-	if(data->is_playing && !data->is_paused)
-		return(DFB_UNSUPPORTED);
-
 	data->dest = dest;
 
 	memset(&(data->dest_rect), 0, sizeof(DFBRectangle));
@@ -285,10 +284,12 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 
 	if(data->is_paused)
 	{
+		xine_set_param(data->stream, XINE_PARAM_AUDIO_MUTE, 0);
 		xine_set_param(data->stream, XINE_PARAM_SPEED,
 					XINE_SPEED_NORMAL);
 		data->is_paused = 0;
 	} else
+	if(!data->is_playing)
 	{
 		if(data->post)
 		{
@@ -298,7 +299,8 @@ IDirectFBVideoProvider_Xine_PlayTo(IDirectFBVideoProvider* thiz,
 			xine_post_wire_audio_port(audio_source,
 					data->post->audio_input[0]);
 		}
-		
+	
+		xine_set_param(data->stream, XINE_PARAM_AUDIO_MUTE, 0);
 		xine_play(data->stream, 0, 0);
 		data->is_playing = 1;
 	}
@@ -314,9 +316,11 @@ IDirectFBVideoProvider_Xine_Stop(IDirectFBVideoProvider* thiz)
 
 	if(data->is_playing && !data->is_paused)
 	{
+		xine_set_param(data->stream, XINE_PARAM_AUDIO_MUTE, 1);
 		xine_set_param(data->stream, XINE_PARAM_SPEED,
 					XINE_SPEED_PAUSE);
-		data->is_paused = 1;		
+		data->is_paused = 1;
+		usleep(800);
 		return(DFB_OK);
 	}
 
@@ -342,11 +346,14 @@ IDirectFBVideoProvider_Xine_SeekTo(IDirectFBVideoProvider* thiz,
 
 		if(offset < 0)
 			offset = 0;
-		if(data->lenght && offset > data->lenght)
-			offset = data->lenght - 1;
+		if(data->lenght > 0 && offset > data->lenght)
+			offset = data->lenght;
 
 		xine_play(data->stream, 0, offset);
-		data->is_paused = 0;
+		
+		if(data->is_paused)
+			xine_set_param(data->stream, XINE_PARAM_SPEED, 
+						XINE_SPEED_PAUSE);
 		
 		return(DFB_OK);	
 	}
@@ -373,8 +380,7 @@ IDirectFBVideoProvider_Xine_GetPos(IDirectFBVideoProvider* thiz,
 		{
 			if(xine_get_pos_length(data->stream, NULL, &pos, NULL))
 				break;
-
-			usleep(100000);	
+			usleep(10000);
 		}
 
 		*seconds = (double) pos / 1000.0;
@@ -460,17 +466,27 @@ Probe(IDirectFBVideoProvider_ProbeContext* ctx)
 	xine_audio_port_t* ao;
 	xine_stream_t*     stream;
 	dfb_visual_t       visual;
-	const char*        home;
 	char*              cfg;
 	DFBResult          result;
 
 
-	if(!(xine = xine_new()))
+	xine = xine_new();
+	if(!xine)
 		return(DFB_FAILURE);
 
-	if((home = xine_get_homedir()))
+	if(getenv("XINERC"))
 	{
-		asprintf(&cfg, "%s/.xine/config", home);
+		cfg = strdup(getenv("XINERC"));
+	} else
+	{
+		const char* home;
+		home = xine_get_homedir();
+		if(home)
+			asprintf(&cfg, "%s/.xine/config", home);
+	}
+
+	if(cfg)
+	{
 		xine_config_load(xine, cfg);
 		free(cfg);
 	}
@@ -478,7 +494,7 @@ Probe(IDirectFBVideoProvider_ProbeContext* ctx)
 	xine_init(xine);
 
 	visual.surface   = NULL;
-	visual.output_cb = DFBxine_frame_output;
+	visual.output_cb = frame_output;
 
 	vo = xine_open_video_driver(xine, "DFB",
 				XINE_VISUAL_TYPE_DFB, (void*) &visual);
@@ -508,47 +524,53 @@ Probe(IDirectFBVideoProvider_ProbeContext* ctx)
 
 static DFBResult
 Construct(IDirectFBVideoProvider* thiz, const char *filename)
-{
-	dfb_visual_t visual;
-	const char*  home;
-	
+{	
 	DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Xine)
 
 	data->ref = 1;
 	data->mrl = D_STRDUP(filename);
 
-	if(!(data->xine = xine_new()))
+	data->xine = xine_new();
+	if(!data->xine)
 		return(DFB_FAILURE);
 
 	if(getenv("XINERC"))
 	{
-		data->cfg = D_STRDUP(getenv("XINERC"));
+		data->cfg = strdup(getenv("XINERC"));
 	} else
-	if((home = xine_get_homedir()))
 	{
-		char* xine_dir;
-		
-		asprintf(&(xine_dir), "%s/.xine", home);
-		mkdir(xine_dir, 755);
-		asprintf(&(data->cfg), "%s/config", xine_dir);
-		free(xine_dir);		
+		const char* home;
+		home = xine_get_homedir();
+		if(home)
+		{
+			char* xine_dir;
+			asprintf(&(xine_dir), "%s/.xine", home);
+			mkdir(xine_dir, 755);
+			asprintf(&(data->cfg), "%s/config", xine_dir);
+			free(xine_dir);
+		}
 	}
 
-	xine_config_load(data->xine, data->cfg);
+	if(data->cfg)
+		xine_config_load(data->xine, data->cfg);
 
 	xine_init(data->xine);
 	xine_engine_set_param(data->xine, XINE_ENGINE_PARAM_VERBOSITY, VERBOSITY);
 
-	visual.surface   = NULL;
-	visual.output_cb = DFBxine_frame_output;
-	visual.cdata     = (void*) data;
-	
-	data->vo = xine_open_video_driver(data->xine, "DFB",
-				XINE_VISUAL_TYPE_DFB, (void*) &visual);
-	if(!data->vo)
 	{
-		xine_exit(data->xine);
-		return(DFB_FAILURE);
+		dfb_visual_t visual;
+		
+		visual.surface   = NULL;
+		visual.output_cb = frame_output;
+		visual.cdata     = (void*) data;
+	
+		data->vo = xine_open_video_driver(data->xine, "DFB",
+				XINE_VISUAL_TYPE_DFB, (void*) &visual);
+		if(!data->vo)
+		{
+			xine_exit(data->xine);
+			return(DFB_FAILURE);
+		}
 	}
 	
 	{
@@ -592,12 +614,13 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 	}
 
 	xine_set_param(data->stream, XINE_PARAM_VERBOSITY, VERBOSITY);
+	xine_set_param(data->stream, XINE_PARAM_AUDIO_CHANNEL_LOGICAL, -1);
 
 	data->queue = xine_event_new_queue(data->stream);
 	if(data->queue)
 	{
 		xine_event_create_listener_thread(data->queue,
-				DFBxine_event_listner, (void*) data);
+				event_listner, (void*) data);
 	}
 
 	if(!xine_open(data->stream, data->mrl))
@@ -653,7 +676,7 @@ Construct(IDirectFBVideoProvider* thiz, const char *filename)
 
 
 static void
-DFBxine_frame_output(void* cdata, int width, int height,
+frame_output(void* cdata, int width, int height,
 			double ratio, DFBRectangle* dest_rect)
 {
 	IDirectFBVideoProvider_Xine_data* data;
@@ -669,7 +692,7 @@ DFBxine_frame_output(void* cdata, int width, int height,
 
 
 static void
-DFBxine_event_listner(void* cdata, const xine_event_t* event)
+event_listner(void* cdata, const xine_event_t* event)
 {
 	IDirectFBVideoProvider_Xine_data* data;
 
