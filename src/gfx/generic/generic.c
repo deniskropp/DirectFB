@@ -686,6 +686,61 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Bop_PFI_toK_Aop_PFI ************************/
 
+static void Bop_rgb15_toK_Aop( GenefxState *gfxs )
+{
+     int    w, l = gfxs->length;
+     __u32 *D    = gfxs->Aop;
+     __u32 *S    = gfxs->Bop;
+     __u32  Lkey = gfxs->Dkey;
+     __u32  Hkey = Lkey << 16;
+
+     if (((long)D)&2) {         /* align */
+          __u16 *tmp = gfxs->Aop;
+          --l;
+          if (*((__u16*)D) == Lkey)
+               *tmp = *((__u16*)S);
+
+          D = (__u32*)((__u16*)D+1);
+          S = (__u32*)((__u16*)S+1);
+     }
+
+     w = (l >> 1);
+     while (w) {
+          __u32 dpixel = *D;
+
+          if ((dpixel & 0x7FFF0000) == Hkey) {
+               if ((dpixel & 0x00007FFF) == Lkey) {
+                    *D = *S;
+               }
+               else {
+                    __u16 *tmp = (__u16*)D;
+#ifdef WORDS_BIGENDIAN
+                    tmp[0] = (__u16)(*S >> 16);
+#else
+                    tmp[1] = (__u16)(*S >> 16);
+#endif
+               }
+          }
+          else if ((dpixel & 0x00007FFF) == Lkey) {
+               __u16 *tmp = (__u16*)D;
+#ifdef WORDS_BIGENDIAN
+               tmp[1] = (__u16)*S;
+#else
+               tmp[0] = (__u16)*S;
+#endif
+          }
+          ++S;
+          ++D;
+          --w;
+     }
+
+     if (l & 1) {                 /* do the last potential pixel */
+          if (*((__u16*)D) == Lkey)
+               *((__u16*)D) = *((__u16*)S);
+     }
+
+}
+
 static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
 {
      int    w, l = gfxs->length;
@@ -710,26 +765,24 @@ static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
           __u32 dpixel = *D;
           __u16 *tmp = (__u16*)D;
 
-          if (dpixel == DDkey) {
-               if ((dpixel & 0xFFFF0000) == (DDkey & 0xFFFF0000)) {
-                    if ((dpixel & 0x0000FFFF) == (DDkey & 0x0000FFFF)) {
-                         *D = *S;
-                    }
-                    else {
-#ifdef WORDS_BIGENDIAN
-                         tmp[0] = (__u16)(*S >> 16);
-#else
-                         tmp[1] = (__u16)(*S >> 16);
-#endif
-                    }
+          if ((dpixel & 0xFFFF0000) == (DDkey & 0xFFFF0000)) {
+               if ((dpixel & 0x0000FFFF) == (DDkey & 0x0000FFFF)) {
+                    *D = *S;
                }
                else {
 #ifdef WORDS_BIGENDIAN
-                    tmp[1] = (__u16)*S;
+                    tmp[0] = (__u16)(*S >> 16);
 #else
-                    tmp[0] = (__u16)*S;
+                    tmp[1] = (__u16)(*S >> 16);
 #endif
                }
+          }
+          else if ((dpixel & 0x0000FFFF) == (DDkey & 0x0000FFFF)) {
+#ifdef WORDS_BIGENDIAN
+               tmp[1] = (__u16)*S;
+#else
+               tmp[0] = (__u16)*S;
+#endif
           }
           ++S;
           ++D;
@@ -760,7 +813,7 @@ static void Bop_rgb32_toK_Aop( GenefxState *gfxs )
 }
 
 static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
-     NULL,
+     Bop_rgb15_toK_Aop,
      Bop_rgb16_toK_Aop,
      NULL,
      Bop_rgb32_toK_Aop,
