@@ -222,7 +222,7 @@ static DisplayLayerFuncs primaryLayerFuncs = {
 static DFBResult dfb_fbdev_read_modes();
 static DFBResult dfb_fbdev_set_gamma_ramp( DFBSurfacePixelFormat format );
 static DFBResult dfb_fbdev_set_rgb332_palette();
-static DFBResult dfb_fbdev_pan( int offset );
+static DFBResult dfb_fbdev_pan( int offset, bool onsync );
 static DFBResult dfb_fbdev_blank( int level );
 static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                                      VideoMode             *mode,
@@ -973,7 +973,8 @@ primaryFlipBuffers       ( DisplayLayer               *layer,
           dfb_layer_wait_vsync( layer );
 
      ret = dfb_fbdev_pan( surface->back_buffer->video.offset /
-                          surface->back_buffer->video.pitch );
+                          surface->back_buffer->video.pitch,
+                          (flags & DSFLIP_WAITFORSYNC) == DSFLIP_ONSYNC );
      if (ret)
           return ret;
 
@@ -1366,7 +1367,7 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 /*
  * pans display (flips buffer) using fbdev ioctl
  */
-static DFBResult dfb_fbdev_pan( int offset )
+static DFBResult dfb_fbdev_pan( int offset, bool onsync )
 {
      struct fb_var_screeninfo *var;
 
@@ -1381,6 +1382,7 @@ static DFBResult dfb_fbdev_pan( int offset )
 
      var->xoffset = 0;
      var->yoffset = offset;
+     var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
 
      dfb_gfxcard_sync();
 
@@ -1751,7 +1753,7 @@ static DFBResult dfb_fbdev_set_mode( DisplayLayer          *layer,
                     break;
           }
 
-          dfb_fbdev_pan(0);
+          dfb_fbdev_pan( 0, false );
 
           dfb_gfxcard_after_set_var();
 
