@@ -65,8 +65,6 @@ void dfb_dbg_print_memleaks()
                          d->mem, d->allocated_in_func, d->allocated_in_file,
                          d->allocated_in_line);
           }
-
-          free( alloc_list );
      }
 
      pthread_mutex_unlock( &alloc_lock );
