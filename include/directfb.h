@@ -1710,31 +1710,31 @@ typedef struct {
  * Capabilities of a display encoder.
  */
 typedef enum {
-     DSECAPS_NONE        = 0x00000000,
+     DSECAPS_NONE         = 0x00000000,
 
-     DSECAPS_TV_NORMS    = 0x00000001
+     DSECAPS_TV_STANDARDS = 0x00000001
 } DFBScreenEncoderCapabilities;
 
 /*
  * Type of display encoder.
  */
 typedef enum {
-     DSET_UNKNOWN        = 0x00000000,
+     DSET_UNKNOWN         = 0x00000000,
 
-     DSET_CRTC           = 0x00000001,
-     DSET_TV             = 0x00000002
+     DSET_CRTC            = 0x00000001,
+     DSET_TV              = 0x00000002
 } DFBScreenEncoderType;
 
 /*
- * TV norms.
+ * TV standards.
  */
 typedef enum {
-     DSETV_UNKNOWN       = 0x00000000,
+     DSETV_UNKNOWN        = 0x00000000,
 
-     DSETV_PAL           = 0x00000001,
-     DSETV_NTSC          = 0x00000002,
-     DSETV_SECAM         = 0x00000004
-} DFBScreenEncoderTVNorms;
+     DSETV_PAL            = 0x00000001,
+     DSETV_NTSC           = 0x00000002,
+     DSETV_SECAM          = 0x00000004
+} DFBScreenEncoderTVStandards;
 
 /*
  * Description of a display encoder.
@@ -1743,7 +1743,7 @@ typedef struct {
      DFBScreenEncoderCapabilities  caps;
      DFBScreenEncoderType          type;
 
-     DFBScreenEncoderTVNorms       tv_norms;
+     DFBScreenEncoderTVStandards   tv_standards;
 } DFBScreenEncoderDescription;
 
 /*******************

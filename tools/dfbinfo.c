@@ -49,7 +49,7 @@ static const DirectFBDisplayLayerCapabilitiesNames(layer_caps);
 static const DirectFBScreenCapabilitiesNames(screen_caps);
 static const DirectFBScreenEncoderCapabilitiesNames(encoder_caps);
 static const DirectFBScreenEncoderTypeNames(encoder_type);
-static const DirectFBScreenEncoderTVNormsNames(tv_norms);
+static const DirectFBScreenEncoderTVStandardsNames(tv_standards);
 static const DirectFBScreenOutputCapabilitiesNames(output_caps);
 static const DirectFBScreenOutputConnectorsNames(connectors);
 static const DirectFBScreenOutputSignalsNames(signals);
@@ -264,7 +264,7 @@ dump_encoders( IDirectFBScreen *screen,
 
 
           /* Caps */
-          printf( "     Caps:     " );
+          printf( "     Caps:         " );
 
           for (n=0; encoder_caps[n].capability; n++) {
                if (descs[i].caps & encoder_caps[n].capability)
@@ -275,11 +275,11 @@ dump_encoders( IDirectFBScreen *screen,
 
 
           /* TV Norms */
-          printf( "     TV Norms: " );
+          printf( "     TV Standards: " );
 
-          for (n=0; tv_norms[n].norm; n++) {
-               if (descs[i].tv_norms & tv_norms[n].norm)
-                    printf( "%s ", tv_norms[n].name );
+          for (n=0; tv_standards[n].standard; n++) {
+               if (descs[i].tv_standards & tv_standards[n].standard)
+                    printf( "%s ", tv_standards[n].name );
           }
 
           printf( "\n" );

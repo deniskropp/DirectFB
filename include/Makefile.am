@@ -62,7 +62,7 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	./mknames.sh DFBScreenEncoderType DSET UNKNOWN ScreenEncoderType type directfb.h \
 	   | grep -v DSET_ALL >> $@
 
-	./mknames.sh DFBScreenEncoderTVNorms DSETV UNKNOWN ScreenEncoderTVNorms norm directfb.h \
+	./mknames.sh DFBScreenEncoderTVStandards DSETV UNKNOWN ScreenEncoderTVStandards standard directfb.h \
 	   | grep -v DSETV_ALL >> $@
 
 	./mknames.sh DFBScreenOutputCapabilities DSOCAPS NONE ScreenOutputCapabilities capability directfb.h \

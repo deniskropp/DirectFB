@@ -91,11 +91,11 @@ crtc2InitEncoder( CoreScreen                  *screen,
                   DFBScreenEncoderDescription *description )
 {
      /* Set the encoder capabilities & type. */
-     description->caps = DSECAPS_TV_NORMS;
+     description->caps = DSECAPS_TV_STANDARDS;
      description->type = DSET_TV;
 
-     /* Set supported TV norms. */
-     description->tv_norms = DSETV_PAL | DSETV_NTSC;
+     /* Set supported TV standards. */
+     description->tv_standards = DSETV_PAL | DSETV_NTSC;
 
      return DFB_OK;
 }
