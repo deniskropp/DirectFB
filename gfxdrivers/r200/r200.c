@@ -686,28 +686,26 @@ static struct {
      char        igp;
      const char *name;
 } dev_table[] = {
-     { 0x4137, 1, "Radeon IGP330/340/350" },
-     { 0x4337, 1, "Radeon IGP330M/340M/350M" },
-     { 0x4237, 1, "Radeon 7000 IGP" },
-     { 0x4437, 1, "Radeon Mobility 7000 IGP" },
-     { 0x5148, 0, "FireGL 8700/8800 QH" },
      { 0x514c, 0, "Radeon 8500 QL" },
-     { 0x514d, 0, "Radeon 9100 QM" },
      { 0x4242, 0, "Radeon 8500 AIW BB" },
      { 0x4243, 0, "Radeon 8500 AIW BC" },
-     { 0x5157, 0, "Radeon 7500 QW" },
-     { 0x5158, 0, "Radeon 7500 QX" },
      { 0x4966, 0, "Radeon 9000/PRO If" },
      { 0x4967, 0, "Radeon 9000 Ig" },
-     { 0x4c64, 0, "FireGL Mobility 9000 (M9) Ld" },
      { 0x4c66, 0, "Radeon Mobility 9000 (M9) Lf" },
      { 0x4c67, 0, "Radeon Mobility 9000 (M9) Lg" },
+     { 0x514d, 0, "Radeon 9100 QM" },
+     { 0x5834, 1, "Radeon 9100 IGP (A5)" },
+     { 0x5835, 1, "Radeon Mobility 9100 IGP (U3)" },
+     { 0x7834, 1, "Radeon 9100 PRO IGP" },
      { 0x5960, 0, "Radeon 9200PRO" },
      { 0x5961, 0, "Radeon 9200" },
      { 0x5962, 0, "Radeon 9200" },
      { 0x5964, 0, "Radeon 9200SE" },
      { 0x5c61, 0, "Radeon Mobility 9200 (M9+)" },
-     { 0x5c63, 0, "Radeon Mobility 9200 (M9+)" }
+     { 0x5c63, 0, "Radeon Mobility 9200 (M9+)" },
+     { 0x7835, 1, "Radeon Mobility 9200 IGP" },
+     { 0x5148, 0, "FireGL 8700/8800 QH" },
+     { 0x4c64, 0, "FireGL Mobility 9000 (M9) Ld" }
 };
 
 static int 
@@ -816,7 +814,7 @@ driver_get_info( GraphicsDevice     *device,
      /* fill driver info structure */
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH,
-               "ATI Radeon R200/RS200/RV200/RV250/RV280 Driver" );
+               "ATI Radeon R200/RV250/RV280/RS300/RS350 Driver" );
 
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,

@@ -1,26 +1,24 @@
 
 Supported cards:
-     Radeon IGP330/340/350
-     Radeon IGP330M/340M/350M
-     Radeon 7000 IGP
-     Radeon Mobility 7000 IGP 
-     Radeon 7500 QW
-     Radeon 7500 QX
      Radeon 8500 QL
      Radeon 8500 AIW BB
      Radeon 8500 AIW BC
      Radeon 9000/PRO If
      Radeon 9000 Ig
      Radeon Mobility 9000 (M9) Lf
-     Radeon Mobility 9000 (M9) Lg 
+     Radeon Mobility 9000 (M9) Lg
      Radeon 9100 QM
+     Radeon 9100 IGP (A5)
+     Radeon Mobility 9100 IGP (U3)
+     Radeon 9100 PRO IGP
      Radeon 9200
      Radeon 9200PRO
      Radeon 9200SE
      Radeon Mobility 9200 (M9+)
+     Radeon Mobility 9200 IGP
      FireGL 8700/8800 QH
      FireGL Mobility 9000 (M9) Ld
-
+     
 
 Issues:
      After quitting X (Xorg/Xfree configured to use the radeon driver),
