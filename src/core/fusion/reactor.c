@@ -219,11 +219,8 @@ reactor_detach (FusionReactor *reactor,
 
                /* if it was the last reaction cancel our receiver thread and free the node */
                if (!reactor->node[index].reactions) {
-                    /* if this is our node */
-                    if (reactor->node[index].id == _fusion_id()) {
-                         dfb_thread_cancel (reactor->node[index].receiver);
-                         dfb_thread_join (reactor->node[index].receiver);
-                    }
+                    dfb_thread_cancel (reactor->node[index].receiver);
+                    dfb_thread_join (reactor->node[index].receiver);
 
                     fusion_ref_destroy (&reactor->node[index].ref);
 
@@ -372,8 +369,6 @@ void *_reactor_receive (CoreThread *thread, void *arg)
      void          *message;
      FusionReactor *reactor = (FusionReactor*) arg;
 
-     dfb_sig_block_all();
-
      /* find our node and return if it hasn't been found */
      index = _reactor_get_node_index (reactor);
      if (index < 0) {
@@ -395,7 +390,7 @@ void *_reactor_receive (CoreThread *thread, void *arg)
                if (errno == EINTR)
                     continue;
 
-               if (errno == EIDRM)
+               if (errno == EIDRM || errno == EINVAL)
                     FDEBUG("reactor vanished\n");
                else
                     FPERROR("msgrcv failed\n");
