@@ -473,14 +473,10 @@ DFBResult dfb_fbdev_wait_vsync()
 
 /** primary layer functions **/
 
-typedef struct {
-     int foo;
-} PrimaryLayerData;
-
 static int
 primaryLayerDataSize     ()
 {
-     return sizeof(PrimaryLayerData);
+     return 0;
 }
      
 static DFBResult

@@ -274,6 +274,41 @@ dfb_layers_register( GraphicsDevice    *device,
      dfb_layers[dfb_num_layers++] = layer;
 }
 
+typedef void (*AnyFunc)();
+
+void
+dfb_layers_hook_primary( GraphicsDevice     *device,
+                         void               *driver_data,
+                         DisplayLayerFuncs  *funcs,
+                         DisplayLayerFuncs  *primary_funcs,
+                         void              **primary_driver_data )
+{
+     int           i;
+     int           entries;
+     DisplayLayer *primary = dfb_layers[0];
+
+     DFB_ASSERT( primary != NULL );
+     DFB_ASSERT( funcs != NULL );
+
+     /* copy content of original function table */
+     if (primary_funcs)
+          memcpy( primary_funcs, primary->funcs, sizeof(DisplayLayerFuncs) );
+
+     /* copy pointer to original driver data */
+     if (primary_driver_data)
+          *primary_driver_data = primary->driver_data;
+
+     /* replace all entries in the old table that aren't NULL in the new one */
+     entries = sizeof(DisplayLayerFuncs) / sizeof(void(*)());
+     for (i=0; i<entries; i++) {
+          AnyFunc *newfuncs = (AnyFunc*) funcs;
+          AnyFunc *oldfuncs = (AnyFunc*) primary->funcs;
+
+          if (newfuncs[i])
+               oldfuncs[i] = newfuncs[i];
+     }
+}
+
 DFBResult
 dfb_layers_init_all()
 {
@@ -281,9 +316,10 @@ dfb_layers_init_all()
      int       i;
 
      for (i=0; i<dfb_num_layers; i++) {
-          DisplayLayer       *layer = dfb_layers[i];
+          int                 layer_data_size;
           DisplayLayerShared *shared;
-
+          DisplayLayer       *layer = dfb_layers[i];
+          
           /* allocate shared data */
           shared = shcalloc( 1, sizeof(DisplayLayerShared) );
 
@@ -294,7 +330,9 @@ dfb_layers_init_all()
           fusion_property_init( &shared->lock );
 
           /* allocate shared layer driver data */
-          shared->layer_data = shcalloc( 1, layer->funcs->LayerDataSize() );
+          layer_data_size = layer->funcs->LayerDataSize();
+          if (layer_data_size > 0)
+               shared->layer_data = shcalloc( 1, layer_data_size );
 
           /* set default opacity */
           shared->opacity = 0xFF;

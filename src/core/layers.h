@@ -150,9 +150,27 @@ DFBResult dfb_layers_suspend();
 DFBResult dfb_layers_resume();
 #endif
 
+/*
+ * Add a layer to a graphics device by pointing to a table
+ * containing driver functions. The supplied driver data
+ * will be passed to these functions.
+ */
 void dfb_layers_register( GraphicsDevice    *device,
                           void              *driver_data,
                           DisplayLayerFuncs *funcs );
+
+/*
+ * Replace functions of the primary layer implementation by passing
+ * an alternative driver function table. All non-NULL functions in the new
+ * table replace the functions in the original function table.
+ * The original function table is written to 'primary_funcs' before to allow
+ * drivers to use existing functionality from the original implementation.
+ */
+void dfb_layers_hook_primary( GraphicsDevice     *device,
+                              void               *driver_data,
+                              DisplayLayerFuncs  *funcs,
+                              DisplayLayerFuncs  *primary_funcs,
+                              void              **primary_driver_data );
 
 typedef DFBEnumerationResult (*DisplayLayerCallback) (DisplayLayer *layer,
                                                       void         *ctx);
