@@ -88,7 +88,13 @@ fi
 #
 # Build it.
 #
-COMMAND="$DIET gcc $CFLAGS -o $1 $1.c -static $INPUT $GRAPHICS $INTERFACES -ldirectfb -lpthread $SYSTEMS"
+if [ -n "$2" ]; then
+	FILES="$*"
+else
+	FILES="$1 $1.c"
+fi
+
+COMMAND="$DIET gcc $CFLAGS -o $FILES -static $INPUT $GRAPHICS $INTERFACES -ldirectfb -lpthread $SYSTEMS"
 
 echo $COMMAND
 $COMMAND
