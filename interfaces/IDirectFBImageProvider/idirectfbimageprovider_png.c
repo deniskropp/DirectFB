@@ -484,7 +484,8 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
           if (data->stage < 0)
                return DFB_FAILURE;
 
-          buffer->WaitForData( buffer, 1 );
+          if (buffer->WaitForData( buffer, 1 ) == DFB_BUFFEREMPTY)
+               return DFB_FAILURE;
           
           while (buffer->HasData( buffer ) == DFB_OK) {
                ret = buffer->GetData( buffer, buffer_size, buf, &len );
