@@ -29,6 +29,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 #include <sys/vt.h>
+#include <errno.h>
 
 #include "core.h"
 #include "coredefs.h"
@@ -74,14 +75,36 @@ DFBResult vt_open()
      vt = (VirtualTerminal*)malloc( sizeof(VirtualTerminal) );
 
      setsid();
-     vt->fd = open( "/dev/console", O_WRONLY );
+     vt->fd = open( "/dev/tty0", O_WRONLY );
      if (vt->fd < 0) {
-          PERRORMSG( "DirectFB/core/vt: Cannot open `/dev/console'!\n" );
-          free( vt );
-          vt = NULL;
-          return DFB_INIT;
-     }
+          if (errno == ENOENT) {
+               vt->fd = open( "/dev/vc/0", O_RDWR );
+               if (vt->fd < 0) {
+                    if (errno == ENOENT) {
+                         PERRORMSG( "DirectFB/core/vt: Couldn't open "
+                                    "neither `/dev/tty0' nor `/dev/vc/0'!\n" );
+                    }
+                    else {
+                         PERRORMSG( "DirectFB/core/vt: "
+                                    "Error opening `/dev/vc/0'!\n" );
+                    }
      
+                    free( vt );
+                    vt = NULL;
+     
+                    return DFB_INIT;
+               }
+          }
+          else {
+               PERRORMSG( "DirectFB/core/vt: Error opening `/dev/tty0'!\n");
+     
+               free( vt );
+               vt = NULL;
+     
+               return DFB_INIT;
+          }
+     }
+
      if (ioctl( vt->fd, VT_GETSTATE, &vs ) < 0) {
           PERRORMSG( "DirectFB/core/vt: VT_GETSTATE failed!\n" );
           close( vt->fd );
