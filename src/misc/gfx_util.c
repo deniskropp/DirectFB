@@ -319,10 +319,10 @@ static void scale_pixel( int *weights, int n_x, int n_y,
           }
       }
 
-     r = (r >> 24) == 0xFF ? 0xFF : (r >> 24) + ((r >> 23) & 0x1);
-     g = (g >> 24) == 0xFF ? 0xFF : (g >> 24) + ((g >> 23) & 0x1);
-     b = (b >> 24) == 0xFF ? 0xFF : (b >> 24) + ((b >> 23) & 0x1);
-     a = (a >> 16) == 0xFF ? 0xFF : (a >> 16) + ((a >> 15) & 0x1);
+     r = (r >> 24) == 0xFF ? 0xFF : (r + 0x800000) >> 24;
+     g = (g >> 24) == 0xFF ? 0xFF : (g + 0x800000) >> 24;
+     b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
+     a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
 
      rgba_to_dst_format( dst, r, g, b, a, dst_format );
 }
@@ -364,11 +364,11 @@ static char *scale_line( int *weights, int n_x, int n_y, __u8 *dst,
                }
           }
 
-          r = (r >> 24) == 0xFF ? 0xFF : (r >> 24) + ((r >> 23) & 0x1);
-          g = (g >> 24) == 0xFF ? 0xFF : (g >> 24) + ((g >> 23) & 0x1);
-          b = (b >> 24) == 0xFF ? 0xFF : (b >> 24) + ((b >> 23) & 0x1);
-          a = (a >> 16) == 0xFF ? 0xFF : (a >> 16) + ((a >> 15) & 0x1);
-          
+          r = (r >> 24) == 0xFF ? 0xFF : (r + 0x800000) >> 24;
+          g = (g >> 24) == 0xFF ? 0xFF : (g + 0x800000) >> 24;
+          b = (b >> 24) == 0xFF ? 0xFF : (b + 0x800000) >> 24;
+          a = (a >> 16) == 0xFF ? 0xFF : (a + 0x8000) >> 16;
+
           rgba_to_dst_format( dst, r, g, b, a, dst_format );
 
           dst += DFB_BYTES_PER_PIXEL (dst_format);
