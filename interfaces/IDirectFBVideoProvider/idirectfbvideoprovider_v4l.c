@@ -96,20 +96,20 @@ typedef struct {
      int                      fd;
 #ifdef HAVE_V4L2
 #define NUMBER_OF_BUFFERS 2
-	bool is_v4l2;
+     bool is_v4l2;
 	
-	struct v4l2_format fmt;
-	struct v4l2_capability caps;
+     struct v4l2_format fmt;
+     struct v4l2_capability caps;
 	
-	struct v4l2_queryctrl brightness;
-	struct v4l2_queryctrl contrast;
-	struct v4l2_queryctrl saturation;
-	struct v4l2_queryctrl hue;
+     struct v4l2_queryctrl brightness;
+     struct v4l2_queryctrl contrast;
+     struct v4l2_queryctrl saturation;
+     struct v4l2_queryctrl hue;
 
-	struct v4l2_requestbuffers req;
-	struct v4l2_buffer vidbuf[NUMBER_OF_BUFFERS];
-	char *ptr[NUMBER_OF_BUFFERS];	/* only used for capture to system memory */
-	bool framebuffer_or_system;
+     struct v4l2_requestbuffers req;
+     struct v4l2_buffer vidbuf[NUMBER_OF_BUFFERS];
+     char *ptr[NUMBER_OF_BUFFERS];	/* only used for capture to system memory */
+     bool framebuffer_or_system;
 #endif
      struct video_capability  vcap;
      struct video_mmap        vmmap;
@@ -330,7 +330,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 } else {
 #endif
      data->grab_mode = 0;
-     if (surface->caps & DSCAPS_SYSTEMONLY
+     if ( getenv("DFB_V4L_GRAB") || surface->caps & DSCAPS_SYSTEMONLY
          || surface->caps & DSCAPS_FLIPPING
          || !(VID_TYPE_OVERLAY & data->vcap.type))
           data->grab_mode = 1;
