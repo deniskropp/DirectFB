@@ -944,6 +944,9 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
 #define FONT_BLITTINGFLAGS   (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE)
 
+static CardState font_state;
+static bool      font_state_init = false;
+
 void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                              int x, int y,
                              CoreFont *font, CardState *state )
@@ -960,32 +963,41 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      int offset;
      int blit = 0;
 
-     int restore_blittingflags = 0;
-     DFBSurfaceBlittingFlags original_blittingflags = 0;
+     if (!font_state_init) {
+          memset( &font_state, 0, sizeof(CardState) );
 
-     dfb_state_lock( state );
+          dfb_state_init( &font_state );
+          
+          font_state.blittingflags = FONT_BLITTINGFLAGS;
+          font_state.src_blend     = DSBF_SRCALPHA;
+          font_state.dst_blend     = DSBF_INVSRCALPHA;
+          font_state.modified      = SMF_ALL;
+          
+          font_state_init = true;
+     }
+
+
+     dfb_state_lock( &font_state );
      dfb_font_lock( font );
 
      /* simple prechecks */
      if (y + font->height <= state->clip.y1) {
           dfb_font_unlock( font );
-          dfb_state_unlock( state );
+          dfb_state_unlock( &font_state );
           return;
      }
      if (y > state->clip.y2) {
           dfb_font_unlock( font );
-          dfb_state_unlock( state );
+          dfb_state_unlock( &font_state );
           return;
      }
 
-     dfb_state_set_source( state, NULL );
+     dfb_state_set_destination( &font_state, state->destination );
 
-     if (state->blittingflags != FONT_BLITTINGFLAGS) {
-          restore_blittingflags = 1;
-          original_blittingflags = state->blittingflags;
-          state->blittingflags = FONT_BLITTINGFLAGS;
-          state->modified |= SMF_BLITTING_FLAGS;
-     }
+     /* set clip and color */
+     font_state.clip         = state->clip;
+     font_state.color        = state->color;
+     font_state.modified    |= SMF_CLIP | SMF_COLOR;
 
      for (offset = 0; offset < bytes; offset += dfb_utf8_skip[text[offset]]) {
 
@@ -1009,42 +1021,41 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                     int xx = x + data->left;
                     int yy = y + data->top;
 
-                    if (state->source != data->surface) {
+                    if (font_state.source != data->surface || !blit) {
                          switch (blit) {
                               case 1:
-                                   dfb_gfxcard_state_release( state );
+                                   dfb_gfxcard_state_release( &font_state );
                                    break;
                               case 2:
-                                   gRelease( state );
+                                   gRelease( &font_state );
                                    break;
                               default:
                                    break;
                          }
-                         state->source = data->surface;
-                         state->modified |= SMF_SOURCE;
+                         dfb_state_set_source( &font_state, data->surface );
 
-                         if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
-                             dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
+                         if (dfb_gfxcard_state_check( &font_state, DFXL_BLIT ) &&
+                             dfb_gfxcard_state_acquire( &font_state, DFXL_BLIT ))
                               blit = 1;
-                         else if (gAquire( state, DFXL_BLIT ))
+                         else if (gAquire( &font_state, DFXL_BLIT ))
                               blit = 2;
                          else
                               blit = 0;
                     }
 
-                    if (dfb_clip_blit_precheck( &state->clip,
+                    if (dfb_clip_blit_precheck( &font_state.clip,
                                                 rect.w, rect.h, xx, yy )) {
                          switch (blit) {
                               case 1:
                                    if (!hw_clipping)
-                                        dfb_clip_blit( &state->clip,
+                                        dfb_clip_blit( &font_state.clip,
                                                        &rect, &xx, &yy );
                                    card->funcs.Blit( card->driver_data,
                                                      card->device_data,
                                                      &rect, xx, yy );
                                    break;
                               case 2:
-                                   dfb_clip_blit( &state->clip,
+                                   dfb_clip_blit( &font_state.clip,
                                                   &rect, &xx, &yy );
                                    gBlit( &rect, xx, yy );
                                    break;
@@ -1060,25 +1071,17 @@ void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 
      switch (blit) {
           case 1:
-               dfb_gfxcard_state_release( state );
+               dfb_gfxcard_state_release( &font_state );
                break;
           case 2:
-               gRelease( state );
+               gRelease( &font_state );
                break;
           default:
                break;
      }
 
-     state->source = NULL;
-     state->modified |= SMF_SOURCE;
-
-     if (restore_blittingflags) {
-          state->blittingflags = original_blittingflags;
-          state->modified |= SMF_BLITTING_FLAGS;
-     }
-
      dfb_font_unlock( font );
-     dfb_state_unlock( state );
+     dfb_state_unlock( &font_state );
 }
 
 volatile void *dfb_gfxcard_map_mmio( GraphicsDevice *device,

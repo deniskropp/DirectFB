@@ -109,7 +109,7 @@ DFBResult dfb_font_get_glyph_data( CoreFont        *font,
                     font->surfaces = DFBREALLOC(font->surfaces,
                                               sizeof (void *) * font->rows);
 
-                    dfb_surface_create( font->row_width, font->height,
+                    dfb_surface_create( font->row_width, MAX( font->height, 8 ),
                                         dfb_config->argb_font ? DSPF_ARGB : DSPF_A8,
                                         CSP_VIDEOHIGH, DSCAPS_NONE,
                                         &font->surfaces[font->rows - 1] );
