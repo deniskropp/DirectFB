@@ -1,11 +1,11 @@
-General
---------
+General (roughly sorted by priority)
+-------------------------------------
 
 Modularize pixel formats (eventually with dynamic extension support).
 
 Change already modularized systems to be modules (currently always builtin).
 
-Finish VT switching
+Finish VT switching (already working well after 0.9.18 release)
  - Save/redirect video only buffers.
  - Handle auto video buffers being permanently locked in video memory.
 
