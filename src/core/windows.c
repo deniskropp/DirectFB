@@ -168,6 +168,7 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBWindowCapabilities   caps,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
+                   CorePalette            *palette,
                    CoreWindow            **ret_window )
 {
      DFBResult               ret;
@@ -282,23 +283,10 @@ dfb_window_create( CoreWindowStack        *stack,
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
-          if (context->config.buffermode == DLBM_WINDOWS) {
-               ret = dfb_surface_create( layer->core,
-                                         width, height, pixelformat,
-                                         surface_policy, surface_caps,
-                                         NULL, &surface );
-          }
-          else {
-               //CoreSurface *layer_surface = dfb_layer_surface( layer );
-
-               //DFB_ASSERT( layer_surface != NULL );
-
-               ret = dfb_surface_create( layer->core,
-                                         width, height, pixelformat,
-                                         surface_policy, surface_caps,
-                                         NULL/*layer_surface->palette*/, &surface );
-          }
-
+          ret = dfb_surface_create( layer->core,
+                                    width, height, pixelformat,
+                                    surface_policy, surface_caps,
+                                    palette, &surface );
           if (ret) {
                fusion_object_destroy( &window->object );
                return ret;

@@ -79,6 +79,7 @@ dfb_window_create( CoreWindowStack        *stack,
                    DFBWindowCapabilities   caps,
                    DFBSurfaceCapabilities  surface_caps,
                    DFBSurfacePixelFormat   pixelformat,
+                   CorePalette            *palette,
                    CoreWindow            **window );
 
 /*

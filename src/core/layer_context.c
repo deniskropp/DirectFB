@@ -784,8 +784,10 @@ dfb_layer_context_create_window( CoreLayerContext       *context,
      CoreWindow      *window;
      CoreWindowStack *stack;
      CoreLayer       *layer;
+     CoreSurface     *surface;
 
      DFB_ASSERT( context != NULL );
+     DFB_ASSERT( context->primary != NULL );
      DFB_ASSERT( context->stack != NULL );
      DFB_ASSERT( ret_window != NULL );
 
@@ -797,20 +799,29 @@ dfb_layer_context_create_window( CoreLayerContext       *context,
      if (dfb_layer_context_lock( context ))
          return DFB_FUSION;
 
-     stack = context->stack;
+     if (dfb_layer_region_lock( context->primary )) {
+          dfb_layer_context_unlock( context );
+          return DFB_FUSION;
+     }
+
+     stack   = context->stack;
+     surface = context->primary->surface;
 
      if (!stack->cursor.set)
           dfb_windowstack_cursor_enable( stack, true );
 
-     ret = dfb_window_create( stack, x, y, width, height,
-                              caps, surface_caps, pixelformat, &window );
+     ret = dfb_window_create( stack, x, y, width, height, caps, surface_caps,
+                              pixelformat, surface ? surface->palette : NULL,
+                              &window );
      if (ret) {
+          dfb_layer_region_unlock( context->primary );
           dfb_layer_context_unlock( context );
           return ret;
      }
 
      *ret_window = window;
 
+     dfb_layer_region_unlock( context->primary );
      dfb_layer_context_unlock( context );
 
      return DFB_OK;

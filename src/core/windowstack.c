@@ -1287,7 +1287,7 @@ create_cursor_window( CoreWindowStack *stack,
      /* create a super-top-most event-and-focus-less window */
      ret = dfb_window_create( stack, stack->cursor.x, stack->cursor.y,
                               width, height, DWHC_TOPMOST | DWCAPS_ALPHACHANNEL,
-                              DSCAPS_NONE, DSPF_UNKNOWN, &window );
+                              DSCAPS_NONE, DSPF_UNKNOWN, NULL, &window );
      if (ret) {
           ERRORMSG( "DirectFB/Core/layers: "
                     "Failed creating a window for software cursor!\n" );
