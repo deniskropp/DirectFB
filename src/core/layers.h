@@ -83,6 +83,11 @@ typedef struct {
                                       void                       *driver_data,
                                       void                       *layer_data,
                                       __u8                        opacity );
+
+     DFBResult (*GetCurrentOutputField) ( DisplayLayer           *layer,
+                                          void                   *driver_data,
+                                          void                   *layer_data,
+                                          int                    *field );
      
      DFBResult (*SetScreenLocation) ( DisplayLayer               *layer,
                                       void                       *driver_data,
@@ -308,6 +313,8 @@ DFBResult dfb_layer_set_screenlocation( DisplayLayer *layer,
                                         float width, float height );
 
 DFBResult dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity);
+
+DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field );
 
 DFBResult dfb_layer_set_coloradjustment (DisplayLayer       *layer,
                                          DFBColorAdjustment *adj);

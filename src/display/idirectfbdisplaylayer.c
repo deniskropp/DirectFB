@@ -218,6 +218,14 @@ IDirectFBDisplayLayer_SetOpacity( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
+IDirectFBDisplayLayer_GetCurrentOutputField( IDirectFBDisplayLayer *thiz, int *field )
+{
+     INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     return dfb_layer_get_current_output_field( data->layer, field );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_SetScreenLocation( IDirectFBDisplayLayer *thiz,
                                          float                  x,
                                          float                  y,
@@ -591,6 +599,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetSurface = IDirectFBDisplayLayer_GetSurface;
      thiz->SetCooperativeLevel = IDirectFBDisplayLayer_SetCooperativeLevel;
      thiz->SetOpacity = IDirectFBDisplayLayer_SetOpacity;
+     thiz->GetCurrentOutputField = IDirectFBDisplayLayer_GetCurrentOutputField;
      thiz->SetScreenLocation = IDirectFBDisplayLayer_SetScreenLocation;
      thiz->SetSrcColorKey = IDirectFBDisplayLayer_SetSrcColorKey;
      thiz->SetDstColorKey = IDirectFBDisplayLayer_SetDstColorKey;

@@ -1470,6 +1470,23 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           int                                 level
      );
 
+     /*
+      * For an interlaced display, this Returns the currently inactive
+      * field: 0 for an even field (the even scanlines starting at 0),
+      * and 1 for an odd field (the odd scanlines starting at 1).
+      *
+      * The inactive field is the one you should draw to next to avoid
+      * tearing, the active field is the one currently being displayed.
+      *
+      * For a progressive output, this should always return 0.  We should
+      * also have some other call to indicate whether the display layer
+      * is interlaced or progressive, but this is a start.
+      */
+     DFBResult (*GetCurrentOutputField) (
+          IDirectFBDisplayLayer              *thiz,
+          int                                *field
+     );
+
 
    /** Configuration handling **/
 

@@ -1084,6 +1084,21 @@ dfb_layer_set_opacity (DisplayLayer *layer, __u8 opacity)
      return DFB_OK;
 }
 
+DFBResult dfb_layer_get_current_output_field( DisplayLayer *layer, int *field )
+{
+     DFBResult ret;
+
+     if (!layer->funcs->GetCurrentOutputField)
+          return DFB_UNSUPPORTED;
+     
+     ret = layer->funcs->GetCurrentOutputField( layer, layer->driver_data,
+                                                layer->layer_data, field );
+     if (ret)
+          return ret;
+
+     return DFB_OK;
+}
+
 DFBResult
 dfb_layer_set_coloradjustment (DisplayLayer       *layer,
                                DFBColorAdjustment *adj)

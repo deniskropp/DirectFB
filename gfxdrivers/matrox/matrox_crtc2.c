@@ -364,6 +364,23 @@ crtc2SetOpacity( DisplayLayer *layer,
      return DFB_OK;
 }
 
+static DFBResult
+crtc2GetCurrentOutputField( DisplayLayer *layer,
+                            void         *driver_data,
+                            void         *layer_data,
+                            int          *field )
+{
+     MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
+     int mga_field = ( mga_in32( mdrv->mmio_base, C2VCOUNT ) >> 24 ) & 1;
+
+     if( field ) {
+          *field = mga_field;
+          return DFB_OK;
+     } else {
+          return DFB_INVARG;
+     }
+}
+
 DisplayLayerFuncs matroxCrtc2Funcs = {
      LayerDataSize:      crtc2LayerDataSize,
      InitLayer:          crtc2InitLayer,
@@ -373,7 +390,8 @@ DisplayLayerFuncs matroxCrtc2Funcs = {
      SetConfiguration:   crtc2SetConfiguration,
      FlipBuffers:        crtc2FlipBuffers,
      SetColorAdjustment: crtc2SetColorAdjustment,
-     SetOpacity:         crtc2SetOpacity
+     SetOpacity:         crtc2SetOpacity,
+     GetCurrentOutputField: crtc2GetCurrentOutputField
 };
 
 /* internal */
