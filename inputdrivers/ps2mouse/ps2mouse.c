@@ -395,7 +395,6 @@ driver_open_device( InputDevice      *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-
      int           fd, mouseId;
      PS2MouseData *data;
 
