@@ -520,17 +520,34 @@ typedef struct {
 } DFBCardCapabilities;
 
 /*
+ * Type of display layer for basic classification.
+ * Values may be or'ed together.
+ */
+typedef enum {
+     DLTF_NONE           = 0x00000000,  /* Unclassified, no specific type. */
+
+     DLTF_GRAPHICS       = 0x00000001,  /* Can be used for graphics output. */
+     DLTF_VIDEO          = 0x00000002,  /* Can be used for live video output. */
+     DLTF_STILL_PICTURE  = 0x00000004,  /* Can be used for single frames. */
+     DLTF_BACKGROUND     = 0x00000008,  /* Can be used as a background layer. */
+
+     DLTF_ALL            = 0x0000000F   /* All type flags set. */
+} DFBDisplayLayerTypeFlags;
+
+/*
  * Type of input device for basic classification.
  * Values may be or'ed together.
  */
 typedef enum {
-     DIDTF_KEYBOARD      = 0x00000001,  /* can act as a keyboard */
-     DIDTF_MOUSE         = 0x00000002,  /* can be used as a mouse */
-     DIDTF_JOYSTICK      = 0x00000004,  /* can be used as a joystick */
-     DIDTF_REMOTE        = 0x00000008,  /* device is a remote control */
-     DIDTF_VIRTUAL       = 0x00000010,  /* virtual input device */
+     DIDTF_NONE          = 0x00000000,  /* Unclassified, no specific type. */
 
-     DIDTF_ALL           = 0x0000001F   /* all type flags */
+     DIDTF_KEYBOARD      = 0x00000001,  /* Can act as a keyboard. */
+     DIDTF_MOUSE         = 0x00000002,  /* Can be used as a mouse. */
+     DIDTF_JOYSTICK      = 0x00000004,  /* Can be used as a joystick. */
+     DIDTF_REMOTE        = 0x00000008,  /* Is a remote control. */
+     DIDTF_VIRTUAL       = 0x00000010,  /* Is a virtual input device. */
+
+     DIDTF_ALL           = 0x0000001F   /* All type flags set. */
 } DFBInputDeviceTypeFlags;
 
 /*
@@ -739,6 +756,17 @@ typedef struct {
 } DFBSurfaceDescription;
 
 /*
+ * Description of the display layer capabilities.
+ */
+typedef struct {
+     DFBDisplayLayerTypeFlags           type;        /* Classification of the
+                                                        display layer. */
+     DFBDisplayLayerCapabilities        caps;        /* Capability flags of
+                                                        the display layer. */
+
+} DFBDisplayLayerDescription;
+
+/*
  * Description of the input device capabilities.
  */
 typedef struct {
@@ -808,7 +836,7 @@ typedef DFBEnumerationResult (*DFBVideoModeCallback) (
  */
 typedef DFBEnumerationResult (*DFBDisplayLayerCallback) (
      DFBDisplayLayerID                  layer_id,
-     DFBDisplayLayerCapabilities        caps,
+     DFBDisplayLayerDescription         desc,
      void                              *callbackdata
 );
 
@@ -1227,11 +1255,11 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      );
 
      /*
-      * Get the layer's capabilities.
+      * Get a description of this display layer, i.e. the capabilities.
       */
-     DFBResult (*GetCapabilities) (
+     DFBResult (*GetDescription) (
           IDirectFBDisplayLayer              *thiz,
-          DFBDisplayLayerCapabilities        *caps
+          DFBDisplayLayerDescription         *desc
      );
 
 

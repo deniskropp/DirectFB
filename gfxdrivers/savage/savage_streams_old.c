@@ -185,11 +185,13 @@ savageSecondaryInitLayer( GraphicsDevice             *device,
     
      SVGDBG("savageSecondaryInitLayer\n");
     
-     /* set capabilities */
-     layer_info->caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION |
-                        DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST | DLCAPS_OPACITY |
-                        DLCAPS_HUE | DLCAPS_SATURATION | DLCAPS_ALPHACHANNEL |
-                        DLCAPS_SRC_COLORKEY | DLCAPS_DST_COLORKEY;
+     /* set capabilities and type */
+     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION |
+                             DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
+                             DLCAPS_OPACITY | DLCAPS_HUE | DLCAPS_SATURATION |
+                             DLCAPS_ALPHACHANNEL | DLCAPS_SRC_COLORKEY |
+                             DLCAPS_DST_COLORKEY;
+     layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
      
      /* set name */
      snprintf(layer_info->name, DFB_DISPLAY_LAYER_INFO_NAME_LENGTH,
@@ -763,8 +765,9 @@ savagePrimaryInitLayer( GraphicsDevice             *device,
             dfb_config->mode.width, dfb_config->mode.height,
             dfb_config->mode.depth);
     
-     /* set capabilities */
-     layer_info->caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION;
+     /* set capabilities and type */
+     layer_info->desc.caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION;
+     layer_info->desc.type = DLTF_GRAPHICS;
      
      /* set name */
      snprintf(layer_info->name, DFB_DISPLAY_LAYER_INFO_NAME_LENGTH,

@@ -779,10 +779,12 @@ IDirectFB_Construct( IDirectFB *thiz )
 static DFBEnumerationResult
 EnumDisplayLayers_Callback( DisplayLayer *layer, void *ctx )
 {
-     EnumDisplayLayers_Context *context = (EnumDisplayLayers_Context*) ctx;
+     DFBDisplayLayerDescription  desc;
+     EnumDisplayLayers_Context  *context = (EnumDisplayLayers_Context*) ctx;
 
-     return context->callback( dfb_layer_id( layer ),
-                               dfb_layer_capabilities( layer ),
+     dfb_layer_description( layer, &desc );
+
+     return context->callback( dfb_layer_id( layer ), desc,
                                context->callback_ctx );
 }
 
@@ -806,10 +808,12 @@ GetDisplayLayer_Callback( DisplayLayer *layer, void *ctx )
 static DFBEnumerationResult
 EnumInputDevices_Callback( InputDevice *device, void *ctx )
 {
-     EnumInputDevices_Context *context = (EnumInputDevices_Context*) ctx;
+     DFBInputDeviceDescription  desc;
+     EnumInputDevices_Context  *context = (EnumInputDevices_Context*) ctx;
 
-     return context->callback( dfb_input_device_id( device ),
-                               dfb_input_device_description( device ),
+     dfb_input_device_description( device, &desc );
+
+     return context->callback( dfb_input_device_id( device ), desc,
                                context->callback_ctx );
 }
 
@@ -831,8 +835,10 @@ GetInputDevice_Callback( InputDevice *device, void *ctx )
 static DFBEnumerationResult
 CreateEventBuffer_Callback( InputDevice *device, void *ctx )
 {
+     DFBInputDeviceDescription   desc;
      CreateEventBuffer_Context  *context = (CreateEventBuffer_Context*) ctx;
-     DFBInputDeviceDescription   desc    = dfb_input_device_description( device );
+
+     dfb_input_device_description( device, &desc );
 
      if (! (desc.caps & context->caps))
           return DFENUM_OK;

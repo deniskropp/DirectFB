@@ -227,7 +227,11 @@ static ReactionResult keyboard_handler( const void *msg_data, void *ctx )
 static DFBEnumerationResult
 device_callback( InputDevice *device, void *ctx )
 {
-     if (dfb_input_device_description( device ).caps == DICAPS_KEYS)
+     DFBInputDeviceDescription desc;
+             
+     dfb_input_device_description( device, &desc );
+
+     if (desc.caps == DICAPS_KEYS)
           dfb_input_attach( device, keyboard_handler, NULL );
      
      return DFENUM_OK;

@@ -382,10 +382,11 @@ dfb_input_device_id( const InputDevice *device )
      return device->shared->id;
 }
 
-DFBInputDeviceDescription
-dfb_input_device_description( const InputDevice *device )
+void
+dfb_input_device_description( const InputDevice         *device,
+                              DFBInputDeviceDescription *desc )
 {
-     return device->shared->device_info.desc;
+     *desc = device->shared->device_info.desc;
 }
 
 DFBResult

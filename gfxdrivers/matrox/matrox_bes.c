@@ -150,10 +150,11 @@ besInitLayer( GraphicsDevice             *device,
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
      volatile __u8      *mmio = mdrv->mmio_base;
      
-     /* set capabilities */
-     layer_info->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                        DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
-                        DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY;
+     /* set capabilities and type */
+     layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
+                             DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
+                             DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY;
+     layer_info->desc.type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
      snprintf( layer_info->name,

@@ -38,8 +38,7 @@
 #define DFB_DISPLAY_LAYER_INFO_NAME_LENGTH   30
 
 typedef struct {
-     DFBDisplayLayerCapabilities caps;  /* capabilities such as pixelbased
-                                           alphablending */
+     DFBDisplayLayerDescription  desc;  /* description of the layer's caps */
 
      char                        name[DFB_DISPLAY_LAYER_INFO_NAME_LENGTH];
                                         /* description set by driver */
@@ -259,11 +258,13 @@ DFBResult dfb_layer_set_background_color( DisplayLayer                  *layer,
 /*
  * various functions
  */
-CoreSurface                *dfb_layer_surface( const DisplayLayer *layer );
-DFBDisplayLayerCapabilities dfb_layer_capabilities( const DisplayLayer *layer );
-DFBDisplayLayerID           dfb_layer_id( const DisplayLayer *layer );
-DFBResult                   dfb_layer_flip_buffers( DisplayLayer *layer,
-                                                    DFBSurfaceFlipFlags flags );
+CoreSurface       *dfb_layer_surface( const DisplayLayer *layer );
+void               dfb_layer_description( const DisplayLayer         *layer,
+                                          DFBDisplayLayerDescription *desc );
+DFBDisplayLayerID  dfb_layer_id( const DisplayLayer *layer );
+
+DFBResult          dfb_layer_flip_buffers( DisplayLayer *layer,
+                                          DFBSurfaceFlipFlags flags );
 
 DFBResult dfb_layer_create_window( DisplayLayer           *layer,
                                    int                     x,

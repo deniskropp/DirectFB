@@ -548,8 +548,9 @@ primaryInitLayer         ( GraphicsDevice             *device,
 {
      VideoMode *default_mode = dfb_fbdev->shared->modes;
 
-     /* set capabilities */
-     layer_info->caps = DLCAPS_SURFACE;
+     /* set capabilities and type */
+     layer_info->desc.caps = DLCAPS_SURFACE;
+     layer_info->desc.type = DLTF_GRAPHICS;
 
      /* set name */
      snprintf( layer_info->name,

@@ -122,8 +122,10 @@ void dfb_input_attach( InputDevice *device, React react, void *ctx );
 void dfb_input_detach( InputDevice *device, React react, void *ctx );
 void dfb_input_dispatch( InputDevice *device, DFBInputEvent *event );
 
-DFBInputDeviceDescription dfb_input_device_description( const InputDevice *device );
-unsigned int              dfb_input_device_id( const InputDevice *device );
+void dfb_input_device_description( const InputDevice         *device,
+                                   DFBInputDeviceDescription *desc );
+
+DFBInputDeviceID dfb_input_device_id( const InputDevice *device );
 
 DFBResult dfb_input_device_get_keymap_entry( InputDevice               *device,
                                              int                        keycode,

@@ -114,15 +114,19 @@ IDirectFBDisplayLayer_GetID( IDirectFBDisplayLayer *thiz,
 }
 
 static DFBResult
-IDirectFBDisplayLayer_GetCapabilities( IDirectFBDisplayLayer       *thiz,
-                                       DFBDisplayLayerCapabilities *caps )
+IDirectFBDisplayLayer_GetDescription( IDirectFBDisplayLayer      *thiz,
+                                      DFBDisplayLayerDescription *desc )
 {
+     DFBDisplayLayerDescription description;
+
      INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (!caps)
+     if (!desc)
           return DFB_INVARG;
 
-     *caps = dfb_layer_capabilities( data->layer );
+     dfb_layer_description( data->layer, &description );
+
+     *desc = description;
 
      return DFB_OK;
 }
@@ -533,7 +537,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->AddRef = IDirectFBDisplayLayer_AddRef;
      thiz->Release = IDirectFBDisplayLayer_Release;
      thiz->GetID = IDirectFBDisplayLayer_GetID;
-     thiz->GetCapabilities = IDirectFBDisplayLayer_GetCapabilities;
+     thiz->GetDescription = IDirectFBDisplayLayer_GetDescription;
      thiz->GetSurface = IDirectFBDisplayLayer_GetSurface;
      thiz->SetCooperativeLevel = IDirectFBDisplayLayer_SetCooperativeLevel;
      thiz->SetOpacity = IDirectFBDisplayLayer_SetOpacity;

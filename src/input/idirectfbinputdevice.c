@@ -303,7 +303,8 @@ IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
 
      data->ref    = 1;
      data->device = device;
-     data->desc   = dfb_input_device_description( device );
+     
+     dfb_input_device_description( device, &data->desc );
      
      dfb_input_attach( data->device, IDirectFBInputDevice_React, data );
 

@@ -73,9 +73,10 @@ ovlInitLayer( GraphicsDevice             *device,
 {
      NeoOverlayLayerData *novl = (NeoOverlayLayerData*) layer_data;
      
-     /* set capabilities */
-     layer_info->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                        DLCAPS_BRIGHTNESS;
+     /* set capabilities and type */
+     layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
+                             DLCAPS_BRIGHTNESS;
+     layer_info->desc.type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
      snprintf( layer_info->name,

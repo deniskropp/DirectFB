@@ -535,7 +535,7 @@ dfb_layer_enable( DisplayLayer *layer )
           return DFB_OK;
 
      /* allocate the surface before enabling it */
-     if (shared->layer_info.caps & DLCAPS_SURFACE) {
+     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
           ret = allocate_surface( layer );
           if (ret) {
                ERRORMSG("DirectFB/Core/layers: Could not allocate surface!\n");
@@ -570,7 +570,7 @@ dfb_layer_enable( DisplayLayer *layer )
      reactor_attach( shared->surface->reactor, layer_surface_listener, layer );
      
      /* create a window stack on layers with a surface */
-     if (shared->layer_info.caps & DLCAPS_SURFACE) {
+     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
           shared->stack = dfb_windowstack_new( layer,
                                                shared->config.width,
                                                shared->config.height );
@@ -606,7 +606,7 @@ dfb_layer_disable( DisplayLayer *layer )
      }
      
      /* deallocate the surface */
-     if (shared->layer_info.caps & DLCAPS_SURFACE) {
+     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
           ret = deallocate_surface( layer );
           if (ret) {
                ERRORMSG("DirectFB/Core/layers: Surface deallocation failed!\n");
@@ -669,7 +669,7 @@ dfb_layer_set_configuration( DisplayLayer          *layer,
           return ret;
 
      /* reallocate the surface before setting the new configuration */
-     if (shared->layer_info.caps & DLCAPS_SURFACE) {
+     if (shared->layer_info.desc.caps & DLCAPS_SURFACE) {
           ret = reallocate_surface( layer, config );
           if (ret) {
                ERRORMSG("DirectFB/Core/layers: "
@@ -824,10 +824,11 @@ dfb_layer_surface( const DisplayLayer *layer )
      return shared->surface;
 }
 
-DFBDisplayLayerCapabilities
-dfb_layer_capabilities( const DisplayLayer *layer )
+void
+dfb_layer_description( const DisplayLayer         *layer,
+                       DFBDisplayLayerDescription *desc )
 {
-     return layer->shared->layer_info.caps;
+     *desc = layer->shared->layer_info.desc;
 }
 
 DFBDisplayLayerID

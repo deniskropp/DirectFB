@@ -88,8 +88,9 @@ ov0InitLayer( GraphicsDevice             *device,
      ATIOverlayLayerData *aov0 = (ATIOverlayLayerData*) layer_data;
      volatile __u8       *mmio = adrv->mmio_base;
      
-     /* set capabilities */
-     layer_info->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
+     /* set capabilities and type */
+     layer_info->desc.caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
+     layer_info->desc.type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
      snprintf( layer_info->name,
