@@ -22,7 +22,8 @@ examplesdata_DATA = \
 	shot.png		\
 	dfblogo.png		\
 	convergence.png		\
-	wood_andi.jpg
+	wood_andi.jpg		\
+	smokey_light.jpg
 
 fontsdatadir = $(DATADIR)/fonts
 
@@ -44,7 +45,7 @@ LIBADDS = \
 AM_CPPFLAGS = \
 	-DDATADIR=\"@DATADIR@\"
 
-bin_PROGRAMS = df_fire df_dok df_andi df_window df_particle df_video_particle df_joystick df_video df_porter df_stress
+bin_PROGRAMS = df_fire df_dok df_andi df_window df_particle df_video_particle df_joystick df_video df_porter df_stress pss
 
 df_fire_SOURCES = df_fire.c
 df_fire_LDADD = $(LIBADDS)
@@ -75,6 +76,9 @@ df_porter_LDADD  = $(LIBADDS)
 
 df_stress_SOURCES = df_stress.c
 df_stress_LDADD = $(LIBADDS)
+
+pss_SOURCES = pss.c
+pss_LDADD = $(LIBADDS)
 
 .PHONY: files
 
