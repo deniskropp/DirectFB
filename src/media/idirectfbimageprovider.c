@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -29,8 +29,8 @@
 #include <stddef.h>
 
 #include <directfb.h>
-#include <interface.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include <media/idirectfbimageprovider.h>
@@ -41,7 +41,7 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          IDirectFBImageProvider **interface )
 {
      DFBResult                            ret;
-     DFBInterfaceFuncs                   *funcs = NULL;
+     DirectInterfaceFuncs                *funcs = NULL;
      IDirectFBDataBuffer_data            *buffer_data;
      IDirectFBImageProvider              *imageprovider;
      IDirectFBImageProvider_ProbeContext  ctx;
@@ -58,28 +58,26 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      ret = buffer->WaitForData( buffer, 32 );
      if (ret)
           return ret;
-     
+
      /* Read the first 32 bytes */
      ret = buffer->PeekData( buffer, 32, 0, ctx.header, NULL );
      if (ret)
           return ret;
-     
+
      /* Find a suitable implementation */
-     ret = DFBGetInterface( &funcs,
-                            "IDirectFBImageProvider", NULL,
-                            DFBProbeInterface, &ctx );
+     ret = DirectGetInterface( &funcs, "IDirectFBImageProvider", NULL, DirectProbeInterface, &ctx );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
+     DIRECT_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
 
      /* Construct the interface */
      ret = funcs->Construct( imageprovider, buffer );
      if (ret)
           return ret;
-        
+
      *interface = imageprovider;
-     
+
      return DFB_OK;
 }
 

@@ -48,7 +48,6 @@
 #include <core/thread.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -67,9 +66,11 @@
 
 #include <misc/util.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #ifdef HAVE_V4L2
 #include <linux/videodev2.h>
@@ -82,9 +83,9 @@ static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
            const char             *filename );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, V4L )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, V4L )
 
 #if 0
 #define DEBUG_MSG(...) fprintf(stderr,__VA_ARGS__);
@@ -169,12 +170,12 @@ static void IDirectFBVideoProvider_V4L_Destruct( IDirectFBVideoProvider *thiz )
 
      pthread_mutex_destroy( &data->lock );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      data->ref++;
 
@@ -183,7 +184,7 @@ static DFBResult IDirectFBVideoProvider_V4L_AddRef( IDirectFBVideoProvider *thiz
 
 static DFBResult IDirectFBVideoProvider_V4L_Release( IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (--data->ref == 0) {
           IDirectFBVideoProvider_V4L_Destruct( thiz );
@@ -196,7 +197,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
                                                             IDirectFBVideoProvider       *thiz,
                                                             DFBVideoProviderCapabilities *caps )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!caps)
           return DFB_INVARG;
@@ -299,7 +300,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      CoreSurface           *surface = 0;
      DFBResult              ret;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!destination)
           return DFB_INVARG;
@@ -383,7 +384,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
 static DFBResult IDirectFBVideoProvider_V4L_Stop(
                                                 IDirectFBVideoProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return v4l_stop( data, true );
 }
@@ -392,7 +393,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
                                                   IDirectFBVideoProvider *thiz,
                                                   double                  seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return DFB_UNIMPLEMENTED;
 }
@@ -401,7 +402,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetPos(
                                                   IDirectFBVideoProvider *thiz,
                                                   double                 *seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return DFB_UNSUPPORTED;
 }
@@ -410,7 +411,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetLength(
                                                      IDirectFBVideoProvider *thiz,
                                                      double                 *seconds )
 {
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return DFB_UNSUPPORTED;
 }
@@ -421,7 +422,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
 {
      struct video_picture pic;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!adj)
           return DFB_INVARG;
@@ -481,7 +482,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment(
 {
      struct video_picture pic;
 
-     INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      if (!adj)
           return DFB_INVARG;
@@ -563,7 +564,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 {
      int fd;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)
 
      data->ref = 1;
 
@@ -573,7 +574,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
           D_PERROR( "DirectFB/Video4Linux: Cannot open `%s'!\n", filename );
 
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
      }
 

@@ -36,23 +36,25 @@ endif
 internalincludedir = $(INTERNALINCLUDEDIR)/direct
 
 internalinclude_HEADERS = \
-	$(ppcasm_headers)	\
-	build.h			\
-	clock.h			\
-	conf.h			\
-	cpu_accel.h		\
-	debug.h			\
-	list.h			\
-	mem.h			\
-	memcpy.h		\
-	messages.h		\
-	signals.h		\
-	system.h		\
-	thread.h		\
-	trace.h			\
-	tree.h			\
-	types.h			\
-	utf8.h			\
+	$(ppcasm_headers)		\
+	build.h				\
+	clock.h				\
+	conf.h				\
+	cpu_accel.h			\
+	debug.h				\
+	interface.h			\
+	interface_implementation.h	\
+	list.h				\
+	mem.h				\
+	memcpy.h			\
+	messages.h			\
+	signals.h			\
+	system.h			\
+	thread.h			\
+	trace.h				\
+	tree.h				\
+	types.h				\
+	utf8.h				\
 	util.h
 
 
@@ -64,6 +66,7 @@ libdirect_la_SOURCES = \
 	conf.c			\
 	cpu_accel.c		\
 	debug.c			\
+	interface.c		\
 	list.c			\
 	mem.c			\
 	memcpy.c		\

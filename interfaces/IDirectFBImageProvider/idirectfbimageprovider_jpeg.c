@@ -35,7 +35,6 @@
 
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -49,6 +48,7 @@
 
 #include <misc/gfx_util.h>
 #include <misc/util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 
@@ -63,9 +63,9 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, JPEG )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, JPEG )
 
 /*
  * private data struct of IDirectFBImageProvider_JPEG
@@ -291,7 +291,7 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
 
      data->ref    = 1;
      data->buffer = buffer;
@@ -317,13 +317,13 @@ IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
 
      data->buffer->Release( data->buffer );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      data->ref++;
 
@@ -333,7 +333,7 @@ IDirectFBImageProvider_JPEG_AddRef( IDirectFBImageProvider *thiz )
 static DFBResult
 IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      if (--data->ref == 0) {
           IDirectFBImageProvider_JPEG_Destruct( thiz );
@@ -356,7 +356,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
 
-     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
@@ -512,7 +512,7 @@ IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      struct jpeg_decompress_struct cinfo;
      struct my_error_mgr jerr;
 
-     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      cinfo.err = jpeg_std_error(&jerr.pub);
      jerr.pub.error_exit = jpeglib_panic;
@@ -541,7 +541,7 @@ static DFBResult
 IDirectFBImageProvider_JPEG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                  DFBImageDescription    *dsc )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
      if (!dsc)
           return DFB_INVARG;

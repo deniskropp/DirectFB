@@ -40,6 +40,7 @@
 
 #include <direct/tree.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/utf8.h>
@@ -60,9 +61,9 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBFont, Default )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFont, Default )
 
 
 static DFBResult

@@ -43,13 +43,13 @@
 #include <linux/fb.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
 
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>

@@ -42,12 +42,12 @@
 #include <fusion/lock.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
 #include <direct/debug.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/util.h>
@@ -114,7 +114,7 @@ IDirectFBDataBuffer_Streamed_Destruct( IDirectFBDataBuffer *thiz )
 static DFBResult
 IDirectFBDataBuffer_Streamed_Release( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      if (--data->ref == 0)
           IDirectFBDataBuffer_Streamed_Destruct( thiz );
@@ -125,7 +125,7 @@ IDirectFBDataBuffer_Streamed_Release( IDirectFBDataBuffer *thiz )
 static DFBResult
 IDirectFBDataBuffer_Streamed_Flush( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      pthread_mutex_lock( &data->chunks_mutex );
 
@@ -154,7 +154,7 @@ static DFBResult
 IDirectFBDataBuffer_Streamed_GetLength( IDirectFBDataBuffer *thiz,
                                         unsigned int        *length )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      /* Check arguments. */
      if (!length)
@@ -170,7 +170,7 @@ static DFBResult
 IDirectFBDataBuffer_Streamed_WaitForData( IDirectFBDataBuffer *thiz,
                                           unsigned int         length )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      pthread_mutex_lock( &data->chunks_mutex );
 
@@ -194,7 +194,7 @@ IDirectFBDataBuffer_Streamed_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
      bool            locked       = false;
      long int        nano_seconds = milli_seconds * 1000000;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      if (pthread_mutex_trylock( &data->chunks_mutex ) == 0) {
           if (data->length >= length) {
@@ -240,7 +240,7 @@ IDirectFBDataBuffer_Streamed_GetData( IDirectFBDataBuffer *thiz,
 {
      unsigned int len;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      if (!data_buffer || !length)
           return DFB_INVARG;
@@ -279,7 +279,7 @@ IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
 {
      unsigned int len;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      if (!data_buffer || !length || offset < 0)
           return DFB_INVARG;
@@ -309,7 +309,7 @@ IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_Streamed_HasData( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      /* If there's no chunk there's no data. */
      if (!data->chunks)
@@ -325,7 +325,7 @@ IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
 {
      DataChunk *chunk;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
      /* Check arguments. */
      if (!data_buffer || !length)
@@ -360,7 +360,7 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
 {
      DFBResult ret;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Streamed)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Streamed)
 
      ret = IDirectFBDataBuffer_Construct( thiz, NULL );
      if (ret)

@@ -35,7 +35,6 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -50,6 +49,7 @@
 
 #include <misc/gfx_util.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -66,9 +66,9 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
 
 
 enum {
@@ -168,7 +168,7 @@ Construct( IDirectFBImageProvider *thiz,
 {
      DFBResult ret = DFB_FAILURE;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_PNG)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_PNG)
 
      data->ref    = 1;
      data->buffer = buffer;
@@ -218,7 +218,7 @@ error:
      if (data->image)
           D_FREE( data->image );
 
-     DFB_DEALLOCATE_INTERFACE(thiz);
+     DIRECT_DEALLOCATE_INTERFACE(thiz);
 
      return ret;
 }
@@ -238,13 +238,13 @@ IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
      if (data->image)
           D_FREE( data->image );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      data->ref++;
 
@@ -254,7 +254,7 @@ IDirectFBImageProvider_PNG_AddRef( IDirectFBImageProvider *thiz )
 static DFBResult
 IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      if (--data->ref == 0) {
           IDirectFBImageProvider_PNG_Destruct( thiz );
@@ -273,7 +273,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      CoreSurface           *dst_surface;
      DFBRectangle           rect = { 0, 0, 0, 0 };
 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
@@ -315,7 +315,7 @@ IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
                                               DIRenderCallback        callback,
                                               void                   *context )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      data->render_callback         = callback;
      data->render_callback_context = context;
@@ -329,7 +329,7 @@ static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                   DFBSurfaceDescription *dsc )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->width  = data->width;
@@ -347,7 +347,7 @@ static DFBResult
 IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_PNG)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_PNG)
 
      if (!dsc)
           return DFB_INVARG;

@@ -67,35 +67,6 @@ dfb_get_millis()
      return dfb_get_micros() / (long long) 1000;
 }
 
-/*
- * translates errno to DirectFB DFBResult
- */
-DFBResult
-errno2dfb( int erno )
-{
-     switch (erno) {
-          case 0:
-               return DFB_OK;
-          case ENOENT:
-               return DFB_FILENOTFOUND;
-          case EACCES:
-          case EPERM:
-               return DFB_ACCESSDENIED;
-          case EBUSY:
-          case EAGAIN:
-               return DFB_BUSY;
-          case ENODEV:
-          case ENXIO:
-#ifdef ENOTSUP
-          /* ENOTSUP is not defined on NetBSD */
-          case ENOTSUP:
-#endif
-               return DFB_UNSUPPORTED;
-     }
-
-     return DFB_FAILURE;
-}
-
 bool
 dfb_region_intersect( DFBRegion *region,
                       int x1, int y1, int x2, int y2 )

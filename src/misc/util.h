@@ -35,11 +35,6 @@
 #include <direct/types.h>
 #include <direct/debug.h>
 
-/*
- * translates errno to DirectFB DFBResult
- */
-DFBResult errno2dfb( int erno );
-
 bool dfb_region_intersect( DFBRegion *region,
                            int x1, int y1, int x2, int y2 );
 

@@ -63,9 +63,9 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBFont, FT2 )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBFont, FT2 )
 
 static FT_Library      library           = NULL;
 static int             library_ref_count = 0;
@@ -408,7 +408,7 @@ IDirectFBFont_FT2_Destruct( IDirectFBFont *thiz )
 static DFBResult
 IDirectFBFont_FT2_Release( IDirectFBFont *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (--data->ref == 0) {
           IDirectFBFont_FT2_Destruct( thiz );
@@ -466,7 +466,7 @@ Construct( IDirectFBFont      *thiz,
                     (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
 
      if (init_freetype() != DFB_OK) {
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
@@ -488,7 +488,7 @@ Construct( IDirectFBFont      *thiz,
                               filename );
                     break;
           }
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
@@ -540,7 +540,7 @@ Construct( IDirectFBFont      *thiz,
           pthread_mutex_lock ( &library_mutex );
           FT_Done_Face( face );
           pthread_mutex_unlock ( &library_mutex );
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 #endif
@@ -559,7 +559,7 @@ Construct( IDirectFBFont      *thiz,
                pthread_mutex_lock ( &library_mutex );
                FT_Done_Face( face );
                pthread_mutex_unlock ( &library_mutex );
-               DFB_DEALLOCATE_INTERFACE( thiz );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
                return DFB_FAILURE;
           }
      }

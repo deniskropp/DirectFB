@@ -34,7 +34,6 @@
 #include <string.h>
 
 #include "directfb.h"
-#include "interface.h"
 #include "directfb_version.h"
 
 #include "misc/conf.h"
@@ -56,6 +55,7 @@
 #include "gfx/convert.h"
 
 #include <direct/conf.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 
@@ -185,7 +185,7 @@ DirectFBCreate( IDirectFB **interface )
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
+     DIRECT_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
 
      ret = IDirectFB_Construct( idirectfb_singleton, core_dfb );
      if (ret) {

@@ -36,14 +36,14 @@
 
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/surfaces.h>
 #include <core/palette.h>
 
-#include <misc/util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/util.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -60,13 +60,13 @@ IDirectFBPalette_Destruct( IDirectFBPalette *thiz )
      if (data->palette)
           dfb_palette_unref( data->palette );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      data->ref++;
 
@@ -76,7 +76,7 @@ IDirectFBPalette_AddRef( IDirectFBPalette *thiz )
 static DFBResult
 IDirectFBPalette_Release( IDirectFBPalette *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      if (--data->ref == 0)
           IDirectFBPalette_Destruct( thiz );
@@ -90,7 +90,7 @@ IDirectFBPalette_GetCapabilities( IDirectFBPalette       *thiz,
 {
      CorePalette *palette;
 
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      palette = data->palette;
      if (!palette)
@@ -111,7 +111,7 @@ IDirectFBPalette_GetSize( IDirectFBPalette *thiz,
 {
      CorePalette *palette;
 
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      palette = data->palette;
      if (!palette)
@@ -133,7 +133,7 @@ IDirectFBPalette_SetEntries( IDirectFBPalette *thiz,
 {
      CorePalette *palette;
 
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      palette = data->palette;
      if (!palette)
@@ -159,7 +159,7 @@ IDirectFBPalette_GetEntries( IDirectFBPalette *thiz,
 {
      CorePalette *palette;
 
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      palette = data->palette;
      if (!palette)
@@ -183,7 +183,7 @@ IDirectFBPalette_FindBestMatch( IDirectFBPalette *thiz,
 {
      CorePalette *palette;
 
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      if (!index)
           return DFB_INVARG;
@@ -205,7 +205,7 @@ IDirectFBPalette_CreateCopy( IDirectFBPalette  *thiz,
      IDirectFBPalette *iface;
      CorePalette      *palette = NULL;
 
-     INTERFACE_GET_DATA(IDirectFBPalette)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBPalette)
 
      if (!data->palette)
           return DFB_DESTROYED;
@@ -224,7 +224,7 @@ IDirectFBPalette_CreateCopy( IDirectFBPalette  *thiz,
      dfb_palette_update( palette, 0, palette->num_entries - 1 );
 
 
-     DFB_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
+     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
 
      ret = IDirectFBPalette_Construct( iface, palette );
 
@@ -241,10 +241,10 @@ IDirectFBPalette_CreateCopy( IDirectFBPalette  *thiz,
 DFBResult IDirectFBPalette_Construct( IDirectFBPalette *thiz,
                                       CorePalette      *palette )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBPalette)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBPalette)
 
      if (dfb_palette_ref( palette )) {
-          DFB_DEALLOCATE_INTERFACE(thiz);
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }
 

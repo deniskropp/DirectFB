@@ -28,6 +28,7 @@
 #ifndef __DIRECT__UTIL_H__
 #define __DIRECT__UTIL_H__
 
+#include <directfb.h>
 
 #ifndef MIN
 #define MIN(a,b) ((a) < (b) ? (a) : (b))
@@ -44,6 +45,10 @@
 #define FLAG_IS_SET(set,flag)    (((set) & (flag)) != 0)
 #define FLAGS_ARE_SET(set,flags) (((set) & (flags)) == (flags))
 
+/*
+ * translates errno to DirectFB DFBResult
+ */
+DFBResult errno2dfb( int erno );
 
 int direct_try_open( const char *name1, const char *name2, int flags );
 

@@ -25,10 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __DIRECTFB__INTERFACE_H__
-#define __DIRECTFB__INTERFACE_H__
-
-#include <directfb.h>
+#ifndef __DIRECT__INTERFACE_H__
+#define __DIRECT__INTERFACE_H__
 
 #include <direct/mem.h>
 
@@ -39,7 +37,7 @@ typedef struct {
      DFBResult    (*Allocate)( void **interface );
      DFBResult    (*Probe)( void *ctx, ... );
      DFBResult    (*Construct)( void *interface, ... );
-} DFBInterfaceFuncs;
+} DirectInterfaceFuncs;
 
 /*
  * Loads an interface of a specific 'type'.
@@ -48,32 +46,32 @@ typedef struct {
  *
  * After success 'funcs' is set.
  */
-DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
-                           const char *type,
-                           const char *implementation,
-                           int (*probe)( DFBInterfaceFuncs *impl, void *ctx ),
-                           void *probe_ctx );
+DFBResult DirectGetInterface( DirectInterfaceFuncs **funcs,
+                              const char            *type,
+                              const char            *implementation,
+                              int                  (*probe)( DirectInterfaceFuncs *impl, void *ctx ),
+                              void                  *probe_ctx );
 
 /*
  * Default probe function. Calls "funcs->Probe(ctx)".
- * Can be used as the 'probe' argument to DFBGetInterface.
+ * Can be used as the 'probe' argument to DirectGetInterface.
  * 'probe_ctx' should then be set to the interface specific probe context.
  */
-int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx );
+int DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
 
 /*
  * Called by implementation modules during 'dlopen'ing or at startup if linked
  * into the executable.
  */
-void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
+void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 
-#define DFB_ALLOCATE_INTERFACE(p,i)                         \
+#define DIRECT_ALLOCATE_INTERFACE(p,i)                      \
      do {                                                   \
           (p) = (i*)D_CALLOC( 1, sizeof(i) );               \
      } while (0)
 
 
-#define DFB_ALLOCATE_INTERFACE_DATA(p,i)                    \
+#define DIRECT_ALLOCATE_INTERFACE_DATA(p,i)                 \
      i##_data *data;                                        \
                                                             \
      if (!(p)->priv)                                        \
@@ -83,13 +81,13 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
 
 
 #if 0
-#define DFB_DEALLOCATE_INTERFACE(p)     \
+#define DIRECT_DEALLOCATE_INTERFACE(p)  \
      if ((p)->priv) {                   \
           D_FREE( (p)->priv );          \
           (p)->priv = NULL;             \
      }
 #else
-#define DFB_DEALLOCATE_INTERFACE(p)     \
+#define DIRECT_DEALLOCATE_INTERFACE(p)  \
      if ((p)->priv) {                   \
           D_FREE( (p)->priv );          \
           (p)->priv = NULL;             \
@@ -97,7 +95,7 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
      D_FREE( (p) );
 #endif
 
-#define INTERFACE_GET_DATA(i)           \
+#define DIRECT_INTERFACE_GET_DATA(i)    \
      i##_data *data;                    \
                                         \
      if (!thiz)                         \
@@ -108,6 +106,4 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs );
      if (!data)                         \
           return DFB_DEAD;
 
-extern IDirectFB *idirectfb_singleton;
-
-#endif /* __DIRECTFB__INTERFACE_H__ */
+#endif

@@ -33,7 +33,6 @@
 
 
 #include "directfb.h"
-#include "interface.h"
 
 #include "core/coretypes.h"
 
@@ -41,8 +40,9 @@
 
 #include "idirectfbfont.h"
 
-#include <direct/utf8.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
+#include <direct/utf8.h>
 
 #include "misc/util.h"
 
@@ -53,7 +53,7 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
 
      dfb_font_destroy (data->font);
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 /*
@@ -62,7 +62,7 @@ IDirectFBFont_Destruct( IDirectFBFont *thiz )
 static DFBResult
 IDirectFBFont_AddRef( IDirectFBFont *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      data->ref++;
 
@@ -75,7 +75,7 @@ IDirectFBFont_AddRef( IDirectFBFont *thiz )
 static DFBResult
 IDirectFBFont_Release( IDirectFBFont *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (--data->ref == 0)
           IDirectFBFont_Destruct( thiz );
@@ -89,7 +89,7 @@ IDirectFBFont_Release( IDirectFBFont *thiz )
 static DFBResult
 IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!ascender)
           return DFB_INVARG;
@@ -106,7 +106,7 @@ IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
 static DFBResult
 IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!descender)
           return DFB_INVARG;
@@ -122,7 +122,7 @@ IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
 static DFBResult
 IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!height)
           return DFB_INVARG;
@@ -138,7 +138,7 @@ IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 static DFBResult
 IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 {
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!maxadvance)
           return DFB_INVARG;
@@ -159,7 +159,7 @@ IDirectFBFont_GetKerning( IDirectFBFont *thiz,
      CoreFont *font;
      int x, y;
 
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!kern_x && !kern_y)
           return DFB_INVARG;
@@ -200,7 +200,7 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      int            kern_x;
      int            kern_y;
 
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
 
      if (!text)
@@ -303,7 +303,7 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
      CoreFont      *font;
      CoreGlyphData *glyph;
 
-     INTERFACE_GET_DATA(IDirectFBFont)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
      if (!rect && !advance)
           return DFB_INVARG;
@@ -341,7 +341,7 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
 DFBResult
 IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBFont)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBFont)
 
      data->ref = 1;
      data->font = font;

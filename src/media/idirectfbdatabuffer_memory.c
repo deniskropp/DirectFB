@@ -41,7 +41,6 @@
 #include <direct/list.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -49,6 +48,7 @@
 #include <core/input.h>
 #include <core/windows.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/util.h>
@@ -77,7 +77,7 @@ IDirectFBDataBuffer_Memory_Destruct( IDirectFBDataBuffer *thiz )
 static DFBResult
 IDirectFBDataBuffer_Memory_Release( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      if (--data->ref == 0)
           IDirectFBDataBuffer_Memory_Destruct( thiz );
@@ -95,7 +95,7 @@ static DFBResult
 IDirectFBDataBuffer_Memory_SeekTo( IDirectFBDataBuffer *thiz,
                                    unsigned int         offset )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (offset >= data->length)
           return DFB_INVARG;
@@ -109,7 +109,7 @@ static DFBResult
 IDirectFBDataBuffer_Memory_GetPosition( IDirectFBDataBuffer *thiz,
                                         unsigned int        *offset )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (!offset)
           return DFB_INVARG;
@@ -123,7 +123,7 @@ static DFBResult
 IDirectFBDataBuffer_Memory_GetLength( IDirectFBDataBuffer *thiz,
                                       unsigned int        *length )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (!length)
           return DFB_INVARG;
@@ -137,7 +137,7 @@ static DFBResult
 IDirectFBDataBuffer_Memory_WaitForData( IDirectFBDataBuffer *thiz,
                                         unsigned int         length )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (data->pos + length > data->length)
           return DFB_BUFFEREMPTY;
@@ -151,7 +151,7 @@ IDirectFBDataBuffer_Memory_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
                                                    unsigned int         seconds,
                                                    unsigned int         milli_seconds )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (data->pos + length > data->length)
           return DFB_BUFFEREMPTY;
@@ -167,7 +167,7 @@ IDirectFBDataBuffer_Memory_GetData( IDirectFBDataBuffer *thiz,
 {
      unsigned int size;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (!data_buffer || !length)
           return DFB_INVARG;
@@ -196,7 +196,7 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
 {
      unsigned int size;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (!data_buffer || !length)
           return DFB_INVARG;
@@ -217,7 +217,7 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_Memory_HasData( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (data->pos >= data->length)
           return DFB_BUFFEREMPTY;
@@ -240,7 +240,7 @@ IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
 {
      DFBResult ret;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Memory)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Memory)
 
      ret = IDirectFBDataBuffer_Construct( thiz, NULL );
      if (ret)

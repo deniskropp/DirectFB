@@ -34,7 +34,6 @@
 #include <string.h>
 
 #include "directfb.h"
-#include "interface.h"
 
 #include "core/core.h"
 #include "core/coretypes.h"
@@ -49,7 +48,8 @@
 #include "idirectfbsurface.h"
 #include "idirectfbsurface_window.h"
 
-#include "direct/mem.h"
+#include <direct/interface.h>
+#include <direct/mem.h>
 #include "misc/util.h"
 
 #include "gfx/util.h"
@@ -90,7 +90,7 @@ IDirectFBSurface_Window_Destruct( IDirectFBSurface *thiz )
 static DFBResult
 IDirectFBSurface_Window_Release( IDirectFBSurface *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBSurface_Window)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      if (--data->base.ref == 0)
           IDirectFBSurface_Window_Destruct( thiz );
@@ -105,7 +105,7 @@ IDirectFBSurface_Window_Flip( IDirectFBSurface    *thiz,
 {
      DFBRegion reg;
 
-     INTERFACE_GET_DATA(IDirectFBSurface_Window)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      if (!data->base.surface)
           return DFB_DESTROYED;
@@ -157,7 +157,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
 {
      DFBRectangle wanted, granted;
 
-     INTERFACE_GET_DATA(IDirectFBSurface_Window)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
      /* Check arguments */
      if (!data->base.surface || !data->window || !data->window->surface)
@@ -187,7 +187,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
      dfb_rectangle_intersect( &granted, &data->base.area.granted );
 
      /* Allocate and construct */
-     DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
+     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      return IDirectFBSurface_Window_Construct( *surface, &wanted, &granted,
                                                data->window, data->base.caps |
@@ -203,7 +203,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 {
      DFBResult ret;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
      ret = IDirectFBSurface_Construct( thiz, wanted, granted,
                                        window->surface, caps );

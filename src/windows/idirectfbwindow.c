@@ -40,7 +40,6 @@
 #include <pthread.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <idirectfb.h>
 
@@ -63,6 +62,7 @@
 #include <input/idirectfbinputbuffer.h>
 
 #include <misc/util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include <gfx/convert.h>
@@ -135,13 +135,13 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
 
      D_DEBUG("IDirectFBWindow_Destruct - done.\n");
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      data->ref++;
 
@@ -151,7 +151,7 @@ IDirectFBWindow_AddRef( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_Release( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (--data->ref == 0)
           IDirectFBWindow_Destruct( thiz );
@@ -165,12 +165,12 @@ IDirectFBWindow_CreateEventBuffer( IDirectFBWindow       *thiz,
 {
      IDirectFBEventBuffer *b;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
 
-     DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
+     DIRECT_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
 
      IDirectFBEventBuffer_Construct( b, NULL, NULL );
 
@@ -191,7 +191,7 @@ static DFBResult
 IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
                                    IDirectFBEventBuffer  *buffer )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -211,7 +211,7 @@ static DFBResult
 IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
                               DFBWindowEventType     mask )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -228,7 +228,7 @@ static DFBResult
 IDirectFBWindow_DisableEvents( IDirectFBWindow       *thiz,
                                DFBWindowEventType     mask )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -245,7 +245,7 @@ static DFBResult
 IDirectFBWindow_GetID( IDirectFBWindow *thiz,
                        DFBWindowID     *id )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -263,7 +263,7 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
                              int             *x,
                              int             *y )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -285,7 +285,7 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
                          int             *width,
                          int             *height )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -306,7 +306,7 @@ static DFBResult
 IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
                             IDirectFBSurface **surface )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -320,7 +320,7 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
      if (!data->surface) {
           DFBResult ret;
 
-          DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
+          DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
           ret = IDirectFBSurface_Window_Construct( *surface,
                                                    NULL, NULL, data->window,
@@ -342,7 +342,7 @@ static DFBResult
 IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
                             DFBWindowOptions  options )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      /* Check arguments */
      if (data->destroyed)
@@ -364,7 +364,7 @@ static DFBResult
 IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
                             DFBWindowOptions *options )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -386,7 +386,7 @@ IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
      __u32        key;
      CoreSurface *surface;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -417,7 +417,7 @@ IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
 {
      __u32 key = index;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -444,7 +444,7 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
 {
      CoreWindow *window;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -469,7 +469,7 @@ static DFBResult
 IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
                             __u8             opacity )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -484,7 +484,7 @@ static DFBResult
 IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
                             __u8            *opacity )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -505,7 +505,7 @@ IDirectFBWindow_SetCursorShape( IDirectFBWindow  *thiz,
 {
      DFBResult ret;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -548,7 +548,7 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 {
      CoreWindow *window;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -569,7 +569,7 @@ IDirectFBWindow_RequestFocus( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -580,7 +580,7 @@ IDirectFBWindow_GrabKeyboard( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -591,7 +591,7 @@ IDirectFBWindow_UngrabKeyboard( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -602,7 +602,7 @@ IDirectFBWindow_GrabPointer( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_UngrabPointer( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -615,7 +615,7 @@ IDirectFBWindow_GrabKey( IDirectFBWindow            *thiz,
                          DFBInputDeviceKeySymbol     symbol,
                          DFBInputDeviceModifierMask  modifiers )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -628,7 +628,7 @@ IDirectFBWindow_UngrabKey( IDirectFBWindow            *thiz,
                            DFBInputDeviceKeySymbol     symbol,
                            DFBInputDeviceModifierMask  modifiers )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -639,7 +639,7 @@ IDirectFBWindow_UngrabKey( IDirectFBWindow            *thiz,
 static DFBResult
 IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -655,7 +655,7 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 static DFBResult
 IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -674,7 +674,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
                         int              width,
                         int              height )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -691,7 +691,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 static DFBResult
 IDirectFBWindow_Raise( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -705,7 +705,7 @@ static DFBResult
 IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
                                   DFBWindowStackingClass  stacking_class )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -727,7 +727,7 @@ IDirectFBWindow_SetStackingClass( IDirectFBWindow        *thiz,
 static DFBResult
 IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -740,7 +740,7 @@ IDirectFBWindow_Lower( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -753,7 +753,7 @@ IDirectFBWindow_RaiseToTop( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_LowerToBottom( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -769,7 +769,7 @@ IDirectFBWindow_PutAtop( IDirectFBWindow *thiz,
 {
      IDirectFBWindow_data *lower_data;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -795,7 +795,7 @@ IDirectFBWindow_PutBelow( IDirectFBWindow *thiz,
 {
      IDirectFBWindow_data *upper_data;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -820,7 +820,7 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 {
      DFBWindowEvent evt;
 
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -835,7 +835,7 @@ IDirectFBWindow_Close( IDirectFBWindow *thiz )
 static DFBResult
 IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBWindow)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -852,7 +852,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
                            bool             init )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
      D_DEBUG( "IDirectFBWindow_Construct: window at %d %d, size %dx%d\n",
                 window->x, window->y, window->width, window->height );

@@ -41,7 +41,6 @@
 #include <direct/list.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -50,6 +49,7 @@
 #include <core/windows.h>
 
 #include <misc/util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include <media/idirectfbdatabuffer.h>
@@ -64,13 +64,13 @@ IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz )
      if (data->filename)
           D_FREE( data->filename );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBDataBuffer_AddRef( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      data->ref++;
 
@@ -80,7 +80,7 @@ IDirectFBDataBuffer_AddRef( IDirectFBDataBuffer *thiz )
 static DFBResult
 IDirectFBDataBuffer_Release( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      if (--data->ref == 0)
           IDirectFBDataBuffer_Destruct( thiz );
@@ -168,7 +168,7 @@ static DFBResult
 IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
                                          IDirectFBImageProvider **interface )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      /* Check arguments */
      if (!interface)
@@ -180,7 +180,7 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
 DFBResult
 IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer)
 
      data->ref = 1;
 

@@ -35,7 +35,6 @@
 
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -48,6 +47,7 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <misc/util.h>
@@ -59,9 +59,9 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, GIF )
 
 
 #ifndef NODEBUG
@@ -173,7 +173,7 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_GIF)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_GIF)
 
      data->ref    = 1;
      data->buffer = buffer;
@@ -203,13 +203,13 @@ IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
 
      data->buffer->Release( data->buffer );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
      data->ref++;
 
@@ -219,7 +219,7 @@ IDirectFBImageProvider_GIF_AddRef( IDirectFBImageProvider *thiz )
 static DFBResult
 IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_GIF)
 
      if (--data->ref == 0) {
           IDirectFBImageProvider_GIF_Destruct( thiz );
@@ -239,7 +239,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
      CoreSurface           *dst_surface;
      int err;
 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
@@ -303,7 +303,7 @@ IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      int  height;
      bool transparency;
 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      ReadGIF( data, 1, &width, &height,
               &transparency, NULL, false, true );
@@ -325,7 +325,7 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
      bool  transparency;
      __u32 key_rgb;
 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
      ReadGIF( data, 1, &width, &height,
               &transparency, &key_rgb, false, true );

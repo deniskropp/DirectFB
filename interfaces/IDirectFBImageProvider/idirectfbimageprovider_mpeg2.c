@@ -34,7 +34,6 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <display/idirectfbsurface.h>
 
@@ -48,6 +47,7 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <misc/util.h>
 
@@ -60,9 +60,9 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer );
 
-#include <interface_implementation.h>
+#include <direct/interface_implementation.h>
 
-DFB_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, MPEG2 )
+DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, MPEG2 )
 
 
 enum {
@@ -135,7 +135,7 @@ Construct( IDirectFBImageProvider *thiz,
 {
      DFBResult ret = DFB_FAILURE;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_MPEG2)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_MPEG2)
 
      data->ref    = 1;
      data->buffer = buffer;
@@ -173,7 +173,7 @@ error:
 
      buffer->Release( buffer );
 
-     DFB_DEALLOCATE_INTERFACE(thiz);
+     DIRECT_DEALLOCATE_INTERFACE(thiz);
 
      return ret;
 }
@@ -193,13 +193,13 @@ IDirectFBImageProvider_MPEG2_Destruct( IDirectFBImageProvider *thiz )
      if (data->image)
           D_FREE( data->image );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBImageProvider_MPEG2_AddRef( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
 
      data->ref++;
 
@@ -209,7 +209,7 @@ IDirectFBImageProvider_MPEG2_AddRef( IDirectFBImageProvider *thiz )
 static DFBResult
 IDirectFBImageProvider_MPEG2_Release( IDirectFBImageProvider *thiz )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
 
      if (--data->ref == 0)
           IDirectFBImageProvider_MPEG2_Destruct( thiz );
@@ -227,7 +227,7 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
      CoreSurface           *dst_surface;
      DFBRectangle           rect = { 0, 0, 0, 0 };
 
-     INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
@@ -287,7 +287,7 @@ static DFBResult
 IDirectFBImageProvider_MPEG2_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                     DFBSurfaceDescription *dsc )
 {
-     INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
 
      dsc->flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      dsc->width       = data->width;
@@ -301,7 +301,7 @@ static DFBResult
 IDirectFBImageProvider_MPEG2_GetImageDescription( IDirectFBImageProvider *thiz,
                                                   DFBImageDescription    *dsc )
 {
-     INTERFACE_GET_DATA(IDirectFBImageProvider_MPEG2)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_MPEG2)
 
      if (!dsc)
           return DFB_INVARG;

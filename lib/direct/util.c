@@ -28,12 +28,41 @@
 #include <config.h>
 
 #include <string.h>
-
 #include <fcntl.h>
+
+#include <directfb.h>
 
 #include <direct/messages.h>
 #include <direct/util.h>
 
+/*
+ * translates errno to DirectFB DFBResult
+ */
+DFBResult
+errno2dfb( int erno )
+{
+     switch (erno) {
+          case 0:
+               return DFB_OK;
+          case ENOENT:
+               return DFB_FILENOTFOUND;
+          case EACCES:
+          case EPERM:
+               return DFB_ACCESSDENIED;
+          case EBUSY:
+          case EAGAIN:
+               return DFB_BUSY;
+          case ENODEV:
+          case ENXIO:
+#ifdef ENOTSUP
+          /* ENOTSUP is not defined on NetBSD */
+          case ENOTSUP:
+#endif
+               return DFB_UNSUPPORTED;
+     }
+
+     return DFB_FAILURE;
+}
 
 int
 direct_try_open( const char *name1, const char *name2, int flags )

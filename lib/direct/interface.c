@@ -36,38 +36,44 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <interface.h>
 
-#include <core/coredefs.h>
+#include <direct/debug.h>
+#include <direct/interface.h>
 #include <direct/list.h>
-
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
-#include <misc/util.h>
+#ifdef PIC
+#define DYNAMIC_LINKING
+#endif
 
 typedef struct {
-     DirectLink         link;
+     DirectLink            link;
 
-     char              *filename;
-     void              *module_handle;
+     char                 *filename;
+     void                 *module_handle;
 
-     DFBInterfaceFuncs *funcs;
+     DirectInterfaceFuncs *funcs;
 
-     const char        *type;
-     const char        *implementation;
+     const char           *type;
+     const char           *implementation;
 
-     int                references;
-} DFBInterfaceImplementation;
+     int                   references;
+} DirectInterfaceImplementation;
 
 static pthread_mutex_t  implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
 static DirectLink      *implementations       = NULL;
 
-void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
-{
-     DFBInterfaceImplementation *impl;
+/**************************************************************************************************/
 
-     impl = calloc( 1, sizeof(DFBInterfaceImplementation) );
+void
+DirectRegisterInterface( DirectInterfaceFuncs *funcs )
+{
+     DirectInterfaceImplementation *impl;
+
+     impl = calloc( 1, sizeof(DirectInterfaceImplementation) );
 
      impl->funcs          = funcs;
      impl->type           = funcs->GetType();
@@ -76,18 +82,20 @@ void DFBRegisterInterface( DFBInterfaceFuncs *funcs )
      direct_list_prepend( &implementations, &impl->link );
 }
 
-int DFBProbeInterface( DFBInterfaceFuncs *funcs, void *ctx )
+int
+DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx )
 {
      return (funcs->Probe( ctx ) == DFB_OK);
 }
 
-DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
-                           const char *type,
-                           const char *implementation,
-                           int (*probe)( DFBInterfaceFuncs *funcs, void *ctx ),
-                           void *probe_ctx )
+DFBResult
+DirectGetInterface( DirectInterfaceFuncs **funcs,
+                    const char            *type,
+                    const char            *implementation,
+                    int                  (*probe)( DirectInterfaceFuncs *funcs, void *ctx ),
+                    void                  *probe_ctx )
 {
-#ifdef DFB_DYNAMIC_LINKING
+#ifdef DYNAMIC_LINKING
      int                         len;
      DIR                        *dir;
      char                       *interface_dir;
@@ -102,7 +110,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
       * Check existing implementations first.
       */
      direct_list_foreach( link, implementations ) {
-          DFBInterfaceImplementation *impl = (DFBInterfaceImplementation*) link;
+          DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
 
           if (type && strcmp( type, impl->type ))
                continue;
@@ -127,7 +135,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
           }
      }
 
-#ifdef DFB_DYNAMIC_LINKING
+#ifdef DYNAMIC_LINKING
      /*
       * Try to load it dynamically.
       */
@@ -153,8 +161,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
           void *handle = NULL;
           char  buf[4096];
 
-          DFBInterfaceImplementation *old_impl =
-               (DFBInterfaceImplementation*) implementations;
+          DirectInterfaceImplementation *old_impl = (DirectInterfaceImplementation*) implementations;
 
           if (strlen(entry->d_name) < 4 ||
               entry->d_name[strlen(entry->d_name)-1] != 'o' ||
@@ -167,8 +174,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
            * Check if it got already loaded.
            */
           direct_list_foreach( link, implementations ) {
-               DFBInterfaceImplementation *impl =
-                    (DFBInterfaceImplementation*) link;
+               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) link;
 
                if (impl->filename && !strcmp( impl->filename, buf )) {
                     handle = impl->module_handle;
@@ -192,8 +198,7 @@ DFBResult DFBGetInterface( DFBInterfaceFuncs **funcs,
           handle = dlopen( buf, RTLD_LAZY );
 #endif
           if (handle) {
-               DFBInterfaceImplementation *impl =
-                    (DFBInterfaceImplementation*) implementations;
+               DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
 
                /*
                 * Check if it registered itself.

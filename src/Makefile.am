@@ -16,17 +16,14 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)
 
 internalinclude_HEADERS = \
-	idirectfb.h			\
-	interface.h			\
-	interface_implementation.h
+	idirectfb.h
 
 
 lib_LTLIBRARIES = libdirectfb.la
 
 libdirectfb_la_SOURCES = 	\
 	directfb.c		\
-	idirectfb.c		\
-	interface.c
+	idirectfb.c
 
 libdirectfb_la_LDFLAGS = \
 	-version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)	\

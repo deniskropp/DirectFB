@@ -34,7 +34,6 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/core.h>
 #include <core/coretypes.h>
@@ -50,7 +49,10 @@
 #include <idirectfbsurface_layer.h>
 
 #include <misc/util.h>
+
+#include <direct/interface.h>
 #include <direct/mem.h>
+
 #include <gfx/util.h>
 
 
@@ -77,7 +79,7 @@ IDirectFBSurface_Layer_Destruct( IDirectFBSurface *thiz )
 static DFBResult
 IDirectFBSurface_Layer_Release( IDirectFBSurface *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
      if (--data->base.ref == 0)
           IDirectFBSurface_Layer_Destruct( thiz );
@@ -90,7 +92,7 @@ IDirectFBSurface_Layer_Flip( IDirectFBSurface    *thiz,
                              const DFBRegion     *region,
                              DFBSurfaceFlipFlags  flags )
 {
-     INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
      if (!data->base.surface)
           return DFB_DESTROYED;
@@ -139,7 +141,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
 {
      DFBRectangle wanted, granted;
 
-     INTERFACE_GET_DATA(IDirectFBSurface_Layer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
      /* Check arguments */
      if (!data->base.surface)
@@ -169,7 +171,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
      dfb_rectangle_intersect( &granted, &data->base.area.granted );
 
      /* Allocate and construct */
-     DFB_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
+     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
      return IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
                                               data->region, data->base.caps |
@@ -186,7 +188,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      DFBResult    ret;
      CoreSurface *surface;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer);
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Layer);
 
      if (dfb_layer_region_ref( region ))
           return DFB_FUSION;
@@ -194,7 +196,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      ret = dfb_layer_region_get_surface( region, &surface );
      if (ret) {
           dfb_layer_region_unref( region );
-          DFB_DEALLOCATE_INTERFACE(thiz);
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
 
@@ -203,7 +205,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      if (ret) {
           dfb_surface_unref( surface );
           dfb_layer_region_unref( region );
-          DFB_DEALLOCATE_INTERFACE(thiz);
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
 

@@ -39,7 +39,6 @@
 
 #include <directfb.h>
 #include <directfb_version.h>
-#include <interface.h>
 
 #include <core/core.h>
 #include <core/coretypes.h>
@@ -80,6 +79,7 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
@@ -204,14 +204,14 @@ IDirectFB_Destruct( IDirectFB *thiz )
 
      idirectfb_singleton = NULL;
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 
 static DFBResult
 IDirectFB_AddRef( IDirectFB *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      data->ref++;
 
@@ -221,7 +221,7 @@ IDirectFB_AddRef( IDirectFB *thiz )
 static DFBResult
 IDirectFB_Release( IDirectFB *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (--data->ref == 0)
           IDirectFB_Destruct( thiz );
@@ -236,7 +236,7 @@ IDirectFB_SetCooperativeLevel( IDirectFB           *thiz,
      DFBResult         ret;
      CoreLayerContext *context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (level == data->level)
           return DFB_OK;
@@ -289,7 +289,7 @@ IDirectFB_GetCardCapabilities( IDirectFB           *thiz,
 {
      CardCapabilities card_caps;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!caps)
           return DFB_INVARG;
@@ -311,7 +311,7 @@ IDirectFB_EnumVideoModes( IDirectFB            *thiz,
 {
      VideoMode *m;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!callbackfunc)
           return DFB_INVARG;
@@ -336,7 +336,7 @@ IDirectFB_SetVideoMode( IDirectFB    *thiz,
 {
      DFBResult ret;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (width < 1 || height < 1 || bpp < 1)
           return DFB_INVARG;
@@ -410,7 +410,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
      DFBDisplayLayerConfig  config;
      CoreSurface *surface = NULL;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (data->primary.context)
           dfb_layer_context_get_configuration( data->primary.context, &config );
@@ -513,7 +513,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                          init_palette( surface, desc );
 
-                         DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                         DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                          ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
                          if (ret == DFB_OK) {
@@ -584,7 +584,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                          init_palette( window->surface, desc );
 
-                         DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                         DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                          return IDirectFBSurface_Window_Construct( *interface, NULL,
                                                                    NULL, window,
@@ -654,7 +654,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
                     init_palette( surface, desc );
 
-                    DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                    DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                     ret = IDirectFBSurface_Layer_Construct( *interface, NULL,
                                                             NULL, region, caps );
@@ -717,7 +717,7 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
 
      init_palette( surface, desc );
 
-     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
      ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
 
@@ -736,7 +736,7 @@ IDirectFB_CreatePalette( IDirectFB              *thiz,
      unsigned int      size    = 256;
      CorePalette      *palette = NULL;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
@@ -760,7 +760,7 @@ IDirectFB_CreatePalette( IDirectFB              *thiz,
      else
           dfb_palette_generate_rgb332_map( palette );
 
-     DFB_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
+     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBPalette );
 
      ret = IDirectFBPalette_Construct( iface, palette );
 
@@ -779,7 +779,7 @@ IDirectFB_EnumScreens( IDirectFB         *thiz,
 {
      EnumScreens_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!callbackfunc)
           return DFB_INVARG;
@@ -799,7 +799,7 @@ IDirectFB_GetScreen( IDirectFB        *thiz,
 {
      GetScreen_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
@@ -820,7 +820,7 @@ IDirectFB_EnumDisplayLayers( IDirectFB               *thiz,
 {
      EnumDisplayLayers_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!callbackfunc)
           return DFB_INVARG;
@@ -840,7 +840,7 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
 {
      GetDisplayLayer_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
@@ -861,7 +861,7 @@ IDirectFB_EnumInputDevices( IDirectFB              *thiz,
 {
      EnumInputDevices_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!callbackfunc)
           return DFB_INVARG;
@@ -881,7 +881,7 @@ IDirectFB_GetInputDevice( IDirectFB             *thiz,
 {
      GetInputDevice_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
@@ -898,12 +898,12 @@ static DFBResult
 IDirectFB_CreateEventBuffer( IDirectFB             *thiz,
                              IDirectFBEventBuffer **interface)
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
+     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
 
      return IDirectFBEventBuffer_Construct( *interface, NULL, data );
 }
@@ -916,12 +916,12 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
 {
      CreateEventBuffer_Context context;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
 
-     DFB_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
+     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
 
      IDirectFBEventBuffer_Construct( *interface, global ? input_filter_global :
                                      input_filter_local, data );
@@ -943,7 +943,7 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
      DFBDataBufferDescription  desc;
      IDirectFBDataBuffer      *databuffer;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      /* Check arguments */
      if (!filename || !interface)
@@ -972,11 +972,11 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                IDirectFBVideoProvider **interface )
 {
      DFBResult                            ret;
-     DFBInterfaceFuncs                   *funcs = NULL;
+     DirectInterfaceFuncs                *funcs = NULL;
      IDirectFBVideoProvider              *videoprovider;
      IDirectFBVideoProvider_ProbeContext  ctx;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      /* Check arguments */
      if (!interface || !filename)
@@ -989,13 +989,11 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      ctx.filename = filename;
 
      /* Find a suitable implemenation */
-     ret = DFBGetInterface( &funcs,
-                            "IDirectFBVideoProvider", NULL,
-                            DFBProbeInterface, &ctx );
+     ret = DirectGetInterface( &funcs, "IDirectFBVideoProvider", NULL, DirectProbeInterface, &ctx );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( videoprovider, IDirectFBVideoProvider );
+     DIRECT_ALLOCATE_INTERFACE( videoprovider, IDirectFBVideoProvider );
 
      /* Construct the interface */
      ret = funcs->Construct( videoprovider, filename );
@@ -1014,11 +1012,11 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
                       IDirectFBFont      **interface )
 {
      DFBResult                   ret;
-     DFBInterfaceFuncs          *funcs = NULL;
+     DirectInterfaceFuncs       *funcs = NULL;
      IDirectFBFont              *font;
      IDirectFBFont_ProbeContext  ctx;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      /* Check arguments */
      if (!interface)
@@ -1044,13 +1042,11 @@ IDirectFB_CreateFont( IDirectFB           *thiz,
      ctx.filename = filename;
 
      /* Find a suitable implemenation */
-     ret = DFBGetInterface( &funcs,
-                            "IDirectFBFont", NULL,
-                            DFBProbeInterface, &ctx );
+     ret = DirectGetInterface( &funcs, "IDirectFBFont", NULL, DirectProbeInterface, &ctx );
      if (ret)
           return ret;
 
-     DFB_ALLOCATE_INTERFACE( font, IDirectFBFont );
+     DIRECT_ALLOCATE_INTERFACE( font, IDirectFBFont );
 
      /* Construct the interface */
      ret = funcs->Construct( font, data->core, filename, desc );
@@ -1067,13 +1063,13 @@ IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
                             DFBDataBufferDescription  *desc,
                             IDirectFBDataBuffer      **interface )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!interface)
           return DFB_INVARG;
 
      if (!desc) {
-          DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
 
           return IDirectFBDataBuffer_Streamed_Construct( *interface );
      }
@@ -1082,7 +1078,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
           if (!desc->file)
                return DFB_INVARG;
 
-          DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
 
           return IDirectFBDataBuffer_File_Construct( *interface, desc->file );
      }
@@ -1091,7 +1087,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                 *thiz,
           if (!desc->memory.data || !desc->memory.length)
                return DFB_INVARG;
 
-          DFB_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
 
           return IDirectFBDataBuffer_Memory_Construct( *interface,
                                                        desc->memory.data,
@@ -1139,7 +1135,7 @@ IDirectFB_GetClipboardTimeStamp( IDirectFB      *thiz,
 static DFBResult
 IDirectFB_Suspend( IDirectFB *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      return dfb_core_suspend( data->core );
 }
@@ -1147,7 +1143,7 @@ IDirectFB_Suspend( IDirectFB *thiz )
 static DFBResult
 IDirectFB_Resume( IDirectFB *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      return dfb_core_resume( data->core );
 }
@@ -1155,7 +1151,7 @@ IDirectFB_Resume( IDirectFB *thiz )
 static DFBResult
 IDirectFB_WaitIdle( IDirectFB *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      dfb_gfxcard_sync();
 
@@ -1165,7 +1161,7 @@ IDirectFB_WaitIdle( IDirectFB *thiz )
 static DFBResult
 IDirectFB_WaitForSync( IDirectFB *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      dfb_layer_wait_vsync( data->layer );
 
@@ -1179,10 +1175,10 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
                         void        *arg,
                         void       **interface )
 {
-     DFBResult          ret;
-     DFBInterfaceFuncs *funcs = NULL;
+     DFBResult             ret;
+     DirectInterfaceFuncs *funcs = NULL;
 
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      if (!type || !interface)
           return DFB_INVARG;
@@ -1193,8 +1189,7 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
           return DFB_ACCESSDENIED;
      }
 
-     ret = DFBGetInterface( &funcs,
-                            type, implementation, DFBProbeInterface, arg );
+     ret = DirectGetInterface( &funcs, type, implementation, DirectProbeInterface, arg );
      if (ret)
           return ret;
 
@@ -1219,7 +1214,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 {
      DFBResult ret;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFB)
 
      data->ref   = 1;
      data->core  = core;
@@ -1241,7 +1236,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
      if (ret) {
           D_ERROR( "IDirectFB_Construct: "
                     "Could not get default context of primary layer!\n" );
-          DFB_DEALLOCATE_INTERFACE(thiz);
+          DIRECT_DEALLOCATE_INTERFACE(thiz);
           return ret;
      }
 
@@ -1282,7 +1277,7 @@ IDirectFB_Construct( IDirectFB *thiz, CoreDFB *core )
 DFBResult
 IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused )
 {
-     INTERFACE_GET_DATA(IDirectFB)
+     DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      data->app_focus = focused;
 
@@ -1316,7 +1311,7 @@ GetScreen_Callback( CoreScreen *screen, void *ctx )
      if (id != context->id)
           return DFENUM_OK;
 
-     DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBScreen );
+     DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBScreen );
 
      context->ret = IDirectFBScreen_Construct( *context->interface, screen );
 
@@ -1343,7 +1338,7 @@ GetDisplayLayer_Callback( CoreLayer *layer, void *ctx )
      if (dfb_layer_id_translated( layer ) != context->id)
           return DFENUM_OK;
 
-     DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
+     DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
 
      context->ret = IDirectFBDisplayLayer_Construct( *context->interface,
                                                      layer );
@@ -1371,7 +1366,7 @@ GetInputDevice_Callback( InputDevice *device, void *ctx )
      if (dfb_input_device_id( device ) != context->id)
           return DFENUM_OK;
 
-     DFB_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputDevice );
+     DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputDevice );
 
      IDirectFBInputDevice_Construct( *context->interface, device );
 

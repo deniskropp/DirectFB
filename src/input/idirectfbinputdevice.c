@@ -36,7 +36,6 @@
 #include <fusion/reactor.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -44,6 +43,7 @@
 #include <core/input.h>
 
 #include <misc/util.h>
+#include <direct/interface.h>
 #include <direct/mem.h>
 
 #include "idirectfbinputdevice.h"
@@ -91,13 +91,13 @@ IDirectFBInputDevice_Destruct( IDirectFBInputDevice *thiz )
 
      dfb_input_detach( data->device, &data->reaction );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      data->ref++;
 
@@ -107,7 +107,7 @@ IDirectFBInputDevice_AddRef( IDirectFBInputDevice *thiz )
 static DFBResult
 IDirectFBInputDevice_Release( IDirectFBInputDevice *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (--data->ref == 0)
           IDirectFBInputDevice_Destruct( thiz );
@@ -119,7 +119,7 @@ static DFBResult
 IDirectFBInputDevice_GetID( IDirectFBInputDevice *thiz,
                             DFBInputDeviceID     *id )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!id)
           return DFB_INVARG;
@@ -135,9 +135,9 @@ IDirectFBInputDevice_CreateEventBuffer( IDirectFBInputDevice  *thiz,
 {
      IDirectFBEventBuffer *b;
 
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
-     DFB_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
+     DIRECT_ALLOCATE_INTERFACE( b, IDirectFBEventBuffer );
 
      IDirectFBEventBuffer_Construct( b, NULL, NULL );
 
@@ -153,7 +153,7 @@ static DFBResult
 IDirectFBInputDevice_AttachEventBuffer( IDirectFBInputDevice  *thiz,
                                         IDirectFBEventBuffer  *buffer )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      return IDirectFBEventBuffer_AttachInputDevice( buffer, data->device );
 }
@@ -162,7 +162,7 @@ static DFBResult
 IDirectFBInputDevice_GetDescription( IDirectFBInputDevice      *thiz,
                                      DFBInputDeviceDescription *desc )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!desc)
           return DFB_INVARG;
@@ -177,7 +177,7 @@ IDirectFBInputDevice_GetKeymapEntry( IDirectFBInputDevice      *thiz,
                                      int                        keycode,
                                      DFBInputDeviceKeymapEntry *entry )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!entry)
           return DFB_INVARG;
@@ -198,7 +198,7 @@ IDirectFBInputDevice_GetKeyState( IDirectFBInputDevice        *thiz,
                                   DFBInputDeviceKeyState      *state )
 {
      unsigned int index = key_id - DFB_KEY(IDENTIFIER, 0);
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!state || index >= DIKI_NUMBER_OF_KEYS)
           return DFB_INVARG;
@@ -212,7 +212,7 @@ static DFBResult
 IDirectFBInputDevice_GetModifiers( IDirectFBInputDevice       *thiz,
                                    DFBInputDeviceModifierMask *modifiers )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!modifiers)
           return DFB_INVARG;
@@ -226,7 +226,7 @@ static DFBResult
 IDirectFBInputDevice_GetLockState( IDirectFBInputDevice    *thiz,
                                    DFBInputDeviceLockState *locks )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!locks)
           return DFB_INVARG;
@@ -240,7 +240,7 @@ static DFBResult
 IDirectFBInputDevice_GetButtons( IDirectFBInputDevice     *thiz,
                                  DFBInputDeviceButtonMask *buttons )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!buttons)
           return DFB_INVARG;
@@ -255,7 +255,7 @@ IDirectFBInputDevice_GetButtonState( IDirectFBInputDevice           *thiz,
                                      DFBInputDeviceButtonIdentifier  button,
                                      DFBInputDeviceButtonState      *state)
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!state || (int)button < DIBI_FIRST || button > DIBI_LAST)
           return DFB_INVARG;
@@ -270,7 +270,7 @@ IDirectFBInputDevice_GetAxis( IDirectFBInputDevice         *thiz,
                               DFBInputDeviceAxisIdentifier  axis,
                               int                          *pos )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!pos || (int)axis < DIAI_FIRST || axis > DIAI_LAST)
           return DFB_INVARG;
@@ -285,7 +285,7 @@ IDirectFBInputDevice_GetXY( IDirectFBInputDevice *thiz,
                             int                  *x,
                             int                  *y )
 {
-     INTERFACE_GET_DATA(IDirectFBInputDevice)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice)
 
      if (!x && !y)
           return DFB_INVARG;
@@ -303,7 +303,7 @@ DFBResult
 IDirectFBInputDevice_Construct( IDirectFBInputDevice *thiz,
                                 InputDevice          *device )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBInputDevice)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBInputDevice)
 
      data->ref    = 1;
      data->device = device;

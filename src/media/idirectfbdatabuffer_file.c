@@ -45,7 +45,6 @@
 #include <direct/list.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -55,8 +54,10 @@
 
 #include <misc/util.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <media/idirectfbdatabuffer.h>
 
@@ -86,7 +87,7 @@ IDirectFBDataBuffer_File_Destruct( IDirectFBDataBuffer *thiz )
 static DFBResult
 IDirectFBDataBuffer_File_Release( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
 
      if (--data->ref == 0)
           IDirectFBDataBuffer_File_Destruct( thiz );
@@ -104,7 +105,7 @@ static DFBResult
 IDirectFBDataBuffer_File_SeekTo( IDirectFBDataBuffer *thiz,
                                  unsigned int         offset )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (lseek( data->fd, offset, SEEK_SET ) < 0) {
           switch (errno) {
@@ -125,7 +126,7 @@ static DFBResult
 IDirectFBDataBuffer_File_GetPosition( IDirectFBDataBuffer *thiz,
                                       unsigned int        *offset )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (!offset)
           return DFB_INVARG;
@@ -139,7 +140,7 @@ static DFBResult
 IDirectFBDataBuffer_File_GetLength( IDirectFBDataBuffer *thiz,
                                     unsigned int        *length )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (!length)
           return DFB_INVARG;
@@ -153,7 +154,7 @@ static DFBResult
 IDirectFBDataBuffer_File_WaitForData( IDirectFBDataBuffer *thiz,
                                       unsigned int         length )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (data->pos + length > data->size)
           return DFB_BUFFEREMPTY;
@@ -167,7 +168,7 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
                                                  unsigned int         seconds,
                                                  unsigned int         milli_seconds )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (data->pos + length > data->size)
           return DFB_BUFFEREMPTY;
@@ -183,7 +184,7 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
 {
      ssize_t size;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (!data || !length)
           return DFB_INVARG;
@@ -212,7 +213,7 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
 {
      ssize_t size;
 
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (!data || !length)
           return DFB_INVARG;
@@ -251,7 +252,7 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_File_HasData( IDirectFBDataBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
      if (data->pos >= data->size)
           return DFB_BUFFEREMPTY;
@@ -274,7 +275,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
      DFBResult   ret;
      struct stat status;
 
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_File)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_File)
 
      ret = IDirectFBDataBuffer_Construct( thiz, filename );
      if (ret)
@@ -286,7 +287,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 
           D_PERROR("DirectFB/DataBuffer: opening '%s' failed!\n", filename);
 
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
 
           return errno2dfb( erno );
      }
@@ -298,7 +299,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 
           close( data->fd );
 
-          DFB_DEALLOCATE_INTERFACE( thiz );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
 
           return errno2dfb( erno );
      }

@@ -41,7 +41,6 @@
 #include <direct/list.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -51,8 +50,10 @@
 
 #include <misc/util.h>
 
+#include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include "idirectfbinputbuffer.h"
 
@@ -155,13 +156,13 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      if (data->pipe_fds[1])
           close( data->pipe_fds[1] );
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      data->ref++;
 
@@ -171,7 +172,7 @@ IDirectFBEventBuffer_AddRef( IDirectFBEventBuffer *thiz )
 static DFBResult
 IDirectFBEventBuffer_Release( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (--data->ref == 0)
           IDirectFBEventBuffer_Destruct( thiz );
@@ -184,7 +185,7 @@ IDirectFBEventBuffer_Reset( IDirectFBEventBuffer *thiz )
 {
      IDirectFBEventBuffer_item     *e;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
 
      pthread_mutex_lock( &data->events_mutex );
@@ -207,7 +208,7 @@ IDirectFBEventBuffer_WaitForEvent( IDirectFBEventBuffer *thiz )
 {
      DFBResult ret = DFB_OK;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -232,7 +233,7 @@ IDirectFBEventBuffer_WaitForEventWithTimeout( IDirectFBEventBuffer *thiz,
      int             locked = 0;
      long int        nano_seconds = milli_seconds * 1000000;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (pthread_mutex_trylock( &data->events_mutex ) == 0) {
           if (data->events) {
@@ -270,7 +271,7 @@ IDirectFBEventBuffer_WaitForEventWithTimeout( IDirectFBEventBuffer *thiz,
 static DFBResult
 IDirectFBEventBuffer_WakeUp( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_cond_broadcast( &data->wait_condition );
 
@@ -283,7 +284,7 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
 {
      IDirectFBEventBuffer_item     *e;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -323,7 +324,7 @@ static DFBResult
 IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
                                 DFBEvent             *event )
 {
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      pthread_mutex_lock( &data->events_mutex );
 
@@ -357,7 +358,7 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
 static DFBResult
 IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      return (data->events ? DFB_OK : DFB_BUFFEREMPTY);
 }
@@ -368,7 +369,7 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
 {
      IDirectFBEventBuffer_item *item;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (data->filter && data->filter( event, data->filter_ctx ))
           return DFB_OK;
@@ -386,7 +387,7 @@ static DFBResult
 IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
                                            int                  *fd )
 {
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      if (!fd)
           return DFB_INVARG;
@@ -407,7 +408,7 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
                                 EventBufferFilterCallback  filter,
                                 void                      *filter_ctx )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBEventBuffer)
 
      data->ref        = 1;
      data->filter     = filter;
@@ -438,7 +439,7 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
 {
      AttachedDevice *attached;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      attached = D_CALLOC( 1, sizeof(AttachedDevice) );
      attached->device = device;
@@ -456,7 +457,7 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 {
      AttachedWindow *attached;
 
-     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      attached = D_CALLOC( 1, sizeof(AttachedWindow) );
      attached->window = window;

@@ -34,10 +34,11 @@
 #include <string.h>
 
 #include <directfb.h>
-#include <interface.h>
 
 #include <core/layers.h>
 #include <core/screen.h>
+
+#include <direct/interface.h>
 
 #include "idirectfbscreen.h"
 
@@ -81,13 +82,13 @@ IDirectFBScreen_Destruct( IDirectFBScreen *thiz )
 {
 //     IDirectFBScreen_data *data = (IDirectFBScreen_data*)thiz->priv;
 
-     DFB_DEALLOCATE_INTERFACE( thiz );
+     DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
 
 static DFBResult
 IDirectFBScreen_AddRef( IDirectFBScreen *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      data->ref++;
 
@@ -97,7 +98,7 @@ IDirectFBScreen_AddRef( IDirectFBScreen *thiz )
 static DFBResult
 IDirectFBScreen_Release( IDirectFBScreen *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (--data->ref == 0)
           IDirectFBScreen_Destruct( thiz );
@@ -109,7 +110,7 @@ static DFBResult
 IDirectFBScreen_GetID( IDirectFBScreen *thiz,
                        DFBScreenID     *id )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!id)
           return DFB_INVARG;
@@ -123,7 +124,7 @@ static DFBResult
 IDirectFBScreen_GetDescription( IDirectFBScreen      *thiz,
                                 DFBScreenDescription *desc )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!desc)
           return DFB_INVARG;
@@ -140,7 +141,7 @@ IDirectFBScreen_EnumDisplayLayers( IDirectFBScreen         *thiz,
 {
      EnumDisplayLayers_Context context;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!callbackfunc)
           return DFB_INVARG;
@@ -158,7 +159,7 @@ static DFBResult
 IDirectFBScreen_SetPowerMode( IDirectFBScreen    *thiz,
                               DFBScreenPowerMode  mode )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      switch (mode) {
           case DSPM_ON:
@@ -177,7 +178,7 @@ IDirectFBScreen_SetPowerMode( IDirectFBScreen    *thiz,
 static DFBResult
 IDirectFBScreen_WaitForSync( IDirectFBScreen *thiz )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      return dfb_screen_wait_vsync( data->screen );
 }
@@ -188,7 +189,7 @@ IDirectFBScreen_GetMixerDescriptions( IDirectFBScreen           *thiz,
 {
      int i;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!descriptions)
           return DFB_INVARG;
@@ -207,7 +208,7 @@ IDirectFBScreen_GetMixerConfiguration( IDirectFBScreen      *thiz,
                                        int                   mixer,
                                        DFBScreenMixerConfig *config )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config)
           return DFB_INVARG;
@@ -227,7 +228,7 @@ IDirectFBScreen_TestMixerConfiguration( IDirectFBScreen            *thiz,
      DFBResult            ret;
      DFBScreenMixerConfig patched;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config || (config->flags & ~DSMCONF_ALL))
           return DFB_INVARG;
@@ -258,7 +259,7 @@ IDirectFBScreen_SetMixerConfiguration( IDirectFBScreen            *thiz,
      DFBResult            ret;
      DFBScreenMixerConfig patched;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config || (config->flags & ~DSMCONF_ALL))
           return DFB_INVARG;
@@ -286,7 +287,7 @@ IDirectFBScreen_GetEncoderDescriptions( IDirectFBScreen             *thiz,
 {
      int i;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!descriptions)
           return DFB_INVARG;
@@ -305,7 +306,7 @@ IDirectFBScreen_GetEncoderConfiguration( IDirectFBScreen        *thiz,
                                          int                     encoder,
                                          DFBScreenEncoderConfig *config )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config)
           return DFB_INVARG;
@@ -325,7 +326,7 @@ IDirectFBScreen_TestEncoderConfiguration( IDirectFBScreen              *thiz,
      DFBResult              ret;
      DFBScreenEncoderConfig patched;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config || (config->flags & ~DSECONF_ALL))
           return DFB_INVARG;
@@ -356,7 +357,7 @@ IDirectFBScreen_SetEncoderConfiguration( IDirectFBScreen              *thiz,
      DFBResult              ret;
      DFBScreenEncoderConfig patched;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config || (config->flags & ~DSECONF_ALL))
           return DFB_INVARG;
@@ -384,7 +385,7 @@ IDirectFBScreen_GetOutputDescriptions( IDirectFBScreen            *thiz,
 {
      int i;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!descriptions)
           return DFB_INVARG;
@@ -403,7 +404,7 @@ IDirectFBScreen_GetOutputConfiguration( IDirectFBScreen       *thiz,
                                         int                    output,
                                         DFBScreenOutputConfig *config )
 {
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config)
           return DFB_INVARG;
@@ -423,7 +424,7 @@ IDirectFBScreen_TestOutputConfiguration( IDirectFBScreen             *thiz,
      DFBResult             ret;
      DFBScreenOutputConfig patched;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config || (config->flags & ~DSOCONF_ALL))
           return DFB_INVARG;
@@ -454,7 +455,7 @@ IDirectFBScreen_SetOutputConfiguration( IDirectFBScreen             *thiz,
      DFBResult             ret;
      DFBScreenOutputConfig patched;
 
-     INTERFACE_GET_DATA(IDirectFBScreen)
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
 
      if (!config || (config->flags & ~DSOCONF_ALL))
           return DFB_INVARG;
@@ -482,7 +483,7 @@ DFBResult
 IDirectFBScreen_Construct( IDirectFBScreen *thiz,
                            CoreScreen      *screen )
 {
-     DFB_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBScreen)
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBScreen)
 
      data->ref    = 1;
      data->screen = screen;
