@@ -176,7 +176,7 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
                case '7':
                case '8':
                case '9':
-                 event.key_id = DIKI_KP_0 + '0' - ansistr[i];
+                 event.key_id = DIKI_KP_0 + ansistr[i]- '0';
                  event.flags |= DIEF_KEYID;
                  /*  fallthru  */
 
