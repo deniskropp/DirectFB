@@ -43,6 +43,9 @@ Contents
    (under linux it works anyway but we seem to violate the specs)
    
    see http://www.libsdl.org/pipermail/sdl/2004-February/060190.html
+
+   Stupid workaround: Call SDL_PumpEvents() periodically in your DirectFB
+   application, it works then.
   
 4. Future Plans
    Bypass SDL, write a quartz system
