@@ -678,7 +678,7 @@ if test x$checkfor_neomagic = xyes && test x$have_sysio = xyes; then
 dnl Test for neomagic frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
-#ifdef FB_ACCEL_FB_ACCEL_NEOMAGIC_NM2070
+#ifdef FB_ACCEL_NEOMAGIC_NM2070
   yes
 #endif
   ],
