@@ -63,6 +63,7 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/modules.h>
+#include <direct/trace.h>
 
 #include <fusion/build.h>
 
@@ -1519,6 +1520,12 @@ core_input_filter( InputDevice *device, DFBInputEvent *event )
                          dump_primary_layer_surface();
                          return true;
                     }
+                    break;
+
+               case DIKS_BACKSPACE:
+                    if (event->modifiers == DIMM_META)
+                         direct_trace_print_stacks();
+                    
                     break;
 
                case DIKS_ESCAPE:
