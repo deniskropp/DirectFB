@@ -4,13 +4,15 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src
 
-ati_LTLIBRARIES = libdirectfb_sis315.la
+sis315_LTLIBRARIES = libdirectfb_sis315.la
 
-atidir = $(MODULEDIR)/gfxdrivers
+sis315dir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_sis315_la_SOURCES =	\
 	sis315.c		\
-	sis315_mmio.c
+	sis315_mmio.c		\
+	sis315_mmio.h		\
+	sis315_regs.h
 
 libdirectfb_sis315_la_LDFLAGS = \
         -export-dynamic		\
