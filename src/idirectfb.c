@@ -872,7 +872,7 @@ IDirectFB_EnumInputDevices( IDirectFB              *thiz,
      context.callback     = callbackfunc;
      context.callback_ctx = callbackdata;
 
-     dfb_input_enumerate_devices( EnumInputDevices_Callback, &context );
+     dfb_input_enumerate_devices( EnumInputDevices_Callback, &context, DICAPS_ALL );
 
      return DFB_OK;
 }
@@ -892,7 +892,7 @@ IDirectFB_GetInputDevice( IDirectFB             *thiz,
      context.interface = interface;
      context.id        = id;
 
-     dfb_input_enumerate_devices( GetInputDevice_Callback, &context );
+     dfb_input_enumerate_devices( GetInputDevice_Callback, &context, DICAPS_ALL );
 
      return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
 }
@@ -932,7 +932,7 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
      context.caps      = caps;
      context.interface = interface;
 
-     dfb_input_enumerate_devices( CreateEventBuffer_Callback, &context );
+     dfb_input_enumerate_devices( CreateEventBuffer_Callback, &context, caps );
 
      return DFB_OK;
 }

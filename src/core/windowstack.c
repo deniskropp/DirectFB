@@ -130,7 +130,7 @@ dfb_windowstack_create( CoreLayerContext *context )
      dfb_wm_init_stack( stack );
 
      /* Attach to all input devices */
-     dfb_input_enumerate_devices( stack_attach_devices, stack );
+     dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );
 
      return stack;
 }

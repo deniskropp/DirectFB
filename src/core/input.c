@@ -391,15 +391,16 @@ dfb_input_resume( CoreDFB *core )
 }
 
 void
-dfb_input_enumerate_devices( InputDeviceCallback  callback,
-                             void                *ctx )
+dfb_input_enumerate_devices( InputDeviceCallback         callback,
+                             void                       *ctx,
+                             DFBInputDeviceCapabilities  caps )
 {
      InputDevice *d = inputdevices;
 
      D_ASSERT( inputfield != NULL );
 
      while (d) {
-          if (callback( d, ctx ) == DFENUM_CANCEL)
+          if ((d->shared->device_info.desc.caps & caps) && callback( d, ctx ) == DFENUM_CANCEL)
                break;
 
           d = d->next;

@@ -91,8 +91,9 @@ typedef struct {
 typedef DFBEnumerationResult (*InputDeviceCallback) (InputDevice *device,
                                                      void        *ctx);
 
-void dfb_input_enumerate_devices( InputDeviceCallback  callback,
-                                  void                *ctx );
+void dfb_input_enumerate_devices( InputDeviceCallback         callback,
+                                  void                       *ctx,
+                                  DFBInputDeviceCapabilities  caps );
 
 DirectResult dfb_input_attach( InputDevice *device,
                                React        react,
