@@ -78,7 +78,8 @@ IDirectFBImageProvider_PNG_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
-                                     IDirectFBSurface       *destination );
+                                     IDirectFBSurface       *destination,
+                                     DFBRectangle           *destination_rect );
 
 static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -163,11 +164,13 @@ IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
 
 static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
-                                     IDirectFBSurface *destination )
+                                     IDirectFBSurface *destination,
+                                     DFBRectangle *dest_rect )
 {
      int err, loader_result = 1;
      void *dst;
-     int pitch, width, height;
+     int pitch;
+     DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
 
@@ -177,7 +180,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
           return err;
 
-     err = destination->GetSize( destination, &width, &height );
+     err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)
           return err;
 
@@ -185,9 +188,9 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
           return err;
 
-
      /* actual loading and rendering */
-     {
+     if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
+
           FILE *f;
 
           f = fopen( data->filename, "rb" );
@@ -211,7 +214,9 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                return err;
           }
 
-          loader_result = load_png_argb( f, dst, width, height, pitch, format );
+          dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+
+          loader_result = load_png_argb( f, dst, rect.w, rect.h, pitch, format );
 
           err = destination->Unlock( destination );
 
@@ -297,7 +302,7 @@ load_png_argb( FILE *f, __u8 *dst, int width, int height,
 
           dfb_scale_linear_32( (__u32*)dst, (__u32*)bptrs[0], png_width,
                                png_height, width, height,
-                               pitch - DFB_BYTES_PER_LINE(format, width), format );
+                               pitch, format );
 
           DFBFREE( bptrs[0] );
      }

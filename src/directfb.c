@@ -321,7 +321,7 @@ DFBResult DirectFBCreate( IDirectFB **interface )
                return DFB_INIT;
           }
 
-          ret = provider->RenderTo( provider, image );
+          ret = provider->RenderTo( provider, image, NULL );
           if (ret) {
                DirectFBError( "Failed loading background image", ret );
 

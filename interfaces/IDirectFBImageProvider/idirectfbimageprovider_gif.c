@@ -125,7 +125,8 @@ IDirectFBImageProvider_GIF_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
-                                     IDirectFBSurface       *destination );
+                                     IDirectFBSurface       *destination,
+                                     DFBRectangle           *destination_rect );
 
 static DFBResult
 IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -206,11 +207,13 @@ static DFBResult IDirectFBImageProvider_GIF_Release( IDirectFBImageProvider *thi
 }
 
 static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
-                                               IDirectFBSurface *destination )
+                                                      IDirectFBSurface *destination,
+                                                      DFBRectangle *dest_rect )
 {
      int err;
      void *dst;
-     int pitch, width, height, src_width, src_height, transparency;
+     int pitch, src_width, src_height, transparency;
+     DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
 
@@ -220,7 +223,7 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
      if (err)
           return err;
 
-     err = destination->GetSize( destination, &width, &height );
+     err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)
           return err;
 
@@ -228,9 +231,9 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
      if (err)
           return err;
 
-
      /* actual loading and rendering */
-     {
+     if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
+
           __u32 *image_data;
           FILE *f;
 
@@ -240,6 +243,7 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
 
           image_data = ReadGIF( f, 1, &src_width, &src_height,
                                 &transparency, NULL, 0 );
+
           if (image_data) {
                err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
                if (err) {
@@ -248,10 +252,11 @@ static DFBResult IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *th
                     return err;
                }
 
+               dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+
                dfb_scale_linear_32( dst, image_data,
-                                    src_width, src_height, width, height,
-                                    pitch - DFB_BYTES_PER_LINE(format, width),
-                                    format );
+                                    src_width, src_height, rect.w, rect.h,
+                                    pitch, format );
 
                destination->Unlock( destination );
                DFBFREE(image_data);

@@ -75,7 +75,8 @@ IDirectFBImageProvider_JPEG_Release ( IDirectFBImageProvider *thiz );
 
 static DFBResult
 IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
-                                      IDirectFBSurface       *destination );
+                                      IDirectFBSurface       *destination,
+                                      DFBRectangle           *destination_rect );
 
 static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -237,11 +238,13 @@ IDirectFBImageProvider_JPEG_Release( IDirectFBImageProvider *thiz )
 
 static DFBResult
 IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
-                                      IDirectFBSurface       *destination )
+                                      IDirectFBSurface       *destination,
+                                      DFBRectangle           *dest_rect )
 {
      int err;
      void *dst;
-     int pitch, width, height;
+     int pitch;
+     DFBRectangle rect = { 0, 0, 0, 0 };
      DFBSurfacePixelFormat format;
      DFBSurfaceCapabilities caps;
 
@@ -269,21 +272,26 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
           return err;
 
-     err = destination->GetSize( destination, &width, &height );
+     err = destination->GetSize( destination, &rect.w, &rect.h );
      if (err)
           return err;
+
+     if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
+          return DFB_OK;
 
      err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
      if (err)
           return err;
 
+     dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+
      /* actual loading and rendering */
      {
           struct jpeg_decompress_struct cinfo;
           struct my_error_mgr jerr;
-          JSAMPARRAY buffer;           /* Output row buffer */
+          JSAMPARRAY buffer;      /* Output row buffer */
           FILE *f;
-          int row_stride;              /* physical row width in output buffer */
+          int row_stride;         /* physical row width in output buffer */
           void *image_data;
           void *row_ptr;
 
@@ -316,9 +324,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           jpeg_stdio_src(&cinfo, f);
           jpeg_read_header(&cinfo, TRUE);
 
-//          cinfo.output_width = width;
-//          cinfo.output_height = height;
-
           cinfo.out_color_space = JCS_RGB;
           cinfo.output_components = 3;
           jpeg_start_decompress(&cinfo);
@@ -328,7 +333,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
                                               JPOOL_IMAGE, row_stride, 1);
 
-          if (height==cinfo.output_height && width==cinfo.output_width) {
+          if (rect.w == cinfo.output_width && rect.h == cinfo.output_height) {
                /* image must not be scaled */
                row_ptr = dst;
 
@@ -371,14 +376,12 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
                while (cinfo.output_scanline < cinfo.output_height) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
-                    copy_line32( (__u32*)row_ptr, *buffer,
-                                 cinfo.output_width);
+                    copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
                     (__u32*)row_ptr += cinfo.output_width;
                }
                dfb_scale_linear_32( dst, image_data, cinfo.output_width,
-                                    cinfo.output_height, width, height,
-                                    pitch - DFB_BYTES_PER_LINE(format, width),
-                                    format );
+                                    cinfo.output_height, rect.w, rect.h,
+                                    pitch, format );
 
                free( image_data );
           }
@@ -391,6 +394,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      err = destination->Unlock( destination );
      if (err)
           return err;
+
      return DFB_OK;
 }
 

@@ -2221,6 +2221,15 @@ extern "C"
                DFBEvent                 *event
           );
 
+          /*
+           * Check if there is a pending event in the queue. This function
+           * returns DFB_OK if there is at least one event, DFB_BUFFER_EMPTY
+           * otherwise.
+           */
+          DFBResult (*HasEvent) (
+               IDirectFBEventBuffer     *thiz
+          );
+
 
         /** Sending events **/
 
@@ -2690,10 +2699,16 @@ extern "C"
            * with alpha channel if the destination surface is of the
            * ARGB pixelformat. Otherwise, transparent areas are
            * blended over a black background.
+           *
+           * If a destination rectangle is specified, the rectangle is
+           * clipped to the destination surface. If NULL is passed as
+           * destination rectangle, the whole destination surface is
+           * taken. The image is stretched to fill the rectangle.
            */
           DFBResult (*RenderTo) (
                IDirectFBImageProvider   *thiz,
-               IDirectFBSurface         *destination
+               IDirectFBSurface         *destination,
+               DFBRectangle             *destination_rect
           );
      )
 

@@ -313,6 +313,13 @@ static DFBResult IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
+static DFBResult IDirectFBEventBuffer_HasEvent( IDirectFBEventBuffer *thiz )
+{
+     INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     return (data->events ? DFB_OK : DFB_BUFFEREMPTY);
+}
+
 static DFBResult IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
                                                  DFBEvent             *event )
 {
@@ -352,6 +359,7 @@ DFBResult IDirectFBEventBuffer_Construct( IDirectFBEventBuffer *thiz )
           IDirectFBEventBuffer_WaitForEventWithTimeout;
      thiz->GetEvent = IDirectFBEventBuffer_GetEvent;
      thiz->PeekEvent = IDirectFBEventBuffer_PeekEvent;
+     thiz->HasEvent = IDirectFBEventBuffer_HasEvent;
      thiz->PostEvent = IDirectFBEventBuffer_PostEvent;
 
      return DFB_OK;
