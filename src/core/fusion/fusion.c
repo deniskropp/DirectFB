@@ -252,6 +252,12 @@ fusion_get_millis()
             (tv.tv_usec - _fusion_shared->start_time.tv_usec) / 1000;
 }
 
+int
+fusion_id()
+{
+     return _fusion_id;
+}
+
 /*****************************
  *  File internal functions  *
  *****************************/
@@ -338,6 +344,12 @@ long long
 fusion_get_millis()
 {
      return dfb_get_millis();
+}
+
+int
+fusion_id()
+{
+     return 1;
 }
 
 #endif

@@ -89,6 +89,7 @@ typedef struct {
       * Points to the current state of the graphics card.
       */
      CardState            *state;
+     int                   holder; /* Fusion ID of state owner. */
 } GraphicsDeviceShared;
 
 struct _GraphicsDevice {
@@ -505,7 +506,9 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 static bool
 dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
-     DFBSurfaceLockFlags lock_flags;
+     GraphicsDeviceShared *shared;
+     DFBSurfaceLockFlags   lock_flags;
+     int                   fid = fusion_id();
 
      DFB_ASSERT( card != NULL );
      DFB_ASSERT( card->shared != NULL );
@@ -530,14 +533,16 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
                                                DSDRAW_DST_COLORKEY ) ?
                         DSLF_READ | DSLF_WRITE : DSLF_WRITE) | CSLF_FORCE;
 
+     shared = card->shared;
+
      /* lock surface manager */
-     dfb_surfacemanager_lock( card->shared->surface_manager );
+     dfb_surfacemanager_lock( shared->surface_manager );
 
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
           if (dfb_surface_hardware_lock( state->source, DSLF_READ, 1 )) {
-               dfb_surfacemanager_unlock( card->shared->surface_manager );
+               dfb_surfacemanager_unlock( shared->surface_manager );
                return false;
           }
 
@@ -551,12 +556,12 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
           if (state->source_locked)
                dfb_surface_unlock( state->source, 1 );
 
-          dfb_surfacemanager_unlock( card->shared->surface_manager );
+          dfb_surfacemanager_unlock( shared->surface_manager );
           return false;
      }
 
      /* unlock surface manager */
-     dfb_surfacemanager_unlock( card->shared->surface_manager );
+     dfb_surfacemanager_unlock( shared->surface_manager );
 
      /*
       * Make sure that state setting with subsequent command execution
@@ -575,19 +580,20 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      /* if we are switching to another state... */
-     if (state != card->shared->state) {
+     if (state != shared->state || fid != shared->holder) {
           /* ...set all modification bits and clear 'set functions' */
           state->modified |= SMF_ALL;
           state->set       = 0;
 
-          card->shared->state = state;
+          shared->state  = state;
+          shared->holder = fid;
      }
 
      /*
       * If function hasn't been set or state is modified
       * call the driver function to propagate the state changes.
       */
-     if (!(state->set & accel) || state->modified)
+     if (state->modified || !(state->set & accel))
           card->funcs.SetState( card->driver_data, card->device_data,
                                 &card->funcs, state, accel );
 

@@ -46,6 +46,11 @@ int fusion_init( int world, int *world_ret );
 void fusion_exit();
 
 /*
+ * Return the current Fusion ID.
+ */
+int fusion_id();
+
+/*
  * Sends a signal to one or more fusionees and optionally waits
  * for their processes to terminate.
  *
