@@ -126,9 +126,9 @@ keyboard_get_symbol( int                             code,
           case K_SELECT:  return DIKS_END;
           case K_PGUP:    return DIKS_PAGE_UP;
           case K_PGDN:    return DIKS_PAGE_DOWN;
-          case K_CAPS:    return DIKS_CAPSLOCK;
-          case K_NUM:     return DIKS_NUMLOCK;
-          case K_HOLD:    return DIKS_SCROLLLOCK;
+          case K_CAPS:    return DIKS_CAPS_LOCK;
+          case K_NUM:     return DIKS_NUM_LOCK;
+          case K_HOLD:    return DIKS_SCROLL_LOCK;
           case K_PAUSE:   return DIKS_PAUSE;
           case K_BREAK:   return DIKS_BREAK;
           
@@ -186,7 +186,7 @@ keyboard_get_identifier( int code, unsigned short value )
 
      /* Looks like a hack, but don't know a better way yet. */
      if (code == 97)
-          return DIKI_CTRL_R;
+          return DIKI_CONTROL_R;
 
      if (code == 54)
           return DIKI_SHIFT_R;

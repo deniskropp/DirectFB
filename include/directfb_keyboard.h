@@ -49,12 +49,17 @@ extern "C"
           DIKI_F1, DIKI_F2, DIKI_F3, DIKI_F4, DIKI_F5, DIKI_F6, DIKI_F7,
           DIKI_F8, DIKI_F9, DIKI_F10, DIKI_F11, DIKI_F12,
 
+          DIKI_CONTROL_L, DIKI_SHIFT_L, DIKI_CONTROL_R, DIKI_SHIFT_R,
+          DIKI_ALT_L, DIKI_ALT_R, DIKI_ALTGR, DIKI_META_L, DIKI_META_R,
+          DIKI_SUPER_L, DIKI_SUPER_R, DIKI_HYPER_L, DIKI_HYPER_R,
+
+          DIKI_CAPS_LOCK, DIKI_NUM_LOCK, DIKI_SCROLL_LOCK,
+
           DIKI_ESCAPE, DIKI_LEFT, DIKI_RIGHT, DIKI_UP, DIKI_DOWN,
-          DIKI_CTRL_L, DIKI_SHIFT_L, DIKI_CTRL_R, DIKI_SHIFT_R, DIKI_ALT,
-          DIKI_ALTGR, DIKI_TAB, DIKI_ENTER, DIKI_SPACE, DIKI_BACKSPACE,
+          DIKI_TAB, DIKI_ENTER, DIKI_SPACE, DIKI_BACKSPACE,
           DIKI_INSERT, DIKI_DELETE, DIKI_HOME, DIKI_END,
           DIKI_PAGE_UP, DIKI_PAGE_DOWN,
-          DIKI_CAPSLOCK, DIKI_NUMLOCK, DIKI_SCRLOCK, DIKI_PRINT, DIKI_PAUSE,
+          DIKI_PRINT, DIKI_PAUSE,
 
           DIKI_KP_DIV, DIKI_KP_MULT, DIKI_KP_MINUS, DIKI_KP_PLUS,
           DIKI_KP_ENTER, DIKI_KP_SPACE, DIKI_KP_TAB, DIKI_KP_F1,
@@ -363,9 +368,9 @@ extern "C"
           /*
            * Unicode private area - DirectFB Lock keys
            */
-          DIKS_CAPSLOCK                 = DFB_KEY( LOCK, 0x00 ),
-          DIKS_NUMLOCK                  = DFB_KEY( LOCK, 0x01 ),
-          DIKS_SCROLLLOCK               = DFB_KEY( LOCK, 0x02 ),
+          DIKS_CAPS_LOCK                = DFB_KEY( LOCK, 0x00 ),
+          DIKS_NUM_LOCK                 = DFB_KEY( LOCK, 0x01 ),
+          DIKS_SCROLL_LOCK              = DFB_KEY( LOCK, 0x02 ),
           
           /*
            * Unicode private area - DirectFB Dead keys

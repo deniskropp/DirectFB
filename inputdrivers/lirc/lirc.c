@@ -87,9 +87,9 @@ static const KeySymbolString keysymbol_strings[] = {
      { DIKS_END, "END" },
      { DIKS_PAGE_UP, "PAGE_UP" },
      { DIKS_PAGE_DOWN, "PAGE_DOWN" },
-     { DIKS_CAPSLOCK, "CAPSLOCK" },
-     { DIKS_NUMLOCK, "NUMLOCK" },
-     { DIKS_SCROLLLOCK, "SCROLLLOCK" },
+     { DIKS_CAPS_LOCK, "CAPS_LOCK" },
+     { DIKS_NUM_LOCK, "NUM_LOCK" },
+     { DIKS_SCROLL_LOCK, "SCROLL_LOCK" },
      { DIKS_PRINT, "PRINT" },
      { DIKS_PAUSE, "PAUSE" },
 

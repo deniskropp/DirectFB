@@ -757,15 +757,15 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
      }
      else if (event->type == DIET_KEYPRESS) {
           switch (event->key_id) {
-               case DIKI_CAPSLOCK:
+               case DIKI_CAPS_LOCK:
                     shared->locks ^= (DILS_CAPS & ~shared->locks_pressed);
                     shared->locks_pressed |= DILS_CAPS;
                     break;
-               case DIKI_NUMLOCK:
+               case DIKI_NUM_LOCK:
                     shared->locks ^= (DILS_NUM & ~shared->locks_pressed);
                     shared->locks_pressed |= DILS_NUM;
                     break;
-               case DIKI_SCRLOCK:
+               case DIKI_SCROLL_LOCK:
                     shared->locks ^= (DILS_SCROLL & ~shared->locks_pressed);
                     shared->locks_pressed |= DILS_SCROLL;
                     break;
@@ -778,13 +778,13 @@ fixup_key_event( InputDevice *device, DFBInputEvent *event )
      }
      else {
           switch (event->key_id) {
-               case DIKI_CAPSLOCK:
+               case DIKI_CAPS_LOCK:
                     shared->locks_pressed &= ~DILS_CAPS;
                     break;
-               case DIKI_NUMLOCK:
+               case DIKI_NUM_LOCK:
                     shared->locks_pressed &= ~DILS_NUM;
                     break;
-               case DIKI_SCRLOCK:
+               case DIKI_SCROLL_LOCK:
                     shared->locks_pressed &= ~DILS_SCROLL;
                     break;
                default:
@@ -825,13 +825,13 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
                return DIKI_DOWN;
           
           case DIKS_CONTROL:
-               return DIKI_CTRL_L;
+               return DIKI_CONTROL_L;
           
           case DIKS_SHIFT:
                return DIKI_SHIFT_L;
           
           case DIKS_ALT:
-               return DIKI_ALT;
+               return DIKI_ALT_L;
           
           case DIKS_ALTGR:
                return DIKI_ALTGR;
@@ -866,14 +866,14 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
           case DIKS_PAGE_DOWN:
                return DIKI_PAGE_DOWN;
           
-          case DIKS_CAPSLOCK:
-               return DIKI_CAPSLOCK;
+          case DIKS_CAPS_LOCK:
+               return DIKI_CAPS_LOCK;
           
-          case DIKS_NUMLOCK:
-               return DIKI_NUMLOCK;
+          case DIKS_NUM_LOCK:
+               return DIKI_NUM_LOCK;
           
-          case DIKS_SCROLLLOCK:
-               return DIKI_SCRLOCK;
+          case DIKS_SCROLL_LOCK:
+               return DIKI_SCROLL_LOCK;
           
           case DIKS_PRINT:
                return DIKI_PRINT;
@@ -923,15 +923,16 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
           
-          case DIKI_CTRL_L:
-          case DIKI_CTRL_R:
+          case DIKI_CONTROL_L:
+          case DIKI_CONTROL_R:
                return DIKS_CONTROL;
           
           case DIKI_SHIFT_L:
           case DIKI_SHIFT_R:
                return DIKS_SHIFT;
           
-          case DIKI_ALT:
+          case DIKI_ALT_L:
+          case DIKI_ALT_R:
                return DIKS_ALT;
           
           case DIKI_ALTGR:
@@ -967,14 +968,14 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_PAGE_DOWN:
                return DIKS_PAGE_DOWN;
           
-          case DIKI_CAPSLOCK:
-               return DIKS_CAPSLOCK;
+          case DIKI_CAPS_LOCK:
+               return DIKS_CAPS_LOCK;
           
-          case DIKI_NUMLOCK:
-               return DIKS_NUMLOCK;
+          case DIKI_NUM_LOCK:
+               return DIKS_NUM_LOCK;
           
-          case DIKI_SCRLOCK:
-               return DIKS_SCROLLLOCK;
+          case DIKI_SCROLL_LOCK:
+               return DIKS_SCROLL_LOCK;
           
           case DIKI_PRINT:
                return DIKS_PRINT;
