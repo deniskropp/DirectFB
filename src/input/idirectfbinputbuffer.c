@@ -389,7 +389,7 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
 
      if (!fd)
           return DFB_INVARG;
-     
+
      if (data->pipe_fds[0])
           return DFB_BUSY;
 
@@ -494,10 +494,10 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
 
      pthread_cond_broadcast( &data->wait_condition );
 
+     pthread_mutex_unlock( &data->events_mutex );
+
      if (data->pipe_fds[1])
           write( data->pipe_fds[1], &item->evt, sizeof(DFBEvent) );
-
-     pthread_mutex_unlock( &data->events_mutex );
 }
 
 static ReactionResult IDirectFBEventBuffer_InputReact( const void *msg_data,
