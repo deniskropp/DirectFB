@@ -378,6 +378,9 @@ reactor_free (FusionReactor *reactor)
 void
 _reactor_free_all()
 {
+     /* FIXME */
+
+     /*
      FusionLink *l;
 
      pthread_mutex_lock( &nodes_lock );
@@ -386,14 +389,17 @@ _reactor_free_all()
           FusionLink  *next = l->next;
           ReactorNode *node = (ReactorNode*) l;
 
-          DFBFREE( node );
+           DFBFREE( node );
 
           l = next;
      }
+     */
 
      nodes = NULL;
      
+     /*
      pthread_mutex_unlock( &nodes_lock );
+     */
 }
 
 void

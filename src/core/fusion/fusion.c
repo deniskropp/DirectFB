@@ -132,8 +132,6 @@ fusion_exit()
      dfb_thread_join( read_loop );
      dfb_thread_destroy( read_loop );
 
-     _reactor_free_all();
-
      if (fusion_id == 1) {
           skirmish_destroy( &fusion_shared->arenas_lock );
      }
@@ -141,6 +139,8 @@ fusion_exit()
      fusion_shared = NULL;
 
      __shmalloc_exit( fusion_id == 1 );
+
+     _reactor_free_all();
 
      fusion_id = 0;
      
