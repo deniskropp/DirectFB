@@ -26,6 +26,9 @@
 #include <core/gfxcard.h>
 #include <core/system.h>
 #include <core/layer_control.h>
+
+#include <gfx/convert.h>
+
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
@@ -39,6 +42,7 @@ typedef struct {
      short                 contrast;
      short                 saturation;
      short                 hue;
+     __u32                 colorkey;
      int                   buffer;
      __u32                 fbstart;
 
@@ -53,20 +57,21 @@ typedef struct {
           __u32 NV_PVIDEO_POINT_OUT;   // 0x948
           __u32 NV_PVIDEO_SIZE_OUT;    // 0x950
           __u32 NV_PVIDEO_FORMAT;      // 0x958
-          __u32 NV_PVIDEO_COLOR_KEY;   // 0xb00
      } regs;
 } NVidiaOverlayLayerData;
 
-static void ov0_set_regs ( NVidiaDriverData       *nvdrv,
-                           NVidiaOverlayLayerData *nvov0 );
-static void ov0_calc_regs( NVidiaDriverData       *nvdrv,
-                           NVidiaOverlayLayerData *nvov0,
-                           CoreLayer              *layer,
-                           CoreLayerRegionConfig  *config );
-static void ov0_set_csc  ( NVidiaDriverData       *nvdrv,
-                           NVidiaOverlayLayerData *nvov0 );
+static void ov0_set_regs    ( NVidiaDriverData       *nvdrv,
+                              NVidiaOverlayLayerData *nvov0 );
+static void ov0_calc_regs   ( NVidiaDriverData       *nvdrv,
+                              NVidiaOverlayLayerData *nvov0,
+                              CoreLayer              *layer,
+                              CoreLayerRegionConfig  *config );
+static void ov0_swap_buffers( NVidiaDriverData       *nvdrv,
+                              NVidiaOverlayLayerData *nvov0 );
+static void ov0_set_csc     ( NVidiaDriverData       *nvdrv,
+                              NVidiaOverlayLayerData *nvov0 );
 
-#define OV0_SUPPORTED_OPTIONS   (DLOP_NONE)
+#define OV0_SUPPORTED_OPTIONS   (DLOP_DST_COLORKEY)
 
 /**********************/
 
@@ -90,9 +95,10 @@ ov0InitLayer( CoreLayer                  *layer,
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
 
      /* set capabilities and type */
-     description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE | 
-                         DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST | 
-                         DLCAPS_SATURATION | DLCAPS_HUE;
+     description->caps =  DLCAPS_SURFACE      | DLCAPS_SCREEN_LOCATION |
+                          DLCAPS_BRIGHTNESS   | DLCAPS_CONTRAST        | 
+                          DLCAPS_SATURATION   | DLCAPS_HUE             |
+                          DLCAPS_DST_COLORKEY;
      description->type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
@@ -230,9 +236,16 @@ ov0SetRegion( CoreLayer                  *layer,
 
      /* remember configuration */
      nvov0->config  = *config;
-     
+
      ov0_calc_regs( nvdrv, nvov0, layer, config );
      ov0_set_regs( nvdrv, nvov0 );
+
+     if (config->options & DLOP_DST_COLORKEY) {
+          nvov0->colorkey = dfb_color_to_pixel( dfb_primary_layer_pixelformat(),
+                                                config->dst_key.r, config->dst_key.g,
+                                                config->dst_key.b );
+          ov0_set_csc( nvdrv, nvov0 );
+     }
 
      switch (config->opacity) {
           case 0:
@@ -261,6 +274,7 @@ ov0AllocateSurface( CoreLayer              *layer,
 {
      DFBResult result;
      NVidiaOverlayLayerData *nvov0     = (NVidiaOverlayLayerData*) layer_data;
+     CoreSurface            *buffer    = NULL;
      DFBSurfacePixelFormat   format;
      __u32                   dst_width;
      __u32                   src_width;
@@ -302,13 +316,18 @@ ov0AllocateSurface( CoreLayer              *layer,
 
      result = dfb_surface_create(NULL, dst_width, config->height,
                                  format, CSP_VIDEOONLY, DSCAPS_VIDEOONLY,
-                                 NULL, &nvov0->videoSurface);
-     if (result == DFB_OK)
-     {
-          result = dfb_surface_create( NULL, src_width, config->height,
-                                       config->format, CSP_SYSTEMONLY,
-                                       DSCAPS_SYSTEMONLY, NULL, surface );
-     }
+                                 NULL, &buffer );
+     if (result != DFB_OK)
+          return result;
+
+     nvov0->videoSurface = buffer;
+     nvov0->regs.NV_PVIDEO_BASE = buffer->back_buffer->video.offset & 0x07fffff0;
+     // XBOX-specific: add nvov0->fbstart
+     // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + front_buffer->video.offset) & 0x03fffff0;
+
+     result = dfb_surface_create( NULL, src_width, config->height,
+                                  config->format, CSP_SYSTEMONLY,
+                                  DSCAPS_SYSTEMONLY, NULL, surface );
      return result;
 }
 
@@ -322,6 +341,7 @@ ov0ReallocateSurface( CoreLayer             *layer,
 {
      DFBResult result;
      NVidiaOverlayLayerData *nvov0      = (NVidiaOverlayLayerData*) layer_data;
+     CoreSurface            *buffer     = nvov0->videoSurface;
      DFBSurfacePixelFormat   format;
      __u32                   dst_width;
      __u32                   src_width;
@@ -365,14 +385,16 @@ ov0ReallocateSurface( CoreLayer             *layer,
                                     dst_width * config->height *
                                     DFB_BYTES_PER_PIXEL(format) / 1024);
 
-     result = dfb_surface_reformat( NULL, nvov0->videoSurface, dst_width,
+     result = dfb_surface_reformat( NULL, buffer, dst_width,
                                     config->height, format );
+     if (result != DFB_OK)
+          return result;
 
-     if (result == DFB_OK)
-     {
-          result = dfb_surface_reformat( NULL, surface, src_width,
-                                         config->height, config->format );
-     }
+     nvov0->regs.NV_PVIDEO_BASE = buffer->back_buffer->video.offset & 0x07fffff0;
+
+     result = dfb_surface_reformat( NULL, surface, src_width,
+                                    config->height, config->format );
+
      return result;
 }
 
@@ -526,8 +548,7 @@ ov0FlipRegion ( CoreLayer           *layer,
                break;
      }
 
-     nvov0->buffer ^= 1;
-     ov0_calc_regs( nvdrv, nvov0, layer, &nvov0->config );
+     ov0_swap_buffers( nvdrv, nvov0 );
      ov0_set_regs( nvdrv, nvov0 );
 
      if (flags & DSFLIP_WAITFORSYNC)
@@ -560,10 +581,10 @@ ov0UpdateRegion ( CoreLayer           *layer,
 
      dstPitch = video_buffer->video.pitch;
      srcPitch = data_buffer->system.pitch;
-     
+
      buf = data_buffer->system.addr;
      dstStart = (__u8*)dfb_system_video_memory_virtual(video_buffer->video.offset);
-     
+
      switch(nvov0->config.format) {
           case DSPF_YV12:
           case DSPF_I420:
@@ -586,8 +607,7 @@ ov0UpdateRegion ( CoreLayer           *layer,
                break;
      }
 
-     nvov0->buffer ^= 1;
-     ov0_calc_regs( nvdrv, nvov0, layer, &nvov0->config );
+     ov0_swap_buffers( nvdrv, nvov0 );
      ov0_set_regs( nvdrv, nvov0 );
 
      return DFB_OK;
@@ -603,23 +623,22 @@ ov0SetColorAdjustment( CoreLayer          *layer,
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
 
-     if (adj->flags & DCAF_BRIGHTNESS) 
-     {
+     if (adj->flags & DCAF_BRIGHTNESS) {
           nvov0->brightness = (adj->brightness >> 8) - 128;
           D_DEBUG( "DirectFB/NVidia/Overlay: brightness=%i\n", nvov0->brightness );
      }
-     if (adj->flags & DCAF_CONTRAST)
-     {
+ 
+     if (adj->flags & DCAF_CONTRAST) {
           nvov0->contrast   = 8191 - (adj->contrast >> 3); /* contrast inverted ?! */
           D_DEBUG( "DirectFB/NVidia/Overlay: contrast=%i\n", nvov0->contrast );
      }
-     if (adj->flags & DCAF_SATURATION)
-     {
+
+     if (adj->flags & DCAF_SATURATION) {
           nvov0->saturation = adj->saturation >> 3;
           D_DEBUG( "DirectFB/NVidia/Overlay: saturation=%i\n", nvov0->saturation );
      }
-     if (adj->flags & DCAF_HUE)
-     {
+
+     if (adj->flags & DCAF_HUE) {
           nvov0->hue        = (adj->hue / 182 - 180) % 360;
           D_DEBUG( "DirectFB/NVidia/Overlay: hue=%i\n", nvov0->hue );
      }
@@ -658,7 +677,6 @@ static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0
      nvdrv->PVIDEO[(0x950/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_SIZE_OUT;
      nvdrv->PVIDEO[(0x958/4) + nvov0->buffer] = nvov0->regs.NV_PVIDEO_FORMAT;
      
-     nvdrv->PVIDEO[0xb00/4] = nvov0->regs.NV_PVIDEO_COLOR_KEY;
      nvdrv->PVIDEO[0x704/4] = nvov0->regs.NV_PVIDEO_STOP;
      nvdrv->PVIDEO[0x700/4] = nvov0->regs.NV_PVIDEO_BUFFER;
 }
@@ -673,25 +691,29 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      SurfaceBuffer *buffer  = surface->back_buffer;
       __u32         pitch   = buffer->video.pitch;
      
-     nvov0->regs.NV_PVIDEO_BASE = buffer->video.offset & 0x07fffff0;
-     // XBOX-specific: add nvov0->fbstart
-     // nvov0->regs.NV_PVIDEO_BASE = (nvov0->fbstart + front_buffer->video.offset) & 0x03fffff0;
-     nvov0->regs.NV_PVIDEO_SIZE_IN = (config->height << 16) | config->width;
-     nvov0->regs.NV_PVIDEO_POINT_IN = 0;
-     nvov0->regs.NV_PVIDEO_DS_DX = (config->width << 20) / config->dest.w;
-     nvov0->regs.NV_PVIDEO_DT_DY = (config->height << 20) / config->dest.h;
+     nvov0->regs.NV_PVIDEO_SIZE_IN   = (config->height << 16) | config->width;
+     nvov0->regs.NV_PVIDEO_POINT_IN  = 0;
+     nvov0->regs.NV_PVIDEO_DS_DX     = (config->width << 20) / config->dest.w;
+     nvov0->regs.NV_PVIDEO_DT_DY     = (config->height << 20) / config->dest.h;
      nvov0->regs.NV_PVIDEO_POINT_OUT = (config->dest.y << 16) | config->dest.x;
-     nvov0->regs.NV_PVIDEO_SIZE_OUT = ((config->dest.h << 16) | config->dest.w);
-
-     // pitch |= 1 << 20;   /* use color key */
+     nvov0->regs.NV_PVIDEO_SIZE_OUT  = (config->dest.h << 16) | config->dest.w;
 
      if(config->format != DSPF_UYVY)
           pitch |= 1 << 16;
 
+     if (config->options & DLOP_DST_COLORKEY)
+          pitch |= 1 << 20;   /* use color key */
+
      nvov0->regs.NV_PVIDEO_FORMAT = pitch;
-     nvov0->regs.NV_PVIDEO_BUFFER = 1 << (nvov0->buffer << 2);
 }
 
+static void
+ov0_swap_buffers( NVidiaDriverData       *nvdrv,
+                  NVidiaOverlayLayerData *nvov0 )
+{
+     nvov0->buffer ^= 1;
+     nvov0->regs.NV_PVIDEO_BUFFER = 1 << (nvov0->buffer << 2);
+}
 
 static void
 ov0_set_csc( NVidiaDriverData       *nvdrv,
@@ -712,5 +734,6 @@ ov0_set_csc( NVidiaDriverData       *nvdrv,
      nvdrv->PVIDEO[0x914/4] = (nvov0->brightness << 16) | nvov0->contrast;
      nvdrv->PVIDEO[0x918/4] = (satSine << 16) | (satCosine & 0xffff);
      nvdrv->PVIDEO[0x91c/4] = (satSine << 16) | (satCosine & 0xffff);
+     nvdrv->PVIDEO[0xb00/4] = nvov0->colorkey;
 }
 
