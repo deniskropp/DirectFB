@@ -469,12 +469,11 @@ IDirectFB_CreateSurface( IDirectFB              *thiz,
                                    config.buffermode = DLBM_BACKSYSTEM;
                                    
                                    ret = dfb_layer_set_configuration( data->layer, &config );
-                                   if (ret)
-                                        return ret;
                               }
                          }
                          
-                         return ret;
+                         if (ret)
+                              return ret;
                     }
                     
                     init_palette( dfb_layer_surface( data->layer ), desc );
