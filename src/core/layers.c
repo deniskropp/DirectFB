@@ -1317,7 +1317,8 @@ create_cursor_window( DisplayLayer *layer,
 static DFBResult
 allocate_surface( DisplayLayer *layer )
 {
-     DisplayLayerShared *shared = layer->shared;
+     DFBSurfaceCapabilities  caps   = DSCAPS_VIDEOONLY;
+     DisplayLayerShared     *shared = layer->shared;
      
      DFB_ASSERT( shared->surface == NULL );
 
@@ -1327,9 +1328,29 @@ allocate_surface( DisplayLayer *layer )
                                                 &shared->config,
                                                 &shared->surface );
 
+     /* choose buffermode */
+     if (shared->config.flags & DLCONF_BUFFERMODE) {
+          switch (shared->config.buffermode) {
+               case DLBM_FRONTONLY:
+                    break;
+
+               case DLBM_BACKVIDEO:
+                    caps |= DSCAPS_FLIPPING;
+                    break;
+
+               case DLBM_BACKSYSTEM:
+                    ONCE("DLBM_BACKSYSTEM is unimplemented");
+                    break;
+
+               default:
+                    BUG("unknown buffermode");
+                    break;
+          }
+     }
+
      return dfb_surface_create( shared->config.width, shared->config.height,
                                 shared->config.pixelformat, CSP_VIDEOONLY,
-                                DSCAPS_VIDEOONLY, &shared->surface );
+                                caps, &shared->surface );
 }
 
 static DFBResult
