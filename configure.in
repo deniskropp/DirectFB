@@ -715,7 +715,6 @@ docs/html/Makefile
 
 
 AC_MSG_RESULT([
-
 Build options:
   Version               $VERSION
   Install prefix        $prefix
@@ -748,27 +747,26 @@ Building Video Providers:
 
 Building Font implementations:
   FreeType2             $FREETYPE
-  DirectFB font         yes
-]);
+  DirectFB font         yes]);
 
 if test x$have_linux = xyes; then
 AC_MSG_RESULT([
 Building Graphics Drivers:
-  Matrox              $matrox
-  ATI Rage 128        $ati
-  NeoMagic            $neomagic
-  3Dfx Voodoo         $tdfx
-  nVidia RIVA TNT     $nvidia
-  S3 Savage           $savage
+  Matrox                $matrox
+  ATI Rage 128          $ati
+  NeoMagic              $neomagic
+  3Dfx Voodoo           $tdfx
+  nVidia RIVA TNT       $nvidia
+  S3 Savage             $savage
 
 Building Input Drivers:
-  Linux Input         $enable_linux_input
-  DBox2 Remote        $dbox2remote
-  H3600 Touchscreen   $h3600_ts
-  ucb1x00 Touchscreen $have_arm
-  SonyPI Jogdial      $sonypi
-]);
+  Linux Input           $enable_linux_input
+  DBox2 Remote          $dbox2remote
+  H3600 Touchscreen     $h3600_ts
+  ucb1x00 Touchscreen   $have_arm
+  SonyPI Jogdial        $sonypi]);
+
 fi
-AC_MSG_RESULT([
-$png_warning $jpeg_warning $freetype_warning
+
+AC_MSG_RESULT([$png_warning $jpeg_warning $freetype_warning
 ]);
