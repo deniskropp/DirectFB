@@ -41,6 +41,9 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBInputDeviceTypeFlags DIDTF NONE InputDeviceTypeFlags type $(INCP)/directfb.h \
 	   | grep -v DIDTF_ALL >> $@
 
+	$(MKNAMES) DFBSurfaceDrawingFlags DSDRAW NOFX SurfaceDrawingFlags flag $(INCP)/directfb.h \
+	   | grep -v DSDRAW_ALL >> $@
+
 	$(MKNAMES) DFBSurfaceBlittingFlags DSBLIT NOFX SurfaceBlittingFlags flag $(INCP)/directfb.h \
 	   | grep -v DSBLIT_ALL >> $@
 
