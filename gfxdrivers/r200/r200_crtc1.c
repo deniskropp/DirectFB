@@ -25,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
@@ -100,7 +101,7 @@ crtc1SetPowerMode( CoreScreen         *screen,
      }
 
      if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
-          D_PERROR( "DirectFB/R200: Display blanking failed!\n" );
+          D_PERROR( "DirectFB/R200/Crtc1: display blanking failed!\n" );
           return errno2result( errno );
      }
 
@@ -110,19 +111,23 @@ crtc1SetPowerMode( CoreScreen         *screen,
 static DFBResult
 crtc1WaitVSync( CoreScreen *screen,
                 void       *driver_data,
-                void       *layer_data )
+                void       *screen_data )
 {
-     R200DriverData  *rdrv = (R200DriverData*) driver_data;
-     volatile __u8   *mmio = rdrv->mmio_base; 
-     int              i;
+     R200DriverData *rdrv = (R200DriverData*) driver_data;
+     volatile __u8  *mmio = rdrv->mmio_base; 
+     int             i;
      
      if (dfb_config->pollvsync_none)
           return DFB_OK;
           
      r200_out32( mmio, GEN_INT_STATUS, VSYNC_INT_AK );
-     for (i = 0; i < 20000000; i++) {
+     
+     for (i = 0; i < 2000000; i++) {
+          struct timespec t = { 0, 0 };     
+          
           if (r200_in32( mmio, GEN_INT_STATUS ) & VSYNC_INT)
                break;
+          nanosleep( &t, NULL );
      }
 
      return DFB_OK;
@@ -148,7 +153,8 @@ crtc1GetScreenSize( CoreScreen *screen,
      xres = ((h_total >> 16) + 1) << 3;
      yres = ((v_total >> 16) + 1);
 
-     D_DEBUG( "DirectFB/R200: detected screen size %dx%d.\n", xres, yres );
+     D_DEBUG( "DirectFB/R200/Crtc1: "
+              "detected screen size %dx%d.\n", xres, yres );
 
      *ret_width  = xres;
      *ret_height = yres;
