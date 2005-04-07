@@ -93,5 +93,8 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBScreenEncoderScanMode DSESM UNKNOWN ScreenEncoderScanMode scan_mode $(INCP)/directfb.h \
 	   | grep -v DSESM_ALL >> $@
 
+	$(MKNAMES) DFBAccelerationMask DFXL NONE AccelerationMask mask $(INCP)/directfb.h \
+	   | grep -v DFXL_ALL >> $@
+
 	@echo '' >> $@
 	@echo '#endif' >> $@
