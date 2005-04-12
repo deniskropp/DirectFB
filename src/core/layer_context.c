@@ -846,12 +846,12 @@ dfb_layer_context_set_screenlocation( CoreLayerContext  *context,
           return DFB_FUSION;
 
      /* Do nothing if the location didn't change. */
-     if (context->screen.mode == CLLM_LOCATION &&
+/*     if (context->screen.mode == CLLM_LOCATION &&
          DFB_LOCATION_EQUAL( context->screen.location, *location ))
      {
           dfb_layer_context_unlock( context );
           return DFB_OK;
-     }
+     }*/
 
      /* Take the current configuration. */
      config = context->primary.config;
@@ -889,12 +889,12 @@ dfb_layer_context_set_screenrectangle( CoreLayerContext   *context,
           return DFB_FUSION;
 
      /* Do nothing if the location didn't change. */
-     if (context->screen.mode == CLLM_RECTANGLE &&
+/*     if (context->screen.mode == CLLM_RECTANGLE &&
          DFB_RECTANGLE_EQUAL( context->screen.rectangle, *rectangle ))
      {
           dfb_layer_context_unlock( context );
           return DFB_OK;
-     }
+     }*/
 
      /* Take the current configuration. */
      config = context->primary.config;
