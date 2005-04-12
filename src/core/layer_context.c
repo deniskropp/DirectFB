@@ -969,7 +969,7 @@ dfb_layer_context_set_opacity( CoreLayerContext *context,
           return DFB_FUSION;
 
      /* Do nothing if the opacity didn't change. */
-     if (context->opacity == opacity) {
+     if (context->primary.config.opacity == opacity) {
           dfb_layer_context_unlock( context );
           return DFB_OK;
      }
@@ -983,7 +983,7 @@ dfb_layer_context_set_opacity( CoreLayerContext *context,
      /* Try to set the new configuration. */
      ret = update_primary_region_config( context, &config, CLRCF_OPACITY );
      if (ret == DFB_OK)
-          context->opacity = opacity;
+          context->primary.config.opacity = opacity;
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );

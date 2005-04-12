@@ -118,9 +118,6 @@ struct __DFB_CoreLayerContext {
                                                 layer config and settings. */
      } primary;
 
-     __u8                        opacity;    /* If enabled this value controls
-                                                blending of the whole layer. */
-
      struct {
           DFBLocation            location;   /* Normalized screen location. */
           DFBRectangle           rectangle;  /* Pixel based position and size. */
