@@ -1493,18 +1493,15 @@ reallocate_surface( CoreLayer             *layer,
                return ret;
      }
 
-     /* FIXME: remove this? */
-     if (config->options & DLOP_DEINTERLACING)
-          surface->caps |= DSCAPS_INTERLACED;
-     else
-          surface->caps &= ~DSCAPS_INTERLACED;
-
      /* Add available surface capabilities. */
      surface->caps &= ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED);
      surface->caps |= config->surface_caps & (DSCAPS_INTERLACED |
                                               DSCAPS_SEPARATED  |
-                                              DSCAPS_PREMULTIPLIED);
-
+                                              DSCAPS_PREMULTIPLIED); 
+     /* FIXME: remove this? */
+     if (config->options & DLOP_DEINTERLACING)
+          surface->caps |= DSCAPS_INTERLACED;
+     
      return DFB_OK;
 }
 
