@@ -26,6 +26,7 @@
 */
 
 #include <stdio.h>
+#include <sys/io.h>
 
 #include <core/coredefs.h>
 #include <core/layers.h>
@@ -100,7 +101,10 @@ ovlInitLayer( CoreLayer                  *layer,
      default_adj->brightness = 0x8000;
 
      /* FIXME: use mmio */
-     iopl(3);
+     if (iopl(3) < 0) {
+          D_PERROR( "NeoMagic/Overlay: Could not change I/O permission level!\n" );
+          return DFB_UNSUPPORTED;
+     }
 
      neo_unlock();
 
@@ -116,7 +120,7 @@ ovlInitLayer( CoreLayer                  *layer,
      OUTGR(0x0a, 0x01);
 
      neo_lock();
-
+     
      return DFB_OK;
 }
 
@@ -131,6 +135,12 @@ ovlOnOff( NeoDriverData       *ndrv,
           novl->regs.CONTROL = 0x01;
      else
           novl->regs.CONTROL = 0x00;
+
+     /* FIXME: use mmio */
+     if (iopl(3) < 0) {
+          D_PERROR( "NeoMagic/Overlay: Could not change I/O permission level!\n" );
+          return;
+     }
 
      /* write back to card */
      neo_unlock();
@@ -199,7 +209,7 @@ ovlSetRegion( CoreLayer                  *layer,
      ovl_set_regs( ndrv, novl );
 
      /* enable overlay */
-     ovlOnOff( ndrv, novl, 1 );
+     ovlOnOff( ndrv, novl, config->opacity );
 
      return DFB_OK;
 }
@@ -250,6 +260,12 @@ ovlSetColorAdjustment( CoreLayer          *layer,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
 {
+     /* FIXME: use mmio */
+     if (iopl(3) < 0) {
+          D_PERROR( "NeoMagic/Overlay: Could not change I/O permission level!\n" );
+          return DFB_UNSUPPORTED;
+     }
+
      neo_unlock();
      OUTGR(0xc4, (signed char)((adj->brightness >> 8) -128));
      neo_lock();
@@ -273,6 +289,12 @@ DisplayLayerFuncs neoOverlayFuncs = {
 
 static void ovl_set_regs( NeoDriverData *ndrv, NeoOverlayLayerData *novl )
 {
+     /* FIXME: use mmio */
+     if (iopl(3) < 0) {
+          D_PERROR( "NeoMagic/Overlay: Could not change I/O permission level!\n" );
+          return;
+     }
+
      neo_unlock();
 
      OUTGR(0xb1, ((novl->regs.X2 >> 4) & 0xf0) | (novl->regs.X1 >> 8));
