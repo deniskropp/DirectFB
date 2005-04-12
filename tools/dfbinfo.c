@@ -162,6 +162,14 @@ input_device_callback( DFBInputDeviceID           id,
      }
 
      printf( "\n" );
+     
+     
+     /* Details */
+     if (desc.caps & DICAPS_AXES)
+          printf( "   Max. Axis: %d\n", desc.max_axis );
+     if (desc.caps & DICAPS_BUTTONS)
+          printf( "   Max. Button: %d\n", desc.max_button );
+     
 
      printf( "\n" );
 
