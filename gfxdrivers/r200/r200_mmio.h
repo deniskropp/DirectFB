@@ -129,12 +129,10 @@ static inline void
 r200_flush( R200DriverData *rdrv, R200DeviceData *rdev )
 {
      volatile __u8 *mmio = rdrv->mmio_base;
-     
-     r200_waitfifo( rdrv, rdev, 2 ); 
+
+     r200_waitfifo( rdrv, rdev, 2 );
+     r200_out32( mmio, RB2D_DSTCACHE_CTLSTAT, RB2D_DC_FLUSH_ALL );
      r200_out32( mmio, RB3D_DSTCACHE_CTLSTAT, RB3D_DC_FLUSH_ALL );
-     r200_out32( mmio, WAIT_UNTIL, WAIT_3D_IDLECLEAN | 
-                                   WAIT_2D_IDLECLEAN |
-                                   WAIT_HOST_IDLECLEAN );
 }
 
 

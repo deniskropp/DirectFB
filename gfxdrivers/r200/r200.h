@@ -56,10 +56,11 @@ typedef struct {
      __u32                   src_pitch;
      __u32                   src_width;
      __u32                   src_height;
+     __u32                   src_mask;
 
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
-     
+ 
      /* registers */
      __u32                   dp_gui_master_cntl;
      __u32                   rb3d_cntl;
@@ -67,6 +68,10 @@ typedef struct {
 
      /* chipset identified */
      __u32                   chipset;
+
+     /* for 2d<->3d engine switching */
+     bool                    write_2d;
+     bool                    write_3d; 
      
      /* for fifo/performance monitoring */
      unsigned int            fifo_space;
