@@ -876,7 +876,7 @@ dfb_window_set_opaque( CoreWindow      *window,
      config.opaque.x1 = 0;
      config.opaque.y1 = 0;
      config.opaque.x2 = window->config.bounds.w - 1;
-     config.opaque.y1 = window->config.bounds.h - 1;
+     config.opaque.y2 = window->config.bounds.h - 1;
 
      if (region && !dfb_region_region_intersect( &config.opaque, region ))
           ret = DFB_INVAREA;
