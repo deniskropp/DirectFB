@@ -76,7 +76,8 @@ DFB_GRAPHICS_DRIVER( r200 )
 
 #define R200_SUPPORTED_BLITTINGFLAGS \
      ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
-       DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR )
+       DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
+       DSBLIT_SRC_COLORKEY )
 
 #define R200_SUPPORTED_BLITTINGFUNCTIONS \
      ( DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -256,6 +257,11 @@ static void r200CheckState( void *drv, void *dev,
           if (source->width < 8 || source->height < 8)
                return;
 
+          if (state->blittingflags &  DSBLIT_SRC_COLORKEY &&
+             (state->blittingflags & ~DSBLIT_SRC_COLORKEY ||
+              destination->format != source->format))
+               return;
+
           if (state->blittingflags & DSBLIT_MODULATE &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
@@ -268,14 +274,13 @@ static void r200CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
-                    if (destination->format != DSPF_UYVY && 
-                        destination->format != DSPF_YUY2)
-                         state->accel |= R200_SUPPORTED_BLITTINGFUNCTIONS;
-                    break;
-
+                    if (destination->format == DSPF_UYVY ||
+                        destination->format == DSPF_YUY2)
+                         return;
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    state->accel |= R200_SUPPORTED_BLITTINGFUNCTIONS;
+                    state->accel |= (state->blittingflags & DSBLIT_SRC_COLORKEY)
+                                    ? DFXL_BLIT : R200_SUPPORTED_BLITTINGFUNCTIONS;
                     break;
                
                default:
@@ -452,8 +457,8 @@ static bool r200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
           switch (rdev->dst_format) {
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    rect->x >>= 1;
-                    rect->w >>= 1;
+                    rect->x =  rect->x    >> 1;
+                    rect->w = (rect->w+1) >> 1;
                     break;
                default:
                     break;
@@ -522,8 +527,8 @@ static bool r200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
           switch (rdev->dst_format) {
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    rect->x >>= 1;
-                    rect->w >>= 1;
+                    rect->x =  rect->x    >> 1;
+                    rect->w = (rect->w+1) >> 1;
                     break;
                default:
                     break;
@@ -569,8 +574,8 @@ static bool r200DrawLine( void *drv, void *dev, DFBRegion *line )
           switch (rdev->dst_format) {
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    line->x1 >>= 1;
-                    line->x2 >>= 1;
+                    line->x1 =  line->x1    >> 1;
+                    line->x2 = (line->x2+1) >> 1;
                     break;
                default:
                     break;
@@ -615,6 +620,17 @@ static bool r200Blit( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
      }
      else {
           __u32 dir = 0;
+
+          switch (rdev->dst_format) {
+               case DSPF_YUY2:
+               case DSPF_UYVY:
+                    sr->x =  sr->x    >> 1;
+                    sr->w = (sr->w+1) >> 1;
+                    dx    =  dx       >> 1;
+                    break;
+               default:
+                    break;
+          }
      
           /* check which blitting direction should be used */
           if (sr->x <= dx) {
@@ -631,8 +647,7 @@ static bool r200Blit( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
 
           r200_enter2d( rdrv, rdev );
           r200_waitfifo( rdrv, rdev, 4 ); 
-          /* set blitting direction */
-          r200_out32( mmio, DP_CNTL, dir );
+          r200_out32( mmio, DP_CNTL, dir ); 
           r200_out32( mmio, SRC_Y_X,          (sr->y << 16) | (sr->x & 0x3fff) );
           r200_out32( mmio, DST_Y_X,          (dy    << 16) | (dx    & 0x3fff) );
           r200_out32( mmio, DST_HEIGHT_WIDTH, (sr->h << 16) | (sr->w & 0x3fff) );

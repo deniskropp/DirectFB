@@ -54,6 +54,9 @@
 #define R200_UNSET( flag ) \
      rdev->set &= ~(SMF_##flag)
 
+#define YUV422_PIXELFORMAT( p ) \
+     ((p) == DSPF_UYVY || (p) == DSPF_YUY2)
+
 
 
 static __u32 r200SrcBlend[] = {
@@ -97,7 +100,7 @@ void r200_set_destination( R200DriverData *rdrv,
      if (R200_IS_SET( DESTINATION ))
           return;
 
-     D_ASSERT( (buffer->video.offset % 128) == 0 );
+     D_ASSERT( (buffer->video.offset % 16) == 0 );
      D_ASSERT( (buffer->video.pitch % 32) == 0 );
     
      if (rdev->dst_format != buffer->format       ||
@@ -180,6 +183,10 @@ void r200_set_destination( R200DriverData *rdrv,
           }
           
           if (rdev->dst_format != buffer->format) {
+               if (YUV422_PIXELFORMAT( buffer->format )  ||
+                   YUV422_PIXELFORMAT( rdev->dst_format ))
+                    R200_UNSET( CLIP );
+               
                R200_UNSET( COLOR );
                R200_UNSET( SRC_BLEND );
           }
@@ -203,7 +210,7 @@ void r200_set_source( R200DriverData *rdrv,
      if (R200_IS_SET( SOURCE ))
           return;
 
-     D_ASSERT( (buffer->video.offset % 128) == 0 );
+     D_ASSERT( (buffer->video.offset % 16) == 0 );
      D_ASSERT( (buffer->video.pitch % 32) == 0 );
 
      if (rdev->src_format != buffer->format       ||
@@ -291,19 +298,26 @@ void r200_set_clip( R200DriverData *rdrv,
      
      if (R200_IS_SET( CLIP ))
           return;
-     
+   
      r200_waitfifo( rdrv, rdev, 2 );
-     r200_out32( mmio, SC_TOP_LEFT, 
-                 (clip->y1 << 16) | (clip->x1 & 0xffff) );
-     r200_out32( mmio, SC_BOTTOM_RIGHT,
-                 ((clip->y2+1) << 16) | ((clip->x2+1) & 0xffff) );
-     
+     if (YUV422_PIXELFORMAT( rdev->dst_format )) {
+          r200_out32( mmio, SC_TOP_LEFT,
+                      (clip->y1 << 16) | (clip->x1/2 & 0xffff) );
+          r200_out32( mmio, SC_BOTTOM_RIGHT,
+                      ((clip->y2+1) << 16) | ((clip->x2+1)/2 & 0xffff) );
+     } else {     
+          r200_out32( mmio, SC_TOP_LEFT, 
+                      (clip->y1 << 16) | (clip->x1 & 0xffff) );
+          r200_out32( mmio, SC_BOTTOM_RIGHT,
+                      ((clip->y2+1) << 16) | ((clip->x2+1) & 0xffff) );
+     }
+      
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, RE_TOP_LEFT, 
                  (clip->y1 << 16) | (clip->x1 & 0xffff) );
      r200_out32( mmio, RE_BOTTOM_RIGHT,
                  (clip->y2 << 16) | (clip->x2 & 0xffff) );
-
+     
      R200_SET( CLIP );
 }
 
@@ -417,7 +431,7 @@ void r200_set_src_colorkey( R200DriverData *rdrv,
      
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, CLR_CMP_CLR_SRC, state->src_colorkey ); 
-     r200_out32( mmio, CLR_CMP_MSK, rdev->src_mask );
+     r200_out32( mmio, CLR_CMP_MASK,    rdev->src_mask );
      
      R200_SET( SRC_COLORKEY );
 }
@@ -530,8 +544,8 @@ void r200_set_blittingflags( R200DriverData *rdrv,
           vtx_fmt |= R200_VTX_Z0 | R200_VTX_W0;
      }
  
-     if ((rdev->src_format == DSPF_UYVY || rdev->src_format == DSPF_YUY2) &&
-         (rdev->dst_format != DSPF_UYVY && rdev->dst_format != DSPF_YUY2))
+     if ( YUV422_PIXELFORMAT( rdev->src_format ) &&
+         !YUV422_PIXELFORMAT( rdev->dst_format ))
           filter |= R200_YUV_TO_RGB;
 
      if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL &&
