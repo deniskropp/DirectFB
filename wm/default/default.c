@@ -661,8 +661,8 @@ draw_window( CoreWindow *window, CardState *state,
                     flags |= DSBLIT_SRC_PREMULTCOLOR;
 
                /* Need to premultiply/demultiply destination? */
-               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
-                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
+//               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
+//                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
           }
           else {
                /*
