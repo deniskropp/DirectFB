@@ -204,29 +204,37 @@
 
 /* RGB <-> YCbCr conversion */
 
+extern const __u16 y_for_rgb[256];
+extern const __s16 cr_for_r[256];
+extern const __s16 cr_for_g[256];
+extern const __s16 cb_for_g[256];
+extern const __s16 cb_for_b[256];
+
 #define YCBCR_TO_RGB( y, cb, cr, r, g, b ) do { \
-     int _y, _cb, _cr, _r, _g, _b; \
-     _y  = ((y) - 16) * 76309; \
-     _cb = (cb) - 128; \
-     _cr = (cr) - 128; \
-     _r = (_y                + _cr * 104597 + 0x8000) >> 16; \
-     _g = (_y - _cb *  25675 - _cr *  53279 + 0x8000) >> 16; \
-     _b = (_y + _cb * 132201                + 0x8000) >> 16; \
+     __u16 _y, _cb, _cr;\
+     __s16 _r, _g, _b;\
+     _y  = y_for_rgb[(y)]; _cb = (cb); _cr = (cr);\
+     _r  = _y + cr_for_r[_cr]; \
+     _g  = _y + cr_for_g[_cr] + cb_for_g[_cb]; \
+     _b  = _y + cb_for_b[_cb]; \
      (r) = CLAMP( _r, 0, 255 ); \
      (g) = CLAMP( _g, 0, 255 ); \
      (b) = CLAMP( _b, 0, 255 ); \
 } while (0)
 
+extern const __u16  y_from_ey[256];
+extern const __u16 *cb_from_bey;
+extern const __u16 *cr_from_rey;
+
 #define RGB_TO_YCBCR( r, g, b, y, cb, cr ) do { \
-     int _r, _g, _b, _y, _cb, _cr; \
-     _r = (r); _g = (g); _b = (b); \
-     _y  = ((_r * 16829 + _g *  33039 + _b *  6416 + 0x8000) >> 16) + 16; \
-     _cb = ((_r * -9714 + _g * -19071 + _b * 28784 + 0x8000) >> 16) + 128; \
-     _cr = ((_r * 28784 + _g * -24103 + _b * -4681 + 0x8000) >> 16) + 128; \
-     (y)  = CLAMP( _y,  16, 235 ); \
-     (cb) = CLAMP( _cb, 16, 240 ); \
-     (cr) = CLAMP( _cr, 16, 240 ); \
+     __u32 _ey, _r, _g, _b;\
+     _r = (r); _g = (g); _b = (b);\
+     _ey = (19595 * _r + 38469 * _g + 7471 * _b) >> 16;\
+     (y)  = y_from_ey[_ey]; \
+     (cb) = cb_from_bey[_b-_ey]; \
+     (cr) = cr_from_rey[_r-_ey]; \
 } while (0)
+
 
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
