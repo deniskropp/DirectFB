@@ -79,6 +79,7 @@ static KeyCode keycodes_remote[] = {
      { DIKS_9, 0x0009 },
      { DIKS_VOLUME_UP, 0x000a },
      { DIKS_VOLUME_DOWN, 0x000b },
+     { DIKS_SELECT, 0x000c }, // DM500 Mute
 // TODO find appropriate DIKS codes 
 /*
      { DIKS_TV??, 0x000c }, // TV
@@ -106,6 +107,7 @@ static KeyCode keycodes_remote[] = {
 //     { DIKS_, 0x0050 }, // forward
 //     { DIKS_, 0x0051 }, // back
      { DIKS_HOME, 0x0052 }, // lame
+     { DIKS_SLOW, 0x0054 }, // dm500 lame
 //     { DIKS_, 0x0053 }, // text
 //     { DIKS_, 0x0054 }, // help
 
