@@ -15,16 +15,22 @@ Options:
 	[--version]
 	[--libs]
 	[--cflags]
-	[--input=<driver>[,<driver>]...]
-	[--graphics=<driver>[,<driver>]...]
-	[--font=<impl>[,<impl>]...]
-	[--imageprovider=<impl>[,<impl>]...]
-	[--videoprovider=<impl>[,<impl>]...]
+	
+For static linking:
+	[--input=<driver>[,<driver>]...]	(default: none)
+	[--graphics=<driver>[,<driver>]...]	(default: none)
+	[--system=<system>[,<system>]...]	(default: 'fbdev')
+	[--wm=<wm>[,<wm>]...]			(default: 'default')
+	[--font=<impl>[,<impl>]...]		(default: none)
+	[--imageprovider=<impl>[,<impl>]...]	(default: none)
+	[--videoprovider=<impl>[,<impl>]...]	(default: none)
 	[--fusionsound]
 	[--voodoo]
-Libraries:
-	directfb
-	avifile
+	
+Example for static linking:
+	directfb-config --libs --graphics=matrox,r200
+			--input=linux_input --font=ft2
+			--imageprovider=jpeg,png,gif
 EOF
 	exit $1
 }
@@ -112,6 +118,38 @@ while test $# -gt 0; do
 
       echo_static=yes
       ;;
+    --system=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_system="$echo_system $moduledir/systems/libidirectfb_$i.o"
+        case $i in
+          sdl)
+            echo_system="$echo_system @SDL_LIBS@"
+            ;;
+        esac
+      done
+
+      echo_static=yes
+      ;;
+    --wm=*)
+      if test -z "$optarg"; then
+        usage 2 1>&2
+      fi
+        
+      for i in `echo $optarg | sed 's/,/ /g'`; do
+        echo_wm="$echo_wm $moduledir/wm/libidirectfb_$i.o"
+        case $i in
+          unique)
+            echo_wm="$echo_wm -luniquewm"
+            ;;
+        esac
+      done
+
+      echo_static=yes
+      ;;
     --imageprovider=*)
       if test -z "$optarg"; then
         usage 2 1>&2
@@ -193,8 +231,14 @@ fi
 
 if test -n "$echo_static"; then
 	echo -static
-	echo $moduledir/systems/libdirectfb_fbdev.o
-	echo $moduledir/wm/libdirectfbwm_default.o
+
+	if test -z "$echo_system"; then
+		echo $moduledir/systems/libdirectfb_fbdev.o
+	fi
+
+	if test -z "$echo_wm"; then
+		echo $moduledir/wm/libdirectfbwm_default.o
+	fi
 fi
 
 
@@ -212,11 +256,19 @@ fi
 
 
 if test -n "$echo_input"; then
-	echo -L$moduledir/inputdrivers $echo_input
+	echo $echo_input
 fi
 
 if test -n "$echo_graphics"; then
 	echo $echo_graphics
+fi
+
+if test -n "$echo_system"; then
+	echo $echo_system
+fi
+
+if test -n "$echo_wm"; then
+	echo $echo_wm
 fi
 
 if test -n "$echo_fusionsound"; then
@@ -224,7 +276,7 @@ if test -n "$echo_fusionsound"; then
 fi
 
 
-function print_voodoo()
+function print_voodoo
 {
 	echo $moduledir/interfaces/$1/lib$2_dispatcher.o $moduledir/interfaces/$1/lib$2_requestor.o
 }
