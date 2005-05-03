@@ -124,7 +124,7 @@ while test $# -gt 0; do
       fi
         
       for i in `echo $optarg | sed 's/,/ /g'`; do
-        echo_system="$echo_system $moduledir/systems/libidirectfb_$i.o"
+        echo_system="$echo_system $moduledir/systems/libdirectfb_$i.o"
         case $i in
           sdl)
             echo_system="$echo_system @SDL_LIBS@"
@@ -276,7 +276,7 @@ if test -n "$echo_fusionsound"; then
 fi
 
 
-function print_voodoo
+function print_voodoo ()
 {
 	echo $moduledir/interfaces/$1/lib$2_dispatcher.o $moduledir/interfaces/$1/lib$2_requestor.o
 }
