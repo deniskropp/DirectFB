@@ -435,73 +435,112 @@ static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
 }
 
 static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
-{ 
-     static __u16 __aligned(8) sub0[4] = {     128,     128,     128,     128 };
-     static __u16 __aligned(8) sub1[4] = {      16,      16,       0,       0 }; 
-     static __s16 __aligned(8) mul0[4] = {  0x4093,  0x3312, -0x0C83, -0x1A04 };
-     static __s16 __aligned(8) mul1[4] = {  0x253F,  0x253F,  0x2000,  0x2000 };
+{  
+     static __u16 __aligned(8) sub0[4] = {  16,  16,  16,  16 }; 
+     static __u16 __aligned(8) sub1[4] = { 128, 128, 128, 128 };
+     static __s16 __aligned(8) mul[20] = {
+                     0x253F,  0x253F,  0x253F,  0x253F, // Y       Coeff.
+                     0x3312,  0x3312,  0x3312,  0x3312, // V Red   Coeff.
+                     0x4093,  0x4093,  0x4093,  0x4093, // U Blue  Coeff.
+                    -0x1A04, -0x1A04, -0x1A04, -0x1A04, // V Green Coeff.
+                    -0x0C83, -0x0C83, -0x0C83, -0x0C83  // U Green Coeff.
+     };
+
+     int                w = gfxs->length & 3;
+     GenefxAccumulator *D = gfxs->Dacc;
      
      __asm__ __volatile__ (
-               "movl         %1, %%ecx\n\t"
-               "shrl         $1, %%ecx\n\t"
-               "jz        2f\n\t"
-               "pxor      %%mm7, %%mm7\n\t"
+          "shrl          $2,    %1\n\t"
+          "jz            2f\n\t"
+          "pxor       %%mm7, %%mm7\n\t"
                ".align 16\n"
                "1:\n\t"
-               "movq       (%0), %%mm0\n\t" // 00 a0 00 y0 00 cr 00 cb
-               "movq      8(%0), %%mm1\n\t" // 00 a1 00 y1 00 cr 00 cb
-               "punpckhwd %%mm1, %%mm0\n\t" // 00 a1 00 a0 00 y1 00 y0
-               "punpckldq %%mm1, %%mm1\n\t" // 00 cr 00 cb 00 cr 00 cb
+               "movq        (%0), %%mm0\n\t" // 00 a0 00 y0 00 v0 00 u0
+               "movq       8(%0), %%mm1\n\t" // 00 a1 00 y1 00 v1 00 u1
+               "movq      16(%0), %%mm2\n\t" // 00 a2 00 y2 00 v2 00 u2
+               "movq      24(%0), %%mm3\n\t" // 00 a3 00 y3 00 v3 00 u3
+               "movq       %%mm0, %%mm4\n\t" // 00 a0 00 y0 00 v0 00 u0
+               "movq       %%mm2, %%mm5\n\t" // 00 a2 00 y2 00 v2 00 u2
+               "punpcklwd  %%mm1, %%mm0\n\t" // 00 v1 00 v0 00 u1 00 u0
+               "punpcklwd  %%mm3, %%mm2\n\t" // 00 v3 00 v2 00 u3 00 u2
+               "punpckhwd  %%mm1, %%mm4\n\t" // 00 a1 00 a0 00 y1 00 y0
+               "punpckhwd  %%mm3, %%mm5\n\t" // 00 a3 00 a2 00 y3 00 y2
+               "movq       %%mm0, %%mm1\n\t" // 00 v1 00 v1 00 u1 00 u0
+               "movq       %%mm4, %%mm3\n\t" // 00 a1 00 a0 00 y1 00 y0
+               "punpckldq  %%mm2, %%mm0\n\t" // 00 u3 00 u2 00 u1 00 u0
+               "punpckldq  %%mm5, %%mm3\n\t" // 00 y3 00 y2 00 y1 00 y0
+               "punpckhdq  %%mm2, %%mm1\n\t" // 00 v3 00 v2 00 v1 00 v0
+               "punpckhdq  %%mm5, %%mm4\n\t" // 00 a3 00 a2 00 a1 00 a0
+               /* mm0 = u, mm1 = v, mm3 = y, mm4 = a */
+               "psubw         %2, %%mm3\n\t" // y -= 16
+               "psllw         $3, %%mm3\n\t" // precision
+               "pmulhw      (%4), %%mm3\n\t"
+               "psubw         %3, %%mm1\n\t" // v -= 128 
+               "psllw         $3, %%mm1\n\t" // precision
+               "movq       %%mm1, %%mm2\n\t" // 00 v3 00 v2 00 v1 00 v0
+               "pmulhw     8(%4), %%mm2\n\t" // vr
+               "psubw         %3, %%mm0\n\t" // u -= 128 
+               "psllw         $3, %%mm0\n\t" // precision
+               "movq       %%mm0, %%mm5\n\t" // 00 u3 00 u2 00 u1 00 u0
+               "pmulhw    16(%4), %%mm5\n\t" // ub
+               "paddw      %%mm3, %%mm2\n\t" // 00 r3 00 r2 00 r1 00 r0
+               "paddw      %%mm3, %%mm5\n\t" // 00 b3 00 b2 00 b1 00 b0
+               "pmulhw    24(%4), %%mm1\n\t" // vg
+               "packuswb   %%mm2, %%mm2\n\t" // r3 r2 r1 r0 r3 r2 r1 r0
+               "packuswb   %%mm5, %%mm5\n\t" // b3 b2 b1 b0 b3 b2 b1 b0
+               "pmulhw    32(%4), %%mm0\n\t" // ug
+               "punpcklbw  %%mm7, %%mm2\n\t" // 00 r3 00 r2 00 r1 00 r0
+               "punpcklbw  %%mm7, %%mm5\n\t" // 00 b3 00 b2 00 b1 00 b0
+               "paddw      %%mm1, %%mm3\n\t" // y + vg
+               "paddw      %%mm0, %%mm3\n\t" // 00 g3 00 g2 00 g1 00 g0
+               "packuswb   %%mm3, %%mm3\n\t" // g3 g2 g1 g0 g3 g2 g1 g0
+               "punpcklbw  %%mm7, %%mm3\n\t" // 00 g3 00 g2 00 g1 00 g0
+               /* mm5 = b, mm3 = g, mm2 = r, mm4 = a */
+               "movq       %%mm5, %%mm0\n\t" // 00 b3 00 b2 00 b1 00 b0
+               "movq       %%mm3, %%mm1\n\t" // 00 g3 00 g2 00 g1 00 g0
+               "punpcklwd  %%mm2, %%mm0\n\t" // 00 r1 00 b1 00 r0 00 b0
+               "punpcklwd  %%mm4, %%mm1\n\t" // 00 a1 00 g1 00 a0 00 g0
+               "punpckhwd  %%mm2, %%mm5\n\t" // 00 r3 00 b3 00 r2 00 b2
+               "punpckhwd  %%mm4, %%mm3\n\t" // 00 a3 00 g3 00 a2 00 g2
+               "movq       %%mm0, %%mm2\n\t" // 00 r1 00 b1 00 r0 00 b0
+               "movq       %%mm5, %%mm4\n\t" // 00 r3 00 b3 00 r2 00 b2
+               "punpcklwd  %%mm1, %%mm0\n\t" // 00 a0 00 r0 00 g0 00 b0
+               "punpcklwd  %%mm3, %%mm5\n\t" // 00 a2 00 r2 00 g2 00 b2
+               "punpckhwd  %%mm1, %%mm2\n\t" // 00 a1 00 r1 00 g1 00 b1
+               "punpckhwd  %%mm3, %%mm4\n\t" // 00 a3 00 r3 00 g3 00 b3
+               "movq       %%mm0,  (%0)\n\t"
+               "movq       %%mm2, 8(%0)\n\t"
+               "movq       %%mm5,16(%0)\n\t"
+               "movq       %%mm4,24(%0)\n\t"
+               "addl         $32,    %0\n\t"
+               "decl          %1\n\t"
+               "jnz           1b\n\t"
+          "emms\n\t"
+          "2:"     
+          : "=&D" (D)
+          : "c" (gfxs->length), "m" (*sub0), "m" (*sub1), "r" (mul), "0" (D)
+          : "memory" );
+
+     while (w) {
+          if (!(D->YUV.a & 0xF000)) {
+               __u16 y, cb, cr;
+               __s16 r, g, b;
+
+               y  = y_for_rgb[D->YUV.y];
+               cb = D->YUV.u;
+               cr = D->YUV.v;
+               r  = y + cr_for_r[cr];
+               g  = y + cr_for_g[cr] + cb_for_g[cb];
+               b  = y                + cb_for_b[cb];
                
-               "psubw        %2, %%mm1\n\t" // chroma -= 128
-               "psllw        $3, %%mm1\n\t" // precision 
-               "pmulhw       %4, %%mm1\n\t" // 00 vg 00 ug 00 vr 00 ub
-               
-               "psubw        %3, %%mm0\n\t" // luma -= 16
-               "psllw        $3, %%mm0\n\t" // precision
-               "pmulhw       %5, %%mm0\n\t" // 00 a1 00 a0 00 y1 00 y0
-               
-               "movq      %%mm1, %%mm2\n\t" // 00 vg 00 ug 00 vr 00 ub
-               "punpckldq %%mm2, %%mm2\n\t" // 00 vr 00 ub 00 vr 00 ub 
-               "movq      %%mm0, %%mm3\n\t" // 00 a1 00 a0 00 y1 00 y0
-               "punpcklwd %%mm3, %%mm3\n\t" // 00 y1 00 y1 00 y0 00 y0
-               "paddw     %%mm3, %%mm2\n\t" // 00 r1 00 b1 00 r0 00 b0
-               
-               "punpckhwd %%mm1, %%mm1\n\t" // 00 vg 00 vg 00 ug 00 ug
-               "movq      %%mm1, %%mm3\n\t" // 00 vg 00 vg 00 ug 00 ug
-               "punpckhdq %%mm3, %%mm3\n\t" // 00 vg 00 vg 00 vg 00 vg
-               "paddw     %%mm3, %%mm1\n\t" // vg + ug
-               "paddw     %%mm0, %%mm1\n\t" // 00 a1 00 a0 00 g1 00 g0
-               "punpckhdq %%mm0, %%mm0\n\t" // 00 a1 00 a0 00 a1 00 a0
-              
-               "packuswb  %%mm1, %%mm1\n\t" // a1 a0 g1 g0 a1 a0 g1 g0
-               "packuswb  %%mm2, %%mm2\n\t" // r1 b1 r0 b0 r1 b1 r0 b0 
-               "punpcklbw %%mm7, %%mm1\n\t" // 00 a1 00 a0 00 g1 00 g0
-               "punpcklbw %%mm7, %%mm2\n\t" // 00 r1 00 b1 00 r0 00 g0 
-               "punpcklwd %%mm0, %%mm1\n\t" // 00 a1 00 g1 00 a0 00 g0
-               "movq      %%mm2, %%mm3\n\t" // 00 r1 00 b1 00 r0 00 g0
-               "punpcklwd %%mm1, %%mm2\n\t" // 00 a0 00 r0 00 g0 00 b0
-               "punpckhwd %%mm1, %%mm3\n\t" // 00 a1 00 r1 00 g1 00 b1
-               "movq      %%mm2,  (%0)\n\t"
-               "movq      %%mm3, 8(%0)\n\t"
-               
-               "addl        $16,    %0\n\t"
-               "decl      %%ecx\n\t"
-               "jnz       1b\n\t"
-               /* do last pixel */
-               "2:\n\t"
-               "testl        $1,    %1\n\t"
-               "jz        3f\n\t"
-               "movl         $0,    %1\n\t"
-               "movl         $1, %%ecx\n\t"
-               "subl         $8,    %0\n\t"
-               "jmp       1b\n\t"
-               "3:\n\t"
-               "emms"
-               : /* no outputs */
-               : "D" (gfxs->Dacc), "r" (gfxs->length),
-                 "m" (*sub0), "m" (*sub1), "m" (*mul0), "m" (*mul1)
-               : "ecx", "memory" );
+               D->RGB.r = (r < 0) ? 0 : r;
+               D->RGB.g = (g < 0) ? 0 : g;
+               D->RGB.b = (b < 0) ? 0 : b;
+          }
+
+          D++;
+          w--;
+     }
 }
 
 static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
@@ -516,90 +555,80 @@ static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
                     0x140A, 0x140A, 0x140A, 0x140A, // Cr
                     0x1B7B, 0x1B7B, 0x1B7B, 0x1B7B  // Y
      };
-     
+      
      int                w = gfxs->length & 3;
      GenefxAccumulator *D = gfxs->Dacc;
-    
+     
      __asm__ __volatile__(
-          "shrl          $2, %%ecx\n\t"
+          "shrl          $2,    %1\n\t"
           "jz            2f\n\t" 
-          "pxor       %%mm7, %%mm7\n\t"
-          ".align 16\n"
-          "1:\n\t"
-          
-          "movq        (%0), %%mm0\n\t" // 00 a0 00 r0 00 g0 00 b0
-          "movq       8(%0), %%mm1\n\t" // 00 a1 00 r1 00 g1 00 b1
-          "movq      16(%0), %%mm2\n\t" // 00 a2 00 r2 00 g2 00 b2
-          "movq      24(%0), %%mm3\n\t" // 00 a3 00 r3 00 g3 00 b3
-          "movq       %%mm0, %%mm4\n\t" // 00 a0 00 r0 00 g0 00 b0
-          "movq       %%mm2, %%mm6\n\t" // 00 a2 00 r2 00 g2 00 b2
-          "punpcklwd  %%mm1, %%mm0\n\t" // 00 g1 00 g0 00 b1 00 b0
-          "punpcklwd  %%mm3, %%mm2\n\t" // 00 g3 00 g2 00 b3 00 b2
-          "movq       %%mm0, %%mm5\n\t" // 00 g1 00 g0 00 b1 00 b0
-          "punpckldq  %%mm2, %%mm0\n\t" // 00 b3 00 b2 00 b1 00 b0
-          "punpckhdq  %%mm2, %%mm5\n\t" // 00 g3 00 g2 00 g1 00 g0
-          "punpckhwd  %%mm1, %%mm4\n\t" // 00 a1 00 a0 00 r1 00 r0
-          "punpckhwd  %%mm3, %%mm6\n\t" // 00 a3 00 a2 00 r3 00 r2
-          "movq       %%mm4, %%mm3\n\t" // 00 a1 00 a0 00 r1 00 r0
-          "punpckldq  %%mm6, %%mm4\n\t" // 00 r3 00 r2 00 r1 00 r0
-          "punpckhdq  %%mm6, %%mm3\n\t" // 00 a3 00 a2 00 a1 00 a0
-          /* mm0 = b, mm5 = g, mm4 = r, mm3 = a */
-               
-          "movq       %%mm0, %%mm1\n\t" // save b
-          "psllw         $3, %%mm0\n\t"
-          "pmulhw      (%2), %%mm0\n\t"
-          "movq       %%mm4, %%mm2\n\t" // save r
-          "psllw         $3, %%mm5\n\t"
-          "pmulhw     8(%2), %%mm5\n\t"
-          "psllw         $3, %%mm4\n\t"
-          "pmulhw    16(%2), %%mm4\n\t"
-          "paddw      %%mm5, %%mm0\n\t"
-          "paddw      %%mm4, %%mm0\n\t" // ey
-               
-          "psubw      %%mm0, %%mm1\n\t" // b - ey
-          "psllw         $3, %%mm1\n\t"
-          "pmulhw    24(%2), %%mm1\n\t" // 00 u3 00 u2 00 u1 00 u0
-             
-          "psubw      %%mm0, %%mm2\n\t" // r - ey
-          "psllw         $3, %%mm2\n\t"
-          "pmulhw    32(%2), %%mm2\n\t" // 00 v3 00 v2 00 v1 00 v0
-
-          "paddw         %3, %%mm1\n\t" // Cb + 128
-          "packuswb   %%mm1, %%mm1\n\t" // u3 u2 u1 u0 u3 u2 u1 u0
-               
-          "psllw         $3, %%mm0\n\t"
-          "pmulhw    40(%2), %%mm0\n\t" // 00 y3 00 y2 00 y1 00 y0
-
-          "paddw         %3, %%mm2\n\t" // Cr + 128
-          "packuswb   %%mm2, %%mm2\n\t" // v3 v2 v1 v0 v3 v2 v1 v0
-               
-          "paddw         %4, %%mm0\n\t" // Y + 16
-          "packuswb   %%mm0, %%mm0\n\t" // y3 y2 y1 y0 y3 y2 y1 y0
-          
-          "punpcklbw %%mm7, %%mm2\n\t" // 00 v3 00 v2 00 v1 00 v0
-          "punpcklbw %%mm7, %%mm1\n\t" // 00 u3 00 y2 00 u1 00 u0
-          "punpcklbw %%mm7, %%mm0\n\t" // 00 y3 00 y2 00 y1 00 y0
-          "movq      %%mm2, %%mm4\n\t" // 00 v3 00 v2 00 v1 00 v0
-          "movq      %%mm1, %%mm5\n\t" // 00 u3 00 y2 00 u1 00 u0
-          "punpcklwd %%mm3, %%mm2\n\t" // 00 a1 00 v1 00 a0 00 v0
-          "punpcklwd %%mm0, %%mm1\n\t" // 00 y1 00 u1 00 y0 00 u0
-          "punpckhwd %%mm3, %%mm4\n\t" // 00 a3 00 v3 00 a2 00 v2
-          "punpckhwd %%mm0, %%mm5\n\t" // 00 y3 00 u3 00 y2 00 u2
-          "movq      %%mm1, %%mm3\n\t" // 00 y1 00 u1 00 y0 00 u0
-          "movq      %%mm5, %%mm6\n\t" // 00 y3 00 u3 00 y2 00 u2
-          "punpcklwd %%mm2, %%mm1\n\t" // 00 a0 00 y0 00 v0 00 u0
-          "punpcklwd %%mm4, %%mm5\n\t" // 00 a2 00 y2 00 v2 00 u2
-          "punpckhwd %%mm2, %%mm3\n\t" // 00 a1 00 y1 00 v1 00 u1
-          "punpckhwd %%mm4, %%mm6\n\t" // 00 a3 00 y3 00 v3 00 u3
-
-          "movq      %%mm1,  (%0)\n\t"
-          "movq      %%mm3, 8(%0)\n\t"
-          "movq      %%mm5,16(%0)\n\t"
-          "movq      %%mm6,24(%0)\n\t"
-          
-          "addl       $32, %0\n\t"
-          "decl       %%ecx\n\t"
-          "jnz        1b\n\t"
+          "pxor       %%mm7, %%mm7\n\t"     
+               ".align 16\n"
+               "1:\n\t"
+               "movq        (%0), %%mm0\n\t" // 00 a0 00 r0 00 g0 00 b0
+               "movq       8(%0), %%mm1\n\t" // 00 a1 00 r1 00 g1 00 b1
+               "movq      16(%0), %%mm2\n\t" // 00 a2 00 r2 00 g2 00 b2
+               "movq      24(%0), %%mm3\n\t" // 00 a3 00 r3 00 g3 00 b3
+               "movq       %%mm0, %%mm4\n\t" // 00 a0 00 r0 00 g0 00 b0
+               "movq       %%mm2, %%mm6\n\t" // 00 a2 00 r2 00 g2 00 b2
+               "punpcklwd  %%mm1, %%mm0\n\t" // 00 g1 00 g0 00 b1 00 b0
+               "punpcklwd  %%mm3, %%mm2\n\t" // 00 g3 00 g2 00 b3 00 b2
+               "movq       %%mm0, %%mm5\n\t" // 00 g1 00 g0 00 b1 00 b0
+               "punpckldq  %%mm2, %%mm0\n\t" // 00 b3 00 b2 00 b1 00 b0
+               "punpckhdq  %%mm2, %%mm5\n\t" // 00 g3 00 g2 00 g1 00 g0
+               "punpckhwd  %%mm1, %%mm4\n\t" // 00 a1 00 a0 00 r1 00 r0
+               "punpckhwd  %%mm3, %%mm6\n\t" // 00 a3 00 a2 00 r3 00 r2
+               "movq       %%mm4, %%mm3\n\t" // 00 a1 00 a0 00 r1 00 r0
+               "punpckldq  %%mm6, %%mm4\n\t" // 00 r3 00 r2 00 r1 00 r0
+               "punpckhdq  %%mm6, %%mm3\n\t" // 00 a3 00 a2 00 a1 00 a0
+               /* mm0 = b, mm5 = g, mm4 = r, mm3 = a */
+               "movq       %%mm0, %%mm1\n\t" // save b
+               "psllw         $3, %%mm0\n\t"
+               "pmulhw      (%2), %%mm0\n\t"
+               "movq       %%mm4, %%mm2\n\t" // save r
+               "psllw         $3, %%mm5\n\t"
+               "pmulhw     8(%2), %%mm5\n\t"
+               "psllw         $3, %%mm4\n\t"
+               "pmulhw    16(%2), %%mm4\n\t"
+               "paddw      %%mm5, %%mm0\n\t"
+               "paddw      %%mm4, %%mm0\n\t" // ey
+               "psubw      %%mm0, %%mm1\n\t" // b - ey
+               "psllw         $3, %%mm1\n\t"
+               "pmulhw    24(%2), %%mm1\n\t" // 00 u3 00 u2 00 u1 00 u0
+               "psubw      %%mm0, %%mm2\n\t" // r - ey
+               "psllw         $3, %%mm2\n\t"
+               "pmulhw    32(%2), %%mm2\n\t" // 00 v3 00 v2 00 v1 00 v0
+               "paddw         %3, %%mm1\n\t" // Cb + 128
+               "packuswb   %%mm1, %%mm1\n\t" // u3 u2 u1 u0 u3 u2 u1 u0
+               "psllw         $3, %%mm0\n\t"
+               "pmulhw    40(%2), %%mm0\n\t" // 00 y3 00 y2 00 y1 00 y0
+               "paddw         %3, %%mm2\n\t" // Cr + 128
+               "packuswb   %%mm2, %%mm2\n\t" // v3 v2 v1 v0 v3 v2 v1 v0  
+               "paddw         %4, %%mm0\n\t" // Y + 16
+               "packuswb   %%mm0, %%mm0\n\t" // y3 y2 y1 y0 y3 y2 y1 y0
+               "punpcklbw  %%mm7, %%mm2\n\t" // 00 v3 00 v2 00 v1 00 v0
+               "punpcklbw  %%mm7, %%mm1\n\t" // 00 u3 00 y2 00 u1 00 u0
+               "punpcklbw  %%mm7, %%mm0\n\t" // 00 y3 00 y2 00 y1 00 y0 
+               /* mm1 = u, mm2 = v, mm0 = y, mm3 = a */
+               "movq       %%mm2, %%mm4\n\t" // 00 v3 00 v2 00 v1 00 v0
+               "movq       %%mm1, %%mm5\n\t" // 00 u3 00 y2 00 u1 00 u0
+               "punpcklwd  %%mm3, %%mm2\n\t" // 00 a1 00 v1 00 a0 00 v0
+               "punpcklwd  %%mm0, %%mm1\n\t" // 00 y1 00 u1 00 y0 00 u0
+               "punpckhwd  %%mm3, %%mm4\n\t" // 00 a3 00 v3 00 a2 00 v2
+               "punpckhwd  %%mm0, %%mm5\n\t" // 00 y3 00 u3 00 y2 00 u2
+               "movq       %%mm1, %%mm3\n\t" // 00 y1 00 u1 00 y0 00 u0
+               "movq       %%mm5, %%mm6\n\t" // 00 y3 00 u3 00 y2 00 u2
+               "punpcklwd  %%mm2, %%mm1\n\t" // 00 a0 00 y0 00 v0 00 u0
+               "punpcklwd  %%mm4, %%mm5\n\t" // 00 a2 00 y2 00 v2 00 u2
+               "punpckhwd  %%mm2, %%mm3\n\t" // 00 a1 00 y1 00 v1 00 u1
+               "punpckhwd  %%mm4, %%mm6\n\t" // 00 a3 00 y3 00 v3 00 u3
+               "movq       %%mm1,  (%0)\n\t"
+               "movq       %%mm3, 8(%0)\n\t"
+               "movq       %%mm5,16(%0)\n\t"
+               "movq       %%mm6,24(%0)\n\t"
+               "addl         $32, %0\n\t"
+               "decl          %1\n\t"
+               "jnz           1b\n\t"
           "emms\n\t"
           "2:"
           : "=&D" (D)
@@ -617,6 +646,8 @@ static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
                D->YUV.u = cb_from_bey[b-ey];
                D->YUV.v = cr_from_rey[r-ey];
           }
+
+          D++;
           w--;
      }
 }
