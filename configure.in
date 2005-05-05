@@ -1,3 +1,4 @@
+
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(include/directfb.h)
@@ -941,7 +942,7 @@ if test "$checkfor_nvidia" = "yes"; then
 *** nVidia RIVA TNT gfxdriver will not be built.]))
 fi
 
-if test "$checkfor_savage" = "yes"; then
+if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
 dnl Test for savage frame buffer support in the kernel
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
@@ -991,7 +992,7 @@ if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
 fi
 
 dnl Test for i830 frame buffer support in the kernel
-if test "$checkfor_i830" = "yes"; then
+if test "$checkfor_i830" = "yes" && test "$have_sysio" = "yes"; then
   AC_EGREP_CPP(yes, [
 #include <linux/fb.h>
 #ifdef FB_ACCEL_I830
