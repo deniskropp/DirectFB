@@ -93,7 +93,8 @@ int _fusion_id = 0;  /* non-zero if Fusion is initialized */
 int
 fusion_init( int world, int abi_version, int *world_ret )
 {
-     char        buf[20];
+     char        buf1[20];
+     char        buf2[20];
      FusionEnter enter;
 
      /* Check against multiple initialization. */
@@ -109,14 +110,15 @@ fusion_init( int world, int abi_version, int *world_ret )
      /* Open Fusion Kernel Device. */
      if (world < 0) {
           for (world=0; world<256; world++) {
-               snprintf( buf, sizeof(buf), "/dev/fusion/%d", world );
+               snprintf( buf1, sizeof(buf1), "/dev/fusion%d", world );
+               snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world );
 
-               _fusion_fd = open (buf, O_RDWR | O_NONBLOCK | O_EXCL);
+               _fusion_fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK | O_EXCL );
                if (_fusion_fd < 0) {
                     if (errno == EBUSY)
                          continue;
 
-                    D_PERROR( "Fusion/Init: opening '%s' failed!\n", buf );
+                    D_ERROR( "Fusion/Init: opening fusion device failed!\n" );
                     direct_shutdown();
                     return -1;
                }
@@ -125,11 +127,12 @@ fusion_init( int world, int abi_version, int *world_ret )
           }
      }
      else {
-          snprintf( buf, sizeof(buf), "/dev/fusion/%d", world );
+          snprintf( buf1, sizeof(buf1), "/dev/fusion%d", world );
+          snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world );
 
-          _fusion_fd = open (buf, O_RDWR | O_NONBLOCK);
+          _fusion_fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK );
           if (_fusion_fd < 0) {
-               D_PERROR( "Fusion/Init: opening '%s' failed!\n", buf );
+               D_ERROR( "Fusion/Init: opening fusion device failed!n" );
                direct_shutdown();
                return -1;
           }
