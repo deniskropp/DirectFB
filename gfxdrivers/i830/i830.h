@@ -264,44 +264,49 @@ typedef struct {
 
 
 typedef struct {
-     I830RingBuffer lp_ring;
+     bool                  initialized;
+
+     I830RingBuffer        lp_ring;
 
      bool                  overlayOn;
      I830OverlayLayerData *iovl;
 
+     agp_info              info;
+     agp_allocate          lring_mem;
+     agp_allocate          ovl_mem;
+     agp_bind              lring_bind;
+     agp_bind              ovl_bind;
+
+     __u32                 pattern;
+     __u32                 lring1;
+     __u32                 lring2;
+     __u32                 lring3;
+     __u32                 lring4;
+
      /* benchmarking */
-     __u32 waitfifo_sum;
-     __u32 waitfifo_calls;
-     __u32 idle_calls;
-     __u32 fifo_waitcycles;
-     __u32 idle_waitcycles;
-     __u32 fifo_cache_hits;
-     __u32 fifo_timeoutsum;
-     __u32 idle_timeoutsum;
+     __u32                 waitfifo_sum;
+     __u32                 waitfifo_calls;
+     __u32                 idle_calls;
+     __u32                 fifo_waitcycles;
+     __u32                 idle_waitcycles;
+     __u32                 fifo_cache_hits;
+     __u32                 fifo_timeoutsum;
+     __u32                 idle_timeoutsum;
 } I830DeviceData;
 
 typedef struct {
-     I830DeviceData *idev;
+     I830DeviceData     *idev;
 
-     I830OverlayRegs      *oregs;
+     I830OverlayRegs    *oregs;
 
-     int agpgart;
-     agp_info info;
-     agp_allocate lring_mem;
-     agp_allocate ovl_mem;
-     agp_bind     lring_bind;
-     agp_bind     ovl_bind;
-     volatile __u8 *aper_base;
-     volatile __u8 *lring_base;
-     volatile __u8 *ovl_base;
-     volatile __u8 *mmio_base;
-     volatile __u8 *pattern_base;
-     __u32 pattern;
-     __u32 flags;
-     __u32 lring1;
-     __u32 lring2;
-     __u32 lring3;
-     __u32 lring4;
+     __u32               flags;
+     int                 agpgart;
+     agp_info            info;
+     volatile __u8      *aper_base;
+     volatile __u8      *lring_base;
+     volatile __u8      *ovl_base;
+     volatile __u8      *mmio_base;
+     volatile __u8      *pattern_base;
 } I830DriverData;
 
 extern DisplayLayerFuncs i830OverlayFuncs;

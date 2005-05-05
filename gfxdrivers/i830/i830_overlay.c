@@ -108,7 +108,7 @@ update_overlay( I830DriverData *idrv,
           i830_out_ring( &block, MI_OVERLAY_FLIP | MI_OVERLAY_FLIP_CONTINUE );
      }
 
-     i830_out_ring( &block, idrv->ovl_mem.physical | 1 );
+     i830_out_ring( &block, idev->ovl_mem.physical | 1 );
 
      i830_advance_lp_ring( idrv, idev, &block );
 }
@@ -129,7 +129,7 @@ disable_overlay( I830DriverData *idrv,
      i830_out_ring( &block, MI_WAIT_FOR_EVENT | MI_WAIT_FOR_OVERLAY_FLIP );
      i830_out_ring( &block, MI_NOOP );
      i830_out_ring( &block, MI_OVERLAY_FLIP | MI_OVERLAY_FLIP_OFF );
-     i830_out_ring( &block, idrv->ovl_mem.physical | 1 );
+     i830_out_ring( &block, idev->ovl_mem.physical | 1 );
      i830_out_ring( &block, MI_WAIT_FOR_EVENT | MI_WAIT_FOR_OVERLAY_FLIP );
      i830_out_ring( &block, MI_NOOP );
 

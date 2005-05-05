@@ -114,8 +114,6 @@ static void
 i830_init_ringbuffer( I830DriverData *idrv,
                       I830DeviceData *idev )
 {
-     __u32 tmp1, tmp2;
-
      D_DEBUG_AT( I830_Ring, "Previous lp ring config: 0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
                  i830_readl(idrv->mmio_base, LP_RING),
                  i830_readl(idrv->mmio_base, LP_RING + RING_HEAD),
@@ -136,7 +134,7 @@ i830_init_ringbuffer( I830DriverData *idrv,
      idev->lp_ring.tail_mask = idev->lp_ring.size - 1;
 
      i830_writel( idrv->mmio_base, LP_RING + RING_START,
-                  (idrv->lring_bind.pg_start * 4096) & I830_RING_START_MASK );
+                  (idev->lring_bind.pg_start * 4096) & I830_RING_START_MASK );
 
      i830_writel( idrv->mmio_base, LP_RING + RING_LEN,
                   (idev->lp_ring.size        - 4096) & I830_RING_NR_PAGES );
@@ -291,41 +289,165 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static void
-i830_release_resource( I830DriverData *idrv )
+i830_release_resource( I830DriverData *idrv, I830DeviceData *idev )
 {
      agp_unbind unbind;
 
      if (idrv->flags & I830RES_STATE_SAVE) {
-          i830_writel( idrv->mmio_base, LP_RING, idrv->lring1 );
-          i830_writel( idrv->mmio_base, LP_RING + RING_HEAD, idrv->lring2 );
-          i830_writel( idrv->mmio_base, LP_RING + RING_START, idrv->lring3 );
-          i830_writel( idrv->mmio_base, LP_RING + RING_LEN, idrv->lring4 );
+          i830_writel( idrv->mmio_base, LP_RING, idev->lring1 );
+          i830_writel( idrv->mmio_base, LP_RING + RING_HEAD, idev->lring2 );
+          i830_writel( idrv->mmio_base, LP_RING + RING_START, idev->lring3 );
+          i830_writel( idrv->mmio_base, LP_RING + RING_LEN, idev->lring4 );
      }
 
-     if (idrv->flags & I830RES_MMAP)
-          munmap((void *) idrv->aper_base, idrv->info.aper_size * 1024 * 1024);
+     if (idrv->flags & I830RES_MMAP) {
+          munmap((void *) idrv->aper_base, idev->info.aper_size * 1024 * 1024);
+          idrv->flags &= ~I830RES_MMAP;
+     }
 
      if (idrv->flags & I830RES_LRING_BIND) {
-          unbind.key = idrv->lring_bind.key;
+          unbind.key = idev->lring_bind.key;
           ioctl(idrv->agpgart, AGPIOC_UNBIND, &unbind);
      }
 
      if (idrv->flags & I830RES_LRING_ACQ)
-          ioctl(idrv->agpgart, AGPIOC_DEALLOCATE, idrv->lring_mem.key);
+          ioctl(idrv->agpgart, AGPIOC_DEALLOCATE, idev->lring_mem.key);
 
      if (idrv->flags & I830RES_OVL_BIND) {
-          unbind.key = idrv->ovl_bind.key;
+          unbind.key = idev->ovl_bind.key;
           ioctl(idrv->agpgart, AGPIOC_UNBIND, &unbind);
      }
 
      if (idrv->flags & I830RES_OVL_ACQ)
-          ioctl(idrv->agpgart, AGPIOC_DEALLOCATE, idrv->ovl_mem.key);
+          ioctl(idrv->agpgart, AGPIOC_DEALLOCATE, idev->ovl_mem.key);
 
-     if (idrv->flags & I830RES_GART_ACQ)
+     if (idrv->flags & I830RES_GART_ACQ) {
           ioctl(idrv->agpgart, AGPIOC_RELEASE);
+          idrv->flags &= ~I830RES_GART_ACQ;
+     }
 
-     if (idrv->flags & I830RES_GART)
+     if (idrv->flags & I830RES_GART) {
           close(idrv->agpgart);
+          idrv->flags &= ~I830RES_GART;
+     }
+}
+
+static DFBResult
+i830_agp_setup( GraphicsDevice *device,
+                I830DriverData *idrv,
+                I830DeviceData *idev )
+{
+     idrv->agpgart = open("/dev/agpgart", O_RDWR);
+     if (idrv->agpgart == -1)
+          return DFB_IO;
+     D_FLAGS_SET( idrv->flags, I830RES_GART );
+
+
+     if (ioctl(idrv->agpgart, AGPIOC_ACQUIRE)) {
+          D_PERROR( "I830/AGP: AGPIOC_ACQUIRE failed!\n" );
+          return DFB_IO;
+     }
+     D_FLAGS_SET( idrv->flags, I830RES_GART_ACQ );
+
+
+     if (!idev->initialized) {
+          agp_setup setup;
+
+          setup.agp_mode = 0;
+          if (ioctl(idrv->agpgart, AGPIOC_SETUP, &setup)) {
+               D_PERROR( "I830/AGP: AGPIOC_SETUP failed!\n" );
+               return DFB_IO;
+          }
+     
+          if (ioctl(idrv->agpgart, AGPIOC_INFO, &idev->info)) {
+               D_PERROR( "I830/AGP: AGPIOC_INFO failed!\n" );
+               return DFB_IO;
+          }
+     }
+
+
+     idrv->aper_base = mmap( NULL, idev->info.aper_size * 1024 * 1024, PROT_WRITE,
+                             MAP_SHARED, idrv->agpgart, 0 );
+     if (idrv->aper_base == MAP_FAILED) {
+          D_PERROR( "I830/AGP: mmap() failed!\n" );
+          i830_release_resource( idrv, idev );
+          return DFB_IO;
+     }
+     D_FLAGS_SET( idrv->flags, I830RES_MMAP );
+
+
+     if (!idev->initialized) {
+          __u32 base;
+
+          /* We'll attempt to bind at fb_base + fb_len + 1 MB,
+          to be safe */
+          base = dfb_gfxcard_memory_physical(device, 0) - idev->info.aper_base;
+          base += dfb_gfxcard_memory_length();
+          base += (1024 * 1024);
+     
+          idev->lring_mem.pg_count = RINGBUFFER_SIZE/4096;
+          idev->lring_mem.type = AGP_NORMAL_MEMORY;
+          if (ioctl(idrv->agpgart, AGPIOC_ALLOCATE, &idev->lring_mem)) {
+               D_PERROR( "I830/AGP: AGPIOC_ALLOCATE failed!\n" );
+               i830_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I830RES_LRING_ACQ );
+     
+          idev->lring_bind.key = idev->lring_mem.key;
+          idev->lring_bind.pg_start = base/4096;
+          if (ioctl(idrv->agpgart, AGPIOC_BIND, &idev->lring_bind)) {
+               D_PERROR( "I830/AGP: AGPIOC_BIND failed!\n" );
+               i830_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I830RES_LRING_BIND );
+     
+          idev->ovl_mem.pg_count = 1;
+          idev->ovl_mem.type = AGP_PHYSICAL_MEMORY;
+          if (ioctl(idrv->agpgart, AGPIOC_ALLOCATE, &idev->ovl_mem)) {
+               D_PERROR( "I830/AGP: AGPIOC_ALLOCATE failed!\n" );
+               i830_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I830RES_OVL_ACQ );
+     
+          idev->ovl_bind.key = idev->ovl_mem.key;
+          idev->ovl_bind.pg_start = (base + RINGBUFFER_SIZE)/4096;
+          if (ioctl(idrv->agpgart, AGPIOC_BIND, &idev->ovl_bind)) {
+               D_PERROR( "I830/AGP: AGPIOC_BIND failed!\n" );
+               i830_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I830RES_OVL_BIND );
+     }
+
+
+     if (idrv->flags & I830RES_GART_ACQ) {
+          ioctl(idrv->agpgart, AGPIOC_RELEASE);
+          idrv->flags &= ~I830RES_GART_ACQ;
+     }
+
+
+     idrv->lring_base   = idrv->aper_base + idev->lring_bind.pg_start * 4096;
+     idrv->ovl_base     = idrv->aper_base + idev->ovl_bind.pg_start * 4096;
+     idrv->pattern_base = idrv->ovl_base + 1024;
+
+     if (!idev->initialized) {
+          memset((void *) idrv->ovl_base, 0xff, 1024);
+          memset((void *) idrv->pattern_base, 0xff, 4096 - 1024);
+
+          idev->lring1 = 0;//i830_readl(idrv->mmio_base, LP_RING);
+          idev->lring2 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_HEAD);
+          idev->lring3 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_START);
+          idev->lring4 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_LEN);
+
+          D_FLAGS_SET( idrv->flags, I830RES_STATE_SAVE );
+     }
+
+     idev->initialized = true;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -334,9 +456,9 @@ driver_init_driver( GraphicsDevice      *device,
                     void                *driver_data,
                     void                *device_data )
 {
+     DFBResult       ret;
      I830DriverData *idrv = driver_data;
-     agp_setup setup;
-     __u32 base;
+     I830DeviceData *idev = device_data;
 
      idrv->idev = device_data;
 
@@ -344,79 +466,13 @@ driver_init_driver( GraphicsDevice      *device,
      if (!idrv->mmio_base)
           return DFB_IO;
 
-     idrv->agpgart = open("/dev/agpgart", O_RDWR);
-     if (idrv->agpgart == -1)
-          return DFB_IO;
-     idrv->flags |= I830RES_GART;
-
-     if (ioctl(idrv->agpgart, AGPIOC_ACQUIRE))
-          return DFB_IO;
-     idrv->flags |= I830RES_GART_ACQ;
-
-     setup.agp_mode = 0;
-     if (ioctl(idrv->agpgart, AGPIOC_SETUP, &setup))
-          return DFB_IO;
-
-     if (ioctl(idrv->agpgart, AGPIOC_INFO, &idrv->info))
-          return DFB_IO;
-
-     idrv->aper_base =  mmap(NULL, idrv->info.aper_size * 1024 * 1024, PROT_WRITE, MAP_SHARED,
-                                idrv->agpgart, 0);
-     if (idrv->aper_base == MAP_FAILED) {
-          i830_release_resource(idrv);
-          return DFB_IO;
+     ret = i830_agp_setup( device, idrv, idev );
+     if (ret) {
+          dfb_gfxcard_unmap_mmio( device, idrv->mmio_base, -1 );
+          return ret;
      }
-     idrv->flags |= I830RES_MMAP;
 
-     /* We'll attempt to bind at fb_base + fb_len + 1 MB,
-     to be safe */
-     base = dfb_gfxcard_memory_physical(device, 0) - idrv->info.aper_base;
-     base += dfb_gfxcard_memory_length();
-     base += (1024 * 1024);
-
-     idrv->lring_mem.pg_count = RINGBUFFER_SIZE/4096;
-     idrv->lring_mem.type = AGP_NORMAL_MEMORY;
-     if (ioctl(idrv->agpgart, AGPIOC_ALLOCATE, &idrv->lring_mem)) {
-          i830_release_resource(idrv);
-          return DFB_IO;
-     }
-     idrv->flags |= I830RES_LRING_ACQ;
-
-     idrv->lring_bind.key = idrv->lring_mem.key;
-     idrv->lring_bind.pg_start = base/4096;
-     if (ioctl(idrv->agpgart, AGPIOC_BIND, &idrv->lring_bind)) {
-          i830_release_resource(idrv);
-          return DFB_IO;
-     }
-     idrv->flags |= I830RES_LRING_BIND;
-
-     idrv->ovl_mem.pg_count = 1;
-     idrv->ovl_mem.type = AGP_PHYSICAL_MEMORY;
-     if (ioctl(idrv->agpgart, AGPIOC_ALLOCATE, &idrv->ovl_mem)) {
-          i830_release_resource(idrv);
-          return DFB_IO;
-     }
-     idrv->flags |= I830RES_OVL_ACQ;
-
-     idrv->ovl_bind.key = idrv->ovl_mem.key;
-     idrv->ovl_bind.pg_start = (base + RINGBUFFER_SIZE)/4096;
-     if (ioctl(idrv->agpgart, AGPIOC_BIND, &idrv->ovl_bind)) {
-          i830_release_resource(idrv);
-          return DFB_IO;
-     }
-     idrv->flags |= I830RES_OVL_BIND;
-
-     idrv->lring_base = idrv->aper_base + idrv->lring_bind.pg_start * 4096;
-     idrv->ovl_base = idrv->aper_base + idrv->ovl_bind.pg_start * 4096;
-     idrv->pattern_base = idrv->ovl_base + 1024;
-     memset((void *) idrv->ovl_base, 0xff, 1024);
-     memset((void *) idrv->pattern_base, 0xff, 4096 - 1024);
-
-     idrv->lring1 = 0;//i830_readl(idrv->mmio_base, LP_RING);
-     idrv->lring2 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_HEAD);
-     idrv->lring3 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_START);
-     idrv->lring4 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_LEN);
-     idrv->flags |= I830RES_STATE_SAVE;
+     idrv->info = idev->info;
 
      funcs->CheckState         = i830CheckState;
      funcs->SetState           = i830SetState;
@@ -437,7 +493,7 @@ driver_init_device( GraphicsDevice     *device,
      I830DriverData *idrv = driver_data;
      I830DeviceData *idev = device_data;
 
-     int offset;
+//     int offset;
 
      /* fill device info */
      snprintf( device_info->name,
@@ -494,6 +550,9 @@ driver_close_device( GraphicsDevice *device,
      i830_wait_for_blit_idle(idrv, idev);
      i830_lring_enable(idrv, 0);
 
+     i830_release_resource( idrv, idev );
+
+
      D_DEBUG( "DirectFB/I830: DMA Buffer Performance Monitoring:\n");
      D_DEBUG( "DirectFB/I830:  %9d DMA buffer size in KB\n",
               RINGBUFFER_SIZE/1024 );
@@ -534,8 +593,21 @@ driver_close_driver( GraphicsDevice *device,
 {
      I830DriverData *idrv = (I830DriverData *) driver_data;
 
-     i830_release_resource(idrv);
+     dfb_gfxcard_unmap_mmio( device, idrv->mmio_base, -1 );
 
-     dfb_gfxcard_unmap_mmio( device, idrv->mmio_base, -1);
+     if (idrv->flags & I830RES_MMAP) {
+          munmap((void *) idrv->aper_base, idrv->info.aper_size * 1024 * 1024);
+          idrv->flags &= ~I830RES_MMAP;
+     }
+
+     if (idrv->flags & I830RES_GART_ACQ) {
+          ioctl(idrv->agpgart, AGPIOC_RELEASE);
+          idrv->flags &= ~I830RES_GART_ACQ;
+     }
+
+     if (idrv->flags & I830RES_GART) {
+          close(idrv->agpgart);
+          idrv->flags &= ~I830RES_GART;
+     }
 }
 
