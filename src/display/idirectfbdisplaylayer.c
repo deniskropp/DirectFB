@@ -650,7 +650,7 @@ IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz, int enable )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_enable( data->stack, enable );
