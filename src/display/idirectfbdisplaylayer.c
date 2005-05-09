@@ -239,7 +239,8 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
 
                     data->context = context;
                     data->region  = region;
-               }
+                    data->stack   = dfb_layer_context_windowstack( data->context );
+                }
 
                break;
 
@@ -265,6 +266,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
 
                data->context = context;
                data->region  = region;
+               data->stack   = dfb_layer_context_windowstack( data->context );
 
                break;
 
