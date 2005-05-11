@@ -49,6 +49,16 @@ typedef unsigned int u32;
 typedef unsigned short u16;
 typedef unsigned char u8;
 
+
+#define LP_RING     0x2030
+#define HP_RING     0x2040
+
+#define RING_TAIL      0x00
+#define RING_HEAD      0x04
+#define RING_START     0x08
+#define RING_LEN       0x0C
+
+
 /*  Instruction and Interrupt Control Registers (01000h 02FFFh) */
 #define FENCE                 0x02000                
 #define PGTBL_CTL             0x02020                
@@ -672,8 +682,89 @@ typedef unsigned char u8;
 #define AGP_PHYSICAL_MEMORY 2
 #endif
 
+struct i810_ovl_regs {
+	__u32 obuf_0y;
+	__u32 obuf_1y;
+	__u32 obuf_0u;
+	__u32 obuf_0v;
+	__u32 obuf_1u;
+	__u32 obuf_1v;
+	__u32 ov0stride;
+	__u32 yrgb_vph;
+	__u32 uv_vph;
+	__u32 horz_ph;
+	__u32 init_ph;
+	__u32 dwinpos;
+	__u32 dwinsz;
+	__u32 swid;
+	__u32 swidqw;
+	__u32 sheight;
+	__u32 yrgbscale;
+	__u32 uvscale;
+	__u32 ov0clrc0;
+	__u32 ov0clrc1;
+	__u32 dclrkv;
+	__u32 dclrkm;
+	__u32 sclrkvh;
+	__u32 sclrkvl;
+	__u32 sclrkm;
+	__u32 ov0conf;
+	__u32 ov0cmd;
+	__u32 reserved;
+	__u32 awinpos;
+	__u32 awinsz;
+};
+
 typedef struct {
-	/* state validation */
+	CoreLayerRegionConfig config;
+	int                   planar_bug;
+} I810OverlayLayerData;
+
+
+typedef struct {
+     unsigned int   tail_mask;
+
+     int            size;
+     int            head;
+     int            tail;
+     int            space;
+} I810RingBuffer;
+
+typedef struct {
+     volatile void *virt;
+     unsigned int   tail_mask;
+     unsigned int   outring;
+} I810RingBlock;
+
+
+typedef struct {
+    bool                  initialized;
+
+    I810RingBuffer        lp_ring;
+
+    bool                  overlayOn;
+    I810OverlayLayerData *iovl;
+
+    agp_info              info;
+    agp_allocate          lring_mem;
+    agp_allocate          ovl_mem;
+    agp_bind              lring_bind;
+    agp_bind              ovl_bind;
+
+    __u32                 pattern;
+    __u32                 lring1;
+    __u32                 lring2;
+    __u32                 lring3;
+    __u32                 lring4;
+
+    u32 i810fb_version;
+    u32 cur_tail;
+    int srcaddr, destaddr, srcpitch, destpitch;
+    int color_value, color_value3d, pixeldepth, blit_color;
+    int colorkey_bit, colorkey, render_color;
+    int clip_x1, clip_x2, clip_y1, clip_y2;
+
+    /* state validation */
 	int i_src;
 	int i_dst;
 	int i_color;
@@ -691,32 +782,26 @@ typedef struct {
 } I810DeviceData;
 
 typedef struct {
+    I810DeviceData       *idev;
+
+    volatile struct i810_ovl_regs *oregs;
+
+    u32 flags;
 	int agpgart;
 	agp_info info;
-	agp_allocate lring_mem;
-	agp_allocate ovl_mem;
-	agp_bind     lring_bind;
-	agp_bind     ovl_bind;
 	volatile __u8 *aper_base;
 	volatile __u8 *lring_base;
 	volatile __u8 *ovl_base;
 	volatile __u8 *mmio_base;
 	volatile __u8 *pattern_base;
-	u32 i810fb_version;
-	u32 cur_tail;
-	u32 pattern;
-	u32 flags;
-	u32 lring1;
-	u32 lring2;
-	u32 lring3;
-	u32 lring4;
-	int srcaddr, destaddr, srcpitch, destpitch;
-	int color_value, color_value3d, pixeldepth, blit_color;
-	int colorkey_bit, colorkey, render_color;
-	int clip_x1, clip_x2, clip_y1, clip_y2;
 } I810DriverData;
 
 extern DisplayLayerFuncs i810OverlayFuncs;
+
+void i810ovlOnOff( I810DriverData       *idrv,
+                   I810DeviceData       *idev,
+                   bool                  on );
+
 
 #define i810_readb(mmio_base, where)                     \
         *((volatile u8 *) (mmio_base + where))           \
@@ -737,13 +822,13 @@ extern DisplayLayerFuncs i810OverlayFuncs;
 	*((volatile u32 *) (mmio_base + where)) = (volatile u32) val    \
 
 #define PUT_LRING(val) {                                          \
-        i810_writel(i810drv->lring_base, i810drv->cur_tail, val); \
-	i810drv->cur_tail += 4;                                   \
-	i810drv->cur_tail &= RING_SIZE_MASK;                      \
+        i810_writel(i810drv->lring_base, i810dev->cur_tail, val); \
+	i810dev->cur_tail += 4;                                   \
+	i810dev->cur_tail &= RING_SIZE_MASK;                      \
 }
 
 #define BEGIN_LRING i810_wait_for_space
 
-#define END_LRING(i810drv) i810_writel(LRING, i810drv->mmio_base, i810drv->cur_tail)
+#define END_LRING(i810drv) i810_writel(LRING, i810drv->mmio_base, i810dev->cur_tail)
 
 #endif /* __I810_H__ */

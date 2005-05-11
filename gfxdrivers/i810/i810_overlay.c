@@ -25,6 +25,8 @@
 
 #include <sys/ioctl.h>
 
+#include <string.h>
+
 #include <core/coredefs.h>
 #include <core/layers.h>
 #include <core/surfaces.h>
@@ -39,44 +41,6 @@
 
 #include "i810.h"
 
-struct i810_ovl_regs {
-	__u32 obuf_0y;
-	__u32 obuf_1y;
-	__u32 obuf_0u;
-	__u32 obuf_0v;
-	__u32 obuf_1u;
-	__u32 obuf_1v;
-	__u32 ov0stride;
-	__u32 yrgb_vph;
-	__u32 uv_vph;
-	__u32 horz_ph;
-	__u32 init_ph;
-	__u32 dwinpos;
-	__u32 dwinsz;
-	__u32 swid;
-	__u32 swidqw;
-	__u32 sheight;
-	__u32 yrgbscale;
-	__u32 uvscale;
-	__u32 ov0clrc0;
-	__u32 ov0clrc1;
-	__u32 dclrkv;
-	__u32 dclrkm;
-	__u32 sclrkvh;
-	__u32 sclrkvl;
-	__u32 sclrkm;
-	__u32 ov0conf;
-	__u32 ov0cmd;
-	__u32 reserved;
-	__u32 awinpos;
-	__u32 awinsz;
-};
-
-typedef struct {
-	CoreLayerRegionConfig config;
-	int                   planar_bug;
-	struct i810_ovl_regs  *regs;
-} I810OverlayLayerData;
 
 /*
  * OV0CMD - Overlay Command Register
@@ -141,27 +105,28 @@ extern u32 i810_wait_for_space(I810DriverData *i810drv,
 #define I810_OVERLAY_SUPPORTED_OPTIONS (DLOP_DST_COLORKEY | DLOP_DEINTERLACING)
 
 static void ovl_calc_regs (I810DriverData        *i810drv,
-			   I810OverlayLayerData  *i810ovl,
-			   CoreLayer             *layer,
-			   CoreSurface           *surface,
-			   CoreLayerRegionConfig *config );
+                           I810OverlayLayerData  *i810ovl,
+                           CoreLayer             *layer,
+                           CoreSurface           *surface,
+                           CoreLayerRegionConfig *config );
 
 static void update_overlay(I810DriverData       *i810drv,
-			   I810OverlayLayerData *i810ovl )
+                           I810DeviceData       *i810dev)
 {
-	i810_writel(i810drv->mmio_base, OV0ADDR, i810drv->ovl_mem.physical);
+	i810_writel(i810drv->mmio_base, OV0ADDR, i810dev->ovl_mem.physical);
 }
 	
-static void
-ovlOnOff( I810DriverData       *i810drv,
-	  I810OverlayLayerData *i810ovl,
-	  int                   on )
+void
+i810ovlOnOff( I810DriverData *idrv,
+              I810DeviceData *idev,
+              bool            on )
 {
-	if (on)
-		i810ovl->regs->ov0cmd |= 1;
-	else
-		i810ovl->regs->ov0cmd &= ~1;
-	update_overlay(i810drv, i810ovl);
+     if (on)
+          idrv->oregs->ov0cmd |= 1;
+     else
+          idrv->oregs->ov0cmd &= ~1;
+
+     update_overlay( idrv, idev );
 }
 
 static int
@@ -180,9 +145,14 @@ ovlInitLayer(
               DFBColorAdjustment         *adjustment )
 {
 	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
-	I810DriverData *i810drv = (I810DriverData *) driver_data;
+	I810DriverData *idrv = driver_data;
+    I810DeviceData *idev = idrv->idev;
 	
-	i810ovl->regs = (struct i810_ovl_regs *) i810drv->ovl_base;
+    idev->iovl = i810ovl;
+
+    idrv->oregs = (volatile struct i810_ovl_regs*) idrv->ovl_base;
+
+    memset( (void*) idrv->oregs, 0, sizeof(struct i810_ovl_regs) );
 
 	/* set_capabilities */
 	description->caps = DLCAPS_SURFACE | DLCAPS_SCREEN_LOCATION |
@@ -210,29 +180,28 @@ ovlInitLayer(
 	adjustment->contrast   = 0x8000;
 	adjustment->saturation = 0x8000;
 
-	i810ovl->regs->yrgb_vph  = 0;
-	i810ovl->regs->uv_vph    = 0;
-	i810ovl->regs->horz_ph   = 0;
-	i810ovl->regs->init_ph   = 0;
-	i810ovl->regs->dwinpos   = 0;
-	i810ovl->regs->dwinsz    = (640 << 16) | 480;
-	i810ovl->regs->swid      = 640 | (640 << 15);
-	i810ovl->regs->swidqw    = (640 >> 3) | (640 << 12);
-	i810ovl->regs->sheight   = 480 | (480 << 15);
-	i810ovl->regs->yrgbscale = 0x80004000; /* scale factor 1 */
-	i810ovl->regs->uvscale   = 0x80004000; /* scale factor 1 */
-	i810ovl->regs->ov0clrc0  = 0x4000; /* brightness: 0 contrast: 1.0 */
-	i810ovl->regs->ov0clrc1  = 0x80; /* saturation: bypass */
+	idrv->oregs->yrgb_vph  = 0;
+	idrv->oregs->uv_vph    = 0;
+	idrv->oregs->horz_ph   = 0;
+	idrv->oregs->init_ph   = 0;
+	idrv->oregs->dwinpos   = 0;
+	idrv->oregs->dwinsz    = (640 << 16) | 480;
+	idrv->oregs->swid      = 640 | (640 << 15);
+	idrv->oregs->swidqw    = (640 >> 3) | (640 << 12);
+	idrv->oregs->sheight   = 480 | (480 << 15);
+	idrv->oregs->yrgbscale = 0x80004000; /* scale factor 1 */
+	idrv->oregs->uvscale   = 0x80004000; /* scale factor 1 */
+	idrv->oregs->ov0clrc0  = 0x4000; /* brightness: 0 contrast: 1.0 */
+	idrv->oregs->ov0clrc1  = 0x80; /* saturation: bypass */
 	
-	i810ovl->regs->sclrkvh = 0;
-	i810ovl->regs->sclrkvl = 0;
-	i810ovl->regs->sclrkm  = 0; /* source color key disable */
-	i810ovl->regs->ov0conf = 0; /* two 720 pixel line buffers */
+	idrv->oregs->sclrkvh = 0;
+	idrv->oregs->sclrkvl = 0;
+	idrv->oregs->sclrkm  = 0; /* source color key disable */
+	idrv->oregs->ov0conf = 0; /* two 720 pixel line buffers */
 	
-	i810ovl->regs->ov0cmd = VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST |
-		YUV_420;
+	idrv->oregs->ov0cmd = VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST | YUV_420;
 	
-	update_overlay(i810drv, i810ovl);
+	update_overlay( idrv, idev );
 	
 	/*
 	 * FIXME: If the fence registers are enabled, then the buffer pointers
@@ -241,7 +210,7 @@ ovlInitLayer(
 	 *        formats should not be a problem.
 	 */
 	i810ovl->planar_bug = 0;
-	if (i810_readl(i810drv->mmio_base, FENCE) & 1)
+	if (i810_readl(idrv->mmio_base, FENCE) & 1)
 		i810ovl->planar_bug = 1;
 
 	return DFB_OK;
@@ -307,9 +276,9 @@ ovlSetRegion( CoreLayer                  *layer,
 	i810ovl->config = *config;
 
 	ovl_calc_regs (i810drv, i810ovl, layer, surface, config);
-	update_overlay(i810drv, i810ovl);
+	update_overlay(i810drv, i810drv->idev);
 
-	ovlOnOff(i810drv, i810ovl, 1);
+	i810ovlOnOff(i810drv, i810drv->idev, 1);
 
 	return DFB_OK;
 }
@@ -320,11 +289,10 @@ ovlRemoveRegion( CoreLayer *layer,
                  void      *layer_data,
                  void      *region_data )
 {
-	I810DriverData       *i810drv = (I810DriverData *) driver_data;
-	I810OverlayLayerData *i810ovl = (I810OverlayLayerData *) layer_data;
+	I810DriverData *i810drv = (I810DriverData *) driver_data;
 
 	/* disable overlay */
-	ovlOnOff( i810drv, i810ovl, 0 );
+	i810ovlOnOff( i810drv, i810drv->idev, 0 );
 
 	return DFB_OK;
 }
@@ -344,17 +312,17 @@ ovlFlipRegion(  CoreLayer           *layer,
 	dfb_surface_flip_buffers( surface, false );
 
 	/* select buffer */
-	current_buffer =  (i810ovl->regs->ov0cmd & 4) >> 2;
+	current_buffer =  (i810drv->oregs->ov0cmd & 4) >> 2;
 
 	if (current_buffer) {
-		i810ovl->regs->ov0cmd &= ~4;
+		i810drv->oregs->ov0cmd &= ~4;
 	}
 	else {
-		i810ovl->regs->ov0cmd |= 4;
+		i810drv->oregs->ov0cmd |= 4;
 	}
 
 	ovl_calc_regs (i810drv, i810ovl, layer, surface, &i810ovl->config);
-	update_overlay(i810drv, i810ovl);
+	update_overlay(i810drv, i810drv->idev);
 	
 	if (flags & DSFLIP_WAIT)
 		dfb_screen_wait_vsync( dfb_screens_at( DSCID_PRIMARY ) );
@@ -368,14 +336,13 @@ ovlSetColorAdjustment( CoreLayer          *layer,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
 {
-	I810DriverData       *i810drv = (I810DriverData*) driver_data;
-	I810OverlayLayerData *i810ovl = (I810OverlayLayerData*) layer_data;
+	I810DriverData *i810drv = (I810DriverData*) driver_data;
 	
-	i810ovl->regs->ov0clrc0 = (((adj->brightness >> 8) - 128) & 0xFF) |
+	i810drv->oregs->ov0clrc0 = (((adj->brightness >> 8) - 128) & 0xFF) |
 		                  ((adj->contrast >> 9) << 8);
-	i810ovl->regs->ov0clrc1 = (adj->saturation >> 8) & 0xFF;
+	i810drv->oregs->ov0clrc1 = (adj->saturation >> 8) & 0xFF;
 
-	update_overlay(i810drv, i810ovl);
+	update_overlay(i810drv, i810drv->idev);
 	return DFB_OK;
 }
 	
@@ -386,13 +353,12 @@ ovlSetInputField( CoreLayer *layer,
 		  void      *region_data,
 		  int        field )
 {
-	I810DriverData       *i810drv = (I810DriverData*) driver_data;
-	I810OverlayLayerData *i810ovl = (I810OverlayLayerData*) layer_data;
+	I810DriverData *i810drv = (I810DriverData*) driver_data;
 	
-	i810ovl->regs->ov0cmd &= ~2;
-	i810ovl->regs->ov0cmd |= (field) ? 2 : 0;
+	i810drv->oregs->ov0cmd &= ~2;
+	i810drv->oregs->ov0cmd |= (field) ? 2 : 0;
 	
-	update_overlay(i810drv, i810ovl);
+	update_overlay(i810drv, i810drv->idev);
 	return DFB_OK;
 }
 
@@ -432,36 +398,36 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 		src_h >>= 1;
 
         /* reset command register except the enable bit and buffer select bits */
-	i810ovl->regs->ov0cmd &= 7;
+	i810drv->oregs->ov0cmd &= 7;
 
 	/* Set source dimension in bytes */
 	switch (surface->format) {
 	case DSPF_I420:
 	case DSPF_YV12:
 		swidth = (src_w + 7) & ~7;
-		i810ovl->regs->swid = (swidth << 15) | swidth;
-		i810ovl->regs->swidqw = (swidth << 12) | (swidth >> 3);
+		i810drv->oregs->swid = (swidth << 15) | swidth;
+		i810drv->oregs->swidqw = (swidth << 12) | (swidth >> 3);
 		break;
 	case DSPF_UYVY:
 	case DSPF_YUY2:
 		swidth = ((src_w + 3) & ~3) << 1;
-		i810ovl->regs->swid = swidth;
-		i810ovl->regs->swidqw = swidth >> 3;
+		i810drv->oregs->swid = swidth;
+		i810drv->oregs->swidqw = swidth >> 3;
 		break;
 	default:
 		break;
 	}
-	i810ovl->regs->sheight = src_h | (src_h << 15);
+	i810drv->oregs->sheight = src_h | (src_h << 15);
 
 	/* select buffer size */
 	if (swidth > 720)
-		i810ovl->regs->ov0conf = 1;
+		i810drv->oregs->ov0conf = 1;
 	else
-		i810ovl->regs->ov0conf = 0;
+		i810drv->oregs->ov0conf = 0;
 
 	/* set dest window position and dimension */
-	i810ovl->regs->dwinpos = (config->dest.y << 16) | config->dest.x;
-	i810ovl->regs->dwinsz = (drw_h << 16) | drw_w;
+	i810drv->oregs->dwinpos = (config->dest.y << 16) | config->dest.x;
+	i810drv->oregs->dwinsz = (drw_h << 16) | drw_w;
 
 	/* Set buffer pointers */
 	y_offset = (dfb_gfxcard_memory_physical(NULL, front_buffer->video.offset));
@@ -479,25 +445,25 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 		break;
 	}
 
-	if (i810ovl->regs->ov0cmd & 4) {
-		i810ovl->regs->obuf_1y = y_offset;
-		i810ovl->regs->obuf_1v = v_offset;
-		i810ovl->regs->obuf_1u = u_offset;
+	if (i810drv->oregs->ov0cmd & 4) {
+		i810drv->oregs->obuf_1y = y_offset;
+		i810drv->oregs->obuf_1v = v_offset;
+		i810drv->oregs->obuf_1u = u_offset;
 	}
 	else {
-		i810ovl->regs->obuf_0y = y_offset;
-		i810ovl->regs->obuf_0v = v_offset;
-		i810ovl->regs->obuf_0u = u_offset;
+		i810drv->oregs->obuf_0y = y_offset;
+		i810drv->oregs->obuf_0v = v_offset;
+		i810drv->oregs->obuf_0u = u_offset;
 	}
 
 	/* set scaling */
-	i810ovl->regs->yrgbscale = 0x80004000;
-	i810ovl->regs->uvscale = 0x80004000;
+	i810drv->oregs->yrgbscale = 0x80004000;
+	i810drv->oregs->uvscale = 0x80004000;
 
-	i810ovl->regs->ov0cmd |= VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST | FRAME_MODE;
+	i810drv->oregs->ov0cmd |= VC_UP_INTERPOLATION | HC_UP_INTERPOLATION | Y_ADJUST | FRAME_MODE;
 
 	if (config->options & DLOP_DEINTERLACING)
-		i810ovl->regs->ov0cmd |= FIELD_MODE;
+		i810drv->oregs->ov0cmd |= FIELD_MODE;
 
 	if ((drw_w != src_w) || (drw_h != src_h))
 	{
@@ -506,44 +472,44 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 		yscaleInt = (src_h / drw_h) & 0x3;
 		yscaleFract = (src_h << 12) / drw_h;
 
-		i810ovl->regs->yrgbscale = (xscaleInt << 15) |
+		i810drv->oregs->yrgbscale = (xscaleInt << 15) |
 			((xscaleFract & 0xFFF) << 3) |
 			(yscaleInt) |
 			((yscaleFract & 0xFFF) << 20);
 
 		if (drw_w > src_w)
 		{
-			i810ovl->regs->ov0cmd &= ~HORIZONTAL_CHROMINANCE_FILTER;
-			i810ovl->regs->ov0cmd &= ~HORIZONTAL_LUMINANCE_FILTER;
-			i810ovl->regs->ov0cmd |= (HC_UP_INTERPOLATION | HL_UP_INTERPOLATION);
+			i810drv->oregs->ov0cmd &= ~HORIZONTAL_CHROMINANCE_FILTER;
+			i810drv->oregs->ov0cmd &= ~HORIZONTAL_LUMINANCE_FILTER;
+			i810drv->oregs->ov0cmd |= (HC_UP_INTERPOLATION | HL_UP_INTERPOLATION);
 		}
 
 		if (drw_h > src_h)
 		{
-			i810ovl->regs->ov0cmd &= ~VERTICAL_CHROMINANCE_FILTER;
-			i810ovl->regs->ov0cmd &= ~VERTICAL_LUMINANCE_FILTER;
-			i810ovl->regs->ov0cmd |= (VC_UP_INTERPOLATION | VL_UP_INTERPOLATION);
+			i810drv->oregs->ov0cmd &= ~VERTICAL_CHROMINANCE_FILTER;
+			i810drv->oregs->ov0cmd &= ~VERTICAL_LUMINANCE_FILTER;
+			i810drv->oregs->ov0cmd |= (VC_UP_INTERPOLATION | VL_UP_INTERPOLATION);
 		}
 
 		if (drw_w < src_w)
 		{
-			i810ovl->regs->ov0cmd &= ~HORIZONTAL_CHROMINANCE_FILTER;
-			i810ovl->regs->ov0cmd &= ~HORIZONTAL_LUMINANCE_FILTER;
-			i810ovl->regs->ov0cmd |= (HC_DOWN_INTERPOLATION | HL_DOWN_INTERPOLATION);
+			i810drv->oregs->ov0cmd &= ~HORIZONTAL_CHROMINANCE_FILTER;
+			i810drv->oregs->ov0cmd &= ~HORIZONTAL_LUMINANCE_FILTER;
+			i810drv->oregs->ov0cmd |= (HC_DOWN_INTERPOLATION | HL_DOWN_INTERPOLATION);
 		}
 		
 		if (drw_h < src_h)
 		{
-			i810ovl->regs->ov0cmd &= ~VERTICAL_CHROMINANCE_FILTER;
-			i810ovl->regs->ov0cmd &= ~VERTICAL_LUMINANCE_FILTER;
-			i810ovl->regs->ov0cmd |= (VC_DOWN_INTERPOLATION | VL_DOWN_INTERPOLATION);
+			i810drv->oregs->ov0cmd &= ~VERTICAL_CHROMINANCE_FILTER;
+			i810drv->oregs->ov0cmd &= ~VERTICAL_LUMINANCE_FILTER;
+			i810drv->oregs->ov0cmd |= (VC_DOWN_INTERPOLATION | VL_DOWN_INTERPOLATION);
 		}
 
 		if (xscaleFract)
 		{
 			xscaleFractUV = xscaleFract >> MINUV_SCALE;
-			i810ovl->regs->ov0cmd &= ~HC_DOWN_INTERPOLATION;
-			i810ovl->regs->ov0cmd |= HC_UP_INTERPOLATION;
+			i810drv->oregs->ov0cmd &= ~HC_DOWN_INTERPOLATION;
+			i810drv->oregs->ov0cmd |= HC_UP_INTERPOLATION;
 		}
 		
 		if (xscaleInt)
@@ -551,15 +517,15 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 			xscaleIntUV = xscaleInt >> MINUV_SCALE;
 			if (xscaleIntUV)
 			{
-				i810ovl->regs->ov0cmd &= ~HC_UP_INTERPOLATION;
+				i810drv->oregs->ov0cmd &= ~HC_UP_INTERPOLATION;
 			}
 		}
 		
 		if (yscaleFract)
 		{
 			yscaleFractUV = yscaleFract >> MINUV_SCALE;
-			i810ovl->regs->ov0cmd &= ~VC_DOWN_INTERPOLATION;
-			i810ovl->regs->ov0cmd |= VC_UP_INTERPOLATION;
+			i810drv->oregs->ov0cmd &= ~VC_DOWN_INTERPOLATION;
+			i810drv->oregs->ov0cmd |= VC_UP_INTERPOLATION;
 		}
 		
 		if (yscaleInt)
@@ -567,12 +533,12 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 			yscaleIntUV = yscaleInt >> MINUV_SCALE;
 			if (yscaleIntUV)
 			{
-				i810ovl->regs->ov0cmd &= ~VC_UP_INTERPOLATION;
-				i810ovl->regs->ov0cmd |= VC_DOWN_INTERPOLATION;
+				i810drv->oregs->ov0cmd &= ~VC_UP_INTERPOLATION;
+				i810drv->oregs->ov0cmd |= VC_DOWN_INTERPOLATION;
 			}
 		}
 		
-		i810ovl->regs->uvscale = yscaleIntUV | ((xscaleFractUV & 0xFFF) << 3) |
+		i810drv->oregs->uvscale = yscaleIntUV | ((xscaleFractUV & 0xFFF) << 3) |
 	                   ((yscaleFractUV & 0xFFF) << 20);
 	}
 	
@@ -580,22 +546,22 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	case DSPF_YV12:
 	case DSPF_I420:
 		/* set UV vertical phase to -0.25 */
-		i810ovl->regs->uv_vph = 0x30003000;
-		i810ovl->regs->init_ph = UV_VERT_BUF0 | UV_VERT_BUF1;
-		i810ovl->regs->ov0stride = (front_buffer->video.pitch) | (front_buffer->video.pitch << 15);
-		i810ovl->regs->ov0cmd &= ~SOURCE_FORMAT;
-		i810ovl->regs->ov0cmd |= YUV_420;
+		i810drv->oregs->uv_vph = 0x30003000;
+		i810drv->oregs->init_ph = UV_VERT_BUF0 | UV_VERT_BUF1;
+		i810drv->oregs->ov0stride = (front_buffer->video.pitch) | (front_buffer->video.pitch << 15);
+		i810drv->oregs->ov0cmd &= ~SOURCE_FORMAT;
+		i810drv->oregs->ov0cmd |= YUV_420;
 		break;
 	case DSPF_UYVY:
 	case DSPF_YUY2:
-		i810ovl->regs->uv_vph = 0;
-		i810ovl->regs->init_ph = 0;
-		i810ovl->regs->ov0stride = front_buffer->video.pitch;
-		i810ovl->regs->ov0cmd &= ~SOURCE_FORMAT;
-		i810ovl->regs->ov0cmd |= YUV_422;
-		i810ovl->regs->ov0cmd &= ~OV_BYTE_ORDER;
+		i810drv->oregs->uv_vph = 0;
+		i810drv->oregs->init_ph = 0;
+		i810drv->oregs->ov0stride = front_buffer->video.pitch;
+		i810drv->oregs->ov0cmd &= ~SOURCE_FORMAT;
+		i810drv->oregs->ov0cmd |= YUV_422;
+		i810drv->oregs->ov0cmd &= ~OV_BYTE_ORDER;
 		if (surface->format == DSPF_UYVY)
-			i810ovl->regs->ov0cmd |= Y_SWAP;
+			i810drv->oregs->ov0cmd |= Y_SWAP;
 		break;
 	default:
 		D_BUG("unexpected pixelformat");
@@ -603,26 +569,23 @@ static void ovl_calc_regs (I810DriverData        *i810drv,
 	}
 
 	/* Set alpha window */
-	i810ovl->regs->awinpos = i810ovl->regs->dwinpos;
-	i810ovl->regs->awinsz = i810ovl->regs->dwinsz;
+	i810drv->oregs->awinpos = i810drv->oregs->dwinpos;
+	i810drv->oregs->awinsz = i810drv->oregs->dwinsz;
 
 
-        /*
-         * Destination color keying.
-         */
+    /*
+     * Destination color keying.
+     */
 
-        primary_format = dfb_primary_layer_pixelformat();
+    primary_format = dfb_primary_layer_pixelformat();
 
-        i810ovl->regs->dclrkv = dfb_color_to_pixel( primary_format,
-                                                    config->dst_key.r,
-                                                    config->dst_key.g,
-                                                    config->dst_key.b );
+    i810drv->oregs->dclrkv = dfb_color_to_pixel( primary_format,
+                                                 config->dst_key.r,
+                                                 config->dst_key.g,
+                                                 config->dst_key.b );
 
-        i810ovl->regs->dclrkm = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;
+    i810drv->oregs->dclrkm = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;
 
-        if (config->options & DLOP_DST_COLORKEY)
-             i810ovl->regs->dclrkm |= 0x80000000;
-	
-
-        return;
+    if (config->options & DLOP_DST_COLORKEY)
+         i810drv->oregs->dclrkm |= 0x80000000;
 }

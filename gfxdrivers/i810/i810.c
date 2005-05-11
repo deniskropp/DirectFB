@@ -117,10 +117,10 @@ i810_init_ringbuffer(I810DriverData *i810drv,
 
 	i810_writel(i810drv->mmio_base, LRING, 0);
 	i810_writel(i810drv->mmio_base, LRING + 4, 0);
-	i810drv->cur_tail = 0;
+	i810dev->cur_tail = 0;
 
 	tmp2 = i810_readl(i810drv->mmio_base, LRING + 8) & ~RBUFFER_START_MASK;
-	tmp1 = i810drv->lring_bind.pg_start * 4096;
+	tmp1 = i810dev->lring_bind.pg_start * 4096;
 	i810_writel(i810drv->mmio_base, LRING + 8, tmp2 | tmp1);
 
 	tmp1 = i810_readl(i810drv->mmio_base, LRING + 12);
@@ -139,7 +139,7 @@ i810_wait_for_space(I810DriverData *i810drv,
 
 	i810dev->waitfifo_calls++;
 
-	tail = i810drv->cur_tail;
+	tail = i810dev->cur_tail;
 
 	space += BUFFER_PADDING;
 	space <<= 2;
@@ -198,9 +198,9 @@ i810_set_src(I810DriverData *i810drv,
 
 	if (i810dev->i_src)
 		return;
-	i810drv->srcaddr = dfb_gfxcard_memory_physical((GraphicsDevice *) i810dev,
+	i810dev->srcaddr = dfb_gfxcard_memory_physical((GraphicsDevice *) i810dev,
 						       buffer->video.offset);
-	i810drv->srcpitch = buffer->video.pitch;
+	i810dev->srcpitch = buffer->video.pitch;
 
 	i810dev->i_src = 1;
 }
@@ -215,26 +215,26 @@ i810_set_dest(I810DriverData *i810drv,
 	
 	if (i810dev->i_dst)
 		return;
-	i810drv->destaddr = dfb_gfxcard_memory_physical((GraphicsDevice *) i810dev,
+	i810dev->destaddr = dfb_gfxcard_memory_physical((GraphicsDevice *) i810dev,
 							buffer->video.offset);
-	i810drv->destpitch = buffer->video.pitch;
+	i810dev->destpitch = buffer->video.pitch;
 	
 	switch (destination->format) {
 	case DSPF_LUT8:
-		i810drv->pixeldepth = 1;
-		i810drv->blit_color = BPP8;
+		i810dev->pixeldepth = 1;
+		i810dev->blit_color = BPP8;
 		break;
 	case DSPF_ARGB1555:
-		i810drv->pixeldepth = 2;
-		i810drv->blit_color = BPP16;
+		i810dev->pixeldepth = 2;
+		i810dev->blit_color = BPP16;
 		break;
 	case DSPF_RGB16:
-		i810drv->pixeldepth = 2;
-		i810drv->blit_color = BPP16;
+		i810dev->pixeldepth = 2;
+		i810dev->blit_color = BPP16;
 		break;
 	case DSPF_RGB24:
-		i810drv->pixeldepth = 3;
-		i810drv->blit_color = BPP24;
+		i810dev->pixeldepth = 3;
+		i810dev->blit_color = BPP24;
 		break;
 	default:
 		D_BUG("unexpected pixelformat~");
@@ -250,14 +250,14 @@ i810_set_colorkey(I810DriverData *i810drv,
 	if (i810dev->i_colorkey)
 		return;
 
-	i810drv->colorkey_bit = 0;
+	i810dev->colorkey_bit = 0;
 	if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
-		i810drv->colorkey_bit = 1 << 8;
-		i810drv->colorkey = state->src_colorkey;
+		i810dev->colorkey_bit = 1 << 8;
+		i810dev->colorkey = state->src_colorkey;
 	}
 	else {
-		i810drv->colorkey_bit = 7 << 8;
-		i810drv->colorkey = state->dst_colorkey;
+		i810dev->colorkey_bit = 7 << 8;
+		i810dev->colorkey = state->dst_colorkey;
 	}
 	
 	i810dev->i_colorkey = 1;
@@ -273,21 +273,21 @@ i810_set_color(I810DriverData *i810drv,
 
 	switch (state->destination->format) {
 	case DSPF_LUT8:
-		i810drv->color_value = state->color_index;
+		i810dev->color_value = state->color_index;
 		break;
 	case DSPF_ARGB1555:
-		i810drv->color_value = PIXEL_ARGB1555(state->color.a,
+		i810dev->color_value = PIXEL_ARGB1555(state->color.a,
                                                       state->color.r,
 						      state->color.g,
 						      state->color.b);
 		break;
 	case DSPF_RGB16:
-		i810drv->color_value = PIXEL_RGB16(state->color.r,
+		i810dev->color_value = PIXEL_RGB16(state->color.r,
 						   state->color.g,
 						   state->color.b);
 		break;
 	case DSPF_RGB24:
-		i810drv->color_value = PIXEL_RGB32(state->color.r,
+		i810dev->color_value = PIXEL_RGB32(state->color.r,
 						   state->color.g,
 						   state->color.b);
 		break;
@@ -305,10 +305,10 @@ i810_set_clip(I810DriverData *i810drv,
 	if (i810dev->i_clip)
 		return;
 
-	i810drv->clip_x1 = clip->x1;
-	i810drv->clip_x2 = clip->x2 + 1;
-	i810drv->clip_y1 = clip->y1;
-	i810drv->clip_y2 = clip->y2 + 1;
+	i810dev->clip_x1 = clip->x1;
+	i810dev->clip_x2 = clip->x2 + 1;
+	i810dev->clip_y1 = clip->y1;
+	i810dev->clip_y2 = clip->y2 + 1;
 
 	i810dev->i_clip = 1;
 }
@@ -394,27 +394,27 @@ i810FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 	u32 dest;
 
 	
-	if (rect->x < i810drv->clip_x1)
-		rect->x = i810drv->clip_x1;
-	if (i810drv->clip_x2 < rect->x + rect->w)
-		rect->w = i810drv->clip_x2 - rect->x;
-	if (rect->y < i810drv->clip_y1)
-		rect->y = i810drv->clip_y1;
-	if (i810drv->clip_y2 < rect->y + rect->h)
-		rect->h = i810drv->clip_y2 - rect->y;
+	if (rect->x < i810dev->clip_x1)
+		rect->x = i810dev->clip_x1;
+	if (i810dev->clip_x2 < rect->x + rect->w)
+		rect->w = i810dev->clip_x2 - rect->x;
+	if (rect->y < i810dev->clip_y1)
+		rect->y = i810dev->clip_y1;
+	if (i810dev->clip_y2 < rect->y + rect->h)
+		rect->h = i810dev->clip_y2 - rect->y;
 
-	rect->x *= i810drv->pixeldepth;
-	rect->w *= i810drv->pixeldepth;
-	dest = i810drv->destaddr + rect->x + (rect->y * i810drv->destpitch);
+	rect->x *= i810dev->pixeldepth;
+	rect->w *= i810dev->pixeldepth;
+	dest = i810dev->destaddr + rect->x + (rect->y * i810dev->destpitch);
 	
 	if (BEGIN_LRING(i810drv, i810dev, 6)) return false;
 
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
-		  DYN_COLOR_EN | i810drv->blit_color);
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810dev->destpitch | SOLIDPATTERN |
+		  DYN_COLOR_EN | i810dev->blit_color);
 	PUT_LRING(rect->h << 16 | rect->w);
 	PUT_LRING(dest);
-	PUT_LRING(i810drv->color_value);
+	PUT_LRING(i810dev->color_value);
 	PUT_LRING(NOP);
 
 	END_LRING(i810drv);
@@ -430,57 +430,57 @@ i810DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 	u32 dest;
 
 
-	if (rect->x < i810drv->clip_x1)
-		rect->x = i810drv->clip_x1;
-	if (i810drv->clip_x2 < rect->x + rect->w)
-		rect->w = i810drv->clip_x2 - rect->x;
-	if (rect->y < i810drv->clip_y1)
-		rect->y = i810drv->clip_y1;
-	if (i810drv->clip_y2 < rect->y + rect->h)
-		rect->h = i810drv->clip_y2 - rect->y;
+	if (rect->x < i810dev->clip_x1)
+		rect->x = i810dev->clip_x1;
+	if (i810dev->clip_x2 < rect->x + rect->w)
+		rect->w = i810dev->clip_x2 - rect->x;
+	if (rect->y < i810dev->clip_y1)
+		rect->y = i810dev->clip_y1;
+	if (i810dev->clip_y2 < rect->y + rect->h)
+		rect->h = i810dev->clip_y2 - rect->y;
 
 
 
-	rect->x *= i810drv->pixeldepth;
-	rect->w *= i810drv->pixeldepth;
+	rect->x *= i810dev->pixeldepth;
+	rect->w *= i810dev->pixeldepth;
 
 	if (BEGIN_LRING(i810drv, i810dev, 20)) return false;
 
 	/* horizontal line 1 */
-	dest = i810drv->destaddr + rect->x + (rect->y * i810drv->destpitch);
+	dest = i810dev->destaddr + rect->x + (rect->y * i810dev->destpitch);
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
-		  DYN_COLOR_EN | i810drv->blit_color);
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810dev->destpitch | SOLIDPATTERN |
+		  DYN_COLOR_EN | i810dev->blit_color);
 	PUT_LRING(1 << 16 | rect->w);
 	PUT_LRING(dest);
-	PUT_LRING(i810drv->color_value);
+	PUT_LRING(i810dev->color_value);
 
 	/* vertical line 1 */
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
-		  DYN_COLOR_EN | i810drv->blit_color);
-	PUT_LRING(rect->h << 16 | i810drv->pixeldepth);
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810dev->destpitch | SOLIDPATTERN |
+		  DYN_COLOR_EN | i810dev->blit_color);
+	PUT_LRING(rect->h << 16 | i810dev->pixeldepth);
 	PUT_LRING(dest);
-	PUT_LRING(i810drv->color_value);
+	PUT_LRING(i810dev->color_value);
 
 	/* vertical line 2 */
 	dest += rect->w;
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
-                              DYN_COLOR_EN | i810drv->blit_color);
-	PUT_LRING(rect->h << 16 | i810drv->pixeldepth);
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810dev->destpitch | SOLIDPATTERN |
+                              DYN_COLOR_EN | i810dev->blit_color);
+	PUT_LRING(rect->h << 16 | i810dev->pixeldepth);
 	PUT_LRING(dest);
-	PUT_LRING(i810drv->color_value);
+	PUT_LRING(i810dev->color_value);
 
 	/* horizontal line 2 */
 	dest -= rect->w;
-	dest += rect->h * i810drv->destpitch;
+	dest += rect->h * i810dev->destpitch;
 	PUT_LRING(BLIT | COLOR_BLT | 3);
-	PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch | SOLIDPATTERN |
-		  DYN_COLOR_EN | i810drv->blit_color);
+	PUT_LRING(COLOR_COPY_ROP << 16 | i810dev->destpitch | SOLIDPATTERN |
+		  DYN_COLOR_EN | i810dev->blit_color);
 	PUT_LRING(1 << 16 | rect->w);
 	PUT_LRING(dest);
-	PUT_LRING(i810drv->color_value);
+	PUT_LRING(i810dev->color_value);
 
 	END_LRING(i810drv);
 	
@@ -494,58 +494,58 @@ i810Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 	I810DeviceData *i810dev = (I810DeviceData *) dev;
 	int xdir = INCREMENT, spitch = 0, dpitch = 0, src, dest;
 
-	if (dx < i810drv->clip_x1) {
-		rect->w = MIN((i810drv->clip_x2 - i810drv->clip_x1),
-			      (dx + rect->w) - i810drv->clip_x1);
-		rect->x += i810drv->clip_x1 - dx;
-		dx = i810drv->clip_x1;
+	if (dx < i810dev->clip_x1) {
+		rect->w = MIN((i810dev->clip_x2 - i810dev->clip_x1),
+			      (dx + rect->w) - i810dev->clip_x1);
+		rect->x += i810dev->clip_x1 - dx;
+		dx = i810dev->clip_x1;
 	}
-	if (i810drv->clip_x2 < dx + rect->w)
-		rect->w = i810drv->clip_x2 - dx;
+	if (i810dev->clip_x2 < dx + rect->w)
+		rect->w = i810dev->clip_x2 - dx;
 
-	if (dy < i810drv->clip_y1) {
-		rect->h = MIN((i810drv->clip_y2 - i810drv->clip_y1),
-			      (dy + rect->h) - i810drv->clip_y1);
-		rect->y += i810drv->clip_y1 - dy;
-		dy = i810drv->clip_y1;
+	if (dy < i810dev->clip_y1) {
+		rect->h = MIN((i810dev->clip_y2 - i810dev->clip_y1),
+			      (dy + rect->h) - i810dev->clip_y1);
+		rect->y += i810dev->clip_y1 - dy;
+		dy = i810dev->clip_y1;
 	}
-	if (i810drv->clip_y2 < dy + rect->h)
-		rect->h = i810drv->clip_y2 - dy;
+	if (i810dev->clip_y2 < dy + rect->h)
+		rect->h = i810dev->clip_y2 - dy;
 
-	rect->x *= i810drv->pixeldepth;
-	dx *= i810drv->pixeldepth;
-	rect->w *= i810drv->pixeldepth;
+	rect->x *= i810dev->pixeldepth;
+	dx *= i810dev->pixeldepth;
+	rect->w *= i810dev->pixeldepth;
 
-	spitch = i810drv->srcpitch;
-	dpitch = i810drv->destpitch;
+	spitch = i810dev->srcpitch;
+	dpitch = i810dev->destpitch;
 
-	if (i810drv->srcaddr == i810drv->destaddr) {
+	if (i810dev->srcaddr == i810dev->destaddr) {
 		if (dx > rect->x && dx < rect->x + rect->w) {
 			xdir = DECREMENT;
 			rect->x += rect->w - 1;
 			dx += rect->w - 1;
 		}
 		if (dy > rect->y && dy < rect->y + rect->h) {
-			i810drv->srcpitch = (-(i810drv->srcpitch)) & 0xFFFF;
-			i810drv->destpitch = (-(i810drv->destpitch)) & 0xFFFF;
+			i810dev->srcpitch = (-(i810dev->srcpitch)) & 0xFFFF;
+			i810dev->destpitch = (-(i810dev->destpitch)) & 0xFFFF;
 			rect->y += rect->h - 1;
 			dy += rect->h - 1;
 		}
 	}
 
-	src = i810drv->srcaddr + rect->x + (rect->y * spitch);
-	dest = i810drv->destaddr + dx + (dy * dpitch);
+	src = i810dev->srcaddr + rect->x + (rect->y * spitch);
+	dest = i810dev->destaddr + dx + (dy * dpitch);
 
 	BEGIN_LRING(i810drv, i810dev, 8);
 
-	PUT_LRING(BLIT | FULL_BLIT | 0x6 | i810drv->colorkey_bit);
-	PUT_LRING(xdir | PAT_COPY_ROP << 16 | i810drv->destpitch |
-		  DYN_COLOR_EN | i810drv->blit_color);
+	PUT_LRING(BLIT | FULL_BLIT | 0x6 | i810dev->colorkey_bit);
+	PUT_LRING(xdir | PAT_COPY_ROP << 16 | i810dev->destpitch |
+		  DYN_COLOR_EN | i810dev->blit_color);
 	PUT_LRING((rect->h << 16) | rect->w);
 	PUT_LRING(dest);
-	PUT_LRING(i810drv->srcpitch);
+	PUT_LRING(i810dev->srcpitch);
 	PUT_LRING(src);
-	PUT_LRING(i810drv->colorkey);
+	PUT_LRING(i810dev->colorkey);
 	PUT_LRING((u32) i810drv->pattern_base);
 
 	END_LRING(i810drv);
@@ -622,10 +622,10 @@ i810fill_tri( DFBTriangle    *tri,
 	y = tri->y1;
 	yend = tri->y3;
 
-	if (y < i810drv->clip_y1)
-		y = i810drv->clip_y1;
-	if (yend > i810drv->clip_y2)
-		yend = i810drv->clip_y2;
+	if (y < i810dev->clip_y1)
+		y = i810dev->clip_y1;
+	if (yend > i810dev->clip_y2)
+		yend = i810dev->clip_y2;
 
 
 	SETUP_DDA(tri->x1, tri->y1, tri->x3, tri->y3, dda1);
@@ -653,13 +653,13 @@ i810fill_tri( DFBTriangle    *tri,
 		
 		if (rect.w > 0) {
 			rect.y = y;
-			dest = i810drv->destaddr + (y * i810drv->destpitch) + (rect.x * i810drv->pixeldepth);
+			dest = i810dev->destaddr + (y * i810dev->destpitch) + (rect.x * i810dev->pixeldepth);
 			PUT_LRING(BLIT | COLOR_BLT | 3);
-			PUT_LRING(COLOR_COPY_ROP << 16 | i810drv->destpitch |
-				  SOLIDPATTERN | DYN_COLOR_EN | i810drv->blit_color);
-			PUT_LRING(1 << 16 | rect.w * i810drv->pixeldepth);
+			PUT_LRING(COLOR_COPY_ROP << 16 | i810dev->destpitch |
+				  SOLIDPATTERN | DYN_COLOR_EN | i810dev->blit_color);
+			PUT_LRING(1 << 16 | rect.w * i810dev->pixeldepth);
 			PUT_LRING(dest);
-			PUT_LRING(i810drv->color_value);
+			PUT_LRING(i810dev->color_value);
 		}
 
 		INC_DDA(dda1);
@@ -728,41 +728,165 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static void
-i810_release_resource (I810DriverData *i810drv)
+i810_release_resource( I810DriverData *idrv, I810DeviceData *idev )
 {
-	agp_unbind unbind;
+     agp_unbind unbind;
 
-	if (i810drv->flags & I810RES_STATE_SAVE) {
-		i810_writel(i810drv->mmio_base, LRING, i810drv->lring1);
-		i810_writel(i810drv->mmio_base, LRING + 4, i810drv->lring2);
-		i810_writel(i810drv->mmio_base, LRING + 8, i810drv->lring3);
-		i810_writel(i810drv->mmio_base, LRING + 12, i810drv->lring4);
-	}
+     if (idrv->flags & I810RES_STATE_SAVE) {
+          i810_writel( idrv->mmio_base, LP_RING, idev->lring1 );
+          i810_writel( idrv->mmio_base, LP_RING + RING_HEAD, idev->lring2 );
+          i810_writel( idrv->mmio_base, LP_RING + RING_START, idev->lring3 );
+          i810_writel( idrv->mmio_base, LP_RING + RING_LEN, idev->lring4 );
+     }
 
-	if (i810drv->flags & I810RES_MMAP)
-		munmap((void *) i810drv->aper_base, i810drv->info.aper_size * 1024 * 1024);
+     if (idrv->flags & I810RES_MMAP) {
+          munmap((void *) idrv->aper_base, idev->info.aper_size * 1024 * 1024);
+          idrv->flags &= ~I810RES_MMAP;
+     }
 
-	if (i810drv->flags & I810RES_LRING_BIND) {
-		unbind.key = i810drv->lring_bind.key;
-		ioctl(i810drv->agpgart, AGPIOC_UNBIND, &unbind);
-	}
+     if (idrv->flags & I810RES_LRING_BIND) {
+          unbind.key = idev->lring_bind.key;
+          ioctl(idrv->agpgart, AGPIOC_UNBIND, &unbind);
+     }
 
-	if (i810drv->flags & I810RES_LRING_ACQ)
-		ioctl(i810drv->agpgart, AGPIOC_DEALLOCATE, i810drv->lring_mem.key);
-		
-	if (i810drv->flags & I810RES_OVL_BIND) {
-		unbind.key = i810drv->ovl_bind.key;
-		ioctl(i810drv->agpgart, AGPIOC_UNBIND, &unbind);
-	}
+     if (idrv->flags & I810RES_LRING_ACQ)
+          ioctl(idrv->agpgart, AGPIOC_DEALLOCATE, idev->lring_mem.key);
 
-	if (i810drv->flags & I810RES_OVL_ACQ)
-		ioctl(i810drv->agpgart, AGPIOC_DEALLOCATE, i810drv->ovl_mem.key);
+     if (idrv->flags & I810RES_OVL_BIND) {
+          unbind.key = idev->ovl_bind.key;
+          ioctl(idrv->agpgart, AGPIOC_UNBIND, &unbind);
+     }
 
-	if (i810drv->flags & I810RES_GART_ACQ)
-		ioctl(i810drv->agpgart, AGPIOC_RELEASE);
+     if (idrv->flags & I810RES_OVL_ACQ)
+          ioctl(idrv->agpgart, AGPIOC_DEALLOCATE, idev->ovl_mem.key);
 
-	if (i810drv->flags & I810RES_GART)
-		close(i810drv->agpgart);
+     if (idrv->flags & I810RES_GART_ACQ) {
+          ioctl(idrv->agpgart, AGPIOC_RELEASE);
+          idrv->flags &= ~I810RES_GART_ACQ;
+     }
+
+     if (idrv->flags & I810RES_GART) {
+          close(idrv->agpgart);
+          idrv->flags &= ~I810RES_GART;
+     }
+}
+
+static DFBResult
+i810_agp_setup( GraphicsDevice *device,
+                I810DriverData *idrv,
+                I810DeviceData *idev )
+{
+     idrv->agpgart = open("/dev/agpgart", O_RDWR);
+     if (idrv->agpgart == -1)
+          return DFB_IO;
+     D_FLAGS_SET( idrv->flags, I810RES_GART );
+
+
+     if (ioctl(idrv->agpgart, AGPIOC_ACQUIRE)) {
+          D_PERROR( "I810/AGP: AGPIOC_ACQUIRE failed!\n" );
+          return DFB_IO;
+     }
+     D_FLAGS_SET( idrv->flags, I810RES_GART_ACQ );
+
+
+     if (!idev->initialized) {
+          agp_setup setup;
+
+          setup.agp_mode = 0;
+          if (ioctl(idrv->agpgart, AGPIOC_SETUP, &setup)) {
+               D_PERROR( "I810/AGP: AGPIOC_SETUP failed!\n" );
+               return DFB_IO;
+          }
+     
+          if (ioctl(idrv->agpgart, AGPIOC_INFO, &idev->info)) {
+               D_PERROR( "I810/AGP: AGPIOC_INFO failed!\n" );
+               return DFB_IO;
+          }
+     }
+
+
+     idrv->aper_base = mmap( NULL, idev->info.aper_size * 1024 * 1024, PROT_WRITE,
+                             MAP_SHARED, idrv->agpgart, 0 );
+     if (idrv->aper_base == MAP_FAILED) {
+          D_PERROR( "I810/AGP: mmap() failed!\n" );
+          i810_release_resource( idrv, idev );
+          return DFB_IO;
+     }
+     D_FLAGS_SET( idrv->flags, I810RES_MMAP );
+
+
+     if (!idev->initialized) {
+          __u32 base;
+
+          /* We'll attempt to bind at fb_base + fb_len + 1 MB,
+          to be safe */
+          base = dfb_gfxcard_memory_physical(device, 0) - idev->info.aper_base;
+          base += dfb_gfxcard_memory_length();
+          base += (1024 * 1024);
+     
+          idev->lring_mem.pg_count = RINGBUFFER_SIZE/4096;
+          idev->lring_mem.type = AGP_NORMAL_MEMORY;
+          if (ioctl(idrv->agpgart, AGPIOC_ALLOCATE, &idev->lring_mem)) {
+               D_PERROR( "I810/AGP: AGPIOC_ALLOCATE failed!\n" );
+               i810_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I810RES_LRING_ACQ );
+     
+          idev->lring_bind.key = idev->lring_mem.key;
+          idev->lring_bind.pg_start = base/4096;
+          if (ioctl(idrv->agpgart, AGPIOC_BIND, &idev->lring_bind)) {
+               D_PERROR( "I810/AGP: AGPIOC_BIND failed!\n" );
+               i810_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I810RES_LRING_BIND );
+     
+          idev->ovl_mem.pg_count = 1;
+          idev->ovl_mem.type = AGP_PHYSICAL_MEMORY;
+          if (ioctl(idrv->agpgart, AGPIOC_ALLOCATE, &idev->ovl_mem)) {
+               D_PERROR( "I810/AGP: AGPIOC_ALLOCATE failed!\n" );
+               i810_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I810RES_OVL_ACQ );
+     
+          idev->ovl_bind.key = idev->ovl_mem.key;
+          idev->ovl_bind.pg_start = (base + RINGBUFFER_SIZE)/4096;
+          if (ioctl(idrv->agpgart, AGPIOC_BIND, &idev->ovl_bind)) {
+               D_PERROR( "I810/AGP: AGPIOC_BIND failed!\n" );
+               i810_release_resource( idrv, idev );
+               return DFB_IO;
+          }
+          D_FLAGS_SET( idrv->flags, I810RES_OVL_BIND );
+     }
+
+
+     if (idrv->flags & I810RES_GART_ACQ) {
+          ioctl(idrv->agpgart, AGPIOC_RELEASE);
+          idrv->flags &= ~I810RES_GART_ACQ;
+     }
+
+
+     idrv->lring_base   = idrv->aper_base + idev->lring_bind.pg_start * 4096;
+     idrv->ovl_base     = idrv->aper_base + idev->ovl_bind.pg_start * 4096;
+     idrv->pattern_base = idrv->ovl_base + 1024;
+
+     if (!idev->initialized) {
+          memset((void *) idrv->ovl_base, 0xff, 1024);
+          memset((void *) idrv->pattern_base, 0xff, 4096 - 1024);
+
+          idev->lring1 = 0;//i810_readl(idrv->mmio_base, LP_RING);
+          idev->lring2 = 0;//i810_readl(idrv->mmio_base, LP_RING + RING_HEAD);
+          idev->lring3 = 0;//i810_readl(idrv->mmio_base, LP_RING + RING_START);
+          idev->lring4 = 0;//i810_readl(idrv->mmio_base, LP_RING + RING_LEN);
+
+          D_FLAGS_SET( idrv->flags, I810RES_STATE_SAVE );
+     }
+
+     idev->initialized = true;
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -771,89 +895,24 @@ driver_init_driver( GraphicsDevice      *device,
                     void                *driver_data,
                     void                *device_data )
 {
-     I810DriverData *i810drv = (I810DriverData *) driver_data;
-     agp_setup setup;
-     u32 base;
+     DFBResult       ret;
+     I810DriverData *idrv = driver_data;
+     I810DeviceData *idev = device_data;
 
-     i810drv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
-     if (!i810drv->mmio_base)
-	     return DFB_IO;
+     idrv->idev = device_data;
 
-     i810drv->agpgart = open("/dev/agpgart", O_RDWR);
-     if (i810drv->agpgart == -1)
-	     return DFB_IO;
-     i810drv->flags |= I810RES_GART;
+     idrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     if (!idrv->mmio_base)
+          return DFB_IO;
 
-     if (ioctl(i810drv->agpgart, AGPIOC_ACQUIRE))
-	     return DFB_IO;
-     i810drv->flags |= I810RES_GART_ACQ;
-
-     setup.agp_mode = 0;
-     if (ioctl(i810drv->agpgart, AGPIOC_SETUP, &setup))
-	     return DFB_IO;
-
-     if (ioctl(i810drv->agpgart, AGPIOC_INFO, &i810drv->info))
-	     return DFB_IO;
-
-     i810drv->aper_base =  mmap(NULL, i810drv->info.aper_size * 1024 * 1024, PROT_WRITE, MAP_SHARED,
-				i810drv->agpgart, 0);
-     if (i810drv->aper_base == MAP_FAILED) {
-	     i810_release_resource(i810drv);
-	     return DFB_IO;
+     ret = i810_agp_setup( device, idrv, idev );
+     if (ret) {
+          dfb_gfxcard_unmap_mmio( device, idrv->mmio_base, -1 );
+          return ret;
      }
-     i810drv->flags |= I810RES_MMAP;
 
-     /* We'll attempt to bind at fb_base + fb_len + 1 MB,
-	to be safe */
-     base = dfb_gfxcard_memory_physical(device, 0) - i810drv->info.aper_base;
-     base += dfb_gfxcard_memory_length();
-     base += (1024 * 1024);
+     idrv->info = idev->info;
 
-     i810drv->lring_mem.pg_count = RINGBUFFER_SIZE/4096;
-     i810drv->lring_mem.type = AGP_NORMAL_MEMORY;
-     if (ioctl(i810drv->agpgart, AGPIOC_ALLOCATE, &i810drv->lring_mem)) {
-	     i810_release_resource(i810drv);
-	     return DFB_IO;
-     }
-     i810drv->flags |= I810RES_LRING_ACQ;
-
-     i810drv->lring_bind.key = i810drv->lring_mem.key;
-     i810drv->lring_bind.pg_start = base/4096;
-     if (ioctl(i810drv->agpgart, AGPIOC_BIND, &i810drv->lring_bind)) {
-	     i810_release_resource(i810drv);
-	     return DFB_IO;
-     }
-     i810drv->flags |= I810RES_LRING_BIND;
-	
-     i810drv->ovl_mem.pg_count = 1;
-     i810drv->ovl_mem.type = AGP_PHYSICAL_MEMORY;
-     if (ioctl(i810drv->agpgart, AGPIOC_ALLOCATE, &i810drv->ovl_mem)) {
-	     i810_release_resource(i810drv);
-	     return DFB_IO;
-     }
-     i810drv->flags |= I810RES_OVL_ACQ;
-
-     i810drv->ovl_bind.key = i810drv->ovl_mem.key;
-     i810drv->ovl_bind.pg_start = (base + RINGBUFFER_SIZE)/4096;
-     if (ioctl(i810drv->agpgart, AGPIOC_BIND, &i810drv->ovl_bind)) {
-	     i810_release_resource(i810drv);
-	     return DFB_IO;
-     }
-     i810drv->flags |= I810RES_OVL_BIND;
-
-     i810drv->lring_base = i810drv->aper_base + i810drv->lring_bind.pg_start * 4096;
-     i810drv->ovl_base = i810drv->aper_base + i810drv->ovl_bind.pg_start * 4096;
-     i810drv->pattern_base = i810drv->ovl_base + 1024;
-     memset((void *) i810drv->ovl_base, 0xff, 1024);
-     memset((void *) i810drv->pattern_base, 0xff, 4096 - 1024);
-
-     i810drv->lring1 = i810_readl(i810drv->mmio_base, LRING);
-     i810drv->lring2 = i810_readl(i810drv->mmio_base, LRING + 4);
-     i810drv->lring3 = i810_readl(i810drv->mmio_base, LRING + 8);
-     i810drv->lring4 = i810_readl(i810drv->mmio_base, LRING + 12);
-     i810drv->flags |= I810RES_STATE_SAVE;
-
-     i810_init_ringbuffer(i810drv, NULL);
 
      funcs->CheckState         = i810CheckState;
      funcs->SetState           = i810SetState;
@@ -876,6 +935,9 @@ driver_init_device( GraphicsDevice     *device,
                     void               *driver_data,
                     void               *device_data )
 {
+     I810DriverData *idrv = driver_data;
+     I810DeviceData *idev = device_data;
+
      /* fill device info */
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "810/810E/810-DC100/815" );
@@ -894,6 +956,8 @@ driver_init_device( GraphicsDevice     *device,
 
      dfb_config->pollvsync_after = 1;
 
+     i810_init_ringbuffer( idrv, idev );
+
      return DFB_OK;
 }
 
@@ -905,8 +969,13 @@ driver_close_device( GraphicsDevice *device,
 	I810DeviceData *i810dev = (I810DeviceData *) device_data;
 	I810DriverData *i810drv = (I810DriverData *) driver_data;
 
-	(void) i810dev;
-	(void) i810drv;
+    i810ovlOnOff( i810drv, i810dev, false );
+
+    i810_wait_for_blit_idle( i810drv, i810dev );
+    i810_lring_enable( i810drv, 0 );
+
+    i810_release_resource( i810drv, i810dev );
+
 
 	D_DEBUG( "DirectFB/I810: DMA Buffer Performance Monitoring:\n");
 	D_DEBUG( "DirectFB/I810:  %9d DMA buffer size in KB\n",
@@ -947,13 +1016,23 @@ static void
 driver_close_driver( GraphicsDevice *device,
                      void           *driver_data )
 {
-	I810DriverData *i810drv = (I810DriverData *) driver_data;
+	I810DriverData *idrv = (I810DriverData *) driver_data;
 
-	i810_wait_for_blit_idle(i810drv, NULL);
-	i810_lring_enable(i810drv, 0);
+	dfb_gfxcard_unmap_mmio( device, idrv->mmio_base, -1);
 
-	i810_release_resource(i810drv);
+    if (idrv->flags & I810RES_MMAP) {
+         munmap((void *) idrv->aper_base, idrv->info.aper_size * 1024 * 1024);
+         idrv->flags &= ~I810RES_MMAP;
+    }
 
-	dfb_gfxcard_unmap_mmio( device, i810drv->mmio_base, -1);
+    if (idrv->flags & I810RES_GART_ACQ) {
+         ioctl(idrv->agpgart, AGPIOC_RELEASE);
+         idrv->flags &= ~I810RES_GART_ACQ;
+    }
+
+    if (idrv->flags & I810RES_GART) {
+         close(idrv->agpgart);
+         idrv->flags &= ~I810RES_GART;
+    }
 }
 
