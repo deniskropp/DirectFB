@@ -56,11 +56,13 @@ typedef struct {
      vorbis_info         *info;
      
      DirectThread        *thread;
-     pthread_mutex_t      lock;
+     pthread_mutex_t      lock; 
      bool                 playing;
+     bool                 finished;
 
      IFusionSoundStream  *dest;
      FSStreamDescription  desc;
+     int                  buffersize;
 } IFusionSoundMusicProvider_Vorbis_data;
 
 
@@ -140,8 +142,10 @@ VorbisThread( DirectThread *thread, void *ctx )
           (IFusionSoundMusicProvider_Vorbis_data*) ctx;
      
      float **src; // src[0] = first channel, src[1] = second channel, ...
-     char    dst[data->desc.buffersize*data->desc.channels*data->desc.sampleformat]; 
+     char    dst[data->buffersize];
      int     section = 0; 
+
+     data->finished = false;
      
      while (data->playing) {
           long len;
@@ -182,8 +186,10 @@ VorbisThread( DirectThread *thread, void *ctx )
                                    int  *s = (int*)src[i];
                                    __u8 *d = (__u8*)&dst[i];
 
-                                   for (j = 0; j < len; j++)
-                                       d[j*d_n] = s[j];
+                                   for (j = 0; j < len; j++) {
+                                       *d  = s[j];
+                                        d += d_n;
+                                   }
                               }
                          }
                          /* Upmix mono to stereo */
@@ -223,8 +229,10 @@ VorbisThread( DirectThread *thread, void *ctx )
                                    int   *s = (int*)src[i];
                                    __s16 *d = (__s16*)&dst[i*2];
 
-                                   for (j = 0; j < len; j++)
-                                       d[j*d_n] = s[j];
+                                   for (j = 0; j < len; j++) {
+                                       *d  = s[j];
+                                        d += d_n;
+                                   }
                               }
                          }
                          /* Upmix mono to stereo */
@@ -255,6 +263,7 @@ VorbisThread( DirectThread *thread, void *ctx )
           }
           else if (len == 0) {
                D_DEBUG( "IFusionSoundMusicProvider_Vorbis: End of stream.\n" );
+               data->finished = true;
                break;
           }
      }
@@ -314,7 +323,9 @@ IFusionSoundMusicProvider_Vorbis_PlayTo( IFusionSoundMusicProvider *thiz,
      destination->AddRef( destination );
      data->dest = destination;
      data->desc = desc;
-
+     data->buffersize = desc.buffersize * desc.channels *
+                        ((desc.sampleformat == FSSF_U8) ? 1 : 2);
+     
      /* start thread */
      data->playing = true;
      data->thread  = direct_thread_create( DTT_OUTPUT, VorbisThread, data, "Vorbis" );
@@ -323,7 +334,6 @@ IFusionSoundMusicProvider_Vorbis_PlayTo( IFusionSoundMusicProvider *thiz,
 
      return DFB_OK;
 }
-
 
 static DFBResult
 IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
@@ -355,7 +365,6 @@ IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
      return DFB_OK;
 }
 
-
 static DFBResult 
 IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
                                          double                     seconds )
@@ -374,7 +383,6 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
      return (ret == 0) ? DFB_OK : DFB_UNSUPPORTED;
 }
 
-
 static DFBResult 
 IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
                                          double                    *seconds )
@@ -383,12 +391,14 @@ IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
 
      if (!seconds)
           return DFB_INVARG;
-          
-     *seconds = ov_time_tell( &data->vf );
-          
-     return DFB_UNIMPLEMENTED;
-}
 
+     if (data->finished)
+          *seconds = ov_time_total( &data->vf, -1 );
+     else
+          *seconds = ov_time_tell( &data->vf );
+          
+     return DFB_OK;
+}
 
 static DFBResult 
 IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
