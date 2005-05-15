@@ -445,7 +445,7 @@ static int
 key_event( struct input_event *levt,
            DFBInputEvent      *devt )
 {
-     if (levt->code >= BTN_MOUSE && levt->code <= BTN_STYLUS2) {
+     if (levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) {
           devt->type   = levt->value ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
           /* don't set DIEF_BUTTONS, it will be set by the input core */
           devt->button = DIBI_FIRST + levt->code - BTN_MOUSE;
@@ -533,7 +533,7 @@ abs_event( struct input_event *levt,
                break;
 
           default:
-               if (levt->code > ABS_MAX || levt->code > DIAI_LAST)
+               if (levt->code >= ABS_PRESSURE || levt->code > DIAI_LAST)
                     return 0;
                devt->axis = levt->code;
      }
@@ -666,7 +666,7 @@ get_device_info( int              fd,
                if (test_bit( i, keybit ))
                     num_ext_keys++;
 
-          for (i=BTN_MISC; i<KEY_OK; i++)
+          for (i=BTN_MOUSE; i<BTN_JOYSTICK; i++)
                if (test_bit( i, keybit ))
                     num_buttons++;
      }
@@ -688,13 +688,13 @@ get_device_info( int              fd,
           /* get bits for absolute axes */
           ioctl( fd, EVIOCGBIT(EV_ABS, ABS_MAX), absbit );
 
-          for (i=0; i<ABS_MAX; i++)
+          for (i=0; i<ABS_PRESSURE; i++)
                if (test_bit( i, absbit ))
                     num_abs++;
      }
 
      /* Mouse or Touchscreen? */
-     if ((num_rels && num_buttons)  ||  (num_abs && (num_buttons == 1)))
+     if ((num_rels >= 2 && num_buttons)  ||  (num_abs == 2 && (num_buttons == 1)))
           info->desc.type |= DIDTF_MOUSE;
      else if (num_abs && num_buttons) /* Or a Joystick? */
           info->desc.type |= DIDTF_JOYSTICK;
