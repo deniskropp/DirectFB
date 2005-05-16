@@ -110,14 +110,14 @@ translate_key( SDLKey key, DFBInputEvent *evt )
 {
      /* Numeric keypad */
      if (key >= SDLK_KP0  &&  key <= SDLK_KP9) {
-          evt->flags = DIEF_KEYID;
+          evt->flags |= DIEF_KEYID;
           evt->key_id = DIKI_KP_0 + key - SDLK_KP0;
           return true;
      }
 
      /* Function keys */
      if (key >= SDLK_F1  &&  key <= SDLK_F15) {
-          evt->flags = DIEF_KEYSYMBOL;
+          evt->flags |= DIEF_KEYSYMBOL;
           evt->key_symbol = DIKS_F1 + key - SDLK_F1;
           return true;
      }
@@ -125,183 +125,183 @@ translate_key( SDLKey key, DFBInputEvent *evt )
      switch (key) {
           /* Numeric keypad */
           case SDLK_KP_PERIOD:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_DECIMAL;
                break;
 
           case SDLK_KP_DIVIDE:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_DIV;
                break;
 
           case SDLK_KP_MULTIPLY:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_MULT;
                break;
 
           case SDLK_KP_MINUS:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_MINUS;
                break;
 
           case SDLK_KP_PLUS:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_PLUS;
                break;
 
           case SDLK_KP_ENTER:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_ENTER;
                break;
 
           case SDLK_KP_EQUALS:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_EQUAL;
                break;
 
 
           /* Arrows + Home/End pad */
           case SDLK_UP:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_UP;
                break;
 
           case SDLK_DOWN:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_DOWN;
                break;
 
           case SDLK_RIGHT:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_RIGHT;
                break;
 
           case SDLK_LEFT:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CURSOR_LEFT;
                break;
 
           case SDLK_INSERT:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_INSERT;
                break;
 
           case SDLK_HOME:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_HOME;
                break;
 
           case SDLK_END:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_END;
                break;
 
           case SDLK_PAGEUP:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_PAGE_UP;
                break;
 
           case SDLK_PAGEDOWN:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_PAGE_DOWN;
                break;
 
 
           /* Key state modifier keys */
           case SDLK_NUMLOCK:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_NUM_LOCK;
                break;
 
           case SDLK_CAPSLOCK:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_CAPS_LOCK;
                break;
 
           case SDLK_SCROLLOCK:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_SCROLL_LOCK;
                break;
 
           case SDLK_RSHIFT:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SHIFT_R;
                break;
 
           case SDLK_LSHIFT:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SHIFT_L;
                break;
 
           case SDLK_RCTRL:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_CONTROL_R;
                break;
 
           case SDLK_LCTRL:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_CONTROL_L;
                break;
 
           case SDLK_RALT:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_ALT_R;
                break;
 
           case SDLK_LALT:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_ALT_L;
                break;
 
           case SDLK_RMETA:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_META_R;
                break;
 
           case SDLK_LMETA:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_META_L;
                break;
 
           case SDLK_LSUPER:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SUPER_L;
                break;
 
           case SDLK_RSUPER:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SUPER_R;
                break;
 
           case SDLK_MODE:
-               evt->flags = DIEF_KEYID;
+               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_ALTGR;
                break;
 
 
           /* Miscellaneous function keys */
           case SDLK_HELP:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_HELP;
                break;
 
           case SDLK_PRINT:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_PRINT;
                break;
 
           case SDLK_BREAK:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_BREAK;
                break;
 
           case SDLK_MENU:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_MENU;
                break;
 
           case SDLK_POWER:
-               evt->flags = DIEF_KEYSYMBOL;
+               evt->flags |= DIEF_KEYSYMBOL;
                evt->key_symbol = DIKS_POWER;
                break;
 
@@ -383,20 +383,21 @@ sdlEventThread( DirectThread *thread, void *driver_data )
 
                     case SDL_KEYUP:
                     case SDL_KEYDOWN:
-			//XXX sdl does not give us the keymap
-			 evt.key_code=event.key.keysym.scancode;
+			             //XXX sdl does not give us the keymap
+                         evt.flags |= DIEF_KEYCODE;
+
                          if (event.type == SDL_KEYDOWN)
                               evt.type = DIET_KEYPRESS;
                          else
                               evt.type = DIET_KEYRELEASE;
                          if (translate_key( event.key.keysym.sym, &evt )) {
-			      evt.key_code=evt.key_id;
+			                  evt.key_code=evt.key_symbol;
                               dfb_input_dispatch( data->device, &evt );
                          }
                          else if (event.key.keysym.unicode) {
-                              evt.flags      = DIEF_KEYSYMBOL;
+                              evt.flags  |= DIEF_KEYSYMBOL;
                               evt.key_symbol = event.key.keysym.unicode;
-			      evt.key_code=evt.key_id;
+			                  evt.key_code=evt.key_symbol;
                               dfb_input_dispatch( data->device, &evt );
                          }
 
@@ -506,8 +507,8 @@ driver_open_device( CoreInputDevice  *device,
      /* set capabilities */
      info->desc.caps   = DICAPS_ALL;
      /* enable translation of fake raw hardware keycodes */
-     info->desc.min_keycode = DIKI_A;
-     info->desc.max_keycode = DIKI_KP_9;
+     info->desc.min_keycode = 0;
+     info->desc.max_keycode = 127;
  
 
 
@@ -534,7 +535,8 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      bool shift = (modifiers & DIMM_SHIFT);
 
      if (id >= DIKI_A && id <= DIKI_Z)
-          return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
+          return ( shift ? DFB_UPPER_CASE(id):DFB_LOWER_CASE(id) );
+          //return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
 
      if (id >= DIKI_0 && id <= DIKI_9)
           return DIKS_0 + id - DIKI_0;
@@ -703,23 +705,13 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-     int                         code = entry->code;
-     entry->identifier=code;
-
-     /* is CapsLock effective? */
-     if (code >= DIKI_A && code <= DIKI_Z)
-		entry->locks |= DILS_CAPS;
-
-     /* is NumLock effective? */
-     if (entry->identifier >= DIKI_KP_DECIMAL && entry->identifier <= DIKI_KP_9)
-          entry->locks |= DILS_NUM;
-
-     entry->symbols[DIKSI_BASE]=id_to_symbol(entry->identifier,0);
-     entry->symbols[DIKSI_BASE_SHIFT]=id_to_symbol(entry->identifier,DIMM_SHIFT);
-     entry->symbols[DIKSI_ALT]=entry->symbols[DIKSI_BASE];
-     entry->symbols[DIKSI_ALT_SHIFT]=entry->symbols[DIKSI_BASE_SHIFT];
+     int  code = entry->code;
+     entry->identifier == DIKI_UNKNOWN;
+     entry->symbols[DIKSI_BASE]=entry->code;
+     entry->symbols[DIKSI_BASE_SHIFT]=DIKS_NULL;
+     entry->symbols[DIKSI_ALT]=DIKS_NULL;
+     entry->symbols[DIKSI_ALT_SHIFT]=DIKS_NULL;
      return DFB_OK;
-    
 }
 
 /*
