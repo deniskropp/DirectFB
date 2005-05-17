@@ -60,9 +60,10 @@ typedef struct {
      bool                 playing;
      bool                 finished;
 
+     void                *buffer;
+     
      IFusionSoundStream  *dest;
      FSStreamDescription  desc;
-     int                  buffersize;
 } IFusionSoundMusicProvider_Vorbis_data;
 
 
@@ -142,7 +143,7 @@ VorbisThread( DirectThread *thread, void *ctx )
           (IFusionSoundMusicProvider_Vorbis_data*) ctx;
      
      float **src; // src[0] = first channel, src[1] = second channel, ...
-     char    dst[data->buffersize];
+     char   *dst     = data->buffer;
      int     section = 0; 
 
      data->finished = false;
@@ -157,7 +158,8 @@ VorbisThread( DirectThread *thread, void *ctx )
                break;
           }
           
-          len = ov_read_float( &data->vf, &src, data->desc.buffersize, &section );
+          len = ov_read_float( &data->vf, &src,
+                               data->desc.buffersize, &section );
 
           pthread_mutex_unlock( &data->lock );
           
@@ -267,8 +269,6 @@ VorbisThread( DirectThread *thread, void *ctx )
                break;
           }
      }
-
-     data->playing = false;
      
      return NULL;
 }
@@ -286,14 +286,19 @@ IFusionSoundMusicProvider_Vorbis_PlayTo( IFusionSoundMusicProvider *thiz,
 
      destination->GetDescription( destination, &desc );
 
+     /* check if destination samplerate is supported */
+     if (desc.samplerate != data->info->rate)
+          return DFB_UNSUPPORTED;
+     
+     /* check if number of channels is supported */
+     if (desc.channels != data->info->channels &&
+        (desc.channels > 2 || data->info->channels > 2))
+          return DFB_UNSUPPORTED;
+     
      /* check if destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
           case FSSF_S16:
-               /* can't downmix/upmix more than 2 channels */
-               if (desc.channels != data->info->channels &&
-                  (desc.channels > 2 || data->info->channels > 2))
-                    return DFB_UNSUPPORTED;
                break;
           default:
                return DFB_UNSUPPORTED;
@@ -303,14 +308,18 @@ IFusionSoundMusicProvider_Vorbis_PlayTo( IFusionSoundMusicProvider *thiz,
 
      /* stop thread */
      if (data->thread) {
-          if (data->playing) {
-               data->playing = false;
-               pthread_mutex_unlock( &data->lock );
-               direct_thread_join( data->thread );
-               pthread_mutex_lock( &data->lock );
-          }
+          data->playing = false;
+          pthread_mutex_unlock( &data->lock );
+          direct_thread_join( data->thread );
+          pthread_mutex_lock( &data->lock );
           direct_thread_destroy( data->thread );
           data->thread = NULL;
+     }
+
+     /* release buffer */
+     if (data->buffer) {
+          D_FREE( data->buffer );
+          data->buffer = NULL;
      }
 
      /* release previous destination stream */
@@ -318,13 +327,19 @@ IFusionSoundMusicProvider_Vorbis_PlayTo( IFusionSoundMusicProvider *thiz,
           data->dest->Release( data->dest );
           data->dest = NULL;
      }
+
+     /* allocate buffer */
+     data->buffer = D_MALLOC( desc.buffersize * desc.channels *
+                              ((desc.sampleformat == FSSF_U8) ? 1 : 2) );
+     if (!data->buffer) {
+          pthread_mutex_unlock( &data->lock );
+          return D_OOM();
+     }
      
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest = destination;
      data->desc = desc;
-     data->buffersize = desc.buffersize * desc.channels *
-                        ((desc.sampleformat == FSSF_U8) ? 1 : 2);
      
      /* start thread */
      data->playing = true;
@@ -344,14 +359,18 @@ IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
 
      /* stop thread */
      if (data->thread) {
-          if (data->playing) {
-               data->playing = false;
-               pthread_mutex_unlock( &data->lock );
-               direct_thread_join( data->thread );
-               pthread_mutex_lock( &data->lock );
-          }
+          data->playing = false;
+          pthread_mutex_unlock( &data->lock );
+          direct_thread_join( data->thread );
+          pthread_mutex_lock( &data->lock );
           direct_thread_destroy( data->thread );
           data->thread = NULL;
+     }
+
+     /* release buffer */
+     if (data->buffer) {
+          D_FREE( data->buffer );
+          data->buffer = NULL;
      }
 
      /* release destination stream */
