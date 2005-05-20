@@ -69,8 +69,16 @@ typedef struct {
      void                *src_buffer;
      void                *dst_buffer;
 
-     IFusionSoundStream  *dest;
-     FSStreamDescription  desc;
+     struct {
+          IFusionSoundStream *stream;
+          IFusionSoundBuffer *buffer;
+          int                 format;
+          int                 channels;
+          int                 length;
+     } dest;
+
+     FMBufferCallback     callback;
+     void                *ctx;
 } IFusionSoundMusicProvider_Wave_data;
 
 
@@ -332,6 +340,79 @@ mix32to16( void *src, void *dst, int len, int delta )
      }
 }
 
+static void
+wave_mix_audio( __u8 *src, __u8 *dst, int len, 
+                int src_format, int dst_format, int byteorder, int delta )
+{
+     if (byteorder != HOST_BYTEORDER) {
+         int i;
+               
+         switch (src_format) {
+               case 16:
+                    for (i = 0; i < len; i++)
+                         SWAP16( ((__u16*)src)[i] );
+                    break;
+               case 24:
+                    for (i = 0; i < len*3; i += 3) {
+                         __u8 tmp = src[i+0];
+                         src[i+0] = src[i+2];
+                         src[i+2] = tmp;
+                    }
+                    break;
+               case 32:
+                    for (i = 0; i < len; i++)
+                         SWAP32( ((__u32*)src)[i] );
+                    break;
+               default:
+                    break;
+          }
+     }
+
+     switch (dst_format) {
+          case 8:
+               switch (src_format) {
+                    case 8:
+                         mix8to8( src, dst, len, delta );
+                         break;
+                    case 16:
+                         mix16to8( src, dst, len, delta );
+                         break;
+                    case 24:
+                         mix24to8( src, dst, len, delta );
+                         break;
+                    case 32:
+                         mix32to8( src, dst, len, delta );
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          case 16:
+               switch (src_format) {
+                    case 8:
+                         mix8to16( src, dst, len, delta );
+                         break;
+                    case 16:
+                         mix16to16( src, dst, len, delta );
+                         break;
+                    case 24:
+                         mix24to16( src, dst, len, delta );
+                         break;
+                    case 32:
+                         mix32to16( src, dst, len, delta );
+                         break;
+                    default:
+                         break;
+               }
+               break;
+               
+          default:
+               D_BUG( "unexpected sampleformat" );
+               break;
+     }
+}
+
 
 static void
 IFusionSoundMusicProvider_Wave_Destruct( IFusionSoundMusicProvider *thiz )
@@ -371,7 +452,7 @@ IFusionSoundMusicProvider_Wave_Release( IFusionSoundMusicProvider *thiz )
 
 static DFBResult
 IFusionSoundMusicProvider_Wave_GetCapabilities( IFusionSoundMusicProvider   *thiz,
-                                                  FSMusicProviderCapabilities *caps )
+                                                FSMusicProviderCapabilities *caps )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
 
@@ -379,6 +460,63 @@ IFusionSoundMusicProvider_Wave_GetCapabilities( IFusionSoundMusicProvider   *thi
           return DFB_INVARG;
 
      *caps = FMCAPS_BASIC | FMCAPS_SEEK;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Wave_EnumTracks( IFusionSoundMusicProvider *thiz,
+                                           FSTrackCallback            callback,
+                                           void                      *callbackdata )
+{
+     FSTrackDescription desc;
+     
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+
+     if (!callback)
+          return DFB_INVARG;
+     
+     memset( &desc, 0, sizeof(FSTrackDescription) );
+     snprintf( desc.encoding,
+               FS_TRACK_DESC_ENCODING_LENGTH,
+               "PCM %dbit %s-endian", 
+               data->format, data->byteorder ? "big" : "little" );
+     desc.bitrate = data->samplerate * data->channels * data->format;
+
+     callback( 0, desc, callbackdata );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Wave_GetTrackID( IFusionSoundMusicProvider *thiz,
+                                           FSTrackID                 *ret_track_id )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+
+     if (!ret_track_id)
+          return DFB_INVARG;
+
+     *ret_track_id = 0;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Wave_GetTrackDescription( IFusionSoundMusicProvider *thiz,
+                                                    FSTrackDescription        *desc )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+
+     if (!desc)
+          return DFB_INVARG;
+
+     memset( desc, 0, sizeof(FSTrackDescription) ); 
+     snprintf( desc->encoding,
+               FS_TRACK_DESC_ENCODING_LENGTH,
+               "PCM %dbit %s-endian", 
+               data->format, data->byteorder ? "big" : "little" );
+     desc->bitrate = data->samplerate * data->channels * data->format;
 
      return DFB_OK;
 }
@@ -407,14 +545,50 @@ IFusionSoundMusicProvider_Wave_GetStreamDescription( IFusionSoundMusicProvider *
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundMusicProvider_Wave_GetBufferDescription( IFusionSoundMusicProvider *thiz,
+                                                     FSBufferDescription       *desc )
+{     
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+
+     if (!desc)
+          return DFB_INVARG;
+ 
+     desc->flags        = FSBDF_LENGTH       | FSBDF_CHANNELS  |
+                          FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
+     desc->samplerate   = data->samplerate;
+     desc->channels     = data->channels;
+     if (data->format == 8) {
+          desc->sampleformat = FSSF_U8;
+          desc->length       = data->samplerate / data->channels;
+     } else {
+          desc->sampleformat = FSSF_S16;
+          desc->length       = data->samplerate / (data->channels << 1);
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Wave_SelectTrack( IFusionSoundMusicProvider *thiz,
+                                            FSTrackID                  track_id )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+
+     if (track_id != 0)
+          return DFB_INVARG;
+
+     return DFB_OK;
+}
+
 static void*
-WaveThread( DirectThread *thread, void *ctx )
+WaveStreamThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_Wave_data *data = 
           (IFusionSoundMusicProvider_Wave_data*) ctx;
      
-     int     delta = data->channels - data->desc.channels;
-     size_t  count = data->desc.buffersize * data->channels * data->format >> 3;
+     int     delta = data->channels - data->dest.channels;
+     size_t  count = data->dest.length * data->channels * data->format >> 3;
      __u8   *src   = data->src_buffer;
      __u8   *dst   = data->dst_buffer;
 
@@ -440,82 +614,20 @@ WaveThread( DirectThread *thread, void *ctx )
                break;
           }
 
-          if (data->byteorder != HOST_BYTEORDER) {
-               int i;
-               
-               switch (data->format) {
-                    case 16:
-                         for (i = 0; i < len; i++)
-                              SWAP16( ((__u16*)src)[i] );
-                         break;
-                    case 24:
-                         for (i = 0; i < len*3; i += 3) {
-                              __u8 tmp = src[i+0];
-                              src[i+0] = src[i+2];
-                              src[i+2] = tmp;
-                         }
-                    case 32:
-                         for (i = 0; i < len; i++)
-                              SWAP32( ((__u32*)src)[i] );
-                         break;
-                    default:
-                         break;
-               }
-          }
-
-          switch (data->desc.sampleformat) {
-               case FSSF_U8:
-                    switch (data->format) {
-                         case 8:
-                              mix8to8( src, dst, len, delta );
-                              break;
-                         case 16:
-                              mix16to8( src, dst, len, delta );
-                              break;
-                         case 24:
-                              mix24to8( src, dst, len, delta );
-                              break;
-                         case 32:
-                              mix32to8( src, dst, len, delta );
-                              break;
-                         default:
-                              break;
-                    }
-                    break;
-
-               case FSSF_S16:
-                    switch (data->format) {
-                         case 8:
-                              mix8to16( src, dst, len, delta );
-                              break;
-                         case 16:
-                              mix16to16( src, dst, len, delta );
-                              break;
-                         case 24:
-                              mix24to16( src, dst, len, delta );
-                              break;
-                         case 32:
-                              mix32to16( src, dst, len, delta );
-                              break;
-                         default:
-                              break;
-                    }
-                    break;
-               
-               default:
-                    D_BUG( "unexpected sampleformat" );
-                    break;
-          }
-
-          data->dest->Write( data->dest, dst, len / data->channels );
+          wave_mix_audio( src, dst, len, 
+                          data->format, data->dest.format,
+                          data->byteorder, delta );
+                          
+          data->dest.stream->Write( data->dest.stream, 
+                                    dst, len / data->channels );
      }
      
      return NULL;
 }
 
 static DFBResult
-IFusionSoundMusicProvider_Wave_PlayTo( IFusionSoundMusicProvider *thiz,
-                                       IFusionSoundStream        *destination )
+IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
+                                             IFusionSoundStream        *destination )
 {
      FSStreamDescription  desc;
      __u32                dst_format = 0;
@@ -570,9 +682,15 @@ IFusionSoundMusicProvider_Wave_PlayTo( IFusionSoundMusicProvider *thiz,
      }
 
      /* release previous destination stream */
-     if (data->dest) {
-          data->dest->Release( data->dest );
-          data->dest = NULL;
+     if (data->dest.stream) {
+          data->dest.stream->Release( data->dest.stream );
+          data->dest.stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->dest.buffer) {
+          data->dest.buffer->Release( data->dest.buffer );
+          data->dest.buffer = NULL;
      }
      
      /* allocate buffer(s) */
@@ -591,12 +709,179 @@ IFusionSoundMusicProvider_Wave_PlayTo( IFusionSoundMusicProvider *thiz,
  
      /* reference destination stream */
      destination->AddRef( destination );
-     data->dest = destination;
-     data->desc = desc;
-
+     data->dest.stream   = destination;
+     data->dest.format   = dst_format;
+     data->dest.channels = desc.channels;
+     data->dest.length   = desc.buffersize;
+     
      /* start thread */
      data->playing = true;
-     data->thread  = direct_thread_create( DTT_OUTPUT, WaveThread, data, "Wave" );
+     data->thread  = direct_thread_create( DTT_OUTPUT,
+                                           WaveStreamThread, data, "Wave" );
+
+     pthread_mutex_unlock( &data->lock );
+
+     return DFB_OK;
+}
+
+static void*
+WaveBufferThread( DirectThread *thread, void *ctx )
+{
+     IFusionSoundMusicProvider_Wave_data *data = 
+          (IFusionSoundMusicProvider_Wave_data*) ctx;
+     
+     IFusionSoundBuffer *buffer = data->dest.buffer;
+     int                 delta  = data->channels - data->dest.channels;
+     size_t              count  = data->dest.length * data->channels *
+                                  data->format >> 3;
+     
+     data->finished = false;
+     
+     while (data->playing) {
+          void    *dst;
+          ssize_t  len;
+          
+          pthread_mutex_lock( &data->lock );
+          
+          if (!data->playing) {
+               pthread_mutex_unlock( &data->lock );
+               break;
+          }
+          
+          if (!data->src_buffer) {
+               if (buffer->Lock( buffer, &dst ) != DFB_OK) {
+                    D_ERROR( "IFusionSoundMusicProvider_Wave: "
+                             "Couldn't lock buffer!" );
+                    pthread_mutex_unlock( &data->lock );
+                    break;
+               }
+               
+               len = read( data->fd, dst, count );
+               
+               buffer->Unlock( buffer );
+          } else
+               len = read( data->fd, data->src_buffer, count );
+
+          pthread_mutex_unlock( &data->lock );
+          
+          len /= data->format >> 3;
+          if (len <= 0) {
+               data->finished = true;
+               break;
+          }
+
+          if (data->src_buffer) {
+               if (buffer->Lock( buffer, &dst ) != DFB_OK) {
+                    D_ERROR( "IFusionSoundMusicProvider_Wave: "
+                             "Couldn't lock buffer!" );
+                    break;
+               }
+
+               wave_mix_audio( data->src_buffer, dst, len,
+                               data->format, data->dest.format,
+                               data->byteorder, delta );
+          
+               buffer->Unlock( buffer );
+          }
+
+          if (data->callback)
+               data->callback( len / data->channels, data->ctx );
+     }
+     
+     return NULL;
+}
+
+static DFBResult
+IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
+                                             IFusionSoundBuffer        *destination,
+                                             FMBufferCallback           callback,
+                                             void                      *ctx )
+{
+     FSBufferDescription  desc;
+     __u32                dst_format = 0;
+
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+
+     if (!destination)
+          return DFB_INVARG;
+
+     destination->GetDescription( destination, &desc );
+
+     /* check if destination samplerate is supported */
+     if (desc.samplerate != data->samplerate)
+          return DFB_UNSUPPORTED;
+     
+     /* check if number of channels is supported */
+     if (desc.channels > 2)
+          return DFB_UNSUPPORTED;
+
+     /* check if destination format is supported */
+     switch (desc.sampleformat) {
+          case FSSF_U8:
+               dst_format = 8;
+               break;
+          case FSSF_S16:
+               dst_format = 16;
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+
+     pthread_mutex_lock( &data->lock );
+
+     /* stop thread */
+     if (data->thread) {
+          data->playing = false;
+          pthread_mutex_unlock( &data->lock );
+          direct_thread_join( data->thread );
+          pthread_mutex_lock( &data->lock );
+          direct_thread_destroy( data->thread );
+          data->thread = NULL;
+     }
+
+     /* release buffer(s) */
+     if (data->src_buffer) {
+          D_FREE( data->src_buffer );
+          data->src_buffer = NULL;
+          data->dst_buffer = NULL;
+     }
+
+     /* release previous destination stream */
+     if (data->dest.stream) {
+          data->dest.stream->Release( data->dest.stream );
+          data->dest.stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->dest.buffer) {
+          data->dest.buffer->Release( data->dest.buffer );
+          data->dest.buffer = NULL;
+     }
+     
+     /* allocate buffer */
+     if (dst_format != data->format || desc.channels != data->channels) {
+          data->src_buffer = D_MALLOC( desc.length *
+                                       data->channels * data->format >> 3 );
+          if (!data->src_buffer) {
+               pthread_mutex_unlock( &data->lock );
+               return D_OOM();
+          }
+     }
+ 
+     /* reference destination stream */
+     destination->AddRef( destination );
+     data->dest.buffer   = destination;
+     data->dest.format   = dst_format;
+     data->dest.channels = desc.channels;
+     data->dest.length   = desc.length;
+
+     data->callback      = callback;
+     data->ctx           = ctx;
+     
+     /* start thread */
+     data->playing = true;
+     data->thread  = direct_thread_create( DTT_OUTPUT,
+                                           WaveBufferThread, data, "Wave" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -627,10 +912,16 @@ IFusionSoundMusicProvider_Wave_Stop( IFusionSoundMusicProvider *thiz )
           data->dst_buffer = NULL;
      }
 
-     /* release destination stream */
-     if (data->dest) {
-          data->dest->Release( data->dest );
-          data->dest = NULL;
+     /* release previous destination stream */
+     if (data->dest.stream) {
+          data->dest.stream->Release( data->dest.stream );
+          data->dest.stream = NULL;
+     }
+
+     /* release previous destination buffer */
+     if (data->dest.buffer) {
+          data->dest.buffer->Release( data->dest.buffer );
+          data->dest.buffer = NULL;
      }
 
      pthread_mutex_unlock( &data->lock );
@@ -673,7 +964,7 @@ IFusionSoundMusicProvider_Wave_GetPos( IFusionSoundMusicProvider *thiz,
 
      if (data->finished) {
           *seconds = data->length;
-          return DFB_OK;
+          return DFB_EOF;
      }
 
      offset  = lseek( data->fd, 0, SEEK_CUR );
@@ -907,8 +1198,14 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      thiz->AddRef               = IFusionSoundMusicProvider_Wave_AddRef;
      thiz->Release              = IFusionSoundMusicProvider_Wave_Release;
      thiz->GetCapabilities      = IFusionSoundMusicProvider_Wave_GetCapabilities;
+     thiz->EnumTracks           = IFusionSoundMusicProvider_Wave_EnumTracks;
+     thiz->GetTrackID           = IFusionSoundMusicProvider_Wave_GetTrackID;
+     thiz->GetTrackDescription  = IFusionSoundMusicProvider_Wave_GetTrackDescription;
      thiz->GetStreamDescription = IFusionSoundMusicProvider_Wave_GetStreamDescription;
-     thiz->PlayTo               = IFusionSoundMusicProvider_Wave_PlayTo;
+     thiz->GetBufferDescription = IFusionSoundMusicProvider_Wave_GetBufferDescription;
+     thiz->SelectTrack          = IFusionSoundMusicProvider_Wave_SelectTrack;
+     thiz->PlayToStream         = IFusionSoundMusicProvider_Wave_PlayToStream;
+     thiz->PlayToBuffer         = IFusionSoundMusicProvider_Wave_PlayToBuffer;
      thiz->Stop                 = IFusionSoundMusicProvider_Wave_Stop;
      thiz->SeekTo               = IFusionSoundMusicProvider_Wave_SeekTo;
      thiz->GetPos               = IFusionSoundMusicProvider_Wave_GetPos;

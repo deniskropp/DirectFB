@@ -177,6 +177,39 @@ typedef enum {
 } FSMusicProviderCapabilities;
 
 /*
+ * Track ID.
+ */
+typedef unsigned int FSTrackID;
+
+#define FS_TRACK_DESC_ARTIST_LENGTH   32
+#define FS_TRACK_DESC_TITLE_LENGTH    125
+#define FS_TRACK_DESC_ALBUM_LENGTH    125
+#define FS_TRACK_DESC_GENRE_LENGTH    32
+#define FS_TRACK_DESC_ENCODING_LENGTH 32
+
+/*
+ * Description of a track provided by a music provider.
+ */
+typedef struct {
+     char  artist[FS_TRACK_DESC_ARTIST_LENGTH];     /* Artist */
+     char  title[FS_TRACK_DESC_TITLE_LENGTH];       /* Title */
+     char  album[FS_TRACK_DESC_ALBUM_LENGTH];       /* Album */
+     short year;                                    /* Year */
+     char  genre[FS_TRACK_DESC_GENRE_LENGTH];       /* Genre */
+     char  encoding[FS_TRACK_DESC_ENCODING_LENGTH]; /* Encoding (for example: MPEG Layer-1) */
+     int   bitrate;                                 /* Bitrate in bits/s */
+} FSTrackDescription;
+
+/*
+ * Called for each track provided by a music provider.
+ */
+typedef DFBEnumerationResult (*FSTrackCallback) (
+     FSTrackID                track_id,
+     FSTrackDescription       desc,
+     void                    *callbackdata
+);
+
+/*
  * <i><b>IFusionSound</b></i> is the main FusionSound interface. Currently it
  * can only be retrieved by calling <i>IDirectFB::GetInterface()</i>. This will
  * change when Fusion and other relevant parts of DirectFB are dumped into a
@@ -634,6 +667,11 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
 )
 
 /*
+ * Called after each buffer write.
+ */
+typedef void (*FMBufferCallback)( int length, void *ctx );
+
+/*
  * <i>No summary yet...</i>
  */
 DEFINE_INTERFACE(   IFusionSoundMusicProvider,
@@ -649,26 +687,91 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      );
 
      /*
-      * Get a surface description that best matches the music
+      * Enumerate all tracks contained in the file.
+      *
+      * Calls the given callback for all available tracks.<br>
+      * The callback is passed the track id that can be
+      * used to select a track for playback using 
+      * IFusionSoundMusicProvider::SelectTrack().
+      */
+     DFBResult (*EnumTracks) (
+          IFusionSoundMusicProvider *thiz,
+          FSTrackCallback            callback,
+          void                      *callbackdata
+     );
+
+     /*
+      * Get the unique ID of the current track.
+      */
+     DFBResult (*GetTrackID) (
+          IFusionSoundMusicProvider *thiz,
+          FSTrackID                 *ret_track_id
+     );
+
+     /*
+      * Get a description of the current track.
+      */
+     DFBResult (*GetTrackDescription) (
+          IFusionSoundMusicProvider *thiz,
+          FSTrackDescription        *desc
+     );
+
+     /*
+      * Get a stream description that best matches the music
       * contained in the file.
       */
      DFBResult (*GetStreamDescription) (
           IFusionSoundMusicProvider *thiz,
           FSStreamDescription       *desc
      );
+     
+     /*
+      * Get a buffer description that best matches the music
+      * contained in the file.
+      */
+     DFBResult (*GetBufferDescription) (
+          IFusionSoundMusicProvider *thiz,
+          FSBufferDescription       *desc
+     );
 
    /** Playback **/
 
      /*
-      * Play music rendering it into the destination stream.
+      * Select a track by its unique ID.
       */
-     DFBResult (*PlayTo) (
+     DFBResult (*SelectTrack) (
+          IFusionSoundMusicProvider *thiz,
+          FSTrackID                  track_id 
+     );
+     
+     /*
+      * Play selected track rendering it into
+      * the destination stream.
+      */
+     DFBResult (*PlayToStream) (
           IFusionSoundMusicProvider *thiz,
           IFusionSoundStream        *destination
      );
 
      /*
-      * Stop rendering into the destination stream.
+      * Play selected track rendering it into
+      * the destination buffer.
+      *
+      * Optionally a callback can be registered
+      * that is called after each buffer write.<br>
+      * The callback is passed the number of 
+      * samples per channels actually written
+      * to the destination buffer.
+      */
+     DFBResult (*PlayToBuffer) (
+          IFusionSoundMusicProvider *thiz,
+          IFusionSoundBuffer        *destination,
+          FMBufferCallback           callback,
+          void                      *ctx
+     );
+
+     /*
+      * Stop playback.
       */
      DFBResult (*Stop) (
           IFusionSoundMusicProvider *thiz
@@ -677,7 +780,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
    /** Media Control **/
 
      /*
-      * Seeks to a position within the stream.
+      * Seeks to a position within the current track.
       */
      DFBResult (*SeekTo) (
           IFusionSoundMusicProvider *thiz,
@@ -685,7 +788,10 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      );
 
      /*
-      * Gets current position within the stream.
+      * Gets current position within the current track.
+      *
+      * Returns <b>DFB_EOF</b> if the playback
+      * of the current track is finished.
       */
      DFBResult (*GetPos) (
           IFusionSoundMusicProvider *thiz,
@@ -693,7 +799,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      );
 
      /*
-      * Gets the length of the stream.
+      * Gets the length of the current track.
       */
      DFBResult (*GetLength) (
           IFusionSoundMusicProvider *thiz,
