@@ -193,7 +193,8 @@ typedef enum {
      DFB_NOSUCHINSTANCE, /* Requested instance is not known to remote site. */
      DFB_ITEMNOTFOUND,   /* No such item found. */
      DFB_VERSIONMISMATCH,/* Some versions didn't match. */
-     DFB_NOSHAREDMEMORY  /* There's not enough shared memory. */
+     DFB_NOSHAREDMEMORY, /* There's not enough shared memory. */
+     DFB_EOF             /* Reached end of file. */
 } DFBResult;
 
 /*

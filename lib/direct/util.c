@@ -139,6 +139,8 @@ DirectResultString( DirectResult result )
                return "Some versions didn't match!";
           case DFB_NOSHAREDMEMORY:
                return "Out of shared memory!";
+          case DFB_EOF:
+               return "End of file!";
      }
 
      return "UNKNOWN RESULT CODE!";
