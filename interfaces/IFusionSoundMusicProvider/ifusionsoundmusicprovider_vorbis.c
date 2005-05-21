@@ -75,6 +75,23 @@ typedef struct {
 } IFusionSoundMusicProvider_Vorbis_data;
 
 
+static __inline__ int
+FtoU8( float s )
+{
+     int d;
+     d  = s * 128.f;
+     d += 128;
+     return CLAMP( d, 0, 255 );
+}
+
+static __inline__ int
+FtoS16( float s )
+{
+     int d;
+     d = s * 32768.f;
+     return CLAMP( d, -32768, 32767 );
+}
+
 static void
 vorbis_mix_audio( float **src, char *dst, int len,
                   int format, int src_channels, int dst_channels )
@@ -85,89 +102,66 @@ vorbis_mix_audio( float **src, char *dst, int len,
                
      switch (format) {
           case 8:
-               /* Convert to unsigned 8 */
-               for (i = 0; i < s_n; i++) {
-                    float *s = src[i];
-                    int   *d = (int*)src[i];
-                              
-                    for (j = 0; j < len; j++) {
-                         int c;
-                         c    = s[j] * 128.f;
-                         c   += 128;
-                         d[j] = CLAMP( c, 0, 255 );
-                    }
-               }
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
-                         int  *s = (int*)src[i];
-                         __u8 *d = (__u8*)&dst[i];
+                         float *s = src[i];
+                         __u8  *d = (__u8*)&dst[i];
 
                          for (j = 0; j < len; j++) {
-                              *d  = s[j];
+                              *d  = FtoU8(s[j]);
                                d += d_n;
                          }
                     }
                }
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
-                    int  *s = (int*)src[0];
-                    __u8 *d = (__u8*)&dst[0];
+                    float *s = src[0];
+                    __u8  *d = (__u8*)&dst[0];
 
                     for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = s[i];
+                         d[i*2+0] = d[i*2+1] = FtoU8(s[i]);
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
-                    int  *s0 = (int*)src[0];
-                    int  *s1 = (int*)src[1];
-                    __u8 *d  = (__u8*)&dst[0];
+                    float *s0 = src[0];
+                    float *s1 = src[1];
+                    __u8  *d  = (__u8*)&dst[0];
 
                     for (i = 0; i < len; i++)
-                         d[i] = (s0[i] + s1[i]) >> 1;
+                         d[i] = (FtoU8(s0[i]) + FtoU8(s1[i])) >> 1;
                }
                break;
                          
           case 16:
-               /* Convert to signed 16 */
-               for (i = 0; i < s_n; i++) {
-                    float *s = src[i];
-                    int   *d = (int*)src[i];
-                              
-                    for (j = 0; j < len; j++) {
-                         int c;
-                         c    = s[j] * 32768.f;
-                         d[j] = CLAMP( c, -32768, 32767 );
-                    }
-               }
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
-                         int   *s = (int*)src[i];
+                         float *s = src[i];
                          __s16 *d = (__s16*)&dst[i*2];
 
                          for (j = 0; j < len; j++) {
-                              *d  = s[j];
+                              *d  = FtoS16(s[j]);
                                d += d_n;
                          }
                     }
                }
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
-                    int   *s = (int*)src[0];
+                    float *s = src[0];
                     __s16 *d = (__s16*)&dst[0];
 
                     for (i = 0; i < len; i++)
-                         d[i*2+0] = d[i*2+1] = s[i];
+                         d[i*2+0] = d[i*2+1] = FtoS16(s[i]);
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
-                    int   *s0 = (int*)src[0];
-                    int   *s1 = (int*)src[1];
+                    float *s0 = src[0];
+                    float *s1 = src[1];
                     __s16 *d  = (__s16*)&dst[0];
 
                     for (i = 0; i < len; i++)
-                         d[i] = (s0[i] + s1[i]) >> 1;
+                         d[i] = (FtoS16(s0[i]) + FtoS16(s1[i])) >> 1;
                }
                break;
                          
@@ -511,14 +505,15 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
           (IFusionSoundMusicProvider_Vorbis_data*) ctx;
      
      IFusionSoundBuffer *buffer  = data->dest.buffer;
-     int                 written = 0;
      int                 section = 0;
 
      data->finished = false;
      
-     while (data->playing) {
+     while (data->playing && !data->finished) {
           float **src;
+          char   *dst;
           long    len;
+          int     pos = 0;
           
           pthread_mutex_lock( &data->lock );
 
@@ -527,40 +522,39 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                break;
           }
 
-          len = ov_read_float( &data->vf, &src,
-                               data->dest.length - written, &section );
+          if (buffer->Lock( buffer, (void*)&dst ) != DFB_OK) {
+               D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
+                        "Couldn't lock buffer!\n" );
+               pthread_mutex_unlock( &data->lock );
+               data->finished = true;
+               break;
+          }
+
+          do {
+               len = ov_read_float( &data->vf, &src,
+                                    data->dest.length - pos, &section );
+
+               if (len > 0) {
+                    vorbis_mix_audio( src, dst, len, data->dest.format,
+                                      data->info->channels, data->dest.channels );
+               
+                    pos += len;
+                    dst += len * data->dest.channels * data->dest.format >> 3;     
+               }
+               else if (len == 0) {
+                    D_DEBUG( "IFusionSoundMusicProvider_Vorbis: "
+                             "End of stream.\n" );
+                    data->finished = true;
+                    break;
+               }
+          } while (pos < data->dest.length);
+
+          buffer->Unlock( buffer );
 
           pthread_mutex_unlock( &data->lock );
 
-          if (len > 0) {
-               char *dst;
-               
-               if (buffer->Lock( buffer, (void*)&dst ) != DFB_OK) {
-                    D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
-                              "Couldn't lock buffer!\n" );
-                    break;
-               }
-               
-               dst += written * data->dest.channels * data->dest.format >> 3;
-               vorbis_mix_audio( src, dst, len, data->dest.format,
-                                 data->info->channels, data->dest.channels );
-               
-               buffer->Unlock( buffer );
-               
-               written += len;
-               if (data->dest.length <= written) {
-                    if (data->callback)
-                         data->callback( data->dest.length, data->ctx );
-                    written = 0;
-               }
-          }
-          else if (len == 0) {
-               D_DEBUG( "IFusionSoundMusicProvider_Vorbis: End of stream.\n" );
-               data->finished = true;
-               if (written && data->callback)
-                    data->callback( written, data->ctx );
-               break;
-          }
+          if (data->callback && pos)
+               data->callback( pos, data->ctx );
      }
 
      return NULL;
@@ -802,6 +796,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      thiz->GetTrackID           = IFusionSoundMusicProvider_Vorbis_GetTrackID;
      thiz->GetTrackDescription  = IFusionSoundMusicProvider_Vorbis_GetTrackDescription;
      thiz->GetStreamDescription = IFusionSoundMusicProvider_Vorbis_GetStreamDescription;
+     thiz->GetBufferDescription = IFusionSoundMusicProvider_Vorbis_GetBufferDescription;
      thiz->SelectTrack          = IFusionSoundMusicProvider_Vorbis_SelectTrack;
      thiz->PlayToStream         = IFusionSoundMusicProvider_Vorbis_PlayToStream;
      thiz->PlayToBuffer         = IFusionSoundMusicProvider_Vorbis_PlayToBuffer;
