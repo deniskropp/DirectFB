@@ -147,7 +147,7 @@ DirectResultString( DirectResult result )
 }
 
 int
-direct_try_open( const char *name1, const char *name2, int flags )
+direct_try_open( const char *name1, const char *name2, int flags, bool error_msg )
 {
      int fd;
 
@@ -164,10 +164,12 @@ direct_try_open( const char *name1, const char *name2, int flags )
      if (fd >= 0)
           return fd;
 
-     if (errno == ENOENT)
-          D_PERROR( "Direct/Util: opening '%s' and '%s' failed\n", name1, name2 );
-     else
-          D_PERROR( "Direct/Util: opening '%s' failed\n", name2 );
+     if (error_msg) {
+          if (errno == ENOENT)
+               D_PERROR( "Direct/Util: opening '%s' and '%s' failed\n", name1, name2 );
+          else
+               D_PERROR( "Direct/Util: opening '%s' failed\n", name2 );
+     }
 
      return -1;
 }

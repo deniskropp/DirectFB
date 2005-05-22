@@ -113,7 +113,7 @@ fusion_init( int world, int abi_version, int *world_ret )
                snprintf( buf1, sizeof(buf1), "/dev/fusion%d", world );
                snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world );
 
-               _fusion_fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK | O_EXCL );
+               _fusion_fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK | O_EXCL, false );
                if (_fusion_fd < 0) {
                     if (errno == EBUSY)
                          continue;
@@ -130,9 +130,8 @@ fusion_init( int world, int abi_version, int *world_ret )
           snprintf( buf1, sizeof(buf1), "/dev/fusion%d", world );
           snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world );
 
-          _fusion_fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK );
+          _fusion_fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK, true );
           if (_fusion_fd < 0) {
-               D_ERROR( "Fusion/Init: opening fusion device failed!n" );
                direct_shutdown();
                return -1;
           }

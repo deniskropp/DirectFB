@@ -77,7 +77,7 @@ DirectResult errno2result( int erno );
 
 const char *DirectResultString( DirectResult result );
 
-int direct_try_open( const char *name1, const char *name2, int flags );
+int direct_try_open( const char *name1, const char *name2, int flags, bool error_msg );
 
 void direct_trim( char **s );
 
