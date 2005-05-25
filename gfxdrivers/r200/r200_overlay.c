@@ -521,7 +521,7 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      }
      
      /* set base address */
-     rov0->regs.BASE_ADDR = r200_in32( rdrv->mmio_base, DISPLAY_BASE_ADDR );
+     rov0->regs.BASE_ADDR = rdev->fb_offset;
                            
      /* set offsets */
      ov0_calc_offsets( rdrv->device_data, rov0, surface, offsets );

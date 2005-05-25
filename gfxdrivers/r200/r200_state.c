@@ -600,11 +600,9 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      r200_out32( mmio, R200_PP_TXFORMAT_0, txformat );
      r200_out32( mmio, R200_PP_TXFILTER_0, filter );
      r200_out32( mmio, R200_PP_TXCBLEND_0, cblend );
-     r200_out32( mmio, R200_PP_TXCBLEND2_0, R200_TXC_OUTPUT_REG_R0 |
-                                            R200_TXC_CLAMP_0_1 );
+     r200_out32( mmio, R200_PP_TXCBLEND2_0, R200_TXC_OUTPUT_REG_R0 );
      r200_out32( mmio, R200_PP_TXABLEND_0, ablend );
-     r200_out32( mmio, R200_PP_TXABLEND2_0, R200_TXA_OUTPUT_REG_R0 | 
-                                            R200_TXA_CLAMP_0_1 );
+     r200_out32( mmio, R200_PP_TXABLEND2_0, R200_TXA_OUTPUT_REG_R0 );
      r200_out32( mmio, R200_SE_VTX_FMT_0, vtx_fmt );
      r200_out32( mmio, R200_SE_VTX_FMT_1, 2 << R200_VTX_TEX0_COMP_CNT_SHIFT );
      

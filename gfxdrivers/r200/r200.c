@@ -101,7 +101,6 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      __u32          rbbm_soft_reset;
      __u32          host_path_cntl;
      __u32          dp_datatype;
-     __u32          base_addr;
      __u32          pitch64;
      __u32          bpp;
      
@@ -133,9 +132,8 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
                break;
      }
 
-     base_addr = r200_in32( mmio, DISPLAY_BASE_ADDR );
-     pitch64   = r200_in32( mmio, CRTC_H_TOTAL_DISP );
-     pitch64   = ((((pitch64 >> 16) + 1) << 3) * bpp / 8 + 0x3f) >> 6;
+     pitch64 = r200_in32( mmio, CRTC_H_TOTAL_DISP );
+     pitch64 = ((((pitch64 >> 16) + 1) << 3) * bpp / 8 + 0x3f) >> 6;
      
      r200_out32( mmio, RBBM_SOFT_RESET, rbbm_soft_reset |
                                         SOFT_RESET_CP | SOFT_RESET_SE |
@@ -155,9 +153,12 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      
      r200_out32( mmio, CLOCK_CNTL_INDEX, clock_cntl_index );
      r200_outpll( mmio, MCLK_CNTL, mclk_cntl );
-     
-     r200_waitfifo( rdrv, rdev, 1 );
-     r200_out32( mmio, DEFAULT_OFFSET, (base_addr >> 10) | (pitch64 << 22) );
+    
+     /* set framebuffer offset */
+     r200_waitfifo( rdrv, rdev, 2 );
+     r200_out32( mmio, DEFAULT_OFFSET, (rdev->fb_offset >> 10) |
+                                       (pitch64 << 22) );
+     r200_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
      
      r200_waitfifo( rdrv, rdev, 1 );
 #ifdef WORDS_BIGENDIAN
@@ -180,7 +181,10 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      
      /* restore 3d engine */                                      
      r200_waitfifo( rdrv, rdev, 8 );
-     r200_out32( mmio, R200_SE_VAP_CNTL_STATUS, 0 );
+     if (rdev->chipset == CHIP_RS300)
+          r200_out32( mmio, R200_SE_VAP_CNTL_STATUS, TCL_BYPASS );
+     else
+          r200_out32( mmio, R200_SE_VAP_CNTL_STATUS, 0 );
      r200_out32( mmio, R200_PP_CNTL_X, 0 );
      r200_out32( mmio, R200_PP_TXMULTI_CTL_0, 0 );
      r200_out32( mmio, R200_SE_VTX_STATE_CNTL, 0 );
@@ -201,8 +205,8 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
                                 BFACE_SOLID           | 
                                 FFACE_SOLID           |
                                 VTX_PIX_CENTER_OGL    |
-                                ROUND_MODE_ROUND      |
-				            ROUND_PREC_4TH_PIX );
+                                ROUND_MODE_TRUNC      |
+				            ROUND_PREC_8TH_PIX );
      r200_out32( mmio, PP_BORDER_COLOR_0, 0 );
      r200_out32( mmio, PP_MISC, ALPHA_TEST_PASS ); 
      r200_out32( mmio, RB3D_ROPCNTL, ROP_XOR );
@@ -242,8 +246,13 @@ static void r200CheckState( void *drv, void *dev,
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
+               break;
+               
           case DSPF_YUY2:
           case DSPF_UYVY:
+               if (DFB_DRAWING_FUNCTION( accel ) &&
+                  (accel & DFXL_FILLTRIANGLE || state->drawingflags))
+                    return;
                break;
                
           default:
@@ -377,22 +386,24 @@ static void r200SetState( void *drv, void *dev,
 
 /* acceleration functions */
 
-#define r200_enter2d( rdrv, rdev ) {                                      \
-     if ((rdev)->write_3d) {                                              \
-          r200_waitfifo( rdrv, rdev, 1 );                                 \
-          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN ); \
-          rdev->write_3d = false;                                         \
-     }                                                                    \
-     (rdev)->write_2d = true;                                             \
+#define r200_enter2d( rdrv, rdev ) {                                            \
+     if ((rdev)->write_3d) {                                                    \
+          r200_waitfifo( rdrv, rdev, 2 );                                       \
+          r200_out32( (rdrv)->mmio_base, RB3D_DSTCACHE_CTLSTAT, RB3D_DC_FLUSH );\
+          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN );       \
+          rdev->write_3d = false;                                               \
+     }                                                                          \
+     (rdev)->write_2d = true;                                                   \
 }
 
-#define r200_enter3d( rdrv, rdev ) {                                      \
-     if ((rdev)->write_2d) {                                              \
-          r200_waitfifo( rdrv, rdev, 1 );                                 \
-          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN ); \
-          rdev->write_2d = false;                                         \
-     }                                                                    \
-     (rdev)->write_3d = true;                                             \
+#define r200_enter3d( rdrv, rdev ) {                                            \
+     if ((rdev)->write_2d) {                                                    \
+          r200_waitfifo( rdrv, rdev, 2 );                                       \
+          r200_out32( (rdrv)->mmio_base, RB3D_DSTCACHE_CTLSTAT, RB3D_DC_FLUSH );\
+          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN );       \
+          rdev->write_2d = false;                                               \
+     }                                                                          \
+     (rdev)->write_3d = true;                                                   \
 }
 
 static inline void
