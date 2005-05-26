@@ -9,7 +9,7 @@ EXTRA_DIST = \
 	test2.wav
 
 if HAVE_LITE
-LITE_EXAMPLES = player
+LITE_EXAMPLES = player scope
 else
 LITE_EXAMPLES =
 endif
@@ -30,3 +30,7 @@ stream_LDADD   = $(LIBADDS)
 
 player_SOURCES = player.c loader.c loader.h
 player_LDADD   = $(LIBADDS) $(LITE_LIBS)
+
+scope_SOURCES  = scope.c
+scope_LDADD    = $(LIBADDS) $(LITE_LIBS)
+
