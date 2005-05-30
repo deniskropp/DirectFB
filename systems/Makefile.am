@@ -24,4 +24,4 @@ else
 FBDEV_DIR =
 endif
 
-SUBDIRS = $(FBDEV_DIR) $(SDL_DIR) $(OSX_DIR)
+SUBDIRS = $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR)
