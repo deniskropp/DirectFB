@@ -1,12 +1,11 @@
 This is an X11 system in very early stages, it is not really usable yet.
-Testet with RGB16 and ARGB modes.
+Tested with RGB16, ARGB1555 and ARGB mode.
 
 BUGS
 - occasional segfault during startup
 - does not work with multi-application core
 
 TODO
-- support for ARGB1555, RGB32
-- test RGB332, RGB24 and palette modes
+- support for RGB32
+- test RGB24, RGB332, and palette mode
 - code cleanup
-
