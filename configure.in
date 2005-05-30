@@ -133,6 +133,7 @@ if test "$enable_x11" = "yes"; then
 *** no X11/X.h found -- building without X11 support.])
   else
     X11_LIBS="-L/usr/X11R6/lib -lX11 -lXext"
+    X11_CFLAGS="-I/usr/X11R6/include"
   fi
 fi
 
@@ -1323,6 +1324,7 @@ AC_SUBST(HAVE_LINUX)
 AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
+AC_SUBST(X11_CFLAGS)
 AC_SUBST(X11_LIBS)
 AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
