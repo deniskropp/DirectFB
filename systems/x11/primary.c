@@ -491,7 +491,7 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 // 			g_pixelFormatRequested	= MWPF_PALETTE;
 // 	}
 	
-	bool bSucces =	xw_openWindow(&xw, 0, 0, config->width, config->height, 24);
+	bool bSucces =	xw_openWindow(&xw, 0, 0, config->width, config->height, dfb_config->mode.depth);
 	
 	/* Set video mode */
 	if ( !bSucces )
