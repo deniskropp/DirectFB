@@ -29,7 +29,7 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBEventBuffer {
+class IDirectFBEventBuffer : public IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C> {
 friend
      class IDirectFB;
 friend
@@ -38,6 +38,8 @@ friend
      class IDirectFBWindow;
 
 public:
+     IDirectFBEventBuffer(IDirectFBEventBuffer_C* myptr=NULL):IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>(myptr){}
+
      void                  Reset                    ();
 
      void                  WaitForEvent             ();
@@ -54,8 +56,13 @@ public:
 
      int                   CreateFileDescriptor     ();
 
+     inline IDirectFBEventBuffer& operator = (const IDirectFBEventBuffer& other){
+          return IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>::operator =(other);
+     }
+     inline IDirectFBEventBuffer& operator = (IDirectFBEventBuffer_C* other){
+          return IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>::operator =(other);
+     }
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBEventBuffer );
 };
 
 #endif

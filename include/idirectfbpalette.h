@@ -29,13 +29,15 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBPalette {
+class IDirectFBPalette : public IPPAny<IDirectFBPalette, IDirectFBPalette_C> {
 friend
      class IDirectFB;
 friend
      class IDirectFBSurface;
 
 public:
+     IDirectFBPalette(IDirectFBPalette_C* myptr=NULL):IPPAny<IDirectFBPalette, IDirectFBPalette_C>(myptr){}
+
      DFBPaletteCapabilities GetCapabilities          ();
      unsigned int           GetSize                  ();
 
@@ -55,7 +57,12 @@ public:
      IDirectFBPalette       CreateCopy               ();
 
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBPalette );
+     inline IDirectFBPalette& operator = (const IDirectFBPalette& other){
+          return IPPAny<IDirectFBPalette, IDirectFBPalette_C>::operator =(other);
+     }
+     inline IDirectFBPalette& operator = (IDirectFBPalette_C* other){
+          return IPPAny<IDirectFBPalette, IDirectFBPalette_C>::operator =(other);
+     }
 };
 
 #endif

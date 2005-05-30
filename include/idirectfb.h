@@ -29,11 +29,13 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFB {
+class IDirectFB :public IPPAny<IDirectFB, IDirectFB_C>{
 friend
      class DirectFB;
 
 public:
+     IDirectFB(IDirectFB_C *myptr = NULL):IPPAny<IDirectFB, IDirectFB_C>(myptr){}
+
      void                    SetCooperativeLevel    (DFBCooperativeLevel         level);
      void                    SetVideoMode           (unsigned int                width,
                                                      unsigned int                height,
@@ -84,8 +86,12 @@ public:
                                                      const char                 *implementation,
                                                      void                       *arg);
 
-
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFB );
+     inline IDirectFB& operator = (const IDirectFB& other){
+          return IPPAny<IDirectFB, IDirectFB_C>::operator =(other);
+     }
+     inline IDirectFB& operator = (IDirectFB_C* other){
+          return IPPAny<IDirectFB, IDirectFB_C>::operator =(other);
+     }        
 };
 
 #endif

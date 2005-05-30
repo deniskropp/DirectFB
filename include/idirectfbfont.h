@@ -29,35 +29,42 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBFont {
+class IDirectFBFont : public IPPAny<IDirectFBFont, IDirectFBFont_C> {
 friend
      class IDirectFB;
 friend
      class IDirectFBSurface;
 
 public:
-     int            GetAscender      ();
-     int            GetDescender     ();
-     int            GetHeight        ();
-     int            GetMaxAdvance    ();
+     IDirectFBFont(IDirectFBFont_C* myptr=NULL):IPPAny<IDirectFBFont, IDirectFBFont_C>(myptr){}
+
+     int            GetAscender      () const;
+     int            GetDescender     () const;
+     int            GetHeight        () const;
+     int            GetMaxAdvance    () const;
 
      void           GetKerning       (unsigned int         prev_index,
                                       unsigned int         current_index,
                                       int                 *kern_x,
-                                      int                 *kern_y);
+                                      int                 *kern_y) const;
 
      int            GetStringWidth   (const char          *text,
-                                      int                  bytes = -1);
+                                      int                  bytes = -1) const;
      void           GetStringExtents (const char          *text,
                                       int                  bytes,
                                       DFBRectangle        *logical_rect,
-                                      DFBRectangle        *ink_rect);
+                                      DFBRectangle        *ink_rect) const;
      void           GetGlyphExtents  (unsigned int         index,
                                       DFBRectangle        *rect,
-                                      int                 *advance);
+                                      int                 *advance) const;
 
+     inline IDirectFBFont& operator = (const IDirectFBFont& other){
+          return IPPAny<IDirectFBFont, IDirectFBFont_C>::operator =(other);
+     }
+     inline IDirectFBFont& operator = (IDirectFBFont_C* other){
+          return IPPAny<IDirectFBFont, IDirectFBFont_C>::operator =(other);
+     }
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBFont );
 };
 
 #endif

@@ -29,11 +29,13 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBVideoProvider {
+class IDirectFBVideoProvider : public IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>{
 friend
      class IDirectFB;
 
 public:
+     IDirectFBVideoProvider(IDirectFBVideoProvider_C* myptr=NULL):IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>(myptr){}
+
      DFBVideoProviderCapabilities GetCapabilities       ();
      void                         GetSurfaceDescription (DFBSurfaceDescription *dsc);
 
@@ -50,8 +52,12 @@ public:
      void                         GetColorAdjustment    (DFBColorAdjustment    *adj);
      void                         SetColorAdjustment    (DFBColorAdjustment    &adj);
 
-
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBVideoProvider );
+     inline IDirectFBVideoProvider& operator = (const IDirectFBVideoProvider& other){
+          return IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>::operator =(other);
+     }
+     inline IDirectFBVideoProvider& operator = (IDirectFBVideoProvider_C* other){
+          return IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>::operator =(other);
+     }
 };
 
 #endif

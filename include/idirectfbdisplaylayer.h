@@ -29,11 +29,13 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBDisplayLayer {
+class IDirectFBDisplayLayer : public IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C> {
 friend
      class IDirectFB;
 
 public:
+     IDirectFBDisplayLayer(IDirectFBDisplayLayer_C* myptr=NULL):IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>(myptr){}
+
      DFBDisplayLayerID      GetID                 ();
 
      DFBDisplayLayerDescription
@@ -103,7 +105,12 @@ public:
      void                   SetCursorOpacity      (__u8                            opacity);
 
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBDisplayLayer );
+     inline IDirectFBDisplayLayer& operator = (const IDirectFBDisplayLayer& other){
+          return IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>::operator =(other);
+     }
+     inline IDirectFBDisplayLayer& operator = (IDirectFBDisplayLayer_C* other){
+          return IPPAny<IDirectFBDisplayLayer, IDirectFBDisplayLayer_C>::operator =(other);
+     }
 };
 
 #endif

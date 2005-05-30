@@ -29,13 +29,15 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBScreen {
+class IDirectFBScreen : public IPPAny<IDirectFBScreen, IDirectFBScreen_C> {
 friend
      class IDirectFB;
 friend
      class IDirectFBDisplayLayer;
 
 public:
+     IDirectFBScreen(IDirectFBScreen_C* myptr=NULL):IPPAny<IDirectFBScreen, IDirectFBScreen_C>(myptr){}
+
      DFBScreenID            GetID                 ();
 
      DFBScreenDescription   GetDescription        ();
@@ -86,8 +88,13 @@ public:
      void                   SetOutputConfiguration   (int                           output,
                                                       const DFBScreenOutputConfig  &config);
 
+     inline IDirectFBScreen& operator = (const IDirectFBScreen& other){
+          return IPPAny<IDirectFBScreen, IDirectFBScreen_C>::operator =(other);
+     }
+     inline IDirectFBScreen& operator = (IDirectFBScreen_C* other){
+          return IPPAny<IDirectFBScreen, IDirectFBScreen_C>::operator =(other);
+     }
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBScreen );
 };
 
 #endif

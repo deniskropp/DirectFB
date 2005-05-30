@@ -29,13 +29,15 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBImageProvider {
+class IDirectFBImageProvider : public IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>{
 friend
      class IDirectFB;
 friend
      class IDirectFBDataBuffer;
 
 public:
+     IDirectFBImageProvider(IDirectFBImageProvider_C* myptr=NULL):IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>(myptr){}
+
      void                    GetSurfaceDescription (DFBSurfaceDescription *dsc);
      void                    GetImageDescription   (DFBImageDescription   *dsc);
 
@@ -45,8 +47,12 @@ public:
      void                    SetRenderCallback     (DIRenderCallback       callback,
                                                     void                  *callback_data);
 
-
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBImageProvider );
+     inline IDirectFBImageProvider& operator = (const IDirectFBImageProvider& other){
+          return IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>::operator =(other);
+     }
+     inline IDirectFBImageProvider& operator = (IDirectFBImageProvider_C* other){
+          return IPPAny<IDirectFBImageProvider, IDirectFBImageProvider_C>::operator =(other);
+     }
 };
 
 #endif

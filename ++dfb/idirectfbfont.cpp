@@ -25,7 +25,7 @@
 #include "++dfb.h"
 #include "++dfb_internal.h"
 
-int IDirectFBFont::GetAscender()
+int IDirectFBFont::GetAscender() const
 {
      int ascender;
 
@@ -34,7 +34,7 @@ int IDirectFBFont::GetAscender()
      return ascender;
 }
 
-int IDirectFBFont::GetDescender()
+int IDirectFBFont::GetDescender() const
 {
      int descender;
 
@@ -43,7 +43,7 @@ int IDirectFBFont::GetDescender()
      return descender;
 }
 
-int IDirectFBFont::GetHeight()
+int IDirectFBFont::GetHeight() const
 {
      int height;
 
@@ -52,7 +52,7 @@ int IDirectFBFont::GetHeight()
      return height;
 }
 
-int IDirectFBFont::GetMaxAdvance()
+int IDirectFBFont::GetMaxAdvance() const
 {
      int max_advance;
 
@@ -64,12 +64,12 @@ int IDirectFBFont::GetMaxAdvance()
 void IDirectFBFont::GetKerning (unsigned int  prev_index,
                                 unsigned int  current_index,
                                 int          *kern_x,
-                                int          *kern_y)
+                                int          *kern_y) const
 {
      DFBCHECK( iface->GetKerning (iface, prev_index, current_index, kern_x, kern_y) );
 }
 
-int IDirectFBFont::GetStringWidth (const char *text, int bytes)
+int IDirectFBFont::GetStringWidth (const char *text, int bytes) const
 {
      int width;
 
@@ -81,7 +81,7 @@ int IDirectFBFont::GetStringWidth (const char *text, int bytes)
 void IDirectFBFont::GetStringExtents (const char   *text,
                                       int           bytes,
                                       DFBRectangle *logical_rect,
-                                      DFBRectangle *ink_rect)
+                                      DFBRectangle *ink_rect) const
 {
      DFBCHECK( iface->GetStringExtents (iface, text, bytes,
                                         logical_rect, ink_rect) );
@@ -89,7 +89,7 @@ void IDirectFBFont::GetStringExtents (const char   *text,
 
 void IDirectFBFont::GetGlyphExtents  (unsigned int  index,
                                       DFBRectangle *rect,
-                                      int          *advance)
+                                      int          *advance) const
 {
      DFBCHECK( iface->GetGlyphExtents (iface, index, rect, advance) );
 }

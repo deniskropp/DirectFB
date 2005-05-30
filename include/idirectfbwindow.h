@@ -29,11 +29,13 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBWindow {
+class IDirectFBWindow :public IPPAny<IDirectFBWindow, IDirectFBWindow_C>{
 friend
      class IDirectFBDisplayLayer;
 
 public:
+     IDirectFBWindow(IDirectFBWindow_C* myptr=NULL):IPPAny<IDirectFBWindow, IDirectFBWindow_C>(myptr){}
+
      DFBWindowID           GetID             ();
      void                  GetPosition       (int                    *x,
                                               int                    *y);
@@ -92,7 +94,12 @@ public:
      void                  Destroy           ();
 
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBWindow );
+     inline IDirectFBWindow& operator = (const IDirectFBWindow& other){
+          return IPPAny<IDirectFBWindow, IDirectFBWindow_C>::operator =(other);
+     }
+     inline IDirectFBWindow& operator = (IDirectFBWindow_C* other){
+          return IPPAny<IDirectFBWindow, IDirectFBWindow_C>::operator =(other);
+     }
 };
 
 #endif

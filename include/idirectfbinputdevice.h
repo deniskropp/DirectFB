@@ -29,11 +29,13 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBInputDevice {
+class IDirectFBInputDevice : public IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>{
 friend
      class IDirectFB;
 
 public:
+     IDirectFBInputDevice(IDirectFBInputDevice_C* myptr=NULL):IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>(myptr){}
+
      DFBInputDeviceID           GetID             ();
      void                       GetDescription    (DFBInputDeviceDescription      *desc);
 
@@ -52,9 +54,13 @@ public:
 
      void                       GetXY             (int                            *x,
                                                    int                            *y);
+     inline IDirectFBInputDevice& operator = (const IDirectFBInputDevice& other){
+          return IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>::operator =(other);
+     }
+     inline IDirectFBInputDevice& operator = (IDirectFBInputDevice_C* other){
+          return IPPAny<IDirectFBInputDevice, IDirectFBInputDevice_C>::operator =(other);
+     }
 
-
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBInputDevice );
 };
 
 #endif

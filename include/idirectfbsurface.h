@@ -29,7 +29,7 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBSurface {
+class IDirectFBSurface : public IPPAny<IDirectFBSurface, IDirectFBSurface_C> {
 friend
      class IDirectFB;
 friend
@@ -42,6 +42,8 @@ friend
      class IDirectFBWindow;
 
 public:
+     IDirectFBSurface(IDirectFBSurface_C* myptr=NULL):IPPAny<IDirectFBSurface, IDirectFBSurface_C>(myptr){}
+
      DFBSurfaceCapabilities GetCapabilities     ();
      void                   GetSize             (int                      *width,
                                                  int                      *height);
@@ -167,8 +169,12 @@ public:
                                                  int                       width,
                                                  int                       height);
 
-
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBSurface );
+     inline IDirectFBSurface& operator = (const IDirectFBSurface& other){
+          return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
+     }
+     inline IDirectFBSurface& operator = (IDirectFBSurface_C* other){
+          return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
+     }
 };
 
 #endif

@@ -74,109 +74,62 @@ class IDirectFBVideoProvider;
 class IDirectFBDataBuffer;
 
 
-#if 0
-class IAny
+
+template <class IMPLEMENTINGCLASS, class IPPAny_C>
+class IPPAny
 {
-protected:
-     IAny(void *iface) {
-          this->iface = (IAny_C*) iface;
-     }
-
-public:
-     IAny() {
-          iface = NULL;
-     }
-
-     virtual ~IAny() {
-          if (iface) {
-               iface->Release( iface );
-               iface = NULL;
-          }
-     }
-
-     inline IAny &operator = (const IAny &other) {
-          IAny_C *other_iface = other.iface;
-
-          if (other_iface)
-               other_iface->AddRef( other_iface );
-
-          if (iface)
-               iface->Release( iface );
-
-          iface = other_iface;
-
-          return *this;
-     }
-
-private:
-     IAny_C *iface;
+	protected:
+		IPPAny(IPPAny_C *iface) {
+			this->iface = iface;
+		}
+		inline IPPAny_C *get_iface() { return iface; }
+		inline IPPAny_C *get_iface() const { return iface; }
+		
+	protected:
+		IPPAny_C* iface;
+	public:
+		IPPAny(){
+			iface = NULL;}
+		
+		IPPAny(const IPPAny_C &other) {
+			IPPAny_C *other_iface = other.iface;
+			if (other_iface)
+				other_iface->AddRef( other_iface );
+			iface = other_iface;
+		}
+		
+		virtual ~IPPAny() {
+			if (iface)
+				iface->Release( iface );
+		}
+		inline operator IMPLEMENTINGCLASS*() {
+			return dynamic_cast<IMPLEMENTINGCLASS*>(this);
+		}
+		inline operator IMPLEMENTINGCLASS*() const{
+ 			return static_cast<IMPLEMENTINGCLASS*> (*this);
+ 		}
+		inline operator bool() {
+			return iface != NULL;
+		}
+		inline IMPLEMENTINGCLASS &operator = (const IMPLEMENTINGCLASS &other) {
+			IPPAny_C *other_iface = other.iface;
+			
+			if (other_iface)
+				other_iface->AddRef( other_iface );
+			if (iface)
+				iface->Release( iface );
+			iface = other_iface;
+			return dynamic_cast<IMPLEMENTINGCLASS&>(*this);
+		}
+		inline IMPLEMENTINGCLASS &operator = (IPPAny_C *other_iface) {
+			if (other_iface)
+				other_iface->AddRef( other_iface );
+			if (iface)
+				iface->Release( iface );
+			iface = other_iface;
+			return dynamic_cast<IMPLEMENTINGCLASS&>(*this);
+		}
 };
-#endif
-
-
-#define __DFB_PLUS_PLUS__INTERFACE_CLASS(Interface)              \
-protected:                                                       \
-     Interface(Interface##_C *iface) {                           \
-          this->iface = iface;                                   \
-     }                                                           \
-                                                                 \
-     inline Interface##_C *get_iface() { return iface; }         \
-                                                                 \
-public:                                                          \
-     Interface() {                                               \
-          iface = NULL;                                          \
-     }                                                           \
-                                                                 \
-     Interface(const Interface &other) {                         \
-          Interface##_C *other_iface = other.iface;              \
-                                                                 \
-          if (other_iface)                                       \
-               other_iface->AddRef( other_iface );               \
-                                                                 \
-          iface = other_iface;                                   \
-     }                                                           \
-                                                                 \
-     virtual ~Interface() {                                      \
-          if (iface)                                             \
-               iface->Release( iface );                          \
-     }                                                           \
-                                                                 \
-     inline operator Interface*() {                              \
-          return this;                                           \
-     }                                                           \
-                                                                 \
-     inline operator bool() {                                    \
-          return iface != NULL;                                  \
-     }                                                           \
-                                                                 \
-     inline Interface &operator = (const Interface &other) {     \
-          Interface##_C *other_iface = other.iface;              \
-                                                                 \
-          if (other_iface)                                       \
-               other_iface->AddRef( other_iface );               \
-                                                                 \
-          if (iface)                                             \
-               iface->Release( iface );                          \
-                                                                 \
-          iface = other_iface;                                   \
-                                                                 \
-          return *this;                                          \
-     }                                                           \
-                                                                 \
-     inline Interface &operator = (Interface##_C *other_iface) { \
-          if (other_iface)                                       \
-               other_iface->AddRef( other_iface );               \
-                                                                 \
-          if (iface)                                             \
-               iface->Release( iface );                          \
-                                                                 \
-          iface = other_iface;                                   \
-                                                                 \
-          return *this;                                          \
-     }                                                           \
-                                                                 \
-private:                                                         \
-     Interface##_C *iface
 
 #include "idirectfb.h"
 #include "idirectfbscreen.h"

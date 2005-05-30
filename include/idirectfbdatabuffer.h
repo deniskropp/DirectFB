@@ -29,11 +29,13 @@
 #error Please include ++dfb.h only.
 #endif
 
-class IDirectFBDataBuffer {
+class IDirectFBDataBuffer : public IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C> {
 friend
      class IDirectFB;
 
 public:
+     IDirectFBDataBuffer(IDirectFBDataBuffer_C *myptr=NULL):IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>(myptr){}
+
      void                    Flush                   ();
      void                    SeekTo                  (unsigned int  offset);
      unsigned int            GetPosition             ();
@@ -57,8 +59,13 @@ public:
 
      IDirectFBImageProvider  CreateImageProvider     ();
 
+     inline IDirectFBDataBuffer& operator = (const IDirectFBDataBuffer& other){
+          return IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>::operator =(other);
+     }
+     inline IDirectFBDataBuffer& operator = (IDirectFBDataBuffer_C* other){
+          return IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>::operator =(other);
+     }
 
-     __DFB_PLUS_PLUS__INTERFACE_CLASS( IDirectFBDataBuffer );
 };
 
 #endif
