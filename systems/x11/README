@@ -1,0 +1,13 @@
+This is an X11 system in very early stages, it is not really usable yet. You
+will have to set pixelformat=ARGB in your directfbrc, and your X server has
+to run in 32bit (DefaultColorDepth 32).
+
+
+BUGS
+- occasional segfault during startup
+- does not work with multi-application core
+
+TODO
+- support for modes other than ARGB
+- code cleanup
+

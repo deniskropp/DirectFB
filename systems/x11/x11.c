@@ -112,6 +112,8 @@ system_initialize( CoreDFB *core, void **data )
 
      *data = dfb_x11;
 
+     XInitThreads();
+
      return DFB_OK;
 }
 

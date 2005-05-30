@@ -447,6 +447,9 @@ driver_open_device( CoreInputDevice  *device,
      /* set private data pointer */
      *driver_data = data;
 
+     
+     XInitThreads();
+     
      return DFB_OK;
 }
 

@@ -122,8 +122,8 @@ AM_CONDITIONAL(OSX_CORE, test "$enable_osx" = "yes")
 dnl Test for X11
 AC_ARG_ENABLE(x11,
   [  --enable-x11            build with X11 support
-[default=auto]],,
-  enable_x11=yes)
+[default=no]],,
+  enable_x11=no)
 
 if test "$enable_x11" = "yes"; then
   AC_CHECK_HEADER(X11/X.h, x11_found=yes, x11_found=yes)
