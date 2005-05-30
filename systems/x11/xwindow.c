@@ -1,10 +1,11 @@
-#include "xwindow.h"
-
-
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "x11.h"
+
+
+extern DFBX11 *dfb_x11;
 
 
 void xw_reset(XWindow* xw)
@@ -90,6 +91,7 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 	
 	(*ppXW) 	= (XWindow *)malloc(sizeof(XWindow));
 	XWindow* xw	= (*ppXW);
+	dfb_x11->xw = xw;
 	xw_reset(xw);
 
 	/* We set the structure as needed for our window */

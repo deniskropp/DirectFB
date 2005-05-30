@@ -457,7 +457,6 @@ typedef enum {
 static DFBResult
 dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 {
-
 	printf("dfb_x11_set_video_mode_handler\n");
     fusion_skirmish_prevail( &dfb_x11->lock );
 

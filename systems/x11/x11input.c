@@ -55,8 +55,6 @@
 
 DFB_INPUT_DRIVER( x11input )
 
-extern XWindow* xw;
-
 
 /*
  * declaration of private data
@@ -303,11 +301,13 @@ x11EventThread( DirectThread *thread, void *driver_data )
 {
 	X11InputData*	data    = (X11InputData*) driver_data;
 	DFBX11*			dfb_x11 = data->dfb_x11;
+	XWindow *xw		= dfb_x11->xw;
 	/* X11 event masks for mouse and keyboard */
 	const long iKeyPressMask 	= KeyPressMask;
 	const long iKeyReleaseMask 	= KeyReleaseMask;
 	const long iMouseEventMask 	= ButtonPressMask | ButtonReleaseMask | PointerMotionMask;	// ExposureMask
 
+	
 	printf("ML: x11EventThread %p\n", data); 
 	while (!data->stop) 
 	{
