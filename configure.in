@@ -102,7 +102,7 @@ AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 
 dnl Test for OSX
 AC_ARG_ENABLE(osx,
-  [  --enable-osx            build with linux osx support
+  [  --enable-osx            build with Mac OS X support
 [default=auto]],,
   enable_osx=yes)
 
@@ -111,13 +111,32 @@ if test "$enable_osx" = "yes"; then
   if test "$osx_found" = no; then
     enable_osx=no
     AC_MSG_WARN([
-*** no Carbon/Carbon.h found -- building without OSX support.])
+*** no Carbon/Carbon.h found -- building without Mac OS X support.])
   else
     OSX_LIBS="-framework Carbon"
   fi
 fi
 
 AM_CONDITIONAL(OSX_CORE, test "$enable_osx" = "yes")
+
+dnl Test for X11
+AC_ARG_ENABLE(x11,
+  [  --enable-x11            build with X11 support
+[default=auto]],,
+  enable_x11=yes)
+
+if test "$enable_x11" = "yes"; then
+  AC_CHECK_HEADER(X11/X.h, x11_found=yes, x11_found=yes)
+  if test "$x11_found" = no; then
+    enable_x11=no
+    AC_MSG_WARN([
+*** no X11/X.h found -- building without X11 support.])
+  else
+    X11_LIBS="-L/usr/X11R6/lib -lX11 -lXext"
+  fi
+fi
+
+AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
 dnl Test for Linux frame buffer device
 AC_ARG_ENABLE(fbdev,
@@ -1304,6 +1323,7 @@ AC_SUBST(HAVE_LINUX)
 AC_SUBST(DFB_CFLAGS_OMIT_FRAME_POINTER)
 AC_SUBST(DFB_LDFLAGS)
 AC_SUBST(DFB_INTERNAL_CFLAGS)
+AC_SUBST(X11_LIBS)
 AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
 AC_SUBST(ZLIB_LIBS)
@@ -1370,6 +1390,7 @@ src/windows/Makefile
 
 systems/Makefile
 systems/fbdev/Makefile
+systems/x11/Makefile
 systems/osx/Makefile
 systems/sdl/Makefile
 
@@ -1459,6 +1480,7 @@ Misc options:
 
 Building Core Systems:
   Linux FBDev support       $enable_fbdev
+  X11 support               $enable_x11
   OSX support               $enable_osx
   SDL support               $enable_sdl
 

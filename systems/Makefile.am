@@ -12,6 +12,12 @@ else
 OSX_DIR =
 endif
 
+if X11_CORE
+X11_DIR = x11
+else
+X11_DIR =
+endif
+
 if FBDEV_CORE
 FBDEV_DIR = fbdev
 else
