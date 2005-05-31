@@ -301,7 +301,6 @@ x11EventThread( DirectThread *thread, void *driver_data )
 {
 	X11InputData*	data    = (X11InputData*) driver_data;
 	DFBX11*			dfb_x11 = data->dfb_x11;
-	XWindow *xw		= dfb_x11->xw;
 	/* X11 event masks for mouse and keyboard */
 	const long iKeyPressMask 	= KeyPressMask;
 	const long iKeyReleaseMask 	= KeyReleaseMask;
@@ -313,10 +312,16 @@ x11EventThread( DirectThread *thread, void *driver_data )
 	{
 		XEvent xEvent; 
 		DFBInputEvent dfbEvent;
+        XWindow *xw		= dfb_x11->xw;
 		
 //		printf("ML: x11EventThread .... running \n"); 
 
-		fusion_skirmish_prevail( &dfb_x11->lock );
+        usleep(10000);
+
+        if (!xw)
+             continue;
+
+        fusion_skirmish_prevail( &dfb_x11->lock );
 
 		// --- Mouse events ---
   		if (XCheckMaskEvent(xw->display, iMouseEventMask, &xEvent)) 
@@ -348,8 +353,6 @@ x11EventThread( DirectThread *thread, void *driver_data )
           fusion_skirmish_dismiss( &dfb_x11->lock );
 
   //        motion_realize( data );
-
-          usleep(10000);
 
           direct_thread_testcancel( thread );
     }
