@@ -54,10 +54,6 @@
 #define R200_UNSET( flag ) \
      rdev->set &= ~(SMF_##flag)
 
-#define YUV422_PIXELFORMAT( p ) \
-     ((p) == DSPF_UYVY || (p) == DSPF_YUY2)
-
-
 
 static __u32 r200SrcBlend[] = {
      SRC_BLEND_GL_ZERO,                 // DSBF_ZERO
@@ -96,23 +92,27 @@ void r200_set_destination( R200DriverData *rdrv,
      CoreSurface   *surface = state->destination;
      SurfaceBuffer *buffer  = surface->back_buffer;
      volatile __u8 *mmio    = rdrv->mmio_base;
+     __u32          offset;
+     __u32          pitch;
     
      if (R200_IS_SET( DESTINATION ))
           return;
 
      D_ASSERT( (buffer->video.offset % 16) == 0 );
-     D_ASSERT( (buffer->video.pitch % 32) == 0 );
+     D_ASSERT( (buffer->video.pitch % 64) == 0 );
+
+     offset = rdev->fb_offset + buffer->video.offset;
+     pitch  = buffer->video.pitch;
     
-     if (rdev->dst_format != buffer->format       ||
-         rdev->dst_offset != buffer->video.offset ||
-         rdev->dst_pitch  != buffer->video.pitch)
+     if (rdev->dst_format != buffer->format ||
+         rdev->dst_offset != offset         ||
+         rdev->dst_pitch  != pitch)
      {
-          __u32 offset;
-          __u32 pitch;
+          bool dst_422 = false;
           
           switch (buffer->format) {
                case DSPF_A8:
-                    rdev->dp_gui_master_cntl = GMC_DST_RGB8;
+                    rdev->dp_gui_master_cntl = GMC_DST_8BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
                     break;
                case DSPF_RGB332:          
@@ -139,10 +139,26 @@ void r200_set_destination( R200DriverData *rdrv,
                case DSPF_UYVY:
                     rdev->dp_gui_master_cntl = GMC_DST_YVYU;
                     rdev->rb3d_cntl = COLOR_FORMAT_YUV422_YVYU;
+                    dst_422 = true;
                     break;
                case DSPF_YUY2:
                     rdev->dp_gui_master_cntl = GMC_DST_VYUY;
                     rdev->rb3d_cntl = COLOR_FORMAT_YUV422_VYUY;
+                    dst_422 = true;
+                    break;
+               case DSPF_I420:
+                    rdev->dp_gui_master_cntl = GMC_DST_8BPP;
+                    rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
+                    rdev->dst_offset_cb = offset + pitch * surface->height;
+                    rdev->dst_offset_cr = rdev->dst_offset_cb + 
+                                          pitch * surface->height / 4;
+                    break;
+               case DSPF_YV12:
+                    rdev->dp_gui_master_cntl = GMC_DST_8BPP;
+                    rdev->rb3d_cntl = COLOR_FORMAT_RGB8;
+                    rdev->dst_offset_cr = offset + pitch * surface->height;
+                    rdev->dst_offset_cb = rdev->dst_offset_cr +
+                                          pitch * surface->height / 4;
                     break;
                default:
                     D_BUG( "unexpected pixelformat" );
@@ -153,9 +169,11 @@ void r200_set_destination( R200DriverData *rdrv,
                                       GMC_SRC_PITCH_OFFSET_CNTL |
                                       GMC_DST_PITCH_OFFSET_CNTL |
                                       GMC_DST_CLIPPING;
- 
-          offset = rdev->fb_offset + buffer->video.offset;
-          pitch  = buffer->video.pitch;
+          
+          r200_waitfifo( rdrv, rdev, 1 );
+          r200_out32( mmio, WAIT_UNTIL, WAIT_2D_IDLECLEAN   |
+                                        WAIT_3D_IDLECLEAN   |
+                                        WAIT_HOST_IDLECLEAN );
           
           r200_waitfifo( rdrv, rdev, 2 ); 
           r200_out32( mmio, DST_OFFSET, offset );
@@ -179,12 +197,11 @@ void r200_set_destination( R200DriverData *rdrv,
                                                     Z_TEST_ALWAYS            |
                                                     Z_WRITE_ENABLE );
           
-               rdev->rb3d_cntl |= Z_ENABLE;
+               //rdev->rb3d_cntl |= Z_ENABLE;
           }
           
           if (rdev->dst_format != buffer->format) {
-               if (YUV422_PIXELFORMAT( buffer->format )  ||
-                   YUV422_PIXELFORMAT( rdev->dst_format ))
+               if (dst_422 && !rdev->dst_422)
                     R200_UNSET( CLIP );
                
                R200_UNSET( COLOR );
@@ -192,8 +209,9 @@ void r200_set_destination( R200DriverData *rdrv,
           }
           
           rdev->dst_format = buffer->format;
-          rdev->dst_offset = buffer->video.offset;
-          rdev->dst_pitch  = buffer->video.pitch;
+          rdev->dst_offset = offset;
+          rdev->dst_pitch  = pitch;
+          rdev->dst_422    = dst_422;
      }
 
      R200_SET( DESTINATION );
@@ -203,88 +221,104 @@ void r200_set_source( R200DriverData *rdrv,
                       R200DeviceData *rdev,
                       CardState      *state )
 {
-     CoreSurface   *surface = state->source;
-     SurfaceBuffer *buffer  = surface->front_buffer;
-     volatile __u8 *mmio    = rdrv->mmio_base;
+     CoreSurface   *surface  = state->source;
+     SurfaceBuffer *buffer   = surface->front_buffer;
+     volatile __u8 *mmio     = rdrv->mmio_base;
+     __u32          txformat = R200_TXFORMAT_NON_POWER2;
 
      if (R200_IS_SET( SOURCE ))
           return;
 
      D_ASSERT( (buffer->video.offset % 16) == 0 );
-     D_ASSERT( (buffer->video.pitch % 32) == 0 );
+     D_ASSERT( (buffer->video.pitch % 64) == 0 );
 
-     if (rdev->src_format != buffer->format       ||
-         rdev->src_offset != buffer->video.offset ||
-         rdev->src_width  != surface->width       ||
-         rdev->src_height != surface->height)
-     {
-          __u32 offset;
-          __u32 pitch;
-
-          switch (buffer->format) {
-               case DSPF_A8:
-                    rdev->txformat = R200_TXFORMAT_I8;
-                    rdev->src_mask = 0;
-                    break;
-               case DSPF_RGB332:
-                    rdev->txformat = R200_TXFORMAT_RGB332;
-                    rdev->src_mask = 0x000000ff;
-                    break;
-               case DSPF_ARGB4444:
-                    rdev->txformat = R200_TXFORMAT_ARGB4444;
-                    rdev->src_mask = 0x00000fff;
-                    break;
-               case DSPF_ARGB1555:
-                    rdev->txformat = R200_TXFORMAT_ARGB1555;
-                    rdev->src_mask = 0x00007fff;
-                    break;
-               case DSPF_RGB16:
-                    rdev->txformat = R200_TXFORMAT_RGB565;
-                    rdev->src_mask = 0x0000ffff;
-                    break;
-               case DSPF_RGB32:
-               case DSPF_ARGB:
-                    rdev->txformat = R200_TXFORMAT_ARGB8888;
-                    rdev->src_mask = 0x00ffffff;
-                    break;
-               case DSPF_UYVY:
-                    rdev->txformat = R200_TXFORMAT_YVYU422;
-                    rdev->src_mask = 0xffffffff;
-                    break;
-               case DSPF_YUY2:
-                    rdev->txformat = R200_TXFORMAT_VYUY422;
-                    rdev->src_mask = 0xffffffff;
-                    break;
-               default:
-                    D_BUG( "unexpected pixelformat" );
-                    break;
-          }
-
-          rdev->txformat |= R200_TXFORMAT_NON_POWER2; 
-
-          offset = rdev->fb_offset + buffer->video.offset;
-          pitch  = buffer->video.pitch;
-          
-          r200_waitfifo( rdrv, rdev, 2 );
-          r200_out32( mmio, SRC_OFFSET, offset );
-          r200_out32( mmio, SRC_PITCH,  pitch );
-           
-          r200_waitfifo( rdrv, rdev, 4 );
-          r200_out32( mmio, R200_PP_TXFORMAT_X_0, 0 );
-          r200_out32( mmio, R200_PP_TXSIZE_0,  (surface->width-1) |
-                                              ((surface->height-1) << 16) );
-          r200_out32( mmio, R200_PP_TXPITCH_0,  pitch - 32 );
-          r200_out32( mmio, R200_PP_TXOFFSET_0, offset );
-         
-          if (rdev->src_format != buffer->format)
-               R200_UNSET( BLITTING_FLAGS );
-          
-          rdev->src_format = buffer->format;
-          rdev->src_offset = buffer->video.offset;
-          rdev->src_pitch  = buffer->video.pitch;
-          rdev->src_width  = surface->width;
-          rdev->src_height = surface->height;
+     rdev->src_offset = rdev->fb_offset + buffer->video.offset;
+     rdev->src_pitch  = buffer->video.pitch;
+     
+     rdev->src_422 = false;
+     
+     switch (buffer->format) {
+          case DSPF_A8:
+               txformat |= R200_TXFORMAT_I8 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               rdev->src_mask = 0;
+               break;
+          case DSPF_RGB332:
+               txformat |= R200_TXFORMAT_RGB332;
+               rdev->src_mask = 0x000000ff;
+               break;
+          case DSPF_ARGB4444:
+               txformat |= R200_TXFORMAT_ARGB4444 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               rdev->src_mask = 0x00000fff;
+               break;
+          case DSPF_ARGB1555:
+               txformat |= R200_TXFORMAT_ARGB1555 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               rdev->src_mask = 0x00007fff;
+               break;
+          case DSPF_RGB16:
+               txformat |= R200_TXFORMAT_RGB565;
+               rdev->src_mask = 0x0000ffff;
+               break;
+          case DSPF_RGB32:
+               txformat |= R200_TXFORMAT_ARGB8888;
+               rdev->src_mask = 0x00ffffff;
+               break;
+          case DSPF_ARGB:
+               txformat |= R200_TXFORMAT_ARGB8888 |
+                           R200_TXFORMAT_ALPHA_IN_MAP;
+               rdev->src_mask = 0x00ffffff;
+               break;
+          case DSPF_UYVY:
+               txformat |= R200_TXFORMAT_YVYU422;
+               rdev->src_mask = 0xffffffff;
+               rdev->src_422 = true;
+               break;
+          case DSPF_YUY2:
+               txformat |= R200_TXFORMAT_VYUY422;
+               rdev->src_mask = 0xffffffff;
+               rdev->src_422 = true;
+               break;
+          case DSPF_I420:
+               txformat |= R200_TXFORMAT_I8;
+               rdev->src_mask = 0;
+               rdev->src_offset_cb = rdev->src_offset +
+                                     rdev->src_pitch * surface->height;
+               rdev->src_offset_cr = rdev->src_offset_cb +
+                                     rdev->src_pitch * surface->height / 4;
+               break;
+          case DSPF_YV12:
+               txformat |= R200_TXFORMAT_I8;
+               rdev->src_mask = 0;
+               rdev->src_offset_cr = rdev->src_offset +
+                                     rdev->src_pitch * surface->height;
+               rdev->src_offset_cb = rdev->src_offset_cr +
+                                     rdev->src_pitch * surface->height / 4;
+               break;
+          default:
+               D_BUG( "unexpected pixelformat" );
+               break;
      }
+ 
+     r200_waitfifo( rdrv, rdev, 2 );
+     r200_out32( mmio, SRC_OFFSET, rdev->src_offset );
+     r200_out32( mmio, SRC_PITCH,  rdev->src_pitch );
+           
+     r200_waitfifo( rdrv, rdev, 5 ); 
+     r200_out32( mmio, R200_PP_TXFORMAT_0, txformat );
+     r200_out32( mmio, R200_PP_TXFORMAT_X_0, 0 );
+     r200_out32( mmio, R200_PP_TXSIZE_0,  (surface->width-1) |
+                                         ((surface->height-1) << 16) );
+     r200_out32( mmio, R200_PP_TXPITCH_0,  rdev->src_pitch - 32 );
+     r200_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
+         
+     if (rdev->src_format != buffer->format)
+          R200_UNSET( BLITTING_FLAGS );
+          
+     rdev->src_format = buffer->format;
+     rdev->src_width  = surface->width;
+     rdev->src_height = surface->height;
 
      R200_SET( SOURCE );
 }
@@ -300,7 +334,7 @@ void r200_set_clip( R200DriverData *rdrv,
           return;
    
      r200_waitfifo( rdrv, rdev, 2 );
-     if (YUV422_PIXELFORMAT( rdev->dst_format )) {
+     if (rdev->dst_422) {
           r200_out32( mmio, SC_TOP_LEFT,
                       (clip->y1 << 16) | (clip->x1/2 & 0xffff) );
           r200_out32( mmio, SC_BOTTOM_RIGHT,
@@ -317,6 +351,8 @@ void r200_set_clip( R200DriverData *rdrv,
                  (clip->y1 << 16) | (clip->x1 & 0xffff) );
      r200_out32( mmio, RE_BOTTOM_RIGHT,
                  (clip->y2 << 16) | (clip->x2 & 0xffff) );
+     
+     rdev->clip = state->clip;
      
      R200_SET( CLIP );
 }
@@ -378,6 +414,12 @@ void r200_set_drawing_color( R200DriverData *rdrv,
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                color2d = PIXEL_YUY2( y, u, v );
                break;
+          case DSPF_I420:
+          case DSPF_YV12:
+               RGB_TO_YCBCR( color.r, color.g, color.b,
+                             rdev->y_cop, rdev->cb_cop, rdev->cr_cop );
+               color2d = rdev->y_cop;
+               break;
           default:
                D_BUG( "unexpected pixelformat" );
                color2d = 0;
@@ -389,7 +431,7 @@ void r200_set_drawing_color( R200DriverData *rdrv,
 
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( rdrv->mmio_base, DP_BRUSH_FRGD_CLR, color2d );
-     r200_out32( rdrv->mmio_base, R200_PP_TFACTOR_0, color3d );
+     r200_out32( rdrv->mmio_base, R200_PP_TFACTOR_1, color3d );
 
      R200_SET( COLOR );
 }
@@ -471,7 +513,11 @@ r200_set_blend_function( R200DriverData *rdrv,
      R200_SET( DST_BLEND );
 }
 
-/* Default blend equation is ADD (A * B + C) */
+/* NOTES:
+ * - We use texture unit 0 for blitting functions,
+ *          texture unit 1 for drawing functions
+ * - Default blend equation is ADD_CLAMP (A * B + C)
+ */
 
 void r200_set_drawingflags( R200DriverData *rdrv,
                             R200DeviceData *rdev,
@@ -502,18 +548,20 @@ void r200_set_drawingflags( R200DriverData *rdrv,
      r200_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      r200_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      
-     r200_waitfifo( rdrv, rdev, 9 );
+     r200_waitfifo( rdrv, rdev, 8 );
      r200_out32( mmio, RB3D_CNTL, rb3d_cntl );
-     r200_out32( mmio, PP_CNTL, TEX_BLEND_0_ENABLE );
-     r200_out32( mmio, R200_PP_TXFILTER_0, R200_MAG_FILTER_NEAREST |
-                                           R200_MIN_FILTER_NEAREST );
-     r200_out32( mmio, R200_PP_TXCBLEND_0, R200_TXC_ARG_C_TFACTOR_COLOR );
-     r200_out32( mmio, R200_PP_TXCBLEND2_0, R200_TXC_OUTPUT_REG_R0 );
-     r200_out32( mmio, R200_PP_TXABLEND_0, R200_TXA_ARG_C_TFACTOR_ALPHA );
-     r200_out32( mmio, R200_PP_TXABLEND2_0, R200_TXA_OUTPUT_REG_R0 );
+     r200_out32( mmio, PP_CNTL, TEX_BLEND_1_ENABLE );
+     r200_out32( mmio, R200_PP_TXCBLEND_1, R200_TXC_ARG_C_TFACTOR_COLOR );
+     r200_out32( mmio, R200_PP_TXCBLEND2_1, (1 << R200_TXC_TFACTOR_SEL_SHIFT) |
+                                            R200_TXC_OUTPUT_REG_R0            |
+                                            R200_TXC_CLAMP_0_1 );
+     r200_out32( mmio, R200_PP_TXABLEND_1, R200_TXA_ARG_C_TFACTOR_ALPHA );
+     r200_out32( mmio, R200_PP_TXABLEND2_1, (1 << R200_TXA_TFACTOR_SEL_SHIFT) |
+                                            R200_TXA_OUTPUT_REG_R0            |
+                                            R200_TXA_CLAMP_0_1 );
      r200_out32( mmio, R200_SE_VTX_FMT_0, R200_VTX_XY );
      r200_out32( mmio, R200_SE_VTX_FMT_1, 2 << R200_VTX_TEX0_COMP_CNT_SHIFT );
-
+     
      rdev->drawingflags = state->drawingflags;
 
      R200_SET  ( DRAWING_FLAGS );
@@ -528,10 +576,11 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      __u32          master_cntl = rdev->dp_gui_master_cntl;
      __u32          cmp_cntl    = 0;
      __u32          rb3d_cntl   = rdev->rb3d_cntl;
-     __u32          txformat    = rdev->txformat;
      __u32          pp_cntl     = TEX_0_ENABLE;
-     __u32          filter      = R200_MAG_FILTER_LINEAR |
-                                  R200_MIN_FILTER_LINEAR;
+     __u32          filter      = R200_MAG_FILTER_LINEAR  |
+                                  R200_MIN_FILTER_LINEAR  |
+                                  R200_CLAMP_S_CLAMP_LAST |
+                                  R200_CLAMP_T_CLAMP_LAST;
      __u32          cblend      = R200_TXC_ARG_C_R0_COLOR;
      __u32          ablend      = R200_TXA_ARG_C_R0_ALPHA;
      __u32          vtx_fmt     = R200_VTX_XY;
@@ -539,28 +588,27 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      if (R200_IS_SET( BLITTING_FLAGS ))
           return;
  
-     if (rdev->accel == DFXL_TEXTRIANGLES) {
-          filter  |= R200_CLAMP_S_CLAMP_GL | R200_CLAMP_T_CLAMP_GL;
+     if (rdev->accel == DFXL_TEXTRIANGLES)
           vtx_fmt |= R200_VTX_Z0 | R200_VTX_W0;
-     }
- 
-     if ( YUV422_PIXELFORMAT( rdev->src_format ) &&
-         !YUV422_PIXELFORMAT( rdev->dst_format ))
-          filter |= R200_YUV_TO_RGB;
 
-     if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL &&
-         DFB_PIXELFORMAT_HAS_ALPHA( rdev->src_format )) {
-          txformat  |= R200_TXFORMAT_ALPHA_IN_MAP;
-          rb3d_cntl |= ALPHA_BLEND_ENABLE;
+     if (rdev->src_format != rdev->dst_format) {
+          if (rdev->src_422 && !rdev->dst_422)
+               filter |= R200_YUV_TO_RGB;
+          
+          rb3d_cntl |= DITHER_ENABLE;
      }
      
-     if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
-          if (txformat & R200_TXFORMAT_ALPHA_IN_MAP)
-               ablend = R200_TXA_ARG_A_TFACTOR_ALPHA | R200_TXA_ARG_B_R0_ALPHA;
-          else
-               ablend = R200_TXA_ARG_C_TFACTOR_ALPHA;
+     if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                 DSBLIT_BLEND_ALPHACHANNEL)) {
+          if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
+               if (state->blittingflags & DSBLIT_BLEND_ALPHACHANNEL)
+                    ablend = R200_TXA_ARG_A_TFACTOR_ALPHA | R200_TXA_ARG_B_R0_ALPHA;
+               else
+                    ablend = R200_TXA_ARG_C_TFACTOR_ALPHA;
+
+               pp_cntl |= TEX_BLEND_0_ENABLE;
+          }
           
-          pp_cntl   |= TEX_BLEND_0_ENABLE;
           rb3d_cntl |= ALPHA_BLEND_ENABLE;
      }
      
@@ -594,15 +642,16 @@ void r200_set_blittingflags( R200DriverData *rdrv,
                                            GMC_ROP3_SRCCOPY         |
                                            GMC_DP_SRC_SOURCE_MEMORY );
      
-     r200_waitfifo( rdrv, rdev, 10 );
-     r200_out32( mmio, RB3D_CNTL, rb3d_cntl | DITHER_ENABLE );
+     r200_waitfifo( rdrv, rdev, 9 );
+     r200_out32( mmio, RB3D_CNTL, rb3d_cntl );
      r200_out32( mmio, PP_CNTL, pp_cntl ); 
-     r200_out32( mmio, R200_PP_TXFORMAT_0, txformat );
      r200_out32( mmio, R200_PP_TXFILTER_0, filter );
      r200_out32( mmio, R200_PP_TXCBLEND_0, cblend );
-     r200_out32( mmio, R200_PP_TXCBLEND2_0, R200_TXC_OUTPUT_REG_R0 );
+     r200_out32( mmio, R200_PP_TXCBLEND2_0, R200_TXC_OUTPUT_REG_R0 |
+                                            R200_TXC_CLAMP_0_1 );
      r200_out32( mmio, R200_PP_TXABLEND_0, ablend );
-     r200_out32( mmio, R200_PP_TXABLEND2_0, R200_TXA_OUTPUT_REG_R0 );
+     r200_out32( mmio, R200_PP_TXABLEND2_0, R200_TXA_OUTPUT_REG_R0 |
+                                            R200_TXA_CLAMP_0_1 );
      r200_out32( mmio, R200_SE_VTX_FMT_0, vtx_fmt );
      r200_out32( mmio, R200_SE_VTX_FMT_1, 2 << R200_VTX_TEX0_COMP_CNT_SHIFT );
      

@@ -67,7 +67,6 @@ typedef struct {
           __u32 P1_X_START_END;
           __u32 P2_X_START_END;
           __u32 P3_X_START_END;
-          __u32 BASE_ADDR;
           __u32 VID_BUF0_BASE_ADRS;
           __u32 VID_BUF1_BASE_ADRS;
           __u32 VID_BUF2_BASE_ADRS;
@@ -519,10 +518,7 @@ ov0_calc_regs ( R200DriverData        *rdrv,
           rov0->regs.P3_X_START_END       = rov0->regs.P1_X_START_END;
           rov0->regs.VID_BUF_PITCH1_VALUE = rov0->regs.VID_BUF_PITCH0_VALUE;
      }
-     
-     /* set base address */
-     rov0->regs.BASE_ADDR = rdev->fb_offset;
-                           
+ 
      /* set offsets */
      ov0_calc_offsets( rdrv->device_data, rov0, surface, offsets );
      
@@ -658,7 +654,6 @@ ov0_set_regs( R200DriverData       *rdrv,
      r200_out32( mmio, OV0_P1_X_START_END,         rov0->regs.P1_X_START_END );
      r200_out32( mmio, OV0_P2_X_START_END,         rov0->regs.P2_X_START_END );
      r200_out32( mmio, OV0_P3_X_START_END,         rov0->regs.P3_X_START_END );
-     r200_out32( mmio, OV0_BASE_ADDR,              rov0->regs.BASE_ADDR );
      r200_out32( mmio, OV0_P1_V_ACCUM_INIT,        rov0->regs.P1_V_ACCUM_INIT );
      r200_out32( mmio, OV0_VID_BUF0_BASE_ADRS,     rov0->regs.VID_BUF0_BASE_ADRS );
      r200_out32( mmio, OV0_VID_BUF1_BASE_ADRS,     rov0->regs.VID_BUF1_BASE_ADRS );

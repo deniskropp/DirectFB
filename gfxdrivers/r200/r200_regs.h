@@ -2212,7 +2212,8 @@
 #       define R200_VC_NO_SWAP			(0 << 0)
 #       define R200_VC_16BIT_SWAP		(1 << 0)
 #       define R200_VC_32BIT_SWAP		(2 << 0)
-#define R200_PP_TXFILTER_0			0x2c00 
+#define R200_PP_TXFILTER_0			0x2c00
+#define R200_PP_TXFILTER_1              0x2c20
 #       define R200_MAG_FILTER_NEAREST		(0  <<  0)
 #       define R200_MAG_FILTER_LINEAR		(1  <<  0)
 #       define R200_MAG_FILTER_MASK		(1  <<  0)
@@ -2262,9 +2263,10 @@
 #       define R200_KILL_LT_ZERO		(1  << 30)
 #       define R200_BORDER_MODE_OGL		(0  << 31)
 #       define R200_BORDER_MODE_D3D		(1  << 31)
-#define R200_PP_TXFORMAT_0			0x2c04
+#define R200_PP_TXFORMAT_0             0x2c04
+#define R200_PP_TXFORMAT_1             0x2c24
 #       define R200_TXFORMAT_I8			(0 << 0)
-#       define R200_TXFORMAT_AI88		(1 << 0)
+#       define R200_TXFORMAT_AI88	          (1 << 0)
 #       define R200_TXFORMAT_RGB332		(2 << 0)
 #       define R200_TXFORMAT_ARGB1555		(3 << 0)
 #       define R200_TXFORMAT_RGB565		(4 << 0)
@@ -2275,10 +2277,10 @@
 #       define R200_TXFORMAT_AVYU4444		(9 << 0)
 #       define R200_TXFORMAT_VYUY422		(10 << 0)
 #       define R200_TXFORMAT_YVYU422		(11 << 0)
-#       define R200_TXFORMAT_DXT1		(12 << 0)
-#       define R200_TXFORMAT_DXT23		(14 << 0)
-#       define R200_TXFORMAT_DXT45		(15 << 0)
-#       define R200_TXFORMAT_FORMAT_MASK	(31 <<	0)
+#       define R200_TXFORMAT_DXT1	          (12 << 0)
+#       define R200_TXFORMAT_DXT23           (14 << 0)
+#       define R200_TXFORMAT_DXT45           (15 << 0)
+#       define R200_TXFORMAT_FORMAT_MASK	(31 << 0)
 #       define R200_TXFORMAT_FORMAT_SHIFT	0
 #       define R200_TXFORMAT_ALPHA_IN_MAP	(1 << 6)
 #       define R200_TXFORMAT_NON_POWER2		(1 << 7)
@@ -2301,16 +2303,50 @@
 #       define R200_TXFORMAT_ALPHA_MASK_ENABLE	(1 << 28)
 #       define R200_TXFORMAT_CHROMA_KEY_ENABLE	(1 << 29)
 #       define R200_TXFORMAT_CUBIC_MAP_ENABLE		(1 << 30)
-#define R200_PP_TXFORMAT_X_0                    0x2c08
-#define R200_PP_TXSIZE_0			0x2c0c /* NPOT only */
-#define R200_PP_TXPITCH_0                       0x2c10 /* NPOT only */
+#define R200_PP_TXFORMAT_X_0            0x2c08
+#define R200_PP_TXFORMAT_X_1            0x2c28
+#define     R200_DEPTH_LOG2_MASK                      (0xf << 0)
+#define     R200_DEPTH_LOG2_SHIFT                     0
+#define     R200_VOLUME_FILTER_SHIFT                  4
+#define     R200_VOLUME_FILTER_MASK                   (1 << 4)
+#define     R200_VOLUME_FILTER_NEAREST                (0 << 4)
+#define     R200_VOLUME_FILTER_LINEAR                 (1 << 4)
+#define     R200_WRAPEN_Q                             (1  << 8)
+#define     R200_CLAMP_Q_WRAP                         (0  << 9)
+#define     R200_CLAMP_Q_MIRROR                       (1  << 9)
+#define     R200_CLAMP_Q_CLAMP_LAST                   (2  << 9)
+#define     R200_CLAMP_Q_MIRROR_CLAMP_LAST            (3  << 9)
+#define     R200_CLAMP_Q_CLAMP_BORDER                 (4  << 9)
+#define     R200_CLAMP_Q_MIRROR_CLAMP_BORDER          (5  << 9)
+#define     R200_CLAMP_Q_CLAMP_GL                     (6  << 9)
+#define     R200_CLAMP_Q_MIRROR_CLAMP_GL              (7  << 9)
+#define     R200_CLAMP_Q_MASK                         (7  << 9)
+#define     R200_MIN_MIP_LEVEL_MASK                   (0xff << 12)
+#define     R200_MIN_MIP_LEVEL_SHIFT                  12
+#define     R200_TEXCOORD_NONPROJ                     (0  << 16)
+#define     R200_TEXCOORD_CUBIC_ENV                   (1  << 16)
+#define     R200_TEXCOORD_VOLUME                      (2  << 16)
+#define     R200_TEXCOORD_PROJ                        (3  << 16)
+#define     R200_TEXCOORD_DEPTH                       (4  << 16)
+#define     R200_TEXCOORD_1D_PROJ                     (5  << 16)
+#define     R200_TEXCOORD_1D                          (6  << 16)
+#define     R200_TEXCOORD_ZERO                        (7  << 16)
+#define     R200_TEXCOORD_MASK                        (7  << 16)
+#define     R200_LOD_BIAS_MASK                        (0xfff80000)
+#define     R200_LOD_BIAS_SHIFT                       19
+#define R200_PP_TXSIZE_0	               0x2c0c /* NPOT only */
+#define R200_PP_TXSIZE_1                0x2c2c
+#define R200_PP_TXPITCH_0               0x2c10 /* NPOT only */
+#define R200_PP_TXPITCH_1               0x2c30
 #define R200_PP_TXOFFSET_0			0x2d00
+#define R200_PP_TXOFFSET_1              0x2d18
 #       define R200_TXO_ENDIAN_NO_SWAP		(0 << 0)
 #       define R200_TXO_ENDIAN_BYTE_SWAP	(1 << 0)
 #       define R200_TXO_ENDIAN_WORD_SWAP	(2 << 0)
 #       define R200_TXO_ENDIAN_HALFDW_SWAP	(3 << 0)
 #       define R200_TXO_OFFSET_MASK		0xffffffe0
 #       define R200_TXO_OFFSET_SHIFT		5
+
 
 #define R200_PP_TFACTOR_0			0x2ee0
 #define R200_PP_TFACTOR_1			0x2ee4
@@ -2320,6 +2356,7 @@
 #define R200_PP_TFACTOR_5			0x2ef4
 
 #define R200_PP_TXCBLEND_0			0x2f00
+#define R200_PP_TXCBLEND_1              0x2f10
 #       define R200_TXC_ARG_A_ZERO		(0)
 #       define R200_TXC_ARG_A_CURRENT_COLOR	(2)
 #       define R200_TXC_ARG_A_CURRENT_ALPHA	(3)
@@ -2418,7 +2455,8 @@
 #       define R200_TXC_OP_CONDITIONAL		(6 << 28)
 #       define R200_TXC_OP_DOT2_ADD		(7 << 28)
 #       define R200_TXC_OP_MASK			(7 << 28)
-#define R200_PP_TXCBLEND2_0		0x2f04
+#define R200_PP_TXCBLEND2_0             0x2f04
+#define R200_PP_TXCBLEND2_1             0x2f14
 #       define R200_TXC_TFACTOR_SEL_SHIFT	0
 #       define R200_TXC_TFACTOR_SEL_MASK	0x7
 #       define R200_TXC_TFACTOR1_SEL_SHIFT	4
@@ -2464,7 +2502,8 @@
 #       define R200_TXC_REPL_ARG_B_MASK		(3 << 28)
 #       define R200_TXC_REPL_ARG_C_SHIFT	30
 #       define R200_TXC_REPL_ARG_C_MASK		(3 << 30)
-#define R200_PP_TXABLEND_0			0x2f08
+#define R200_PP_TXABLEND_0              0x2f08
+#define R200_PP_TXABLEND_1              0x2f18
 #       define R200_TXA_ARG_A_ZERO		(0)
 #       define R200_TXA_ARG_A_CURRENT_ALPHA	(2) /* guess */
 #       define R200_TXA_ARG_A_CURRENT_BLUE	(3) /* guess */
@@ -2560,7 +2599,8 @@
 #       define R200_TXA_OP_LERP			(3 << 28)
 #       define R200_TXA_OP_CONDITIONAL		(6 << 28)
 #       define R200_TXA_OP_MASK			(7 << 28)
-#define R200_PP_TXABLEND2_0			0x2f0c
+#define R200_PP_TXABLEND2_0             0x2f0c
+#define R200_PP_TXABLEND2_1             0x2f1c
 #       define R200_TXA_TFACTOR_SEL_SHIFT	0
 #       define R200_TXA_TFACTOR_SEL_MASK	0x7
 #       define R200_TXA_TFACTOR1_SEL_SHIFT	4

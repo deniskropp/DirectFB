@@ -49,14 +49,26 @@ typedef struct {
      
      DFBSurfacePixelFormat   dst_format;
      __u32                   dst_offset;
+     __u32                   dst_offset_cb;
+     __u32                   dst_offset_cr;
      __u32                   dst_pitch;
-
+     bool                    dst_422;
+     
      DFBSurfacePixelFormat   src_format;
      __u32                   src_offset;
+     __u32                   src_offset_cb;
+     __u32                   src_offset_cr;
      __u32                   src_pitch;
      __u32                   src_width;
      __u32                   src_height;
      __u32                   src_mask;
+     bool                    src_422;
+
+     DFBRegion               clip;
+
+     __u8                    y_cop;
+     __u8                    cb_cop;
+     __u8                    cr_cop;
 
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
@@ -64,7 +76,6 @@ typedef struct {
      /* registers */
      __u32                   dp_gui_master_cntl;
      __u32                   rb3d_cntl;
-     __u32                   txformat;
 
      /* chipset identified */
      __u32                   chipset;
