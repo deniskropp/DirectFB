@@ -236,12 +236,12 @@ void IDirectFBSurface::FillTriangle (int x1, int y1,
      DFBCHECK( iface->FillTriangle (iface, x1, y1, x2, y2, x3, y3) );
 }
 
-void IDirectFBSurface::SetFont (IDirectFBFont *font)
+void IDirectFBSurface::SetFont (const IDirectFBFont& font) const
 {
-     DFBCHECK( iface->SetFont (iface, font->get_iface()) );
+     DFBCHECK( iface->SetFont (iface, font.get_iface()) );
 }
 
-IDirectFBFont IDirectFBSurface::GetFont()
+IDirectFBFont IDirectFBSurface::GetFont() const
 {
      IDirectFBFont_C *idirectfbfont;
 

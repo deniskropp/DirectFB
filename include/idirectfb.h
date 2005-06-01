@@ -35,7 +35,7 @@ friend
 
 public:
      IDirectFB(IDirectFB_C *myptr = NULL):IPPAny<IDirectFB, IDirectFB_C>(myptr){}
-
+     ~IDirectFB(){}
      void                    SetCooperativeLevel    (DFBCooperativeLevel         level);
      void                    SetVideoMode           (unsigned int                width,
                                                      unsigned int                height,
@@ -45,7 +45,7 @@ public:
      void                    EnumVideoModes         (DFBVideoModeCallback        callback,
                                                      void                       *callbackdata);
 
-     IDirectFBSurface        CreateSurface          (DFBSurfaceDescription      &desc);
+     IDirectFBSurface        CreateSurface          (DFBSurfaceDescription      &desc) const;
      IDirectFBPalette        CreatePalette          (DFBPaletteDescription      &desc);
 
      void                    EnumScreens            (DFBScreenCallback           callback,
@@ -57,16 +57,16 @@ public:
      IDirectFBDisplayLayer   GetDisplayLayer        (DFBDisplayLayerID           layer_id);
 
      void                    EnumInputDevices       (DFBInputDeviceCallback      callback,
-                                                     void                       *callbackdata);
-     IDirectFBInputDevice    GetInputDevice         (DFBInputDeviceID            device_id);
-     IDirectFBEventBuffer    CreateEventBuffer      ();
+                                                     void                       *callbackdata) const;
+     IDirectFBInputDevice    GetInputDevice         (DFBInputDeviceID            device_id) const;
+     IDirectFBEventBuffer    CreateEventBuffer      () const;
      IDirectFBEventBuffer    CreateInputEventBuffer (DFBInputDeviceCapabilities caps,
                                                      DFBBoolean                 global = DFB_FALSE);
 
-     IDirectFBImageProvider  CreateImageProvider    (const char                 *filename);
+     IDirectFBImageProvider  CreateImageProvider    (const char                 *filename) const;
      IDirectFBVideoProvider  CreateVideoProvider    (const char                 *filename);
      IDirectFBFont           CreateFont             (const char                 *filename,
-                                                     DFBFontDescription         &desc);
+                                                     DFBFontDescription         &desc) const ;
      IDirectFBDataBuffer     CreateDataBuffer       (DFBDataBufferDescription   &desc);
 
      struct timeval          SetClipboardData       (const char                 *mime_type,
@@ -91,7 +91,7 @@ public:
      }
      inline IDirectFB& operator = (IDirectFB_C* other){
           return IPPAny<IDirectFB, IDirectFB_C>::operator =(other);
-     }        
+     }
 };
 
 #endif

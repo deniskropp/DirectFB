@@ -89,9 +89,10 @@ class IPPAny
 		IPPAny_C* iface;
 	public:
 		IPPAny(){
-			iface = NULL;}
+			iface = NULL;
+		}
 		
-		IPPAny(const IPPAny_C &other) {
+		IPPAny(const IMPLEMENTINGCLASS &other) {
 			IPPAny_C *other_iface = other.iface;
 			if (other_iface)
 				other_iface->AddRef( other_iface );
@@ -106,14 +107,14 @@ class IPPAny
 			return dynamic_cast<IMPLEMENTINGCLASS*>(this);
 		}
 		inline operator IMPLEMENTINGCLASS*() const{
- 			return static_cast<IMPLEMENTINGCLASS*> (*this);
+ 			return dynamic_cast<IMPLEMENTINGCLASS*> (this);
  		}
 		inline operator bool() {
 			return iface != NULL;
 		}
 		inline IMPLEMENTINGCLASS &operator = (const IMPLEMENTINGCLASS &other) {
 			IPPAny_C *other_iface = other.iface;
-			
+
 			if (other_iface)
 				other_iface->AddRef( other_iface );
 			if (iface)

@@ -131,8 +131,8 @@ public:
                                                  int                       x3,
                                                  int                       y3);
 
-     void                   SetFont             (IDirectFBFont            *font);
-     IDirectFBFont          GetFont             ();
+     void                   SetFont             (const IDirectFBFont &font) const;
+     IDirectFBFont          GetFont             () const;
      void                   DrawString          (const char               *text,
                                                  int                       bytes,
                                                  int                       x,

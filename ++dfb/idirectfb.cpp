@@ -48,7 +48,7 @@ void IDirectFB::EnumVideoModes (DFBVideoModeCallback  callback,
      DFBCHECK( iface->EnumVideoModes (iface, callback, callbackdata) );
 }
 
-IDirectFBSurface IDirectFB::CreateSurface (DFBSurfaceDescription &desc)
+IDirectFBSurface IDirectFB::CreateSurface (DFBSurfaceDescription &desc) const
 {
      IDirectFBSurface_C *idirectfbsurface;
 
@@ -99,12 +99,12 @@ IDirectFBDisplayLayer IDirectFB::GetDisplayLayer (DFBDisplayLayerID layer_id)
 }
 
 void IDirectFB::EnumInputDevices (DFBInputDeviceCallback  callback,
-                                  void                   *callbackdata)
+                                  void                   *callbackdata) const
 {
      DFBCHECK( iface->EnumInputDevices (iface, callback, callbackdata) );
 }
 
-IDirectFBInputDevice IDirectFB::GetInputDevice (DFBInputDeviceID device_id)
+IDirectFBInputDevice IDirectFB::GetInputDevice (DFBInputDeviceID device_id) const
 {
      IDirectFBInputDevice_C *idirectfbinputdevice;
 
@@ -113,7 +113,7 @@ IDirectFBInputDevice IDirectFB::GetInputDevice (DFBInputDeviceID device_id)
      return IDirectFBInputDevice (idirectfbinputdevice);
 }
 
-IDirectFBEventBuffer IDirectFB::CreateEventBuffer ()
+IDirectFBEventBuffer IDirectFB::CreateEventBuffer () const
 {
      IDirectFBEventBuffer_C *idirectfbeventbuffer;
 
@@ -133,7 +133,7 @@ IDirectFBEventBuffer IDirectFB::CreateInputEventBuffer (DFBInputDeviceCapabiliti
      return IDirectFBEventBuffer (idirectfbeventbuffer);
 }
 
-IDirectFBImageProvider IDirectFB::CreateImageProvider (const char *filename)
+IDirectFBImageProvider IDirectFB::CreateImageProvider (const char *filename) const
 {
      IDirectFBImageProvider_C *idirectfbimageprovider;
 
@@ -152,7 +152,7 @@ IDirectFBVideoProvider IDirectFB::CreateVideoProvider (const char *filename)
 }
 
 IDirectFBFont IDirectFB::CreateFont (const char         *filename,
-                                      DFBFontDescription &desc)
+                                      DFBFontDescription &desc) const
 {
      IDirectFBFont_C *idirectfbfont;
 
