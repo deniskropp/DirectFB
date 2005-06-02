@@ -51,6 +51,15 @@
 #ifndef __R200_REGS_H__
 #define __R200_REGS_H__
 
+#ifdef ROP_XOR
+#undef ROP_XOR
+#endif
+
+#ifdef ROP_COPY
+#undef ROP_COPY
+#endif
+
+
 				/* Registers for 2D/Video/Overlay */
 #define ADAPTER_ID                   0x0f2c /* PCI */
 #define AGP_BASE                     0x0170
