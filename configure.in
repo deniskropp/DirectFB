@@ -126,7 +126,10 @@ AC_ARG_ENABLE(x11,
   enable_x11=no)
 
 if test "$enable_x11" = "yes"; then
+  CFLAGS_saved="$CFLAGS"
+  CFLAGS="$CFLAGS -I/usr/X11R6/include"
   AC_CHECK_HEADER(X11/X.h, x11_found=yes, x11_found=yes)
+  CFLAGS="$CFLAGS_saved"
   if test "$x11_found" = no; then
     enable_x11=no
     AC_MSG_WARN([
