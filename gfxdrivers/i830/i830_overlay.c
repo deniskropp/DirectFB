@@ -317,17 +317,31 @@ ovlSetColorAdjustment( CoreLayer          *layer,
                        void               *layer_data,
                        DFBColorAdjustment *adj )
 {
-/*     I830DriverData       *idrv = driver_data;
-     I830DeviceData       *idev = idrv->idev;
-     I830OverlayLayerData *iovl = layer_data;
+     I830DriverData *idrv = driver_data;
+     I830DeviceData *idev = idrv->idev;
+     __u16 b, c, s;
 
-     iovl->regs->OCLRC0 = (((adj->brightness >> 8) - 128) & 0xFF) |
-                          ((adj->contrast >> 9) << 8);
-     iovl->regs->OCLRC1 = (adj->saturation >> 8) & 0xFF;
+     if (adj->flags & DCAF_BRIGHTNESS)
+	 b = ((adj->brightness >> 8) - 128) & 0xFF;
+     else
+	 b = idrv->oregs->OCLRC0 & 0xFF;
 
-     update_overlay( idrv, idev, iovl );*/
+     if (adj->flags & DCAF_CONTRAST)
+	 c = (adj->contrast >> 8) & 0xFF;
+     else
+	 c = (idrv->oregs->OCLRC0 >> 18) & 0xFF;
 
-     return DFB_UNIMPLEMENTED;
+     if (adj->flags & DCAF_SATURATION)
+	 s = (adj->saturation >> 8) & 0xFF;
+     else
+	 s = idrv->oregs->OCLRC1 & 0xFF;
+
+     idrv->oregs->OCLRC0 = b | (c << 18);
+     idrv->oregs->OCLRC1 = s;
+
+     update_overlay( idrv, idev );
+
+     return DFB_OK;
 }
 
 static DFBResult

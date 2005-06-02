@@ -92,43 +92,59 @@ static inline void
 i830_wait_for_blit_idle( I830DriverData *idrv,
                          I830DeviceData *idev )
 {
-/*     __u32 count = 0;
+     __u32 count = 0;
+     __u32 head , tail;
 
      if (idev != NULL)
           idev->idle_calls++;
-
-     while ((i830_readw(idrv->mmio_base, INST_DONE) & 0x7b) != 0x7b &&
-            count++ < TIMER_LOOP) {
+     
+     head = i830_readl(idrv->mmio_base, LP_RING + RING_HEAD) & I830_HEAD_MASK;
+     tail = i830_readl(idrv->mmio_base, LP_RING + RING_TAIL) & I830_TAIL_MASK;
+     while ((head != tail) && (count++ < TIMER_LOOP)) {
           if (idev != NULL)
                idev->idle_waitcycles++;
+          head = i830_readl(idrv->mmio_base, LP_RING + RING_HEAD) & I830_HEAD_MASK;
+          tail = i830_readl(idrv->mmio_base, LP_RING + RING_TAIL) & I830_TAIL_MASK;
      }
 
      if (count >= TIMER_LOOP) {
           if (idev != NULL)
                idev->idle_timeoutsum++;
           D_BUG("warning: idle timeout exceeded");
-     }*/
+     }
 }
 
 static void
 i830_init_ringbuffer( I830DriverData *idrv,
                       I830DeviceData *idev )
 {
+     __u32 ring_enabled;
+
      D_DEBUG_AT( I830_Ring, "Previous lp ring config: 0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
                  i830_readl(idrv->mmio_base, LP_RING),
                  i830_readl(idrv->mmio_base, LP_RING + RING_HEAD),
                  i830_readl(idrv->mmio_base, LP_RING + RING_START),
                  i830_readl(idrv->mmio_base, LP_RING + RING_LEN) );
 
+     ring_enabled = i830_readl(idrv->mmio_base, LP_RING + RING_LEN) & 1;
+     if (ring_enabled)
+         i830_wait_for_blit_idle(idrv, idev);
+     i830_lring_enable(idrv, 0);
+
+     idev->lring1 = i830_readl(idrv->mmio_base, LP_RING);
+     idev->lring2 = i830_readl(idrv->mmio_base, LP_RING + RING_HEAD);
+     idev->lring3 = i830_readl(idrv->mmio_base, LP_RING + RING_START);
+     idev->lring4 = i830_readl(idrv->mmio_base, LP_RING + RING_LEN);
+
+     D_FLAGS_SET( idrv->flags, I830RES_STATE_SAVE );
+
      i830_writel(idrv->mmio_base, LP_RING + RING_LEN, 0);
      i830_writel(idrv->mmio_base, LP_RING + RING_HEAD, 0);
      i830_writel(idrv->mmio_base, LP_RING + RING_TAIL, 0);
+     i830_writel(idrv->mmio_base, LP_RING + RING_START, 0);
 
      D_DEBUG_AT( I830_Ring, "INST_DONE: 0x%04x\n", i830_readw(idrv->mmio_base, INST_DONE) );
 
-
-     i830_wait_for_blit_idle(idrv, idev);
-     i830_lring_enable(idrv, 0);
 
      idev->lp_ring.size      = RINGBUFFER_SIZE;
      idev->lp_ring.tail_mask = idev->lp_ring.size - 1;
@@ -434,15 +450,14 @@ i830_agp_setup( GraphicsDevice *device,
      idrv->pattern_base = idrv->ovl_base + 1024;
 
      if (!idev->initialized) {
+          memset((void *) idrv->lring_base, 0x00, RINGBUFFER_SIZE);
           memset((void *) idrv->ovl_base, 0xff, 1024);
           memset((void *) idrv->pattern_base, 0xff, 4096 - 1024);
-
+ 
           idev->lring1 = 0;//i830_readl(idrv->mmio_base, LP_RING);
           idev->lring2 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_HEAD);
           idev->lring3 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_START);
           idev->lring4 = 0;//i830_readl(idrv->mmio_base, LP_RING + RING_LEN);
-
-          D_FLAGS_SET( idrv->flags, I830RES_STATE_SAVE );
      }
 
      idev->initialized = true;
