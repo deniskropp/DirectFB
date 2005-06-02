@@ -37,8 +37,9 @@
 #include <core/surfaces.h>
 
 #include <unique/context.h>
-#include <unique/uniquewm.h>
+#include <unique/decoration.h>
 #include <unique/internal.h>
+#include <unique/uniquewm.h>
 
 #include <unique/data/foo.h>
 
@@ -174,8 +175,9 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
           if (ret)
                goto error_global;
 
-          shared->context_pool = unique_context_pool_create();
-          shared->window_pool  = unique_window_pool_create();
+          shared->context_pool    = unique_context_pool_create();
+          shared->decoration_pool = unique_decoration_pool_create();
+          shared->window_pool     = unique_window_pool_create();
 
           shared->insets.l = foo[UFI_W].rect.w;
           shared->insets.t = foo[UFI_N].rect.h;
@@ -220,6 +222,7 @@ unique_wm_module_deinit( bool master, bool emergency )
 
      if (master) {
           fusion_object_pool_destroy( wm_shared->window_pool );
+          fusion_object_pool_destroy( wm_shared->decoration_pool );
           fusion_object_pool_destroy( wm_shared->context_pool );
      }
 
@@ -280,6 +283,17 @@ unique_wm_create_context()
      D_ASSERT( wm_shared->context_pool != NULL );
 
      return (UniqueContext*) fusion_object_create( wm_shared->context_pool );
+}
+
+UniqueDecoration *
+unique_wm_create_decoration()
+{
+     D_ASSERT( dfb_core != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_MAGIC_ASSERT( wm_shared, WMShared );
+     D_ASSERT( wm_shared->decoration_pool != NULL );
+
+     return (UniqueDecoration*) fusion_object_create( wm_shared->decoration_pool );
 }
 
 UniqueWindow *

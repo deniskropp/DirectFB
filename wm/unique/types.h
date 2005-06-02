@@ -30,7 +30,10 @@
 
 
 typedef struct __UniQuE_UniqueContext        UniqueContext;
+typedef struct __UniQuE_UniqueDecoration     UniqueDecoration;
+typedef struct __UniQuE_UniqueDecorationItem UniqueDecorationItem;
 typedef struct __UniQuE_UniqueDevice         UniqueDevice;
+typedef struct __UniQuE_UniqueLayout         UniqueLayout;
 typedef struct __UniQuE_UniqueWindow         UniqueWindow;
 
 typedef struct __UniQuE_UniqueInputChannel   UniqueInputChannel;

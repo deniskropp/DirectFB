@@ -58,3 +58,14 @@ UniqueDND part
 
 UniqueDNDContext object
 - created by application starting the drag
+
+
+UniqueDecoration object
+- created for each decoration added to a window
+- manages stret region(s) attached to the frame
++ there can be several uses of this object
+  - border
+  - shadow
+  - glass ?
+  - flames :->
+

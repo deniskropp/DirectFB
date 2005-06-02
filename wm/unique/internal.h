@@ -39,6 +39,7 @@
 #include <core/windows.h>
 
 #include <unique/context.h>
+#include <unique/decoration.h>
 #include <unique/device.h>
 #include <unique/input_events.h>
 #include <unique/stret.h>
@@ -46,7 +47,7 @@
 #include <unique/window.h>
 
 
-#define UNIQUE_WM_ABI_VERSION 11
+#define UNIQUE_WM_ABI_VERSION 12
 
 
 extern const StretRegionClass unique_root_region_class;
@@ -102,6 +103,7 @@ struct __UniQuE_WMShared {
      int                           magic;
 
      FusionObjectPool             *context_pool;
+     FusionObjectPool             *decoration_pool;
      FusionObjectPool             *window_pool;
 
      StretRegionClassID            region_classes[_URCI_NUM];
@@ -146,35 +148,35 @@ typedef struct {
 
 
 struct __UniQuE_UniqueContext {
-     FusionObject        object;
+     FusionObject             object;
 
-     int                 magic;
+     int                      magic;
 
-     CoreWindowStack    *stack;
-     WMShared           *shared;
+     CoreWindowStack         *stack;
+     WMShared                *shared;
 
-     CoreLayerRegion    *region;
-     CoreSurface        *surface;
+     CoreLayerRegion         *region;
+     CoreSurface             *surface;
 
-     DFBDisplayLayerID   layer_id;
+     DFBDisplayLayerID        layer_id;
 
-     bool                active;
+     bool                     active;
 
-     DFBColor            color;
+     DFBColor                 color;
 
-     int                 width;
-     int                 height;
+     int                      width;
+     int                      height;
 
-     StretRegion        *root;
+     StretRegion             *root;
 
-     FusionVector        windows;
+     FusionVector             windows;
 
 
-     UniqueInputSwitch  *input_switch;
+     UniqueInputSwitch       *input_switch;
 
-     UniqueDevice       *devices[_UDCI_NUM];
+     UniqueDevice            *devices[_UDCI_NUM];
 
-     GlobalReaction      cursor_reaction;
+     GlobalReaction           cursor_reaction;
 
 
      UniqueInputChannel *foo_channel;
@@ -206,55 +208,73 @@ struct __UniQuE_UniqueWindow {
 
      DFBInsets                insets;
 
-     DFBRectangle             bounds;         /* absolute bounds of the content */
-     DFBRectangle             full;           /* absolute bounds of the full frame */
+     DFBRectangle             bounds;        /* absolute bounds of the content */
+     DFBRectangle             full;          /* absolute bounds of the full frame */
 
-     int                      opacity;        /* global alpha factor */
+     int                      opacity;       /* global alpha factor */
 
-     DFBWindowStackingClass   stacking;       /* level boundaries */
-     int                      priority;       /* derived from stacking class */
+     DFBWindowStackingClass   stacking;      /* level boundaries */
+     int                      priority;      /* derived from stacking class */
 
-     DFBWindowOptions         options;        /* flags for appearance/behaviour */
-     DFBWindowEventType       events;         /* mask of enabled events */
+     DFBWindowOptions         options;       /* flags for appearance/behaviour */
+     DFBWindowEventType       events;        /* mask of enabled events */
 
-     __u32                    color_key;      /* transparent pixel */
-     DFBRegion                opaque;         /* region of the window forced to be opaque */
+     __u32                    color_key;     /* transparent pixel */
+     DFBRegion                opaque;        /* region of the window forced to be opaque */
+};
+
+struct __UniQuE_UniqueDecoration {
+     FusionObject             object;
+
+     int                      magic;
+
+     UniqueWindow            *window;
+     UniqueContext           *context;
+
+     UniqueDecorationFlags    flags;
+};
+
+struct __UniQuE_UniqueDecorationItem {
+     const UniqueLayout      *layout;        
+
+     DFBPoint                 pos;           /* current offset from window origin */
+     DFBDimension             size;          /* current dimensions */
 };
 
 struct __UniQuE_StretRegion {
-     int                  magic;
+     int                      magic;
 
-     StretRegion         *parent;       /* Is NULL for the root region. */
+     StretRegion             *parent;        /* Is NULL for the root region. */
 
-     int                  level;        /* Level within the parent. */
-     int                  index;        /* Index within the level. */
+     int                      level;         /* Level within the parent. */
+     int                      index;         /* Index within the level. */
 
-     int                  levels;       /* Number of levels provided. */
-     FusionVector        *children;     /* Children of each level. */
+     int                      levels;        /* Number of levels provided. */
+     FusionVector            *children;      /* Children of each level. */
 
-     StretRegionFlags     flags;        /* Control appearance and activity. */
+     StretRegionFlags         flags;         /* Control appearance and activity. */
 
-     DFBRegion            bounds;       /* Relative to its parent. */
+     DFBRegion                bounds;        /* Relative to its parent. */
 
-     StretRegionClassID   clazz;        /* Region class (implementation) used for rendering etc. */
+     StretRegionClassID       clazz;         /* Region class (implementation) used for rendering etc. */
 
-     void                *data;         /* Optional private data of region class. */
-     unsigned long        arg;          /* Optional argument for region class instance. */
+     void                    *data;          /* Optional private data of region class. */
+     unsigned long            arg;           /* Optional argument for region class instance. */
 };
 
 struct __UniQuE_UniqueDevice {
-     int                  magic;
+     int                      magic;
 
-     UniqueContext       *context;
+     UniqueContext           *context;
 
-     UniqueDeviceClassID  clazz;        /* Device class (implementation) used for processing etc. */
+     UniqueDeviceClassID      clazz;         /* Device class (implementation) used for processing etc. */
 
-     void                *data;         /* Optional private data of device class. */
-     void                *ctx;          /* Optional context for device class instance. */
+     void                    *data;          /* Optional private data of device class. */
+     void                    *ctx;           /* Optional context for device class instance. */
 
-     FusionReactor       *reactor;      /* UniqueInputEvent deployment */
+     FusionReactor           *reactor;       /* UniqueInputEvent deployment */
 
-     DirectLink          *connections;  /* CoreInputDevice connections */
+     DirectLink              *connections;   /* CoreInputDevice connections */
 };
 
 
@@ -271,38 +291,38 @@ struct __UniQuE_UniqueInputFilter {
 };
 
 typedef struct {
-     UniqueDeviceClassID  clazz;
+     UniqueDeviceClassID      clazz;
 
-     UniqueInputChannel  *current;
+     UniqueInputChannel      *current;
 
-     UniqueInputChannel  *normal;
-     UniqueInputChannel  *fixed;
+     UniqueInputChannel      *normal;
+     UniqueInputChannel      *fixed;
 
-     UniqueInputChannel  *implicit;
+     UniqueInputChannel      *implicit;
 
-     DirectLink          *filters;
+     DirectLink              *filters;
 } UniqueInputTarget;
 
 
 struct __UniQuE_UniqueInputSwitch {
-     int                  magic;
+     int                      magic;
 
-     UniqueContext       *context;
+     UniqueContext           *context;
 
-     DirectLink          *connections;  /* UniqueDevice connections */
+     DirectLink              *connections;  /* UniqueDevice connections */
 
-     int                  x;
-     int                  y;
+     int                      x;
+     int                      y;
 
-     UniqueInputTarget    targets[_UDCI_NUM];
+     UniqueInputTarget        targets[_UDCI_NUM];
 };
 
 struct __UniQuE_UniqueInputChannel {
-     int                  magic;
+     int                      magic;
 
-     UniqueContext       *context;
+     UniqueContext           *context;
 
-     FusionReactor       *reactor;      /* UniqueInputEvent arrival */
+     FusionReactor           *reactor;      /* UniqueInputEvent arrival */
 };
 
 
@@ -314,8 +334,9 @@ DFBResult unique_wm_module_init  ( CoreDFB  *core,
 void      unique_wm_module_deinit( bool      master,
                                    bool      emergency );
 
-UniqueContext *unique_wm_create_context();
-UniqueWindow  *unique_wm_create_window();
+UniqueContext    *unique_wm_create_context();
+UniqueDecoration *unique_wm_create_decoration();
+UniqueWindow     *unique_wm_create_window();
 
 
 /* global reactions */

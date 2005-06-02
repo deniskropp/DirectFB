@@ -78,6 +78,7 @@ includedir = @INCLUDEDIR@/unique
 # Install uniquewm's library header files
 include_HEADERS = \
 	context.h		\
+	decoration.h		\
 	device.h		\
 	input_channel.h		\
 	input_events.h		\
@@ -93,6 +94,7 @@ lib_LTLIBRARIES = libuniquewm.la
 
 libuniquewm_la_SOURCES = \
 	context.c		\
+	decoration.c		\
 	device.c		\
 	input_channel.c		\
 	input_switch.c		\
