@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
 
 #include <directfb.h>
 
@@ -31,6 +32,8 @@
 #include <core/system.h>
 #include <core/screen.h>
 #include <core/layer_control.h>
+
+#include <fbdev/fbdev.h>
 
 #include <misc/conf.h>
 
@@ -48,145 +51,131 @@ void              *nvidiaOldPrimaryLayerDriverData;
 /************************** Primary Screen functions **************************/
 
 static int
-nvcrtc1ScreenDataSize( void )
+crtc1ScreenDataSize( void )
 {
      return 0;
 }
 
 static DFBResult
-nvcrtc1InitScreen( CoreScreen           *screen,
-                   GraphicsDevice       *device,
-                   void                 *driver_data,
-                   void                 *screen_data,
-                   DFBScreenDescription *description )
+crtc1InitScreen( CoreScreen           *screen,
+                 GraphicsDevice       *device,
+                 void                 *driver_data,
+                 void                 *screen_data,
+                 DFBScreenDescription *description )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+     volatile __u8    *mmio  = nvdrv->mmio_base;
      
      description->caps = DSCCAPS_VSYNC | DSCCAPS_POWER_MANAGEMENT;
 
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "NVidia Primary Screen" );
 
-     /* NV_PCRTC_INTR_EN_0 */
-     nv_out32( nvdrv->PCRTC, 0x140, 0x00000000 );
-     /* NV_PCRTC_CONFIG */
+     nv_out32( mmio, PCRTC_INTR_EN, PCRTC_INTR_EN_VBLANK_DISABLED );
 #ifdef WORDS_BIGENDIAN
-     nv_out32( nvdrv->PCRTC, 0x804, 0x80000002 );
+     nv_out32( mmio, PCRTC_CONFIG, PCRTC_CONFIG_SIGNAL_HSYNC |
+                                   PCRTC_CONFIG_ENDIAN_BIG );
 #else
-     nv_out32( nvdrv->PCRTC, 0x804, 0x00000002 );
+     nv_out32( mmio, PCRTC_CONFIG, PCRTC_CONFIG_SIGNAL_HSYNC |
+                                   PCRTC_CONFIG_ENDIAN_LITTLE );
 #endif
-     /* NV_PCRTC_INTR_0 */
-     nv_out32( nvdrv->PCRTC, 0x100, 0x00000001 );
+     nv_out32( mmio, PCRTC_INTR, PCRTC_INTR_VBLANK_RESET );
 
      return DFB_OK;
 }
 
 static DFBResult
-nvcrtc1SetPowerMode( CoreScreen         *screen,
-                     void               *driver_data,
-                     void               *screen_data,
-                     DFBScreenPowerMode  mode )
+crtc1SetPowerMode( CoreScreen         *screen,
+                   void               *driver_data,
+                   void               *screen_data,
+                   DFBScreenPowerMode  mode )
 {
-     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *PVIO  = nvdrv->PVIO;
-     volatile __u8    *PCIO  = nvdrv->PCIO;
-     __u8              sr;
-     __u8              cr;
-
-     nv_out8( PVIO, 0x3C4, 0x01 );
-     sr = nv_in8( PVIO, 0x3C5 ) & ~0x20; /* screen on/off */
-
-     nv_out8( PCIO, 0x3D4, 0x1A );
-     cr = nv_in8( PCIO, 0x3D5 ) & ~0xC0; /* sync on/off */
+     FBDev *fbdev = dfb_system_data();
+     int    level;
 
      switch (mode) {
           case DSPM_OFF:
-               sr |= 0x20;
-               cr |= 0xC0;
+               level = 4;
                break;
           case DSPM_SUSPEND:
-               sr |= 0x20;
-               cr |= 0x40;
+               level = 3;
                break;
           case DSPM_STANDBY:
-               sr |= 0x20;
-               cr |= 0x80;
+               level = 2;
                break;
           case DSPM_ON:
+               level = 0;
                break;
           default:
-               return DFB_INVARG;
+               return DFB_UNSUPPORTED;
      }
 
-     nv_out8( PVIO, 0x3C4, 0x01 );
-     nv_out8( PVIO, 0x3C5, sr );
-
-     nv_out8( PCIO, 0x3D4, 0x1A );
-     nv_out8( PCIO, 0x3D5, cr );
+     if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
+          D_PERROR( "DirectFB/NVidia/Crtc1: display blanking failed!\n" );
+          return errno2result( errno );
+     }
 
      return DFB_OK;
 }
 
 static DFBResult
-nvcrtc1WaitVSync( CoreScreen *screen,
-                  void       *driver_data,
-                  void       *screen_data )
+crtc1WaitVSync( CoreScreen *screen,
+                void       *driver_data,
+                void       *screen_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *PCIO  = nvdrv->PCIO;
+     volatile __u8    *mmio  = nvdrv->mmio_base;
 
      if (!dfb_config->pollvsync_none) {
-          while (  nv_in8( PCIO, 0x3DA ) & 8 );
-          while (!(nv_in8( PCIO, 0x3DA ) & 8));
-          // using PCRTC
-          //while (  nv_in32( nvdrv->PCRTC, 0x808 ) & 0x10000 );
-          //while (!(nv_in32( nvdrv->PCRTC, 0x808 ) & 0x10000));
+          int i;
+          
+          for (i = 0; i < 2000000; i++) {
+               if (!(nv_in8( mmio, PCIO_CRTC_STATUS ) & 8))
+                    break;
+          }
+
+          for (i = 0; i < 2000000;) {
+               if (nv_in8( mmio, PCIO_CRTC_STATUS ) & 8)
+                    break;
+               
+               i++;
+               if ((i % 2000) == 0) {
+                    struct timespec ts = {0,0}; 
+                    nanosleep( &ts, NULL );
+               }
+          }
      }
 
      return DFB_OK;
 }
 
 static DFBResult
-nvcrtc1GetScreenSize( CoreScreen *screen,
-                      void       *driver_data,
-                      void       *screen_data,
-                      int        *ret_width,
-                      int        *ret_height )
+crtc1GetScreenSize( CoreScreen *screen,
+                    void       *driver_data,
+                    void       *screen_data,
+                    int        *ret_width,
+                    int        *ret_height )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *PCIO  = nvdrv->PCIO;
+     volatile __u8    *mmio  = nvdrv->mmio_base;
      int               w, h;
      int               val;
 
      /* stolen from RivaTV */
      
-	/* NV_PCRTC_HORIZ_DISPLAY_END */
-	nv_out8( PCIO, 0x3D4, 0x01 );
-	w = nv_in8( PCIO, 0x3D5 );
-	/* NV_PCRTC_HORIZ_EXTRA_DISPLAY_END_8 */
-	nv_out8( PCIO, 0x3D4, 0x2D );
-	w |= (nv_in8( PCIO, 0x3D5) & 0x02) << 7;
-     w  = (w + 1) << 3;
+	w   = nv_incrtc( mmio, CRTC_HORIZ_DISPLAY_END );
+	w  |= (nv_incrtc( mmio, CRTC_HORIZ_EXTRA ) & 0x02) << 7;
+	w   = (w + 1) << 3;
 	
-     /* NV_PCRTC_VERT_DISPLAY_END */
-	nv_out8( PCIO, 0x3D4, 0x12 );
-	h = nv_in8( PCIO, 0x3D5 );     
-     /* NV_PCRTC_OVERFLOW_VERT_DISPLAY_END_[89] */
-	nv_out8( PCIO, 0x3D4, 0x07 );
-	val = nv_in8( PCIO, 0x3D5 );
-	h |= (val & 0x02) << 7;
-     h |= (val & 0x40) << 3;
-     h++;
-	/* NV_PCRTC_EXTRA_VERT_DISPLAY_END_10 */
-	nv_out8( PCIO, 0x3D4, 0x25 );
-	h |= (nv_in8( PCIO, 0x3D5 ) & 0x02) << 9;
-	/* NV_PCRTC_???_VERT_DISPLAY_END_11 */
-	nv_out8( PCIO, 0x3D4, 0x41 );
-	h |= (nv_in8( PCIO, 0x3D5) & 0x04) << 9;
-	/* NV_PCRTC_MAX_SCAN_LINE_DOUBLE_SCAN */
-	nv_out8( PCIO, 0x3D4, 0x09 );
-	h >>= (nv_in8( PCIO, 0x3D5 ) & 0x80) >> 7;
-
+	h   = nv_incrtc( mmio, CRTC_VERT_DISPLAY_END );
+	val = nv_incrtc( mmio, CRTC_OVERFLOW );
+	h  |= (val & 0x02) << 7;
+	h  |= (val & 0x40) << 3;
+	h++;
+	h  |= nv_incrtc( mmio, CRTC_EXTRA ) << 9;
+	h  |= nv_incrtc( mmio, 0x41 ) << 9;
+	h >>= (nv_incrtc( mmio, CRTC_MAX_SCAN_LINE ) & 0x80) >> 7;
+	
      D_DEBUG( "DirectFB/NVidia/Crtc1: "
               "detected screen resolution %dx%d.\n", w, h );
 
@@ -198,33 +187,33 @@ nvcrtc1GetScreenSize( CoreScreen *screen,
 
 
 ScreenFuncs nvidiaPrimaryScreenFuncs = {
-     .ScreenDataSize = nvcrtc1ScreenDataSize,
-     .InitScreen     = nvcrtc1InitScreen,
-     .SetPowerMode   = nvcrtc1SetPowerMode,
-     .WaitVSync      = nvcrtc1WaitVSync,
-     .GetScreenSize  = nvcrtc1GetScreenSize
+     .ScreenDataSize = crtc1ScreenDataSize,
+     .InitScreen     = crtc1InitScreen,
+     .SetPowerMode   = crtc1SetPowerMode,
+     .WaitVSync      = crtc1WaitVSync,
+     .GetScreenSize  = crtc1GetScreenSize
 };
 
 
 /*************************** Primary Layer hooks ******************************/
 
 static DFBResult
-nvfb0FlipRegion( CoreLayer           *layer,
-                 void                *driver_data,
-                 void                *layer_data,
-                 void                *region_data,
-                 CoreSurface         *surface,
-                 DFBSurfaceFlipFlags  flags )
+fb0FlipRegion( CoreLayer           *layer,
+               void                *driver_data,
+               void                *layer_data,
+               void                *region_data,
+               CoreSurface         *surface,
+               DFBSurfaceFlipFlags  flags )
 {
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
+     NVidiaDeviceData *nvdev  = nvdrv->device_data;
      SurfaceBuffer    *buffer = surface->back_buffer;
-     __u32             offset = (buffer->video.offset + nvdrv->fb_offset) &
-                                 nvdrv->fb_mask;
+     __u32             offset;
 
      dfb_gfxcard_sync();
-
-     /* NV_PCRTC_START */
-     nv_out32( nvdrv->PCRTC, 0x800, offset );
+     
+     offset = (buffer->video.offset + nvdev->fb_offset) & nvdev->fb_mask;
+     nv_out32( nvdrv->mmio_base, PCRTC_START, offset );
 
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( dfb_screens_at( DSCID_PRIMARY ) );
@@ -236,6 +225,6 @@ nvfb0FlipRegion( CoreLayer           *layer,
 
 
 DisplayLayerFuncs nvidiaPrimaryLayerFuncs = {
-     .FlipRegion     = nvfb0FlipRegion
+     .FlipRegion     = fb0FlipRegion
 };
 

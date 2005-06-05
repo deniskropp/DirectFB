@@ -32,9 +32,6 @@ bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line );
 bool nvTextureTriangles( void *drv, void *dev, DFBVertex *vertices,
                          int num, DFBTriangleFormation formation );
 
-void nv_put_texture( NVidiaDriverData *nvdrv,
-                     NVidiaDeviceData *nvdev, SurfaceBuffer *source );
-
 
 #endif /* __NVIDIA_3D_H__ */
 

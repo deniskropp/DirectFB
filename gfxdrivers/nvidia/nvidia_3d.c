@@ -45,7 +45,7 @@
 #define nv_setstate3d( state3d )                                  \
 {                                                                 \
      if ((state3d)->modified) {                                   \
-          nv_waitfifo( nvdev, subchannelof(TexTriangle), 7 );     \
+          nv_waitfifo( nvdrv, nvdev, 7 );                         \
           TexTriangle->ColorKey      = (state3d)->colorkey;       \
           TexTriangle->TextureOffset = (state3d)->offset;         \
           TexTriangle->TextureFormat = (state3d)->format;         \
@@ -60,7 +60,7 @@
 
 #define nv_putvertex( ii, xx, yy, zz, ww, col, spc, s, t )        \
 {                                                                 \
-     nv_waitfifo( nvdev, subchannelof(TexTriangle), 8 );          \
+     nv_waitfifo( nvdrv, nvdev, 8 );                              \
      TexTriangle->Tlvertex[(ii)].sx       = (float) (xx);         \
      TexTriangle->Tlvertex[(ii)].sy       = (float) (yy);         \
      TexTriangle->Tlvertex[(ii)].sz       = (float) (zz);         \
@@ -71,9 +71,9 @@
      TexTriangle->Tlvertex[(ii)].tt       = (float) (t);          \
 }
 
-#define nv_flushvb( ii, v0, v1, v2, v3, v4, v5, v6, v7 )          \
+#define nv_emit_vertices( ii, v0, v1, v2, v3, v4, v5, v6, v7 )    \
 {                                                                 \
-     nv_waitfifo( nvdev, subchannelof(TexTriangle), 1 );          \
+     nv_waitfifo( nvdrv, nvdev, 1 );                              \
      TexTriangle->DrawPrimitives[(ii)] =                          \
                                     ((v7) << 28) | ((v6) << 24) | \
                                     ((v5) << 20) | ((v4) << 16) | \
@@ -82,26 +82,28 @@
 }
 
 
+static void nv_load_texture( NVidiaDriverData *nvdrv,
+                             NVidiaDeviceData *nvdev );
+
+
 bool nvFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
      NVidiaDriverData      *nvdrv       = (NVidiaDriverData*) drv;
      NVidiaDeviceData      *nvdev       = (NVidiaDeviceData*) dev;
      NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
-     DFBRegion              reg;
 
-     reg.x1 = rect->x;
-     reg.y1 = rect->y;
-     reg.x2 = rect->x + rect->w;
-     reg.y2 = rect->y + rect->h;
+     nv_setstate3d( &nvdev->state3d[0] );
 
-     nv_setstate3d( &nvdev->state3d );
+     nv_putvertex( 0, rect->x,         rect->y, 
+                      0, 1, nvdev->color3d, 0, 0, 0 );
+     nv_putvertex( 1, rect->x+rect->w, rect->y,
+                      0, 1, nvdev->color3d, 0, 0, 0 );
+     nv_putvertex( 2, rect->x+rect->w, rect->y+rect->h,
+                      0, 1, nvdev->color3d, 0, 0, 0 );
+     nv_putvertex( 3, rect->x,         rect->y+rect->h,
+                      0, 1, nvdev->color3d, 0, 0, 0 );
 
-     nv_putvertex( 0, reg.x1, reg.y1, 0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 1, reg.x2, reg.y1, 0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 2, reg.x2, reg.y2, 0, 1, nvdev->color3d, 0, 0, 0 );
-     nv_putvertex( 3, reg.x1, reg.y2, 0, 1, nvdev->color3d, 0, 0, 0 );
-
-     nv_flushvb( 0, 0, 1, 2, 0, 2, 3, 0, 0 );
+     nv_emit_vertices( 0, 0, 1, 2, 0, 2, 3, 0, 0 );
 
      return true;
 }
@@ -112,13 +114,13 @@ bool nvFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
      NVidiaDeviceData      *nvdev  = (NVidiaDeviceData*) dev;
      NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
 
-     nv_setstate3d( &nvdev->state3d );
+     nv_setstate3d( &nvdev->state3d[0] );
 
      nv_putvertex( 0, tri->x1, tri->y1, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, tri->x2, tri->y2, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 2, tri->x3, tri->y3, 0, 1, nvdev->color3d, 0, 0, 0 );
 
-     nv_flushvb( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
+     nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
 
      return true;
 }
@@ -155,7 +157,7 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
      reg[3].x2 = rect->x + rect->w;
      reg[3].y2 = rect->y + rect->h - 2;
      
-     nv_setstate3d( &nvdev->state3d );
+     nv_setstate3d( &nvdev->state3d[0] );
 
      for (i = 0; i < 4; i++) {
           nv_putvertex( 0, reg[i].x1, reg[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
@@ -163,7 +165,7 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
           nv_putvertex( 2, reg[i].x2, reg[i].y2, 0, 1, nvdev->color3d, 0, 0, 0 );
           nv_putvertex( 3, reg[i].x1, reg[i].y2, 0, 1, nvdev->color3d, 0, 0, 0 );
 
-          nv_flushvb( 0, 0, 1, 2, 0, 2, 3, 0, 0 );
+          nv_emit_vertices( 0, 0, 1, 2, 0, 2, 3, 0, 0 );
      }
 
      return true;
@@ -193,14 +195,14 @@ bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line )
           yinc = 0.0;
      }
 
-     nv_setstate3d( &nvdev->state3d );
+     nv_setstate3d( &nvdev->state3d[0] );
 
      nv_putvertex( 0, x1 - xinc, y1 - yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 1, x1 + xinc, y1 + yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 2, x2 + xinc, y2 + yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
      nv_putvertex( 3, x2 - xinc, y2 - yinc, 0, 1, nvdev->color3d, 0, 0, 0 );
 
-     nv_flushvb( 0, 2, 0, 1, 3, 0, 2, 0, 0 );
+     nv_emit_vertices( 0, 2, 0, 1, 3, 0, 2, 0, 0 );
 
      return true;
 }
@@ -215,8 +217,13 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
      float                  t_scale;
      int                    i;
 
-     s_scale = (float) nvdev->src_width  / 512.0;
-     t_scale = (float) nvdev->src_height / 512.0;
+     /* load source texture into texture buffer */
+     nv_load_texture( nvdrv, nvdev );
+     
+     s_scale = (float)nvdev->src_width  /
+               (float)(1 << ((nvdev->state3d[1].format >> 16) & 0xF));
+     t_scale = (float)nvdev->src_height /
+               (float)(1 << ((nvdev->state3d[1].format >> 20) & 0xF));
 
      for (i = 0; i < num; i++) {
           ve[i].x += 0.5;
@@ -225,7 +232,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
           ve[i].t *= t_scale;
      }
 
-     nv_setstate3d( &nvdev->state3d );
+     nv_setstate3d( &nvdev->state3d[1] );
 
      switch (formation) {
           case DTTF_LIST:
@@ -236,7 +243,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                                   nvdev->color3d, 0, ve[i+1].s, ve[i+1].t );
                     nv_putvertex( 2, ve[i+2].x, ve[i+2].y, ve[i+2].z, ve[i+2].w,
                                   nvdev->color3d, 0, ve[i+2].s, ve[i+2].t );
-                    nv_flushvb( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
+                    nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
                }
                break;
 
@@ -247,7 +254,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                              nvdev->color3d, 0, ve[1].s, ve[1].t );
                nv_putvertex( 2, ve[2].x, ve[2].y, ve[2].z, ve[2].w,
                              nvdev->color3d, 0, ve[2].s, ve[2].t );
-               nv_flushvb( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
+               nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
                
                for (i = 0; i < num; i++) {
                     nv_putvertex( 0, ve[i-2].x, ve[i-2].y, ve[i-2].z, ve[i-2].w,
@@ -256,7 +263,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                                   nvdev->color3d, 0, ve[i-1].s, ve[i-1].t );
                     nv_putvertex( 2, ve[i].x, ve[i].y, ve[i].z, ve[i].w,
                                   nvdev->color3d, 0, ve[i].s, ve[i].t );
-                    nv_flushvb( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
+                    nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
                }
                break;
 
@@ -267,7 +274,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                              nvdev->color3d, 0, ve[1].s, ve[1].t );
                nv_putvertex( 2, ve[2].x, ve[2].y, ve[2].z, ve[2].w,
                              nvdev->color3d, 0, ve[2].s, ve[2].t );
-               nv_flushvb( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
+               nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
 
                for (i = 0; i < num; i++) {
                     nv_putvertex( 0, ve[0].x, ve[0].y, ve[0].z, ve[0].w,
@@ -276,7 +283,7 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                                   nvdev->color3d, 0, ve[i-1].s, ve[i-1].t );
                     nv_putvertex( 2, ve[i].x, ve[i].y, ve[i].z, ve[i].w,
                                   nvdev->color3d, 0, ve[i].s, ve[i].t );
-                    nv_flushvb( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
+                    nv_emit_vertices( 0, 0, 1, 2, 0, 0, 0, 0, 0 );
                }
                break;
 
@@ -402,22 +409,23 @@ argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
      }
 }
 
-void nv_put_texture( NVidiaDriverData *nvdrv,
-                     NVidiaDeviceData *nvdev,
-                     SurfaceBuffer    *source )
+static void nv_load_texture( NVidiaDriverData *nvdrv,
+                             NVidiaDeviceData *nvdev )
 {
-     __u32 *tex_origin;
-     __u8  *src_buffer;
-     __u32  src_pitch;
+     SurfaceBuffer *source     = nvdev->src_texture;
+     __u32         *tex_origin;
+     __u8          *src_buffer;
+     __u32          src_pitch;
 
-     tex_origin = (__u32*) dfb_gfxcard_memory_virtual( nvdrv->device,
-                                                       nvdev->tex_offset );
+     tex_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
+                                              nvdev->state3d[1].offset );
 
      if (source->policy != CSP_SYSTEMONLY) {
           __u8 *src_origin;
           
-          if (nvdev->src_texture == (__u32) source &&
-              !(source->video.access & (VAF_SOFTWARE_WRITE | VAF_HARDWARE_WRITE)))
+          /* check if source texture was modified */
+          if (nvdev->set & SMF_SOURCE_TEXTURE &&
+              !(source->video.access & VAF_HARDWARE_WRITE))
                return;
           
           src_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
@@ -426,17 +434,19 @@ void nv_put_texture( NVidiaDriverData *nvdrv,
           
           src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
           if (!src_buffer) {
-               D_BUG( "out of system memory" );
+               D_OOM();
                return;
           }
      
-          direct_memcpy( src_buffer, src_origin, src_pitch * nvdev->src_height );
-          nvdev->src_texture = (__u32) source;
+          direct_memcpy( src_buffer, src_origin,
+                         src_pitch * nvdev->src_height );
+          
+          nvdev->set |= SMF_SOURCE_TEXTURE;
+          source->video.access &= ~VAF_HARDWARE_WRITE;
      }
      else {
           src_buffer = source->system.addr;
           src_pitch  = source->system.pitch;
-          nvdev->src_texture = 0;
      }
 
      nv_waitidle( nvdrv, nvdev );

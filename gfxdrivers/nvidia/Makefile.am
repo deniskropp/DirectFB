@@ -4,7 +4,8 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
-	-I$(top_srcdir)/src
+	-I$(top_srcdir)/src \
+	-I$(top_srcdir)/systems
 
 nvidia_LTLIBRARIES = libdirectfb_nvidia.la
 
@@ -16,12 +17,15 @@ nvidiadir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_nvidia_la_SOURCES = \
      nvidia.c	       \
+	nvidia_state.c   \
      nvidia_2d.c      \
      nvidia_3d.c      \
      nvidia_primary.c \
      nvidia_overlay.c \
      nvidia.h         \
+	nvidia_regs.h	  \
      nvidia_mmio.h    \
+	nvidia_state.h   \
      nvidia_2d.h      \
      nvidia_3d.h
 

@@ -39,11 +39,11 @@ bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line );
 
 bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
 
-bool nvDMABlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
+bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
 
 bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
 
-bool nvDMAStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
+bool nvStretchBlitFromCPU( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
 
 #endif /* __NVIDIA_2D_H__ */
 
