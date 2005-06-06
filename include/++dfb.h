@@ -146,10 +146,10 @@ class IPPAny
 #include "idirectfbdatabuffer.h"
 
 
-#define DFB_ADD_SURFACE_DESC(d,f)   (d) = (DFBSurfaceDescriptionFlags)  ((d) | (f))
-#define DFB_ADD_SURFACE_CAPS(c,f)   (c) = (DFBSurfaceCapabilities)      ((c) | (f))
-#define DFB_ADD_DRAWING_FLAG(d,f)   (d) = (DFBSurfaceDrawingFlags)      ((d) | (f))
-#define DFB_ADD_BLITTING_FLAG(b,f)  (b) = (DFBSurfaceBlittingFlags)     ((b) | (f))
+#define DFB_ADD_SURFACE_DESC(d,f)   (d) = static_cast<DFBSurfaceDescriptionFlags>  ((d) | (f))
+#define DFB_ADD_SURFACE_CAPS(c,f)   (c) = static_cast<DFBSurfaceCapabilities>      ((c) | (f))
+#define DFB_ADD_DRAWING_FLAG(d,f)   (d) = static_cast<DFBSurfaceDrawingFlags>      ((d) | (f))
+#define DFB_ADD_BLITTING_FLAG(b,f)  (b) = static_cast<DFBSurfaceBlittingFlags>     ((b) | (f))
 
 
 class DirectFB {

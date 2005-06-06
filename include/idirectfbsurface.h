@@ -63,7 +63,7 @@ public:
                                                  int                      *pitch);
      void                   Unlock              ();
      void                   Flip                (DFBRegion                *region = NULL,
-                                                 DFBSurfaceFlipFlags       flags = (DFBSurfaceFlipFlags)0);
+                                                 DFBSurfaceFlipFlags       flags = static_cast<DFBSurfaceFlipFlags>(0));
      void                   SetField            (int                       field);
      void                   Clear               (__u8                      r = 0x00,
                                                  __u8                      g = 0x00,
