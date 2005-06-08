@@ -45,8 +45,8 @@
 #include <core/surfaces.h>
 #include <core/system.h>
 
-#include <idirectfbsurface.h>
-#include <idirectfbsurface_layer.h>
+#include "idirectfbsurface.h"
+#include "idirectfbsurface_layer.h"
 
 #include <misc/util.h>
 
