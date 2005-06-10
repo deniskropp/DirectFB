@@ -269,6 +269,12 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
           filter->y_offset = 0.0;
      }
 
+     if (n_x > 64)
+          n_x = 64;
+
+     if (n_y > 64)
+          n_y = 64;
+
      filter->n_y = n_y;
      filter->n_x = n_x;
      filter->weights = (int *) D_MALLOC( SUBSAMPLE * SUBSAMPLE * n_x * n_y *
