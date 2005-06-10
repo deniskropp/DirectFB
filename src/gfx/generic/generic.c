@@ -4405,9 +4405,8 @@ static void Bop_a8_set_alphapixel_Aop_a8( GenefxState *gfxs )
           case 0xff: d = 0xff;\
           case 0: break; \
           default: {\
-               register __u16 s  = (a)+1;\
-               register __u16 s1 = 256-s;\
-               d = (d * s1 + s) >> 8;\
+               register __u16 s1 = 255-a;\
+               d = ((d * s1) >> 8) + a;\
           }\
      }
 
