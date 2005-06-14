@@ -473,6 +473,8 @@ __shmalloc_init (int world, bool initialize)
 
           _sheap->heapbase = (char *) _sheap->heapinfo;
 
+          _sheap->map_size = size;
+
           fusion_skirmish_init( &_sheap->lock, "Shared Memory Heap" );
      }
 
@@ -516,10 +518,12 @@ __shmalloc_brk (int increment)
                return NULL;
           }
 
+          size = new_size;
+
+          _sheap->map_size = size;
+
           if (new_mem != mem)
                D_BREAK ("mremap returned a different address!");
-
-          size = new_size;
 
           if (_sheap && _sheap->reactor)
                fusion_reactor_dispatch( _sheap->reactor, (const void *) &size, false, NULL );

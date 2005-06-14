@@ -205,6 +205,8 @@ typedef struct {
      int        alloc_count;
      int        alloc_capacity;
      SHMemDesc *alloc_list;
+
+     int        map_size;
 } shmalloc_heap;
 
 /* global data at beginning of shared memory */
