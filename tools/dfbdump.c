@@ -515,6 +515,8 @@ main( int argc, char *argv[] )
                        total >> 10, (total - mem.system) >> 10 );
           }
 
+          printf( "\nShared memory file size: %dk\n", _sheap->map_size >> 10 );
+
           fusion_skirmish_dismiss( &_sheap->lock );
      }
 #endif
