@@ -99,14 +99,12 @@ static void
 motion_realize( X11InputData *data )
 {
 	if (motionX.type != DIET_UNKNOWN) {
-//		printf("ML: motionX.type \n"); 
 		dfb_input_dispatch( data->device, &motionX );
 
 		motionX.type = DIET_UNKNOWN;
     }
 
 	if (motionY.type != DIET_UNKNOWN) {
-//		printf("ML: motionY.type \n"); 
 		
 		dfb_input_dispatch( data->device, &motionY );
 		motionY.type = DIET_UNKNOWN;
@@ -116,8 +114,6 @@ motion_realize( X11InputData *data )
 static bool
 translate_key( KeySym xKeySymbol, DFBInputEvent* pDFBEvent)
 {
-//	printf("ML: translate_key\n"); 
-	
 	pDFBEvent->flags  			= DIEF_KEYID;
 	switch (xKeySymbol)
 	{
@@ -269,7 +265,6 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
 	DFBInputEvent 	dfbEvent;
 	if (pXEvent->type == MotionNotify) 
 	{
-//		printf("ML: X11 MotionNotify count: %d, (%d, %d) \n", iMouseEventCount, pXEvent->xmotion.x, pXEvent->xmotion.y);
 		motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y );
 		motion_realize( pData );
 		++iMouseEventCount;
@@ -277,7 +272,6 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
 	
 	if ( pXEvent->type == ButtonPress || pXEvent->type == ButtonRelease )
 	{
-		printf("ML: X11 Mouse Key press / release count: %d\n", iMouseEventCount);
 		if ( pXEvent->type == ButtonPress ) 	dfbEvent.type = DIET_BUTTONPRESS;
 		else									dfbEvent.type = DIET_BUTTONRELEASE;
 		dfbEvent.flags = DIEF_NONE;
@@ -307,15 +301,12 @@ x11EventThread( DirectThread *thread, void *driver_data )
 	const long iMouseEventMask 	= ButtonPressMask | ButtonReleaseMask | PointerMotionMask;	// ExposureMask
 
 	
-	printf("ML: x11EventThread %p\n", data); 
 	while (!data->stop) 
 	{
 		XEvent xEvent; 
 		DFBInputEvent dfbEvent;
         XWindow *xw		= dfb_x11->xw;
 		
-//		printf("ML: x11EventThread .... running \n"); 
-
         usleep(10000);
 
         if (!xw)
@@ -369,14 +360,10 @@ x11EventThread( DirectThread *thread, void *driver_data )
 static int
 driver_get_available()
 {
-	printf("ML: driver_get_available\n"); 
 	if (dfb_system_type() == CORE_X11) {
-		printf("ML: driver_get_available system is CORE_X11 \n"); 
-		
 		return 1;
 	}
-
-     return 0;
+    return 0;
 }
 
 /*
@@ -386,7 +373,6 @@ driver_get_available()
 static void
 driver_get_info( InputDriverInfo *info )
 {
-	printf("ML: driver_get_info\n"); 
 	/* fill driver info structure */
      snprintf ( info->name,
                 DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "X11 Input Driver" );
@@ -410,7 +396,6 @@ driver_open_device( CoreInputDevice  *device,
 {
      X11InputData *data;
      DFBX11       *dfb_x11 = dfb_system_data();
-	 printf("ML: driver_open_device\n"); 
 
      fusion_skirmish_prevail( &dfb_x11->lock );
 
@@ -461,7 +446,6 @@ static DFBInputDeviceKeySymbol
 id_to_symbol( DFBInputDeviceKeyIdentifier id,
               DFBInputDeviceModifierMask  modifiers)
 {
-	printf("ML: id_to_symbol\n"); 
 	bool shift = (modifiers & DIMM_SHIFT);
 
      if (id >= DIKI_A && id <= DIKI_Z)
@@ -634,7 +618,6 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-	printf("ML: driver_get_keymap_entry\n"); 
 	int  code = entry->code;
     entry->identifier=code;
 
@@ -660,7 +643,6 @@ driver_get_keymap_entry( CoreInputDevice           *device,
 static void
 driver_close_device( void *driver_data )
 {
-	printf("ML: driver_close_device\n"); 
 	X11InputData *data = (X11InputData*) driver_data;
 
      /* stop input thread */

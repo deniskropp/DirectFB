@@ -101,7 +101,7 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 
 	xw->display = XOpenDisplay(NULL);
 	if( !xw->display ) {
-		printf("ML: Error opening X_Display\n");
+		printf("X11: Error opening X_Display\n");
 		return False;
 	}
 	
@@ -165,7 +165,7 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 	xw->ximage=XShmCreateImage(xw->display, xw->visual, xw->depth, ZPixmap,
 							   NULL,xw->shmseginfo, xw->width, xw->height);
 	if(!xw->ximage) {
-		printf("ML: Error creating shared image (XShmCreateImage) \n");
+		printf("X11: Error creating shared image (XShmCreateImage) \n");
 		return False;
 	}
 	

@@ -71,7 +71,6 @@ CoreDFB*	dfb_x11_core = NULL;
 static void
 system_get_info( CoreSystemInfo *info )
 {
-	printf("ML: system_get_info\n"); 
 	info->type = CORE_X11;	
 
     snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "X11" );
@@ -82,7 +81,6 @@ system_initialize( CoreDFB *core, void **data )
 {
      char       *driver;
      CoreScreen *screen;
-	 printf("ML: system_initialize\n"); 
 
      D_ASSERT( dfb_x11 == NULL );
 
@@ -122,7 +120,6 @@ system_join( CoreDFB *core, void **data )
 {
      void       *ret;
      CoreScreen *screen;
-	 printf("ML: system_join\n"); 
 
      D_ASSERT( dfb_x11 == NULL );
 
@@ -143,7 +140,6 @@ system_join( CoreDFB *core, void **data )
 static DFBResult
 system_shutdown( bool emergency )
 {
-	printf("ML: system_shutdown\n"); 
 	D_ASSERT( dfb_x11 != NULL );
 
     fusion_call_destroy( &dfb_x11->call );
@@ -163,7 +159,6 @@ system_shutdown( bool emergency )
 static DFBResult
 system_leave( bool emergency )
 {
-	printf("ML: system_leave\n"); 
 	D_ASSERT( dfb_x11 != NULL );
 
      dfb_x11 = NULL;
@@ -175,14 +170,12 @@ system_leave( bool emergency )
 static DFBResult
 system_suspend()
 {
-	printf("ML: system_suspend\n"); 
 	return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
 system_resume()
 {
-	printf("ML: system_resume\n"); 
 	return DFB_UNIMPLEMENTED;
 }
 
