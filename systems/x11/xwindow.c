@@ -8,6 +8,16 @@
 extern DFBX11 *dfb_x11;
 
 
+//
+// Data to create an invisible cursor
+//
+const char null_cursor_bits[] = {
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
+
+
 void xw_reset(XWindow* xw)
 {
 	memset( xw, 0, sizeof(XWindow) );
@@ -18,7 +28,7 @@ Bool xw_setPixelSize(XWindow* xw)
 {
 	if(xw->depth!=DefaultDepth(xw->display,DefaultScreen(xw->display)))
 	{
-		fprintf(stderr,"Please, I need a %d bits display\n",xw->depth);
+		fprintf(stderr,"X11: Error! Please, I need a %d bits display\n",xw->depth);
 		exit(1);
 	}
 
@@ -151,7 +161,16 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 	xw->gc=XCreateGC(xw->display, xw->window, 0, NULL);
 
 
-
+	
+	// Create a null cursor
+	XColor  fore;
+	XColor  back;
+	xw->pixmp1 = XCreateBitmapFromData(	xw->display, xw->window, null_cursor_bits, 16, 16);
+	xw->pixmp2 = XCreateBitmapFromData(	xw->display, xw->window, null_cursor_bits, 16, 16);
+	xw->NullCursor = XCreatePixmapCursor(xw->display,xw->pixmp1,xw->pixmp2,&fore,&back,0,0);
+	XDefineCursor(xw->display, xw->window, xw->NullCursor);
+	
+	
 	/* maps the window and raises it to the top of the stack */
 	XMapRaised(xw->display, xw->window);
 

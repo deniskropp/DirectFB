@@ -34,6 +34,11 @@ typedef struct
 	int 				depth;
 	int 				pixelsize;
 	int 				screensize;
+	/* (Null) cursor stuff*/
+	Pixmap  			pixmp1;
+	Pixmap  			pixmp2;
+	Cursor 				NullCursor;
+	
 } XWindow;
 
 void 	xw_reset(XWindow* xw);
