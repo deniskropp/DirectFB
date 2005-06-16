@@ -89,7 +89,7 @@ static const char *config_usage =
      "  [no-]vt-switch                 Allocate/switch to a new VT\n"
      "  [no-]vt-switching              Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
      "  [no-]graphics-vt               Put terminal into graphics mode\n"
-     "  [no-]-vt                       Use VT handling code at all?\n"
+     "  [no-]vt                        Use VT handling code at all?\n"
      "  [no-]motion-compression        Mouse motion event compression\n"
      "  mouse-protocol=<protocol>      Mouse protocol (serial mouse)\n"
      "  [no-]lefty                     Swap left and right mouse buttons\n"
