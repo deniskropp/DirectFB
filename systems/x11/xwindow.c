@@ -145,7 +145,7 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 
 
 	XSelectInput(xw->display, xw->window,
-				 ExposureMask|KeyPressMask|KeyReleaseMask|ButtonPressMask|ButtonReleaseMask);
+				 ExposureMask|KeyPressMask|KeyReleaseMask|PointerMotionMask|ButtonPressMask|ButtonReleaseMask);
 
 
 	xw->gc=XCreateGC(xw->display, xw->window, 0, NULL);

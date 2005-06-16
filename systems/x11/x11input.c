@@ -254,7 +254,7 @@ translate_key( KeySym xKeySymbol, DFBInputEvent* pDFBEvent)
 		case XK_KP_Up		: pDFBEvent->key_id	= DIKI_KP_8; 		return true; break;
 		case XK_KP_Page_Up	: pDFBEvent->key_id	= DIKI_KP_9; 		return true; break;
 		default:
-			printf("ML: Unknown key pressed\n");
+			printf("X11: Unknown key pressed\n");
 	}	
 	
 	pDFBEvent->flags    = DIEF_NONE;
@@ -270,7 +270,7 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
 	if (pXEvent->type == MotionNotify) 
 	{
 //		printf("ML: X11 MotionNotify count: %d, (%d, %d) \n", iMouseEventCount, pXEvent->xmotion.x, pXEvent->xmotion.y);
-		motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.x );
+		motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y );
 		motion_realize( pData );
 		++iMouseEventCount;
 	}
