@@ -312,7 +312,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
         if (!xw)
              continue;
 
-        fusion_skirmish_prevail( &dfb_x11->lock );
+//        fusion_skirmish_prevail( &dfb_x11->lock );
 
 		// --- Mouse events ---
   		if (XCheckMaskEvent(xw->display, iMouseEventMask, &xEvent)) 
@@ -341,7 +341,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 		}
 						
 
-          fusion_skirmish_dismiss( &dfb_x11->lock );
+//          fusion_skirmish_dismiss( &dfb_x11->lock );
 
   //        motion_realize( data );
 
