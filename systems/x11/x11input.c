@@ -266,13 +266,14 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
 	if (pXEvent->type == MotionNotify) 
 	{
 		motion_compress( pXEvent->xmotion.x, pXEvent->xmotion.y );
-		motion_realize( pData );
 		++iMouseEventCount;
 	}
 	
 	if ( pXEvent->type == ButtonPress || pXEvent->type == ButtonRelease )
 	{
-		if ( pXEvent->type == ButtonPress ) 	dfbEvent.type = DIET_BUTTONPRESS;
+        motion_realize( pData );
+
+        if ( pXEvent->type == ButtonPress ) 	dfbEvent.type = DIET_BUTTONPRESS;
 		else									dfbEvent.type = DIET_BUTTONRELEASE;
 		dfbEvent.flags = DIEF_NONE;
 				
@@ -305,6 +306,7 @@ x11EventThread( DirectThread *thread, void *driver_data )
 	{
 		XEvent xEvent; 
 		DFBInputEvent dfbEvent;
+        bool hasEvent;
         XWindow *xw		= dfb_x11->xw;
 		
         usleep(10000);
@@ -315,35 +317,44 @@ x11EventThread( DirectThread *thread, void *driver_data )
 //        fusion_skirmish_prevail( &dfb_x11->lock );
 
 		// --- Mouse events ---
-  		if (XCheckMaskEvent(xw->display, iMouseEventMask, &xEvent)) 
-  		{
- 			handleMouseEvent(&xEvent, data); // crash ???
-  		}
+        do {
+             hasEvent = false;
 
-		
-		if (XCheckMaskEvent(xw->display, iKeyPressMask, &xEvent)) 
-		{
-			KeySym xKeySymbol = XKeycodeToKeysym(xw->display, xEvent.xkey.keycode, 0);
-			if (translate_key( xKeySymbol, &dfbEvent )) {
-				dfbEvent.type		= DIET_KEYPRESS;
-				dfbEvent.key_code	= dfbEvent.key_id;
-				dfb_input_dispatch( data->device, &dfbEvent );
-			}
-		}
-		else if (XCheckMaskEvent(xw->display, iKeyReleaseMask, &xEvent)) 
-		{
-			KeySym xKeySymbol = XKeycodeToKeysym(xw->display, xEvent.xkey.keycode, 0);
-			if (translate_key( xKeySymbol, &dfbEvent )) {
-				dfbEvent.type		= DIET_KEYRELEASE;
-				dfbEvent.key_code	= dfbEvent.key_id;
-				dfb_input_dispatch( data->device, &dfbEvent );
-			}
-		}
+             if (XCheckMaskEvent(xw->display, iMouseEventMask, &xEvent)) 
+             {
+                 hasEvent = true;
+                 handleMouseEvent(&xEvent, data); // crash ???
+             }
+
+
+             if (XCheckMaskEvent(xw->display, iKeyPressMask, &xEvent)) 
+             {
+                 KeySym xKeySymbol = XKeycodeToKeysym(xw->display, xEvent.xkey.keycode, 0);
+                 hasEvent = true;
+                 if (translate_key( xKeySymbol, &dfbEvent )) {
+                     dfbEvent.type		= DIET_KEYPRESS;
+                     dfbEvent.key_code	= dfbEvent.key_id;
+                     motion_realize( data );
+                     dfb_input_dispatch( data->device, &dfbEvent );
+                 }
+             }
+             else if (XCheckMaskEvent(xw->display, iKeyReleaseMask, &xEvent)) 
+             {
+                 KeySym xKeySymbol = XKeycodeToKeysym(xw->display, xEvent.xkey.keycode, 0);
+                 hasEvent = true;
+                 if (translate_key( xKeySymbol, &dfbEvent )) {
+                     dfbEvent.type		= DIET_KEYRELEASE;
+                     dfbEvent.key_code	= dfbEvent.key_id;
+                     motion_realize( data );
+                     dfb_input_dispatch( data->device, &dfbEvent );
+                 }
+             }
+        } while ( hasEvent );
 						
 
 //          fusion_skirmish_dismiss( &dfb_x11->lock );
 
-  //        motion_realize( data );
+          motion_realize( data );
 
           direct_thread_testcancel( thread );
     }
