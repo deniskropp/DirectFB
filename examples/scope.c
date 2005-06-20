@@ -151,7 +151,8 @@ destroy_playback( void )
 int
 main( int argc, char **argv )
 {
-     DFBResult err;
+     DFBResult    err;
+     DFBRectangle rect;
 
      err = DirectFBInit( &argc, &argv );
      if (err != DFB_OK)
@@ -169,14 +170,18 @@ main( int argc, char **argv )
      /* initialize LiTE */
      if (lite_open( &argc, &argv ))
           return 1;
-     
+
+     rect.x = LITE_CENTER_HORIZONTALLY;
+     rect.y = LITE_CENTER_VERTICALLY;
+     rect.w = 256;
+     rect.h = 180;
+
      /* create a new window */
-     lite_new_window( &window,
-                      NULL,
-                      LITE_CENTER_HORIZONTALLY,
-                      LITE_CENTER_VERTICALLY,
-                      256, 180, 
-                      DWCAPS_ALPHACHANNEL, basename(argv[1]) );
+     lite_new_window( NULL,
+                      &rect,
+                      DWCAPS_ALPHACHANNEL,
+                      liteDefaultWindowTheme,
+                      basename(argv[1]), &window );
 
      /* show window */
      lite_set_window_opacity( window, 0xff );

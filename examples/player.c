@@ -113,12 +113,13 @@ button_pressed( LiteButton *button, void *ctx )
 int
 main (int argc, char *argv[])
 {
-     int         i;
-     DFBResult   ret;
-     LiteLabel  *label[4];
-     LiteSlider *slider[4];
-     LiteButton *playbutton;
-     LiteWindow *window;
+     int           i;
+     DFBResult     ret;
+     LiteLabel    *label[4];
+     LiteSlider   *slider[4];
+     LiteButton   *playbutton;
+     LiteWindow   *window;
+     DFBRectangle  rect;
 
      ret = DirectFBInit( &argc, &argv );
      if (ret)
@@ -143,13 +144,17 @@ main (int argc, char *argv[])
           return 2;
      }
 
+     rect.x = LITE_CENTER_HORIZONTALLY;
+     rect.x = LITE_CENTER_VERTICALLY;
+     rect.w = 330;
+     rect.h = 170;
+
      /* create a window */
-     ret = lite_new_window( &window,
-                             NULL,
-                             LITE_CENTER_HORIZONTALLY,
-                             LITE_CENTER_VERTICALLY,
-                             330, 170,
-                             DWCAPS_ALPHACHANNEL, basename(argv[1]) );
+     ret = lite_new_window( NULL,
+                            &rect,
+                            DWCAPS_ALPHACHANNEL,
+                            liteDefaultWindowTheme,
+                            basename(argv[1]), &window );
 
      /* setup the labels */
      for (i=0; i<4; i++) {
