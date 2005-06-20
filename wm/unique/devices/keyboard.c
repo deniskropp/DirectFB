@@ -91,6 +91,8 @@ keyboard_connected( UniqueDevice        *device,
 {
      KeyboardData *keyboard = data;
 
+     (void) keyboard;
+
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( keyboard, KeyboardData );
 
@@ -107,6 +109,8 @@ keyboard_disconnected( UniqueDevice        *device,
                        CoreInputDevice     *source )
 {
      KeyboardData *keyboard = data;
+
+     (void) keyboard;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( keyboard, KeyboardData );
@@ -125,6 +129,8 @@ keyboard_process_event( UniqueDevice        *device,
 {
      UniqueInputEvent  evt;
      KeyboardData     *keyboard = data;
+
+     (void) keyboard;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( keyboard, KeyboardData );

@@ -409,6 +409,8 @@ wm_process_input( CoreWindowStack     *stack,
 {
      StackData *data = stack_data;
 
+     (void) data;
+
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );

@@ -95,6 +95,8 @@ pointer_connected( UniqueDevice    *device,
 {
      PointerData *pointer = data;
 
+     (void) pointer;
+
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( pointer, PointerData );
 
@@ -111,6 +113,8 @@ pointer_disconnected( UniqueDevice    *device,
                       CoreInputDevice *source )
 {
      PointerData *pointer = data;
+
+     (void) pointer;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( pointer, PointerData );

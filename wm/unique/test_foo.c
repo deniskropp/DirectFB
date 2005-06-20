@@ -85,6 +85,8 @@ foo_channel_listener( const void *msg_data,
      const UniqueInputEvent *event   = msg_data;
      UniqueContext          *context = ctx;
 
+     (void) context;
+
      D_ASSERT( event != NULL );
 
      D_MAGIC_ASSERT( context, UniqueContext );

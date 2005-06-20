@@ -91,6 +91,8 @@ wheel_connected( UniqueDevice        *device,
 {
      WheelData *wheel = data;
 
+     (void) wheel;
+
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( wheel, WheelData );
 
@@ -107,6 +109,8 @@ wheel_disconnected( UniqueDevice        *device,
                     CoreInputDevice     *source )
 {
      WheelData *wheel = data;
+
+     (void) wheel;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( wheel, WheelData );
@@ -125,6 +129,8 @@ wheel_process_event( UniqueDevice        *device,
 {
      UniqueInputEvent  evt;
      WheelData        *wheel = data;
+
+     (void) wheel;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( wheel, WheelData );
