@@ -22,10 +22,15 @@ if BUILD_VORBIS
 VORBIS_PROVIDER_LTLIB = libifusionsoundmusicprovider_vorbis.la
 endif
 
+if BUILD_MAD
+MAD_PROVIDER_LTLIB = libifusionsoundmusicprovider_mad.la
+endif
+
 ifusionsoundmusicprovider_LTLIBRARIES =	\
 	$(TIMIDITY_PROVIDER_LTLIB)	\
 	$(WAVE_PROVIDER_LTLIB)		\
-	$(VORBIS_PROVIDER_LTLIB)
+	$(VORBIS_PROVIDER_LTLIB)		\
+	$(MAD_PROVIDER_LTLIB)
 
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
@@ -47,4 +52,11 @@ libifusionsoundmusicprovider_vorbis_la_SOURCES = ifusionsoundmusicprovider_vorbi
 libifusionsoundmusicprovider_vorbis_la_LIBADD = $(VORBISFILE_LIBS)
 
 libifusionsoundmusicprovider_vorbis_la_LDFLAGS = -avoid-version -module
+
+
+libifusionsoundmusicprovider_mad_la_SOURCES = ifusionsoundmusicprovider_mad.c
+
+libifusionsoundmusicprovider_mad_la_LIBADD = $(MAD_LIBS)
+
+libifusionsoundmusicprovider_mad_la_LDFLAGS = -avoid-version -module
 
