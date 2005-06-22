@@ -139,6 +139,7 @@ translate_key( KeySym xKeySymbol, DFBInputEvent* pDFBEvent)
 		case XK_t 			: pDFBEvent->key_id	= DIKI_T; 		return true; break;
 		case XK_u 			: pDFBEvent->key_id	= DIKI_U; 		return true; break;
 		case XK_v 			: pDFBEvent->key_id	= DIKI_V; 		return true; break;
+		case XK_w 			: pDFBEvent->key_id	= DIKI_W; 		return true; break;
 		case XK_x 			: pDFBEvent->key_id	= DIKI_X; 		return true; break;
 		case XK_y 			: pDFBEvent->key_id	= DIKI_Y; 		return true; break;
 		case XK_z 			: pDFBEvent->key_id	= DIKI_Z; 		return true; break;
