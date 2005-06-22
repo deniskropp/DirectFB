@@ -90,13 +90,14 @@ main (int argc, char *argv[])
              "  Title:    %s\n"
              "  Album:    %s\n"
              "  Year:     %d\n"
+             "  Genre:    %s\n"
              "  Encoding: %s\n"
              "  Bitrate:  %d Kbits/s\n"
              "  Output:   %d Hz, %d channel(s)\n\n\n",
              basename (argv[1]),
              t_dsc.artist, t_dsc.title, t_dsc.album,
-             (int)t_dsc.year, t_dsc.encoding, t_dsc.bitrate/1000,
-             s_dsc.samplerate, s_dsc.channels );
+             (int)t_dsc.year, t_dsc.genre, t_dsc.encoding,
+             t_dsc.bitrate/1000, s_dsc.samplerate, s_dsc.channels );
 
      while (1) {
           int    filled = 0;
