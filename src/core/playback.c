@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <config.h>
+
 #include <direct/debug.h>
 #include <direct/messages.h>
 
@@ -49,8 +51,8 @@ struct __FS_CorePlayback {
      int              position;
      int              stop;
 
-     int              left;        /* 8.8 multiplier for left channel */
-     int              right;       /* 8.8 multiplier for right channel */
+     __fsf            left;        /*     multiplier for left channel */
+     __fsf            right;       /*     multiplier for right channel */
      int              pitch;       /* 8.8 multiplier for sample rate */
 };
 
@@ -113,8 +115,8 @@ fs_playback_create( CoreSound        *core,
      /* Initialize private data. */
      playback->core   = core;
      playback->notify = notify;
-     playback->left   = 0x100;
-     playback->right  = 0x100;
+     playback->left   = fsf_from_int( 1 );
+     playback->right  = fsf_from_int( 1 );
      playback->pitch  = 0x100;
 
      fusion_skirmish_init( &playback->lock, "FusionSound playback lock" );
@@ -275,22 +277,22 @@ fs_playback_set_position( CorePlayback *playback,
 
 DFBResult
 fs_playback_set_volume( CorePlayback *playback,
-                        int           left,
-                        int           right )
+                        float         left,
+                        float         right )
 {
      D_ASSERT( playback != NULL );
-     D_ASSERT( left >= 0 );
-     D_ASSERT( left < 0x10000 );
-     D_ASSERT( right >= 0 );
-     D_ASSERT( right < 0x10000 );
+     D_ASSERT( left >= 0.0f );
+     D_ASSERT( left < 256.0f );
+     D_ASSERT( right >= 0.0f );
+     D_ASSERT( right < 256.0f );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
           return DFB_FUSION;
 
      /* Adjust volume. */
-     playback->left  = left;
-     playback->right = right;
+     playback->left  = fsf_from_float( left  );
+     playback->right = fsf_from_float( right );
 
      /* Unlock playback. */
      fusion_skirmish_dismiss( &playback->lock );
@@ -323,7 +325,7 @@ fs_playback_set_pitch( CorePlayback *playback,
 
 DFBResult
 fs_playback_mixto( CorePlayback *playback,
-                   int          *dest,
+                   __fsf        *dest,
                    int           dest_rate,
                    int           max_samples )
 {

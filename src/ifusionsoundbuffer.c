@@ -54,8 +54,8 @@ typedef struct {
 
      bool                   locked;
 
-     int                    left;
-     int                    right;
+     float                  left;
+     float                  right;
 
      CorePlayback          *looping;
      pthread_mutex_t        lock;
@@ -175,8 +175,8 @@ static DFBResult
 IFusionSoundBuffer_SetPan( IFusionSoundBuffer *thiz,
                            float               pan )
 {
-     int left  = 0x100;
-     int right = 0x100;
+     float left  = 1.0f;
+     float right = 1.0f;
 
      DIRECT_INTERFACE_GET_DATA(IFusionSoundBuffer)
 
@@ -184,9 +184,9 @@ IFusionSoundBuffer_SetPan( IFusionSoundBuffer *thiz,
           return DFB_INVARG;
 
      if (pan < 0.0f)
-          right = (1.0f + pan) * 0x100;
+          right = 1.0f + pan;
      else if (pan > 0.0f)
-          left = (1.0f - pan) * 0x100;
+          left = 1.0f - pan;
 
      data->left  = left;
      data->right = right;
@@ -346,8 +346,8 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      data->channels = channels;
      data->format   = format;
      data->rate     = rate;
-     data->left     = 0x100;
-     data->right    = 0x100;
+     data->left     = 1.0f;
+     data->right    = 1.0f;
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 

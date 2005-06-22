@@ -101,19 +101,63 @@ const char *FusionSoundErrorString(
                                   );
 
 /*
+ * @internal
+ *
+ * Encodes format constants in the following way (bit 31 - 0):
+ *
+ * 0000:0000 | 0000:0dcc | cccc:cbbb | bbbb:aaaa
+ *
+ * a) sampleformat index<br>
+ * b) total bits per sample<br>
+ * c) effective sound bits per sample (i.e. depth)<br>
+ * d) signed sample format
+ */
+#define FS_SAMPLEFORMAT( index, bits, depth, sgned ) \
+     ( ((index & 0x0F)      ) |                      \
+       ((bits  & 0x7F) <<  4) |                      \
+       ((depth & 0x7F) << 11) |                      \
+       ((sgned & 0x01) << 18) )
+
+/*
  * The sample format is the way of storing audible information.
  *
- * Data is always stored in <b>native endian</b>. This keeps the library and
+ * 8, 16 and 32 bit samples are always stored in <b>native endian</b>, while
+ * 24 bit samples are stored in <b>little endian</b>. This keeps the library and
  * applications simple and clean. Always access sample buffers like arrays of
- * 8 bit or 16 bit integers depending on the sample format, unless data is
+ * 8, 16 or 32 bit integers depending on the sample format, unless data is
  * written with endianness being taken care of. This does not excuse from endian
  * conversion that might be necessary when reading data from files.
  */
 typedef enum {
-     FSSF_UNKNOWN        = 0x00000000,      /* Unknown or invalid format. */
-     FSSF_S16            = 0x00000001,      /* Signed 16 bit (linear). */
-     FSSF_U8             = 0x00000002       /* Unsigned 8 bit (linear). */
+     FSSF_UNKNOWN        = 0x00000000, /* Unknown or invalid format. */
+     
+     /* Unsigned 8 bit. */ 
+     FSSF_U8             = FS_SAMPLEFORMAT( 0,  8,  8, 0 ),
+     
+     /* Signed 16 bit (native endian). */
+     FSSF_S16            = FS_SAMPLEFORMAT( 1, 16, 16, 1 ),
+
+     /* Signed 24 bit (little endian). */
+     FSSF_S24            = FS_SAMPLEFORMAT( 2, 24, 24, 1 ),
+
+     /* Signed 32 bit (native endian). */
+     FSSF_S32            = FS_SAMPLEFORMAT( 3, 32, 32, 1 ),
 } FSSampleFormat;
+
+/* Number of defined sample formats */
+#define FS_NUM_SAMPLEFORMATS  4
+
+/* These macros extract information about the sample format. */
+#define FS_SAMPLEFORMAT_INDEX( fmt )  (((fmt) & 0x0000000F)      )
+
+#define FS_BITS_PER_SAMPLE( fmt )     (((fmt) & 0x000007F0) >>  4)
+
+#define FS_BYTES_PER_SAMPLE( fmt )    (((fmt) & 0x000007F0) >>  7)
+
+#define FS_SAMPLEFORMAT_DEPTH( fmt )  (((fmt) & 0x0003f800) >> 11)
+
+#define FS_SIGNED_SAMPLEFORMAT( fmt ) (((fmt) & 0x00040000) ? 1 : 0)
+
 
 /*
  * Each buffer description flag validates one field of the buffer description.
@@ -790,7 +834,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      /*
       * Gets current position within the current track.
       *
-      * Returns <b>DFB_EOF</b> if the playback
+      * Returns <i>DFB_EOF</i> if the playback
       * of the current track is finished.
       */
      DFBResult (*GetPos) (

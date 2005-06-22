@@ -344,24 +344,24 @@ IFusionSoundPlayback_React( const void *msg_data,
 static DFBResult
 IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data )
 {
-     int left  = 0x100;
-     int right = 0x100;
+     float left  = 1.0f;
+     float right = 1.0f;
 
      if (data->pan != 0.0f) {
           if (data->pan < 0.0f)
-               right = (1.0f + data->pan) * 0x100;
+               right = 1.0f + data->pan;
           else if (data->pan > 0.0f)
-               left = (1.0f - data->pan) * 0x100;
+               left = 1.0f - data->pan;
      }
 
      if (data->volume != 1.0f) {
           left *= data->volume;
-          if (left > 0xffff)
-               left = 0xffff;
+          if (left > 256.0f)
+               left = 256.0f;
 
           right *= data->volume;
-          if (right > 0xffff)
-               right = 0xffff;
+          if (right > 256.0f)
+               right = 256.0f;
      }
 
      return fs_playback_set_volume( data->playback, left, right );

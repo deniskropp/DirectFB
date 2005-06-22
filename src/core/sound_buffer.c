@@ -5,8 +5,9 @@
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -23,6 +24,8 @@
    Free Software Foundation, Inc., 59 Temple Place - Suite 330,
    Boston, MA 02111-1307, USA.
 */
+
+#include <config.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -81,12 +84,11 @@ fs_buffer_create( CoreSound        *core,
               __FUNCTION__, length, channels, format, rate );
 
      switch (format) {
-          case FSSF_S16:
-               bytes = 2;
-               break;
-
           case FSSF_U8:
-               bytes = 1;
+          case FSSF_S16:
+          case FSSF_S24:
+          case FSSF_S32:
+               bytes = FS_BYTES_PER_SAMPLE( format );
                break;
 
           default:
@@ -155,15 +157,17 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
      return DFB_OK;
 }
 
+/******************************************************************************/          
+
 static int
 mix_from_8bit( CoreSoundBuffer *buffer,
-               int             *dest,
+               __fsf           *dest,
                int              dest_rate,
                int              max_samples,
                int              pos,
                int              stop,
-               int              left,
-               int              right,
+               __fsf            left,
+               __fsf            right,
                int              pitch )
 {
      int   i, n;
@@ -185,14 +189,18 @@ mix_from_8bit( CoreSoundBuffer *buffer,
           if (buffer->channels == 2) {
                p <<= 1;
 
-               dest[i]   += ((int) data[p]   - 128) * left;
-               dest[i+1] += ((int) data[p+1] - 128) * right;
+               dest[i+0] += (left == FSF_ONE)
+                            ? fsf_from_u8( data[p+0] )
+                            : fsf_mul( fsf_from_u8( data[p+0] ), left  );
+               dest[i+1] += (right == FSF_ONE)
+                            ? fsf_from_u8( data[p+1] )
+                            : fsf_mul( fsf_from_u8( data[p+1] ), right );
           }
           else {
-               int sample = (int) data[p] - 128;
+               __fsf s = fsf_from_u8( data[p] );
 
-               dest[i]   += sample * left;
-               dest[i+1] += sample * right;
+               dest[i+0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               dest[i+1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
           }
      }
 
@@ -203,13 +211,13 @@ mix_from_8bit( CoreSoundBuffer *buffer,
 
 static int
 mix_from_16bit( CoreSoundBuffer *buffer,
-                int             *dest,
+                __fsf           *dest,
                 int              dest_rate,
                 int              max_samples,
                 int              pos,
                 int              stop,
-                int              left,
-                int              right,
+                __fsf            left,
+                __fsf            right,
                 int              pitch )
 {
      unsigned int  i, n;
@@ -231,14 +239,18 @@ mix_from_16bit( CoreSoundBuffer *buffer,
           if (buffer->channels == 2) {
                p <<= 1;
 
-               dest[i]   += (data[p]   * left) >> 8;
-               dest[i+1] += (data[p+1] * right) >> 8;
+               dest[i+0] += (left == FSF_ONE)
+                            ? fsf_from_s16( data[p+0] )
+                            : fsf_mul( fsf_from_s16( data[p+0] ), left  );
+               dest[i+1] += (right == FSF_ONE)
+                            ? fsf_from_s16( data[p+1] )
+                            : fsf_mul( fsf_from_s16( data[p+1] ), right );
           }
           else {
-               int sample = data[p];
+               __fsf s = fsf_from_s16( data[p] );
 
-               dest[i]   += (sample * left) >> 8;
-               dest[i+1] += (sample * right) >> 8;
+               dest[i+0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               dest[i+1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
           }
      }
 
@@ -247,15 +259,126 @@ mix_from_16bit( CoreSoundBuffer *buffer,
      return n >> 8;
 }
 
+static int
+mix_from_24bit( CoreSoundBuffer *buffer,
+                __fsf           *dest,
+                int              dest_rate,
+                int              max_samples,
+                int              pos,
+                int              stop,
+                __fsf            left,
+                __fsf            right,
+                int              pitch )
+{
+     unsigned int  i, n;
+     unsigned int  inc  = (buffer->rate * pitch) / dest_rate;
+     __u8         *data = buffer->data;
+
+     D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
+              __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+
+     for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
+          int p = (n >> 8) + pos;
+
+          if (stop >= 0 && p >= stop)
+               break;
+
+          if (p >= buffer->length)
+               p %= buffer->length;
+
+          if (buffer->channels == 2) {
+               int s0, s1;
+               
+               p <<= 1;
+               p  *= 3;
+               s0  = ((data[p+0]<<8) | (data[p+1]<<16) | (data[p+2]<<24)) >> 8;
+               s1  = ((data[p+3]<<8) | (data[p+4]<<16) | (data[p+5]<<24)) >> 8;
+               
+               dest[i+0] += (left == FSF_ONE)
+                            ? fsf_from_s24( s0 )
+                            : fsf_mul( fsf_from_s24( s0 ), left  );
+               dest[i+1] += (right == FSF_ONE)
+                            ? fsf_from_s24( s1 )
+                            : fsf_mul( fsf_from_s24( s1 ), right );
+          }
+          else {
+               __fsf s;
+               
+               p *= 3;
+               s = fsf_from_s24( (int)((data[p+0] <<  8) |
+                                       (data[p+1] << 16) |
+                                       (data[p+2] << 24)) >> 8 );
+
+               dest[i+0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               dest[i+1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
+          }
+     }
+
+     D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
+
+     return n >> 8;
+}
+
+static int
+mix_from_32bit( CoreSoundBuffer *buffer,
+                __fsf           *dest,
+                int              dest_rate,
+                int              max_samples,
+                int              pos,
+                int              stop,
+                __fsf            left,
+                __fsf            right,
+                int              pitch )
+{
+     unsigned int  i, n;
+     unsigned int  inc  = (buffer->rate * pitch) / dest_rate;
+     __s32        *data = buffer->data;
+
+     D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
+              __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+
+     for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
+          int p = (n >> 8) + pos;
+
+          if (stop >= 0 && p >= stop)
+               break;
+
+          if (p >= buffer->length)
+               p %= buffer->length;
+
+          if (buffer->channels == 2) {
+               p <<= 1;
+
+               dest[i+0] += (left == FSF_ONE)
+                            ? fsf_from_s32( data[p+0] )
+                            : fsf_mul( fsf_from_s32( data[p+0] ), left  );
+               dest[i+1] += (right == FSF_ONE)
+                            ? fsf_from_s32( data[p+1] )
+                            : fsf_mul( fsf_from_s32( data[p+1] ), right );
+          }
+          else {
+               __fsf s = fsf_from_s32( data[p] );
+
+               dest[i+0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
+               dest[i+1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
+          }
+     }
+
+     D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d).\n", __FUNCTION__, n >> 8, i >> 1 );
+
+     return n >> 8;
+}
+
+
 DFBResult
 fs_buffer_mixto( CoreSoundBuffer *buffer,
-                 int             *dest,
+                 __fsf           *dest,
                  int              dest_rate,
                  int              max_samples,
                  int              pos,
                  int              stop,
-                 int              left,
-                 int              right,
+                 __fsf            left,
+                 __fsf            right,
                  int              pitch,
                  int             *ret_pos,
                  int             *ret_num )
@@ -277,14 +400,24 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
 
      /* Mix the data into the buffer. */
      switch (buffer->format) {
+          case FSSF_U8:
+               num = mix_from_8bit( buffer, dest, dest_rate, max_samples,
+                                    pos, stop, left, right, pitch );
+               break;
+
           case FSSF_S16:
                num = mix_from_16bit( buffer, dest, dest_rate, max_samples,
                                      pos, stop, left, right, pitch );
                break;
 
-          case FSSF_U8:
-               num = mix_from_8bit( buffer, dest, dest_rate, max_samples,
-                                    pos, stop, left, right, pitch );
+          case FSSF_S24:
+               num = mix_from_24bit( buffer, dest, dest_rate, max_samples,
+                                     pos, stop, left, right, pitch );
+               break;
+               
+          case FSSF_S32:
+               num = mix_from_32bit( buffer, dest, dest_rate, max_samples,
+                                     pos, stop, left, right, pitch );
                break;
 
           default:

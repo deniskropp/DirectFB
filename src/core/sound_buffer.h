@@ -31,6 +31,7 @@
 
 #include <fusion/object.h>
 
+#include <core/fs_types.h>
 #include <core/types_sound.h>
 
 struct __FS_CoreSoundBuffer {
@@ -86,13 +87,13 @@ DFBResult fs_buffer_lock  ( CoreSoundBuffer  *buffer,
 DFBResult fs_buffer_unlock( CoreSoundBuffer  *buffer );
 
 DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
-                            int              *dest,
+                            __fsf            *dest,
                             int               dest_rate,
                             int               max_samples,
                             int               pos,
                             int               stop,
-                            int               left,
-                            int               right,
+                            __fsf             left,
+                            __fsf             right,
                             int               pitch,
                             int              *ret_pos,
                             int              *ret_num );

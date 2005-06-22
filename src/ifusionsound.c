@@ -5,8 +5,9 @@
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -98,10 +99,10 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
                            IFusionSoundBuffer  **ret_interface )
 {
      DFBResult                 ret;
-     int                       length   = 0;
      int                       channels = 2;
      FSSampleFormat            format   = FSSF_S16;
      int                       rate     = 44100;
+     int                       length   = 0;
      FSBufferDescriptionFlags  flags;
      CoreSoundBuffer          *buffer;
      IFusionSoundBuffer       *interface;
@@ -116,40 +117,42 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
      if (flags & ~FSBDF_ALL)
           return DFB_INVARG;
 
+     if (flags & FSBDF_CHANNELS) {
+          switch (desc->channels) {
+               case 1:
+               case 2:
+                    channels = desc->channels;
+                    break;
+
+               default:
+                    return DFB_INVARG;
+          }
+     }
+     
+     if (flags & FSBDF_SAMPLEFORMAT) {
+          switch (format) {
+               case FSSF_U8:
+               case FSSF_S16:
+               case FSSF_S24:
+               case FSSF_S32:
+                    format = desc->sampleformat;
+                    break;
+
+               default:
+                    return DFB_INVARG;
+          }
+     }
+     
+     if (flags & FSBDF_SAMPLERATE) {
+          if (desc->samplerate < 1)
+               return DFB_INVARG;
+          rate = desc->samplerate;
+     }
+          
      if (flags & FSBDF_LENGTH)
           length = desc->length;
 
-     if (flags & FSBDF_CHANNELS)
-          channels = desc->channels;
-
-     if (flags & FSBDF_SAMPLEFORMAT)
-          format = desc->sampleformat;
-
-     if (flags & FSBDF_SAMPLERATE)
-          rate = desc->samplerate;
-
      if (length < 1)
-          return DFB_INVARG;
-
-     switch (channels) {
-          case 1:
-          case 2:
-               break;
-
-          default:
-               return DFB_INVARG;
-     }
-
-     switch (format) {
-          case FSSF_S16:
-          case FSSF_U8:
-               break;
-
-          default:
-               return DFB_INVARG;
-     }
-
-     if (rate < 1)
           return DFB_INVARG;
 
      ret = fs_buffer_create( data->core,
@@ -180,8 +183,8 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      int                       channels  = 2;
      FSSampleFormat            format    = FSSF_S16;
      int                       rate      = 44100;
-     int                       size      = rate;   /* space for one second */
-     int                       prebuffer = 0;      /* no prebuffer by default */
+     int                       size      = rate;     /* space for one second */
+     int                       prebuffer = 0;        /* no prebuffer by default */
      FSStreamDescriptionFlags  flags     = FSSDF_NONE;
      CoreSoundBuffer          *buffer;
      IFusionSoundStream       *interface;
@@ -197,48 +200,55 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
           if (flags & ~FSSDF_ALL)
                return DFB_INVARG;
 
-          if (flags & FSSDF_BUFFERSIZE)
-               size = desc->buffersize;
-          else if (flags & FSSDF_SAMPLERATE)
-               size = desc->samplerate;
+          if (flags & FSSDF_CHANNELS) {
+               switch (desc->channels) {
+                    case 1:
+                    case 2:
+                         channels = desc->channels;
+                         break;
 
-          if (flags & FSSDF_CHANNELS)
-               channels = desc->channels;
+                    default:
+                         return DFB_INVARG;
+               }
+          }               
 
-          if (flags & FSSDF_SAMPLEFORMAT)
-               format = desc->sampleformat;
+          if (flags & FSSDF_SAMPLEFORMAT) {
+               switch (desc->sampleformat) {
+                    case FSSF_U8:
+                    case FSSF_S16:
+                    case FSSF_S24:
+                    case FSSF_S32:
+                         format = desc->sampleformat;
+                         break;
 
-          if (flags & FSSDF_SAMPLERATE)
+                    default:
+                         return DFB_INVARG;
+               }
+          }    
+
+          if (flags & FSSDF_SAMPLERATE) {
+               if (desc->samplerate < 1)
+                    return DFB_INVARG;
                rate = desc->samplerate;
+          }
+               
+          if (flags & FSSDF_BUFFERSIZE) {
+               if (desc->buffersize < 1)
+                    return DFB_INVARG;
+               size = desc->buffersize;
+          } else
+               size = rate;
 
-          if (flags & FSSDF_PREBUFFER)
+          if (flags & FSSDF_PREBUFFER) {
+               if (desc->prebuffer >= size)
+                    return DFB_INVARG;
                prebuffer = desc->prebuffer;
+          }
      }
-
-     if (size < 1 || rate < 1 || prebuffer >= size)
-          return DFB_INVARG;
 
      /* Limit ring buffer size to five seconds. */
      if (size > rate * 5)
           return DFB_LIMITEXCEEDED;
-
-     switch (channels) {
-          case 1:
-          case 2:
-               break;
-
-          default:
-               return DFB_INVARG;
-     }
-
-     switch (format) {
-          case FSSF_S16:
-          case FSSF_U8:
-               break;
-
-          default:
-               return DFB_INVARG;
-     }
 
      ret = fs_buffer_create( data->core,
                              size, channels, format, rate, &buffer );
@@ -331,10 +341,10 @@ Construct( IFusionSound *thiz,
      }
 
      /* Assign interface pointers. */
-     thiz->AddRef        = IFusionSound_AddRef;
-     thiz->Release       = IFusionSound_Release;
-     thiz->CreateBuffer  = IFusionSound_CreateBuffer;
-     thiz->CreateStream  = IFusionSound_CreateStream;
+     thiz->AddRef              = IFusionSound_AddRef;
+     thiz->Release             = IFusionSound_Release;
+     thiz->CreateBuffer        = IFusionSound_CreateBuffer;
+     thiz->CreateStream        = IFusionSound_CreateStream;
      thiz->CreateMusicProvider = IFusionSound_CreateMusicProvider;
 
      return DFB_OK;

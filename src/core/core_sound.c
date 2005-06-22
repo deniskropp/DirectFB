@@ -54,9 +54,22 @@
 
 #include <core/core.h>   /* FIXME */
 
+#include <core/fs_types.h>
 #include <core/core_sound.h>
 #include <core/playback.h>
 #include <core/sound_buffer.h>
+
+/******************************************************************************/
+
+#ifdef WORDS_BIGENDIAN
+# define AFMT_S16  AFMT_S16_BE
+# define AFMT_S24  AFMT_S24_BE
+# define AFMT_S32  AFMT_S32_BE
+#else
+# define AFMT_S16  AFMT_S16_LE
+# define AFMT_S24  AFMT_S24_LE
+# define AFMT_S32  AFMT_S32_LE
+#endif
 
 /******************************************************************************/
 
@@ -385,8 +398,8 @@ sound_thread( DirectThread *thread, void *arg )
      CoreSoundShared *shared  = core->shared;
      int              samples = shared->config.samples_per_block;
 
-     __s16            output[samples];
-     int              mixing[samples];
+     __u8             output[shared->config.block_size];
+     __fsf            mixing[samples];
 
      int              byte_rate = (shared->config.rate *
                                    shared->config.channels *
@@ -428,7 +441,7 @@ sound_thread( DirectThread *thread, void *arg )
           }
 
           /* Clear mixing buffer. */
-          memset( mixing, 0, sizeof(int) * samples );
+          memset( mixing, 0, sizeof(mixing) );
 
           /* Iterate through running playbacks, mixing them together. */
           fusion_skirmish_prevail( &shared->playlist.lock );
@@ -452,15 +465,52 @@ sound_thread( DirectThread *thread, void *arg )
           fusion_skirmish_dismiss( &shared->playlist.lock );
 
           /* Convert mixing buffer to output format, clipping each sample. */
-          for (i=0; i<samples; i++) {
-               register int sample = mixing[i];
-
-               if (sample > 32767)
-                    sample = 32767;
-               else if (sample < -32767)
-                    sample = -32767;
-
-               output[i] = sample;
+          switch (shared->config.fmt) {
+               case AFMT_U8:
+                    for (i = 0; i < samples; i++) {
+                         register __fsf s;
+                         s = fsf_round_u8( mixing[i] );                       
+                         s = fsf_clip( s );                  
+                         output[i] = fsf_to_u8( s );
+                    }
+                    break;
+               case AFMT_S16:
+                    for (i = 0; i < samples; i++) {
+                         register __fsf s;
+                         s = fsf_round_s16( mixing[i] );
+                         s = fsf_clip( s );                         
+                         ((__s16*)output)[i] = fsf_to_s16( s );
+                    }
+                    break;
+               case AFMT_S24:
+                    for (i = 0; i < samples; i++) {
+                         register __fsf s;
+                         register int   d;
+                         s = fsf_round_s24( mixing[i] );
+                         s = fsf_clip( s );
+                         d = fsf_to_s24( s );
+#ifdef WORDS_BIGENDIAN
+                         output[i*3+0] = d >> 16;
+                         output[i*3+1] = d >>  8;
+                         output[i*3+2] = d      ;
+#else
+                         output[i*3+0] = d      ;
+                         output[i*3+1] = d >>  8;
+                         output[i*3+2] = d >> 16;
+#endif
+                    }
+                    break;
+               case AFMT_S32:
+                    for (i = 0; i < samples; i++) {
+                         register __fsf s;
+                         s = fsf_round_s32( mixing[i] );
+                         s = fsf_clip( s );                         
+                         ((__s32*)output)[i] = fsf_to_s32( s );
+                    }
+                    break;
+               default:
+                    D_BUG( "unexpected sample format" );
+                    break;
           }
 
           write( core->fd, output, shared->config.block_size );
@@ -496,11 +546,18 @@ fs_core_initialize( CoreSound *core )
 #endif
      /* set bits per sample */
      ioctl( fd, SNDCTL_DSP_SETFMT, &fmt );
-     if (fmt != shared->config.fmt) {
-          D_ERROR( "FusionSound/Core: "
-                   "Unable to set bits to '%d'!\n", shared->config.bits );
-          close( fd );
-          return DFB_UNSUPPORTED;
+     switch (fmt) {
+          case AFMT_U8:
+          case AFMT_S16:
+          case AFMT_S24:
+          case AFMT_S32:
+               shared->config.fmt = fmt;
+               break;
+          default:
+               D_ERROR( "FusionSound/Core: "
+                        "Unable to set bits to '%d'!\n", shared->config.bits );
+               close( fd );
+               return DFB_UNSUPPORTED;
      }
 
      /* set mono/stereo */
@@ -652,11 +709,7 @@ fs_core_arena_initialize( FusionArena *arena,
      core->master = true;
 
      /* FIXME: add live configuration */
-#ifdef WORDS_BIGENDIAN
-     shared->config.fmt      = AFMT_S16_BE;
-#else
-     shared->config.fmt      = AFMT_S16_LE;
-#endif
+     shared->config.fmt      = AFMT_S16;
      shared->config.bits     = 16;
      shared->config.channels = 2;
      shared->config.rate     = 48000;

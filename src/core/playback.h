@@ -31,6 +31,7 @@
 
 #include <fusion/object.h>
 
+#include <core/fs_types.h>
 #include <core/types_sound.h>
 
 typedef enum {
@@ -80,8 +81,8 @@ DFBResult fs_playback_set_position( CorePlayback     *playback,
                                     int               position );
 
 DFBResult fs_playback_set_volume  ( CorePlayback     *playback,
-                                    int               left,
-                                    int               right );
+                                    float             left,
+                                    float             right );
 
 DFBResult fs_playback_set_pitch   ( CorePlayback     *playback,
                                     int               pitch );
@@ -90,7 +91,7 @@ DFBResult fs_playback_set_pitch   ( CorePlayback     *playback,
  * Internally called by core_audio.c in the audio thread.
  */
 DFBResult fs_playback_mixto       ( CorePlayback     *playback,
-                                    int              *dest,
+                                    __fsf            *dest,
                                     int               dest_rate,
                                     int               max_samples );
 
