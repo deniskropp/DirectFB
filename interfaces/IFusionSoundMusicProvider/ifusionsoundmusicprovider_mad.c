@@ -464,7 +464,7 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
      desc->flags      = FSSDF_SAMPLERATE | FSSDF_CHANNELS | FSSDF_BUFFERSIZE;
      desc->samplerate = data->samplerate;
      desc->channels   = data->channels;
-     desc->buffersize = 1152;
+     desc->buffersize = data->samplerate >> 2;
 
      return DFB_OK;
 }
@@ -481,7 +481,7 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      desc->flags      = FSBDF_SAMPLERATE | FSBDF_CHANNELS | FSBDF_LENGTH;
      desc->samplerate = data->samplerate;
      desc->channels   = data->channels;
-     desc->length     = 1152;
+     desc->length     = data->samplerate >> 2;
 
      return DFB_OK;
 }

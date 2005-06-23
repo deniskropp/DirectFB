@@ -104,7 +104,7 @@ static __inline__ int
 FtoS32( float s )
 {
      int d;
-     d = CLAMP( s, -1.f, 0.9999999f ) * 2147483648.f;
+     d = CLAMP( s, -1.f, 1.f ) * 2147483647.f;
      return d;
 }
 
@@ -186,7 +186,7 @@ vorbis_mix_audio( float **src, char *dst, int len,
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
                          float *s = src[i];
-                         __u8  *d = (__u8*)&dst[i];
+                         __u8  *d = (__u8*)&dst[i*3];
 
                          for (j = 0; j < len; j++) {
                               int c = FtoS24(s[j]);
@@ -421,7 +421,7 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
      desc->flags      = FSSDF_SAMPLERATE | FSSDF_CHANNELS | FSSDF_BUFFERSIZE;
      desc->samplerate = data->info->rate;
      desc->channels   = data->info->channels;
-     desc->buffersize = 4096;
+     desc->buffersize = desc->samplerate >> 2;
 
      return DFB_OK;
 }
@@ -438,7 +438,7 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
      desc->flags      = FSBDF_SAMPLERATE | FSBDF_CHANNELS | FSBDF_LENGTH;
      desc->samplerate = data->info->rate;
      desc->channels   = data->info->channels;
-     desc->length     = 4096;
+     desc->length     = desc->samplerate >> 2;
 
      return DFB_OK;
 }
