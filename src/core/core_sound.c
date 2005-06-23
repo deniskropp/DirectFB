@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2003  convergence GmbH.
+   (c) Copyright 2002-2005  convergence GmbH.
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -50,7 +51,9 @@
 #include <fusion/shmalloc.h>
 #include <fusion/object.h>
 
-#include <misc/conf.h>   /* FIXME */
+#include <misc/conf.h>
+
+#include <misc/fs_config.h>
 
 #include <core/core.h>   /* FIXME */
 
@@ -89,12 +92,12 @@ struct __FS_CoreSoundShared {
      } playlist;
 
      struct {
-          int             fmt;               /* hack */
-          int             bits;              /* hack */
-          long            rate;              /* hack */
-          int             channels;          /* hack */
-          int             block_size;        /* hack */
-          int             samples_per_block; /* hack */
+          int             fmt;                 /* hack */
+          int             bits;                /* hack */
+          long            rate;                /* hack */
+          int             channels;            /* hack */
+          int             block_size;          /* hack */
+          int             samples_per_channel; /* hack */
      } config;
 
      int                  output_delay;      /* output buffer size in ms */
@@ -396,7 +399,7 @@ sound_thread( DirectThread *thread, void *arg )
 {
      CoreSound       *core    = arg;
      CoreSoundShared *shared  = core->shared;
-     int              samples = shared->config.samples_per_block;
+     int              samples = shared->config.samples_per_channel * 2;
 
      __u8             output[shared->config.block_size];
      __fsf            mixing[samples];
@@ -467,45 +470,95 @@ sound_thread( DirectThread *thread, void *arg )
           /* Convert mixing buffer to output format, clipping each sample. */
           switch (shared->config.fmt) {
                case AFMT_U8:
-                    for (i = 0; i < samples; i++) {
-                         register __fsf s;
-                         s = fsf_round_u8( mixing[i] );                       
-                         s = fsf_clip( s );                  
-                         output[i] = fsf_to_u8( s );
+                    if (shared->config.channels == 1) {
+                         for (i = 0; i < samples; i += 2) {
+                              register __fsf s;
+                              s = fsf_add( mixing[i+0], mixing[i+1] );
+                              s = fsf_round_u8( s );                     
+                              s = fsf_clip( s );                  
+                              output[i>>1] = fsf_to_u8( s );
+                         }
+                    } else {      
+                         for (i = 0; i < samples; i++) {
+                              register __fsf s;
+                              s = fsf_round_u8( mixing[i] );                       
+                              s = fsf_clip( s );                  
+                              output[i] = fsf_to_u8( s );
+                         }
                     }
                     break;
                case AFMT_S16:
-                    for (i = 0; i < samples; i++) {
-                         register __fsf s;
-                         s = fsf_round_s16( mixing[i] );
-                         s = fsf_clip( s );                         
-                         ((__s16*)output)[i] = fsf_to_s16( s );
+                    if (shared->config.channels == 1) {
+                         for (i = 0; i < samples; i += 2) {
+                              register __fsf s;
+                              s = fsf_add( mixing[i+0], mixing[i+1] );
+                              s = fsf_round_s16( s );
+                              s = fsf_clip( s );                         
+                              ((__s16*)output)[i>>1] = fsf_to_s16( s );
+                         }
+                    } else {
+                         for (i = 0; i < samples; i++) {
+                              register __fsf s;
+                              s = fsf_round_s16( mixing[i] );
+                              s = fsf_clip( s );                         
+                              ((__s16*)output)[i] = fsf_to_s16( s );
+                         }
                     }
                     break;
                case AFMT_S24:
-                    for (i = 0; i < samples; i++) {
-                         register __fsf s;
-                         register int   d;
-                         s = fsf_round_s24( mixing[i] );
-                         s = fsf_clip( s );
-                         d = fsf_to_s24( s );
+                    if (shared->config.channels == 1) {
+                         for (i = 0; i < samples; i += 2) {
+                              register __fsf s;
+                              register int   d;
+                              s = fsf_add( mixing[i+0], mixing[i+1] );
+                              s = fsf_round_s24( s );
+                              s = fsf_clip( s );
+                              d = fsf_to_s24( s );
 #ifdef WORDS_BIGENDIAN
-                         output[i*3+0] = d >> 16;
-                         output[i*3+1] = d >>  8;
-                         output[i*3+2] = d      ;
+                              output[(i>>1)*3+0] = d >> 16;
+                              output[(i>>1)*3+1] = d >>  8;
+                              output[(i>>1)*3+2] = d      ;
 #else
-                         output[i*3+0] = d      ;
-                         output[i*3+1] = d >>  8;
-                         output[i*3+2] = d >> 16;
+                              output[(i>>1)*3+0] = d      ;
+                              output[(i>>1)*3+1] = d >>  8;
+                              output[(i>>1)*3+2] = d >> 16;
 #endif
+                         }
+                    } else {
+                         for (i = 0; i < samples; i++) {
+                              register __fsf s;
+                              register int   d;
+                              s = fsf_round_s24( mixing[i] );
+                              s = fsf_clip( s );
+                              d = fsf_to_s24( s );
+#ifdef WORDS_BIGENDIAN
+                              output[i*3+0] = d >> 16;
+                              output[i*3+1] = d >>  8;
+                              output[i*3+2] = d      ;
+#else
+                              output[i*3+0] = d      ;
+                              output[i*3+1] = d >>  8;
+                              output[i*3+2] = d >> 16;
+#endif
+                         }
                     }
                     break;
                case AFMT_S32:
-                    for (i = 0; i < samples; i++) {
-                         register __fsf s;
-                         s = fsf_round_s32( mixing[i] );
-                         s = fsf_clip( s );                         
-                         ((__s32*)output)[i] = fsf_to_s32( s );
+                    if (shared->config.channels == 1) {
+                         for (i = 0; i < samples; i += 2) {
+                              register __fsf s;
+                              s = fsf_add( mixing[i+0], mixing[i+1] );
+                              s = fsf_round_s32( s );
+                              s = fsf_clip( s );                         
+                              ((__s32*)output)[i>>1] = fsf_to_s32( s );
+                         }
+                    } else {
+                         for (i = 0; i < samples; i++) {
+                              register __fsf s;
+                              s = fsf_round_s32( mixing[i] );
+                              s = fsf_clip( s );                         
+                              ((__s32*)output)[i] = fsf_to_s32( s );
+                         }
                     }
                     break;
                default:
@@ -526,46 +579,72 @@ fs_core_initialize( CoreSound *core )
 {
      int              fd;
 #ifdef APF_NORMAL
-     int              prof   = APF_NORMAL;
+     int              prof     = APF_NORMAL;
 #endif
-     CoreSoundShared *shared = core->shared;
-     int              fmt    = shared->config.fmt;
-     int              bits   = shared->config.bits;
-     int              bytes  = (bits + 7) / 8;
-     int              stereo = (shared->config.channels > 1) ? 1 : 0;
-     int              rate   = shared->config.rate;
+     CoreSoundShared *shared   = core->shared;
+     int              fmt      = shared->config.fmt;
+     int              channels = shared->config.channels;
+     int              rate     = shared->config.rate;
 
      /* open sound device */
-     fd = direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY, true );
-     if (fd < 0)
+     if (fs_config->device)
+          fd = open( fs_config->device, O_WRONLY );
+     else
+          fd = direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY, true );
+     
+     if (fd < 0) {
+          D_ERROR( "FusionSound/Core: "
+                   "Couldn't open output device!\n" );
           return DFB_INIT;
+     }
 
      /* set application profile */
 #ifdef SNDCTL_DSP_PROFILE
-     ioctl( fd, SNDCTL_DSP_PROFILE, &prof );
+     if (ioctl( fd, SNDCTL_DSP_PROFILE, &prof ) == -1) {
+          D_ERROR( "FusionSound/Core: Unable to set application profile!\n" );
+          close( fd );
+          return DFB_UNSUPPORTED;
+     }
 #endif
+     
      /* set bits per sample */
-     ioctl( fd, SNDCTL_DSP_SETFMT, &fmt );
-     switch (fmt) {
-          case AFMT_U8:
-          case AFMT_S16:
-          case AFMT_S24:
-          case AFMT_S32:
-               shared->config.fmt = fmt;
-               break;
-          default:
+     if (ioctl( fd, SNDCTL_DSP_SETFMT, &fmt ) == -1)
+          fmt = 0;
+     
+     /* if ioctl failed, try AFMT_S16 */
+     if (shared->config.fmt != fmt) {
+          if (shared->config.fmt != AFMT_S16) {
+               D_INFO( "FusionSound/Core: "
+                       "Setting bits to '%d' failed, trying 16!\n",
+                        shared->config.bits );
+
+               shared->config.fmt = fmt = AFMT_S16;
+               shared->config.bits = 16;
+               ioctl( fd, SNDCTL_DSP_SETFMT, &fmt );
+          }
+          
+          if (shared->config.fmt != fmt) {
                D_ERROR( "FusionSound/Core: "
                         "Unable to set bits to '%d'!\n", shared->config.bits );
                close( fd );
                return DFB_UNSUPPORTED;
+          }
      }
 
      /* set mono/stereo */
-     if (ioctl( fd, SNDCTL_DSP_STEREO, &stereo ) == -1) {
-          D_ERROR( "FusionSound/Core: Unable to set '%s' mode!\n",
-                   (shared->config.channels > 1) ? "stereo" : "mono");
-          close( fd );
-          return DFB_UNSUPPORTED;
+     if (ioctl( fd, SNDCTL_DSP_CHANNELS, &channels ) == -1)
+          channels = 0;
+
+     switch (channels) {
+          case 1:
+          case 2:
+               shared->config.channels = channels;
+               break;               
+          default:               
+               D_ERROR( "FusionSound/Core: Unable to set '%d' channels!\n",
+                         shared->config.channels );
+               close( fd );
+               return DFB_UNSUPPORTED;
      }
 
      /* set sample rate */
@@ -577,27 +656,33 @@ fs_core_initialize( CoreSound *core )
      }
 
      shared->config.rate = rate;
+     
+     D_DEBUG( "FusionSound/Core: "
+              "device opened for %ldHz - %d channels - %d bit output.\n", 
+              shared->config.rate, shared->config.channels, shared->config.bits );
 
      /* query block size */
      ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &shared->config.block_size );
      if (shared->config.block_size < 1) {
-          D_ERROR( "FusionSound/Core: "
-                   "Unable to query block size of '/dev/dsp'!\n" );
+          D_ERROR( "FusionSound/Core: Unable to query block size!\n" );
           close( fd );
           return DFB_UNSUPPORTED;
      }
 
-     D_DEBUG( "FusionSound/Core: got block size %d\n", shared->config.block_size );
+     D_DEBUG( "FusionSound/Core: got block size %d\n", 
+              shared->config.block_size );
 
      if (shared->config.block_size < 4096)
           shared->config.block_size = 4096;
      else if (shared->config.block_size > 8192)
           shared->config.block_size = 8192;
 
-     D_DEBUG( "FusionSound/Core: using block size %d\n", shared->config.block_size );
+     D_DEBUG( "FusionSound/Core: using block size %d\n", 
+              shared->config.block_size );
 
      /* calculate number of samples fitting into one block */
-     shared->config.samples_per_block = shared->config.block_size / bytes;
+     shared->config.samples_per_channel = shared->config.block_size /
+                                         (shared->config.channels * shared->config.bits/8);
 
      /* store file descriptor */
      core->fd = fd;
@@ -709,10 +794,26 @@ fs_core_arena_initialize( FusionArena *arena,
      core->master = true;
 
      /* FIXME: add live configuration */
-     shared->config.fmt      = AFMT_S16;
-     shared->config.bits     = 16;
-     shared->config.channels = 2;
-     shared->config.rate     = 48000;
+     switch (fs_config->sampleformat) {
+          case FSSF_U8:
+               shared->config.fmt  = AFMT_U8;
+               shared->config.bits = 8;
+               break;
+          case FSSF_S24:
+               shared->config.fmt  = AFMT_S24;
+               shared->config.bits = 24;
+               break;
+          case FSSF_S32:
+               shared->config.fmt  = AFMT_S32;
+               shared->config.bits = 32;
+               break;
+          default:
+               shared->config.fmt  = AFMT_S16;
+               shared->config.bits = 16;
+               break;
+     }
+     shared->config.channels = fs_config->channels;
+     shared->config.rate     = fs_config->samplerate;
 
      /* Initialize. */
      ret = fs_core_initialize( core );

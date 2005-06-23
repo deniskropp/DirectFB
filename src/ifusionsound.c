@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2003  convergence GmbH.
+   (c) Copyright 2002-2005  convergence GmbH.
 
    All rights reserved.
 
@@ -25,6 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <config.h>
+
 #include <unistd.h>
 
 #include <fusionsound.h>
@@ -35,21 +37,13 @@
 #include <core/core_sound.h>
 #include <core/sound_buffer.h>
 
-#include "ifusionsoundbuffer.h"
-#include "ifusionsoundstream.h"
-#include "media/ifusionsoundmusicprovider.h"
+#include <ifusionsound.h>
+#include <ifusionsoundbuffer.h>
+#include <ifusionsoundstream.h>
 
+#include <media/ifusionsoundmusicprovider.h>
 
-static DFBResult
-Probe( void *arg );
-
-static DFBResult
-Construct( IFusionSound *thiz,
-           void         *arg );
-
-#include <direct/interface_implementation.h>
-
-DIRECT_INTERFACE_IMPLEMENTATION( IFusionSound, default )
+#include <misc/fs_config.h>
 
 /*
  * private data struct of IFusionSound
@@ -69,6 +63,9 @@ IFusionSound_Destruct( IFusionSound *thiz )
      fs_core_destroy( data->core );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
+     
+     if (ifusionsound_singleton == thiz)
+          ifusionsound_singleton = NULL;
 }
 
 static DFBResult
@@ -86,9 +83,8 @@ IFusionSound_Release( IFusionSound *thiz )
 {
      DIRECT_INTERFACE_GET_DATA (IFusionSound)
 
-     if (--data->ref == 0) {
+     if (--data->ref == 0)
           IFusionSound_Destruct( thiz );
-     }
 
      return DFB_OK;
 }
@@ -99,9 +95,9 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
                            IFusionSoundBuffer  **ret_interface )
 {
      DFBResult                 ret;
-     int                       channels = 2;
-     FSSampleFormat            format   = FSSF_S16;
-     int                       rate     = 44100;
+     int                       channels = fs_config->channels;
+     FSSampleFormat            format   = fs_config->sampleformat;
+     int                       rate     = fs_config->samplerate;
      int                       length   = 0;
      FSBufferDescriptionFlags  flags;
      CoreSoundBuffer          *buffer;
@@ -180,9 +176,9 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                            IFusionSoundStream  **ret_interface )
 {
      DFBResult                 ret;
-     int                       channels  = 2;
-     FSSampleFormat            format    = FSSF_S16;
-     int                       rate      = 44100;
+     int                       channels  = fs_config->channels;
+     FSSampleFormat            format    = fs_config->sampleformat;
+     int                       rate      = fs_config->samplerate;
      int                       size      = rate;     /* space for one second */
      int                       prebuffer = 0;        /* no prebuffer by default */
      FSStreamDescriptionFlags  flags     = FSSDF_NONE;
@@ -310,17 +306,8 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
      return DFB_OK;
 }
 
-/* exported symbols */
-
-static DFBResult
-Probe( void *arg )
-{
-     return DFB_OK;
-}
-
-static DFBResult
-Construct( IFusionSound *thiz,
-           void         *arg )
+DFBResult
+IFusionSound_Construct( IFusionSound *thiz )
 {
      DFBResult ret;
 
@@ -349,4 +336,3 @@ Construct( IFusionSound *thiz,
 
      return DFB_OK;
 }
-

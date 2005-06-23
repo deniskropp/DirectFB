@@ -29,24 +29,24 @@
 
 #include <stdio.h>
 
-#include <directfb.h>
-#include <directfb_version.h>
-
 #include <fusionsound.h>
+#include <fusionsound_version.h>
 
 #include <direct/debug.h>
 #include <direct/interface.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <ifusionsound.h>
+
 #include <misc/conf.h>
 
+#include <misc/fs_config.h>
 
-static bool created = false;
+
+IFusionSound *ifusionsound_singleton = NULL;
 
 /**************************************************************************************************/
-
-static DFBResult CreateLocal ( IFusionSound **ret_interface );
 
 static DFBResult CreateRemote( const char    *host,
                                int            session,
@@ -57,18 +57,24 @@ static DFBResult CreateRemote( const char    *host,
 DFBResult
 FusionSoundInit( int *argc, char **argv[] )
 {
-     return dfb_config_init( argc, argv );
+     DFBResult ret;
+     
+     ret = dfb_config_init( argc, argv );
+     if (ret == DFB_OK)
+          ret = fs_config_init( argc, argv );
+          
+     return ret;
 }
 
 DFBResult
 FusionSoundSetOption( const char *name, const char *value )
 {
-     if (dfb_config == NULL) {
+     if (fs_config == NULL) {
           D_ERROR( "FusionSoundSetOption: FusionSoundInit has to be called first!\n" );
           return DFB_INIT;
      }
 
-     if (created) {
+     if (ifusionsound_singleton) {
           D_ERROR( "FusionSoundSetOption: FusionSoundCreate has already been called!\n" );
           return DFB_INIT;
      }
@@ -76,34 +82,50 @@ FusionSoundSetOption( const char *name, const char *value )
      if (!name)
           return DFB_INVARG;
 
-     return dfb_config_set( name, value );
+     return fs_config_set( name, value );
 }
 
 DirectResult
 FusionSoundCreate( IFusionSound **ret_interface )
 {
-     if (!dfb_config) {
+     DFBResult ret;
+     
+     if (!dfb_config || !fs_config) {
           D_ERROR( "FusionSoundCreate: FusionSoundInit has to be called first!\n" );
           return DFB_INIT;
      }
 
      if (!ret_interface)
           return DFB_INVARG;
+          
+     if (ifusionsound_singleton) {
+          ifusionsound_singleton->AddRef( ifusionsound_singleton );
+          *ret_interface = ifusionsound_singleton;
+          return DFB_OK;
+     }
 
      if (!direct_config->quiet && dfb_config->banner) {
           fprintf( stderr, "\n" );
           fprintf( stderr, "       --------------------- FusionSound v%d.%d.%d -------------------\n",
-                           DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
+                          FUSIONSOUND_MAJOR_VERSION, FUSIONSOUND_MINOR_VERSION, FUSIONSOUND_MICRO_VERSION );
           fprintf( stderr, "             (c) 2000-2002  convergence integrated media GmbH  \n" );
-          fprintf( stderr, "             (c) 2002-2004  convergence GmbH                   \n" );
+          fprintf( stderr, "             (c) 2002-2005  convergence GmbH                   \n" );
           fprintf( stderr, "        -----------------------------------------------------------\n" );
           fprintf( stderr, "\n" );
      }
 
      if (dfb_config->remote.host)
           return CreateRemote( dfb_config->remote.host, dfb_config->remote.session, ret_interface );
+          
+     DIRECT_ALLOCATE_INTERFACE( ifusionsound_singleton, IFusionSound );
+     
+     ret = IFusionSound_Construct( ifusionsound_singleton );
+     if (ret != DFB_OK)
+          ifusionsound_singleton = NULL;
+          
+     *ret_interface = ifusionsound_singleton;
 
-     return CreateLocal( ret_interface );
+     return ret;
 }
 
 DirectResult
@@ -124,32 +146,6 @@ FusionSoundErrorString( DirectResult error )
 }
 
 /**************************************************************************************************/
-
-static DFBResult
-CreateLocal( IFusionSound **ret_interface )
-{
-     DFBResult             ret;
-     DirectInterfaceFuncs *funcs;
-     void                 *interface;
-
-     D_ASSERT( ret_interface != NULL );
-
-     ret = DirectGetInterface( &funcs, "IFusionSound", "default", NULL, NULL );
-     if (ret)
-          return ret;
-
-     ret = funcs->Allocate( &interface );
-     if (ret)
-          return ret;
-
-     ret = funcs->Construct( interface, NULL );
-     if (ret)
-          return ret;
-
-     *ret_interface = interface;
-
-     return DFB_OK;
-}
 
 static DFBResult
 CreateRemote( const char *host, int session, IFusionSound **ret_interface )
@@ -177,4 +173,3 @@ CreateRemote( const char *host, int session, IFusionSound **ret_interface )
 
      return DFB_OK;
 }
-
