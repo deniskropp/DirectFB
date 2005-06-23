@@ -41,7 +41,7 @@ main (int argc, char *argv[])
      }
 
      /* Don't catch SIGINT. */
-     FusionSoundSetOption( "dont-catch", "2" );
+     DirectFBSetOption( "dont-catch", "2" );
 
      /* Register clean-up handler for SIGINT. */
      signal( SIGINT, cleanup );
