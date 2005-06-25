@@ -6,7 +6,8 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_srcdir)/src 	\
 	$(DFB_CFLAGS)			\
-	$(VORBISFILE_CFLAGS)
+	$(VORBISFILE_CFLAGS)	\
+	$(CDDB_CFLAGS)
 
 
 if BUILD_TIMIDITY
@@ -26,11 +27,16 @@ if BUILD_MAD
 MAD_PROVIDER_LTLIB = libifusionsoundmusicprovider_mad.la
 endif
 
+if BUILD_CDDA
+CDDA_PROVIDER_LTLIB = libifusionsoundmusicprovider_cdda.la
+endif
+
 ifusionsoundmusicprovider_LTLIBRARIES =	\
 	$(TIMIDITY_PROVIDER_LTLIB)	\
 	$(WAVE_PROVIDER_LTLIB)		\
 	$(VORBIS_PROVIDER_LTLIB)		\
-	$(MAD_PROVIDER_LTLIB)
+	$(MAD_PROVIDER_LTLIB)		\
+	$(CDDA_PROVIDER_LTLIB)
 
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
@@ -59,4 +65,11 @@ libifusionsoundmusicprovider_mad_la_SOURCES = ifusionsoundmusicprovider_mad.c
 libifusionsoundmusicprovider_mad_la_LIBADD = $(MAD_LIBS)
 
 libifusionsoundmusicprovider_mad_la_LDFLAGS = -avoid-version -module
+
+
+libifusionsoundmusicprovider_cdda_la_SOURCES = ifusionsoundmusicprovider_cdda.c
+
+libifusionsoundmusicprovider_cdda_la_LIBADD = $(CDDB_LIBS)
+
+libifusionsoundmusicprovider_cdda_la_LDFLAGS = -avoid-version -module
 
