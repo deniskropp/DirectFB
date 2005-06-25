@@ -929,8 +929,6 @@ WaveStreamThread( DirectThread *thread, void *ctx )
      size_t  count = data->dest.length * data->channels * data->format >> 3;
      __u8   *src   = data->src_buffer;
      __u8   *dst   = data->dst_buffer;
-
-     data->finished = false;
      
      while (data->playing) {
           ssize_t len;
@@ -1053,9 +1051,10 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.length   = desc.buffersize;
      
      /* start thread */
-     data->playing = true;
-     data->thread  = direct_thread_create( DTT_DEFAULT,
-                                           WaveStreamThread, data, "Wave" );
+     data->playing  = true;
+     data->finished = false;
+     data->thread   = direct_thread_create( DTT_DEFAULT,
+                                            WaveStreamThread, data, "Wave" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -1072,8 +1071,6 @@ WaveBufferThread( DirectThread *thread, void *ctx )
      int                 delta  = data->channels - data->dest.channels;
      size_t              count  = data->dest.length * data->channels *
                                   data->format >> 3;
-     
-     data->finished = false;
      
      while (data->playing) {
           void    *dst;
@@ -1217,9 +1214,10 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->ctx           = ctx;
      
      /* start thread */
-     data->playing = true;
-     data->thread  = direct_thread_create( DTT_DEFAULT,
-                                           WaveBufferThread, data, "Wave" );
+     data->playing  = true;
+     data->finished = false;
+     data->thread   = direct_thread_create( DTT_DEFAULT,
+                                            WaveBufferThread, data, "Wave" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -1482,7 +1480,7 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
      int  fd;
      bool ret;
      
-     fd = open( ctx->filename, O_RDONLY );
+     fd = open( ctx->filename, O_RDONLY | O_NONBLOCK );
      if (fd < 0)
           return DFB_UNSUPPORTED;
 
