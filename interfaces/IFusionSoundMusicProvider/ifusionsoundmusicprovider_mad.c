@@ -507,8 +507,6 @@ MadStreamThread( DirectThread *thread, void *ctx )
      char inbuf[INPUT_BUFFER_SIZE];
      char outbuf[1152 * data->dest.channels * data->dest.format >> 3];
      
-     data->finished = false;
-     
      data->stream.next_frame = NULL;
      
      while (data->playing) {
@@ -630,9 +628,10 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.length   = desc.buffersize;
      
      /* start thread */
-     data->playing = true;
-     data->thread  = direct_thread_create( DTT_DEFAULT, 
-                                           MadStreamThread, data, "Mad" );
+     data->playing  = true;
+     data->finished = false;
+     data->thread   = direct_thread_create( DTT_DEFAULT, 
+                                            MadStreamThread, data, "Mad" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -648,9 +647,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
      char inbuf[INPUT_BUFFER_SIZE];
      int  blocksize = data->dest.channels * data->dest.format >> 3;
      int  written   = 0;
-     
-     data->finished = false;
-     
+
      data->stream.next_frame = NULL;
      
      while (data->playing) {
@@ -805,9 +802,10 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->ctx      = ctx;
      
      /* start thread */
-     data->playing = true;
-     data->thread  = direct_thread_create( DTT_DEFAULT,
-                                           MadBufferThread, data, "Mad" );
+     data->playing  = true;
+     data->finished = false;
+     data->thread   = direct_thread_create( DTT_DEFAULT,
+                                            MadBufferThread, data, "Mad" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -916,7 +914,7 @@ static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      /* FIXME: detect by contents */
-     if (!strcasecmp( strrchr( ctx->filename, '.' ), ".mp3" ))
+     if (!strcasecmp( strrchr( ctx->filename, '.' ) ? : "", ".mp3" ))
           return DFB_OK;
           
      return DFB_UNSUPPORTED;
