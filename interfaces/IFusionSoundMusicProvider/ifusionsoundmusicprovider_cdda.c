@@ -110,6 +110,9 @@ static DFBResult
 cdda_probe( int fd )
 {
      struct cdrom_tochdr tochdr;
+
+     if (ioctl( fd, CDROM_DRIVE_STATUS, CDSL_CURRENT ) != CDS_DISC_OK)
+          return DFB_UNSUPPORTED;
      
      if (ioctl( fd, CDROMREADTOCHDR, &tochdr ) < 0)
           return DFB_UNSUPPORTED;
@@ -237,9 +240,6 @@ cdda_probe( int fd )
 {
      struct ioc_toc_header tochdr;
      
-     if (ioctl( fd, CDROM_DRIVE_STATUS, CDSL_CURRENT ) != CDS_DISC_OK)
-          return DFB_UNSUPPORTED;
-     
      if (ioctl( fd, CDIOREADTOCHEADER, &tochdr ) < 0)
           return DFB_UNSUPPORTED;
           
@@ -354,7 +354,7 @@ cdda_read_audio( int fd, __u8 *buf, int pos, int len )
 static DFBResult
 cdda_probe( int fd )
 {
-     D_WARN( "unsupported platform" );
+     D_WARN( "unsupported system" );
      return DFB_UNSUPPORTED;
 }
 
