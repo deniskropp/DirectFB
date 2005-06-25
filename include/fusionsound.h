@@ -35,6 +35,23 @@ extern "C"
 #endif
 
 /*
+ * Version handling.
+ */
+extern const unsigned int fusionsound_major_version;
+extern const unsigned int fusionsound_minor_version;
+extern const unsigned int fusionsound_micro_version;
+extern const unsigned int fusionsound_binary_age;
+extern const unsigned int fusionsound_interface_age;
+
+/*
+ * Check for a certain FusionSound version.
+ * In case of an error a message is returned describing the mismatch.
+ */
+const char * FusionSoundCheckVersion( unsigned int required_major,
+                                      unsigned int required_minor,
+                                      unsigned int required_micro );
+
+/*
  * Main FusionSound interface.
  */
 DECLARE_INTERFACE( IFusionSound )
@@ -92,6 +109,14 @@ DFBResult FusionSoundError(
                             const char *msg,    /* optional message */
                             DFBResult   result  /* result code to interpret */
                           );
+                          
+/*
+ * Behaves like FusionSoundError, but shuts down the calling application.
+ */
+DFBResult FusionSoundErrorFatal(
+                            const char *msg,    /* optional message */
+                            DFBResult   result  /* result code to interpret */
+                          );
 
 /*
  * Returns a string describing 'result'.
@@ -99,6 +124,13 @@ DFBResult FusionSoundError(
 const char *FusionSoundErrorString(
                                     DFBResult result
                                   );
+                                  
+/*
+ * Retrieves information about supported command-line flags in the
+ * form of a user-readable string formatted suitable to be printed
+ * as usage information.
+ */
+const char *FusionSoundUsageString( void );
 
 /*
  * @internal

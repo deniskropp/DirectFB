@@ -6,8 +6,9 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -28,6 +29,7 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <fusionsound.h>
 #include <fusionsound_version.h>
@@ -53,6 +55,42 @@ static DFBResult CreateRemote( const char    *host,
                                IFusionSound **ret_interface );
 
 /**************************************************************************************************/
+
+/*
+ * Version checking
+ */
+const unsigned int fusionsound_major_version = FUSIONSOUND_MAJOR_VERSION;
+const unsigned int fusionsound_minor_version = FUSIONSOUND_MINOR_VERSION;
+const unsigned int fusionsound_micro_version = FUSIONSOUND_MICRO_VERSION;
+const unsigned int fusionsound_binary_age    = FUSIONSOUND_BINARY_AGE;
+const unsigned int fusionsound_interface_age = FUSIONSOUND_INTERFACE_AGE;
+
+const char *
+FusionSoundCheckVersion( unsigned int required_major,
+                         unsigned int required_minor,
+                         unsigned int required_micro )
+{
+     if (required_major > FUSIONSOUND_MAJOR_VERSION)
+          return "FusionSound version too old (major mismatch)";
+     if (required_major < FUSIONSOUND_MAJOR_VERSION)
+          return "FusionSound version too new (major mismatch)";
+     if (required_minor > FUSIONSOUND_MINOR_VERSION)
+          return "FusionSound version too old (minor mismatch)";
+     if (required_minor < FUSIONSOUND_MINOR_VERSION)
+          return "FusionSound version too new (minor mismatch)";
+     if (required_micro < FUSIONSOUND_MICRO_VERSION - FUSIONSOUND_BINARY_AGE)
+          return "FusionSound version too new (micro mismatch)";
+     if (required_micro > FUSIONSOUND_MICRO_VERSION)
+          return "FusionSound version too old (micro mismatch)";
+
+     return NULL;
+}
+
+const char *
+FusionSoundUsageString( void )
+{
+     return fs_config_usage();
+}
 
 DFBResult
 FusionSoundInit( int *argc, char **argv[] )
@@ -90,7 +128,7 @@ FusionSoundCreate( IFusionSound **ret_interface )
 {
      DFBResult ret;
      
-     if (!dfb_config || !fs_config) {
+     if (!fs_config) {
           D_ERROR( "FusionSoundCreate: FusionSoundInit has to be called first!\n" );
           return DFB_INIT;
      }
@@ -137,6 +175,14 @@ FusionSoundError( const char *msg, DirectResult error )
           fprintf( stderr, "(#) FusionSound Error: %s\n", DirectResultString( error ) );
 
      return error;
+}
+
+DFBResult
+FusionSoundErrorFatal( const char *msg, DirectResult error )
+{
+     FusionSoundError( msg, error );
+     
+     exit( error );
 }
 
 const char *
