@@ -358,7 +358,7 @@ cdda_probe( int fd )
      return DFB_UNSUPPORTED;
 }
 
-struct DFBResult
+static DFBResult
 cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
                               unsigned int       *ret_num )
 {
