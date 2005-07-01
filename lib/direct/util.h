@@ -60,6 +60,8 @@
 #define D_FLAGS_ARE_IN(flags,f)    (((flags) & ~(f)) == 0)
 #define D_FLAGS_INVALID(flags,f)   (((flags) & ~(f)) != 0)
 
+#define D_FLAGS_ASSERT(flags,f)    D_ASSERT( D_FLAGS_ARE_IN(flags,f) )
+
 #define D_ARRAY_SIZE(array)        ((int)(sizeof(array) / sizeof((array)[0])))
 
 
@@ -95,6 +97,23 @@ direct_util_count_bits( unsigned int mask )
      }
 
      return ret;
+}
+
+/*
+ * Generic alignment routine.
+ */
+static inline int
+direct_util_align( int value,
+                   int alignment )
+{
+     if (alignment > 1) {
+          int tail = value % alignment;
+
+          if (tail)
+               value += alignment - tail;
+     }
+
+     return value;
 }
 
 /*
