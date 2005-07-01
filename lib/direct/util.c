@@ -156,7 +156,8 @@ direct_try_open( const char *name1, const char *name2, int flags, bool error_msg
           return fd;
 
      if (errno != ENOENT) {
-          D_PERROR( "Direct/Util: opening '%s' failed\n", name1 );
+          if (error_msg)
+               D_PERROR( "Direct/Util: opening '%s' failed\n", name1 );
           return -1;
      }
 
