@@ -4,7 +4,9 @@ Makefile.in
 .libs
 gmon.out
 advanced
+fsmaster
 music
 player
+scope
 simple
 stream

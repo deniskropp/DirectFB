@@ -14,10 +14,14 @@ else
 LITE_EXAMPLES =
 endif
 
+bin_PROGRAMS    = fsmaster
 noinst_PROGRAMS = advanced music simple stream $(LITE_EXAMPLES)
 
 advanced_SOURCES = advanced.c loader.c loader.h
 advanced_LDADD   = $(LIBADDS)
+
+fsmaster_SOURCES = fsmaster.c
+fsmaster_LDADD   = $(LIBADDS)
 
 music_SOURCES = music.c
 music_LDADD   = $(LIBADDS)
@@ -33,4 +37,3 @@ player_LDADD   = $(LIBADDS) $(LITE_LIBS)
 
 scope_SOURCES  = scope.c
 scope_LDADD    = $(LIBADDS) $(LITE_LIBS)
-
