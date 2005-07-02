@@ -158,16 +158,18 @@ main (int argc, char *argv[])
 
      /* setup the labels */
      for (i=0; i<4; i++) {
-          ret = lite_new_label( &label[i], LITE_BOX(window),
-                                     10, 10 + i * 25, 85, 18 );
+          ret = lite_new_label( LITE_BOX(window),
+                                &(DFBRectangle){ 10, 10 + i * 25, 85, 18 },
+                                liteDefaultLabelTheme, 18, &label[i] );
 
           lite_set_label_text( label[i], channels[i] );
      }
 
      /* setup the sliders */
      for (i=0; i<4; i++) {
-          ret = lite_new_slider( &slider[i], LITE_BOX(window),
-                                       100, 10 + i * 25, 220, 20 );
+          ret = lite_new_slider( LITE_BOX(window),
+                                 &(DFBRectangle){ 100, 10 + i * 25, 220, 20 },
+                                 liteDefaultSliderTheme, &slider[i] );
 
           lite_set_slider_pos( slider[i], values[i] );
 
@@ -175,11 +177,13 @@ main (int argc, char *argv[])
      }
 
      /* setup the play/pause button */
-     ret = lite_new_button( &playbutton, LITE_BOX(window), 150, 110, 50, 50 );
-     lite_set_button_image( playbutton, BS_NORMAL, "stop.png" );
-     lite_set_button_image( playbutton, BS_DISABLED, "stop_disabled.png" );
-     lite_set_button_image( playbutton, BS_HILITE, "stop_highlighted.png" );
-     lite_set_button_image( playbutton, BS_PRESSED, "stop_pressed.png" );
+     ret = lite_new_button( LITE_BOX(window),
+                            &(DFBRectangle){ 150, 110, 50, 50 },
+                            liteDefaultButtonTheme, &playbutton );
+     lite_set_button_image( playbutton, LITE_BS_NORMAL, "stop.png" );
+     lite_set_button_image( playbutton, LITE_BS_DISABLED, "stop_disabled.png" );
+     lite_set_button_image( playbutton, LITE_BS_HILITE, "stop_highlighted.png" );
+     lite_set_button_image( playbutton, LITE_BS_PRESSED, "stop_pressed.png" );
      lite_on_button_press( playbutton, button_pressed, window );
 
      /* show the window */
