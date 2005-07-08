@@ -91,8 +91,8 @@ typedef struct {
 } FT2ImplData;
 
 typedef struct {
-     char x;
-     char y;
+     signed char x;
+     signed char y;
 } KerningCacheEntry;
 
 typedef struct {
@@ -401,8 +401,8 @@ init_kerning_cache( FT2ImplKerningData *data )
 
                pthread_mutex_unlock ( &library_mutex );
 
-               cache->x = (char) (vector.x >> 6);
-               cache->y = (char) (vector.y >> 6);
+               cache->x = (signed char) (vector.x >> 6);
+               cache->y = (signed char) (vector.y >> 6);
           }
      }
 }
