@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.9 2004-05-19 10:52:03 oberritter Exp $
+ * $Id: sis315.c,v 1.10 2005-07-10 16:25:41 oberritter Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -24,6 +24,7 @@
 
 #include <directfb.h>
 
+#include <direct/mem.h>
 #include <direct/messages.h>
 
 #include <core/gfxcard.h>
@@ -215,8 +216,9 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	FBDev *dfb_fbdev;
-	sisfb_info fbinfo;
-	unsigned int zero = 0;
+	sisfb_info *fbinfo;
+	__u32 fbinfo_size;
+	__u32 zero = 0;
 
 	(void)device_data;
 
@@ -224,16 +226,41 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 	if (!dfb_fbdev)
 		return DFB_IO;
 
-	if (ioctl(dfb_fbdev->fd, SISFB_GET_INFO, &fbinfo) == -1)
-		return DFB_IO;
+	if (ioctl(dfb_fbdev->fd, SISFB_GET_INFO_SIZE, &fbinfo_size) == 0) {
+		fbinfo = D_MALLOC(fbinfo_size);
+		drv->get_info = SISFB_GET_INFO | (fbinfo_size << 16);
+		drv->get_automaximize = SISFB_GET_AUTOMAXIMIZE;
+		drv->set_automaximize = SISFB_SET_AUTOMAXIMIZE;
+	}
+	else {
+		fbinfo = D_MALLOC(sizeof(sisfb_info) + 16);
+		drv->get_info = SISFB_GET_INFO_OLD;
+		drv->get_automaximize = SISFB_GET_AUTOMAXIMIZE_OLD;
+		drv->set_automaximize = SISFB_SET_AUTOMAXIMIZE_OLD;
+	}
 
-	check_sisfb_version(drv, &fbinfo);
+	if (fbinfo == NULL)
+		return DFB_NOSYSTEMMEMORY;
+
+	if (ioctl(dfb_fbdev->fd, drv->get_info, fbinfo) == -1) {
+		D_FREE(fbinfo);
+		return DFB_IO;
+	}
+
+	if (fbinfo->sisfb_id != SISFB_ID) {
+		D_FREE(fbinfo);
+		return DFB_FAILURE;
+	}
+
+	check_sisfb_version(drv, fbinfo);
+
+	D_FREE(fbinfo);
 
 	if (drv->has_auto_maximize) {
-		if (ioctl(dfb_fbdev->fd, SISFB_GET_AUTOMAXIMIZE, &drv->auto_maximize))
+		if (ioctl(dfb_fbdev->fd, drv->get_automaximize, &drv->auto_maximize))
 			return DFB_IO;
 		if (drv->auto_maximize)
-			if (ioctl(dfb_fbdev->fd, SISFB_SET_AUTOMAXIMIZE, &zero))
+			if (ioctl(dfb_fbdev->fd, drv->set_automaximize, &zero))
 				return DFB_IO;
 	}
 
@@ -303,7 +330,7 @@ static void driver_close_driver(GraphicsDevice *device,
 		FBDev *dfb_fbdev = dfb_system_data();
 		if (!dfb_fbdev)
 			return;
-		ioctl(dfb_fbdev->fd, SISFB_SET_AUTOMAXIMIZE, &drv->auto_maximize);
+		ioctl(dfb_fbdev->fd, drv->set_automaximize, &drv->auto_maximize);
 	}
 }
 

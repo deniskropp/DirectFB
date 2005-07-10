@@ -10,15 +10,7 @@
 #define FB_ACCEL_SIS_XABRE      41	/* SiS 330 ("Xabre")            */
 #endif
 
-#include <linux/sisfb.h>
-
-/* ioctl to enable/disable panning auto-maximize (like nomax parameter) */
-#ifndef SISFB_GET_AUTOMAXIMIZE
-#define SISFB_GET_AUTOMAXIMIZE	_IOR('n',0xFA,__u32)
-#endif
-#ifndef SISFB_SET_AUTOMAXIMIZE
-#define SISFB_SET_AUTOMAXIMIZE	_IOW('n',0xFA,__u32)
-#endif
+#include "sisfb.h"
 
 /* think KERNEL_VERSION(a,b,c) */
 #ifndef SISFB_VERSION

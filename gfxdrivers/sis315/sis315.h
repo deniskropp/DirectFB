@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.h,v 1.2 2004-03-30 18:35:19 dok Exp $
+ * $Id: sis315.h,v 1.3 2005-07-10 16:25:41 oberritter Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -28,6 +28,10 @@ typedef struct {
 	volatile __u8 *mmio_base;
 	bool has_auto_maximize;
 	unsigned long auto_maximize;
+	/* ioctls */
+	int get_info;
+	int get_automaximize;
+	int set_automaximize;
 } SiSDriverData;
 
 typedef struct {
