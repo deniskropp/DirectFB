@@ -166,10 +166,10 @@ voodoo_manager_create( int             fd,
                        VoodooServer   *server,
                        VoodooManager **ret_manager )
 {
-     DirectResult   ret;
-     VoodooManager *manager;
-     int            val;
-     int            len;
+     DirectResult     ret;
+     VoodooManager   *manager;
+     int              val;
+     unsigned int     len;
      static const int tos = IPTOS_LOWDELAY;
 
      D_ASSERT( fd >= 0 );
