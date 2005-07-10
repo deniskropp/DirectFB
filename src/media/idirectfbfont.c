@@ -303,7 +303,7 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
 
      font   = data->font;
      glyphs = font->glyph_infos;
-     string = text;
+     string = (const __u8*) text;
      end    = string + bytes;
 
      dfb_font_lock( font );
