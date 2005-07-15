@@ -517,7 +517,7 @@ if test "$enable_vnc" = "yes"; then
   if test "$VNC_CONFIG" = "no"; then
     enable_vnc=no
     AC_MSG_WARN([
-*** libvncserver-config not found -- building without VNC support.])
+*** libvncserver-config not found -- building without VNC support. See http://libvncserver.sourceforge.net])
   else
     VNC_CFLAGS=`$VNC_CONFIG --cflags`
     VNC_LIBS=`$VNC_CONFIG --libs`
