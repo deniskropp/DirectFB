@@ -416,7 +416,7 @@ IDirectFBSurface_SetField( IDirectFBSurface    *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
-     if (!(data->caps & DSCAPS_INTERLACED))
+     if (!(data->surface->caps & DSCAPS_INTERLACED))
           return DFB_UNSUPPORTED;
 
      if (field < 0 || field > 1)
