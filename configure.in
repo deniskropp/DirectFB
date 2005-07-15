@@ -505,6 +505,32 @@ fi
 AC_SUBST(OSX_LIBS)
 AM_CONDITIONAL(SDL_CORE, test "$enable_sdl" = "yes")
 
+dnl Test for VNC
+AC_ARG_ENABLE(vnc,
+  [  --enable-vnc              build with VNC support [default=auto]],,
+  enable_vnc=yes)
+                                                                     
+                                                                     
+                                                                     
+if test "$enable_vnc" = "yes"; then
+  AC_PATH_PROG(VNC_CONFIG, libvncserver-config, no)
+  if test "$VNC_CONFIG" = "no"; then
+    enable_vnc=no
+    AC_MSG_WARN([
+*** libvncserver-config not found -- building without VNC support.])
+  else
+    VNC_CFLAGS=`$VNC_CONFIG --cflags`
+    VNC_LIBS=`$VNC_CONFIG --libs`
+  fi
+fi
+                                                                     
+                                                                     
+                                                                     
+                                                                     
+AM_CONDITIONAL(VNC_CORE, test "$enable_vnc" = "yes")
+AC_SUBST(VNC_LIBS)
+AC_SUBST(VNC_CFLAGS)
+
 dnl Test for libsysfs
 AC_ARG_ENABLE(sysfs,
   [  --enable-sysfs            build with sysfs support [default=auto]],,
@@ -1396,6 +1422,7 @@ systems/fbdev/Makefile
 systems/x11/Makefile
 systems/osx/Makefile
 systems/sdl/Makefile
+systems/vnc/Makefile
 
 wm/Makefile
 wm/default/Makefile
@@ -1486,6 +1513,7 @@ Building Core Systems:
   X11 support               $enable_x11
   OSX support               $enable_osx
   SDL support               $enable_sdl
+  VNC support               $enable_vnc
 
 Building WM Modules:
   Default                   yes

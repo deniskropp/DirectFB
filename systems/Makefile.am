@@ -24,4 +24,11 @@ else
 FBDEV_DIR =
 endif
 
-SUBDIRS = $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR)
+if VNC_CORE
+VNC_DIR = vnc
+else
+VNC_DIR =
+endif
+  
+
+SUBDIRS = $(FBDEV_DIR) $(X11_DIR) $(SDL_DIR) $(OSX_DIR) $(VNC_DIR)
