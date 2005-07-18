@@ -30,7 +30,6 @@ libdirectfb_nvidia_la_SOURCES = \
 	nvidia_3d.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
-	$(SYSFS_LIBS)		\
 	-export-dynamic		\
 	-avoid-version		\
 	$(DFB_LDFLAGS) -lm
