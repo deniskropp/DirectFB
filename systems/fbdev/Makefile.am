@@ -24,7 +24,8 @@ systems_LTLIBRARIES = libdirectfb_fbdev.la
 
 libdirectfb_fbdev_la_LDFLAGS = \
 	-avoid-version	\
-	-module
+	-module	\
+	$(SYSFS_LIBS)
 
 libdirectfb_fbdev_la_SOURCES = \
 	fbdev.c		\

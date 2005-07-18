@@ -45,6 +45,10 @@
 
 #include <pthread.h>
 
+#ifdef USE_SYSFS
+# include <sysfs/libsysfs.h>
+#endif
+
 #include <fusion/shmalloc.h>
 #include <fusion/reactor.h>
 #include <fusion/arena.h>
@@ -300,6 +304,105 @@ static DFBResult dfb_fbdev_open()
      return DFB_OK;
 }
 
+/******************************************************************************/
+
+static void
+dfb_fbdev_get_pci_info( FBDevShared *shared )
+{
+     char buf[512];
+     int  vendor = -1;
+     int  model  = -1;
+
+#ifdef USE_SYSFS
+     if (!sysfs_get_mnt_path( buf, 512 )) {
+          struct sysfs_class_device *classdev;
+          struct sysfs_device       *device;
+          struct sysfs_attribute    *attr;
+          char                      *fbdev;
+          char                       dev[5] = { 'f', 'b', '0', 0, 0 };
+          
+          fbdev = dfb_config->fb_device;
+          if (!fbdev)
+               fbdev = getenv( "FRAMEBUFFER" );
+          
+          if (fbdev) {
+               if (!strncmp( fbdev, "/dev/fb/", 8 ))
+                    snprintf( dev, 5, "fb%s", fbdev+8 );
+               else if (!strncmp( fbdev, "/dev/fb", 7 ))
+                    snprintf( dev, 5, "fb%s", fbdev+7 );
+          }    
+          
+          classdev = sysfs_open_class_device( "graphics", dev );
+          if (classdev) {
+               device = sysfs_get_classdev_device( classdev );
+               
+               if (device) {
+                    attr = sysfs_get_device_attr( device, "vendor" );
+                    if (attr)
+                           sscanf( attr->value, "0x%04x", &vendor );
+                           
+                    attr = sysfs_get_device_attr( device, "device" );
+                    if (attr)
+                         sscanf( attr->value, "0x%04x", &model );
+                         
+                    if (vendor != -1 && model != -1) {
+                         sscanf( device->name, "0000:%02x:%02x.%1x", 
+                                 &shared->pci.bus, 
+                                 &shared->pci.dev, 
+                                 &shared->pci.func );
+                    
+                         shared->device.vendor = vendor;
+                         shared->device.model  = model;
+                    }
+               }
+               
+               sysfs_close_class_device( classdev );
+          }     
+     }
+#endif /* USE_SYSFS */
+
+     /* try /proc interface */
+     if (vendor == -1 || model == -1) {
+          FILE *fp;
+          int   id;
+          int   bus;
+          int   dev;
+          int   func;
+
+          fp = fopen( "/proc/bus/pci/devices", "r" );
+          if (!fp) {
+               D_PERROR( "DirectFB/FBDev: "
+                         "couldn't access /proc/bus/pci/devices!\n" );
+               return;
+          }
+
+          while (fgets( buf, 512, fp )) {
+               if (sscanf( buf, "%04x\t%04x%04x", &id, &vendor, &model ) == 3) {
+                    bus  = (id & 0xff00) >> 8;
+                    dev  = (id & 0x00ff) >> 3;
+                    func = (id & 0x0007);
+                    
+                    if (bus  == dfb_config->pci.bus &&
+                        dev  == dfb_config->pci.dev &&
+                        func == dfb_config->pci.func) 
+                    {
+                         shared->pci.bus  = bus;
+                         shared->pci.dev  = dev;
+                         shared->pci.func = func;
+                         
+                         shared->device.vendor = vendor;
+                         shared->device.model  = model;
+                         
+                         break;
+                    }
+               }
+          }
+
+          fclose( fp );
+     }
+}
+
+
 /** public **/
 
 static void
@@ -433,6 +536,8 @@ system_initialize( CoreDFB *core, void **data )
      dfb_fbdev->shared->current_cmap.green  = SHCALLOC( 256, 2 );
      dfb_fbdev->shared->current_cmap.blue   = SHCALLOC( 256, 2 );
      dfb_fbdev->shared->current_cmap.transp = SHCALLOC( 256, 2 );
+     
+     dfb_fbdev_get_pci_info( dfb_fbdev->shared );
 
      fusion_call_init( &dfb_fbdev->shared->fbdev_ioctl,
                        fbdev_ioctl_call_handler, NULL );

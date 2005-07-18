@@ -65,6 +65,17 @@ typedef struct {
      FusionCall               fbdev_ioctl;   /* ioctl rpc */
 
      unsigned long            page_mask;     /* PAGE_SIZE - 1 */
+     
+     struct {
+          int                 bus;
+          int                 dev;
+          int                 func;
+     } pci;                                  /* PCI Bus ID of graphics device */
+     
+     struct {
+          unsigned short      vendor;        /* Graphics device vendor id */
+          unsigned short      model;         /* Graphics device model id */
+     } device;
 } FBDevShared;
 
 typedef struct {
