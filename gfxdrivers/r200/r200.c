@@ -132,12 +132,10 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      __u32          bpp;
      
      r200_flush( rdrv, rdev );
-     r200_waitfifo( rdrv, rdev, 64 );
      r200_waitidle( rdrv, rdev );
       
      clock_cntl_index = r200_in32( mmio, CLOCK_CNTL_INDEX );
      mclk_cntl        = r200_inpll( mmio, MCLK_CNTL );
-     host_path_cntl   = r200_in32( mmio, HOST_PATH_CNTL );
      rbbm_soft_reset  = r200_in32( mmio, RBBM_SOFT_RESET );
      dp_datatype      = (r200_in32( mmio, CRTC_GEN_CNTL ) >> 8) & 0xf;
      
@@ -162,6 +160,16 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
 
      pitch64 = r200_in32( mmio, CRTC_H_TOTAL_DISP );
      pitch64 = ((((pitch64 >> 16) + 1) << 3) * bpp / 8 + 0x3f) >> 6;
+    
+     r200_outpll( mmio, MCLK_CNTL, mclk_cntl     |
+			                    FORCEON_MCLKA |
+			                    FORCEON_MCLKB |
+			                    FORCEON_YCLKA |
+			                    FORCEON_YCLKB |
+			                    FORCEON_MC    |
+			                    FORCEON_AIC );
+
+     host_path_cntl = r200_in32( mmio, HOST_PATH_CNTL );
      
      r200_out32( mmio, RBBM_SOFT_RESET, rbbm_soft_reset |
                                         SOFT_RESET_CP | SOFT_RESET_SE |
@@ -209,19 +217,12 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      r200_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
    
      /* restore 3d engine */                                      
-     r200_waitfifo( rdrv, rdev, 14 );
-     r200_out32( mmio, SE_CNTL, DIFFUSE_SHADE_FLAT |
-                                ALPHA_SHADE_FLAT   |
-                                BFACE_SOLID        | 
-                                FFACE_SOLID        |
-                                VTX_PIX_CENTER_OGL |
-                                ROUND_MODE_ROUND   |
-				            ROUND_PREC_4TH_PIX ); 
+     r200_waitfifo( rdrv, rdev, 13 );
      r200_out32( mmio, SE_LINE_WIDTH, 0x10 );
      r200_out32( mmio, PP_MISC, ALPHA_TEST_PASS ); 
      r200_out32( mmio, R200_PP_CNTL_X, 0 );
      r200_out32( mmio, R200_PP_TXMULTI_CTL_0, 0 ); 
-     r200_out32( mmio, R200_RE_CNTL, R200_SCISSOR_ENABLE );
+     r200_out32( mmio, R200_RE_CNTL, R200_SCISSOR_ENABLE | R200_PERSPECTIVE_ENABLE );
      r200_out32( mmio, R200_SE_VTX_STATE_CNTL, 0 );
      r200_out32( mmio, R200_SE_VTE_CNTL, R200_VTX_ST_DENORMALIZED );
      r200_out32( mmio, R200_SE_VAP_CNTL, R200_VAP_FORCE_W_TO_ONE |
@@ -240,7 +241,8 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      
      rdev->set = 0;
      rdev->dst_format = DSPF_UNKNOWN;
-     rdev->src_format = DSPF_UNKNOWN;
+     rdev->write_2d = false;
+     rdev->write_3d = false;
 }
 
 
@@ -1132,54 +1134,44 @@ static int
 r200_probe_chipset( int *ret_index )
 {
      char  buf[512];
-     __u32 chip  = 0;
-     int   found = -1;
+     __u32 chip = 0;
      int   i;
 
 #ifdef USE_SYSFS
      if (!sysfs_get_mnt_path( buf, 512 )) {
-          struct dlist           *devices;
-          struct sysfs_device    *dev;
-          struct sysfs_attribute *attr;
-          int                     bus;
-
-          devices = sysfs_open_bus_devices_list( "pci" );
-          if (devices) {
-               dlist_for_each_data( devices, dev, struct sysfs_device ) {
-                    if (sscanf( dev->name, "0000:%02x:", &bus ) < 1 || bus < 1)
-                         continue;
-
-                    dev = sysfs_open_device( "pci", dev->name );
-                    if (dev) {
-                         attr = sysfs_get_device_attr( dev, "vendor" );
-                         if (attr && !strncmp( attr->value, "0x1002", 6 )) {
-                              attr = sysfs_get_device_attr( dev, "device" );
-                              if (attr) { 
-                                   sscanf( attr->value, "0x%04x", &chip );
-                                   
-                                   for (i = 0; i < sizeof(dev_table)/
-                                                   sizeof(dev_table[0]); i++) {
-                                        if (dev_table[i].id == chip) {
-                                             found = i;
-                                             break;
-                                        }
-                                   }
-                              }
-                         }
-                         sysfs_close_device( dev );
-                         
-                         if (found != -1)
-                              break;
+          struct sysfs_class_device *classdev;
+          struct sysfs_device       *device;
+          struct sysfs_attribute    *attr;
+          char                       dev[4] = { 'f', 'b', '0', '\0' };
+          
+          if (dfb_config->fb_device) {
+               if (!strncmp( dfb_config->fb_device, "/dev/fb/", 8 ))
+                    dev[2] = dfb_config->fb_device[8];
+               else if (!strncmp( dfb_config->fb_device, "/dev/fb", 7 ))
+                    dev[2] = dfb_config->fb_device[7];
+          }    
+          
+          classdev = sysfs_open_class_device( "graphics", dev );
+          if (classdev) {
+               device = sysfs_get_classdev_device( classdev );
+               
+               if (device) {
+                    attr = sysfs_get_device_attr( device, "vendor" );
+                    
+                    if (attr && !strncmp( attr->value, "0x1002", 6 )) {
+                         attr = sysfs_get_device_attr( device, "device" );
+                         if (attr)
+                              sscanf( attr->value, "0x%04x", &chip );
                     }
                }
-
-               sysfs_close_list( devices );
-          }
+               
+               sysfs_close_class_device( classdev );
+          }     
      }
 #endif /* USE_SYSFS */
 
      /* try /proc interface */
-     if (found == -1) {
+     if (chip == 0) {
           FILE  *fp;
           __u32  device;
           __u32  vendor;
@@ -1191,29 +1183,25 @@ r200_probe_chipset( int *ret_index )
                return 0;
           }
 
-          while (found == -1 && fgets( buf, 512, fp )) {
-               if (sscanf( buf, "%04x\t%04x%04x",
-                              &device, &vendor, &chip ) == 3) 
-               {
-                    if (device >= 0x0100 && vendor == 0x1002) {
-                         for (i = 0; i < sizeof(dev_table)/
-                                         sizeof(dev_table[0]); i++) {
-                              if (dev_table[i].id == chip) {
-                                   found = i;
-                                   break;
-                              }
-                         }
-                    }
-               }
+          while (fgets( buf, 512, fp )) {
+               if (sscanf( buf, "%04x\t%04x%04x", &device, &vendor, &chip ) == 3 &&
+                   device >= 0x0100 && vendor == 0x1002)
+                    break;
+
+               chip = 0;
           }
 
           fclose( fp );
      }
-     
-     if (found != -1) {
-          if (ret_index)
-               *ret_index = found;
-          return 1;
+
+     if (chip) {
+          for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
+               if (dev_table[i].id == chip) {
+                    if (ret_index)
+                         *ret_index = i;
+                    return 1;
+               }
+          }
      }
      
      return 0;

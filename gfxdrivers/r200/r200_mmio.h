@@ -114,6 +114,8 @@ r200_waitidle( R200DriverData *rdrv, R200DeviceData *rdev )
      int waitcycles = 0;
      int status;
 
+     r200_waitfifo( rdrv, rdev, 64 );
+
      do {
           status = r200_in32( rdrv->mmio_base, RBBM_STATUS );
           if (++waitcycles > 10000000) {
@@ -123,6 +125,7 @@ r200_waitidle( R200DriverData *rdrv, R200DeviceData *rdev )
      } while (status & RBBM_ACTIVE);
      
      rdev->fifo_space = status & RBBM_FIFOCNT_MASK;
+     rdev->idle_waitcycles += waitcycles;
 }
 
 static inline void

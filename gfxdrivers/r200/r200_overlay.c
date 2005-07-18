@@ -29,11 +29,13 @@
 #include <directfb.h>
 
 #include <core/coredefs.h>
+#include <core/screen.h>
 #include <core/layers.h>
 #include <core/layer_context.h>
 #include <core/layer_region.h>
 #include <core/layer_control.h>
 #include <core/surfaces.h>
+#include <core/system.h>
 
 #include <gfx/convert.h>
 
@@ -50,6 +52,9 @@ typedef struct {
      float                 contrast;
      float                 saturation;
      float                 hue;
+     int                   field;
+
+     CoreSurface          *surface;
      
      /* overlay registers */
      struct {
@@ -87,24 +92,30 @@ typedef struct {
      } regs;
 } R200OverlayLayerData;
 
-static void ov0_calc_regs   ( R200DriverData        *rdrv,
-                              R200OverlayLayerData  *rov0,
-                              CoreSurface           *surface,
-                              CoreLayerRegionConfig *config );
-static void ov0_set_regs    ( R200DriverData       *rdrv,
-                              R200OverlayLayerData *rov0 );
-static void ov0_swap_buffers( R200DriverData       *rdrv,
-                              R200OverlayLayerData *rov0,
-                              CoreSurface          *surface );
-static void ov0_set_csc     ( R200DriverData       *rdrv,
-                              R200OverlayLayerData *rov0,
-                              float                 brightness,
-                              float                 contrast,
-                              float                 saturation,
-                              float                 hue );
+static void ov0_calc_regs     ( R200DriverData        *rdrv,
+                                R200OverlayLayerData  *rov0,
+                                CoreSurface           *surface,
+                                CoreLayerRegionConfig *config );
+static void ov0_set_regs      ( R200DriverData        *rdrv,
+                                R200OverlayLayerData  *rov0 );                            
+static void ov0_calc_buffers  ( R200DriverData        *rdrv,
+                                R200OverlayLayerData  *rov0,
+                                CoreSurface           *surface,
+                                CoreLayerRegionConfig *config );
+static void ov0_set_buffers   ( R200DriverData        *rdrv,
+                                R200OverlayLayerData  *rov0 );
+static void ov0_set_colorkey  ( R200DriverData        *rdrv,
+                                R200OverlayLayerData  *rov0,
+                                CoreLayerRegionConfig *config );
+static void ov0_set_adjustment( R200DriverData        *rdrv,
+                                R200OverlayLayerData  *rov0,
+                                float                  brightness,
+                                float                  contrast,
+                                float                  saturation,
+                                float                  hue );
                 
 #define OV0_SUPPORTED_OPTIONS \
-     ( DLOP_DST_COLORKEY | DLOP_OPACITY )
+     ( DLOP_DST_COLORKEY | DLOP_OPACITY | DLOP_DEINTERLACING )
 
 /**********************/
 
@@ -131,7 +142,8 @@ ov0InitLayer( CoreLayer                  *layer,
      description->caps = DLCAPS_SURFACE       | DLCAPS_SCREEN_LOCATION |
                          DLCAPS_BRIGHTNESS    | DLCAPS_CONTRAST        |
                          DLCAPS_SATURATION    | DLCAPS_HUE             |
-                         DLCAPS_DST_COLORKEY  | DLCAPS_OPACITY;
+                         DLCAPS_DST_COLORKEY  | DLCAPS_OPACITY         |
+                         DLCAPS_DEINTERLACING;
 
      snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "Radeon200 Overlay" );
@@ -167,7 +179,7 @@ ov0InitLayer( CoreLayer                  *layer,
      r200_out32( mmio, DISPLAY_TEST_DEBUG_CNTL, 0 );
      
      /* reset color adjustments */
-     ov0_set_csc( rdrv, rov0, 0, 0, 0, 0 );
+     ov0_set_adjustment( rdrv, rov0, 0, 0, 0, 0 );
      
      /* reset gamma correction */
      r200_waitfifo( rdrv, rdrv->device_data, 18 );
@@ -274,9 +286,17 @@ ov0SetRegion( CoreLayer                  *layer,
 
      /* save configuration */
      rov0->config = *config;
-    
-     ov0_calc_regs( rdrv, rov0, surface, config );
-     ov0_set_regs( rdrv, rov0 );
+     rov0->surface = surface;
+     
+     if (updated & (CLRCF_WIDTH  | CLRCF_HEIGHT | CLRCF_FORMAT  |
+                    CLRCF_SOURCE | CLRCF_DEST   | CLRCF_OPTIONS | CLRCF_OPACITY)) 
+     {
+          ov0_calc_regs( rdrv, rov0, surface, &rov0->config );
+          ov0_set_regs( rdrv, rov0 );
+     }
+     
+     if (updated & (CLRCF_SRCKEY | CLRCF_DSTKEY))
+          ov0_set_colorkey( rdrv, rov0, &rov0->config );
 
      return DFB_OK;
 }
@@ -293,7 +313,9 @@ ov0FlipRegion( CoreLayer           *layer,
      R200OverlayLayerData *rov0 = (R200OverlayLayerData*) layer_data;
 
      dfb_surface_flip_buffers( surface, false );
-     ov0_swap_buffers( rdrv, rov0, surface );
+      
+     ov0_calc_buffers( rdrv, rov0, surface, &rov0->config );
+     ov0_set_buffers( rdrv, rov0 );
    
      if (flags & DSFLIP_WAIT)
           dfb_layer_wait_vsync( layer );
@@ -322,9 +344,29 @@ ov0SetColorAdjustment( CoreLayer          *layer,
      if (adj->flags & DCAF_HUE)
           rov0->hue        = (float)(adj->hue-0x8000) * 3.1416 / 65535.0;
 
-     ov0_set_csc( rdrv, rov0, rov0->brightness, rov0->contrast,
-                              rov0->saturation, rov0->hue );
+     ov0_set_adjustment( rdrv, rov0, rov0->brightness, rov0->contrast,
+                                     rov0->saturation, rov0->hue );
 
+     return DFB_OK;
+}
+
+static DFBResult
+ov0SetInputField( CoreLayer *layer,
+                  void      *driver_data,
+                  void      *layer_data,
+                  void      *region_data,
+                  int        field )
+{
+     R200DriverData       *rdrv = (R200DriverData*) driver_data;
+     R200OverlayLayerData *rov0 = (R200OverlayLayerData*) layer_data;
+
+     rov0->field = field;
+             
+     if (rov0->surface) {
+          ov0_calc_buffers( rdrv, rov0, rov0->surface, &rov0->config );
+          ov0_set_buffers( rdrv, rov0 );
+     }
+     
      return DFB_OK;
 }
 
@@ -352,118 +394,87 @@ DisplayLayerFuncs R200OverlayFuncs = {
      .SetRegion          = ov0SetRegion,
      .RemoveRegion       = ov0RemoveRegion,
      .FlipRegion         = ov0FlipRegion,
-     .SetColorAdjustment = ov0SetColorAdjustment
+     .SetColorAdjustment = ov0SetColorAdjustment,
+     .SetInputField      = ov0SetInputField
 };
 
 
 /*** Internal Functions ***/
 
 static void
-ov0_calc_offsets( R200DeviceData       *rdev,
-                  R200OverlayLayerData *rov0,
-                  CoreSurface          *surface,
-                  __u32                 offsets[3] )
+ov0_calc_coordinates( R200DriverData        *rdrv,
+                      R200OverlayLayerData  *rov0,
+                      CoreSurface           *surface,
+                      CoreLayerRegionConfig *config )
 {
-     SurfaceBuffer *buffer   = surface->front_buffer;
-     int            cropleft = 0;
-     int            croptop  = 0;
- 
-     if (rov0->config.dest.x < 0)
-          cropleft = -rov0->config.dest.x * surface->width / rov0->config.dest.w;
-
-     if (rov0->config.dest.y < 0)
-          croptop  = -rov0->config.dest.y * surface->height / rov0->config.dest.h;
-
-     offsets[0]  = rdev->fb_offset + buffer->video.offset;
-     offsets[0] += croptop * buffer->video.pitch + 
-                   cropleft * DFB_BYTES_PER_PIXEL( surface->format );
-
-     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
-          cropleft &= ~15;
-          croptop  &= ~1;
-
-          offsets[1]  = rdev->fb_offset + buffer->video.offset +
-                        surface->height * buffer->video.pitch;
-          offsets[2]  = offsets[1] +
-                        (surface->height/2) * (buffer->video.pitch/2);
-          offsets[1] += (croptop/2) * (buffer->video.pitch/2) + (cropleft/2);
-          offsets[2] += (croptop/2) * (buffer->video.pitch/2) + (cropleft/2);
-          
-          if (surface->format == DSPF_YV12) {
-               __u32 tmp  = offsets[1];
-               offsets[1] = offsets[2];
-               offsets[2] = tmp;
-          }
-     } else {
-          offsets[1] = offsets[0];
-          offsets[2] = offsets[0];
-     }
-}
-
-static inline __u32
-ov0_calc_dstkey( __u8 r, __u8 g, __u8 b )
-{
-     __u32 Kr, Kg, Kb;
-     
-     switch (dfb_primary_layer_pixelformat()) {
-          case DSPF_RGB332:
-               Kr = r & 0xe0;
-               Kg = g & 0xe0;
-               Kb = b & 0xc0;
-               break;
-          case DSPF_ARGB1555:
-               Kr = r & 0xf8;
-               Kg = g & 0xf8;
-               Kb = b & 0xf8;
-               break;
-          case DSPF_RGB16:
-               Kr = r & 0xf8;
-               Kg = g & 0xfc;
-               Kb = b & 0xf8;
-               break;
-          case DSPF_RGB24:
-          case DSPF_RGB32:
-          case DSPF_ARGB:
-               Kr = r;
-               Kg = g;
-               Kb = b;
-               break;
-          default:
-               D_BUG( "unexpected primary layer pixelformat" );
-               Kr = Kg = Kb = 0;
-               break;
-     }
-
-     return PIXEL_RGB32( Kr, Kg, Kb );
-}
-
-static void 
-ov0_calc_regs ( R200DriverData        *rdrv,
-                R200OverlayLayerData  *rov0,
-                CoreSurface           *surface,
-                CoreLayerRegionConfig *config )
-{
-     R200DeviceData *rdev       = rdrv->device_data;
-     __u32           offsets[3];
+     R200DeviceData *rdev   = rdrv->device_data;
+     DFBRectangle    source = config->source;
+     DFBRectangle    dest   = config->dest;
      __u32           tmp;
      __u32           h_inc;
+     __u32           v_inc;
      __u32           step_by;
+     int             xres;
+     int             yres;
      
-     /* clear all */
-     rov0->regs.SCALE_CNTL = 0;
+     dfb_screen_get_screen_size( dfb_screens_at( DSCID_PRIMARY ), &xres, &yres );
+ 
+     if (dest.w > (source.w << 4))
+          dest.w = source.w << 4;
+
+     if (dest.h > (source.h << 4))
+          dest.h = source.h << 4;
+
+     h_inc = (source.w << 12) / dest.w;
+     v_inc = (source.h << 20) / dest.h;
      
-     h_inc   = (config->source.w << 12) / config->dest.w;
-     step_by = 1;
-     while (h_inc >= (2 << 12)) {
+     if (dest.x < 0) {
+          source.x -= dest.x * source.w / dest.w;
+          source.w += dest.x * source.w / dest.w;
+          dest.w   += dest.x;
+          dest.x    = 0;
+     }
+     
+     if (dest.y < 0) {
+          source.y -= dest.y * source.h / dest.h;
+          source.h += dest.y * source.h / dest.h;
+          dest.h   += dest.y;
+          dest.y    = 0;
+     }
+     
+     if ((dest.x + dest.w) > xres) {
+          source.w = (xres - dest.x) * source.w / dest.w;
+          dest.w   =  xres - dest.x;
+     }
+     
+     if ((dest.y + dest.h) > yres) {
+          source.h = (yres - dest.y) * source.h / dest.h;
+          dest.h   =  yres - dest.y;
+     }
+     
+     if (dest.w < 1 || dest.h < 1 || source.w < 1 || source.h < 1) {
+          config->opacity = 0;
+          return;
+     }
+     
+     if (config->options & DLOP_DEINTERLACING) {
+          source.y /= 2;
+          source.h /= 2;
+          v_inc    /= 2;
+     }
+     
+     for (step_by = 1; h_inc >= (2 << 12);) {
           step_by++;
           h_inc >>= 1;
      }
 
      /* calculate values for horizontal accumulators */
      tmp = 0x00028000 + (h_inc << 3);
-     rov0->regs.P1_H_ACCUM_INIT = ((tmp << 4) & 0x000f8000) | ((tmp << 12) & 0xf0000000);
+     rov0->regs.P1_H_ACCUM_INIT = ((tmp <<  4) & 0x000f8000) |
+                                  ((tmp << 12) & 0xf0000000);
      tmp = 0x00028000 + (h_inc << 2);
-     rov0->regs.P23_H_ACCUM_INIT = ((tmp << 4) & 0x000f8000) | ((tmp << 12) & 0x70000000);
+     rov0->regs.P23_H_ACCUM_INIT = ((tmp <<  4) & 0x000f8000) |
+                                   ((tmp << 12) & 0x70000000);
 
      /* calculate values for vertical accumulators */
      tmp = 0x00018000;
@@ -472,8 +483,7 @@ ov0_calc_regs ( R200DriverData        *rdrv,
      tmp = 0x00018000;
      rov0->regs.P23_V_ACCUM_INIT = ((tmp << 4) & OV0_P23_V_ACCUM_INIT_MASK) |
                                    (OV0_P23_MAX_LN_IN_PER_LN_OUT & 1);
-
-     /* set destination coordinates */
+     
      switch (surface->format) {
           case DSPF_ARGB1555:
           case DSPF_RGB16:
@@ -482,111 +492,166 @@ ov0_calc_regs ( R200DriverData        *rdrv,
                rov0->regs.H_INC = h_inc | (h_inc << 16);
                break;
           default:
-               rov0->regs.H_INC = h_inc | ((h_inc >> 1) << 16);
+               rov0->regs.H_INC = h_inc | (h_inc/2 << 16);
                break;
      }
      
      rov0->regs.STEP_BY = step_by | (step_by << 8);
-     rov0->regs.V_INC   = (config->source.h << 20) / config->dest.h;
+     rov0->regs.V_INC   = v_inc;
      
+     /* calculate destination coordinates */
      if (rdev->chipset == CHIP_R200) {
-          rov0->regs.Y_X_START = (config->dest.x) | (config->dest.y << 16);
-          rov0->regs.Y_X_END   = (config->dest.x + config->dest.w) | 
-                                 ((config->dest.y + config->dest.h) << 16);
+          rov0->regs.Y_X_START = (dest.x & 0xffff) | (dest.y << 16);
+          rov0->regs.Y_X_END   = ((dest.x + dest.w) & 0xffff) | 
+                                 ((dest.y + dest.h) << 16);
      } else {    
-          rov0->regs.Y_X_START = (config->dest.x + 8) | (config->dest.y << 16);
-          rov0->regs.Y_X_END   = (config->dest.x + config->dest.w + 8) | 
-                                 ((config->dest.y + config->dest.h) << 16);
+          rov0->regs.Y_X_START = ((dest.x + 8) & 0xffff) | (dest.y << 16);
+          rov0->regs.Y_X_END   = ((dest.x + dest.w + 8) & 0xffff) | 
+                                 ((dest.y + dest.h) << 16);
      }
-                                         
-     /* set source coordinates and pitches */
+     
+     /* calculate source coordinates */
      rov0->regs.P1_BLANK_LINES_AT_TOP  = P1_BLNK_LN_AT_TOP_M1_MASK  | 
-                                         ((config->source.h - 1) << 16);
+                                         ((source.h - 1) << 16);
      rov0->regs.P23_BLANK_LINES_AT_TOP = P23_BLNK_LN_AT_TOP_M1_MASK |
-                                         ((((config->source.h + 1) >> 1) - 1) << 16);
-     rov0->regs.P1_X_START_END         = (config->source.x << 16) |
-                                         (config->source.x+config->source.w-1);
-     rov0->regs.VID_BUF_PITCH0_VALUE   = surface->front_buffer->video.pitch;
+                                         (((source.h + 1)/2 - 1) << 16);
      
+     rov0->regs.P1_X_START_END =  (source.x << 16) |
+                                 ((source.x + source.w - 1) & 0xffff);
      if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
-          rov0->regs.P2_X_START_END       = ((config->source.x >> 1) << 16) |
-                                            (((config->source.x+config->source.w)>>1) - 1);
-          rov0->regs.P3_X_START_END       = rov0->regs.P2_X_START_END;
-          rov0->regs.VID_BUF_PITCH1_VALUE = rov0->regs.VID_BUF_PITCH0_VALUE >> 1;
+          rov0->regs.P2_X_START_END = (source.x/2 << 16) |
+                                      ((source.x + source.w - 2)/2 & 0xffff);
+          rov0->regs.P3_X_START_END = rov0->regs.P2_X_START_END;
      } else {
-          rov0->regs.P2_X_START_END       = rov0->regs.P1_X_START_END;
-          rov0->regs.P3_X_START_END       = rov0->regs.P1_X_START_END;
-          rov0->regs.VID_BUF_PITCH1_VALUE = rov0->regs.VID_BUF_PITCH0_VALUE;
+          rov0->regs.P2_X_START_END = rov0->regs.P1_X_START_END;
+          rov0->regs.P3_X_START_END = rov0->regs.P1_X_START_END;
      }
- 
-     /* set offsets */
-     ov0_calc_offsets( rdrv->device_data, rov0, surface, offsets );
+}
+
+static void
+ov0_calc_buffers( R200DriverData        *rdrv,
+                  R200OverlayLayerData  *rov0,
+                  CoreSurface           *surface,
+                  CoreLayerRegionConfig *config )
+{
+     R200DeviceData *rdev       = rdrv->device_data;
+     SurfaceBuffer  *buffer     = surface->front_buffer;
+     DFBRectangle    source     = config->source;
+     __u32           offsets[3] = { 0, 0, 0 };
+     __u32           pitch      = buffer->video.pitch;
+     int             even       = 0;
+     int             cropleft;
+     int             croptop;
      
-     rov0->regs.VID_BUF0_BASE_ADRS =  offsets[0] & VIF_BUF0_BASE_ADRS_MASK;
-     rov0->regs.VID_BUF1_BASE_ADRS = (offsets[1] & VIF_BUF1_BASE_ADRS_MASK) |
-                                      VIF_BUF1_PITCH_SEL;
-     rov0->regs.VID_BUF2_BASE_ADRS = (offsets[2] & VIF_BUF2_BASE_ADRS_MASK) |
-                                      VIF_BUF2_PITCH_SEL; 
-     rov0->regs.VID_BUF3_BASE_ADRS = rov0->regs.VID_BUF0_BASE_ADRS;
-     rov0->regs.VID_BUF4_BASE_ADRS = rov0->regs.VID_BUF1_BASE_ADRS;
-     rov0->regs.VID_BUF5_BASE_ADRS = rov0->regs.VID_BUF2_BASE_ADRS; 
-     
-     /* configure options */ 
-     if (config->options & DLOP_OPACITY) {
-          rov0->regs.KEY_CNTL   = GRAPHIC_KEY_FN_TRUE |
-                                  VIDEO_KEY_FN_TRUE   |
-                                  CMP_MIX_AND;
-          rov0->regs.MERGE_CNTL = DISP_ALPHA_MODE_GLOBAL |
-                                  0x00ff0000             |
-                                  (config->opacity << 24);
-     } else {
-          rov0->regs.KEY_CNTL = CMP_MIX_AND;
-          
-          if (config->options & DLOP_SRC_COLORKEY)
-               rov0->regs.KEY_CNTL |= VIDEO_KEY_FN_NE;
-          else
-               rov0->regs.KEY_CNTL |= VIDEO_KEY_FN_TRUE;
-
-          if (config->options & DLOP_DST_COLORKEY)
-               rov0->regs.KEY_CNTL |= GRAPHIC_KEY_FN_EQ;
-          else
-               rov0->regs.KEY_CNTL |= GRAPHIC_KEY_FN_TRUE;
-
-          rov0->regs.MERGE_CNTL = 0xffff0000;
-     }
-
      if (config->options & DLOP_DEINTERLACING) {
-          rov0->regs.SCALE_CNTL    |= SCALER_ADAPTIVE_DEINT     |
-                                      R200_SCALER_TEMPORAL_DEINT;
-          rov0->regs.AUTO_FLIP_CNTL = OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD |
-                                      OV0_AUTO_FLIP_CNTL_SHIFT_ODD_DOWN;
-     } else
-          rov0->regs.AUTO_FLIP_CNTL = OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD;
+          source.y /= 2;
+          source.h /= 2;
+          pitch    *= 2;
+          even      = rov0->field;
+     }
      
-     /* onefield ?! */
-     rov0->regs.DEINTERLACE_PATTERN = 0x9000eeee;
-
-     /* set source colorkey */
-     rov0->regs.VID_KEY_CLR_LOW  = PIXEL_RGB32( config->src_key.r,
-                                                config->src_key.g,
-                                                config->src_key.b );
-     rov0->regs.VID_KEY_CLR_HIGH = rov0->regs.VID_KEY_CLR_LOW | 0xff000000;
+     cropleft = source.x;
+     croptop  = source.y;
      
-     /* set destination colorkey */
-     rov0->regs.GRPH_KEY_CLR_LOW  = ov0_calc_dstkey( config->dst_key.r,
-                                                     config->dst_key.g,
-                                                     config->dst_key.b );
-     rov0->regs.GRPH_KEY_CLR_HIGH = PIXEL_ARGB( 0xff, 
-                                                config->dst_key.r,
-                                                config->dst_key.g,
-                                                config->dst_key.b );
-     
-     /* set source format and enable overlay */
-     if (config->opacity) { 
-          rov0->regs.SCALE_CNTL |= SCALER_ENABLE       |
-                                   SCALER_SMART_SWITCH |
-                                   SCALER_DOUBLE_BUFFER;
+     if (config->dest.x < 0)
+          cropleft += -config->dest.x * source.w / config->dest.w;
           
+     if (config->dest.y < 0)
+          croptop  += -config->dest.y * source.h / config->dest.h;
+
+     if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
+          cropleft &= ~15;
+          croptop  &= ~1;
+          
+          offsets[1] = rdev->fb_offset + buffer->video.offset +
+                       surface->height * buffer->video.pitch + 
+                       croptop/2 * pitch/2 + cropleft/2;
+          offsets[2] = offsets[1] + surface->height/2 * buffer->video.pitch/2 +
+                       croptop/2 * pitch/2 + cropleft/2;
+          if (even) {
+               offsets[1] += buffer->video.pitch/2;
+               offsets[2] += buffer->video.pitch/2;
+          }
+
+          if (surface->format == DSPF_YV12) {
+               __u32 tmp  = offsets[1];
+               offsets[1] = offsets[2];
+               offsets[2] = tmp;
+          }
+     }
+
+     offsets[0] = rdev->fb_offset + buffer->video.offset + croptop * pitch +
+                  cropleft * DFB_BYTES_PER_PIXEL( surface->format );
+     if (even) 
+          offsets[0] += buffer->video.pitch;
+ 
+ 
+     rov0->regs.VID_BUF0_BASE_ADRS   = (offsets[0] & VIF_BUF0_BASE_ADRS_MASK);
+     rov0->regs.VID_BUF1_BASE_ADRS   = (offsets[1] & VIF_BUF1_BASE_ADRS_MASK) |
+                                        VIF_BUF1_PITCH_SEL;
+     rov0->regs.VID_BUF2_BASE_ADRS   = (offsets[2] & VIF_BUF2_BASE_ADRS_MASK) |
+                                        VIF_BUF2_PITCH_SEL;
+     rov0->regs.VID_BUF3_BASE_ADRS   = (offsets[0] & VIF_BUF3_BASE_ADRS_MASK);
+     rov0->regs.VID_BUF4_BASE_ADRS   = (offsets[1] & VIF_BUF4_BASE_ADRS_MASK) |
+                                        VIF_BUF4_PITCH_SEL;
+     rov0->regs.VID_BUF5_BASE_ADRS   = (offsets[2] & VIF_BUF5_BASE_ADRS_MASK) |
+                                        VIF_BUF5_PITCH_SEL;   
+     rov0->regs.VID_BUF_PITCH0_VALUE = pitch;
+     rov0->regs.VID_BUF_PITCH1_VALUE = pitch/2;
+}
+
+static void 
+ov0_calc_regs( R200DriverData        *rdrv,
+               R200OverlayLayerData  *rov0,
+               CoreSurface           *surface,
+               CoreLayerRegionConfig *config )
+{
+     /* Configure coordinates */
+     ov0_calc_coordinates( rdrv, rov0, surface, config );
+     
+     /* Configure buffers */                                   
+     ov0_calc_buffers( rdrv, rov0, surface, config );
+     
+     /* Configure options and enable scaler */
+     if (config->opacity) {
+          rov0->regs.SCALE_CNTL = SCALER_ENABLE       |
+                                  SCALER_SMART_SWITCH |
+                                  SCALER_DOUBLE_BUFFER;
+
+          if (config->options & DLOP_OPACITY) {
+               rov0->regs.KEY_CNTL   = GRAPHIC_KEY_FN_TRUE |
+                                       VIDEO_KEY_FN_TRUE   |
+                                        CMP_MIX_AND;
+               rov0->regs.MERGE_CNTL = DISP_ALPHA_MODE_GLOBAL |
+                                       0x00ff0000             |
+                                       (config->opacity << 24);
+          } else {
+               rov0->regs.KEY_CNTL = CMP_MIX_AND;
+          
+               if (config->options & DLOP_SRC_COLORKEY)
+                    rov0->regs.KEY_CNTL |= VIDEO_KEY_FN_NE;
+               else
+                    rov0->regs.KEY_CNTL |= VIDEO_KEY_FN_TRUE;
+
+               if (config->options & DLOP_DST_COLORKEY)
+                    rov0->regs.KEY_CNTL |= GRAPHIC_KEY_FN_EQ;
+               else
+                    rov0->regs.KEY_CNTL |= GRAPHIC_KEY_FN_TRUE;
+
+               rov0->regs.MERGE_CNTL = 0xffff0000;
+          }
+
+          if (config->options & DLOP_DEINTERLACING) {
+               rov0->regs.SCALE_CNTL    |= SCALER_ADAPTIVE_DEINT     |
+                                           R200_SCALER_TEMPORAL_DEINT;
+               rov0->regs.AUTO_FLIP_CNTL = OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD |
+                                           OV0_AUTO_FLIP_CNTL_SHIFT_ODD_DOWN;
+          } else
+               rov0->regs.AUTO_FLIP_CNTL = OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD;
+     
+          /* onefield ?! */
+          rov0->regs.DEINTERLACE_PATTERN = 0x9000eeee;
+ 
           switch (surface->format) {
                case DSPF_ARGB1555:
                     rov0->regs.SCALE_CNTL |= SCALER_SOURCE_15BPP |
@@ -616,8 +681,16 @@ ov0_calc_regs ( R200DriverData        *rdrv,
                     rov0->regs.SCALE_CNTL = 0;
                     break;
           }
-     } else
+     } 
+     else {
           rov0->regs.SCALE_CNTL = 0;
+          rov0->regs.KEY_CNTL   = CMP_MIX_AND         | 
+                                  VIDEO_KEY_FN_TRUE   |
+                                  GRAPHIC_KEY_FN_TRUE;
+          rov0->regs.MERGE_CNTL = 0xffff0000;
+          rov0->regs.AUTO_FLIP_CNTL = OV0_AUTO_FLIP_CNTL_SOFT_BUF_ODD;
+          rov0->regs.DEINTERLACE_PATTERN = 0x9000eeee;
+     }         
 }
 
 static void 
@@ -631,11 +704,7 @@ ov0_set_regs( R200DriverData       *rdrv,
      r200_out32( mmio, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK );
      while(!(r200_in32( mmio, OV0_REG_LOAD_CNTL ) & REG_LD_CTL_LOCK_READBACK));
       
-     r200_waitfifo( rdrv, rdev, 8 );
-     r200_out32( mmio, OV0_VID_KEY_CLR_LOW,        rov0->regs.VID_KEY_CLR_LOW );
-     r200_out32( mmio, OV0_VID_KEY_CLR_HIGH,       rov0->regs.VID_KEY_CLR_HIGH );
-     r200_out32( mmio, OV0_GRPH_KEY_CLR_LOW,       rov0->regs.GRPH_KEY_CLR_LOW );
-     r200_out32( mmio, OV0_GRPH_KEY_CLR_HIGH,      rov0->regs.GRPH_KEY_CLR_HIGH ); 
+     r200_waitfifo( rdrv, rdev, 4 );
      r200_out32( mmio, OV0_KEY_CNTL,               rov0->regs.KEY_CNTL ); 
      r200_out32( mmio, DISP_MERGE_CNTL,            rov0->regs.MERGE_CNTL );
      r200_out32( mmio, OV0_AUTO_FLIP_CNTL,         rov0->regs.AUTO_FLIP_CNTL );
@@ -672,26 +741,11 @@ ov0_set_regs( R200DriverData       *rdrv,
 }
 
 static void
-ov0_swap_buffers( R200DriverData       *rdrv,
-                  R200OverlayLayerData *rov0,
-                  CoreSurface          *surface )
+ov0_set_buffers( R200DriverData       *rdrv,
+                 R200OverlayLayerData *rov0 )
 {
      R200DeviceData *rdev = rdrv->device_data;
      volatile __u8  *mmio = rdrv->mmio_base;
-     __u32           offsets[3];
-     
-     ov0_calc_offsets( rdev, rov0, surface, offsets );
-     
-     /* remember last frame for deinterlacing */
-     rov0->regs.VID_BUF3_BASE_ADRS = rov0->regs.VID_BUF0_BASE_ADRS;
-     rov0->regs.VID_BUF4_BASE_ADRS = rov0->regs.VID_BUF1_BASE_ADRS;
-     rov0->regs.VID_BUF5_BASE_ADRS = rov0->regs.VID_BUF2_BASE_ADRS;
-     
-     rov0->regs.VID_BUF0_BASE_ADRS =  offsets[0] & VIF_BUF0_BASE_ADRS_MASK;
-     rov0->regs.VID_BUF1_BASE_ADRS = (offsets[1] & VIF_BUF1_BASE_ADRS_MASK) |
-                                      VIF_BUF1_PITCH_SEL;
-     rov0->regs.VID_BUF2_BASE_ADRS = (offsets[2] & VIF_BUF2_BASE_ADRS_MASK) |
-                                      VIF_BUF2_PITCH_SEL;
       
      r200_waitfifo( rdrv, rdev, 1 );
      r200_out32( mmio, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK );
@@ -709,25 +763,65 @@ ov0_swap_buffers( R200DriverData       *rdrv,
 }
 
 static void
-ov0_set_csc( R200DriverData       *rdrv,
-             R200OverlayLayerData *rov0,
-             float                 brightness,
-             float                 contrast,
-             float                 saturation,
-             float                 hue )
+ov0_set_colorkey( R200DriverData        *rdrv,
+                  R200OverlayLayerData  *rov0,
+                  CoreLayerRegionConfig *config )              
 {
-     R200DeviceData *rdev = rdrv->device_data;
-     volatile __u8  *mmio = rdrv->mmio_base;
-     float           HueSin, HueCos; 
-     float           Luma;
-     float           RCb, RCr;
-     float           GCb, GCr;
-     float           BCb, BCr;
-     float           AdjOff, ROff, GOff, BOff;
-     __u32           dwLuma, dwROff, dwGOff, dwBOff;
-     __u32           dwRCb, dwRCr;
-     __u32           dwGCb, dwGCr;
-     __u32           dwBCb, dwBCr;
+     volatile __u8 *mmio = rdrv->mmio_base;
+     __u32          SkeyLow, SkeyHigh;
+     __u32          DkeyLow, DkeyHigh;
+     
+     SkeyLow  = PIXEL_RGB32( config->src_key.r,
+                             config->src_key.g,
+                             config->src_key.b );
+     SkeyHigh = SkeyLow | 0xff000000;
+     
+     DkeyLow  = PIXEL_RGB32( config->dst_key.r,
+                             config->dst_key.g,
+                             config->dst_key.b );
+     DkeyHigh = DkeyLow | 0xff000000;
+     
+     switch (dfb_primary_layer_pixelformat()) {
+          case DSPF_RGB332:
+               DkeyLow &= 0xe0e0e0;
+               break;
+          case DSPF_ARGB1555:
+               DkeyLow &= 0xf8f8f8;
+               break;
+          case DSPF_RGB16:
+               DkeyLow &= 0xf8fcf8;
+               break;
+          default:
+               break;
+     }
+
+     r200_waitfifo( rdrv, rdrv->device_data, 4 );
+     r200_out32( mmio, OV0_VID_KEY_CLR_LOW,   SkeyLow  );
+     r200_out32( mmio, OV0_VID_KEY_CLR_HIGH,  SkeyHigh );
+     r200_out32( mmio, OV0_GRPH_KEY_CLR_LOW,  DkeyLow  );
+     r200_out32( mmio, OV0_GRPH_KEY_CLR_HIGH, DkeyHigh ); 
+}
+
+
+static void
+ov0_set_adjustment( R200DriverData       *rdrv,
+                    R200OverlayLayerData *rov0,
+                    float                 brightness,
+                    float                 contrast,
+                    float                 saturation,
+                    float                 hue )
+{
+     volatile __u8 *mmio = rdrv->mmio_base;
+     float          HueSin, HueCos; 
+     float          Luma;
+     float          RCb, RCr;
+     float          GCb, GCr;
+     float          BCb, BCr;
+     float          AdjOff, ROff, GOff, BOff;
+     __u32          dwLuma, dwROff, dwGOff, dwBOff;
+     __u32          dwRCb, dwRCr;
+     __u32          dwGCb, dwGCr;
+     __u32          dwBCb, dwBCr;
      
      HueSin = sin( hue );
      HueCos = cos( hue );
@@ -759,7 +853,7 @@ ov0_set_csc( R200DriverData       *rdrv,
 	dwBCb  = (((__u32)(BCb  * 256.0)) & 0xfff) <<  4;
 	dwBCr  = (((__u32)(BCr  * 256.0)) & 0xfff) << 20;
  
-     r200_waitfifo( rdrv, rdev, 6 );
+     r200_waitfifo( rdrv, rdrv->device_data, 6 );
      r200_out32( mmio, OV0_LIN_TRANS_A, dwRCb  | dwLuma );
      r200_out32( mmio, OV0_LIN_TRANS_B, dwROff | dwRCr );
      r200_out32( mmio, OV0_LIN_TRANS_C, dwGCb  | dwLuma );
@@ -767,3 +861,4 @@ ov0_set_csc( R200DriverData       *rdrv,
      r200_out32( mmio, OV0_LIN_TRANS_E, dwBCb  | dwLuma );
      r200_out32( mmio, OV0_LIN_TRANS_F, dwBOff | dwBCr );
 }
+

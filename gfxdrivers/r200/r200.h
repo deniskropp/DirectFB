@@ -62,7 +62,6 @@ typedef struct {
      __u32                   src_width;
      __u32                   src_height;
      __u32                   src_mask;
-     bool                    src_422;
 
      DFBRegion               clip;
 

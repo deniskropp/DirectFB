@@ -117,19 +117,19 @@ void r200_set_destination( R200DriverData *rdrv,
                     break;
                case DSPF_RGB332:          
                     rdev->dp_gui_master_cntl = GMC_DST_8BPP;
-                    rdev->rb3d_cntl = COLOR_FORMAT_RGB332;
+                    rdev->rb3d_cntl = COLOR_FORMAT_RGB332 | DITHER_ENABLE;
                     break;
                case DSPF_ARGB4444:
                     rdev->dp_gui_master_cntl = GMC_DST_ARGB4444;
-                    rdev->rb3d_cntl = COLOR_FORMAT_ARGB4444;
+                    rdev->rb3d_cntl = COLOR_FORMAT_ARGB4444 | DITHER_ENABLE;
                     break;
                case DSPF_ARGB1555:          
                     rdev->dp_gui_master_cntl = GMC_DST_15BPP;
-                    rdev->rb3d_cntl = COLOR_FORMAT_ARGB1555;
+                    rdev->rb3d_cntl = COLOR_FORMAT_ARGB1555 | DITHER_ENABLE;
                     break;
                case DSPF_RGB16:
                     rdev->dp_gui_master_cntl = GMC_DST_16BPP;
-                    rdev->rb3d_cntl = COLOR_FORMAT_RGB565;
+                    rdev->rb3d_cntl = COLOR_FORMAT_RGB565 | DITHER_ENABLE;
                     break;
                case DSPF_RGB32:
                case DSPF_ARGB:
@@ -194,15 +194,16 @@ void r200_set_destination( R200DriverData *rdrv,
                r200_out32( mmio, RB3D_DEPTHOFFSET, offset );
                r200_out32( mmio, RB3D_DEPTHPITCH,  pitch );
                r200_out32( mmio, RB3D_ZSTENCILCNTL, DEPTH_FORMAT_16BIT_INT_Z |
-                                                    Z_TEST_ALWAYS            |
-                                                    Z_WRITE_ENABLE );
+                                                    Z_TEST_ALWAYS );
           
-               //rdev->rb3d_cntl |= Z_ENABLE;
+               rdev->rb3d_cntl |= Z_ENABLE;
           }
           
           if (rdev->dst_format != buffer->format) {
-               if (dst_422 && !rdev->dst_422)
+               if (dst_422 && !rdev->dst_422) {
+                    R200_UNSET( SOURCE );
                     R200_UNSET( CLIP );
+               }
                
                R200_UNSET( COLOR );
                R200_UNSET( SRC_BLEND );
@@ -225,6 +226,10 @@ void r200_set_source( R200DriverData *rdrv,
      SurfaceBuffer *buffer   = surface->front_buffer;
      volatile __u8 *mmio     = rdrv->mmio_base;
      __u32          txformat = R200_TXFORMAT_NON_POWER2;
+     __u32          txfilter = R200_MAG_FILTER_LINEAR  |
+                               R200_MIN_FILTER_LINEAR  |
+                               R200_CLAMP_S_CLAMP_LAST |
+                               R200_CLAMP_T_CLAMP_LAST;
 
      if (R200_IS_SET( SOURCE ))
           return;
@@ -234,8 +239,6 @@ void r200_set_source( R200DriverData *rdrv,
 
      rdev->src_offset = rdev->fb_offset + buffer->video.offset;
      rdev->src_pitch  = buffer->video.pitch;
-     
-     rdev->src_422 = false;
      
      switch (buffer->format) {
           case DSPF_A8:
@@ -272,13 +275,15 @@ void r200_set_source( R200DriverData *rdrv,
                break;
           case DSPF_UYVY:
                txformat |= R200_TXFORMAT_YVYU422;
+               if (!rdev->dst_422)
+                    txfilter |= R200_YUV_TO_RGB;
                rdev->src_mask = 0xffffffff;
-               rdev->src_422 = true;
                break;
           case DSPF_YUY2:
                txformat |= R200_TXFORMAT_VYUY422;
+               if (!rdev->dst_422)
+                    txfilter |= R200_YUV_TO_RGB;
                rdev->src_mask = 0xffffffff;
-               rdev->src_422 = true;
                break;
           case DSPF_I420:
                txformat |= R200_TXFORMAT_I8;
@@ -300,19 +305,22 @@ void r200_set_source( R200DriverData *rdrv,
                D_BUG( "unexpected pixelformat" );
                break;
      }
- 
+     
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, SRC_OFFSET, rdev->src_offset );
      r200_out32( mmio, SRC_PITCH,  rdev->src_pitch );
            
-     r200_waitfifo( rdrv, rdev, 5 ); 
+     r200_waitfifo( rdrv, rdev, 6 );
+     r200_out32( mmio, R200_PP_TXFILTER_0, txfilter ); 
      r200_out32( mmio, R200_PP_TXFORMAT_0, txformat );
      r200_out32( mmio, R200_PP_TXFORMAT_X_0, 0 );
      r200_out32( mmio, R200_PP_TXSIZE_0,  (surface->width-1) |
                                          ((surface->height-1) << 16) );
      r200_out32( mmio, R200_PP_TXPITCH_0,  rdev->src_pitch - 32 );
      r200_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
-         
+     
+     r200_flush( rdrv, rdev );
+     
      if (rdev->src_format != buffer->format)
           R200_UNSET( BLITTING_FLAGS );
           
@@ -525,7 +533,7 @@ void r200_set_drawingflags( R200DriverData *rdrv,
 {
      volatile __u8 *mmio        = rdrv->mmio_base;
      __u32          master_cntl = rdev->dp_gui_master_cntl;
-     __u32          rb3d_cntl   = rdev->rb3d_cntl;
+     __u32          rb3d_cntl   = rdev->rb3d_cntl & ~DITHER_ENABLE;
 
      if (R200_IS_SET( DRAWING_FLAGS ))
           return;
@@ -548,8 +556,15 @@ void r200_set_drawingflags( R200DriverData *rdrv,
      r200_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      r200_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      
-     r200_waitfifo( rdrv, rdev, 8 );
+     r200_waitfifo( rdrv, rdev, 9 );
      r200_out32( mmio, RB3D_CNTL, rb3d_cntl );
+     r200_out32( mmio, SE_CNTL, DIFFUSE_SHADE_FLAT  |
+                                ALPHA_SHADE_FLAT    |
+                                BFACE_SOLID         |
+                                FFACE_SOLID         |
+                                VTX_PIX_CENTER_OGL  |
+                                ROUND_MODE_ROUND    |
+				            ROUND_PREC_4TH_PIX );
      r200_out32( mmio, PP_CNTL, TEX_BLEND_1_ENABLE );
      r200_out32( mmio, R200_PP_TXCBLEND_1, R200_TXC_ARG_C_TFACTOR_COLOR );
      r200_out32( mmio, R200_PP_TXCBLEND2_1, (1 << R200_TXC_TFACTOR_SEL_SHIFT) |
@@ -576,11 +591,12 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      __u32          master_cntl = rdev->dp_gui_master_cntl;
      __u32          cmp_cntl    = 0;
      __u32          rb3d_cntl   = rdev->rb3d_cntl;
+     __u32          se_cntl     = BFACE_SOLID         |
+                                  FFACE_SOLID         |
+                                  VTX_PIX_CENTER_OGL  |
+                                  ROUND_MODE_ROUND    |
+				              ROUND_PREC_4TH_PIX;
      __u32          pp_cntl     = TEX_0_ENABLE;
-     __u32          filter      = R200_MAG_FILTER_LINEAR  |
-                                  R200_MIN_FILTER_LINEAR  |
-                                  R200_CLAMP_S_CLAMP_LAST |
-                                  R200_CLAMP_T_CLAMP_LAST;
      __u32          cblend      = R200_TXC_ARG_C_R0_COLOR;
      __u32          ablend      = R200_TXA_ARG_C_R0_ALPHA;
      __u32          vtx_fmt     = R200_VTX_XY;
@@ -588,14 +604,14 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      if (R200_IS_SET( BLITTING_FLAGS ))
           return;
  
-     if (rdev->accel == DFXL_TEXTRIANGLES)
+     if (rdev->accel == DFXL_TEXTRIANGLES) {
+          se_cntl |= DIFFUSE_SHADE_GOURAUD |
+                     ALPHA_SHADE_GOURAUD   |
+                     FLAT_SHADE_VTX_LAST;
           vtx_fmt |= R200_VTX_Z0 | R200_VTX_W0;
-
-     if (rdev->src_format != rdev->dst_format) {
-          if (rdev->src_422 && !rdev->dst_422)
-               filter |= R200_YUV_TO_RGB;
-          
-          rb3d_cntl |= DITHER_ENABLE;
+     } else {
+          se_cntl |= DIFFUSE_SHADE_FLAT |
+                     ALPHA_SHADE_FLAT;
      }
      
      if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
@@ -644,8 +660,8 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      
      r200_waitfifo( rdrv, rdev, 9 );
      r200_out32( mmio, RB3D_CNTL, rb3d_cntl );
+     r200_out32( mmio, SE_CNTL, se_cntl );
      r200_out32( mmio, PP_CNTL, pp_cntl ); 
-     r200_out32( mmio, R200_PP_TXFILTER_0, filter );
      r200_out32( mmio, R200_PP_TXCBLEND_0, cblend );
      r200_out32( mmio, R200_PP_TXCBLEND2_0, R200_TXC_OUTPUT_REG_R0 |
                                             R200_TXC_CLAMP_0_1 );
