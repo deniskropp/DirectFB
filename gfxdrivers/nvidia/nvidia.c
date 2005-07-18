@@ -39,10 +39,6 @@
 
 #include <linux/fb.h>
 
-#ifdef USE_SYSFS
-# include <sysfs/libsysfs.h>
-#endif
-
 #include <directfb.h>
 
 #include <direct/messages.h>
@@ -57,7 +53,10 @@
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
+
 #include <misc/conf.h>
+
+#include <fbdev/fbdev.h>
 
 #include <core/graphics_driver.h>
 
@@ -1315,106 +1314,47 @@ driver_get_info( GraphicsDevice     *device,
 static void
 nv_find_architecture( __u32 *ret_chip, __u32 *ret_arch )
 {
-     char  buf[512];
-     __u32 chip  = 0;
-     __u32 arch  = 0;
-
-#ifdef USE_SYSFS
-     if (!sysfs_get_mnt_path( buf, 512 )) {
-          struct dlist           *devices;
-          struct sysfs_device    *dev;
-          struct sysfs_attribute *attr;
-          int                     bus;
-
-          devices = sysfs_open_bus_devices_list( "pci" );
-          if (devices) {
-               dlist_for_each_data( devices, dev, struct sysfs_device ) {
-                    if (sscanf( dev->name, "0000:%02x:", &bus ) < 1 || bus < 1)
-                         continue;
-
-                    dev = sysfs_open_device( "pci", dev->name );
-                    if (dev) {
-                         attr = sysfs_get_device_attr( dev, "vendor" );
-                         if (!attr || strncasecmp( attr->value, "0x10de", 6 )) {
-                              sysfs_close_device( dev );
-                              continue;
-                         }
-
-                         attr = sysfs_get_device_attr( dev, "device" );
-                         if (attr)
-                              sscanf( attr->value, "0x%04x", &chip );
-
-                         sysfs_close_device( dev );
-                         break;
-                    }
-               }
-
-               sysfs_close_list( devices );
-          }
-     }
-#endif /* USE_SYSFS */
-
-     /* try /proc interface */
-     if (!chip) {
-          FILE  *fp;
-          __u32  device;
-          __u32  vendor;
-
-          fp = fopen( "/proc/bus/pci/devices", "r" );
-          if (!fp) {
-               D_PERROR( "DirectFB/NVidia: "
-                         "couldn't access /proc/bus/pci/devices!\n" );
-               return;
-          }
-
-          while (fgets( buf, 512, fp )) {
-               if (sscanf( buf, "%04x\t%04x%04x",
-                              &device, &vendor, &chip ) != 3)
-                    continue;
-
-               if (device >= 0x0100 && vendor == 0x10DE)
+     FBDev *fbdev = dfb_system_data();
+     
+     if (fbdev && fbdev->shared->device.vendor == 0x10DE) {
+          __u32 arch = 0;
+          __u32 chip = fbdev->shared->device.model;
+          
+          switch (chip & 0x0FF0) {
+               case 0x0020: /* Riva TNT/TNT2 */
+                    arch = (chip == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
                     break;
-
-               chip = 0;
+               case 0x0100: /* GeForce */
+               case 0x0110: /* GeForce2 MX */
+               case 0x0150: /* GeForce2 GTS/Ti/Ultra */
+               case 0x0170: /* GeForce4 MX/Go */
+               case 0x0180: /* GeForce4 MX/Go AGP8X */
+               //case 0x01A0: /* GeForce2 Integrated GPU */
+               //case 0x01F0: /* GeForce4 MX Integrated GPU */
+                    arch = NV_ARCH_10;
+                    break;
+               case 0x0200: /* GeForce3 */
+               case 0x0250: /* GeForce4 Ti */
+               case 0x0280: /* GeForce4 Ti AGP8X */
+               case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
+                    arch = NV_ARCH_20;
+                    break;
+               case 0x0300: /* GeForce FX 5800 */
+               case 0x0310: /* GeForce FX 5600 */
+               case 0x0320: /* GeForce FX 5200 */
+               case 0x0330: /* GeForce FX 5900 */
+               case 0x0340: /* GeForce FX 5700 */
+                    arch = NV_ARCH_30;
+                    break;
+               default:
+                    break;
           }
 
-          fclose( fp );
+          if (ret_chip)
+               *ret_chip = chip;
+          if (ret_arch)
+               *ret_arch = arch;
      }
-
-     switch (chip & 0x0FF0) {
-          case 0x0020: /* Riva TNT/TNT2 */
-               arch = (chip == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
-               break;
-          case 0x0100: /* GeForce */
-          case 0x0110: /* GeForce2 MX */
-          case 0x0150: /* GeForce2 GTS/Ti/Ultra */
-          case 0x0170: /* GeForce4 MX/Go */
-          case 0x0180: /* GeForce4 MX/Go AGP8X */
-          //case 0x01A0: /* GeForce2 Integrated GPU */
-          //case 0x01F0: /* GeForce4 MX Integrated GPU */
-               arch = NV_ARCH_10;
-               break;
-          case 0x0200: /* GeForce3 */
-          case 0x0250: /* GeForce4 Ti */
-          case 0x0280: /* GeForce4 Ti AGP8X */
-          case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
-               arch = NV_ARCH_20;
-               break;
-          case 0x0300: /* GeForce FX 5800 */
-          case 0x0310: /* GeForce FX 5600 */
-          case 0x0320: /* GeForce FX 5200 */
-          case 0x0330: /* GeForce FX 5900 */
-          case 0x0340: /* GeForce FX 5700 */
-               arch = NV_ARCH_30;
-               break;
-          default:
-               break;
-     }
-
-     if (ret_chip)
-          *ret_chip = chip;
-     if (ret_arch)
-          *ret_arch = arch;
 }
 
 static DFBResult
