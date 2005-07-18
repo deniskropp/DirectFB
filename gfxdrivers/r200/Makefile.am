@@ -26,7 +26,6 @@ libdirectfb_r200_la_SOURCES = \
 	r200_state.h
 
 libdirectfb_r200_la_LDFLAGS = \
-	$(SYSFS_LIBS)		\
 	-export-dynamic	\
 	-avoid-version		\
 	$(DFB_LDFLAGS) -lm

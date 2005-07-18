@@ -30,10 +30,6 @@
 #include <sys/mman.h>
 #include <linux/fb.h>
 
-#ifdef USE_SYSFS
-# include <sysfs/libsysfs.h>
-#endif
-
 #include <dfb_types.h>
 #include <directfb.h>
 
@@ -53,6 +49,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include <fbdev/fbdev.h>
 
 #include <core/graphics_driver.h>
 
@@ -1133,70 +1130,12 @@ static struct {
 static int 
 r200_probe_chipset( int *ret_index )
 {
-     char  buf[512];
-     __u32 chip = 0;
-     int   i;
+     FBDev *fbdev = dfb_system_data();
+     int    i;
 
-#ifdef USE_SYSFS
-     if (!sysfs_get_mnt_path( buf, 512 )) {
-          struct sysfs_class_device *classdev;
-          struct sysfs_device       *device;
-          struct sysfs_attribute    *attr;
-          char                       dev[4] = { 'f', 'b', '0', '\0' };
-          
-          if (dfb_config->fb_device) {
-               if (!strncmp( dfb_config->fb_device, "/dev/fb/", 8 ))
-                    dev[2] = dfb_config->fb_device[8];
-               else if (!strncmp( dfb_config->fb_device, "/dev/fb", 7 ))
-                    dev[2] = dfb_config->fb_device[7];
-          }    
-          
-          classdev = sysfs_open_class_device( "graphics", dev );
-          if (classdev) {
-               device = sysfs_get_classdev_device( classdev );
-               
-               if (device) {
-                    attr = sysfs_get_device_attr( device, "vendor" );
-                    
-                    if (attr && !strncmp( attr->value, "0x1002", 6 )) {
-                         attr = sysfs_get_device_attr( device, "device" );
-                         if (attr)
-                              sscanf( attr->value, "0x%04x", &chip );
-                    }
-               }
-               
-               sysfs_close_class_device( classdev );
-          }     
-     }
-#endif /* USE_SYSFS */
-
-     /* try /proc interface */
-     if (chip == 0) {
-          FILE  *fp;
-          __u32  device;
-          __u32  vendor;
-
-          fp = fopen( "/proc/bus/pci/devices", "r" );
-          if (!fp) {
-               D_PERROR( "DirectFB/R200: "
-                         "couldn't access /proc/bus/pci/devices!\n" );
-               return 0;
-          }
-
-          while (fgets( buf, 512, fp )) {
-               if (sscanf( buf, "%04x\t%04x%04x", &device, &vendor, &chip ) == 3 &&
-                   device >= 0x0100 && vendor == 0x1002)
-                    break;
-
-               chip = 0;
-          }
-
-          fclose( fp );
-     }
-
-     if (chip) {
+     if (fbdev && fbdev->shared->device.vendor == 0x1002) {
           for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
-               if (dev_table[i].id == chip) {
+               if (dev_table[i].id == fbdev->shared->device.model) {
                     if (ret_index)
                          *ret_index = i;
                     return 1;
