@@ -62,6 +62,7 @@ static const char *config_usage =
      "\n"
      "  system=<system>                Specify the system (FBDev, SDL, etc.)\n"
      "  fbdev=<device>                 Open <device> instead of /dev/fb0\n"
+     "  pci-id=<id>                    Specify the PCI Bus ID of graphics card (default 1:0:0)\n"
      "  mode=<width>x<height>          Set the default resolution\n"
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
@@ -302,6 +303,10 @@ static void config_allocate()
      dfb_config->layer_bg_color.g         = 0x7c;
      dfb_config->layer_bg_color.b         = 0xe8;
      dfb_config->layer_bg_mode            = DLBM_COLOR;
+     
+     dfb_config->pci.bus                  = 1;
+     dfb_config->pci.dev                  = 0;
+     dfb_config->pci.func                 = 0;
 
      dfb_config->banner                   = true;
      dfb_config->deinit_check             = true;
@@ -386,6 +391,20 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
+     if (strcmp (name, "pci-id" ) == 0) {
+          if (value) {
+               int bus, dev, func;
+               
+               if (sscanf( value, "%d:%d:%d", &bus, &dev, &func ) != 3) {
+                    D_ERROR( "DirectFB/Config 'pci-id': Could not parse pci-id!\n");
+                    return DFB_INVARG;
+               }                  
+               
+               dfb_config->pci.bus  = bus;
+               dfb_config->pci.dev  = dev;
+               dfb_config->pci.func = func;
+          }
+     } else                    
      if (strcmp (name, "tmpfs" ) == 0) {
           if (value) {
                if (fusion_config->tmpfs)

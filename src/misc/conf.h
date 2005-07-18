@@ -80,6 +80,12 @@ typedef struct
 
      char     *fb_device;                         /* Used framebuffer device,
                                                      e.g. "/dev/fb0" */
+                                                     
+     struct {
+          int  bus;                               /* PCI Bus */
+          int  dev;                               /* PCI Device */
+          int  func;                              /* PCI Function */
+     } pci;
 
      bool      lefty;                             /* Left handed mouse, swaps
                                                      left/right mouse buttons */
