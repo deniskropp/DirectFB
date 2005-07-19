@@ -527,7 +527,7 @@ radeon_probe_chipset( int *ret_index )
      FBDev *fbdev = dfb_system_data();
      int    i;
 
-     if (fbdev && fbdev->shared->device.model == 0x1002) {
+     if (fbdev && fbdev->shared->device.vendor == 0x1002) {
           for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
                if (dev_table[i].id == fbdev->shared->device.model) {
                     if (ret_index)
