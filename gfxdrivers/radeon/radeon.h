@@ -33,10 +33,26 @@
 #include <core/coretypes.h>
 #include <core/layers.h>
 
+enum {
+    R_100,
+    R_120,
+    R_150,
+    R_200,
+    R_250,
+    R_280,
+    R_300,
+    R_350,
+    R_370,
+    R_380,
+    R_420
+};
+
 typedef struct {
     CoreSurface *source;
     CoreSurface *destination;
     DFBSurfaceBlittingFlags blittingflags;
+
+    __u32 chipset;    
 
     /* store some Radeon register values in native format */
     __u32 RADEON_dp_gui_master_cntl;

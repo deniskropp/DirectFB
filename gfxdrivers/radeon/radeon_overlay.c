@@ -432,6 +432,24 @@ ov0SetRegion( CoreLayer                  *layer,
 
     /* reset overlay */
     radeon_waitidle(rdrv, rdev);
+
+    if(rdev->chipset == R_100 || rdev->chipset == R_120 || rdev->chipset == R_150)
+    {
+	radeon_out32( mmio, OV0_LIN_TRANS_A, 0x12A00000);
+	radeon_out32( mmio, OV0_LIN_TRANS_B, 0x199018FE);
+	radeon_out32( mmio, OV0_LIN_TRANS_C, 0x12A0F9B0);
+	radeon_out32( mmio, OV0_LIN_TRANS_D, 0xF2F0043B);
+	radeon_out32( mmio, OV0_LIN_TRANS_E, 0x12A02050);
+	radeon_out32( mmio, OV0_LIN_TRANS_F, 0x0000174E);
+    } else {
+	radeon_out32( mmio, OV0_LIN_TRANS_A, 0x12a20000);
+	radeon_out32( mmio, OV0_LIN_TRANS_B, 0x198a190e);
+	radeon_out32( mmio, OV0_LIN_TRANS_C, 0x12a2f9da);
+	radeon_out32( mmio, OV0_LIN_TRANS_D, 0xf2fe0442);
+	radeon_out32( mmio, OV0_LIN_TRANS_E, 0x12a22046);
+	radeon_out32( mmio, OV0_LIN_TRANS_F, 0x0000175f);
+    }
+
     radeon_out32( mmio, OV0_SCALE_CNTL,	SCALER_SOFT_RESET );
     radeon_out32( mmio, OV0_EXCLUSIVE_HORZ, 0 );
     radeon_out32( mmio, OV0_AUTO_FLIP_CNTL, 0 );

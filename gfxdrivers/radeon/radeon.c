@@ -419,17 +419,133 @@ static ScreenFuncs radeonScreenFuncs = {
 };
 
 
+/* probe functions */
+
+static const struct {
+     __u16       id;
+     __u32       chip;
+     const char *name;
+} dev_table[] = {
+    { 0x5144, R_100, "Radeon R100 QD [Radeon 7200]" },
+    { 0x5145, R_100, "Radeon R100 QE" },
+    { 0x5146, R_100, "Radeon R100 QF" },
+    { 0x5147, R_100, "Radeon R100 QG" },
+    { 0x5159, R_120, "Radeon RV100 QY [Radeon 7000/VE]" },
+    { 0x515a, R_120, "Radeon RV100 QZ [Radeon 7000/VE]" },
+    { 0x4c59, R_120, "Radeon Mobility M6 LY" },
+    { 0x4c5a, R_120, "Radeon Mobility M6 LZ" },
+    { 0x4136, R_150, "Radeon IGP 320 M" },
+    { 0x4336, R_150, "Radeon Mobility U1" },
+    { 0x4c57, R_150, "Radeon Mobility M7 LW [Radeon Mobility 7500]" },
+    { 0x4c58, R_150, "Radeon RV200 LX [Mobility FireGL 7800 M7]" },
+    { 0x5157, R_150, "Radeon RV200 QW [Radeon 7500]" },
+    { 0x5158, R_150, "Radeon RV200 QX [Radeon 7500]" },
+    { 0x4242, R_200, "R200 BB [Radeon All in Wonder 8500DV]" },
+    { 0x4243, R_200, "R200 BC [Radeon All in Wonder 8500]" },
+    { 0x5148, R_200, "Radeon R200 QH [Radeon 8500]" },
+    { 0x5149, R_200, "Radeon R200 QI" },
+    { 0x514a, R_200, "Radeon R200 QJ" },
+    { 0x514b, R_200, "Radeon R200 QK" },
+    { 0x514c, R_200, "Radeon R200 QL [Radeon 8500 LE]" },
+    { 0x514d, R_200, "Radeon R200 QM [Radeon 9100]" },
+    { 0x514e, R_200, "Radeon R200 QN [Radeon 8500LE]" },
+    { 0x514f, R_200, "Radeon R200 QO [Radeon 8500LE]" },
+    { 0x5168, R_200, "Radeon R200 Qh" },
+    { 0x5169, R_200, "Radeon R200 Qi" },
+    { 0x516a, R_200, "Radeon R200 Qj" },
+    { 0x516b, R_200, "Radeon R200 Qk" },
+    { 0x516c, R_200, "Radeon R200 Ql" },
+    { 0x4137, R_200, "Radeon IGP330/340/350" }, 
+    { 0x4337, R_200, "Radeon IGP 330M/340M/350M" },
+    { 0x4967, R_250, "Radeon RV250 Ig [Radeon 9000]" },
+    { 0x4237, R_250, "Radeon 7000 IGP" },
+    { 0x4437, R_250, "Radeon Mobility 7000 IGP" },
+    { 0x4964, R_250, "Radeon RV250 Id [Radeon 9000]" },
+    { 0x4965, R_250, "Radeon RV250 Ie [Radeon 9000]" },
+    { 0x4966, R_250, "Radeon RV250 If [Radeon 9000]" },
+    { 0x4967, R_250, "Radeon RV250 Ig [Radeon 9000]" },
+    { 0x4c64, R_250, "Radeon R250 Ld [Radeon Mobility 9000 M9]" },
+    { 0x4c65, R_250, "Radeon R250 Le [Radeon Mobility 9000 M9]" },
+    { 0x4c66, R_250, "Radeon R250 Lf [FireGL 9000]" },
+    { 0x4c67, R_250, "Radeon R250 Lg [Radeon Mobility 9000 M9]" },
+    { 0x5960, R_280, "RV280 [Radeon 9200 PRO]" },
+    { 0x5961, R_280, "RV280 [Radeon 9200]" },
+    { 0x5962, R_280, "RV280 [Radeon 9200]" },
+    { 0x4147, R_300, "R300 AG [FireGL Z1/X1]" },
+    { 0x4e44, R_300, "Radeon R300 ND [Radeon 9700 Pro]" },
+    { 0x4e45, R_300, "Radeon R300 NE [Radeon 9500 Pro]" },
+    { 0x4e47, R_300, "Radeon R300 NG [FireGL X1]" },
+    { 0x4144, R_300, "R300 AD [Radeon 9500 Pro]" },
+    { 0x4145, R_300, "R300 AE [Radeon 9700 Pro]" },
+    { 0x4146, R_300, "R300 AF [Radeon 9700 Pro]" },
+    { 0x5834, R_300, "Radeon 9100 IGP" },
+    { 0x5835, R_300, "RS300M AGP [Radeon Mobility 9100IGP]" },
+    { 0x4e46, R_300, "RV350 NF [Radeon 9600]" },
+    { 0x4e4a, R_300, "RV350 NJ [Radeon 9800 XT]" },
+    { 0x4148, R_350, "R350 AH [Radeon 9800]" },
+    { 0x4149, R_350, "R350 AI [Radeon 9800]" },
+    { 0x414a, R_350, "R350 AJ [Radeon 9800]" },
+    { 0x414b, R_350, "R350 AK [Fire GL X2]" },
+    { 0x4e48, R_350, "Radeon R350 [Radeon 9800 Pro]" },
+    { 0x4e49, R_350, "Radeon R350 [Radeon 9800]" },
+    { 0x4e4a, R_350, "RV350 NJ [Radeon 9800 XT]" },
+    { 0x4e4b, R_350, "R350 NK [Fire GL X2]" },
+    { 0x4150, R_350, "RV350 AP [Radeon 9600]" },
+    { 0x4151, R_350, "RV350 AQ [Radeon 9600]" },
+    { 0x4152, R_350, "RV350 AR [Radeon 9600]" },
+    { 0x4153, R_350, "RV350 AS [Radeon 9600 AS]" },
+    { 0x4154, R_350, "RV350 AT [Fire GL T2]" },
+    { 0x4155, R_350, "RV350 AU [Fire GL T2]" },
+    { 0x4156, R_350, "RV350 AV [Fire GL T2]" },
+    { 0x4157, R_350, "RV350 AW [Fire GL T2]" },
+    { 0x4e50, R_350, "RV350 [Mobility Radeon 9600 M10]" },
+    { 0x4e51, R_350, "M10 NQ [Radeon Mobility 9600]" },
+    { 0x4e52, R_350, "RV350 [Mobility Radeon 9600 M10]" },
+    { 0x4e53, R_350, "M10 NS [Radeon Mobility 9600]" },
+    { 0x4e54, R_350, "M10 NT [FireGL Mobility T2]" },
+    { 0x4e56, R_350, "M11 NV [FireGL Mobility T2e]" },
+    { 0x5b60, R_370, "RV370 5B60 [Radeon X300 (PCIE)]" },
+    { 0x5b62, R_370, "RV370 5B62 [Radeon X600 (PCIE)]" },
+    { 0x5b64, R_370, "RV370 5B64 [FireGL V3100 (PCIE)]" },
+    { 0x5b65, R_370, "RV370 5B65 [FireGL D1100 (PCIE)]" },
+    { 0x3e50, R_380, "RV380 0x3e50 [Radeon X600]" },
+    { 0x3e54, R_380, "RV380 0x3e54 [FireGL V3200]" },
+    { 0x3e70, R_380, "RV380 [Radeon X600] Secondary" },
+    { 0x4a48, R_420, "R420 JH [Radeon X800]" },
+    { 0x4a49, R_420, "R420 JI [Radeon X800PRO]" },
+    { 0x4a4a, R_420, "R420 JJ [Radeon X800SE]" },
+    { 0x4a4b, R_420, "R420 JK [Radeon X800]" },
+    { 0x4a4c, R_420, "R420 JL [Radeon X800]" },
+    { 0x4a4d, R_420, "R420 JM [FireGL X3]" },
+    { 0x4a4e, R_420, "M18 JN [Radeon Mobility 9800]" },
+    { 0x4a50, R_420, "R420 JP [Radeon X800XT]" }
+};
+    
+static int 
+radeon_probe_chipset( int *ret_index )
+{
+     FBDev *fbdev = dfb_system_data();
+     int    i;
+
+     if (fbdev && fbdev->shared->device.model == 0x1002) {
+          for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
+               if (dev_table[i].id == fbdev->shared->device.model) {
+                    if (ret_index)
+                         *ret_index = i;
+                    return 1;
+               }
+          }
+     }
+
+     return 0;
+}
+
 /* exported symbols */
 
 static int
 driver_probe( GraphicsDevice *device )
 {
-    switch ( dfb_gfxcard_get_accelerator( device ) ) {
-    case FB_ACCEL_ATI_RADEON:          /* ATI Radeon */
-	return 1;
-    }
-
-    return 0;
+     return radeon_probe_chipset( NULL );
 }
 
 static void
@@ -504,6 +620,17 @@ driver_init_device( GraphicsDevice     *device,
     RADEONDriverData *adrv = ( RADEONDriverData* ) driver_data;
     RADEONDeviceData *adev = ( RADEONDeviceData* ) device_data;
     volatile __u8    *mmio = adrv->mmio_base;
+
+    int id = 0;
+     
+    if (!radeon_probe_chipset( &id )) {
+	D_ERROR( "DirectFB/RADEON: no supported device found!\n" );
+	return DFB_FAILURE;
+    }
+
+    D_INFO( "DirectFB/RADEON: found %s\n",  dev_table[id].name);
+     
+    adev->chipset = dev_table[id].chip;
 
     /* fill device info */
     snprintf( device_info->name,
