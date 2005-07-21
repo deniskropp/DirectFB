@@ -7,8 +7,8 @@ INCLUDES = \
 	-I$(top_srcdir)/lib
 
 AM_CPPFLAGS = \
-	-DDATADIR=\"@DATADIR@\"	\
-	-DMODULEDIR=\"@MODULEDIR@\"
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"	\
+	-DMODULEDIR=\"${RUNTIME_SYSROOT}@MODULEDIR@\"
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = direct.pc

@@ -14,7 +14,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src 	\
-	-DDATADIR=\"@DATADIR@\"
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
 
 idirectfbvideoprovider_LTLIBRARIES =	\

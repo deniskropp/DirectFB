@@ -21,7 +21,7 @@ INCLUDES = \
 	-I$(top_builddir)/lib		\
 	-I$(top_srcdir)/src 		\
 	-I$(top_srcdir)/proxy/requestor	\
-	-DDATADIR=\"@DATADIR@\"
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
 LIBS = \
 	$(top_builddir)/lib/voodoo/libvoodoo.la \

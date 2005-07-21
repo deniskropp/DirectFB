@@ -29,7 +29,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
-AM_CPPFLAGS = -DDATADIR=\"@DATADIR@\"
+AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
 idirectfbimageprovider_LTLIBRARIES = \
 	libidirectfbimageprovider_mpeg2.la	\

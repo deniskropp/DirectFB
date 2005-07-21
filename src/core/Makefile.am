@@ -8,9 +8,9 @@ INCLUDES = \
 	-I$(top_srcdir)/src
 
 AM_CPPFLAGS = \
-	-DDATADIR=\"@DATADIR@\"		\
+	-DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"		\
 	-DSOPATH=\"@SOPATH@\"		\
-	-DMODULEDIR=\"@MODULEDIR@\"	\
+	-DMODULEDIR=\"${RUNTIME_SYSROOT}@MODULEDIR@\"	\
 	"-DBUILDTIME=\"`date -u "+%Y-%m-%d %H:%M"`\""
 
 

@@ -1332,6 +1332,13 @@ ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 
 AM_CONDITIONAL(BUILD_STATIC, test "$enable_static" = "yes")
 
+# Sysroot used for runtime module loading, etc.
+AC_ARG_WITH(sysroot,
+[  --with-sysroot=DIR      search for lib/share et al within DIR at runtime]
+[                            (e.g. when loading modules)],
+[ RUNTIME_SYSROOT="$withval" ], [ RUNTIME_SYSROOT= ] )
+test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
+AC_SUBST(RUNTIME_SYSROOT)
 
 if test "$enable_debug" = "yes"; then
   MODULEDIRNAME=directfb-$BINARY_VERSION-debug
