@@ -332,7 +332,7 @@ signal_handler( int num, siginfo_t *info, void *foo )
      fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
               pid, millis/1000, millis%1000, num );
 
-     if (info) {
+     if (info && info > (siginfo_t*) 0x100) {
           bool shown = false;
 
           if (info->si_code > 0 && info->si_code < 0x80) {
