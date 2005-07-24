@@ -260,7 +260,7 @@ static DFBResult dfb_fbdev_open()
      if (dfb_config->fb_device) {
           dfb_fbdev->fd = open( dfb_config->fb_device, O_RDWR );
           if (dfb_fbdev->fd < 0) {
-               D_PERROR( "DirectFB/FBDev: Error opening `%s'!\n",
+               D_PERROR( "DirectFB/FBDev: Error opening '%s'!\n",
                          dfb_config->fb_device);
 
                return errno2result( errno );
@@ -269,35 +269,18 @@ static DFBResult dfb_fbdev_open()
      else if (getenv( "FRAMEBUFFER" ) && *getenv( "FRAMEBUFFER" ) != '\0') {
           dfb_fbdev->fd = open( getenv ("FRAMEBUFFER"), O_RDWR );
           if (dfb_fbdev->fd < 0) {
-               D_PERROR( "DirectFB/FBDev: Error opening `%s'!\n",
+               D_PERROR( "DirectFB/FBDev: Error opening '%s'!\n",
                           getenv ("FRAMEBUFFER"));
 
                return errno2result( errno );
           }
      }
      else {
-          dfb_fbdev->fd = open( "/dev/fb0", O_RDWR );
+          dfb_fbdev->fd = direct_try_open( "/dev/fb0", "/dev/fb/0", O_RDWR, true );
           if (dfb_fbdev->fd < 0) {
-               if (errno == ENOENT) {
-                    dfb_fbdev->fd = open( "/dev/fb/0", O_RDWR );
-                    if (dfb_fbdev->fd < 0) {
-                         if (errno == ENOENT) {
-                              D_PERROR( "DirectFB/FBDev: Couldn't open "
-                                         "neither `/dev/fb0' nor `/dev/fb/0'!\n" );
-                         }
-                         else {
-                              D_PERROR( "DirectFB/FBDev: "
-                                         "Error opening `/dev/fb/0'!\n" );
-                         }
-
-                         return errno2result( errno );
-                    }
-               }
-               else {
-                    D_PERROR( "DirectFB/FBDev: Error opening `/dev/fb0'!\n");
-
-                    return errno2result( errno );
-               }
+               D_ERROR( "DirectFB/FBDev: Error opening framebuffer device!\n" );
+               D_ERROR( "DirectFB/FBDev: Use 'fbdev' option or set FRAMEBUFFER environment variable.\n" );
+               return DFB_INIT;
           }
      }
 
