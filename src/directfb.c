@@ -108,7 +108,7 @@ DirectFBUsageString( void )
 }
 
 DFBResult
-DirectFBInit( int *argc, char **argv[] )
+DirectFBInit( int *argc, char *(*argv[]) )
 {
      DFBResult ret;
 

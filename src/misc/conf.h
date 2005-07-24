@@ -147,7 +147,7 @@ extern DFBConfig *dfb_config;
  * for overrides. Options identified as DirectFB options are stripped out
  * of the array.
  */
-DFBResult dfb_config_init( int *argc, char **argv[] );
+DFBResult dfb_config_init( int *argc, char *(*argv[]) );
 
 /*
  * Read configuration options from file. Called by config_init().

@@ -953,7 +953,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      return DFB_OK;
 }
 
-DFBResult dfb_config_init( int *argc, char **argv[] )
+DFBResult dfb_config_init( int *argc, char *(*argv[]) )
 {
      DFBResult ret;
      int i;

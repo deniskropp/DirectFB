@@ -366,8 +366,8 @@ const char *DirectFBUsageString( void );
  * Removes all options used by DirectFB from argv.
  */
 DFBResult DirectFBInit(
-                         int         *argc,   /* pointer to main()'s argc */
-                         char       **argv[]  /* pointer to main()'s argv */
+                         int         *argc,    /* pointer to main()'s argc */
+                         char      *(*argv[])  /* pointer to main()'s argv */
                       );
 
 /*
