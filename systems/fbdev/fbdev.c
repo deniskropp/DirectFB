@@ -1452,6 +1452,10 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
                    dfb_fbdev_compatible_format( var, 1, 5, 5, 5,15, 10, 5, 0 ) )
                     return DSPF_ARGB1555;
 
+               if (dfb_fbdev_compatible_format( var, 0, 4, 4, 4,  0, 8, 4, 0 ) |
+                   dfb_fbdev_compatible_format( var, 4, 4, 4, 4, 12, 8, 4, 0 ) )
+                    return DSPF_ARGB4444;
+
                if (dfb_fbdev_compatible_format( var, 0, 5, 6, 5, 0, 11, 5, 0 ))
                     return DSPF_RGB16;
 
@@ -1588,6 +1592,17 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     var.transp.offset = 15;
                     var.red.offset    = 10;
                     var.green.offset  = 5;
+                    var.blue.offset   = 0;
+                    break;
+
+               case DSPF_ARGB4444:
+                    var.transp.length = 4;
+                    var.red.length    = 4;
+                    var.green.length  = 4;
+                    var.blue.length   = 4;
+                    var.transp.offset = 12;
+                    var.red.offset    = 8;
+                    var.green.offset  = 4;
                     var.blue.offset   = 0;
                     break;
 
