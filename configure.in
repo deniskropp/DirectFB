@@ -1,4 +1,3 @@
-
 dnl Process this file with autoconf to produce a configure script.
 
 AC_INIT(include/directfb.h)
@@ -211,6 +210,7 @@ esac
 
 have_linux=no
 have_cygwin=no
+have_kos=no
 need_libc_r=no
 need_libdl=yes
 want_ppcasm=yes
@@ -256,6 +256,14 @@ case "$target_or_host" in
     CPPFLAGS="$CPPFLAGS -I/sw/include"
     LDFLAGS="$LDFLAGS -L/sw/lib"
     ;;
+
+  sh-*-elf)
+    if test "$CC" = "kos-cc"; then
+      need_libc_r=no
+      need_libdl=no
+      have_kos=yes
+    fi
+    ;;
 esac
 
 AM_CONDITIONAL(HAVE_LINUX, test "$have_linux" = "yes")    
@@ -270,16 +278,18 @@ dnl Threads
 
 THREADFLAGS="-D_REENTRANT"
 
-if test "$need_libc_r" = "yes"; then
-  AC_CHECK_LIB(c_r, pthread_attr_init, ,
-    AC_MSG_ERROR([
+if test "$have_kos" = "no"; then
+  if test "$need_libc_r" = "yes"; then
+    AC_CHECK_LIB(c_r, pthread_attr_init, ,
+      AC_MSG_ERROR([
 *** DirectFB requires phtreads in libc_r.]))
-  THREADLIB="-lc_r"
-else
-  AC_CHECK_LIB(pthread, pthread_attr_init, ,
-    AC_MSG_ERROR([
+    THREADLIB="-lc_r"
+  else
+    AC_CHECK_LIB(pthread, pthread_attr_init, ,
+      AC_MSG_ERROR([
 *** DirectFB requires libpthread.]))
-  THREADLIB="-lpthread"
+    THREADLIB="-lpthread"
+  fi
 fi
 
 AC_SUBST(THREADFLAGS)
