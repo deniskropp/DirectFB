@@ -231,9 +231,9 @@ direct_break( const char *func,
 
      D_DEBUG( "Direct/Break: "
               "Sending SIGTRAP to process group %d...\n", getpgrp() );
-
+#ifndef USE_KOS
      killpg( getpgrp(), SIGTRAP );
-
+#endif
      D_DEBUG( "Direct/Break: "
               "...didn't catch signal on my own, calling _exit(-1).\n" );
 
@@ -261,9 +261,9 @@ direct_assertion( const char *exp,
 
      D_DEBUG( "Direct/Assertion: "
               "Sending SIGTRAP to process group %d...\n", getpgrp() );
-
+#ifndef USE_KOS
      killpg( getpgrp(), SIGTRAP );
-
+#endif
      D_DEBUG( "Direct/Assertion: "
               "...didn't catch signal on my own, calling _exit(-1).\n" );
 
