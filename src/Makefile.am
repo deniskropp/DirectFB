@@ -55,9 +55,9 @@ all-local: libdirectfb_fixed.a
 
 libdirectfb_fixed.a: .libs/libdirectfb.a
 	rm -f libdirectfb_fixed.a
-	${AR} cru libdirectfb_fixed.a `find -name "*.o" | grep -v '.libs'`
+	${AR} cru libdirectfb_fixed.a `find . -name "*.o" | grep -v '.libs'`
 	${RANLIB} libdirectfb_fixed.a
-	cp -af libdirectfb_fixed.a .libs/libdirectfb.a
+	cp -pf libdirectfb_fixed.a .libs/libdirectfb.a
 
 .libs/libdirectfb.a: libdirectfb.la
 
