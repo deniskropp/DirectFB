@@ -274,6 +274,10 @@ if test "$have_ppc" = "yes" && test "$want_ppcasm" = "yes"; then
     AC_DEFINE(USE_PPCASM,1,[Define to 1 if ppc assembly is available.])
 fi
 
+if test "$have_kos" = "yes"; then
+    AC_DEFINE(USE_KOS,1,[Define to 1 if compiling on KallistiOS.])
+fi
+
 dnl Threads
 
 THREADFLAGS="-D_REENTRANT"
