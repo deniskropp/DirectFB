@@ -245,3 +245,16 @@ system_videoram_length()
      return 0;
 }
 
+static void
+system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
+{
+     return;
+}
+
+static void
+system_get_deviceid( unsigned int *ret_vendor_id,
+                     unsigned int *ret_device_id )
+{
+     return;
+}
+

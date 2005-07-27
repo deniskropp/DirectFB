@@ -807,6 +807,22 @@ system_videoram_length()
      return dfb_fbdev->shared->fix.smem_len;
 }
 
+static void
+system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
+{
+     *ret_bus  = dfb_fbdev->shared->pci.bus;
+     *ret_dev  = dfb_fbdev->shared->pci.dev;
+     *ret_func = dfb_fbdev->shared->pci.func;
+}
+
+static void
+system_get_deviceid( unsigned int *ret_vendor_id,
+                     unsigned int *ret_device_id )
+{
+     *ret_vendor_id = dfb_fbdev->shared->device.vendor;
+     *ret_device_id = dfb_fbdev->shared->device.model;
+}
+
 /******************************************************************************/
 
 static DFBResult

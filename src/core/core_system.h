@@ -84,6 +84,12 @@ system_video_memory_virtual( unsigned int offset );
 static unsigned int
 system_videoram_length();
 
+static void
+system_get_busid();
+
+static void
+system_get_deviceid();
+
 
 static CoreSystemFuncs system_funcs = {
      GetSystemInfo:       system_get_info,
@@ -102,7 +108,9 @@ static CoreSystemFuncs system_funcs = {
      GetAccelerator:      system_get_accelerator,
      VideoMemoryPhysical: system_video_memory_physical,
      VideoMemoryVirtual:  system_video_memory_virtual,
-     VideoRamLength:      system_videoram_length
+     VideoRamLength:      system_videoram_length,
+     GetBusID:            system_get_busid,
+     GetDeviceID:         system_get_deviceid
 };
 
 #define DFB_CORE_SYSTEM(shortname)                          \

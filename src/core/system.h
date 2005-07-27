@@ -80,7 +80,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_systems );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           7
+#define DFB_CORE_SYSTEM_ABI_VERSION           8
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80
@@ -166,6 +166,10 @@ typedef struct {
      void*          (*VideoMemoryVirtual)( unsigned int offset );
 
      unsigned int   (*VideoRamLength)();
+
+     void           (*GetBusID)( int *ret_bus, int *ret_dev, int *ret_func );
+     void           (*GetDeviceID)( unsigned int *ret_vendor_id,
+                                    unsigned int *ret_device_id );
 } CoreSystemFuncs;
 
 
@@ -211,6 +215,13 @@ dfb_system_video_memory_virtual( unsigned int offset );
 
 unsigned int
 dfb_system_videoram_length();
+
+void
+dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func );
+
+void
+dfb_system_get_deviceid( unsigned int *ret_vendor_id,
+                         unsigned int *ret_device_id );
 
 #endif
 

@@ -310,3 +310,36 @@ dfb_system_videoram_length()
      return system_funcs->VideoRamLength();
 }
 
+void
+dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
+{
+     int bus = -1, dev = -1, func = -1;
+     
+     D_ASSERT( system_funcs != NULL );
+
+     system_funcs->GetBusID( &bus, &dev, &func );
+
+     if (ret_bus)
+          *ret_bus = bus;
+     if (ret_dev)
+          *ret_dev = dev;
+     if (ret_func)
+          *ret_func = func;
+}
+
+void
+dfb_system_get_deviceid( unsigned int *ret_vendor_id,
+                         unsigned int *ret_device_id )
+{
+     unsigned int vendor_id = 0, device_id = 0;
+
+     D_ASSERT( system_funcs != NULL );
+
+     system_funcs->GetDeviceID( &vendor_id, &device_id );
+
+     if (ret_vendor_id)
+          *ret_vendor_id = vendor_id;
+     if (ret_device_id)
+          *ret_device_id = device_id;
+}
+
