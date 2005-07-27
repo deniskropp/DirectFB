@@ -126,7 +126,7 @@ direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
      pthread_mutexattr_t attr;
 
      pthread_mutexattr_init( &attr );
-#ifdef PTHREAD_MUTEX_RECURSIVE
+#ifdef __USE_UNIX98
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 #endif
      ret = pthread_mutex_init( mutex, &attr );
