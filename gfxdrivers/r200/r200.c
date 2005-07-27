@@ -49,8 +49,6 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
-#include <fbdev/fbdev.h>
-
 #include <core/graphics_driver.h>
 
 DFB_GRAPHICS_DRIVER( r200 )
@@ -1130,12 +1128,15 @@ static struct {
 static int 
 r200_probe_chipset( int *ret_index )
 {
-     FBDev *fbdev = dfb_system_data();
-     int    i;
+     unsigned int vendor_id;
+     unsigned int device_id;
+     int          i;
 
-     if (fbdev && fbdev->shared->device.vendor == 0x1002) {
+     dfb_system_get_deviceid( &vendor_id, &device_id );
+     
+     if (vendor_id == 0x1002) {
           for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
-               if (dev_table[i].id == fbdev->shared->device.model) {
+               if ((unsigned int)dev_table[i].id == device_id) {
                     if (ret_index)
                          *ret_index = i;
                     return 1;

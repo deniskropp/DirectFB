@@ -56,8 +56,6 @@
 
 #include <misc/conf.h>
 
-#include <fbdev/fbdev.h>
-
 #include <core/graphics_driver.h>
 
 DFB_GRAPHICS_DRIVER( nvidia )
@@ -1314,15 +1312,17 @@ driver_get_info( GraphicsDevice     *device,
 static void
 nv_find_architecture( __u32 *ret_chip, __u32 *ret_arch )
 {
-     FBDev *fbdev = dfb_system_data();
+     unsigned int vendor_id;
+     unsigned int device_id;
+
+     dfb_system_get_deviceid( &vendor_id, &device_id );
      
-     if (fbdev && fbdev->shared->device.vendor == 0x10DE) {
+     if (vendor_id == 0x10DE) {
           __u32 arch = 0;
-          __u32 chip = fbdev->shared->device.model;
           
-          switch (chip & 0x0FF0) {
+          switch (device_id & 0x0FF0) {
                case 0x0020: /* Riva TNT/TNT2 */
-                    arch = (chip == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
+                    arch = (device_id == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
                     break;
                case 0x0100: /* GeForce */
                case 0x0110: /* GeForce2 MX */
@@ -1351,7 +1351,7 @@ nv_find_architecture( __u32 *ret_chip, __u32 *ret_arch )
           }
 
           if (ret_chip)
-               *ret_chip = chip;
+               *ret_chip = device_id;
           if (ret_arch)
                *ret_arch = arch;
      }
