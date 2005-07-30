@@ -39,6 +39,7 @@
 
 #include <direct/debug.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 
@@ -379,6 +380,48 @@ dfb_screens_register( GraphicsDevice *device,
      screens[num_screens++] = screen;
 
      return screen;
+}
+
+typedef void (*AnyFunc)();
+
+CoreScreen *
+dfb_screens_hook_primary( GraphicsDevice  *device,
+                          void            *driver_data,
+                          ScreenFuncs     *funcs,
+                          ScreenFuncs     *primary_funcs,
+                          void           **primary_driver_data )
+{
+     int         i;
+     int         entries;
+     CoreScreen *primary = screens[0];
+
+     D_ASSERT( primary != NULL );
+     D_ASSERT( device != NULL );
+     D_ASSERT( funcs != NULL );
+
+     /* copy content of original function table */
+     if (primary_funcs)
+          direct_memcpy( primary_funcs, primary->funcs, sizeof(ScreenFuncs) );
+
+     /* copy pointer to original driver data */
+     if (primary_driver_data)
+          *primary_driver_data = primary->driver_data;
+
+     /* replace all entries in the old table that aren't NULL in the new one */
+     entries = sizeof(ScreenFuncs) / sizeof(void(*)());
+     for (i=0; i<entries; i++) {
+          AnyFunc *newfuncs = (AnyFunc*) funcs;
+          AnyFunc *oldfuncs = (AnyFunc*) primary->funcs;
+
+          if (newfuncs[i])
+               oldfuncs[i] = newfuncs[i];
+     }
+
+     /* replace device and driver data pointer */
+     primary->device      = device;
+     primary->driver_data = driver_data;
+
+     return primary;
 }
 
 CoreScreen *

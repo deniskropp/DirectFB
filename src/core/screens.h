@@ -198,6 +198,19 @@ CoreScreen *dfb_screens_register( GraphicsDevice     *device,
                                   ScreenFuncs        *funcs );
 
 /*
+ * Replace functions of the primary screen implementation by passing
+ * an alternative driver function table. All non-NULL functions in the new
+ * table replace the functions in the original function table.
+ * The original function table is written to 'primary_funcs' before to allow
+ * drivers to use existing functionality from the original implementation.
+ */
+CoreScreen *dfb_screens_hook_primary( GraphicsDevice  *device,
+                                      void            *driver_data,
+                                      ScreenFuncs     *funcs,
+                                      ScreenFuncs     *primary_funcs,
+                                      void           **primary_driver_data );
+
+/*
  * Replace the default implementation for the primary screen.
  */
 CoreScreen *dfb_screens_register_primary( GraphicsDevice *device,
