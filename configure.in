@@ -86,6 +86,11 @@ AC_PROG_MAKE_SET
 AC_HEADER_STDC
 AC_C_BIGENDIAN
 
+AC_CHECK_SIZEOF(int)
+AC_CHECK_SIZEOF(long)
+AC_CHECK_SIZEOF(long long)
+
+
 ## Work around libstuhl during cross build...
 if test "$host" != "$build"; then
   sys_lib_dlsearch_path_spec=""
@@ -186,12 +191,19 @@ fi
 # check target architecture
 #
 have_x86=no
+have_x86_64=no
 have_arm=no
+have_ppc=no
 
 case "$target_or_host" in
   i*86-*-*)
     have_x86=yes
     AC_DEFINE(ARCH_X86,1,[Define to 1 if you are compiling for ix86.])
+    ;;
+    
+  x86_64-*)
+    have_x86_64=yes
+    AC_DEFINE(ARCH_X86_64,1,[Define to 1 if you are compiling for AMD64.])
     ;;
 
   *arm*)
