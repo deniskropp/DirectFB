@@ -28,7 +28,6 @@
 #include <time.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 
 #include <dfb_types.h>
 #include <directfb.h>
@@ -42,8 +41,6 @@
 #include <core/screens.h>
 #include <core/layer_control.h>
 #include <core/system.h>
-
-#include <fbdev/fbdev.h>
 
 #include <misc/conf.h>
 
@@ -71,40 +68,6 @@ crtc1InitScreen( CoreScreen           *screen,
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "Radeon200 Primary Screen" );
      
-     return DFB_OK;
-}
-
-static DFBResult
-crtc1SetPowerMode( CoreScreen         *screen,
-                   void               *driver_data,
-                   void               *screen_data,
-                   DFBScreenPowerMode  mode )
-{
-     FBDev *fbdev = dfb_system_data();
-     int    level;
-
-     switch (mode) {
-          case DSPM_OFF:
-               level = 4;
-               break;
-          case DSPM_SUSPEND:
-               level = 3;
-               break;
-          case DSPM_STANDBY:
-               level = 2;
-               break;
-          case DSPM_ON:
-               level = 0;
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-
-     if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
-          D_PERROR( "DirectFB/R200/Crtc1: display blanking failed!\n" );
-          return errno2result( errno );
-     }
-
      return DFB_OK;
 }
 
@@ -165,8 +128,10 @@ crtc1GetScreenSize( CoreScreen *screen,
 
 ScreenFuncs R200PrimaryScreenFuncs = {
      .InitScreen    = crtc1InitScreen,
-     .SetPowerMode  = crtc1SetPowerMode,
      .WaitVSync     = crtc1WaitVSync,
      .GetScreenSize = crtc1GetScreenSize
 };
+
+ScreenFuncs  OldPrimaryScreenFuncs;
+void        *OldPrimaryScreenDriverData;
 

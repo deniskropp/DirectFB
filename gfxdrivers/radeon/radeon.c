@@ -303,6 +303,7 @@ static bool radeonBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
     return true;
 }
 
+/* primary screen hooks */
 
 static DFBResult
 radeonInitScreen( CoreScreen           *screen,
@@ -317,41 +318,6 @@ radeonInitScreen( CoreScreen           *screen,
      /* Set the screen name. */
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "Radeon Primary Screen" );
-
-     return DFB_OK;
-}
-
-static DFBResult
-radeonSetPowerMode( CoreScreen         *screen,
-                    void               *driver_data,
-                    void               *screen_data,
-                    DFBScreenPowerMode  mode )
-{
-     int    level;
-     FBDev *fbdev = dfb_system_data();
-
-     switch (mode) {
-          case DSPM_OFF:
-               level = 4;
-               break;
-          case DSPM_SUSPEND:
-               level = 3;
-               break;
-          case DSPM_STANDBY:
-               level = 2;
-               break;
-          case DSPM_ON:
-               level = 0;
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-
-     if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
-          D_PERROR( "DirectFB/matrox: Display blanking failed!\n" );
-
-          return errno2result( errno );
-     }
 
      return DFB_OK;
 }
@@ -380,43 +346,13 @@ radeonWaitVSync( CoreScreen *screen,
     return DFB_OK;
 }
 
-static DFBResult
-radeonGetScreenSize( CoreScreen *screen,
-                     void       *driver_data,
-                     void       *screen_data,
-                     int        *ret_width,
-                     int        *ret_height )
-{
-     FBDev       *fbdev = dfb_system_data();
-     FBDevShared *shared;
-
-     D_ASSERT( fbdev != NULL );
-     D_ASSERT( fbdev->shared != NULL );
-
-     shared = fbdev->shared;
-
-     if (shared->current_mode) {
-          *ret_width  = shared->current_mode->xres;
-          *ret_height = shared->current_mode->yres;
-     }
-     else if (shared->modes) {
-          *ret_width  = shared->modes->xres;
-          *ret_height = shared->modes->yres;
-     }
-     else {
-          D_WARN( "no current and no default mode" );
-          return DFB_UNSUPPORTED;
-     }
-
-     return DFB_OK;
-}
-
 static ScreenFuncs radeonScreenFuncs = {
-     InitScreen:         radeonInitScreen,
-     SetPowerMode:       radeonSetPowerMode,
-     WaitVSync:          radeonWaitVSync,
-     GetScreenSize:      radeonGetScreenSize
+     InitScreen: radeonInitScreen,
+     WaitVSync:  radeonWaitVSync,
 };
+
+static ScreenFuncs  OldPrimaryScreenFuncs;
+static void        *OldPrimaryScreenDriverData;
 
 
 /* probe functions */
@@ -591,14 +527,14 @@ driver_init_driver( GraphicsDevice      *device,
     adrv->device_data = (RADEONDeviceData*) device_data;
 
     /* fill acceleration function table */
-    funcs->CheckState		= radeonCheckState;
-    funcs->SetState		= radeonSetState;
-    funcs->EngineSync		= radeonEngineSync;
+    funcs->CheckState    = radeonCheckState;
+    funcs->SetState	     = radeonSetState;
+    funcs->EngineSync    = radeonEngineSync;
 
     funcs->FillRectangle	= radeonFillRectangle;
     funcs->DrawRectangle	= radeonDrawRectangle;
     funcs->DrawLine		= radeonDrawLine;
-    funcs->Blit			= radeonBlit;
+    funcs->Blit          = radeonBlit;
 
     /* provide our own WaitVSync function if the ioctl for it isn't available
      * in order to avoid the non-portable VGA ports
@@ -606,7 +542,8 @@ driver_init_driver( GraphicsDevice      *device,
 #ifdef FBIO_WAITFORVSYNC
     if ( ioctl( dfb_fbdev->fd, FBIO_WAITFORVSYNC, &zero ) )
 #endif
-	dfb_screens_register_primary( device, driver_data, &radeonScreenFuncs );
+	dfb_screens_hook_primary( device, driver_data, &radeonScreenFuncs,
+                               &OldPrimaryScreenFuncs, &OldPrimaryScreenDriverData );
 
     /* overlay support */
     dfb_layers_register( dfb_screens_at(DSCID_PRIMARY), driver_data, &RadeonOverlayFuncs );

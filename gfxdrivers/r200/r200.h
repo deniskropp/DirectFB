@@ -99,8 +99,11 @@ typedef struct {
 } R200DriverData;
 
 
-extern ScreenFuncs       R200PrimaryScreenFuncs;
-extern DisplayLayerFuncs R200OverlayFuncs;
+extern ScreenFuncs        R200PrimaryScreenFuncs;
+extern ScreenFuncs        OldPrimaryScreenFuncs;
+extern void              *OldPrimaryScreenDriverData;
+
+extern DisplayLayerFuncs  R200OverlayFuncs;
 
 
 #endif /* __R200_H__ */

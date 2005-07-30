@@ -28,7 +28,6 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <sys/mman.h>
-#include <linux/fb.h>
 
 #include <dfb_types.h>
 #include <directfb.h>
@@ -1205,8 +1204,10 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->TextureTriangles  = r200TextureTriangles;
      
      /* primary screen */
-     dfb_screens_register_primary( device, driver_data, 
-                                   &R200PrimaryScreenFuncs ); 
+     dfb_screens_hook_primary( device, driver_data, 
+                               &R200PrimaryScreenFuncs,
+                               &OldPrimaryScreenFuncs,
+                               &OldPrimaryScreenDriverData ); 
      /* overlay support */
      dfb_layers_register( dfb_screens_at( DSCID_PRIMARY ),
                           driver_data, &R200OverlayFuncs );
