@@ -6,8 +6,9 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    Fast memcpy code was taken from xine (see below).
 
@@ -152,7 +153,7 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 #include "ppcasm_memcpy.h"
 #endif
 
-#ifdef ARCH_X86
+#if defined (ARCH_X86) || defined (ARCH_X86_64)
 
 /* for small memory blocks (<256 bytes) this version is faster */
 #define small_memcpy(to,from,n)\
@@ -401,6 +402,78 @@ static void *linux_kernel_memcpy(void *to, const void *from, size_t len) {
 
 #endif /* ARCH_X86 */
 
+
+#if SIZEOF_LONG == 8
+
+static void * generic64_memcpy( void * to, const void * from, size_t len )
+{
+     register __u8 *d = (__u8*)to;
+     register __u8 *s = (__u8*)from;
+     size_t         n;
+
+     if (len >= 128) {
+          unsigned long delta;
+
+          /* Align destination to 8-byte boundary */
+          delta = (unsigned long)d & 7;
+          if (delta) {
+               len -= 8 - delta;                 
+
+               if ((unsigned long)d & 4) {
+                    *((__u32*)d) = *((__u32*)s);
+                    d += 4; s += 4;
+               }
+               if ((unsigned long)d & 2) {
+                    *((__u16*)d) = *((__u16*)s);
+                    d += 2; s += 2;
+               }
+               if ((unsigned long)d & 1)
+                    *d++ = *s++;
+          }
+          
+          n    = len >> 6;
+          len &= 63;
+          
+          for (; n; n--) {
+               ((__u64*)d)[0] = ((__u64*)s)[0];
+               ((__u64*)d)[1] = ((__u64*)s)[1];
+               ((__u64*)d)[2] = ((__u64*)s)[2];
+               ((__u64*)d)[3] = ((__u64*)s)[3];
+               ((__u64*)d)[4] = ((__u64*)s)[4];
+               ((__u64*)d)[5] = ((__u64*)s)[5];
+               ((__u64*)d)[6] = ((__u64*)s)[6];
+               ((__u64*)d)[7] = ((__u64*)s)[7];
+               d += 64; s += 64;
+          }
+     }
+     /*
+      * Now do the tail of the block
+      */
+     if (len) {
+          n = len >> 3;
+          
+          for (; n; n--) {
+               *((__u64*)d) = *((__u64*)s);
+               d += 8; s += 8;
+          }
+          if (len & 4) {
+               *((__u32*)d) = *((__u32*)s);
+               d += 4; s += 4;
+          }
+          if (len & 2)  {
+               *((__u16*)d) = *((__u16*)s);
+               d += 2; s += 2;
+          }
+          if (len & 1)
+               *d = *s;
+     }
+     
+     return to;
+}
+
+#endif /* SIZEOF_LONG == 8 */
+
+
 typedef void* (*memcpy_func)(void *to, const void *from, size_t len);
 
 static struct {
@@ -413,7 +486,10 @@ static struct {
 {
      { NULL, NULL, NULL, 0, 0},
      { "libc",     "libc memcpy()",             (memcpy_func) memcpy, 0, 0},
-#ifdef ARCH_X86
+#if SIZEOF_LONG == 8
+     { "generic64","Generic 64bit memcpy()",    generic64_memcpy, 0, 0},
+#endif /* SIZEOF_LONG == 8 */
+#if defined (ARCH_X86) || defined (ARCH_X86_64)
      { "linux",    "linux kernel memcpy()",     linux_kernel_memcpy, 0, 0},
 #ifdef USE_MMX
      { "mmx",      "MMX optimized memcpy()",    mmx_memcpy, 0, MM_MMX},
@@ -461,7 +537,7 @@ direct_find_best_memcpy()
      /* Save library size and startup time
         on platforms without a special memcpy() implementation. */
 
-#if defined (ARCH_X86) || defined (ARCH_PPC)
+#if defined (ARCH_X86) || defined (ARCH_X86_64) || defined (ARCH_PPC) || (SIZEOF_LONG == 8)
      unsigned long long t;
      char *buf1, *buf2;
      int i, j, best = 0;
