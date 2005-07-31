@@ -92,9 +92,9 @@ static void Sacc_add_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
 {
-     static const long preload[] = { 0xFF00FF00, 0x0000FF00 };
-     static const long mask[]    = { 0x00FC00F8, 0x000000F8 };
-     static const long pm[]      = { 0x01000004, 0x00000004 };
+     static const __u32 preload[] = { 0xFF00FF00, 0x0000FF00 };
+     static const __u32 mask[]    = { 0x00FC00F8, 0x000000F8 };
+     static const __u32 pm[]      = { 0x01000004, 0x00000004 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
@@ -129,9 +129,9 @@ static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
 
 static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
 {
-     static const long preload[]  = { 0xFF00FF00, 0x0000FF00 };
-     static const long postload[] = { 0x00FF00FF, 0x000000FF };
-     static const long pm[]       = { 0x01000001, 0x00000001 };
+     static const __u32 preload[]  = { 0xFF00FF00, 0x0000FF00 };
+     static const __u32 postload[] = { 0x00FF00FF, 0x000000FF };
+     static const __u32 pm[]       = { 0x01000001, 0x00000001 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm1\n\t"
@@ -165,7 +165,7 @@ static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
 __attribute__((no_instrument_function))
 static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 {
-     static const long zeros[]  = { 0, 0 };
+     static const __u32 zeros[]  = { 0, 0 };
      int i = 0;
 
      __asm__ __volatile__ (
@@ -179,14 +179,18 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
                "movq     %%mm1, (%1)\n\t"
                "dec      %2\n\t"
                "jz       3f\n\t"
-               "addl     $8, %1\n\t"
-               "addl     %4, %0\n\t"
+               "add      $8, %1\n\t"
+               "add      %4, %0\n\t"
                "testl    $0xFFFF0000, %0\n\t"
                "jz       2b\n\t"
                "movl     %0, %%edx\n\t"
                "andl     $0xFFFF0000, %%edx\n\t"
                "shrl     $14, %%edx\n\t"
-               "add      %%edx, %3\n\t"
+#ifdef ARCH_X86_64
+               "addq     %%rdx, %3\n\t"
+#else
+               "addl     %%edx, %3\n\t"
+#endif
                "andl     $0xFFFF, %0\n\t"
                "jmp      1b\n"
                "3:\n\t"
@@ -199,7 +203,7 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static const long zeros[]  = { 0, 0 };
+     static const __u32 zeros[]  = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm0\n\t"
@@ -208,8 +212,8 @@ static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
                "movd     (%2), %%mm1\n\t"
                "punpcklbw %%mm0, %%mm1\n\t"
                "movq     %%mm1, (%0)\n\t"
-               "addl     $4, %2\n\t"
-               "addl     $8, %0\n\t"
+               "add      $4, %2\n\t"
+               "add      $8, %0\n\t"
                "dec      %1\n\t"
                "jnz      1b\n\t"
                "emms"
@@ -221,9 +225,9 @@ static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static const long mask[]  = { 0x07E0001F, 0x0000F800 };
-     static const long smul[]  = { 0x00200800, 0x00000001 };
-     static const long alpha[] = { 0x00000000, 0x00FF0000 };
+     static const __u32 mask[]  = { 0x07E0001F, 0x0000F800 };
+     static const __u32 smul[]  = { 0x00200800, 0x00000001 };
+     static const __u32 alpha[] = { 0x00000000, 0x00FF0000 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm4\n\t"
@@ -245,7 +249,7 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
                "dec      %1\n\t"
                "jz       2f\n\t"
                "psrlq    $16, %%mm0\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %0\n\t"
                /* 2. Konvertierung nach 24 bit interleaved */
 	       "movq     %%mm0, %%mm3\n\t"
                "punpcklwd %%mm3, %%mm3\n\t"
@@ -259,7 +263,7 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
                "dec      %1\n\t"
                "jz       2f\n\t"
                "psrlq    $16, %%mm0\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %0\n\t"
                /* 3. Konvertierung nach 24 bit interleaved */
 	       "movq     %%mm0, %%mm3\n\t"
                "punpcklwd %%mm3, %%mm3\n\t"
@@ -273,7 +277,7 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
                "dec      %1\n\t"
                "jz       2f\n\t"
                "psrlq    $16, %%mm0\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %0\n\t"
                /* 4. Konvertierung nach 24 bit interleaved */
 	       "movq     %%mm0, %%mm3\n\t"
                "punpcklwd %%mm3, %%mm3\n\t"
@@ -286,8 +290,8 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
                "movq     %%mm3, (%0)\n\t"
                "dec      %1\n\t"
                "jz       2f\n\t"
-	       "addl     $8, %0\n\t"
-	       "addl     $8, %2\n\t"
+	       "add      $8, %0\n\t"
+	       "add      $8, %2\n\t"
                "jmp      1b\n"
                "2:\n\t"
                "emms"
@@ -299,8 +303,8 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static const long alpha[]  = { 0, 0x00FF0000 };
-     static const long zeros[]  = { 0, 0 };
+     static const __u32 alpha[]  = { 0, 0x00FF0000 };
+     static const __u32 zeros[]  = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
@@ -311,8 +315,8 @@ static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
                "punpcklbw %%mm6, %%mm0\n\t"
                "por      %%mm7, %%mm0\n\t"
                "movq     %%mm0, (%0)\n\t"
-	       "addl     $4, %2\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $4, %2\n\t"
+	       "add      $8, %0\n\t"
                "dec      %1\n\t"
                "jnz      1b\n\t"
                "emms"
@@ -324,12 +328,12 @@ static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
 {
-     static const long einser[] = { 0x01000100, 0x01000100 };
-     static const long zeros[]  = { 0, 0 };
+     static const __u32 einser[] = { 0x01000100, 0x01000100 };
+     static const __u32 zeros[]  = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
-               "cmpl     $0, %2\n\t"
+               "cmp      $0, %2\n\t"
                "jne      3f\n\t"
                "movq     %4, %%mm6\n\t"
                "movd     %5, %%mm0\n\t"
@@ -348,7 +352,7 @@ static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
                "psrlw    $8, %%mm0\n\t"
                "movq     %%mm0, (%0)\n"
                "1:\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %0\n\t"
                "dec      %1\n\t"
                "jnz      4b\n\t"
                "jmp      2f\n\t"
@@ -367,8 +371,8 @@ static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
                "psrlw    $8, %%mm0\n\t"
                "movq     %%mm0, (%0)\n"
                "1:\n\t"
-	       "addl     $8, %2\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %2\n\t"
+	       "add      $8, %0\n\t"
                "dec      %1\n\t"
                "jnz      3b\n\t"
                "2:\n\t"
@@ -381,12 +385,12 @@ static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
 
 static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
 {
-     static const long ones[]  = { 0x00010001, 0x00010001 };
-     static const long zeros[] = { 0, 0 };
+     static const __u32 ones[]  = { 0x00010001, 0x00010001 };
+     static const __u32 zeros[] = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
-               "cmpl     $0, %2\n\t"
+               "cmp      $0, %2\n\t"
                "jne      3f\n\t"
                "movq     %4, %%mm6\n\t"
                "movd     %5, %%mm0\n\t"
@@ -404,7 +408,7 @@ static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
                "psrlw    $8, %%mm1\n\t"
                "movq     %%mm1, (%0)\n"
                "1:\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %0\n\t"
                "dec      %1\n\t"
                "jnz      4b\n\t"
                "jmp      2f\n\t"
@@ -422,8 +426,8 @@ static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
                "psrlw    $8, %%mm1\n\t"
                "movq     %%mm1, (%0)\n"
                "1:\n\t"
-	       "addl     $8, %2\n\t"
-	       "addl     $8, %0\n\t"
+	       "add      $8, %2\n\t"
+	       "add      $8, %0\n\t"
                "dec      %1\n\t"
                "jnz      3b\n\t"
                "2:\n\t"
@@ -436,9 +440,9 @@ static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
 
 static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
 {  
-     static __u16 __aligned(8) sub0[4] = {  16,  16,  16,  16 }; 
-     static __u16 __aligned(8) sub1[4] = { 128, 128, 128, 128 };
-     static __s16 __aligned(8) mul[20] = {
+     static const __u16 __aligned(8) sub0[4] = {  16,  16,  16,  16 }; 
+     static const __u16 __aligned(8) sub1[4] = { 128, 128, 128, 128 };
+     static const __s16 __aligned(8) mul[20] = {
                      0x253F,  0x253F,  0x253F,  0x253F, // Y       Coeff.
                      0x3312,  0x3312,  0x3312,  0x3312, // V Red   Coeff.
                      0x4093,  0x4093,  0x4093,  0x4093, // U Blue  Coeff.
@@ -512,7 +516,7 @@ static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
                "movq       %%mm2, 8(%0)\n\t"
                "movq       %%mm5,16(%0)\n\t"
                "movq       %%mm4,24(%0)\n\t"
-               "addl         $32,    %0\n\t"
+               "add          $32,    %0\n\t"
                "decl          %1\n\t"
                "jnz           1b\n\t"
           "emms\n\t"
@@ -545,9 +549,9 @@ static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
 
 static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
 {
-     static __u16 __aligned(8) add0[4] = { 128, 128, 128, 128 };
-     static __u16 __aligned(8) add1[4] = {  16,  16,  16,  16 };
-     static __u16 __aligned(8) mul[24] = {
+     static const __u16 __aligned(8) add0[4] = { 128, 128, 128, 128 };
+     static const __u16 __aligned(8) add1[4] = {  16,  16,  16,  16 };
+     static const __u16 __aligned(8) mul[24] = {
                     0x03A5, 0x03A5, 0x03A5, 0x03A5, // Eb
                     0x12C8, 0x12C8, 0x12C8, 0x12C8, // Eg
                     0x0991, 0x0991, 0x0991, 0x0991, // Er
@@ -626,7 +630,7 @@ static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
                "movq       %%mm3, 8(%0)\n\t"
                "movq       %%mm5,16(%0)\n\t"
                "movq       %%mm6,24(%0)\n\t"
-               "addl         $32, %0\n\t"
+               "add          $32, %0\n\t"
                "decl          %1\n\t"
                "jnz           1b\n\t"
           "emms\n\t"
