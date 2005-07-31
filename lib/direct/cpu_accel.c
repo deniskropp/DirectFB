@@ -205,12 +205,25 @@ __u32 direct_mm_accel (void)
 
      return accel;
 
-#else /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
+#elif defined (ARCH_X86_64)
+     __u32 accel = 0;
+     
+#ifdef USE_MMX
+     accel |= MM_ACCEL_X86_MMX | MM_ACCEL_X86_MMXEXT;
+#endif /* USE_MMX */
+#ifdef USE_SSE
+     accel |= MM_ACCEL_X86_3DNOW | MM_ACCEL_X86_SSE | MM_ACCEL_X86_SSE2;
+#endif /* USE_SSE */
+     return accel;
+
+#else /* !ARCH_X86 && !ARCH_X86_64 && !ARCH_PPC/ENABLE_ALTIVEC */
+
 #ifdef HAVE_MLIB
      return MM_ACCEL_MLIB;
 #else
      return 0;
 #endif
-#endif /* !ARCH_X86 && !ARCH_PPC/ENABLE_ALTIVEC */
+
+#endif /* !ARCH_X86 && !ARCH_X86_64 && !ARCH_PPC/ENABLE_ALTIVEC */
 }
 

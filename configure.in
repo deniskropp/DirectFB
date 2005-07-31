@@ -202,6 +202,7 @@ case "$target_or_host" in
     ;;
     
   x86_64-*)
+    have_x86=yes
     have_x86_64=yes
     AC_DEFINE(ARCH_X86_64,1,[Define to 1 if you are compiling for AMD64.])
     ;;
