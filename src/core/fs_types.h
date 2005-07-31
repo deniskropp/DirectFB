@@ -121,7 +121,7 @@ typedef signed int __fsf;
 #define fsf_mull( a, b )     (((a) >> (FSF_DECIBITS/3)) *           \
                               ((b) >> (FSF_DECIBITS-FSF_DECIBITS/3)))
 
-#ifdef FS_ENABLE_ACCURACY
+#ifdef (SIZEOF_LONG == 8) || FS_ENABLE_ACCURACY
 # define fsf_mul( a, b )     fsf_mulll( a, b )
 #else
 # define fsf_mul( a, b )     fsf_mull( a, b )
