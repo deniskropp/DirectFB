@@ -425,16 +425,17 @@ static void * generic64_memcpy( void * to, const void * from, size_t len )
           if (delta) {
                len -= 8 - delta;                 
 
-               if ((unsigned long)d & 4) {
-                    *((__u32*)d) = *((__u32*)s);
-                    d += 4; s += 4;
+               if ((unsigned long)d & 1) {
+                    *d++ = *s++;
                }
                if ((unsigned long)d & 2) {
                     *((__u16*)d) = *((__u16*)s);
                     d += 2; s += 2;
                }
-               if ((unsigned long)d & 1)
-                    *d++ = *s++;
+               if ((unsigned long)d & 4) {
+                    *((__u32*)d) = *((__u32*)s);
+                    d += 4; s += 4;
+               }
           }
           
           n    = len >> 6;
