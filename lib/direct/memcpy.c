@@ -145,7 +145,13 @@
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
-#if defined (ARCH_X86) || defined (ARCH_PPC)
+#if defined (ARCH_X86) || defined (ARCH_X86_64) || defined (ARCH_PPC) || (SIZEOF_LONG == 8)
+# define RUN_BENCHMARK  1
+#else
+# define RUN_BENCHMARK  0
+#endif
+
+#if RUN_BENCHMARK
 D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 #endif
 
@@ -536,8 +542,7 @@ direct_find_best_memcpy()
 {
      /* Save library size and startup time
         on platforms without a special memcpy() implementation. */
-
-#if defined (ARCH_X86) || defined (ARCH_X86_64) || defined (ARCH_PPC) || (SIZEOF_LONG == 8)
+#if RUN_BENCHMARK
      unsigned long long t;
      char *buf1, *buf2;
      int i, j, best = 0;
