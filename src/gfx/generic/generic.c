@@ -83,6 +83,10 @@ static int use_mmx = 0;
 static void gInit_MMX();
 #endif
 
+#if SIZEOF_LONG == 8
+static void gInit_64bit();
+#endif
+
 /********************************* Cop_to_Aop_PFI *****************************/
 
 static void Cop_to_Aop_8( GenefxState *gfxs )
@@ -5542,9 +5546,13 @@ static void Xacc_is_Bacc( GenefxState *gfxs ) { gfxs->Xacc = gfxs->Bacc;}
 /******************************************************************************/
 
 void gGetDriverInfo( GraphicsDriverInfo *info )
-{
+{    
      snprintf( info->name,
                DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH, "Software Driver" );
+               
+#if SIZEOF_LONG == 8
+     gInit_64bit();
+#endif
 
 #ifdef USE_MMX
      if (direct_mm_accel() & MM_MMX) {
@@ -6926,6 +6934,36 @@ static void gInit_MMX()
      Sacc_add_to_Dacc  = Sacc_add_to_Dacc_MMX;
      Dacc_YCbCr_to_RGB = Dacc_YCbCr_to_RGB_MMX;
      Dacc_RGB_to_YCbCr = Dacc_RGB_to_YCbCr_MMX;
+}
+
+#endif
+
+
+#if SIZEOF_LONG == 8
+
+#include "generic_64.h"
+
+/*
+ * patches function pointers to 64bit functions
+ */
+static void gInit_64bit()
+{
+/********************************* Cop_to_Aop_PFI ********************************/
+     Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Cop_to_Aop_32_64;
+     Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = Cop_to_Aop_32_64;
+     Cop_to_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)] = Cop_to_Aop_32_64;
+/********************************* Bop_PFI_Kto_Aop_PFI ***************************/  
+     Bop_PFI_Kto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Bop_rgb32_Kto_Aop_64;
+     Bop_PFI_Kto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = Bop_rgb32_Kto_Aop_64;
+     Bop_PFI_Kto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)] = Bop_rgb32_Kto_Aop_64;
+/********************************* Bop_PFI_tKo_Aop_PFI ***************************/ 
+     Bop_PFI_toK_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Bop_rgb32_toK_Aop_64;
+     Bop_PFI_toK_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = Bop_rgb32_toK_Aop_64;
+     Bop_PFI_toK_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)] = Bop_rgb32_toK_Aop_64;
+/********************************* Bop_PFI_Sto_Aop_PFI ***************************/ 
+     Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Bop_32_Sto_Aop_64;
+     Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = Bop_32_Sto_Aop_64;
+     Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)] = Bop_32_Sto_Aop_64;
 }
 
 #endif

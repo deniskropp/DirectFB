@@ -22,7 +22,8 @@ noinst_LTLIBRARIES = libdirectfb_generic.la
 libdirectfb_generic_la_SOURCES = \
 	generic.c		\
 	generic.h		\
-	generic_mmx.h		\
+	generic_mmx.h	\
+	generic_64.h	\
 	yuvtbl.h
 
 generic.c: yuvtbl.h
