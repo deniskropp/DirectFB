@@ -5293,7 +5293,7 @@ static void Dacc_demultiply( GenefxState *gfxs )
      }
 }
 
-static void Dacc_xor( GenefxState *gfxs )
+static void Dacc_xor_C( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
      GenefxAccumulator *D     = gfxs->Dacc;
@@ -5311,6 +5311,8 @@ static void Dacc_xor( GenefxState *gfxs )
      }
 }
 
+static GenefxFunc Dacc_xor = Dacc_xor_C;
+
 static void Cacc_to_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
@@ -5320,8 +5322,6 @@ static void Cacc_to_Dacc( GenefxState *gfxs )
      while (w--)
           *D++ = Cacc;
 }
-
-
 
 static void SCacc_add_to_Dacc_C( GenefxState *gfxs )
 {
@@ -6964,6 +6964,8 @@ static void gInit_64bit()
      Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_RGB32)] = Bop_32_Sto_Aop_64;
      Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_ARGB)]  = Bop_32_Sto_Aop_64;
      Bop_PFI_Sto_Aop_PFI[DFB_PIXELFORMAT_INDEX(DSPF_AiRGB)] = Bop_32_Sto_Aop_64;
+/********************************* misc accumulator operations *******************/
+     Dacc_xor = Dacc_xor_64;
 }
 
 #endif

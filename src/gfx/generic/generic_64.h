@@ -180,3 +180,28 @@ static void Bop_32_Sto_Aop_64( GenefxState *gfxs )
      if (l & 1)
           *D = S[i>>16];
 }
+
+static void Dacc_xor_64( GenefxState *gfxs )
+{
+     int    w     = gfxs->length;
+     __u64 *D     = (__u64*)gfxs->Dacc;
+     __u64  color;
+
+#ifdef WORDS_BIGENDIAN
+     color = ((__u64)gfxs->color.b << 48) |
+             ((__u64)gfxs->color.g << 32) |
+             ((__u64)gfxs->color.r << 16) |
+             ((__u64)gfxs->color.a);
+#else
+     color = ((__u64)gfxs->color.a << 48) |
+             ((__u64)gfxs->color.r << 32) |
+             ((__u64)gfxs->color.g << 16) |
+             ((__u64)gfxs->color.b);
+#endif
+
+     for (; w; w--) {
+          *D ^= color;
+          D++;
+     }
+}
+
