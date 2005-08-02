@@ -193,10 +193,12 @@ typedef struct {
 
 
 extern ScreenFuncs        nvidiaPrimaryScreenFuncs;
+extern ScreenFuncs        OldPrimaryScreenFuncs;
+extern void              *OldPrimaryScreenDriverData;
 
 extern DisplayLayerFuncs  nvidiaPrimaryLayerFuncs;
-extern DisplayLayerFuncs  nvidiaOldPrimaryLayerFuncs;
-extern void              *nvidiaOldPrimaryLayerDriverData;
+extern DisplayLayerFuncs  OldPrimaryLayerFuncs;
+extern void              *OldPrimaryLayerDriverData;
 
 extern DisplayLayerFuncs  nvidiaOverlayFuncs;
 

@@ -35,7 +35,6 @@
 
 #include <sys/mman.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
 
 #include <linux/fb.h>
 
@@ -1433,13 +1432,15 @@ driver_init_driver( GraphicsDevice      *device,
                break;
      }
 
-     dfb_screens_register_primary( device, driver_data,
-                                   &nvidiaPrimaryScreenFuncs );
+     dfb_screens_hook_primary( device, driver_data,
+                               &nvidiaPrimaryScreenFuncs,
+                               &OldPrimaryScreenFuncs,
+                               &OldPrimaryScreenDriverData );
 
      dfb_layers_hook_primary( device, driver_data,
                               &nvidiaPrimaryLayerFuncs,
-                              &nvidiaOldPrimaryLayerFuncs,
-                              &nvidiaOldPrimaryLayerDriverData );
+                              &OldPrimaryLayerFuncs,
+                              &OldPrimaryLayerDriverData );
 
      dfb_layers_register( dfb_screens_at( DSCID_PRIMARY ),
                           driver_data, &nvidiaOverlayFuncs );

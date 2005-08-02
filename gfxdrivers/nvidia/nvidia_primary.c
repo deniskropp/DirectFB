@@ -22,7 +22,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <sys/ioctl.h>
 
 #include <directfb.h>
 
@@ -33,8 +32,6 @@
 #include <core/screen.h>
 #include <core/layer_control.h>
 
-#include <fbdev/fbdev.h>
-
 #include <misc/conf.h>
 
 #include <direct/messages.h>
@@ -43,18 +40,7 @@
 #include "nvidia_mmio.h"
 
 
-
-DisplayLayerFuncs  nvidiaOldPrimaryLayerFuncs;
-void              *nvidiaOldPrimaryLayerDriverData;
-
-
 /************************** Primary Screen functions **************************/
-
-static int
-crtc1ScreenDataSize( void )
-{
-     return 0;
-}
 
 static DFBResult
 crtc1InitScreen( CoreScreen           *screen,
@@ -65,8 +51,13 @@ crtc1InitScreen( CoreScreen           *screen,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      volatile __u8    *mmio  = nvdrv->mmio_base;
+
+     if (OldPrimaryScreenFuncs.InitScreen)
+          OldPrimaryScreenFuncs.InitScreen( screen, device, 
+                                            OldPrimaryScreenDriverData,
+                                            screen_data, description );
      
-     description->caps = DSCCAPS_VSYNC | DSCCAPS_POWER_MANAGEMENT;
+     description->caps |= DSCCAPS_VSYNC;
 
      snprintf( description->name,
                DFB_SCREEN_DESC_NAME_LENGTH, "NVidia Primary Screen" );
@@ -80,40 +71,6 @@ crtc1InitScreen( CoreScreen           *screen,
                                    PCRTC_CONFIG_ENDIAN_LITTLE );
 #endif
      nv_out32( mmio, PCRTC_INTR, PCRTC_INTR_VBLANK_RESET );
-
-     return DFB_OK;
-}
-
-static DFBResult
-crtc1SetPowerMode( CoreScreen         *screen,
-                   void               *driver_data,
-                   void               *screen_data,
-                   DFBScreenPowerMode  mode )
-{
-     FBDev *fbdev = dfb_system_data();
-     int    level;
-
-     switch (mode) {
-          case DSPM_OFF:
-               level = 4;
-               break;
-          case DSPM_SUSPEND:
-               level = 3;
-               break;
-          case DSPM_STANDBY:
-               level = 2;
-               break;
-          case DSPM_ON:
-               level = 0;
-               break;
-          default:
-               return DFB_UNSUPPORTED;
-     }
-
-     if (ioctl( fbdev->fd, FBIOBLANK, level ) < 0) {
-          D_PERROR( "DirectFB/NVidia/Crtc1: display blanking failed!\n" );
-          return errno2result( errno );
-     }
 
      return DFB_OK;
 }
@@ -187,13 +144,13 @@ crtc1GetScreenSize( CoreScreen *screen,
 
 
 ScreenFuncs nvidiaPrimaryScreenFuncs = {
-     .ScreenDataSize = crtc1ScreenDataSize,
      .InitScreen     = crtc1InitScreen,
-     .SetPowerMode   = crtc1SetPowerMode,
      .WaitVSync      = crtc1WaitVSync,
      .GetScreenSize  = crtc1GetScreenSize
 };
 
+ScreenFuncs  OldPrimaryScreenFuncs;
+void        *OldPrimaryScreenDriverData;
 
 /*************************** Primary Layer hooks ******************************/
 
@@ -228,3 +185,5 @@ DisplayLayerFuncs nvidiaPrimaryLayerFuncs = {
      .FlipRegion     = fb0FlipRegion
 };
 
+DisplayLayerFuncs  OldPrimaryLayerFuncs;
+void              *OldPrimaryLayerDriverData;
