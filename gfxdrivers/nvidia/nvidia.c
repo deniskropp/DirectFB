@@ -936,8 +936,8 @@ static void nv4SetState( void *drv, void *dev,
                nv_set_drawing_color( nvdrv, nvdev, state );
                nv_set_drawingflags( nvdrv, nvdev, state );
                
-               if (state->drawingflags & DSDRAW_BLEND) {
-                    nvdev->state3d[0].modified = true;             
+               if (state->drawingflags & DSDRAW_BLEND && nvdev->enabled_3d) {
+                    nvdev->state3d[0].modified = true;
                     nv_set_blend_function( nvdrv, nvdev, state );
 
                     funcs->FillRectangle = nvFillRectangle3D;
@@ -1012,7 +1012,7 @@ static void nv5SetState( void *drv, void *dev,
                nv_set_drawing_color( nvdrv, nvdev, state );
                nv_set_drawingflags( nvdrv, nvdev, state );
                
-               if (state->drawingflags & DSDRAW_BLEND) {
+               if (state->drawingflags & DSDRAW_BLEND && nvdev->enabled_3d) {
                     nvdev->state3d[0].modified = true;                  
                     nv_set_blend_function( nvdrv, nvdev, state );
 
@@ -1097,7 +1097,7 @@ static void nv10SetState( void *drv, void *dev,
                nv_set_drawing_color( nvdrv, nvdev, state );
                nv_set_drawingflags( nvdrv, nvdev, state );
                
-               if (state->drawingflags & DSDRAW_BLEND) {
+               if (state->drawingflags & DSDRAW_BLEND && nvdev->enabled_3d) {
                     nvdev->state3d[0].modified = true;
                     nv_set_blend_function( nvdrv, nvdev, state );
 
@@ -1591,21 +1591,27 @@ driver_init_device( GraphicsDevice     *device,
           len    = tex_size*2 + 8;
           len   += (ram_used - len) & 0xFF;
           offset = dfb_gfxcard_reserve_memory( nvdrv->device, len );
-          if (offset < 0) {
-               D_ERROR( "DirectFB/NVidia: "
-                        "couldn't reserve %i bytes of video memory.\n", len );
-               return DFB_NOVIDEOMEMORY;
-          }
-
-          D_DEBUG( "DirectFB/NVidia: "
-                   "reserved %i bytes for 3D buffers at offset 0x%08x.\n",
-                    len, offset );
-
-          nvdev->enabled_3d = true;
-          nvdev->buf_offset[0] = offset + tex_size*2; // color
-          nvdev->buf_offset[1] = offset;              // texture
-          nvdev->max_texture_size = tex_size;
           
+          if (offset < 0) {
+               /* if video memory allocation failed, disable 3d acceleration */
+               D_DEBUG( "DirectFB/NVidia: "
+                        "couldn't reserve %i bytes of video memory.\n", len );
+               D_DEBUG( "DirectFB/NVidia: 3D acceleration disabled.\n" );
+               device_info->caps.accel &= ~DFXL_TEXTRIANGLES;
+          }
+          else {
+               D_DEBUG( "DirectFB/NVidia: "
+                        "reserved %i bytes for 3D buffers at offset 0x%08x.\n",
+                         len, offset );
+               
+               nvdev->enabled_3d = true;
+               nvdev->buf_offset[0] = offset + tex_size*2; // color
+               nvdev->buf_offset[1] = offset;              // texture
+               nvdev->max_texture_size = tex_size;
+          }
+     }
+          
+     if (nvdev->enabled_3d) {
           /* set default 3d state for drawing functions */
           nvdev->state3d[0].modified = true;
           nvdev->state3d[0].colorkey = 0;
@@ -1661,7 +1667,7 @@ driver_init_device( GraphicsDevice     *device,
 
           /* clear color buffer */
           memset( dfb_gfxcard_memory_virtual( device,
-                                              offset + tex_size*2 ), 0xFF, 8 );
+                                              nvdev->buf_offset[0] ), 0xFF, 8 );
      }
 
 #ifdef WORDS_BIGENDIAN
