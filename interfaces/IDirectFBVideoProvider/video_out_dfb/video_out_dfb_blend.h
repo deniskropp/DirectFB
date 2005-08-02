@@ -36,7 +36,6 @@ DFB_BFUNCTION( yuy2 )
      uint32_t  y = color->yuv.y;
      uint32_t  u = color->yuv.u << 8;
      uint32_t  v = color->yuv.v << 8;
-     int       x = blender->x;
      int       w = blender->len;
      int       n;
     
@@ -48,7 +47,7 @@ DFB_BFUNCTION( yuy2 )
           u *= a0;
           v *= a0;
           
-          if (x & 1) {
+          if ((long)D & 2) {
                *D =  ((y + ((*D & 0x00ff) * a1)) >> 16) |
                     (((v + ((*D & 0xff00) * a1)) >> 16) & 0xff00);
                D++;
@@ -82,7 +81,7 @@ DFB_BFUNCTION( yuy2 )
           uint32_t Dpix = (y <<  0) | (u << (YUY2_CB_SHIFT-8)) |
                           (y << 16) | (v << (YUY2_CR_SHIFT-8));
           
-          if (x & 1) {
+          if ((long)D & 2) {
                *D++ = (y | v);
                w--;
           }
@@ -104,7 +103,6 @@ DFB_BFUNCTION( uyvy )
      uint32_t  y = color->yuv.y << 8;
      uint32_t  u = color->yuv.u;
      uint32_t  v = color->yuv.v;
-     int       x = blender->x;
      int       w = blender->len;
      int       n;
      
@@ -116,7 +114,7 @@ DFB_BFUNCTION( uyvy )
           u *= a0;
           v *= a0;
           
-          if (x & 1) {
+          if ((long)D & 2) {
                *D = (((v + ((*D & 0x00ff) * a1)) >> 16)         ) |
                     (((y + ((*D & 0xff00) * a1)) >> 16) & 0xff00);
                D++;
@@ -151,7 +149,7 @@ DFB_BFUNCTION( uyvy )
           uint32_t Dpix = (u << UYVY_CB_SHIFT) | (y <<  0) |
                           (v << UYVY_CR_SHIFT) | (y << 16);
           
-          if (x & 1) {
+          if ((long)D & 2) {
                *D++ = (v | y);
                w--;
           }
@@ -242,7 +240,7 @@ DFB_BFUNCTION( nv12 )
                u *= a0;
                v *= a0;
 
-               if ((uint32_t)Duv & 2) { 
+               if ((long)Duv & 2) { 
                     *Duv = (((u + ((*Duv & 0x00ff) * a1)) >> 16)         ) |
                            (((v + ((*Duv & 0xff00) * a1)) >> 16) & 0xff00);
                     Duv++;
@@ -273,7 +271,7 @@ DFB_BFUNCTION( nv12 )
           if (blender->y & 1) {
                register uint32_t Dpix = u | v | ((u|v) << 16);
                
-               if ((uint32_t)Duv & 2) {
+               if ((long)Duv & 2) {
                     *Duv++ = Dpix;
                     w -= 2;
                }
@@ -315,7 +313,7 @@ DFB_BFUNCTION( nv21 )
                u *= a0;
                v *= a0;
 
-               if ((uint32_t)Dvu & 2) { 
+               if ((long)Dvu & 2) { 
                     *Dvu = (((v + ((*Dvu & 0x00ff) * a1)) >> 16)         ) |
                            (((u + ((*Dvu & 0xff00) * a1)) >> 16) & 0xff00);
                     Dvu++;
@@ -346,7 +344,7 @@ DFB_BFUNCTION( nv21 )
           if (blender->y & 1) {
                register uint32_t Dpix = u | v | ((u|v) << 16);
                
-               if ((uint32_t)Dvu & 2) {
+               if ((long)Dvu & 2) {
                     *Dvu++ = Dpix;
                     w -= 2;
                }
@@ -412,7 +410,7 @@ DFB_BFUNCTION( argb2554 )
           g *= a0;
           b *= a0;
 
-          if ((uint32_t)D & 2) {
+          if ((long)D & 2) {
                register uint32_t Dpix;
 
                Dpix  = ((b + ((*D & 0x000f) * a1)) >> 16);
@@ -457,7 +455,7 @@ DFB_BFUNCTION( argb2554 )
 
           Dpix |= Dpix << 16;
 
-          if ((uint32_t)D & 2) {
+          if ((long)D & 2) {
                *D++ = Dpix;
                w--;
           }
@@ -492,7 +490,7 @@ DFB_BFUNCTION( argb4444 )
           g *= a0;
           b *= a0;
 
-          if ((uint32_t)D & 2) { 
+          if ((long)D & 2) { 
                register uint32_t Dpix;
 
                Dpix  = ((b + ((*D & 0x000f) * a1)) >> 16);
@@ -537,7 +535,7 @@ DFB_BFUNCTION( argb4444 )
 
           Dpix |= Dpix << 16;
 
-          if ((uint32_t)D & 2) {
+          if ((long)D & 2) {
                *D++ = Dpix;
                w--;
           }
@@ -571,7 +569,7 @@ DFB_BFUNCTION( argb1555 )
           g *= a0;
           b *= a0;
 
-          if ((uint32_t)D & 2) {
+          if ((long)D & 2) {
                register uint32_t Dpix;
 
                Dpix  = ((b + ((*D & 0x001f) * a1)) >> 16);
@@ -616,7 +614,7 @@ DFB_BFUNCTION( argb1555 )
 
           Dpix |= Dpix << 16;
 
-          if ((uint32_t)D & 2) {
+          if ((long)D & 2) {
                *D++ = Dpix;
                w--;
           }
@@ -649,7 +647,7 @@ DFB_BFUNCTION( rgb16 )
           g *= a0;
           b *= a0;
 
-          if ((uint32_t)D & 2) { 
+          if ((long)D & 2) { 
                register uint32_t Dpix;
 
                Dpix  = ((b + ((*D & 0x001f) * a1)) >> 16);
@@ -690,7 +688,7 @@ DFB_BFUNCTION( rgb16 )
 
           Dpix |= Dpix << 16;
 
-          if ((uint32_t)D & 2) {
+          if ((long)D & 2) {
                *D++ = Dpix;
                w--;
           }
