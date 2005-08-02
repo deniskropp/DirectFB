@@ -75,7 +75,8 @@ DFB_GRAPHICS_DRIVER( nvidia )
                 DFXL_FILLTRIANGLE  | DFXL_DRAWLINE)
 
 #define NV4_SUPPORTED_BLITTINGFLAGS \
-               (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL)
+               (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL | \
+                DSBLIT_DEINTERLACE)
 
 #define NV4_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
@@ -90,7 +91,7 @@ DFB_GRAPHICS_DRIVER( nvidia )
 
 #define NV5_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL | \
-                DSBLIT_COLORIZE)
+                DSBLIT_COLORIZE         | DSBLIT_DEINTERLACE)
 
 #define NV5_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
@@ -105,7 +106,8 @@ DFB_GRAPHICS_DRIVER( nvidia )
 
 #define NV10_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL | \
-                DSBLIT_COLORIZE         | DSBLIT_SRC_PREMULTCOLOR)
+                DSBLIT_COLORIZE         | DSBLIT_SRC_PREMULTCOLOR   | \
+                DSBLIT_DEINTERLACE)
 
 #define NV10_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES)
@@ -120,7 +122,8 @@ DFB_GRAPHICS_DRIVER( nvidia )
 
 #define NV20_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_BLEND_COLORALPHA | DSBLIT_BLEND_ALPHACHANNEL | \
-                DSBLIT_COLORIZE         | DSBLIT_SRC_PREMULTCOLOR)
+                DSBLIT_COLORIZE         | DSBLIT_SRC_PREMULTCOLOR   | \
+                DSBLIT_DEINTERLACE)
 
 #define NV20_SUPPORTED_BLITTINGFUNCTIONS \
                (DFXL_BLIT | DFXL_STRETCHBLIT)
@@ -1599,12 +1602,14 @@ driver_init_device( GraphicsDevice     *device,
                     len, offset );
 
           nvdev->enabled_3d = true;
+          nvdev->buf_offset[0] = offset + tex_size*2; // color
+          nvdev->buf_offset[1] = offset;              // texture
           nvdev->max_texture_size = tex_size;
           
           /* set default 3d state for drawing functions */
           nvdev->state3d[0].modified = true;
           nvdev->state3d[0].colorkey = 0;
-          nvdev->state3d[0].offset   = nvdev->fb_offset + offset + tex_size*2;
+          nvdev->state3d[0].offset   = nvdev->fb_offset + nvdev->buf_offset[0];
           nvdev->state3d[0].format   = TEXTRIANGLE_FORMAT_CONTEXT_DMA_A     |
                                        TEXTRINAGLE_FORMAT_ORIGIN_ZOH_CORNER |
                                        TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER |
@@ -1630,7 +1635,7 @@ driver_init_device( GraphicsDevice     *device,
           /* set default 3d state for blitting functions */
           nvdev->state3d[1].modified = true;
           nvdev->state3d[1].colorkey = 0;
-          nvdev->state3d[1].offset   = nvdev->fb_offset + offset;
+          nvdev->state3d[1].offset   = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format   = TEXTRIANGLE_FORMAT_CONTEXT_DMA_A     |
                                        TEXTRINAGLE_FORMAT_ORIGIN_ZOH_CORNER |
                                        TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER |

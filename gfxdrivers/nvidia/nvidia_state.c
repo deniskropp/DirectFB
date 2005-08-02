@@ -212,8 +212,11 @@ void nv_set_source( NVidiaDriverData *nvdrv,
      SurfaceBuffer *buffer     = surface->front_buffer;
      NVSurfaces2D  *Surfaces2D = nvdrv->Surfaces2D;
           
-     if (NVIDIA_IS_SET( SOURCE ))
-          return;
+     if (NVIDIA_IS_SET( SOURCE )) {
+          if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
+              (nvdev->blittingflags & DSBLIT_DEINTERLACE))
+               return;
+     }
           
      if (buffer->policy == CSP_SYSTEMONLY) { 
           if (!nvdev->src_system) {
@@ -251,20 +254,35 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_system = false;
      }
 
-     if (nvdev->enabled_3d) {
-          __u32 size_u = direct_log2( surface->width  ) & 0xF;
-          __u32 size_v = direct_log2( surface->height ) & 0xF;
+     nvdev->src_width  = surface->width;
+     nvdev->src_height = surface->height;
 
+     if (state->blittingflags & DSBLIT_DEINTERLACE) {
+          if (surface->field) {
+               nvdev->src_address += nvdev->src_pitch;
+               nvdev->src_offset  += nvdev->src_pitch;
+          }
+          nvdev->src_pitch  *= 2;
+          nvdev->src_height /= 2;
+     }
+
+     if (nvdev->enabled_3d) {
+          __u32 size_u = direct_log2( nvdev->src_width  ) & 0xF;
+          __u32 size_v = direct_log2( nvdev->src_height ) & 0xF;
+
+          nvdev->state3d[1].offset  = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format &= 0xFF00FFFF;
           nvdev->state3d[1].format |= (size_u << 16) | (size_v << 20);
+
+          if (state->blittingflags & DSBLIT_DEINTERLACE) {
+               if (surface->field)
+                    nvdev->state3d[1].offset += 1 << size_u;
+          }
      }
 
      if (nvdev->src_format != buffer->format)
           NVIDIA_UNSET( BLITTING_FLAGS );
-               
      nvdev->src_format = buffer->format;
-     nvdev->src_width  = surface->width;
-     nvdev->src_height = surface->height;
      
      NVIDIA_SET( SOURCE );
 }

@@ -197,11 +197,16 @@ bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+
+     if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
+          DFBRectangle dr = { dx, dy, rect->w, rect->h };
+          return nvStretchBlit( drv, dev, rect, &dr );
+     }
  
      if (nvdev->dst_422) {
           dx      /= 2;
           rect->x /= 2;
-          rect->w = (rect->w+1) >> 1;
+          rect->w  = (rect->w+1) >> 1;
      }
      
      if (nvdev->blittingflags || nvdev->src_format != nvdev->dst_format) {
@@ -212,7 +217,7 @@ bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           __u32          filter      = 0;
 
           if (nvdev->dst_422)
-               src_width >>= 1;
+               src_width >>= 1; 
 
           if (nvdev->arch > NV_ARCH_04)
                filter = SCALEDIMAGE_IN_FORMAT_ORIGIN_CORNER |
@@ -257,6 +262,11 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      __u32             src_w;
      __u32             src_h;
      int               w, h;
+     
+     if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
+          DFBRectangle dr = { dx, dy, rect->x, rect->y };
+          return nvStretchBlitFromCPU( drv, dev, rect, &dr );
+     }
      
      if (!nv_clip_source( rect, nvdev->src_width, nvdev->src_height ))
           return true;
@@ -328,10 +338,15 @@ bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      
      if (nvdev->dst_422) {
           sr->x /= 2;
-          sr->w = (sr->w+1) >> 1;
+          sr->w  = (sr->w+1) >> 1;
           dr->x /= 2;
-          dr->w = (dr->w+1) >> 1;
+          dr->w  = (dr->w+1) >> 1;
           src_width >>= 1;
+     }
+
+     if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
+          sr->y /= 2;
+          sr->h  = (sr->h+1) / 2;
      }
 
      nv_waitfifo( nvdrv, nvdev, 1 );
@@ -370,6 +385,11 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
      if (!nv_clip_source( sr, nvdev->src_width, nvdev->src_height ))
           return true;
 
+     if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
+          sr->y /= 2;
+          sr->h /= 2;
+     }
+     
      src_w = (DFB_BYTES_PER_PIXEL(nvdev->src_format) == 2)
              ? ((sr->w + 1) & ~1) : sr->w;
      src_h = sr->h;

@@ -130,6 +130,7 @@ typedef struct {
 
      /* 3D stuff */
      bool                    enabled_3d;       // 3d engine enabled
+     __u32                   buf_offset[2];    // reserved buffers
      SurfaceBuffer          *src_texture;      // current source for TextureTriangles
      __u32                   max_texture_size;
      
