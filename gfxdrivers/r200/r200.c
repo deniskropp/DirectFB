@@ -71,7 +71,7 @@ DFB_GRAPHICS_DRIVER( r200 )
 #define R200_SUPPORTED_BLITTINGFLAGS \
      ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_SRC_COLORKEY )
+       DSBLIT_SRC_COLORKEY       | DSBLIT_DEINTERLACE )
 
 #define R200_SUPPORTED_BLITTINGFUNCTIONS \
      ( DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -197,6 +197,10 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
 #else
      r200_out32( mmio, DP_DATATYPE, dp_datatype );
 #endif
+
+     /* Disable byte swapping */
+     r200_waitfifo( rdrv, rdev, 1 );
+     r200_out32( mmio, SURFACE_CNTL, SURF_TRANSLATION_DIS );
      
      /* restore 2d engine */
      r200_waitfifo( rdrv, rdev, 4 );
@@ -788,6 +792,11 @@ r200Blit( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
      {
           DFBRectangle dr = { dx, dy, sr->w, sr->h };
           
+          if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
+               sr->y /= 2;
+               sr->h /= 2;
+          }
+          
           r200_enter3d( rdrv, rdev );
           r200DoBlit3D( rdrv, rdev, sr, &dr );
      }
@@ -873,6 +882,11 @@ r200StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      R200DriverData *rdrv = (R200DriverData*) drv;
      R200DeviceData *rdev = (R200DeviceData*) dev;
      
+     if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
+          sr->y /= 2;
+          sr->h /= 2;
+     }
+     
      r200_enter3d( rdrv, rdev );
      r200DoBlit3D( rdrv, rdev, sr, dr );
      
@@ -886,6 +900,11 @@ r200StretchBlit420( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      R200DeviceData *rdev = (R200DeviceData*) dev; 
      DFBRegion      *clip = &rdev->clip;
      volatile __u8  *mmio = rdrv->mmio_base;
+     
+     if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
+          sr->y /= 2;
+          sr->h /= 2;
+     }
      
      r200_enter3d( rdrv, rdev );
 

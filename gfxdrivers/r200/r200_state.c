@@ -231,15 +231,20 @@ void r200_set_source( R200DriverData *rdrv,
                                R200_CLAMP_S_CLAMP_LAST |
                                R200_CLAMP_T_CLAMP_LAST;
 
-     if (R200_IS_SET( SOURCE ))
-          return;
+     if (R200_IS_SET( SOURCE )) {
+          if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
+              (rdev->blittingflags  & DSBLIT_DEINTERLACE))
+               return;
+     }
 
      D_ASSERT( (buffer->video.offset % 16) == 0 );
      D_ASSERT( (buffer->video.pitch % 64) == 0 );
 
      rdev->src_offset = rdev->fb_offset + buffer->video.offset;
      rdev->src_pitch  = buffer->video.pitch;
-     
+     rdev->src_width  = surface->width;
+     rdev->src_height = surface->height;
+      
      switch (buffer->format) {
           case DSPF_A8:
                txformat |= R200_TXFORMAT_I8 |
@@ -291,7 +296,7 @@ void r200_set_source( R200DriverData *rdrv,
                rdev->src_offset_cb = rdev->src_offset +
                                      rdev->src_pitch * surface->height;
                rdev->src_offset_cr = rdev->src_offset_cb +
-                                     rdev->src_pitch * surface->height / 4;
+                                     rdev->src_pitch * surface->height/4;
                break;
           case DSPF_YV12:
                txformat |= R200_TXFORMAT_I8;
@@ -299,11 +304,21 @@ void r200_set_source( R200DriverData *rdrv,
                rdev->src_offset_cr = rdev->src_offset +
                                      rdev->src_pitch * surface->height;
                rdev->src_offset_cb = rdev->src_offset_cr +
-                                     rdev->src_pitch * surface->height / 4;
+                                     rdev->src_pitch * surface->height/4;
                break;
           default:
                D_BUG( "unexpected pixelformat" );
                break;
+     }
+
+     if (state->blittingflags & DSBLIT_DEINTERLACE) {
+          if (surface->field) {
+               rdev->src_offset    += rdev->src_pitch;
+               rdev->src_offset_cr += rdev->src_pitch/2;
+               rdev->src_offset_cb += rdev->src_pitch/2;
+          }
+          rdev->src_pitch  *= 2;
+          rdev->src_height /= 2;
      }
      
      r200_waitfifo( rdrv, rdev, 2 );
@@ -314,19 +329,16 @@ void r200_set_source( R200DriverData *rdrv,
      r200_out32( mmio, R200_PP_TXFILTER_0, txfilter ); 
      r200_out32( mmio, R200_PP_TXFORMAT_0, txformat );
      r200_out32( mmio, R200_PP_TXFORMAT_X_0, 0 );
-     r200_out32( mmio, R200_PP_TXSIZE_0,  (surface->width-1) |
-                                         ((surface->height-1) << 16) );
+     r200_out32( mmio, R200_PP_TXSIZE_0,  (rdev->src_width -1) |
+                                         ((rdev->src_height-1) << 16) );
      r200_out32( mmio, R200_PP_TXPITCH_0,  rdev->src_pitch - 32 );
      r200_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
      
      r200_flush( rdrv, rdev );
      
      if (rdev->src_format != buffer->format)
-          R200_UNSET( BLITTING_FLAGS );
-          
+          R200_UNSET( BLITTING_FLAGS );       
      rdev->src_format = buffer->format;
-     rdev->src_width  = surface->width;
-     rdev->src_height = surface->height;
 
      R200_SET( SOURCE );
 }
