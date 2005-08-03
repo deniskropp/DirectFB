@@ -17,6 +17,7 @@ AM_CPPFLAGS = \
 internalincludedir = $(INTERNALINCLUDEDIR)/core
 
 internalinclude_HEADERS = \
+	accelerators.h		\
 	clipboard.h		\
 	colorhash.h		\
 	coredefs.h		\
