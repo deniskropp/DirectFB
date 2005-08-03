@@ -283,9 +283,16 @@ copy_line8( __u8 *dst, __u8 *src, int width)
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     if (strncmp (ctx->header + 6, "JFIF", 4) == 0 ||
-         strncmp (ctx->header + 6, "Exif", 4) == 0)
-          return DFB_OK;
+     if (ctx->header[0] == 0xff && ctx->header[1] == 0xd8) {
+          if (strncmp (ctx->header + 6, "JFIF", 4) == 0 ||
+              strncmp (ctx->header + 6, "Exif", 4) == 0)
+               return DFB_OK;
+
+          if (ctx->filename && strchr (ctx->filename, '.' ) &&
+             (strcasecmp ( strchr (ctx->filename, '.' ), ".jpg" ) == 0 ||
+              strcasecmp ( strchr (ctx->filename, '.' ), ".jpeg") == 0))
+               return DFB_OK;
+     }
 
      return DFB_UNSUPPORTED;
 }
