@@ -51,6 +51,8 @@
 #include <core/screens.h>
 #include <core/surfaces.h>
 
+#include <core/accelerators.h>
+
 #include <gfx/convert.h>
 
 #include <core/graphics_driver.h>

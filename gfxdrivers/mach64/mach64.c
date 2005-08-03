@@ -50,6 +50,8 @@
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 
+#include <core/accelerators.h>
+
 #include <gfx/convert.h>
 #include <gfx/util.h>
 

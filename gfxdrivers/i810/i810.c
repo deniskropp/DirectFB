@@ -39,6 +39,8 @@
 #include <core/coretypes.h>
 #include <core/screens.h>
 
+#include <core/accelerators.h>
+
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
@@ -689,12 +691,10 @@ i810FillTriangle( void *drv, void *dev, DFBTriangle *tri)
 static int
 driver_probe( GraphicsDevice *device )
 {
-#ifdef FB_ACCEL_I810
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_I810:          /* Intel 810 */
 		  return 1;
      }
-#endif
      return 0;
 }
 

@@ -50,6 +50,8 @@
 #include <core/surfaces.h>
 #include <core/palette.h>
 
+#include <core/accelerators.h>
+
 #include <gfx/util.h>
 
 #include <misc/conf.h>

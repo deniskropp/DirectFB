@@ -31,12 +31,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
 
 #include <sys/mman.h>
-#include <fcntl.h>
-
-#include <linux/fb.h>
 
 #include <directfb.h>
 
@@ -49,6 +47,8 @@
 #include <core/system.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+
+#include <core/accelerators.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -1269,11 +1269,6 @@ static void nv30SetState( void *drv, void *dev,
 
 
 /* exported symbols */
-
-#define FB_ACCEL_NV10  43
-#define FB_ACCEL_NV20  44
-#define FB_ACCEL_NV30  45
-#define FB_ACCEL_NV40  46
 
 static int
 driver_probe( GraphicsDevice *device )
