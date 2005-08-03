@@ -62,7 +62,7 @@ static const char *config_usage =
      "\n"
      "  system=<system>                Specify the system (FBDev, SDL, etc.)\n"
      "  fbdev=<device>                 Open <device> instead of /dev/fb0\n"
-     "  pci-id=<id>                    Specify the PCI Bus ID of graphics card (default 1:0:0)\n"
+     "  busid=<id>                     Specify the bus location of the graphics card (default 1:0:0)\n"
      "  mode=<width>x<height>          Set the default resolution\n"
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
@@ -391,12 +391,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      } else
-     if (strcmp (name, "pci-id" ) == 0) {
+     if (strcmp (name, "busid") == 0 || strcmp (name, "pci-id") == 0) {
           if (value) {
                int bus, dev, func;
                
                if (sscanf( value, "%d:%d:%d", &bus, &dev, &func ) != 3) {
-                    D_ERROR( "DirectFB/Config 'pci-id': Could not parse pci-id!\n");
+                    D_ERROR( "DirectFB/Config 'busid': Could not parse busid!\n");
                     return DFB_INVARG;
                }                  
                
