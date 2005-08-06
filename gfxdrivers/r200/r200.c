@@ -287,7 +287,8 @@ static void r200CheckState( void *drv, void *dev,
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if ((source->format != DSPF_I420  &&
                          source->format != DSPF_YV12) ||
-                        state->blittingflags & ~DSBLIT_BLEND_COLORALPHA)
+                        state->blittingflags & ~(DSBLIT_BLEND_COLORALPHA |
+                                                 DSBLIT_DEINTERLACE      ))
                          return;
                } else {
                     if (accel & ~DFXL_FILLRECTANGLE ||
