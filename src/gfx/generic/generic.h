@@ -63,7 +63,9 @@ typedef void (*GenefxFunc)(GenefxState *gfxs);
 struct _GenefxState {
      GenefxFunc funcs[32];
 
-     int length;    /* span length (destination) */
+     int length;    /* span length */
+     int Slen;      /* span length (source) */
+     int Dlen;      /* span length (destination) */
 
      /*
       * state values
