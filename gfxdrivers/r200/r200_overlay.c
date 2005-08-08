@@ -414,6 +414,7 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
      __u32           h_inc;
      __u32           v_inc;
      __u32           step_by;
+     __u32           crtc_gen_ctl;
      int             xres;
      int             yres;
      
@@ -424,19 +425,14 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
 
      if (dest.h > (source.h << 4))
           dest.h = source.h << 4;
-
-     h_inc = (source.w << 12) / dest.w;
-     v_inc = (source.h << 20) / dest.h;
-     
+ 
      if (dest.x < 0) {
-          source.x -= dest.x * source.w / dest.w;
-          source.w += dest.x * source.w / dest.w;
+          source.w += dest.x * source.w / dest.w; 
           dest.w   += dest.x;
           dest.x    = 0;
      }
      
      if (dest.y < 0) {
-          source.y -= dest.y * source.h / dest.h;
           source.h += dest.y * source.h / dest.h;
           dest.h   += dest.y;
           dest.y    = 0;
@@ -456,12 +452,24 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
           config->opacity = 0;
           return;
      }
-     
-     if (config->options & DLOP_DEINTERLACING) {
-          source.y /= 2;
-          source.h /= 2;
-          v_inc    /= 2;
+
+     crtc_gen_ctl = r200_in32( rdrv->mmio_base, CRTC_GEN_CNTL );
+
+     if (crtc_gen_ctl & CRTC_DBL_SCAN_EN) {
+          dest.y *= 2;
+          dest.h *= 2;
      }
+
+     if (crtc_gen_ctl & CRTC_INTERLACE_EN) {
+          dest.y /= 2;
+          dest.h /= 2;
+     }
+     
+     if (config->options & DLOP_DEINTERLACING)
+          source.h /= 2;
+
+     h_inc = (source.w << 12) / dest.w;
+     v_inc = (source.h << 20) / dest.h;
      
      for (step_by = 1; h_inc >= (2 << 12);) {
           step_by++;
@@ -514,13 +522,11 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
      rov0->regs.P1_BLANK_LINES_AT_TOP  = P1_BLNK_LN_AT_TOP_M1_MASK  | 
                                          ((source.h - 1) << 16);
      rov0->regs.P23_BLANK_LINES_AT_TOP = P23_BLNK_LN_AT_TOP_M1_MASK |
-                                         (((source.h + 1)/2 - 1) << 16);
-     
-     rov0->regs.P1_X_START_END =  (source.x << 16) |
-                                 ((source.x + source.w - 1) & 0xffff);
+                                         ((source.h/2 - 1) << 16);
+    
+     rov0->regs.P1_X_START_END = (source.w - 1) & 0xffff;
      if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
-          rov0->regs.P2_X_START_END = (source.x/2 << 16) |
-                                      ((source.x + source.w - 2)/2 & 0xffff);
+          rov0->regs.P2_X_START_END = (source.w/2 - 1) & 0xffff;
           rov0->regs.P3_X_START_END = rov0->regs.P2_X_START_END;
      } else {
           rov0->regs.P2_X_START_END = rov0->regs.P1_X_START_END;
@@ -560,14 +566,15 @@ ov0_calc_buffers( R200DriverData        *rdrv,
           croptop  += -config->dest.y * source.h / config->dest.h;
 
      if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
-          cropleft &= ~15;
+          cropleft &= ~31;
           croptop  &= ~1;
           
-          offsets[1] = rdev->fb_offset + buffer->video.offset +
-                       surface->height * buffer->video.pitch + 
-                       croptop/2 * pitch/2 + cropleft/2;
-          offsets[2] = offsets[1] + surface->height/2 * buffer->video.pitch/2 +
-                       croptop/2 * pitch/2 + cropleft/2;
+          offsets[1]  = rdev->fb_offset + buffer->video.offset +
+                        surface->height * buffer->video.pitch; 
+          offsets[2]  = offsets[1] + surface->height/2 * buffer->video.pitch/2;
+          offsets[1] += croptop/2 * pitch/2 + cropleft/2;
+          offsets[2] += croptop/2 * pitch/2 + cropleft/2;
+          
           if (even) {
                offsets[1] += buffer->video.pitch/2;
                offsets[2] += buffer->video.pitch/2;
@@ -614,18 +621,19 @@ ov0_calc_regs( R200DriverData        *rdrv,
      
      /* Configure options and enable scaler */
      if (config->opacity) {
-          rov0->regs.SCALE_CNTL = SCALER_ENABLE       |
-                                  SCALER_SMART_SWITCH |
+          rov0->regs.SCALE_CNTL = SCALER_ENABLE        |
+                                  SCALER_SMART_SWITCH  |
                                   SCALER_DOUBLE_BUFFER;
 
           if (config->options & DLOP_OPACITY) {
                rov0->regs.KEY_CNTL   = GRAPHIC_KEY_FN_TRUE |
                                        VIDEO_KEY_FN_TRUE   |
-                                        CMP_MIX_AND;
+                                       CMP_MIX_AND;
                rov0->regs.MERGE_CNTL = DISP_ALPHA_MODE_GLOBAL |
                                        0x00ff0000             |
                                        (config->opacity << 24);
-          } else {
+          }
+          else {
                rov0->regs.KEY_CNTL = CMP_MIX_AND;
           
                if (config->options & DLOP_SRC_COLORKEY)
@@ -660,7 +668,7 @@ ov0_calc_regs( R200DriverData        *rdrv,
                case DSPF_RGB16:
                     rov0->regs.SCALE_CNTL |= SCALER_SOURCE_16BPP |
                                              SCALER_PRG_LOAD_START;
-                    break;
+                    break; 
                case DSPF_RGB32:
                case DSPF_ARGB:
                     rov0->regs.SCALE_CNTL |= SCALER_SOURCE_32BPP |
@@ -767,7 +775,8 @@ ov0_set_colorkey( R200DriverData        *rdrv,
                   R200OverlayLayerData  *rov0,
                   CoreLayerRegionConfig *config )              
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile __u8 *mmio = rdrv->mmio_base; 
+     __u32          crtc_gen_ctl;
      __u32          SkeyLow, SkeyHigh;
      __u32          DkeyLow, DkeyHigh;
      
@@ -781,14 +790,17 @@ ov0_set_colorkey( R200DriverData        *rdrv,
                              config->dst_key.b );
      DkeyHigh = DkeyLow | 0xff000000;
      
-     switch (dfb_primary_layer_pixelformat()) {
-          case DSPF_RGB332:
+     crtc_gen_ctl = r200_in32( mmio, CRTC_GEN_CNTL );
+     
+     switch ((crtc_gen_ctl >> 8) & 0xf) {
+          case DST_8BPP:
+          case DST_8BPP_RGB332:
                DkeyLow &= 0xe0e0e0;
                break;
-          case DSPF_ARGB1555:
+          case DST_15BPP:
                DkeyLow &= 0xf8f8f8;
                break;
-          case DSPF_RGB16:
+          case DST_16BPP:
                DkeyLow &= 0xf8fcf8;
                break;
           default:
