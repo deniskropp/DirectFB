@@ -311,14 +311,22 @@ void r200_set_source( R200DriverData *rdrv,
                break;
      }
 
-     if (state->blittingflags & DSBLIT_DEINTERLACE) {
-          if (surface->field) {
-               rdev->src_offset    += rdev->src_pitch;
-               rdev->src_offset_cr += rdev->src_pitch/2;
-               rdev->src_offset_cb += rdev->src_pitch/2;
-          }
-          rdev->src_pitch  *= 2;
+     if (state->blittingflags & DSBLIT_DEINTERLACE) { 
           rdev->src_height /= 2;
+          if (surface->caps & DSCAPS_SEPARATED) {
+               if (surface->field) {
+                    rdev->src_offset    += rdev->src_height * rdev->src_pitch;
+                    rdev->src_offset_cr += rdev->src_height * rdev->src_pitch/4;
+                    rdev->src_offset_cb += rdev->src_height * rdev->src_pitch/4;
+               }
+          } else {
+               if (surface->field) {
+                    rdev->src_offset    += rdev->src_pitch;
+                    rdev->src_offset_cr += rdev->src_pitch/2;
+                    rdev->src_offset_cb += rdev->src_pitch/2;
+               }
+               rdev->src_pitch *= 2;
+          }
      }
      
      r200_waitfifo( rdrv, rdev, 2 );
