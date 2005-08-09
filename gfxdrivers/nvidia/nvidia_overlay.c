@@ -87,7 +87,7 @@ static void ov0_set_csc     ( NVidiaDriverData       *nvdrv,
                               NVidiaOverlayLayerData *nvov0 );
 
 #define OV0_SUPPORTED_OPTIONS \
-     ( DLOP_DST_COLORKEY | DLOP_DEINTERLACING)
+     ( DLOP_DST_COLORKEY | DLOP_DEINTERLACING )
 
 /**********************/
 
@@ -208,11 +208,11 @@ ov0TestRegion(CoreLayer                  *layer,
      }
 
      /* check width */
-     if (config->width > 2048 || config->width < 1)
+     if (config->width > 2046 || config->width < 1)
           fail |= CLRCF_WIDTH;
 
      /* check height */
-     if (config->height > 1024 || config->height < 1)
+     if (config->height > 2046 || config->height < 1)
           fail |= CLRCF_HEIGHT;
 
      /* write back failing fields */
@@ -704,8 +704,40 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      SurfaceBuffer    *buffer  = nvov0->videoSurface->front_buffer;
      __u32             offset  = buffer->video.offset;
      __u32             pitch   = buffer->video.pitch;
+     int               width   = config->width;
      int               height  = config->height;
      __u32             format;
+
+     source.x <<= 4;
+     source.y <<= 4;
+     
+     if (dest.x < 0) {
+          source.x -= (dest.x * source.w << 4) / dest.w;
+          source.w += dest.x * source.w / dest.w;
+          dest.w   += dest.x;
+          dest.x    = 0;
+     }
+
+     if (dest.y < 0) {
+          source.y -= (dest.y * source.h << 4) / dest.h;
+          source.h += dest.y * source.h / dest.h;
+          dest.h   += dest.y;
+          dest.y    = 0;
+     }
+
+     if (source.w < 1 || source.h < 1 || dest.w < 1 || dest.h < 1) {
+          nvov0->regs.BUFFER = 0;
+          nvov0->regs.STOP   = PVIDEO_STOP_OVERLAY_ACTIVE |
+                               PVIDEO_STOP_METHOD_NORMALLY;
+          return;
+     }
+
+     if (config->options & DLOP_DEINTERLACING) {
+          height   /= 2;
+          source.y /= 2;
+          source.h /= 2;
+          pitch    *= 2;
+     }
      
      if (config->format == DSPF_UYVY)
           format = PVIDEO_FORMAT_COLOR_YB8CR8YA8CB8;
@@ -715,21 +747,18 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      if (config->options & DLOP_DST_COLORKEY)
           format |= PVIDEO_FORMAT_DISPLAY_COLOR_KEY_EQUAL;
           
-     if (config->options & DLOP_DEINTERLACING) {
-          height   /= 2;
-          source.y /= 2;
-          source.h /= 2;
-          pitch    *= 2;
-     }
-
      /* Use Buffer 0 for Odd field */
-     nvov0->regs.BASE_0      = (nvdev->fb_offset + offset) & nvdev->fb_mask;
-     nvov0->regs.SIZE_IN_0   = (height << 16)   | (config->width & 0xffff);
-     nvov0->regs.POINT_IN_0  = (source.y << 20) | ((source.x << 4) & 0xffff);
+     nvov0->regs.BASE_0      = (nvdev->fb_offset + offset) & PVIDEO_BASE_MSK;
+     nvov0->regs.SIZE_IN_0   = ((height << 16) & PVIDEO_SIZE_IN_HEIGHT_MSK) |
+                               ( width         & PVIDEO_SIZE_IN_WIDTH_MSK);
+     nvov0->regs.POINT_IN_0  = ((source.y << 16) & PVIDEO_POINT_IN_T_MSK) |
+                               ( source.x        & PVIDEO_POINT_IN_S_MSK);
      nvov0->regs.DS_DX_0     = (source.w << 20) / dest.w;
      nvov0->regs.DT_DY_0     = (source.h << 20) / dest.h;
-     nvov0->regs.POINT_OUT_0 = (dest.y << 16)   | (dest.x & 0xffff);
-     nvov0->regs.SIZE_OUT_0  = (dest.h << 16)   | (dest.w & 0xffff);   
+     nvov0->regs.POINT_OUT_0 = ((dest.y << 16) & PVIDEO_POINT_OUT_Y_MSK) |
+                               ( dest.x        & PVIDEO_POINT_OUT_X_MSK);
+     nvov0->regs.SIZE_OUT_0  = ((dest.h << 16) & PVIDEO_SIZE_OUT_HEIGHT_MSK) |
+                               ( dest.w        & PVIDEO_SIZE_OUT_WIDTH_MSK);   
      nvov0->regs.FORMAT_0    = (pitch & PVIDEO_FORMAT_PITCH_MSK) | format; 
      
      /* Use Buffer 1 for Even field */    

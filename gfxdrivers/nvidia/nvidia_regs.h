@@ -642,6 +642,7 @@
 
 #define PVIDEO_BASE_0                        0x00008900
 #define PVIDEO_BASE_1                        0x00008904
+#define   PVIDEO_BASE_MSK                    0xFFFFFFC0
 
 #define PVIDEO_LIMIT_0                       0x00008908
 #define PVIDEO_LIMIT_1                       0x0000890C
@@ -654,12 +655,17 @@
 
 #define PVIDEO_OFFSET_0                      0x00008920
 #define PVIDEO_OFFSET_1                      0x00008924
+#define   PVIDEO_OFFSET_MSK                  0xFFFFFFC0
 
 #define PVIDEO_SIZE_IN_0                     0x00008928
 #define PVIDEO_SIZE_IN_1                     0x0000892C
+#define   PVIDEO_SIZE_IN_WIDTH_MSK           0x000007FF
+#define   PVIDEO_SIZE_IN_HEIGHT_MSK          0x07FF0000
 
 #define PVIDEO_POINT_IN_0                    0x00008930
 #define PVIDEO_POINT_IN_1                    0x00008934
+#define   PVIDEO_POINT_IN_S_MSK              0x00007FFF
+#define   PVIDEO_POINT_IN_T_MSK              0xFFFE0000
 
 #define PVIDEO_DS_DX_0                       0x00008938
 #define PVIDEO_DS_DX_1                       0x0000893C
@@ -669,9 +675,13 @@
 
 #define PVIDEO_POINT_OUT_0                   0x00008948
 #define PVIDEO_POINT_OUT_1                   0x0000894C
+#define   PVIDEO_POINT_OUT_X_MSK             0x00000FFF
+#define   PVIDEO_POINT_OUT_Y_MSK             0x0FFF0000
 
 #define PVIDEO_SIZE_OUT_0                    0x00008950
 #define PVIDEO_SIZE_OUT_1                    0x00008954
+#define   PVIDEO_SIZE_OUT_WIDTH_MSK          0x00000FFF
+#define   PVIDEO_SIZE_OUT_HEIGHT_MSK         0x0FFF0000
 
 #define PVIDEO_FORMAT_0                      0x00008958
 #define PVIDEO_FORMAT_1                      0x0000895C
