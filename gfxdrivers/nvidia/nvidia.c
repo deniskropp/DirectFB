@@ -574,12 +574,18 @@ static void nv5CheckState( void *drv, void *dev,
                
                if (size > nvdev->max_texture_size)
                     return;
-          } 
-          else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->src_blend != DSBF_SRCALPHA     ||
-                   state->dst_blend != DSBF_INVSRCALPHA  ||
-                   state->blittingflags & DSBLIT_COLORIZE)
+          }
+          else {
+               /* FIXME: random crashes when blitting from system memory */
+               if (source->front_buffer->policy == CSP_SYSTEMONLY)
                     return;
+               
+               if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
+                    if (state->src_blend != DSBF_SRCALPHA     ||
+                        state->dst_blend != DSBF_INVSRCALPHA  ||
+                        state->blittingflags & DSBLIT_COLORIZE)
+                         return;
+               }
           }
 
           switch (source->format) {
@@ -676,19 +682,25 @@ static void nv10CheckState( void *drv, void *dev,
                if (size > nvdev->max_texture_size)
                     return;
           } 
-          else if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
-               if (state->blittingflags & DSBLIT_COLORIZE) {
-                    if (state->blittingflags & DSBLIT_BLEND_COLORALPHA ||
-                        state->src_blend != ((source->format == DSPF_A8) 
-                                             ? DSBF_SRCALPHA : DSBF_ONE))
-                         return;
-               } else {
-                    if (state->src_blend != DSBF_SRCALPHA)
+          else {
+               /* FIXME: random crashes when blitting from system memory */
+               if (source->front_buffer->policy == CSP_SYSTEMONLY)
+                    return;
+               
+               if (state->blittingflags & DSBLIT_MODULATE_ALPHA) {
+                    if (state->blittingflags & DSBLIT_COLORIZE) {
+                         if (state->blittingflags & DSBLIT_BLEND_COLORALPHA ||
+                             state->src_blend != ((source->format == DSPF_A8) 
+                                                  ? DSBF_SRCALPHA : DSBF_ONE))
+                              return;
+                    } else {
+                         if (state->src_blend != DSBF_SRCALPHA)
+                              return;
+                    }
+
+                    if (state->dst_blend != DSBF_INVSRCALPHA)
                          return;
                }
-
-               if (state->dst_blend != DSBF_INVSRCALPHA)
-                    return;
           }
 
           switch (source->format) {
@@ -1482,16 +1494,14 @@ driver_init_device( GraphicsDevice     *device,
                device_info->caps.blitting = NV4_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_05:
-               /* FIXME: random crashes on window resizing when blitting from system memory */
-               device_info->caps.flags    = CCF_CLIPPING;// | CCF_READSYSMEM;
+               device_info->caps.flags    = CCF_CLIPPING | CCF_READSYSMEM;
                device_info->caps.accel    = NV5_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV5_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV5_SUPPORTED_DRAWINGFLAGS;
                device_info->caps.blitting = NV5_SUPPORTED_BLITTINGFLAGS;
                break;
           case NV_ARCH_10:
-               /* FIXME: random crashes on window resizing when blitting from system memory */
-               device_info->caps.flags    = CCF_CLIPPING;// | CCF_READSYSMEM;
+               device_info->caps.flags    = CCF_CLIPPING | CCF_READSYSMEM;
                device_info->caps.accel    = NV10_SUPPORTED_DRAWINGFUNCTIONS |
                                             NV10_SUPPORTED_BLITTINGFUNCTIONS;
                device_info->caps.drawing  = NV10_SUPPORTED_DRAWINGFLAGS;

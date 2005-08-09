@@ -412,61 +412,76 @@ argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 static void nv_load_texture( NVidiaDriverData *nvdrv,
                              NVidiaDeviceData *nvdev )
 {
-     SurfaceBuffer *source     = nvdev->src_texture;
+     SurfaceBuffer *buffer       = nvdev->src_texture;
+     CoreSurface   *surface      = buffer->surface;
      __u32         *tex_origin;
      __u8          *src_buffer;
      __u32          src_pitch;
+     __u32          field_offset = 0;
 
      tex_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
-                                              nvdev->state3d[1].offset );
+                                              nvdev->buf_offset[1] );
 
-     if (source->policy != CSP_SYSTEMONLY) {
+     if (buffer->policy != CSP_SYSTEMONLY) {
           __u8 *src_origin;
           
           /* check if source texture was modified */
           if (nvdev->set & SMF_SOURCE_TEXTURE &&
-              !(source->video.access & VAF_HARDWARE_WRITE))
+              !(buffer->video.access & VAF_HARDWARE_WRITE))
                return;
           
           src_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
-                                                   source->video.offset );
-          src_pitch  = source->video.pitch;
+                                                   buffer->video.offset );
+          src_pitch  = buffer->video.pitch;
           
-          src_buffer = D_MALLOC( src_pitch * nvdev->src_height );
+          src_buffer = D_MALLOC( src_pitch * surface->height );
           if (!src_buffer) {
                D_OOM();
                return;
           }
      
+          nv_waitidle( nvdrv, nvdev );
+          
           direct_memcpy( src_buffer, src_origin,
-                         src_pitch * nvdev->src_height );
+                         src_pitch * surface->height );
           
           nvdev->set |= SMF_SOURCE_TEXTURE;
-          source->video.access &= ~VAF_HARDWARE_WRITE;
+          buffer->video.access &= ~VAF_HARDWARE_WRITE;
      }
      else {
-          src_buffer = source->system.addr;
-          src_pitch  = source->system.pitch;
+          src_buffer = buffer->system.addr;
+          src_pitch  = buffer->system.pitch;
+
+          nv_waitidle( nvdrv, nvdev );
      }
 
-     nv_waitidle( nvdrv, nvdev );
-     
-     switch (source->format) {
+     if (nvdev->src_interlaced) {
+          if (surface->caps & DSCAPS_SEPARATED) {
+               if (surface->field)
+                    field_offset = nvdev->src_height * src_pitch;
+          } else {
+               if (surface->field)
+                    field_offset = src_pitch;
+               src_pitch *= 2;
+          }
+     }
+ 
+     switch (buffer->format) {
           case DSPF_A8:
-               a8_to_tex( tex_origin, src_buffer, src_pitch,
+               a8_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
                           nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB1555:
           case DSPF_RGB16:
-               rgb16_to_tex( tex_origin, src_buffer, src_pitch,
+               rgb16_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_RGB32:
-               rgb32_to_tex( tex_origin, src_buffer, src_pitch,
+               rgb32_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
                              nvdev->src_width, nvdev->src_height );
                break;
           case DSPF_ARGB:
-               argb_to_tex( tex_origin, src_buffer, src_pitch,
+               argb_to_tex( tex_origin, src_buffer + field_offset, src_pitch,
                             nvdev->src_width, nvdev->src_height );
                break;
           default:
@@ -474,7 +489,7 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
                break;
      }
 
-     if (source->policy != CSP_SYSTEMONLY)
+     if (buffer->policy != CSP_SYSTEMONLY)
           D_FREE( src_buffer );
 }
 

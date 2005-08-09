@@ -258,26 +258,30 @@ void nv_set_source( NVidiaDriverData *nvdrv,
      nvdev->src_height = surface->height;
 
      if (state->blittingflags & DSBLIT_DEINTERLACE) {
-          if (surface->field) {
-               nvdev->src_address += nvdev->src_pitch;
-               nvdev->src_offset  += nvdev->src_pitch;
-          }
-          nvdev->src_pitch  *= 2;
           nvdev->src_height /= 2;
-     }
-
+          if (surface->caps & DSCAPS_SEPARATED) {
+               if (surface->field) {
+                    nvdev->src_address += nvdev->src_height * nvdev->src_pitch;
+                    nvdev->src_offset  += nvdev->src_height * nvdev->src_pitch;
+               }
+          } else {
+               if (surface->field) {
+                    nvdev->src_address += nvdev->src_pitch;
+                    nvdev->src_offset  += nvdev->src_pitch;
+               }
+               nvdev->src_pitch *= 2;
+          }
+          nvdev->src_interlaced = true;
+     } else
+          nvdev->src_interlaced = false;
+     
      if (nvdev->enabled_3d) {
-          __u32 size_u = direct_log2( nvdev->src_width  ) & 0xF;
-          __u32 size_v = direct_log2( nvdev->src_height ) & 0xF;
+          __u32 size_u = direct_log2( surface->width  ) & 0xF;
+          __u32 size_v = direct_log2( surface->height ) & 0xF;
 
           nvdev->state3d[1].offset  = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format &= 0xFF00FFFF;
           nvdev->state3d[1].format |= (size_u << 16) | (size_v << 20);
-
-          if (state->blittingflags & DSBLIT_DEINTERLACE) {
-               if (surface->field)
-                    nvdev->state3d[1].offset += 1 << size_u;
-          }
      }
 
      if (nvdev->src_format != buffer->format)

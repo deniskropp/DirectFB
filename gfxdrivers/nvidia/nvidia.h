@@ -101,6 +101,7 @@ typedef struct {
      __u32                   src_width;
      __u32                   src_height;
      bool                    src_system;
+     bool                    src_interlaced;
 
      DFBRectangle            clip;
 
