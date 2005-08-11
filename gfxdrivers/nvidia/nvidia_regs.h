@@ -7,7 +7,7 @@
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
               Sven Neumann <neo@directfb.org>,
-              Ville Syrj√§l√§ <syrjala@sci.fi> and
+              Ville Syrj‰l‰ <syrjala@sci.fi> and
               Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
@@ -1418,7 +1418,7 @@ typedef volatile struct {
 #define TEXTRIANGLE_FORMAT_COLOR_A4R4G4B4               0x00000400
 #define TEXTRIANGLE_FORMAT_COLOR_R5G6B5                 0x00000500
 #define TEXTRIANGLE_FORMAT_COLOR_A8R8G8B8               0x00000600
-#define TEXTRINAGLE_FORMAT_COLOR_X8R8G8B8               0x00000700
+#define TEXTRIANGLE_FORMAT_COLOR_X8R8G8B8               0x00000700
 #define TEXTRINAGLE_FORMAT_MIPMAP_LEVELS_MSK            0x0000F000
 #define TEXTRIANGLE_FORMAT_BASE_SIZE_U_MSK              0x000F0000
 #define TEXTRIANGLE_FORMAT_BASE_SIZE_V_MSK              0x00F00000
