@@ -734,7 +734,9 @@ system_get_accelerator()
      if (!strcmp( dfb_fbdev->shared->fix.id, "MATROX DH" ))
           return FB_ACCEL_MATROX_MGAG400;
 #endif
-     return dfb_fbdev->shared->fix.accel;
+     if (dfb_fbdev->shared->fix.mmio_len > 0)
+          return dfb_fbdev->shared->fix.accel;
+     return -1;
 }
 
 static VideoMode *
