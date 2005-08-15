@@ -113,7 +113,7 @@ static bool r200TextureTriangles420( void *drv, void *dev,
                                      DFBTriangleFormation formation );
 
 
-static void 
+void 
 r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
 {
      volatile __u8 *mmio = rdrv->mmio_base;
@@ -124,10 +124,7 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      __u32          dp_datatype;
      __u32          pitch64;
      __u32          bpp;
-     
-     r200_flush( rdrv, rdev );
-     r200_waitidle( rdrv, rdev );
-      
+          
      clock_cntl_index = r200_in32( mmio, CLOCK_CNTL_INDEX );
      mclk_cntl        = r200_inpll( mmio, MCLK_CNTL );
      rbbm_soft_reset  = r200_in32( mmio, RBBM_SOFT_RESET );
@@ -203,7 +200,7 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      r200_out32( mmio, SURFACE_CNTL, SURF_TRANSLATION_DIS );
      
      /* restore 2d engine */
-     r200_waitfifo( rdrv, rdev, 4 );
+     r200_waitfifo( rdrv, rdev, 5 );
      r200_out32( mmio, SC_TOP_LEFT, 0 );
      r200_out32( mmio, SC_BOTTOM_RIGHT, 0x07ff07ff );
      r200_out32( mmio, DP_GUI_MASTER_CNTL, GMC_BRUSH_SOLID_COLOR    |
@@ -213,29 +210,28 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
                                            GMC_CLR_CMP_CNTL_DIS     |
                                            GMC_WR_MSK_DIS );
      r200_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
+     r200_out32( mmio, DP_WRITE_MASK, 0xffffffff );
    
      /* restore 3d engine */                                      
-     r200_waitfifo( rdrv, rdev, 13 );
+     r200_waitfifo( rdrv, rdev, 14 );
      r200_out32( mmio, SE_LINE_WIDTH, 0x10 );
      r200_out32( mmio, PP_MISC, ALPHA_TEST_PASS ); 
      r200_out32( mmio, R200_PP_CNTL_X, 0 );
      r200_out32( mmio, R200_PP_TXMULTI_CTL_0, 0 ); 
-     r200_out32( mmio, R200_RE_CNTL, R200_SCISSOR_ENABLE | R200_PERSPECTIVE_ENABLE );
+     r200_out32( mmio, R200_RE_CNTL, R200_SCISSOR_ENABLE );
      r200_out32( mmio, R200_SE_VTX_STATE_CNTL, 0 );
      r200_out32( mmio, R200_SE_VTE_CNTL, R200_VTX_ST_DENORMALIZED );
      r200_out32( mmio, R200_SE_VAP_CNTL, R200_VAP_FORCE_W_TO_ONE |
 	                                    R200_VAP_VF_MAX_VTX_NUM );
-     if (rdev->chipset == CHIP_RS300)
-          r200_out32( mmio, R200_SE_VAP_CNTL_STATUS, TCL_BYPASS );
-     else
-          r200_out32( mmio, R200_SE_VAP_CNTL_STATUS, 0 );
-     r200_out32( mmio, RB3D_DSTCACHE_MODE, RB3D_DC_2D_CACHE_AUTOFLUSH |
-                                           RB3D_DC_3D_CACHE_AUTOFLUSH |
+     r200_out32( mmio, R200_SE_VAP_CNTL_STATUS, TCL_BYPASS );
+     r200_out32( mmio, RB3D_DSTCACHE_MODE, RB3D_DC_2D_CACHE_AUTOFLUSH     |
+                                           RB3D_DC_3D_CACHE_AUTOFLUSH     |
                                            R200_RB3D_DC_2D_CACHE_AUTOFREE |
                                            R200_RB3D_DC_3D_CACHE_AUTOFREE );
      r200_out32( mmio, RE_TOP_LEFT, 0 );
      r200_out32( mmio, RE_BOTTOM_RIGHT, 0x07ff07ff );
      r200_out32( mmio, RB3D_ROPCNTL, ROP_XOR );
+     r200_out32( mmio, RB3D_PLANEMASK, 0xffffffff );
      
      rdev->set = 0;
      rdev->dst_format = DSPF_UNKNOWN;
@@ -246,6 +242,7 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
 
 static void r200AfterSetVar( void *drv, void *dev )
 {
+     r200_waitidle( (R200DriverData*)drv, (R200DeviceData*)dev );
      r200_reset( (R200DriverData*)drv, (R200DeviceData*)dev );
 }
 
@@ -256,16 +253,27 @@ static void r200EngineSync( void *drv, void *dev )
 
 static void r200FlushTextureCache( void *drv, void *dev )
 {
-     r200_flush( (R200DriverData*)drv, (R200DeviceData*)dev );
+     R200DriverData *rdrv = (R200DriverData*) drv;
+     R200DeviceData *rdev = (R200DeviceData*) dev;
+     volatile __u8  *mmio = rdrv->mmio_base;
+
+     r200_waitfifo( rdrv, rdev, 2 );
+     r200_out32( mmio, RB3D_DSTCACHE_CTLSTAT, RB3D_DC_FLUSH );
+     r200_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
 }
 
 static void r200CheckState( void *drv, void *dev,
                             CardState *state, DFBAccelerationMask accel )
 {
-     CoreSurface *destination = state->destination;
-     CoreSurface *source      = state->source;
+     R200DeviceData *rdev                    = (R200DeviceData*) dev;
+     CoreSurface    *destination             = state->destination;
+     CoreSurface    *source                  = state->source;
+     int             supported_drawingfuncs  = R200_SUPPORTED_DRAWINGFUNCTIONS; 
+     int             supported_drawingflags  = R200_SUPPORTED_DRAWINGFLAGS;
+     int             supported_blittingfuncs = R200_SUPPORTED_BLITTINGFUNCTIONS;
+     int             supported_blittingflags = R200_SUPPORTED_BLITTINGFLAGS;
      
-     switch (destination->format) {
+     switch (destination->format) {               
           case DSPF_A8:
           case DSPF_RGB332:
           case DSPF_ARGB4444:
@@ -275,26 +283,48 @@ static void r200CheckState( void *drv, void *dev,
           case DSPF_ARGB:
                break;
                
+          case DSPF_LUT8:
+          case DSPF_ALUT44:
+               if (DFB_BLITTING_FUNCTION( accel ) &&
+                   source->format != destination->format)
+                    return;
+               supported_drawingflags   =  DSDRAW_NOFX;
+               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
+               supported_blittingflags &= ~DSBLIT_MODULATE;
+               break;
+
+          case DSPF_ARGB2554:
+               if (DFB_BLITTING_FUNCTION( accel ) &&
+                   source->format != destination->format)
+                    return;
+               supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
+               supported_drawingflags   =  DSDRAW_XOR;
+               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
+               supported_blittingflags &= ~DSBLIT_MODULATE;
+               break;
+               
+          case DSPF_AiRGB:
+               supported_drawingflags  &= ~DSDRAW_BLEND;
+               supported_blittingflags &= ~DSBLIT_MODULATE_ALPHA;
+               break;
+               
           case DSPF_YUY2:
           case DSPF_UYVY:
-               if (DFB_DRAWING_FUNCTION( accel ) &&
-                  (accel & DFXL_FILLTRIANGLE || state->drawingflags))
-                    return;
+               supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
+               supported_drawingflags   =  DSDRAW_XOR;
+               supported_blittingflags &= ~DSBLIT_COLORIZE;
                break;
 
           case DSPF_I420:
           case DSPF_YV12:
-               if (DFB_BLITTING_FUNCTION( accel )) {
-                    if ((source->format != DSPF_I420  &&
-                         source->format != DSPF_YV12) ||
-                        state->blittingflags & ~(DSBLIT_BLEND_COLORALPHA |
-                                                 DSBLIT_DEINTERLACE      ))
-                         return;
-               } else {
-                    if (accel & ~DFXL_FILLRECTANGLE ||
-                        state->drawingflags & ~DSDRAW_XOR)
-                         return;
-               }
+               if (DFB_BLITTING_FUNCTION( accel ) &&
+                   source->format != DSPF_I420    &&
+                   source->format != DSPF_YV12)
+                    return;
+               supported_drawingfuncs  = DFXL_FILLRECTANGLE;
+               supported_drawingflags  = DSDRAW_XOR;
+               supported_blittingflags = DSBLIT_BLEND_COLORALPHA |
+                                         DSBLIT_DEINTERLACE;
                break;
                
           default:
@@ -302,22 +332,25 @@ static void r200CheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (state->blittingflags & ~R200_SUPPORTED_BLITTINGFLAGS)
+          if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+               if (destination->format != source->format)
+                    return;
+               supported_blittingfuncs  =  DFXL_BLIT;
+               supported_blittingflags &= ~DSBLIT_MODULATE;
+          }
+               
+          if (accel & ~supported_blittingfuncs ||
+              state->blittingflags & ~supported_blittingflags)
                return;
           
           if (source->width < 8 || source->height < 8)
                return;
 
-          if (state->blittingflags &  DSBLIT_SRC_COLORKEY &&
-             (state->blittingflags & ~DSBLIT_SRC_COLORKEY ||
-              destination->format != source->format))
-               return;
-
-          if (state->blittingflags & DSBLIT_MODULATE &&
+          if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
                
-          switch (source->format) {
+          switch (source->format) {                    
                case DSPF_A8:
                case DSPF_RGB332:
                case DSPF_ARGB4444:
@@ -325,13 +358,19 @@ static void r200CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
+               case DSPF_AiRGB:
                     if (destination->format == DSPF_UYVY ||
                         destination->format == DSPF_YUY2)
                          return;
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    state->accel |= (state->blittingflags & DSBLIT_SRC_COLORKEY)
-                                    ? DFXL_BLIT : R200_SUPPORTED_BLITTINGFUNCTIONS;
+                    break;
+               
+               case DSPF_LUT8:
+               case DSPF_ALUT44:
+               case DSPF_ARGB2554:
+                    if (destination->format != source->format)
+                         return;
                     break;
 
                case DSPF_I420:
@@ -339,24 +378,26 @@ static void r200CheckState( void *drv, void *dev,
                     if (destination->format != DSPF_I420 &&
                         destination->format != DSPF_YV12)
                          return;
-                    state->accel |= R200_SUPPORTED_BLITTINGFUNCTIONS;
                     break;
                
                default:
-                    break;
+                    return;
           }
+
+          state->accel |= supported_blittingfuncs;
+          rdev->blitting_mask = supported_blittingfuncs;
      } 
      else {
-          if (state->drawingflags & ~R200_SUPPORTED_DRAWINGFLAGS)
+          if (accel & ~supported_drawingfuncs ||
+              state->drawingflags & ~supported_drawingflags)
                return;
 
           if (state->drawingflags & DSDRAW_BLEND &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
                
-          state->accel |= DFB_PLANAR_PIXELFORMAT( destination->format )
-                          ? DFXL_FILLRECTANGLE
-                          : R200_SUPPORTED_DRAWINGFUNCTIONS;
+          state->accel |= supported_drawingfuncs;
+          rdev->drawing_mask = supported_drawingfuncs;
      }
 }
 
@@ -369,20 +410,10 @@ static void r200SetState( void *drv, void *dev,
  
      rdev->set &= ~state->modified;
      if (DFB_BLITTING_FUNCTION( accel )) {
-          switch (rdev->accel) {
-               case DFXL_BLIT:
-               case DFXL_STRETCHBLIT:
-                    if (accel == DFXL_TEXTRIANGLES)
-                         rdev->set &= ~SMF_BLITTING_FLAGS;
-                    break;
-               case DFXL_TEXTRIANGLES:
-                    if (accel != DFXL_TEXTRIANGLES)
-                         rdev->set &= ~SMF_BLITTING_FLAGS;
-                    break;
-               default:
-                    break;
-          }
+          if ((rdev->accel ^ accel) & DFXL_TEXTRIANGLES)
+               rdev->set &= ~SMF_BLITTING_FLAGS;
      }
+     
      rdev->accel = accel;
      
      r200_set_destination( rdrv, rdev, state );
@@ -400,17 +431,12 @@ static void r200SetState( void *drv, void *dev,
                
                r200_set_drawingflags( rdrv, rdev, state );
 
-               if (DFB_PLANAR_PIXELFORMAT( rdev->dst_format )) {
+               if (DFB_PLANAR_PIXELFORMAT( rdev->dst_format ))
                     funcs->FillRectangle = r200FillRectangle420;
-                    state->set = DFXL_FILLRECTANGLE;
-               }
-               else {
+               else
                     funcs->FillRectangle = r200FillRectangle;
-                    state->set = DFXL_FILLRECTANGLE |
-                                 DFXL_FILLTRIANGLE  |
-                                 DFXL_DRAWLINE      |
-                                 DFXL_DRAWRECTANGLE;
-               }
+
+               state->set = rdev->drawing_mask;
                break;
 
           case DFXL_BLIT:
@@ -418,7 +444,7 @@ static void r200SetState( void *drv, void *dev,
           case DFXL_TEXTRIANGLES:     
                r200_set_source( rdrv, rdev, state );
                
-               if (state->blittingflags & DSBLIT_MODULATE)
+               if (state->blittingflags & DSBLIT_MODULATE_ALPHA)
                     r200_set_blend_function( rdrv, rdev, state );
                
                if (state->blittingflags & DSBLIT_MODULATE_COLOR)
@@ -439,9 +465,8 @@ static void r200SetState( void *drv, void *dev,
                     funcs->TextureTriangles = r200TextureTriangles;
                }
                
-               state->set = (accel == DFXL_TEXTRIANGLES)
-                            ?  DFXL_TEXTRIANGLES
-                            : (DFXL_BLIT | DFXL_STRETCHBLIT);
+               state->set = (accel & DFXL_TEXTRIANGLES) 
+                            ? : (rdev->blitting_mask & ~DFXL_TEXTRIANGLES);
                break;
 
           default:
@@ -455,22 +480,24 @@ static void r200SetState( void *drv, void *dev,
 
 /* acceleration functions */
 
-#define r200_enter2d( rdrv, rdev ) {                                      \
-     if ((rdev)->write_3d) {                                              \
-          r200_waitfifo( rdrv, rdev, 1 );                                 \
-          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN ); \
-          rdev->write_3d = false;                                         \
-     }                                                                    \
-     (rdev)->write_2d = true;                                             \
+#define r200_enter2d( rdrv, rdev ) {                                       \
+     if ((rdev)->write_3d) {                                               \
+          r200_waitfifo( rdrv, rdev, 1 );                                  \
+          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN |   \
+                                                     WAIT_HOST_IDLECLEAN );\
+          (rdev)->write_3d = false;                                        \
+     }                                                                     \
+     (rdev)->write_2d = true;                                              \
 }
 
-#define r200_enter3d( rdrv, rdev ) {                                      \
-     if ((rdev)->write_2d) {                                              \
-          r200_waitfifo( rdrv, rdev, 1 );                                 \
-          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN ); \
-          rdev->write_2d = false;                                         \
-     }                                                                    \
-     (rdev)->write_3d = true;                                             \
+#define r200_enter3d( rdrv, rdev ) {                                       \
+     if ((rdev)->write_2d) {                                               \
+          r200_waitfifo( rdrv, rdev, 1 );                                  \
+          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN |   \
+                                                     WAIT_HOST_IDLECLEAN );\
+          (rdev)->write_2d = false;                                        \
+     }                                                                     \
+     (rdev)->write_3d = true;                                              \
 }
 
 static inline void
@@ -549,9 +576,7 @@ r200FillRectangle( void *drv, void *dev, DFBRectangle *rect )
      R200DriverData *rdrv = (R200DriverData*) drv;
      R200DeviceData *rdev = (R200DeviceData*) dev;
 
-     if (rdev->drawingflags & ~DSDRAW_XOR ||
-         rdev->dst_format == DSPF_ARGB4444)
-     {      
+     if (rdev->drawingflags & ~DSDRAW_XOR) {      
           r200_enter3d( rdrv, rdev );
           r200DoFillRectangle3D( rdrv, rdev, rect );
      }
@@ -649,9 +674,7 @@ r200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      R200DeviceData *rdev = ( R200DeviceData* ) dev;
      volatile __u8  *mmio = rdrv->mmio_base;
 
-     if (rdev->drawingflags & ~DSDRAW_XOR ||
-         rdev->dst_format == DSPF_ARGB4444)
-     {
+     if (rdev->drawingflags & ~DSDRAW_XOR) {
           r200_enter3d( rdrv, rdev );
           r200_waitfifo( rdrv, rdev, 33 );
      
@@ -704,9 +727,7 @@ r200DrawLine( void *drv, void *dev, DFBRegion *line )
      R200DeviceData *rdev = (R200DeviceData*) dev;
      volatile __u8  *mmio = rdrv->mmio_base;
 
-     if (rdev->drawingflags & ~DSDRAW_XOR ||
-         rdev->dst_format == DSPF_ARGB4444)
-     {
+     if (rdev->drawingflags & ~DSDRAW_XOR) {
           r200_enter3d( rdrv, rdev );
           r200_waitfifo( rdrv, rdev, 17 );
           
@@ -1023,6 +1044,8 @@ r200TextureTriangles( void *drv, void *dev, DFBVertex *ve,
           ve[i].t *= (float)rdev->src_height;
      }
 
+     r200_enter3d( rdrv, rdev );
+     
      r200DoTextureTriangles( rdrv, rdev, ve, num, prim );
 
      return true;
@@ -1063,6 +1086,8 @@ r200TextureTriangles420( void *drv, void *dev, DFBVertex *ve,
           ve[i].s *= (float)rdev->src_width;
           ve[i].t *= (float)rdev->src_height;
      }
+
+     r200_enter3d( rdrv, rdev );
 
      /* Map Luma plane */
      r200DoTextureTriangles( rdrv, rdev, ve, num, prim );
@@ -1117,7 +1142,7 @@ r200TextureTriangles420( void *drv, void *dev, DFBVertex *ve,
 
 /* probe functions */
 
-static struct {
+static const struct {
      __u16       id;
      __u32       chip;
      const char *name;
@@ -1188,7 +1213,7 @@ driver_get_info( GraphicsDevice     *device,
                "Claudio Ciccani" );
 
      info->version.major = 0;
-     info->version.minor = 1;
+     info->version.minor = 2;
 
      info->driver_data_size = sizeof(R200DriverData);
      info->device_data_size = sizeof(R200DeviceData);
@@ -1278,6 +1303,7 @@ driver_init_device( GraphicsDevice     *device,
 
      dfb_config->pollvsync_after = 1;
  
+     r200_waitidle( rdrv, rdev );
      r200_reset( rdrv, rdev );
     
      return DFB_OK;
@@ -1310,6 +1336,7 @@ driver_close_device( GraphicsDevice *device,
      D_DEBUG( "DirectFB/R200:  Average fifo space cache hits: %02d%%\n",
               (int)(100 * rdev->fifo_cache_hits / (float)rdev->waitfifo_calls) );
 
+     r200_waitidle( rdrv, rdev );
      r200_reset( rdrv, rdev );
 }
 

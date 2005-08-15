@@ -95,9 +95,10 @@ r200_waitfifo( R200DriverData *rdrv,
           do {
                rdev->fifo_space  = r200_in32( rdrv->mmio_base, RBBM_STATUS );
                rdev->fifo_space &= RBBM_FIFOCNT_MASK;
-               if (++waitcycles > 0x10000) {
-                    D_BREAK( "waitfifo() timeout" );
-                    _exit( -1 );
+               if (++waitcycles > 10000000) {
+                    D_BREAK( "FIFO timed out" );
+                    r200_reset( rdrv, rdev );
+                    return;
                }
           } while (rdev->fifo_space < space);
           
@@ -115,27 +116,18 @@ r200_waitidle( R200DriverData *rdrv, R200DeviceData *rdev )
      int status;
 
      r200_waitfifo( rdrv, rdev, 64 );
-
+     
      do {
           status = r200_in32( rdrv->mmio_base, RBBM_STATUS );
           if (++waitcycles > 10000000) {
-               D_BREAK( "waitidle() timeout" );
-               _exit( -1 );
+               D_BREAK( "Engine timed out" );
+               r200_reset( rdrv, rdev );
+               return;
           }
      } while (status & RBBM_ACTIVE);
      
      rdev->fifo_space = status & RBBM_FIFOCNT_MASK;
      rdev->idle_waitcycles += waitcycles;
-}
-
-static inline void
-r200_flush( R200DriverData *rdrv, R200DeviceData *rdev )
-{
-     volatile __u8 *mmio = rdrv->mmio_base;
-
-     r200_waitfifo( rdrv, rdev, 2 );
-     r200_out32( mmio, RB2D_DSTCACHE_CTLSTAT, RB2D_DC_FLUSH_ALL );
-     r200_out32( mmio, RB3D_DSTCACHE_CTLSTAT, RB3D_DC_FLUSH_ALL );
 }
 
 

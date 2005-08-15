@@ -44,6 +44,10 @@ typedef struct {
      StateModificationFlags  set;
      /* current function */
      DFBAccelerationMask     accel;
+     /* mask of currently supported drawing functions */
+     DFBAccelerationMask     drawing_mask;
+     /* mask of currently supported blitting functions */
+     DFBAccelerationMask     blitting_mask;
 
      __u32                   fb_offset;
      
@@ -98,6 +102,8 @@ typedef struct {
      volatile __u8          *mmio_base;
 } R200DriverData;
 
+
+extern void               r200_reset( R200DriverData *rdrv, R200DeviceData *rdev );
 
 extern ScreenFuncs        R200PrimaryScreenFuncs;
 extern ScreenFuncs        OldPrimaryScreenFuncs;

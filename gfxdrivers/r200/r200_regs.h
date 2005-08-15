@@ -1741,7 +1741,7 @@
 #       define COLOR_FORMAT_RGB8        (9  << 10)
 #       define COLOR_FORMAT_YUV422_VYUY (11 << 10)
 #       define COLOR_FORMAT_YUV422_YVYU (12 << 10)
-#       define COLOR_FORMAT_aYUV444     (14 << 10)
+#       define COLOR_FORMAT_AYUV444     (14 << 10)
 #       define COLOR_FORMAT_ARGB4444    (15 << 10)
 #       define CLRCMP_FLIP_ENABLE       (1  << 14)
 #       define SEPARATE_ALPHA_ENABLE    (1  << 16)
@@ -2646,6 +2646,9 @@
 #       define R200_TXA_REPL_ARG_B_MASK		(3 << 28)
 #       define R200_TXA_REPL_ARG_C_SHIFT	30
 #       define R200_TXA_REPL_ARG_C_MASK		(3 << 30)
+#define R200_RB3D_BLENDCOLOR            0x3218 /* ARGB 8888 */
+#define R200_RB3D_ABLENDCNTL            0x321C /* see BLENDCNTL */
+#define R200_RB3D_CBLENDCNTL            0x3220 /* see BLENDCNTL */
 
 #define R200_SE_VTX_FMT_0			0x2088
 #       define R200_VTX_XY			0 /* always have xy */

@@ -401,23 +401,44 @@ DisplayLayerFuncs R200OverlayFuncs = {
 
 /*** Internal Functions ***/
 
+static inline bool
+crtc_is_doubled( R200DriverData *rdrv )
+{
+     return (r200_in32( rdrv->mmio_base, CRTC_GEN_CNTL ) & CRTC_DBL_SCAN_EN);
+}
+
+static inline bool
+crtc_is_interlaced( R200DriverData *rdrv )
+{
+     return (r200_in32( rdrv->mmio_base, CRTC_GEN_CNTL ) & CRTC_INTERLACE_EN);
+}
+
+static inline __u32
+crtc_dotclock( void )
+{
+     VideoMode *mode = dfb_system_current_mode();
+     if (mode)
+          return 100000000 / mode->pixclock;
+     return 0;
+}
+
 static void
 ov0_calc_coordinates( R200DriverData        *rdrv,
                       R200OverlayLayerData  *rov0,
                       CoreSurface           *surface,
                       CoreLayerRegionConfig *config )
 {
-     R200DeviceData *rdev   = rdrv->device_data;
-     DFBRectangle    source = config->source;
-     DFBRectangle    dest   = config->dest;
-     __u32           tmp;
+     R200DeviceData *rdev     = rdrv->device_data;
+     DFBRectangle    source   = config->source;
+     DFBRectangle    dest     = config->dest; 
+     __u32           ecp_div  = 0;
      __u32           h_inc;
      __u32           v_inc;
      __u32           step_by;
-     __u32           crtc_gen_ctl;
+     __u32           tmp;
      int             xres;
      int             yres;
-     
+
      dfb_screen_get_screen_size( dfb_screens_at( DSCID_PRIMARY ), &xres, &yres );
  
      if (dest.w > (source.w << 4))
@@ -437,12 +458,12 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
           dest.h   += dest.y;
           dest.y    = 0;
      }
-     
+
      if ((dest.x + dest.w) > xres) {
           source.w = (xres - dest.x) * source.w / dest.w;
           dest.w   =  xres - dest.x;
      }
-     
+
      if ((dest.y + dest.h) > yres) {
           source.h = (yres - dest.y) * source.h / dest.h;
           dest.h   =  yres - dest.y;
@@ -453,23 +474,24 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
           return;
      }
 
-     crtc_gen_ctl = r200_in32( rdrv->mmio_base, CRTC_GEN_CNTL );
-
-     if (crtc_gen_ctl & CRTC_DBL_SCAN_EN) {
+     if (config->options & DLOP_DEINTERLACING)
+          source.h /= 2;
+     
+     if (crtc_is_doubled( rdrv )) {
           dest.y *= 2;
           dest.h *= 2;
      }
 
-     if (crtc_gen_ctl & CRTC_INTERLACE_EN) {
+     if (crtc_is_interlaced( rdrv )) {
           dest.y /= 2;
           dest.h /= 2;
      }
-     
-     if (config->options & DLOP_DEINTERLACING)
-          source.h /= 2;
 
-     h_inc = (source.w << 12) / dest.w;
-     v_inc = (source.h << 20) / dest.h;
+     if (crtc_dotclock() >= 17500)
+          ecp_div = 1;
+
+     h_inc = (source.w << (12 + ecp_div)) / dest.w;
+     v_inc = (source.h << 20)             / dest.h;
      
      for (step_by = 1; h_inc >= (2 << 12);) {
           step_by++;
