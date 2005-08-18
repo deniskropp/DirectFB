@@ -743,31 +743,37 @@ build_clipped_rectangle_outlines( DFBRectangle    *rect,
           out->h = 1;
      }
 
-     if (edges & DFEF_LEFT) {
-          DFBRectangle *out = &ret_outlines[num++];
+     if (rect->h > t) {
+          if (edges & DFEF_BOTTOM) {
+               DFBRectangle *out = &ret_outlines[num++];
 
-          out->x = rect->x;
-          out->y = rect->y + t;
-          out->w = 1;
-          out->h = rect->h - tb;
-     }
+               out->x = rect->x;
+               out->y = rect->y + rect->h - 1;
+               out->w = rect->w;
+               out->h = 1;
+          }
 
-     if (edges & DFEF_RIGHT) {
-          DFBRectangle *out = &ret_outlines[num++];
+          if (rect->h > tb) {
+               if (edges & DFEF_LEFT) {
+                    DFBRectangle *out = &ret_outlines[num++];
 
-          out->x = rect->x + rect->w - 1;
-          out->y = rect->y + t;
-          out->w = 1;
-          out->h = rect->h - tb;
-     }
+                    out->x = rect->x;
+                    out->y = rect->y + t;
+                    out->w = 1;
+                    out->h = rect->h - tb;
+               }
 
-     if (edges & DFEF_BOTTOM) {
-          DFBRectangle *out = &ret_outlines[num++];
+               if (rect->w > 1 || !(edges & DFEF_LEFT)) {
+                    if (edges & DFEF_RIGHT) {
+                         DFBRectangle *out = &ret_outlines[num++];
 
-          out->x = rect->x;
-          out->y = rect->y + rect->h - 1;
-          out->w = rect->w;
-          out->h = 1;
+                         out->x = rect->x + rect->w - 1;
+                         out->y = rect->y + t;
+                         out->w = 1;
+                         out->h = rect->h - tb;
+                    }
+               }
+          }
      }
 
      *ret_num = num;
