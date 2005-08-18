@@ -242,6 +242,25 @@ static inline bool dfb_region_region_intersects( const DFBRegion *region,
              region->y2 >= other->y1);
 }
 
+static inline void dfb_region_region_union( DFBRegion       *region,
+                                            const DFBRegion *other )
+{
+     DFB_REGION_ASSERT( region );
+     DFB_REGION_ASSERT( other );
+
+     if (region->x1 > other->x1)
+          region->x1 = other->x1;
+
+     if (region->y1 > other->y1)
+          region->y1 = other->y1;
+
+     if (region->x2 < other->x2)
+          region->x2 = other->x2;
+
+     if (region->y2 < other->y2)
+          region->y2 = other->y2;
+}
+
 static inline bool dfb_rectangle_region_intersects( const DFBRectangle *rect,
                                                     const DFBRegion    *region )
 {
