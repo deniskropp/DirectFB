@@ -31,6 +31,7 @@
 #include <direct/types.h>
 #include <direct/debug.h>
 
+
 struct __D_DirectLink {
      int         magic;
 
@@ -139,6 +140,8 @@ direct_list_remove( DirectLink **list, DirectLink *link )
 
           next->prev = prev;
      }
+     else
+         (*list)->prev = prev;
 
      if (link == *list)
           *list = next;
@@ -163,14 +166,14 @@ direct_list_check_link( const DirectLink *link )
 
 
 #define direct_list_foreach(elem, list)                     \
-     for (elem = (void*)(list);                             \
+     for (elem = (typeof(elem))(list);                      \
           direct_list_check_link( (DirectLink*)(elem) );    \
-          elem = (void*)(((DirectLink*)(elem))->next))
+          elem = (typeof(elem))(((DirectLink*)(elem))->next))
 
 #define direct_list_foreach_safe(elem, temp, list)                                             \
-     for (elem = (void*)(list), temp = ((elem) ? (void*)(((DirectLink*)(elem))->next) : NULL); \
+     for (elem = (typeof(elem))(list), temp = ((typeof(temp))(elem) ? (typeof(temp))(((DirectLink*)(elem))->next) : NULL); \
           direct_list_check_link( (DirectLink*)(elem) );                                       \
-          elem = (void*)(temp), temp = ((elem) ? (void*)(((DirectLink*)(elem))->next) : NULL))
+          elem = (typeof(elem))(temp), temp = ((typeof(temp))(elem) ? (typeof(temp))(((DirectLink*)(elem))->next) : NULL))
 
 #endif
 
