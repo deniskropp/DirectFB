@@ -39,6 +39,10 @@
 
 typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie );
 
+
+typedef unsigned long FusionObjectID;
+
+
 typedef enum {
      FOS_INIT,
      FOS_ACTIVE,
@@ -51,7 +55,7 @@ struct __Fusion_FusionObject {
 
      int                magic;
 
-     int                id;
+     FusionObjectID     id;
 
      FusionObjectState  state;
 
@@ -78,14 +82,18 @@ DirectResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
                                               void                  *ctx );
 
 
-FusionObject     *fusion_object_create  ( FusionObjectPool *pool );
+FusionObject     *fusion_object_create  ( FusionObjectPool  *pool );
 
-DirectResult      fusion_object_set_lock( FusionObject     *object,
-                                          FusionSkirmish   *lock );
+DirectResult      fusion_object_get     ( FusionObjectPool  *pool,
+                                          FusionObjectID     object_id,
+                                          FusionObject     **ret_object );
 
-DirectResult      fusion_object_activate( FusionObject     *object );
+DirectResult      fusion_object_set_lock( FusionObject      *object,
+                                          FusionSkirmish    *lock );
 
-DirectResult      fusion_object_destroy ( FusionObject     *object );
+DirectResult      fusion_object_activate( FusionObject      *object );
+
+DirectResult      fusion_object_destroy ( FusionObject      *object );
 
 
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
