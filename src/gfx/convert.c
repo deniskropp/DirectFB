@@ -92,6 +92,11 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
                RGB_TO_YCBCR( r, g, b, y, cb, cr );
                pixel = PIXEL_UYVY( y, cb, cr );
                break;
+          case DSPF_I420:
+          case DSPF_YV12:
+               RGB_TO_YCBCR( r, g, b, y, cb, cr );
+               pixel = y | (cb << 8) | (cr << 16);
+               break;
           default:
                pixel = 0;
      }
