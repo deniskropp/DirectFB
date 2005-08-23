@@ -66,12 +66,13 @@ typedef struct {
      __u32                   src_width;
      __u32                   src_height;
      __u32                   src_mask;
+     __u32                   src_key;
 
      DFBRegion               clip;
 
-     __u8                    y_cop;
-     __u8                    cb_cop;
-     __u8                    cr_cop;
+     __u32                   y_cop;
+     __u32                   cb_cop;
+     __u32                   cr_cop;
 
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
@@ -85,7 +86,10 @@ typedef struct {
 
      /* for 2d<->3d engine switching */
      bool                    write_2d;
-     bool                    write_3d; 
+     bool                    write_3d;
+
+     /* faked texture for YUV422 drawing functions */
+     __u32                   yuv422_buffer;
      
      /* for fifo/performance monitoring */
      unsigned int            fifo_space;
@@ -99,6 +103,8 @@ typedef struct {
 
 typedef struct {
      R200DeviceData         *device_data; 
+     
+     __u8                   *fb_base;
      volatile __u8          *mmio_base;
 } R200DriverData;
 
