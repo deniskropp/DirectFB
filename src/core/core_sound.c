@@ -66,20 +66,20 @@
 
 #ifdef WORDS_BIGENDIAN
 # ifndef AFMT_S24_BE
-#  define AFMT_S24_BE AFMT_QUERY
+#  define AFMT_S24_BE 0x00001000
 # endif
 # ifndef AFMT_S32_BE
-#  define AFMT_S32_BE AFMT_QUERY
+#  define AFMT_S32_BE 0x00010000
 # endif
 # define AFMT_S16  AFMT_S16_BE
 # define AFMT_S24  AFMT_S24_BE
 # define AFMT_S32  AFMT_S32_BE
 #else
 # ifndef AFMT_S24_LE
-#  define AFMT_S24_LE AFMT_QUERY
+#  define AFMT_S24_LE 0x00000800
 # endif
 # ifndef AFMT_S32_LE
-#  define AFMT_S32_LE AFMT_QUERY
+#  define AFMT_S32_LE 0x00008000
 # endif
 # define AFMT_S16  AFMT_S16_LE
 # define AFMT_S24  AFMT_S24_LE
