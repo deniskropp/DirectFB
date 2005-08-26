@@ -661,7 +661,9 @@ typedef enum {
      DSBLIT_DEINTERLACE        = 0x00000100, /* deinterlaces the source during blitting by reading
                                                 only one field (every second line of full
                                                 image) scaling it vertically by factor two */
-     DSBLIT_SRC_PREMULTCOLOR   = 0x00000200  /* modulates the source color with the color alpha */
+     DSBLIT_SRC_PREMULTCOLOR   = 0x00000200, /* modulates the source color with the color alpha */
+     DSBLIT_XOR                = 0x00000400  /* bitwise xor the destination pixels with the
+                                                source pixels after premultiplication */
 } DFBSurfaceBlittingFlags;
 
 /*
