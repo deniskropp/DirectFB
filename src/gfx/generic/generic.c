@@ -5794,6 +5794,24 @@ static void Dacc_xor_C( GenefxState *gfxs )
 
 static GenefxFunc Dacc_xor = Dacc_xor_C;
 
+static void Sacc_xor_Dacc( GenefxState *gfxs )
+{
+     int                w = gfxs->length;
+     GenefxAccumulator *S = gfxs->Sacc;
+     GenefxAccumulator *D = gfxs->Dacc;
+
+     while (w--) {
+          if (!(D->RGB.a & 0xF000)) {
+               D->RGB.a ^= S->RGB.a;
+               D->RGB.r ^= S->RGB.r;
+               D->RGB.g ^= S->RGB.g;
+               D->RGB.b ^= S->RGB.b;
+          }
+          D++;
+          S++;
+     }
+}
+
 static void Cacc_to_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
@@ -5842,6 +5860,7 @@ static void Sacc_add_to_Dacc_C( GenefxState *gfxs )
 }
 
 static GenefxFunc Sacc_add_to_Dacc = Sacc_add_to_Dacc_C;
+
 
 static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
 {
@@ -6083,7 +6102,8 @@ void gGetDeviceInfo( GraphicsDeviceInfo *info )
                           DSBLIT_DST_PREMULTIPLY  |    \
                           DSBLIT_SRC_PREMULTIPLY  |    \
                           DSBLIT_SRC_PREMULTCOLOR |    \
-                          DSBLIT_DEMULTIPLY)
+                          DSBLIT_DEMULTIPLY       |    \
+                          DSBLIT_XOR)
 
 bool gAcquire( CardState *state, DFBAccelerationMask accel )
 {
@@ -6583,8 +6603,12 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                         ;
                               }
 
-                              read_destination = source_needs_destination ||
-                                                 (state->dst_blend != DSBF_ZERO);
+                              read_destination = source_needs_destination        ||
+                                                 (state->dst_blend != DSBF_ZERO) ||
+                                                 (state->blittingflags & DSBLIT_XOR);
+                         }
+                         else if (state->blittingflags & DSBLIT_XOR) {
+                              read_destination = true;
                          }
 
                          scale_from_accumulator = !read_destination &&
@@ -6659,6 +6683,13 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          /* Premultiply (modulated) source alpha? */
                          if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
                               *funcs++ = Dacc_premultiply;
+
+                         /* Xor source with destination */
+                         if (state->blittingflags & DSBLIT_XOR) {     
+                              *funcs++ = Sacc_is_Aacc;
+                              *funcs++ = Dacc_is_Bacc;
+                              *funcs++ = Sacc_xor_Dacc;
+                         }
 
                          /* do blend functions and combine both accumulators */
                          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |

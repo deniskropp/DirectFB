@@ -71,7 +71,8 @@ DFB_GRAPHICS_DRIVER( r200 )
 #define R200_SUPPORTED_BLITTINGFLAGS \
      ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_SRC_COLORKEY       | DSBLIT_DEINTERLACE )
+       DSBLIT_SRC_COLORKEY       | DSBLIT_DEINTERLACE      | \
+       DSBLIT_XOR )
 
 #define R200_SUPPORTED_BLITTINGFUNCTIONS \
      ( DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
@@ -1165,7 +1166,7 @@ r200Blit( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
      R200DeviceData *rdev = (R200DeviceData*) dev;
      
      if (rdev->src_format != rdev->dst_format || 
-         rdev->blittingflags & ~DSBLIT_SRC_COLORKEY) 
+         rdev->blittingflags & ~(DSBLIT_SRC_COLORKEY | DSBLIT_XOR)) 
      {
           DFBRectangle dr = { dx, dy, sr->w, sr->h };
           
@@ -1201,7 +1202,7 @@ r200Blit420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
      bool            src_key = (rdev->blittingflags & DSBLIT_SRC_COLORKEY);
      
      if (!DFB_PLANAR_PIXELFORMAT( rdev->src_format ) ||
-         rdev->blittingflags & ~DSBLIT_SRC_COLORKEY) 
+         rdev->blittingflags & ~(DSBLIT_SRC_COLORKEY | DSBLIT_XOR)) 
      {
           DFBRectangle dr = { dx, dy, sr->w, sr->h };
           return r200StretchBlit420( drv, dev, sr, &dr );

@@ -617,15 +617,15 @@ void r200_set_drawingflags( R200DriverData *rdrv,
                     GMC_BRUSH_SOLID_COLOR       |
                     GMC_DP_SRC_SOURCE_MEMORY    |
                     GMC_CLR_CMP_CNTL_DIS;
- 
+
+     if (state->drawingflags & DSDRAW_BLEND)
+          rb3d_cntl   |= ALPHA_BLEND_ENABLE;
+
      if (state->drawingflags & DSDRAW_XOR) {
           rb3d_cntl   |= ROP_ENABLE;
           master_cntl |= GMC_ROP3_PATXOR;
      } else
           master_cntl |= GMC_ROP3_PATCOPY;
-
-     if (state->drawingflags & DSDRAW_BLEND)
-          rb3d_cntl   |= ALPHA_BLEND_ENABLE;
      
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
@@ -742,12 +742,17 @@ void r200_set_blittingflags( R200DriverData *rdrv,
      else
           master_cntl |= GMC_CLR_CMP_CNTL_DIS;
 
+     if (state->blittingflags & DSBLIT_XOR) {
+          master_cntl |= GMC_ROP3_PATXOR;
+          rb3d_cntl   |= ROP_ENABLE; 
+     } else
+          master_cntl |= GMC_ROP3_SRCCOPY;
+
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, CLR_CMP_CNTL, cmp_cntl );
      r200_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl              |
                                            GMC_BRUSH_NONE           |
                                            GMC_SRC_DATATYPE_COLOR   |
-                                           GMC_ROP3_SRCCOPY         |
                                            GMC_DP_SRC_SOURCE_MEMORY );
      
      r200_waitfifo( rdrv, rdev, 9 );
