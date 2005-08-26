@@ -1365,6 +1365,14 @@ setup_font_state( CoreFont *font, CardState *state )
      if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
           flags |= DSBLIT_BLEND_COLORALPHA;
 
+     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
+          flags |= DSBLIT_DST_COLORKEY;
+          dfb_state_set_dst_colorkey( &font->state, state->dst_colorkey );
+     }
+
+     if (state->drawingflags & DSDRAW_XOR)
+          flags |= DSBLIT_XOR;
+
      /* Porter/Duff SRC_OVER composition */
      if ((DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )
           && (state->destination->caps & DSCAPS_PREMULTIPLIED))
