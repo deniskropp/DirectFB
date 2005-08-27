@@ -56,6 +56,7 @@
 
 #include <direct/conf.h>
 #include <direct/interface.h>
+#include <direct/log.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/util.h>
@@ -158,8 +159,8 @@ DirectFBCreate( IDirectFB **interface )
 
      if (!dfb_config) {
           /*  don't use D_ERROR() here, it uses dfb_config  */
-          fprintf( stderr,
-                   "(!) DirectFBCreate: DirectFBInit has to be called before DirectFBCreate!\n" );
+          direct_log_printf( NULL, "(!) DirectFBCreate: DirectFBInit "
+                             "has to be called before DirectFBCreate!\n" );
           return DFB_INIT;
      }
 
@@ -173,13 +174,14 @@ DirectFBCreate( IDirectFB **interface )
      }
 
      if (!direct_config->quiet && dfb_config->banner) {
-          fprintf( stderr, "\n" );
-          fprintf( stderr, "       ---------------------- DirectFB v%d.%d.%d ---------------------\n",
-                           DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
-          fprintf( stderr, "             (c) 2000-2002  convergence integrated media GmbH  \n" );
-          fprintf( stderr, "             (c) 2002-2004  convergence GmbH                   \n" );
-          fprintf( stderr, "        -----------------------------------------------------------\n" );
-          fprintf( stderr, "\n" );
+          direct_log_printf( NULL,
+                             "\n"
+                             "       ---------------------- DirectFB v%d.%d.%d ---------------------\n"
+                             "             (c) 2000-2002  convergence integrated media GmbH  \n"
+                             "             (c) 2002-2004  convergence GmbH                   \n"
+                             "        -----------------------------------------------------------\n"
+                             "\n",
+                             DIRECTFB_MAJOR_VERSION, DIRECTFB_MINOR_VERSION, DIRECTFB_MICRO_VERSION );
      }
 
      if (dfb_config->remote.host)
@@ -216,11 +218,11 @@ DFBResult
 DirectFBError( const char *msg, DFBResult error )
 {
      if (msg)
-          fprintf( stderr, "(#) DirectFBError [%s]: %s\n", msg,
-                   DirectFBErrorString( error ) );
+          direct_log_printf( NULL, "(#) DirectFBError [%s]: %s\n", msg,
+                             DirectFBErrorString( error ) );
      else
-          fprintf( stderr, "(#) DirectFBError: %s\n",
-                   DirectFBErrorString( error ) );
+          direct_log_printf( NULL, "(#) DirectFBError: %s\n",
+                             DirectFBErrorString( error ) );
 
      return error;
 }

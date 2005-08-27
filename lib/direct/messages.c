@@ -32,6 +32,7 @@
 #include <stdio.h>
 
 #include <direct/build.h>
+#include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/trace.h>
 #include <direct/util.h>
@@ -53,9 +54,7 @@ direct_messages_info( const char *format, ... )
 
      va_end( ap );
 
-     fprintf( stderr, "(*) %s", buf );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "(*) %s", buf );
 }
 
 __attribute__((no_instrument_function))
@@ -72,9 +71,7 @@ direct_messages_error( const char *format, ... )
 
      va_end( ap );
 
-     fprintf( stderr, "(!) %s", buf );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "(!) %s", buf );
 
      direct_trace_print_stack( NULL );
 }
@@ -93,9 +90,7 @@ direct_messages_derror( DirectResult result, const char *format, ... )
 
      va_end( ap );
 
-     fprintf( stderr, "(!) %s    --> %s\n", buf, DirectResultString( result ) );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "(!) %s    --> %s\n", buf, DirectResultString( result ) );
 
      direct_trace_print_stack( NULL );
 }
@@ -114,9 +109,7 @@ direct_messages_perror( int erno, const char *format, ... )
 
      va_end( ap );
 
-     fprintf( stderr, "(!) %s    --> %s\n", buf, strerror( erno ) );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "(!) %s    --> %s\n", buf, strerror( erno ) );
 
      direct_trace_print_stack( NULL );
 }
@@ -135,9 +128,7 @@ direct_messages_dlerror( const char *dlerr, const char *format, ... )
 
      va_end( ap );
 
-     fprintf( stderr, "(!) %s    --> %s\n", buf, dlerr );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "(!) %s    --> %s\n", buf, dlerr );
 
      direct_trace_print_stack( NULL );
 }
@@ -159,9 +150,7 @@ direct_messages_once( const char *func,
 
      va_end( ap );
 
-     fprintf( stderr, " (!!!)  *** ONCE [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
-
-     fflush( stderr );
+     direct_log_printf( NULL, " (!!!)  *** ONCE [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      direct_trace_print_stack( NULL );
 }
@@ -172,9 +161,7 @@ direct_messages_unimplemented( const char *func,
                                const char *file,
                                int         line )
 {
-     fprintf( stderr, " (!!!)  *** UNIMPLEMENTED [%s] *** [%s:%d]\n", func, file, line );
-
-     fflush( stderr );
+     direct_log_printf( NULL, " (!!!)  *** UNIMPLEMENTED [%s] *** [%s:%d]\n", func, file, line );
 
      direct_trace_print_stack( NULL );
 }
@@ -196,9 +183,7 @@ direct_messages_bug( const char *func,
 
      va_end( ap );
 
-     fprintf( stderr, " (!?!)  *** BUG [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
-
-     fflush( stderr );
+     direct_log_printf( NULL, " (!?!)  *** BUG [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      direct_trace_print_stack( NULL );
 }
@@ -220,9 +205,7 @@ direct_messages_warn( const char *func,
 
      va_end( ap );
 
-     fprintf( stderr, " (!!!)  *** WARNING [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
-
-     fflush( stderr );
+     direct_log_printf( NULL, " (!!!)  *** WARNING [%s] *** [%s:%d in %s()]\n", buf, file, line, func );
 
      direct_trace_print_stack( NULL );
 }

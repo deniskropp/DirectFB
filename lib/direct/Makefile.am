@@ -56,6 +56,7 @@ include_HEADERS = \
 	interface.h			\
 	interface_implementation.h	\
 	list.h				\
+	log.h				\
 	mem.h				\
 	memcpy.h			\
 	messages.h			\
@@ -83,6 +84,7 @@ libdirect_la_SOURCES = \
 	hash.c			\
 	interface.c		\
 	list.c			\
+	log.c			\
 	mem.c			\
 	memcpy.c		\
 	messages.c		\

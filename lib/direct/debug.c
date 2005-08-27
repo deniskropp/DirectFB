@@ -39,6 +39,7 @@
 #include <direct/clock.h>
 #include <direct/debug.h>
 #include <direct/list.h>
+#include <direct/log.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
 #include <direct/util.h>
@@ -152,10 +153,9 @@ direct_debug( const char *format, ... )
 
      va_end( ap );
 
-     fprintf( stderr, "(-) [%-15s %3lld.%03lld] (%5d) %s",
-              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL, direct_gettid(), buf );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "(-) [%-15s %3lld.%03lld] (%5d) %s",
+                        name ? name : "  NO NAME  ", millis / 1000LL,
+                        millis % 1000LL, direct_gettid(), buf );
 }
 
 __attribute__((no_instrument_function))
@@ -192,10 +192,8 @@ direct_debug_at( DirectDebugDomain *domain,
 
           snprintf( fmt, sizeof(fmt), "(-) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds %%s", len );
 
-          fprintf( stderr, fmt, name ? name : "  NO NAME  ",
-                   millis / 1000LL, millis % 1000LL, direct_gettid(), dom, buf );
-
-          fflush( stderr );
+          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
+                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom, buf );
      }
 
      pthread_mutex_unlock( &domains_lock );
@@ -220,12 +218,10 @@ direct_break( const char *func,
 
      va_end( ap );
 
-     fprintf( stderr,
-              "(!) [%-15s %3lld.%03lld] (%5d) *** Break [%s] *** [%s:%d in %s()]\n",
-              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
-              direct_gettid(), buf, file, line, func );
-
-     fflush( stderr );
+     direct_log_printf( NULL,
+                        "(!) [%-15s %3lld.%03lld] (%5d) *** Break [%s] *** [%s:%d in %s()]\n",
+                        name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
+                        direct_gettid(), buf, file, line, func );
 
      direct_trace_print_stack( NULL );
 
@@ -250,12 +246,10 @@ direct_assertion( const char *exp,
      long long   millis = direct_clock_get_millis();
      const char *name   = direct_thread_self_name();
 
-     fprintf( stderr,
-              "(!) [%-15s %3lld.%03lld] (%5d) *** Assertion [%s] failed *** [%s:%d in %s()]\n",
-              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
-              direct_gettid(), exp, file, line, func );
-
-     fflush( stderr );
+     direct_log_printf( NULL,
+                        "(!) [%-15s %3lld.%03lld] (%5d) *** Assertion [%s] failed *** [%s:%d in %s()]\n",
+                        name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
+                        direct_gettid(), exp, file, line, func );
 
      direct_trace_print_stack( NULL );
 
@@ -280,12 +274,10 @@ direct_assumption( const char *exp,
      long long   millis = direct_clock_get_millis();
      const char *name   = direct_thread_self_name();
 
-     fprintf( stderr,
-              "(!) [%-15s %3lld.%03lld] (%5d) *** Assumption [%s] failed *** [%s:%d in %s()]\n",
-              name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
-              direct_gettid(), exp, file, line, func );
-
-     fflush( stderr );
+     direct_log_printf( NULL,
+                        "(!) [%-15s %3lld.%03lld] (%5d) *** Assumption [%s] failed *** [%s:%d in %s()]\n",
+                        name ? name : "  NO NAME  ", millis / 1000LL, millis % 1000LL,
+                        direct_gettid(), exp, file, line, func );
 
      direct_trace_print_stack( NULL );
 }

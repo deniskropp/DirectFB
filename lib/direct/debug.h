@@ -34,6 +34,7 @@
 #include <errno.h>
 
 #include <direct/conf.h>
+#include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/system.h>
 #include <direct/types.h>
@@ -83,8 +84,8 @@ void direct_assumption( const char *exp,
 #define D_DEBUG_ENABLED  (1)
 
 #ifdef HEAVYDEBUG
-     #define D_HEAVYDEBUG(x...)    if (!direct_config || direct_config->debug) {\
-                                             fprintf( stderr, "(=) "x );  \
+     #define D_HEAVYDEBUG(x...)    if (!direct_config || direct_config->debug) {     \
+                                        direct_log_printf( NULL, "(=) "x );          \
                                    }
 #else
      #define D_HEAVYDEBUG(x...)

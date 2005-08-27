@@ -124,6 +124,14 @@ Enables debug output. This is on by default but you won't see any
 debug output unless you compiled DirectFB with debugging support.
 
 .TP
+.BI log-file=<name>
+Write all messages to the specified file.
+
+.TP
+.BI log-udp=<host>:<port>
+Send all messages via UDP to the specified host and port.
+
+.TP
 .BI force-windowed
 Forces the primary surface to be a window. This allows to run
 applications that were written to do full-screen access in a window.

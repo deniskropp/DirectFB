@@ -47,6 +47,8 @@ struct __D_DirectConfig {
 
      bool       sighandler;
      sigset_t   dont_catch;        /* don't catch these signals */
+
+     DirectLog *log;
 };
 
 extern DirectConfig *direct_config;

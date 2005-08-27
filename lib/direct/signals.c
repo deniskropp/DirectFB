@@ -181,14 +181,12 @@ show_segv( const siginfo_t *info )
      switch (info->si_code) {
 #ifdef SEGV_MAPERR
           case SEGV_MAPERR:
-               fprintf( stderr, " (at %p, invalid address) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, invalid address) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef SEGV_ACCERR
           case SEGV_ACCERR:
-               fprintf( stderr, " (at %p, invalid permissions) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, invalid permissions) <--\n", info->si_addr );
                return true;
 #endif
      }
@@ -201,20 +199,17 @@ show_bus( const siginfo_t *info )
      switch (info->si_code) {
 #ifdef BUG_ADRALN
           case BUS_ADRALN:
-               fprintf( stderr, " (at %p, invalid address alignment) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, invalid address alignment) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef BUS_ADRERR
           case BUS_ADRERR:
-               fprintf( stderr, " (at %p, non-existent physical address) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, non-existent physical address) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef BUS_OBJERR
           case BUS_OBJERR:
-               fprintf( stderr, " (at %p, object specific hardware error) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, object specific hardware error) <--\n", info->si_addr );
                return true;
 #endif
      }
@@ -228,50 +223,42 @@ show_ill( const siginfo_t *info )
      switch (info->si_code) {
 #ifdef ILL_ILLOPC
           case ILL_ILLOPC:
-               fprintf( stderr, " (at %p, illegal opcode) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, illegal opcode) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_ILLOPN
           case ILL_ILLOPN:
-               fprintf( stderr, " (at %p, illegal operand) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, illegal operand) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_ILLADR
           case ILL_ILLADR:
-               fprintf( stderr, " (at %p, illegal addressing mode) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, illegal addressing mode) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_ILLTRP
           case ILL_ILLTRP:
-               fprintf( stderr, " (at %p, illegal trap) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, illegal trap) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_PRVOPC
           case ILL_PRVOPC:
-               fprintf( stderr, " (at %p, privileged opcode) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, privileged opcode) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_PRVREG
           case ILL_PRVREG:
-               fprintf( stderr, " (at %p, privileged register) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, privileged register) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_COPROC
           case ILL_COPROC:
-               fprintf( stderr, " (at %p, coprocessor error) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, coprocessor error) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef ILL_BADSTK
           case ILL_BADSTK:
-               fprintf( stderr, " (at %p, internal stack error) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, internal stack error) <--\n", info->si_addr );
                return true;
 #endif
      }
@@ -285,19 +272,17 @@ show_fpe( const siginfo_t *info )
      switch (info->si_code) {
 #ifdef FPE_INTDIV
           case FPE_INTDIV:
-               fprintf( stderr, " (at %p, integer divide by zero) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, integer divide by zero) <--\n", info->si_addr );
                return true;
 #endif
 #ifdef FPE_FLTDIV
           case FPE_FLTDIV:
-               fprintf( stderr, " (at %p, floating point divide by zero) <--\n",
-                        info->si_addr );
+               direct_log_printf( NULL, " (at %p, floating point divide by zero) <--\n", info->si_addr );
                return true;
 #endif
      }
 
-     fprintf( stderr, " (at %p) <--\n", info->si_addr );
+     direct_log_printf( NULL, " (at %p) <--\n", info->si_addr );
 
      return true;
 }
@@ -308,13 +293,12 @@ show_any( const siginfo_t *info )
      switch (info->si_code) {
 #ifdef SI_USER
           case SI_USER:
-               fprintf( stderr, " (sent by pid %d, uid %d) <--\n",
-                        info->si_pid, info->si_uid );
+               direct_log_printf( NULL, " (sent by pid %d, uid %d) <--\n", info->si_pid, info->si_uid );
                return true;
 #endif
 #ifdef SI_KERNEL
           case SI_KERNEL:
-               fprintf( stderr, " (sent by the kernel) <--\n" );
+               direct_log_printf( NULL, " (sent by the kernel) <--\n" );
                return true;
 #endif
      }
@@ -329,8 +313,8 @@ signal_handler( int num, siginfo_t *info, void *foo )
      int         pid    = direct_gettid();
      long long   millis = direct_clock_get_millis();
 
-     fprintf( stderr, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
-              pid, millis/1000, millis%1000, num );
+     direct_log_printf( NULL, "(!) [%5d: %4lld.%03lld] --> Caught signal %d",
+                        pid, millis/1000, millis%1000, num );
 
      if (info && info > (siginfo_t*) 0x100) {
           bool shown = false;
@@ -356,7 +340,7 @@ signal_handler( int num, siginfo_t *info, void *foo )
                          break;
 
                     default:
-                         fprintf( stderr, " <--\n" );
+                         direct_log_printf( NULL, " <--\n" );
                          addr  = NULL;
                          shown = true;
                          break;
@@ -366,12 +350,10 @@ signal_handler( int num, siginfo_t *info, void *foo )
                shown = show_any( info );
 
           if (!shown)
-               fprintf( stderr, " (unknown origin) <--\n" );
+               direct_log_printf( NULL, " (unknown origin) <--\n" );
      }
      else
-          fprintf( stderr, ", no siginfo available <--\n" );
-
-     fflush( stderr );
+          direct_log_printf( NULL, ", no siginfo available <--\n" );
 
      direct_trace_print_stacks();
 
@@ -397,9 +379,8 @@ signal_handler( int num, siginfo_t *info, void *foo )
                case DSHR_RESUME:
                     millis = direct_clock_get_millis();
 
-                    fprintf( stderr, "(!) [%5d: %4lld.%03lld]      -> cured!\n",
-                             pid, millis / 1000, millis % 1000 );
-                    fflush( stderr );
+                    direct_log_printf( NULL, "(!) [%5d: %4lld.%03lld]      -> cured!\n",
+                                       pid, millis / 1000, millis % 1000 );
                     pthread_mutex_unlock( &handlers_lock );
                     return;
 

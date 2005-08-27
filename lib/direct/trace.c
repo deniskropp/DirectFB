@@ -40,6 +40,7 @@
 
 #include <direct/build.h>
 #include <direct/list.h>
+#include <direct/log.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/system.h>
@@ -392,14 +393,14 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
 
 
      if (buffer->name)
-          fprintf( stderr, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
+          direct_log_printf( NULL, "(-) [%5d: -STACK- '%s']\n", buffer->tid, buffer->name );
      else
-          fprintf( stderr, "(-) [%5d: -STACK- ]\n", buffer->tid );
+          direct_log_printf( NULL, "(-) [%5d: -STACK- ]\n", buffer->tid );
 
      for (i=level-1; i>=0; i--) {
           void *fn = buffer->trace[i].addr;
 
-          fprintf( stderr, "  #%-2d 0x%08lx in ", level - i - 1, (unsigned long) fn );
+          direct_log_printf( NULL, "  #%-2d 0x%08lx in ", level - i - 1, (unsigned long) fn );
 
 #ifdef DYNAMIC_LINKING
           if (dladdr( fn, &info )) {
@@ -419,22 +420,20 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                          }
                     }
 
-                    fprintf( stderr, "%s () from %s\n", symbol, info.dli_fname );
+                    direct_log_printf( NULL, "%s () from %s\n", symbol, info.dli_fname );
                }
                else if (info.dli_sname) {
-                    fprintf( stderr, "%s ()\n", info.dli_sname );
+                    direct_log_printf( NULL, "%s ()\n", info.dli_sname );
                }
                else
-                    fprintf( stderr, "?? ()\n" );
+                    direct_log_printf( NULL, "?? ()\n" );
           }
           else
 #endif
-               fprintf( stderr, "?? ()\n" );
+               direct_log_printf( NULL, "?? ()\n" );
      }
 
-     fprintf( stderr, "\n" );
-
-     fflush( stderr );
+     direct_log_printf( NULL, "\n" );
 
      buffer->in_trace = false;
 }

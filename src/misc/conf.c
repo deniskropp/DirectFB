@@ -32,22 +32,23 @@
 #include <stdio.h>
 #include <string.h>
 
-
 #include <directfb.h>
 
-#include <core/coretypes.h>
-
-#include <core/surfaces.h>
-#include <core/layers.h>
 
 #include <direct/conf.h>
-#include <fusion/conf.h>
-#include <misc/conf.h>
-
+#include <direct/log.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
+
+#include <fusion/conf.h>
+
+#include <core/coretypes.h>
+#include <core/surfaces.h>
+#include <core/layers.h>
+
+#include <misc/conf.h>
 
 
 DFBConfig *dfb_config = NULL;
@@ -75,6 +76,8 @@ static const char *config_usage =
      "  [no-]banner                    Show DirectFB Banner on startup\n"
      "  [no-]debug                     Enable debug output\n"
      "  [no-]trace                     Enable stack trace support\n"
+     "  log-file=<name>                Write all messages to a file\n"
+     "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Hardware acceleration\n"
@@ -234,7 +237,7 @@ parse_args( const char *args )
                *next++ = '\0';
 
           if (strcmp (buf, "help") == 0) {
-               fprintf( stderr, config_usage );
+               direct_log_printf( NULL, config_usage );
                exit(1);
           }
 
@@ -604,6 +607,30 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-trace" ) == 0) {
           direct_config->trace = false;
+     } else
+     if (strcmp (name, "log-file" ) == 0 || strcmp (name, "log-udp" ) == 0) {
+          if (value) {
+               DirectResult  ret;
+               DirectLog    *log;
+
+               ret = direct_log_create( strcmp(name,"log-udp") ? DLT_FILE : DLT_UDP, value, &log );
+               if (ret)
+                    return ret;
+
+               if (direct_config->log)
+                    direct_log_destroy( direct_config->log );
+
+               direct_config->log = log;
+
+               direct_log_set_default( log );
+          }
+          else {
+               if (strcmp(name,"log-udp"))
+                    D_ERROR("DirectFB/Config 'log-file': No file name specified!\n");
+               else
+                    D_ERROR("DirectFB/Config 'log-udp': No host and port specified!\n");
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "force-windowed" ) == 0) {
           dfb_config->force_windowed = true;
@@ -1039,7 +1066,7 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           for (i = 1; i < *argc; i++) {
 
                if (strcmp ((*argv)[i], "--dfb-help") == 0) {
-                    fprintf( stderr, config_usage );
+                    direct_log_printf( NULL, config_usage );
                     exit(1);
                }
 
