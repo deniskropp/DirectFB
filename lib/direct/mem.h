@@ -28,6 +28,7 @@
 #ifndef __DIRECT__MEM_H__
 #define __DIRECT__MEM_H__
 
+#include <stddef.h>
 
 #include <direct/build.h>
 
