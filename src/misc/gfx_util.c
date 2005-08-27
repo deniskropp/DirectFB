@@ -183,8 +183,8 @@ static void rgba_to_dst_format (__u8 *dst,
 
 #define LINE_PTR(dst,caps,y,h,pitch) \
      ((caps & DSCAPS_SEPARATED) \
-          ? (((char*)dst) + y/2 * pitch + ((y%2) ? h/2 * pitch : 0)) \
-          : (((char*)dst) + y * pitch))
+          ? (((__u8*)dst) + y/2 * pitch + ((y%2) ? h/2 * pitch : 0)) \
+          : (((__u8*)dst) + y * pitch))
 
 void dfb_copy_buffer_32( __u32 *src,
                          void  *dst, int dpitch, DFBRectangle *drect,

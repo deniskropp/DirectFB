@@ -214,7 +214,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
           fusion_ref_stat( &object->ref, &refs );
 
           D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
-          D_DEBUG_AT( Fusion_Object, "  -> zombie %p [%d], refs %d\n", object, object->id, refs );
+          D_DEBUG_AT( Fusion_Object, "  -> zombie %p [%ld], refs %d\n", object, object->id, refs );
 
           /* Set "deinitializing" state. */
           object->state = FOS_DEINIT;
