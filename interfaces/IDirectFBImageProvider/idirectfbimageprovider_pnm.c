@@ -221,7 +221,7 @@ __rawpgm_getrow( IDirectFBImageProvider_PNM_data *data,
 
      /* start from end */
      while (--len >= 0)
-          d[len] = PIXEL_ARGB( 0xff, s[len], s[len], s[len] );
+          d[len] = PIXEL_ARGB( s[len], s[len], s[len], s[len] );
 
      return DFB_OK;
 }
@@ -311,7 +311,7 @@ __plainpgm_getrow( IDirectFBImageProvider_PNM_data *data,
           n += buf[i] - '0';
 
           if (isspace( buf[i+1] )) {
-               *d++ = PIXEL_ARGB( 0xff, n, n, n );
+               *d++ = PIXEL_ARGB( n, n, n, n );
                n = 0;
                i++;
 
