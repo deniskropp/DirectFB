@@ -163,7 +163,6 @@ struct dfb_frame_s {
      int          area;       /* multiple of 8 and at least 16 */
      int          in_format;
      int          out_format;
-     bool         interlaced;
 
      CoreSurface *surface;
      uint8_t     *out_plane[3];
@@ -202,7 +201,6 @@ struct dfb_driver_s {
      DFBSurfacePixelFormat   frame_format;
      int                     frame_width;
      int                     frame_height;
-     int                     frame_interlaced;
      
      struct {
           MixerFlags         set;

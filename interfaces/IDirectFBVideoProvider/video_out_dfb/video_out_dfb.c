@@ -39,6 +39,8 @@
 
 #include <misc/util.h>
 
+#define LOG_MODULE "video_out_dfb"
+
 #include <xine.h>
 #include <xine/xine_internal.h>
 #include <xine/xineutils.h>
@@ -596,48 +598,7 @@ static void
 vo_dfb_frame_field( vo_frame_t *vo_frame,
                     int         which_field )
 {
-     dfb_driver_t *this  = (dfb_driver_t*) vo_frame->driver;
-     dfb_frame_t  *frame = (dfb_frame_t*)  vo_frame;
-     int           field = which_field;
-
-     if (this->deinterlace > -1) {
-          switch (this->deinterlace) {
-               case 1:
-                    field = VO_TOP_FIELD;
-                    break;
-               case 2:
-                    field = VO_BOTTOM_FIELD;
-                    break;
-               case 0:
-                    field = VO_BOTH_FIELDS;
-                    break;
-               default:
-                    break;
-          }
-     }
-     
-     switch (field) {
-          case VO_TOP_FIELD:
-               frame->interlaced = true;
-               this->frame_interlaced  = 1;
-               dfb_surface_set_field( frame->surface, 0 );
-               lprintf( "frame %p is interlaced (Top Field)\n", frame );
-               break;
-          case VO_BOTTOM_FIELD:
-               frame->interlaced = true; 
-               this->frame_interlaced  = 2;
-               dfb_surface_set_field( frame->surface, 1 );
-               lprintf( "frame %p is interlaced (Bottom Field)\n", frame );
-               break;
-          case VO_BOTH_FIELDS: 
-               frame->interlaced = false;
-               this->frame_interlaced = 0;
-               break;
-          default:
-               xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                        "video_out_dfb: unknown field %i\n", field );
-               break;
-     }
+     /* not needed */
 }
 
 static void
@@ -918,8 +879,6 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
                     break;
           }
      }
-
-     vo_dfb_frame_field( vo_frame, flags & VO_BOTH_FIELDS );
      
      return;
 
@@ -1128,7 +1087,9 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
      subclip.y2 = y + overlay->clip_bottom;
      
      if (use_ovl) {
-          IDirectFBSurface_data *ovl_data = this->ovl_data;
+          IDirectFBSurface_data *ovl_data  = this->ovl_data;
+          int                    r         = 0;
+          DFBRectangle           rects[98];
           
           if (!this->ovl_changed)
                return;
@@ -1177,11 +1138,22 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
                     }
               
                     if (palette[index].rgb.a) {
-                         DFBSpan span = { .x = x, .w = width };
-               
-                         dfb_state_set_color( &this->state, 
+                         rects[r].x = x;
+                         rects[r].y = y;
+                         rects[r].w = width;
+                         rects[r].h = 1;
+                         r++;
+
+                         dfb_state_set_color( &this->state,
                                               (DFBColor*) &palette[index] );
-                         dfb_gfxcard_fillspans( y, &span, 1, &this->state );
+
+                         if (this->state.modified & SMF_COLOR   ||
+                             r == (sizeof(rects)/sizeof(rects[0])))
+                         {
+                              dfb_gfxcard_fillrectangles( &rects[0], r,
+                                                          &this->state );
+                              r = 0;
+                         }
                     }
             
                     x += width;
@@ -1191,6 +1163,9 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
                     }
                }
           }
+
+          if (r)
+               dfb_gfxcard_fillrectangles( &rects[0], r, &this->state );
      }
      else {
           DVBlendFunc blendf  = BlendFuncs[frame->out_format];
@@ -1356,11 +1331,13 @@ vo_dfb_display_frame( vo_driver_t *vo_driver,
      this->state.clip.y2   = dst_rect.y + dst_rect.h - 1;
      this->state.source    = frame->surface;
      this->state.modified |= (SMF_CLIP | SMF_SOURCE);
-     
-     dfb_state_set_blitting_flags( &this->state,
-                                   (frame->interlaced)
-                                   ? DSBLIT_DEINTERLACE : DSBLIT_NOFX );
 
+     if (this->deinterlace) {
+          frame->surface->field = this->deinterlace - 1;
+          dfb_state_set_blitting_flags( &this->state, DSBLIT_DEINTERLACE );
+     } else
+          dfb_state_set_blitting_flags( &this->state, DSBLIT_NOFX );
+     
      if (dst_rect.w == src_rect.w && dst_rect.h == src_rect.h)
           dfb_gfxcard_blit( &src_rect, dst_rect.x, dst_rect.y, &this->state );
      else
@@ -1383,8 +1360,8 @@ vo_dfb_get_property( vo_driver_t *vo_driver,
           case VO_PROP_INTERLACED:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
                         "video_out_dfb: interlaced is %i\n",
-                        this->frame_interlaced );
-               return this->frame_interlaced;
+                        this->deinterlace );
+               return this->deinterlace;
 
           case VO_PROP_ASPECT_RATIO:
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
@@ -1482,7 +1459,7 @@ vo_dfb_set_property( vo_driver_t *vo_driver,
 
      switch (property) {
           case VO_PROP_INTERLACED:
-               if (value >= -1 && value <= 2) {
+               if (value >= 0 && value <= 2) {
                     xprintf( this->xine, XINE_VERBOSITY_DEBUG,
                              "video_out_dfb: setting deinterlacing to %i\n",
                              value );
@@ -1556,7 +1533,7 @@ vo_dfb_get_property_min_max( vo_driver_t *vo_driver,
 
      switch (property) {
           case VO_PROP_INTERLACED:
-               *min = -1;
+               *min =  0;
                *max = +2;
                break;
 
@@ -1900,11 +1877,10 @@ open_plugin( video_driver_class_t *vo_class,
      
      dfb_state_init( &this->state );
 
-     this->mixer.b     =  0;
-     this->mixer.c     = +128;
-     this->mixer.s     = +128;
-     this->mixer.set   =  MF_NONE;
-     this->deinterlace = -1;
+     this->mixer.b   =  0;
+     this->mixer.c   = +128;
+     this->mixer.s   = +128;
+     this->mixer.set =  MF_NONE;
 
      memset( &proc_table, 0, sizeof(proc_table) );
 
