@@ -81,6 +81,11 @@ const char   *direct_thread_get_name   ( DirectThread *thread );
 const char   *direct_thread_self_name  ();
 
 /*
+ * Changes the name of the calling thread.
+ */
+void          direct_thread_set_name   ( const char   *name );
+
+/*
  * Cancel a running thread.
  */
 void direct_thread_cancel     ( DirectThread *thread );

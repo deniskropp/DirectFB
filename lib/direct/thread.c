@@ -243,6 +243,50 @@ direct_thread_self_name()
 }
 
 void
+direct_thread_set_name( const char *name )
+{
+     char         *copy;
+     DirectThread *thread = pthread_getspecific( thread_key );
+
+     /* Support this function for non-direct threads. */
+     if (!thread) {
+          /* Create the key for the TSD (thread specific data). */
+          pthread_mutex_lock( &key_lock );
+
+          if (thread_key == -1)
+               pthread_key_create( &thread_key, NULL );
+
+          pthread_mutex_unlock( &key_lock );
+
+
+          thread = D_CALLOC( 1, sizeof(DirectThread) );
+          if (!thread) {
+               D_OOM();
+               return;
+          }
+
+          thread->thread = pthread_self();
+          thread->tid    = direct_gettid();
+
+          pthread_setspecific( thread_key, thread );
+     }
+
+     /* Duplicate string. */
+     copy = D_STRDUP( name );
+     if (!copy) {
+          D_OOM();
+          return;
+     }
+
+     /* Free old string. */
+     if (thread->name)
+          D_FREE( thread->name );
+
+     /* Keep the copy. */
+     thread->name = copy;
+}
+
+void
 direct_thread_cancel( DirectThread *thread )
 {
      D_MAGIC_ASSERT( thread, DirectThread );

@@ -32,6 +32,7 @@
 #include <direct/debug.h>
 #include <direct/direct.h>
 #include <direct/signals.h>
+#include <direct/thread.h>
 #include <direct/util.h>
 
 D_DEBUG_DOMAIN( Direct_Main, "Direct/Main", "Initialization and shutdown of libdirect" );
@@ -55,6 +56,8 @@ direct_initialize()
           pthread_mutex_unlock( &refs_lock );
           return DFB_OK;
      }
+     else if (!direct_thread_self_name())
+          direct_thread_set_name( "Main Thread" );
 
      D_DEBUG_AT( Direct_Main, "...initializing now.\n" );
 
