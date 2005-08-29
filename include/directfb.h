@@ -1030,7 +1030,7 @@ typedef struct {
 
      DFBPaletteCapabilities             caps;        /* Palette capabilities. */
      unsigned int                       size;        /* Number of entries. */
-     DFBColor                          *entries;     /* Preset palette
+     const DFBColor                    *entries;     /* Preset palette
                                                         entries. */
 } DFBPaletteDescription;
 
