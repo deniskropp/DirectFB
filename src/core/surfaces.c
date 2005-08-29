@@ -72,6 +72,9 @@
 
 D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Surface Core" );
 
+static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
+
 #if D_DEBUG_ENABLED
 
 static const DirectFBPixelFormatNames(format_names);
@@ -990,13 +993,29 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 #else
      static const char *gz_ext = "";
 #endif
-
+     CorePalette       *palette = NULL;
+     
      D_ASSERT( surface != NULL );
      D_ASSERT( directory != NULL );
      D_ASSERT( prefix != NULL );
 
      /* Check pixel format. */
      switch (surface->format) {
+          case DSPF_LUT8:
+               palette = surface->palette;
+
+               if (!palette) {
+                    D_BUG( "no palette" );
+                    return DFB_BUG;
+               }
+
+               if (dfb_palette_ref( palette ))
+                    return DFB_FUSION;
+
+               rgb = true;
+
+               /* fall through */
+
           case DSPF_A8:
                alpha = true;
                break;
@@ -1010,6 +1029,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
                /* fall through */
 
+          case DSPF_RGB332:
           case DSPF_RGB16:
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -1020,14 +1040,17 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
           default:
                D_ERROR( "DirectFB/core/surfaces: surface dump for format "
-                         "0x%08x is not implemented!\n", surface->format );
+                         "'%s' is not implemented!\n",
+                        dfb_pixelformat_name( surface->format ) );
                return DFB_UNSUPPORTED;
      }
 
      /* Lock the surface, get the data pointer and pitch. */
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
-     if (ret)
+     if (ret) {
+          dfb_palette_unref( palette );
           return ret;
+     }
 
      /* Find the lowest unused index. */
      while (++num < 10000) {
@@ -1047,6 +1070,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           D_ERROR( "DirectFB/core/surfaces: "
                    "couldn't find an unused index for surface dump!\n" );
           dfb_surface_unlock( surface, true );
+          dfb_palette_unref( palette );
           return DFB_FAILURE;
      }
 
@@ -1059,9 +1083,8 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           if (fd_p < 0) {
                D_PERROR("DirectFB/core/input: "
                         "could not open %s!\n", filename);
-
                dfb_surface_unlock( surface, true );
-
+               dfb_palette_unref( palette );
                return DFB_IO;
           }
      }
@@ -1077,6 +1100,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          "could not open %s!\n", filename);
 
                dfb_surface_unlock( surface, true );
+               dfb_palette_unref( palette );
 
                if (rgb) {
                     close( fd_p );
@@ -1135,6 +1159,15 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           data32 = (__u32*) data8;
 
           switch (surface->format) {
+               case DSPF_LUT8:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = palette->entries[data8[n]].r;
+                         buf_p[n3+1] = palette->entries[data8[n]].g;
+                         buf_p[n3+2] = palette->entries[data8[n]].b;
+
+                         buf_g[n] = palette->entries[data8[n]].a;
+                    }
+                    break;
                case DSPF_A8:
                     direct_memcpy( &buf_g[0], data8, surface->width );
                     break;
@@ -1195,6 +1228,13 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
                          buf_g[n]  = (data16[n] >> 12);
                          buf_g[n] |= buf_g[n] << 4;
+                    }
+                    break;
+               case DSPF_RGB332:
+                    for (n=0, n3=0; n<surface->width; n++, n3+=3) {
+                         buf_p[n3+0] = lookup3to8[ (data8[n] >> 5)        ];
+                         buf_p[n3+1] = lookup3to8[ (data8[n] >> 2) & 0x07 ];
+                         buf_p[n3+2] = lookup2to8[ (data8[n]     ) & 0x03 ];
                     }
                     break;
                case DSPF_RGB16:
@@ -1274,6 +1314,10 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
      /* Unlock the surface. */
      dfb_surface_unlock( surface, true );
+
+     /* Release the palette. */
+     if (palette)
+          dfb_palette_unref( palette );
 
 #ifdef USE_ZLIB
      if (rgb)
