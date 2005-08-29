@@ -677,29 +677,91 @@ static void Bop_yuv422_Kto_Aop( GenefxState *gfxs )
      }
 }
 
+
+#define DOKEY(n)                        \
+     {                                  \
+          register __u32 s = S[n];      \
+                                        \
+          if (s != Skey)                \
+               D[n] = s;                \
+     }
+
+
+#define DUFF_KEY_1() \
+               case 1:\
+                    DOKEY(0)
+
+#define DUFF_KEY_2() \
+               case 3:\
+                    DOKEY(2)\
+               case 2:\
+                    DOKEY(1)\
+               DUFF_KEY_1()
+
+#define DUFF_KEY_3() \
+               case 7:\
+                    DOKEY(6)\
+               case 6:\
+                    DOKEY(5)\
+               case 5:\
+                    DOKEY(4)\
+               case 4:\
+                    DOKEY(3)\
+               DUFF_KEY_2()
+
+#define DUFF_KEY_4() \
+               case 15:\
+                    DOKEY(14)\
+               case 14:\
+                    DOKEY(13)\
+               case 13:\
+                    DOKEY(12)\
+               case 12:\
+                    DOKEY(11)\
+               case 11:\
+                    DOKEY(10)\
+               case 10:\
+                    DOKEY(9)\
+               case 9:\
+                    DOKEY(8)\
+               case 8:\
+                    DOKEY(7)\
+               DUFF_KEY_3()
+
+#define SOURCE_COLORKEY_DUFFS_DEVICE_N(D, S, w, n) \
+     while (w) {\
+          register int l = w & ((1 << n) - 1);\
+          switch (l) {\
+               default:\
+                    l = (1 << n);\
+                    DOKEY((1 << n)-1)\
+               DUFF_KEY_##n()\
+          }\
+          D += l;\
+          S += l;\
+          w -= l;\
+     }
+
+/* change the last value to adjust the size of the device (1-4) */
+#define SOURCE_COLORKEY_DUFFS_DEVICE(D, S, w) \
+          SOURCE_COLORKEY_DUFFS_DEVICE_N(D, S, w, 4)
+
+
 static void Bop_8_Kto_Aop( GenefxState *gfxs )
 {
      int    i;
-     int    w    = gfxs->length;
-     __u8  *D    = gfxs->Aop;
-     __u8  *S    = gfxs->Bop;
-     __u8   Skey = gfxs->Skey;
+     int    w     = gfxs->length;
+     __u8  *D     = gfxs->Aop;
+     __u8  *S     = gfxs->Bop;
+     __u32  Skey  = gfxs->Skey;
 
-     if (gfxs->Ostep < 0) {
-          for (i=w-1; i>=0; --i) {
-               register __u8 pixel = S[i];
-
-               if (pixel != Skey)
-                    D[i] = pixel;
-          }
+     if (gfxs->Ostep > 0) {
+          SOURCE_COLORKEY_DUFFS_DEVICE( D, S, w );
      }
      else {
-          for (i=0; i<w; ++i) {
-               register __u8 pixel = S[i];
-
-               if (pixel != Skey)
-                    D[i] = pixel;
-          }
+          for (i=w-1; i>=0; i--)
+               if (S[i] != Skey)
+                    D[i] = S[i];
      }
 }
 
