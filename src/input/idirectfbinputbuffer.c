@@ -38,10 +38,17 @@
 
 #include <pthread.h>
 
-#include <fusion/reactor.h>
-#include <direct/list.h>
-
 #include <directfb.h>
+
+#include <direct/interface.h>
+#include <direct/list.h>
+#include <direct/mem.h>
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/thread.h>
+#include <direct/util.h>
+
+#include <fusion/reactor.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -51,16 +58,9 @@
 
 #include <misc/util.h>
 
-#include <direct/interface.h>
-#include <direct/mem.h>
-#include <direct/messages.h>
-#include <direct/thread.h>
-#include <direct/util.h>
-
 #include "idirectfbinputbuffer.h"
 
-typedef struct
-{
+typedef struct {
      DirectLink   link;
      DFBEvent     evt;
 } EventBufferItem;
@@ -329,6 +329,10 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
                event->user = item->evt.user;
                break;
 
+          case DFEC_UNIVERSAL:
+               direct_memcpy( event, &item->evt, item->evt.universal.size );
+               break;
+
           default:
                D_BUG("unknown event class");
      }
@@ -375,6 +379,10 @@ IDirectFBEventBuffer_PeekEvent( IDirectFBEventBuffer *thiz,
                event->user = item->evt.user;
                break;
 
+          case DFEC_UNIVERSAL:
+               direct_memcpy( event, &item->evt, item->evt.universal.size );
+               break;
+
           default:
                D_BUG("unknown event class");
      }
@@ -400,14 +408,31 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
                                 const DFBEvent       *event )
 {
      EventBufferItem *item;
+     int              size;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
-     item = D_CALLOC( 1, sizeof(EventBufferItem) );
-     if (!item) {
-          D_WARN( "out of memory" );
-          return DFB_NOSYSTEMMEMORY;
+     switch (event->clazz) {
+          case DFEC_INPUT:
+          case DFEC_WINDOW:
+          case DFEC_USER:
+               size = sizeof(EventBufferItem);
+               break;
+
+          case DFEC_UNIVERSAL:
+               size = event->universal.size;
+               if (size < sizeof(DFBUniversalEvent))
+                    return DFB_INVARG;
+               size += sizeof(DirectLink);
+               break;
+
+          default:
+               return DFB_INVARG;
      }
+
+     item = D_CALLOC( 1, size );
+     if (!item)
+          return D_OOM();
 
      switch (event->clazz) {
           case DFEC_INPUT:
@@ -422,8 +447,12 @@ IDirectFBEventBuffer_PostEvent( IDirectFBEventBuffer *thiz,
                item->evt.user = event->user;
                break;
 
+          case DFEC_UNIVERSAL:
+               direct_memcpy( &item->evt, event, event->universal.size );
+               break;
+
           default:
-               D_BUG("unknown event class");
+               D_BUG("unexpected event class");
      }
 
      IDirectFBEventBuffer_AddItem( data, item );
@@ -594,21 +623,18 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
      IDirectFBEventBuffer_AddItem( data, item );
 
      if (evt->type == DWET_DESTROYED) {
-          AttachedWindow *window = (AttachedWindow*) data->windows;
+          AttachedWindow *window;
 
-          while (window) {
+          direct_list_foreach (window, data->windows) {
+               if (!window->window)
+                    continue;
+
                if (dfb_window_id( window->window ) == evt->window_id) {
-                    direct_list_remove( &data->windows, &window->link );
-
                     /* FIXME: free memory later, because reactor writes to it
                        after we return RS_REMOVE */
                     //D_FREE( window );
                     window->window = NULL;
-
-                    break;
                }
-
-               window = (AttachedWindow*) window->link.next;
           }
 
           return RS_REMOVE;
@@ -630,6 +656,11 @@ IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
                EventBufferItem *item = (EventBufferItem*) data->events;
 
                direct_list_remove( &data->events, &item->link );
+
+               if (item->evt.clazz == DFEC_UNIVERSAL) {
+                    D_WARN( "universal events not supported in pipe mode" );
+                    continue;
+               }
 
                pthread_mutex_unlock( &data->events_mutex );
 

@@ -3642,8 +3642,8 @@ typedef enum {
      DFEC_NONE           = 0x00,   /* none of these */
      DFEC_INPUT          = 0x01,   /* raw input event */
      DFEC_WINDOW         = 0x02,   /* windowing event */
-     DFEC_USER           = 0x03    /* custom events for
-                                      the user of this library */
+     DFEC_USER           = 0x03,   /* custom event for the user of this library */
+     DFEC_UNIVERSAL      = 0x04    /* universal event for custom usage with variable size */
 } DFBEventClass;
 
 /*
@@ -3842,13 +3842,26 @@ typedef struct {
 } DFBUserEvent;
 
 /*
+ * Universal event for custom usage with variable size.
+ */
+typedef struct {
+     DFBEventClass                   clazz;      /* clazz of event (DFEC_UNIVERSAL) */
+     unsigned int                    size;       /* size of this event, minimum is sizeof(DFBUniversalEvent),
+                                                    e.g. 8 bytes (on 32bit architectures) */
+
+
+     /* custom data follows, size of this data is 'size' - sizeof(DFBUniversalEvent) */
+} DFBUniversalEvent;
+
+/*
  * General container for a DirectFB Event.
  */
 typedef union {
-     DFBEventClass            clazz;   /* clazz of event */
-     DFBInputEvent            input;   /* field for input events */
-     DFBWindowEvent           window;  /* field for window events */
-     DFBUserEvent             user;    /* field for user-defined events */
+     DFBEventClass                   clazz;       /* clazz of event */
+     DFBInputEvent                   input;       /* field for input events */
+     DFBWindowEvent                  window;      /* field for window events */
+     DFBUserEvent                    user;        /* field for user-defined events */
+     DFBUniversalEvent               universal;   /* field for universal events */
 } DFBEvent;
 
 #define DFB_EVENT(e)          ((DFBEvent *) (e))
