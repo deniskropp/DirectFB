@@ -418,8 +418,7 @@ fusion_reactor_dispatch( FusionReactor      *reactor,
                          bool                self,
                          const ReactionFunc *globals )
 {
-     ReactorNode           *node;
-     FusionReactorDispatch  dispatch;
+     FusionReactorDispatch dispatch;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
 
@@ -439,16 +438,8 @@ fusion_reactor_dispatch( FusionReactor      *reactor,
      }
 
      /* Handle local reactions. */
-     if (self && (node = lock_node( reactor->id, false, reactor ))) {
-          D_ASSERT( node->reactor == reactor );
-
-          if (node->reactions)
-               _fusion_reactor_process_message( reactor->id, msg_data );
-          else
-               D_DEBUG_AT( Fusion_Reactor, "  -> no local reactions\n" );
-
-          unlock_node( node );
-     }
+     if (self)
+          _fusion_reactor_process_message( reactor->id, msg_data );
 
      /* Initialize dispatch data. */
      dispatch.reactor_id = reactor->id;
@@ -526,7 +517,7 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
 
 //     D_DEBUG_AT( Fusion_Reactor, "    -> node %p, reactor %p\n", node, node->reactor );
 
-     D_ASSUME( node->reactions != NULL );
+//     D_ASSUME( node->reactions != NULL );
 
      if (!node->reactions) {
 //          D_DEBUG_AT( Fusion_Reactor, "    -> no local reactions!?!\n" );
