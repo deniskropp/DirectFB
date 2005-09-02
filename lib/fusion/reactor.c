@@ -513,6 +513,10 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data )
      if (!node)
           return;
 
+     /* FIXME */
+     if (node->reactor->magic != D_MAGIC( "FusionReactor" ))
+          return;
+
      D_MAGIC_ASSUME( node->reactor, FusionReactor );
 
 //     D_DEBUG_AT( Fusion_Reactor, "    -> node %p, reactor %p\n", node, node->reactor );
