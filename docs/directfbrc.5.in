@@ -226,7 +226,7 @@ mouse handling.
 
 .TP
 .BI mouse-protocol=<protocol>
-Specifies the mouse protocol to use for a serial mouse. The following
+Specifies the mouse protocol to use. The following
 protocols are supported: 
 
 .BI MS
@@ -241,6 +241,13 @@ protocol introduced by Logitech.
 
 .BI MouseSystems
 The most commonly used protocol for three button mice.
+
+.BI PS/2
+Two/three button mice of the PS/2 series.
+
+.BI IMPS/2
+Two/three button USB mice with scrolling wheel using the 
+Microsoft Intellimouse protocol.
 
 The different protocols for serial mice are described in more detail
 in mouse(4).
