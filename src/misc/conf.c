@@ -94,8 +94,10 @@ static const char *config_usage =
      "  [no-]vt-switching              Allow Ctrl+Alt+<F?> (EXPERIMENTAL)\n"
      "  [no-]graphics-vt               Put terminal into graphics mode\n"
      "  [no-]vt                        Use VT handling code at all?\n"
+     "  mouse-source=<device>          Mouse device for serial mouse\n"
+     "  [no-]mouse-gpm-source          Enable mouse input repeated by GPM\n"
      "  [no-]motion-compression        Mouse motion event compression\n"
-     "  mouse-protocol=<protocol>      Mouse protocol (serial mouse)\n"
+     "  mouse-protocol=<protocol>      Mouse protocol\n"
      "  [no-]lefty                     Swap left and right mouse buttons\n"
      "  [no-]capslock-meta             Map the CapsLock key to Meta\n"
      "  linux-input-ir-only            Ignore all non-IR Linux Input devices\n"
@@ -707,8 +709,13 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "mouse-gpm-source" ) == 0) {
           dfb_config->mouse_gpm_source = true;
-	  D_FREE( dfb_config->mouse_source );
-	  dfb_config->mouse_source = D_STRDUP( DEV_NAME_GPM );
+	     D_FREE( dfb_config->mouse_source );
+	     dfb_config->mouse_source = D_STRDUP( DEV_NAME_GPM );
+     } else
+     if (strcmp (name, "no-mouse-gpm-source" ) == 0) {
+          dfb_config->mouse_gpm_source = false;
+          D_FREE( dfb_config->mouse_source );
+          dfb_config->mouse_source = D_STRDUP( DEV_NAME );
      } else
      if (strcmp (name, "translucent-windows" ) == 0) {
           dfb_config->translucent_windows = true;
