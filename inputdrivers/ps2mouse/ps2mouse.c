@@ -414,6 +414,24 @@ driver_get_available()
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
 
+     if (dfb_config->mouse_gpm_source &&
+         dfb_config->mouse_protocol   &&
+        (strcasecmp( dfb_config->mouse_protocol, "PS/2")   == 0 ||
+         strcasecmp( dfb_config->mouse_protocol, "IMPS/2") == 0))
+     {
+          int fd = open( dfb_config->mouse_source, O_RDONLY | O_NONBLOCK );
+
+          if (fd < 0) {
+               D_PERROR( "DirectFB/PS2Mouse: opening %s failed!\n",
+                         dfb_config->mouse_source );
+               return 0;
+          }
+          
+          devlist[0] = dfb_config->mouse_source;
+          close( fd );
+          return 1;
+     }
+
      if (uname( &uts ) < 0)
           D_PERROR( "DirectFB/PS2Mouse: uname() failed!\n" );
      else if (!strncmp( uts.release, "2.6.", 4 ) || !strncmp( uts.release, "2.5.", 4 ))
@@ -449,12 +467,18 @@ driver_open_device( CoreInputDevice  *device,
                     InputDeviceInfo  *info,
                     void            **driver_data )
 {
-     int           fd, mouseId;
+     int           fd;
+     int           mouseId = -1;
+     int           flags;
      PS2MouseData *data;
 
      /* open device */
 
-     fd = open( devlist[number], O_RDWR | O_SYNC | O_EXCL );
+     flags = (dfb_config->mouse_gpm_source)
+             ? (O_RDONLY | O_NONBLOCK)
+             : (O_RDWR | O_SYNC | O_EXCL);
+     
+     fd = open( devlist[number], flags );
      if (fd < 0) {
           D_PERROR( "DirectFB/PS2Mouse: failed opening `%s' !\n",
                      devlist[number] );
@@ -462,11 +486,32 @@ driver_open_device( CoreInputDevice  *device,
           return DFB_INIT;
      }
 
-     if ((mouseId = init_ps2(fd, true)) < 0) {
-          D_PERROR( "DirectFB/PS2Mouse: could not initialize mouse on `%s'!\n",
-                     devlist[number] );
-          close( fd );
-          return DFB_INIT;
+     fcntl( fd, F_SETFL, fcntl ( fd, F_GETFL ) & ~O_NONBLOCK );
+ 
+     if (!dfb_config->mouse_gpm_source) {
+          mouseId = init_ps2( fd, true );
+          
+          if (mouseId  < 0) {
+               D_PERROR( "DirectFB/PS2Mouse: could not initialize mouse on `%s'!\n",
+                          devlist[number] );
+               close( fd );
+               return DFB_INIT;
+          }
+     }
+
+     if (dfb_config->mouse_protocol) {
+          if (strcasecmp( dfb_config->mouse_protocol, "IMPS/2" ) == 0) {
+               mouseId = PS2_ID_IMPS2;
+          } 
+          else if (strcasecmp( dfb_config->mouse_protocol, "PS/2" ) == 0) {
+               mouseId = PS2_ID_PS2;
+          } 
+          else {
+               D_ERROR( "DirectFB/PS2Mouse: unsupported protocol `%s' !\n",
+                         dfb_config->mouse_protocol );
+               close( fd );
+               return DFB_INIT;
+          }
      }
 
      /* fill device info structure */
