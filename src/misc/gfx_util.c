@@ -116,23 +116,23 @@ static void rgba_to_dst_format (__u8 *dst,
                break;
 
           case DSPF_RGB32:
-#ifdef WORDS_BIGENDIAN
-               *dst++ = r;
-               *dst++ = g;
-               *dst   = b;
-#else
                *((__u32*)dst) = PIXEL_RGB32( r, g, b );
                break;
 
-#endif
           case DSPF_RGB16:
                *(__u16 *)dst = PIXEL_RGB16 (r, g, b);
                break;
 
           case DSPF_RGB24:
+#ifdef WORDS_BIGENDIAN
+               *dst++ = r;
+               *dst++ = g;
+               *dst   = b;
+#else
                *dst++ = b;
                *dst++ = g;
                *dst   = r;
+#endif
                break;
 
           case DSPF_LUT8:
