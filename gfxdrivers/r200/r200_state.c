@@ -98,7 +98,7 @@ void r200_set_destination( R200DriverData *rdrv,
      if (R200_IS_SET( DESTINATION ))
           return;
 
-     D_ASSERT( (buffer->video.offset % 16) == 0 );
+     D_ASSERT( (buffer->video.offset % 32) == 0 );
      D_ASSERT( (buffer->video.pitch % 64) == 0 );
 
      offset = rdev->fb_offset + buffer->video.offset;
@@ -239,7 +239,7 @@ void r200_set_source( R200DriverData *rdrv,
                return;
      }
 
-     D_ASSERT( (buffer->video.offset % 16) == 0 );
+     D_ASSERT( (buffer->video.offset % 32) == 0 );
      D_ASSERT( (buffer->video.pitch % 64) == 0 );
 
      rdev->src_offset = rdev->fb_offset + buffer->video.offset;
@@ -349,6 +349,28 @@ void r200_set_source( R200DriverData *rdrv,
                rdev->src_pitch *= 2;
           }
      }
+
+#ifdef WORDS_BIGENDIAN
+     if (rdev->src_format != buffer->format) {
+          switch (DFB_BYTES_PER_PIXEL(buffer->format)) {
+               case 2:
+                    r200_out32( mmio, SURFACE_CNTL, (rdev->surface_cntl 
+                                                     & ~NONSURF_AP0_SWP_32BPP)
+                                                    |  NONSURF_AP0_SWP_16BPP );
+                    break;
+               case 4:
+                    r200_out32( mmio, SURFACE_CNTL, (rdev->surface_cntl
+                                                     & ~NONSURF_AP0_SWP_16BPP)
+                                                    |  NONSURF_AP0_SWP_32BPP );
+                    break;
+               default:
+                    r200_out32( mmio, SURFACE_CNTL, rdev->surface_cntl
+                                                    & ~(NONSURF_AP0_SWP_16BPP |
+                                                        NONSURF_AP0_SWP_32BPP) );
+                    break;
+          }
+     }
+#endif
      
      r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, SRC_OFFSET, rdev->src_offset );
@@ -439,6 +461,7 @@ void r200_set_drawing_color( R200DriverData *rdrv,
                break;
           case DSPF_A8:
                color2d = color.a;
+               color3d = (color.a << 24) | 0x00ffffff;
                break;
           case DSPF_RGB332:
                color2d = PIXEL_RGB332( color.r, color.g, color.b );
@@ -519,6 +542,9 @@ void r200_set_blitting_color( R200DriverData *rdrv,
      }
 
      switch (rdev->dst_format) {
+          case DSPF_A8:
+               color3d = (color.a << 24) | 0x00ffffff;
+               break;
           case DSPF_I420:
           case DSPF_YV12: 
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
@@ -609,7 +635,9 @@ void r200_set_drawingflags( R200DriverData *rdrv,
      volatile __u8 *mmio        = rdrv->mmio_base;
      __u32          master_cntl = rdev->dp_gui_master_cntl;
      __u32          rb3d_cntl   = rdev->rb3d_cntl & ~DITHER_ENABLE;
-
+     __u32          pp_cntl     = TEX_BLEND_1_ENABLE;
+     __u32          cblend      = R200_TXC_ARG_C_TFACTOR_COLOR;
+     
      if (R200_IS_SET( DRAWING_FLAGS ))
           return;
 
@@ -618,8 +646,17 @@ void r200_set_drawingflags( R200DriverData *rdrv,
                     GMC_DP_SRC_SOURCE_MEMORY    |
                     GMC_CLR_CMP_CNTL_DIS;
 
-     if (state->drawingflags & DSDRAW_BLEND)
+     if (rdev->dst_422) {
+          pp_cntl     |= TEX_1_ENABLE;
+          cblend       = R200_TXC_ARG_C_R1_COLOR;
+     }
+     
+     if (state->drawingflags & DSDRAW_BLEND) {
           rb3d_cntl   |= ALPHA_BLEND_ENABLE;
+     }
+     else if (rdev->dst_format == DSPF_A8) {
+          cblend       = R200_TXC_ARG_C_TFACTOR_ALPHA;
+     }
 
      if (state->drawingflags & DSDRAW_XOR) {
           rb3d_cntl   |= ROP_ENABLE;
@@ -640,13 +677,8 @@ void r200_set_drawingflags( R200DriverData *rdrv,
                                 VTX_PIX_CENTER_OGL  |
                                 ROUND_MODE_ROUND    |
 				            ROUND_PREC_4TH_PIX );
-     if (rdev->dst_422) {
-          r200_out32( mmio, PP_CNTL, TEX_1_ENABLE | TEX_BLEND_1_ENABLE );
-          r200_out32( mmio, R200_PP_TXCBLEND_1, R200_TXC_ARG_C_R1_COLOR );
-     } else {
-          r200_out32( mmio, PP_CNTL, TEX_BLEND_1_ENABLE );
-          r200_out32( mmio, R200_PP_TXCBLEND_1, R200_TXC_ARG_C_TFACTOR_COLOR );
-     }
+     r200_out32( mmio, PP_CNTL, pp_cntl );
+     r200_out32( mmio, R200_PP_TXCBLEND_1, cblend );
      r200_out32( mmio, R200_PP_TXCBLEND2_1, (1 << R200_TXC_TFACTOR_SEL_SHIFT) |
                                             R200_TXC_OUTPUT_REG_R0            |
                                             R200_TXC_CLAMP_0_1 );
@@ -698,7 +730,7 @@ void r200_set_blittingflags( R200DriverData *rdrv,
                       ROUND_PREC_4TH_PIX; 
           vte_cntl  = R200_VTX_ST_DENORMALIZED;
      }
-     
+    
      if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                  DSBLIT_BLEND_ALPHACHANNEL)) {
           if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
@@ -712,28 +744,39 @@ void r200_set_blittingflags( R200DriverData *rdrv,
           
           rb3d_cntl |= ALPHA_BLEND_ENABLE;
      }
-     
-     if (state->blittingflags & DSBLIT_COLORIZE) {
-          if (rdev->dst_422) {
-               cblend = (rdev->src_format == DSPF_A8)
-                        ? (R200_TXC_ARG_C_R1_COLOR)
-                        : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_R1_COLOR);
 
-               pp_cntl |= TEX_1_ENABLE;
-          }
-          else {
-               cblend = (rdev->src_format == DSPF_A8)
-                        ? (R200_TXC_ARG_C_TFACTOR_COLOR)
-                        : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_TFACTOR_COLOR);
-          }
+     if (rdev->dst_format != DSPF_A8) {    
+          if (state->blittingflags & DSBLIT_COLORIZE) {
+               if (rdev->dst_422) {
+                    cblend = (rdev->src_format == DSPF_A8)
+                             ? (R200_TXC_ARG_C_R1_COLOR)
+                             : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_R1_COLOR);
+
+                    pp_cntl |= TEX_1_ENABLE;
+               }
+               else {
+                    cblend = (rdev->src_format == DSPF_A8)
+                             ? (R200_TXC_ARG_C_TFACTOR_COLOR)
+                             : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_TFACTOR_COLOR);
+               }
           
-          pp_cntl |= TEX_BLEND_0_ENABLE;
-     }
-     else if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
-          cblend = (rdev->src_format == DSPF_A8)
-                   ? (R200_TXC_ARG_C_R0_ALPHA)
-                   : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_TFACTOR_ALPHA);
+               pp_cntl |= TEX_BLEND_0_ENABLE;
+          }
+          else if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+               cblend = (rdev->src_format == DSPF_A8)
+                        ? (R200_TXC_ARG_C_R0_ALPHA)
+                        : (R200_TXC_ARG_A_R0_COLOR | R200_TXC_ARG_B_TFACTOR_ALPHA);
             
+               pp_cntl |= TEX_BLEND_0_ENABLE;
+          }
+     } /* DSPF_A8 */
+     else {
+          if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                      DSBLIT_BLEND_ALPHACHANNEL))
+               cblend = R200_TXC_ARG_C_TFACTOR_COLOR;
+          else
+               cblend = R200_TXC_ARG_C_R0_ALPHA;
+
           pp_cntl |= TEX_BLEND_0_ENABLE;
      }
  

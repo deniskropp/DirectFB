@@ -78,6 +78,7 @@ typedef struct {
      DFBSurfaceBlittingFlags blittingflags;
  
      /* registers */
+     __u32                   surface_cntl;
      __u32                   dp_gui_master_cntl;
      __u32                   rb3d_cntl;
 

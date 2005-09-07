@@ -191,6 +191,9 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      r200_out32( mmio, CLOCK_CNTL_INDEX, clock_cntl_index );
      r200_outpll( mmio, MCLK_CNTL, mclk_cntl );
    
+     /* reset byteswapper */
+     r200_out32( mmio, SURFACE_CNTL, rdev->surface_cntl );
+     
      /* set framebuffer offset */
      r200_waitfifo( rdrv, rdev, 3 );
      r200_out32( mmio, DEFAULT_OFFSET, (rdev->fb_offset >> 10) |
@@ -248,6 +251,7 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      r200_out32( mmio, R200_PP_TXFORMAT_X_1, 0 );
      
      rdev->set = 0;
+     rdev->src_format = DSPF_UNKNOWN;
      rdev->dst_format = DSPF_UNKNOWN;
      rdev->write_2d = false;
      rdev->write_3d = false;
@@ -343,8 +347,8 @@ static void r200CheckState( void *drv, void *dev,
           if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                if (destination->format != source->format)
                     return;
-               supported_blittingfuncs  =  DFXL_BLIT;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
+               supported_blittingfuncs = DFXL_BLIT;
+               supported_blittingflags = DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
                
           if (accel & ~supported_blittingfuncs ||
@@ -1676,7 +1680,7 @@ driver_init_device( GraphicsDevice     *device,
      device_info->caps.drawing  = R200_SUPPORTED_DRAWINGFLAGS;
      device_info->caps.blitting = R200_SUPPORTED_BLITTINGFLAGS;
 
-     device_info->limits.surface_byteoffset_alignment = 16;
+     device_info->limits.surface_byteoffset_alignment = 32;
      device_info->limits.surface_pixelpitch_alignment = 64;
 
      dfb_config->pollvsync_after = 1;
@@ -1688,6 +1692,8 @@ driver_init_device( GraphicsDevice     *device,
                    "couldn't reserve 128 bytes of video memory!\n" );
           return DFB_NOVIDEOMEMORY;
      }
+
+     rdev->surface_cntl = r200_in32( rdrv->mmio_base, SURFACE_CNTL );
  
      r200_waitidle( rdrv, rdev );
      r200_reset( rdrv, rdev );
