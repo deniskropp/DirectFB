@@ -6348,7 +6348,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_I420:
                case DSPF_YV12:
                     if ((gfxs->dst_format != DSPF_I420 && gfxs->dst_format != DSPF_YV12) ||
-                        state->blittingflags != DSBLIT_NOFX) {
+                        state->blittingflags & ~DSBLIT_DEINTERLACE) {
                          D_ONCE("only copying/scaling blits supported"
                                 " for YV12/I420 in software");
                          return false;
@@ -6359,7 +6359,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                case DSPF_NV21:
                case DSPF_NV16:
                     if (gfxs->src_format != gfxs->dst_format ||
-                        state->blittingflags != DSBLIT_NOFX) {
+                        state->blittingflags & ~DSBLIT_DEINTERLACE) {
                          D_ONCE("only copying/scaling blits supported"
                                 " for NV12/NV21/NV16 in software");
                          return false;
@@ -7206,14 +7206,17 @@ void gDrawLine( CardState *state, DFBRegion *line )
      }
 }
 
-static void gDoBlit( GenefxState *gfxs,
+static void gDoBlit( CardState  *state,
                      int sx,     int sy,
                      int width,  int height,
                      int dx,     int dy,
                      int spitch, int dpitch,
                      void *sorg, void *dorg )
 {
-     if (sorg == dorg && dy > sy) {
+     GenefxState *gfxs = state->gfxs;
+     
+     if (sorg == dorg && dy > sy &&
+         !(state->blittingflags & DSBLIT_DEINTERLACE)) {
           /* we must blit from bottom to top */
           gfxs->length = width;
 
@@ -7234,11 +7237,35 @@ static void gDoBlit( GenefxState *gfxs,
           Aop_xy( gfxs, dorg, dx, dy, dpitch );
           Bop_xy( gfxs, sorg, sx, sy, spitch );
 
-          while (height--) {
-               RUN_PIPELINE();
+          if (state->blittingflags & DSBLIT_DEINTERLACE) {
+               if (state->source->field) {
+                    Aop_next( gfxs, dpitch );
+                    Bop_next( gfxs, spitch );
+                    height--;
+               }
 
-               Aop_next( gfxs, dpitch );
-               Bop_next( gfxs, spitch );
+               height >>= 1;
+
+               while (height--) {
+                    RUN_PIPELINE();
+
+                    Aop_next( gfxs, dpitch );
+
+                    RUN_PIPELINE();
+
+                    Aop_next( gfxs, dpitch );
+
+                    Bop_next( gfxs, spitch );
+                    Bop_next( gfxs, spitch );
+               }
+          } /* ! DSBLIT_DEINTERLACE */
+          else {
+               while (height--) {
+                    RUN_PIPELINE();
+
+                    Aop_next( gfxs, dpitch );
+                    Bop_next( gfxs, spitch );
+               }
           }
      }
 }
@@ -7253,39 +7280,6 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      if (!ABacc_prepare( gfxs, rect->w ))
           return;
-
-     if (state->blittingflags & DSBLIT_DEINTERLACE) {
-          int i;
-          int height = rect->h;
-
-          gfxs->length = rect->w;
-
-          Aop_xy( gfxs, gfxs->dst_org[0], dx, dy, gfxs->dst_pitch );
-          Bop_xy( gfxs, gfxs->src_org[0], rect->x, rect->y, gfxs->src_pitch );
-
-          if (state->source->field) {
-               Aop_next( gfxs, gfxs->dst_pitch );
-               Bop_next( gfxs, gfxs->src_pitch );
-               height--;
-          }
-
-          height >>= 1;
-
-          for (i=0; i<height; i++) {
-               RUN_PIPELINE();
-
-               Aop_next( gfxs, gfxs->dst_pitch );
-
-               RUN_PIPELINE();
-
-               Aop_next( gfxs, gfxs->dst_pitch );
-
-               Bop_next( gfxs, gfxs->src_pitch );
-               Bop_next( gfxs, gfxs->src_pitch );
-          }
-
-          return;
-     }
 
      if (gfxs->src_org[0] == gfxs->dst_org[0] && dx > rect->x)
           /* we must blit from right to left */
@@ -7306,7 +7300,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
                break;
      }
 
-     gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+     gDoBlit( state, rect->x, rect->y, rect->w, rect->h, dx, dy,
               gfxs->src_pitch, gfxs->dst_pitch, gfxs->src_org[0], gfxs->dst_org[0] );
 
      /* do other planes */
@@ -7321,10 +7315,10 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           gfxs->dst_field_offset /= 4;
           gfxs->src_field_offset /= 4;
 
-          gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+          gDoBlit( state, rect->x, rect->y, rect->w, rect->h, dx, dy,
                    gfxs->src_pitch/2, gfxs->dst_pitch/2, gfxs->src_org[1], gfxs->dst_org[1] );
 
-          gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+          gDoBlit( state, rect->x, rect->y, rect->w, rect->h, dx, dy,
                    gfxs->src_pitch/2, gfxs->dst_pitch/2, gfxs->src_org[2], gfxs->dst_org[2] );
 
           gfxs->dst_field_offset *= 4;
@@ -7347,7 +7341,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
           gfxs->chroma_plane = true;
 
-          gDoBlit( gfxs, rect->x, rect->y, rect->w, rect->h, dx, dy,
+          gDoBlit( state, rect->x, rect->y, rect->w, rect->h, dx, dy,
                    gfxs->src_pitch, gfxs->dst_pitch, gfxs->src_org[1], gfxs->dst_org[1] );
 
           gfxs->chroma_plane = false;
