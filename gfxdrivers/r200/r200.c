@@ -332,11 +332,11 @@ static void r200CheckState( void *drv, void *dev,
                    source->format != DSPF_A8      &&
                    source->format != DSPF_I420    &&
                    source->format != DSPF_YV12)
-                    return;               
+                    return;
           case DSPF_YUY2:
           case DSPF_UYVY:
                if (source && source->format != DSPF_A8)
-                    supported_blittingflags &= ~DSBLIT_COLORIZE;
+                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
                break;
                
           default:
@@ -347,8 +347,8 @@ static void r200CheckState( void *drv, void *dev,
           if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
                if (destination->format != source->format)
                     return;
-               supported_blittingfuncs = DFXL_BLIT;
-               supported_blittingflags = DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
+               supported_blittingfuncs  = DFXL_BLIT;
+               supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
                
           if (accel & ~supported_blittingfuncs ||
@@ -373,9 +373,9 @@ static void r200CheckState( void *drv, void *dev,
                     if (destination->format == DSPF_UYVY ||
                         destination->format == DSPF_YUY2)
                          return;
+               case DSPF_A8:
                case DSPF_YUY2:
                case DSPF_UYVY:
-               case DSPF_A8:
                     break;
                
                case DSPF_LUT8:
@@ -1199,14 +1199,13 @@ r200Blit( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
 static bool
 r200Blit420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
 {
-     R200DriverData *rdrv    = (R200DriverData*) drv;
-     R200DeviceData *rdev    = (R200DeviceData*) dev;  
-     DFBRegion      *clip    = &rdev->clip;
-     volatile __u8  *mmio    = rdrv->mmio_base;
-     bool            src_key = (rdev->blittingflags & DSBLIT_SRC_COLORKEY);
+     R200DriverData *rdrv = (R200DriverData*) drv;
+     R200DeviceData *rdev = (R200DeviceData*) dev;  
+     DFBRegion      *clip = &rdev->clip;
+     volatile __u8  *mmio = rdrv->mmio_base;
      
      if (!DFB_PLANAR_PIXELFORMAT( rdev->src_format ) ||
-         rdev->blittingflags & ~(DSBLIT_SRC_COLORKEY | DSBLIT_XOR)) 
+         rdev->blittingflags & ~DSBLIT_XOR) 
      {
           DFBRectangle dr = { dx, dy, sr->w, sr->h };
           return r200StretchBlit420( drv, dev, sr, &dr );
@@ -1226,7 +1225,7 @@ r200Blit420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
      dy    /= 2;
      
      /* Prepare Cb plane */
-     r200_waitfifo( rdrv, rdev, src_key ? 7 : 6 );
+     r200_waitfifo( rdrv, rdev, 6 );
      r200_out32( mmio, DST_OFFSET, rdev->dst_offset_cb );
      r200_out32( mmio, DST_PITCH, rdev->dst_pitch/2 );
      r200_out32( mmio, SRC_OFFSET, rdev->src_offset_cb );
@@ -1235,24 +1234,20 @@ r200Blit420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
                                     (clip->x1/2 & 0xffff) );
      r200_out32( mmio, SC_BOTTOM_RIGHT, ((clip->y2+1/2) << 16) |
                                         ((clip->x2+1/2) & 0xffff) );
-     if (src_key)
-          r200_out32( mmio, CLR_CMP_CLR_SRC, rdev->src_key >> 8 );
 
      /* Blit Cb plane */
      r200DoBlit2D( rdrv, rdev, sr->x, sr->y, dx, dy, sr->w, sr->h );
      
      /* Prepare Cr plane */
-     r200_waitfifo( rdrv, rdev, src_key ? 3 : 2 );
+     r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, DST_OFFSET, rdev->dst_offset_cr );
      r200_out32( mmio, SRC_OFFSET, rdev->src_offset_cr );
-     if (src_key)
-          r200_out32( mmio, CLR_CMP_CLR_SRC, rdev->src_key >> 16 );
 
      /* Blit Cr plane */
      r200DoBlit2D( rdrv, rdev, sr->x, sr->y, dx, dy, sr->w, sr->h );
      
      /* Reset */
-     r200_waitfifo( rdrv, rdev, src_key ? 7 : 6 );
+     r200_waitfifo( rdrv, rdev, 6 );
      r200_out32( mmio, DST_OFFSET, rdev->dst_offset );
      r200_out32( mmio, DST_PITCH, rdev->dst_pitch );
      r200_out32( mmio, SRC_OFFSET, rdev->src_offset );
@@ -1261,8 +1256,6 @@ r200Blit420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
                                     (clip->x1 & 0xffff) );
      r200_out32( mmio, SC_BOTTOM_RIGHT, ((clip->y2+1) << 16) |
                                         ((clip->x2+1) & 0xffff) );
-     if (src_key)
-          r200_out32( mmio, CLR_CMP_CLR_SRC, rdev->src_key );
 
      return true;
 }
