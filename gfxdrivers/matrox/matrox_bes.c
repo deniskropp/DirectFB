@@ -442,9 +442,13 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      SurfaceBuffer *front_buffer = surface->front_buffer;
      VideoMode     *current_mode = dfb_system_current_mode();
 
-     /* FIXME: I don't think this should be NULL ever. */
-     if (!current_mode)
-          return;
+     if (!current_mode) {
+          current_mode = dfb_system_modes();
+          if (!current_mode) {
+               D_BUG( "No current and no default mode" );
+               return;
+          }
+     }
 
      source = config->source;
      dest   = config->dest;
