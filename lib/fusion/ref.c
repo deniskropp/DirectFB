@@ -387,8 +387,11 @@ fusion_ref_down (FusionRef *ref, bool global)
      if (! --ref->fake.refs && ref->fake.call) {
           FusionCall *call = ref->fake.call;
 
-          if (call->handler)
+          if (call->handler) {
+               pthread_mutex_unlock (&ref->fake.lock);
                call->handler( 0, ref->fake.call_arg, NULL, call->ctx );
+               return DFB_OK;
+          }
      }
 
      pthread_mutex_unlock (&ref->fake.lock);
