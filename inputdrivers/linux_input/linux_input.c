@@ -496,6 +496,9 @@ key_event( struct input_event *levt,
           devt->key_code = levt->code;
      }
 
+     if (levt->value == 2)
+          devt->flags |= DIEF_REPEAT;
+
      return 1;
 }
 
