@@ -994,9 +994,6 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      if (!interface || !filename)
           return DFB_INVARG;
 
-     if (access( filename, R_OK ) != 0)
-          return errno2result( errno );
-
      /* Fill out probe context */
      ctx.filename = filename;
 
