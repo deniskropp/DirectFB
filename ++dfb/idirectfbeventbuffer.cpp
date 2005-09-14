@@ -35,10 +35,17 @@ void IDirectFBEventBuffer::WaitForEvent()
      DFBCHECK( iface->WaitForEvent (iface) );
 }
 
-void IDirectFBEventBuffer::WaitForEventWithTimeout (unsigned int seconds,
+bool IDirectFBEventBuffer::WaitForEventWithTimeout (unsigned int seconds,
                                                     unsigned int milli_seconds)
 {
-     DFBCHECK( iface->WaitForEventWithTimeout (iface, seconds, milli_seconds) );
+     DFBResult ret;
+
+     ret = iface->WaitForEventWithTimeout (iface, seconds, milli_seconds);
+
+     if (ret != DFB_OK  &&  ret != DFB_TIMEOUT)
+          throw new DFBException(__PRETTY_FUNCTION__, ret);
+
+     return (ret == DFB_OK);
 }
 
 void IDirectFBEventBuffer::WakeUp ()

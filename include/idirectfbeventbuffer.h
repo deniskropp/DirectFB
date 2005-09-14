@@ -43,7 +43,7 @@ public:
      void                  Reset                    ();
 
      void                  WaitForEvent             ();
-     void                  WaitForEventWithTimeout  (unsigned int  seconds,
+     bool                  WaitForEventWithTimeout  (unsigned int  seconds,
                                                      unsigned int  milli_seconds);
 
      void                  WakeUp                   ();
