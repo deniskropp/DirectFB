@@ -182,7 +182,7 @@ void IDirectFBDisplayLayer::GetColorAdjustment (DFBColorAdjustment *adj)
 
 void IDirectFBDisplayLayer::SetColorAdjustment (DFBColorAdjustment &adj)
 {
-     DFBCHECK( iface->GetColorAdjustment (iface, &adj) );
+     DFBCHECK( iface->SetColorAdjustment (iface, &adj) );
 }
 
 IDirectFBWindow IDirectFBDisplayLayer::CreateWindow (DFBWindowDescription &desc)
