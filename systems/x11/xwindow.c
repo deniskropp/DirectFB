@@ -107,7 +107,8 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 	/* We set the structure as needed for our window */
 	xw->width	= iWidth;
 	xw->height	= iHeight;
-	xw->depth	= iDepth;
+//	xw->depth	= iDepth;
+	xw->depth	= g_iNeededDepth;
 
 	xw->display = XOpenDisplay(NULL);
 	if( !xw->display ) {
@@ -121,10 +122,14 @@ Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight
 	xw->screennum	= DefaultScreen(xw->display);
 	xw->visual		= DefaultVisualOfScreen(xw->screenptr);
 
-	
-	xw->window=XCreateWindow(xw->display,
+/*	xw->window=XCreateWindow(xw->display,
 							 RootWindowOfScreen(xw->screenptr),
 							 iXPos, iYPos, iWidth, iHeight, 0, iDepth, InputOutput,
+							 xw->visual, 0, NULL); */
+							 
+	xw->window=XCreateWindow(xw->display,
+							 RootWindowOfScreen(xw->screenptr),
+							 iXPos, iYPos, iWidth, iHeight, 0, g_iNeededDepth, InputOutput,
 							 xw->visual, 0, NULL);
 	if(!xw->window) return False;
 
