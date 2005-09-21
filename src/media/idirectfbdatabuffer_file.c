@@ -1,12 +1,13 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002       convergence GmbH.
+   (c) Copyright 2002-2005  convergence GmbH.
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -33,12 +34,6 @@
 #include <string.h>
 #include <errno.h>
 
-#include <sys/types.h>
-#include <sys/time.h>
-#include <sys/stat.h>
-
-#include <fcntl.h>
-
 #include <pthread.h>
 
 #include <fusion/reactor.h>
@@ -57,6 +52,7 @@
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
+#include <direct/stream.h>
 #include <direct/util.h>
 
 #include <media/idirectfbdatabuffer.h>
@@ -67,9 +63,8 @@
 typedef struct {
      IDirectFBDataBuffer_data base;
 
-     int          fd;
-     unsigned int pos;
-     unsigned int size;
+     DirectStream    *stream;
+     pthread_mutex_t  mutex;
 } IDirectFBDataBuffer_File_data;
 
 
@@ -79,7 +74,9 @@ IDirectFBDataBuffer_File_Destruct( IDirectFBDataBuffer *thiz )
      IDirectFBDataBuffer_File_data *data =
           (IDirectFBDataBuffer_File_data*) thiz->priv;
 
-     close( data->fd );
+     direct_stream_destroy( data->stream );
+
+     pthread_mutex_destroy( &data->mutex );
 
      IDirectFBDataBuffer_Destruct( thiz );
 }
@@ -107,19 +104,7 @@ IDirectFBDataBuffer_File_SeekTo( IDirectFBDataBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (lseek( data->fd, offset, SEEK_SET ) < 0) {
-          switch (errno) {
-               case ESPIPE:
-                    return DFB_UNSUPPORTED;
-
-               default:
-                    return DFB_FAILURE;
-          }
-     }
-
-     data->pos = offset;
-
-     return DFB_OK;
+     return direct_stream_seek( data->stream, offset );
 }
 
 static DFBResult
@@ -131,7 +116,7 @@ IDirectFBDataBuffer_File_GetPosition( IDirectFBDataBuffer *thiz,
      if (!offset)
           return DFB_INVARG;
 
-     *offset = data->pos;
+     *offset = direct_stream_offset( data->stream );
 
      return DFB_OK;
 }
@@ -145,7 +130,7 @@ IDirectFBDataBuffer_File_GetLength( IDirectFBDataBuffer *thiz,
      if (!length)
           return DFB_INVARG;
 
-     *length = data->size;
+     *length = direct_stream_length( data->stream );
 
      return DFB_OK;
 }
@@ -154,12 +139,19 @@ static DFBResult
 IDirectFBDataBuffer_File_WaitForData( IDirectFBDataBuffer *thiz,
                                       unsigned int         length )
 {
+     DFBResult ret;
+     
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (data->pos + length > data->size)
-          return DFB_BUFFEREMPTY;
+     pthread_mutex_lock( &data->mutex );
+          
+     ret = direct_stream_wait( data->stream, length, NULL );
+     if (ret == DFB_EOF)
+          ret = DFB_BUFFEREMPTY;
 
-     return DFB_OK;
+     pthread_mutex_unlock( &data->mutex );
+     
+     return ret;
 }
 
 static DFBResult
@@ -168,12 +160,39 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
                                                  unsigned int         seconds,
                                                  unsigned int         milli_seconds )
 {
+     DFBResult      ret;
+     struct timeval tv;
+     
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (data->pos + length > data->size)
-          return DFB_BUFFEREMPTY;
+     tv.tv_sec  = seconds;
+     tv.tv_usec = milli_seconds*1000;
 
-     return DFB_OK;
+     while (pthread_mutex_trylock( &data->mutex )) {
+          if (errno != EBUSY)
+               return errno2result( errno );
+
+          usleep( 10 );
+          
+          tv.tv_usec -= 10;
+          if (tv.tv_usec < 0) {
+               if (tv.tv_sec < 1)
+                    return DFB_TIMEOUT;
+               
+               tv.tv_sec--;
+               tv.tv_usec += 999999;
+          }
+     }
+         
+     pthread_mutex_lock( &data->mutex );
+
+     ret = direct_stream_wait( data->stream, length, &tv );
+     if (ret == DFB_EOF)
+          ret = DFB_BUFFEREMPTY;
+
+     pthread_mutex_unlock( &data->mutex );
+
+     return ret;
 }
 
 static DFBResult
@@ -182,26 +201,22 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
                                   void                *data_buffer,
                                   unsigned int        *read_out )
 {
-     ssize_t size;
+     DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (!data || !length)
+     if (!data_buffer || !length)
           return DFB_INVARG;
 
-     if (data->pos >= data->size)
-          return DFB_BUFFEREMPTY;
+     pthread_mutex_lock( &data->mutex );
 
-     size = read( data->fd, data_buffer, length );
-     if (size < 0)
-          return errno2result( errno );
+     ret = direct_stream_read( data->stream, length, data_buffer, read_out );
+     if (ret == DFB_EOF)
+          ret = DFB_BUFFEREMPTY;
 
-     data->pos += size;
+     pthread_mutex_unlock( &data->mutex );
 
-     if (read_out)
-          *read_out = size;
-
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -211,53 +226,42 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
                                    void                *data_buffer,
                                    unsigned int        *read_out )
 {
-     ssize_t size;
+     DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (!data || !length)
+     if (!data_buffer || !length)
           return DFB_INVARG;
 
-     if (data->pos + offset >= data->size)
-          return DFB_BUFFEREMPTY;
+     pthread_mutex_lock( &data->mutex );
 
-     if (offset && lseek( data->fd, offset, SEEK_CUR ) < 0) {
-          switch (errno) {
-               case ESPIPE:
-                    return DFB_UNSUPPORTED;
+     ret = direct_stream_peek( data->stream, length,
+                               offset, data_buffer, read_out );
+     if (ret == DFB_EOF)
+          ret = DFB_BUFFEREMPTY;
 
-               default:
-                    return DFB_FAILURE;
-          }
-     }
+     pthread_mutex_unlock( &data->mutex );
 
-     size = read( data->fd, data_buffer, length );
-     if (size < 0) {
-          int erno = errno;
-
-          lseek( data->fd, - offset, SEEK_CUR );
-
-          return errno2result( erno );
-     }
-
-     if (lseek( data->fd, - size - offset, SEEK_CUR ) < 0)
-          return DFB_FAILURE;
-
-     if (read_out)
-          *read_out = size;
-
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
 IDirectFBDataBuffer_File_HasData( IDirectFBDataBuffer *thiz )
 {
+     DFBResult      ret;
+     struct timeval tv = {0,0};
+     
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     if (data->pos >= data->size)
-          return DFB_BUFFEREMPTY;
+     pthread_mutex_lock( &data->mutex );
+          
+     ret = direct_stream_wait( data->stream, 1, &tv );
+     if (ret == DFB_EOF)
+          ret = DFB_BUFFEREMPTY;
 
-     return DFB_OK;
+     pthread_mutex_unlock( &data->mutex );
+
+     return ret;
 }
 
 static DFBResult
@@ -272,8 +276,7 @@ DFBResult
 IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
                                     const char          *filename )
 {
-     DFBResult   ret;
-     struct stat status;
+     DFBResult ret;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_File)
 
@@ -281,30 +284,11 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
      if (ret)
           return ret;
 
-     data->fd = open( filename, O_RDONLY );
-     if (data->fd < 0) {
-          int erno = errno;
+     ret = direct_stream_create( filename, &data->stream );
+     if (ret)
+          return ret;
 
-          D_PERROR("DirectFB/DataBuffer: opening '%s' failed!\n", filename);
-
-          IDirectFBDataBuffer_Destruct( thiz );
-
-          return errno2result( erno );
-     }
-
-     if (fstat( data->fd, &status ) < 0) {
-          int erno = errno;
-
-          D_PERROR("DirectFB/DataBuffer: fstat failed!\n");
-
-          close( data->fd );
-
-          IDirectFBDataBuffer_Destruct( thiz );
-
-          return errno2result( erno );
-     }
-
-     data->size = status.st_size;
+     direct_util_recursive_pthread_mutex_init( &data->mutex );
 
      thiz->Release                = IDirectFBDataBuffer_File_Release;
      thiz->Flush                  = IDirectFBDataBuffer_File_Flush;
