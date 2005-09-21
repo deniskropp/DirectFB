@@ -281,9 +281,6 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
      if (!interface || !filename)
           return DFB_INVARG;
 
-     if (access( filename, R_OK ) != 0)
-          return DFB_FILENOTFOUND;
-
      /* Fill out probe context */
      ctx.filename = filename;
 
