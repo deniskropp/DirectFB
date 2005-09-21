@@ -21,6 +21,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include <math.h>
 
 #include <fusionsound.h>
@@ -29,6 +31,7 @@
 
 #include <direct/types.h>
 #include <direct/mem.h>
+#include <direct/stream.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
@@ -51,6 +54,8 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Vorbis )
  */
 typedef struct {
      int                       ref;       /* reference counter */
+    
+     DirectStream             *stream;
      
      OggVorbis_File            vf;
      vorbis_info              *info;
@@ -74,6 +79,8 @@ typedef struct {
      void                     *ctx;
 } IFusionSoundMusicProvider_Vorbis_data;
 
+
+/* mixing functions */
 
 static __inline__ int
 FtoU8( float s )
@@ -264,6 +271,7 @@ vorbis_mix_audio( float **src, char *dst, int len,
      }
 }
 
+/* provider methods */
 
 static void
 IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
@@ -274,6 +282,8 @@ IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
      thiz->Stop( thiz );
     
      ov_clear( &data->vf );
+
+     direct_stream_destroy( data->stream );
 
      pthread_mutex_destroy( &data->lock );
 
@@ -310,7 +320,7 @@ IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *t
      if (!caps)
           return DFB_INVARG;
 
-     if (ov_seekable( &data->vf ))
+     if (direct_stream_seekable( data->stream ))
           *caps = FMCAPS_BASIC | FMCAPS_SEEK;
      else
           *caps = FMCAPS_BASIC;
@@ -787,18 +797,33 @@ static DFBResult
 IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
                                          double                     seconds )
 {
-     int ret;
+     DFBResult ret = DFB_OK;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (seconds < 0.0)
           return DFB_INVARG;
-          
+
      pthread_mutex_lock( &data->lock );
-     ret = ov_time_seek( &data->vf, seconds );
+     
+     if (direct_stream_remote( data->stream )) {
+          int  off;
+          
+          if (!data->info->bitrate_nominal)
+               return DFB_UNSUPPORTED;
+
+          off = seconds * (double)(data->info->bitrate_nominal >> 3) -
+                direct_stream_offset( data->stream );
+          ret = direct_stream_seek( data->stream, off );
+     }
+     else {
+          if (ov_time_seek( &data->vf, seconds ))
+               ret = DFB_FAILURE;
+     }                                   
+     
      pthread_mutex_unlock( &data->lock );
      
-     return (ret == 0) ? DFB_OK : DFB_UNSUPPORTED;
+     return ret;
 }
 
 static DFBResult 
@@ -811,7 +836,7 @@ IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
           return DFB_INVARG;
 
      if (data->finished) {
-          *seconds = ov_time_total( &data->vf, -1 );
+          thiz->GetLength( thiz, seconds );
           return DFB_EOF;
      }
           
@@ -824,12 +849,22 @@ static DFBResult
 IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
                                             double                    *seconds )
 {
+     double length;
+     
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
      
      if (!seconds)
           return DFB_INVARG;
-          
-     *seconds = ov_time_total( &data->vf, -1 );
+         
+     length = ov_time_total( &data->vf, -1 );
+     if (length < 0) {
+          if (data->info->bitrate_nominal) {
+               length = direct_stream_length( data->stream ) /
+                        (double)(data->info->bitrate_nominal >> 3);
+          }
+     }
+     
+     *seconds = length;
 
      return DFB_OK;
 }
@@ -839,37 +874,55 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
+     DFBResult       err;
+     DirectStream   *stream;
      FILE           *fp;
      OggVorbis_File  vf;
      long            ret;
 
-     fp = fopen( ctx->filename, "rb" );
-     if (!fp)
-          return DFB_UNSUPPORTED;
+     err = direct_stream_create( ctx->filename, &stream );
+     if (err)
+          return err;
+     
+     err = direct_stream_fopen( stream, &fp );
+     if (err)
+          return err;
           
      ret = ov_test( fp, &vf, NULL, 0 );
+     
      ov_clear( &vf );
+     
+     direct_stream_destroy( stream );
 
-     return (ret == 0) ? DFB_OK : DFB_UNSUPPORTED;
+     return ret ? DFB_UNSUPPORTED : DFB_OK;
 }
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 {
-     FILE *fp;
+     DFBResult  ret;
+     FILE      *fp;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Vorbis )
 
      data->ref = 1;
      
-     fp = fopen( filename, "rb" );
-     if (!fp)
-          return DFB_IO;
-          
+     ret = direct_stream_create( filename, &data->stream );
+     if (ret) {
+          D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
+                   "Error opening '%s'!\n", filename );
+          return ret;
+     }
+
+     ret = direct_stream_fopen( data->stream, &fp );
+     if (ret)
+          return ret;
+     
      if (ov_open( fp, &data->vf, NULL, 0 ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
-                   "Error opening stream!\n" );
+                   "Error opening ogg/vorbis stream!\n" );
           fclose( fp );
+          direct_stream_destroy( data->stream );
           return DFB_FAILURE;
      }
      
@@ -878,6 +931,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error getting stream informations!\n" );
           ov_clear( &data->vf );
+          direct_stream_destroy( data->stream );
           return DFB_FAILURE;
      }
      

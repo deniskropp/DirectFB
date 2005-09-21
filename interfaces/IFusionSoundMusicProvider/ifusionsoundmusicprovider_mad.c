@@ -33,6 +33,7 @@
 #include <direct/types.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
+#include <direct/stream.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
@@ -56,13 +57,12 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Mad )
 typedef struct {
      int                       ref;       /* reference counter */
      
-     int                       fd;
+     DirectStream             *s;
 
      struct mad_synth          synth;
      struct mad_stream         stream;
      struct mad_frame          frame;   
      
-     long                      size;
      double                    length;
      int                       samplerate;
      int                       channels;
@@ -72,6 +72,12 @@ typedef struct {
      pthread_mutex_t           lock; 
      bool                      playing;
      bool                      finished;
+     bool                      seeked;
+     
+     void                     *read_buffer;
+     void                     *write_buffer;
+     int                       read_size;
+     int                       write_size;
 
      struct {
           IFusionSoundStream  *stream; 
@@ -85,7 +91,6 @@ typedef struct {
      void                     *ctx;
 } IFusionSoundMusicProvider_Mad_data;
 
-#define INPUT_BUFFER_SIZE  8192
 
 #define XING_MAGIC         (('X' << 24) | ('i' << 16) | ('n' << 8) | 'g')
 
@@ -366,6 +371,8 @@ IFusionSoundMusicProvider_Mad_Destruct( IFusionSoundMusicProvider *thiz )
      mad_frame_finish( &data->frame );
      mad_stream_finish( &data->stream );
 
+     direct_stream_destroy( data->s );
+     
      pthread_mutex_destroy( &data->lock );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -401,7 +408,10 @@ IFusionSoundMusicProvider_Mad_GetCapabilities( IFusionSoundMusicProvider   *thiz
      if (!caps)
           return DFB_INVARG;
 
-     *caps = FMCAPS_BASIC | FMCAPS_SEEK;
+     if (direct_stream_seekable( data->s ))
+          *caps = FMCAPS_BASIC | FMCAPS_SEEK;
+     else
+          *caps = FMCAPS_BASIC;
 
      return DFB_OK;
 }
@@ -504,41 +514,48 @@ MadStreamThread( DirectThread *thread, void *ctx )
      IFusionSoundMusicProvider_Mad_data *data   = ctx;
      IFusionSoundStream                 *stream = data->dest.stream;
      
-     char inbuf[INPUT_BUFFER_SIZE];
-     char outbuf[1152 * data->dest.channels * data->dest.format >> 3];
-     
      data->stream.next_frame = NULL;
+
+     direct_stream_wait( data->s, data->read_size, NULL );
      
      while (data->playing) {
-          ssize_t len;
-          int     offset = 0;
-                
+          DFBResult      ret;
+          unsigned int   len    = 0;
+          int            offset = 0;
+          struct timeval tv     = { 0, 500 };
+          
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
+
+          data->seeked = false;
+        
           if (data->stream.next_frame) {
                offset = data->stream.bufend - data->stream.next_frame;
-               direct_memmove( &inbuf[0], data->stream.next_frame, offset );
+               direct_memmove( data->read_buffer,
+                               data->stream.next_frame, offset );
           }
-               
-          len = read( data->fd, &inbuf[offset], sizeof(inbuf)-offset );   
-      
+
+          ret = direct_stream_wait( data->s, data->read_size, &tv );
+          if (ret != DFB_TIMEOUT) {
+               ret = direct_stream_read( data->s,
+                                         data->read_size-offset,
+                                         data->read_buffer+offset, &len );
+          }
+          
           pthread_mutex_unlock( &data->lock );
 
-          if (len > 0) {
-               len += offset;
-               if (len < sizeof(inbuf))
-                    memset( &inbuf[len], 0, sizeof(inbuf)-len );
-          } else {
+          if (ret) {
+               if (ret == DFB_TIMEOUT)
+                    continue;
                data->finished = true;
                break;
           }
           
-          mad_stream_buffer( &data->stream, &inbuf[0], sizeof(inbuf) );
+          mad_stream_buffer( &data->stream, data->read_buffer, len+offset );
 
           do {
                struct mad_pcm *pcm = &data->synth.pcm;
@@ -551,12 +568,13 @@ MadStreamThread( DirectThread *thread, void *ctx )
                  
                mad_synth_frame( &data->synth, &data->frame );
 
-               mad_mix_audio( pcm->samples[0], pcm->samples[1], outbuf,
-                              pcm->length, data->dest.format,
-                              pcm->channels, data->dest.channels );
+               mad_mix_audio( pcm->samples[0], pcm->samples[1],
+                              data->write_buffer, pcm->length,
+                              data->dest.format, pcm->channels,
+                              data->dest.channels );
 
-               stream->Write( stream, outbuf, pcm->length );
-          } while (data->playing);
+               stream->Write( stream, data->write_buffer, pcm->length );
+          } while (data->playing && !data->seeked);
      }
      
      return NULL;
@@ -608,6 +626,13 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
           data->thread = NULL;
      }
 
+     /* free buffers */
+     if (data->read_buffer) {
+          D_FREE( data->read_buffer );
+          data->read_buffer  = NULL;
+          data->write_buffer = NULL;
+     }
+
      /* release previous destination stream */
      if (data->dest.stream) {
           data->dest.stream->Release( data->dest.stream );
@@ -619,6 +644,17 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
           data->dest.buffer->Release( data->dest.buffer );
           data->dest.buffer = NULL;
      }
+
+     /* allocate read/write buffers */
+     data->read_size = direct_stream_remote( data->s ) ? 32*1024 : 8*1024;
+     data->write_size = 1152 * desc.channels * dst_format >> 3;
+
+     data->read_buffer = D_MALLOC( data->read_size + data->write_size );
+     if (!data->read_buffer) {
+          pthread_mutex_unlock( &data->lock );
+          return D_OOM();
+     }
+     data->write_buffer = data->read_buffer + data->read_size;
      
      /* reference destination stream */
      destination->AddRef( destination );
@@ -644,15 +680,18 @@ MadBufferThread( DirectThread *thread, void *ctx )
      IFusionSoundMusicProvider_Mad_data *data   = ctx;
      IFusionSoundBuffer                 *buffer = data->dest.buffer; 
      
-     char inbuf[INPUT_BUFFER_SIZE];
      int  blocksize = data->dest.channels * data->dest.format >> 3;
      int  written   = 0;
 
      data->stream.next_frame = NULL;
+
+     direct_stream_wait( data->s, data->read_size, NULL );
      
      while (data->playing) {
-          ssize_t len;
-          int     offset = 0;
+          DFBResult      ret;
+          unsigned int   len    = 0;
+          int            offset = 0;
+          struct timeval tv     = { 0, 500 };
                 
           pthread_mutex_lock( &data->lock );
 
@@ -660,26 +699,32 @@ MadBufferThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                break;
           }
+
+          data->seeked = false;
           
           if (data->stream.next_frame) {
                offset = data->stream.bufend - data->stream.next_frame;
-               direct_memmove( &inbuf[0], data->stream.next_frame, offset );
+               direct_memmove( data->read_buffer,
+                               data->stream.next_frame, offset );
           }
-               
-          len = read( data->fd, &inbuf[offset], sizeof(inbuf)-offset );   
-      
-          pthread_mutex_unlock( &data->lock );
 
-          if (len > 0) {
-               len += offset;
-               if (len < sizeof(inbuf))
-                    memset( &inbuf[len], 0, sizeof(inbuf)-len );
-          } else {
+          ret = direct_stream_wait( data->s, data->read_size, &tv );
+          if (ret != DFB_TIMEOUT) {
+               ret = direct_stream_read( data->s,
+                                         data->read_size-offset,
+                                         data->read_buffer+offset, &len );
+          }
+          
+          pthread_mutex_unlock( &data->lock );
+          
+          if (ret) {
+               if (ret == DFB_TIMEOUT)
+                    continue;
                data->finished = true;
                break;
           }
-          
-          mad_stream_buffer( &data->stream, &inbuf[0], sizeof(inbuf) );
+
+          mad_stream_buffer( &data->stream, data->read_buffer, len+offset );
 
           do {
                struct mad_pcm *pcm   = &data->synth.pcm;
@@ -707,7 +752,8 @@ MadBufferThread( DirectThread *thread, void *ctx )
                     n = MIN( data->dest.length-written, len );
                     
                     mad_mix_audio( left, right, &dst[written*blocksize], n,
-                                   data->dest.format, pcm->channels, data->dest.channels );
+                                   data->dest.format, pcm->channels,
+                                   data->dest.channels );
                     left    += n;
                     right   += n;
                     len     -= n;
@@ -724,7 +770,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                } while (len > 0);
 
                buffer->Unlock( buffer );
-          } while (data->playing);
+          } while (data->playing && !data->seeked);
      }
      
      return NULL;
@@ -778,6 +824,13 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           data->thread = NULL;
      }
 
+     /* free buffers */
+     if (data->read_buffer) {
+          D_FREE( data->read_buffer );
+          data->read_buffer  = NULL;
+          data->write_buffer = NULL;
+     }
+
      /* release previous destination stream */
      if (data->dest.stream) {
           data->dest.stream->Release( data->dest.stream );
@@ -788,6 +841,15 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      if (data->dest.buffer) {
           data->dest.buffer->Release( data->dest.buffer );
           data->dest.buffer = NULL;
+     }
+
+     /* allocate read buffer */
+     data->read_size = direct_stream_remote( data->s ) ? 32*1024 : 8*1024;
+    
+     data->read_buffer = D_MALLOC( data->read_size );
+     if (!data->read_buffer) {
+          pthread_mutex_unlock( &data->lock );
+          return D_OOM();
      }
      
      /* reference destination stream */
@@ -829,6 +891,13 @@ IFusionSoundMusicProvider_Mad_Stop( IFusionSoundMusicProvider *thiz )
           data->thread = NULL;
      }
 
+     /* free buffers */
+     if (data->read_buffer) {
+          D_FREE( data->read_buffer );
+          data->read_buffer  = NULL;
+          data->write_buffer = NULL;
+     }
+
      /* release previous destination stream */
      if (data->dest.stream) {
           data->dest.stream->Release( data->dest.stream );
@@ -850,28 +919,39 @@ static DFBResult
 IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
                                       double                     seconds )
 {
-     off_t pos;
+     DFBResult ret;
+     double    rate;
+     int       off;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (seconds < 0.0)
           return DFB_INVARG;
-          
-     pos = seconds * (double)(data->desc.bitrate >> 3);
-     pos = (pos > data->size) ? data->size : pos;
      
-     pthread_mutex_lock( &data->lock );   
-     lseek( data->fd, pos, SEEK_SET );    
+     pthread_mutex_lock( &data->lock );
+     
+     rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
+     if (rate) {
+          off = seconds*rate - direct_stream_offset( data->s );
+          ret = direct_stream_seek( data->s, off );
+          if (ret == DFB_OK)
+               data->seeked = true;
+     }
+     else {
+          ret = DFB_FAILURE;
+     }
+     
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult 
 IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
                                       double                    *seconds )
 {
-     off_t pos;
+     double rate;
+     int    pos;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
@@ -882,14 +962,18 @@ IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
           *seconds = data->length;
           return DFB_EOF;
      }
+
+     if (!data->desc.bitrate)
+          return DFB_UNSUPPORTED;
      
-     pos = lseek( data->fd, 0, SEEK_CUR );
+     pos = direct_stream_offset( data->s );
      if (data->playing && data->stream.this_frame) {
           pos -= data->stream.bufend - data->stream.this_frame;
           pos  = (pos < 0) ? 0 : pos;
      }
-                
-     *seconds = (double)pos / (double)(data->desc.bitrate >> 3);
+    
+     rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
+     *seconds = (double)pos / rate;
           
      return DFB_OK;
 }
@@ -923,8 +1007,10 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 {
+     DFBResult          ret;
      char               buf[16384];
-     struct stat        st;
+     unsigned int       len;
+     unsigned int       size;
      struct mad_header  header;
      unsigned long      frames  = 0;
      const char        *version;
@@ -935,16 +1021,18 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 
      data->ref = 1;
      
-     data->fd = open( filename, O_RDONLY );
-     if (data->fd < 0)
-          return DFB_IO;
-          
-     fstat( data->fd, &st );
-     data->size = st.st_size;
-          
-     if (read( data->fd, buf, sizeof(buf) ) < sizeof(buf)) {
-          close( data->fd );
-          return DFB_IO;
+     ret = direct_stream_create( filename, &data->s );
+     if (ret)
+          return ret;
+
+     size = direct_stream_length( data->s );
+         
+     direct_stream_wait( data->s, sizeof(buf), NULL );
+     
+     ret = direct_stream_peek( data->s, sizeof(buf), 0, buf, &len );
+     if (ret) {
+          direct_stream_destroy( data->s );
+          return ret;
      }
 
      mad_stream_init( &data->stream );
@@ -952,7 +1040,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      mad_synth_init( &data->synth );
      mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
     
-     mad_stream_buffer( &data->stream, buf, sizeof(buf) );
+     mad_stream_buffer( &data->stream, buf, len );
      
      /* find first valid frame */
      for (i = 0; i < 10; i++) {
@@ -979,7 +1067,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
           mad_synth_finish( &data->synth );
           mad_frame_finish( &data->frame );
           mad_stream_finish( &data->stream );
-          close( data->fd );
+          direct_stream_destroy( data->s );
           return DFB_FAILURE;
      }
      
@@ -987,25 +1075,28 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      data->samplerate = header.samplerate;
      data->channels   = MAD_NCHANNELS( &header );
      
-     /* get ID3 tag */    
-     lseek( data->fd, -sizeof(id3), SEEK_END );
-     read( data->fd, &id3, sizeof(id3) );
+     /* get ID3 tag */
+     if (direct_stream_seekable( data->s ) && !direct_stream_remote( data->s )) {
+          direct_stream_peek( data->s, sizeof(id3), 
+                              direct_stream_length( data->s ) - sizeof(id3),
+                              &id3, NULL );
      
-     if (!strncmp( id3.tag, "TAG", 3 )) {
-          data->size -= sizeof(id3);
+          if (!strncmp( id3.tag, "TAG", 3 )) {
+               size -= sizeof(id3);
             
-          strncpy( data->desc.artist, id3.artist, 
-                   MIN( FS_TRACK_DESC_ARTIST_LENGTH-1, sizeof(id3.artist) ) );
-          strncpy( data->desc.title, id3.title, 
-                   MIN( FS_TRACK_DESC_TITLE_LENGTH-1, sizeof(id3.title) ) );
-          strncpy( data->desc.album, id3.album, 
-                   MIN( FS_TRACK_DESC_ALBUM_LENGTH-1, sizeof(id3.album) ) );
-          data->desc.year = strtol( id3.year, NULL, 10 );
+               strncpy( data->desc.artist, id3.artist, 
+                        MIN( FS_TRACK_DESC_ARTIST_LENGTH-1, sizeof(id3.artist) ) );
+               strncpy( data->desc.title, id3.title, 
+                        MIN( FS_TRACK_DESC_TITLE_LENGTH-1, sizeof(id3.title) ) );
+               strncpy( data->desc.album, id3.album, 
+                        MIN( FS_TRACK_DESC_ALBUM_LENGTH-1, sizeof(id3.album) ) );
+               data->desc.year = strtol( id3.year, NULL, 10 );
              
-          if (id3.genre < sizeof(id3_genres)/sizeof(id3_genres[0])) {
-               const char *genre = id3_genres[(int)id3.genre];
-               strncpy( data->desc.genre, genre,
-                        MIN( FS_TRACK_DESC_GENRE_LENGTH-1, strlen(genre) ) );
+               if (id3.genre < sizeof(id3_genres)/sizeof(id3_genres[0])) {
+                    const char *genre = id3_genres[(int)id3.genre];
+                    strncpy( data->desc.genre, genre,
+                             MIN( FS_TRACK_DESC_GENRE_LENGTH-1, strlen(genre) ) );
+               }
           }
      }
 
@@ -1040,7 +1131,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
           }
           
           data->length = (double)frames / (double)header.samplerate;
-          data->desc.bitrate = (double)(data->size << 3) / data->length;         
+          data->desc.bitrate = (double)(size << 3) / data->length;
           
           snprintf( data->desc.encoding, 
                     FS_TRACK_DESC_ENCODING_LENGTH,
@@ -1050,15 +1141,13 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
           if (header.bitrate < 8000)
                header.bitrate = 8000;
           
-          data->length = (double)data->size / (double)(header.bitrate >> 3);
+          data->length = (double)size / (double)(header.bitrate >> 3);
           data->desc.bitrate = header.bitrate;
               
           snprintf( data->desc.encoding, 
                     FS_TRACK_DESC_ENCODING_LENGTH,
                     "MPEG-%s Layer %d", version, header.layer );
      }
-     
-     lseek( data->fd, 0, SEEK_SET );
      
      direct_util_recursive_pthread_mutex_init( &data->lock );
 

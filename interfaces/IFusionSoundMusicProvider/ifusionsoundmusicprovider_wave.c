@@ -32,6 +32,7 @@
 
 #include <direct/types.h>
 #include <direct/mem.h>
+#include <direct/stream.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
@@ -52,7 +53,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Wave )
 typedef struct {
      int                      ref;        /* reference counter */
      
-     int                      fd;
+     DirectStream            *stream;
      __u32                    byteorder;  /* 0=little-endian 1=big-endian */
      __u32                    samplerate; /* frequency */
      __u16                    channels;   /* number of channels */
@@ -744,7 +745,7 @@ IFusionSoundMusicProvider_Wave_Destruct( IFusionSoundMusicProvider *thiz )
 
      thiz->Stop( thiz );
     
-     close( data->fd );
+     direct_stream_destroy( data->stream );
 
      pthread_mutex_destroy( &data->lock );
 
@@ -930,8 +931,12 @@ WaveStreamThread( DirectThread *thread, void *ctx )
      __u8   *src   = data->src_buffer;
      __u8   *dst   = data->dst_buffer;
      
+     direct_stream_wait( data->stream, count, NULL );
+     
      while (data->playing) {
-          ssize_t len;
+          DFBResult      ret;
+          int            len = 0;
+          struct timeval tv  = { 0, 500 };
           
           pthread_mutex_lock( &data->lock );
 
@@ -939,16 +944,23 @@ WaveStreamThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
-          len  = read( data->fd, src, count );
-          len /= data->format >> 3;
+
+          ret = direct_stream_wait( data->stream, count, &tv );
+          if (ret != DFB_TIMEOUT)
+               ret = direct_stream_read( data->stream, count, src, &len );
 
           pthread_mutex_unlock( &data->lock );
-          
-          if (len <= 0) {
+
+          if (ret) {
+               if (ret == DFB_TIMEOUT)
+                    continue;
                data->finished = true;
                break;
           }
+
+          len /= data->format >> 3; 
+          if (len < 1)
+               continue;
 
           wave_mix_audio( src, dst, len, 
                           data->format, data->dest.format,
@@ -1072,9 +1084,13 @@ WaveBufferThread( DirectThread *thread, void *ctx )
      size_t              count  = data->dest.length * data->channels *
                                   data->format >> 3;
      
+     direct_stream_wait( data->stream, count, NULL );
+     
      while (data->playing) {
-          void    *dst;
-          ssize_t  len;
+          DFBResult       ret;
+          void           *dst;
+          int             len = 0;
+          struct timeval  tv  = { 0, 500 };
           
           pthread_mutex_lock( &data->lock );
           
@@ -1091,19 +1107,32 @@ WaveBufferThread( DirectThread *thread, void *ctx )
                     break;
                }
                
-               len = read( data->fd, dst, count );
+               ret = direct_stream_wait( data->stream, count, &tv );
+               if (ret != DFB_TIMEOUT)
+                    ret = direct_stream_read( data->stream, count, dst, &len );
                
                buffer->Unlock( buffer );
-          } else
-               len = read( data->fd, data->src_buffer, count );
+          } 
+          else {
+               ret = direct_stream_wait( data->stream, count, &tv );
+               if (ret != DFB_TIMEOUT) {
+                    ret = direct_stream_read( data->stream, count, 
+                                              data->src_buffer, &len );
+               }
+          }
 
           pthread_mutex_unlock( &data->lock );
           
-          len /= data->format >> 3;
-          if (len <= 0) {
+          if (ret) {
+               if (ret == DFB_TIMEOUT)
+                    continue;
                data->finished = true;
                break;
           }
+                    
+          len /= data->format >> 3;
+          if (len < 1)
+               continue;
 
           if (data->src_buffer) {
                if (buffer->Lock( buffer, &dst ) != DFB_OK) {
@@ -1269,30 +1298,32 @@ static DFBResult
 IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
                                        double                     seconds )
 {
-     off_t offset;
+     DFBResult ret;
+     int       offset;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
 
      if (seconds < 0.0)
           return DFB_INVARG;
 
-     offset = (double)data->samplerate * seconds;
-     offset = offset * data->channels * data->format >> 3;
-     offset = MIN( offset, data->datasize ) + data->headsize;
+     offset  = (double)data->samplerate * seconds;
+     offset  = offset * data->channels * data->format >> 3;
+     if (data->datasize)
+          offset = MIN( offset, data->datasize );
+     offset += data->headsize;
 
      pthread_mutex_lock( &data->lock );
-     lseek( data->fd, offset, SEEK_SET );
+     ret = direct_stream_seek( data->stream,
+                               offset - direct_stream_offset( data->stream ) );
      pthread_mutex_unlock( &data->lock );
      
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult 
 IFusionSoundMusicProvider_Wave_GetPos( IFusionSoundMusicProvider *thiz,
                                        double                    *seconds )
 {
-     off_t offset;
-     
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
 
      if (!seconds)
@@ -1303,14 +1334,8 @@ IFusionSoundMusicProvider_Wave_GetPos( IFusionSoundMusicProvider *thiz,
           return DFB_EOF;
      }
 
-     offset  = lseek( data->fd, 0, SEEK_CUR );
-     offset -= data->headsize;
-     
-     if (offset > 0) {
-          *seconds = (double) offset /
-                     (double)(data->samplerate * data->channels * data->format >> 3);
-     } else
-          *seconds = 0.0;
+     *seconds = (double) direct_stream_offset( data->stream ) /
+                (double)(data->samplerate * data->channels * data->format >> 3);
           
      return DFB_OK;
 }
@@ -1330,10 +1355,11 @@ IFusionSoundMusicProvider_Wave_GetLength( IFusionSoundMusicProvider *thiz,
 }
 
 
-static bool
-parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
-                       __u16 *ret_channels,  __u16 *ret_format,
-                       __u32 *ret_headsize,  __u32 *ret_datasize )
+static DFBResult
+parse_headers( DirectStream *stream,
+               __u32 *ret_byteorder, __u32 *ret_samplerate,
+               __u16 *ret_channels,  __u16 *ret_format,
+               __u32 *ret_headsize,  __u32 *ret_datasize )
 {
      char  buf[4];
      __u32 byteorder = 0;
@@ -1349,9 +1375,12 @@ parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
      __u32 data_size;
 
 #define wave_read( buf, count ) {\
-     if (read( fd, buf, count) < (count))\
-          return false;\
+     int len = 0;\
+     if (direct_stream_read( stream, count, buf, &len ) || len < (count))\
+          return DFB_UNSUPPORTED;\
 }
+
+     direct_stream_wait( stream, 44, NULL );
      
      wave_read( buf, 4 );
      if (buf[0] == 'R' && buf[1] == 'I' && buf[2] == 'F') {
@@ -1371,19 +1400,18 @@ parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
           D_DEBUG( "IFusionSoundMusicProvider_Wave: No RIFF header found.\n" );
 
      /* actually ignore chunksize */
-     if (lseek( fd, 4, SEEK_CUR ) < 8)
-          return false;
+     wave_read( buf, 4 );
 
      wave_read( buf, 4 );
      if (buf[0] != 'W' || buf[1] != 'A' || buf[2] != 'V' || buf[3] != 'E') {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: No WAVE header found.\n" );
-          return false;
+          return DFB_UNSUPPORTED;
      }
 
      wave_read( buf, 4 );
      if (buf[0] != 'f' || buf[1] != 'm' || buf[2] != 't' || buf[3] != ' ') {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: Expected 'fmt ' header.\n" );
-          return false;
+          return DFB_UNSUPPORTED;
      }
 
      wave_read( &fmt_len, 4 );
@@ -1394,7 +1422,7 @@ parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "fmt chunk expected to be at least %d bytes (got %d).\n",
                    sizeof(fmt), fmt_len );
-          return false;
+          return DFB_UNSUPPORTED;
      }
 
      wave_read( &fmt, sizeof(fmt) );
@@ -1410,44 +1438,44 @@ parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
      if (fmt.encoding != 1) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Unsupported encoding (%d).\n", fmt.encoding );
-          return false;
+          return DFB_UNSUPPORTED;
      }
      if (fmt.channels < 1 || fmt.channels > 2) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Unsupported number of channels (%d).\n", fmt.channels );
-          return false;
+          return DFB_UNSUPPORTED;
      }
      if (fmt.frequency < 4000 || fmt.frequency > 48000) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Unsupported frequency (%dHz).\n", fmt.frequency );
-          return false;
+          return DFB_UNSUPPORTED;
      }
      if (fmt.bitspersample !=  8 && fmt.bitspersample != 16 && 
          fmt.bitspersample != 24 && fmt.bitspersample != 32) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Unsupported sample format (%d bits).\n", fmt.bitspersample );
-          return false;
+          return DFB_UNSUPPORTED;
      }
      if (fmt.byterate != (fmt.frequency * fmt.channels * fmt.bitspersample >> 3)) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Invalid byterate (%d).\n", fmt.byterate );
-          return false;
+          return DFB_UNSUPPORTED;
      }
      if (fmt.blockalign != (fmt.channels * fmt.bitspersample >> 3)) {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: "
                    "Invalid blockalign (%d).\n", fmt.blockalign );
-          return false;
+          return DFB_UNSUPPORTED;
      }
 
      if (fmt_len > sizeof(fmt)) {
-          if (lseek( fd, fmt_len - sizeof(fmt), SEEK_CUR ) < (fmt_len + 20))
-               return false;
+          char tmp[fmt_len - sizeof(fmt)];
+          wave_read( tmp, fmt_len - sizeof(fmt) );
      }
 
      wave_read( buf, 4 );
      if (buf[0] != 'd' || buf[1] != 'a' || buf[2] != 't' || buf[3] != 'a') {
           D_DEBUG( "IFusionSoundMusicProvider_Wave: Expected 'data' header.\n" );
-          return false;
+          return DFB_UNSUPPORTED;
      }
 
      wave_read( &data_size, 4 );
@@ -1469,7 +1497,7 @@ parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
 
 #undef wave_read
           
-     return true;
+     return DFB_OK;
 }   
 
 /* exported symbols */
@@ -1477,52 +1505,54 @@ parse_headers( int fd, __u32 *ret_byteorder, __u32 *ret_samplerate,
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     int  fd;
-     bool ret;
+     DirectStream *stream;
+     DFBResult     ret;
      
-     fd = open( ctx->filename, O_RDONLY | O_NONBLOCK );
-     if (fd < 0)
-          return DFB_UNSUPPORTED;
+     ret = direct_stream_create( ctx->filename, &stream );
+     if (ret)
+          return ret;
 
-     ret = parse_headers( fd, NULL, NULL, NULL, NULL, NULL, NULL );
-     close( fd );
+     ret = parse_headers( stream, NULL, NULL, NULL, NULL, NULL, NULL );
+     
+     direct_stream_destroy( stream );
 
-     return (ret) ? DFB_OK : DFB_UNSUPPORTED;
+     return ret;
 }
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 {
-     struct stat buf;
+     DFBResult    ret;
+     unsigned int size;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Wave )
 
      data->ref = 1;
      
-     data->fd = open( filename, O_RDONLY );
-     if (data->fd < 0)
-          return DFB_IO;
+     ret = direct_stream_create( filename, &data->stream );
+     if (ret)
+          return ret;
     
-     if (!parse_headers( data->fd, &data->byteorder, &data->samplerate,
-                                   &data->channels,  &data->format,
-                                   &data->headsize,  &data->datasize )) {
-          close( data->fd );
-          return DFB_FAILURE;
+     ret = parse_headers( data->stream,
+                          &data->byteorder, &data->samplerate,
+                          &data->channels,  &data->format,
+                          &data->headsize,  &data->datasize );
+     if (ret) {
+          direct_stream_destroy( data->stream );
+          return ret;
      }
 
-     if (fstat( data->fd, &buf) < 0 || buf.st_size < data->headsize) {
-          close( data->fd );
-          return DFB_FAILURE;
+     size = direct_stream_length( data->stream );
+     if (size) {
+          if (data->datasize)
+               data->datasize = MIN( data->datasize, size - data->headsize );
+          else
+               data->datasize = size - data->headsize;
      }
-
-     if (data->datasize)
-          data->datasize = MIN( data->datasize, buf.st_size - data->headsize );
-     else
-          data->datasize = buf.st_size - data->headsize;
 
      data->length = (double) data->datasize /
                     (double)(data->samplerate * data->channels * data->format >> 3);
-
+     
      D_DEBUG( "IFusionSoundMusicProvider_Wave: "
               "%s [%dHz - %d channel(s) - %dbits %c.E.].\n",
               filename, data->samplerate, data->channels,
