@@ -63,6 +63,7 @@ include_HEADERS = \
 	modules.h			\
 	serial.h			\
 	signals.h			\
+	stream.h			\
 	system.h			\
 	thread.h			\
 	trace.h				\
@@ -90,6 +91,7 @@ libdirect_la_SOURCES = \
 	messages.c		\
 	modules.c		\
 	signals.c		\
+	stream.c		\
 	system.c		\
 	trace.c			\
 	tree.c			\

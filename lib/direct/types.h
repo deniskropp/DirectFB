@@ -58,6 +58,7 @@ typedef struct __D_DirectModuleDir           DirectModuleDir;
 typedef struct __D_DirectModuleEntry         DirectModuleEntry;
 typedef struct __D_DirectSerial              DirectSerial;
 typedef struct __D_DirectSignalHandler       DirectSignalHandler;
+typedef struct __D_DirectStream              DirectStream;
 typedef struct __D_DirectTraceBuffer         DirectTraceBuffer;
 typedef struct __D_DirectTree                DirectTree;
 typedef struct __D_DirectThread              DirectThread;
