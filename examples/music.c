@@ -3,6 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <signal.h>
+#include <termios.h>
 
 #include <fusionsound.h>
 
@@ -21,18 +22,22 @@ IFusionSound              *sound    = NULL;
 IFusionSoundMusicProvider *provider = NULL;
 IFusionSoundStream        *stream   = NULL;
 PlaylistEntry             *playlist = NULL;
-
+struct termios             term;
 
 static void
 cleanup( int s )
 {
      puts ("\nQuit.");
+     
      if (provider)
           provider->Release (provider);
      if (stream)
           stream->Release (stream);
      if (sound)
-          sound->Release (sound);    
+          sound->Release (sound);
+     
+     tcsetattr( fileno(stdin), TCSADRAIN, &term );
+     
      exit (s);
 }
 
@@ -73,6 +78,9 @@ main (int argc, char *argv[])
      /* Don't catch SIGINT. */
      DirectFBSetOption( "dont-catch", "2" );
 
+     /* Get terminal attributes. */
+     tcgetattr( fileno(stdin), &term );
+     
      /* Register clean-up handler for SIGINT. */
      signal( SIGINT, cleanup );
 
@@ -107,6 +115,18 @@ main (int argc, char *argv[])
           FusionSoundError( "IFusionSound::CreateStream", ret );
           cleanup (1);
      }
+
+     /* Set terminal attributes */
+     if (isatty( fileno(stdin) )) {
+          struct termios cur;
+
+          cur = term;
+          cur.c_cc[VTIME] = 0;
+          cur.c_cc[VMIN]  = 0;
+          cur.c_lflag    &= ~(ICANON | ECHO);
+
+          tcsetattr( fileno(stdin), TCSAFLUSH, &cur );
+     }
      
      /* Iterate through playlist. */
      direct_list_foreach( entry, playlist ) {
@@ -121,7 +141,7 @@ main (int argc, char *argv[])
           
           /* Query provider for track length. */
           provider->GetLength( provider, &len );
-     
+          
           /* Let the provider play the music using our stream. */
           ret = provider->PlayToStream( provider, stream );
           if (ret) {
@@ -160,8 +180,36 @@ main (int argc, char *argv[])
                        (int)len/60, (int)len%60, (int)(len*100.0)%100,
                        filled * 100 / total );
                fflush( stdout );
+
+               if (isatty( fileno(stdin) )) {
+                    int c;
+
+                    while ((c = getc( stdin )) > 0) {
+                         switch (c) {
+                              case 's':
+                                   provider->Stop( provider );
+                                   break;
+                              case 'p':
+                                   provider->PlayToStream( provider, stream );
+                                   break;
+                              case '+':
+                                   provider->GetPos( provider, &pos );
+                                   provider->SeekTo( provider, pos+15.0 );
+                                   break;
+                              case '-':
+                                   provider->GetPos( provider, &pos );
+                                   provider->SeekTo( provider, pos-15.0 );
+                                   break;
+                              case 'q':
+                              case 'Q':
+                              case '\033': // Escape
+                                   ret = DFB_EOF;
+                                   break;
+                         }
+                    }
+               }
                
-               usleep( 100000 );
+               usleep( 10000 );
           } while (ret != DFB_EOF);
      }
 
