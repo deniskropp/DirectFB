@@ -613,11 +613,23 @@ Construct( IDirectFBFont      *thiz,
      }
 #endif
 
-     if (desc->flags & (DFDESC_HEIGHT | DFDESC_WIDTH)) {
+     if (desc->flags & (DFDESC_HEIGHT       | DFDESC_WIDTH |
+                        DFDESC_FRACT_HEIGHT | DFDESC_FRACT_WIDTH))
+     {
+          int fw = 0, fh = 0;
+
+          if (desc->flags & DFDESC_FRACT_HEIGHT)
+               fh = desc->fract_height;
+          else if (desc->flags & DFDESC_HEIGHT)
+               fh = desc->height << 6;
+
+          if (desc->flags & DFDESC_FRACT_WIDTH)
+               fw = desc->fract_width;
+          else if (desc->flags & DFDESC_WIDTH)
+               fw = desc->width << 6;
+
           pthread_mutex_lock ( &library_mutex );
-          err = FT_Set_Pixel_Sizes( face,
-                                    (desc->flags & DFDESC_WIDTH)  ? desc->width  : 0,
-                                    (desc->flags & DFDESC_HEIGHT) ? desc->height : 0 );
+          err = FT_Set_Char_Size( face, fw, fh, 0, 0 );
           pthread_mutex_unlock ( &library_mutex );
           if (err) {
                D_ERROR( "DirectB/FontFT2: "

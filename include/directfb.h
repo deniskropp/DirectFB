@@ -842,9 +842,11 @@ typedef enum {
      DFDESC_HEIGHT       = 0x00000002,  /* height is specified */
      DFDESC_WIDTH        = 0x00000004,  /* width is specified */
      DFDESC_INDEX        = 0x00000008,  /* index is specified */
-     DFDESC_FIXEDADVANCE = 0x00000010   /* specify a fixed advance overriding
+     DFDESC_FIXEDADVANCE = 0x00000010,  /* specify a fixed advance overriding
                                            any character advance of fixed or
                                            proportional fonts */
+     DFDESC_FRACT_HEIGHT = 0x00000020,  /* fractional height is set */
+     DFDESC_FRACT_WIDTH  = 0x00000040,  /* fractional width is set */
 } DFBFontDescriptionFlags;
 
 /*
@@ -859,6 +861,9 @@ typedef enum {
  *
  * The index field controls which face is loaded from a font file that provides a collection of
  * faces. This is rarely needed.
+ *
+ * Fractional sizes (fract_height and fract_width) are 26.6 fixed point integers and override
+ * the pixel sizes if both are specified.
  */
 typedef struct {
      DFBFontDescriptionFlags            flags;
@@ -868,6 +873,9 @@ typedef struct {
      int                                width;
      unsigned int                       index;
      int                                fixed_advance;
+
+     int                                fract_height;
+     int                                fract_width;
 } DFBFontDescription;
 
 /*
