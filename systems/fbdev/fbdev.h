@@ -50,7 +50,7 @@ typedef struct {
 
      VideoMode                *modes;        /* linked list of valid
                                                 video modes */
-     VideoMode                *current_mode; /* current video mode */
+     VideoMode                 current_mode; /* current video mode */
 
      struct fb_var_screeninfo current_var;   /* fbdev variable screeninfo
                                                 set by DirectFB */

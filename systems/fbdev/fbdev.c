@@ -226,6 +226,8 @@ static DFBResult dfb_fbdev_blank( int level );
 static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                                      VideoMode             *mode,
                                      CoreLayerRegionConfig *config );
+static void      dfb_fbdev_var_to_mode( struct fb_var_screeninfo *var,
+                                        VideoMode                *mode );
 
 /******************************************************************************/
 
@@ -491,6 +493,9 @@ system_initialize( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
+     dfb_fbdev_var_to_mode( &dfb_fbdev->shared->current_var,
+                            &dfb_fbdev->shared->current_mode );
+
      dfb_fbdev->shared->orig_cmap.start  = 0;
      dfb_fbdev->shared->orig_cmap.len    = 256;
      dfb_fbdev->shared->orig_cmap.red    = (__u16*)SHMALLOC( 2 * 256 );
@@ -605,20 +610,15 @@ system_shutdown( bool emergency )
           m = next;
      }
 
-     if (dfb_fbdev->shared->current_mode) {
-          dfb_fbdev->shared->orig_var.xoffset = 0;
-          dfb_fbdev->shared->orig_var.yoffset = 0;
-     }
-
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->orig_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
-                     "Could not restore variable screen information!\n" );
+                    "Could not restore variable screen information!\n" );
      }
 
      if (dfb_fbdev->shared->orig_cmap.len) {
           if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &dfb_fbdev->shared->orig_cmap ) < 0)
                D_PERROR( "DirectFB/FBDev: "
-                          "Could not restore palette!\n" );
+                         "Could not restore palette!\n" );
 
           SHFREE( dfb_fbdev->shared->orig_cmap.red );
           SHFREE( dfb_fbdev->shared->orig_cmap.green );
@@ -748,7 +748,7 @@ system_get_modes()
 static VideoMode *
 system_get_current_mode()
 {
-     return dfb_fbdev->shared->current_mode;
+     return &dfb_fbdev->shared->current_mode;
 }
 
 static DFBResult
@@ -836,27 +836,7 @@ init_modes()
           /* try to use current mode*/
           dfb_fbdev->shared->modes = (VideoMode*) SHCALLOC( 1, sizeof(VideoMode) );
 
-          dfb_fbdev->shared->modes->xres = dfb_fbdev->shared->orig_var.xres;
-          dfb_fbdev->shared->modes->yres = dfb_fbdev->shared->orig_var.yres;
-          dfb_fbdev->shared->modes->bpp  = dfb_fbdev->shared->orig_var.bits_per_pixel;
-          dfb_fbdev->shared->modes->hsync_len = dfb_fbdev->shared->orig_var.hsync_len;
-          dfb_fbdev->shared->modes->vsync_len = dfb_fbdev->shared->orig_var.vsync_len;
-          dfb_fbdev->shared->modes->left_margin = dfb_fbdev->shared->orig_var.left_margin;
-          dfb_fbdev->shared->modes->right_margin = dfb_fbdev->shared->orig_var.right_margin;
-          dfb_fbdev->shared->modes->upper_margin = dfb_fbdev->shared->orig_var.upper_margin;
-          dfb_fbdev->shared->modes->lower_margin = dfb_fbdev->shared->orig_var.lower_margin;
-          dfb_fbdev->shared->modes->pixclock = dfb_fbdev->shared->orig_var.pixclock;
-
-
-          if (dfb_fbdev->shared->orig_var.sync & FB_SYNC_HOR_HIGH_ACT)
-               dfb_fbdev->shared->modes->hsync_high = 1;
-          if (dfb_fbdev->shared->orig_var.sync & FB_SYNC_VERT_HIGH_ACT)
-               dfb_fbdev->shared->modes->vsync_high = 1;
-
-          if (dfb_fbdev->shared->orig_var.vmode & FB_VMODE_INTERLACED)
-               dfb_fbdev->shared->modes->laced = 1;
-          if (dfb_fbdev->shared->orig_var.vmode & FB_VMODE_DOUBLE)
-               dfb_fbdev->shared->modes->doubled = 1;
+          *dfb_fbdev->shared->modes = dfb_fbdev->shared->current_mode;
 
           if (dfb_fbdev_set_mode(NULL, dfb_fbdev->shared->modes, NULL)) {
                D_ERROR("DirectFB/FBDev: "
@@ -952,25 +932,11 @@ primaryGetScreenSize( CoreScreen *screen,
                       int        *ret_width,
                       int        *ret_height )
 {
-     FBDevShared *shared;
-
      D_ASSERT( dfb_fbdev != NULL );
      D_ASSERT( dfb_fbdev->shared != NULL );
 
-     shared = dfb_fbdev->shared;
-
-     if (shared->current_mode) {
-          *ret_width  = shared->current_mode->xres;
-          *ret_height = shared->current_mode->yres;
-     }
-     else if (shared->modes) {
-          *ret_width  = shared->modes->xres;
-          *ret_height = shared->modes->yres;
-     }
-     else {
-          D_WARN( "no current and no default mode" );
-          return DFB_UNSUPPORTED;
-     }
+     *ret_width  = dfb_fbdev->shared->current_mode.xres;
+     *ret_height = dfb_fbdev->shared->current_mode.yres;
 
      return DFB_OK;
 }
@@ -1418,6 +1384,29 @@ primaryReallocateSurface( CoreLayer             *layer,
 
 /** fbdev internal **/
 
+static void dfb_fbdev_var_to_mode( struct fb_var_screeninfo *var, 
+                                   VideoMode                *mode )
+{
+     mode->xres          = var->xres;
+     mode->yres          = var->yres;
+     mode->bpp           = var->bits_per_pixel;
+     mode->hsync_len     = var->hsync_len;
+     mode->vsync_len     = var->vsync_len;
+     mode->left_margin   = var->left_margin;
+     mode->right_margin  = var->right_margin;
+     mode->upper_margin  = var->upper_margin;
+     mode->lower_margin  = var->lower_margin;
+     mode->pixclock      = var->pixclock;
+     mode->hsync_high    = (var->sync & FB_SYNC_HOR_HIGH_ACT) ? 1 : 0;
+     mode->vsync_high    = (var->sync & FB_SYNC_VERT_HIGH_ACT) ? 1 : 0;
+     mode->csync_high    = (var->sync & FB_SYNC_COMP_HIGH_ACT) ? 1 : 0;
+     mode->sync_on_green = (var->sync & FB_SYNC_ON_GREEN) ? 1 : 0;
+     mode->external_sync = (var->sync & FB_SYNC_EXT) ? 1 : 0;
+     mode->broadcast     = (var->sync & FB_SYNC_BROADCAST) ? 1 : 0;
+     mode->laced         = (var->vmode & FB_VMODE_INTERLACED) ? 1 : 0;
+     mode->doubled       = (var->vmode & FB_VMODE_DOUBLE) ? 1 : 0;
+}
+
 static int dfb_fbdev_compatible_format( struct fb_var_screeninfo *var,
                                         int al, int rl, int gl, int bl,
                                         int ao, int ro, int go, int bo )
@@ -1570,7 +1559,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
               config ? config->buffermode : DLBM_FRONTONLY);
 
      if (!mode)
-          mode = shared->current_mode ? shared->current_mode : shared->modes;
+          mode = &shared->current_mode;
 
      vyres = mode->yres;
 
@@ -1767,7 +1756,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                dfb_fbdev_set_gamma_ramp( config->format );
 
           shared->current_var = var;
-          shared->current_mode = mode;
+          dfb_fbdev_var_to_mode( &var, &shared->current_mode );
+
+          /* invalidate original pan offset */
+          shared->orig_var.xoffset = 0;
+          shared->orig_var.yoffset = 0;
 
           surface->width  = mode->xres;
           surface->height = mode->yres;
