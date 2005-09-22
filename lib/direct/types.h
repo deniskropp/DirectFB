@@ -42,12 +42,10 @@ typedef DFBResult DirectResult;    /* FIXME */
 
 
 #if !defined(__cplusplus) && !defined(__bool_true_false_are_defined)
-enum {
+typedef enum {
      false = 0,
      true  = !false
-};
-
-typedef __u8 bool;
+} bool;
 #endif
 
 typedef __u32 unichar;
