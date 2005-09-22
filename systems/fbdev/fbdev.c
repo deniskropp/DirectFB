@@ -1230,21 +1230,25 @@ primarySetRegion( CoreLayer                  *layer,
 {
      DFBResult  ret;
      VideoMode *videomode;
+     VideoMode *highest = NULL;
 
      videomode = dfb_fbdev->shared->modes;
      while (videomode) {
           if (videomode->xres == config->width  &&
               videomode->yres == config->height)
-               break;
+          {
+               if (!highest || highest->priority < videomode->priority)
+                    highest = videomode;
+          }
 
           videomode = videomode->next;
      }
 
-     if (!videomode)
+     if (!highest)
           return DFB_UNSUPPORTED;
 
      if (updated & (CLRCF_BUFFERMODE | CLRCF_FORMAT | CLRCF_HEIGHT | CLRCF_SURFACE | CLRCF_WIDTH)) {
-          ret = dfb_fbdev_set_mode( surface, videomode, config );
+          ret = dfb_fbdev_set_mode( surface, highest, config );
           if (ret)
                return ret;
      }
