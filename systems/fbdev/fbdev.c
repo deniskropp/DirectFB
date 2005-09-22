@@ -394,6 +394,7 @@ static void
 system_get_info( CoreSystemInfo *info )
 {
      info->type = CORE_FBDEV;
+     info->caps = CSCAPS_ACCELERATION;
 
      snprintf( info->name, DFB_CORE_SYSTEM_INFO_NAME_LENGTH, "FBDev" );
 }

@@ -45,6 +45,14 @@ typedef enum {
      CORE_VNC
 } CoreSystemType;
 
+typedef enum {
+     CSCAPS_NONE         = 0x00000000,  /* None of these. */
+
+     CSCAPS_ACCELERATION = 0x00000001,  /* HW acceleration supported, so probe graphics drivers. */
+
+     CSCAPS_ALL          = 0x00000001   /* All of these. */
+} CoreSystemCapabilities;
+
 /*
  * hold information of a Videomode read from /etc/fb.modes
  * (to be replaced by DirectFB's own config system)
@@ -80,7 +88,7 @@ DECLARE_MODULE_DIRECTORY( dfb_core_systems );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_CORE_SYSTEM_ABI_VERSION           8
+#define DFB_CORE_SYSTEM_ABI_VERSION           9
 
 #define DFB_CORE_SYSTEM_INFO_NAME_LENGTH     60
 #define DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH   80
@@ -94,23 +102,24 @@ typedef struct {
 } CoreSystemVersion;        /* major.minor, e.g. 0.1 */
 
 typedef struct {
-     CoreSystemVersion  version;
+     CoreSystemVersion        version;
 
-     CoreSystemType     type;
+     CoreSystemType           type;
+     CoreSystemCapabilities   caps;
 
-     char               name[DFB_CORE_SYSTEM_INFO_NAME_LENGTH];
-                                /* Name of system, e.g. 'FBDev' */
+     char                     name[DFB_CORE_SYSTEM_INFO_NAME_LENGTH];
+                                   /* Name of system, e.g. 'FBDev' */
 
-     char               vendor[DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH];
-                                /* Vendor (or author) of the driver,
-                                   e.g. 'convergence' or 'Denis Oliver Kropp' */
+     char                     vendor[DFB_CORE_SYSTEM_INFO_VENDOR_LENGTH];
+                                   /* Vendor (or author) of the driver,
+                                      e.g. 'convergence' or 'Denis Oliver Kropp' */
 
-     char               url[DFB_CORE_SYSTEM_INFO_URL_LENGTH];
-                                /* URL for driver updates,
-                                   e.g. 'http://www.directfb.org/' */
+     char                     url[DFB_CORE_SYSTEM_INFO_URL_LENGTH];
+                                   /* URL for driver updates,
+                                      e.g. 'http://www.directfb.org/' */
 
-     char               license[DFB_CORE_SYSTEM_INFO_LICENSE_LENGTH];
-                                /* License, e.g. 'LGPL' or 'proprietary' */
+     char                     license[DFB_CORE_SYSTEM_INFO_LICENSE_LENGTH];
+                                   /* License, e.g. 'LGPL' or 'proprietary' */
 } CoreSystemInfo;
 
 typedef struct {
@@ -179,6 +188,9 @@ dfb_system_lookup();
 
 CoreSystemType
 dfb_system_type();
+
+CoreSystemCapabilities
+dfb_system_caps();
 
 void *
 dfb_system_data();

@@ -221,6 +221,12 @@ dfb_system_type()
      return system_info.type;
 }
 
+CoreSystemCapabilities
+dfb_system_caps()
+{
+     return system_info.caps;
+}
+
 void *
 dfb_system_data()
 {

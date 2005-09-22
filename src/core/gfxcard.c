@@ -150,7 +150,9 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      direct_modules_explore_directory( &dfb_graphics_drivers );
 
      /* Load driver */
-     dfb_gfxcard_find_driver();
+     if (dfb_system_caps() & CSCAPS_ACCELERATION)
+          dfb_gfxcard_find_driver();
+
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
 
@@ -228,7 +230,9 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
      direct_modules_explore_directory( &dfb_graphics_drivers );
 
      /* Load driver. */
-     dfb_gfxcard_load_driver();
+     if (dfb_system_caps() & CSCAPS_ACCELERATION)
+          dfb_gfxcard_load_driver();
+
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
 
@@ -1813,9 +1817,6 @@ static void dfb_gfxcard_find_driver()
 {
      DirectLink *link;
 
-     if (dfb_gfxcard_get_accelerator( NULL ) == -1)
-          return;
-
      direct_list_foreach (link, dfb_graphics_drivers.entries) {
           DirectModuleEntry *module = (DirectModuleEntry*) link;
 
@@ -1843,9 +1844,6 @@ static void dfb_gfxcard_find_driver()
 static void dfb_gfxcard_load_driver()
 {
      DirectLink *link;
-
-     if (dfb_gfxcard_get_accelerator( NULL ) == -1)
-          return;
 
      if (!card->shared->module_name)
           return;
