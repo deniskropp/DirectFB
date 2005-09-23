@@ -50,6 +50,7 @@
 #include <directfb.h>
 
 #include <media/idirectfbvideoprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -82,7 +83,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <direct/interface_implementation.h>
 
@@ -550,29 +551,35 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment( IDirectFBVideoPr
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     if (strncmp( ctx->filename, "/dev/video", 10 ) == 0)
-          return DFB_OK;
+     if (ctx->filename) {
+          if (strncmp( ctx->filename, "/dev/video", 10 ) == 0)
+               return DFB_OK;
 
-     if (strncmp( ctx->filename, "/dev/v4l/video", 14 ) == 0)
-          return DFB_OK;
+          if (strncmp( ctx->filename, "/dev/v4l/video", 14 ) == 0)
+               return DFB_OK;
+     }
 
      return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, const char *filename )
+Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 {
      int fd;
+     IDirectFBDataBuffer_data *buffer_data;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)
 
      data->ref = 1;
 
-     fd = open( filename, O_RDWR );
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+
+     fd = open( buffer_data->filename, O_RDWR );     
      if (fd < 0) {
           DFBResult ret = errno2result( errno );
 
-          D_PERROR( "DirectFB/Video4Linux: Cannot open `%s'!\n", filename );
+          D_PERROR( "DirectFB/Video4Linux: Cannot open `%s'!\n",
+                     buffer_data->filename );
 
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
@@ -609,7 +616,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      }
 #endif
 
-     data->filename = D_STRDUP( filename );
+     data->filename = D_STRDUP( buffer_data->filename );
      data->fd       = fd;
 
      thiz->AddRef    = IDirectFBVideoProvider_V4L_AddRef;
