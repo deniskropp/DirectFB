@@ -23,13 +23,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <errno.h>
+
+#include <pthread.h>
 
 #include <directfb.h>
 
 #include <media/idirectfbvideoprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -41,6 +46,7 @@
 
 #include <direct/conf.h>
 #include <direct/interface.h>
+#include <direct/thread.h>
 
 #include <xine.h>
 #include <xine/xineutils.h>
@@ -52,7 +58,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 
 #include <direct/interface_implementation.h>
@@ -90,6 +96,7 @@ typedef struct {
      
      char                  *mrl;
      char                  *cfg;
+     char                  *pipe;
 
      xine_t                *xine;
      xine_video_port_t     *vo;
@@ -112,6 +119,8 @@ typedef struct {
      bool                   full_area;
      DFBRectangle           dest_rect;
      
+     IDirectFBDataBuffer   *buffer;
+     DirectThread          *buffer_thread;
 } IDirectFBVideoProvider_Xine_data;
 
 
@@ -127,6 +136,44 @@ frame_output( void *cdata, int width, int height, double ratio,
 static void
 event_listner( void *cdata, const xine_event_t *event );
 
+static DFBResult
+make_pipe( char **ret_path );
+
+/***************************** DataBuffer Thread ******************************/
+
+void*
+BufferThread( DirectThread *self, void *arg )
+{
+     IDirectFBVideoProvider_Xine_data *data   = arg;
+     IDirectFBDataBuffer              *buffer = data->buffer;
+     int                               fd;
+
+     fd = open( data->pipe, O_WRONLY );
+     if (fd < 0) {
+          D_PERROR( "IDirectFBVideoProvider_Xine: "
+                    "failed to open fifo '%s'\n", data->pipe );
+          return (void*)1;
+     }
+
+     while (!direct_thread_is_canceled( self )) {
+          char          buf[4096];
+          unsigned int  len = 0;
+
+          while (buffer->GetData( buffer,
+                                  sizeof(buf), buf, &len ) == DFB_OK && len) {
+               write( fd, buf, len );
+               
+               if (direct_thread_is_canceled( self ))
+                    break;
+          }
+               
+          usleep( 100 );
+     }
+
+     close( fd );
+
+     return (void*)0;
+}     
 
 /******************************* Public Methods *******************************/
 
@@ -168,6 +215,20 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
           }
 
           xine_exit( data->xine );
+     }
+
+     if (data->buffer_thread) {
+          direct_thread_cancel( data->buffer_thread );
+          direct_thread_join( data->buffer_thread );
+          direct_thread_destroy( data->buffer_thread );
+     }
+ 
+     if (data->buffer)
+          data->buffer->Release( data->buffer );
+
+     if (data->pipe) {
+          unlink( data->pipe );
+          D_FREE( data->pipe );
      }
      
      D_FREE( data->mrl );
@@ -483,12 +544,15 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      dfb_visual_t       visual;
      DFBResult          result;
      
+     /* Skip test in this case */
+     if (!ctx->filename)
+          return DFB_OK;
+     
      xine = xine_new();
      if (!xine)
           return DFB_INIT;
 
      xinerc = getenv( "XINERC" );
-
      if (!xinerc || !*xinerc) {
           asprintf( &xinerc, "%s/.xine/config", xine_get_homedir() );
           
@@ -531,7 +595,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
           result = DFB_OK;
      else
           result = DFB_UNSUPPORTED;
-
+     
      xine_close( stream );
      xine_dispose( stream );
      xine_close_video_driver( xine, vo );
@@ -542,50 +606,122 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename )
+make_pipe( char **ret_path )
 {
-     const char        *xinerc;
-     int                verbosity;
-     const char* const *ao_list;
-     const char        *ao_driver;
-     
-     DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine )
+     char path[512];
+     int  i, len;
 
+     len = snprintf( path, sizeof(path), 
+                     "%s/xine-vp-", getenv("TEMP") ? : "/tmp" );
+
+     for (i = 0; i < 0xffff; i++) {
+          snprintf( path+len, sizeof(path)-len, "%04x", i );
+
+          if (mkfifo( path, 0600 ) < 0) {
+               if (errno == EEXIST)
+                    continue;
+               return errno2result( errno );
+          }
+
+          if (ret_path)
+               *ret_path = D_STRDUP( path );
+          
+          return DFB_OK;
+     }
+
+     return DFB_FAILURE;
+}
+
+static DFBResult
+Construct( IDirectFBVideoProvider *thiz,
+           IDirectFBDataBuffer    *buffer  )
+{
+     const char               *xinerc;
+     int                       verbosity;
+     const char* const        *ao_list;
+     const char               *ao_driver;
+     IDirectFBDataBuffer_data *buffer_data;
+     
+     DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine );
+          
      data->ref    = 1;
      data->err    = DFB_FAILURE;
-     data->mrl    = D_STRDUP( filename );
-     data->format = dfb_primary_layer_pixelformat();
+     data->format = DSPF_YUY2;
+
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+
+     if (!buffer_data->filename) {
+          DFBResult ret;
+
+          ret = make_pipe( &data->pipe );
+          if (ret)
+               return ret;
+
+          buffer->AddRef( buffer );
+          
+          data->buffer = buffer;
+          data->buffer_thread = direct_thread_create( DTT_DEFAULT,
+                                                      BufferThread,
+                                                      data,
+                                                      "Xine DataBuffer Input" );
+          if (!data->buffer_thread) {
+               buffer->Release( buffer );
+               D_FREE( data->pipe );
+               return DFB_FAILURE;
+          }               
+     
+          data->mrl = D_MALLOC( strlen( data->pipe ) + 7 );
+          sprintf( data->mrl, "fifo:/%s", data->pipe );
+     }
+     else {
+          if (!strcmp ( buffer_data->filename, "/dev/cdrom" )     ||
+              !strncmp( buffer_data->filename, "/dev/cdroms/", 12 )) {
+               data->mrl = D_STRDUP( "cdda:/1" );
+          }
+          else if (!strcmp( buffer_data->filename, "/dev/dvd" )) {
+               data->mrl = D_STRDUP( "dvd:/" );
+          }
+          else if (!strcmp( buffer_data->filename, "/dev/vcd" )) {
+               data->mrl = D_STRDUP( "vcd:/" );
+          }
+          else {
+               data->mrl = D_STRDUP( buffer_data->filename );
+          }
+     }
      
      data->xine = xine_new();
      if (!data->xine) {
           D_ERROR( "DirectFB/VideoProvider_Xine: xine_new() failed.\n" );
+          IDirectFBVideoProvider_Xine_Destruct( thiz );
           return DFB_INIT;
      }
 
      xinerc = getenv( "XINERC" );
-     
      if (!xinerc || !*xinerc) {
           char *xined;
           asprintf( &xined, "%s/.xine", xine_get_homedir() );
           mkdir( xined , 755 );
           asprintf( &data->cfg, "%s/config", xined );
           free( xined );
-     } else
+     }
+     else {
           data->cfg = strdup( xinerc );
+     }
 
      if (data->cfg)
           xine_config_load( data->xine, data->cfg );
 
      xine_init( data->xine );
 
-     if(direct_config->quiet)
+     if (direct_config->quiet) {
           verbosity = XINE_VERBOSITY_NONE;
-     else
-     if(direct_config->debug)
+     }
+     else if (direct_config->debug) {
           verbosity = XINE_VERBOSITY_DEBUG;
-     else
+     }
+     else {
           verbosity = XINE_VERBOSITY_LOG;
+     }
      
      xine_engine_set_param( data->xine,
                             XINE_ENGINE_PARAM_VERBOSITY,
@@ -601,7 +737,7 @@ Construct( IDirectFBVideoProvider *thiz,
      if (!data->vo) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load video driver 'DFB'.\n" );
-          xine_exit( data->xine );
+          IDirectFBVideoProvider_Xine_Destruct( thiz );
           return data->err;
      }
 
@@ -618,8 +754,7 @@ Construct( IDirectFBVideoProvider *thiz,
      if (!data->ao) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load audio driver '%s'.\n", ao_driver );
-          xine_close_video_driver( data->xine, data->vo );
-          xine_exit( data->xine );
+          IDirectFBVideoProvider_Xine_Destruct( thiz );
           return data->err;
      }
      
@@ -628,9 +763,7 @@ Construct( IDirectFBVideoProvider *thiz,
      if (!data->stream) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to create a new stream.\n" );
-          xine_close_video_driver( data->xine, data->vo );
-          xine_close_audio_driver( data->xine, data->ao );
-          xine_exit( data->xine );
+          IDirectFBVideoProvider_Xine_Destruct( thiz );
           return data->err;
      }
 
@@ -650,12 +783,7 @@ Construct( IDirectFBVideoProvider *thiz,
      /* open the MRL */
      if (!xine_open( data->stream, data->mrl )) {
           get_stream_error( data );
-          if (data->queue)
-               xine_event_dispose_queue( data->queue );
-          xine_dispose( data->stream );
-          xine_close_video_driver( data->xine, data->vo );
-          xine_close_audio_driver( data->xine, data->ao );
-          xine_exit( data->xine );
+          IDirectFBVideoProvider_Xine_Destruct( thiz );
           return data->err;
      }
 
@@ -681,7 +809,6 @@ Construct( IDirectFBVideoProvider *thiz,
                audio_source = xine_get_audio_source( data->stream );
                xine_post_wire_audio_port( audio_source,
                                           data->post->audio_input[0] );
-               data->format = DSPF_YUY2;
           }
      }
 

@@ -61,7 +61,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer  );
 
 
 #include <direct/interface_implementation.h>
@@ -648,27 +648,19 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      SwfdecDecoder *decoder;
      char*          buf;
-     int            fd, err;
+     int            err;
 
      decoder = swfdec_decoder_new();
      if (!decoder)
           return DFB_INIT;
           
-     fd = open( ctx->filename, O_RDONLY );
-     if (fd < 0) {
-          swfdec_decoder_free( decoder );
-          return DFB_FAILURE;
-     }
-
-     buf = calloc( 1, 64 );
+     buf = malloc( 64 );
      if (!buf) {
           swfdec_decoder_free( decoder );
-          close( fd );
           return DFB_NOSYSTEMMEMORY;
      }
      
-     read( fd, buf, 64 );
-     close( fd );
+     memcpy( buf, ctx->header, 64 );
 
      swfdec_decoder_add_data( decoder, buf, 64 );
      err = swfdec_decoder_parse( decoder );
@@ -679,54 +671,54 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename )
+           IDirectFBDataBuffer    *buffer )
 {
-     int          fd;
-     struct stat  st;
-     char        *buffer;
-     int          i;
+     DFBResult     ret;
+     unsigned int  len = 0;
+     char         *buf;
+     int           i;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Swfdec )
      
      data->ref = 1;
+
+     buffer->GetLength( buffer, &len );
+     if (len < 1) {
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return DFB_UNSUPPORTED;
+     }
      
+     buf = calloc( 1, len );
+     if (!buf) {
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return D_OOM();
+     }
+
      swfdec_init();
-     
+
      data->decoder = swfdec_decoder_new();
      if (!data->decoder) {
           D_ERROR( "IDirectFBVideoProvider_Swfdec: "
                    "couldn't create swf decoder.\n" );
+          free( buf );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_INIT;
      }
 
-     fd = open( filename, O_RDONLY );
-     if (fd < 0) {
-          D_PERROR( "IDirectFBVideoProvider_Swfdec: "
-                    "couldn't open file '%s'", filename );
-          swfdec_decoder_free( data->decoder );
-          return DFB_IO;
-     }
+     ret = buffer->WaitForData( buffer, len );
+     if (ret == DFB_OK)
+          ret = buffer->GetData( buffer, len, buf, &len );
      
-     fstat( fd, &st );
-     buffer = calloc( 1, st.st_size );
-     if (!buffer) {
+     if (ret) { 
+          D_ERROR( "IDirectFBVideoProvider_Swfdec: "
+                   "error fetching %d bytes from buffer!", len );
           swfdec_decoder_free( data->decoder );
-          close( fd );
-          return D_OOM();
+          free( buf );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return ret;
      }
 
-     if (read( fd, buffer, st.st_size ) < 0) { 
-          D_PERROR( "IDirectFBVideoProvider_Swfdec: "
-                    "error reading from '%s'", filename );
-          swfdec_decoder_free( data->decoder ); 
-          free( buffer );
-          close( fd );
-          return DFB_IO;
-     }
-
-     close( fd );
-
-     swfdec_decoder_add_data( data->decoder, buffer, st.st_size );  
+     swfdec_decoder_add_data( data->decoder, buf, len );  
      swfdec_decoder_eof( data->decoder );
 
      swfdec_decoder_set_colorspace( data->decoder, SWF_COLORSPACE_RGB888 );
@@ -736,6 +728,7 @@ Construct( IDirectFBVideoProvider *thiz,
                D_ERROR( "IDirectFBVideoProvider_Swfdec: "
                         "swfdec_decoder_parse() failed at stage %i!\n", i+1 );
                swfdec_decoder_free( data->decoder );
+               DIRECT_DEALLOCATE_INTERFACE( thiz );
                return DFB_FAILURE;
           }
      }
@@ -753,6 +746,7 @@ Construct( IDirectFBVideoProvider *thiz,
      data->length   = (double)data->frames / data->rate;
 
 #ifdef HAVE_FUSIONSOUND
+     FusionSoundInit( NULL, NULL );
      if (FusionSoundCreate( &data->sound ) == DFB_OK) {
           FSStreamDescription dsc;
 

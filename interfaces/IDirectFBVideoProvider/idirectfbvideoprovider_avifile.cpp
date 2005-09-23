@@ -37,7 +37,8 @@ extern "C" {
 #include <directfb.h>
 
 #include <media/idirectfbvideoprovider.h>
-
+#include <media/idirectfbdatabuffer.h>
+     
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -59,7 +60,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <direct/interface_implementation.h>
 
@@ -394,26 +395,34 @@ extern "C" {
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     if (strstr( ctx->filename, ".avi" ) ||
-         strstr( ctx->filename, ".AVI" ) ||
-         strstr( ctx->filename, ".asf" ) ||
-         strstr( ctx->filename, ".ASF" ))
-          return DFB_OK;
+     if (ctx->filename) {
+          if (strstr( ctx->filename, ".avi" ) ||
+              strstr( ctx->filename, ".AVI" ) ||
+              strstr( ctx->filename, ".asf" ) ||
+              strstr( ctx->filename, ".ASF" ))
+          {
+               if (access( ctx->filename, F_OK ) == 0)
+                    return DFB_OK;
+          }
+     }
 
      return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, const char *filename )
+Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 {
      DFBResult ret;
+     IDirectFBDataBuffer_data *buffer_data;
 
-     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_AviFile)
-
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_AviFile);
+          
      data->ref = 1;
 
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+
      try {
-          data->player = CreateAviPlayer( filename, 16 /* FIXME */ );
+          data->player = CreateAviPlayer( buffer_data->filename, 16 /* FIXME */ );
 
           data->player->SetDrawCallback2( AviFile_DrawCallback, data );
           data->player->SetKillHandler( AviFile_KillCallback, data );

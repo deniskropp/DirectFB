@@ -41,6 +41,7 @@
 #include <directfb.h>
 
 #include <media/idirectfbvideoprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -62,7 +63,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <direct/interface_implementation.h>
 
@@ -404,25 +405,33 @@ static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment( IDirectFBVideoPr
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     if (strstr( ctx->filename, ".swf" ) ||
-         strstr( ctx->filename, ".SWF" ))
-          return DFB_OK;
+     if (ctx->filename) {
+          if (strstr( ctx->filename, ".swf" ) ||
+              strstr( ctx->filename, ".SWF" ))
+          {
+               if (access( ctx->filename, F_OK ) == 0)
+                    return DFB_OK;
+          }
+     }
 
      return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, const char *filename )
+Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 {
-     char *buffer;
+     char *buf;
      long size;
      int status;
+     IDirectFBDataBuffer_data *buffer_data;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Swf)
-
+          
      data->ref = 1;
 
-     if (readFile (filename, &buffer, &size) < 0) {
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+
+     if (readFile (buffer_data->filename, &buf, &size) < 0) {
           printf( "DirectFB/Swf: Loading Swf file failed.\n");
           D_FREE( data );
           DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -438,7 +447,7 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
      }
 
      do {
-          status = FlashParse (data->flashHandle, 0, buffer, size);
+          status = FlashParse (data->flashHandle, 0, buf, size);
      }
      while (status & FLASH_PARSE_NEED_DATA);
      D_FREE(buffer);

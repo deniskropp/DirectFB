@@ -47,6 +47,7 @@
 #include <direct/memcpy.h>
 
 #include <media/idirectfbvideoprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
 #include <misc/util.h>
 
@@ -70,7 +71,8 @@ static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, const char *filename );
+Construct( IDirectFBVideoProvider *thiz, 
+           IDirectFBDataBuffer    *buffer );
 
 #include <direct/interface_implementation.h>
 
@@ -968,6 +970,9 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      quicktime_t *q;
 
+     if (!ctx->filename)
+          return DFB_UNSUPPORTED;
+
 #ifdef SEGFAULTS_IN_OPENQUICKTIME
      if (!quicktime_check_sig( (char *) ctx->filename ))
           return DFB_UNSUPPORTED;
@@ -1005,9 +1010,10 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, const char *filename )
+Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 {
      int i;
+     IDirectFBDataBuffer_data *buffer_data;
      IDirectFBVideoProvider_OpenQuicktime_data *data;
 
      /* allocate private data */
@@ -1016,10 +1022,11 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
 
      thiz->priv = data;
 
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
 
      /* initialize private data */
      data->ref           = 1;
-     data->filename      = D_STRDUP( filename );
+     data->filename      = D_STRDUP( buffer_data->filename );
 
      data->video.thread  = -1;
      data->audio.thread  = -1;

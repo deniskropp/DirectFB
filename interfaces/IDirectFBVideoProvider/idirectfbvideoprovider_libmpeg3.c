@@ -42,6 +42,7 @@
 #include <directfb.h>
 
 #include <media/idirectfbvideoprovider.h>
+#include <media/idirectfbdatabuffer.h>
 
 #include <misc/util.h>
 
@@ -79,7 +80,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           const char             *filename );
+           IDirectFBDataBuffer    *buffer );
 
 #include <direct/interface_implementation.h>
 
@@ -990,7 +991,12 @@ static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
      mpeg3_t *q;
-     char    *filename = D_STRDUP( ctx->filename );
+     char    *filename;
+     
+     if (!ctx->filename)
+          return DFB_UNSUPPORTED;
+     
+     filename = D_STRDUP( ctx->filename );
 
      if (!mpeg3_check_sig( filename )) {
           D_FREE( filename );
@@ -1017,15 +1023,18 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, const char *filename )
+Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 {
      int i;
+     IDirectFBDataBuffer_data *buffer_data;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_Libmpeg3)
 
+     buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
+          
      /* initialize private data */
      data->ref           = 1;
-     data->filename      = D_STRDUP( filename );
+     data->filename      = D_STRDUP( buffer_data->filename );
 
      data->video.thread  = (pthread_t) -1;
      data->audio.thread  = (pthread_t) -1;
@@ -1070,7 +1079,6 @@ Construct( IDirectFBVideoProvider *thiz, const char *filename )
           data->audio.rate      = mpeg3_sample_rate( data->file, 0 );
           data->audio.length    = mpeg3_audio_samples( data->file, 0 );
      }
-
 
 
      /* initialize function pointers */
