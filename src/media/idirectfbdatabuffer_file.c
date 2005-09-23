@@ -30,7 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-
+#include <time.h>
 #include <string.h>
 #include <errno.h>
 
@@ -169,12 +169,16 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
      tv.tv_usec = milli_seconds*1000;
 
      while (pthread_mutex_trylock( &data->mutex )) {
+          struct timespec t, r;
+          
           if (errno != EBUSY)
                return errno2result( errno );
 
-          usleep( 10 );
+          t.tv_sec  = 0;
+          t.tv_nsec = 10000;
+          nanosleep( &t, &r );
           
-          tv.tv_usec -= 10;
+          tv.tv_usec -= (t.tv_nsec - r.tv_nsec + 500) / 1000;
           if (tv.tv_usec < 0) {
                if (tv.tv_sec < 1)
                     return DFB_TIMEOUT;
