@@ -983,10 +983,9 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBVideoProvider **interface )
 {
-     DFBResult                            ret;
-     DirectInterfaceFuncs                *funcs = NULL;
-     IDirectFBVideoProvider              *videoprovider;
-     IDirectFBVideoProvider_ProbeContext  ctx;
+     DFBResult                 ret; 
+     DFBDataBufferDescription  desc;
+     IDirectFBDataBuffer      *databuffer;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -994,24 +993,21 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      if (!interface || !filename)
           return DFB_INVARG;
 
-     /* Fill out probe context */
-     ctx.filename = filename;
+     /* Create a data buffer. */
+     desc.flags = DBDESC_FILE;
+     desc.file  = filename;
 
-     /* Find a suitable implemenation */
-     ret = DirectGetInterface( &funcs, "IDirectFBVideoProvider", NULL, DirectProbeInterface, &ctx );
+     ret = thiz->CreateDataBuffer( thiz, &desc, &databuffer );
      if (ret)
           return ret;
 
-     DIRECT_ALLOCATE_INTERFACE( videoprovider, IDirectFBVideoProvider );
+     /* Create (probing) the video provider. */
+     ret = IDirectFBVideoProvider_CreateFromBuffer( databuffer, interface );
 
-     /* Construct the interface */
-     ret = funcs->Construct( videoprovider, filename );
-     if (ret)
-          return ret;
+     /* We don't need it anymore, video provider has its own reference. */
+     databuffer->Release( databuffer );
 
-     *interface = videoprovider;
-
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult

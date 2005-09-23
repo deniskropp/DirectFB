@@ -4913,6 +4913,14 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
           IDirectFBDataBuffer      *thiz,
           IDirectFBImageProvider  **interface
      );
+
+     /*
+      * Creates a video provider using the buffers data.
+      */
+     DFBResult (*CreateVideoProvider) (
+          IDirectFBDataBuffer      *thiz,
+          IDirectFBVideoProvider  **interface
+     );
 )
 
 #ifdef __cplusplus

@@ -54,6 +54,7 @@
 
 #include <media/idirectfbdatabuffer.h>
 #include <media/idirectfbimageprovider.h>
+#include <media/idirectfbvideoprovider.h>
 
 
 void
@@ -177,6 +178,19 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
      return IDirectFBImageProvider_CreateFromBuffer( thiz, interface );
 }
 
+static DFBResult
+IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
+                                         IDirectFBVideoProvider **interface )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer)
+
+     /* Check arguments */
+     if (!interface)
+          return DFB_INVARG;
+
+     return IDirectFBVideoProvider_CreateFromBuffer( thiz, interface );
+}
+
 DFBResult
 IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
 {
@@ -200,7 +214,8 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
      thiz->HasData                = IDirectFBDataBuffer_HasData;
      thiz->PutData                = IDirectFBDataBuffer_PutData;
      thiz->CreateImageProvider    = IDirectFBDataBuffer_CreateImageProvider;
-
+     thiz->CreateVideoProvider    = IDirectFBDataBuffer_CreateVideoProvider;
+     
      return DFB_OK;
 }
 

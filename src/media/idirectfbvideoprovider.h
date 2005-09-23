@@ -1,13 +1,14 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2004  convergence GmbH.
+   (c) Copyright 2002-2005  convergence GmbH.
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -32,7 +33,19 @@
  * probing context
  */
 typedef struct {
-     const char *filename;
+     unsigned char        header[512];
+     
+     /* Only set if databuffer is created from file. */
+     const char          *filename;
+
+     /* Usefull if provider needs more data for probing. */
+     IDirectFBDataBuffer *buffer;
 } IDirectFBVideoProvider_ProbeContext;
 
+
+DFBResult
+IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
+                                         IDirectFBVideoProvider **interface );
+
 #endif
+
