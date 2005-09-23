@@ -68,7 +68,7 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
 
      /* Read the first 512 bytes. */
      ret = buffer->PeekData( buffer, sizeof(ctx.header), 0, ctx.header, NULL );
-     if (ret)
+     if (ret && ret != DFB_BUFFEREMPTY)
           return ret;
 
      /* Find a suitable implementation. */
