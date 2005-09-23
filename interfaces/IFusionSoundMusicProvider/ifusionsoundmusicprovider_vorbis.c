@@ -874,27 +874,35 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     DFBResult       err;
+     DFBResult       ret;
      DirectStream   *stream;
      FILE           *fp;
      OggVorbis_File  vf;
-     long            ret;
+     struct timeval  tv = { 30, 0 };
 
-     err = direct_stream_create( ctx->filename, &stream );
-     if (err)
-          return err;
+     ret = direct_stream_create( ctx->filename, &stream );
+     if (ret)
+          return ret;
      
-     err = direct_stream_fopen( stream, &fp );
-     if (err)
-          return err;
-          
-     ret = ov_test( fp, &vf, NULL, 0 );
+     ret = direct_stream_fopen( stream, &fp );
+     if (ret)
+          return ret;
+
+     /* need at least 8500 bytes */
+     ret = direct_stream_wait( stream, 8500, &tv );
+     if (ret)
+          return ret;
+
+     fcntl( fileno(fp), F_SETFL,
+               fcntl( fileno(fp), F_GETFL ) & ~O_NONBLOCK );
+     
+     ret = ov_test( fp, &vf, NULL, 0 ) ? DFB_UNSUPPORTED : DFB_OK;
      
      ov_clear( &vf );
      
      direct_stream_destroy( stream );
 
-     return ret ? DFB_UNSUPPORTED : DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -917,6 +925,9 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      ret = direct_stream_fopen( data->stream, &fp );
      if (ret)
           return ret;
+
+     fcntl( fileno(fp), F_SETFL,
+               fcntl( fileno(fp), F_GETFL ) & ~O_NONBLOCK );
      
      if (ov_open( fp, &data->vf, NULL, 0 ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
