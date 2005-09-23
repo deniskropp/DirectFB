@@ -874,31 +874,25 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     DFBResult       ret;
-     DirectStream   *stream;
-     FILE           *fp;
-     OggVorbis_File  vf;
-     struct timeval  tv = { 30, 0 };
+     DFBResult     ret;
+     DirectStream *stream;
+     char          buf[58];
 
      ret = direct_stream_create( ctx->filename, &stream );
      if (ret)
           return ret;
-     
-     ret = direct_stream_fopen( stream, &fp );
-     if (ret)
-          return ret;
 
-     /* need at least 8500 bytes */
-     ret = direct_stream_wait( stream, 8500, &tv );
-     if (ret)
+     ret = direct_stream_wait( stream, sizeof(buf), NULL );
+     if (ret) {
+          direct_stream_destroy( stream );
           return ret;
+     }
 
-     fcntl( fileno(fp), F_SETFL,
-               fcntl( fileno(fp), F_GETFL ) & ~O_NONBLOCK );
-     
-     ret = ov_test( fp, &vf, NULL, 0 ) ? DFB_UNSUPPORTED : DFB_OK;
-     
-     ov_clear( &vf );
+     ret = direct_stream_read( stream, sizeof(buf), buf, NULL );
+     if (ret == DFB_OK) {
+          if (strncmp( buf, "OggS", 4 ) || strncmp( buf+29, "vorbis", 6 ))
+               ret = DFB_UNSUPPORTED;
+     }
      
      direct_stream_destroy( stream );
 
