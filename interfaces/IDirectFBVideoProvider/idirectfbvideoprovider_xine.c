@@ -536,6 +536,7 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
+     const char        *mrl;
      char              *xinerc;
      xine_t            *xine;
      xine_video_port_t *vo;
@@ -547,6 +548,20 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      /* Skip test in this case */
      if (!ctx->filename)
           return DFB_OK;
+     
+     if (!strcmp ( ctx->filename, "/dev/cdrom" )     ||
+         !strncmp( ctx->filename, "/dev/cdroms/", 12 )) {
+          mrl = "cdda:/1";
+     }
+     else if (!strcmp( ctx->filename, "/dev/dvd" )) {
+          mrl = "dvd:/";
+     }
+     else if (!strcmp( ctx->filename, "/dev/vcd" )) {
+          mrl = "vcd:/";
+     }
+     else {
+          mrl = ctx->filename;
+     }
      
      xine = xine_new();
      if (!xine)
@@ -591,7 +606,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
           return DFB_INIT;
      }
           
-     if (xine_open( stream, ctx->filename ))
+     if (xine_open( stream, mrl ))
           result = DFB_OK;
      else
           result = DFB_UNSUPPORTED;
