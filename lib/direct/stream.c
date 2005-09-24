@@ -1424,6 +1424,9 @@ direct_stream_seek( DirectStream *stream,
      
      if (!offset)
           return DFB_OK;
+
+     if ((stream->offset + offset) < 0)
+          return DFB_INVARG;
      
      if (stream->seek)
           return stream->seek( stream, offset );
