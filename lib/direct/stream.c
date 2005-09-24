@@ -92,7 +92,7 @@ struct __D_DirectStream {
                               void         *buf, 
                               unsigned int *read_out );
      DirectResult  (*seek)  ( DirectStream *stream,
-                              int           offset );
+                              unsigned int  offset );
      void          (*close) ( DirectStream *stream );
 };
 
@@ -538,11 +538,9 @@ tcp_open( DirectStream *stream, const char *filename )
 /*****************************************************************************/
 
 static DirectResult
-http_seek( DirectStream *stream, 
-           int           offset )
+http_seek( DirectStream *stream, unsigned int offset )
 {
      DirectResult ret;
-     int          off    = stream->offset+offset;
      int          status = 0;
      char         buf[1024]; 
      
@@ -567,7 +565,7 @@ http_seek( DirectStream *stream,
                     stream->remote.path, 
                     stream->remote.host,
                     stream->remote.auth,
-                    DIRECTFB_VERSION, off );
+                    DIRECTFB_VERSION, offset );
      }
      else {
           snprintf( buf, sizeof(buf), 
@@ -579,7 +577,7 @@ http_seek( DirectStream *stream,
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
-                    DIRECTFB_VERSION, off );
+                    DIRECTFB_VERSION, offset );
      }
      
      send( stream->remote.sd, buf, strlen( buf ), 0 );
@@ -608,7 +606,7 @@ http_seek( DirectStream *stream,
                return DFB_FAILURE;
      }
 
-     stream->offset = off;
+     stream->offset = offset;
 
      return DFB_OK;
 }    
@@ -840,10 +838,9 @@ ftp_open_pasv( DirectStream *stream, char *buf, size_t size )
 }
 
 static DirectResult
-ftp_seek( DirectStream *stream, int offset )
+ftp_seek( DirectStream *stream, unsigned int offset )
 {
      DirectResult ret = DFB_OK;
-     int          off = stream->offset+offset;
      int          status;
      char         buf[512];
      int          len;
@@ -860,7 +857,7 @@ ftp_seek( DirectStream *stream, int offset )
      if (ret)
           return ret;
      
-     len = snprintf( buf, sizeof(buf), "REST %d\r\n", off );
+     len = snprintf( buf, sizeof(buf), "REST %d\r\n", offset );
      ret = ftp_command( stream, buf, len );
      if (ret)
           goto error;
@@ -882,7 +879,7 @@ ftp_seek( DirectStream *stream, int offset )
           goto error;
      }
 
-     stream->offset = off;
+     stream->offset = offset;
 
      return DFB_OK;
 
@@ -1183,12 +1180,11 @@ file_read( DirectStream *stream,
 }
 
 static DirectResult
-file_seek( DirectStream *stream,
-           int           offset )
+file_seek( DirectStream *stream, unsigned int offset )
 {
      off_t off;
 
-     off = lseek( stream->fd, offset, SEEK_CUR );
+     off = lseek( stream->fd, offset, SEEK_SET );
      if (off < 0)
           return DFB_FAILURE;
 
@@ -1416,17 +1412,17 @@ direct_stream_read( DirectStream *stream,
 
 DirectResult
 direct_stream_seek( DirectStream *stream,
-                    int           offset )
+                    unsigned int  offset )
 {
      D_ASSERT( stream != NULL );
      
      D_MAGIC_ASSERT( stream, DirectStream );
-     
-     if (!offset)
-          return DFB_OK;
 
-     if ((stream->offset + offset) < 0)
-          return DFB_INVARG;
+     if (stream->offset == offset)
+          return DFB_OK;
+     
+     if (stream->length >= 0 && offset > stream->length)
+          offset = stream->length;
      
      if (stream->seek)
           return stream->seek( stream, offset );

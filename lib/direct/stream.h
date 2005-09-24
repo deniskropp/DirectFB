@@ -100,10 +100,10 @@ DirectResult  direct_stream_read    ( DirectStream   *stream,
                                       unsigned int   *read_out );
 
 /*
- * Seek to the specified relative offset within the stream.
+ * Seek to the specified absolute offset within the stream.
  */
 DirectResult  direct_stream_seek    ( DirectStream   *stream,
-                                      int             offset );
+                                      unsigned int    offset );
 
 /*
  * Destroy the stream wrapper.
