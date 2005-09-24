@@ -921,7 +921,6 @@ IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
 {
      DFBResult ret;
      double    rate;
-     int       off;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
@@ -932,8 +931,7 @@ IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
      
      rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
      if (rate) {
-          off = seconds*rate - direct_stream_offset( data->s );
-          ret = direct_stream_seek( data->s, off );
+          ret = direct_stream_seek( data->s, seconds*rate );
           if (ret == DFB_OK)
                data->seeked = true;
      }

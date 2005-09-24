@@ -1313,8 +1313,7 @@ IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
      offset += data->headsize;
 
      pthread_mutex_lock( &data->lock );
-     ret = direct_stream_seek( data->stream,
-                               offset - direct_stream_offset( data->stream ) );
+     ret = direct_stream_seek( data->stream, offset );
      pthread_mutex_unlock( &data->lock );
      
      return ret;

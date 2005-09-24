@@ -807,13 +807,12 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
      pthread_mutex_lock( &data->lock );
      
      if (direct_stream_remote( data->stream )) {
-          int  off;
+          unsigned int off;
           
           if (!data->info->bitrate_nominal)
                return DFB_UNSUPPORTED;
 
-          off = seconds * (double)(data->info->bitrate_nominal >> 3) -
-                direct_stream_offset( data->stream );
+          off = seconds * (double)(data->info->bitrate_nominal >> 3);
           ret = direct_stream_seek( data->stream, off );
      }
      else {
@@ -917,8 +916,10 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      }
 
      ret = direct_stream_fopen( data->stream, &fp );
-     if (ret)
+     if (ret) {
+          direct_stream_destroy( data->stream );
           return ret;
+     }
 
      fcntl( fileno(fp), F_SETFL,
                fcntl( fileno(fp), F_GETFL ) & ~O_NONBLOCK );
