@@ -1077,8 +1077,10 @@ pipe_read( DirectStream *stream,
           size = MIN( stream->cache_size, length );
           
           direct_memcpy( buf, stream->cache, size );
-          
+     
+          length -= size;
           stream->cache_size -= size; 
+          
           if (stream->cache_size) {
                direct_memcpy( stream->cache, 
                               stream->cache+size, stream->cache_size );
