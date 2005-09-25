@@ -470,6 +470,10 @@ static int
 key_event( struct input_event *levt,
            DFBInputEvent      *devt )
 {
+     /* map touchscreen and smartpad events to button mouse */
+     if (levt->code == BTN_TOUCH || levt->code == BTN_TOOL_FINGER)
+          levt->code = BTN_MOUSE;
+
      if (levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) {
           devt->type   = levt->value ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
           /* don't set DIEF_BUTTONS, it will be set by the input core */
@@ -721,8 +725,10 @@ get_device_info( int              fd,
                     num_abs++;
      }
 
-     /* Mouse or Touchscreen? */
-     if ((num_rels >= 2 && num_buttons)  ||  (num_abs == 2 && (num_buttons == 1)))
+     /* Mouse, Touchscreen or Smartpad ? */
+     if ((test_bit( EV_KEY, evbit ) &&
+          (test_bit( BTN_TOUCH, keybit ) || test_bit( BTN_TOOL_FINGER, keybit ))) ||
+          ((num_rels >= 2 && num_buttons)  ||  (num_abs == 2 && (num_buttons == 1))))
           info->desc.type |= DIDTF_MOUSE;
      else if (num_abs && num_buttons) /* Or a Joystick? */
           info->desc.type |= DIDTF_JOYSTICK;
