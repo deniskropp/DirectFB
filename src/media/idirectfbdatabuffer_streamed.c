@@ -78,6 +78,8 @@ typedef struct {
 
      unsigned int              length;          /* total length of all chunks */
 
+     bool                      finished;        /* whether Finish() has been called */
+
      pthread_mutex_t           chunks_mutex;    /* mutex lock for accessing
                                                    the chunk list */
 
@@ -134,6 +136,22 @@ IDirectFBDataBuffer_Streamed_Flush( IDirectFBDataBuffer *thiz )
 }
 
 static DFBResult
+IDirectFBDataBuffer_Streamed_Finish( IDirectFBDataBuffer *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
+
+     if (!data->finished) {
+          data->finished = true;
+
+          pthread_mutex_lock( &data->chunks_mutex );
+          pthread_cond_broadcast( &data->wait_condition );
+          pthread_mutex_unlock( &data->chunks_mutex );
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBDataBuffer_Streamed_SeekTo( IDirectFBDataBuffer *thiz,
                                      unsigned int         offset )
 {
@@ -169,9 +187,12 @@ IDirectFBDataBuffer_Streamed_WaitForData( IDirectFBDataBuffer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
+     if (data->finished && !data->chunks)
+          return DFB_EOF;
+          
      pthread_mutex_lock( &data->chunks_mutex );
 
-     while (data->length < length)
+     while (data->length < length && !data->finished)
           pthread_cond_wait( &data->wait_condition, &data->chunks_mutex );
 
      pthread_mutex_unlock( &data->chunks_mutex );
@@ -193,6 +214,9 @@ IDirectFBDataBuffer_Streamed_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
 
+     if (data->finished && !data->chunks)
+          return DFB_EOF;
+          
      if (pthread_mutex_trylock( &data->chunks_mutex ) == 0) {
           if (data->length >= length) {
                pthread_mutex_unlock( &data->chunks_mutex );
@@ -214,7 +238,7 @@ IDirectFBDataBuffer_Streamed_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
      if (!locked)
           pthread_mutex_lock( &data->chunks_mutex );
 
-     while (data->length < length) {
+     while (data->length < length && !data->finished) {
           if (pthread_cond_timedwait( &data->wait_condition,
                                       &data->chunks_mutex,
                                       &timeout ) == ETIMEDOUT)
@@ -246,7 +270,7 @@ IDirectFBDataBuffer_Streamed_GetData( IDirectFBDataBuffer *thiz,
 
      if (!data->chunks) {
           pthread_mutex_unlock( &data->chunks_mutex );
-          return DFB_BUFFEREMPTY;
+          return data->finished ? DFB_EOF : DFB_BUFFEREMPTY;
      }
 
      /* Calculate maximum number of bytes to be read. */
@@ -285,7 +309,7 @@ IDirectFBDataBuffer_Streamed_PeekData( IDirectFBDataBuffer *thiz,
 
      if (!data->chunks || (unsigned int) offset >= data->length) {
           pthread_mutex_unlock( &data->chunks_mutex );
-          return DFB_BUFFEREMPTY;
+          return data->finished ? DFB_EOF : DFB_BUFFEREMPTY;
      }
 
      /* Calculate maximum number of bytes to be read. */
@@ -307,10 +331,10 @@ static DFBResult
 IDirectFBDataBuffer_Streamed_HasData( IDirectFBDataBuffer *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Streamed)
-
+          
      /* If there's no chunk there's no data. */
      if (!data->chunks)
-          return DFB_BUFFEREMPTY;
+          return data->finished ? DFB_EOF : DFB_BUFFEREMPTY;
 
      return DFB_OK;
 }
@@ -327,6 +351,10 @@ IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
      /* Check arguments. */
      if (!data_buffer || !length)
           return DFB_INVARG;
+
+     /* Fail if Finish() has been called. */
+     if (data->finished)
+          return DFB_UNSUPPORTED;
 
      /* Create a chunk containing a copy of the provided data. */
      chunk = create_chunk( data_buffer, length );
@@ -364,6 +392,7 @@ IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
 
      thiz->Release                = IDirectFBDataBuffer_Streamed_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Streamed_Flush;
+     thiz->Finish                 = IDirectFBDataBuffer_Streamed_Finish;
      thiz->SeekTo                 = IDirectFBDataBuffer_Streamed_SeekTo;
      thiz->GetPosition            = IDirectFBDataBuffer_Streamed_GetPosition;
      thiz->GetLength              = IDirectFBDataBuffer_Streamed_GetLength;

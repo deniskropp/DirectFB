@@ -4778,6 +4778,17 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
      );
 
      /*
+      * Finish writing into a streaming buffer.
+      *
+      * Subsequent calls to PutData will fail,
+      * while attempts to fetch data from the buffer will return EOF
+      * unless there is still data available.
+      */
+     DFBResult (*Finish) (
+          IDirectFBDataBuffer      *thiz
+     );
+
+     /*
       * Seeks to a given byte position.
       *
       * This method only applies to static buffers.
@@ -4808,7 +4819,6 @@ DEFINE_INTERFACE(   IDirectFBDataBuffer,
           IDirectFBDataBuffer      *thiz,
           unsigned int             *ret_length
      );
-
 
    /** Waiting for data **/
 

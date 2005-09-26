@@ -99,6 +99,12 @@ IDirectFBDataBuffer_File_Flush( IDirectFBDataBuffer *thiz )
 }
 
 static DFBResult
+IDirectFBDataBuffer_File_Finish( IDirectFBDataBuffer *thiz )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
 IDirectFBDataBuffer_File_SeekTo( IDirectFBDataBuffer *thiz,
                                  unsigned int         offset )
 {
@@ -152,12 +158,8 @@ IDirectFBDataBuffer_File_WaitForData( IDirectFBDataBuffer *thiz,
      
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     pthread_mutex_lock( &data->mutex );
-          
+     pthread_mutex_lock( &data->mutex );          
      ret = direct_stream_wait( data->stream, length, NULL );
-     if (ret == DFB_EOF)
-          ret = DFB_BUFFEREMPTY;
-
      pthread_mutex_unlock( &data->mutex );
      
      return ret;
@@ -197,12 +199,8 @@ IDirectFBDataBuffer_File_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
           }
      }
          
-     pthread_mutex_lock( &data->mutex );
-
+     pthread_mutex_lock( &data->mutex ); 
      ret = direct_stream_wait( data->stream, length, &tv );
-     if (ret == DFB_EOF)
-          ret = DFB_BUFFEREMPTY;
-
      pthread_mutex_unlock( &data->mutex );
 
      return ret;
@@ -222,11 +220,7 @@ IDirectFBDataBuffer_File_GetData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->mutex );
-
      ret = direct_stream_read( data->stream, length, data_buffer, read_out );
-     if (ret == DFB_EOF)
-          ret = DFB_BUFFEREMPTY;
-
      pthread_mutex_unlock( &data->mutex );
 
      return ret;
@@ -247,14 +241,10 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->mutex );
-
      ret = direct_stream_peek( data->stream, length,
                                offset, data_buffer, read_out );
-     if (ret == DFB_EOF)
-          ret = DFB_BUFFEREMPTY;
-
      pthread_mutex_unlock( &data->mutex );
-
+     
      return ret;
 }
 
@@ -266,12 +256,8 @@ IDirectFBDataBuffer_File_HasData( IDirectFBDataBuffer *thiz )
      
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
 
-     pthread_mutex_lock( &data->mutex );
-          
+     pthread_mutex_lock( &data->mutex );          
      ret = direct_stream_wait( data->stream, 1, &tv );
-     if (ret == DFB_EOF)
-          ret = DFB_BUFFEREMPTY;
-
      pthread_mutex_unlock( &data->mutex );
 
      return ret;
@@ -305,6 +291,7 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
 
      thiz->Release                = IDirectFBDataBuffer_File_Release;
      thiz->Flush                  = IDirectFBDataBuffer_File_Flush;
+     thiz->Finish                 = IDirectFBDataBuffer_File_Finish;
      thiz->SeekTo                 = IDirectFBDataBuffer_File_SeekTo;
      thiz->GetPosition            = IDirectFBDataBuffer_File_GetPosition;
      thiz->GetLength              = IDirectFBDataBuffer_File_GetLength;

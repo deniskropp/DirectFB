@@ -92,6 +92,12 @@ IDirectFBDataBuffer_Memory_Flush( IDirectFBDataBuffer *thiz )
 }
 
 static DFBResult
+IDirectFBDataBuffer_Memory_Finish( IDirectFBDataBuffer *thiz )
+{
+     return DFB_UNSUPPORTED;
+}
+
+static DFBResult
 IDirectFBDataBuffer_Memory_SeekTo( IDirectFBDataBuffer *thiz,
                                    unsigned int         offset )
 {
@@ -140,7 +146,7 @@ IDirectFBDataBuffer_Memory_WaitForData( IDirectFBDataBuffer *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (data->pos + length > data->length)
-          return DFB_BUFFEREMPTY;
+          return DFB_EOF;
 
      return DFB_OK;
 }
@@ -154,7 +160,7 @@ IDirectFBDataBuffer_Memory_WaitForDataWithTimeout( IDirectFBDataBuffer *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (data->pos + length > data->length)
-          return DFB_BUFFEREMPTY;
+          return DFB_EOF;
 
      return DFB_OK;
 }
@@ -173,7 +179,7 @@ IDirectFBDataBuffer_Memory_GetData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      if (data->pos >= data->length)
-          return DFB_BUFFEREMPTY;
+          return DFB_EOF;
 
      size = MIN( length, data->length - data->pos );
 
@@ -202,7 +208,7 @@ IDirectFBDataBuffer_Memory_PeekData( IDirectFBDataBuffer *thiz,
           return DFB_INVARG;
 
      if (data->pos + offset >= data->length)
-          return DFB_BUFFEREMPTY;
+          return DFB_EOF;
 
      size = MIN( length, data->length - data->pos - offset );
 
@@ -220,7 +226,7 @@ IDirectFBDataBuffer_Memory_HasData( IDirectFBDataBuffer *thiz )
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Memory)
 
      if (data->pos >= data->length)
-          return DFB_BUFFEREMPTY;
+          return DFB_EOF;
 
      return DFB_OK;
 }
@@ -251,6 +257,7 @@ IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
 
      thiz->Release                = IDirectFBDataBuffer_Memory_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Memory_Flush;
+     thiz->Finish                 = IDirectFBDataBuffer_Memory_Finish;
      thiz->SeekTo                 = IDirectFBDataBuffer_Memory_SeekTo;
      thiz->GetPosition            = IDirectFBDataBuffer_Memory_GetPosition;
      thiz->GetLength              = IDirectFBDataBuffer_Memory_GetLength;

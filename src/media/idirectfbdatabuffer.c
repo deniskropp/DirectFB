@@ -96,6 +96,12 @@ IDirectFBDataBuffer_Flush( IDirectFBDataBuffer *thiz )
 }
 
 static DFBResult
+IDirectFBDataBuffer_Finish( IDirectFBDataBuffer *thiz )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBDataBuffer_SeekTo( IDirectFBDataBuffer *thiz,
                             unsigned int         offset )
 {
@@ -204,6 +210,7 @@ IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
      thiz->AddRef                 = IDirectFBDataBuffer_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Flush;
+     thiz->Finish                 = IDirectFBDataBuffer_Finish;
      thiz->SeekTo                 = IDirectFBDataBuffer_SeekTo;
      thiz->GetPosition            = IDirectFBDataBuffer_GetPosition;
      thiz->GetLength              = IDirectFBDataBuffer_GetLength;
