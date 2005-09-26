@@ -141,14 +141,11 @@ struct __IDirectFBImageProvider_PNM_data {
 
 #define P_GET( buf, n ) \
 {\
-     err = data->buffer->WaitForDataWithTimeout( data->buffer, n, 5, 0 );\
-     if (err == DFB_TIMEOUT) {\
-          D_ERROR( "DirectFB/ImageProvider_PNM: "\
-                   "reached timeout while waiting for %i bytes.\n", n );\
-          return DFB_TIMEOUT;\
-     }\
+     data->buffer->WaitForData( data->buffer, n );\
      err = data->buffer->GetData( data->buffer, n, buf, &len );\
-     if (err != DFB_OK || len < 1) {\
+     if (err) {\
+          if (err == DFB_EOF)\
+               return DFB_OK;\
           D_ERROR( "DirectFB/ImageProvider_PNM: "\
                    "couldn't get %i bytes from data buffer...\n\t-> %s\n",\
                    n, DirectFBErrorString( err ) );\
