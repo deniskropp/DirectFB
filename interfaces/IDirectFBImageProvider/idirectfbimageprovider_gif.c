@@ -94,6 +94,11 @@ typedef struct {
 
      IDirectFBDataBuffer *buffer;
 
+     __u32               *image;
+     int                  image_width;
+     int                  image_height;
+     bool                 image_transparency;
+     __u32                image_colorkey;
 
      unsigned int  Width;
      unsigned int  Height;
@@ -122,6 +127,9 @@ typedef struct {
      int clear_code, end_code;
      int table[2][(1<< MAX_LWZ_BITS)];
      int stack[(1<<(MAX_LWZ_BITS))*2], *sp;
+
+     DIRenderCallback  render_callback;
+     void             *render_callback_ctx;
 } IDirectFBImageProvider_GIF_data;
 
 static bool verbose       = false;
@@ -175,14 +183,26 @@ Construct( IDirectFBImageProvider *thiz,
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_GIF)
 
-     data->ref    = 1;
-     data->buffer = buffer;
+     data->ref = 1;
 
      data->GrayScale   = -1;
      data->transparent = -1;
      data->delayTime   = -1;
 
+     data->buffer = buffer;
      buffer->AddRef( buffer );
+
+     data->image = ReadGIF( data, 1, &data->image_width, &data->image_height,
+                            &data->image_transparency, &data->image_colorkey,
+                            true, false );
+
+     buffer->Release( buffer );
+     data->buffer = NULL;
+     
+     if (!data->image) {
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return DFB_FAILURE;
+     }
 
      thiz->AddRef = IDirectFBImageProvider_GIF_AddRef;
      thiz->Release = IDirectFBImageProvider_GIF_Release;
@@ -201,7 +221,8 @@ IDirectFBImageProvider_GIF_Destruct( IDirectFBImageProvider *thiz )
      IDirectFBImageProvider_GIF_data *data =
                                    (IDirectFBImageProvider_GIF_data*)thiz->priv;
 
-     data->buffer->Release( data->buffer );
+     if (data->image)
+          D_FREE( data->image );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -259,28 +280,25 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
 
      /* actual loading and rendering */
      if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
-          __u32 *image_data;
-          bool  transparency;
           void  *dst;
-          int    pitch, src_width, src_height;
+          int    pitch;          
 
-          image_data = ReadGIF( data, 1, &src_width, &src_height,
-                                &transparency, NULL,
-                                DFB_PIXELFORMAT_HAS_ALPHA (format),
-                                false );
+          err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+          if (err)
+               return err;
 
-          if (image_data) {
-               err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
-               if (err) {
-                    D_FREE( image_data );
-                    return err;
-               }
+          dfb_scale_linear_32( data->image, data->image_width, data->image_height,
+                               dst, pitch, &rect, dst_surface );
 
-               dfb_scale_linear_32( image_data, src_width, src_height,
-                                    dst, pitch, &rect, dst_surface );
+          destination->Unlock( destination );
 
-               destination->Unlock( destination );
-               D_FREE(image_data);
+          if (data->render_callback) {
+               rect.x = 0;
+               rect.y = 0;
+               rect.w = data->image_width;
+               rect.h = data->image_height;
+
+               data->render_callback( &rect, data->render_callback_ctx );
           }
      }
 
@@ -292,25 +310,23 @@ IDirectFBImageProvider_GIF_SetRenderCallback( IDirectFBImageProvider *thiz,
                                               DIRenderCallback        callback,
                                               void                   *context )
 {
-     return DFB_UNIMPLEMENTED;
+     DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
+
+     data->render_callback     = callback;
+     data->render_callback_ctx = context;
+     
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBImageProvider_GIF_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                   DFBSurfaceDescription  *dsc )
 {
-     int  width;
-     int  height;
-     bool transparency;
-
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
-     ReadGIF( data, 1, &width, &height,
-              &transparency, NULL, false, true );
-
      dsc->flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-     dsc->width       = width;
-     dsc->height      = height;
+     dsc->width       = data->image_width;
+     dsc->height      = data->image_height;
      dsc->pixelformat = dfb_primary_layer_pixelformat();
 
      return DFB_OK;
@@ -320,22 +336,14 @@ static DFBResult
 IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
                                                 DFBImageDescription    *dsc )
 {
-     int   width;
-     int   height;
-     bool  transparency;
-     __u32 key_rgb;
-
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_GIF)
 
-     ReadGIF( data, 1, &width, &height,
-              &transparency, &key_rgb, false, true );
-
-     if (transparency) {
+     if (data->image_transparency) {
           dsc->caps = DICAPS_COLORKEY;
 
-          dsc->colorkey_r = (key_rgb & 0xff0000) >> 16;
-          dsc->colorkey_g = (key_rgb & 0x00ff00) >>  8;
-          dsc->colorkey_b = (key_rgb & 0x0000ff);
+          dsc->colorkey_r = (data->image_colorkey & 0xff0000) >> 16;
+          dsc->colorkey_g = (data->image_colorkey & 0x00ff00) >>  8;
+          dsc->colorkey_b = (data->image_colorkey & 0x0000ff);
      }
      else
           dsc->caps = DICAPS_NONE;
@@ -745,22 +753,14 @@ static __u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
                        int *width, int *height, bool *transparency,
                        __u32 *key_rgb, bool alpha, bool headeronly)
 {
-     DFBResult ret;
-     __u8      buf[16];
-     __u8      c;
-     __u8      localColorMap[3][MAXCOLORMAPSIZE];
-     __u32     colorKey = 0;
-     bool      useGlobalColormap;
-     int       bitPixel;
-     int       imageCount = 0;
-     char      version[4];
-
-     /* FIXME: support streamed buffers */
-     ret = data->buffer->SeekTo( data->buffer, 0 );
-     if (ret) {
-          DirectFBError( "(DirectFB/ImageProvider_GIF) Unable to seek", ret );
-          return NULL;
-     }
+     __u8  buf[16];
+     __u8  c;
+     __u8  localColorMap[3][MAXCOLORMAPSIZE];
+     __u32 colorKey = 0;
+     bool  useGlobalColormap;
+     int   bitPixel;
+     int   imageCount = 0;
+     char  version[4];
 
      if (! ReadOK( data->buffer, buf, 6 )) {
           GIFERRORMSG("error reading magic number" );
