@@ -342,10 +342,12 @@ tcp_peek( DirectStream *stream,
           case 0:
                return DFB_EOF;
           case -1:
+               if (errno == EAGAIN)
+                    return DFB_BUFFEREMPTY;
                return errno2result( errno );
           default:
                if (size < offset)
-                    return DFB_FAILURE;
+                    return DFB_BUFFEREMPTY;
                size -= offset;
                break;
      }
@@ -371,10 +373,9 @@ tcp_read( DirectStream *stream,
           case 0:
                return DFB_EOF;
           case -1:
-               if (errno != EAGAIN)
-                    return errno2result( errno );
-               size = 0;
-               break;
+               if (errno == EAGAIN)
+                    return DFB_BUFFEREMPTY;
+               return errno2result( errno );
      }
 
      stream->offset += size;
@@ -1051,8 +1052,8 @@ pipe_peek( DirectStream *stream,
           }
           
           stream->cache_size += s;
-          if (stream->cache_size < offset)
-               return DFB_FAILURE;
+          if (stream->cache_size <= offset)
+               return DFB_BUFFEREMPTY;
           
           size = stream->cache_size - offset;
      }
@@ -1101,8 +1102,11 @@ pipe_read( DirectStream *stream,
                          return DFB_EOF;
                     break;
                case -1:
-                    if (!size && errno != EAGAIN)
-                         return errno2result( errno );
+                    if (!size) {
+                         return (errno == EAGAIN)
+                                ? DFB_BUFFEREMPTY
+                                : errno2result( errno );
+                    }
                     break;
                default:
                     size += s;
@@ -1139,8 +1143,9 @@ file_peek( DirectStream *stream,
                ret = DFB_EOF;
                break;
           case -1:
-               if (errno != EAGAIN)
-                    ret = errno2result( errno );
+               ret = (errno == EAGAIN)
+                     ? DFB_BUFFEREMPTY
+                     : errno2result( errno );
                size = 0;
                break;
      }
@@ -1167,10 +1172,9 @@ file_read( DirectStream *stream,
           case 0:
                return DFB_EOF;
           case -1:
-               if (errno != EAGAIN)
-                    return errno2result( errno );
-               size = 0;
-               break;
+               if (errno == EAGAIN)
+                    return DFB_BUFFEREMPTY;
+               return errno2result( errno );
      }
 
      stream->offset += size;
