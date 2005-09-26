@@ -261,11 +261,12 @@ SwfInput( DirectThread *self, void *arg )
      IDirectFBDataBuffer                *buffer = data->buffer;
      
      while (!direct_thread_is_canceled( self )) {
+          DFBResult     ret;
           unsigned char tmp[1024];
           unsigned int  len = 0;
           
-          while (buffer->GetData( buffer, sizeof(tmp), 
-                                  tmp, &len ) == DFB_OK && len) {
+          while ((ret = buffer->GetData( buffer,
+                                         sizeof(tmp), tmp, &len )) == DFB_OK) {
                void *buf;
 
                buf = malloc( len );
@@ -293,6 +294,9 @@ SwfInput( DirectThread *self, void *arg )
 
                direct_thread_testcancel( self );
           }
+
+          if (ret == DFB_EOF)
+               break;
 
           usleep( 100 );
      }

@@ -156,16 +156,20 @@ BufferThread( DirectThread *self, void *arg )
      }
 
      while (!direct_thread_is_canceled( self )) {
+          DFBResult     ret;
           char          buf[4096];
           unsigned int  len = 0;
 
-          while (buffer->GetData( buffer,
-                                  sizeof(buf), buf, &len ) == DFB_OK && len) {
+          while ((ret = buffer->GetData( buffer,
+                                  sizeof(buf), buf, &len )) == DFB_OK) {
                write( fd, buf, len );
                
                if (direct_thread_is_canceled( self ))
                     break;
           }
+
+          if (ret == DFB_EOF)
+               break;
                
           usleep( 100 );
      }
@@ -629,7 +633,7 @@ make_pipe( char **ret_path )
      len = snprintf( path, sizeof(path), 
                      "%s/xine-vp-", getenv("TEMP") ? : "/tmp" );
 
-     for (i = 0; i < 0xffff; i++) {
+     for (i = 0; i <= 0xffff; i++) {
           snprintf( path+len, sizeof(path)-len, "%04x", i );
 
           if (mkfifo( path, 0600 ) < 0) {
