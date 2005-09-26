@@ -618,7 +618,7 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
 
           D_DEBUG( "ImageProvider/PNG: Waiting for data...\n" );
 
-          if (buffer->WaitForData( buffer, 1 ) == DFB_BUFFEREMPTY)
+          if (buffer->WaitForData( buffer, 1 ) == DFB_EOF)
                return DFB_FAILURE;
      }
 
