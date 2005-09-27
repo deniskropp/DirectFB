@@ -188,8 +188,12 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      ret = svgstatus2result( svg_cairo_render( data->svg_cairo, cairo ) );
 
      if (data->render_callback && ret == DFB_OK) {
-          DFBRectangle r = { 0, 0, data->width, data->height };
-          data->render_callback( &r, data->render_callback_ctx );
+          rect.x = 0;
+          rect.y = 0;
+          rect.w = data->width;
+          rect.h = data->height;
+          
+          data->render_callback( &rect, data->render_callback_ctx );
      }
      
      cairo_destroy( cairo  );
@@ -216,7 +220,7 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      cairo_format_t          cairo_format;
      void                   *ptr;
      int                     pitch;
-     bool                    convert = false;
+     bool                    need_conversion = false;
           
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_SVG );
 
@@ -233,7 +237,7 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
           return DFB_INVARG;
 
-     dest->GetPixelFormat( dest, &format ); 
+     dest->GetPixelFormat( dest, &format );
      switch (format) {
           case DSPF_A1:
                cairo_format = CAIRO_FORMAT_A1;
@@ -241,20 +245,19 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
           case DSPF_A8:
                cairo_format = CAIRO_FORMAT_A8;
                break;
-          case DSPF_RGB24:
+          case DSPF_RGB32:
                cairo_format = CAIRO_FORMAT_RGB24;
                break;
-          case DSPF_RGB32:
           case DSPF_ARGB:
                cairo_format = CAIRO_FORMAT_ARGB32;
                break;
           default:
                cairo_format = CAIRO_FORMAT_ARGB32;
-               convert      = true;
+               need_conversion = true;
                break;
      }
 
-     if (convert) {
+     if (need_conversion) {
           DFBSurfaceDescription dsc;
 
           dsc.flags       = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
@@ -304,12 +307,16 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      
      tmp->Unlock( tmp );
      
-     if (convert && ret == DFB_OK)
+     if (need_conversion && ret == DFB_OK)
           ret = dest->Blit( dest, tmp, NULL, rect.x, rect.y );
 
      if (data->render_callback && ret == DFB_OK) {
-          DFBRectangle r = { 0, 0, data->width, data->height };
-          data->render_callback( &r, data->render_callback_ctx );
+          rect.x = 0;
+          rect.y = 0;
+          rect.w = data->width;
+          rect.h = data->height;
+          
+          data->render_callback( &rect, data->render_callback_ctx );
      }
      
      cairo_destroy( cairo  );
