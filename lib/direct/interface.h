@@ -45,13 +45,16 @@
 DECLARE_INTERFACE( IAny )
 DEFINE_INTERFACE( IAny )
 
+typedef DirectResult (*DirectInterfaceGenericProbeFunc)( void *ctx, ... );
+typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface, ... );
 
 typedef struct {
      const char * (*GetType)();
      const char * (*GetImplementation)();
      DirectResult (*Allocate)( void **interface );
-     DirectResult (*Probe)( void *ctx, ... );
-     DirectResult (*Construct)( void *interface, ... );
+     
+     DirectInterfaceGenericProbeFunc     Probe;
+     DirectInterfaceGenericConstructFunc Construct;
 } DirectInterfaceFuncs;
 
 typedef DirectResult (*DirectInterfaceProbeFunc)( DirectInterfaceFuncs *impl, void *ctx );

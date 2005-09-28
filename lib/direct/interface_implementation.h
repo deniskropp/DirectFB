@@ -39,8 +39,8 @@ static DirectInterfaceFuncs interface_funcs = {
      GetType:            GetType,
      GetImplementation:  GetImplementation,
      Allocate:           Allocate,
-     Probe:              (DirectResult (*)( void *, ... )) Probe,
-     Construct:          (DirectResult (*)( void *, ... )) Construct
+     Probe:              (DirectInterfaceGenericProbeFunc) Probe,
+     Construct:          (DirectInterfaceGenericConstructFunc) Construct
 };
 
 #define DIRECT_INTERFACE_IMPLEMENTATION(type, impl)    \
