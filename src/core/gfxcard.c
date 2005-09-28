@@ -976,16 +976,13 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
      y = tri->y1;
      yend = tri->y3;
 
-     if (y < state->clip.y1)
-          y = state->clip.y1;
-
      if (yend > state->clip.y2)
           yend = state->clip.y2;
 
      SETUP_DDA(tri->x1, tri->y1, tri->x3, tri->y3, dda1);
      SETUP_DDA(tri->x1, tri->y1, tri->x2, tri->y2, dda2);
 
-     while (y < yend) {
+     while (y <= yend) {
           DFBRectangle rect;
 
           if (y == tri->y2) {
@@ -998,19 +995,23 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
           rect.x = MIN(dda1.xi, dda2.xi);
 
           if (clip_x2 < rect.x + rect.w)
-               rect.w = clip_x2 - rect.x;
+               rect.w = clip_x2 - rect.x + 1;
 
           if (rect.w > 0) {
-               if (clip_x1 > rect.x)
+               if (clip_x1 > rect.x) {
+                    rect.w -= (clip_x1 - rect.x);
                     rect.x = clip_x1;
+               }
                rect.y = y;
                rect.h = 1;
 
-               if (accelerated)
-                    card->funcs.FillRectangle( card->driver_data,
-                                               card->device_data, &rect );
-               else
-                    gFillRectangle( state, &rect );
+               if (rect.y >=  state->clip.y1) {
+                    if (accelerated)
+                         card->funcs.FillRectangle( card->driver_data,
+                                                    card->device_data, &rect );
+                    else
+                         gFillRectangle( state, &rect );
+               }
           }
 
           INC_DDA(dda1);
