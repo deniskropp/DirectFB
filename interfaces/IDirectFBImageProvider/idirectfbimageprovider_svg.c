@@ -140,11 +140,11 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *dest,
                                      const DFBRectangle     *dest_rect )
 {
-     DFBResult              ret;
-     DFBRectangle           rect;
-     IDirectFBSurface      *tmp;
-     cairo_t               *cairo;
-     cairo_surface_t       *cairo_surface; 
+     DFBResult         ret;
+     DFBRectangle      rect;
+     IDirectFBSurface *tmp;
+     cairo_t          *cairo;
+     cairo_surface_t  *cairo_surface; 
           
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_SVG );
      
@@ -159,16 +159,13 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      dest->GetSize( dest, &rect.w, &rect.h );
 
      if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
-          return DFB_INVARG;
+          return DFB_OK;
 
-     if (rect.x || rect.y) {
-          ret = dest->GetSubSurface( dest, &rect, &tmp );
-          if (ret)
-               return ret;
-     } else {
-          dest->AddRef( dest );
-          tmp = dest;
-     }
+     ret = dest->GetSubSurface( dest, &rect, &tmp );
+     if (ret)
+          return ret;
+     
+     tmp->Clear( tmp, 0x00, 0x00, 0x00, 0x00 );
 
      cairo_surface = cairo_directfb_surface_create( idirectfb_singleton , tmp );
      if (!cairo_surface) {
@@ -235,7 +232,7 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      dest->GetSize( dest, &rect.w, &rect.h );
 
      if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
-          return DFB_INVARG;
+          return DFB_OK;
 
      dest->GetPixelFormat( dest, &format );
      switch (format) {
@@ -266,23 +263,21 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
           dsc.pixelformat = DSPF_ARGB;
 
           ret = idirectfb_singleton->CreateSurface( idirectfb_singleton, &dsc, &tmp );
-          if (ret)
-               return ret;
-          
-          format = DSPF_ARGB;
      }
      else {
-          dest->AddRef( dest );
-          tmp = dest;
+          ret = dest->GetSubSurface( dest, &rect, &tmp );
      }
+
+     if (ret)
+          return ret;
+
+     tmp->Clear( tmp, 0x00, 0x00, 0x00, 0x00 );
      
      ret = tmp->Lock( tmp, DSLF_READ | DSLF_WRITE, &ptr, &pitch );
      if (ret) {
           tmp->Release( tmp );
           return ret;
      }
-     
-     ptr += rect.y * pitch + DFB_BYTES_PER_LINE( format, rect.x );
      
      cairo_surface = 
           cairo_image_surface_create_for_data( ptr, cairo_format,
