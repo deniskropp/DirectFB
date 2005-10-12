@@ -33,7 +33,7 @@
  * probing context
  */
 typedef struct {
-     unsigned char        header[512];
+     unsigned char        header[64];
      
      /* Only set if databuffer is created from file. */
      const char          *filename;

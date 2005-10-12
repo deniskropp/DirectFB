@@ -58,7 +58,7 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      ctx.filename = buffer_data->filename;
      ctx.buffer   = buffer;
      
-     /* Wait until 512 bytes are available. */
+     /* Wait until 64 bytes are available. */
      ret = buffer->WaitForData( buffer, sizeof(ctx.header) );
      if (ret)
           return ret;
@@ -66,7 +66,7 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      /* Clear context header */
      memset( ctx.header, 0, sizeof(ctx.header) );
 
-     /* Read the first 512 bytes. */
+     /* Read the first 64 bytes. */
      ret = buffer->PeekData( buffer, sizeof(ctx.header), 0, ctx.header, NULL );
      if (ret && ret != DFB_BUFFEREMPTY)
           return ret;
