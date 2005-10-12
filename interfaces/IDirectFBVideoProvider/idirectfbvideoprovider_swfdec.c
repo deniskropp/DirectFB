@@ -295,8 +295,10 @@ SwfInput( DirectThread *self, void *arg )
                direct_thread_testcancel( self );
           }
 
-          if (ret == DFB_EOF)
+          if (ret == DFB_EOF) {
+               swfdec_decoder_eof( data->decoder );
                break;
+          }
 
           usleep( 100 );
      }
@@ -699,15 +701,15 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      if (!decoder)
           return DFB_INIT;
           
-     buf = malloc( 64 );
+     buf = malloc( sizeof(ctx->header) );
      if (!buf) {
           swfdec_decoder_free( decoder );
           return DFB_NOSYSTEMMEMORY;
      }
      
-     memcpy( buf, ctx->header, 64 );
+     memcpy( buf, ctx->header, sizeof(ctx->header) );
 
-     swfdec_decoder_add_data( decoder, buf, 64 );
+     swfdec_decoder_add_data( decoder, buf, sizeof(ctx->header) );
      err = swfdec_decoder_parse( decoder );
      swfdec_decoder_free( decoder );
      
