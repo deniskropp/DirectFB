@@ -889,6 +889,12 @@ failure:
      }
 }
 
+#if VIDEO_OUT_DRIVER_IFACE_VERSION >= 21
+# define HILI( x ) hili_##x
+#else
+# define HILI( x ) clip_##x
+#endif
+
 static void
 vo_dfb_set_palette( dfb_driver_t          *this,
                     vo_overlay_t          *overlay,
@@ -948,10 +954,10 @@ vo_dfb_set_palette( dfb_driver_t          *this,
           overlay->rgb_clut++;
      }
 
-     if (!overlay->clip_rgb_clut) { 
-          palette = (DVColor*) &overlay->clip_color[0];
-          clut    = (uint8_t*) &overlay->clip_color[0];
-          trans   = &overlay->clip_trans[0];
+     if (!overlay->HILI(rgb_clut)) { 
+          palette = (DVColor*) &overlay->HILI(color[0]);
+          clut    = (uint8_t*) &overlay->HILI(color[0]);
+          trans   = &overlay->HILI(trans[0]);
      
           switch (format) { 
                case DSPF_UYVY:
@@ -994,7 +1000,7 @@ vo_dfb_set_palette( dfb_driver_t          *this,
                break;
           }
 
-          overlay->clip_rgb_clut++;
+          overlay->HILI(rgb_clut)++;
      }
 }
 
@@ -1070,7 +1076,7 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
           //lprintf( "%s using hardware osd\n", use_ovl ? "" : "not" );
      }
 
-     if (!overlay->rgb_clut || !overlay->clip_rgb_clut) {
+     if (!overlay->rgb_clut || !overlay->HILI(rgb_clut)) {
           lprintf( "regenerating palette for overlay %p\n", overlay );
           vo_dfb_set_palette( this, overlay,
                               (!use_ovl) ? frame->surface->format 
@@ -1081,10 +1087,10 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
      
      BENCH_BEGIN( overlay->width*overlay->height );
      
-     subclip.x1 = x + overlay->clip_left; 
-     subclip.y1 = y + overlay->clip_top;
-     subclip.x2 = x + overlay->clip_right;
-     subclip.y2 = y + overlay->clip_bottom;
+     subclip.x1 = x + overlay->HILI(left); 
+     subclip.y1 = y + overlay->HILI(top);
+     subclip.x2 = x + overlay->HILI(right);
+     subclip.y2 = y + overlay->HILI(bottom);
      
      if (use_ovl) {
           IDirectFBSurface_data *ovl_data  = this->ovl_data;
@@ -1128,7 +1134,7 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
                               len   += subclip.x1 - x;
                          } else
                          if (x > subclip.x1) {
-                              palette = (DVColor*) &overlay->clip_color[0];
+                              palette = (DVColor*) &overlay->HILI(color[0]);
 
                               if ((x + width - 1) > subclip.x2) {
                                    width -= subclip.x2 - x;
@@ -1231,7 +1237,7 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
                               len   += subclip.x1 - x;
                          } else
                          if (x > subclip.x1) {
-                              palette = (DVColor*) &overlay->clip_color[0];
+                              palette = (DVColor*) &overlay->HILI(color[0]);
 
                               if ((x + width - 1) > subclip.x2) {
                                    width -= subclip.x2 - x;
