@@ -63,12 +63,12 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      if (ret)
           return ret;
 
-     /* Clear context header */
+     /* Clear context header. */
      memset( ctx.header, 0, sizeof(ctx.header) );
 
      /* Read the first 64 bytes. */
      ret = buffer->PeekData( buffer, sizeof(ctx.header), 0, ctx.header, NULL );
-     if (ret && ret != DFB_BUFFEREMPTY)
+     if (ret && ret != DFB_BUFFEREMPTY && ret != DFB_EOF)
           return ret;
 
      /* Find a suitable implementation. */
