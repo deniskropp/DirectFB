@@ -54,9 +54,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-
 #include "xwindow.h"
-
 #include "x11.h"
 #include "primary.h"
 
@@ -182,8 +180,27 @@ primaryInitLayer( CoreLayer                  *layer,
           config->pixelformat = dfb_config->mode.format;
      else if (dfb_config->mode.depth > 0)
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-     else
-          config->pixelformat = DSPF_RGB16;
+     else { 
+		  Display *display =XOpenDisplay(NULL);
+		  int depth=DefaultDepth(display,DefaultScreen(display));
+		   XCloseDisplay(display);
+		  switch(depth) {
+			case 16:
+          	config->pixelformat = DSPF_RGB16;
+			break;
+			case 24:
+          	/*config->pixelformat = DSPF_RGB24;
+			break;
+			*/
+			case 32:
+          	config->pixelformat = DSPF_RGB32;
+			break;
+			default:
+			printf(" Unsupported X11 screen depth %d \n",depth);
+			exit(-1);
+			break;
+		  }
+	}
 
      return DFB_OK;
 }

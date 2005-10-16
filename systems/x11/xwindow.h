@@ -9,7 +9,6 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
  
-static const int g_iNeededDepth = 24;
 
 
 typedef struct 
