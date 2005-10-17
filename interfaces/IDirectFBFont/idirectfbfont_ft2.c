@@ -502,7 +502,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
      }
 
      pthread_mutex_lock ( &library_mutex );
-     err = FT_New_Face( library, ctx->filename, -1, &face );
+     err = FT_New_Face( library, ctx->filename, 0, &face );
      pthread_mutex_unlock ( &library_mutex );
 
      release_freetype();
