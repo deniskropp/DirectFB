@@ -328,6 +328,8 @@ static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                   DFBSurfaceDescription *dsc )
 {
+     DFBSurfacePixelFormat primary_format = dfb_primary_layer_pixelformat();
+
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
 
      dsc->flags  = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
@@ -335,9 +337,9 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
      dsc->height = data->height;
 
      if (data->color_type & PNG_COLOR_MASK_ALPHA)
-          dsc->pixelformat = DSPF_ARGB;
+          dsc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
      else
-          dsc->pixelformat = dfb_primary_layer_pixelformat();
+          dsc->pixelformat = primary_format;
 
      return DFB_OK;
 }
