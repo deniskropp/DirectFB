@@ -502,7 +502,13 @@ Probe( IDirectFBFont_ProbeContext *ctx )
      }
 
      pthread_mutex_lock ( &library_mutex );
+     /*
+      * This should be
+      * err = FT_New_Face( library, ctx->filename, -1, NULL );
+      * but due to freetype bugs it doesn't work.
+      */
      err = FT_New_Face( library, ctx->filename, 0, &face );
+     FT_Done_Face( face );
      pthread_mutex_unlock ( &library_mutex );
 
      release_freetype();
