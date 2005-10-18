@@ -1034,7 +1034,9 @@ fi
 
 if test "$checkfor_sis315" = "yes"; then
 dnl Test for sis315 frame buffer support in the kernel
-  sis315=yes
+  AC_CHECK_HEADER( [linux/sisfb.h], sis315=yes, sis315=no
+    AC_MSG_WARN([
+*** SiS 315 gfxdriver will not be built.]))
 fi
 
 if test "$checkfor_neomagic" = "yes" && test "$have_sysio" = "yes"; then
