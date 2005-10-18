@@ -504,6 +504,14 @@ dfb_layer_region_flip_update( CoreLayerRegion     *region,
                     dfb_layer_wait_vsync( layer );
                }
 
+               D_DEBUG_AT( Core_Layers, "  -> Waiting for pending writes...\n" );
+
+               if (buffer->video.access & VAF_HARDWARE_WRITE) {
+                    dfb_gfxcard_wait_serial( &buffer->video.serial );
+
+                    buffer->video.access &= ~VAF_HARDWARE_WRITE;
+               }
+
                D_DEBUG_AT( Core_Layers, "  -> Copying content from back to front buffer...\n" );
 
                /* ...or copy updated contents from back to front buffer. */
