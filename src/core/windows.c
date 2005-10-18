@@ -282,8 +282,13 @@ dfb_window_create( CoreWindowStack        *stack,
 
      /* Choose pixel format. */
      if (caps & DWCAPS_ALPHACHANNEL) {
-          if (pixelformat == DSPF_UNKNOWN)
-               pixelformat = DSPF_ARGB;
+          if (pixelformat == DSPF_UNKNOWN) {
+               if (context->config.flags & DLCONF_PIXELFORMAT)
+                    pixelformat = context->config.pixelformat;
+
+               if (! DFB_PIXELFORMAT_HAS_ALPHA(pixelformat))
+                    pixelformat = DSPF_ARGB;
+          }
           else if (! DFB_PIXELFORMAT_HAS_ALPHA(pixelformat)) {
                dfb_windowstack_unlock( stack );
                return DFB_INVARG;
