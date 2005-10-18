@@ -890,17 +890,12 @@ driver_open_device( CoreInputDevice  *device,
 
      /* check if the device has LEDs */
      ret = ioctl( fd, EVIOCGBIT(EV_LED, LED_MAX), ledbit );
-     if (ret < 0) {
+     if (ret < 0)
           D_PERROR( "DirectFB/linux_input: could not get LED bits" );
-          ioctl( fd, EVIOCGRAB, 0 );
-          close( fd );
-          D_FREE( data );
-          return DFB_INIT;
-     }
-
-     data->has_leds = test_bit( LED_SCROLLL, ledbit ) ||
-                      test_bit( LED_NUML, ledbit ) ||
-                      test_bit( LED_CAPSL, ledbit );
+     else
+          data->has_leds = test_bit( LED_SCROLLL, ledbit ) ||
+                           test_bit( LED_NUML, ledbit ) ||
+                           test_bit( LED_CAPSL, ledbit );
 
      if (data->has_leds) {
           /* get LED state */
