@@ -4719,6 +4719,8 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
 
      /*
       * Gets current position within the stream.
+      *
+      * Returns DFB_EOF when the stream has reached the end.
       */
      DFBResult (*GetPos) (
           IDirectFBVideoProvider   *thiz,
