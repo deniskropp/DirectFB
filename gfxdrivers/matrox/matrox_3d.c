@@ -34,6 +34,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <core/accelerators.h>
 
 #include "regs.h"
 #include "mmio.h"

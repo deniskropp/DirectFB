@@ -41,6 +41,7 @@
 
 #include <fusion/shmalloc.h>
 
+#include <core/accelerators.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
