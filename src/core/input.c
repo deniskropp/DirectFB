@@ -732,7 +732,6 @@ init_devices()
                D_MAGIC_SET( device, CoreInputDevice );
 
                if (funcs->OpenDevice( device, n, &device_info, &driver_data )) {
-                    fusion_reactor_free( shared->reactor );
                     SHFREE( shared );
                     D_MAGIC_CLEAR( device );
                     D_FREE( device );
