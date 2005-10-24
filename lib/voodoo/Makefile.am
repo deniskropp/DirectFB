@@ -28,7 +28,8 @@ include_HEADERS = \
 	interface.h		\
 	manager.h		\
 	message.h		\
-	server.h
+	server.h		\
+	types.h
 
 
 lib_LTLIBRARIES = libvoodoo.la
