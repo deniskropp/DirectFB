@@ -1,3 +1,17 @@
+0.9.24
+------
+
+- Added missing source (header) files to their appropriate Makefile.am, mostly from voodoo.
+- Don't use fusion_reactor_free() too early in case of an error in init_devices().
+  Thanks to "Jakub Bogusz <qboosh@pld-linux.org>" for this and other patches.
+- IDirectFBVideoProvider::GetPos() returns DFB_EOF to notify end-of-playback.
+  After stream has reached the end, the next call to PlayTo() restarts playback from the beginning.
+- No need for <linux/wm97xx.h> and <linux/sisfb.h> anymore.
+- Build all graphics drivers without checking for FB_ACCEL_* in <linux/fb.h>,
+  because we have a fallback for each of those ids.
+- Don't build cle266 by default as it's obsolete because of the unichrome driver.
+
+
 0.9.23
 ------
 

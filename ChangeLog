@@ -1,3 +1,120 @@
+2005-10-24   dok	17:11:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.262) (+1 -1)
+	
+	0.9.24
+	
+2005-10-24   dok	17:11:42	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBImageProvider/idirectfbimageprovider_gif.c (1.51) (+1 -1)
+		interfaces/IDirectFBImageProvider/idirectfbimageprovider_jpeg.c (1.43) (+2 -2)
+	
+	Fixed warnings.
+	
+2005-10-24   dok	17:11:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	proxy/requestor/Makefile.am (1.9) (+1 -1)
+	
+	one more missing header added
+	
+2005-10-24   dok	17:06:30	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/surfaces.c (1.123) (+1 -1)
+	
+	Fixed a warning.
+	
+2005-10-24   dok	17:01:08	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.261) (+18 -165)
+	
+	Removed all checks for FB_ACCEL_* as fallbacks are in core/accelerators.h now.
+	
+	Don't build cle266 by default as it's obsolete because of the unichrome driver.
+	
+2005-10-24   dok	16:58:19	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/matrox/matrox_3d.c (1.4) (+1 -0)
+		gfxdrivers/matrox/matrox_bes.c (1.57) (+1 -0)
+	
+	Added missing includes of <core/accelerators.h>.
+	
+2005-10-24   dok	16:47:32	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	inputdrivers/wm97xx_ts/wm97xx_ts.c (1.6) (+0 -2)
+	
+	No need for linux/wm97xx.h anymore.
+	
+2005-10-24   dok	16:47:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.260) (+1 -2)
+	
+	No need for linux/wm97xx.h anymore.
+	
+2005-10-24   dok	16:42:47	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	README (1.103) (+2 -0)
+	
+	Don't use fusion_reactor_free() too early in case of an error in init_devices().
+	
+	Thanks to "Jakub Bogusz <qboosh@pld-linux.org>" for this and other patches.
+	
+2005-10-24   dok	16:42:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	src/core/input.c (1.113) (+0 -1)
+	
+	Don't use fusion_reactor_free() too early in case of an error in init_devices().
+	
+	Thanks to "Jakub Bogusz <qboosh@pld-linux.org>" for this and other patches.
+	
+2005-10-24   dok	16:40:46	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	proxy/dispatcher/Makefile.am (1.9) (+11 -11)
+		proxy/requestor/Makefile.am (1.8) (+6 -6)
+	
+	Added missing headers to SOURCES.
+	
+2005-10-24   dok	16:40:31	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/voodoo/Makefile.am (1.10) (+2 -1)
+	
+	Added missing types.h to SOURCES.
+	
+2005-10-24   dok	16:40:14	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.259) (+8 -1)
+		gfxdrivers/sis315/Makefile.am (1.10) (+2 -1)
+	
+	Added sisfb.h to SOURCES. Removed check for sisfb.h.
+	
+2005-10-24   klan	13:46:13	
+
+	Files:	include/directfb.h (1.277) (+2 -0)
+	
+	IDirectFBVideoProvider::GetPos() returns DFB_EOF to notify end-of-playback.
+	After stream has reached the end, the next call to PlayTo() restarts playback from the beginning.
+	
+2005-10-18   dok	23:38:50	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	patches/Makefile.am (1.42) (+0 -2)
+		patches/fusion-full-linux-2.6.9.patch.bz2 (1.2) (+0 -0)
+		patches/fusion-full-linux-2.4.28.patch.bz2 (1.2) (+0 -0)
+		patches/README.fusion (1.8) (+1 -31)
+	
+	no more patches
+	
+2005-10-18   dok	22:54:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	configure.in (1.258) (+3 -1)
+	
+	Seems that sisfb.h is still required.
+	
+2005-10-18   dok	18:01:07	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.57) (+2572 -0)
+		NEWS (1.57) (+206 -0)
+	
+	New changelog and summary for 0.9.23 :)
+	
 2005-10-18   syrjala	14:37:39	Ville Syrjala <syrjala@sci.fi>
 
 	Files:	interfaces/IDirectFBFont/idirectfbfont_ft2.c (1.24) (+6 -0)
