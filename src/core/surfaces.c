@@ -988,7 +988,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      bool               rgb   = false;
      bool               alpha = false;
 #ifdef USE_ZLIB
-     gzFile             gz_p, gz_g = NULL;
+     gzFile             gz_p = NULL, gz_g = NULL;
      static const char *gz_ext = ".gz";
 #else
      static const char *gz_ext = "";
