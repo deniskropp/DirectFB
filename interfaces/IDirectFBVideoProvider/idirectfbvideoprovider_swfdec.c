@@ -78,7 +78,6 @@ typedef struct {
 
      int                    width;
      int                    height;
-     int                    frames;
      double                 rate;
      long                   interval;
      
@@ -319,7 +318,7 @@ SwfPlayback( DirectThread *self, void *arg )
           SwfdecBuffer   *audio_buffer;
           DFBRectangle    rect;
           struct timeval  start;
-          int             pos;
+          int             pos, len;
           
           gettimeofday( &start, NULL );
           
@@ -348,8 +347,9 @@ SwfPlayback( DirectThread *self, void *arg )
           }
     
           swfdec_render_iterate( data->decoder );
+          swfdec_decoder_get_n_frames( data->decoder, &len );
           pos = swfdec_render_get_frame_index( data->decoder ) + 1;
-          if (pos >= data->frames)
+          if (pos >= len)
                data->finished = true;
           
           if (delay < data->interval) {
@@ -624,6 +624,7 @@ IDirectFBVideoProvider_Swfdec_SeekTo( IDirectFBVideoProvider *thiz,
 
      swfdec_render_seek( data->decoder, seconds*data->rate );
      data->seeking = true;
+     
      pthread_cond_signal( &data->cond );
      
      pthread_mutex_unlock( &data->lock );
@@ -635,29 +636,36 @@ static DFBResult
 IDirectFBVideoProvider_Swfdec_GetPos( IDirectFBVideoProvider *thiz,
                                       double                 *seconds )
 {
-     int current;
+     int frame = 0;
      
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
      
      if (!seconds)
           return DFB_INVARG;
-          
-     current  = swfdec_render_get_frame_index( data->decoder ) + 1;
-     *seconds = (double)current / data->rate;
      
-     return DFB_OK;
+     if (data->finished)
+          swfdec_decoder_get_n_frames( data->decoder, &frame );
+     else
+          frame = swfdec_render_get_frame_index( data->decoder ) + 1;
+     
+     *seconds = (double)frame / data->rate;
+     
+     return data->finished ? DFB_EOF : DFB_OK;
 }
 
 static DFBResult
 IDirectFBVideoProvider_Swfdec_GetLength( IDirectFBVideoProvider *thiz,
                                          double                 *seconds )
 {
+     int frames = 0;
+     
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
           
      if (!seconds)
           return DFB_INVARG;
      
-     *seconds = (double)data->frames / data->rate;
+     swfdec_decoder_get_n_frames( data->decoder, &frames );
+     *seconds = (double)frames / data->rate;
      
      return DFB_OK;
 }
@@ -773,18 +781,16 @@ Construct( IDirectFBVideoProvider *thiz,
      
      swfdec_decoder_get_image_size( data->decoder,
                                     &data->width, &data->height );
-     swfdec_decoder_get_n_frames( data->decoder, &data->frames );
      swfdec_decoder_get_rate( data->decoder, &data->rate );
      
      data->width    = data->width  ? : 1;
      data->height   = data->height ? : 1;
-     data->frames   = data->frames ? : 1;
      data->rate     = data->rate   ? : 1;
      data->interval = 1000000.0/data->rate;
 
      D_DEBUG( "IDirectFBVideoProvider_Swfdec: "
-              "width:%d height:%d frames:%d rate:%.4f.\n",
-              data->width, data->height, data->frames, data->rate );
+              "width:%d height:%d rate:%.4f.\n",
+              data->width, data->height, data->rate );
 
 #ifdef HAVE_FUSIONSOUND
      FusionSoundInit( NULL, NULL );

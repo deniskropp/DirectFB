@@ -112,9 +112,8 @@ typedef struct {
      int                    height; // video height
      int                    length; // duration
 
-     bool                   is_playing;
-     bool                   is_paused;
-     bool                   is_finished;
+     bool                   playing;
+     bool                   finished;
      
      bool                   full_area;
      DFBRectangle           dest_rect;
@@ -344,32 +343,33 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                    XINE_GUI_SEND_SELECT_VISUAL,
                                    (void*) &data->visual ))
           return DFB_UNSUPPORTED;
-
-     if (data->is_paused) {
+     
+     if (!data->playing) {
           xine_set_param( data->stream,
                           XINE_PARAM_AUDIO_MUTE,
                           0 );
+     
+          if (xine_get_status( data->stream )     != XINE_STATUS_PLAY ||
+              xine_get_param ( data->stream, 
+                               XINE_PARAM_SPEED ) != XINE_SPEED_PAUSE)
+          {
+               if (!xine_play( data->stream, 0, 0 )) {
+                    get_stream_error( data );
+                    return data->err;
+               }
+
+               usleep( 100 );
+               
+               xine_get_pos_length( data->stream,
+                                    NULL, NULL, &data->length );
+          }
+
           xine_set_param( data->stream,
                           XINE_PARAM_SPEED,
                           XINE_SPEED_NORMAL );
-          
-          data->is_paused = false;
-     } else 
-     if (!data->is_playing) {     
-          xine_set_param( data->stream,
-                          XINE_PARAM_AUDIO_MUTE,
-                          0 );
-          
-          if(!xine_play( data->stream, 0, 0 )) {
-               get_stream_error( data );
-               return data->err;
-          }
 
-          xine_get_pos_length( data->stream, NULL, 
-                               NULL, &data->length );
-          
-          data->is_playing  = true;
-          data->is_finished = false;
+          data->playing  = true;
+          data->finished = false;
      }
      
      return DFB_OK;
@@ -380,7 +380,7 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
-     if (data->is_playing && !data->is_paused) {
+     if (data->playing) {
           xine_set_param( data->stream,
                           XINE_PARAM_AUDIO_MUTE,
                           1 );
@@ -388,83 +388,71 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
                           XINE_PARAM_SPEED,
                           XINE_SPEED_PAUSE );
           
-          data->is_paused = true;
+          data->playing = false;
           usleep( 800 );
-
-          return DFB_OK;
      }
 
-     return DFB_UNSUPPORTED;
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
                                     double                  seconds )
-{     
+{
+     int offset;
+     
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
           
-     if (data->is_playing) {      
-          int offset;
+     if (!xine_get_stream_info( data->stream,
+                                XINE_STREAM_INFO_SEEKABLE ))
+          return DFB_UNSUPPORTED;
 
-          if (!xine_get_stream_info( data->stream,
-                                     XINE_STREAM_INFO_SEEKABLE ))
-               return DFB_UNSUPPORTED;
+     offset = (int) (seconds * 1000.0);
 
-          offset = (int) (seconds * 1000.0);
+     if (data->length > 0 && offset > data->length)
+          offset = data->length;
+     else if (offset < 0)
+          offset = 0;
 
-          if (offset < 0)
-               offset = 0;
-          else
-          if (data->length > 0 && offset > data->length)
-               offset = data->length;
-
-          xine_play( data->stream, 0, offset );
+     data->finished = false;
+     xine_play( data->stream, 0, offset );
           
-          if (data->is_paused)
-               xine_set_param( data->stream,
-                               XINE_PARAM_SPEED,
-                               XINE_SPEED_PAUSE );
-          
-          return DFB_OK;
+     if (!data->playing) {
+          xine_set_param( data->stream,
+                          XINE_PARAM_SPEED,
+                          XINE_SPEED_PAUSE );
      }
 
-     return DFB_UNSUPPORTED;
+     return DFB_OK;
 }
 
 static DFBResult
 IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
                                     double                 *seconds )
 {
+     int pos = 0;
+     int i;
+     
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
           
      if (!seconds)
           return DFB_INVARG;
 
-     if (data->is_playing) {
-          int pos = 0;
-          int try;
-
-          for (try = 5; try--; ) {
-               if (xine_get_pos_length( data->stream, NULL,
-                                        &pos, NULL ))
-                    break;
-               
-               usleep( 1000 );
-          }
-
-          *seconds = (double) pos / 1000.0;
-          
-          return DFB_OK;
-     } else
-     if (data->is_finished) {
-          *seconds = (double) data->length / 1000.0;
-          
-          return DFB_OK;
+     if (data->finished) {
+          *seconds = (double)data->length / 1000.0;
+          return DFB_EOF;
      }
 
-     *seconds = 0.0;
+     for (i = 5; i--;) {
+          if (xine_get_pos_length( data->stream, NULL, &pos, NULL ))
+               break;
+               
+          usleep( 1000 );
+     }
+
+     *seconds = (double)pos / 1000.0;
           
-     return DFB_UNSUPPORTED;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -476,15 +464,11 @@ IDirectFBVideoProvider_Xine_GetLength( IDirectFBVideoProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
 
-     if (xine_get_pos_length( data->stream, NULL,
-                              NULL, &data->length )) {
-          *seconds = (double) data->length / 1000.0;
-          return DFB_OK;
-     }
-
-     *seconds = 0.0;
+     xine_get_pos_length( data->stream, NULL, NULL, &data->length );
           
-     return DFB_UNSUPPORTED;
+     *seconds = (double)data->length / 1000.0;
+          
+     return DFB_OK;
 }
 
 static DFBResult
@@ -932,9 +916,8 @@ event_listner( void *cdata, const xine_event_t *event )
      switch (event->type) {
           case XINE_EVENT_UI_PLAYBACK_FINISHED:
                xine_stop( data->stream );
-               data->is_playing  = false;
-               data->is_paused   = false;
-               data->is_finished = true;
+               data->playing  = false;
+               data->finished = true;
                break;
 
           default:
