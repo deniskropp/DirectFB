@@ -1294,8 +1294,7 @@ fi
 enable_wm97xx_ts=no
 if test "$checkfor_wm97xx" = "yes"; then
   dnl Test for WM97xx Touchscreen support
-  AC_CHECK_HEADER([linux/wm97xx.h], enable_wm97xx_ts=yes, enable_wm97xx_ts=no 
-    AC_MSG_WARN([*** WM97XX Touchscreen driver will not be built.]))
+  enable_wm97xx_ts=yes
 fi
  
  dnl *** end of if $testlinux ***

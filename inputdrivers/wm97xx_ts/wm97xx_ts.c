@@ -46,8 +46,6 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include <linux/wm97xx.h>
-
 #include <directfb.h>
 
 #include <core/coredefs.h>
