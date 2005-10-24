@@ -84,7 +84,7 @@ libidirectfbdatabuffer_requestor_la_SOURCES = idirectfbdatabuffer_requestor.c
 libidirectfbdatabuffer_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbdatabuffer_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbdisplaylayer_requestor_la_SOURCES = idirectfbdisplaylayer_requestor.c
+libidirectfbdisplaylayer_requestor_la_SOURCES = idirectfbdisplaylayer_requestor.c idirectfbdisplaylayer_requestor.h
 libidirectfbdisplaylayer_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbdisplaylayer_requestor_la_LIBADD  = $(LIBS)
 
