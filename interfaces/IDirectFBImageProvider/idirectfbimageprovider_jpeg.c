@@ -284,8 +284,8 @@ static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
      if (ctx->header[0] == 0xff && ctx->header[1] == 0xd8) {
-          if (strncmp (ctx->header + 6, "JFIF", 4) == 0 ||
-              strncmp (ctx->header + 6, "Exif", 4) == 0)
+          if (strncmp ((char*) ctx->header + 6, "JFIF", 4) == 0 ||
+              strncmp ((char*) ctx->header + 6, "Exif", 4) == 0)
                return DFB_OK;
 
           if (ctx->filename && strchr (ctx->filename, '.' ) &&

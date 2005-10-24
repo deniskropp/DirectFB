@@ -171,7 +171,7 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
-     if (strncmp (ctx->header, "GIF8", 4) == 0)
+     if (strncmp ((char*) ctx->header, "GIF8", 4) == 0)
           return DFB_OK;
 
      return DFB_UNSUPPORTED;
