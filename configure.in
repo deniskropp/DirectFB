@@ -827,7 +827,7 @@ AC_ARG_WITH(gfxdrivers,
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
   checkfor_cyber5k=yes
-  checkfor_cle266=yes
+  checkfor_cle266=no
   checkfor_i810=yes
   checkfor_i830=yes
   checkfor_mach64=yes
@@ -907,216 +907,69 @@ else
 fi
 
 if test "$checkfor_ati128" = "yes"; then
-  dnl Test for ati frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_ATI_RAGE128
-  yes
-#endif
-  ],
-  ati=yes, 
-  ati=no
-  AC_MSG_WARN([
-*** ATI Rage 128 gfxdriver will not be built.]))
+  ati=yes
 fi
 
 if test "$checkfor_radeon" = "yes"; then
-  dnl Test for radeon frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_ATI_RADEON
-  yes
-#endif
-  ],
-  radeon=yes, 
-  radeon=no
-  AC_MSG_WARN([
-*** ATI Radeon gfxdriver will not be built.]))
+  radeon=yes
 fi
 
 if test "$checkfor_r200" = "yes"; then
-  dnl Test for r200 frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_ATI_RADEON
-  yes
-#endif
-  ],
-  r200=yes,
-  r200=no
-  AC_MSG_WARN([
-*** ATI R200 gfxdriver will not be built.]))
+  r200=yes
 fi
 
 if test "$checkfor_mach64" = "yes"; then
-  dnl Test for ati frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_ATI_MACH64GX
-  yes
-#endif
-  ],
-  mach64=yes, 
-  mach64=no  
-  AC_MSG_WARN([
-*** ATI Mach64 gfxdriver will not be built.]))
+  mach64=yes
 fi
 
 if test "$checkfor_matrox" = "yes"; then
-  dnl Test for matrox frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_MATROX_MGAG200
-  yes
-#endif
-  ],
-  matrox=yes, 
-  matrox=no  
-  AC_MSG_WARN([
-*** Matrox G200/400/450/550 gfxdriver will not be built.]))
+  matrox=yes
 fi
 
 if test "$checkfor_tdfx" = "yes"; then
-  dnl Test for tdfx frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_3DFX_BANSHEE
-  yes
-#endif
-  ],
-  tdfx=yes, 
-  tdfx=no  
-  AC_MSG_WARN([
-*** 3DFX Voodoo/Banshee gfxdriver will not be built.]))
+  tdfx=yes
 fi
 
 if test "$checkfor_cyber5k" = "yes"; then
-  dnl Test for cyber5k frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_IGS_CYBER5000
-  yes
-#endif
-  ],
-  cyber5k=yes, 
-  cyber5k=no  
-  AC_MSG_WARN([
-*** CyberPro driver will not be built.]))
+  cyber5k=yes
 fi
 
 if test "$checkfor_nvidia" = "yes"; then
-  dnl Test for nvidia frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_NV4
-  yes
-#endif
-  ],
-  nvidia=yes, 
-  nvidia=no  
-  AC_MSG_WARN([
-*** nVidia RIVA TNT gfxdriver will not be built.]))
+  nvidia=yes
 fi
 
 if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
-dnl Test for savage frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_SAVAGE3D
-  yes
-#endif
-  ],
-  savage=yes,
-  savage=no   
-  AC_MSG_WARN([
-*** Savage gfxdriver will not be built.]))
+  savage=yes
 fi
 
 if test "$checkfor_sis315" = "yes"; then
-dnl Test for sis315 frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_SIS_GLAMOUR_2
-  yes
-#endif
-  ],
-  sis315=yes,
-  sis315=no   
-    AC_MSG_WARN([
-*** SiS 315 gfxdriver will not be built.]))
+  sis315=yes
 fi
 
 if test "$checkfor_neomagic" = "yes" && test "$have_sysio" = "yes"; then
-dnl Test for neomagic frame buffer support in the kernel
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_NEOMAGIC_NM2070
-  yes
-#endif
-  ],
-  neomagic=yes,
-  neomagic=no   
-  AC_MSG_WARN([
-*** Neomagic gfxdriver will not be built.]))
+  neomagic=yes
 fi
 
-dnl Test for i810 frame buffer support in the kernel
 if test "$checkfor_i810" = "yes" && test "$have_sysio" = "yes"; then
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_I810
-  yes
-#endif
-  ],
-  i810=yes,
-  i810=no   
-  AC_MSG_WARN([
-*** i810 gfxdriver will not be built.]))
+  i810=yes
 fi
 
-dnl Test for i830 frame buffer support in the kernel
 if test "$checkfor_i830" = "yes" && test "$have_sysio" = "yes"; then
-  AC_EGREP_CPP(yes, [
-#include <linux/fb.h>
-#ifdef FB_ACCEL_I830
-  yes
-#endif
-  ],
-  i830=yes,
-  i830=no
-  AC_MSG_WARN([
-*** i830 gfxdriver will not be built.]))
+  i830=yes
 fi
 
-dnl Test for nsc framebuffer support in the kernel
 if test "$checkfor_nsc" = "yes"; then
-AC_EGREP_CPP(yes, [
-  yes
-], nsc=yes, 
-  nsc=no  
-  AC_MSG_WARN([
-*** NSC Geode gfxdriver will not be built.]))
+  nsc=yes
 fi
 
-dnl Test for cle266 framebuffer support in the kernel
 if test "$checkfor_cle266" = "yes" && test "$have_sysio" = "yes"; then
-AC_EGREP_CPP(yes, [
-  yes
-], cle266=yes, 
-  cle266=no  
-  AC_MSG_WARN([
-*** VIA CLE266 gfxdriver will not be built.]))
+  cle266=yes
 fi
 
-dnl Test for unichrome framebuffer support in the kernel
 if test "$checkfor_unichrome" = "yes" && test "$have_sysio" = "yes"; then
-AC_EGREP_CPP(yes, [
-  yes
-], unichrome=yes,
-  unichrome=no
-  AC_MSG_WARN([
-*** VIA Unichrome gfxdriver will not be built.]))
+  unichrome=yes
 fi
+
 
 # lets check for input driver
 
