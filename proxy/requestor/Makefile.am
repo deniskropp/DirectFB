@@ -88,11 +88,11 @@ libidirectfbdisplaylayer_requestor_la_SOURCES = idirectfbdisplaylayer_requestor.
 libidirectfbdisplaylayer_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbdisplaylayer_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbeventbuffer_requestor_la_SOURCES = idirectfbeventbuffer_requestor.c
+libidirectfbeventbuffer_requestor_la_SOURCES = idirectfbeventbuffer_requestor.c idirectfbeventbuffer_requestor.h
 libidirectfbeventbuffer_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbeventbuffer_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbfont_requestor_la_SOURCES = idirectfbfont_requestor.c
+libidirectfbfont_requestor_la_SOURCES = idirectfbfont_requestor.c idirectfbfont_requestor.h
 libidirectfbfont_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbfont_requestor_la_LIBADD  = $(LIBS)
 
@@ -100,11 +100,11 @@ libidirectfbimageprovider_requestor_la_SOURCES = idirectfbimageprovider_requesto
 libidirectfbimageprovider_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbimageprovider_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbinputdevice_requestor_la_SOURCES = idirectfbinputdevice_requestor.c
+libidirectfbinputdevice_requestor_la_SOURCES = idirectfbinputdevice_requestor.c idirectfbinputdevice_requestor.h
 libidirectfbinputdevice_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbinputdevice_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbpalette_requestor_la_SOURCES = idirectfbpalette_requestor.c
+libidirectfbpalette_requestor_la_SOURCES = idirectfbpalette_requestor.c idirectfbpalette_requestor.h
 libidirectfbpalette_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbpalette_requestor_la_LIBADD  = $(LIBS)
 
@@ -112,11 +112,11 @@ libidirectfbscreen_requestor_la_SOURCES = idirectfbscreen_requestor.c
 libidirectfbscreen_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbscreen_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbsurface_requestor_la_SOURCES = idirectfbsurface_requestor.c
+libidirectfbsurface_requestor_la_SOURCES = idirectfbsurface_requestor.c idirectfbsurface_requestor.h
 libidirectfbsurface_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbsurface_requestor_la_LIBADD  = $(LIBS)
 
-libidirectfbwindow_requestor_la_SOURCES = idirectfbwindow_requestor.c
+libidirectfbwindow_requestor_la_SOURCES = idirectfbwindow_requestor.c idirectfbwindow_requestor.h
 libidirectfbwindow_requestor_la_LDFLAGS = -avoid-version -module
 libidirectfbwindow_requestor_la_LIBADD  = $(LIBS)
 
