@@ -24,7 +24,8 @@ SUBDIRS = \
 	interfaces 		\
 	$(PROXY_DIR)		\
 	$(LINUXONLY_DIRS)	\
-	patches
+	patches			\
+	rules
 
 bin_SCRIPTS = directfb-config
 

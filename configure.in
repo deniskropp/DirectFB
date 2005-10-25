@@ -1302,6 +1302,8 @@ proxy/Makefile
 proxy/dispatcher/Makefile
 proxy/requestor/Makefile
 
+rules/Makefile
+
 src/Makefile
 src/core/Makefile
 src/display/Makefile
