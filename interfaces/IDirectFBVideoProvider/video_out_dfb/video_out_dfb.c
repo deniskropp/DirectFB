@@ -1452,6 +1452,7 @@ vo_dfb_set_output_ratio( dfb_driver_t *this,
                this->output_ratio = 2.0;
                break;
           default:
+               this->output_ratio = *((float*)&ratio);
                break;
      }
 }
@@ -1474,13 +1475,11 @@ vo_dfb_set_property( vo_driver_t *vo_driver,
                break;
 
           case VO_PROP_ASPECT_RATIO:
-               if (value >= 0 && value <= 4) {
-                    xprintf( this->xine, XINE_VERBOSITY_DEBUG,
-                             "video_out_dfb: setting aspect ratio to %i\n",
-                             value );
-                    vo_dfb_set_output_ratio( this, value );
-                    this->aspect_ratio = value;
-               }
+               xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                        "video_out_dfb: setting aspect ratio to %i\n",
+                        value );
+               vo_dfb_set_output_ratio( this, value );
+               this->aspect_ratio = value;
                break;
           
           case VO_PROP_BRIGHTNESS:
@@ -1545,7 +1544,7 @@ vo_dfb_get_property_min_max( vo_driver_t *vo_driver,
 
           case VO_PROP_ASPECT_RATIO:
                *min =  0;
-               *max = +4;
+               *max = +0xffffffff;
                break;
                
           case VO_PROP_BRIGHTNESS:
