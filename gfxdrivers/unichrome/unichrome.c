@@ -20,6 +20,8 @@
 #include <core/system.h>
 #include <core/screens.h>
 
+#include <misc/conf.h>
+
 // System headers
 
 #include <linux/fb.h>
@@ -121,6 +123,15 @@ DFBResult uc_probe_pci( UcDriverData *ucdrv )
                 ucdrv->name = uc_via_devices[i].name;
                 // Read its revision number from the host bridge.
                 ucdrv->hwrev = pci_config_in8(0, 0, 0, 0xf6);
+                if (ucdrv->hwrev == -1 && dfb_config->unichrome_revision == -1) {
+                    ucdrv->hwrev = 0x11;    // a fairly arbitrary default
+                    D_ERROR( "DirectFB/Unichrome: Failed to determine hardware revision, assuming %d.\n",
+                        ucdrv->hwrev );
+                }
+                // Because we can only auto-detect if we're superuser,
+                // allow an override
+                if (dfb_config->unichrome_revision != -1)
+                    ucdrv->hwrev = dfb_config->unichrome_revision;
                 fclose( file );
                 return DFB_OK;
             }
@@ -442,10 +453,10 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
           ucdrv->hwregs = mmap(NULL, 0x1000000, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
           if ((int) ucdrv->hwregs == -1)
                return DFB_IO;
-
-          // Get hardware id and revision.
-          uc_probe_pci(ucdrv);
      }
+
+     // Get hardware id and revision.
+     uc_probe_pci(ucdrv);
 
      ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE);
      if (!ucdrv->fifo)
