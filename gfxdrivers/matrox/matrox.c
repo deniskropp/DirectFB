@@ -1746,8 +1746,8 @@ static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
           addr1 &= ~0xFUL;
 
           switch (device) {
-          case PCI_DEVICE_ID_MATROX_G550:
-          case PCI_DEVICE_ID_MATROX_G400:
+          case PCI_DEVICE_ID_MATROX_G550_AGP:
+          case PCI_DEVICE_ID_MATROX_G400_AGP:
                if (addr0 == (mdev->fb.physical & ~0x1FFFFFF)) {
                     fclose( file );
                     return DFB_OK;
@@ -1756,25 +1756,26 @@ static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
 
           case PCI_DEVICE_ID_MATROX_G200_PCI:
           case PCI_DEVICE_ID_MATROX_G200_AGP:
-          case PCI_DEVICE_ID_MATROX_G100_MM:
+          case PCI_DEVICE_ID_MATROX_G100_PCI:
           case PCI_DEVICE_ID_MATROX_G100_AGP:
-          case PCI_DEVICE_ID_MATROX_MIL_2:
-          case PCI_DEVICE_ID_MATROX_MIL_2_AGP:
+          case PCI_DEVICE_ID_MATROX_2164W_PCI:
+          case PCI_DEVICE_ID_MATROX_2164W_AGP:
                if (addr0 == mdev->fb.physical) {
                     fclose( file );
                     return DFB_OK;
                }
                break;
 
-          case PCI_DEVICE_ID_MATROX_MYS:
+          case PCI_DEVICE_ID_MATROX_1064SG_PCI:
+          case PCI_DEVICE_ID_MATROX_1064SG_AGP:
                if ((pci_config_in32( *bus, *slot, *func, 0x08 ) & 0xFF) >= 0x02) {
-                    /* Mystique 220 */
+                    /* Mystique 220 (1164SG) */
                     if (addr0 == mdev->fb.physical) {
                          fclose( file );
                          return DFB_OK;
                     }
                } else {
-                    /* Mystique */
+                    /* Mystique (1064SG) */
                     if (addr1 == mdev->fb.physical) {
                          fclose( file );
                          return DFB_OK;
@@ -1782,7 +1783,7 @@ static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
                }
                break;
 
-          case PCI_DEVICE_ID_MATROX_MIL:
+          case PCI_DEVICE_ID_MATROX_2064W_PCI:
                if (addr1 == mdev->fb.physical) {
                     fclose( file );
                     return DFB_OK;
@@ -1803,13 +1804,13 @@ static int
 driver_probe( GraphicsDevice *device )
 {
      switch (dfb_gfxcard_get_accelerator( device )) {
-          case FB_ACCEL_MATROX_MGA2064W:     /* Matrox MGA2064W (Millennium)   */
-          case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox MGA1064SG (Mystique)   */
-          case FB_ACCEL_MATROX_MGA2164W:     /* Matrox MGA2164W (Millennium II)*/
-          case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox MGA2164W (Millennium II)*/
-          case FB_ACCEL_MATROX_MGAG100:      /* Matrox G100                   */
-          case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200 (Myst, Mill, ...) */
-          case FB_ACCEL_MATROX_MGAG400:      /* Matrox G400                   */
+          case FB_ACCEL_MATROX_MGA2064W:     /* Matrox 2064W (Millennium)       */
+          case FB_ACCEL_MATROX_MGA1064SG:    /* Matrox 1064SG/1164SG (Mystique) */
+          case FB_ACCEL_MATROX_MGA2164W:     /* Matrox 2164W (Millennium II)    */
+          case FB_ACCEL_MATROX_MGA2164W_AGP: /* Matrox 2164W (Millennium II)    */
+          case FB_ACCEL_MATROX_MGAG100:      /* Matrox G100                     */
+          case FB_ACCEL_MATROX_MGAG200:      /* Matrox G200                     */
+          case FB_ACCEL_MATROX_MGAG400:      /* Matrox G400/G450/G550           */
                return 1;
      }
 
@@ -1933,8 +1934,7 @@ driver_init_device( GraphicsDevice     *device,
                if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))
                     return ret;
 
-               g550  = ((pci_config_in32( bus, slot, func, 0x00 ) >> 16) ==
-                        PCI_DEVICE_ID_MATROX_G550);
+               g550  = ((pci_config_in32( bus, slot, func, 0x00 ) >> 16) == PCI_DEVICE_ID_MATROX_G550_AGP);
                g450  = ((pci_config_in32( bus, slot, func, 0x08 ) & 0xFF) >= 0x80);
                sgram = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
