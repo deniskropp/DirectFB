@@ -469,7 +469,7 @@ void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
             *fifo = UC_MAP_V1_FIFO_CONTROL(16,0,0);
         }
         else {
-            if (hwrev >= 0x10)
+            if (hwrev == 0x10)
                 *fifo = UC_MAP_V1_FIFO_CONTROL(64,56,56);
             else
                 *fifo = UC_MAP_V1_FIFO_CONTROL(16,12,8);
