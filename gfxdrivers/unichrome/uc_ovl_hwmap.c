@@ -357,9 +357,9 @@ void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
     case DSPF_YV12:
         swap_cb_cr = 1;
     case DSPF_I420:
-        y_offset = ((((oy & ~3) * sp) + ox) & ~31) ;
+        y_offset = ((((oy & ~3) * sp) + ox + 16) & ~31) ;
         if (oy > 0)
-            uv_offset = (((((oy & ~3) >> 1) * sp) + ox) & ~31) >> 1;
+            uv_offset = (((((oy & ~3) >> 1) * sp) + ox + 16) & ~31) >> 1;
         else
             uv_offset = y_offset >> 1;
         break;
