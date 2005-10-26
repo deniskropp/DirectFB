@@ -106,7 +106,7 @@ static DFBResult crtc2_disable_output( MatroxDriverData      *mdrv,
 static DFBResult crtc2_enable_output ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2 );
 
-#define CRTC2_SUPPORTED_OPTIONS   (DLOP_FIELD_PARITY | DLOP_FLICKER_FILTERING)
+#define CRTC2_SUPPORTED_OPTIONS   (DLOP_FIELD_PARITY)
 
 /**********************/
 
@@ -134,10 +134,8 @@ crtc2InitLayer( CoreLayer                  *layer,
      if ((res = maven_init( mav, mdrv )) != DFB_OK)
           return res;
 
-
      /* set capabilities and type */
-     description->caps = DLCAPS_SURFACE |
-                         DLCAPS_FIELD_PARITY | DLCAPS_FLICKER_FILTERING |
+     description->caps = DLCAPS_SURFACE | DLCAPS_FIELD_PARITY |
                          DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
                          DLCAPS_HUE | DLCAPS_SATURATION | DLCAPS_ALPHA_RAMP;
      description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
@@ -248,14 +246,18 @@ crtc2SetRegion( CoreLayer                  *layer,
      /* remember configuration */
      mcrtc2->config = *config;
 
-     mcrtc2->field = !config->parity;
+     if (updated & CLRCF_PARITY)
+          mcrtc2->field = !config->parity;
 
-     crtc2_calc_regs( mdrv, mcrtc2, config, surface );
-     crtc2_calc_buffer( mdrv, mcrtc2, surface );
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
+                    CLRCF_SURFACE_CAPS | CLRCF_ALPHA_RAMP | CLRCF_SURFACE)) {
+          crtc2_calc_regs( mdrv, mcrtc2, config, surface );
+          crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
-     ret = crtc2_enable_output( mdrv, mcrtc2 );
-     if (ret)
-          return ret;
+          ret = crtc2_enable_output( mdrv, mcrtc2 );
+          if (ret)
+               return ret;
+     }
 
      return DFB_OK;
 }
@@ -286,7 +288,6 @@ crtc2FlipRegion( CoreLayer           *layer,
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
      volatile __u8        *mmio    = mdrv->mmio_base;
 
-     dfb_surface_flip_buffers( surface, false );
      crtc2_calc_buffer( mdrv, mcrtc2, surface );
 
      if (mcrtc2->config.options & DLOP_FIELD_PARITY) {
@@ -299,6 +300,8 @@ crtc2FlipRegion( CoreLayer           *layer,
           }
      }
      crtc2_set_buffer( mdrv, mcrtc2 );
+
+     dfb_surface_flip_buffers( surface, false );
 
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( mdrv->secondary );
@@ -469,7 +472,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
           mcrtc2->regs.c2CTL |= C2VCBCRSINGLE;
 
      /* interleaved fields */
-     mcrtc2->regs.c2OFFSET = surface->front_buffer->video.pitch * 2;
+     mcrtc2->regs.c2OFFSET = surface->back_buffer->video.pitch * 2;
 
      {
           int hdisplay, htotal, vdisplay, vtotal;
@@ -491,7 +494,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
 
           mcrtc2->regs.c2MISC = 0;
           /* c2vlinecomp */
-          mcrtc2->regs.c2MISC |= (vdisplay + 2) << 16;
+          mcrtc2->regs.c2MISC |= (vdisplay + 1) << 16;
      }
 
      /* c2bpp15halpha */
@@ -505,10 +508,10 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
                                MatroxCrtc2LayerData *mcrtc2,
                                CoreSurface          *surface )
 {
-     SurfaceBuffer *front_buffer = surface->front_buffer;
-     int            field_offset = front_buffer->video.pitch;
+     SurfaceBuffer *buffer       = surface->back_buffer;
+     int            field_offset = buffer->video.pitch;
 
-     mcrtc2->regs.c2STARTADD1 = front_buffer->video.offset;
+     mcrtc2->regs.c2STARTADD1 = buffer->video.offset;
      mcrtc2->regs.c2STARTADD0 = mcrtc2->regs.c2STARTADD1 + field_offset;
 
      if (surface->caps & DSCAPS_INTERLACED)
@@ -518,17 +521,17 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
 
      switch (surface->format) {
           case DSPF_I420:
-               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * front_buffer->video.pitch;
+               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * buffer->video.pitch;
                mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
 
-               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->height/2 * front_buffer->video.pitch/2;
+               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2PL2STARTADD1 + surface->height/2 * buffer->video.pitch/2;
                mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
                break;
           case DSPF_YV12:
-               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * front_buffer->video.pitch;
+               mcrtc2->regs.c2PL3STARTADD1 = mcrtc2->regs.c2STARTADD1 + surface->height * buffer->video.pitch;
                mcrtc2->regs.c2PL3STARTADD0 = mcrtc2->regs.c2PL3STARTADD1 + field_offset;
 
-               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->height/2 *  front_buffer->video.pitch/2;
+               mcrtc2->regs.c2PL2STARTADD1 = mcrtc2->regs.c2PL3STARTADD1 + surface->height/2 * buffer->video.pitch/2;
                mcrtc2->regs.c2PL2STARTADD0 = mcrtc2->regs.c2PL2STARTADD1 + field_offset;
                break;
           default:

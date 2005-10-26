@@ -264,7 +264,7 @@ ScreenFuncs matroxCrtc2ScreenFuncs = {
 
 static void crtc2_wait_vsync( MatroxDriverData *mdrv )
 {
-     int vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 2;
+     int vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 1;
 
 #ifdef FBIO_WAITFORVSYNC
      static const int one = 1;
