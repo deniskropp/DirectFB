@@ -55,7 +55,7 @@ uc_spic_set_buffer( volatile __u8 *hwregs, CoreSurface *surface )
         VIDEO_OUT(hwregs, SUBP_STARTADDR,
             surface->front_buffer->video.offset);
         VIDEO_OUT(hwregs, SUBP_CONTROL_STRIDE,
-            (VIDEO_IN(hwregs, SUBP_CONTROL_STRIDE) & ~SUBP_HQV_ENABLE) |
+            (VIDEO_IN(hwregs, SUBP_CONTROL_STRIDE) & ~SUBP_STRIDE_MASK) |
             (surface->front_buffer->video.pitch & SUBP_STRIDE_MASK) |
             SUBP_AI44 );
     }
