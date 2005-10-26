@@ -125,7 +125,8 @@ shmalloc_check_shmfs (int world)
 
                bytes = stat.f_blocks * stat.f_bsize;
 
-               if (bytes <= largest)
+               if (bytes < largest ||
+                   (bytes == largest && strcmp (mount_point, "/dev/shm")))
                     continue;
 
                if (name)
