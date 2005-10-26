@@ -1549,6 +1549,8 @@ static void video_access_by_software( SurfaceBuffer       *buffer,
      if (buffer->video.access & VAF_HARDWARE_WRITE) {
           dfb_gfxcard_wait_serial( &buffer->video.serial );
           buffer->video.access &= ~VAF_HARDWARE_WRITE;
+          if (flags & DSLF_READ)
+               dfb_gfxcard_flush_read_cache();
      }
 
      if (flags & DSLF_READ)

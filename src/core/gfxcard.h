@@ -71,7 +71,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          30
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          31
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     40
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   60
@@ -157,6 +157,12 @@ typedef struct _GraphicsDeviceFuncs {
       * of a texture) make sure the accelerator won't use cached texture data
       */
      void (*FlushTextureCache)( void *driver_data, void *device_data );
+
+     /*
+      * After the video memory has been written to by the accelerator
+      * make sure the CPU won't read back cached data.
+      */
+     void (*FlushReadCache)( void *driver_data, void *device_data );
 
      /*
       * Return the serial of the last (queued) operation.
@@ -302,6 +308,7 @@ void dfb_gfxcard_sync();
 void dfb_gfxcard_invalidate_state();
 void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache();
+void dfb_gfxcard_flush_read_cache();
 void dfb_gfxcard_after_set_var();
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );

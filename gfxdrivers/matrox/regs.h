@@ -41,6 +41,8 @@
 #define RST              0x1E40
 #define OPMODE           0x1E54
 
+#define CACHEFLUSH       0x1FFF
+
 /* CRTC2 registers */
 #define C2CTL            0x3C10
 #    define C2EN                0x00000001

@@ -570,6 +570,7 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           /* from video_access_by_software() in surface.c */
           if (buffer->video.access & VAF_HARDWARE_WRITE) {
                dfb_gfxcard_sync();
+               dfb_gfxcard_flush_read_cache();
                buffer->video.access &= ~VAF_HARDWARE_WRITE;
           }
           buffer->video.access |= VAF_SOFTWARE_READ;

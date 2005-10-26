@@ -1683,6 +1683,14 @@ void dfb_gfxcard_flush_texture_cache()
           card->funcs.FlushTextureCache( card->driver_data, card->device_data );
 }
 
+void dfb_gfxcard_flush_read_cache()
+{
+     D_ASSUME( card != NULL );
+
+     if (card && card->funcs.FlushReadCache)
+          card->funcs.FlushReadCache( card->driver_data, card->device_data );
+}
+
 void dfb_gfxcard_after_set_var()
 {
      D_ASSUME( card != NULL );

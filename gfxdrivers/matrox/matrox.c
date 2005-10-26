@@ -239,6 +239,15 @@ matroxFlushTextureCache( void *drv, void *dev )
      mga_out32( mdrv->mmio_base, 0, TEXORG1 );
 }
 
+static void
+matroxFlushReadCache( void *drv, void *dev )
+{
+     MatroxDriverData *mdrv = (MatroxDriverData*) drv;
+     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+
+     mga_out8( mdrv->mmio_base, 0, CACHEFLUSH );
+}
+
 static bool
 matrox_check_blend( MatroxDeviceData *mdev,
                     CardState        *state )
@@ -1873,6 +1882,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->EngineReset       = matroxEngineReset;
      funcs->EngineSync        = matroxEngineSync;
      funcs->FlushTextureCache = matroxFlushTextureCache;
+     funcs->FlushReadCache    = matroxFlushReadCache;
 
      funcs->DrawRectangle     = matroxDrawRectangle;
      funcs->DrawLine          = matroxDrawLine;
