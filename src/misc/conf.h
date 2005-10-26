@@ -138,6 +138,9 @@ typedef struct
      char      *h3600_device;                     /* H3600 Touchscreen Device */
 
      char      *mut_device;                       /* MuTouch Device */
+
+     int        unichrome_revision;               /* Unichrome hardware
+                                                     revision number override */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

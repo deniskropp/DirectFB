@@ -120,6 +120,7 @@ static const char *config_usage =
      "                                 Matrox cable type (default=composite)\n"
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
+     "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
      "\n"
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -328,6 +329,7 @@ static void config_allocate()
      dfb_config->buffer_mode              = -1;
      dfb_config->wm                       = D_STRDUP( "default" );
      dfb_config->decorations              = true;
+     dfb_config->unichrome_revision       = -1;
 
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -978,6 +980,22 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config: No MuTouch device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "unichrome-revision" ) == 0) {
+          if (value) {
+               int rev;
+
+               if (sscanf( value, "%d", &rev ) < 1) {
+                    D_ERROR("DirectFB/Config 'unichrome-revision': Could not parse revision!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->unichrome_revision = rev;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'unichrome-revision': No revision specified!\n");
                return DFB_INVARG;
           }
      }

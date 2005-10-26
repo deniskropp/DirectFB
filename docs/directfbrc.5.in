@@ -332,6 +332,10 @@ If specified DirectFB will dump the screen contents in PPM format
 into this directory when the <Print> key gets pressed.
 
 .TP
+.BI unichrome-revision=<revision>
+Override the hardware revision number used by the Unichrome driver.
+
+.TP
 .BI window-surface-policy=<policy>
 Allows to control where window surfaces are stored. Supported values
 for <policy> are:
