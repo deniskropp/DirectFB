@@ -37,6 +37,7 @@ public:
      IDirectFBDataBuffer(IDirectFBDataBuffer_C *myptr=NULL):IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>(myptr){}
 
      void                    Flush                   ();
+     void                    Finish                  ();
      void                    SeekTo                  (unsigned int  offset);
      unsigned int            GetPosition             ();
      unsigned int            GetLength               ();
@@ -58,6 +59,7 @@ public:
                                                       unsigned int  length);
 
      IDirectFBImageProvider  CreateImageProvider     ();
+     IDirectFBVideoProvider  CreateVideoProvider     ();
 
      inline IDirectFBDataBuffer& operator = (const IDirectFBDataBuffer& other){
           return IPPAny<IDirectFBDataBuffer, IDirectFBDataBuffer_C>::operator =(other);

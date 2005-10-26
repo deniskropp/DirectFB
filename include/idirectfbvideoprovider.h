@@ -32,6 +32,8 @@
 class IDirectFBVideoProvider : public IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>{
 friend
      class IDirectFB;
+friend
+     class IDirectFBDataBuffer;
 
 public:
      IDirectFBVideoProvider(IDirectFBVideoProvider_C* myptr=NULL):IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>(myptr){}

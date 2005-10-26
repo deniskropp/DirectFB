@@ -30,6 +30,11 @@ void IDirectFBDataBuffer::Flush()
      DFBCHECK( iface->Flush (iface) );
 }
 
+void IDirectFBDataBuffer::Finish()
+{
+     DFBCHECK( iface->Finish (iface) );
+}
+
 void IDirectFBDataBuffer::SeekTo (unsigned int offset)
 {
      DFBCHECK( iface->SeekTo (iface, offset) );
@@ -119,5 +124,14 @@ IDirectFBImageProvider IDirectFBDataBuffer::CreateImageProvider ()
      DFBCHECK( iface->CreateImageProvider (iface, &idirectfbimageprovider) );
 
      return IDirectFBImageProvider (idirectfbimageprovider);
+}
+
+IDirectFBVideoProvider IDirectFBDataBuffer::CreateVideoProvider ()
+{
+     IDirectFBVideoProvider_C *idirectfbvideoprovider;
+
+     DFBCHECK( iface->CreateVideoProvider (iface, &idirectfbvideoprovider) );
+
+     return IDirectFBVideoProvider (idirectfbvideoprovider);
 }
 
