@@ -403,21 +403,23 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      }
 
      if (best_occupied) {
-          CoreSurface *kicked = best_occupied->buffer->surface;
+          SurfaceBuffer *kicked = best_occupied->buffer;
 
           D_DEBUG_AT( Core_SM, "Kicking out buffer at %d (%d) with tolerations %d...\n",
                       best_occupied->offset,
                       best_occupied->length, best_occupied->tolerations );
 
-          dfb_surfacemanager_assure_system( manager, best_occupied->buffer );
+          dfb_surfacemanager_assure_system( manager, kicked );
 
-          best_occupied->buffer->video.health = CSH_INVALID;
-          dfb_surface_notify_listeners( kicked, CSNF_VIDEO );
+          kicked->video.health = CSH_INVALID;
+          dfb_surface_notify_listeners( kicked->surface, CSNF_VIDEO );
 
           best_occupied = free_chunk( manager, best_occupied );
 
-          dfb_gfxcard_sync();
-
+          if (kicked->video.access & VAF_HARDWARE_READ) {
+               dfb_gfxcard_sync();
+               kicked->video.access &= ~VAF_HARDWARE_READ;
+          }
 
           occupy_chunk( manager, best_occupied, buffer, length );
 
@@ -569,7 +571,7 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
 
           /* from video_access_by_software() in surface.c */
           if (buffer->video.access & VAF_HARDWARE_WRITE) {
-               dfb_gfxcard_sync();
+               dfb_gfxcard_wait_serial( &buffer->video.serial );
                dfb_gfxcard_flush_read_cache();
                buffer->video.access &= ~VAF_HARDWARE_WRITE;
           }
