@@ -243,7 +243,6 @@ static void
 matroxFlushReadCache( void *drv, void *dev )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
-     MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
      mga_out8( mdrv->mmio_base, 0, CACHEFLUSH );
 }
