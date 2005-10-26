@@ -191,6 +191,7 @@ besTestRegion( CoreLayer                  *layer,
           case DSPF_NV21:
                break;
 
+          case DSPF_ARGB:
           case DSPF_RGB32:
                if (!mdev->g450_matrox)
                     max_width = 512;
@@ -315,10 +316,10 @@ besFlipRegion( CoreLayer           *layer,
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
-
      bes_calc_regs( mdrv, mbes, &mbes->config, surface );
      bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
+
+     dfb_surface_flip_buffers( surface, false );
 
      if (flags & DSFLIP_WAIT)
           dfb_screen_wait_vsync( mdrv->primary );
@@ -385,9 +386,11 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
      if (!onsync) {
           VideoMode *current_mode = dfb_system_current_mode();
 
-          /* FIXME: I don't think this should be NULL ever. */
-          if (!current_mode)
-               return;
+          if (!current_mode) {
+               current_mode = dfb_system_modes();
+               if (!current_mode)
+                    return;
+          }
 
           line = mga_in32( mmio, MGAREG_VCOUNT ) + 48;
 
@@ -439,8 +442,8 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      int cropleft, cropright, croptop, cropbot, croptop_uv;
      int pitch, tmp, hzoom, intrep, field_height;
      DFBRectangle   source, dest;
-     DFBRegion      dstBox;
-     SurfaceBuffer *front_buffer = surface->front_buffer;
+     DFBRegion      dst;
+     SurfaceBuffer *buffer       = surface->back_buffer;
      VideoMode     *current_mode = dfb_system_current_mode();
 
      if (!current_mode) {
@@ -454,10 +457,10 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      source = config->source;
      dest   = config->dest;
 
-     if (!mdev->g450_matrox && surface->format == DSPF_RGB32)
+     if (!mdev->g450_matrox && (surface->format == DSPF_RGB32 || surface->format == DSPF_ARGB))
           dest.w = source.w;
 
-     pitch = front_buffer->video.pitch;
+     pitch = buffer->video.pitch;
 
      field_height = surface->height;
 
@@ -481,11 +484,11 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      cropbot    = cropbot > 0 ? cropbot : 0;
      croptop_uv = croptop;
 
-     /* destination box */
-     dstBox.x1 = dest.x + cropleft;
-     dstBox.y1 = dest.y + croptop;
-     dstBox.x2 = dest.x + dest.w - 1 - cropright;
-     dstBox.y2 = dest.y + dest.h - 1 - cropbot;
+     /* destination region */
+     dst.x1 = dest.x + cropleft;
+     dst.y1 = dest.y + croptop;
+     dst.x2 = dest.x + dest.w - 1 - cropright;
+     dst.y2 = dest.y + dest.h - 1 - cropbot;
 
      /* scale crop values to source dimensions */
      if (cropleft)
@@ -562,41 +565,41 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->format);
 
      /* buffer offsets */
-     mbes->regs.besA1ORG = front_buffer->video.offset +
+     mbes->regs.besA1ORG = buffer->video.offset +
                            pitch * (source.y + (croptop >> 16));
      mbes->regs.besA2ORG = mbes->regs.besA1ORG +
-                           front_buffer->video.pitch;
+                           buffer->video.pitch;
 
      switch (surface->format) {
           case DSPF_NV12:
           case DSPF_NV21:
-               mbes->regs.besA1CORG  = front_buffer->video.offset +
-                                       surface->height * front_buffer->video.pitch +
+               mbes->regs.besA1CORG  = buffer->video.offset +
+                                       surface->height * buffer->video.pitch +
                                        pitch * (source.y/2 + (croptop_uv >> 16));
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
-                                       front_buffer->video.pitch;
+                                       buffer->video.pitch;
                break;
 
           case DSPF_I420:
           case DSPF_YV12:
-               mbes->regs.besA1CORG  = front_buffer->video.offset +
-                                       surface->height * front_buffer->video.pitch +
+               mbes->regs.besA1CORG  = buffer->video.offset +
+                                       surface->height * buffer->video.pitch +
                                        pitch/2 * (source.y/2 + (croptop_uv >> 16));
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
-                                       front_buffer->video.pitch/2;
+                                       buffer->video.pitch/2;
 
                mbes->regs.besA1C3ORG = mbes->regs.besA1CORG +
-                                       surface->height/2 * front_buffer->video.pitch/2;
+                                       surface->height/2 * buffer->video.pitch/2;
                mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
-                                       front_buffer->video.pitch/2;
+                                       buffer->video.pitch/2;
                break;
 
           default:
                ;
      }
 
-     mbes->regs.besHCOORD   = (dstBox.x1 << 16) | dstBox.x2;
-     mbes->regs.besVCOORD   = (dstBox.y1 << 16) | dstBox.y2;
+     mbes->regs.besHCOORD   = (dst.x1 << 16) | dst.x2;
+     mbes->regs.besVCOORD   = (dst.y1 << 16) | dst.y2;
 
      mbes->regs.besHSRCST   = (source.x << 16) + cropleft;
      mbes->regs.besHSRCEND  = ((source.x + source.w - 1) << 16) - cropright;
@@ -624,7 +627,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           field_height - 1 - source.y - (croptop >> 16);
 
      /* horizontal scaling */
-     if (!mdev->g450_matrox && surface->format == DSPF_RGB32) {
+     if (!mdev->g450_matrox && (surface->format == DSPF_RGB32 || surface->format == DSPF_ARGB)) {
           mbes->regs.besHISCAL   = 0x20000 << hzoom;
           mbes->regs.besHSRCST  *= 2;
           mbes->regs.besHSRCEND *= 2;
