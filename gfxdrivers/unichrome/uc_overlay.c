@@ -130,8 +130,8 @@ uc_ovl_set_region( CoreLayer                  *layer,
     ucovl->v1.dst_key = config->dst_key;
     ucovl->v1.dstkey_enabled = config->options & DLOP_DST_COLORKEY;
 
-    printf("uc_overlay: color-keying is %s\n",
-        ucovl->v1.dstkey_enabled ? "enabled" : "disabled");
+    // printf("uc_overlay: color-keying is %s\n",
+    //     ucovl->v1.dstkey_enabled ? "enabled" : "disabled");
 
     ucovl->deinterlace = config->options & DLOP_DEINTERLACING;
     ucovl->surface     = surface;
@@ -320,5 +320,5 @@ DisplayLayerFuncs ucOverlayFuncs = {
     GetLevel:           uc_ovl_get_level,
     SetLevel:           uc_ovl_set_level,
     SetInputField:      uc_ovl_set_input_field,
-    SetColorAdjustment: uc_ovl_set_adjustment
+//    SetColorAdjustment: uc_ovl_set_adjustment
 };
