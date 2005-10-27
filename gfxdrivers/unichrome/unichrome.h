@@ -108,6 +108,8 @@ typedef struct _UcDeviceData {
      DFBSurfacePixelFormat   dst_format; // destination pixel format
      int                     dst_offset; // destination buffer byte offset
      int                     dst_pitch;  // destination buffer byte pitch
+     int                     src_offset; // source buffer byte offset
+     int                     src_pitch;  // source buffer byte pitch
 
      int                     field;      // source field
 

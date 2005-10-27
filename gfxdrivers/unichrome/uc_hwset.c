@@ -217,6 +217,9 @@ uc_set_source_2d( UcDriverData *ucdrv,
      UC_FIFO_ADD_2D ( fifo, VIA_REG_PITCH,   VIA_PITCH_ENABLE | ucdev->pitch );
 
      UC_FIFO_CHECK( fifo );
+     
+     ucdev->src_offset = buffer->video.offset;
+     ucdev->src_pitch = buffer->video.pitch;
 
      UC_VALIDATE( uc_source2d );
 }
@@ -321,6 +324,9 @@ uc_set_source_3d( UcDriverData *ucdrv,
           UC_FIFO_CHECK( fifo );
      }
 
+     ucdev->src_offset = src_offset;
+     ucdev->src_pitch = src_pitch;
+
      UC_VALIDATE( uc_source3d );
 }
 
@@ -355,6 +361,13 @@ uc_set_color_2d( UcDriverData *ucdrv,
           case DSPF_RGB32:
           case DSPF_ARGB:
                color = PIXEL_ARGB( state->color.a,
+                                   state->color.r,
+                                   state->color.g,
+                                   state->color.b );
+               break;
+
+          case DSPF_AiRGB:
+               color = PIXEL_AiRGB( state->color.a,
                                    state->color.r,
                                    state->color.g,
                                    state->color.b );

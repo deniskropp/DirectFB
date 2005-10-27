@@ -209,7 +209,7 @@ bool uc_draw_line(void* drv, void* dev, DFBRegion* line)
     return true;
 }
 
-bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
+static bool uc_blit_one_plane(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
 {
     UC_ACCEL_BEGIN()
 
@@ -250,6 +250,78 @@ bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
 
     UC_ACCEL_END();
     return true;
+}
+
+static bool uc_blit_planar(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
+{
+    UC_ACCEL_BEGIN()
+
+    int uv_dst_offset = ucdev->dst_offset + (ucdev->dst_pitch * rect->h);
+    int uv_src_offset = ucdev->src_offset + (ucdev->src_pitch * rect->h);
+    
+    int uv_dst_pitch = ucdev->dst_pitch / 2;
+    int uv_src_pitch = ucdev->src_pitch / 2;
+    int uv_pitch = ((uv_src_pitch >> 3) & 0x7fff) | (((uv_dst_pitch >> 3) & 0x7fff) << 16);
+    
+    DFBRectangle rect2 = *rect;
+    rect2.h /= 2;
+    rect2.w /= 2;
+    rect2.x /= 2;
+    rect2.y /= 2;
+    
+    // first blit the Y plane
+    
+    uc_blit_one_plane(drv, dev, rect, dx, dy);
+    
+    // now modify the offsets and clip region for the first chrominance plane
+    
+    UC_FIFO_PREPARE ( fifo, 12 );
+    UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_PITCH, VIA_PITCH_ENABLE | uv_pitch );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_SRCBASE, uv_src_offset >> 3 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_DSTBASE, uv_dst_offset >> 3 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_CLIPTL,
+                      (RS16(ucdev->clip.y1/2) << 16) | RS16(ucdev->clip.x1/2) );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_CLIPBR,
+                      (RS16(ucdev->clip.y2/2) << 16) | RS16(ucdev->clip.x2/2) );
+    
+    uc_blit_one_plane(drv, dev, &rect2, dx/2, dy/2);
+    
+    // now for the second chrominance plane
+    
+    uv_src_offset += uv_src_pitch * rect2.h;
+    uv_dst_offset += uv_dst_pitch * rect2.h;
+    
+    UC_FIFO_PREPARE ( fifo, 10 );
+    UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_SRCBASE, uv_src_offset >> 3 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_DSTBASE, uv_dst_offset >> 3 );
+
+    uc_blit_one_plane(drv, dev, &rect2, dx/2, dy/2);
+    
+    // restore the card state to how we found it
+
+    UC_FIFO_PREPARE ( fifo, 12 );
+    UC_FIFO_ADD_HDR( fifo, HC_ParaType_NotTex << 16 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_PITCH, VIA_PITCH_ENABLE | ucdev->pitch );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_SRCBASE, ucdev->src_offset >> 3 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_DSTBASE, ucdev->dst_offset >> 3 );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_CLIPTL,
+                      (RS16(ucdev->clip.y1) << 16) | RS16(ucdev->clip.x1) );
+    UC_FIFO_ADD_2D ( fifo, VIA_REG_CLIPBR,
+                      (RS16(ucdev->clip.y2) << 16) | RS16(ucdev->clip.x2) );
+     
+    UC_ACCEL_END();
+    return true;
+}
+
+bool uc_blit(void* drv, void* dev, DFBRectangle* rect, int dx, int dy)
+{
+    DFBSurfacePixelFormat format = ((UcDeviceData *)dev)->dst_format;
+    if (format == DSPF_YV12 || format == DSPF_I420)
+        return uc_blit_planar(drv, dev, rect, dx, dy);
+    else
+        return uc_blit_one_plane(drv, dev, rect, dx, dy);
 }
 
 // Functions using the 3D engine ---

@@ -39,6 +39,37 @@ uc_has_dst_format( DFBSurfacePixelFormat format )
 }
 
 static inline bool
+uc_additional_draw_2d( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_AiRGB:
+               return true;
+
+          default:
+               break;
+     }
+
+     return false;
+}
+
+static inline bool
+uc_additional_blit_2d( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_YV12:
+          case DSPF_I420:
+          case DSPF_YUY2:
+          case DSPF_AiRGB:
+               return true;
+
+          default:
+               break;
+     }
+
+     return false;
+}
+
+static inline bool
 uc_has_src_format_3d( DFBSurfacePixelFormat format )
 {
      switch (format) {
@@ -96,18 +127,17 @@ uc_select_blittype( CardState* state,
 void uc_check_state(void *drv, void *dev,
                     CardState *state, DFBAccelerationMask accel)
 {
-     /* Check destination format. */
-     if (!uc_has_dst_format( state->destination->format ))
-          return;
-
      if (DFB_DRAWING_FUNCTION(accel)) {
           /* Check drawing parameters. */
           switch (uc_select_drawtype(state, accel)) {
                case UC_TYPE_2D:
-                    state->accel |= UC_DRAWING_FUNCTIONS_2D;
+                    if (uc_has_dst_format( state->destination->format ) ||
+                         uc_additional_draw_2d( state->destination->format ))
+                         state->accel |= UC_DRAWING_FUNCTIONS_2D;
                     break;
                case UC_TYPE_3D:
-                    state->accel |= UC_DRAWING_FUNCTIONS_3D;
+                    if (uc_has_dst_format( state->destination->format ))
+                         state->accel |= UC_DRAWING_FUNCTIONS_3D;
                     break;
                default:
                     return;
@@ -117,10 +147,13 @@ void uc_check_state(void *drv, void *dev,
           /* Check blitting parameters. */
           switch (uc_select_blittype(state, accel)) {
                case UC_TYPE_2D:
-                    state->accel |= UC_BLITTING_FUNCTIONS_2D;
+                    if (uc_has_dst_format( state->destination->format ) ||
+                         uc_additional_blit_2d( state->destination->format ))
+                         state->accel |= UC_BLITTING_FUNCTIONS_2D;
                     break;
                case UC_TYPE_3D:
-                    state->accel |= UC_BLITTING_FUNCTIONS_3D;
+                    if (uc_has_dst_format( state->destination->format ))
+                         state->accel |= UC_BLITTING_FUNCTIONS_3D;
                     break;
                default:
                     return;
