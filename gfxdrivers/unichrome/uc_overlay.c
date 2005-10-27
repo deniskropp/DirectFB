@@ -12,6 +12,11 @@
 #include "vidregs.h"
 #include "mmio.h"
 
+#include <sys/ioctl.h>
+#include <unistd.h>
+
+#include <fbdev/fbdev.h>
+
 #include <direct/messages.h>
 
 #include <core/system.h>
@@ -111,6 +116,9 @@ uc_ovl_set_region( CoreLayer                  *layer,
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+
+    /* remember configuration */
+    ucovl->config = *config;
 
     /* get new destination rectangle */
     DFBRectangle win = config->dest;
@@ -240,21 +248,32 @@ uc_ovl_flip_region( CoreLayer           *layer,
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     DFBResult    ret;
-
-    if (((flags & DSFLIP_WAITFORSYNC) == DSFLIP_WAITFORSYNC) &&
-        !dfb_config->pollvsync_after)
-        dfb_layer_wait_vsync( layer );
+    FBDev *dfb_fbdev = dfb_system_data();
 
     dfb_surface_flip_buffers(surface, false);
 
     ucovl->field = 0;
 
+    if (ucovl->config.options & DLOP_FIELD_PARITY)
+    {
+        int field_option;
+        
+        if (ucovl->config.parity == 0)  // top field first?
+            field_option = 2;  // wait for bottom field
+        else
+            field_option = 1;  // wait for top field
+        ioctl(dfb_fbdev->fd, FBIO_WAITFORVSYNC, &field_option);
+        // that actually waits for VBLANK so we need a further delay
+        // to be sure the field has started and that the flip will
+        // take effect on the next field
+        usleep(2500);
+    }
+    
     ret = uc_ovl_update(ucdrv, ucovl, UC_OVL_FLIP, surface);
     if (ret)
         return ret;
 
-    if ((flags & DSFLIP_WAIT) &&
-        (dfb_config->pollvsync_after || !(flags & DSFLIP_ONSYNC)))
+    if (flags & DSFLIP_WAIT)
         dfb_layer_wait_vsync(layer);
 
     return DFB_OK;

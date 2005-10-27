@@ -2,11 +2,13 @@
 #define __UC_OVERLAY_H__
 
 #define UC_OVL_CAPS (DLCAPS_SURFACE | DLCAPS_OPACITY | DLCAPS_SCREEN_LOCATION \
-    | DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY | DLCAPS_LEVELS)
+    | DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY | DLCAPS_LEVELS \
+    | DLCAPS_FIELD_PARITY )
 /*    | DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST              \
     | DLCAPS_SATURATION | DLCAPS_HUE)
     */
-#define UC_OVL_OPTIONS (DLOP_DEINTERLACING | DLOP_DST_COLORKEY)
+#define UC_OVL_OPTIONS (DLOP_DEINTERLACING | DLOP_DST_COLORKEY \
+    | DLOP_FIELD_PARITY )
 
 #define ALIGN_TO(v, n) (((v) + (n-1)) & ~(n-1))
 #define UC_MAP_V1_FIFO_CONTROL(depth, pre_thr, thr) \
@@ -45,6 +47,8 @@ typedef struct _UcOverlayData {
 
     struct uc_ovl_vinfo v1;          // Video overlay V1
 
+    CoreLayerRegionConfig config;
+    
     bool                deinterlace;
     int                 field;
 
