@@ -127,7 +127,7 @@ init_application( int *argc, char **argv[] )
 
      dfb->GetDeviceDescription( dfb, &dev_desc );
 
-     video_total = dev_desc.video_memory;
+     video_total = dev_desc.video_memory ? : 1;
 
      /* Request fullscreen mode. */
      //dfb->SetCooperativeLevel( dfb, DFSCL_FULLSCREEN );
