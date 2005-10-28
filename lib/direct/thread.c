@@ -174,8 +174,10 @@ direct_thread_create( DirectThreadType      thread_type,
 
      /* Allocate thread structure. */
      thread = D_CALLOC( 1, sizeof(DirectThread) );
-     if (!thread)
+     if (!thread) {
+          D_OOM();
           return NULL;
+     }
 
      /* Write thread information to structure. */
      thread->name = D_STRDUP( name );
