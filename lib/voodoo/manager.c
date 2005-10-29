@@ -386,6 +386,7 @@ voodoo_manager_super( VoodooManager    *manager,
      DirectResult           ret;
      int                    len;
      int                    size;
+     void                  *ptr;
      VoodooMessageSerial    serial;
      VoodooSuperMessage    *msg;
      VoodooResponseMessage *response;
@@ -400,9 +401,11 @@ voodoo_manager_super( VoodooManager    *manager,
 
 
      /* Lock the output buffer for direct writing. */
-     ret = manager_lock_output( manager, size, (void**) &msg );
+     ret = manager_lock_output( manager, size, &ptr );
      if (ret)
           return ret;
+
+     msg = ptr;
 
      serial = manager->msg_serial++;
 
@@ -591,6 +594,7 @@ voodoo_manager_request( VoodooManager           *manager,
 {
      DirectResult          ret;
      int                   size;
+     void                 *ptr;
      VoodooMessageSerial   serial;
      VoodooRequestMessage *msg;
      va_list               args;
@@ -612,9 +616,11 @@ voodoo_manager_request( VoodooManager           *manager,
 
 
      /* Lock the output buffer for direct writing. */
-     ret = manager_lock_output( manager, size, (void**) &msg );
+     ret = manager_lock_output( manager, size, &ptr );
      if (ret)
           return ret;
+
+     msg = ptr;
 
      serial = manager->msg_serial++;
 
@@ -682,6 +688,7 @@ voodoo_manager_respond( VoodooManager          *manager,
 {
      DirectResult           ret;
      int                    size;
+     void                  *ptr;
      VoodooMessageSerial    serial;
      VoodooResponseMessage *msg;
      va_list                args;
@@ -700,9 +707,11 @@ voodoo_manager_respond( VoodooManager          *manager,
 
 
      /* Lock the output buffer for direct writing. */
-     ret = manager_lock_output( manager, size, (void**) &msg );
+     ret = manager_lock_output( manager, size, &ptr );
      if (ret)
           return ret;
+
+     msg = ptr;
 
      serial = manager->msg_serial++;
 
