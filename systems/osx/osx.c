@@ -89,9 +89,9 @@ system_initialize( CoreDFB *core, void **data )
      dfb_osx_core = core;
 
      /* Initialize OSX */
-     fusion_skirmish_init( &dfb_osx->lock, "OSX System" );
+     fusion_skirmish_init( &dfb_osx->lock, "OSX System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_osx->call, dfb_osx_call_handler, NULL );
+     fusion_call_init( &dfb_osx->call, dfb_osx_call_handler, NULL, dfb_core_world(core) );
 
      screen = dfb_screens_register( NULL, NULL, &osxPrimaryScreenFuncs );
 

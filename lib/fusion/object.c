@@ -44,6 +44,8 @@ D_DEBUG_DOMAIN( Fusion_Object, "Fusion/Object", "Fusion Objects and Pools" );
 struct __Fusion_FusionObjectPool {
      int                     magic;
 
+     FusionWorldShared      *shared;
+
      FusionSkirmish          lock;
      DirectLink             *objects;
      FusionObjectID          id_pool;
@@ -146,31 +148,39 @@ FusionObjectPool *
 fusion_object_pool_create( const char             *name,
                            int                     object_size,
                            int                     message_size,
-                           FusionObjectDestructor  destructor )
+                           FusionObjectDestructor  destructor,
+                           const FusionWorld      *world )
 {
-     FusionObjectPool *pool;
+     FusionObjectPool  *pool;
+     FusionWorldShared *shared;
 
      D_ASSERT( name != NULL );
      D_ASSERT( object_size >= sizeof(FusionObject) );
      D_ASSERT( message_size > 0 );
      D_ASSERT( destructor != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      /* Allocate shared memory for the pool. */
-     pool = SHCALLOC( 1, sizeof(FusionObjectPool) );
+     pool = SHCALLOC( shared->main_pool, 1, sizeof(FusionObjectPool) );
      if (!pool)
           return NULL;
 
      /* Initialize the pool lock. */
-     fusion_skirmish_init( &pool->lock, name );
+     fusion_skirmish_init( &pool->lock, name, world );
 
      /* Fill information. */
-     pool->name         = SHSTRDUP( name );
+     pool->shared       = shared;
+     pool->name         = SHSTRDUP( shared->main_pool, name );
      pool->object_size  = object_size;
      pool->message_size = message_size;
      pool->destructor   = destructor;
 
      /* Destruction call from Fusion. */
-     fusion_call_init( &pool->call, object_reference_watcher, pool );
+     fusion_call_init( &pool->call, object_reference_watcher, pool, world );
 
      D_MAGIC_SET( pool, FusionObjectPool );
 
@@ -178,13 +188,21 @@ fusion_object_pool_create( const char             *name,
 }
 
 DirectResult
-fusion_object_pool_destroy( FusionObjectPool *pool )
+fusion_object_pool_destroy( FusionObjectPool  *pool,
+                            const FusionWorld *world )
 {
-     DirectResult  ret;
-     DirectLink   *n;
-     FusionObject *object;
+     DirectResult       ret;
+     DirectLink        *n;
+     FusionObject      *object;
+     FusionWorldShared *shared;
 
      D_ASSERT( pool != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+     D_ASSERT( shared == pool->shared );
 
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
      D_DEBUG_AT( Fusion_Object, "  -> destroying pool...\n" );
@@ -192,7 +210,7 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      D_DEBUG_AT( Fusion_Object, "  -> syncing...\n" );
 
      /* Wait for processing of pending messages. */
-     fusion_sync();
+     fusion_sync( world );
 
      D_DEBUG_AT( Fusion_Object, "  -> locking...\n" );
 
@@ -241,8 +259,8 @@ fusion_object_pool_destroy( FusionObjectPool *pool )
      D_MAGIC_CLEAR( pool );
 
      /* Deallocate shared memory. */
-     SHFREE( pool->name );
-     SHFREE( pool );
+     SHFREE( shared->main_pool, pool->name );
+     SHFREE( shared->main_pool, pool );
 
      return DFB_OK;
 }
@@ -274,18 +292,26 @@ fusion_object_pool_enum( FusionObjectPool     *pool,
 }
 
 FusionObject *
-fusion_object_create( FusionObjectPool *pool )
+fusion_object_create( FusionObjectPool  *pool,
+                      const FusionWorld *world )
 {
-     FusionObject *object;
+     FusionObject      *object;
+     FusionWorldShared *shared;
 
      D_MAGIC_ASSERT( pool, FusionObjectPool );
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+     D_ASSERT( shared == pool->shared );
 
      /* Lock the pool. */
      if (fusion_skirmish_prevail( &pool->lock ))
           return NULL;
 
      /* Allocate shared memory for the object. */
-     object = SHCALLOC( 1, pool->object_size );
+     object = SHCALLOC( shared->main_pool, 1, pool->object_size );
      if (!object) {
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
@@ -298,8 +324,8 @@ fusion_object_create( FusionObjectPool *pool )
      object->id = ++pool->id_pool;
 
      /* Initialize the reference counter. */
-     if (fusion_ref_init( &object->ref )) {
-          SHFREE( object );
+     if (fusion_ref_init( &object->ref, world )) {
+          SHFREE( shared->main_pool, object );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
@@ -310,24 +336,25 @@ fusion_object_create( FusionObjectPool *pool )
      /* Install handler for automatic destruction. */
      if (fusion_ref_watch( &object->ref, &pool->call, object->id )) {
           fusion_ref_destroy( &object->ref );
-          SHFREE( object );
+          SHFREE( shared->main_pool, object );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
 
      /* Create a reactor for message dispatching. */
-     object->reactor = fusion_reactor_new( pool->message_size, pool->name );
+     object->reactor = fusion_reactor_new( pool->message_size, pool->name, world );
      if (!object->reactor) {
           fusion_ref_destroy( &object->ref );
-          SHFREE( object );
+          SHFREE( shared->main_pool, object );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
 
      fusion_reactor_set_lock( object->reactor, &pool->lock );
 
-     /* Set pool back pointer. */
-     object->pool = pool;
+     /* Set pool/world back pointer. */
+     object->pool   = pool;
+     object->shared = shared;
 
      /* Add the object to the pool. */
      direct_list_prepend( &pool->objects, &object->link );
@@ -335,7 +362,7 @@ fusion_object_create( FusionObjectPool *pool )
      D_DEBUG_AT( Fusion_Object, "== %s ==\n", pool->name );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG_AT( Fusion_Object, "  -> added %p with ref [0x%x]\n", object, object->ref.id );
+     D_DEBUG_AT( Fusion_Object, "  -> added %p with ref [0x%x]\n", object, object->ref.multi.id );
 #else
      D_DEBUG_AT( Fusion_Object, "  -> added %p\n", object );
 #endif
@@ -408,9 +435,14 @@ fusion_object_activate( FusionObject *object )
 DirectResult
 fusion_object_destroy( FusionObject *object )
 {
-     FusionObjectPool *pool;
+     FusionObjectPool  *pool;
+     FusionWorldShared *shared;
 
      D_MAGIC_ASSERT( object, FusionObject );
+
+     shared = object->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      pool = object->pool;
 
@@ -450,7 +482,7 @@ fusion_object_destroy( FusionObject *object )
 
      D_MAGIC_CLEAR( object );
 
-     SHFREE( object );
+     SHFREE( shared->main_pool, object );
 
      return DFB_OK;
 }

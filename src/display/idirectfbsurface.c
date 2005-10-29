@@ -1830,7 +1830,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->surface = surface;
 
-     dfb_state_init( &data->state );
+     dfb_state_init( &data->state, NULL );
      dfb_state_set_destination( &data->state, surface );
 
      data->state.clip.x1  = data->area.current.x;

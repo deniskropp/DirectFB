@@ -25,44 +25,15 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __FUSION__TYPES_H__
-#define __FUSION__TYPES_H__
+#ifndef __FUSION__SHM__SHM_H__
+#define __FUSION__SHM__SHM_H__
 
-#include <direct/types.h>
-
-
-#if FUSION_BUILD_MULTI
-
-#include <linux/fusion.h>
-
-#if FUSION_API_MAJOR != 2
-#error Need major API version 2!
-#else
-#if FUSION_API_MINOR < 0
-#error Insufficient minor API version, need 2.0 at least!
-#endif
-#endif
-
-#else
-typedef unsigned long FusionID;
-#endif
+#include <fusion/types.h>
 
 
-typedef struct __Fusion_FusionConfig         FusionConfig;
+DirectResult fusion_shm_init  ( FusionWorld *world );
 
-typedef struct __Fusion_FusionArena          FusionArena;
-typedef struct __Fusion_FusionReactor        FusionReactor;
-typedef struct __Fusion_FusionWorld          FusionWorld;
-typedef struct __Fusion_FusionWorldShared    FusionWorldShared;
-
-typedef struct __Fusion_FusionObject         FusionObject;
-typedef struct __Fusion_FusionObjectPool     FusionObjectPool;
-
-typedef struct __Fusion_FusionSHM            FusionSHM;
-typedef struct __Fusion_FusionSHMShared      FusionSHMShared;
-
-typedef struct __Fusion_FusionSHMPool        FusionSHMPool;
-typedef struct __Fusion_FusionSHMPoolShared  FusionSHMPoolShared;
+DirectResult fusion_shm_deinit( FusionWorld *world );
 
 #endif
 

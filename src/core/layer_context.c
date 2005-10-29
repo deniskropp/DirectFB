@@ -118,12 +118,12 @@ context_destructor( FusionObject *object, bool zombie )
 /******************************************************************************/
 
 FusionObjectPool *
-dfb_layer_context_pool_create()
+dfb_layer_context_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Layer Context Pool",
                                        sizeof(CoreLayerContext),
                                        sizeof(CoreLayerContextNotification),
-                                       context_destructor );
+                                       context_destructor, world );
 }
 
 /******************************************************************************/
@@ -148,14 +148,16 @@ dfb_layer_context_create( CoreLayer         *layer,
 
      D_DEBUG_AT( Core_Layers, "%s -> %p\n", __FUNCTION__, context );
 
+     context->shmpool = shared->shmpool;
+
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &context->lock, "Layer Context" )) {
+     if (fusion_skirmish_init( &context->lock, "Layer Context", dfb_core_world(layer->core) )) {
           fusion_object_destroy( &context->object );
           return DFB_FUSION;
      }
 
      /* Initialize the region vector. */
-     fusion_vector_init( &context->regions, 4 );
+     fusion_vector_init( &context->regions, 4, context->shmpool );
 
      /* Store layer ID, default configuration and default color adjustment. */
      context->layer_id   = shared->layer_id;

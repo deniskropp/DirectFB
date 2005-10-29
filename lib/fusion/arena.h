@@ -34,7 +34,8 @@ typedef int (*ArenaEnterFunc) (FusionArena *arena, void *ctx);
 typedef int (*ArenaExitFunc) (FusionArena *arena, void *ctx, bool emergency);
 
 
-DirectResult fusion_arena_enter            (const char      *name,
+DirectResult fusion_arena_enter            (FusionWorld     *world,
+                                            const char      *name,
                                             ArenaEnterFunc   initialize,
                                             ArenaEnterFunc   join,
                                             void            *ctx,

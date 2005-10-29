@@ -38,7 +38,8 @@
 #define CSLF_FORCE 0x80000000
 
 
-SurfaceManager *dfb_surfacemanager_create( unsigned int     length,
+SurfaceManager *dfb_surfacemanager_create( CoreDFB         *core,
+                                           unsigned int     length,
                                            CardLimitations *limits );
 
 void dfb_surfacemanager_destroy( SurfaceManager *manager );

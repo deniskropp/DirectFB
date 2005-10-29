@@ -36,6 +36,7 @@
 #include <fusion/shmalloc.h>
 #include <fusion/vector.h>
 
+#include <core/core.h>
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
@@ -54,7 +55,8 @@ static const ReactionFunc unique_input_channel_globals[] = {
 /**************************************************************************************************/
 
 DFBResult
-unique_input_channel_create( UniqueContext       *context,
+unique_input_channel_create( CoreDFB             *core,
+                             UniqueContext       *context,
                              UniqueInputChannel **ret_channel )
 {
      UniqueInputChannel *channel;
@@ -66,7 +68,7 @@ unique_input_channel_create( UniqueContext       *context,
      D_ASSERT( ret_channel != NULL );
 
      /* Allocate channel data. */
-     channel = SHCALLOC( 1, sizeof(UniqueInputChannel) );
+     channel = SHCALLOC( context->shmpool, 1, sizeof(UniqueInputChannel) );
      if (!channel) {
           D_WARN( "out of (shared) memory" );
           return DFB_NOSYSTEMMEMORY;
@@ -76,9 +78,10 @@ unique_input_channel_create( UniqueContext       *context,
      channel->context = context;
 
      /* Create reactor for dispatching events. */
-     channel->reactor = fusion_reactor_new( sizeof(UniqueInputEvent), "UniQuE Input Channel" );
+     channel->reactor = fusion_reactor_new( sizeof(UniqueInputEvent),
+                                            "UniQuE Input Channel", dfb_core_world(core) );
      if (!channel->reactor) {
-          SHFREE( channel );
+          SHFREE( context->shmpool, channel );
           return DFB_FUSION;
      }
 
@@ -96,7 +99,13 @@ unique_input_channel_create( UniqueContext       *context,
 DFBResult
 unique_input_channel_destroy( UniqueInputChannel *channel )
 {
+     UniqueContext *context;
+
      D_MAGIC_ASSERT( channel, UniqueInputChannel );
+
+     context = channel->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      D_DEBUG_AT( UniQuE_InputChan, "unique_input_channel_destroy( %p )\n", channel );
 
@@ -104,7 +113,7 @@ unique_input_channel_destroy( UniqueInputChannel *channel )
 
      D_MAGIC_CLEAR( channel );
 
-     SHFREE( channel );
+     SHFREE( context->shmpool, channel );
 
      return DFB_OK;
 }

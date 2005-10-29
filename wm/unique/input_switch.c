@@ -93,7 +93,7 @@ unique_input_switch_create( UniqueContext      *context,
      D_MAGIC_ASSERT( shared, WMShared );
 
      /* Allocate switch data. */
-     input_switch = SHCALLOC( 1, sizeof(UniqueInputSwitch) );
+     input_switch = SHCALLOC( context->shmpool, 1, sizeof(UniqueInputSwitch) );
      if (!input_switch) {
           D_WARN( "out of (shared) memory" );
           return DFB_NOSYSTEMMEMORY;
@@ -118,11 +118,16 @@ unique_input_switch_create( UniqueContext      *context,
 DFBResult
 unique_input_switch_destroy( UniqueInputSwitch *input_switch )
 {
-     int                i;
-     DirectLink        *n;
-     SwitchConnection  *connection;
+     int               i;
+     DirectLink       *n;
+     SwitchConnection *connection;
+     UniqueContext    *context;
 
      D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
+
+     context = input_switch->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_destroy( %p )\n", input_switch );
 
@@ -149,7 +154,7 @@ unique_input_switch_destroy( UniqueInputSwitch *input_switch )
 
                D_MAGIC_CLEAR( filter );
 
-               SHFREE( filter );
+               SHFREE( context->shmpool, filter );
           }
 
           D_ASSERT( target->filters == NULL );
@@ -157,7 +162,7 @@ unique_input_switch_destroy( UniqueInputSwitch *input_switch )
 
      D_MAGIC_CLEAR( input_switch );
 
-     SHFREE( input_switch );
+     SHFREE( context->shmpool, input_switch );
 
      return DFB_OK;
 }
@@ -168,14 +173,19 @@ unique_input_switch_add( UniqueInputSwitch *input_switch,
 {
      DFBResult         ret;
      SwitchConnection *connection;
+     UniqueContext    *context;
 
      D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
      D_MAGIC_ASSERT( device, UniqueDevice );
 
+     context = input_switch->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
      D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_add( %p, %p )\n", input_switch, device );
 
      /* Allocate connection structure. */
-     connection = SHCALLOC( 1, sizeof(SwitchConnection) );
+     connection = SHCALLOC( context->shmpool, 1, sizeof(SwitchConnection) );
      if (!connection) {
           D_WARN( "out of (shared) memory" );
           return DFB_NOSYSTEMMEMORY;
@@ -189,7 +199,7 @@ unique_input_switch_add( UniqueInputSwitch *input_switch,
                                         input_switch, &connection->reaction );
      if (ret) {
           D_DERROR( ret, "UniQuE/InpSwitch: Could not attach global device reaction!\n" );
-          SHFREE( connection );
+          SHFREE( context->shmpool, connection );
           return ret;
      }
 
@@ -290,11 +300,11 @@ unique_input_switch_unset( UniqueInputSwitch      *input_switch,
 {
      UniqueInputTarget *target;
 
-     D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
-     D_MAGIC_ASSERT( channel, UniqueInputChannel );
-
      D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_unset( %p, %d, %p )\n",
                  input_switch, index, channel );
+
+     D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
+     D_MAGIC_ASSERT( channel, UniqueInputChannel );
 
      D_ASSERT( index >= 0 );
      D_ASSERT( index < _UDCI_NUM );
@@ -324,6 +334,9 @@ unique_input_switch_set_filter( UniqueInputSwitch       *input_switch,
      UniqueInputTarget *target;
      UniqueContext     *context;
 
+     D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_set_filter( %p, %d, %p, %p )\n",
+                 input_switch, index, channel, event );
+
      D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
      D_MAGIC_ASSERT( channel, UniqueInputChannel );
 
@@ -332,9 +345,6 @@ unique_input_switch_set_filter( UniqueInputSwitch       *input_switch,
 
      D_ASSERT( event != NULL );
      D_ASSERT( ret_filter != NULL );
-
-     D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_set_filter( %p, %d, %p, %p )\n",
-                 input_switch, index, channel, event );
 
      context = input_switch->context;
 
@@ -350,7 +360,7 @@ unique_input_switch_set_filter( UniqueInputSwitch       *input_switch,
      }
 
      /* Allocate new filter. */
-     filter = SHCALLOC( 1, sizeof(UniqueInputFilter) );
+     filter = SHCALLOC( context->shmpool, 1, sizeof(UniqueInputFilter) );
      if (!filter)
           return D_OOSHM();
 
@@ -372,12 +382,17 @@ unique_input_switch_unset_filter( UniqueInputSwitch *input_switch,
                                   UniqueInputFilter *filter )
 {
      UniqueInputTarget *target;
+     UniqueContext     *context;
+
+     D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_unset_filter( %p, %p )\n",
+                 input_switch, filter );
 
      D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
      D_MAGIC_ASSERT( filter, UniqueInputFilter );
 
-     D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_unset_filter( %p, %p )\n",
-                 input_switch, filter );
+     context = input_switch->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      D_ASSERT( filter->index >= 0 );
      D_ASSERT( filter->index < _UDCI_NUM );
@@ -388,7 +403,7 @@ unique_input_switch_unset_filter( UniqueInputSwitch *input_switch,
 
      D_MAGIC_CLEAR( filter );
 
-     SHFREE( filter );
+     SHFREE( context->shmpool, filter );
 
      return DFB_OK;
 }
@@ -397,12 +412,17 @@ DFBResult
 unique_input_switch_drop( UniqueInputSwitch  *input_switch,
                           UniqueInputChannel *channel )
 {
-     int i;
+     int            i;
+     UniqueContext *context;
+
+     D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_drop( %p, %p )\n", input_switch, channel );
 
      D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
      D_MAGIC_ASSERT( channel, UniqueInputChannel );
 
-     D_DEBUG_AT( UniQuE_InpSw, "unique_input_switch_drop( %p, %p )\n", input_switch, channel );
+     context = input_switch->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      for (i=0; i<_UDCI_NUM; i++) {
           DirectLink        *n;
@@ -437,7 +457,7 @@ unique_input_switch_drop( UniqueInputSwitch  *input_switch,
 
                     D_MAGIC_CLEAR( filter );
 
-                    SHFREE( filter );
+                    SHFREE( context->shmpool, filter );
                }
           }
      }
@@ -732,10 +752,16 @@ static void
 purge_connection( UniqueInputSwitch *input_switch,
                   SwitchConnection  *connection )
 {
+     UniqueContext *context;
+
+     D_DEBUG_AT( UniQuE_InpSw, "purge_connection( %p, %p )\n", input_switch, connection );
+
      D_MAGIC_ASSERT( input_switch, UniqueInputSwitch );
      D_MAGIC_ASSERT( connection, SwitchConnection );
 
-     D_DEBUG_AT( UniQuE_InpSw, "purge_connection( %p, %p )\n", input_switch, connection );
+     context = input_switch->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      /* Detach global reaction for receiving events. */
      unique_device_detach_global( connection->device, &connection->reaction );
@@ -744,6 +770,6 @@ purge_connection( UniqueInputSwitch *input_switch,
 
      D_MAGIC_CLEAR( connection );
 
-     SHFREE( connection );
+     SHFREE( context->shmpool, connection );
 }
 

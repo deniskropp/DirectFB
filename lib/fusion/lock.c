@@ -54,17 +54,19 @@ D_DEBUG_DOMAIN( Fusion_Skirmish, "Fusion/Skirmish", "Fusion's Skirmish (Mutex)" 
 
 
 DirectResult
-fusion_skirmish_init (FusionSkirmish *skirmish,
-                      const char     *name)
+fusion_skirmish_init( FusionSkirmish    *skirmish,
+                      const char        *name,
+                      const FusionWorld *world )
 {
      FusionEntryInfo info;
 
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
+     D_ASSERT( name != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
      
      D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_init( %p, '%s' )\n", skirmish, name ? : "" );
 
-     while (ioctl( _fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->id )) {
+     while (ioctl( world->fusion_fd, FUSION_SKIRMISH_NEW, &skirmish->multi.id )) {
           if (errno == EINTR)
                continue;
 
@@ -72,25 +74,27 @@ fusion_skirmish_init (FusionSkirmish *skirmish,
           return DFB_FUSION;
      }
 
-     D_DEBUG_AT( Fusion_Skirmish, "  -> new skirmish %p [%d]\n", skirmish, skirmish->id );
+     D_DEBUG_AT( Fusion_Skirmish, "  -> new skirmish %p [%d]\n", skirmish, skirmish->multi.id );
      
      info.type = FT_SKIRMISH;
-     info.id   = skirmish->id;
+     info.id   = skirmish->multi.id;
 
      strncpy( info.name, name, sizeof(info.name) );
 
-     ioctl( _fusion_fd, FUSION_ENTRY_SET_INFO, &info );
+     ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
+
+     /* Keep back pointer to shared world data. */
+     skirmish->multi.shared = world->shared;
 
      return DFB_OK;
 }
 
 DirectResult
-fusion_skirmish_prevail (FusionSkirmish *skirmish)
+fusion_skirmish_prevail( FusionSkirmish *skirmish )
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_SKIRMISH_PREVAIL, &skirmish->id)) {
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_PREVAIL, &skirmish->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -108,12 +112,11 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
 }
 
 DirectResult
-fusion_skirmish_swoop (FusionSkirmish *skirmish)
+fusion_skirmish_swoop( FusionSkirmish *skirmish )
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_SKIRMISH_SWOOP, &skirmish->id)) {
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_SWOOP, &skirmish->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -136,10 +139,9 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
 DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_SKIRMISH_DISMISS, &skirmish->id)) {
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DISMISS, &skirmish->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -159,12 +161,11 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 DirectResult
 fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( skirmish != NULL );
 
-     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p [%d] )\n", skirmish, skirmish->id );
+     D_DEBUG_AT( Fusion_Skirmish, "fusion_skirmish_destroy( %p [%d] )\n", skirmish, skirmish->multi.id );
      
-     while (ioctl( _fusion_fd, FUSION_SKIRMISH_DESTROY, &skirmish->id )) {
+     while (ioctl( _fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_DESTROY, &skirmish->multi.id )) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -184,12 +185,13 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 #else  /* FUSION_BUILD_MULTI */
 
 DirectResult
-fusion_skirmish_init (FusionSkirmish *skirmish,
-                      const char     *name)
+fusion_skirmish_init( FusionSkirmish    *skirmish,
+                      const char        *name,
+                      const FusionWorld *world )
 {
      D_ASSERT( skirmish != NULL );
 
-     direct_util_recursive_pthread_mutex_init( &skirmish->fake.lock );
+     direct_util_recursive_pthread_mutex_init( &skirmish->single.lock );
 
      return DFB_OK;
 }
@@ -199,7 +201,7 @@ fusion_skirmish_prevail (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_lock( &skirmish->fake.lock );
+     return pthread_mutex_lock( &skirmish->single.lock );
 }
 
 DirectResult
@@ -207,7 +209,7 @@ fusion_skirmish_swoop (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_trylock( &skirmish->fake.lock );
+     return pthread_mutex_trylock( &skirmish->single.lock );
 }
 
 DirectResult
@@ -215,7 +217,7 @@ fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_unlock( &skirmish->fake.lock );
+     return pthread_mutex_unlock( &skirmish->single.lock );
 }
 
 DirectResult
@@ -223,7 +225,7 @@ fusion_skirmish_destroy (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
 
-     return pthread_mutex_destroy( &skirmish->fake.lock );
+     return pthread_mutex_destroy( &skirmish->single.lock );
 }
 
 #endif

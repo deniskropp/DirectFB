@@ -96,18 +96,25 @@ struct _CoreCleanup {
 };
 
 struct __DFB_CoreDFBShared {
-     FusionObjectPool *layer_context_pool;
-     FusionObjectPool *layer_region_pool;
-     FusionObjectPool *palette_pool;
-     FusionObjectPool *surface_pool;
-     FusionObjectPool *window_pool;
+     int                  magic;
+
+     FusionObjectPool    *layer_context_pool;
+     FusionObjectPool    *layer_region_pool;
+     FusionObjectPool    *palette_pool;
+     FusionObjectPool    *surface_pool;
+     FusionObjectPool    *window_pool;
+
+     FusionSHMPoolShared *shmpool;
 };
 
 struct __DFB_CoreDFB {
+     int                      magic;
+
      int                      refs;
 
      int                      fusion_id;
 
+     FusionWorld             *world;
      FusionArena             *arena;
 
      CoreDFBShared           *shared;
@@ -140,12 +147,12 @@ static DirectSignalHandlerResult dfb_core_signal_handler( int   num,
 
 static int dfb_core_arena_initialize( FusionArena *arena,
                                       void        *ctx );
+static int dfb_core_arena_shutdown  ( FusionArena *arena,
+                                      void        *ctx,
+                                      bool         emergency );
 static int dfb_core_arena_join      ( FusionArena *arena,
                                       void        *ctx );
 static int dfb_core_arena_leave     ( FusionArena *arena,
-                                      void        *ctx,
-                                      bool         emergency );
-static int dfb_core_arena_shutdown  ( FusionArena *arena,
                                       void        *ctx,
                                       bool         emergency );
 
@@ -182,11 +189,10 @@ DFBResult
 dfb_core_create( CoreDFB **ret_core )
 {
      int      ret;
-     int      world;
 #if FUSION_BUILD_MULTI
      char     buf[16];
 #endif
-     CoreDFB *core;
+     CoreDFB *core = NULL;
 
      D_ASSERT( ret_core != NULL );
      D_ASSERT( dfb_config != NULL );
@@ -198,6 +204,8 @@ dfb_core_create( CoreDFB **ret_core )
      D_ASSERT( core_dfb == NULL || core_dfb->refs > 0 );
 
      if (core_dfb) {
+          D_MAGIC_ASSERT( core_dfb, CoreDFB );
+
           core_dfb->refs++;
 
           *ret_core = core_dfb;
@@ -227,19 +235,15 @@ dfb_core_create( CoreDFB **ret_core )
 #endif
 
      ret = dfb_system_lookup();
-     if (ret) {
-          pthread_mutex_unlock( &core_dfb_lock );
-          direct_shutdown();
-          return ret;
-     }
+     if (ret)
+          goto error;
 
 
      /* Allocate local core structure. */
      core = D_CALLOC( 1, sizeof(CoreDFB) );
      if (!core) {
-          pthread_mutex_unlock( &core_dfb_lock );
-          direct_shutdown();
-          return DFB_NOSYSTEMMEMORY;
+          ret = D_OOM();
+          goto error;
      }
 
      core->refs = 1;
@@ -254,28 +258,26 @@ dfb_core_create( CoreDFB **ret_core )
 
      setpgid( 0, 0 );
 
+     D_MAGIC_SET( core, CoreDFB );
+
      core_dfb = core;
 
-     core->fusion_id = fusion_init( dfb_config->session,
+     ret = fusion_enter( dfb_config->session,
 #if DIRECT_BUILD_DEBUG
-                                    -DIRECTFB_CORE_ABI,
+                         -DIRECTFB_CORE_ABI,
 #else
-                                    DIRECTFB_CORE_ABI,
+                         DIRECTFB_CORE_ABI,
 #endif
-                                    &world );
-     if (core->fusion_id < 0) {
-          direct_thread_remove_init_handler( core->init_handler );
-          D_FREE( core );
-          core_dfb = NULL;
-          pthread_mutex_unlock( &core_dfb_lock );
-          direct_shutdown();
-          return DFB_FUSION;
-     }
+                         &core->world );
+     if (ret)
+          goto error;
+
+     core->fusion_id = fusion_id( core->world );
 
 #if FUSION_BUILD_MULTI
-     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %d\n", world, core->fusion_id );
+     D_DEBUG_AT( DirectFB_Core, "world %d, fusion id %d\n", fusion_world_index(core->world), core->fusion_id );
 
-     snprintf( buf, sizeof(buf), "%d", world );
+     snprintf( buf, sizeof(buf), "%d", fusion_world_index(core->world) );
 
      setenv( "DIRECTFB_SESSION", buf, true );
 #endif
@@ -287,21 +289,12 @@ dfb_core_create( CoreDFB **ret_core )
 
      direct_signal_handler_add( -1, dfb_core_signal_handler, core, &core->signal_handler );
 
-     if (fusion_arena_enter( "DirectFB/Core",
+     if (fusion_arena_enter( core->world, "DirectFB/Core",
                              dfb_core_arena_initialize, dfb_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
-          direct_thread_remove_init_handler( core->init_handler );
-
-          direct_signal_handler_remove( core->signal_handler );
-
-          D_FREE( core );
-          core_dfb = NULL;
-
-          pthread_mutex_unlock( &core_dfb_lock );
-
-          direct_shutdown();
-          return ret ? ret : DFB_FUSION;
+          ret = ret ? ret : DFB_FUSION;
+          goto error;
      }
 
 
@@ -319,12 +312,36 @@ dfb_core_create( CoreDFB **ret_core )
      D_DEBUG_AT( DirectFB_Core, "Core successfully created.\n" );
 
      return DFB_OK;
+
+
+error:
+     if (core) {
+          if (core->world)
+               fusion_exit( core->world, false );
+
+          if (core->init_handler)
+               direct_thread_remove_init_handler( core->init_handler );
+
+          if (core->signal_handler)
+               direct_signal_handler_remove( core->signal_handler );
+
+          D_MAGIC_CLEAR( core );
+
+          D_FREE( core );
+          core_dfb = NULL;
+     }
+
+     pthread_mutex_unlock( &core_dfb_lock );
+
+     direct_shutdown();
+
+     return ret;
 }
 
 DFBResult
 dfb_core_destroy( CoreDFB *core, bool emergency )
 {
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
      D_ASSERT( core->refs > 0 );
      D_ASSERT( core == core_dfb );
 
@@ -341,11 +358,11 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      if (core->master) {
           if (emergency) {
-               fusion_kill( 0, SIGKILL, 1000 );
+               fusion_kill( core->world, 0, SIGKILL, 1000 );
           }
           else {
-               fusion_kill( 0, SIGTERM, 5000 );
-               fusion_kill( 0, SIGKILL, 2000 );
+               fusion_kill( core->world, 0, SIGTERM, 5000 );
+               fusion_kill( core->world, 0, SIGKILL, 2000 );
           }
      }
 
@@ -359,9 +376,11 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
           usleep( 100000 );
      }
 
-     fusion_exit( emergency );
+     fusion_exit( core->world, emergency );
 
      direct_thread_remove_init_handler( core->init_handler );
+
+     D_MAGIC_CLEAR( core );
 
      D_FREE( core );
      core_dfb = NULL;
@@ -376,76 +395,101 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 CoreLayerContext *
 dfb_core_create_layer_context( CoreDFB *core )
 {
+     CoreDFBShared *shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
-     D_ASSERT( core->shared->layer_context_pool != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
-     return (CoreLayerContext*) fusion_object_create( core->shared->layer_context_pool );
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+     D_ASSERT( shared->layer_context_pool != NULL );
+
+     return (CoreLayerContext*) fusion_object_create( shared->layer_context_pool, core->world );
 }
 
 CoreLayerRegion *
 dfb_core_create_layer_region( CoreDFB *core )
 {
+     CoreDFBShared *shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->layer_region_pool != NULL );
 
-     return (CoreLayerRegion*) fusion_object_create( core->shared->layer_region_pool );
+     return (CoreLayerRegion*) fusion_object_create( core->shared->layer_region_pool, core->world );
 }
 
 CorePalette *
 dfb_core_create_palette( CoreDFB *core )
 {
+     CoreDFBShared *shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->palette_pool != NULL );
 
-     return (CorePalette*) fusion_object_create( core->shared->palette_pool );
+     return (CorePalette*) fusion_object_create( core->shared->palette_pool, core->world );
 }
 
 CoreSurface *
 dfb_core_create_surface( CoreDFB *core )
 {
+     CoreDFBShared *shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->surface_pool != NULL );
 
-     return (CoreSurface*) fusion_object_create( core->shared->surface_pool );
+     return (CoreSurface*) fusion_object_create( core->shared->surface_pool, core->world );
 }
 
 CoreWindow *
 dfb_core_create_window( CoreDFB *core )
 {
+     CoreDFBShared *shared;
+
      D_ASSUME( core != NULL );
 
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
      D_ASSERT( core->shared->window_pool != NULL );
 
-     return (CoreWindow*) fusion_object_create( core->shared->window_pool );
+     return (CoreWindow*) fusion_object_create( core->shared->window_pool, core->world );
 }
 
 DirectResult
@@ -453,13 +497,20 @@ dfb_core_enum_surfaces( CoreDFB               *core,
                         FusionObjectCallback   callback,
                         void                  *ctx )
 {
+     CoreDFBShared *shared;
+
      D_ASSERT( core != NULL || core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
 
-     return fusion_object_pool_enum( core->shared->surface_pool,
-                                     callback, ctx );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return fusion_object_pool_enum( shared->surface_pool, callback, ctx );
 }
 
 DirectResult
@@ -467,13 +518,20 @@ dfb_core_enum_layer_contexts( CoreDFB               *core,
                               FusionObjectCallback   callback,
                               void                  *ctx )
 {
+     CoreDFBShared *shared;
+
      D_ASSERT( core != NULL || core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
 
-     return fusion_object_pool_enum( core->shared->layer_context_pool,
-                                     callback, ctx );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return fusion_object_pool_enum( shared->layer_context_pool, callback, ctx );
 }
 
 DirectResult
@@ -481,21 +539,41 @@ dfb_core_enum_layer_regions( CoreDFB               *core,
                              FusionObjectCallback   callback,
                              void                  *ctx )
 {
+     CoreDFBShared *shared;
+
      D_ASSERT( core != NULL || core_dfb != NULL );
 
      if (!core)
           core = core_dfb;
 
-     return fusion_object_pool_enum( core->shared->layer_region_pool,
-                                     callback, ctx );
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return fusion_object_pool_enum( shared->layer_region_pool, callback, ctx );
 }
 
 bool
 dfb_core_is_master( CoreDFB *core )
 {
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      return core->master;
+}
+
+FusionWorld *
+dfb_core_world( CoreDFB *core )
+{
+//     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     return core->world;
 }
 
 FusionArena *
@@ -506,9 +584,28 @@ dfb_core_arena( CoreDFB *core )
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      return core->arena;
+}
+
+FusionSHMPoolShared *
+dfb_core_shmpool( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return shared->shmpool;
 }
 
 DFBResult
@@ -521,7 +618,7 @@ dfb_core_suspend( CoreDFB *core )
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      if (!core->master)
           return DFB_ACCESSDENIED;
@@ -555,7 +652,7 @@ dfb_core_resume( CoreDFB *core )
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      if (!core->master)
           return DFB_ACCESSDENIED;
@@ -592,7 +689,7 @@ dfb_core_cleanup_add( CoreDFB         *core,
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      cleanup = D_CALLOC( 1, sizeof(CoreCleanup) );
 
@@ -614,7 +711,7 @@ dfb_core_cleanup_remove( CoreDFB     *core,
      if (!core)
           core = core_dfb;
 
-     D_ASSERT( core != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      direct_list_remove( &core->cleanups, &cleanup->link );
 
@@ -645,6 +742,8 @@ dfb_core_thread_init_handler( DirectThread *thread, void *arg )
 static void
 dfb_core_process_cleanups( CoreDFB *core, bool emergency )
 {
+     D_MAGIC_ASSERT( core, CoreDFB );
+
      while (core->cleanups) {
           CoreCleanup *cleanup = (CoreCleanup*) core->cleanups;
 
@@ -679,17 +778,18 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      int            i;
      CoreDFBShared *shared;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      shared = core->shared;
 
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
      if (!emergency) {
-          fusion_object_pool_destroy( shared->window_pool );
-          fusion_object_pool_destroy( shared->layer_region_pool );
-          fusion_object_pool_destroy( shared->layer_context_pool );
-          fusion_object_pool_destroy( shared->surface_pool );
-          fusion_object_pool_destroy( shared->palette_pool );
+          fusion_object_pool_destroy( shared->window_pool, core->world );
+          fusion_object_pool_destroy( shared->layer_region_pool, core->world );
+          fusion_object_pool_destroy( shared->layer_context_pool, core->world );
+          fusion_object_pool_destroy( shared->surface_pool, core->world );
+          fusion_object_pool_destroy( shared->palette_pool, core->world );
      }
 
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
@@ -704,16 +804,17 @@ dfb_core_initialize( CoreDFB *core )
      int            i;
      CoreDFBShared *shared;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      shared = core->shared;
 
-     shared->layer_context_pool = dfb_layer_context_pool_create();
-     shared->layer_region_pool  = dfb_layer_region_pool_create();
-     shared->palette_pool       = dfb_palette_pool_create();
-     shared->surface_pool       = dfb_surface_pool_create();
-     shared->window_pool        = dfb_window_pool_create();
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     shared->layer_context_pool = dfb_layer_context_pool_create( core->world );
+     shared->layer_region_pool  = dfb_layer_region_pool_create( core->world );
+     shared->palette_pool       = dfb_palette_pool_create( core->world );
+     shared->surface_pool       = dfb_surface_pool_create( core->world );
+     shared->window_pool        = dfb_window_pool_create( core->world );
 
      for (i=0; i<NUM_CORE_PARTS; i++) {
           DFBResult ret;
@@ -732,8 +833,7 @@ dfb_core_leave( CoreDFB *core, bool emergency )
 {
      int i;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_leave( core, core_parts[i], emergency );
@@ -746,8 +846,7 @@ dfb_core_join( CoreDFB *core )
 {
      int i;
 
-     D_ASSERT( core != NULL );
-     D_ASSERT( core->shared != NULL );
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      for (i=0; i<NUM_CORE_PARTS; i++) {
           DFBResult ret;
@@ -767,31 +866,84 @@ static int
 dfb_core_arena_initialize( FusionArena *arena,
                            void        *ctx )
 {
-     DFBResult      ret;
-     CoreDFB       *core = ctx;
-     CoreDFBShared *shared;
+     DFBResult            ret;
+     CoreDFB             *core = ctx;
+     CoreDFBShared       *shared;
+     FusionSHMPoolShared *pool;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      D_DEBUG_AT( DirectFB_Core, "Initializing...\n" );
 
-     /* Allocate shared structure. */
-     shared = SHCALLOC( 1, sizeof(CoreDFBShared) );
+     /* Create the shared memory pool first! */
+     ret = fusion_shm_pool_create( core->world, "DirectFB Main Pool", 0x8000000, &pool );
+     if (ret)
+          return ret;
+
+     /* Allocate shared structure in the new pool. */
+     shared = SHCALLOC( pool, 1, sizeof(CoreDFBShared) );
      if (!shared) {
-          D_ERROR( "DirectFB/Core: Could not allocate (shared) memory!\n" );
-          return DFB_NOSYSTEMMEMORY;
+          fusion_shm_pool_destroy( core->world, pool );
+          return D_OOSHM();
      }
 
      core->shared = shared;
      core->master = true;
 
+     shared->shmpool = pool;
+
+     D_MAGIC_SET( shared, CoreDFBShared );
+
      /* Initialize. */
      ret = dfb_core_initialize( core );
      if (ret) {
-          SHFREE( shared );
+          D_MAGIC_CLEAR( shared );
+          SHFREE( pool, shared );
+          fusion_shm_pool_destroy( core->world, pool );
           return ret;
      }
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
+
+     return DFB_OK;
+}
+
+static int
+dfb_core_arena_shutdown( FusionArena *arena,
+                         void        *ctx,
+                         bool         emergency)
+{
+     DFBResult            ret;
+     CoreDFB             *core = ctx;
+     CoreDFBShared       *shared;
+     FusionSHMPoolShared *pool;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     pool = shared->shmpool;
+
+     D_DEBUG_AT( DirectFB_Core, "Shutting down...\n" );
+
+     if (!core->master) {
+          D_WARN( "refusing shutdown in slave" );
+          return dfb_core_leave( core, emergency );
+     }
+
+     /* Shutdown. */
+     ret = dfb_core_shutdown( core, emergency );
+     if (ret)
+          return ret;
+
+     D_MAGIC_CLEAR( shared );
+
+     SHFREE( pool, shared );
+
+     fusion_shm_pool_destroy( core->world, pool );
 
      return DFB_OK;
 }
@@ -803,6 +955,8 @@ dfb_core_arena_join( FusionArena *arena,
      DFBResult  ret;
      CoreDFB   *core = ctx;
      void      *field;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
 
      D_DEBUG_AT( DirectFB_Core, "Joining...\n" );
 
@@ -828,33 +982,12 @@ dfb_core_arena_leave( FusionArena *arena,
      DFBResult  ret;
      CoreDFB   *core = ctx;
 
+     D_MAGIC_ASSERT( core, CoreDFB );
+
      D_DEBUG_AT( DirectFB_Core, "Leaving...\n" );
 
      /* Leave. */
      ret = dfb_core_leave( core, emergency );
-     if (ret)
-          return ret;
-
-     return DFB_OK;
-}
-
-static int
-dfb_core_arena_shutdown( FusionArena *arena,
-                         void        *ctx,
-                         bool         emergency)
-{
-     DFBResult  ret;
-     CoreDFB   *core = ctx;
-
-     D_DEBUG_AT( DirectFB_Core, "Shutting down...\n" );
-
-     if (!core->master) {
-          D_WARN( "refusing shutdown in slave" );
-          return dfb_core_leave( core, emergency );
-     }
-
-     /* Shutdown. */
-     ret = dfb_core_shutdown( core, emergency );
      if (ret)
           return ret;
 

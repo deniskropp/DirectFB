@@ -41,26 +41,31 @@ typedef struct {
      int    count;
 
      int    capacity;
+
+     FusionSHMPoolShared *pool;
 } FusionVector;
 
-void fusion_vector_init   ( FusionVector *vector, int capacity );
-void fusion_vector_destroy( FusionVector *vector );
+void         fusion_vector_init       ( FusionVector        *vector,
+                                        int                  capacity,
+                                        FusionSHMPoolShared *pool );
 
-DirectResult fusion_vector_add        ( FusionVector *vector,
-                                        void         *element );
+void         fusion_vector_destroy    ( FusionVector        *vector );
 
-DirectResult fusion_vector_insert     ( FusionVector *vector,
-                                        void         *element,
-                                        int           index );
+DirectResult fusion_vector_add        ( FusionVector        *vector,
+                                        void                *element );
 
-DirectResult fusion_vector_move       ( FusionVector *vector,
-                                        int           from,
-                                        int           to );
+DirectResult fusion_vector_insert     ( FusionVector        *vector,
+                                        void                *element,
+                                        int                  index );
 
-DirectResult fusion_vector_remove     ( FusionVector *vector,
-                                        int           index );
+DirectResult fusion_vector_move       ( FusionVector        *vector,
+                                        int                  from,
+                                        int                  to );
 
-DirectResult fusion_vector_remove_last( FusionVector *vector );
+DirectResult fusion_vector_remove     ( FusionVector        *vector,
+                                        int                  index );
+
+DirectResult fusion_vector_remove_last( FusionVector        *vector );
 
 
 static inline bool

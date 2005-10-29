@@ -112,9 +112,11 @@ dfb_windowstack_create( CoreLayerContext *context )
      D_ASSERT( context != NULL );
 
      /* Allocate window stack data (completely shared) */
-     stack = (CoreWindowStack*) SHCALLOC( 1, sizeof(CoreWindowStack) );
+     stack = (CoreWindowStack*) SHCALLOC( context->shmpool, 1, sizeof(CoreWindowStack) );
      if (!stack)
           return NULL;
+
+     stack->shmpool = context->shmpool;
 
      /* Store context which we belong to. */
      stack->context = context;
@@ -151,7 +153,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           dfb_input_detach_global( dfb_input_device_at( device->id ),
                                    &device->reaction );
 
-          SHFREE( device );
+          SHFREE( stack->shmpool, device );
 
           l = next;
      }
@@ -171,7 +173,7 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
      }
 
      /* Free stack data. */
-     SHFREE( stack );
+     SHFREE( stack->shmpool, stack );
 }
 
 void
@@ -667,7 +669,9 @@ stack_attach_devices( CoreInputDevice *device,
      StackDevice     *dev;
      CoreWindowStack *stack = (CoreWindowStack*) ctx;
 
-     dev = SHCALLOC( 1, sizeof(StackDevice) );
+     D_ASSERT( stack != NULL );
+
+     dev = SHCALLOC( stack->shmpool, 1, sizeof(StackDevice) );
      if (!dev) {
           D_ERROR( "DirectFB/core/windows: Could not allocate %d bytes\n",
                     sizeof(StackDevice) );

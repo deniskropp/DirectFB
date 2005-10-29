@@ -33,6 +33,7 @@
 
 #include <directfb.h>
 
+#include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -594,8 +595,8 @@ dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
      if (dfb_core_is_master( core ))
           return dfb_x11_set_video_mode_handler( config );
 
-     if (!fusion_is_shared( config )) {
-          tmp = SHMALLOC( sizeof(CoreLayerRegionConfig) );
+     if (!fusion_is_shared( dfb_core_world(core), config )) {
+          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
           if (!tmp)
                return DFB_NOSYSTEMMEMORY;
 
@@ -606,7 +607,7 @@ dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
                           tmp ? tmp : config, &ret );
 
      if (tmp)
-          SHFREE( tmp );
+          SHFREE( dfb_core_shmpool(core), tmp );
 
      return ret;
 }
@@ -622,8 +623,8 @@ dfb_x11_update_screen( CoreDFB *core, DFBRegion *region )
           return dfb_x11_update_screen_handler( region );
 
      if (region) {
-          if (!fusion_is_shared( region )) {
-               tmp = SHMALLOC( sizeof(DFBRegion) );
+          if (!fusion_is_shared( dfb_core_world(core), region )) {
+               tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
                if (!tmp)
                     return DFB_NOSYSTEMMEMORY;
 
@@ -635,7 +636,7 @@ dfb_x11_update_screen( CoreDFB *core, DFBRegion *region )
                           tmp ? tmp : region, &ret );
 
      if (tmp)
-          SHFREE( tmp );
+          SHFREE( dfb_core_shmpool(core), tmp );
 
      return ret;
 }

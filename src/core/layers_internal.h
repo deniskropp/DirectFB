@@ -71,6 +71,8 @@ typedef struct {
      bool                               suspended;
 
      FusionVector                       added_regions;
+
+     FusionSHMPoolShared               *shmpool;
 } CoreLayerShared;
 
 struct __DFB_CoreLayer {
@@ -130,6 +132,8 @@ struct __DFB_CoreLayerContext {
      CoreWindowStack            *stack;      /* Every layer has its own
                                                 windowstack as every layer has
                                                 its own pixel buffer. */
+
+     FusionSHMPoolShared        *shmpool;
 };
 
 typedef enum {

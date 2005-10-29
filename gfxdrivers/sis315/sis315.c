@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.11 2005-08-03 09:21:42 klan Exp $
+ * $Id: sis315.c,v 1.12 2005-10-29 00:40:58 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -214,7 +214,8 @@ static void driver_get_info(GraphicsDevice *device,
 static DFBResult driver_init_driver(GraphicsDevice *device,
 				    GraphicsDeviceFuncs *funcs,
 				    void *driver_data,
-				    void *device_data)
+				    void *device_data,
+                    CoreDFB *core)
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	FBDev *dfb_fbdev;

@@ -61,7 +61,8 @@ typedef struct {
  * Create a new reactor configured for the specified message data size.
  */
 FusionReactor *fusion_reactor_new          ( int                 msg_size,
-                                             const char         *name );
+                                             const char         *name,
+                                             const FusionWorld  *world );
 
 /*
  * Destroy the reactor.

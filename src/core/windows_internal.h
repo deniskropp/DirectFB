@@ -118,22 +118,24 @@ struct __DFB_CoreWindowStack {
      /* stores information on handling the background on exposure */
      struct {
           DFBDisplayLayerBackgroundMode mode;
-                                       /* background handling mode:
-                                          don't care, solid color or image */
+                                        /* background handling mode:
+                                           don't care, solid color or image */
 
-          DFBColor            color;   /* color for solid background mode */
+          DFBColor            color;    /* color for solid background mode */
 
 
-          CoreSurface        *image;   /* surface for background image mode */
+          CoreSurface        *image;    /* surface for background image mode */
 
           GlobalReaction      image_reaction;
      } bg;
 
-     DirectLink         *devices;      /* input devices attached to the stack */
+     DirectLink          *devices;      /* input devices attached to the stack */
 
-     bool                hw_mode;      /* recompositing is done by hardware */
+     bool                 hw_mode;      /* recompositing is done by hardware */
 
-     void               *stack_data;    /* private data of window manager */
+     void                *stack_data;   /* private data of window manager */
+
+     FusionSHMPoolShared *shmpool;
 };
 
 

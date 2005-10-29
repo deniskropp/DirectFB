@@ -75,6 +75,9 @@ typedef enum {
 struct _CardState {
      int                      magic;
 
+     CoreDFB                 *core;
+     FusionID                 fusion_id;
+
      pthread_mutex_t          lock;          /* lock for state handling */
 
      CardStateFlags           flags;
@@ -117,7 +120,7 @@ struct _CardState {
      GenefxState             *gfxs;
 };
 
-int dfb_state_init( CardState *state );
+int  dfb_state_init( CardState *state, CoreDFB *core );
 void dfb_state_destroy( CardState *state );
 
 void dfb_state_set_destination( CardState *state, CoreSurface *destination );

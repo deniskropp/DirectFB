@@ -55,8 +55,9 @@
 #include <core/system.h>
 
 
-static long long    t1, t2;
-static unsigned int loops;
+static long long     t1, t2;
+static unsigned int  loops;
+static FusionWorld  *world;
 
 #define BENCH_START()       do { sync(); usleep(100000); sync(); t1 = direct_clock_get_millis(); loops = 0; } while (0)
 #define BENCH_STOP()        do { t2 = direct_clock_get_millis(); } while (0)
@@ -82,7 +83,7 @@ bench_reactor()
      Reaction        reaction2;
      GlobalReaction  global_reaction;
 
-     reactor = fusion_reactor_new( 16, "Benchmark" );
+     reactor = fusion_reactor_new( 16, "Benchmark", world );
      if (!reactor) {
           fprintf( stderr, "Fusion Error\n" );
           return;
@@ -166,7 +167,7 @@ bench_ref()
      DirectResult ret;
      FusionRef    ref;
 
-     ret = fusion_ref_init( &ref );
+     ret = fusion_ref_init( &ref, world );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -210,7 +211,7 @@ bench_property()
      DirectResult   ret;
      FusionProperty property;
 
-     ret = fusion_property_init( &property );
+     ret = fusion_property_init( &property, world );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -241,7 +242,7 @@ bench_skirmish()
      DirectResult   ret;
      FusionSkirmish skirmish;
 
-     ret = fusion_skirmish_init( &skirmish, "Benchmark" );
+     ret = fusion_skirmish_init( &skirmish, "Benchmark", world );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -286,7 +287,7 @@ bench_skirmish_threaded()
      DirectResult   ret;
      FusionSkirmish skirmish;
 
-     ret = fusion_skirmish_init( &skirmish, "Threaded Benchmark" );
+     ret = fusion_skirmish_init( &skirmish, "Threaded Benchmark", world );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;
@@ -435,10 +436,19 @@ bench_flock()
 }
 
 static void
-bench_shmalloc()
+bench_shmpool()
 {
-     void      *mem[256];
-     const int  sizes[8] = { 12, 36, 200, 120, 39, 3082, 8, 1040 };
+     DirectResult  ret;
+     void         *mem[256];
+     const int     sizes[8] = { 12, 36, 200, 120, 39, 3082, 8, 1040 };
+
+     FusionSHMPoolShared *pool;
+
+     ret = fusion_shm_pool_create( world, "Benchmark Pool", 524288, &pool );
+     if (ret) {
+          DirectFBError( "fusion_shm_pool_create() failed", ret );
+          return;
+     }
 
      BENCH_START();
 
@@ -446,29 +456,31 @@ bench_shmalloc()
           int i;
 
           for (i=0; i<128; i++)
-               mem[i] = SHMALLOC( sizes[i&7] );
+               fusion_shm_pool_allocate( pool, sizes[i&7], false, true, &mem[i] );
 
           for (i=0; i<64; i++)
-               SHFREE( mem[i] );
+               fusion_shm_pool_deallocate( pool, mem[i], true );
 
           for (i=128; i<192; i++)
-               mem[i] = SHMALLOC( sizes[i&7] );
+               fusion_shm_pool_allocate( pool, sizes[i&7], false, true, &mem[i] );
 
           for (i=64; i<128; i++)
-               SHFREE( mem[i] );
+               fusion_shm_pool_deallocate( pool, mem[i], true );
 
           for (i=192; i<256; i++)
-               mem[i] = SHMALLOC( sizes[i&7] );
+               fusion_shm_pool_allocate( pool, sizes[i&7], false, true, &mem[i] );
 
           for (i=128; i<256; i++)
-               SHFREE( mem[i] );
+               fusion_shm_pool_deallocate( pool, mem[i], true );
      }
 
      BENCH_STOP();
 
-     printf( "shm alloc/free                        -> %8.2f k/sec\n", BENCH_RESULT_BY(256) );
+     printf( "shm pool alloc/free                   -> %8.2f k/sec\n", BENCH_RESULT_BY(256) );
 
      printf( "\n" );
+
+     fusion_shm_pool_destroy( world, pool );
 }
 
 int
@@ -479,12 +491,13 @@ main( int argc, char *argv[] )
      /* Initialize DirectFB. */
      ret = DirectFBInit( &argc, &argv );
      if (ret)
-          return DirectFBError( "DirectFBInit", ret );
+          return DirectFBError( "DirectFBInit()", ret );
 
      dfb_system_lookup();
 
-     if (fusion_init( -1, 0, NULL ) < 0)
-          return -1;
+     ret = fusion_enter( -1, 0, &world );
+     if (ret)
+          return DirectFBError( "fusion_enter()", ret );
 
      printf( "\n" );
 
@@ -512,9 +525,9 @@ main( int argc, char *argv[] )
 
      bench_reactor();
 
-     bench_shmalloc();
+     bench_shmpool();
 
-     fusion_exit( false );
+     fusion_exit( world, false );
 
      return 0;
 }

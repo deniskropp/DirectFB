@@ -69,8 +69,6 @@ region_destructor( FusionObject *object, bool zombie )
      CoreLayer        *layer   = dfb_layer_at( context->layer_id );
      CoreLayerShared  *shared  = layer->shared;
 
-     (void) shared;
-
      D_DEBUG_AT( Core_Layers, "destroying region %p (%s, %dx%d, "
                  "%s, %s, %s, %s%s)\n", region, shared->description.name,
                  region->config.width, region->config.height,
@@ -106,7 +104,7 @@ region_destructor( FusionObject *object, bool zombie )
 
      /* Free driver's region data. */
      if (region->region_data)
-          SHFREE( region->region_data );
+          SHFREE( shared->shmpool, region->region_data );
 
      /* Deinitialize the lock. */
      fusion_skirmish_destroy( &region->lock );
@@ -118,12 +116,12 @@ region_destructor( FusionObject *object, bool zombie )
 /******************************************************************************/
 
 FusionObjectPool *
-dfb_layer_region_pool_create()
+dfb_layer_region_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Layer Region Pool",
                                        sizeof(CoreLayerRegion),
                                        sizeof(CoreLayerRegionNotification),
-                                       region_destructor );
+                                       region_destructor, world );
 }
 
 /******************************************************************************/
@@ -152,7 +150,7 @@ dfb_layer_region_create( CoreLayerContext  *context,
      }
 
      /* Initialize the lock. */
-     if (fusion_skirmish_init( &region->lock, "Layer Region" )) {
+     if (fusion_skirmish_init( &region->lock, "Layer Region", dfb_core_world(layer->core) )) {
           dfb_layer_context_unlink( &region->context );
           fusion_object_destroy( &region->object );
           return DFB_FUSION;
@@ -850,7 +848,7 @@ realize_region( CoreLayerRegion *region )
           int size = funcs->RegionDataSize();
 
           if (size > 0) {
-               region->region_data = SHCALLOC( 1, size );
+               region->region_data = SHCALLOC( shared->shmpool, 1, size );
                if (!region->region_data)
                     return D_OOSHM();
           }
@@ -868,7 +866,7 @@ realize_region( CoreLayerRegion *region )
                D_DERROR( ret, "Core/Layers: Could not add region!\n" );
 
                if (region->region_data) {
-                    SHFREE( region->region_data );
+                    SHFREE( shared->shmpool, region->region_data );
                     region->region_data = NULL;
                }
 
@@ -936,7 +934,7 @@ unrealize_region( CoreLayerRegion *region )
 
      /* Deallocate the driver's region data. */
      if (region->region_data) {
-          SHFREE( region->region_data );
+          SHFREE( shared->shmpool, region->region_data );
           region->region_data = NULL;
      }
 

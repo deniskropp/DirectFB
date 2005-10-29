@@ -65,7 +65,8 @@ typedef struct {
 
 
 
-DFBResult unique_window_create       ( CoreWindow              *window,
+DFBResult unique_window_create       ( CoreDFB                 *core,
+                                       CoreWindow              *window,
                                        UniqueContext           *context,
                                        DFBWindowCapabilities    caps,
                                        const CoreWindowConfig  *config,
@@ -114,7 +115,7 @@ DFBResult unique_window_request_focus( UniqueWindow            *window );
 /*
  * Creates a pool of window objects.
  */
-FusionObjectPool *unique_window_pool_create();
+FusionObjectPool *unique_window_pool_create( const FusionWorld *world );
 
 /*
  * Generates unique_window_ref(), unique_window_attach() etc.

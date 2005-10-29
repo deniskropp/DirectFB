@@ -119,10 +119,10 @@ context_destructor( FusionObject *object, bool zombie )
 }
 
 FusionObjectPool *
-unique_context_pool_create()
+unique_context_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "UniQuE Context Pool", sizeof(UniqueContext),
-                                       sizeof(UniqueContextNotification), context_destructor );
+                                       sizeof(UniqueContextNotification), context_destructor, world );
 }
 
 /**************************************************************************************************/
@@ -141,7 +141,8 @@ connect_device( CoreInputDevice *source,
 }
 
 static DFBResult
-create_devices( UniqueContext *context,
+create_devices( CoreDFB       *core,
+                UniqueContext *context,
                 WMShared      *shared )
 {
      int       i;
@@ -153,7 +154,7 @@ create_devices( UniqueContext *context,
      for (i=0; i<_UDCI_NUM; i++) {
           DFBInputDeviceCapabilities caps;
 
-          ret = unique_device_create( context, shared->device_classes[i],
+          ret = unique_device_create( core, context, shared->device_classes[i],
                                       context, &context->devices[i] );
           if (ret)
                goto error;
@@ -199,7 +200,8 @@ error:
 /**************************************************************************************************/
 
 DFBResult
-unique_context_create( CoreWindowStack    *stack,
+unique_context_create( CoreDFB            *core,
+                       CoreWindowStack    *stack,
                        CoreLayerRegion    *region,
                        DFBDisplayLayerID   layer_id,
                        WMShared           *shared,
@@ -221,14 +223,15 @@ unique_context_create( CoreWindowStack    *stack,
      context->shared   = shared;
      context->layer_id = layer_id;
      context->color    = (DFBColor) { 0xff, 0xa0, 0xd0, 0xf0 };
+     context->shmpool  = stack->shmpool;
 
-     fusion_vector_init( &context->windows, 16 );
+     fusion_vector_init( &context->windows, 16, context->shmpool );
 
      /* Create Root Region. */
      ret = stret_region_create( shared->region_classes[URCI_ROOT], context, 0,
                                 SRF_ACTIVE | SRF_OUTPUT, _UNRL_NUM,
                                 0, 0, INT_MAX, INT_MAX,
-                                NULL, 0, &context->root );
+                                NULL, 0, context->shmpool, &context->root );
      if (ret)
           goto error;
 
@@ -255,11 +258,11 @@ unique_context_create( CoreWindowStack    *stack,
      if (ret)
           goto error_switch;
 
-     ret = create_devices( context, shared );
+     ret = create_devices( core, context, shared );
      if (ret)
           goto error_devices;
 
-     ret = unique_input_channel_create( context, &context->foo_channel );
+     ret = unique_input_channel_create( core, context, &context->foo_channel );
      if (ret)
           goto error_foo_channel;
 

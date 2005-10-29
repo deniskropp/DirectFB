@@ -84,7 +84,7 @@ system_initialize( CoreDFB *core, void **data )
 
      D_ASSERT( dfb_x11 == NULL );
 
-     dfb_x11 = (DFBX11*) SHCALLOC( 1, sizeof(DFBX11) );
+     dfb_x11 = (DFBX11*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBX11) );
      if (!dfb_x11) {
           D_ERROR( "DirectFB/X11: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
@@ -98,9 +98,9 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_x11_core = core;
 
-     fusion_skirmish_init( &dfb_x11->lock, "X11 System" );
+     fusion_skirmish_init( &dfb_x11->lock, "X11 System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_x11->call, dfb_x11_call_handler, NULL );
+     fusion_call_init( &dfb_x11->call, dfb_x11_call_handler, NULL, dfb_core_world(core) );
 
      screen = dfb_screens_register( NULL, NULL, &x11PrimaryScreenFuncs );
 
@@ -149,7 +149,7 @@ system_shutdown( bool emergency )
 	xw_closeWindow(&xw);
     fusion_skirmish_destroy( &dfb_x11->lock );
 
-    SHFREE( dfb_x11 );
+    SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );
     dfb_x11 = NULL;
     dfb_x11_core = NULL;
 

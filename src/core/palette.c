@@ -68,7 +68,7 @@ static void palette_destructor( FusionObject *object, bool zombie )
           dfb_colorhash_detach( palette );
      }
 
-     SHFREE( palette->entries );
+     SHFREE( palette->shmpool, palette->entries );
 
      fusion_object_destroy( object );
 }
@@ -76,14 +76,14 @@ static void palette_destructor( FusionObject *object, bool zombie )
 /** public **/
 
 FusionObjectPool *
-dfb_palette_pool_create()
+dfb_palette_pool_create( const FusionWorld *world )
 {
      FusionObjectPool *pool;
 
      pool = fusion_object_pool_create( "Palette Pool",
                                        sizeof(CorePalette),
                                        sizeof(CorePaletteNotification),
-                                       palette_destructor );
+                                       palette_destructor, world );
 
      return pool;
 }
@@ -101,8 +101,10 @@ dfb_palette_create( CoreDFB       *core,
      if (!palette)
           return DFB_FUSION;
 
+     palette->shmpool = dfb_core_shmpool( core );
+
      if (size) {
-          palette->entries = SHCALLOC( size, sizeof(DFBColor) );
+          palette->entries = SHCALLOC( palette->shmpool, size, sizeof(DFBColor) );
           if (!palette->entries) {
                fusion_object_destroy( &palette->object );
                return DFB_NOSYSTEMMEMORY;

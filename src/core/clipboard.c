@@ -40,11 +40,12 @@
 
 
 typedef struct {
-     FusionSkirmish  lock;
-     char           *mime_type;
-     void           *data;
-     unsigned int    size;
-     struct timeval  timestamp;
+     FusionSkirmish       lock;
+     char                *mime_type;
+     void                *data;
+     unsigned int         size;
+     struct timeval       timestamp;
+     FusionSHMPoolShared *shmpool;
 } CoreClip;
 
 static CoreClip *core_clip = NULL;
@@ -60,7 +61,9 @@ dfb_clipboard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      core_clip = data_shared;
 
-     fusion_skirmish_init( &core_clip->lock, "Clipboard Core" );
+     core_clip->shmpool = dfb_core_shmpool( core );
+
+     fusion_skirmish_init( &core_clip->lock, "Clipboard Core", dfb_core_world(core) );
 
      return DFB_OK;
 }
@@ -83,10 +86,10 @@ dfb_clipboard_shutdown( CoreDFB *core, bool emergency )
      fusion_skirmish_destroy( &core_clip->lock );
 
      if (core_clip->data)
-          SHFREE( core_clip->data );
+          SHFREE( core_clip->shmpool, core_clip->data );
 
      if (core_clip->mime_type)
-          SHFREE( core_clip->mime_type );
+          SHFREE( core_clip->shmpool, core_clip->mime_type );
 
      core_clip = NULL;
 
@@ -135,29 +138,29 @@ dfb_clipboard_set( const char     *mime_type,
      D_ASSERT( data != NULL );
      D_ASSERT( size > 0 );
 
-     new_mime = SHSTRDUP( mime_type );
+     new_mime = SHSTRDUP( core_clip->shmpool, mime_type );
      if (!new_mime)
           return DFB_NOSYSTEMMEMORY;
 
-     new_data = SHMALLOC( size );
+     new_data = SHMALLOC( core_clip->shmpool, size );
      if (!new_data) {
-          SHFREE( new_mime );
+          SHFREE( core_clip->shmpool, new_mime );
           return DFB_NOSYSTEMMEMORY;
      }
 
      direct_memcpy( new_data, data, size );
 
      if (fusion_skirmish_prevail( &core_clip->lock )) {
-          SHFREE( new_data );
-          SHFREE( new_mime );
+          SHFREE( core_clip->shmpool, new_data );
+          SHFREE( core_clip->shmpool, new_mime );
           return DFB_FUSION;
      }
 
      if (core_clip->data)
-          SHFREE( core_clip->data );
+          SHFREE( core_clip->shmpool, core_clip->data );
 
      if (core_clip->mime_type)
-          SHFREE( core_clip->mime_type );
+          SHFREE( core_clip->shmpool, core_clip->mime_type );
 
      core_clip->mime_type = new_mime;
      core_clip->data      = new_data;

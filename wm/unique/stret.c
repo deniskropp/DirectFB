@@ -149,6 +149,7 @@ stret_region_create( StretRegionClassID   class_id,
                      int                  height,
                      StretRegion         *parent,
                      int                  level,
+                     FusionSHMPoolShared *pool,
                      StretRegion        **ret_region )
 {
      int          i;
@@ -176,7 +177,7 @@ stret_region_create( StretRegionClassID   class_id,
      D_ASSERT( ret_region != NULL );
 
      /* Allocate region data. */
-     region = SHCALLOC( 1, sizeof(StretRegion) + sizeof(FusionVector) * levels );
+     region = SHCALLOC( pool, 1, sizeof(StretRegion) + sizeof(FusionVector) * levels );
      if (!region) {
           D_WARN( "out of (shared) memory" );
           return DFB_NOSYSTEMMEMORY;
@@ -192,10 +193,11 @@ stret_region_create( StretRegionClassID   class_id,
      region->clazz    = class_id;
      region->data     = data;
      region->arg      = arg;
+     region->shmpool  = pool;
 
      /* Initialize levels. */
      for (i=0; i<levels; i++)
-          fusion_vector_init( &region->children[i], 4 );
+          fusion_vector_init( &region->children[i], 4, pool );
 
 
      /* Add the region to its parent. */
@@ -206,7 +208,7 @@ stret_region_create( StretRegionClassID   class_id,
 
           if (fusion_vector_add( children, region )) {
                D_WARN( "out of (shared) memory" );
-               SHFREE( region );
+               SHFREE( pool, region );
                return DFB_NOSYSTEMMEMORY;
           }
      }
@@ -281,7 +283,7 @@ stret_region_destroy( StretRegion *region )
 
      D_MAGIC_CLEAR( region );
 
-     SHFREE( region );
+     SHFREE( region->shmpool, region );
 
      return DFB_OK;
 }

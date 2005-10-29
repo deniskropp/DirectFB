@@ -46,6 +46,7 @@
 #include <fusion/shmalloc.h>
 #include <fusion/vector.h>
 
+#include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -174,6 +175,7 @@ initialize_data( CoreDFB *core, WMData *data, WMShared *shared )
 
      /* Initialize local data. */
      data->core       = core;
+     data->world      = dfb_core_world( core );
      data->shared     = shared;
      data->module_abi = UNIQUE_WM_ABI_VERSION;
 
@@ -237,7 +239,7 @@ wm_shutdown( bool emergency, void *wm_data, void *shared_data )
 
      D_DEBUG_AT( WM_Unique, "wm_shutdown()\n" );
 
-     unique_wm_module_deinit( true, emergency );
+     unique_wm_module_deinit( wm_data, shared_data, true, emergency );
 
      D_MAGIC_CLEAR( shared );
 
@@ -249,7 +251,7 @@ wm_leave( bool emergency, void *wm_data, void *shared_data )
 {
      D_DEBUG_AT( WM_Unique, "wm_leave()\n" );
 
-     unique_wm_module_deinit( false, emergency );
+     unique_wm_module_deinit( wm_data, shared_data, false, emergency );
 
      return DFB_OK;
 }
@@ -299,7 +301,7 @@ wm_init_stack( CoreWindowStack *stack,
      }
 
      /* Create the unique context. */
-     ret = unique_context_create( stack, region, context->layer_id,
+     ret = unique_context_create( wmdata->core, stack, region, context->layer_id,
                                   wmdata->shared, &data->context );
      dfb_layer_region_unref( region );
      if (ret) {
@@ -558,8 +560,9 @@ wm_add_window( CoreWindowStack *stack,
                void            *window_data )
 {
      DFBResult   ret;
-     StackData  *sdata = stack_data;
-     WindowData *data  = window_data;
+     StackData  *sdata  = stack_data;
+     WindowData *data   = window_data;
+     WMData     *wmdata = wm_data;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -573,7 +576,7 @@ wm_add_window( CoreWindowStack *stack,
      data->context = sdata->context;
 
      /* Create the unique window. */
-     ret = unique_window_create( window, data->context,
+     ret = unique_window_create( wmdata->core, window, data->context,
                                  window->caps, &window->config, &data->window );
      if (ret) {
           D_DERROR( ret, "WM/UniQuE: Could not create window!\n" );

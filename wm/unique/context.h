@@ -65,7 +65,8 @@ typedef struct {
 
 
 
-DFBResult unique_context_create       ( CoreWindowStack                 *stack,
+DFBResult unique_context_create       ( CoreDFB                         *core,
+                                        CoreWindowStack                 *stack,
                                         CoreLayerRegion                 *region,
                                         DFBDisplayLayerID                layer_id,
                                         WMShared                        *shared,
@@ -114,7 +115,7 @@ DFBResult unique_context_warp_cursor  ( UniqueContext                   *context
 /*
  * Creates a pool of context objects.
  */
-FusionObjectPool *unique_context_pool_create();
+FusionObjectPool *unique_context_pool_create( const FusionWorld *world );
 
 /*
  * Generates unique_context_ref(), unique_context_attach() etc.

@@ -1,12 +1,6 @@
 ## Makefile.am for DirectFB/lib/fusion
 
-SUBDIRS = shmalloc
-
-if ENABLE_MULTI
-SHMALLOC_LIB = shmalloc/libfusion_shmalloc.la
-else
-SHMALLOC_LIB =
-endif
+SUBDIRS = shm
 
 
 INCLUDES = \
@@ -55,16 +49,16 @@ libfusion_la_SOURCES = \
 	conf.c			\
 	fusion.c		\
 	fusion_internal.h	\
-	fusion_shmalloc.c	\
 	lock.c			\
 	object.c		\
 	property.c		\
 	reactor.c		\
 	ref.c			\
+	shmalloc.c		\
 	vector.c
 
 libfusion_la_LIBADD = \
-	$(SHMALLOC_LIB)		\
+	shm/libfusion_shm.la	\
 	../direct/libdirect.la
 
 libfusion_la_LDFLAGS = \

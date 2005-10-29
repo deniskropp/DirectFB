@@ -31,6 +31,7 @@
 
 #include <pthread.h>
 
+#include <fusion/fusion.h>
 #include <fusion/reactor.h>
 
 #include <directfb.h>
@@ -76,12 +77,14 @@ validate_clip( CardState *state,
 }
 
 int
-dfb_state_init( CardState *state )
+dfb_state_init( CardState *state, CoreDFB *core )
 {
      D_ASSERT( state != NULL );
 
      memset( state, 0, sizeof(CardState) );
 
+     state->core      = core;
+     state->fusion_id = fusion_id( dfb_core_world(core) );
      state->modified  = SMF_ALL;
      state->src_blend = DSBF_SRCALPHA;
      state->dst_blend = DSBF_INVSRCALPHA;

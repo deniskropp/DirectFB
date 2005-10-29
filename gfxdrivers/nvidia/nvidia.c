@@ -1370,7 +1370,8 @@ static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
-                    void                *device_data )
+                    void                *device_data,
+                    CoreDFB             *core )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      __u32             arch  = 0;

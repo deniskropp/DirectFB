@@ -54,12 +54,13 @@
 #if FUSION_BUILD_MULTI
 
 DirectResult
-fusion_ref_init (FusionRef *ref)
+fusion_ref_init (FusionRef         *ref,
+                 const FusionWorld *world)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
 
-     while (ioctl (_fusion_fd, FUSION_REF_NEW, &ref->id)) {
+     while (ioctl (world->fusion_fd, FUSION_REF_NEW, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -72,17 +73,19 @@ fusion_ref_init (FusionRef *ref)
           return DFB_FAILURE;
      }
 
+     /* Keep back pointer to shared world data. */
+     ref->multi.shared = world->shared;
+
      return DFB_OK;
 }
 
 DirectResult
 fusion_ref_up (FusionRef *ref, bool global)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, global ?
-                   FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->id))
+     while (ioctl (_fusion_fd( ref->multi.shared ), global ?
+                   FUSION_REF_UP_GLOBAL : FUSION_REF_UP, &ref->multi.id))
      {
           switch (errno) {
                case EINTR:
@@ -108,11 +111,10 @@ fusion_ref_up (FusionRef *ref, bool global)
 DirectResult
 fusion_ref_down (FusionRef *ref, bool global)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, global ?
-                   FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->id))
+     while (ioctl (_fusion_fd( ref->multi.shared ), global ?
+                   FUSION_REF_DOWN_GLOBAL : FUSION_REF_DOWN, &ref->multi.id))
      {
           switch (errno) {
                case EINTR:
@@ -140,11 +142,10 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 {
      int val;
 
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
      D_ASSERT( refs != NULL );
 
-     while ((val = ioctl (_fusion_fd, FUSION_REF_STAT, &ref->id)) < 0) {
+     while ((val = ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_STAT, &ref->multi.id)) < 0) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -168,10 +169,9 @@ fusion_ref_stat (FusionRef *ref, int *refs)
 DirectResult
 fusion_ref_zero_lock (FusionRef *ref)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_REF_ZERO_LOCK, &ref->id)) {
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_ZERO_LOCK, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -193,10 +193,9 @@ fusion_ref_zero_lock (FusionRef *ref)
 DirectResult
 fusion_ref_zero_trylock (FusionRef *ref)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_REF_ZERO_TRYLOCK, &ref->id)) {
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_ZERO_TRYLOCK, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -220,10 +219,9 @@ fusion_ref_zero_trylock (FusionRef *ref)
 DirectResult
 fusion_ref_unlock (FusionRef *ref)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_REF_UNLOCK, &ref->id)) {
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_UNLOCK, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -247,15 +245,14 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
 {
      FusionRefWatch watch;
 
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
      D_ASSERT( call != NULL );
 
-     watch.id       = ref->id;
+     watch.id       = ref->multi.id;
      watch.call_id  = call->call_id;
      watch.call_arg = call_arg;
 
-     while (ioctl (_fusion_fd, FUSION_REF_WATCH, &watch)) {
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_WATCH, &watch)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -279,14 +276,13 @@ fusion_ref_inherit (FusionRef *ref, FusionRef *from)
 {
      FusionRefInherit inherit;
 
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
      D_ASSERT( from != NULL );
 
-     inherit.id   = ref->id;
-     inherit.from = from->id;
+     inherit.id   = ref->multi.id;
+     inherit.from = from->multi.id;
 
-     while (ioctl (_fusion_fd, FUSION_REF_INHERIT, &inherit)) {
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_INHERIT, &inherit)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -308,10 +304,9 @@ fusion_ref_inherit (FusionRef *ref, FusionRef *from)
 DirectResult
 fusion_ref_destroy (FusionRef *ref)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( ref != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_REF_DESTROY, &ref->id)) {
+     while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_DESTROY, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -333,16 +328,17 @@ fusion_ref_destroy (FusionRef *ref)
 #else /* FUSION_BUILD_MULTI */
 
 DirectResult
-fusion_ref_init (FusionRef *ref)
+fusion_ref_init (FusionRef         *ref,
+                 const FusionWorld *world)
 {
      D_ASSERT( ref != NULL );
 
-     direct_util_recursive_pthread_mutex_init (&ref->fake.lock);
-     pthread_cond_init (&ref->fake.cond, NULL);
+     direct_util_recursive_pthread_mutex_init (&ref->single.lock);
+     pthread_cond_init (&ref->single.cond, NULL);
 
-     ref->fake.refs      = 0;
-     ref->fake.destroyed = false;
-     ref->fake.waiting   = 0;
+     ref->single.refs      = 0;
+     ref->single.destroyed = false;
+     ref->single.waiting   = 0;
 
      return DFB_OK;
 }
@@ -354,14 +350,14 @@ fusion_ref_up (FusionRef *ref, bool global)
 
      D_ASSERT( ref != NULL );
 
-     pthread_mutex_lock (&ref->fake.lock);
+     pthread_mutex_lock (&ref->single.lock);
 
-     if (ref->fake.destroyed)
+     if (ref->single.destroyed)
           ret = DFB_DESTROYED;
      else
-          ref->fake.refs++;
+          ref->single.refs++;
 
-     pthread_mutex_unlock (&ref->fake.lock);
+     pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
 }
@@ -371,30 +367,30 @@ fusion_ref_down (FusionRef *ref, bool global)
 {
      D_ASSERT( ref != NULL );
 
-     pthread_mutex_lock (&ref->fake.lock);
+     pthread_mutex_lock (&ref->single.lock);
 
-     if (!ref->fake.refs) {
+     if (!ref->single.refs) {
           D_BUG( "no more references" );
-          pthread_mutex_unlock (&ref->fake.lock);
+          pthread_mutex_unlock (&ref->single.lock);
           return DFB_BUG;
      }
 
-     if (ref->fake.destroyed) {
-          pthread_mutex_unlock (&ref->fake.lock);
+     if (ref->single.destroyed) {
+          pthread_mutex_unlock (&ref->single.lock);
           return DFB_DESTROYED;
      }
 
-     if (! --ref->fake.refs && ref->fake.call) {
-          FusionCall *call = ref->fake.call;
+     if (! --ref->single.refs && ref->single.call) {
+          FusionCall *call = ref->single.call;
 
           if (call->handler) {
-               pthread_mutex_unlock (&ref->fake.lock);
-               call->handler( 0, ref->fake.call_arg, NULL, call->ctx );
+               pthread_mutex_unlock (&ref->single.lock);
+               call->handler( 0, ref->single.call_arg, NULL, call->ctx );
                return DFB_OK;
           }
      }
 
-     pthread_mutex_unlock (&ref->fake.lock);
+     pthread_mutex_unlock (&ref->single.lock);
 
      return DFB_OK;
 }
@@ -405,10 +401,10 @@ fusion_ref_stat (FusionRef *ref, int *refs)
      D_ASSERT( ref != NULL );
      D_ASSERT( refs != NULL );
 
-     if (ref->fake.destroyed)
+     if (ref->single.destroyed)
           return DFB_DESTROYED;
 
-     *refs = ref->fake.refs;
+     *refs = ref->single.refs;
 
      return DFB_OK;
 }
@@ -420,25 +416,25 @@ fusion_ref_zero_lock (FusionRef *ref)
 
      D_ASSERT( ref != NULL );
 
-     pthread_mutex_lock (&ref->fake.lock);
+     pthread_mutex_lock (&ref->single.lock);
 
-     if (ref->fake.destroyed)
+     if (ref->single.destroyed)
           ret = DFB_DESTROYED;
-     else if (ref->fake.call)
+     else if (ref->single.call)
           ret = DFB_ACCESSDENIED;
-     else while (ref->fake.refs && !ret) {
-          ref->fake.waiting++;
-          pthread_cond_wait (&ref->fake.cond, &ref->fake.lock);
-          ref->fake.waiting--;
+     else while (ref->single.refs && !ret) {
+          ref->single.waiting++;
+          pthread_cond_wait (&ref->single.cond, &ref->single.lock);
+          ref->single.waiting--;
 
-          if (ref->fake.destroyed)
+          if (ref->single.destroyed)
                ret = DFB_DESTROYED;
-          else if (ref->fake.call)
+          else if (ref->single.call)
                ret = DFB_ACCESSDENIED;
      }
 
      if (ret != DFB_OK)
-          pthread_mutex_unlock (&ref->fake.lock);
+          pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
 }
@@ -450,15 +446,15 @@ fusion_ref_zero_trylock (FusionRef *ref)
 
      D_ASSERT( ref != NULL );
 
-     pthread_mutex_lock (&ref->fake.lock);
+     pthread_mutex_lock (&ref->single.lock);
 
-     if (ref->fake.destroyed)
+     if (ref->single.destroyed)
           ret = DFB_DESTROYED;
-     else if (ref->fake.refs)
+     else if (ref->single.refs)
           ret = DFB_BUSY;
 
      if (ret != DFB_OK)
-          pthread_mutex_unlock (&ref->fake.lock);
+          pthread_mutex_unlock (&ref->single.lock);
 
      return ret;
 }
@@ -468,7 +464,7 @@ fusion_ref_unlock (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
-     pthread_mutex_unlock (&ref->fake.lock);
+     pthread_mutex_unlock (&ref->single.lock);
 
      return DFB_OK;
 }
@@ -479,27 +475,27 @@ fusion_ref_watch (FusionRef *ref, FusionCall *call, int call_arg)
      D_ASSERT( ref != NULL );
      D_ASSERT( call != NULL );
 
-     pthread_mutex_lock (&ref->fake.lock);
+     pthread_mutex_lock (&ref->single.lock);
 
-     if (ref->fake.destroyed) {
-          pthread_mutex_unlock (&ref->fake.lock);
+     if (ref->single.destroyed) {
+          pthread_mutex_unlock (&ref->single.lock);
           return DFB_DESTROYED;
      }
 
-     if (!ref->fake.refs) {
-          pthread_mutex_unlock (&ref->fake.lock);
+     if (!ref->single.refs) {
+          pthread_mutex_unlock (&ref->single.lock);
           return DFB_BUG;
      }
 
-     if (ref->fake.call) {
-          pthread_mutex_unlock (&ref->fake.lock);
+     if (ref->single.call) {
+          pthread_mutex_unlock (&ref->single.lock);
           return DFB_BUSY;
      }
 
-     ref->fake.call     = call;
-     ref->fake.call_arg = call_arg;
+     ref->single.call     = call;
+     ref->single.call_arg = call_arg;
 
-     pthread_mutex_unlock (&ref->fake.lock);
+     pthread_mutex_unlock (&ref->single.lock);
 
      return DFB_OK;
 }
@@ -519,13 +515,13 @@ fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
-     ref->fake.destroyed = true;
+     ref->single.destroyed = true;
 
-     if (ref->fake.waiting)
-          pthread_cond_broadcast (&ref->fake.cond);
+     if (ref->single.waiting)
+          pthread_cond_broadcast (&ref->single.cond);
 
-     pthread_mutex_unlock (&ref->fake.lock);
-     pthread_cond_destroy (&ref->fake.cond);
+     pthread_mutex_unlock (&ref->single.lock);
+     pthread_cond_destroy (&ref->single.cond);
 
      return DFB_OK;
 }

@@ -238,7 +238,8 @@ typedef struct {
      DFBResult (*InitDriver)     (GraphicsDevice      *device,
                                   GraphicsDeviceFuncs *funcs,
                                   void                *driver_data,
-                                  void                *device_data);
+                                  void                *device_data,
+                                  CoreDFB             *core);
 
      DFBResult (*InitDevice)     (GraphicsDevice      *device,
                                   GraphicsDeviceInfo  *device_info,

@@ -257,11 +257,11 @@ struct uc_fifo
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size);
+struct uc_fifo* uc_fifo_create(FusionSHMPoolShared *pool, size_t size);
 
 /** Destroy a FIFO */
 
-void uc_fifo_destroy(struct uc_fifo* fifo);
+void uc_fifo_destroy(FusionSHMPoolShared *pool, struct uc_fifo* fifo);
 
 void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs);
 

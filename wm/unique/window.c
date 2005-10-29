@@ -186,16 +186,17 @@ window_destructor( FusionObject *object, bool zombie )
 }
 
 FusionObjectPool *
-unique_window_pool_create()
+unique_window_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "UniQuE Window Pool", sizeof(UniqueWindow),
-                                       sizeof(UniqueWindowNotification), window_destructor );
+                                       sizeof(UniqueWindowNotification), window_destructor, world );
 }
 
 /**************************************************************************************************/
 
 DFBResult
-unique_window_create( CoreWindow              *window,
+unique_window_create( CoreDFB                 *core,
+                      CoreWindow              *window,
                       UniqueContext           *context,
                       DFBWindowCapabilities    caps,
                       const CoreWindowConfig  *config,
@@ -268,7 +269,7 @@ unique_window_create( CoreWindow              *window,
      }
 
 
-     ret = unique_input_channel_create( context, &uniwin->channel );
+     ret = unique_input_channel_create( core, context, &uniwin->channel );
      if (ret)
           goto error;
 
@@ -587,7 +588,7 @@ add_key_filter( UniqueWindow               *window,
 
      D_MAGIC_ASSERT( context, UniqueContext );
 
-     key = SHCALLOC( 1, sizeof(KeyFilter) );
+     key = SHCALLOC( context->shmpool, 1, sizeof(KeyFilter) );
      if (!key)
           return D_OOSHM();
 
@@ -632,7 +633,7 @@ remove_key_filter( UniqueWindow               *window,
 
      D_MAGIC_CLEAR( key );
 
-     SHFREE( key );
+     SHFREE( context->shmpool, key );
 
      return DFB_OK;
 }
@@ -657,7 +658,7 @@ remove_all_filters( UniqueWindow *window )
 
           D_MAGIC_CLEAR( key );
 
-          SHFREE( key );
+          SHFREE( context->shmpool, key );
      }
 
      window->filters = NULL;
@@ -1450,7 +1451,8 @@ create_foos( UniqueWindow  *window,
      for (i=0; i<8; i++) {
           ret = stret_region_create( shared->region_classes[URCI_FOO], window, i, flags, 1,
                                      DFB_RECTANGLE_VALS( &rects[i] ),
-                                     window->frame, UNFL_FOREGROUND, &window->foos[i] );
+                                     window->frame, UNFL_FOREGROUND,
+                                     context->shmpool, &window->foos[i] );
           if (ret)
                goto error;
      }
@@ -1494,7 +1496,7 @@ create_regions( UniqueWindow *window )
      /* Frame */
      ret = stret_region_create( shared->region_classes[URCI_FRAME], window, 0, SRF_NONE, _UNFL_NUM,
                                 DFB_RECTANGLE_VALS( &window->full ),
-                                context->root, UNRL_USER, &window->frame );
+                                context->root, UNRL_USER, context->shmpool, &window->frame );
      if (ret)
           return ret;
 
@@ -1502,7 +1504,7 @@ create_regions( UniqueWindow *window )
      ret = stret_region_create( shared->region_classes[URCI_WINDOW], window, true, flags, 1,
                                 window->insets.l, window->insets.t,
                                 window->bounds.w, window->bounds.h,
-                                window->frame, UNFL_CONTENT, &window->region );
+                                window->frame, UNFL_CONTENT, context->shmpool, &window->region );
      if (ret) {
           stret_region_destroy( window->frame );
           return ret;

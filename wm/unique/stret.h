@@ -94,6 +94,7 @@ DFBResult stret_region_create   ( StretRegionClassID   class_id,
                                   int                  height,
                                   StretRegion         *parent,
                                   int                  level,
+                                  FusionSHMPoolShared *pool,
                                   StretRegion        **ret_region );
 
 DFBResult stret_region_destroy  ( StretRegion         *region );

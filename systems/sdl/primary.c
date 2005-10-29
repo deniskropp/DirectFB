@@ -31,6 +31,7 @@
 
 #include <directfb.h>
 
+#include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -295,7 +296,7 @@ primaryAllocateSurface( CoreLayer              *layer,
      if (config->buffermode != DLBM_FRONTONLY)
           caps |= DSCAPS_DOUBLE;
 
-     return dfb_surface_create( NULL, config->width, config->height,
+     return dfb_surface_create( dfb_sdl_core, config->width, config->height,
                                 config->format, CSP_SYSTEMONLY,
                                 caps, NULL, ret_surface );
 }
@@ -336,7 +337,7 @@ primaryReallocateSurface( CoreLayer             *layer,
      if (ret)
           return ret;
 
-     ret = dfb_surface_reformat( NULL, surface, config->width,
+     ret = dfb_surface_reformat( dfb_sdl_core, surface, config->width,
                                  config->height, config->format );
      if (ret)
           return ret;
@@ -346,7 +347,7 @@ primaryReallocateSurface( CoreLayer             *layer,
           DFBResult    ret;
           CorePalette *palette;
 
-          ret = dfb_palette_create( NULL,    /* FIXME */
+          ret = dfb_palette_create( dfb_sdl_core,
                                     1 << DFB_COLOR_BITS_PER_PIXEL( config->format ),
                                     &palette );
           if (ret)
@@ -537,8 +538,8 @@ dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
      if (dfb_core_is_master( core ))
           return dfb_sdl_set_video_mode_handler( config );
 
-     if (!fusion_is_shared( config )) {
-          tmp = SHMALLOC( sizeof(CoreLayerRegionConfig) );
+     if (!fusion_is_shared( dfb_core_world(core), config )) {
+          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
           if (!tmp)
                return DFB_NOSYSTEMMEMORY;
 
@@ -549,7 +550,7 @@ dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
                           tmp ? tmp : config, &ret );
 
      if (tmp)
-          SHFREE( tmp );
+          SHFREE( dfb_core_shmpool(core), tmp );
 
      return ret;
 }
@@ -564,8 +565,8 @@ dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
           return dfb_sdl_update_screen_handler( region );
 
      if (region) {
-          if (!fusion_is_shared( region )) {
-               tmp = SHMALLOC( sizeof(DFBRegion) );
+          if (!fusion_is_shared( dfb_core_world(core), region )) {
+               tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
                if (!tmp)
                     return DFB_NOSYSTEMMEMORY;
 
@@ -577,7 +578,7 @@ dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
                           tmp ? tmp : region, &ret );
 
      if (tmp)
-          SHFREE( tmp );
+          SHFREE( dfb_core_shmpool(core), tmp );
 
      return ret;
 }

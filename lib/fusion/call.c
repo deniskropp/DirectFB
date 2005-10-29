@@ -52,20 +52,22 @@
 DirectResult
 fusion_call_init (FusionCall        *call,
                   FusionCallHandler  handler,
-                  void              *ctx)
+                  void              *ctx,
+                  const FusionWorld *world)
 {
      FusionCallNew call_new;
 
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( call != NULL );
      D_ASSERT( call->handler == NULL );
      D_ASSERT( handler != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
 
      /* Called from others. */
      call_new.handler = handler;
      call_new.ctx     = ctx;
 
-     while (ioctl (_fusion_fd, FUSION_CALL_NEW, &call_new)) {
+     while (ioctl( world->fusion_fd, FUSION_CALL_NEW, &call_new )) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -84,7 +86,10 @@ fusion_call_init (FusionCall        *call,
 
      /* Store call and fusion id for local (direct) calls. */
      call->call_id   = call_new.call_id;
-     call->fusion_id = _fusion_id;
+     call->fusion_id = fusion_id( world );
+
+     /* Keep back pointer to shared world data. */
+     call->shared = world->shared;
 
      return DFB_OK;
 }
@@ -95,14 +100,13 @@ fusion_call_execute (FusionCall *call,
                      void       *call_ptr,
                      int        *ret_val)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( call != NULL );
 
      if (!call->handler)
           return DFB_DESTROYED;
 
-     if (call->fusion_id == _fusion_id) {
-          int ret = call->handler( _fusion_id, call_arg, call_ptr, call->ctx );
+     if (call->fusion_id == _fusion_id( call->shared )) {
+          int ret = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx );
 
           if (ret_val)
                *ret_val = ret;
@@ -114,7 +118,7 @@ fusion_call_execute (FusionCall *call,
           execute.call_arg = call_arg;
           execute.call_ptr = call_ptr;
 
-          while (ioctl (_fusion_fd, FUSION_CALL_EXECUTE, &execute)) {
+          while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE, &execute )) {
                switch (errno) {
                     case EINTR:
                          continue;
@@ -140,39 +144,12 @@ fusion_call_execute (FusionCall *call,
 }
 
 DirectResult
-fusion_call_return (int call_id, int val)
-{
-     FusionCallReturn call_ret = { call_id, val };
-
-     D_ASSERT( _fusion_fd != -1 );
-
-     while (ioctl (_fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               case EINVAL:
-                    D_ERROR ("Fusion/Call: invalid call\n");
-                    return DFB_DESTROYED;
-               default:
-                    break;
-          }
-
-          D_PERROR ("FUSION_CALL_RETURN");
-
-          return DFB_FAILURE;
-     }
-
-     return DFB_OK;
-}
-
-DirectResult
 fusion_call_destroy (FusionCall *call)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( call != NULL );
      D_ASSERT( call->handler != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_CALL_DESTROY, &call->call_id)) {
+     while (ioctl (_fusion_fd( call->shared ), FUSION_CALL_DESTROY, &call->call_id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -194,17 +171,33 @@ fusion_call_destroy (FusionCall *call)
 }
 
 void
-_fusion_call_process( int call_id, FusionCallMessage *call )
+_fusion_call_process( FusionWorld *world, int call_id, FusionCallMessage *call )
 {
-     FusionCallHandler handler;
+     FusionCallHandler call_handler;
+     FusionCallReturn  call_ret;
 
+     D_MAGIC_ASSERT( world, FusionWorld );
      D_ASSERT( call != NULL );
-     D_ASSERT( call->handler != NULL );
 
-     handler = call->handler;
+     call_handler = call->handler;
 
-     fusion_call_return( call_id, handler( call->caller, call->call_arg,
-                                           call->call_ptr, call->ctx ) );
+     D_ASSERT( call_handler != NULL );
+
+     call_ret.call_id = call_id;
+     call_ret.val     = call_handler( call->caller, call->call_arg, call->call_ptr, call->ctx );
+
+     while (ioctl (world->fusion_fd, FUSION_CALL_RETURN, &call_ret)) {
+          switch (errno) {
+               case EINTR:
+                    continue;
+               case EINVAL:
+                    D_ERROR ("Fusion/Call: invalid call\n");
+                    return;
+               default:
+                    D_PERROR ("FUSION_CALL_RETURN");
+                    return;
+          }
+     }
 }
 
 #else  /* FUSION_BUILD_MULTI */
@@ -212,7 +205,8 @@ _fusion_call_process( int call_id, FusionCallMessage *call )
 DirectResult
 fusion_call_init (FusionCall        *call,
                   FusionCallHandler  handler,
-                  void              *ctx)
+                  void              *ctx,
+                  const FusionWorld *world)
 {
      D_ASSERT( call != NULL );
      D_ASSERT( call->handler == NULL );
@@ -243,13 +237,6 @@ fusion_call_execute (FusionCall *call,
      if (ret_val)
           *ret_val = ret;
 
-     return DFB_OK;
-}
-
-DirectResult
-fusion_call_return (int call_id,
-                    int ret_val)
-{
      return DFB_OK;
 }
 

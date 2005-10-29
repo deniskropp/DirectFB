@@ -36,38 +36,44 @@
 
 
 typedef union {
-     int                  id;      /* multi app */
-
+     /* multi app */
      struct {
-          pthread_mutex_t lock;
-     } fake;                       /* single app */
+          int                      id;
+          const FusionWorldShared *shared;
+     } multi;
+
+     /* single app */
+     struct {
+          pthread_mutex_t          lock;
+     } single;
 } FusionSkirmish;
 
 /*
  * Initialize.
  */
-DirectResult fusion_skirmish_init    ( FusionSkirmish *skirmish,
-                                       const char     *name );
+DirectResult fusion_skirmish_init   ( FusionSkirmish    *skirmish,
+                                      const char        *name,
+                                      const FusionWorld *world );
 
 /*
  * Lock.
  */
-DirectResult fusion_skirmish_prevail ( FusionSkirmish *skirmish );
+DirectResult fusion_skirmish_prevail( FusionSkirmish    *skirmish );
 
 /*
  * Try lock.
  */
-DirectResult fusion_skirmish_swoop   ( FusionSkirmish *skirmish );
+DirectResult fusion_skirmish_swoop  ( FusionSkirmish    *skirmish );
 
 /*
  * Unlock.
  */
-DirectResult fusion_skirmish_dismiss ( FusionSkirmish *skirmish );
+DirectResult fusion_skirmish_dismiss( FusionSkirmish    *skirmish );
 
 /*
  * Deinitialize.
  */
-DirectResult fusion_skirmish_destroy ( FusionSkirmish *skirmish );
+DirectResult fusion_skirmish_destroy( FusionSkirmish    *skirmish );
 
 
 #endif

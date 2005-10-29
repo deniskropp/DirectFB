@@ -145,9 +145,9 @@ DFB_CORE_PART( input, 0, sizeof(CoreInput) )
 
 /**************************************************************************************************/
 
-static void init_devices();
+static void init_devices( CoreDFB *core );
 
-static void allocate_device_keymap( CoreInputDevice *device );
+static void allocate_device_keymap( CoreDFB *core, CoreInputDevice *device );
 
 static DFBInputDeviceKeymapEntry *get_keymap_entry( CoreInputDevice *device,
                                                     int              code );
@@ -232,7 +232,7 @@ dfb_input_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      direct_modules_explore_directory( &dfb_input_modules );
 
-     init_devices();
+     init_devices( core );
 
      return DFB_OK;
 }
@@ -268,8 +268,9 @@ dfb_input_join( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_input_shutdown( CoreDFB *core, bool emergency )
 {
-     DirectLink      *n;
-     CoreInputDevice *device;
+     DirectLink          *n;
+     CoreInputDevice     *device;
+     FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
      D_ASSERT( core_input != NULL );
 
@@ -289,9 +290,9 @@ dfb_input_shutdown( CoreDFB *core, bool emergency )
           fusion_reactor_free( shared->reactor );
 
           if (shared->keymap.entries)
-               SHFREE( shared->keymap.entries );
+               SHFREE( pool, shared->keymap.entries );
 
-          SHFREE( shared );
+          SHFREE( pool, shared );
 
           D_MAGIC_CLEAR( device );
 
@@ -617,10 +618,11 @@ input_add_device( CoreInputDevice *device )
 }
 
 static void
-allocate_device_keymap( CoreInputDevice *device )
+allocate_device_keymap( CoreDFB *core, CoreInputDevice *device )
 {
      int                        i;
      DFBInputDeviceKeymapEntry *entries;
+     FusionSHMPoolShared       *pool        = dfb_core_shmpool( core );
      InputDeviceShared         *shared      = device->shared;
      DFBInputDeviceDescription *desc        = &shared->device_info.desc;
      int                        num_entries = desc->max_keycode -
@@ -630,7 +632,7 @@ allocate_device_keymap( CoreInputDevice *device )
 
      D_ASSERT( core_input != NULL );
 
-     entries = SHCALLOC( num_entries, sizeof(DFBInputDeviceKeymapEntry) );
+     entries = SHCALLOC( pool, num_entries, sizeof(DFBInputDeviceKeymapEntry) );
 
      /* write -1 indicating entry is not fetched yet from driver */
      for (i=0; i<num_entries; i++)
@@ -666,9 +668,10 @@ make_id( DFBInputDeviceID prefered )
 }
 
 static void
-init_devices()
+init_devices( CoreDFB *core )
 {
-     DirectLink *link;
+     DirectLink          *link;
+     FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
      D_ASSERT( core_input != NULL );
 
@@ -720,9 +723,9 @@ init_devices()
                InputDeviceShared *shared;
                void              *driver_data;
 
-               /* FIXME */
+               /* FIXME: error handling */
                device = D_CALLOC( 1, sizeof(CoreInputDevice) );
-               shared = SHCALLOC( 1, sizeof(InputDeviceShared) );
+               shared = SHCALLOC( pool, 1, sizeof(InputDeviceShared) );
 
                memset( &device_info, 0, sizeof(InputDeviceInfo) );
 
@@ -732,7 +735,7 @@ init_devices()
                D_MAGIC_SET( device, CoreInputDevice );
 
                if (funcs->OpenDevice( device, n, &device_info, &driver_data )) {
-                    SHFREE( shared );
+                    SHFREE( pool, shared );
                     D_MAGIC_CLEAR( device );
                     D_FREE( device );
                     continue;
@@ -744,9 +747,9 @@ init_devices()
                     snprintf( buf, sizeof(buf), "%s", device_info.desc.name );
 
 
-               fusion_skirmish_init( &shared->lock, buf );
+               fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) );
 
-               shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf );
+               shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf, dfb_core_world(core) );
 
                fusion_reactor_set_lock( shared->reactor, &shared->lock );
 
@@ -770,7 +773,7 @@ init_devices()
                }
                else if (device_info.desc.min_keycode >= 0 &&
                         device_info.desc.max_keycode >= 0)
-                    allocate_device_keymap( device );
+                    allocate_device_keymap( core, device );
 
                /* add it to the list */
                input_add_device( device );

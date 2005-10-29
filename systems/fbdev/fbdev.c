@@ -49,9 +49,10 @@
 # include <sysfs/libsysfs.h>
 #endif
 
-#include <fusion/shmalloc.h>
-#include <fusion/reactor.h>
 #include <fusion/arena.h>
+#include <fusion/fusion.h>
+#include <fusion/reactor.h>
+#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
@@ -402,27 +403,34 @@ system_get_info( CoreSystemInfo *info )
 static DFBResult
 system_initialize( CoreDFB *core, void **data )
 {
-     DFBResult   ret;
-     CoreScreen *screen;
-     long        page_size;
+     DFBResult            ret;
+     CoreScreen          *screen;
+     long                 page_size;
+     FBDevShared         *shared;
+     FusionSHMPoolShared *pool;
 
      D_ASSERT( dfb_fbdev == NULL );
 
+     pool = dfb_core_shmpool( core );
+
      dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
 
-     dfb_fbdev->shared = (FBDevShared*) SHCALLOC( 1, sizeof(FBDevShared) );
+     shared = (FBDevShared*) SHCALLOC( pool, 1, sizeof(FBDevShared) );
 
-     fusion_arena_add_shared_field( dfb_core_arena( core ),
-                                    "fbdev", dfb_fbdev->shared );
+     shared->shmpool = pool;
 
-     dfb_fbdev->core = core;
+     fusion_arena_add_shared_field( dfb_core_arena( core ), "fbdev", shared );
+
+     dfb_fbdev->core   = core;
+     dfb_fbdev->shared = shared;
 
      page_size = direct_pagesize();
-     dfb_fbdev->shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
+
+     shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
 
      ret = dfb_fbdev_open();
      if (ret) {
-          SHFREE( dfb_fbdev->shared );
+          SHFREE( pool, shared );
           D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
 
@@ -432,7 +440,7 @@ system_initialize( CoreDFB *core, void **data )
      if (dfb_config->vt) {
           ret = dfb_vt_initialize();
           if (ret) {
-               SHFREE( dfb_fbdev->shared );
+               SHFREE( pool, shared );
                D_FREE( dfb_fbdev );
                dfb_fbdev = NULL;
 
@@ -441,10 +449,10 @@ system_initialize( CoreDFB *core, void **data )
      }
 
      /* Retrieve fixed informations like video ram size */
-     if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &dfb_fbdev->shared->fix ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &shared->fix ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not get fixed screen information!\n" );
-          SHFREE( dfb_fbdev->shared );
+          SHFREE( pool, shared );
           close( dfb_fbdev->fd );
           D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -453,13 +461,13 @@ system_initialize( CoreDFB *core, void **data )
      }
 
      /* Map the framebuffer */
-     dfb_fbdev->framebuffer_base = mmap( NULL, dfb_fbdev->shared->fix.smem_len,
+     dfb_fbdev->framebuffer_base = mmap( NULL, shared->fix.smem_len,
                                          PROT_READ | PROT_WRITE, MAP_SHARED,
                                          dfb_fbdev->fd, 0 );
      if ((int)(dfb_fbdev->framebuffer_base) == -1) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not mmap the framebuffer!\n");
-          SHFREE( dfb_fbdev->shared );
+          SHFREE( pool, shared );
           close( dfb_fbdev->fd );
           D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -467,11 +475,11 @@ system_initialize( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &dfb_fbdev->shared->orig_var ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &shared->orig_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not get variable screen information!\n" );
-          SHFREE( dfb_fbdev->shared );
-          munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
+          SHFREE( pool, shared );
+          munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
           close( dfb_fbdev->fd );
           D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -479,14 +487,14 @@ system_initialize( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
-     dfb_fbdev->shared->current_var = dfb_fbdev->shared->orig_var;
-     dfb_fbdev->shared->current_var.accel_flags = 0;
+     shared->current_var = shared->orig_var;
+     shared->current_var.accel_flags = 0;
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->current_var ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &shared->current_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not disable console acceleration!\n" );
-          SHFREE( dfb_fbdev->shared );
-          munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
+          SHFREE( pool, shared );
+          munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
           close( dfb_fbdev->fd );
           D_FREE( dfb_fbdev );
           dfb_fbdev = NULL;
@@ -494,42 +502,42 @@ system_initialize( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
-     dfb_fbdev_var_to_mode( &dfb_fbdev->shared->current_var,
-                            &dfb_fbdev->shared->current_mode );
+     dfb_fbdev_var_to_mode( &shared->current_var,
+                            &shared->current_mode );
 
-     dfb_fbdev->shared->orig_cmap.start  = 0;
-     dfb_fbdev->shared->orig_cmap.len    = 256;
-     dfb_fbdev->shared->orig_cmap.red    = (__u16*)SHMALLOC( 2 * 256 );
-     dfb_fbdev->shared->orig_cmap.green  = (__u16*)SHMALLOC( 2 * 256 );
-     dfb_fbdev->shared->orig_cmap.blue   = (__u16*)SHMALLOC( 2 * 256 );
-     dfb_fbdev->shared->orig_cmap.transp = (__u16*)SHMALLOC( 2 * 256 );
+     shared->orig_cmap.start  = 0;
+     shared->orig_cmap.len    = 256;
+     shared->orig_cmap.red    = (__u16*)SHMALLOC( pool, 2 * 256 );
+     shared->orig_cmap.green  = (__u16*)SHMALLOC( pool, 2 * 256 );
+     shared->orig_cmap.blue   = (__u16*)SHMALLOC( pool, 2 * 256 );
+     shared->orig_cmap.transp = (__u16*)SHMALLOC( pool, 2 * 256 );
 
-     if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &dfb_fbdev->shared->orig_cmap ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &shared->orig_cmap ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not retrieve palette for backup!\n" );
-          SHFREE( dfb_fbdev->shared->orig_cmap.red );
-          SHFREE( dfb_fbdev->shared->orig_cmap.green );
-          SHFREE( dfb_fbdev->shared->orig_cmap.blue );
-          SHFREE( dfb_fbdev->shared->orig_cmap.transp );
-          dfb_fbdev->shared->orig_cmap.len = 0;
+          SHFREE( pool, shared->orig_cmap.red );
+          SHFREE( pool, shared->orig_cmap.green );
+          SHFREE( pool, shared->orig_cmap.blue );
+          SHFREE( pool, shared->orig_cmap.transp );
+          shared->orig_cmap.len = 0;
      }
 
-     dfb_fbdev->shared->temp_cmap.len    = 256;
-     dfb_fbdev->shared->temp_cmap.red    = SHCALLOC( 256, 2 );
-     dfb_fbdev->shared->temp_cmap.green  = SHCALLOC( 256, 2 );
-     dfb_fbdev->shared->temp_cmap.blue   = SHCALLOC( 256, 2 );
-     dfb_fbdev->shared->temp_cmap.transp = SHCALLOC( 256, 2 );
+     shared->temp_cmap.len    = 256;
+     shared->temp_cmap.red    = SHCALLOC( pool, 256, 2 );
+     shared->temp_cmap.green  = SHCALLOC( pool, 256, 2 );
+     shared->temp_cmap.blue   = SHCALLOC( pool, 256, 2 );
+     shared->temp_cmap.transp = SHCALLOC( pool, 256, 2 );
 
-     dfb_fbdev->shared->current_cmap.len    = 256;
-     dfb_fbdev->shared->current_cmap.red    = SHCALLOC( 256, 2 );
-     dfb_fbdev->shared->current_cmap.green  = SHCALLOC( 256, 2 );
-     dfb_fbdev->shared->current_cmap.blue   = SHCALLOC( 256, 2 );
-     dfb_fbdev->shared->current_cmap.transp = SHCALLOC( 256, 2 );
+     shared->current_cmap.len    = 256;
+     shared->current_cmap.red    = SHCALLOC( pool, 256, 2 );
+     shared->current_cmap.green  = SHCALLOC( pool, 256, 2 );
+     shared->current_cmap.blue   = SHCALLOC( pool, 256, 2 );
+     shared->current_cmap.transp = SHCALLOC( pool, 256, 2 );
      
-     dfb_fbdev_get_pci_info( dfb_fbdev->shared );
+     dfb_fbdev_get_pci_info( shared );
 
-     fusion_call_init( &dfb_fbdev->shared->fbdev_ioctl,
-                       fbdev_ioctl_call_handler, NULL );
+     fusion_call_init( &shared->fbdev_ioctl,
+                       fbdev_ioctl_call_handler, NULL, dfb_core_world(core) );
 
      /* Register primary screen functions */
      screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
@@ -599,47 +607,57 @@ system_join( CoreDFB *core, void **data )
 static DFBResult
 system_shutdown( bool emergency )
 {
-     DFBResult  ret;
-     VideoMode *m;
+     DFBResult            ret;
+     VideoMode           *m;
+     FBDevShared         *shared;
+     FusionSHMPoolShared *pool;
 
      D_ASSERT( dfb_fbdev != NULL );
 
-     m = dfb_fbdev->shared->modes;
+     shared = dfb_fbdev->shared;
+
+     D_ASSERT( shared != NULL );
+
+     pool = shared->shmpool;
+
+     D_ASSERT( pool != NULL );
+
+     m = shared->modes;
      while (m) {
           VideoMode *next = m->next;
-          SHFREE( m );
+          SHFREE( pool, m );
           m = next;
      }
 
-     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &dfb_fbdev->shared->orig_var ) < 0) {
+     if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &shared->orig_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not restore variable screen information!\n" );
      }
 
-     if (dfb_fbdev->shared->orig_cmap.len) {
-          if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &dfb_fbdev->shared->orig_cmap ) < 0)
+     if (shared->orig_cmap.len) {
+          if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &shared->orig_cmap ) < 0)
                D_PERROR( "DirectFB/FBDev: "
                          "Could not restore palette!\n" );
 
-          SHFREE( dfb_fbdev->shared->orig_cmap.red );
-          SHFREE( dfb_fbdev->shared->orig_cmap.green );
-          SHFREE( dfb_fbdev->shared->orig_cmap.blue );
-          SHFREE( dfb_fbdev->shared->orig_cmap.transp );
+          SHFREE( pool, shared->orig_cmap.red );
+          SHFREE( pool, shared->orig_cmap.green );
+          SHFREE( pool, shared->orig_cmap.blue );
+          SHFREE( pool, shared->orig_cmap.transp );
      }
 
-     SHFREE( dfb_fbdev->shared->temp_cmap.red );
-     SHFREE( dfb_fbdev->shared->temp_cmap.green );
-     SHFREE( dfb_fbdev->shared->temp_cmap.blue );
-     SHFREE( dfb_fbdev->shared->temp_cmap.transp );
+     SHFREE( pool, shared->temp_cmap.red );
+     SHFREE( pool, shared->temp_cmap.green );
+     SHFREE( pool, shared->temp_cmap.blue );
+     SHFREE( pool, shared->temp_cmap.transp );
 
-     SHFREE( dfb_fbdev->shared->current_cmap.red );
-     SHFREE( dfb_fbdev->shared->current_cmap.green );
-     SHFREE( dfb_fbdev->shared->current_cmap.blue );
-     SHFREE( dfb_fbdev->shared->current_cmap.transp );
+     SHFREE( pool, shared->current_cmap.red );
+     SHFREE( pool, shared->current_cmap.green );
+     SHFREE( pool, shared->current_cmap.blue );
+     SHFREE( pool, shared->current_cmap.transp );
 
-     fusion_call_destroy( &dfb_fbdev->shared->fbdev_ioctl );
+     fusion_call_destroy( &shared->fbdev_ioctl );
 
-     munmap( dfb_fbdev->framebuffer_base, dfb_fbdev->shared->fix.smem_len );
+     munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
 
      if (dfb_config->vt) {
           ret = dfb_vt_shutdown( emergency );
@@ -649,7 +667,7 @@ system_shutdown( bool emergency )
 
      close( dfb_fbdev->fd );
 
-     SHFREE( dfb_fbdev->shared );
+     SHFREE( pool, shared );
      D_FREE( dfb_fbdev );
      dfb_fbdev = NULL;
 
@@ -835,7 +853,8 @@ init_modes()
 
      if (!dfb_fbdev->shared->modes) {
           /* try to use current mode*/
-          dfb_fbdev->shared->modes = (VideoMode*) SHCALLOC( 1, sizeof(VideoMode) );
+          dfb_fbdev->shared->modes = (VideoMode*) SHCALLOC( dfb_fbdev->shared->shmpool,
+                                                            1, sizeof(VideoMode) );
 
           *dfb_fbdev->shared->modes = dfb_fbdev->shared->current_mode;
 
@@ -1322,23 +1341,23 @@ primaryAllocateSurface( CoreLayer              *layer,
      if (!surface)
           return DFB_FAILURE;
 
-     /* reallocation just needs an allocated buffer structure */
-     surface->idle_buffer = surface->back_buffer =
-                            surface->front_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
-
-     if (!surface->front_buffer) {
-          fusion_object_destroy( &surface->object );
-          return DFB_NOSYSTEMMEMORY;
-     }
-
      /* initialize surface structure */
      ret = dfb_surface_init( dfb_fbdev->core, surface,
                              config->width, config->height,
                              config->format, caps, NULL );
      if (ret) {
-          SHFREE( surface->front_buffer );
           fusion_object_destroy( &surface->object );
           return ret;
+     }
+
+     /* reallocation just needs an allocated buffer structure */
+     surface->idle_buffer  =
+     surface->back_buffer  =
+     surface->front_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
+
+     if (!surface->front_buffer) {
+          fusion_object_destroy( &surface->object );
+          return D_OOSHM();
      }
 
      /* activate object */
@@ -1725,8 +1744,9 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
      /* If surface is NULL the mode was only tested, otherwise apply changes. */
      if (surface) {
-          struct fb_fix_screeninfo fix;
-          DFBSurfacePixelFormat    format;
+          struct fb_fix_screeninfo  fix;
+          DFBSurfacePixelFormat     format;
+          FusionSHMPoolShared      *pool = surface->shmpool;
 
           FBDEV_IOCTL( FBIOGET_VSCREENINFO, &var );
 
@@ -1792,18 +1812,18 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
                     if (surface->back_buffer != surface->front_buffer) {
                          if (surface->back_buffer->system.addr)
-                              SHFREE( surface->back_buffer->system.addr );
+                              SHFREE( pool, surface->back_buffer->system.addr );
 
-                         SHFREE( surface->back_buffer );
+                         SHFREE( pool, surface->back_buffer );
 
                          surface->back_buffer = surface->front_buffer;
                     }
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
-                              SHFREE( surface->idle_buffer->system.addr );
+                              SHFREE( pool, surface->idle_buffer->system.addr );
 
-                         SHFREE( surface->idle_buffer );
+                         SHFREE( pool, surface->idle_buffer );
 
                          surface->idle_buffer = surface->front_buffer;
                     }
@@ -1813,11 +1833,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->caps &= ~DSCAPS_TRIPLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->back_buffer->system.addr) {
-                              SHFREE( surface->back_buffer->system.addr );
+                              SHFREE( pool, surface->back_buffer->system.addr );
                               surface->back_buffer->system.addr = NULL;
                          }
 
@@ -1833,9 +1853,9 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
-                              SHFREE( surface->idle_buffer->system.addr );
+                              SHFREE( pool, surface->idle_buffer->system.addr );
 
-                         SHFREE( surface->idle_buffer );
+                         SHFREE( pool, surface->idle_buffer );
 
                          surface->idle_buffer = surface->front_buffer;
                     }
@@ -1845,11 +1865,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->caps &= ~DSCAPS_DOUBLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->back_buffer->system.addr) {
-                              SHFREE( surface->back_buffer->system.addr );
+                              SHFREE( pool, surface->back_buffer->system.addr );
                               surface->back_buffer->system.addr = NULL;
                          }
 
@@ -1864,11 +1884,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                          surface->back_buffer->video.pitch * var.yres;
 
                     if (surface->idle_buffer == surface->front_buffer) {
-                         surface->idle_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+                         surface->idle_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->idle_buffer->system.addr) {
-                              SHFREE( surface->idle_buffer->system.addr );
+                              SHFREE( pool, surface->idle_buffer->system.addr );
                               surface->idle_buffer->system.addr = NULL;
                          }
 
@@ -1887,7 +1907,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->caps &= ~DSCAPS_TRIPLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
                     }
                     surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
@@ -1898,16 +1918,16 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                          (DFB_BYTES_PER_LINE(format, var.xres) + 3) & ~3;
 
                     if (surface->back_buffer->system.addr)
-                         SHFREE( surface->back_buffer->system.addr );
+                         SHFREE( pool, surface->back_buffer->system.addr );
 
                     surface->back_buffer->system.addr =
-                         SHMALLOC( surface->back_buffer->system.pitch * var.yres );
+                         SHMALLOC( pool, surface->back_buffer->system.pitch * var.yres );
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
-                              SHFREE( surface->idle_buffer->system.addr );
+                              SHFREE( pool, surface->idle_buffer->system.addr );
 
-                         SHFREE( surface->idle_buffer );
+                         SHFREE( pool, surface->idle_buffer );
 
                          surface->idle_buffer = surface->front_buffer;
                     }
@@ -1942,7 +1962,8 @@ static DFBResult dfb_fbdev_read_modes()
      int geometry=0, timings=0;
      int dummy;
      VideoMode temp_mode;
-     VideoMode *m = dfb_fbdev->shared->modes;
+     FBDevShared *shared = dfb_fbdev->shared;
+     VideoMode   *m      = shared->modes;
 
      if (!(fp = fopen("/etc/fb.modes","r")))
           return errno2result( errno );
@@ -1985,15 +2006,13 @@ static DFBResult dfb_fbdev_read_modes()
                          temp_mode.broadcast = 1;
                     }
                }
-               if (geometry &&
-                   timings &&
-                   !dfb_fbdev_set_mode(NULL, &temp_mode, NULL)) {
+               if (geometry && timings && !dfb_fbdev_set_mode(NULL, &temp_mode, NULL)) {
                     if (!m) {
-                         dfb_fbdev->shared->modes = SHCALLOC(1, sizeof(VideoMode));
-                         m = dfb_fbdev->shared->modes;
+                         shared->modes = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
+                         m = shared->modes;
                     }
                     else {
-                         m->next = SHCALLOC(1, sizeof(VideoMode));
+                         m->next = SHCALLOC( shared->shmpool, 1, sizeof(VideoMode) );
                          m = m->next;
                     }
                     direct_memcpy (m, &temp_mode, sizeof(VideoMode));
@@ -2150,6 +2169,7 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
      int green_val;
      int blue_val;
      int i = 0;
+     FusionSHMPoolShared *pool = dfb_fbdev->shared->shmpool;
 
      struct fb_cmap cmap;
 
@@ -2161,10 +2181,10 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
 
      cmap.start  = 0;
      cmap.len    = 256;
-     cmap.red    = (__u16*)SHMALLOC( 2 * 256 );
-     cmap.green  = (__u16*)SHMALLOC( 2 * 256 );
-     cmap.blue   = (__u16*)SHMALLOC( 2 * 256 );
-     cmap.transp = (__u16*)SHMALLOC( 2 * 256 );
+     cmap.red    = (__u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.green  = (__u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.blue   = (__u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.transp = (__u16*)SHMALLOC( pool, 2 * 256 );
 
 
      for (red_val = 0; red_val  < 8 ; red_val++) {
@@ -2183,18 +2203,18 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
           D_PERROR( "DirectFB/FBDev: "
                      "Could not set rgb332 palette" );
 
-          SHFREE( cmap.red );
-          SHFREE( cmap.green );
-          SHFREE( cmap.blue );
-          SHFREE( cmap.transp );
+          SHFREE( pool, cmap.red );
+          SHFREE( pool, cmap.green );
+          SHFREE( pool, cmap.blue );
+          SHFREE( pool, cmap.transp );
 
           return errno2result(errno);
      }
 
-     SHFREE( cmap.red );
-     SHFREE( cmap.green );
-     SHFREE( cmap.blue );
-     SHFREE( cmap.transp );
+     SHFREE( pool, cmap.red );
+     SHFREE( pool, cmap.green );
+     SHFREE( pool, cmap.blue );
+     SHFREE( pool, cmap.transp );
 
      return DFB_OK;
 }
@@ -2235,16 +2255,20 @@ fbdev_ioctl( int request, void *arg, int arg_size )
      DirectResult  ret;
      int           erno;
      void         *tmp_shm = NULL;
+     FBDevShared  *shared;
 
      D_ASSERT( dfb_fbdev != NULL );
-     D_ASSERT( dfb_fbdev->shared != NULL );
+
+     shared = dfb_fbdev->shared;
+
+     D_ASSERT( shared != NULL );
 
      if (dfb_core_is_master( dfb_fbdev->core ))
           return fbdev_ioctl_call_handler( 1, request, arg, NULL );
 
      if (arg) {
-          if (!fusion_is_shared( arg )) {
-               tmp_shm = SHMALLOC( arg_size );
+          if (!fusion_is_shared( dfb_core_world(dfb_fbdev->core), arg )) {
+               tmp_shm = SHMALLOC( shared->shmpool, arg_size );
                if (!tmp_shm) {
                     errno = ENOMEM;
                     return -1;
@@ -2254,12 +2278,12 @@ fbdev_ioctl( int request, void *arg, int arg_size )
           }
      }
 
-     ret = fusion_call_execute( &dfb_fbdev->shared->fbdev_ioctl,
+     ret = fusion_call_execute( &shared->fbdev_ioctl,
                                 request, tmp_shm ? tmp_shm : arg, &erno );
 
      if (tmp_shm) {
           direct_memcpy( arg, tmp_shm, arg_size );
-          SHFREE( tmp_shm );
+          SHFREE( shared->shmpool, tmp_shm );
      }
 
      errno = erno;

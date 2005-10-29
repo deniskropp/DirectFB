@@ -1,6 +1,7 @@
 #include <config.h>
 
 #include <fusion/fusion.h>
+#include <fusion/shm/pool.h>
 
 #include <direct/debug.h>
 #include <direct/messages.h>
@@ -16,52 +17,59 @@
 int
 main( int argc, char *argv[] )
 {
-     DirectResult    ret;
-     int             world;
-     StretRegion    *root;
-     StretRegion    *child[16];
-     int             child_num = 0;
-     StretIteration  iteration;
-     DFBRegion       clip;
+     DirectResult         ret;
+     FusionWorld         *world;
+     StretRegion         *root;
+     StretRegion         *child[16];
+     int                  child_num = 0;
+     StretIteration       iteration;
+     DFBRegion            clip;
+     FusionSHMPoolShared *pool;
 
-     if (fusion_init( -1, 0, &world ) < 0)
+     ret = fusion_enter( -1, 0, &world );
+     if (ret)
           return -1;
 
+     ret = fusion_shm_pool_create( world, "StReT Test Pool", 0x10000, &pool );
+     if (ret) {
+          fusion_exit( world, false );
+          return -1;
+     }
 
      D_INFO( "StReT/Test: Starting...\n" );
 
 
-     ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 2, 0, 0, 1000, 1000, NULL, 0, &root );
+     ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 2, 0, 0, 1000, 1000, NULL, 0, pool, &root );
      if (ret) {
           D_DERROR( ret, "StReT/Test: Could not create root region!\n" );
           goto error_root;
      }
      else {
-          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 10, 10, 100, 100, root, 1, &child[child_num++] );
+          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 10, 10, 100, 100, root, 1, pool, &child[child_num++] );
           if (ret) {
                D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                goto error_child;
           }
           else {
-               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 50, 50, 30, 30, child[0], 0, &child[child_num++] );
+               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 50, 50, 30, 30, child[0], 0, pool, &child[child_num++] );
                if (ret) {
                     D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                     goto error_child;
                }
 
-               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 20, 20, 30, 30, child[0], 0, &child[child_num++] );
+               ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 20, 20, 30, 30, child[0], 0, pool, &child[child_num++] );
                if (ret) {
                     D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                     goto error_child;
                }
                else {
-                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 10, 10, 10, 10, child[2], 0, &child[child_num++] );
+                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 10, 10, 10, 10, child[2], 0, pool, &child[child_num++] );
                     if (ret) {
                          D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                          goto error_child;
                     }
 
-                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 20, 20, 10, 10, child[2], 0, &child[child_num++] );
+                    ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 20, 20, 10, 10, child[2], 0, pool, &child[child_num++] );
                     if (ret) {
                          D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                          goto error_child;
@@ -69,7 +77,7 @@ main( int argc, char *argv[] )
                }
           }
 
-          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 200, 10, 200, 200, root, 0, &child[child_num++] );
+          ret = stret_region_create( 0, NULL, 0, SRF_ACTIVE, 1, 200, 10, 200, 200, root, 0, pool, &child[child_num++] );
           if (ret) {
                D_DERROR( ret, "StReT/Test: Could not create child region!\n" );
                goto error_child;
@@ -102,7 +110,9 @@ error_child:
      stret_region_destroy( root );
 
 error_root:
-     fusion_exit( false );
+     fusion_shm_pool_destroy( world, pool );
+
+     fusion_exit( world, false );
 
      return 0;
 }

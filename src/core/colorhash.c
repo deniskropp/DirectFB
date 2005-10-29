@@ -50,6 +50,7 @@ typedef struct {
      Colorhash             *hash;
      unsigned int           hash_users;
      FusionSkirmish         hash_lock;
+     FusionSHMPoolShared   *shmpool;
 } ColorhashField;
 
 static ColorhashField *hash_field = NULL;
@@ -65,7 +66,9 @@ dfb_colorhash_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      hash_field = data_shared;
 
-     fusion_skirmish_init( &hash_field->hash_lock, "Colorhash Core" );
+     hash_field->shmpool = dfb_core_shmpool( core );
+
+     fusion_skirmish_init( &hash_field->hash_lock, "Colorhash Core", dfb_core_world(core) );
 
      return DFB_OK;
 }
@@ -145,7 +148,7 @@ dfb_colorhash_attach( CorePalette *palette )
      if (!hash_field->hash) {
           D_ASSERT( !hash_field->hash_users );
 
-          hash_field->hash = SHCALLOC( HASH_SIZE, sizeof (Colorhash) );
+          hash_field->hash = SHCALLOC( hash_field->shmpool, HASH_SIZE, sizeof (Colorhash) );
      }
 
      hash_field->hash_users++;
@@ -167,7 +170,7 @@ dfb_colorhash_detach( CorePalette *palette )
 
      if (!hash_field->hash_users) {
           /* no more users, free allocated resources */
-          SHFREE( hash_field->hash );
+          SHFREE( hash_field->shmpool, hash_field->hash );
           hash_field->hash = NULL;
      }
 

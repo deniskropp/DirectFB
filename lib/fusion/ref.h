@@ -34,24 +34,30 @@
 #include <fusion/call.h>
 
 typedef union {
-     int                   id;           /* multi app */
-
+     /* multi app */
      struct {
-          int              refs;
-          pthread_cond_t   cond;
-          pthread_mutex_t  lock;
-          bool             destroyed;
-          int              waiting;
+          int                      id;
+          const FusionWorldShared *shared;
+     } multi;
 
-          FusionCall      *call;
-          int              call_arg;
-     } fake;                            /* single app */
+     /* single app */
+     struct {
+          int                      refs;
+          pthread_cond_t           cond;
+          pthread_mutex_t          lock;
+          bool                     destroyed;
+          int                      waiting;
+
+          FusionCall              *call;
+          int                      call_arg;
+     } single;
 } FusionRef;
 
 /*
  * Initialize.
  */
-DirectResult fusion_ref_init         (FusionRef *ref);
+DirectResult fusion_ref_init         (FusionRef         *ref,
+                                      const FusionWorld *world);
 
 /*
  * Lock, increase, unlock.

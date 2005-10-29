@@ -79,7 +79,7 @@ system_initialize( CoreDFB *core, void **data )
 
      D_ASSERT( dfb_sdl == NULL );
 
-     dfb_sdl = (DFBSDL*) SHCALLOC( 1, sizeof(DFBSDL) );
+     dfb_sdl = (DFBSDL*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBSDL) );
      if (!dfb_sdl) {
           D_ERROR( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
@@ -95,7 +95,7 @@ system_initialize( CoreDFB *core, void **data )
      if ( SDL_Init(SDL_INIT_VIDEO) < 0 ) {
           D_ERROR( "DirectFB/SDL: Couldn't initialize SDL: %s\n", SDL_GetError() );
 
-          SHFREE( dfb_sdl );
+          SHFREE( dfb_core_shmpool(core), dfb_sdl );
           dfb_sdl = NULL;
 
           return DFB_INIT;
@@ -103,9 +103,9 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_sdl_core = core;
 
-     fusion_skirmish_init( &dfb_sdl->lock, "SDL System" );
+     fusion_skirmish_init( &dfb_sdl->lock, "SDL System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL );
+     fusion_call_init( &dfb_sdl->call, dfb_sdl_call_handler, NULL, dfb_core_world(core) );
 
      screen = dfb_screens_register( NULL, NULL, &sdlPrimaryScreenFuncs );
 
@@ -153,7 +153,7 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_destroy( &dfb_sdl->lock );
 
-     SHFREE( dfb_sdl );
+     SHFREE( dfb_core_shmpool(dfb_sdl_core), dfb_sdl );
      dfb_sdl = NULL;
      dfb_sdl_core = NULL;
 

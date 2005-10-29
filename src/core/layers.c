@@ -94,13 +94,16 @@ DFB_CORE_PART( layers, 0, sizeof(CoreLayersField) )
 static DFBResult
 dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     int       i;
-     DFBResult ret;
+     int                  i;
+     DFBResult            ret;
+     FusionSHMPoolShared *pool;
 
      D_ASSERT( layersfield == NULL );
      D_ASSERT( data_shared != NULL );
 
      layersfield = data_shared;
+
+     pool = dfb_core_shmpool( core );
 
      /* Initialize all registered layers. */
      for (i=0; i<dfb_num_layers; i++) {
@@ -110,15 +113,16 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
           DisplayLayerFuncs *funcs = layer->funcs;
 
           /* Allocate shared data. */
-          shared = SHCALLOC( 1, sizeof(CoreLayerShared) );
+          shared = SHCALLOC( pool, 1, sizeof(CoreLayerShared) );
 
           /* Assign ID (zero based index). */
           shared->layer_id = i;
+          shared->shmpool  = pool;
 
           snprintf( buf, sizeof(buf), "Display Layer %d", i );
 
           /* Initialize the lock. */
-          ret = fusion_skirmish_init( &shared->lock, buf );
+          ret = fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) );
           if (ret)
                return ret;
 
@@ -127,7 +131,7 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int size = funcs->LayerDataSize();
 
                if (size > 0) {
-                    shared->layer_data = SHCALLOC( 1, size );
+                    shared->layer_data = SHCALLOC( pool, 1, size );
                     if (!shared->layer_data)
                          return D_OOSHM();
                }
@@ -150,7 +154,7 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
           if (shared->description.caps & DLCAPS_SOURCES) {
                int n;
 
-               shared->sources = SHCALLOC( shared->description.sources, sizeof(CoreLayerSource) );
+               shared->sources = SHCALLOC( pool, shared->description.sources, sizeof(CoreLayerSource) );
                if (!shared->sources)
                     return D_OOSHM();
 
@@ -177,10 +181,10 @@ dfb_layers_initialize( CoreDFB *core, void *data_local, void *data_shared )
                D_FLAGS_SET( shared->description.caps, DLCAPS_SCREEN_LOCATION );
 
           /* Initialize the vector for the contexts. */
-          fusion_vector_init( &shared->contexts.stack, 4 );
+          fusion_vector_init( &shared->contexts.stack, 4, pool );
 
           /* Initialize the vector for realized (added) regions. */
-          fusion_vector_init( &shared->added_regions, 4 );
+          fusion_vector_init( &shared->added_regions, 4, pool );
 
           /* No active context by default. */
           shared->contexts.active = -1;
@@ -276,10 +280,10 @@ dfb_layers_shutdown( CoreDFB *core, bool emergency )
 
           /* Free the driver's layer data. */
           if (shared->layer_data)
-               SHFREE( shared->layer_data );
+               SHFREE( shared->shmpool, shared->layer_data );
 
           /* Free the shared layer data. */
-          SHFREE( shared );
+          SHFREE( shared->shmpool, shared );
 
           /* Free the local layer data. */
           D_FREE( layer );
@@ -377,7 +381,7 @@ dfb_layers_register( CoreScreen        *screen,
      layer->funcs       = funcs;
 
      /* Initialize the state for window stack repaints */
-     dfb_state_init( &layer->state );
+     dfb_state_init( &layer->state, NULL );
 
      /* add it to the local list */
      dfb_layers[dfb_num_layers++] = layer;

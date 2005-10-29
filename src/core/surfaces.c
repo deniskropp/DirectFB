@@ -159,14 +159,14 @@ static void surface_destructor( FusionObject *object, bool zombie )
      fusion_object_destroy( object );
 }
 
-FusionObjectPool *dfb_surface_pool_create()
+FusionObjectPool *dfb_surface_pool_create( const FusionWorld *world )
 {
      FusionObjectPool *pool;
 
      pool = fusion_object_pool_create( "Surface Pool",
                                        sizeof(CoreSurface),
                                        sizeof(CoreSurfaceNotification),
-                                       surface_destructor );
+                                       surface_destructor, world );
 
      return pool;
 }
@@ -301,7 +301,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
           s->caps |= DSCAPS_SYSTEMONLY;
 
 
-     s->front_buffer = (SurfaceBuffer *) SHCALLOC( 1, sizeof(SurfaceBuffer) );
+     s->front_buffer = (SurfaceBuffer *) SHCALLOC( s->shmpool, 1, sizeof(SurfaceBuffer) );
 
      s->front_buffer->flags   = SBF_FOREIGN_SYSTEM | SBF_WRITTEN;
      s->front_buffer->policy  = policy;
@@ -313,7 +313,7 @@ DFBResult dfb_surface_create_preallocated( CoreDFB *core,
      s->front_buffer->system.addr   = front_buffer;
 
      if (caps & DSCAPS_FLIPPING) {
-          s->back_buffer = (SurfaceBuffer *) SHMALLOC( sizeof(SurfaceBuffer) );
+          s->back_buffer = (SurfaceBuffer *) SHMALLOC( s->shmpool, sizeof(SurfaceBuffer) );
           direct_memcpy( s->back_buffer, s->front_buffer, sizeof(SurfaceBuffer) );
 
           s->back_buffer->system.pitch  = back_pitch;
@@ -896,7 +896,10 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
                              DFBSurfaceCapabilities  caps,
                              CorePalette            *palette )
 {
+     D_ASSUME( core != NULL );
      D_ASSERT( surface != NULL );
+     D_ASSERT( width > 0 );
+     D_ASSERT( height > 0 );
 
      switch (format) {
           case DSPF_A1:
@@ -967,6 +970,7 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
      }
 
      surface->manager = dfb_gfxcard_surface_manager();
+     surface->shmpool = dfb_core_shmpool( core );
 
      return DFB_OK;
 }
@@ -1351,7 +1355,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
      D_ASSERT( ret_buffer != NULL );
 
      /* Allocate buffer structure. */
-     buffer = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+     buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
 
      buffer->policy  = policy;
      buffer->surface = surface;
@@ -1368,17 +1372,18 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
                /* Calculate pitch. */
                pitch = DFB_BYTES_PER_LINE( buffer->format,
                                            MAX( surface->width, surface->min_width ) );
-               if (pitch & 3)
-                    pitch += 4 - (pitch & 3);
+
+               /* Align pitch. */
+               pitch = (pitch + 3) & ~3;
 
                /* Calculate amount of data to allocate. */
                size = DFB_PLANE_MULTIPLY( buffer->format,
                                           MAX( surface->height, surface->min_height ) * pitch );
 
                /* Allocate shared memory. */
-               data = SHMALLOC( size );
+               data = SHMALLOC( surface->shmpool, size );
                if (!data) {
-                    SHFREE( buffer );
+                    SHFREE( surface->shmpool, buffer );
                     return DFB_NOSYSTEMMEMORY;
                }
 
@@ -1404,7 +1409,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
 
                /* Check for successful allocation. */
                if (ret) {
-                    SHFREE( buffer );
+                    SHFREE( surface->shmpool, buffer );
                     return ret;
                }
 
@@ -1444,12 +1449,12 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
           size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
 
           /* Allocate shared memory. */
-          data = SHMALLOC( size );
+          data = SHMALLOC( surface->shmpool, size );
           if (!data)
                return DFB_NOSYSTEMMEMORY;
 
           /* Free old memory. */
-          SHFREE( buffer->system.addr );
+          SHFREE( surface->shmpool, buffer->system.addr );
 
           /* Write back new values. */
           buffer->system.health = CSH_STORED;
@@ -1490,7 +1495,7 @@ static void dfb_surface_destroy_buffer( CoreSurface   *surface,
      dfb_surfacemanager_lock( surface->manager );
 
      if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM)) {
-          SHFREE( buffer->system.addr );
+          SHFREE( surface->shmpool, buffer->system.addr );
 
           buffer->system.addr   = NULL;
           buffer->system.health = CSH_INVALID;
@@ -1501,7 +1506,7 @@ static void dfb_surface_destroy_buffer( CoreSurface   *surface,
 
      dfb_surfacemanager_unlock( surface->manager );
 
-     SHFREE( buffer );
+     SHFREE( surface->shmpool, buffer );
 }
 
 ReactionResult

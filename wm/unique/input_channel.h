@@ -36,7 +36,8 @@
 #include <unique/types.h>
 
 
-DFBResult unique_input_channel_create       ( UniqueContext          *context,
+DFBResult unique_input_channel_create       ( CoreDFB                *core,
+                                              UniqueContext          *context,
                                               UniqueInputChannel    **ret_channel );
 
 DFBResult unique_input_channel_destroy      ( UniqueInputChannel     *channel );

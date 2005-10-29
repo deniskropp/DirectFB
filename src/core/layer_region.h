@@ -48,7 +48,7 @@ typedef struct {
 /*
  * Creates a pool of layer region objects.
  */
-FusionObjectPool *dfb_layer_region_pool_create();
+FusionObjectPool *dfb_layer_region_pool_create( const FusionWorld *world );
 
 /*
  * Generates dfb_layer_region_ref(), dfb_layer_region_attach() etc.

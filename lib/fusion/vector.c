@@ -41,7 +41,7 @@ static inline bool ensure_capacity( FusionVector *vector )
      D_ASSERT( vector->capacity > 0 );
 
      if (!vector->elements) {
-          vector->elements = SHMALLOC( vector->capacity * sizeof(void*) );
+          vector->elements = SHMALLOC( vector->pool, vector->capacity * sizeof(void*) );
           if (!vector->elements)
                return false;
      }
@@ -50,7 +50,7 @@ static inline bool ensure_capacity( FusionVector *vector )
           void *oldelements = vector->elements;
           int   capacity    = vector->capacity << 1;
 
-          elements = SHMALLOC( capacity * sizeof(void*) );
+          elements = SHMALLOC( vector->pool, capacity * sizeof(void*) );
           if (!elements)
                return false;
 
@@ -60,14 +60,16 @@ static inline bool ensure_capacity( FusionVector *vector )
           vector->elements = elements;
           vector->capacity = capacity;
 
-          SHFREE( oldelements );
+          SHFREE( vector->pool, oldelements );
      }
 
      return true;
 }
 
 void
-fusion_vector_init( FusionVector *vector, int capacity )
+fusion_vector_init( FusionVector        *vector,
+                    int                  capacity,
+                    FusionSHMPoolShared *pool )
 {
      D_ASSERT( vector != NULL );
      D_ASSERT( capacity > 0 );
@@ -75,6 +77,7 @@ fusion_vector_init( FusionVector *vector, int capacity )
      vector->elements = NULL;
      vector->count    = 0;
      vector->capacity = capacity;
+     vector->pool     = pool;
 
      D_MAGIC_SET( vector, FusionVector );
 }
@@ -86,7 +89,7 @@ fusion_vector_destroy( FusionVector *vector )
      D_ASSERT( vector->count == 0 || vector->elements != NULL );
 
      if (vector->elements) {
-          SHFREE( vector->elements );
+          SHFREE( vector->pool, vector->elements );
           vector->elements = NULL;
      }
 

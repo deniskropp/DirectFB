@@ -38,50 +38,93 @@
 #include <fusion/build.h>
 #include <fusion/fusion.h>
 #include <fusion/lock.h>
+#include <fusion/shm/shm_internal.h>
 
 #if FUSION_BUILD_MULTI
 #include <sys/ioctl.h>
 #include <linux/fusion.h>
 #endif
 
+#define FUSION_MAX_WORLDS     8
+
 /***************************************
  *  Fusion internal type declarations  *
  ***************************************/
 
-typedef struct {
-     int             abi_version;
+struct __Fusion_FusionWorldShared {
+     int                  magic;
 
-     struct timeval  start_time;
+     int                  world_index;
 
-     DirectLink     *arenas;
-     FusionSkirmish  arenas_lock;
+     int                  world_abi;
 
-     FusionSkirmish  reactor_globals;
-} FusionShared;
+     struct timeval       start_time;
+
+     DirectLink          *arenas;
+     FusionSkirmish       arenas_lock;
+
+     FusionSkirmish       reactor_globals;
+
+     FusionSHMShared      shm;
+
+     FusionSHMPoolShared *main_pool;
+};
+
+struct __Fusion_FusionWorld {
+     int                  magic;
+
+     int                  refs;
+
+     FusionWorldShared   *shared;
+
+     int                  fusion_fd;
+     FusionID             fusion_id;
+
+     DirectThread        *dispatch_loop;
+
+     /*
+      * List of reactors with at least one local reaction attached.
+      */
+     DirectLink          *reactor_nodes;
+     pthread_mutex_t      reactor_nodes_lock;
+
+     FusionSHM            shm;
+};
 
 /*******************************************
  *  Fusion internal function declarations  *
  *******************************************/
 
-/*
- * from fusion.c
- */
-extern int _fusion_id;
-extern int _fusion_fd;
+int      _fusion_fd( const FusionWorldShared *shared );
+FusionID _fusion_id( const FusionWorldShared *shared );
 
-extern FusionShared *_fusion_shared;
+FusionWorld *_fusion_world( const FusionWorldShared *shared );
 
 /*
  * from reactor.c
  */
-void _fusion_reactor_free_all();
-void _fusion_reactor_process_message( int fusion_reactor_id, const void *msg_data );
+void _fusion_reactor_free_all       ( FusionWorld   *world );
+void _fusion_reactor_process_message( int            reactor_id,
+                                      const void    *msg_data,
+                                      FusionReactor *reactor, /* one of reactor and world must not be NULL */
+                                      FusionWorld   *world );
 
 /*
  * from call.c
  */
 #if FUSION_BUILD_MULTI
-void _fusion_call_process( int call_id, FusionCallMessage *call );
+void _fusion_call_process( FusionWorld       *world,
+                           int                call_id,
+                           FusionCallMessage *call );
+#endif
+
+/*
+ * from shm.c
+ */
+#if FUSION_BUILD_MULTI
+void _fusion_shmpool_process( FusionWorld          *world,
+                              int                   pool_id,
+                              FusionSHMPoolMessage *msg );
 #endif
 
 #endif

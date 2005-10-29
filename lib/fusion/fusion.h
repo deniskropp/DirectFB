@@ -32,26 +32,42 @@
 
 
 /*
- * Initializes fusion and returns the fusion id or -1 on failure.
+ * Enters a fusion world by joining or creating it.
+ *
+ * If <b>world_index</b> is negative, the next free index is used to create a new world.
+ * Otherwise the world with the specified index is joined or created.
  */
-int fusion_init( int world, int abi_version, int *world_ret );
+DirectResult fusion_enter( int           world_index,
+                           int           abi_version,
+                           FusionWorld **ret_world );
 
 /*
- * Deinitializes fusion.
+ * Exits the fusion world.
  *
  * If 'emergency' is true the function won't join but kill the dispatcher thread.
  */
-void fusion_exit( bool emergency );
+DirectResult fusion_exit( FusionWorld *world,
+                          bool         emergency );
 
 /*
- * Return the current Fusion ID.
+ * Return the index of the specified world.
  */
-int fusion_id();
+int fusion_world_index( const FusionWorld *world );
 
 /*
- * Processes pending fusion messages.
+ * Return the own Fusion ID within the specified world.
  */
-void fusion_sync();
+FusionID fusion_id( const FusionWorld *world );
+
+/*
+ * Return true if this process is the master.
+ */
+bool fusion_master( const FusionWorld *world );
+
+/*
+ * Wait until all pending messages are processed.
+ */
+DirectResult fusion_sync( const FusionWorld *world );
 
 /*
  * Sends a signal to one or more fusionees and optionally waits
@@ -61,13 +77,14 @@ void fusion_sync();
  * A timeout of zero means infinite waiting while a negative value
  * means no waiting at all.
  */
-DirectResult fusion_kill( int fusion_id, int signal, int timeout_ms );
+DirectResult fusion_kill( FusionWorld *world,
+                          FusionID     fusion_id,
+                          int          signal,
+                          int          timeout_ms );
 
-/*
- * Get the number of milliseconds passed after the start of the master.
- */
-long long fusion_get_millis();
-
+/* Check if a pointer points to the shared memory. */
+bool fusion_is_shared( FusionWorld *world,
+                       const void  *ptr );
 
 #endif
 

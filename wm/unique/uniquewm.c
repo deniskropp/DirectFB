@@ -175,9 +175,9 @@ unique_wm_module_init( CoreDFB *core, WMData *data, WMShared *shared, bool maste
           if (ret)
                goto error_global;
 
-          shared->context_pool    = unique_context_pool_create();
-          shared->decoration_pool = unique_decoration_pool_create();
-          shared->window_pool     = unique_window_pool_create();
+          shared->context_pool    = unique_context_pool_create( data->world );
+          shared->decoration_pool = unique_decoration_pool_create( data->world );
+          shared->window_pool     = unique_window_pool_create( data->world );
 
           shared->insets.l = foo[UFI_W].rect.w;
           shared->insets.t = foo[UFI_N].rect.h;
@@ -209,7 +209,7 @@ error_device:
 }
 
 void
-unique_wm_module_deinit( bool master, bool emergency )
+unique_wm_module_deinit( WMData *data, WMShared *shared, bool master, bool emergency )
 {
      D_DEBUG_AT( UniQuE_WM, "unique_wm_deinit( %s%s ) <- core %p, data %p, shared %p\n",
                  master ? "master" : "slave", emergency ? ", emergency" : "",
@@ -217,17 +217,19 @@ unique_wm_module_deinit( bool master, bool emergency )
 
      D_ASSERT( dfb_core != NULL );
      D_ASSERT( wm_data != NULL );
+     D_ASSERT( wm_data == data );
 
-     D_MAGIC_ASSERT( wm_shared, WMShared );
+     D_MAGIC_ASSERT( shared, WMShared );
+     D_ASSERT( wm_shared == shared );
 
      if (master) {
-          fusion_object_pool_destroy( wm_shared->window_pool );
-          fusion_object_pool_destroy( wm_shared->decoration_pool );
-          fusion_object_pool_destroy( wm_shared->context_pool );
+          fusion_object_pool_destroy( shared->window_pool, data->world );
+          fusion_object_pool_destroy( shared->decoration_pool, data->world );
+          fusion_object_pool_destroy( shared->context_pool, data->world );
      }
 
-     unregister_device_classes( wm_shared );
-     unregister_region_classes( wm_shared );
+     unregister_device_classes( shared );
+     unregister_region_classes( shared );
 
 //FIXME     unload_foo( wm_shared );
 
@@ -282,7 +284,7 @@ unique_wm_create_context()
      D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->context_pool != NULL );
 
-     return (UniqueContext*) fusion_object_create( wm_shared->context_pool );
+     return (UniqueContext*) fusion_object_create( wm_shared->context_pool, wm_data->world );
 }
 
 UniqueDecoration *
@@ -293,7 +295,7 @@ unique_wm_create_decoration()
      D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->decoration_pool != NULL );
 
-     return (UniqueDecoration*) fusion_object_create( wm_shared->decoration_pool );
+     return (UniqueDecoration*) fusion_object_create( wm_shared->decoration_pool, wm_data->world );
 }
 
 UniqueWindow *
@@ -304,7 +306,7 @@ unique_wm_create_window()
      D_MAGIC_ASSERT( wm_shared, WMShared );
      D_ASSERT( wm_shared->window_pool != NULL );
 
-     return (UniqueWindow*) fusion_object_create( wm_shared->window_pool );
+     return (UniqueWindow*) fusion_object_create( wm_shared->window_pool, wm_data->world );
 }
 
 /**************************************************************************************************/

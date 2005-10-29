@@ -61,6 +61,8 @@ struct __Fusion_FusionObject {
 
      FusionRef          ref;
      FusionReactor     *reactor;
+
+     FusionWorldShared *shared;
 };
 
 
@@ -69,20 +71,23 @@ typedef bool (*FusionObjectCallback)( FusionObjectPool *pool,
                                       void             *ctx );
 
 
-FusionObjectPool *fusion_object_pool_create ( const char            *name,
-                                              int                    object_size,
-                                              int                    message_size,
-                                              FusionObjectDestructor destructor );
+FusionObjectPool *fusion_object_pool_create ( const char             *name,
+                                              int                     object_size,
+                                              int                     message_size,
+                                              FusionObjectDestructor  destructor,
+                                              const FusionWorld      *world );
 
-DirectResult      fusion_object_pool_destroy( FusionObjectPool      *pool );
-
-
-DirectResult      fusion_object_pool_enum   ( FusionObjectPool      *pool,
-                                              FusionObjectCallback   callback,
-                                              void                  *ctx );
+DirectResult      fusion_object_pool_destroy( FusionObjectPool       *pool,
+                                              const FusionWorld      *world );
 
 
-FusionObject     *fusion_object_create  ( FusionObjectPool  *pool );
+DirectResult      fusion_object_pool_enum   ( FusionObjectPool       *pool,
+                                              FusionObjectCallback    callback,
+                                              void                   *ctx );
+
+
+FusionObject     *fusion_object_create  ( FusionObjectPool  *pool,
+                                          const FusionWorld *world );
 
 DirectResult      fusion_object_get     ( FusionObjectPool  *pool,
                                           FusionObjectID     object_id,

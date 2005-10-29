@@ -31,6 +31,7 @@
 
 #include <fusion/shmalloc.h>
 
+#include <core/core.h>
 #include <core/core_parts.h>
 
 #include <core/screen.h>
@@ -61,13 +62,16 @@ static CoreScreen *screens[MAX_SCREENS] = { NULL };
 static DFBResult
 dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
-     int       i;
-     DFBResult ret;
+     int                  i;
+     DFBResult            ret;
+     FusionSHMPoolShared *pool;
 
      D_ASSERT( core_screens == NULL );
      D_ASSERT( data_shared  != NULL );
 
      core_screens = data_shared;
+
+     pool = dfb_core_shmpool( core );
 
      /* Initialize all registered screens. */
      for (i=0; i<num_screens; i++) {
@@ -78,7 +82,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           DFBScreenDescription  desc   = { 0 };
 
           /* Allocate shared data. */
-          shared = SHCALLOC( 1, sizeof(CoreScreenShared) );
+          shared = SHCALLOC( pool, 1, sizeof(CoreScreenShared) );
 
           /* Assign ID (zero based index). */
           shared->screen_id = i;
@@ -86,8 +90,8 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
           snprintf( buf, sizeof(buf), "Screen %d", i );
 
           /* Initialize the lock. */
-          if (fusion_skirmish_init( &shared->lock, buf )) {
-               SHFREE( shared );
+          if (fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) )) {
+               SHFREE( pool, shared );
                return DFB_FUSION;
           }
 
@@ -96,10 +100,10 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                int size = funcs->ScreenDataSize();
 
                if (size > 0) {
-                    shared->screen_data = SHCALLOC( 1, size );
+                    shared->screen_data = SHCALLOC( pool, 1, size );
                     if (!shared->screen_data) {
                          fusion_skirmish_destroy( &shared->lock );
-                         SHFREE( shared );
+                         SHFREE( pool, shared );
                          return DFB_NOSYSTEMMEMORY;
                     }
                }
@@ -118,9 +122,9 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                fusion_skirmish_destroy( &shared->lock );
 
                if (shared->screen_data)
-                    SHFREE( shared->screen_data );
+                    SHFREE( pool, shared->screen_data );
 
-               SHFREE( shared );
+               SHFREE( pool, shared );
 
                return ret;
           }
@@ -151,7 +155,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                D_ASSERT( funcs->InitMixer != NULL );
                D_ASSERT( funcs->SetMixerConfig != NULL );
 
-               shared->mixers = SHCALLOC( shared->description.mixers,
+               shared->mixers = SHCALLOC( pool, shared->description.mixers,
                                           sizeof(CoreScreenMixer) );
                for (i=0; i<shared->description.mixers; i++) {
                     funcs->InitMixer( screen,
@@ -173,7 +177,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                D_ASSERT( funcs->InitEncoder != NULL );
                D_ASSERT( funcs->SetEncoderConfig != NULL );
 
-               shared->encoders = SHCALLOC( shared->description.encoders,
+               shared->encoders = SHCALLOC( pool, shared->description.encoders,
                                             sizeof(CoreScreenEncoder) );
                for (i=0; i<shared->description.encoders; i++) {
                     funcs->InitEncoder( screen,
@@ -195,7 +199,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                D_ASSERT( funcs->InitOutput != NULL );
                D_ASSERT( funcs->SetOutputConfig != NULL );
 
-               shared->outputs = SHCALLOC( shared->description.outputs,
+               shared->outputs = SHCALLOC( pool, shared->description.outputs,
                                            sizeof(CoreScreenOutput) );
                for (i=0; i<shared->description.outputs; i++) {
                     funcs->InitOutput( screen,
@@ -257,9 +261,12 @@ dfb_screens_join( CoreDFB *core, void *data_local, void *data_shared )
 static DFBResult
 dfb_screens_shutdown( CoreDFB *core, bool emergency )
 {
-     int i;
+     int                  i;
+     FusionSHMPoolShared *pool;
 
      D_ASSERT( core_screens != NULL );
+
+     pool = dfb_core_shmpool( core );
 
      /* Begin with the most recently added screen. */
      for (i=num_screens-1; i>=0; i--) {
@@ -271,22 +278,22 @@ dfb_screens_shutdown( CoreDFB *core, bool emergency )
 
           /* Free the driver's screen data. */
           if (shared->screen_data)
-               SHFREE( shared->screen_data );
+               SHFREE( pool, shared->screen_data );
 
           /* Free mixer data. */
           if (shared->mixers)
-               SHFREE( shared->mixers );
+               SHFREE( pool, shared->mixers );
 
           /* Free encoder data. */
           if (shared->encoders)
-               SHFREE( shared->encoders );
+               SHFREE( pool, shared->encoders );
 
           /* Free output data. */
           if (shared->outputs)
-               SHFREE( shared->outputs );
+               SHFREE( pool, shared->outputs );
 
           /* Free the shared screen data. */
-          SHFREE( shared );
+          SHFREE( pool, shared );
 
           /* Free the local screen data. */
           D_FREE( screen );

@@ -64,7 +64,7 @@ dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect 
      pthread_mutex_lock( &copy_lock );
 
      if (!copy_state_inited) {
-          dfb_state_init( &copy_state );
+          dfb_state_init( &copy_state, NULL );
           copy_state_inited = true;
      }
 
@@ -108,7 +108,7 @@ dfb_back_to_front_copy( CoreSurface *surface, const DFBRegion *region )
      pthread_mutex_lock( &btf_lock );
 
      if (!btf_state_inited) {
-          dfb_state_init( &btf_state );
+          dfb_state_init( &btf_state, NULL );
           btf_state_inited = true;
      }
 
@@ -148,7 +148,7 @@ dfb_clear_depth( CoreSurface *surface, const DFBRegion *region )
      pthread_mutex_lock( &cd_lock );
 
      if (!cd_state_inited) {
-          dfb_state_init( &cd_state );
+          dfb_state_init( &cd_state, NULL );
 
           cd_state.color.r = 0xff;
           cd_state.color.g = 0xff;

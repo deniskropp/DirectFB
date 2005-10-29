@@ -58,6 +58,7 @@ Cambridge, MA 02139, USA.
 #include <fusion/build.h>
 
 #include <fusion/types.h>
+#include <fusion/shm/pool.h>
 
 
 #if FUSION_BUILD_MULTI && DIRECT_BUILD_TEXT
@@ -68,69 +69,62 @@ Cambridge, MA 02139, USA.
 #endif
 
 
-/* Check if a pointer points to the shared memory. */
-bool fusion_is_shared (const void *ptr);
-
-/*
- * Called by the signal handler to recover segfault in case the
- * address is a valid shared memory pointer, but the remap for
- * the new area wasn't done yet.
- *
- * Returns true if the segfault is cured and the signal handler may drop it.
- */
-bool fusion_shmalloc_cure( const void *ptr );
-
 
 #if DIRECT_BUILD_DEBUG
 
-void  fusion_dbg_print_memleaks();
+void  fusion_dbg_print_memleaks( FusionSHMPoolShared *pool );
 
-void *fusion_dbg_shmalloc ( const char *file, int line,
+void *fusion_dbg_shmalloc ( FusionSHMPoolShared *pool,
+                            const char *file, int line,
                             const char *func, size_t __size );
 
-void *fusion_dbg_shcalloc ( const char *file, int line,
+void *fusion_dbg_shcalloc ( FusionSHMPoolShared *pool,
+                            const char *file, int line,
                             const char *func, size_t __nmemb, size_t __size);
 
-void *fusion_dbg_shrealloc( const char *file, int line,
+void *fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
+                            const char *file, int line,
                             const char *func, const char *what, void *__ptr,
                             size_t __size );
 
-void  fusion_dbg_shfree   ( const char *file, int line,
+void  fusion_dbg_shfree   ( FusionSHMPoolShared *pool,
+                            const char *file, int line,
                             const char *func, const char *what, void *__ptr );
 
-char *fusion_dbg_shstrdup ( const char *file, int line,
+char *fusion_dbg_shstrdup ( FusionSHMPoolShared *pool,
+                            const char *file, int line,
                             const char *func, const char *string );
 
-#define SHMALLOC(bytes)        fusion_dbg_shmalloc( __FILE__, __LINE__, __FUNCTION__, \
-                                                    bytes )
-#define SHCALLOC(count,bytes)  fusion_dbg_shcalloc( __FILE__, __LINE__, __FUNCTION__, \
-                                                    count, bytes )
-#define SHREALLOC(mem,bytes)   fusion_dbg_shrealloc( __FILE__, __LINE__, __FUNCTION__, \
-                                                     #mem, mem, bytes )
-#define SHFREE(mem)            fusion_dbg_shfree( __FILE__, __LINE__, __FUNCTION__, \
-                                                  #mem,mem )
-#define SHSTRDUP(string)       fusion_dbg_shstrdup( __FILE__, __LINE__, __FUNCTION__, \
-                                                    string )
+
+
+#define SHMALLOC(pool,bytes)        fusion_dbg_shmalloc( pool, __FILE__, __LINE__, __FUNCTION__, bytes )
+#define SHCALLOC(pool,count,bytes)  fusion_dbg_shcalloc( pool, __FILE__, __LINE__, __FUNCTION__, count, bytes )
+#define SHREALLOC(pool,mem,bytes)   fusion_dbg_shrealloc( pool, __FILE__, __LINE__, __FUNCTION__, #mem, mem, bytes )
+#define SHFREE(pool,mem)            fusion_dbg_shfree( pool, __FILE__, __LINE__, __FUNCTION__, #mem,mem )
+#define SHSTRDUP(pool,string)       fusion_dbg_shstrdup( pool, __FILE__, __LINE__, __FUNCTION__, string )
+
+
 
 #else
 
-#define fusion_dbg_print_memleaks()     do {} while (0)
+#define fusion_dbg_print_memleaks(p)    do {} while (0)
+
 
 /* Allocate SIZE bytes of memory.  */
-void *fusion_shmalloc (size_t __size);
+void *fusion_shmalloc (FusionSHMPoolShared *pool, size_t __size);
 
 /* Allocate NMEMB elements of SIZE bytes each, all initialized to 0.  */
-void *fusion_shcalloc (size_t __nmemb, size_t __size);
+void *fusion_shcalloc (FusionSHMPoolShared *pool, size_t __nmemb, size_t __size);
 
 /* Re-allocate the previously allocated block
    in __ptr, making the new block SIZE bytes long.  */
-void *fusion_shrealloc (void *__ptr, size_t __size);
+void *fusion_shrealloc (FusionSHMPoolShared *pool, void *__ptr, size_t __size);
 
 /* Free a block allocated by `shmalloc', `shrealloc' or `shcalloc'.  */
-void  fusion_shfree (void *__ptr);
+void  fusion_shfree (FusionSHMPoolShared *pool, void *__ptr);
 
 /* Duplicate string in shared memory. */
-char *fusion_shstrdup (const char *string);
+char *fusion_shstrdup (FusionSHMPoolShared *pool, const char *string);
 
 #define SHMALLOC   fusion_shmalloc
 #define SHCALLOC   fusion_shcalloc

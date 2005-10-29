@@ -125,12 +125,12 @@ window_destructor( FusionObject *object, bool zombie )
 }
 
 FusionObjectPool *
-dfb_window_pool_create()
+dfb_window_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Window Pool",
                                        sizeof(CoreWindow),
                                        sizeof(DFBWindowEvent),
-                                       window_destructor );
+                                       window_destructor, world );
 }
 
 /**************************************************************************************************/

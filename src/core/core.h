@@ -86,9 +86,19 @@ DirectResult dfb_core_enum_layer_regions ( CoreDFB               *core,
 bool         dfb_core_is_master( CoreDFB *core );
 
 /*
+ * Returns the core's fusion world.
+ */
+FusionWorld *dfb_core_world( CoreDFB *core );
+
+/*
  * Returns the core arena.
  */
 FusionArena *dfb_core_arena( CoreDFB *core );
+
+/*
+ * Returns the shared memory pool of the core.
+ */
+FusionSHMPoolShared *dfb_core_shmpool( CoreDFB *core );
 
 /*
  * Suspends all core parts, stopping input threads, closing devices...

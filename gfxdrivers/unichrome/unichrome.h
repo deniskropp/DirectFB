@@ -137,6 +137,7 @@ typedef struct _UcDriverData {
      char*           name;       // Graphics device name, eg CLE266/UniChrome
      volatile void*  hwregs;     // Hardware register base
      struct uc_fifo* fifo;       // Data FIFO.
+     FusionSHMPoolShared *pool;
 } UcDriverData;
 
 

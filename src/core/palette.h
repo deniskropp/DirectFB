@@ -44,6 +44,8 @@ struct _CorePalette {
      } search_cache;
 
      bool          hash_attached;
+
+     FusionSHMPoolShared *shmpool;
 };
 
 typedef enum {
@@ -80,7 +82,7 @@ void         dfb_palette_update             ( CorePalette   *palette,
 /*
  * Creates a pool of palette objects.
  */
-FusionObjectPool *dfb_palette_pool_create();
+FusionObjectPool *dfb_palette_pool_create( const FusionWorld *world );
 
 /*
  * Generates dfb_palette_ref(), dfb_palette_attach() etc.

@@ -88,7 +88,8 @@ DFBResult unique_device_class_register  ( const UniqueDeviceClass *clazz,
 DFBResult unique_device_class_unregister( UniqueDeviceClassID      id );
 
 
-DFBResult unique_device_create       ( UniqueContext          *context,
+DFBResult unique_device_create       ( CoreDFB                *core,
+                                       UniqueContext          *context,
                                        UniqueDeviceClassID     class_id,
                                        void                   *ctx,
                                        UniqueDevice          **ret_device );

@@ -168,6 +168,8 @@ struct _CoreSurface
      SurfaceBuffer         *depth_buffer;  /* Z buffer for 3D rendering */
 
      SurfaceManager        *manager;
+
+     FusionSHMPoolShared   *shmpool;
 };
 
 static inline void *
@@ -198,7 +200,7 @@ dfb_surface_data_offset( const CoreSurface *surface,
 /*
  * Creates a pool of surface objects.
  */
-FusionObjectPool *dfb_surface_pool_create();
+FusionObjectPool *dfb_surface_pool_create( const FusionWorld *world );
 
 /*
  * Generates dfb_surface_ref(), dfb_surface_attach() etc.

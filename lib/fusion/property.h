@@ -40,19 +40,25 @@ typedef enum {
 
 
 typedef union {
-     int                      id;       /* multi app */
-
+     /* multi app */
      struct {
-          pthread_mutex_t     lock;
-          pthread_cond_t      cond;
-          FusionPropertyState state;
-     } fake;                            /* single app */
+          int                      id;
+          const FusionWorldShared *shared;
+     } multi;
+
+     /* single app */
+     struct {
+          pthread_mutex_t          lock;
+          pthread_cond_t           cond;
+          FusionPropertyState      state;
+     } single;
 } FusionProperty;
 
 /*
  * Initializes the property
  */
-DirectResult fusion_property_init     (FusionProperty *property);
+DirectResult fusion_property_init     (FusionProperty    *property,
+                                       const FusionWorld *world);
 
 /*
  * Lease the property causing others to wait before leasing or purchasing.

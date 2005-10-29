@@ -92,6 +92,7 @@ struct __UniQuE_WMData {
      int                           module_abi;
 
      CoreDFB                      *core;
+     FusionWorld                  *world;
 
      WMShared                     *shared;
 
@@ -178,8 +179,9 @@ struct __UniQuE_UniqueContext {
 
      GlobalReaction           cursor_reaction;
 
+     FusionSHMPoolShared     *shmpool;
 
-     UniqueInputChannel *foo_channel;
+     UniqueInputChannel      *foo_channel;
 };
 
 struct __UniQuE_UniqueWindow {
@@ -260,6 +262,8 @@ struct __UniQuE_StretRegion {
 
      void                    *data;          /* Optional private data of region class. */
      unsigned long            arg;           /* Optional argument for region class instance. */
+
+     FusionSHMPoolShared     *shmpool;
 };
 
 struct __UniQuE_UniqueDevice {
@@ -331,7 +335,9 @@ DFBResult unique_wm_module_init  ( CoreDFB  *core,
                                    WMShared *shared,
                                    bool      master );
 
-void      unique_wm_module_deinit( bool      master,
+void      unique_wm_module_deinit( WMData   *data,
+                                   WMShared *shared,
+                                   bool      master,
                                    bool      emergency );
 
 UniqueContext    *unique_wm_create_context();

@@ -87,7 +87,7 @@ typedef struct {
       * Points to the current state of the graphics card.
       */
      CardState               *state;
-     int                      holder; /* Fusion ID of state owner. */
+     FusionID                 holder; /* Fusion ID of state owner. */
 } GraphicsDeviceShared;
 
 struct _GraphicsDevice {
@@ -108,7 +108,7 @@ struct _GraphicsDevice {
 static GraphicsDevice *card = NULL;
 
 
-static void dfb_gfxcard_find_driver();
+static void dfb_gfxcard_find_driver( CoreDFB *core );
 static void dfb_gfxcard_load_driver();
 
 DFB_CORE_PART( gfxcard, sizeof(GraphicsDevice), sizeof(GraphicsDeviceShared) )
@@ -122,6 +122,7 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      DFBResult             ret;
      int                   videoram_length;
      GraphicsDeviceShared *shared;
+     FusionSHMPoolShared  *pool = dfb_core_shmpool( core );
 
      D_ASSERT( card == NULL );
 
@@ -151,7 +152,7 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Load driver */
      if (dfb_system_caps() & CSCAPS_ACCELERATION)
-          dfb_gfxcard_find_driver();
+          dfb_gfxcard_find_driver( core );
 
      if (card->driver_funcs) {
           const GraphicsDriverFuncs *funcs = card->driver_funcs;
@@ -159,13 +160,13 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
           card->driver_data = D_CALLOC( 1, shared->driver_info.driver_data_size );
 
           card->device_data   =
-          shared->device_data = SHCALLOC( 1, shared->driver_info.device_data_size );
+          shared->device_data = SHCALLOC( pool, 1, shared->driver_info.device_data_size );
 
           ret = funcs->InitDriver( card, &card->funcs,
-                                   card->driver_data, card->device_data );
+                                   card->driver_data, card->device_data, core );
           if (ret) {
-               SHFREE( shared->device_data );
-               SHFREE( shared->module_name );
+               SHFREE( pool, shared->device_data );
+               SHFREE( pool, shared->module_name );
                D_FREE( card->driver_data );
                card = NULL;
                return ret;
@@ -175,8 +176,8 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
                                    card->driver_data, card->device_data );
           if (ret) {
                funcs->CloseDriver( card, card->driver_data );
-               SHFREE( shared->device_data );
-               SHFREE( shared->module_name );
+               SHFREE( pool, shared->device_data );
+               SHFREE( pool, shared->module_name );
                D_FREE( card->driver_data );
                card = NULL;
                return ret;
@@ -201,10 +202,10 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      else
           card->caps = shared->device_info.caps;
 
-     shared->surface_manager = dfb_surfacemanager_create( shared->videoram_length,
+     shared->surface_manager = dfb_surfacemanager_create( core, shared->videoram_length,
                                                           &shared->device_info.limits );
 
-     fusion_property_init( &shared->lock );
+     fusion_property_init( &shared->lock, dfb_core_world(core) );
 
      return DFB_OK;
 }
@@ -241,7 +242,7 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
           card->device_data = shared->device_data;
 
           ret = funcs->InitDriver( card, &card->funcs,
-                                   card->driver_data, card->device_data );
+                                   card->driver_data, card->device_data, core );
           if (ret) {
                D_FREE( card->driver_data );
                card = NULL;
@@ -277,6 +278,7 @@ static DFBResult
 dfb_gfxcard_shutdown( CoreDFB *core, bool emergency )
 {
      GraphicsDeviceShared *shared;
+     FusionSHMPoolShared  *pool = dfb_core_shmpool( core );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -295,7 +297,7 @@ dfb_gfxcard_shutdown( CoreDFB *core, bool emergency )
 
           direct_module_unref( card->module );
 
-          SHFREE( card->device_data );
+          SHFREE( pool, card->device_data );
           D_FREE( card->driver_data );
      }
 
@@ -304,7 +306,7 @@ dfb_gfxcard_shutdown( CoreDFB *core, bool emergency )
      fusion_property_destroy( &shared->lock );
 
      if (shared->module_name)
-          SHFREE( shared->module_name );
+          SHFREE( pool, shared->module_name );
 
      card = NULL;
 
@@ -410,7 +412,7 @@ bool
 dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
      D_ASSERT( card != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
 
      /*
       * If there's no CheckState function there's no acceleration at all.
@@ -519,11 +521,10 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
 {
      GraphicsDeviceShared *shared;
      DFBSurfaceLockFlags   lock_flags;
-     int                   fid = fusion_id();
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
 
      /* Destination may have been destroyed. */
      if (!state->destination)
@@ -593,13 +594,13 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      /* if we are switching to another state... */
-     if (state != shared->state || fid != shared->holder) {
+     if (state != shared->state || state->fusion_id != shared->holder) {
           /* ...set all modification bits and clear 'set functions' */
           state->modified |= SMF_ALL;
           state->set       = 0;
 
           shared->state  = state;
-          shared->holder = fid;
+          shared->holder = state->fusion_id;
      }
 
      dfb_state_update( state, state->flags & CSF_SOURCE_LOCKED );
@@ -623,7 +624,7 @@ dfb_gfxcard_state_release( CardState *state )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( state->destination != NULL );
      D_ASSERT( state->destination->back_buffer != NULL );
 
@@ -659,7 +660,7 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rects != NULL );
      D_ASSERT( num > 0 );
 
@@ -791,7 +792,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rect != NULL );
 
      dfb_state_lock( state );
@@ -848,7 +849,7 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( lines != NULL );
      D_ASSERT( num_lines > 0 );
 
@@ -890,7 +891,7 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( spans != NULL );
      D_ASSERT( num_spans > 0 );
 
@@ -973,6 +974,8 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
      int clip_x1 = state->clip.x1;
      int clip_x2 = state->clip.x2;
 
+     D_MAGIC_ASSERT( state, CardState );
+
      y = tri->y1;
      yend = tri->y3;
 
@@ -1026,7 +1029,7 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( tri != NULL );
 
      dfb_state_lock( state );
@@ -1074,7 +1077,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rect != NULL );
 
      dfb_state_lock( state );
@@ -1115,7 +1118,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rects != NULL );
      D_ASSERT( points != NULL );
      D_ASSERT( num > 0 );
@@ -1177,7 +1180,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( rect != NULL );
 
      /* If called with an invalid rectangle, the algorithm goes into an
@@ -1277,7 +1280,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( srect != NULL );
      D_ASSERT( drect != NULL );
 
@@ -1323,7 +1326,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
      D_ASSERT( card->shared != NULL );
      D_ASSERT( vertices != NULL );
      D_ASSERT( num >= 3 );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
 
      dfb_state_lock( state );
 
@@ -1353,6 +1356,8 @@ static void
 setup_font_state( CoreFont *font, CardState *state )
 {
      DFBSurfaceBlittingFlags flags = font->state.blittingflags;
+
+     D_MAGIC_ASSERT( state, CardState );
 
      /* set destination */
      dfb_state_set_destination( &font->state, state->destination );
@@ -1424,7 +1429,7 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( text != NULL );
      D_ASSERT( bytes > 0 );
      D_ASSERT( font != NULL );
@@ -1559,7 +1564,7 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
 
      dfb_state_lock( state );
@@ -1618,7 +1623,7 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
-     D_ASSERT( state != NULL );
+     D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
 
      dfb_state_lock( state );
@@ -1822,9 +1827,10 @@ dfb_gfxcard_memory_virtual( GraphicsDevice *device,
  * loads/probes/unloads one driver module after another until a suitable
  * driver is found and returns its symlinked functions
  */
-static void dfb_gfxcard_find_driver()
+static void dfb_gfxcard_find_driver( CoreDFB *core )
 {
-     DirectLink *link;
+     DirectLink          *link;
+     FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
      direct_list_foreach (link, dfb_graphics_drivers.entries) {
           DirectModuleEntry *module = (DirectModuleEntry*) link;
@@ -1840,7 +1846,7 @@ static void dfb_gfxcard_find_driver()
                card->module       = module;
                card->driver_funcs = funcs;
 
-               card->shared->module_name = SHSTRDUP( module->name );
+               card->shared->module_name = SHSTRDUP( pool, module->name );
           }
           else
                direct_module_unref( module );

@@ -73,12 +73,12 @@ decoration_destructor( FusionObject *object, bool zombie )
 }
 
 FusionObjectPool *
-unique_decoration_pool_create()
+unique_decoration_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "UniQuE Decoration Pool",
                                        sizeof(UniqueDecoration),
                                        sizeof(UniqueDecorationNotification),
-                                       decoration_destructor );
+                                       decoration_destructor, world );
 }
 
 /**************************************************************************************************/

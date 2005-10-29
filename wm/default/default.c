@@ -1319,7 +1319,7 @@ remove_window( CoreWindowStack *stack,
 
           if (key->owner == window) {
                direct_list_remove( &data->grabbed_keys, &key->link );
-               SHFREE( key );
+               SHFREE( stack->shmpool, key );
           }
      }
 
@@ -1702,15 +1702,18 @@ grab_key( CoreWindow                 *window,
           DFBInputDeviceKeySymbol     symbol,
           DFBInputDeviceModifierMask  modifiers )
 {
-     int         i;
-     StackData  *data;
-     GrabbedKey *grab;
+     int              i;
+     StackData       *data;
+     GrabbedKey      *grab;
+     CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( window_data->stack_data != NULL );
+     D_ASSERT( window_data->stack_data->stack != NULL );
 
-     data = window_data->stack_data;
+     data  = window_data->stack_data;
+     stack = data->stack;
 
      /* Reject if already grabbed. */
      direct_list_foreach (grab, data->grabbed_keys)
@@ -1718,7 +1721,7 @@ grab_key( CoreWindow                 *window,
                return DFB_LOCKED;
 
      /* Allocate grab information. */
-     grab = SHCALLOC( 1, sizeof(GrabbedKey) );
+     grab = SHCALLOC( stack->shmpool, 1, sizeof(GrabbedKey) );
 
      /* Fill grab information. */
      grab->symbol    = symbol;
@@ -1742,21 +1745,24 @@ ungrab_key( CoreWindow                 *window,
             DFBInputDeviceKeySymbol     symbol,
             DFBInputDeviceModifierMask  modifiers )
 {
-     DirectLink *l;
-     StackData  *data;
+     DirectLink      *l;
+     StackData       *data;
+     CoreWindowStack *stack;
 
      D_ASSERT( window != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( window_data->stack_data != NULL );
+     D_ASSERT( window_data->stack_data->stack != NULL );
 
-     data = window_data->stack_data;
+     data  = window_data->stack_data;
+     stack = data->stack;
 
      direct_list_foreach (l, data->grabbed_keys) {
           GrabbedKey *key = (GrabbedKey*) l;
 
           if (key->symbol == symbol && key->modifiers == modifiers && key->owner == window) {
                direct_list_remove( &data->grabbed_keys, &key->link );
-               SHFREE( key );
+               SHFREE( stack->shmpool, key );
                return DFB_OK;
           }
      }
@@ -2386,7 +2392,7 @@ wm_init_stack( CoreWindowStack *stack,
 
      data->stack = stack;
 
-     fusion_vector_init( &data->windows, 64 );
+     fusion_vector_init( &data->windows, 64, stack->shmpool );
 
      for (i=0; i<MAX_KEYS; i++)
           data->keys[i].code = -1;
@@ -2427,7 +2433,7 @@ wm_close_stack( CoreWindowStack *stack,
 
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
-          SHFREE( l );
+          SHFREE( stack->shmpool, l );
 
      return DFB_OK;
 }

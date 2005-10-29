@@ -93,7 +93,7 @@ struct __DFB_CoreWindowConfig {
 /*
  * Creates a pool of window objects.
  */
-FusionObjectPool *dfb_window_pool_create();
+FusionObjectPool *dfb_window_pool_create( const FusionWorld *world );
 
 /*
  * Generates dfb_window_ref(), dfb_window_attach() etc.

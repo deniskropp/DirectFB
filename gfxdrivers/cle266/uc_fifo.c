@@ -153,20 +153,20 @@ static void uc_fifo_flush_agp(struct uc_fifo* fifo)
 
 /** Create a FIFO. Returns NULL on failure. */
 
-struct uc_fifo* uc_fifo_create(size_t size)
+struct uc_fifo* uc_fifo_create(FusionSHMPoolShared *pool, size_t size)
 {
     struct uc_fifo* fifo;
 
     size += 32;     // Needed for padding.
 
-    fifo = SHCALLOC(1, sizeof(struct uc_fifo));
+    fifo = SHCALLOC(pool, 1, sizeof(struct uc_fifo));
     if (!fifo) return NULL;
 
     // Note: malloc won't work for DMA buffers...
 
-    fifo->buf = SHMALLOC(sizeof(__u32) * size);
+    fifo->buf = SHMALLOC(pool, sizeof(__u32) * size);
     if (!(fifo->buf)) {
-        SHFREE(fifo);
+        SHFREE(pool, fifo);
         return NULL;
     }
 
@@ -184,13 +184,13 @@ struct uc_fifo* uc_fifo_create(size_t size)
 
 /** Destroy a FIFO */
 
-void uc_fifo_destroy(struct uc_fifo* fifo)
+void uc_fifo_destroy(FusionSHMPoolShared *pool, struct uc_fifo* fifo)
 {
     if (fifo) {
         if (fifo->buf) {
-            SHFREE(fifo->buf);
+            SHFREE(pool, fifo->buf);
             fifo->buf = NULL;
         }
-        SHFREE(fifo);
+        SHFREE(pool, fifo);
     }
 }

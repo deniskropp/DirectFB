@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.12 $
+ * $Revision: 1.13 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -519,7 +519,8 @@ static DFBResult
 driver_init_driver(GraphicsDevice      *device,
                    GraphicsDeviceFuncs *funcs,
                    void                *driver_data,
-                   void                *device_data)
+                   void                *device_data,
+                   CoreDFB             *core)
 {
    NSCDriverData *gxdrv = (NSCDriverData *) driver_data;
 

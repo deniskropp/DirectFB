@@ -53,12 +53,12 @@
 #if FUSION_BUILD_MULTI
 
 DirectResult
-fusion_property_init (FusionProperty *property)
+fusion_property_init (FusionProperty *property, const FusionWorld *world)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( property != NULL );
+     D_MAGIC_ASSERT( world, FusionWorld );
 
-     while (ioctl (_fusion_fd, FUSION_PROPERTY_NEW, &property->id)) {
+     while (ioctl (world->fusion_fd, FUSION_PROPERTY_NEW, &property->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -71,16 +71,18 @@ fusion_property_init (FusionProperty *property)
           return DFB_FAILURE;
      }
 
+     /* Keep back pointer to shared world data. */
+     property->multi.shared = world->shared;
+
      return DFB_OK;
 }
 
 DirectResult
 fusion_property_lease (FusionProperty *property)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( property != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_PROPERTY_LEASE, &property->id)) {
+     while (ioctl (_fusion_fd( property->multi.shared ), FUSION_PROPERTY_LEASE, &property->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -104,10 +106,9 @@ fusion_property_lease (FusionProperty *property)
 DirectResult
 fusion_property_purchase (FusionProperty *property)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( property != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_PROPERTY_PURCHASE, &property->id)) {
+     while (ioctl (_fusion_fd( property->multi.shared ), FUSION_PROPERTY_PURCHASE, &property->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -131,10 +132,9 @@ fusion_property_purchase (FusionProperty *property)
 DirectResult
 fusion_property_cede (FusionProperty *property)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( property != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_PROPERTY_CEDE, &property->id)) {
+     while (ioctl (_fusion_fd( property->multi.shared ), FUSION_PROPERTY_CEDE, &property->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -156,10 +156,9 @@ fusion_property_cede (FusionProperty *property)
 DirectResult
 fusion_property_holdup (FusionProperty *property)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( property != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_PROPERTY_HOLDUP, &property->id)) {
+     while (ioctl (_fusion_fd( property->multi.shared ), FUSION_PROPERTY_HOLDUP, &property->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -181,10 +180,9 @@ fusion_property_holdup (FusionProperty *property)
 DirectResult
 fusion_property_destroy (FusionProperty *property)
 {
-     D_ASSERT( _fusion_fd != -1 );
      D_ASSERT( property != NULL );
 
-     while (ioctl (_fusion_fd, FUSION_PROPERTY_DESTROY, &property->id)) {
+     while (ioctl (_fusion_fd( property->multi.shared ), FUSION_PROPERTY_DESTROY, &property->multi.id)) {
           switch (errno) {
                case EINTR:
                     continue;
@@ -211,14 +209,14 @@ fusion_property_destroy (FusionProperty *property)
  * Initializes the property
  */
 DirectResult
-fusion_property_init (FusionProperty *property)
+fusion_property_init (FusionProperty *property, const FusionWorld *world)
 {
      D_ASSERT( property != NULL );
 
-     direct_util_recursive_pthread_mutex_init (&property->fake.lock);
-     pthread_cond_init (&property->fake.cond, NULL);
+     direct_util_recursive_pthread_mutex_init (&property->single.lock);
+     pthread_cond_init (&property->single.cond, NULL);
 
-     property->fake.state = FUSION_PROPERTY_AVAILABLE;
+     property->single.state = FUSION_PROPERTY_AVAILABLE;
 
      return DFB_OK;
 }
@@ -233,19 +231,19 @@ fusion_property_lease (FusionProperty *property)
 
      D_ASSERT( property != NULL );
 
-     pthread_mutex_lock (&property->fake.lock);
+     pthread_mutex_lock (&property->single.lock);
 
      /* Wait as long as the property is leased by another party. */
-     while (property->fake.state == FUSION_PROPERTY_LEASED)
-          pthread_cond_wait (&property->fake.cond, &property->fake.lock);
+     while (property->single.state == FUSION_PROPERTY_LEASED)
+          pthread_cond_wait (&property->single.cond, &property->single.lock);
 
      /* Fail if purchased by another party, otherwise succeed. */
-     if (property->fake.state == FUSION_PROPERTY_PURCHASED)
+     if (property->single.state == FUSION_PROPERTY_PURCHASED)
           ret = DFB_BUSY;
      else
-          property->fake.state = FUSION_PROPERTY_LEASED;
+          property->single.state = FUSION_PROPERTY_LEASED;
 
-     pthread_mutex_unlock (&property->fake.lock);
+     pthread_mutex_unlock (&property->single.lock);
 
      return ret;
 }
@@ -260,23 +258,23 @@ fusion_property_purchase (FusionProperty *property)
 
      D_ASSERT( property != NULL );
 
-     pthread_mutex_lock (&property->fake.lock);
+     pthread_mutex_lock (&property->single.lock);
 
      /* Wait as long as the property is leased by another party. */
-     while (property->fake.state == FUSION_PROPERTY_LEASED)
-          pthread_cond_wait (&property->fake.cond, &property->fake.lock);
+     while (property->single.state == FUSION_PROPERTY_LEASED)
+          pthread_cond_wait (&property->single.cond, &property->single.lock);
 
      /* Fail if purchased by another party, otherwise succeed. */
-     if (property->fake.state == FUSION_PROPERTY_PURCHASED)
+     if (property->single.state == FUSION_PROPERTY_PURCHASED)
           ret = DFB_BUSY;
      else {
-          property->fake.state = FUSION_PROPERTY_PURCHASED;
+          property->single.state = FUSION_PROPERTY_PURCHASED;
 
           /* Wake up any other waiting party. */
-          pthread_cond_broadcast (&property->fake.cond);
+          pthread_cond_broadcast (&property->single.cond);
      }
 
-     pthread_mutex_unlock (&property->fake.lock);
+     pthread_mutex_unlock (&property->single.lock);
 
      return ret;
 }
@@ -289,18 +287,18 @@ fusion_property_cede (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     pthread_mutex_lock (&property->fake.lock);
+     pthread_mutex_lock (&property->single.lock);
 
      /* Simple error checking, maybe we should also check the owner. */
-     D_ASSERT( property->fake.state != FUSION_PROPERTY_AVAILABLE );
+     D_ASSERT( property->single.state != FUSION_PROPERTY_AVAILABLE );
 
      /* Put back into 'available' state. */
-     property->fake.state = FUSION_PROPERTY_AVAILABLE;
+     property->single.state = FUSION_PROPERTY_AVAILABLE;
 
      /* Wake up one waiting party if there are any. */
-     pthread_cond_signal (&property->fake.cond);
+     pthread_cond_signal (&property->single.cond);
 
-     pthread_mutex_unlock (&property->fake.lock);
+     pthread_mutex_unlock (&property->single.lock);
 
      return DFB_OK;
 }
@@ -324,8 +322,8 @@ fusion_property_destroy (FusionProperty *property)
 {
      D_ASSERT( property != NULL );
 
-     pthread_cond_destroy (&property->fake.cond);
-     pthread_mutex_destroy (&property->fake.lock);
+     pthread_cond_destroy (&property->single.cond);
+     pthread_mutex_destroy (&property->single.lock);
 
      return DFB_OK;
 }

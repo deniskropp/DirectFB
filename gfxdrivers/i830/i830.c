@@ -471,7 +471,8 @@ static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
-                    void                *device_data )
+                    void                *device_data,
+                    CoreDFB             *core )
 {
      DFBResult       ret;
      I830DriverData *idrv = driver_data;

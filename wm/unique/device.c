@@ -36,6 +36,7 @@
 #include <fusion/shmalloc.h>
 #include <fusion/vector.h>
 
+#include <core/core.h>
 #include <core/input.h>
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
@@ -146,7 +147,8 @@ unique_device_class_unregister( UniqueDeviceClassID id )
 /**************************************************************************************************/
 
 DFBResult
-unique_device_create( UniqueContext        *context,
+unique_device_create( CoreDFB              *core,
+                      UniqueContext        *context,
                       UniqueDeviceClassID   class_id,
                       void                 *ctx,
                       UniqueDevice        **ret_device )
@@ -168,7 +170,7 @@ unique_device_create( UniqueContext        *context,
      D_ASSERT( ret_device != NULL );
 
      /* Allocate device data. */
-     device = SHCALLOC( 1, sizeof(UniqueDevice) );
+     device = SHCALLOC( context->shmpool, 1, sizeof(UniqueDevice) );
      if (!device) {
           D_WARN( "out of (shared) memory" );
           return DFB_NOSYSTEMMEMORY;
@@ -181,7 +183,7 @@ unique_device_create( UniqueContext        *context,
 
      /* Allocate private device data. */
      if (clazz->data_size) {
-          device->data = SHCALLOC( 1, clazz->data_size );
+          device->data = SHCALLOC( context->shmpool, 1, clazz->data_size );
           if (!device->data) {
                ret = DFB_NOSYSTEMMEMORY;
                goto error;
@@ -189,7 +191,8 @@ unique_device_create( UniqueContext        *context,
      }
 
      /* Create reactor for dispatching generated events. */
-     device->reactor = fusion_reactor_new( sizeof(UniqueInputEvent), "UniQuE Device" );
+     device->reactor = fusion_reactor_new( sizeof(UniqueInputEvent),
+                                           "UniQuE Device", dfb_core_world(core) );
      if (!device->reactor) {
           ret = DFB_FUSION;
           goto error;
@@ -219,9 +222,9 @@ error:
           fusion_reactor_free( device->reactor );
 
      if (device->data)
-          SHFREE( device->data );
+          SHFREE( context->shmpool, device->data );
 
-     SHFREE( device );
+     SHFREE( context->shmpool, device );
 
      return ret;
 }
@@ -231,9 +234,14 @@ unique_device_destroy( UniqueDevice *device )
 {
      DirectLink              *n;
      DeviceConnection        *connection;
+     UniqueContext           *context;
      const UniqueDeviceClass *clazz;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
+
+     context = device->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      D_ASSERT( device->clazz >= 0 );
      D_ASSERT( device->clazz < MAX_CLASSES );
@@ -258,11 +266,11 @@ unique_device_destroy( UniqueDevice *device )
      fusion_reactor_free( device->reactor );
 
      if (device->data)
-          SHFREE( device->data );
+          SHFREE( context->shmpool, device->data );
 
      D_MAGIC_CLEAR( device );
 
-     SHFREE( device );
+     SHFREE( context->shmpool, device );
 
      return DFB_OK;
 }
@@ -296,7 +304,7 @@ unique_device_connect( UniqueDevice    *device,
                  device, source, dfb_input_device_id( source ) );
 
      /* Allocate connection structure. */
-     connection = SHCALLOC( 1, sizeof(DeviceConnection) );
+     connection = SHCALLOC( context->shmpool, 1, sizeof(DeviceConnection) );
      if (!connection) {
           D_OOSHM();
           return DFB_NOSYSTEMMEMORY;
@@ -309,7 +317,7 @@ unique_device_connect( UniqueDevice    *device,
      ret = dfb_input_attach_global( source, shared->device_listener,
                                     device, &connection->reaction );
      if (ret) {
-          SHFREE( connection );
+          SHFREE( context->shmpool, connection );
           return ret;
      }
 
@@ -460,9 +468,14 @@ purge_connection( UniqueDevice     *device,
                   DeviceConnection *connection )
 {
      CoreInputDevice *source;
+     UniqueContext   *context;
 
      D_MAGIC_ASSERT( device, UniqueDevice );
      D_MAGIC_ASSERT( connection, DeviceConnection );
+
+     context = device->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
 
      source = dfb_input_device_at( connection->source );
 
@@ -478,6 +491,6 @@ purge_connection( UniqueDevice     *device,
 
      D_MAGIC_CLEAR( connection );
 
-     SHFREE( connection );
+     SHFREE( context->shmpool, connection );
 }
 

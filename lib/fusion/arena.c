@@ -52,10 +52,6 @@
 
 #if FUSION_BUILD_MULTI
 
-/***************************
- *  Internal declarations  *
- ***************************/
-
 typedef struct {
      DirectLink  link;
 
@@ -63,49 +59,58 @@ typedef struct {
      void       *data;
 } ArenaField;
 
-/*
- *
- */
 struct __Fusion_FusionArena {
-     DirectLink      link;
+     DirectLink         link;
 
-     int             magic;
+     int                magic;
 
-     FusionSkirmish  lock;
-     FusionRef       ref;
+     FusionWorldShared *shared;
 
-     char           *name;
+     FusionSkirmish     lock;
+     FusionRef          ref;
 
-     DirectLink     *fields;
+     char              *name;
+
+     DirectLink        *fields;
 };
 
-static FusionArena *lock_arena( const char *name, bool add );
+/**********************************************************************************************************************/
+
+static FusionArena *lock_arena  ( FusionWorld *world,
+                                  const char  *name,
+                                  bool         add );
 
 static void         unlock_arena( FusionArena *arena );
 
-/****************
- *  Public API  *
- ****************/
+/**********************************************************************************************************************/
 
 DirectResult
-fusion_arena_enter (const char     *name,
-                    ArenaEnterFunc  initialize,
-                    ArenaEnterFunc  join,
-                    void           *ctx,
-                    FusionArena   **ret_arena,
-                    int            *ret_error)
+fusion_arena_enter (FusionWorld     *world,
+                    const char      *name,
+                    ArenaEnterFunc   initialize,
+                    ArenaEnterFunc   join,
+                    void            *ctx,
+                    FusionArena    **ret_arena,
+                    int             *ret_error)
 {
-     FusionArena    *arena;
-     ArenaEnterFunc  func;
-     int             error = 0;
+     FusionArena       *arena;
+     FusionWorldShared *shared;
+     ArenaEnterFunc     func;
+     int                error = 0;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
 
      D_ASSERT( name != NULL );
      D_ASSERT( initialize != NULL );
      D_ASSERT( join != NULL );
      D_ASSERT( ret_arena != NULL );
 
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+
      /* Lookup arena and lock it. If it doesn't exist create it. */
-     arena = lock_arena( name, true );
+     arena = lock_arena( world, name, true );
      if (!arena)
           return DFB_FAILURE;
 
@@ -151,8 +156,8 @@ fusion_arena_enter (const char     *name,
                     ArenaField *field = (ArenaField*) l;
 
                     /* Free allocated memory. */
-                    SHFREE( field->name );
-                    SHFREE( field );
+                    SHFREE( shared->main_pool, field->name );
+                    SHFREE( shared->main_pool, field );
 
                     l = next;
                }
@@ -166,15 +171,15 @@ fusion_arena_enter (const char     *name,
                fusion_skirmish_destroy( &arena->lock );
 
                /* Lock the list and remove the arena. */
-               fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
-               direct_list_remove( &_fusion_shared->arenas, &arena->link );
-               fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
+               fusion_skirmish_prevail( &shared->arenas_lock );
+               direct_list_remove( &shared->arenas, &arena->link );
+               fusion_skirmish_dismiss( &shared->arenas_lock );
 
                D_MAGIC_CLEAR( arena );
 
                /* Free allocated memory. */
-               SHFREE( arena->name );
-               SHFREE( arena );
+               SHFREE( shared->main_pool, arena->name );
+               SHFREE( shared->main_pool, arena );
 
                return DFB_OK;
           }
@@ -191,7 +196,8 @@ fusion_arena_add_shared_field (FusionArena *arena,
                                const char  *name,
                                void        *data)
 {
-     ArenaField *field;
+     ArenaField        *field;
+     FusionWorldShared *shared;
 
      D_ASSERT( arena != NULL );
      D_ASSERT( data != NULL );
@@ -199,19 +205,23 @@ fusion_arena_add_shared_field (FusionArena *arena,
 
      D_MAGIC_ASSERT( arena, FusionArena );
 
+     shared = arena->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
           return DFB_FAILURE;
 
      /* Allocate memory for the field information. */
-     field = SHCALLOC( 1, sizeof(ArenaField) );
+     field = SHCALLOC( shared->main_pool, 1, sizeof(ArenaField) );
      if (!field) {
           fusion_skirmish_dismiss( &arena->lock );
           return DFB_FAILURE;
      }
 
      /* Give it the requested name. */
-     field->name = SHSTRDUP( name );
+     field->name = SHSTRDUP( shared->main_pool, name );
 
      /* Assign the data pointer. */
      field->data = data;
@@ -275,11 +285,14 @@ fusion_arena_exit (FusionArena   *arena,
                    int           *ret_error)
 {
      int error = 0;
-
-     D_ASSERT( arena != NULL );
-     D_ASSERT( shutdown != NULL );
+     FusionWorldShared *shared;
 
      D_MAGIC_ASSERT( arena, FusionArena );
+     D_ASSERT( shutdown != NULL );
+
+     shared = arena->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      /* Lock the arena. */
      if (fusion_skirmish_prevail( &arena->lock ))
@@ -301,8 +314,8 @@ fusion_arena_exit (FusionArena   *arena,
                ArenaField *field = (ArenaField*) l;
 
                /* Free allocated memory. */
-               SHFREE( field->name );
-               SHFREE( field );
+               SHFREE( shared->main_pool, field->name );
+               SHFREE( shared->main_pool, field );
 
                l = next;
           }
@@ -316,15 +329,15 @@ fusion_arena_exit (FusionArena   *arena,
           fusion_skirmish_destroy( &arena->lock );
 
           /* Lock the list and remove the arena. */
-          fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
-          direct_list_remove( &_fusion_shared->arenas, &arena->link );
-          fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
+          fusion_skirmish_prevail( &shared->arenas_lock );
+          direct_list_remove( &shared->arenas, &arena->link );
+          fusion_skirmish_dismiss( &shared->arenas_lock );
 
           D_MAGIC_CLEAR( arena );
 
           /* Free allocated memory. */
-          SHFREE( arena->name );
-          SHFREE( arena );
+          SHFREE( shared->main_pool, arena->name );
+          SHFREE( shared->main_pool, arena );
      }
      else {
           if (!leave) {
@@ -353,17 +366,25 @@ fusion_arena_exit (FusionArena   *arena,
  *****************************/
 
 static FusionArena *
-lock_arena( const char *name, bool add )
+lock_arena( FusionWorld *world,
+            const char  *name,
+            bool         add )
 {
-     DirectLink *l;
+     FusionArena       *arena;
+     FusionWorldShared *shared;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
 
      /* Lock the list. */
-     fusion_skirmish_prevail( &_fusion_shared->arenas_lock );
+     if (fusion_skirmish_prevail( &shared->arenas_lock ))
+          return NULL;
 
      /* For each exisiting arena... */
-     direct_list_foreach (l, _fusion_shared->arenas) {
-          FusionArena *arena = (FusionArena*) l;
-
+     direct_list_foreach (arena, shared->arenas) {
           /* Lock the arena.
              This would fail if the arena has been
              destroyed while waiting for the lock. */
@@ -384,7 +405,7 @@ lock_arena( const char *name, bool add )
                }
 
                /* Unlock the list. */
-               fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
+               fusion_skirmish_dismiss( &shared->arenas_lock );
 
                /* Return locked arena. */
                return arena;
@@ -398,25 +419,43 @@ lock_arena( const char *name, bool add )
         before unlocking the list again. */
      if (add) {
           char         buf[64];
-          FusionArena *arena = SHCALLOC( 1, sizeof(FusionArena) );
+          FusionArena *arena = SHCALLOC( shared->main_pool, 1, sizeof(FusionArena) );
+
+          if (!arena) {
+               D_OOSHM();
+               fusion_skirmish_dismiss( &shared->arenas_lock );
+               return NULL;
+          }
 
           snprintf( buf, sizeof(buf), "Arena '%s'", name );
 
           /* Initialize lock and reference counter. */
-          fusion_skirmish_init( &arena->lock, buf );
-          fusion_ref_init( &arena->ref );
+          if (fusion_skirmish_init( &arena->lock, buf, world )) {
+               SHFREE( shared->main_pool, arena );
+               fusion_skirmish_dismiss( &shared->arenas_lock );
+               return NULL;
+          }
+
+          if (fusion_ref_init( &arena->ref, world )) {
+               fusion_skirmish_destroy( &arena->lock );
+               SHFREE( shared->main_pool, arena );
+               fusion_skirmish_dismiss( &shared->arenas_lock );
+               return NULL;
+          }
 
           /* Give it the requested name. */
-          arena->name = SHSTRDUP( name );
+          arena->name = SHSTRDUP( shared->main_pool, name );
 
           /* Add it to the list. */
-          direct_list_prepend( &_fusion_shared->arenas, &arena->link );
+          direct_list_prepend( &shared->arenas, &arena->link );
 
           /* Lock the newly created arena. */
           fusion_skirmish_prevail( &arena->lock );
 
           /* Unlock the list. */
-          fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
+          fusion_skirmish_dismiss( &shared->arenas_lock );
+
+          arena->shared = shared;
 
           D_MAGIC_SET( arena, FusionArena );
 
@@ -425,7 +464,7 @@ lock_arena( const char *name, bool add )
      }
 
      /* Unlock the list. */
-     fusion_skirmish_dismiss( &_fusion_shared->arenas_lock );
+     fusion_skirmish_dismiss( &shared->arenas_lock );
 
      return NULL;
 }
@@ -444,7 +483,8 @@ unlock_arena( FusionArena *arena )
 #else
 
 DirectResult
-fusion_arena_enter (const char     *name,
+fusion_arena_enter (FusionWorld    *world,
+                    const char     *name,
                     ArenaEnterFunc  initialize,
                     ArenaEnterFunc  join,
                     void           *ctx,

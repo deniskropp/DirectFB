@@ -72,7 +72,7 @@ dfb_font_create( CoreDFB *core )
           font->surface_caps = DSCAPS_PREMULTIPLIED;
 
      /* the state used to blit the glyphs, may be changed by the font provider */
-     dfb_state_init( &font->state );
+     dfb_state_init( &font->state, core );
      font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
 
      font->glyph_infos = direct_tree_new();

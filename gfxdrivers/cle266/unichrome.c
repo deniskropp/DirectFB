@@ -410,13 +410,15 @@ static void driver_get_info(GraphicsDevice* device,
 static DFBResult driver_init_driver(GraphicsDevice* device,
                                     GraphicsDeviceFuncs* funcs,
                                     void* driver_data,
-                                    void* device_data)
+                                    void* device_data,
+                                    CoreDFB *core)
 {
      UcDriverData *ucdrv = (UcDriverData*) driver_data;
 
      //printf("Entering %s\n", __PRETTY_FUNCTION__);
 
      ucdrv->file = -1;
+     ucdrv->pool = dfb_core_shmpool( core );
 
      ucdrv->hwregs = dfb_gfxcard_map_mmio( device, 0, 0 );
      if (!ucdrv->hwregs) {
@@ -436,7 +438,8 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
                return DFB_IO;
      }
 
-     ucdrv->fifo = uc_fifo_create(UC_FIFO_SIZE);
+     /* FIXME: this belongs to device_data! */
+     ucdrv->fifo = uc_fifo_create(ucdrv->pool, UC_FIFO_SIZE);
      if (!ucdrv->fifo)
           return DFB_NOSYSTEMMEMORY;
 

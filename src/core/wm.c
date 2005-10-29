@@ -36,6 +36,7 @@
 
 #include <fusion/shmalloc.h>
 
+#include <core/core.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/core_parts.h>
@@ -64,6 +65,8 @@ typedef struct {
      char       *name;
      CoreWMInfo  info;
      void       *data;
+
+     FusionSHMPoolShared *shmpool;
 } CoreWMShared;
 
 DFB_CORE_PART( wm, sizeof(CoreWMLocal), sizeof(CoreWMShared) )
@@ -126,6 +129,8 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
      wm_local  = data_local;
      wm_shared = data_shared;
 
+     wm_shared->shmpool = dfb_core_shmpool( core );
+
      /* Set ABI version for the session. */
      wm_shared->abi = DFB_CORE_WM_ABI_VERSION;
 
@@ -148,7 +153,7 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
      ret = DFB_NOSYSTEMMEMORY;
 
      /* Store module name in shared memory. */
-     wm_shared->name = SHSTRDUP( wm_local->module->name );
+     wm_shared->name = SHSTRDUP( wm_shared->shmpool, wm_local->module->name );
      if (!wm_shared->name) {
           D_WARN( "out of (shared) memory" );
           goto error;
@@ -156,7 +161,7 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* Allocate shared window manager data. */
      if (wm_shared->info.wm_shared_size) {
-          wm_shared->data = SHCALLOC( 1, wm_shared->info.wm_shared_size );
+          wm_shared->data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.wm_shared_size );
           if (!wm_shared->data) {
                D_WARN( "out of (shared) memory" );
                goto error;
@@ -186,10 +191,10 @@ error:
           D_FREE( wm_local->data );
 
      if (wm_shared->data)
-          SHFREE( wm_shared->data );
+          SHFREE( wm_shared->shmpool, wm_shared->data );
 
      if (wm_shared->name)
-          SHFREE( wm_shared->name );
+          SHFREE( wm_shared->shmpool, wm_shared->name );
 
      wm_local = NULL;
      wm_shared = NULL;
@@ -288,10 +293,10 @@ dfb_wm_shutdown( CoreDFB *core, bool emergency )
 
      /* Deallocate shared window manager data. */
      if (wm_shared->data)
-          SHFREE( wm_shared->data );
+          SHFREE( wm_shared->shmpool, wm_shared->data );
 
      /* Free module name in shared memory. */
-     SHFREE( wm_shared->name );
+     SHFREE( wm_shared->shmpool, wm_shared->name );
 
      wm_local = NULL;
      wm_shared = NULL;
@@ -376,7 +381,7 @@ dfb_wm_init_stack( CoreWindowStack *stack )
 
      /* Allocate shared stack data. */
      if (wm_shared->info.stack_data_size) {
-          stack_data = SHCALLOC( 1, wm_shared->info.stack_data_size );
+          stack_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.stack_data_size );
           if (!stack_data) {
                D_WARN( "out of (shared) memory" );
                return DFB_NOSYSTEMMEMORY;
@@ -387,7 +392,7 @@ dfb_wm_init_stack( CoreWindowStack *stack )
      ret = wm_local->funcs->InitStack( stack, wm_local->data, stack_data );
      if (ret) {
           if (stack_data)
-               SHFREE( stack_data );
+               SHFREE( wm_shared->shmpool, stack_data );
 
           return ret;
      }
@@ -414,7 +419,7 @@ dfb_wm_close_stack( CoreWindowStack *stack, bool final )
 
      /* Deallocate shared stack data. */
      if (final && stack->stack_data)
-          SHFREE( stack->stack_data );
+          SHFREE( wm_shared->shmpool, stack->stack_data );
 
      return ret;
 }
@@ -558,7 +563,7 @@ dfb_wm_add_window( CoreWindowStack *stack,
 
      /* Allocate shared window data. */
      if (wm_shared->info.window_data_size) {
-          window_data = SHCALLOC( 1, wm_shared->info.window_data_size );
+          window_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.window_data_size );
           if (!window_data) {
                D_WARN( "out of (shared) memory" );
                return DFB_NOSYSTEMMEMORY;
@@ -570,7 +575,7 @@ dfb_wm_add_window( CoreWindowStack *stack,
                                        stack->stack_data, window, window_data );
      if (ret) {
           if (window_data)
-               SHFREE( window_data );
+               SHFREE( wm_shared->shmpool, window_data );
           return ret;
      }
 
@@ -600,7 +605,7 @@ dfb_wm_remove_window( CoreWindowStack *stack,
 
      /* Deallocate shared stack data. */
      if (window->window_data)
-          SHFREE( window->window_data );
+          SHFREE( wm_shared->shmpool, window->window_data );
 
      return ret;
 }

@@ -46,7 +46,7 @@ typedef struct {
 /*
  * Creates a pool of layer context objects.
  */
-FusionObjectPool *dfb_layer_context_pool_create();
+FusionObjectPool *dfb_layer_context_pool_create( const FusionWorld *world );
 
 /*
  * Generates dfb_layer_context_ref(), dfb_layer_context_attach() etc.

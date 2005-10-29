@@ -85,6 +85,8 @@ struct _SurfaceManager {
 
      FusionSkirmish  lock;
 
+     FusionSHMPoolShared *shmpool;
+
      Chunk          *chunks;
      int             length;
      int             available;
@@ -107,31 +109,44 @@ struct _SurfaceManager {
 };
 
 
-static Chunk* split_chunk( Chunk *c, int length );
-static Chunk* free_chunk( SurfaceManager *manager, Chunk *chunk );
-static void occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int length );
+static Chunk *split_chunk ( SurfaceManager *manager,
+                            Chunk          *chunk,
+                            int             length );
+
+static Chunk *free_chunk  ( SurfaceManager *manager,
+                            Chunk          *chunk );
+
+static void   occupy_chunk( SurfaceManager *manager,
+                            Chunk          *chunk,
+                            SurfaceBuffer  *buffer,
+                            int             length );
 
 
 SurfaceManager *
-dfb_surfacemanager_create( unsigned int     length,
+dfb_surfacemanager_create( CoreDFB         *core,
+                           unsigned int     length,
                            CardLimitations *limits )
 {
-     Chunk          *chunk;
-     SurfaceManager *manager;
+     Chunk               *chunk;
+     SurfaceManager      *manager;
+     FusionSHMPoolShared *pool;
 
-     manager = SHCALLOC( 1, sizeof(SurfaceManager) );
+     pool = dfb_core_shmpool( core );
+
+     manager = SHCALLOC( pool, 1, sizeof(SurfaceManager) );
      if (!manager)
           return NULL;
 
-     chunk = SHCALLOC( 1, sizeof(Chunk) );
+     chunk = SHCALLOC( pool, 1, sizeof(Chunk) );
      if (!chunk) {
-          SHFREE( manager );
+          SHFREE( pool, manager );
           return NULL;
      }
 
      chunk->offset = 0;
      chunk->length = length;
 
+     manager->shmpool          = pool;
      manager->chunks           = chunk;
      manager->length           = length;
      manager->available        = length;
@@ -142,7 +157,7 @@ dfb_surfacemanager_create( unsigned int     length,
      manager->max_power_of_two_bytepitch  = limits->surface_max_power_of_two_bytepitch;
      manager->max_power_of_two_height     = limits->surface_max_power_of_two_height;
 
-     fusion_skirmish_init( &manager->lock, "Surface Manager" );
+     fusion_skirmish_init( &manager->lock, "Surface Manager", dfb_core_world(core) );
 
      D_MAGIC_SET( chunk, _Chunk_ );
 
@@ -161,8 +176,6 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
 
      D_MAGIC_ASSERT( manager, SurfaceManager );
 
-     D_MAGIC_CLEAR( manager );
-
      /* Deallocate all chunks. */
      chunk = manager->chunks;
      while (chunk) {
@@ -170,16 +183,18 @@ dfb_surfacemanager_destroy( SurfaceManager *manager )
 
           D_MAGIC_CLEAR( chunk );
 
-          SHFREE( chunk );
+          SHFREE( manager->shmpool, chunk );
 
           chunk = next;
      }
+
+     D_MAGIC_CLEAR( manager );
 
      /* Destroy manager lock. */
      fusion_skirmish_destroy( &manager->lock );
 
      /* Deallocate manager struct. */
-     SHFREE( manager );
+     SHFREE( manager->shmpool, manager );
 }
 
 DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
@@ -621,7 +636,8 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
 
 /** internal functions NOT locking the surfacemanager **/
 
-static Chunk* split_chunk( Chunk *c, int length )
+static Chunk *
+split_chunk( SurfaceManager *manager, Chunk *c, int length )
 {
      Chunk *newchunk;
 
@@ -630,7 +646,7 @@ static Chunk* split_chunk( Chunk *c, int length )
      if (c->length == length)          /* does not need be splitted */
           return c;
 
-     newchunk = (Chunk*) SHCALLOC( 1, sizeof(Chunk) );
+     newchunk = (Chunk*) SHCALLOC( manager->shmpool, 1, sizeof(Chunk) );
 
      /* calculate offsets and lengths of resulting chunks */
      newchunk->offset = c->offset + c->length - length;
@@ -649,7 +665,7 @@ static Chunk* split_chunk( Chunk *c, int length )
      return newchunk;
 }
 
-static Chunk*
+static Chunk *
 free_chunk( SurfaceManager *manager, Chunk *chunk )
 {
      D_MAGIC_ASSERT( manager, SurfaceManager );
@@ -686,7 +702,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 
           D_MAGIC_CLEAR( chunk );
 
-          SHFREE( chunk );
+          SHFREE( manager->shmpool, chunk );
           chunk = prev;
      }
 
@@ -703,7 +719,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
 
           D_MAGIC_CLEAR( next );
 
-          SHFREE( next );
+          SHFREE( manager->shmpool, next );
      }
 
      return chunk;
@@ -718,7 +734,7 @@ occupy_chunk( SurfaceManager *manager, Chunk *chunk, SurfaceBuffer *buffer, int 
      if (buffer->policy == CSP_VIDEOONLY)
           manager->available -= length;
 
-     chunk = split_chunk( chunk, length );
+     chunk = split_chunk( manager, chunk, length );
 
      D_DEBUG_AT( Core_SM, "Allocating %d bytes at offset %d.\n", chunk->length, chunk->offset );
 

@@ -76,6 +76,8 @@ typedef struct {
           unsigned short      vendor;        /* Graphics device vendor id */
           unsigned short      model;         /* Graphics device model id */
      } device;
+
+     FusionSHMPoolShared     *shmpool;
 } FBDevShared;
 
 typedef struct {

@@ -66,7 +66,7 @@ DFB_GRAPHICS_DRIVER( r200 )
 
 #define R200_SUPPORTED_DRAWINGFUNCTIONS \
      ( DFXL_FILLRECTANGLE | DFXL_FILLTRIANGLE | \
-       DFXL_DRAWRECTANGLE | DFXL_DRAWLINE )
+       /*DFXL_DRAWRECTANGLE |*/ DFXL_DRAWLINE )
 
 #define R200_SUPPORTED_BLITTINGFLAGS \
      ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
@@ -1597,7 +1597,8 @@ static DFBResult
 driver_init_driver( GraphicsDevice      *device,
                     GraphicsDeviceFuncs *funcs,
                     void                *driver_data,
-                    void                *device_data )
+                    void                *device_data,
+                    CoreDFB             *core )
 {
      R200DriverData *rdrv = (R200DriverData*) driver_data;
      

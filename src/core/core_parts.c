@@ -42,27 +42,32 @@
 #include <direct/messages.h>
 
 
+D_DEBUG_DOMAIN( Core_Parts, "Core/Parts", "DirectFB Core Parts" );
+
+
 DFBResult
 dfb_core_part_initialize( CoreDFB  *core,
                           CorePart *core_part )
 {
-     DFBResult  ret;
-     void      *local  = NULL;
-     void      *shared = NULL;
+     DFBResult            ret;
+     void                *local  = NULL;
+     void                *shared = NULL;
+     FusionSHMPoolShared *pool;
+
+     pool = dfb_core_shmpool( core );
 
      if (core_part->initialized) {
-          D_BUG( core_part->name );
+          D_BUG( "%s already initialized", core_part->name );
           return DFB_BUG;
      }
 
-     D_DEBUG( "DirectFB/CoreParts: "
-               "Going to initialize '%s' core...\n", core_part->name );
+     D_DEBUG_AT( Core_Parts, "Going to initialize '%s' core...\n", core_part->name );
 
      if (core_part->size_local)
           local = D_CALLOC( 1, core_part->size_local );
 
      if (core_part->size_shared)
-          shared = SHCALLOC( 1, core_part->size_shared );
+          shared = SHCALLOC( pool, 1, core_part->size_shared );
 
      ret = core_part->Initialize( core, local, shared );
      if (ret) {
@@ -71,7 +76,7 @@ dfb_core_part_initialize( CoreDFB  *core,
                     DirectFBErrorString( ret ) );
 
           if (shared)
-               SHFREE( shared );
+               SHFREE( pool, shared );
 
           if (local)
                D_FREE( local );
@@ -99,12 +104,11 @@ dfb_core_part_join( CoreDFB  *core,
      void      *shared = NULL;
 
      if (core_part->initialized) {
-          D_BUG( core_part->name );
+          D_BUG( "%s already joined", core_part->name );
           return DFB_BUG;
      }
 
-     D_DEBUG( "DirectFB/CoreParts: "
-               "Going to join '%s' core...\n", core_part->name );
+     D_DEBUG_AT( Core_Parts, "Going to join '%s' core...\n", core_part->name );
 
      if (core_part->size_shared &&
          fusion_arena_get_shared_field( dfb_core_arena( core ),
@@ -138,13 +142,15 @@ dfb_core_part_shutdown( CoreDFB  *core,
                         CorePart *core_part,
                         bool      emergency )
 {
-     DFBResult ret;
+     DFBResult            ret;
+     FusionSHMPoolShared *pool;
+
+     pool = dfb_core_shmpool( core );
 
      if (!core_part->initialized)
           return DFB_OK;
 
-     D_DEBUG( "DirectFB/CoreParts: "
-               "Going to shutdown '%s' core...\n", core_part->name );
+     D_DEBUG_AT( Core_Parts, "Going to shutdown '%s' core...\n", core_part->name );
 
      ret = core_part->Shutdown( core, emergency );
      if (ret)
@@ -153,7 +159,7 @@ dfb_core_part_shutdown( CoreDFB  *core,
                     DirectFBErrorString( ret ) );
 
      if (core_part->data_shared)
-          SHFREE( core_part->data_shared );
+          SHFREE( pool, core_part->data_shared );
 
      if (core_part->data_local)
           D_FREE( core_part->data_local );
@@ -175,8 +181,7 @@ dfb_core_part_leave( CoreDFB  *core,
      if (!core_part->initialized)
           return DFB_OK;
 
-     D_DEBUG( "DirectFB/CoreParts: "
-               "Going to leave '%s' core...\n", core_part->name );
+     D_DEBUG_AT( Core_Parts, "Going to leave '%s' core...\n", core_part->name );
 
      ret = core_part->Leave( core, emergency );
      if (ret)

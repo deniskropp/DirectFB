@@ -39,6 +39,7 @@
 #include <directfb.h>
 #include <directfb_strings.h>
 
+#include <direct/clock.h>
 #include <direct/debug.h>
 
 #include <fusion/build.h>
@@ -46,7 +47,7 @@
 #include <fusion/object.h>
 #include <fusion/ref.h>
 #include <fusion/shmalloc.h>
-#include <fusion/shmalloc/shmalloc_internal.h>
+#include <fusion/shm/shm_internal.h>
 
 #include <core/core.h>
 #include <core/layer_control.h>
@@ -64,6 +65,7 @@ static DirectFBPixelFormatNames( format_names );
 typedef struct {
      int video;
      int system;
+     int presys;
 } MemoryUsage;
 
 static IDirectFB *dfb = NULL;
@@ -119,7 +121,7 @@ buffer_sizes( CoreSurface *surface, bool video )
      if (surface->caps & DSCAPS_TRIPLE)
           mem += buffer_size( surface, surface->idle_buffer, video );
 
-     return (mem + 0x3ff) & ~0x3ff;
+     return mem;  // what the heck was that for? -> (mem + 0x3ff) & ~0x3ff;
 }
 
 static int
@@ -163,7 +165,7 @@ surface_callback( FusionObjectPool *pool,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", object->ref.id );
+     printf( "0x%08x : ", object->ref.multi.id );
 #else
      printf( "N/A        : " );
 #endif
@@ -184,7 +186,12 @@ surface_callback( FusionObjectPool *pool,
      printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
 
      mem->video  += vmem;
-     mem->system += smem;
+
+     /* FIXME: assumes all buffers have this flag (or not) */
+     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
+          mem->presys += smem;
+     else
+          mem->system += smem;
 
      if (surface->caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
@@ -221,7 +228,8 @@ dump_surfaces()
 
      printf( "                                          ------   ------\n" );
      printf( "                                         %6dk  %6dk   -> %dk total\n",
-             mem.video >> 10, mem.system >> 10, (mem.video + mem.system) >> 10);
+             mem.video >> 10, (mem.system + mem.presys) >> 10,
+             (mem.video + mem.system + mem.presys) >> 10);
 }
 
 static bool
@@ -249,7 +257,7 @@ context_callback( FusionObjectPool *pool,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", object->ref.id );
+     printf( "0x%08x : ", object->ref.multi.id );
 #else
      printf( "N/A        : " );
 #endif
@@ -322,7 +330,7 @@ window_callback( CoreWindow *window,
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", window->object.ref.id );
+     printf( "0x%08x : ", window->object.ref.multi.id );
 #else
      printf( "N/A        : " );
 #endif
@@ -456,7 +464,7 @@ main( int argc, char *argv[] )
      if (ret)
           goto out;
 
-     millis = fusion_get_millis();
+     millis = direct_clock_get_millis();
 
      seconds  = millis / 1000;
      millis  %= 1000;
@@ -492,32 +500,34 @@ main( int argc, char *argv[] )
 
 #if FUSION_BUILD_MULTI
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
-          unsigned int i;
-          unsigned int total = 0;
+          SHMemDesc           *desc;
+          unsigned int         total = 0;
+          FusionSHMPoolShared *pool  = dfb_core_shmpool(NULL);
 
-          D_ASSERT( _sheap != NULL );
+          ret = fusion_skirmish_prevail( &pool->lock );
+          if (ret) {
+               D_DERROR( ret, "Could not lock shared memory pool!\n" );
+               goto out;
+          }
+     
+          if (pool->allocs) {
+               printf( "\nShared memory allocations (%d): \n",
+                       direct_list_count_elements_EXPENSIVE( pool->allocs ) );
+     
+               direct_list_foreach (desc, pool->allocs) {
+                    printf( " %9d bytes at %p allocated in %-30s (%s: %u)\n",
+                         desc->bytes, desc->mem, desc->func, desc->file, desc->line );
 
-          fusion_skirmish_prevail( &_sheap->lock );
-
-          if (_sheap->alloc_count) {
-               printf( "\nShared memory allocations (%d): \n", _sheap->alloc_count);
-
-               for (i=0; i<_sheap->alloc_count; i++) {
-                    SHMemDesc *d = &_sheap->alloc_list[i];
-
-                    printf( " %9d bytes at %p allocated in %s (%s: %u)\n",
-                            d->bytes, d->mem, d->func, d->file, d->line );
-
-                    total += d->bytes;
+                    total += desc->bytes;
                }
 
                printf( "   -------\n  %7dk total  (%dk without pixel buffers)\n",
                        total >> 10, (total - mem.system) >> 10 );
           }
+     
+          printf( "\nShared memory file size: %dk\n", pool->heap->size >> 10 );
 
-          printf( "\nShared memory file size: %dk\n", _sheap->map_size >> 10 );
-
-          fusion_skirmish_dismiss( &_sheap->lock );
+          fusion_skirmish_dismiss( &pool->lock );
      }
 #endif
 

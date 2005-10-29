@@ -112,7 +112,7 @@ DFBResult unique_decoration_add_item( UniqueDecoration                  *decorat
 /*
  * Creates a pool of decoration objects.
  */
-FusionObjectPool *unique_decoration_pool_create();
+FusionObjectPool *unique_decoration_pool_create( const FusionWorld *world );
 
 /*
  * Generates unique_decoration_ref(), unique_decoration_attach() etc.

@@ -116,7 +116,7 @@ window_callback( UniqueWindow *window )
      }
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", window->object.ref.id );
+     printf( "0x%08x : ", window->object.ref.multi.id );
 #else
      printf( "N/A        : " );
 #endif
@@ -191,7 +191,7 @@ context_callback( FusionObjectPool *pool,
              "--------------------------\n" );
 
 #if FUSION_BUILD_MULTI
-     printf( "0x%08x : ", object->ref.id );
+     printf( "0x%08x : ", object->ref.multi.id );
 #else
      printf( "N/A        : " );
 #endif

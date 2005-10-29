@@ -78,7 +78,7 @@ system_initialize( CoreDFB *core, void **data )
 
      D_ASSERT( dfb_vnc == NULL );
 
-     dfb_vnc = (DFBVNC*) SHCALLOC( 1, sizeof(DFBVNC) );
+     dfb_vnc = (DFBVNC*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBVNC) );
      if (!dfb_vnc) {
           D_ERROR( "DirectFB/VNC: Couldn't allocate shared memory!\n" );
           return DFB_NOSYSTEMMEMORY;
@@ -86,9 +86,9 @@ system_initialize( CoreDFB *core, void **data )
 
      dfb_vnc_core = core;
 
-     fusion_skirmish_init( &dfb_vnc->lock, "VNC System" );
+     fusion_skirmish_init( &dfb_vnc->lock, "VNC System", dfb_core_world(core) );
 
-     fusion_call_init( &dfb_vnc->call, dfb_vnc_call_handler, NULL );
+     fusion_call_init( &dfb_vnc->call, dfb_vnc_call_handler, NULL, dfb_core_world(core) );
 
      core_screen = dfb_screens_register( NULL, NULL, &vncPrimaryScreenFuncs );
 
@@ -134,7 +134,7 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_destroy( &dfb_vnc->lock );
 
-     SHFREE( dfb_vnc );
+     SHFREE( dfb_core_shmpool(dfb_vnc_core), dfb_vnc );
      dfb_vnc = NULL;
      dfb_vnc_core = NULL;
 
