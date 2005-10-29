@@ -160,7 +160,7 @@ static inline void __mdelay(unsigned int msec)
      nanosleep (&delay, NULL);
 }
 
-static inline void MuTSendPacket(int file, unsigned char *packet, unsigned char len)
+static inline void MuTSendPacket(int file, char *packet, unsigned char len)
 {
      unsigned char tmp_packet[MuT_PACKET_SIZE];
 
@@ -216,7 +216,7 @@ static int MuTTestConnect(int file, unsigned char *packet)
      return 0;
 }
 
-static int MuTPollDevice(unsigned char *device)
+static int MuTPollDevice(char *device)
 {
      int file;
      struct termios options;
@@ -281,7 +281,7 @@ static int MuTPollDevice(unsigned char *device)
      return file;
 }
 
-static int MuTInitCmd(int file, unsigned char *cmd)
+static int MuTInitCmd(int file, char *cmd)
 {
      unsigned char timeout = 0;
      unsigned char packet[MuT_PACKET_SIZE];
@@ -311,7 +311,7 @@ static inline int MuTInitialize(int file)
      return 1;
 }
 
-static int MuTOpenDevice(unsigned char *device)
+static int MuTOpenDevice(char *device)
 {
      int fd;
      int res;

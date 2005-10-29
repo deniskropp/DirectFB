@@ -591,6 +591,12 @@ typedef struct {
                     dda.mi--;              \
                }                           \
           }                                \
+          else {                           \
+               dda.mi   = 0;               \
+               dda.mf   = 0;               \
+               dda.xf   = 0;               \
+               dda._2dy = 0;               \
+          }                                \
      } while (0)
 
 

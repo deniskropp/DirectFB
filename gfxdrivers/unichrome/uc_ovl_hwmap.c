@@ -94,7 +94,7 @@ bool uc_ovl_map_vzoom(int sh, int dh, __u32* zoom, __u32* mini)
  *       See ddover.c, DDOVER_HQVCalcZoomWidth() and DDOver_GetDisplayCount()
  */
 bool uc_ovl_map_hzoom(int sw, int dw,  __u32* zoom, __u32* mini,
-                      int* falign, int* dcount)
+                      __u32* falign, __u32* dcount)
 {
     __u32 tmp, sw1, d;
     int md; // Minify-divider
