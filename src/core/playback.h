@@ -53,7 +53,7 @@ typedef struct {
 /*
  * Creates a pool of playback objects.
  */
-FusionObjectPool *fs_playback_pool_create();
+FusionObjectPool *fs_playback_pool_create( const FusionWorld *world );
 
 /*
  * Generates fs_playback_ref(), fs_playback_attach() etc.

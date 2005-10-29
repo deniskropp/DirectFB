@@ -49,6 +49,8 @@ struct __FS_CoreSoundBuffer {
      int              break_pos;
 
      void            *data;
+
+     FusionSHMPoolShared *shmpool;
 };
 
 typedef enum {
@@ -63,7 +65,7 @@ typedef struct {
 /*
  * Creates a pool of sound buffer objects.
  */
-FusionObjectPool *fs_buffer_pool_create();
+FusionObjectPool *fs_buffer_pool_create( const FusionWorld *world );
 
 /*
  * Generates fs_buffer_ref(), fs_buffer_attach() etc.

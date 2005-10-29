@@ -62,5 +62,15 @@ DFBResult fs_core_remove_playback( CoreSound    *core,
  */
 int fs_core_output_delay( CoreSound *core );
 
+/*
+ * Returns the Fusion World of the sound core.
+ */
+FusionWorld *fs_core_world( CoreSound *core );
+
+/*
+ * Returns the Fusion Shared Memory Pool of the sound core.
+ */
+FusionSHMPoolShared *fs_core_shmpool( CoreSound *core );
+
 #endif
 

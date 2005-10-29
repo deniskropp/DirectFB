@@ -98,6 +98,8 @@ struct __FS_CoreSoundShared {
      FusionObjectPool    *buffer_pool;
      FusionObjectPool    *playback_pool;
 
+     FusionSHMPoolShared *shmpool;
+
      struct {
           DirectLink     *entries;
           FusionSkirmish  lock;
@@ -120,6 +122,7 @@ struct __FS_CoreSound {
 
      int              fusion_id;
 
+     FusionWorld     *world;
      FusionArena     *arena;
 
      CoreSoundShared *shared;
@@ -151,10 +154,6 @@ DFBResult
 fs_core_create( CoreSound **ret_core )
 {
      int        ret;
-     int        world;
-#if FUSION_BUILD_MULTI
-     char       buf[16];
-#endif
      CoreSound *core;
 
      D_ASSERT( ret_core != NULL );
@@ -185,35 +184,35 @@ fs_core_create( CoreSound **ret_core )
           return DFB_NOSYSTEMMEMORY;
      }
 
-     core->fusion_id = fusion_init( dfb_config->session,
+     ret = fusion_enter( dfb_config->session,
 #if DIRECT_BUILD_DEBUG
-                                    -DIRECTFB_CORE_ABI,
+                         -DIRECTFB_CORE_ABI,
 #else
-                                    DIRECTFB_CORE_ABI,
+                         DIRECTFB_CORE_ABI,
 #endif
-                                    &world );
-     if (core->fusion_id < 0) {
+                         &core->world );
+     if (ret) {
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
-          return DFB_FUSION;
+          return ret;
      }
 
+     core->fusion_id = fusion_id( core->world );
+
 #if FUSION_BUILD_MULTI
-     D_DEBUG( "FusionSound/Core: world %d, fusion id %d\n", world, core->fusion_id );
-
-     snprintf( buf, sizeof(buf), "%d", world );
-
-     setenv( "DIRECTFB_SESSION", buf, true );
+     D_DEBUG( "FusionSound/Core: world %d, fusion id %d\n",
+              fusion_world_index( core->world ), core->fusion_id );
 #endif
 
      /* Initialize the references. */
      core->refs = 1;
 
      /* Enter the FusionSound core arena. */
-     if (fusion_arena_enter( "FusionSound/Core",
+     if (fusion_arena_enter( core->world, "FusionSound/Core",
                              fs_core_arena_initialize, fs_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
+          fusion_exit( core->world, false );
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
           return ret ? ret : DFB_FUSION;
@@ -276,7 +275,7 @@ fs_core_destroy( CoreSound *core )
           }
      }
 
-     fusion_exit( false );
+     fusion_exit( core->world, false );
 
      /* Deallocate local core structure. */
      D_FREE( core );
@@ -298,7 +297,7 @@ fs_core_create_buffer( CoreSound *core )
      D_ASSERT( core->shared->buffer_pool != NULL );
 
      /* Create a new object in the buffer pool. */
-     return (CoreSoundBuffer*) fusion_object_create( core->shared->buffer_pool );
+     return (CoreSoundBuffer*) fusion_object_create( core->shared->buffer_pool, core->world );
 }
 
 CorePlayback *
@@ -309,7 +308,7 @@ fs_core_create_playback( CoreSound *core )
      D_ASSERT( core->shared->playback_pool != NULL );
 
      /* Create a new object in the playback pool. */
-     return (CorePlayback*) fusion_object_create( core->shared->playback_pool );
+     return (CorePlayback*) fusion_object_create( core->shared->playback_pool, core->world );
 }
 
 DirectResult
@@ -346,13 +345,13 @@ fs_core_add_playback( CoreSound    *core,
      shared = core->shared;
 
      /* Allocate playlist entry. */
-     entry = SHCALLOC( 1, sizeof(CorePlaylistEntry) );
+     entry = SHCALLOC( shared->shmpool, 1, sizeof(CorePlaylistEntry) );
      if (!entry)
           return DFB_NOSYSTEMMEMORY;
 
      /* Link playback to playlist entry. */
      if (fs_playback_link( &entry->playback, playback )) {
-          SHFREE( entry );
+          SHFREE( shared->shmpool, entry );
           return DFB_FUSION;
      }
 
@@ -387,7 +386,7 @@ fs_core_remove_playback( CoreSound    *core,
 
                fs_playback_unlink( &entry->playback );
 
-               SHFREE( entry );
+               SHFREE( shared->shmpool, entry );
           }
      }
 
@@ -402,6 +401,23 @@ fs_core_output_delay( CoreSound *core )
 
      /* Return the delay produced by the device buffer. */
      return core->shared->output_delay;
+}
+
+FusionWorld *
+fs_core_world( CoreSound *core )
+{
+     D_ASSERT( core != NULL );
+
+     return core->world;
+}
+
+FusionSHMPoolShared *
+fs_core_shmpool( CoreSound *core )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+
+     return core->shared->shmpool;
 }
 
 /******************************************************************************/
@@ -473,7 +489,7 @@ sound_thread( DirectThread *thread, void *arg )
 
                     fs_playback_unlink( &entry->playback );
 
-                    SHFREE( entry );
+                    SHFREE( shared->shmpool, entry );
                }
           }
 
@@ -700,13 +716,13 @@ fs_core_initialize( CoreSound *core )
      core->fd = fd;
 
      /* initialize playback list lock */
-     fusion_skirmish_init( &shared->playlist.lock, "FusionSound playlist list lock" );
+     fusion_skirmish_init( &shared->playlist.lock, "FusionSound Playlist", core->world );
 
      /* create a pool for sound buffer objects */
-     shared->buffer_pool = fs_buffer_pool_create();
+     shared->buffer_pool = fs_buffer_pool_create( core->world );
 
      /* create a pool for playback objects */
-     shared->playback_pool = fs_playback_pool_create();
+     shared->playback_pool = fs_playback_pool_create( core->world );
 
      /* create sound thread */
      core->sound_thread = direct_thread_create( DTT_CRITICAL, sound_thread, core, "Sound Mixer" );
@@ -763,14 +779,14 @@ fs_core_shutdown( CoreSound *core )
 
           fs_playback_unlink( &entry->playback );
 
-          SHFREE( entry );
+          SHFREE( shared->shmpool, entry );
      }
 
      /* destroy playback object pool */
-     fusion_object_pool_destroy( shared->playback_pool );
+     fusion_object_pool_destroy( shared->playback_pool, core->world );
 
      /* destroy buffer object pool */
-     fusion_object_pool_destroy( shared->buffer_pool );
+     fusion_object_pool_destroy( shared->buffer_pool, core->world );
 
      /* destroy playlist lock */
      fusion_skirmish_destroy( &shared->playlist.lock );
@@ -784,9 +800,10 @@ static int
 fs_core_arena_initialize( FusionArena *arena,
                           void        *ctx )
 {
-     DFBResult        ret;
-     CoreSound       *core   = ctx;
-     CoreSoundShared *shared;
+     DFBResult            ret;
+     CoreSound           *core   = ctx;
+     CoreSoundShared     *shared;
+     FusionSHMPoolShared *pool;
 
      D_DEBUG( "FusionSound/Core: Initializing...\n" );
 
@@ -795,15 +812,23 @@ fs_core_arena_initialize( FusionArena *arena,
           return DFB_INIT;
      }*/
 
-     /* Allocate shared structure. */
-     shared = SHCALLOC( 1, sizeof(CoreSoundShared) );
+
+     /* Create the shared memory pool first! */
+     ret = fusion_shm_pool_create( core->world, "FusionSound Main Pool", 0x1000000, &pool );
+     if (ret)
+          return ret;
+
+     /* Allocate shared structure in the new pool. */
+     shared = SHCALLOC( pool, 1, sizeof(CoreSoundShared) );
      if (!shared) {
-          D_ERROR( "FusionSound/Core: Could not allocate (shared) memory!\n" );
-          return DFB_NOSYSTEMMEMORY;
+          fusion_shm_pool_destroy( core->world, pool );
+          return D_OOSHM();
      }
 
      core->shared = shared;
      core->master = true;
+
+     shared->shmpool = pool;
 
      /* FIXME: add live configuration */
      switch (fs_config->sampleformat) {
@@ -830,12 +855,46 @@ fs_core_arena_initialize( FusionArena *arena,
      /* Initialize. */
      ret = fs_core_initialize( core );
      if (ret) {
-          SHFREE( shared );
+          SHFREE( pool, shared );
+          fusion_shm_pool_destroy( core->world, pool );
           return ret;
      }
 
      /* Register shared data. */
      fusion_arena_add_shared_field( arena, "Core/Shared", shared );
+
+     return DFB_OK;
+}
+
+static int
+fs_core_arena_shutdown( FusionArena *arena,
+                        void        *ctx,
+                        bool         emergency)
+{
+     DFBResult            ret;
+     CoreSound           *core = ctx;
+     CoreSoundShared     *shared;
+     FusionSHMPoolShared *pool;
+
+     shared = core->shared;
+
+     pool = shared->shmpool;
+
+     D_DEBUG( "FusionSound/Core: Shutting down...\n" );
+
+     if (!core->master) {
+          D_DEBUG( "FusionSound/Core: Refusing shutdown in slave.\n" );
+          return fs_core_leave( core );
+     }
+
+     /* Shutdown. */
+     ret = fs_core_shutdown( core );
+     if (ret)
+          return ret;
+
+     SHFREE( pool, shared );
+
+     fusion_shm_pool_destroy( core->world, pool );
 
      return DFB_OK;
 }
@@ -876,29 +935,6 @@ fs_core_arena_leave( FusionArena *arena,
 
      /* Leave. */
      ret = fs_core_leave( core );
-     if (ret)
-          return ret;
-
-     return DFB_OK;
-}
-
-static int
-fs_core_arena_shutdown( FusionArena *arena,
-                        void        *ctx,
-                        bool         emergency)
-{
-     DFBResult  ret;
-     CoreSound *core = ctx;
-
-     D_DEBUG( "FusionSound/Core: Shutting down...\n" );
-
-     if (!core->master) {
-          D_DEBUG( "FusionSound/Core: Refusing shutdown in slave.\n" );
-          return fs_core_leave( core );
-     }
-
-     /* Shutdown. */
-     ret = fs_core_shutdown( core );
      if (ret)
           return ret;
 

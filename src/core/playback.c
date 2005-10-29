@@ -78,11 +78,11 @@ playback_destructor( FusionObject *object, bool zombie )
 }
 
 FusionObjectPool *
-fs_playback_pool_create()
+fs_playback_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Playbacks", sizeof(CorePlayback),
                                        sizeof(CorePlaybackNotification),
-                                       playback_destructor );
+                                       playback_destructor, world );
 }
 
 /******************************************************************************/
@@ -119,7 +119,7 @@ fs_playback_create( CoreSound        *core,
      playback->right  = fsf_from_int( 1 );
      playback->pitch  = 0x100;
 
-     fusion_skirmish_init( &playback->lock, "FusionSound playback lock" );
+     fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
 
      /* Activate playback object. */
      fusion_object_activate( &playback->object );

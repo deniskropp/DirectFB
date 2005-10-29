@@ -48,17 +48,17 @@ buffer_destructor( FusionObject *object, bool zombie )
               __FUNCTION__, buffer, buffer->length, buffer->channels,
               buffer->format, buffer->rate, zombie ? " ZOMBIE!" : "" );
 
-     SHFREE( buffer->data );
+     SHFREE( buffer->shmpool, buffer->data );
 
      fusion_object_destroy( object );
 }
 
 FusionObjectPool *
-fs_buffer_pool_create()
+fs_buffer_pool_create( const FusionWorld *world )
 {
      return fusion_object_pool_create( "Sound Buffers", sizeof(CoreSoundBuffer),
                                        sizeof(CoreSoundBufferNotification),
-                                       buffer_destructor );
+                                       buffer_destructor, world );
 }
 
 /******************************************************************************/
@@ -71,8 +71,9 @@ fs_buffer_create( CoreSound        *core,
                   int               rate,
                   CoreSoundBuffer **ret_buffer )
 {
-     int              bytes;
-     CoreSoundBuffer *buffer;
+     int                  bytes;
+     CoreSoundBuffer     *buffer;
+     FusionSHMPoolShared *pool;
 
      D_ASSERT( core != NULL );
      D_ASSERT( length > 0 );
@@ -96,11 +97,13 @@ fs_buffer_create( CoreSound        *core,
                return DFB_BUG;
      }
 
+     pool = fs_core_shmpool( core );
+
      buffer = fs_core_create_buffer( core );
      if (!buffer)
           return DFB_FUSION;
 
-     buffer->data = SHMALLOC( length * bytes * channels );
+     buffer->data = SHMALLOC( pool, length * bytes * channels );
      if (!buffer->data) {
           fusion_object_destroy( &buffer->object );
           return DFB_NOSYSTEMMEMORY;
@@ -112,6 +115,7 @@ fs_buffer_create( CoreSound        *core,
      buffer->format    = format;
      buffer->rate      = rate;
      buffer->bytes     = bytes * channels;
+     buffer->shmpool   = pool;
 
      fusion_object_activate( &buffer->object );
 
