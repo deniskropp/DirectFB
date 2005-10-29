@@ -133,7 +133,7 @@ typedef struct {
           (parser).ptr = (parser).msg + (_vp_header->type == VMSG_REQUEST ?                    \
                               sizeof(VoodooRequestMessage) : sizeof(VoodooResponseMessage));   \
                                                                                                \
-          D_MAGIC_SET( &(parser), VoodooMessageParser );                                       \
+          D_MAGIC_SET_ONLY( &(parser), VoodooMessageParser );                                  \
      } while (0)
 
 
