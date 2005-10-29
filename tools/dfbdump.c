@@ -121,7 +121,7 @@ buffer_sizes( CoreSurface *surface, bool video )
      if (surface->caps & DSCAPS_TRIPLE)
           mem += buffer_size( surface, surface->idle_buffer, video );
 
-     return mem;  // what the heck was that for? -> (mem + 0x3ff) & ~0x3ff;
+     return mem;
 }
 
 static int
@@ -182,16 +182,22 @@ surface_callback( FusionObjectPool *pool,
      vmem = buffer_sizes( surface, true );
      smem = buffer_sizes( surface, false );
 
-     printf( "%5dk%c  ", vmem >> 10, buffer_locks( surface, true ) ? '°' : ' ' );
-     printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
+     mem->video += vmem;
 
-     mem->video  += vmem;
-
-     /* FIXME: assumes all buffers have this flag (or not) */
+     /* FIXME: assumes all buffers have this flag (or none) */
      if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
           mem->presys += smem;
      else
           mem->system += smem;
+
+     if (vmem && vmem < 1024)
+          vmem = 1024;
+
+     if (smem && smem < 1024)
+          smem = 1024;
+
+     printf( "%5dk%c  ", vmem >> 10, buffer_locks( surface, true ) ? '°' : ' ' );
+     printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
 
      if (surface->caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
