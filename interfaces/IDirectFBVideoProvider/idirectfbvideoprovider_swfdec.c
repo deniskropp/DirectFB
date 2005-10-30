@@ -32,12 +32,15 @@
 #include <pthread.h>
 
 #include <direct/types.h>
+#include <direct/list.h>
 #include <direct/messages.h>
 #include <direct/memcpy.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
 #include <directfb.h>
+
+#include <idirectfb.h>
 
 #include <media/idirectfbvideoprovider.h>
 
@@ -68,6 +71,11 @@ Construct( IDirectFBVideoProvider *thiz,
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, Swfdec )
 
+typedef struct {
+     DirectLink    link;
+
+     SwfdecBuffer *buffer;
+} AudioElement;
 
 typedef struct {
      int                    ref;
@@ -81,29 +89,137 @@ typedef struct {
      double                 rate;
      long                   interval;
      
-     DirectThread          *input_thread;
-     DirectThread          *play_thread;
-     pthread_mutex_t        lock;
-     pthread_cond_t         cond;
-
-     bool                   seeking;
+     bool                   seeked;
      bool                   stopped;
-     bool                   finished;
+     
+     DirectThread          *input_thread;
+     
+     DirectThread          *video_thread;
+     pthread_mutex_t        video_lock;
+     pthread_cond_t         video_cond;
+     
+     IDirectFBSurface      *dest;
+     IDirectFBSurface_data *dest_data;
+     DFBRectangle           rect;
+     
+     DirectThread          *audio_thread;
+     pthread_mutex_t        audio_lock;
+     AudioElement          *audio_queue;
 
 #ifdef HAVE_FUSIONSOUND
      IFusionSound          *sound;
      IFusionSoundStream    *stream;
-#endif
+#endif     
 
-     IDirectFBSurface      *dest;
-     IDirectFBSurface_data *dest_data;
-     DFBRectangle           rect;
+     int                    mouse_x;
+     int                    mouse_y;
+     int                    mouse_btn;
      
      DVFrameCallback        callback;
      void                  *ctx;
 } IDirectFBVideoProvider_Swfdec_data;
 
 
+#ifdef HAVE_FUSIONSOUND
+static inline void
+add_audio_buffer( IDirectFBVideoProvider_Swfdec_data *data, SwfdecBuffer *buffer )
+{
+     AudioElement *e;
+     
+     e = D_CALLOC( 1, sizeof(AudioElement) );
+     if (!e) {
+          D_OOM();
+          return;
+     }
+     
+     e->buffer = buffer;
+          
+     direct_list_append( (DirectLink**)&data->audio_queue, &e->link );
+}
+
+static inline SwfdecBuffer*
+get_audio_buffer( IDirectFBVideoProvider_Swfdec_data *data )
+{
+     AudioElement *e;
+     SwfdecBuffer *buffer = NULL;
+
+     e = data->audio_queue;
+     if (e) { 
+          buffer = e->buffer;
+          direct_list_remove( (DirectLink**)&data->audio_queue, &e->link );
+          D_FREE( e );
+     }
+     
+     return buffer;
+}
+
+static inline void
+free_audio_buffers( IDirectFBVideoProvider_Swfdec_data *data )
+{
+     AudioElement *e;
+     
+     if (data->audio_queue) {
+          direct_list_foreach( e, data->audio_queue ) {
+               direct_list_remove( (DirectLink**)&data->audio_queue, &e->link );
+               swfdec_buffer_unref( e->buffer );
+               D_FREE( e );
+          }
+     }
+}
+#endif
+
+
+static void*
+SwfInput( DirectThread *self, void *arg )
+{
+     IDirectFBVideoProvider_Swfdec_data *data   = arg;
+     IDirectFBDataBuffer                *buffer = data->buffer;
+     
+     while (!direct_thread_is_canceled( self )) {
+          DFBResult     ret;
+          unsigned char tmp[1024];
+          unsigned int  len = 0;
+          
+          while ((ret = buffer->GetData( buffer,
+                                         sizeof(tmp), tmp, &len )) == DFB_OK) {
+               void *buf;
+
+               buf = malloc( len );
+               if (!buf) {
+                    D_OOM();
+                    return (void*)1;
+               }
+
+               direct_memcpy( buf, tmp, len );
+
+               pthread_mutex_lock( &data->video_lock );
+          
+               swfdec_decoder_add_data( data->decoder, buf, len );
+               if (swfdec_decoder_parse( data->decoder ) == SWF_CHANGE) {
+                    swfdec_decoder_get_image_size( data->decoder,
+                                                   &data->width, &data->height );
+                    swfdec_decoder_get_rate( data->decoder, &data->rate );
+                    data->interval = (1000000.0 / data->rate);
+                    D_DEBUG( "IDirectFBVideoProvider_Swfdec: "
+                             "(SWF_CHANGE) width:%d height:%d rate:%.4f.\n",
+                             data->width, data->height, data->rate );
+               }
+          
+               pthread_mutex_unlock( &data->video_lock );
+
+               direct_thread_testcancel( self );
+          }
+
+          if (ret == DFB_EOF) {
+               swfdec_decoder_eof( data->decoder );
+               break;
+          }
+
+          usleep( 100 );
+     }
+     
+     return (void*)0;
+}
 
 static void
 SwfPutImage( CoreSurface  *surface,
@@ -254,189 +370,172 @@ SwfPutImage( CoreSurface  *surface,
 }
 
 static void*
-SwfInput( DirectThread *self, void *arg )
-{
-     IDirectFBVideoProvider_Swfdec_data *data   = arg;
-     IDirectFBDataBuffer                *buffer = data->buffer;
-     
-     while (!direct_thread_is_canceled( self )) {
-          DFBResult     ret;
-          unsigned char tmp[1024];
-          unsigned int  len = 0;
-          
-          while ((ret = buffer->GetData( buffer,
-                                         sizeof(tmp), tmp, &len )) == DFB_OK) {
-               void *buf;
-
-               buf = malloc( len );
-               if (!buf) {
-                    D_OOM();
-                    return (void*)1;
-               }
-
-               direct_memcpy( buf, tmp, len );
-
-               pthread_mutex_lock( &data->lock );
-          
-               swfdec_decoder_add_data( data->decoder, buf, len );
-               if (swfdec_decoder_parse( data->decoder ) == SWF_CHANGE) {
-                    swfdec_decoder_get_image_size( data->decoder,
-                                                   &data->width, &data->height );
-                    swfdec_decoder_get_rate( data->decoder, &data->rate );
-                    data->interval = (1000000.0 / data->rate);
-                    D_DEBUG( "IDirectFBVideoProvider_Swfdec: "
-                             "(SWF_CHANGE) width:%d height:%d rate:%.4f.\n",
-                             data->width, data->height, data->rate );
-               }
-          
-               pthread_mutex_unlock( &data->lock );
-
-               direct_thread_testcancel( self );
-          }
-
-          if (ret == DFB_EOF) {
-               swfdec_decoder_eof( data->decoder );
-               break;
-          }
-
-          usleep( 100 );
-     }
-     
-     return (void*)0;
-}
-
-static void*
-SwfPlayback( DirectThread *self, void *arg )
+SwfVideo( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data  = arg;
      long                                delay = 0;
      int                                 w     = 0;
      int                                 h     = 0;
 
+     swfdec_decoder_get_image_size( data->decoder, &w, &h );     
+
      while (!direct_thread_is_canceled( self )) {
-          SwfdecBuffer   *video_buffer;
-          SwfdecBuffer   *audio_buffer;
-          DFBRectangle    rect;
-          struct timeval  start;
-          int             pos, len;
+          struct timeval start;
           
           gettimeofday( &start, NULL );
           
-          if (data->finished || data->stopped) {
-               pthread_mutex_lock( &data->lock );
-               pthread_cond_wait( &data->cond, &data->lock );
-#ifdef HAVE_FUSIONSOUND
-               if (data->stream)
-                    data->stream->Wait( data->stream, 0 );
-#endif
-               pthread_mutex_unlock( &data->lock );
+          if (data->stopped) {
+               pthread_mutex_lock( &data->video_lock );
+               pthread_cond_wait( &data->video_cond, &data->video_lock );
+               pthread_mutex_unlock( &data->video_lock );
                gettimeofday( &start, NULL );
                delay = 0;
           }
 
           direct_thread_testcancel( self );
           
-          pthread_mutex_lock( &data->lock );
-          
-          rect = (data->rect.w == 0)
-                  ? data->dest_data->area.wanted : data->rect;     
-          if (rect.w != w || rect.h != h) {
-               w = rect.w;
-               h = rect.h;
-               swfdec_decoder_set_image_size( data->decoder, w, h );
-          }
+          pthread_mutex_lock( &data->video_lock );
     
           swfdec_render_iterate( data->decoder );
-          swfdec_decoder_get_n_frames( data->decoder, &len );
-          pos = swfdec_render_get_frame_index( data->decoder ) + 1;
-          if (pos >= len)
-               data->finished = true;
+
+#ifdef HAVE_FUSIONSOUND
+          if (data->audio_thread) {
+               SwfdecBuffer *audio_buffer = NULL;
+               
+               if (!data->stopped)
+                    audio_buffer = swfdec_render_get_audio( data->decoder );
+
+               pthread_mutex_lock( &data->audio_lock );
+               
+               if (data->seeked)
+                    free_audio_buffers( data );
+                    
+               if (audio_buffer)
+                    add_audio_buffer( data, audio_buffer );
+                    
+               pthread_mutex_unlock( &data->audio_lock );
+          }
+#endif              
           
           if (delay < data->interval) {
+               SwfdecBuffer *video_buffer;
+               DFBRectangle  rect;
+               
+               rect = (data->rect.w == 0)
+                      ? data->dest_data->area.wanted : data->rect;     
+               if (rect.w != w || rect.h != h) {
+                    w = rect.w;
+                    h = rect.h;
+                    swfdec_decoder_set_image_size( data->decoder, w, h );
+               }
+               
                video_buffer = swfdec_render_get_image( data->decoder );
-          
                if (video_buffer) {
                     SwfPutImage( data->dest_data->surface,
                                  &rect, video_buffer );
+                                 
                     swfdec_buffer_unref( video_buffer );
+                    
+                    if (data->callback)
+                         data->callback( data->ctx );
                }
-          } else {
+          }
+          else {
                D_INFO( "IDirectFBVideoProvider_Swfdec: "
-                       "discarding video frame %d.\n", pos );
+                       "discarding video frame %d.\n",
+                        swfdec_render_get_frame_index( data->decoder ) );
           }
-               
-          audio_buffer = swfdec_render_get_audio( data->decoder );         
-          if (audio_buffer) {
-#ifdef HAVE_FUSIONSOUND
-               if (data->stream) {
-                    if (!data->seeking) {
-                         data->stream->Write( data->stream,
-                                              audio_buffer->data,
-                                              audio_buffer->length/4 );
-                    }
-               }
-#endif
-               swfdec_buffer_unref( audio_buffer );
-          }
-           
-          if (data->callback)
-               data->callback( data->ctx );
 
-          data->seeking = false;
+          data->seeked = false;
 
-          if (!data->stopped && !data->finished) {
+          if (!data->stopped) {
                struct timeval now;
 
                gettimeofday( &now, NULL );
                delay += (now.tv_sec  - start.tv_sec) * 1000000 + 
-                         (now.tv_usec - start.tv_usec);
+                        (now.tv_usec - start.tv_usec);
                
                if (delay < data->interval) {
                     struct timespec t;
 
-                    t.tv_sec  = start.tv_sec;
+                    t.tv_sec  =  start.tv_sec;
                     t.tv_nsec = (start.tv_usec + data->interval) * 1000;
                
-                    pthread_cond_timedwait( &data->cond,
-                                            &data->lock, &t );
+                    pthread_cond_timedwait( &data->video_cond,
+                                            &data->video_lock, &t );
                     delay = 0;
-               } 
-               else {
+               } else {
                     delay -= data->interval;
                }
           }
 
-          pthread_mutex_unlock( &data->lock );
+          pthread_mutex_unlock( &data->video_lock );
      }
   
      return (void*)0;
 }
+
+#ifdef HAVE_FUSIONSOUND
+static void*
+SwfAudio( DirectThread *self, void *arg )
+{
+     IDirectFBVideoProvider_Swfdec_data *data = arg;
+     
+     data->stream->Wait( data->stream, 0 );
+
+     while (!direct_thread_is_canceled( self )) {
+          SwfdecBuffer *audio_buffer;
+          
+          pthread_mutex_lock( &data->audio_lock );
+          audio_buffer = get_audio_buffer( data );
+          pthread_mutex_unlock( &data->audio_lock );
+
+          direct_thread_testcancel( self );
+
+          if (data->seeked)
+               data->stream->Wait( data->stream, 0 );
+
+          if (audio_buffer) {
+               data->stream->Write( data->stream,
+                                    audio_buffer->data,
+                                    audio_buffer->length/4 );
+               swfdec_buffer_unref( audio_buffer );
+          } else {
+               usleep( 10 );
+          }
+     }
+
+     return (void*)0;
+}
+#endif
+
 
 static void
 IDirectFBVideoProvider_Swfdec_Destruct( IDirectFBVideoProvider *thiz )
 {
      IDirectFBVideoProvider_Swfdec_data *data = thiz->priv;
      
-     if (data->play_thread) { 
-          direct_thread_cancel( data->play_thread );
-          pthread_cond_signal( &data->cond );
-          direct_thread_join( data->play_thread );
-          direct_thread_destroy( data->play_thread );
-     }
-
      if (data->input_thread) {
           direct_thread_cancel( data->input_thread );
           direct_thread_join( data->input_thread );
           direct_thread_destroy( data->input_thread );
      }
      
-     if (data->decoder)
-          swfdec_decoder_free( data->decoder );
-          
-     if (data->dest)
-          data->dest->Release( data->dest );
-
+     if (data->video_thread) { 
+          direct_thread_cancel( data->video_thread );
+          pthread_cond_signal( &data->video_cond );
+          direct_thread_join( data->video_thread );
+          direct_thread_destroy( data->video_thread );
+     }
+     
 #ifdef HAVE_FUSIONSOUND
+     if (data->audio_thread) {
+          direct_thread_cancel( data->audio_thread );
+          direct_thread_join( data->audio_thread );
+          direct_thread_destroy( data->audio_thread );
+          free_audio_buffers( data );
+     }
+        
      if (data->stream) {
           data->stream->Flush( data->stream );
           data->stream->Release( data->stream );
@@ -446,11 +545,18 @@ IDirectFBVideoProvider_Swfdec_Destruct( IDirectFBVideoProvider *thiz )
           data->sound->Release( data->sound );
 #endif
 
+     if (data->decoder)
+          swfdec_decoder_free( data->decoder );
+          
+     if (data->dest)
+          data->dest->Release( data->dest );
+
      if (data->buffer)
           data->buffer->Release( data->buffer );
 
-     pthread_cond_destroy( &data->cond );
-     pthread_mutex_destroy( &data->lock );     
+     pthread_cond_destroy( &data->video_cond );
+     pthread_mutex_destroy( &data->video_lock );
+     pthread_mutex_destroy( &data->audio_lock );
      
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -485,7 +591,8 @@ IDirectFBVideoProvider_Swfdec_GetCapabilities( IDirectFBVideoProvider       *thi
      if (!caps)
           return DFB_INVARG;
           
-     *caps = DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_SEEK;
+     *caps = DVCAPS_BASIC | DVCAPS_SCALE      |
+             DVCAPS_SEEK  | DVCAPS_INTERACTIVE;
      
      return DFB_OK;
 }
@@ -557,39 +664,39 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
                return DFB_INVARG;
      }
 
-     pthread_mutex_lock( &data->lock );
+     pthread_mutex_lock( &data->video_lock );
+     pthread_mutex_lock( &data->audio_lock );
      
      if (data->dest)
           data->dest->Release( data->dest );
      dest->AddRef( dest );
      
-     data->seeking   = false;
+     data->seeked    = false;
      data->dest      = dest;
      data->dest_data = dest_data;
      data->rect      = rect;
      data->callback  = callback;
      data->ctx       = ctx;
 
-     if (data->stopped || data->finished) {
-          if (data->finished)
-               swfdec_render_seek( data->decoder, 0 );
+     if (data->stopped) {
           data->stopped  = false;
-          data->finished = false;
-          pthread_cond_signal( &data->cond );
+          pthread_cond_signal( &data->video_cond );
      }
      
-     if (!data->play_thread) {
-          data->play_thread = direct_thread_create( DTT_OUTPUT, SwfPlayback,
-                                                    (void*)data, "Swf Playback" );
-          if (!data->play_thread) {
-               D_ERROR( "IDirectFBVideoProvider_Swfdec: "
-                        "direct_thread_create() failed!\n" );
-               pthread_mutex_unlock( &data->lock );
-               return DFB_FAILURE;
-          }
+     if (!data->video_thread) {
+          data->video_thread = direct_thread_create( DTT_DEFAULT, SwfVideo,
+                                                    (void*)data, "Swf Video" );
      }
 
-     pthread_mutex_unlock( &data->lock );
+#ifdef HAVE_FUSIONSOUND
+     if (!data->audio_thread && data->stream) {
+          data->audio_thread = direct_thread_create( DTT_DEFAULT, SwfAudio,
+                                                     (void*)data, "Swf Audio" );
+     }
+#endif
+ 
+     pthread_mutex_unlock( &data->video_lock );
+     pthread_mutex_unlock( &data->audio_lock );
           
      return DFB_OK;
 }
@@ -599,13 +706,13 @@ IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
  
-     if (!data->stopped && !data->finished) {
-          pthread_mutex_lock( &data->lock );
+     if (!data->stopped) {
+          pthread_mutex_lock( &data->video_lock );
           
           data->stopped = true;
-          pthread_cond_signal( &data->cond );
+          pthread_cond_signal( &data->video_cond );
           
-          pthread_mutex_unlock( &data->lock );
+          pthread_mutex_unlock( &data->video_lock );
      }
      
      return DFB_OK;
@@ -620,14 +727,16 @@ IDirectFBVideoProvider_Swfdec_SeekTo( IDirectFBVideoProvider *thiz,
      if (seconds < 0.0)
           return DFB_INVARG;
           
-     pthread_mutex_lock( &data->lock );
+     pthread_mutex_lock( &data->video_lock );
+     pthread_mutex_lock( &data->audio_lock );
 
      swfdec_render_seek( data->decoder, seconds*data->rate );
-     data->seeking = true;
+     data->seeked = true;
      
-     pthread_cond_signal( &data->cond );
+     pthread_cond_signal( &data->video_cond );
      
-     pthread_mutex_unlock( &data->lock );
+     pthread_mutex_unlock( &data->video_lock );
+     pthread_mutex_unlock( &data->audio_lock );
      
      return DFB_OK;
 }
@@ -643,14 +752,10 @@ IDirectFBVideoProvider_Swfdec_GetPos( IDirectFBVideoProvider *thiz,
      if (!seconds)
           return DFB_INVARG;
      
-     if (data->finished)
-          swfdec_decoder_get_n_frames( data->decoder, &frame );
-     else
-          frame = swfdec_render_get_frame_index( data->decoder ) + 1;
-     
+     frame = swfdec_render_get_frame_index( data->decoder ) + 1;
      *seconds = (double)frame / data->rate;
      
-     return data->finished ? DFB_EOF : DFB_OK;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -696,6 +801,144 @@ IDirectFBVideoProvider_Swfdec_SetColorAdjustment( IDirectFBVideoProvider   *thiz
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBVideoProvider_Swfdec_SendEvent( IDirectFBVideoProvider *thiz,
+                                         const DFBEvent         *evt )
+{
+     bool mouse_event = false;
+     
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+
+     if (!evt)
+          return DFB_INVARG;
+
+     switch (evt->clazz) {
+          case DFEC_INPUT:
+               switch (evt->input.type) {
+                    case DIET_BUTTONPRESS:
+                         switch (evt->input.button) {
+                              case DIBI_LEFT:
+                                   data->mouse_btn = 1;
+                                   mouse_event = true;
+                                   break;
+                              case DIBI_MIDDLE:
+                                   data->mouse_btn = 2;
+                                   mouse_event = true;
+                                   break;
+                              case DIBI_RIGHT:
+                                   data->mouse_btn = 3;
+                                   mouse_event = true;
+                                   break;
+                              default:
+                                   break;
+                         }
+                         break; 
+                    case DIET_BUTTONRELEASE:
+                         switch (evt->input.button) {
+                              case DIBI_LEFT:
+                              case DIBI_MIDDLE:
+                              case DIBI_RIGHT:
+                                   data->mouse_btn = 0;
+                                   mouse_event = true;
+                                   break;
+                              default:
+                                   break;
+                         }
+                         break;
+                    case DIET_AXISMOTION:
+                         switch (evt->input.axis) {
+                              case DIAI_X:
+                                   if (evt->input.flags & DIEF_AXISREL)
+                                        data->mouse_x += evt->input.axisrel;
+                                   if (evt->input.flags & DIEF_AXISABS)
+                                        data->mouse_x = evt->input.axisabs;
+                                   mouse_event = true;
+                                   break;
+                              case DIAI_Y:
+                                   if (evt->input.flags & DIEF_AXISREL)
+                                        data->mouse_y += evt->input.axisrel;
+                                   if (evt->input.flags & DIEF_AXISABS)
+                                        data->mouse_y = evt->input.axisabs;
+                                   mouse_event = true;
+                                   break;
+                              default:
+                                   break;
+                         }
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          case DFEC_WINDOW:
+               switch (evt->window.type) {
+                    case DWET_BUTTONDOWN:
+                         switch (evt->window.button) {
+                              case DIBI_LEFT:
+                                   data->mouse_btn = 1;
+                                   mouse_event = true;
+                                   break;
+                              case DIBI_MIDDLE:
+                                   data->mouse_btn = 2;
+                                   mouse_event = true;
+                                   break;
+                              case DIBI_RIGHT:
+                                   data->mouse_btn = 3;
+                                   mouse_event = true;
+                                   break;
+                              default:
+                                   break;
+                         }
+                         if (mouse_event) {
+                              data->mouse_x = evt->window.x;
+                              data->mouse_y = evt->window.y;
+                         }
+                         break;
+                    case DWET_BUTTONUP:
+                         switch (evt->window.button) {
+                              case DIBI_LEFT:
+                              case DIBI_MIDDLE:
+                              case DIBI_RIGHT:
+                                   data->mouse_x = evt->window.x;
+                                   data->mouse_y = evt->window.y;
+                                   data->mouse_btn = 0;
+                                   mouse_event = true;
+                                   break;
+                              default:
+                                   break;
+                         }
+                         break;
+                    case DWET_ENTER:
+                    case DWET_MOTION:
+                         data->mouse_x = evt->window.x;
+                         data->mouse_y = evt->window.y;
+                         mouse_event = true;
+                         break;
+                    case DWET_LEAVE:
+                         data->mouse_x = -1;
+                         data->mouse_y = -1;
+                         data->mouse_btn = 0;
+                         mouse_event = true;
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
+
+     if (mouse_event) {
+          swfdec_decoder_set_mouse( data->decoder,
+                                    data->mouse_x,
+                                    data->mouse_y, 
+                                    data->mouse_btn );
+     }
+
+     return DFB_OK;
+} 
+
 /* exported symbols */
 
 static DFBResult
@@ -732,7 +975,7 @@ Construct( IDirectFBVideoProvider *thiz,
      unsigned int  len = 512;
      void         *buf;
      int           i;
-     
+      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Swfdec )
      
      data->ref    = 1;
@@ -793,13 +1036,15 @@ Construct( IDirectFBVideoProvider *thiz,
               data->width, data->height, data->rate );
 
 #ifdef HAVE_FUSIONSOUND
-     FusionSoundInit( NULL, NULL );
-     if (FusionSoundCreate( &data->sound ) == DFB_OK) {
+     if (idirectfb_singleton->GetInterface( idirectfb_singleton,
+                                            "IFusionSound", 0, 0,
+                                            (void**)&data->sound ) == DFB_OK)
+     {
           FSStreamDescription dsc;
 
           dsc.flags        = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS  |
                              FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
-          dsc.buffersize   = 44100.0/data->rate;
+          dsc.buffersize   = 11025;
           dsc.channels     = 2;
           dsc.samplerate   = 44100;
           dsc.sampleformat = FSSF_S16;
@@ -811,13 +1056,16 @@ Construct( IDirectFBVideoProvider *thiz,
                data->sound->Release( data->sound );
                data->sound = NULL;
           }
-     } else
+     }
+     else {
           D_ERROR( "IDirectFBVideoProvider_Swfdec: "
-                   "FusionSoundCreate() failed!\n" );
+                   "failed to get FusionSound interface!\n" );
+     }
 #endif     
 
-     direct_util_recursive_pthread_mutex_init( &data->lock );
-     pthread_cond_init( &data->cond, NULL );
+     direct_util_recursive_pthread_mutex_init( &data->video_lock );
+     direct_util_recursive_pthread_mutex_init( &data->audio_lock );
+     pthread_cond_init( &data->video_cond, NULL );
 
      data->input_thread = direct_thread_create( DTT_DEFAULT, SwfInput,
                                                 (void*)data, "Swf Input" );
@@ -839,7 +1087,8 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetLength             = IDirectFBVideoProvider_Swfdec_GetLength;
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_Swfdec_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_Swfdec_SetColorAdjustment;
-
+     thiz->SendEvent             = IDirectFBVideoProvider_Swfdec_SendEvent;
+     
      return DFB_OK;
 }
 
