@@ -984,6 +984,13 @@ static DFBResult IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment( IDirectFBVi
      return DFB_UNSUPPORTED;
 }
 
+static DFBResult IDirectFBVideoProvider_Libmpeg3_SendEvent( IDirectFBVideoProvider *thiz,
+                                                            const DFBEvent         *evt )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+
+     return DFB_UNSUPPORTED;
+}
 
 /* exported symbols */
 
@@ -1097,6 +1104,8 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_Libmpeg3_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_Libmpeg3_SetColorAdjustment;
 
+     thiz->SendEvent             = IDirectFBVideoProvider_Libmpeg3_SendEvent;
+     
      return DFB_OK;
 }
 

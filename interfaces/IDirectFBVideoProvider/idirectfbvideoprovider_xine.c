@@ -117,6 +117,9 @@ typedef struct {
      
      bool                   full_area;
      DFBRectangle           dest_rect;
+   
+     int                    mouse_x;
+     int                    mouse_y;
      
      IDirectFBDataBuffer   *buffer;
      DirectThread          *buffer_thread;
@@ -268,9 +271,9 @@ IDirectFBVideoProvider_Xine_GetCapabilities( IDirectFBVideoProvider       *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     *caps = DVCAPS_BASIC      | DVCAPS_SCALE    |
-             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST |
-             DVCAPS_SATURATION;
+     *caps = DVCAPS_BASIC      | DVCAPS_SCALE      |
+             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST   |
+             DVCAPS_SATURATION | DVCAPS_INTERACTIVE;
 
      if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
           *caps |= DVCAPS_SEEK;
@@ -402,17 +405,17 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
      int offset;
      
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+         
+     if (seconds < 0.0)
+          return DFB_INVARG;
           
      if (!xine_get_stream_info( data->stream,
                                 XINE_STREAM_INFO_SEEKABLE ))
           return DFB_UNSUPPORTED;
 
      offset = (int) (seconds * 1000.0);
-
      if (data->length > 0 && offset > data->length)
-          offset = data->length;
-     else if (offset < 0)
-          offset = 0;
+          return DFB_OK;
 
      data->finished = false;
      xine_play( data->stream, 0, offset );
@@ -518,6 +521,210 @@ IDirectFBVideoProvider_Xine_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
      return DFB_OK;
 }
 
+static int
+translate_key( DFBInputDeviceKeySymbol key )
+{
+     switch (key) {
+          case DIKS_F1:
+               return XINE_EVENT_INPUT_MENU1;
+          case DIKS_F2:
+               return XINE_EVENT_INPUT_MENU2;
+          case DIKS_F3:
+               return XINE_EVENT_INPUT_MENU3;
+          case DIKS_F4:
+               return XINE_EVENT_INPUT_MENU4;
+          case DIKS_F5:
+               return XINE_EVENT_INPUT_MENU5;
+          case DIKS_F6:
+               return XINE_EVENT_INPUT_MENU6;
+          case DIKS_F7:
+               return XINE_EVENT_INPUT_MENU7;
+          case DIKS_CURSOR_UP:
+               return XINE_EVENT_INPUT_UP;
+          case DIKS_CURSOR_DOWN:
+               return XINE_EVENT_INPUT_DOWN;
+          case DIKS_CURSOR_LEFT:
+               return XINE_EVENT_INPUT_LEFT;
+          case DIKS_CURSOR_RIGHT:
+               return XINE_EVENT_INPUT_RIGHT;
+          case DIKS_ENTER:
+               return XINE_EVENT_INPUT_SELECT;
+          case DIKS_PAGE_DOWN:
+               return XINE_EVENT_INPUT_NEXT;
+          case DIKS_PAGE_UP:
+               return XINE_EVENT_INPUT_PREVIOUS;
+          case DIKS_END:
+               return XINE_EVENT_INPUT_ANGLE_NEXT;
+          case DIKS_HOME:
+               return XINE_EVENT_INPUT_ANGLE_PREVIOUS;
+          case DIKS_BACKSPACE:
+               return XINE_EVENT_INPUT_BUTTON_FORCE;
+          case DIKS_0:
+               return XINE_EVENT_INPUT_NUMBER_0;
+          case DIKS_1:
+               return XINE_EVENT_INPUT_NUMBER_1;
+          case DIKS_2:
+               return XINE_EVENT_INPUT_NUMBER_2;
+          case DIKS_3:
+               return XINE_EVENT_INPUT_NUMBER_3;
+          case DIKS_4:
+               return XINE_EVENT_INPUT_NUMBER_4;
+          case DIKS_5:
+               return XINE_EVENT_INPUT_NUMBER_5;
+          case DIKS_6:
+               return XINE_EVENT_INPUT_NUMBER_6;
+          case DIKS_7:
+               return XINE_EVENT_INPUT_NUMBER_7;
+          case DIKS_8:
+               return XINE_EVENT_INPUT_NUMBER_8;
+          case DIKS_9:
+               return XINE_EVENT_INPUT_NUMBER_9;
+          case DIKS_PLUS_SIGN:
+               return XINE_EVENT_INPUT_NUMBER_10_ADD;
+          default:
+               break;
+     }
+          
+     return 0;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_SendEvent( IDirectFBVideoProvider *thiz,
+                                       const DFBEvent         *evt )
+{
+     xine_input_data_t  i;
+     xine_event_t      *e = &i.event;
+     int                dw, dh;
+     
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+     
+     if (!evt)
+          return DFB_INVARG;
+
+     if (data->finished)
+          return DFB_OK;
+
+     if (data->full_area) {
+          IDirectFBSurface *s = data->visual.destination;
+          s->GetSize( s, &dw, &dh );
+     } else {
+          dw = data->dest_rect.w;
+          dh = data->dest_rect.h;
+     }
+
+     e->type = 0;
+
+     switch (evt->clazz) {
+          case DFEC_INPUT:
+               switch (evt->input.type) {
+                    case DIET_KEYPRESS:
+                         e->type = translate_key( evt->input.key_symbol );
+                         break;
+                    case DIET_BUTTONPRESS:
+                         e->type = XINE_EVENT_INPUT_MOUSE_BUTTON;
+                         switch (evt->input.button) {
+                              case DIBI_LEFT:
+                                   i.button = 1;
+                                   break;
+                              case DIBI_MIDDLE:
+                                   i.button = 2;
+                                   break;
+                              case DIBI_RIGHT:
+                                   i.button = 3;
+                                   break;
+                              default:
+                                   e->type = 0;
+                                   break;
+                         }
+                         i.x = data->mouse_x;
+                         i.y = data->mouse_y;
+                         break;
+                    case DIET_AXISMOTION: 
+                         e->type = XINE_EVENT_INPUT_MOUSE_MOVE;
+                         switch (evt->input.axis) {
+                              case DIAI_X:
+                                   if (evt->input.flags & DIEF_AXISREL)
+                                        data->mouse_x += evt->input.axisrel *
+                                                         data->width / dw;
+                                   if (evt->input.flags & DIEF_AXISABS)
+                                        data->mouse_x = evt->input.axisabs *
+                                                         data->width / dw;
+                                   break;
+                              case DIAI_Y:
+                                   if (evt->input.flags & DIEF_AXISREL)
+                                        data->mouse_y += evt->input.axisabs *
+                                                         data->height / dh;
+                                   if (evt->input.flags & DIEF_AXISABS)
+                                        data->mouse_y = evt->input.axisabs *
+                                                         data->height / dh;
+                                   break;
+                              default:
+                                   e->type = 0;
+                                   break;
+                         }
+                         i.x = data->mouse_x;
+                         i.y = data->mouse_y;
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          case DFEC_WINDOW:
+               switch (evt->window.type) {
+                    case DWET_KEYDOWN:
+                         e->type = translate_key( evt->input.key_symbol );
+                         break;
+                    case DWET_BUTTONDOWN:
+                         e->type = XINE_EVENT_INPUT_MOUSE_BUTTON;
+                         switch (evt->window.button) {
+                              case DIBI_LEFT:
+                                   i.button = 1;
+                                   break;
+                              case DIBI_MIDDLE:
+                                   i.button = 2;
+                                   break;
+                              case DIBI_RIGHT:
+                                   i.button = 3;
+                                   break;
+                              default:
+                                   e->type = 0;
+                                   break;
+                         }
+                         i.x = evt->window.x * data->width  / dw;
+                         i.y = evt->window.y * data->height / dh;
+                         break;
+                    case DWET_MOTION:
+                         e->type = XINE_EVENT_INPUT_MOUSE_MOVE;
+                         i.x = evt->window.x * data->width  / dw;
+                         i.y = evt->window.y * data->height / dh;
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
+   
+     if (e->type) {
+          e->stream      = data->stream;
+          e->data        = NULL;
+          e->data_length = 0;
+          gettimeofday( &e->tv, NULL );
+
+          if (e->type == XINE_EVENT_INPUT_MOUSE_MOVE  ||
+              e->type == XINE_EVENT_INPUT_MOUSE_BUTTON) {
+               e->data        = (void*) e;
+               e->data_length = sizeof(xine_input_data_t);
+          }
+
+          xine_event_send( data->stream, e );
+     }
+
+     return DFB_OK;
+}
 
 /****************************** Exported Symbols ******************************/
 
@@ -826,7 +1033,8 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetLength             = IDirectFBVideoProvider_Xine_GetLength;
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_Xine_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_Xine_SetColorAdjustment;
-
+     thiz->SendEvent             = IDirectFBVideoProvider_Xine_SendEvent;
+     
      return DFB_OK;
 }
 

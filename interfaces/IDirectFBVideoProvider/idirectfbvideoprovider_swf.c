@@ -87,6 +87,9 @@ typedef struct {
 
      CardState            state;
      CoreSurface         *source;
+
+     int                  mouse_x;
+     int                  mouse_y;
 } IDirectFBVideoProvider_Swf_data;
 
 
@@ -399,6 +402,97 @@ static DFBResult IDirectFBVideoProvider_Swf_SetColorAdjustment( IDirectFBVideoPr
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBVideoProvider_Swf_SendEvent( IDirectFBVideoProvider *thiz,
+                                      const DFBEvent         *evt )
+{
+#if 0
+     FlashEvent e;
+     
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swf )
+
+     if (!evt)
+          return DFB_INVARG;
+
+     e.type = 0;
+
+     switch (evt->clazz) {
+          case DFEC_INPUT:
+               switch (evt->input.type) {
+                    case DIET_BUTTONPRESS:
+                         if (evt->input.button == DIBI_LEFT) {
+                              e.type = FeButtonPress;
+                              e.x    = data->mouse_x;
+                              e.y    = data->mouse_y;
+                         }
+                         break; 
+                    case DIET_BUTTONRELEASE:
+                         if (evt->input.button == DIBI_LEFT) {
+                              e.type = FeButtonRelease;
+                              e.x    = data->mouse_x;
+                              e.y    = data->mouse_y;
+                         }
+                         break;
+                    case DIET_AXISMOTION:
+                         switch (evt->input.axis) {
+                              case DIAI_X:
+                                   e.type = FeMouseMove;
+                                   e.x = data->mouse_x = evt->input.axisabs;
+                                   e.y = data->mouse_y;
+                                   break;
+                              case DIAI_Y:
+                                   e.type = FeMouseMove;
+                                   e.x = data->mouse_x;
+                                   e.y = data->mouse_y = evt->input.axisabs;
+                                   break;
+                              default:
+                                   break;
+                         }
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          case DFEC_WINDOW:
+               switch (evt->window.type) {
+                    case DWET_BUTTONDOWN:
+                         if (evt->window.button == DIBI_LEFT) { 
+                              e.type = FeButtonPress;
+                              e.x    = evt->window.x;
+                              e.y    = evt->window.y;
+                         }
+                         break;
+                    case DWET_BUTTONUP:
+                         if (evt->window.button == DIBI_LEFT) {
+                              e.type = FeButtonRelease;
+                              e.x    = evt->window.x;
+                              e.y    = evt->window.y;
+                         }
+                         break;
+                    case DWET_MOTION:
+                         e.type = FeMouseMove;
+                         e.x    = evt->window.x;
+                         e.y    = evt->window.y;
+                         break;
+                    default:
+                         break;
+               }
+               break;
+
+          default:
+               break;
+     }
+
+     if (e.type) {
+          struct timeval tv;
+          gettimeofday (&tv, NULL);
+          FlashExec (data->flashHandle, FLASH_EVENT, &e, NULL);
+     }
+#endif
+
+     return DFB_UNSUPPORTED;
+}
 
 /* exported symbols */
 
@@ -432,16 +526,14 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
 
      if (readFile (buffer_data->filename, &buf, &size) < 0) {
-          printf( "DirectFB/Swf: Loading Swf file failed.\n");
-          D_FREE( data );
+          D_DEBUG( "DirectFB/Swf: Loading Swf file failed.\n");
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
 
      data->flashHandle = FlashNew();
      if (data->flashHandle == 0) {
-          printf( "DirectFB/Swf: Creation of Swfplayer failed.\n");
-          D_FREE( data );
+          D_DEBUG( "DirectFB/Swf: Creation of Swfplayer failed.\n");
           DIRECT_DEALLOCATE_INTERFACE( thiz );
           return DFB_FAILURE;
      }
@@ -450,7 +542,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
           status = FlashParse (data->flashHandle, 0, buf, size);
      }
      while (status & FLASH_PARSE_NEED_DATA);
-     D_FREE(buffer);
+     D_FREE(buf);
 
      FlashGetInfo (data->flashHandle, &data->flashInfo);
 
@@ -496,6 +588,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetLength             = IDirectFBVideoProvider_Swf_GetLength;
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_Swf_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_Swf_SetColorAdjustment;
-
+     thiz->SendEvent             = IDirectFBVideoProvider_Swf_SendEvent;
+     
      return DFB_OK;
 }

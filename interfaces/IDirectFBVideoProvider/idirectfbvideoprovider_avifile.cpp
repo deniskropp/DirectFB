@@ -352,6 +352,17 @@ static DFBResult IDirectFBVideoProvider_AviFile_SetColorAdjustment( IDirectFBVid
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult IDirectFBVideoProvider_AviFile_SendEvent( IDirectFBVideoProvider *thiz,
+                                                           const DFBEvent         *evt )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+
+     if (!evt)
+          return DFB_INVARG;
+
+     return DFB_UNIMPLEMENTED;
+}
+
 static void AviFile_KillCallback( int bogus, void *p )
 {
   /* AviFile_KillCallback gets called when AviFile->Stop is called.
@@ -463,7 +474,8 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
           IDirectFBVideoProvider_AviFile_GetColorAdjustment;
      thiz->SetColorAdjustment =
           IDirectFBVideoProvider_AviFile_SetColorAdjustment;
-
+     thiz->SendEvent = IDirectFBVideoProvider_AviFile_SendEvent;
+     
      return DFB_OK;
 }
 

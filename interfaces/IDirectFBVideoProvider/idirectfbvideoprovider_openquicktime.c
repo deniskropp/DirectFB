@@ -962,6 +962,13 @@ static DFBResult IDirectFBVideoProvider_OpenQuicktime_SetColorAdjustment( IDirec
      return DFB_UNSUPPORTED;
 }
 
+static DFBResult IDirectFBVideoProvider_OpenQuicktime_SendEvent( IDirectFBVideoProvider *thiz,
+                                                                 const DFBEvent         *evt )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+
+     return DFB_UNSUPPORTED;
+}
 
 /* exported symbols */
 
@@ -1094,6 +1101,8 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_OpenQuicktime_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_OpenQuicktime_SetColorAdjustment;
 
+     thiz->SendEvent             = IDirectFBVideoProvider_OpenQuicktime_SendEvent;
+     
      return DFB_OK;
 }
 
