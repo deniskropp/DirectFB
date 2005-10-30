@@ -1255,14 +1255,15 @@ typedef int (*DFBGetDataCallback) (
  * Information about an IDirectFBVideoProvider.
  */
 typedef enum {
-     DVCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
-     DVCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
-     DVCAPS_SCALE      = 0x00000002,  /* can scale the video            */
-     DVCAPS_INTERLACED = 0x00000004,  /* supports interlaced surfaces   */
-     DVCAPS_BRIGHTNESS = 0x00000010,  /* supports Brightness adjustment */
-     DVCAPS_CONTRAST   = 0x00000020,  /* supports Contrast adjustment   */
-     DVCAPS_HUE        = 0x00000040,  /* supports Hue adjustment        */
-     DVCAPS_SATURATION = 0x00000080   /* supports Saturation adjustment */
+     DVCAPS_BASIC       = 0x00000000,  /* basic ops (PlayTo, Stop)       */
+     DVCAPS_SEEK        = 0x00000001,  /* supports SeekTo                */
+     DVCAPS_SCALE       = 0x00000002,  /* can scale the video            */
+     DVCAPS_INTERLACED  = 0x00000004,  /* supports interlaced surfaces   */
+     DVCAPS_BRIGHTNESS  = 0x00000010,  /* supports Brightness adjustment */
+     DVCAPS_CONTRAST    = 0x00000020,  /* supports Contrast adjustment   */
+     DVCAPS_HUE         = 0x00000040,  /* supports Hue adjustment        */
+     DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment */
+     DVCAPS_INTERACTIVE = 0x00000100   /* supports SendEvent             */
 } DFBVideoProviderCapabilities;
 
 /*
@@ -4755,6 +4756,16 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*SetColorAdjustment) (
           IDirectFBVideoProvider   *thiz,
           const DFBColorAdjustment *adj
+     );
+
+   /** Interactivity **/
+
+     /*
+      * Send an input or window event.
+      */
+     DFBResult (*SendEvent) (
+          IDirectFBVideoProvider   *thiz,
+          const DFBEvent           *event
      );
 )
 
