@@ -1880,7 +1880,7 @@ open_plugin( video_driver_class_t *vo_class,
      }
 #endif
      
-     dfb_state_init( &this->state );
+     dfb_state_init( &this->state, NULL );
 
      this->mixer.b   =  0;
      this->mixer.c   = +128;
