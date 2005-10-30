@@ -86,3 +86,8 @@ void IDirectFBVideoProvider::SetColorAdjustment (DFBColorAdjustment &adj)
      DFBCHECK( iface->SetColorAdjustment (iface, &adj) );
 }
 
+void IDirectFBVideoProvider::SendEvent (DFBEvent *evt)
+{
+     DFBCHECK( iface->SendEvent (iface, evt) );
+}
+
