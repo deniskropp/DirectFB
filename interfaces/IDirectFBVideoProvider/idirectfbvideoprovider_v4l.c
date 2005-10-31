@@ -545,6 +545,14 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment( IDirectFBVideoPr
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_V4L_SendEvent( IDirectFBVideoProvider *thiz,
+                                                       const DFBEvent         *evt )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+
+     return DFB_UNSUPPORTED;
+}
+
 
 /* exported symbols */
 
@@ -630,6 +638,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetLength = IDirectFBVideoProvider_V4L_GetLength;
      thiz->GetColorAdjustment = IDirectFBVideoProvider_V4L_GetColorAdjustment;
      thiz->SetColorAdjustment = IDirectFBVideoProvider_V4L_SetColorAdjustment;
+     thiz->SendEvent = IDirectFBVideoProvider_V4L_SendEvent;
 
      return DFB_OK;
 }
