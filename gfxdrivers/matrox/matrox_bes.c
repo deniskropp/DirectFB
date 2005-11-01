@@ -54,6 +54,7 @@
 
 #include <direct/mem.h>
 
+#include <misc/util.h>
 
 #include "regs.h"
 #include "mmio.h"
