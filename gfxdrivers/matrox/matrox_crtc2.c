@@ -419,8 +419,6 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      /* c2maxhipri */
      mcrtc2->regs.c2CTL |= 1 << 8;
 
-     mcrtc2->regs.c2CTL |= C2VIDRSTMOD_RISING | C2HPLOADEN | C2VPLOADEN;
-
      switch (surface->format) {
           case DSPF_ARGB1555:
           case DSPF_RGB16:
