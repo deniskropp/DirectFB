@@ -299,7 +299,6 @@ static void spic_calc_buffer( MatroxDriverData    *mdrv,
                               CoreSurface         *surface )
 {
      SurfaceBuffer *buffer = surface->back_buffer;
-     volatile __u8 *mmio   = mdrv->mmio_base;
 
      mspic->regs.c2SPICSTARTADD1 = buffer->video.offset;
      mspic->regs.c2SPICSTARTADD0 = buffer->video.offset;
