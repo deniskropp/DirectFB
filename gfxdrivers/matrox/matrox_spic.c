@@ -72,9 +72,11 @@ typedef struct {
      } regs;
 } MatroxSpicLayerData;
 
+static void spic_calc_buffer( MatroxDriverData    *mdrv,
+                              MatroxSpicLayerData *mspic,
+                              CoreSurface         *surface );
 static void spic_set_buffer( MatroxDriverData    *mdrv,
-                             MatroxSpicLayerData *mspic,
-                             CoreSurface         *surface );
+                             MatroxSpicLayerData *mspic );
 
 #define SPIC_SUPPORTED_OPTIONS   (DLOP_ALPHACHANNEL | DLOP_OPACITY)
 
@@ -191,45 +193,52 @@ spicSetRegion( CoreLayer                  *layer,
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
      volatile __u8       *mmio  = mdrv->mmio_base;
-     __u8                 y, cb, cr;
-     int                  i;
 
      /* remember configuration */
      mspic->config = *config;
 
-     spic_set_buffer( mdrv, mspic, surface );
+     if (updated & CLRCF_PALETTE) {
+          __u8 y, cb, cr;
+          int  i;
 
-     for (i = 0; i < 16; i++) {
-          RGB_TO_YCBCR( palette->entries[i].r,
-                        palette->entries[i].g,
-                        palette->entries[i].b,
-                        y, cb, cr );
+          for (i = 0; i < 16; i++) {
+               RGB_TO_YCBCR( palette->entries[i].r,
+                             palette->entries[i].g,
+                             palette->entries[i].b,
+                             y, cb, cr );
 
-          mspic->regs.c2SUBPICLUT = (cr << 24) | (cb << 16) | (y << 8) | i;
-          mga_out32( mmio, mspic->regs.c2SUBPICLUT, C2SUBPICLUT );
+               mspic->regs.c2SUBPICLUT = (cr << 24) | (cb << 16) | (y << 8) | i;
+               mga_out32( mmio, mspic->regs.c2SUBPICLUT, C2SUBPICLUT );
+          }
      }
 
-     mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
+     if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS |
+                    CLRCF_OPTIONS | CLRCF_OPACITY | CLRCF_SURFACE)) {
+          spic_calc_buffer( mdrv, mspic, surface );
+          spic_set_buffer( mdrv, mspic );
 
-     if (surface->caps & DSCAPS_INTERLACED)
-          mspic->regs.c2DATACTL &= ~C2OFFSETDIVEN;
-     else
-          mspic->regs.c2DATACTL |= C2OFFSETDIVEN;
+          mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
-     if (config->opacity)
-          mspic->regs.c2DATACTL |= C2SUBPICEN;
-     else
-          mspic->regs.c2DATACTL &= ~C2SUBPICEN;
+          if (surface->caps & DSCAPS_INTERLACED)
+               mspic->regs.c2DATACTL &= ~C2OFFSETDIVEN;
+          else
+               mspic->regs.c2DATACTL |= C2OFFSETDIVEN;
 
-     if (config->options & DLOP_ALPHACHANNEL)
-          mspic->regs.c2DATACTL &= ~C2STATICKEYEN;
-     else
-          mspic->regs.c2DATACTL |= C2STATICKEYEN;
+          if (config->opacity)
+               mspic->regs.c2DATACTL |= C2SUBPICEN;
+          else
+               mspic->regs.c2DATACTL &= ~C2SUBPICEN;
 
-     mspic->regs.c2DATACTL &= ~C2STATICKEY;
-     mspic->regs.c2DATACTL |= ((config->opacity + 1) << 20) & C2STATICKEY;
+          if (config->options & DLOP_ALPHACHANNEL)
+               mspic->regs.c2DATACTL &= ~C2STATICKEYEN;
+          else
+               mspic->regs.c2DATACTL |= C2STATICKEYEN;
 
-     mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL);
+          mspic->regs.c2DATACTL &= ~C2STATICKEY;
+          mspic->regs.c2DATACTL |= ((config->opacity + 1) << 20) & C2STATICKEY;
+
+          mga_out32( mmio, mspic->regs.c2DATACTL, C2DATACTL);
+     }
 
      return DFB_OK;
 }
@@ -242,7 +251,7 @@ spicRemoveRegion( CoreLayer *layer,
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile __u8       *mmio  = mdrv->mmio_base;
 
      mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
@@ -264,9 +273,10 @@ spicFlipRegion( CoreLayer           *layer,
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
 
-     dfb_surface_flip_buffers( surface, false );
+     spic_calc_buffer( mdrv, mspic, surface );
+     spic_set_buffer( mdrv, mspic );
 
-     spic_set_buffer( mdrv, mspic, surface );
+     dfb_surface_flip_buffers( surface, false );
 
      return DFB_OK;
 }
@@ -284,18 +294,24 @@ DisplayLayerFuncs matroxSpicFuncs = {
 
 /* internal */
 
-static void spic_set_buffer( MatroxDriverData    *mdrv,
-                             MatroxSpicLayerData *mspic,
-                             CoreSurface         *surface )
+static void spic_calc_buffer( MatroxDriverData    *mdrv,
+                              MatroxSpicLayerData *mspic,
+                              CoreSurface         *surface )
 {
-     SurfaceBuffer *front_buffer = surface->front_buffer;
-     volatile __u8 *mmio         = mdrv->mmio_base;
+     SurfaceBuffer *buffer = surface->back_buffer;
+     volatile __u8 *mmio   = mdrv->mmio_base;
 
-     mspic->regs.c2SPICSTARTADD1 = front_buffer->video.offset;
-     mspic->regs.c2SPICSTARTADD0 = front_buffer->video.offset;
+     mspic->regs.c2SPICSTARTADD1 = buffer->video.offset;
+     mspic->regs.c2SPICSTARTADD0 = buffer->video.offset;
 
      if (surface->caps & DSCAPS_INTERLACED)
-          mspic->regs.c2SPICSTARTADD0 += front_buffer->video.pitch;
+          mspic->regs.c2SPICSTARTADD0 += buffer->video.pitch;
+}
+
+static void spic_set_buffer( MatroxDriverData    *mdrv,
+                             MatroxSpicLayerData *mspic )
+{
+     volatile __u8 *mmio = mdrv->mmio_base;
 
      mga_out32( mmio, mspic->regs.c2SPICSTARTADD0, C2SPICSTARTADD0 );
      mga_out32( mmio, mspic->regs.c2SPICSTARTADD1, C2SPICSTARTADD1 );
