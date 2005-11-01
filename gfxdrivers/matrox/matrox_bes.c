@@ -389,21 +389,17 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 {
      int            line = 0;
      volatile __u8 *mmio = mdrv->mmio_base;
+     VideoMode     *mode = dfb_system_current_mode();
 
-     if (!onsync) {
-          VideoMode *current_mode = dfb_system_current_mode();
-
-          if (!current_mode) {
-               current_mode = dfb_system_modes();
-               if (!current_mode)
-                    return;
-          }
-
-          line = mga_in32( mmio, MGAREG_VCOUNT ) + 48;
-
-          if (line > current_mode->yres)
-               line = current_mode->yres;
+     if (!mode) {
+          mode = dfb_system_modes();
+          if (!mode)
+               return;
      }
+
+     line = onsync ? mode->yres : (mga_in32( mmio, MGAREG_VCOUNT ) + 48);
+     if (line > mode->yres)
+          line = mode->yres;
 
      mga_out32( mmio, mbes->regs.besGLOBCTL | (line << 16), BESGLOBCTL);
 
@@ -450,12 +446,13 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      int pitch, tmp, hzoom, intrep, field_height;
      DFBRectangle   source, dest;
      DFBRegion      dst;
-     SurfaceBuffer *buffer       = surface->back_buffer;
-     VideoMode     *current_mode = dfb_system_current_mode();
+     bool           visible;
+     SurfaceBuffer *buffer = surface->back_buffer;
+     VideoMode     *mode   = dfb_system_current_mode();
 
-     if (!current_mode) {
-          current_mode = dfb_system_modes();
-          if (!current_mode) {
+     if (!mode) {
+          mode = dfb_system_modes();
+          if (!mode) {
                D_BUG( "No current and no default mode" );
                return;
           }
@@ -479,23 +476,25 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      } else
           mbes->regs.besCTL_field = 0;
 
+     /* destination region */
+     dst.x1 = dest.x;
+     dst.y1 = dest.y;
+     dst.x2 = dest.x + dest.w - 1;
+     dst.y2 = dest.y + dest.h - 1;
+
+     visible = dfb_region_intersect( &dst, 0, 0, mode->xres - 1, mode->yres - 1 );
+
      /* calculate destination cropping */
      cropleft  = -dest.x;
      croptop   = -dest.y;
-     cropright = dest.x + dest.w - current_mode->xres;
-     cropbot   = dest.y + dest.h - current_mode->yres;
+     cropright = dest.x + dest.w - mode->xres;
+     cropbot   = dest.y + dest.h - mode->yres;
 
      cropleft   = cropleft > 0 ? cropleft : 0;
      croptop    = croptop > 0 ? croptop : 0;
      cropright  = cropright > 0 ? cropright : 0;
      cropbot    = cropbot > 0 ? cropbot : 0;
      croptop_uv = croptop;
-
-     /* destination region */
-     dst.x1 = dest.x + cropleft;
-     dst.y1 = dest.y + croptop;
-     dst.x2 = dest.x + dest.w - 1 - cropright;
-     dst.y2 = dest.y + dest.h - 1 - cropbot;
 
      /* scale crop values to source dimensions */
      if (cropleft)
@@ -511,15 +510,15 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      /* should horizontal zoom be used? */
      if (mdev->g450_matrox)
-          hzoom = (1000000/current_mode->pixclock >= 234) ? 1 : 0;
+          hzoom = (1000000/mode->pixclock >= 234) ? 1 : 0;
      else
-          hzoom = (1000000/current_mode->pixclock >= 135) ? 1 : 0;
+          hzoom = (1000000/mode->pixclock >= 135) ? 1 : 0;
 
      /* initialize */
      mbes->regs.besGLOBCTL = 0;
 
      /* enable/disable depending on opacity */
-     mbes->regs.besCTL = config->opacity ? 1 : 0;
+     mbes->regs.besCTL = (config->opacity && visible) ? BESEN : 0;
 
      /* pixel format settings */
      switch (surface->format) {
@@ -570,7 +569,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      if (surface->width > 1024)
           mbes->regs.besCTL &= ~BESVFEN;
 
-     mbes->regs.besGLOBCTL |= 3*hzoom | (current_mode->yres & 0xFFF) << 16;
+     mbes->regs.besGLOBCTL |= 3*hzoom | (mode->yres & 0xFFF) << 16;
 
      mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->format);
 
