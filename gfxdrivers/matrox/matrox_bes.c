@@ -177,13 +177,20 @@ besTestRegion( CoreLayer                  *layer,
                CoreLayerRegionConfig      *config,
                CoreLayerRegionConfigFlags *failed )
 {
-     MatroxDriverData           *mdrv      = (MatroxDriverData*) driver_data;
-     MatroxDeviceData           *mdev      = mdrv->device_data;
-     int                         max_width = mdev->g450_matrox ? 2048 : 1024;
-     CoreLayerRegionConfigFlags  fail      = 0;
+     MatroxDriverData           *mdrv       = (MatroxDriverData*) driver_data;
+     MatroxDeviceData           *mdev       = mdrv->device_data;
+     int                         max_width  = mdev->g450_matrox ? 2048 : 1024;
+     int                         max_height = 1024;
+     CoreLayerRegionConfigFlags  fail       = 0;
 
      if (config->options & ~BES_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
+
+     if (config->options & DLOP_DEINTERLACING) {
+          /* make sure BESPITCH < 4096 */
+          max_width = mdev->g450_matrox ? 2048 - 128 : 1024;
+          max_height = 2048;
+     }
 
      switch (config->format) {
           case DSPF_YUY2:
@@ -225,7 +232,7 @@ besTestRegion( CoreLayer                  *layer,
      if (config->width > max_width || config->width < 1)
           fail |= CLRCF_WIDTH;
 
-     if (config->height > 1024 || config->height < 1)
+     if (config->height > max_height || config->height < 1)
           fail |= CLRCF_HEIGHT;
 
      if (failed)
@@ -559,6 +566,9 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                D_BUG( "unexpected pixelformat" );
                return;
      }
+
+     if (surface->width > 1024)
+          mbes->regs.besCTL &= ~BESVFEN;
 
      mbes->regs.besGLOBCTL |= 3*hzoom | (current_mode->yres & 0xFFF) << 16;
 
