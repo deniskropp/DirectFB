@@ -1767,7 +1767,7 @@ static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,
 
           case PCI_DEVICE_ID_MATROX_1064SG_PCI:
           case PCI_DEVICE_ID_MATROX_1064SG_AGP:
-               if ((pci_config_in32( *bus, *slot, *func, 0x08 ) & 0xFF) >= 0x02) {
+               if ((pci_config_in32( *bus, *slot, *func, 0x08 ) & 0xFF) > 0x02) {
                     /* Mystique 220 (1164SG) */
                     if (addr0 == mdev->fb.physical) {
                          fclose( file );
@@ -1963,7 +1963,7 @@ driver_init_device( GraphicsDevice     *device,
                mdev->old_matrox = true;
                sgram            = true;
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium I" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium (2064W)" );
                break;
           case FB_ACCEL_MATROX_MGA1064SG:
                if ((ret = matrox_find_pci_device( mdev, &bus, &slot, &func )))
@@ -1972,14 +1972,16 @@ driver_init_device( GraphicsDevice     *device,
                mdev->old_matrox = true;
                sgram            = ((pci_config_in32( bus, slot, func, 0x40 ) & 0x4000) == 0x4000);
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Mystique" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "%s",
+                         ((pci_config_in32( bus, slot, func, 0x08 ) & 0xFF) > 0x02) ?
+                         "Mystique 220 (1164SG)" : "Mystique (1064SG)" );
                break;
           case FB_ACCEL_MATROX_MGA2164W:
           case FB_ACCEL_MATROX_MGA2164W_AGP:
                mdev->old_matrox = true;
                sgram            = true;
                snprintf( device_info->name,
-                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium II" );
+                         DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "Millennium II (2164W)" );
                break;
      }
 
