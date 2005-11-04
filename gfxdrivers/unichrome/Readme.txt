@@ -10,7 +10,9 @@ vesa:ywrap is makes it possible to flip the primary surface.
 vram:32 forces the VESA framebuffer to use 32Mb video RAM.
 Adjust 32 to match your BIOS settings, eg 64 or 128.
 
-(Note: VIA's or DirectFB's viafb should also work.)
+For best performance, the viafb framebuffer driver should be used.
+There are a number of variants of this: the best for use with DirectFB
+is kept in the linux-viafb directory in the DirectFB CVS repository.
 
 Reporting bugs
 --------------
@@ -28,15 +30,22 @@ developer a load of work, beyond fixing the actual problem.
 Unimplemented features (TODOs)
 ------------------------------
 
-* 2.4 and 2.6 kernel patches for ucio.
-
-* Blitting into overlay surfaces.
 * Colorkeyed stretch blits.
 * Support for interlaced surfaces.
 * Second video overlay (for picture-in-picture video)
 * HQV video blitter support.
 * System->Video RAM blits. (AGPGART support)
-(* Drawing and blitting into 8-bit (indexed color) surfaces.)
+
+Special features
+----------------
+
+* The primary surface can have an alpha channel and show through to
+  the video layer.  To enable this, set the DFB_CLE266_UNDERLAY
+  environment variable to 1.
+  
+* The FIELD_PARITY option is supported for the video overlay but this
+  requires that the DirectFB version of the viafb framebuffer driver
+  is used.
 
 Limitations (of the hardware)
 -----------------------------
@@ -57,16 +66,19 @@ Limitations (of the hardware)
 Known bugs and quirks
 ---------------------
 
-* In underlay mode (see "implemented features", above), the video
+* Drawing and blitting into 8-bit (indexed color) surfaces does not
+  appear to work.
+
+* In underlay mode (see 'special features', above), the video
   is fully visible where the primary layer's alpha is 255, and
   invisible (= graphics visible) where the alpha is 0.
 
-  In other words: the video layer using the primary layer's alpha
-  channel as its own alpha channel, and that is not very practical.
+  There are two options to overcome this:
+  
+  The first is to use the special pixel format AiRGB.
 
-  Fortunately, there is an easy workaround. The following function
-  XOR's the alpha channel of a surface. Use it just before flipping
-  the primary surface, for example.
+  The second is to XOR the alpha channel of the surface, e.g. just
+  before flipping the primary surface.  This can be done as follows:
 
   void InvertSurfaceAlpha(IDirectFBSurface* surface)
   {
@@ -87,3 +99,12 @@ Known bugs and quirks
 
 * Blitting outside the screen is buggy (e.g with negative surface
   coordinates). The result is clipped, but does not look right.
+
+* There are different hardware variants of the Unichrome chips.  Since
+  the revision number can only be read by superuser processes, a utility
+  'find_revision.sh' is provided.  The value it reports should be used
+  in /etc/directfbrc in a line of the form 'unichrome-revision=xx'.
+  
+  Symptoms of an incorrect revision number are corrupt images on the
+  video overlay layer or incorrect colors when using YUY2 or YV12
+  pixel formats.
