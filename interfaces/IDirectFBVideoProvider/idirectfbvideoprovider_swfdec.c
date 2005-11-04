@@ -427,8 +427,14 @@ SwfVideo( DirectThread *self, void *arg )
                SwfdecBuffer *video_buffer;
                DFBRectangle  rect;
                
-               rect = (data->rect.w == 0)
-                      ? data->dest_data->area.wanted : data->rect;     
+               if (data->rect.w == 0) {
+                    rect = data->dest_data->area.wanted;
+               } else {
+                    rect = data->rect;
+                    dfb_rectangle_intersect( &rect,
+                                             &data->dest_data->area.wanted );
+               }
+               
                if (rect.w != w || rect.h != h) {
                     w = rect.w;
                     h = rect.h;
