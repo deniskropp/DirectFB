@@ -40,6 +40,8 @@
 #include <direct/debug.h>
 #include <direct/util.h>
 
+#include <misc/conf.h>
+
 #include "fs_config.h"
 
 
@@ -57,6 +59,7 @@ static const char *config_usage =
      "  channels=<channels>            Set the default number of channels\n"
      "  sampleformat=<sampleformat>    Set the default sample format\n"
      "  samplerate=<samplerate>        Set the default sample rate\n"
+     "  session=<num>                  Select multi app world (-1 = new)\n"
      "\n";
      
 typedef struct {
@@ -138,6 +141,8 @@ config_allocate()
      fs_config->channels     = 2;
      fs_config->sampleformat = FSSF_S16;
      fs_config->samplerate   = 44100;
+    
+     fs_config->session      = MAX(dfb_config->session,0) + 1;
 }
 
 const char*
@@ -222,6 +227,24 @@ fs_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "FusionSound/Config 'samplerate': "
+                        "No value specified!\n" );
+               return DFB_INVARG;
+          }
+     }
+     else if (!strcmp( name, "session" )) {
+          if (value) {
+               int session;
+
+               if (sscanf( value, "%d", &session ) < 1) {
+                    D_ERROR( "FusionSound/Config 'session': "
+                             "Could not parse value!\n");
+                    return DFB_INVARG;
+               }
+
+               fs_config->session = session;
+          }
+          else {
+               D_ERROR( "FusionSound/Config 'session': "
                         "No value specified!\n" );
                return DFB_INVARG;
           }

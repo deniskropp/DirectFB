@@ -36,6 +36,8 @@ typedef struct {
      int             channels;     /* default number of channels */
      FSSampleFormat  sampleformat; /* default sampleformat */
      long            samplerate;   /* default samplerate */
+
+     int             session;      /* select multi app world */
 } FSConfig;
 
 extern FSConfig *fs_config;
