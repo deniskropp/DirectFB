@@ -60,7 +60,7 @@ IFusionSound_Destruct( IFusionSound *thiz )
 {
      IFusionSound_data *data = (IFusionSound_data*)thiz->priv;
 
-     fs_core_destroy( data->core );
+     fs_core_destroy( data->core, false );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
      

@@ -42,6 +42,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/signals.h>
 #include <direct/thread.h>
 #include <direct/util.h>
 
@@ -118,19 +119,27 @@ struct __FS_CoreSoundShared {
 };
 
 struct __FS_CoreSound {
-     int              refs;
+     int                  refs;
 
-     int              fusion_id;
+     int                  fusion_id;
 
-     FusionWorld     *world;
-     FusionArena     *arena;
+     FusionWorld         *world;
+     FusionArena         *arena;
 
-     CoreSoundShared *shared;
+     CoreSoundShared     *shared;
 
-     bool             master;
-     int              fd;
-     DirectThread    *sound_thread;
+     bool                 master;
+     int                  fd;
+     DirectThread        *sound_thread;
+
+     DirectSignalHandler *signal_handler;
 };
+
+/******************************************************************************/
+
+static DirectSignalHandlerResult fs_core_signal_handler( int   num,
+                                                         void *addr,
+                                                         void *ctx );
 
 /******************************************************************************/
 
@@ -184,7 +193,7 @@ fs_core_create( CoreSound **ret_core )
           return DFB_NOSYSTEMMEMORY;
      }
 
-     ret = fusion_enter( dfb_config->session,
+     ret = fusion_enter( fs_config->session,
 #if DIRECT_BUILD_DEBUG
                          -DIRECTFB_CORE_ABI,
 #else
@@ -207,11 +216,14 @@ fs_core_create( CoreSound **ret_core )
      /* Initialize the references. */
      core->refs = 1;
 
+     direct_signal_handler_add( -1, fs_core_signal_handler, core, &core->signal_handler );
+
      /* Enter the FusionSound core arena. */
      if (fusion_arena_enter( core->world, "FusionSound/Core",
                              fs_core_arena_initialize, fs_core_arena_join,
                              core, &core->arena, &ret ) || ret)
      {
+          direct_signal_handler_remove( core->signal_handler );
           fusion_exit( core->world, false );
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
@@ -228,7 +240,7 @@ fs_core_create( CoreSound **ret_core )
 }
 
 DFBResult
-fs_core_destroy( CoreSound *core )
+fs_core_destroy( CoreSound *core, bool emergency )
 {
      D_ASSERT( core != NULL );
      D_ASSERT( core == core_sound );
@@ -246,36 +258,33 @@ fs_core_destroy( CoreSound *core )
           return DFB_OK;
      }
 
+     direct_signal_handler_remove( core->signal_handler );
+     
      /* Exit the FusionSound core arena. */
      if (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
                             core->master ? NULL : fs_core_arena_leave,
-                            core, false, NULL ) == DFB_BUSY)
+                            core, emergency, NULL ) == DFB_BUSY)
      {
-          D_WARN( "forking to wait until all slaves terminated" );
-
-          /* FIXME: quick hack to solve the dfb-slave-but-fs-master problem. */
-          switch (fork()) {
-               case -1:
-                    D_PERROR( "FusionSound/Core: fork() failed!\n" );
-
-                    while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
-                                              core->master ? NULL : fs_core_arena_leave,
-                                              core, false, NULL ) == DFB_BUSY)
-                         usleep( 100000 );
-
-                    break;
-
-               case 0:
-                    while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
-                                              core->master ? NULL : fs_core_arena_leave,
-                                              core, false, NULL ) == DFB_BUSY)
-                         usleep( 100000 );
-
-                    _exit(0);
+          if (core->master) {
+               if (emergency) {
+                    fusion_kill( core->world, 0, SIGKILL, 1000 );
+               }
+               else {
+                    fusion_kill( core->world, 0, SIGTERM, 5000 );
+                    fusion_kill( core->world, 0, SIGKILL, 2000 );
+               }
+          }
+          
+          while (fusion_arena_exit( core->arena, fs_core_arena_shutdown,
+                                    core->master ? NULL : fs_core_arena_leave,
+                                    core, emergency, NULL ) == DFB_BUSY)
+          {
+               D_ONCE( "waiting for FusionSound slaves to terminate" );
+               usleep( 100000 );
           }
      }
 
-     fusion_exit( core->world, false );
+     fusion_exit( core->world, emergency );
 
      /* Deallocate local core structure. */
      D_FREE( core );
@@ -418,6 +427,21 @@ fs_core_shmpool( CoreSound *core )
      D_ASSERT( core->shared != NULL );
 
      return core->shared->shmpool;
+}
+
+/******************************************************************************/
+
+static DirectSignalHandlerResult
+fs_core_signal_handler( int num, void *addr, void *ctx )
+{
+     CoreSound *core = (CoreSound*) ctx;
+
+     D_ASSERT( core != NULL );
+     D_ASSERT( core == core_sound );
+
+     fs_core_destroy( core, true );
+
+     return DFB_OK;
 }
 
 /******************************************************************************/
@@ -806,12 +830,6 @@ fs_core_arena_initialize( FusionArena *arena,
      FusionSHMPoolShared *pool;
 
      D_DEBUG( "FusionSound/Core: Initializing...\n" );
-
-/*     if (!dfb_core_is_master()) {
-          ERRORMSG( "FusionSound/Core: Only master can initialize for now!\n" );
-          return DFB_INIT;
-     }*/
-
 
      /* Create the shared memory pool first! */
      ret = fusion_shm_pool_create( core->world, "FusionSound Main Pool", 0x1000000, &pool );

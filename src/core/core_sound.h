@@ -37,7 +37,7 @@
  * Core initialization and deinitialization
  */
 DFBResult fs_core_create ( CoreSound **ret_core );
-DFBResult fs_core_destroy( CoreSound  *core );
+DFBResult fs_core_destroy( CoreSound  *core, bool emergency );
 
 /*
  * Object creation
