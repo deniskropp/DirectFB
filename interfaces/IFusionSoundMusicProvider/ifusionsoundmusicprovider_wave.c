@@ -782,7 +782,10 @@ IFusionSoundMusicProvider_Wave_GetCapabilities( IFusionSoundMusicProvider   *thi
      if (!caps)
           return DFB_INVARG;
 
-     *caps = FMCAPS_BASIC | FMCAPS_SEEK;
+     if (direct_stream_seekable( data->stream ))
+          *caps = FMCAPS_BASIC | FMCAPS_SEEK;
+     else
+          *caps = FMCAPS_BASIC;
 
      return DFB_OK;
 }
@@ -1061,10 +1064,14 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.format   = dst_format;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
+
+     if (data->finished) {
+          direct_stream_seek( data->stream, data->headsize );
+          data->finished = false;
+     }
      
      /* start thread */
      data->playing  = true;
-     data->finished = false;
      data->thread   = direct_thread_create( DTT_DEFAULT,
                                             WaveStreamThread, data, "Wave" );
 
@@ -1241,12 +1248,16 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
      data->callback      = callback;
      data->ctx           = ctx;
-     
+    
+     if (data->finished) {
+          direct_stream_seek( data->stream, data->headsize );
+          data->finished = false;
+     }
+    
      /* start thread */
-     data->playing  = true;
-     data->finished = false;
-     data->thread   = direct_thread_create( DTT_DEFAULT,
-                                            WaveBufferThread, data, "Wave" );
+     data->playing = true;
+     data->thread  = direct_thread_create( DTT_DEFAULT,
+                                           WaveBufferThread, data, "Wave" );
 
      pthread_mutex_unlock( &data->lock );
 
@@ -1308,12 +1319,16 @@ IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
 
      offset  = (double)data->samplerate * seconds;
      offset  = offset * data->channels * data->format >> 3;
-     if (data->datasize)
-          offset = MIN( offset, data->datasize );
+     if (data->datasize && offset > data->datasize)
+          return DFB_OK;
      offset += data->headsize;
 
      pthread_mutex_lock( &data->lock );
+     
      ret = direct_stream_seek( data->stream, offset );
+     if (ret == DFB_OK && data->datasize) 
+          data->finished = (offset == (data->headsize+data->datasize));
+     
      pthread_mutex_unlock( &data->lock );
      
      return ret;

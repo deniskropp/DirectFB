@@ -474,8 +474,6 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
      float **src; // src[0] = first channel, src[1] = second channel, ...
      char   *dst     = data->buf;
      int     section = 0; 
-
-     data->finished = false;
      
      while (data->playing) {
           long len;
@@ -586,7 +584,16 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.format   = dst_format;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
-     
+    
+     if (data->finished) {
+          if (direct_stream_remote( data->stream ))
+               direct_stream_seek( data->stream, 0 );
+          else
+               ov_time_seek( &data->vf, 0 );
+
+          data->finished = false;
+     }
+    
      /* start thread */
      data->playing = true;
      data->thread  = direct_thread_create( DTT_DEFAULT, 
@@ -606,8 +613,6 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
      IFusionSoundBuffer *buffer    = data->dest.buffer;
      int                 section   = 0;
      int                 blocksize = data->dest.channels * data->dest.format >> 3;
-
-     data->finished = false;
      
      while (data->playing && !data->finished) {
           float **src;
@@ -743,6 +748,15 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->callback = callback;
      data->ctx      = ctx;
      
+     if (data->finished) {
+          if (direct_stream_remote( data->stream ))
+               direct_stream_seek( data->stream, 0 );
+          else
+               ov_time_seek( &data->vf, 0 );
+
+          data->finished = false;
+     }
+     
      /* start thread */
      data->playing = true;
      data->thread  = direct_thread_create( DTT_DEFAULT,
@@ -818,7 +832,7 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
      else {
           if (ov_time_seek( &data->vf, seconds ))
                ret = DFB_FAILURE;
-     }                                   
+     }
      
      pthread_mutex_unlock( &data->lock );
      

@@ -902,10 +902,15 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.format   = dst_format;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
-     
+    
+     if (data->finished) {
+          struct cdda_track *track = &data->tracks[data->current_track];
+          track->frame = track->start;
+          data->finished = false;
+     } 
+    
      /* start thread */
      data->playing  = true;
-     data->finished = false;
      data->thread   = direct_thread_create( DTT_DEFAULT,
                                             CDDAStreamThread, data, "CDDA" );
 
@@ -1066,13 +1071,17 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->dest.format   = dst_format;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.length;
-
      data->callback      = callback;
      data->ctx           = ctx;
+
+     if (data->finished) {
+          struct cdda_track *track = &data->tracks[data->current_track];
+          track->frame = track->start;
+          data->finished = false;
+     } 
      
      /* start thread */
      data->playing  = true;
-     data->finished = false;
      data->thread   = direct_thread_create( DTT_DEFAULT,
                                             CDDABufferThread, data, "CDDA" );
 
@@ -1136,7 +1145,12 @@ IFusionSoundMusicProvider_CDDA_SeekTo( IFusionSoundMusicProvider *thiz,
 
      track = &data->tracks[data->current_track];
      frame = seconds * CD_FRAMES_PER_SECOND;
-     frame = CLAMP( frame, 0, track->length );
+     if (frame >= track->length) {
+          frame = track->length;
+          data->finished = true;
+     } else {
+          data->finished = false;
+     }
 
      pthread_mutex_lock( &data->lock );
      track->frame = frame;

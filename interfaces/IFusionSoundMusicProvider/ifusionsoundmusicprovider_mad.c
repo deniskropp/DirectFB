@@ -663,9 +663,13 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
      
+     if (data->finished) {
+          direct_stream_seek( data->s, 0 );
+          data->finished = false;
+     }
+     
      /* start thread */
      data->playing  = true;
-     data->finished = false;
      data->thread   = direct_thread_create( DTT_DEFAULT, 
                                             MadStreamThread, data, "Mad" );
 
@@ -863,9 +867,13 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->callback = callback;
      data->ctx      = ctx;
      
+     if (data->finished) {
+          direct_stream_seek( data->s, 0 );
+          data->finished = false;
+     }
+   
      /* start thread */
      data->playing  = true;
-     data->finished = false;
      data->thread   = direct_thread_create( DTT_DEFAULT,
                                             MadBufferThread, data, "Mad" );
 
@@ -919,8 +927,9 @@ static DFBResult
 IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
                                       double                     seconds )
 {
-     DFBResult ret;
-     double    rate;
+     DFBResult    ret  = DFB_FAILURE;
+     double       rate;
+     unsigned int off;
      
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
@@ -931,12 +940,13 @@ IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
      
      rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
      if (rate) {
-          ret = direct_stream_seek( data->s, seconds*rate );
-          if (ret == DFB_OK)
+          off = (seconds*rate);
+          ret = direct_stream_seek( data->s, off );
+          if (ret == DFB_OK) {
                data->seeked = true;
-     }
-     else {
-          ret = DFB_FAILURE;
+               if (direct_stream_length( data->s ))
+                    data->finished = (off == direct_stream_length( data->s ));
+          }
      }
      
      pthread_mutex_unlock( &data->lock );
