@@ -250,6 +250,7 @@ typedef struct {
 typedef enum {
      FMCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
      FMCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
+     FMCAPS_RESAMPLE   = 0x00000002,  /* can resample the audio         */
 } FSMusicProviderCapabilities;
 
 /*
