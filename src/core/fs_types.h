@@ -92,7 +92,7 @@ typedef float __fsf;
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Floats) */
 
-typedef signed int __fsf;
+typedef signed long __fsf;
 
 #define FSF_DECIBITS   22 /* Number of bits for decimal part.
                            * This is 22 by default because we need at least
