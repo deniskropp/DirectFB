@@ -125,7 +125,7 @@ IFusionSoundMusicProvider_Timidity_GetCapabilities(
      if (!caps)
           return DFB_INVARG;
 
-     *caps = FMCAPS_BASIC;
+     *caps = FMCAPS_BASIC | FMCAPS_RESAMPLE;
 
      return DFB_OK;
 }
