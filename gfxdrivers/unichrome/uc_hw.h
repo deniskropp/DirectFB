@@ -21,6 +21,13 @@ static inline int uc_map_dst_format( DFBSurfacePixelFormat format )
           case DSPF_RGB32:    return HC_HDBFM_ARGB0888;
           case DSPF_ARGB:     return HC_HDBFM_ARGB8888;
 
+          case DSPF_YUY2:
+          case DSPF_YV12:
+          case DSPF_I420:
+          case DSPF_AiRGB:
+               // not supported for 3D but don't report an error
+               return 0;
+
           default:
                D_BUG( "unexpected pixel format" );
      }

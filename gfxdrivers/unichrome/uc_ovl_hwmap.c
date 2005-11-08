@@ -582,6 +582,10 @@ __u32 uc_ovl_map_colorkey(DFBColor* c)
         color = PIXEL_ARGB(0, c->r, c->g, c->b);
         break;
 
+    case DSPF_AiRGB:
+        color = PIXEL_AiRGB(0, c->r, c->g, c->b);
+        break;
+
     default:
         D_BUG( "unexpected pixel format" );
     }
