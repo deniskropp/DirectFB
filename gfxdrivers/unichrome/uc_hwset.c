@@ -351,6 +351,14 @@ uc_set_color_2d( UcDriverData *ucdrv,
                color |= color << 16;
                break;
 
+          case DSPF_ARGB4444:
+               color = PIXEL_ARGB4444( state->color.a,
+                                       state->color.r,
+                                       state->color.g,
+                                       state->color.b );
+               color |= color << 16;
+               break;
+
           case DSPF_RGB16:
                color = PIXEL_RGB16( state->color.r,
                                     state->color.g,

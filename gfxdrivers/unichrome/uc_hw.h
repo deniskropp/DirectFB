@@ -17,6 +17,7 @@ static inline int uc_map_dst_format( DFBSurfacePixelFormat format )
 {
      switch (format) {
           case DSPF_ARGB1555: return HC_HDBFM_ARGB1555;
+          case DSPF_ARGB4444: return HC_HDBFM_ARGB4444;
           case DSPF_RGB16:    return HC_HDBFM_RGB565;
           case DSPF_RGB32:    return HC_HDBFM_ARGB0888;
           case DSPF_ARGB:     return HC_HDBFM_ARGB8888;
@@ -40,6 +41,7 @@ static inline int uc_map_src_format_3d( DFBSurfacePixelFormat format )
 {
      switch (format) {
           case DSPF_ARGB1555: return HC_HTXnFM_ARGB1555;
+          case DSPF_ARGB4444: return HC_HTXnFM_ARGB4444;
           case DSPF_RGB16:    return HC_HTXnFM_RGB565;
           case DSPF_RGB32:    return HC_HTXnFM_ARGB0888;
           case DSPF_ARGB:     return HC_HTXnFM_ARGB8888;

@@ -26,6 +26,7 @@ uc_has_dst_format( DFBSurfacePixelFormat format )
 {
      switch (format) {
           case DSPF_ARGB1555:
+          case DSPF_ARGB4444:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -74,6 +75,7 @@ uc_has_src_format_3d( DFBSurfacePixelFormat format )
 {
      switch (format) {
           case DSPF_ARGB1555:
+          case DSPF_ARGB4444:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
