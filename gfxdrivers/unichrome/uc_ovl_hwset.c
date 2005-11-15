@@ -100,7 +100,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
      __u32 dcount, falign, qwpitch;
      __u32 y_start, u_start, v_start;
      __u32 v_ctrl, fifo_ctrl;
-     __u32 alpha;
+     __u32 alpha = 0;
 
      int offset = surface->front_buffer->video.offset;
 
