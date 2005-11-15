@@ -30,7 +30,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/mman.h>
-#include <stdlib.h>
 #include <unistd.h>
 #include <stdio.h>
 
@@ -484,11 +483,11 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      funcs->StretchBlit       = uc_stretch_blit;
      funcs->TextureTriangles  = uc_texture_triangles;
 
+     ucdrv->ovl = NULL;
 
      /* install primary layer hooks */
-     if ( getenv("DFB_CLE266_UNDERLAY"))
-          dfb_layers_hook_primary( device, driver_data, &ucPrimaryFuncs,
-                                    &ucOldPrimaryFuncs, &ucOldPrimaryDriverData );
+     dfb_layers_hook_primary( device, driver_data, &ucPrimaryFuncs,
+                              &ucOldPrimaryFuncs, &ucOldPrimaryDriverData );
 
      dfb_layers_register( dfb_screens_at(DSCID_PRIMARY),
                           driver_data, &ucOverlayFuncs );

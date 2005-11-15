@@ -39,9 +39,13 @@ Unimplemented features (TODOs)
 Special features
 ----------------
 
-* The primary surface can have an alpha channel and show through to
-  the video layer.  To enable this, set the DFB_CLE266_UNDERLAY
-  environment variable to 1.
+* The video overlay layer can be placed beneath the primary layer,
+  which can have an alpha channel.
+  
+  To enable this, set the level of the overlay to -1 (using SetLevel)
+  and enable the DLOP_ALPHACHANNEL option on the primary.  Then use
+  either ARGB or AiRGB as the primary pixel format (see also 'known
+  bugs and quirks' below).
   
 * The FIELD_PARITY option is supported for the video overlay but this
   requires that the DirectFB version of the viafb framebuffer driver
@@ -65,9 +69,6 @@ Limitations (of the hardware)
 
 Known bugs and quirks
 ---------------------
-
-* Drawing and blitting into 8-bit (indexed color) surfaces does not
-  appear to work.
 
 * In underlay mode (see 'special features', above), the video
   is fully visible where the primary layer's alpha is 255, and

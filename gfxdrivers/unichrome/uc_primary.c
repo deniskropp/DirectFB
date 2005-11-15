@@ -28,6 +28,7 @@
 
 #include <string.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #include <directfb.h>
 
@@ -68,13 +69,6 @@ osdInitLayer( CoreLayer                  *layer,
      /* set name */
      snprintf(description->name,
               DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, "VIA CLE266 Graphics");
-
-     /* add support for options */
-     config->flags |= DLCONF_OPTIONS;
-
-     config->pixelformat = dfb_config->mode.format ?
-                           dfb_config->mode.format : DSPF_ARGB;
-     config->options = DLOP_ALPHACHANNEL;
 
      /* add some capabilities */
      description->caps |= DLCAPS_ALPHACHANNEL |
@@ -152,16 +146,24 @@ osdSetRegion( CoreLayer                  *layer,
 
      /* select pixel based or global alpha */
 
+     if (!ucdrv->ovl)   // overlay not present
+          return DFB_OK;
+     
      if (config->options & DLOP_ALPHACHANNEL)
-          VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(-1));
+          ucdrv->ovl->opacity_primary = -1; // use primary alpha for overlay
      else if (config->options & DLOP_OPACITY)
-          VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(config->opacity));
+          ucdrv->ovl->opacity_primary = config->opacity ^ 0xff; // use inverse for overlay
      else
-          VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(0xff));
+          ucdrv->ovl->opacity_primary = 0x00; // primary opaque == overlay transparent
 
-     VIDEO_OUT(ucdrv->hwregs, V_COMPOSE_MODE,
-         VIDEO_IN(ucdrv->hwregs, V_COMPOSE_MODE) | V1_COMMAND_FIRE);
-
+     if (ucdrv->ovl->v1.level < 0)  // primary on top?
+     {
+          VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL,
+               uc_ovl_map_alpha(ucdrv->ovl->opacity_primary));
+          VIDEO_OUT(ucdrv->hwregs, V_COMPOSE_MODE,
+               VIDEO_IN(ucdrv->hwregs, V_COMPOSE_MODE) | V1_COMMAND_FIRE);
+     }
+     
      return DFB_OK;
 }
 

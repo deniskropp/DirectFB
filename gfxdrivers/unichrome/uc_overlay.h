@@ -8,7 +8,7 @@
     | DLCAPS_SATURATION | DLCAPS_HUE)
     */
 #define UC_OVL_OPTIONS (DLOP_DEINTERLACING | DLOP_DST_COLORKEY \
-    | DLOP_FIELD_PARITY )
+    | DLOP_FIELD_PARITY | DLOP_OPACITY )
 
 #define ALIGN_TO(v, n) (((v) + (n-1)) & ~(n-1))
 #define UC_MAP_V1_FIFO_CONTROL(depth, pre_thr, thr) \
@@ -53,6 +53,9 @@ typedef struct _UcOverlayData {
     int                 field;
 
     CoreSurface        *surface;
+    
+    int                 opacity_primary; // overlay opacity if primary is logically
+                                         // above or -1 if primary has alpha channel
 
 } UcOverlayData;
 

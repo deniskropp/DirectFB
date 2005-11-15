@@ -100,6 +100,7 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
      __u32 dcount, falign, qwpitch;
      __u32 y_start, u_start, v_start;
      __u32 v_ctrl, fifo_ctrl;
+     __u32 alpha;
 
      int offset = surface->front_buffer->video.offset;
 
@@ -179,6 +180,12 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
           // Prepare destination color key
           dst_key = uc_ovl_map_colorkey(&(ucovl->v1.dst_key));
 
+          // prepare opacity
+          if (ucovl->v1.level > 0)  // overlay
+               alpha = uc_ovl_map_alpha(ucovl->v1.opacity);
+          else
+               alpha = uc_ovl_map_alpha(ucovl->opacity_primary);
+          
           write_settings = true;
      }
 
@@ -222,6 +229,8 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
           VIDEO_OUT(vio, V1_ZOOM_CONTROL, zoom);
 
           VIDEO_OUT(vio, V_COLOR_KEY, dst_key);
+          
+          VIDEO_OUT(vio, V_ALPHA_CONTROL, alpha);
      }
 
      if (write_buffers) {

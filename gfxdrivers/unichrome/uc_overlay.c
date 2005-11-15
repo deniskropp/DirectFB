@@ -12,6 +12,7 @@
 #include "vidregs.h"
 #include "mmio.h"
 
+#include <stdlib.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
 
@@ -47,6 +48,11 @@ uc_ovl_init_layer( CoreLayer                   *layer,
 {
     UcDriverData* ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
+
+    // Save a pointer to the layer data for access by the primary
+    // This is needed to properly support levels and the primary alpha channel
+
+    ucdrv->ovl = ucovl;
 
     // Set layer type, capabilities and name
 
@@ -89,6 +95,8 @@ uc_ovl_init_layer( CoreLayer                   *layer,
     ucovl->v1.dst_key.g = 0;
     ucovl->v1.dst_key.b = 0;
     ucovl->v1.dstkey_enabled = false;
+    ucovl->v1.opacity = 0xff;
+    ucovl->v1.level = 1;
 
 //    adjustment->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST |
 //        DCAF_HUE | DCAF_SATURATION;
@@ -137,6 +145,11 @@ uc_ovl_set_region( CoreLayer                  *layer,
     ucovl->v1.win = win;
     ucovl->v1.dst_key = config->dst_key;
     ucovl->v1.dstkey_enabled = config->options & DLOP_DST_COLORKEY;
+    
+    if (config->options & DLOP_OPACITY)
+        ucovl->v1.opacity = config->opacity;
+    else
+        ucovl->v1.opacity = 0xff;
 
     // printf("uc_overlay: color-keying is %s\n",
     //     ucovl->v1.dstkey_enabled ? "enabled" : "disabled");
@@ -300,15 +313,19 @@ uc_ovl_set_level(CoreLayer    *layer,
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
 
     if (level == 0) return DFB_INVARG;
-    if (level > 0) {
+    
+    if (level < 0) {
         // Enable underlay mode.
-        VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL, uc_ovl_map_alpha(-1));
+        VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL,
+            uc_ovl_map_alpha(ucovl->opacity_primary));
     }
     else {
         // Enable overlay mode (default)
         VIDEO_OUT(ucdrv->hwregs, V_ALPHA_CONTROL,
             uc_ovl_map_alpha(ucovl->v1.opacity));
     }
+    VIDEO_OUT(ucdrv->hwregs, V_COMPOSE_MODE, V1_COMMAND_FIRE |
+        (ucovl->v1.dstkey_enabled ? ENABLE_COLOR_KEYING : 0));
 
     ucovl->v1.level = level;
     return DFB_OK;
