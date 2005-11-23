@@ -157,7 +157,7 @@ static int fs_core_arena_shutdown  ( FusionArena *arena,
 /******************************************************************************/
 
 static CoreSound       *core_sound      = NULL;
-static pthread_mutex_t  core_sound_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  core_sound_lock = PTHREAD_MUTEX_INITIALIZER;
 
 DFBResult
 fs_core_create( CoreSound **ret_core )
