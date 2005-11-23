@@ -53,9 +53,9 @@ static CardState btf_state;
 static bool      cd_state_inited;
 static CardState cd_state;
 
-static pthread_mutex_t copy_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t btf_lock  = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t cd_lock   = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t copy_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t btf_lock  = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
 
 
 void

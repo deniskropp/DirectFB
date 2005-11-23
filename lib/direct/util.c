@@ -194,3 +194,27 @@ direct_trim( char **s )
                return;
 }
 
+/*
+ * Utility function to initialize recursive mutexes.
+ */
+int
+direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
+{
+     int                 ret;
+     pthread_mutexattr_t attr;
+
+     pthread_mutexattr_init( &attr );
+#ifdef __USE_UNIX98
+     pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
+#else
+#warning PTHREAD_MUTEX_RECURSIVE is not defined! Dead locks might occur!
+#endif
+     ret = pthread_mutex_init( mutex, &attr );
+     if (ret)
+          D_PERROR( "Direct/Lock: Could not initialize recursive mutex!\n" );
+
+     pthread_mutexattr_destroy( &attr );
+
+     return ret;
+}
+

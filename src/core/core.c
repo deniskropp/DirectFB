@@ -181,7 +181,7 @@ static void* dfb_lib_handle = NULL;
 /******************************************************************************/
 
 static CoreDFB         *core_dfb      = NULL;
-static pthread_mutex_t  core_dfb_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  core_dfb_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /******************************************************************************/
 

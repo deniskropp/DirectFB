@@ -77,7 +77,7 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 
 static DirectLink      *handlers      = NULL;
-static pthread_mutex_t  handlers_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  handlers_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /**************************************************************************************************/
 

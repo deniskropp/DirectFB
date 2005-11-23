@@ -40,7 +40,7 @@ D_DEBUG_DOMAIN( Direct_Main, "Direct/Main", "Initialization and shutdown of libd
 /**************************************************************************************************/
 
 static int             refs      = 0;
-static pthread_mutex_t refs_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t refs_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /**************************************************************************************************/
 

@@ -68,13 +68,13 @@ struct __D_DirectModuleDir {
 #define DECLARE_MODULE_DIRECTORY(d)  \
      extern DirectModuleDir d
 
-#define DEFINE_MODULE_DIRECTORY(d,p,n)                                     \
-     DirectModuleDir d = {                                                 \
-          lock:        DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER,    \
-          path:        MODULEDIR"/"p,                                      \
-          abi_version: n,                                                  \
-          entries:     NULL,                                               \
-          loading:     NULL                                                \
+#define DEFINE_MODULE_DIRECTORY(d,p,n)                 \
+     DirectModuleDir d = {                             \
+          lock:        PTHREAD_MUTEX_INITIALIZER,      \
+          path:        MODULEDIR"/"p,                  \
+          abi_version: n,                              \
+          entries:     NULL,                           \
+          loading:     NULL                            \
      }
 
 int   direct_modules_explore_directory( DirectModuleDir *directory );

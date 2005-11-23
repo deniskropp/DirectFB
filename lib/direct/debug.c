@@ -55,7 +55,7 @@ typedef struct {
 
 /**************************************************************************************************/
 
-static pthread_mutex_t  domains_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  domains_lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned int     domains_age  = 1;
 static DirectLink      *domains      = NULL;
 

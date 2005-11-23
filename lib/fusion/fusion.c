@@ -74,7 +74,7 @@ static void                      *fusion_dispatch_loop ( DirectThread *thread,
 /**********************************************************************************************************************/
 
 static FusionWorld     *fusion_worlds[FUSION_MAX_WORLDS];
-static pthread_mutex_t  fusion_worlds_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  fusion_worlds_lock = PTHREAD_MUTEX_INITIALIZER;
 
 /**********************************************************************************************************************/
 

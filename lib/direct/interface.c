@@ -65,7 +65,7 @@ typedef struct {
      int                   references;
 } DirectInterfaceImplementation;
 
-static pthread_mutex_t  implementations_mutex = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  implementations_mutex = PTHREAD_MUTEX_INITIALIZER;
 static DirectLink      *implementations       = NULL;
 
 /**************************************************************************************************/
@@ -274,7 +274,7 @@ typedef struct {
 static int              alloc_count    = 0;
 static int              alloc_capacity = 0;
 static InterfaceDesc   *alloc_list     = NULL;
-static pthread_mutex_t  alloc_lock     = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  alloc_lock     = PTHREAD_MUTEX_INITIALIZER;
 
 /**************************************************************************************************/
 

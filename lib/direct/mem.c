@@ -65,7 +65,7 @@ typedef struct {
 static int              alloc_count    = 0;
 static int              alloc_capacity = 0;
 static MemDesc         *alloc_list     = NULL;
-static pthread_mutex_t  alloc_lock     = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  alloc_lock     = PTHREAD_MUTEX_INITIALIZER;
 
 
 void

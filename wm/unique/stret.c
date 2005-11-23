@@ -71,7 +71,7 @@ static const StretRegionClass default_class = {
 
 static const StretRegionClass *classes[MAX_CLASSES] = { &default_class, NULL };
 
-static pthread_mutex_t         classes_lock  = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t         classes_lock  = PTHREAD_MUTEX_INITIALIZER;
 static int                     classes_count = 1;
 
 /**************************************************************************************************/

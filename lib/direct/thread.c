@@ -95,7 +95,7 @@ static const char *thread_type_name( DirectThreadType type )  D_CONST_FUNC;
 
 /******************************************************************************/
 
-static pthread_mutex_t  handler_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  handler_lock = PTHREAD_MUTEX_INITIALIZER;
 static DirectLink      *handlers     = NULL;
 
 /******************************************************************************/
@@ -144,7 +144,7 @@ direct_thread_remove_init_handler( DirectThreadInitHandler *handler )
 
 /******************************************************************************/
 
-static pthread_mutex_t key_lock   = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t key_lock   = PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t   thread_key = -1;
 
 /******************************************************************************/

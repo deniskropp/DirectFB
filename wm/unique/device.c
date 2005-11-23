@@ -80,7 +80,7 @@ static void purge_connection( UniqueDevice     *device,
 
 static const UniqueDeviceClass *classes[MAX_CLASSES] = { NULL };
 
-static pthread_mutex_t          classes_lock  = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t          classes_lock  = PTHREAD_MUTEX_INITIALIZER;
 static int                      classes_count = 0;
 
 /**************************************************************************************************/
