@@ -52,6 +52,11 @@ DirectResult direct_signals_shutdown();
  */
 void direct_signals_block_all();
 
+/*
+ * Signal number to use when registering a handler for any interrupt.
+ */
+#define DIRECT_SIGNAL_ANY     -1
+
 
 DirectResult direct_signal_handler_add   ( int                       num,
                                            DirectSignalHandlerFunc   func,

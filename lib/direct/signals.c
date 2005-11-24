@@ -363,7 +363,7 @@ signal_handler( int num, siginfo_t *info, void *foo )
      direct_list_foreach_safe (l, n, handlers) {
           DirectSignalHandler *handler = (DirectSignalHandler*) l;
 
-          if (handler->num != num && handler->num != -1)
+          if (handler->num != num && handler->num != DIRECT_SIGNAL_ANY)
                continue;
 
           switch (handler->func( num, addr, handler->ctx )) {
