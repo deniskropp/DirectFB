@@ -86,9 +86,6 @@ typedef struct {
 
      __u32 pix_width;
 
-     __u32 src_key_mask;
-     __u32 dst_key_mask;
-
      __u32 draw_blend;
      __u32 blit_blend;
 

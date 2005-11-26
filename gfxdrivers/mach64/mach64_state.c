@@ -75,8 +75,6 @@ void mach64_set_destination( Mach64DriverData *mdrv,
                break;
      }
 
-     mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
-
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
 }
@@ -113,8 +111,6 @@ void mach64gt_set_destination( Mach64DriverData *mdrv,
                break;
      }
 
-     mdev->dst_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( destination->format )) - 1;
-
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
 }
@@ -150,8 +146,6 @@ void mach64_set_source( Mach64DriverData *mdrv,
                D_BUG( "unexpected pixelformat!" );
                break;
      }
-
-     mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
@@ -193,8 +187,6 @@ void mach64gt_set_source( Mach64DriverData *mdrv,
                D_BUG( "unexpected pixelformat!" );
                break;
      }
-
-     mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, SRC_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
@@ -238,9 +230,6 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
                D_BUG( "unexpected pixelformat!" );
                break;
      }
-
-     /* FIXME: Scaler/texture color key is RGB24 on < 3D Rage Pro. */
-     mdev->src_key_mask = (1 << DFB_COLOR_BITS_PER_PIXEL( source->format )) - 1;
 
      mdev->field = source->field;
      if (mdev->blit_deinterlace) {
@@ -377,7 +366,8 @@ void mach64_set_src_colorkey( Mach64DriverData *mdrv,
           return;
 
      mach64_waitfifo( mdrv, mdev, 3 );
-     mach64_out32( mmio, CLR_CMP_MSK, mdev->src_key_mask );
+     mach64_out32( mmio, CLR_CMP_MSK,
+                   (1 << DFB_COLOR_BITS_PER_PIXEL( state->source->format )) - 1 );
      mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
      mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_EQUAL | CLR_CMP_SRC_2D );
 
@@ -390,14 +380,54 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
                                     CardState        *state )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
+     __u32          clr, msk;
 
      if (MACH64_IS_VALID( m_srckey_scale ))
           return;
 
-     /* FIXME: Scaler/texture color key is RGB24 on < 3D Rage Pro. */
+     if (mdev->chip < CHIP_3D_RAGE_PRO) {
+          switch (state->source->format) {
+               case DSPF_RGB332:
+                    clr = ((state->src_colorkey & 0xE0) << 16) |
+                          ((state->src_colorkey & 0x1C) << 11) |
+                          ((state->src_colorkey & 0x03) <<  6);
+                    msk = 0xE0E0C0;
+                    break;
+               case DSPF_ARGB4444:
+                    clr = ((state->src_colorkey & 0x0F00) << 12) |
+                          ((state->src_colorkey & 0x00F0) <<  8) |
+                          ((state->src_colorkey & 0x000F) <<  4);
+                    msk = 0xF0F0F0;
+                    break;
+               case DSPF_ARGB1555:
+                    clr = ((state->src_colorkey & 0x7C00) << 9) |
+                          ((state->src_colorkey & 0x03E0) << 6) |
+                          ((state->src_colorkey & 0x001F) << 3);
+                    msk = 0xF8F8F8;
+                    break;
+               case DSPF_RGB16:
+                    clr = ((state->src_colorkey & 0xF800) << 8) |
+                          ((state->src_colorkey & 0x07E0) << 5) |
+                          ((state->src_colorkey & 0x001F) << 3);
+                    msk = 0xF8FCF8;
+                    break;
+               case DSPF_RGB32:
+               case DSPF_ARGB:
+                    clr = state->src_colorkey;
+                    msk = 0xFFFFFF;
+                    break;
+               default:
+                    D_BUG( "unexpected pixelformat!" );
+                    return;
+          }
+     } else {
+          clr = state->src_colorkey;
+          msk = (1 << DFB_COLOR_BITS_PER_PIXEL( state->source->format )) - 1;
+     }
+
      mach64_waitfifo( mdrv, mdev, 3 );
-     mach64_out32( mmio, CLR_CMP_MSK, mdev->src_key_mask );
-     mach64_out32( mmio, CLR_CMP_CLR, state->src_colorkey );
+     mach64_out32( mmio, CLR_CMP_MSK, msk );
+     mach64_out32( mmio, CLR_CMP_CLR, clr );
      mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_EQUAL | CLR_CMP_SRC_SCALE );
 
      MACH64_VALIDATE( m_srckey_scale );
@@ -414,7 +444,8 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
           return;
 
      mach64_waitfifo( mdrv, mdev, 3 );
-     mach64_out32( mmio, CLR_CMP_MSK, mdev->dst_key_mask );
+     mach64_out32( mmio, CLR_CMP_MSK,
+                   (1 << DFB_COLOR_BITS_PER_PIXEL( state->destination->format )) - 1 );
      mach64_out32( mmio, CLR_CMP_CLR, state->dst_colorkey );
      mach64_out32( mmio, CLR_CMP_CNTL, CLR_CMP_FN_NOT_EQUAL | CLR_CMP_SRC_DEST );
 
