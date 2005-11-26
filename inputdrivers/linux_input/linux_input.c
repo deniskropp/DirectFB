@@ -674,7 +674,7 @@ get_device_info( int              fd,
      unsigned long absbit[NBITS(ABS_MAX)];
 
      /* get device name */
-     ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH), info->desc.name );
+     ioctl( fd, EVIOCGNAME(DFB_INPUT_DEVICE_DESC_NAME_LENGTH - 1), info->desc.name );
 
      /* set device vendor */
      snprintf( info->desc.vendor,
