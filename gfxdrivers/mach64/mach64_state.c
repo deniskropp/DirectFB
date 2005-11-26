@@ -72,7 +72,7 @@ void mach64_set_destination( Mach64DriverData *mdrv,
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
-               break;
+               return;
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
@@ -108,7 +108,7 @@ void mach64gt_set_destination( Mach64DriverData *mdrv,
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
-               break;
+               return;
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
@@ -144,7 +144,7 @@ void mach64_set_source( Mach64DriverData *mdrv,
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
-               break;
+               return;
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
@@ -185,7 +185,7 @@ void mach64gt_set_source( Mach64DriverData *mdrv,
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
-               break;
+               return;
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
@@ -228,7 +228,7 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
-               break;
+               return;
      }
 
      mdev->field = source->field;
@@ -283,52 +283,52 @@ void mach64_set_color( Mach64DriverData *mdrv,
                        CardState        *state )
 {
      volatile __u8 *mmio = mdrv->mmio_base;
-     __u32          color = 0;
+     __u32          clr;
 
      if (MACH64_IS_VALID( m_color ))
           return;
 
      switch (state->destination->format) {
           case DSPF_RGB332:
-               color = PIXEL_RGB332( state->color.r,
-                                     state->color.g,
-                                     state->color.b );
-               break;
-          case DSPF_ARGB1555:
-               color = PIXEL_ARGB1555( state->color.a,
-                                       state->color.r,
-                                       state->color.g,
-                                       state->color.b );
-               break;
-          case DSPF_ARGB4444:
-               color = PIXEL_ARGB4444( state->color.a,
-                                       state->color.r,
-                                       state->color.g,
-                                       state->color.b );
-               break;
-          case DSPF_RGB16:
-               color = PIXEL_RGB16( state->color.r,
-                                    state->color.g,
-                                    state->color.b );
-               break;
-          case DSPF_RGB32:
-               color = PIXEL_RGB32( state->color.r,
-                                    state->color.g,
-                                    state->color.b );
-               break;
-          case DSPF_ARGB:
-               color = PIXEL_ARGB( state->color.a,
-                                   state->color.r,
+               clr = PIXEL_RGB332( state->color.r,
                                    state->color.g,
                                    state->color.b );
                break;
+          case DSPF_ARGB1555:
+               clr = PIXEL_ARGB1555( state->color.a,
+                                     state->color.r,
+                                     state->color.g,
+                                     state->color.b );
+               break;
+          case DSPF_ARGB4444:
+               clr = PIXEL_ARGB4444( state->color.a,
+                                     state->color.r,
+                                     state->color.g,
+                                     state->color.b );
+               break;
+          case DSPF_RGB16:
+               clr = PIXEL_RGB16( state->color.r,
+                                  state->color.g,
+                                  state->color.b );
+               break;
+          case DSPF_RGB32:
+               clr = PIXEL_RGB32( state->color.r,
+                                  state->color.g,
+                                  state->color.b );
+               break;
+          case DSPF_ARGB:
+               clr = PIXEL_ARGB( state->color.a,
+                                 state->color.r,
+                                 state->color.g,
+                                 state->color.b );
+               break;
           default:
                D_BUG( "unexpected pixelformat!" );
-               break;
+               return;
      }
 
      mach64_waitfifo( mdrv, mdev, 1 );
-     mach64_out32( mmio, DP_FRGD_CLR, color );
+     mach64_out32( mmio, DP_FRGD_CLR, clr );
 
      MACH64_VALIDATE( m_color );
 }
