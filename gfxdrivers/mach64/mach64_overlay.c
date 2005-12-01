@@ -151,45 +151,33 @@ ovTestRegion( CoreLayer                  *layer,
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = mdrv->device_data;
      CoreLayerRegionConfigFlags fail = 0;
-     int max_width, max_height;
+     int max_width, max_height = 1024;
 
      switch (mdev->chip) {
-          case CHIP_264VT: /* not verified */
+          case CHIP_264VT: /* 264VT2 verified */
           case CHIP_3D_RAGE: /* not verified */
                max_width = 384;
-               max_height = 1024;
                break;
           case CHIP_264VT3: /* not verified */
           case CHIP_3D_RAGE_II: /* not verified */
           case CHIP_3D_RAGE_IIPLUS:
-               max_width = 720;
-               max_height = 1024;
-               break;
           case CHIP_264VT4: /* not verified */
           case CHIP_3D_RAGE_IIC:
-               max_width = 720;
-               max_height = 2048;
-               break;
-          case CHIP_3D_RAGE_PRO: /* not verified */
-               max_width = 768;
-               max_height = 2048;
-               break;
-          case CHIP_3D_RAGE_LT_PRO:
-               max_width = 768;
-               max_height = 1024;
-               break;
           case CHIP_3D_RAGE_XLXC:
-               max_width = 720;
-               max_height = 2048;
-               break;
           case CHIP_3D_RAGE_MOBILITY:
                max_width = 720;
-               max_height = 1024;
+               break;
+          case CHIP_3D_RAGE_PRO: /* not verified */
+          case CHIP_3D_RAGE_LT_PRO:
+               max_width = 768;
                break;
           default:
                D_BUG( "unknown chip" );
                return DFB_UNSUPPORTED;
      }
+
+     if (config->options & DLOP_DEINTERLACING)
+          max_height = 2048;
 
      /* check for unsupported options */
      if (config->options & ~OV_SUPPORTED_OPTIONS)
