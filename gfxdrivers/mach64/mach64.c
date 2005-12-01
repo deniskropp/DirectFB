@@ -73,7 +73,7 @@ DFB_GRAPHICS_DRIVER( mach64 )
 
 
 #define MACH64_SUPPORTED_DRAWINGFLAGS \
-               (DSDRAW_DST_COLORKEY)
+               (DSDRAW_DST_COLORKEY | DSDRAW_SRC_PREMULTIPLY)
 
 #define MACH64_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY)
@@ -86,11 +86,12 @@ DFB_GRAPHICS_DRIVER( mach64 )
 
 
 #define MACH64GT_SUPPORTED_DRAWINGFLAGS \
-               (DSDRAW_DST_COLORKEY | DSDRAW_BLEND)
+               (DSDRAW_DST_COLORKEY | DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY)
 
 #define MACH64GT_SUPPORTED_BLITTINGFLAGS \
                (DSBLIT_SRC_COLORKEY | DSBLIT_DST_COLORKEY | DSBLIT_BLEND_COLORALPHA | \
-                DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE | DSBLIT_DEINTERLACE)
+                DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE | DSBLIT_DEINTERLACE | \
+                DSBLIT_SRC_PREMULTCOLOR)
 
 #define MACH64GT_SUPPORTED_DRAWINGFUNCTIONS \
                (DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE | DFXL_FILLTRIANGLE)
@@ -190,7 +191,8 @@ static bool mach64_use_scaler( Mach64DeviceData *mdev,
 static bool mach64_use_tex( Mach64DeviceData *mdev,
                             CardState *state, DFBAccelerationMask accel )
 {
-     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE))
+     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
+                                 DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
           return true;
 
      /*
@@ -215,7 +217,8 @@ static bool mach64_use_scaler_3d( Mach64DeviceData *mdev,
           if (accel & DFXL_STRETCHBLIT ||
               state->source->format != state->destination->format ||
               state->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE |
-                                      DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE))
+                                      DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE |
+                                      DSBLIT_SRC_PREMULTCOLOR))
                return true;
      }
 
@@ -415,7 +418,7 @@ static void mach64SetState( void *drv, void *dev,
                MACH64_INVALIDATE( m_srckey | m_dstkey | m_disable_key );
 
           if (state->modified & SMF_DRAWING_FLAGS)
-               MACH64_INVALIDATE( m_dstkey | m_disable_key );
+               MACH64_INVALIDATE( m_color | m_dstkey | m_disable_key );
      }
 
      if (state->modified & SMF_DESTINATION)
@@ -494,16 +497,16 @@ static void mach64GTSetState( void *drv, void *dev,
                MACH64_INVALIDATE( m_color | m_dstkey );
 
           if (state->modified & SMF_COLOR)
-               MACH64_INVALIDATE( m_color | m_color_3d );
+               MACH64_INVALIDATE( m_color | m_color_3d | m_color_tex );
 
           if (state->modified & SMF_DST_COLORKEY)
                MACH64_INVALIDATE( m_dstkey );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               MACH64_INVALIDATE( m_source_scale | m_srckey | m_srckey_scale | m_dstkey | m_disable_key | m_blit_blend );
+               MACH64_INVALIDATE( m_color_tex | m_source_scale | m_srckey | m_srckey_scale | m_dstkey | m_disable_key | m_blit_blend );
 
           if (state->modified & SMF_DRAWING_FLAGS)
-               MACH64_INVALIDATE( m_dstkey | m_disable_key | m_draw_blend );
+               MACH64_INVALIDATE( m_color | m_color_3d | m_dstkey | m_disable_key | m_draw_blend );
 
           if (state->modified & (SMF_SRC_BLEND | SMF_DST_BLEND))
                MACH64_INVALIDATE( m_draw_blend | m_blit_blend );
@@ -575,8 +578,9 @@ static void mach64GTSetState( void *drv, void *dev,
                mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
                mach64_out32( mmio, DP_PIX_WIDTH, mdev->pix_width );
 
-               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_COLORIZE))
-                    mach64_set_color_3d( mdrv, mdev, state );
+               if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
+                                           DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
+                    mach64_set_color_tex( mdrv, mdev, state );
 
                mach64_set_blit_blend( mdrv, mdev, state );
 
@@ -952,7 +956,7 @@ static void mach64DoBlitScaleOld( Mach64DriverData *mdrv,
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
 
      /* Some scaler and 3D color registers are shared. */
-     MACH64_INVALIDATE( m_color_3d );
+     MACH64_INVALIDATE( m_color_3d | m_color_tex );
 }
 
 static void mach64DoBlitScale( Mach64DriverData *mdrv,
@@ -1026,7 +1030,7 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
      mach64_out32( mmio, DST_HEIGHT_WIDTH, (drect->w << 16) | drect->h );
 
      /* Some scaler and 3D color registers are shared. */
-     MACH64_INVALIDATE( m_color_3d );
+     MACH64_INVALIDATE( m_color_3d | m_color_tex );
 }
 
 static void mach64DoBlitTexOld( Mach64DriverData *mdrv,

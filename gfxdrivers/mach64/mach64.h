@@ -40,12 +40,13 @@ typedef enum {
      m_source_scale = 0x002,
      m_color        = 0x004,
      m_color_3d     = 0x008,
-     m_srckey       = 0x010,
-     m_srckey_scale = 0x020,
-     m_dstkey       = 0x040,
-     m_disable_key  = 0x080,
-     m_draw_blend   = 0x100,
-     m_blit_blend   = 0x200,
+     m_color_tex    = 0x010,
+     m_srckey       = 0x020,
+     m_srckey_scale = 0x040,
+     m_dstkey       = 0x080,
+     m_disable_key  = 0x100,
+     m_draw_blend   = 0x200,
+     m_blit_blend   = 0x400,
 } Mach64StateBits;
 
 #define MACH64_VALIDATE(b)      (mdev->valid |= (b))

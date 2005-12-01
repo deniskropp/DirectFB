@@ -59,6 +59,10 @@ void mach64_set_color_3d( Mach64DriverData *mdrv,
                           Mach64DeviceData *mdev,
                           CardState        *state );
 
+void mach64_set_color_tex( Mach64DriverData *mdrv,
+                           Mach64DeviceData *mdev,
+                           CardState        *state );
+
 void mach64_set_src_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev,
                               CardState        *state );

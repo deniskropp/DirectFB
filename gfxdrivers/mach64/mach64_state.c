@@ -293,45 +293,52 @@ void mach64_set_color( Mach64DriverData *mdrv,
                        Mach64DeviceData *mdev,
                        CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile __u8 *mmio  = mdrv->mmio_base;
+     DFBColor       color = state->color;
      __u32          clr;
 
      if (MACH64_IS_VALID( m_color ))
           return;
 
+     if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
+          color.r = (color.r * (color.a + 1)) >> 8;
+          color.g = (color.g * (color.a + 1)) >> 8;
+          color.b = (color.b * (color.a + 1)) >> 8;
+     }
+
      switch (state->destination->format) {
           case DSPF_RGB332:
-               clr = PIXEL_RGB332( state->color.r,
-                                   state->color.g,
-                                   state->color.b );
+               clr = PIXEL_RGB332( color.r,
+                                   color.g,
+                                   color.b );
                break;
           case DSPF_ARGB1555:
-               clr = PIXEL_ARGB1555( state->color.a,
-                                     state->color.r,
-                                     state->color.g,
-                                     state->color.b );
+               clr = PIXEL_ARGB1555( color.a,
+                                     color.r,
+                                     color.g,
+                                     color.b );
                break;
           case DSPF_ARGB4444:
-               clr = PIXEL_ARGB4444( state->color.a,
-                                     state->color.r,
-                                     state->color.g,
-                                     state->color.b );
+               clr = PIXEL_ARGB4444( color.a,
+                                     color.r,
+                                     color.g,
+                                     color.b );
                break;
           case DSPF_RGB16:
-               clr = PIXEL_RGB16( state->color.r,
-                                  state->color.g,
-                                  state->color.b );
+               clr = PIXEL_RGB16( color.r,
+                                  color.g,
+                                  color.b );
                break;
           case DSPF_RGB32:
-               clr = PIXEL_RGB32( state->color.r,
-                                  state->color.g,
-                                  state->color.b );
+               clr = PIXEL_RGB32( color.r,
+                                  color.g,
+                                  color.b );
                break;
           case DSPF_ARGB:
-               clr = PIXEL_ARGB( state->color.a,
-                                 state->color.r,
-                                 state->color.g,
-                                 state->color.b );
+               clr = PIXEL_ARGB( color.a,
+                                 color.r,
+                                 color.g,
+                                 color.b );
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
@@ -348,23 +355,64 @@ void mach64_set_color_3d( Mach64DriverData *mdrv,
                           Mach64DeviceData *mdev,
                           CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile __u8 *mmio  = mdrv->mmio_base;
+     DFBColor       color = state->color;
 
      if (MACH64_IS_VALID( m_color_3d ))
           return;
 
+     if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
+          color.r = (color.r * (color.a + 1)) >> 8;
+          color.g = (color.g * (color.a + 1)) >> 8;
+          color.b = (color.b * (color.a + 1)) >> 8;
+     }
+
      /* Some 3D color registers scaler registers are shared. */
      mach64_waitfifo( mdrv, mdev, 7 );
      mach64_out32( mmio, RED_X_INC, 0 );
-     mach64_out32( mmio, RED_START, state->color.r << 16 );
+     mach64_out32( mmio, RED_START, color.r << 16 );
      mach64_out32( mmio, GREEN_X_INC, 0 );
-     mach64_out32( mmio, GREEN_START, state->color.g << 16 );
+     mach64_out32( mmio, GREEN_START, color.g << 16 );
      mach64_out32( mmio, BLUE_X_INC, 0 );
-     mach64_out32( mmio, BLUE_START, state->color.b << 16 );
-     mach64_out32( mmio, ALPHA_START, state->color.a << 16 );
+     mach64_out32( mmio, BLUE_START, color.b << 16 );
+     mach64_out32( mmio, ALPHA_START, color.a << 16 );
 
-     MACH64_INVALIDATE( m_blit_blend );
+     MACH64_INVALIDATE( m_color_tex | m_blit_blend );
      MACH64_VALIDATE( m_color_3d );
+}
+
+void mach64_set_color_tex( Mach64DriverData *mdrv,
+                           Mach64DeviceData *mdev,
+                           CardState        *state )
+{
+     volatile __u8 *mmio  = mdrv->mmio_base;
+     DFBColor       color = state->color;
+
+     if (MACH64_IS_VALID( m_color_tex ))
+          return;
+
+     if (state->blittingflags & DSBLIT_SRC_PREMULTCOLOR) {
+          if (state->blittingflags & DSBLIT_COLORIZE) {
+               color.r = (color.r * (color.a + 1)) >> 8;
+               color.g = (color.g * (color.a + 1)) >> 8;
+               color.b = (color.b * (color.a + 1)) >> 8;
+          } else {
+               color.r = color.g = color.b = color.a;
+          }
+     }
+
+     /* Some 3D color registers scaler registers are shared. */
+     mach64_waitfifo( mdrv, mdev, 7 );
+     mach64_out32( mmio, RED_X_INC, 0 );
+     mach64_out32( mmio, RED_START, color.r << 16 );
+     mach64_out32( mmio, GREEN_X_INC, 0 );
+     mach64_out32( mmio, GREEN_START, color.g << 16 );
+     mach64_out32( mmio, BLUE_X_INC, 0 );
+     mach64_out32( mmio, BLUE_START, color.b << 16 );
+     mach64_out32( mmio, ALPHA_START, color.a << 16 );
+
+     MACH64_INVALIDATE( m_color_3d | m_blit_blend );
+     MACH64_VALIDATE( m_color_tex );
 }
 
 void mach64_set_src_colorkey( Mach64DriverData *mdrv,
@@ -552,7 +600,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
                } else {
                     mach64_waitfifo( mdrv, mdev, 1 );
                     mach64_out32( mmio, ALPHA_START, 0xFF << 16 );
-                    MACH64_INVALIDATE( m_color_3d );
+                    MACH64_INVALIDATE( m_color_3d | m_color_tex );
                }
           }
 
@@ -575,7 +623,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
           }
      }
 
-     if (state->blittingflags & DSBLIT_COLORIZE)
+     if (state->blittingflags & (DSBLIT_COLORIZE | DSBLIT_SRC_PREMULTCOLOR))
           mdev->blit_blend |= TEX_LIGHT_FCN_MODULATE;
 
      MACH64_VALIDATE( m_blit_blend );
