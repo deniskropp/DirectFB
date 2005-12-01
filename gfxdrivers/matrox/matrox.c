@@ -110,7 +110,7 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
 
 /* Millennium */
 
-#define MATROX_2064W_DRAWING_FLAGS          (DSDRAW_NOFX)
+#define MATROX_2064W_DRAWING_FLAGS          (DSDRAW_SRC_PREMULTIPLY)
 
 #define MATROX_2064W_BLITTING_FLAGS         (DSBLIT_NOFX)
 
@@ -124,7 +124,7 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
 
 /* Old cards (Mystique, Millennium II) */
 
-#define MATROX_OLD_DRAWING_FLAGS            (DSDRAW_NOFX)
+#define MATROX_OLD_DRAWING_FLAGS            (DSDRAW_SRC_PREMULTIPLY)
 
 #define MATROX_OLD_BLITTING_FLAGS           (DSBLIT_SRC_COLORKEY)
 
@@ -138,7 +138,7 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
 
 /* G100 */
 
-#define MATROX_G100_DRAWING_FLAGS           (DSDRAW_NOFX)
+#define MATROX_G100_DRAWING_FLAGS           (DSDRAW_SRC_PREMULTIPLY)
 
 #define MATROX_G100_BLITTING_FLAGS          (DSBLIT_SRC_COLORKEY | \
                                            /*DSBLIT_BLEND_ALPHACHANNEL |*/ \
@@ -157,7 +157,8 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
 
 /* G200/G400 */
 
-#define MATROX_G200G400_DRAWING_FLAGS       (DSDRAW_BLEND)
+#define MATROX_G200G400_DRAWING_FLAGS       (DSDRAW_BLEND | \
+                                             DSDRAW_SRC_PREMULTIPLY)
 
 #define MATROX_G200G400_BLITTING_FLAGS      (DSBLIT_SRC_COLORKEY | \
                                              DSBLIT_BLEND_ALPHACHANNEL | \
@@ -651,6 +652,9 @@ matroxSetState( void *drv, void *dev,
                MGA_INVALIDATE( m_Source | m_source | m_SrcKey | m_srckey | m_blitBlend );
           else if (state->modified & SMF_SRC_COLORKEY)
                MGA_INVALIDATE( m_SrcKey | m_srckey );
+
+          if (state->modified & SMF_DRAWING_FLAGS)
+               MGA_INVALIDATE( m_drawColor | m_color );
 
           if (state->modified & SMF_BLITTING_FLAGS)
                MGA_INVALIDATE( m_Source | m_blitBlend | m_blitColor );

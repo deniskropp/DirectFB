@@ -159,17 +159,24 @@ void matrox_validate_drawColor( MatroxDriverData *mdrv,
                                 MatroxDeviceData *mdev,
                                 CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     DFBColor       color = state->color;
+     volatile __u8 *mmio  = mdrv->mmio_base;
 
      if (MGA_IS_VALID( m_drawColor ))
           return;
 
+     if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
+          color.r = (color.r * (color.a + 1)) >> 8;
+          color.g = (color.g * (color.a + 1)) >> 8;
+          color.b = (color.b * (color.a + 1)) >> 8;
+     }
+
      mga_waitfifo( mdrv, mdev, 4 );
 
-     mga_out32( mmio, U8_TO_F0915(state->color.a), ALPHASTART );
-     mga_out32( mmio, U8_TO_F0915(state->color.r), DR4 );
-     mga_out32( mmio, U8_TO_F0915(state->color.g), DR8 );
-     mga_out32( mmio, U8_TO_F0915(state->color.b), DR12 );
+     mga_out32( mmio, U8_TO_F0915(color.a), ALPHASTART );
+     mga_out32( mmio, U8_TO_F0915(color.r), DR4 );
+     mga_out32( mmio, U8_TO_F0915(color.g), DR8 );
+     mga_out32( mmio, U8_TO_F0915(color.b), DR12 );
 
      MGA_VALIDATE( m_drawColor );
      MGA_INVALIDATE( m_blitColor );
@@ -216,119 +223,126 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                             MatroxDeviceData *mdev,
                             CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     DFBColor       color = state->color;
+     volatile __u8 *mmio  = mdrv->mmio_base;
 
-     __u32 color;
+     __u32 fcol;
      __u8  cb, cr;
 
      if (MGA_IS_VALID( m_color ))
           return;
 
+     if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
+          color.r = (color.r * (color.a + 1)) >> 8;
+          color.g = (color.g * (color.a + 1)) >> 8;
+          color.b = (color.b * (color.a + 1)) >> 8;
+     }
+
      switch (state->destination->format) {
           case DSPF_ALUT44:
-               color = (state->color.a & 0xF0) | state->color_index;
-               color |= color << 8;
-               color |= color << 16;
+               fcol = (color.a & 0xF0) | state->color_index;
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
                break;
           case DSPF_LUT8:
-               color = state->color_index;
-               color |= color << 8;
-               color |= color << 16;
+               fcol = state->color_index;
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
                break;
           case DSPF_RGB332:
-               color = PIXEL_RGB332( state->color.r,
-                                     state->color.g,
-                                     state->color.b );
-               color |= color << 8;
-               color |= color << 16;
+               fcol = PIXEL_RGB332( color.r,
+                                    color.g,
+                                    color.b );
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
                break;
           case DSPF_ARGB4444:
-               color = PIXEL_ARGB4444( state->color.a,
-                                       state->color.r,
-                                       state->color.g,
-                                       state->color.b );
-               color |= color << 16;
+               fcol = PIXEL_ARGB4444( color.a,
+                                      color.r,
+                                      color.g,
+                                      color.b );
+               fcol |= fcol << 16;
                break;
           case DSPF_ARGB1555:
-               color = PIXEL_ARGB1555( state->color.a,
-                                       state->color.r,
-                                       state->color.g,
-                                       state->color.b );
-               color |= color << 16;
+               fcol = PIXEL_ARGB1555( color.a,
+                                      color.r,
+                                      color.g,
+                                      color.b );
+               fcol |= fcol << 16;
                break;
           case DSPF_RGB16:
-               color = PIXEL_RGB16( state->color.r,
-                                    state->color.g,
-                                    state->color.b );
-               color |= color << 16;
+               fcol = PIXEL_RGB16( color.r,
+                                   color.g,
+                                   color.b );
+               fcol |= fcol << 16;
                break;
           case DSPF_RGB24:
-               color = PIXEL_RGB32( state->color.r,
-                                    state->color.g,
-                                    state->color.b );
-               color |= color << 24;
+               fcol = PIXEL_RGB32( color.r,
+                                   color.g,
+                                   color.b );
+               fcol |= fcol << 24;
                break;
           case DSPF_RGB32:
-               color = PIXEL_RGB32( state->color.r,
-                                    state->color.g,
-                                    state->color.b );
+               fcol = PIXEL_RGB32( color.r,
+                                   color.g,
+                                   color.b );
                break;
           case DSPF_ARGB:
-               color = PIXEL_ARGB( state->color.a,
-                                   state->color.r,
-                                   state->color.g,
-                                   state->color.b );
+               fcol = PIXEL_ARGB( color.a,
+                                  color.r,
+                                  color.g,
+                                  color.b );
                break;
           case DSPF_A8:
-               color = state->color.a;
-               color |= color << 8;
-               color |= color << 16;
+               fcol = color.a;
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
                break;
           case DSPF_I420:
           case DSPF_YV12:
-               RGB_TO_YCBCR( state->color.r,
-                             state->color.g,
-                             state->color.b,
-                             color, cb, cr );
-               color |= color << 8;
-               color |= color << 16;
-               mdev->color[0] = color;
+               RGB_TO_YCBCR( color.r,
+                             color.g,
+                             color.b,
+                             fcol, cb, cr );
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
+               mdev->color[0] = fcol;
                mdev->color[1] = (cb << 24) | (cb << 16) | (cb << 8) | cb;
                mdev->color[2] = (cr << 24) | (cr << 16) | (cr << 8) | cr;
                break;
           case DSPF_NV12:
-               RGB_TO_YCBCR( state->color.r,
-                             state->color.g,
-                             state->color.b,
-                             color, cb, cr );
-               color |= color << 8;
-               color |= color << 16;
-               mdev->color[0] = color;
+               RGB_TO_YCBCR( color.r,
+                             color.g,
+                             color.b,
+                             fcol, cb, cr );
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
+               mdev->color[0] = fcol;
                mdev->color[1] = (cr << 24) | (cb << 16) | (cr << 8) | cb;
                break;
           case DSPF_NV21:
-               RGB_TO_YCBCR( state->color.r,
-                             state->color.g,
-                             state->color.b,
-                             color, cb, cr );
-               color |= color << 8;
-               color |= color << 16;
-               mdev->color[0] = color;
+               RGB_TO_YCBCR( color.r,
+                             color.g,
+                             color.b,
+                             fcol, cb, cr );
+               fcol |= fcol << 8;
+               fcol |= fcol << 16;
+               mdev->color[0] = fcol;
                mdev->color[1] = (cb << 24) | (cr << 16) | (cb << 8) | cr;
                break;
           case DSPF_YUY2:
-               RGB_TO_YCBCR( state->color.r,
-                             state->color.g,
-                             state->color.b,
-                             color, cb, cr );
-               color = PIXEL_YUY2( color, cb, cr );
+               RGB_TO_YCBCR( color.r,
+                             color.g,
+                             color.b,
+                             fcol, cb, cr );
+               fcol = PIXEL_YUY2( fcol, cb, cr );
                break;
           case DSPF_UYVY:
-               RGB_TO_YCBCR( state->color.r,
-                             state->color.g,
-                             state->color.b,
-                             color, cb, cr );
-               color = PIXEL_UYVY( color, cb, cr );
+               RGB_TO_YCBCR( color.r,
+                             color.g,
+                             color.b,
+                             fcol, cb, cr );
+               fcol = PIXEL_UYVY( fcol, cb, cr );
                break;
           default:
                D_BUG( "unexpected pixelformat!" );
@@ -336,7 +350,7 @@ void matrox_validate_color( MatroxDriverData *mdrv,
      }
 
      mga_waitfifo( mdrv, mdev, 1 );
-     mga_out32( mmio, color, FCOL );
+     mga_out32( mmio, fcol, FCOL );
 
      MGA_VALIDATE( m_color );
      MGA_INVALIDATE( m_srckey );
