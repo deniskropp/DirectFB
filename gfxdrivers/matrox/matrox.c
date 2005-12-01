@@ -25,6 +25,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <config.h>
+
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
@@ -1710,7 +1712,15 @@ static __u32 pci_config_in32( unsigned int bus,
      }
 
      close( fd );
+
+#ifdef WORDS_BIGENDIAN
+     return ((val & 0xff000000) >> 24) |
+            ((val & 0x00ff0000) >>  8) |
+            ((val & 0x0000ff00) <<  8) |
+            ((val & 0x000000ff) << 24);
+#else
      return val;
+#endif
 }
 
 static DFBResult matrox_find_pci_device( MatroxDeviceData *mdev,

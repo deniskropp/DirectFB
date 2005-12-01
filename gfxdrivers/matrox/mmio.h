@@ -41,7 +41,11 @@ mga_out8(volatile __u8 *mmioaddr, __u8 value, __u32 reg)
 static inline void
 mga_out32(volatile __u8 *mmioaddr, __u32 value, __u32 reg)
 {
+#ifdef __powerpc__
+     asm volatile("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg), "r"(mmioaddr) : "memory");
+#else
      *((volatile __u32*)(mmioaddr+reg)) = value;
+#endif
 }
 
 static inline __u8
@@ -53,7 +57,15 @@ mga_in8(volatile __u8 *mmioaddr, __u32 reg)
 static inline __u32
 mga_in32(volatile __u8 *mmioaddr, __u32 reg)
 {
+#ifdef __powerpc__
+     __u32 value;
+
+     asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg), "r"(mmioaddr));
+
+     return value;
+#else
      return *((volatile __u32*)(mmioaddr+reg));
+#endif
 }
 
 /* Wait for idle accelerator and DMA */
