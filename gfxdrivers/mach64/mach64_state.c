@@ -111,6 +111,13 @@ void mach64gt_set_destination( Mach64DriverData *mdrv,
                return;
      }
 
+     mdev->draw_blend &= ~DITHER_EN;
+     mdev->blit_blend &= ~DITHER_EN;
+     if (DFB_COLOR_BITS_PER_PIXEL( destination->format ) < 24) {
+          mdev->draw_blend |= DITHER_EN;
+          mdev->blit_blend |= DITHER_EN;
+     }
+
      mach64_waitfifo( mdrv, mdev, 1 );
      mach64_out32( mmio, DST_OFF_PITCH, (buffer->video.offset/8) | ((pitch/8) << 22) );
 }
@@ -230,6 +237,10 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
                D_BUG( "unexpected pixelformat!" );
                return;
      }
+
+     mdev->blit_blend &= ~SCALE_PIX_EXPAND;
+     if (DFB_COLOR_BITS_PER_PIXEL( source->format ) < 24)
+          mdev->blit_blend |= SCALE_PIX_EXPAND;
 
      mdev->field = source->field;
      if (mdev->blit_deinterlace) {
@@ -505,10 +516,10 @@ void mach64_set_draw_blend( Mach64DriverData *mdrv,
      if (MACH64_IS_VALID( m_draw_blend ))
           return;
 
-     mdev->draw_blend = SCALE_PIX_EXPAND | DITHER_EN |
-                        ALPHA_FOG_EN_ALPHA |
-                        mach64SourceBlend[state->src_blend - 1] |
-                        mach64DestBlend  [state->dst_blend - 1];
+     mdev->draw_blend &= DITHER_EN;
+     mdev->draw_blend |= ALPHA_FOG_EN_ALPHA |
+                         mach64SourceBlend[state->src_blend - 1] |
+                         mach64DestBlend  [state->dst_blend - 1];
 
      if (mdev->chip >= CHIP_3D_RAGE_PRO) {
           /* FIXME: This is wrong. */
@@ -528,7 +539,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
      if (MACH64_IS_VALID( m_blit_blend ))
           return;
 
-     mdev->blit_blend = SCALE_PIX_EXPAND | DITHER_EN;
+     mdev->blit_blend &= SCALE_PIX_EXPAND | DITHER_EN;
 
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
           mdev->blit_blend |= ALPHA_FOG_EN_ALPHA |
