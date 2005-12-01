@@ -108,8 +108,11 @@ ovInitLayer( CoreLayer                  *layer,
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                         DLCAPS_SRC_COLORKEY | DLCAPS_DST_COLORKEY |
-                         DLCAPS_DEINTERLACING;
+                         DLCAPS_DST_COLORKEY | DLCAPS_DEINTERLACING;
+
+     if (mdev->chip >= CHIP_264VT3)
+          description->caps |= DLCAPS_SRC_COLORKEY;
+
      description->type = DLTF_VIDEO | DLTF_STILL_PICTURE;
 
      /* set name */
@@ -181,6 +184,14 @@ ovTestRegion( CoreLayer                  *layer,
 
      /* check for unsupported options */
      if (config->options & ~OV_SUPPORTED_OPTIONS)
+          fail |= CLRCF_OPTIONS;
+
+     /*
+      * Video keying doesn't work the same way on 264VT2 as it does
+      * on later chips. If enabled the overlay goes completely black
+      * so clearly it does something but not what we want.
+      */
+     if (mdev->chip < CHIP_264VT3 && config->options & DLOP_SRC_COLORKEY)
           fail |= CLRCF_OPTIONS;
 
      /* check pixel format */
@@ -283,7 +294,14 @@ ovRemoveRegion( CoreLayer *layer,
      Mach64DeviceData *mdev = mdrv->device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
 
-     mach64_waitfifo( mdrv, mdev, 1 );
+     mach64_waitfifo( mdrv, mdev, 2 );
+
+     /*
+      * On 264VT2 the keyer sometimes remains active
+      * even after the overlay has been disabled.
+      */
+     mach64_out32( mmio, OVERLAY_KEY_CNTL,
+                   VIDEO_KEY_FN_FALSE | GRAPHICS_KEY_FN_FALSE | OVERLAY_CMP_MIX_OR );
 
      mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
 
