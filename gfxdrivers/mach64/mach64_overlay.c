@@ -709,7 +709,7 @@ static void ov_calc_opacity( Mach64DriverData       *mdrv,
                              Mach64OverlayLayerData *mov,
                              CoreLayerRegionConfig  *config )
 {
-     mov->regs.overlay_SCALE_CNTL = SCALE_PIX_EXPAND;
+     mov->regs.overlay_SCALE_CNTL = SCALE_PIX_EXPAND | SCALE_Y2R_TEMP;
 
      if (config->opacity && mov->visible)
           mov->regs.overlay_SCALE_CNTL |= OVERLAY_EN | SCALE_EN;
