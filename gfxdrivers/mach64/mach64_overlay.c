@@ -397,11 +397,16 @@ static void ov_reset( Mach64DriverData *mdrv )
           mach64_out32( mmio, SCALER_COLOUR_CNTL, 0x00101000 );
      }
 
-     mach64_waitfifo( mdrv, mdev, 4 );
+     if (mdev->chip >= CHIP_264VT3) {
+          mach64_waitfifo( mdrv, mdev, 2 );
+
+          mach64_out32( mmio, OVERLAY_EXCLUSIVE_HORZ, 0 );
+          mach64_out32( mmio, OVERLAY_EXCLUSIVE_VERT, 0 );
+     }
+
+     mach64_waitfifo( mdrv, mdev, 2 );
 
      mach64_out32( mmio, OVERLAY_SCALE_CNTL, 0 );
-     mach64_out32( mmio, OVERLAY_EXCLUSIVE_HORZ, 0 );
-     mach64_out32( mmio, OVERLAY_EXCLUSIVE_VERT, 0 );
      mach64_out32( mmio, SCALER_TEST, 0 );
 }
 
