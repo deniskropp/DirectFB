@@ -6598,7 +6598,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     }
 
                     /* demultiply result */
-                    if (state->blittingflags & DSDRAW_DEMULTIPLY)
+                    if (state->drawingflags & DSDRAW_DEMULTIPLY)
                          *funcs++ = Dacc_demultiply;
 
                     /* write to destination */
