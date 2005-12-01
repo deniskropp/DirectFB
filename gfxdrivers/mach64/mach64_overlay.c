@@ -337,6 +337,9 @@ ovSetColorAdjustment( CoreLayer          *layer,
      Mach64DeviceData *mdev = mdrv->device_data;
      volatile __u8    *mmio = mdrv->mmio_base;
 
+     if (mdev->chip < CHIP_3D_RAGE_PRO)
+          return DFB_UNSUPPORTED;
+
      mach64_waitfifo( mdrv, mdev, 1 );
 
      mach64_out32( mmio, SCALER_COLOUR_CNTL,
