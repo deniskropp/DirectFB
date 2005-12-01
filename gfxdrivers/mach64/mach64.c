@@ -99,23 +99,6 @@ DFB_GRAPHICS_DRIVER( mach64 )
                (DFXL_BLIT | DFXL_STRETCHBLIT)
 
 
-#define USE_SCALER( state, accel )                                                      \
-     ((accel) & DFXL_STRETCHBLIT ||                                                     \
-      (state)->source->format != (state)->destination->format ||                        \
-      (state)->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE))
-
-#define USE_TEX( state, accel )                                                         \
-     ((state)->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE))
-
-#define USE_SCALER_3D( state, accel )                                                   \
-     ((DFB_DRAWING_FUNCTION( accel ) && (state)->drawingflags & DSDRAW_BLEND) ||        \
-      (DFB_BLITTING_FUNCTION( accel ) &&                                                \
-       ((accel) & DFXL_STRETCHBLIT ||                                                   \
-        (state)->source->format != (state)->destination->format ||                      \
-        (state)->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE |        \
-                                  DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE))))
-
-
 static bool mach64DrawLine2D( void *drv, void *dev, DFBRegion *line );
 static bool mach64DrawLine3D( void *drv, void *dev, DFBRegion *line );
 
@@ -193,6 +176,52 @@ static void mach64FlushTextureCache( void *drv, void *dev )
      }
 }
 
+static bool mach64_use_scaler( Mach64DeviceData *mdev,
+                               CardState *state, DFBAccelerationMask accel )
+{
+     if (accel & DFXL_STRETCHBLIT ||
+         state->source->format != state->destination->format ||
+         state->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE))
+          return true;
+
+     return false;
+}
+
+static bool mach64_use_tex( Mach64DeviceData *mdev,
+                            CardState *state, DFBAccelerationMask accel )
+{
+     if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE))
+          return true;
+
+     /*
+      * 3D Rage II chips lock up if the scaler is used with destination
+      * color keying. Using the texture engine works however.
+      */
+     if (mdev->chip < CHIP_3D_RAGE_PRO &&
+         mach64_use_scaler( mdev, state, accel ) &&
+         state->blittingflags & DSBLIT_DST_COLORKEY)
+          return true;
+
+     return false;
+}
+
+static bool mach64_use_scaler_3d( Mach64DeviceData *mdev,
+                                  CardState *state, DFBAccelerationMask accel )
+{
+     if (DFB_DRAWING_FUNCTION( accel )) {
+          if (state->drawingflags & DSDRAW_BLEND)
+               return true;
+     } else {
+          if (accel & DFXL_STRETCHBLIT ||
+              state->source->format != state->destination->format ||
+              state->blittingflags & (DSBLIT_BLEND_COLORALPHA | DSBLIT_DEINTERLACE |
+                                      DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE))
+               return true;
+     }
+
+     return false;
+}
+
 static bool mach64_check_blend( Mach64DeviceData *mdev, CardState *state )
 {
      switch (state->src_blend) {
@@ -266,8 +295,13 @@ static void mach64GTCheckState( void *drv, void *dev,
 
      switch (state->destination->format) {
           case DSPF_ARGB4444:
-               if (mdev->chip < CHIP_3D_RAGE_PRO ||
-                   (mdev->chip < CHIP_3D_RAGE_XLXC && USE_SCALER_3D( state, accel )))
+               /* Not supported. */
+               if (mdev->chip < CHIP_3D_RAGE_PRO)
+                    return;
+
+               /* Causes the chip to lock up. */
+               if (mdev->chip < CHIP_3D_RAGE_XLXC &&
+                   mach64_use_scaler_3d( mdev, state, accel ))
                     return;
           case DSPF_RGB332:
           case DSPF_ARGB1555:
@@ -285,6 +319,11 @@ static void mach64GTCheckState( void *drv, void *dev,
 
           if (state->drawingflags & DSDRAW_BLEND &&
               !mach64_check_blend( mdev, state ))
+               return;
+
+          /* Causes the chip to lock up. */
+          if (state->drawingflags & DSDRAW_BLEND &&
+              state->drawingflags & DSDRAW_DST_COLORKEY)
                return;
 
           state->accel |= MACH64GT_SUPPORTED_DRAWINGFUNCTIONS;
@@ -320,12 +359,17 @@ static void mach64GTCheckState( void *drv, void *dev,
               state->blittingflags & DSBLIT_DST_COLORKEY)
                return;
 
-          /* Max texture size is 1024x1024. */
-          if (USE_TEX( state, accel ) && (source->width > 1024 || source->height > 1024))
+          /* Causes the chip to lock up. */
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA) &&
+              state->blittingflags & DSBLIT_DST_COLORKEY)
                return;
 
-          /* Max scaler source size depends on the chip type. */
-          if (USE_SCALER( state, accel )) {
+          if (mach64_use_tex( mdev, state, accel )) {
+               /* Max texture size is 1024x1024. */
+               if (source->width > 1024 || source->height > 1024)
+                    return;
+          } else if (mach64_use_scaler( mdev, state, accel )) {
+               /* Max scaler source size depends on the chip type. */
                if (mdev->chip < CHIP_3D_RAGE_PRO) {
                     /* Tested on 3D Rage II+ and IIC. */
                     if (source->width > 4095 || source->height > 4095)
@@ -465,7 +509,7 @@ static void mach64GTSetState( void *drv, void *dev,
                MACH64_INVALIDATE( m_draw_blend | m_blit_blend );
      }
 
-     use_scaler_3d = USE_SCALER_3D( state, accel );
+     use_scaler_3d = mach64_use_scaler_3d( mdev, state, accel );
 
      /* At least 3D Rage II+ and IIC chips _will_ lock up without this. */
      if (mdev->chip < CHIP_3D_RAGE_PRO && use_scaler_3d != mdev->use_scaler_3d)
@@ -481,7 +525,7 @@ static void mach64GTSetState( void *drv, void *dev,
      case DFXL_DRAWRECTANGLE:
      case DFXL_DRAWLINE:
      case DFXL_FILLTRIANGLE:
-          if (state->drawingflags & DSDRAW_BLEND) {
+          if (use_scaler_3d) {
                mach64_waitfifo( mdrv, mdev, 3 );
                /* Some 3D registers aren't accessible without this. */
                mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
@@ -520,12 +564,12 @@ static void mach64GTSetState( void *drv, void *dev,
      case DFXL_STRETCHBLIT:
           mdev->blit_deinterlace = state->blittingflags & DSBLIT_DEINTERLACE;
 
-          if (USE_SCALER( state, accel ) || USE_TEX( state, accel )) {
+          if (use_scaler_3d) {
                mach64_waitfifo( mdrv, mdev, 1 );
                /* Some 3D registers aren't accessible without this. */
                mach64_out32( mmio, SCALE_3D_CNTL, SCALE_3D_FCN_SHADE );
 
-               mach64gt_set_source_scale ( mdrv, mdev, state );
+               mach64gt_set_source_scale( mdrv, mdev, state );
 
                mach64_waitfifo( mdrv, mdev, 2 );
                mach64_out32( mmio, DP_SRC, FRGD_SRC_SCALE );
@@ -544,7 +588,7 @@ static void mach64GTSetState( void *drv, void *dev,
                     mach64_disable_colorkey( mdrv, mdev );
 
                if (mdev->chip < CHIP_3D_RAGE_PRO) {
-                    if (USE_TEX( state, accel )) {
+                    if (mach64_use_tex( mdev, state, accel )) {
                          funcs->Blit        = mach64BlitTexOld;
                          funcs->StretchBlit = mach64StretchBlitTexOld;
                     } else {
@@ -552,7 +596,7 @@ static void mach64GTSetState( void *drv, void *dev,
                          funcs->StretchBlit = mach64StretchBlitScaleOld;
                     }
                } else {
-                    if (USE_TEX( state, accel )) {
+                    if (mach64_use_tex( mdev, state, accel )) {
                          funcs->Blit        = mach64BlitTex;
                          funcs->StretchBlit = mach64StretchBlitTex;
                     } else {
