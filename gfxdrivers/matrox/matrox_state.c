@@ -427,9 +427,15 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
                                  DSBLIT_BLEND_COLORALPHA))
      {
-          alphactrl = matroxSourceBlend[state->src_blend - 1] |
-                      matroxDestBlend  [state->dst_blend - 1] |
-                      ALPHACHANNEL;
+          if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+               /* src_blend == ONE and dst_blend == INVSRCALPHA/INVSRCCOLOR */
+               alphactrl = matroxSourceBlend[DSBF_SRCALPHA    - 1] |
+                           matroxDestBlend  [state->dst_blend - 1] |
+                           VIDEOALPHA;
+          else
+               alphactrl = matroxSourceBlend[state->src_blend - 1] |
+                           matroxDestBlend  [state->dst_blend - 1] |
+                           ALPHACHANNEL;
 
           if (state->source->format == DSPF_RGB32) {
                alphactrl |= DIFFUSEDALPHA;

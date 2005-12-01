@@ -165,6 +165,7 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
                                              DSBLIT_BLEND_COLORALPHA | \
                                              DSBLIT_COLORIZE | \
                                              DSBLIT_DEINTERLACE | \
+                                             DSBLIT_SRC_PREMULTIPLY | \
                                              DSBLIT_SRC_PREMULTCOLOR)
 
 #define MATROX_G200G400_DRAWING_FUNCTIONS   (DFXL_FILLRECTANGLE | \
@@ -182,6 +183,7 @@ static bool matroxStretchBlit_422( void *drv, void *dev,
                                 DSBLIT_BLEND_COLORALPHA   |              \
                                 DSBLIT_COLORIZE           |              \
                                 DSBLIT_DEINTERLACE        |              \
+                                DSBLIT_SRC_PREMULTIPLY    |              \
                                 DSBLIT_SRC_PREMULTCOLOR)       ||        \
       ((state)->destination->format != (state)->source->format &&        \
        (state)->destination->format != DSPF_I420               &&        \
@@ -493,10 +495,19 @@ matroxG200CheckState( void *drv, void *dev,
           if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
                return;
 
-          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                      DSBLIT_BLEND_COLORALPHA) &&
-              !matrox_check_blend( mdev, state ))
-               return;
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               if (!matrox_check_blend( mdev, state ))
+                    return;
+
+               if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY &&
+                   (state->src_blend != DSBF_ONE ||
+                    (state->dst_blend != DSBF_INVSRCALPHA &&
+                     state->dst_blend != DSBF_INVSRCCOLOR)))
+                    return;
+          } else {
+               if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                    return;
+          }
 
           if (use_tmu) {
                if (state->source->width < 8 ||
@@ -602,10 +613,19 @@ matroxG400CheckState( void *drv, void *dev,
           if (state->blittingflags & ~MATROX_G200G400_BLITTING_FLAGS)
                return;
 
-          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                      DSBLIT_BLEND_COLORALPHA) &&
-              !matrox_check_blend( mdev, state ))
-               return;
+          if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+               if (!matrox_check_blend( mdev, state ))
+                    return;
+
+               if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY &&
+                   (state->src_blend != DSBF_ONE ||
+                    (state->dst_blend != DSBF_INVSRCALPHA &&
+                     state->dst_blend != DSBF_INVSRCCOLOR)))
+                    return;
+          } else {
+               if (state->blittingflags & DSBLIT_SRC_PREMULTIPLY)
+                    return;
+          }
 
           if (use_tmu) {
                if (state->source->width < 8 ||
