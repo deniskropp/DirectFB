@@ -4,6 +4,10 @@ if ELO_INPUT
 ELO_INPUT_DIR = elo
 endif
 
+if GUNZE_INPUT
+GUNZE_INPUT_DIR = gunze
+endif
+
 if JOYSTICK_INPUT
 JOYSTICK_INPUT_DIR = joystick
 endif
@@ -58,6 +62,7 @@ endif
 
 SUBDIRS = \
 	$(ELO_INPUT_DIR)	\
+	$(GUNZE_INPUT_DIR)	\
 	$(JOYSTICK_INPUT_DIR)	\
 	$(KEYBOARD_INPUT_DIR)	\
 	$(LINUX_INPUT_DIR)	\

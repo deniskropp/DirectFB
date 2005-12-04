@@ -976,6 +976,7 @@ fi
 checkfor_dbox2remote=no
 checkfor_dreamboxremote=no
 checkfor_elo=no
+checkfor_gunze=no
 checkfor_h3600ts=no
 checkfor_joystick=no
 checkfor_keyboard=no
@@ -993,7 +994,7 @@ AC_ARG_WITH(inputdrivers,
 [                             inputdrivers may be comma separated ]
 [                             'all' builds all drivers (default), 'none' builds none ]
 [                             Possible inputdrivers are: ]
-[                             dbox2remote, elo-input, h3600_ts, joystick, keyboard, ]
+[                             dbox2remote, elo-input, gunze, h3600_ts, joystick, keyboard, ]
 [                             dreamboxremote, linuxinput, lirc, mutouch, ps2mouse, ]
 [                             serialmouse, sonypijogdial, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
@@ -1001,6 +1002,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
   checkfor_dreamboxremote=yes
   checkfor_elo=yes
+  checkfor_gunze=yes
   checkfor_h3600ts=yes
   checkfor_joystick=yes
   checkfor_keyboard=yes
@@ -1026,6 +1028,9 @@ else
                   ;;
           elo-input)
                   checkfor_elo=yes
+                  ;;
+          gunze-input)
+                  checkfor_gunze=yes
                   ;;
           h3600_ts)
                   checkfor_h3600ts=yes
@@ -1081,10 +1086,16 @@ if test "$checkfor_dreamboxremote" = "yes"; then
     AC_MSG_WARN([*** DreamBox Remote input driver will not be built.]))
 fi
 
-enable_elo_ts=no
+enable_elo_input=no
 if test "$checkfor_elo" = "yes"; then
   dnl Test for ELO Touchscreen support
-  enable_elo_ts=yes
+  enable_elo_input=yes
+fi
+
+enable_gunze_input=no
+if test "$checkfor_gunze" = "yes"; then
+  dnl Test for Gunze Touchscreen support
+  enable_gunze_input=yes
 fi
 
 enable_h3600_ts=no
@@ -1193,6 +1204,7 @@ AM_CONDITIONAL(GFX_UNICHROME, test "$unichrome" = "yes")
 AM_CONDITIONAL(DBOX2REMOTE, test "$enable_dbox2remote" = "yes")
 AM_CONDITIONAL(DREAMBOXREMOTE, test "$enable_dreamboxremote" = "yes")
 AM_CONDITIONAL(ELO_INPUT, test "$enable_elo_input" = "yes")
+AM_CONDITIONAL(GUNZE_INPUT, test "$enable_gunze_input" = "yes")
 AM_CONDITIONAL(H3600_TS, test "$enable_h3600_ts" = "yes")
 AM_CONDITIONAL(JOYSTICK_INPUT, test "$enable_joystick" = "yes")
 AM_CONDITIONAL(KEYBOARD_INPUT, test "$enable_keyboard" = "yes")
@@ -1351,6 +1363,7 @@ inputdrivers/Makefile
 inputdrivers/dbox2remote/Makefile
 inputdrivers/dreamboxremote/Makefile
 inputdrivers/elo/Makefile
+inputdrivers/gunze/Makefile
 inputdrivers/h3600_ts/Makefile
 inputdrivers/joystick/Makefile
 inputdrivers/keyboard/Makefile
@@ -1454,7 +1467,8 @@ Building Graphics Drivers:
 Building Input Drivers:
   DBox2 Remote              $enable_dbox2remote
   DreamBox Remote           $enable_dreamboxremote
-  ELO Touchscreen           $enable_elo_ts
+  ELO Touchscreen           $enable_elo_input
+  Gunze Touchscreen         $enable_gunze_input
   H3600 Touchscreen         $enable_h3600_ts
   Joystick                  $enable_joystick
   Keyboard                  $enable_keyboard

@@ -25,5 +25,6 @@ Liam Girdwood <liam.girdwood@wolfsonmicro.com>  (WM97xx Touchscreen driver)
 Brandon M. Reynolds <breynolds@comtime.com>     (ELO Touchscreen driver)
 Claudio Ciccani <klan82@cheapnet.it>            (nVidia gfx driver)
 Andreas Oberritter <obi@tuxbox.org>             (SiS 315 gfx driver)
+Nathanael D. Noblet <nathanael@gnat.ca>         (Gunze Touchscreen driver)
 
 See also "Thanks To" section in README.
