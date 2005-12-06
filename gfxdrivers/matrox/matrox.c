@@ -216,13 +216,21 @@ matroxEngineReset( void *drv, void *dev )
      mga_out32( mmio, 0, DR15 );
      mga_out32( mmio, 0, BCOL );
 
-     mga_waitfifo( mdrv, mdev, 6 );
+     mga_waitfifo( mdrv, mdev, 5 );
      mga_out32( mmio, 0, TMR1 );
      mga_out32( mmio, 0, TMR2 );
      mga_out32( mmio, 0, TMR4 );
      mga_out32( mmio, 0, TMR5 );
      mga_out32( mmio, 0x100000, TMR8 );
-     mga_out32( mmio, 0xFFFFFFFF, PLNWT );
+
+     /*
+      * Plane write mask is not supported on G100 with SDRAM.
+      * The chip goes crazy if PLNWT is written.
+      */
+     if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG100) {
+          mga_waitfifo( mdrv, mdev, 1 );
+          mga_out32( mmio, 0xFFFFFFFF, PLNWT );
+     }
 }
 
 static void
@@ -1989,7 +1997,7 @@ driver_init_device( GraphicsDevice     *device,
                break;
           case FB_ACCEL_MATROX_MGAG100:
                mdev->old_matrox = true;
-               sgram            = true;
+               sgram            = false; /* FIXME: can we detect this? */
                snprintf( device_info->name,
                          DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, "G100" );
                break;
