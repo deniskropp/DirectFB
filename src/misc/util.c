@@ -188,10 +188,10 @@ dfb_rectangle_intersect_by_unsafe_region( DFBRectangle *rectangle,
      }
 
      /* adjust size */
-     if (region->x2 <= rectangle->x + rectangle->w)
+     if (region->x2 < rectangle->x + rectangle->w - 1)
         rectangle->w = region->x2 - rectangle->x + 1;
 
-     if (region->y2 <= rectangle->y + rectangle->h)
+     if (region->y2 < rectangle->y + rectangle->h - 1)
         rectangle->h = region->y2 - rectangle->y + 1;
 
      /* set size to zero if there's no intersection */
@@ -221,10 +221,10 @@ dfb_rectangle_intersect_by_region( DFBRectangle    *rectangle,
      }
 
      /* adjust size */
-     if (region->x2 <= rectangle->x + rectangle->w)
+     if (region->x2 < rectangle->x + rectangle->w - 1)
         rectangle->w = region->x2 - rectangle->x + 1;
 
-     if (region->y2 <= rectangle->y + rectangle->h)
+     if (region->y2 < rectangle->y + rectangle->h - 1)
         rectangle->h = region->y2 - rectangle->y + 1;
 
      /* set size to zero if there's no intersection */
@@ -256,10 +256,10 @@ bool dfb_rectangle_intersect( DFBRectangle       *rectangle,
      }
 
      /* adjust size */
-     if (region.x2 <= rectangle->x + rectangle->w)
+     if (region.x2 < rectangle->x + rectangle->w - 1)
           rectangle->w = region.x2 - rectangle->x + 1;
 
-     if (region.y2 <= rectangle->y + rectangle->h)
+     if (region.y2 < rectangle->y + rectangle->h - 1)
           rectangle->h = region.y2 - rectangle->y + 1;
 
      /* set size to zero if there's no intersection */
