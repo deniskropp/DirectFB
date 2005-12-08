@@ -59,7 +59,6 @@ void matrox_set_destination( MatroxDriverData *mdrv,
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(buffer->format);
 
      mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
-     mdev->dst_format = destination->format;
 
      D_ASSERT( mdev->dst_pitch % 32 == 0 );
 
@@ -67,7 +66,7 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 
      mdev->depth_buffer = depth_buffer != NULL;
 
-     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY)
+     if (destination->format == DSPF_YUY2 || destination->format == DSPF_UYVY)
           mdev->dst_pitch /= 2;
 
      if (mdev->old_matrox) {
@@ -149,10 +148,7 @@ void matrox_set_clip( MatroxDriverData *mdrv,
           mga_out32( mmio, (mdev->dst_pitch * clip->y2) & 0xFFFFFF, YBOT );
      }
 
-     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY)
-          mga_out32( mmio, ((clip->x2/2 & 0x0FFF) << 16) | (clip->x1/2 & 0x0FFF), CXBNDRY );
-     else
-          mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) | (clip->x1 & 0x0FFF), CXBNDRY );
+     mga_out32( mmio, ((clip->x2 & 0x0FFF) << 16) | (clip->x1 & 0x0FFF), CXBNDRY );
 }
 
 void matrox_validate_drawColor( MatroxDriverData *mdrv,
@@ -535,7 +531,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mdev->w = surface->width;
      mdev->h = surface->height;
 
-     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY) {
+     if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
           mdev->w /= 2;
           mdev->src_pitch /= 2;
      }
@@ -575,10 +571,10 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 
      switch (surface->format) {
           case DSPF_YUY2:
-               texctl |= (mdev->dst_format == DSPF_YUY2) ? TW32 : TW422;
+               texctl |= (state->destination->format == DSPF_YUY2) ? TW32 : TW422;
                break;
           case DSPF_UYVY:
-               texctl |= (mdev->dst_format == DSPF_UYVY) ? TW32 : TW422UYVY;
+               texctl |= (state->destination->format == DSPF_UYVY) ? TW32 : TW422UYVY;
                break;
           case DSPF_I420:
           case DSPF_YV12:
@@ -670,7 +666,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
 
      D_ASSERT( buffer->video.offset % 64 == 0 );
 
-     if (mdev->dst_format == DSPF_YUY2 || mdev->dst_format == DSPF_UYVY)
+     if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY)
           mdev->src_pitch /= 2;
 
      if (mdev->old_matrox) {

@@ -115,8 +115,6 @@ typedef struct {
      } fb;
      unsigned int tlut_offset;
      CorePalette *rgb332_palette;
-
-     DFBSurfacePixelFormat dst_format;
 } MatroxDeviceData;
 
 typedef struct {

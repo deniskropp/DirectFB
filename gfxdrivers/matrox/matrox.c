@@ -673,8 +673,9 @@ matroxSetState( void *drv, void *dev,
      else if (state->modified) {
           if (state->modified & SMF_COLOR)
                MGA_INVALIDATE( m_drawColor | m_blitColor | m_color );
-          else if (state->modified & SMF_DESTINATION)
-               MGA_INVALIDATE( m_color );
+
+          if (state->modified & SMF_DESTINATION)
+               MGA_INVALIDATE( m_color | m_Source | m_source );
 
           if (state->modified & SMF_SOURCE)
                MGA_INVALIDATE( m_Source | m_source | m_SrcKey | m_srckey | m_blitBlend );
@@ -689,15 +690,6 @@ matroxSetState( void *drv, void *dev,
 
           if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
                MGA_INVALIDATE( m_blitBlend | m_drawBlend );
-     }
-
-
-     if (state->modified & SMF_DESTINATION) {
-          matrox_set_destination( mdrv, mdev, state->destination );
-
-          /* On old cards the clip depends on the destination's pixel offset */
-          if (mdev->old_matrox)
-               state->modified |= SMF_CLIP;
      }
 
      switch (accel) {
@@ -814,9 +806,18 @@ matroxSetState( void *drv, void *dev,
                break;
      }
 
+     if (state->modified & SMF_DESTINATION) {
+          matrox_set_destination( mdrv, mdev, state->destination );
+          state->modified |= SMF_CLIP;
+     }
+
      if (state->modified & SMF_CLIP) {
-          matrox_set_clip( mdrv, mdev, &state->clip );
           mdev->clip = state->clip;
+          if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
+               mdev->clip.x1 /= 2;
+               mdev->clip.x2 /= 2;
+          }
+          matrox_set_clip( mdrv, mdev, &mdev->clip );
      }
 
      state->modified = 0;
