@@ -47,7 +47,7 @@
 
 #include "matrox_state.h"
 
-#define MGA_KEYMASK(format)   ((1 << MIN(24, DFB_BITS_PER_PIXEL(format))) - 1)
+#define MGA_KEYMASK(format)   ((1 << DFB_COLOR_BITS_PER_PIXEL(format)) - 1)
 
 void matrox_set_destination( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
@@ -701,8 +701,13 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
      if (MGA_IS_VALID( m_SrcKey ))
           return;
 
-     mask = MGA_KEYMASK(surface->format);
-     key  = state->src_colorkey & mask;
+     if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+          mask = MGA_KEYMASK(surface->format);
+          key  = state->src_colorkey & mask;
+     } else {
+          mask = 0;
+          key  = 0xFFFF;
+     }
 
      mga_waitfifo( mdrv, mdev, 2);
 
@@ -727,30 +732,18 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
      mask = MGA_KEYMASK(surface->format);
      key  = state->src_colorkey & mask;
 
-     mga_waitfifo( mdrv, mdev, 2);
-
-     if (DFB_BYTES_PER_PIXEL(state->source->format) > 2)
-          mga_out32( mmio, mask, BCOL );
-     else
-          mga_out32( mmio, 0xFFFFFFFF, BCOL );
-
      switch (DFB_BYTES_PER_PIXEL(state->source->format)) {
           case 1:
-               mga_out32( mmio, key | (key <<  8) |
-                                      (key << 16) |
-                                      (key << 24), FCOL );
-               break;
+               mask |= mask << 8;
+               key  |= key  << 8;
           case 2:
-               mga_out32( mmio, key | (key << 16), FCOL );
-               break;
-          case 3:
-          case 4:
-               mga_out32( mmio, key, FCOL );
-               break;
-          default:
-               D_BUG( "unexpected bytes per pixel" );
-               break;
+               mask |= mask << 16;
+               key  |= key  << 16;
      }
+
+     mga_waitfifo( mdrv, mdev, 2);
+     mga_out32( mmio, mask, BCOL );
+     mga_out32( mmio, key, FCOL );
 
      MGA_VALIDATE( m_srckey );
      MGA_INVALIDATE( m_color );

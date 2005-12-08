@@ -686,7 +686,7 @@ matroxSetState( void *drv, void *dev,
                MGA_INVALIDATE( m_drawColor | m_color );
 
           if (state->modified & SMF_BLITTING_FLAGS)
-               MGA_INVALIDATE( m_Source | m_blitBlend | m_blitColor );
+               MGA_INVALIDATE( m_Source | m_SrcKey | m_blitBlend | m_blitColor );
 
           if (state->modified & (SMF_DST_BLEND | SMF_SRC_BLEND))
                MGA_INVALIDATE( m_blitBlend | m_drawBlend );
@@ -771,8 +771,7 @@ matroxSetState( void *drv, void *dev,
                     matrox_validate_blitBlend( mdrv, mdev, state );
                     matrox_validate_Source( mdrv, mdev, state );
 
-                    if (mdev->blit_src_colorkey)
-                         matrox_validate_SrcKey( mdrv, mdev, state );
+                    matrox_validate_SrcKey( mdrv, mdev, state );
                }
                else {
                     switch (state->destination->format) {
