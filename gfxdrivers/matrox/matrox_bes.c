@@ -558,6 +558,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
                mbes->regs.besGLOBCTL |= BESRGB16;
                break;
 
+          case DSPF_ARGB:
           case DSPF_RGB32:
                mbes->regs.besGLOBCTL |= BESRGB32;
                break;
