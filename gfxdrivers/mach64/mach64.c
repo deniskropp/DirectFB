@@ -371,6 +371,8 @@ static void mach64GTCheckState( void *drv, void *dev,
                /* Max texture size is 1024x1024. */
                if (source->width > 1024 || source->height > 1024)
                     return;
+
+               state->accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
           } else if (mach64_use_scaler( mdev, state, accel )) {
                /* Max scaler source size depends on the chip type. */
                if (mdev->chip < CHIP_3D_RAGE_PRO) {
@@ -382,9 +384,10 @@ static void mach64GTCheckState( void *drv, void *dev,
                     if (source->width > 4096 || source->height > 16384)
                          return;
                }
-          }
 
-          state->accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
+               state->accel |= MACH64GT_SUPPORTED_BLITTINGFUNCTIONS;
+          } else
+               state->accel |= accel;
      }
 }
 
