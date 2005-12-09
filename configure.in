@@ -183,7 +183,7 @@ if test "$enable_extra_warnings" = "yes"; then
 fi
 
 if test "$GCC" = "yes"; then
-  CFLAGS="-Wall $CFLAGS"
+  CFLAGS="-Wall -Wno-strict-aliasing $CFLAGS"
 fi
 
 
