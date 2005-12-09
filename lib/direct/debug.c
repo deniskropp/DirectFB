@@ -207,6 +207,96 @@ direct_debug_at( DirectDebugDomain *domain,
 
 __attribute__((no_instrument_function))
 void
+direct_debug_enter( DirectDebugDomain *domain,
+	      	    const char *func,
+                    const char *file,
+                    int         line,
+                    const char *format, ... )
+{
+     pthread_mutex_lock( &domains_lock );
+
+     if (check_domain( domain )) {
+          int         len;
+          char        dom[48];
+          char        fmt[128];
+          char        buf[512];
+          long long   millis = direct_clock_get_millis();
+          const char *name   = direct_thread_self_name();
+          va_list     ap;
+
+          va_start( ap, format );
+
+          vsnprintf( buf, sizeof(buf), format, ap );
+
+          va_end( ap );
+
+
+          len = snprintf( dom, sizeof(dom), "%s:", domain->name );
+
+          if (len < 18)
+               len = 18;
+          else
+               len = 28;
+
+          len += direct_trace_debug_indent() * 4;
+
+          snprintf( fmt, sizeof(fmt), "(>) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds Entering %%s%%s [%%s:%%d]\n", len );
+
+          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
+                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
+			     func, buf, file, line );
+     }
+
+     pthread_mutex_unlock( &domains_lock );
+}
+
+__attribute__((no_instrument_function))
+void
+direct_debug_exit( DirectDebugDomain *domain,
+	      	    const char *func,
+                    const char *file,
+                    int         line,
+                    const char *format, ... )
+{
+     pthread_mutex_lock( &domains_lock );
+
+     if (check_domain( domain )) {
+          int         len;
+          char        dom[48];
+          char        fmt[128];
+          char        buf[512];
+          long long   millis = direct_clock_get_millis();
+          const char *name   = direct_thread_self_name();
+          va_list     ap;
+
+          va_start( ap, format );
+
+          vsnprintf( buf, sizeof(buf), format, ap );
+
+          va_end( ap );
+
+
+          len = snprintf( dom, sizeof(dom), "%s:", domain->name );
+
+          if (len < 18)
+               len = 18;
+          else
+               len = 28;
+
+          len += direct_trace_debug_indent() * 4;
+
+          snprintf( fmt, sizeof(fmt), "(<) [%%-15s %%3lld.%%03lld] (%%5d) %%-%ds Returning from %%s%%s [%%s:%%d]\n", len );
+
+          direct_log_printf( NULL, fmt, name ? name : "  NO NAME  ",
+                             millis / 1000LL, millis % 1000LL, direct_gettid(), dom,
+			     func, buf, file, line );
+     }
+
+     pthread_mutex_unlock( &domains_lock );
+}
+
+__attribute__((no_instrument_function))
+void
 direct_break( const char *func,
               const char *file,
               int         line,
