@@ -34,14 +34,17 @@ internalinclude_HEADERS = \
 	layer_control.h		\
 	layer_region.h		\
 	layers.h		\
+	layers_internal.h	\
 	palette.h		\
 	screen.h		\
 	screens.h		\
+	screens_internal.h	\
 	state.h			\
 	surfaces.h		\
 	surfacemanager.h	\
 	system.h		\
 	windows.h		\
+	windows_internal.h	\
 	windowstack.h		\
 	wm.h			\
 	wm_module.h
@@ -62,16 +65,13 @@ libdirectfb_core_la_SOURCES = \
 	layer_control.c		\
 	layer_region.c		\
 	layers.c		\
-	layers_internal.h	\
 	palette.c		\
 	screen.c		\
 	screens.c		\
-	screens_internal.h	\
 	state.c			\
 	surfaces.c		\
 	surfacemanager.c	\
 	system.c		\
 	windows.c		\
-	windows_internal.h	\
 	windowstack.c		\
 	wm.c
