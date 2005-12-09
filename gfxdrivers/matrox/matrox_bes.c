@@ -128,7 +128,6 @@ besInitLayer( CoreLayer                  *layer,
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
-                         DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST |
                          DLCAPS_DEINTERLACING | DLCAPS_DST_COLORKEY;
      description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
 
@@ -146,11 +145,19 @@ besInitLayer( CoreLayer                  *layer,
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_NONE;
 
-     /* fill out default color adjustment,
-        only fields set in flags will be accepted from applications */
-     adjustment->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST;
-     adjustment->brightness = 0x8000;
-     adjustment->contrast   = 0x8000;
+     adjustment->flags   = DCAF_NONE;
+
+     if (mdrv->accelerator != FB_ACCEL_MATROX_MGAG200) {
+          description->caps      |= DLCAPS_BRIGHTNESS | DLCAPS_CONTRAST;
+
+          /* fill out default color adjustment,
+             only fields set in flags will be accepted from applications */
+          adjustment->flags      |= DCAF_BRIGHTNESS | DCAF_CONTRAST;
+          adjustment->brightness  = 0x8000;
+          adjustment->contrast    = 0x8000;
+
+          mga_out32( mmio, 0x80, BESLUMACTL );
+     }
 
      /* disable backend scaler */
      mga_out32( mmio, 0, BESCTL );
@@ -165,8 +172,6 @@ besInitLayer( CoreLayer                  *layer,
      mga_out_dac( mmio, XCOLKEY0RED,   0x00 ); /* default to black */
      mga_out_dac( mmio, XCOLKEY0GREEN, 0x00 );
      mga_out_dac( mmio, XCOLKEY0BLUE,  0x00 );
-
-     mga_out32( mmio, 0x80, BESLUMACTL );
 
      return DFB_OK;
 }
@@ -343,6 +348,9 @@ besSetColorAdjustment( CoreLayer          *layer,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      volatile __u8    *mmio = mdrv->mmio_base;
+
+     if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200)
+          return DFB_UNSUPPORTED;
 
      mga_out32( mmio, (adj->contrast >> 8) |
                       ((__u8)(((int)adj->brightness >> 8) - 128)) << 16,
