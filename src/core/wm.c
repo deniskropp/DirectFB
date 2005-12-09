@@ -150,7 +150,7 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
              wm_shared->info.name, wm_shared->info.version.major,
              wm_shared->info.version.minor, wm_shared->info.vendor );
 
-     ret = DFB_NOSYSTEMMEMORY;
+     ret = DFB_NOSHAREDMEMORY;
 
      /* Store module name in shared memory. */
      wm_shared->name = SHSTRDUP( wm_shared->shmpool, wm_local->module->name );
@@ -167,6 +167,8 @@ dfb_wm_initialize( CoreDFB *core, void *data_local, void *data_shared )
                goto error;
           }
      }
+
+     ret = DFB_NOSYSTEMMEMORY;
 
      /* Allocate local window manager data. */
      if (wm_shared->info.wm_data_size) {
@@ -384,7 +386,7 @@ dfb_wm_init_stack( CoreWindowStack *stack )
           stack_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.stack_data_size );
           if (!stack_data) {
                D_WARN( "out of (shared) memory" );
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
           }
      }
 
@@ -566,7 +568,7 @@ dfb_wm_add_window( CoreWindowStack *stack,
           window_data = SHCALLOC( wm_shared->shmpool, 1, wm_shared->info.window_data_size );
           if (!window_data) {
                D_WARN( "out of (shared) memory" );
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
           }
      }
 

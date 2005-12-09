@@ -107,7 +107,7 @@ dfb_palette_create( CoreDFB       *core,
           palette->entries = SHCALLOC( palette->shmpool, size, sizeof(DFBColor) );
           if (!palette->entries) {
                fusion_object_destroy( &palette->object );
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
           }
      }
 

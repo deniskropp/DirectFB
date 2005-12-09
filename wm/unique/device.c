@@ -173,7 +173,7 @@ unique_device_create( CoreDFB              *core,
      device = SHCALLOC( context->shmpool, 1, sizeof(UniqueDevice) );
      if (!device) {
           D_WARN( "out of (shared) memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Initialize device data. */
@@ -185,7 +185,7 @@ unique_device_create( CoreDFB              *core,
      if (clazz->data_size) {
           device->data = SHCALLOC( context->shmpool, 1, clazz->data_size );
           if (!device->data) {
-               ret = DFB_NOSYSTEMMEMORY;
+               ret = D_OOSHM();
                goto error;
           }
      }
@@ -307,7 +307,7 @@ unique_device_connect( UniqueDevice    *device,
      connection = SHCALLOC( context->shmpool, 1, sizeof(DeviceConnection) );
      if (!connection) {
           D_OOSHM();
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Initialize connection structure. */

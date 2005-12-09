@@ -83,7 +83,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_osx = (DFBOSX*) SHCALLOC( 1, sizeof(DFBOSX) );
      if (!dfb_osx) {
           D_ERROR( "DirectFB/OSX: Couldn't allocate shared memory!\n" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      dfb_osx_core = core;

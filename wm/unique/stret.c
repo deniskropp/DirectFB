@@ -180,7 +180,7 @@ stret_region_create( StretRegionClassID   class_id,
      region = SHCALLOC( pool, 1, sizeof(StretRegion) + sizeof(FusionVector) * levels );
      if (!region) {
           D_WARN( "out of (shared) memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Initialize region data. */
@@ -209,7 +209,7 @@ stret_region_create( StretRegionClassID   class_id,
           if (fusion_vector_add( children, region )) {
                D_WARN( "out of (shared) memory" );
                SHFREE( pool, region );
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
           }
      }
 

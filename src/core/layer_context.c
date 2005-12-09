@@ -46,6 +46,8 @@
 #include <core/layers_internal.h>
 #include <core/windows_internal.h>
 
+#include <fusion/shmalloc.h>
+
 #include <direct/messages.h>
 
 #include <direct/util.h>
@@ -189,7 +191,7 @@ dfb_layer_context_create( CoreLayer         *layer,
      context->stack = dfb_windowstack_create( context );
      if (!context->stack) {
           dfb_layer_context_unref( context );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Tell the window stack about its size. */

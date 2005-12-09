@@ -71,7 +71,7 @@ unique_input_channel_create( CoreDFB             *core,
      channel = SHCALLOC( context->shmpool, 1, sizeof(UniqueInputChannel) );
      if (!channel) {
           D_WARN( "out of (shared) memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Initialize channel data. */

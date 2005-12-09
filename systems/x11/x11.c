@@ -87,7 +87,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_x11 = (DFBX11*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBX11) );
      if (!dfb_x11) {
           D_ERROR( "DirectFB/X11: Couldn't allocate shared memory!\n" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      driver = getenv( "X11_VIDEODRIVER" );

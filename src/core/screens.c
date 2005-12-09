@@ -104,7 +104,7 @@ dfb_screens_initialize( CoreDFB *core, void *data_local, void *data_shared )
                     if (!shared->screen_data) {
                          fusion_skirmish_destroy( &shared->lock );
                          SHFREE( pool, shared );
-                         return DFB_NOSYSTEMMEMORY;
+                         return D_OOSHM();
                     }
                }
           }

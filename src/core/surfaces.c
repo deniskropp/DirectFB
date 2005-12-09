@@ -1384,7 +1384,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
                data = SHMALLOC( surface->shmpool, size );
                if (!data) {
                     SHFREE( surface->shmpool, buffer );
-                    return DFB_NOSYSTEMMEMORY;
+                    return D_OOSHM();
                }
 
                /* Write back values. */
@@ -1451,7 +1451,7 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
           /* Allocate shared memory. */
           data = SHMALLOC( surface->shmpool, size );
           if (!data)
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
 
           /* Free old memory. */
           SHFREE( surface->shmpool, buffer->system.addr );

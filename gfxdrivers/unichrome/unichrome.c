@@ -13,6 +13,8 @@
 
 #include <direct/messages.h>
 
+#include <fusion/shmalloc.h>
+
 #include <core/coretypes.h>
 #include <core/gfxcard.h>
 #include <core/graphics_driver.h>
@@ -462,7 +464,7 @@ static DFBResult driver_init_driver(GraphicsDevice* device,
      /* FIXME: this belongs to device_data! */
      ucdrv->fifo = uc_fifo_create(ucdrv->pool, UC_FIFO_SIZE);
      if (!ucdrv->fifo)
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
 
      uc_after_set_var(driver_data, device_data);
 

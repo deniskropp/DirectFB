@@ -105,7 +105,7 @@ fusion_vector_add( FusionVector *vector,
 
      /* Make sure there's a free entry left. */
      if (!ensure_capacity( vector ))
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
 
      /* Add the element to the vector. */
      vector->elements[vector->count++] = element;
@@ -125,7 +125,7 @@ fusion_vector_insert( FusionVector *vector,
 
      /* Make sure there's a free entry left. */
      if (!ensure_capacity( vector ))
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
 
      /* Move elements from insertion point one up. */
      memmove( &vector->elements[ index + 1 ],

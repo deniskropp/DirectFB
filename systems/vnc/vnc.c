@@ -81,7 +81,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_vnc = (DFBVNC*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBVNC) );
      if (!dfb_vnc) {
           D_ERROR( "DirectFB/VNC: Couldn't allocate shared memory!\n" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      dfb_vnc_core = core;

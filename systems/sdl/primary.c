@@ -541,7 +541,7 @@ dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
      if (!fusion_is_shared( dfb_core_world(core), config )) {
           tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(CoreLayerRegionConfig) );
           if (!tmp)
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
 
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
@@ -568,7 +568,7 @@ dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
           if (!fusion_is_shared( dfb_core_world(core), region )) {
                tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
                if (!tmp)
-                    return DFB_NOSYSTEMMEMORY;
+                    return D_OOSHM();
 
                direct_memcpy( tmp, region, sizeof(DFBRegion) );
           }

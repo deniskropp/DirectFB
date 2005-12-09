@@ -140,12 +140,12 @@ dfb_clipboard_set( const char     *mime_type,
 
      new_mime = SHSTRDUP( core_clip->shmpool, mime_type );
      if (!new_mime)
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
 
      new_data = SHMALLOC( core_clip->shmpool, size );
      if (!new_data) {
           SHFREE( core_clip->shmpool, new_mime );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      direct_memcpy( new_data, data, size );

@@ -560,7 +560,7 @@ dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
      if (!fusion_is_shared( config )) {
           tmp = SHMALLOC( sizeof(CoreLayerRegionConfig) );
           if (!tmp)
-               return DFB_NOSYSTEMMEMORY;
+               return D_OOSHM();
 
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
@@ -587,7 +587,7 @@ dfb_osx_update_screen( CoreDFB *core, DFBRegion *region )
           if (!fusion_is_shared( region )) {
                tmp = SHMALLOC( sizeof(DFBRegion) );
                if (!tmp)
-                    return DFB_NOSYSTEMMEMORY;
+                    return D_OOSHM();
 
                direct_memcpy( tmp, region, sizeof(DFBRegion) );
           }

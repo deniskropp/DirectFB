@@ -96,7 +96,7 @@ unique_input_switch_create( UniqueContext      *context,
      input_switch = SHCALLOC( context->shmpool, 1, sizeof(UniqueInputSwitch) );
      if (!input_switch) {
           D_WARN( "out of (shared) memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Initialize input_switch data. */
@@ -188,7 +188,7 @@ unique_input_switch_add( UniqueInputSwitch *input_switch,
      connection = SHCALLOC( context->shmpool, 1, sizeof(SwitchConnection) );
      if (!connection) {
           D_WARN( "out of (shared) memory" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      /* Initialize connection structure. */

@@ -82,7 +82,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_sdl = (DFBSDL*) SHCALLOC( dfb_core_shmpool(core), 1, sizeof(DFBSDL) );
      if (!dfb_sdl) {
           D_ERROR( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOSHM();
      }
 
      driver = getenv( "SDL_VIDEODRIVER" );
