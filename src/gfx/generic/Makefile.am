@@ -20,6 +20,7 @@ internalinclude_HEADERS = \
 noinst_LTLIBRARIES = libdirectfb_generic.la
 
 libdirectfb_generic_la_SOURCES = \
+	duffs_device.h		\
 	generic.c		\
 	generic.h		\
 	generic_mmx.h	\
