@@ -114,6 +114,9 @@ typedef struct {
      DFBInputDeviceLockState      locks;
      DFBInputDeviceButtonMask     buttons;
 
+     DFBInputDeviceKeyIdentifier  last_key;      /* last key pressed */
+     bool                         first_press;   /* first press of key */
+
      FusionReactor               *reactor;       /* event dispatcher */
      FusionSkirmish               lock;
 } InputDeviceShared;
@@ -757,6 +760,8 @@ init_devices( CoreDFB *core )
                shared->id          = make_id(device_info.prefered_id);
                shared->num         = n;
                shared->device_info = device_info;
+               shared->last_key    = DIKI_UNKNOWN;
+               shared->first_press = true;
 
                device->shared      = shared;
                device->driver      = driver;
@@ -1153,23 +1158,35 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
       * Update cached values for locks.
       */
      if (event->type == DIET_KEYPRESS) {
-          switch (event->key_id) {
-               case DIKI_CAPS_LOCK:
-                    shared->locks ^= DILS_CAPS;
-                    break;
-               case DIKI_NUM_LOCK:
-                    shared->locks ^= DILS_NUM;
-                    break;
-               case DIKI_SCROLL_LOCK:
-                    shared->locks ^= DILS_SCROLL;
-                    break;
-               default:
-                    ;
+
+          /* When we receive a new key press, toggle lock flags */
+          if (shared->first_press || shared->last_key != event->key_id) {
+              switch (event->key_id) {
+                   case DIKI_CAPS_LOCK:
+                        shared->locks ^= DILS_CAPS;
+                        break;
+                   case DIKI_NUM_LOCK:
+                        shared->locks ^= DILS_NUM;
+                        break;
+                   case DIKI_SCROLL_LOCK:
+                        shared->locks ^= DILS_SCROLL;
+                        break;
+                   default:
+                        ;
+              }
           }
 
           /* write back to event */
           if (missing & DIEF_LOCKS)
                event->locks = shared->locks;
+
+          /* store last pressed key */
+          shared->last_key = event->key_id;
+          shared->first_press = false;
+     }
+     else if (event->type == DIET_KEYRELEASE) {
+          
+          shared->first_press = true;
      }
 }
 
