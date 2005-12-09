@@ -129,5 +129,17 @@ DirectResult   fusion_reactor_dispatch     ( FusionReactor      *reactor,
                                              bool                self,
                                              const ReactionFunc *globals );
 
+/*
+ * Dispatch a message to any attached reaction with a given size. Instead of
+ * using the size defined by the reactor, the caller can specify the size of
+ * the data.
+ *
+ * Setting 'self' to false excludes the caller's local reactions.
+ */
+DirectResult   fusion_reactor_sized_dispatch( FusionReactor      *reactor,
+                                              const void         *msg_data,
+                                              int                 msg_size,
+                                              bool                self,
+                                              const ReactionFunc *globals );
 #endif
 

@@ -429,6 +429,22 @@ fusion_reactor_dispatch( FusionReactor      *reactor,
                          bool                self,
                          const ReactionFunc *globals )
 {
+    D_MAGIC_ASSERT( reactor, FusionReactor );
+
+    return fusion_reactor_sized_dispatch(reactor,
+                                         msg_data,
+                                         reactor->msg_size,
+                                         self,
+                                         globals);
+}
+
+DirectResult
+fusion_reactor_sized_dispatch( FusionReactor      *reactor,
+                               const void         *msg_data,
+                               int                 msg_size,
+                               bool                self,
+                               const ReactionFunc *globals )
+{
      FusionReactorDispatch dispatch;
 
      D_MAGIC_ASSERT( reactor, FusionReactor );
@@ -455,7 +471,7 @@ fusion_reactor_dispatch( FusionReactor      *reactor,
      /* Initialize dispatch data. */
      dispatch.reactor_id = reactor->id;
      dispatch.self       = false;
-     dispatch.msg_size   = reactor->msg_size;
+     dispatch.msg_size   = msg_size;
      dispatch.msg_data   = msg_data;
 
      /* Dispatch the message to handle foreign reactions. */
