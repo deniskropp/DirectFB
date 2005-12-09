@@ -72,18 +72,24 @@ lookup_domain( const char *name, bool sub )
                return entry;
      }
 
-     if (sub) {
-          char *tmp = strchr( name, '/' );
-
-          if (tmp) {
-               direct_list_foreach (entry, domains) {
-                    if (! strchr( entry->name, '/' ) &&
-                        ! strncasecmp( entry->name, name, tmp - name ))
-                         return entry;
+     /*
+      * If the domain being registered contains a slash, but didn't exactly match an entry
+      * in directfbrc, check to see if the domain is descended from an entry in directfbrc
+      * (e.g. 'ui/field/messages' matches 'ui' or 'ui/field')
+      */
+     if (sub && strchr(name, '/')) {
+          int passed_name_len = strlen( name );
+          
+          direct_list_foreach (entry, domains) {
+               int entry_len = strlen( entry->name );
+               if ((passed_name_len > entry_len) &&
+                   (name[entry_len] == '/') &&
+                   (! strncasecmp( entry->name, name, entry_len))) {
+                    return entry;
                }
           }
      }
-
+     
      return NULL;
 }
 
