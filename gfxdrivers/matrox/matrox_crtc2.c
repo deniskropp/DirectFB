@@ -95,7 +95,8 @@ static void crtc2_calc_regs          ( MatroxDriverData      *mdrv,
 
 static void crtc2_calc_buffer        ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2,
-                                       CoreSurface           *surface );
+                                       CoreSurface           *surface,
+                                       bool                   front );
 
 static void crtc2_set_buffer         ( MatroxDriverData      *mdrv,
                                        MatroxCrtc2LayerData  *mcrtc2 );
@@ -252,7 +253,7 @@ crtc2SetRegion( CoreLayer                  *layer,
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
                     CLRCF_SURFACE_CAPS | CLRCF_ALPHA_RAMP | CLRCF_SURFACE)) {
           crtc2_calc_regs( mdrv, mcrtc2, config, surface );
-          crtc2_calc_buffer( mdrv, mcrtc2, surface );
+          crtc2_calc_buffer( mdrv, mcrtc2, surface, true );
 
           ret = crtc2_enable_output( mdrv, mcrtc2 );
           if (ret)
@@ -288,7 +289,7 @@ crtc2FlipRegion( CoreLayer           *layer,
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
      volatile __u8        *mmio    = mdrv->mmio_base;
 
-     crtc2_calc_buffer( mdrv, mcrtc2, surface );
+     crtc2_calc_buffer( mdrv, mcrtc2, surface, false );
 
      if (mcrtc2->config.options & DLOP_FIELD_PARITY) {
           int field = (mga_in32( mmio, C2VCOUNT ) & C2FIELD) ? 1 : 0;
@@ -470,7 +471,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
           mcrtc2->regs.c2CTL |= C2VCBCRSINGLE;
 
      /* interleaved fields */
-     mcrtc2->regs.c2OFFSET = surface->back_buffer->video.pitch * 2;
+     mcrtc2->regs.c2OFFSET = surface->front_buffer->video.pitch * 2;
 
      {
           int hdisplay, htotal, vdisplay, vtotal;
@@ -504,9 +505,10 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
 
 static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
                                MatroxCrtc2LayerData *mcrtc2,
-                               CoreSurface          *surface )
+                               CoreSurface          *surface,
+                               bool                  front )
 {
-     SurfaceBuffer *buffer       = surface->back_buffer;
+     SurfaceBuffer *buffer       = front ? surface->front_buffer : surface->back_buffer;
      int            field_offset = buffer->video.pitch;
 
      mcrtc2->regs.c2STARTADD1 = buffer->video.offset;

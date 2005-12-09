@@ -74,7 +74,8 @@ typedef struct {
 
 static void spic_calc_buffer( MatroxDriverData    *mdrv,
                               MatroxSpicLayerData *mspic,
-                              CoreSurface         *surface );
+                              CoreSurface         *surface,
+                              bool                 front );
 static void spic_set_buffer( MatroxDriverData    *mdrv,
                              MatroxSpicLayerData *mspic );
 
@@ -214,7 +215,7 @@ spicSetRegion( CoreLayer                  *layer,
 
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT | CLRCF_SURFACE_CAPS |
                     CLRCF_OPTIONS | CLRCF_OPACITY | CLRCF_SURFACE)) {
-          spic_calc_buffer( mdrv, mspic, surface );
+          spic_calc_buffer( mdrv, mspic, surface, true );
           spic_set_buffer( mdrv, mspic );
 
           mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
@@ -273,7 +274,7 @@ spicFlipRegion( CoreLayer           *layer,
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
 
-     spic_calc_buffer( mdrv, mspic, surface );
+     spic_calc_buffer( mdrv, mspic, surface, false );
      spic_set_buffer( mdrv, mspic );
 
      dfb_surface_flip_buffers( surface, false );
@@ -296,9 +297,10 @@ DisplayLayerFuncs matroxSpicFuncs = {
 
 static void spic_calc_buffer( MatroxDriverData    *mdrv,
                               MatroxSpicLayerData *mspic,
-                              CoreSurface         *surface )
+                              CoreSurface         *surface,
+                              bool                 front )
 {
-     SurfaceBuffer *buffer = surface->back_buffer;
+     SurfaceBuffer *buffer = front ? surface->front_buffer : surface->back_buffer;
 
      mspic->regs.c2SPICSTARTADD1 = buffer->video.offset;
      mspic->regs.c2SPICSTARTADD0 = buffer->video.offset;

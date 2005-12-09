@@ -102,7 +102,8 @@ typedef struct {
 static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                           bool onsync );
 static void bes_calc_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
-                           CoreLayerRegionConfig *config, CoreSurface *surface );
+                           CoreLayerRegionConfig *config, CoreSurface *surface,
+                           bool front );
 
 #define BES_SUPPORTED_OPTIONS   (DLOP_DEINTERLACING | DLOP_DST_COLORKEY)
 
@@ -271,7 +272,7 @@ besSetRegion( CoreLayer                  *layer,
      if (updated & (CLRCF_WIDTH | CLRCF_HEIGHT | CLRCF_FORMAT |
                     CLRCF_OPTIONS | CLRCF_DEST | CLRCF_OPACITY | CLRCF_SOURCE))
      {
-          bes_calc_regs( mdrv, mbes, config, surface );
+          bes_calc_regs( mdrv, mbes, config, surface, true );
           bes_set_regs( mdrv, mbes, true );
      }
 
@@ -329,7 +330,7 @@ besFlipRegion( CoreLayer           *layer,
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
 
-     bes_calc_regs( mdrv, mbes, &mbes->config, surface );
+     bes_calc_regs( mdrv, mbes, &mbes->config, surface, false );
      bes_set_regs( mdrv, mbes, flags & DSFLIP_ONSYNC );
 
      dfb_surface_flip_buffers( surface, false );
@@ -448,7 +449,8 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
 static void bes_calc_regs( MatroxDriverData      *mdrv,
                            MatroxBesLayerData    *mbes,
                            CoreLayerRegionConfig *config,
-                           CoreSurface           *surface )
+                           CoreSurface           *surface,
+                           bool                   front )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
      int cropleft, cropright, croptop, cropbot, croptop_uv;
@@ -456,7 +458,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      DFBRectangle   source, dest;
      DFBRegion      dst;
      bool           visible;
-     SurfaceBuffer *buffer = surface->back_buffer;
+     SurfaceBuffer *buffer = front ? surface->front_buffer : surface->back_buffer;
      VideoMode     *mode   = dfb_system_current_mode();
 
      if (!mode) {
