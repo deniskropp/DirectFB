@@ -220,7 +220,7 @@ static int elo_set_scale(int fd, unsigned char axis, short low, short high)
 
     if(!(ptr=elo_getbuf(fd)))
       return -2;
-    if(!strncmp("A0000", ptr, 5))
+    if(!strncmp("A0000", (char*)ptr, 5))
       return 0;
   }
 }
@@ -242,7 +242,7 @@ static int elo_set_mode(int fd, unsigned char mode1, unsigned char mode2)
 
     if(!(ptr=elo_getbuf(fd)))
       return -2;
-    if(!strncmp("A0000", ptr, 5))
+    if(!strncmp("A0000", (char*)ptr, 5))
       return 0;
   }
 }
@@ -287,7 +287,7 @@ static int elo_reset_touch(int fd)
   return 0;
 }
 
-static int eloOpenDevice(unsigned char *device)
+static int eloOpenDevice(const char *device)
 {
   int fd;
   int res;
