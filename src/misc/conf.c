@@ -1148,7 +1148,14 @@ DFBResult dfb_config_read( const char *filename )
 
      while (fgets( line, 400, f )) {
           char *name = line;
-          char *value = strchr( line, '=' );
+          char *comment = strchr( line, '#');
+          char *value;
+          
+          if (comment) {
+               *comment = 0;
+          }
+          
+          value = strchr( line, '=' );
 
           if (value) {
                *value++ = 0;
