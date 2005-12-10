@@ -169,7 +169,8 @@ struct _CoreSurface
 
      SurfaceManager        *manager;
 
-     FusionSHMPoolShared   *shmpool;
+     FusionSHMPoolShared   *shmpool;       /* for structures, e.g. CoreSurface or SurfaceBuffer */
+     FusionSHMPoolShared   *shmpool_data;  /* for raw data in the surface buffers */
 };
 
 static inline void *

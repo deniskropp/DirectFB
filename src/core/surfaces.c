@@ -971,6 +971,7 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
 
      surface->manager = dfb_gfxcard_surface_manager();
      surface->shmpool = dfb_core_shmpool( core );
+     surface->shmpool_data = dfb_core_shmpool_data( core );
 
      return DFB_OK;
 }
@@ -1381,7 +1382,7 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
                                           MAX( surface->height, surface->min_height ) * pitch );
 
                /* Allocate shared memory. */
-               data = SHMALLOC( surface->shmpool, size );
+               data = SHMALLOC( surface->shmpool_data, size );
                if (!data) {
                     SHFREE( surface->shmpool, buffer );
                     return D_OOSHM();
@@ -1449,12 +1450,12 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
           size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
 
           /* Allocate shared memory. */
-          data = SHMALLOC( surface->shmpool, size );
+          data = SHMALLOC( surface->shmpool_data, size );
           if (!data)
                return D_OOSHM();
 
           /* Free old memory. */
-          SHFREE( surface->shmpool, buffer->system.addr );
+          SHFREE( surface->shmpool_data, buffer->system.addr );
 
           /* Write back new values. */
           buffer->system.health = CSH_STORED;
@@ -1495,7 +1496,7 @@ static void dfb_surface_destroy_buffer( CoreSurface   *surface,
      dfb_surfacemanager_lock( surface->manager );
 
      if (buffer->system.health && !(buffer->flags & SBF_FOREIGN_SYSTEM)) {
-          SHFREE( surface->shmpool, buffer->system.addr );
+          SHFREE( surface->shmpool_data, buffer->system.addr );
 
           buffer->system.addr   = NULL;
           buffer->system.health = CSH_INVALID;

@@ -101,6 +101,11 @@ FusionArena *dfb_core_arena( CoreDFB *core );
 FusionSHMPoolShared *dfb_core_shmpool( CoreDFB *core );
 
 /*
+ * Returns the shared memory pool for raw data, e.g. surface buffers.
+ */
+FusionSHMPoolShared *dfb_core_shmpool_data( CoreDFB *core );
+
+/*
  * Suspends all core parts, stopping input threads, closing devices...
  */
 DFBResult    dfb_core_suspend( CoreDFB *core );

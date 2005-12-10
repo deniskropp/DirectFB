@@ -56,6 +56,9 @@ typedef struct {
                                                 set by DirectFB */
      struct fb_var_screeninfo orig_var;      /* fbdev variable screeninfo
                                                 before DirectFB was started */
+
+     void                    *cmap_memory;
+
      struct fb_cmap           orig_cmap;     /* original palette */
 
      struct fb_cmap           current_cmap;  /* our copy of the cmap */
@@ -78,6 +81,7 @@ typedef struct {
      } device;
 
      FusionSHMPoolShared     *shmpool;
+     FusionSHMPoolShared     *shmpool_data;
 } FBDevShared;
 
 typedef struct {

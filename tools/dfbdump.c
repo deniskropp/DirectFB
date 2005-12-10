@@ -527,8 +527,7 @@ main( int argc, char *argv[] )
                     total += desc->bytes;
                }
 
-               printf( "   -------\n  %7dk total  (%dk without pixel buffers)\n",
-                       total >> 10, (total - mem.system) >> 10 );
+               printf( "   -------\n  %7dk total\n", total >> 10 );
           }
      
           printf( "\nShared memory file size: %dk\n", pool->heap->size >> 10 );

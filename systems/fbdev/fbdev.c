@@ -408,16 +408,19 @@ system_initialize( CoreDFB *core, void **data )
      long                 page_size;
      FBDevShared         *shared;
      FusionSHMPoolShared *pool;
+     FusionSHMPoolShared *pool_data;
 
      D_ASSERT( dfb_fbdev == NULL );
 
-     pool = dfb_core_shmpool( core );
+     pool      = dfb_core_shmpool( core );
+     pool_data = dfb_core_shmpool_data( core );
 
      dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
 
      shared = (FBDevShared*) SHCALLOC( pool, 1, sizeof(FBDevShared) );
 
-     shared->shmpool = pool;
+     shared->shmpool      = pool;
+     shared->shmpool_data = pool_data;
 
      fusion_arena_add_shared_field( dfb_core_arena( core ), "fbdev", shared );
 
@@ -505,34 +508,33 @@ system_initialize( CoreDFB *core, void **data )
      dfb_fbdev_var_to_mode( &shared->current_var,
                             &shared->current_mode );
 
+     shared->cmap_memory = SHMALLOC( pool_data, 256 * 2 * 12 );
+
      shared->orig_cmap.start  = 0;
      shared->orig_cmap.len    = 256;
-     shared->orig_cmap.red    = (__u16*)SHMALLOC( pool, 2 * 256 );
-     shared->orig_cmap.green  = (__u16*)SHMALLOC( pool, 2 * 256 );
-     shared->orig_cmap.blue   = (__u16*)SHMALLOC( pool, 2 * 256 );
-     shared->orig_cmap.transp = (__u16*)SHMALLOC( pool, 2 * 256 );
+     shared->orig_cmap.red    = shared->cmap_memory + 256 * 2 * 0;
+     shared->orig_cmap.green  = shared->cmap_memory + 256 * 2 * 1;
+     shared->orig_cmap.blue   = shared->cmap_memory + 256 * 2 * 2;
+     shared->orig_cmap.transp = shared->cmap_memory + 256 * 2 * 3;
 
      if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &shared->orig_cmap ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not retrieve palette for backup!\n" );
-          SHFREE( pool, shared->orig_cmap.red );
-          SHFREE( pool, shared->orig_cmap.green );
-          SHFREE( pool, shared->orig_cmap.blue );
-          SHFREE( pool, shared->orig_cmap.transp );
+          SHFREE( pool_data, shared->cmap_memory );
           shared->orig_cmap.len = 0;
      }
 
      shared->temp_cmap.len    = 256;
-     shared->temp_cmap.red    = SHCALLOC( pool, 256, 2 );
-     shared->temp_cmap.green  = SHCALLOC( pool, 256, 2 );
-     shared->temp_cmap.blue   = SHCALLOC( pool, 256, 2 );
-     shared->temp_cmap.transp = SHCALLOC( pool, 256, 2 );
+     shared->temp_cmap.red    = shared->cmap_memory + 256 * 2 * 4;
+     shared->temp_cmap.green  = shared->cmap_memory + 256 * 2 * 5;
+     shared->temp_cmap.blue   = shared->cmap_memory + 256 * 2 * 6;
+     shared->temp_cmap.transp = shared->cmap_memory + 256 * 2 * 7;
 
      shared->current_cmap.len    = 256;
-     shared->current_cmap.red    = SHCALLOC( pool, 256, 2 );
-     shared->current_cmap.green  = SHCALLOC( pool, 256, 2 );
-     shared->current_cmap.blue   = SHCALLOC( pool, 256, 2 );
-     shared->current_cmap.transp = SHCALLOC( pool, 256, 2 );
+     shared->current_cmap.red    = shared->cmap_memory + 256 * 2 * 8;
+     shared->current_cmap.green  = shared->cmap_memory + 256 * 2 * 9;
+     shared->current_cmap.blue   = shared->cmap_memory + 256 * 2 * 10;
+     shared->current_cmap.transp = shared->cmap_memory + 256 * 2 * 11;
      
      dfb_fbdev_get_pci_info( shared );
 
@@ -638,22 +640,9 @@ system_shutdown( bool emergency )
           if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &shared->orig_cmap ) < 0)
                D_PERROR( "DirectFB/FBDev: "
                          "Could not restore palette!\n" );
-
-          SHFREE( pool, shared->orig_cmap.red );
-          SHFREE( pool, shared->orig_cmap.green );
-          SHFREE( pool, shared->orig_cmap.blue );
-          SHFREE( pool, shared->orig_cmap.transp );
      }
 
-     SHFREE( pool, shared->temp_cmap.red );
-     SHFREE( pool, shared->temp_cmap.green );
-     SHFREE( pool, shared->temp_cmap.blue );
-     SHFREE( pool, shared->temp_cmap.transp );
-
-     SHFREE( pool, shared->current_cmap.red );
-     SHFREE( pool, shared->current_cmap.green );
-     SHFREE( pool, shared->current_cmap.blue );
-     SHFREE( pool, shared->current_cmap.transp );
+     SHFREE( shared->shmpool_data, shared->cmap_memory );
 
      fusion_call_destroy( &shared->fbdev_ioctl );
 
@@ -1746,7 +1735,6 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      if (surface) {
           struct fb_fix_screeninfo  fix;
           DFBSurfacePixelFormat     format;
-          FusionSHMPoolShared      *pool = surface->shmpool;
 
           FBDEV_IOCTL( FBIOGET_VSCREENINFO, &var );
 
@@ -1812,18 +1800,18 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
                     if (surface->back_buffer != surface->front_buffer) {
                          if (surface->back_buffer->system.addr)
-                              SHFREE( pool, surface->back_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
 
-                         SHFREE( pool, surface->back_buffer );
+                         SHFREE( surface->shmpool, surface->back_buffer );
 
                          surface->back_buffer = surface->front_buffer;
                     }
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
-                              SHFREE( pool, surface->idle_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
 
-                         SHFREE( pool, surface->idle_buffer );
+                         SHFREE( surface->shmpool, surface->idle_buffer );
 
                          surface->idle_buffer = surface->front_buffer;
                     }
@@ -1833,11 +1821,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->caps &= ~DSCAPS_TRIPLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->back_buffer->system.addr) {
-                              SHFREE( pool, surface->back_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
                               surface->back_buffer->system.addr = NULL;
                          }
 
@@ -1853,9 +1841,9 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
-                              SHFREE( pool, surface->idle_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
 
-                         SHFREE( pool, surface->idle_buffer );
+                         SHFREE( surface->shmpool, surface->idle_buffer );
 
                          surface->idle_buffer = surface->front_buffer;
                     }
@@ -1865,11 +1853,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->caps &= ~DSCAPS_DOUBLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->back_buffer->system.addr) {
-                              SHFREE( pool, surface->back_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
                               surface->back_buffer->system.addr = NULL;
                          }
 
@@ -1884,11 +1872,11 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                          surface->back_buffer->video.pitch * var.yres;
 
                     if (surface->idle_buffer == surface->front_buffer) {
-                         surface->idle_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
+                         surface->idle_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
                     }
                     else {
                          if (surface->idle_buffer->system.addr) {
-                              SHFREE( pool, surface->idle_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
                               surface->idle_buffer->system.addr = NULL;
                          }
 
@@ -1907,7 +1895,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                     surface->caps &= ~DSCAPS_TRIPLE;
 
                     if (surface->back_buffer == surface->front_buffer) {
-                         surface->back_buffer = SHCALLOC( pool, 1, sizeof(SurfaceBuffer) );
+                         surface->back_buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
                     }
                     surface->back_buffer->surface = surface;
                     surface->back_buffer->policy = CSP_SYSTEMONLY;
@@ -1918,16 +1906,16 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                          (DFB_BYTES_PER_LINE(format, var.xres) + 3) & ~3;
 
                     if (surface->back_buffer->system.addr)
-                         SHFREE( pool, surface->back_buffer->system.addr );
+                         SHFREE( surface->shmpool_data, surface->back_buffer->system.addr );
 
                     surface->back_buffer->system.addr =
-                         SHMALLOC( pool, surface->back_buffer->system.pitch * var.yres );
+                         SHMALLOC( surface->shmpool_data, surface->back_buffer->system.pitch * var.yres );
 
                     if (surface->idle_buffer != surface->front_buffer) {
                          if (surface->idle_buffer->system.addr)
-                              SHFREE( pool, surface->idle_buffer->system.addr );
+                              SHFREE( surface->shmpool_data, surface->idle_buffer->system.addr );
 
-                         SHFREE( pool, surface->idle_buffer );
+                         SHFREE( surface->shmpool, surface->idle_buffer );
 
                          surface->idle_buffer = surface->front_buffer;
                     }
@@ -2169,7 +2157,7 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
      int green_val;
      int blue_val;
      int i = 0;
-     FusionSHMPoolShared *pool = dfb_fbdev->shared->shmpool;
+     FusionSHMPoolShared *pool = dfb_fbdev->shared->shmpool_data;
 
      struct fb_cmap cmap;
 

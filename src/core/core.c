@@ -105,6 +105,7 @@ struct __DFB_CoreDFBShared {
      FusionObjectPool    *window_pool;
 
      FusionSHMPoolShared *shmpool;
+     FusionSHMPoolShared *shmpool_data; /* for raw data, e.g. surface buffers */
 };
 
 struct __DFB_CoreDFB {
@@ -608,6 +609,25 @@ dfb_core_shmpool( CoreDFB *core )
      return shared->shmpool;
 }
 
+FusionSHMPoolShared *
+dfb_core_shmpool_data( CoreDFB *core )
+{
+     CoreDFBShared *shared;
+
+     D_ASSUME( core != NULL );
+
+     if (!core)
+          core = core_dfb;
+
+     D_MAGIC_ASSERT( core, CoreDFB );
+
+     shared = core->shared;
+
+     D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     return shared->shmpool_data;
+}
+
 DFBResult
 dfb_core_suspend( CoreDFB *core )
 {
@@ -795,6 +815,8 @@ dfb_core_shutdown( CoreDFB *core, bool emergency )
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_shutdown( core, core_parts[i], emergency );
 
+     fusion_shm_pool_destroy( core->world, shared->shmpool_data );
+
      return 0;
 }
 
@@ -802,6 +824,7 @@ static DFBResult
 dfb_core_initialize( CoreDFB *core )
 {
      int            i;
+     DFBResult      ret;
      CoreDFBShared *shared;
 
      D_MAGIC_ASSERT( core, CoreDFB );
@@ -809,6 +832,10 @@ dfb_core_initialize( CoreDFB *core )
      shared = core->shared;
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
+
+     ret = fusion_shm_pool_create( core->world, "DirectFB Surface Pool", 0x8000000, &shared->shmpool_data );
+     if (ret)
+          return ret;
 
      shared->layer_context_pool = dfb_layer_context_pool_create( core->world );
      shared->layer_region_pool  = dfb_layer_region_pool_create( core->world );
@@ -825,7 +852,7 @@ dfb_core_initialize( CoreDFB *core )
           }
      }
 
-     return 0;
+     return DFB_OK;
 }
 
 static int
@@ -838,7 +865,7 @@ dfb_core_leave( CoreDFB *core, bool emergency )
      for (i=NUM_CORE_PARTS-1; i>=0; i--)
           dfb_core_part_leave( core, core_parts[i], emergency );
 
-     return 0;
+     return DFB_OK;
 }
 
 static int
@@ -857,7 +884,7 @@ dfb_core_join( CoreDFB *core )
           }
      }
 
-     return 0;
+     return DFB_OK;
 }
 
 /******************************************************************************/
@@ -876,7 +903,7 @@ dfb_core_arena_initialize( FusionArena *arena,
      D_DEBUG_AT( DirectFB_Core, "Initializing...\n" );
 
      /* Create the shared memory pool first! */
-     ret = fusion_shm_pool_create( core->world, "DirectFB Main Pool", 0x8000000, &pool );
+     ret = fusion_shm_pool_create( core->world, "DirectFB Main Pool", 0x400000, &pool );
      if (ret)
           return ret;
 
