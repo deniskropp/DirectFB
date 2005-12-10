@@ -69,6 +69,13 @@ divine_open( const char *path )
 }
 
 void
+divine_send_event( DiVine *divine, const DFBInputEvent *event )
+{
+     /* Write event to pipe */
+     write( divine->fd, event, sizeof(DFBInputEvent) );
+}
+
+void
 divine_send_symbol( DiVine *divine, DFBInputDeviceKeySymbol symbol )
 {
      DFBInputEvent event;

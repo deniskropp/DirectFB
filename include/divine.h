@@ -43,6 +43,11 @@ typedef struct _DiVine DiVine;
 DiVine *divine_open (const char *path);
 
 /*
+ * Sends an input event.
+ */
+void divine_send_event (DiVine *divine, const DFBInputEvent *event);
+
+/*
  * Sends a press and a release event for the specified symbol.
  */
 void divine_send_symbol (DiVine *divine, DFBInputDeviceKeySymbol symbol);
