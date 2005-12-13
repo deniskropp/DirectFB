@@ -216,6 +216,9 @@ IDirectFBScreen_GetMixerConfiguration( IDirectFBScreen      *thiz,
      if (! (data->description.caps & DSCCAPS_MIXERS))
           return DFB_UNSUPPORTED;
 
+     if (mixer < 0 || mixer >= data->description.mixers)
+          return DFB_INVARG;
+
      return dfb_screen_get_mixer_config( data->screen, mixer, config );
 }
 
@@ -235,6 +238,9 @@ IDirectFBScreen_TestMixerConfiguration( IDirectFBScreen            *thiz,
 
      if (! (data->description.caps & DSCCAPS_MIXERS))
           return DFB_UNSUPPORTED;
+
+     if (mixer < 0 || mixer >= data->description.mixers)
+          return DFB_INVARG;
 
      /* Get the current configuration. */
      ret = dfb_screen_get_mixer_config( data->screen, mixer, &patched );
@@ -266,6 +272,9 @@ IDirectFBScreen_SetMixerConfiguration( IDirectFBScreen            *thiz,
 
      if (! (data->description.caps & DSCCAPS_MIXERS))
           return DFB_UNSUPPORTED;
+
+     if (mixer < 0 || mixer >= data->description.mixers)
+          return DFB_INVARG;
 
      /* Get the current configuration. */
      ret = dfb_screen_get_mixer_config( data->screen, mixer, &patched );
@@ -314,6 +323,9 @@ IDirectFBScreen_GetEncoderConfiguration( IDirectFBScreen        *thiz,
      if (! (data->description.caps & DSCCAPS_ENCODERS))
           return DFB_UNSUPPORTED;
 
+     if (encoder < 0 || encoder >= data->description.encoders)
+          return DFB_INVARG;
+
      return dfb_screen_get_encoder_config( data->screen, encoder, config );
 }
 
@@ -333,6 +345,9 @@ IDirectFBScreen_TestEncoderConfiguration( IDirectFBScreen              *thiz,
 
      if (! (data->description.caps & DSCCAPS_ENCODERS))
           return DFB_UNSUPPORTED;
+
+     if (encoder < 0 || encoder >= data->description.encoders)
+          return DFB_INVARG;
 
      /* Get the current configuration. */
      ret = dfb_screen_get_encoder_config( data->screen, encoder, &patched );
@@ -364,6 +379,9 @@ IDirectFBScreen_SetEncoderConfiguration( IDirectFBScreen              *thiz,
 
      if (! (data->description.caps & DSCCAPS_ENCODERS))
           return DFB_UNSUPPORTED;
+
+     if (encoder < 0 || encoder >= data->description.encoders)
+          return DFB_INVARG;
 
      /* Get the current configuration. */
      ret = dfb_screen_get_encoder_config( data->screen, encoder, &patched );
@@ -412,6 +430,9 @@ IDirectFBScreen_GetOutputConfiguration( IDirectFBScreen       *thiz,
      if (! (data->description.caps & DSCCAPS_OUTPUTS))
           return DFB_UNSUPPORTED;
 
+     if (output < 0 || output >= data->description.outputs)
+          return DFB_INVARG;
+
      return dfb_screen_get_output_config( data->screen, output, config );
 }
 
@@ -431,6 +452,9 @@ IDirectFBScreen_TestOutputConfiguration( IDirectFBScreen             *thiz,
 
      if (! (data->description.caps & DSCCAPS_OUTPUTS))
           return DFB_UNSUPPORTED;
+
+     if (output < 0 || output >= data->description.outputs)
+          return DFB_INVARG;
 
      /* Get the current configuration. */
      ret = dfb_screen_get_output_config( data->screen, output, &patched );
@@ -462,6 +486,9 @@ IDirectFBScreen_SetOutputConfiguration( IDirectFBScreen             *thiz,
 
      if (! (data->description.caps & DSCCAPS_OUTPUTS))
           return DFB_UNSUPPORTED;
+
+     if (output < 0 || output >= data->description.outputs)
+          return DFB_INVARG;
 
      /* Get the current configuration. */
      ret = dfb_screen_get_output_config( data->screen, output, &patched );
