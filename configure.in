@@ -1001,7 +1001,7 @@ AC_ARG_WITH(inputdrivers,
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
   checkfor_dreamboxremote=yes
-  checkfor_elo=yes
+  checkfor_elo=no
   checkfor_gunze=no
   checkfor_h3600ts=yes
   checkfor_joystick=yes
