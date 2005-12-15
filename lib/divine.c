@@ -203,6 +203,57 @@ divine_send_vt102( DiVine *divine, int size, const char *ansistr )
      }
 }
 
+void
+divine_send_motion_absolute( DiVine *divine, int x, int y )
+{
+     DFBInputEvent event;
+
+     /* Construct 'motion' event */
+     event.flags   = DIEF_AXISABS;
+     event.type    = DIET_AXISMOTION;
+     event.axis    = DIAI_X;
+     event.axisabs = x;
+
+     /* Write 'motion' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
+
+     /* Construct 'motion' event */
+     event.flags   = DIEF_AXISABS;
+     event.type    = DIET_AXISMOTION;
+     event.axis    = DIAI_Y;
+     event.axisabs = y;
+
+     /* Write 'motion' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
+}
+
+void
+divine_send_button_press( DiVine *divine, DFBInputDeviceButtonIdentifier button )
+{
+     DFBInputEvent event;
+
+     /* Construct 'press' event */
+     event.flags   = DIEF_NONE;
+     event.type    = DIET_BUTTONPRESS;
+     event.button  = button;
+
+     /* Write 'press' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
+}
+
+void
+divine_send_button_release( DiVine *divine, DFBInputDeviceButtonIdentifier button )
+{
+     DFBInputEvent event;
+
+     /* Construct 'release' event */
+     event.flags   = DIEF_NONE;
+     event.type    = DIET_BUTTONRELEASE;
+     event.button  = button;
+
+     /* Write 'release' event to pipe */
+     write( divine->fd, &event, sizeof(DFBInputEvent) );
+}
 
 void
 divine_close( DiVine *divine )

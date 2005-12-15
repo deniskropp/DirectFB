@@ -42,6 +42,7 @@ typedef struct _DiVine DiVine;
  */
 DiVine *divine_open (const char *path);
 
+
 /*
  * Sends an input event.
  */
@@ -62,6 +63,22 @@ void divine_send_identifier (DiVine *divine, DFBInputDeviceKeyIdentifier identif
  * Use this to feed terminal input into a DirectFB application.
  */
 void divine_send_vt102 (DiVine *divine, int size, const char *ansistr);
+
+/*
+ *
+ */
+void divine_send_motion_absolute( DiVine *divine, int x, int y );
+
+/*
+ *
+ */
+void divine_send_button_press( DiVine *divine, DFBInputDeviceButtonIdentifier button );
+
+/*
+ *
+ */
+void divine_send_button_release( DiVine *divine, DFBInputDeviceButtonIdentifier button );
+
 
 /*
  * Closes the pipe and destroys the connection object.
