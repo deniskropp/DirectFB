@@ -1034,7 +1034,7 @@ pipe_peek( DirectStream *stream,
 
      len = length + offset;
      if (len > stream->cache_size) {
-          size_t s;
+          ssize_t s;
           
           stream->cache = D_REALLOC( stream->cache, len );
           if (!stream->cache) {
@@ -1093,7 +1093,7 @@ pipe_read( DirectStream *stream,
      }
 
      if (length) {
-          size_t s;
+          ssize_t s;
           
           s = read( stream->fd, buf+size, length-size );
           switch (s) {
@@ -1132,7 +1132,7 @@ file_peek( DirectStream *stream,
            unsigned int *read_out )
 {
      DirectResult ret = DFB_OK;
-     size_t       size;
+     ssize_t      size;
      
      if (lseek( stream->fd, offset, SEEK_CUR ) < 0)
           return DFB_FAILURE;
@@ -1165,7 +1165,7 @@ file_read( DirectStream *stream,
            void         *buf,
            unsigned int *read_out )
 {
-     size_t size;
+     ssize_t size;
 
      size = read( stream->fd, buf, length );
      switch (size) {
