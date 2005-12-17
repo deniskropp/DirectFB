@@ -157,10 +157,10 @@ get_audio_buffer( IDirectFBVideoProvider_Swfdec_data *data )
 static inline void
 free_audio_buffers( IDirectFBVideoProvider_Swfdec_data *data )
 {
-     AudioElement *e;
+     AudioElement *e, *t;
      
      if (data->audio_queue) {
-          direct_list_foreach( e, data->audio_queue ) {
+          direct_list_foreach_safe( e, t, data->audio_queue ) {
                direct_list_remove( (DirectLink**)&data->audio_queue, &e->link );
                swfdec_buffer_unref( e->buffer );
                D_FREE( e );
@@ -458,8 +458,6 @@ SwfVideo( DirectThread *self, void *arg )
                         swfdec_render_get_frame_index( data->decoder ) );
           }
 
-          data->seeked = false;
-
           if (!data->stopped) {
                struct timeval now;
 
@@ -492,20 +490,22 @@ static void*
 SwfAudio( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data = arg;
-     
-     data->stream->Wait( data->stream, 0 );
 
      while (!direct_thread_is_canceled( self )) {
           SwfdecBuffer *audio_buffer;
           
           pthread_mutex_lock( &data->audio_lock );
+
+          if (data->seeked) {
+               data->stream->Wait( data->stream, 0 );
+               data->seeked = false;
+          }
+          
           audio_buffer = get_audio_buffer( data );
+          
           pthread_mutex_unlock( &data->audio_lock );
 
           direct_thread_testcancel( self );
-
-          if (data->seeked)
-               data->stream->Wait( data->stream, 0 );
 
           if (audio_buffer) {
                data->stream->Write( data->stream,
@@ -1059,7 +1059,7 @@ Construct( IDirectFBVideoProvider *thiz,
 
           dsc.flags        = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS  |
                              FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
-          dsc.buffersize   = 11025;
+          dsc.buffersize   = 44100.0/data->rate;
           dsc.channels     = 2;
           dsc.samplerate   = 44100;
           dsc.sampleformat = FSSF_S16;
