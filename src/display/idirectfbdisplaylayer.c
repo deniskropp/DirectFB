@@ -758,11 +758,14 @@ IDirectFBDisplayLayer_SetColorAdjustment( IDirectFBDisplayLayer    *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (!adj || !adj->flags)
+     if (!adj || (adj->flags & ~DCAF_ALL))
           return DFB_INVARG;
 
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
+
+     if (!adj->flags)
+          return DFB_OK;
 
      return dfb_layer_context_set_coloradjustment( data->context, adj );
 }
