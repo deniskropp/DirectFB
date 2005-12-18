@@ -547,6 +547,8 @@ typedef enum {
  * Flags defining which fields of a DFBSurfaceDescription are valid.
  */
 typedef enum {
+     DSDESC_NONE         = 0x00000000,  /* none of these */
+
      DSDESC_CAPS         = 0x00000001,  /* caps field is valid */
      DSDESC_WIDTH        = 0x00000002,  /* width field is valid */
      DSDESC_HEIGHT       = 0x00000004,  /* height field is valid */
@@ -558,9 +560,11 @@ typedef enum {
                                            element for the front buffer
                                            and eventually the second one
                                            for the back buffer. */
-     DSDESC_PALETTE      = 0x00000020   /* Initialize the surfaces palette
+     DSDESC_PALETTE      = 0x00000020,  /* Initialize the surfaces palette
                                            with the entries specified in the
                                            description. */
+
+     DSDESC_ALL          = 0x0000003F   /* all of these */
 } DFBSurfaceDescriptionFlags;
 
 /*
