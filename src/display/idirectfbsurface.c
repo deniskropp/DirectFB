@@ -97,8 +97,12 @@ IDirectFBSurface_Destruct( IDirectFBSurface *thiz )
                D_WARN( "font dead?" );
      }
 
-     if (data->surface)
+     if (data->surface) {
+          if (data->locked)
+               dfb_surface_unlock( data->surface, data->locked - 1 );
+
           dfb_surface_unref( data->surface );
+     }
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -325,6 +329,8 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
      if (!data->surface)
           return DFB_DESTROYED;
 
+     if (data->locked)
+          return DFB_LOCKED;
 
      if (!flags || !ret_ptr || !ret_pitch)
           return DFB_INVARG;
