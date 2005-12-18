@@ -76,8 +76,8 @@ static int sigs_to_handle[] = { /*SIGALRM,*/ SIGHUP, SIGINT, /*SIGPIPE,*/ /*SIGP
 
 static SigHandled sigs_handled[NUM_SIGS_TO_HANDLE];
 
-static DirectLink      *handlers      = NULL;
-static pthread_mutex_t  handlers_lock = PTHREAD_MUTEX_INITIALIZER;
+static DirectLink      *handlers = NULL;
+static pthread_mutex_t  handlers_lock;
 
 /**************************************************************************************************/
 
@@ -91,6 +91,8 @@ direct_signals_initialize()
 {
      D_DEBUG_AT( Direct_Signals, "Initializing...\n" );
 
+     direct_util_recursive_pthread_mutex_init( &handlers_lock );
+
      install_handlers();
 
      return DFB_OK;
@@ -102,6 +104,8 @@ direct_signals_shutdown()
      D_DEBUG_AT( Direct_Signals, "Shutting down...\n" );
 
      remove_handlers();
+
+     pthread_mutex_destroy( &handlers_lock );
 
      return DFB_OK;
 }
