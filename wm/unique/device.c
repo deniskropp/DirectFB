@@ -305,10 +305,8 @@ unique_device_connect( UniqueDevice    *device,
 
      /* Allocate connection structure. */
      connection = SHCALLOC( context->shmpool, 1, sizeof(DeviceConnection) );
-     if (!connection) {
-          D_OOSHM();
+     if (!connection)
           return D_OOSHM();
-     }
 
      /* Initialize connection structure. */
      connection->source = dfb_input_device_id( source );
