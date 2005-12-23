@@ -67,9 +67,7 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      memset( ctx.header, 0, sizeof(ctx.header) );
 
      /* Read the first 64 bytes. */
-     ret = buffer->PeekData( buffer, sizeof(ctx.header), 0, ctx.header, NULL );
-     if (ret && ret != DFB_BUFFEREMPTY && ret != DFB_EOF)
-          return ret;
+     buffer->PeekData( buffer, sizeof(ctx.header), 0, ctx.header, NULL );
 
      /* Find a suitable implementation. */
      ret = DirectGetInterface( &funcs, "IDirectFBVideoProvider", NULL, DirectProbeInterface, &ctx );
