@@ -27,9 +27,17 @@
 
 #include <config.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
+#include <direct/messages.h>
 
 #include <fusion/shm/pool.h>
+
+
+struct __Fusion_FusionSHMPoolShared {
+     int  magic;
+     int  attached;
+};
 
 
 DirectResult
@@ -38,6 +46,16 @@ fusion_shm_pool_create( FusionWorld          *world,
                         unsigned int          max_size,
                         FusionSHMPoolShared **ret_pool )
 {
+     FusionSHMPoolShared *pool;
+
+     pool = D_CALLOC( 1, sizeof(FusionSHMPoolShared) );
+     if (!pool)
+          return D_OOM();
+
+     D_MAGIC_SET( pool, FusionSHMPoolShared );
+
+     *ret_pool = pool;
+
      return DFB_OK;
 }
 
@@ -45,6 +63,12 @@ DirectResult
 fusion_shm_pool_destroy( FusionWorld         *world,
                          FusionSHMPoolShared *pool )
 {
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
+
+     D_MAGIC_CLEAR( pool );
+
+     D_FREE( pool );
+
      return DFB_OK;
 }
 
@@ -52,6 +76,10 @@ DirectResult
 fusion_shm_pool_attach( FusionSHM           *shm,
                         FusionSHMPoolShared *pool )
 {
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
+
+     pool->attached++;
+
      return DFB_OK;
 }
 
@@ -59,6 +87,12 @@ DirectResult
 fusion_shm_pool_detach( FusionSHM           *shm,
                         FusionSHMPoolShared *pool )
 {
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
+
+     D_ASSERT( pool->attached > 0 );
+
+     pool->attached--;
+
      return DFB_OK;
 }
 
@@ -70,6 +104,8 @@ fusion_shm_pool_allocate( FusionSHMPoolShared  *pool,
                           void                **ret_data )
 {
      void *data;
+
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
 
      data = clear ? D_CALLOC( 1, size ) : D_MALLOC( size );
      if (!data)
@@ -89,6 +125,8 @@ fusion_shm_pool_reallocate( FusionSHMPoolShared  *pool,
 {
      void *new_data;
 
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
+
      new_data = D_REALLOC( data, size );
      if (!new_data)
           return DFB_NOSHAREDMEMORY;
@@ -103,6 +141,8 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
                             void                *data,
                             bool                 lock )
 {
+     D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
+
      D_FREE( data );
 
      return DFB_OK;
