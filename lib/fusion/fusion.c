@@ -230,10 +230,14 @@ fusion_enter( int           world_index,
      }
 
      if (fd < 0) {
-          D_PERROR( "Fusion/Init: opening fusion device failed!\n" );
+          D_PERROR( "Fusion/Init: Opening fusion device failed!\n" );
           pthread_mutex_unlock( &fusion_worlds_lock );
           return DFB_INIT;
      }
+
+     /* Drop "identity" when running another program. */
+     if (fcntl( fd, F_SETFD, FD_CLOEXEC ) < 0)
+          D_PERROR( "Fusion/Init: Setting FD_CLOEXEC flag failed!\n" );
 
      direct_initialize();
 
