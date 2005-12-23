@@ -728,17 +728,17 @@ AC_ARG_ENABLE(freetype,
   enable_freetype="$enableval", enable_freetype=yes)
 
 if test "$enable_freetype" = "yes"; then
-  AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
-  if test "$FREETYPE_CONFIG" = no; then
-    FREETYPE=no
-    AC_MSG_WARN([
-*** freetype-config not found -- FreeType font provider will not be built.])
-  else
+  if test -n "$FREETYPE_CFLAGS" && test -n "$FREETYPE_LIBS"; then
     FREETYPE=yes
-    if test -z "$FREETYPE_CFLAGS"; then
+  else
+    AC_PATH_PROG(FREETYPE_CONFIG, freetype-config, no)
+    if test "$FREETYPE_CONFIG" = no; then
+      FREETYPE=no
+      AC_MSG_WARN([
+*** freetype-config not found -- FreeType font provider will not be built.])
+    else
+      FREETYPE=yes
       FREETYPE_CFLAGS=`freetype-config --cflags`
-    fi
-    if test -z "$FREETYPE_LIBS"; then
       FREETYPE_LIBS=`freetype-config --libs`
     fi
   fi
