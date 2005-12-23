@@ -65,7 +65,7 @@ Cambridge, MA 02139, USA.
 #define D_OOSHM()        (direct_messages_warn( __FUNCTION__, __FILE__, __LINE__,              \
                                                 "out of shared memory" ), DFB_NOSHAREDMEMORY)
 #else
-#define D_OOSHM()        (DFB_NOSHAREDMEMORY)
+#define D_OOSHM()        D_OOM()
 #endif
 
 
