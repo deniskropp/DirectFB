@@ -401,27 +401,6 @@ DisplayLayerFuncs R200OverlayFuncs = {
 
 /*** Internal Functions ***/
 
-static inline bool
-crtc_is_doubled( R200DriverData *rdrv )
-{
-     return (r200_in32( rdrv->mmio_base, CRTC_GEN_CNTL ) & CRTC_DBL_SCAN_EN);
-}
-
-static inline bool
-crtc_is_interlaced( R200DriverData *rdrv )
-{
-     return (r200_in32( rdrv->mmio_base, CRTC_GEN_CNTL ) & CRTC_INTERLACE_EN);
-}
-
-static inline __u32
-crtc_dotclock( void )
-{
-     VideoMode *mode = dfb_system_current_mode();
-     if (mode)
-          return 100000000 / mode->pixclock;
-     return 0;
-}
-
 static void
 ov0_calc_coordinates( R200DriverData        *rdrv,
                       R200OverlayLayerData  *rov0,
@@ -429,6 +408,7 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
                       CoreLayerRegionConfig *config )
 {
      R200DeviceData *rdev     = rdrv->device_data;
+     VideoMode      *mode     = dfb_system_current_mode();
      DFBRectangle    source   = config->source;
      DFBRectangle    dest     = config->dest; 
      __u32           ecp_div  = 0;
@@ -436,10 +416,11 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
      __u32           v_inc;
      __u32           step_by;
      __u32           tmp;
-     int             xres;
-     int             yres;
 
-     dfb_screen_get_screen_size( dfb_screens_at( DSCID_PRIMARY ), &xres, &yres );
+     if (!mode) {
+          D_BUG( "no video mode set" );
+          return;
+     }
  
      if (dest.w > (source.w << 4))
           dest.w = source.w << 4;
@@ -459,14 +440,14 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
           dest.y    = 0;
      }
 
-     if ((dest.x + dest.w) > xres) {
-          source.w = (xres - dest.x) * source.w / dest.w;
-          dest.w   =  xres - dest.x;
+     if ((dest.x + dest.w) > mode->xres) {
+          source.w = (mode->xres - dest.x) * source.w / dest.w;
+          dest.w   =  mode->xres - dest.x;
      }
 
-     if ((dest.y + dest.h) > yres) {
-          source.h = (yres - dest.y) * source.h / dest.h;
-          dest.h   =  yres - dest.y;
+     if ((dest.y + dest.h) > mode->yres) {
+          source.h = (mode->yres - dest.y) * source.h / dest.h;
+          dest.h   =  mode->yres - dest.y;
      }
      
      if (dest.w < 1 || dest.h < 1 || source.w < 1 || source.h < 1) {
@@ -477,17 +458,17 @@ ov0_calc_coordinates( R200DriverData        *rdrv,
      if (config->options & DLOP_DEINTERLACING)
           source.h /= 2;
      
-     if (crtc_is_doubled( rdrv )) {
+     if (mode->doubled) {
           dest.y *= 2;
           dest.h *= 2;
      }
 
-     if (crtc_is_interlaced( rdrv )) {
+     if (mode->laced) {
           dest.y /= 2;
           dest.h /= 2;
      }
 
-     if (crtc_dotclock() >= 17500)
+     if ((100000000 / mode->pixclock) >= 17500)
           ecp_div = 1;
 
      h_inc = (source.w << (12 + ecp_div)) / dest.w;
