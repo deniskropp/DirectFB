@@ -1623,7 +1623,7 @@ driver_init_device( GraphicsDevice     *device,
           nvdev->state3d[0].colorkey = 0;
           nvdev->state3d[0].offset   = nvdev->fb_offset + nvdev->buf_offset[0];
           nvdev->state3d[0].format   = TEXTRIANGLE_FORMAT_CONTEXT_DMA_A     |
-                                       TEXTRINAGLE_FORMAT_ORIGIN_ZOH_CORNER |
+                                       TEXTRIANGLE_FORMAT_ORIGIN_ZOH_CORNER |
                                        TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER |
                                        TEXTRIANGLE_FORMAT_COLOR_R5G6B5      |
                                        TEXTRIANGLE_FORMAT_U_WRAP            |
@@ -1649,7 +1649,7 @@ driver_init_device( GraphicsDevice     *device,
           nvdev->state3d[1].colorkey = 0;
           nvdev->state3d[1].offset   = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format   = TEXTRIANGLE_FORMAT_CONTEXT_DMA_A     |
-                                       TEXTRINAGLE_FORMAT_ORIGIN_ZOH_CORNER |
+                                       TEXTRIANGLE_FORMAT_ORIGIN_ZOH_CORNER |
                                        TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER |
                                        TEXTRIANGLE_FORMAT_COLOR_R5G6B5      |
                                        TEXTRIANGLE_FORMAT_U_CLAMP           |
