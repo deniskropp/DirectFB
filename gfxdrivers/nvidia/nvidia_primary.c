@@ -106,6 +106,7 @@ crtc1WaitVSync( CoreScreen *screen,
      return DFB_OK;
 }
 
+#if 0
 static DFBResult
 crtc1GetScreenSize( CoreScreen *screen,
                     void       *driver_data,
@@ -141,12 +142,12 @@ crtc1GetScreenSize( CoreScreen *screen,
      
      return DFB_OK;
 }
-
+#endif
 
 ScreenFuncs nvidiaPrimaryScreenFuncs = {
      .InitScreen     = crtc1InitScreen,
      .WaitVSync      = crtc1WaitVSync,
-     .GetScreenSize  = crtc1GetScreenSize
+     //.GetScreenSize  = crtc1GetScreenSize
 };
 
 ScreenFuncs  OldPrimaryScreenFuncs;
