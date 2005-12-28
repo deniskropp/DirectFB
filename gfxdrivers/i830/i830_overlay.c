@@ -88,7 +88,7 @@ static void
 update_overlay( I830DriverData *idrv,
                 I830DeviceData *idev )
 {
-     I830RingBlock block;
+     I830RingBlock block = { NULL, 0, 0 };
 
      i830_begin_lp_ring( idrv, idev, 6, &block );
 
@@ -117,7 +117,7 @@ static void
 disable_overlay( I830DriverData *idrv,
                  I830DeviceData *idev )
 {
-     I830RingBlock block;
+     I830RingBlock block = { NULL, 0, 0 };
 
      if (!idev->overlayOn)
           return;

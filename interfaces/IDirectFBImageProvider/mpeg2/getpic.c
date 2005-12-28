@@ -118,11 +118,11 @@ static int
 slice(MPEG2_Decoder *dec, int framenum, int MBAmax)
 {
      int MBA; 
-     int MBAinc, macroblock_type, motion_type, dct_type;
+     int MBAinc, macroblock_type = 0, motion_type = 0, dct_type = 0;
      int dc_dct_pred[3];
      int PMV[2][2][2], motion_vertical_field_select[2][2];
      int dmvector[2];
-     int stwtype, stwclass;
+     int stwtype = 0, stwclass = 0;
      int ret;
 
      MBA = 0; /* macroblock address */
@@ -636,10 +636,10 @@ int dmvector[2])
      int quantizer_scale_code; 
      int comp;
 
-     int motion_vector_count; 
-     int mv_format; 
-     int dmv; 
-     int mvscale;
+     int motion_vector_count = 0;
+     int mv_format = 0;
+     int dmv = 0;
+     int mvscale = 0;
      int coded_block_pattern;
 
      /* ISO/IEC 13818-2 section 6.3.17.1: Macroblock modes */
