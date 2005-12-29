@@ -396,6 +396,16 @@ IDirectFBSurface_Dispatcher_FillRectangle( IDirectFBSurface *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBSurface_Dispatcher_FillRectangles( IDirectFBSurface   *thiz,
+                                            const DFBRectangle *rects,
+                                            unsigned int        num_rects )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
 
 static DFBResult
 IDirectFBSurface_Dispatcher_DrawLine( IDirectFBSurface *thiz,
@@ -1085,6 +1095,26 @@ Dispatch_FillRectangle( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_FillRectangles( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser  parser;
+     unsigned int         num_rects;
+     const DFBRectangle  *rects;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, num_rects );
+     VOODOO_PARSER_GET_DATA( parser, rects );
+     VOODOO_PARSER_END( parser );
+
+     real->FillRectangles( real, rects, num_rects );
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch_DrawLine( IDirectFBSurface *thiz, IDirectFBSurface *real,
                    VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1362,6 +1392,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_GetSubSurface:
                return Dispatch_GetSubSurface( dispatcher, real, manager, msg );
+
+          case IDIRECTFBSURFACE_METHOD_ID_FillRectangles:
+               return Dispatch_FillRectangles( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
@@ -1436,6 +1469,7 @@ Construct( IDirectFBSurface *thiz,
 
      thiz->SetDrawingFlags = IDirectFBSurface_Dispatcher_SetDrawingFlags;
      thiz->FillRectangle = IDirectFBSurface_Dispatcher_FillRectangle;
+     thiz->FillRectangles = IDirectFBSurface_Dispatcher_FillRectangles;
      thiz->DrawLine = IDirectFBSurface_Dispatcher_DrawLine;
      thiz->DrawLines = IDirectFBSurface_Dispatcher_DrawLines;
      thiz->DrawRectangle = IDirectFBSurface_Dispatcher_DrawRectangle;

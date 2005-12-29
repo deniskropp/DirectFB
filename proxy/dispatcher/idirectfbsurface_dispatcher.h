@@ -71,5 +71,6 @@
 #define IDIRECTFBSURFACE_METHOD_ID_GetSubSurface             41
 #define IDIRECTFBSURFACE_METHOD_ID_GetGL                     42
 #define IDIRECTFBSURFACE_METHOD_ID_Dump                      43
+#define IDIRECTFBSURFACE_METHOD_ID_FillRectangles            44
 
 #endif
