@@ -72,5 +72,6 @@
 #define IDIRECTFBSURFACE_METHOD_ID_GetGL                     42
 #define IDIRECTFBSURFACE_METHOD_ID_Dump                      43
 #define IDIRECTFBSURFACE_METHOD_ID_FillRectangles            44
+#define IDIRECTFBSURFACE_METHOD_ID_FillSpans                 45
 
 #endif

@@ -638,6 +638,25 @@ IDirectFBSurface_Requestor_FillRectangles( IDirectFBSurface   *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_FillSpans( IDirectFBSurface *thiz,
+                                      int               y,
+                                      const DFBSpan    *spans,
+                                      unsigned int      num_spans )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!spans || !num_spans)
+          return DFB_INVARG;
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_FillSpans, VREQ_QUEUE, NULL,
+                                    VMBT_INT, y,
+                                    VMBT_UINT, num_spans,
+                                    VMBT_DATA, num_spans * sizeof(DFBSpan), spans,
+                                    VMBT_NONE );
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_DrawLine( IDirectFBSurface *thiz,
                                      int x1, int y1, int x2, int y2 )
 {
@@ -1027,6 +1046,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->SetDrawingFlags = IDirectFBSurface_Requestor_SetDrawingFlags;
      thiz->FillRectangle = IDirectFBSurface_Requestor_FillRectangle;
      thiz->FillRectangles = IDirectFBSurface_Requestor_FillRectangles;
+     thiz->FillSpans = IDirectFBSurface_Requestor_FillSpans;
      thiz->DrawLine = IDirectFBSurface_Requestor_DrawLine;
      thiz->DrawLines = IDirectFBSurface_Requestor_DrawLines;
      thiz->DrawRectangle = IDirectFBSurface_Requestor_DrawRectangle;
