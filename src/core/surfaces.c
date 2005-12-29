@@ -963,6 +963,8 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
 
      D_ASSERT( surface != NULL );
 
+     dfb_surfacemanager_lock( surface->manager );
+
      buffer = front ? surface->front_buffer : surface->back_buffer;
 
      D_ASSERT( buffer != NULL );
@@ -978,6 +980,8 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
           buffer->video.locked--;
 
      D_DEBUG_AT( Core_Surface, "  -> system/video count: %d/%d after\n", buffer->system.locked, buffer->video.locked );
+
+     dfb_surfacemanager_unlock( surface->manager );
 }
 
 DFBResult dfb_surface_init ( CoreDFB                *core,
