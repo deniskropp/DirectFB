@@ -182,9 +182,10 @@ if test "$enable_extra_warnings" = "yes"; then
   CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
 fi
 
-if test "$GCC" = "yes"; then
-  CFLAGS="-Wall -Wno-strict-aliasing $CFLAGS"
-fi
+# FIXME
+#if test "$GCC" = "yes"; then
+#  CFLAGS="-Wall -Wno-strict-aliasing $CFLAGS"
+#fi
 
 
 #
