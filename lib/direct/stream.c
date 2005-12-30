@@ -126,10 +126,12 @@ parse_url( const char *url, char **ret_host, int *ret_port,
      
      tmp = strchr( url, '/' );
      if (tmp) {
-          host = strndupa( url, tmp - url );
+          host = alloca( tmp - url + 1 );
+          strncpy( host, url, tmp - url );
           path = tmp;
      } else {
-          host = strdupa( url );
+          host = alloca( strlen( url + 1 ));
+          strcpy( host, url );
           path = "/";
      }
 
