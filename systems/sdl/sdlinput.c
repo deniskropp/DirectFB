@@ -123,7 +123,7 @@ translate_key( SDLKey key, DFBInputEvent *evt )
 
      /* letter keys */
      if (key >= SDLK_a  &&  key <= SDLK_z) {
-          evt->key_id = DIKI_A + key - SDLK_z;
+          evt->key_id = DIKI_A + key - SDLK_a;
           return true;
      }
 
@@ -396,7 +396,6 @@ sdlEventThread( DirectThread *thread, void *driver_data )
                               dfb_input_dispatch( data->device, &evt );
                          }
                          break;
-
                     case SDL_QUIT:
                          evt.type       = DIET_KEYPRESS;
                          evt.flags      = DIEF_KEYSYMBOL;
