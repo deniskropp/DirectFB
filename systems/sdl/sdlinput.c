@@ -108,209 +108,210 @@ motion_realize( SDLInputData *data )
 static bool
 translate_key( SDLKey key, DFBInputEvent *evt )
 {
+     evt->flags = DIEF_KEYID;
      /* Numeric keypad */
      if (key >= SDLK_KP0  &&  key <= SDLK_KP9) {
-          evt->flags |= DIEF_KEYID;
           evt->key_id = DIKI_KP_0 + key - SDLK_KP0;
           return true;
      }
 
      /* Function keys */
      if (key >= SDLK_F1  &&  key <= SDLK_F15) {
-          evt->flags |= DIEF_KEYSYMBOL;
-          evt->key_symbol = DIKS_F1 + key - SDLK_F1;
+          evt->key_id = DIKI_KP_F1 + key - SDLK_F1;
+          return true;
+     }
+
+     /* letter keys */
+     if (key >= SDLK_a  &&  key <= SDLK_z) {
+          evt->key_id = DIKI_A + key - SDLK_z;
+          return true;
+     }
+
+     if (key >= SDLK_0  &&  key <= SDLK_9) {
+          evt->key_id = DIKI_0 + key - SDLK_9;
           return true;
      }
 
      switch (key) {
+          case SDLK_QUOTE:
+               evt->key_id = DIKI_QUOTE_RIGHT;
+               return true;
+          case SDLK_BACKQUOTE:
+               evt->key_id = DIKI_QUOTE_LEFT;
+               return true;
+          case SDLK_COMMA:
+               evt->key_id = DIKI_COMMA;
+               return true;
+          case SDLK_MINUS:
+               evt->key_id = DIKI_MINUS_SIGN;
+               return true;
+          case SDLK_PERIOD:
+               evt->key_id = DIKI_PERIOD;
+               return true;
+          case SDLK_SLASH:
+               evt->key_id = DIKI_SLASH;
+               return true;
+          case SDLK_SEMICOLON:
+               evt->key_id = DIKI_SEMICOLON;
+               return true;
+          case SDLK_LESS:
+               evt->key_id = DIKI_LESS_SIGN;
+               return true;
+          case SDLK_EQUALS:
+               evt->key_id = DIKI_EQUALS_SIGN;
+               return true;
+          case SDLK_LEFTBRACKET:
+               evt->key_id = DIKI_BRACKET_LEFT;
+               return true;
+          case SDLK_RIGHTBRACKET:
+               evt->key_id = DIKI_BRACKET_RIGHT;
+               return true;
+          case SDLK_BACKSLASH:
+               evt->key_id = DIKI_BACKSLASH;
+               return true;
           /* Numeric keypad */
           case SDLK_KP_PERIOD:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_DECIMAL;
-               break;
+               return true;
 
           case SDLK_KP_DIVIDE:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_DIV;
-               break;
+               return true;
 
           case SDLK_KP_MULTIPLY:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_MULT;
-               break;
+               return true;
 
           case SDLK_KP_MINUS:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_MINUS;
-               break;
-
+               return true;
           case SDLK_KP_PLUS:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_PLUS;
-               break;
-
+               return true;
           case SDLK_KP_ENTER:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_ENTER;
-               break;
+               return true;
 
           case SDLK_KP_EQUALS:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_KP_EQUAL;
-               break;
-
-
+               return true;
+          case SDLK_ESCAPE:
+               evt->key_id = DIKI_ESCAPE;
+               return true;
+          case SDLK_TAB:
+               evt->key_id = DIKI_TAB;
+               return true;
+          case SDLK_RETURN:
+               evt->key_id = DIKI_ENTER;
+               return true;
+          case SDLK_SPACE:
+               evt->key_id = DIKI_SPACE;
+               return true;
+          case SDLK_BACKSPACE:
+               evt->key_id = DIKI_BACKSPACE;
+               return true;
+          case SDLK_INSERT:
+               evt->key_id = DIKI_INSERT;
+               return true;
+          case SDLK_DELETE:
+               evt->key_id = DIKI_DELETE;
+               return true;
+          case SDLK_PRINT:
+               evt->key_id = DIKI_PRINT;
+               return true;
+          case SDLK_PAUSE:
+               evt->key_id = DIKI_PAUSE;
+               return true;
           /* Arrows + Home/End pad */
           case SDLK_UP:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_CURSOR_UP;
-               break;
+               evt->key_id = DIKI_UP;
+               return true;
 
           case SDLK_DOWN:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_CURSOR_DOWN;
-               break;
+               evt->key_id = DIKI_DOWN;
+               return true;
 
           case SDLK_RIGHT:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_CURSOR_RIGHT;
-               break;
-
+               evt->key_id = DIKI_RIGHT;
+               return true;
           case SDLK_LEFT:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_CURSOR_LEFT;
-               break;
-
-          case SDLK_INSERT:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_INSERT;
-               break;
-
+               evt->key_id = DIKI_LEFT;
+               return true;
           case SDLK_HOME:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_HOME;
-               break;
-
+               evt->key_id = DIKI_HOME;
+               return true;
           case SDLK_END:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_END;
-               break;
+               evt->key_id = DIKI_END;
+               return true;
 
           case SDLK_PAGEUP:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_PAGE_UP;
-               break;
+               evt->key_id = DIKI_PAGE_UP;
+               return true;
 
           case SDLK_PAGEDOWN:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_PAGE_DOWN;
-               break;
+               evt->key_id = DIKI_PAGE_DOWN;
+               return true;
 
 
           /* Key state modifier keys */
           case SDLK_NUMLOCK:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_NUM_LOCK;
-               break;
+               evt->key_id = DIKI_NUM_LOCK;
+               return true;
 
           case SDLK_CAPSLOCK:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_CAPS_LOCK;
-               break;
-
+               evt->key_id = DIKI_CAPS_LOCK;
+               return true;
           case SDLK_SCROLLOCK:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_SCROLL_LOCK;
-               break;
-
+               evt->key_id = DIKI_SCROLL_LOCK;
+               return true;
           case SDLK_RSHIFT:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SHIFT_R;
-               break;
+               return true;
 
           case SDLK_LSHIFT:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SHIFT_L;
-               break;
-
+               return true;
           case SDLK_RCTRL:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_CONTROL_R;
-               break;
+               return true;
 
           case SDLK_LCTRL:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_CONTROL_L;
-               break;
+               return true;
 
           case SDLK_RALT:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_ALT_R;
-               break;
+               return true;
 
           case SDLK_LALT:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_ALT_L;
-               break;
+               return true;
 
           case SDLK_RMETA:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_META_R;
-               break;
+               return true;
 
           case SDLK_LMETA:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_META_L;
-               break;
+               return true;
 
           case SDLK_LSUPER:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SUPER_L;
-               break;
+               return true;
 
           case SDLK_RSUPER:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_SUPER_R;
-               break;
+               return true;
 
           case SDLK_MODE:
-               evt->flags |= DIEF_KEYID;
                evt->key_id = DIKI_ALTGR;
-               break;
-
-
-          /* Miscellaneous function keys */
-          case SDLK_HELP:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_HELP;
-               break;
-
-          case SDLK_PRINT:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_PRINT;
-               break;
-
-          case SDLK_BREAK:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_BREAK;
-               break;
-
-          case SDLK_MENU:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_MENU;
-               break;
-
-          case SDLK_POWER:
-               evt->flags |= DIEF_KEYSYMBOL;
-               evt->key_symbol = DIKS_POWER;
-               break;
-
-
+               return true;
           default:
-               return false;
+			printf("SDL: Unknown key pressed\n");
      }
 
-     return true;
+     evt->flags = DIEF_NONE;
+     return false;
 }
 
 /*
@@ -391,16 +392,9 @@ sdlEventThread( DirectThread *thread, void *driver_data )
                          else
                               evt.type = DIET_KEYRELEASE;
                          if (translate_key( event.key.keysym.sym, &evt )) {
-			                  evt.key_code=evt.key_symbol;
+			                  evt.key_code=evt.key_id;
                               dfb_input_dispatch( data->device, &evt );
                          }
-                         else if (event.key.keysym.unicode) {
-                              evt.flags  |= DIEF_KEYSYMBOL;
-                              evt.key_symbol = event.key.keysym.unicode;
-			                  evt.key_code=evt.key_symbol;
-                              dfb_input_dispatch( data->device, &evt );
-                         }
-
                          break;
 
                     case SDL_QUIT:
@@ -507,8 +501,8 @@ driver_open_device( CoreInputDevice  *device,
      /* set capabilities */
      info->desc.caps   = DICAPS_ALL;
      /* enable translation of fake raw hardware keycodes */
-     info->desc.min_keycode = 0;
-     info->desc.max_keycode = 127;
+     info->desc.min_keycode = DIKI_A;
+     info->desc.max_keycode = DIKI_KP_9;
  
 
 
@@ -527,6 +521,174 @@ driver_open_device( CoreInputDevice  *device,
      return DFB_OK;
 }
 
+static DFBInputDeviceKeySymbol
+id_to_symbol( DFBInputDeviceKeyIdentifier id,
+              DFBInputDeviceModifierMask  modifiers)
+{
+	bool shift = (modifiers & DIMM_SHIFT);
+
+     if (id >= DIKI_A && id <= DIKI_Z)
+          return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
+
+     if (id >= DIKI_0 && id <= DIKI_9)
+          return DIKS_0 + id - DIKI_0;
+
+     if (id >= DIKI_KP_0 && id <= DIKI_KP_9)
+          return DIKS_0 + id - DIKI_KP_0;
+
+     if (id >= DIKI_F1 && id <= DIKI_F12)
+          return DIKS_F1 + id - DIKI_F1;
+
+     switch (id) {
+          case DIKI_ESCAPE:
+               return DIKS_ESCAPE;
+
+          case DIKI_LEFT:
+               return DIKS_CURSOR_LEFT;
+
+          case DIKI_RIGHT:
+               return DIKS_CURSOR_RIGHT;
+
+          case DIKI_UP:
+               return DIKS_CURSOR_UP;
+
+          case DIKI_DOWN:
+               return DIKS_CURSOR_DOWN;
+
+          case DIKI_ALTGR:
+               return DIKS_ALTGR;
+
+          case DIKI_CONTROL_L:
+          case DIKI_CONTROL_R:
+               return DIKS_CONTROL;
+
+          case DIKI_SHIFT_L:
+          case DIKI_SHIFT_R:
+               return DIKS_SHIFT;
+
+          case DIKI_ALT_L:
+          case DIKI_ALT_R:
+               return DIKS_ALT;
+
+          case DIKI_META_L:
+          case DIKI_META_R:
+               return DIKS_META;
+
+          case DIKI_SUPER_L:
+          case DIKI_SUPER_R:
+               return DIKS_SUPER;
+
+          case DIKI_HYPER_L:
+          case DIKI_HYPER_R:
+               return DIKS_HYPER;
+
+          case DIKI_TAB:
+               return DIKS_TAB;
+
+          case DIKI_ENTER:
+               return DIKS_ENTER;
+
+          case DIKI_SPACE:
+               return DIKS_SPACE;
+
+          case DIKI_BACKSPACE:
+               return DIKS_BACKSPACE;
+
+          case DIKI_INSERT:
+               return DIKS_INSERT;
+
+          case DIKI_DELETE:
+               return DIKS_DELETE;
+
+          case DIKI_HOME:
+               return DIKS_HOME;
+
+          case DIKI_END:
+               return DIKS_END;
+
+          case DIKI_PAGE_UP:
+               return DIKS_PAGE_UP;
+
+          case DIKI_PAGE_DOWN:
+               return DIKS_PAGE_DOWN;
+
+          case DIKI_CAPS_LOCK:
+               return DIKS_CAPS_LOCK;
+
+          case DIKI_NUM_LOCK:
+               return DIKS_NUM_LOCK;
+
+          case DIKI_SCROLL_LOCK:
+               return DIKS_SCROLL_LOCK;
+
+          case DIKI_PRINT:
+               return DIKS_PRINT;
+
+          case DIKI_PAUSE:
+               return DIKS_PAUSE;
+
+          case DIKI_KP_DIV:
+               return DIKS_SLASH;
+
+          case DIKI_KP_MULT:
+               return DIKS_ASTERISK;
+
+          case DIKI_KP_MINUS:
+               return DIKS_MINUS_SIGN;
+
+          case DIKI_KP_PLUS:
+               return DIKS_PLUS_SIGN;
+
+          case DIKI_KP_ENTER:
+               return DIKS_ENTER;
+
+          case DIKI_KP_SPACE:
+               return DIKS_SPACE;
+
+          case DIKI_KP_TAB:
+               return DIKS_TAB;
+
+          case DIKI_KP_EQUAL:
+               return DIKS_EQUALS_SIGN;
+
+          case DIKI_KP_DECIMAL:
+               return DIKS_PERIOD;
+
+          case DIKI_KP_SEPARATOR:
+               return DIKS_COMMA;
+
+          case DIKI_BACKSLASH:
+               return DIKS_BACKSLASH;
+
+          case DIKI_EQUALS_SIGN:
+               return DIKS_EQUALS_SIGN;
+
+          case DIKI_LESS_SIGN:
+               return DIKS_LESS_THAN_SIGN;
+
+          case DIKI_MINUS_SIGN:
+               return DIKS_MINUS_SIGN;
+
+          case DIKI_PERIOD:
+               return DIKS_PERIOD;
+
+          case DIKI_QUOTE_LEFT:
+          case DIKI_QUOTE_RIGHT:
+               return DIKS_QUOTATION;
+
+          case DIKI_SEMICOLON:
+               return DIKS_SEMICOLON;
+
+          case DIKI_SLASH:
+               return DIKS_SLASH;
+
+          default:
+               ;
+     }
+
+     return DIKS_NULL;
+}
+
 /*
  * Fetch one entry from the device's keymap if supported.
  * this does a fake mapping based on the orginal DFB code
@@ -536,14 +698,23 @@ driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-     entry->identifier = DIKI_UNKNOWN;
-     entry->symbols[DIKSI_BASE]=entry->code;
-     entry->symbols[DIKSI_BASE_SHIFT]=DIKS_NULL;
-     entry->symbols[DIKSI_ALT]=DIKS_NULL;
-     entry->symbols[DIKSI_ALT_SHIFT]=DIKS_NULL;
+	int  code = entry->code;
+    entry->identifier=code;
+
+     /* is CapsLock effective? */
+     if (code >= DIKI_A && code <= DIKI_Z)
+		entry->locks |= DILS_CAPS;
+
+     /* is NumLock effective? */
+     if (entry->identifier >= DIKI_KP_DECIMAL && entry->identifier <= DIKI_KP_9)
+          entry->locks |= DILS_NUM;
+
+     entry->symbols[DIKSI_BASE]=id_to_symbol(entry->identifier,0);
+     entry->symbols[DIKSI_BASE_SHIFT]=id_to_symbol(entry->identifier,DIMM_SHIFT);
+     entry->symbols[DIKSI_ALT]=entry->symbols[DIKSI_BASE];
+     entry->symbols[DIKSI_ALT_SHIFT]=entry->symbols[DIKSI_BASE_SHIFT];
      return DFB_OK;
 }
-
 /*
  * End thread, close device and free private data.
  */
