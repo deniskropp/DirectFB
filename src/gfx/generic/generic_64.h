@@ -30,7 +30,7 @@
 static void Cop_to_Aop_32_64( GenefxState *gfxs )
 {
      int    w, l = gfxs->length;
-     __u32 *D    = gfxs->Aop;
+     __u32 *D    = gfxs->Aop[0];
      __u32  Cop  = gfxs->Cop;
      __u64  DCop = ((__u64)Cop << 32) | Cop;
      
@@ -51,8 +51,8 @@ static void Cop_to_Aop_32_64( GenefxState *gfxs )
 static void Bop_rgb32_Kto_Aop_64( GenefxState *gfxs )
 {
      int    w, l  = gfxs->length;
-     __u32 *D     = gfxs->Aop;
-     __u32 *S     = gfxs->Bop;
+     __u32 *D     = gfxs->Aop[0];
+     __u32 *S     = gfxs->Bop[0];
      __u32  Skey  = gfxs->Skey;
      __u64  DSkey = ((__u64)Skey << 32) | Skey;
      
@@ -103,8 +103,8 @@ static void Bop_rgb32_Kto_Aop_64( GenefxState *gfxs )
 static void Bop_rgb32_toK_Aop_64( GenefxState *gfxs )
 {
      int    w, l  = gfxs->length;
-     __u32 *D     = gfxs->Aop;
-     __u32 *S     = gfxs->Bop;
+     __u32 *D     = gfxs->Aop[0];
+     __u32 *S     = gfxs->Bop[0];
      __u32  Dkey  = gfxs->Dkey;
      __u64  DDkey = ((__u64)Dkey << 32) | Dkey;
      
@@ -156,8 +156,8 @@ static void Bop_32_Sto_Aop_64( GenefxState *gfxs )
 {
      int    w, l   = gfxs->length;
      int    i      = 0;
-     __u32 *D      = gfxs->Aop;
-     __u32 *S      = gfxs->Bop;
+     __u32 *D      = gfxs->Aop[0];
+     __u32 *S      = gfxs->Bop[0];
      int    SperD  = gfxs->SperD;
      int    SperD2 = SperD << 1;
      

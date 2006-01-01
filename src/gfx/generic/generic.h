@@ -95,8 +95,8 @@ struct _GenefxState {
      /*
       * operands
       */
-     void *Aop;
-     void *Bop;
+     void *Aop[3];
+     void *Bop[3];
      __u32 Cop;
 
      __u8 YCop;
@@ -105,6 +105,9 @@ struct _GenefxState {
 
      int Aop_field;
      int Bop_field;
+     
+     int AopY;
+     int BopY;
 
      /*
       * color keys
@@ -135,14 +138,12 @@ struct _GenefxState {
      GenefxAccumulator *Dacc;
      GenefxAccumulator *Sacc;
 
-     void        *Sop;
-     CorePalette *Slut;
+     void        **Sop;
+     CorePalette  *Slut;
 
      int Ostep; /* controls horizontal blitting direction */
 
      int SperD; /* for scaled routines only */
-
-     int chroma_plane; /* for NV12/NV21/NV16 formats */
 };
 
 

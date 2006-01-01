@@ -122,7 +122,7 @@ static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (gfxs->Aop), "c" (gfxs->length), "S" (gfxs->Sacc),
+               : "D" (gfxs->Aop[0]), "c" (gfxs->length), "S" (gfxs->Sacc),
                  "m" (*preload), "m" (*mask), "m" (*pm)
                : "%eax", "%st", "memory");
 }
@@ -157,7 +157,7 @@ static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (gfxs->Aop), "c" (gfxs->length), "S" (gfxs->Sacc),
+               : "D" (gfxs->Aop[0]), "c" (gfxs->length), "S" (gfxs->Sacc),
                  "m" (*preload), "m" (*postload), "m" (*pm)
                : "%st", "memory");
 }
@@ -196,7 +196,7 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
                "3:\n\t"
                "emms"
                : "=r" (i)
-               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop[0]),
                  "a" (gfxs->SperD), "m" (*zeros), "0" (i)
                : "%edx", "%st", "memory");
 }
@@ -219,7 +219,7 @@ static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
                "emms"
                : /* no outputs */
                : "D" (gfxs->Dacc), "c" (gfxs->length),
-                 "S" (gfxs->Sop), "m" (*zeros)
+                 "S" (gfxs->Sop[0]), "m" (*zeros)
                : "%st", "memory");
 }
 
@@ -296,7 +296,7 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
                "2:\n\t"
                "emms"
                : /* no outputs */
-               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop[0]),
                  "m" (*mask), "m" (*smul), "m" (*alpha)
                : "%st", "memory");
 }
@@ -321,7 +321,7 @@ static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
                "jnz      1b\n\t"
                "emms"
                : /* no outputs */
-               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop),
+               : "D" (gfxs->Dacc), "c" (gfxs->length), "S" (gfxs->Sop[0]),
                  "m" (*alpha), "m" (*zeros)
                : "%st", "memory");
 }
