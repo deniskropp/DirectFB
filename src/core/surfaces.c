@@ -375,24 +375,19 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
      {
           return DFB_UNSUPPORTED;
      }
-
+     
+     dfb_surfacemanager_lock( surface->manager );
 
      front = surface->front_buffer;
      back = surface->back_buffer;
-     while (1) 
+
+     if (front->system.locked || front->video.locked ||
+         back->system.locked  || back->video.locked)
      {
-	  dfb_surfacemanager_lock( surface->manager );
-	 if ((front->system.locked) || (front->video.locked) || (back->system.locked) || (back->video.locked))
-         {
-               dfb_surfacemanager_unlock( surface->manager );
-               sched_yield();
-	 }
-	  else
-		  break;
-     
+          dfb_surfacemanager_unlock( surface->manager );
+          return DFB_LOCKED;
      }
-
-
+    
      old_width  = surface->width;
      old_height = surface->height;
      old_format = surface->format;
