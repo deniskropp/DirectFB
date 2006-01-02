@@ -516,7 +516,7 @@ IDirectFBDisplayLayer_SetBackgroundMode( IDirectFBDisplayLayer         *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      switch (background_mode) {
@@ -545,7 +545,7 @@ IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
      if (!surface)
           return DFB_INVARG;
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      surface_data = (IDirectFBSurface_data*)surface->priv;
@@ -567,7 +567,7 @@ IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_set_background_color( data->stack, &color );
@@ -635,7 +635,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
      if (!window)
           return DFB_INVARG;
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      w = dfb_layer_context_find_window( data->context, id );
@@ -675,7 +675,7 @@ IDirectFBDisplayLayer_WarpCursor( IDirectFBDisplayLayer *thiz, int x, int y )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_warp( data->stack, x, y );
@@ -692,7 +692,7 @@ IDirectFBDisplayLayer_SetCursorAcceleration( IDirectFBDisplayLayer *thiz,
      if (numerator < 0  ||  denominator < 1  ||  threshold < 0)
           return DFB_INVARG;
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_set_acceleration( data->stack, numerator,
@@ -712,7 +712,7 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
      if (!shape)
           return DFB_INVARG;
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      shape_data = (IDirectFBSurface_data*)shape->priv;
@@ -734,7 +734,7 @@ IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
-     if (data->level != DLSCL_ADMINISTRATIVE)
+     if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
      return dfb_windowstack_cursor_set_opacity( data->stack, opacity );
