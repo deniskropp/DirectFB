@@ -128,7 +128,7 @@ translate_key( SDLKey key, DFBInputEvent *evt )
      }
 
      if (key >= SDLK_0  &&  key <= SDLK_9) {
-          evt->key_id = DIKI_0 + key - SDLK_9;
+          evt->key_id = DIKI_0 + key - SDLK_0;
           return true;
      }
 
