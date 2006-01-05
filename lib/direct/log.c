@@ -6,8 +6,9 @@
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -40,7 +41,7 @@
 #include <sys/stat.h>
 
 #include <netinet/in.h>
-#include <arpa/inet.h>
+#include <netdb.h>
 
 #include <direct/debug.h>
 #include <direct/mem.h>
@@ -202,21 +203,19 @@ init_file( DirectLog  *log,
 }
 
 static DirectResult
-parse_host_addr_port( const char     *hostport,
-                      struct in_addr *ret_addr,
-                      unsigned int   *ret_port )
+parse_host_addr( const char       *hostport,
+                 struct addrinfo **ret_addr )
 {
-     int   i;
-
+     int   i, ret;
+     
      int   size = strlen( hostport ) + 1;
      char  buf[size];
-
+     
      char *hoststr = buf;
      char *portstr = NULL;
      char *end;
 
-     struct in_addr addr;
-     unsigned int   port;
+     struct addrinfo hints;
 
      memcpy( buf, hostport, size );
 
@@ -234,53 +233,56 @@ parse_host_addr_port( const char     *hostport,
           return DFB_INVARG;
      }
 
-     port = strtoul( portstr, &end, 10 );
-
+     strtoul( portstr, &end, 10 );
      if (end && *end) {
           D_ERROR( "Direct/Log: Parse error in port number '%s'!\n", portstr );
           return DFB_INVARG;
      }
+     
+     memset( &hints, 0, sizeof(hints) );
+     hints.ai_socktype = SOCK_DGRAM;
+     hints.ai_family   = PF_UNSPEC;
+     
+     ret = getaddrinfo( hoststr, portstr, &hints, ret_addr );
+     if (ret) {
+          switch (ret) {
+               case EAI_FAMILY:
+                    D_ERROR( "Direct/Log: Unsupported address family!\n" );
+                    return DFB_UNSUPPORTED;
+               
+               case EAI_SOCKTYPE:
+                    D_ERROR( "Direct/Log: Unsupported socket type!\n" );
+                    return DFB_UNSUPPORTED;
+               
+               case EAI_NONAME:
+                    D_ERROR( "Direct/Log: Host not found!\n" );
+                    return DFB_FAILURE;
+                    
+               case EAI_SERVICE:
+                    D_ERROR( "Direct/Log: Port %s is unreachable!\n", portstr );
+                    return DFB_FAILURE;
+               
+               case EAI_ADDRFAMILY:
+               case EAI_NODATA:
+                    D_ERROR( "Direct/Log: Host found, but has no address!\n" );
+                    return DFB_FAILURE;
+                    
+               case EAI_MEMORY:
+                    return D_OOM();
 
-     if (!inet_aton( hoststr, &addr )) {
-          struct hostent *host;
+               case EAI_FAIL:
+                    D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
+                    return DFB_FAILURE;
 
-          D_INFO( "Direct/Log: Looking up host '%s'...\n", hoststr );
-
-          /* TODO: use getaddrinfo(3) and support IPv6 */
-          host = gethostbyname( hoststr );
-          if (!host) {
-               switch (h_errno) {
-                    case HOST_NOT_FOUND:
-                         D_ERROR( "Direct/Log: Host not found!\n" );
-                         return DFB_FAILURE;
-
-                    case NO_ADDRESS:
-                         D_ERROR( "Direct/Log: Host found, but has no address!\n" );
-                         return DFB_FAILURE;
-
-                    case NO_RECOVERY:
-                         D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
-                         return DFB_FAILURE;
-
-                    case TRY_AGAIN:
-                         D_ERROR( "Direct/Log: Temporary error, try again!\n" );
-                         return DFB_TEMPUNAVAIL;
-               }
-
-               D_ERROR( "Direct/Log: Unknown error occured!?\n" );
-               return DFB_FAILURE;
+               case EAI_AGAIN:
+                    D_ERROR( "Direct/Log: Temporary error, try again!\n" );
+                    return DFB_TEMPUNAVAIL;
+                    
+               default:
+                    D_ERROR( "Direct/Log: Unknown error occured!?\n" );
+                    return DFB_FAILURE;
           }
-
-          if (host->h_addrtype != AF_INET || host->h_length != 4) {
-               D_ERROR( "Direct/Log: Not an IPv4 address!\n" );
-               return DFB_FAILURE;
-          }
-
-          memcpy( &addr, host->h_addr_list[0], sizeof(addr) );
      }
-
-     *ret_addr = addr;
-     *ret_port = port;
 
      return DFB_OK;
 }
@@ -289,32 +291,28 @@ static DirectResult
 init_udp( DirectLog  *log,
           const char *hostport )
 {
-     DirectResult       ret;
-     int                fd;
-     unsigned int       port;
-     struct in_addr     addr;
-     struct sockaddr_in sock_addr;
+     DirectResult     ret;
+     int              fd;
+     struct addrinfo *addr;
+     
+     ret = parse_host_addr( hostport, &addr );
+     if (ret)
+          return ret;
 
-     fd = socket( PF_INET, SOCK_DGRAM, 0 );
+     fd = socket( addr->ai_family, SOCK_DGRAM, 0 );
      if (fd < 0) {
           ret = errno2result( errno );
           D_PERROR( "Direct/Log: Could not create a UDP socket!\n" );
           return ret;
      }
 
-     ret = parse_host_addr_port( hostport, &addr, &port );
+     ret = connect( fd, addr->ai_addr, addr->ai_addrlen );
+     freeaddrinfo( addr );
+     
      if (ret) {
-          close( fd );
-          return ret;
-     }
-
-     sock_addr.sin_family = AF_INET;
-     sock_addr.sin_addr   = addr;
-     sock_addr.sin_port   = htons( port );
-
-     if (connect( fd, &sock_addr, sizeof(sock_addr) )) {
           ret = errno2result( errno );
           D_PERROR( "Direct/Log: Could not connect UDP socket to '%s'!\n", hostport );
+          close( fd );
           return ret;
      }
 
@@ -322,4 +320,3 @@ init_udp( DirectLog  *log,
 
      return DFB_OK;
 }
-
