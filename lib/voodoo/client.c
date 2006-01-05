@@ -41,7 +41,6 @@
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
 #include <netdb.h>
-extern int h_errno;
 
 #include <direct/debug.h>
 #include <direct/mem.h>
@@ -63,67 +62,77 @@ voodoo_client_create( const char     *hostname,
                       int             session,
                       VoodooClient  **ret_client )
 {
-     DirectResult        ret;
-     int                 fd;
-     struct sockaddr_in  sock_addr;
-     VoodooClient       *client;
-     struct in_addr      addr;
+     DirectResult     ret;
+     int              err, fd;
+     struct addrinfo  hints;
+     struct addrinfo *addr;
+     VoodooClient    *client;
 
      D_ASSERT( ret_client != NULL );
 
-     if (!inet_aton( hostname, &addr )) {
-          struct hostent *host;
+     memset( &hints, 0, sizeof(hints) );
+     hints.ai_flags    = AI_CANONNAME;
+     hints.ai_socktype = SOCK_STREAM;
+     hints.ai_family   = PF_UNSPEC;
 
-          D_INFO( "Voodoo/Client: Looking up host '%s'...\n", hostname );
+     D_INFO( "Voodoo/Client: Looking up host '%s'...\n", hostname );
 
-          /* TODO: use getaddrinfo(3) and support IPv6 */
-          host = gethostbyname( hostname );
-          if (!host) {
-               switch (h_errno) {
-                    case HOST_NOT_FOUND:
-                         D_ERROR( "Voodoo/Client: Host not found!\n" );
-                         return DFB_FAILURE;
+     err = getaddrinfo( hostname, "2323", &hints, &addr );
+     if (err) {
+          switch (err) {
+               case EAI_FAMILY:
+                    D_ERROR( "Direct/Log: Unsupported address family!\n" );
+                    return DFB_UNSUPPORTED;
+               
+               case EAI_SOCKTYPE:
+                    D_ERROR( "Direct/Log: Unsupported socket type!\n" );
+                    return DFB_UNSUPPORTED;
+               
+               case EAI_NONAME:
+                    D_ERROR( "Direct/Log: Host not found!\n" );
+                    return DFB_FAILURE;
+                    
+               case EAI_SERVICE:
+                    D_ERROR( "Direct/Log: Port 2323 is unreachable!\n" );
+                    return DFB_FAILURE;
+               
+               case EAI_ADDRFAMILY:
+               case EAI_NODATA:
+                    D_ERROR( "Direct/Log: Host found, but has no address!\n" );
+                    return DFB_FAILURE;
+                    
+               case EAI_MEMORY:
+                    return D_OOM();
 
-                    case NO_ADDRESS:
-                         D_ERROR( "Voodoo/Client: Host found, but has no address!\n" );
-                         return DFB_FAILURE;
+               case EAI_FAIL:
+                    D_ERROR( "Direct/Log: A non-recoverable name server error occurred!\n" );
+                    return DFB_FAILURE;
 
-                    case NO_RECOVERY:
-                         D_ERROR( "Voodoo/Client: A non-recoverable name server error occurred!\n" );
-                         return DFB_FAILURE;
-
-                    case TRY_AGAIN:
-                         D_ERROR( "Voodoo/Client: Temporary error, try again!\n" );
-                         return DFB_TEMPUNAVAIL;
-               }
-
-               D_ERROR( "Voodoo/Client: Unknown error occured!?\n" );
-               return DFB_FAILURE;
+               case EAI_AGAIN:
+                    D_ERROR( "Direct/Log: Temporary error, try again!\n" );
+                    return DFB_TEMPUNAVAIL;
+                    
+               default:
+                    D_ERROR( "Direct/Log: Unknown error occured!?\n" );
+                    return DFB_FAILURE;
           }
-
-          if (host->h_addrtype != AF_INET || host->h_length != 4) {
-               D_ERROR( "Voodoo/Client: Not an IPv4 address!\n" );
-               return DFB_FAILURE;
-          }
-
-          memcpy( &addr, host->h_addr_list[0], sizeof(addr) );
      }
 
      /* Create the client socket. */
-     fd = socket( PF_INET, SOCK_STREAM, 0 );
+     fd = socket( addr->ai_family, SOCK_STREAM, 0 );
      if (fd < 0) {
           D_PERROR( "Voodoo/Client: Could not create the socket via socket()!\n" );
+          freeaddrinfo( addr );
           return errno2result( errno );
      }
 
-     sock_addr.sin_family = AF_INET;
-     sock_addr.sin_addr   = addr;
-     sock_addr.sin_port   = htons( 2323 );
-
-     D_INFO( "Voodoo/Client: Connecting to '%s:2323'...\n", inet_ntoa( addr ) );
+     D_INFO( "Voodoo/Client: Connecting to '%s:2323'...\n", addr->ai_canonname );
 
      /* Connect to the server. */
-     if (connect( fd, &sock_addr, sizeof(sock_addr) )) {
+     err = connect( fd, addr->ai_addr, addr->ai_addrlen );
+     freeaddrinfo( addr );
+
+     if (err) {
           ret = errno2result( errno );
           D_PERROR( "Voodoo/Client: Could not connect() to the server!\n" );
           close( fd );
