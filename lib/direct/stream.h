@@ -38,9 +38,10 @@
  * Create a stream wrapper.
  * 
  * 'filename' can be a plain file name or one of the following:
- *   http://<host>/<path>
- *   ftp://<host>/<path>
+ *   http://<host>[:<port>]/<path>
+ *   ftp://<host>[:<port>]/<path>
  *   tcp://<host>:<port>
+ *   udp://<host>:<port>
  *   file:/<path>
  *   stdin:/
  */
