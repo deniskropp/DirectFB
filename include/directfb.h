@@ -2964,7 +2964,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
    /** Drawing/blitting control **/
 
      /*
-      * Set the clipping region used to limitate the area for
+      * Set the clipping region used to limit the area for
       * drawing, blitting and text functions.
       *
       * If no region is specified (NULL passed) the clip is set
@@ -3390,6 +3390,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*DisableAcceleration) (
           IDirectFBSurface         *thiz,
           DFBAccelerationMask       mask
+     );
+
+
+   /** More information **/
+
+     /*
+      * Get the clipping region used to limit the area for
+      * drawing, blitting and text functions.
+      */
+     DFBResult (*GetClip) (
+          IDirectFBSurface         *thiz,
+          DFBRegion                *ret_clip
      );
 )
 
