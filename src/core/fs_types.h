@@ -61,8 +61,6 @@ typedef float __fsf;
 
 #define fsf_div( a, b )      ((a) / (b))
 
-#define fsf_round( x )       ((x) + 0.5f)
-
 #define fsf_clip( x )        (((x) > FSF_MAX) ? FSF_MAX : \
                               (((x) < FSF_MIN) ? FSF_MIN : (x)))
 
@@ -75,19 +73,15 @@ typedef float __fsf;
 
 #define fsf_from_u8( x )     ((__fsf)((x)-128)/128.0f)
 #define fsf_to_u8( x )       (((x)*128.0f)+128)
-#define fsf_round_u8( x )    fsf_round( x )
 
 #define fsf_from_s16( x )    ((__fsf)(x)/32768.0f)
 #define fsf_to_s16( x )      ((x)*32768.0f)
-#define fsf_round_s16( x )   fsf_round( x )
 
 #define fsf_from_s24( x )    ((__fsf)(x)/8388608.0f)
 #define fsf_to_s24( x )      ((x)*8388608.0f)
-#define fsf_round_s24( x )   fsf_round( x )
 
 #define fsf_from_s32( x )    ((__fsf)(x)/2147483648.0f)
 #define fsf_to_s32( x )      ((x)*2147483648.0f)
-#define fsf_round_s32( x )   fsf_round( x )
 
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Floats) */
@@ -129,8 +123,6 @@ typedef signed long __fsf;
 
 #define fsf_div( a, b )      ((a) / (b))
 
-#define fsf_round( x )       ((x) + (1 << (FSF_DECIBITS - 1)))
-
 #define fsf_clip( x )        (((x) > FSF_MAX) ? FSF_MAX : \
                               (((x) < FSF_MIN) ? FSF_MIN : (x)))
 
@@ -144,41 +136,33 @@ typedef signed long __fsf;
 #if FSF_DECIBITS >= 8
 # define fsf_from_u8( x )    ((__fsf)((x)-128) << (FSF_DECIBITS - 7))
 # define fsf_to_u8( x )      (((x) >> (FSF_DECIBITS - 7))+128)
-# define fsf_round_u8( x )   ((x) + (1 << (FSF_DECIBITS - 8)))
 #else
 # define fsf_from_u8( x )    ((__fsf)((x)-128) >> (7 - FSF_DECIBITS))
 # define fsf_to_u8( x )      (((x) << (7 - FS_DECIBITS))+128)
-# define fsf_round_u8( x )   (x)
 #endif
 
 #if FSF_DECIBITS >= 16
 # define fsf_from_s16( x )   ((__fsf)(x) << (FSF_DECIBITS - 15))
 # define fsf_to_s16( x )     ((x) >> (FSF_DECIBITS - 15))
-# define fsf_round_s16( x )  ((x) + (1 << (FSF_DECIBITS - 16)))
 #else
 # define fsf_from_s16( x )   ((__fsf)(x) >> (15 - FSF_DECIBITS))
 # define fsf_to_s16( x )     ((x) << (15 - FSF_DECIBITS))
-# define fsf_round_s16( x )  (x)
 #endif
 
 #if FSF_DECIBITS >= 24
 # define fsf_from_s24( x )   ((__fsf)(x) << (FSF_DECIBITS - 23))
 # define fsf_to_s24( x )     ((x) >> (FSF_DECIBITS - 23))
-# define fsf_round_s24( x )  ((x) + (1 << (FSF_DECIBITS - 24)))
 #else
 # define fsf_from_s24( x )   ((__fsf)(x) >> (23 - FSF_DECIBITS))
 # define fsf_to_s24( x )     ((x) << (23 - FSF_DECIBITS))
-# define fsf_round_s24( x )  (x)
 #endif
 
 #if FSF_DECIBITS >= 32
 # define fsf_from_s32( x )   ((__fsf)(x) << (FSF_DECIBITS - 31))
 # define fsf_to_s32( x )     ((x) >> (FSF_DECIBITS - 31))
-# define fsf_round_s32( x )  ((x) + (1 << (FSF_DECIBITS - 32)))
 #else
 # define fsf_from_s32( x )   ((__fsf)(x) >> (31 - FSF_DECIBITS))
 # define fsf_to_s32( x )     ((x) << (31 - FSF_DECIBITS))
-# define fsf_round_s32( x )  (x)
 #endif
 
 
