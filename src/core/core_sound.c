@@ -525,7 +525,7 @@ sound_thread( DirectThread *thread, void *arg )
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
-                              s = fsf_round_u8( fsf_add( mixing[i], mixing[i+1] ) );
+                              s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );                  
                               output[i>>1] = fsf_to_u8( s );
@@ -533,7 +533,7 @@ sound_thread( DirectThread *thread, void *arg )
                     } else {      
                          for (i = 0; i < samples; i++) {
                               register __fsf s;
-                              s = fsf_round_u8( mixing[i] );                       
+                              s = mixing[i];                       
                               s = fsf_clip( s );                  
                               output[i] = fsf_to_u8( s );
                          }
@@ -543,7 +543,7 @@ sound_thread( DirectThread *thread, void *arg )
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
-                              s = fsf_round_s16( fsf_add( mixing[i], mixing[i+1] ) );
+                              s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );                         
                               ((__s16*)output)[i>>1] = fsf_to_s16( s );
@@ -551,7 +551,7 @@ sound_thread( DirectThread *thread, void *arg )
                     } else {
                          for (i = 0; i < samples; i++) {
                               register __fsf s;
-                              s = fsf_round_s16( mixing[i] );
+                              s = mixing[i];
                               s = fsf_clip( s );                         
                               ((__s16*)output)[i] = fsf_to_s16( s );
                          }
@@ -562,7 +562,7 @@ sound_thread( DirectThread *thread, void *arg )
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
                               register int   d;
-                              s = fsf_round_s24( fsf_add( mixing[i], mixing[i+1] ) );
+                              s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );
                               d = fsf_to_s24( s );
@@ -580,7 +580,7 @@ sound_thread( DirectThread *thread, void *arg )
                          for (i = 0; i < samples; i++) {
                               register __fsf s;
                               register int   d;
-                              s = fsf_round_s24( mixing[i] );
+                              s = mixing[i];
                               s = fsf_clip( s );
                               d = fsf_to_s24( s );
 #ifdef WORDS_BIGENDIAN
@@ -599,7 +599,7 @@ sound_thread( DirectThread *thread, void *arg )
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
-                              s = fsf_round_s32( fsf_add( mixing[i], mixing[i+1] ) );
+                              s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
                               s = fsf_clip( s );                         
                               ((__s32*)output)[i>>1] = fsf_to_s32( s );
@@ -607,7 +607,7 @@ sound_thread( DirectThread *thread, void *arg )
                     } else {
                          for (i = 0; i < samples; i++) {
                               register __fsf s;
-                              s = fsf_round_s32( mixing[i] );
+                              s = mixing[i];
                               s = fsf_clip( s );                         
                               ((__s32*)output)[i] = fsf_to_s32( s );
                          }
@@ -638,17 +638,20 @@ fs_core_initialize( CoreSound *core )
      int              channels = shared->config.channels;
      int              rate     = shared->config.rate;
 
-     /* open sound device */
+     /* open sound device in non-blocking mode */
      if (fs_config->device)
-          fd = open( fs_config->device, O_WRONLY );
+          fd = open( fs_config->device, O_WRONLY | O_NONBLOCK );
      else
-          fd = direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY, true );
+          fd = direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY | O_NONBLOCK, true );
      
      if (fd < 0) {
           D_ERROR( "FusionSound/Core: "
                    "Couldn't open output device!\n" );
           return DFB_INIT;
      }
+
+     /* reset to blocking mode */
+     fcntl( fd, F_SETFL, fcntl( fd, F_GETFL ) & ~O_NONBLOCK );
 
      /* set application profile */
 #ifdef SNDCTL_DSP_PROFILE
