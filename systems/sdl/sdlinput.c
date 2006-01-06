@@ -529,14 +529,32 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      if (id >= DIKI_A && id <= DIKI_Z)
           return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
 
-     if (id >= DIKI_0 && id <= DIKI_9)
+     if (id >= DIKI_0 && id <= DIKI_9) {
+		if( shift ) {
+          switch(id) {
+              case DIKI_1: return DIKS_EXCLAMATION_MARK;
+              case DIKI_2: return DIKS_AT;
+              case DIKI_3: return DIKS_NUMBER_SIGN;
+              case DIKI_4: return DIKS_DOLLAR_SIGN;
+              case DIKI_5: return DIKS_PERCENT_SIGN;
+              case DIKI_6: return DIKS_CIRCUMFLEX_ACCENT;
+              case DIKI_7: return DIKS_AMPERSAND;
+              case DIKI_8: return DIKS_ASTERISK;
+              case DIKI_9: return DIKS_PARENTHESIS_LEFT;
+              case DIKI_0: return DIKS_PARENTHESIS_RIGHT;
+              default:;
+          }
+       } 
+	   else 
           return DIKS_0 + id - DIKI_0;
-
-     if (id >= DIKI_KP_0 && id <= DIKI_KP_9)
-          return DIKS_0 + id - DIKI_KP_0;
+	 }
+  
+      if (id >= DIKI_KP_0 && id <= DIKI_KP_9)
+           return DIKS_0 + id - DIKI_KP_0;
 
      if (id >= DIKI_F1 && id <= DIKI_F12)
           return DIKS_F1 + id - DIKI_F1;
+
 
      switch (id) {
           case DIKI_ESCAPE:
@@ -657,30 +675,73 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
                return DIKS_COMMA;
 
           case DIKI_BACKSLASH:
-               return DIKS_BACKSLASH;
+                if( shift )
+                  return DIKS_VERTICAL_BAR;
+                else
+                  return DIKS_BACKSLASH;
 
           case DIKI_EQUALS_SIGN:
-               return DIKS_EQUALS_SIGN;
+                if( shift )
+                  return DIKS_PLUS_SIGN;
+                else
+                  return DIKS_EQUALS_SIGN;
 
           case DIKI_LESS_SIGN:
                return DIKS_LESS_THAN_SIGN;
 
           case DIKI_MINUS_SIGN:
+                if( shift )
+                  return DIKS_UNDERSCORE;
+                else
+                  return DIKS_MINUS_SIGN;
                return DIKS_MINUS_SIGN;
 
+           case DIKI_COMMA:
+                if( shift )
+                  return DIKS_LESS_THAN_SIGN;
+                else
+                  return DIKS_COMMA;
+
           case DIKI_PERIOD:
-               return DIKS_PERIOD;
+                if( shift )
+                  return DIKS_GREATER_THAN_SIGN;
+                else
+                  return DIKS_PERIOD;
+
+           case DIKI_BRACKET_LEFT:
+                if( shift )
+                  return DIKS_CURLY_BRACKET_LEFT;
+                else
+                  return DIKS_SQUARE_BRACKET_LEFT;
+ 
+           case DIKI_BRACKET_RIGHT:
+                if( shift )
+                  return DIKS_CURLY_BRACKET_RIGHT;
+                else
+                  return DIKS_SQUARE_BRACKET_RIGHT;
 
           case DIKI_QUOTE_LEFT:
+                if( shift )
+                  return DIKS_TILDE;
+                else
+                  return DIKS_GRAVE_ACCENT;
           case DIKI_QUOTE_RIGHT:
-               return DIKS_QUOTATION;
+                if( shift )
+                  return DIKS_QUOTATION;
+                else
+                  return DIKS_APOSTROPHE;
 
           case DIKI_SEMICOLON:
-               return DIKS_SEMICOLON;
+                if( shift )
+                  return DIKS_COLON;
+                else
+                  return DIKS_SEMICOLON;
 
           case DIKI_SLASH:
-               return DIKS_SLASH;
-
+                if( shift )
+                  return DIKS_QUESTION_MARK;
+                else
+                  return DIKS_SLASH;
           default:
                ;
      }
