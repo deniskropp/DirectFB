@@ -31,15 +31,16 @@
 #define IDIRECTFBDATABUFFER_METHOD_ID_AddRef                     1
 #define IDIRECTFBDATABUFFER_METHOD_ID_Release                    2
 #define IDIRECTFBDATABUFFER_METHOD_ID_Flush                      3
-#define IDIRECTFBDATABUFFER_METHOD_ID_SeekTo                     4
-#define IDIRECTFBDATABUFFER_METHOD_ID_GetPosition                5
-#define IDIRECTFBDATABUFFER_METHOD_ID_GetLength                  6
-#define IDIRECTFBDATABUFFER_METHOD_ID_WaitForData                7
-#define IDIRECTFBDATABUFFER_METHOD_ID_WaitForDataWithTimeout     8
-#define IDIRECTFBDATABUFFER_METHOD_ID_GetData                    9
-#define IDIRECTFBDATABUFFER_METHOD_ID_PeekData                  10
-#define IDIRECTFBDATABUFFER_METHOD_ID_HasData                   11
-#define IDIRECTFBDATABUFFER_METHOD_ID_PutData                   12
-#define IDIRECTFBDATABUFFER_METHOD_ID_CreateImageProvider       13
+#define IDIRECTFBDATABUFFER_METHOD_ID_Finish                     4
+#define IDIRECTFBDATABUFFER_METHOD_ID_SeekTo                     5
+#define IDIRECTFBDATABUFFER_METHOD_ID_GetPosition                6
+#define IDIRECTFBDATABUFFER_METHOD_ID_GetLength                  7
+#define IDIRECTFBDATABUFFER_METHOD_ID_WaitForData                8
+#define IDIRECTFBDATABUFFER_METHOD_ID_WaitForDataWithTimeout     9
+#define IDIRECTFBDATABUFFER_METHOD_ID_GetData                   10
+#define IDIRECTFBDATABUFFER_METHOD_ID_PeekData                  11
+#define IDIRECTFBDATABUFFER_METHOD_ID_HasData                   12
+#define IDIRECTFBDATABUFFER_METHOD_ID_PutData                   13
+#define IDIRECTFBDATABUFFER_METHOD_ID_CreateImageProvider       14
 
 #endif

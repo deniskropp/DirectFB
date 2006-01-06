@@ -137,6 +137,27 @@ IDirectFBDataBuffer_Requestor_Flush( IDirectFBDataBuffer *thiz )
 }
 
 static DFBResult
+IDirectFBDataBuffer_Requestor_Finish( IDirectFBDataBuffer *thiz )
+{
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Requestor)
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBDATABUFFER_METHOD_ID_Finish, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
+}
+
+static DFBResult
 IDirectFBDataBuffer_Requestor_SeekTo( IDirectFBDataBuffer *thiz,
                                       unsigned int         offset )
 {
@@ -447,6 +468,7 @@ Construct( IDirectFBDataBuffer *thiz,
      thiz->AddRef                 = IDirectFBDataBuffer_Requestor_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Requestor_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Requestor_Flush;
+     thiz->Finish                 = IDirectFBDataBuffer_Requestor_Finish;
      thiz->SeekTo                 = IDirectFBDataBuffer_Requestor_SeekTo;
      thiz->GetPosition            = IDirectFBDataBuffer_Requestor_GetPosition;
      thiz->GetLength              = IDirectFBDataBuffer_Requestor_GetLength;
@@ -456,7 +478,7 @@ Construct( IDirectFBDataBuffer *thiz,
      thiz->PeekData               = IDirectFBDataBuffer_Requestor_PeekData;
      thiz->HasData                = IDirectFBDataBuffer_Requestor_HasData;
      thiz->PutData                = IDirectFBDataBuffer_Requestor_PutData;
-
+     
      return DFB_OK;
 }
 

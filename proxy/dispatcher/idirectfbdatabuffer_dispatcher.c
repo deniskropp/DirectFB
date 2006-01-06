@@ -116,6 +116,14 @@ IDirectFBDataBuffer_Dispatcher_Flush( IDirectFBDataBuffer *thiz )
 }
 
 static DFBResult
+IDirectFBDataBuffer_Dispatcher_Finish( IDirectFBDataBuffer *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
+
+     return data->real->Finish( data->real );
+}
+
+static DFBResult
 IDirectFBDataBuffer_Dispatcher_SeekTo( IDirectFBDataBuffer *thiz,
                                        unsigned int         offset )
 {
@@ -236,6 +244,18 @@ IDirectFBDataBuffer_Dispatcher_CreateImageProvider( IDirectFBDataBuffer     *thi
      return ret;
 }
 
+static DFBResult
+IDirectFBDataBuffer_Dispatcher_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
+                                                    IDirectFBVideoProvider **ret_interface )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
+
+     if (!ret_interface)
+          return DFB_INVARG;
+
+     return DFB_UNIMPLEMENTED;
+}
+
 /**************************************************************************************************/
 
 static DirectResult
@@ -273,6 +293,21 @@ Dispatch_Flush( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
 
      ret = real->Flush( real );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_Finish( IDirectFBDataBuffer *thiz, IDirectFBDataBuffer *real,
+                 VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_Dispatcher)
+
+     ret = real->Finish( real );
 
      return voodoo_manager_respond( manager, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
@@ -504,6 +539,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
           case IDIRECTFBDATABUFFER_METHOD_ID_Flush:
                return Dispatch_Flush( dispatcher, real, manager, msg );
 
+          case IDIRECTFBDATABUFFER_METHOD_ID_Finish:
+               return Dispatch_Finish( dispatcher, real, manager, msg );
+
           case IDIRECTFBDATABUFFER_METHOD_ID_SeekTo:
                return Dispatch_SeekTo( dispatcher, real, manager, msg );
 
@@ -577,6 +615,7 @@ Construct( IDirectFBDataBuffer *thiz,
      thiz->AddRef                 = IDirectFBDataBuffer_Dispatcher_AddRef;
      thiz->Release                = IDirectFBDataBuffer_Dispatcher_Release;
      thiz->Flush                  = IDirectFBDataBuffer_Dispatcher_Flush;
+     thiz->Finish                 = IDirectFBDataBuffer_Dispatcher_Finish;
      thiz->SeekTo                 = IDirectFBDataBuffer_Dispatcher_SeekTo;
      thiz->GetPosition            = IDirectFBDataBuffer_Dispatcher_GetPosition;
      thiz->GetLength              = IDirectFBDataBuffer_Dispatcher_GetLength;
@@ -587,7 +626,8 @@ Construct( IDirectFBDataBuffer *thiz,
      thiz->HasData                = IDirectFBDataBuffer_Dispatcher_HasData;
      thiz->PutData                = IDirectFBDataBuffer_Dispatcher_PutData;
      thiz->CreateImageProvider    = IDirectFBDataBuffer_Dispatcher_CreateImageProvider;
-
+     thiz->CreateVideoProvider    = IDirectFBDataBuffer_Dispatcher_CreateVideoProvider;
+     
      return DFB_OK;
 }
 
