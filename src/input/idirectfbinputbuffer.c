@@ -102,6 +102,9 @@ typedef struct {
      int                           pipe_fds[2];    /* read & write file descriptor */
 
      DirectThread                 *pipe_thread;    /* thread feeding the pipe */
+
+     DFBEventBufferStats           stats;
+     bool                          stats_enabled;
 } IDirectFBEventBuffer_data;
 
 /*
@@ -117,6 +120,10 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                                                         void       *ctx );
 
 static void *IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg );
+
+static void CollectEventStatistics( DFBEventBufferStats *stats,
+                                    const DFBEvent      *event,
+                                    int                  incdec );
 
 
 static void
@@ -337,6 +344,9 @@ IDirectFBEventBuffer_GetEvent( IDirectFBEventBuffer *thiz,
                D_BUG("unknown event class");
      }
 
+     if (data->stats_enabled)
+          CollectEventStatistics( &data->stats, &item->evt, -1 );
+
      direct_list_remove( &data->events, &item->link );
 
      D_FREE( item );
@@ -505,6 +515,69 @@ IDirectFBEventBuffer_CreateFileDescriptor( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBEventBuffer_EnableStatistics( IDirectFBEventBuffer *thiz,
+                                       DFBBoolean            enable )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     /* Lock the event queue. */
+     pthread_mutex_lock( &data->events_mutex );
+
+     /* Already enabled/disabled? */
+     if (data->stats_enabled == !!enable) {
+          pthread_mutex_unlock( &data->events_mutex );
+          return DFB_OK;
+     }
+
+     if (enable) {
+          EventBufferItem *item;
+
+          /* Collect statistics for events already in the queue. */
+          direct_list_foreach (item, data->events)
+               CollectEventStatistics( &data->stats, &item->evt, 1 );
+     }
+     else {
+          /* Clear statistics. */
+          memset( &data->stats, 0, sizeof(DFBEventBufferStats) );
+     }
+
+     /* Remember state. */
+     data->stats_enabled = !!enable;
+
+     /* Unlock the event queue. */
+     pthread_mutex_unlock( &data->events_mutex );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBEventBuffer_GetStatistics( IDirectFBEventBuffer *thiz,
+                                    DFBEventBufferStats  *ret_stats )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+
+     if (!ret_stats)
+          return DFB_INVARG;
+
+     /* Lock the event queue. */
+     pthread_mutex_lock( &data->events_mutex );
+
+     /* Not enabled? */
+     if (!data->stats_enabled) {
+          pthread_mutex_unlock( &data->events_mutex );
+          return DFB_UNSUPPORTED;
+     }
+
+     /* Return current stats. */
+     *ret_stats = data->stats;
+
+     /* Unlock the event queue. */
+     pthread_mutex_unlock( &data->events_mutex );
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
                                 EventBufferFilterCallback  filter,
@@ -530,6 +603,8 @@ IDirectFBEventBuffer_Construct( IDirectFBEventBuffer      *thiz,
      thiz->PostEvent               = IDirectFBEventBuffer_PostEvent;
      thiz->WakeUp                  = IDirectFBEventBuffer_WakeUp;
      thiz->CreateFileDescriptor    = IDirectFBEventBuffer_CreateFileDescriptor;
+     thiz->EnableStatistics        = IDirectFBEventBuffer_EnableStatistics;
+     thiz->GetStatistics           = IDirectFBEventBuffer_GetStatistics;
 
      return DFB_OK;
 }
@@ -583,6 +658,9 @@ static void IDirectFBEventBuffer_AddItem( IDirectFBEventBuffer_data *data,
      }
 
      pthread_mutex_lock( &data->events_mutex );
+
+     if (data->stats_enabled)
+          CollectEventStatistics( &data->stats, &item->evt, 1 );
 
      direct_list_append( &data->events, &item->link );
 
@@ -655,6 +733,9 @@ IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
                int              ret;
                EventBufferItem *item = (EventBufferItem*) data->events;
 
+               if (data->stats_enabled)
+                    CollectEventStatistics( &data->stats, &item->evt, -1 );
+
                direct_list_remove( &data->events, &item->link );
 
                if (item->evt.clazz == DFEC_UNIVERSAL) {
@@ -685,3 +766,123 @@ IDirectFBEventBuffer_Feed( DirectThread *thread, void *arg )
 
      return NULL;
 }
+
+static void
+CollectEventStatistics( DFBEventBufferStats *stats,
+                        const DFBEvent      *event,
+                        int                  incdec )
+{
+     stats->num_events += incdec;
+
+     switch (event->clazz) {
+          case DFEC_INPUT:
+               stats->DFEC_INPUT += incdec;
+
+               switch (event->input.type) {
+                    case DIET_KEYPRESS:
+                         stats->DIET_KEYPRESS += incdec;
+                         break;
+
+                    case DIET_KEYRELEASE:
+                         stats->DIET_KEYRELEASE += incdec;
+                         break;
+
+                    case DIET_BUTTONPRESS:
+                         stats->DIET_BUTTONPRESS += incdec;
+                         break;
+
+                    case DIET_BUTTONRELEASE:
+                         stats->DIET_BUTTONRELEASE += incdec;
+                         break;
+
+                    case DIET_AXISMOTION:
+                         stats->DIET_AXISMOTION += incdec;
+                         break;
+
+                    default:
+                         D_BUG( "unknown input event type 0x%08x\n", event->input.type );
+               }
+               break;
+
+          case DFEC_WINDOW:
+               stats->DFEC_WINDOW += incdec;
+
+               switch (event->window.type) {
+                    case DWET_POSITION:
+                         stats->DWET_POSITION += incdec;
+                         break;
+
+                    case DWET_SIZE:
+                         stats->DWET_SIZE += incdec;
+                         break;
+
+                    case DWET_CLOSE:
+                         stats->DWET_CLOSE += incdec;
+                         break;
+
+                    case DWET_DESTROYED:
+                         stats->DWET_DESTROYED += incdec;
+                         break;
+
+                    case DWET_GOTFOCUS:
+                         stats->DWET_GOTFOCUS += incdec;
+                         break;
+
+                    case DWET_LOSTFOCUS:
+                         stats->DWET_LOSTFOCUS += incdec;
+                         break;
+
+                    case DWET_KEYDOWN:
+                         stats->DWET_KEYDOWN += incdec;
+                         break;
+
+                    case DWET_KEYUP:
+                         stats->DWET_KEYUP += incdec;
+                         break;
+
+                    case DWET_BUTTONDOWN:
+                         stats->DWET_BUTTONDOWN += incdec;
+                         break;
+
+                    case DWET_BUTTONUP:
+                         stats->DWET_BUTTONUP += incdec;
+                         break;
+
+                    case DWET_MOTION:
+                         stats->DWET_MOTION += incdec;
+                         break;
+
+                    case DWET_ENTER:
+                         stats->DWET_ENTER += incdec;
+                         break;
+
+                    case DWET_LEAVE:
+                         stats->DWET_LEAVE += incdec;
+                         break;
+
+                    case DWET_WHEEL:
+                         stats->DWET_WHEEL += incdec;
+                         break;
+
+                    case DWET_POSITION_SIZE:
+                         stats->DWET_POSITION_SIZE += incdec;
+                         break;
+
+                    default:
+                         D_BUG( "unknown window event type 0x%08x\n", event->window.type );
+               }
+               break;
+
+          case DFEC_USER:
+               stats->DFEC_USER += incdec;
+               break;
+
+          case DFEC_UNIVERSAL:
+               stats->DFEC_UNIVERSAL += incdec;
+               break;
+
+          default:
+               D_BUG( "unknown event class 0x%08x\n", event->clazz );
+     }
+}
+

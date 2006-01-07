@@ -3893,6 +3893,41 @@ typedef union {
 
 #define DFB_EVENT(e)          ((DFBEvent *) (e))
 
+/*
+ * Statistics about event buffer queue.
+ */
+typedef struct {
+     unsigned int   num_events;              /* Total number of events in the queue. */
+
+     unsigned int   DFEC_INPUT;              /* Number of input events. */
+     unsigned int   DFEC_WINDOW;             /* Number of window events. */
+     unsigned int   DFEC_USER;               /* Number of user events. */
+     unsigned int   DFEC_UNIVERSAL;          /* Number of universal events. */
+
+     unsigned int   DIET_KEYPRESS;
+     unsigned int   DIET_KEYRELEASE;
+     unsigned int   DIET_BUTTONPRESS;
+     unsigned int   DIET_BUTTONRELEASE;
+     unsigned int   DIET_AXISMOTION;
+
+     unsigned int   DWET_POSITION;
+     unsigned int   DWET_SIZE;
+     unsigned int   DWET_CLOSE;
+     unsigned int   DWET_DESTROYED;
+     unsigned int   DWET_GOTFOCUS;
+     unsigned int   DWET_LOSTFOCUS;
+     unsigned int   DWET_KEYDOWN;
+     unsigned int   DWET_KEYUP;
+     unsigned int   DWET_BUTTONDOWN;
+     unsigned int   DWET_BUTTONUP;
+     unsigned int   DWET_MOTION;
+     unsigned int   DWET_ENTER;
+     unsigned int   DWET_LEAVE;
+     unsigned int   DWET_WHEEL;
+     unsigned int   DWET_POSITION_SIZE;
+} DFBEventBufferStats;
+
+
 /************************
  * IDirectFBEventBuffer *
  ************************/
@@ -4006,6 +4041,25 @@ DEFINE_INTERFACE(   IDirectFBEventBuffer,
      DFBResult (*CreateFileDescriptor) (
           IDirectFBEventBuffer     *thiz,
           int                      *ret_fd
+     );
+
+
+   /** Statistics **/
+
+     /*
+      * Enable/disable collection of event buffer statistics.
+      */
+     DFBResult (*EnableStatistics) (
+          IDirectFBEventBuffer     *thiz,
+          DFBBoolean                enable
+     );
+
+     /*
+      * Query collected event buffer statistics.
+      */
+     DFBResult (*GetStatistics) (
+          IDirectFBEventBuffer     *thiz,
+          DFBEventBufferStats      *ret_stats
      );
 )
 
