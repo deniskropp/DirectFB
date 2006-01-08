@@ -3,7 +3,7 @@
 idirectfbvideoproviderdir = $(MODULEDIR)/interfaces/IDirectFBVideoProvider
 
 
-if HAVE_LINUX
+if V4L_PROVIDER
 V4L_PROVIDER_LTLIB = libidirectfbvideoprovider_v4l.la
 else
 V4L_PROVIDER_LTLIB =
