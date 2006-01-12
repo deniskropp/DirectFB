@@ -95,6 +95,8 @@ typedef struct {
      bool                        paused;
      bool                        finished;
      
+     __s64                       start_time;
+     
      struct {
           DirectThread          *thread;
           pthread_mutex_t        lock;
@@ -305,7 +307,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     flush_packets( &data->video.queue );
                     flush_packets( &data->audio.queue );
                     data->finished     = false;
-                    data->video.pts    = (double)data->input.seek_time/AV_TIME_BASE;
+                    data->video.pts    =
                     data->audio.pts    = (double)data->input.seek_time/AV_TIME_BASE;
                     data->video.seeked = true;
                     data->audio.seeked = true;
@@ -326,8 +328,10 @@ FFmpegInput( DirectThread *self, void *arg )
           }
           
           if (av_read_frame( data->context, &packet ) < 0) {
-               if (url_feof( &data->context->pb ))
-                    data->finished = true;
+               if (url_feof( &data->context->pb )) {
+                    data->finished = (data->video.queue.size == 0 &&
+                                      data->audio.queue.size == 0);
+               }
                     
                pthread_mutex_unlock( &data->input.lock );
                usleep( 100 );
@@ -450,20 +454,10 @@ FFmpegVideo( DirectThread *self, void *arg )
                     data->callback( data->ctx );
           }
           
-          if (pkt.dts != AV_NOPTS_VALUE) {
+          if (pkt.dts != AV_NOPTS_VALUE)
                data->video.pts = av_q2d(data->video.st->time_base) * pkt.dts;
-          }
-          else {
-               if (data->video.pts == -1) {
-                    if (data->context->start_time != AV_NOPTS_VALUE)
-                         data->video.pts = 
-                         (double)data->context->start_time/AV_TIME_BASE;
-                    else
-                         data->video.pts = 0;
-               } else {
-                    data->video.pts += (double)data->video.interval/AV_TIME_BASE;
-               }
-          }
+          else
+               data->video.pts += (double)data->video.interval/AV_TIME_BASE;
                
           av_free_packet( &pkt );
           
@@ -551,16 +545,8 @@ FFmpegAudio( DirectThread *self, void *arg )
                data->audio.pts = av_q2d(data->audio.st->time_base) * pkt.pts;
           }
           else if (size) {
-               if (data->audio.pts == -1) {
-                    if (data->context->start_time != AV_NOPTS_VALUE)
-                         data->audio.pts = 
-                         (double)data->context->start_time/AV_TIME_BASE;
-                    else
-                         data->audio.pts = 0;
-               } else {
-                    data->audio.pts += (double)size / 
-                                       (double)data->audio.sample_rate;
-               }
+               data->audio.pts += (double)size / 
+                                  (double)data->audio.sample_rate;
           }
           
           data->audio.stream->GetPresentationDelay( data->audio.stream, &delay );
@@ -825,13 +811,13 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      data->ctx              = ctx;
      
      if (data->finished) {
-#ifdef SEEK_ON_DELAY
-          data->input.seek_time = (double)data->context->start_time / AV_TIME_BASE;
+#if SEEK_ON_DELAY
+          data->input.seek_time = (double)data->start_time / AV_TIME_BASE;
           data->input.seek_flag = 0;
           data->input.seeked    = true;
 #else
           if (av_seek_frame( data->context, -1, 
-                             data->context->start_time, 0 ) < 0) {
+                             data->start_time, 0 ) < 0) {
                pthread_mutex_unlock( &data->input.lock );
                pthread_mutex_unlock( &data->video.lock );
                pthread_mutex_unlock( &data->audio.lock );
@@ -839,8 +825,8 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
           }
           
           data->finished     = false;
-          data->video.pts    = (double)data->context->start_time / AV_TIME_BASE;
-          data->audio.pts    = (double)data->context->start_time / AV_TIME_BASE;
+          data->video.pts    =
+          data->audio.pts    = (double)data->start_time / AV_TIME_BASE;
           data->input.seeked = true;
           data->video.seeked = true;
           data->audio.seeked = true;
@@ -913,10 +899,8 @@ IDirectFBVideoProvider_FFmpeg_SeekTo( IDirectFBVideoProvider *thiz,
           
      thiz->GetPos( thiz, &pos );
   
-     time = (seconds * AV_TIME_BASE);
-     if (data->context->start_time != AV_NOPTS_VALUE)
-          time += data->context->start_time;
-     
+     time = (seconds * AV_TIME_BASE) + data->start_time;
+      
      if (data->context->duration != AV_NOPTS_VALUE &&
          time > data->context->duration)
           return DFB_OK;
@@ -966,8 +950,7 @@ IDirectFBVideoProvider_FFmpeg_GetPos( IDirectFBVideoProvider *thiz,
      else
           pos += data->video.pts;
           
-     if (data->context->start_time != AV_NOPTS_VALUE)
-          pos -= (double)data->context->start_time / AV_TIME_BASE;
+     pos -= (double)data->start_time / AV_TIME_BASE;
           
      *seconds = (pos < 0.0) ? 0.0 : pos;
      
@@ -1215,8 +1198,11 @@ Construct( IDirectFBVideoProvider *thiz,
      }
 #endif
 
+     if (data->context->start_time != AV_NOPTS_VALUE)
+          data->start_time = data->context->start_time;
+
      data->video.pts = 
-     data->audio.pts = (double)data->context->start_time / AV_TIME_BASE;
+     data->audio.pts = (double)data->start_time / AV_TIME_BASE;
  
      direct_util_recursive_pthread_mutex_init( &data->input.lock );
      direct_util_recursive_pthread_mutex_init( &data->audio.lock );
