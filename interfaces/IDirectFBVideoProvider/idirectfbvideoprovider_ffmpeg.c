@@ -812,7 +812,7 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      
      if (data->finished) {
 #if SEEK_ON_DELAY
-          data->input.seek_time = (double)data->start_time / AV_TIME_BASE;
+          data->input.seek_time = data->start_time;
           data->input.seek_flag = 0;
           data->input.seeked    = true;
 #else
@@ -938,18 +938,14 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetPos( IDirectFBVideoProvider *thiz,
                                       double                 *seconds )
 {
-     double pos = 0.0;
+     double pos;
                  
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!seconds)
           return DFB_INVARG;
-          
-     if (data->audio.pts != -1)
-          pos += data->audio.pts;
-     else
-          pos += data->video.pts;
-          
+     
+     pos  = (data->audio.thread) ? data->audio.pts : data->video.pts;
      pos -= (double)data->start_time / AV_TIME_BASE;
           
      *seconds = (pos < 0.0) ? 0.0 : pos;
