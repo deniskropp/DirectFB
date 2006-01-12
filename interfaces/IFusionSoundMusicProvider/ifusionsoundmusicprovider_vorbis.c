@@ -1,18 +1,19 @@
 /*
- * Copyright (C) 2005 Claudio Ciccani <klan@users.sf.net>
+ * Copyright (C) 2005-2006 Claudio Ciccani <klan@users.sf.net>
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License version 2 as
- * published by the Free Software Foundation.
- *
- * This program is distributed in the hope that it will be useful,
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ * 
+ * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  */
 
@@ -329,11 +330,11 @@ IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *t
 }
 
 static void
-vorbis_get_metadata( vorbis_info        *vi,
-                     vorbis_comment     *vc, 
+vorbis_get_metadata( OggVorbis_File     *vf,
                      FSTrackDescription *desc )
 {
-     char **ptr = vc->user_comments;
+     vorbis_comment   *vc = ov_comment( vf, -1 ); 
+     char           **ptr = vc->user_comments;
 
      memset( desc, 0, sizeof(FSTrackDescription) );
      
@@ -370,7 +371,7 @@ vorbis_get_metadata( vorbis_info        *vi,
      snprintf( desc->encoding, 
                FS_TRACK_DESC_ENCODING_LENGTH, "Vorbis" );
      
-     desc->bitrate = vi->bitrate_nominal ? : 128000;
+     desc->bitrate = ov_bitrate( vf, -1 ) ? : ov_bitrate_instant( vf );
 }
 
 static DFBResult
@@ -385,7 +386,7 @@ IFusionSoundMusicProvider_Vorbis_EnumTracks( IFusionSoundMusicProvider *thiz,
      if (!callback)
           return DFB_INVARG;
 
-     vorbis_get_metadata( data->info, ov_comment( &data->vf, -1 ), &desc );
+     vorbis_get_metadata( &data->vf, &desc );
      callback( 0, desc, callbackdata );
 
      return DFB_OK;
@@ -414,7 +415,7 @@ IFusionSoundMusicProvider_Vorbis_GetTrackDescription( IFusionSoundMusicProvider 
      if (!desc)
           return DFB_INVARG;
 
-     vorbis_get_metadata( data->info, ov_comment( &data->vf, -1 ), desc );
+     vorbis_get_metadata( &data->vf, desc );
 
      return DFB_OK;
 }
@@ -431,7 +432,7 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
      desc->flags      = FSSDF_SAMPLERATE | FSSDF_CHANNELS | FSSDF_BUFFERSIZE;
      desc->samplerate = data->info->rate;
      desc->channels   = data->info->channels;
-     desc->buffersize = desc->samplerate >> 2;
+     desc->buffersize = desc->samplerate/5;
 
      return DFB_OK;
 }
@@ -448,7 +449,7 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
      desc->flags      = FSBDF_SAMPLERATE | FSBDF_CHANNELS | FSBDF_LENGTH;
      desc->samplerate = data->info->rate;
      desc->channels   = data->info->channels;
-     desc->length     = desc->samplerate >> 2;
+     desc->length     = desc->samplerate/5;
 
      return DFB_OK;
 }
