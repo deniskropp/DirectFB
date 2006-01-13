@@ -1452,7 +1452,8 @@ vo_dfb_set_output_ratio( dfb_driver_t *this,
                this->output_ratio = 2.0;
                break;
           default:
-               this->output_ratio = *((float*)&ratio);
+               this->output_ratio = (double)(ratio >> 16) / 
+                                    (double)(ratio & 0xffff);
                break;
      }
 }
