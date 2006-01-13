@@ -217,7 +217,7 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
 
           if (data->cfg) {
                xine_config_save( data->xine, data->cfg );
-               free( data->cfg );
+               D_FREE( data->cfg );
           }
 
           xine_exit( data->xine );
@@ -764,14 +764,12 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 
      xinerc = getenv( "XINERC" );
      if (!xinerc || !*xinerc) {
-          asprintf( &xinerc, "%s/.xine/config", xine_get_homedir() );
+          xinerc = alloca( 2048 );
+          snprintf( xinerc, 2048, 
+                    "%s/.xine/config", xine_get_homedir() );
+     }
           
-          if(xinerc) {
-               xine_config_load( xine, xinerc );
-               free( xinerc );
-          }
-     } else
-          xine_config_load( xine, xinerc );
+     xine_config_load( xine, xinerc );
 
      xine_init( xine );
 
@@ -908,14 +906,16 @@ Construct( IDirectFBVideoProvider *thiz,
 
      xinerc = getenv( "XINERC" );
      if (!xinerc || !*xinerc) {
-          char *xined;
-          asprintf( &xined, "%s/.xine", xine_get_homedir() );
-          mkdir( xined , 755 );
-          asprintf( &data->cfg, "%s/config", xined );
-          free( xined );
-     }
+          const char *home = xine_get_homedir();
+          char        path[2048];
+          
+          snprintf( path, sizeof(path), "%s/.xine", home );
+          mkdir( path , 0755 );
+          snprintf( path, sizeof(path), "%s/.xine/config", home );
+          data->cfg = D_STRDUP( path );
+     } 
      else {
-          data->cfg = strdup( xinerc );
+          data->cfg = D_STRDUP( xinerc );
      }
 
      if (data->cfg)
