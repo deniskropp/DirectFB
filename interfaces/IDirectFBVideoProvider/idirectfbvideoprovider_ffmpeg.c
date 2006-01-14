@@ -74,13 +74,14 @@ Construct( IDirectFBVideoProvider *thiz,
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, FFmpeg )
 
 typedef struct {
-     DirectLink  link;
-     AVPacket    packet;
+     DirectLink       link;
+     AVPacket         packet;
 } PacketLink;
 
 typedef struct {
-     PacketLink *list;
-     int         size;
+     PacketLink      *list;
+     int              size;
+     pthread_mutex_t  lock;
 } PacketQueue;
      
 typedef struct {
@@ -245,8 +246,10 @@ add_packet( PacketQueue *queue, AVPacket *packet )
      av_dup_packet( packet );
      p->packet = *packet;
      
+     pthread_mutex_lock( &queue->lock );
      direct_list_append( (DirectLink**)&queue->list, &p->link );
      queue->size += packet->size;
+     pthread_mutex_unlock( &queue->lock );
      
      return true;
 }
@@ -254,27 +257,30 @@ add_packet( PacketQueue *queue, AVPacket *packet )
 static bool
 get_packet( PacketQueue *queue, AVPacket *packet )
 {
-     PacketLink *p = queue->list;
+     PacketLink *p;
      
+     pthread_mutex_lock( &queue->lock );
+     p = queue->list;
      if (p) {
           direct_list_remove( (DirectLink**)&queue->list, &p->link );
           queue->size -= p->packet.size;
           
           *packet = p->packet;
           D_FREE( p );
-          
-          return true;
      }
+     pthread_mutex_unlock( &queue->lock );
      
-     return false;
+     return (p != NULL);
 }    
      
 static void
 flush_packets( PacketQueue *queue )
 {
-     PacketLink *p = queue->list;
+     PacketLink *p;
+     
+     pthread_mutex_lock( &queue->lock );
 
-     while (p) {
+     for (p = queue->list; p;) {
           PacketLink *next = (PacketLink*)p->link.next;
 
           direct_list_remove( (DirectLink**)&queue->list, &p->link );
@@ -286,6 +292,8 @@ flush_packets( PacketQueue *queue )
      
      queue->list = NULL;
      queue->size = 0;
+     
+     pthread_mutex_unlock( &queue->lock );
 }
 
 /*****************************************************************************/
@@ -377,14 +385,11 @@ FFmpegVideo( DirectThread *self, void *arg )
           
           pthread_mutex_lock( &data->video.lock );
     
-          pthread_mutex_lock( &data->input.lock );
           if (!get_packet( &data->video.queue, &pkt )) {
-               pthread_mutex_unlock( &data->input.lock );
                pthread_mutex_unlock( &data->video.lock );
                usleep( 0 );
                continue;
           }
-          pthread_mutex_unlock( &data->input.lock );
           
           if (data->video.seeked) {
                avcodec_flush_buffers( data->video.ctx );
@@ -511,14 +516,11 @@ FFmpegAudio( DirectThread *self, void *arg )
           
           pthread_mutex_lock( &data->audio.lock );
           
-          pthread_mutex_lock( &data->input.lock );
           if (!get_packet( &data->audio.queue, &pkt )) {
-               pthread_mutex_unlock( &data->input.lock );
                pthread_mutex_unlock( &data->audio.lock );
                usleep( 0 );
                continue;
           }
-          pthread_mutex_unlock( &data->input.lock );
           
           if (data->audio.seeked) {
                //data->audio.stream->Wait( data->audio.stream, 0 );
@@ -630,8 +632,11 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      flush_packets( &data->audio.queue );
 
      pthread_cond_destroy( &data->video.cond );
-     pthread_mutex_destroy( &data->video.lock );
+
+     pthread_mutex_destroy( &data->audio.queue.lock );
+     pthread_mutex_destroy( &data->video.queue.lock );
      pthread_mutex_destroy( &data->audio.lock );
+     pthread_mutex_destroy( &data->video.lock );
      pthread_mutex_destroy( &data->input.lock );
      
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -1201,8 +1206,11 @@ Construct( IDirectFBVideoProvider *thiz,
      data->audio.pts = (double)data->start_time / AV_TIME_BASE;
  
      direct_util_recursive_pthread_mutex_init( &data->input.lock );
-     direct_util_recursive_pthread_mutex_init( &data->audio.lock );
      direct_util_recursive_pthread_mutex_init( &data->video.lock );
+     direct_util_recursive_pthread_mutex_init( &data->audio.lock );
+     direct_util_recursive_pthread_mutex_init( &data->video.queue.lock );
+     direct_util_recursive_pthread_mutex_init( &data->audio.queue.lock );
+       
      pthread_cond_init( &data->video.cond, NULL );
      
      thiz->AddRef                = IDirectFBVideoProvider_FFmpeg_AddRef;
