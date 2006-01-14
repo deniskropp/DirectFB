@@ -4717,6 +4717,53 @@ DEFINE_INTERFACE(   IDirectFBImageProvider,
 )
 
 /*
+ * Capabilities of an audio/video stream.
+ */
+typedef enum {
+     DVSCAPS_NONE         = 0x00000000, /* None of these.         */
+     DVSCAPS_VIDEO        = 0x00000001, /* Stream contains video. */
+     DVSCAPS_AUDIO        = 0x00000002  /* Stream contains audio. */
+     /* DVSCAPS_SUBPICTURE ?! */
+} DFBStreamCapabilities;
+
+#define DFB_STREAM_DESC_ENCODING_LENGTH   30
+#define DFB_STREAM_DESC_TITLE_LENGTH     255
+#define DFB_STREAM_DESC_AUTHOR_LENGTH    255
+#define DFB_STREAM_DESC_ALBUM_LENGTH     255
+#define DFB_STREAM_DESC_GENRE_LENGTH      32
+#define DFB_STREAM_DESC_COMMENT_LENGTH   255
+
+/*
+ * Informations about an audio/video stream.
+ */
+typedef struct {
+     DFBStreamCapabilities  caps;         /* capabilities                       */
+
+     struct {
+          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
+                                             encoding (e.g. "MPEG4")            */
+          double            framerate;    /* number of frames per second        */
+          double            aspect;       /* frame aspect ratio                 */
+          int               bitrate;      /* amount of bits per second          */
+     } video;
+
+     struct {
+          char              encoding[DFB_STREAM_DESC_ENCODING_LENGTH]; /*
+                                             encoding (e.g. "AAC")              */
+          int               samplerate;   /* number of samples per second       */
+          int               channels;     /* number of channels per sample      */
+          int               bitrate;      /* amount of bits per second          */
+     } audio;
+
+     char                   title[DFB_STREAM_DESC_TITLE_LENGTH];     /* title   */
+     char                   author[DFB_STREAM_DESC_AUTHOR_LENGTH];   /* author  */
+     char                   album[DFB_STREAM_DESC_ALBUM_LENGTH];     /* album   */ 
+     short                  year;                                    /* year    */
+     char                   genre[DFB_STREAM_DESC_GENRE_LENGTH];     /* genre   */
+     char                   comment[DFB_STREAM_DESC_COMMENT_LENGTH]; /* comment */
+} DFBStreamDescription;
+
+/*
  * Called for each written frame.
  */
 typedef int (*DVFrameCallback)(void *ctx);
@@ -4749,6 +4796,14 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*GetSurfaceDescription) (
           IDirectFBVideoProvider   *thiz,
           DFBSurfaceDescription    *ret_dsc
+     );
+
+     /*
+      * Get a description of the video stream.
+      */
+     DFBResult (*GetStreamDescription) (
+          IDirectFBVideoProvider   *thiz,
+          DFBStreamDescription     *ret_dsc
      );
 
 
