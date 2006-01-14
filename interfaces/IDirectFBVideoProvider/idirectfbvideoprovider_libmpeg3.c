@@ -236,6 +236,45 @@ IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription(
     return DFB_OK;
 }
 
+static DFBResult
+IDirectFBVideoProvider_Libmpeg3_GetStreamDescription(
+                                        IDirectFBVideoProvider *thiz,
+                                        DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->caps = DVSCAPS_NONE;
+
+     if (mpeg3_has_video( data->file )) {
+          desc->caps |= DVSCAPS_VIDEO;
+     
+          snprintf( desc->video.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH, "MPEG" );
+          desc->video.framerate = mpeg3_frame_rate( data->file, 0 );
+          desc->video.aspect    = mpeg3_aspect_ratio( data->file, 0 ) ? : 4.0/3.0;
+          desc->video.bitrate   = 0;
+     }
+
+     if (mpeg3_has_audio( data->file )) {
+          desc->caps |= DVSCAPS_AUDIO;
+
+          snprintf( desc->audio.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH, "MPEG" );
+          desc->audio.samplerate = mpeg3_sample_rate( data->file, 0 );
+          desc->audio.channels   = mpeg3_audio_channels( data->file, 0 );
+          desc->audio.bitrate    = 0;
+     }
+
+     desc->title[0] = desc->author[0] = desc->album[0]   =
+     desc->year     = desc->genre[0]  = desc->comment[0] = 0;
+
+     return DFB_OK;
+}
+
+ 
 static void
 RGB888_to_RGB332( void *d, void *s, int len )
 {
@@ -1094,7 +1133,8 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetCapabilities       = IDirectFBVideoProvider_Libmpeg3_GetCapabilities;
 
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_Libmpeg3_GetSurfaceDescription;
-
+     thiz->GetStreamDescription  = IDirectFBVideoProvider_Libmpeg3_GetStreamDescription;
+     
      thiz->PlayTo                = IDirectFBVideoProvider_Libmpeg3_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Libmpeg3_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_Libmpeg3_SeekTo;

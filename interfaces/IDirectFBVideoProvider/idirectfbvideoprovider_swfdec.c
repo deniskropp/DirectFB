@@ -628,6 +628,35 @@ IDirectFBVideoProvider_Swfdec_GetSurfaceDescription( IDirectFBVideoProvider *thi
 }
 
 static DFBResult
+IDirectFBVideoProvider_Swfdec_GetStreamDescription( IDirectFBVideoProvider *thiz,
+                                                    DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+
+     if (!desc)
+          return DFB_INVARG;
+     
+     desc->caps = DVSCAPS_VIDEO | DVSCAPS_AUDIO; /* assume we have audio */
+
+     snprintf( desc->video.encoding,
+               DFB_STREAM_DESC_ENCODING_LENGTH, "Shockwave Flash" );
+     desc->video.framerate = data->rate;
+     desc->video.aspect    = (double)data->width / (double) data->height;
+     desc->video.bitrate   = 0;
+
+     snprintf( desc->audio.encoding,
+               DFB_STREAM_DESC_ENCODING_LENGTH, "MP3" );
+     desc->audio.samplerate = 44100;
+     desc->audio.channels   = 2;
+     desc->audio.bitrate    = 0;
+
+     desc->title[0] = desc->author[0] = desc->album[0]   =
+     desc->year     = desc->genre[0]  = desc->comment[0] = 0;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
                                       IDirectFBSurface       *dest,
                                       const DFBRectangle     *dest_rect,
@@ -1096,6 +1125,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->Release               = IDirectFBVideoProvider_Swfdec_Release;
      thiz->GetCapabilities       = IDirectFBVideoProvider_Swfdec_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_Swfdec_GetSurfaceDescription;
+     thiz->GetStreamDescription  = IDirectFBVideoProvider_Swfdec_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_Swfdec_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Swfdec_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_Swfdec_SeekTo;

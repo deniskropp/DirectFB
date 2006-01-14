@@ -739,6 +739,50 @@ IDirectFBVideoProvider_FFmpeg_GetSurfaceDescription( IDirectFBVideoProvider *thi
 }
 
 static DFBResult
+IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz,
+                                                    DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->caps = DVSCAPS_VIDEO;
+
+     snprintf( desc->video.encoding,
+               DFB_STREAM_DESC_ENCODING_LENGTH, data->video.codec->name );
+     desc->video.framerate = av_q2d( data->video.st->r_frame_rate );
+     desc->video.aspect    = av_q2d( data->video.ctx->sample_aspect_ratio );
+     if (!desc->video.aspect || !finite(desc->video.aspect))
+          desc->video.aspect = 4.0/3.0;
+     desc->video.bitrate   = data->video.ctx->bit_rate;
+
+     if (data->audio.st) {
+          desc->caps |= DVSCAPS_AUDIO;
+
+          snprintf( desc->audio.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH, data->audio.codec->name );
+          desc->audio.samplerate = data->audio.ctx->sample_rate;
+          desc->audio.channels   = data->audio.ctx->channels;
+          desc->audio.bitrate    = data->audio.ctx->bit_rate;
+     }
+               
+     snprintf( desc->title,
+               DFB_STREAM_DESC_TITLE_LENGTH, data->context->title );
+     snprintf( desc->author,
+               DFB_STREAM_DESC_AUTHOR_LENGTH, data->context->author );
+     snprintf( desc->album,
+               DFB_STREAM_DESC_ALBUM_LENGTH, data->context->album );
+     snprintf( desc->genre,
+               DFB_STREAM_DESC_GENRE_LENGTH, data->context->genre );
+     snprintf( desc->comment,
+               DFB_STREAM_DESC_COMMENT_LENGTH, data->context->comment );
+     desc->year = data->context->year;
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
                                       IDirectFBSurface       *dest,
                                       const DFBRectangle     *dest_rect,
@@ -1026,6 +1070,10 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      unsigned char        buf[2048];
      int                  len = 0;
      DFBResult            ret;
+
+     /* ignore Flash files */
+     if (!memcmp( ctx->header, "SWF", 3 ) || !memcmp( ctx->header, "CWF", 3 ))
+          return DFB_UNSUPPORTED;
      
      ret = buffer->WaitForData( buffer, sizeof(buf) );
      if (ret == DFB_OK)
@@ -1217,6 +1265,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->Release               = IDirectFBVideoProvider_FFmpeg_Release;
      thiz->GetCapabilities       = IDirectFBVideoProvider_FFmpeg_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_FFmpeg_GetSurfaceDescription;
+     thiz->GetStreamDescription  = IDirectFBVideoProvider_FFmpeg_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_FFmpeg_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_FFmpeg_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_FFmpeg_SeekTo;

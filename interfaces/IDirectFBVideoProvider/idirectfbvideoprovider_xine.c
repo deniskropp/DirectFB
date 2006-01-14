@@ -312,6 +312,69 @@ IDirectFBVideoProvider_Xine_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
 }
 
 static DFBResult
+IDirectFBVideoProvider_Xine_GetStreamDescription( IDirectFBVideoProvider *thiz,
+                                                  DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->caps = DVSCAPS_NONE;
+
+     if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO )) {
+          desc->caps |= DVSCAPS_VIDEO;
+     
+          snprintf( desc->video.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH,
+                    xine_get_meta_info( data->stream, XINE_META_INFO_VIDEOCODEC ) ?:"" );
+          desc->video.framerate = xine_get_stream_info( data->stream, 
+                                                        XINE_STREAM_INFO_FRAME_DURATION );
+          if (desc->video.framerate)
+               desc->video.framerate = 90000.0 / desc->video.framerate;
+          desc->video.aspect    = xine_get_stream_info( data->stream,
+                                                        XINE_STREAM_INFO_VIDEO_RATIO ) / 10000.0;
+          if (!desc->video.aspect)
+               desc->video.aspect = 4.0/3.0;
+          desc->video.bitrate   = xine_get_stream_info( data->stream,
+                                                        XINE_STREAM_INFO_VIDEO_BITRATE );
+     }
+
+     if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_AUDIO )) {
+          desc->caps |= DVSCAPS_AUDIO;
+
+          snprintf( desc->audio.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH,
+                    xine_get_meta_info( data->stream, XINE_META_INFO_AUDIOCODEC ) ?:"" );
+          desc->audio.samplerate = xine_get_stream_info( data->stream,
+                                                         XINE_STREAM_INFO_AUDIO_SAMPLERATE );
+          desc->audio.channels   = xine_get_stream_info( data->stream,
+                                                         XINE_STREAM_INFO_AUDIO_CHANNELS );
+          desc->audio.bitrate    = xine_get_stream_info( data->stream,
+                                                         XINE_STREAM_INFO_AUDIO_BITRATE );
+     }
+               
+     snprintf( desc->title,
+               DFB_STREAM_DESC_TITLE_LENGTH,
+               xine_get_meta_info( data->stream, XINE_META_INFO_TITLE ) ?:"" );
+     snprintf( desc->author,
+               DFB_STREAM_DESC_AUTHOR_LENGTH,
+               xine_get_meta_info( data->stream, XINE_META_INFO_ARTIST ) ?:"" );
+     snprintf( desc->album,
+               DFB_STREAM_DESC_ALBUM_LENGTH,
+               xine_get_meta_info( data->stream, XINE_META_INFO_ALBUM ) ?:"" );
+     snprintf( desc->genre,
+               DFB_STREAM_DESC_GENRE_LENGTH,
+               xine_get_meta_info( data->stream, XINE_META_INFO_GENRE ) ?:"" );
+     snprintf( desc->comment,
+               DFB_STREAM_DESC_COMMENT_LENGTH,
+               xine_get_meta_info( data->stream, XINE_META_INFO_COMMENT ) ?:"" );
+     desc->year = atoi( xine_get_meta_info( data->stream, XINE_META_INFO_YEAR ) ?:"" );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                     IDirectFBSurface       *dest,
                                     const DFBRectangle     *dest_rect,
@@ -1026,6 +1089,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->Release               = IDirectFBVideoProvider_Xine_Release;
      thiz->GetCapabilities       = IDirectFBVideoProvider_Xine_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_Xine_GetSurfaceDescription;
+     thiz->GetStreamDescription  = IDirectFBVideoProvider_Xine_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_Xine_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Xine_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_Xine_SeekTo;

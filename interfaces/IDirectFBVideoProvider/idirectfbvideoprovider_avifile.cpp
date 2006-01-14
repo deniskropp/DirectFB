@@ -171,6 +171,29 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetSurfaceDescription(
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_AviFile_GetStreamDescription(
+                                                 IDirectFBVideoProvider *thiz,
+                                                 DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->caps = DVSCAPS_VIDEO;
+
+     desc->video.encoding[0] = 0;
+     desc->video.framerate   = data->player->GetFps();
+     desc->video.apsect      = (double) data->player->GetWidth() /
+                               (double) data->player->GetHeight();
+     desc->video.bitrate     = 0;
+     
+     desc->title[0] = desc->author[0] = desc->album[0]   =
+     desc->year     = desc->genre[0]  = desc->comment[0] = 0;
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_AviFile_PlayTo(
                                            IDirectFBVideoProvider *thiz,
                                            IDirectFBSurface       *destination,
@@ -465,6 +488,8 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetCapabilities = IDirectFBVideoProvider_AviFile_GetCapabilities;
      thiz->GetSurfaceDescription =
           IDirectFBVideoProvider_AviFile_GetSurfaceDescription;
+     thiz->GetStreamDescription = 
+          IDirectFBVideoProvider_AviFile_GetStreamDescription;
      thiz->PlayTo    = IDirectFBVideoProvider_AviFile_PlayTo;
      thiz->Stop      = IDirectFBVideoProvider_AviFile_Stop;
      thiz->SeekTo    = IDirectFBVideoProvider_AviFile_SeekTo;

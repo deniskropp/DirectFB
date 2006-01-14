@@ -230,6 +230,47 @@ IDirectFBVideoProvider_OpenQuicktime_GetSurfaceDescription(
     return DFB_OK;
 }
 
+static DFBResult
+IDirectFBVideoProvider_OpenQuicktime_GetStreamDescription(
+                                        IDirectFBVideoProvider *thiz,
+                                        DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->caps = DVSCAPS_NONE;
+
+     if (quicktime_has_video( data->file )) {
+          desc->caps |= DVSCAPS_VIDEO;
+     
+          snprintf( desc->video.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH,
+                    quicktime_video_compressor( data->file, 0 ) ? : "" );
+          desc->video.framerate = quicktime_frame_rate( data->file, 0 );
+          desc->video.aspect    = (double) quicktime_video_width( data->file, 0 ) /
+                                  (double) quicktime_video_height( data->file, 0 );
+          desc->video.bitrate   = 0;
+     }
+
+     if (quicktime_has_audio( data->file )) {
+          desc->caps |= DVSCAPS_AUDIO;
+
+          snprintf( desc->audio.encoding,
+                    DFB_STREAM_DESC_ENCODING_LENGTH,
+                    quicktime_audio_compressor( data->file, 0 ) ? : "" );
+          desc->audio.samplerate = quicktime_sample_rate( data->file, 0 );
+          desc->audio.channels   = quicktime_track_channels( data->file, 0 );
+          desc->audio.bitrate    = 0;
+     }
+
+     desc->title[0] = desc->author[0] = desc->album[0]   =
+     desc->year     = desc->genre[0]  = desc->comment[0] = 0;
+
+     return DFB_OK;
+}
+
 static void
 RGB888_to_RGB332( void *d, void *s, int len )
 {
@@ -1091,7 +1132,9 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 
      thiz->GetSurfaceDescription =
           IDirectFBVideoProvider_OpenQuicktime_GetSurfaceDescription;
-
+     thiz->GetStreamDescription  =
+          IDirectFBVideoProvider_OpenQuicktime_GetStreamDescription;
+     
      thiz->PlayTo                = IDirectFBVideoProvider_OpenQuicktime_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_OpenQuicktime_Stop;
      thiz->SeekTo                = IDirectFBVideoProvider_OpenQuicktime_SeekTo;
