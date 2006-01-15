@@ -112,8 +112,7 @@ typedef struct {
      int                    height; // video height
      int                    length; // duration
 
-     bool                   playing;
-     bool                   finished;
+     DFBVideoProviderStatus status;
      
      bool                   full_area;
      DFBRectangle           dest_rect;
@@ -410,7 +409,7 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                                    (void*) &data->visual ))
           return DFB_UNSUPPORTED;
      
-     if (!data->playing) {
+     if (data->status != DVSTATE_PLAY) {
           xine_set_param( data->stream,
                           XINE_PARAM_AUDIO_MUTE,
                           0 );
@@ -434,8 +433,7 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
                           XINE_PARAM_SPEED,
                           XINE_SPEED_NORMAL );
 
-          data->playing  = true;
-          data->finished = false;
+          data->status = DVSTATE_PLAY;
      }
      
      return DFB_OK;
@@ -446,7 +444,7 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
-     if (data->playing) {
+     if (data->status == DVSTATE_PLAY) {
           xine_set_param( data->stream,
                           XINE_PARAM_AUDIO_MUTE,
                           1 );
@@ -454,9 +452,23 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
                           XINE_PARAM_SPEED,
                           XINE_SPEED_PAUSE );
           
-          data->playing = false;
+          data->status = DVSTATE_STOP;
           usleep( 800 );
      }
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_GetStatus( IDirectFBVideoProvider *thiz,
+                                       DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = data->status;
 
      return DFB_OK;
 }
@@ -480,10 +492,12 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
      if (data->length > 0 && offset > data->length)
           return DFB_OK;
 
-     data->finished = false;
+     if (data->status == DVSTATE_FINISHED)
+          data->status = DVSTATE_PLAY;
+
      xine_play( data->stream, 0, offset );
           
-     if (!data->playing) {
+     if (data->status == DVSTATE_STOP) {
           xine_set_param( data->stream,
                           XINE_PARAM_SPEED,
                           XINE_SPEED_PAUSE );
@@ -503,11 +517,6 @@ IDirectFBVideoProvider_Xine_GetPos( IDirectFBVideoProvider *thiz,
           
      if (!seconds)
           return DFB_INVARG;
-
-     if (data->finished) {
-          *seconds = (double)data->length / 1000.0;
-          return DFB_EOF;
-     }
 
      for (i = 5; i--;) {
           if (xine_get_pos_length( data->stream, NULL, &pos, NULL ))
@@ -664,7 +673,7 @@ IDirectFBVideoProvider_Xine_SendEvent( IDirectFBVideoProvider *thiz,
      if (!evt)
           return DFB_INVARG;
 
-     if (data->finished)
+     if (data->status == DVSTATE_FINISHED)
           return DFB_OK;
 
      if (data->full_area) {
@@ -917,6 +926,7 @@ Construct( IDirectFBVideoProvider *thiz,
           
      data->ref    = 1;
      data->err    = DFB_FAILURE;
+     data->status = DVSTATE_STOP;
      data->format = DSPF_YUY2;
 
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
@@ -1092,6 +1102,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetStreamDescription  = IDirectFBVideoProvider_Xine_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_Xine_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Xine_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_Xine_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_Xine_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_Xine_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_Xine_GetLength;
@@ -1188,8 +1199,7 @@ event_listner( void *cdata, const xine_event_t *event )
      switch (event->type) {
           case XINE_EVENT_UI_PLAYBACK_FINISHED:
                xine_stop( data->stream );
-               data->playing  = false;
-               data->finished = true;
+               data->status = DVSTATE_FINISHED;
                break;
 
           default:

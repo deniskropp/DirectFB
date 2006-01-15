@@ -88,9 +88,9 @@ typedef struct {
      int                    height;
      double                 rate;
      long                   interval;
-     
+    
+     DFBVideoProviderStatus status;
      bool                   seeked;
-     bool                   stopped;
      
      DirectThread          *input_thread;
      pthread_mutex_t        input_lock;
@@ -388,7 +388,7 @@ SwfVideo( DirectThread *self, void *arg )
           
           gettimeofday( &start, NULL );
           
-          if (data->stopped) {
+          if (data->status == DVSTATE_STOP) {
                pthread_mutex_lock( &data->video_lock );
                pthread_cond_wait( &data->video_cond, &data->video_lock );
                pthread_mutex_unlock( &data->video_lock );
@@ -408,7 +408,7 @@ SwfVideo( DirectThread *self, void *arg )
           if (data->audio_thread) {
                SwfdecBuffer *audio_buffer = NULL;
                
-               if (!data->stopped)
+               if (data->status == DVSTATE_PLAY)
                     audio_buffer = swfdec_render_get_audio( data->decoder );
 
                pthread_mutex_lock( &data->audio_lock );
@@ -458,7 +458,7 @@ SwfVideo( DirectThread *self, void *arg )
                         swfdec_render_get_frame_index( data->decoder ) );
           }
 
-          if (!data->stopped) {
+          if (data->status != DVSTATE_STOP) {
                struct timeval now;
 
                gettimeofday( &now, NULL );
@@ -720,10 +720,10 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
      data->callback  = callback;
      data->ctx       = ctx;
 
-     if (data->stopped) {
-          data->stopped  = false;
+     if (data->status == DVSTATE_STOP)
           pthread_cond_signal( &data->video_cond );
-     }
+     
+     data->status = DVSTATE_PLAY;
      
      if (!data->video_thread) {
           data->video_thread = direct_thread_create( DTT_DEFAULT, SwfVideo,
@@ -748,15 +748,29 @@ IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
  
-     if (!data->stopped) {
+     if (data->status == DVSTATE_PLAY) {
           pthread_mutex_lock( &data->video_lock );
           
-          data->stopped = true;
+          data->status = DVSTATE_STOP;
           pthread_cond_signal( &data->video_cond );
           
           pthread_mutex_unlock( &data->video_lock );
      }
      
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Swfdec_GetStatus( IDirectFBVideoProvider *thiz,
+                                         DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = data->status;
+
      return DFB_OK;
 }
 
@@ -1020,6 +1034,7 @@ Construct( IDirectFBVideoProvider *thiz,
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Swfdec )
      
      data->ref    = 1;
+     data->status = DVSTATE_STOP;
      data->buffer = buffer;
      
      buffer->AddRef( buffer );
@@ -1128,6 +1143,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetStreamDescription  = IDirectFBVideoProvider_Swfdec_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_Swfdec_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Swfdec_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_Swfdec_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_Swfdec_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_Swfdec_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_Swfdec_GetLength;

@@ -305,6 +305,20 @@ static DFBResult IDirectFBVideoProvider_AviFile_Stop(
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_AviFile_GetStatus( 
+                                              IDirectFBVideoProvider *thiz,
+                                              DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_AviFile)
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = data->player->IsPlaying() ? DVSTATE_PLAY : DVSTATE_STOP;
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_AviFile_SeekTo(
                                                IDirectFBVideoProvider *thiz,
                                                double                  seconds)
@@ -492,6 +506,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
           IDirectFBVideoProvider_AviFile_GetStreamDescription;
      thiz->PlayTo    = IDirectFBVideoProvider_AviFile_PlayTo;
      thiz->Stop      = IDirectFBVideoProvider_AviFile_Stop;
+     thiz->GetStatus = IDirectFBVideoProvider_AviFile_GetStatus;
      thiz->SeekTo    = IDirectFBVideoProvider_AviFile_SeekTo;
      thiz->GetPos    = IDirectFBVideoProvider_AviFile_GetPos;
      thiz->GetLength = IDirectFBVideoProvider_AviFile_GetLength;

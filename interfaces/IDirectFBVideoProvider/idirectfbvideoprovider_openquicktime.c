@@ -903,6 +903,19 @@ IDirectFBVideoProvider_OpenQuicktime_Stop( IDirectFBVideoProvider *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBVideoProvider_OpenQuicktime_GetStatus( IDirectFBVideoProvider *thiz,
+                                                DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_OpenQuicktime)
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = ((int)data->video.thread != -1) ? DVSTATE_PLAY : DVSTATE_STOP;
+
+     return DFB_OK;
+}
 
 static DFBResult IDirectFBVideoProvider_OpenQuicktime_SeekTo(
                                               IDirectFBVideoProvider *thiz,
@@ -1137,6 +1150,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      
      thiz->PlayTo                = IDirectFBVideoProvider_OpenQuicktime_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_OpenQuicktime_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_OpenQuicktime_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_OpenQuicktime_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_OpenQuicktime_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_OpenQuicktime_GetLength;

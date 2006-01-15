@@ -373,6 +373,20 @@ static DFBResult IDirectFBVideoProvider_Swf_Stop(IDirectFBVideoProvider *thiz )
      return DFB_OK;
 }
 
+
+static DFBResult IDirectFBVideoProvider_Swf_GetStatus( IDirectFBVideoProvider *thiz,
+                                                       DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBVideoProvider_Swf)
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = ((int) data->thread != -1) ? DVSTATE_PLAY : DVSTATE_STOP;
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_Swf_SeekTo(
                                                   IDirectFBVideoProvider *thiz,
                                                   double                  seconds )
@@ -609,6 +623,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->GetStreamDescription  = IDirectFBVideoProvider_Swf_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_Swf_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Swf_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_Swf_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_Swf_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_Swf_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_Swf_GetLength;

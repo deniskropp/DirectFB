@@ -87,14 +87,13 @@ typedef struct {
 typedef struct {
      int                         ref;
 
+     DFBVideoProviderStatus      status;
+     
      IDirectFBDataBuffer        *buffer;
      bool                        seekable;
      void                       *iobuf;
      
      AVFormatContext            *context;
-     
-     bool                        paused;
-     bool                        finished;
      
      __s64                       start_time;
      
@@ -120,7 +119,7 @@ typedef struct {
           
           double                 pts;
                    
-          long                   interval;
+          int                    interval;
           
           bool                   seeked;
      
@@ -314,7 +313,8 @@ FFmpegInput( DirectThread *self, void *arg )
                                                 data->input.seek_flag ) >= 0) {
                     flush_packets( &data->video.queue );
                     flush_packets( &data->audio.queue );
-                    data->finished     = false;
+                    if (data->status == DVSTATE_FINISHED)
+                         data->status = DVSTATE_PLAY;
                     data->video.pts    =
                     data->audio.pts    = (double)data->input.seek_time/AV_TIME_BASE;
                     data->video.seeked = true;
@@ -336,9 +336,10 @@ FFmpegInput( DirectThread *self, void *arg )
           }
           
           if (av_read_frame( data->context, &packet ) < 0) {
-               if (url_feof( &data->context->pb )) {
-                    data->finished = (data->video.queue.size == 0 &&
-                                      data->audio.queue.size == 0);
+               if (url_feof( &data->context->pb ) &&
+                   data->video.queue.size == 0    &&
+                   data->audio.queue.size == 0) {
+                    data->status = DVSTATE_FINISHED;
                }
                     
                pthread_mutex_unlock( &data->input.lock );
@@ -373,7 +374,7 @@ FFmpegVideo( DirectThread *self, void *arg )
           
           time = av_gettime();
           
-          if (data->paused) {
+          if (data->status == DVSTATE_STOP) {
                pthread_mutex_lock( &data->video.lock );
                pthread_cond_wait( &data->video.cond, &data->video.lock );
                pthread_mutex_unlock( &data->video.lock );
@@ -466,7 +467,7 @@ FFmpegVideo( DirectThread *self, void *arg )
                
           av_free_packet( &pkt );
           
-          if (!data->paused) {
+          if (data->status != DVSTATE_STOP) {
                time += data->video.interval;
                if (data->audio.thread)
                     time += (data->video.pts - data->audio.pts) * AV_TIME_BASE;
@@ -509,7 +510,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           int       size  = 0;
           int       delay = 0;
           
-          if (data->paused) {
+          if (data->status == DVSTATE_STOP) {
                usleep( 0 );
                continue;
           }
@@ -588,7 +589,6 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
           direct_thread_destroy( data->video.thread );
      }
      
-#ifdef HAVE_FUSIONSOUND
      if (data->audio.thread) {
           direct_thread_cancel( data->audio.thread );
           direct_thread_join( data->audio.thread );
@@ -597,7 +597,8 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      
      if (data->audio.ctx)
           avcodec_close( data->audio.ctx );
-        
+    
+#ifdef HAVE_FUSIONSOUND
      if (data->audio.stream)
           data->audio.stream->Release( data->audio.stream );
 
@@ -859,7 +860,7 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      data->callback         = callback;
      data->ctx              = ctx;
      
-     if (data->finished) {
+     if (data->status == DVSTATE_FINISHED) {
 #if SEEK_ON_DELAY
           data->input.seek_time = data->start_time;
           data->input.seek_flag = 0;
@@ -873,7 +874,6 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
                return DFB_UNSUPPORTED;
           }
           
-          data->finished     = false;
           data->video.pts    =
           data->audio.pts    = (double)data->start_time / AV_TIME_BASE;
           data->input.seeked = true;
@@ -881,11 +881,11 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
           data->audio.seeked = true;
 #endif
      }
-
-     if (data->paused) {
-          data->paused = false;
+     else if (data->status == DVSTATE_STOP) {
           pthread_cond_signal( &data->video.cond );
      }
+
+     data->status = DVSTATE_PLAY;
      
      if (!data->input.thread) {
           data->input.thread = direct_thread_create( DTT_DEFAULT, FFmpegInput,
@@ -916,17 +916,31 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
  
-     if (!data->paused) {
+     if (data->status == DVSTATE_PLAY) {
           pthread_mutex_lock( &data->video.lock );
           pthread_mutex_lock( &data->audio.lock );
           
-          data->paused = true;
+          data->status = DVSTATE_STOP;
           pthread_cond_signal( &data->video.cond );
           
           pthread_mutex_unlock( &data->video.lock );
           pthread_mutex_unlock( &data->audio.lock );
      }
      
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_FFmpeg_GetStatus( IDirectFBVideoProvider *thiz,
+                                         DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = data->status;
+
      return DFB_OK;
 }
 
@@ -999,7 +1013,7 @@ IDirectFBVideoProvider_FFmpeg_GetPos( IDirectFBVideoProvider *thiz,
           
      *seconds = (pos < 0.0) ? 0.0 : pos;
      
-     return data->finished ? DFB_EOF : DFB_OK;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -1071,10 +1085,6 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      int                  len = 0;
      DFBResult            ret;
 
-     /* ignore Flash files */
-     if (!memcmp( ctx->header, "SWF", 3 ) || !memcmp( ctx->header, "CWF", 3 ))
-          return DFB_UNSUPPORTED;
-     
      ret = buffer->WaitForData( buffer, sizeof(buf) );
      if (ret == DFB_OK)
           ret = buffer->PeekData( buffer, sizeof(buf), 0, &buf[0], &len );
@@ -1089,8 +1099,28 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      pd.buf_size = len;
      
      format = av_probe_input_format( &pd, 1 );
-     
-     return (format) ? DFB_OK : DFB_UNSUPPORTED;
+     if (format) {
+          if (format->name) {
+               /* ignore formats which are known
+                * to not contain video stream. */
+               if (!strcmp( format->name, "wav" ) ||
+                   !strcmp( format->name, "au"  ) ||
+                   !strcmp( format->name, "snd" ) ||
+                   !strcmp( format->name, "mp2" ) ||
+                   !strcmp( format->name, "mp3" ) ||
+                   !strcmp( format->name, "m2a" ) ||
+                   !strcmp( format->name, "aac" ) ||
+                   !strcmp( format->name, "m4a" ) ||
+                   !strcmp( format->name, "ra"  ) ||
+                   !strcmp( format->name, "wma" ) ||
+                   !strcmp( format->name, "swf" ))
+                    return DFB_UNSUPPORTED;
+          }
+
+          return DFB_OK;
+     }
+          
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
@@ -1107,6 +1137,7 @@ Construct( IDirectFBVideoProvider *thiz,
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_FFmpeg )
      
      data->ref    = 1;
+     data->status = DVSTATE_STOP;
      data->buffer = buffer;
      
      buffer->AddRef( buffer ); 
@@ -1242,8 +1273,9 @@ Construct( IDirectFBVideoProvider *thiz,
           }
      }
      else {
-          D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
-                   "failed to get FusionSound interface!\n" );
+          if (data->audio.st)
+               D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
+                        "failed to get FusionSound interface!\n" );
      }
 #endif
 
@@ -1268,6 +1300,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetStreamDescription  = IDirectFBVideoProvider_FFmpeg_GetStreamDescription;
      thiz->PlayTo                = IDirectFBVideoProvider_FFmpeg_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_FFmpeg_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_FFmpeg_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_FFmpeg_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_FFmpeg_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_FFmpeg_GetLength;

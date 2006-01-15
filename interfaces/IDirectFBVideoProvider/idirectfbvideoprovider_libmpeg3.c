@@ -929,6 +929,19 @@ IDirectFBVideoProvider_Libmpeg3_Stop( IDirectFBVideoProvider *thiz )
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_Libmpeg3_GetStatus(
+                                              IDirectFBVideoProvider *thiz,
+                                              DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_Libmpeg3)
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = ((int)data->video.thread != -1) ? DVSTATE_PLAY : DVSTATE_STOP;
+
+     return DFB_OK;
+}
 
 static DFBResult IDirectFBVideoProvider_Libmpeg3_SeekTo(
                                               IDirectFBVideoProvider *thiz,
@@ -1137,6 +1150,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      
      thiz->PlayTo                = IDirectFBVideoProvider_Libmpeg3_PlayTo;
      thiz->Stop                  = IDirectFBVideoProvider_Libmpeg3_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_Libmpeg3_GetStatus;
      thiz->SeekTo                = IDirectFBVideoProvider_Libmpeg3_SeekTo;
      thiz->GetPos                = IDirectFBVideoProvider_Libmpeg3_GetPos;
      thiz->GetLength             = IDirectFBVideoProvider_Libmpeg3_GetLength;
