@@ -47,7 +47,8 @@ public:
                                                          DVFrameCallback        callback = NULL,
                                                          void                  *ctx = NULL);
      void                         Stop                  ();
-
+     DFBVideoProviderStatus       GetStatus             ();
+     
      void                         SeekTo                (double                 seconds);
      double                       GetPos                ();
      double                       GetLength             ();

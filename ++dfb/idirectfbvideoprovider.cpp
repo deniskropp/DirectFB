@@ -58,6 +58,15 @@ void IDirectFBVideoProvider::Stop()
      DFBCHECK( iface->Stop (iface) );
 }
 
+DFBVideoProviderStatus IDirectFBVideoProvider::GetStatus()
+{
+     DFBVideoProviderStatus status;
+
+     DFBCHECK( iface->GetStatus (iface, &status) );
+
+     return status;
+}
+
 void IDirectFBVideoProvider::SeekTo (double seconds)
 {
      DFBCHECK( iface->SeekTo (iface, seconds) );
