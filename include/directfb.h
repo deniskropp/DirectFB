@@ -1271,6 +1271,16 @@ typedef enum {
 } DFBVideoProviderCapabilities;
 
 /*
+ * Information about the status of an IDirectFBVideoProvider.
+ */
+typedef enum {
+     DVSTATE_UNKNOWN    = 0x00000000, /* unknown status            */
+     DVSTATE_PLAY       = 0x00000001, /* video provider is playing */
+     DVSTATE_STOP       = 0x00000002, /* playback was stopped      */
+     DVSTATE_FINISHED   = 0x00000003  /* playback is finished      */
+} DFBVideoProviderStatus;
+
+/*
  * Flags defining which fields of a DFBColorAdjustment are valid.
  */
 typedef enum {
@@ -4833,6 +4843,14 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           IDirectFBVideoProvider   *thiz
      );
 
+     /*
+      * Get the status of the playback.
+      */
+     DFBResult (*GetStatus) (
+          IDirectFBVideoProvider   *thiz,
+          DFBVideoProviderStatus   *ret_status
+     );
+
 
    /** Media Control **/
 
@@ -4846,8 +4864,6 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
 
      /*
       * Gets current position within the stream.
-      *
-      * Returns DFB_EOF when the stream has reached the end.
       */
      DFBResult (*GetPos) (
           IDirectFBVideoProvider   *thiz,
@@ -4888,6 +4904,10 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
 
      /*
       * Send an input or window event.
+      *
+      * This method allows to redirect events to an interactive 
+      * video provider. Events must be relative to the specified
+      * rectangle of the destination surface.
       */
      DFBResult (*SendEvent) (
           IDirectFBVideoProvider   *thiz,
