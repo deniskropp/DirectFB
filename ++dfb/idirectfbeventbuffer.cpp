@@ -103,3 +103,12 @@ int IDirectFBEventBuffer::CreateFileDescriptor ()
      return fd;
 }
 
+void IDirectFBEventBuffer::EnableStatistics (DFBBoolean enable)
+{
+     DFBCHECK( iface->EnableStatistics (iface, enable) );
+}
+
+void IDirectFBEventBuffer::GetStatistics (DFBEventBufferStats *stats)
+{
+     DFBCHECK( iface->GetStatistics (iface, stats) );
+}

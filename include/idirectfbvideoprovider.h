@@ -40,6 +40,7 @@ public:
 
      DFBVideoProviderCapabilities GetCapabilities       ();
      void                         GetSurfaceDescription (DFBSurfaceDescription *dsc);
+     void                         GetStreamDescription  (DFBStreamDescription  *dsc);
 
      void                         PlayTo                (IDirectFBSurface      *destination,
                                                          DFBRectangle          *destination_rect = NULL,

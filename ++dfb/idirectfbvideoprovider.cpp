@@ -39,6 +39,11 @@ void IDirectFBVideoProvider::GetSurfaceDescription (DFBSurfaceDescription *dsc)
      DFBCHECK( iface->GetSurfaceDescription (iface, dsc) );
 }
 
+void IDirectFBVideoProvider::GetStreamDescription (DFBStreamDescription *dsc)
+{
+     DFBCHECK( iface->GetStreamDescription (iface, dsc) );
+}
+
 void IDirectFBVideoProvider::PlayTo (IDirectFBSurface *destination,
                                      DFBRectangle     *destination_rect,
                                      DVFrameCallback   callback,

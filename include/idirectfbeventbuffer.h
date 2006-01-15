@@ -56,6 +56,9 @@ public:
 
      int                   CreateFileDescriptor     ();
 
+     void                  EnableStatistics         (DFBBoolean           enable);
+     void                  GetStatistics            (DFBEventBufferStats *stats);
+     
      inline IDirectFBEventBuffer& operator = (const IDirectFBEventBuffer& other){
           return IPPAny<IDirectFBEventBuffer, IDirectFBEventBuffer_C>::operator =(other);
      }

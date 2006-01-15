@@ -169,6 +169,8 @@ public:
                                                  int                       width,
                                                  int                       height);
 
+     void                   GetClip             (DFBRegion                *clip);
+
      inline IDirectFBSurface& operator = (const IDirectFBSurface& other){
           return IPPAny<IDirectFBSurface, IDirectFBSurface_C>::operator =(other);
      }

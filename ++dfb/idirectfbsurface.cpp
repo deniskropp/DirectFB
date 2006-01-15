@@ -351,3 +351,7 @@ IDirectFBGL *IDirectFBSurface::GetGL()
      return idirectfbgl;
 }
 
+void IDirectFBSurface::GetClip (DFBRegion *clip)
+{
+     DFBCHECK( iface->GetClip (iface, clip) );
+}
