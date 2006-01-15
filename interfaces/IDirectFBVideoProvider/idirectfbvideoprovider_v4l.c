@@ -290,6 +290,33 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
      return DFB_OK;
 }
 
+static DFBResult IDirectFBVideoProvider_V4L_GetStreamDescription(
+                                                                 IDirectFBVideoProvider *thiz,
+                                                                 DFBStreamDescription   *desc )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+
+     if (!desc)
+          return DFB_INVARG;
+
+     desc->caps = DVSCAPS_VIDEO;
+     
+     desc->video.encoding[0] = 0;
+     desc->video.framerate   = 10; // assume 10fps
+#ifdef DFB_HAVE_V4L2
+     desc->video.aspect      = 720.0/576.0;
+#else
+     desc->video.aspect      = (double)data->vcap.maxwidth /
+                               (double)data->vcap.maxheight;
+#endif
+     desc->video.bitrate     = 0;
+
+     desc->title[0] = desc->author[0] = desc->album[0]   =
+     desc->year     = desc->genre[0]  = desc->comment[0] = 0;
+
+     return DFB_OK;
+}
+
 static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                                                   IDirectFBVideoProvider *thiz,
                                                   IDirectFBSurface       *destination,
@@ -389,6 +416,20 @@ static DFBResult IDirectFBVideoProvider_V4L_Stop(
      DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
 
      return v4l_stop( data, true );
+}
+
+static DFBResult IDirectFBVideoProvider_V4L_GetStatus( 
+                                                     IDirectFBVideoProvider *thiz,
+                                                     DFBVideoProviderStatus *status )
+{
+     DIRECT_INTERFACE_GET_DATA (IDirectFBVideoProvider_V4L)
+
+     if (!status)
+          return DFB_INVARG;
+
+     *status = data->running ? DVSTAT_PLAY : DVSTAT_STOP;
+
+     return DFB_OK;
 }
 
 static DFBResult IDirectFBVideoProvider_V4L_SeekTo(
@@ -631,8 +672,10 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      thiz->Release   = IDirectFBVideoProvider_V4L_Release;
      thiz->GetCapabilities = IDirectFBVideoProvider_V4L_GetCapabilities;
      thiz->GetSurfaceDescription = IDirectFBVideoProvider_V4L_GetSurfaceDescription;
+     thiz->GetStreamDescription = IDirectFBVideoProvider_V4L_GetStreamDescription;
      thiz->PlayTo    = IDirectFBVideoProvider_V4L_PlayTo;
      thiz->Stop      = IDirectFBVideoProvider_V4L_Stop;
+     thiz->GetStatus = IDirectFBVideoProvider_V4L_GetStatus;
      thiz->SeekTo    = IDirectFBVideoProvider_V4L_SeekTo;
      thiz->GetPos    = IDirectFBVideoProvider_V4L_GetPos;
      thiz->GetLength = IDirectFBVideoProvider_V4L_GetLength;
