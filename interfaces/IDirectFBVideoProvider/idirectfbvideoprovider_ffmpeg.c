@@ -510,11 +510,6 @@ FFmpegAudio( DirectThread *self, void *arg )
           int       size  = 0;
           int       delay = 0;
           
-          if (data->status == DVSTATE_STOP) {
-               usleep( 0 );
-               continue;
-          }
-          
           pthread_mutex_lock( &data->audio.lock );
           
           if (!get_packet( &data->audio.queue, &pkt )) {
@@ -524,7 +519,7 @@ FFmpegAudio( DirectThread *self, void *arg )
           }
           
           if (data->audio.seeked) {
-               //data->audio.stream->Wait( data->audio.stream, 0 );
+               data->audio.stream->Flush( data->audio.stream );
                avcodec_flush_buffers( data->audio.ctx );
                data->audio.seeked = false;
           }
@@ -559,7 +554,7 @@ FFmpegAudio( DirectThread *self, void *arg )
  
           pthread_mutex_unlock( &data->audio.lock );
           
-          if (size)
+          if (size && data->status != DVSTATE_STOP)
                data->audio.stream->Write( data->audio.stream, buf, size ); 
           else
                usleep( 0 );
@@ -980,8 +975,9 @@ IDirectFBVideoProvider_FFmpeg_SeekTo( IDirectFBVideoProvider *thiz,
      ret = av_seek_frame( data->context, -1, time, 
                          (seconds < pos) ? AVSEEK_FLAG_BACKWARD : 0 );
      if (ret >= 0) {
-          data->finished     = false;
-          data->video.pts    = (double)time / AV_TIME_BASE;
+          if (data->status == DVSTATE_FINISHED)
+               data->status = DVSTATE_PLAY;
+          data->video.pts    =
           data->audio.pts    = (double)time / AV_TIME_BASE;
           data->input.seeked = true;
           data->video.seeked = true;
@@ -1101,7 +1097,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      format = av_probe_input_format( &pd, 1 );
      if (format) {
           if (format->name) {
-               /* ignore formats which are known
+               /* ignore formats that are known
                 * to not contain video stream. */
                if (!strcmp( format->name, "wav" ) ||
                    !strcmp( format->name, "au"  ) ||
