@@ -1006,9 +1006,17 @@ IFusionSoundMusicProvider_Mad_GetLength( IFusionSoundMusicProvider *thiz,
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
+     char *ext;
+     
      /* FIXME: detect by contents */
-     if (!strcasecmp( strrchr( ctx->filename, '.' ) ? : "", ".mp3" ))
-          return DFB_OK;
+     
+     ext = strrchr( ctx->filename, '.' );
+     if (ext) {
+          if (!strcasecmp( ext, ".mp1" ) ||
+              !strcasecmp( ext, ".mp2" ) ||
+              !strcasecmp( ext, ".mp3" ))
+               return DFB_OK;
+     }
           
      return DFB_UNSUPPORTED;
 }   
