@@ -70,13 +70,20 @@ FUNC_NAME(NAME) ( CoreSoundBuffer *buffer,
 #ifdef FS_ENABLE_ACCURACY
           if (inc < 0x100) {
                /* upsample */
+               __fsf l, r;
                int   q = p + 1;
-               __fsf w = fsf_shr( fsf_from_int( 0x100 - (n&0xff) ), 8 );
-               __fsf l = fsf_mul( left, w );
-               __fsf r = fsf_mul( right, w );
-
+               
                if (q == buffer->length)
                     q = 0;
+               
+               if (n & 0xff) {
+                    __fsf w = fsf_shr( fsf_from_int( 0x100-(n&0xff) ), 8 );
+                    l = fsf_mul( left, w );
+                    r = fsf_mul( right, w );
+               } else {
+                    l = left;
+                    r = right;
+               }
                
                if (buffer->channels == 2) {
                     p <<= 1;
