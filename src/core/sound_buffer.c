@@ -163,23 +163,23 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
 
 /******************************************************************************/          
 
-#define NAME u8
+#define FORMAT u8
 #define TYPE __u8
 #define FSF_FROM_SRC(s,i) fsf_from_u8(s[i])
 #include "sound_mix.h"
 #undef FSF_FROM_SRC
 #undef TYPE
-#undef NAME
+#undef FORMAT
 
-#define NAME s16
+#define FORMAT s16
 #define TYPE __s16
 #define FSF_FROM_SRC(s,i) fsf_from_s16(s[i])
 #include "sound_mix.h"
 #undef FSF_FROM_SRC
 #undef TYPE
-#undef NAME
+#undef FORMAT
 
-#define NAME s24
+#define FORMAT s24
 #define TYPE __u8
 #define FSF_FROM_SRC(s,i) fsf_from_s24(((int)((s[i*3+0]<< 8) | \
                                               (s[i*3+1]<<16) | \
@@ -187,15 +187,15 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
 #include "sound_mix.h"
 #undef FSF_FROM_SRC
 #undef TYPE
-#undef NAME
+#undef FORMAT
 
-#define NAME s32
+#define FORMAT s32
 #define TYPE __s32
 #define FSF_FROM_SRC(s,i) fsf_from_s32(s[i])
 #include "sound_mix.h"
 #undef FSF_FROM_SRC
 #undef TYPE
-#undef NAME
+#undef FORMAT
 
 
 DFBResult
@@ -229,23 +229,39 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      /* Mix the data into the buffer. */
      switch (buffer->format) {
           case FSSF_U8:
-               num = mix_from_u8( buffer, dest, dest_rate, max_samples,
-                                  pos, stop, left, right, pitch );
+               if (buffer->channels == 1)
+                    num = mix_from_u8_mono( buffer, dest, dest_rate, max_samples,
+                                            pos, stop, left, right, pitch );
+               else
+                    num = mix_from_u8_stereo( buffer, dest, dest_rate, max_samples,
+                                              pos, stop, left, right, pitch );
                break;
 
           case FSSF_S16:
-               num = mix_from_s16( buffer, dest, dest_rate, max_samples,
-                                   pos, stop, left, right, pitch );
+               if (buffer->channels == 1)
+                    num = mix_from_s16_mono( buffer, dest, dest_rate, max_samples,
+                                             pos, stop, left, right, pitch );
+               else
+                    num = mix_from_s16_stereo( buffer, dest, dest_rate, max_samples,
+                                               pos, stop, left, right, pitch );
                break;
 
           case FSSF_S24:
-               num = mix_from_s24( buffer, dest, dest_rate, max_samples,
-                                   pos, stop, left, right, pitch );
+               if (buffer->channels == 1)
+                    num = mix_from_s24_mono( buffer, dest, dest_rate, max_samples,
+                                             pos, stop, left, right, pitch );
+               else
+                    num = mix_from_s24_stereo( buffer, dest, dest_rate, max_samples,
+                                               pos, stop, left, right, pitch );
                break;
                
           case FSSF_S32:
-               num = mix_from_s32( buffer, dest, dest_rate, max_samples,
-                                   pos, stop, left, right, pitch );
+               if (buffer->channels == 1)
+                    num = mix_from_s32_mono( buffer, dest, dest_rate, max_samples,
+                                             pos, stop, left, right, pitch );
+               else
+                    num = mix_from_s32_stereo( buffer, dest, dest_rate, max_samples,
+                                               pos, stop, left, right, pitch );
                break;
 
           default:
