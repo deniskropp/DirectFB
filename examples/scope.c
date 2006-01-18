@@ -23,7 +23,7 @@ static void
 draw_scope( __s16 *data, int len )
 {
      IDirectFBSurface *surface;
-     DFBRectangle     *r;
+     DFBRegion        *r;
      int               w, h;
      int               i, j, s;
 
@@ -31,25 +31,18 @@ draw_scope( __s16 *data, int len )
      surface->AddRef( surface );
      surface->GetSize( surface, &w, &h );
 
-     r = alloca( w * sizeof(DFBRectangle) ); 
+     r = alloca( w * sizeof(DFBRegion) ); 
      s = (len << 16) / w;
-     for (i = 0, j = 0; i < w; i++, j += s) {
-          int d;
-
-          /* scale horizontally and convert to unsigned 16 mono */
-          d = ((data[(j>>16)*2] + data[(j>>16)*2+1]) >> 1) + 32768;
-          /* scale vertically and convert to signed */
-          d = ((d * h) >> 16) - (h>>1);
-               
-          r[i].x = i;
-          r[i].w = 1;
-          if (d >= 0) {
-               r[i].y = (h>>1) - d;
-               r[i].h = d ? : 1;
-          } else {
-               r[i].y = h>>1;
-               r[i].h = -d;
-          }
+    
+     r[0].x1 =
+     r[0].x2 = 0;
+     r[0].y1 = 
+     r[0].y2 = h/2 + ((data[0]*h) >> 16);   
+     for (i = 1, j = s; i < w; i++, j += s) {
+          r[i].x1 = 
+          r[i].x2 = i;
+          r[i].y1 = r[i-1].y2; 
+          r[i].y2 = h/2 + ((data[(j>>16)*2]*h) >> 16);
      }
 
      surface->Clear( surface, window->bg.color.r, 
@@ -60,7 +53,7 @@ draw_scope( __s16 *data, int len )
                                  0xaf^window->bg.color.g,
                                  0x2f^window->bg.color.b,
                                  0xff );
-     surface->FillRectangles( surface, r, w );
+     surface->DrawLines( surface, r, w );
      surface->Flip( surface, NULL, 0 );
      surface->Release( surface );
 }
