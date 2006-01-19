@@ -587,16 +587,15 @@ r200DoFillRectangle3D( R200DriverData *rdrv,
           out_vertex2d( mmio, rect->x, rect->y, 0, 0 );
      }
      else {
-          r200_waitfifo( rdrv, rdev, 17 );
+          r200_waitfifo( rdrv, rdev, 13 );
      
-          r200_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_QUAD_LIST |
-                                        VF_PRIM_WALK_DATA      |
-                                        (4 << VF_NUM_VERTICES_SHIFT) );
+          r200_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_RECTANGLE_LIST |
+                                        VF_PRIM_WALK_DATA           |
+                                        (3 << VF_NUM_VERTICES_SHIFT) );
 
           out_vertex2d( mmio, rect->x        , rect->y        , 0, 0 );
           out_vertex2d( mmio, rect->x+rect->w, rect->y        , 0, 0 );
           out_vertex2d( mmio, rect->x+rect->w, rect->y+rect->h, 0, 0 );
-          out_vertex2d( mmio, rect->x        , rect->y+rect->h, 0, 0 );
      }
 }
 
@@ -1162,16 +1161,15 @@ r200DoBlit3D( R200DriverData *rdrv, R200DeviceData *rdev,
 {
      volatile __u8 *mmio = rdrv->mmio_base;
      
-     r200_waitfifo( rdrv, rdev, 17 );
+     r200_waitfifo( rdrv, rdev, 13 );
 
-     r200_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_QUAD_LIST |
-                                   VF_PRIM_WALK_DATA      |
-                                   (4 << VF_NUM_VERTICES_SHIFT) );
+     r200_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_RECTANGLE_LIST |
+                                   VF_PRIM_WALK_DATA           |
+                                   (3 << VF_NUM_VERTICES_SHIFT) );
      
      out_vertex2d( mmio, dr->x      , dr->y      , sr->x      , sr->y       );
      out_vertex2d( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       );
      out_vertex2d( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
-     out_vertex2d( mmio, dr->x      , dr->y+dr->h, sr->x      , sr->y+sr->h );
 }
 
 static bool 
