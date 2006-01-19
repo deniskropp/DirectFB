@@ -427,7 +427,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetStatus(
      if (!status)
           return DFB_INVARG;
 
-     *status = data->running ? DVSTAT_PLAY : DVSTAT_STOP;
+     *status = data->running ? DVSTATE_PLAY : DVSTATE_STOP;
 
      return DFB_OK;
 }
