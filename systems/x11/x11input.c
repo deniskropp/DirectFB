@@ -588,32 +588,71 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
                return DIKS_PERIOD;
 
           case DIKI_KP_SEPARATOR:
-               return DIKS_COMMA;
+                  return DIKS_COMMA;
 
           case DIKI_BACKSLASH:
-               return DIKS_BACKSLASH;
+                if( shift )
+                  return DIKS_VERTICAL_BAR;
+                else
+                  return DIKS_BACKSLASH;
 
           case DIKI_EQUALS_SIGN:
-               return DIKS_EQUALS_SIGN;
+                if( shift )
+                  return DIKS_PLUS_SIGN;
+                else
+                  return DIKS_EQUALS_SIGN;
 
           case DIKI_LESS_SIGN:
                return DIKS_LESS_THAN_SIGN;
 
           case DIKI_MINUS_SIGN:
-               return DIKS_MINUS_SIGN;
+                if( shift )
+                  return DIKS_UNDERSCORE;
+                else
+                  return DIKS_MINUS_SIGN;
+           case DIKI_COMMA:
+                if( shift )
+                  return DIKS_LESS_THAN_SIGN;
+                else
+                  return DIKS_COMMA;
 
           case DIKI_PERIOD:
-               return DIKS_PERIOD;
+                if( shift )
+                  return DIKS_GREATER_THAN_SIGN;
+                else
+                  return DIKS_PERIOD;
 
+           case DIKI_BRACKET_LEFT:
+                if( shift )
+                  return DIKS_CURLY_BRACKET_LEFT;
+                else
+                  return DIKS_SQUARE_BRACKET_LEFT;
+
+           case DIKI_BRACKET_RIGHT:
+                if( shift )
+                  return DIKS_CURLY_BRACKET_RIGHT;
+                else
+                  return DIKS_SQUARE_BRACKET_RIGHT;
           case DIKI_QUOTE_LEFT:
+                if( shift )
+                  return DIKS_TILDE;
+                else
+                  return DIKS_GRAVE_ACCENT;
           case DIKI_QUOTE_RIGHT:
-               return DIKS_QUOTATION;
-
+                if( shift )
+                  return DIKS_QUOTATION;
+                else
+                  return DIKS_APOSTROPHE;
           case DIKI_SEMICOLON:
-               return DIKS_SEMICOLON;
-
+                if( shift )
+                  return DIKS_COLON;
+                else
+                  return DIKS_SEMICOLON;
           case DIKI_SLASH:
-               return DIKS_SLASH;
+                if( shift )
+                  return DIKS_QUESTION_MARK;
+                else
+                  return DIKS_SLASH;
 
           default:
                ;
