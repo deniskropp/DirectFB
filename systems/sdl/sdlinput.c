@@ -694,7 +694,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
                   return DIKS_UNDERSCORE;
                 else
                   return DIKS_MINUS_SIGN;
-               return DIKS_MINUS_SIGN;
 
            case DIKI_COMMA:
                 if( shift )
