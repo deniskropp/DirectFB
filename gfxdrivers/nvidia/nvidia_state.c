@@ -77,7 +77,7 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
           
      dst_offset = (buffer->video.offset + nvdev->fb_offset) & nvdev->fb_mask;
      dst_pitch  = buffer->video.pitch & ~31;
-     src_pitch  = nvdev->src_pitch ? : 32;
+     src_pitch  = (nvdev->src_pitch & ~31) ? : 32; // align to 32, maybe system buffer pitch
      
      if (surface->caps & DSCAPS_DEPTH) {
           depth_offset = surface->depth_buffer->video.offset;
