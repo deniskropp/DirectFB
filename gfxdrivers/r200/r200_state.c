@@ -432,7 +432,7 @@ void r200_set_clip( R200DriverData *rdrv,
      r200_out32( (rdrv)->fb_base, (rdev)->yuv422_buffer,      \
                  PIXEL_YUY2( y, u, v ) );                     \
      r200_waitfifo( rdrv, rdev, 1 );                          \
-     r200_out32( (rdrv)->mmio_base, PP_TXOFFSET_1,            \
+     r200_out32( (rdrv)->mmio_base, R200_PP_TXOFFSET_1,       \
                  (rdev)->fb_offset + (rdev)->yuv422_buffer ); \
 }
 
