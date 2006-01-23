@@ -303,6 +303,7 @@ init_udp( DirectLog  *log,
      if (fd < 0) {
           ret = errno2result( errno );
           D_PERROR( "Direct/Log: Could not create a UDP socket!\n" );
+          freeaddrinfo( addr );
           return ret;
      }
 
