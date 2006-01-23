@@ -484,7 +484,10 @@ radeon_probe_chipset( int *ret_index )
 static int
 driver_probe( GraphicsDevice *device )
 {
-     return radeon_probe_chipset( NULL );
+     if (dfb_gfxcard_get_accelerator( device ) != -1)
+          return radeon_probe_chipset( NULL );
+
+     return 0;
 }
 
 static void
