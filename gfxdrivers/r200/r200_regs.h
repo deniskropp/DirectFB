@@ -2187,7 +2187,7 @@
 #       define VF_PRIM_WALK_LIST               (2<<4)
 #       define VF_PRIM_WALK_DATA               (3<<4)
 #       define VF_COLOR_ORDER_RGBA             (1<<6)
-#       define VF_MODE                  (1<<8)
+#       define VF_RADEON_MODE                  (1<<8)
 #       define VF_TCL_OUTPUT_CTL_ENA           (1<<9)
 #       define VF_PROG_STREAM_ENA              (1<<10)
 #       define VF_INDEX_SIZE_SHIFT             11
@@ -2892,4 +2892,6 @@
 #       define GRN_MX_FORCE_DAC_DATA      (6 << 8)
 #       define BLU_MX_FORCE_DAC_DATA      (6 << 12)
 #       define TV_FORCE_DAC_DATA_SHIFT    16
-#endif
+
+
+#endif /* __R200_REGS_H__ */
