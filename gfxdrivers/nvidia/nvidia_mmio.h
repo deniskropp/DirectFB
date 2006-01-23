@@ -96,7 +96,7 @@ nv_waitidle( NVidiaDriverData *nvdrv,
      do {
           status = nv_in32( nvdrv->mmio_base, PGRAPH_STATUS );
           if (++waitcycles > 10000000) {
-               D_BREAK( "card hung" );
+               D_BREAK( "Engine timed out" );
                /* avoid card crash */
                _exit(-1);
           }
@@ -123,8 +123,8 @@ nv_waitfifo( NVidiaDriverData *nvdrv,
 #else
                nvdev->fifo_space = nv_in32( mmio, FIFO_FREE ) >> 2;
 #endif
-               if (++waitcycles > 0x10000) {
-                    D_BREAK( "card hung" );
+               if (++waitcycles > 10000000) {
+                    D_BREAK( "FIFO timed out" );
                     /* avoid card crash */
                     _exit(-1);
                }
