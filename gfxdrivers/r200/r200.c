@@ -193,11 +193,13 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
    
      /* reset byteswapper */
      r200_out32( mmio, SURFACE_CNTL, rdev->surface_cntl );
-     
-     /* set framebuffer offset */
-     r200_waitfifo( rdrv, rdev, 3 );
-     r200_out32( mmio, DEFAULT_OFFSET, (rdev->fb_offset >> 10) |
-                                       (pitch64 << 22) );
+      
+     /* set framebuffer location */
+     r200_waitfifo( rdrv, rdev, 4 );
+     r200_out32( mmio, MC_FB_LOCATION,
+                       (r200_in32( mmio, CONFIG_MEMSIZE ) - 1) & 0xffff0000 );
+     r200_out32( mmio, DEFAULT_OFFSET, 
+                       (rdev->fb_offset >> 10) | (pitch64 << 22) );
      r200_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
      r200_out32( mmio, OV0_BASE_ADDR, rdev->fb_offset );
        
@@ -207,10 +209,6 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
 #else
      r200_out32( mmio, DP_DATATYPE, dp_datatype );
 #endif
-
-     /* Disable byte swapping */
-     r200_waitfifo( rdrv, rdev, 1 );
-     r200_out32( mmio, SURFACE_CNTL, SURF_TRANSLATION_DIS );
      
      /* restore 2d engine */
      r200_waitfifo( rdrv, rdev, 5 );
