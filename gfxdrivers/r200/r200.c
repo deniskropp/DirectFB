@@ -196,8 +196,12 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
       
      /* set framebuffer location */
      r200_waitfifo( rdrv, rdev, 4 );
-     r200_out32( mmio, MC_FB_LOCATION,
-                       (r200_in32( mmio, CONFIG_MEMSIZE ) - 1) & 0xffff0000 );
+     if (rdev->igp) {
+          r200_out32( mmio, MC_FB_LOCATION, r200_in32( mmio, NB_TOM ) );
+     } else {
+          r200_out32( mmio, MC_FB_LOCATION,
+                      (r200_in32( mmio, CONFIG_MEMSIZE ) - 1) & 0xffff0000 );
+     }
      r200_out32( mmio, DEFAULT_OFFSET, 
                        (rdev->fb_offset >> 10) | (pitch64 << 22) );
      r200_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
@@ -1526,28 +1530,29 @@ r200TextureTriangles420( void *drv, void *dev, DFBVertex *ve,
 static const struct {
      __u16       id;
      __u32       chip;
+     bool        igp;
      const char *name;
 } dev_table[] = {
-     { 0x514c, CHIP_R200 , "Radeon 8500 QL" },
-     { 0x4242, CHIP_R200 , "Radeon 8500 AIW BB" },
-     { 0x4243, CHIP_R200 , "Radeon 8500 AIW BC" },
-     { 0x514d, CHIP_R200 , "Radeon 9100 QM" },
-     { 0x5148, CHIP_R200 , "FireGL 8700/8800 QH" },
-     { 0x4966, CHIP_RV250, "Radeon 9000/PRO If" },
-     { 0x4967, CHIP_RV250, "Radeon 9000 Ig" },
-     { 0x4c66, CHIP_RV250, "Radeon Mobility 9000 (M9) Lf" },
-     { 0x4c67, CHIP_RV250, "Radeon Mobility 9000 (M9) Lg" },
-     { 0x4c64, CHIP_RV250, "FireGL Mobility 9000 (M9) Ld" },
-     { 0x5960, CHIP_RV280, "Radeon 9200PRO" },
-     { 0x5961, CHIP_RV280, "Radeon 9200" },
-     { 0x5962, CHIP_RV280, "Radeon 9200" },
-     { 0x5964, CHIP_RV280, "Radeon 9200SE" },
-     { 0x5c61, CHIP_RV280, "Radeon Mobility 9200 (M9+)" },
-     { 0x5c63, CHIP_RV280, "Radeon Mobility 9200 (M9+)" },
-     { 0x5834, CHIP_RS300, "Radeon 9100 IGP (A5)" },
-     { 0x5835, CHIP_RS300, "Radeon Mobility 9100 IGP (U3)" },
-     { 0x7834, CHIP_RS350, "Radeon 9100 PRO IGP" },
-     { 0x7835, CHIP_RS350, "Radeon Mobility 9200 IGP" }
+     { 0x514c, CHIP_R200 , false, "Radeon 8500 QL" },
+     { 0x4242, CHIP_R200 , false, "Radeon 8500 AIW BB" },
+     { 0x4243, CHIP_R200 , false, "Radeon 8500 AIW BC" },
+     { 0x514d, CHIP_R200 , false, "Radeon 9100 QM" },
+     { 0x5148, CHIP_R200 , false, "FireGL 8700/8800 QH" },
+     { 0x4966, CHIP_RV250, false, "Radeon 9000/PRO If" },
+     { 0x4967, CHIP_RV250, false, "Radeon 9000 Ig" },
+     { 0x4c66, CHIP_RV250, false, "Radeon Mobility 9000 (M9) Lf" },
+     { 0x4c67, CHIP_RV250, false, "Radeon Mobility 9000 (M9) Lg" },
+     { 0x4c64, CHIP_RV250, false, "FireGL Mobility 9000 (M9) Ld" },
+     { 0x5960, CHIP_RV280, false, "Radeon 9200PRO" },
+     { 0x5961, CHIP_RV280, false, "Radeon 9200" },
+     { 0x5962, CHIP_RV280, false, "Radeon 9200" },
+     { 0x5964, CHIP_RV280, false, "Radeon 9200SE" },
+     { 0x5c61, CHIP_RV280, false, "Radeon Mobility 9200 (M9+)" },
+     { 0x5c63, CHIP_RV280, false, "Radeon Mobility 9200 (M9+)" },
+     { 0x5834, CHIP_RS300, true , "Radeon 9100 IGP (A5)" },
+     { 0x5835, CHIP_RS300, true , "Radeon Mobility 9100 IGP (U3)" },
+     { 0x7834, CHIP_RS350, true , "Radeon 9100 PRO IGP" },
+     { 0x7835, CHIP_RS350, true , "Radeon Mobility 9200 IGP" }
 };
 
 static int 
@@ -1663,13 +1668,16 @@ driver_init_device( GraphicsDevice     *device,
      }
      
      rdev->chipset = dev_table[id].chip;
+     rdev->igp     = dev_table[id].igp;
 
-     rdev->fb_offset = r200_in32( rdrv->mmio_base, NB_TOM );
-     rdev->fb_offset = (rdev->fb_offset & 0xffff) << 16;
+     if (rdev->igp) {
+          rdev->fb_offset = r200_in32( rdrv->mmio_base, NB_TOM );
+          rdev->fb_offset = (rdev->fb_offset & 0xffff) << 16;
      
-     D_DEBUG( "DirectFB/R200: "
-              "Framebuffer starts at offset 0x%08x.\n",
-               rdev->fb_offset );
+          D_DEBUG( "DirectFB/R200: "
+                   "Framebuffer starts at offset 0x%08x.\n",
+                    rdev->fb_offset );
+     }
 
      /* fill device info */
      snprintf( device_info->name,

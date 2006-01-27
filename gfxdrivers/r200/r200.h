@@ -84,6 +84,7 @@ typedef struct {
 
      /* chipset identified */
      __u32                   chipset;
+     bool                    igp;
 
      /* for 2d<->3d engine switching */
      bool                    write_2d;
