@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2005  convergence GmbH.
+   (c) Copyright 2002-2006  convergence GmbH.
 
    All rights reserved.
 
@@ -1010,6 +1010,12 @@
 
 #define DMA_GET          0x00800044
 
+
+/*
+ * Generic subchannel registers
+ */
+#define SET_OBJECT       0x00000000
+
        
 /*
  * 2D surfaces
@@ -1028,14 +1034,18 @@ typedef volatile struct {
      __u32 DestOffset;             /* 030C-030F */
      __u32 Reserved02[0x73C];
 } NVSurfaces2D;
-#define SURFACES2D_FORMAT_Y8        0x00000001
-#define SURFACES2D_FORMAT_X1R5G5B5  0x00000002
-#define SURFACES2D_FORMAT_A1R5G5B5  0x00000003
-#define SURFACES2D_FORMAT_R5G6B5    0x00000004
-#define SURFACES2D_FORMAT_Y16       0x00000005
-#define SURFACES2D_FORMAT_X8R8G8B8  0x00000006
-#define SURFACES2D_FORMAT_A8R8G8B8  0x0000000A
-#define SURFACES2D_FORMAT_Y32       0x0000000B
+#define SURFACES2D_FORMAT                    0x00000300
+#define   SURFACES2D_FORMAT_Y8                         0x00000001
+#define   SURFACES2D_FORMAT_X1R5G5B5                   0x00000002
+#define   SURFACES2D_FORMAT_A1R5G5B5                   0x00000003
+#define   SURFACES2D_FORMAT_R5G6B5                     0x00000004
+#define   SURFACES2D_FORMAT_Y16                        0x00000005
+#define   SURFACES2D_FORMAT_X8R8G8B8                   0x00000006
+#define   SURFACES2D_FORMAT_A8R8G8B8                   0x0000000A
+#define   SURFACES2D_FORMAT_Y32                        0x0000000B
+#define SURFACES2D_PITCH                     0x00000304
+#define SURFACES2D_SRC_OFFSET                0x00000308
+#define SURFACES2D_DST_OFFSET                0x0000030C
 
 /*
  * 3D surfaces
@@ -1057,13 +1067,20 @@ typedef volatile struct {
      __u32 DepthOffset;            /* 0310-0313 */
      __u32 Reserved02[0x73B];
 } NVSurfaces3D;
-#define SURFACES3D_FORMAT_COLOR_A1R5G5B5  0x00000001
-#define SURFACES3D_FORMAT_COLOR_X1R5G5B5  0x00000002
-#define SURFACES3D_FORMAT_COLOR_R5G6B5    0x00000003
-#define SURAFCES3D_FORMAT_COLOR_X8R8G8B8  0x00000006
-#define SURFACES3D_FORMAT_COLOR_A8R8G8B8  0x00000008
-#define SURFACES3D_FORMAT_TYPE_PITCH      0x00000100
-#define SURFACES3D_FORMAT_TYPE_SWIZZLE    0x00000200
+#define SURFACES3D_CLIP_HORIZONTAL           0x000002F8
+#define SURFACES3D_CLIP_VERTICAL             0x000002FC
+#define SURFACES3D_FORMAT                    0x00000300
+#define   SURFACES3D_FORMAT_COLOR_A1R5G5B5             0x00000001
+#define   SURFACES3D_FORMAT_COLOR_X1R5G5B5             0x00000002
+#define   SURFACES3D_FORMAT_COLOR_R5G6B5               0x00000003
+#define   SURAFCES3D_FORMAT_COLOR_X8R8G8B8             0x00000006
+#define   SURFACES3D_FORMAT_COLOR_A8R8G8B8             0x00000008
+#define   SURFACES3D_FORMAT_TYPE_PITCH                 0x00000100
+#define   SURFACES3D_FORMAT_TYPE_SWIZZLE               0x00000200
+#define SURFACES3D_CLIP_SIZE                 0x00000304
+#define SURFACES3D_PITCH                     0x00000308
+#define SURFACES3D_RENDER_OFFSET             0x0000030C
+#define SURFACES3D_DEPTH_OFFSET              0x00000310
 
 /*
  * Scissor clip rectangle
@@ -1079,9 +1096,11 @@ typedef volatile struct {
      __u32 WidthHeight;            /* 0304-0307 */
      __u32 Reserved02[0x73E];
 } NVClip;
+#define CLIP_TOP_LEFT                        0x00000300
+#define CLIP_WIDTH_HEIGHT                    0x00000304
 
 /*
- * Fixed alpha value (Alphablend)
+ * Global alpha factor
  */
 typedef volatile struct {
      __u32 NoOperation;            /* 0100-0103 */
@@ -1092,9 +1111,10 @@ typedef volatile struct {
      __u32 SetBeta1D31;            /* 0300-0303 */
      __u32 Reserved02[0x73F];
 } NVBeta1;
+#define BETA1_FACTOR                         0x00000300
 
 /*
- * ARGB color (Colorize)
+ * Global ARGB factor
  */
 typedef volatile struct {
      __u32 NoOperation;            /* 0100-0103 */
@@ -1105,16 +1125,19 @@ typedef volatile struct {
      __u32 SetBetaFactor;          /* 0300-0303 */
      __u32 Reserved02[0x73F];
 } NVBeta4;
+#define BETA4_FACTOR                         0x00000300
 
-
-/* SetOperation */
+/* 
+ * Generic Flags
+ */
+/* Operation */
 #define OPERATION_COPY                   0
 #define OPERATION_ROP                    1
 #define OPERATION_BLEND                  2
 #define OPERATION_SRCCOPY                3
 #define OPERATION_COLOR_MULTIPLY         4
 #define OPERATION_BLEND_PREMULTIPLIED    5
-/* SetColorConversion */
+/* ColorConversion */
 #define COLOR_CONVERSION_DITHER          0
 #define COLOR_CONVERSION_TRUNCATE        1
 #define COLOR_CONVERSION_SUBTR_TRUNCATE  2   
@@ -1141,9 +1164,14 @@ typedef volatile struct {
      __u32 WidthHeight;            /* 0404-0407 */
      __u32 Reserved03[0x6FE];
 } NVRectangle;
-#define RECTANGLE_COLOR_FORMAT_Y16    0x00000001
-#define RECTANGLE_COLOR_FORMAT_A1Y15  0x00000002
-#define RECTANGLE_COLOR_FORMAT_Y32    0x00000003
+#define RECT_OPERATION                       0x000002FC
+#define RECT_COLOR_FORMAT                    0x00000300
+#define   RECT_COLOR_FORMAT_Y16                        0x00000001
+#define   RECT_COLOR_FORMAT_A1Y15                      0x00000002
+#define   RECT_COLOR_FORMAT_Y32                        0x00000003
+#define RECT_COLOR                           0x00000304
+#define RECT_TOP_LEFT                        0x00000400
+#define RECT_WIDTH_HEIGHT                    0x00000404
 
 /*
  * 2D solid triangle
@@ -1191,12 +1219,18 @@ typedef volatile struct {
      } ColorTrimesh[16];           /*     -05FF */
      __u32 Reserved05[0x680];
 } NVTriangle;
-#define TRIANGLE_COLOR_FORMAT_Y16    0x00000001
-#define TRIANGLE_COLOR_FORMAT_A1Y15  0x00000002
-#define TRIANGLE_COLOR_FORMAT_Y32    0x00000003
+#define TRI_OPERATION                        0x000002FC
+#define TRI_COLOR_FORMAT                     0x00000300
+#define   TRI_COLOR_FORMAT_Y16                         0x00000001
+#define   TRI_COLOR_FORMAT_A1Y15                       0x00000002
+#define   TRI_COLOR_FORMAT_Y32                         0x00000003
+#define TRI_COLOR                            0x00000304
+#define TRI_POINT0                           0x00000310
+#define TRI_POINT1                           0x00000314
+#define TRI_POINT2                           0x00000318
 
 /*
- * 2D solid line
+ * 2D solid 
  */
 typedef volatile struct {
      __u32 NoOperation;            /* 0100-0103 */
@@ -1234,9 +1268,14 @@ typedef volatile struct {
      } ColorPolyLin[16];           /*     -067F */
      __u32 Reserved03[0x660];
 } NVLine;
-#define LINE_COLOR_FORMAT_Y16    0x00000001
-#define LINE_COLOR_FORMAT_A1Y15  0x00000002
-#define LINE_COLOR_FORMAT_Y32    0x00000003
+#define LINE_OPERATION                       0x000002FC
+#define LINE_COLOR_FORMAT                    0x00000300
+#define   LINE_COLOR_FORMAT_Y16                        0x00000001
+#define   LINE_COLOR_FORMAT_A1Y15                      0x00000002
+#define   LINE_COLOR_FORMAT_Y32                        0x00000003
+#define LINE_COLOR                           0x00000304
+#define LINE_POINT0                          0x00000400
+#define LINE_POINT1                          0x00000404
 
 /*
  * 2D screen-screen BLT
@@ -1262,6 +1301,10 @@ typedef volatile struct {
      __u32 WidthHeight;            /* 0308-030B */
      __u32 Reserved02[0x73D];
 } NVScreenBlt;
+#define BLIT_OPERATION                       0x000002FC
+#define BLIT_TOP_LEFT_SRC                    0x00000300
+#define BLIT_TOP_LEFT_DST                    0x00000304
+#define BLIT_WIDTH_HEIGHT                    0x00000308
 
 /*
  * 2D CPU to screen BLT
@@ -1288,11 +1331,18 @@ typedef volatile struct {
      __u32 Reserved02[0x03C];
      __u32 Pixel[1792];            /* 0400-     */
 } NVImageBlt;
-#define IMAGEBLT_COLOR_FORMAT_R5G6B5    0x00000001
-#define IMAGEBLT_COLOR_FORMAT_A1R5G5B5  0x00000002
-#define IMAGEBLT_COLOR_FORMAT_X1R5G5B5  0x00000003
-#define IMAGEBLT_COLOR_FORMAT_A8R8G8B8  0x00000004
-#define IMAGEBLT_COLOR_FORMAT_X8R8G8B8  0x00000005
+#define IBLIT_COLOR_CONVERSION               0x000002F8
+#define IBLIT_OPERATION                      0x000002FC
+#define IBLIT_COLOR_FORMAT                   0x00000300
+#define   IBLIT_COLOR_FORMAT_R5G6B5                    0x00000001
+#define   IBLIT_COLOR_FORMAT_A1R5G5B5                  0x00000002
+#define   IBLIT_COLOR_FORMAT_X1R5G5B5                  0x00000003
+#define   IBLIT_COLOR_FORMAT_A8R8G8B8                  0x00000004
+#define   IBLIT_COLOR_FORMAT_X8R8G8B8                  0x00000005
+#define IBLIT_POINT                          0x00000304
+#define IBLIT_SIZE_OUT                       0x00000308
+#define IBLIT_SIZE_IN                        0x0000030C
+#define IBLIT_PIXEL0                         0x00000400
 
 /*
  * 2D scaled image BLT
@@ -1325,19 +1375,32 @@ typedef volatile struct {
      __u32 ImageInPoint;           /* 040C-040F */
      __u32 Reserved03[0x6FC];
 } NVScaledImage;
-#define SCALEDIMAGE_COLOR_FORMAT_A1R5G5B5     0x00000001
-#define SCALEDIMAGE_COLOR_FORMAT_X1R5G5B5     0x00000002
-#define SCALEDIMAGE_COLOR_FORMAT_A8R8G8B8     0x00000003
-#define SCALEDIMAGE_COLOR_FORMAT_X8R8G8B8     0x00000004
-#define SCALEDIMAGE_COLOR_FORMAT_V8YB8U8YA8   0x00000005
-#define SCALEDIMAGE_COLOR_FORMAT_YB8V8YA8U8   0x00000006
-#define SCALEDIMAGE_COLOR_FORMAT_R5G6B5       0x00000007
-#define SCALEDIMAGE_COLOR_FORMAT_Y8           0x00000008
-#define SCALEDIMAGE_COLOR_FORMAT_AY8          0x00000009
-#define SCALEDIMAGE_IN_FORMAT_ORIGIN_CENTER   0x00010000
-#define SCALEDIMAGE_IN_FORMAT_ORIGIN_CORNER   0x00020000
-#define SCALEDIMAGE_IN_FORMAT_FILTER_NEAREST  0x00000000
-#define SCALEDIMAGE_IN_FORMAT_FILTER_LINEAR   0x01000000
+#define SCALER_COLOR_CONVERSION              0x000002FC
+#define SCALER_COLOR_FORMAT                  0x00000300
+#define   SCALER_COLOR_FORMAT_A1R5G5B5                 0x00000001
+#define   SCALER_COLOR_FORMAT_X1R5G5B5                 0x00000002
+#define   SCALER_COLOR_FORMAT_A8R8G8B8                 0x00000003
+#define   SCALER_COLOR_FORMAT_X8R8G8B8                 0x00000004
+#define   SCALER_COLOR_FORMAT_V8YB8U8YA8               0x00000005
+#define   SCALER_COLOR_FORMAT_YB8V8YA8U8               0x00000006
+#define   SCALER_COLOR_FORMAT_R5G6B5                   0x00000007
+#define   SCALER_COLOR_FORMAT_Y8                       0x00000008
+#define   SCALER_COLOR_FORMAT_AY8                      0x00000009
+#define SCALER_OPERATION                     0x00000304
+#define SCALER_CLIP_POINT                    0x00000308
+#define SCALER_CLIP_SIZE                     0x0000030C
+#define SCALER_OUT_POINT                     0x00000310
+#define SCALER_OUT_SIZE                      0x00000314
+#define SCALER_DU_DX                         0x00000318
+#define SCALER_DV_DY                         0x0000031C
+#define SCALER_IN_SIZE                       0x00000400
+#define SCALER_IN_FORMAT                     0x00000404
+#define   SCALER_IN_FORMAT_ORIGIN_CENTER               0x00010000
+#define   SCALER_IN_FORMAT_ORIGIN_CORNER               0x00020000
+#define   SCALER_IN_FORMAT_FILTER_NEAREST              0x00000000
+#define   SCALER_IN_FORMAT_FILTER_LINEAR               0x01000000
+#define SCALER_IN_OFFSET                     0x00000408
+#define SCALER_IN_POINT                      0x0000040C
 
 /*
  * 2D stretched image from CPU BLT
@@ -1366,11 +1429,21 @@ typedef volatile struct {
      __u32 Reserved02[0x039];
      __u32 Pixel[1792];            /* 0400-     */
 } NVStretchedImage;
-#define STRETCHEDIMAGE_COLOR_FORMAT_R5G6B5    0x00000001
-#define STRETCHEDIMAGE_COLOR_FORMAT_A1R5G5B5  0x00000002
-#define STRETCHEDIMAGE_COLOR_FORMAT_X1R5G5B5  0x00000003
-#define STRETCHEDIMAGE_COLOR_FORMAT_A8R8G8B8  0x00000004
-#define STRETCHEDIMAGE_COLOR_FORMAT_X8R8G8B8  0x00000005
+#define ISTRETCH_COLOR_CONVERSION            0x000002F8
+#define ISTRETCH_OPERATION                   0x000002FC
+#define ISTRETCH_COLOR_FORMAT                0x00000300
+#define   ISTRETCH_COLOR_FORMAT_R5G6B5                 0x00000001
+#define   ISTRETCH_COLOR_FORMAT_A1R5G5B5               0x00000002
+#define   ISTRETCH_COLOR_FORMAT_X1R5G5B5               0x00000003
+#define   ISTRETCH_COLOR_FORMAT_A8R8G8B8               0x00000004
+#define   ISTRETCH_COLOR_FORMAT_X8R8G8B8               0x00000005
+#define ISTRETCH_IN_SIZE                     0x00000304
+#define ISTRETCH_DX_DU                       0x00000308
+#define ISTRETCH_DY_DV                       0x0000030C
+#define ISTRETCH_CLIP_POINT                  0x00000310
+#define ISTRETCH_CLIP_SIZE                   0x00000314
+#define ISTRETCH_OUT_POINT                   0x00000318
+#define ISTRETCH_PIXEL0                      0x00000400
 
 /*
  * 3D textured, Z buffered triangle
@@ -1405,119 +1478,137 @@ typedef volatile struct {
      __u32 DrawPrimitives[64];     /* 0600-063F */
      __u32 Reserved03[0x640];
 } NVTexturedTriangleDx5;
-#define TEXTRIANGLE_FORMAT_CONTEXT_DMA_A                0x00000001
-#define TEXTRIANGLE_FORMAT_CONTEXT_DMA_B                0x00000002
-#define TEXTRIANGLE_FORMAT_COLORKEYENABLE               0x00000004
-#define TEXTRIANGLE_FORMAT_ORIGIN_ZOH_CENTER            0x00000010
-#define TEXTRIANGLE_FORMAT_ORIGIN_ZOH_CORNER            0x00000020
-#define TEXTRIANGLE_FORMAT_ORIGIN_FOH_CENTER            0x00000040
-#define TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER            0x00000080
-#define TEXTRIANGLE_FORMAT_COLOR_Y8                     0x00000100
-#define TEXTRIANGLE_FORMAT_COLOR_A1R5G5B5               0x00000200
-#define TEXTRIANGLE_FORMAT_COLOR_X1R5G5B5               0x00000300
-#define TEXTRIANGLE_FORMAT_COLOR_A4R4G4B4               0x00000400
-#define TEXTRIANGLE_FORMAT_COLOR_R5G6B5                 0x00000500
-#define TEXTRIANGLE_FORMAT_COLOR_A8R8G8B8               0x00000600
-#define TEXTRIANGLE_FORMAT_COLOR_X8R8G8B8               0x00000700
-#define TEXTRIANGLE_FORMAT_MIPMAP_LEVELS_MSK            0x0000F000
-#define TEXTRIANGLE_FORMAT_BASE_SIZE_U_MSK              0x000F0000
-#define TEXTRIANGLE_FORMAT_BASE_SIZE_V_MSK              0x00F00000
-#define TEXTRIANGLE_FORMAT_U_WRAP                       0x01000000
-#define TEXTRIANGLE_FORMAT_U_MIRROR                     0x02000000
-#define TEXTRIANGLE_FORMAT_U_CLAMP                      0x03000000
-#define TEXTRIANGLE_FORMAT_U_CLAMP_BORDER               0x04000000
-#define TEXTRIANGLE_FORMAT_WRAPU_ENABLE                 0x08000000
-#define TEXTRIANGLE_FORMAT_V_WRAP                       0x10000000
-#define TEXTRIANGLE_FORMAT_V_MIRROR                     0x20000000
-#define TEXTRIANGLE_FORMAT_V_CLAMP                      0x30000000
-#define TEXTRIANGLE_FORMAT_V_CLAMP_BORDER               0x40000000
-#define TEXTRIANGLE_FORMAT_WRAPV_ENABLE                 0x80000000
-#define TEXTRIANGLE_FILTER_KERNEL_SIZE_X_MSK            0x000000FF
-#define TEXTRIANGLE_FILTER_KERNEL_SIZE_Y_MSK            0x00007F00
-#define TEXTRIANGLE_FILTER_MIPMAP_DITHER_ENABLE         0x00008000
-#define TEXTRIANGLE_FILTER_MIPMAPLODBIAS_MSK            0x00FF0000
-#define TEXTRIANGLE_FILTER_TEXTUREMIN_NEAREST           0x01000000
-#define TEXTRIANGLE_FILTER_TEXTUREMIN_LINEAR            0x02000000
-#define TEXTRIANGLE_FILTER_TEXTUREMIN_MIPNEAREST        0x03000000
-#define TEXTRIANGLE_FILTER_TEXTUREMIN_MIPLINEAR         0x04000000
-#define TEXTRIANGLE_FILTER_TEXTUREMIN_LINEARMIPNEAREST  0x05000000
-#define TEXTRIANGLE_FILTER_TEXTUREMIN_LINEARMIPLINEAR   0x06000000
-#define TEXTRIANGLE_FILTER_ANISOTROPIC_MIN_ENABLE       0x08000000
-#define TEXTRIANGLE_FILTER_TEXTUREMAG_NEAREST           0x10000000
-#define TEXTRIANGLE_FILTER_TEXTUREMAG_LINEAR            0x20000000
-#define TEXTRIANGLE_FILTER_TEXTUREMAG_MIPNEAREST        0x30000000
-#define TEXTRIANGLE_FILTER_TEXTUREMAG_MIPLINEAR         0x40000000
-#define TEXTRIANGLE_FILTER_TEXTUREMAG_LINEARMIPNEAREST  0x50000000
-#define TEXTRIANGLE_FILTER_TEXTUREMAG_LINEARMIPLINEAR   0x60000000
-#define TEXTRIANGLE_FILTER_ANISOTROPIC_MAG_ENABLE       0x80000000
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_DECAL         0x00000001
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_MODULATE      0x00000002
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_DECALALPHA    0x00000003
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_MODULATEALPHA 0x00000004
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_DECALMASK     0x00000005
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_MODULATEMASK  0x00000006
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_COPY          0x00000007
-#define TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_ADD           0x00000008
-#define TEXTRIANGLE_BLEND_OPERATION_MUX_TALPHALSB       0x00000010
-#define TEXTRIANGLE_BLEND_OPERATION_MUX_TALPHAMSB       0x00000020
-#define TEXTRIANGLE_BLEND_SHADEMODE_FLAT                0x00000040
-#define TEXTRIANGLE_BLEND_SHADEMODE_GOURAUD             0x00000080
-#define TEXTRIANGLE_BLEND_SHADEMODE_PHONG               0x000000C0
-#define TEXTRIANGLE_BLEND_TEXTUREPERSPECTIVE_ENABLE     0x00000100
-#define TEXTRIANGLE_BLEND_SPECULAR_ENABLE               0x00001000
-#define TEXTRIANGLE_BLEND_FOG_ENABLE                    0x00010000
-#define TEXTRIANGLE_BLEND_ALPHABLEND_ENABLE             0x00100000
-#define TEXTRIANGLE_BLEND_SRCBLEND_ZERO                 0x01000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_ONE                  0x02000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_SRCCOLOR             0x03000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_INVSRCCOLOR          0x04000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_SRCALPHA             0x05000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_INVSRCALPHA          0x06000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_DESTALPHA            0x07000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_INVDESTALPHA         0x08000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_DESTCOLOR            0x09000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_INVDESTCOLOR         0x0A000000
-#define TEXTRIANGLE_BLEND_SRCBLEND_SRCALPHASAT          0x0B000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_ZERO                0x10000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_ONE                 0x20000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_SRCCOLOR            0x30000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_INVSRCCOLOR         0x40000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_SRCALPHA            0x50000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_INVSRCALPHA         0x60000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_DESTALPHA           0x70000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_INVDESTALPHA        0x80000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_DESTCOLOR           0x90000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_INVDESTCOLOR        0xA0000000
-#define TEXTRIANGLE_BLEND_DESTBLEND_SRCALPHASAT         0xB0000000
-#define TEXTRIANGLE_CONTROL_ALPHAREF_MSK                0x000000FF
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_NEVER             0x00000100
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_LESS              0x00000200
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_EQUAL             0x00000300
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_LESSEQUAL         0x00000400
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_GREATER           0x00000500
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_NOTEQUAL          0x00000600
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_GREATEREQUAL      0x00000700
-#define TEXTRIANGLE_CONTROL_ALPHAFUNC_ALWAYS            0x00000800
-#define TEXTRIANGLE_CONTROL_ALPHATEST_ENABLE            0x00001000
-#define TEXTRIANGLE_CONTROL_ORIGIN_CENTER               0x00000000
-#define TEXTRIANGLE_CONTROL_ORIGIN_CORNER               0x00002000
-#define TEXTRIANGLE_CONTROL_Z_ENABLE                    0x00004000
-#define TEXTRIANGLE_CONTROL_ZFUNC_NEVER                 0x00010000
-#define TEXTRIANGLE_CONTROL_ZFUNC_LESS                  0x00020000
-#define TEXTRIANGLE_CONTROL_ZFUNC_EQUAL                 0x00030000
-#define TEXTRIANGLE_CONTROL_ZFUNC_LESSEQUAL             0x00040000
-#define TEXTRIANGLE_CONTROL_ZFUNC_GREATER               0x00050000
-#define TEXTRIANGLE_CONTROL_ZFUNC_NOTEQUAL              0x00060000
-#define TEXTRIANGLE_CONTROL_ZFUNC_GREATEREQUAL          0x00070000
-#define TEXTRIANGLE_CONTROL_ZFUNC_ALWAYS                0x00080000
-#define TEXTRIANGLE_CONTROL_CULLMODE_NONE               0x00100000
-#define TEXTRIANGLE_CONTROL_CULLMODE_CW                 0x00200000
-#define TEXTRIANGLE_CONTROL_CULLMODE_CCW                0x00300000
-#define TEXTRIANGLE_CONTROL_DITHER_ENABLE               0x00400000
-#define TEXTRIANGLE_CONTROL_Z_PERSPECTIVE_ENABLE        0x00800000
-#define TEXTRIANGLE_CONTROL_ZWRITE_ENABLE               0x01000000
-#define TEXTRIANGLE_CONTROL_Z_FORMAT_FIXED              0x40000000
-#define TEXTRIANGLE_CONTROL_Z_FORMAT_FLOAT              0x80000000
+#define TXTRI_COLOR_KEY                      0x00000300
+#define TXTRI_OFFSET                         0x00000304
+#define TXTRI_FORMAT                         0x00000308
+#define   TXTRI_FORMAT_CONTEXT_DMA_A                   0x00000001
+#define   TXTRI_FORMAT_CONTEXT_DMA_B                   0x00000002
+#define   TXTRI_FORMAT_COLORKEYENABLE                  0x00000004
+#define   TXTRI_FORMAT_ORIGIN_ZOH_CENTER               0x00000010
+#define   TXTRI_FORMAT_ORIGIN_ZOH_CORNER               0x00000020
+#define   TXTRI_FORMAT_ORIGIN_FOH_CENTER               0x00000040
+#define   TXTRI_FORMAT_ORIGIN_FOH_CORNER               0x00000080
+#define   TXTRI_FORMAT_COLOR_Y8                        0x00000100
+#define   TXTRI_FORMAT_COLOR_A1R5G5B5                  0x00000200
+#define   TXTRI_FORMAT_COLOR_X1R5G5B5                  0x00000300
+#define   TXTRI_FORMAT_COLOR_A4R4G4B4                  0x00000400
+#define   TXTRI_FORMAT_COLOR_R5G6B5                    0x00000500
+#define   TXTRI_FORMAT_COLOR_A8R8G8B8                  0x00000600
+#define   TXTRI_FORMAT_COLOR_X8R8G8B8                  0x00000700
+#define   TXTRI_FORMAT_MIPMAP_LEVELS_MSK               0x0000F000
+#define   TXTRI_FORMAT_BASE_SIZE_U_MSK                 0x000F0000
+#define   TXTRI_FORMAT_BASE_SIZE_V_MSK                 0x00F00000
+#define   TXTRI_FORMAT_U_WRAP                          0x01000000
+#define   TXTRI_FORMAT_U_MIRROR                        0x02000000
+#define   TXTRI_FORMAT_U_CLAMP                         0x03000000
+#define   TXTRI_FORMAT_U_CLAMP_BORDER                  0x04000000
+#define   TXTRI_FORMAT_WRAPU_ENABLE                    0x08000000
+#define   TXTRI_FORMAT_V_WRAP                          0x10000000
+#define   TXTRI_FORMAT_V_MIRROR                        0x20000000
+#define   TXTRI_FORMAT_V_CLAMP                         0x30000000
+#define   TXTRI_FORMAT_V_CLAMP_BORDER                  0x40000000
+#define   TXTRI_FORMAT_WRAPV_ENABLE                    0x80000000
+#define TXTRI_FILTER                         0x0000030C
+#define   TXTRI_FILTER_KERNEL_SIZE_X_MSK               0x000000FF
+#define   TXTRI_FILTER_KERNEL_SIZE_Y_MSK               0x00007F00
+#define   TXTRI_FILTER_MIPMAP_DITHER_ENABLE            0x00008000
+#define   TXTRI_FILTER_MIPMAPLODBIAS_MSK               0x00FF0000
+#define   TXTRI_FILTER_TEXTUREMIN_NEAREST              0x01000000
+#define   TXTRI_FILTER_TEXTUREMIN_LINEAR               0x02000000
+#define   TXTRI_FILTER_TEXTUREMIN_MIPNEAREST           0x03000000
+#define   TXTRI_FILTER_TEXTUREMIN_MIPLINEAR            0x04000000
+#define   TXTRI_FILTER_TEXTUREMIN_LINEARMIPNEAREST     0x05000000
+#define   TXTRI_FILTER_TEXTUREMIN_LINEARMIPLINEAR      0x06000000
+#define   TXTRI_FILTER_ANISOTROPIC_MIN_ENABLE          0x08000000
+#define   TXTRI_FILTER_TEXTUREMAG_NEAREST              0x10000000
+#define   TXTRI_FILTER_TEXTUREMAG_LINEAR               0x20000000
+#define   TXTRI_FILTER_TEXTUREMAG_MIPNEAREST           0x30000000
+#define   TXTRI_FILTER_TEXTUREMAG_MIPLINEAR            0x40000000
+#define   TXTRI_FILTER_TEXTUREMAG_LINEARMIPNEAREST     0x50000000
+#define   TXTRI_FILTER_TEXTUREMAG_LINEARMIPLINEAR      0x60000000
+#define   TXTRI_FILTER_ANISOTROPIC_MAG_ENABLE          0x80000000
+#define TXTRI_BLEND                          0x00000310
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_DECAL            0x00000001
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_MODULATE         0x00000002
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_DECALALPHA       0x00000003
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_MODULATEALPHA    0x00000004
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_DECALMASK        0x00000005
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_MODULATEMASK     0x00000006
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_COPY             0x00000007
+#define   TXTRI_BLEND_TEXTUREMAPBLEND_ADD              0x00000008
+#define   TXTRI_BLEND_OPERATION_MUX_TALPHALSB          0x00000010
+#define   TXTRI_BLEND_OPERATION_MUX_TALPHAMSB          0x00000020
+#define   TXTRI_BLEND_SHADEMODE_FLAT                   0x00000040
+#define   TXTRI_BLEND_SHADEMODE_GOURAUD                0x00000080
+#define   TXTRI_BLEND_SHADEMODE_PHONG                  0x000000C0
+#define   TXTRI_BLEND_TEXTUREPERSPECTIVE_ENABLE        0x00000100
+#define   TXTRI_BLEND_SPECULAR_ENABLE                  0x00001000
+#define   TXTRI_BLEND_FOG_ENABLE                       0x00010000
+#define   TXTRI_BLEND_ALPHABLEND_ENABLE                0x00100000
+#define   TXTRI_BLEND_SRCBLEND_ZERO                    0x01000000
+#define   TXTRI_BLEND_SRCBLEND_ONE                     0x02000000
+#define   TXTRI_BLEND_SRCBLEND_SRCCOLOR                0x03000000
+#define   TXTRI_BLEND_SRCBLEND_INVSRCCOLOR             0x04000000
+#define   TXTRI_BLEND_SRCBLEND_SRCALPHA                0x05000000
+#define   TXTRI_BLEND_SRCBLEND_INVSRCALPHA             0x06000000
+#define   TXTRI_BLEND_SRCBLEND_DESTALPHA               0x07000000
+#define   TXTRI_BLEND_SRCBLEND_INVDESTALPHA            0x08000000
+#define   TXTRI_BLEND_SRCBLEND_DESTCOLOR               0x09000000
+#define   TXTRI_BLEND_SRCBLEND_INVDESTCOLOR            0x0A000000
+#define   TXTRI_BLEND_SRCBLEND_SRCALPHASAT             0x0B000000
+#define   TXTRI_BLEND_DESTBLEND_ZERO                   0x10000000
+#define   TXTRI_BLEND_DESTBLEND_ONE                    0x20000000
+#define   TXTRI_BLEND_DESTBLEND_SRCCOLOR               0x30000000
+#define   TXTRI_BLEND_DESTBLEND_INVSRCCOLOR            0x40000000
+#define   TXTRI_BLEND_DESTBLEND_SRCALPHA               0x50000000
+#define   TXTRI_BLEND_DESTBLEND_INVSRCALPHA            0x60000000
+#define   TXTRI_BLEND_DESTBLEND_DESTALPHA              0x70000000
+#define   TXTRI_BLEND_DESTBLEND_INVDESTALPHA           0x80000000
+#define   TXTRI_BLEND_DESTBLEND_DESTCOLOR              0x90000000
+#define   TXTRI_BLEND_DESTBLEND_INVDESTCOLOR           0xA0000000
+#define   TXTRI_BLEND_DESTBLEND_SRCALPHASAT            0xB0000000
+#define TXTRI_CONTROL                        0x00000314
+#define   TXTRI_CONTROL_ALPHAREF_MSK                   0x000000FF
+#define   TXTRI_CONTROL_ALPHAFUNC_NEVER                0x00000100
+#define   TXTRI_CONTROL_ALPHAFUNC_LESS                 0x00000200
+#define   TXTRI_CONTROL_ALPHAFUNC_EQUAL                0x00000300
+#define   TXTRI_CONTROL_ALPHAFUNC_LESSEQUAL            0x00000400
+#define   TXTRI_CONTROL_ALPHAFUNC_GREATER              0x00000500
+#define   TXTRI_CONTROL_ALPHAFUNC_NOTEQUAL             0x00000600
+#define   TXTRI_CONTROL_ALPHAFUNC_GREATEREQUAL         0x00000700
+#define   TXTRI_CONTROL_ALPHAFUNC_ALWAYS               0x00000800
+#define   TXTRI_CONTROL_ALPHATEST_ENABLE               0x00001000
+#define   TXTRI_CONTROL_ORIGIN_CENTER                  0x00000000
+#define   TXTRI_CONTROL_ORIGIN_CORNER                  0x00002000
+#define   TXTRI_CONTROL_Z_ENABLE                       0x00004000
+#define   TXTRI_CONTROL_ZFUNC_NEVER                    0x00010000
+#define   TXTRI_CONTROL_ZFUNC_LESS                     0x00020000
+#define   TXTRI_CONTROL_ZFUNC_EQUAL                    0x00030000
+#define   TXTRI_CONTROL_ZFUNC_LESSEQUAL                0x00040000
+#define   TXTRI_CONTROL_ZFUNC_GREATER                  0x00050000
+#define   TXTRI_CONTROL_ZFUNC_NOTEQUAL                 0x00060000
+#define   TXTRI_CONTROL_ZFUNC_GREATEREQUAL             0x00070000
+#define   TXTRI_CONTROL_ZFUNC_ALWAYS                   0x00080000
+#define   TXTRI_CONTROL_CULLMODE_NONE                  0x00100000
+#define   TXTRI_CONTROL_CULLMODE_CW                    0x00200000
+#define   TXTRI_CONTROL_CULLMODE_CCW                   0x00300000
+#define   TXTRI_CONTROL_DITHER_ENABLE                  0x00400000
+#define   TXTRI_CONTROL_Z_PERSPECTIVE_ENABLE           0x00800000
+#define   TXTRI_CONTROL_ZWRITE_ENABLE                  0x01000000
+#define   TXTRI_CONTROL_Z_FORMAT_FIXED                 0x40000000
+#define   TXTRI_CONTROL_Z_FORMAT_FLOAT                 0x80000000
+#define TXTRI_FOG_COLOR                      0x00000318
+#define TXTRI_VERTEX0                        0x00000400
+#define TXTRI_VERTEX0_X                      0x00000400
+#define TXTRI_VERTEX0_Y                      0x00000404
+#define TXTRI_VERTEX0_Z                      0x00000408
+#define TXTRI_VERTEX0_W                      0x0000040C
+#define TXTRI_VERTEX0_COLOR                  0x00000410
+#define TXTRI_VERTEX0_SPECULAR               0x00000414
+#define TXTRI_VERTEX0_S                      0x00000418
+#define TXTRI_VERTEX0_T                      0x0000041C
+#define TXTRI_PRIMITIVE0                     0x00000600
+
 
 
 
@@ -1549,12 +1640,12 @@ typedef volatile struct {
           NVStretchedImage      StretchedImage;
           NVTexturedTriangleDx5 TexTriangle;
      } o;
-} NVFifoSubChannel;
+} NVDmaSubChannel;
 
 
 typedef volatile struct {
-     NVFifoSubChannel sub[8];
-} NVFifoChannel;
+     NVDmaSubChannel sub[8];
+} NVDmaChannel;
 
 
 

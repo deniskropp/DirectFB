@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2005  convergence GmbH.
+   (c) Copyright 2002-2006  convergence GmbH.
 
    All rights reserved.
 
@@ -45,7 +45,9 @@
 #include <gfx/util.h>
 
 #include "nvidia.h"
-#include "nvidia_mmio.h"
+#include "nvidia_regs.h"
+#include "nvidia_accel.h"
+#include "nvidia_objects.h"
 #include "nvidia_state.h"
 
 
@@ -64,8 +66,6 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
      CoreSurface   *surface     = state->destination;
      SurfaceBuffer *buffer      = surface->back_buffer;
      volatile __u8 *mmio        = nvdrv->mmio_base;
-     NVSurfaces2D  *Surfaces2D  = nvdrv->Surfaces2D;
-     NVSurfaces3D  *Surfaces3D  = nvdrv->Surfaces3D;
      __u32          dst_offset;
      __u32          dst_pitch;
      __u32          src_pitch;
@@ -75,13 +75,13 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
      if (NVIDIA_IS_SET( DESTINATION ))
           return;
           
-     dst_offset = (buffer->video.offset + nvdev->fb_offset) & nvdev->fb_mask;
+     dst_offset = (buffer->video.offset + nvdev->fb_offset) & ~63;
      dst_pitch  = buffer->video.pitch & ~31;
      src_pitch  = (nvdev->src_pitch & ~31) ? : 32; // align to 32, maybe system buffer pitch
      
      if (surface->caps & DSCAPS_DEPTH) {
           depth_offset = surface->depth_buffer->video.offset;
-          depth_offset = (depth_offset + nvdev->fb_offset) & nvdev->fb_mask;
+          depth_offset = (depth_offset + nvdev->fb_offset) & ~63;
           depth_pitch  = surface->depth_buffer->video.pitch & ~63;
      } else {
           depth_offset = 0;
@@ -99,22 +99,22 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
                case DSPF_LUT8:
                case DSPF_RGB332:
                     sformat2D = SURFACES2D_FORMAT_Y8;
-                    cformat   = RECTANGLE_COLOR_FORMAT_Y32;
+                    cformat   = RECT_COLOR_FORMAT_Y32;
                     break;
                case DSPF_ARGB1555:
                     sformat2D = SURFACES2D_FORMAT_A1R5G5B5;
                     sformat3D = SURFACES3D_FORMAT_COLOR_A1R5G5B5;
-                    cformat   = RECTANGLE_COLOR_FORMAT_A1Y15;
+                    cformat   = RECT_COLOR_FORMAT_A1Y15;
                     break;
                case DSPF_RGB16:
                     sformat2D = SURFACES2D_FORMAT_R5G6B5;
                     sformat3D = SURFACES3D_FORMAT_COLOR_R5G6B5;
-                    cformat   = RECTANGLE_COLOR_FORMAT_Y16;
+                    cformat   = RECT_COLOR_FORMAT_Y16;
                     break;
                case DSPF_RGB32:
                     sformat2D = SURFACES2D_FORMAT_X8R8G8B8;
                     sformat3D = SURAFCES3D_FORMAT_COLOR_X8R8G8B8;
-                    cformat   = RECTANGLE_COLOR_FORMAT_Y32;
+                    cformat   = RECT_COLOR_FORMAT_Y32;
                     break;
                case DSPF_ARGB:
                     sformat2D = SURFACES2D_FORMAT_A8R8G8B8;
@@ -137,53 +137,63 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
           }
 
           if (sformat2D == SURFACES2D_FORMAT_A8R8G8B8) {     
-               /* Need to set ColorFormat manually */
+               /* need to set color format manually */
                nv_waitidle( nvdrv, nvdev );
 
                nv_out32( mmio, PRAMIN + (ADDR_RECTANGLE << 4) + 4, cformat << 8 );
                nv_out32( mmio, PRAMIN + (ADDR_TRIANGLE  << 4) + 4, cformat << 8 );
                nv_out32( mmio, PRAMIN + (ADDR_LINE      << 4) + 4, cformat << 8 );
 
-               nv_waitfifo( nvdrv, nvdev, 3 );
-               nvdrv->Fifo->sub[2].SetObject = OBJ_RECTANGLE;
-               nvdrv->Fifo->sub[3].SetObject = OBJ_TRIANGLE;
-               nvdrv->Fifo->sub[4].SetObject = OBJ_LINE;
+               nv_assign_object( nvdrv, nvdev, 
+                                 SUBC_RECTANGLE, OBJ_RECTANGLE, true );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_TRIANGLE, OBJ_TRIANGLE, true );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_LINE, OBJ_LINE, true );
           } else {
-               nv_waitfifo( nvdrv, nvdev, 3 );
-               nvdrv->Rectangle->SetColorFormat = cformat;
-               nvdrv->Triangle->SetColorFormat  = cformat;
-               nvdrv->Line->SetColorFormat      = cformat;
+               nv_begin( SUBC_RECTANGLE, RECT_COLOR_FORMAT, 1 );
+               nv_outr( cformat );
+               
+               nv_begin( SUBC_TRIANGLE, TRI_COLOR_FORMAT, 1 );
+               nv_outr( cformat );
+               
+               nv_begin( SUBC_LINE, LINE_COLOR_FORMAT, 1 );
+               nv_outr( cformat );
           }
 
-          nv_assign_object( nvdrv, nvdev, 0, OBJ_SURFACES2D );
+          nv_assign_object( nvdrv, nvdev, 
+                            SUBC_SURFACES2D, OBJ_SURFACES2D, false );
 
-          nv_waitfifo( nvdrv, nvdev, 3 );
-          Surfaces2D->Format     = sformat2D;
-          Surfaces2D->Pitch      = (dst_pitch << 16) | (src_pitch & 0xFFFF);
-          Surfaces2D->DestOffset = dst_offset;
+          nv_begin( SUBC_SURFACES2D, SURFACES2D_FORMAT, 2 );
+          nv_outr( sformat2D );
+          nv_outr( (dst_pitch << 16) | (src_pitch & 0xFFFF) );
+          nv_begin( SUBC_SURFACES2D, SURFACES2D_DST_OFFSET, 1 );
+          nv_outr( dst_offset );
 
           if (nvdev->enabled_3d && sformat3D) { 
                sformat3D |= SURFACES3D_FORMAT_TYPE_PITCH;
                
-               nv_assign_object( nvdrv, nvdev, 0, OBJ_SURFACES3D );
+               nv_assign_object( nvdrv, nvdev, 
+                                 SUBC_SURFACES3D, OBJ_SURFACES3D, false );
                
                if (surface->caps & DSCAPS_DEPTH) {
-                    nv_waitfifo( nvdrv, nvdev, 4 );
-                    Surfaces3D->Format       = sformat3D ;
-                    Surfaces3D->Pitch        = (depth_pitch << 16) |
-                                               (dst_pitch & 0xFFFF);
-                    Surfaces3D->RenderOffset = dst_offset;
-                    Surfaces3D->DepthOffset  = depth_offset;
+                    nv_begin( SUBC_SURFACES3D, SURFACES3D_FORMAT, 1 );
+                    nv_outr( sformat3D );
+                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 3 );
+                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
+                    nv_outr( dst_offset );
+                    nv_outr( depth_offset );
                     
-                    nvdev->state3d[1].control |= TEXTRIANGLE_CONTROL_Z_ENABLE;
-               } else {               
-                    nv_waitfifo( nvdrv, nvdev, 3 );
-                    Surfaces3D->Format       = sformat3D;
-                    Surfaces3D->Pitch        = (depth_pitch << 16) |
-                                               (dst_pitch & 0xFFFF);
-                    Surfaces3D->RenderOffset = dst_offset;
+                    nvdev->state3d[1].control |= TXTRI_CONTROL_Z_ENABLE;
+               } 
+               else {
+                    nv_begin( SUBC_SURFACES3D, SURFACES3D_FORMAT, 1 );
+                    nv_outr( sformat3D );
+                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 2 );
+                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
+                    nv_outr( dst_offset );
                     
-                    nvdev->state3d[1].control &= ~TEXTRIANGLE_CONTROL_Z_ENABLE;
+                    nvdev->state3d[1].control &= ~TXTRI_CONTROL_Z_ENABLE;
                }
           }
           
@@ -197,30 +207,32 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
           NVIDIA_UNSET( SRC_BLEND );
      }
      else {
-          nv_assign_object( nvdrv, nvdev, 0, OBJ_SURFACES2D );
+          nv_assign_object( nvdrv, nvdev,
+                            SUBC_SURFACES2D, OBJ_SURFACES2D, false );
 
-          nv_waitfifo( nvdrv, nvdev, 2 );
-          Surfaces2D->Pitch      = (dst_pitch << 16) | (src_pitch & 0xFFFF);
-          Surfaces2D->DestOffset = dst_offset;
+          nv_begin( SUBC_SURFACES2D, SURFACES2D_PITCH, 1 );
+          nv_outr( (dst_pitch << 16) | (src_pitch & 0xFFFF) );
+          nv_begin( SUBC_SURFACES2D, SURFACES2D_DST_OFFSET, 1 );
+          nv_outr( dst_offset );
 
           if (nvdev->enabled_3d) {
-               nv_assign_object( nvdrv, nvdev, 0, OBJ_SURFACES3D );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_SURFACES3D, OBJ_SURFACES3D, false );
 
                if (surface->caps & DSCAPS_DEPTH) {
-                    nv_waitfifo( nvdrv, nvdev, 3 );
-                    Surfaces3D->Pitch        = (depth_pitch << 16) |
-                                               (dst_pitch & 0xFFFF);
-                    Surfaces3D->RenderOffset = dst_offset;
-                    Surfaces3D->DepthOffset  = depth_offset;
+                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 3 );
+                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
+                    nv_outr( dst_offset );
+                    nv_outr( depth_offset );
                     
-                    nvdev->state3d[1].control |= TEXTRIANGLE_CONTROL_Z_ENABLE;
-               } else {
-                    nv_waitfifo( nvdrv, nvdev, 2 );
-                    Surfaces3D->Pitch        = (depth_pitch << 16) |
-                                               (dst_pitch & 0xFFFF);
-                    Surfaces3D->RenderOffset = dst_offset;
+                    nvdev->state3d[1].control |= TXTRI_CONTROL_Z_ENABLE;
+               }
+               else {
+                    nv_begin( SUBC_SURFACES3D, SURFACES3D_PITCH, 2 );
+                    nv_outr( (depth_pitch << 16) | (dst_pitch & 0xFFFF) );
+                    nv_outr( dst_offset );
                     
-                    nvdev->state3d[1].control &= ~TEXTRIANGLE_CONTROL_Z_ENABLE;
+                    nvdev->state3d[1].control &= ~TXTRI_CONTROL_Z_ENABLE;
                }
           }
      }
@@ -236,9 +248,8 @@ void nv_set_source( NVidiaDriverData *nvdrv,
                     NVidiaDeviceData *nvdev,
                     CardState        *state )
 {
-     CoreSurface   *surface    = state->source;
-     SurfaceBuffer *buffer     = surface->front_buffer;
-     NVSurfaces2D  *Surfaces2D = nvdrv->Surfaces2D;
+     CoreSurface   *surface = state->source;
+     SurfaceBuffer *buffer  = surface->front_buffer;
           
      if (NVIDIA_IS_SET( SOURCE )) {
           if ((state->blittingflags & DSBLIT_DEINTERLACE) ==
@@ -248,8 +259,10 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           
      if (buffer->policy == CSP_SYSTEMONLY) { 
           if (!nvdev->src_system) {
-               nv_assign_object( nvdrv, nvdev, 5, OBJ_IMAGEBLT );
-               nv_assign_object( nvdrv, nvdev, 6, OBJ_STRETCHEDIMAGE );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_IMAGEBLT, OBJ_IMAGEBLT, false );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_STRETCHEDIMAGE, OBJ_STRETCHEDIMAGE, false );
                
                NVIDIA_UNSET( BLITTING_FLAGS );
           }
@@ -259,20 +272,21 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_system  = true;
      }
      else {
-          __u32 src_offset = (buffer->video.offset + nvdev->fb_offset) &
-                              nvdev->fb_mask;
+          __u32 src_offset = (buffer->video.offset + nvdev->fb_offset) & ~63;
           __u32 src_pitch  = buffer->video.pitch & ~31;
 
-          nv_assign_object( nvdrv, nvdev, 0, OBJ_SURFACES2D );
+          nv_assign_object( nvdrv, nvdev,
+                            SUBC_SURFACES2D, OBJ_SURFACES2D, false );
           
-          nv_waitfifo( nvdrv, nvdev, 2 );
-          Surfaces2D->Pitch        = (nvdev->dst_pitch << 16) |
-                                     (src_pitch & 0xFFFF);
-          Surfaces2D->SourceOffset = src_offset;
+          nv_begin( SUBC_SURFACES2D, SURFACES2D_PITCH, 2 );
+          nv_outr( (nvdev->dst_pitch << 16) | (src_pitch & 0xFFFF) );
+          nv_outr( src_offset );
 
           if (nvdev->src_system) {
-               nv_assign_object( nvdrv, nvdev, 5, OBJ_SCREENBLT );
-               nv_assign_object( nvdrv, nvdev, 6, OBJ_SCALEDIMAGE );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_SCREENBLT, OBJ_SCREENBLT, false );
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_SCALEDIMAGE, OBJ_SCALEDIMAGE, false );
                           
                NVIDIA_UNSET( BLITTING_FLAGS );
           }
@@ -323,8 +337,7 @@ void nv_set_clip( NVidiaDriverData *nvdrv,
                   NVidiaDeviceData *nvdev,
                   CardState        *state )
 {
-     NVClip       *Clip = nvdrv->Clip;
-     DFBRectangle *cr   = &nvdev->clip;
+     DFBRectangle *cr = &nvdev->clip;
      
      if (NVIDIA_IS_SET( CLIP ))
           return;
@@ -339,9 +352,9 @@ void nv_set_clip( NVidiaDriverData *nvdrv,
           cr->w = (cr->w / 2) ? : 1;
      }
 
-     nv_waitfifo( nvdrv, nvdev, 2 );
-     Clip->TopLeft     = (cr->y << 16) | (cr->x & 0xFFFF);
-     Clip->WidthHeight = (cr->h << 16) | (cr->w & 0xFFFF);
+     nv_begin( SUBC_CLIP, CLIP_TOP_LEFT, 2 );
+     nv_outr( (cr->y << 16) | (cr->x & 0xFFFF) );
+     nv_outr( (cr->h << 16) | (cr->w & 0xFFFF) );
 
      NVIDIA_SET( CLIP );
 }
@@ -407,27 +420,32 @@ void nv_set_drawing_color( NVidiaDriverData *nvdrv,
      }
      
      if (nvdev->dst_format == DSPF_ARGB1555) {
-          nv_assign_object( nvdrv, nvdev, 0, OBJ_SURFACES2D );
+          nv_assign_object( nvdrv, nvdev,
+                            SUBC_SURFACES2D, OBJ_SURFACES2D, false );
           
-          nv_waitfifo( nvdrv, nvdev, 1 );
-          nvdrv->Surfaces2D->Format = (nvdev->color2d & 0x8000) 
-                                      ? SURFACES2D_FORMAT_A1R5G5B5
-                                      : SURFACES2D_FORMAT_X1R5G5B5;
+          nv_begin( SUBC_SURFACES2D, SURFACES2D_FORMAT, 1 );
+          nv_outr( (nvdev->color2d & 0x8000) 
+                   ? SURFACES2D_FORMAT_A1R5G5B5
+                   : SURFACES2D_FORMAT_X1R5G5B5 );
      }
   
      if (state->drawingflags & DSDRAW_BLEND) {
           if (!nvdev->enabled_3d) {
                if (!nvdev->beta1_set || nvdev->beta1_val != (color.a << 23)) {
-                    nv_assign_object( nvdrv, nvdev, 0, OBJ_BETA1 );
-                    nv_waitfifo( nvdrv, nvdev, 1 );
-                    nvdrv->Beta1->SetBeta1D31 = color.a << 23;
+                    nv_assign_object( nvdrv, nvdev, 
+                                      SUBC_BETA1, OBJ_BETA1, false );
+                    
+                    nv_begin( SUBC_BETA1, BETA1_FACTOR, 1 );
+                    nv_outr( color.a << 23 );
 
                     nvdev->beta1_val = color.a << 23;
                     nvdev->beta1_set = true;
                }
-          } else
+          } 
+          else {
                nvdev->color3d = PIXEL_ARGB( color.a, color.r,
                                             color.g, color.b );
+          }
      }
      
      NVIDIA_SET  ( DRAWING_COLOR );
@@ -439,8 +457,6 @@ void nv_set_blitting_color( NVidiaDriverData *nvdrv,
                             CardState        *state )
 {
      DFBColor color = state->color;
-     NVBeta1 *Beta1 = nvdrv->Beta1;
-     NVBeta4 *Beta4 = nvdrv->Beta4;
      
      if (NVIDIA_IS_SET( BLITTING_COLOR ) && NVIDIA_IS_SET( BLITTING_FLAGS ))
           return;
@@ -467,9 +483,11 @@ void nv_set_blitting_color( NVidiaDriverData *nvdrv,
           }        
                
           if (!nvdev->beta4_set || nvdev->beta4_val != nvdev->color3d) {
-               nv_assign_object( nvdrv, nvdev, 0, OBJ_BETA4 );
-               nv_waitfifo( nvdrv, nvdev, 1 );
-               Beta4->SetBetaFactor = nvdev->color3d;
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_BETA4, OBJ_BETA4, false );
+                                 
+               nv_begin( SUBC_BETA4, BETA4_FACTOR, 1 );
+               nv_outr( nvdev->color3d );
 
                nvdev->beta4_val = nvdev->color3d;
                nvdev->beta4_set = true;
@@ -488,9 +506,11 @@ void nv_set_blitting_color( NVidiaDriverData *nvdrv,
           }
           
           if (!nvdev->beta1_set || nvdev->beta1_val != beta1) {
-               nv_assign_object( nvdrv, nvdev, 0, OBJ_BETA1 );
-               nv_waitfifo( nvdrv, nvdev, 1 );
-               Beta1->SetBeta1D31 = beta1;
+               nv_assign_object( nvdrv, nvdev,
+                                 SUBC_BETA1, OBJ_BETA1, false );
+
+               nv_begin( SUBC_BETA1, BETA1_FACTOR, 1 );
+               nv_outr( beta1 );
 
                nvdev->beta1_val = beta1;
                nvdev->beta1_set = true;
@@ -515,10 +535,10 @@ void nv_set_blend_function( NVidiaDriverData *nvdrv,
      if (!DFB_PIXELFORMAT_HAS_ALPHA( nvdev->dst_format )) {
           switch (state->src_blend) {
                case DSBF_DESTALPHA:
-                    blend |= TEXTRIANGLE_BLEND_SRCBLEND_ONE;
+                    blend |= TXTRI_BLEND_SRCBLEND_ONE;
                     break;
                case DSBF_INVDESTALPHA:
-                    blend |= TEXTRIANGLE_BLEND_SRCBLEND_ZERO;
+                    blend |= TXTRI_BLEND_SRCBLEND_ZERO;
                     break;
                default:
                     blend |= state->src_blend << 24;
@@ -551,10 +571,14 @@ void nv_set_drawingflags( NVidiaDriverData *nvdrv,
                operation = OPERATION_SRCCOPY;
           
           if (nvdev->drawing_operation != operation) {
-               nv_waitfifo( nvdrv, nvdev, 3 );
-               nvdrv->Rectangle->SetOperation = operation;
-               nvdrv->Triangle->SetOperation  = operation;
-               nvdrv->Line->SetOperation      = operation;
+               nv_begin( SUBC_RECTANGLE, RECT_OPERATION, 1 );
+               nv_outr( operation );
+               
+               nv_begin( SUBC_TRIANGLE, TRI_OPERATION, 1 );
+               nv_outr( operation );
+               
+               nv_begin( SUBC_LINE, LINE_OPERATION, 1 );
+               nv_outr( operation );
                
                nvdev->drawing_operation = operation;
           }
@@ -594,19 +618,19 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
           switch (nvdev->src_format) {
                case DSPF_ARGB1555:
                     nvdev->system_format = src_alpha
-                                           ? IMAGEBLT_COLOR_FORMAT_A1R5G5B5 
-                                           : IMAGEBLT_COLOR_FORMAT_X1R5G5B5;
+                                           ? IBLIT_COLOR_FORMAT_A1R5G5B5 
+                                           : IBLIT_COLOR_FORMAT_X1R5G5B5;
                     break;
                case DSPF_RGB16:
-                    nvdev->system_format = IMAGEBLT_COLOR_FORMAT_R5G6B5;
+                    nvdev->system_format = IBLIT_COLOR_FORMAT_R5G6B5;
                     break;
                case DSPF_RGB32:
-                    nvdev->system_format = IMAGEBLT_COLOR_FORMAT_X8R8G8B8;
+                    nvdev->system_format = IBLIT_COLOR_FORMAT_X8R8G8B8;
                     break;
                case DSPF_ARGB:
                     nvdev->system_format = src_alpha 
-                                           ? IMAGEBLT_COLOR_FORMAT_A8R8G8B8 
-                                           : IMAGEBLT_COLOR_FORMAT_X8R8G8B8;
+                                           ? IBLIT_COLOR_FORMAT_A8R8G8B8 
+                                           : IBLIT_COLOR_FORMAT_X8R8G8B8;
                     break;
                default:
                     D_BUG( "unexpected pixelformat" );
@@ -614,9 +638,11 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
           }
  
           if (nvdev->system_operation != operation) {
-               nv_waitfifo( nvdrv, nvdev, 2 );
-               nvdrv->ImageBlt->SetOperation       = operation;
-               nvdrv->StretchedImage->SetOperation = operation;
+               nv_begin( SUBC_IMAGEBLT, IBLIT_OPERATION, 1 );
+               nv_outr( operation );
+               
+               nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_OPERATION, 1 );
+               nv_outr( operation );
                
                nvdev->system_operation = operation;
           }
@@ -624,37 +650,37 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
      else {
           switch (nvdev->src_format) {
                case DSPF_A8:
-                    nvdev->scaler_format = SCALEDIMAGE_COLOR_FORMAT_AY8;
+                    nvdev->scaler_format = SCALER_COLOR_FORMAT_AY8;
                     break;
                case DSPF_LUT8:
                case DSPF_RGB332:
-                    nvdev->scaler_format = SCALEDIMAGE_COLOR_FORMAT_Y8;
+                    nvdev->scaler_format = SCALER_COLOR_FORMAT_Y8;
                     break;
                case DSPF_ARGB1555:
                     nvdev->scaler_format = src_alpha
-                                           ? SCALEDIMAGE_COLOR_FORMAT_A1R5G5B5
-                                           : SCALEDIMAGE_COLOR_FORMAT_X1R5G5B5;
+                                           ? SCALER_COLOR_FORMAT_A1R5G5B5
+                                           : SCALER_COLOR_FORMAT_X1R5G5B5;
                     break;
                case DSPF_RGB16:
-                    nvdev->scaler_format = SCALEDIMAGE_COLOR_FORMAT_R5G6B5;
+                    nvdev->scaler_format = SCALER_COLOR_FORMAT_R5G6B5;
                     break;
                case DSPF_RGB32:
-                    nvdev->scaler_format = SCALEDIMAGE_COLOR_FORMAT_X8R8G8B8;
+                    nvdev->scaler_format = SCALER_COLOR_FORMAT_X8R8G8B8;
                     break;
                case DSPF_ARGB:
                     nvdev->scaler_format = src_alpha
-                                           ? SCALEDIMAGE_COLOR_FORMAT_A8R8G8B8
-                                           : SCALEDIMAGE_COLOR_FORMAT_X8R8G8B8;
+                                           ? SCALER_COLOR_FORMAT_A8R8G8B8
+                                           : SCALER_COLOR_FORMAT_X8R8G8B8;
                     break;
                case DSPF_YUY2:
                     nvdev->scaler_format = nvdev->dst_422
-                                           ? SCALEDIMAGE_COLOR_FORMAT_A8R8G8B8
-                                           : SCALEDIMAGE_COLOR_FORMAT_V8YB8U8YA8;
+                                           ? SCALER_COLOR_FORMAT_A8R8G8B8
+                                           : SCALER_COLOR_FORMAT_V8YB8U8YA8;
                     break;
                case DSPF_UYVY:
                     nvdev->scaler_format = nvdev->dst_422
-                                           ? SCALEDIMAGE_COLOR_FORMAT_A8R8G8B8
-                                           : SCALEDIMAGE_COLOR_FORMAT_YB8V8YA8U8;
+                                           ? SCALER_COLOR_FORMAT_A8R8G8B8
+                                           : SCALER_COLOR_FORMAT_YB8V8YA8U8;
                     break;
                default:
                     D_BUG( "unexpected pixelformat" );
@@ -662,8 +688,8 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
           }
           
           if (nvdev->scaler_operation != operation) {
-               nv_waitfifo( nvdrv, nvdev, 1 );
-               nvdrv->ScaledImage->SetOperation = operation;
+               nv_begin( SUBC_SCALEDIMAGE, SCALER_OPERATION, 1 );
+               nv_outr( operation );
                
                nvdev->scaler_operation = operation;
           }
@@ -675,30 +701,30 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
 
           switch (nvdev->src_format) {
                case DSPF_ARGB1555:
-                    nvdev->state3d[1].format |= TEXTRIANGLE_FORMAT_COLOR_A1R5G5B5;
+                    nvdev->state3d[1].format |= TXTRI_FORMAT_COLOR_A1R5G5B5;
                     break;
                case DSPF_A8:
                case DSPF_ARGB:
-                    nvdev->state3d[1].format |= TEXTRIANGLE_FORMAT_COLOR_A4R4G4B4;
+                    nvdev->state3d[1].format |= TXTRI_FORMAT_COLOR_A4R4G4B4;
                     break;
                default:
-                    nvdev->state3d[1].format |= TEXTRIANGLE_FORMAT_COLOR_R5G6B5;
+                    nvdev->state3d[1].format |= TXTRI_FORMAT_COLOR_R5G6B5;
                     break;
           }
           
           if (state->blittingflags) {                         
                if (state->blittingflags & DSBLIT_BLEND_COLORALPHA)
                     nvdev->state3d[1].blend |= 
-                         TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_MODULATEALPHA;
+                         TXTRI_BLEND_TEXTUREMAPBLEND_MODULATEALPHA;
                else
                     nvdev->state3d[1].blend |= 
-                         TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_MODULATE;
+                         TXTRI_BLEND_TEXTUREMAPBLEND_MODULATE;
 
                if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                            DSBLIT_BLEND_ALPHACHANNEL))
-                    nvdev->state3d[1].blend |= TEXTRIANGLE_BLEND_ALPHABLEND_ENABLE;
+                    nvdev->state3d[1].blend |= TXTRI_BLEND_ALPHABLEND_ENABLE;
           } else
-               nvdev->state3d[1].blend |= TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_COPY;
+               nvdev->state3d[1].blend |= TXTRI_BLEND_TEXTUREMAPBLEND_COPY;
      }
  
      nvdev->blittingflags = state->blittingflags;

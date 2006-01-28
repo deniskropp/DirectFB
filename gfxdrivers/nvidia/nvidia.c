@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2005  convergence GmbH.
+   (c) Copyright 2002-2006  convergence GmbH.
 
    All rights reserved.
 
@@ -60,7 +60,10 @@
 DFB_GRAPHICS_DRIVER( nvidia )
 
 #include "nvidia.h"
-#include "nvidia_mmio.h"
+#include "nvidia_regs.h"
+#include "nvidia_agp.h"
+#include "nvidia_accel.h"
+#include "nvidia_objects.h"
 #include "nvidia_state.h"
 #include "nvidia_2d.h"
 #include "nvidia_3d.h"
@@ -153,60 +156,6 @@ DFB_GRAPHICS_DRIVER( nvidia )
      (DSBLIT_MODULATE_ALPHA | DSBLIT_MODULATE_COLOR)
 
 
-static inline __u32
-nv_hashkey( __u32 obj )
-{
-     return ((obj >>  0) & 0x000001FF) ^
-            ((obj >>  9) & 0x000001FF) ^
-            ((obj >> 18) & 0x000001FF) ^
-            ((obj >> 27));
-     /* key should be xored with (fifo channel id << 5) too,
-      * but, since we always use channel 0, it can be ignored */
-}
-
-static inline void
-nv_store_dma( NVidiaDriverData *nvdrv, __u32 obj,
-              __u32 addr, __u32 class, __u32 flags,
-              __u32 size, __u32 frame, __u32 access )
-{
-     volatile __u8 *mmio = nvdrv->mmio_base;
-     __u32          key  = nv_hashkey( obj );
-     __u32          ctx  = addr | (0 << 16) | (1 << 31);
-
-     /* NV_PRAMIN_RAMRO_0 */
-     nv_out32( mmio, PRAMIN + (addr << 4) +  0, class | flags );
-     nv_out32( mmio, PRAMIN + (addr << 4) +  4, size - 1 );
-     nv_out32( mmio, PRAMIN + (addr << 4) +  8, (frame & 0xFFFFF000) | access );
-     nv_out32( mmio, PRAMIN + (addr << 4) + 12, 0xFFFFFFFF );
-
-     /* store object id and context */
-     nv_out32( mmio, PRAMHT + (key << 3) + 0, obj );
-     nv_out32( mmio, PRAMHT + (key << 3) + 4, ctx );
-}
-
-static inline void
-nv_store_object( NVidiaDriverData *nvdrv, __u32 obj,
-                 __u32 addr, __u32 class, __u32 flags,
-                 __u32 color, __u32 dma0, __u32 dma1 )
-{
-     volatile __u8 *mmio = nvdrv->mmio_base;
-     __u32          key  = nv_hashkey( obj );
-     __u32          ctx  = addr | (1 << 16) | (1 << 31);
-
-     /* NV_PRAMIN_CTX_0 */
-     nv_out32( mmio, PRAMIN + (addr << 4) +  0, class | flags );
-     /* NV_PRAMIN_CTX_1 */
-     nv_out32( mmio, PRAMIN + (addr << 4) +  4, color );
-     /* NV_PRAMIN_CTX_2 */
-     nv_out32( mmio, PRAMIN + (addr << 4) +  8, dma0 | (dma1 << 16) );
-     /* NV_PRAMIN_CTX_3 */
-     nv_out32( mmio, PRAMIN + (addr << 4) + 12, 0x00000000 );
-
-     /* store object id and context */
-     nv_out32( mmio, PRAMHT + (key << 3) + 0, obj );
-     nv_out32( mmio, PRAMHT + (key << 3) + 4, ctx );
-}
-
 
 
 static void nvAfterSetVar( void *driver_data,
@@ -215,20 +164,31 @@ static void nvAfterSetVar( void *driver_data,
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
      volatile __u8    *mmio  = nvdrv->mmio_base;
-     NVFifoChannel    *Fifo  = nvdrv->Fifo;
      int               i;
 
      nv_waitidle( nvdrv, nvdev );
      
-     /* reset channel mode to PIO */
+     /* reconfigure PFIFO for selected mode (DMA/PIO) */
      nv_out32( mmio, PFIFO_CACHES, PFIFO_CACHES_REASSIGN_DISABLED );
-     nv_out32( mmio, PFIFO_MODE, PFIFO_MODE_CHANNEL_0_PIO );
+     if (nvdev->use_dma) {
+          nv_out32( mmio, PFIFO_MODE, PFIFO_MODE_CHANNEL_0_DMA );
+     } else {
+          nv_out32( mmio, PFIFO_MODE, PFIFO_MODE_CHANNEL_0_PIO );
+     }
      nv_out32( mmio, PFIFO_CACHE1_PUSH0, PFIFO_CACHE1_PULL1_ENGINE_SW );
      nv_out32( mmio, PFIFO_CACHE1_PULL0, PFIFO_CACHE1_PULL0_ACCESS_DISABLED );
-     nv_out32( mmio, PFIFO_CACHE1_PUSH1, PFIFO_CACHE1_PUSH1_MODE_PIO );
+     if (nvdev->use_dma) {
+          nv_out32( mmio, PFIFO_CACHE1_PUSH1, PFIFO_CACHE1_PUSH1_MODE_DMA );
+     } else {
+          nv_out32( mmio, PFIFO_CACHE1_PUSH1, PFIFO_CACHE1_PUSH1_MODE_PIO );
+     }
      nv_out32( mmio, PFIFO_CACHE1_DMA_PUT, 0 );
      nv_out32( mmio, PFIFO_CACHE1_DMA_GET, 0 );
-     nv_out32( mmio, PFIFO_CACHE1_DMA_INSTANCE, 0 );
+     if (nvdev->use_dma) {
+          nv_out32( mmio, PFIFO_CACHE1_DMA_INSTANCE, ADDR_DMA_OUT );
+     } else {
+          nv_out32( mmio, PFIFO_CACHE1_DMA_INSTANCE, 0 );
+     }
      nv_out32( mmio, PFIFO_CACHE0_PUSH0, PFIFO_CACHE0_PUSH0_ACCESS_DISABLED );
      nv_out32( mmio, PFIFO_CACHE0_PULL0, PFIFO_CACHE0_PULL0_ACCESS_DISABLED );
      nv_out32( mmio, PFIFO_RAMHT, 0x00000100             |
@@ -241,8 +201,38 @@ static void nvAfterSetVar( void *driver_data,
      nv_out32( mmio, PFIFO_INTR_EN, PFIFO_INTR_EN_DISABLED );
      nv_out32( mmio, PFIFO_INTR, PFIFO_INTR_RESET );
      nv_out32( mmio, PFIFO_CACHE0_PULL1, PFIFO_CACHE0_PULL1_ENGINE_GRAPHICS );
+     if (nvdev->use_dma) {
+          if (nvdev->use_agp) {
+               nv_out32( mmio, PFIFO_CACHE1_DMA_CTL, 
+                                        PFIFO_CACHE1_DMA_CTL_PAGE_TABLE_PRESENT |
+                                        PFIFO_CACHE1_DMA_CTL_PAGE_ENTRY_LINEAR  |
+                                        PFIFO_CACHE1_DMA_CTL_TARGET_NODE_AGP );
+          } else {
+               nv_out32( mmio, PFIFO_CACHE1_DMA_CTL,
+                                        PFIFO_CACHE1_DMA_CTL_PAGE_TABLE_PRESENT |
+                                        PFIFO_CACHE1_DMA_CTL_PAGE_ENTRY_LINEAR  |
+                                        PFIFO_CACHE1_DMA_CTL_TARGET_NODE_NVM );
+          }
+          nv_out32( mmio, PFIFO_CACHE1_DMA_LIMIT, nvdev->dma_size - 4 );
+          nv_out32( mmio, PFIFO_CACHE1_ENGINE, PFIFO_CACHE1_ENGINE_0_SW );
+#ifdef WORDS_BIGENDIAN
+          nv_out32( mmio, PFIFO_CACHE1_DMA_FETCH,
+                                        PFIFO_CACHE1_DMA_FETCH_TRIG_128_BYTES |
+                                        PFIFO_CACHE1_DMA_FETCH_MAX_REQS_15    |
+                                        PFIFO_CACHE1_BIG_ENDIAN );
+#else
+          nv_out32( mmio, PFIFO_CACHE1_DMA_FETCH,
+                                        PFIFO_CACHE1_DMA_FETCH_TRIG_128_BYTES |
+                                        PFIFO_CACHE1_DMA_FETCH_MAX_REQS_15    |
+                                        PFIFO_CACHE1_LITTLE_ENDIAN );
+#endif
+          nv_out32( mmio, PFIFO_CACHE1_DMA_PUSH, 
+                                        PFIFO_CACHE1_DMA_PUSH_ACCESS_ENABLED );
+     } else {
+          nv_out32( mmio, PFIFO_CACHE1_DMA_PUSH, 
+                                        PFIFO_CACHE1_DMA_PUSH_ACCESS_DISABLED );
+     }
      nv_out32( mmio, PFIFO_CACHE1_PUSH0, PFIFO_CACHE1_PUSH0_ACCESS_ENABLED );
-     nv_out32( mmio, PFIFO_CACHE1_DMA_PUSH, PFIFO_CACHE1_DMA_PUSH_ACCESS_DISABLED );
      nv_out32( mmio, PFIFO_CACHE1_PULL0, PFIFO_CACHE1_PULL0_ACCESS_ENABLED );
      nv_out32( mmio, PFIFO_CACHE1_PULL1, PFIFO_CACHE1_PULL1_ENGINE_GRAPHICS );
      nv_out32( mmio, PFIFO_CACHES, PFIFO_CACHES_REASSIGN_ENABLED );
@@ -380,12 +370,19 @@ static void nvAfterSetVar( void *driver_data,
           nv_out32( mmio, NV10_PGRAPH_GLOBALSTATE0, 0x10000000 );
           nv_out32( mmio, NV10_PGRAPH_GLOBALSTATE1, 0x00000000 );
      }
+     
+     nvdev->dma_max   = nvdev->dma_size/4 - 1;
+     nvdev->dma_cur   = 0;
+     nvdev->dma_free  = nvdev->dma_max;
+     nvdev->dma_put   = 0;
+     nvdev->dma_get   = 0;
+     nvdev->fifo_free = 0;
 
      /* put objects into subchannels */
-     for (i = 0; i < 8; i++)
-          Fifo->sub[i].SetObject = nvdev->subchannel_object[i];
-     /* reset fifo space counter */
-     nvdev->fifo_space = Fifo->sub[0].Free >> 2;
+     for (i = 0; i < 8; i++) {
+          nv_assign_object( nvdrv, nvdev, i, 
+                            nvdev->subchannel_object[i], true );
+     }
 
      nvdev->set        = 0;
      nvdev->dst_format = DSPF_UNKNOWN;
@@ -406,6 +403,14 @@ static void nvFlushTextureCache( void *drv, void *dev )
      nvdev->set &= ~SMF_SOURCE_TEXTURE;
 }
 
+static void nvEmitCommands( void *drv, void *dev )
+{
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     
+     if (nvdev->use_dma)
+          nv_emitdma( nvdrv, nvdev );
+}
 
 static void nv4CheckState( void *drv, void *dev,
                            CardState *state, DFBAccelerationMask accel )
@@ -1204,11 +1209,11 @@ static void nv20SetState( void *drv, void *dev,
                }
                else {
                     if (DFB_BITS_PER_PIXEL(nvdev->dst_format) == 8)
-                         nvdev->scaler_filter = SCALEDIMAGE_IN_FORMAT_ORIGIN_CORNER |
-                                                SCALEDIMAGE_IN_FORMAT_FILTER_NEAREST;
+                         nvdev->scaler_filter = SCALER_IN_FORMAT_ORIGIN_CORNER |
+                                                SCALER_IN_FORMAT_FILTER_NEAREST;
                     else
-                         nvdev->scaler_filter = SCALEDIMAGE_IN_FORMAT_ORIGIN_CENTER |
-                                                SCALEDIMAGE_IN_FORMAT_FILTER_LINEAR;
+                         nvdev->scaler_filter = SCALER_IN_FORMAT_ORIGIN_CENTER |
+                                                SCALER_IN_FORMAT_FILTER_LINEAR;
 
                     funcs->Blit        = nvBlit;
                     funcs->StretchBlit = nvStretchBlit;
@@ -1299,9 +1304,17 @@ driver_get_info( GraphicsDevice     *device,
      snprintf( info->vendor,
                DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
                "directfb.org" );
+               
+     snprintf( info->url,
+               DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH,
+               "http://www.directfb.org" );
+               
+     snprintf( info->license,
+               DFB_GRAPHICS_DRIVER_INFO_LICENSE_LENGTH,
+               "LGPL" );
 
      info->version.major = 0;
-     info->version.minor = 5;
+     info->version.minor = 6;
 
      info->driver_data_size = sizeof(NVidiaDriverData);
      info->device_data_size = sizeof(NVidiaDeviceData);
@@ -1363,34 +1376,36 @@ driver_init_driver( GraphicsDevice      *device,
                     CoreDFB             *core )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
      __u32             arch  = 0;
 
      nv_find_architecture( NULL, &arch );
      
      nvdrv->device      = device;
      nvdrv->device_data = device_data;
+     
+     nvdrv->fb_base = (volatile void*) dfb_gfxcard_memory_virtual( device, 0 );
 
-     nvdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     nvdrv->mmio_base = (volatile void*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
-     
-     nvdrv->Fifo           = (NVFifoChannel*) (nvdrv->mmio_base + FIFO_ADDRESS );
-     nvdrv->Surfaces2D     = &nvdrv->Fifo->sub[0].o.Surfaces2D;
-     nvdrv->Surfaces3D     = &nvdrv->Fifo->sub[0].o.Surfaces3D;
-     nvdrv->Beta1          = &nvdrv->Fifo->sub[0].o.Beta1;
-     nvdrv->Beta4          = &nvdrv->Fifo->sub[0].o.Beta4;
-     nvdrv->Clip           = &nvdrv->Fifo->sub[1].o.Clip;
-     nvdrv->Rectangle      = &nvdrv->Fifo->sub[2].o.Rectangle;
-     nvdrv->Triangle       = &nvdrv->Fifo->sub[3].o.Triangle;
-     nvdrv->Line           = &nvdrv->Fifo->sub[4].o.Line;
-     nvdrv->ScreenBlt      = &nvdrv->Fifo->sub[5].o.ScreenBlt;
-     nvdrv->ImageBlt       = &nvdrv->Fifo->sub[5].o.ImageBlt;
-     nvdrv->ScaledImage    = &nvdrv->Fifo->sub[6].o.ScaledImage;
-     nvdrv->StretchedImage = &nvdrv->Fifo->sub[6].o.StretchedImage;
-     nvdrv->TexTriangle    = &nvdrv->Fifo->sub[7].o.TexTriangle;
+   
+     if (nvdev->use_dma) {
+          if (nvdev->use_agp) {
+               DFBResult ret;
+               ret = nv_agp_join( nvdrv, nvdev );
+               if (ret)
+                    return ret;
+               nvdrv->dma_base = nvdrv->agp_base;
+          }
+          else {
+               nvdrv->dma_base = nvdrv->fb_base + nvdev->dma_offset;
+          }
+     }
 
      funcs->AfterSetVar   = nvAfterSetVar;
      funcs->EngineSync    = nvEngineSync;
+     funcs->EmitCommands  = nvEmitCommands;
      funcs->FillRectangle = nvFillRectangle2D; // dynamic
      funcs->FillTriangle  = nvFillTriangle2D;  // dynamic
      funcs->DrawRectangle = nvDrawRectangle2D; // dynamic
@@ -1454,23 +1469,16 @@ driver_init_device( GraphicsDevice     *device,
                     void               *driver_data,
                     void               *device_data )
 {
-     NVidiaDriverData *nvdrv        = (NVidiaDriverData*) driver_data;
-     NVidiaDeviceData *nvdev        = (NVidiaDeviceData*) device_data;
-     int               ram_total    = dfb_system_videoram_length();
-     int               ram_used     = dfb_gfxcard_memory_length();
-     int               ram_unusable = 0;
+     NVidiaDriverData *nvdrv     = (NVidiaDriverData*) driver_data;
+     NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) device_data;
+     int               ram_total = dfb_system_videoram_length();
+     int               ram_used  = dfb_gfxcard_memory_length();
      
      nv_find_architecture( &nvdev->chip, &nvdev->arch );
 
-     if (nvdev->arch) {
-          snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
-                    "NV%x (0x%04x)", nvdev->arch, nvdev->chip );
-     } else {
-          snprintf( device_info->name,
-                    DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
-                    "0x%04x", nvdev->chip );
-     }        
+     snprintf( device_info->name,
+               DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
+               "NV%02x (0x%04x)", (nvdev->chip >> 4) & 0xFF, nvdev->chip );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
@@ -1526,52 +1534,54 @@ driver_init_device( GraphicsDevice     *device,
      
      /* GeForce3 Intergrated GPU (XBox) */
      if (nvdev->chip == 0x02A0) {
-          nvdev->fb_offset  = (__u32) dfb_gfxcard_memory_physical( device, 0 );
-          nvdev->fb_offset &= 0x0FFFFFFF;
+          nvdev->fb_offset  = (long)nvdrv->fb_base & 0x0FFFFFFF;
           ram_total        += nvdev->fb_offset;
      }
      
      nvdev->fb_size = 1 << direct_log2( ram_total );
-     nvdev->fb_mask = (nvdev->fb_size - 1) & ~63;
 
-     /* reserve unusable video memory to avoid random crashes */
-     switch (nvdev->arch) {
-          case NV_ARCH_04:
-          case NV_ARCH_05:
-               ram_unusable = 128 * 1024;
-               break;
-          case NV_ARCH_10:
-          case NV_ARCH_20:
-          case NV_ARCH_30:
-               ram_unusable = 192 * 1024;
-               break;
-          default:
-               break;
-     }
-     ram_unusable -= nvdev->fb_size - ram_used;
+     if (dfb_config->dma) {
+          int bus, dev, func;
 
-     if (ram_unusable > 0) {
-          int offset;
-
-          offset = dfb_gfxcard_reserve_memory( nvdrv->device, ram_unusable );
-          if (offset < 0) {
-               D_ERROR( "DirectFB/NVidia: "
-                        "couldn't reserve %i bytes of video memory.\n",
-                        ram_unusable );
-               return DFB_NOVIDEOMEMORY;
+          dfb_system_get_busid( &bus, &dev, &func );
+          /* assume AGP slot is at 1:0:0 */
+          if (bus == 1 && dev == 0 && func == 0 &&
+              nv_agp_initialize( nvdrv, nvdev ) == DFB_OK)
+          {
+               nvdev->use_agp  = true;
+               nvdev->use_dma  = true;
+               nvdev->dma_size = 64*1024;
+               nvdrv->dma_base = nvdrv->agp_base;
+               
+               D_INFO( "DirectFB/NVidia: AGP support enabled.\n" );
+          }
+          else {
+               int len, offset;
+          
+               len    = 32*1024 + ((ram_used - 32*1024) & 0x1FFFF);
+               offset = dfb_gfxcard_reserve_memory( nvdrv->device, len );
+               if (offset < 0) {
+                    D_ERROR( "DirectFB/NVidia: "
+                             "couldn't reserve %d bytes of video memory!\n", len );
+               }
+               else {
+                    nvdev->use_dma    = true;
+                    nvdev->dma_size   = 32*1024;
+                    nvdev->dma_offset = offset;
+                    nvdrv->dma_base   = nvdrv->fb_base+offset;
+          
+                    ram_used -= len;
+               }
           }
 
-          D_DEBUG( "DirectFB/NVidia: "
-                   "reserved %i bytes of unusable video memory at offset 0x%08x.\n",
-                   ram_unusable, offset );
-          ram_used -= ram_unusable;
+          D_INFO( "DirectFB/NVidia: DMA acceleration %s.\n",
+                  nvdev->use_dma ? "enabled" : "disabled" );
      }
 
      /* reserve memory for textures/color buffers */
      if (device_info->caps.accel & DFXL_TEXTRIANGLES) {
-          __u32 tex_size;
-          __u32 len;
-          int   offset;
+          unsigned tex_size;
+          int      len, offset;
 
           /* if we have more than 32MB of video memory, use a 1024x1024 texture */
           if (ram_used > (32 << 20))
@@ -1589,14 +1599,14 @@ driver_init_device( GraphicsDevice     *device,
           
           if (offset < 0) {
                /* if video memory allocation failed, disable 3d acceleration */
-               D_DEBUG( "DirectFB/NVidia: "
-                        "couldn't reserve %i bytes of video memory.\n", len );
-               D_DEBUG( "DirectFB/NVidia: 3D acceleration disabled.\n" );
+               D_ERROR( "DirectFB/NVidia: "
+                        "couldn't reserve %d bytes of video memory!\n", len );
+               D_INFO(  "DirectFB/NVidia: 3D acceleration disabled.\n" );
                device_info->caps.accel &= ~DFXL_TEXTRIANGLES;
           }
           else {
                D_DEBUG( "DirectFB/NVidia: "
-                        "reserved %i bytes for 3D buffers at offset 0x%08x.\n",
+                        "reserved %d bytes for 3D buffers at offset 0x%08x.\n",
                          len, offset );
                
                nvdev->enabled_3d = true;
@@ -1611,53 +1621,53 @@ driver_init_device( GraphicsDevice     *device,
           nvdev->state3d[0].modified = true;
           nvdev->state3d[0].colorkey = 0;
           nvdev->state3d[0].offset   = nvdev->fb_offset + nvdev->buf_offset[0];
-          nvdev->state3d[0].format   = TEXTRIANGLE_FORMAT_CONTEXT_DMA_A     |
-                                       TEXTRIANGLE_FORMAT_ORIGIN_ZOH_CORNER |
-                                       TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER |
-                                       TEXTRIANGLE_FORMAT_COLOR_R5G6B5      |
-                                       TEXTRIANGLE_FORMAT_U_WRAP            |
-                                       TEXTRIANGLE_FORMAT_V_WRAP            |
+          nvdev->state3d[0].format   = TXTRI_FORMAT_CONTEXT_DMA_A     |
+                                       TXTRI_FORMAT_ORIGIN_ZOH_CORNER |
+                                       TXTRI_FORMAT_ORIGIN_FOH_CORNER |
+                                       TXTRI_FORMAT_COLOR_R5G6B5      |
+                                       TXTRI_FORMAT_U_WRAP            |
+                                       TXTRI_FORMAT_V_WRAP            |
                                        0x00111000; // 2x2
-          nvdev->state3d[0].filter   = TEXTRIANGLE_FILTER_TEXTUREMIN_NEAREST |
-                                       TEXTRIANGLE_FILTER_TEXTUREMAG_NEAREST;
-          nvdev->state3d[0].blend    = TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_MODULATEALPHA |
-                                       TEXTRIANGLE_BLEND_OPERATION_MUX_TALPHAMSB       |
-                                       TEXTRIANGLE_BLEND_SHADEMODE_FLAT                |
-                                       TEXTRIANGLE_BLEND_ALPHABLEND_ENABLE             |
-                                       TEXTRIANGLE_BLEND_SRCBLEND_SRCALPHA             |
-                                       TEXTRIANGLE_BLEND_DESTBLEND_INVSRCALPHA;
-          nvdev->state3d[0].control  = TEXTRIANGLE_CONTROL_ALPHAFUNC_ALWAYS |
-                                       TEXTRIANGLE_CONTROL_ORIGIN_CORNER    |
-                                       TEXTRIANGLE_CONTROL_ZFUNC_ALWAYS     |
-                                       TEXTRIANGLE_CONTROL_CULLMODE_NONE    |
-                                       TEXTRIANGLE_CONTROL_Z_FORMAT_FIXED;
+          nvdev->state3d[0].filter   = TXTRI_FILTER_TEXTUREMIN_NEAREST |
+                                       TXTRI_FILTER_TEXTUREMAG_NEAREST;
+          nvdev->state3d[0].blend    = TXTRI_BLEND_TEXTUREMAPBLEND_MODULATEALPHA |
+                                       TXTRI_BLEND_OPERATION_MUX_TALPHAMSB       |
+                                       TXTRI_BLEND_SHADEMODE_FLAT                |
+                                       TXTRI_BLEND_ALPHABLEND_ENABLE             |
+                                       TXTRI_BLEND_SRCBLEND_SRCALPHA             |
+                                       TXTRI_BLEND_DESTBLEND_INVSRCALPHA;
+          nvdev->state3d[0].control  = TXTRI_CONTROL_ALPHAFUNC_ALWAYS |
+                                       TXTRI_CONTROL_ORIGIN_CORNER    |
+                                       TXTRI_CONTROL_ZFUNC_ALWAYS     |
+                                       TXTRI_CONTROL_CULLMODE_NONE    |
+                                       TXTRI_CONTROL_Z_FORMAT_FIXED;
           nvdev->state3d[0].fog      = 0;
           
           /* set default 3d state for blitting functions */
           nvdev->state3d[1].modified = true;
           nvdev->state3d[1].colorkey = 0;
           nvdev->state3d[1].offset   = nvdev->fb_offset + nvdev->buf_offset[1];
-          nvdev->state3d[1].format   = TEXTRIANGLE_FORMAT_CONTEXT_DMA_A     |
-                                       TEXTRIANGLE_FORMAT_ORIGIN_ZOH_CORNER |
-                                       TEXTRIANGLE_FORMAT_ORIGIN_FOH_CORNER |
-                                       TEXTRIANGLE_FORMAT_COLOR_R5G6B5      |
-                                       TEXTRIANGLE_FORMAT_U_CLAMP           |
-                                       TEXTRIANGLE_FORMAT_V_CLAMP           |
+          nvdev->state3d[1].format   = TXTRI_FORMAT_CONTEXT_DMA_A     |
+                                       TXTRI_FORMAT_ORIGIN_ZOH_CORNER |
+                                       TXTRI_FORMAT_ORIGIN_FOH_CORNER |
+                                       TXTRI_FORMAT_COLOR_R5G6B5      |
+                                       TXTRI_FORMAT_U_CLAMP           |
+                                       TXTRI_FORMAT_V_CLAMP           |
                                        0x00001000;
-          nvdev->state3d[1].filter   = TEXTRIANGLE_FILTER_TEXTUREMIN_LINEAR |
-                                       TEXTRIANGLE_FILTER_TEXTUREMAG_LINEAR;
-          nvdev->state3d[1].blend    = TEXTRIANGLE_BLEND_TEXTUREMAPBLEND_COPY      |
-                                       TEXTRIANGLE_BLEND_OPERATION_MUX_TALPHAMSB   |
-                                       TEXTRIANGLE_BLEND_SHADEMODE_GOURAUD         |
-                                       TEXTRIANGLE_BLEND_TEXTUREPERSPECTIVE_ENABLE |
-                                       TEXTRIANGLE_BLEND_SRCBLEND_ONE              |
-                                       TEXTRIANGLE_BLEND_DESTBLEND_ZERO;
-          nvdev->state3d[1].control  = TEXTRIANGLE_CONTROL_ALPHAFUNC_ALWAYS |
-                                       TEXTRIANGLE_CONTROL_ORIGIN_CENTER    |
-                                       TEXTRIANGLE_CONTROL_ZFUNC_ALWAYS     |
-                                       TEXTRIANGLE_CONTROL_CULLMODE_NONE    |
-                                       TEXTRIANGLE_CONTROL_DITHER_ENABLE    |
-                                       TEXTRIANGLE_CONTROL_Z_FORMAT_FIXED;
+          nvdev->state3d[1].filter   = TXTRI_FILTER_TEXTUREMIN_LINEAR |
+                                       TXTRI_FILTER_TEXTUREMAG_LINEAR;
+          nvdev->state3d[1].blend    = TXTRI_BLEND_TEXTUREMAPBLEND_COPY      |
+                                       TXTRI_BLEND_OPERATION_MUX_TALPHAMSB   |
+                                       TXTRI_BLEND_SHADEMODE_GOURAUD         |
+                                       TXTRI_BLEND_TEXTUREPERSPECTIVE_ENABLE |
+                                       TXTRI_BLEND_SRCBLEND_ONE              |
+                                       TXTRI_BLEND_DESTBLEND_ZERO;
+          nvdev->state3d[1].control  = TXTRI_CONTROL_ALPHAFUNC_ALWAYS |
+                                       TXTRI_CONTROL_ORIGIN_CENTER    |
+                                       TXTRI_CONTROL_ZFUNC_ALWAYS     |
+                                       TXTRI_CONTROL_CULLMODE_NONE    |
+                                       TXTRI_CONTROL_DITHER_ENABLE    |
+                                       TXTRI_CONTROL_Z_FORMAT_FIXED;
           nvdev->state3d[1].fog      = 0;
 
           /* clear color buffer */
@@ -1665,125 +1675,146 @@ driver_init_device( GraphicsDevice     *device,
                                               nvdev->buf_offset[0] ), 0xFF, 8 );
      }
 
-#ifdef WORDS_BIGENDIAN
-# define ENDIAN_FLAG 0x00080000
-#else
-# define ENDIAN_FLAG 0
-#endif
-
      /* write dma objects configuration */
-     nv_store_dma( nvdrv, OBJ_DMA, ADDR_DMA,
-                   0x00, 0x00003000, nvdev->fb_size, 0, 2 );
+     nv_store_dma( nvdrv, OBJ_DMA_IN, ADDR_DMA_IN, 0x00,
+                   DMA_FLAG_PAGE_TABLE  | DMA_FLAG_PAGE_ENTRY_LINEAR |
+                   DMA_FLAG_ACCESS_RDWR | DMA_FLAG_TARGET_NVM,
+                   nvdev->fb_size, 0x00000000, DMA_FRAME_ACCESS_RDWR );
+     
+     if (nvdev->use_dma) {
+          if (nvdev->use_agp) {
+               nv_store_dma( nvdrv, OBJ_DMA_OUT, ADDR_DMA_OUT, 0x02,
+                             DMA_FLAG_PAGE_TABLE  | DMA_FLAG_PAGE_ENTRY_LINEAR |
+                             DMA_FLAG_ACCESS_RDWR | DMA_FLAG_TARGET_AGP,
+                             nvdev->dma_size, nvdev->agp_aper_base,
+                             DMA_FRAME_UNKNOWN_FLAG | DMA_FRAME_ACCESS_RDWR );
+          }
+          else {
+               nv_store_dma( nvdrv, OBJ_DMA_OUT, ADDR_DMA_OUT, 0x02,
+                             DMA_FLAG_PAGE_TABLE  | DMA_FLAG_PAGE_ENTRY_LINEAR |
+                             DMA_FLAG_ACCESS_RDWR | DMA_FLAG_TARGET_NVM,
+                             nvdev->dma_size, nvdev->dma_offset, 
+                             DMA_FRAME_ACCESS_RDWR );
+          }
+     }
 
      /* write graphics objects configuration */
-     nv_store_object( nvdrv, OBJ_SURFACES2D, ADDR_SURFACES2D,
-                      0x42, ENDIAN_FLAG, 0, 0, 0 );
-     nv_store_object( nvdrv, OBJ_CLIP, ADDR_CLIP,
-                      0x19, ENDIAN_FLAG, 0, 0, 0 );
-     nv_store_object( nvdrv, OBJ_BETA1, ADDR_BETA1,
-                      0x12, ENDIAN_FLAG, 0, 0, 0 );
-     nv_store_object( nvdrv, OBJ_BETA4, ADDR_BETA4,
-                      0x72, ENDIAN_FLAG, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_SURFACES2D, ADDR_SURFACES2D, 0x42, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_CLIP, ADDR_CLIP, 0x19, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_BETA1, ADDR_BETA1, 0x12, 0, 0, 0 );
+     nv_store_object( nvdrv, OBJ_BETA4, ADDR_BETA4, 0x72, 0, 0, 0 );
 
-     nv_store_object( nvdrv, OBJ_RECTANGLE, ADDR_RECTANGLE,
-                      0x5E, 0x0101A000 | ENDIAN_FLAG, 0,
-                      ADDR_DMA, ADDR_DMA );
-     nv_store_object( nvdrv, OBJ_TRIANGLE, ADDR_TRIANGLE,
-                      0x5D, 0x0101A000 | ENDIAN_FLAG, 0,
-                      ADDR_DMA, ADDR_DMA );
-     nv_store_object( nvdrv, OBJ_LINE, ADDR_LINE,
-                      0x5C, 0x0101A000 | ENDIAN_FLAG, 0,
-                      ADDR_DMA, ADDR_DMA );
+     nv_store_object( nvdrv, OBJ_RECTANGLE, ADDR_RECTANGLE, 0x5E,
+                      CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY | 
+                      CTX_FLAG_PATCH, ADDR_DMA_IN, ADDR_DMA_IN );
+     nv_store_object( nvdrv, OBJ_TRIANGLE, ADDR_TRIANGLE, 0x5D,
+                      CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                      CTX_FLAG_PATCH, ADDR_DMA_IN, ADDR_DMA_IN );
+     nv_store_object( nvdrv, OBJ_LINE, ADDR_LINE, 0x5C,
+                      CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                      CTX_FLAG_PATCH, ADDR_DMA_IN, ADDR_DMA_IN );
 
      switch (nvdev->arch)  {
           case NV_ARCH_04:
-               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
-                                0x1F, 0x0301A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x37, 0x03102000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x54, 0x03002000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x53, ENDIAN_FLAG, 0, 0, 0 );
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT, 0x1F,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE, 0x37,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_COPY        | 
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE, 0x54,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_COPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D, 0x53, 0, 0, 0 );
                break;
 
           case NV_ARCH_05:
-               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
-                                0x5F, 0x0301A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_IMAGEBLT, ADDR_IMAGEBLT,
-                                0x65, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x63, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_STRETCHEDIMAGE, ADDR_STRETCHEDIMAGE,
-                                0x66, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x54, 0x03002000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x53, ENDIAN_FLAG, 0, 0, 0 );
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT, 0x5F,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_IMAGEBLT, ADDR_IMAGEBLT, 0x65,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE, 0x63,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_STRETCHEDIMAGE, ADDR_STRETCHEDIMAGE, 0x66,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE, 0x54,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D, 0x53, 0, 0, 0 );
                break;
 
           case NV_ARCH_10:
-               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
-                                0x5F, 0x0301A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_IMAGEBLT, ADDR_IMAGEBLT,
-                                0x65, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x89, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_STRETCHEDIMAGE, ADDR_STRETCHEDIMAGE,
-                                0x66, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x94, 0x03002000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x93, ENDIAN_FLAG, 0, 0, 0 );
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT, 0x5F,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_IMAGEBLT, ADDR_IMAGEBLT, 0x65,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE, 0x89,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_STRETCHEDIMAGE, ADDR_STRETCHEDIMAGE, 0x66,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE, 0x94,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D, 0x93, 0, 0, 0 );
                break;
 
           case NV_ARCH_20:
           case NV_ARCH_30:
           default:
-               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT,
-                                0x9F, 0x0301A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_IMAGEBLT, ADDR_IMAGEBLT,
-                                0x65, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE,
-                                0x89, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_STRETCHEDIMAGE, ADDR_STRETCHEDIMAGE,
-                                0x66, 0x0311A000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE,
-                                0x94, 0x03002000 | ENDIAN_FLAG, 0,
-                                ADDR_DMA, ADDR_DMA );
-               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D,
-                                0x93, ENDIAN_FLAG, 0, 0, 0 );
+               nv_store_object( nvdrv, OBJ_SCREENBLT, ADDR_SCREENBLT, 0x9F,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_IMAGEBLT, ADDR_IMAGEBLT, 0x65,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SCALEDIMAGE, ADDR_SCALEDIMAGE, 0x89,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_STRETCHEDIMAGE, ADDR_STRETCHEDIMAGE, 0x66,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY     |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CONVERSION_DITHER |
+                                CTX_FLAG_CTX_SURFACE0, ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_TEXTRIANGLE, ADDR_TEXTRIANGLE, 0x94,
+                                CTX_FLAG_USER_CLIP | CTX_FLAG_PATCH_SRCCOPY |
+                                CTX_FLAG_PATCH     | CTX_FLAG_CTX_SURFACE0,
+                                ADDR_DMA_IN, ADDR_DMA_IN );
+               nv_store_object( nvdrv, OBJ_SURFACES3D, ADDR_SURFACES3D, 0x93, 0, 0, 0 );
                break;
      }
 
-#undef ENDIAN_FLAG
-
      /* assign default objects to subchannels */
-     nvdev->subchannel_object[0] = OBJ_SURFACES2D;
-     nvdev->subchannel_object[1] = OBJ_CLIP;
-     nvdev->subchannel_object[2] = OBJ_RECTANGLE;
-     nvdev->subchannel_object[3] = OBJ_TRIANGLE;
-     nvdev->subchannel_object[4] = OBJ_LINE;
-     nvdev->subchannel_object[5] = OBJ_SCREENBLT;
-     nvdev->subchannel_object[6] = OBJ_SCALEDIMAGE;
-     nvdev->subchannel_object[7] = OBJ_TEXTRIANGLE;
+     nvdev->subchannel_object[SUBC_SURFACES2D]  = OBJ_SURFACES2D;
+     nvdev->subchannel_object[SUBC_CLIP]        = OBJ_CLIP;
+     nvdev->subchannel_object[SUBC_RECTANGLE]   = OBJ_RECTANGLE;
+     nvdev->subchannel_object[SUBC_TRIANGLE]    = OBJ_TRIANGLE;
+     nvdev->subchannel_object[SUBC_LINE]        = OBJ_LINE;
+     nvdev->subchannel_object[SUBC_SCREENBLT]   = OBJ_SCREENBLT;
+     nvdev->subchannel_object[SUBC_SCALEDIMAGE] = OBJ_SCALEDIMAGE;
+     nvdev->subchannel_object[SUBC_TEXTRIANGLE] = OBJ_TEXTRIANGLE;
     
      if (nvdev->arch == NV_ARCH_04) {
           nvdev->drawing_operation = OPERATION_COPY;
@@ -1793,8 +1824,8 @@ driver_init_device( GraphicsDevice     *device,
      } else {
           nvdev->drawing_operation = OPERATION_SRCCOPY;
           nvdev->scaler_operation  = OPERATION_SRCCOPY;
-          nvdev->scaler_filter     = SCALEDIMAGE_IN_FORMAT_ORIGIN_CENTER |
-                                     SCALEDIMAGE_IN_FORMAT_FILTER_LINEAR;
+          nvdev->scaler_filter     = SCALER_IN_FORMAT_ORIGIN_CENTER |
+                                     SCALER_IN_FORMAT_FILTER_LINEAR;
           nvdev->system_operation  = OPERATION_SRCCOPY;
      }
 
@@ -1808,31 +1839,36 @@ driver_close_device( GraphicsDevice *device,
                      void           *driver_data,
                      void           *device_data )
 {
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
 
-     (void) nvdev;
-
-     D_DEBUG( "DirectFB/NVidia: FIFO Performance Monitoring:\n" );
-     D_DEBUG( "DirectFB/NVidia:  %9d nv_waitfifo calls\n",
-               nvdev->waitfifo_calls );
-     D_DEBUG( "DirectFB/NVidia:  %9d register writes (nv_waitfifo sum)\n",
-               nvdev->waitfifo_sum );
-     D_DEBUG( "DirectFB/NVidia:  %9d FIFO wait cycles (depends on CPU)\n",
-               nvdev->fifo_waitcycles );
+     D_DEBUG( "DirectFB/NVidia: Performance Monitoring:\n" );
+     D_DEBUG( "DirectFB/NVidia:  %9d nv_wait* calls\n",
+               nvdev->waitfree_calls );
+     D_DEBUG( "DirectFB/NVidia:  %9d register writes\n",
+               nvdev->waitfree_sum );
+     D_DEBUG( "DirectFB/NVidia:  %9d FIFO/DMA wait cycles (depends on CPU)\n",
+               nvdev->free_waitcycles );
      D_DEBUG( "DirectFB/NVidia:  %9d IDLE wait cycles (depends on CPU)\n",
                nvdev->idle_waitcycles );
-     D_DEBUG( "DirectFB/NVidia:  %9d FIFO space cache hits(depends on CPU)\n",
-               nvdev->fifo_cache_hits );
+     D_DEBUG( "DirectFB/NVidia:  %9d FIFO/DMA space cache hits (depends on CPU)\n",
+               nvdev->cache_hits );
      D_DEBUG( "DirectFB/NVidia: Conclusion:\n" );
-     D_DEBUG( "DirectFB/NVidia:  Average register writes/nvidia_waitfifo"
-               " call:%.2f\n",
-               nvdev->waitfifo_sum/(float)(nvdev->waitfifo_calls ? : 1) );
-     D_DEBUG( "DirectFB/NVidia:  Average wait cycles/nvidia_waitfifo call:"
-               " %.2f\n",
-               nvdev->fifo_waitcycles/(float)(nvdev->waitfifo_calls ? : 1) );
-     D_DEBUG( "DirectFB/NVidia:  Average fifo space cache hits: %02d%%\n",
-               (int)(100 * nvdev->fifo_cache_hits/
-               (float)(nvdev->waitfifo_calls ? : 1)) );
+     D_DEBUG( "DirectFB/NVidia:  Average register writes/nv_wait* call:%.2f\n",
+               nvdev->waitfree_sum/(float)(nvdev->waitfree_calls ? : 1) );
+     D_DEBUG( "DirectFB/NVidia:  Average wait cycles/nv_wait* call: %.2f\n",
+               nvdev->free_waitcycles/(float)(nvdev->waitfree_calls ? : 1) );
+     D_DEBUG( "DirectFB/NVidia:  Average FIFO/DMA space cache hits: %02d%%\n",
+               (int)(100 * nvdev->cache_hits/
+               (float)(nvdev->waitfree_calls ? : 1)) );
+     
+     /* reset channel mode to PIO to avoid crash in rivafb */
+     if (nvdev->use_dma) {
+          nvdev->use_dma = false;
+          nvAfterSetVar( driver_data, device_data );
+     }
+     
+     nv_agp_shutdown( nvdrv, nvdev );
 }
 
 static void
@@ -1840,6 +1876,8 @@ driver_close_driver( GraphicsDevice *device,
                      void           *driver_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
+     
+     nv_agp_leave( nvdrv, nvdrv->device_data );
 
      dfb_gfxcard_unmap_mmio( device, nvdrv->mmio_base, -1 );
 }

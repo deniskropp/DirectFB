@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2005  convergence GmbH.
+   (c) Copyright 2002-2006  convergence GmbH.
 
    All rights reserved.
 
@@ -35,14 +35,12 @@
 #include <core/screens.h>
 #include <core/layers.h>
 
-#include "nvidia_regs.h"
-
 
 /*
- * Objects' Identifiers
+ * Object's identifier
  */
 enum {
-     OBJ_DMA            = 0x00800000,
+     OBJ_DMA_IN         = 0x00800000,
      OBJ_SURFACES2D     = 0x00800001,
      OBJ_SURFACES3D     = 0x00800002,
      OBJ_CLIP           = 0x00800003,
@@ -55,14 +53,15 @@ enum {
      OBJ_IMAGEBLT       = 0x00800014,
      OBJ_SCALEDIMAGE    = 0x00800015,
      OBJ_STRETCHEDIMAGE = 0x00800016,
-     OBJ_TEXTRIANGLE    = 0x00800017
+     OBJ_TEXTRIANGLE    = 0x00800017,
+     OBJ_DMA_OUT        = 0x00800018
 };
 
 /*
- * Objects' offsets into context table [PRAMIN + (address)*16]
+ * Object's offset into context table [PRAMIN + (address)*16]
  */
 enum {
-     ADDR_DMA            = 0x1160,
+     ADDR_DMA_IN         = 0x1160,
      ADDR_SURFACES2D     = 0x1162,
      ADDR_SURFACES3D     = 0x1163,
      ADDR_CLIP           = 0x1164,
@@ -75,8 +74,29 @@ enum {
      ADDR_IMAGEBLT       = 0x116B,
      ADDR_SCALEDIMAGE    = 0x116C,
      ADDR_STRETCHEDIMAGE = 0x116D,
-     ADDR_TEXTRIANGLE    = 0x116E
+     ADDR_TEXTRIANGLE    = 0x116E,
+     ADDR_DMA_OUT        = 0x116F
 };
+
+/*
+ * Object's subchannel
+ */
+enum {
+     SUBC_SURFACES2D     = 0,
+     SUBC_SURFACES3D     = 0,
+     SUBC_BETA1          = 0,
+     SUBC_BETA4          = 0,
+     SUBC_CLIP           = 1,
+     SUBC_RECTANGLE      = 2,
+     SUBC_TRIANGLE       = 3,
+     SUBC_LINE           = 4,
+     SUBC_SCREENBLT      = 5,
+     SUBC_IMAGEBLT       = 5,
+     SUBC_SCALEDIMAGE    = 6,
+     SUBC_STRETCHEDIMAGE = 6,
+     SUBC_TEXTRIANGLE    = 7
+};
+     
 
 #define SMF_DRAWING_COLOR  (SMF_COLOR << 16)
 #define SMF_BLITTING_COLOR (SMF_COLOR << 17)
@@ -87,7 +107,6 @@ typedef struct {
      
      __u32                   fb_offset;
      __u32                   fb_size;
-     __u32                   fb_mask;
      
      DFBSurfacePixelFormat   dst_format;
      __u32                   dst_offset;
@@ -152,14 +171,33 @@ typedef struct {
      /* Chipsets informations */
      __u32                   chip;
      __u32                   arch;
+     
+     /* AGP control */
+     bool                    use_agp;
+     unsigned int            agp_key;
+     unsigned int            agp_aper_base;
+     unsigned int            agp_aper_size;
+     
+     /* DMA control */
+     bool                    use_dma;
+     unsigned int            dma_size;
+     unsigned int            dma_offset;
+     unsigned int            dma_max;
+     unsigned int            dma_cur;
+     unsigned int            dma_free;
+     unsigned int            dma_put;
+     unsigned int            dma_get;
+     volatile __u32         *cmd_ptr;               
 
-     /* for fifo/performance monitoring */
-     unsigned int            fifo_space;
-     unsigned int            waitfifo_sum;
-     unsigned int            waitfifo_calls;
-     unsigned int            fifo_waitcycles;
+     /* FIFO control */
+     unsigned int            fifo_free;
+
+     /* for performance monitoring */
+     unsigned int            waitfree_sum;
+     unsigned int            waitfree_calls;
+     unsigned int            free_waitcycles;
      unsigned int            idle_waitcycles;
-     unsigned int            fifo_cache_hits;
+     unsigned int            cache_hits;
 } NVidiaDeviceData;
 
 
@@ -175,22 +213,12 @@ typedef struct {
      GraphicsDevice         *device;
      NVidiaDeviceData       *device_data;
 
-     volatile __u8          *mmio_base;
-     NVFifoChannel          *Fifo;
-     
-     NVSurfaces2D           *Surfaces2D;
-     NVSurfaces3D           *Surfaces3D;
-     NVClip                 *Clip;
-     NVBeta1                *Beta1;
-     NVBeta4                *Beta4;
-     NVRectangle            *Rectangle;
-     NVTriangle             *Triangle;
-     NVLine                 *Line;
-     NVScreenBlt            *ScreenBlt;
-     NVImageBlt             *ImageBlt;
-     NVScaledImage          *ScaledImage;
-     NVStretchedImage       *StretchedImage;
-     NVTexturedTriangleDx5  *TexTriangle;
+     volatile void          *fb_base;
+     volatile void          *mmio_base; 
+     volatile void          *dma_base;
+    
+     int                     agp_fd;
+     volatile void          *agp_base;    
 } NVidiaDriverData;
 
 

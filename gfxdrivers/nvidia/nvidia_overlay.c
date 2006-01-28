@@ -41,7 +41,8 @@
 #include <direct/messages.h>
 
 #include "nvidia.h"
-#include "nvidia_mmio.h"
+#include "nvidia_regs.h"
+#include "nvidia_accel.h"
 
 
 typedef struct {

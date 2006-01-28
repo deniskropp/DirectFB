@@ -16,18 +16,21 @@ endif
 nvidiadir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_nvidia_la_SOURCES = \
-	nvidia.c		\
+	nvidia.c			\
 	nvidia_state.c		\
 	nvidia_2d.c		\
 	nvidia_3d.c		\
 	nvidia_primary.c	\
 	nvidia_overlay.c	\
-	nvidia.h		\
+	nvidia_agp.c		\
+	nvidia.h			\
 	nvidia_regs.h		\
-	nvidia_mmio.h		\
+	nvidia_accel.h		\
+	nvidia_objects.h	\
 	nvidia_state.h		\
 	nvidia_2d.h		\
-	nvidia_3d.h
+	nvidia_3d.h		\
+	nvidia_agp.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
 	-export-dynamic		\

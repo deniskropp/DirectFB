@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2004-2005 Claudio Ciccani <klan@users.sf.net>
+   Copyright (C) 2004-2006 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -34,4 +34,3 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *vertices,
 
 
 #endif /* __NVIDIA_3D_H__ */
-

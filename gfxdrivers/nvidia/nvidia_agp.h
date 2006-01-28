@@ -26,23 +26,15 @@
    Boston, MA 02111-1307, USA.
 */
 
-#ifndef __NVIDIA_2D_H__
-#define __NVIDIA_2D_H__
+#ifndef __NVIDIA_AGP_H__
+#define __NVIDIA_AGP_H__
 
-bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect );
+#include "nvidia.h"
 
-bool nvFillTriangle2D( void *drv, void *dev, DFBTriangle *tri );
+DFBResult nv_agp_initialize( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev );
+DFBResult nv_agp_join      ( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev );
 
-bool nvDrawRectangle2D( void *drv, void *dev, DFBRectangle *rect );
+void      nv_agp_shutdown  ( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev );
+void      nv_agp_leave     ( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev );
 
-bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line );
-
-bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
-
-bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy );
-
-bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
-
-bool nvStretchBlitFromCPU( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
-
-#endif /* __NVIDIA_2D_H__ */
+#endif /* __NVIDIA_AGP_H__ */

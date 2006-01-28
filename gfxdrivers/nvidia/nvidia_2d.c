@@ -1,6 +1,6 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2005  convergence GmbH.
+   (c) Copyright 2002-2006  convergence GmbH.
 
    All rights reserved.
 
@@ -44,7 +44,8 @@
 #include <core/surfaces.h>
 
 #include "nvidia.h"
-#include "nvidia_mmio.h"
+#include "nvidia_regs.h"
+#include "nvidia_accel.h"
 #include "nvidia_2d.h"
 
 
@@ -80,17 +81,14 @@ nv_copy16( volatile __u32 *dst, __u8 *src, int n )
           : "c" (n/2), "0" (D), "1" (S)
           : "memory" );
 #else
-     int n2;
-     for (n2 = n/2; n2--;) {
+     for (; n > 1; n -= 2) {
           *D++ = *((__u32*)S);
           S += 2;
      }
 #endif
 
-     if (n & 1) {
-          register __u32 s = *S;
-          *D = s;
-     }
+     if (n & 1)
+          *D = *S;
 }
 
 static inline bool
@@ -118,63 +116,66 @@ nv_clip_source( DFBRectangle *rect, __u32 width, __u32 height )
 
 bool nvFillRectangle2D( void *drv, void *dev, DFBRectangle *rect )
 {
-     NVidiaDriverData *nvdrv     = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
-     NVRectangle      *Rectangle = nvdrv->Rectangle;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      
      if (nvdev->dst_422) {
           rect->x /= 2;
           rect->w = (rect->w+1) >> 1;
      }
-
-     nv_waitfifo( nvdrv, nvdev, 3 );
-     Rectangle->Color       = nvdev->color2d;
-     Rectangle->TopLeft     = (rect->y << 16) | (rect->x & 0xFFFF);
-     Rectangle->WidthHeight = (rect->h << 16) | (rect->w & 0xFFFF);
+     
+     nv_begin( SUBC_RECTANGLE, RECT_COLOR, 1 );
+     nv_outr( nvdev->color2d );
+     
+     nv_begin( SUBC_RECTANGLE, RECT_TOP_LEFT, 2 );
+     nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
+     nv_outr( (rect->h << 16) | (rect->w & 0xFFFF) );
 
      return true;
 }
 
 bool nvFillTriangle2D( void *drv, void *dev, DFBTriangle *tri )
 {
-     NVidiaDriverData *nvdrv    = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev    = (NVidiaDeviceData*) dev;
-     NVTriangle       *Triangle = nvdrv->Triangle;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      
-     nv_waitfifo( nvdrv, nvdev, 4 );
-     Triangle->Color          = nvdev->color2d;
-     Triangle->TrianglePoint0 = (tri->y1 << 16) | (tri->x1 & 0xFFFF);
-     Triangle->TrianglePoint1 = (tri->y2 << 16) | (tri->x2 & 0xFFFF);
-     Triangle->TrianglePoint2 = (tri->y3 << 16) | (tri->x3 & 0xFFFF);
+     nv_begin( SUBC_TRIANGLE, TRI_COLOR, 1 );
+     nv_outr( nvdev->color2d );
+     
+     nv_begin( SUBC_TRIANGLE, TRI_POINT0, 3 );
+     nv_outr( (tri->y1 << 16) | (tri->x1 & 0xFFFF) );
+     nv_outr( (tri->y2 << 16) | (tri->x2 & 0xFFFF) );
+     nv_outr( (tri->y3 << 16) | (tri->x3 & 0xFFFF) );
 
      return true;
 }
 
 bool nvDrawRectangle2D( void *drv, void *dev, DFBRectangle *rect )
 {
-     NVidiaDriverData *nvdrv     = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev     = (NVidiaDeviceData*) dev;
-     NVRectangle      *Rectangle = nvdrv->Rectangle;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
      
      if (nvdev->dst_422) {
           rect->x /= 2;
           rect->w = (rect->w+1) >> 1;
      }
      
-     nv_waitfifo( nvdrv, nvdev, 9 );
-     Rectangle->Color       = nvdev->color2d;
+     nv_begin( SUBC_RECTANGLE, RECT_COLOR, 1 );
+     nv_outr( nvdev->color2d );
+     
+     nv_begin( SUBC_RECTANGLE, RECT_TOP_LEFT, 8 );
      /* top */
-     Rectangle->TopLeft     = (rect->y << 16) | (rect->x & 0xFFFF);
-     Rectangle->WidthHeight = (1       << 16) | (rect->w & 0xFFFF);
+     nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
+     nv_outr( (1       << 16) | (rect->w & 0xFFFF) );
      /* bottom */
-     Rectangle->TopLeft     = ((rect->y + rect->h - 1) << 16) | (rect->x & 0xFFFF);
-     Rectangle->WidthHeight = (1                       << 16) | (rect->w & 0xFFFF);
+     nv_outr( ((rect->y + rect->h - 1) << 16) | (rect->x & 0xFFFF) );
+     nv_outr( (1                       << 16) | (rect->w & 0xFFFF) );
      /* left */
-     Rectangle->TopLeft     = ((rect->y + 1) << 16) | (rect->x & 0xFFFF);
-     Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
+     nv_outr( ((rect->y + 1) << 16) | (rect->x & 0xFFFF) );
+     nv_outr( ((rect->h - 2) << 16) | 1 );
      /* right */
-     Rectangle->TopLeft     = ((rect->y + 1) << 16) | ((rect->x + rect->w - 1) & 0xFFFF);
-     Rectangle->WidthHeight = ((rect->h - 2) << 16) | 1;
+     nv_outr( ((rect->y + 1) << 16) | ((rect->x + rect->w - 1) & 0xFFFF) );
+     nv_outr( ((rect->h - 2) << 16) | 1 );
 
      return true;
 }
@@ -183,12 +184,13 @@ bool nvDrawLine2D( void *drv, void *dev, DFBRegion *line )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
-     NVLine           *Line  = nvdrv->Line;
      
-     nv_waitfifo( nvdrv, nvdev, 3 );
-     Line->Color         = nvdev->color2d;
-     Line->Lin[0].point0 = (line->y1 << 16) | (line->x1 & 0xFFFF);
-     Line->Lin[0].point1 = (line->y2 << 16) | (line->x2 & 0xFFFF);
+     nv_begin( SUBC_LINE, LINE_COLOR, 1 );
+     nv_outr( nvdev->color2d );
+     
+     nv_begin( SUBC_LINE, LINE_POINT0, 2 );
+     nv_outr( (line->y1 << 16) | (line->x1 & 0xFFFF) );
+     nv_outr( (line->y2 << 16) | (line->x2 & 0xFFFF) );
 
      return true;
 }
@@ -210,44 +212,40 @@ bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      }
      
      if (nvdev->blittingflags || nvdev->src_format != nvdev->dst_format) {
-          NVScaledImage *ScaledImage = nvdrv->ScaledImage;
-          DFBRectangle  *clip        = &nvdev->clip;
-          __u32          src_width   = (nvdev->src_width  + 1) & ~1;
-          __u32          src_height  = (nvdev->src_height + 1) & ~1;
-          __u32          filter      = 0;
+          DFBRectangle  *clip       = &nvdev->clip;
+          __u32          src_width  = (nvdev->src_width  + 1) & ~1;
+          __u32          src_height = (nvdev->src_height + 1) & ~1;
+          __u32          filter     = 0;
 
           if (nvdev->dst_422)
                src_width >>= 1; 
 
           if (nvdev->arch > NV_ARCH_04)
-               filter = SCALEDIMAGE_IN_FORMAT_ORIGIN_CORNER |
-                        SCALEDIMAGE_IN_FORMAT_FILTER_NEAREST;
+               filter = SCALER_IN_FORMAT_ORIGIN_CORNER |
+                        SCALER_IN_FORMAT_FILTER_NEAREST;
 
-          nv_waitfifo( nvdrv, nvdev, 1 );
-          ScaledImage->SetColorFormat = nvdev->scaler_format;
+          nv_begin( SUBC_SCALEDIMAGE, SCALER_COLOR_FORMAT, 1 );
+          nv_outr( nvdev->scaler_format );
           
-          nv_waitfifo( nvdrv, nvdev, 6 );
-          ScaledImage->ClipPoint     = (clip->y << 16) | (clip->x & 0xFFFF);
-          ScaledImage->ClipSize      = (clip->h << 16) | (clip->w & 0xFFFF);
-          ScaledImage->ImageOutPoint = (dy      << 16) | (dx      & 0xFFFF);
-          ScaledImage->ImageOutSize  = (rect->h << 16) | (rect->w & 0xFFFF);
-          ScaledImage->DuDx          = 0x100000;
-          ScaledImage->DvDy          = 0x100000;
+          nv_begin( SUBC_SCALEDIMAGE, SCALER_CLIP_POINT, 6 );
+          nv_outr( (clip->y << 16) | (clip->x & 0xFFFF) );
+          nv_outr( (clip->h << 16) | (clip->w & 0xFFFF) );
+          nv_outr( (dy      << 16) | (dx      & 0xFFFF) );
+          nv_outr( (rect->h << 16) | (rect->w & 0xFFFF) );
+          nv_outr( 0x100000 );
+          nv_outr( 0x100000 );
 
-          nv_waitfifo( nvdrv, nvdev, 4 );
-          ScaledImage->ImageInSize   = (src_height << 16)  |
-                                       (src_width & 0xFFFF);
-          ScaledImage->ImageInFormat = (nvdev->src_pitch & 0xFFFF) | filter;
-          ScaledImage->ImageInOffset = nvdev->src_offset;
-          ScaledImage->ImageInPoint  = (rect->y << 20) | ((rect->x<<4) & 0xFFFF);
+          nv_begin( SUBC_SCALEDIMAGE, SCALER_IN_SIZE, 4 );
+          nv_outr( (src_height << 16) | (src_width & 0xFFFF) );
+          nv_outr( (nvdev->src_pitch & 0xFFFF) | filter );
+          nv_outr( nvdev->src_offset );
+          nv_outr( (rect->y << 20) | ((rect->x<<4) & 0xFFFF) );
      }
      else {
-          NVScreenBlt *ScreenBlt = nvdrv->ScreenBlt;
-
-          nv_waitfifo( nvdrv, nvdev, 3 );
-          ScreenBlt->TopLeftSrc  = (rect->y << 16) | (rect->x & 0xFFFF);
-          ScreenBlt->TopLeftDst  = (dy      << 16) | (dx      & 0xFFFF);
-          ScreenBlt->WidthHeight = (rect->h << 16) | (rect->w & 0xFFFF);
+          nv_begin( SUBC_SCREENBLT, BLIT_TOP_LEFT_SRC, 3 );
+          nv_outr( (rect->y << 16) | (rect->x & 0xFFFF) );
+          nv_outr( (dy      << 16) | (dx      & 0xFFFF) );
+          nv_outr( (rect->h << 16) | (rect->w & 0xFFFF) );
      }
 
      return true;
@@ -255,13 +253,12 @@ bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
 bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
-     NVidiaDriverData *nvdrv    = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev    = (NVidiaDeviceData*) dev;
-     NVImageBlt       *ImageBlt = nvdrv->ImageBlt;
-     __u8             *src      = nvdev->src_address;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     __u8             *src   = nvdev->src_address;
      __u32             src_w;
      __u32             src_h;
-     int               w, h;
+     int               w, h, n;
      
      if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
           DFBRectangle dr = { dx, dy, rect->x, rect->y };
@@ -275,29 +272,31 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
              ? ((rect->w + 1) & ~1) : rect->w;
      src_h = rect->h;
 
-     nv_waitfifo( nvdrv, nvdev, 1 );
-     ImageBlt->SetColorFormat = nvdev->system_format;
+     nv_begin( SUBC_IMAGEBLT, IBLIT_COLOR_FORMAT, 1 );
+     nv_outr( nvdev->system_format );
      
-     nv_waitfifo( nvdrv, nvdev, 3 );
-     ImageBlt->Point   = (dy      << 16) | (dx      & 0xFFFF);
-     ImageBlt->SizeOut = (rect->h << 16) | (rect->w & 0xFFFF);
-     ImageBlt->SizeIn  = (src_h   << 16) | (src_w   & 0xFFFF);
+     nv_begin( SUBC_IMAGEBLT, IBLIT_POINT, 3 );
+     nv_outr( (dy      << 16) | (dx      & 0xFFFF) );
+     nv_outr( (rect->h << 16) | (rect->w & 0xFFFF) );
+     nv_outr( (src_h   << 16) | (src_w   & 0xFFFF) );
+
+     n = nvdev->use_dma ? 256 : 128;
      
      switch (nvdev->src_format) {
           case DSPF_ARGB1555:
           case DSPF_RGB16:
                src += rect->y * nvdev->src_pitch + rect->x * 2;
                for (h = rect->h; h--;) {
-                    __u8 *S = src;
+                    __u8 *s = src;
                     
-                    for (w = rect->w; w > 255; w -= 256) {
-                         nv_waitfifo( nvdrv, nvdev, 128 );
-                         direct_memcpy( (void*)&ImageBlt->Pixel[0], S, 128*4 );
-                         S += 128*4;
+                    for (w = rect->w; w >= n*2; w -= n*2) {
+                         nv_begin( SUBC_IMAGEBLT, IBLIT_PIXEL0, n );
+                         direct_memcpy( (void*)nvdev->cmd_ptr, s, n*4 );
+                         s += n*4;
                     }
                     if (w > 0) {
-                         nv_waitfifo( nvdrv, nvdev, (w+1)>>1 );
-                         nv_copy16( &ImageBlt->Pixel[0], S, w );
+                         nv_begin( SUBC_IMAGEBLT, IBLIT_PIXEL0, (w+1)>>1 );
+                         nv_copy16( nvdev->cmd_ptr, s, w );
                     }
                     
                     src += nvdev->src_pitch;
@@ -307,16 +306,16 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           default:
                src += rect->y * nvdev->src_pitch + rect->x * 4;
                for (h = rect->h; h--;) {
-                    __u8 *S = src;
+                    __u8 *s = src;
                     
-                    for (w = rect->w; w > 127; w -= 128) {
-                         nv_waitfifo( nvdrv, nvdev, 128 );
-                         direct_memcpy( (void*)&ImageBlt->Pixel[0], S, 128*4 );
-                         S += 128*4;
+                    for (w = rect->w; w >= n; w -= n) {
+                         nv_begin( SUBC_IMAGEBLT, IBLIT_PIXEL0, n );
+                         direct_memcpy( (void*)nvdev->cmd_ptr, s, n*4 );
+                         s += n*4;
                     }
                     if (w > 0) {
-                         nv_waitfifo( nvdrv, nvdev, w );
-                         nv_copy32( &ImageBlt->Pixel[0], S, w );
+                         nv_begin( SUBC_IMAGEBLT, IBLIT_PIXEL0, w );
+                         nv_copy32( nvdev->cmd_ptr, s, w );
                     }
                     
                     src += nvdev->src_pitch;
@@ -329,12 +328,11 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 
 bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 {
-     NVidiaDriverData *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev       = (NVidiaDeviceData*) dev;
-     NVScaledImage    *ScaledImage = nvdrv->ScaledImage;
-     DFBRectangle     *cr          = &nvdev->clip;
-     __u32             src_width   = (nvdev->src_width  + 1) & ~1;
-     __u32             src_height  = (nvdev->src_height + 1) & ~1;
+     NVidiaDriverData *nvdrv      = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev      = (NVidiaDeviceData*) dev;
+     DFBRectangle     *cr         = &nvdev->clip;
+     __u32             src_width  = (nvdev->src_width  + 1) & ~1;
+     __u32             src_height = (nvdev->src_height + 1) & ~1;
      
      if (nvdev->dst_422) {
           sr->x /= 2;
@@ -349,23 +347,22 @@ bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
           sr->h  = (sr->h+1) / 2;
      }
 
-     nv_waitfifo( nvdrv, nvdev, 1 );
-     ScaledImage->SetColorFormat = nvdev->scaler_format;
+     nv_begin( SUBC_SCALEDIMAGE, SCALER_COLOR_FORMAT, 1 );
+     nv_outr( nvdev->scaler_format );
      
-     nv_waitfifo( nvdrv, nvdev, 6 );
-     ScaledImage->ClipPoint     = (cr->y << 16) | (cr->x & 0xFFFF);
-     ScaledImage->ClipSize      = (cr->h << 16) | (cr->w & 0xFFFF);
-     ScaledImage->ImageOutPoint = (dr->y << 16) | (dr->x & 0xFFFF);
-     ScaledImage->ImageOutSize  = (dr->h << 16) | (dr->w & 0xFFFF);
-     ScaledImage->DuDx          = (sr->w << 20) /  dr->w;
-     ScaledImage->DvDy          = (sr->h << 20) /  dr->h;
+     nv_begin( SUBC_SCALEDIMAGE, SCALER_CLIP_POINT, 6 );
+     nv_outr( (cr->y << 16) | (cr->x & 0xFFFF) );
+     nv_outr( (cr->h << 16) | (cr->w & 0xFFFF) );
+     nv_outr( (dr->y << 16) | (dr->x & 0xFFFF) );
+     nv_outr( (dr->h << 16) | (dr->w & 0xFFFF) );
+     nv_outr( (sr->w << 20) /  dr->w );
+     nv_outr( (sr->h << 20) /  dr->h );
 
-     nv_waitfifo( nvdrv, nvdev, 4 );
-     ScaledImage->ImageInSize   = (src_height << 16) | (src_width & 0xFFFF);
-     ScaledImage->ImageInFormat = (nvdev->src_pitch & 0xFFFF) | 
-                                   nvdev->scaler_filter;
-     ScaledImage->ImageInOffset = nvdev->src_offset;
-     ScaledImage->ImageInPoint  = (sr->y << 20) | ((sr->x << 4) & 0xFFFF);
+     nv_begin( SUBC_SCALEDIMAGE, SCALER_IN_SIZE, 4 );
+     nv_outr( (src_height << 16) | (src_width & 0xFFFF) );
+     nv_outr( (nvdev->src_pitch & 0xFFFF) | nvdev->scaler_filter );
+     nv_outr( nvdev->src_offset );
+     nv_outr( (sr->y << 20) | ((sr->x << 4) & 0xFFFF) );
      
      return true;
 }
@@ -373,14 +370,13 @@ bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 bool nvStretchBlitFromCPU( void *drv, void *dev, 
                            DFBRectangle *sr, DFBRectangle *dr )
 {
-     NVidiaDriverData *nvdrv          = (NVidiaDriverData*) drv;
-     NVidiaDeviceData *nvdev          = (NVidiaDeviceData*) dev;
-     NVStretchedImage *StretchedImage = nvdrv->StretchedImage;
-     DFBRectangle     *cr             = &nvdev->clip; 
-     __u8             *src            = nvdev->src_address;
+     NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
+     DFBRectangle     *cr     = &nvdev->clip; 
+     __u8             *src    = nvdev->src_address;
      __u32             src_w;
      __u32             src_h;
-     int               h, w;
+     int               w, h, n;
 
      if (!nv_clip_source( sr, nvdev->src_width, nvdev->src_height ))
           return true;
@@ -394,32 +390,34 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
              ? ((sr->w + 1) & ~1) : sr->w;
      src_h = sr->h;
 
-     nv_waitfifo( nvdrv, nvdev, 1 );
-     StretchedImage->SetColorFormat = nvdev->system_format;
+     nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_COLOR_FORMAT, 1 );
+     nv_outr( nvdev->system_format );
      
-     nv_waitfifo( nvdrv, nvdev, 4 );
-     StretchedImage->ImageInSize   = (src_h << 16) | (src_w & 0xFFFF);
-     StretchedImage->DxDu          = (dr->w << 20) /  src_w;
-     StretchedImage->DyDv          = (dr->h << 20) /  src_h;
-     StretchedImage->ClipPoint     = (cr->y << 16) | (cr->x & 0xFFFF);
-     StretchedImage->ClipSize      = (cr->h << 16) | (cr->w & 0xFFFF);
-     StretchedImage->ImageOutPoint = (dr->y << 20) | ((dr->x<<4) & 0xFFFF);
+     nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_IN_SIZE, 6 );
+     nv_outr( (src_h << 16) | (src_w & 0xFFFF) );
+     nv_outr( (dr->w << 20) /  src_w );
+     nv_outr( (dr->h << 20) /  src_h );
+     nv_outr( (cr->y << 16) | (cr->x & 0xFFFF) );
+     nv_outr( (cr->h << 16) | (cr->w & 0xFFFF) );
+     nv_outr( (dr->y << 20) | ((dr->x<<4) & 0xFFFF) );
+
+     n = nvdev->use_dma ? 256 : 128;
 
      switch (nvdev->src_format) {
           case DSPF_ARGB1555:
           case DSPF_RGB16:
                src += sr->y * nvdev->src_pitch + sr->x * 2;
                for (h = sr->h; h--;) {
-                    __u8 *S = src;
+                    __u8 *s = src;
                     
-                    for (w = sr->w; w > 255; w -= 256) {
-                         nv_waitfifo( nvdrv, nvdev, 128 );
-                         direct_memcpy( (void*)&StretchedImage->Pixel[0], S, 128*4 );
-                         S += 128*4;
+                    for (w = sr->w; w >= n*2; w -= n*2) {
+                         nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_PIXEL0, n );
+                         direct_memcpy( (void*)nvdev->cmd_ptr, s, n*4 );
+                         s += n*4;
                     }
                     if (w > 0) {
-                         nv_waitfifo( nvdrv, nvdev, (w+1)>>1 );
-                         nv_copy16( &StretchedImage->Pixel[0], S, w );
+                         nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_PIXEL0, (w+1)>>1 );
+                         nv_copy16( nvdev->cmd_ptr, s, w );
                     }
 
                     src += nvdev->src_pitch;
@@ -429,16 +427,16 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
           default:
                src += sr->y * nvdev->src_pitch + sr->x * 4;
                for (h = sr->h; h--;) {
-                    __u8 *S = src;
+                    __u8 *s= src;
                     
-                    for (w = sr->w; w > 127; w -= 128) {
-                         nv_waitfifo( nvdrv, nvdev, 128 );
-                         direct_memcpy( (void*)&StretchedImage->Pixel[0], S, 128*4 );
-                         S += 128*4;
+                    for (w = sr->w; w >= n; w -= n) {
+                         nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_PIXEL0, n );
+                         direct_memcpy( (void*)nvdev->cmd_ptr, s, n*4 );
+                         s += n*4;
                     }
                     if (w > 0) {
-                         nv_waitfifo( nvdrv, nvdev, w );
-                         nv_copy32( &StretchedImage->Pixel[0], S, w );
+                         nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_PIXEL0, w );
+                         nv_copy32( nvdev->cmd_ptr, s, w );
                     }
 
                     src += nvdev->src_pitch;

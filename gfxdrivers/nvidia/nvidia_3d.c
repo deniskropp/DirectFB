@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2004-2005 Claudio Ciccani <klan@users.sf.net>
+   Copyright (C) 2004-2006 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -38,47 +38,54 @@
 #include <gfx/convert.h>
 
 #include "nvidia.h"
-#include "nvidia_mmio.h"
+#include "nvidia_regs.h"
+#include "nvidia_accel.h"
 #include "nvidia_3d.h"
 
 
-#define nv_setstate3d( state3d )                                  \
-{                                                                 \
-     if ((state3d)->modified) {                                   \
-          nv_waitfifo( nvdrv, nvdev, 7 );                         \
-          TexTriangle->ColorKey      = (state3d)->colorkey;       \
-          TexTriangle->TextureOffset = (state3d)->offset;         \
-          TexTriangle->TextureFormat = (state3d)->format;         \
-          TexTriangle->TextureFilter = (state3d)->filter;         \
-          TexTriangle->Blend         = (state3d)->blend;          \
-          TexTriangle->Control       = (state3d)->control;        \
-          TexTriangle->FogColor      = (state3d)->fog;            \
-                                                                  \
-          (state3d)->modified = false;                            \
-     }                                                            \
+static __inline__ __u32
+f2d( float f ) {
+     union {
+          float f;
+          __u32 d;
+     } t;
+     t.f = f;
+     return t.d;
 }
 
-#define nv_putvertex( ii, xx, yy, zz, ww, col, spc, s, t )        \
-{                                                                 \
-     nv_waitfifo( nvdrv, nvdev, 8 );                              \
-     TexTriangle->Tlvertex[(ii)].sx       = (float) (xx);         \
-     TexTriangle->Tlvertex[(ii)].sy       = (float) (yy);         \
-     TexTriangle->Tlvertex[(ii)].sz       = (float) (zz);         \
-     TexTriangle->Tlvertex[(ii)].rhw      = (float) (ww);         \
-     TexTriangle->Tlvertex[(ii)].color    = (__u32) (col);        \
-     TexTriangle->Tlvertex[(ii)].specular = (__u32) (spc);        \
-     TexTriangle->Tlvertex[(ii)].ts       = (float) (s);          \
-     TexTriangle->Tlvertex[(ii)].tt       = (float) (t);          \
+#define nv_setstate3d( state3d ) {                              \
+     if ((state3d)->modified) {                                 \
+          nv_begin( SUBC_TEXTRIANGLE, TXTRI_COLOR_KEY, 7 );     \
+          nv_outr( (state3d)->colorkey );                       \
+          nv_outr( (state3d)->offset   );                       \
+          nv_outr( (state3d)->format   );                       \
+          nv_outr( (state3d)->filter   );                       \
+          nv_outr( (state3d)->blend    );                       \
+          nv_outr( (state3d)->control  );                       \
+          nv_outr( (state3d)->fog      );                       \
+                                                                \
+          (state3d)->modified = false;                          \
+     }                                                          \
 }
 
-#define nv_emit_vertices( ii, v0, v1, v2, v3, v4, v5, v6, v7 )    \
-{                                                                 \
-     nv_waitfifo( nvdrv, nvdev, 1 );                              \
-     TexTriangle->DrawPrimitives[(ii)] =                          \
-                                    ((v7) << 28) | ((v6) << 24) | \
-                                    ((v5) << 20) | ((v4) << 16) | \
-                                    ((v3) << 12) | ((v2) <<  8) | \
-                                    ((v1) <<  4) |  (v0);         \
+#define nv_putvertex( i, x, y, z, w, col, spc, s, t ) {         \
+     nv_begin( SUBC_TEXTRIANGLE, TXTRI_VERTEX0+(i)*32, 8 );     \
+     nv_outr( f2d( x ) );                                       \
+     nv_outr( f2d( y ) );                                       \
+     nv_outr( f2d( z ) );                                       \
+     nv_outr( f2d( w ) );                                       \
+     nv_outr( col      );                                       \
+     nv_outr( spc      );                                       \
+     nv_outr( f2d( s ) );                                       \
+     nv_outr( f2d( t ) );                                       \
+}
+
+#define nv_emit_vertices( i, v0, v1, v2, v3, v4, v5, v6, v7 ) { \
+     nv_begin( SUBC_TEXTRIANGLE, TXTRI_PRIMITIVE0+(i)*4, 1 );   \
+     nv_outr( ((v7) << 28) | ((v6) << 24) |                     \
+              ((v5) << 20) | ((v4) << 16) |                     \
+              ((v3) << 12) | ((v2) <<  8) |                     \
+              ((v1) <<  4) |  (v0)          );                  \
 }
 
 
@@ -88,9 +95,8 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
 
 bool nvFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
-     NVidiaDriverData      *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData      *nvdev       = (NVidiaDeviceData*) dev;
-     NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
 
      nv_setstate3d( &nvdev->state3d[0] );
 
@@ -110,9 +116,8 @@ bool nvFillRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 
 bool nvFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
 {
-     NVidiaDriverData      *nvdrv  = (NVidiaDriverData*) drv;
-     NVidiaDeviceData      *nvdev  = (NVidiaDeviceData*) dev;
-     NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
 
      nv_setstate3d( &nvdev->state3d[0] );
 
@@ -127,43 +132,42 @@ bool nvFillTriangle3D( void *drv, void *dev, DFBTriangle *tri )
 
 bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 {
-     NVidiaDriverData      *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData      *nvdev       = (NVidiaDeviceData*) dev;
-     NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
-     DFBRegion              reg[4];
-     int                    i;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     DFBRegion         r[4];
+     int               i;
     
      /* top */
-     reg[0].x1 = rect->x;
-     reg[0].y1 = rect->y;
-     reg[0].x2 = rect->x + rect->w;
-     reg[0].y2 = rect->y + 1;
+     r[0].x1 = rect->x;
+     r[0].y1 = rect->y;
+     r[0].x2 = rect->x + rect->w;
+     r[0].y2 = rect->y + 1;
 
      /* bottom */
-     reg[1].x1 = rect->x;
-     reg[1].y1 = rect->y + rect->h - 1;
-     reg[1].x2 = rect->x + rect->w;
-     reg[1].y2 = rect->y + rect->h;
+     r[1].x1 = rect->x;
+     r[1].y1 = rect->y + rect->h - 1;
+     r[1].x2 = rect->x + rect->w;
+     r[1].y2 = rect->y + rect->h;
 
      /* left */
-     reg[2].x1 = rect->x;
-     reg[2].y1 = rect->y + 1;
-     reg[2].x2 = rect->x + 1;
-     reg[2].y2 = rect->y + rect->h - 2;
+     r[2].x1 = rect->x;
+     r[2].y1 = rect->y + 1;
+     r[2].x2 = rect->x + 1;
+     r[2].y2 = rect->y + rect->h - 2;
 
      /* right */
-     reg[3].x1 = rect->x + rect->w - 1;
-     reg[3].y1 = rect->y + 1;
-     reg[3].x2 = rect->x + rect->w;
-     reg[3].y2 = rect->y + rect->h - 2;
+     r[3].x1 = rect->x + rect->w - 1;
+     r[3].y1 = rect->y + 1;
+     r[3].x2 = rect->x + rect->w;
+     r[3].y2 = rect->y + rect->h - 2;
      
      nv_setstate3d( &nvdev->state3d[0] );
 
      for (i = 0; i < 4; i++) {
-          nv_putvertex( 0, reg[i].x1, reg[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
-          nv_putvertex( 1, reg[i].x2, reg[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
-          nv_putvertex( 2, reg[i].x2, reg[i].y2, 0, 1, nvdev->color3d, 0, 0, 0 );
-          nv_putvertex( 3, reg[i].x1, reg[i].y2, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 0, r[i].x1, r[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 1, r[i].x2, r[i].y1, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 2, r[i].x2, r[i].y2, 0, 1, nvdev->color3d, 0, 0, 0 );
+          nv_putvertex( 3, r[i].x1, r[i].y2, 0, 1, nvdev->color3d, 0, 0, 0 );
 
           nv_emit_vertices( 0, 0, 1, 2, 0, 2, 3, 0, 0 );
      }
@@ -173,16 +177,15 @@ bool nvDrawRectangle3D( void *drv, void *dev, DFBRectangle *rect )
 
 bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line )
 {
-     NVidiaDriverData      *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData      *nvdev       = (NVidiaDeviceData*) dev;
-     NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
-     float                  x1          = line->x1;
-     float                  y1          = line->y1;
-     float                  x2          = line->x2;
-     float                  y2          = line->y2;
-     float                  xinc        = 0.0;
-     float                  yinc        = 0.0;
-     int                    dx, dy;
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     float             x1    = line->x1;
+     float             y1    = line->y1;
+     float             x2    = line->x2;
+     float             y2    = line->y2;
+     float             xinc  = 0.0;
+     float             yinc  = 0.0;
+     int               dx, dy;
 
      dx = abs( line->x2 - line->x1 );
      dy = abs( line->y2 - line->y1 );
@@ -210,12 +213,11 @@ bool nvDrawLine3D( void *drv, void *dev, DFBRegion *line )
 bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
                          int num, DFBTriangleFormation formation )
 {
-     NVidiaDriverData      *nvdrv       = (NVidiaDriverData*) drv;
-     NVidiaDeviceData      *nvdev       = (NVidiaDeviceData*) dev;
-     NVTexturedTriangleDx5 *TexTriangle = nvdrv->TexTriangle;
-     float                  s_scale;
-     float                  t_scale;
-     int                    i;
+     NVidiaDriverData *nvdrv   = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev   = (NVidiaDeviceData*) dev;
+     float             s_scale;
+     float             t_scale;
+     int               i;
 
      /* load source texture into texture buffer */
      nv_load_texture( nvdrv, nvdev );

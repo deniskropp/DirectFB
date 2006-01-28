@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2005 Claudio Ciccani <klan@users.sf.net>
+   Copyright (C) 2005-2006 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -37,7 +37,8 @@
 #include <direct/messages.h>
 
 #include "nvidia.h"
-#include "nvidia_mmio.h"
+#include "nvidia_regs.h"
+#include "nvidia_accel.h"
 
 
 /************************** Primary Screen functions **************************/
@@ -71,7 +72,7 @@ crtc1InitScreen( CoreScreen           *screen,
                                    PCRTC_CONFIG_ENDIAN_LITTLE );
 #endif
      nv_out32( mmio, PCRTC_INTR, PCRTC_INTR_VBLANK_RESET );
-
+     
      return DFB_OK;
 }
 
@@ -170,11 +171,11 @@ fb0FlipRegion( CoreLayer           *layer,
 
      dfb_gfxcard_sync();
      
-     offset = (buffer->video.offset + nvdev->fb_offset) & nvdev->fb_mask;
+     offset = (buffer->video.offset + nvdev->fb_offset) & ~3;
      nv_out32( nvdrv->mmio_base, PCRTC_START, offset );
 
      if (flags & DSFLIP_WAIT)
-          dfb_screen_wait_vsync( dfb_screens_at( DSCID_PRIMARY ) );
+          dfb_layer_wait_vsync( layer );
 
      dfb_surface_flip_buffers( surface, false );
 
