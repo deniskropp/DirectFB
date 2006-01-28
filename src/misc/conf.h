@@ -141,6 +141,8 @@ typedef struct
 
      int        unichrome_revision;               /* Unichrome hardware
                                                      revision number override */
+     
+     bool       dma;                              /* Enable DMA */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

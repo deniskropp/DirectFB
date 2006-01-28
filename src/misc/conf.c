@@ -81,6 +81,7 @@ static const char *config_usage =
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Hardware acceleration\n"
+     "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n"
 #ifdef USE_MMX
      "  [no-]mmx                       Enable mmx support\n"
@@ -330,7 +331,8 @@ static void config_allocate()
      dfb_config->wm                       = D_STRDUP( "default" );
      dfb_config->decorations              = true;
      dfb_config->unichrome_revision       = -1;
-
+     dfb_config->dma                      = false;
+     
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
 
@@ -647,6 +649,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-hardware" ) == 0) {
           dfb_config->software_only = true;
+     } else
+     if (strcmp (name, "dma" ) == 0) {
+          dfb_config->dma = true;
+     } else
+     if (strcmp (name, "no-dma" ) == 0) {
+          dfb_config->dma = false;
      } else
      if (strcmp (name, "mmx" ) == 0) {
           dfb_config->mmx = true;
