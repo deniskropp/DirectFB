@@ -194,18 +194,20 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      /* reset byteswapper */
      r200_out32( mmio, SURFACE_CNTL, rdev->surface_cntl );
       
-     /* set framebuffer location */
-     r200_waitfifo( rdrv, rdev, 4 );
-     if (rdev->igp) {
-          r200_out32( mmio, MC_FB_LOCATION, r200_in32( mmio, NB_TOM ) );
-     } else {
-          r200_out32( mmio, MC_FB_LOCATION,
-                      (r200_in32( mmio, CONFIG_MEMSIZE ) - 1) & 0xffff0000 );
-     }
+     /* set framebuffer base location */
+     r200_waitfifo( rdrv, rdev, 3 );
+     r200_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
+     r200_out32( mmio, DISPLAY2_BASE_ADDR, rdev->fb_offset );
+     r200_out32( mmio, OV0_BASE_ADDR, rdev->fb_offset );
+
+     /* set default offset/pitch */
+     r200_waitfifo( rdrv, rdev, 3 );
      r200_out32( mmio, DEFAULT_OFFSET, 
                        (rdev->fb_offset >> 10) | (pitch64 << 22) );
-     r200_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
-     r200_out32( mmio, OV0_BASE_ADDR, rdev->fb_offset );
+     r200_out32( mmio, DST_PITCH_OFFSET, 
+                       (rdev->fb_offset >> 10) | (pitch64 << 22) );
+     r200_out32( mmio, SRC_PITCH_OFFSET,
+                       (rdev->fb_offset >> 10) | (pitch64 << 22) );
        
      r200_waitfifo( rdrv, rdev, 1 );
 #ifdef WORDS_BIGENDIAN
@@ -357,7 +359,8 @@ static void r200CheckState( void *drv, void *dev,
               state->blittingflags & ~supported_blittingflags)
                return;
           
-          if (source->width < 8 || source->height < 8)
+          if (source->width  < 8 || source->width  > 2048 ||
+              source->height < 8 || source->height > 2048)
                return;
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
@@ -1670,15 +1673,6 @@ driver_init_device( GraphicsDevice     *device,
      rdev->chipset = dev_table[id].chip;
      rdev->igp     = dev_table[id].igp;
 
-     if (rdev->igp) {
-          rdev->fb_offset = r200_in32( rdrv->mmio_base, NB_TOM );
-          rdev->fb_offset = (rdev->fb_offset & 0xffff) << 16;
-     
-          D_DEBUG( "DirectFB/R200: "
-                   "Framebuffer starts at offset 0x%08x.\n",
-                    rdev->fb_offset );
-     }
-
      /* fill device info */
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH, dev_table[id].name );
@@ -1705,9 +1699,25 @@ driver_init_device( GraphicsDevice     *device,
           return DFB_NOVIDEOMEMORY;
      }
 
-     rdev->surface_cntl = r200_in32( rdrv->mmio_base, SURFACE_CNTL );
- 
      r200_waitidle( rdrv, rdev );
+     
+     if (rdev->igp) {
+          __u32 tom;
+          /* force MC_FB_LOCATION to NB_TOM */
+          tom = r200_in32( rdrv->mmio_base, NB_TOM );
+          r200_out32( rdrv->mmio_base, MC_FB_LOCATION, tom );
+          rdev->fb_offset = tom << 16;
+     } 
+     else {
+          rdev->fb_offset = r200_in32( rdrv->mmio_base, MC_FB_LOCATION ) << 16;
+     }
+     
+     D_DEBUG( "DirectFB/R200: "
+              "Framebuffer base at offset 0x%08x.\n", rdev->fb_offset );
+
+     rdev->surface_cntl  = r200_in32( rdrv->mmio_base, SURFACE_CNTL );
+     rdev->surface_cntl &= ~(NONSURF_AP0_SWP_16BPP | NONSURF_AP0_SWP_32BPP);
+ 
      r200_reset( rdrv, rdev );
     
      return DFB_OK;
