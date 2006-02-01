@@ -30,6 +30,15 @@
 #include <errno.h>
 #include <fcntl.h>
 
+
+#include <linux/version.h>
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,16)
+typedef unsigned long kernel_ulong_t;
+#define BITS_PER_LONG    (sizeof(long)*8)
+#endif
+
+
 #include <linux/input.h>
 #ifndef KEY_OK
 /* Linux kernel 2.5.42+ defines additional keys in linux/input.h */
@@ -77,8 +86,9 @@
 
 DFB_INPUT_DRIVER( linux_input )
 
-
+#ifndef BITS_PER_LONG
 #define BITS_PER_LONG        (sizeof(long) * 8)
+#endif
 #define NBITS(x)             ((((x)-1)/BITS_PER_LONG)+1)
 #define OFF(x)               ((x)%BITS_PER_LONG)
 #define BIT(x)               (1UL<<OFF(x))
