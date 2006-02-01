@@ -92,11 +92,14 @@ typedef struct {
      IDirectFBDataBuffer        *buffer;
      bool                        seekable;
      void                       *iobuf;
-     
+
+     unsigned int                max_videoq_size;
+     unsigned int                max_audioq_size;
+ 
      AVFormatContext            *context;
      
      __s64                       start_time;
-     
+ 
      struct {
           DirectThread          *thread;
           pthread_mutex_t        lock;
@@ -162,10 +165,9 @@ typedef struct {
 
 #define IO_BUFFER_SIZE  8192
 
-#define MAX_VIDEOQ_SIZE (5 * 256 * 1024)
-#define MAX_AUDIOQ_SIZE (5 *  16 * 1024)
+#define MAX_QUEUE_LEN   5 /* in seconds */
 
-#define SEEK_ON_DELAY    1
+#define SEEK_ON_DELAY   1
 
 /*****************************************************************************/
 
@@ -328,8 +330,8 @@ FFmpegInput( DirectThread *self, void *arg )
                data->input.seeked = false;
           }
           
-          if (data->video.queue.size >= MAX_VIDEOQ_SIZE ||
-              data->audio.queue.size >= MAX_AUDIOQ_SIZE) {
+          if (data->video.queue.size >= data->max_videoq_size ||
+              data->audio.queue.size >= data->max_audioq_size) {
                pthread_mutex_unlock( &data->input.lock );
                usleep( 0 );
                continue;
@@ -1208,6 +1210,7 @@ Construct( IDirectFBVideoProvider *thiz,
      {
           D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
                    "error opening video codec!\n" );
+          data->video.ctx = NULL;
           IDirectFBVideoProvider_FFmpeg_Destruct( thiz );
           return DFB_FAILURE;
      }
@@ -1234,10 +1237,12 @@ Construct( IDirectFBVideoProvider *thiz,
      {          
           data->audio.ctx   = data->audio.st->codec;
           data->audio.codec = avcodec_find_decoder( data->audio.ctx->codec_id );
+          if (data->audio.codec) {
+               if (avcodec_open( data->audio.ctx, data->audio.codec ) < 0)
+                    data->audio.ctx = NULL;
+          }
           
-          if (data->audio.codec &&
-              avcodec_open( data->audio.ctx, data->audio.codec ) == 0) 
-          {
+          if (data->audio.ctx) {
                FSStreamDescription dsc;
                
                if (data->audio.ctx->channels > 2)
@@ -1275,9 +1280,19 @@ Construct( IDirectFBVideoProvider *thiz,
      }
 #endif
 
+     if (data->video.ctx->bit_rate > 0)
+          data->max_videoq_size = MAX_QUEUE_LEN * data->video.ctx->bit_rate/8;
+     else
+          data->max_videoq_size = MAX_QUEUE_LEN * 256 * 1024;
+
+     if (data->audio.ctx && data->audio.ctx->bit_rate > 0)
+          data->max_audioq_size = MAX_QUEUE_LEN * data->audio.ctx->bit_rate/8;
+     else
+          data->max_audioq_size = MAX_QUEUE_LEN * 64 * 1024;
+
      if (data->context->start_time != AV_NOPTS_VALUE)
           data->start_time = data->context->start_time;
-
+     
      data->video.pts = 
      data->audio.pts = (double)data->start_time / AV_TIME_BASE;
  
