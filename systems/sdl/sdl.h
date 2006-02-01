@@ -36,6 +36,18 @@ typedef struct {
      FusionCall      call;
 
      CoreSurface    *primary;
+
+     struct {
+          pthread_mutex_t  lock;
+          pthread_cond_t   cond;
+
+          DirectThread    *thread;
+
+          bool             pending;
+          DFBRegion        region;
+
+          bool             quit;
+     } update;
 } DFBSDL;
 
 #endif

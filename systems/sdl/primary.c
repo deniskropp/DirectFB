@@ -45,9 +45,11 @@
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
+#include <misc/util.h>
 
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <SDL.h>
 
@@ -122,6 +124,10 @@ ScreenFuncs sdlPrimaryScreenFuncs = {
 
 /******************************************************************************/
 
+static void * ScreenUpdateLoop( DirectThread *thread, void *arg );
+
+/******************************************************************************/
+
 static int
 primaryLayerDataSize()
 {
@@ -171,6 +177,15 @@ primaryInitLayer( CoreLayer                  *layer,
           config->pixelformat = dfb_pixelformat_for_depth( dfb_config->mode.depth );
      else
           config->pixelformat = DSPF_RGB16;
+
+     /* Initialize update lock and condition. */
+     pthread_mutex_init( &dfb_sdl->update.lock, NULL );
+     pthread_cond_init( &dfb_sdl->update.cond, NULL );
+
+     /* Start update thread. */
+     dfb_sdl->update.thread = direct_thread_create( DTT_OUTPUT, ScreenUpdateLoop, NULL, "Screen Update" );
+     if (!dfb_sdl->update.thread)
+          return DFB_FAILURE;
 
      return DFB_OK;
 }
@@ -233,8 +248,11 @@ primarySetRegion( CoreLayer                  *layer,
      if (ret)
           return ret;
 
-     if (surface)
+     if (surface) {
+          pthread_mutex_lock( &dfb_sdl->update.lock );
           dfb_sdl->primary = surface;
+          pthread_mutex_unlock( &dfb_sdl->update.lock );
+     }
 
      if (palette)
           dfb_sdl_set_palette( palette );
@@ -248,7 +266,9 @@ primaryRemoveRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data )
 {
+     pthread_mutex_lock( &dfb_sdl->update.lock );
      dfb_sdl->primary = NULL;
+     pthread_mutex_unlock( &dfb_sdl->update.lock );
 
      return DFB_OK;
 }
@@ -393,6 +413,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
      D_ASSERT( surface != NULL );
 
+     fusion_skirmish_prevail( &dfb_sdl->lock );
+
      if (SDL_LockSurface( screen ) < 0) {
           D_ERROR( "DirectFB/SDL: "
                    "Couldn't lock the display surface: %s\n", SDL_GetError() );
@@ -425,7 +447,42 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
 
      SDL_UpdateRect( screen, x, y, w, h );
 
+     fusion_skirmish_dismiss( &dfb_sdl->lock );
+
      return DFB_OK;
+}
+
+static void *
+ScreenUpdateLoop( DirectThread *thread, void *arg )
+{
+     pthread_mutex_lock( &dfb_sdl->update.lock );
+
+     while (!dfb_sdl->update.quit) {
+          if (dfb_sdl->update.pending) {
+               CoreSurface  *surface = dfb_sdl->primary;
+               DFBRectangle  update  = DFB_RECTANGLE_INIT_FROM_REGION( &dfb_sdl->update.region );
+
+               dfb_sdl->update.pending = false;
+
+               dfb_surface_ref( surface );
+
+               pthread_mutex_unlock( &dfb_sdl->update.lock );
+
+
+               update_screen( dfb_sdl->primary, update.x, update.y, update.w, update.h );
+
+               dfb_surface_unref( surface );
+
+
+               pthread_mutex_lock( &dfb_sdl->update.lock );
+          }
+          else
+               pthread_cond_wait( &dfb_sdl->update.cond, &dfb_sdl->update.lock );
+     }
+
+     pthread_mutex_unlock( &dfb_sdl->update.lock );
+
+     return NULL;
 }
 
 /******************************************************************************/
@@ -456,6 +513,7 @@ dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
      }
      /* Hide SDL's cursor */
      SDL_ShowCursor(SDL_DISABLE);
+
      fusion_skirmish_dismiss( &dfb_sdl->lock );
 
      return DFB_OK;
@@ -464,20 +522,31 @@ dfb_sdl_set_video_mode_handler( CoreLayerRegionConfig *config )
 static DFBResult
 dfb_sdl_update_screen_handler( const DFBRegion *region )
 {
-     DFBResult    ret;
+     DFBRegion    update;
      CoreSurface *surface = dfb_sdl->primary;
 
-     fusion_skirmish_prevail( &dfb_sdl->lock );
+     if (region)
+          update = *region;
+     else {
+          update.x1 = 0;
+          update.y1 = 0;
+          update.x2 = surface->width - 1;
+          update.y2 = surface->height - 1;
+     }
 
-     if (!region)
-          ret = update_screen( surface, 0, 0, surface->width, surface->height );
-     else
-          ret = update_screen( surface,
-                               region->x1,  region->y1,
-                               region->x2 - region->x1 + 1,
-                               region->y2 - region->y1 + 1 );
 
-     fusion_skirmish_dismiss( &dfb_sdl->lock );
+     pthread_mutex_lock( &dfb_sdl->update.lock );
+
+     if (dfb_sdl->update.pending)
+          dfb_region_region_union( &dfb_sdl->update.region, &update );
+     else {
+          dfb_sdl->update.region  = update;
+          dfb_sdl->update.pending = true;
+     }
+
+     pthread_cond_signal( &dfb_sdl->update.cond );
+
+     pthread_mutex_unlock( &dfb_sdl->update.lock );
 
      return DFB_OK;
 }

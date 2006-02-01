@@ -49,6 +49,7 @@
 #include <misc/conf.h>
 
 #include <direct/messages.h>
+#include <direct/thread.h>
 
 #include <SDL.h>
 
@@ -144,6 +145,20 @@ static DFBResult
 system_shutdown( bool emergency )
 {
      D_ASSERT( dfb_sdl != NULL );
+
+     /* Stop update thread. */
+     if (dfb_sdl->update.thread) {
+          if (!emergency) {
+               dfb_sdl->update.quit = true;
+
+               pthread_cond_signal( &dfb_sdl->update.cond );
+
+               direct_thread_join( dfb_sdl->update.thread );
+          }
+
+          direct_thread_destroy( dfb_sdl->update.thread );
+     }
+
 
      fusion_call_destroy( &dfb_sdl->call );
 
