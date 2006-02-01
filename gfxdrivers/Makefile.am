@@ -90,6 +90,12 @@ else
 UNICHROME_DIR =
 endif
 
+if GFX_R100
+R100_DIR = r100
+else
+R100_DIR =
+endif
+
 if GFX_R200
 R200_DIR = r200
 else
@@ -112,5 +118,6 @@ SUBDIRS = \
 	$(CLE266_DIR)	\
 	$(UNICHROME_DIR) \
 	$(GEODE_DIR)	\
+	$(R100_DIR)	\
 	$(R200_DIR)
 

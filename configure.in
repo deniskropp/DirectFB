@@ -808,6 +808,7 @@ cle266=no
 unichrome=no
 nvidia=no
 radeon=no
+r100=no
 r200=no
 tdfx=no
 savage=no
@@ -822,8 +823,8 @@ AC_ARG_WITH(gfxdrivers,
 [                            'all' builds all drivers (default), 'none' builds none ]
 [                            Possible gfxdrivers are: ]
 [                            ati128, cle266, cyber5k, i810, i830, mach64, matrox,]
-[                            neomagic, nsc, nvidia, radeon, r200, savage, sis315,]
-[                            tdfx, unichrome], gfxdrivers="$withval",[gfxdrivers="all"])
+[                            neomagic, nsc, nvidia, radeon, r100, r200, savage,]
+[                            sis315, tdfx, unichrome], gfxdrivers="$withval",[gfxdrivers="all"])
 
 if test "$gfxdrivers" = "all"; then
   checkfor_ati128=yes
@@ -837,6 +838,7 @@ if test "$gfxdrivers" = "all"; then
   checkfor_nsc=yes
   checkfor_nvidia=yes
   checkfor_radeon=yes 
+  checkfor_r100=yes
   checkfor_r200=yes
   checkfor_savage=yes
   checkfor_sis315=yes
@@ -882,6 +884,9 @@ else
           radeon)
                   checkfor_radeon=yes
                   ;;
+          r100)
+                  checkfor_r100=yes
+                  ;;
           r200)
                   checkfor_r200=yes
                   ;;
@@ -913,6 +918,10 @@ fi
 
 if test "$checkfor_radeon" = "yes"; then
   radeon=yes
+fi
+
+if test "$checkfor_r100" = "yes"; then
+  r100=yes
 fi
 
 if test "$checkfor_r200" = "yes"; then
@@ -1196,6 +1205,7 @@ AM_CONDITIONAL(GFX_NEOMAGIC, test "$neomagic" = "yes")
 AM_CONDITIONAL(GFX_NSC, test "$nsc" = "yes")
 AM_CONDITIONAL(GFX_NVIDIA, test "$nvidia" = "yes")
 AM_CONDITIONAL(GFX_RADEON, test "$radeon" = "yes")
+AM_CONDITIONAL(GFX_R100, test "$r100" = "yes")
 AM_CONDITIONAL(GFX_R200, test "$r200" = "yes")
 AM_CONDITIONAL(GFX_SAVAGE, test "$savage" = "yes")
 AM_CONDITIONAL(GFX_SIS315, test "$sis315" = "yes")
@@ -1354,6 +1364,7 @@ gfxdrivers/nsc/Makefile
 gfxdrivers/nsc/include/Makefile
 gfxdrivers/nvidia/Makefile
 gfxdrivers/radeon/Makefile
+gfxdrivers/r100/Makefile
 gfxdrivers/r200/Makefile
 gfxdrivers/savage/Makefile
 gfxdrivers/sis315/Makefile
@@ -1449,10 +1460,11 @@ if test "$have_linux" = "yes"; then
 AC_MSG_RESULT([
 Building Graphics Drivers:
   3Dfx Voodoo               $tdfx
-  ATI Mach64                $mach64
-  ATI Radeon                $radeon
+  ATI Mach64                $mach64 
   ATI Rage 128              $ati
-  ATI R200                  $r200
+  ATI Radeon (generic)      $radeon
+  ATI Radeon R100           $r100
+  ATI Radeon R200           $r200
   Intel i810                $i810
   Intel i830                $i830
   Matrox                    $matrox
