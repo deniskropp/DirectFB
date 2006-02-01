@@ -1693,7 +1693,7 @@ driver_init_device( GraphicsDevice     *device,
                nv_store_dma( nvdrv, OBJ_DMA_OUT, ADDR_DMA_OUT, 0x02,
                              DMA_FLAG_PAGE_TABLE  | DMA_FLAG_PAGE_ENTRY_LINEAR |
                              DMA_FLAG_ACCESS_RDWR | DMA_FLAG_TARGET_NVM,
-                             nvdev->dma_size, nvdev->dma_offset, 
+                             nvdev->dma_size, nvdev->fb_offset+nvdev->dma_offset,
                              DMA_FRAME_ACCESS_RDWR );
           }
      }
