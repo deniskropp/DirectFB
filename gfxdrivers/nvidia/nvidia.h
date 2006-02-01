@@ -174,7 +174,7 @@ typedef struct {
      
      /* AGP control */
      bool                    use_agp;
-     unsigned int            agp_key;
+     int                     agp_key;
      unsigned int            agp_aper_base;
      unsigned int            agp_aper_size;
      
