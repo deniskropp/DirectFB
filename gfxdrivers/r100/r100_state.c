@@ -667,7 +667,7 @@ void r100_set_drawingflags( R100DriverData *rdrv,
      r100_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      r100_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      
-     r100_waitfifo( rdrv, rdev, 7 );
+     r100_waitfifo( rdrv, rdev, 6 );
      r100_out32( mmio, RB3D_CNTL, rb3d_cntl );
      r100_out32( mmio, SE_CNTL, DIFFUSE_SHADE_FLAT  |
                                 ALPHA_SHADE_FLAT    |
@@ -679,11 +679,7 @@ void r100_set_drawingflags( R100DriverData *rdrv,
      r100_out32( mmio, PP_CNTL, pp_cntl );
      r100_out32( mmio, PP_TXCBLEND_1, cblend );
      r100_out32( mmio, PP_TXABLEND_1, ALPHA_ARG_C_TFACTOR_ALPHA );
-     r100_out32( mmio, SE_VTX_FMT, SE_VTX_FMT_XY | SE_VTX_FMT_ST0 );
-     r100_out32( mmio, SE_COORD_FMT, VTX_XY_PRE_MULT_1_OVER_W0 |
-                                     VTX_ST0_NONPARAMETRIC     |
-                                     VTX_ST1_NONPARAMETRIC     |
-                                     TEX1_W_ROUTING_USE_W0 );
+     r100_out32( mmio, SE_VTX_FMT, SE_VTX_FMT_XY );
      
      rdev->drawingflags = state->drawingflags;
 

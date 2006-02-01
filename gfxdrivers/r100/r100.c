@@ -235,7 +235,9 @@ r100_reset( R100DriverData *rdrv, R100DeviceData *rdev )
      r100_out32( mmio, DP_WRITE_MASK, 0xffffffff );
    
      /* restore 3d engine */                                      
-     r100_waitfifo( rdrv, rdev, 6 );
+     r100_waitfifo( rdrv, rdev, 7 ); 
+     r100_out32( mmio, SE_COORD_FMT, VTX_XY_PRE_MULT_1_OVER_W0 |
+                                     TEX1_W_ROUTING_USE_W0 );
      r100_out32( mmio, SE_LINE_WIDTH, 0x10 );
      r100_out32( mmio, SE_CNTL_STATUS, TCL_BYPASS );
      r100_out32( mmio, PP_MISC, ALPHA_TEST_PASS );
@@ -516,40 +518,43 @@ static void r100SetState( void *drv, void *dev,
      (rdev)->write_3d = true;                                              \
 }
 
-static __inline__ void
-out_vertex2d( volatile __u8 *mmio,
-              float x, float y, float s, float t )
+static __inline__ __u32 
+f2d( float f )
 {
      union {
-          float f[4];
-          __u32 d[4];
-     } tmp = {
-          .f = { x, y, s, t }
-     };
-     
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[0] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[1] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[2] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[3] );
+          float f;
+          __u32 d;
+     } tmp;
+     tmp.f = f;
+     return tmp.d;
+}     
+
+static __inline__ void
+out_vertex2d0( volatile __u8 *mmio, float x, float y )
+{
+     r100_out32( mmio, SE_PORT_DATA0, f2d(x) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(y) );
+}
+
+static __inline__ void
+out_vertex2d2( volatile __u8 *mmio, float x, float y, float s, float t )
+{
+     r100_out32( mmio, SE_PORT_DATA0, f2d(x) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(y) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(s) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(t) );
 }
 
 static __inline__ void
 out_vertex3d( volatile __u8 *mmio,
               float x, float y, float z, float w, float s, float t )
-{
-     union {
-          float f[6];
-          __u32 d[6];
-     } tmp = {
-          .f = { x, y, z, w, s, t }
-     };
-     
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[0] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[1] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[2] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[3] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[4] );
-     r100_out32( mmio, SE_PORT_DATA0, tmp.d[5] );
+{ 
+     r100_out32( mmio, SE_PORT_DATA0, f2d(x) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(y) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(z) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(w) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(s) );
+     r100_out32( mmio, SE_PORT_DATA0, f2d(t) );
 }
 
 /* drawing functions */
@@ -577,26 +582,26 @@ r100DoFillRectangle3D( R100DriverData *rdrv,
      volatile __u8 *mmio = rdrv->mmio_base;
 
      if (rect->w == 1 && rect->h == 1) {
-          r100_waitfifo( rdrv, rdev, 5 );
+          r100_waitfifo( rdrv, rdev, 3 );
           
           r100_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_POINT_LIST |
                                         VF_PRIM_WALK_DATA       |
                                         VF_RADEON_MODE          |
                                         (1 << VF_NUM_VERTICES_SHIFT) );
 
-          out_vertex2d( mmio, rect->x, rect->y, 0, 0 );
+          out_vertex2d0( mmio, rect->x, rect->y );
      }
      else {
-          r100_waitfifo( rdrv, rdev, 13 );
+          r100_waitfifo( rdrv, rdev, 7 );
      
           r100_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_RECTANGLE_LIST |
                                         VF_PRIM_WALK_DATA           |
                                         VF_RADEON_MODE              |
                                         (3 << VF_NUM_VERTICES_SHIFT) );
 
-          out_vertex2d( mmio, rect->x        , rect->y        , 0, 0 );
-          out_vertex2d( mmio, rect->x+rect->w, rect->y        , 0, 0 );
-          out_vertex2d( mmio, rect->x+rect->w, rect->y+rect->h, 0, 0 );
+          out_vertex2d0( mmio, rect->x        , rect->y         );
+          out_vertex2d0( mmio, rect->x+rect->w, rect->y         );
+          out_vertex2d0( mmio, rect->x+rect->w, rect->y+rect->h );
      }
 }
 
@@ -727,16 +732,16 @@ r100DoFillTriangle( R100DriverData *rdrv,
 {
      volatile __u8 *mmio = rdrv->mmio_base;
 
-     r100_waitfifo( rdrv, rdev, 13 );
+     r100_waitfifo( rdrv, rdev, 7 );
      
      r100_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_TRIANGLE_LIST |
                                    VF_PRIM_WALK_DATA          |
                                    VF_RADEON_MODE             |
                                    (3 << VF_NUM_VERTICES_SHIFT) );
      
-     out_vertex2d( mmio, tri->x1, tri->y1, 0, 0 );
-     out_vertex2d( mmio, tri->x2, tri->y2, 0, 0 );
-     out_vertex2d( mmio, tri->x3, tri->y3, 0, 0 );
+     out_vertex2d0( mmio, tri->x1, tri->y1 );
+     out_vertex2d0( mmio, tri->x2, tri->y2 );
+     out_vertex2d0( mmio, tri->x3, tri->y3 );
 }
 
 static bool
@@ -835,20 +840,20 @@ r100DoDrawRectangle3D( R100DriverData *rdrv,
 {
      volatile __u8 *mmio = rdrv->mmio_base;
 
-     r100_waitfifo( rdrv, rdev, 17 );
+     r100_waitfifo( rdrv, rdev, 9 );
           
      r100_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_LINE_LOOP |
                                    VF_PRIM_WALK_DATA      |
                                    VF_RADEON_MODE         |
                                    (4 << VF_NUM_VERTICES_SHIFT) );
      /* top/left */
-     out_vertex2d( mmio, rect->x        , rect->y        , 0, 0 );
+     out_vertex2d0( mmio, rect->x        , rect->y         );
      /* top/right */
-     out_vertex2d( mmio, rect->x+rect->w, rect->y        , 0, 0 );
+     out_vertex2d0( mmio, rect->x+rect->w, rect->y         );
      /* bottom/right */
-     out_vertex2d( mmio, rect->x+rect->w, rect->y+rect->h, 0, 0 );
+     out_vertex2d0( mmio, rect->x+rect->w, rect->y+rect->h );
      /* bottom/left */
-     out_vertex2d( mmio, rect->x        , rect->y+rect->h, 0, 0 );
+     out_vertex2d0( mmio, rect->x        , rect->y+rect->h );
 }
      
 static bool
@@ -993,15 +998,15 @@ r100DoDrawLine3D( R100DriverData *rdrv,
 {
      volatile __u8 *mmio = rdrv->mmio_base;
      
-     r100_waitfifo( rdrv, rdev, 9 );
+     r100_waitfifo( rdrv, rdev, 5 );
      
      r100_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_LINE_LIST |
                                    VF_PRIM_WALK_DATA      |
                                    VF_RADEON_MODE         |
                                    (2 << VF_NUM_VERTICES_SHIFT) );
 
-     out_vertex2d( mmio, line->x1, line->y1, 0, 0 );
-     out_vertex2d( mmio, line->x2, line->y2, 0, 0 );
+     out_vertex2d0( mmio, line->x1, line->y1 );
+     out_vertex2d0( mmio, line->x2, line->y2 );
 }
 
 static bool
@@ -1172,9 +1177,9 @@ r100DoBlit3D( R100DriverData *rdrv, R100DeviceData *rdev,
                                    VF_RADEON_MODE              |
                                    (3 << VF_NUM_VERTICES_SHIFT) );
      
-     out_vertex2d( mmio, dr->x      , dr->y      , sr->x      , sr->y       );
-     out_vertex2d( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       );
-     out_vertex2d( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
+     out_vertex2d2( mmio, dr->x      , dr->y      , sr->x      , sr->y       );
+     out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       );
+     out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
 }
 
 static bool 
