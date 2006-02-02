@@ -216,7 +216,7 @@ stret_region_create( StretRegionClassID   class_id,
 
      D_MAGIC_SET( region, StretRegion );
 
-#if DIRECT_BUILD_DEBUG
+#if D_DEBUG_ENABLED
 {
      DFBRegion bounds;
 

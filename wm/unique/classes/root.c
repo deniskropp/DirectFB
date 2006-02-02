@@ -82,7 +82,7 @@ root_update( StretRegion     *region,
                                            stack->bg.mode != DLBM_TILE) );
 
      D_DEBUG_AT( UniQuE_Root, "root_update( region %p, num %d )\n", region, num );
-#if DIRECT_BUILD_DEBUG
+#if D_DEBUG_ENABLED
      for (i=0; i<num; i++) {
           D_DEBUG_AT( UniQuE_Root, "    (%d)  %4d,%4d - %4dx%4d\n",
                       i, DFB_RECTANGLE_VALS_FROM_REGION( &updates[i] ) );

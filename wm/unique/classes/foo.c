@@ -130,7 +130,7 @@ foo_update( StretRegion     *region,
 
      D_DEBUG_AT( UniQuE_Foo, "foo_update( region %p, window %p, visible %s, num %d )\n",
                  region, window, visible ? "yes" : "no", num );
-#if DIRECT_BUILD_DEBUG
+#if D_DEBUG_ENABLED
      for (i=0; i<num; i++) {
           D_DEBUG_AT( UniQuE_Foo, "    (%d)  %4d,%4d - %4dx%4d\n",
                       i, DFB_RECTANGLE_VALS_FROM_REGION( &updates[i] ) );
