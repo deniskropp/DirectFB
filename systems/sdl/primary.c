@@ -47,6 +47,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include <direct/debug.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
@@ -55,6 +56,9 @@
 
 #include "sdl.h"
 #include "primary.h"
+
+D_DEBUG_DOMAIN( SDL_Updates, "SDL/Updates", "SDL System Screen Updates" );
+
 
 extern DFBSDL  *dfb_sdl;
 extern CoreDFB *dfb_sdl_core;
@@ -65,8 +69,7 @@ static DFBResult dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *c
 static DFBResult dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region );
 static DFBResult dfb_sdl_set_palette( CorePalette *palette );
 
-static DFBResult update_screen( CoreSurface *surface,
-                                int x, int y, int w, int h );
+static DFBResult update_screen( int x, int y, int w, int h );
 
 static SDL_Surface *screen = NULL;
 
@@ -251,6 +254,7 @@ primarySetRegion( CoreLayer                  *layer,
      if (surface) {
           pthread_mutex_lock( &dfb_sdl->update.lock );
           dfb_sdl->primary = surface;
+          dfb_sdl->update.pending = false;
           pthread_mutex_unlock( &dfb_sdl->update.lock );
      }
 
@@ -266,9 +270,21 @@ primaryRemoveRegion( CoreLayer             *layer,
                      void                  *layer_data,
                      void                  *region_data )
 {
-     pthread_mutex_lock( &dfb_sdl->update.lock );
+     D_DEBUG_AT( SDL_Updates, "%s( %p )\n", __FUNCTION__, layer );
+
+     D_DEBUG_AT( SDL_Updates, "  -> locking sdl lock...\n" );
+
+     fusion_skirmish_prevail( &dfb_sdl->lock );
+
+     D_DEBUG_AT( SDL_Updates, "  -> setting primary to NULL...\n" );
+
      dfb_sdl->primary = NULL;
-     pthread_mutex_unlock( &dfb_sdl->update.lock );
+
+     D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl lock...\n" );
+
+     fusion_skirmish_dismiss( &dfb_sdl->lock );
+
+     D_DEBUG_AT( SDL_Updates, "  -> done.\n" );
 
      return DFB_OK;
 }
@@ -403,29 +419,49 @@ DisplayLayerFuncs sdlPrimaryLayerFuncs = {
 /******************************************************************************/
 
 static DFBResult
-update_screen( CoreSurface *surface, int x, int y, int w, int h )
+update_screen( int x, int y, int w, int h )
 {
      int          i;
      void        *dst;
      void        *src;
      int          pitch;
      DFBResult    ret;
+     CoreSurface *surface;
 
-     D_ASSERT( surface != NULL );
+     D_DEBUG_AT( SDL_Updates, "%s( %p, %d, %d, %d, %d )\n", __FUNCTION__, surface, x, y, w, h );
+
+     D_DEBUG_AT( SDL_Updates, "  -> locking sdl lock...\n" );
 
      fusion_skirmish_prevail( &dfb_sdl->lock );
+
+     surface = dfb_sdl->primary;
+
+     D_DEBUG_AT( SDL_Updates, "  -> primary is %p\n", surface );
+
+     if (!surface) {
+          D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl lock...\n" );
+          fusion_skirmish_dismiss( &dfb_sdl->lock );
+          D_DEBUG_AT( SDL_Updates, "  -> done.\n" );
+          return DFB_OK;
+     }
+
+     D_DEBUG_AT( SDL_Updates, "  -> locking sdl surface...\n" );
 
      if (SDL_LockSurface( screen ) < 0) {
           D_ERROR( "DirectFB/SDL: "
                    "Couldn't lock the display surface: %s\n", SDL_GetError() );
+          fusion_skirmish_dismiss( &dfb_sdl->lock );
           return DFB_FAILURE;
      }
+
+     D_DEBUG_AT( SDL_Updates, "  -> locking dfb surface...\n" );
 
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
           D_ERROR( "DirectFB/SDL: Couldn't lock layer surface: %s\n",
                    DirectFBErrorString( ret ) );
           SDL_UnlockSurface(screen);
+          fusion_skirmish_dismiss( &dfb_sdl->lock );
           return ret;
      }
 
@@ -434,6 +470,8 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      src += DFB_BYTES_PER_LINE( surface->format, x ) + y * pitch;
      dst += DFB_BYTES_PER_LINE( surface->format, x ) + y * screen->pitch;
 
+     D_DEBUG_AT( SDL_Updates, "  -> copying pixels...\n" );
+
      for (i=0; i<h; ++i) {
           direct_memcpy( dst, src, DFB_BYTES_PER_LINE( surface->format, w ) );
 
@@ -441,13 +479,23 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
           dst += screen->pitch;
      }
 
+     D_DEBUG_AT( SDL_Updates, "  -> unlocking dfb surface...\n" );
+
      dfb_surface_unlock( surface, true );
+
+     D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl surface...\n" );
 
      SDL_UnlockSurface( screen );
 
+     D_DEBUG_AT( SDL_Updates, "  -> calling SDL_UpdateRect()...\n" );
+
      SDL_UpdateRect( screen, x, y, w, h );
 
+     D_DEBUG_AT( SDL_Updates, "  -> unlocking sdl lock...\n" );
+
      fusion_skirmish_dismiss( &dfb_sdl->lock );
+
+     D_DEBUG_AT( SDL_Updates, "  -> done.\n" );
 
      return DFB_OK;
 }
@@ -457,21 +505,20 @@ ScreenUpdateLoop( DirectThread *thread, void *arg )
 {
      pthread_mutex_lock( &dfb_sdl->update.lock );
 
+     D_DEBUG_AT( SDL_Updates, "Entering %s()...\n", __FUNCTION__ );
+
      while (!dfb_sdl->update.quit) {
           if (dfb_sdl->update.pending) {
-               CoreSurface  *surface = dfb_sdl->primary;
-               DFBRectangle  update  = DFB_RECTANGLE_INIT_FROM_REGION( &dfb_sdl->update.region );
+               DFBRectangle update = DFB_RECTANGLE_INIT_FROM_REGION( &dfb_sdl->update.region );
 
                dfb_sdl->update.pending = false;
 
-               dfb_surface_ref( surface );
+               D_DEBUG_AT( SDL_Updates, "Got update %d,%d - %dx%d...\n", DFB_RECTANGLE_VALS( &update ) );
 
                pthread_mutex_unlock( &dfb_sdl->update.lock );
 
 
-               update_screen( dfb_sdl->primary, update.x, update.y, update.w, update.h );
-
-               dfb_surface_unref( surface );
+               update_screen( update.x, update.y, update.w, update.h );
 
 
                pthread_mutex_lock( &dfb_sdl->update.lock );
@@ -479,6 +526,8 @@ ScreenUpdateLoop( DirectThread *thread, void *arg )
           else
                pthread_cond_wait( &dfb_sdl->update.cond, &dfb_sdl->update.lock );
      }
+
+     D_DEBUG_AT( SDL_Updates, "Returning from %s()...\n", __FUNCTION__ );
 
      pthread_mutex_unlock( &dfb_sdl->update.lock );
 
