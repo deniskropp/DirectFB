@@ -68,6 +68,8 @@ struct __Fusion_FusionSHMPool {
 struct __Fusion_FusionSHMPoolShared {
      int                  magic;
 
+     bool                 debug;        /* Debug allocations in this pool? */
+
      int                  index;        /* Index within the static pool array. */
      bool                 active;       /* Indicates usage of this entry in the static pool array. */
 

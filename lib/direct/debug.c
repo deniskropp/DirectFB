@@ -45,7 +45,7 @@
 #include <direct/util.h>
 
 
-#if DIRECT_BUILD_TEXT
+#if DIRECT_BUILD_TEXT && DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
 typedef struct {
      DirectLink  link;
@@ -385,5 +385,5 @@ direct_debug_config_domain( const char *name, bool enable )
 {
 }
 
-#endif    /* DIRECT_BUILD_TEXT */
+#endif    /* DIRECT_BUILD_TEXT && DIRECT_BUILD_DEBUGS */
 

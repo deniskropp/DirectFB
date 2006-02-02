@@ -50,7 +50,8 @@ static DirectResult init_pool    ( FusionSHM           *shm,
                                    FusionSHMPool       *pool,
                                    FusionSHMPoolShared *shared,
                                    const char          *name,
-                                   unsigned int         max_size );
+                                   unsigned int         max_size,
+                                   bool                 debug );
 
 static DirectResult join_pool    ( FusionSHM           *shm,
                                    FusionSHMPool       *pool,
@@ -70,6 +71,7 @@ DirectResult
 fusion_shm_pool_create( FusionWorld          *world,
                         const char           *name,
                         unsigned int          max_size,
+                        bool                  debug,
                         FusionSHMPoolShared **ret_pool )
 {
      int              i;
@@ -83,8 +85,12 @@ fusion_shm_pool_create( FusionWorld          *world,
      D_ASSERT( max_size > 0 );
      D_ASSERT( ret_pool != NULL );
 
-     D_DEBUG_AT( Fusion_SHMPool, "%s( %p [%d], '%s', %d, %p)\n", __FUNCTION__,
-                 world, world->shared->world_index, name, max_size, ret_pool );
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p [%d], '%s', %d, %p, %sdebug )\n", __FUNCTION__,
+                 world, world->shared->world_index, name, max_size, ret_pool, debug ? "" : "non-" );
+
+#if !DIRECT_BUILD_DEBUGS
+     debug = false;
+#endif
 
      shm = &world->shm;
 
@@ -121,7 +127,7 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      D_DEBUG_AT( Fusion_SHMPool, "  -> index %d\n", i );
 
-     ret = init_pool( shm, &shm->pools[i], &shared->pools[i], name, max_size );
+     ret = init_pool( shm, &shm->pools[i], &shared->pools[i], name, max_size, debug );
      if (ret)
           goto error;
 
@@ -399,7 +405,8 @@ init_pool( FusionSHM           *shm,
            FusionSHMPool       *pool,
            FusionSHMPoolShared *shared,
            const char          *name,
-           unsigned int         max_size )
+           unsigned int         max_size,
+           bool                 debug )
 {
      DirectResult         ret;
      int                  fd;
@@ -410,8 +417,8 @@ init_pool( FusionSHM           *shm,
      FusionEntryInfo      info;
      char                 buf[FUSION_SHM_TMPFS_PATH_NAME_LEN + 32];
 
-     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p, '%s', %d )\n",
-                 __FUNCTION__, shm, pool, shared, name, max_size );
+     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p, %p, '%s', %d, %sdebug )\n",
+                 __FUNCTION__, shm, pool, shared, name, max_size, debug ? "" : "non-" );
 
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_MAGIC_ASSERT( shm->shared, FusionSHMShared );
@@ -439,7 +446,7 @@ init_pool( FusionSHM           *shm,
      info.type = FT_SHMPOOL;
      info.id   = pool_new.pool_id;
 
-     strncpy( info.name, name, sizeof(info.name) );
+     snprintf( info.name, sizeof(info.name), "%s", name );
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
@@ -494,6 +501,7 @@ init_pool( FusionSHM           *shm,
 
      /* Initialize shared data. */
      shared->active     = true;
+     shared->debug      = debug;
      shared->shm        = shm->shared;
      shared->max_size   = max_size;
      shared->pool_id    = pool_new.pool_id;
@@ -529,6 +537,13 @@ join_pool( FusionSHM           *shm,
      D_MAGIC_ASSERT( shm, FusionSHM );
      D_MAGIC_ASSERT( shm->shared, FusionSHMShared );
      D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
+
+#if !DIRECT_BUILD_DEBUGS
+     if (shared->debug) {
+          D_ERROR( "Fusion/SHM: Can't join debug enabled pool with pure-release library!\n" );
+          return DFB_UNSUPPORTED;
+     }
+#endif
 
      world = shm->world;
 

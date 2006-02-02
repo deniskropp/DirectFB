@@ -35,8 +35,6 @@
 void direct_print_memleaks();
 
 
-#if DIRECT_BUILD_DEBUG
-
 void  direct_free   ( const char *file, int line,
                       const char *func, const char *what, void *mem );
 
@@ -52,6 +50,14 @@ void *direct_realloc( const char *file, int line,
 
 char *direct_strdup ( const char *file, int line,
                       const char *func, const char *string );
+
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
+
+#if !DIRECT_BUILD_DEBUGS
+#warning Building with debug, but library headers suggest that debug is not supported.
+#endif
+
 
 #define D_FREE(mem)           direct_free( __FILE__, __LINE__, __FUNCTION__, #mem, mem )
 #define D_MALLOC(bytes)       direct_malloc( __FILE__, __LINE__, __FUNCTION__, bytes )

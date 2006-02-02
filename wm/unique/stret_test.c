@@ -30,7 +30,7 @@ main( int argc, char *argv[] )
      if (ret)
           return -1;
 
-     ret = fusion_shm_pool_create( world, "StReT Test Pool", 0x10000, &pool );
+     ret = fusion_shm_pool_create( world, "StReT Test Pool", 0x10000, direct_config->debug, &pool );
      if (ret) {
           fusion_exit( world, false );
           return -1;

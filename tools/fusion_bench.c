@@ -444,7 +444,7 @@ bench_shmpool()
 
      FusionSHMPoolShared *pool;
 
-     ret = fusion_shm_pool_create( world, "Benchmark Pool", 524288, &pool );
+     ret = fusion_shm_pool_create( world, "Benchmark Pool", 524288, direct_config->debug, &pool );
      if (ret) {
           DirectFBError( "fusion_shm_pool_create() failed", ret );
           return;

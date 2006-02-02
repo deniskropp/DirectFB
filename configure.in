@@ -364,7 +364,7 @@ fi
 
 
 AC_ARG_ENABLE(debug,
-  [  --enable-debug            enable debug support [default=no]],, enable_debug=no)
+  [  --enable-debug            enable debugging [default=no]],, enable_debug=no)
 if test "$enable_debug" = "yes"; then
     CFLAGS="$CFLAGS -g3 -fno-inline"
     DIRECT_BUILD_DEBUG=1
@@ -374,6 +374,19 @@ fi
 AM_CONDITIONAL(ENABLE_DEBUG, test "$enable_debug" = "yes")
 
 AC_SUBST(DIRECT_BUILD_DEBUG)
+
+
+AC_ARG_ENABLE(debug-support,
+  [  --enable-debug-support    enable debugging support [default=yes]],, enable_debug_support=yes)
+if test "$enable_debug_support" = "yes" || test "$enable_debug" = "yes"; then
+    enable_debug_support=yes
+    DIRECT_BUILD_DEBUGS=1
+else
+    DIRECT_BUILD_DEBUGS=0
+fi
+AM_CONDITIONAL(ENABLE_DEBUGS, test "$enable_debug_support" = "yes")
+
+AC_SUBST(DIRECT_BUILD_DEBUGS)
 
 
 AC_ARG_ENABLE(trace,
@@ -1423,7 +1436,8 @@ Build options:
 Misc options:
   Multi Application Core    $enable_multi
   Voodoo (network support)  $enable_voodoo
-  Debug mode                $enable_debug
+  Debug supported           $enable_debug_support
+  Debug enabled             $enable_debug
   Trace support             $enable_trace
   MMX support               $enable_mmx
   SSE support               $enable_sse

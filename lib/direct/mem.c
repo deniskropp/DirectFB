@@ -30,14 +30,7 @@
 #include <direct/build.h>
 
 
-#if !DIRECT_BUILD_DEBUG
-
-void
-direct_print_memleaks()
-{
-}
-
-#else
+#if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
 #include <stdlib.h>
 #include <string.h>
@@ -278,6 +271,13 @@ direct_strdup( const char* file, int line, const char *func, const char *string 
      pthread_mutex_unlock( &alloc_lock );
 
      return mem;
+}
+
+#else
+
+void
+direct_print_memleaks()
+{
 }
 
 #endif

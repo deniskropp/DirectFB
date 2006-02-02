@@ -70,9 +70,8 @@ Cambridge, MA 02139, USA.
 
 
 
-#if DIRECT_BUILD_DEBUG
-
 void  fusion_dbg_print_memleaks( FusionSHMPoolShared *pool );
+
 
 void *fusion_dbg_shmalloc ( FusionSHMPoolShared *pool,
                             const char *file, int line,
@@ -96,20 +95,6 @@ char *fusion_dbg_shstrdup ( FusionSHMPoolShared *pool,
                             const char *func, const char *string );
 
 
-
-#define SHMALLOC(pool,bytes)        fusion_dbg_shmalloc( pool, __FILE__, __LINE__, __FUNCTION__, bytes )
-#define SHCALLOC(pool,count,bytes)  fusion_dbg_shcalloc( pool, __FILE__, __LINE__, __FUNCTION__, count, bytes )
-#define SHREALLOC(pool,mem,bytes)   fusion_dbg_shrealloc( pool, __FILE__, __LINE__, __FUNCTION__, #mem, mem, bytes )
-#define SHFREE(pool,mem)            fusion_dbg_shfree( pool, __FILE__, __LINE__, __FUNCTION__, #mem,mem )
-#define SHSTRDUP(pool,string)       fusion_dbg_shstrdup( pool, __FILE__, __LINE__, __FUNCTION__, string )
-
-
-
-#else
-
-#define fusion_dbg_print_memleaks(p)    do {} while (0)
-
-
 /* Allocate SIZE bytes of memory.  */
 void *fusion_shmalloc (FusionSHMPoolShared *pool, size_t __size);
 
@@ -126,11 +111,31 @@ void  fusion_shfree (FusionSHMPoolShared *pool, void *__ptr);
 /* Duplicate string in shared memory. */
 char *fusion_shstrdup (FusionSHMPoolShared *pool, const char *string);
 
+
+
+#if DIRECT_BUILD_DEBUGS || DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
+
+#if !DIRECT_BUILD_DEBUGS
+#warning Building with debug, but library headers suggest that debug is not supported.
+#endif
+
+
+#define SHMALLOC(pool,bytes)        fusion_dbg_shmalloc( pool, __FILE__, __LINE__, __FUNCTION__, bytes )
+#define SHCALLOC(pool,count,bytes)  fusion_dbg_shcalloc( pool, __FILE__, __LINE__, __FUNCTION__, count, bytes )
+#define SHREALLOC(pool,mem,bytes)   fusion_dbg_shrealloc( pool, __FILE__, __LINE__, __FUNCTION__, #mem, mem, bytes )
+#define SHFREE(pool,mem)            fusion_dbg_shfree( pool, __FILE__, __LINE__, __FUNCTION__, #mem,mem )
+#define SHSTRDUP(pool,string)       fusion_dbg_shstrdup( pool, __FILE__, __LINE__, __FUNCTION__, string )
+
+
+#else
+
+
 #define SHMALLOC   fusion_shmalloc
 #define SHCALLOC   fusion_shcalloc
 #define SHREALLOC  fusion_shrealloc
 #define SHFREE     fusion_shfree
 #define SHSTRDUP   fusion_shstrdup
+
 
 #endif
 

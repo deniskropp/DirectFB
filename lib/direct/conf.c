@@ -27,11 +27,16 @@
 
 #include <config.h>
 
+#include <direct/build.h>
 #include <direct/conf.h>
 
 
 static DirectConfig config = {
+#if DIRECT_BUILD_DEBUG
      debug:      true,
+#else
+     debug:      false,
+#endif
      trace:      true,
      sighandler: true
 };

@@ -333,7 +333,8 @@ fusion_enter( int           world_index,
           fusion_skirmish_init( &shared->reactor_globals, "Fusion Reactor Globals", world );
 
           /* Create the main pool. */
-          ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000, &shared->main_pool );
+          ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
+                                        direct_config->debug, &shared->main_pool );
           if (ret)
                goto error3;
      }
@@ -798,6 +799,12 @@ DirectResult fusion_enter( int           world_index,
           goto error;
      }
 
+     /* Create the main pool. */
+     ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
+                                   direct_config->debug, &world->shared->main_pool );
+     if (ret)
+          goto error;
+
      D_MAGIC_SET( world, FusionWorld );
      D_MAGIC_SET( world->shared, FusionWorldShared );
 
@@ -807,8 +814,12 @@ DirectResult fusion_enter( int           world_index,
 
 
 error:
-     if (world)
+     if (world) {
+          if (world->shared)
+               D_FREE( world->shared );
+
           D_FREE( world );
+     }
 
      direct_shutdown();
 
@@ -825,6 +836,8 @@ DirectResult fusion_exit( FusionWorld *world,
 {
      D_MAGIC_ASSERT( world, FusionWorld );
      D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     fusion_shm_pool_destroy( world, world->shared->main_pool );
 
      D_MAGIC_CLEAR( world->shared );
 

@@ -33,24 +33,27 @@
 
 #include <fusion/shm/pool.h>
 
-
-struct __Fusion_FusionSHMPoolShared {
-     int  magic;
-     int  attached;
-};
+#include <fusion/shm/shm_internal.h>
 
 
 DirectResult
 fusion_shm_pool_create( FusionWorld          *world,
                         const char           *name,
                         unsigned int          max_size,
+                        bool                  debug,
                         FusionSHMPoolShared **ret_pool )
 {
      FusionSHMPoolShared *pool;
 
+#if !DIRECT_BUILD_DEBUGS
+     debug = false;
+#endif
+
      pool = D_CALLOC( 1, sizeof(FusionSHMPoolShared) );
      if (!pool)
           return D_OOM();
+
+     pool->debug = debug;
 
      D_MAGIC_SET( pool, FusionSHMPoolShared );
 
@@ -78,7 +81,7 @@ fusion_shm_pool_attach( FusionSHM           *shm,
 {
      D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
 
-     pool->attached++;
+     pool->index++;
 
      return DFB_OK;
 }
@@ -89,9 +92,9 @@ fusion_shm_pool_detach( FusionSHM           *shm,
 {
      D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
 
-     D_ASSERT( pool->attached > 0 );
+     D_ASSERT( pool->index > 0 );
 
-     pool->attached--;
+     pool->index--;
 
      return DFB_OK;
 }

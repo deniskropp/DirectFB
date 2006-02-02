@@ -34,6 +34,7 @@
 DirectResult fusion_shm_pool_create    ( FusionWorld          *world,
                                          const char           *name,
                                          unsigned int          max_size,
+                                         bool                  debug,
                                          FusionSHMPoolShared **ret_pool );
 
 DirectResult fusion_shm_pool_destroy   ( FusionWorld          *world,

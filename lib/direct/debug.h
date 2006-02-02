@@ -93,6 +93,11 @@ void direct_assumption( const char *exp,
 
 #if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG))
 
+#if !DIRECT_BUILD_DEBUGS
+#warning Building with debug, but library headers suggest that debug is not supported.
+#endif
+
+
 #define D_DEBUG_ENABLED  (1)
 
 #ifdef HEAVYDEBUG

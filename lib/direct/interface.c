@@ -257,7 +257,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
 
 /**************************************************************************************************/
 
-#if DIRECT_BUILD_DEBUG
+#if DIRECT_BUILD_DEBUGS  /* Build with debug support? */
 
 typedef struct {
      const void        *interface;

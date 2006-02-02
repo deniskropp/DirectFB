@@ -263,13 +263,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      core_dfb = core;
 
-     ret = fusion_enter( dfb_config->session,
-#if DIRECT_BUILD_DEBUG
-                         -DIRECTFB_CORE_ABI,
-#else
-                         DIRECTFB_CORE_ABI,
-#endif
-                         &core->world );
+     ret = fusion_enter( dfb_config->session, DIRECTFB_CORE_ABI, &core->world );
      if (ret)
           goto error;
 
@@ -833,7 +827,8 @@ dfb_core_initialize( CoreDFB *core )
 
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
-     ret = fusion_shm_pool_create( core->world, "DirectFB Surface Pool", 0x8000000, &shared->shmpool_data );
+     ret = fusion_shm_pool_create( core->world, "DirectFB Surface Pool", 0x8000000,
+                                   direct_config->debug, &shared->shmpool_data );
      if (ret)
           return ret;
 
@@ -903,7 +898,8 @@ dfb_core_arena_initialize( FusionArena *arena,
      D_DEBUG_AT( DirectFB_Core, "Initializing...\n" );
 
      /* Create the shared memory pool first! */
-     ret = fusion_shm_pool_create( core->world, "DirectFB Main Pool", 0x400000, &pool );
+     ret = fusion_shm_pool_create( core->world, "DirectFB Main Pool", 0x400000,
+                                   direct_config->debug, &pool );
      if (ret)
           return ret;
 

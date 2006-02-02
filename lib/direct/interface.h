@@ -89,7 +89,6 @@ void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 void direct_print_interface_leaks();
 
 
-#if DIRECT_BUILD_DEBUG
 void direct_dbg_interface_add   ( const char *func,
                                   const char *file,
                                   int         line,
@@ -102,10 +101,25 @@ void direct_dbg_interface_remove( const char *func,
                                   int         line,
                                   const char *what,
                                   const void *interface );
-#else
-#define direct_dbg_interface_add(func,file,line,what,interface,name)  do {} while (0)
-#define direct_dbg_interface_remove(func,file,line,what,interface)    do {} while (0)
+
+
+
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
+
+#if !DIRECT_BUILD_DEBUGS
+#warning Building with debug, but library headers suggest that debug is not supported.
 #endif
+
+#define DIRECT_DBG_INTERFACE_ADD        direct_dbg_interface_add
+#define DIRECT_DBG_INTERFACE_REMOVE     direct_dbg_interface_remove
+
+#else
+
+#define DIRECT_DBG_INTERFACE_ADD(func,file,line,what,interface,name)  do {} while (0)
+#define DIRECT_DBG_INTERFACE_REMOVE(func,file,line,what,interface)    do {} while (0)
+
+#endif
+
 
 
 #define DIRECT_ALLOCATE_INTERFACE(p,i)                                               \
@@ -114,7 +128,7 @@ void direct_dbg_interface_remove( const char *func,
                                                                                      \
           D_MAGIC_SET( (IAny*)(p), DirectInterface );                                \
                                                                                      \
-          direct_dbg_interface_add( __FUNCTION__, __FILE__, __LINE__, #p, p, #i );   \
+          DIRECT_DBG_INTERFACE_ADD( __FUNCTION__, __FILE__, __LINE__, #p, p, #i );   \
      } while (0)
 
 
@@ -130,7 +144,7 @@ void direct_dbg_interface_remove( const char *func,
 
 
 #define DIRECT_DEALLOCATE_INTERFACE(p)                                               \
-     direct_dbg_interface_remove( __FUNCTION__, __FILE__, __LINE__, #p, p );         \
+     DIRECT_DBG_INTERFACE_REMOVE( __FUNCTION__, __FILE__, __LINE__, #p, p );         \
                                                                                      \
      if ((p)->priv) {                                                                \
           D_FREE( (p)->priv );                                                       \
