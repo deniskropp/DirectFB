@@ -193,13 +193,7 @@ fs_core_create( CoreSound **ret_core )
           return DFB_NOSYSTEMMEMORY;
      }
 
-     ret = fusion_enter( fs_config->session,
-#if DIRECT_BUILD_DEBUG
-                         -DIRECTFB_CORE_ABI,
-#else
-                         DIRECTFB_CORE_ABI,
-#endif
-                         &core->world );
+     ret = fusion_enter( fs_config->session, DIRECTFB_CORE_ABI, &core->world );
      if (ret) {
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
@@ -835,7 +829,8 @@ fs_core_arena_initialize( FusionArena *arena,
      D_DEBUG( "FusionSound/Core: Initializing...\n" );
 
      /* Create the shared memory pool first! */
-     ret = fusion_shm_pool_create( core->world, "FusionSound Main Pool", 0x1000000, &pool );
+     ret = fusion_shm_pool_create( core->world, "FusionSound Main Pool", 0x1000000,
+                                   direct_config->debug, &pool );
      if (ret)
           return ret;
 
