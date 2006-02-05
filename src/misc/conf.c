@@ -78,6 +78,7 @@ static const char *config_usage =
      "  [no-]trace                     Enable stack trace support\n"
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
+     "  fatal-level=<level>            Abort on NONE, ASSERT (default) or ASSUME (incl. assert)\n"
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Hardware acceleration\n"
@@ -635,6 +636,21 @@ DFBResult dfb_config_set( const char *name, const char *value )
                     D_ERROR("DirectFB/Config 'log-file': No file name specified!\n");
                else
                     D_ERROR("DirectFB/Config 'log-udp': No host and port specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "fatal-level" ) == 0) {
+          if (strcasecmp (value, "none" ) == 0) {
+               direct_config->fatal = DCFL_NONE;
+          } else
+          if (strcasecmp (value, "assert" ) == 0) {
+               direct_config->fatal = DCFL_ASSERT;
+          } else
+          if (strcasecmp (value, "assume" ) == 0) {
+               direct_config->fatal = DCFL_ASSUME;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'fatal-level': Unknown level specified (use 'none', 'assert', 'assume')!\n");
                return DFB_INVARG;
           }
      } else

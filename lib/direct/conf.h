@@ -35,6 +35,12 @@
 #include <sys/signal.h>
 #endif
 
+typedef enum {
+     DCFL_NONE,     /* None is fatal. */
+     DCFL_ASSERT,   /* ASSERT is fatal. */
+     DCFL_ASSUME    /* ASSERT and ASSUME are fatal. */
+} DirectConfigFatalLevel;
+
 struct __D_DirectConfig {
      bool       quiet;
      bool       debug;
@@ -49,6 +55,8 @@ struct __D_DirectConfig {
      sigset_t   dont_catch;        /* don't catch these signals */
 
      DirectLog *log;
+
+     DirectConfigFatalLevel fatal;
 };
 
 extern DirectConfig *direct_config;

@@ -349,15 +349,17 @@ direct_assertion( const char *exp,
 
      direct_trace_print_stack( NULL );
 
-     D_DEBUG( "Direct/Assertion: "
-              "Sending SIGTRAP to process group %d...\n", getpgrp() );
+     if (direct_config->fatal >= DCFL_ASSERT) {
+          D_DEBUG( "Direct/Assertion: "
+                   "Sending SIGTRAP to process group %d...\n", getpgrp() );
 #ifndef USE_KOS
-     killpg( getpgrp(), SIGTRAP );
+          killpg( getpgrp(), SIGTRAP );
 #endif
-     D_DEBUG( "Direct/Assertion: "
-              "...didn't catch signal on my own, calling _exit(-1).\n" );
+          D_DEBUG( "Direct/Assertion: "
+                   "...didn't catch signal on my own, calling _exit(-1).\n" );
 
-     _exit( -1 );
+          _exit( -1 );
+     }
 }
 
 __attribute__((no_instrument_function))
@@ -376,6 +378,18 @@ direct_assumption( const char *exp,
                         direct_gettid(), exp, file, line, func );
 
      direct_trace_print_stack( NULL );
+
+     if (direct_config->fatal >= DCFL_ASSUME) {
+          D_DEBUG( "Direct/Assumption: "
+                   "Sending SIGTRAP to process group %d...\n", getpgrp() );
+#ifndef USE_KOS
+          killpg( getpgrp(), SIGTRAP );
+#endif
+          D_DEBUG( "Direct/Assumption: "
+                   "...didn't catch signal on my own, calling _exit(-1).\n" );
+
+          _exit( -1 );
+     }
 }
 
 #else

@@ -38,7 +38,9 @@ static DirectConfig config = {
      debug:      false,
 #endif
      trace:      true,
-     sighandler: true
+     sighandler: true,
+
+     fatal:      DCFL_ASSERT
 };
 
 DirectConfig *direct_config = &config;

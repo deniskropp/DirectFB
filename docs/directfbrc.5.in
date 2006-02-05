@@ -132,6 +132,10 @@ Write all messages to the specified file.
 Send all messages via UDP to the specified host and port.
 
 .TP
+.BI fatal-level=<level>
+Abort on NONE, ASSERT (default) or ASSUME (incl. assert)
+
+.TP
 .BI force-windowed
 Forces the primary surface to be a window. This allows to run
 applications that were written to do full-screen access in a window.
@@ -216,6 +220,10 @@ experimental feature that is usually disabled; use at your own risk.
 Puts the virtual terminal into graphics mode. This has the advantage
 that kernel messages won't show up on your screen while the DirectFB
 application is running.
+
+.TP
+.BI [no-]vt
+Use VT handling code at all?
 
 .TP
 .BI [no-]motion-compression
