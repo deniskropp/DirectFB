@@ -436,7 +436,7 @@ bench_flock()
 }
 
 static void
-bench_shmpool()
+bench_shmpool( bool debug )
 {
      DirectResult  ret;
      void         *mem[256];
@@ -444,7 +444,7 @@ bench_shmpool()
 
      FusionSHMPoolShared *pool;
 
-     ret = fusion_shm_pool_create( world, "Benchmark Pool", 524288, direct_config->debug, &pool );
+     ret = fusion_shm_pool_create( world, "Benchmark Pool", 524288, debug, &pool );
      if (ret) {
           DirectFBError( "fusion_shm_pool_create() failed", ret );
           return;
@@ -456,29 +456,28 @@ bench_shmpool()
           int i;
 
           for (i=0; i<128; i++)
-               fusion_shm_pool_allocate( pool, sizes[i&7], false, true, &mem[i] );
+               mem[i] = SHMALLOC( pool, sizes[i&7] );
 
           for (i=0; i<64; i++)
-               fusion_shm_pool_deallocate( pool, mem[i], true );
+               SHFREE( pool, mem[i] );
 
           for (i=128; i<192; i++)
-               fusion_shm_pool_allocate( pool, sizes[i&7], false, true, &mem[i] );
+               mem[i] = SHMALLOC( pool, sizes[i&7] );
 
           for (i=64; i<128; i++)
-               fusion_shm_pool_deallocate( pool, mem[i], true );
+               SHFREE( pool, mem[i] );
 
           for (i=192; i<256; i++)
-               fusion_shm_pool_allocate( pool, sizes[i&7], false, true, &mem[i] );
+               mem[i] = SHMALLOC( pool, sizes[i&7] );
 
           for (i=128; i<256; i++)
-               fusion_shm_pool_deallocate( pool, mem[i], true );
+               SHFREE( pool, mem[i] );
      }
 
      BENCH_STOP();
 
-     printf( "shm pool alloc/free                   -> %8.2f k/sec\n", BENCH_RESULT_BY(256) );
-
-     printf( "\n" );
+     printf( "shm pool alloc/free %s           -> %8.2f k/sec\n",
+             debug ? "(debug)" : "       ", BENCH_RESULT_BY(256) );
 
      fusion_shm_pool_destroy( world, pool );
 }
@@ -525,7 +524,10 @@ main( int argc, char *argv[] )
 
      bench_reactor();
 
-     bench_shmpool();
+     bench_shmpool( false );
+     bench_shmpool( true );
+
+     printf( "\n" );
 
      fusion_exit( world, false );
 
