@@ -7,12 +7,15 @@ INCLUDES = \
 	-I$(top_srcdir)/lib		\
 	-I$(top_srcdir)/src
 
+AM_CPPFLAGS = -D_XOPEN_SOURCE=500
+
 
 internalincludedir = $(INTERNALINCLUDEDIR)/fbdev
 
 internalinclude_HEADERS = \
 	fbdev.h		\
-	vt.h
+	vt.h			\
+	agp.h
 
 
 systemsdir = $(MODULEDIR)/systems
@@ -29,7 +32,8 @@ libdirectfb_fbdev_la_LDFLAGS = \
 
 libdirectfb_fbdev_la_SOURCES = \
 	fbdev.c		\
-	vt.c
+	vt.c			\
+	agp.c
 
 
 include $(top_srcdir)/rules/libobject.make

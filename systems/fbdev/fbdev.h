@@ -38,6 +38,7 @@
 #include <fusion/reactor.h>
 
 #include "vt.h"
+#include "agp.h"
 
 #ifndef FBIO_WAITFORVSYNC
 #define FBIO_WAITFORVSYNC	_IOW('F', 0x20, u_int32_t)
@@ -80,6 +81,8 @@ typedef struct {
           unsigned short      model;         /* Graphics device model id */
      } device;
 
+     AGPShared               *agp;
+
      FusionSHMPoolShared     *shmpool;
      FusionSHMPoolShared     *shmpool_data;
 } FBDevShared;
@@ -95,6 +98,8 @@ typedef struct {
      int                      fd;            /* file descriptor for /dev/fb */
 
      VirtualTerminal         *vt;
+
+     AGPDevice               *agp;
 } FBDev;
 
 /*

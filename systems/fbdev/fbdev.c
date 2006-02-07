@@ -85,6 +85,7 @@
 
 #include "fbdev.h"
 #include "vt.h"
+#include "agp.h"
 
 #include <core/core_system.h>
 
@@ -538,6 +539,15 @@ system_initialize( CoreDFB *core, void **data )
      
      dfb_fbdev_get_pci_info( shared );
 
+     if (dfb_config->agp) {
+          /* Do not fail here, AGP slot could be unavailable */
+          ret = dfb_agp_initialize();
+          if (ret) {
+               D_DEBUG( "DirectFB/FBDev: dfb_agp_initialize()\n\t->%s\n",
+                         DirectFBErrorString( ret ) );
+          }
+     }         
+
      fusion_call_init( &shared->fbdev_ioctl,
                        fbdev_ioctl_call_handler, NULL, dfb_core_world(core) );
 
@@ -595,6 +605,8 @@ system_join( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
+     dfb_agp_join();
+
      /* Register primary screen functions */
      screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
 
@@ -646,6 +658,8 @@ system_shutdown( bool emergency )
 
      fusion_call_destroy( &shared->fbdev_ioctl );
 
+     dfb_agp_shutdown();
+
      munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
 
      if (dfb_config->vt) {
@@ -669,6 +683,8 @@ system_leave( bool emergency )
      DFBResult ret;
 
      D_ASSERT( dfb_fbdev != NULL );
+
+     dfb_agp_leave();
 
      munmap( dfb_fbdev->framebuffer_base,
              dfb_fbdev->shared->fix.smem_len );
@@ -815,6 +831,30 @@ static unsigned int
 system_videoram_length()
 {
      return dfb_fbdev->shared->fix.smem_len;
+}
+
+static unsigned long
+system_aux_memory_physical( unsigned int offset )
+{
+     if (dfb_fbdev->shared->agp)
+          return dfb_fbdev->shared->agp->info.aper_base + offset;
+     return 0;
+}
+
+static void *
+system_aux_memory_virtual( unsigned int offset )
+{
+     if (dfb_fbdev->agp)
+          return (void*)(__u8*)dfb_fbdev->agp->base + offset;
+     return NULL;
+}
+
+static unsigned int
+system_auxram_length()
+{
+     if (dfb_fbdev->shared->agp)
+          return dfb_fbdev->shared->agp->agp_mem;
+     return 0;
 }
 
 static void
@@ -1570,6 +1610,14 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      D_DEBUG("DirectFB/FBDev: dfb_fbdev_set_mode (surface: %p, "
               "mode: %p, buffermode: %d)\n", surface, mode,
               config ? config->buffermode : DLBM_FRONTONLY);
+
+     if (surface) {
+          /* This should never happen */
+          if (surface->front_buffer->storage == CSS_AUXILIARY ||
+              surface->back_buffer->storage  == CSS_AUXILIARY ||
+              surface->idle_buffer->storage  == CSS_AUXILIARY)
+               return DFB_UNSUPPORTED;
+     }
 
      if (!mode)
           mode = &shared->current_mode;
