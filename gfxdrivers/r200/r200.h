@@ -50,6 +50,7 @@ typedef struct {
      DFBAccelerationMask     blitting_mask;
 
      __u32                   fb_offset;
+     __u32                   agp_offset;
      
      DFBSurfacePixelFormat   dst_format;
      __u32                   dst_offset;

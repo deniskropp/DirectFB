@@ -72,6 +72,7 @@ typedef struct {
           __u32 P1_X_START_END;
           __u32 P2_X_START_END;
           __u32 P3_X_START_END;
+          __u32 BASE_ADDR;
           __u32 VID_BUF0_BASE_ADRS;
           __u32 VID_BUF1_BASE_ADRS;
           __u32 VID_BUF2_BASE_ADRS;
@@ -180,7 +181,7 @@ ov0InitLayer( CoreLayer                  *layer,
      
      /* reset color adjustments */
      ov0_set_adjustment( rdrv, rov0, 0, 0, 0, 0 );
-
+     
      return DFB_OK;
 }
 
@@ -386,14 +387,14 @@ ov0_calc_coordinates( R100DriverData        *rdrv,
                       CoreSurface           *surface,
                       CoreLayerRegionConfig *config )
 {
-     VideoMode      *mode     = dfb_system_current_mode();
-     DFBRectangle    source   = config->source;
-     DFBRectangle    dest     = config->dest; 
-     __u32           ecp_div  = 0;
-     __u32           h_inc;
-     __u32           v_inc;
-     __u32           step_by;
-     __u32           tmp;
+     VideoMode    *mode     = dfb_system_current_mode();
+     DFBRectangle  source   = config->source;
+     DFBRectangle  dest     = config->dest; 
+     __u32         ecp_div  = 0;
+     __u32         h_inc;
+     __u32         v_inc;
+     __u32         step_by;
+     __u32         tmp;
 
      if (!mode) {
           D_BUG( "no video mode set" );
@@ -518,6 +519,7 @@ ov0_calc_buffers( R100DriverData        *rdrv,
      R100DeviceData *rdev       = rdrv->device_data;
      SurfaceBuffer  *buffer     = surface->front_buffer;
      DFBRectangle    source     = config->source;
+     __u32           base;
      __u32           offsets[3] = { 0, 0, 0 };
      __u32           pitch      = buffer->video.pitch;
      int             even       = 0;
@@ -540,17 +542,24 @@ ov0_calc_buffers( R100DriverData        *rdrv,
      if (config->dest.y < 0)
           croptop  += -config->dest.y * source.h / config->dest.h;
 
+     if (buffer->storage == CSS_AUXILIARY)
+          base = rdev->agp_offset;
+     else
+          base = rdev->fb_offset;
+
      if (DFB_PLANAR_PIXELFORMAT( surface->format )) {
           cropleft &= ~31;
           croptop  &= ~1;
-          
-          offsets[1]  = rdev->fb_offset + buffer->video.offset +
-                        surface->height * buffer->video.pitch; 
+     
+          offsets[0]  = base + buffer->video.offset;
+          offsets[1]  = offsets[0] + surface->height   * buffer->video.pitch; 
           offsets[2]  = offsets[1] + surface->height/2 * buffer->video.pitch/2;
+          offsets[0] += croptop   * pitch   + cropleft;
           offsets[1] += croptop/2 * pitch/2 + cropleft/2;
           offsets[2] += croptop/2 * pitch/2 + cropleft/2;
           
           if (even) {
+               offsets[0] += buffer->video.pitch;
                offsets[1] += buffer->video.pitch/2;
                offsets[2] += buffer->video.pitch/2;
           }
@@ -560,14 +569,18 @@ ov0_calc_buffers( R100DriverData        *rdrv,
                offsets[1] = offsets[2];
                offsets[2] = tmp;
           }
+     } 
+     else {
+          offsets[0] = base + buffer->video.offset + croptop * pitch +
+                       cropleft * DFB_BYTES_PER_PIXEL( surface->format );
+          if (even) 
+               offsets[0] += buffer->video.pitch;
+          
+          offsets[1] = 
+          offsets[2] = offsets[0];
      }
-
-     offsets[0] = rdev->fb_offset + buffer->video.offset + croptop * pitch +
-                  cropleft * DFB_BYTES_PER_PIXEL( surface->format );
-     if (even) 
-          offsets[0] += buffer->video.pitch;
  
- 
+     rov0->regs.BASE_ADDR            = base;
      rov0->regs.VID_BUF0_BASE_ADRS   = (offsets[0] & VIF_BUF0_BASE_ADRS_MASK);
      rov0->regs.VID_BUF1_BASE_ADRS   = (offsets[1] & VIF_BUF1_BASE_ADRS_MASK) |
                                         VIF_BUF1_PITCH_SEL;
@@ -692,7 +705,7 @@ ov0_set_regs( R100DriverData       *rdrv,
      r100_out32( mmio, OV0_AUTO_FLIP_CNTL,         rov0->regs.AUTO_FLIP_CNTL );
      r100_out32( mmio, OV0_DEINTERLACE_PATTERN,    rov0->regs.DEINTERLACE_PATTERN ); 
      
-     r100_waitfifo( rdrv, rdev, 16 );
+     r100_waitfifo( rdrv, rdev, 17 );
      r100_out32( mmio, OV0_H_INC,                  rov0->regs.H_INC );
      r100_out32( mmio, OV0_STEP_BY,                rov0->regs.STEP_BY );
      r100_out32( mmio, OV0_Y_X_START,              rov0->regs.Y_X_START );
@@ -706,6 +719,7 @@ ov0_set_regs( R100DriverData       *rdrv,
      r100_out32( mmio, OV0_P2_X_START_END,         rov0->regs.P2_X_START_END );
      r100_out32( mmio, OV0_P3_X_START_END,         rov0->regs.P3_X_START_END );
      r100_out32( mmio, OV0_P1_V_ACCUM_INIT,        rov0->regs.P1_V_ACCUM_INIT );
+     r100_out32( mmio, OV0_BASE_ADDR,              rov0->regs.BASE_ADDR );
      r100_out32( mmio, OV0_VID_BUF0_BASE_ADRS,     rov0->regs.VID_BUF0_BASE_ADRS );
      r100_out32( mmio, OV0_VID_BUF1_BASE_ADRS,     rov0->regs.VID_BUF1_BASE_ADRS );
      r100_out32( mmio, OV0_VID_BUF2_BASE_ADRS,     rov0->regs.VID_BUF2_BASE_ADRS );
@@ -733,7 +747,8 @@ ov0_set_buffers( R100DriverData       *rdrv,
      r100_out32( mmio, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK );
      while(!(r100_in32( mmio, OV0_REG_LOAD_CNTL ) & REG_LD_CTL_LOCK_READBACK));
 
-     r100_waitfifo( rdrv, rdev, 7 );
+     r100_waitfifo( rdrv, rdev, 8 );
+     r100_out32( mmio, OV0_BASE_ADDR, rov0->regs.BASE_ADDR );
      r100_out32( mmio, OV0_VID_BUF0_BASE_ADRS, rov0->regs.VID_BUF0_BASE_ADRS );
      r100_out32( mmio, OV0_VID_BUF1_BASE_ADRS, rov0->regs.VID_BUF1_BASE_ADRS );
      r100_out32( mmio, OV0_VID_BUF2_BASE_ADRS, rov0->regs.VID_BUF2_BASE_ADRS );

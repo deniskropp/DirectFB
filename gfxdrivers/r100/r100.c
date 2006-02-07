@@ -200,10 +200,9 @@ r100_reset( R100DriverData *rdrv, R100DeviceData *rdev )
      r100_out32( mmio, SURFACE_CNTL, rdev->surface_cntl );
     
      /* set framebuffer base location */
-     r100_waitfifo( rdrv, rdev, 3 );
+     r100_waitfifo( rdrv, rdev, 2 );
      r100_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
      r100_out32( mmio, DISPLAY2_BASE_ADDR, rdev->fb_offset );
-     r100_out32( mmio, OV0_BASE_ADDR, rdev->fb_offset );
 
      /* set default offset/pitch */
      r100_waitfifo( rdrv, rdev, 3 );
@@ -503,7 +502,8 @@ static void r100SetState( void *drv, void *dev,
 #define r100_enter2d( rdrv, rdev ) {                                       \
      if ((rdev)->write_3d) {                                               \
           r100_waitfifo( rdrv, rdev, 1 );                                  \
-          r100_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN );  \
+          r100_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN  |  \
+                                                     WAIT_HOST_IDLECLEAN );\
           (rdev)->write_3d = false;                                        \
      }                                                                     \
      (rdev)->write_2d = true;                                              \
@@ -512,7 +512,8 @@ static void r100SetState( void *drv, void *dev,
 #define r100_enter3d( rdrv, rdev ) {                                       \
      if ((rdev)->write_2d) {                                               \
           r100_waitfifo( rdrv, rdev, 1 );                                  \
-          r100_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN );  \
+          r100_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN  |  \
+                                                     WAIT_HOST_IDLECLEAN );\
           (rdev)->write_2d = false;                                        \
      }                                                                     \
      (rdev)->write_3d = true;                                              \
@@ -1719,7 +1720,7 @@ driver_init_device( GraphicsDevice     *device,
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
 
-     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.flags    = CCF_CLIPPING | CCF_AUXMEMORY;
      device_info->caps.accel    = R100_SUPPORTED_DRAWINGFUNCTIONS |
                                   R100_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = R100_SUPPORTED_DRAWINGFLAGS;
@@ -1752,7 +1753,20 @@ driver_init_device( GraphicsDevice     *device,
      }
      
      D_DEBUG( "DirectFB/R100: "
-              "Framebuffer base at offset 0x%08x.\n", rdev->fb_offset );
+              "Framebuffer location at 0x%08x.\n", rdev->fb_offset );
+
+     if (dfb_system_auxram_length()) {
+          r100_out32( rdrv->mmio_base, AGP_BASE,
+                      dfb_system_aux_memory_physical( 0 ) );
+          r100_out32( rdrv->mmio_base, AGP_CNTL,
+                      r100_in32( rdrv->mmio_base, AGP_CNTL ) | 0x000e0000 );
+          r100_out32( rdrv->mmio_base, AGP_COMMAND, 0 );
+
+          rdev->agp_offset = r100_in32( rdrv->mmio_base, MC_AGP_LOCATION ) << 16;
+
+          D_DEBUG( "DirectFB/R100: "
+                   "AGP aperture location at 0x%08x.\n", rdev->agp_offset );
+     }
 
      rdev->surface_cntl  = r100_in32( rdrv->mmio_base, SURFACE_CNTL );
      rdev->surface_cntl &= ~(NONSURF_AP0_SWP_16BPP | NONSURF_AP0_SWP_32BPP);

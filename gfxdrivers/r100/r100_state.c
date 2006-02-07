@@ -100,9 +100,12 @@ void r100_set_destination( R100DriverData *rdrv,
 
      D_ASSERT( (buffer->video.offset % 32) == 0 );
      D_ASSERT( (buffer->video.pitch % 64) == 0 );
+     D_ASSERT( buffer->storage != CSS_SYSTEM );
 
-     offset = rdev->fb_offset + buffer->video.offset;
-     pitch  = buffer->video.pitch;
+     offset  = buffer->video.offset;
+     offset += (buffer->storage == CSS_AUXILIARY) ? rdev->agp_offset
+                                                  : rdev->fb_offset;
+     pitch   = buffer->video.pitch;
     
      if (rdev->dst_offset != offset        ||
          rdev->dst_pitch  != pitch         ||
@@ -241,11 +244,14 @@ void r100_set_source( R100DriverData *rdrv,
 
      D_ASSERT( (buffer->video.offset % 32) == 0 );
      D_ASSERT( (buffer->video.pitch % 64) == 0 );
+     D_ASSERT( buffer->storage != CSS_SYSTEM );
 
-     rdev->src_offset = rdev->fb_offset + buffer->video.offset;
-     rdev->src_pitch  = buffer->video.pitch;
-     rdev->src_width  = surface->width  - 1;
-     rdev->src_height = surface->height - 1;
+     rdev->src_offset  = buffer->video.offset;
+     rdev->src_offset += (buffer->storage == CSS_AUXILIARY) ? rdev->agp_offset
+                                                            : rdev->fb_offset;
+     rdev->src_pitch   = buffer->video.pitch;
+     rdev->src_width   = surface->width  - 1;
+     rdev->src_height  = surface->height - 1;
      
      switch (buffer->format) {
           case DSPF_LUT8:

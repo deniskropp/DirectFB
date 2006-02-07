@@ -169,7 +169,7 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
 
      host_path_cntl  = r200_in32( mmio, HOST_PATH_CNTL );
      rbbm_soft_reset = r200_in32( mmio, RBBM_SOFT_RESET );
-     
+    
      r200_out32( mmio, RBBM_SOFT_RESET, rbbm_soft_reset |                                         
                                         SOFT_RESET_CP | SOFT_RESET_HI |
                                         SOFT_RESET_SE | SOFT_RESET_RE |
@@ -190,15 +190,14 @@ r200_reset( R200DriverData *rdrv, R200DeviceData *rdev )
      
      r200_out32( mmio, CLOCK_CNTL_INDEX, clock_cntl_index );
      r200_outpll( mmio, MCLK_CNTL, mclk_cntl );
-   
+     
      /* reset byteswapper */
      r200_out32( mmio, SURFACE_CNTL, rdev->surface_cntl );
       
      /* set framebuffer base location */
-     r200_waitfifo( rdrv, rdev, 3 );
+     r200_waitfifo( rdrv, rdev, 2 );
      r200_out32( mmio, DISPLAY_BASE_ADDR, rdev->fb_offset );
      r200_out32( mmio, DISPLAY2_BASE_ADDR, rdev->fb_offset );
-     r200_out32( mmio, OV0_BASE_ADDR, rdev->fb_offset );
 
      /* set default offset/pitch */
      r200_waitfifo( rdrv, rdev, 3 );
@@ -279,8 +278,7 @@ static void r200FlushTextureCache( void *drv, void *dev )
      R200DeviceData *rdev = (R200DeviceData*) dev;
      volatile __u8  *mmio = rdrv->mmio_base;
 
-     r200_waitfifo( rdrv, rdev, 2 );
-     r200_out32( mmio, RB3D_DSTCACHE_CTLSTAT, RB3D_DC_FLUSH );
+     r200_waitfifo( rdrv, rdev, 1 );
      r200_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
 }
 
@@ -507,7 +505,8 @@ static void r200SetState( void *drv, void *dev,
 #define r200_enter2d( rdrv, rdev ) {                                       \
      if ((rdev)->write_3d) {                                               \
           r200_waitfifo( rdrv, rdev, 1 );                                  \
-          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN );  \
+          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_3D_IDLECLEAN  |  \
+                                                     WAIT_HOST_IDLECLEAN );\
           (rdev)->write_3d = false;                                        \
      }                                                                     \
      (rdev)->write_2d = true;                                              \
@@ -516,7 +515,8 @@ static void r200SetState( void *drv, void *dev,
 #define r200_enter3d( rdrv, rdev ) {                                       \
      if ((rdev)->write_2d) {                                               \
           r200_waitfifo( rdrv, rdev, 1 );                                  \
-          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN );  \
+          r200_out32( (rdrv)->mmio_base, WAIT_UNTIL, WAIT_2D_IDLECLEAN  |  \
+                                                     WAIT_HOST_IDLECLEAN );\
           (rdev)->write_2d = false;                                        \
      }                                                                     \
      (rdev)->write_3d = true;                                              \
@@ -1680,7 +1680,7 @@ driver_init_device( GraphicsDevice     *device,
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "ATI" );
 
-     device_info->caps.flags    = CCF_CLIPPING;
+     device_info->caps.flags    = CCF_CLIPPING | CCF_AUXMEMORY;
      device_info->caps.accel    = R200_SUPPORTED_DRAWINGFUNCTIONS |
                                   R200_SUPPORTED_BLITTINGFUNCTIONS;
      device_info->caps.drawing  = R200_SUPPORTED_DRAWINGFLAGS;
@@ -1700,7 +1700,7 @@ driver_init_device( GraphicsDevice     *device,
      }
 
      r200_waitidle( rdrv, rdev );
-     
+ 
      if (rdev->igp) {
           __u32 tom;
           /* force MC_FB_LOCATION to NB_TOM */
@@ -1708,13 +1708,25 @@ driver_init_device( GraphicsDevice     *device,
           r200_out32( rdrv->mmio_base, MC_FB_LOCATION, tom );
           rdev->fb_offset = tom << 16;
      } 
-     else {
+     else { 
           rdev->fb_offset = r200_in32( rdrv->mmio_base, MC_FB_LOCATION ) << 16;
      }
-     
-     D_DEBUG( "DirectFB/R200: "
-              "Framebuffer base at offset 0x%08x.\n", rdev->fb_offset );
 
+     D_DEBUG( "DirectFB/R200: "
+              "Framebuffer location at 0x%08x.\n", rdev->fb_offset );
+
+     if (dfb_system_auxram_length()) {
+          /* enable AGP support */
+          r200_out32( rdrv->mmio_base, AGP_BASE,
+                      dfb_system_aux_memory_physical( 0 ) );
+          r200_out32( rdrv->mmio_base, AGP_COMMAND, 0 );
+
+          rdev->agp_offset = r200_in32( rdrv->mmio_base, MC_AGP_LOCATION ) << 16;
+          
+          D_DEBUG( "DirectFB/R200: "
+                   "AGP aperture location at 0x%08x.\n", rdev->agp_offset );
+     }
+     
      rdev->surface_cntl  = r200_in32( rdrv->mmio_base, SURFACE_CNTL );
      rdev->surface_cntl &= ~(NONSURF_AP0_SWP_16BPP | NONSURF_AP0_SWP_32BPP);
  
