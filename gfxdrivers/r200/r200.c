@@ -1719,14 +1719,17 @@ driver_init_device( GraphicsDevice     *device,
           /* enable AGP support */
           r200_out32( rdrv->mmio_base, AGP_BASE,
                       dfb_system_aux_memory_physical( 0 ) );
-          r200_out32( rdrv->mmio_base, AGP_COMMAND, 0 );
+          r200_out32( rdrv->mmio_base, AIC_CNTL,
+                      r200_in32( rdrv->mmio_base, AIC_CNTL ) & ~PCIGART_TRANSLATE_EN );
+          r200_out32( rdrv->mmio_base, BUS_CNTL, 
+                      r200_in32( rdrv->mmio_base, BUS_CNTL ) & ~BUS_MASTER_DIS );
 
           rdev->agp_offset = r200_in32( rdrv->mmio_base, MC_AGP_LOCATION ) << 16;
           
           D_DEBUG( "DirectFB/R200: "
                    "AGP aperture location at 0x%08x.\n", rdev->agp_offset );
      }
-     
+ 
      rdev->surface_cntl  = r200_in32( rdrv->mmio_base, SURFACE_CNTL );
      rdev->surface_cntl &= ~(NONSURF_AP0_SWP_16BPP | NONSURF_AP0_SWP_32BPP);
  

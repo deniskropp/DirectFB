@@ -1756,14 +1756,18 @@ driver_init_device( GraphicsDevice     *device,
               "Framebuffer location at 0x%08x.\n", rdev->fb_offset );
 
      if (dfb_system_auxram_length()) {
+          /* enable AGP support */
           r100_out32( rdrv->mmio_base, AGP_BASE,
-                      dfb_system_aux_memory_physical( 0 ) );
+                      dfb_system_aux_memory_physical( 0 ) ); 
           r100_out32( rdrv->mmio_base, AGP_CNTL,
                       r100_in32( rdrv->mmio_base, AGP_CNTL ) | 0x000e0000 );
-          r100_out32( rdrv->mmio_base, AGP_COMMAND, 0 );
+          r100_out32( rdrv->mmio_base, AIC_CNTL,
+                      r100_in32( rdrv->mmio_base, AIC_CNTL ) & ~PCIGART_TRANSLATE_EN );
+          r100_out32( rdrv->mmio_base, BUS_CNTL, 
+                      r100_in32( rdrv->mmio_base, BUS_CNTL ) & ~BUS_MASTER_DIS );
 
           rdev->agp_offset = r100_in32( rdrv->mmio_base, MC_AGP_LOCATION ) << 16;
-
+          
           D_DEBUG( "DirectFB/R100: "
                    "AGP aperture location at 0x%08x.\n", rdev->agp_offset );
      }
