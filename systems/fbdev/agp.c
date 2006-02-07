@@ -304,9 +304,9 @@ dfb_agp_initialize( void )
 
      dfb_agp->fd = direct_try_open( "/dev/agpgart", 
                                     "/dev/misc/agpgart", O_RDWR, true );
-     if (dfb_agp->fd < 0) {
-          D_ERROR( "DirectFB/FBDev/agp: Error opening AGP device!\n" );
+     if (dfb_agp->fd < 0) { 
           ret = errno2result( errno );
+          D_ERROR( "DirectFB/FBDev/agp: Error opening AGP device!\n" );
           goto error1;
      }
 
@@ -405,7 +405,7 @@ dfb_agp_join( void )
 
      shared = dfb_fbdev->shared->agp;
      if (!shared)
-          return DFB_UNSUPPORTED;
+          return DFB_OK;
 
      dfb_agp = D_CALLOC( 1, sizeof(AGPDevice) );
      if (!dfb_agp)
@@ -413,9 +413,9 @@ dfb_agp_join( void )
 
      dfb_agp->fd = direct_try_open( "/dev/agpgart", 
                                     "/dev/misc/agpgart", O_RDWR, true );
-     if (dfb_agp->fd < 0) {
-          D_ERROR( "DirectFB/FBDev/agp: Error opening AGP device!\n" );
+     if (dfb_agp->fd < 0) { 
           ret = errno2result( errno );
+          D_ERROR( "DirectFB/FBDev/agp: Error opening AGP device!\n" );
           goto error0;
      }
 

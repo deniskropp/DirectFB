@@ -605,7 +605,18 @@ system_join( CoreDFB *core, void **data )
           return DFB_INIT;
      }
 
-     dfb_agp_join();
+     /* Open AGP device */
+     ret = dfb_agp_join();
+     if (ret) {
+          D_ERROR( "DirectFB/FBDev: Could not join AGP!\n" );
+          munmap( dfb_fbdev->framebuffer_base,
+                  dfb_fbdev->shared->fix.smem_len );
+          close( dfb_fbdev->fd );
+          D_FREE( dfb_fbdev );
+          dfb_fbdev = NULL;
+
+          return ret;
+     }
 
      /* Register primary screen functions */
      screen = dfb_screens_register( NULL, NULL, &primaryScreenFuncs );
