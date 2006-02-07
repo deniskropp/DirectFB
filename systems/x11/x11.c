@@ -241,6 +241,24 @@ system_videoram_length()
      return 0;
 }
 
+static unsigned long
+system_aux_memory_physical( unsigned int offset )
+{
+     return 0;
+}
+
+static void *
+system_aux_memory_virtual( unsigned int offset )
+{
+     return NULL;
+}
+
+static unsigned int
+system_auxram_length()
+{
+     return 0;
+}
+
 static void
 system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
 {
