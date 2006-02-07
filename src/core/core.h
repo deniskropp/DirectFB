@@ -38,7 +38,7 @@
 #include "coredefs.h"
 
 
-#define DIRECTFB_CORE_ABI     29
+#define DIRECTFB_CORE_ABI     30
 
 
 /*
