@@ -22,15 +22,13 @@ libdirectfb_nvidia_la_SOURCES = \
 	nvidia_3d.c		\
 	nvidia_primary.c	\
 	nvidia_overlay.c	\
-	nvidia_agp.c		\
 	nvidia.h			\
 	nvidia_regs.h		\
 	nvidia_accel.h		\
 	nvidia_objects.h	\
 	nvidia_state.h		\
 	nvidia_2d.h		\
-	nvidia_3d.h		\
-	nvidia_agp.h
+	nvidia_3d.h
 
 libdirectfb_nvidia_la_LDFLAGS = \
 	-export-dynamic		\

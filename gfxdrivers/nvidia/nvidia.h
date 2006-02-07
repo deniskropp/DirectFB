@@ -107,6 +107,7 @@ typedef struct {
      
      __u32                   fb_offset;
      __u32                   fb_size;
+     __u32                   agp_offset;
      
      DFBSurfacePixelFormat   dst_format;
      __u32                   dst_offset;
@@ -214,11 +215,9 @@ typedef struct {
      NVidiaDeviceData       *device_data;
 
      volatile void          *fb_base;
+     volatile void          *agp_base;
      volatile void          *mmio_base; 
      volatile void          *dma_base;
-    
-     int                     agp_fd;
-     volatile void          *agp_base;    
 } NVidiaDriverData;
 
 

@@ -61,7 +61,6 @@ DFB_GRAPHICS_DRIVER( nvidia )
 
 #include "nvidia.h"
 #include "nvidia_regs.h"
-#include "nvidia_agp.h"
 #include "nvidia_accel.h"
 #include "nvidia_objects.h"
 #include "nvidia_state.h"
@@ -1385,22 +1384,15 @@ driver_init_driver( GraphicsDevice      *device,
      nvdrv->device_data = device_data;
      
      nvdrv->fb_base = (volatile void*) dfb_gfxcard_memory_virtual( device, 0 );
+     nvdrv->agp_base = (volatile void*) dfb_gfxcard_auxmemory_virtual( device, 0 );
 
      nvdrv->mmio_base = (volatile void*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!nvdrv->mmio_base)
           return DFB_IO;
    
      if (nvdev->use_dma) {
-          if (nvdev->use_agp) {
-               DFBResult ret;
-               ret = nv_agp_join( nvdrv, nvdev );
-               if (ret)
-                    return ret;
-               nvdrv->dma_base = nvdrv->agp_base;
-          }
-          else {
-               nvdrv->dma_base = nvdrv->fb_base + nvdev->dma_offset;
-          }
+          nvdrv->dma_base = nvdev->use_agp ? nvdrv->agp_base : nvdrv->fb_base;
+          nvdrv->dma_base += nvdev->dma_offset;
      }
 
      funcs->AfterSetVar   = nvAfterSetVar;
@@ -1540,24 +1532,29 @@ driver_init_device( GraphicsDevice     *device,
      
      nvdev->fb_size = 1 << direct_log2( ram_total );
 
-     if (dfb_config->dma) {
-          int bus, dev, func;
+     nvdev->agp_offset = dfb_gfxcard_auxmemory_physical( nvdrv->device, 0 );
 
-          dfb_system_get_busid( &bus, &dev, &func );
-          /* assume AGP slot is at 1:0:0 */
-          if (bus == 1 && dev == 0 && func == 0 &&
-              nv_agp_initialize( nvdrv, nvdev ) == DFB_OK)
-          {
-               nvdev->use_agp  = true;
-               nvdev->use_dma  = true;
-               nvdev->dma_size = 64*1024;
-               nvdrv->dma_base = nvdrv->agp_base;
-               
-               D_INFO( "DirectFB/NVidia: AGP support enabled.\n" );
-          }
-          else {
-               int len, offset;
+     if (dfb_config->dma) {
+          int offset = -1;
           
+          if (dfb_gfxcard_auxmemory_length() >= 64*1024) {
+               offset = dfb_gfxcard_reserve_auxmemory( nvdrv->device, 64*1024 );
+               if (offset < 0) {
+                    D_ERROR( "DirectFB/NVidia: "
+                             "couldn't reserve 64Kb of agp memory!\n" );
+               }
+               else {
+                    nvdev->use_agp    = true;
+                    nvdev->use_dma    = true;
+                    nvdev->dma_size   = 64*1024;
+                    nvdev->dma_offset = offset;
+                    nvdrv->dma_base   = nvdrv->agp_base + offset; 
+               }
+          }
+          
+          if (offset < 0) {
+               int len;
+               
                len    = 32*1024 + ((ram_used - 32*1024) & 0x1FFFF);
                offset = dfb_gfxcard_reserve_memory( nvdrv->device, len );
                if (offset < 0) {
@@ -1568,14 +1565,16 @@ driver_init_device( GraphicsDevice     *device,
                     nvdev->use_dma    = true;
                     nvdev->dma_size   = 32*1024;
                     nvdev->dma_offset = offset;
-                    nvdrv->dma_base   = nvdrv->fb_base+offset;
+                    nvdrv->dma_base   = nvdrv->fb_base + offset;
           
                     ram_used -= len;
                }
           }
 
-          D_INFO( "DirectFB/NVidia: DMA acceleration %s.\n",
-                  nvdev->use_dma ? "enabled" : "disabled" );
+          D_INFO ( "DirectFB/NVidia: DMA acceleration %s.\n",
+                   nvdev->use_dma ? "enabled" : "disabled" );
+          D_DEBUG( "DirectFB/NVidia: DMA target is %s.\n",
+                   nvdev->use_agp ? "AGP" : "NVM" );
      }
 
      /* reserve memory for textures/color buffers */
@@ -1686,8 +1685,8 @@ driver_init_device( GraphicsDevice     *device,
                nv_store_dma( nvdrv, OBJ_DMA_OUT, ADDR_DMA_OUT, 0x02,
                              DMA_FLAG_PAGE_TABLE  | DMA_FLAG_PAGE_ENTRY_LINEAR |
                              DMA_FLAG_ACCESS_RDWR | DMA_FLAG_TARGET_AGP,
-                             nvdev->dma_size, nvdev->agp_aper_base,
-                             DMA_FRAME_UNKNOWN_FLAG | DMA_FRAME_ACCESS_RDWR );
+                             nvdev->dma_size, nvdev->agp_offset+nvdev->dma_offset,
+                             DMA_FRAME_ACCESS_RDWR );
           }
           else {
                nv_store_dma( nvdrv, OBJ_DMA_OUT, ADDR_DMA_OUT, 0x02,
@@ -1839,7 +1838,6 @@ driver_close_device( GraphicsDevice *device,
                      void           *driver_data,
                      void           *device_data )
 {
-     NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
 
      D_DEBUG( "DirectFB/NVidia: Performance Monitoring:\n" );
@@ -1867,8 +1865,6 @@ driver_close_device( GraphicsDevice *device,
           nvdev->use_dma = false;
           nvAfterSetVar( driver_data, device_data );
      }
-     
-     nv_agp_shutdown( nvdrv, nvdev );
 }
 
 static void
@@ -1876,8 +1872,6 @@ driver_close_driver( GraphicsDevice *device,
                      void           *driver_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     
-     nv_agp_leave( nvdrv, nvdrv->device_data );
 
      dfb_gfxcard_unmap_mmio( device, nvdrv->mmio_base, -1 );
 }
