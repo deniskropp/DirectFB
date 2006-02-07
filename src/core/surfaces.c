@@ -825,7 +825,9 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
 
                     D_DEBUG_AT( Core_Surface, "  -> auto video, counter: %d\n", buffer->video.locked );
 
-                    *data = dfb_system_video_memory_virtual( buffer->video.offset );
+                    *data = (buffer->storage == CSS_VIDEO)
+                            ? dfb_system_video_memory_virtual( buffer->video.offset )
+                            : dfb_system_aux_memory_virtual( buffer->video.offset );
                     *pitch = buffer->video.pitch;
 
                     if (flags & DSLF_WRITE)
@@ -864,7 +866,9 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
                else
                     D_DEBUG_AT( Core_Surface, "  -> auto video, counter: %d\n", buffer->video.locked );
 
-               *data = dfb_system_video_memory_virtual( buffer->video.offset );
+               *data = (buffer->storage == CSS_VIDEO)
+                       ? dfb_system_video_memory_virtual( buffer->video.offset )
+                       : dfb_system_aux_memory_virtual( buffer->video.offset );
                *pitch = buffer->video.pitch;
 
                video_access_by_software( buffer, flags );

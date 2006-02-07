@@ -316,6 +316,30 @@ dfb_system_videoram_length()
      return system_funcs->VideoRamLength();
 }
 
+unsigned long
+dfb_system_aux_memory_physical( unsigned int offset )
+{
+     D_ASSERT( system_funcs != NULL );
+
+     return system_funcs->AuxMemoryPhysical( offset );
+}
+
+void *
+dfb_system_aux_memory_virtual( unsigned int offset )
+{
+     D_ASSERT( system_funcs != NULL );
+
+     return system_funcs->AuxMemoryVirtual( offset );
+}
+
+unsigned int
+dfb_system_auxram_length()
+{
+     D_ASSERT( system_funcs != NULL );
+
+     return system_funcs->AuxRamLength();
+}
+
 void
 dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func )
 {

@@ -84,6 +84,15 @@ system_video_memory_virtual( unsigned int offset );
 static unsigned int
 system_videoram_length();
 
+static unsigned long
+system_aux_memory_physical( unsigned int offset );
+
+static void*
+system_aux_memory_virtual( unsigned int offset );
+
+static unsigned int
+system_auxram_length();
+
 static void
 system_get_busid();
 
@@ -109,6 +118,9 @@ static CoreSystemFuncs system_funcs = {
      VideoMemoryPhysical: system_video_memory_physical,
      VideoMemoryVirtual:  system_video_memory_virtual,
      VideoRamLength:      system_videoram_length,
+     AuxMemoryPhysical:   system_aux_memory_physical,
+     AuxMemoryVirtual:    system_aux_memory_virtual,
+     AuxRamLength:        system_auxram_length,
      GetBusID:            system_get_busid,
      GetDeviceID:         system_get_deviceid
 };

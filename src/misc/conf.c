@@ -87,6 +87,7 @@ static const char *config_usage =
 #ifdef USE_MMX
      "  [no-]mmx                       Enable mmx support\n"
 #endif
+     "  [no-]agp[=<mode>]              Enable AGP support\n"
      "  font-format=<pixelformat>      Set the preferred font format\n"
      "  dont-catch=<num>[[,<num>]...]  Don't catch these signals\n"
      "  [no-]sighandler                Enable signal handler\n"
@@ -112,6 +113,7 @@ static const char *config_usage =
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
+     "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n" 
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
      "  disable-module=<module_name>   suppress loading this module\n"
      "\n"
@@ -333,6 +335,7 @@ static void config_allocate()
      dfb_config->decorations              = true;
      dfb_config->unichrome_revision       = -1;
      dfb_config->dma                      = false;
+     dfb_config->agp                      = 0;
      
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -677,6 +680,45 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-mmx" ) == 0) {
           dfb_config->mmx = false;
+     } else
+     if (strcmp (name, "agp" ) == 0) {
+          if (value) {
+               int mode;
+
+               if (sscanf( value, "%d", &mode ) < 1 || mode < 0 || mode > 8) {
+                    D_ERROR( "DirectFB/Config 'agp': "
+                             "invalid agp mode '%s'!\n", value );
+                    return DFB_INVARG;
+               }
+
+               dfb_config->agp = mode;
+          }
+          else {
+               dfb_config->agp = 8; /* maximum possible */
+          }
+     } else
+     if (strcmp (name, "no-agp" ) == 0) {
+          dfb_config->agp = 0;
+     } else
+     if (strcmp (name, "agpmem-limit" ) == 0) { 
+          if (value) {
+               int limit;
+
+               if (sscanf( value, "%d", &limit ) < 1) {
+                    D_ERROR( "DirectFB/Config 'agpmem-limit': "
+                             "Could not parse value!\n" );
+                    return DFB_INVARG;
+               }
+
+               if (limit < 0)
+                    limit = 0;
+
+               dfb_config->agpmem_limit = limit << 10;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'agpmem-limit': No value specified!\n");
+               return DFB_INVARG;
+          }
      } else
      if (strcmp (name, "vt" ) == 0) {
           dfb_config->vt = true;

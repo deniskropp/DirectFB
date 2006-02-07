@@ -40,7 +40,9 @@
 typedef enum {
      CCF_CLIPPING   = 0x00000001,
      CCF_NOTRIEMU   = 0x00000002,
-     CCF_READSYSMEM = 0x00000004
+     CCF_READSYSMEM = 0x00000004,
+     /* CCF_WRITESYSMEM ?! */
+     CCF_AUXMEMORY  = 0x00000010
 } CardCapabilitiesFlags;
 
 struct __DFB_CoreGraphicsSerial {
@@ -314,15 +316,18 @@ void dfb_gfxcard_after_set_var();
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
-SurfaceManager *dfb_gfxcard_surface_manager ();
-void            dfb_gfxcard_get_capabilities( CardCapabilities   *ret_caps );
-void            dfb_gfxcard_get_device_info ( GraphicsDeviceInfo *ret_info );
-void            dfb_gfxcard_get_driver_info ( GraphicsDriverInfo *ret_info );
+SurfaceManager *dfb_gfxcard_surface_manager   ();
+void            dfb_gfxcard_get_capabilities  ( CardCapabilities   *ret_caps );
+void            dfb_gfxcard_get_device_info   ( GraphicsDeviceInfo *ret_info );
+void            dfb_gfxcard_get_driver_info   ( GraphicsDriverInfo *ret_info );
 
-int             dfb_gfxcard_reserve_memory  ( GraphicsDevice      *device,
-                                              unsigned int         size );
+int             dfb_gfxcard_reserve_memory    ( GraphicsDevice      *device,
+                                                unsigned int         size );
+int             dfb_gfxcard_reserve_auxmemory ( GraphicsDevice      *device,
+                                                unsigned int         size );
 
-unsigned int    dfb_gfxcard_memory_length   ();
+unsigned int    dfb_gfxcard_memory_length     ();
+unsigned int    dfb_gfxcard_auxmemory_length  ();
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.
@@ -349,8 +354,15 @@ void dfb_gfxcard_unmap_mmio( GraphicsDevice *device,
 
 int dfb_gfxcard_get_accelerator( GraphicsDevice *device );
 
-unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device, unsigned int offset );
-void          *dfb_gfxcard_memory_virtual( GraphicsDevice *device, unsigned int offset );
+unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device,
+                                            unsigned int    offset );
+void          *dfb_gfxcard_memory_virtual ( GraphicsDevice *device, 
+                                            unsigned int    offset );
+
+unsigned long  dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
+                                               unsigned int    offset );
+void          *dfb_gfxcard_auxmemory_virtual ( GraphicsDevice *device, 
+                                               unsigned int    offset );
 
 #endif
 

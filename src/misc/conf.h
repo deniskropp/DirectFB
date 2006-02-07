@@ -143,6 +143,10 @@ typedef struct
                                                      revision number override */
      
      bool       dma;                              /* Enable DMA */
+     
+     int        agp;                              /* AGP mode */
+     int        agpmem_limit;                     /* Limit of AGP memory
+                                                     used by DirectFB */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

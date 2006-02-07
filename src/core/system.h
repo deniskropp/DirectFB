@@ -178,6 +178,11 @@ typedef struct {
 
      unsigned int   (*VideoRamLength)();
 
+     unsigned long  (*AuxMemoryPhysical)( unsigned int offset );
+     void*          (*AuxMemoryVirtual)( unsigned int offset );
+     
+     unsigned int   (*AuxRamLength)();
+     
      void           (*GetBusID)( int *ret_bus, int *ret_dev, int *ret_func );
      void           (*GetDeviceID)( unsigned int *ret_vendor_id,
                                     unsigned int *ret_device_id );
@@ -229,6 +234,15 @@ dfb_system_video_memory_virtual( unsigned int offset );
 
 unsigned int
 dfb_system_videoram_length();
+
+unsigned long
+dfb_system_aux_memory_physical( unsigned int offset );
+
+void *
+dfb_system_aux_memory_virtual( unsigned int offset );
+
+unsigned int
+dfb_system_auxram_length();
 
 void
 dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func );

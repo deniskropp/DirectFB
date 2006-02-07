@@ -34,18 +34,27 @@
 #include <core/core.h>
 
 #include <core/gfxcard.h>
+#include <core/surfaces.h>
 
 #define CSLF_FORCE 0x80000000
 
 
 SurfaceManager *dfb_surfacemanager_create( CoreDFB         *core,
-                                           unsigned int     length,
                                            CardLimitations *limits );
 
 void dfb_surfacemanager_destroy( SurfaceManager *manager );
 
 DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager );
 DFBResult dfb_surfacemanager_resume( SurfaceManager *manager );
+
+/*
+ * Create a new heap with the specified storage, offset, length
+ */
+DFBResult dfb_surfacemanager_add_heap( SurfaceManager     *manager,
+                                       CoreSurfaceStorage  storage,
+                                       unsigned int        offset,
+                                       unsigned int        length );
+                                        
 
 /*
  * adjust the offset within the framebuffer for surface storage,

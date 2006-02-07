@@ -1,13 +1,14 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
-   (c) Copyright 2002-2004  convergence GmbH.
+   (c) Copyright 2002-2006  convergence GmbH.
 
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
               Andreas Hundt <andi@fischlustig.de>,
-              Sven Neumann <neo@directfb.org> and
-              Ville Syrjälä <syrjala@sci.fi>.
+              Sven Neumann <neo@directfb.org>,
+              Ville Syrjälä <syrjala@sci.fi> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -69,9 +70,11 @@ DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER
  * struct for graphics cards
  */
 typedef struct {
-     /* amount of usable video memory */
+     /* amount of usable memory */
      unsigned int             videoram_length;
-
+     unsigned int             auxram_length;
+     unsigned int             auxram_offset;
+     
      char                    *module_name;
 
      GraphicsDriverInfo       driver_info;
@@ -121,6 +124,7 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
      DFBResult             ret;
      int                   videoram_length;
+     int                   auxram_length;
      GraphicsDeviceShared *shared;
      FusionSHMPoolShared  *pool = dfb_core_shmpool( core );
 
@@ -145,6 +149,16 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
                shared->videoram_length = dfb_config->videoram_limit;
           else
                shared->videoram_length = videoram_length;
+     }
+
+     /* Limit auxiliary memory length (currently only AGP) */
+     auxram_length = dfb_system_auxram_length();
+     if (auxram_length) {
+          if (dfb_config->agpmem_limit > 0 &&
+              dfb_config->agpmem_limit < auxram_length)
+               shared->auxram_length = dfb_config->agpmem_limit;
+          else
+               shared->auxram_length = auxram_length;
      }
 
      /* Build a list of available drivers. */
@@ -202,8 +216,18 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      else
           card->caps = shared->device_info.caps;
 
-     shared->surface_manager = dfb_surfacemanager_create( core, shared->videoram_length,
+     shared->surface_manager = dfb_surfacemanager_create( core,
                                                           &shared->device_info.limits );
+
+     ret = dfb_surfacemanager_add_heap( shared->surface_manager, 
+                                        CSS_VIDEO, 0, shared->videoram_length );
+     /* FIXME: what to do in case of failure? */
+     
+     if (shared->auxram_length && card->caps.flags & CCF_AUXMEMORY) {
+          ret = dfb_surfacemanager_add_heap( shared->surface_manager, CSS_AUXILIARY,
+                                             shared->auxram_offset, shared->auxram_length );
+          /* FIXME: what to do in case of failure? */
+     }
 
      fusion_property_init( &shared->lock, dfb_core_world(core) );
 
@@ -1782,8 +1806,44 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
      return shared->videoram_length;
 }
 
+int
+dfb_gfxcard_reserve_auxmemory( GraphicsDevice *device, unsigned int size )
+{
+     GraphicsDeviceShared *shared;
+     int                   offset;
+
+     D_ASSERT( device != NULL );
+     D_ASSERT( device->shared != NULL );
+
+     shared = device->shared;
+
+     if (shared->surface_manager)
+          return -1;
+
+     /* Reserve memory at the beginning of the aperture
+      * to prevent overflows on DMA buffers. */     
+
+     offset = shared->auxram_offset;
+
+     if (shared->auxram_length < (offset + size))
+          return -1;
+
+     shared->auxram_offset += size;
+
+     return offset;
+}
+
 unsigned int
 dfb_gfxcard_memory_length()
+{
+     D_ASSERT( card != NULL );
+     D_ASSERT( card->shared != NULL );
+
+     return card->shared->videoram_length;
+}
+
+unsigned int
+dfb_gfxcard_auxmemory_length()
 {
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1825,6 +1885,20 @@ dfb_gfxcard_memory_virtual( GraphicsDevice *device,
                             unsigned int    offset )
 {
      return dfb_system_video_memory_virtual( offset );
+}
+
+unsigned long
+dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
+                                unsigned int    offset )
+{
+     return dfb_system_aux_memory_physical( offset );
+}
+
+void *
+dfb_gfxcard_auxmemory_virtual( GraphicsDevice *device,
+                               unsigned int    offset )
+{
+     return dfb_system_aux_memory_virtual( offset );
 }
 
 /** internal **/

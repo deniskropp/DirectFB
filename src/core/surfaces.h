@@ -82,6 +82,15 @@ typedef enum {
 } CoreSurfacePolicy;
 
 typedef enum {
+     CSS_SYSTEM          = 0x00000000,  /* actually stored 
+                                           into system memory */ 
+     CSS_VIDEO           = 0x00000001,  /* actually stored 
+                                           into video memory */
+     CSS_AUXILIARY       = 0x00000002,  /* actually stored 
+                                           into PCI/AGP/PCIE memory */
+} CoreSurfaceStorage;
+
+typedef enum {
      SBF_NONE            = 0x00000000,
      SBF_FOREIGN_SYSTEM  = 0x00000001,  /* system memory is preallocated by
                                            application, won't be freed */
@@ -103,6 +112,7 @@ struct _SurfaceBuffer
 {
      SurfaceBufferFlags      flags;     /* additional information */
      CoreSurfacePolicy       policy;    /* swapping policy for surfacemanager */
+     CoreSurfaceStorage      storage;   /* system, video or bus memory? */
 
      DFBSurfacePixelFormat   format;    /* pixel format of buffer, usually that of its surface */
 
@@ -119,7 +129,7 @@ struct _SurfaceBuffer
           CoreSurfaceHealth  health;    /* currently stored in video memory? */
           int                locked;    /* video instance is locked, don't
                                            try to kick out, could deadlock */
-
+          
           VideoAccessFlags   access;    /* information about recent read/write
                                            accesses to video buffer memory */
           CoreGraphicsSerial serial;    /* serial of last write operation */
