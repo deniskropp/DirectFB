@@ -89,7 +89,7 @@ struct __D_DirectTraceBuffer {
 
 static DirectTraceBuffer *buffers[MAX_BUFFERS];
 static int                buffers_num  = 0;
-static pthread_mutex_t    buffers_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t    buffers_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 static pthread_key_t      trace_key    = -1;
 
 /**************************************************************************************************/
@@ -156,8 +156,6 @@ get_trace_buffer()
 
 /**************************************************************************************************/
 
-#ifdef DYNAMIC_LINKING
-
 typedef struct {
      long offset;
      char name[NAME_LEN];
@@ -173,7 +171,7 @@ typedef struct {
 } SymbolTable;
 
 static DirectLink      *tables      = NULL;
-static pthread_mutex_t  tables_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t  tables_lock = DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER;
 
 
 __attribute__((no_instrument_function))
@@ -224,7 +222,8 @@ load_symbols( const char *filename )
      char        *command;
      const char  *full_path = filename;
 
-     if (access( filename, R_OK ) < 0 && errno == ENOENT) {
+     if (filename) {
+       if (access( filename, R_OK ) < 0 && errno == ENOENT) {
           int   len;
           char *tmp;
 
@@ -235,12 +234,26 @@ load_symbols( const char *filename )
 
           file[len] = 0;
 
+          
           tmp = strrchr( file, '/' ) + 1;
           if (!tmp)
                return NULL;
 
           if (strcmp( filename, tmp ))
                return NULL;
+
+          full_path = file;
+       }
+     }
+     else {
+          int   len;
+
+          if ((len = readlink( "/proc/self/exe", file, sizeof(file) - 1 )) < 0) {
+               D_PERROR( "Direct/Trace: readlink( \"/proc/self/exe\" ) failed!\n" );
+               return NULL;
+          }
+
+          file[len] = 0;
 
           full_path = file;
      }
@@ -263,13 +276,8 @@ load_symbols( const char *filename )
           return NULL;
      }
 
-     table->filename = strdup( filename );
-     if (!table->filename) {
-          D_WARN( "out of memory" );
-          free( table );
-          pclose( pipe );
-          return NULL;
-     }
+     if (filename)
+          table->filename = strdup( filename );
 
      while (fgets( line, sizeof(line), pipe )) {
           int  n;
@@ -320,7 +328,7 @@ find_table( const char *filename )
      SymbolTable *table;
 
      direct_list_foreach (table, tables) {
-          if (!strcmp( filename, table->filename ))
+          if ((!filename && !table->filename) || !strcmp( filename, table->filename ))
                return table;
      }
 
@@ -354,8 +362,6 @@ lookup_symbol( const char *filename, long offset )
 
      return symbol ? symbol->name : NULL;
 }
-
-#endif
 
 /**************************************************************************************************/
 
@@ -429,8 +435,12 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                     direct_log_printf( NULL, "?? ()\n" );
           }
           else
+#else
+          {
+               const char *symbol = lookup_symbol(NULL, (long)(fn));
+               direct_log_printf( NULL, "%s ()\n", symbol ? symbol : "??" );
+          }
 #endif
-               direct_log_printf( NULL, "?? ()\n" );
      }
 
      direct_log_printf( NULL, "\n" );
@@ -551,8 +561,6 @@ __cyg_profile_func_exit (void *this_fn,
                buffer->level--;
      }
 }
-
-
 
 #else
 
