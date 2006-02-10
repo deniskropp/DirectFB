@@ -36,6 +36,7 @@
 
 #include <direct/debug.h>
 #include <direct/interface.h>
+#include <direct/log.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
@@ -143,13 +144,14 @@ FusionSoundCreate( IFusionSound **ret_interface )
      }
 
      if (!direct_config->quiet && dfb_config->banner) {
-          fprintf( stderr, "\n" );
-          fprintf( stderr, "       --------------------- FusionSound v%d.%d.%d -------------------\n",
-                          FUSIONSOUND_MAJOR_VERSION, FUSIONSOUND_MINOR_VERSION, FUSIONSOUND_MICRO_VERSION );
-          fprintf( stderr, "             (c) 2000-2002  convergence integrated media GmbH  \n" );
-          fprintf( stderr, "             (c) 2002-2005  convergence GmbH                   \n" );
-          fprintf( stderr, "        -----------------------------------------------------------\n" );
-          fprintf( stderr, "\n" );
+          direct_log_printf( NULL,
+               "\n"
+               "       --------------------- FusionSound v%d.%d.%d -------------------\n"
+               "             (c) 2000-2002  convergence integrated media GmbH  \n"
+               "             (c) 2002-2006  convergence GmbH                   \n"
+               "        -----------------------------------------------------------\n"
+               "\n",
+               FUSIONSOUND_MAJOR_VERSION, FUSIONSOUND_MINOR_VERSION, FUSIONSOUND_MICRO_VERSION );
      }
 
      if (dfb_config->remote.host)
