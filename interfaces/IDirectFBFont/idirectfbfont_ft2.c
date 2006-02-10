@@ -508,7 +508,8 @@ Probe( IDirectFBFont_ProbeContext *ctx )
       * but due to freetype bugs it doesn't work.
       */
      err = FT_New_Face( library, ctx->filename, 0, &face );
-     FT_Done_Face( face );
+     if (!err)
+          FT_Done_Face( face );
      pthread_mutex_unlock ( &library_mutex );
 
      release_freetype();
