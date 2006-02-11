@@ -446,9 +446,9 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                int y = 0;
 
                /* image must not be scaled */
-               row_ptr = dst;
-
                dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+
+               row_ptr = dst;
 
                while (cinfo.output_scanline < cinfo.output_height) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
