@@ -439,6 +439,7 @@ fusion_object_destroy( FusionObject *object )
      FusionWorldShared *shared;
 
      D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( object->state != FOS_ACTIVE );
 
      shared = object->shared;
 
