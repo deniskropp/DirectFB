@@ -494,7 +494,7 @@ main( int argc, char *argv[] )
 
      dfb_system_lookup();
 
-     ret = fusion_enter( -1, 0, &world );
+     ret = fusion_enter( -1, 0, FER_MASTER, &world );
      if (ret)
           return DirectFBError( "fusion_enter()", ret );
 

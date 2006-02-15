@@ -30,6 +30,11 @@
 
 #include <fusion/types.h>
 
+typedef enum {
+     FER_ANY,
+     FER_MASTER,
+     FER_SLAVE
+} FusionEnterRole;
 
 /*
  * Enters a fusion world by joining or creating it.
@@ -37,9 +42,10 @@
  * If <b>world_index</b> is negative, the next free index is used to create a new world.
  * Otherwise the world with the specified index is joined or created.
  */
-DirectResult fusion_enter( int           world_index,
-                           int           abi_version,
-                           FusionWorld **ret_world );
+DirectResult fusion_enter( int               world_index,
+                           int               abi_version,
+                           FusionEnterRole   role,
+                           FusionWorld     **ret_world );
 
 /*
  * Exits the fusion world.

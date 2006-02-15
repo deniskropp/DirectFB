@@ -26,7 +26,7 @@ main( int argc, char *argv[] )
      DFBRegion            clip;
      FusionSHMPoolShared *pool;
 
-     ret = fusion_enter( -1, 0, &world );
+     ret = fusion_enter( -1, 0, FER_ANY, &world );
      if (ret)
           return -1;
 

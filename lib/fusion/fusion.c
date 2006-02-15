@@ -147,12 +147,13 @@ _fusion_world( const FusionWorldShared *shared )
  * Otherwise the world with the specified index is joined or created.
  */
 DirectResult
-fusion_enter( int           world_index,
-              int           abi_version,
-              FusionWorld **ret_world )
+fusion_enter( int               world_index,
+              int               abi_version,
+              FusionEnterRole   role,
+              FusionWorld     **ret_world )
 {
+     DirectResult       ret;
      int                fd     = -1;
-     DirectResult       ret    = DFB_FUSION;
      FusionWorld       *world  = NULL;
      FusionWorldShared *shared = NULL;
      FusionEnter        enter;
@@ -168,10 +169,18 @@ fusion_enter( int           world_index,
           return DFB_INVARG;
      }
 
+     direct_initialize();
+
      pthread_mutex_lock( &fusion_worlds_lock );
 
 
      if (world_index < 0) {
+          if (role == FER_SLAVE) {
+               D_ERROR( "Fusion/Init: Slave role and a new world (index -1) was requested!\n" );
+               pthread_mutex_unlock( &fusion_worlds_lock );
+               return DFB_INVARG;
+          }
+
           for (world_index=0; world_index<FUSION_MAX_WORLDS; world_index++) {
                world = fusion_worlds[world_index];
                if (world)
@@ -193,11 +202,16 @@ fusion_enter( int           world_index,
      else {
           world = fusion_worlds[world_index];
           if (!world) {
+               int flags = O_RDWR | O_NONBLOCK;
+
                snprintf( buf1, sizeof(buf1), "/dev/fusion%d", world_index );
                snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", world_index );
 
+               if (role == FER_MASTER)
+                    flags |= O_EXCL;
+
                /* Open Fusion Kernel Device. */
-               fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK, true );
+               fd = direct_try_open( buf1, buf2, flags, true );
           }
      }
 
@@ -206,15 +220,39 @@ fusion_enter( int           world_index,
           D_MAGIC_ASSERT( world, FusionWorld );
           D_ASSERT( world->refs > 0 );
 
+          /* Check the role again. */
+          switch (role) {
+               case FER_MASTER:
+                    if (world->fusion_id != FUSION_ID_MASTER) {
+                         D_ERROR( "Fusion/Init: Master role requested for a world (%d) "
+                                  "we're already slave in!\n", world_index );
+                         ret = DFB_UNSUPPORTED;
+                         goto error;
+                    }
+                    break;
+
+               case FER_SLAVE:
+                    if (world->fusion_id == FUSION_ID_MASTER) {
+                         D_ERROR( "Fusion/Init: Slave role requested for a world (%d) "
+                                  "we're already master in!\n", world_index );
+                         ret = DFB_UNSUPPORTED;
+                         goto error;
+                    }
+                    break;
+
+               case FER_ANY:
+                    break;
+          }
+
           shared = world->shared;
 
           D_MAGIC_ASSERT( shared, FusionWorldShared );
 
           if (shared->world_abi != abi_version) {
-               D_ERROR( "Fusion/Init: World ABI (%d) doesn't match own (%d)!\n",
-                        shared->world_abi, abi_version );
-               pthread_mutex_unlock( &fusion_worlds_lock );
-               return DFB_VERSIONMISMATCH;
+               D_ERROR( "Fusion/Init: World ABI (%d) of world '%d' doesn't match own (%d)!\n",
+                        shared->world_abi, world_index, abi_version );
+               ret = DFB_VERSIONMISMATCH;
+               goto error;
           }
 
           world->refs++;
@@ -230,16 +268,15 @@ fusion_enter( int           world_index,
      }
 
      if (fd < 0) {
-          D_PERROR( "Fusion/Init: Opening fusion device failed!\n" );
-          pthread_mutex_unlock( &fusion_worlds_lock );
-          return DFB_INIT;
+          D_PERROR( "Fusion/Init: Opening fusion device (world %d) as '%s' failed!\n", world_index,
+                    role == FER_ANY ? "any" : (role == FER_MASTER ? "master" : "slave")  );
+          ret = DFB_INIT;
+          goto error;
      }
 
      /* Drop "identity" when running another program. */
      if (fcntl( fd, F_SETFD, FD_CLOEXEC ) < 0)
           D_PERROR( "Fusion/Init: Setting FD_CLOEXEC flag failed!\n" );
-
-     direct_initialize();
 
      /* Fill enter information. */
      enter.api.major = FUSION_API_MAJOR;
@@ -249,7 +286,8 @@ fusion_enter( int           world_index,
      /* Enter the fusion world. */
      while (ioctl( fd, FUSION_ENTER, &enter )) {
           if (errno != EINTR) {
-               D_PERROR( "Fusion/Init: Could not enter world!\n" );
+               D_PERROR( "Fusion/Init: Could not enter world '%d'!\n", world_index );
+               ret = DFB_INIT;
                goto error;
           }
      }
@@ -257,10 +295,18 @@ fusion_enter( int           world_index,
      /* Check for valid Fusion ID. */
      if (!enter.fusion_id) {
           D_ERROR( "Fusion/Init: Got no ID from FUSION_ENTER! Kernel module might be too old.\n" );
+          ret = DFB_INIT;
           goto error;
      }
 
      D_DEBUG_AT( Fusion_Main, "  -> Fusion ID 0x%08lx\n", enter.fusion_id );
+
+     /* Check slave role only, master is handled by O_EXCL earlier. */
+     if (role == FER_SLAVE && enter.fusion_id == FUSION_ID_MASTER) {
+          D_PERROR( "Fusion/Init: Entering world '%d' as a slave failed!\n", world_index );
+          ret = DFB_UNSUPPORTED;
+          goto error;
+     }
 
      /* Map shared area. */
      shared = mmap( (void*) 0x20000000 + 0x2000 * world_index, sizeof(FusionWorldShared),
@@ -406,7 +452,8 @@ error:
           munmap( shared, sizeof(FusionWorldShared) );
      }
 
-     close( fd );
+     if (fd != -1)
+          close( fd );
 
      pthread_mutex_unlock( &fusion_worlds_lock );
 
@@ -774,9 +821,10 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
  * If <b>world_index</b> is negative, the next free index is used to create a new world.
  * Otherwise the world with the specified index is joined or created.
  */
-DirectResult fusion_enter( int           world_index,
-                           int           abi_version,
-                           FusionWorld **ret_world )
+DirectResult fusion_enter( int               world_index,
+                           int               abi_version,
+                           FusionEnterRole   role,
+                           FusionWorld     **ret_world )
 {
      DirectResult  ret;
      FusionWorld  *world = NULL;

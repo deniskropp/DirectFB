@@ -263,7 +263,7 @@ dfb_core_create( CoreDFB **ret_core )
 
      core_dfb = core;
 
-     ret = fusion_enter( dfb_config->session, DIRECTFB_CORE_ABI, &core->world );
+     ret = fusion_enter( dfb_config->session, DIRECTFB_CORE_ABI, FER_ANY, &core->world );
      if (ret)
           goto error;
 
