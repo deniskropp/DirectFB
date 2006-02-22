@@ -193,7 +193,7 @@ fs_core_create( CoreSound **ret_core )
           return DFB_NOSYSTEMMEMORY;
      }
 
-     ret = fusion_enter( fs_config->session, DIRECTFB_CORE_ABI, &core->world );
+     ret = fusion_enter( fs_config->session, DIRECTFB_CORE_ABI, FER_ANY, &core->world );
      if (ret) {
           D_FREE( core );
           pthread_mutex_unlock( &core_sound_lock );
