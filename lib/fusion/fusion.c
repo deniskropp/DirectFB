@@ -152,7 +152,7 @@ fusion_enter( int               world_index,
               FusionEnterRole   role,
               FusionWorld     **ret_world )
 {
-     DirectResult       ret;
+     DirectResult       ret    = DFB_OK;
      int                fd     = -1;
      FusionWorld       *world  = NULL;
      FusionWorldShared *shared = NULL;
