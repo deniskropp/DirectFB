@@ -649,11 +649,8 @@ fs_core_initialize( CoreSound *core )
 
      /* set application profile */
 #ifdef SNDCTL_DSP_PROFILE
-     if (ioctl( fd, SNDCTL_DSP_PROFILE, &prof ) == -1) {
-          D_ERROR( "FusionSound/Core: Unable to set application profile!\n" );
-          close( fd );
-          return DFB_UNSUPPORTED;
-     }
+     if (ioctl( fd, SNDCTL_DSP_PROFILE, &prof ) == -1)
+          D_WARN( "FusionSound/Core: Unable to set application profile!\n" );
 #endif
      
      /* set bits per sample */
