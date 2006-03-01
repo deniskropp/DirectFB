@@ -28,24 +28,33 @@
 #ifndef __FUSION__TYPES_H__
 #define __FUSION__TYPES_H__
 
-#include <direct/types.h>
-
+#include <fusion/build.h>
 
 #if FUSION_BUILD_MULTI
 
 #include <linux/fusion.h>
 
-#if FUSION_API_MAJOR != 2
-#error Need major API version 2!
+#if FUSION_API_MAJOR != 3
+#error Need major API version 3!
 #else
 #if FUSION_API_MINOR < 0
-#error Insufficient minor API version, need 2.0 at least!
+#error Insufficient minor API version, need 3.0 at least!
 #endif
 #endif
 
 #else
 typedef unsigned long FusionID;
+
+typedef enum {
+     FCEF_NONE   = 0x00000000,
+     FCEF_ONEWAY = 0x00000001,
+     FCEF_ALL    = 0x00000001
+} FusionCallExecFlags;
+
 #endif
+
+
+#include <direct/types.h>
 
 
 typedef struct __Fusion_FusionConfig         FusionConfig;

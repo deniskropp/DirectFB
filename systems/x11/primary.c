@@ -29,6 +29,8 @@
 
 #include <config.h>
 
+#include <fusion/types.h>
+
 #include <stdio.h>
 
 #include <directfb.h>
@@ -603,7 +605,7 @@ dfb_x11_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
 
-     fusion_call_execute( &dfb_x11->call, X11_SET_VIDEO_MODE,
+     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_VIDEO_MODE,
                           tmp ? tmp : config, &ret );
 
      if (tmp)
@@ -632,13 +634,13 @@ dfb_x11_update_screen( CoreDFB *core, DFBRegion *region )
           }
      }
 
-     fusion_call_execute( &dfb_x11->call, X11_UPDATE_SCREEN,
+     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_UPDATE_SCREEN,
                           tmp ? tmp : region, &ret );
 
      if (tmp)
           SHFREE( dfb_core_shmpool(core), tmp );
 
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -647,7 +649,7 @@ dfb_x11_set_palette( CorePalette *palette )
      int ret;
      printf("dfb_x11_set_palette\n");
 
-     fusion_call_execute( &dfb_x11->call, X11_SET_PALETTE,
+     fusion_call_execute( &dfb_x11->call, FCEF_NONE, X11_SET_PALETTE,
                           palette, &ret );
 
      return ret;

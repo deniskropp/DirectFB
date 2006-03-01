@@ -27,6 +27,8 @@
 
 #include <config.h>
 
+#include <fusion/types.h>
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

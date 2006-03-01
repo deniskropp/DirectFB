@@ -574,6 +574,8 @@ dfb_sdl_update_screen_handler( const DFBRegion *region )
      DFBRegion    update;
      CoreSurface *surface = dfb_sdl->primary;
 
+     DFB_REGION_ASSERT_IF( region );
+
      if (region)
           update = *region;
      else {
@@ -632,7 +634,9 @@ dfb_sdl_call_handler( int   caller,
                return dfb_sdl_set_video_mode_handler( call_ptr );
 
           case SDL_UPDATE_SCREEN:
-               return dfb_sdl_update_screen_handler( call_ptr );
+               dfb_sdl_update_screen_handler( call_ptr );
+               SHFREE( dfb_core_shmpool(dfb_sdl_core), call_ptr );
+               return 0;
 
           case SDL_SET_PALETTE:
                return dfb_sdl_set_palette_handler( call_ptr );
@@ -664,7 +668,7 @@ dfb_sdl_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
 
-     fusion_call_execute( &dfb_sdl->call, SDL_SET_VIDEO_MODE,
+     fusion_call_execute( &dfb_sdl->call, FCEF_NONE, SDL_SET_VIDEO_MODE,
                           tmp ? tmp : config, &ret );
 
      if (tmp)
@@ -683,22 +687,17 @@ dfb_sdl_update_screen( CoreDFB *core, DFBRegion *region )
           return dfb_sdl_update_screen_handler( region );
 
      if (region) {
-          if (!fusion_is_shared( dfb_core_world(core), region )) {
-               tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
-               if (!tmp)
-                    return D_OOSHM();
+          tmp = SHMALLOC( dfb_core_shmpool(core), sizeof(DFBRegion) );
+          if (!tmp)
+               return D_OOSHM();
 
-               direct_memcpy( tmp, region, sizeof(DFBRegion) );
-          }
+          direct_memcpy( tmp, region, sizeof(DFBRegion) );
      }
 
-     fusion_call_execute( &dfb_sdl->call, SDL_UPDATE_SCREEN,
+     fusion_call_execute( &dfb_sdl->call, FCEF_ONEWAY, SDL_UPDATE_SCREEN,
                           tmp ? tmp : region, &ret );
 
-     if (tmp)
-          SHFREE( dfb_core_shmpool(core), tmp );
-
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -706,7 +705,7 @@ dfb_sdl_set_palette( CorePalette *palette )
 {
      int ret;
 
-     fusion_call_execute( &dfb_sdl->call, SDL_SET_PALETTE,
+     fusion_call_execute( &dfb_sdl->call, FCEF_NONE, SDL_SET_PALETTE,
                           palette, &ret );
 
      return ret;

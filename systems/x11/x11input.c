@@ -27,6 +27,8 @@
 
 #include <config.h>
 
+#include <fusion/types.h>
+
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>

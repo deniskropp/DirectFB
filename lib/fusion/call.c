@@ -80,11 +80,13 @@ fusion_call_init (FusionCall        *call,
           return DFB_FAILURE;
      }
 
-     /* Called locally. */
+     memset( call, 0, sizeof(FusionCall) );
+
+     /* Store handler, called directly when called by ourself. */
      call->handler = handler;
      call->ctx     = ctx;
 
-     /* Store call and fusion id for local (direct) calls. */
+     /* Store call and own fusion id. */
      call->call_id   = call_new.call_id;
      call->fusion_id = fusion_id( world );
 
@@ -95,10 +97,11 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
-fusion_call_execute (FusionCall *call,
-                     int         call_arg,
-                     void       *call_ptr,
-                     int        *ret_val)
+fusion_call_execute (FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *call_ptr,
+                     int                 *ret_val)
 {
      D_ASSERT( call != NULL );
 
@@ -117,6 +120,7 @@ fusion_call_execute (FusionCall *call,
           execute.call_id  = call->call_id;
           execute.call_arg = call_arg;
           execute.call_ptr = call_ptr;
+          execute.flags    = flags;
 
           while (ioctl( _fusion_fd( call->shared ), FUSION_CALL_EXECUTE, &execute )) {
                switch (errno) {
@@ -220,10 +224,11 @@ fusion_call_init (FusionCall        *call,
 }
 
 DirectResult
-fusion_call_execute (FusionCall *call,
-                     int         call_arg,
-                     void       *call_ptr,
-                     int        *ret_val)
+fusion_call_execute (FusionCall          *call,
+                     FusionCallExecFlags  flags,
+                     int                  call_arg,
+                     void                *call_ptr,
+                     int                 *ret_val)
 {
      int ret;
 

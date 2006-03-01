@@ -2325,7 +2325,7 @@ fbdev_ioctl( int request, void *arg, int arg_size )
           }
      }
 
-     ret = fusion_call_execute( &shared->fbdev_ioctl,
+     ret = fusion_call_execute( &shared->fbdev_ioctl, FCEF_NONE,
                                 request, tmp_shm ? tmp_shm : arg, &erno );
 
      if (tmp_shm) {

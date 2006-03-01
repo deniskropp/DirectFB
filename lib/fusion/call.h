@@ -45,17 +45,18 @@ typedef struct {
 } FusionCall;
 
 
-DirectResult fusion_call_init    (FusionCall        *call,
-                                  FusionCallHandler  handler,
-                                  void              *ctx,
-                                  const FusionWorld *world);
+DirectResult fusion_call_init    (FusionCall          *call,
+                                  FusionCallHandler    handler,
+                                  void                *ctx,
+                                  const FusionWorld   *world);
 
-DirectResult fusion_call_execute (FusionCall        *call,
-                                  int                call_arg,
-                                  void              *call_ptr,
-                                  int               *ret_val);
+DirectResult fusion_call_execute (FusionCall          *call,
+                                  FusionCallExecFlags  flags,
+                                  int                  call_arg,
+                                  void                *call_ptr,
+                                  int                 *ret_val);
 
-DirectResult fusion_call_destroy (FusionCall        *call);
+DirectResult fusion_call_destroy (FusionCall          *call);
 
 
 #endif

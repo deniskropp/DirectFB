@@ -682,7 +682,7 @@ dfb_vnc_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
 
-     fusion_call_execute( &dfb_vnc->call, VNC_SET_VIDEO_MODE,
+     fusion_call_execute( &dfb_vnc->call, FCEF_NONE, VNC_SET_VIDEO_MODE,
                           tmp ? tmp : config, &ret );
 
      if (tmp)
@@ -710,13 +710,13 @@ dfb_vnc_update_screen( CoreDFB *core, DFBRegion *region )
           }
      }
 
-     fusion_call_execute( &dfb_vnc->call, VNC_UPDATE_SCREEN,
+     fusion_call_execute( &dfb_vnc->call, FCEF_NONE, VNC_UPDATE_SCREEN,
                           tmp ? tmp : region, &ret );
 
      if (tmp)
           SHFREE( dfb_core_shmpool(core), tmp );
 
-     return ret;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -724,7 +724,7 @@ dfb_vnc_set_palette( CorePalette *palette )
 {
      int ret;
 
-     fusion_call_execute( &dfb_vnc->call, VNC_SET_PALETTE,
+     fusion_call_execute( &dfb_vnc->call, FCEF_NONE, VNC_SET_PALETTE,
                           palette, &ret );
 
      return ret;
