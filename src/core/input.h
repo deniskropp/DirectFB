@@ -138,6 +138,8 @@ DFBResult         dfb_input_device_get_keymap_entry( CoreInputDevice           *
                                                      int                        keycode,
                                                      DFBInputDeviceKeymapEntry *entry );
 
+DFBResult         dfb_input_device_reload_keymap   ( CoreInputDevice           *device );
+
 /* global reactions */
 
 typedef enum {

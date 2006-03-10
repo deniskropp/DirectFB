@@ -35,10 +35,13 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
+#include <direct/list.h>
+#include <direct/messages.h>
+
+
 #include <fusion/shmalloc.h>
 #include <fusion/reactor.h>
 #include <fusion/arena.h>
-#include <direct/list.h>
 
 #include <directfb.h>
 
@@ -73,9 +76,13 @@
 #include <gfx/convert.h>
 
 
+D_DEBUG_DOMAIN( Core_Input, "Core/Input", "DirectFB Input Core" );
+
+
 DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
                          DFB_INPUT_DRIVER_ABI_VERSION );
 
+/**********************************************************************************************************************/
 
 typedef struct {
      DirectLink               link;
@@ -119,6 +126,8 @@ typedef struct {
 
      FusionReactor               *reactor;       /* event dispatcher */
      FusionSkirmish               lock;
+
+     FusionCall                   call;          /* driver call via master */
 } InputDeviceShared;
 
 struct __DFB_CoreInputDevice {
@@ -137,16 +146,22 @@ typedef struct {
      InputDeviceShared *devices[MAX_INPUTDEVICES];
 } CoreInput;
 
+/**********************************************************************************************************************/
+
 static DirectLink *drivers;
 static DirectLink *devices;
 
 static CoreInput  *core_input;
 
-
 DFB_CORE_PART( input, 0, sizeof(CoreInput) )
 
+/**********************************************************************************************************************/
 
-/**************************************************************************************************/
+typedef enum {
+     CIDC_RELOAD_KEYMAP
+} CoreInputDeviceCommand;
+
+/**********************************************************************************************************************/
 
 static void init_devices( CoreDFB *core );
 
@@ -155,7 +170,7 @@ static void allocate_device_keymap( CoreDFB *core, CoreInputDevice *device );
 static DFBInputDeviceKeymapEntry *get_keymap_entry( CoreInputDevice *device,
                                                     int              code );
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 static bool lookup_from_table( CoreInputDevice    *device,
                                DFBInputEvent      *event,
@@ -172,7 +187,7 @@ static void flush_keys       ( CoreInputDevice    *device );
 static bool core_input_filter( CoreInputDevice    *device,
                                DFBInputEvent      *event );
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 static DFBInputDeviceKeyIdentifier symbol_to_id( DFBInputDeviceKeySymbol     symbol );
 
@@ -180,7 +195,7 @@ static DFBInputDeviceKeySymbol     id_to_symbol( DFBInputDeviceKeyIdentifier id,
                                                  DFBInputDeviceModifierMask  modifiers,
                                                  DFBInputDeviceLockState     locks );
 
-/**************************************************************************************************/
+/**********************************************************************************************************************/
 
 static ReactionFunc dfb_input_globals[MAX_INPUT_GLOBALS+1] = {
 /* 0 */   _dfb_windowstack_inputdevice_listener,
@@ -193,12 +208,16 @@ dfb_input_add_global( ReactionFunc  func,
 {
      int i;
 
+     D_DEBUG_AT( Core_Input, "%s( %p, %p )\n", __FUNCTION__, func, ret_index );
+
      D_ASSERT( func != NULL );
      D_ASSERT( ret_index != NULL );
 
      for (i=0; i<MAX_INPUT_GLOBALS; i++) {
           if (!dfb_input_globals[i]) {
                dfb_input_globals[i] = func;
+
+               D_DEBUG_AT( Core_Input, "  -> index %d\n", i );
 
                *ret_index = i;
 
@@ -213,6 +232,8 @@ DFBResult
 dfb_input_set_global( ReactionFunc func,
                       int          index )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %d )\n", __FUNCTION__, func, index );
+
      D_ASSERT( func != NULL );
      D_ASSERT( index >= 0 );
      D_ASSERT( index < MAX_INPUT_GLOBALS );
@@ -229,6 +250,8 @@ dfb_input_set_global( ReactionFunc func,
 static DFBResult
 dfb_input_initialize( CoreDFB *core, void *data_local, void *data_shared )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %p, %p )\n", __FUNCTION__, core, data_local, data_shared );
+
      D_ASSERT( core_input == NULL );
 
      core_input = data_shared;
@@ -244,6 +267,8 @@ static DFBResult
 dfb_input_join( CoreDFB *core, void *data_local, void *data_shared )
 {
      int i;
+
+     D_DEBUG_AT( Core_Input, "%s( %p, %p, %p )\n", __FUNCTION__, core, data_local, data_shared );
 
      D_ASSERT( core_input == NULL );
 
@@ -275,6 +300,8 @@ dfb_input_shutdown( CoreDFB *core, bool emergency )
      CoreInputDevice     *device;
      FusionSHMPoolShared *pool = dfb_core_shmpool( core );
 
+     D_DEBUG_AT( Core_Input, "%s( %p, %semergency )\n", __FUNCTION__, core, emergency ? "" : "no " );
+
      D_ASSERT( core_input != NULL );
 
      direct_list_foreach_safe (device, n, devices) {
@@ -282,6 +309,9 @@ dfb_input_shutdown( CoreDFB *core, bool emergency )
           InputDeviceShared *shared = device->shared;
 
           D_MAGIC_ASSERT( device, CoreInputDevice );
+
+          fusion_call_destroy( &shared->call );
+          fusion_skirmish_destroy( &shared->lock );
 
           driver->funcs->CloseDevice( device->driver_data );
 
@@ -316,6 +346,8 @@ dfb_input_leave( CoreDFB *core, bool emergency )
      DirectLink      *n;
      CoreInputDevice *device;
 
+     D_DEBUG_AT( Core_Input, "%s( %p, %semergency )\n", __FUNCTION__, core, emergency ? "" : "no " );
+
      D_ASSERT( core_input != NULL );
 
      direct_list_foreach_safe (device, n, devices) {
@@ -335,9 +367,11 @@ dfb_input_suspend( CoreDFB *core )
 {
      CoreInputDevice *device;
 
+     D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, core );
+
      D_ASSERT( core_input != NULL );
 
-     D_DEBUG( "DirectFB/Input: suspending...\n" );
+     D_DEBUG_AT( Core_Input, "  -> suspending...\n" );
 
      direct_list_foreach (device, devices) {
           InputDriver       *driver = device->driver;
@@ -347,17 +381,17 @@ dfb_input_suspend( CoreDFB *core )
 
           D_MAGIC_ASSERT( device, CoreInputDevice );
 
-          D_DEBUG( "DirectFB/Input: Closing '%s' (%d) %d.%d (%s)\n",
-                   shared->device_info.desc.name, shared->num + 1,
-                   driver->info.version.major,
-                   driver->info.version.minor, driver->info.vendor );
+          D_DEBUG_AT( Core_Input, "  -> closing '%s' (%d) %d.%d (%s)\n",
+                      shared->device_info.desc.name, shared->num + 1,
+                      driver->info.version.major,
+                      driver->info.version.minor, driver->info.vendor );
 
           driver->funcs->CloseDevice( device->driver_data );
 
           flush_keys( device );
      }
 
-     D_DEBUG( "DirectFB/Input: suspended.\n" );
+     D_DEBUG_AT( Core_Input, "  -> suspended.\n" );
 
      return DFB_OK;
 }
@@ -368,18 +402,20 @@ dfb_input_resume( CoreDFB *core )
      DFBResult        ret;
      CoreInputDevice *device;
 
+     D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, core );
+
      D_ASSERT( core_input != NULL );
 
-     D_DEBUG( "DirectFB/Input: resuming...\n" );
+     D_DEBUG_AT( Core_Input, "  -> resuming...\n" );
 
      direct_list_foreach (device, devices) {
           D_MAGIC_ASSERT( device, CoreInputDevice );
 
-          D_DEBUG( "DirectFB/Input: Reopening '%s' (%d) %d.%d (%s)\n",
-                    device->shared->device_info.desc.name, device->shared->num + 1,
-                    device->driver->info.version.major,
-                    device->driver->info.version.minor,
-                    device->driver->info.vendor );
+          D_DEBUG_AT( Core_Input, "  -> reopening '%s' (%d) %d.%d (%s)\n",
+                      device->shared->device_info.desc.name, device->shared->num + 1,
+                      device->driver->info.version.major,
+                      device->driver->info.version.minor,
+                      device->driver->info.vendor );
 
           ret = device->driver->funcs->OpenDevice( device, device->shared->num,
                                                    &device->shared->device_info,
@@ -390,7 +426,7 @@ dfb_input_resume( CoreDFB *core )
           }
      }
 
-     D_DEBUG( "DirectFB/Input: resumed.\n" );
+     D_DEBUG_AT( Core_Input, "  -> resumed.\n" );
 
      return DFB_OK;
 }
@@ -418,6 +454,8 @@ dfb_input_attach( CoreInputDevice *device,
                   void            *ctx,
                   Reaction        *reaction )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %p, %p, %p )\n", __FUNCTION__, device, func, ctx, reaction );
+
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      D_ASSERT( core_input != NULL );
@@ -431,6 +469,8 @@ DirectResult
 dfb_input_detach( CoreInputDevice *device,
                   Reaction        *reaction )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %p )\n", __FUNCTION__, device, reaction );
+
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      D_ASSERT( core_input != NULL );
@@ -446,6 +486,8 @@ dfb_input_attach_global( CoreInputDevice *device,
                          void            *ctx,
                          GlobalReaction  *reaction )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %d, %p, %p )\n", __FUNCTION__, device, index, ctx, reaction );
+
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      D_ASSERT( core_input != NULL );
@@ -459,6 +501,8 @@ DirectResult
 dfb_input_detach_global( CoreInputDevice *device,
                          GlobalReaction  *reaction )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %p )\n", __FUNCTION__, device, reaction );
+
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      D_ASSERT( core_input != NULL );
@@ -471,6 +515,8 @@ dfb_input_detach_global( CoreInputDevice *device,
 void
 dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p, %p )\n", __FUNCTION__, device, event );
+
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      D_ASSERT( core_input != NULL );
@@ -524,8 +570,8 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
 
                fixup_key_event( device, event );
 
-               /* D_DEBUG("DirectFB/Input: key code: %x, id: %x, symbol: %x\n",
-                        event->key_code, event->key_id, event->key_symbol); */
+               D_DEBUG_AT( Core_Input, "  -> key code: %x, id: %x, symbol: %x\n",
+                           event->key_code, event->key_id, event->key_symbol );
                break;
 
           default:
@@ -603,11 +649,34 @@ dfb_input_device_get_keymap_entry( CoreInputDevice           *device,
      return DFB_OK;
 }
 
+DFBResult
+dfb_input_device_reload_keymap( CoreInputDevice *device )
+{
+     int                ret;
+     InputDeviceShared *shared;
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     shared = device->shared;
+
+     D_ASSERT( shared != NULL );
+
+     D_INFO( "DirectFB/Input: Reloading keymap for '%s' [0x%02x]...\n",
+             shared->device_info.desc.name, shared->id );
+
+     if (fusion_call_execute( &shared->call, FCEF_NONE, CIDC_RELOAD_KEYMAP, NULL, &ret ))
+          return DFB_FUSION;
+
+     return ret;
+}
+
 /** internal **/
 
 static void
 input_add_device( CoreInputDevice *device )
 {
+     D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, device );
+
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
      D_ASSERT( core_input != NULL );
@@ -634,6 +703,8 @@ allocate_device_keymap( CoreDFB *core, CoreInputDevice *device )
      DFBInputDeviceDescription *desc        = &shared->device_info.desc;
      int                        num_entries = desc->max_keycode -
                                               desc->min_keycode + 1;
+
+     D_DEBUG_AT( Core_Input, "%s( %p, %p )\n", __FUNCTION__, core, device );
 
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
@@ -662,6 +733,8 @@ make_id( DFBInputDeviceID prefered )
 {
      CoreInputDevice *device;
 
+     D_DEBUG_AT( Core_Input, "%s( 0x%02x )\n", __FUNCTION__, prefered );
+
      D_ASSERT( core_input != NULL );
 
      direct_list_foreach (device, devices) {
@@ -674,11 +747,69 @@ make_id( DFBInputDeviceID prefered )
      return prefered;
 }
 
+static DFBResult
+reload_keymap( CoreInputDevice *device )
+{
+     int                i;
+     InputDeviceShared *shared;
+
+     D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, device );
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     shared = device->shared;
+
+     D_ASSERT( shared != NULL );
+
+     if (shared->device_info.desc.min_keycode < 0 ||
+         shared->device_info.desc.max_keycode < 0)
+          return DFB_UNSUPPORTED;
+
+     /* write -1 indicating entry is not fetched yet from driver */
+     for (i=0; i<shared->keymap.num_entries; i++)
+          shared->keymap.entries[i].code = -1;
+
+     /* fetch the whole map */
+     for (i=shared->keymap.min_keycode; i<=shared->keymap.max_keycode; i++)
+          get_keymap_entry( device, i );
+
+     D_INFO( "DirectFB/Input: Reloaded keymap for '%s' [0x%02x]\n",
+             shared->device_info.desc.name, shared->id );
+
+     return DFB_OK;
+}
+
+static int
+input_device_call_handler( int   caller,   /* fusion id of the caller */
+                           int   call_arg, /* optional call parameter */
+                           void *call_ptr, /* optional call parameter */
+                           void *ctx )     /* optional handler context */
+{
+     CoreInputDeviceCommand  command = call_arg;
+     CoreInputDevice        *device  = ctx;
+
+     D_DEBUG_AT( Core_Input, "%s( %d, %d, %p, %p )\n", __FUNCTION__, caller, call_arg, call_ptr, ctx );
+
+     D_MAGIC_ASSERT( device, CoreInputDevice );
+
+     switch (command) {
+          case CIDC_RELOAD_KEYMAP:
+               return reload_keymap( device );
+
+          default:
+               D_BUG( "unknown Core Input Device Command '%d'", command );
+     }
+
+     return DFB_BUG;
+}
+
 static void
 init_devices( CoreDFB *core )
 {
      DirectLink          *link;
      FusionSHMPoolShared *pool = dfb_core_shmpool( core );
+
+     D_DEBUG_AT( Core_Input, "%s( %p )\n", __FUNCTION__, core );
 
      D_ASSERT( core_input != NULL );
 
@@ -702,8 +833,7 @@ init_devices( CoreDFB *core )
 
           funcs->GetDriverInfo( &driver->info );
 
-          D_DEBUG( "DirectFB/Input: Probing '%s'...\n",
-                    driver->info.name );
+          D_DEBUG_AT( Core_Input, "  -> probing '%s'...\n", driver->info.name );
 
           driver->nr_devices = funcs->GetAvailable();
           if (!driver->nr_devices) {
@@ -712,10 +842,8 @@ init_devices( CoreDFB *core )
                continue;
           }
 
-          D_DEBUG( "DirectFB/Input: %d available %s provided by '%s'.\n",
-                    driver->nr_devices,
-                    driver->nr_devices == 1 ? "device" : "devices",
-                    driver->info.name );
+          D_DEBUG_AT( Core_Input, "  -> %d available device(s) provided by '%s'.\n",
+                      driver->nr_devices, driver->info.name );
 
           driver->module = module;
           driver->funcs  = funcs;
@@ -753,20 +881,25 @@ init_devices( CoreDFB *core )
                else
                     snprintf( buf, sizeof(buf), "%s", device_info.desc.name );
 
-
+               /* init skirmish */
                fusion_skirmish_init( &shared->lock, buf, dfb_core_world(core) );
 
+               /* create reactor */
                shared->reactor = fusion_reactor_new( sizeof(DFBInputEvent), buf, dfb_core_world(core) );
 
                fusion_reactor_set_lock( shared->reactor, &shared->lock );
 
+               /* init call */
+               fusion_call_init( &shared->call, input_device_call_handler, device, dfb_core_world(core) );
 
+               /* initialize shared data */
                shared->id          = make_id(device_info.prefered_id);
                shared->num         = n;
                shared->device_info = device_info;
                shared->last_key    = DIKI_UNKNOWN;
                shared->first_press = true;
 
+               /* initialize local data */
                device->shared      = shared;
                device->driver      = driver;
                device->driver_data = driver_data;

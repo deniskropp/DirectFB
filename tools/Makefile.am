@@ -27,7 +27,7 @@ if ENABLE_VOODOO
 VOODOO_PROGS = dfbproxy
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfblayer dfbscreen dfbsummon $(VOODOO_PROGS)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon $(VOODOO_PROGS)
 
 noinst_PROGRAMS = \
 	$(LINUXONLY_TOOLS)
@@ -40,6 +40,9 @@ dfbg_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/li
 
 dfbinfo_SOURCES = dfbinfo.c
 dfbinfo_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
+
+dfbinput_SOURCES = dfbinput.c
+dfbinput_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)
 
 dfblayer_SOURCES = dfblayer.c
 dfblayer_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la $(OSX_LIBS)

@@ -5,6 +5,7 @@ Makefile.in
 dfbg
 dfbdump
 dfbinfo
+dfbinput
 dfblayer
 dfbproxy
 dfbscreen
