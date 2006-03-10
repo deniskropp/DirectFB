@@ -532,28 +532,26 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data,
      DirectLink        *n;
      Reaction          *reaction;
      ReactorNode       *node;
-     FusionWorldShared *shared;
+     FusionWorldShared *shared = NULL;
 
      D_ASSERT( msg_data != NULL );
      D_ASSERT( reactor != NULL || world != NULL );
 
-/*     D_DEBUG_AT( Fusion_Reactor,
-                 "  _fusion_reactor_process_message( [%d], msg_data %p )\n", reactor_id, msg_data );*/
+     D_DEBUG_AT( Fusion_Reactor,
+                 "  _fusion_reactor_process_message( [%d], msg_data %p )\n", reactor_id, msg_data );
 
      /* Find the local counter part of the reactor. */
      node = lock_node( reactor_id, false, reactor, world );
      if (!node)
           return;
 
-     /* FIXME */
-     if (node->reactor->magic != D_MAGIC( "FusionReactor" ))
-          return;
-
      D_MAGIC_ASSUME( node->reactor, FusionReactor );
 
-     shared = node->reactor->shared;
+     if (node->reactor->magic == D_MAGIC( "FusionReactor" )) {
+          shared = node->reactor->shared;
 
-     D_MAGIC_ASSERT( shared, FusionWorldShared );
+          D_MAGIC_ASSERT( shared, FusionWorldShared );
+     }
 
 //     D_DEBUG_AT( Fusion_Reactor, "    -> node %p, reactor %p\n", node, node->reactor );
 
@@ -583,21 +581,23 @@ _fusion_reactor_process_message( int reactor_id, const void *msg_data,
 
                direct_list_remove( &node->reactions, &reaction->link );
 
-               while (ioctl( _fusion_fd( shared ), FUSION_REACTOR_DETACH, &reactor_id )) {
-                    switch (errno) {
-                         case EINTR:
-                              continue;
+               if (shared) {
+                    while (ioctl( _fusion_fd( shared ), FUSION_REACTOR_DETACH, &reactor_id )) {
+                         switch (errno) {
+                              case EINTR:
+                                   continue;
 
-                         case EINVAL:
-                              D_ERROR( "Fusion/Reactor: invalid reactor\n" );
-                              break;
+                              case EINVAL:
+                                   D_ERROR( "Fusion/Reactor: invalid reactor (DETACH)\n" );
+                                   break;
 
-                         default:
-                              D_PERROR( "FUSION_REACTOR_DETACH" );
-                              break;
+                              default:
+                                   D_PERROR( "FUSION_REACTOR_DETACH" );
+                                   break;
+                         }
+
+                         break;
                     }
-
-                    break;
                }
           }
      }
@@ -677,8 +677,8 @@ lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *wor
      ReactorNode       *node;
      FusionWorldShared *shared;
 
-/*     D_DEBUG_AT( Fusion_Reactor, "    lock_node( [%d], add %s, reactor %p )\n",
-                 reactor_id, add_it ? "true" : "false", reactor );*/
+     D_DEBUG_AT( Fusion_Reactor, "    lock_node( [%d], add %s, reactor %p )\n",
+                 reactor_id, add_it ? "true" : "false", reactor );
 
      D_ASSERT( reactor != NULL || (!add_it && world != NULL) );
 
