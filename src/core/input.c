@@ -475,8 +475,12 @@ dfb_input_dispatch( CoreInputDevice *device, DFBInputEvent *event )
 
      D_ASSERT( core_input != NULL );
      D_ASSERT( device != NULL );
-     D_ASSERT( device->shared != NULL );
      D_ASSERT( event != NULL );
+
+     D_ASSUME( device->shared != NULL );
+
+     if (!device->shared)
+          return;
 
      D_ASSUME( device->shared->reactor != NULL );
 
