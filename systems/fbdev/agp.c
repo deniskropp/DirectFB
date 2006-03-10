@@ -38,7 +38,7 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
-#include <linux/pci.h>
+#include <linux/pci_regs.h>
 
 #include <directfb.h>
 
