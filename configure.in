@@ -163,7 +163,7 @@ fi
 AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
 
 
-AC_CHECK_HEADERS(linux/unistd.h asm/page.h)
+AC_CHECK_HEADERS(linux/pci_regs.h linux/unistd.h asm/page.h)
 
 
 dnl Clear default CFLAGS

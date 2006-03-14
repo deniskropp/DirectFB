@@ -38,7 +38,11 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
+#ifdef HAVE_LINUX_PCI_REGS_H
 #include <linux/pci_regs.h>
+#else
+#include <linux/pci.h>
+#endif
 
 #include <directfb.h>
 
