@@ -533,7 +533,7 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      }
 
      /* Return whether the function bit is set. */
-     return (state->accel & accel);
+     return !!(state->accel & accel);
 }
 
 /*
