@@ -1264,11 +1264,12 @@ AC_ARG_WITH(sysroot,
 test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
 AC_SUBST(RUNTIME_SYSROOT)
 
-if test "$enable_debug" = "yes"; then
-  MODULEDIRNAME=directfb-$BINARY_VERSION-debug
+# Change the module directory only for builds that don't *support* debug
+if test "$enable_debug_support" = "yes"; then
+  MODULEDIRNAME=directfb-$BINARY_VERSION-pure
 else
   MODULEDIRNAME=directfb-$BINARY_VERSION
-fi
+#fi
 
 MODULEDIR=$libdir/$MODULEDIRNAME
 DATADIR=$datadir/directfb-$VERSION
