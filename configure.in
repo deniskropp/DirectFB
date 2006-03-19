@@ -1269,7 +1269,7 @@ if test "$enable_debug_support" = "yes"; then
   MODULEDIRNAME=directfb-$BINARY_VERSION-pure
 else
   MODULEDIRNAME=directfb-$BINARY_VERSION
-#fi
+fi
 
 MODULEDIR=$libdir/$MODULEDIRNAME
 DATADIR=$datadir/directfb-$VERSION
