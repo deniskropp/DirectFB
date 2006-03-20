@@ -1734,6 +1734,22 @@ void dfb_gfxcard_after_set_var()
           card->funcs.AfterSetVar( card->driver_data, card->device_data );
 }
 
+void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags )
+{
+     D_ASSUME( card != NULL );
+
+     if (card && card->funcs.SurfaceEnter)
+          card->funcs.SurfaceEnter( card->driver_data, card->device_data, buffer, flags );
+}
+
+void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer )
+{
+     D_ASSUME( card != NULL );
+
+     if (card && card->funcs.SurfaceLeave)
+          card->funcs.SurfaceLeave( card->driver_data, card->device_data, buffer );
+}
+
 DFBResult
 dfb_gfxcard_adjust_heap_offset( int offset )
 {
@@ -1848,7 +1864,7 @@ dfb_gfxcard_auxmemory_length()
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
 
-     return card->shared->videoram_length;
+     return card->shared->auxram_length;
 }
 
 volatile void *

@@ -975,8 +975,18 @@ void dfb_surface_unlock( CoreSurface *surface, int front )
      if (buffer->system.locked)
           buffer->system.locked--;
 
-     if (buffer->video.locked)
+     if (buffer->video.locked) {
           buffer->video.locked--;
+
+          /* FIXME: There should be a way to distinguish
+           *        between hardware and software locks. */
+          if (buffer->video.locked == 0 &&
+              buffer->video.access & VAF_SOFTWARE_LOCK)
+          {
+               dfb_gfxcard_surface_leave( buffer );
+               buffer->video.access &= ~VAF_SOFTWARE_LOCK;
+          }
+     }
 
      D_DEBUG_AT( Core_Surface, "  -> system/video count: %d/%d after\n", buffer->system.locked, buffer->video.locked );
 
@@ -1188,7 +1198,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
           fd_p = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_p < 0) {
-               D_PERROR("DirectFB/core/input: "
+               D_PERROR("DirectFB/core/surfaces: "
                         "could not open %s!\n", filename);
                dfb_surface_unlock( surface, true );
                if (palette)
@@ -1204,7 +1214,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
 
           fd_g = open( filename, O_EXCL | O_CREAT | O_WRONLY, 0644 );
           if (fd_g < 0) {
-               D_PERROR("DirectFB/core/input: "
+               D_PERROR("DirectFB/core/surfaces: "
                          "could not open %s!\n", filename);
 
                dfb_surface_unlock( surface, true );
@@ -1659,6 +1669,8 @@ static void video_access_by_hardware( SurfaceBuffer       *buffer,
 static void video_access_by_software( SurfaceBuffer       *buffer,
                                       DFBSurfaceLockFlags  flags )
 {
+     VideoAccessFlags access = VAF_SOFTWARE_LOCK;
+     
      if (flags & DSLF_WRITE) {
           if (buffer->video.access & VAF_HARDWARE_READ) {
                dfb_gfxcard_sync();
@@ -1674,9 +1686,14 @@ static void video_access_by_software( SurfaceBuffer       *buffer,
      }
 
      if (flags & DSLF_READ)
-          buffer->video.access |= VAF_SOFTWARE_READ;
+          access |= VAF_SOFTWARE_READ;
 
      if (flags & DSLF_WRITE)
-          buffer->video.access |= VAF_SOFTWARE_WRITE;
+          access |= VAF_SOFTWARE_WRITE;
+
+     if ((buffer->video.access & access) != access)
+          dfb_gfxcard_surface_enter( buffer, flags );
+
+     buffer->video.access |= access;
 }
 

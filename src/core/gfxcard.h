@@ -73,7 +73,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          31
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          32
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     40
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   60
@@ -165,6 +165,17 @@ typedef struct _GraphicsDeviceFuncs {
       * make sure the CPU won't read back cached data.
       */
      void (*FlushReadCache)( void *driver_data, void *device_data );
+
+     /*
+      * Called before a software access to a video surface buffer.
+      */
+     void (*SurfaceEnter)( void *driver_data, void *device_data, 
+                           SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
+
+     /*
+      * Called after a software access to a video surface buffer.
+      */
+     void (*SurfaceLeave)( void *driver_data, void *device_data, SurfaceBuffer *buffer );
 
      /*
       * Return the serial of the last (queued) operation.
@@ -313,6 +324,8 @@ void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache();
 void dfb_gfxcard_flush_read_cache();
 void dfb_gfxcard_after_set_var();
+void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
+void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer );
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 

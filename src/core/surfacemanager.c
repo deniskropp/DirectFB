@@ -610,10 +610,14 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
                if (buffer->flags & SBF_WRITTEN) {
                     int   i;
-                    char *src = buffer->system.addr;
-                    char *dst = (buffer->video.chunk->heap->storage == CSS_VIDEO)
-                                ? dfb_system_video_memory_virtual( buffer->video.offset )
-                                : dfb_system_aux_memory_virtual( buffer->video.offset );
+                    char *src   = buffer->system.addr;
+                    char *dst   = (buffer->video.chunk->heap->storage == CSS_VIDEO)
+                                  ? dfb_system_video_memory_virtual( buffer->video.offset )
+                                  : dfb_system_aux_memory_virtual( buffer->video.offset );
+                    int   flags = buffer->video.access & (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE);
+                   
+                    if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE))
+                         dfb_gfxcard_surface_enter( buffer, DSLF_WRITE );
                     
                     for (i=0; i<surface->height; i++) {
                          direct_memcpy( dst, src,
@@ -646,6 +650,9 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                               dst += buffer->video.pitch;
                          }
                     }
+
+                    if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE))
+                         dfb_gfxcard_surface_leave( buffer );
                }
 
                buffer->video.health             = CSH_STORED;
@@ -683,11 +690,12 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
      }
      else if (buffer->video.health == CSH_STORED) {
           int   i;
-          char *src = (buffer->video.chunk->heap->storage == CSS_VIDEO)
-                      ? dfb_system_video_memory_virtual( buffer->video.offset )
-                      : dfb_system_aux_memory_virtual( buffer->video.offset );
-          char *dst = buffer->system.addr;
-
+          char *src   = (buffer->video.chunk->heap->storage == CSS_VIDEO)
+                        ? dfb_system_video_memory_virtual( buffer->video.offset )
+                        : dfb_system_aux_memory_virtual( buffer->video.offset );
+          char *dst   = buffer->system.addr;
+          int   flags = buffer->video.access & (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ);
+           
           /* from video_access_by_software() in surface.c */
           if (buffer->video.access & VAF_HARDWARE_WRITE) {
                dfb_gfxcard_wait_serial( &buffer->video.serial );
@@ -695,6 +703,9 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
                buffer->video.access &= ~VAF_HARDWARE_WRITE;
           }
           buffer->video.access |= VAF_SOFTWARE_READ;
+
+          if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ))
+               dfb_gfxcard_surface_enter( buffer, DSLF_READ );
 
           for (i=0; i<surface->height; i++) {
                direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width) );
@@ -726,6 +737,9 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
                     dst += buffer->system.pitch;
                }
           }
+
+          if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ))
+               dfb_gfxcard_surface_leave( buffer );
 
           buffer->system.health = CSH_STORED;
 

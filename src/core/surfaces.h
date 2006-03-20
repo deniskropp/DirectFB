@@ -104,7 +104,8 @@ typedef enum {
      VAF_SOFTWARE_WRITE  = 0x00000001,  /* software wrote to buffer */
      VAF_HARDWARE_WRITE  = 0x00000002,  /* hardware wrote to buffer */
      VAF_SOFTWARE_READ   = 0x00000004,  /* software read from buffer */
-     VAF_HARDWARE_READ   = 0x00000008   /* hardware read from buffer */
+     VAF_HARDWARE_READ   = 0x00000008,  /* hardware read from buffer */
+     VAF_SOFTWARE_LOCK   = 0x00000010   /* software access to buffer */
 } VideoAccessFlags;
 
 
