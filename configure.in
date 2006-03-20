@@ -1009,6 +1009,7 @@ checkfor_mutouch=no
 checkfor_ps2mouse=no
 checkfor_serialmouse=no
 checkfor_sonypijogdial=no
+checkfor_ucb1x00=no
 checkfor_wm97xx=no
 
 AC_MSG_CHECKING(which inputdrivers should be built)
@@ -1035,6 +1036,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_ps2mouse=yes
   checkfor_serialmouse=yes
   checkfor_sonypijogdial=yes
+  checkfor_ucb1x00="$have_arm"
   checkfor_wm97xx=yes
   AC_MSG_RESULT(all)
 else 
@@ -1081,6 +1083,9 @@ else
                   ;;
           sonypijogdial)
                   checkfor_sonypijogdial=yes
+                  ;;
+          ucb1x00)
+                  checkfor_ucb1x00=yes
                   ;;
           wm97xx)
                   checkfor_wm97xx=yes
@@ -1178,6 +1183,12 @@ if test "$checkfor_sonypijogdial" = "yes"; then
     AC_MSG_WARN([*** no linux/sonypi.h -- SonyPI Jogdial driver will not be built.]))
 fi
 
+enable_ucb1x00_ts=no
+if test "$checkfor_ucb1x00" = "yes"; then
+  dnl Test for UCB1x00 Touchscreen support
+  enable_ucb1x00_ts=yes
+fi
+
 enable_wm97xx_ts=no
 if test "$checkfor_wm97xx" = "yes"; then
   dnl Test for WM97xx Touchscreen support
@@ -1240,7 +1251,7 @@ AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
 AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
 AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
 
-AM_CONDITIONAL(UCB1X00_TS, test "$have_arm" = "yes")
+AM_CONDITIONAL(UCB1X00_TS, test "$enable_ucb1x00_ts" = "yes")
 
 AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
 AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = "yes")
@@ -1506,7 +1517,7 @@ Building Input Drivers:
   PS/2 Mouse                $enable_ps2mouse
   Serial Mouse              $enable_serial_mouse
   SonyPI Jogdial            $enable_sonypi_jogdial
-  ucb1x00 Touchscreen       $have_arm
+  ucb1x00 Touchscreen       $enable_ucb1x00_ts
   WM97xx Touchscreen        $enable_wm97xx_ts]);
 fi
 
