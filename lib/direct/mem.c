@@ -216,6 +216,9 @@ direct_free( const char *file, int line, const char *func, const char *what, voi
 {
      unsigned int i;
 
+     if (!mem)
+          return;
+
      pthread_mutex_lock( &alloc_lock );
 
      for (i=0; i<alloc_count; i++) {
