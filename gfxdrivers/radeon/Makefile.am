@@ -16,18 +16,27 @@ endif
 radeondir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_radeon_la_SOURCES =	\
-	radeon.c		\
-	radeon.h		\
+	radeon.c			\
+	r100_state.c		\
+	r200_state.c		\
+	r300_state.c		\
+	radeon_2d.c		\
+	r100_3d.c			\
+	r200_3d.c			\
 	radeon_overlay.c	\
-	radeon_state.c		\
-	radeon_state.h		\
+	radeon_crtc2.c		\
+	radeon.h			\
+	radeon_chipsets.h	\
 	radeon_regs.h		\
-	radeon_mmio.h
+	radeon_mmio.h		\
+	radeon_state.h		\
+	radeon_2d.h		\
+	radeon_3d.h
 
 libdirectfb_radeon_la_LDFLAGS = \
 	-export-dynamic		\
 	-avoid-version		\
-	$(DFB_LDFLAGS)
+	$(DFB_LDFLAGS) -lm
 
 
 include $(top_srcdir)/rules/libobject.make
