@@ -1153,7 +1153,8 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      /* Lock the surface, get the data pointer and pitch. */
      ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
      if (ret) {
-          dfb_palette_unref( palette );
+          if (palette)
+               dfb_palette_unref( palette );
           return ret;
      }
 
@@ -1175,7 +1176,8 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
           D_ERROR( "DirectFB/core/surfaces: "
                    "couldn't find an unused index for surface dump!\n" );
           dfb_surface_unlock( surface, true );
-          dfb_palette_unref( palette );
+          if (palette)
+               dfb_palette_unref( palette );
           return DFB_FAILURE;
      }
 
@@ -1189,7 +1191,8 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                D_PERROR("DirectFB/core/input: "
                         "could not open %s!\n", filename);
                dfb_surface_unlock( surface, true );
-               dfb_palette_unref( palette );
+               if (palette)
+                    dfb_palette_unref( palette );
                return DFB_IO;
           }
      }
@@ -1205,7 +1208,8 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                          "could not open %s!\n", filename);
 
                dfb_surface_unlock( surface, true );
-               dfb_palette_unref( palette );
+               if (palette)
+                    dfb_palette_unref( palette );
 
                if (rgb) {
                     close( fd_p );
