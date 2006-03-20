@@ -1276,7 +1276,7 @@ test x"$RUNTIME_SYSROOT" = x"no" && RUNTIME_SYSROOT=
 AC_SUBST(RUNTIME_SYSROOT)
 
 # Change the module directory only for builds that don't *support* debug
-if test "$enable_debug_support" = "yes"; then
+if test "$enable_debug_support" = "no"; then
   MODULEDIRNAME=directfb-$BINARY_VERSION-pure
 else
   MODULEDIRNAME=directfb-$BINARY_VERSION
