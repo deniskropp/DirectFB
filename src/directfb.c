@@ -249,11 +249,12 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
 static DFBResult
 apply_configuration( IDirectFB *dfb )
 {
-     DFBResult              ret;
-     CoreLayer             *layer;
-     CoreLayerContext      *context;
-     CoreWindowStack       *stack;
-     DFBDisplayLayerConfig  layer_config;
+     DFBResult                   ret;
+     CoreLayer                  *layer;
+     CoreLayerContext           *context;
+     CoreWindowStack            *stack;
+     DFBDisplayLayerConfig       layer_config;
+     DFBDisplayLayerConfigFlags  fail;
 
      /* the primary layer */
      layer = dfb_layer_at_translated( DLID_PRIMARY );
@@ -270,7 +271,7 @@ apply_configuration( IDirectFB *dfb )
 
      D_ASSERT( stack != NULL );
 
-     /* set buffer mode for desktop */
+     /* set default desktop configuration */
      layer_config.flags = DLCONF_BUFFERMODE;
 
      if (dfb_config->buffer_mode == -1) {
@@ -285,20 +286,65 @@ apply_configuration( IDirectFB *dfb )
      }
      else
           layer_config.buffermode = dfb_config->buffer_mode;
-
-     if (dfb_layer_context_set_configuration( context, &layer_config )) {
-          D_ERROR( "DirectFB/DirectFBCreate: "
-                    "Setting desktop buffer mode failed!\n"
-                    "     -> No virtual resolution support or not enough memory?\n"
-                    "        Falling back to system back buffer.\n" );
-
-          layer_config.buffermode = DLBM_BACKSYSTEM;
-
-          if (dfb_layer_context_set_configuration( context, &layer_config ))
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                         "Setting system memory desktop back buffer failed!\n"
-                         "     -> Using front buffer only mode.\n" );
+     
+     if (dfb_config->mode.width > 0 && dfb_config->mode.height > 0) {
+          layer_config.flags |= DLCONF_WIDTH | DLCONF_HEIGHT;
+          layer_config.width  = dfb_config->mode.width;
+          layer_config.height = dfb_config->mode.height;
      }
+
+     if (dfb_config->mode.format != DSPF_UNKNOWN) {
+          layer_config.flags |= DLCONF_PIXELFORMAT;
+          layer_config.pixelformat = dfb_config->mode.format;
+     }
+     else if (dfb_config->mode.depth > 0) {
+          DFBSurfacePixelFormat format;
+
+          format = dfb_pixelformat_for_depth( dfb_config->mode.depth );
+          if (format != DSPF_UNKNOWN) {
+               layer_config.flags |= DLCONF_PIXELFORMAT;
+               layer_config.pixelformat = format;
+          }
+     }
+
+     if (dfb_layer_context_test_configuration( context, &layer_config, &fail )) {
+          if (fail & (DLCONF_WIDTH | DLCONF_HEIGHT)) {
+               D_ERROR( "DirectFB/DirectFBCreate: "
+                        "Setting desktop resolution to %dx%d failed!\n"
+                        "     -> Using default resolution.\n",
+                        layer_config.width, layer_config.height );
+               
+               layer_config.flags &= ~(DLCONF_WIDTH | DLCONF_HEIGHT);
+          }
+
+          if (fail & DLCONF_PIXELFORMAT) { 
+               D_ERROR( "DirectFB/DirectFBCreate: "
+                        "Setting desktop format failed!\n"
+                        "     -> Using default format.\n" );
+               
+               layer_config.flags &= ~DLCONF_PIXELFORMAT;
+          }
+
+          if (fail & DLCONF_BUFFERMODE) {
+               D_ERROR( "DirectFB/DirectFBCreate: "
+                        "Setting desktop buffer mode failed!\n"
+                        "     -> No virtual resolution support or not enough memory?\n"
+                        "        Falling back to system back buffer.\n" );
+
+               layer_config.buffermode = DLBM_BACKSYSTEM;
+
+               if (dfb_layer_context_test_configuration( context, &layer_config, &fail )) {
+                    D_ERROR( "DirectFB/DirectFBCreate: "
+                             "Setting system memory desktop back buffer failed!\n"
+                             "     -> Using front buffer only mode.\n" );
+                    
+                    layer_config.flags &= ~DLCONF_BUFFERMODE;
+               }
+          }
+     }
+
+     if (layer_config.flags)
+          dfb_layer_context_set_configuration( context, &layer_config );
 
      /* temporarily disable background */
      dfb_windowstack_set_background_mode( stack, DLBM_DONTCARE );
