@@ -292,24 +292,6 @@ crtc2InitLayer( CoreLayer                  *layer,
      config->pixelformat = DSPF_RGB16;
      config->buffermode  = DLBM_FRONTONLY;
      config->options     = DLOP_NONE;
-    
-     if (dfb_config->primary_layer == 2) {
-          if (dfb_config->mode.width > 0 && dfb_config->mode.height > 0) {
-               config->width  = dfb_config->mode.width;
-               config->height = dfb_config->mode.height;
-          }
-          
-          if (dfb_config->mode.format != DSPF_UNKNOWN) {
-               config->pixelformat = dfb_config->mode.format;
-          }
-          else if (dfb_config->mode.depth > 0) {
-               DFBSurfacePixelFormat format;
-               
-               format = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-               if (format != DSPF_UNKNOWN)
-                    config->pixelformat = format;
-          }
-     }
  
      /* Set default color adjustment. */ 
      adjustment->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST |

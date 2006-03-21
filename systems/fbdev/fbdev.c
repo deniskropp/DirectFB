@@ -1025,6 +1025,7 @@ primaryInitLayer( CoreLayer                  *layer,
 {
      DFBResult  ret;
      VideoMode *default_mode;
+     CoreLayerRegionConfig tmp;
 
      /* initialize mode table */
      ret = init_modes();
@@ -1054,53 +1055,13 @@ primaryInitLayer( CoreLayer                  *layer,
      config->buffermode = DLBM_FRONTONLY;
      config->width      = default_mode->xres;
      config->height     = default_mode->yres;
-
-     if (dfb_config->mode.width || dfb_config->mode.height) {
-          VideoMode *videomode = dfb_fbdev->shared->modes;
-
-          while (videomode) {
-               if (videomode->xres == dfb_config->mode.width &&
-                   videomode->yres == dfb_config->mode.height)
-               {
-                    config->width  = dfb_config->mode.width;
-                    config->height = dfb_config->mode.height;
-
-                    break;
-               }
-
-               videomode = videomode->next;
-          }
-
-          if (!videomode) {
-               D_ERROR( "DirectFB/FBDev: Specified mode (%dx%d) not supported or not defined in '/etc/fb.modes'!\n",
-                        dfb_config->mode.width, dfb_config->mode.height );
-               D_ERROR( "DirectFB/FBDev: Using default mode (%dx%d) instead!\n", config->width, config->height );
-          }
-     }
-
-     if (dfb_config->mode.format != DSPF_UNKNOWN) {
-          config->pixelformat = dfb_config->mode.format;
-     }
-     else if (dfb_config->mode.depth > 0) {
-          DFBSurfacePixelFormat format = dfb_pixelformat_for_depth( dfb_config->mode.depth );
-
-          if (format != DSPF_UNKNOWN)
-               config->pixelformat = format;
-          else
-               D_ERROR("DirectFB/FBDev: Unknown depth (%d) specified!\n", dfb_config->mode.depth);
-     }
-
-     if (config->pixelformat == DSPF_UNKNOWN) {
-          CoreLayerRegionConfig tmp;
-
-          tmp.format     = DSPF_RGB16;
-          tmp.buffermode = DLBM_FRONTONLY;
-
-          if (dfb_fbdev_set_mode( NULL, NULL, &tmp ))
-               config->pixelformat = dfb_pixelformat_for_depth( dfb_fbdev->shared->orig_var.bits_per_pixel );
-          else
-               config->pixelformat = DSPF_RGB16;
-     }
+     
+     tmp.format     = DSPF_RGB16;
+     tmp.buffermode = DLBM_FRONTONLY;
+     if (dfb_fbdev_set_mode( NULL, NULL, &tmp ))
+          config->pixelformat = dfb_pixelformat_for_depth( dfb_fbdev->shared->orig_var.bits_per_pixel );
+     else
+          config->pixelformat = DSPF_RGB16;
 
      return DFB_OK;
 }
