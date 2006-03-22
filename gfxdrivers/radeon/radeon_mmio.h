@@ -36,6 +36,12 @@ radeon_out8( volatile __u8 *mmioaddr, __u32 reg, __u8 value )
 }
 
 static __inline__ void
+radeon_out16( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
+{
+     *((volatile __u16*)(mmioaddr+reg)) = value;
+}
+
+static __inline__ void
 radeon_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
 {
 #ifdef __powerpc__
@@ -50,6 +56,12 @@ static __inline__ __u8
 radeon_in8( volatile __u8 *mmioaddr, __u32 reg )
 {
      return *((volatile __u8*)(mmioaddr+reg));
+}
+
+static __inline__ __u16
+radeon_in16( volatile __u8 *mmioaddr, __u32 reg )
+{
+     return *((volatile __u16*)(mmioaddr+reg));
 }
 
 static __inline__ __u32

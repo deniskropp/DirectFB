@@ -61,7 +61,10 @@
 
 
 				/* Registers for 2D/Video/Overlay */
-#define ADAPTER_ID                   0x0f2c /* PCI */
+#define CONFIG_VENDOR_ID             0x0f00 /* PCI */
+#define CONFIG_DEVICE_ID             0x0f02 /* PCI */
+#define CONFIG_ADAPTER_ID            0x0f2c /* PCI */
+
 #define AGP_BASE                     0x0170
 #define AGP_CNTL                     0x0174
 #       define AGP_APER_SIZE_256MB   (0x00 << 0)
@@ -453,7 +456,6 @@
 #       define DEFAULT_SC_BOTTOM_MAX (0x1fff << 16)
 #define DESTINATION_3D_CLR_CMP_VAL   0x1820
 #define DESTINATION_3D_CLR_CMP_MSK   0x1824
-#define DEVICE_ID                    0x0f02 /* PCI */
 #define DISP_MISC_CNTL               0x0d00
 #       define SOFT_RESET_GRPH_PP    (1 << 0)
 #define DISP_MERGE_CNTL		  0x0d60
@@ -1393,7 +1395,6 @@
 #       define PIXCLK_DAC_ALWAYS_ONb (1<<7)
 #       define R300_DISP_DAC_PIXCLK_DAC_BLANK_OFF (1<<23)
 
-#define VENDOR_ID                    0x0f00 /* PCI */
 #define VGA_DDA_CONFIG               0x02e8
 #define VGA_DDA_ON_OFF               0x02ec
 #define VID_BUFFER_CONTROL           0x0900

@@ -1190,13 +1190,17 @@ void        *OldPrimaryScreenDriverData;
 /* chipset detection */
 
 static int 
-radeon_find_chipset( int *ret_devid, int *ret_index )
+radeon_find_chipset( RadeonDriverData *rdrv, int *ret_devid, int *ret_index )
 {
-     unsigned int vendor_id;
-     unsigned int device_id;
-     int          i;
+     volatile __u8 *mmio = rdrv->mmio_base;
+     unsigned int   vendor_id;
+     unsigned int   device_id;
+     int            i;
 
-     dfb_system_get_deviceid( &vendor_id, &device_id );
+     vendor_id = radeon_in16( mmio, CONFIG_VENDOR_ID );
+     device_id = radeon_in16( mmio, CONFIG_DEVICE_ID );
+     if (vendor_id != 0x1002 || !device_id)
+          dfb_system_get_deviceid( &vendor_id, &device_id );
         
      if (vendor_id == 0x1002) {
           if (ret_devid)
@@ -1268,16 +1272,17 @@ driver_init_driver( GraphicsDevice      *device,
      RadeonChipsetFamily  chip = CHIP_UNKNOWN;
      int                  idx;
      
-     if (radeon_find_chipset( NULL, &idx ))
-          chip = dev_table[idx].chip;
+     rdrv->device_data = (RadeonDeviceData*) device_data;
      
      /* gain access to memory mapped registers */
      rdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!rdrv->mmio_base)
           return DFB_IO;
+     
+     rdrv->fb_base = dfb_gfxcard_memory_virtual( device, 0 );
 
-     rdrv->device_data = (RadeonDeviceData*) device_data;
-     rdrv->fb_base     = dfb_gfxcard_memory_virtual( device, 0 );
+     if (radeon_find_chipset( rdrv, NULL, &idx ))
+          chip = dev_table[idx].chip;
 
      /* fill function table */
      funcs->AfterSetVar       = radeonAfterSetVar;
@@ -1343,7 +1348,7 @@ driver_init_device( GraphicsDevice     *device,
      int               idx  = 0;
      const char       *name = "Unknown";
      
-     if (radeon_find_chipset( &dev, &idx )) {
+     if (radeon_find_chipset( rdrv, &dev, &idx )) {
           rdev->chipset = dev_table[idx].chip;
           rdev->igp     = dev_table[idx].igp;
           name          = dev_table[idx].name;
