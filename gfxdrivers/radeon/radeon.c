@@ -1197,10 +1197,10 @@ radeon_find_chipset( int *ret_devid, int *ret_index )
      int          i;
 
      dfb_system_get_deviceid( &vendor_id, &device_id );
-     
+        
      if (vendor_id == 0x1002) {
           if (ret_devid)
-               *ret_devid = device_id;
+               *ret_devid = device_id;        
           
           for (i = 0; i < sizeof(dev_table)/sizeof(dev_table[0]); i++) {
                if ((unsigned int)dev_table[i].id == device_id) {
@@ -1349,8 +1349,13 @@ driver_init_device( GraphicsDevice     *device,
           name          = dev_table[idx].name;
      }
      else {
+          if (!dev) {
+               D_ERROR( "DirectFB/Radeon: Could not detect device id!\n"
+                        "     -> Please, specify the bus location of"
+                        "        the card by using the 'busid' option.\n" );
+          }         
           D_INFO( "DirectFB/Radeon: "
-                  "unknown chipset, disabling acceleration!\n" );
+                  "Unknown chipset, disabling acceleration!\n" );
      }
      
      /* fill device info */
