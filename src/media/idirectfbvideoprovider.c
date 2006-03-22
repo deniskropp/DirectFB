@@ -39,6 +39,160 @@
 #include <media/idirectfbvideoprovider.h>
 #include <media/idirectfbdatabuffer.h>
 
+
+static DFBResult
+IDirectFBVideoProvider_AddRef( IDirectFBVideoProvider *thiz )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Release( IDirectFBVideoProvider *thiz )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetCapabilities( IDirectFBVideoProvider       *thiz,
+                                        DFBVideoProviderCapabilities *ret_caps )
+{
+     if (!ret_caps)
+          return DFB_INVARG;
+          
+     *ret_caps = 0;
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetSurfaceDescription( IDirectFBVideoProvider *thiz,
+                                              DFBSurfaceDescription  *ret_dsc )
+{
+     if (!ret_dsc)
+          return DFB_INVARG;
+          
+     ret_dsc->flags = DSDESC_NONE;
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetStreamDescription( IDirectFBVideoProvider *thiz,
+                                             DFBStreamDescription   *ret_dsc )
+{
+     if (!ret_dsc)
+          return DFB_INVARG;
+          
+     memset( ret_dsc, 0, sizeof(DFBStreamDescription) );
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_PlayTo( IDirectFBVideoProvider *thiz,
+                               IDirectFBSurface       *destination,
+                               const DFBRectangle     *destination_rect,
+                               DVFrameCallback         callback,
+                               void                   *ctx )
+{    
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Stop( IDirectFBVideoProvider *thiz )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetStatus( IDirectFBVideoProvider *thiz,
+                                  DFBVideoProviderStatus *ret_status )
+{
+     if (!ret_status)
+          return DFB_INVARG;
+          
+     *ret_status = DVSTATE_UNKNOWN;
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_SeekTo( IDirectFBVideoProvider *thiz,
+                               double                  seconds )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetPos( IDirectFBVideoProvider *thiz,
+                               double                 *ret_seconds )
+{
+     if (!ret_seconds)
+          return DFB_INVARG;
+          
+     *ret_seconds = 0.0;
+          
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetLength( IDirectFBVideoProvider *thiz,
+                                  double                 *ret_seconds )
+{
+     if (!ret_seconds)
+          return DFB_INVARG;
+          
+     *ret_seconds = 0.0;
+          
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetColorAdjustment( IDirectFBVideoProvider *thiz,
+                                           DFBColorAdjustment     *ret_adj )
+{
+     if (!ret_adj)
+          return DFB_INVARG;
+          
+     ret_adj->flags = DCAF_NONE;
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_SetColorAdjustment( IDirectFBVideoProvider   *thiz,
+                                           const DFBColorAdjustment *adj )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_SendEvent( IDirectFBVideoProvider *thiz,
+                                  const DFBEvent         *event )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static void
+IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
+{
+     thiz->AddRef                = IDirectFBVideoProvider_AddRef;
+     thiz->Release               = IDirectFBVideoProvider_Release;
+     thiz->GetCapabilities       = IDirectFBVideoProvider_GetCapabilities;
+     thiz->GetSurfaceDescription = IDirectFBVideoProvider_GetSurfaceDescription;
+     thiz->GetStreamDescription  = IDirectFBVideoProvider_GetStreamDescription;
+     thiz->PlayTo                = IDirectFBVideoProvider_PlayTo;
+     thiz->Stop                  = IDirectFBVideoProvider_Stop;
+     thiz->GetStatus             = IDirectFBVideoProvider_GetStatus;
+     thiz->SeekTo                = IDirectFBVideoProvider_SeekTo;
+     thiz->GetPos                = IDirectFBVideoProvider_GetPos;
+     thiz->GetLength             = IDirectFBVideoProvider_GetLength;
+     thiz->GetColorAdjustment    = IDirectFBVideoProvider_GetColorAdjustment;
+     thiz->SetColorAdjustment    = IDirectFBVideoProvider_SetColorAdjustment;
+     thiz->SendEvent             = IDirectFBVideoProvider_SendEvent;
+}
+
+
 DFBResult
 IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          IDirectFBVideoProvider **interface )
@@ -75,6 +229,9 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
           return ret;
 
      DIRECT_ALLOCATE_INTERFACE( videoprovider, IDirectFBVideoProvider );
+     
+     /* Initialize interface pointers. */
+     IDirectFBVideoProvider_Construct( videoprovider );
 
      /* Construct the interface. */
      ret = funcs->Construct( videoprovider, buffer );

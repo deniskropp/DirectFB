@@ -36,6 +36,71 @@
 #include <media/idirectfbimageprovider.h>
 #include <media/idirectfbdatabuffer.h>
 
+
+static DFBResult
+IDirectFBImageProvider_AddRef( IDirectFBImageProvider *thiz )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBImageProvider_Release( IDirectFBImageProvider *thiz )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBImageProvider_GetSurfaceDescription( IDirectFBImageProvider *thiz,
+                                              DFBSurfaceDescription  *ret_dsc )
+{
+     if (!ret_dsc)
+          return DFB_INVARG;
+          
+     ret_dsc->flags = DSDESC_NONE;
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBImageProvider_GetImageDescription( IDirectFBImageProvider *thiz,
+                                            DFBImageDescription    *ret_dsc )
+{
+     if (!ret_dsc)
+          return DFB_INVARG;
+          
+     ret_dsc->caps = DICAPS_NONE;
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBImageProvider_RenderTo( IDirectFBImageProvider *thiz,
+                                 IDirectFBSurface       *destination,
+                                 const DFBRectangle     *destination_rect )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBImageProvider_SetRenderCallback( IDirectFBImageProvider *thiz,
+                                          DIRenderCallback        callback,
+                                          void                   *callback_data )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static void
+IDirectFBImageProvider_Construct( IDirectFBImageProvider *thiz )
+{
+     thiz->AddRef                = IDirectFBImageProvider_AddRef;
+     thiz->Release               = IDirectFBImageProvider_Release;
+     thiz->GetSurfaceDescription = IDirectFBImageProvider_GetSurfaceDescription;
+     thiz->GetImageDescription   = IDirectFBImageProvider_GetImageDescription;
+     thiz->RenderTo              = IDirectFBImageProvider_RenderTo;
+     thiz->SetRenderCallback     = IDirectFBImageProvider_SetRenderCallback;
+}
+     
+
 DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
                                          IDirectFBImageProvider **interface )
@@ -70,6 +135,9 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
           return ret;
 
      DIRECT_ALLOCATE_INTERFACE( imageprovider, IDirectFBImageProvider );
+     
+     /* Initialize interface pointers. */
+     IDirectFBImageProvider_Construct( imageprovider );
 
      /* Construct the interface. */
      ret = funcs->Construct( imageprovider, buffer );
