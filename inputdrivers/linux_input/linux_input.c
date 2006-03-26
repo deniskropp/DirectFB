@@ -109,6 +109,9 @@ typedef struct {
      DFBInputDeviceLockState  locks;
 
      VirtualTerminal         *vt;
+
+     int                      dx;
+     int                      dy;
 } LinuxInputData;
 
 
@@ -626,6 +629,34 @@ set_led( LinuxInputData *data, int led, int state )
      write( data->fd, &levt, sizeof(levt) );
 }
 
+static void
+flush_xy( LinuxInputData *data )
+{
+     DFBInputEvent evt;
+
+     if (data->dx) {
+          evt.type    = DIET_AXISMOTION;
+          evt.flags   = DIEF_AXISREL;
+          evt.axis    = DIAI_X;
+          evt.axisrel = data->dx;
+
+          dfb_input_dispatch( data->device, &evt );
+
+          data->dx = 0;
+     }
+
+     if (data->dy) {
+          evt.type    = DIET_AXISMOTION;
+          evt.flags   = DIEF_AXISREL;
+          evt.axis    = DIAI_Y;
+          evt.axisrel = data->dy;
+
+          dfb_input_dispatch( data->device, &evt );
+
+          data->dy = 0;
+     }
+}
+
 /*
  * Input thread reading from device.
  * Generates events on incoming data.
@@ -635,18 +666,41 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 {
      LinuxInputData    *data = (LinuxInputData*) driver_data;
      int                readlen;
-     struct input_event levt;
-     DFBInputEvent      devt;
+     struct input_event levt[64];
 
-     while ((readlen = read( data->fd, &levt, sizeof(levt) )) == sizeof(levt)
+     while ((readlen = read(data->fd, levt, sizeof(levt)) / sizeof(levt[0])) > 0
             || (readlen < 0 && errno == EINTR))
      {
+          int i;
+
           direct_thread_testcancel( thread );
 
           if (readlen <= 0)
                continue;
 
-          if (translate_event( &levt, &devt )) {
+          for (i=0; i<readlen; i++) {
+               DFBInputEvent devt;
+
+               if (!translate_event( &levt[i], &devt ))
+                    continue;
+
+               if (devt.type == DIET_AXISMOTION && (devt.flags & DIEF_AXISREL)) {
+                    switch (devt.axis) {
+                         case DIAI_X:
+                              data->dx += devt.axisrel;
+                              continue;
+
+                         case DIAI_Y:
+                              data->dy += devt.axisrel;
+                              continue;
+
+                         default:
+                              break;
+                    }
+               }
+
+               flush_xy( data );
+
                dfb_input_dispatch( data->device, &devt );
 
                if (data->has_leds && (devt.locks != data->locks)) {
@@ -656,6 +710,8 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                     data->locks = devt.locks;
                }
           }
+
+          flush_xy( data );
      }
 
      if (readlen <= 0)
