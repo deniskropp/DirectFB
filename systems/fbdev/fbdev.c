@@ -1578,6 +1578,7 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      unsigned int              vyres;
      struct fb_var_screeninfo  var;
      FBDevShared              *shared = dfb_fbdev->shared;
+     DFBSurfacePixelFormat     format;
 
      D_DEBUG("DirectFB/FBDev: dfb_fbdev_set_mode (surface: %p, "
               "mode: %p, buffermode: %d)\n", surface, mode,
@@ -1736,7 +1737,8 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
 
      if (shared->fix.smem_len < (var.yres_virtual *
                                  var.xres_virtual *
-                                 var.bits_per_pixel >> 3))
+                                 var.bits_per_pixel >> 3)
+         || (var.yres_virtual < vyres))
      {
           if (surface) {
                D_PERROR( "DirectFB/FBDev: "
@@ -1754,14 +1756,12 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
      /* If surface is NULL the mode was only tested, otherwise apply changes. */
      if (surface) {
           struct fb_fix_screeninfo  fix;
-          DFBSurfacePixelFormat     format;
 
           FBDEV_IOCTL( FBIOGET_VSCREENINFO, &var );
 
-
           format = dfb_fbdev_get_pixelformat( &var );
-          if (format == DSPF_UNKNOWN || var.yres_virtual < vyres) {
-               D_WARN( "fbdev driver possibly buggy" );
+          if (format == DSPF_UNKNOWN) {
+               D_WARN( "unknown format" );
 
                /* restore mode */
                FBDEV_IOCTL( FBIOPUT_VSCREENINFO, &shared->current_var );
