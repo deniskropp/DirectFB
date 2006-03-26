@@ -145,7 +145,7 @@ main (int argc, char *argv[])
      }
 
      rect.x = LITE_CENTER_HORIZONTALLY;
-     rect.x = LITE_CENTER_VERTICALLY;
+     rect.y = LITE_CENTER_VERTICALLY;
      rect.w = 330;
      rect.h = 170;
 
