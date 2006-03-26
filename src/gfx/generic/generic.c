@@ -75,7 +75,7 @@ static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
 #define EXPAND_4to8(v)   (((v) << 4) | ((v)     ))
 #define EXPAND_5to8(v)   (((v) << 3) | ((v) >> 2))
 #define EXPAND_6to8(v)   (((v) << 2) | ((v) >> 4))
-#define EXPAND_7to8(v)   (((v) << 2) | ((v) >> 4))
+#define EXPAND_7to8(v)   (((v) << 1) | ((v) >> 6))
 
 
 static int use_mmx = 0;
