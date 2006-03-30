@@ -203,8 +203,8 @@ static inline void dfb_state_set_clip( CardState *state, const DFBRegion *clip )
      DFB_REGION_ASSERT( clip );
 
      if (! DFB_REGION_EQUAL( state->clip, *clip )) {
-          state->clip      = *clip;
-          state->modified |= SMF_CLIP;
+          state->clip     = *clip;
+          state->modified = (StateModificationFlags)( state->modified | SMF_CLIP );
      }
 }
 
@@ -214,8 +214,8 @@ static inline void dfb_state_set_color( CardState *state, const DFBColor *color 
      D_ASSERT( color != NULL );
 
      if (! DFB_COLOR_EQUAL( state->color, *color )) {
-          state->color     = *color;
-          state->modified |= SMF_COLOR;
+          state->color    = *color;
+          state->modified = (StateModificationFlags)( state->modified | SMF_COLOR );
      }
 }
 
