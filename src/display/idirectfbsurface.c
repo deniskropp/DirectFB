@@ -580,7 +580,7 @@ IDirectFBSurface_GetClip( IDirectFBSurface *thiz, DFBRegion *ret_clip )
      if (!data->area.current.w || !data->area.current.h)
           return DFB_INVAREA;
 
-     *ret_clip = DFB_REGION_INIT_TRANSLATED( &data->state.clip, data->area.wanted.x, data->area.wanted.y );
+     *ret_clip = DFB_REGION_INIT_TRANSLATED( &data->state.clip, -data->area.wanted.x, -data->area.wanted.y );
 
      return DFB_OK;
 }
