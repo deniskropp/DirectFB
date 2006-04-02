@@ -67,6 +67,8 @@ later versions on an EPIA-M10000.
 
 #include <directfb.h>
 
+#include <fusion/shmalloc.h>
+
 #include <direct/messages.h>
 
 #include <core/coretypes.h>
@@ -535,7 +537,7 @@ static void driver_close_driver(GraphicsDevice* device, void* driver_data)
      UcDriverData* ucdrv = (UcDriverData*) driver_data;
 
      if (ucdrv->fifo)
-          uc_fifo_destroy( ucdrv->fifo );
+          uc_fifo_destroy( ucdrv->pool, ucdrv->fifo );
 
      if (ucdrv->file != -1)
           close( ucdrv->file );
