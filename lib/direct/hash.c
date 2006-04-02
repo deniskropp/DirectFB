@@ -154,9 +154,17 @@ direct_hash_insert( DirectHash *hash,
 
           for (i=0; i<hash->size; i++) {
                Element *element = &hash->elements[i];
+               Element *insertElement;
 
                if (element->value && element->value != REMOVED) {
                     pos = element->key % size;
+
+                    insertElement = &elements[pos];
+                    while (insertElement->value && insertElement->value != REMOVED) {
+                        if (++pos == size)
+                            pos = 0;
+                        insertElement = &elements[pos];
+                    }
 
                     elements[pos] = *element;
                }
@@ -193,8 +201,8 @@ direct_hash_insert( DirectHash *hash,
 
      hash->count++;
 
-     D_DEBUG_AT( Direct_Hash, "...inserted at %d, new count = %d, removed = %d, size = %d.\n",
-                 pos, hash->count, hash->removed, hash->size );
+     D_DEBUG_AT( Direct_Hash, "...inserted at %d, new count = %d, removed = %d, size = %d, key = 0x%08x.\n",
+                 pos, hash->count, hash->removed, hash->size, key );
 
      return DFB_OK;
 }
