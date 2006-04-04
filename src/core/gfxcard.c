@@ -1038,7 +1038,7 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
                rect.y = y;
                rect.h = 1;
 
-               if (rect.y >=  state->clip.y1) {
+               if (rect.w > 0 && rect.y >= state->clip.y1) {
                     if (accelerated)
                          card->funcs.FillRectangle( card->driver_data,
                                                     card->device_data, &rect );
