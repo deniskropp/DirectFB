@@ -139,6 +139,8 @@ typedef struct
 
      char      *mut_device;                       /* MuTouch Device */
 
+     char      *penmount_device;                  /* PenMount Device */
+
      int        unichrome_revision;               /* Unichrome hardware
                                                      revision number override */
      

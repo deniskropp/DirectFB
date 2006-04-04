@@ -124,6 +124,7 @@ static const char *config_usage =
      "                                 Matrox cable type (default=composite)\n"
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
+     "  penmount-device=<device>       Use this device for the PenMount driver\n"
      "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
      "\n"
      " Window surface swapping policy:\n"
@@ -1046,6 +1047,18 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "DirectFB/Config: No MuTouch device specified!\n" );
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "penmount-device" ) == 0) {
+          if (value) {
+               if (dfb_config->penmount_device)
+                    D_FREE( dfb_config->penmount_device );
+
+               dfb_config->penmount_device = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "DirectFB/Config: No PenMount device specified!\n" );
                return DFB_INVARG;
           }
      } else
