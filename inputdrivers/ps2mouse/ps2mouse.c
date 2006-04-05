@@ -414,8 +414,7 @@ driver_get_available()
      if (dfb_system_type() != CORE_FBDEV)
           return 0;
 
-     if (dfb_config->mouse_gpm_source &&
-         dfb_config->mouse_protocol   &&
+     if (dfb_config->mouse_protocol   &&
         (strcasecmp( dfb_config->mouse_protocol, "PS/2")   == 0 ||
          strcasecmp( dfb_config->mouse_protocol, "IMPS/2") == 0))
      {
