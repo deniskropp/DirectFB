@@ -2205,7 +2205,30 @@ static void Sop_nv21_Sto_Dacc( GenefxState *gfxs )
           
           D++;
      }
-}           
+}
+
+static void Sop_ayuv_Sto_Dacc( GenefxState *gfxs )
+{
+     int w     = gfxs->length;
+     int i     = 0;
+     int SperD = gfxs->SperD;
+
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u32             *S = gfxs->Sop[0];
+
+     while (w--) {
+          __u32 s = S[i>>16];
+          
+          D->YUV.a = (s >> 24);
+          D->YUV.y = (s >> 16) & 0xff;
+          D->YUV.u = (s >>  8) & 0xff;
+          D->YUV.v = (s      ) & 0xff;
+
+          i += SperD;
+          
+          D++;
+     }
+}
 
 static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_Sto_Dacc,        /* DSPF_ARGB1555 */
@@ -2228,7 +2251,7 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb2554_Sto_Dacc,        /* DSPF_ARGB2554 */
      Sop_argb4444_Sto_Dacc,        /* DSPF_ARGB4444 */
      Sop_nv21_Sto_Dacc,            /* DSPF_NV21 */
-     NULL,                         /* DSPF_AYUV */
+     Sop_ayuv_Sto_Dacc,            /* DSPF_AYUV */
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
@@ -3175,6 +3198,23 @@ static void Sop_nv21_to_Dacc( GenefxState *gfxs )
      }
 }
 
+static void Sop_ayuv_to_Dacc( GenefxState *gfxs )
+{
+     int                w = gfxs->length;
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u32             *S = gfxs->Sop[0];
+
+     while (w--) {
+          __u32 s = *S++;
+
+          D->YUV.a = (s >> 24);
+          D->YUV.y = (s >> 16) & 0xff;
+          D->YUV.u = (s >>  8) & 0xff;
+          D->YUV.v = (s      ) & 0xff;
+
+          D++;
+     }
+}
 
 static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb1555_to_Dacc,         /* DSPF_ARGB1555 */
@@ -3197,7 +3237,7 @@ static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb2554_to_Dacc,         /* DSPF_ARGB2554 */
      Sop_argb4444_to_Dacc,         /* DSPF_ARGB4444 */
      Sop_nv21_to_Dacc,             /* DSPF_NV21 */
-     NULL,                         /* DSPF_AYUV */
+     Sop_ayuv_to_Dacc,             /* DSPF_AYUV */
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -4206,6 +4246,25 @@ static void Sacc_to_Aop_nv21( GenefxState *gfxs )
      }
 }
 
+static void Sacc_to_Aop_ayuv( GenefxState *gfxs )
+{
+     int                w = gfxs->length;
+     GenefxAccumulator *S = gfxs->Sacc;
+     __u32             *D = gfxs->Aop[0];
+
+     while (w--) {
+          if (!(S->YUV.a & 0xF000)) {
+               *D = PIXEL_AYUV( (S->YUV.a & 0xFF00) ? 0xFF : S->YUV.a,
+                                (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y,
+                                (S->YUV.u & 0xFF00) ? 0xFF : S->YUV.u,
+                                (S->YUV.v & 0xFF00) ? 0xFF : S->YUV.v );
+          }
+
+          D++;
+          S++;
+     }
+}
+
 
 static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb1555,         /* DSPF_ARGB1555 */
@@ -4228,7 +4287,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb2554,         /* DSPF_ARGB2554 */
      Sacc_to_Aop_argb4444,         /* DSPF_ARGB4444 */
      Sacc_to_Aop_nv21,             /* DSPF_NV21 */
-     NULL,                         /* DSPF_AYUV */
+     Sacc_to_Aop_ayuv,             /* DSPF_AYUV */
 };
 
 /********************************* Sacc_Sto_Aop_PFI ***************************/
@@ -4865,6 +4924,29 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
      }
 }
 
+static void Sacc_Sto_Aop_ayuv( GenefxState *gfxs )
+{
+     int                w     = gfxs->length;
+     int                i     = 0;
+     GenefxAccumulator *Sacc  = gfxs->Sacc;
+     __u32             *D     = gfxs->Aop[0];
+     int                SperD = gfxs->SperD;
+
+     while (w--) {
+          GenefxAccumulator *S = &Sacc[i>>16];
+
+          if (!(S->YUV.a & 0xF000)) {
+               *D = PIXEL_AYUV( (S->YUV.a & 0xFF00) ? 0xFF : S->YUV.a,
+                                (S->YUV.y & 0xFF00) ? 0xFF : S->YUV.y,
+                                (S->YUV.u & 0xFF00) ? 0xFF : S->YUV.u,
+                                (S->YUV.v & 0xFF00) ? 0xFF : S->YUV.v );
+          }
+
+          D++;
+          i += SperD;
+     }
+}
+
 
 static GenefxFunc Sacc_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_Sto_Aop_argb1555,        /* DSPF_ARGB1555 */
@@ -4887,7 +4969,7 @@ static GenefxFunc Sacc_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_Sto_Aop_argb2554,        /* DSPF_ARGB2554 */
      Sacc_Sto_Aop_argb4444,        /* DSPF_ARGB4444 */
      Sacc_Sto_Aop_nv21,            /* DSPF_NV21 */
-     NULL,                         /* DSPF_AYUV */
+     Sacc_Sto_Aop_ayuv,            /* DSPF_AYUV */
 };
 
 /********************************* Sacc_toK_Aop_PFI ***************************/
