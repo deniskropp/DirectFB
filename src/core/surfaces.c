@@ -1017,6 +1017,7 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_ARGB1555:
           case DSPF_ARGB2554:
           case DSPF_ARGB4444:
+          case DSPF_AYUV:
           case DSPF_AiRGB:
           case DSPF_I420:
           case DSPF_LUT8:

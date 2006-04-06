@@ -980,11 +980,14 @@ typedef enum {
      DSPF_ARGB4444  = DFB_SURFACE_PIXELFORMAT( 18, 12, 4, 1, 0, 2, 0, 0, 0, 0, 0 ),
 
      /* 12 bit   YUV (8 bit Y plane followed by one 16 bit quarter size CrCb [15:0] plane) */
-     DSPF_NV21      = DFB_SURFACE_PIXELFORMAT( 19, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 )
+     DSPF_NV21      = DFB_SURFACE_PIXELFORMAT( 19, 12, 0, 0, 0, 1, 0, 2, 0, 0, 0 ),
+
+     /* 32 bit  AYUV (4 byte, alpha 8@24, Y 8@16, Cb 8@8, Cr 8@0) */
+     DSPF_AYUV      = DFB_SURFACE_PIXELFORMAT( 20, 24, 8, 1, 0, 4, 0, 0, 0, 0, 0 )
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            20
+#define DFB_NUM_PIXELFORMATS            21
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )

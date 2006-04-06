@@ -84,6 +84,10 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
           case DSPF_AiRGB:
                pixel = PIXEL_RGB32( r, g, b );
                break;
+          case DSPF_AYUV:
+               RGB_TO_YCBCR( r, g, b, y, cb, cr );
+               pixel = PIXEL_AYUV( 0, y, cb, cr );
+               break;
           case DSPF_YUY2:
                RGB_TO_YCBCR( r, g, b, y, cb, cr );
                pixel = PIXEL_YUY2( y, cb, cr );
@@ -170,6 +174,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_ARGB4444:
                return "ARGB4444";
+
+          case DSPF_AYUV:
+               return "AYUV";
      }
 
      return "<invalid>";

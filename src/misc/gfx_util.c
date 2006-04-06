@@ -268,6 +268,16 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                }
                break;
 
+          case DSPF_AYUV:
+               {
+                    __u32 y, cb, cr;
+
+                    RGB_TO_YCBCR( r, g, b, y, cb, cr );
+
+                    *((__u32*)dst) = PIXEL_AYUV( a, y, cb, cr );
+               }
+               break;
+
           case DSPF_YV12:
           case DSPF_I420:
                d1 = dst[1];

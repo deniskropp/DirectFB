@@ -371,6 +371,7 @@ window_at_pointer( CoreWindowStack *stack,
                                         alpha = 0xff - (*(__u32*)(data + 4 * wx + pitch * wy) >> 24);
                                         break;
                                    case DSPF_ARGB:
+                                   case DSPF_AYUV:
                                         alpha = *(__u32*)(data + 4 * wx + pitch * wy) >> 24;
                                         break;
                                    case DSPF_ARGB1555:
@@ -451,6 +452,7 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
 
                                    default:
+                                        D_ONCE( "unknown format 0x%x", surface->format );
                                         break;
                               }
 
