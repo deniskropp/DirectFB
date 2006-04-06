@@ -752,8 +752,8 @@ if test "$enable_freetype" = "yes"; then
 *** freetype-config not found -- FreeType font provider will not be built.])
     else
       FREETYPE=yes
-      FREETYPE_CFLAGS=`freetype-config --cflags`
-      FREETYPE_LIBS=`freetype-config --libs`
+      FREETYPE_CFLAGS=`$FREETYPE_CONFIG --cflags`
+      FREETYPE_LIBS=`$FREETYPE_CONFIG --libs`
     fi
   fi
 fi
