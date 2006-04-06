@@ -1396,6 +1396,7 @@ inputdrivers/keyboard/Makefile
 inputdrivers/linux_input/Makefile
 inputdrivers/lirc/Makefile
 inputdrivers/mutouch/Makefile
+inputdrivers/penmount/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
 inputdrivers/sonypi/Makefile
