@@ -358,8 +358,8 @@ dfb_fbdev_get_pci_info( FBDevShared *shared )
 
           fp = fopen( "/proc/bus/pci/devices", "r" );
           if (!fp) {
-               D_PERROR( "DirectFB/FBDev: "
-                         "couldn't access /proc/bus/pci/devices!\n" );
+               D_DEBUG( "DirectFB/FBDev: "
+                        "couldn't access /proc/bus/pci/devices!\n" );
                return;
           }
 
