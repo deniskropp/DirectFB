@@ -988,6 +988,7 @@ checkfor_keyboard=no
 checkfor_linux_input=no
 checkfor_lirc=no
 checkfor_mutouch=no
+checkfor_penmount=no
 checkfor_ps2mouse=no
 checkfor_serialmouse=no
 checkfor_sonypijogdial=no
@@ -1001,7 +1002,7 @@ AC_ARG_WITH(inputdrivers,
 [                             'all' builds all drivers (default), 'none' builds none ]
 [                             Possible inputdrivers are: ]
 [                             dbox2remote, elo-input, gunze, h3600_ts, joystick, keyboard, ]
-[                             dreamboxremote, linuxinput, lirc, mutouch, ps2mouse, ]
+[                             dreamboxremote, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
 [                             serialmouse, sonypijogdial, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
 if test "$inputdrivers" = "all"; then
@@ -1015,6 +1016,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_linux_input=yes
   checkfor_lirc=yes
   checkfor_mutouch=yes
+  checkfor_penmount=yes
   checkfor_ps2mouse=yes
   checkfor_serialmouse=yes
   checkfor_sonypijogdial=yes
@@ -1056,6 +1058,9 @@ else
                   ;;
           mutouch)
                   checkfor_mutouch=yes
+                  ;;
+          penmount)
+                  checkfor_penmount=yes
                   ;;
           ps2mouse)
                   checkfor_ps2mouse=yes
@@ -1146,6 +1151,11 @@ if test "$checkfor_mutouch" = "yes"; then
     enable_mutouch=yes
 fi
 
+enable_penmount=no
+if test "$checkfor_penmount" = "yes"; then
+    enable_penmount=yes
+fi
+
 enable_ps2mouse=no
 if test "$checkfor_ps2mouse" = "yes"; then
     enable_ps2mouse=yes
@@ -1226,6 +1236,7 @@ AM_CONDITIONAL(KEYBOARD_INPUT, test "$enable_keyboard" = "yes")
 AM_CONDITIONAL(LINUX_INPUT, test "$enable_linux_input" = "yes")
 AM_CONDITIONAL(LIRC_INPUT, test "$enable_lirc" = "yes")
 AM_CONDITIONAL(MUTOUCH_TS, test "$enable_mutouch" = "yes")
+AM_CONDITIONAL(PENMOUNT_TS, test "$enable_penmount" = "yes" )
 AM_CONDITIONAL(PS2MOUSE_INPUT, test "$enable_ps2mouse" = "yes")
 AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
 AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
