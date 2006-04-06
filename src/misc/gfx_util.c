@@ -277,7 +277,7 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                                   (src[i]      ) & 0xff, y, u, v );
                     a = (src[i] >> 24) & 0xff;
 
-                    ((__u32*)dst)[i] = PIXEL_AYUV( a, y, u, v );
+                    ((__u32*)d)[i] = PIXEL_AYUV( a, y, u, v );
                }
                break;
 
