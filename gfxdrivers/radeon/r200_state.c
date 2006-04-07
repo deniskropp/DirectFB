@@ -128,6 +128,7 @@ void r200_set_destination( RadeonDriverData *rdrv,
                case DSPF_RGB32:
                case DSPF_ARGB:
                case DSPF_AiRGB:
+               case DSPF_AYUV:
                     rdev->gui_master_cntl = GMC_DST_32BPP;
                     rdev->rb3d_cntl = COLOR_FORMAT_ARGB8888;
                     break;
@@ -284,6 +285,7 @@ void r200_set_source( RadeonDriverData *rdrv,
                break;
           case DSPF_ARGB:
           case DSPF_AiRGB:
+          case DSPF_AYUV:
                txformat |= R200_TXFORMAT_ARGB8888 |
                            R200_TXFORMAT_ALPHA_IN_MAP;
                rdev->src_mask = 0x00ffffff;
@@ -460,6 +462,10 @@ void r200_set_drawing_color( RadeonDriverData *rdrv,
                color2d = PIXEL_AiRGB( color.a, color.r,
                                       color.g, color.b );
                break;
+          case DSPF_AYUV:
+               RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
+               color3d = color2d = PIXEL_AYUV( color.a, y, u, v );
+               break;
           case DSPF_UYVY:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                color2d = PIXEL_UYVY( y, u, v );
@@ -520,6 +526,10 @@ void r200_set_blitting_color( RadeonDriverData *rdrv,
                rdev->cb_cop = PIXEL_ARGB( color.a, u, u, u );
                rdev->cr_cop = PIXEL_ARGB( color.a, v, v, v );
                color3d = rdev->y_cop;
+               break;
+          case DSPF_AYUV:
+               RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
+               color3d = PIXEL_AYUV( color.a, y, u, v );
                break;
           case DSPF_UYVY:
           case DSPF_YUY2:
