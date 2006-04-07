@@ -490,9 +490,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
 
-          case DIKI_ALTGR:
-               return DIKS_ALTGR;
-
           case DIKI_CONTROL_L:
           case DIKI_CONTROL_R:
                return DIKS_CONTROL;

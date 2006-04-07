@@ -1213,10 +1213,7 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
                          shared->modifiers_l |= DIMM_ALT;
                          break;
                     case DIKI_ALT_R:
-                         shared->modifiers_r |= DIMM_ALT;
-                         break;
-                    case DIKI_ALTGR:
-                         shared->modifiers_l |= DIMM_ALTGR;
+                         shared->modifiers_r |= (event->key_symbol == DIKS_ALTGR) ? DIMM_ALTGR : DIMM_ALT;
                          break;
                     case DIKI_META_L:
                          shared->modifiers_l |= DIMM_META;
@@ -1258,10 +1255,7 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
                          shared->modifiers_l &= ~DIMM_ALT;
                          break;
                     case DIKI_ALT_R:
-                         shared->modifiers_r &= ~DIMM_ALT;
-                         break;
-                    case DIKI_ALTGR:
-                         shared->modifiers_l &= ~DIMM_ALTGR;
+                         shared->modifiers_r &= (event->key_symbol == DIKS_ALTGR) ? ~DIMM_ALTGR : ~DIMM_ALT;
                          break;
                     case DIKI_META_L:
                          shared->modifiers_l &= ~DIMM_META;
@@ -1388,7 +1382,7 @@ symbol_to_id( DFBInputDeviceKeySymbol symbol )
                return DIKI_DOWN;
 
           case DIKS_ALTGR:
-               return DIKI_ALTGR;
+               return DIKI_ALT_R;
 
           case DIKS_CONTROL:
                return DIKI_CONTROL_L;
@@ -1503,9 +1497,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
-
-          case DIKI_ALTGR:
-               return DIKS_ALTGR;
 
           case DIKI_CONTROL_L:
           case DIKI_CONTROL_R:
@@ -1645,9 +1636,16 @@ release_key( CoreInputDevice *device, DFBInputDeviceKeyIdentifier id )
 
      D_MAGIC_ASSERT( device, CoreInputDevice );
 
-     evt.type   = DIET_KEYRELEASE;
-     evt.flags  = DIEF_KEYID;
-     evt.key_id = id;
+     evt.type = DIET_KEYRELEASE;
+
+     if (DFB_KEY_TYPE(id) == DIKT_IDENTIFIER) {
+          evt.flags  = DIEF_KEYID;
+          evt.key_id = id;
+     }
+     else {
+          evt.flags      = DIEF_KEYSYMBOL;
+          evt.key_symbol = id;
+     }
 
      dfb_input_dispatch( device, &evt );
 }
@@ -1660,9 +1658,6 @@ flush_keys( CoreInputDevice *device )
      if (device->shared->modifiers_l) {
           if (device->shared->modifiers_l & DIMM_ALT)
                release_key( device, DIKI_ALT_L );
-
-          if (device->shared->modifiers_l & DIMM_ALTGR)
-               release_key( device, DIKI_ALTGR );
 
           if (device->shared->modifiers_l & DIMM_CONTROL)
                release_key( device, DIKI_CONTROL_L );
@@ -1681,6 +1676,9 @@ flush_keys( CoreInputDevice *device )
      }
 
      if (device->shared->modifiers_r) {
+          if (device->shared->modifiers_r & DIMM_ALTGR)
+               release_key( device, DIKS_ALTGR );
+
           if (device->shared->modifiers_r & DIMM_ALT)
                release_key( device, DIKI_ALT_R );
 

@@ -304,7 +304,9 @@ translate_key( SDLKey key, DFBInputEvent *evt )
                return true;
 
           case SDLK_MODE:
-               evt->key_id = DIKI_ALTGR;
+               evt->key_id     = DIKI_ALT_R;
+               evt->flags     |= DIEF_KEYSYMBOL;
+               evt->key_symbol = DIKS_ALTGR;
                return true;
           default:
 			printf("SDL: Unknown key pressed\n");
@@ -571,9 +573,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 
           case DIKI_DOWN:
                return DIKS_CURSOR_DOWN;
-
-          case DIKI_ALTGR:
-               return DIKS_ALTGR;
 
           case DIKI_CONTROL_L:
           case DIKI_CONTROL_R:

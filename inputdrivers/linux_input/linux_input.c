@@ -153,7 +153,7 @@ int basic_keycodes [] = {
      DFB_FUNCTION_KEY(16), DFB_FUNCTION_KEY(17), DFB_FUNCTION_KEY(18),
      DFB_FUNCTION_KEY(19), DFB_FUNCTION_KEY(20),
 
-     DIKI_KP_ENTER, DIKI_CONTROL_R, DIKI_KP_DIV, DIKI_PRINT, DIKI_ALTGR,
+     DIKI_KP_ENTER, DIKI_CONTROL_R, DIKI_KP_DIV, DIKI_PRINT, DIKS_ALTGR,
 
      /*KEY_LINEFEED*/ DIKI_UNKNOWN,
 
@@ -440,6 +440,7 @@ keyboard_get_identifier( int code, unsigned short value )
           case 53: return DIKI_SLASH;
           case 54: return DIKI_SHIFT_R;
           case 97: return DIKI_CONTROL_R;
+          case 100: return DIKI_ALT_R;
           default:
                ;
      }

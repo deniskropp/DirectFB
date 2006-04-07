@@ -144,7 +144,6 @@ typedef enum {
      DIKI_CONTROL_R,
      DIKI_ALT_L,
      DIKI_ALT_R,
-     DIKI_ALTGR,
      DIKI_META_L,
      DIKI_META_R,
      DIKI_SUPER_L,
