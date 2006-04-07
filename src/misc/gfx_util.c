@@ -389,7 +389,7 @@ void dfb_copy_buffer_32( __u32 *src,
                                      dst_surface->height, dpitch ) + x;
                     d[1] = LINE_PTR( dst1, dst_surface->caps, y/2,
                                      dst_surface->height/2, dpitch/2 ) + x/2;
-                    d[2] = LINE_PTR( dst1, dst_surface->caps, y/2,
+                    d[2] = LINE_PTR( dst2, dst_surface->caps, y/2,
                                      dst_surface->height/2, dpitch/2 ) + x/2;
                                      
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
