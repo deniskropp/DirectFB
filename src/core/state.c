@@ -115,8 +115,8 @@ dfb_state_destroy( CardState *state )
      if (state->gfxs) {
           GenefxState *gfxs = state->gfxs;
 
-          if (gfxs->Aacc)
-               D_FREE( gfxs->Aacc );
+          if (gfxs->ABstart)
+               D_FREE( gfxs->ABstart );
 
           D_FREE( gfxs );
      }
