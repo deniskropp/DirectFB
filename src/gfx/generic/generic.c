@@ -7035,11 +7035,11 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           switch (gfxs->src_format) {
                case DSPF_I420:
                     gfxs->src_org[1] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
-                    gfxs->src_org[2] = gfxs->src_org[1] + gfxs->src_height * gfxs->src_pitch / 4;
+                    gfxs->src_org[2] = gfxs->src_org[1] + gfxs->src_height/2 * gfxs->src_pitch/2;
                     break;
                case DSPF_YV12:
                     gfxs->src_org[2] = gfxs->src_org[0] + gfxs->src_height * gfxs->src_pitch;
-                    gfxs->src_org[1] = gfxs->src_org[2] + gfxs->src_height * gfxs->src_pitch / 4;
+                    gfxs->src_org[1] = gfxs->src_org[2] + gfxs->src_height/2 * gfxs->src_pitch/2;
                     break;
                case DSPF_NV12:
                case DSPF_NV21:
@@ -7069,11 +7069,11 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      switch (gfxs->dst_format) {
           case DSPF_I420:
                gfxs->dst_org[1] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
-               gfxs->dst_org[2] = gfxs->dst_org[1] + gfxs->dst_height * gfxs->dst_pitch / 4;
+               gfxs->dst_org[2] = gfxs->dst_org[1] + gfxs->dst_height/2 * gfxs->dst_pitch/2;
                break;
           case DSPF_YV12:
                gfxs->dst_org[2] = gfxs->dst_org[0] + gfxs->dst_height * gfxs->dst_pitch;
-               gfxs->dst_org[1] = gfxs->dst_org[2] + gfxs->dst_height * gfxs->dst_pitch / 4;
+               gfxs->dst_org[1] = gfxs->dst_org[2] + gfxs->dst_height/2 * gfxs->dst_pitch/2;
                break;
           case DSPF_NV12:
           case DSPF_NV21:
