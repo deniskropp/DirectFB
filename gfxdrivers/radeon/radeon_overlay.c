@@ -46,6 +46,7 @@
 
 #include <direct/types.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include "radeon.h"
 #include "radeon_regs.h"
@@ -823,26 +824,34 @@ ovl_set_colorkey( RadeonDriverData       *rdrv,
                              config->src_key.b );
      SkeyHigh = SkeyLow | 0xff000000;
      
-     DkeyLow  = PIXEL_RGB32( config->dst_key.r,
-                             config->dst_key.g,
-                             config->dst_key.b );
-     DkeyHigh = DkeyLow | 0xff000000;
-     
      tmp = radeon_in32( mmio, rovl->crtc2 ? CRTC2_GEN_CNTL : CRTC_GEN_CNTL );
      switch ((tmp >> 8) & 0xf) {
           case DST_8BPP:
           case DST_8BPP_RGB332:
-               DkeyLow &= 0xe0e0e0;
+               DkeyLow = ((MAX( config->dst_key.r - 0x20, 0 ) & 0xe0) << 16) |
+                         ((MAX( config->dst_key.g - 0x20, 0 ) & 0xe0) <<  8) |
+                         ((MAX( config->dst_key.b - 0x40, 0 ) & 0xc0)      );
                break;
           case DST_15BPP:
-               DkeyLow &= 0xf8f8f8;
+               DkeyLow = ((MAX( config->dst_key.r - 0x08, 0 ) & 0xf8) << 16) |
+                         ((MAX( config->dst_key.g - 0x08, 0 ) & 0xf8) <<  8) |
+                         ((MAX( config->dst_key.b - 0x08, 0 ) & 0xf8)      );
                break;
           case DST_16BPP:
-               DkeyLow &= 0xf8fcf8;
+               DkeyLow = ((MAX( config->dst_key.r - 0x08, 0 ) & 0xf8) << 16) |
+                         ((MAX( config->dst_key.g - 0x04, 0 ) & 0xfc) <<  8) |
+                         ((MAX( config->dst_key.b - 0x08, 0 ) & 0xf8)      );
                break;
           default:
+               DkeyLow = PIXEL_RGB32( config->dst_key.r,
+                                      config->dst_key.g,
+                                      config->dst_key.b );
                break;
      }
+
+     DkeyHigh = PIXEL_RGB32( config->dst_key.r,
+                             config->dst_key.g,
+                             config->dst_key.b ) | 0xff000000;
 
      radeon_waitfifo( rdrv, rdrv->device_data, 4 );
      radeon_out32( mmio, OV0_VID_KEY_CLR_LOW,   SkeyLow  );
