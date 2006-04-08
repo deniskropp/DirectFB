@@ -568,10 +568,11 @@ static void r100CheckState( void *drv, void *dev,
                break;
 
           case DSPF_AYUV:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != DSPF_AYUV && source->format != DSPF_A8)
-                    return;
-               supported_blittingflags &= ~DSBLIT_COLORIZE;
+               if (DFB_BLITTING_FUNCTION( accel ) && source->format != DSPF_A8) {
+                    if (source->format != DSPF_AYUV)
+                         return;
+                    supported_blittingflags &= ~DSBLIT_COLORIZE;
+               }
                break;
                
           default:
@@ -711,10 +712,11 @@ static void r200CheckState( void *drv, void *dev,
                break;
                
           case DSPF_AYUV:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != DSPF_AYUV && source->format != DSPF_A8)
-                    return;
-               supported_blittingflags &= ~DSBLIT_COLORIZE;
+               if (DFB_BLITTING_FUNCTION( accel ) && source->format != DSPF_A8) {
+                    if (source->format != DSPF_AYUV)
+                         return;
+                    supported_blittingflags &= ~DSBLIT_COLORIZE;
+               }
                break;
           
           default:
@@ -854,10 +856,11 @@ static void r300CheckState( void *drv, void *dev,
                break;
                
           case DSPF_AYUV:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != DSPF_AYUV && source->format != DSPF_A8)
-                    return;
-               supported_blittingflags &= ~DSBLIT_COLORIZE;
+               if (DFB_BLITTING_FUNCTION( accel ) && source->format != DSPF_A8) {
+                    if (source->format != DSPF_AYUV)
+                         return;
+                    supported_blittingflags &= ~DSBLIT_COLORIZE;
+               }
                break;
           
           default:
