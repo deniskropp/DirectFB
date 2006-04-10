@@ -196,10 +196,14 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
           return DFB_IO;
      }          
      
-     msf = tocentry.cdte_addr.msf;
-     tracks[total_tracks].start = (msf.minute * 60 * CD_FRAMES_PER_SECOND) +
-                                  (msf.second      * CD_FRAMES_PER_SECOND) +
-                                   msf.frame;
+     if (!ms.xa_flag) {
+          msf = tocentry.cdte_addr.msf;
+          tracks[total_tracks].start = (msf.minute * 60 * CD_FRAMES_PER_SECOND) +
+                                       (msf.second      * CD_FRAMES_PER_SECOND) +
+                                        msf.frame;
+     } else {
+          tracks[total_tracks].start = ms.addr.lba - ((60 + 90 + 2) * CD_FRAMES) + 150;
+     }
      
      /* compute tracks' length */
      for (i = 0; i < total_tracks; i++)
@@ -374,11 +378,14 @@ cdda_read_audio( int fd, __u8 *buf, int pos, int frames )
 
 #endif
 
-#ifdef HAVE_CDDB
+#ifdef HAVE_CDDB     
 static void
 cdda_get_metadata( struct cdda_track *tracks,
                    unsigned int       total_tracks )
 {
+     const char   *cddb_cats[] = { "blues", "classical", "country", "data",
+                                   "folk", "jazz", "misc", "newage", "reggae",
+                                   "rock", "soundtrack" };
      cddb_conn_t  *conn;
      cddb_disc_t  *disc;
      cddb_track_t *track;
@@ -395,80 +402,72 @@ cdda_get_metadata( struct cdda_track *tracks,
           return;
      /* suppress messages */
      cddb_log_set_level( CDDB_LOG_NONE );
-     /* reduce connection timeout from 10 to 5 seconds */
-     cddb_set_timeout( conn, 5 );
-      
-     /* create a new disc */    
-     disc = cddb_disc_new();  
-     if (!disc) {
-          cddb_destroy( conn );
-          return;
-     }
+     /* set timeout to 10 seconds */
+     cddb_set_timeout( conn, 10 );
+
+     /* compute disc length */
+     disclen = tracks[total_tracks].start/CD_FRAMES_PER_SECOND - 
+               tracks[0].start/CD_FRAMES_PER_SECOND;
      
-     /* set disc length in seconds */
-     disclen = (tracks[total_tracks].start+CD_FRAMES_PER_SECOND/2)/CD_FRAMES_PER_SECOND;
-     cddb_disc_set_length( disc, disclen );
-                                  
-     /* set tracks length in seconds */
+     /* compute disc id */
      for (i = 0; i < total_tracks; i++) {
-          track = cddb_track_new();
-          if (!track) {
-               cddb_disc_destroy( disc );
-               cddb_destroy( conn );
-               return;
-          }
+          unsigned int start = tracks[i].start/CD_FRAMES_PER_SECOND;
           
-          cddb_disc_add_track( disc, track );
-          cddb_track_set_length( track, 
-                    (tracks[i].length+CD_FRAMES_PER_SECOND/2)/CD_FRAMES_PER_SECOND );
-     }
+          while (start) {
+               discid += start % 10;
+               start  /= 10;
+          }
+     }    
+     discid = ((discid % 0xff) << 24) | (disclen << 8) | total_tracks;
      
-     /* calculate disc id */
-     cddb_disc_calc_discid( disc );
-     discid = cddb_disc_get_discid( disc );
      D_DEBUG( "IFusionSoundMusicProvider_CDDA: CDDB Disc ID = 0x%08x.\n", discid );
      
-     /* free disc and create a new one */
-     cddb_disc_destroy( disc );
+     /* create a new disc */
      disc = cddb_disc_new();
      if (!disc) {
           cddb_destroy( conn );
           return;
      }
 
-     /* set category and discid */ 
-     cddb_disc_set_category_str( disc, "misc" );
+     /* set disc id */ 
      cddb_disc_set_discid( disc, discid );
      
-     /* retrieve informations from the server */
-     if (cddb_read( conn, disc )) {
-          const char *artist;
-          const char *title;
-          const char *genre  = cddb_disc_get_genre( disc );
-          const char *album  = cddb_disc_get_title( disc );
-          short       year   = cddb_disc_get_year ( disc );
+     /* search through categories */
+     for (i = 0; i < sizeof(cddb_cats)/sizeof(cddb_cats[0]); i++) {
+          cddb_disc_set_category_str( disc, cddb_cats[i] );
           
-          /* iterate through tracks */
-          for (track = cddb_disc_get_track_first( disc );
-               track != NULL;
-               track = cddb_disc_get_track_next( disc ))
-          {
-               i = cddb_track_get_number( track ) - 1;
+          /* retrieve informations from the server */
+          if (cddb_read( conn, disc )) {
+               const char *artist;
+               const char *title;
+               const char *genre  = cddb_disc_get_genre( disc );
+               const char *album  = cddb_disc_get_title( disc );
+               short       year   = cddb_disc_get_year ( disc );
+          
+               /* iterate through tracks */
+               for (track = cddb_disc_get_track_first( disc );
+                    track != NULL;
+                    track = cddb_disc_get_track_next( disc ))
+               {
+                    i = cddb_track_get_number( track ) - 1;
                
-               if (i < total_tracks) {
-                    artist = cddb_track_get_artist( track );
-                    title  = cddb_track_get_title( track );
+                    if (i < total_tracks) {
+                         artist = cddb_track_get_artist( track );
+                         title  = cddb_track_get_title( track );
                     
-                    if (artist)
-                         tracks[i].artist = D_STRDUP( artist );
-                    if (title)
-                         tracks[i].title  = D_STRDUP( title );
-                    if (genre)
-                         tracks[i].genre  = D_STRDUP( genre );
-                    if (album)
-                         tracks[i].album  = D_STRDUP( album );
-                    tracks[i].year = year;
+                         if (artist)
+                              tracks[i].artist = D_STRDUP( artist );
+                         if (title)
+                          tracks[i].title  = D_STRDUP( title );
+                         if (genre)
+                              tracks[i].genre  = D_STRDUP( genre );
+                         if (album)
+                              tracks[i].album  = D_STRDUP( album );
+                         tracks[i].year = year;
+                    }
                }
+               
+               break;
           }
      }
      
@@ -720,7 +719,7 @@ IFusionSoundMusicProvider_CDDA_GetStreamDescription( IFusionSoundMusicProvider *
      desc->samplerate   = 44100;
      desc->channels     = 2;
      desc->sampleformat = FSSF_S16;
-     desc->buffersize   = 8820;
+     desc->buffersize   = 5292; /* 120 ms */
 
      return DFB_OK;
 }
@@ -739,7 +738,7 @@ IFusionSoundMusicProvider_CDDA_GetBufferDescription( IFusionSoundMusicProvider *
      desc->samplerate   = 44100;
      desc->channels     = 2;
      desc->sampleformat = FSSF_S16;
-     desc->length       = 8820;
+     desc->length       = 5292; /* 120 ms */
 
      return DFB_OK;
 }
