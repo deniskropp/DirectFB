@@ -58,6 +58,12 @@ SDL (sdl). Other systems might be added in the future.
 Opens the given frame buffer device instead of /dev/fb0.
 
 .TP
+.BI busid=<id>
+Specify the bus location of the card. The option is only used if DirectFB
+doesn't have sysfs support and if unspecified 1:0:0 will be assumed.
+Use this option if the driver fails to detect (or incorrectly detects) your card.
+
+.TP
 .BI mode=<width>x<height>
 Sets the default screen resolution. If unspecified DirectFB will use
 the first mode from
@@ -89,6 +95,10 @@ Selects the multi application world which is joined or created.
 Starting with zero, negative values force creation of a new
 world using the lowest unused session number. This will override
 the environment variable "DIRECTFB_SESSION".
+
+.TP
+.BI remote=<host>[:<session>]
+Select the remote session to connect to.
 
 .TP
 .BI primary-layer=<id>
@@ -124,6 +134,11 @@ Enables debug output. This is on by default but you won't see any
 debug output unless you compiled DirectFB with debugging support.
 
 .TP
+.BI [no-]trace
+Enable stack trace support. This is on by default but you won't see any
+trcae output unless you compiled DirectFB with trace support.
+
+.TP
 .BI log-file=<name>
 Write all messages to the specified file.
 
@@ -153,6 +168,11 @@ display layers (if there are any), but all graphics operations will
 be performed by the software renderer.
 
 .TP
+.BI [no-]dma
+Turns DMA acceleration on, if supported by the driver. By default 
+DMA acceleration is off.
+
+.TP
 .BI [no-]sync
 Flushes all disk buffers before initializing DirectFB. This can be
 useful if you working with experimental device drivers and expect
@@ -165,18 +185,19 @@ support for MMX was detected. By default MMX is used if is available
 and support for MMX was compiled in.
 
 .TP
-.BI [no-]argb-font
-Instead of using A8 surfaces (alpha masks), load glyphs into ARGB
-surfaces. This uses more memory but some graphics cards do weird
-things with A8 surfaces. Try this option if your fonts look strange.
+.BI [no-]agp[=mode]
+Turns AGP memory support on. The option enables DirectFB using the AGP
+memory to extend the amount of video memory available. You can specify
+the AGP mode to use (e.g. 1, 2, 4, 8 or 0 to disable agp). By default
+AGP memory support is off.
 
 .TP
-.BI [no-]a1-font
-Instead of using A8 surfaces (alpha masks), load glyphs into A1
-surfaces. If the graphics driver doesn't support colorizing + blending
-blits, this option will speed up font rendering, but reduce quality.
-In general you'll never need this option, because software based A8
-fonts are highly optimized and fast enough.
+.BI font-format=<format>
+Specify the font format to use. Possible values are A1, A8, ARGB, ARGB1555, 
+ARGB2554, ARGB4444, AiRGB. The default font format is A8 because it is the 
+only format that ensures high quality, fast rendering and low memory consumption
+at the same time. Use this option only if your fonts looks strange or if 
+font rendering is too slow.
 
 .TP
 .BI [no-]sighandler
@@ -224,6 +245,14 @@ application is running.
 .TP
 .BI [no-]vt
 Use VT handling code at all?
+
+.TP
+.BI mouse-source=<device>
+Specify the serial mouse device.
+
+.TP
+.BI [no-]mouse-gpm-source
+Enables using GPM as mouse input repeater.
 
 .TP
 .BI [no-]motion-compression
@@ -276,11 +305,19 @@ of windows. This option allows to switch the cursor off permanently.
 Applications cannot enable it explicitly.
 
 .TP
+.BI linux-input-ir-only
+Ignore all non-IR Linux Input devices.
+
+.TP
 .BI disable-module=<modulename>
 Suppress loading of this module. The module name is the filename
 without the \fBlibdirectfb_\fP prefix and without extension (for
 example \fBkeyboard\fP to disable loading of the keyboard input
 module).
+
+.TP
+.BI wm=<wm>
+Specify the window manager to use.
 
 .TP
 .BI bg-none
@@ -314,9 +351,18 @@ transparent. This is useful if your graphics card doesn't support
 alpha-transparent blits.
 
 .TP
+.BI [no-]decorations
+Enables window decorations if supported by the window manager.
+
+.TP
 .BI videoram-limit=<amount>
 Limits the amount of Video RAM used by DirectFB. The amount of Video
 RAM is specified in Kilobytes.
+
+.TP
+.BI agpmem-limit=<amount>
+Limits the amount if AGP memory used by DirectFB. The amount of AGP
+memory is specified in Kilobytes.
 
 .TP
 .BI matrox-tv-standard=[pal|ntsc]
