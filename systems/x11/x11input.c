@@ -465,9 +465,6 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
      if (id >= DIKI_A && id <= DIKI_Z)
           return (shift ? DIKS_CAPITAL_A : DIKS_SMALL_A) + id - DIKI_A;
 
-     if (id >= DIKI_0 && id <= DIKI_9)
-          return DIKS_0 + id - DIKI_0;
-
      if (id >= DIKI_KP_0 && id <= DIKI_KP_9)
           return DIKS_0 + id - DIKI_KP_0;
 
@@ -475,6 +472,27 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
           return DIKS_F1 + id - DIKI_F1;
 
      switch (id) {
+          case DIKI_0:
+               return shift ? DIKS_PARENTHESIS_RIGHT : DIKS_0;
+          case DIKI_1:
+               return shift ? DIKS_EXCLAMATION_MARK : DIKS_1;
+          case DIKI_2:
+               return shift ? DIKS_AT : DIKS_2;
+          case DIKI_3:
+               return shift ? DIKS_NUMBER_SIGN : DIKS_3;
+          case DIKI_4:
+               return shift ? DIKS_DOLLAR_SIGN : DIKS_4;
+          case DIKI_5:
+               return shift ? DIKS_PERCENT_SIGN : DIKS_5;
+          case DIKI_6:
+               return shift ? DIKS_CIRCUMFLEX_ACCENT : DIKS_6;
+          case DIKI_7:
+               return shift ? DIKS_AMPERSAND : DIKS_7;
+          case DIKI_8:
+               return shift ? DIKS_ASTERISK : DIKS_8;
+          case DIKI_9:
+               return shift ? DIKS_PARENTHESIS_LEFT : DIKS_9;
+
           case DIKI_ESCAPE:
                return DIKS_ESCAPE;
 
@@ -602,7 +620,7 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
                   return DIKS_EQUALS_SIGN;
 
           case DIKI_LESS_SIGN:
-               return DIKS_LESS_THAN_SIGN;
+               return shift ? DIKS_GREATER_THAN_SIGN : DIKS_LESS_THAN_SIGN;
 
           case DIKI_MINUS_SIGN:
                 if( shift )
