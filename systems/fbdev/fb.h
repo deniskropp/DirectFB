@@ -1,7 +1,7 @@
 #ifndef _LINUX_FB_H
 #define _LINUX_FB_H
 
-#include <asm/types.h>
+#include <dfb_types.h>
 
 /* Definitions of frame buffers						*/
 
