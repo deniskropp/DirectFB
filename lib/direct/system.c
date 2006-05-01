@@ -42,27 +42,20 @@
 
 #if DIRECT_BUILD_GETTID && defined(HAVE_LINUX_UNISTD_H)
 #include <linux/unistd.h>
-
-#ifdef __NR_gettid
-static inline _syscall0(pid_t,gettid)
-#else
-#warning __NR_gettid was not found in "linux/unistd.h", using getpid instead
-#define gettid getpid
 #endif
-
-#else
-
-#include <unistd.h>
-#define gettid getpid
-
-#endif
-
 
 __attribute__((no_instrument_function))
 pid_t
 direct_gettid()
 {
-     return gettid();
+     pid_t tid = -1;
+#if DIRECT_BUILD_GETTID && defined(__NR_gettid) /* present on linux >= 2.4.20 */
+     tid = syscall(__NR_gettid);
+#endif
+     if (tid < 0)
+          tid = getpid();
+
+     return tid;
 }
 
 long
