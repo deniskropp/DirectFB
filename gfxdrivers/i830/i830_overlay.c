@@ -43,6 +43,8 @@
  *        Matt Sottek <matthew.j.sottek@intel.com>
  */
 
+#include "i830.h"
+
 #include <math.h>
 #include <string.h>
 
@@ -59,8 +61,6 @@
 #include <direct/mem.h>
 
 #include <gfx/convert.h>
-
-#include "i830.h"
 
 
 

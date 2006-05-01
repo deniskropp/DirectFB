@@ -28,7 +28,7 @@
 #ifndef ___CYBER5K_H__
 #define ___CYBER5K_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <core/layers.h>
 
 /* HACK */

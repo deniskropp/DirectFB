@@ -38,7 +38,7 @@
 #ifndef __I810_H__
 #define __I810_H__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <sys/io.h>
 #include <linux/agpgart.h>
 

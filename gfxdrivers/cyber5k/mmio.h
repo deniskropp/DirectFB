@@ -28,7 +28,7 @@
 #ifndef  __CYBER5K_MMIO__
 #define  __CYBER5K_MMIO__
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include "cyber5k.h"
 #include "regs.h"
 

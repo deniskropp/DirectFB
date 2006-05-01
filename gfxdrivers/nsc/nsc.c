@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.13 $
+ * $Revision: 1.14 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -136,7 +136,7 @@
  *
  * END_NSC_LIC_GPL */
 
-#include <asm/types.h>
+#include <dfb_types.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <stdlib.h>
