@@ -31,7 +31,6 @@
 #include <stdlib.h>
 
 #include <sys/mman.h>
-#include <sys/io.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
 

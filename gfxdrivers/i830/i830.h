@@ -28,7 +28,6 @@
 #define __I830_H__
 
 #include <asm/types.h>
-#include <sys/io.h>
 #include <linux/agpgart.h>
 
 #include <core/gfxcard.h>
