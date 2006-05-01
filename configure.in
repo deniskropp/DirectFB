@@ -774,11 +774,7 @@ if test "$have_linux" = "yes"; then
     enable_v4l="$enableval", enable_v4l=yes)
 
   if test "$enable_v4l" = "yes"; then
-    AC_CHECK_HEADER(linux/videodev.h,
-          V4L=yes,
-          AC_MSG_WARN([
-  *** Video4Linux headers not found -- Video4Linux video provider will not be built.])
-    )
+    V4L=yes
   fi
 fi
 
@@ -794,16 +790,8 @@ if test "$V4L" = "yes"; then
     enable_v4l2="$enableval", enable_v4l2=no)
 
   if test "$enable_v4l2" = "yes"; then
-    dnl Test for video4linux 2
-    AC_EGREP_CPP(yes, [
-        #include <linux/videodev2.h>
-        #ifdef VIDIOC_REQBUFS
-          yes
-        #endif
-      ],
-      V4L2=yes
-      AC_DEFINE( DFB_HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
-    )
+    V4L2=yes
+    AC_DEFINE( DFB_HAVE_V4L2, 1, [Define to 1 if Video4Linux 2 is supported.] )
   fi
 fi
 

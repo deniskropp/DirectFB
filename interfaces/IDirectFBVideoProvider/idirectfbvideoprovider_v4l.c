@@ -45,7 +45,7 @@
 #include <sys/ioctl.h>
 
 #include <linux/compiler.h>
-#include <linux/videodev.h>
+#include "videodev.h"
 
 #include <directfb.h>
 
@@ -75,7 +75,7 @@
 #include <direct/util.h>
 
 #ifdef DFB_HAVE_V4L2
-#include <linux/videodev2.h>
+#include "videodev2.h"
 #endif
 
 static DFBResult
