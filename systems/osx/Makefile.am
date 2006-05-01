@@ -27,6 +27,11 @@ libdirectfb_osx_la_SOURCES = \
 	osx.c		\
 	osx.h
 
+libdirectfb_osx_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
+
 inputdriversdir = $(MODULEDIR)/inputdrivers
 
 inputdrivers_LTLIBRARIES = libdirectfb_osxinput.la
@@ -43,6 +48,11 @@ libdirectfb_osxinput_la_LDFLAGS = \
 
 libdirectfb_osxinput_la_SOURCES = \
 	osxinput.c
+
+libdirectfb_osxinput_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
 
 
 include $(top_srcdir)/rules/libobject.make	

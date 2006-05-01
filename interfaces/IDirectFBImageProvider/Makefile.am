@@ -44,26 +44,38 @@ endif
 
 libidirectfbimageprovider_png_la_SOURCES = idirectfbimageprovider_png.c
 
-libidirectfbimageprovider_png_la_LIBADD = $(LIBPNG)
+libidirectfbimageprovider_png_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(LIBPNG)
 
 libidirectfbimageprovider_png_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_mpeg2_la_SOURCES = idirectfbimageprovider_mpeg2.c
 
-libidirectfbimageprovider_mpeg2_la_LIBADD = mpeg2/libmpeg2decode.la
+libidirectfbimageprovider_mpeg2_la_LIBADD = \
+	$(top_builddir)/src/libdirectfb.la \
+	mpeg2/libmpeg2decode.la
 
 libidirectfbimageprovider_mpeg2_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_gif_la_SOURCES = idirectfbimageprovider_gif.c
 
+libidirectfbimageprovider_gif_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/src/libdirectfb.la
+
 libidirectfbimageprovider_gif_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_jpeg_la_SOURCES = idirectfbimageprovider_jpeg.c
 
-libidirectfbimageprovider_jpeg_la_LIBADD = $(LIBJPEG)
+libidirectfbimageprovider_jpeg_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(LIBJPEG)
 
 libidirectfbimageprovider_jpeg_la_LDFLAGS = -avoid-version -module
 

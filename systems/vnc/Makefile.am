@@ -34,6 +34,11 @@ libdirectfb_vnc_la_SOURCES = \
 	vnc.c		\
 	vnc.h
 
+libdirectfb_vnc_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
+
 libdirectfb_vncinput_la_LDFLAGS = \
 	$(VNC_LIBS)	\
 	-avoid-version	\
@@ -41,6 +46,10 @@ libdirectfb_vncinput_la_LDFLAGS = \
 
 libdirectfb_vncinput_la_SOURCES = \
 	vncinput.c
+
+libdirectfb_vncinput_la_LIBADD = \
+	$(top_builddir)/src/libdirectfb.la
+
 
 include $(top_srcdir)/rules/libobject.make
 

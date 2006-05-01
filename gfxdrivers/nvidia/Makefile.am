@@ -33,6 +33,12 @@ libdirectfb_nvidia_la_SOURCES = \
 libdirectfb_nvidia_la_LDFLAGS = \
 	-export-dynamic		\
 	-avoid-version		\
-	$(DFB_LDFLAGS) -lm
+	$(DFB_LDFLAGS)
+
+libdirectfb_nvidia_la_LIBADD = -lm \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
+
 
 include $(top_srcdir)/rules/libobject.make

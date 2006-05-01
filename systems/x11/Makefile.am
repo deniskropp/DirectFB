@@ -40,6 +40,11 @@ libdirectfb_x11_la_SOURCES = \
 	xwindow.h	\
 	xwindow.c
 
+libdirectfb_x11_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
+
 libdirectfb_x11input_la_LDFLAGS = \
 	$(X11_LIBS)	\
 	-avoid-version	\
@@ -47,6 +52,11 @@ libdirectfb_x11input_la_LDFLAGS = \
 
 libdirectfb_x11input_la_SOURCES = \
 	x11input.c
+
+libdirectfb_x11input_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
 
 
 include $(top_srcdir)/rules/libobject.make

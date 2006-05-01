@@ -66,7 +66,10 @@ libdirectfbwm_unique_la_SOURCES = \
 	unique.c
 
 # Link module against uniquewm library
-libdirectfbwm_unique_la_LIBADD = libuniquewm.la
+libdirectfbwm_unique_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	libuniquewm.la
 
 libdirectfbwm_unique_la_LDFLAGS = \
 	-avoid-version	\

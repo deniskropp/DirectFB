@@ -35,5 +35,10 @@ libdirectfb_fbdev_la_SOURCES = \
 	vt.c			\
 	agp.c
 
+libdirectfb_fbdev_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
+
 
 include $(top_srcdir)/rules/libobject.make

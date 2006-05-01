@@ -25,7 +25,10 @@ libdirectfb_i830_la_LDFLAGS = \
 	-avoid-version		\
 	$(DFB_LDFLAGS)
 
-libdirectfb_i830_la_LIBADD = -lm
+libdirectfb_i830_la_LIBADD = -lm \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/src/libdirectfb.la
+
 
 include $(top_srcdir)/rules/libobject.make
 

@@ -28,7 +28,6 @@ inputdrivers_LTLIBRARIES = libdirectfb_sdlinput.la
 
 
 libdirectfb_sdl_la_LDFLAGS = \
-	$(SDL_LIBS)	\
 	-avoid-version	\
 	-module
 
@@ -38,13 +37,24 @@ libdirectfb_sdl_la_SOURCES = \
 	sdl.c		\
 	sdl.h
 
+libdirectfb_sdl_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(SDL_LIBS)
+
 libdirectfb_sdlinput_la_LDFLAGS = \
-	$(SDL_LIBS)	\
 	-avoid-version	\
 	-module
 
 libdirectfb_sdlinput_la_SOURCES = \
 	sdlinput.c
+
+libdirectfb_sdlinput_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la \
+	$(SDL_LIBS)
 
 
 include $(top_srcdir)/rules/libobject.make

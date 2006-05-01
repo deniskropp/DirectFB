@@ -28,5 +28,10 @@ libidirectfbvideoprovider_v4l_la_SOURCES = idirectfbvideoprovider_v4l.c
 
 libidirectfbvideoprovider_v4l_la_LDFLAGS = -avoid-version -module
 
+libidirectfbvideoprovider_v4l_la_LIBADD = \
+	$(top_builddir)/lib/direct/libdirect.la \
+	$(top_builddir)/lib/fusion/libfusion.la \
+	$(top_builddir)/src/libdirectfb.la
+
 
 include $(top_srcdir)/rules/libobject.make
