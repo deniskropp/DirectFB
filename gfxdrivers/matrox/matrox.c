@@ -35,7 +35,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include <linux/fb.h>
+#include <fbdev/fb.h>
 
 #include <math.h>
 
@@ -51,8 +51,6 @@
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
 #include <core/palette.h>
-
-#include <core/accelerators.h>
 
 #include <gfx/util.h>
 

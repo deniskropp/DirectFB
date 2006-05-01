@@ -25,7 +25,7 @@
    Boston, MA 02111-1307, USA.
 */
 
-#include <linux/fb.h>
+#include <fbdev/fb.h>
 
 #include <math.h>
 
@@ -33,8 +33,6 @@
 
 #include <direct/messages.h>
 #include <direct/util.h>
-
-#include <core/accelerators.h>
 
 #include "regs.h"
 #include "mmio.h"

@@ -31,7 +31,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-#include <linux/fb.h>
+#include <fbdev/fb.h>
 
 #include <sys/mman.h>
 #include <fcntl.h>
@@ -50,8 +50,6 @@
 #include <core/layers.h>
 #include <core/screens.h>
 #include <core/surfaces.h>
-
-#include <core/accelerators.h>
 
 #include <gfx/convert.h>
 

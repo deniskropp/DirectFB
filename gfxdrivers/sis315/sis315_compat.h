@@ -1,7 +1,7 @@
 #ifndef _SIS315_COMPAT_H
 #define _SIS315_COMPAT_H
 
-#include <linux/fb.h>
+#include <fbdev/fb.h>
 
 #ifndef FB_ACCEL_SIS_GLAMOUR_2
 #define FB_ACCEL_SIS_GLAMOUR_2  40	/* SiS 315, 650, 740            */

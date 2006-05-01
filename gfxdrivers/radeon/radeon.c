@@ -36,7 +36,6 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
-#include <core/accelerators.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/state.h>
@@ -44,6 +43,8 @@
 #include <core/screens.h>
 #include <core/surfaces.h>
 #include <core/system.h>
+
+#include <fbdev/fb.h>
 
 #include <gfx/convert.h>
 

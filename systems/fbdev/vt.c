@@ -41,8 +41,6 @@
 #include <errno.h>
 #include <pthread.h>
 
-#include <linux/fb.h>
-
 #include <directfb.h>
 
 #include <misc/conf.h>
@@ -59,6 +57,7 @@
 #include <core/gfxcard.h>
 
 #include "fbdev.h"
+#include "fb.h"
 #include "vt.h"
 
 /*

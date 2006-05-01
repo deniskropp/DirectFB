@@ -146,22 +146,6 @@ fi
 
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
-dnl Test for Linux frame buffer device
-AC_ARG_ENABLE(fbdev,
-  [  --enable-fbdev            build with linux fbdev support [default=auto]],,
-  enable_fbdev=yes)
-
-if test "$enable_fbdev" = "yes"; then
-  AC_CHECK_HEADER(linux/fb.h, fbdev_found=yes, fbdev_found=no)
-  if test "$fbdev_found" = no; then
-    enable_fbdev=no
-    AC_MSG_WARN([
-*** no linux/fb.h found -- building without linux fbdev support.])
-  fi
-fi
-
-AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
-
 
 AC_CHECK_HEADERS(linux/pci_regs.h linux/unistd.h asm/page.h)
 
@@ -516,6 +500,21 @@ else
 fi
 
 AM_CONDITIONAL(BUILDMMX, test "$enable_mmx" = "yes")
+
+
+dnl Test for Linux frame buffer device
+AC_ARG_ENABLE(fbdev,
+  [  --enable-fbdev            build with linux fbdev support [default=auto]],,
+  enable_fbdev=yes)
+
+if test "$have_linux" = "no"; then
+  enable_fbdev=no
+  AC_MSG_WARN([
+*** no linux kernel -- building without linux fbdev support.])
+fi
+
+AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
+
 
 
 dnl Test for SDL

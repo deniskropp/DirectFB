@@ -28,8 +28,6 @@
 #ifndef __CORE__FBDEV_H__
 #define __CORE__FBDEV_H__
 
-#include <linux/fb.h>
-
 #include <core/coretypes.h>
 
 #include <core/system.h>
@@ -37,6 +35,7 @@
 #include <fusion/call.h>
 #include <fusion/reactor.h>
 
+#include "fb.h"
 #include "vt.h"
 #include "agp.h"
 

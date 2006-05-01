@@ -4,6 +4,7 @@ INCLUDES = \
 	-I$(top_srcdir)/include	\
 	-I$(top_builddir)/lib	\
 	-I$(top_srcdir)/lib	\
+	-I$(top_srcdir)/systems	\
 	-I$(top_srcdir)/src
 
 mach64_LTLIBRARIES = libdirectfb_mach64.la

@@ -36,6 +36,8 @@
 
 #include <sys/mman.h>
 
+#include <fbdev/fb.h>
+
 #include <directfb.h>
 
 #include <direct/messages.h>
@@ -47,8 +49,6 @@
 #include <core/system.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
-
-#include <core/accelerators.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -1281,10 +1281,10 @@ driver_probe( GraphicsDevice *device )
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_NV4:
           case FB_ACCEL_NV5:
-          case FB_ACCEL_NV10:
-          case FB_ACCEL_NV20:
-          case FB_ACCEL_NV30:
-          case FB_ACCEL_NV40:
+          case FB_ACCEL_NV_10:
+          case FB_ACCEL_NV_20:
+          case FB_ACCEL_NV_30:
+          case FB_ACCEL_NV_40:
                return 1;
      }
 

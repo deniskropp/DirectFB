@@ -14,6 +14,7 @@ internalincludedir = $(INTERNALINCLUDEDIR)/fbdev
 
 internalinclude_HEADERS = \
 	fbdev.h		\
+	fb.h		\
 	vt.h			\
 	agp.h
 

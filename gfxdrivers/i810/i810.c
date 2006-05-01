@@ -39,8 +39,6 @@
 #include <core/coretypes.h>
 #include <core/screens.h>
 
-#include <core/accelerators.h>
-
 #include <core/state.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>

@@ -33,7 +33,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include <linux/fb.h>
+#include <fbdev/fb.h>
 
 #include <directfb.h>
 
@@ -41,7 +41,6 @@
 
 #include <fusion/shmalloc.h>
 
-#include <core/accelerators.h>
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 #include <core/gfxcard.h>

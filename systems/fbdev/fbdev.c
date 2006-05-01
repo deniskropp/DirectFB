@@ -41,8 +41,6 @@
 #include <sys/mman.h>
 #include <sys/kd.h>
 
-#include <linux/fb.h>
-
 #include <pthread.h>
 
 #ifdef USE_SYSFS
@@ -84,6 +82,7 @@
 #include <misc/util.h>
 
 #include "fbdev.h"
+#include "fb.h"
 #include "vt.h"
 #include "agp.h"
 

@@ -35,7 +35,7 @@
 #include <fcntl.h>
 #include <sys/ioctl.h>
 
-#include <linux/fb.h>
+#include <fbdev/fb.h>
 
 #include <directfb.h>
 
@@ -48,8 +48,6 @@
 #include <core/state.h>
 #include <core/surfaces.h>
 #include <core/gfxcard.h>
-
-#include <core/accelerators.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>

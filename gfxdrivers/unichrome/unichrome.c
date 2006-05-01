@@ -24,9 +24,9 @@
 
 #include <misc/conf.h>
 
-// System headers
+#include <fbdev/fb.h>
 
-#include <linux/fb.h>
+// System headers
 
 #include <sys/types.h>
 #include <sys/stat.h>
