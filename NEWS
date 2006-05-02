@@ -1,3 +1,245 @@
+0.9.25
+------
+
+API
+- Added DSPF_AYUV, a 32bit packed AYUV format for graphics,
+  being the counterpart of ARGB in the YUV color space.
+
+API | IDirectFBSurface
+- Added GetClip().
+
+API | IDirectFBDisplayLayer
+- Allow empty flags in SetColorAdjustment().
+- Allow to control background and cursor in exclusive cooperative level.
+
+API | IDirectFBEventBuffer
+- Added DFBEventBufferStats containing various counters for the event queue,
+  e.g. total number of events, number of window events, motion events etc.
+  These reflect the current content of the queue, i.e. dequeueing decrements.
+- Added EnableStatistics() to enable/disable collection.
+- Added GetStatistics() to query current statistics.
+
+API | IDirectFBVideoProvider
+- Added SendEvent() to send a window or input event
+  to video providers that supports interactivity (DVCAPS_INTERACTIVE).
+  For cursor events, coordinates must be in the destination rectangle space.
+- Added GetStreamDescription() to query informations about the stream.
+- Added IDirectFBVideoProvider::GetStatus() to get the status of the playback;
+  this method replaces the previous end-of-playback detection method using GetPos().
+
+Runtime Options
+- Added config option unichrome-revision=<rev> to manually set the hardware
+  revision number for the unichrome driver.  This cannot be determined
+  automatically unless the process runs as root.
+- Added option [no-]dma (disabled by default).
+- Added option fatal-level=<level>:
+  Abort on NONE, ASSERT (default) or ASSUME (incl. assert)
+
+Graphics Core
+- Added FlushReadCache() to the graphics driver API.
+  Used in the matrox driver to flush the direct access read cache.
+- Pass CoreDFB to graphics drivers as a new argument to driver_init_driver().
+- Added dfb_gfxcard_surface_{enter/leave}(), called when a software access to
+  video memory begins/finishes.
+- Fix negative line width handling in fill_tri().
+
+Surface Core
+- Added support for surfaces stored in auxiliray memory (PCI/AGP/PCIE).
+- Added support for Surface Managers with a variable number of heaps.
+- In dfb_surfacemanager_allocate() do dfb_gfxcard_sync() only if hardware has
+  read from the buffer about to be kicked out. The call to
+  dfb_surfacemanager_assure_system() should already take care of the hardware
+  write case.
+- Change dfb_surfacemanager_assure_system() to call dfb_gfxcard_wait_serial()
+  instead of dfb_gfxcard_sync() since we're only interested whether the
+  hardware has written to the buffer.
+- Use a separate shared memory pool for surface buffer data.
+
+Input Core
+- Don't toggle lock states repeatedly when holding a lock key.
+- Added FusionCall to each input device for maintenance via master,
+  driver calls etc. using new CoreInputDeviceCommand enum.
+- Added dfb_input_device_reload_keymap() implemented via the new call passing
+  the CIDC_RELOAD_KEYMAP command. The master will reload the whole keymap via
+  driver API.
+- Added a new tool called "dfbinput" which features keymap dump/reload so far.
+- DIKI_ALTGR is gone. The key right to the space bar is the right alt key.
+  No matter which map is loaded, the identifiers are just named hardware keys,
+  where you really specify the physical entity on your keyboard. In this case
+  it's always DIKI_ALT_R, no matter if it's mapped to DIKS_ALTGR or DIKS_ALT.
+  On standard keyboards it's also always the same hardware key code, no matter
+  if you by a German keyboard with AltGr or a U.$. one with Alt.
+- Changed the input core logic for keeping track of modifiers. If DIKI_ALT_R
+  is pressed, also look at the symbol to decide if DIMM_ALT or DIMM_ALTGR is
+  to be added/removed.
+- Now application developers don't need to check for both DIKI_ALTGR and
+  DIKI_ALT_R if they want to check for the key right next to the space bar :)
+
+Software Rasterizer
+- Almost completed support for Planar YUV formats (lacks colorkeying).
+- Fixed Cb/Cr offset computation (height*pitch/4 is different from
+  height/2*pitch/2 if height is odd).
+
+libdirect
+- Made debug/release versions binary compatible, being able to link
+  dynamically against both or even run in the same session.
+- Added D_OOM() message if thread structure can't be allocated.
+- Added D_MAGIC_SET_ONLY which is D_MAGIC_SET without assuming that the magic
+  hasn't been set already. Useful to avoid compiler warnings when acting on
+  uninitialized structures on the stack.
+- Removed dependency on -D_GNU_SOURCE when including <direct/util.h>:
+- Made direct_util_recursive_pthread_mutex_init() non-static-inline.
+- Removed DIRECT_UTIL_RECURSIVE_PTHREAD_MUTEX_INITIALIZER and replaced all
+  of its occurences by PTHREAD_MUTEX_INITIALIZER. These didn't need to be
+  recursive. If there's a recursive mutex required, you can still use the
+  utility function direct_util_recursive_pthread_mutex_init().
+- Removed -D_GNU_SOURCE from direct.pc and directfb-config.
+- Added DIRECT_SIGNAL_ANY as a replacement for the magic -1.
+- If the debug domain being registered contains a slash, but didn't exactly match an entry
+  in directfbrc, check to see if the domain is descended from an entry in directfbrc,
+  e.g. 'ui/field/messages' matches 'ui' or 'ui/field'.
+- New D_DEBUG_ENTER and D_DEBUG_EXIT to ease debug messages for tracing function calls.
+- Added UDP support to DirectStream.
+- Added symbol resolving support for static binaries.
+- Replaced the enum based bool definition by a typedef to __u8.
+- Defined false and true via macros like stdbool.h does.
+- Allow NULL argument in direct_free().
+- Thanks to Andy Stewart for fixing the hash table reallocation which didn't
+  check for collisions during reinsertion.
+
+libfusion
+- Using the new Fusion Kernel API 2.0
+- Parallel Fusion Worlds in one process via extended API
+- Multiple Shared Memory Pools in one world via new API
+- No race condition between (potential master) processes starting in parallel
+- Fusion APIs have been extended to support different worlds and pools.
+- Added fusion_reactor_sized_dispatch() to dispatch a message to any attached
+  reaction with a given size. Instead of using the size defined by the reactor,
+  the caller can specify the size of the data.
+- Added a parameter to fusion_enter() - FusionEnterRole - to specify either
+  FER_ANY, FER_MASTER or FER_SLAVE. If the world can't be entered playing the
+  specified role, an error message is printed and DFB_UNSUPPORTED is returned.
+- Added FusionCallExecFlags parameter to fusion_call_execute().
+- Allow pending reactions (in local dispatcher queue) to be executed
+  after the shared reactor part has been destroyed. This fixes for example
+  occasionally missing DWET_DESTROYED events.
+
+libvoodoo
+- Avoid tons of warnings by using D_MAGIC_SET_ONLY instead of D_MAGIC_SET.
+- More Requester/Dispatcher method implementations.
+
+Radeon driver
+- New unified Radeon driver for R100/R200/R300+.
+- Supports smooth page flipping.
+- Supports seconday head output.
+- Supports overlay on secondary head.
+- Improved overlay RGB rendering.
+- Improved R100/R200 3d functions performance.
+- Fixed 2d/3d engines synchronization.
+- Added support for surfaces stored in AGP memory.
+- Use the POINT primitive to fill rectangles with size=1 (i.e. to draw points) [~60% faster].
+- Speed up FillRectangle, Blit and StretchBlit by using the RECTANGLE_LIST primitive
+  instead of QUAD_LIST [~15% faster]. :)
+- Reset MC_FB_LOCATION to avoid problems with X (thanks to Michel Danzer).
+- Check for integrated GPUs.
+- When AGP support is enabled, turn off pci gart and turn on bus mastering.
+- Added acceleration for AYUV, but color conversion is not supported because
+  radeon supports AVYU instead of AYUV.
+
+Matrox Driver
+- Support for DSDRAW_SRC_PREMULTIPLY.
+- Limited support for DSBLIT_SRC_PREMULTIPLY.
+- PCI device ID cleanup.
+- Fixed Mystique vs. Mystique 220 detection.
+- Allow DSPF_ARGB surface for BES.
+- Finally remove DLOP_FLICKER_FILTERING on CRTC2.
+- Don't reinitialize the whole TV encoder when changing field parity.
+- Disable BES if the destination region is completely off-screen.
+- Allow surface height up to 2048 with DLOP_DEINTERLACING (BES).
+- Limit surface width with DLOP_DEINTERLACING to guarantee BESPITCH < 4096.
+- Disable vertical filtering when surface width > 1024 (BES).
+- G200 BES doesn't support color adjustments.
+- Don't touch hardware in SetRegion() if nothing changed (SPIC).
+- Separated spic_calc_buffer() out of spic_set_buffer().
+- Fixes for G100 with SDRAM.
+- Fixed YUY2/UYVY and texture LUT state handling.
+- Fixed color keying mask, G100 doesn't have TEXCTL2 so TEXTRANS
+  must be used to disable color keying.
+- Completely untested PPC support.
+- Misc. cleanups.
+
+Mach64 driver
+- Added support for DSDRAW_SRC_PREMULTIPLY and DSBLIT_SRC_PREMULTCOLOR.
+- Don't advertise DFXL_STRETCHBLIT when it hasn't been checked.
+- Fixed scaler/texture color key for chips < 3D Rage Pro.
+- Avoid chip lockups with destination color keying.
+- Fixed surface size limits (Overlay).
+- Fixed color keying on 264VT2 (Overlay).
+- Check the chip type in ovSetColorAdjustment().
+- Enabled SCALE_Y2R_TEMP.
+- Minor cleanup.
+
+nVidia driver
+- Added support for AGP
+- Added support for DMA using AGP or Framebuffer memory.
+- Finally fixed the "random-crashes-when-blitting-from-system-memory" problem.
+
+Unichrome driver
+- Fix hardware revision number detection and allow override via new config
+  option unichrome-revision=<rev>.  The revision number can only be
+  auto-detected if the process runs as root.
+- Added simple script to determine revision number for addition to
+  directfbrc.
+- Added support for DLOP_FIELD_PARITY.  For this to work, the kernel
+  framebuffer must support an extension of the WAITFORVSYNC ioctl that
+  allows waiting for the top or bottom field.
+- YV12, I420, YUY2 and AiRGB simple blits, AiRGB 2D drawing
+- Disable broken SetColorAdjustment for the overlay and remove color keying diagnostic.
+- Round to nearest when positioning up-scaled YV12/I420 video to reduce error.
+- Fix YV12/I420 video layer corruption on revision 0x11 hardware. Also
+  fix bug setting SUBP_CONTROL_STRIDE register in uc_spic_set_buffer.  Sadly
+  subpicture layer still doesn't work.
+- ARGB4444 as source and destination pixel format for all supported operations.
+- Overhaul of LEVELS, OPACITY and primary ALPHACHANNEL features which were
+  previously only partially implemented and did not work together.
+- The video overlay and the primary layer now both support the OPACITY option
+  and either can be on top.  The order is determined by the 'level' assigned
+  to the video layer.  The primary also supports an alpha channel which is
+  useful when the video layer is positioned behind.
+- The old DFB_CLE266_UNDERLAY environment variable switch has been removed.
+
+FBDev System module
+- Added AGP support.
+
+SDL System module
+- Decoupled screen updates from Fusion Dispatcher.
+  Updates are handled in a separate thread; they're accumulated rather than
+  queued in case an update is already pending.
+- Use the flag FCEF_ONEWAY to not wait for the call being executed,
+  otherwise a deadlock could occur. The return value is meaningless anyways.
+  Queued updates will be merged on the receiving side (master) to avoid a
+  lag and improve performance.
+
+Gunze Input driver
+- Added Gunze Touchscreen driver, thanks to Nathanael D. Noblet <nathanael@gnat.ca>!
+
+PenMount Input driver
+- Added input driver for PenMount 9509 serial touchscreen.
+
+PS/2 Input driver
+- Applied patch from Christian Krause <krause.chr@gmail.com> that allows
+  usage of the option "mouse-source" without "mouse-gpm-source".
+
+dfbdump tool
+- Show "1k" again for '0 < bytes < 1024'.
+
+dfbsummon tool
+- Avoid division by zero if no video memory is available.
+
+fusion_bench tool
+- Do the shmalloc benchmark once with debug and once without.
+
+
 0.9.24
 ------
 
@@ -5,7 +247,8 @@
 - Don't use fusion_reactor_free() too early in case of an error in init_devices().
   Thanks to "Jakub Bogusz <qboosh@pld-linux.org>" for this and other patches.
 - IDirectFBVideoProvider::GetPos() returns DFB_EOF to notify end-of-playback.
-  After stream has reached the end, the next call to PlayTo() restarts playback from the beginning.
+  After stream has reached the end, the next call to PlayTo()
+  restarts playback from the beginning.
 - No need for <linux/wm97xx.h> and <linux/sisfb.h> anymore.
 - Build all graphics drivers without checking for FB_ACCEL_* in <linux/fb.h>,
   because we have a fallback for each of those ids.
