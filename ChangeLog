@@ -1,3 +1,28 @@
+2006-05-03   dok	07:37:05	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	gfxdrivers/i830/i830.h (1.5) (+1 -1)
+	
+	Fix build problem by swapping two includes.
+	
+2006-05-03   dok	07:35:48	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	interfaces/IDirectFBVideoProvider/Makefile.am (1.22) (+1 -0)
+	
+	More EXTRA_DIST stuff.
+	
+2006-05-03   dok	07:34:53	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/shm/Makefile.am (1.2) (+2 -0)
+	
+	Added "fake.c" also to EXTRA_DIST...
+	
+2006-05-02   dok	22:41:06	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.59) (+2279 -40)
+		NEWS (1.59) (+244 -1)
+	
+	New changelog and news.
+	
 2006-05-01   dok	19:11:14	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	systems/fbdev/fb.h (1.2) (+1 -1)
@@ -281,25 +306,6 @@
 2006-04-05   dok	23:34:29	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	configure.in (1.278) (+2 -26)
-		gfxdrivers/r200/r200_state.h (1.3) (+0 -0)
-		gfxdrivers/r200/r200_state.c (1.16) (+0 -0)
-		gfxdrivers/r200/r200_regs.h (1.6) (+0 -0)
-		gfxdrivers/r200/r200_overlay.c (1.15) (+0 -0)
-		gfxdrivers/r200/r200_mmio.h (1.5) (+0 -0)
-		gfxdrivers/r200/r200_crtc1.c (1.4) (+0 -0)
-		gfxdrivers/r200/r200.h (1.12) (+0 -0)
-		gfxdrivers/r200/r200.c (1.29) (+0 -0)
-		gfxdrivers/r200/README (1.3) (+0 -0)
-		gfxdrivers/r200/Makefile.am (1.3) (+0 -0)
-		gfxdrivers/r200/.cvsignore (1.2) (+0 -0)
-		gfxdrivers/r100/r100_state.h (1.2) (+0 -0)
-		gfxdrivers/r100/r100_state.c (1.4) (+0 -0)
-		gfxdrivers/r100/r100_regs.h (1.2) (+0 -0)
-		gfxdrivers/r100/r100_overlay.c (1.3) (+0 -0)
-		gfxdrivers/r100/r100_mmio.h (1.2) (+0 -0)
-		gfxdrivers/r100/r100.h (1.3) (+0 -0)
-		gfxdrivers/r100/r100.c (1.5) (+0 -0)
-		gfxdrivers/r100/Makefile.am (1.2) (+0 -0)
 		gfxdrivers/Makefile.am (1.18) (+1 -16)
 	
 	Removed r100 and r200 driver in favor of the latest and greatest Radeon driver.
@@ -648,13 +654,6 @@
 	In Probe() call FT_Done_Face() only if FT_New_Face() succeeded, otherwise
 	random segfaults can occur.
 	
-2006-02-07   klan	15:47:59	
-
-	Files:	gfxdrivers/r100/r100.c (1.4) (+7 -3)
-		gfxdrivers/r200/r200.c (1.28) (+5 -2)
-	
-	When AGP support is enabled, turn off pci gart and turn on bus mastering.
-	
 2006-02-07   dok	12:17:14	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	src/core/core.h (1.24) (+1 -1)
@@ -676,19 +675,6 @@
 		systems/sdl/sdl.c (1.9) (+18 -0)
 	
 	Follow API changes.
-	
-2006-02-07   klan	09:34:32	
-
-	Files:	gfxdrivers/r100/r100.c (1.3) (+20 -6)
-		gfxdrivers/r200/r200_state.c (1.15) (+14 -8)
-		gfxdrivers/r200/r200_overlay.c (1.14) (+26 -32)
-		gfxdrivers/r200/r200.h (1.11) (+1 -0)
-		gfxdrivers/r200/r200.c (1.27) (+25 -13)
-		gfxdrivers/r100/r100_state.c (1.3) (+12 -6)
-		gfxdrivers/r100/r100_overlay.c (1.2) (+35 -20)
-		gfxdrivers/r100/r100.h (1.2) (+2 -1)
-	
-	Added support for surfaces stored in AGP memory.
 	
 2006-02-07   klan	09:33:35	
 
@@ -866,37 +852,15 @@
 	
 	Workaround broken(?) 2.6.16 headers.
 	
-2006-02-01   klan	13:39:25	
-
-	Files:	gfxdrivers/r100/r100.c (1.2) (+54 -49)
-		gfxdrivers/r100/r100_state.c (1.2) (+2 -6)
-	
-	Avoid sending s/t coordinates when drawing only shapes.
-	
 2006-02-01   klan	10:24:44	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.90) (+1 -1)
 	
 	Add fb_offset to the dma offset.
 	
-2006-02-01   klan	09:35:12	
-
-	Files:	gfxdrivers/r200/r200.c (1.26) (+32 -22)
-	
-	No longer change the value of MC_FB_LOCATION unless an IGP chipset is used
-	(old radeonfb doesn't set the register correctly on IGPs).
-	
 2006-02-01   klan	09:32:37	
 
 	Files:	configure.in (1.271) (+17 -5)
-		gfxdrivers/r100/r100_state.h (1.1) ( )
-		gfxdrivers/r100/r100_state.c (1.1) ( )
-		gfxdrivers/r100/r100_regs.h (1.1) ( )
-		gfxdrivers/r100/r100_overlay.c (1.1) ( )
-		gfxdrivers/r100/r100_mmio.h (1.1) ( )
-		gfxdrivers/r100/r100.h (1.1) ( )
-		gfxdrivers/r100/r100.c (1.1) ( )
-		gfxdrivers/r100/Makefile.am (1.1) ( )
 		gfxdrivers/Makefile.am (1.17) (+7 -0)
 	
 	Imported the new R100 driver.
@@ -946,19 +910,6 @@
 	
 	Currently DMA is not faster than PIO, therefore it's disabled by default.
 	
-2006-01-27   klan	13:35:02	
-
-	Files:	gfxdrivers/r200/r200.c (1.25) (+36 -28)
-		gfxdrivers/r200/r200.h (1.10) (+1 -0)
-	
-	Check for integrated GPUs.
-	
-2006-01-25   klan	14:40:14	
-
-	Files:	gfxdrivers/r200/r200.c (1.24) (+7 -9)
-	
-	Reset MC_FB_LOCATION to avoid problems with X (thanks to Michel Danzer).
-	
 2006-01-23   klan	21:19:23	
 
 	Files:	gfxdrivers/nvidia/nvidia.c (1.88) (+16 -27)
@@ -984,24 +935,6 @@
 	
 	Fail during probe() if the framebuffer device doesn't provide access to MMIO.
 	
-2006-01-23   klan	11:33:18	
-
-	Files:	gfxdrivers/r200/r200.c (1.23) (+4 -1)
-	
-	Fail during probe() if the framebuffer device doesn't provide access to MMIO.
-	
-2006-01-23   klan	11:32:00	
-
-	Files:	gfxdrivers/r200/r200_regs.h (1.5) (+4 -2)
-	
-	Fixed a typo.
-	
-2006-01-23   klan	11:31:17	
-
-	Files:	gfxdrivers/r200/r200_state.c (1.14) (+1 -1)
-	
-	Fixed wrong register in R200_SET_YUV422_COLOR().
-	
 2006-01-22   memmel	03:54:52	
 
 	Files:	systems/sdl/sdlinput.c (1.12) (+0 -1)
@@ -1019,19 +952,6 @@
 	Files:	interfaces/IDirectFBVideoProvider/idirectfbvideoprovider_v4l.c (1.90) (+1 -1)
 	
 	Fixed wrong enum names used (missing E in DVSTATE_).
-	
-2006-01-19   klan	13:56:14	
-
-	Files:	gfxdrivers/r200/r200.c (1.22) (+8 -10)
-	
-	Speed up FillRectangle, Blit and StretchBlit by using the RECTANGLE_LIST primitive
-	instead of QUAD_LIST [~15% faster]. :)
-	
-2006-01-18   klan	17:31:54	
-
-	Files:	gfxdrivers/r200/r200.c (1.21) (+20 -9)
-	
-	Use the POINT primitive to fill rectangles with size=1 (i.e. to draw points) [~60% faster].
 	
 2006-01-15   klan	19:13:27	
 
@@ -1243,12 +1163,6 @@
 	Files:	gfxdrivers/nvidia/nvidia_primary.c (1.13) (+3 -2)
 	
 	Removed GetScreenSize() hook.
-	
-2005-12-24   klan	10:50:11	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.13) (+14 -33)
-	
-	Use dfb_system_current_mode() instead of reading CRTC mode registers.
 	
 2005-12-23   klan	15:23:26	
 
@@ -2061,7 +1975,6 @@
 		gfxdrivers/sis315/sis315.c (1.12) (+3 -2)
 		gfxdrivers/savage/savage.c (1.14) (+2 -1)
 		gfxdrivers/radeon/radeon.c (1.22) (+2 -1)
-		gfxdrivers/r200/r200.c (1.20) (+3 -2)
 	
 	0.9.25
 	
@@ -2682,12 +2595,6 @@
 	If the master application only accesses the BES layer, current VideoMode is NULL;
 	in that case rely on the default VideoMode.
 	
-2005-09-14   klan	16:05:51	
-
-	Files:	gfxdrivers/r200/r200.c (1.19) (+13 -20)
-	
-	Dropped down YUV Source Colorkeying.
-	
 2005-09-14   dok	11:02:30	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	README (1.101) (+1 -0)
@@ -2713,16 +2620,6 @@
 	Files:	src/gfx/generic/generic.c (1.182) (+39 -45)
 	
 	Planar YCbCr deinterlacing.
-	
-2005-09-07   klan	10:18:02	
-
-	Files:	gfxdrivers/r200/r200.c (1.18) (+9 -3)
-		gfxdrivers/r200/r200_state.c (1.13) (+73 -30)
-		gfxdrivers/r200/r200.h (1.9) (+1 -0)
-	
-	Fixed rendering to A8 surfaces (color must be replaced by alpha since the destination format is set to RGB8).
-	
-	Workaround to make byte-swapping work properly on big-endian machines (better than nothing for now).
 	
 2005-09-06   klan	12:51:15	
 
@@ -2903,13 +2800,6 @@
 	
 	Fixed a warning.
 	
-2005-08-26   klan	10:04:00	
-
-	Files:	gfxdrivers/r200/r200.c (1.17) (+4 -3)
-		gfxdrivers/r200/r200_state.c (1.12) (+10 -5)
-	
-	DSBLIT_XOR.
-	
 2005-08-26   klan	10:02:30	
 
 	Files:	src/core/gfxcard.c (1.170) (+8 -0)
@@ -2927,16 +2817,6 @@
 	Files:	include/directfb.h (1.270) (+3 -1)
 	
 	Added DSBLIT_XOR.
-	
-2005-08-23   klan	15:26:47	
-
-	Files:	gfxdrivers/r200/r200.c (1.16) (+589 -204)
-		gfxdrivers/r200/r200_state.c (1.11) (+110 -78)
-		gfxdrivers/r200/r200.h (1.8) (+10 -4)
-	
-	- FillTriangle,DrawRectangle,DrawLine (with Xor and Alpha Blend) on YUY2/UYVY/YV12/I420.
-	- DrawString (A8 fonts) on YUY2/UYVY/YV12/I420.
-	- Blit with Source Colorkey on YV12/I420.
 	
 2005-08-23   klan	15:25:20	
 
@@ -3003,50 +2883,6 @@
 	
 	Cast to (typeof(elem)) instead of (void*), to make C++ compiler happy.
 	
-2005-08-15   klan	13:40:55	
-
-	Files:	gfxdrivers/r200/r200_regs.h (1.4) (+4 -1)
-		gfxdrivers/r200/r200_state.c (1.10) (+58 -18)
-	
-	Lot of improvements and new features.
-	
-	Engine:
-	  - Fixed all cache related problems.
-	  - No longer _exit if a timeout occurs, try a reset instead.
-	
-	Acceleration:
-	  - Added support for the following formats: LUT8, ALUT44, ARGB2554, AiRGB.
-	  - Speed up font rendering by bypassing the TCL.
-	
-	Overlay:
-	  - Fixed support for very high resolutions (dotclock >= 175Mhz).
-	
-	
-	Switched to version 0.2.
-	
-2005-08-15   klan	13:40:54	
-
-	Files:	gfxdrivers/r200/r200.c (1.15) (+128 -101)
-		gfxdrivers/r200/r200_overlay.c (1.12) (+39 -17)
-		gfxdrivers/r200/r200_mmio.h (1.4) (+8 -16)
-		gfxdrivers/r200/r200.h (1.7) (+6 -0)
-	
-	Lot of improvements and new features.
-	
-	Engine:
-	  - Fixed all cache related problems.
-	  - No longer _exit if a timeout occurs, try a reset instead.
-	
-	Acceleration:
-	  - Added support for the following formats: LUT8, ALUT44, ARGB2554, AiRGB.
-	  - Speed up font rendering by bypassing the TCL.
-	
-	Overlay:
-	  - Fixed support for very high resolutions (dotclock >= 175Mhz).
-	
-	
-	Switched to version 0.2.
-	
 2005-08-12   klan	11:03:15	
 
 	Files:	src/core/gfxcard.c (1.168) (+2 -2)
@@ -3090,18 +2926,6 @@
 	- Made deinterlacing work properly with TextureTriangles().
 	- Pay attention to the DSCAPS_SEPARATED flag.
 	
-2005-08-08   klan	13:04:24	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.11) (+45 -33)
-	
-	Fixed planar source cropping.
-	
-2005-08-08   klan	13:03:54	
-
-	Files:	gfxdrivers/r200/r200_state.c (1.9) (+15 -7)
-	
-	Pay attention to the DSCAPS_SEPARATED flag.
-	
 2005-08-07   klan	10:27:24	
 
 	Files:	src/gfx/generic/generic.c (1.179) (+518 -12)
@@ -3113,12 +2937,6 @@
 	     when the pixels in the accumulator are written to the destination.
 	     This way StretchBlit() is faster if source has not to be blended togheter
 	     with the destination.
-	
-2005-08-06   klan	08:26:17	
-
-	Files:	gfxdrivers/r200/r200.c (1.14) (+2 -1)
-	
-	Allow YV12/I420 deinterlacing.
 	
 2005-08-04   dok	20:45:28	Denis Oliver Kropp <dok@directfb.org>
 
@@ -3187,13 +3005,6 @@
 		gfxdrivers/nvidia/nvidia_state.c (1.2) (+25 -7)
 		gfxdrivers/nvidia/nvidia_2d.c (1.18) (+24 -4)
 		gfxdrivers/nvidia/nvidia.h (1.39) (+1 -0)
-	
-	Deinterlacing.
-	
-2005-08-02   klan	14:06:08	
-
-	Files:	gfxdrivers/r200/r200.c (1.13) (+20 -1)
-		gfxdrivers/r200/r200_state.c (1.8) (+23 -11)
 	
 	Deinterlacing.
 	
@@ -3270,14 +3081,6 @@
 	
 	dfb_screens_hook_primary() instead of dfb_screen_register_primary().
 	
-2005-07-30   klan	09:13:49	
-
-	Files:	gfxdrivers/r200/r200.c (1.12) (+4 -3)
-		gfxdrivers/r200/r200_crtc1.c (1.3) (+3 -38)
-		gfxdrivers/r200/r200.h (1.6) (+5 -2)
-	
-	dfb_screens_hook_primary() instead of dfb_screen_register_primary().
-	
 2005-07-30   klan	09:11:55	
 
 	Files:	src/core/screens.c (1.12) (+43 -0)
@@ -3293,8 +3096,7 @@
 	
 2005-07-27   klan	14:09:42	
 
-	Files:	gfxdrivers/r200/r200.c (1.11) (+7 -6)
-		gfxdrivers/radeon/radeon.c (1.20) (+7 -4)
+	Files:	gfxdrivers/radeon/radeon.c (1.20) (+7 -4)
 	
 	Use dfb_system_get_deviceid() instead of accessing FBDev system's private data.
 	
@@ -3487,15 +3289,6 @@
 	
 	Use informations stored in FBDevShared to detect chipset architecture.
 	
-2005-07-18   klan	16:26:21	
-
-	Files:	gfxdrivers/r200/Makefile.am (1.2) (+0 -1)
-		gfxdrivers/r200/r200.c (1.10) (+5 -66)
-	
-	Use informations stored in FBDevShared to detect chipset identifier.
-	
-	No longer need to link against libsysfs.
-	
 2005-07-18   klan	16:24:38	
 
 	Files:	src/misc/conf.c (1.98) (+19 -0)
@@ -3517,18 +3310,6 @@
 	
 	The FBDev system is now responsible of retrieving the PCI Bus, Card Vendor and Device identifiers.
 	These informations are stored in the FBDevShared structure.
-	
-2005-07-18   klan	09:35:56	
-
-	Files:	gfxdrivers/r200/r200.c (1.9) (+57 -69)
-		gfxdrivers/r200/r200_state.c (1.7) (+45 -29)
-		gfxdrivers/r200/r200_overlay.c (1.10) (+339 -244)
-		gfxdrivers/r200/r200_mmio.h (1.3) (+3 -0)
-		gfxdrivers/r200/r200.h (1.5) (+0 -1)
-	
-	Overlay supports deinterlacing.
-	Enable Gouraud shading for TextureTriangles() by default.
-	Rewritten chipset probe function (faster).
 	
 2005-07-15   memmel	17:43:40	
 
@@ -3801,12 +3582,6 @@
 	Regards
 	Sylvain
 	
-2005-06-02   dok	10:37:12	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	gfxdrivers/r200/r200_regs.h (1.3) (+9 -0)
-	
-	fixed warnings
-	
 2005-06-02   dok	10:34:08	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	systems/sdl/sdlinput.c (1.7) (+1 -171)
@@ -3826,29 +3601,6 @@
 	Files:	src/gfx/generic/generic.c (1.173) (+1 -1)
 	
 	Fixed A8 font rendering onto areas that are not black.
-	
-2005-06-01   klan	09:45:28	
-
-	Files:	gfxdrivers/r200/r200_regs.h (1.2) (+53 -13)
-		gfxdrivers/r200/r200_state.c (1.6) (+179 -130)
-	
-	Acceleration for YV12/I420:
-	  Drawing Functions:  FillRectangle
-	  Blitting Functions: Blit,StretchBlit,TextureTriangles
-	  Drawing Flags:      XOR
-	  Blitting Flags:     BLEND_COLOR_ALPHA
-	
-2005-06-01   klan	09:45:27	
-
-	Files:	gfxdrivers/r200/r200.c (1.8) (+578 -233)
-		gfxdrivers/r200/r200_overlay.c (1.9) (+1 -6)
-		gfxdrivers/r200/r200.h (1.4) (+13 -2)
-	
-	Acceleration for YV12/I420:
-	  Drawing Functions:  FillRectangle
-	  Blitting Functions: Blit,StretchBlit,TextureTriangles
-	  Drawing Flags:      XOR
-	  Blitting Flags:     BLEND_COLOR_ALPHA
 	
 2005-05-31   dok	07:02:18	Denis Oliver Kropp <dok@directfb.org>
 
@@ -3919,16 +3671,6 @@
 	
 	- added X11 system from Martin Luetken (nitram at lutken dot dk), thank you!
 	TODO: add support for non-24bpp modes
-	
-2005-05-25   klan	09:40:44	
-
-	Files:	gfxdrivers/r200/r200.c (1.7) (+37 -26)
-		gfxdrivers/r200/r200_state.c (1.5) (+2 -4)
-		gfxdrivers/r200/r200_overlay.c (1.8) (+1 -1)
-	
-	Always flush cache when switching to 2d/3d engine.
-	Disable 0-1 pixel clamp.
-	Set framebuffer location according to rdev->fb_offset.
 	
 2005-05-22   dok	20:56:46	Denis Oliver Kropp <dok@directfb.org>
 
@@ -4083,29 +3825,12 @@
 	
 	Commented out usage of DST_PREMUTIPLY and DEMULTIPLY for now.
 	
-2005-04-22   klan	15:34:30	
-
-	Files:	gfxdrivers/r200/r200.c (1.6) (+30 -15)
-		gfxdrivers/r200/r200_state.c (1.4) (+26 -12)
-	
-	Fixed YUV422 clipping and blitting coordinates.
-	Simple blits with src colorkey.
-	
 2005-04-20   klan	09:18:19	
 
 	Files:	src/core/windows.c (1.217) (+1 -1)
 	
 	Fixed a bug in dfb_window_set_opaque (config.opaque.y1 instead of config.opaque.y2).
 	SetOpaqueRegion works again now.
-	
-2005-04-19   klan	17:45:16	
-
-	Files:	gfxdrivers/r200/r200.c (1.5) (+54 -22)
-		gfxdrivers/r200/r200_state.c (1.3) (+31 -26)
-		gfxdrivers/r200/r200_mmio.h (1.2) (+3 -5)
-		gfxdrivers/r200/r200.h (1.3) (+6 -1)
-	
-	Fixed 2d<->3d engine switching.
 	
 2005-04-12   dok	14:18:59	Denis Oliver Kropp <dok@directfb.org>
 
@@ -4140,18 +3865,6 @@
 	Files:	src/core/layer_context.c (1.45) (+5 -8)
 	
 	Modify surface's capabalities according to layer options after clearing them (not before!).
-	
-2005-04-09   klan	09:42:58	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.7) (+54 -34)
-	
-	DLOP_OPACITY.
-	
-2005-04-07   klan	13:10:45	
-
-	Files:	gfxdrivers/r200/r200_crtc1.c (1.2) (+13 -7)
-	
-	Sleep while waiting for vertical retrace.
 	
 2005-04-07   dok	07:09:30	Denis Oliver Kropp <dok@directfb.org>
 
@@ -4209,76 +3922,15 @@
 	
 	Removed a pre-0.9.0 artifact: CardResult.
 	
-2005-04-06   klan	17:50:39	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.6) (+73 -54)
-	
-	Added support for ARGB1555,RGB16,RGB32 and ARGB.
-	
-2005-04-06   klan	12:35:50	
-
-	Files:	gfxdrivers/r200/r200.c (1.4) (+59 -42)
-		gfxdrivers/r200/r200_state.h (1.2) (+4 -1)
-		gfxdrivers/r200/r200_state.c (1.2) (+74 -37)
-		gfxdrivers/r200/r200_overlay.c (1.5) (+21 -11)
-		gfxdrivers/r200/r200.h (1.2) (+12 -1)
-	
-	ARGB4444 supported as destination format.
-	DSBLIT_SRC_PREMULTCOLOR.
-	Fiexd overlay coordinates for RV250 and newer (offset x by 8).
-	
 2005-04-06   dok	05:33:35	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	lib/direct/util.h (1.14) (+1 -1)
 	
 	D_ARRAY_SIZE() is a signed int now (for simplicity).
 	
-2005-04-05   klan	17:24:56	
-
-	Files:	gfxdrivers/r200/README (1.2) (+6 -8)
-		gfxdrivers/r200/r200.c (1.3) (+9 -11)
-	
-	Dropped down RS200/RS250 chipsets (R100 based).
-	Added RS300/RS350.
-	
-2005-04-05   klan	10:37:08	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.4) (+1 -1)
-	
-	Still on destination colorkey: green and blue were inverted.
-	
-2005-04-05   klan	10:03:28	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.3) (+45 -23)
-	
-	Fixed destination colorkey calculation.
-	
-2005-04-05   klan	08:56:35	
-
-	Files:	gfxdrivers/r200/r200_overlay.c (1.2) (+1 -2)
-	
-	Removed DLCAPS_SRC_COLORKEY and DLCAPS_DEINTERLACING, they were tests.
-	
-2005-04-05   dok	08:29:33	Denis Oliver Kropp <dok@directfb.org>
-
-	Files:	gfxdrivers/r200/r200.c (1.2) (+1 -1)
-	
-	Fixed minor typo (replaced "," by ";" in for statement).
-	
 2005-04-04   klan	20:30:49	
 
 	Files:	configure.in (1.244) (+24 -2)
-		gfxdrivers/r200/r200_state.h (1.1) ( )
-		gfxdrivers/r200/r200_state.c (1.1) ( )
-		gfxdrivers/r200/r200_regs.h (1.1) ( )
-		gfxdrivers/r200/r200_overlay.c (1.1) ( )
-		gfxdrivers/r200/r200_mmio.h (1.1) ( )
-		gfxdrivers/r200/r200_crtc1.c (1.1) ( )
-		gfxdrivers/r200/r200.h (1.1) ( )
-		gfxdrivers/r200/r200.c (1.1) ( )
-		gfxdrivers/r200/README (1.1) ( )
-		gfxdrivers/r200/Makefile.am (1.1) ( )
-		gfxdrivers/r200/.cvsignore (1.1) ( )
 		gfxdrivers/Makefile.am (1.16) (+9 -1)
 	
 	New driver for ATI Radeon R200 based cards.
