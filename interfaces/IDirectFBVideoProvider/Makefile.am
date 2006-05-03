@@ -2,6 +2,7 @@
 
 idirectfbvideoproviderdir = $(MODULEDIR)/interfaces/IDirectFBVideoProvider
 
+EXTRA_DIST = videodev.h videodev2.h
 
 if V4L_PROVIDER
 V4L_PROVIDER_LTLIB = libidirectfbvideoprovider_v4l.la
