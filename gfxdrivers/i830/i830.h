@@ -27,8 +27,8 @@
 #ifndef __I830_H__
 #define __I830_H__
 
-#include <linux/agpgart.h>
 #include <dfb_types.h>
+#include <linux/agpgart.h>
 
 #include <core/gfxcard.h>
 #include <core/layers.h>
