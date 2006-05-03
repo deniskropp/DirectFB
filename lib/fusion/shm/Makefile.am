@@ -16,6 +16,8 @@ else
 SHMSOURCES = fake.c
 endif
 
+EXTRA_DIST = fake.c
+
 noinst_LTLIBRARIES = libfusion_shm.la
 
 libfusion_shm_la_SOURCES = \
