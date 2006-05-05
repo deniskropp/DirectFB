@@ -55,13 +55,16 @@ static const char *
 symbol_name( DFBInputDeviceKeySymbol symbol )
 {
      int i;
+     static buf[64];
 
      for (i=0; i<D_ARRAY_SIZE(symbol_names); i++) {
           if (symbol_names[i].symbol == symbol)
                return symbol_names[i].name;
      }
 
-     return "<unknown>";
+     snprintf( buf, sizeof(buf), "<0x%08x>", symbol );
+     
+     return buf;
 }
 
 /**************************************************************************************************/
