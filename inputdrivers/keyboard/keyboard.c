@@ -100,6 +100,30 @@ keyboard_get_symbol( int                             code,
                          return index;
                }
                break;
+          case KT_DEAD:
+               switch (value) {
+                    case K_DGRAVE:
+                         return DIKS_DEAD_GRAVE;
+
+                    case K_DACUTE:
+                         return DIKS_DEAD_ACUTE;
+
+                    case K_DCIRCM:
+                         return DIKS_DEAD_CIRCUMFLEX;
+
+                    case K_DTILDE:
+                         return DIKS_DEAD_TILDE;
+
+                    case K_DDIERE:
+                         return DIKS_DEAD_DIAERESIS;
+
+                    case K_DCEDIL:
+                         return DIKS_DEAD_CEDILLA;
+
+                    default:
+                         break;
+               }
+               break;
           case KT_PAD:
                if (index <= 9 && level != DIKSI_BASE)
                     return DIKS_0 + index;
