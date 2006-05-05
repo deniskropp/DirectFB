@@ -84,6 +84,10 @@ DEFINE_MODULE_DIRECTORY( dfb_input_modules, "inputdrivers",
 
 /**********************************************************************************************************************/
 
+typedef enum {
+     CIDC_RELOAD_KEYMAP
+} CoreInputDeviceCommand;
+
 typedef struct {
      DirectLink               link;
 
@@ -122,6 +126,7 @@ typedef struct {
      DFBInputDeviceButtonMask     buttons;
 
      DFBInputDeviceKeyIdentifier  last_key;      /* last key pressed */
+     DFBInputDeviceKeySymbol      last_symbol;   /* last symbol pressed */
      bool                         first_press;   /* first press of key */
 
      FusionReactor               *reactor;       /* event dispatcher */
@@ -157,9 +162,82 @@ DFB_CORE_PART( input, 0, sizeof(CoreInput) )
 
 /**********************************************************************************************************************/
 
-typedef enum {
-     CIDC_RELOAD_KEYMAP
-} CoreInputDeviceCommand;
+typedef struct {
+     DFBInputDeviceKeySymbol      target;
+     DFBInputDeviceKeySymbol      result;
+} DeadKeyCombo;
+
+typedef struct {
+     DFBInputDeviceKeySymbol      deadkey;
+     const DeadKeyCombo          *combos;
+} DeadKeyMap;
+
+/**********************************************************************************************************************/
+
+static const DeadKeyCombo combos_grave[] = {
+     { DIKS_SPACE,     (unsigned char) '`' },
+     { DIKS_SMALL_A,   (unsigned char) 'à' },
+     { DIKS_SMALL_E,   (unsigned char) 'è' }, 
+     { DIKS_SMALL_I,   (unsigned char) 'ì' },
+     { DIKS_SMALL_O,   (unsigned char) 'ò' },
+     { DIKS_SMALL_U,   (unsigned char) 'ù' },
+     { DIKS_CAPITAL_A, (unsigned char) 'À' },
+     { DIKS_CAPITAL_E, (unsigned char) 'È' },
+     { DIKS_CAPITAL_I, (unsigned char) 'Ì' },
+     { DIKS_CAPITAL_O, (unsigned char) 'Ò' },
+     { DIKS_CAPITAL_U, (unsigned char) 'Ù' },
+     { 0, 0 }
+};
+
+static const DeadKeyCombo combos_acute[] = {
+     { DIKS_SPACE,     (unsigned char) '\'' },
+     { DIKS_SMALL_A,   (unsigned char) 'á' },
+     { DIKS_SMALL_E,   (unsigned char) 'é' }, 
+     { DIKS_SMALL_I,   (unsigned char) 'í' },
+     { DIKS_SMALL_O,   (unsigned char) 'ó' },
+     { DIKS_SMALL_U,   (unsigned char) 'ú' },
+     { DIKS_SMALL_Y,   (unsigned char) 'ý' },
+     { DIKS_CAPITAL_A, (unsigned char) 'Á' },
+     { DIKS_CAPITAL_E, (unsigned char) 'É' },
+     { DIKS_CAPITAL_I, (unsigned char) 'Í' },
+     { DIKS_CAPITAL_O, (unsigned char) 'Ó' },
+     { DIKS_CAPITAL_U, (unsigned char) 'Ú' },
+     { DIKS_CAPITAL_Y, (unsigned char) 'Ý' },
+     { 0, 0 }
+};
+
+static const DeadKeyCombo combos_circumflex[] = {
+     { DIKS_SPACE,     (unsigned char) '^' },
+     { DIKS_SMALL_A,   (unsigned char) 'â' },
+     { DIKS_SMALL_E,   (unsigned char) 'ê' }, 
+     { DIKS_SMALL_I,   (unsigned char) 'î' },
+     { DIKS_SMALL_O,   (unsigned char) 'ô' },
+     { DIKS_SMALL_U,   (unsigned char) 'û' },
+     { DIKS_CAPITAL_A, (unsigned char) 'Â' },
+     { DIKS_CAPITAL_E, (unsigned char) 'Ê' },
+     { DIKS_CAPITAL_I, (unsigned char) 'Î' },
+     { DIKS_CAPITAL_O, (unsigned char) 'Ô' },
+     { DIKS_CAPITAL_U, (unsigned char) 'Û' },
+     { 0, 0 }
+};
+
+static const DeadKeyCombo combos_tilde[] = {
+     { DIKS_SPACE,     (unsigned char) '~' },
+     { DIKS_SMALL_A,   (unsigned char) 'ã' },
+     { DIKS_SMALL_N,   (unsigned char) 'ñ' }, 
+     { DIKS_SMALL_O,   (unsigned char) 'õ' },
+     { DIKS_CAPITAL_A, (unsigned char) 'Ã' },
+     { DIKS_CAPITAL_N, (unsigned char) 'Ñ' },
+     { DIKS_CAPITAL_O, (unsigned char) 'Õ' },
+     { 0, 0 }
+};
+
+static const DeadKeyMap deadkey_maps[] = {
+     { DIKS_DEAD_GRAVE,      combos_grave },
+     { DIKS_DEAD_ACUTE,      combos_acute },
+     { DIKS_DEAD_CIRCUMFLEX, combos_circumflex },
+     { DIKS_DEAD_TILDE,      combos_tilde }
+};
 
 /**********************************************************************************************************************/
 
@@ -1104,6 +1182,7 @@ find_key_code_by_symbol( CoreInputDevice         *device,
 static void
 fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
 {
+     int                 i;
      DFBInputEventFlags  valid   = event->flags & FIXUP_KEY_FIELDS;
      DFBInputEventFlags  missing = valid ^ FIXUP_KEY_FIELDS;
      InputDeviceShared  *shared  = device->shared;
@@ -1319,6 +1398,29 @@ fixup_key_event( CoreInputDevice *device, DFBInputEvent *event )
           
           shared->first_press = true;
      }
+
+     /* Handle dead keys. */
+     if (DFB_KEY_TYPE(shared->last_symbol) == DIKT_DEAD) {
+          for (i=0; i<D_ARRAY_SIZE(deadkey_maps); i++) {
+               const DeadKeyMap *map = &deadkey_maps[i];
+
+               if (map->deadkey == shared->last_symbol) {
+                    for (i=0; map->combos[i].target; i++) {
+                         if (map->combos[i].target == event->key_symbol) {
+                              event->key_symbol = map->combos[i].result;
+                              break;
+                         }
+                    }
+                    break;
+               }
+          }
+
+          if (event->type == DIET_KEYRELEASE &&
+              DFB_KEY_TYPE(event->key_symbol) != DIKT_MODIFIER)
+               shared->last_symbol = event->key_symbol;
+     }
+     else
+          shared->last_symbol = event->key_symbol;
 }
 
 static void
