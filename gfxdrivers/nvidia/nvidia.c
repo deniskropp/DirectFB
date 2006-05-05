@@ -171,8 +171,10 @@ static void nvAfterSetVar( void *driver_data,
      nv_out32( mmio, PFIFO_CACHES, PFIFO_CACHES_REASSIGN_DISABLED );
      if (nvdev->use_dma) {
           nv_out32( mmio, PFIFO_MODE, PFIFO_MODE_CHANNEL_0_DMA );
+          nv_out32( mmio, PFIFO_NEXT_CHANNEL, PFIFO_NEXT_CHANNEL_MODE_DMA );
      } else {
           nv_out32( mmio, PFIFO_MODE, PFIFO_MODE_CHANNEL_0_PIO );
+          nv_out32( mmio, PFIFO_NEXT_CHANNEL, PFIFO_NEXT_CHANNEL_MODE_PIO );
      }
      nv_out32( mmio, PFIFO_CACHE1_PUSH0, PFIFO_CACHE1_PULL1_ENGINE_SW );
      nv_out32( mmio, PFIFO_CACHE1_PULL0, PFIFO_CACHE1_PULL0_ACCESS_DISABLED );
@@ -376,8 +378,15 @@ static void nvAfterSetVar( void *driver_data,
      nvdev->dma_put   = 0;
      nvdev->dma_get   = 0;
      nvdev->fifo_free = 0;
+}
 
-     /* put objects into subchannels */
+static void nvEngineReset( void *drv, void *dev )
+{
+     NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
+     NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
+     int               i;
+
+     /* reput objects into subchannels */
      for (i = 0; i < 8; i++) {
           nv_assign_object( nvdrv, nvdev, i, 
                             nvdev->subchannel_object[i], true );
@@ -599,6 +608,11 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
+                    /* disable host-to-video blit for simple blits */
+                    if (source->front_buffer->policy == CSP_SYSTEMONLY &&
+                        state->blittingflags == DSBLIT_NOFX            &&
+                        source->format == destination->format)
+                         return;
                     break;
 
                case DSPF_YUY2:
@@ -714,6 +728,11 @@ static void nv10CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
+                    /* disable host-to-video blit for simple blits */
+                    if (source->front_buffer->policy == CSP_SYSTEMONLY &&
+                        state->blittingflags == DSBLIT_NOFX            &&
+                        source->format == destination->format)
+                         return;
                     break;
 
                case DSPF_YUY2:
@@ -820,6 +839,11 @@ static void nv20CheckState( void *drv, void *dev,
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
+                    /* disable host-to-video blit for simple blits */
+                    if (source->front_buffer->policy == CSP_SYSTEMONLY &&
+                        state->blittingflags == DSBLIT_NOFX            &&
+                        source->format == destination->format)
+                         return;
                     break;
 
                case DSPF_YUY2:
@@ -896,13 +920,16 @@ static void nv30CheckState( void *drv, void *dev,
                case DSPF_ARGB:
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (source->format == destination->format)
-                         state->accel |= DFXL_BLIT;
+                    if (source->front_buffer->policy == CSP_SYSTEMONLY ||
+                        source->format != destination->format)
+                         return;
                     break;
 
                default:
                     return;
           }
+
+          state->accel |= accel;
      }
      else {
           /* check unsupported drawing flags */
@@ -1330,7 +1357,7 @@ nv_find_architecture( __u32 *ret_chip, __u32 *ret_arch )
      if (vendor_id == 0x10DE) {
           __u32 arch = 0;
           
-          switch (device_id & 0x0FF0) {
+          switch (device_id & 0xFFF0) {
                case 0x0020: /* Riva TNT/TNT2 */
                     arch = (device_id == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
                     break;
@@ -1396,6 +1423,7 @@ driver_init_driver( GraphicsDevice      *device,
      }
 
      funcs->AfterSetVar   = nvAfterSetVar;
+     funcs->EngineReset   = nvEngineReset;
      funcs->EngineSync    = nvEngineSync;
      funcs->EmitCommands  = nvEmitCommands;
      funcs->FillRectangle = nvFillRectangle2D; // dynamic
@@ -1436,6 +1464,7 @@ driver_init_driver( GraphicsDevice      *device,
                funcs->SetState          = nv30SetState;
                break;
           default:
+               funcs->EngineReset       = NULL;
                break;
      }
 
