@@ -66,6 +66,9 @@
 
 DEFINE_MODULE_DIRECTORY( dfb_graphics_drivers, "gfxdrivers", DFB_GRAPHICS_DRIVER_ABI_VERSION );
 
+
+D_DEBUG_DOMAIN( Core_Graphics, "Core/Graphics", "DirectFB Graphics Core" );
+
 /*
  * struct for graphics cards
  */
@@ -1579,8 +1582,12 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
 void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
                             CoreFont *font, CardState *state )
 {
+     DFBResult      ret;
      CoreGlyphData *data;
      DFBRectangle   rect;
+
+     D_DEBUG_AT( Core_Graphics, "%s( %d, %d,%d, %p, %p )\n",
+                 __FUNCTION__, index, x, y, font, state );
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1589,7 +1596,12 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
 
      dfb_font_lock( font );
 
-     if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK || !data->width) {
+     ret = dfb_font_get_glyph_data (font, index, &data);
+     if (ret)
+          D_DEBUG_AT( Core_Graphics, "  -> dfb_font_get_glyph_data() failed! [%s]\n",
+                      DirectFBErrorString( ret ) );
+
+     if (ret || !data->width) {
           dfb_font_unlock( font );
           return;
      }
