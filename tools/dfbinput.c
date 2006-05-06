@@ -55,7 +55,7 @@ static const char *
 symbol_name( DFBInputDeviceKeySymbol symbol )
 {
      int i;
-     static buf[64];
+     static char buf[64];
 
      for (i=0; i<D_ARRAY_SIZE(symbol_names); i++) {
           if (symbol_names[i].symbol == symbol)
@@ -63,7 +63,7 @@ symbol_name( DFBInputDeviceKeySymbol symbol )
      }
 
      snprintf( buf, sizeof(buf), "<0x%08x>", symbol );
-     
+
      return buf;
 }
 
@@ -76,8 +76,8 @@ static DFBInputDeviceDescription  desc;
 /**************************************************************************************************/
 
 static DFBInputDeviceID id     = DIDID_KEYBOARD;
-static bool             reload = false;
-static bool             dump   = false;
+static unsigned int     reload = false;
+static unsigned int     dump   = false;
 
 /**************************************************************************************************/
 
