@@ -48,6 +48,8 @@ typedef struct {
 
           bool             quit;
      } update;
+
+     VideoMode            *modes;        /* linked list of valid video modes */
 } DFBSDL;
 
 #endif

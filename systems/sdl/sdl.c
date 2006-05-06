@@ -33,6 +33,10 @@
 
 #include <directfb.h>
 
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/thread.h>
+
 #include <fusion/arena.h>
 #include <fusion/shmalloc.h>
 
@@ -48,9 +52,6 @@
 
 #include <misc/conf.h>
 
-#include <direct/messages.h>
-#include <direct/thread.h>
-
 #include <SDL.h>
 
 #include "sdl.h"
@@ -63,6 +64,10 @@ DFB_CORE_SYSTEM( sdl )
 
 DFBSDL  *dfb_sdl      = NULL;
 CoreDFB *dfb_sdl_core = NULL;
+
+
+static DFBResult dfb_fbdev_read_modes();
+
 
 static void
 system_get_info( CoreSystemInfo *info )
@@ -85,6 +90,8 @@ system_initialize( CoreDFB *core, void **data )
           D_ERROR( "DirectFB/SDL: Couldn't allocate shared memory!\n" );
           return D_OOSHM();
      }
+
+     dfb_fbdev_read_modes();  /* use same mode list as a fake */
 
      driver = getenv( "SDL_VIDEODRIVER" );
      if (driver && !strcasecmp( driver, "directfb" )) {
@@ -220,7 +227,7 @@ system_get_accelerator()
 static VideoMode *
 system_get_modes()
 {
-     return NULL;
+     return dfb_sdl->modes;
 }
 
 static VideoMode *
@@ -289,5 +296,81 @@ system_get_deviceid( unsigned int *ret_vendor_id,
                      unsigned int *ret_device_id )
 {
      return;
+}
+
+
+/*
+ * parses video modes in /etc/fb.modes and stores them in dfb_fbdev->shared->modes
+ * (to be replaced by DirectFB's own config system
+ */
+static DFBResult dfb_fbdev_read_modes()
+{
+     FILE *fp;
+     char line[80],label[32],value[16];
+     int geometry=0, timings=0;
+     int dummy;
+     VideoMode temp_mode;
+     VideoMode *m = dfb_sdl->modes;
+
+     if (!(fp = fopen("/etc/fb.modes","r")))
+          return errno2result( errno );
+
+     while (fgets(line,79,fp)) {
+          if (sscanf(line, "mode \"%31[^\"]\"",label) == 1) {
+               memset( &temp_mode, 0, sizeof(VideoMode) );
+               geometry = 0;
+               timings = 0;
+               while (fgets(line,79,fp) && !(strstr(line,"endmode"))) {
+                    if (5 == sscanf(line," geometry %d %d %d %d %d", &temp_mode.xres, &temp_mode.yres, &dummy, &dummy, &temp_mode.bpp)) {
+                         geometry = 1;
+                    }
+                    else if (7 == sscanf(line," timings %d %d %d %d %d %d %d", &temp_mode.pixclock, &temp_mode.left_margin,  &temp_mode.right_margin,
+                                         &temp_mode.upper_margin, &temp_mode.lower_margin, &temp_mode.hsync_len,    &temp_mode.vsync_len)) {
+                         timings = 1;
+                    }
+                    else if (1 == sscanf(line, " hsync %15s",value) && 0 == strcasecmp(value,"high")) {
+                         temp_mode.hsync_high = 1;
+                    }
+                    else if (1 == sscanf(line, " vsync %15s",value) && 0 == strcasecmp(value,"high")) {
+                         temp_mode.vsync_high = 1;
+                    }
+                    else if (1 == sscanf(line, " csync %15s",value) && 0 == strcasecmp(value,"high")) {
+                         temp_mode.csync_high = 1;
+                    }
+                    else if (1 == sscanf(line, " laced %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.laced = 1;
+                    }
+                    else if (1 == sscanf(line, " double %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.doubled = 1;
+                    }
+                    else if (1 == sscanf(line, " gsync %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.sync_on_green = 1;
+                    }
+                    else if (1 == sscanf(line, " extsync %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.external_sync = 1;
+                    }
+                    else if (1 == sscanf(line, " bcast %15s",value) && 0 == strcasecmp(value,"true")) {
+                         temp_mode.broadcast = 1;
+                    }
+               }
+               if (geometry && timings) {
+                    if (!m) {
+                         dfb_sdl->modes = SHCALLOC( dfb_core_shmpool(dfb_sdl_core), 1, sizeof(VideoMode) );
+                         m = dfb_sdl->modes;
+                    }
+                    else {
+                         m->next = SHCALLOC( dfb_core_shmpool(dfb_sdl_core), 1, sizeof(VideoMode) );
+                         m = m->next;
+                    }
+                    direct_memcpy (m, &temp_mode, sizeof(VideoMode));
+                    D_DEBUG( "DirectFB/FBDev: %20s %4dx%4d  %s%s\n", label, temp_mode.xres, temp_mode.yres,
+                              temp_mode.laced ? "interlaced " : "", temp_mode.doubled ? "doublescan" : "" );
+               }
+          }
+     }
+
+     fclose (fp);
+
+     return DFB_OK;
 }
 
