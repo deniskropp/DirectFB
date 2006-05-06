@@ -169,7 +169,7 @@ typedef struct _GraphicsDeviceFuncs {
      /*
       * Called before a software access to a video surface buffer.
       */
-     void (*SurfaceEnter)( void *driver_data, void *device_data, 
+     void (*SurfaceEnter)( void *driver_data, void *device_data,
                            SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
 
      /*
@@ -312,10 +312,11 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
                                     DFBTriangleFormation formation,
                                     CardState *state );
 
-void dfb_gfxcard_drawstring( const __u8 *text, int bytes, int x, int y,
+void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
+                             DFBTextEncodingID encoding, int x, int y,
                              CoreFont *font, CardState *state );
 void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state );
-void dfb_gfxcard_drawglyph( unichar index, int x, int y,
+void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
                             CoreFont *font, CardState *state );
 
 void dfb_gfxcard_sync();
@@ -369,12 +370,12 @@ int dfb_gfxcard_get_accelerator( GraphicsDevice *device );
 
 unsigned long  dfb_gfxcard_memory_physical( GraphicsDevice *device,
                                             unsigned int    offset );
-void          *dfb_gfxcard_memory_virtual ( GraphicsDevice *device, 
+void          *dfb_gfxcard_memory_virtual ( GraphicsDevice *device,
                                             unsigned int    offset );
 
 unsigned long  dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
                                                unsigned int    offset );
-void          *dfb_gfxcard_auxmemory_virtual ( GraphicsDevice *device, 
+void          *dfb_gfxcard_auxmemory_virtual ( GraphicsDevice *device,
                                                unsigned int    offset );
 
 #endif

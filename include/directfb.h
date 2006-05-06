@@ -394,6 +394,7 @@ typedef unsigned int DFBDisplayLayerID;
 typedef unsigned int DFBDisplayLayerSourceID;
 typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
+typedef unsigned int DFBTextEncodingID;
 
 typedef __u32 DFBDisplayLayerIDs;
 
@@ -421,6 +422,12 @@ typedef __u32 DFBDisplayLayerIDs;
  * Empties (clears) the bitmask of layer ids.
  */
 #define DFB_DISPLAYLAYER_IDS_EMPTY(ids)      (ids) = 0
+
+/*
+ * Predefined text encoding IDs.
+ */
+#define DTEID_UTF8  0
+#define DTEID_OTHER 1
 
 /*
  * The cooperative level controls the super interface's behaviour
@@ -2989,6 +2996,15 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Get the clipping region used to limit the area for
+      * drawing, blitting and text functions.
+      */
+     DFBResult (*GetClip) (
+          IDirectFBSurface         *thiz,
+          DFBRegion                *ret_clip
+     );
+
+     /*
       * Set the color used for drawing/text functions or
       * alpha/color modulation (blitting functions).
       *
@@ -3302,11 +3318,8 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Draw an UTF-8 string at the specified position with the
+      * Draw a string at the specified position with the
       * given color following the specified flags.
-      *
-      * If font was loaded with the DFFA_CHARMAP flag, the string
-      * specifies UTF-8 encoded raw glyph indices.
       *
       * Bytes specifies the number of bytes to take from the
       * string or -1 for the complete NULL-terminated string. You
@@ -3323,7 +3336,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Draw a single glyph specified by its Unicode index at the
+      * Draw a single glyph specified by its character code at the
       * specified position with the given color following the
       * specified flags.
       *
@@ -3335,10 +3348,18 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*DrawGlyph) (
           IDirectFBSurface         *thiz,
-          unsigned int              index,
+          unsigned int              character,
           int                       x,
           int                       y,
           DFBSurfaceTextFlags       flags
+     );
+
+     /*
+      * Change the encoding used for text rendering.
+      */
+     DFBResult (*SetEncoding) (
+          IDirectFBSurface         *thiz,
+          DFBTextEncodingID         encoding
      );
 
 
@@ -3403,18 +3424,6 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      DFBResult (*DisableAcceleration) (
           IDirectFBSurface         *thiz,
           DFBAccelerationMask       mask
-     );
-
-
-   /** More information **/
-
-     /*
-      * Get the clipping region used to limit the area for
-      * drawing, blitting and text functions.
-      */
-     DFBResult (*GetClip) (
-          IDirectFBSurface         *thiz,
-          DFBRegion                *ret_clip
      );
 )
 
@@ -4489,6 +4498,15 @@ DEFINE_INTERFACE(   IDirectFBWindow,
 )
 
 
+/*
+ * Called for each provided text encoding.
+ */
+typedef DFBEnumerationResult (*DFBTextEncodingCallback) (
+     DFBTextEncodingID    encoding_id,
+     const char          *name,
+     void                *context
+);
+
 /*****************
  * IDirectFBFont *
  *****************/
@@ -4505,8 +4523,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * logical extents of this font.
       */
      DFBResult (*GetAscender) (
-          IDirectFBFont       *thiz,
-          int                 *ret_ascender
+          IDirectFBFont            *thiz,
+          int                      *ret_ascender
      );
 
      /*
@@ -4516,8 +4534,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * This is a negative value!
       */
      DFBResult (*GetDescender) (
-          IDirectFBFont       *thiz,
-          int                 *ret_descender
+          IDirectFBFont            *thiz,
+          int                      *ret_descender
      );
 
      /*
@@ -4528,8 +4546,8 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * font.
       */
      DFBResult (*GetHeight) (
-          IDirectFBFont       *thiz,
-          int                 *ret_height
+          IDirectFBFont            *thiz,
+          int                      *ret_height
      );
 
      /*
@@ -4540,26 +4558,26 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * the maximum expected width of a rendered string.
       */
      DFBResult (*GetMaxAdvance) (
-          IDirectFBFont       *thiz,
-          int                 *ret_maxadvance
+          IDirectFBFont            *thiz,
+          int                      *ret_maxadvance
      );
 
      /*
       * Get the kerning to apply between two glyphs specified by
-      * their Unicode indices.
+      * their character codes.
       */
      DFBResult (*GetKerning) (
-          IDirectFBFont       *thiz,
-          unsigned int         prev_index,
-          unsigned int         current_index,
-          int                 *ret_kern_x,
-          int                 *ret_kern_y
+          IDirectFBFont            *thiz,
+          unsigned int              prev,
+          unsigned int              current,
+          int                      *ret_kern_x,
+          int                      *ret_kern_y
      );
 
-   /** String extents measurement **/
+   /** Measurements **/
 
      /*
-      * Get the logical width of the specified UTF-8 string
+      * Get the logical width of the specified string
       * as if it were drawn with this font.
       *
       * Bytes specifies the number of bytes to take from the
@@ -4571,15 +4589,15 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * width indicates right-to-left rendering.
       */
      DFBResult (*GetStringWidth) (
-          IDirectFBFont       *thiz,
-          const char          *text,
-          int                  bytes,
-          int                 *ret_width
+          IDirectFBFont            *thiz,
+          const char               *text,
+          int                       bytes,
+          int                      *ret_width
      );
 
      /*
       * Get the logical and real extents of the specified
-      * UTF-8 string as if it were drawn with this font.
+      * string as if it were drawn with this font.
       *
       * Bytes specifies the number of bytes to take from the
       * string or -1 for the complete NULL-terminated string.
@@ -4600,16 +4618,15 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * DSTF_LEFT.
       */
      DFBResult (*GetStringExtents) (
-          IDirectFBFont       *thiz,
-          const char          *text,
-          int                  bytes,
-          DFBRectangle        *ret_logical_rect,
-          DFBRectangle        *ret_ink_rect
+          IDirectFBFont            *thiz,
+          const char               *text,
+          int                       bytes,
+          DFBRectangle             *ret_logical_rect,
+          DFBRectangle             *ret_ink_rect
      );
 
      /*
-      * Get the extents of a glyph specified by its Unicode
-      * index.
+      * Get the extents of a glyph specified by its character code.
       *
       * The rectangle describes the the smallest rectangle
       * containing all pixels that are touched when drawing the
@@ -4621,13 +4638,45 @@ DEFINE_INTERFACE(   IDirectFBFont,
       * value indicating left-to-right rendering. If you don't
       * need this value, pass NULL for advance.
       */
-    DFBResult (*GetGlyphExtents) (
-          IDirectFBFont       *thiz,
-          unsigned int         index,
-          DFBRectangle        *ret_rect,
-          int                 *ret_advance
+     DFBResult (*GetGlyphExtents) (
+          IDirectFBFont            *thiz,
+          unsigned int              character,
+          DFBRectangle             *ret_rect,
+          int                      *ret_advance
      );
- )
+
+
+   /** Encodings **/
+
+     /*
+      * Change the default encoding used when the font is set at a surface.
+      *
+      * It's also the encoding used for the measurement functions
+      * of this interface, e.g. IDirectFBFont::GetStringExtents().
+      */
+     DFBResult (*SetEncoding) (
+          IDirectFBFont            *thiz,
+          DFBTextEncodingID         encoding
+     );
+
+     /*
+      * Enumerate all provided text encodings.
+      */
+     DFBResult (*EnumEncodings) (
+          IDirectFBFont            *thiz,
+          DFBTextEncodingCallback   callback,
+          void                     *context
+     );
+
+     /*
+      * Find an encoding by its name.
+      */
+     DFBResult (*FindEncoding) (
+          IDirectFBFont            *thiz,
+          const char               *name,
+          DFBTextEncodingID        *ret_encoding
+     );
+)
 
 /*
  * Capabilities of an image.
@@ -4770,7 +4819,7 @@ typedef struct {
 
      char                   title[DFB_STREAM_DESC_TITLE_LENGTH];     /* title   */
      char                   author[DFB_STREAM_DESC_AUTHOR_LENGTH];   /* author  */
-     char                   album[DFB_STREAM_DESC_ALBUM_LENGTH];     /* album   */ 
+     char                   album[DFB_STREAM_DESC_ALBUM_LENGTH];     /* album   */
      short                  year;                                    /* year    */
      char                   genre[DFB_STREAM_DESC_GENRE_LENGTH];     /* genre   */
      char                   comment[DFB_STREAM_DESC_COMMENT_LENGTH]; /* comment */
@@ -4908,7 +4957,7 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      /*
       * Send an input or window event.
       *
-      * This method allows to redirect events to an interactive 
+      * This method allows to redirect events to an interactive
       * video provider. Events must be relative to the specified
       * rectangle of the destination surface.
       */

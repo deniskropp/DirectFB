@@ -904,9 +904,15 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 
      if (data->font != font) {
          if (font) {
+              IDirectFBFont_data *font_data;
+
               ret = font->AddRef( font );
               if (ret)
                    return ret;
+
+              DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
+
+              data->encoding = font_data->encoding;
          }
 
          if (data->font) {
@@ -928,22 +934,29 @@ IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_GetFont( IDirectFBSurface  *thiz,
-                          IDirectFBFont    **font )
+                          IDirectFBFont    **ret_font )
 {
+     DFBResult      ret;
+     IDirectFBFont *font;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
 
-     if (!font)
+     if (!ret_font)
           return DFB_INVARG;
 
-     if (!data->font) {
-	  *font = NULL;
+     font = data->font;
+     if (!font) {
+          *ret_font = NULL;
           return DFB_MISSINGFONT;
      }
 
-     data->font->AddRef (data->font);
-     *font = data->font;
+     ret = font->AddRef( font );
+     if (ret)
+          return ret;
+
+     *ret_font = font;
 
      return DFB_OK;
 }
@@ -1669,7 +1682,10 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
                              int x, int y,
                              DFBSurfaceTextFlags flags )
 {
+     DFBResult           ret;
+     IDirectFBFont      *font;
      IDirectFBFont_data *font_data;
+     CoreFont           *core_font;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1690,55 +1706,83 @@ IDirectFBSurface_DrawString( IDirectFBSurface *thiz,
      if (!data->font)
           return DFB_MISSINGFONT;
 
-
      if (bytes < 0)
           bytes = strlen (text);
 
      if (bytes == 0)
           return DFB_OK;
 
+     font = data->font;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
+
+     core_font = font_data->font;
+
      if (!(flags & DSTF_TOP)) {
-          int offset = 0;
+          y -= core_font->ascender;
 
-          data->font->GetAscender (data->font, &offset);
-          y -= offset;
-
-          if ((flags & DSTF_BOTTOM)) {
-               offset = 0;
-               data->font->GetDescender (data->font, &offset);
-               y += offset;
-          }
+          if (flags & DSTF_BOTTOM)
+               y += core_font->descender;
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          int width = 0;
+          int          i, num, kx;
+          int          width = 0;
+          unsigned int prev = 0;
+          unsigned int indices[bytes];
 
-          if (data->font->GetStringWidth (data->font,
-                                          text, bytes, &width) == DFB_OK) {
-               if (flags & DSTF_RIGHT) {
-                    x -= width;
-               }
-               else if (flags & DSTF_CENTER) {
-                    x -= width >> 1;
-               }
+          /* FIXME: Avoid double locking and decoding. */
+          dfb_font_lock( core_font );
+
+          /* Decode string to character indices. */
+          ret = dfb_font_decode_text( core_font, data->encoding, text, bytes, indices, &num );
+          if (ret) {
+               dfb_font_unlock( core_font );
+               return ret;
           }
+
+          /* Calculate string width. */
+          for (i=0; i<num; i++) {
+               unsigned int   current = indices[i];
+               CoreGlyphData *glyph;
+
+               if (dfb_font_get_glyph_data( core_font, current, &glyph ) == DFB_OK) {
+                    width += glyph->advance;
+
+                    if (prev && core_font->GetKerning &&
+                        core_font->GetKerning( core_font, prev, current, &kx, NULL ) == DFB_OK)
+                         width += kx;
+               }
+
+               prev = current;
+          }
+
+          dfb_font_unlock( core_font );
+
+          /* Justify. */
+          if (flags & DSTF_RIGHT)
+               x -= width;
+          else if (flags & DSTF_CENTER)
+               x -= width >> 1;
      }
 
-     font_data = (IDirectFBFont_data *)data->font->priv;
-
-     dfb_gfxcard_drawstring( (const unsigned char*) text, bytes,
+     dfb_gfxcard_drawstring( (const unsigned char*) text, bytes, data->encoding,
                              data->area.wanted.x + x, data->area.wanted.y + y,
-                             font_data->font, &data->state );
+                             core_font, &data->state );
 
      return DFB_OK;
 }
 
 static DFBResult
 IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
-                            unsigned int index, int x, int y,
+                            unsigned int character, int x, int y,
                             DFBSurfaceTextFlags flags )
 {
+     DFBResult           ret;
+     IDirectFBFont      *font;
      IDirectFBFont_data *font_data;
+     CoreFont           *core_font;
+     unsigned int        index;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1759,38 +1803,62 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
      if (!data->font)
           return DFB_MISSINGFONT;
 
+     font = data->font;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( font, font_data, IDirectFBFont );
+
+     core_font = font_data->font;
+
+     /* FIXME: Avoid double locking. */
+     dfb_font_lock( core_font );
+
+     ret = dfb_font_decode_character( core_font, data->encoding, character, &index );
+     if (ret) {
+          dfb_font_unlock( core_font );
+          return ret;
+     }
+
      if (!(flags & DSTF_TOP)) {
-          int offset = 0;
+          y -= core_font->ascender;
 
-          data->font->GetAscender (data->font, &offset);
-          y -= offset;
-
-          if ((flags & DSTF_BOTTOM)) {
-               offset = 0;
-               data->font->GetDescender (data->font, &offset);
-               y += offset;
-          }
+          if (flags & DSTF_BOTTOM)
+               y += core_font->descender;
      }
 
      if (flags & (DSTF_RIGHT | DSTF_CENTER)) {
-          int advance;
+          CoreGlyphData *glyph;
 
-          if (data->font->GetGlyphExtents (data->font,
-                                           index, NULL, &advance) == DFB_OK) {
-               if (flags & DSTF_RIGHT) {
-                    x -= advance;
-               }
-               else if (flags & DSTF_CENTER) {
-                    x -= advance >> 1;
-               }
+          ret = dfb_font_get_glyph_data( core_font, index, &glyph );
+          if (ret) {
+               dfb_font_unlock( core_font );
+               return ret;
           }
-     }
 
-     font_data = (IDirectFBFont_data *)data->font->priv;
+          if (flags & DSTF_RIGHT)
+               x -= glyph->advance;
+          else if (flags & DSTF_CENTER)
+               x -= glyph->advance >> 1;
+     }
 
      dfb_gfxcard_drawglyph( index,
                             data->area.wanted.x + x, data->area.wanted.y + y,
-                            font_data->font, &data->state );
+                            core_font, &data->state );
+
+     dfb_font_unlock( core_font );
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBSurface_SetEncoding( IDirectFBSurface  *thiz,
+                              DFBTextEncodingID  encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p, %d )\n", __FUNCTION__, thiz, encoding );
+
+     /* TODO: check for support or fail later? */
+     data->encoding = encoding;
 
      return DFB_OK;
 }
@@ -2023,6 +2091,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->GetFont = IDirectFBSurface_GetFont;
      thiz->DrawString = IDirectFBSurface_DrawString;
      thiz->DrawGlyph = IDirectFBSurface_DrawGlyph;
+     thiz->SetEncoding = IDirectFBSurface_SetEncoding;
 
      thiz->GetSubSurface = IDirectFBSurface_GetSubSurface;
 

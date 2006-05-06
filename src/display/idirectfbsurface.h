@@ -62,6 +62,7 @@ typedef struct {
      CoreSurface            *surface;        /* buffer to show */
      IDirectFBFont          *font;           /* font to use */
      CardState              state;           /* render state to use */
+     DFBTextEncodingID      encoding;        /* text encoding */
 
      struct {
           __u8              r;               /* red component */

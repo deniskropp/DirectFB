@@ -39,7 +39,7 @@ typedef struct __D_DirectNode DirectNode;
 struct __D_DirectTree
 {
      DirectNode *root;
-     void       *fast_keys[96];
+     void       *fast_keys[128];
 };
 
 struct __D_DirectNode

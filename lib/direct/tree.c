@@ -69,7 +69,7 @@ direct_tree_destroy( DirectTree *tree )
 {
      unsigned int i;
 
-     for (i = 0; i < 96; i++) {
+     for (i = 0; i < 128; i++) {
           if (tree->fast_keys[i])
                D_FREE( tree->fast_keys[i] );
      }
@@ -84,10 +84,10 @@ direct_tree_insert( DirectTree *tree,
                     void       *key,
                     void       *value )
 {
-     int inserted = 0;
-     int fast_key = (unsigned int) key - 32;
+     int          inserted = 0;
+     unsigned int fast_key = (unsigned int) key;
 
-     if (fast_key >= 0 && fast_key < 96)
+     if (fast_key < 128)
           tree->fast_keys[fast_key] = value;
      else
           tree->root = tree_node_insert( tree, tree->root, key, value, &inserted );
@@ -97,11 +97,10 @@ void *
 direct_tree_lookup( DirectTree *tree,
                     void       *key )
 {
-     DirectNode *node;
+     DirectNode   *node;
+     unsigned int  fast_key = (unsigned int) key;
 
-     int fast_key = (unsigned int) key - 32;
-
-     if (fast_key >= 0 && fast_key < 96)
+     if (fast_key < 128)
           return tree->fast_keys[fast_key];
 
      node = tree_node_lookup( tree->root, key );

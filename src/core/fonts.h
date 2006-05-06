@@ -51,45 +51,80 @@ typedef struct {
      int          advance;              /* placement of next glyph          */
 } CoreGlyphData;
 
+typedef struct {
+     DFBResult   (* GetCharacterIndex) ( CoreFont       *thiz,
+                                         unsigned int    character,
+                                         unsigned int   *ret_index );
+
+     DFBResult   (* DecodeText)        ( CoreFont       *thiz,
+                                         const void     *text,
+                                         int             length,
+                                         unsigned int   *ret_indices,
+                                         int            *ret_num );
+} CoreFontEncodingFuncs;
+
+typedef struct {
+     DirectLink                   link;
+
+     DFBTextEncodingID            encoding;
+     char                        *name;
+     const CoreFontEncodingFuncs *funcs;
+
+     int                          magic;
+} CoreFontEncoding;
+
 /*
  * font struct
  */
 
 struct _CoreFont {
-     int                      magic;
+     int                           magic;
 
-     DFBSurfacePixelFormat    pixel_format;
-     DFBSurfaceCapabilities   surface_caps;
-     CardState                state;    /* the state used to blit glyphs    */
+     DFBSurfacePixelFormat         pixel_format;
+     DFBSurfaceCapabilities        surface_caps;
+     CardState                     state;         /* the state used to blit glyphs    */
 
-     CoreDFB         *core;
+     CoreDFB                      *core;
 
-     CoreSurface    **surfaces;         /* contain bitmaps of loaded glyphs */
-     int              rows;
-     int              row_width;
-     int              next_x;
+     CoreSurface                 **surfaces;      /* contain bitmaps of loaded glyphs */
+     int                           rows;
+     int                           row_width;
+     int                           next_x;
 
-     DirectTree      *glyph_infos;      /* infos about loaded glyphs        */
+     DirectTree                   *glyph_infos;   /* infos about loaded glyphs        */
 
-     int              height;           /* font height                      */
+     int                           height;        /* font height                      */
 
-     int              ascender;         /* a positive value, the distance
-                                           from the baseline to the top     */
-     int              descender;        /* a negative value, the distance
-                                           from the baseline to the bottom  */
-     int              maxadvance;       /* width of largest character       */
+     int                           ascender;      /* a positive value, the distance
+                                                     from the baseline to the top     */
+     int                           descender;     /* a negative value, the distance
+                                                     from the baseline to the bottom  */
+     int                           maxadvance;    /* width of largest character       */
 
-     pthread_mutex_t  lock;             /* lock during access to the font   */
+     pthread_mutex_t               lock;          /* lock during access to the font   */
 
-     void            *impl_data;        /* a pointer used by the impl.      */
+     const CoreFontEncodingFuncs  *utf8;          /* for default encoding, DTEID_UTF8 */
+     CoreFontEncoding            **encodings;     /* for other encodings              */
+     DFBTextEncodingID             last_encoding; /* dynamic allocation impl. helper  */
 
-     DFBResult   (* GetGlyphInfo) ( CoreFont *thiz, unichar glyph,
-                                    CoreGlyphData *info );
-     DFBResult   (* RenderGlyph)  ( CoreFont *thiz, unichar glyph,
-                                    CoreGlyphData *info, CoreSurface *surface );
-     DFBResult   (* GetKerning)   ( CoreFont *thiz,
-                                    unichar prev, unichar current,
-                                    int *kern_x, int *kern_y );
+     void                         *impl_data;     /* a pointer used by the impl.      */
+
+     DFBResult                  (* GetGlyphInfo) ( CoreFont      *thiz,
+                                                   unsigned int   index,
+                                                   CoreGlyphData *info );
+
+     DFBResult                  (* RenderGlyph)  ( CoreFont      *thiz,
+                                                   unsigned int   index,
+                                                   CoreGlyphData *info,
+                                                   CoreSurface   *surface );
+
+     DFBResult                  (* GetKerning)   ( CoreFont      *thiz,
+                                                   unsigned int   prev,
+                                                   unsigned int   current,
+                                                   int           *ret_x,
+                                                   int           *ret_y );
+
+
 };
 
 /*
@@ -134,7 +169,46 @@ dfb_font_unlock( CoreFont *font )
  * loads glyph data from font
  */
 DFBResult dfb_font_get_glyph_data( CoreFont        *font,
-                                   unichar          glyph,
+                                   unsigned int     index,
                                    CoreGlyphData  **glyph_data );
+
+
+/*
+ * Called by font module to register encoding implementations.
+ *
+ * The encoding can be DTEID_UTF8 or DTEID_OTHER, where in the
+ * latter case the actual id will be allocated dynamically.
+ *
+ * In the case of DTEID_UTF8 it's allowed to only provide
+ * GetCharacterIndex() and let the core do the DecodeText(),
+ * but that would cause a GetCharacterIndex() call per decoded
+ * unicode character. So implementing both is advisable.
+ *
+ * If nothing is registered for DTEID_UTF8 at all, the core will
+ * pass the raw unicode characters to GetGlyphInfo(), RenderGlyph() etc.
+ * That's the old behaviour, fully compatible with old modules. It's
+ * also a good choice if you want to avoid the character translation,
+ * having an efficient font module which is based natively on unicode
+ * characters.
+ *
+ * For registering an encoding as DTEID_OTHER both GetCharacterIndex()
+ * and DecodeText() must be provided.
+ */
+DFBResult dfb_font_register_encoding( CoreFont                    *font,
+                                      const char                  *name,
+                                      const CoreFontEncodingFuncs *funcs,
+                                      DFBTextEncodingID            encoding );
+
+DFBResult dfb_font_decode_text( CoreFont          *font,
+                                DFBTextEncodingID  encoding,
+                                const void        *text,
+                                int                length,
+                                unsigned int      *ret_indices,
+                                int               *ret_num );
+
+DFBResult dfb_font_decode_character( CoreFont          *font,
+                                     DFBTextEncodingID  encoding,
+                                     __u32              character,
+                                     unsigned int      *ret_index );
 
 #endif

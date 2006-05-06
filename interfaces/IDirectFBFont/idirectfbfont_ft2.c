@@ -48,6 +48,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/utf8.h>
 #include <direct/util.h>
 
 #include <misc/conf.h>
@@ -71,7 +72,7 @@ static FT_Library      library           = NULL;
 static int             library_ref_count = 0;
 static pthread_mutex_t library_mutex     = PTHREAD_MUTEX_INITIALIZER;
 
-#define KERNING_CACHE_MIN   32
+#define KERNING_CACHE_MIN    0
 #define KERNING_CACHE_MAX  127
 #define KERNING_CACHE_SIZE (KERNING_CACHE_MAX - KERNING_CACHE_MIN + 1)
 
@@ -83,11 +84,13 @@ static pthread_mutex_t library_mutex     = PTHREAD_MUTEX_INITIALIZER;
 #define KERNING_CACHE_ENTRY(a,b)   \
      (data->kerning[(a)-KERNING_CACHE_MIN][(b)-KERNING_CACHE_MIN])
 
+#define CHAR_INDEX(c)    (((c) < 256) ? data->indices[c] : FT_Get_Char_Index( data->face, c ))
 
 typedef struct {
      FT_Face      face;
      int          disable_charmap;
      int          fixed_advance;
+     unsigned int indices[256];
 } FT2ImplData;
 
 typedef struct {
@@ -101,46 +104,150 @@ typedef struct {
      KerningCacheEntry kerning[KERNING_CACHE_SIZE][KERNING_CACHE_SIZE];
 } FT2ImplKerningData;
 
+/**********************************************************************************************************************/
+
+static DFBResult
+ft2UTF8GetCharacterIndex( CoreFont     *thiz,
+                          unsigned int  character,
+                          unsigned int *ret_index )
+{
+     FT2ImplData *data = thiz->impl_data;
+
+     D_MAGIC_ASSERT( thiz, CoreFont );
+
+     pthread_mutex_lock ( &library_mutex );
+
+     *ret_index = CHAR_INDEX( character );
+
+     pthread_mutex_unlock ( &library_mutex );
+
+     return DFB_OK;
+}
+
+static DFBResult
+ft2UTF8DecodeText( CoreFont       *thiz,
+                   const void     *text,
+                   int             length,
+                   unsigned int   *ret_indices,
+                   int            *ret_num )
+{
+     int pos = 0, num = 0;
+     const __u8 *bytes = text;
+     FT2ImplData *data = thiz->impl_data;
+
+     D_MAGIC_ASSERT( thiz, CoreFont );
+     D_ASSERT( text != NULL );
+     D_ASSERT( length >= 0 );
+     D_ASSERT( ret_indices != NULL );
+     D_ASSERT( ret_num != NULL );
+
+     pthread_mutex_lock ( &library_mutex );
+
+     while (pos < length) {
+          unsigned int c;
+
+          if (bytes[pos] < 128)
+               c = bytes[pos++];
+          else {
+               c = DIRECT_UTF8_GET_CHAR( &bytes[pos] );
+               pos += DIRECT_UTF8_SKIP(bytes[pos]);
+          }
+
+          ret_indices[num++] = CHAR_INDEX( c );
+     }
+
+     pthread_mutex_unlock ( &library_mutex );
+
+     *ret_num = num;
+
+     return DFB_OK;
+}
+
+static const CoreFontEncodingFuncs ft2UTF8Funcs = {
+     GetCharacterIndex:  ft2UTF8GetCharacterIndex,
+     DecodeText:         ft2UTF8DecodeText
+};
+
+/**********************************************************************************************************************/
+
+static DFBResult
+ft2Latin1GetCharacterIndex( CoreFont     *thiz,
+                            unsigned int  character,
+                            unsigned int *ret_index )
+{
+     FT2ImplData *data = thiz->impl_data;
+
+     D_MAGIC_ASSERT( thiz, CoreFont );
+
+     *ret_index = data->indices[character];
+
+     return DFB_OK;
+}
+
+static DFBResult
+ft2Latin1DecodeText( CoreFont       *thiz,
+                     const void     *text,
+                     int             length,
+                     unsigned int   *ret_indices,
+                     int            *ret_num )
+{
+     int i;
+     const __u8 *bytes = text;
+     FT2ImplData *data = thiz->impl_data;
+
+     D_MAGIC_ASSERT( thiz, CoreFont );
+     D_ASSERT( text != NULL );
+     D_ASSERT( length >= 0 );
+     D_ASSERT( ret_indices != NULL );
+     D_ASSERT( ret_num != NULL );
+
+     for (i=0; i<length; i++)
+          ret_indices[i] = data->indices[bytes[i]];
+
+     *ret_num = length;
+
+     return DFB_OK;
+}
+
+static const CoreFontEncodingFuncs ft2Latin1Funcs = {
+     GetCharacterIndex:  ft2Latin1GetCharacterIndex,
+     DecodeText:         ft2Latin1DecodeText
+};
+
+/**********************************************************************************************************************/
 
 static DFBResult
 render_glyph( CoreFont      *thiz,
-              unichar        glyph,
+              unsigned int   index,
               CoreGlyphData *info,
               CoreSurface   *surface )
 {
      FT_Error     err;
      FT_Face      face;
      FT_Int       load_flags;
-     FT_UInt      index;
      __u8        *src;
      void        *dst;
      int          y;
      int          pitch;
-     FT2ImplData *data = (FT2ImplData*) thiz->impl_data;
+     FT2ImplData *data = thiz->impl_data;
 
      pthread_mutex_lock ( &library_mutex );
 
      face = data->face;
-
-     if (data->disable_charmap)
-          index = glyph;
-     else
-          index = FT_Get_Char_Index( face, glyph );
 
      load_flags = (FT_Int) face->generic.data;
      load_flags |= FT_LOAD_RENDER;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
           D_HEAVYDEBUG( "DirectFB/FontFT2: "
-                         "Could not render glyph for character #%d!\n", glyph );
+                         "Could not render glyph for character index #%d!\n", index );
           pthread_mutex_unlock ( &library_mutex );
           return DFB_FAILURE;
      }
 
      pthread_mutex_unlock ( &library_mutex );
 
-     err = dfb_surface_soft_lock( surface, DSLF_WRITE,
-                                  &dst, &pitch, 0 );
+     err = dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (err) {
           D_ERROR( "DirectB/FontFT2: Unable to lock surface!\n" );
           return err;
@@ -271,29 +378,23 @@ render_glyph( CoreFont      *thiz,
 
 static DFBResult
 get_glyph_info( CoreFont      *thiz,
-                unichar        glyph,
+                unsigned int   index,
                 CoreGlyphData *info )
 {
      FT_Error err;
      FT_Face  face;
      FT_Int   load_flags;
-     FT_UInt  index;
      FT2ImplData *data = (FT2ImplData*) thiz->impl_data;
 
      pthread_mutex_lock ( &library_mutex );
 
      face = data->face;
 
-     if (data->disable_charmap)
-          index = glyph;
-     else
-          index = FT_Get_Char_Index( face, glyph );
-
      load_flags = (FT_Int) face->generic.data;
 
      if ((err = FT_Load_Glyph( face, index, load_flags ))) {
           D_HEAVYDEBUG( "DirectB/FontFT2: "
-                         "Could not load glyph for character #%d!\n", glyph );
+                         "Could not load glyph for character index #%d!\n", index );
 
           pthread_mutex_unlock ( &library_mutex );
 
@@ -304,7 +405,7 @@ get_glyph_info( CoreFont      *thiz,
           err = FT_Render_Glyph( face->glyph, ft_render_mode_normal );
           if (err) {
                D_ERROR( "DirectFB/FontFT2: Could not "
-                         "render glyph for character #%d!\n", glyph );
+                         "render glyph for character index #%d!\n", index );
 
                pthread_mutex_unlock ( &library_mutex );
 
@@ -324,17 +425,15 @@ get_glyph_info( CoreFont      *thiz,
 
 
 static DFBResult
-get_kerning( CoreFont *thiz,
-             unichar   prev,
-             unichar   current,
-             int      *kern_x,
-             int      *kern_y)
+get_kerning( CoreFont     *thiz,
+             unsigned int  prev,
+             unsigned int  current,
+             int          *kern_x,
+             int          *kern_y)
 {
-     FT_Vector  vector;
-     FT_UInt    prev_index;
-     FT_UInt    current_index;
+     FT_Vector vector;
 
-     FT2ImplKerningData *data = (FT2ImplKerningData*) thiz->impl_data;
+     FT2ImplKerningData *data = thiz->impl_data;
      KerningCacheEntry *cache = NULL;
 
      D_ASSUME( (kern_x != NULL) || (kern_y != NULL) );
@@ -357,13 +456,9 @@ get_kerning( CoreFont *thiz,
 
      pthread_mutex_lock ( &library_mutex );
 
-     /* Get the character indices for lookup. */
-     prev_index    = FT_Get_Char_Index( data->base.face, prev );
-     current_index = FT_Get_Char_Index( data->base.face, current );
-
      /* Lookup kerning values for the character pair. */
      FT_Get_Kerning( data->base.face,
-                     prev_index, current_index, ft_kerning_default, &vector );
+                     prev, current, ft_kerning_default, &vector );
 
      pthread_mutex_unlock ( &library_mutex );
 
@@ -382,29 +477,23 @@ init_kerning_cache( FT2ImplKerningData *data )
 {
      int a, b;
 
+     pthread_mutex_lock ( &library_mutex );
+
      for (a=KERNING_CACHE_MIN; a<=KERNING_CACHE_MAX; a++) {
           for (b=KERNING_CACHE_MIN; b<=KERNING_CACHE_MAX; b++) {
                FT_Vector          vector;
-               FT_UInt            prev;
-               FT_UInt            current;
                KerningCacheEntry *cache = &KERNING_CACHE_ENTRY( a, b );
-
-               pthread_mutex_lock ( &library_mutex );
-
-               /* Get the character indices for lookup. */
-               prev    = FT_Get_Char_Index( data->base.face, a );
-               current = FT_Get_Char_Index( data->base.face, b );
 
                /* Lookup kerning values for the character pair. */
                FT_Get_Kerning( data->base.face,
-                               prev, current, ft_kerning_default, &vector );
-
-               pthread_mutex_unlock ( &library_mutex );
+                               a, b, ft_kerning_default, &vector );
 
                cache->x = (signed char) (vector.x >> 6);
                cache->y = (signed char) (vector.y >> 6);
           }
      }
+
+     pthread_mutex_unlock ( &library_mutex );
 }
 
 static DFBResult
@@ -524,6 +613,7 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc )
 {
+     int                    i;
      CoreFont              *font;
      FT_Face                face;
      FT_Error               err;
@@ -694,7 +784,13 @@ Construct( IDirectFBFont      *thiz,
           font->maxadvance    = desc->fixed_advance;
      }
 
+     for (i=0; i<256; i++)
+          data->indices[i] = FT_Get_Char_Index( face, i );
+
      font->impl_data = data;
+
+     dfb_font_register_encoding( font, "UTF8",   &ft2UTF8Funcs,   DTEID_UTF8 );
+     dfb_font_register_encoding( font, "Latin1", &ft2Latin1Funcs, DTEID_OTHER );
 
      IDirectFBFont_Construct( thiz, font );
 

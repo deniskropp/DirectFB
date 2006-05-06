@@ -74,7 +74,7 @@ typedef struct {
      unsigned int             videoram_length;
      unsigned int             auxram_length;
      unsigned int             auxram_offset;
-     
+
      char                    *module_name;
 
      GraphicsDriverInfo       driver_info;
@@ -219,10 +219,10 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      shared->surface_manager = dfb_surfacemanager_create( core,
                                                           &shared->device_info.limits );
 
-     ret = dfb_surfacemanager_add_heap( shared->surface_manager, 
+     ret = dfb_surfacemanager_add_heap( shared->surface_manager,
                                         CSS_VIDEO, 0, shared->videoram_length );
      /* FIXME: what to do in case of failure? */
-     
+
      if (shared->auxram_length && card->caps.flags & CCF_AUXMEMORY) {
           ret = dfb_surfacemanager_add_heap( shared->surface_manager, CSS_AUXILIARY,
                                              shared->auxram_offset, shared->auxram_length );
@@ -1442,19 +1442,16 @@ setup_font_state( CoreFont *font, CardState *state )
 
 void
 dfb_gfxcard_drawstring( const __u8 *text, int bytes,
-                        int x, int y,
+                        DFBTextEncodingID encoding, int x, int y,
                         CoreFont *font, CardState *state )
 {
-     int            steps[bytes];
-     unichar        chars[bytes];
-     CoreGlyphData *glyphs[bytes];
-
-     unichar prev = 0;
+     unsigned int prev = 0;
+     unsigned int indices[bytes];
+     int          i, num;
 
      int hw_clipping = (card->caps.flags & CCF_CLIPPING);
      int kern_x;
      int kern_y;
-     int offset;
      int blit = 0;
 
      D_ASSERT( card != NULL );
@@ -1464,111 +1461,105 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      D_ASSERT( bytes > 0 );
      D_ASSERT( font != NULL );
 
-     dfb_state_lock( state );
-     dfb_font_lock( font );
-
-     /* Prepare glyphs data. */
-     for (offset = 0; offset < bytes; offset += steps[offset]) {
-          unsigned int c = text[offset];
-
-          if (c < 128) {
-               steps[offset] = 1;
-               chars[offset] = c;
-          }
-          else {
-               steps[offset] = DIRECT_UTF8_SKIP(c);
-               chars[offset] = DIRECT_UTF8_GET_CHAR( &text[offset] );
-          }
-
-          if (c >= 32 && c < 128)
-               glyphs[offset] = font->glyph_infos->fast_keys[c-32];
-          else
-               glyphs[offset] = direct_tree_lookup( font->glyph_infos, (void *)chars[offset] );
-
-          if (!glyphs[offset]) {
-               if (dfb_font_get_glyph_data (font, chars[offset], &glyphs[offset]) != DFB_OK)
-                    glyphs[offset] = NULL;
-          }
-     }
-
      /* simple prechecks */
      if (x > state->clip.x2 || y > state->clip.y2 ||
          y + font->ascender - font->descender <= state->clip.y1) {
-          dfb_font_unlock( font );
-          dfb_state_unlock( state );
           return;
      }
+
+     dfb_font_lock( font );
+
+     /* Decode string to character indices. */
+     dfb_font_decode_text( font, encoding, text, bytes, indices, &num );
 
      setup_font_state( font, state );
 
      /* blit glyphs */
-     for (offset = 0; offset < bytes; offset += steps[offset]) {
+     for (i=0; i<num; i++) {
+          CoreGlyphData *glyph;
+          unsigned int   current = indices[i];
 
-          unichar current = chars[offset];
+          if (current < 128)
+               glyph = font->glyph_infos->fast_keys[current];
+          else
+               glyph = direct_tree_lookup( font->glyph_infos, (void *) current );
 
-          if (glyphs[offset]) {
-               CoreGlyphData *data = glyphs[offset];
+          if (!glyph) {
+               switch (blit) {
+                    case 1:
+                         dfb_gfxcard_state_release( &font->state );
+                         break;
+                    case 2:
+                         gRelease( &font->state );
+                         break;
+               }
+               blit = 0;
 
-               if (prev && font->GetKerning &&
-                   (* font->GetKerning) (font,
-                                         prev, current,
-                                         &kern_x, &kern_y) == DFB_OK) {
-                    x += kern_x;
-                    y += kern_y;
+               if (dfb_font_get_glyph_data( font, indices[i], &glyph )) {
+                    prev = current;
+                    continue;
+               }
+          }
+
+          if (prev && font->GetKerning &&
+              font->GetKerning( font, prev, current, &kern_x, &kern_y) == DFB_OK)
+          {
+               x += kern_x;
+               y += kern_y;
+          }
+
+          if (glyph->width) {
+               int xx = x + glyph->left;
+               int yy = y + glyph->top;
+               DFBRectangle rect = { glyph->start, 0,
+                                     glyph->width, glyph->height };
+
+               if (font->state.source != glyph->surface || !blit) {
+                    switch (blit) {
+                         case 1:
+                              dfb_gfxcard_state_release( &font->state );
+                              break;
+                         case 2:
+                              gRelease( &font->state );
+                              break;
+                         default:
+                              break;
+                    }
+                    dfb_state_set_source( &font->state, glyph->surface );
+
+                    if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ) &&
+                        dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT ))
+                         blit = 1;
+                    else if (gAcquire( &font->state, DFXL_BLIT ))
+                         blit = 2;
+                    else
+                         blit = 0;
                }
 
-               if (data->width) {
-                    int xx = x + data->left;
-                    int yy = y + data->top;
-                    DFBRectangle rect = { data->start, 0,
-                                          data->width, data->height };
-
-                    if (font->state.source != data->surface || !blit) {
-                         switch (blit) {
-                              case 1:
-                                   dfb_gfxcard_state_release( &font->state );
-                                   break;
-                              case 2:
-                                   gRelease( &font->state );
-                                   break;
-                              default:
-                                   break;
-                         }
-                         dfb_state_set_source( &font->state, data->surface );
-
-                         if (dfb_gfxcard_state_check( &font->state, DFXL_BLIT ) &&
-                             dfb_gfxcard_state_acquire( &font->state, DFXL_BLIT ))
-                              blit = 1;
-                         else if (gAcquire( &font->state, DFXL_BLIT ))
-                              blit = 2;
-                         else
-                              blit = 0;
-                    }
-
-                    if (dfb_clip_blit_precheck( &font->state.clip,
-                                                rect.w, rect.h, xx, yy )) {
-                         switch (blit) {
-                              case 1:
-                                   if (!hw_clipping)
-                                        dfb_clip_blit( &font->state.clip,
-                                                       &rect, &xx, &yy );
-                                   card->funcs.Blit( card->driver_data,
-                                                     card->device_data,
-                                                     &rect, xx, yy );
-                                   break;
-                              case 2:
+               if (dfb_clip_blit_precheck( &font->state.clip,
+                                           rect.w, rect.h, xx, yy )) {
+                    switch (blit) {
+                         case 1:
+                              if (!hw_clipping)
                                    dfb_clip_blit( &font->state.clip,
                                                   &rect, &xx, &yy );
-                                   gBlit( &font->state, &rect, xx, yy );
-                                   break;
-                              default:
-                                   break;
-                         }
+                              card->funcs.Blit( card->driver_data,
+                                                card->device_data,
+                                                &rect, xx, yy );
+                              break;
+                         case 2:
+                              dfb_clip_blit( &font->state.clip,
+                                             &rect, &xx, &yy );
+                              gBlit( &font->state, &rect, xx, yy );
+                              break;
+                         default:
+                              break;
                     }
                }
-               x += data->advance;
-               prev = current;
           }
+
+          x   += glyph->advance;
+          prev = current;
      }
 
      switch (blit) {
@@ -1583,10 +1574,9 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
      }
 
      dfb_font_unlock( font );
-     dfb_state_unlock( state );
 }
 
-void dfb_gfxcard_drawglyph( unichar index, int x, int y,
+void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
                             CoreFont *font, CardState *state )
 {
      CoreGlyphData *data;
@@ -1597,12 +1587,10 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
 
-     dfb_state_lock( state );
      dfb_font_lock( font );
 
      if (dfb_font_get_glyph_data (font, index, &data) != DFB_OK || !data->width) {
           dfb_font_unlock( font );
-          dfb_state_unlock( state );
           return;
      }
 
@@ -1612,7 +1600,6 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      if (! dfb_clip_blit_precheck( &state->clip,
                                    data->width, data->height, x, y )) {
           dfb_font_unlock( font );
-          dfb_state_unlock( state );
           return;
      }
 
@@ -1644,24 +1631,27 @@ void dfb_gfxcard_drawglyph( unichar index, int x, int y,
      }
 
      dfb_font_unlock( font );
-     dfb_state_unlock( state );
 }
 
 void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
 {
-     CoreGlyphData *data;
+     int            i;
+     CoreGlyphData *data = NULL;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
      D_ASSERT( font != NULL );
 
-     dfb_state_lock( state );
      dfb_font_lock( font );
 
-     if (dfb_font_get_glyph_data (font, 'a', &data)) {
+     for (i=0; i<128; i++) {
+          if (dfb_font_get_glyph_data (font, i, &data) == DFB_OK)
+               break;
+     }
+
+     if (!data) {
           dfb_font_unlock( font );
-          dfb_state_unlock( state );
           return;
      }
 
@@ -1677,7 +1667,6 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
           state->accel &= ~DFXL_DRAWSTRING;
 
      dfb_font_unlock( font );
-     dfb_state_unlock( state );
 }
 
 void dfb_gfxcard_sync()
@@ -1837,7 +1826,7 @@ dfb_gfxcard_reserve_auxmemory( GraphicsDevice *device, unsigned int size )
           return -1;
 
      /* Reserve memory at the beginning of the aperture
-      * to prevent overflows on DMA buffers. */     
+      * to prevent overflows on DMA buffers. */
 
      offset = shared->auxram_offset;
 

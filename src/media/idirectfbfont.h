@@ -1,7 +1,7 @@
 /*
    (c) Copyright 2000-2002  convergence integrated media GmbH.
    (c) Copyright 2002       convergence GmbH.
-   
+
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
@@ -42,8 +42,10 @@ typedef struct {
  * private data struct of IDirectFBFont
  */
 typedef struct {
-     int        ref;   /* reference counter    */
-     CoreFont  *font;  /* pointer to core font */
+     int                ref;       /* reference counter    */
+     CoreFont          *font;      /* pointer to core font */
+
+     DFBTextEncodingID  encoding;  /* text encoding */
 } IDirectFBFont_data;
 
 /*

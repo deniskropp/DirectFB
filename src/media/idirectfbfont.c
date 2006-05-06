@@ -47,15 +47,24 @@
 
 #include "misc/util.h"
 
+
+D_DEBUG_DOMAIN( Font, "IDirectFBFont", "DirectFB Font Interface" );
+
+/**********************************************************************************************************************/
+
 void
 IDirectFBFont_Destruct( IDirectFBFont *thiz )
 {
      IDirectFBFont_data *data = (IDirectFBFont_data*)thiz->priv;
 
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
      dfb_font_destroy (data->font);
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
+
+/**********************************************************************************************************************/
 
 /*
  * increments reference count of font
@@ -64,6 +73,8 @@ static DFBResult
 IDirectFBFont_AddRef( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      data->ref++;
 
@@ -78,6 +89,8 @@ IDirectFBFont_Release( IDirectFBFont *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
      if (--data->ref == 0)
           IDirectFBFont_Destruct( thiz );
 
@@ -91,6 +104,8 @@ static DFBResult
 IDirectFBFont_GetAscender( IDirectFBFont *thiz, int *ascender )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!ascender)
           return DFB_INVARG;
@@ -109,6 +124,8 @@ IDirectFBFont_GetDescender( IDirectFBFont *thiz, int *descender )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
      if (!descender)
           return DFB_INVARG;
 
@@ -125,6 +142,8 @@ IDirectFBFont_GetHeight( IDirectFBFont *thiz, int *height )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
 
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
+
      if (!height)
           return DFB_INVARG;
 
@@ -140,6 +159,8 @@ static DFBResult
 IDirectFBFont_GetMaxAdvance( IDirectFBFont *thiz, int *maxadvance )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!maxadvance)
           return DFB_INVARG;
@@ -161,6 +182,8 @@ IDirectFBFont_GetKerning( IDirectFBFont *thiz,
      int x, y;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!kern_x && !kern_y)
           return DFB_INVARG;
@@ -192,16 +215,14 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
                                 DFBRectangle *logical_rect,
                                 DFBRectangle *ink_rect )
 {
-     CoreFont      *font;
-     CoreGlyphData *glyph;
-     unichar        prev = 0;
-     unichar        current;
-     int            width = 0;
-     int            offset;
-     int            kern_x;
-     int            kern_y;
+     DFBResult  ret;
+     CoreFont  *font;
+     int        width = 0;
+
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
 
      if (!text)
@@ -210,42 +231,51 @@ IDirectFBFont_GetStringExtents( IDirectFBFont *thiz,
      if (!logical_rect && !ink_rect)
           return DFB_INVARG;
 
-     font = data->font;
-
-     dfb_font_lock( font );
+     if (bytes < 0)
+          bytes = strlen (text);
 
      if (ink_rect)
           memset (ink_rect, 0, sizeof (DFBRectangle));
 
-     if (bytes < 0)
-          bytes = strlen (text);
+     font = data->font;
 
-     for (offset = 0; offset < bytes; offset += DIRECT_UTF8_SKIP(text[offset])) {
-          unsigned int c = text[offset];
+     dfb_font_lock( font );
 
-          if (c < 128)
-               current = c;
-          else
-               current = DIRECT_UTF8_GET_CHAR( &text[offset] );
+     if (bytes > 0) {
+          int          i, num;
+          unsigned int prev  = 0;
+          unsigned int indices[bytes];
 
-          if (dfb_font_get_glyph_data (font, current, &glyph) == DFB_OK) {
-               kern_y = 0;
-
-               if (prev && font->GetKerning && font->GetKerning( font, prev, current,
-                                                                 &kern_x, &kern_y ) == DFB_OK)
-                    width += kern_x;
-
-               if (ink_rect) {
-                    DFBRectangle glyph_rect = { width + glyph->left,
-                                                kern_y + glyph->top,
-                                                glyph->width, glyph->height };
-                    dfb_rectangle_union (ink_rect, &glyph_rect);
-               }
-
-               width += glyph->advance;
+          /* Decode string to character indices. */
+          ret = dfb_font_decode_text( font, data->encoding, text, bytes, indices, &num );
+          if (ret) {
+               dfb_font_unlock( font );
+               return ret;
           }
 
-          prev = current;
+          for (i=0; i<num; i++) {
+               unsigned int   current = indices[i];
+               CoreGlyphData *glyph;
+
+               if (dfb_font_get_glyph_data( font, current, &glyph ) == DFB_OK) {
+                    int kx, ky = 0;
+
+                    if (prev && font->GetKerning &&
+                        font->GetKerning( font, prev, current, &kx, &ky ) == DFB_OK)
+                         width += kx;
+
+                    if (ink_rect) {
+                         DFBRectangle glyph_rect = { width + glyph->left,
+                                                     ky + glyph->top,
+                                                     glyph->width, glyph->height };
+                         dfb_rectangle_union (ink_rect, &glyph_rect);
+                    }
+
+                    width += glyph->advance;
+               }
+
+               prev = current;
+          }
      }
 
      if (logical_rect) {
@@ -277,17 +307,12 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
                               int            bytes,
                               int           *ret_width )
 {
-     CoreFont      *font;
-     DirectTree    *glyphs;
-     const __u8    *string;
-     const __u8    *end;
-     CoreGlyphData *glyph;
-     int            kern_x;
-     int            width = 0;
-     unichar        prev  = 0;
-     unichar        current;
+     DFBResult ret;
+     int       width = 0;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!text || !ret_width)
           return DFB_INVARG;
@@ -295,41 +320,39 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
      if (bytes < 0)
           bytes = strlen (text);
 
-     if (!bytes) {
-          *ret_width = 0;
+     if (bytes > 0) {
+          int           i, num, kx;
+          unsigned int  prev = 0;
+          unsigned int  indices[bytes];
+          CoreFont     *font = data->font;
 
-          return DFB_OK;
-     }
+          dfb_font_lock( font );
 
-     font   = data->font;
-     glyphs = font->glyph_infos;
-     string = (const __u8*) text;
-     end    = string + bytes;
-
-     dfb_font_lock( font );
-
-     do {
-          current = DIRECT_UTF8_GET_CHAR( string );
-
-          if (current >= 32 && current < 128)
-               glyph = glyphs->fast_keys[current-32];
-          else
-               glyph = direct_tree_lookup( glyphs, (void *) current );
-
-          if (glyph || dfb_font_get_glyph_data( font, current, &glyph ) == DFB_OK) {
-               width += glyph->advance;
-
-               if (prev && font->GetKerning && font->GetKerning( font, prev,
-                                                                 current, &kern_x, NULL ) == DFB_OK)
-                    width += kern_x;
+          /* Decode string to character indices. */
+          ret = dfb_font_decode_text( font, data->encoding, text, bytes, indices, &num );
+          if (ret) {
+               dfb_font_unlock( font );
+               return ret;
           }
 
-          prev = current;
+          /* Calculate string width. */
+          for (i=0; i<num; i++) {
+               unsigned int   current = indices[i];
+               CoreGlyphData *glyph;
 
-          string += DIRECT_UTF8_SKIP( string[0] );
-     } while (string < end);
+               if (dfb_font_get_glyph_data( font, current, &glyph ) == DFB_OK) {
+                    width += glyph->advance;
 
-     dfb_font_unlock( font );
+                    if (prev && font->GetKerning &&
+                        font->GetKerning( font, prev, current, &kx, NULL ) == DFB_OK)
+                         width += kx;
+               }
+
+               prev = current;
+          }
+
+          dfb_font_unlock( font );
+     }
 
      *ret_width = width;
 
@@ -341,14 +364,18 @@ IDirectFBFont_GetStringWidth( IDirectFBFont *thiz,
  */
 static DFBResult
 IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
-                               unsigned int   index,
+                               unsigned int   character,
                                DFBRectangle  *rect,
                                int           *advance )
 {
+     DFBResult      ret;
      CoreFont      *font;
      CoreGlyphData *glyph;
+     unsigned int   index;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p )\n", __FUNCTION__, thiz );
 
      if (!rect && !advance)
           return DFB_INVARG;
@@ -356,6 +383,12 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
      font = data->font;
 
      dfb_font_lock( font );
+
+     ret = dfb_font_decode_character( font, data->encoding, character, &index );
+     if (ret) {
+          dfb_font_unlock( font );
+          return ret;
+     }
 
      if (dfb_font_get_glyph_data (font, index, &glyph) != DFB_OK) {
 
@@ -383,6 +416,83 @@ IDirectFBFont_GetGlyphExtents( IDirectFBFont *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBFont_SetEncoding( IDirectFBFont     *thiz,
+                           DFBTextEncodingID  encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     D_DEBUG_AT( Font, "%s( %p, %d )\n", __FUNCTION__, thiz, encoding );
+
+     if (encoding > data->font->last_encoding)
+          return DFB_IDNOTFOUND;
+
+     data->encoding = encoding;
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBFont_EnumEncodings( IDirectFBFont           *thiz,
+                             DFBTextEncodingCallback  callback,
+                             void                    *context )
+{
+     int       i;
+     CoreFont *font;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     if (!callback)
+          return DFB_INVARG;
+
+     D_DEBUG_AT( Font, "%s( %p, %p, %p )\n", __FUNCTION__, thiz, callback, context );
+
+     font = data->font;
+
+     if (callback( DTEID_UTF8, "UTF8", context ) == DFENUM_OK) {
+          for (i=DTEID_OTHER; i<=font->last_encoding; i++) {
+               if (callback( i, font->encodings[i]->name, context ) != DFENUM_OK)
+                    break;
+          }
+     }
+
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBFont_FindEncoding( IDirectFBFont     *thiz,
+                            const char        *name,
+                            DFBTextEncodingID *ret_id )
+{
+     int       i;
+     CoreFont *font;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont)
+
+     if (!name || !ret_id)
+          return DFB_INVARG;
+
+     D_DEBUG_AT( Font, "%s( %p, '%s', %p )\n", __FUNCTION__, thiz, name, ret_id );
+
+     if (!strcasecmp( name, "UTF8" )) {
+          *ret_id = DTEID_UTF8;
+          return DFB_OK;
+     }
+
+     font = data->font;
+
+     for (i=DTEID_OTHER; i<=font->last_encoding; i++) {
+          if (!strcasecmp( name, font->encodings[i]->name )) {
+               *ret_id = i;
+               return DFB_OK;
+          }
+     }
+
+     return DFB_IDNOTFOUND;
+}
+
+/**********************************************************************************************************************/
+
 DFBResult
 IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
 {
@@ -401,6 +511,9 @@ IDirectFBFont_Construct( IDirectFBFont *thiz, CoreFont *font )
      thiz->GetStringWidth = IDirectFBFont_GetStringWidth;
      thiz->GetStringExtents = IDirectFBFont_GetStringExtents;
      thiz->GetGlyphExtents = IDirectFBFont_GetGlyphExtents;
+     thiz->SetEncoding = IDirectFBFont_SetEncoding;
+     thiz->EnumEncodings = IDirectFBFont_EnumEncodings;
+     thiz->FindEncoding = IDirectFBFont_FindEncoding;
 
      return DFB_OK;
 }
