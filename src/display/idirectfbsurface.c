@@ -1786,12 +1786,13 @@ IDirectFBSurface_DrawGlyph( IDirectFBSurface *thiz,
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
-     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+     D_DEBUG_AT( Surface, "%s( %p, 0x%x, %d,%d, 0x%x )\n",
+                 __FUNCTION__, thiz, character, x, y, flags );
 
      if (!data->surface)
           return DFB_DESTROYED;
 
-     if (!index)
+     if (!character)
           return DFB_INVARG;
 
      if (!data->area.current.w || !data->area.current.h)
