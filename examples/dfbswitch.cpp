@@ -41,10 +41,22 @@ public:
      virtual ~Switcher() {
      }
 
+     static DFBEnumerationResult VideoModeCallback( int   width,
+                                                    int   height,
+                                                    int   bpp,
+                                                    void *callbackdata )
+     {
+          printf( "  - %dx%d\n", width, height );
+     }
+
      bool Init( int argc, char *argv[] ) {
+          bool list = false;
+
           /* Parse the command line. */
           if (argc != 2 || !argv[1] || !argv[1][0] ||
-              sscanf( argv[1], "%dx%d", &m_width, &m_height ) < 2) {
+              (sscanf( argv[1], "%dx%d", &m_width, &m_height ) < 2 &&
+               !(list = !strcmp( argv[1], "-l" )) ))
+          {
                std::cerr << std::endl;
                std::cerr << "Usage: " << argv[0] << " <width>x<height>" << std::endl;
                std::cerr << std::endl;
@@ -53,6 +65,12 @@ public:
 
           /* Create the main interface. */
           m_dfb = DirectFB::Create();
+
+          if (list) {
+               printf( "\nVideo Modes\n" );
+               m_dfb.EnumVideoModes( VideoModeCallback, NULL );
+               return false;
+          }
 
           /* Get an interface to the primary layer. */
           m_layer = m_dfb.GetDisplayLayer( DLID_PRIMARY );
