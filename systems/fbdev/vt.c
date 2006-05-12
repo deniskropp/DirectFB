@@ -225,9 +225,6 @@ dfb_vt_shutdown( bool emergency )
      if (!dfb_vt)
           return DFB_OK;
 
-     write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
-     write( dfb_vt->fd, blankon_str, sizeof(blankon_str) );
-
      if (dfb_config->vt_switching) {
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
                D_PERROR( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );
@@ -247,6 +244,10 @@ dfb_vt_shutdown( bool emergency )
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_TEXT ) < 0)
                D_PERROR( "DirectFB/Keyboard: KD_TEXT failed!\n" );
      }
+     else {
+          write( dfb_vt->fd, blankon_str, sizeof(blankon_str) );
+     }
+     write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
 
      if (dfb_config->vt_switch) {
           D_DEBUG( "switching back...\n" );
@@ -407,6 +408,8 @@ vt_switch_handler( int signum )
 static DFBResult
 vt_init_switching()
 {
+     const char cursoroff_str[] = "\033[?1;0;0c";
+     const char blankoff_str[] = "\033[9;0]";
      char buf[32];
 
      /* FIXME: Opening the device should be moved out of this function. */
@@ -437,12 +440,16 @@ vt_init_switching()
           }
      }
 
+     write( dfb_vt->fd, cursoroff_str, sizeof(cursoroff_str) );
      if (dfb_config->kd_graphics) {
           if (ioctl( dfb_vt->fd, KDSETMODE, KD_GRAPHICS ) < 0) {
                D_PERROR( "DirectFB/fbdev/vt: KD_GRAPHICS failed!\n" );
                close( dfb_vt->fd );
                return DFB_INIT;
           }
+     }
+     else {
+          write( dfb_vt->fd, blankoff_str, sizeof(blankoff_str) );
      }
 
      if (dfb_config->vt_switch) {
