@@ -475,7 +475,7 @@ static void matrox_tlutload( MatroxDriverData *mdrv,
                                 palette->entries[i].g,
                                 palette->entries[i].b );
 
-     mga_waitfifo( mdrv, mdev, 9 );
+     mga_waitfifo( mdrv, mdev, mdev->old_matrox ? 8 : 9 );
      mga_out32( mmio, BLTMOD_BU32RGB | BOP_COPY | SHFTZERO |
                 SGNZERO | LINEAR | ATYPE_RSTR | OP_BITBLT, DWGCTL );
      mga_out32( mmio, 1024, PITCH );
