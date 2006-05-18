@@ -3610,6 +3610,14 @@ DEFINE_INTERFACE(   IDirectFBInputDevice,
           IDirectFBInputDevice          *thiz,
           IDirectFBEventBuffer          *buffer
      );
+     
+     /*
+      * Detach an event buffer from this device.
+      */
+     DFBResult (*DetachEventBuffer) (
+          IDirectFBInputDevice          *thiz,
+          IDirectFBEventBuffer          *buffer
+     );
 
 
    /** General state queries **/
@@ -4185,6 +4193,14 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       *
       */
      DFBResult (*AttachEventBuffer) (
+          IDirectFBWindow               *thiz,
+          IDirectFBEventBuffer          *buffer
+     );
+     
+     /*
+      * Detach an event buffer from this window.
+      */
+     DFBResult (*DetachEventBuffer) (
           IDirectFBWindow               *thiz,
           IDirectFBEventBuffer          *buffer
      );

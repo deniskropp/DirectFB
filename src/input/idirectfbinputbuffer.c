@@ -629,6 +629,29 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
      return DFB_OK;
 }
 
+DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
+                                                  CoreInputDevice      *device )
+{
+     AttachedDevice *attached;
+     DirectLink     *link;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     
+     direct_list_foreach_safe (attached, link, data->devices) {
+          if (attached->device == device) {
+               direct_list_remove( &data->devices, &attached->link );
+               
+               dfb_input_detach( attached->device, &attached->reaction );
+               
+               D_FREE( attached );
+               
+               return DFB_OK;
+          }
+     }
+
+     return DFB_ITEMNOTFOUND;
+}
+
 DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
                                              CoreWindow           *window )
 {
@@ -645,6 +668,29 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
                         data, &attached->reaction );
 
      return DFB_OK;
+}
+
+DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
+                                             CoreWindow           *window )
+{
+     AttachedWindow *attached;
+     DirectLink     *link;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
+     
+     direct_list_foreach_safe (attached, link, data->windows) {
+          if (attached->window == window) {
+               direct_list_remove( &data->windows, &attached->link );
+               
+               dfb_window_detach( attached->window, &attached->reaction );
+               
+               D_FREE( attached );
+               
+               return DFB_OK;
+          }
+     }
+
+     return DFB_ITEMNOTFOUND;
 }
 
 /* file internals */

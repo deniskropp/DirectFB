@@ -198,6 +198,18 @@ IDirectFBWindow_AttachEventBuffer( IDirectFBWindow       *thiz,
 }
 
 static DFBResult
+IDirectFBWindow_DetachEventBuffer( IDirectFBWindow       *thiz,
+                                   IDirectFBEventBuffer  *buffer )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     return IDirectFBEventBuffer_DetachWindow( buffer, data->window );
+}
+
+static DFBResult
 IDirectFBWindow_EnableEvents( IDirectFBWindow       *thiz,
                               DFBWindowEventType     mask )
 {
@@ -799,6 +811,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Release = IDirectFBWindow_Release;
      thiz->CreateEventBuffer = IDirectFBWindow_CreateEventBuffer;
      thiz->AttachEventBuffer = IDirectFBWindow_AttachEventBuffer;
+     thiz->DetachEventBuffer = IDirectFBWindow_DetachEventBuffer;
      thiz->EnableEvents = IDirectFBWindow_EnableEvents;
      thiz->DisableEvents = IDirectFBWindow_DisableEvents;
      thiz->GetID = IDirectFBWindow_GetID;
