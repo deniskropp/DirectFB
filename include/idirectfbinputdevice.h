@@ -44,6 +44,7 @@ public:
 
      IDirectFBEventBuffer       CreateEventBuffer ();
      void                       AttachEventBuffer (IDirectFBEventBuffer           *buffer);
+     void                       DetachEventBuffer (IDirectFBEventBuffer           *buffer);
 
      DFBInputDeviceKeyState     GetKeyState       (DFBInputDeviceKeyIdentifier     key_id);
      DFBInputDeviceModifierMask GetModifiers      ();

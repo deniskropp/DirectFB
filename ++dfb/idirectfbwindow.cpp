@@ -59,6 +59,11 @@ void IDirectFBWindow::AttachEventBuffer (IDirectFBEventBuffer *buffer)
      DFBCHECK( iface->AttachEventBuffer (iface, buffer->get_iface()) );
 }
 
+void IDirectFBWindow::DetachEventBuffer (IDirectFBEventBuffer *buffer)
+{
+     DFBCHECK( iface->DetachEventBuffer (iface, buffer->get_iface()) );
+}
+
 void IDirectFBWindow::EnableEvents (DFBWindowEventType mask)
 {
      DFBCHECK( iface->EnableEvents (iface, mask) );

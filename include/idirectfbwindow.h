@@ -44,6 +44,7 @@ public:
 
      IDirectFBEventBuffer  CreateEventBuffer ();
      void                  AttachEventBuffer (IDirectFBEventBuffer   *buffer);
+     void                  DetachEventBuffer (IDirectFBEventBuffer   *buffer);
      void                  EnableEvents      (DFBWindowEventType      mask);
      void                  DisableEvents     (DFBWindowEventType      mask);
 

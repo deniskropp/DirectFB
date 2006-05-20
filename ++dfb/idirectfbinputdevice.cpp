@@ -59,6 +59,11 @@ void IDirectFBInputDevice::AttachEventBuffer (IDirectFBEventBuffer *buffer)
      DFBCHECK( iface->AttachEventBuffer (iface, buffer->get_iface()) );
 }
 
+void IDirectFBInputDevice::DetachEventBuffer (IDirectFBEventBuffer *buffer)
+{
+     DFBCHECK( iface->DetachEventBuffer (iface, buffer->get_iface()) );
+}
+
 DFBInputDeviceKeyState IDirectFBInputDevice::GetKeyState (DFBInputDeviceKeyIdentifier key_id)
 {
      DFBInputDeviceKeyState state;
