@@ -236,6 +236,7 @@ static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_to_Aop_16,      /* DSPF_ARGB4444 */
      Cop_to_Aop_nv21,    /* DSPF_NV21 */
      Cop_to_Aop_32,      /* DSPF_AYUV */
+     NULL,               /* DSPF_A4 */
 };
 
 /********************************* Cop_toK_Aop_PFI ****************************/
@@ -423,6 +424,7 @@ static GenefxFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Cop_toK_Aop_12,          /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      Cop_toK_Aop_32,          /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_to_Aop_PFI *************************/
@@ -485,6 +487,7 @@ static GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_to_Aop,      /* DSPF_ARGB4444 */
      Bop_NV_to_Aop,      /* DSPF_NV21 */
      Bop_32_to_Aop,      /* DSPF_AYUV */
+     NULL,               /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -847,6 +850,7 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_argb4444_Kto_Aop,    /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      Bop_rgb32_Kto_Aop,       /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_toK_Aop_PFI ************************/
@@ -1144,6 +1148,7 @@ static GenefxFunc Bop_PFI_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_argb4444_toK_Aop,    /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      Bop_rgb32_toK_Aop,       /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_KtoK_Aop_PFI ***********************/
@@ -1170,6 +1175,7 @@ static GenefxFunc Bop_PFI_KtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      NULL,                    /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_Sto_Aop_PFI ************************/
@@ -1408,6 +1414,7 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_Sto_Aop,          /* DSPF_ARGB4444 */
      Bop_NV_Sto_Aop,          /* DSPF_NV21 */
      Bop_32_Sto_Aop,          /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_SKto_Aop_PFI ***********************/
@@ -1729,6 +1736,7 @@ static GenefxFunc Bop_PFI_SKto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_argb4444_SKto_Aop,   /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      Bop_rgb32_SKto_Aop,      /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_StoK_Aop_PFI ***********************/
@@ -1755,6 +1763,7 @@ static GenefxFunc Bop_PFI_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      NULL,                    /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_SKtoK_Aop_PFI **********************/
@@ -1781,6 +1790,7 @@ static GenefxFunc Bop_PFI_SKtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                    /* DSPF_ARGB4444 */
      NULL,                    /* DSPF_NV21 */
      NULL,                    /* DSPF_AYUV */
+     NULL,                    /* DSPF_A4 */
 };
 
 /********************************* Sop_PFI_Sto_Dacc ***************************/
@@ -2252,6 +2262,7 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb4444_Sto_Dacc,        /* DSPF_ARGB4444 */
      Sop_nv21_Sto_Dacc,            /* DSPF_NV21 */
      Sop_ayuv_Sto_Dacc,            /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /********************************* Sop_PFI_SKto_Dacc **************************/
@@ -2754,6 +2765,7 @@ static GenefxFunc Sop_PFI_SKto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb4444_SKto_Dacc,       /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /********************************* Sop_PFI_to_Dacc ****************************/
@@ -2911,6 +2923,28 @@ static void Sop_a8_to_Dacc( GenefxState *gfxs )
           D->RGB.b = 0xFF;
 
           D++;
+     }
+}
+
+static void Sop_a4_to_Dacc( GenefxState *gfxs )
+{
+     int                i, n;
+     GenefxAccumulator *D = gfxs->Dacc;
+     __u8              *S = gfxs->Sop[0];
+
+     for (i=0, n=0; i<gfxs->length; i+=2, n++) {
+          register int left  = S[n] & 0xF0;
+          register int right = S[n] & 0x0F;
+
+          D[i].RGB.a = left | (left >> 4);
+          D[i].RGB.r = 0xFF;
+          D[i].RGB.g = 0xFF;
+          D[i].RGB.b = 0xFF;
+
+          D[i+1].RGB.a = right | (right << 4);
+          D[i+1].RGB.r = 0xFF;
+          D[i+1].RGB.g = 0xFF;
+          D[i+1].RGB.b = 0xFF;
      }
 }
 
@@ -3238,6 +3272,7 @@ static GenefxFunc Sop_PFI_to_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb4444_to_Dacc,         /* DSPF_ARGB4444 */
      Sop_nv21_to_Dacc,             /* DSPF_NV21 */
      Sop_ayuv_to_Dacc,             /* DSPF_AYUV */
+     Sop_a4_to_Dacc,               /* DSPF_A4 */
 };
 
 /********************************* Sop_PFI_Kto_Dacc ***************************/
@@ -3695,6 +3730,7 @@ static GenefxFunc Sop_PFI_Kto_Dacc[DFB_NUM_PIXELFORMATS] = {
      Sop_argb4444_Kto_Dacc,        /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /********************************* Sacc_to_Aop_PFI ****************************/
@@ -4288,6 +4324,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb4444,         /* DSPF_ARGB4444 */
      Sacc_to_Aop_nv21,             /* DSPF_NV21 */
      Sacc_to_Aop_ayuv,             /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /********************************* Sacc_Sto_Aop_PFI ***************************/
@@ -4970,6 +5007,7 @@ static GenefxFunc Sacc_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_Sto_Aop_argb4444,        /* DSPF_ARGB4444 */
      Sacc_Sto_Aop_nv21,            /* DSPF_NV21 */
      Sacc_Sto_Aop_ayuv,            /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /********************************* Sacc_toK_Aop_PFI ***************************/
@@ -5372,6 +5410,7 @@ static GenefxFunc Sacc_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_toK_Aop_argb4444,        /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /********************************* Sacc_StoK_Aop_PFI **************************/
@@ -5398,6 +5437,7 @@ static GenefxFunc Sacc_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                         /* DSPF_ARGB4444 */
      NULL,                         /* DSPF_NV21 */
      NULL,                         /* DSPF_AYUV */
+     NULL,                         /* DSPF_A4 */
 };
 
 /************** Bop_a8_set_alphapixel_Aop_PFI *********************************/
@@ -5793,6 +5833,7 @@ static GenefxFunc Bop_a8_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      NULL,                                        /* DSPF_ARGB4444 */
      NULL,                                        /* DSPF_NV21 */
      Bop_a8_set_alphapixel_Aop_argb,              /* DSPF_AYUV */
+     NULL,                                        /* DSPF_A4 */
 };
 
 /************** Bop_a1_set_alphapixel_Aop_PFI *********************************/
@@ -6025,6 +6066,7 @@ static GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_a1_set_alphapixel_Aop_argb4444,          /* DSPF_ARGB4444 */
      NULL,                                        /* DSPF_NV21 */
      Bop_a1_set_alphapixel_Aop_argb,              /* DSPF_AYUV */
+     NULL,                                        /* DSPF_A4 */
 };
 
 
@@ -6914,6 +6956,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_A1:
                gfxs->Cop = color.a >> 7;
                break;
+          case DSPF_A4:
+               gfxs->Cop = color.a >> 4;
+               break;
           case DSPF_A8:
                gfxs->Cop = color.a;
                break;
@@ -6991,6 +7036,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                                 DSBLIT_SRC_PREMULTCOLOR))
                          return false;
                case DSPF_A1:
+               case DSPF_A4:
                case DSPF_A8:
                     if (DFB_PLANAR_PIXELFORMAT(gfxs->dst_format) &&
                         state->blittingflags & DSBLIT_DST_COLORKEY)

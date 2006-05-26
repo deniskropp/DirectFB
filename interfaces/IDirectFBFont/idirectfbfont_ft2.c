@@ -306,6 +306,10 @@ render_glyph( CoreFont      *thiz,
                          case DSPF_A8:
                               direct_memcpy( dst, src, info->width );
                               break;
+                         case DSPF_A4:
+                              for (i=0, j=0; i<info->width; i+=2, j++)
+                                   dst8[j] = (src[i] & 0xF0) | (src[i+1] >> 4);
+                              break;
                          case DSPF_A1:
                               for (i=0, j=0; i < info->width; ++j) {
                                    register __u8 p = 0;
@@ -352,6 +356,13 @@ render_glyph( CoreFont      *thiz,
                               for (i=0; i<info->width; i++)
                                    dst8[i] = (src[i>>3] &
                                               (1<<(7-(i%8)))) ? 0xFF : 0x00;
+                              break;
+                         case DSPF_A4:
+                              for (i=0, j=0; i<info->width; i+=2, j++)
+                                   dst8[j] = ((src[i>>3] &
+                                              (1<<(7-(i%8)))) ? 0xF0 : 0x00) |
+                                             ((src[(i+1)>>3] &
+                                              (1<<(7-((i+1)%8)))) ? 0x0F : 0x00);
                               break;
                          case DSPF_A1:
                               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(DSPF_A1, info->width) );
@@ -752,6 +763,7 @@ Construct( IDirectFBFont      *thiz,
                font->pixel_format == DSPF_ARGB2554 ||
                font->pixel_format == DSPF_ARGB1555 ||
                font->pixel_format == DSPF_A8 ||
+               font->pixel_format == DSPF_A4 ||
                font->pixel_format == DSPF_A1 );
 
      font->ascender   = face->size->metrics.ascender >> 6;

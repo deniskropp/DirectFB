@@ -99,6 +99,7 @@ Construct( IDirectFBFont      *thiz,
                font->pixel_format == DSPF_ARGB2554 ||
                font->pixel_format == DSPF_ARGB1555 ||
                font->pixel_format == DSPF_A8 ||
+               font->pixel_format == DSPF_A4 ||
                font->pixel_format == DSPF_A1 );
 
      font->height    = DEFAULT_FONT_HEIGHT;
@@ -184,7 +185,7 @@ Construct( IDirectFBFont      *thiz,
      dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
 
      for (i = 1; i < font_desc.height; i++) {
-          int    i, j, n;
+          int    j, n;
           __u8  *dst8  = dst;
           __u16 *dst16 = dst;
           __u32 *dst32 = dst;
@@ -213,6 +214,10 @@ Construct( IDirectFBFont      *thiz,
                     break;
                case DSPF_A8:
                     direct_memcpy(dst, pixels, font_desc.width);
+                    break;
+               case DSPF_A4:
+                    for (n=0, j=0; j < font_desc.width; n++, j+=2)
+                         dst8[n] = (pixels[j] & 0xF0) | (pixels[j+1] >> 4);
                     break;
                case DSPF_A1:
                     for (i=0, j=0; i < font_desc.width; ++j) {

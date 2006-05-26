@@ -155,6 +155,8 @@ typedef struct {
 } FormatString;
 
 static const FormatString format_strings[] = {
+     { "A1",       DSPF_A1       },
+     { "A4",       DSPF_A4       },
      { "A8",       DSPF_A8       },
      { "ALUT44",   DSPF_ALUT44   },
      { "ARGB",     DSPF_ARGB     },
@@ -181,6 +183,7 @@ static const FormatString format_strings[] = {
 
 static const FormatString font_format_strings[] = {
      { "A1",       DSPF_A1       },
+     { "A4",       DSPF_A4       },
      { "A8",       DSPF_A8       },
      { "ARGB",     DSPF_ARGB     },
      { "ARGB1555", DSPF_ARGB1555 },

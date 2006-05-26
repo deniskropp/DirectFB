@@ -79,7 +79,7 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
      CorePalette *palette = dst_surface->palette;
      __u8        *d       = dst[0];
      __u8        *d1,*d2;
-     int          i;
+     int          i, j;
 
      if (dst_surface->caps & DSCAPS_PREMULTIPLIED) {
           for (i = 0; i < len; i++) {
@@ -102,6 +102,11 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                }
                break;
                
+          case DSPF_A4:
+               for (i=0, j=0; i<len; i+=2, j++)
+                    d[j] = ((src[i] >> 24) & 0xF0) | (src[i+1] >> 28);
+               break;
+
           case DSPF_A8:
                for (i = 0; i < dx+len; i++)
                     d[i] = src[i] >> 24;

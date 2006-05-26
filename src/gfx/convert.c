@@ -177,6 +177,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_AYUV:
                return "AYUV";
+
+          case DSPF_A4:
+               return "A4";
      }
 
      return "<invalid>";
