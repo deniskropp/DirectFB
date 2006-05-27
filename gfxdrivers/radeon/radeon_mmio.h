@@ -38,17 +38,22 @@ radeon_out8( volatile __u8 *mmioaddr, __u32 reg, __u8 value )
 static __inline__ void
 radeon_out16( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
 {
+#ifdef __powerpc__
+     asm volatile( "sthbrx %0,%1,%2;eieio"
+                  :: "r" (value), "b"(reg), "r" (mmioaddr) : "memory" );
+#else
      *((volatile __u16*)(mmioaddr+reg)) = value;
+#endif
 }
 
 static __inline__ void
 radeon_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
 {
 #ifdef __powerpc__
-    asm volatile( "stwbrx %0,%1,%2;eieio" 
-                  :: "r" (value), "b"(reg), "r" (mmioaddr) : "memory" );
+     asm volatile( "stwbrx %0,%1,%2;eieio" 
+                   :: "r" (value), "b"(reg), "r" (mmioaddr) : "memory" );
 #else
-    *((volatile __u32*)(mmioaddr+reg)) = value;
+     *((volatile __u32*)(mmioaddr+reg)) = value;
 #endif
 }
 
@@ -61,19 +66,26 @@ radeon_in8( volatile __u8 *mmioaddr, __u32 reg )
 static __inline__ __u16
 radeon_in16( volatile __u8 *mmioaddr, __u32 reg )
 {
+#ifdef __powerpc__
+     __u32 value;
+     asm volatile( "lhbrx %0,%1,%2;eieio"
+                   : "=r" (value) : "b" (reg), "r" (mmioaddr) );
+     return value;
+#else
      return *((volatile __u16*)(mmioaddr+reg));
+#endif
 }
 
 static __inline__ __u32
 radeon_in32( volatile __u8 *mmioaddr, __u32 reg )
 {
 #ifdef __powerpc__
-    __u32 value;
-    asm volatile( "lwbrx %0,%1,%2;eieio"
+     __u32 value;
+     asm volatile( "lwbrx %0,%1,%2;eieio"
                   : "=r" (value) : "b" (reg), "r" (mmioaddr) );
-    return value;
+     return value;
 #else
-    return *((volatile __u32*)(mmioaddr+reg));
+     return *((volatile __u32*)(mmioaddr+reg));
 #endif
 }
 
