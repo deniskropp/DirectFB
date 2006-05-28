@@ -276,14 +276,57 @@ static void handleMouseEvent(XEvent* pXEvent, X11InputData*	pData)
 	{
         motion_realize( pData );
 
-        if ( pXEvent->type == ButtonPress ) 	dfbEvent.type = DIET_BUTTONPRESS;
-		else									dfbEvent.type = DIET_BUTTONRELEASE;
+        if ( pXEvent->type == ButtonPress ) 	
+		dfbEvent.type = DIET_BUTTONPRESS;
+	else
+		dfbEvent.type = DIET_BUTTONRELEASE;
+
 		dfbEvent.flags = DIEF_NONE;
 				
 		/* Get pressed button */
-		if ( 	 pXEvent->xbutton.button == 1 ) dfbEvent.button = DIBI_LEFT;
-		else if( pXEvent->xbutton.button == 2 ) dfbEvent.button = DIBI_MIDDLE;
-		else if( pXEvent->xbutton.button == 3 ) dfbEvent.button = DIBI_RIGHT;
+		switch( pXEvent->xbutton.button ) {
+			case 1:
+				dfbEvent.button = DIBI_LEFT;
+			break;
+			case 2:
+				dfbEvent.button = DIBI_MIDDLE;
+			break;
+			case 3:
+				dfbEvent.button = DIBI_RIGHT;
+			break;
+			//Wheel events
+			case 4: /*up*/
+			case 5: /*down*/
+			case 6: /*left*/
+			case 7: /*right*/
+			{
+				dfbEvent.type = DIET_AXISMOTION;
+				dfbEvent.flags = DIEF_AXISREL;
+				dfbEvent.axis = DIAI_Z;
+				/*SCROLL UP*/
+				if( pXEvent->xbutton.button == 4 ) {
+					dfbEvent.axisrel = -1;
+				}
+				/*SCROLL DOWN */
+				else if (pXEvent->xbutton.button == 5) {
+					dfbEvent.axisrel = 1;
+				}
+				/*SCROLL LEFT*/
+          			else if (pXEvent->xbutton.button == 6) {
+					dfbEvent.axis = DIAI_X;
+					dfbEvent.axisrel = -1;
+				}
+				/*SCROLL RIGHT*/
+          			else if (pXEvent->xbutton.button == 7 ){
+					dfbEvent.axis = DIAI_X;
+					dfbEvent.axisrel = 1;
+				}
+					
+			}
+			break;
+			default:
+			break;
+		}
 
 		dfb_input_dispatch( pData->device, &dfbEvent );
 		++iMouseEventCount;
