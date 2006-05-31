@@ -144,7 +144,7 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
      DFBRectangle      rect;
      IDirectFBSurface *tmp;
      cairo_t          *cairo;
-     cairo_surface_t  *cairo_surface; 
+     cairo_surface_t  *cairo_surface;
           
      DIRECT_INTERFACE_GET_DATA( IDirectFBImageProvider_SVG );
      
@@ -180,7 +180,10 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
           return DFB_FAILURE;
      }
      
-     svg_cairo_set_viewport_dimension( data->svg_cairo, rect.w, rect.h );
+     if (data->width != rect.w || data->height != rect.h) {
+          cairo_scale( cairo, (double)rect.w / (double)data->width,
+                              (double)rect.h / (double)data->height );
+     }
 
      ret = svgstatus2result( svg_cairo_render( data->svg_cairo, cairo ) );
 
@@ -296,7 +299,10 @@ IDirectFBImageProvider_SVG_RenderTo( IDirectFBImageProvider *thiz,
           return DFB_FAILURE;
      }
      
-     svg_cairo_set_viewport_dimension( data->svg_cairo, rect.w, rect.h );
+     if (data->width != rect.w || data->height != rect.h) {
+          cairo_scale( cairo, (double)rect.w / (double)data->width,
+                              (double)rect.h / (double)data->height );
+     }
 
      ret = svgstatus2result( svg_cairo_render( data->svg_cairo, cairo ) );
      
