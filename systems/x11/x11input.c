@@ -359,6 +359,9 @@ x11EventThread( DirectThread *thread, void *driver_data )
 
         if (!xw)
              continue;
+		//wait for the display
+        if (!xw->display || !xw->window)
+             continue;
 
 //        fusion_skirmish_prevail( &dfb_x11->lock );
 
