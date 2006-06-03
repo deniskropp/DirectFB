@@ -480,6 +480,10 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 	printf("dfb_x11_set_video_mode_handler\n");
     fusion_skirmish_prevail( &dfb_x11->lock );
 
+	if( xw != NULL ) {
+		xw_closeWindow(&xw);
+		xw=NULL;
+	}
 	
 	// Match DFB requested pixelformat (if possible )	
 	
@@ -510,7 +514,6 @@ dfb_x11_set_video_mode_handler( CoreLayerRegionConfig *config )
 // 			/* 8 bit palette */
 // 			g_pixelFormatRequested	= MWPF_PALETTE;
 // 	}
-	
 	bool bSucces =	xw_openWindow(&xw, 0, 0, config->width, config->height, 
 	                              DFB_COLOR_BITS_PER_PIXEL(config->format));
 	
