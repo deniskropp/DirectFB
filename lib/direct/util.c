@@ -30,6 +30,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <unistd.h>
 
 #include <direct/messages.h>
 #include <direct/util.h>
@@ -147,13 +148,30 @@ DirectResultString( DirectResult result )
 }
 
 int
+direct_safe_dup( int fd )
+{
+    int n = 0;
+    int fc[3];
+
+    while (fd >= 0 && fd <= 2) {
+        fc[n++] = fd;
+        fd = dup (fd);
+    }
+
+    while (n)
+        close (fc[--n]);
+
+    return fd;
+}
+
+int
 direct_try_open( const char *name1, const char *name2, int flags, bool error_msg )
 {
      int fd;
 
      fd = open (name1, flags);
      if (fd >= 0)
-          return fd;
+          return direct_safe_dup (fd);
 
      if (errno != ENOENT) {
           if (error_msg)
@@ -163,7 +181,7 @@ direct_try_open( const char *name1, const char *name2, int flags, bool error_msg
 
      fd = open (name2, flags);
      if (fd >= 0)
-          return fd;
+          return direct_safe_dup (fd);
 
      if (error_msg) {
           if (errno == ENOENT)

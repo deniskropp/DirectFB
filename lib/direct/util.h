@@ -79,6 +79,11 @@ DirectResult errno2result( int erno );
 
 const char *DirectResultString( DirectResult result );
 
+/*
+ * duplicates a file descriptor as needed to ensure it's not stdin, stdout, or stderr
+ */
+int direct_safe_dup( int fd );
+
 int direct_try_open( const char *name1, const char *name2, int flags, bool error_msg );
 
 void direct_trim( char **s );
