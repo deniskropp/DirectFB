@@ -168,6 +168,13 @@ prefix##_unref( type *object )                                                 \
 }                                                                              \
                                                                                \
 static inline DirectResult                                                     \
+prefix##_ref_stat( type *object, int *refs )                                   \
+{                                                                              \
+     D_MAGIC_ASSERT( (FusionObject*) object, FusionObject );                   \
+     return fusion_ref_stat ( &((FusionObject*)object)->ref, refs );           \
+}                                                                              \
+                                                                               \
+static inline DirectResult                                                     \
 prefix##_link( type **link,                                                    \
                type  *object )                                                 \
 {                                                                              \
