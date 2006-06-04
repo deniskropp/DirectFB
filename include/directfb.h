@@ -4721,11 +4721,16 @@ typedef struct {
      __u8                     colorkey_b;  /* colorkey blue channel     */
 } DFBImageDescription;
 
+
+typedef enum {
+        DIRCR_OK,
+        DIRCR_ABORT
+} DIRenderCallbackResult;
 /*
  * Called whenever a chunk of the image is decoded.
  * Has to be registered with IDirectFBImageProvider::SetRenderCallback().
  */
-typedef void (*DIRenderCallback)(DFBRectangle *rect, void *ctx);
+typedef DIRenderCallbackResult (*DIRenderCallback)(DFBRectangle *rect, void *ctx);
 
 /**************************
  * IDirectFBImageProvider *

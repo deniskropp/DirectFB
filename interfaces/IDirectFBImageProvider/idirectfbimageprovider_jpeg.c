@@ -365,6 +365,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
+     DIRenderCallbackResult cb_result = DIRCR_OK;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
 
@@ -450,7 +451,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
 
                row_ptr = dst;
 
-               while (cinfo.output_scanline < cinfo.output_height) {
+               while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     switch (format) {
                          case DSPF_RGB332:
@@ -485,7 +486,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     if (data->render_callback) {
                          DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
 
-                         data->render_callback( &rect, data->render_callback_context );
+                         cb_result = data->render_callback( &rect, data->render_callback_context );
                     }
                }
           }
@@ -495,7 +496,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                image_data = malloc(cinfo.output_width * cinfo.output_height*4);
                row_ptr = image_data;
 
-               while (cinfo.output_scanline < cinfo.output_height) {
+               while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
                     jpeg_read_scanlines(&cinfo, buffer, 1);
                     copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
                     row_ptr += cinfo.output_width * 4;
@@ -503,9 +504,10 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     y++;
 
                     if (data->render_callback) {
+                         DIRenderCallbackResult r;
                          DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
 
-                         data->render_callback( &rect, data->render_callback_context );
+                         cb_result = data->render_callback( &rect, data->render_callback_context );
                     }
                }
 
@@ -516,13 +518,19 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                free( image_data );
           }
 
-          jpeg_finish_decompress(&cinfo);
+          if (cb_result != DIRCR_OK)
+               jpeg_abort_decompress(&cinfo);
+          else
+               jpeg_finish_decompress(&cinfo);
           jpeg_destroy_decompress(&cinfo);
      }
 
      err = destination->Unlock( destination );
      if (err)
           return err;
+
+     if (cb_result != DIRCR_OK)
+         return DFB_INTERRUPTED;
 
      return DFB_OK;
 }

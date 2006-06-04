@@ -293,12 +293,17 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           destination->Unlock( destination );
 
           if (data->render_callback) {
+               DIRenderCallbackResult r;
+
                rect.x = 0;
                rect.y = 0;
                rect.w = data->image_width;
                rect.h = data->image_height;
 
-               data->render_callback( &rect, data->render_callback_ctx );
+               r = data->render_callback( &rect, data->render_callback_ctx );
+
+               if (r != DIRCR_OK)
+                       return DFB_INTERRUPTED;
           }
      }
 

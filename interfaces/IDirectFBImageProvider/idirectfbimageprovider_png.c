@@ -72,6 +72,7 @@ DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, PNG )
 
 
 enum {
+     STAGE_ABORT = -2,
      STAGE_ERROR = -1,
      STAGE_START =  0,
      STAGE_INFO,
@@ -561,9 +562,12 @@ png_row_callback   (png_structp png_read_ptr,
      data->rows++;
 
      if (data->render_callback) {
+          DIRenderCallbackResult r;
           DFBRectangle rect = { 0, row_num, data->width, 1 };
 
-          data->render_callback( &rect, data->render_callback_context );
+          r = data->render_callback( &rect, data->render_callback_context );
+          if (r != DIRCR_OK)
+              data->stage = STAGE_ABORT;
      }
 }
 
@@ -614,8 +618,13 @@ push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                D_DEBUG( "ImageProvider/PNG: ...processed %d bytes.\n", len );
 
                /* are we there yet? */
-               if (data->stage < 0 || data->stage >= stage)
-                    return DFB_OK;
+               if (data->stage < 0 || data->stage >= stage) {
+                   switch (data->stage) {
+                        case STAGE_ABORT: return DFB_INTERRUPTED;
+                        case STAGE_ERROR: return DFB_FAILURE;
+                        default:          return DFB_OK;
+                   }
+               }
           }
 
           D_DEBUG( "ImageProvider/PNG: Waiting for data...\n" );
