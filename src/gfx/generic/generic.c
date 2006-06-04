@@ -503,50 +503,70 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
 
      __u32 DSkey = (Skey << 16) | Skey;
 
-     if (((long)D)&2) {         /* align */
-          __u16 *tmp = gfxs->Aop[0];
-          --l;
-          if ((*((__u16*)S) & 0x7FFF) != Skey)
-               *tmp = *((__u16*)S);
+     /* in the case when only destination is misaligned we have to
+        be more careful copying the pixels */
+     if (((__u32)gfxs->Aop + (__u32)gfxs->Bop) & 2) {
+          w = l;
+          __u16 *d = gfxs->Aop;
+          __u16 *s = gfxs->Bop;
 
-          D = (__u32*)((__u16*)D+1);
-          S = (__u32*)((__u16*)S+1);
+          while (w) {
+               __u16 mpixel = *s;
+               if (mpixel != (__u16)Skey) {
+                    *d = mpixel;
+               }
+               ++d;
+               ++s;
+               --w;
+          }
      }
+     else {
 
-     w = (l >> 1);
-     while (w) {
-          __u32 dpixel = *S;
-          __u16 *tmp = (__u16*)D;
+          if (((long)D)&2) {         /* align */
+               __u16 *tmp = gfxs->Aop;
+               --l;
+               if (*((__u16*)S) != Skey)
+                    *tmp = *((__u16*)S);
 
-          if ((dpixel & 0x7FFF7FFF) != DSkey) {
-               if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
-                    if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) {
-                         *D = dpixel;
+               D = (__u32*)((__u16*)D+1);
+               S = (__u32*)((__u16*)S+1);
+          }
+
+          w = (l >> 1);
+          while (w) {
+               __u32 dpixel = *S;
+               __u16 *tmp = (__u16*)D;
+
+               if (dpixel != DSkey) {
+                    if ((dpixel & 0xFFFF0000) != (DSkey & 0xFFFF0000)) {
+                         if ((dpixel & 0x0000FFFF) != (DSkey & 0x0000FFFF)) {
+                              *D = dpixel;
+                         }
+                         else {
+#ifdef WORDS_BIGENDIAN
+                              tmp[0] = (__u16)(dpixel >> 16);
+#else
+                              tmp[1] = (__u16)(dpixel >> 16);
+#endif
+                         }
                     }
                     else {
 #ifdef WORDS_BIGENDIAN
-                         tmp[0] = (__u16)(dpixel >> 16);
+                         tmp[1] = (__u16)dpixel;
 #else
-                         tmp[1] = (__u16)(dpixel >> 16);
+                         tmp[0] = (__u16)dpixel;
 #endif
                     }
                }
-               else {
-#ifdef WORDS_BIGENDIAN
-                    tmp[1] = (__u16)dpixel;
-#else
-                    tmp[0] = (__u16)dpixel;
-#endif
-               }
+               ++S;
+               ++D;
+               --w;
           }
-          ++S;
-          ++D;
-          --w;
-     }
 
-     if (l & 1) {                 /* do the last potential pixel */
-          if ((*((__u16*)S) & 0x7FFF) != Skey)
-               *((__u16*)D) = *((__u16*)S);
+          if (l & 1) {                 /* do the last potential pixel */
+               if (*((__u16*)S) != Skey)
+                    *((__u16*)D) = *((__u16*)S);
+          }
      }
 }
 
