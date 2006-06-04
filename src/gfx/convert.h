@@ -227,17 +227,17 @@ extern const __s16 cb_for_b[256];
      (b) = CLAMP( _b, 0, 255 ); \
 } while (0)
 
-extern const __u16  y_from_ey[256];
-extern const __u16 *cb_from_bey;
-extern const __u16 *cr_from_rey;
+extern const __u16 y_from_ey[256];
+extern const __u16 cb_from_bey[512];
+extern const __u16 cr_from_rey[512];
 
 #define RGB_TO_YCBCR( r, g, b, y, cb, cr ) do { \
      __u32 _ey, _r, _g, _b;\
      _r = (r); _g = (g); _b = (b);\
      _ey = (19595 * _r + 38469 * _g + 7471 * _b) >> 16;\
      (y)  = y_from_ey[_ey]; \
-     (cb) = cb_from_bey[_b-_ey]; \
-     (cr) = cr_from_rey[_r-_ey]; \
+     (cb) = cb_from_bey[_b-_ey+255]; \
+     (cr) = cr_from_rey[_r-_ey+255]; \
 } while (0)
 
 

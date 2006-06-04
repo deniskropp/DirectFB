@@ -181,22 +181,18 @@ main( int argc, char **argv )
      gt.add       = 128;
      
      /* cb */
-     gt.type = "static const __u16";
-     gt.name = "_cb_from_bey";
+     gt.type = "const __u16";
+     gt.name = "cb_from_bey";
      gt.mul  = ECB_FACTOR * 224.0 / 255.0;
      dump_table( &gt );
 
      /* cr */
-     gt.type = "static const __u16";
-     gt.name = "_cr_from_rey";
+     gt.type = "const __u16";
+     gt.name = "cr_from_rey";
      gt.mul  = ECR_FACTOR * 224.0 / 255.0;
      dump_table( &gt );
 
-     puts( "const __u16 *cb_from_bey = &_cb_from_bey[255];" );
-     puts( "const __u16 *cr_from_rey = &_cr_from_rey[255];" );
-     
      /* end headers */
-     puts( "" );
      puts( "#endif /* __YUV_TABLES_H__ */" );
 
      return 0;

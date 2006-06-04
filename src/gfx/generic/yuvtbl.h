@@ -182,7 +182,7 @@ const __u16 y_from_ey[256] = {
 };
 
 
-static const __u16 _cb_from_bey[512] = {
+const __u16 cb_from_bey[512] = {
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
@@ -238,7 +238,7 @@ static const __u16 _cb_from_bey[512] = {
 };
 
 
-static const __u16 _cr_from_rey[512] = {
+const __u16 cr_from_rey[512] = {
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
        16,   16,   16,   16,   16,   16,   16,   16,   16,   16,
@@ -292,8 +292,5 @@ static const __u16 _cr_from_rey[512] = {
       240,  240,  240,  240,  240,  240,  240,  240,  240,  240,
       240,  240
 };
-
-const __u16 *cb_from_bey = &_cb_from_bey[255];
-const __u16 *cr_from_rey = &_cr_from_rey[255];
 
 #endif /* __YUV_TABLES_H__ */
