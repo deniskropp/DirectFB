@@ -93,6 +93,7 @@ DFB_INPUT_DRIVER( linux_input )
 #define OFF(x)               ((x)%BITS_PER_LONG)
 #define BIT(x)               (1UL<<OFF(x))
 #define LONG(x)              ((x)/BITS_PER_LONG)
+#undef test_bit
 #define test_bit(bit, array) ((array[LONG(bit)] >> OFF(bit)) & 1)
 
 /*
