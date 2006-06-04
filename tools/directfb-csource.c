@@ -607,7 +607,7 @@ static DFBResult dump_image (const char            *name,
 
      /* dump data */
      fprintf (csource.fp,
-              "static unsigned char %s_data[] =\n", vname);
+              "static const unsigned char %s_data[] =\n", vname);
      fprintf (csource.fp, "  \"");
 
      csource.pos = 3;
@@ -620,7 +620,7 @@ static DFBResult dump_image (const char            *name,
      /* dump palette */
      if (palette_size > 0) {
           fprintf (csource.fp,
-                   "static DFBColor %s_palette[%d] = {\n", vname, palette_size);
+                   "static const DFBColor %s_palette[%d] = {\n", vname, palette_size);
           for (i = 0; i < palette_size; i++)
                fprintf (csource.fp,
                         "  { 0x%02x, 0x%02x, 0x%02x, 0x%02x }%c\n",
@@ -631,7 +631,7 @@ static DFBResult dump_image (const char            *name,
 
      /* dump description */
      fprintf (csource.fp,
-              "static DFBSurfaceDescription %s_desc = {\n", vname);
+              "static const DFBSurfaceDescription %s_desc = {\n", vname);
      fprintf (csource.fp,
               "  flags                   : DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT |\n"
               "                            DSDESC_PREALLOCATED");
@@ -681,7 +681,7 @@ static DFBResult dump_rectangles (const char    *name,
               DIRECTFB_VERSION);
 
      fprintf (fp,
-              "static struct {\n"
+              "static const struct {\n"
               "  const char   *name;\n"
               "  DFBRectangle  rect;\n"
               "} %s[] = {\n", vname);
