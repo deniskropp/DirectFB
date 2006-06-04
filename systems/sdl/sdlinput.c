@@ -116,8 +116,8 @@ translate_key( SDLKey key, DFBInputEvent *evt )
      }
 
      /* Function keys */
-     if (key >= SDLK_F1  &&  key <= SDLK_F15) {
-          evt->key_id = DIKI_KP_F1 + key - SDLK_F1;
+     if (key >= SDLK_F1  &&  key <= SDLK_F12) {
+          evt->key_id = DIKI_F1 + key - SDLK_F1;
           return true;
      }
 
@@ -386,17 +386,34 @@ sdlEventThread( DirectThread *thread, void *driver_data )
 
                     case SDL_KEYUP:
                     case SDL_KEYDOWN:
-			             //XXX sdl does not give us the keymap
-                         evt.flags |= DIEF_KEYCODE;
-
                          if (event.type == SDL_KEYDOWN)
                               evt.type = DIET_KEYPRESS;
                          else
                               evt.type = DIET_KEYRELEASE;
-                         if (translate_key( event.key.keysym.sym, &evt )) {
-			                  evt.key_code=evt.key_id;
-                              dfb_input_dispatch( data->device, &evt );
+
+                         /* Get a key id first */
+                         translate_key( event.key.keysym.sym, &evt );
+
+                         /* If SDL provided a symbol, use it */
+                         if (event.key.keysym.unicode) {
+                              evt.flags     |= DIEF_KEYSYMBOL;
+                              evt.key_symbol = event.key.keysym.unicode;
+
+                              /**
+                               * Hack to translate the Control+[letter]
+                               * combination to
+                               * Modifier: CONTROL, Key Symbol: [letter]
+                               * A side effect here is that Control+Backspace
+                               * produces Control+h
+                               */
+                              if (evt.modifiers == DIMM_CONTROL &&
+                                  evt.key_symbol >= 1 && evt.key_symbol <= ('z'-'a'+1))
+                              {
+                                  evt.key_symbol += 'a'-1;
+                              }
                          }
+
+                         dfb_input_dispatch( data->device, &evt );
                          break;
                     case SDL_QUIT:
                          evt.type       = DIET_KEYPRESS;
@@ -501,10 +518,6 @@ driver_open_device( CoreInputDevice  *device,
 
      /* set capabilities */
      info->desc.caps   = DICAPS_ALL;
-     /* enable translation of fake raw hardware keycodes */
-     info->desc.min_keycode = DIKI_A;
-     info->desc.max_keycode = DIKI_KP_9;
- 
 
 
      /* allocate and fill private data */
@@ -749,29 +762,13 @@ id_to_symbol( DFBInputDeviceKeyIdentifier id,
 
 /*
  * Fetch one entry from the device's keymap if supported.
- * this does a fake mapping based on the orginal DFB code
  */
 static DFBResult
 driver_get_keymap_entry( CoreInputDevice           *device,
                          void                      *driver_data,
                          DFBInputDeviceKeymapEntry *entry )
 {
-	int  code = entry->code;
-    entry->identifier=code;
-
-     /* is CapsLock effective? */
-     if (code >= DIKI_A && code <= DIKI_Z)
-		entry->locks |= DILS_CAPS;
-
-     /* is NumLock effective? */
-     if (entry->identifier >= DIKI_KP_DECIMAL && entry->identifier <= DIKI_KP_9)
-          entry->locks |= DILS_NUM;
-
-     entry->symbols[DIKSI_BASE]=id_to_symbol(entry->identifier,0);
-     entry->symbols[DIKSI_BASE_SHIFT]=id_to_symbol(entry->identifier,DIMM_SHIFT);
-     entry->symbols[DIKSI_ALT]=entry->symbols[DIKSI_BASE];
-     entry->symbols[DIKSI_ALT_SHIFT]=entry->symbols[DIKSI_BASE_SHIFT];
-     return DFB_OK;
+     return DFB_UNSUPPORTED;
 }
 /*
  * End thread, close device and free private data.
