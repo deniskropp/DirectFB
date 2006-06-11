@@ -4,9 +4,8 @@
 
 #include "x11.h"
 
-
-extern DFBX11 *dfb_x11;
-
+extern DFBX11  *dfb_x11;
+extern CoreDFB *dfb_x11_core;
 
 //
 // Data to create an invisible cursor
@@ -86,7 +85,6 @@ void xw_closeWindow(XWindow** ppXW)
 		free(xw->shmseginfo);
 		XFreeGC(xw->display,xw->gc);
 		XDestroyWindow(xw->display,xw->window);
-		XCloseDisplay(xw->display);
 		free(xw);
 	}
 }
@@ -98,23 +96,19 @@ void xw_closeWindow(XWindow** ppXW)
 	'XWindow* pXWindow'. Ie. call like: 'xw_closeWindow(&pXWindow). */
 Bool xw_openWindow(XWindow** ppXW, int iXPos, int iYPos, int iWidth, int iHeight, int iDepth)
 {
-	
-	(*ppXW) 	= (XWindow *)malloc(sizeof(XWindow));
-	XWindow* xw	= (*ppXW);
-	dfb_x11->xw = xw;
-	xw_reset(xw);
+    XWindow* xw;
+   (*ppXW) = (XWindow *)malloc(sizeof(XWindow));
+	xw	= (*ppXW);
+    if( !dfb_x11->xw ) {
+	    dfb_x11->xw = xw;
+	    xw_reset(xw);
+    }
 
 	/* We set the structure as needed for our window */
 	xw->width	= iWidth;
 	xw->height	= iHeight;
 	xw->depth	= iDepth;
-
-	xw->display = XOpenDisplay(NULL);
-	if( !xw->display ) {
-		printf("X11: Error opening X_Display\n");
-		return False;
-	}
-	
+	xw->display = dfb_x11->display;
 	xw_setPixelSize(xw);
 
 	xw->screenptr	= DefaultScreenOfDisplay(xw->display);

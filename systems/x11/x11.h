@@ -31,14 +31,15 @@
 #include <fusion/call.h>
 #include <fusion/lock.h>
 #include <core/surfaces.h>
-
 #include "xwindow.h"
+
 typedef struct {
     FusionSkirmish  lock;
     FusionCall      call;
 
     CoreSurface    *primary;
     XWindow        *xw;
+    Display        *display;
 } DFBX11;
 
 

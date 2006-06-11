@@ -37,6 +37,7 @@
 
 #include <fusion/arena.h>
 #include <fusion/shmalloc.h>
+#include <fusion/lock.h>
 
 #include <core/core.h>
 #include <core/coredefs.h>
@@ -54,21 +55,20 @@
 
 
 #include "xwindow.h"
-
 #include "x11.h"
 #include "primary.h"
 
 #include <core/core_system.h>
+
 
 DFB_CORE_SYSTEM( x11 )
 
 /* Global pointer to screen device 
    Global values for pixelformat ans screen size. */
 extern  XWindow* 	xw; 
-	
-
 DFBX11*		dfb_x11      = NULL;
 CoreDFB*	dfb_x11_core = NULL;
+
 
 static void
 system_get_info( CoreSystemInfo *info )
@@ -113,7 +113,11 @@ system_initialize( CoreDFB *core, void **data )
      *data = dfb_x11;
 
      XInitThreads();
-
+	 dfb_x11->display = XOpenDisplay(NULL);
+     if(!dfb_x11->display){
+		D_ERROR("X11: Error opening X_Display\n");
+        return DFB_INIT;
+     }
      return DFB_OK;
 }
 
@@ -147,8 +151,10 @@ system_shutdown( bool emergency )
     fusion_call_destroy( &dfb_x11->call );
     
 	fusion_skirmish_prevail( &dfb_x11->lock );
-
-	xw_closeWindow(&xw);
+    if( dfb_x11->display) {
+	    xw_closeWindow(&xw);
+	    XCloseDisplay(dfb_x11->display);
+    }
     fusion_skirmish_destroy( &dfb_x11->lock );
 
     SHFREE( dfb_core_shmpool(dfb_x11_core), dfb_x11 );

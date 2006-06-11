@@ -54,6 +54,8 @@
 
 #include <core/input_driver.h>
 
+extern DFBX11  *dfb_x11;
+extern CoreDFB *dfb_x11_core;
 
 DFB_INPUT_DRIVER( x11input )
 
@@ -347,21 +349,13 @@ x11EventThread( DirectThread *thread, void *driver_data )
 	const long iKeyReleaseMask 	= KeyReleaseMask;
 	const long iMouseEventMask 	= ButtonPressMask | ButtonReleaseMask | PointerMotionMask;	// ExposureMask
 
-	
 	while (!data->stop) 
 	{
 		XEvent xEvent; 
 		DFBInputEvent dfbEvent;
         bool hasEvent;
-        XWindow *xw		= dfb_x11->xw;
 		
         usleep(10000);
-
-        if (!xw)
-             continue;
-		//wait for the display
-        if (!xw->display || !xw->window)
-             continue;
 
 //        fusion_skirmish_prevail( &dfb_x11->lock );
 
@@ -369,16 +363,16 @@ x11EventThread( DirectThread *thread, void *driver_data )
         do {
              hasEvent = false;
 
-             if (XCheckMaskEvent(xw->display, iMouseEventMask, &xEvent)) 
+             if (XCheckMaskEvent(dfb_x11->display, iMouseEventMask, &xEvent)) 
              {
                  hasEvent = true;
                  handleMouseEvent(&xEvent, data); // crash ???
              }
 
 
-             if (XCheckMaskEvent(xw->display, iKeyPressMask, &xEvent)) 
+             if (XCheckMaskEvent(dfb_x11->display, iKeyPressMask, &xEvent)) 
              {
-                 KeySym xKeySymbol = XKeycodeToKeysym(xw->display, xEvent.xkey.keycode, 0);
+                 KeySym xKeySymbol = XKeycodeToKeysym(dfb_x11->display, xEvent.xkey.keycode, 0);
                  hasEvent = true;
                  if (translate_key( xKeySymbol, &dfbEvent )) {
                      dfbEvent.type		= DIET_KEYPRESS;
@@ -387,9 +381,9 @@ x11EventThread( DirectThread *thread, void *driver_data )
                      dfb_input_dispatch( data->device, &dfbEvent );
                  }
              }
-             else if (XCheckMaskEvent(xw->display, iKeyReleaseMask, &xEvent)) 
+             else if (XCheckMaskEvent(dfb_x11->display, iKeyReleaseMask, &xEvent)) 
              {
-                 KeySym xKeySymbol = XKeycodeToKeysym(xw->display, xEvent.xkey.keycode, 0);
+                 KeySym xKeySymbol = XKeycodeToKeysym(dfb_x11->display, xEvent.xkey.keycode, 0);
                  hasEvent = true;
                  if (translate_key( xKeySymbol, &dfbEvent )) {
                      dfbEvent.type		= DIET_KEYRELEASE;
