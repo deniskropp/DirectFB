@@ -436,12 +436,15 @@ static void radeonFlushTextureCache( void *drv, void *dev )
      volatile __u8    *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 1 );
-     if (rdev->chipset >= CHIP_R300)
-          radeon_out32( mmio, R300_TX_CNTL, 0 );
-     else if (rdev->chipset >= CHIP_R200)
+     if (rdev->chipset >= CHIP_R300) {
+          //radeon_out32( mmio, R300_TX_CNTL, 0 );
+     }
+     else if (rdev->chipset >= CHIP_R200) {
           radeon_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
-     else if (rdev->chipset >= CHIP_R100)
+     }
+     else if (rdev->chipset >= CHIP_R100) {
           radeon_out32( mmio, PP_TXOFFSET_0, rdev->src_offset );
+     }
 }
 
 #ifdef WORDS_BIGENDIAN
