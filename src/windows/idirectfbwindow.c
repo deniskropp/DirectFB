@@ -52,6 +52,7 @@
 #include <core/state.h>
 #include <core/surfaces.h>
 #include <core/windows.h>
+#include <core/wm.h>
 #include <core/windowstack.h>
 #include <core/windows_internal.h> /* FIXME */
 
@@ -261,7 +262,9 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
                              int             *x,
                              int             *y )
 {
+     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
 
      if (data->destroyed)
           return DFB_DESTROYED;
@@ -269,11 +272,13 @@ IDirectFBWindow_GetPosition( IDirectFBWindow *thiz,
      if (!x && !y)
           return DFB_INVARG;
 
+     dfb_wm_get_insets(data->window->stack,data->window,&insets);
+
      if (x)
-          *x = data->window->config.bounds.x;
+          *x = data->window->config.bounds.x-insets.l;
 
      if (y)
-          *y = data->window->config.bounds.y;
+          *y = data->window->config.bounds.y-insets.t;
 
      return DFB_OK;
 }
@@ -283,6 +288,7 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
                          int             *width,
                          int             *height )
 {
+     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
@@ -290,12 +296,13 @@ IDirectFBWindow_GetSize( IDirectFBWindow *thiz,
 
      if (!width && !height)
           return DFB_INVARG;
+     dfb_wm_get_insets(data->window->stack,data->window,&insets);
 
      if (width)
-          *width = data->window->config.bounds.w;
+          *width = data->window->config.bounds.w-insets.l-insets.r;
 
      if (height)
-          *height = data->window->config.bounds.h;
+          *height = data->window->config.bounds.h-insets.t-insets.b;
 
      return DFB_OK;
 }
@@ -622,11 +629,15 @@ IDirectFBWindow_Move( IDirectFBWindow *thiz, int dx, int dy )
 static DFBResult
 IDirectFBWindow_MoveTo( IDirectFBWindow *thiz, int x, int y )
 {
+     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
           return DFB_DESTROYED;
 
+     dfb_wm_get_insets(data->window->stack,data->window,&insets);
+     x +=insets.l;
+     y +=insets.t;
      return dfb_window_move( data->window, x, y, false );
 }
 
@@ -635,6 +646,7 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
                         int              width,
                         int              height )
 {
+     DFBInsets insets;
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
      if (data->destroyed)
@@ -642,7 +654,9 @@ IDirectFBWindow_Resize( IDirectFBWindow *thiz,
 
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
-
+     dfb_wm_get_insets(data->window->stack,data->window,&insets);
+     width  +=insets.l+insets.r;
+     height +=insets.t+insets.b;
      return dfb_window_resize( data->window, width, height );
 }
 

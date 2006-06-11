@@ -174,6 +174,15 @@ typedef struct {
 
 
    /** Window **/
+     DFBResult (*GetInsets)   ( CoreWindowStack        *stack,
+                                     CoreWindow        *window,
+                                     DFBInsets         *insets );
+
+     DFBResult (*PreConfigureWindow)   ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     CoreWindow             *window,
+                                     void                   *window_data );
 
      DFBResult (*AddWindow)        ( CoreWindowStack        *stack,
                                      void                   *wm_data,
@@ -268,6 +277,11 @@ DFBResult dfb_wm_warp_cursor   ( CoreWindowStack        *stack,
                                  int                     x,
                                  int                     y );
 
+DFBResult dfb_wm_preconfigure_window    ( CoreWindowStack        *stack,
+                                 CoreWindow             *window );
+
+DFBResult dfb_wm_get_insets ( CoreWindowStack        *stack,
+                                 CoreWindow             *window,DFBInsets *insets );
 
 DFBResult dfb_wm_add_window    ( CoreWindowStack        *stack,
                                  CoreWindow             *window );

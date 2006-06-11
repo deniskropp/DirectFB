@@ -553,6 +553,30 @@ wm_warp_cursor( CoreWindowStack *stack,
 /**************************************************************************************************/
 
 static DFBResult
+wm_get_insets( CoreWindowStack *stack,
+               CoreWindow      *window,
+               DFBInsets       *insets )
+{
+    if( insets ) {
+        insets->l=0;
+        insets->t=0;
+        insets->r=0;
+        insets->b=0;
+    }
+	return DFB_OK;
+}
+
+static DFBResult
+wm_preconfigure_window( CoreWindowStack *stack,
+               void            *wm_data,
+               void            *stack_data,
+               CoreWindow      *window,
+               void            *window_data )
+{
+	return DFB_OK;
+}
+
+static DFBResult
 wm_add_window( CoreWindowStack *stack,
                void            *wm_data,
                void            *stack_data,

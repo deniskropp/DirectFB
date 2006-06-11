@@ -44,6 +44,7 @@
 #include "core/state.h"
 #include "core/surfaces.h"
 #include "core/windows.h"
+#include "core/wm.h"
 #include "core/windows_internal.h" /* FIXME */
 
 #include "idirectfbsurface.h"
@@ -235,11 +236,30 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    DFBSurfaceCapabilities  caps )
 {
      DFBResult ret;
+	 DFBInsets insets;
+	 CoreWindowStack *stack;
+
+	 dfb_wm_get_insets(window->stack,window,&insets);
+
+	 if( insets.l != 0 || insets.t != 0 || insets.r != 0  || insets.b != 0 ) {
+		if ( !wanted ) {
+			DFBRectangle rect = { 0, 0, window->surface->width, 
+									window->surface->height };
+			wanted =&rect;
+		    wanted->w -=insets.l+insets.r;
+		    wanted->h -=insets.t+insets.b;
+
+		}
+		wanted->x +=insets.l;
+		wanted->y +=insets.t;
+		if( granted )
+			*granted = *wanted;
+		caps |= DSCAPS_SUBSURFACE;
+	 }
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
-
      ret = IDirectFBSurface_Construct( thiz, wanted, granted,
                                        window->surface, caps );
      if (ret)
@@ -265,7 +285,6 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      thiz->Release = IDirectFBSurface_Window_Release;
      thiz->Flip = IDirectFBSurface_Window_Flip;
      thiz->GetSubSurface = IDirectFBSurface_Window_GetSubSurface;
-
      return DFB_OK;
 }
 

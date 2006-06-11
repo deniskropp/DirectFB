@@ -547,21 +547,37 @@ dfb_wm_warp_cursor( CoreWindowStack  *stack,
      return wm_local->funcs->WarpCursor( stack, wm_local->data, stack->stack_data, x, y );
 }
 
+
+/**
+ * Give the wm a chance to specifiy a border
+ */
 DFBResult
-dfb_wm_add_window( CoreWindowStack *stack,
-                   CoreWindow      *window )
+dfb_wm_get_insets( CoreWindowStack  *stack,
+					CoreWindow      *window,
+                    DFBInsets       *insets)
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->GetInsets != NULL );
+
+     D_ASSERT( stack != NULL );
+
+     return wm_local->funcs->GetInsets(stack,window,insets);
+}
+/**
+ Give the wm a chance to override the windows configuration 
+**/
+DFBResult
+dfb_wm_preconfigure_window( CoreWindowStack *stack,CoreWindow *window )
 {
      DFBResult  ret;
      void      *window_data = NULL;
 
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->AddWindow != NULL );
      D_ASSERT( wm_shared != NULL );
-
-     D_ASSERT( stack != NULL );
-
      D_ASSERT( window != NULL );
+	 D_ASSERT( wm_local->funcs->PreConfigureWindow != NULL );
 
      /* Allocate shared window data. */
      if (wm_shared->info.window_data_size) {
@@ -571,9 +587,8 @@ dfb_wm_add_window( CoreWindowStack *stack,
                return D_OOSHM();
           }
      }
-
      /* Tell window manager about the new window. */
-     ret = wm_local->funcs->AddWindow( stack, wm_local->data,
+     ret = wm_local->funcs->PreConfigureWindow( stack, wm_local->data,
                                        stack->stack_data, window, window_data );
      if (ret) {
           if (window_data)
@@ -584,6 +599,32 @@ dfb_wm_add_window( CoreWindowStack *stack,
      /* Keep shared window data. */
      window->window_data = window_data;
 
+     return DFB_OK;
+}
+
+DFBResult
+dfb_wm_add_window( CoreWindowStack *stack,
+                   CoreWindow      *window )
+{
+     DFBResult  ret;
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->AddWindow != NULL );
+     D_ASSERT( wm_shared != NULL );
+
+     D_ASSERT( stack != NULL );
+
+     D_ASSERT( window != NULL );
+
+
+     /* Tell window manager about the new window. */
+     ret = wm_local->funcs->AddWindow( stack, wm_local->data,
+                                       stack->stack_data, window, window->window_data );
+     if (ret) {
+          if (window->window_data)
+               SHFREE( wm_shared->shmpool, window->window_data );
+          return ret;
+     }
      return DFB_OK;
 }
 
