@@ -2835,6 +2835,15 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Get the surface's position in pixels.
+      */
+     DFBResult (*GetPosition) (
+          IDirectFBSurface         *thiz,
+          int                      *ret_x,
+          int                      *ret_y
+     );
+
+     /*
       * Get the surface's width and height in pixels.
       */
      DFBResult (*GetSize) (

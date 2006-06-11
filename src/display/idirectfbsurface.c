@@ -205,6 +205,26 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
 
      return DFB_OK;
 }
+static DFBResult
+IDirectFBSurface_GetPosition( IDirectFBSurface *thiz,
+                          int              *x,
+                          int              *y )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     if (!x && !y)
+          return DFB_INVARG;
+
+     if (x)
+          *x = data->area.wanted.x;
+
+     if (y)
+          *y = data->area.wanted.y;
+
+     return DFB_OK;
+}
 
 static DFBResult
 IDirectFBSurface_GetSize( IDirectFBSurface *thiz,
@@ -2063,6 +2083,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->Release = IDirectFBSurface_Release;
 
      thiz->GetCapabilities = IDirectFBSurface_GetCapabilities;
+     thiz->GetPosition = IDirectFBSurface_GetPosition;
      thiz->GetSize = IDirectFBSurface_GetSize;
      thiz->GetVisibleRectangle = IDirectFBSurface_GetVisibleRectangle;
      thiz->GetPixelFormat = IDirectFBSurface_GetPixelFormat;
