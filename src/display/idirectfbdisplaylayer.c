@@ -634,9 +634,10 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      if (!window)
           return DFB_INVARG;
-
-     if (data->level == DLSCL_SHARED)
-          return DFB_ACCESSDENIED;
+   
+      //remove for now
+     //if (data->level == DLSCL_SHARED)
+     //    return DFB_ACCESSDENIED;
 
      w = dfb_layer_context_find_window( data->context, id );
      if (!w)
