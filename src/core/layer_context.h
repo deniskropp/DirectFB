@@ -113,6 +113,11 @@ DFBResult dfb_layer_context_get_coloradjustment( CoreLayerContext            *co
 DFBResult dfb_layer_context_set_field_parity   ( CoreLayerContext            *context,
                                                  int                          field );
 
+DFBResult dfb_layer_context_set_clip_regions   ( CoreLayerContext            *context,
+                                                 const DFBRegion             *regions,
+                                                 int                          num_regions,
+                                                 DFBBoolean                   positive );
+
 
 /*
  * window control

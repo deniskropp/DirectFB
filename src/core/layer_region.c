@@ -634,6 +634,12 @@ dfb_layer_region_set_configuration( CoreLayerRegion            *region,
 
           if (flags & CLRCF_PARITY)
                new_config.parity = config->parity;
+
+          if (flags & CLRCF_CLIPS) {
+               new_config.clips     = config->clips;
+               new_config.num_clips = config->num_clips;
+               new_config.positive  = config->positive;
+          }
      }
 
      /* Check if the new configuration is supported. */

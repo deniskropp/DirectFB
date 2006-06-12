@@ -498,7 +498,9 @@ typedef enum {
      DLCAPS_SCREEN_POSITION   = 0x00100000,
      DLCAPS_SCREEN_SIZE       = 0x00200000,
 
-     DLCAPS_ALL               = 0x0033FFFF
+     DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions().
+
+     DLCAPS_ALL               = 0x0073FFFF
 } DFBDisplayLayerCapabilities;
 
 /*
@@ -1066,19 +1068,18 @@ typedef struct {
  * Description of the display layer capabilities.
  */
 typedef struct {
-     DFBDisplayLayerTypeFlags           type;        /* Classification of the
-                                                        display layer. */
-     DFBDisplayLayerCapabilities        caps;        /* Capability flags of
-                                                        the display layer. */
+     DFBDisplayLayerTypeFlags           type;          /* Classification of the display layer. */
+     DFBDisplayLayerCapabilities        caps;          /* Capability flags of the display layer. */
 
-     char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];  /* Display layer name. */
+     char name[DFB_DISPLAY_LAYER_DESC_NAME_LENGTH];    /* Display layer name. */
 
-     int                                level;       /* Default level. */
-     int                                regions;     /* Number of concurrent regions supported.<br>
-                                                        -1 = unlimited,
-                                                         0 = unknown/one,
-                                                        >0 = actual number */
-     int                                sources;     /* Number of selectable sources. */
+     int                                level;         /* Default level. */
+     int                                regions;       /* Number of concurrent regions supported.<br>
+                                                           -1 = unlimited,
+                                                            0 = unknown/one,
+                                                           >0 = actual number */
+     int                                sources;       /* Number of selectable sources. */
+     int                                clip_regions;  /* Number of clipping regions. */
 } DFBDisplayLayerDescription;
 
 
@@ -1571,6 +1572,7 @@ DEFINE_INTERFACE(   IDirectFB,
           IDirectFBEventBuffer       **ret_buffer
      );
 
+
    /** Media **/
 
      /*
@@ -1700,16 +1702,16 @@ DEFINE_INTERFACE(   IDirectFB,
       * Load an implementation of a specific interface type.
       *
       * This methods loads an interface implementation of the specified
-      * <i>type</i> of interface, e.g. "IFusionSound".
+      * <b>type</b> of interface, e.g. "IFusionSound".
       *
       * A specific implementation can be forced with the optional
-      * <i>implementation</i> argument.
+      * <b>implementation</b> argument.
       *
-      * Implementations are passed <i>arg</i> during probing and construction.
+      * Implementations are passed <b>arg</b> during probing and construction.
       *
       * If an implementation has been successfully probed and the interface
       * has been constructed, the resulting interface pointer is stored in
-      * <i>interface</i>.
+      * <b>interface</b>.
       */
      DFBResult (*GetInterface) (
           IDirectFB                *thiz,
@@ -1813,10 +1815,8 @@ typedef enum {
      DSMCAPS_NONE         = 0x00000000, /* None of these. */
 
      DSMCAPS_FULL         = 0x00000001, /* Can mix full tree as specified in the description. */
-     DSMCAPS_SUB_LEVEL    = 0x00000002, /* Can set a maximum layer level, e.g.
-                                           to exclude an OSD from VCR output. */
-     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers individually as
-                                           specified in the description. */
+     DSMCAPS_SUB_LEVEL    = 0x00000002, /* Can set a maximum layer level, e.g. to exclude an OSD from VCR output. */
+     DSMCAPS_SUB_LAYERS   = 0x00000004, /* Can select a number of layers individually as specified in the description. */
      DSMCAPS_BACKGROUND   = 0x00000008  /* Background color is configurable. */
 } DFBScreenMixerCapabilities;
 
@@ -2469,6 +2469,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
 
      /*
       * For an interlaced display, this sets the field parity.
+      *
       * field: 0 for top field first, and 1 for bottom field first.
       */
      DFBResult (*SetFieldParity) (
@@ -2476,8 +2477,27 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
           int                                 field
      );
 
+     /*
+      * Set the clipping region(s).
+      *
+      * If supported, this method sets the clipping <b>regions</b> that are used to
+      * to enable or disable visibility of parts of the layer. The <b>num_regions</b>
+      * must not exceed the limit as stated in the display layer description.
+      *
+      * If <b>positive</b> is DFB_TRUE the layer will be shown only in these regions,
+      * otherwise it's shown as usual except in these regions.
+      *
+      * Also see IDirectFBDisplayLayer::GetDescription().
+      */
+     DFBResult (*SetClipRegions) (
+          IDirectFBDisplayLayer              *thiz,
+          const DFBRegion                    *regions,
+          int                                 num_regions,
+          DFBBoolean                          positive
+     );
 
-   /** Color keyes */
+
+   /** Color keys **/
 
      /*
       * Set the source color key.

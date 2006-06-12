@@ -29,6 +29,12 @@
 
 #include <directfb.h>
 
+#include <direct/memcpy.h>
+#include <direct/messages.h>
+#include <direct/util.h>
+
+#include <fusion/shmalloc.h>
+
 #include <core/coredefs.h>
 #include <core/coretypes.h>
 
@@ -48,15 +54,11 @@
 
 #include <fusion/shmalloc.h>
 
-#include <direct/messages.h>
-
-#include <direct/util.h>
-
 
 D_DEBUG_DOMAIN( Core_Layers, "Core/Layers", "DirectFB Display Layer Core" );
 
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 static void      init_region_config  ( CoreLayerContext            *context,
                                        CoreLayerRegionConfig       *config );
@@ -83,7 +85,7 @@ static void      screen_rectangle    ( CoreLayerContext            *context,
                                        const DFBLocation           *location,
                                        DFBRectangle                *rect );
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 static void
 context_destructor( FusionObject *object, bool zombie )
@@ -113,11 +115,15 @@ context_destructor( FusionObject *object, bool zombie )
      /* Deinitialize the lock. */
      fusion_skirmish_destroy( &context->lock );
 
+     /* Free clip regions. */
+     if (context->primary.config.clips)
+          SHFREE( context->shmpool, context->primary.config.clips );
+
      /* Destroy the object. */
      fusion_object_destroy( object );
 }
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 FusionObjectPool *
 dfb_layer_context_pool_create( const FusionWorld *world )
@@ -128,7 +134,7 @@ dfb_layer_context_pool_create( const FusionWorld *world )
                                        context_destructor, world );
 }
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 DFBResult
 dfb_layer_context_create( CoreLayer         *layer,
@@ -1080,6 +1086,56 @@ dfb_layer_context_set_field_parity( CoreLayerContext *context,
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
+
+     return ret;
+}
+
+DFBResult
+dfb_layer_context_set_clip_regions( CoreLayerContext *context,
+                                    const DFBRegion  *regions,
+                                    int               num_regions,
+                                    DFBBoolean        positive )
+{
+     DFBResult              ret;
+     CoreLayerRegionConfig  config;
+     DFBRegion             *clips;
+     DFBRegion             *old_clips;
+
+     D_ASSERT( context != NULL );
+
+     clips = SHMALLOC( context->shmpool, sizeof(DFBRegion) * num_regions );
+     if (!clips)
+          return D_OOSHM();
+
+     direct_memcpy( clips, regions, sizeof(DFBRegion) * num_regions );
+
+     /* Lock the context. */
+     if (dfb_layer_context_lock( context )) {
+          SHFREE( context->shmpool, clips );
+          return DFB_FUSION;
+     }
+
+     /* Take the current configuration. */
+     config = context->primary.config;
+
+     /* Remember for freeing later on. */
+     old_clips = config.clips;
+
+     /* Change the clip regions. */
+     config.clips     = clips;
+     config.num_clips = num_regions;
+     config.positive  = positive;
+
+     /* Try to set the new configuration. */
+     ret = update_primary_region_config( context, &config, CLRCF_CLIPS );
+
+     /* Unlock the context. */
+     dfb_layer_context_unlock( context );
+
+     if (ret)
+          SHFREE( context->shmpool, clips );
+     else if (old_clips)
+          SHFREE( context->shmpool, old_clips );
 
      return ret;
 }

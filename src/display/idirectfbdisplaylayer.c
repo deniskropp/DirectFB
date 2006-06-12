@@ -311,6 +311,26 @@ IDirectFBDisplayLayer_SetFieldParity( IDirectFBDisplayLayer *thiz, int field )
 }
 
 static DFBResult
+IDirectFBDisplayLayer_SetClipRegions( IDirectFBDisplayLayer *thiz,
+                                      const DFBRegion       *regions,
+                                      int                    num_regions,
+                                      DFBBoolean             positive )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!regions || num_regions < 1)
+          return DFB_INVARG;
+
+     if (num_regions > data->desc.clip_regions)
+          return DFB_UNSUPPORTED;
+
+     if (data->level != DLSCL_EXCLUSIVE)
+          return DFB_ACCESSDENIED;
+
+     return dfb_layer_context_set_clip_regions( data->context, regions, num_regions, positive );
+}
+
+static DFBResult
 IDirectFBDisplayLayer_SetSourceRectangle( IDirectFBDisplayLayer *thiz,
                                           int                    x,
                                           int                    y,
@@ -863,6 +883,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->SetCursorShape        = IDirectFBDisplayLayer_SetCursorShape;
      thiz->SetCursorOpacity      = IDirectFBDisplayLayer_SetCursorOpacity;
      thiz->SetFieldParity        = IDirectFBDisplayLayer_SetFieldParity;
+     thiz->SetClipRegions        = IDirectFBDisplayLayer_SetClipRegions;
      thiz->WaitForSync           = IDirectFBDisplayLayer_WaitForSync;
      thiz->GetSourceDescriptions = IDirectFBDisplayLayer_GetSourceDescriptions;
      thiz->SetScreenPosition     = IDirectFBDisplayLayer_SetScreenPosition;
