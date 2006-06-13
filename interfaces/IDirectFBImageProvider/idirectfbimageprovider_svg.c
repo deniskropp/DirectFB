@@ -23,12 +23,17 @@
 #include <string.h>
 #include <unistd.h>
 
+#ifdef USE_ZLIB
+# include <zlib.h>
+#endif
+
 #include <directfb.h>
 
 #include <idirectfb.h>
 
 #include <display/idirectfbsurface.h>
 
+#include <media/idirectfbdatabuffer.h>
 #include <media/idirectfbimageprovider.h>
 
 #include <direct/interface.h>
@@ -64,9 +69,9 @@ Construct( IDirectFBImageProvider *thiz,
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBImageProvider, SVG )
 
 typedef struct {
-     int                ref;
+     int               ref;
 
-     svg_cairo_t       *svg_cairo;
+     svg_cairo_t      *svg_cairo;
 
      int               width;
      int               height;
@@ -100,6 +105,78 @@ svgstatus2result( svg_cairo_status_t status )
 
      return DFB_FAILURE;
 }
+
+
+#ifdef USE_ZLIB
+static DFBResult
+check_gzip_header( IDirectFBDataBuffer *source )
+{
+     int i, flags;
+     
+     /* Check/Skip gzip header. */
+
+#define GETC( buffer ) ({\
+     DFBResult     ret;\
+     unsigned char byte;\
+     ret = buffer->WaitForData( buffer, 1 );\
+     if (ret)\
+          return ret;\
+     ret = buffer->GetData( buffer, 1, &byte, NULL );\
+     if (ret)\
+          return ret;\
+     byte;\
+}) 
+     
+     /* Magic header. */
+     if (GETC(source) != 0x1f || GETC(source) != 0x8b)
+          return DFB_UNSUPPORTED;
+    
+     /* Compression method. */     
+     if (GETC(source) != 8)
+          return DFB_UNSUPPORTED;
+
+     /* Flags. */     
+     flags = GETC(source);
+     
+     /* Modification timestamp + Extra flags + OS type. */
+     for (i = 0; i < 6; i++)
+          GETC(source);
+     
+     /* Optional part number. */
+     if (flags & (1 << 1)) {
+          GETC(source);
+          GETC(source);
+     }
+     
+     /* Optional extra field. */
+     if (flags & (1 << 2)) {
+          int len = GETC(source) | (GETC(source) << 8);
+          while (len--)
+               GETC(source);
+     }
+     
+     /* Optional original filename. */
+     if (flags & (1 << 3)) {
+          while (GETC(source) != '\0');
+     }
+     
+     /* Optional file comment. */
+     if (flags & (1 << 4)) {
+          while (GETC(source) != '\0');
+     }
+     
+     /* Optional encryption header. */
+     if (flags & (1 << 5)) {
+          for (i = 0; i < 12; i++)
+               GETC(source);
+     }
+ 
+#undef GETC
+               
+     return DFB_OK;
+}
+#endif /* USE_ZLIB */
+
 
 static void
 IDirectFBImageProvider_SVG_Destruct( IDirectFBImageProvider *thiz )
@@ -379,13 +456,25 @@ IDirectFBImageProvider_SVG_GetImageDescription( IDirectFBImageProvider *thiz,
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
 {
+     int i;
+     
      if (ctx->filename) {
-          if (!strcasecmp( strrchr( ctx->filename, '.' ) ? : "", ".svg" ))
-               return DFB_OK;
+          char *ext = strrchr( ctx->filename, '.' );
+          
+          if (ext) {
+               if (!strcasecmp( ext, ".svg" ))
+                    return DFB_OK;
+#ifdef USE_ZLIB
+               if (!strcasecmp( ext, ".svgz" ))
+                    return DFB_OK;
+#endif
+          }
      }
      
-     if (!strncmp( ctx->header, "<?xml", 5 ))
-          return DFB_OK;
+     for (i = 0; i < sizeof(ctx->header)-5; i++) {
+          if (!memcmp( &ctx->header[i], "<?xml", 5))
+               return DFB_OK;
+     }
      
      return DFB_UNSUPPORTED;
 }
@@ -393,13 +482,16 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 static DFBResult
 Construct( IDirectFBImageProvider *thiz, IDirectFBDataBuffer *buffer )
 {
-     DFBResult          ret;
-     svg_cairo_status_t status;
+     DFBResult           ret;
+     svg_cairo_status_t  status;
+#ifdef USE_ZLIB
+     z_stream           *z = NULL;
+#endif
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBImageProvider_SVG );
 
      data->ref = 1;
-
+ 
      status = svg_cairo_create( &data->svg_cairo );
      if (status != SVG_CAIRO_STATUS_SUCCESS) {
           ret = svgstatus2result( status );
@@ -418,16 +510,36 @@ Construct( IDirectFBImageProvider *thiz, IDirectFBDataBuffer *buffer )
           IDirectFBImageProvider_SVG_Destruct( thiz );
           return ret;
      }
-
+     
      buffer->AddRef( buffer );
+     
+#ifdef USE_ZLIB
+     if (((IDirectFBDataBuffer_data*)buffer->priv)->filename) {
+          char *filename = ((IDirectFBDataBuffer_data*)buffer->priv)->filename;
+          
+          if (!strcasecmp( strrchr( filename, '.' ) ? : "", ".svgz" )) {
+               ret = check_gzip_header( buffer );
+               if (ret) {
+                    D_ERROR( "IDirectFBImageProvider_SVG: Invalid GZIP header!\n" );
+                    IDirectFBImageProvider_SVG_Destruct( thiz );
+                    buffer->Release( buffer );
+                    return ret;
+               }
+                    
+               z = alloca( sizeof(z_stream) );
+               memset( z, 0, sizeof(z_stream) );
+               inflateInit2( z, -MAX_WBITS );
+          }
+     }
+#endif
 
      while (1) {
-          char         buf[1024];
-          unsigned int len = 0;
+          unsigned char in[1024];
+          unsigned int  len = 0;
               
-          buffer->WaitForData( buffer, sizeof(buf) );
+          buffer->WaitForData( buffer, sizeof(in) );
           
-          ret = buffer->GetData( buffer, sizeof(buf), buf, &len );
+          ret = buffer->GetData( buffer, sizeof(in), in, &len );
           if (ret) {
                if (ret == DFB_EOF)
                     break;
@@ -437,7 +549,28 @@ Construct( IDirectFBImageProvider *thiz, IDirectFBDataBuffer *buffer )
           }
           
           if (len) {
-               status = svg_cairo_parse_chunk( data->svg_cairo, buf, len );
+#ifdef USE_ZLIB
+               if (z) {
+                    unsigned char out[4096];
+                    
+                    z->next_in  = &in[0];
+                    z->avail_in = len;
+                    
+                    do {
+                         z->next_out  = &out[0];
+                         z->avail_out = sizeof(out);
+                         ret = inflate( z, Z_SYNC_FLUSH );
+                         if (!ret) {                              
+                              status = svg_cairo_parse_chunk( data->svg_cairo, 
+                                                              out, sizeof(out)-z->avail_out );
+                         }
+                    }
+                    while (ret == 0 && status == SVG_CAIRO_STATUS_SUCCESS);
+               }
+               else 
+#endif
+                    status = svg_cairo_parse_chunk( data->svg_cairo, in, len );
+               
                if (status != SVG_CAIRO_STATUS_SUCCESS) {
                     ret = svgstatus2result( status );
                     D_ERROR( "IDirectFBImageProvider_SVG: "
@@ -451,6 +584,11 @@ Construct( IDirectFBImageProvider *thiz, IDirectFBDataBuffer *buffer )
      }
 
      buffer->Release( buffer );
+
+#ifdef USE_ZLIB
+     if (z)
+          inflateEnd( z );
+#endif
 
      status = svg_cairo_parse_chunk_end( data->svg_cairo );
      if (status != SVG_CAIRO_STATUS_SUCCESS) {
