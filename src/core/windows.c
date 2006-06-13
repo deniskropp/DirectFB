@@ -270,45 +270,6 @@ dfb_window_create( CoreWindowStack        *stack,
      context = stack->context;
      layer   = dfb_layer_at( context->layer_id );
 
-     memset( &config, 0, sizeof(CoreWindowConfig) );
-
-     config.bounds.x = x;
-     config.bounds.y = y;
-     config.bounds.w = width;
-     config.bounds.h = height;
-
-     config.events   = DWET_ALL;
-
-
-     /* Create the window object. */
-     window = dfb_core_create_window( layer->core );
-
-     window->id     = ++stack->id_pool;
-     window->caps   = caps;
-     window->stack  = stack;
-     window->config = config;
-
-	 ret = dfb_wm_preconfigure_window(stack,window);
-
-	 if(ret) {
-          fusion_object_destroy( &window->object );
-          dfb_windowstack_unlock( stack );
-          return ret;
-	 }
-
-	 /*wm may have changed values */
-	 config = window->config;
-     x = config.bounds.x;
-     y = config.bounds.y;
-     width = config.bounds.w;
-     height = config.bounds.h;
-	 caps = window->caps;
-
-     /* Auto enable blending for ARGB only, not LUT8. */
-     if ((caps & DWCAPS_ALPHACHANNEL) &&
-         DFB_PIXELFORMAT_HAS_ALPHA(pixelformat) && pixelformat != DSPF_LUT8)
-          config.options |= DWOP_ALPHACHANNEL;
-
 
      surface_caps &= DSCAPS_INTERLACED | DSCAPS_SEPARATED | DSCAPS_PREMULTIPLIED |
                      DSCAPS_DEPTH | DSCAPS_STATIC_ALLOC | DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY;
@@ -386,6 +347,48 @@ dfb_window_create( CoreWindowStack        *stack,
 
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps |= DSCAPS_DOUBLE;
+
+
+     memset( &config, 0, sizeof(CoreWindowConfig) );
+
+     config.bounds.x = x;
+     config.bounds.y = y;
+     config.bounds.w = width;
+     config.bounds.h = height;
+
+     config.events   = DWET_ALL;
+
+     /* Auto enable blending for ARGB only, not LUT8. */
+     if ((caps & DWCAPS_ALPHACHANNEL) &&
+         DFB_PIXELFORMAT_HAS_ALPHA(pixelformat) && pixelformat != DSPF_LUT8)
+          config.options |= DWOP_ALPHACHANNEL;
+
+
+     /* Create the window object. */
+     window = dfb_core_create_window( layer->core );
+
+     window->id     = ++stack->id_pool;
+     window->caps   = caps;
+     window->stack  = stack;
+     window->config = config;
+
+     ret = dfb_wm_preconfigure_window(stack,window);
+     if(ret) {
+          fusion_object_destroy( &window->object );
+          dfb_windowstack_unlock( stack );
+          return ret;
+     }
+
+     /* wm may have changed values */
+     config = window->config;
+     
+     x      = config.bounds.x;
+     y      = config.bounds.y;
+     width  = config.bounds.w;
+     height = config.bounds.h;
+     
+     caps   = window->caps;
+
 
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
