@@ -142,6 +142,8 @@ DirectResultString( DirectResult result )
                return "Out of shared memory!";
           case DFB_EOF:
                return "End of file!";
+          case DFB_SUSPENDED:
+               return "Object is suspended!";
      }
 
      return "UNKNOWN RESULT CODE!";
