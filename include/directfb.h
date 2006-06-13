@@ -498,7 +498,7 @@ typedef enum {
      DLCAPS_SCREEN_POSITION   = 0x00100000,
      DLCAPS_SCREEN_SIZE       = 0x00200000,
 
-     DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions().*/
+     DLCAPS_CLIP_REGIONS      = 0x00400000,  /* Supports IDirectFBDisplayLayer::SetClipRegions(). */
 
      DLCAPS_ALL               = 0x0073FFFF
 } DFBDisplayLayerCapabilities;
