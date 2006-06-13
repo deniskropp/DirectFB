@@ -7467,8 +7467,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                          }
 
                          /* do blend functions and combine both accumulators */
-                         if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL |
-                                                     DSBLIT_BLEND_COLORALPHA)) {
+                         if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
                               /* Xacc will be blended and written to while
                                  Sacc and Dacc point to the SRC and DST
                                  as referenced by the blending functions */
