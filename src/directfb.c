@@ -51,6 +51,7 @@
 #include <core/surfaces.h>
 #include <core/windows.h>
 #include <core/windowstack.h>
+#include <core/wm.h>
 
 #include <gfx/convert.h>
 
@@ -201,12 +202,36 @@ DirectFBCreate( IDirectFB **interface )
      }
 
      if (dfb_core_is_master( core_dfb )) {
+          CoreLayer                  *layer;
+          CoreLayerContext           *context;
+          CoreWindowStack            *stack;
+
           ret = apply_configuration( idirectfb_singleton );
           if (ret) {
                idirectfb_singleton->Release( idirectfb_singleton );
                idirectfb_singleton = NULL;
                return ret;
           }
+          /* the primary layer */
+          layer = dfb_layer_at_translated( DLID_PRIMARY );
+
+          /* get the default (shared) context */
+          ret = dfb_layer_get_primary_context( layer, true, &context );
+          if (ret) {
+             D_ERROR( "DirectFB/DirectFBCreate: "
+                    "Could not get default context of primary layer!\n" );
+             return ret;
+          }
+
+          stack = dfb_layer_context_windowstack( context );
+          D_ASSERT( stack != NULL );
+         
+          /*not fatal*/
+          if( ret=dfb_wm_start_desktop(stack) ) {
+             D_ERROR( "DirectFB/DirectFBCreate: "
+                    "Could not start desktop!\n" );
+          }
+
      }
 
      *interface = idirectfb_singleton;

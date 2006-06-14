@@ -2606,16 +2606,11 @@ wm_window_lookup( CoreWindowStack  *stack,
 
      fusion_vector_foreach_reverse (window, i, data->windows) {
           if (window->id == window_id) {
-               /* don't hand out the cursor window */
-               if (window->caps & DWHC_TOPMOST)
-                    window = NULL;
-
                break;
           }
      }
 
      *ret_window = window;
-
      return DFB_OK;
 }
 
@@ -2671,6 +2666,12 @@ wm_warp_cursor( CoreWindowStack *stack,
 }
 
 /**************************************************************************************************/
+
+static DFBResult
+wm_start_desktop( CoreWindowStack *stack)
+{
+	return DFB_OK;
+}
 
 static DFBResult
 wm_get_insets( CoreWindowStack *stack,

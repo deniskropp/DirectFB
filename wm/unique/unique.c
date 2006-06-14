@@ -553,6 +553,12 @@ wm_warp_cursor( CoreWindowStack *stack,
 /**************************************************************************************************/
 
 static DFBResult
+wm_start_desktop( CoreWindowStack *stack)
+{
+	return DFB_OK;
+}
+
+static DFBResult
 wm_get_insets( CoreWindowStack *stack,
                CoreWindow      *window,
                DFBInsets       *insets )

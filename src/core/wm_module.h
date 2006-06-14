@@ -114,6 +114,7 @@ static DFBResult wm_warp_cursor    ( CoreWindowStack        *stack,
                                      int                     y );
 
 /** Window **/
+static DFBResult wm_start_desktop  ( CoreWindowStack        *stack );
 
 static DFBResult wm_get_insets     ( CoreWindowStack        *stack,
                                      CoreWindow             *window,
@@ -200,6 +201,7 @@ static CoreWMFuncs wm_funcs = {
      EnumWindows:         wm_enum_windows,
      WarpCursor:          wm_warp_cursor,
 
+     StartDesktop:     	  wm_start_desktop,
      GetInsets:     	  wm_get_insets,
      PreConfigureWindow:     wm_preconfigure_window,
      AddWindow:           wm_add_window,

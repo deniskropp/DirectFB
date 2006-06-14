@@ -547,6 +547,19 @@ dfb_wm_warp_cursor( CoreWindowStack  *stack,
      return wm_local->funcs->WarpCursor( stack, wm_local->data, stack->stack_data, x, y );
 }
 
+/**
+ * Give the wm a chance to start any advanced features
+ * that require directfb to be fully initialized
+ */
+DFBResult
+dfb_wm_start_desktop( CoreWindowStack  *stack)
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->StartDesktop != NULL );
+     D_ASSERT( stack != NULL );
+     return wm_local->funcs->StartDesktop(stack);
+}
 
 /**
  * Give the wm a chance to specifiy a border
