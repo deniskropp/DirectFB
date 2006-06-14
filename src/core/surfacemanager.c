@@ -274,8 +274,6 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 
      dfb_surfacemanager_lock( manager );
 
-     manager->suspended = true;
-
      h = manager->heaps;
      while (h) {
           c = h->chunks;
@@ -293,6 +291,8 @@ DFBResult dfb_surfacemanager_suspend( SurfaceManager *manager )
 
           h = h->next;
      }
+
+     manager->suspended = true;
 
      dfb_surfacemanager_unlock( manager );
 
@@ -574,6 +574,58 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      return DFB_OK;
 }
 
+static void
+transfer_buffer( SurfaceBuffer *buffer,
+                 void          *src,
+                 void          *dst,
+                 int            srcpitch,
+                 int            dstpitch )
+{
+     int          i;
+     CoreSurface *surface = buffer->surface;
+
+     for (i=0; i<surface->height; i++) {
+          direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width) );
+
+          src += srcpitch;
+          dst += dstpitch;
+     }
+
+     switch (buffer->format) {
+          case DSPF_YV12:
+          case DSPF_I420:
+               for (i=0; i<surface->height; i++) {
+                    direct_memcpy( dst, src,
+                                   DFB_BYTES_PER_LINE( buffer->format, surface->width / 2 ) );
+                    src += srcpitch / 2;
+                    dst += dstpitch / 2;
+               }
+               break;
+
+          case DSPF_NV12:
+          case DSPF_NV21:
+               for (i=0; i<surface->height/2; i++) {
+                    direct_memcpy( dst, src,
+                                   DFB_BYTES_PER_LINE( buffer->format, surface->width ) );
+                    src += srcpitch;
+                    dst += dstpitch;
+               }
+               break;
+
+          case DSPF_NV16:
+               for (i=0; i<surface->height; i++) {
+                    direct_memcpy( dst, src,
+                                   DFB_BYTES_PER_LINE( buffer->format, surface->width ) );
+                    src += srcpitch;
+                    dst += dstpitch;
+               }
+               break;
+
+          default:
+               break;
+     }
+}
+
 DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                                            SurfaceBuffer  *buffer )
 {
@@ -582,94 +634,71 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
      D_MAGIC_ASSERT( manager, SurfaceManager );
 
-     if (manager->suspended)
-          return DFB_NOVIDEOMEMORY;
+     if (manager->suspended || buffer->flags & SBF_SUSPENDED)
+          return DFB_SUSPENDED;
 
      switch (buffer->video.health) {
           case CSH_STORED:
                if (buffer->video.chunk) {
                     buffer->video.chunk->tolerations = 0;
+
                     buffer->storage = buffer->video.chunk->heap->storage;
                }
-               else {
+               else
                     buffer->storage = CSS_VIDEO;
-               }
-               return DFB_OK;
+
+               break;
 
           case CSH_INVALID:
+               /* Allocate video memory. */
                ret = dfb_surfacemanager_allocate( manager, buffer );
                if (ret)
                     return ret;
 
-               /* FALL THROUGH, because after successful allocation
-                  the surface health is CSH_RESTORE */
+               /* fall through */
 
-          case CSH_RESTORE:
-               if (buffer->system.health != CSH_STORED)
-                    D_BUG( "system/video instances both not stored!" );
+          case CSH_RESTORE: {
+               Chunk *chunk = buffer->video.chunk;
 
-               if (buffer->flags & SBF_WRITTEN) {
-                    int   i;
-                    char *src   = buffer->system.addr;
-                    char *dst   = (buffer->video.chunk->heap->storage == CSS_VIDEO)
-                                  ? dfb_system_video_memory_virtual( buffer->video.offset )
-                                  : dfb_system_aux_memory_virtual( buffer->video.offset );
-                    int   flags = buffer->video.access & (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE);
-                   
-                    if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE))
+               /* Upload? */
+               if (buffer->flags & SBF_WRITTEN && buffer->system.health == CSH_STORED) {
+                    void *video  = (chunk->heap->storage == CSS_VIDEO)
+                                   ? dfb_system_video_memory_virtual( buffer->video.offset )
+                                   : dfb_system_aux_memory_virtual( buffer->video.offset );
+                    bool  locked = D_FLAGS_ARE_SET( buffer->video.access,
+                                                    VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE );
+
+                    if (!locked)
                          dfb_gfxcard_surface_enter( buffer, DSLF_WRITE );
-                    
-                    for (i=0; i<surface->height; i++) {
-                         direct_memcpy( dst, src,
-                                        DFB_BYTES_PER_LINE(buffer->format, surface->width) );
-                         src += buffer->system.pitch;
-                         dst += buffer->video.pitch;
-                    }
 
-                    if (buffer->format == DSPF_YV12 || buffer->format == DSPF_I420) {
-                         for (i=0; i<surface->height; i++) {
-                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
-                                                                          surface->width / 2) );
-                              src += buffer->system.pitch / 2;
-                              dst += buffer->video.pitch  / 2;
-                         }
-                    }
-                    else if (buffer->format == DSPF_NV12 || buffer->format == DSPF_NV21) {
-                         for (i=0; i<surface->height/2; i++) {
-                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
-                                                                          surface->width) );
-                              src += buffer->system.pitch;
-                              dst += buffer->video.pitch;
-                         }
-                    }
-                    else if (buffer->format == DSPF_NV16) {
-                         for (i=0; i<surface->height; i++) {
-                              direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
-                                                                          surface->width) );
-                              src += buffer->system.pitch;
-                              dst += buffer->video.pitch;
-                         }
-                    }
+                    /* Copy the data. */
+                    transfer_buffer( buffer,
+                                     buffer->system.addr, video,
+                                     buffer->system.pitch, buffer->video.pitch );
 
-                    if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_WRITE))
+                    if (!locked)
                          dfb_gfxcard_surface_leave( buffer );
                }
 
-               buffer->video.health             = CSH_STORED;
-               buffer->video.chunk->tolerations = 0;
-               
-               buffer->storage = buffer->video.chunk->heap->storage;
+               /* Update health. */
+               buffer->video.health = CSH_STORED;
+
+               /* Reset tolerations. */
+               chunk->tolerations = 0;
+
+               /* Remember storage. */
+               buffer->storage = chunk->heap->storage;
 
                dfb_surface_notify_listeners( surface, CSNF_VIDEO );
-
-               return DFB_OK;
+               break;
+          }
 
           default:
-               break;
+               D_BUG( "unknown buffer health %d", buffer->video.health );
+               return DFB_BUG;
      }
 
-     D_BUG( "unknown video instance health" );
-     return DFB_BUG;
+     return DFB_OK;
 }
 
 DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
@@ -684,74 +713,69 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
           return DFB_BUG;
      }
 
-     if (buffer->system.health == CSH_STORED) {
-          buffer->storage = CSS_SYSTEM;
-          return DFB_OK;
-     }
-     else if (buffer->video.health == CSH_STORED) {
-          int   i;
-          char *src   = (buffer->video.chunk->heap->storage == CSS_VIDEO)
-                        ? dfb_system_video_memory_virtual( buffer->video.offset )
-                        : dfb_system_aux_memory_virtual( buffer->video.offset );
-          char *dst   = buffer->system.addr;
-          int   flags = buffer->video.access & (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ);
-           
-          /* from video_access_by_software() in surface.c */
-          if (buffer->video.access & VAF_HARDWARE_WRITE) {
-               dfb_gfxcard_wait_serial( &buffer->video.serial );
-               dfb_gfxcard_flush_read_cache();
-               buffer->video.access &= ~VAF_HARDWARE_WRITE;
-          }
-          buffer->video.access |= VAF_SOFTWARE_READ;
+     if (manager->suspended || buffer->flags & SBF_SUSPENDED)
+          return DFB_SUSPENDED;
 
-          if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ))
-               dfb_gfxcard_surface_enter( buffer, DSLF_READ );
+     switch (buffer->system.health) {
+          case CSH_STORED:
+               buffer->storage = CSS_SYSTEM;
+               break;
 
-          for (i=0; i<surface->height; i++) {
-               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format, surface->width) );
-               src += buffer->video.pitch;
-               dst += buffer->system.pitch;
-          }
+          case CSH_INVALID:
+               /* Allocate shared memory. */
+               buffer->system.addr = SHMALLOC( surface->shmpool_data, buffer->system.size );
+               if (!buffer->system.addr)
+                    return D_OOSHM();
 
-          if (buffer->format == DSPF_YV12 || buffer->format == DSPF_I420) {
-               for (i=0; i<surface->height; i++) {
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
-                                                                surface->width / 2) );
-                    src += buffer->video.pitch  / 2;
-                    dst += buffer->system.pitch / 2;
+               /* fall through */
+
+          case CSH_RESTORE: {
+               Chunk *chunk = buffer->video.chunk;
+
+               /* Download? */
+               if (buffer->flags & SBF_WRITTEN && buffer->video.health == CSH_STORED) {
+                    void *video  = (chunk->heap->storage == CSS_VIDEO)
+                                   ? dfb_system_video_memory_virtual( buffer->video.offset )
+                                   : dfb_system_aux_memory_virtual( buffer->video.offset );
+                    bool  locked = D_FLAGS_ARE_SET( buffer->video.access,
+                                                    VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ );
+
+                    if (!locked)
+                         dfb_gfxcard_surface_enter( buffer, DSLF_READ );
+
+
+                    /* from video_access_by_software() in surface.c */
+                    if (buffer->video.access & VAF_HARDWARE_WRITE) {
+                         dfb_gfxcard_wait_serial( &buffer->video.serial );
+                         dfb_gfxcard_flush_read_cache();
+                         buffer->video.access &= ~VAF_HARDWARE_WRITE;
+                    }
+                    buffer->video.access |= VAF_SOFTWARE_READ;
+
+                    /* Copy the data. */
+                    transfer_buffer( buffer, video, buffer->system.addr,
+                                     buffer->video.pitch, buffer->system.pitch );
+
+                    if (!locked)
+                         dfb_gfxcard_surface_leave( buffer );
                }
-          }
-          else if (buffer->format == DSPF_NV12 || buffer->format == DSPF_NV21) {
-               for (i=0; i<surface->height/2; i++) {
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
-                                                                surface->width) );
-                    src += buffer->video.pitch;
-                    dst += buffer->system.pitch;
-               }
-          }
-          else if (buffer->format == DSPF_NV16) {
-               for (i=0; i<surface->height; i++) {
-                    direct_memcpy( dst, src, DFB_BYTES_PER_LINE(buffer->format,
-                                                                surface->width) );
-                    src += buffer->video.pitch;
-                    dst += buffer->system.pitch;
-               }
+
+               /* Update health. */
+               buffer->system.health = CSH_STORED;
+
+               /* Remember storage. */
+               buffer->storage = CSS_SYSTEM;
+
+               dfb_surface_notify_listeners( surface, CSNF_SYSTEM );
+               break;
           }
 
-          if (flags != (VAF_SOFTWARE_LOCK | VAF_SOFTWARE_READ))
-               dfb_gfxcard_surface_leave( buffer );
-
-          buffer->system.health = CSH_STORED;
-
-          buffer->storage = CSS_SYSTEM;
-
-          dfb_surface_notify_listeners( surface, CSNF_SYSTEM );
-
-          return DFB_OK;
+          default:
+               D_BUG( "unknown buffer health %d", buffer->system.health );
+               return DFB_BUG;
      }
 
-     D_BUG( "no valid surface instance" );
-     return DFB_BUG;
+     return DFB_OK;
 }
 
 /** internal functions NOT locking the surfacemanager **/

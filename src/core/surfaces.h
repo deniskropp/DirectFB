@@ -94,8 +94,9 @@ typedef enum {
      SBF_NONE            = 0x00000000,
      SBF_FOREIGN_SYSTEM  = 0x00000001,  /* system memory is preallocated by
                                            application, won't be freed */
-     SBF_WRITTEN         = 0x00000002   /* buffer has been locked for writing
+     SBF_WRITTEN         = 0x00000002,  /* buffer has been locked for writing
                                            since its birth */
+     SBF_SUSPENDED       = 0x00000004   /* buffer is suspended, i.e. temp. unallocated */
 } SurfaceBufferFlags;
 
 typedef enum {
@@ -124,6 +125,8 @@ struct _SurfaceBuffer
 
           int                pitch;     /* number of bytes til next line */
           void              *addr;      /* address pointing to surface data */
+
+          int                size;      /* buffer size in bytes */
      } system;
 
      struct {
@@ -224,14 +227,14 @@ FUSION_OBJECT_METHODS( CoreSurface, dfb_surface )
  * creates a surface with specified width and height in the specified
  * pixelformat using the specified swapping policy
  */
-DFBResult dfb_surface_create( CoreDFB                 *core,
-                              int                      width,
-                              int                      height,
-                              DFBSurfacePixelFormat    format,
-                              CoreSurfacePolicy        policy,
-                              DFBSurfaceCapabilities   caps,
-                              CorePalette             *palette,
-                              CoreSurface            **surface );
+DFBResult dfb_surface_create             ( CoreDFB                 *core,
+                                           int                      width,
+                                           int                      height,
+                                           DFBSurfacePixelFormat    format,
+                                           CoreSurfacePolicy        policy,
+                                           DFBSurfaceCapabilities   caps,
+                                           CorePalette             *palette,
+                                           CoreSurface            **surface );
 
 /*
  * like surface_create, but with preallocated system memory that won't be
@@ -253,76 +256,88 @@ DFBResult dfb_surface_create_preallocated( CoreDFB                 *core,
 /*
  * initialize surface structure, not required for surface_create_*
  */
-DFBResult dfb_surface_init ( CoreDFB                *core,
-                             CoreSurface            *surface,
-                             int                     width,
-                             int                     height,
-                             DFBSurfacePixelFormat   format,
-                             DFBSurfaceCapabilities  caps,
-                             CorePalette            *palette );
+DFBResult dfb_surface_init               ( CoreDFB                *core,
+                                           CoreSurface            *surface,
+                                           int                     width,
+                                           int                     height,
+                                           DFBSurfacePixelFormat   format,
+                                           DFBSurfaceCapabilities  caps,
+                                           CorePalette            *palette );
 
 /*
  * reallocates data for the specified surface
  */
-DFBResult dfb_surface_reformat( CoreDFB               *core,
-                                CoreSurface           *surface,
-                                int                    width,
-                                int                    height,
-                                DFBSurfacePixelFormat  format );
+DFBResult dfb_surface_reformat           ( CoreDFB               *core,
+                                           CoreSurface           *surface,
+                                           int                    width,
+                                           int                    height,
+                                           DFBSurfacePixelFormat  format );
 
 /*
  * Change policies of buffers.
  */
-DFBResult dfb_surface_reconfig( CoreSurface       *surface,
-                                CoreSurfacePolicy  front_policy,
-                                CoreSurfacePolicy  back_policy );
+DFBResult dfb_surface_reconfig           ( CoreSurface       *surface,
+                                           CoreSurfacePolicy  front_policy,
+                                           CoreSurfacePolicy  back_policy );
 
 /*
  * Add/remove the depth buffer capability.
  */
-DFBResult dfb_surface_allocate_depth( CoreSurface *surface );
-void      dfb_surface_deallocate_depth( CoreSurface *surface );
+DFBResult dfb_surface_allocate_depth     ( CoreSurface *surface );
+void      dfb_surface_deallocate_depth   ( CoreSurface *surface );
 
 /*
  * Change the palette of the surface.
  */
-DFBResult dfb_surface_set_palette( CoreSurface *surface,
-                                   CorePalette *palette );
+DFBResult dfb_surface_set_palette        ( CoreSurface *surface,
+                                           CorePalette *palette );
 
 /*
  * helper function
  */
-DirectResult
-dfb_surface_notify_listeners( CoreSurface                  *surface,
-                              CoreSurfaceNotificationFlags  flags);
+DirectResult dfb_surface_notify_listeners( CoreSurface                  *surface,
+                                           CoreSurfaceNotificationFlags  flags);
 
 /*
  * really swaps front_buffer and back_buffer if they have the same policy,
  * otherwise it does a back_to_front_copy, notifies listeners
  */
-void dfb_surface_flip_buffers( CoreSurface *surface, bool write_front );
+void dfb_surface_flip_buffers            ( CoreSurface *surface,
+                                           bool         write_front );
 
-void dfb_surface_set_field( CoreSurface *surface, int field );
+void dfb_surface_set_field               ( CoreSurface *surface,
+                                           int          field );
 
-void dfb_surface_set_alpha_ramp( CoreSurface *surface, __u8 a0, __u8 a1, __u8 a2, __u8 a3 );
+void dfb_surface_set_alpha_ramp          ( CoreSurface *surface,
+                                           __u8         a0,
+                                           __u8         a1,
+                                           __u8         a2,
+                                           __u8         a3 );
 
 /*
  * This is a utility function for easier usage.
  * It locks the surface maneger, does a surface_software_lock, and unlocks
  * the surface manager.
  */
-DFBResult dfb_surface_soft_lock( CoreSurface          *surface,
-                                 DFBSurfaceLockFlags   flags,
-                                 void                **data,
-                                 int                  *pitch,
-                                 bool                  front );
+DFBResult dfb_surface_soft_lock          ( CoreSurface          *surface,
+                                           DFBSurfaceLockFlags   flags,
+                                           void                **data,
+                                           int                  *pitch,
+                                           bool                  front );
 
 /*
  * unlocks a previously locked surface
  * note that the other instance's health is CSH_RESTORE now, if it has
  * been CSH_STORED before
  */
-void dfb_surface_unlock( CoreSurface *surface, int front );
+void dfb_surface_unlock                  ( CoreSurface *surface,
+                                           int          front );
+
+/*
+ * suspend/resume a surface, i.e. deallocate its data meanwhile
+ */
+void dfb_surface_suspend                 ( CoreSurface *surface );
+void dfb_surface_resume                  ( CoreSurface *surface );
 
 /*
  * Creates one or two files with the surface content (front buffer).
@@ -330,9 +345,9 @@ void dfb_surface_unlock( CoreSurface *surface, int front );
  * The complete path will be <directory>/<prefix>_####.ppm for RGB and
  * <directory>/<prefix>_####.pgm for the alpha channel if present.
  */
-DFBResult dfb_surface_dump( CoreSurface *surface,
-                            const char  *directory,
-                            const char  *prefix );
+DFBResult dfb_surface_dump               ( CoreSurface *surface,
+                                           const char  *directory,
+                                           const char  *prefix );
 
 /* global reactions */
 ReactionResult _dfb_surface_palette_listener( const void *msg_data,
