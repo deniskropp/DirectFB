@@ -334,10 +334,10 @@ void dfb_surface_unlock                  ( CoreSurface *surface,
                                            int          front );
 
 /*
- * suspend/resume a surface, i.e. deallocate its data meanwhile
+ * suspend/resume a surface buffer, i.e. deallocate its data meanwhile
  */
-void dfb_surface_suspend                 ( CoreSurface *surface );
-void dfb_surface_resume                  ( CoreSurface *surface );
+DFBResult dfb_surface_buffer_suspend( SurfaceBuffer *buffer );
+DFBResult dfb_surface_buffer_resume ( SurfaceBuffer *buffer );
 
 /*
  * Creates one or two files with the surface content (front buffer).
