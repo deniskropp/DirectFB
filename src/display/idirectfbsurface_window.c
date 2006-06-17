@@ -237,7 +237,6 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
 {
      DFBResult ret;
 	 DFBInsets insets;
-	 CoreWindowStack *stack;
 
 	 dfb_wm_get_insets(window->stack,window,&insets);
 

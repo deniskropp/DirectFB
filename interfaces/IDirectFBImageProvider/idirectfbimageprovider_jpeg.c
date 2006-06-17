@@ -504,7 +504,6 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                     y++;
 
                     if (data->render_callback) {
-                         DIRenderCallbackResult r;
                          DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
 
                          cb_result = data->render_callback( &rect, data->render_callback_context );

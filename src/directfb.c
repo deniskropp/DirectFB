@@ -226,12 +226,12 @@ DirectFBCreate( IDirectFB **interface )
           stack = dfb_layer_context_windowstack( context );
           D_ASSERT( stack != NULL );
          
-          /*not fatal*/
-          if( ret=dfb_wm_start_desktop(stack) ) {
-             D_ERROR( "DirectFB/DirectFBCreate: "
-                    "Could not start desktop!\n" );
+          /* not fatal */
+          ret = dfb_wm_start_desktop( stack );
+          if (ret) {
+               D_ERROR( "DirectFB/DirectFBCreate: "
+                        "Could not start desktop!\n" );
           }
-
      }
 
      *interface = idirectfb_singleton;

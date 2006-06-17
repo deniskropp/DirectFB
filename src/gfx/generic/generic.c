@@ -505,10 +505,10 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
 
      /* in the case when only destination is misaligned we have to
         be more careful copying the pixels */
-     if (((__u32)gfxs->Aop + (__u32)gfxs->Bop) & 2) {
+     if (((long)D + (long)S) & 2) {
           w = l;
-          __u16 *d = gfxs->Aop;
-          __u16 *s = gfxs->Bop;
+          __u16 *d = gfxs->Aop[0];
+          __u16 *s = gfxs->Bop[0];
 
           while (w) {
                __u16 mpixel = *s;
@@ -523,7 +523,7 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
      else {
 
           if (((long)D)&2) {         /* align */
-               __u16 *tmp = gfxs->Aop;
+               __u16 *tmp = gfxs->Aop[0];
                --l;
                if (*((__u16*)S) != Skey)
                     *tmp = *((__u16*)S);
