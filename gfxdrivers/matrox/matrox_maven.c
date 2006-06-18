@@ -82,7 +82,7 @@ maven_write_word( MatroxMavenData  *mav,
           mga_out_dac( mmio, 0x87, reg );
           mga_out_dac( mmio, 0x88, val );
           mga_out_dac( mmio, 0x87, reg + 1 );
-          mga_out_dac( mmio, 0x88, val >> 8);
+          mga_out_dac( mmio, 0x88, val >> 8 );
      } else
           i2c_smbus_write_word_data( mdrv->maven_fd, reg, val );
 }
