@@ -40,7 +40,6 @@ libdirectfb_matrox_la_LDFLAGS = \
 
 libdirectfb_matrox_la_LIBADD = -lm \
 	$(top_builddir)/lib/direct/libdirect.la \
-	$(top_builddir)/lib/fusion/libfusion.la \
 	$(top_builddir)/src/libdirectfb.la
 
 

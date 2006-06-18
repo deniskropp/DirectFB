@@ -28,7 +28,6 @@
 #include <directfb.h>
 
 #include <direct/messages.h>
-#include <direct/util.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
@@ -39,7 +38,6 @@
 #include <core/palette.h>
 
 #include <gfx/convert.h>
-#include <misc/util.h>
 
 #include "regs.h"
 #include "mmio.h"

@@ -26,32 +26,18 @@
 */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 
 #include <directfb.h>
 
-#include <fusion/shmalloc.h>
+#include <direct/messages.h>
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-#include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/screen.h>
 #include <core/surfaces.h>
-#include <core/windows.h>
-
-#include <direct/mem.h>
-#include <direct/messages.h>
 
 #include <misc/conf.h>
-#include <misc/util.h>
-
-#include <fbdev/fbdev.h>
 
 #include "regs.h"
 #include "mmio.h"

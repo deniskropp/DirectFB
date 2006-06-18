@@ -26,37 +26,22 @@
 */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 
 #include <directfb.h>
 
-#include <fusion/shmalloc.h>
-
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-#include <core/gfxcard.h>
 #include <core/layers.h>
 #include <core/palette.h>
 #include <core/surfaces.h>
-#include <core/windows.h>
-
-#include <direct/mem.h>
 
 #include <gfx/convert.h>
 
 #include <misc/conf.h>
 
-#include <fbdev/fbdev.h>
-
 #include "regs.h"
 #include "mmio.h"
 #include "matrox.h"
-#include "matrox_maven.h"
 
 typedef struct {
      CoreLayerRegionConfig config;

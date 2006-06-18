@@ -29,15 +29,11 @@
 
 #include <stdio.h>
 #include <unistd.h>
-#include <stdlib.h>
-
-#include <sys/mman.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
 
 #include <fbdev/fb.h>
-
-#include <math.h>
 
 #include <directfb.h>
 
@@ -46,16 +42,13 @@
 
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-
 #include <core/state.h>
 #include <core/gfxcard.h>
-#include <core/surfaces.h>
 #include <core/palette.h>
 
 #include <gfx/util.h>
 
 #include <misc/conf.h>
-#include <misc/util.h>
 
 #include <core/graphics_driver.h>
 
@@ -1028,8 +1021,8 @@ matrox_fill_trapezoid( MatroxDriverData *mdrv,
      int dxl = X2l - Xl;
      int dxr = ++X2r - ++Xr;
 
-     int dXl = abs(dxl);
-     int dXr = abs(dxr);
+     int dXl = ABS(dxl);
+     int dXr = ABS(dxr);
 
      __u32 sgn = 0;
 

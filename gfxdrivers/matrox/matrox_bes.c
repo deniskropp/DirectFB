@@ -26,12 +26,6 @@
 */
 
 #include <stdio.h>
-#include <unistd.h>
-#include <stdlib.h>
-
-#include <sys/mman.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 
 #include <fbdev/fb.h>
 
@@ -39,19 +33,12 @@
 
 #include <direct/messages.h>
 
-#include <fusion/shmalloc.h>
-
 #include <core/coredefs.h>
 #include <core/coretypes.h>
-#include <core/gfxcard.h>
-#include <core/layer_control.h>
 #include <core/layers.h>
 #include <core/screen.h>
 #include <core/surfaces.h>
 #include <core/system.h>
-#include <core/windows.h>
-
-#include <direct/mem.h>
 
 #include <misc/util.h>
 

@@ -38,24 +38,18 @@
 
 #include "i2c-dev.h"
 
+#include <directfb.h>
+
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
 
 #include <misc/conf.h>
-#include <misc/util.h>
 
 #include "matrox.h"
 #include "regs.h"
 #include "mmio.h"
 #include "matrox_maven.h"
-
-#ifndef min
-#define min(a,b) (a < b ? a : b)
-#endif
-#ifndef max
-#define max(a,b) (a > b ? a : b)
-#endif
 
 static void
 maven_write_byte( MatroxMavenData  *mav,
@@ -329,8 +323,8 @@ maven_set_bwlevel( MatroxMavenData  *mav,
      b = brightness * range / 255 + blmin;
      c = contrast * range / 2 / 255 + 64;
 
-     bl = max( b - c, blmin );
-     wl = min( b + c, wlmax );
+     bl = MAX( b - c, blmin );
+     wl = MIN( b + c, wlmax );
 
      blmin = ((blmin << 8) & 0x0300) | ((blmin >> 2) & 0x00FF);
      bl    = ((bl    << 8) & 0x0300) | ((bl    >> 2) & 0x00FF);
