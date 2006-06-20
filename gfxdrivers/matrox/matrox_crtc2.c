@@ -103,6 +103,47 @@ crtc2LayerDataSize()
      return sizeof(MatroxCrtc2LayerData);
 }
 
+static const DFBColorAdjustment adjustments[2][2] = {
+     /* G400 */
+     {
+          /* PAL / PAL-60 */
+          {
+               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               brightness: 0xA800,
+               saturation: 0x9500,
+               contrast:   0xFF00,
+               hue:        0x0000,
+          },
+          /* NTSC */
+          {
+               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               brightness: 0xB500,
+               saturation: 0x8E00,
+               contrast:   0xEA00,
+               hue:        0x0000,
+          }
+     },
+     /* G450 / G550 */
+     {
+          /* PAL / PAL-60 */
+          {
+               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               brightness: 0x9E00,
+               saturation: 0xBB00,
+               contrast:   0xFF00,
+               hue:        0x0000,
+          },
+          /* NTSC */
+          {
+               flags:      DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION,
+               brightness: 0xAA00,
+               saturation: 0xAE00,
+               contrast:   0xEA00,
+               hue:        0x0000,
+          }
+     }
+};
+
 static DFBResult
 crtc2InitLayer( CoreLayer                  *layer,
                 void                       *driver_data,
@@ -115,7 +156,6 @@ crtc2InitLayer( CoreLayer                  *layer,
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
      MatroxDeviceData     *mdev   = mdrv->device_data;
      MatroxMavenData      *mav    = &mcrtc2->mav;
-     bool                  ntsc   = dfb_config->matrox_ntsc;
      DFBResult             res;
 
      if ((res = maven_init( mav, mdrv )) != DFB_OK)
@@ -136,7 +176,7 @@ crtc2InitLayer( CoreLayer                  *layer,
                             DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE |
                             DLCONF_OPTIONS | DLCONF_SURFACE_CAPS;
      config->width        = 720;
-     config->height       = ntsc ? 480 : 576;
+     config->height       = (dfb_config->matrox_tv_std != DSETV_PAL) ? 480 : 576;
      config->pixelformat  = DSPF_YUY2;
      config->buffermode   = DLBM_FRONTONLY;
      config->options      = DLOP_NONE;
@@ -144,17 +184,7 @@ crtc2InitLayer( CoreLayer                  *layer,
 
      /* fill out default color adjustment,
         only fields set in flags will be accepted from applications */
-     adjustment->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST |
-                         DCAF_HUE | DCAF_SATURATION;
-     if (mdev->g450_matrox) {
-          adjustment->brightness = ntsc ? 0xAA00 : 0x9E00;
-          adjustment->saturation = ntsc ? 0xAE00 : 0xBB00;
-     } else {
-          adjustment->brightness = ntsc ? 0xB500 : 0xA800;
-          adjustment->saturation = ntsc ? 0x8E00 : 0x9500;
-     }
-     adjustment->contrast = ntsc ? 0xEA00 : 0xFF00;
-     adjustment->hue      = 0x0000;
+     *adjustment = adjustments[mdev->g450_matrox][dfb_config->matrox_tv_std == DSETV_NTSC];
 
      /* remember color adjustment */
      mcrtc2->adj = *adjustment;
@@ -194,7 +224,7 @@ crtc2TestRegion( CoreLayer                  *layer,
      if (config->width != 720)
           fail |= CLRCF_WIDTH;
 
-     if (config->height != (dfb_config->matrox_ntsc ? 480 : 576))
+     if (config->height != ((dfb_config->matrox_tv_std != DSETV_PAL) ? 480 : 576))
           fail |= CLRCF_HEIGHT;
 
      if (failed)
@@ -417,7 +447,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
                break;
      }
 
-     if (dfb_config->matrox_ntsc)
+     if (dfb_config->matrox_tv_std != DSETV_PAL)
           mcrtc2->regs.c2DATACTL |= C2NTSCEN;
 
      /* pixel format settings */
@@ -462,7 +492,7 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      {
           int hdisplay, htotal, vdisplay, vtotal;
 
-          if (dfb_config->matrox_ntsc) {
+          if (dfb_config->matrox_tv_std != DSETV_PAL) {
                hdisplay = 720;
                htotal = 858;
                vdisplay = 480 / 2;

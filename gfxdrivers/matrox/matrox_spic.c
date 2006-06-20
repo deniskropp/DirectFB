@@ -96,7 +96,7 @@ spicInitLayer( CoreLayer                  *layer,
                             DLCONF_OPTIONS | DLCONF_SURFACE_CAPS;
 
      config->width        = 720;
-     config->height       = dfb_config->matrox_ntsc ? 480 : 576;
+     config->height       = (dfb_config->matrox_tv_std != DSETV_PAL) ? 480 : 576;
      config->pixelformat  = DSPF_ALUT44;
      config->buffermode   = DLBM_FRONTONLY;
      config->options      = DLOP_NONE;
@@ -140,10 +140,10 @@ spicTestRegion( CoreLayer                  *layer,
           fail |= CLRCF_WIDTH;
 
      if (config->surface_caps & DSCAPS_INTERLACED) {
-          if (config->height != (dfb_config->matrox_ntsc ? 480 : 576))
+          if (config->height != ((dfb_config->matrox_tv_std != DSETV_PAL) ? 480 : 576))
                fail |= CLRCF_HEIGHT;
      } else {
-          if (config->height != (dfb_config->matrox_ntsc ? 240 : 288))
+          if (config->height != ((dfb_config->matrox_tv_std != DSETV_PAL) ? 240 : 288))
                fail |= CLRCF_HEIGHT;
      }
 

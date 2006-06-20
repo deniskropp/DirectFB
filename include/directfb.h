@@ -2048,7 +2048,8 @@ typedef enum {
 
      DSETV_PAL            = 0x00000001, /* PAL */
      DSETV_NTSC           = 0x00000002, /* NTSC */
-     DSETV_SECAM          = 0x00000004  /* SECAM */
+     DSETV_SECAM          = 0x00000004, /* SECAM */
+     DSETV_PAL_60         = 0x00000008  /* PAL-60 */
 } DFBScreenEncoderTVStandards;
 
 /*

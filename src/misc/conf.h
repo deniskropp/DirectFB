@@ -69,7 +69,7 @@ typedef struct
      bool      kd_graphics;                       /* put terminal into graphics
                                                      mode */
 
-     bool      matrox_ntsc;                       /* Matrox TV standard */
+     DFBScreenEncoderTVStandards matrox_tv_std;   /* Matrox TV standard */
      int       matrox_cable;                      /* Matrox cable type */
      bool      matrox_sgram;                      /* Use Matrox SGRAM features */
      bool      matrox_crtc2;                      /* Experimental CRTC2 stuff */

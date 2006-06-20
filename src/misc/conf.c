@@ -119,7 +119,8 @@ static const char *config_usage =
      "\n"
      "  [no-]matrox-sgram              Use Matrox SGRAM features\n"
      "  [no-]matrox-crtc2              Experimental Matrox CRTC2 support\n"
-     "  matrox-tv-standard=(pal|ntsc)  Matrox TV standard (default=pal)\n"
+     "  matrox-tv-standard=(pal|ntsc|pal-60)\n"
+     "                                 Matrox TV standard (default=pal)\n"
      "  matrox-cable-type=(composite|scart-rgb|scart-composite)\n"
      "                                 Matrox cable type (default=composite)\n"
      "  h3600-device=<device>          Use this device for the H3600 TS driver\n"
@@ -341,6 +342,7 @@ static void config_allocate()
      dfb_config->unichrome_revision       = -1;
      dfb_config->dma                      = false;
      dfb_config->agp                      = 0;
+     dfb_config->matrox_tv_std            = DSETV_PAL;
      
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -964,11 +966,14 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "matrox-tv-standard" ) == 0) {
           if (value) {
+               if (strcmp( value, "pal-60" ) == 0) {
+                    dfb_config->matrox_tv_std = DSETV_PAL_60;
+               } else
                if (strcmp( value, "pal" ) == 0) {
-                    dfb_config->matrox_ntsc = false;
+                    dfb_config->matrox_tv_std = DSETV_PAL;
                } else
                if (strcmp( value, "ntsc" ) == 0) {
-                    dfb_config->matrox_ntsc = true;
+                    dfb_config->matrox_tv_std = DSETV_NTSC;
                } else {
                     D_ERROR( "DirectFB/Config: Unknown TV standard "
                              "'%s'!\n", value );

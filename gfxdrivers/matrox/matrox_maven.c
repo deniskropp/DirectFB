@@ -135,16 +135,15 @@ maven_enable( MatroxMavenData  *mav,
               MatroxDriverData *mdrv )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
+     bool              ntsc = dfb_config->matrox_tv_std != DSETV_PAL;
 
      if (mdev->g450_matrox) {
           if (dfb_config->matrox_cable == 1)
                /* SCART RGB */
-               maven_write_byte( mav, mdrv, 0x80,
-                                 dfb_config->matrox_ntsc ? 0x43 : 0x41 );
+               maven_write_byte( mav, mdrv, 0x80, ntsc ? 0x43 : 0x41 );
           else
                /* Composite / S-Video */
-               maven_write_byte( mav, mdrv, 0x80,
-                                 dfb_config->matrox_ntsc ? 0x03 : 0x01 );
+               maven_write_byte( mav, mdrv, 0x80, ntsc ? 0x03 : 0x01 );
      }
      else
           maven_write_byte( mav, mdrv, 0x82, 0x20 );
@@ -175,6 +174,7 @@ maven_set_regs( MatroxMavenData       *mav,
                 DFBColorAdjustment    *adj )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
+     bool              ntsc = dfb_config->matrox_tv_std != DSETV_PAL;
 
      LR(0x00);
      LR(0x01);
@@ -228,8 +228,7 @@ maven_set_regs( MatroxMavenData       *mav,
      LR(0x38);
 
      if (mdev->g450_matrox) {
-          maven_write_word( mav, mdrv, 0x82,
-                            dfb_config->matrox_ntsc ? 0x0014 : 0x0017 );
+          maven_write_word( mav, mdrv, 0x82, ntsc ? 0x0014 : 0x0017 );
           maven_write_word( mav, mdrv, 0x84, 0x0001 );
      } else {
           maven_write_byte( mav, mdrv, 0xB3, 0x01 );
@@ -309,7 +308,7 @@ maven_set_bwlevel( MatroxMavenData  *mav,
 {
      MatroxDeviceData *mdev = mdrv->device_data;
      int b, c, bl, wl, wlmax, blmin, range;
-     bool ntsc = dfb_config->matrox_ntsc;
+     bool ntsc = dfb_config->matrox_tv_std == DSETV_NTSC;
 
      if (mdev->g450_matrox) {
           wlmax = ntsc ? 936 : 938;
@@ -491,7 +490,9 @@ DFBResult maven_init( MatroxMavenData  *mav,
 
      /* Maven registers */
      {
-          const __u8 ntscregs[64] = {
+          static const __u8 ntscregs[2][0x40] = {
+          /* G400 */
+          {
                0x21, 0xF0, 0x7C, 0x1F, /* 00-03 */
                0x00, /* 04 */
                0x00,
@@ -544,8 +545,66 @@ DFBResult maven_init( MatroxMavenData  *mav,
                0x3C, 0x00, /* 3C-3D */
                0x00, /* 3E */
                0x00
+          },
+          /* G450 / G550 */
+          {
+               0x21, 0xF0, 0x7C, 0x1F, /* 00-03 */
+               0x00, /* 04 */
+               0x00,
+               0x00,
+               0x00,
+               0x7E, /* 08 */
+               0x44, /* 09 */
+               0x76, /* 0A */
+               0x49, /* 0B */
+               0x00, /* 0C */
+               0x00,
+               0x4E, 0x03, /* 0E-0F */
+               0x42, 0x03, /* 10-11 */
+               0x17, /* 12 */
+               0x21, /* 13 */
+               0x1B, /* 14 */
+               0x1B, /* 15 */
+               0x24, /* 16 */
+               0x83, 0x01, /* 17-18 */
+               0x00, /* 19 */
+               0x0F, /* 1A */
+               0x0F, /* 1B */
+               0x60, /* 1C */
+               0x05, /* 1D */
+               0xEA, 0x00, /* 1E-1F */
+               0xAE, /* 20 */
+               0x04, /* 21 */
+               0xAE, /* 22 */
+               0x01, /* 23 */
+               0x02, /* 24 */
+               0x00, /* 25 */
+               0x0A, /* 26 */
+               0x05, /* 27 */
+               0x00, /* 28 */
+               0x11, /* 29 */
+               0xFF, 0x03, /* 2A-2B */
+               0x20, /* 2C */
+               0x0F, 0x78, /* 2D-2E */
+               0x00, 0x00, /* 2F-30 */
+               0xB4, 0x00, /* 31-32 */
+               0x14, /* 33 */
+               0x02, /* 34 */
+               0x00, /* 35 */
+               0x00,
+               0xBD, /* 37 */
+               0xDA, /* 38 */
+               0x15, /* 39 */
+               0x05, /* 3A */
+               0x15, /* 3B */
+               0x42, 0x03, /* 3C-3D */
+               0x00, /* 3E */
+               0x00
+          }
           };
-          const __u8 palregs[64] = {
+          static const __u8 palregs[2][0x40] = {
+          /* G400 */
+          {
                0x2A, 0x09, 0x8A, 0xCB, /* 00-03 */
                0x00, /* 04 */
                0x00,
@@ -598,58 +657,89 @@ DFBResult maven_init( MatroxMavenData  *mav,
                0x3F, 0x03, /* 3C-3D */
                0x00, /* 3E */
                0x00,
+          },
+          /* G450 / G550 */
+          {
+               0x2A, 0x09, 0x8A, 0xCB, /* 00-03 */
+               0x00, /* 04 */
+               0x00,
+               0x00,
+               0x00,
+               0x7E, /* 08 */
+               0x3A, /* 09 */
+               0x8A, /* 0A */
+               0x38, /* 0B */
+               0x28, /* 0C */
+               0x00,
+               0x46, 0x01, /* 0E-0F */
+               0x46, 0x01, /* 10-11 */
+               0x1A, /* 12 */
+               0x2A, /* 13 */
+               0x1C, /* 14 */
+               0x3D, /* 15 */
+               0x14, /* 16 */
+               0x9C, 0x01, /* 17-18 */
+               0x00, /* 19 */
+               0xFE, /* 1A */
+               0x7E, /* 1B */
+               0x60, /* 1C */
+               0x05, /* 1D */
+               0xEA, 0x00, /* 1E-1F */
+               0xBB, /* 20 */
+               0x07, /* 21 */
+               0xBB, /* 22 */
+               0x00, /* 23 */
+               0x00, /* 24 */
+               0x00, /* 25 */
+               0x08, /* 26 */
+               0x04, /* 27 */
+               0x00, /* 28 */
+               0x1A, /* 29 */
+               0x55, 0x01, /* 2A-2B */
+               0x18, /* 2C */
+               0x07, 0x7E, /* 2D-2E */
+               0x02, 0x54, /* 2F-30 */
+               0xB4, 0x00, /* 31-32 */
+               0x16, /* 33 */
+               0x49, /* 34 */
+               0x00, /* 35 */
+               0x00,
+               0xB9, /* 37 */
+               0xDD, /* 38 */
+               0x22, /* 39 */
+               0x02, /* 3A */
+               0x22, /* 3B */
+               0x46, 0x00, /* 3C-3D */
+               0x00, /* 3E */
+               0x00,
+          }
           };
 
-          if (dfb_config->matrox_ntsc)
-               direct_memcpy( mav->regs, ntscregs, 64 );
+          if (dfb_config->matrox_tv_std != DSETV_PAL)
+               direct_memcpy( mav->regs, ntscregs[mdev->g450_matrox], 64 );
           else
-               direct_memcpy( mav->regs, palregs, 64 );
+               direct_memcpy( mav->regs, palregs[mdev->g450_matrox], 64 );
 
-          if (mdev->g450_matrox) {
-               if (dfb_config->matrox_ntsc) {
-                    mav->regs[0x09] = 0x44;
-                    mav->regs[0x0A] = 0x76;
-                    mav->regs[0x0B] = 0x49;
-                    mav->regs[0x0C] = 0x00;
-                    mav->regs[0x0E] = 0x4E;
-                    mav->regs[0x0F] = 0x03;
-                    mav->regs[0x10] = 0x42;
-                    mav->regs[0x11] = 0x03;
-                    mav->regs[0x1E] = 0xEA;
-                    mav->regs[0x1F] = 0x00;
-                    mav->regs[0x20] = 0xAE;
-                    mav->regs[0x22] = 0xAE;
-                    mav->regs[0x29] = 0x11;
-                    mav->regs[0x2C] = 0x20;
-                    mav->regs[0x33] = 0x14;
-                    mav->regs[0x35] = 0x00;
-                    mav->regs[0x37] = 0xBD;
-                    mav->regs[0x38] = 0xDA;
-                    mav->regs[0x3C] = 0x42;
-                    mav->regs[0x3D] = 0x03;
-               } else {
-                    mav->regs[0x09] = 0x3A;
-                    mav->regs[0x0A] = 0x8A;
-                    mav->regs[0x0B] = 0x38;
-                    mav->regs[0x0C] = 0x28;
-                    mav->regs[0x0E] = 0x46;
-                    mav->regs[0x0F] = 0x01;
-                    mav->regs[0x10] = 0x46;
-                    mav->regs[0x11] = 0x01;
-                    mav->regs[0x1E] = 0xEA;
-                    mav->regs[0x1F] = 0x00;
-                    mav->regs[0x20] = 0xBB;
-                    mav->regs[0x22] = 0xBB;
-                    mav->regs[0x29] = 0x1A;
-                    mav->regs[0x2C] = 0x18;
-                    mav->regs[0x33] = 0x16;
-                    mav->regs[0x35] = 0x00;
-                    mav->regs[0x37] = 0xB9;
-                    mav->regs[0x38] = 0xDD;
-                    mav->regs[0x3C] = 0x46;
-                    mav->regs[0x3D] = 0x00;
-               }
-          } else {
+          if (dfb_config->matrox_tv_std == DSETV_PAL_60) {
+               mav->regs[0x00] = palregs[mdev->g450_matrox][0x00];
+               mav->regs[0x01] = palregs[mdev->g450_matrox][0x01];
+               mav->regs[0x02] = palregs[mdev->g450_matrox][0x02];
+               mav->regs[0x03] = palregs[mdev->g450_matrox][0x03];
+               mav->regs[0x0B] = palregs[mdev->g450_matrox][0x0B];
+               mav->regs[0x0C] = palregs[mdev->g450_matrox][0x0C];
+               mav->regs[0x0E] = palregs[mdev->g450_matrox][0x0E];
+               mav->regs[0x0F] = palregs[mdev->g450_matrox][0x0F];
+               mav->regs[0x10] = palregs[mdev->g450_matrox][0x10];
+               mav->regs[0x11] = palregs[mdev->g450_matrox][0x11];
+               mav->regs[0x1E] = palregs[mdev->g450_matrox][0x1E];
+               mav->regs[0x1F] = palregs[mdev->g450_matrox][0x1F];
+               mav->regs[0x20] = palregs[mdev->g450_matrox][0x20];
+               mav->regs[0x22] = palregs[mdev->g450_matrox][0x22];
+               mav->regs[0x25] = palregs[mdev->g450_matrox][0x25];
+               mav->regs[0x34] = palregs[mdev->g450_matrox][0x34];
+          }
+
+          if (!mdev->g450_matrox) {
                /* gamma */
                mav->regs[0x83] = 0x00;
                mav->regs[0x84] = 0x00;

@@ -96,11 +96,11 @@ crtc2InitEncoder( CoreScreen                  *screen,
      description->type = DSET_TV;
 
      /* Set supported TV standards. */
-     description->tv_standards = DSETV_PAL | DSETV_NTSC;
+     description->tv_standards = DSETV_PAL | DSETV_NTSC | DSETV_PAL_60;
 
      /* Set default configuration. */
      config->flags       = DSECONF_TV_STANDARD;
-     config->tv_standard = dfb_config->matrox_ntsc ? DSETV_NTSC : DSETV_PAL;
+     config->tv_standard = dfb_config->matrox_tv_std;
 
      return DFB_OK;
 }
@@ -238,7 +238,7 @@ crtc2GetScreenSize( CoreScreen *screen,
                     int        *ret_height )
 {
      *ret_width  = 720;
-     *ret_height = dfb_config->matrox_ntsc ? 480 : 576;
+     *ret_height = (dfb_config->matrox_tv_std != DSETV_PAL) ? 480 : 576;
 
      return DFB_OK;
 }
@@ -261,7 +261,7 @@ ScreenFuncs matroxCrtc2ScreenFuncs = {
 
 static void crtc2_wait_vsync( MatroxDriverData *mdrv )
 {
-     int vdisplay = (dfb_config->matrox_ntsc ? 480/2 : 576/2) + 1;
+     int vdisplay = ((dfb_config->matrox_tv_std != DSETV_PAL) ? 480/2 : 576/2) + 1;
 
 #ifdef FBIO_WAITFORVSYNC
      static const int one = 1;
