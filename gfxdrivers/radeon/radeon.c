@@ -1183,41 +1183,6 @@ static void r300SetState( void *drv, void *dev,
 }
 
 
-/* primary screen hook */
-
-static DFBResult
-crtc1WaitVSync( CoreScreen *screen,
-                void       *driver_data,
-                void       *screen_data )
-{
-     RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
-     volatile __u8    *mmio = rdrv->mmio_base; 
-     int               i;
-     
-     if (dfb_config->pollvsync_none)
-          return DFB_OK;
-          
-     radeon_out32( mmio, GEN_INT_STATUS, VSYNC_INT_AK );
-     
-     for (i = 0; i < 2000000; i++) {
-          struct timespec t = { 0, 0 };     
-          
-          if (radeon_in32( mmio, GEN_INT_STATUS ) & VSYNC_INT)
-               break;
-          nanosleep( &t, NULL );
-     }
-
-     return DFB_OK;
-}
-
-ScreenFuncs RadeonPrimaryScreenFuncs = {
-     .WaitVSync = crtc1WaitVSync
-};
-
-ScreenFuncs  OldPrimaryScreenFuncs;
-void        *OldPrimaryScreenDriverData;
-
-
 /* chipset detection */
 
 static int 
@@ -1340,9 +1305,16 @@ driver_init_driver( GraphicsDevice      *device,
      
      /* primary screen */
      dfb_screens_hook_primary( device, driver_data, 
-                               &RadeonPrimaryScreenFuncs,
+                               &RadeonCrtc1ScreenFuncs,
                                &OldPrimaryScreenFuncs,
-                               &OldPrimaryScreenDriverData ); 
+                               &OldPrimaryScreenDriverData );
+                               
+     /* primary layer */
+     dfb_layers_hook_primary( device, driver_data,
+                              &RadeonCrtc1LayerFuncs,
+                              &OldPrimaryLayerFuncs,
+                              &OldPrimaryLayerDriverData );
+                              
      /* overlay support */
      dfb_layers_register( dfb_screens_at( DSCID_PRIMARY ),
                           driver_data, &RadeonOverlayFuncs );

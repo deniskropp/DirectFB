@@ -24,6 +24,7 @@ libdirectfb_radeon_la_SOURCES =	\
 	r100_3d.c			\
 	r200_3d.c			\
 	radeon_overlay.c	\
+	radeon_crtc1.c		\
 	radeon_crtc2.c		\
 	radeon.h			\
 	radeon_chipsets.h	\

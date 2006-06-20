@@ -192,7 +192,8 @@ crtc2WaitVSync( CoreScreen *screen,
      if (dfb_config->pollvsync_none)
           return DFB_OK;
           
-     radeon_out32( mmio, GEN_INT_STATUS, VSYNC2_INT_AK );
+     radeon_out32( mmio, GEN_INT_STATUS, 
+          (radeon_in32( mmio, GEN_INT_STATUS ) & ~VSYNC2_INT) | VSYNC2_INT_AK );
      
      for (i = 0; i < 2000000; i++) {
           struct timespec t = { 0, 0 };     
@@ -249,6 +250,8 @@ ScreenFuncs RadeonCrtc2ScreenFuncs = {
           
 /**************************** CRTC2 Layer functions **************************/
 
+#define CRTC2_SUPPORTED_OPTIONS ( DLOP_ALPHACHANNEL )
+
 static int
 crtc2LayerDataSize()
 {
@@ -275,8 +278,9 @@ crtc2InitLayer( CoreLayer                  *layer,
      }
      
      /* Fill layer description. */
-     description->caps = DLCAPS_SURFACE  | DLCAPS_BRIGHTNESS |
-                         DLCAPS_CONTRAST | DLCAPS_SATURATION;
+     description->caps = DLCAPS_SURFACE     | DLCAPS_BRIGHTNESS |
+                         DLCAPS_CONTRAST    | DLCAPS_SATURATION |
+                         DLCAPS_ALPHACHANNEL;
      
      description->type = DLTF_GRAPHICS;
      
@@ -325,12 +329,25 @@ crtc2TestRegion( CoreLayer                  *layer,
                  CoreLayerRegionConfig      *config,
                  CoreLayerRegionConfigFlags *failed )
 {
-     RadeonDriverData           *rdrv = (RadeonDriverData*) driver_data;
-     CoreLayerRegionConfigFlags  fail = 0;
+     RadeonDriverData           *rdrv    = (RadeonDriverData*) driver_data;
+     CoreLayerRegionConfigFlags  fail    = 0;
+     int                         ovlevel = 1;
 
      /* check for unsupported options */
-     if (config->options != DLOP_NONE)
+     if (config->options & ~CRTC2_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
+          
+     dfb_layer_get_level( dfb_layer_at( 3 ), &ovlevel );
+          
+     if (ovlevel < 0) {
+          if (config->options & DLOP_ALPHACHANNEL &&
+              config->format != DSPF_ARGB)
+               fail |= CLRCF_OPTIONS;
+     }
+     else {
+          if (config->options & DLOP_ALPHACHANNEL)
+               fail |= CLRCF_OPTIONS;
+     }
           
      /* check for unsupported buffermode */
      switch (config->buffermode) {
@@ -354,7 +371,6 @@ crtc2TestRegion( CoreLayer                  *layer,
           case DSPF_RGB24:
           case DSPF_RGB32:
           case DSPF_ARGB:
-          case DSPF_AiRGB:
                break;
                
           default:
@@ -648,7 +664,6 @@ crtc2_calc_regs( RadeonDriverData      *rdrv,
                break;
           case DSPF_RGB32:
           case DSPF_ARGB:
-          case DSPF_AiRGB:
                format = DST_32BPP;
                break;
           default:

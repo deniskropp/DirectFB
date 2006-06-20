@@ -60,6 +60,7 @@ typedef struct {
      float                  saturation;
      float                  hue;
      int                    field;
+     int                    level;
    
      CoreScreen            *screen;
      int                    crtc2;
@@ -123,7 +124,7 @@ static void ovl_set_adjustment( RadeonDriverData        *rdrv,
                                 float                    saturation,
                                 float                    hue );
                 
-#define OV0_SUPPORTED_OPTIONS \
+#define OVL_SUPPORTED_OPTIONS \
      ( DLOP_DST_COLORKEY | DLOP_OPACITY | DLOP_DEINTERLACING )
 
 /**********************/
@@ -150,6 +151,8 @@ ovlInitLayer( CoreLayer                  *layer,
      dfb_screen_get_info( layer->screen, NULL, &dsc );
      if (strstr( dsc.name, "CRTC2" ))
           rovl->crtc2 = 1;
+          
+     rovl->level = 1;
      
      /* fill layer description */
      description->type = DLTF_GRAPHICS | DLTF_VIDEO | DLTF_STILL_PICTURE;
@@ -157,7 +160,7 @@ ovlInitLayer( CoreLayer                  *layer,
                          DLCAPS_BRIGHTNESS    | DLCAPS_CONTRAST        |
                          DLCAPS_SATURATION    | DLCAPS_HUE             |
                          DLCAPS_DST_COLORKEY  | DLCAPS_OPACITY         |
-                         DLCAPS_DEINTERLACING;
+                         DLCAPS_DEINTERLACING | DLCAPS_LEVELS;
 
      snprintf( description->name,
                DFB_DISPLAY_LAYER_DESC_NAME_LENGTH, 
@@ -182,13 +185,12 @@ ovlInitLayer( CoreLayer                  *layer,
      adjustment->hue        = 0x8000;
 
      /* reset overlay */
-     radeon_waitfifo( rdrv, rdrv->device_data, 6 );
      radeon_out32( mmio, OV0_SCALE_CNTL, SCALER_SOFT_RESET ); 
      radeon_out32( mmio, OV0_AUTO_FLIP_CNTL, 0 );
      radeon_out32( mmio, OV0_DEINTERLACE_PATTERN, 0 );
      radeon_out32( mmio, OV0_EXCLUSIVE_HORZ, 0 ); 
      radeon_out32( mmio, OV0_FILTER_CNTL, FILTER_HARDCODED_COEF );
-     radeon_out32( mmio, OV0_TEST, 0 ); 
+     radeon_out32( mmio, OV0_TEST, 0 );
      
      /* reset color adjustments */
      ovl_set_adjustment( rdrv, rovl, 0, 0, 0, 0 );
@@ -203,15 +205,22 @@ ovlTestRegion( CoreLayer                  *layer,
                CoreLayerRegionConfig      *config,
                CoreLayerRegionConfigFlags *failed )
 {
-     CoreLayerRegionConfigFlags fail = 0;
+     RadeonOverlayLayerData     *rovl = (RadeonOverlayLayerData*) layer_data;
+     CoreLayerRegionConfigFlags  fail = 0;
 
      /* check for unsupported options */
-     if (config->options & ~OV0_SUPPORTED_OPTIONS)
+     if (config->options & ~OVL_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
 
-     if (config->options & DLOP_OPACITY &&
-         config->options & (DLOP_SRC_COLORKEY | DLOP_DST_COLORKEY))
-          fail |= CLRCF_OPTIONS;
+     if (rovl->level == -1) {
+          if (config->options & ~DLOP_DEINTERLACING)
+               fail |= CLRCF_OPTIONS;
+     }
+     else {
+          if (config->options &  DLOP_OPACITY &&
+              config->options & (DLOP_SRC_COLORKEY | DLOP_DST_COLORKEY))
+               fail |= CLRCF_OPTIONS;
+     }
 
      /* check buffermode */
      switch (config->buffermode) {
@@ -383,6 +392,45 @@ ovlSetInputField( CoreLayer *layer,
 }
 
 static DFBResult
+ovlGetLevel( CoreLayer *layer,
+             void      *driver_data,
+             void      *layer_data,
+             int       *level )
+{
+     RadeonOverlayLayerData *rovl = (RadeonOverlayLayerData*) layer_data;
+     
+     *level = rovl->level;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+ovlSetLevel( CoreLayer *layer,
+             void      *driver_data,
+             void      *layer_data,
+             int        level )
+{
+     RadeonDriverData       *rdrv = (RadeonDriverData*) driver_data;
+     RadeonOverlayLayerData *rovl = (RadeonOverlayLayerData*) layer_data;
+     
+     if (!rovl->surface)
+          return DFB_UNSUPPORTED;
+     
+     switch (level) {
+          case -1:
+          case  1:
+               rovl->level = level;
+               ovl_calc_regs( rdrv, rovl, rovl->surface, &rovl->config );
+               ovl_set_regs( rdrv, rovl );
+               break;
+          default:
+               return DFB_UNSUPPORTED;
+     }
+     
+     return DFB_OK;
+}
+
+static DFBResult
 ovlRemoveRegion( CoreLayer *layer,
                  void      *driver_data,
                  void      *layer_data,
@@ -408,7 +456,9 @@ DisplayLayerFuncs RadeonOverlayFuncs = {
      .RemoveRegion       = ovlRemoveRegion,
      .FlipRegion         = ovlFlipRegion,
      .SetColorAdjustment = ovlSetColorAdjustment,
-     .SetInputField      = ovlSetInputField
+     .SetInputField      = ovlSetInputField,
+     .GetLevel           = ovlGetLevel,
+     .SetLevel           = ovlSetLevel
 };
 
 
@@ -665,8 +715,16 @@ ovl_calc_regs( RadeonDriverData       *rdrv,
      /* Configure buffers */                                   
      ovl_calc_buffers( rdrv, rovl, surface, config );
      
-     /* Configure options */
-     if (config->options & DLOP_OPACITY) {
+     /* Configure scaler */
+     if (rovl->level == -1) {
+          rovl->regs.KEY_CNTL   = GRAPHIC_KEY_FN_FALSE |
+                                  VIDEO_KEY_FN_FALSE   |
+                                  CMP_MIX_AND;
+          rovl->regs.MERGE_CNTL = DISP_ALPHA_MODE_PER_PIXEL |
+                                  0x00ff0000 | /* graphic alpha */
+                                  0xff000000; /* overlay alpha */
+     }
+     else if (config->options & DLOP_OPACITY) {
           rovl->regs.KEY_CNTL   = GRAPHIC_KEY_FN_TRUE |
                                   VIDEO_KEY_FN_TRUE   |
                                   CMP_MIX_AND;
@@ -690,7 +748,6 @@ ovl_calc_regs( RadeonDriverData       *rdrv,
           rovl->regs.MERGE_CNTL = 0xffff0000;
      }
      
-     /* Enable scaler */
      if (config->opacity) {
           rovl->regs.SCALE_CNTL = SCALER_SMART_SWITCH   |
                                   SCALER_DOUBLE_BUFFER  |

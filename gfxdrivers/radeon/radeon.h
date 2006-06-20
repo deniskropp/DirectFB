@@ -156,10 +156,19 @@ typedef struct {
 
 extern void radeon_reset( RadeonDriverData *rdrv, RadeonDeviceData *rdev );
 
-extern DisplayLayerFuncs RadeonOverlayFuncs;
+extern ScreenFuncs        RadeonCrtc1ScreenFuncs;
+extern ScreenFuncs        OldPrimaryScreenFuncs;
+extern void              *OldPrimaryScreenDriverData;
 
-extern ScreenFuncs       RadeonCrtc2ScreenFuncs;
+extern DisplayLayerFuncs  RadeonCrtc1LayerFuncs;
+extern DisplayLayerFuncs  OldPrimaryLayerFuncs;
+extern void              *OldPrimaryLayerDriverData;
 
-extern DisplayLayerFuncs RadeonCrtc2LayerFuncs;
+extern DisplayLayerFuncs  RadeonOverlayFuncs;
+
+extern ScreenFuncs        RadeonCrtc2ScreenFuncs;
+
+extern DisplayLayerFuncs  RadeonCrtc2LayerFuncs;
+
 
 #endif /* __RADEON_H__ */
