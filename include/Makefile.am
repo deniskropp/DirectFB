@@ -82,6 +82,9 @@ directfb_strings.h: directfb.h mknames.sh Makefile
 	$(MKNAMES) DFBScreenOutputSignals DSOS NONE ScreenOutputSignals signal $(INCP)/directfb.h \
 	   | grep -v DSOS_ALL >> $@
 
+	$(MKNAMES) DFBScreenOutputSlowBlankingSignals DSOSB OFF ScreenOutputSlowBlankingSignals slow_signal $(INCP)/directfb.h \
+	   | grep -v DSOSB_ALL >> $@
+
 	$(MKNAMES) DFBScreenMixerCapabilities DSMCAPS NONE ScreenMixerCapabilities capability $(INCP)/directfb.h \
 	   | grep -v DSMCAPS_ALL >> $@
 

@@ -1924,8 +1924,8 @@ typedef enum {
      DSOCAPS_ENCODER_SEL   = 0x00000010, /* Encoder can be selected. */
      DSOCAPS_SIGNAL_SEL    = 0x00000020, /* Signal(s) can be selected. */
      DSOCAPS_CONNECTOR_SEL = 0x00000040, /* Connector(s) can be selected. */
-
-     DSOCAPS_ALL           = 0x00000071
+     DSOCAPS_SLOW_BLANKING = 0x00000080, /* Slow Blanking on outputs is supported. */
+     DSOCAPS_ALL           = 0x000000F1
 } DFBScreenOutputCapabilities;
 
 /*
@@ -1937,7 +1937,10 @@ typedef enum {
      DSOC_VGA            = 0x00000001, /* VGA connector */
      DSOC_SCART          = 0x00000002, /* SCART connector */
      DSOC_YC             = 0x00000004, /* Y/C connector */
-     DSOC_CVBS           = 0x00000008  /* CVBS connector */
+     DSOC_CVBS           = 0x00000008, /* CVBS connector */
+     DSOC_SCART2         = 0x00000010, /* 2nd SCART connector */
+     DSOC_COMPONENT      = 0x00000020, /* Component video connector */
+     DSOC_HDMI           = 0x00000040  /* HDMI connector */
 } DFBScreenOutputConnectors;
 
 /*
@@ -1950,9 +1953,21 @@ typedef enum {
      DSOS_YC             = 0x00000002, /* Y/C signal */
      DSOS_CVBS           = 0x00000004, /* CVBS signal */
      DSOS_RGB            = 0x00000008, /* R/G/B signal */
-     DSOS_YCBCR          = 0x00000010  /* Y/Cb/Cr signal */
+     DSOS_YCBCR          = 0x00000010, /* Y/Cb/Cr signal */
+     DSOS_HDMI           = 0x00000020  /* HDMI signal */
 } DFBScreenOutputSignals;
 
+
+/*
+ * Type of slow blanking signalling.
+ */
+typedef enum {
+     DSOSB_OFF           = 0x00000000, /* No signal */
+     DSOSB_16x9          = 0x00000001, /* 16*9 Widescreen signalling */
+     DSOSB_4x3           = 0x00000002, /* 4*3 widescreen signalling */
+     DSOSB_FOLLOW        = 0x00000004, /* Follow signalling */
+     DSOSB_MONITOR       = 0x00000008  /* Monitor */
+} DFBScreenOutputSlowBlankingSignals;
 
 #define DFB_SCREEN_OUTPUT_DESC_NAME_LENGTH    24
 
@@ -1977,8 +1992,9 @@ typedef enum {
      DSOCONF_ENCODER      = 0x00000001, /* Set encoder the signal(s) comes from. */
      DSOCONF_SIGNALS      = 0x00000002, /* Select signal(s) from encoder. */
      DSOCONF_CONNECTORS   = 0x00000004, /* Select output connector(s). */
+     DSOCONF_SLOW_BLANKING= 0x00000008, /* Can select slow blanking support. */
 
-     DSOCONF_ALL          = 0x00000007
+     DSOCONF_ALL          = 0x0000000F
 } DFBScreenOutputConfigFlags;
 
 /*
@@ -1990,6 +2006,7 @@ typedef struct {
      int                         encoder;        /* Chosen encoder. */
      DFBScreenOutputSignals      out_signals;    /* Selected encoder signal(s). */
      DFBScreenOutputConnectors   out_connectors; /* Selected output connector(s). */
+     DFBScreenOutputSlowBlankingSignals     slow_blanking;/* Slow Blanking signals. */
 } DFBScreenOutputConfig;
 
 

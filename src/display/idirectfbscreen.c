@@ -611,6 +611,9 @@ PatchOutputConfig( DFBScreenOutputConfig       *patched,
      if (patch->flags & DSOCONF_CONNECTORS)
           patched->out_connectors = patch->out_connectors;
 
+     if (patch->flags & DSOCONF_SLOW_BLANKING)
+          patched->slow_blanking = patch->slow_blanking;
+
      return DFB_OK;
 }
 
