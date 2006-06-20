@@ -1282,8 +1282,37 @@ typedef enum {
      DVCAPS_CONTRAST    = 0x00000020,  /* supports Contrast adjustment   */
      DVCAPS_HUE         = 0x00000040,  /* supports Hue adjustment        */
      DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment */
-     DVCAPS_INTERACTIVE = 0x00000100   /* supports SendEvent             */
+     DVCAPS_INTERACTIVE = 0x00000100,  /* supports SendEvent             */
+     DVCAPS_TRICKMODE_FF = 0x00000200,  /* supports TrickMode FastForwarding*/
+     DVCAPS_TRICKMODE_RW = 0x00000400   /* supports TrickMode Rewinding     */
 } DFBVideoProviderCapabilities;
+
+
+/*
+ * Enum specifying the TrickMode speed to choose.
+ */
+typedef enum {
+     DVTRICKMODE_1_32 = 0, /*TrickMode Speed of 1/32x*/
+     DVTRICKMODE_1_16,     /*TrickMode Speed of 1/16x*/
+     DVTRICKMODE_1_8,      /*TrickMode Speed of 1/8x*/
+     DVTRICKMODE_1_4,      /*TrickMode Speed of 1/4x*/
+     DVTRICKMODE_1_2,      /*TrickMode Speed of 1/2x*/
+     DVTRICKMODE_1,        /*TrickMode Speed of 1 (play)*/
+     DVTRICKMODE_2,        /*TrickMode Speed of 2x*/
+     DVTRICKMODE_4,        /*TrickMode Speed of 4x*/
+     DVTRICKMODE_8,        /*TrickMode Speed of 8x*/
+     DVTRICKMODE_16,       /*TrickMode Speed of 16x*/
+     DVTRICKMODE_32        /*TrickMode Speed of 32x*/
+} DFBVideoProviderTrickModeSpeed;
+
+/*
+ * Enum Specifying the type of TrickMode.
+ */
+typedef enum {
+     DVTRICKMODE_NONE  = 0x00000000,  /* Specify TrickMode off none (off - play)*/
+     DVTRICKMODE_FF    = 0x00000001,  /* Specify the TrickMode to be FastForward*/
+     DVTRICKMODE_RW    = 0x00000002   /* Specify the TrickMode to be Rewind     */
+} DFBVideoProviderTrickMode;
 
 /*
  * Information about the status of an IDirectFBVideoProvider.
@@ -1291,8 +1320,10 @@ typedef enum {
 typedef enum {
      DVSTATE_UNKNOWN    = 0x00000000, /* unknown status            */
      DVSTATE_PLAY       = 0x00000001, /* video provider is playing */
-     DVSTATE_STOP       = 0x00000002, /* playback was stopped      */
-     DVSTATE_FINISHED   = 0x00000003  /* playback is finished      */
+     DVSTATE_FF         = 0x00000002, /* video provider is in trickmode FF mode */
+     DVSTATE_RW         = 0x00000003, /* video provider is in trickmode RW mode */
+     DVSTATE_STOP       = 0x00000004, /* playback was stopped      */
+     DVSTATE_FINISHED   = 0x00000005  /* playback is finished      */
 } DFBVideoProviderStatus;
 
 /*
@@ -5018,6 +5049,27 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*SendEvent) (
           IDirectFBVideoProvider   *thiz,
           const DFBEvent           *event
+     );
+
+
+     /*
+      * Specify that you want this video provider to go into
+      * TrickMode.
+      * You specify a Direction and Speed.  Setting none stops it
+      * being in TrickMode and means it should start playing normally.
+      */
+     DFBResult (*TrickMode) (
+          IDirectFBVideoProvider   *thiz,
+          const DFBVideoProviderTrickMode trickMode,
+          const DFBVideoProviderTrickModeSpeed speed
+     );
+
+     /*
+      * Get the currently selected trickmode speed.
+      */
+     DFBResult (*GetTrickModeSpeed) (
+          IDirectFBVideoProvider   *thiz,
+          DFBVideoProviderTrickModeSpeed   *ret_speed
      );
 )
 

@@ -173,6 +173,21 @@ IDirectFBVideoProvider_SendEvent( IDirectFBVideoProvider *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBVideoProvider_TrickMode( IDirectFBVideoProvider   *thiz,
+                                  const DFBVideoProviderTrickMode trickMode,
+                                  const DFBVideoProviderTrickModeSpeed speed )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetTrickModeSpeed( IDirectFBVideoProvider   *thiz,
+                                          DFBVideoProviderTrickModeSpeed   *ret_speed )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
 static void
 IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
 {
@@ -190,6 +205,8 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_SetColorAdjustment;
      thiz->SendEvent             = IDirectFBVideoProvider_SendEvent;
+     thiz->TrickMode             = IDirectFBVideoProvider_TrickMode;
+     thiz->GetTrickModeSpeed     = IDirectFBVideoProvider_GetTrickModeSpeed;
 }
 
 
