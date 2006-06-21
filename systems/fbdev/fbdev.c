@@ -1777,8 +1777,10 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
           }
 
           if (format != config->format) {
-               if (DFB_BYTES_PER_PIXEL(format) == 1 ||
-                   (format == DSPF_ARGB && config->format == DSPF_AiRGB))
+               if (DFB_BYTES_PER_PIXEL(format) == 1                      ||
+                  (format == DSPF_RGB32 && config->format == DSPF_ARGB)  ||
+                  (format == DSPF_RGB32 && config->format == DSPF_AiRGB) ||
+                  (format == DSPF_ARGB  && config->format == DSPF_AiRGB))
                     format = config->format;
           }
 
