@@ -974,7 +974,7 @@ vo_dfb_set_palette( dfb_driver_t          *this,
                     u = proc_table.uv[*(clut+0)];
                     v = proc_table.uv[*(clut+1)];
                     
-                    palette[i].yuv.a = trans[i] * 255 / 15;
+                    palette[i].yuv.a = trans[i] * 17;
                     palette[i].yuv.y = y;
                     palette[i].yuv.u = u;
                     palette[i].yuv.v = v;
@@ -992,7 +992,7 @@ vo_dfb_set_palette( dfb_driver_t          *this,
                     g = y + proc_table.vg[v] + proc_table.ug[u];
                     b = y                    + proc_table.ub[u];
                     
-                    palette[i].rgb.a = trans[i] * 255 / 15;
+                    palette[i].rgb.a = trans[i] * 17;
                     palette[i].rgb.r = CLAMP( r, 0, 0xff );
                     palette[i].rgb.g = CLAMP( g, 0, 0xff );
                     palette[i].rgb.b = CLAMP( b, 0, 0xff );
@@ -1093,9 +1093,11 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
      subclip.y2 = y + overlay->HILI(bottom);
      
      if (use_ovl) {
-          IDirectFBSurface_data *ovl_data  = this->ovl_data;
-          int                    r         = 0;
-          DFBRectangle           rects[98];
+#define MAX_RECTS 100
+          IDirectFBSurface_data *ovl_data = this->ovl_data;
+          DFBRectangle           rects[MAX_RECTS];
+          int                    r        = 0;
+          DFBColor              *p_color  = NULL;
           
           if (!this->ovl_changed)
                return;
@@ -1144,22 +1146,29 @@ vo_dfb_overlay_blend( vo_driver_t  *vo_driver,
                     }
               
                     if (palette[index].rgb.a) {
+                         DFBColor *color = (DFBColor*)&palette[index];
+                         
+                         if (r == MAX_RECTS || (p_color && p_color != color)) {
+                              dfb_gfxcard_fillrectangles( &rects[0], r, &this->state );
+                              r = 0;
+                         }
+                         
+                         if (p_color != color) {
+                              dfb_state_set_color( &this->state, color );
+                              p_color = color;
+                         }
+                             
                          rects[r].x = x;
                          rects[r].y = y;
                          rects[r].w = width;
                          rects[r].h = 1;
-                         r++;
-
-                         dfb_state_set_color( &this->state,
-                                              (DFBColor*) &palette[index] );
-
-                         if (this->state.modified & SMF_COLOR   ||
-                             r == (sizeof(rects)/sizeof(rects[0])))
-                         {
-                              dfb_gfxcard_fillrectangles( &rects[0], r,
-                                                          &this->state );
-                              r = 0;
+                         if (r) {
+                              if (rects[r].x == rects[r-1].x &&
+                                  rects[r].w == rects[r-1].w &&
+                                  rects[r].y == rects[r-1].y+rects[r-1].h)
+                                   rects[--r].h++;
                          }
+                         r++;
                     }
             
                     x += width;
