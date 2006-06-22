@@ -329,25 +329,15 @@ crtc2TestRegion( CoreLayer                  *layer,
                  CoreLayerRegionConfig      *config,
                  CoreLayerRegionConfigFlags *failed )
 {
-     RadeonDriverData           *rdrv    = (RadeonDriverData*) driver_data;
-     CoreLayerRegionConfigFlags  fail    = 0;
-     int                         ovlevel = 1;
+     RadeonDriverData           *rdrv = (RadeonDriverData*) driver_data;
+     CoreLayerRegionConfigFlags  fail = 0;
 
      /* check for unsupported options */
      if (config->options & ~CRTC2_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
           
-     dfb_layer_get_level( dfb_layer_at( 3 ), &ovlevel );
-          
-     if (ovlevel < 0) {
-          if (config->options & DLOP_ALPHACHANNEL &&
-              config->format != DSPF_ARGB)
-               fail |= CLRCF_OPTIONS;
-     }
-     else {
-          if (config->options & DLOP_ALPHACHANNEL)
-               fail |= CLRCF_OPTIONS;
-     }
+     if (config->options & DLOP_ALPHACHANNEL && config->format != DSPF_ARGB)
+          fail |= CLRCF_OPTIONS;
           
      /* check for unsupported buffermode */
      switch (config->buffermode) {

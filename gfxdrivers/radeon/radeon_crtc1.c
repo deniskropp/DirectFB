@@ -86,6 +86,8 @@ void        *OldPrimaryScreenDriverData;
 
 /*************************** CRTC1 Layer functions **************************/
 
+#define CRTC1_SUPPORTED_OPTIONS ( DLOP_ALPHACHANNEL )
+
 static DFBResult
 crtc1InitLayer( CoreLayer                  *layer,
                 void                       *driver_data,
@@ -114,28 +116,21 @@ crtc1TestRegion( CoreLayer                  *layer,
                  CoreLayerRegionConfigFlags *failed )
 {
      CoreLayerRegionConfig      layer_config;
-     CoreLayerRegionConfigFlags fail         = 0;
-     int                        ovlevel      = 1;
+     CoreLayerRegionConfigFlags fail = 0;
      DFBResult                  ret;
          
      layer_config = *config;
-     layer_config.options &= ~DLOP_ALPHACHANNEL;
+     layer_config.options &= ~CRTC1_SUPPORTED_OPTIONS;
      
      ret = OldPrimaryLayerFuncs.TestRegion( layer,
                                             OldPrimaryLayerDriverData,
                                             layer_data, &layer_config, &fail );
-   
-     dfb_layer_get_level( dfb_layer_at( 1 ), &ovlevel );
-            
-     if (ovlevel < 0) {
-          if (config->options & DLOP_ALPHACHANNEL && 
-              config->format != DSPF_ARGB)
-               fail |= CLRCF_OPTIONS;
-     }
-     else {
-          if (config->options & DLOP_ALPHACHANNEL)
-               fail |= CLRCF_OPTIONS;
-     }
+      
+     if (config->options & ~CRTC1_SUPPORTED_OPTIONS)
+          fail |= CLRCF_OPTIONS;
+          
+     if (config->options & DLOP_ALPHACHANNEL && config->format != DSPF_ARGB)
+          fail |= CLRCF_OPTIONS;
      
      if (failed)
           *failed = fail;
