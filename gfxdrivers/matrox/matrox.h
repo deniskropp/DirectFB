@@ -89,9 +89,9 @@ typedef struct {
 
      /* Stored values */
      int dst_pitch;
-     int dst_offset[3];
+     int dst_offset[2][3];
      int src_pitch;
-     int src_offset[3];
+     int src_offset[2][3];
      int w, h, w2, h2;
      __u32 color[3];
 
@@ -99,6 +99,7 @@ typedef struct {
      bool blit_src_colorkey;
 
      bool blit_deinterlace;
+     bool blit_fields;
      int field;
 
      bool depth_buffer;

@@ -47,6 +47,89 @@
 
 #define MGA_KEYMASK(format)   ((1 << DFB_COLOR_BITS_PER_PIXEL(format)) - 1)
 
+static void matrox_calc_offsets( MatroxDeviceData *mdev,
+                                 CoreSurface      *surface,
+                                 SurfaceBuffer    *buffer,
+                                 bool              unit_pixel,
+                                 int               offset[2][3] )
+{
+     int bytes_per_pixel = DFB_BYTES_PER_PIXEL( surface->format );
+     int pitch;
+
+     if (unit_pixel) {
+          offset[0][0] = buffer->video.offset / bytes_per_pixel;
+          pitch        = buffer->video.pitch / bytes_per_pixel;
+     } else {
+          offset[0][0] = mdev->fb.offset + buffer->video.offset;
+          pitch        = buffer->video.pitch;
+     }
+
+     switch (surface->format) {
+     case DSPF_NV12:
+     case DSPF_NV21:
+          offset[0][1] = offset[0][0] + surface->height * pitch;
+          offset[0][2] = 0;
+          break;
+     case DSPF_I420:
+          offset[0][1] = offset[0][0] + surface->height * pitch;
+          offset[0][2] = offset[0][1] + surface->height/2 * pitch/2;
+          break;
+     case DSPF_YV12:
+          offset[0][2] = offset[0][0] + surface->height * pitch;
+          offset[0][1] = offset[0][2] + surface->height/2 * pitch/2;
+          break;
+     default:
+          offset[0][1] = 0;
+          offset[0][2] = 0;
+     }
+
+     D_ASSERT( offset[0][0] % 64 == 0 );
+     D_ASSERT( offset[0][1] % 64 == 0 );
+     D_ASSERT( offset[0][2] % 64 == 0 );
+
+     if (mdev->blit_fields || mdev->blit_deinterlace) {
+          if (surface->caps & DSCAPS_SEPARATED) {
+               offset[1][0] = offset[0][0] + surface->height/2 * pitch;
+               switch (surface->format) {
+               case DSPF_NV12:
+               case DSPF_NV21:
+                    offset[1][1] = offset[0][1] + surface->height/4 * pitch;
+                    offset[1][2] = 0;
+                    break;
+               case DSPF_I420:
+               case DSPF_YV12:
+                    offset[1][1] = offset[0][1] + surface->height/4 * pitch/2;
+                    offset[1][2] = offset[0][2] + surface->height/4 * pitch/2;
+                    break;
+               default:
+                    offset[1][1] = 0;
+                    offset[1][2] = 0;
+               }
+          } else {
+               offset[1][0] = offset[0][0] + pitch;
+               switch (surface->format) {
+               case DSPF_NV12:
+               case DSPF_NV21:
+                    offset[1][1] = offset[0][1] + pitch;
+                    offset[1][2] = 0;
+                    break;
+               case DSPF_I420:
+               case DSPF_YV12:
+                    offset[1][1] = offset[0][1] + pitch/2;
+                    offset[1][2] = offset[0][2] + pitch/2;
+                    break;
+               default:
+                    offset[1][1] = 0;
+                    offset[1][2] = 0;
+               }
+          }
+
+          D_ASSERT( offset[1][0] % 64 == 0 );
+          D_ASSERT( offset[1][1] % 64 == 0 );
+          D_ASSERT( offset[1][2] % 64 == 0 );
+     }
+}
+
 void matrox_set_destination( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CoreSurface      *destination )
@@ -58,33 +141,21 @@ void matrox_set_destination( MatroxDriverData *mdrv,
 
      mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
 
-     D_ASSERT( mdev->dst_pitch % 32 == 0 );
-
-     D_ASSERT( buffer->video.offset % 64 == 0 );
-
      mdev->depth_buffer = depth_buffer != NULL;
 
      if (destination->format == DSPF_YUY2 || destination->format == DSPF_UYVY)
           mdev->dst_pitch /= 2;
 
-     if (mdev->old_matrox) {
-          mdev->dst_offset[0] = buffer->video.offset / bytes_per_pixel;
-     } else {
-          mdev->dst_offset[0] = mdev->fb.offset + buffer->video.offset;
-          if (destination->format == DSPF_I420) {
-               mdev->dst_offset[1] = mdev->dst_offset[0] + destination->height * buffer->video.pitch;
-               mdev->dst_offset[2] = mdev->dst_offset[1] + destination->height * buffer->video.pitch / 4;
-          } else if (destination->format == DSPF_YV12) {
-               mdev->dst_offset[2] = mdev->dst_offset[0] + destination->height * buffer->video.pitch;
-               mdev->dst_offset[1] = mdev->dst_offset[2] + destination->height * buffer->video.pitch / 4;
-          } else if (destination->format == DSPF_NV12 || destination->format == DSPF_NV21) {
-               mdev->dst_offset[1] = mdev->dst_offset[0] + destination->height * buffer->video.pitch;
-          }
-     }
+     if (mdev->blit_fields && !(destination->caps & DSCAPS_SEPARATED))
+          mdev->dst_pitch *= 2;
+
+     D_ASSERT( mdev->dst_pitch % 32 == 0 );
+
+     matrox_calc_offsets( mdev, destination, buffer, mdev->old_matrox, mdev->dst_offset );
 
      mga_waitfifo( mdrv, mdev, depth_buffer ? 4 : 3 );
 
-     mga_out32( mmio, mdev->dst_offset[0], mdev->old_matrox ? YDSTORG : DSTORG );
+     mga_out32( mmio, mdev->dst_offset[0][0], mdev->old_matrox ? YDSTORG : DSTORG );
      mga_out32( mmio, mdev->dst_pitch, PITCH );
 
      if (depth_buffer)
@@ -136,9 +207,9 @@ void matrox_set_clip( MatroxDriverData *mdrv,
      mga_waitfifo( mdrv, mdev, 3 );
 
      if (mdev->old_matrox) {
-          mga_out32( mmio, (mdev->dst_offset[0] +
+          mga_out32( mmio, (mdev->dst_offset[0][0] +
                             mdev->dst_pitch * clip->y1) & 0xFFFFFF, YTOP );
-          mga_out32( mmio, (mdev->dst_offset[0] +
+          mga_out32( mmio, (mdev->dst_offset[0][0] +
                             mdev->dst_pitch * clip->y2) & 0xFFFFFF, YBOT );
      }
      else {
@@ -510,55 +581,30 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
 
      mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
      mdev->field     = surface->field;
-
-     D_ASSERT( mdev->src_pitch % 32 == 0 );
-
-     D_ASSERT( buffer->video.offset % 32 == 0 );
-
-     mdev->src_offset[0] = mdev->fb.offset + buffer->video.offset;
-     if (surface->format == DSPF_I420) {
-          mdev->src_offset[1] = mdev->src_offset[0] + surface->height * buffer->video.pitch;
-          mdev->src_offset[2] = mdev->src_offset[1] + surface->height * buffer->video.pitch / 4;
-     } else if (surface->format == DSPF_YV12) {
-          mdev->src_offset[2] = mdev->src_offset[0] + surface->height * buffer->video.pitch;
-          mdev->src_offset[1] = mdev->src_offset[2] + surface->height * buffer->video.pitch / 4;
-     } else if (surface->format == DSPF_NV12 || surface->format == DSPF_NV21) {
-          mdev->src_offset[1] = mdev->src_offset[0] + surface->height * buffer->video.pitch;
-     }
-
-     mdev->w = surface->width;
-     mdev->h = surface->height;
+     mdev->w         = surface->width;
+     mdev->h         = surface->height;
 
      if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
           mdev->w /= 2;
           mdev->src_pitch /= 2;
      }
 
-     if (mdev->blit_deinterlace) {
+     if (mdev->blit_deinterlace || mdev->blit_fields) {
           mdev->h /= 2;
-          if (surface->caps & DSCAPS_SEPARATED) {
-               if (mdev->field) {
-                    mdev->src_offset[0] += mdev->h * buffer->video.pitch;
-                    if (surface->format == DSPF_NV12 || surface->format == DSPF_NV21) {
-                         mdev->src_offset[1] += mdev->h * buffer->video.pitch / 2;
-                    } else {
-                         mdev->src_offset[1] += mdev->h * buffer->video.pitch / 4;
-                         mdev->src_offset[2] += mdev->h * buffer->video.pitch / 4;
-                    }
-               }
-          } else {
+          if (!(surface->caps & DSCAPS_SEPARATED))
                mdev->src_pitch *= 2;
-               if (mdev->field) {
-                    mdev->src_offset[0] += buffer->video.pitch;
-                    if (surface->format == DSPF_NV12 || surface->format == DSPF_NV21) {
-                         mdev->src_offset[1] += buffer->video.pitch;
-                    } else {
-                         mdev->src_offset[1] += buffer->video.pitch / 2;
-                         mdev->src_offset[2] += buffer->video.pitch / 2;
-                    }
-               }
-          }
      }
+
+     D_ASSERT( mdev->src_pitch % 32 == 0 );
+
+     matrox_calc_offsets( mdev, surface, buffer, false, mdev->src_offset );
+
+     if (mdev->blit_deinterlace && mdev->field) {
+          mdev->src_offset[0][0] = mdev->src_offset[1][0];
+          mdev->src_offset[0][1] = mdev->src_offset[1][1];
+          mdev->src_offset[0][2] = mdev->src_offset[1][1];
+     }
+
      mdev->w2 = mga_log2( mdev->w );
      mdev->h2 = mga_log2( mdev->h );
 
@@ -641,7 +687,7 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                         (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
                         (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
 
-     mga_out32( mmio, mdev->src_offset[0], TEXORG );
+     mga_out32( mmio, mdev->src_offset[0][0], TEXORG );
 
      MGA_VALIDATE( m_Source );
 }
@@ -660,28 +706,19 @@ void matrox_validate_source( MatroxDriverData *mdrv,
 
      mdev->src_pitch = buffer->video.pitch / bytes_per_pixel;
 
-     D_ASSERT( mdev->src_pitch % 32 == 0 );
-
-     D_ASSERT( buffer->video.offset % 64 == 0 );
-
      if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY)
           mdev->src_pitch /= 2;
 
-     if (mdev->old_matrox) {
-          mdev->src_offset[0] = buffer->video.offset / bytes_per_pixel;
-     } else {
-          mdev->src_offset[0] = mdev->fb.offset + buffer->video.offset;
-          if (surface->format == DSPF_I420) {
-               mdev->src_offset[1] = mdev->src_offset[0] + surface->height * buffer->video.pitch;
-               mdev->src_offset[2] = mdev->src_offset[1] + surface->height * buffer->video.pitch / 4;
-          } else if (surface->format == DSPF_YV12) {
-               mdev->src_offset[2] = mdev->src_offset[0] + surface->height * buffer->video.pitch;
-               mdev->src_offset[1] = mdev->src_offset[2] + surface->height * buffer->video.pitch / 4;
-          } else if (surface->format == DSPF_NV12 || surface->format == DSPF_NV21) {
-               mdev->src_offset[1] = mdev->src_offset[0] + surface->height * buffer->video.pitch;
-          }
+     if (mdev->blit_fields && !(surface->caps & DSCAPS_SEPARATED))
+          mdev->src_pitch *= 2;
+
+     D_ASSERT( mdev->src_pitch % 32 == 0 );
+
+     matrox_calc_offsets( mdev, surface, buffer, mdev->old_matrox, mdev->src_offset );
+
+     if (!mdev->old_matrox) {
           mga_waitfifo( mdrv, mdev, 1 );
-          mga_out32( mmio, mdev->src_offset[0], SRCORG );
+          mga_out32( mmio, mdev->src_offset[0][0], SRCORG );
      }
 
      MGA_VALIDATE( m_source );
