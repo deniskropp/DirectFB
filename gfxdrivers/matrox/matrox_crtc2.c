@@ -204,7 +204,7 @@ crtc2TestRegion( CoreLayer                  *layer,
      if (config->options & ~CRTC2_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
 
-     if (config->surface_caps & ~DSCAPS_INTERLACED)
+     if (config->surface_caps & ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED))
           fail |= CLRCF_SURFACE_CAPS;
 
      switch (config->format) {
@@ -259,6 +259,7 @@ crtc2SetRegion( CoreLayer                  *layer,
      DFBResult             ret;
      MatroxDriverData     *mdrv   = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2 = (MatroxCrtc2LayerData*) layer_data;
+     MatroxDeviceData     *mdev   = mdrv->device_data;
 
      /* remember configuration */
      mcrtc2->config = *config;
@@ -274,6 +275,8 @@ crtc2SetRegion( CoreLayer                  *layer,
           ret = crtc2_enable_output( mdrv, mcrtc2 );
           if (ret)
                return ret;
+
+          mdev->crtc2_separated = !!(surface->caps & DSCAPS_SEPARATED);
      }
 
      return DFB_OK;
@@ -486,8 +489,9 @@ static void crtc2_calc_regs( MatroxDriverData      *mdrv,
      if (!(surface->caps & DSCAPS_INTERLACED))
           mcrtc2->regs.c2CTL |= C2VCBCRSINGLE;
 
-     /* interleaved fields */
-     mcrtc2->regs.c2OFFSET = surface->front_buffer->video.pitch * 2;
+     mcrtc2->regs.c2OFFSET = surface->front_buffer->video.pitch;
+     if (!(surface->caps & DSCAPS_SEPARATED))
+          mcrtc2->regs.c2OFFSET *= 2;
 
      {
           int hdisplay, htotal, vdisplay, vtotal;
@@ -527,13 +531,19 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
      SurfaceBuffer *buffer       = front ? surface->front_buffer : surface->back_buffer;
      int            field_offset = buffer->video.pitch;
 
+     if (surface->caps & DSCAPS_SEPARATED)
+          field_offset *= surface->height / 2;
+
      mcrtc2->regs.c2STARTADD1 = buffer->video.offset;
      mcrtc2->regs.c2STARTADD0 = mcrtc2->regs.c2STARTADD1 + field_offset;
 
      if (surface->caps & DSCAPS_INTERLACED)
-          field_offset /= 2;
+          field_offset = buffer->video.pitch / 2;
      else
           field_offset = 0;
+
+     if (surface->caps & DSCAPS_SEPARATED)
+          field_offset *= surface->height / 4;
 
      switch (surface->format) {
           case DSPF_I420:

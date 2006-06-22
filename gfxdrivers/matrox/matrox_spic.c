@@ -130,7 +130,7 @@ spicTestRegion( CoreLayer                  *layer,
                     fail |= CLRCF_OPACITY;
      }
 
-     if (config->surface_caps & ~DSCAPS_INTERLACED)
+     if (config->surface_caps & ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED))
           fail |= CLRCF_SURFACE_CAPS;
 
      if (config->format != DSPF_ALUT44)
@@ -178,6 +178,7 @@ spicSetRegion( CoreLayer                  *layer,
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
+     MatroxDeviceData    *mdev  = mdrv->device_data;
      volatile __u8       *mmio  = mdrv->mmio_base;
 
      /* remember configuration */
@@ -205,7 +206,7 @@ spicSetRegion( CoreLayer                  *layer,
 
           mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
-          if (surface->caps & DSCAPS_INTERLACED)
+          if (surface->caps & DSCAPS_INTERLACED || mdev->crtc2_separated)
                mspic->regs.c2DATACTL &= ~C2OFFSETDIVEN;
           else
                mspic->regs.c2DATACTL |= C2OFFSETDIVEN;
@@ -285,13 +286,17 @@ static void spic_calc_buffer( MatroxDriverData    *mdrv,
                               CoreSurface         *surface,
                               bool                 front )
 {
-     SurfaceBuffer *buffer = front ? surface->front_buffer : surface->back_buffer;
+     SurfaceBuffer *buffer       = front ? surface->front_buffer : surface->back_buffer;
+     int            field_offset = buffer->video.pitch;
 
      mspic->regs.c2SPICSTARTADD1 = buffer->video.offset;
      mspic->regs.c2SPICSTARTADD0 = buffer->video.offset;
 
+     if (surface->caps & DSCAPS_SEPARATED)
+          field_offset *= surface->height / 2;
+
      if (surface->caps & DSCAPS_INTERLACED)
-          mspic->regs.c2SPICSTARTADD0 += buffer->video.pitch;
+          mspic->regs.c2SPICSTARTADD0 += field_offset;
 }
 
 static void spic_set_buffer( MatroxDriverData    *mdrv,

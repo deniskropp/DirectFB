@@ -115,6 +115,8 @@ typedef struct {
      } fb;
      unsigned int tlut_offset;
      CorePalette *rgb332_palette;
+
+     bool crtc2_separated;
 } MatroxDeviceData;
 
 typedef struct {

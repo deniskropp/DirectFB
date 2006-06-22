@@ -179,10 +179,17 @@ besTestRegion( CoreLayer                  *layer,
      if (config->options & ~BES_SUPPORTED_OPTIONS)
           fail |= CLRCF_OPTIONS;
 
+     if (config->surface_caps & ~(DSCAPS_INTERLACED | DSCAPS_SEPARATED))
+          fail |= CLRCF_SURFACE_CAPS;
+
      if (config->options & DLOP_DEINTERLACING) {
           /* make sure BESPITCH < 4096 */
-          max_width = mdev->g450_matrox ? 2048 - 128 : 1024;
+          if (mdev->g450_matrox && !(config->surface_caps & DSCAPS_SEPARATED))
+               max_width = 2048 - 128;
           max_height = 2048;
+     } else {
+          if (config->surface_caps & DSCAPS_SEPARATED)
+               fail |= CLRCF_SURFACE_CAPS;
      }
 
      switch (config->format) {
@@ -440,7 +447,7 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 {
      MatroxDeviceData *mdev = mdrv->device_data;
      int cropleft, cropright, croptop, cropbot, croptop_uv;
-     int pitch, tmp, hzoom, intrep, field_height;
+     int pitch, tmp, hzoom, intrep, field_height, field_offset;
      DFBRectangle   source, dest;
      DFBRegion      dst;
      bool           visible;
@@ -469,7 +476,8 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
           field_height /= 2;
           source.y /= 2;
           source.h /= 2;
-          pitch    *= 2;
+          if (!(surface->caps & DSCAPS_SEPARATED))
+               pitch *= 2;
      } else
           mbes->regs.besCTL_field = 0;
 
@@ -572,33 +580,46 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
      mbes->regs.besPITCH = pitch / DFB_BYTES_PER_PIXEL(surface->format);
 
      /* buffer offsets */
+
+     field_offset = buffer->video.pitch;
+     if (surface->caps & DSCAPS_SEPARATED)
+          field_offset *= surface->height / 2;
+
      mbes->regs.besA1ORG = buffer->video.offset +
                            pitch * (source.y + (croptop >> 16));
      mbes->regs.besA2ORG = mbes->regs.besA1ORG +
-                           buffer->video.pitch;
+                           field_offset;
 
      switch (surface->format) {
           case DSPF_NV12:
           case DSPF_NV21:
+               field_offset = buffer->video.pitch;
+               if (surface->caps & DSCAPS_SEPARATED)
+                    field_offset *= surface->height / 4;
+
                mbes->regs.besA1CORG  = buffer->video.offset +
                                        surface->height * buffer->video.pitch +
                                        pitch * (source.y/2 + (croptop_uv >> 16));
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
-                                       buffer->video.pitch;
+                                       field_offset;
                break;
 
           case DSPF_I420:
           case DSPF_YV12:
+               field_offset = buffer->video.pitch / 2;
+               if (surface->caps & DSCAPS_SEPARATED)
+                    field_offset *= surface->height / 4;
+
                mbes->regs.besA1CORG  = buffer->video.offset +
                                        surface->height * buffer->video.pitch +
                                        pitch/2 * (source.y/2 + (croptop_uv >> 16));
                mbes->regs.besA2CORG  = mbes->regs.besA1CORG +
-                                       buffer->video.pitch/2;
+                                       field_offset;
 
                mbes->regs.besA1C3ORG = mbes->regs.besA1CORG +
                                        surface->height/2 * buffer->video.pitch/2;
                mbes->regs.besA2C3ORG = mbes->regs.besA1C3ORG +
-                                       buffer->video.pitch/2;
+                                       field_offset;
                break;
 
           default:
