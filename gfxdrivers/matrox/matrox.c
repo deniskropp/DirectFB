@@ -2819,9 +2819,10 @@ driver_init_device( GraphicsDevice     *device,
      mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
      /*
       * Pitch must be a multiple of 64 bytes for block write to work.
+      * SRCORG/DSTORG must be a multiple of 64.
       * I420/YV12 subsampling makes the actual requirement 128 bytes.
       */
-     if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400 && mdev->atype_blk_rstr == ATYPE_BLK)
+     if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG400)
           device_info->limits.surface_bytepitch_alignment = 128;
 
      /* soft reset to fix eventually corrupted TMU read offset on G200 */
