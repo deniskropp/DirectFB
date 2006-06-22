@@ -959,13 +959,13 @@ ovl_set_adjustment( RadeonDriverData       *rdrv,
      dwGOff = ((__u32)(GOff * 2.0)) & 0x1fff;
      dwBOff = ((__u32)(BOff * 2.0)) & 0x1fff;
  
-	dwLuma = (((__u32)(Luma * 256.0)) & 0xfff) << 20;
-	dwRCb  = (((__u32)(RCb  * 256.0)) & 0xfff) <<  4;
-	dwRCr  = (((__u32)(RCr  * 256.0)) & 0xfff) << 20;
-	dwGCb  = (((__u32)(GCb  * 256.0)) & 0xfff) <<  4;
-	dwGCr  = (((__u32)(GCr  * 256.0)) & 0xfff) << 20;
-	dwBCb  = (((__u32)(BCb  * 256.0)) & 0xfff) <<  4;
-	dwBCr  = (((__u32)(BCr  * 256.0)) & 0xfff) << 20;
+     dwLuma = (((__u32)(Luma * 256.0)) & 0xfff) << 20;
+     dwRCb  = (((__u32)(RCb  * 256.0)) & 0xfff) <<  4;
+     dwRCr  = (((__u32)(RCr  * 256.0)) & 0xfff) << 20;
+     dwGCb  = (((__u32)(GCb  * 256.0)) & 0xfff) <<  4;
+     dwGCr  = (((__u32)(GCr  * 256.0)) & 0xfff) << 20;
+     dwBCb  = (((__u32)(BCb  * 256.0)) & 0xfff) <<  4;
+     dwBCr  = (((__u32)(BCr  * 256.0)) & 0xfff) << 20;
  
      radeon_waitfifo( rdrv, rdrv->device_data, 6 );
      radeon_out32( mmio, OV0_LIN_TRANS_A, dwRCb  | dwLuma );
