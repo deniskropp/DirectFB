@@ -2069,6 +2069,9 @@ driver_init_device( GraphicsDevice     *device,
      device_info->limits.surface_pixelpitch_alignment = 32;
      device_info->limits.surface_bytepitch_alignment  = 64;
 
+     /* YUY2 / UYVY is handled as 32bit so pixelpitch alignment must be doubled. */
+     device_info->limits.surface_pixelpitch_alignment = 64;
+
      mdev->atype_blk_rstr = (sgram || dfb_config->matrox_sgram) ? ATYPE_BLK : ATYPE_RSTR;
      /*
       * Pitch must be a multiple of 64 bytes for block write to work.
