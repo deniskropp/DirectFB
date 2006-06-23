@@ -607,8 +607,10 @@ vo_dfb_frame_dispose( vo_frame_t *vo_frame )
      dfb_frame_t *frame = (dfb_frame_t*) vo_frame;
 
      if (frame) {
-          if (frame->surface)
+          if (frame->surface) {
+               dfb_surface_unlock( frame->surface, 0 );
                dfb_surface_unref( frame->surface );
+          }
           if (frame->chunk[0])
                free( frame->chunk[0] );
           if (frame->chunk[1])
@@ -777,9 +779,8 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
          frame->out_format != out_format     ||
          frame->mixer_set  != this->mixer.set)
      {
-          SurfaceBuffer         *buffer;
-          DFBSurfacePixelFormat  frame_format;
-          DFBResult              err;
+          DFBSurfacePixelFormat frame_format;
+          DFBResult             err;
 
           lprintf( "reformatting frame %p\n", frame );
           
@@ -802,13 +803,16 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
                this->frame_height = vo_frame->height;
           }
           
-          if (!frame->surface)
+          if (!frame->surface) {
                err = dfb_surface_create( NULL, width, height, this->dest_format,
                                         CSP_SYSTEMONLY, DSCAPS_SYSTEMONLY,
                                         NULL, &frame->surface );
-          else
+          }
+          else {
+               dfb_surface_unlock( frame->surface, 0 );
                err = dfb_surface_reformat( NULL, frame->surface,
                                            width, height, this->dest_format );
+          }
 
           if (err != DFB_OK) {
                xprintf( this->xine, XINE_VERBOSITY_DEBUG,
@@ -836,12 +840,18 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
           frame->mixer_set   = this->mixer.set;
           frame->proc_needed = true;
 
-          buffer = frame->surface->back_buffer;
-          
-          frame->out_pitch[0] = buffer->system.pitch;
-          frame->out_plane[0] = buffer->system.addr;
+          err = dfb_surface_soft_lock( frame->surface, DSLF_WRITE, 
+                                       (void*)&frame->out_plane[0], 
+                                       (int *)&frame->out_pitch[0], 0 );
+          if (err) {
+               xprintf( this->xine, XINE_VERBOSITY_DEBUG,
+                        "video_out_dfb: "
+                        "error locking frame surface (%s)\n",
+                        DirectFBErrorString( err ) );
+               goto failure;
+          }
 
-          switch (buffer->format) {
+          switch (frame->surface->format) {
                case DSPF_YV12: 
                     frame->out_pitch[1] = frame->out_pitch[0] / 2;
                     frame->out_pitch[2] = frame->out_pitch[0] / 2; 
@@ -871,11 +881,11 @@ vo_dfb_update_frame_format( vo_driver_t *vo_driver,
           
           switch (format) {
                case XINE_IMGFMT_YUY2:            
-                    vo_dfb_allocate_yuy2( frame, buffer->format );
+                    vo_dfb_allocate_yuy2( frame, frame->surface->format );
                     break;
                case XINE_IMGFMT_YV12:
                default:
-                    vo_dfb_allocate_yv12( frame, buffer->format );
+                    vo_dfb_allocate_yv12( frame, frame->surface->format );
                     break;
           }
      }
