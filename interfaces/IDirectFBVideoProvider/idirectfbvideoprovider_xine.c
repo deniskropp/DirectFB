@@ -193,11 +193,7 @@ IDirectFBVideoProvider_Xine_Destruct( IDirectFBVideoProvider *thiz )
      data = (IDirectFBVideoProvider_Xine_data*) thiz->priv;
 
      if (data->xine) {
-          if (data->stream) {
-               xine_set_param( data->stream,
-                               XINE_PARAM_AUDIO_MUTE,
-                               0 );
-               
+          if (data->stream) {              
                xine_stop( data->stream );
 
                xine_close( data->stream );
