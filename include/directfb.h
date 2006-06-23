@@ -1274,45 +1274,17 @@ typedef int (*DFBGetDataCallback) (
  * Information about an IDirectFBVideoProvider.
  */
 typedef enum {
-     DVCAPS_BASIC       = 0x00000000,  /* basic ops (PlayTo, Stop)       */
-     DVCAPS_SEEK        = 0x00000001,  /* supports SeekTo                */
-     DVCAPS_SCALE       = 0x00000002,  /* can scale the video            */
-     DVCAPS_INTERLACED  = 0x00000004,  /* supports interlaced surfaces   */
-     DVCAPS_BRIGHTNESS  = 0x00000010,  /* supports Brightness adjustment */
-     DVCAPS_CONTRAST    = 0x00000020,  /* supports Contrast adjustment   */
-     DVCAPS_HUE         = 0x00000040,  /* supports Hue adjustment        */
-     DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment */
-     DVCAPS_INTERACTIVE = 0x00000100,  /* supports SendEvent             */
-     DVCAPS_TRICKMODE_FF = 0x00000200,  /* supports TrickMode FastForwarding*/
-     DVCAPS_TRICKMODE_RW = 0x00000400   /* supports TrickMode Rewinding     */
+     DVCAPS_BASIC       = 0x00000000,  /* basic ops (PlayTo, Stop)         */
+     DVCAPS_SEEK        = 0x00000001,  /* supports SeekTo                  */
+     DVCAPS_SCALE       = 0x00000002,  /* can scale the video              */
+     DVCAPS_INTERLACED  = 0x00000004,  /* supports interlaced surfaces     */
+     DVCAPS_SPEED       = 0x00000008,  /* supports changing playback speed */
+     DVCAPS_BRIGHTNESS  = 0x00000010,  /* supports Brightness adjustment   */
+     DVCAPS_CONTRAST    = 0x00000020,  /* supports Contrast adjustment     */
+     DVCAPS_HUE         = 0x00000040,  /* supports Hue adjustment          */
+     DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment   */
+     DVCAPS_INTERACTIVE = 0x00000100,  /* supports SendEvent               */
 } DFBVideoProviderCapabilities;
-
-
-/*
- * Enum specifying the TrickMode speed to choose.
- */
-typedef enum {
-     DVTRICKMODE_1_32 = 0, /*TrickMode Speed of 1/32x*/
-     DVTRICKMODE_1_16,     /*TrickMode Speed of 1/16x*/
-     DVTRICKMODE_1_8,      /*TrickMode Speed of 1/8x*/
-     DVTRICKMODE_1_4,      /*TrickMode Speed of 1/4x*/
-     DVTRICKMODE_1_2,      /*TrickMode Speed of 1/2x*/
-     DVTRICKMODE_1,        /*TrickMode Speed of 1 (play)*/
-     DVTRICKMODE_2,        /*TrickMode Speed of 2x*/
-     DVTRICKMODE_4,        /*TrickMode Speed of 4x*/
-     DVTRICKMODE_8,        /*TrickMode Speed of 8x*/
-     DVTRICKMODE_16,       /*TrickMode Speed of 16x*/
-     DVTRICKMODE_32        /*TrickMode Speed of 32x*/
-} DFBVideoProviderTrickModeSpeed;
-
-/*
- * Enum Specifying the type of TrickMode.
- */
-typedef enum {
-     DVTRICKMODE_NONE  = 0x00000000,  /* Specify TrickMode off none (off - play)*/
-     DVTRICKMODE_FF    = 0x00000001,  /* Specify the TrickMode to be FastForward*/
-     DVTRICKMODE_RW    = 0x00000002   /* Specify the TrickMode to be Rewind     */
-} DFBVideoProviderTrickMode;
 
 /*
  * Information about the status of an IDirectFBVideoProvider.
@@ -1320,11 +1292,21 @@ typedef enum {
 typedef enum {
      DVSTATE_UNKNOWN    = 0x00000000, /* unknown status            */
      DVSTATE_PLAY       = 0x00000001, /* video provider is playing */
-     DVSTATE_FF         = 0x00000002, /* video provider is in trickmode FF mode */
-     DVSTATE_RW         = 0x00000003, /* video provider is in trickmode RW mode */
-     DVSTATE_STOP       = 0x00000004, /* playback was stopped      */
-     DVSTATE_FINISHED   = 0x00000005  /* playback is finished      */
+     DVSTATE_STOP       = 0x00000002, /* playback was stopped      */
+     DVSTATE_FINISHED   = 0x00000003  /* playback is finished      */
 } DFBVideoProviderStatus;
+
+/*
+ * Flags controlling playback mode of a IDirectFBVideoProvider.
+ */
+typedef enum {
+     DVPLAY_NORMAL      = 0x00000000, /* normal playback           */
+     DVPLAY_REWIND      = 0x00000001, /* reverse playback          */
+     DVPLAY_LOOPING     = 0x00000002  /* automatically restart 
+                                         playback when end-of-stream
+                                         is reached (gapless).     */
+} DFBVideoProviderPlaybackFlags;
+
 
 /*
  * Flags defining which fields of a DFBColorAdjustment are valid.
@@ -2157,6 +2139,15 @@ DEFINE_INTERFACE(   IDirectFBScreen,
      DFBResult (*GetDescription) (
           IDirectFBScreen                    *thiz,
           DFBScreenDescription               *ret_desc
+     );
+     
+     /*
+      * Get the screen's width and height in pixels.
+      */
+     DFBResult (*GetSize) (
+          IDirectFBScreen                    *thiz,
+          int                                *ret_width,
+          int                                *ret_height
      );
 
 
@@ -5073,25 +5064,34 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
           const DFBEvent           *event
      );
 
-
+   /** Advanced control **/
+   
      /*
-      * Specify that you want this video provider to go into
-      * TrickMode.
-      * You specify a Direction and Speed.  Setting none stops it
-      * being in TrickMode and means it should start playing normally.
+      * Set the flags controlling playback mode.
       */
-     DFBResult (*TrickMode) (
-          IDirectFBVideoProvider   *thiz,
-          const DFBVideoProviderTrickMode trickMode,
-          const DFBVideoProviderTrickModeSpeed speed
+     DFBResult (*SetPlaybackFlags) (
+          IDirectFBVideoProvider        *thiz,
+          DFBVideoProviderPlaybackFlags  flags
      );
-
+     
      /*
-      * Get the currently selected trickmode speed.
+      * Set the speed multiplier.
+      *
+      * Values below 1.0 reduce playback speed while values over 1.0 increase it.
+      * Specifying a value of 0.0 has the effect of putting the playback in 
+      * pause mode without stopping the video provider.
       */
-     DFBResult (*GetTrickModeSpeed) (
+     DFBResult (*SetSpeed) (
           IDirectFBVideoProvider   *thiz,
-          DFBVideoProviderTrickModeSpeed   *ret_speed
+          double                    multiplier
+     );
+     
+     /*
+      * Get current speed multiplier.
+      */
+     DFBResult (*GetSpeed) (
+          IDirectFBVideoProvider   *thiz,
+          double                   *ret_multiplier
      );
 )
 

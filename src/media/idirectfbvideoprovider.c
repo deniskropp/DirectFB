@@ -151,11 +151,6 @@ static DFBResult
 IDirectFBVideoProvider_GetColorAdjustment( IDirectFBVideoProvider *thiz,
                                            DFBColorAdjustment     *ret_adj )
 {
-     if (!ret_adj)
-          return DFB_INVARG;
-          
-     ret_adj->flags = DCAF_NONE;
-     
      return DFB_UNIMPLEMENTED;
 }
 
@@ -174,16 +169,22 @@ IDirectFBVideoProvider_SendEvent( IDirectFBVideoProvider *thiz,
 }
 
 static DFBResult
-IDirectFBVideoProvider_TrickMode( IDirectFBVideoProvider   *thiz,
-                                  const DFBVideoProviderTrickMode trickMode,
-                                  const DFBVideoProviderTrickModeSpeed speed )
+IDirectFBVideoProvider_SetPlaybackFlags( IDirectFBVideoProvider        *thiz,
+                                         DFBVideoProviderPlaybackFlags  flags )
 {
      return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
-IDirectFBVideoProvider_GetTrickModeSpeed( IDirectFBVideoProvider   *thiz,
-                                          DFBVideoProviderTrickModeSpeed   *ret_speed )
+IDirectFBVideoProvider_SetSpeed( IDirectFBVideoProvider *thiz,
+                                 double                  multiplier )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBVideoProvider_GetSpeed( IDirectFBVideoProvider *thiz,
+                                 double                 *ret_multiplier )
 {
      return DFB_UNIMPLEMENTED;
 }
@@ -205,8 +206,9 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_SetColorAdjustment;
      thiz->SendEvent             = IDirectFBVideoProvider_SendEvent;
-     thiz->TrickMode             = IDirectFBVideoProvider_TrickMode;
-     thiz->GetTrickModeSpeed     = IDirectFBVideoProvider_GetTrickModeSpeed;
+     thiz->SetPlaybackFlags      = IDirectFBVideoProvider_SetPlaybackFlags;
+     thiz->SetSpeed              = IDirectFBVideoProvider_SetSpeed;
+     thiz->GetSpeed              = IDirectFBVideoProvider_GetSpeed;
 }
 
 

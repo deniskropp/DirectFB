@@ -135,6 +135,31 @@ IDirectFBScreen_GetDescription( IDirectFBScreen      *thiz,
 }
 
 static DFBResult
+IDirectFBScreen_GetSize( IDirectFBScreen *thiz,
+                         int             *ret_width,
+                         int             *ret_height )
+{
+     DFBResult ret;
+     int       width  = 0;
+     int       height = 0;
+     
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
+     
+     if (!ret_width && !ret_height)
+          return DFB_INVARG;
+          
+     ret = dfb_screen_get_screen_size( data->screen, &width, &height );
+     
+     if (ret_width)
+          *ret_width = width;
+
+     if (ret_height)
+          *ret_height = height;
+          
+     return ret;
+}
+
+static DFBResult
 IDirectFBScreen_EnumDisplayLayers( IDirectFBScreen         *thiz,
                                    DFBDisplayLayerCallback  callbackfunc,
                                    void                    *callbackdata )
@@ -521,6 +546,7 @@ IDirectFBScreen_Construct( IDirectFBScreen *thiz,
      thiz->Release                  = IDirectFBScreen_Release;
      thiz->GetID                    = IDirectFBScreen_GetID;
      thiz->GetDescription           = IDirectFBScreen_GetDescription;
+     thiz->GetSize                  = IDirectFBScreen_GetSize;
      thiz->EnumDisplayLayers        = IDirectFBScreen_EnumDisplayLayers;
      thiz->SetPowerMode             = IDirectFBScreen_SetPowerMode;
      thiz->WaitForSync              = IDirectFBScreen_WaitForSync;
