@@ -2832,18 +2832,22 @@ typedef enum {
  * Available Porter/Duff rules.
  */
 typedef enum {
-                              /* pixel = (source * fs + destination * fd),
-                                 sa = source alpha,
-                                 da = destination alpha */
-     DSPD_NONE           = 0, /* fs: sa      fd: 1.0-sa (defaults) */
-     DSPD_CLEAR          = 1, /* fs: 0.0     fd: 0.0    */
-     DSPD_SRC            = 2, /* fs: 1.0     fd: 0.0    */
-     DSPD_SRC_OVER       = 3, /* fs: 1.0     fd: 1.0-sa */
-     DSPD_DST_OVER       = 4, /* fs: 1.0-da  fd: 1.0    */
-     DSPD_SRC_IN         = 5, /* fs: da      fd: 0.0    */
-     DSPD_DST_IN         = 6, /* fs: 0.0     fd: sa     */
-     DSPD_SRC_OUT        = 7, /* fs: 1.0-da  fd: 0.0    */
-     DSPD_DST_OUT        = 8  /* fs: 0.0     fd: 1.0-sa */
+                               /* pixel = (source * fs + destination * fd),
+                                  sa = source alpha,
+                                  da = destination alpha */
+     DSPD_NONE           =  0, /* fs: sa      fd: 1.0-sa (defaults) */
+     DSPD_CLEAR          =  1, /* fs: 0.0     fd: 0.0    */
+     DSPD_SRC            =  2, /* fs: 1.0     fd: 0.0    */
+     DSPD_SRC_OVER       =  3, /* fs: 1.0     fd: 1.0-sa */
+     DSPD_DST_OVER       =  4, /* fs: 1.0-da  fd: 1.0    */
+     DSPD_SRC_IN         =  5, /* fs: da      fd: 0.0    */
+     DSPD_DST_IN         =  6, /* fs: 0.0     fd: sa     */
+     DSPD_SRC_OUT        =  7, /* fs: 1.0-da  fd: 0.0    */
+     DSPD_DST_OUT        =  8, /* fs: 0.0     fd: 1.0-sa */
+     DSPD_SRC_ATOP       =  9, /* fs: da      fd: 1.0-sa */
+     DSPD_DST_ATOP       = 10, /* fs: 1.0-da  fd: sa     */
+     DSPD_ADD            = 11, /* fs: 1.0     fd: 1.0    */
+     DSPD_XOR            = 12, /* fs: 1.0-da  fd: 1.0-sa */
 } DFBSurfacePorterDuffRule;
 
 /*
