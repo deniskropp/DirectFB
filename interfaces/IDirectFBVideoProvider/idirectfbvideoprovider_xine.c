@@ -91,37 +91,40 @@ typedef struct {
 /**************************** VideoProvider Data ******************************/
 
 typedef struct {
-     int                    ref;
-     DFBResult              err;
+     int                            ref;
+     DFBResult                      err;
      
-     char                  *mrl;
-     char                  *cfg;
-     char                  *pipe;
+     char                          *mrl;
+     char                          *cfg;
+     char                          *pipe;
 
-     xine_t                *xine;
-     xine_video_port_t     *vo;
-     xine_audio_port_t     *ao;
-     xine_post_t           *post;
-     xine_stream_t         *stream;
-     xine_event_queue_t    *queue;
+     xine_t                        *xine;
+     xine_video_port_t             *vo;
+     xine_audio_port_t             *ao;
+     xine_post_t                   *post;
+     xine_stream_t                 *stream;
+     xine_event_queue_t            *queue;
+     int                            start_time;
+     int                            speed;
 
-     dfb_visual_t           visual;
+     dfb_visual_t                   visual;
     
-     DFBSurfacePixelFormat  format; // video format
-     int                    width;  // video width
-     int                    height; // video height
-     int                    length; // duration
+     DFBSurfacePixelFormat          format; // video format
+     int                            width;  // video width
+     int                            height; // video height
+     int                            length; // duration
 
-     DFBVideoProviderStatus status;
+     DFBVideoProviderStatus         status;
+     DFBVideoProviderPlaybackFlags  flags;
      
-     bool                   full_area;
-     DFBRectangle           dest_rect;
+     bool                           full_area;
+     DFBRectangle                   dest_rect;
    
-     int                    mouse_x;
-     int                    mouse_y;
+     int                            mouse_x;
+     int                            mouse_y;
      
-     IDirectFBDataBuffer   *buffer;
-     DirectThread          *buffer_thread;
+     IDirectFBDataBuffer           *buffer;
+     DirectThread                  *buffer_thread;
 } IDirectFBVideoProvider_Xine_data;
 
 
@@ -270,9 +273,9 @@ IDirectFBVideoProvider_Xine_GetCapabilities( IDirectFBVideoProvider       *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     *caps = DVCAPS_BASIC      | DVCAPS_SCALE      |
-             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST   |
-             DVCAPS_SATURATION | DVCAPS_INTERACTIVE;
+     *caps = DVCAPS_BASIC      | DVCAPS_SCALE    | DVCAPS_SPEED      |
+             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST | DVCAPS_SATURATION |
+             DVCAPS_INTERACTIVE;
 
      if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
           *caps |= DVCAPS_SEEK;
@@ -410,29 +413,17 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
           return DFB_UNSUPPORTED;
      
      if (data->status != DVSTATE_PLAY) {
-          xine_set_param( data->stream,
-                          XINE_PARAM_AUDIO_MUTE,
-                          0 );
-     
-          if (xine_get_status( data->stream )     != XINE_STATUS_PLAY ||
-              xine_get_param ( data->stream, 
-                               XINE_PARAM_SPEED ) != XINE_SPEED_PAUSE)
-          {
-               if (!xine_play( data->stream, 0, 0 )) {
-                    get_stream_error( data );
-                    return data->err;
-               }
-
-               usleep( 100 );
-               
-               xine_get_pos_length( data->stream,
-                                    NULL, NULL, &data->length );
+          if (!xine_play( data->stream, 0, data->start_time )) {
+               get_stream_error( data );
+               return data->err;
           }
 
-          xine_set_param( data->stream,
-                          XINE_PARAM_SPEED,
-                          XINE_SPEED_NORMAL );
-
+          xine_set_param( data->stream, XINE_PARAM_SPEED, data->speed );
+          usleep( 100 );
+               
+          xine_get_pos_length( data->stream,
+                               NULL, NULL, &data->length );
+                               
           data->status = DVSTATE_PLAY;
      }
      
@@ -445,15 +436,12 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
 
      if (data->status == DVSTATE_PLAY) {
-          xine_set_param( data->stream,
-                          XINE_PARAM_AUDIO_MUTE,
-                          1 );
-          xine_set_param( data->stream,
-                          XINE_PARAM_SPEED,
-                          XINE_SPEED_PAUSE );
+          data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+          xine_get_pos_length( data->stream, NULL, &data->start_time, NULL );
+          xine_stop( data->stream );
+          usleep( 50 );
           
           data->status = DVSTATE_STOP;
-          usleep( 800 );
      }
 
      return DFB_OK;
@@ -492,16 +480,15 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
      if (data->length > 0 && offset > data->length)
           return DFB_OK;
 
-     if (data->status == DVSTATE_FINISHED)
-          data->status = DVSTATE_PLAY;
-
-     xine_play( data->stream, 0, offset );
-          
-     if (data->status == DVSTATE_STOP) {
-          xine_set_param( data->stream,
-                          XINE_PARAM_SPEED,
-                          XINE_SPEED_PAUSE );
+     if (data->status == DVSTATE_PLAY) {
+          if (!xine_play( data->stream, 0, offset )) {
+               get_stream_error( data );
+               return data->err;
+          }
+          usleep( 100 );
      }
+     
+     data->start_time = offset;
 
      return DFB_OK;
 }
@@ -798,6 +785,52 @@ IDirectFBVideoProvider_Xine_SendEvent( IDirectFBVideoProvider *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBVideoProvider_Xine_SetPlaybackFlags( IDirectFBVideoProvider        *thiz,
+                                              DFBVideoProviderPlaybackFlags  flags )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+     
+     if (flags & ~DVPLAY_LOOPING)
+          return DFB_UNSUPPORTED;
+          
+     data->flags = flags;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_SetSpeed( IDirectFBVideoProvider *thiz,
+                                      double                  multiplier )
+{    
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+     
+     if (multiplier < 0.0)
+          return DFB_INVARG;
+     
+     xine_set_param( data->stream, XINE_PARAM_SPEED,
+                     multiplier*XINE_SPEED_NORMAL+.5 );
+                     
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_GetSpeed( IDirectFBVideoProvider *thiz,
+                                      double                 *ret_multiplier )
+{
+     int speed;
+     
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+     
+     if (!ret_multiplier)
+          return DFB_INVARG;
+          
+     speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+     *ret_multiplier = (double)speed / (double)XINE_SPEED_NORMAL;
+     
+     return DFB_OK;
+}
+
 /****************************** Exported Symbols ******************************/
 
 static DFBResult
@@ -918,7 +951,7 @@ Construct( IDirectFBVideoProvider *thiz,
 {
      const char               *xinerc;
      int                       verbosity;
-     const char* const        *ao_list;
+     char* const              *ao_list;
      const char               *ao_driver;
      IDirectFBDataBuffer_data *buffer_data;
      
@@ -926,6 +959,7 @@ Construct( IDirectFBVideoProvider *thiz,
           
      data->ref    = 1;
      data->err    = DFB_FAILURE;
+     data->speed  = XINE_SPEED_NORMAL;
      data->status = DVSTATE_STOP;
      data->format = DSPF_YUY2;
 
@@ -1025,11 +1059,20 @@ Construct( IDirectFBVideoProvider *thiz,
      }
 
      /* get available audio plugins */
-     ao_list = xine_list_audio_output_plugins( data->xine );
+     ao_list = (char* const*)xine_list_audio_output_plugins( data->xine );
+     ao_driver = ao_list[0];
+     
+     /* serch for FusionSound plugin */
+     for (; *ao_list; ao_list++) {
+          if (!strcmp( *ao_list, "FusionSound" )) {
+               ao_driver = *ao_list;
+               break;
+          }
+     }
 
      /* register config entry */
      ao_driver = xine_config_register_string( data->xine, "audio.driver",
-                                        ao_list[0], "Audio driver to use",
+                                        ao_driver, "Audio driver to use",
                                         NULL, 0, NULL, NULL );
      
      /* open audio driver */
@@ -1109,6 +1152,9 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_Xine_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_Xine_SetColorAdjustment;
      thiz->SendEvent             = IDirectFBVideoProvider_Xine_SendEvent;
+     thiz->SetPlaybackFlags      = IDirectFBVideoProvider_Xine_SetPlaybackFlags;
+     thiz->SetSpeed              = IDirectFBVideoProvider_Xine_SetSpeed;
+     thiz->GetSpeed              = IDirectFBVideoProvider_Xine_GetSpeed;
      
      return DFB_OK;
 }
@@ -1198,8 +1244,17 @@ event_listner( void *cdata, const xine_event_t *event )
 
      switch (event->type) {
           case XINE_EVENT_UI_PLAYBACK_FINISHED:
-               xine_stop( data->stream );
-               data->status = DVSTATE_FINISHED;
+               data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
+               if (data->flags & DVPLAY_LOOPING) {
+                    xine_play( data->stream, 0, 0 );
+                    xine_set_param( data->stream, 
+                                    XINE_PARAM_SPEED, data->speed );
+               }
+               else {
+                    xine_stop( data->stream );
+                    data->status = DVSTATE_FINISHED;
+               }
+               data->start_time = 0;
                break;
 
           default:
