@@ -1045,7 +1045,7 @@ typedef struct {
      } preallocated[2];
 
      struct {
-          DFBColor                     *entries;
+          const DFBColor               *entries;
           unsigned int                  size;
      } palette;                                      /* initial palette */
 } DFBSurfaceDescription;
