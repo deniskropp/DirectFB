@@ -5078,9 +5078,11 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      /*
       * Set the speed multiplier.
       *
-      * Values below 1.0 reduce playback speed while values over 1.0 increase it.
-      * Specifying a value of 0.0 has the effect of putting the playback in 
-      * pause mode without stopping the video provider.
+      * Values below 1.0 reduce playback speed 
+      * while values over 1.0 increase it.<br>
+      * Specifying a value of 0.0 has the effect of
+      * putting the playback in pause mode without 
+      * stopping the video provider.
       */
      DFBResult (*SetSpeed) (
           IDirectFBVideoProvider   *thiz,
@@ -5098,11 +5100,20 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      /*
       * Set volume level.
       *
-      * The level is a linear factor being 1.0f by default.
+      * Values between 0.0f and 1.0f adjust the volume level.
+      * Values over 1.0f increase the amplification level.
       */
      DFBResult (*SetVolume) (
           IDirectFBVideoProvider   *thiz,
           float                     level
+     );
+
+     /*
+      * Get volume level.
+      */
+     DFBResult (*GetVolume) (
+          IDirectFBVideoProvider   *thiz,
+          float                    *ret_level
      );
 )
 

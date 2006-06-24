@@ -196,6 +196,13 @@ IDirectFBVideoProvider_SetVolume( IDirectFBVideoProvider *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBVideoProvider_GetVolume( IDirectFBVideoProvider *thiz,
+                                  float                  *ret_level )
+{
+     return DFB_UNIMPLEMENTED;
+}
+
 static void
 IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
 {
@@ -217,6 +224,7 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
      thiz->SetSpeed              = IDirectFBVideoProvider_SetSpeed;
      thiz->GetSpeed              = IDirectFBVideoProvider_GetSpeed;
      thiz->SetVolume             = IDirectFBVideoProvider_SetVolume;
+     thiz->GetVolume             = IDirectFBVideoProvider_GetVolume;
 }
 
 
