@@ -38,6 +38,10 @@
 #include <core/screens.h>
 #include <core/screens_internal.h>
 
+#include <core/layers.h>
+
+#include <misc/conf.h>
+
 #include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
@@ -472,5 +476,50 @@ dfb_screens_at( DFBScreenID screen_id )
      D_ASSERT( screen_id < num_screens);
 
      return screens[screen_id];
+}
+
+CoreScreen *
+dfb_screens_at_translated( DFBScreenID screen_id )
+{
+     CoreScreen *primary;
+     
+     D_ASSERT( screen_id >= 0);
+     D_ASSERT( screen_id < num_screens);
+     
+     if (dfb_config->primary_layer > 0) {
+          primary = dfb_layer_screen( dfb_layer_at_translated( DLID_PRIMARY ) );
+          
+          if (screen_id == DSCID_PRIMARY)
+               return primary;
+               
+          if (screen_id == primary->shared->screen_id)
+               return dfb_screens_at( DSCID_PRIMARY );
+     }
+     
+     return dfb_screens_at( screen_id );
+}
+
+DFBScreenID
+dfb_screen_id_translated( CoreScreen *screen )
+{
+     CoreScreenShared *shared;
+     CoreScreen       *primary;
+     
+     D_ASSERT( screen != NULL );
+     D_ASSERT( screen->shared != NULL );
+     
+     shared = screen->shared;
+     
+     if (dfb_config->primary_layer > 0) {
+          primary = dfb_layer_screen( dfb_layer_at_translated( DLID_PRIMARY ) );
+          
+          if (shared->screen_id == DSCID_PRIMARY)
+               return primary->shared->screen_id;
+               
+          if (shared->screen_id == primary->shared->screen_id)
+               return DSCID_PRIMARY;
+     }
+     
+     return shared->screen_id;
 }
 

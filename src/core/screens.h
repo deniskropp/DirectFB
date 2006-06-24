@@ -228,4 +228,11 @@ void dfb_screens_enumerate( CoreScreenCallback  callback,
  */
 CoreScreen *dfb_screens_at( DFBScreenID screen_id );
 
+CoreScreen *dfb_screens_at_translated( DFBScreenID screen_id );
+
+/*
+ * Return the (translated) ID of the specified screen.
+ */
+DFBScreenID dfb_screen_id_translated( CoreScreen *screen );
+
 #endif

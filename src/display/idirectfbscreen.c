@@ -37,6 +37,7 @@
 
 #include <core/layers.h>
 #include <core/screen.h>
+#include <core/screens.h>
 
 #include <direct/interface.h>
 
@@ -540,7 +541,8 @@ IDirectFBScreen_Construct( IDirectFBScreen *thiz,
      data->ref    = 1;
      data->screen = screen;
 
-     dfb_screen_get_info( screen, &data->id, &data->description );
+     dfb_screen_get_info( screen, NULL, &data->description );
+     data->id = dfb_screen_id_translated( data->screen );
 
      thiz->AddRef                   = IDirectFBScreen_AddRef;
      thiz->Release                  = IDirectFBScreen_Release;

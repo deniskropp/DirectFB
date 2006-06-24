@@ -1289,24 +1289,21 @@ IDirectFB_SetAppFocus( IDirectFB *thiz, DFBBoolean focused )
 static DFBEnumerationResult
 EnumScreens_Callback( CoreScreen *screen, void *ctx )
 {
-     DFBScreenID           id;
      DFBScreenDescription  desc;
      EnumScreens_Context  *context = (EnumScreens_Context*) ctx;
 
-     dfb_screen_get_info( screen, &id, &desc );
+     dfb_screen_get_info( screen, NULL, &desc );
 
-     return context->callback( id, desc, context->callback_ctx );
+     return context->callback( dfb_screen_id_translated( screen ),
+                               desc, context->callback_ctx );
 }
 
 static DFBEnumerationResult
 GetScreen_Callback( CoreScreen *screen, void *ctx )
 {
-     DFBScreenID        id;
      GetScreen_Context *context = (GetScreen_Context*) ctx;
 
-     dfb_screen_get_info( screen, &id, NULL );
-
-     if (id != context->id)
+     if (dfb_screen_id_translated( screen ) != context->id)
           return DFENUM_OK;
 
      DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBScreen );
