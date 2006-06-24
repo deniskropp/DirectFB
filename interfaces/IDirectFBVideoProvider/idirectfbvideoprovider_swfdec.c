@@ -94,7 +94,8 @@ typedef struct {
      int                    width;
      int                    height;
      double                 rate;
-     int                    interval;
+     unsigned int           interval;
+     double                 speed;
      
      IDirectFBSurface      *dest;
      IDirectFBSurface_data *dest_data;
@@ -103,6 +104,7 @@ typedef struct {
 #ifdef HAVE_FUSIONSOUND
      IFusionSound          *sound;
      IFusionSoundStream    *stream;
+     IFusionSoundPlayback  *playback;
 #endif  
     
      DFBVideoProviderStatus status;
@@ -330,7 +332,7 @@ SwfInput( DirectThread *self, void *arg )
                buffer->length = (h << 16) | (w & 0xffff);
           add_frame( &data->video.queue, buffer, pts );
 
-          if (data->input.seek != -1 && data->status == DVSTATE_STOP) {
+          if (data->input.seek != -1 && !data->speed) {
                pthread_mutex_lock( &data->video.lock );
                pthread_cond_signal( &data->video.cond );
                pthread_mutex_unlock( &data->video.lock );
@@ -505,20 +507,13 @@ SwfVideo( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data = arg;
      
+     pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
+     
      while (!direct_thread_is_canceled( self )) {
           SwfdecBuffer *buffer;
           long long     time;
           
           time = usec();
-          
-          if (data->status == DVSTATE_STOP) {
-               pthread_mutex_lock( &data->video.lock );
-               pthread_cond_wait( &data->video.cond, &data->video.lock );
-               pthread_mutex_unlock( &data->video.lock );
-               time = usec();
-          }
-
-          direct_thread_testcancel( self );
           
           pthread_mutex_lock( &data->video.lock );
                
@@ -552,7 +547,11 @@ SwfVideo( DirectThread *self, void *arg )
                     data->callback( data->ctx );
           }
 
-          if (data->status != DVSTATE_STOP) {
+          if (!data->speed) {
+               /* paused */
+               pthread_cond_wait( &data->video.cond, &data->video.lock );
+          }
+          else {
                struct timespec t;
                
                time += data->interval;
@@ -577,17 +576,19 @@ static void*
 SwfAudio( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_Swfdec_data *data = arg;
+     
+     pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
 
      while (!direct_thread_is_canceled( self )) {
           SwfdecBuffer *buffer;
           int           delay = 0;
           __s64         pts;
+          void         *buf;
+          int           len;
           
           pthread_mutex_lock( &data->audio.lock );
           
-          if (data->status == DVSTATE_STOP ||
-              !get_frame( &data->audio.queue, &buffer, &pts ))
-          {
+          if (!data->speed || !get_frame( &data->audio.queue, &buffer, &pts )) {
                pthread_mutex_unlock( &data->audio.lock );
                usleep( 0 );
                continue;
@@ -602,19 +603,21 @@ SwfAudio( DirectThread *self, void *arg )
           data->audio.pts = pts - delay * 1000ll;
           
           if (buffer) {
-               data->stream->Write( data->stream, 
-                                    buffer->data, buffer->length/4 );
+               len = buffer->length/4;
+               buf = alloca( buffer->length );
+               direct_memcpy( buf, buffer->data, buffer->length );
                swfdec_buffer_unref( buffer );
           }
           else {
-               int   len = 44100/data->rate;
-               __s16 buf[len*2];
-               
+               len = 44100/data->rate;
+               buf = alloca( len*4 );
                memset( buf, 0, len*4 );
-               data->stream->Write( data->stream, buf, len );
           }
           
           pthread_mutex_unlock( &data->audio.lock );
+         
+          if (data->speed) 
+               data->stream->Write( data->stream, buf, len );
      }
 
      return (void*)0;
@@ -648,10 +651,11 @@ IDirectFBVideoProvider_Swfdec_Destruct( IDirectFBVideoProvider *thiz )
      }
        
 #ifdef HAVE_FUSIONSOUND
-     if (data->stream) {
-          //data->stream->Flush( data->stream );
+     if (data->playback)
+          data->playback->Release( data->playback );
+          
+     if (data->stream)
           data->stream->Release( data->stream );
-     }
      
      if (data->sound)
           data->sound->Release( data->sound );
@@ -709,8 +713,12 @@ IDirectFBVideoProvider_Swfdec_GetCapabilities( IDirectFBVideoProvider       *thi
      if (!caps)
           return DFB_INVARG;
           
-     *caps = DVCAPS_BASIC | DVCAPS_SCALE      |
-             DVCAPS_SEEK  | DVCAPS_INTERACTIVE;
+     *caps = DVCAPS_BASIC | DVCAPS_SCALE |
+             DVCAPS_SEEK  | DVCAPS_SPEED | DVCAPS_INTERACTIVE;
+#ifdef HAVE_FUSIONSOUND
+     if (data->playback)
+          *caps |= DVCAPS_VOLUME;
+#endif
      
      return DFB_OK;
 }
@@ -824,9 +832,6 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
      data->rect      = rect;
      data->callback  = callback;
      data->ctx       = ctx;
-
-     if (data->status == DVSTATE_STOP)
-          pthread_cond_signal( &data->video.cond );
      
      data->status = DVSTATE_PLAY;
      
@@ -859,25 +864,26 @@ IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
  
-     if (data->status == DVSTATE_PLAY) {
-          pthread_mutex_lock( &data->input.lock );
-          pthread_mutex_lock( &data->video.lock );
-          pthread_mutex_lock( &data->audio.lock );
-     
-          if (data->audio.thread) {
-               direct_thread_cancel( data->audio.thread );
-               direct_thread_join( data->audio.thread );
-               direct_thread_destroy( data->audio.thread );
-               data->audio.thread = NULL;
+     if (data->video.thread) {
+          direct_thread_cancel( data->video.thread );
+          if (!data->speed) {
+               pthread_mutex_lock( &data->video.lock );
+               pthread_cond_signal( &data->video.cond );
+               pthread_mutex_unlock( &data->video.lock );
           }
-          
-          data->status = DVSTATE_STOP;          
-          pthread_cond_signal( &data->video.cond );
-          
-          pthread_mutex_unlock( &data->video.lock );
-          pthread_mutex_unlock( &data->input.lock );
-          pthread_mutex_unlock( &data->audio.lock );
+          direct_thread_join( data->video.thread );
+          direct_thread_destroy( data->video.thread );
+          data->video.thread = NULL;
      }
+     
+     if (data->audio.thread) {
+          direct_thread_cancel( data->audio.thread );
+          direct_thread_join( data->audio.thread );
+          direct_thread_destroy( data->audio.thread );
+          data->audio.thread = NULL;
+     }
+     
+     data->status = DVSTATE_STOP;
      
      return DFB_OK;
 }
@@ -1108,7 +1114,71 @@ IDirectFBVideoProvider_Swfdec_SendEvent( IDirectFBVideoProvider *thiz,
      }
 
      return DFB_OK;
-} 
+}
+
+static DFBResult
+IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
+                                        double                  multiplier )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+     
+     if (multiplier < 0.0)
+          return DFB_INVARG;
+          
+     if (multiplier > 6.0)
+          return DFB_UNSUPPORTED;
+          
+     pthread_mutex_lock( &data->video.lock );
+     pthread_mutex_lock( &data->audio.lock );
+     
+     data->interval = 1000000.0/(data->rate*multiplier);
+     pthread_cond_signal( &data->video.cond );
+     
+#ifdef HAVE_FUSIONSOUND
+     if (data->playback && multiplier > 0.01)
+          data->playback->SetPitch( data->playback, multiplier );
+#endif
+
+     data->speed = multiplier;
+     
+     pthread_mutex_unlock( &data->audio.lock );
+     pthread_mutex_unlock( &data->video.lock );    
+     
+     return DFB_OK;
+}
+
+static DFBResult 
+IDirectFBVideoProvider_Swfdec_GetSpeed( IDirectFBVideoProvider *thiz,
+                                        double                 *ret_multiplier )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+     
+     if (!ret_multiplier)
+          return DFB_INVARG;
+          
+     *ret_multiplier = data->speed;
+     
+     return DFB_OK;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Swfdec_SetVolume( IDirectFBVideoProvider *thiz,
+                                         float                   level )
+{
+     DFBResult ret = DFB_UNSUPPORTED;
+     
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+     
+     if (level < 0.0)
+          return DFB_INVARG;
+          
+#ifdef HAVE_FUSIONSOUND
+     if (data->playback)
+          ret = data->playback->SetVolume( data->playback, level );
+#endif
+
+     return ret;
+}
 
 /* exported symbols */
 
@@ -1154,6 +1224,7 @@ Construct( IDirectFBVideoProvider *thiz,
      data->ref    = 1;
      data->status = DVSTATE_STOP;
      data->buffer = buffer;
+     data->speed  = 1.0;
      
      buffer->AddRef( buffer );
      
@@ -1228,6 +1299,8 @@ Construct( IDirectFBVideoProvider *thiz,
                data->sound->Release( data->sound );
                data->sound = NULL;
           }
+          
+          data->stream->GetPlayback( data->stream, &data->playback );
      }
      else {
           D_ERROR( "IDirectFBVideoProvider_Swfdec: "
@@ -1256,6 +1329,9 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->GetColorAdjustment    = IDirectFBVideoProvider_Swfdec_GetColorAdjustment;
      thiz->SetColorAdjustment    = IDirectFBVideoProvider_Swfdec_SetColorAdjustment;
      thiz->SendEvent             = IDirectFBVideoProvider_Swfdec_SendEvent;
+     thiz->SetSpeed              = IDirectFBVideoProvider_Swfdec_SetSpeed;
+     thiz->GetSpeed              = IDirectFBVideoProvider_Swfdec_GetSpeed;
+     thiz->SetVolume             = IDirectFBVideoProvider_Swfdec_SetVolume;
      
      return DFB_OK;
 }
