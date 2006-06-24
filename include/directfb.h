@@ -1284,6 +1284,7 @@ typedef enum {
      DVCAPS_HUE         = 0x00000040,  /* supports Hue adjustment          */
      DVCAPS_SATURATION  = 0x00000080,  /* supports Saturation adjustment   */
      DVCAPS_INTERACTIVE = 0x00000100,  /* supports SendEvent               */
+     DVCAPS_VOLUME      = 0x00000200,  /* supports Volume adjustment       */
 } DFBVideoProviderCapabilities;
 
 /*
@@ -5092,6 +5093,16 @@ DEFINE_INTERFACE(   IDirectFBVideoProvider,
      DFBResult (*GetSpeed) (
           IDirectFBVideoProvider   *thiz,
           double                   *ret_multiplier
+     );
+     
+     /*
+      * Set volume level.
+      *
+      * The level is a linear factor being 1.0f by default.
+      */
+     DFBResult (*SetVolume) (
+          IDirectFBVideoProvider   *thiz,
+          float                     level
      );
 )
 
