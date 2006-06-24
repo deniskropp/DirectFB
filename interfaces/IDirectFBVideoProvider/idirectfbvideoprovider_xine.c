@@ -269,9 +269,9 @@ IDirectFBVideoProvider_Xine_GetCapabilities( IDirectFBVideoProvider       *thiz,
      if (!caps)
           return DFB_INVARG;
 
-     *caps = DVCAPS_BASIC      | DVCAPS_SCALE    | DVCAPS_SPEED      |
-             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST | DVCAPS_SATURATION |
-             DVCAPS_INTERACTIVE;
+     *caps = DVCAPS_BASIC       | DVCAPS_SCALE    | DVCAPS_SPEED      |
+             DVCAPS_BRIGHTNESS  | DVCAPS_CONTRAST | DVCAPS_SATURATION |
+             DVCAPS_INTERACTIVE | DVCAPS_VOLUME;
 
      if (xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
           *caps |= DVCAPS_SEEK;
@@ -477,10 +477,12 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
           return DFB_OK;
 
      if (data->status == DVSTATE_PLAY) {
+          data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
           if (!xine_play( data->stream, 0, offset )) {
                get_stream_error( data );
                return data->err;
           }
+          xine_set_param( data->stream, XINE_PARAM_SPEED, data->speed );
           usleep( 100 );
      }
      
@@ -827,6 +829,24 @@ IDirectFBVideoProvider_Xine_GetSpeed( IDirectFBVideoProvider *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBVideoProvider_Xine_SetVolume( IDirectFBVideoProvider *thiz,
+                                       float                   level )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+     
+     if (level < 0.0)
+          return DFB_INVARG;
+          
+     if (level > 1.0)
+          return DFB_UNSUPPORTED;
+          
+     xine_set_param( data->stream, XINE_PARAM_AUDIO_VOLUME, level*100.0 );
+     
+     return DFB_OK;
+}          
+     
+
 /****************************** Exported Symbols ******************************/
 
 static DFBResult
@@ -1151,6 +1171,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->SetPlaybackFlags      = IDirectFBVideoProvider_Xine_SetPlaybackFlags;
      thiz->SetSpeed              = IDirectFBVideoProvider_Xine_SetSpeed;
      thiz->GetSpeed              = IDirectFBVideoProvider_Xine_GetSpeed;
+     thiz->SetVolume             = IDirectFBVideoProvider_Xine_SetVolume;
      
      return DFB_OK;
 }
