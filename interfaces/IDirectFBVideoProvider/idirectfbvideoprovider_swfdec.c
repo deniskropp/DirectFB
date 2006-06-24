@@ -96,6 +96,7 @@ typedef struct {
      double                 rate;
      unsigned int           interval;
      double                 speed;
+     float                  volume;
      
      IDirectFBSurface      *dest;
      IDirectFBSurface_data *dest_data;
@@ -1131,7 +1132,8 @@ IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
      
-     data->interval = 1000000.0/(data->rate*multiplier);
+     if (multiplier)
+          data->interval = 1000000.0/(data->rate*multiplier);
      pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
@@ -1173,11 +1175,28 @@ IDirectFBVideoProvider_Swfdec_SetVolume( IDirectFBVideoProvider *thiz,
           return DFB_INVARG;
           
 #ifdef HAVE_FUSIONSOUND
-     if (data->playback)
+     if (data->playback) {
           ret = data->playback->SetVolume( data->playback, level );
+          if (ret == DFB_OK)
+               data->volume = level;
+     }
 #endif
 
      return ret;
+}
+
+static DFBResult
+IDirectFBVideoProvider_Swfdec_GetVolume( IDirectFBVideoProvider *thiz,
+                                         float                  *ret_level )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+     
+     if (!ret_level)
+          return DFB_INVARG;
+
+     *ret_level = data->volume;
+
+     return DFB_OK;
 }
 
 /* exported symbols */
@@ -1225,6 +1244,7 @@ Construct( IDirectFBVideoProvider *thiz,
      data->status = DVSTATE_STOP;
      data->buffer = buffer;
      data->speed  = 1.0;
+     data->volume = 1.0;
      
      buffer->AddRef( buffer );
      
@@ -1332,6 +1352,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->SetSpeed              = IDirectFBVideoProvider_Swfdec_SetSpeed;
      thiz->GetSpeed              = IDirectFBVideoProvider_Swfdec_GetSpeed;
      thiz->SetVolume             = IDirectFBVideoProvider_Swfdec_SetVolume;
+     thiz->GetVolume             = IDirectFBVideoProvider_Swfdec_GetVolume;
      
      return DFB_OK;
 }

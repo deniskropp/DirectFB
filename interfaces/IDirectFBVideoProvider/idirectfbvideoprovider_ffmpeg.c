@@ -90,6 +90,7 @@ typedef struct {
      DFBVideoProviderStatus         status;
      DFBVideoProviderPlaybackFlags  flags;
      double                         speed;
+     float                          volume;
      
      IDirectFBDataBuffer           *buffer;
      bool                           seekable;
@@ -1137,7 +1138,8 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
      
-     data->video.interval = (double)AV_TIME_BASE/(data->video.rate*multiplier);
+     if (multiplier)
+          data->video.interval = (double)AV_TIME_BASE/(data->video.rate*multiplier);
      pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
@@ -1179,11 +1181,28 @@ IDirectFBVideoProvider_FFmpeg_SetVolume( IDirectFBVideoProvider *thiz,
           return DFB_INVARG;
           
 #ifdef HAVE_FUSIONSOUND
-     if (data->audio.playback)
+     if (data->audio.playback) {
           ret = data->audio.playback->SetVolume( data->audio.playback, level );
+          if (ret == DFB_OK)
+               data->volume = level;
+     }
 #endif
 
      return ret;
+}
+
+static DFBResult
+IDirectFBVideoProvider_FFmpeg_GetVolume( IDirectFBVideoProvider *thiz,
+                                         float                  *ret_level )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
+     
+     if (!ret_level)
+          return DFB_INVARG;
+
+     *ret_level = data->volume;
+
+     return DFB_OK;
 }
        
 
@@ -1253,6 +1272,7 @@ Construct( IDirectFBVideoProvider *thiz,
      data->status = DVSTATE_STOP;
      data->buffer = buffer;
      data->speed  = 1.0;
+     data->volume = 1.0;
      
      buffer->AddRef( buffer ); 
      buffer->PeekData( buffer, sizeof(buf), 0, &buf[0], &len );
@@ -1441,6 +1461,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->SetSpeed              = IDirectFBVideoProvider_FFmpeg_SetSpeed;
      thiz->GetSpeed              = IDirectFBVideoProvider_FFmpeg_GetSpeed;
      thiz->SetVolume             = IDirectFBVideoProvider_FFmpeg_SetVolume;
+     thiz->GetVolume             = IDirectFBVideoProvider_FFmpeg_GetVolume;
      
      return DFB_OK;
 }

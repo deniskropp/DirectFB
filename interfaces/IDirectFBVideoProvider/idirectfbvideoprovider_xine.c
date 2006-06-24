@@ -833,18 +833,48 @@ static DFBResult
 IDirectFBVideoProvider_Xine_SetVolume( IDirectFBVideoProvider *thiz,
                                        float                   level )
 {
+     int vol, amp;
+     
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
      
      if (level < 0.0)
           return DFB_INVARG;
           
-     if (level > 1.0)
+     if (level > 2.0)
           return DFB_UNSUPPORTED;
           
-     xine_set_param( data->stream, XINE_PARAM_AUDIO_VOLUME, level*100.0 );
+     if (level > 1.0) {
+          vol = 100;
+          amp = (level*100.0);
+     }
+     else {
+          vol = (level*100.0);
+          amp = 100;
+     }          
+          
+     xine_set_param( data->stream, XINE_PARAM_AUDIO_VOLUME, vol );
+     xine_set_param( data->stream, XINE_PARAM_AUDIO_AMP_LEVEL, amp );
      
      return DFB_OK;
-}          
+}
+
+static DFBResult
+IDirectFBVideoProvider_Xine_GetVolume( IDirectFBVideoProvider *thiz,
+                                       float                  *ret_level )
+{
+     int vol, amp;
+     
+     DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Xine )
+     
+     if (!ret_level)
+          return DFB_INVARG;
+          
+     vol = xine_get_param( data->stream, XINE_PARAM_AUDIO_VOLUME );
+     amp = xine_get_param( data->stream, XINE_PARAM_AUDIO_AMP_LEVEL );
+     *ret_level = (float)vol/100.0 * (float)amp/100.0;
+     
+     return DFB_OK;
+}
      
 
 /****************************** Exported Symbols ******************************/
@@ -1172,6 +1202,7 @@ Construct( IDirectFBVideoProvider *thiz,
      thiz->SetSpeed              = IDirectFBVideoProvider_Xine_SetSpeed;
      thiz->GetSpeed              = IDirectFBVideoProvider_Xine_GetSpeed;
      thiz->SetVolume             = IDirectFBVideoProvider_Xine_SetVolume;
+     thiz->GetVolume             = IDirectFBVideoProvider_Xine_GetVolume;
      
      return DFB_OK;
 }
