@@ -78,6 +78,9 @@ void         dfb_palette_update             ( CorePalette   *palette,
                                               int            first,
                                               int            last );
 
+bool         dfb_palette_equal              ( CorePalette   *palette1,
+                                              CorePalette   *palette2 );
+
 
 /*
  * Creates a pool of palette objects.

@@ -232,3 +232,30 @@ dfb_palette_update( CorePalette *palette, int first, int last )
      dfb_palette_dispatch( palette, &notification, dfb_palette_globals );
 }
 
+bool
+dfb_palette_equal( CorePalette *palette1, CorePalette *palette2 )
+{
+     __u32 *entries1;
+     __u32 *entries2;
+     int    i;
+     
+     D_ASSERT( palette1 != NULL );
+     D_ASSERT( palette2 != NULL );
+
+     if (palette1 == palette2)
+          return true;
+
+     if (palette1->num_entries != palette2->num_entries)
+          return false;
+
+     entries1 = (__u32*)palette1->entries;
+     entries2 = (__u32*)palette2->entries;
+
+     for (i = 0; i < palette1->num_entries; i++) {
+          if (entries1[i] != entries2[i])
+               return false;
+     }
+
+     return true;
+}
+
