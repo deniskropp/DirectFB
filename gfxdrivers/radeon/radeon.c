@@ -42,6 +42,7 @@
 #include <core/gfxcard.h>
 #include <core/screens.h>
 #include <core/surfaces.h>
+#include <core/palette.h>
 #include <core/system.h>
 
 #include <fbdev/fb.h>
@@ -166,7 +167,7 @@ radeon_get_monitors( RadeonDriverData  *rdrv,
 		else if (tmp & 0x20)
 			dvimon = MT_STV;
 		
-		/* VGA port */
+          /* VGA port */
 		if (tmp & 0x2)
 			vgamon = MT_CRT;
 		else if (tmp & 0x800)
@@ -522,7 +523,7 @@ static void r100CheckState( void *drv, void *dev,
      int supported_drawingflags  = R100_SUPPORTED_DRAWINGFLAGS;
      int supported_blittingfuncs = R100_SUPPORTED_BLITTINGFUNCTIONS;
      int supported_blittingflags = R100_SUPPORTED_BLITTINGFLAGS;
-     
+    
      switch (destination->format) {               
           case DSPF_A8:
           case DSPF_RGB332:
@@ -621,6 +622,12 @@ static void r100CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
+                    if (destination->format != source->format ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+                        
                case DSPF_ARGB2554:
                case DSPF_AYUV:
                     if (destination->format != source->format)
@@ -765,6 +772,12 @@ static void r200CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
+                    if (destination->format != source->format ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+               
                case DSPF_ARGB2554:
                case DSPF_AYUV:
                     if (destination->format != source->format)
@@ -905,6 +918,12 @@ static void r300CheckState( void *drv, void *dev,
                
                case DSPF_LUT8:
                case DSPF_ALUT44:
+                    if (destination->format != source->format ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+
                case DSPF_ARGB2554:
                case DSPF_AYUV:
                     if (destination->format != source->format)
