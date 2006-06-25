@@ -7526,11 +7526,11 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
                          }
                     }
-                    else if (gfxs->src_format == gfxs->dst_format ||
+                    else if ((gfxs->src_format == gfxs->dst_format && 
+                              (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
+                               dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
                              ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
-                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12))/* &&
-                             (!DFB_PIXELFORMAT_IS_INDEXED(src_format) ||
-                              Alut == Blut)*/) {
+                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12))) {
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
                                   state->blittingflags & DSBLIT_DST_COLORKEY) {
