@@ -34,6 +34,7 @@
 #include <directfb.h>
 
 #include <direct/messages.h>
+#include <direct/types.h>
 
 #include "regs.h"
 #include "mmio.h"

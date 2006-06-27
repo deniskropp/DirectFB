@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/ioctl.h>
+#include <errno.h>
 
 #ifdef USE_SYSFS
 #include <sysfs/libsysfs.h>
