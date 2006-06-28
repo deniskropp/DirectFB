@@ -141,14 +141,6 @@ ov0InitLayer( CoreLayer                  *layer,
      adjustment->contrast   = 0x8000;
      adjustment->saturation = 0x8000;
      adjustment->hue        = 0x8000;
-
-     /* set video buffers start and limit */
-     if (nvdev->arch >= NV_ARCH_10) {
-          nv_out32( nvdrv->mmio_base, PVIDEO_OFFSET_0, 0 );
-          nv_out32( nvdrv->mmio_base, PVIDEO_OFFSET_1, 0 );
-          nv_out32( nvdrv->mmio_base, PVIDEO_LIMIT_0, nvdev->fb_size - 1 );
-          nv_out32( nvdrv->mmio_base, PVIDEO_LIMIT_1, nvdev->fb_size - 1 );
-     }
  
      /* reset overlay */
      nvov0->brightness = 0;
