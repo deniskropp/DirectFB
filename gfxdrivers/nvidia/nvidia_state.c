@@ -97,6 +97,7 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
           switch (buffer->format) {
                case DSPF_A8:
                case DSPF_LUT8:
+               case DSPF_ALUT44:
                case DSPF_RGB332:
                     sformat2D = SURFACES2D_FORMAT_Y8;
                     cformat   = RECT_COLOR_FORMAT_Y32;
@@ -376,6 +377,10 @@ void nv_set_drawing_color( NVidiaDriverData *nvdrv,
           case DSPF_LUT8:
                nvdev->color2d = state->color_index;
                break;
+          case DSPF_ALUT44:
+               nvdev->color2d = (state->color_index & 0x0F) |
+                                (state->color.a     & 0xF0);
+               break;
           case DSPF_RGB332:
                nvdev->color2d = PIXEL_RGB332( color.r,
                                               color.g,
@@ -653,6 +658,7 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
                     nvdev->scaler_format = SCALER_COLOR_FORMAT_AY8;
                     break;
                case DSPF_LUT8:
+               case DSPF_ALUT44:
                case DSPF_RGB332:
                     nvdev->scaler_format = SCALER_COLOR_FORMAT_Y8;
                     break;

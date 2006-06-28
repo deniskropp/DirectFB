@@ -49,6 +49,7 @@
 #include <core/system.h>
 #include <core/gfxcard.h>
 #include <core/surfaces.h>
+#include <core/palette.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
@@ -427,9 +428,10 @@ static void nv4CheckState( void *drv, void *dev,
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
 
-     switch (destination->format) {
+     switch (destination->format) { 
           case DSPF_A8:
           case DSPF_LUT8:
+          case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel != DFXL_BLIT || state->blittingflags ||
@@ -484,8 +486,15 @@ static void nv4CheckState( void *drv, void *dev,
           }
 
           switch (source->format) { 
-               case DSPF_A8:
                case DSPF_LUT8:
+               case DSPF_ALUT44:
+                    if (destination->format != source->format ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+                    
+               case DSPF_A8:
                case DSPF_RGB332:
                     if (destination->format != source->format)
                          return;
@@ -541,6 +550,7 @@ static void nv5CheckState( void *drv, void *dev,
      switch (destination->format) {
           case DSPF_A8:
           case DSPF_LUT8:
+          case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel != DFXL_BLIT || state->blittingflags ||
@@ -596,8 +606,16 @@ static void nv5CheckState( void *drv, void *dev,
           }
 
           switch (source->format) {
-               case DSPF_A8:
                case DSPF_LUT8:
+               case DSPF_ALUT44:
+                    if (destination->format != source->format          ||
+                        source->front_buffer->policy == CSP_SYSTEMONLY ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+                    
+               case DSPF_A8:
                case DSPF_RGB332:
                     if (destination->format != source->format ||
                         source->front_buffer->policy == CSP_SYSTEMONLY)
@@ -610,7 +628,7 @@ static void nv5CheckState( void *drv, void *dev,
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
                     if (source->front_buffer->policy == CSP_SYSTEMONLY &&
-                        state->blittingflags == DSBLIT_NOFX            &&
+                        accel == DFXL_BLIT && !state->blittingflags    &&
                         source->format == destination->format)
                          return;
                     break;
@@ -647,6 +665,7 @@ static void nv10CheckState( void *drv, void *dev,
      switch (destination->format) {
           case DSPF_A8:
           case DSPF_LUT8:
+          case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (accel != DFXL_BLIT || state->blittingflags ||
@@ -718,6 +737,14 @@ static void nv10CheckState( void *drv, void *dev,
                     break;
 
                case DSPF_LUT8:
+               case DSPF_ALUT44:
+                    if (destination->format != source->format          ||
+                        source->front_buffer->policy == CSP_SYSTEMONLY ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+                    
                case DSPF_RGB332:
                     if (destination->format != source->format ||
                         source->front_buffer->policy == CSP_SYSTEMONLY)
@@ -730,7 +757,7 @@ static void nv10CheckState( void *drv, void *dev,
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
                     if (source->front_buffer->policy == CSP_SYSTEMONLY &&
-                        state->blittingflags == DSBLIT_NOFX            &&
+                        accel == DFXL_BLIT && !state->blittingflags    &&
                         source->format == destination->format)
                          return;
                     break;
@@ -766,6 +793,7 @@ static void nv20CheckState( void *drv, void *dev,
      switch (destination->format) {
           case DSPF_A8:
           case DSPF_LUT8:
+          case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_BLITTING_FUNCTION( accel )) {
                     if (state->blittingflags != DSBLIT_NOFX  ||
@@ -829,6 +857,14 @@ static void nv20CheckState( void *drv, void *dev,
                     break;
 
                case DSPF_LUT8:
+               case DSPF_ALUT44:
+                    if (destination->format != source->format          ||
+                        source->front_buffer->policy == CSP_SYSTEMONLY ||
+                        !dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+                    break;
+                    
                case DSPF_RGB332:
                     if (destination->format != source->format ||
                         source->front_buffer->policy == CSP_SYSTEMONLY)
@@ -841,7 +877,7 @@ static void nv20CheckState( void *drv, void *dev,
                case DSPF_ARGB:
                     /* disable host-to-video blit for simple blits */
                     if (source->front_buffer->policy == CSP_SYSTEMONLY &&
-                        state->blittingflags == DSBLIT_NOFX            &&
+                        accel == DFXL_BLIT && !state->blittingflags    &&
                         source->format == destination->format)
                          return;
                     break;
@@ -881,6 +917,7 @@ static void nv30CheckState( void *drv, void *dev,
      switch (destination->format) {
           case DSPF_A8:
           case DSPF_LUT8:
+          case DSPF_ALUT44:
           case DSPF_RGB332:
                if (DFB_DRAWING_FUNCTION( accel ) &&
                    state->drawingflags != DSDRAW_NOFX)
@@ -911,8 +948,12 @@ static void nv30CheckState( void *drv, void *dev,
                return;
 
           switch (source->format) {
-               case DSPF_A8:
                case DSPF_LUT8:
+               case DSPF_ALUT44:
+                    if (!dfb_palette_equal( source->palette,
+                                            destination->palette ))
+                         return;
+               case DSPF_A8:
                case DSPF_RGB332:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
