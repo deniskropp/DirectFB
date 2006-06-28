@@ -52,7 +52,7 @@ struct __D_DirectNode
 };
 
 
-DirectTree *direct_tree_new    ();
+DirectTree *direct_tree_new    ( void );
 
 void        direct_tree_destroy( DirectTree *tree );
 

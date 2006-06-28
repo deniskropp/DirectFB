@@ -31,8 +31,8 @@
 #include <direct/interface.h>
 
 
-static const char   *GetType();
-static const char   *GetImplementation();
+static const char   *GetType( void );
+static const char   *GetImplementation( void );
 static DirectResult  Allocate( void **interface );
 
 static DirectInterfaceFuncs interface_funcs = {
@@ -46,13 +46,13 @@ static DirectInterfaceFuncs interface_funcs = {
 #define DIRECT_INTERFACE_IMPLEMENTATION(type, impl)    \
                                                        \
 static const char *                                    \
-GetType()                                              \
+GetType( void )                                        \
 {                                                      \
      return #type;                                     \
 }                                                      \
                                                        \
 static const char *                                    \
-GetImplementation()                                    \
+GetImplementation( void )                              \
 {                                                      \
      return #impl;                                     \
 }                                                      \
@@ -64,10 +64,10 @@ Allocate( void **interface )                           \
      return DFB_OK;                                    \
 }                                                      \
                                                        \
-__attribute__((constructor)) void type##_##impl();     \
+__attribute__((constructor)) void type##_##impl(void); \
                                                        \
 void                                                   \
-type##_##impl()                                        \
+type##_##impl(void)                                    \
 {                                                      \
      DirectRegisterInterface( &interface_funcs );      \
 }

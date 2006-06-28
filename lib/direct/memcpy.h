@@ -32,8 +32,8 @@
 #include <string.h>
 
 
-void direct_find_best_memcpy();
-void direct_print_memcpy_routines();
+void direct_find_best_memcpy( void );
+void direct_print_memcpy_routines( void );
 
 extern void *(*direct_memcpy)( void *to, const void *from, size_t len );
 

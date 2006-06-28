@@ -49,8 +49,8 @@ typedef DirectResult (*DirectInterfaceGenericProbeFunc)( void *ctx, ... );
 typedef DirectResult (*DirectInterfaceGenericConstructFunc)( void *interface, ... );
 
 typedef struct {
-     const char * (*GetType)();
-     const char * (*GetImplementation)();
+     const char * (*GetType)(void);
+     const char * (*GetImplementation)(void);
      DirectResult (*Allocate)( void **interface );
      
      DirectInterfaceGenericProbeFunc     Probe;
@@ -86,7 +86,7 @@ DirectResult DirectProbeInterface( DirectInterfaceFuncs *funcs, void *ctx );
 void DirectRegisterInterface( DirectInterfaceFuncs *funcs );
 
 
-void direct_print_interface_leaks();
+void direct_print_interface_leaks(void);
 
 
 void direct_dbg_interface_add   ( const char *func,

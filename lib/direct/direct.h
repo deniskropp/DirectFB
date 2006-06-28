@@ -31,8 +31,8 @@
 #include <direct/types.h>
 
 
-DirectResult direct_initialize();
-DirectResult direct_shutdown();
+DirectResult direct_initialize( void );
+DirectResult direct_shutdown( void );
 
 
 #endif

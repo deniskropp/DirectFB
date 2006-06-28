@@ -42,15 +42,15 @@ typedef DirectSignalHandlerResult (*DirectSignalHandlerFunc)( int   num,
                                                               void *ctx );
 
 
-DirectResult direct_signals_initialize();
-DirectResult direct_signals_shutdown();
+DirectResult direct_signals_initialize( void );
+DirectResult direct_signals_shutdown( void );
 
 /*
  * Modifies the current thread's signal mask to block everything.
  * Should be called by input threads once to avoid killing themselves
  * in the signal handler by deinitializing all input drivers.
  */
-void direct_signals_block_all();
+void direct_signals_block_all( void );
 
 /*
  * Signal number to use when registering a handler for any interrupt.

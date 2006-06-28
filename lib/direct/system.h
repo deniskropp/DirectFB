@@ -30,8 +30,8 @@
 
 #include <sys/types.h>
 
-pid_t direct_gettid();
-long  direct_pagesize();
+pid_t direct_gettid( void );
+long  direct_pagesize( void );
 
 #endif
 

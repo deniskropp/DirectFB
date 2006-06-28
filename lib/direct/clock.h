@@ -30,8 +30,8 @@
 
 #include <sys/time.h>
 
-long long direct_clock_get_micros();
-long long direct_clock_get_millis();
+long long direct_clock_get_micros( void );
+long long direct_clock_get_millis( void );
 
 void      direct_clock_set_start( const struct timeval *start );
 
