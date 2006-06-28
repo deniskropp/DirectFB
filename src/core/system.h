@@ -133,16 +133,16 @@ typedef struct {
      DFBResult      (*Shutdown)( bool emergency );
      DFBResult      (*Leave)( bool emergency );
 
-     DFBResult      (*Suspend)();
-     DFBResult      (*Resume)();
+     DFBResult      (*Suspend)( void );
+     DFBResult      (*Resume)( void );
 
-     VideoMode*     (*GetModes)();
-     VideoMode*     (*GetCurrentMode)();
+     VideoMode*     (*GetModes)( void );
+     VideoMode*     (*GetCurrentMode)( void );
 
      /*
       * Called at the beginning of a new thread.
       */
-     DFBResult      (*ThreadInit)();
+     DFBResult      (*ThreadInit)( void );
 
      /*
       * Called upon incoming input events.
@@ -171,17 +171,17 @@ typedef struct {
      void           (*UnmapMMIO)( volatile void  *addr,
                                   int             length );
 
-     int            (*GetAccelerator)();
+     int            (*GetAccelerator)( void );
 
      unsigned long  (*VideoMemoryPhysical)( unsigned int offset );
      void*          (*VideoMemoryVirtual)( unsigned int offset );
 
-     unsigned int   (*VideoRamLength)();
+     unsigned int   (*VideoRamLength)( void );
 
      unsigned long  (*AuxMemoryPhysical)( unsigned int offset );
      void*          (*AuxMemoryVirtual)( unsigned int offset );
      
-     unsigned int   (*AuxRamLength)();
+     unsigned int   (*AuxRamLength)( void );
      
      void           (*GetBusID)( int *ret_bus, int *ret_dev, int *ret_func );
      void           (*GetDeviceID)( unsigned int *ret_vendor_id,
@@ -191,16 +191,16 @@ typedef struct {
 
 
 DFBResult
-dfb_system_lookup();
+dfb_system_lookup( void );
 
 CoreSystemType
-dfb_system_type();
+dfb_system_type( void );
 
 CoreSystemCapabilities
-dfb_system_caps();
+dfb_system_caps( void );
 
 void *
-dfb_system_data();
+dfb_system_data( void );
 
 volatile void *
 dfb_system_map_mmio( unsigned int    offset,
@@ -211,16 +211,16 @@ dfb_system_unmap_mmio( volatile void  *addr,
                        int             length );
 
 int
-dfb_system_get_accelerator();
+dfb_system_get_accelerator( void );
 
 VideoMode *
-dfb_system_modes();
+dfb_system_modes( void );
 
 VideoMode *
-dfb_system_current_mode();
+dfb_system_current_mode( void );
 
 DFBResult
-dfb_system_thread_init();
+dfb_system_thread_init( void );
 
 bool
 dfb_system_input_filter( CoreInputDevice *device,
@@ -233,7 +233,7 @@ void *
 dfb_system_video_memory_virtual( unsigned int offset );
 
 unsigned int
-dfb_system_videoram_length();
+dfb_system_videoram_length( void );
 
 unsigned long
 dfb_system_aux_memory_physical( unsigned int offset );
@@ -242,7 +242,7 @@ void *
 dfb_system_aux_memory_virtual( unsigned int offset );
 
 unsigned int
-dfb_system_auxram_length();
+dfb_system_auxram_length( void );
 
 void
 dfb_system_get_busid( int *ret_bus, int *ret_dev, int *ret_func );

@@ -276,8 +276,8 @@ typedef enum {
 } GraphicsDeviceLockFlags;
 
 DFBResult dfb_gfxcard_lock( GraphicsDeviceLockFlags flags );
-void dfb_gfxcard_unlock();
-void dfb_gfxcard_holdup();
+void dfb_gfxcard_unlock( void );
+void dfb_gfxcard_holdup( void );
 
 bool dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel );
 //bool dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel );
@@ -319,18 +319,18 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state );
 void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
                             CoreFont *font, CardState *state );
 
-void dfb_gfxcard_sync();
-void dfb_gfxcard_invalidate_state();
+void dfb_gfxcard_sync( void );
+void dfb_gfxcard_invalidate_state( void );
 void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
-void dfb_gfxcard_flush_texture_cache();
-void dfb_gfxcard_flush_read_cache();
-void dfb_gfxcard_after_set_var();
+void dfb_gfxcard_flush_texture_cache( void );
+void dfb_gfxcard_flush_read_cache( void );
+void dfb_gfxcard_after_set_var( void );
 void dfb_gfxcard_surface_enter( SurfaceBuffer *buffer, DFBSurfaceLockFlags flags );
 void dfb_gfxcard_surface_leave( SurfaceBuffer *buffer );
 
 DFBResult dfb_gfxcard_adjust_heap_offset( int offset );
 
-SurfaceManager *dfb_gfxcard_surface_manager   ();
+SurfaceManager *dfb_gfxcard_surface_manager   ( void );
 void            dfb_gfxcard_get_capabilities  ( CardCapabilities   *ret_caps );
 void            dfb_gfxcard_get_device_info   ( GraphicsDeviceInfo *ret_info );
 void            dfb_gfxcard_get_driver_info   ( GraphicsDriverInfo *ret_info );
@@ -340,8 +340,8 @@ int             dfb_gfxcard_reserve_memory    ( GraphicsDevice      *device,
 int             dfb_gfxcard_reserve_auxmemory ( GraphicsDevice      *device,
                                                 unsigned int         size );
 
-unsigned int    dfb_gfxcard_memory_length     ();
-unsigned int    dfb_gfxcard_auxmemory_length  ();
+unsigned int    dfb_gfxcard_memory_length     ( void );
+unsigned int    dfb_gfxcard_auxmemory_length  ( void );
 
 /*
  * Graphics drivers call this function to get access to MMIO regions.

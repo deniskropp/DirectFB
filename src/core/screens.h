@@ -41,7 +41,7 @@ typedef struct {
      /*
       * Return size of screen data (shared memory).
       */
-     int       (*ScreenDataSize)();
+     int       (*ScreenDataSize)(void);
 
      /*
       * Called once by the master to initialize screen data and reset hardware.
