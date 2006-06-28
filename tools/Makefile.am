@@ -29,8 +29,7 @@ endif
 
 bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon dfbpenmount $(VOODOO_PROGS)
 
-noinst_PROGRAMS = \
-	$(LINUXONLY_TOOLS)
+noinst_PROGRAMS = $(LINUXONLY_TOOLS) fx
 
 dfbdump_SOURCES = dfbdump.c
 dfbdump_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
@@ -61,6 +60,8 @@ dfbpenmount_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/di
 
 fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
+
+fx_SOURCES = fx.c
 
 raw15toraw24_SOURCES = raw15toraw24.c
 
