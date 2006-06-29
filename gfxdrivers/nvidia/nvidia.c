@@ -1388,51 +1388,57 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static void
-nv_find_architecture( __u32 *ret_chip, __u32 *ret_arch )
+nv_find_architecture( NVidiaDriverData *nvdrv, __u32 *ret_chip, __u32 *ret_arch )
 {
      unsigned int vendor_id;
      unsigned int device_id;
-
-     dfb_system_get_deviceid( &vendor_id, &device_id );
-     
-     if (vendor_id == 0x10DE) {
-          __u32 arch = 0;
-          
-          switch (device_id & 0xFFF0) {
-               case 0x0020: /* Riva TNT/TNT2 */
-                    arch = (device_id == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
-                    break;
-               case 0x0100: /* GeForce */
-               case 0x0110: /* GeForce2 MX */
-               case 0x0150: /* GeForce2 GTS/Ti/Ultra */
-               case 0x0170: /* GeForce4 MX/Go */
-               case 0x0180: /* GeForce4 MX/Go AGP8X */
-               //case 0x01A0: /* GeForce2 Integrated GPU */
-               //case 0x01F0: /* GeForce4 MX Integrated GPU */
-                    arch = NV_ARCH_10;
-                    break;
-               case 0x0200: /* GeForce3 */
-               case 0x0250: /* GeForce4 Ti */
-               case 0x0280: /* GeForce4 Ti AGP8X */
-               case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
-                    arch = NV_ARCH_20;
-                    break;
-               case 0x0300: /* GeForce FX 5800 */
-               case 0x0310: /* GeForce FX 5600 */
-               case 0x0320: /* GeForce FX 5200 */
-               case 0x0330: /* GeForce FX 5900 */
-               case 0x0340: /* GeForce FX 5700 */
-                    arch = NV_ARCH_30;
-                    break;
-               default:
-                    break;
+     unsigned int arch = 0;
+    
+     device_id = nv_in32( nvdrv->mmio_base, 0x00 ) >> 16; /* id:rev */
+     if (!device_id) {
+          dfb_system_get_deviceid( &vendor_id, &device_id );
+          if (vendor_id != 0x10DE) {
+               D_ERROR( "DirectFB/NVidia: Could not detect device id!\n"
+                        "     -> Please, specify the bus location of"
+                        "        the card by using the 'busid' option.\n" );
+               vendor_id = device_id = 0;
           }
-
-          if (ret_chip)
-               *ret_chip = device_id;
-          if (ret_arch)
-               *ret_arch = arch;
      }
+     
+     switch (device_id & 0xFFF0) {
+          case 0x0020: /* Riva TNT/TNT2 */
+               arch = (device_id == 0x0020) ? NV_ARCH_04 : NV_ARCH_05;
+               break;
+          case 0x0100: /* GeForce */
+          case 0x0110: /* GeForce2 MX */
+          case 0x0150: /* GeForce2 GTS/Ti/Ultra */
+          case 0x0170: /* GeForce4 MX/Go */
+          case 0x0180: /* GeForce4 MX/Go AGP8X */
+          //case 0x01A0: /* GeForce2 Integrated GPU */
+          //case 0x01F0: /* GeForce4 MX Integrated GPU */
+               arch = NV_ARCH_10;
+               break;
+          case 0x0200: /* GeForce3 */
+          case 0x0250: /* GeForce4 Ti */
+          case 0x0280: /* GeForce4 Ti AGP8X */
+          case 0x02A0: /* GeForce3 Integrated GPU (XBox) */
+               arch = NV_ARCH_20;
+               break;
+          case 0x0300: /* GeForce FX 5800 */
+          case 0x0310: /* GeForce FX 5600 */
+          case 0x0320: /* GeForce FX 5200 */
+          case 0x0330: /* GeForce FX 5900 */
+          case 0x0340: /* GeForce FX 5700 */
+               arch = NV_ARCH_30;
+               break;
+          default:
+                break;
+     }
+
+     if (ret_chip)
+          *ret_chip = device_id;
+     if (ret_arch)
+          *ret_arch = arch;
 }
 
 static DFBResult
@@ -1445,9 +1451,7 @@ driver_init_driver( GraphicsDevice      *device,
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
      __u32             arch  = 0;
-
-     nv_find_architecture( NULL, &arch );
-     
+    
      nvdrv->device      = device;
      nvdrv->device_data = device_data;
      
@@ -1472,6 +1476,8 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->DrawRectangle = nvDrawRectangle2D; // dynamic
      funcs->DrawLine      = nvDrawLine2D;      // dynamic
      funcs->Blit          = nvBlit;            // dynamic
+
+     nv_find_architecture( nvdrv, NULL, &arch );
 
      switch (arch) {
           case NV_ARCH_04: 
@@ -1536,11 +1542,11 @@ driver_init_device( GraphicsDevice     *device,
      int               ram_total = dfb_system_videoram_length();
      int               ram_used  = dfb_gfxcard_memory_length();
      
-     nv_find_architecture( &nvdev->chip, &nvdev->arch );
+     nv_find_architecture( nvdrv, &nvdev->chip, &nvdev->arch );
 
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
-               "NV%02x (0x%04x)", (nvdev->chip >> 4) & 0xFF, nvdev->chip );
+               "NV%02x (%04x)", (nvdev->chip >> 4) & 0xFF, nvdev->chip );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
