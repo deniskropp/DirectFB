@@ -766,8 +766,6 @@ static void r200CheckState( void *drv, void *dev,
                         destination->format == DSPF_YUY2)
                          return;
                case DSPF_A8:
-               case DSPF_YUY2:
-               case DSPF_UYVY:
                     break;
                
                case DSPF_LUT8:
@@ -781,6 +779,14 @@ static void r200CheckState( void *drv, void *dev,
                case DSPF_ARGB2554:
                case DSPF_AYUV:
                     if (destination->format != source->format)
+                         return;
+                    break;
+                    
+               case DSPF_YUY2:
+               case DSPF_UYVY:
+                    if (rdev->chipset == CHIP_RV250      &&
+                        destination->format != DSPF_YUY2 &&
+                        destination->format != DSPF_UYVY)
                          return;
                     break;
 
