@@ -62,6 +62,7 @@ fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 fx_SOURCES = fx.c
+fx_LDADD   = ../lib/direct/libdirect.la
 
 raw15toraw24_SOURCES = raw15toraw24.c
 
