@@ -1348,8 +1348,10 @@ direct_stream_create( const char    *filename,
           ret = file_open( stream, filename );
      }
 
-     if (ret)
+     if (ret) {
+          D_FREE( stream );
           return ret;
+     }
 
      *ret_stream = stream;
 
