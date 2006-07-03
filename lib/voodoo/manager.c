@@ -286,7 +286,7 @@ instance_iterator( DirectHash *hash,
                    void       *value,
                    void       *ctx )
 {
-     bool            super    = (bool) ctx;
+     bool            super    = (int) ctx;
      VoodooInstance *instance = value;
 
      D_ASSERT( instance != NULL );

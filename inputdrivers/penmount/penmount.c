@@ -118,7 +118,7 @@ static inline void PeMReadPacket(int file, unsigned char *packet){
      while ((n += read (file, packet+n, PeM_REPORT_SIZE-n)) != PeM_REPORT_SIZE);
 }
 
-static int PeMPollDevice(unsigned char *device){
+static int PeMPollDevice(const char *device){
      int file;
      struct termios options;
 	
@@ -145,11 +145,11 @@ static inline int PeMInitialize(int file){
      return 1;
 }
 
-static int PeMOpenDevice(unsigned char *device){
+static int PeMOpenDevice(char *device){
      int fd;
      int res;
      
-	 unsigned char *pos = strstr(device, ":raw");
+	 char *pos = strstr(device, ":raw");
 	 if (pos) {// raw data 
 	 	  max_x = min_x;
 	 	  max_y = min_y;

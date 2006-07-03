@@ -60,7 +60,8 @@ direct_serial_increase( DirectSerial *serial )
 {
      D_MAGIC_ASSERT( serial, DirectSerial );
 
-     ++serial->value || serial->overflow++;
+     if (! ++serial->value)
+          serial->overflow++;
 }
 
 static inline void

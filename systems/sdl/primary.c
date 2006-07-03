@@ -428,7 +428,7 @@ update_screen( int x, int y, int w, int h )
      DFBResult    ret;
      CoreSurface *surface;
 
-     D_DEBUG_AT( SDL_Updates, "%s( %p, %d, %d, %d, %d )\n", __FUNCTION__, surface, x, y, w, h );
+     D_DEBUG_AT( SDL_Updates, "%s( %d, %d, %d, %d )\n", __FUNCTION__, x, y, w, h );
 
      D_DEBUG_AT( SDL_Updates, "  -> locking sdl lock...\n" );
 

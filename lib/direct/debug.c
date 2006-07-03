@@ -136,7 +136,8 @@ direct_debug_config_domain( const char *name, bool enable )
 
      entry->enabled = enable;
 
-     ++domains_age || domains_age++;
+     if (! ++domains_age)
+          domains_age++;
 
      pthread_mutex_unlock( &domains_lock );
 }
