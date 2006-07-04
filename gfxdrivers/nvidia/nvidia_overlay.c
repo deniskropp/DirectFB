@@ -109,7 +109,6 @@ ov0InitLayer( CoreLayer                  *layer,
               DFBColorAdjustment         *adjustment )
 {
      NVidiaDriverData       *nvdrv = (NVidiaDriverData*) driver_data;
-     NVidiaDeviceData       *nvdev = nvdrv->device_data;
      NVidiaOverlayLayerData *nvov0 = (NVidiaOverlayLayerData*) layer_data;
      
      /* set capabilities and type */
