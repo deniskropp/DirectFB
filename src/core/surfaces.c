@@ -203,16 +203,7 @@ DFBResult dfb_surface_create( CoreDFB *core,
           return ret;
      }
 
-     switch (policy) {
-          case CSP_SYSTEMONLY:
-               surface->caps |= DSCAPS_SYSTEMONLY;
-               break;
-          case CSP_VIDEOONLY:
-               surface->caps |= DSCAPS_VIDEOONLY;
-               break;
-          default:
-               ;
-     }
+     dfb_surface_caps_apply_policy( policy, &surface->caps );
 
      /* Allocate front buffer. */
      ret = dfb_surface_allocate_buffer( surface, policy, format, &surface->front_buffer );
