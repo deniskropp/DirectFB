@@ -91,6 +91,8 @@ system_initialize( CoreDFB *core, void **data )
           return D_OOSHM();
      }
 
+     dfb_sdl_core = core;
+
      dfb_fbdev_read_modes();  /* use same mode list as a fake */
 
      driver = getenv( "SDL_VIDEODRIVER" );
@@ -108,8 +110,6 @@ system_initialize( CoreDFB *core, void **data )
 
           return DFB_INIT;
      }
-
-     dfb_sdl_core = core;
 
      fusion_skirmish_init( &dfb_sdl->lock, "SDL System", dfb_core_world(core) );
 
