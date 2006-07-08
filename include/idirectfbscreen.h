@@ -42,6 +42,9 @@ public:
 
      DFBScreenDescription   GetDescription        ();
 
+     void                   GetSize               (int                        *width,
+                                                   int                        *height);
+
      void                   EnumDisplayLayers     (DFBDisplayLayerCallback     callback,
                                                    void                       *callbackdata);
 

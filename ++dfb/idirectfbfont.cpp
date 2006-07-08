@@ -93,3 +93,21 @@ void IDirectFBFont::GetGlyphExtents  (unsigned int  index,
 {
      DFBCHECK( iface->GetGlyphExtents (iface, index, rect, advance) );
 }
+
+void IDirectFBFont::SetEncoding (DFBTextEncodingID encoding)
+{
+     DFBCHECK( iface->SetEncoding (iface, encoding) );
+}
+
+void IDirectFBFont::EnumEncodings (DFBTextEncodingCallback  callback,
+                                   void                    *callbackdata)
+{
+     DFBCHECK( iface->EnumEncodings (iface, callback, callbackdata) );
+}
+
+void IDirectFBFont::FindEncoding (const char        *name,
+                                  DFBTextEncodingID *encoding)
+{
+     DFBCHECK( iface->FindEncoding (iface, name, encoding) );
+}
+

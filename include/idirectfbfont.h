@@ -58,6 +58,13 @@ public:
                                       DFBRectangle        *rect,
                                       int                 *advance) const;
 
+     void           SetEncoding      (DFBTextEncodingID        encoding);
+     void           EnumEncodings    (DFBTextEncodingCallback  callback,
+                                      void                    *callbackdata);
+     void           FindEncoding     (const char              *name,
+                                      DFBTextEncodingID       *encoding);
+     
+     
      inline IDirectFBFont& operator = (const IDirectFBFont& other){
           return IPPAny<IDirectFBFont, IDirectFBFont_C>::operator =(other);
      }

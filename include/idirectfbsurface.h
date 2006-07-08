@@ -45,6 +45,8 @@ public:
      IDirectFBSurface(IDirectFBSurface_C* myptr=NULL):IPPAny<IDirectFBSurface, IDirectFBSurface_C>(myptr){}
 
      DFBSurfaceCapabilities GetCapabilities     ();
+     void                   GetPosition         (int                      *x,
+                                                 int                      *y);
      void                   GetSize             (int                      *width,
                                                  int                      *height);
      void                   GetVisibleRectangle (DFBRectangle             *rect);
@@ -90,16 +92,20 @@ public:
 
      void                   SetBlittingFlags    (DFBSurfaceBlittingFlags   flags);
      void                   Blit                (IDirectFBSurface         *source,
-                                                 DFBRectangle             *source_rect = NULL,
+                                                 const DFBRectangle       *source_rect = NULL,
                                                  int                       x = 0,
                                                  int                       y = 0);
      void                   TileBlit            (IDirectFBSurface         *source,
-                                                 DFBRectangle             *source_rect = NULL,
+                                                 const DFBRectangle       *source_rect = NULL,
                                                  int                       x = 0,
                                                  int                       y = 0);
+     void                   BatchBlit           (IDirectFBSurface         *source,
+                                                 const DFBRectangle       *source_rects,
+                                                 const DFBPoint           *dest_points,
+                                                 int                       num);
      void                   StretchBlit         (IDirectFBSurface         *source,
-                                                 DFBRectangle             *source_rect = NULL,
-                                                 DFBRectangle             *destination_rect = NULL);
+                                                 const DFBRectangle       *source_rect = NULL,
+                                                 const DFBRectangle       *destination_rect = NULL);
 
      void                   TextureTriangles    (IDirectFBSurface         *source,
                                                  const DFBVertex          *vertices,
@@ -112,6 +118,8 @@ public:
                                                  int                       y,
                                                  int                       width,
                                                  int                       height);
+     void                   FillRectangles      (const DFBRectangle       *rects,
+                                                 unsigned int              num_rects);
      void                   DrawRectangle       (int                       x,
                                                  int                       y,
                                                  int                       width,
@@ -119,17 +127,18 @@ public:
      void                   DrawLine            (int                       x1,
                                                  int                       y1,
                                                  int                       x2,
-                                                 int                       y2);
+                                                 int                       y2); 
      void                   DrawLines           (const DFBRegion          *lines,
                                                  unsigned int              num_lines);
-     void                   FillRectangles      (const DFBRectangle       *rects,
-                                                 unsigned int              num_rects);
      void                   FillTriangle        (int                       x1,
                                                  int                       y1,
                                                  int                       x2,
                                                  int                       y2,
                                                  int                       x3,
                                                  int                       y3);
+     void                   FillSpans           (int                       y,
+                                                 const DFBSpan            *spans,
+                                                 unsigned int              num);
 
      void                   SetFont             (const IDirectFBFont &font) const;
      IDirectFBFont          GetFont             () const;
@@ -142,6 +151,7 @@ public:
                                                  int                       x,
                                                  int                       y,
                                                  DFBSurfaceTextFlags       flags);
+     void                   SetEncoding         (DFBTextEncodingID         encoding);
 
      IDirectFBSurface       GetSubSurface       (DFBRectangle             *rect);
 

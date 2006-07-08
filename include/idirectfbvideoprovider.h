@@ -56,7 +56,15 @@ public:
      void                         GetColorAdjustment    (DFBColorAdjustment    *adj);
      void                         SetColorAdjustment    (DFBColorAdjustment    &adj);
 
-     void                         SendEvent             (DFBEvent              *evt);
+     void                         SendEvent             (DFBEvent              &evt);
+
+     void                         SetPlaybackFlags      (DFBVideoProviderPlaybackFlags flags);
+
+     void                         SetSpeed              (double                 multiplier);
+     double                       GetSpeed              ();
+
+     void                         SetVolume             (float                  level);
+     float                        GetVolume             ();
      
      inline IDirectFBVideoProvider& operator = (const IDirectFBVideoProvider& other){
           return IPPAny<IDirectFBVideoProvider, IDirectFBVideoProvider_C>::operator =(other);

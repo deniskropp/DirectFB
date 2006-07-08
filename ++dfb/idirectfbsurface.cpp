@@ -34,6 +34,11 @@ DFBSurfaceCapabilities IDirectFBSurface::GetCapabilities()
      return caps;
 }
 
+void IDirectFBSurface::GetPosition (int *x, int *y)
+{
+     DFBCHECK( iface->GetPosition (iface, x, y) );
+}
+
 void IDirectFBSurface::GetSize (int *width,
                                 int *height)
 {
@@ -165,25 +170,34 @@ void IDirectFBSurface::SetBlittingFlags (DFBSurfaceBlittingFlags flags)
      DFBCHECK( iface->SetBlittingFlags (iface, flags) );
 }
 
-void IDirectFBSurface::Blit (IDirectFBSurface *source,
-                             DFBRectangle     *source_rect,
-                             int               x,
-                             int               y)
+void IDirectFBSurface::Blit (IDirectFBSurface   *source,
+                             const DFBRectangle *source_rect,
+                             int                 x,
+                             int                 y)
 {
      DFBCHECK( iface->Blit (iface, source->get_iface(), source_rect, x, y) );
 }
 
-void IDirectFBSurface::TileBlit (IDirectFBSurface *source,
-                                 DFBRectangle     *source_rect,
-                                 int               x,
-                                 int               y)
+void IDirectFBSurface::TileBlit (IDirectFBSurface   *source,
+                                 const DFBRectangle *source_rect,
+                                 int                 x,
+                                 int                 y)
 {
      DFBCHECK( iface->TileBlit (iface, source->get_iface(), source_rect, x, y) );
 }
 
-void IDirectFBSurface::StretchBlit (IDirectFBSurface *source,
-                                    DFBRectangle     *source_rect,
-                                    DFBRectangle     *destination_rect)
+void IDirectFBSurface::BatchBlit (IDirectFBSurface   *source,
+                                  const DFBRectangle *source_rects,
+                                  const DFBPoint     *dest_points,
+                                  int                 num)
+{
+     DFBCHECK( iface->BatchBlit (iface, source->get_iface(),
+                                        source_rects, dest_points, num) );
+}
+
+void IDirectFBSurface::StretchBlit (IDirectFBSurface   *source,
+                                    const DFBRectangle *source_rect,
+                                    const DFBRectangle *destination_rect)
 {
      DFBCHECK( iface->StretchBlit (iface, source->get_iface(),
                                    source_rect, destination_rect) );
@@ -236,6 +250,13 @@ void IDirectFBSurface::FillTriangle (int x1, int y1,
      DFBCHECK( iface->FillTriangle (iface, x1, y1, x2, y2, x3, y3) );
 }
 
+void IDirectFBSurface::FillSpans (int            y,
+                                  const DFBSpan *spans,
+                                  unsigned int   num)
+{
+     DFBCHECK( iface->FillSpans (iface, y, spans, num) );
+}
+
 void IDirectFBSurface::SetFont (const IDirectFBFont& font) const
 {
      DFBCHECK( iface->SetFont (iface, font.get_iface()) );
@@ -265,6 +286,11 @@ void IDirectFBSurface::DrawGlyph (unsigned int        index,
                                   DFBSurfaceTextFlags flags)
 {
      DFBCHECK( iface->DrawGlyph (iface, index, x, y, flags) );
+}
+
+void IDirectFBSurface::SetEncoding (DFBTextEncodingID encoding)
+{
+     DFBCHECK( iface->SetEncoding (iface, encoding) );
 }
 
 IDirectFBSurface IDirectFBSurface::GetSubSurface (DFBRectangle *rect)

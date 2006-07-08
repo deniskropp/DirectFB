@@ -40,6 +40,8 @@ public:
 
      DFBDisplayLayerDescription
                             GetDescription        ();
+                            
+     void                   GetSourceDescriptions (DFBDisplayLayerSourceDescription *desc);
 
      IDirectFBSurface       GetSurface            ();
 
@@ -61,6 +63,9 @@ public:
                                                    int                             y,
                                                    int                             width,
                                                    int                             height);
+     void                   SetClipRegions        (const DFBRegion                *regions,
+                                                   int                             num_regions,
+                                                   DFBBoolean                      positive);
      void                   SetSrcColorKey        (__u8                            r,
                                                    __u8                            g,
                                                    __u8                            b);

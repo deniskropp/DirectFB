@@ -100,8 +100,40 @@ void IDirectFBVideoProvider::SetColorAdjustment (DFBColorAdjustment &adj)
      DFBCHECK( iface->SetColorAdjustment (iface, &adj) );
 }
 
-void IDirectFBVideoProvider::SendEvent (DFBEvent *evt)
+void IDirectFBVideoProvider::SendEvent (DFBEvent &evt)
 {
-     DFBCHECK( iface->SendEvent (iface, evt) );
+     DFBCHECK( iface->SendEvent (iface, &evt) );
 }
 
+void IDirectFBVideoProvider::SetPlaybackFlags (DFBVideoProviderPlaybackFlags flags)
+{
+     DFBCHECK( iface->SetPlaybackFlags (iface, flags) );
+}
+
+void IDirectFBVideoProvider::SetSpeed (double multiplier)
+{
+     DFBCHECK( iface->SetSpeed (iface, multiplier) );
+}
+
+double IDirectFBVideoProvider::GetSpeed()
+{
+     double multiplier = -1;
+
+     DFBCHECK( iface->GetSpeed (iface, &multiplier) );
+
+     return multiplier;
+}
+
+void IDirectFBVideoProvider::SetVolume (float level)
+{
+     DFBCHECK( iface->SetVolume (iface, level) );
+}
+
+float IDirectFBVideoProvider::GetVolume()
+{
+     float level = -1;
+     
+     DFBCHECK( iface->GetVolume (iface, &level) );
+
+     return level;
+ }

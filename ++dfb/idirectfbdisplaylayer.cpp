@@ -43,6 +43,11 @@ DFBDisplayLayerDescription IDirectFBDisplayLayer::GetDescription()
      return desc;
 }
 
+void IDirectFBDisplayLayer::GetSourceDescriptions (DFBDisplayLayerSourceDescription *desc)
+{
+     DFBCHECK( iface->GetSourceDescriptions (iface, desc) );
+}
+
 IDirectFBSurface IDirectFBDisplayLayer::GetSurface()
 {
      IDirectFBSurface_C *idirectfbsurface;
@@ -99,6 +104,13 @@ void IDirectFBDisplayLayer::SetScreenRectangle (int x,
                                                 int height)
 {
      DFBCHECK( iface->SetScreenRectangle (iface, x, y, width, height) );
+}
+
+void IDirectFBDisplayLayer::SetClipRegions (const DFBRegion *regions,
+                                            int              num_regions,
+                                            DFBBoolean       positive)
+{
+     DFBCHECK( iface->SetClipRegions (iface, regions, num_regions, positive) );
 }
 
 void IDirectFBDisplayLayer::SetSrcColorKey (__u8 r, __u8 g, __u8 b)

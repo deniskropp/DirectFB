@@ -43,6 +43,12 @@ DFBScreenDescription IDirectFBScreen::GetDescription()
      return desc;
 }
 
+void IDirectFBScreen::GetSize (int *width,
+                               int *height)
+{
+     DFBCHECK( iface->GetSize (iface, width, height) );
+}
+
 void IDirectFBScreen::EnumDisplayLayers (DFBDisplayLayerCallback  callback,
                                          void                    *callbackdata)
 {
