@@ -89,12 +89,6 @@ Construct( IDirectFBVideoProvider *thiz,
 
 DIRECT_INTERFACE_IMPLEMENTATION( IDirectFBVideoProvider, V4L )
 
-#if 0
-#define DEBUG_MSG(...) fprintf(stderr,__VA_ARGS__);
-#else
-#define DEBUG_MSG  do {} while (0)
-#endif
-
 /*
  * private data struct of IDirectFBVideoProvider
  */
@@ -998,7 +992,7 @@ static DFBResult v4l_to_surface_overlay( CoreSurface *surface, DFBRectangle *rec
 static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                                       IDirectFBVideoProvider_V4L_data *data )
 {
-     int bpp, palette;
+     int palette;
 
      D_DEBUG( "DirectFB/Video4Linux: %s...\n", __FUNCTION__ );
 
@@ -1007,37 +1001,29 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
 
      switch (surface->format) {
           case DSPF_YUY2:
-               bpp = 16;
                palette = VIDEO_PALETTE_YUYV;
                break;
           case DSPF_UYVY:
-               bpp = 16;
                palette = VIDEO_PALETTE_UYVY;
                break;
           case DSPF_I420:
-               bpp = 8;
                palette = VIDEO_PALETTE_YUV420P;
                break;
           case DSPF_YV12:
-               bpp = 8;
                palette = VIDEO_PALETTE_YUV420P;
                break;
           case DSPF_ARGB1555:
-               bpp = 15;
                palette = VIDEO_PALETTE_RGB555;
                break;
           case DSPF_RGB16:
-               bpp = 16;
                palette = VIDEO_PALETTE_RGB565;
                break;
           case DSPF_RGB24:
-               bpp = 24;
                palette = VIDEO_PALETTE_RGB24;
                break;
           case DSPF_ARGB:
           case DSPF_AiRGB:
           case DSPF_RGB32:
-               bpp = 32;
                palette = VIDEO_PALETTE_RGB32;
                break;
           default:
@@ -1176,7 +1162,7 @@ static void v4l_cleanup( void *ctx, int emergency )
 
 /* v4l2 specific stuff */
 #ifdef DFB_HAVE_V4L2
-int wait_for_buffer(int vid, struct v4l2_buffer *cur)
+static int wait_for_buffer(int vid, struct v4l2_buffer *cur)
 {
      fd_set rdset;
      struct timeval timeout;
@@ -1312,7 +1298,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirectFBVideoProvider_V4L_data * data)
 {
      SurfaceBuffer *buffer = surface->back_buffer;
-     int bpp, palette;
+     int palette;
 
      int err;
      int i;
@@ -1321,39 +1307,31 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
 
      switch (surface->format) {
           case DSPF_YUY2:
-               bpp = 16;
                palette = V4L2_PIX_FMT_YUYV;
                break;
           case DSPF_UYVY:
-               bpp = 16;
                palette = V4L2_PIX_FMT_UYVY;
                break;
 /*
      case DSPF_I420:
-          bpp = 8;
           palette = VIDEO_PALETTE_YUV420P;
           break;
      case DSPF_YV12:
-          bpp = 8;
           palette = VIDEO_PALETTE_YUV420P;
           break;
      case DSPF_ARGB1555:
-          bpp = 15;
           palette = VIDEO_PALETTE_RGB555;
           break;
 */
           case DSPF_RGB16:
-               bpp = 16;
                palette = V4L2_PIX_FMT_RGB565;
                break;
           case DSPF_RGB24:
-               bpp = 24;
                palette = V4L2_PIX_FMT_BGR24;
                break;
           case DSPF_ARGB:
           case DSPF_AiRGB:
           case DSPF_RGB32:
-               bpp = 32;
                palette = V4L2_PIX_FMT_BGR32;
                break;
           default:
@@ -1408,7 +1386,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           fb.fmt.height = surface->height;
           fb.fmt.pixelformat = palette;
 
-          D_DEBUG("w:%d, h:%d, bpp:%d, bpl:%d, base:0x%08lx\n",fb.fmt.width, fb.fmt.height,bpp,fb.fmt.bytesperline, (unsigned long)fb.base);
+          D_DEBUG("w:%d, h:%d, bpl:%d, base:0x%08lx\n",fb.fmt.width, fb.fmt.height, fb.fmt.bytesperline, (unsigned long)fb.base);
 
           if (ioctl(data->fd, VIDIOC_S_FBUF, &fb) < 0) {
                DFBResult ret = errno2result(errno);
