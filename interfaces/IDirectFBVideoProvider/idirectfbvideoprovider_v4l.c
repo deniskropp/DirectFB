@@ -755,27 +755,27 @@ static void* GrabThread( DirectThread *thread, void *ctx )
                src += src_pitch;
           }
           if (surface->format == DSPF_I420) {
-               h = surface->height / 2;
+               h = surface->height;
                while (h--) {
-                    direct_memcpy( dst, src, src_pitch );
-                    dst += dst_pitch;
-                    src += src_pitch;
+                    direct_memcpy( dst, src, src_pitch >> 1 );
+                    dst += dst_pitch >> 1;
+                    src += src_pitch >> 1;
                }
           }
           else if (surface->format == DSPF_YV12) {
-               h = surface->height / 4;
-               src += h * src_pitch;
+               h = surface->height >> 1;
+               src += h * (src_pitch >> 1);
                while (h--) {
-                    direct_memcpy( dst, src, src_pitch );
-                    dst += dst_pitch;
-                    src += src_pitch;
+                    direct_memcpy( dst, src, src_pitch >> 1 );
+                    dst += dst_pitch >> 1;
+                    src += src_pitch >> 1;
                }
-               h = surface->height / 4;
-               src -=  2 * h * src_pitch;
+               h = surface->height >> 1;
+               src -=  2 * h * (src_pitch >> 1);
                while (h--) {
-                    direct_memcpy( dst, src, src_pitch );
-                    dst += dst_pitch;
-                    src += src_pitch;
+                    direct_memcpy( dst, src, src_pitch >> 1 );
+                    dst += dst_pitch >> 1;
+                    src += src_pitch >> 1;
                }
           }
           dfb_surface_unlock( surface, 0 );
@@ -1007,8 +1007,6 @@ static DFBResult v4l_to_surface_grab( CoreSurface *surface, DFBRectangle *rect,
                palette = VIDEO_PALETTE_UYVY;
                break;
           case DSPF_I420:
-               palette = VIDEO_PALETTE_YUV420P;
-               break;
           case DSPF_YV12:
                palette = VIDEO_PALETTE_YUV420P;
                break;
@@ -1254,23 +1252,32 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
                     src += src_pitch;
                }
                if (surface->format == DSPF_I420) {
-                    h = surface->height / 2;
+                    h = surface->height;
                     while (h--) {
-                         direct_memcpy(dst, src, src_pitch);
-                         dst += dst_pitch;
-                         src += src_pitch;
+                         direct_memcpy(dst, src, src_pitch >> 1);
+                         dst += dst_pitch >> 1;
+                         src += src_pitch >> 1;
                     }
                }
                else if (surface->format == DSPF_YV12) {
-                    h = surface->height / 4;
-                    src += h * src_pitch;
+                    h = surface->height >> 1;
+                    src += h * (src_pitch >> 1);
                     while (h--) {
-                         direct_memcpy(dst, src, src_pitch);
-                         dst += dst_pitch;
-                         src += src_pitch;
+                         direct_memcpy(dst, src, src_pitch >> 1);
+                         dst += dst_pitch >> 1;
+                         src += src_pitch >> 1;
                     }
-                    h = surface->height / 4;
-                    src -= 2 * h * src_pitch;
+                    h = surface->height >> 1;
+                    src -= 2 * h * (src_pitch >> 1);
+                    while (h--) {
+                         direct_memcpy(dst, src, src_pitch >> 1);
+                         dst += dst_pitch >> 1;
+                         src += src_pitch >> 1;
+                    }
+               }
+               else if (surface->format == DSPF_NV12 ||
+                        surface->format == DSPF_NV21) {
+                    h = surface->height >> 1;
                     while (h--) {
                          direct_memcpy(dst, src, src_pitch);
                          dst += dst_pitch;
@@ -1312,17 +1319,24 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
           case DSPF_UYVY:
                palette = V4L2_PIX_FMT_UYVY;
                break;
-/*
-     case DSPF_I420:
-          palette = VIDEO_PALETTE_YUV420P;
-          break;
-     case DSPF_YV12:
-          palette = VIDEO_PALETTE_YUV420P;
-          break;
-     case DSPF_ARGB1555:
-          palette = VIDEO_PALETTE_RGB555;
-          break;
-*/
+          case DSPF_I420:
+               palette = V4L2_PIX_FMT_YUV420;
+               break;
+          case DSPF_YV12:
+               palette = V4L2_PIX_FMT_YVU420;
+               break;
+          case DSPF_NV12:
+               palette = V4L2_PIX_FMT_NV12;
+               break;
+          case DSPF_NV21:
+               palette = V4L2_PIX_FMT_NV21;
+               break;
+          case DSPF_RGB332:
+               palette = V4L2_PIX_FMT_RGB332;
+               break;
+          case DSPF_ARGB1555:
+               palette = V4L2_PIX_FMT_RGB555;
+               break;
           case DSPF_RGB16:
                palette = V4L2_PIX_FMT_RGB565;
                break;
