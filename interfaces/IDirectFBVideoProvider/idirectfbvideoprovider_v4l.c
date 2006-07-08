@@ -240,8 +240,9 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
           /* fixme: interlaced might not be true for field capture */
           *caps |= DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_INTERLACED;
      }
-     else {
+     else
 #endif
+     {
           *caps = ( DVCAPS_BASIC      |
                     DVCAPS_BRIGHTNESS |
                     DVCAPS_CONTRAST   |
@@ -251,9 +252,8 @@ static DFBResult IDirectFBVideoProvider_V4L_GetCapabilities (
 
           if (data->vcap.type & VID_TYPE_SCALES)
                *caps |= DVCAPS_SCALE;
-#ifdef DFB_HAVE_V4L2
      }
-#endif	
+
      return DFB_OK;
 }
 
@@ -277,13 +277,12 @@ static DFBResult IDirectFBVideoProvider_V4L_GetSurfaceDescription(
           desc->width = 720;  /* fimxe: depends on the selected standard: query standard and set accordingly */
           desc->height = 576;
      }
-     else {
+     else
 #endif
+     {
           desc->width  = data->vcap.maxwidth;
           desc->height = data->vcap.maxheight;
-#ifdef DFB_HAVE_V4L2
      }
-#endif
      desc->pixelformat = dfb_primary_layer_pixelformat();
      desc->caps = DSCAPS_INTERLACED;
 
@@ -370,8 +369,9 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
      if ( 0 != data->is_v4l2 ) {
           ret = v4l2_playto(surface, &rect, data);
      }
-     else {
+     else
 #endif
+     {
           data->grab_mode = 0;
           if ( getenv("DFB_V4L_GRAB") || surface->caps & DSCAPS_SYSTEMONLY
                || surface->caps & DSCAPS_FLIPPING
@@ -399,9 +399,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                ret = v4l_to_surface_grab( surface, &rect, data );
           else
                ret = v4l_to_surface_overlay( surface, &rect, data );
-#ifdef DFB_HAVE_V4L2
      }
-#endif
      if (DFB_OK != ret && !data->grab_mode)
           dfb_surface_unlock( surface, false );
 
@@ -503,8 +501,9 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
                }
           }
      }
-     else {
+     else
 #endif
+     {
           ioctl( data->fd, VIDIOCGPICT, &pic );
 
           adj->flags = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_HUE | DCAF_SATURATION;
@@ -513,9 +512,7 @@ static DFBResult IDirectFBVideoProvider_V4L_GetColorAdjustment(
           adj->contrast   = pic.contrast;
           adj->hue        = pic.hue;
           adj->saturation = pic.colour;
-#ifdef DFB_HAVE_V4L2
      }
-#endif
      return DFB_OK;
 }
 
@@ -556,9 +553,9 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment( IDirectFBVideoPr
                ioctl(data->fd, VIDIOC_S_CTRL, &ctrl);
           }
      }
-     else {
+     else
 #endif
-
+     {
           if (ioctl( data->fd, VIDIOCGPICT, &pic ) < 0) {
                DFBResult ret = errno2result( errno );
 
@@ -579,9 +576,7 @@ static DFBResult IDirectFBVideoProvider_V4L_SetColorAdjustment( IDirectFBVideoPr
 
                return ret;
           }
-#ifdef DFB_HAVE_V4L2
      }
-#endif
 
      return DFB_OK;
 }
@@ -648,9 +643,9 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
      if ( 0 != data->is_v4l2 ) {
           /* hmm, anything to do here? */
      }
-     else {
+     else
 #endif
-
+     {
           D_INFO("DirectFB/Video4Linux: This is a Video4Linux-1 device.\n");
 
           ioctl( fd, VIDIOCGCAP, &data->vcap );
@@ -660,10 +655,7 @@ Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
 
           data->buffer = mmap( NULL, data->vmbuf.size,
                                PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0 );
-
-#ifdef DFB_HAVE_V4L2
      }
-#endif
 
      data->filename = D_STRDUP( buffer_data->filename );
      data->fd       = fd;
@@ -1109,17 +1101,15 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
                /* don't quit here */
           }
      }
-     else {
+     else
 #endif
+     {
           if (!data->grab_mode) {
                if (ioctl( data->fd, VIDIOCCAPTURE, &zero ) < 0)
                     D_PERROR( "DirectFB/Video4Linux: "
                               "Could not stop capturing (VIDIOCCAPTURE failed)!\n" );
           }
-
-#ifdef DFB_HAVE_V4L2
      }
-#endif
 
      destination = data->destination;
 
@@ -1142,13 +1132,12 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
                }
           }
      }
-     else {
+     else
 #endif
+     {
           if (!data->grab_mode)
                dfb_surface_unlock( destination, false );
-#ifdef DFB_HAVE_V4L2
      }
-#endif
 
      data->destination = NULL;
 
