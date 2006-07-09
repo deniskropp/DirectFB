@@ -297,6 +297,12 @@ SwfInput( DirectThread *self, void *arg )
                data->video.seeked = true;
                data->audio.seeked = true;
                pts = data->input.seek * 1000000ll;
+               if (data->video.thread) {
+                    pthread_mutex_lock( &data->video.lock );
+                    pthread_cond_signal( &data->video.cond );
+                    pthread_mutex_unlock( &data->video.lock );
+               }
+               data->input.seek = -1;
           }
           else if (data->video.queue.count >= (int)data->rate/2 ||
                    data->audio.queue.count >= (int)data->rate/2) 
@@ -332,15 +338,8 @@ SwfInput( DirectThread *self, void *arg )
           if (buffer)
                buffer->length = (h << 16) | (w & 0xffff);
           add_frame( &data->video.queue, buffer, pts );
-
-          if (data->input.seek != -1 && !data->speed) {
-               pthread_mutex_lock( &data->video.lock );
-               pthread_cond_signal( &data->video.cond );
-               pthread_mutex_unlock( &data->video.lock );
-          }
           
           pts += data->interval;
-          data->input.seek = -1;
           
           pthread_mutex_unlock( &data->input.lock );
      }
@@ -1126,7 +1125,7 @@ IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
      if (multiplier < 0.0)
           return DFB_INVARG;
           
-     if (multiplier > 6.0)
+     if (multiplier > 8.0)
           return DFB_UNSUPPORTED;
           
      pthread_mutex_lock( &data->video.lock );
