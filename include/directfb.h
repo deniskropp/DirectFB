@@ -1301,7 +1301,7 @@ typedef enum {
  * Flags controlling playback mode of a IDirectFBVideoProvider.
  */
 typedef enum {
-     DVPLAY_NORMAL      = 0x00000000, /* normal playback           */
+     DVPLAY_NOFX        = 0x00000000, /* normal playback           */
      DVPLAY_REWIND      = 0x00000001, /* reverse playback          */
      DVPLAY_LOOPING     = 0x00000002  /* automatically restart 
                                          playback when end-of-stream
