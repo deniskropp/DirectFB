@@ -773,8 +773,7 @@ IFusionSoundMusicProvider_CDDA_SelectTrack( IFusionSoundMusicProvider *thiz,
      if (track_id > data->total_tracks)
           return DFB_INVARG;
      
-     pthread_mutex_lock( &data->lock );     
-     data->tracks[data->current_track].frame = 0;
+     pthread_mutex_lock( &data->lock );
      data->current_track = track_id;
      pthread_mutex_unlock( &data->lock );
 
@@ -815,7 +814,8 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
           }
           
           data->tracks[data->current_track].frame += len;
-
+          data->finished = false;
+          
           pthread_mutex_unlock( &data->lock );
           
           len = len * CD_BYTES_PER_FRAME / 4;
@@ -838,6 +838,7 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      int                  src_size = 0;
      int                  dst_size = 0;
      void                *buffer;
+     struct cdda_track   *track;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
@@ -898,13 +899,12 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
     
-     if (data->finished) {
-          struct cdda_track *track = &data->tracks[data->current_track];
-          track->frame = track->start;
-          data->finished = false;
-     } 
+     track = &data->tracks[data->current_track];
+     if (track->frame == track->length)
+          track->frame = 0;
     
      /* start thread */
+     data->finished = false;
      data->playing  = true;
      data->thread   = direct_thread_create( DTT_DEFAULT,
                                             CDDAStreamThread, data, "CDDA" );
@@ -959,6 +959,7 @@ CDDABufferThread( DirectThread *thread, void *ctx )
           }
           
           data->tracks[data->current_track].frame += len;
+          data->finished = false;
 
           pthread_mutex_unlock( &data->lock );
           
@@ -984,7 +985,8 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                              FMBufferCallback           callback,
                                              void                      *ctx )
 {
-     FSBufferDescription desc;
+     FSBufferDescription  desc;
+     struct cdda_track   *track;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
@@ -1040,13 +1042,12 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      data->callback      = callback;
      data->ctx           = ctx;
 
-     if (data->finished) {
-          struct cdda_track *track = &data->tracks[data->current_track];
-          track->frame = track->start;
-          data->finished = false;
-     } 
+     track = &data->tracks[data->current_track];
+     if (track->frame == track->length)
+          track->frame = 0;
      
      /* start thread */
+     data->finished = false;
      data->playing  = true;
      data->thread   = direct_thread_create( DTT_DEFAULT,
                                             CDDABufferThread, data, "CDDA" );
