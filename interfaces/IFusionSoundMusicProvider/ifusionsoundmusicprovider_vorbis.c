@@ -54,30 +54,32 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Vorbis )
  * private data struct of IFusionSoundMusicProvider
  */
 typedef struct {
-     int                       ref;       /* reference counter */
+     int                           ref;       /* reference counter */
     
-     DirectStream             *stream;
+     DirectStream                 *stream;
      
-     OggVorbis_File            vf;
-     vorbis_info              *info;
+     OggVorbis_File                vf;
+     vorbis_info                  *info;
      
-     DirectThread             *thread;
-     pthread_mutex_t           lock; 
-     bool                      playing;
-     bool                      finished;
+     FSMusicProviderPlaybackFlags  flags;
+     
+     DirectThread                 *thread;
+     pthread_mutex_t               lock; 
+     bool                          playing;
+     bool                          finished;
 
-     void                     *buf;
+     void                         *buf;
 
      struct {
-          IFusionSoundStream  *stream; 
-          IFusionSoundBuffer  *buffer;
-          FSSampleFormat       format;
-          int                  channels;
-          int                  length;
+          IFusionSoundStream      *stream; 
+          IFusionSoundBuffer      *buffer;
+          FSSampleFormat           format;
+          int                      channels;
+          int                      length;
      } dest;
 
-     FMBufferCallback          callback;
-     void                     *ctx;
+     FMBufferCallback              callback;
+     void                         *ctx;
 } IFusionSoundMusicProvider_Vorbis_data;
 
 
@@ -530,7 +532,7 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
      char   *dst     = data->buf;
      int     section = 0; 
      
-     while (data->playing) {
+     while (data->playing && !data->finished) {
           long len;
           
           pthread_mutex_lock( &data->lock );
@@ -542,6 +544,19 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
           
           len = ov_read_float( &data->vf, &src,
                                data->dest.length, &section );
+          if (len == 0) {
+               if (data->flags & FMPLAY_LOOPING) {
+                    if (direct_stream_remote( data->stream ))
+                         direct_stream_seek( data->stream, 0 );
+                    else
+                         ov_time_seek( &data->vf, 0 );
+               }
+               else {
+                    data->finished = true;
+               }
+               pthread_mutex_unlock( &data->lock );
+               continue;
+          }
 
           pthread_mutex_unlock( &data->lock );
           
@@ -550,11 +565,6 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
                                  data->info->channels, data->dest.channels );
                                   
                data->dest.stream->Write( data->dest.stream, dst, len );
-          }
-          else if (len == 0) {
-               D_DEBUG( "IFusionSoundMusicProvider_Vorbis: End of stream.\n" );
-               data->finished = true;
-               break;
           }
      }
      
@@ -595,35 +605,9 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
                return DFB_UNSUPPORTED;
      }
 
+     thiz->Stop( thiz );
+
      pthread_mutex_lock( &data->lock );
-
-     /* stop thread */
-     if (data->thread) {
-          data->playing = false;
-          pthread_mutex_unlock( &data->lock );
-          direct_thread_join( data->thread );
-          pthread_mutex_lock( &data->lock );
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
-     /* release buffer */
-     if (data->buf) {
-          D_FREE( data->buf );
-          data->buf = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
 
      /* allocate buffer */
      data->buf = D_MALLOC( desc.buffersize * desc.channels * 
@@ -687,13 +671,24 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                         "Couldn't lock buffer!\n" );
                pthread_mutex_unlock( &data->lock );
-               data->finished = true;
                break;
           }
 
           do {
                len = ov_read_float( &data->vf, &src,
                                     data->dest.length - pos, &section );
+               if (len == 0) {
+                    if (data->flags & FMPLAY_LOOPING) {
+                         if (direct_stream_remote( data->stream ))
+                              direct_stream_seek( data->stream, 0 );
+                         else
+                              ov_time_seek( &data->vf, 0 );
+                    }
+                    else {
+                         data->finished = true;
+                    }
+                    continue;
+               }
 
                if (len > 0) {
                     int n;
@@ -707,13 +702,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                          len -= n;
                     } while (n > 0);
                }
-               else if (len == 0) {
-                    D_DEBUG( "IFusionSoundMusicProvider_Vorbis: "
-                             "End of stream.\n" );
-                    data->finished = true;
-                    break;
-               }
-          } while (pos < data->dest.length);
+          } while (pos < data->dest.length && !data->finished);
 
           buffer->Unlock( buffer );
 
@@ -761,36 +750,10 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-
-     /* stop thread */
-     if (data->thread) {
-          data->playing = false;
-          pthread_mutex_unlock( &data->lock );
-          direct_thread_join( data->thread );
-          pthread_mutex_lock( &data->lock );
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
-     /* release buffer */
-     if (data->buf) {
-          D_FREE( data->buf );
-          data->buf = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
      
      /* reference destination stream */
      destination->AddRef( destination );
@@ -862,6 +825,28 @@ IFusionSoundMusicProvider_Vorbis_Stop( IFusionSoundMusicProvider *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundMusicProvider_Vorbis_GetStatus( IFusionSoundMusicProvider *thiz,
+                                            FSMusicProviderStatus     *status )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
+     
+     if (!status)
+          return DFB_INVARG;
+          
+     if (data->finished) {
+          *status = FMSTATE_FINISHED;
+     }
+     else if (data->playing) {
+          *status = FMSTATE_PLAY;
+     }
+     else {
+          *status = FMSTATE_STOP;
+     }
+     
+     return DFB_OK;
+}
+
 static DFBResult 
 IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
                                          double                     seconds )
@@ -902,11 +887,6 @@ IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
 
      if (!seconds)
           return DFB_INVARG;
-
-     if (data->finished) {
-          thiz->GetLength( thiz, seconds );
-          return DFB_EOF;
-     }
           
      *seconds = ov_time_tell( &data->vf );
           
@@ -934,6 +914,23 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
      
      *seconds = length;
 
+     return DFB_OK;
+}
+
+static DFBResult 
+IFusionSoundMusicProvider_Vorbis_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
+                                                   FSMusicProviderPlaybackFlags  flags )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
+     
+     if (flags & ~FMPLAY_LOOPING)
+          return DFB_UNSUPPORTED;
+
+     if (flags & FMPLAY_LOOPING && !direct_stream_seekable( data->stream ))
+          return DFB_UNSUPPORTED;
+          
+     data->flags = flags;
+     
      return DFB_OK;
 }
 
@@ -1025,9 +1022,11 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      thiz->PlayToStream         = IFusionSoundMusicProvider_Vorbis_PlayToStream;
      thiz->PlayToBuffer         = IFusionSoundMusicProvider_Vorbis_PlayToBuffer;
      thiz->Stop                 = IFusionSoundMusicProvider_Vorbis_Stop;
+     thiz->GetStatus            = IFusionSoundMusicProvider_Vorbis_GetStatus;
      thiz->SeekTo               = IFusionSoundMusicProvider_Vorbis_SeekTo;
      thiz->GetPos               = IFusionSoundMusicProvider_Vorbis_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_Vorbis_GetLength;
+     thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_Vorbis_SetPlaybackFlags;
 
      return DFB_OK;
 }

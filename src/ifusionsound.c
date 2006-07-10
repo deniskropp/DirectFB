@@ -272,37 +272,13 @@ IFusionSound_CreateMusicProvider( IFusionSound               *thiz,
                                   const char                 *filename,
                                   IFusionSoundMusicProvider **interface )
 {
-     DFBResult                            ret;
-     DirectInterfaceFuncs                *funcs = NULL;
-     IFusionSoundMusicProvider           *musicprovider;
-     IFusionSoundMusicProvider_ProbeContext ctx;
-
      DIRECT_INTERFACE_GET_DATA(IFusionSound)
 
      /* Check arguments */
      if (!interface || !filename)
           return DFB_INVARG;
 
-     /* Fill out probe context */
-     ctx.filename = filename;
-
-     /* Find a suitable implemenation */
-     ret = DirectGetInterface( &funcs,
-                               "IFusionSoundMusicProvider", NULL, DirectProbeInterface, &ctx );
-
-     if (ret)
-          return ret;
-
-     DIRECT_ALLOCATE_INTERFACE( musicprovider, IFusionSoundMusicProvider );
-
-     /* Construct the interface */
-     ret = funcs->Construct( musicprovider, filename );
-     if (ret)
-          return ret;
-
-     *interface = musicprovider;
-
-     return DFB_OK;
+     return IFusionSoundMusicProvider_Create( filename, interface );
 }
 
 DFBResult

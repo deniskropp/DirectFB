@@ -34,4 +34,8 @@ typedef struct {
      const char *filename;
 } IFusionSoundMusicProvider_ProbeContext;
 
+
+DFBResult IFusionSoundMusicProvider_Create( const char                 *filename, 
+                                            IFusionSoundMusicProvider **interface );
+
 #endif

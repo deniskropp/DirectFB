@@ -52,35 +52,37 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Wave )
  * private data struct of IFusionSoundMusicProvider
  */
 typedef struct {
-     int                      ref;        /* reference counter */
+     int                           ref;        /* reference counter */
      
-     DirectStream            *stream;
-     __u32                    byteorder;  /* 0=little-endian 1=big-endian */
-     __u32                    samplerate; /* frequency */
-     __u16                    channels;   /* number of channels */
-     __u16                    format;     /* bits per sample */
-     __u32                    headsize;   /* size of headers */
-     __u32                    datasize;   /* size of pcm data */
-     double                   length;     /* in seconds */
+     DirectStream                 *stream;
+     __u32                         byteorder;  /* 0=little-endian 1=big-endian */
+     __u32                         samplerate; /* frequency */
+     __u16                         channels;   /* number of channels */
+     __u16                         format;     /* bits per sample */
+     __u32                         headsize;   /* size of headers */
+     __u32                         datasize;   /* size of pcm data */
+     double                        length;     /* in seconds */
      
-     DirectThread            *thread;
-     pthread_mutex_t          lock;
-     bool                     playing;
-     bool                     finished;
+     FSMusicProviderPlaybackFlags  flags;
+     
+     DirectThread                 *thread;
+     pthread_mutex_t               lock;
+     bool                          playing;
+     bool                          finished;
 
-     void                    *src_buffer;
-     void                    *dst_buffer;
+     void                         *src_buffer;
+     void                         *dst_buffer;
 
      struct {
-          IFusionSoundStream *stream;
-          IFusionSoundBuffer *buffer;
-          FSSampleFormat      format;
-          int                 channels;
-          int                 length;
+          IFusionSoundStream      *stream;
+          IFusionSoundBuffer      *buffer;
+          FSSampleFormat           format;
+          int                      channels;
+          int                      length;
      } dest;
 
-     FMBufferCallback         callback;
-     void                    *ctx;
+     FMBufferCallback              callback;
+     void                         *ctx;
 } IFusionSoundMusicProvider_Wave_data;
 
 
@@ -1145,7 +1147,7 @@ WaveStreamThread( DirectThread *thread, void *ctx )
      
      direct_stream_wait( data->stream, count, NULL );
      
-     while (data->playing) {
+     while (data->playing && !data->finished) {
           DFBResult      ret;
           int            len = 0;
           struct timeval tv  = { 0, 500 };
@@ -1160,15 +1162,19 @@ WaveStreamThread( DirectThread *thread, void *ctx )
           ret = direct_stream_wait( data->stream, count, &tv );
           if (ret != DFB_TIMEOUT)
                ret = direct_stream_read( data->stream, count, src, &len );
+               
+          if (ret) {
+               if (ret == DFB_EOF) {
+                    if (data->flags & FMPLAY_LOOPING)
+                         direct_stream_seek( data->stream, data->headsize );
+                    else
+                         data->finished = true;
+               }
+               pthread_mutex_unlock( &data->lock );
+               continue;
+          }
 
           pthread_mutex_unlock( &data->lock );
-
-          if (ret) {
-               if (ret == DFB_TIMEOUT)
-                    continue;
-               data->finished = true;
-               break;
-          }
 
           len /= data->format >> 3; 
           if (len < 1)
@@ -1224,37 +1230,10 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-
-     /* stop thread */
-     if (data->thread) {
-          data->playing = false;
-          pthread_mutex_unlock( &data->lock );
-          direct_thread_join( data->thread );
-          pthread_mutex_lock( &data->lock );
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
-     /* release buffer(s) */
-     if (data->src_buffer) {
-          D_FREE( data->src_buffer );
-          data->src_buffer = NULL;
-          data->dst_buffer = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
      
      /* allocate buffer(s) */
      src_size = desc.buffersize * data->channels * data->format >> 3;
@@ -1307,7 +1286,7 @@ WaveBufferThread( DirectThread *thread, void *ctx )
      
      direct_stream_wait( data->stream, count, NULL );
      
-     while (data->playing) {
+     while (data->playing && !data->finished) {
           DFBResult       ret;
           void           *dst;
           int             len = 0;
@@ -1341,15 +1320,20 @@ WaveBufferThread( DirectThread *thread, void *ctx )
                                               data->src_buffer, &len );
                }
           }
-
-          pthread_mutex_unlock( &data->lock );
+          
           
           if (ret) {
-               if (ret == DFB_TIMEOUT)
-                    continue;
-               data->finished = true;
-               break;
+               if (ret == DFB_EOF) {
+                    if (data->flags & FMPLAY_LOOPING)
+                         direct_stream_seek( data->stream, data->headsize );
+                    else
+                         data->finished = true;
+               }
+               pthread_mutex_unlock( &data->lock );
+               continue;
           }
+
+          pthread_mutex_unlock( &data->lock );
                     
           len /= data->format >> 3;
           if (len < 1)
@@ -1414,38 +1398,11 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
+     
+     thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-
-     /* stop thread */
-     if (data->thread) {
-          data->playing = false;
-          pthread_mutex_unlock( &data->lock );
-          direct_thread_join( data->thread );
-          pthread_mutex_lock( &data->lock );
-          direct_thread_destroy( data->thread );
-          data->thread = NULL;
-     }
-
-     /* release buffer(s) */
-     if (data->src_buffer) {
-          D_FREE( data->src_buffer );
-          data->src_buffer = NULL;
-          data->dst_buffer = NULL;
-     }
-
-     /* release previous destination stream */
-     if (data->dest.stream) {
-          data->dest.stream->Release( data->dest.stream );
-          data->dest.stream = NULL;
-     }
-
-     /* release previous destination buffer */
-     if (data->dest.buffer) {
-          data->dest.buffer->Release( data->dest.buffer );
-          data->dest.buffer = NULL;
-     }
-     
+    
      /* allocate buffer */
      if (dst_format != data->format || desc.channels != data->channels) {
           data->src_buffer = D_MALLOC( desc.length * 
@@ -1522,6 +1479,28 @@ IFusionSoundMusicProvider_Wave_Stop( IFusionSoundMusicProvider *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundMusicProvider_Wave_GetStatus( IFusionSoundMusicProvider *thiz,
+                                          FSMusicProviderStatus     *status )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+     
+     if (!status)
+          return DFB_INVARG;
+          
+     if (data->finished) {
+          *status = FMSTATE_FINISHED;
+     }
+     else if (data->playing) {
+          *status = FMSTATE_PLAY;
+     }
+     else {
+          *status = FMSTATE_STOP;
+     }
+     
+     return DFB_OK;
+}
+
 static DFBResult 
 IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
                                        double                     seconds )
@@ -1537,15 +1516,11 @@ IFusionSoundMusicProvider_Wave_SeekTo( IFusionSoundMusicProvider *thiz,
      offset  = (double)data->samplerate * seconds;
      offset  = offset * data->channels * data->format >> 3;
      if (data->datasize && offset > data->datasize)
-          return DFB_OK;
+          return DFB_UNSUPPORTED;
      offset += data->headsize;
 
      pthread_mutex_lock( &data->lock );
-     
      ret = direct_stream_seek( data->stream, offset );
-     if (ret == DFB_OK && data->datasize) 
-          data->finished = (offset == (data->headsize+data->datasize));
-     
      pthread_mutex_unlock( &data->lock );
      
      return ret;
@@ -1559,11 +1534,6 @@ IFusionSoundMusicProvider_Wave_GetPos( IFusionSoundMusicProvider *thiz,
 
      if (!seconds)
           return DFB_INVARG;
-
-     if (data->finished) {
-          *seconds = data->length;
-          return DFB_EOF;
-     }
 
      *seconds = (double) direct_stream_offset( data->stream ) /
                 (double)(data->samplerate * data->channels * data->format >> 3);
@@ -1582,6 +1552,23 @@ IFusionSoundMusicProvider_Wave_GetLength( IFusionSoundMusicProvider *thiz,
           
      *seconds = data->length;
 
+     return DFB_OK;
+}
+
+static DFBResult 
+IFusionSoundMusicProvider_Wave_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
+                                                 FSMusicProviderPlaybackFlags  flags )
+{
+     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
+     
+     if (flags & ~FMPLAY_LOOPING)
+          return DFB_UNSUPPORTED;
+     
+     if (flags & FMPLAY_LOOPING && !direct_stream_seekable( data->stream ))
+          return DFB_UNSUPPORTED;
+          
+     data->flags = flags;
+     
      return DFB_OK;
 }
 
@@ -1804,9 +1791,11 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      thiz->PlayToStream         = IFusionSoundMusicProvider_Wave_PlayToStream;
      thiz->PlayToBuffer         = IFusionSoundMusicProvider_Wave_PlayToBuffer;
      thiz->Stop                 = IFusionSoundMusicProvider_Wave_Stop;
+     thiz->GetStatus            = IFusionSoundMusicProvider_Wave_GetStatus;
      thiz->SeekTo               = IFusionSoundMusicProvider_Wave_SeekTo;
      thiz->GetPos               = IFusionSoundMusicProvider_Wave_GetPos;
      thiz->GetLength            = IFusionSoundMusicProvider_Wave_GetLength;
+     thiz->SetPlaybackFlags     = IFusionSoundMusicProvider_Wave_SetPlaybackFlags;
 
      return DFB_OK;
 }

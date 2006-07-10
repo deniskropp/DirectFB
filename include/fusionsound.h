@@ -257,6 +257,25 @@ typedef enum {
 } FSMusicProviderCapabilities;
 
 /*
+ * Information about the status of a music provider.
+ */
+typedef enum {
+     FMSTATE_UNKNOWN   = 0x00000000, /* unknown status       */
+     FMSTATE_PLAY      = 0x00000001, /* provider is playing  */
+     FMSTATE_STOP      = 0x00000002, /* playback was stopped */
+     FMSTATE_FINISHED  = 0x00000003, /* playback is finished */
+} FSMusicProviderStatus;
+
+/*
+ * Flags controlling playback of a music provider.
+ */
+typedef enum {
+     FMPLAY_NOFX       = 0x000000000, /* normal playback                     */
+     FMPLAY_LOOPING    = 0x000000001, /* automatically restart playback when
+                                         the end of current track is reached */
+} FSMusicProviderPlaybackFlags;
+
+/*
  * Track ID.
  */
 typedef unsigned int FSTrackID;
@@ -856,6 +875,14 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      DFBResult (*Stop) (
           IFusionSoundMusicProvider *thiz
      );
+     
+     /*
+      * Get playback status.
+      */
+     DFBResult (*GetStatus) (
+          IFusionSoundMusicProvider *thiz,
+          FSMusicProviderStatus     *status
+     );
 
    /** Media Control **/
 
@@ -869,9 +896,6 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
 
      /*
       * Gets current position within the current track.
-      *
-      * Returns <i>DFB_EOF</i> if the playback
-      * of the current track is finished.
       */
      DFBResult (*GetPos) (
           IFusionSoundMusicProvider *thiz,
@@ -884,6 +908,16 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
      DFBResult (*GetLength) (
           IFusionSoundMusicProvider *thiz,
           double                    *seconds
+     );
+     
+   /** Advanced Playback **/
+     
+     /*
+      * Set the flags controlling playback.
+      */
+     DFBResult (*SetPlaybackFlags) (
+          IFusionSoundMusicProvider    *thiz,
+          FSMusicProviderPlaybackFlags  flags
      );
 )
 
