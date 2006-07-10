@@ -158,11 +158,12 @@ main (int argc, char *argv[])
                   "  Genre:    %s\n"
                   "  Encoding: %s\n"
                   "  Bitrate:  %d Kbits/s\n"
-                  "  Output:   %d Hz, %d channel(s)\n\n\n",
+                  "  Output:   %d Hz, %d channel(s), %d bits\n\n\n",
                   entry->id, entry->desc.artist, entry->desc.title,
                   entry->desc.album, (int)entry->desc.year, 
                   entry->desc.genre, entry->desc.encoding,
-                  entry->desc.bitrate/1000, s_dsc.samplerate, s_dsc.channels );
+                  entry->desc.bitrate/1000, s_dsc.samplerate, s_dsc.channels,
+                  FS_BITS_PER_SAMPLE(s_dsc.sampleformat) );
 
           do {
                int    filled = 0;
@@ -185,6 +186,7 @@ main (int argc, char *argv[])
                     int c;
 
                     while ((c = getc( stdin )) > 0) {
+                         printf( "got: '%c'\n", c);
                          switch (c) {
                               case 's':
                                    provider->Stop( provider );
@@ -200,11 +202,14 @@ main (int argc, char *argv[])
                                    provider->GetPos( provider, &pos );
                                    provider->SeekTo( provider, pos-15.0 );
                                    break;
+                              case ' ':
+                                   ret = DFB_EOF;
+                                   break;
                               case 'q':
                               case 'Q':
                               case '\033': // Escape
-                                   ret = DFB_EOF;
-                                   break;
+                                   cleanup( 0 );
+                                   return 0;
                          }
                     }
                }
