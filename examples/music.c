@@ -24,6 +24,22 @@ IFusionSoundStream        *stream   = NULL;
 PlaylistEntry             *playlist = NULL;
 struct termios             term;
 
+
+static void
+usage( const char *progname )
+{
+     fprintf( stderr, "\nUsage: %s <filename>\n", progname );
+     fprintf( stderr, "\nPlayback Control:\n" );
+     fprintf( stderr, "  [p] start playback\n" );
+     fprintf( stderr, "  [s] stop playback\n" );
+     fprintf( stderr, "  [+] seek forward (+15s)\n" );
+     fprintf( stderr, "  [-] seek backward (-15s)\n" );
+     fprintf( stderr, "  [ ] switch to next track\n" );
+     fprintf( stderr, "  [r] toggle track repeat\n" );
+     fprintf( stderr, "  [q] quit\n\n" );
+     exit( 1 );
+}
+     
 static void
 cleanup( int s )
 {
@@ -70,10 +86,8 @@ main (int argc, char *argv[])
      if (ret)
           FusionSoundErrorFatal( "FusionSoundInit", ret );
 
-     if (argc != 2) {
-          fprintf( stderr, "\nUsage: %s <filename>\n", argv[0] );
-          return -1;
-     }
+     if (argc != 2)
+          usage( argv[0] );
 
      /* Don't catch SIGINT. */
      DirectFBSetOption( "dont-catch", "2" );
@@ -130,7 +144,9 @@ main (int argc, char *argv[])
      
      /* Iterate through playlist. */
      direct_list_foreach( entry, playlist ) {
-          double len = 0;
+          FSMusicProviderStatus status = FMSTATE_UNKNOWN;
+          double                len    = 0;
+          static int            flags  = FMPLAY_NOFX;
           
           /* Select current track in playlist. */
           ret = provider->SelectTrack( provider, entry->id );
@@ -146,9 +162,9 @@ main (int argc, char *argv[])
           ret = provider->PlayToStream( provider, stream );
           if (ret) {
                FusionSoundError( "IFusionSoundMusicProvider::PlayTo", ret );
-               cleanup (1);
+               cleanup( 1 );
           }
-
+          
           /* Print some informations about the track. */
           printf( "\nTrack %d:\n"
                   "  Artist:   %s\n"
@@ -173,7 +189,9 @@ main (int argc, char *argv[])
                /* Query ring buffer status. */
                stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
                /* Query elapsed seconds. */
-               ret = provider->GetPos( provider, &pos );
+               provider->GetPos( provider, &pos );
+               /* Query playback status. */
+               provider->GetStatus( provider, &status );
 
                /* Print playback status. */
                printf( "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%%",
@@ -186,7 +204,6 @@ main (int argc, char *argv[])
                     int c;
 
                     while ((c = getc( stdin )) > 0) {
-                         printf( "got: '%c'\n", c);
                          switch (c) {
                               case 's':
                                    provider->Stop( provider );
@@ -203,19 +220,25 @@ main (int argc, char *argv[])
                                    provider->SeekTo( provider, pos-15.0 );
                                    break;
                               case ' ':
-                                   ret = DFB_EOF;
+                                   status = FMSTATE_FINISHED;
+                                   break;
+                              case 'r':
+                                   flags ^= FMPLAY_LOOPING;
+                                   provider->SetPlaybackFlags( provider, flags );
                                    break;
                               case 'q':
                               case 'Q':
                               case '\033': // Escape
                                    cleanup( 0 );
                                    return 0;
+                              default:
+                                   break;
                          }
                     }
                }
                
                usleep( 10000 );
-          } while (ret != DFB_EOF);
+          } while (status != FMSTATE_FINISHED);
      }
 
      puts( "\nFinished." );
