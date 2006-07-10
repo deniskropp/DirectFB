@@ -1481,12 +1481,12 @@ driver_init_device( GraphicsDevice     *device,
               rdev->fb_offset, rdev->fb_offset + rdev->fb_size - 1 );
  
      if (dfb_system_auxram_length()) { 
-          rdev->agp_offset = dfb_system_aux_memory_physical( 0 );
+          rdev->agp_offset = (rdev->fb_offset + rdev->fb_size) & 0xffc00000;
           rdev->agp_size   = dfb_system_auxram_length();
           
           /* enable AGP support */ 
           radeon_out32( mmio, AIC_CNTL, rdev->aic_cntl & ~PCIGART_TRANSLATE_EN );
-          radeon_out32( mmio, AGP_BASE, rdev->agp_offset );
+          radeon_out32( mmio, AGP_BASE, dfb_system_aux_memory_physical( 0 ) );
           radeon_out32( mmio, AGP_CNTL, rdev->agp_cntl | 0x000e0000 );
           radeon_out32( mmio, BUS_CNTL, rdev->bus_cntl & ~BUS_MASTER_DIS );
 
