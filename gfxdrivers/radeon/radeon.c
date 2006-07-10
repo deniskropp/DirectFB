@@ -1469,8 +1469,8 @@ driver_init_device( GraphicsDevice     *device,
           rdev->fb_size   = ((tom >> 16) - (tom & 0xffff) + 1) << 16;
      } 
      else { 
-          rdev->fb_offset = dfb_system_video_memory_physical( 0 );
-          rdev->fb_size   = dfb_system_videoram_length();
+          rdev->fb_offset = radeon_in32( mmio, CONFIG_APER_0_BASE );
+          rdev->fb_size   = radeon_in32( mmio, CONFIG_APER_SIZE );
      }
      
      radeon_out32( mmio, MC_FB_LOCATION, (rdev->fb_offset>>16) |
