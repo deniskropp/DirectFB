@@ -131,6 +131,7 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
                case FSSF_S16:
                case FSSF_S24:
                case FSSF_S32:
+               case FSSF_FLOAT:
                     format = desc->sampleformat;
                     break;
 
@@ -214,6 +215,7 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                     case FSSF_S16:
                     case FSSF_S24:
                     case FSSF_S32:
+                    case FSSF_FLOAT:
                          format = desc->sampleformat;
                          break;
 

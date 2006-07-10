@@ -169,15 +169,18 @@ typedef enum {
      /* Signed 16 bit (native endian). */
      FSSF_S16            = FS_SAMPLEFORMAT( 1, 16, 16, 1 ),
 
-     /* Signed 24 bit (little endian). */
+     /* Signed 24 bit (native endian). */
      FSSF_S24            = FS_SAMPLEFORMAT( 2, 24, 24, 1 ),
 
      /* Signed 32 bit (native endian). */
      FSSF_S32            = FS_SAMPLEFORMAT( 3, 32, 32, 1 ),
+     
+     /* Floating-point 32 bit. */
+     FSSF_FLOAT          = FS_SAMPLEFORMAT( 4, 32, 32, 1 ),
 } FSSampleFormat;
 
 /* Number of defined sample formats */
-#define FS_NUM_SAMPLEFORMATS  4
+#define FS_NUM_SAMPLEFORMATS  5
 
 /* These macros extract information about the sample format. */
 #define FS_SAMPLEFORMAT_INDEX( fmt )  (((fmt) & 0x0000000F)      )

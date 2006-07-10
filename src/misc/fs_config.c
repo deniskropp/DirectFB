@@ -68,10 +68,11 @@ typedef struct {
 } FormatString;
 
 static const FormatString format_strings[] = {
-     { "U8",  FSSF_U8  },
-     { "S16", FSSF_S16 },
-     { "S24", FSSF_S24 },
-     { "S32", FSSF_S32 }
+     { "U8",    FSSF_U8    },
+     { "S16",   FSSF_S16   },
+     { "S24",   FSSF_S24   },
+     { "S32",   FSSF_S32   },
+     { "FLOAT", FSSF_FLOAT }
 };
 
 #define NUM_FORMAT_STRINGS (sizeof(format_strings) / sizeof(FormatString))

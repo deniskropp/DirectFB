@@ -88,7 +88,7 @@ typedef struct {
      struct {
           IFusionSoundStream *stream;
           IFusionSoundBuffer *buffer;
-          int                 format;
+          FSSampleFormat      format;
           int                 channels;
           int                 length;
      } dest;
@@ -479,12 +479,13 @@ cdda_get_metadata( struct cdda_track *tracks,
 #endif                
 
 static void
-cdda_mix_audio( __s16 *src, __u8 *dst, int len, int format, int channels )
+cdda_mix_audio( __s16 *src, __u8 *dst, int len, 
+                FSSampleFormat format, int channels )
 {
      int i;
      
      switch (format) {
-          case 8:
+          case FSSF_U8:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
                          *dst = ((src[i] + src[i+1]) >> 9) + 128;
@@ -495,44 +496,68 @@ cdda_mix_audio( __s16 *src, __u8 *dst, int len, int format, int channels )
                          dst[i] = (src[i] >> 8) + 128;
                }
                break;
-          case 16:
+          case FSSF_S16:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
                          *((__s16*)dst) = (src[i] + src[i+1]) >> 1;
                          dst += 2;
                     }
                }
+               /* no conversion needed */
                break;
-          case 24:
+          case FSSF_S24:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
                          int d = (src[i] + src[i+1]) << 7;
+#ifdef WORDS_BIGENDIAN
+                         dst[0] = d >> 16;
+                         dst[1] = d >> 8;
+                         dst[2] = d;
+#else
                          dst[0] = d;
                          dst[1] = d >> 8;
                          dst[2] = d >> 16;
+#endif
                          dst += 3;
                     }
                } else {
-                    for (i = 0; i < len; i++) {
+                    for (i = 0; i < len*2; i++) {
                          int d = src[i] << 8;
+#ifdef WORDS_BIGENDIAN
+                         dst[0] = d >> 16;
+                         dst[1] = d >> 8;
+                         dst[2] = d;
+#else
                          dst[0] = d;
                          dst[1] = d >> 8;
                          dst[2] = d >> 16;
+#endif
                          dst += 3;
                     }
                }
                break;
-          case 32:
+          case FSSF_S32:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
                          *((__s32*)dst) = (src[i] + src[i+1]) << 15;
                          dst += 4;
                     }
                } else {
-                    for (i = 0; i < len; i++)
+                    for (i = 0; i < len*2; i++)
                          ((__s32*)dst)[i] = src[i] << 16;
                }
-               break;   
+               break; 
+          case FSSF_FLOAT:
+               if (channels == 1) {
+                    for (i = 0; i < len*2; i += 2) {
+                         *((float*)dst) = (float)((src[i]+src[i+1])>>1)/32768.0f;
+                         dst += sizeof(float);
+                    }
+               } else {
+                    for (i = 0; i < len*2; i++)
+                         ((float*)dst)[i] = (float)src[i]/32768.0f;
+               }
+               break;
           default:
                D_BUG( "unexpected sampleformat" );
                break;
@@ -814,9 +839,8 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
                                              IFusionSoundStream        *destination )
 {
      FSStreamDescription  desc;
-     __u32                dst_format = 0;
-     int                  src_size   = 0;
-     int                  dst_size   = 0;
+     int                  src_size = 0;
+     int                  dst_size = 0;
      void                *buffer;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
@@ -840,7 +864,7 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
           case FSSF_S16:
           case FSSF_S24:
           case FSSF_S32:
-               dst_format = FS_BITS_PER_SAMPLE(desc.sampleformat);
+          case FSSF_FLOAT:
                break;
           default:
                return DFB_UNSUPPORTED;
@@ -884,8 +908,10 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      data->buffered_frames = (desc.buffersize << 2) / CD_BYTES_PER_FRAME;
      
      src_size = data->buffered_frames * CD_BYTES_PER_FRAME;
-     if (dst_format != 16 || desc.channels != 2)
-          dst_size = desc.buffersize * desc.channels * dst_format >> 3;
+     if (desc.sampleformat != FSSF_S16 || desc.channels != 2) {
+          dst_size = desc.buffersize * desc.channels * 
+                     FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3;
+     }
           
      buffer = D_MALLOC( src_size + dst_size );
      if (!buffer) {
@@ -899,7 +925,7 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.stream   = destination;
-     data->dest.format   = dst_format;
+     data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
     
@@ -990,8 +1016,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                              FMBufferCallback           callback,
                                              void                      *ctx )
 {
-     FSBufferDescription  desc;
-     __u32                dst_format = 0;
+     FSBufferDescription desc;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
@@ -1014,7 +1039,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           case FSSF_S16:
           case FSSF_S24:
           case FSSF_S32:
-               dst_format = FS_BITS_PER_SAMPLE(desc.sampleformat);
+          case FSSF_FLOAT:
                break;
           default:
                return DFB_UNSUPPORTED;
@@ -1057,7 +1082,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      
      data->buffered_frames = (desc.length << 2) / CD_BYTES_PER_FRAME;
      
-     if (dst_format != 16 || desc.channels != 2) {
+     if (desc.sampleformat != FSSF_S16 || desc.channels != 2) {
           data->src_buffer = D_MALLOC( data->buffered_frames * CD_BYTES_PER_FRAME );
           if (!data->src_buffer) {
                pthread_mutex_unlock( &data->lock );
@@ -1068,7 +1093,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.buffer   = destination;
-     data->dest.format   = dst_format;
+     data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.length;
      data->callback      = callback;

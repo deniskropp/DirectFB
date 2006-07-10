@@ -89,6 +89,7 @@ fs_buffer_create( CoreSound        *core,
           case FSSF_S16:
           case FSSF_S24:
           case FSSF_S32:
+          case FSSF_FLOAT:
                bytes = FS_BYTES_PER_SAMPLE( format );
                break;
 
@@ -181,9 +182,15 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
 
 #define FORMAT s24
 #define TYPE __u8
-#define FSF_FROM_SRC(s,i) fsf_from_s24(((int)((s[i*3+0]<< 8) | \
-                                              (s[i*3+1]<<16) | \
-                                              (s[i*3+2]<<24)) >> 8))
+#ifdef WORDS_BIGENDIAN
+# define FSF_FROM_SRC(s,i) fsf_from_s24(((int)((s[i*3+2]<< 8) | \
+                                               (s[i*3+1]<<16) | \
+                                               (s[i*3+0]<<24)) >> 8))
+#else
+# define FSF_FROM_SRC(s,i) fsf_from_s24(((int)((s[i*3+0]<< 8) | \
+                                               (s[i*3+1]<<16) | \
+                                               (s[i*3+2]<<24)) >> 8))
+#endif
 #include "sound_mix.h"
 #undef FSF_FROM_SRC
 #undef TYPE
@@ -192,6 +199,14 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
 #define FORMAT s32
 #define TYPE __s32
 #define FSF_FROM_SRC(s,i) fsf_from_s32(s[i])
+#include "sound_mix.h"
+#undef FSF_FROM_SRC
+#undef TYPE
+#undef FORMAT
+
+#define FORMAT float
+#define TYPE float
+#define FSF_FROM_SRC(s,i) fsf_from_float(s[i])
 #include "sound_mix.h"
 #undef FSF_FROM_SRC
 #undef TYPE
@@ -262,6 +277,15 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                else
                     num = mix_from_s32_stereo( buffer, dest, dest_rate, max_samples,
                                                pos, stop, left, right, pitch );
+               break;
+               
+          case FSSF_FLOAT:
+               if (buffer->channels == 1)
+                    num = mix_from_float_mono( buffer, dest, dest_rate, max_samples,
+                                               pos, stop, left, right, pitch );
+               else
+                    num = mix_from_float_stereo( buffer, dest, dest_rate, max_samples,
+                                                 pos, stop, left, right, pitch );
                break;
 
           default:

@@ -849,6 +849,10 @@ fs_core_arena_initialize( FusionArena *arena,
                shared->config.fmt  = AFMT_U8;
                shared->config.bits = 8;
                break;
+          case FSSF_S16:
+               shared->config.fmt  = AFMT_S16;
+               shared->config.bits = 16;
+               break;
           case FSSF_S24:
                shared->config.fmt  = AFMT_S24;
                shared->config.bits = 24;
@@ -858,9 +862,10 @@ fs_core_arena_initialize( FusionArena *arena,
                shared->config.bits = 32;
                break;
           default:
-               shared->config.fmt  = AFMT_S16;
-               shared->config.bits = 16;
-               break;
+               D_ERROR( "FusionSound/Core: unsupported sample format!\n" );
+               SHFREE( pool, shared );
+               fusion_shm_pool_destroy( core->world, pool );
+               return DFB_UNSUPPORTED;
      }
      shared->config.channels = fs_config->channels;
      shared->config.rate     = fs_config->samplerate;

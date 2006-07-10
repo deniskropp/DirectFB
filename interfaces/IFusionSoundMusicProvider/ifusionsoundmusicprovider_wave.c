@@ -74,7 +74,7 @@ typedef struct {
      struct {
           IFusionSoundStream *stream;
           IFusionSoundBuffer *buffer;
-          int                 format;
+          FSSampleFormat      format;
           int                 channels;
           int                 length;
      } dest;
@@ -355,9 +355,15 @@ mix8to24( void *src, void *dst, int len, int delta )
      if (delta < 0) {
           for (i = 0; i < len; i++) {
                int c = (s[i] - 128) << 16;
+#ifdef WORDS_BIGENDIAN
+               d[0] = d[3] = c >> 16;
+               d[1] = d[4] = c >> 8;
+               d[2] = d[5] = c;
+#else
                d[0] = d[3] = c;
                d[1] = d[4] = c >> 8;
                d[2] = d[5] = c >> 16;
+#endif
                d += 6;
           }
      }
@@ -365,9 +371,15 @@ mix8to24( void *src, void *dst, int len, int delta )
      else if (delta > 0) {
           for (i = 0; i < len; i += 2) {
                int c = (s[i+0] + s[i+1] - 256) << 15;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
                d[2] = c >> 16;
+#endif
                d += 3;
           }
      }
@@ -375,9 +387,15 @@ mix8to24( void *src, void *dst, int len, int delta )
      else {
           for (i = 0; i < len; i++) {
                int c = (s[i] - 128) << 16;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
                d[2] = c >> 16;
+#endif
                d += 3;
           }
      }
@@ -394,9 +412,15 @@ mix16to24( void *src, void *dst, int len, int delta )
      if (delta < 0) {
           for (i = 0; i < len; i++) {
                int c = s[i] << 8;
+#ifdef WORDS_BIGENDIAN
+               d[0] = d[3] = c >> 16;
+               d[1] = d[4] = c >> 8;
+               d[2] = d[5] = c;
+#else
                d[0] = d[3] = c;
                d[1] = d[4] = c >> 8;
                d[2] = d[5] = c >> 16;
+#endif
                d += 6;
           }
      }
@@ -404,9 +428,15 @@ mix16to24( void *src, void *dst, int len, int delta )
      else if (delta > 0) {
           for (i = 0; i < len; i += 2) {
                int c = (s[i+0] + s[i+1]) << 7;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
                d[2] = c >> 16;
+#endif
                d += 3;
           }
      }
@@ -414,9 +444,15 @@ mix16to24( void *src, void *dst, int len, int delta )
      else {
           for (i = 0; i < len; i++) {
                int c = s[i] << 8;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
                d[2] = c >> 16;
+#endif
                d += 3;
           }
      } 
@@ -434,7 +470,7 @@ mix24to24( void *src, void *dst, int len, int delta )
           for (i = len; i--;) {
                d[0] = d[3] = s[0];
                d[1] = d[4] = s[1];
-               d[2] = d[5] = s[3];
+               d[2] = d[5] = s[2];
                s += 3;
                d += 3;
           }
@@ -451,9 +487,15 @@ mix24to24( void *src, void *dst, int len, int delta )
                    (((s[3] << 8) | (s[4] << 16) | (s[5] << 24)) >> 8);
 #endif
                c >>= 1;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
                d[2] = c >> 16;
+#endif
                s += 6;
                d += 3;
           }
@@ -471,9 +513,15 @@ mix32to24( void *src, void *dst, int len, int delta )
      if (delta < 0) {
           for (i = 0; i < len; i++) {
                int c = s[i] >> 8;
+#ifdef WORDS_BIGENDIAN
+               d[0] = d[3] = c >> 16;
+               d[1] = d[4] = c >> 8;
+               d[2] = d[5] = c;
+#else
                d[0] = d[3] = c;
                d[1] = d[4] = c >> 8;
                d[2] = d[5] = c >> 16;
+#endif
                d += 6;
           }
      }
@@ -481,9 +529,15 @@ mix32to24( void *src, void *dst, int len, int delta )
      else if (delta > 0) {
           for (i = 0; i < len; i += 2) {
                int c = ((s[i+0]>>8) + (s[i+1]>>8)) >> 1;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
-               d[2] = c >> 16;               
+               d[2] = c >> 16;
+#endif             
                d += 3;
           }
      }
@@ -491,9 +545,15 @@ mix32to24( void *src, void *dst, int len, int delta )
      else {
           for (i = 0; i < len; i++) {
                int c = s[i] >> 8;
+#ifdef WORDS_BIGENDIAN
+               d[0] = c >> 16;
+               d[1] = c >> 8;
+               d[2] = c;
+#else
                d[0] = c;
                d[1] = c >> 8;
                d[2] = c >> 16;
+#endif
                d += 3;
           }
      }
@@ -566,9 +626,9 @@ mix24to32( void *src, void *dst, int len, int delta )
      if (delta < 0) {
           for (i = len; i--;) {
 #ifdef WORDS_BIGENDIAN
-               d[0] = d[1] = (s[2] << 8) | (s[1] << 16) | (s[0] << 24);
+               d[0] = d[1] = (s[2]<<8) | (s[1]<<16) | (s[0]<<24);
 #else
-               d[0] = d[1] = (s[0] << 8) | (s[1] << 16) | (s[2] << 24);
+               d[0] = d[1] = (s[0]<<8) | (s[1]<<16) | (s[2]<<24);
 #endif
                s += 3;
                d += 2;
@@ -579,11 +639,11 @@ mix24to32( void *src, void *dst, int len, int delta )
           for (i = 0; i < len/2; i++) {
                int c;
 #ifdef WORDS_BIGENDIAN
-               c = (((s[2] << 8) | (s[1] << 16) | (s[0] << 24)) >> 8) +
-                   (((s[5] << 8) | (s[4] << 16) | (s[3] << 24)) >> 8);
+               c = ((int)((s[2]<<8) | (s[1]<<16) | (s[0]<<24)) >> 8) +
+                   ((int)((s[5]<<8) | (s[4]<<16) | (s[3]<<24)) >> 8);
 #else
-               c = (((s[0] << 8) | (s[1] << 16) | (s[2] << 24)) >> 8) +
-                   (((s[3] << 8) | (s[4] << 16) | (s[5] << 24)) >> 8);
+               c = ((int)((s[0]<<8) | (s[1]<<16) | (s[2]<<24)) >> 8) +
+                   ((int)((s[3]<<8) | (s[4]<<16) | (s[5]<<24)) >> 8);
 #endif
                d[i] = c << 7;
                s += 6;
@@ -593,9 +653,9 @@ mix24to32( void *src, void *dst, int len, int delta )
      else {
           for (i = 0; i < len; i++) {
 #ifdef WORDS_BIGENDIAN
-               d[i] = (s[2] << 8) | (s[1] << 16) | (s[0] << 24);
+               d[i] = (s[2]<<8) | (s[1]<<16) | (s[0]<<24);
 #else
-               d[i] = (s[0] << 8) | (s[1] << 16) | (s[2] << 24);
+               d[i] = (s[0]<<8) | (s[1]<<16) | (s[2]<<24);
 #endif
                s += 3;
           }
@@ -625,6 +685,135 @@ mix32to32( void *src, void *dst, int len, int delta )
      }
 }
 
+static inline void
+mix8toF32( void *src, void *dst, int len, int delta )
+{
+     __u8  *s = src;
+     float *d = dst;
+     int    i;
+ 
+     /* Upmix mono to stereo */
+     if (delta < 0) {
+          for (i = 0; i < len; i++) {
+               d[0] = d[1] = (float)(s[i]-128)/128.0f;
+               d += 2;
+          }
+     }
+     /* Downmix stereo to mono */
+     else if (delta > 0) {
+          for (i = 0; i < len/2; i++) {
+               d[i] = (float)((s[0]+s[1]-256)>>1)/128.0f;
+               s += 2;
+          }
+     }
+     /* Convert unsigned 8 to float 32 */
+     else {
+          for (i = 0; i < len; i++)
+               d[i] = (float)(s[i]-128)/128.0f;
+     }
+}
+
+static inline void
+mix16toF32( void *src, void *dst, int len, int delta )
+{
+     __s16 *s = src;
+     float *d = dst;
+     int    i;
+ 
+     /* Upmix mono to stereo */
+     if (delta < 0) {
+          for (i = 0; i < len; i++) {
+               d[0] = d[1] = (float)s[i]/32768.0f;
+               d += 2;
+          }
+     }
+     /* Downmix stereo to mono */
+     else if (delta > 0) {
+          for (i = 0; i < len/2; i++) {
+               d[i] = (float)((s[0]+s[1])>>1)/32768.0f;
+               s += 2;
+          }
+     }
+     /* Convert signed 16 to float 32 */
+     else {
+          for (i = 0; i < len; i++)
+               d[i] = (float)s[i]/32768.0f;
+     }
+}
+
+static inline void
+mix24toF32( void *src, void *dst, int len, int delta )
+{
+     __u8  *s = src;
+     float *d = dst;
+     int    i;
+ 
+     /* Upmix mono to stereo */
+     if (delta < 0) {
+          for (i = len; i--;) {
+               int c;
+#ifdef WORDS_BIGENDIAN
+               c = (int)((s[2]<<8) | (s[1]<<16) | (s[0]<<24)) >> 8;
+#else
+               c = (int)((s[0]<<8) | (s[1]<<16) | (s[2]<<24)) >> 8;
+#endif
+               d[0] = d[1] = (float)c/8388608.0f;
+               s += 3;
+               d += 2;
+          }
+     }
+     /* Downmix stereo to mono */
+     else if (delta > 0) {
+          for (i = 0; i < len/2; i++) {
+               int c;
+#ifdef WORDS_BIGENDIAN
+               c = (((int)((s[2]<<8) | (s[1]<<16) | (s[0]<<24)) >> 8) +
+                    ((int)((s[5]<<8) | (s[4]<<16) | (s[3]<<24)) >> 8)) >> 1;
+#else
+               c = (((int)((s[0]<<8) | (s[1]<<16) | (s[2]<<24)) >> 8) +
+                    ((int)((s[3]<<8) | (s[4]<<16) | (s[5]<<24)) >> 8)) >> 1;
+#endif
+               d[i] = (float)c/8388608.0f;
+               s += 6;
+          }
+     }
+     /* Convert signed 24 to signed 32 */
+     else {
+          for (i = 0; i < len; i++) {
+               int c;
+#ifdef WORDS_BIGENDIAN
+               c = (int)((s[2]<<8) | (s[1]<<16) | (s[0]<<24)) >> 8;
+#else
+               c = (int)((s[0]<<8) | (s[1]<<16) | (s[2]<<24)) >> 8;
+#endif
+               d[i] = (float)c/8388608.0f;
+               s += 3;
+          }
+     }
+}
+
+static inline void
+mix32toF32( void *src, void *dst, int len, int delta )
+{
+     __s32 *s = src;
+     float *d = dst;
+     int    i;
+ 
+     /* Upmix mono to stereo */
+     if (delta < 0) {
+          for (i = 0; i < len; i++) {
+               d[0] = d[1] = (float)s[i]/2147483648.0f;
+               d += 2;
+          }
+     }
+     /* Downmix stereo to mono */
+     else if (delta > 0) {
+          for (i = 0; i < len/2; i++) {
+               d[i] = ((float)s[0]/2147483648.0f + (float)s[1]/2147483648.0f)/2.0f;
+               s += 2;
+          }
+     }
+}
 
 static void
 wave_mix_audio( __u8 *src, __u8 *dst, int len, 
@@ -655,7 +844,7 @@ wave_mix_audio( __u8 *src, __u8 *dst, int len,
      }
 
      switch (dst_format) {
-          case 8:
+          case FSSF_U8:
                switch (src_format) {
                     case 8:
                          mix8to8( src, dst, len, delta );
@@ -674,7 +863,7 @@ wave_mix_audio( __u8 *src, __u8 *dst, int len,
                }
                break;
 
-          case 16:
+          case FSSF_S16:
                switch (src_format) {
                     case 8:
                          mix8to16( src, dst, len, delta );
@@ -693,7 +882,7 @@ wave_mix_audio( __u8 *src, __u8 *dst, int len,
                }
                break;
 
-          case 24:
+          case FSSF_S24:
                switch (src_format) {
                     case 8:
                          mix8to24( src, dst, len, delta );
@@ -712,7 +901,7 @@ wave_mix_audio( __u8 *src, __u8 *dst, int len,
                }
                break;
                
-          case 32:
+          case FSSF_S32:
                switch (src_format) {
                     case 8:
                          mix8to32( src, dst, len, delta );
@@ -725,6 +914,25 @@ wave_mix_audio( __u8 *src, __u8 *dst, int len,
                          break;
                     case 32:
                          mix32to32( src, dst, len, delta );
+                         break;
+                    default:
+                         break;
+               }
+               break;
+               
+          case FSSF_FLOAT:
+               switch (src_format) {
+                    case 8:
+                         mix8toF32( src, dst, len, delta );
+                         break;
+                    case 16:
+                         mix16toF32( src, dst, len, delta );
+                         break;
+                    case 24:
+                         mix24toF32( src, dst, len, delta );
+                         break;
+                    case 32:
+                         mix32toF32( src, dst, len, delta );
                          break;
                     default:
                          break;
@@ -982,7 +1190,7 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
                                              IFusionSoundStream        *destination )
 {
      FSStreamDescription  desc;
-     __u32                dst_format = 0;
+     int                  dst_format = 0;
      int                  src_size   = 0;
      int                  dst_size   = 0;
      void                *buffer;
@@ -1009,6 +1217,9 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
           case FSSF_S24:
           case FSSF_S32:
                dst_format = FS_BITS_PER_SAMPLE(desc.sampleformat);
+               break;
+          case FSSF_FLOAT:
+               dst_format = -32;
                break;
           default:
                return DFB_UNSUPPORTED;
@@ -1047,8 +1258,10 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
      
      /* allocate buffer(s) */
      src_size = desc.buffersize * data->channels * data->format >> 3;
-     if (dst_format != data->format || desc.channels != data->channels)
-          dst_size = desc.buffersize * desc.channels * dst_format >> 3;
+     if (dst_format != data->format || desc.channels != data->channels) {
+          dst_size = desc.buffersize * desc.channels * 
+                     FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3;
+     }
      
      buffer = D_MALLOC( src_size + dst_size );
      if (!buffer) {
@@ -1062,7 +1275,7 @@ IFusionSoundMusicProvider_Wave_PlayToStream( IFusionSoundMusicProvider *thiz,
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.stream   = destination;
-     data->dest.format   = dst_format;
+     data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
 
@@ -1169,8 +1382,8 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                                              FMBufferCallback           callback,
                                              void                      *ctx )
 {
-     FSBufferDescription  desc;
-     __u32                dst_format = 0;
+     FSBufferDescription desc;
+     int                 dst_format = 0;
 
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
 
@@ -1194,6 +1407,9 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           case FSSF_S24:
           case FSSF_S32:
                dst_format = FS_BITS_PER_SAMPLE(desc.sampleformat);
+               break;
+          case FSSF_FLOAT:
+               dst_format = -32;
                break;
           default:
                return DFB_UNSUPPORTED;
@@ -1232,7 +1448,7 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      
      /* allocate buffer */
      if (dst_format != data->format || desc.channels != data->channels) {
-          data->src_buffer = D_MALLOC( desc.length *
+          data->src_buffer = D_MALLOC( desc.length * 
                                        data->channels * data->format >> 3 );
           if (!data->src_buffer) {
                pthread_mutex_unlock( &data->lock );
@@ -1243,7 +1459,7 @@ IFusionSoundMusicProvider_Wave_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.buffer   = destination;
-     data->dest.format   = dst_format;
+     data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.length;
 
