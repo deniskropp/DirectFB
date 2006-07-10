@@ -170,6 +170,8 @@ direct_hash_insert( DirectHash *hash,
                }
           }
 
+          D_FREE( hash->elements );
+
           hash->size     = size;
           hash->elements = elements;
           hash->removed  = 0;
