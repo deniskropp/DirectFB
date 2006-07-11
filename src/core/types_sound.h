@@ -30,6 +30,8 @@
 typedef struct __FS_CoreSound       CoreSound;
 typedef struct __FS_CoreSoundShared CoreSoundShared;
 
+typedef struct __FS_CoreSoundDevice CoreSoundDevice;
+
 typedef struct __FS_CoreSoundBuffer CoreSoundBuffer;
 
 typedef struct __FS_CorePlayback    CorePlayback;

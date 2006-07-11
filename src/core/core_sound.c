@@ -27,15 +27,9 @@
 
 #include <config.h>
 
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
 #include <unistd.h>
 
 #include <pthread.h>
-
-#include <sys/soundcard.h>
 
 #include <direct/build.h>
 #include <direct/list.h>
@@ -54,40 +48,16 @@
 
 #include <misc/conf.h>
 
-#include <misc/fs_config.h>
-
 #include <core/core.h>   /* FIXME */
 
 #include <core/fs_types.h>
 #include <core/core_sound.h>
 #include <core/playback.h>
 #include <core/sound_buffer.h>
+#include <core/sound_device.h>
 
-/******************************************************************************/
+#include <misc/sound_conf.h>
 
-#ifdef WORDS_BIGENDIAN
-# ifndef AFMT_S24_BE
-#  define AFMT_S24_BE 0x00001000
-# endif
-# ifndef AFMT_S32_BE
-#  define AFMT_S32_BE 0x00010000
-# endif
-# define AFMT_S16  AFMT_S16_BE
-# define AFMT_S24  AFMT_S24_BE
-# define AFMT_S32  AFMT_S32_BE
-#else
-# ifndef AFMT_S24_LE
-#  define AFMT_S24_LE 0x00000800
-# endif
-# ifndef AFMT_S32_LE
-#  define AFMT_S32_LE 0x00008000
-# endif
-# define AFMT_S16  AFMT_S16_LE
-# define AFMT_S24  AFMT_S24_LE
-# define AFMT_S32  AFMT_S32_LE
-#endif
-
-/******************************************************************************/
 
 typedef struct {
      DirectLink           link;
@@ -96,26 +66,19 @@ typedef struct {
 } CorePlaylistEntry;
 
 struct __FS_CoreSoundShared {
-     FusionObjectPool    *buffer_pool;
-     FusionObjectPool    *playback_pool;
+     FusionObjectPool      *buffer_pool;
+     FusionObjectPool      *playback_pool;
 
-     FusionSHMPoolShared *shmpool;
+     FusionSHMPoolShared   *shmpool;
 
      struct {
-          DirectLink     *entries;
-          FusionSkirmish  lock;
+          DirectLink       *entries;
+          FusionSkirmish    lock;
      } playlist;
 
-     struct {
-          int             fmt;                 /* hack */
-          int             bits;                /* hack */
-          long            rate;                /* hack */
-          int             channels;            /* hack */
-          int             block_size;          /* hack */
-          int             samples_per_channel; /* hack */
-     } config;
+     CoreSoundDeviceConfig  config;
 
-     int                  output_delay;      /* output buffer size in ms */
+     int                    output_delay;      /* output delay in ms */
 };
 
 struct __FS_CoreSound {
@@ -129,7 +92,7 @@ struct __FS_CoreSound {
      CoreSoundShared     *shared;
 
      bool                 master;
-     int                  fd;
+     CoreSoundDevice     *device;
      DirectThread        *sound_thread;
 
      DirectSignalHandler *signal_handler;
@@ -445,43 +408,33 @@ sound_thread( DirectThread *thread, void *arg )
 {
      CoreSound       *core    = arg;
      CoreSoundShared *shared  = core->shared;
-     int              samples = shared->config.samples_per_channel * 2;
+     int              samples = shared->config.buffersize * 2;
+     int              size    = shared->config.buffersize *
+                                shared->config.channels   *
+                                FS_BITS_PER_SAMPLE(shared->config.format)>>3;
 
-     __u8             output[shared->config.block_size];
+     __u8             output[size];
      __fsf            mixing[samples];
-
-     int              byte_rate = (shared->config.rate *
-                                   shared->config.channels *
-                                   (shared->config.bits >> 3));
 
      bool             empty = true;
 
 
      while (true) {
-          int             i;
-          audio_buf_info  info;
-          DirectLink     *next, *l;
+          int         i;
+          int         delay;
+          DirectLink *next, *l;
 
           direct_thread_testcancel( thread );
 
-          if (! ioctl( core->fd, SNDCTL_DSP_GETOSPACE, &info )) {
-               int buffered = info.fragsize * info.fragstotal - info.bytes;
-
-               if (!buffered && !empty)
-                    D_WARN( "device buffer underrun?" );
-
-               /* calculate output delay (ms) */
-               shared->output_delay = buffered * 1000 / byte_rate;
-
-               /* do not buffer more than 80 ms */
-               if (buffered > byte_rate * 80 / 1000) {
-                    D_DEBUG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
-                    usleep( 10000 );
-                    continue;
-               }
+          fs_device_get_output_delay( core->device, &delay );
+          shared->output_delay = delay * 1000 / shared->config.rate;
+          
+          /* do not buffer more than 80 ms */
+          if (shared->output_delay > 80) {
+               D_DEBUG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
+               usleep( 10000 );
+               continue;
           }
-          else
-               D_ONCE( "SNDCTL_DSP_GETOSPACE failed!" );
 
           empty = !shared->playlist.entries;
           if (empty) {
@@ -514,8 +467,8 @@ sound_thread( DirectThread *thread, void *arg )
           fusion_skirmish_dismiss( &shared->playlist.lock );
 
           /* Convert mixing buffer to output format, clipping each sample. */
-          switch (shared->config.fmt) {
-               case AFMT_U8:
+          switch (shared->config.format) {
+               case FSSF_U8:
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
@@ -533,7 +486,7 @@ sound_thread( DirectThread *thread, void *arg )
                          }
                     }
                     break;
-               case AFMT_S16:
+               case FSSF_S16:
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
@@ -551,7 +504,7 @@ sound_thread( DirectThread *thread, void *arg )
                          }
                     }
                     break;
-               case AFMT_S24:
+               case FSSF_S24:
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
@@ -589,7 +542,7 @@ sound_thread( DirectThread *thread, void *arg )
                          }
                     }
                     break;
-               case AFMT_S32:
+               case FSSF_S32:
                     if (shared->config.channels == 1) {
                          for (i = 0; i < samples; i += 2) {
                               register __fsf s;
@@ -607,12 +560,30 @@ sound_thread( DirectThread *thread, void *arg )
                          }
                     }
                     break;
+               case FSSF_FLOAT:
+                    if (shared->config.channels == 1) {
+                         for (i = 0; i < samples; i += 2) {
+                              register __fsf s;
+                              s = fsf_add( mixing[i], mixing[i+1] );
+                              s = fsf_shr( s, 1 );
+                              s = fsf_clip( s );                         
+                              ((float*)output)[i>>1] = fsf_to_float( s );
+                         }
+                    } else {
+                         for (i = 0; i < samples; i++) {
+                              register __fsf s;
+                              s = mixing[i];
+                              s = fsf_clip( s );                         
+                              ((float*)output)[i] = fsf_to_float( s );
+                         }
+                    }
+                    break;
                default:
                     D_BUG( "unexpected sample format" );
                     break;
           }
 
-          write( core->fd, output, shared->config.block_size );
+          fs_device_write( core->device, output, shared->config.buffersize );
      }
 
      return NULL;
@@ -623,116 +594,17 @@ sound_thread( DirectThread *thread, void *arg )
 static DFBResult
 fs_core_initialize( CoreSound *core )
 {
-     int              fd;
-#ifdef APF_NORMAL
-     int              prof     = APF_NORMAL;
-#endif
-     CoreSoundShared *shared   = core->shared;
-     int              fmt      = shared->config.fmt;
-     int              channels = shared->config.channels;
-     int              rate     = shared->config.rate;
-
-     /* open sound device in non-blocking mode */
-     if (fs_config->device)
-          fd = open( fs_config->device, O_WRONLY | O_NONBLOCK );
-     else
-          fd = direct_try_open( "/dev/dsp", "/dev/sound/dsp", O_WRONLY | O_NONBLOCK, true );
+     CoreSoundShared *shared = core->shared;
+     DFBResult        ret;
      
-     if (fd < 0) {
-          D_ERROR( "FusionSound/Core: "
-                   "Couldn't open output device!\n" );
-          return DFB_INIT;
-     }
-
-     /* reset to blocking mode */
-     fcntl( fd, F_SETFL, fcntl( fd, F_GETFL ) & ~O_NONBLOCK );
-
-     /* set application profile */
-#ifdef SNDCTL_DSP_PROFILE
-     if (ioctl( fd, SNDCTL_DSP_PROFILE, &prof ) == -1)
-          D_WARN( "FusionSound/Core: Unable to set application profile!\n" );
-#endif
+     /* open output device */
+     ret = fs_device_initialize( core, &core->device );
+     if (ret)
+          return ret;
+      
+     /* get device configuration */
+     fs_device_get_configuration( core->device, &shared->config );
      
-     /* set bits per sample */
-     if (ioctl( fd, SNDCTL_DSP_SETFMT, &fmt ) == -1)
-          fmt = 0;
-     
-     /* if ioctl failed, try AFMT_S16 */
-     if (shared->config.fmt != fmt) {
-          if (shared->config.fmt != AFMT_S16) {
-               D_INFO( "FusionSound/Core: "
-                       "Setting bits to '%d' failed, trying 16!\n",
-                        shared->config.bits );
-
-               shared->config.fmt = fmt = AFMT_S16;
-               shared->config.bits = 16;
-               ioctl( fd, SNDCTL_DSP_SETFMT, &fmt );
-          }
-          
-          if (shared->config.fmt != fmt) {
-               D_ERROR( "FusionSound/Core: "
-                        "Unable to set bits to '%d'!\n", shared->config.bits );
-               close( fd );
-               return DFB_UNSUPPORTED;
-          }
-     }
-
-     /* set mono/stereo */
-     if (ioctl( fd, SNDCTL_DSP_CHANNELS, &channels ) == -1)
-          channels = 0;
-
-     switch (channels) {
-          case 1:
-          case 2:
-               shared->config.channels = channels;
-               break;               
-          default:               
-               D_ERROR( "FusionSound/Core: Unable to set '%d' channels!\n",
-                         shared->config.channels );
-               close( fd );
-               return DFB_UNSUPPORTED;
-     }
-
-     /* set sample rate */
-     if (ioctl( fd, SNDCTL_DSP_SPEED, &rate ) == -1) {
-          D_ERROR( "FusionSound/Core: "
-                   "Unable to set rate to '%ld'!\n", shared->config.rate );
-          close( fd );
-          return DFB_UNSUPPORTED;
-     }
-
-     shared->config.rate = rate;
-     
-     D_DEBUG( "FusionSound/Core: "
-              "device opened for %ldHz - %d channel(s) - %d bit output.\n", 
-              shared->config.rate, shared->config.channels, shared->config.bits );
-
-     /* query block size */
-     ioctl( fd, SNDCTL_DSP_GETBLKSIZE, &shared->config.block_size );
-     if (shared->config.block_size < 1) {
-          D_ERROR( "FusionSound/Core: Unable to query block size!\n" );
-          close( fd );
-          return DFB_UNSUPPORTED;
-     }
-
-     D_DEBUG( "FusionSound/Core: got block size %d\n", 
-              shared->config.block_size );
-
-     if (shared->config.block_size < 4096)
-          shared->config.block_size = 4096;
-     else if (shared->config.block_size > 8192)
-          shared->config.block_size = 8192;
-
-     D_DEBUG( "FusionSound/Core: using block size %d\n", 
-              shared->config.block_size );
-
-     /* calculate number of samples fitting into one block */
-     shared->config.samples_per_channel = shared->config.block_size /
-                                         (shared->config.channels * shared->config.bits/8);
-
-     /* store file descriptor */
-     core->fd = fd;
-
      /* initialize playback list lock */
      fusion_skirmish_init( &shared->playlist.lock, "FusionSound Playlist", core->world );
 
@@ -783,11 +655,8 @@ fs_core_shutdown( CoreSound *core )
      direct_thread_join( core->sound_thread );
      direct_thread_destroy( core->sound_thread );
 
-     /* flush pending sound data so we don't have to wait */
-     ioctl( core->fd, SNDCTL_DSP_RESET, 0 );
-
-     /* close sound device */
-     close( core->fd );
+     /* close output device */
+     fs_device_shutdown( core->device );
 
      /* clear playback list */
      fusion_skirmish_prevail( &shared->playlist.lock );
@@ -842,33 +711,6 @@ fs_core_arena_initialize( FusionArena *arena,
      core->master = true;
 
      shared->shmpool = pool;
-
-     /* FIXME: add live configuration */
-     switch (fs_config->sampleformat) {
-          case FSSF_U8:
-               shared->config.fmt  = AFMT_U8;
-               shared->config.bits = 8;
-               break;
-          case FSSF_S16:
-               shared->config.fmt  = AFMT_S16;
-               shared->config.bits = 16;
-               break;
-          case FSSF_S24:
-               shared->config.fmt  = AFMT_S24;
-               shared->config.bits = 24;
-               break;
-          case FSSF_S32:
-               shared->config.fmt  = AFMT_S32;
-               shared->config.bits = 32;
-               break;
-          default:
-               D_ERROR( "FusionSound/Core: unsupported sample format!\n" );
-               SHFREE( pool, shared );
-               fusion_shm_pool_destroy( core->world, pool );
-               return DFB_UNSUPPORTED;
-     }
-     shared->config.channels = fs_config->channels;
-     shared->config.rate     = fs_config->samplerate;
 
      /* Initialize. */
      ret = fs_core_initialize( core );

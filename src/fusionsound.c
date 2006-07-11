@@ -44,7 +44,7 @@
 
 #include <misc/conf.h>
 
-#include <misc/fs_config.h>
+#include <misc/sound_conf.h>
 
 
 IFusionSound *ifusionsound_singleton = NULL;

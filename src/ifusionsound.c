@@ -43,7 +43,7 @@
 
 #include <media/ifusionsoundmusicprovider.h>
 
-#include <misc/fs_config.h>
+#include <misc/sound_conf.h>
 
 /*
  * private data struct of IFusionSound
@@ -148,7 +148,9 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
           
      if (flags & FSBDF_LENGTH)
           length = desc->length;
-
+     else
+          length = rate * fs_config->buffersize / 1000;
+          
      if (length < 1)
           return DFB_INVARG;
 
@@ -180,8 +182,8 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
      int                       channels  = fs_config->channels;
      FSSampleFormat            format    = fs_config->sampleformat;
      int                       rate      = fs_config->samplerate;
-     int                       size      = rate;     /* space for one second */
-     int                       prebuffer = 0;        /* no prebuffer by default */
+     int                       size      = 0;
+     int                       prebuffer = 0; /* no prebuffer by default */
      FSStreamDescriptionFlags  flags     = FSSDF_NONE;
      CoreSoundBuffer          *buffer;
      IFusionSoundStream       *interface;
@@ -234,8 +236,7 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                if (desc->buffersize < 1)
                     return DFB_INVARG;
                size = desc->buffersize;
-          } else
-               size = rate;
+          }
 
           if (flags & FSSDF_PREBUFFER) {
                if (desc->prebuffer >= size)
@@ -243,6 +244,9 @@ IFusionSound_CreateStream( IFusionSound         *thiz,
                prebuffer = desc->prebuffer;
           }
      }
+     
+     if (!size)
+          size = rate * fs_config->buffersize / 1000;
 
      /* Limit ring buffer size to five seconds. */
      if (size > rate * 5)

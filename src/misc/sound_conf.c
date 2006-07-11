@@ -42,7 +42,7 @@
 
 #include <misc/conf.h>
 
-#include "fs_config.h"
+#include "sound_conf.h"
 
 
 FSConfig *fs_config = NULL;
@@ -55,10 +55,12 @@ static const char *config_usage =
      "\n"
      "FusionSound options:\n"
      "\n"
-     "  device=<device>                Specify ouput device (default \"/dev/dsp\")\n"
+     "  driver=<driver>                Specify driver to use (e.g \"oss\")\n"
+     "  device=<device>                Specify driver ouput device (e.g \"/dev/dsp\")\n"
      "  channels=<channels>            Set the default number of channels\n"
      "  sampleformat=<sampleformat>    Set the default sample format\n"
      "  samplerate=<samplerate>        Set the default sample rate\n"
+     "  buffersize=<millisec>          Set the default buffer size\n"
      "  session=<num>                  Select multi app world (-1 = new)\n"
      "\n";
      
@@ -142,6 +144,7 @@ config_allocate()
      fs_config->channels     = 2;
      fs_config->sampleformat = FSSF_S16;
      fs_config->samplerate   = 44100;
+     fs_config->buffersize   = 50;
     
      fs_config->session      = MAX(dfb_config->session,0) + 1;
 }
@@ -155,7 +158,19 @@ fs_config_usage( void )
 DFBResult 
 fs_config_set( const char *name, const char *value )
 {
-     if (!strcmp( name, "device" )) {
+     if (!strcmp( name, "driver" )) {
+          if (value) {
+               if (fs_config->driver)
+                    D_FREE( fs_config->driver );
+               fs_config->driver = D_STRDUP( value );
+          }
+          else {
+               D_ERROR( "FusionSound/Config 'driver': "
+                        "No driver name specified!\n" );
+               return DFB_INVARG;
+          } 
+     }
+     else if (!strcmp( name, "device" )) {
           if (value) {
                if (fs_config->device)
                     D_FREE( fs_config->device );
@@ -211,16 +226,16 @@ fs_config_set( const char *name, const char *value )
      }
      else if (!strcmp( name, "samplerate" )) {
           if (value) {
-               long rate;
+               int rate;
 
-               if (sscanf( value, "%ld", &rate ) < 1) {
+               if (sscanf( value, "%d", &rate ) < 1) {
                     D_ERROR( "FusionSound/Config 'samplerate': "
                              "Could not parse value!\n" );
                     return DFB_INVARG;
                }
                else if (rate < 1) {
                     D_ERROR( "FusionSound/Config 'samplerate': "
-                             "Unsupported value '%ld'!\n", rate );
+                             "Unsupported value '%d'!\n", rate );
                     return DFB_INVARG;
                }      
 
@@ -228,6 +243,29 @@ fs_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR( "FusionSound/Config 'samplerate': "
+                        "No value specified!\n" );
+               return DFB_INVARG;
+          }
+     }
+     else if (!strcmp( name, "buffersize" )) {
+          if (value) {
+               int size;
+
+               if (sscanf( value, "%d", &size ) < 1) {
+                    D_ERROR( "FusionSound/Config 'buffersize': "
+                             "Could not parse value!\n" );
+                    return DFB_INVARG;
+               }
+               else if (size < 1) {
+                    D_ERROR( "FusionSound/Config 'buffersize': "
+                             "Unsupported value '%d'!\n", size );
+                    return DFB_INVARG;
+               }      
+
+               fs_config->buffersize = size;
+          }
+          else {
+               D_ERROR( "FusionSound/Config 'buffersize': "
                         "No value specified!\n" );
                return DFB_INVARG;
           }

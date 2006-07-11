@@ -31,11 +31,13 @@
 #include <fusionsound.h>
 
 typedef struct {
+     char           *driver;       /* Used driver, e.g. "oss" */
      char           *device;       /* Used device, e.g. "/dev/dsp" */
      
      int             channels;     /* default number of channels */
      FSSampleFormat  sampleformat; /* default sampleformat */
-     long            samplerate;   /* default samplerate */
+     int             samplerate;   /* default samplerate */
+     int             buffersize;   /* default buffersize (in ms) */
 
      int             session;      /* select multi app world */
 } FSConfig;
