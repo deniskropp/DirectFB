@@ -129,6 +129,7 @@ main (int argc, char *argv[])
           FusionSoundError( "IFusionSound::CreateStream", ret );
           cleanup (1);
      }
+     stream->GetDescription( stream, &s_dsc );
 
      /* Set terminal attributes */
      if (isatty( fileno(stdin) )) {
