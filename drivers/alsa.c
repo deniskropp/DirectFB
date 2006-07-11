@@ -218,9 +218,28 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
 static int
 device_write( void *device_data, void *samples, unsigned int size )
 {
-     AlsaDeviceData *data = device_data;
-     
-     return snd_pcm_writei( data->handle, samples, size );
+     AlsaDeviceData    *data   = device_data;
+     snd_pcm_uframes_t  frames = size;
+     snd_pcm_sframes_t  r;
+     __u8              *src;
+
+     src = samples;
+     while (frames) {
+          r = snd_pcm_writei( data->handle, src, frames );
+          if (r < 0) {
+               r = snd_pcm_prepare( data->handle );
+               if (r < 0) {
+                    D_WARN( "FusionSound/Device/ALSA: snd_pcm_writei() failed: %s\n",
+                            snd_strerror( r ) );
+                    break;
+               }
+               continue;
+          }
+          frames -= r;
+          src += snd_pcm_frames_to_bytes( data->handle, r );
+     }
+
+     return size - frames;
 }
 
 static void
