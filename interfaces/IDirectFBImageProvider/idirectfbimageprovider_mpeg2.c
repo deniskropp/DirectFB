@@ -225,7 +225,8 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
      DFBResult              ret;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
-     DFBRectangle           rect = { 0, 0, 0, 0 };
+     DFBRegion              clip;
+     DFBRectangle           rect;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_MPEG2)
 
@@ -237,9 +238,18 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
      if (!dst_surface)
           return DFB_DESTROYED;
 
-     ret = destination->GetSize( destination, &rect.w, &rect.h );
-     if (ret)
-          return ret;
+     dfb_region_from_rectangle( &clip, &dst_data->area.current );
+
+     if (dest_rect) {
+          if (dest_rect->w < 1 || dest_rect->h < 1)
+               return DFB_INVARG;
+          rect = *dest_rect;
+          rect.w += dst_data->area.wanted.w;
+          rect.h += dst_data->area.wanted.h;
+     }
+     else {
+          rect = dst_data->area.wanted;
+     }
 
      switch (data->stage) {
           case STAGE_END:
@@ -256,18 +266,18 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
      }
 
      /* actual rendering */
-     if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
+     if (dfb_rectangle_region_intersects( &rect, &clip )) {
           void *dst;
           int   pitch;
 
-          ret = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+          ret = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
           if (ret)
                return ret;
 
           dfb_scale_linear_32( data->image, data->width, data->height,
-                               dst, pitch, &rect, dst_surface );
+                               dst, pitch, &rect, dst_surface, &clip );
 
-          destination->Unlock( destination );
+          dfb_surface_unlock( dst_surface, 0 );
      }
 
      return DFB_OK;

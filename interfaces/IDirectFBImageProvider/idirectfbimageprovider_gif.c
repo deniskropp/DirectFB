@@ -254,7 +254,8 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
                                      const DFBRectangle     *dest_rect )
 {
-     DFBRectangle           rect = { 0, 0, 0, 0 };
+     DFBRegion              clip;
+     DFBRectangle           rect;
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
@@ -270,27 +271,36 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
      if (!dst_surface)
           return DFB_DESTROYED;
 
-     err = destination->GetSize( destination, &rect.w, &rect.h );
-     if (err)
-          return err;
+     dfb_region_from_rectangle( &clip, &dst_data->area.current );
+
+     if (dest_rect) {
+          if (dest_rect->w < 1 || dest_rect->h < 1)
+               return DFB_INVARG;
+          rect = *dest_rect; 
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
+     }
+     else {
+          rect = dst_data->area.wanted;
+     }
 
      err = destination->GetPixelFormat( destination, &format );
      if (err)
           return err;
 
      /* actual loading and rendering */
-     if (dest_rect == NULL || dfb_rectangle_intersect ( &rect, dest_rect )) {
+     if (dfb_rectangle_region_intersects( &rect, &clip )) {
           void  *dst;
-          int    pitch;          
+          int    pitch;
 
-          err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+          err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
           if (err)
                return err;
 
           dfb_scale_linear_32( data->image, data->image_width, data->image_height,
-                               dst, pitch, &rect, dst_surface );
+                               dst, pitch, &rect, dst_surface, &clip );
 
-          destination->Unlock( destination );
+          dfb_surface_unlock( dst_surface, 0 );
 
           if (data->render_callback) {
                DIRenderCallbackResult r;
