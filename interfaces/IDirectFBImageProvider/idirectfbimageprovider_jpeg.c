@@ -50,6 +50,7 @@
 #include <misc/util.h>
 #include <direct/interface.h>
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/messages.h>
 
 #include <jpeglib.h>
@@ -77,6 +78,10 @@ typedef struct {
 
      DIRenderCallback     render_callback;
      void                *render_callback_context;
+
+     __u32               *image;
+     int                  width;
+     int                  height;
 } IDirectFBImageProvider_JPEG_data;
 
 static DFBResult
@@ -112,6 +117,9 @@ typedef struct {
      JOCTET                 *data;       /* start of buffer */
 
      IDirectFBDataBuffer    *buffer;
+
+     int                     peekonly;
+     int                     peekoffset;
 } buffer_source_mgr;
 
 typedef buffer_source_mgr * buffer_src_ptr;
@@ -119,37 +127,38 @@ typedef buffer_source_mgr * buffer_src_ptr;
 static void
 buffer_init_source (j_decompress_ptr cinfo)
 {
-     DFBResult            ret;
-     buffer_src_ptr       src    = (buffer_src_ptr) cinfo->src;
+     buffer_src_ptr src          = (buffer_src_ptr) cinfo->src;
      IDirectFBDataBuffer *buffer = src->buffer;
 
-     /* FIXME: support streamed buffers */
-     ret = buffer->SeekTo( buffer, 0 );
-     if (ret)
-          DirectFBError( "(DirectFB/ImageProvider_JPEG) Unable to seek", ret );
+     buffer->SeekTo( buffer, 0 ); /* ignore return value */
 }
 
 static boolean
 buffer_fill_input_buffer (j_decompress_ptr cinfo)
 {
      DFBResult            ret;
-     unsigned int         nbytes;
+     unsigned int         nbytes = 0;
      buffer_src_ptr       src    = (buffer_src_ptr) cinfo->src;
      IDirectFBDataBuffer *buffer = src->buffer;
 
-     ret = buffer->GetData( buffer, JPEG_PROG_BUF_SIZE, src->data, &nbytes );
+     buffer->WaitForDataWithTimeout( buffer, JPEG_PROG_BUF_SIZE, 1, 0 );
+
+     if (src->peekonly) {
+          ret = buffer->PeekData( buffer, JPEG_PROG_BUF_SIZE,
+                                  src->peekoffset, src->data, &nbytes );
+          src->peekoffset += MAX( nbytes, 0 );
+     }
+     else {
+          ret = buffer->GetData( buffer, JPEG_PROG_BUF_SIZE, src->data, &nbytes );
+     }
+     
      if (ret || nbytes <= 0) {
-#if 0
-          if (src->start_of_file)   /* Treat empty input file as fatal error */
-               ERREXIT(cinfo, JERR_INPUT_EMPTY);
-          WARNMS(cinfo, JWRN_JPEG_EOF);
-#endif
           /* Insert a fake EOI marker */
           src->data[0] = (JOCTET) 0xFF;
           src->data[1] = (JOCTET) JPEG_EOI;
           nbytes = 2;
 
-          if (ret)
+          if (ret && ret != DFB_EOF)
                DirectFBError( "(DirectFB/ImageProvider_JPEG) GetData failed", ret );
      }
 
@@ -180,7 +189,7 @@ buffer_term_source (j_decompress_ptr cinfo)
 }
 
 static void
-jpeg_buffer_src (j_decompress_ptr cinfo, IDirectFBDataBuffer *buffer)
+jpeg_buffer_src (j_decompress_ptr cinfo, IDirectFBDataBuffer *buffer, int peekonly)
 {
      buffer_src_ptr src;
 
@@ -195,6 +204,8 @@ jpeg_buffer_src (j_decompress_ptr cinfo, IDirectFBDataBuffer *buffer)
                                            JPEG_PROG_BUF_SIZE * sizeof (JOCTET));
 
      src->buffer = buffer;
+     src->peekonly = peekonly;
+     src->peekoffset = 0;
 
      src->pub.init_source       = buffer_init_source;
      src->pub.fill_input_buffer = buffer_fill_input_buffer;
@@ -204,7 +215,6 @@ jpeg_buffer_src (j_decompress_ptr cinfo, IDirectFBDataBuffer *buffer)
      src->pub.bytes_in_buffer   = 0; /* forces fill_input_buffer on first read */
      src->pub.next_input_byte   = NULL; /* until buffer loaded */
 }
-
 
 struct my_error_mgr {
      struct jpeg_error_mgr pub;     /* "public" fields */
@@ -231,54 +241,6 @@ copy_line32( __u32 *dst, __u8 *src, int width)
      }
 }
 
-static void
-copy_line24( __u8 *dst, __u8 *src, int width)
-{
-     while (width--) {
-          dst[0] = src[2];
-          dst[1] = src[1];
-          dst[2] = src[0];
-
-          dst += 3;
-          src += 3;
-     }
-}
-
-static void
-copy_line16( __u16 *dst, __u8 *src, int width)
-{
-     __u32 r, g , b;
-     while (width--) {
-          r = (*src++ >> 3) << 11;
-          g = (*src++ >> 2) << 5;
-          b = (*src++ >> 3);
-          *dst++ = (r|g|b);
-     }
-}
-
-static void
-copy_line15( __u16 *dst, __u8 *src, int width)
-{
-     __u32 r, g , b;
-     while (width--) {
-          r = (*src++ >> 3) << 10;
-          g = (*src++ >> 3) << 5;
-          b = (*src++ >> 3);
-          *dst++ = (0x8000|r|g|b);
-     }
-}
-
-static void
-copy_line8( __u8 *dst, __u8 *src, int width)
-{
-     __u32 r, g , b;
-     while (width--) {
-          r = (*src++ >> 5) << 5;
-          g = (*src++ >> 5) << 2;
-          b = (*src++ >> 6);
-          *dst++ = (r|g|b);
-     }
-}
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
@@ -301,12 +263,35 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            IDirectFBDataBuffer    *buffer )
 {
+     struct jpeg_decompress_struct cinfo;
+     struct my_error_mgr jerr;
+     
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
 
      data->ref    = 1;
      data->buffer = buffer;
 
      buffer->AddRef( buffer );
+
+     cinfo.err = jpeg_std_error(&jerr.pub);
+     jerr.pub.error_exit = jpeglib_panic;
+
+     if (setjmp(jerr.setjmp_buffer)) {
+          jpeg_destroy_decompress(&cinfo);
+          buffer->Release( buffer );
+          return DFB_FAILURE;
+     }
+
+     jpeg_create_decompress(&cinfo);
+     jpeg_buffer_src(&cinfo, buffer, 1);
+     jpeg_read_header(&cinfo, TRUE);
+     jpeg_start_decompress(&cinfo);
+     
+     data->width = cinfo.output_width;
+     data->height = cinfo.output_height;
+     
+     jpeg_abort_decompress(&cinfo);
+     jpeg_destroy_decompress(&cinfo);
 
      thiz->AddRef = IDirectFBImageProvider_JPEG_AddRef;
      thiz->Release = IDirectFBImageProvider_JPEG_Release;
@@ -326,6 +311,9 @@ IDirectFBImageProvider_JPEG_Destruct( IDirectFBImageProvider *thiz )
                               (IDirectFBImageProvider_JPEG_data*)thiz->priv;
 
      data->buffer->Release( data->buffer );
+
+     if (data->image)
+          D_FREE( data->image );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -361,7 +349,8 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      void                  *dst;
      int                    pitch;
      int                    direct = 0;
-     DFBRectangle           rect = { 0, 0, 0, 0};
+     DFBRegion              clip;
+     DFBRectangle           rect;
      DFBSurfacePixelFormat  format;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
@@ -381,42 +370,35 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
      if (err)
           return err;
 
-     switch (format) {
-          case DSPF_RGB332:
-          case DSPF_ARGB1555:
-          case DSPF_RGB16:
-          case DSPF_RGB24:
-          case DSPF_RGB32:
-          case DSPF_ARGB:
-               if (! (dst_surface->caps & DSCAPS_SEPARATED))
-                    direct = 1;
-               break;
+     dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
-          case DSPF_LUT8:
-          default:
-               direct = 0;
-               break;
+     if (dest_rect) {
+          if (dest_rect->w < 1 || dest_rect->h < 1)
+               return DFB_INVARG;
+          
+          rect = *dest_rect;
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
+
+          if (!dfb_rectangle_region_intersects( &rect, &clip ))
+               return DFB_OK;
+     }
+     else {
+          rect = dst_data->area.wanted;
      }
 
-     err = destination->GetSize( destination, &rect.w, &rect.h );
-     if (err)
-          return err;
-
-     if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
-          return DFB_OK;
-
-     err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (err)
           return err;
 
      /* actual loading and rendering */
-     {
+     if (!data->image) {
           struct jpeg_decompress_struct cinfo;
           struct my_error_mgr jerr;
           JSAMPARRAY buffer;      /* Output row buffer */
           int row_stride;         /* physical row width in output buffer */
-          void *image_data;
-          void *row_ptr;
+          __u32 *row_ptr;
+          int y = 0;
 
           cinfo.err = jpeg_std_error(&jerr.pub);
           jerr.pub.error_exit = jpeglib_panic;
@@ -428,105 +410,78 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           }
 
           jpeg_create_decompress(&cinfo);
-          jpeg_buffer_src(&cinfo, data->buffer);
+          jpeg_buffer_src(&cinfo, data->buffer, 0);
           jpeg_read_header(&cinfo, TRUE);
 
           cinfo.out_color_space = JCS_RGB;
           cinfo.output_components = 3;
           jpeg_start_decompress(&cinfo);
 
+          data->width = cinfo.output_width;
+          data->height = cinfo.output_height;
+
           row_stride = cinfo.output_width * 3;
 
           buffer = (*cinfo.mem->alloc_sarray)((j_common_ptr) &cinfo,
                                               JPOOL_IMAGE, row_stride, 1);
 
-          if (rect.w == (int)cinfo.output_width &&
-              rect.h == (int)cinfo.output_height &&
-              direct)
-          {
-               int y = 0;
+          data->image = D_MALLOC( data->width * data->height * 4 );
+          if (!data->image)
+               return D_OOM();
+          row_ptr = data->image;
 
-               /* image must not be scaled */
-               dst += rect.x * DFB_BYTES_PER_PIXEL(format) + rect.y * pitch;
+          direct = (rect.w == data->width && rect.h == data->height);
 
-               row_ptr = dst;
-
-               while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
-                    jpeg_read_scanlines(&cinfo, buffer, 1);
-                    switch (format) {
-                         case DSPF_RGB332:
-                              copy_line8( (__u8*)row_ptr, *buffer,
-                                          cinfo.output_width);
-                              break;
-                         case DSPF_RGB16:
-                              copy_line16( (__u16*)row_ptr, *buffer,
-                                           cinfo.output_width);
-                              break;
-                         case DSPF_ARGB1555:
-                              copy_line15( (__u16*)row_ptr, *buffer,
-                                           cinfo.output_width);
-                              break;
-                         case DSPF_RGB24:
-                              copy_line24( row_ptr, *buffer,
-                                           cinfo.output_width);
-                              break;
-                         case DSPF_ARGB:
-                         case DSPF_RGB32:
-                              copy_line32( (__u32*)row_ptr, *buffer,
-                                           cinfo.output_width);
-                              break;
-                         default:
-                              D_BUG("unsupported format not filtered before");
-                              return DFB_BUG;
-                    }
-                    row_ptr += pitch;
-
-                    y++;
-
+          while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
+               jpeg_read_scanlines(&cinfo, buffer, 1);
+               copy_line32( row_ptr, *buffer, data->width);
+               
+               if (direct) {
+                    DFBRectangle r = { rect.x, rect.y+y, rect.w, 1 };
+                    dfb_copy_buffer_32( row_ptr, dst, pitch,
+                                        &r, dst_surface, &clip );
                     if (data->render_callback) {
-                         DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
-
-                         cb_result = data->render_callback( &rect, data->render_callback_context );
-                    }
-               }
-          }
-          else {     /* image must be scaled */
-               int y = 0;
-
-               image_data = malloc(cinfo.output_width * cinfo.output_height*4);
-               row_ptr = image_data;
-
-               while (cinfo.output_scanline < cinfo.output_height && cb_result == DIRCR_OK) {
-                    jpeg_read_scanlines(&cinfo, buffer, 1);
-                    copy_line32( (__u32*)row_ptr, *buffer, cinfo.output_width);
-                    row_ptr += cinfo.output_width * 4;
-
-                    y++;
-
-                    if (data->render_callback) {
-                         DFBRectangle rect = { 0, y, cinfo.output_width, 1 };
-
-                         cb_result = data->render_callback( &rect, data->render_callback_context );
+                         r = (DFBRectangle){ 0, y, data->width, 1 };
+                         cb_result = data->render_callback( &r, 
+                                             data->render_callback_context );
                     }
                }
 
-               dfb_scale_linear_32( image_data,
-                                    cinfo.output_width, cinfo.output_height,
-                                    dst, pitch, &rect, dst_surface );
-
-               free( image_data );
+               row_ptr += data->width;
+               y++;
           }
 
-          if (cb_result != DIRCR_OK)
+          if (!direct) {
+               dfb_scale_linear_32( data->image, data->width, data->height,
+                                    dst, pitch, &rect, dst_surface, &clip );
+               if (data->render_callback) {
+                    DFBRectangle r = { 0, 0, data->width, data->height };
+                    cb_result = data->render_callback( &r,
+                                             data->render_callback_context );
+               }
+          }
+
+          if (cb_result != DIRCR_OK) {
                jpeg_abort_decompress(&cinfo);
-          else
+               D_FREE( data->image );
+               data->image = NULL;
+          }
+          else {
                jpeg_finish_decompress(&cinfo);
+          }
           jpeg_destroy_decompress(&cinfo);
      }
-
-     err = destination->Unlock( destination );
-     if (err)
-          return err;
+     else {
+          dfb_scale_linear_32( data->image, data->width, data->height,
+                               dst, pitch, &rect, dst_surface, &clip );
+          if (data->render_callback) {
+               DFBRectangle r = { 0, 0, data->width, data->height };
+               cb_result = data->render_callback( &r,
+                                        data->render_callback_context );
+          }
+     }
+     
+     dfb_surface_unlock( dst_surface, 0 );
 
      if (cb_result != DIRCR_OK)
          return DFB_INTERRUPTED;
@@ -551,30 +506,12 @@ static DFBResult
 IDirectFBImageProvider_JPEG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
                                                    DFBSurfaceDescription  *dsc )
 {
-     struct jpeg_decompress_struct cinfo;
-     struct my_error_mgr jerr;
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBImageProvider_JPEG)
-
-     cinfo.err = jpeg_std_error(&jerr.pub);
-     jerr.pub.error_exit = jpeglib_panic;
-
-     if (setjmp(jerr.setjmp_buffer)) {
-          jpeg_destroy_decompress(&cinfo);
-          return DFB_FAILURE;
-     }
-
-     jpeg_create_decompress(&cinfo);
-     jpeg_buffer_src(&cinfo, data->buffer);
-     jpeg_read_header(&cinfo, TRUE);
-     jpeg_start_decompress(&cinfo);
-
+     
      dsc->flags  = DSDESC_WIDTH |  DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
-     dsc->height = cinfo.output_height;
-     dsc->width  = cinfo.output_width;
+     dsc->height = data->height;
+     dsc->width  = data->width;
      dsc->pixelformat = dfb_primary_layer_pixelformat();
-
-     jpeg_destroy_decompress(&cinfo);
 
      return DFB_OK;
 }
