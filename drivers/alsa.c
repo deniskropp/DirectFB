@@ -65,7 +65,11 @@ fs2alsa_format( FSSampleFormat format )
           case FSSF_S16:
                return SND_PCM_FORMAT_S16;
           case FSSF_S24:
-               return SND_PCM_FORMAT_S24;
+#ifdef WORDS_BIGENDIAN
+               return SND_PCM_FORMAT_S24_3BE;
+#else
+               return SND_PCM_FORMAT_S24_3LE;
+#endif
           case FSSF_S32:
                return SND_PCM_FORMAT_S32;
           case FSSF_FLOAT:
@@ -171,6 +175,11 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
+     
+#if SND_LIB_VERSION >= 0x010009
+     /* disable software resampling */
+     //snd_pcm_hw_params_set_rate_resample( data->handle, params, 0 );
+#endif
      
      dir = 0;
      if (snd_pcm_hw_params_set_rate_near( data->handle, params,
