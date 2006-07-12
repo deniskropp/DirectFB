@@ -218,8 +218,8 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      int    pitch;
      int    src_width, src_height;
      __u32 *image_data;
-     DFBRectangle           rect = { 0, 0, 0, 0 };
-     DFBSurfacePixelFormat  format;
+     DFBRectangle           rect;
+     DFBRegion              clip;
      IDirectFBSurface_data *dst_data;
      CoreSurface           *dst_surface;
 
@@ -238,30 +238,31 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      src_width = imlib_image_get_width();
      src_height = imlib_image_get_height();
 
-     err = destination->GetSize( destination, &rect.w, &rect.h );
-     if (err)
-          return err;
+     dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
-     err = destination->GetPixelFormat( destination, &format );
-     if (err)
-          return err;
-
-     if (dest_rect && !dfb_rectangle_intersect( &rect, dest_rect ))
-          return DFB_OK;
+     if (dest_rect) {
+          if (dest_rect->w < 1 || dest_rect->h < 1)
+               return DFB_INVARG;
+          rect = *dest_rect;
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
+     }
+     else {
+          rect = dst_data->area.wanted;
+     }
 
      image_data = imlib_image_get_data_for_reading_only();
-
      if (!image_data)
           return DFB_FAILURE; /* what else makes sense here? */
 
-     err = destination->Lock( destination, DSLF_WRITE, &dst, &pitch );
+     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (err)
           return err;
 
      dfb_scale_linear_32( image_data, src_width, src_height,
-                          dst, pitch, &rect, dst_surface );
+                          dst, pitch, &rect, dst_surface, &clip );
 
-     destination->Unlock( destination );
+     dfb_surface_unlock( dst_surface, 0 );
      return DFB_OK;
 }
 

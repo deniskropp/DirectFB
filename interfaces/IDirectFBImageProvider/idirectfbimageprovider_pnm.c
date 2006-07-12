@@ -122,6 +122,8 @@ struct __IDirectFBImageProvider_PNM_data {
 
      PFormat                format;
      PImgType               type;
+     unsigned int           img_offset;
+     
      __u8                  *img;
      int                    width;
      int                    height;
@@ -497,6 +499,8 @@ p_init( IDirectFBImageProvider_PNM_data *data )
                } break;
           }
      }
+
+     data->buffer->GetPosition( data->buffer, &data->img_offset );
      
      return err;
 }
@@ -546,8 +550,11 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                                      const DFBRectangle     *dest_rect )
 {
      DFBResult              err       = DFB_OK;
+     DIRenderCallbackResult cb_result = DIRCR_OK;
      IDirectFBSurface_data *dst_data;
-     DFBRectangle           d         = {0, 0, 0, 0};
+     CoreSurface           *dst_surface;
+     DFBRectangle           rect;
+     DFBRegion              clip;
      __u8                  *img       = NULL;
      int                    img_p;
      __u8                  *dst;
@@ -559,24 +566,32 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           return DFB_INVARG;
 
      dst_data = (IDirectFBSurface_data*) dest->priv;
-
-     if (!dest->priv || !dst_data->surface)
+     if (!dst_data || !dst_data->surface)
           return DFB_DESTROYED;
+     dst_surface = dst_data->surface;
 
-     dest->GetSize( dest, &d.w, &d.h );
+     dfb_region_from_rectangle( &clip, &dst_data->area.current );
 
-     if (dest_rect && !dfb_rectangle_intersect( &d, dest_rect ))
-          return DFB_INVARG;
+     if (dest_rect) {
+          if (dest_rect->w < 1 || dest_rect->h < 1)
+               return DFB_INVARG;
+          rect = *dest_rect;
+          rect.x += dst_data->area.wanted.x;
+          rect.y += dst_data->area.wanted.y;
+     }
+     else {
+          rect = dst_data->area.wanted;
+     }
 
-     err = dest->Lock( dest, DSLF_READ | DSLF_WRITE, (void*) &dst, &dst_p );
-     if (err != DFB_OK)
+     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, (void**)&dst, &dst_p, 0 );
+     if (err)
           return err;
 
      img   = data->img;
      img_p = data->width * 4; 
 
      if (!img) {
-          bool cpy = (d.w == data->width && d.h == data->height);
+          bool cpy = (rect.w == data->width && rect.h == data->height);
           int  y;
 
           data->img = img = (__u8*) D_MALLOC( img_p * data->height );
@@ -585,7 +600,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                D_ERROR( "DirectFB/ImageProvider_PNM: "
                         "couldn't allocate %i bytes for image.\n",
                         img_p * data->height );
-               dest->Unlock( dest );
+               dfb_surface_unlock( dst_surface, 0 );
                return DFB_NOSYSTEMMEMORY;
           }
 
@@ -597,12 +612,12 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                     D_ERROR( "DirectFB/ImageProvider_PNM: "
                              "couldn't allocate %i bytes for buffering.\n",
                              size );
-                    dest->Unlock( dest );
+                    dfb_surface_unlock( dst_surface, 0 );
                     return DFB_NOSYSTEMMEMORY;
                }
           }
           
-          for (y = 0; y < data->height; y++) {
+          for (y = 0; y < data->height && cb_result == DIRCR_OK; y++) {
                err = data->getrow( data, (char*) img );
                
                if (err != DFB_OK ) {
@@ -613,14 +628,15 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
                }
 
                if (cpy) {
-                    DFBRectangle r = { d.x, d.y+y, data->width, 1 };
+                    DFBRectangle r = { rect.x, rect.y+y, data->width, 1 };
                     
-                    dfb_copy_buffer_32( (__u32*) img, dst,
-                                        dst_p, &r, dst_data->surface );
+                    dfb_copy_buffer_32( (__u32*)img, dst, dst_p,
+                                        &r, dst_surface, &clip );
 
                     if (data->render_callback) {
                          r = (DFBRectangle) { 0, y, data->width, 1 };
-                         data->render_callback( &r, data->render_callback_ctx );
+                         cb_result = data->render_callback( &r,
+                                             data->render_callback_ctx );
                     }
                }
                
@@ -628,35 +644,44 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           }
 
           if (!cpy) {
-               dfb_scale_linear_32( (__u32*) data->img, data->width, data->height,
-                                     dst, dst_p, &d, dst_data->surface );
+               dfb_scale_linear_32( (__u32*)data->img, data->width, data->height,
+                                    dst, dst_p, &rect, dst_surface, &clip );
 
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
-                    data->render_callback( &r, data->render_callback_ctx );
+                    cb_result = data->render_callback( &r,
+                                        data->render_callback_ctx );
                }
           }                    
 
-          if (data->rowbuf)
+          if (data->rowbuf) {
                D_FREE( data->rowbuf );
+               data->rowbuf = NULL;
+          }          
           
-          data->buffer->Release( data->buffer );
-          data->buffer = NULL;
+          if (cb_result == DIRCR_OK) {
+               data->buffer->Release( data->buffer );
+               data->buffer = NULL;
+          } else {
+               data->buffer->SeekTo( data->buffer, data->img_offset );
+               D_FREE( data->img );
+               data->img = NULL;
+          }
      
      } /* image already in buffer */ 
      else {
           dfb_scale_linear_32( (__u32*)img, data->width, data->height,
-                               dst, dst_p, &d, dst_data->surface );
+                               dst, dst_p, &rect, dst_surface, &clip );
           
           if (data->render_callback) {
                DFBRectangle r = {0, 0, data->width, data->height};
-               data->render_callback( &r, data->render_callback_ctx );
+               cb_result = data->render_callback( &r, data->render_callback_ctx );
           }
      }
 
-     dest->Unlock( dest );
+     dfb_surface_unlock( dst_surface, 0 );
 
-     return err;
+     return (cb_result == DIRCR_OK) ? err : DFB_INTERRUPTED;
 }
 
 static DFBResult
