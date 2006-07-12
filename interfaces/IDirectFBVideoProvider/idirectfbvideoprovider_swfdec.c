@@ -238,6 +238,7 @@ SwfInput( DirectThread *self, void *arg )
      IDirectFBVideoProvider_Swfdec_data *data   = arg;
      IDirectFBDataBuffer                *buffer = data->buffer;
      __s64                               pts    = 0;
+     unsigned int                        q_max;
      
      while (!direct_thread_is_canceled( self )) {
           DFBResult     ret;
@@ -282,6 +283,8 @@ SwfInput( DirectThread *self, void *arg )
                break;
           }
      }
+
+     q_max = MAX( (int)data->rate/2, 2 );
      
      while (!direct_thread_is_canceled( self )) {
           SwfdecBuffer *buffer;
@@ -304,8 +307,8 @@ SwfInput( DirectThread *self, void *arg )
                }
                data->input.seek = -1;
           }
-          else if (data->video.queue.count >= (int)data->rate/2 ||
-                   data->audio.queue.count >= (int)data->rate/2) 
+          else if (data->video.queue.count >= q_max ||
+                   data->audio.queue.count >= q_max) 
           {
                pthread_mutex_unlock( &data->input.lock );
                usleep( 100 );
@@ -583,8 +586,6 @@ SwfAudio( DirectThread *self, void *arg )
           SwfdecBuffer *buffer;
           int           delay = 0;
           __s64         pts;
-          void         *buf;
-          int           len;
           
           pthread_mutex_lock( &data->audio.lock );
           
@@ -602,22 +603,24 @@ SwfAudio( DirectThread *self, void *arg )
           data->stream->GetPresentationDelay( data->stream, &delay );
           data->audio.pts = pts - delay * 1000ll;
           
-          if (buffer) {
-               len = buffer->length/4;
-               buf = alloca( buffer->length );
-               direct_memcpy( buf, buffer->data, buffer->length );
-               swfdec_buffer_unref( buffer );
-          }
-          else {
-               len = 44100/data->rate;
-               buf = alloca( len*4 );
-               memset( buf, 0, len*4 );
-          }
-          
           pthread_mutex_unlock( &data->audio.lock );
          
-          if (data->speed) 
-               data->stream->Write( data->stream, buf, len );
+          if (data->speed) {
+               if (buffer) {
+                    data->stream->Write( data->stream, 
+                                         buffer->data, buffer->length/4 );
+               }
+               else {
+                    int   len = 44100/data->rate;
+                    __s16 buf[len*2];
+                    memset( buf, 0, sizeof(buf) );
+                    data->stream->Write( data->stream, buf, len );
+               }
+          }
+
+          if (buffer)
+               swfdec_buffer_unref( buffer );
+                    
      }
 
      return (void*)0;
