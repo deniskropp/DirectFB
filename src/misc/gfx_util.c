@@ -53,6 +53,7 @@
 #include <misc/util.h>
 #include <misc/gfx_util.h>
 
+#include <gfx/clip.h>
 #include <gfx/convert.h>
 
 
@@ -371,10 +372,38 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
 
 void dfb_copy_buffer_32( __u32 *src,
                          void  *dst, int dpitch, DFBRectangle *drect,
-                         CoreSurface *dst_surface )
+                         CoreSurface *dst_surface, const DFBRegion *dst_clip )
 {
      void *dst1, *dst2;
-     int   y, x = drect->x;
+     int   sw = drect->w;
+     int   y, x;
+
+     if (dst_clip) {
+          int sx = 0, sy = 0;
+          
+          if (drect->x < dst_clip->x1) {
+               sx = dst_clip->x1-drect->x;
+               drect->w -= sx;
+               drect->x += sx;
+          }
+          if (drect->y < dst_clip->y1) {
+               sy = dst_clip->y1-drect->y;
+               drect->h -= sy;
+               drect->y += sy;
+          }
+          if ((drect->x+drect->w-1) > dst_clip->x2) {
+               drect->w -= drect->x+drect->w-1-dst_clip->x2;
+          }
+          if ((drect->y+drect->h-1) > dst_clip->y2) {
+               drect->h -= drect->y+drect->h-1-dst_clip->y2;
+          }
+
+          src += sy * sw + sx;
+     }
+     
+     if (drect->w < 1 || drect->h < 1)
+          return;
+     x = drect->x;
      
      switch (dst_surface->format) {
           case DSPF_YV12:
@@ -399,7 +428,7 @@ void dfb_copy_buffer_32( __u32 *src,
                                      
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
                     
-                    src += drect->w;
+                    src += sw;
                }
                break;
                
@@ -417,7 +446,7 @@ void dfb_copy_buffer_32( __u32 *src,
  
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
                     
-                    src += drect->w;
+                    src += sw;
                }
                break;
           
@@ -434,7 +463,7 @@ void dfb_copy_buffer_32( __u32 *src,
  
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
                     
-                    src += drect->w;
+                    src += sw;
                }         
                break;
 
@@ -448,7 +477,7 @@ void dfb_copy_buffer_32( __u32 *src,
 
                     write_argb_span( src, d, drect->w, x, y, dst_surface );
                     
-                    src += drect->w;
+                    src += sw;
                }
                break;
      }
@@ -658,8 +687,9 @@ static __u32* scale_line( int *weights, int n_x, int n_y,
 
 void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                           void  *dst, int dpitch, DFBRectangle *drect,
-                          CoreSurface *dst_surface )
+                          CoreSurface *dst_surface, const DFBRegion *dst_clip )
 {
+     DFBRectangle srect = { 0, 0, sw, sh };
      float scale_x, scale_y;
      int i, j;
      int sx, sy;
@@ -669,16 +699,21 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
      void  *dst1 = NULL, *dst2 = NULL;
      __u32 *buf;
 
-     if (sw < 1 || sh < 1 || drect->w < 1 || drect->h < 1)
-          return;
-
      if (drect->w == sw && drect->h == sh) {
-          dfb_copy_buffer_32( src, dst, dpitch, drect, dst_surface );
+          dfb_copy_buffer_32( src, dst, dpitch, drect, dst_surface, dst_clip );
           return;
      }
+     
+     if (dst_clip)
+          dfb_clip_stretchblit( dst_clip, &srect, drect );
 
-     scale_x = (float)drect->w / sw;
-     scale_y = (float)drect->h / sh;
+     if (srect.w < 1 || srect.h < 1 || drect->w < 1 || drect->h < 1)
+          return;
+
+     src += srect.y * sw + srect.x;
+
+     scale_x = (float)drect->w / srect.w;
+     scale_y = (float)drect->h / srect.h;
 
      x_step = (1 << SCALE_SHIFT) / scale_x;
      y_step = (1 << SCALE_SHIFT) / scale_y;

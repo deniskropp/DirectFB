@@ -37,11 +37,11 @@
 
 void dfb_copy_buffer_32( __u32 *src,
                          void  *dst, int dpitch, DFBRectangle *drect,
-                         CoreSurface *dst_surface );
+                         CoreSurface *dst_surface, const DFBRegion *dst_clip );
 
 void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                           void *dst, int dpitch, DFBRectangle *drect,
-                          CoreSurface *dst_surface );
+                          CoreSurface *dst_surface, const DFBRegion *dst_clip );
 
 
 #endif
