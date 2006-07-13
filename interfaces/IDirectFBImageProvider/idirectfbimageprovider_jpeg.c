@@ -456,8 +456,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                     dst, pitch, &rect, dst_surface, &clip );
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
-                    cb_result = data->render_callback( &r,
-                                             data->render_callback_context );
+                    data->render_callback( &r, data->render_callback_context );
                }
           }
 
@@ -476,8 +475,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
                                dst, pitch, &rect, dst_surface, &clip );
           if (data->render_callback) {
                DFBRectangle r = { 0, 0, data->width, data->height };
-               cb_result = data->render_callback( &r,
-                                        data->render_callback_context );
+               data->render_callback( &r, data->render_callback_context );
           }
      }
      
