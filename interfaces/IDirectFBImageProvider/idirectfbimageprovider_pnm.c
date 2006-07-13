@@ -649,8 +649,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
 
                if (data->render_callback) {
                     DFBRectangle r = { 0, 0, data->width, data->height };
-                    cb_result = data->render_callback( &r,
-                                        data->render_callback_ctx );
+                    data->render_callback( &r, data->render_callback_ctx );
                }
           }                    
 
@@ -675,7 +674,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           
           if (data->render_callback) {
                DFBRectangle r = {0, 0, data->width, data->height};
-               cb_result = data->render_callback( &r, data->render_callback_ctx );
+               data->render_callback( &r, data->render_callback_ctx );
           }
      }
 
