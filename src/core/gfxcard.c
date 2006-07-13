@@ -723,7 +723,8 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                     if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ))
                          dfb_clip_rectangle( &state->clip, &rect );
 
-                    if (!card->funcs.FillRectangle( card->driver_data, card->device_data, &rect ))
+                    if (!card->funcs.FillRectangle( card->driver_data, 
+                                                    card->device_data, &rect ))
                          break;
                }
 
@@ -872,7 +873,7 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
 
 void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 {
-     int i;
+     int i = 0;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -885,22 +886,23 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
      if (dfb_gfxcard_state_check( state, DFXL_DRAWLINE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_DRAWLINE ))
      {
-          if (card->caps.flags & CCF_CLIPPING)
-               for (i=0; i<num_lines; i++)
-                    card->funcs.DrawLine( card->driver_data,
-                                          card->device_data, &lines[i] );
-          else
-               for (i=0; i<num_lines; i++) {
-                    if (dfb_clip_line( &state->clip, &lines[i] ))
-                         card->funcs.DrawLine( card->driver_data,
-                                               card->device_data, &lines[i] );
+          for (; i<num_lines; i++) {
+               if (!(card->caps.flags & CCF_CLIPPING)) {
+                    if (!dfb_clip_line( &state->clip, &lines[i] ))
+                         continue;
                }
-
+               
+               if (!card->funcs.DrawLine( card->driver_data,
+                                          card->device_data, &lines[i] ))
+                    break;
+          }
+          
           dfb_gfxcard_state_release( state );
      }
-     else {
+    
+     if (i < num_lines) {
           if (gAcquire( state, DFXL_DRAWLINE )) {
-               for (i=0; i<num_lines; i++) {
+               for (; i<num_lines; i++) {
                     if (dfb_clip_line( &state->clip, &lines[i] ))
                          gDrawLine( state, &lines[i] );
                }
@@ -914,7 +916,7 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
 
 void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *state )
 {
-     int i;
+     int i = 0;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -927,18 +929,25 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
      if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
          dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
      {
-          for (i=0; i<num_spans; i++) {
+          for (; i<num_spans; i++) {
                DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
 
-               if ((card->caps.flags & CCF_CLIPPING) || dfb_clip_rectangle( &state->clip, &rect ))
-                    card->funcs.FillRectangle( card->driver_data, card->device_data, &rect );
+               if (!(card->caps.flags & CCF_CLIPPING)) {
+                    if (!dfb_clip_rectangle( &state->clip, &rect ))
+                         continue;
+               }
+               
+               if (!card->funcs.FillRectangle( card->driver_data,
+                                               card->device_data, &rect ))
+                    break;
           }
 
           dfb_gfxcard_state_release( state );
      }
-     else {
+     
+     if (i < num_spans) {
           if (gAcquire( state, DFXL_FILLRECTANGLE )) {
-               for (i=0; i<num_spans; i++) {
+               for (; i<num_spans; i++) {
                     DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
 
                     if (dfb_clip_rectangle( &state->clip, &rect ))
@@ -1060,6 +1069,8 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
 
 void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
+     bool hw = false;
+     
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -1072,11 +1083,12 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
           dfb_gfxcard_state_check( state, DFXL_FILLTRIANGLE ) &&
           dfb_gfxcard_state_acquire( state, DFXL_FILLTRIANGLE ))
      {
-          card->funcs.FillTriangle( card->driver_data,
-                                    card->device_data, tri );
+          hw = card->funcs.FillTriangle( card->driver_data,
+                                         card->device_data, tri );
           dfb_gfxcard_state_release( state );
      }
-     else {
+     
+     if (!hw) {
           /* otherwise use the spanline rasterizer (fill_tri)
              and fill the triangle using a rectangle for each spanline */
 
@@ -1147,7 +1159,7 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
 void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                             int num, CardState *state )
 {
-     bool hw = false;
+     int i = 0;
 
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
@@ -1161,9 +1173,7 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT ))
      {
-          int i;
-
-          for (i=0; i<num; i++) {
+          for (; i<num; i++) {
                if (dfb_clip_blit_precheck( &state->clip,
                                            rects[i].w, rects[i].h,
                                            points[i].x, points[i].y ))
@@ -1172,19 +1182,18 @@ void dfb_gfxcard_batchblit( DFBRectangle *rects, DFBPoint *points,
                          dfb_clip_blit( &state->clip, &rects[i],
                                         &points[i].x, &points[i].y );
 
-                    hw = card->funcs.Blit( card->driver_data, card->device_data,
-                                           &rects[i], points[i].x, points[i].y );
+                    if (!card->funcs.Blit( card->driver_data, card->device_data,
+                                           &rects[i], points[i].x, points[i].y ))
+                         break;
                }
           }
 
           dfb_gfxcard_state_release( state );
      }
 
-     if (!hw) {
+     if (i < num) {
           if (gAcquire( state, DFXL_BLIT )) {
-               int i;
-
-               for (i=0; i<num; i++) {
+               for (; i<num; i++) {
                     if (dfb_clip_blit_precheck( &state->clip,
                                                 rects[i].w, rects[i].h,
                                                 points[i].x, points[i].y ))
@@ -1259,11 +1268,14 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
           dy2 -= outer - (outer % rect->h);
      }
 
+     dx1 = odx;
+
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
-
+          bool hw = true;
+          
           for (; dy1 < dy2; dy1 += rect->h) {
-               for (dx1 = odx; dx1 < dx2; dx1 += rect->w) {
+               for (; dx1 < dx2; dx1 += rect->w) {
 
                     if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
                          continue;
@@ -1275,17 +1287,22 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
                     if (!(card->caps.flags & CCF_CLIPPING))
                          dfb_clip_blit( clip, &srect, &x, &y );
 
-                    card->funcs.Blit( card->driver_data, card->device_data,
-                                      &srect, x, y );
+                    hw = card->funcs.Blit( card->driver_data, 
+                                           card->device_data, &srect, x, y );
+                    if (!hw)
+                         break;
                }
+               if (!hw)
+                    break;
+               dx1 = odx;
           }
           dfb_gfxcard_state_release( state );
      }
-     else {
+     
+     if (dy1 < dy2) {
           if (gAcquire( state, DFXL_BLIT )) {
-
                for (; dy1 < dy2; dy1 += rect->h) {
-                    for (dx1 = odx; dx1 < dx2; dx1 += rect->w) {
+                    for (; dx1 < dx2; dx1 += rect->w) {
 
                          if (!dfb_clip_blit_precheck( clip, rect->w, rect->h, dx1, dy1 ))
                               continue;
@@ -1298,6 +1315,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
 
                          gBlit( state, &srect, x, y );
                     }
+                    dx1 = odx;
                }
                gRelease( state );
           }
@@ -1585,6 +1603,7 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
      DFBResult      ret;
      CoreGlyphData *data;
      DFBRectangle   rect;
+     bool           hw = false;
 
      D_DEBUG_AT( Core_Graphics, "%s( %d, %d,%d, %p, %p )\n",
                  __FUNCTION__, index, x, y, font, state );
@@ -1632,14 +1651,16 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
           if (!(card->caps.flags & CCF_CLIPPING))
                dfb_clip_blit( &font->state.clip, &rect, &x, &y );
 
-          card->funcs.Blit( card->driver_data, card->device_data, &rect, x, y);
+          hw = card->funcs.Blit( card->driver_data, card->device_data, &rect, x, y);
           dfb_gfxcard_state_release( &font->state );
      }
-     else if (gAcquire( &font->state, DFXL_BLIT )) {
-
-          dfb_clip_blit( &font->state.clip, &rect, &x, &y );
-          gBlit( &font->state, &rect, x, y );
-          gRelease( &font->state );
+     
+     if (!hw) {
+          if (gAcquire( &font->state, DFXL_BLIT )) {
+               dfb_clip_blit( &font->state.clip, &rect, &x, &y );
+               gBlit( &font->state, &rect, x, y );
+               gRelease( &font->state );
+          }
      }
 
      dfb_font_unlock( font );
