@@ -53,6 +53,8 @@
 
 #include <display/idirectfbsurface.h>
 
+#include <gfx/clip.h>
+
 #ifdef HAVE_FUSIONSOUND
 # include <fusionsound.h>
 #endif
@@ -380,7 +382,129 @@ FFmpegInput( DirectThread *self, void *arg )
      }
      
      return (void*)0;
-}      
+}
+
+static void
+FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
+{
+     CoreSurface  *surface   = data->video.dest_data->surface;
+     AVFrame      *src_frame = data->video.src_frame;
+     AVFrame      *dst_frame = data->video.dst_frame;
+     DFBRectangle  rect      = { x:0, y:0, };
+     int           dx, dy;
+     DFBRegion     clip;
+               
+     if (data->video.rect.w) {
+          rect.w = MIN( data->video.rect.w, data->video.ctx->width );
+          rect.h = MIN( data->video.rect.h, data->video.ctx->height );
+          dx = data->video.rect.x;
+          dy = data->video.rect.y;
+     } else {
+          rect.w = data->video.ctx->width;
+          rect.h = data->video.ctx->height;
+          dx = data->video.dest_data->area.wanted.x;
+          dy = data->video.dest_data->area.wanted.y;
+     }
+
+     dfb_region_from_rectangle( &clip, &data->video.dest_data->area.current );
+     dfb_clip_blit( &clip, &rect, &dx, &dy );
+     if (rect.w < 1 || rect.h < 1)
+          return;
+                
+     if (dfb_surface_soft_lock( surface, DSLF_WRITE, 
+                               (void*)&dst_frame->data[0], 
+                               &dst_frame->linesize[0], 0 ))
+          return;
+                                 
+     if (DFB_PLANAR_PIXELFORMAT(surface->format)) {
+          dx &= ~1;
+          dy &= ~1;
+          
+          dst_frame->linesize[1] =
+          dst_frame->linesize[2] = dst_frame->linesize[0]/2;
+          dst_frame->data[1] = dst_frame->data[0] + 
+                               surface->height * dst_frame->linesize[0];
+          dst_frame->data[2] = dst_frame->data[1] +
+                               surface->height/2 * dst_frame->linesize[1];
+          dst_frame->data[1] += dy/2 * dst_frame->linesize[1] + dx/2;
+          dst_frame->data[2] += dy/2 * dst_frame->linesize[2] + dx/2;
+                         
+          if (surface->format == DSPF_YV12) {
+               void *tmp = dst_frame->data[1];
+               dst_frame->data[1] = dst_frame->data[2];
+               dst_frame->data[2] = tmp;
+          }
+     }
+     
+     dst_frame->data[0] += dy * dst_frame->linesize[0] +
+                           DFB_BYTES_PER_LINE( surface->format, dx );
+
+     if (rect.y || rect.x) {
+          src_frame = alloca( sizeof(AVFrame) );
+          direct_memcpy( src_frame, data->video.src_frame, sizeof(AVFrame) );
+
+          switch (data->video.ctx->pix_fmt) {
+               case PIX_FMT_GRAY8:
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
+                    break;
+               case PIX_FMT_RGB555:
+               case PIX_FMT_RGB565:
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*2;
+                    break;
+               case PIX_FMT_RGB24:
+               case PIX_FMT_BGR24:
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*3;
+                    break;
+               case PIX_FMT_RGBA32:
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*4;
+                    break;
+               case PIX_FMT_YUV422:
+               case PIX_FMT_UYVY422:
+                    rect.x &= ~1;
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*2;
+                    break;
+               case PIX_FMT_UYVY411:
+                    rect.x &= ~3;
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x + rect.x/2;
+                    break;
+               case PIX_FMT_YUV444P:
+               case PIX_FMT_YUVJ444P:
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
+                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
+                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    break;
+               case PIX_FMT_YUV422P:
+               case PIX_FMT_YUVJ422P:
+                    rect.x &= ~1;
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
+                    rect.x >>= 1;
+                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
+                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    break;                    
+               case PIX_FMT_YUV420P:
+               case PIX_FMT_YUVJ420P:
+                    rect.y &= ~1;
+                    rect.x &= ~1;
+                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
+                    rect.y >>= 1;
+                    rect.x >>= 1;
+                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
+                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    break;
+               default:
+                    D_ONCE( "Unexpected frame format" );
+                    break;
+          }
+     }
+               
+     img_convert( (AVPicture*)dst_frame,
+                   data->video.dst_format,
+                  (AVPicture*)src_frame,
+                   data->video.ctx->pix_fmt,
+                   rect.w, rect.h );
+                             
+     dfb_surface_unlock( surface, 0 );
+}     
 
 static void*
 FFmpegVideo( DirectThread *self, void *arg )
@@ -416,58 +540,7 @@ FFmpegVideo( DirectThread *self, void *arg )
                                 &done, pkt.data, pkt.size );
           
           if (done && !drop) {
-               CoreSurface  *surface = data->video.dest_data->surface;
-               AVFrame      *frame   = data->video.dst_frame;
-               DFBRectangle  rect;
-               
-               if (data->video.rect.w == 0) {
-                    rect = data->video.dest_data->area.wanted;
-               } else {
-                    rect = data->video.rect;
-                    dfb_rectangle_intersect( &rect,
-                                             &data->video.dest_data->area.wanted );
-               }
-               
-               if (rect.w > data->video.ctx->width)
-                    rect.w = data->video.ctx->width;
-               if (rect.h > data->video.ctx->height)
-                    rect.h = data->video.ctx->height;      
-               
-               dfb_surface_soft_lock( surface, DSLF_WRITE, 
-                                      (void*)&frame->data[0], 
-                                      &frame->linesize[0], 0 );
-                                 
-               switch (surface->format) {
-                    case DSPF_YV12:
-                    case DSPF_I420:
-                         frame->linesize[1] =
-                         frame->linesize[2] = frame->linesize[0]/2;
-                         frame->data[1] = frame->data[0] + 
-                                          surface->height * frame->linesize[0];
-                         frame->data[2] = frame->data[1] +
-                                          surface->height/2 * frame->linesize[1];
-                         frame->data[1] += rect.y/2 * frame->linesize[1] +
-                                           rect.x/2;
-                         frame->data[2] += rect.y/2 * frame->linesize[2] +
-                                           rect.x/2;
-                         if (surface->format == DSPF_YV12) {
-                              void *tmp = frame->data[1];
-                              frame->data[1] = frame->data[2];
-                              frame->data[2] = tmp;
-                         }
-                    default:
-                         frame->data[0] += rect.y * frame->linesize[0] +
-                                           DFB_BYTES_PER_LINE( surface->format, rect.x );
-                         break;
-               }
-               
-               img_convert( (AVPicture*)data->video.dst_frame,
-                             data->video.dst_format,
-                            (AVPicture*)data->video.src_frame,
-                             data->video.ctx->pix_fmt,
-                             rect.w, rect.h );
-                             
-               dfb_surface_unlock( surface, 0 );
+               FFmpegPutFrame( data );
           
                if (data->callback)
                     data->callback( data->ctx );
@@ -857,16 +930,12 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      }
            
      if (dest_rect) {
-          if (dest_rect->x < 1 || dest_rect->y < 1)
+          if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
          
           rect    = *dest_rect;
           rect.x += dest_data->area.wanted.x;
           rect.y += dest_data->area.wanted.y;
-          
-          if (!dfb_rectangle_intersect( &rect,
-                                        &dest_data->area.wanted ))
-               return DFB_INVARG;
      }
 
      pthread_mutex_lock( &data->input.lock );

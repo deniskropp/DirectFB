@@ -48,6 +48,7 @@
 
 #include <display/idirectfbsurface.h>
 
+#include <gfx/clip.h>
 #include <gfx/convert.h>
 
 #ifdef HAVE_FUSIONSOUND
@@ -322,15 +323,10 @@ SwfInput( DirectThread *self, void *arg )
                add_frame( &data->audio.queue, buffer, pts );
           }
 
-          if (data->rect.w == 0) {
-               rect = data->dest_data->area.wanted;
-          } else {
-               rect = data->rect;
-               dfb_rectangle_intersect( &rect,
-                                        &data->dest_data->area.wanted );
-          }
-          
           swfdec_decoder_get_image_size( data->decoder, &w, &h );
+          rect = (data->rect.w == 0)
+                 ? data->dest_data->area.wanted : data->rect;
+          
           if (w != rect.w || h != rect.h) {
                swfdec_decoder_set_image_size( data->decoder, rect.w, rect.h );
                w = rect.w;
@@ -352,29 +348,39 @@ SwfInput( DirectThread *self, void *arg )
 
 static void
 SwfPutImage( CoreSurface  *surface,
+             DFBRectangle *current,
              DFBRectangle *rect,
              SwfdecBuffer *source )
 {
-     __u8  *D;
-     __u32 *S;
-     char  *dst, *src;
-     int    pitch;
-     int    sw = source->length & 0xffff;
-     int    sh = source->length >> 16;
-     int    w, h, n;
-    
+     DFBRegion     clip;
+     DFBRectangle  srect;
+     __u8         *D;
+     __u32        *S;
+     __u8         *dst, *src;
+     int           pitch;
+     int           sw  = source->length & 0xffff;
+     int           sh  = source->length >> 16;
+     int           w, h, n;
+
+     dfb_region_from_rectangle( &clip, current );
+     
+     srect = (DFBRectangle) {0, 0, MIN(rect->w,sw), MIN(rect->h,sh)};
+     dfb_clip_blit( &clip, &srect, &rect->x, &rect->y );
+     if (srect.w < 1 || srect.h < 1)
+          return;
+     
      if (dfb_surface_soft_lock( surface, DSLF_WRITE,
                                 (void*)&dst, &pitch, 0 ) != DFB_OK)
           return;
    
      dst += pitch * rect->y +
             DFB_BYTES_PER_LINE( surface->format, rect->x );
-     src  = source->data;
-            
-     for (h = MIN(rect->h,sh); h--;) {
+     src  = source->data + srect.y * sw * 4 + srect.x * 4;
+     
+     for (h = srect.h; h; h--) {
           D = (__u8 *) dst;
           S = (__u32*) src;
-          w = MIN(rect->w,sw);
+          w = srect.w;
           
           switch (surface->format) {
                case DSPF_RGB332:
@@ -480,17 +486,12 @@ SwfPutImage( CoreSurface  *surface,
                     }
                     break;
                case DSPF_RGB32:
-                    direct_memcpy( dst, src, w*4 );
-                    break;
                case DSPF_ARGB:
-                    while (w--) {
-                         *((__u32*)D) = *S++ | 0xff000000;
-                         D += 4;
-                    }
+                    direct_memcpy( dst, src, w*4 );
                     break;
                case DSPF_AiRGB:
                     while (w--) {
-                         *((__u32*)D) = *S++ & 0x00ffffff;
+                         *((__u32*)D) = *S++ ^ 0xff000000;
                          D += 4;
                     }
                     break;
@@ -533,16 +534,12 @@ SwfVideo( DirectThread *self, void *arg )
           
           if (buffer) {
                DFBRectangle rect;
+              
+               rect = (data->rect.w == 0)
+                      ? data->dest_data->area.wanted : data->rect;
                
-               if (data->rect.w == 0) {
-                    rect = data->dest_data->area.wanted;
-               } else {
-                    rect = data->rect;
-                    dfb_rectangle_intersect( &rect,
-                                             &data->dest_data->area.wanted );
-               }
-               
-               SwfPutImage( data->dest_data->surface, &rect, buffer );
+               SwfPutImage( data->dest_data->surface, 
+                           &data->dest_data->area.current, &rect, buffer );
                                  
                swfdec_buffer_unref( buffer );
                     
@@ -810,16 +807,12 @@ IDirectFBVideoProvider_Swfdec_PlayTo( IDirectFBVideoProvider *thiz,
      }
      
      if (dest_rect) {
-          if (dest_rect->x < 1 || dest_rect->y < 1)
+          if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
          
           rect    = *dest_rect;
           rect.x += dest_data->area.wanted.x;
           rect.y += dest_data->area.wanted.y;
-          
-          if (!dfb_rectangle_intersect( &rect,
-                                        &dest_data->area.wanted ))
-               return DFB_INVARG;
      }
 
      pthread_mutex_lock( &data->input.lock );
