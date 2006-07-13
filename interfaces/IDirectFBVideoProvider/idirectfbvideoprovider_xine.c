@@ -436,9 +436,9 @@ IDirectFBVideoProvider_Xine_Stop( IDirectFBVideoProvider *thiz )
           xine_get_pos_length( data->stream, NULL, &data->start_time, NULL );
           xine_stop( data->stream );
           usleep( 50 );
-          
-          data->status = DVSTATE_STOP;
      }
+
+     data->status = DVSTATE_STOP;
 
      return DFB_OK;
 }
