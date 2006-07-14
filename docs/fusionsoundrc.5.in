@@ -1,0 +1,115 @@
+.\" -*-Nroff-*-
+.\"
+.\" This man page is Copyright (C) 2006 Claudio Ciccani <klan@users.sf.net>
+
+.TH FUSIONSOUNDRC 5 "15 Jul 2006" "Version @FUSIONSOUND_VERSION@" "FusionSound Manual Page"
+
+.SH NAME
+fusionsoundrc \- FusionSound configuration file
+
+
+.SH DESCRIPTION
+
+The
+.B fusionsoundrc
+file is a configuration file read by all FusionSound applications on startup.
+There are two of these: a system-wide one stored in
+.I /etc/fusionsoundrc
+and a per-user
+.I
+\fB$HOME\fP/.fusionsoundrc
+which may override system settings.
+
+The same parameters that can be used in the
+.B fusionsoundrc
+file can also be passed to FusionSound applications on the command-line
+by prefixing them with 
+.BR --fs:
+or by setting the environment variable
+.BR FSARGS
+
+
+
+.SH SYNTAX
+
+The
+.B fusionsoundrc
+file contains one parameter per line. Comments are introduced by a
+hash sign (#), and continue until the end of the line.  Blank lines
+are ignored.
+
+
+.SH PARAMETERS
+
+The following parameters may be specified in the
+.B fusionsoundrc
+file:
+
+.TP
+.BI driver=<driver>
+Specify the driver to use (e.g. "oss" or "alsa").
+
+.TP
+.BI device=<device>
+Specify a driver specific audio output device to use
+(e.g "/dev/dsp" if using oss or "default" if using alsa).
+
+.TP
+.BI channels=<channels>
+Set the default number of channels to use.
+
+.TP
+.BI sampleformat=<sampleformat>
+Set the default sample format to use.
+Possible values are U8, S16, S24, S32 and FLOAT.
+
+.TP
+.BI samplerate=<samplerate>
+Set the default sample rate in Hz (e.g 48000).
+
+.TP
+.BI buffersize=<millisec>
+Set the default output buffer size in milliseconds.
+
+.TP
+.BI session=<num>
+Selects the multi application world which is joined or created.
+Negative values force creation of a new world using the lowest
+unused session number. The default session number is 
+DIRECTFB_SESSION + 1.
+
+
+.SH EXAMPLES
+
+Here are some examples that demonstrates how the parameters described
+above are passed to FusionSound application on the command-line.
+
+.TP
+.B fsmaster --fs:help
+Lists the FusionSound options that can be passed to fsmaster.
+
+.TP
+.B fsmaster --fs:driver=alsa,device=intel8x0
+Start fsmaster using ALSA driver with intel8x0 device.
+
+
+.SH OTHER INFO
+
+The canonical place to find informations about FusionSound is at
+http://www.directfb.org/.  Here you can find the FAQ, tutorials,
+mailing list archives, the CVS tree and can download the latest
+version of the FusionSound library as well as a number of applications.
+
+
+.SH FILES
+
+.TP
+.I /etc/fusionsoundrc
+system-wide FusionSound configuration file
+.TP
+.I $HOME/.fusionsoundrc
+per-user FusionSound configuration file
+
+
+.SH SEE ALSO
+.BR directfbrc (5)
