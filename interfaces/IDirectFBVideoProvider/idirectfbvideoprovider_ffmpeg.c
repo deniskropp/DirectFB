@@ -790,6 +790,11 @@ IDirectFBVideoProvider_FFmpeg_GetSurfaceDescription( IDirectFBVideoProvider *thi
           
      desc->flags = DSDESC_WIDTH | DSDESC_HEIGHT | DSDESC_PIXELFORMAT;
      
+     if (data->video.src_frame->interlaced_frame) {
+          desc->flags |= DSDESC_CAPS;
+          desc->caps = DSCAPS_INTERLACED;
+     }
+     
      desc->width  = data->video.ctx->width;
      desc->height = data->video.ctx->height;
      if (desc->width < 1 || desc->height < 1) {
@@ -937,6 +942,9 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
           rect.x += dest_data->area.wanted.x;
           rect.y += dest_data->area.wanted.y;
      }
+     
+     if (data->status == DVSTATE_FINISHED && !data->seekable)
+          return DFB_UNSUPPORTED;
 
      pthread_mutex_lock( &data->input.lock );
      pthread_mutex_lock( &data->video.lock );
@@ -1141,6 +1149,9 @@ IDirectFBVideoProvider_FFmpeg_SetPlaybackFlags( IDirectFBVideoProvider        *t
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (flags & ~DVPLAY_LOOPING)
+          return DFB_UNSUPPORTED;
+          
+     if (flags & DVPLAY_LOOPING && !data->seekable)
           return DFB_UNSUPPORTED;
           
      data->flags = flags;

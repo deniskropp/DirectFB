@@ -792,6 +792,10 @@ IDirectFBVideoProvider_Xine_SetPlaybackFlags( IDirectFBVideoProvider        *thi
      if (flags & ~DVPLAY_LOOPING)
           return DFB_UNSUPPORTED;
           
+     if (flags & DVPLAY_LOOPING &&
+         !xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
+          return DFB_UNSUPPORTED;
+          
      data->flags = flags;
      
      return DFB_OK;
