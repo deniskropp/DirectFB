@@ -164,10 +164,12 @@ fs_core_create( CoreSound **ret_core )
      }
 
      core->fusion_id = fusion_id( core->world );
+     
+     fs_config->session = fusion_world_index( core->world );
 
 #if FUSION_BUILD_MULTI
      D_DEBUG( "FusionSound/Core: world %d, fusion id %d\n",
-              fusion_world_index( core->world ), core->fusion_id );
+              fs_config->session, core->fusion_id );
 #endif
 
      /* Initialize the references. */
