@@ -210,8 +210,10 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      /* set application profile */
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
      if (ioctl( data->fd, SNDCTL_DSP_PROFILE, &prof ) < 0) {
-          D_WARN( "FusionSound/Device/OSS: "
-                  "Unable to set application profile!\n" );
+          D_ERROR( "FusionSound/Device/OSS: "
+                   "Unable to set application profile!\n" );
+          close( data->fd );
+          return DFB_FAILURE;
      }
 #endif
           
@@ -268,13 +270,16 @@ device_write( void *device_data, void *samples, unsigned int size )
 static void
 device_get_output_delay( void *device_data, int *delay )
 {
-     OSSDeviceData *data   = device_data;
-     int            odelay = 0;
+     OSSDeviceData  *data = device_data;
+     audio_buf_info  info;
      
-     if (ioctl( data->fd, SNDCTL_DSP_GETODELAY, &odelay ) < 0)
-          D_ONCE( "ioctl SNDCTL_DSP_GETODELAY failed" );
+     if (ioctl( data->fd, SNDCTL_DSP_GETOSPACE, &info ) < 0) {
+          D_ONCE( "ioctl SNDCTL_DSP_GETOSPACE failed" );
+          *delay = 0;
+          return;
+     }
      
-     *delay = odelay / data->bytes_per_frame;
+     *delay = (info.fragsize * info.fragstotal - info.bytes) / data->bytes_per_frame;
 }
 
 static void
