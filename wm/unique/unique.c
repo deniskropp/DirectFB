@@ -61,6 +61,8 @@
 #include <core/windowstack.h>
 #include <core/wm.h>
 
+#include <gfx/util.h>
+
 #include <misc/conf.h>
 #include <misc/util.h>
 
@@ -529,27 +531,6 @@ wm_enum_windows( CoreWindowStack      *stack,
      return unique_context_enum_windows( data->context, callback, callback_ctx );
 }
 
-static DFBResult
-wm_warp_cursor( CoreWindowStack *stack,
-                void            *wm_data,
-                void            *stack_data,
-                int              x,
-                int              y )
-{
-     StackData *data = stack_data;
-
-     D_ASSERT( stack != NULL );
-     D_ASSERT( wm_data != NULL );
-     D_ASSERT( stack_data != NULL );
-
-     D_MAGIC_ASSERT( data, StackData );
-
-     if (!data->context)
-          return DFB_DESTROYED;
-
-     return unique_context_warp_cursor( data->context, x, y );
-}
-
 /**************************************************************************************************/
 
 static DFBResult
@@ -828,5 +809,180 @@ wm_update_window( CoreWindow          *window,
           return DFB_DESTROYED;
 
      return unique_window_update( data->window, region, flags );
+}
+
+/**************************************************************************************************/
+
+/* HACK: implementation dumped in here for now, will move into context */
+static DFBResult
+wm_update_cursor( CoreWindowStack       *stack,
+                  void                  *wm_data,
+                  void                  *stack_data,
+                  CoreCursorUpdateFlags  flags )
+{
+     DFBResult         ret;
+     DFBRegion         old_region;
+     WMData           *wmdata   = wm_data;
+     StackData        *data     = stack_data;
+     bool              restored = false;
+     CoreLayer        *layer;
+     CoreLayerRegion  *region;
+     CardState        *state;
+     CoreSurface      *surface;
+     UniqueContext    *context;
+
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( stack_data != NULL );
+
+     D_MAGIC_ASSERT( data, StackData );
+
+     context = data->context;
+
+     D_MAGIC_ASSERT( context, UniqueContext );
+
+     /* Optimize case of invisible cursor moving. */
+     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
+          context->cursor_bs_valid = false;
+          return DFB_OK;
+     }
+
+     layer   = dfb_layer_at( context->layer_id );
+     state   = &layer->state;
+     region  = context->region;
+     surface = context->surface;
+
+     D_ASSERT( region != NULL );
+     D_ASSERT( surface != NULL );
+
+     if (flags & CCUF_ENABLE) {
+          CoreSurface *cursor_bs;
+
+          D_ASSERT( context->cursor_bs == NULL );
+
+          /* Create the cursor backing store surface. */
+          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                    DSPF_RGB16, stack->cursor.policy, DSCAPS_NONE, NULL, &cursor_bs );
+          if (ret) {
+               D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
+               return ret;
+          }
+
+          ret = dfb_surface_globalize( cursor_bs );
+          D_ASSERT( ret == DFB_OK );
+
+          /* Ensure valid back buffer for now.
+           * FIXME: Keep a flag to know when back/front have been swapped and need a sync.
+           */
+          switch (region->config.buffermode) {
+               case DLBM_BACKVIDEO:
+               case DLBM_TRIPLE:
+                    dfb_gfx_copy( surface, surface, NULL );
+                    break;
+
+               default:
+                    break;
+          }
+
+          context->cursor_bs = cursor_bs;
+     }
+     else {
+          D_ASSERT( context->cursor_bs != NULL );
+
+          /* restore region under cursor */
+          if (context->cursor_drawn) {
+               DFBRectangle rect = { 0, 0,
+                                     context->cursor_region.x2 - context->cursor_region.x1 + 1,
+                                     context->cursor_region.y2 - context->cursor_region.y1 + 1 };
+
+               D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
+               D_ASSERT( context->cursor_bs_valid );
+
+               dfb_gfx_copy_to( context->cursor_bs, surface, &rect,
+                                context->cursor_region.x1, context->cursor_region.y1, false );
+
+               context->cursor_drawn = false;
+
+               old_region = context->cursor_region;
+               restored   = true;
+          }
+
+          if (flags & CCUF_SIZE) {
+               ret = dfb_surface_reformat( wmdata->core, context->cursor_bs,
+                                           stack->cursor.size.w, stack->cursor.size.h,
+                                           context->cursor_bs->format );
+               if (ret) {
+                    D_ERROR( "WM/Default: Failed resizing backing store for cursor!\n" );
+                    return ret;
+               }
+          }
+     }
+
+     if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
+          context->cursor_bs_valid  = false;
+
+          context->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
+          context->cursor_region.y1 = stack->cursor.y - stack->cursor.hot.y;
+          context->cursor_region.x2 = context->cursor_region.x1 + stack->cursor.size.w - 1;
+          context->cursor_region.y2 = context->cursor_region.y1 + stack->cursor.size.h - 1;
+
+          if (!dfb_region_intersect( &context->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
+               D_BUG( "invalid cursor region" );
+               return DFB_BUG;
+          }
+     }
+
+     D_ASSERT( context->cursor_bs != NULL );
+
+     if (flags & CCUF_DISABLE) {
+          dfb_surface_unlink( &context->cursor_bs );
+     }
+     else if (stack->cursor.opacity) {
+          /* backup region under cursor */
+          if (!context->cursor_bs_valid) {
+               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &context->cursor_region );
+
+               D_ASSERT( !context->cursor_drawn );
+
+               /* FIXME: this requires using blitted flipping all the time,
+                  but fixing it seems impossible, for now DSFLIP_BLIT is forced
+                  in repaint_stack() when the cursor is enabled. */
+               dfb_gfx_copy_to( surface, context->cursor_bs, &rect, 0, 0, true );
+
+               context->cursor_bs_valid = true;
+          }
+
+          /* Set destination. */
+          state->destination  = surface;
+          state->modified    |= SMF_DESTINATION;
+
+          /* Set clipping region. */
+          dfb_state_set_clip( state, &context->cursor_region );
+
+          /* draw cursor */
+          unique_draw_cursor( stack, context, state, &context->cursor_region );
+
+          /* Reset destination. */
+          state->destination  = NULL;
+          state->modified    |= SMF_DESTINATION;
+
+          context->cursor_drawn = true;
+
+          if (restored) {
+               if (dfb_region_region_intersects( &old_region, &context->cursor_region ))
+                    dfb_region_region_union( &old_region, &context->cursor_region );
+               else
+                    dfb_layer_region_flip_update( region, &context->cursor_region, DSFLIP_BLIT );
+
+               dfb_layer_region_flip_update( region, &old_region, DSFLIP_BLIT );
+          }
+          else
+               dfb_layer_region_flip_update( region, &context->cursor_region, DSFLIP_BLIT );
+     }
+     else if (restored)
+          dfb_layer_region_flip_update( region, &old_region, DSFLIP_BLIT );
+
+     return DFB_OK;
 }
 

@@ -107,12 +107,6 @@ static DFBResult wm_enum_windows   ( CoreWindowStack        *stack,
                                      CoreWMWindowCallback    callback,
                                      void                   *callback_ctx );
 
-static DFBResult wm_warp_cursor    ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     int                     x,
-                                     int                     y );
-
 /** Window **/
 static DFBResult wm_start_desktop  ( CoreWindowStack        *stack );
 
@@ -179,6 +173,11 @@ static DFBResult wm_update_window  ( CoreWindow             *window,
                                      const DFBRegion        *region,
                                      DFBSurfaceFlipFlags     flags );
 
+static DFBResult wm_update_cursor  ( CoreWindowStack        *stack,
+                                     void                   *wm_data,
+                                     void                   *stack_data,
+                                     CoreCursorUpdateFlags   flags );
+
 
 static CoreWMFuncs wm_funcs = {
      GetWMInfo:           wm_get_info,
@@ -199,7 +198,6 @@ static CoreWMFuncs wm_funcs = {
      WindowAt:            wm_window_at,
      WindowLookup:        wm_window_lookup,
      EnumWindows:         wm_enum_windows,
-     WarpCursor:          wm_warp_cursor,
 
      StartDesktop:     	  wm_start_desktop,
      GetInsets:     	  wm_get_insets,
@@ -213,7 +211,8 @@ static CoreWMFuncs wm_funcs = {
      RequestFocus:        wm_request_focus,
 
      UpdateStack:         wm_update_stack,
-     UpdateWindow:        wm_update_window
+     UpdateWindow:        wm_update_window,
+     UpdateCursor:        wm_update_cursor
 };
 
 

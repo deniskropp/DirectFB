@@ -533,20 +533,6 @@ dfb_wm_enum_windows( CoreWindowStack      *stack,
                                           stack->stack_data, callback, callback_ctx );
 }
 
-DFBResult
-dfb_wm_warp_cursor( CoreWindowStack  *stack,
-                    int               x,
-                    int               y )
-{
-     D_ASSERT( wm_local != NULL );
-     D_ASSERT( wm_local->funcs != NULL );
-     D_ASSERT( wm_local->funcs->WarpCursor != NULL );
-
-     D_ASSERT( stack != NULL );
-
-     return wm_local->funcs->WarpCursor( stack, wm_local->data, stack->stack_data, x, y );
-}
-
 /**
  * Give the wm a chance to start any advanced features
  * that require directfb to be fully initialized
@@ -773,5 +759,20 @@ dfb_wm_update_window( CoreWindow          *window,
 
      return wm_local->funcs->UpdateWindow( window, wm_local->data,
                                            window->window_data, region, flags );
+}
+
+DFBResult
+dfb_wm_update_cursor( CoreWindowStack       *stack,
+                      CoreCursorUpdateFlags  flags )
+{
+     D_ASSERT( wm_local != NULL );
+     D_ASSERT( wm_local->funcs != NULL );
+     D_ASSERT( wm_local->funcs->UpdateStack != NULL );
+
+     D_ASSERT( stack != NULL );
+     D_FLAGS_ASSERT( flags, CCUF_ALL );
+
+     return wm_local->funcs->UpdateCursor( stack, wm_local->data,
+                                           stack->stack_data, flags );
 }
 

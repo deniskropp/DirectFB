@@ -34,6 +34,7 @@
 #include <core/coretypes.h>
 
 #include <core/gfxcard.h>
+#include <core/surfaces.h>
 #include <core/windows.h>
 
 #include <direct/list.h>
@@ -100,19 +101,22 @@ struct __DFB_CoreWindowStack {
      int                 num;
 
      struct {
-          int            enabled;         /* is cursor enabled ? */
-          int            x, y;            /* cursor position */
-          CoreWindow    *window;          /* super-toplevel-window
-                                             for software cursor */
-          __u8           opacity;         /* cursor opacity */
-          DFBRegion      region;          /* cursor is clipped by this region */
+          int                enabled;     /* is cursor enabled ? */
+          int                x, y;        /* cursor position */
+          DFBDimension       size;        /* cursor shape size */
+          DFBPoint           hot;         /* hot spot */
+          CoreSurface       *surface;     /* shape */
+          __u8               opacity;     /* cursor opacity */
+          DFBRegion          region;      /* cursor is clipped by this region */
 
-          int            numerator;       /* cursor acceleration */
-          int            denominator;
-          int            threshold;
+          int                numerator;   /* cursor acceleration */
+          int                denominator;
+          int                threshold;
 
-          bool           set;             /* cursor enable/disable has
+          bool               set;         /* cursor enable/disable has
                                              been called at least one time */
+
+          CoreSurfacePolicy  policy;
      } cursor;
 
      /* stores information on handling the background on exposure */

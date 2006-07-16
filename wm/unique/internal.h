@@ -182,6 +182,11 @@ struct __UniQuE_UniqueContext {
      FusionSHMPoolShared     *shmpool;
 
      UniqueInputChannel      *foo_channel;
+
+     CoreSurface             *cursor_bs;          /* backing store for region under cursor */
+     bool                     cursor_bs_valid;
+     DFBRegion                cursor_region;
+     bool                     cursor_drawn;
 };
 
 struct __UniQuE_UniqueWindow {
@@ -343,6 +348,9 @@ void      unique_wm_module_deinit( WMData   *data,
 UniqueContext    *unique_wm_create_context();
 UniqueDecoration *unique_wm_create_decoration();
 UniqueWindow     *unique_wm_create_window();
+
+/* HACK: temporary, will move into cursor class */
+void unique_draw_cursor( CoreWindowStack *stack, UniqueContext *context, CardState *state, DFBRegion *region );
 
 
 /* global reactions */

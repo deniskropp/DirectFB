@@ -47,6 +47,8 @@
 #include <core/windowstack.h>
 #include <core/windows_internal.h>     /* FIXME */
 
+#include <gfx/util.h>
+
 #include <misc/conf.h>
 #include <misc/util.h>
 
@@ -64,12 +66,6 @@ static const ReactionFunc unique_context_globals[] = {
      _unique_wm_module_context_listener,
      NULL
 };
-
-/**************************************************************************************************/
-
-static void warp_cursor ( UniqueContext *context,
-                          int            x,
-                          int            y );
 
 /**************************************************************************************************/
 
@@ -364,6 +360,115 @@ unique_context_set_color( UniqueContext  *context,
      return dfb_windowstack_repaint_all( context->stack );
 }
 
+/* HACK: dumped in here for now, will move into cursor class */
+void
+unique_draw_cursor( CoreWindowStack *stack, UniqueContext *context, CardState *state, DFBRegion *region )
+{
+     DFBRectangle            src;
+     DFBSurfaceBlittingFlags flags = DSBLIT_BLEND_ALPHACHANNEL;
+
+     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( context, UniqueContext );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     D_ASSUME( stack->cursor.opacity > 0 );
+
+     /* Initialize source rectangle. */
+     src.x = region->x1 - stack->cursor.x + stack->cursor.hot.x;
+     src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
+     src.w = region->x2 - region->x1 + 1;
+     src.h = region->y2 - region->y1 + 1;
+
+     /* Use global alpha blending. */
+     if (stack->cursor.opacity != 0xFF) {
+          flags |= DSBLIT_BLEND_COLORALPHA;
+
+          /* Set opacity as blending factor. */
+          if (state->color.a != stack->cursor.opacity) {
+               state->color.a   = stack->cursor.opacity;
+               state->modified |= SMF_COLOR;
+          }
+     }
+
+     /* Different compositing methods depending on destination format. */
+     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+               /*
+                * Always use compliant Porter/Duff SRC_OVER,
+                * if the destination has an alpha channel.
+                *
+                * Cd = destination color  (non-premultiplied)
+                * Ad = destination alpha
+                *
+                * Cs = source color       (non-premultiplied)
+                * As = source alpha
+                *
+                * Ac = color alpha
+                *
+                * cd = Cd * Ad            (premultiply destination)
+                * cs = Cs * As            (premultiply source)
+                *
+                * The full equation to calculate resulting color and alpha (premultiplied):
+                *
+                * cx = cd * (1-As*Ac) + cs * Ac
+                * ax = Ad * (1-As*Ac) + As * Ac
+                */
+               dfb_state_set_src_blend( state, DSBF_ONE );
+
+               /* Need to premultiply source with As*Ac or only with Ac? */
+               if (! (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED))
+                    flags |= DSBLIT_SRC_PREMULTIPLY;
+               else if (flags & DSBLIT_BLEND_COLORALPHA)
+                    flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+               /* Need to premultiply/demultiply destination? */
+//               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
+//                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
+          }
+          else {
+               /*
+                * We can avoid DSBLIT_SRC_PREMULTIPLY for destinations without an alpha channel
+                * by using another blending function, which is more likely that it's accelerated
+                * than premultiplication at this point in time.
+                *
+                * This way the resulting alpha (ax) doesn't comply with SRC_OVER,
+                * but as the destination doesn't have an alpha channel it's no problem.
+                *
+                * As the destination's alpha value is always 1.0 there's no need for
+                * premultiplication. The resulting alpha value will also be 1.0 without
+                * exceptions, therefore no need for demultiplication.
+                *
+                * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
+                * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
+                */
+               if (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED) {
+                    /* Need to premultiply source with Ac? */
+                    if (flags & DSBLIT_BLEND_COLORALPHA)
+                         flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+                    dfb_state_set_src_blend( state, DSBF_ONE );
+               }
+               else
+                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
+          }
+     }
+
+     /* Set blitting flags. */
+     dfb_state_set_blitting_flags( state, flags );
+
+     /* Set blitting source. */
+     state->source    = stack->cursor.surface;
+     state->modified |= SMF_SOURCE;
+
+     /* Blit from the window to the region being updated. */
+     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
+}
+
 DFBResult
 unique_context_update( UniqueContext       *context,
                        const DFBRegion     *updates,
@@ -376,8 +481,10 @@ unique_context_update( UniqueContext       *context,
      int        count = 0;
      DFBRegion  root;
      DFBRegion  regions[num];
+     DFBRegion  cursor_inter;
 
      D_MAGIC_ASSERT( context, UniqueContext );
+     D_ASSERT( context->stack != NULL );
 
      D_ASSERT( updates != NULL );
      D_ASSERT( num > 0 );
@@ -421,17 +528,34 @@ unique_context_update( UniqueContext       *context,
 
           /* Compose updated region. */
           stret_region_update( context->root, update, state );
+
+          /* Update cursor? */
+          cursor_inter = context->cursor_region;
+          if (context->cursor_drawn && dfb_region_region_intersect( &cursor_inter, update )) {
+               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_inter );
+
+               D_ASSUME( context->cursor_bs_valid );
+
+               dfb_gfx_copy_to( context->surface, context->cursor_bs, &rect,
+                                rect.x - context->cursor_region.x1,
+                                rect.y - context->cursor_region.y1, true );
+
+               unique_draw_cursor( context->stack, context, state, &cursor_inter );
+          }
      }
 
      /* Reset destination. */
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
 
+     /* Software cursor code relies on a valid back buffer. */
+     if (context->stack->cursor.enabled)
+          flags |= DSFLIP_BLIT;
 
+     /* Flip all updated regions. */
      for (i=0; i<count; i++) {
           const DFBRegion *update = &regions[i];
 
-          /* Flip the updated region .*/
           dfb_layer_region_flip_update( context->region, update, flags );
      }
 
@@ -562,57 +686,7 @@ unique_context_enum_windows( UniqueContext        *context,
      return DFB_OK;
 }
 
-DFBResult
-unique_context_warp_cursor( UniqueContext *context,
-                            int            x,
-                            int            y )
-{
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     warp_cursor( context, x, y );
-
-     return DFB_OK;
-}
-
 /**************************************************************************************************/
-
-static void
-warp_cursor( UniqueContext *context,
-             int            x,
-             int            y )
-{
-     int              new_cx, dx;
-     int              new_cy, dy;
-     CoreWindowStack *stack;
-
-     D_MAGIC_ASSERT( context, UniqueContext );
-
-     stack = context->stack;
-
-     D_ASSERT( stack != NULL );
-
-     if (!stack->cursor.enabled)
-          return;
-
-     new_cx = MIN( x, stack->cursor.region.x2 );
-     new_cy = MIN( y, stack->cursor.region.y2 );
-
-     new_cx = MAX( new_cx, stack->cursor.region.x1 );
-     new_cy = MAX( new_cy, stack->cursor.region.y1 );
-
-     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y)
-          return;
-
-     dx = new_cx - stack->cursor.x;
-     dy = new_cy - stack->cursor.y;
-
-     stack->cursor.x = new_cx;
-     stack->cursor.y = new_cy;
-
-     D_ASSERT( stack->cursor.window != NULL );
-
-     dfb_window_move( stack->cursor.window, dx, dy, true );
-}
 
 ReactionResult
 _unique_cursor_device_listener( const void *msg_data,
@@ -629,7 +703,7 @@ _unique_cursor_device_listener( const void *msg_data,
 
      switch (event->type) {
           case UIET_MOTION:
-               warp_cursor( context, event->pointer.x, event->pointer.y );
+               dfb_windowstack_cursor_warp( context->stack, event->pointer.x, event->pointer.y );
                break;
 
           default:

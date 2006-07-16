@@ -39,6 +39,7 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/trace.h>
 #include <direct/util.h>
 
 #include <fusion/shmalloc.h>
@@ -57,6 +58,8 @@
 #include <core/windows_internal.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
+
+#include <gfx/util.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -116,6 +119,11 @@ typedef struct {
           int                          code;
           CoreWindow                  *owner;
      } keys[MAX_KEYS];
+
+     CoreSurface                  *cursor_bs;          /* backing store for region under cursor */
+     bool                          cursor_bs_valid;
+     DFBRegion                     cursor_region;
+     bool                          cursor_drawn;
 } StackData;
 
 typedef struct {
@@ -584,6 +592,114 @@ ensure_focus( CoreWindowStack *stack,
 /**************************************************************************************************/
 
 static void
+draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegion *region )
+{
+     DFBRectangle            src;
+     DFBSurfaceBlittingFlags flags = DSBLIT_BLEND_ALPHACHANNEL;
+
+     D_ASSERT( stack != NULL );
+     D_MAGIC_ASSERT( data, StackData );
+     D_MAGIC_ASSERT( state, CardState );
+     DFB_REGION_ASSERT( region );
+
+     D_ASSUME( stack->cursor.opacity > 0 );
+
+     /* Initialize source rectangle. */
+     src.x = region->x1 - stack->cursor.x + stack->cursor.hot.x;
+     src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
+     src.w = region->x2 - region->x1 + 1;
+     src.h = region->y2 - region->y1 + 1;
+
+     /* Use global alpha blending. */
+     if (stack->cursor.opacity != 0xFF) {
+          flags |= DSBLIT_BLEND_COLORALPHA;
+
+          /* Set opacity as blending factor. */
+          if (state->color.a != stack->cursor.opacity) {
+               state->color.a   = stack->cursor.opacity;
+               state->modified |= SMF_COLOR;
+          }
+     }
+
+     /* Different compositing methods depending on destination format. */
+     if (flags & DSBLIT_BLEND_ALPHACHANNEL) {
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )) {
+               /*
+                * Always use compliant Porter/Duff SRC_OVER,
+                * if the destination has an alpha channel.
+                *
+                * Cd = destination color  (non-premultiplied)
+                * Ad = destination alpha
+                *
+                * Cs = source color       (non-premultiplied)
+                * As = source alpha
+                *
+                * Ac = color alpha
+                *
+                * cd = Cd * Ad            (premultiply destination)
+                * cs = Cs * As            (premultiply source)
+                *
+                * The full equation to calculate resulting color and alpha (premultiplied):
+                *
+                * cx = cd * (1-As*Ac) + cs * Ac
+                * ax = Ad * (1-As*Ac) + As * Ac
+                */
+               dfb_state_set_src_blend( state, DSBF_ONE );
+
+               /* Need to premultiply source with As*Ac or only with Ac? */
+               if (! (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED))
+                    flags |= DSBLIT_SRC_PREMULTIPLY;
+               else if (flags & DSBLIT_BLEND_COLORALPHA)
+                    flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+               /* Need to premultiply/demultiply destination? */
+//               if (! (state->destination->caps & DSCAPS_PREMULTIPLIED))
+//                    flags |= DSBLIT_DST_PREMULTIPLY | DSBLIT_DEMULTIPLY;
+          }
+          else {
+               /*
+                * We can avoid DSBLIT_SRC_PREMULTIPLY for destinations without an alpha channel
+                * by using another blending function, which is more likely that it's accelerated
+                * than premultiplication at this point in time.
+                *
+                * This way the resulting alpha (ax) doesn't comply with SRC_OVER,
+                * but as the destination doesn't have an alpha channel it's no problem.
+                *
+                * As the destination's alpha value is always 1.0 there's no need for
+                * premultiplication. The resulting alpha value will also be 1.0 without
+                * exceptions, therefore no need for demultiplication.
+                *
+                * cx = Cd * (1-As*Ac) + Cs*As * Ac  (still same effect as above)
+                * ax = Ad * (1-As*Ac) + As*As * Ac  (wrong, but discarded anyways)
+                */
+               if (stack->cursor.surface->caps & DSCAPS_PREMULTIPLIED) {
+                    /* Need to premultiply source with Ac? */
+                    if (flags & DSBLIT_BLEND_COLORALPHA)
+                         flags |= DSBLIT_SRC_PREMULTCOLOR;
+
+                    dfb_state_set_src_blend( state, DSBF_ONE );
+               }
+               else
+                    dfb_state_set_src_blend( state, DSBF_SRCALPHA );
+          }
+     }
+
+     /* Set blitting flags. */
+     dfb_state_set_blitting_flags( state, flags );
+
+     /* Set blitting source. */
+     state->source    = stack->cursor.surface;
+     state->modified |= SMF_SOURCE;
+
+     /* Blit from the window to the region being updated. */
+     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+
+     /* Reset blitting source. */
+     state->source    = NULL;
+     state->modified |= SMF_SOURCE;
+}
+
+static void
 draw_window( CoreWindow *window, CardState *state,
              DFBRegion *region, bool alpha_channel )
 {
@@ -969,8 +1085,10 @@ repaint_stack( CoreWindowStack     *stack,
                const DFBRegion     *update,
                DFBSurfaceFlipFlags  flags )
 {
-     CoreLayer *layer;
-     CardState *state;
+     CoreLayer   *layer;
+     CardState   *state;
+     CoreSurface *surface;
+     DFBRegion    cursor_inter;
 
      D_ASSERT( stack != NULL );
      D_ASSERT( stack->context != NULL );
@@ -979,17 +1097,18 @@ repaint_stack( CoreWindowStack     *stack,
 
      DFB_REGION_ASSERT( update );
 
-     layer = dfb_layer_at( stack->context->layer_id );
-     state = &layer->state;
+     layer   = dfb_layer_at( stack->context->layer_id );
+     state   = &layer->state;
+     surface = region->surface;
 
-     if (!data->active || !region->surface)
+     if (!data->active || !surface)
           return;
 
-/*     D_DEBUG_AT( WM_Default, "repaint_stack( %d, %d - %dx%d, flags 0x%08x )\n",
+     D_DEBUG_AT( WM_Default, "repaint_stack( %d, %d - %dx%d, flags 0x%08x )\n",
                  DFB_RECTANGLE_VALS_FROM_REGION( update ), flags );
-*/
+
      /* Set destination. */
-     state->destination  = region->surface;
+     state->destination  = surface;
      state->modified    |= SMF_DESTINATION;
 
      /* Set clipping region. */
@@ -1000,9 +1119,27 @@ repaint_stack( CoreWindowStack     *stack,
                     fusion_vector_size( &data->windows ) - 1,
                     update->x1, update->y1, update->x2, update->y2 );
 
+     /* Update cursor? */
+     cursor_inter = data->cursor_region;
+     if (data->cursor_drawn && dfb_region_region_intersect( &cursor_inter, update )) {
+          DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &cursor_inter );
+
+          D_ASSUME( data->cursor_bs_valid );
+
+          dfb_gfx_copy_to( surface, data->cursor_bs, &rect,
+                           rect.x - data->cursor_region.x1,
+                           rect.y - data->cursor_region.y1, true );
+
+          draw_cursor( stack, data, state, &cursor_inter );
+     }
+
      /* Reset destination. */
      state->destination  = NULL;
      state->modified    |= SMF_DESTINATION;
+
+     /* Software cursor code relies on a valid back buffer. */
+     if (stack->cursor.enabled)
+          flags |= DSFLIP_BLIT;
 
      /* Flip the updated region .*/
      dfb_layer_region_flip_update( region, update, flags );
@@ -2122,7 +2259,7 @@ handle_motion( CoreWindowStack *stack,
                int              dx,
                int              dy )
 {
-     int               new_cx, new_cy;
+     int               old_cx, old_cy;
      DFBWindowEvent    we;
      CoreWindow       *entered;
      CoreWindowConfig *config = NULL;
@@ -2133,24 +2270,18 @@ handle_motion( CoreWindowStack *stack,
      if (!stack->cursor.enabled)
           return;
 
-     new_cx = MIN( stack->cursor.x + dx, stack->cursor.region.x2);
-     new_cy = MIN( stack->cursor.y + dy, stack->cursor.region.y2);
 
-     new_cx = MAX( new_cx, stack->cursor.region.x1 );
-     new_cy = MAX( new_cy, stack->cursor.region.y1 );
+     old_cx = stack->cursor.x;
+     old_cy = stack->cursor.y;
 
-     if (new_cx == stack->cursor.x  &&  new_cy == stack->cursor.y)
+     dfb_windowstack_cursor_warp( stack, old_cx + dx, old_cy + dy );
+
+     dx = stack->cursor.x - old_cx;
+     dy = stack->cursor.y - old_cy;
+
+     if (!dx && !dy)
           return;
 
-     dx = new_cx - stack->cursor.x;
-     dy = new_cy - stack->cursor.y;
-
-     stack->cursor.x = new_cx;
-     stack->cursor.y = new_cy;
-
-     D_ASSERT( stack->cursor.window != NULL );
-
-     dfb_window_move( stack->cursor.window, dx, dy, true );
 
      entered = data->entered_window;
      if (entered)
@@ -2206,16 +2337,14 @@ handle_motion( CoreWindowStack *stack,
 
                     post_event( window, data, &we );
                }
-               else {
-                    if (!update_focus( stack, data ) && data->entered_window) {
-                         CoreWindow *window = data->entered_window;
+               else if (!update_focus( stack, data ) && data->entered_window) {
+                    CoreWindow *window = data->entered_window;
 
-                         we.type = DWET_MOTION;
-                         we.x    = stack->cursor.x - window->config.bounds.x;
-                         we.y    = stack->cursor.y - window->config.bounds.y;
+                    we.type = DWET_MOTION;
+                    we.x    = stack->cursor.x - window->config.bounds.x;
+                    we.y    = stack->cursor.y - window->config.bounds.y;
 
-                         post_event( window, data, &we );
-                    }
+                    post_event( window, data, &we );
                }
 
                break;
@@ -2433,6 +2562,10 @@ wm_close_stack( CoreWindowStack *stack,
 
      fusion_vector_destroy( &data->windows );
 
+     /* Destroy backing store of software cursor. */
+     if (data->cursor_bs)
+          dfb_surface_unlink( &data->cursor_bs );
+
      /* Free grabbed keys. */
      direct_list_foreach_safe (l, next, data->grabbed_keys)
           SHFREE( stack->shmpool, l );
@@ -2636,31 +2769,6 @@ wm_enum_windows( CoreWindowStack      *stack,
           if (callback( window, callback_ctx ) != DFENUM_OK)
                break;
      }
-
-     return DFB_OK;
-}
-
-static DFBResult
-wm_warp_cursor( CoreWindowStack *stack,
-                void            *wm_data,
-                void            *stack_data,
-                int              x,
-                int              y )
-{
-     int        dx;
-     int        dy;
-     StackData *data = stack_data;
-
-     D_ASSERT( stack != NULL );
-     D_ASSERT( wm_data != NULL );
-     D_ASSERT( stack_data != NULL );
-
-     D_MAGIC_ASSERT( data, StackData );
-
-     dx = x - stack->cursor.x;
-     dy = y - stack->cursor.y;
-
-     handle_motion( stack, data, dx, dy );
 
      return DFB_OK;
 }
@@ -2949,5 +3057,182 @@ wm_update_window( CoreWindow          *window,
      DFB_REGION_ASSERT_IF( region );
 
      return update_window( window, window_data, region, flags, false, false );
+}
+
+static DFBResult
+wm_update_cursor( CoreWindowStack       *stack,
+                  void                  *wm_data,
+                  void                  *stack_data,
+                  CoreCursorUpdateFlags  flags )
+{
+     DFBResult         ret;
+     DFBRegion         old_region;
+     WMData           *wmdata   = wm_data;
+     StackData        *data     = stack_data;
+     bool              restored = false;
+     CoreLayer        *layer;
+     CoreLayerContext *context;
+     CoreLayerRegion  *primary;
+     CardState        *state;
+     CoreSurface      *surface;
+
+     D_ASSERT( stack != NULL );
+     D_ASSERT( stack->context != NULL );
+     D_ASSERT( wm_data != NULL );
+     D_ASSERT( stack_data != NULL );
+
+     D_MAGIC_ASSERT( data, StackData );
+
+     /* Optimize case of invisible cursor moving. */
+     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
+          data->cursor_bs_valid = false;
+          return DFB_OK;
+     }
+
+     context = stack->context;
+
+     /* Get the primary region. */
+     ret = dfb_layer_context_get_primary_region( context, false, &primary );
+     if (ret)
+          return ret;
+
+     layer   = dfb_layer_at( context->layer_id );
+     state   = &layer->state;
+     surface = primary->surface;
+
+     if (flags & CCUF_ENABLE) {
+          CoreSurface *cursor_bs;
+
+          D_ASSERT( data->cursor_bs == NULL );
+
+          /* Create the cursor backing store surface. */
+          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                    DSPF_RGB16, stack->cursor.policy, DSCAPS_NONE, NULL, &cursor_bs );
+          if (ret) {
+               D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
+               dfb_layer_region_unref( primary );
+               return ret;
+          }
+
+          ret = dfb_surface_globalize( cursor_bs );
+          D_ASSERT( ret == DFB_OK );
+
+          /* Ensure valid back buffer for now.
+           * FIXME: Keep a flag to know when back/front have been swapped and need a sync.
+           */
+          switch (context->config.buffermode) {
+               case DLBM_BACKVIDEO:
+               case DLBM_TRIPLE:
+                    dfb_gfx_copy( surface, surface, NULL );
+                    break;
+
+               default:
+                    break;
+          }
+
+          data->cursor_bs = cursor_bs;
+     }
+     else {
+          D_ASSERT( data->cursor_bs != NULL );
+
+          /* restore region under cursor */
+          if (data->cursor_drawn) {
+               DFBRectangle rect = { 0, 0,
+                                     data->cursor_region.x2 - data->cursor_region.x1 + 1,
+                                     data->cursor_region.y2 - data->cursor_region.y1 + 1 };
+
+               D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
+               D_ASSERT( data->cursor_bs_valid );
+
+               dfb_gfx_copy_to( data->cursor_bs, surface, &rect,
+                                data->cursor_region.x1, data->cursor_region.y1, false );
+
+               data->cursor_drawn = false;
+
+               old_region = data->cursor_region;
+               restored   = true;
+          }
+
+          if (flags & CCUF_SIZE) {
+               ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
+                                           stack->cursor.size.w, stack->cursor.size.h,
+                                           data->cursor_bs->format );
+               if (ret) {
+                    D_ERROR( "WM/Default: Failed resizing backing store for cursor!\n" );
+                    dfb_layer_region_unref( primary );
+                    return ret;
+               }
+          }
+     }
+
+     if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
+          data->cursor_bs_valid  = false;
+
+          data->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
+          data->cursor_region.y1 = stack->cursor.y - stack->cursor.hot.y;
+          data->cursor_region.x2 = data->cursor_region.x1 + stack->cursor.size.w - 1;
+          data->cursor_region.y2 = data->cursor_region.y1 + stack->cursor.size.h - 1;
+
+          if (!dfb_region_intersect( &data->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
+               D_BUG( "invalid cursor region" );
+               dfb_layer_region_unref( primary );
+               return DFB_BUG;
+          }
+     }
+
+     D_ASSERT( data->cursor_bs != NULL );
+
+     if (flags & CCUF_DISABLE) {
+          dfb_surface_unlink( &data->cursor_bs );
+     }
+     else if (stack->cursor.opacity) {
+          /* backup region under cursor */
+          if (!data->cursor_bs_valid) {
+               DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->cursor_region );
+
+               D_ASSERT( !data->cursor_drawn );
+
+               /* FIXME: this requires using blitted flipping all the time,
+                  but fixing it seems impossible, for now DSFLIP_BLIT is forced
+                  in repaint_stack() when the cursor is enabled. */
+               dfb_gfx_copy_to( surface, data->cursor_bs, &rect, 0, 0, true );
+
+               data->cursor_bs_valid = true;
+          }
+
+          /* Set destination. */
+          state->destination  = surface;
+          state->modified    |= SMF_DESTINATION;
+
+          /* Set clipping region. */
+          dfb_state_set_clip( state, &data->cursor_region );
+
+          /* draw cursor */
+          draw_cursor( stack, data, state, &data->cursor_region );
+
+          /* Reset destination. */
+          state->destination  = NULL;
+          state->modified    |= SMF_DESTINATION;
+
+          data->cursor_drawn = true;
+
+          if (restored) {
+               if (dfb_region_region_intersects( &old_region, &data->cursor_region ))
+                    dfb_region_region_union( &old_region, &data->cursor_region );
+               else
+                    dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+
+               dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
+          }
+          else
+               dfb_layer_region_flip_update( primary, &data->cursor_region, DSFLIP_BLIT );
+     }
+     else if (restored)
+          dfb_layer_region_flip_update( primary, &old_region, DSFLIP_BLIT );
+
+     /* Unref primary region. */
+     dfb_layer_region_unref( primary );
+
+     return DFB_OK;
 }
 

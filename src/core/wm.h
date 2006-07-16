@@ -85,6 +85,21 @@ typedef struct {
      DFBInputDeviceModifierMask  modifiers;
 } CoreWMGrab;
 
+/* FIXME: move to cursor.h when it's there */
+typedef enum {
+     CCUF_NONE      = 0x00000000,
+
+     CCUF_ENABLE    = 0x00000001,
+     CCUF_DISABLE   = 0x00000002,
+
+     CCUF_POSITION  = 0x00000010,
+     CCUF_SIZE      = 0x00000020,
+     CCUF_SHAPE     = 0x00000040,
+     CCUF_OPACITY   = 0x00000080,
+
+     CCUF_ALL       = 0x000000F3
+} CoreCursorUpdateFlags;
+
 typedef DFBEnumerationResult (*CoreWMWindowCallback) (CoreWindow *window,
                                                       void       *ctx);
 
@@ -92,232 +107,231 @@ typedef struct {
 
    /** Module **/
 
-     void      (*GetWMInfo)        ( CoreWMInfo             *info );
+     void      (*GetWMInfo)         ( CoreWMInfo             *info );
 
-     DFBResult (*Initialize)       ( CoreDFB                *core,
-                                     void                   *wm_data,
-                                     void                   *shared_data );
+     DFBResult (*Initialize)        ( CoreDFB                *core,
+                                      void                   *wm_data,
+                                      void                   *shared_data );
 
-     DFBResult (*Join)             ( CoreDFB                *core,
-                                     void                   *wm_data,
-                                     void                   *shared_data );
+     DFBResult (*Join)              ( CoreDFB                *core,
+                                      void                   *wm_data,
+                                      void                   *shared_data );
 
-     DFBResult (*Shutdown)         ( bool                    emergency,
-                                     void                   *wm_data,
-                                     void                   *shared_data );
+     DFBResult (*Shutdown)          ( bool                    emergency,
+                                      void                   *wm_data,
+                                      void                   *shared_data );
 
-     DFBResult (*Leave)            ( bool                    emergency,
-                                     void                   *wm_data,
-                                     void                   *shared_data );
+     DFBResult (*Leave)             ( bool                    emergency,
+                                      void                   *wm_data,
+                                      void                   *shared_data );
 
-     DFBResult (*Suspend)          ( void                   *wm_data,
-                                     void                   *shared_data );
+     DFBResult (*Suspend)           ( void                   *wm_data,
+                                      void                   *shared_data );
 
-     DFBResult (*Resume)           ( void                   *wm_data,
-                                     void                   *shared_data );
+     DFBResult (*Resume)            ( void                   *wm_data,
+                                      void                   *shared_data );
 
 
    /** Stack **/
 
-     DFBResult (*InitStack)        ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data );
+     DFBResult (*InitStack)         ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data );
 
-     DFBResult (*CloseStack)       ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data );
+     DFBResult (*CloseStack)        ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data );
 
-     DFBResult (*SetActive)        ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     bool                    active );
+     DFBResult (*SetActive)         ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      bool                    active );
 
-     DFBResult (*ResizeStack)      ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     int                     width,
-                                     int                     height );
+     DFBResult (*ResizeStack)       ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      int                     width,
+                                      int                     height );
 
-     DFBResult (*ProcessInput)     ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     const DFBInputEvent    *event );
+     DFBResult (*ProcessInput)      ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      const DFBInputEvent    *event );
 
-     DFBResult (*FlushKeys)        ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data );
+     DFBResult (*FlushKeys)         ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data );
 
-     DFBResult (*WindowAt)         ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     int                     x,
-                                     int                     y,
-                                     CoreWindow            **ret_window );
+     DFBResult (*WindowAt)          ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      int                     x,
+                                      int                     y,
+                                      CoreWindow            **ret_window );
 
-     DFBResult (*WindowLookup)     ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     DFBWindowID             window_id,
-                                     CoreWindow            **ret_window );
+     DFBResult (*WindowLookup)      ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      DFBWindowID             window_id,
+                                      CoreWindow            **ret_window );
 
-     DFBResult (*EnumWindows)      ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     CoreWMWindowCallback    callback,
-                                     void                   *callback_ctx );
+     DFBResult (*EnumWindows)       ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      CoreWMWindowCallback    callback,
+                                      void                   *callback_ctx );
 
-     DFBResult (*WarpCursor)       ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     int                     x,
-                                     int                     y );
+     DFBResult (*StartDesktop)      ( CoreWindowStack        *stack );
 
-     DFBResult (*StartDesktop)   ( CoreWindowStack        *stack );
 
    /** Window **/
 
-     DFBResult (*GetInsets)   ( CoreWindowStack        *stack,
-                                     CoreWindow        *window,
-                                     DFBInsets         *insets );
+     DFBResult (*GetInsets)         ( CoreWindowStack        *stack,
+                                      CoreWindow             *window,
+                                      DFBInsets              *insets );
 
-     DFBResult (*PreConfigureWindow)   ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     CoreWindow             *window,
-                                     void                   *window_data );
+     DFBResult (*PreConfigureWindow)( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      CoreWindow             *window,
+                                      void                   *window_data );
 
-     DFBResult (*AddWindow)        ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     CoreWindow             *window,
-                                     void                   *window_data );
+     DFBResult (*AddWindow)         ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      CoreWindow             *window,
+                                      void                   *window_data );
 
-     DFBResult (*RemoveWindow)     ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     CoreWindow             *window,
-                                     void                   *window_data );
+     DFBResult (*RemoveWindow)      ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      CoreWindow             *window,
+                                      void                   *window_data );
 
-     DFBResult (*SetWindowConfig)  ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     const CoreWindowConfig *config,
-                                     CoreWindowConfigFlags   flags );
+     DFBResult (*SetWindowConfig)   ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      const CoreWindowConfig *config,
+                                      CoreWindowConfigFlags   flags );
 
-     DFBResult (*RestackWindow)    ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     CoreWindow             *relative,
-                                     void                   *relative_data,
-                                     int                     relation );
+     DFBResult (*RestackWindow)     ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      CoreWindow             *relative,
+                                      void                   *relative_data,
+                                      int                     relation );
 
-     DFBResult (*Grab)             ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     CoreWMGrab             *grab );
+     DFBResult (*Grab)              ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      CoreWMGrab             *grab );
 
-     DFBResult (*Ungrab)           ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     CoreWMGrab             *grab );
+     DFBResult (*Ungrab)            ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      CoreWMGrab             *grab );
 
-     DFBResult (*RequestFocus)     ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data );
+     DFBResult (*RequestFocus)      ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data );
 
 
    /** Updates **/
 
-     DFBResult (*UpdateStack)      ( CoreWindowStack        *stack,
-                                     void                   *wm_data,
-                                     void                   *stack_data,
-                                     const DFBRegion        *region,
-                                     DFBSurfaceFlipFlags     flags );
+     DFBResult (*UpdateStack)       ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      const DFBRegion        *region,
+                                      DFBSurfaceFlipFlags     flags );
 
-     DFBResult (*UpdateWindow)     ( CoreWindow             *window,
-                                     void                   *wm_data,
-                                     void                   *window_data,
-                                     const DFBRegion        *region,
-                                     DFBSurfaceFlipFlags     flags );
+     DFBResult (*UpdateWindow)      ( CoreWindow             *window,
+                                      void                   *wm_data,
+                                      void                   *window_data,
+                                      const DFBRegion        *region,
+                                      DFBSurfaceFlipFlags     flags );
+
+     DFBResult (*UpdateCursor)      ( CoreWindowStack        *stack,
+                                      void                   *wm_data,
+                                      void                   *stack_data,
+                                      CoreCursorUpdateFlags   flags );
 } CoreWMFuncs;
 
 
 void dfb_wm_get_info( CoreWMInfo *info );
 
 
-DFBResult dfb_wm_init_stack    ( CoreWindowStack        *stack );
+DFBResult dfb_wm_init_stack         ( CoreWindowStack        *stack );
+                                    
+DFBResult dfb_wm_close_stack        ( CoreWindowStack        *stack,
+                                      bool                    final );
+                                    
+DFBResult dfb_wm_set_active         ( CoreWindowStack        *stack,
+                                      bool                    active );
+                                    
+DFBResult dfb_wm_resize_stack       ( CoreWindowStack        *stack,
+                                      int                     width,
+                                      int                     height );
+                                    
+DFBResult dfb_wm_process_input      ( CoreWindowStack        *stack,
+                                      const DFBInputEvent    *event );
+                                    
+DFBResult dfb_wm_flush_keys         ( CoreWindowStack        *stack );
+                                    
+DFBResult dfb_wm_window_at          ( CoreWindowStack        *stack,
+                                      int                     x,
+                                      int                     y,
+                                      CoreWindow            **ret_window );
+                                    
+DFBResult dfb_wm_window_lookup      ( CoreWindowStack        *stack,
+                                      DFBWindowID             window_id,
+                                      CoreWindow            **ret_window );
+                                    
+DFBResult dfb_wm_enum_windows       ( CoreWindowStack        *stack,
+                                      CoreWMWindowCallback    callback,
+                                      void                   *callback_ctx );
+                                    
+DFBResult dfb_wm_start_desktop      ( CoreWindowStack        *stack);
 
-DFBResult dfb_wm_close_stack   ( CoreWindowStack        *stack,
-                                 bool                    final );
+DFBResult dfb_wm_get_insets         ( CoreWindowStack        *stack,
+                                      CoreWindow             *window,
+                                      DFBInsets              *insets );
 
-DFBResult dfb_wm_set_active    ( CoreWindowStack        *stack,
-                                 bool                    active );
-
-DFBResult dfb_wm_resize_stack  ( CoreWindowStack        *stack,
-                                 int                     width,
-                                 int                     height );
-
-DFBResult dfb_wm_process_input ( CoreWindowStack        *stack,
-                                 const DFBInputEvent    *event );
-
-DFBResult dfb_wm_flush_keys    ( CoreWindowStack        *stack );
-
-DFBResult dfb_wm_window_at     ( CoreWindowStack        *stack,
-                                 int                     x,
-                                 int                     y,
-                                 CoreWindow            **ret_window );
-
-DFBResult dfb_wm_window_lookup ( CoreWindowStack        *stack,
-                                 DFBWindowID             window_id,
-                                 CoreWindow            **ret_window );
-
-DFBResult dfb_wm_enum_windows  ( CoreWindowStack        *stack,
-                                 CoreWMWindowCallback    callback,
-                                 void                   *callback_ctx );
-
-DFBResult dfb_wm_warp_cursor   ( CoreWindowStack        *stack,
-                                 int                     x,
-                                 int                     y );
-
-DFBResult dfb_wm_start_desktop  ( CoreWindowStack        *stack);
-
-DFBResult dfb_wm_get_insets ( CoreWindowStack        *stack,
-                               CoreWindow            *window,
-                               DFBInsets             *insets );
-
-DFBResult dfb_wm_preconfigure_window    ( CoreWindowStack        *stack,
-                                 CoreWindow             *window );
+DFBResult dfb_wm_preconfigure_window( CoreWindowStack        *stack,
+                                      CoreWindow             *window );
 
 
-DFBResult dfb_wm_add_window    ( CoreWindowStack        *stack,
-                                 CoreWindow             *window );
+DFBResult dfb_wm_add_window         ( CoreWindowStack        *stack,
+                                      CoreWindow             *window );
 
-DFBResult dfb_wm_remove_window ( CoreWindowStack        *stack,
-                                 CoreWindow             *window );
+DFBResult dfb_wm_remove_window      ( CoreWindowStack        *stack,
+                                      CoreWindow             *window );
 
-DFBResult dfb_wm_set_window_config( CoreWindow             *window,
-                                    const CoreWindowConfig *config,
-                                    CoreWindowConfigFlags   flags );
+DFBResult dfb_wm_set_window_config  ( CoreWindow             *window,
+                                      const CoreWindowConfig *config,
+                                      CoreWindowConfigFlags   flags );
 
-DFBResult dfb_wm_restack_window( CoreWindow             *window,
-                                 CoreWindow             *relative,
-                                 int                     relation );
+DFBResult dfb_wm_restack_window     ( CoreWindow             *window,
+                                      CoreWindow             *relative,
+                                      int                     relation );
 
-DFBResult dfb_wm_grab          ( CoreWindow             *window,
-                                 CoreWMGrab             *grab );
+DFBResult dfb_wm_grab               ( CoreWindow             *window,
+                                      CoreWMGrab             *grab );
 
-DFBResult dfb_wm_ungrab        ( CoreWindow             *window,
-                                 CoreWMGrab             *grab );
+DFBResult dfb_wm_ungrab             ( CoreWindow             *window,
+                                      CoreWMGrab             *grab );
 
-DFBResult dfb_wm_request_focus ( CoreWindow             *window );
+DFBResult dfb_wm_request_focus      ( CoreWindow             *window );
 
 
-DFBResult dfb_wm_update_stack  ( CoreWindowStack        *stack,
-                                 const DFBRegion        *region,
-                                 DFBSurfaceFlipFlags     flags );
+DFBResult dfb_wm_update_stack       ( CoreWindowStack        *stack,
+                                      const DFBRegion        *region,
+                                      DFBSurfaceFlipFlags     flags );
 
-DFBResult dfb_wm_update_window ( CoreWindow             *window,
-                                 const DFBRegion        *region,
-                                 DFBSurfaceFlipFlags     flags );
+DFBResult dfb_wm_update_window      ( CoreWindow             *window,
+                                      const DFBRegion        *region,
+                                      DFBSurfaceFlipFlags     flags );
+
+DFBResult dfb_wm_update_cursor      ( CoreWindowStack        *stack,
+                                      CoreCursorUpdateFlags   flags );
 
 #endif

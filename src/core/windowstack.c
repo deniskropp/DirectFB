@@ -27,50 +27,37 @@
 
 #include <config.h>
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <string.h>
-
-
-#include <pthread.h>
-
-#include <fusion/shmalloc.h>
 
 #include <directfb.h>
 
-#include <core/coredefs.h>
-#include <core/coretypes.h>
+#include <direct/debug.h>
+#include <direct/list.h>
+#include <direct/messages.h>
 
-#include <core/core.h>
-#include <core/layer_context.h>
-#include <core/layer_region.h>
-#include <core/layers.h>
-#include <core/gfxcard.h>
+#include <fusion/reactor.h>
+#include <fusion/shmalloc.h>
+
 #include <core/input.h>
-#include <core/palette.h>
-#include <core/state.h>
-#include <core/system.h>
-#include <core/windows.h>
+#include <core/layer_context.h>
+#include <core/layers_internal.h>
+#include <core/surfaces.h>
+#include <core/windows_internal.h>
 #include <core/windowstack.h>
 #include <core/wm.h>
 
 #include <misc/conf.h>
-#include <misc/util.h>
-
-#include <direct/mem.h>
-#include <direct/messages.h>
-#include <direct/util.h>
 
 #include <gfx/convert.h>
 #include <gfx/util.h>
 
-#include <core/layers_internal.h>
-#include <core/windows_internal.h>
+
+#define CURSORFILE  DATADIR"/cursor.dat"
 
 
-#define CURSORFILE         DATADIR"/cursor.dat"
+D_DEBUG_DOMAIN( Core_WindowStack, "Core/WindowStack", "DirectFB Core WindowStack" );
 
+/**********************************************************************************************************************/
 
 typedef struct {
      DirectLink       link;
@@ -88,18 +75,19 @@ typedef struct {
      CoreWindow                 *owner;
 } GrabbedKey;
 
+/**********************************************************************************************************************/
 
-static DFBResult   load_default_cursor ( CoreWindowStack *stack );
-static DFBResult   create_cursor_window( CoreWindowStack *stack,
-                                         int              width,
-                                         int              height );
+static DFBResult load_default_cursor  ( CoreWindowStack *stack );
+static DFBResult create_cursor_surface( CoreWindowStack *stack,
+                                        int              width,
+                                        int              height );
 
-static DFBEnumerationResult
-stack_attach_devices( CoreInputDevice *device,
-                      void            *ctx );
+/**********************************************************************************************************************/
 
+static DFBEnumerationResult stack_attach_devices( CoreInputDevice *device,
+                                                  void            *ctx );
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * Allocates and initializes a window stack.
@@ -107,7 +95,10 @@ stack_attach_devices( CoreInputDevice *device,
 CoreWindowStack*
 dfb_windowstack_create( CoreLayerContext *context )
 {
-     CoreWindowStack *stack;
+     CoreWindowStack   *stack;
+     CoreSurfacePolicy  policy = CSP_SYSTEMONLY;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, context );
 
      D_ASSERT( context != NULL );
 
@@ -126,6 +117,24 @@ dfb_windowstack_create( CoreLayerContext *context )
      stack->cursor.denominator = 1;
      stack->cursor.threshold   = 4;
 
+     /* Choose cursor surface policy. */
+     if (context->config.buffermode != DLBM_BACKSYSTEM) {
+          CardCapabilities card_caps;
+
+          /* Use the explicitly specified policy? */
+          if (dfb_config->window_policy != -1)
+               policy = dfb_config->window_policy;
+          else {
+               /* Examine the hardware capabilities. */
+               dfb_gfxcard_get_capabilities( &card_caps );
+
+               if (card_caps.accel & DFXL_BLIT && card_caps.blitting & DSBLIT_BLEND_ALPHACHANNEL)
+                    policy = CSP_VIDEOHIGH;
+          }
+     }
+
+     stack->cursor.policy = policy;
+
      /* Set default background mode. */
      stack->bg.mode = DLBM_COLOR;
 
@@ -134,6 +143,8 @@ dfb_windowstack_create( CoreLayerContext *context )
      /* Attach to all input devices */
      dfb_input_enumerate_devices( stack_attach_devices, stack, DICAPS_ALL );
 
+     D_DEBUG_AT( Core_WindowStack, "  -> %p\n", stack );
+
      return stack;
 }
 
@@ -141,6 +152,8 @@ void
 dfb_windowstack_destroy( CoreWindowStack *stack )
 {
      DirectLink *l;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
      D_ASSERT( stack != NULL );
 
@@ -158,9 +171,9 @@ dfb_windowstack_destroy( CoreWindowStack *stack )
           l = next;
      }
 
-     /* Unlink cursor window. */
-     /*if (stack->cursor.window)
-          dfb_window_unlink( &stack->cursor.window );*/
+     /* Unlink cursor surface. */
+     if (stack->cursor.surface)
+          dfb_surface_unlink( &stack->cursor.surface );
 
      dfb_wm_close_stack( stack, true );
 
@@ -181,6 +194,8 @@ dfb_windowstack_resize( CoreWindowStack *stack,
                         int              width,
                         int              height )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
@@ -235,6 +250,8 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
      DFBResult ret;
      DFBRegion region;
 
+     D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
@@ -254,6 +271,8 @@ dfb_windowstack_repaint_all( CoreWindowStack *stack )
      return ret;
 }
 
+/**********************************************************************************************************************/
+
 /*
  * background handling
  */
@@ -262,6 +281,8 @@ DFBResult
 dfb_windowstack_set_background_mode ( CoreWindowStack               *stack,
                                       DFBDisplayLayerBackgroundMode  mode )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %d )\n", __FUNCTION__, stack, mode );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
@@ -294,6 +315,8 @@ DFBResult
 dfb_windowstack_set_background_image( CoreWindowStack *stack,
                                       CoreSurface     *image )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %p )\n", __FUNCTION__, stack, image );
+
      D_ASSERT( stack != NULL );
      D_ASSERT( image != NULL );
 
@@ -337,6 +360,9 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
      D_ASSERT( stack != NULL );
      D_ASSERT( color != NULL );
 
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, 0x%08x )\n", __FUNCTION__, stack,
+                 PIXEL_ARGB( color->a, color->r, color->g, color->b ) );
+
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
@@ -357,6 +383,8 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
+
 /*
  * cursor control
  */
@@ -364,6 +392,10 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
 DFBResult
 dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 {
+     DFBResult ret;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %s )\n", __FUNCTION__, stack, enable ? "enable" : "disable" );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
@@ -372,40 +404,24 @@ dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 
      stack->cursor.set = true;
 
-     if (dfb_config->no_cursor) {
+     if (dfb_config->no_cursor || stack->cursor.enabled == enable) {
           dfb_windowstack_unlock( stack );
           return DFB_OK;
      }
 
-     if (enable) {
-          if (!stack->cursor.window) {
-               DFBResult        ret;
-               CoreWindowConfig config;
-
-               ret = load_default_cursor( stack );
-               if (ret) {
-                    dfb_windowstack_unlock( stack );
-                    return ret;
-               }
-
-               config.events  = 0;
-               config.options = DWOP_ALPHACHANNEL | DWOP_GHOST;
-
-               dfb_wm_set_window_config( stack->cursor.window, &config,
-                                         CWCF_EVENTS | CWCF_OPTIONS );
+     if (enable && !stack->cursor.surface) {
+          ret = load_default_cursor( stack );
+          if (ret) {
+               dfb_windowstack_unlock( stack );
+               return ret;
           }
-
-          dfb_window_set_opacity( stack->cursor.window,
-                                  stack->cursor.opacity );
-
-          stack->cursor.enabled = 1;
      }
-     else {
-          if (stack->cursor.window)
-               dfb_window_set_opacity( stack->cursor.window, 0 );
 
-          stack->cursor.enabled = 0;
-     }
+     /* Keep state. */
+     stack->cursor.enabled = enable;
+
+     /* Notify WM. */
+     dfb_wm_update_cursor( stack, enable ? CCUF_ENABLE : CCUF_DISABLE );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -416,19 +432,20 @@ dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 DFBResult
 dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, __u8 opacity )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, 0x%02x )\n", __FUNCTION__, stack, opacity );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     if (stack->cursor.enabled) {
-          D_ASSERT( stack->cursor.window );
-
-          dfb_window_set_opacity( stack->cursor.window, opacity );
-     }
-
+     /* Set new opacity. */
      stack->cursor.opacity = opacity;
+
+     /* Notify WM. */
+     if (stack->cursor.enabled)
+          dfb_wm_update_cursor( stack, CCUF_OPACITY );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -443,10 +460,11 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
                                   int              hot_y )
 {
      DFBResult              ret;
-     int                    dx, dy;
-     CoreWindow            *cursor;
-     CoreWindowConfig       config;
-     CoreWindowConfigFlags  flags = CWCF_NONE;
+     CoreSurface           *cursor;
+     CoreCursorUpdateFlags  flags = CCUF_SHAPE;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %p, hot %d, %d ) <- size %dx%d\n",
+                 __FUNCTION__, stack, shape, hot_x, hot_y, shape->width, shape->height );
 
      D_ASSERT( stack != NULL );
      D_ASSERT( shape != NULL );
@@ -458,79 +476,45 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     cursor = stack->cursor.window;
+     cursor = stack->cursor.surface;
      if (!cursor) {
-          ret = create_cursor_window( stack, shape->width, shape->height );
+          D_ASSUME( !stack->cursor.enabled );
+
+          /* Create the a surface for the shape. */
+          ret = create_cursor_surface( stack, shape->width, shape->height );
           if (ret) {
                dfb_windowstack_unlock( stack );
                return ret;
           }
-          cursor = stack->cursor.window;
 
-          config.events  = 0;
-          config.options = DWOP_ALPHACHANNEL | DWOP_GHOST;
-          config.opacity = stack->cursor.opacity;
-
-          flags |= CWCF_EVENTS | CWCF_OPTIONS | CWCF_OPACITY;
+          cursor = stack->cursor.surface;
      }
-     else if (cursor->config.bounds.w != shape->width || cursor->config.bounds.h != shape->height) {
-          config.bounds.w = shape->width;
-          config.bounds.h = shape->height;
+     else if (stack->cursor.size.w != shape->width || stack->cursor.size.h != shape->height) {
+          dfb_surface_reformat( NULL, cursor, shape->width, shape->height, DSPF_ARGB );
 
-          ret = dfb_wm_set_window_config( cursor, &config, CWCF_SIZE );
-          if (ret) {
-               D_DERROR( ret, "DirectFB/Core/WindowStack: Could not "
-                         "resize the cursor window (%dx%d!\n", shape->width, shape->height );
-               return ret;
-          }
+          stack->cursor.size.w = shape->width;
+          stack->cursor.size.h = shape->height;
+
+          /* Notify about new size. */
+          flags |= CCUF_SIZE;
      }
 
-     if (DFB_PIXELFORMAT_HAS_ALPHA( shape->format ) && dfb_config->translucent_windows) {
-          if (cursor->config.options & DWOP_COLORKEYING) {
-               config.options = (cursor->config.options & ~DWOP_COLORKEYING) | DWOP_ALPHACHANNEL;
-               flags |= CWCF_OPTIONS;
-          }
-     }
-     else {
-          __u32 key = dfb_color_to_pixel( cursor->surface->format, 0xff, 0x00, 0xff );
+     if (stack->cursor.hot.x != hot_x || stack->cursor.hot.y != hot_y) {
+          stack->cursor.hot.x = hot_x;
+          stack->cursor.hot.y = hot_y;
 
-          if (config.color_key != key) {
-               config.color_key = key;
-               flags |= CWCF_COLOR_KEY;
-          }
-
-          if (cursor->config.options & DWOP_ALPHACHANNEL) {
-               config.options = (cursor->config.options & ~DWOP_ALPHACHANNEL) | DWOP_COLORKEYING;
-               flags |= CWCF_OPTIONS;
-          }
+          /* Notify about new position. */
+          flags |= CCUF_POSITION;
      }
 
-     dx = stack->cursor.x - hot_x - cursor->config.bounds.x;
-     dy = stack->cursor.y - hot_y - cursor->config.bounds.y;
+     /* Copy the content of the new shape. */
+     dfb_gfx_copy( shape, cursor, NULL );
 
-     if (dx || dy) {
-          config.bounds.x = cursor->config.bounds.x + dx;
-          config.bounds.y = cursor->config.bounds.y + dy;
-          flags |= CWCF_POSITION;
-     }
+     cursor->caps = ((cursor->caps & ~DSCAPS_PREMULTIPLIED) | (shape->caps & DSCAPS_PREMULTIPLIED));
 
-
-     dfb_gfx_copy( shape, cursor->surface, NULL );
-
-     cursor->surface->caps = ((cursor->surface->caps & ~DSCAPS_PREMULTIPLIED) |
-                              (shape->caps & DSCAPS_PREMULTIPLIED));
-
-     if (flags) {
-          ret = dfb_wm_set_window_config( cursor, &config, flags );
-          if (ret) {
-               D_DERROR( ret, "DirectFB/Core/WindowStack: "
-                         "Could not set window configuration (flags 0x%08x)!\n", flags );
-               return ret;
-          }
-     }
-     else
-          dfb_window_repaint( stack->cursor.window, NULL, DSFLIP_NONE );
-
+     /* Notify the WM. */
+     if (stack->cursor.enabled)
+          dfb_wm_update_cursor( stack, flags );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -541,13 +525,32 @@ dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
 DFBResult
 dfb_windowstack_cursor_warp( CoreWindowStack *stack, int x, int y )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %d, %d )\n", __FUNCTION__, stack, x, y );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     dfb_wm_warp_cursor( stack, x, y );
+     if (x < 0)
+          x = 0;
+     else if (x > stack->width - 1)
+          x = stack->width - 1;
+
+     if (y < 0)
+          y = 0;
+     else if (y > stack->height - 1)
+          y = stack->height - 1;
+
+     if (stack->cursor.x != x || stack->cursor.y != y) {
+          stack->cursor.x = x;
+          stack->cursor.y = y;
+
+          /* Notify the WM. */
+          if (stack->cursor.enabled)
+               dfb_wm_update_cursor( stack, CCUF_POSITION );
+     }
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -561,6 +564,9 @@ dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
                                          int              denominator,
                                          int              threshold )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %d, %d, %d )\n",
+                 __FUNCTION__, stack, numerator, denominator, threshold );
+
      D_ASSERT( stack != NULL );
 
      /* Lock the window stack. */
@@ -578,19 +584,22 @@ dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
 }
 
 DFBResult
-dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *x, int *y )
+dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *ret_x, int *ret_y )
 {
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %p, %p )\n", __FUNCTION__, stack, ret_x, ret_y );
+
      D_ASSERT( stack != NULL );
+     D_ASSUME( ret_x != NULL || ret_y != NULL );
 
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
-     if (x)
-          *x = stack->cursor.x;
+     if (ret_x)
+          *ret_x = stack->cursor.x;
 
-     if (y)
-          *y = stack->cursor.y;
+     if (ret_y)
+          *ret_y = stack->cursor.y;
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );
@@ -598,7 +607,7 @@ dfb_windowstack_get_cursor_position( CoreWindowStack *stack, int *x, int *y )
      return DFB_OK;
 }
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 ReactionResult
 _dfb_windowstack_inputdevice_listener( const void *msg_data,
@@ -606,6 +615,8 @@ _dfb_windowstack_inputdevice_listener( const void *msg_data,
 {
      const DFBInputEvent *event = msg_data;
      CoreWindowStack     *stack = ctx;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
 
      D_ASSERT( msg_data != NULL );
      D_ASSERT( ctx != NULL );
@@ -634,12 +645,14 @@ _dfb_windowstack_background_image_listener( const void *msg_data,
      const CoreSurfaceNotification *notification = msg_data;
      CoreWindowStack               *stack        = ctx;
 
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %p )\n", __FUNCTION__, msg_data, ctx );
+
      D_ASSERT( notification != NULL );
      D_ASSERT( stack != NULL );
 
      if (notification->flags & CSNF_DESTROY) {
           if (stack->bg.image == notification->surface) {
-               D_ERROR("DirectFB/core/layers: Surface for background vanished.\n");
+               D_ERROR( "Core/WindowStack: Surface for background vanished.\n" );
 
                stack->bg.mode  = DLBM_COLOR;
                stack->bg.image = NULL;
@@ -656,7 +669,7 @@ _dfb_windowstack_background_image_listener( const void *msg_data,
      return RS_OK;
 }
 
-/******************************************************************************/
+/**********************************************************************************************************************/
 
 /*
  * internals
@@ -673,8 +686,7 @@ stack_attach_devices( CoreInputDevice *device,
 
      dev = SHCALLOC( stack->shmpool, 1, sizeof(StackDevice) );
      if (!dev) {
-          D_ERROR( "DirectFB/core/windows: Could not allocate %d bytes\n",
-                    sizeof(StackDevice) );
+          D_ERROR( "Core/WindowStack: Could not allocate %d bytes\n", sizeof(StackDevice) );
           return DFENUM_CANCEL;
      }
 
@@ -695,34 +707,37 @@ stack_attach_devices( CoreInputDevice *device,
 static DFBResult
 load_default_cursor( CoreWindowStack *stack )
 {
-     DFBResult        ret;
-     int              i;
-     int              pitch;
-     void            *data;
-     FILE            *f;
-     CoreWindow      *window;
+     DFBResult ret;
+     int       i;
+     int       pitch;
+     void     *data;
+     FILE     *f;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p )\n", __FUNCTION__, stack );
 
      D_ASSERT( stack != NULL );
 
-     if (!stack->cursor.window) {
-          ret = create_cursor_window( stack, 40, 40 );
+     if (!stack->cursor.surface) {
+          ret = create_cursor_surface( stack, 40, 40 );
           if (ret)
                return ret;
      }
-
-     window = stack->cursor.window;
+     else {
+          stack->cursor.hot.x  = 0;
+          stack->cursor.hot.y  = 0;
+          stack->cursor.size.w = 40;
+          stack->cursor.size.h = 40;
+     }
 
      /* lock the surface of the window */
-     ret = dfb_surface_soft_lock( window->surface,
-                                  DSLF_WRITE, &data, &pitch, 0 );
+     ret = dfb_surface_soft_lock( stack->cursor.surface, DSLF_WRITE, &data, &pitch, false );
      if (ret) {
-          D_ERROR( "DirectFB/core/layers: "
-                    "cannot lock the surface for cursor window data!\n" );
+          D_ERROR( "Core/WindowStack: cannot lock the surface for cursor window data!\n" );
           return ret;
      }
 
      /* initialize as empty cursor */
-     memset( data, 0, 40 * pitch);
+     memset( data, 0, 40 * pitch );
 
      /* open the file containing the cursors image data */
      f = fopen( CURSORFILE, "rb" );
@@ -733,7 +748,7 @@ load_default_cursor( CoreWindowStack *stack )
           if (ret == DFB_FILENOTFOUND)
                ret = DFB_OK;
           else
-               D_PERROR( "`" CURSORFILE "` could not be opened!\n" );
+               D_PERROR( "Core/WindowStack: `" CURSORFILE "` could not be opened!\n" );
 
           goto finish;
      }
@@ -743,8 +758,7 @@ load_default_cursor( CoreWindowStack *stack )
           if (fread( data, MIN (40*4, pitch), 1, f ) != 1) {
                ret = errno2result( errno );
 
-               D_ERROR( "DirectFB/core/layers: "
-                         "unexpected end or read error of cursor data!\n" );
+               D_ERROR( "Core/WindowStack: unexpected end or read error of cursor data!\n" );
 
                goto finish;
           }
@@ -769,43 +783,56 @@ finish:
      if (f)
           fclose( f );
 
-     dfb_surface_unlock( window->surface, 0 );
-
-     dfb_window_repaint( window, NULL, DSFLIP_NONE );
+     dfb_surface_unlock( stack->cursor.surface, false );
 
      return ret;
 }
 
 static DFBResult
-create_cursor_window( CoreWindowStack *stack,
-                      int              width,
-                      int              height )
+create_cursor_surface( CoreWindowStack *stack,
+                       int              width,
+                       int              height )
 {
-     DFBResult   ret;
-     CoreWindow *window;
+     DFBResult          ret;
+     CoreSurface       *surface;
+     CoreLayer         *layer;
+     CoreLayerContext  *context;
+
+     D_DEBUG_AT( Core_WindowStack, "%s( %p, %dx%d )\n", __FUNCTION__, stack, width, height );
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( stack->cursor.window == NULL );
+     D_ASSERT( stack->cursor.surface == NULL );
 
-     stack->cursor.x       = stack->width  / 2;
-     stack->cursor.y       = stack->height / 2;
+     context = stack->context;
+
+     D_ASSERT( context != NULL );
+
+     layer = dfb_layer_at( context->layer_id );
+
+     D_ASSERT( layer != NULL );
+
+     stack->cursor.x   = stack->width  / 2;
+     stack->cursor.y   = stack->height / 2;
+     stack->cursor.hot.x   = 0;
+     stack->cursor.hot.y   = 0;
+     stack->cursor.size.w  = width;
+     stack->cursor.size.h  = height;
      stack->cursor.opacity = 0xFF;
 
-     /* create a super-top-most event-and-focus-less window */
-     ret = dfb_window_create( stack, stack->cursor.x, stack->cursor.y, width, height,
-                              DWHC_TOPMOST | DWCAPS_ALPHACHANNEL | DWCAPS_NODECORATION,
-                              DSCAPS_NONE, DSPF_UNKNOWN, &window );
+     if (context->config.buffermode == DLBM_WINDOWS)
+          D_WARN( "cursor not yet visible with DLBM_WINDOWS" );
+
+     /* Create the cursor surface. */
+     ret = dfb_surface_create( layer->core, width, height, DSPF_ARGB,
+                               stack->cursor.policy, DSCAPS_NONE, NULL, &surface );
      if (ret) {
-          D_ERROR( "DirectFB/Core/layers: "
-                    "Failed creating a window for software cursor!\n" );
+          D_ERROR( "Core/WindowStack: Failed creating a surface for software cursor!\n" );
           return ret;
      }
 
-     stack->cursor.window = window;
+     dfb_surface_globalize( surface );
 
-     dfb_window_inherit( window, stack->context );
-
-     dfb_window_unref( window );
+     stack->cursor.surface = surface;
 
      return DFB_OK;
 }

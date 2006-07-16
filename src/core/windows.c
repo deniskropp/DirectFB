@@ -109,9 +109,6 @@ window_destructor( FusionObject *object, bool zombie )
      if (stack) {
           dfb_windowstack_lock( stack );
 
-          if (stack->cursor.window == window)
-               stack->cursor.window = NULL;
-
           dfb_window_destroy( window );
 
           /* Unlink the primary region of the context. */
@@ -330,20 +327,7 @@ dfb_window_create( CoreWindowStack        *stack,
           }
      }
 
-     surface_caps &= ~(DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY);
-
-     switch (surface_policy) {
-          case CSP_SYSTEMONLY:
-               surface_caps |= DSCAPS_SYSTEMONLY;
-               break;
-
-          case CSP_VIDEOONLY:
-               surface_caps |= DSCAPS_VIDEOONLY;
-               break;
-
-          default:
-               break;
-     }
+     dfb_surface_caps_apply_policy( surface_policy, &surface_caps );
 
      if (caps & DWCAPS_DOUBLEBUFFER)
           surface_caps |= DSCAPS_DOUBLE;
