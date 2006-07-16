@@ -61,6 +61,14 @@ static pthread_mutex_t cd_lock   = PTHREAD_MUTEX_INITIALIZER;
 void
 dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect )
 {
+     dfb_gfx_copy_to( source, destination, rect, rect ? rect->x : 0, rect ? rect->y : 0, false );
+}
+
+void
+dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect, int x, int y, bool from_back )
+{
+     SurfaceBuffer *tmp;
+
      pthread_mutex_lock( &copy_lock );
 
      if (!copy_state_inited) {
@@ -75,12 +83,28 @@ dfb_gfx_copy( CoreSurface *source, CoreSurface *destination, DFBRectangle *rect 
      copy_state.source      = source;
      copy_state.destination = destination;
 
+     if (from_back) {
+          dfb_surfacemanager_lock( source->manager );
+
+          tmp = source->front_buffer;
+          source->front_buffer = source->back_buffer;
+          source->back_buffer = tmp;
+     }
+
      if (rect) {
-          dfb_gfxcard_blit( rect, rect->x, rect->y, &copy_state );
+          dfb_gfxcard_blit( rect, x, y, &copy_state );
      }
      else {
           DFBRectangle sourcerect = { 0, 0, source->width, source->height };
-          dfb_gfxcard_blit( &sourcerect, 0, 0, &copy_state );
+          dfb_gfxcard_blit( &sourcerect, x, y, &copy_state );
+     }
+
+     if (from_back) {
+          tmp = source->front_buffer;
+          source->front_buffer = source->back_buffer;
+          source->back_buffer = tmp;
+
+          dfb_surfacemanager_unlock( source->manager );
      }
 
      pthread_mutex_unlock( &copy_lock );
