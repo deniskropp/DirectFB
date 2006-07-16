@@ -82,6 +82,8 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 #define DFB_RECTANGLE_VALS(r)                (r)->x, (r)->y, (r)->w, (r)->h
 #define DFB_RECTANGLE_VALS_FROM_REGION(r)    (r)->x1, (r)->y1, (r)->x2-(r)->x1+1, (r)->y2-(r)->y1+1
 #define DFB_RECTANGLE_INIT_FROM_REGION(r)    (DFBRectangle){ DFB_RECTANGLE_VALS_FROM_REGION(r) }
+#define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)  (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
+                                              ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
 
 
 #define DFB_REGION_ASSERT(r)                 \
@@ -117,6 +119,9 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
                                                      (r)->y2 < (Y2) ? (r)->y2 : (Y2)
 #define DFB_REGION_INIT_INTERSECTED(r,X1,Y1,X2,Y2)   (DFBRegion){ DFB_REGION_VALS_INTERSECTED(r,X1,Y1,X2,Y2) }
 
+
+#define DFB_REGION_CONTAINS_POINT(r,X,Y)     (((X) >= (r)->x1) && ((X) <= (r)->x2) && \
+                                              ((Y) >= (r)->y1) && ((Y) <= (r)->y2))
 
 static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
                                               const DFBRegion *region )
