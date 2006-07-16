@@ -426,7 +426,7 @@ direct_trace_print_stack( DirectTraceBuffer *buffer )
                          }
                     }
 
-                    direct_log_printf( NULL, "%s () from %s\n", symbol, info.dli_fname );
+                    direct_log_printf( NULL, "%s () from %s [%p]\n", symbol, info.dli_fname, info.dli_fbase );
                }
                else if (info.dli_sname) {
                     direct_log_printf( NULL, "%s ()\n", info.dli_sname );
