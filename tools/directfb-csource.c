@@ -68,7 +68,8 @@ static void       print_usage     (const char             *prg_name);
 static DFBResult  load_image      (const char             *filename,
                                    DFBSurfaceDescription  *desc,
                                    DFBColor               *palette,
-                                   int                    *palette_size);
+                                   int                    *palette_size,
+                                   DFBSurfacePixelFormat   rgbformat);
 static DFBResult  merge_images    (DFBSurfaceDescription  *images,
                                    int                     num_images,
                                    DFBSurfaceDescription  *dest,
@@ -88,8 +89,9 @@ static char *     base_name       (const char             *name);
 int main (int         argc,
           const char *argv[])
 {
-     DFBSurfaceDescription  desc   = { flags: 0 };
-     DFBSurfacePixelFormat  format = DSPF_UNKNOWN;
+     DFBSurfaceDescription desc      = { flags: 0 };
+     DFBSurfacePixelFormat format    = DSPF_UNKNOWN;
+     DFBSurfacePixelFormat rgbformat = DSPF_UNKNOWN;
      DFBColor  palette[256];
 
      const char *filename[argc];
@@ -119,6 +121,13 @@ int main (int         argc,
                          if (!strcasecmp (pixelformats[i].name, arg + 7))
                               format = pixelformats[i].format;
                     if (format)
+                         continue;
+               }
+               if (strncmp (arg, "rgbformat=", 10) == 0 && !rgbformat) {
+                    for (i = 0; i < n_pixelformats && !rgbformat; i++)
+                         if (!strcasecmp (pixelformats[i].name, arg + 10))
+                              rgbformat = pixelformats[i].format;
+                    if (rgbformat)
                          continue;
                }
                if (strncmp (arg, "name=", 5) == 0 && !name) {
@@ -154,7 +163,7 @@ int main (int         argc,
           desc.pixelformat = format;
      }
 
-     if (load_image (filename[0], &desc, palette, &palette_size) != DFB_OK)
+     if (load_image (filename[0], &desc, palette, &palette_size, rgbformat) != DFB_OK)
           return EXIT_FAILURE;
 
      /*  dump it and quit if this is the only image on the command line  */
@@ -177,7 +186,7 @@ int main (int         argc,
                image[i].pixelformat = desc.pixelformat;
 
                if (load_image (filename[i],
-                               image + i, foo, &foo_size) != DFB_OK)
+                               image + i, foo, &foo_size, rgbformat) != DFB_OK)
                     return EXIT_FAILURE;
           }
 
@@ -197,11 +206,12 @@ static void print_usage (const char *prg_name)
 {
      fprintf (stderr, "directfb-csource version %s\n\n", DIRECTFB_VERSION);
      fprintf (stderr, "Usage: %s [options] <imagefile>\n", prg_name);
-     fprintf (stderr, "   --name=<identifer>     specifies variable name\n");
-     fprintf (stderr, "   --format=<identifer>   specifies surface format\n");
-     fprintf (stderr, "   --multi                multiple images\n");
-     fprintf (stderr, "   --help                 show this help message\n");
-     fprintf (stderr, "   --version              print version information\n");
+     fprintf (stderr, "   --name=<identifer>      specifies variable name\n");
+     fprintf (stderr, "   --format=<identifer>    specifies surface format\n");
+     fprintf (stderr, "   --rgbformat=<identifer> specifies format for non-alpha images\n");
+     fprintf (stderr, "   --multi                 multiple images\n");
+     fprintf (stderr, "   --help                  show this help message\n");
+     fprintf (stderr, "   --version               print version information\n");
      fprintf (stderr, "\n");
      fprintf (stderr, "See the directfb-csource(1) man-page for more information.\n");
      fprintf (stderr, "\n");
@@ -210,7 +220,8 @@ static void print_usage (const char *prg_name)
 static DFBResult load_image (const char            *filename,
                              DFBSurfaceDescription *desc,
                              DFBColor              *palette,
-                             int                   *palette_size)
+                             int                   *palette_size,
+                             DFBSurfacePixelFormat  rgbformat)
 {
      DFBSurfacePixelFormat dest_format;
      DFBSurfacePixelFormat src_format;
@@ -291,6 +302,8 @@ static DFBResult load_image (const char            *filename,
                /* fallthru */
           case PNG_COLOR_TYPE_GRAY_ALPHA:
                png_set_gray_to_rgb (png_ptr);
+               if (rgbformat)
+                    dest_format = rgbformat;
                break;
 
           case PNG_COLOR_TYPE_PALETTE:
@@ -301,6 +314,8 @@ static DFBResult load_image (const char            *filename,
                png_set_palette_to_rgb (png_ptr);
                /* fallthru */
           case PNG_COLOR_TYPE_RGB:
+               if (rgbformat)
+                    dest_format = rgbformat;
           case PNG_COLOR_TYPE_RGB_ALPHA:
                if (dest_format == DSPF_RGB24) {
                     png_set_strip_alpha (png_ptr);
