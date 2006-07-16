@@ -1123,7 +1123,14 @@ void dfb_gfxcard_blit( DFBRectangle *rect, int dx, int dy, CardState *state )
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
+     D_ASSERT( state->source != NULL );
      D_ASSERT( rect != NULL );
+     D_ASSERT( rect->x >= 0 );
+     D_ASSERT( rect->y >= 0 );
+     D_ASSERT( rect->x < state->source->width );
+     D_ASSERT( rect->y < state->source->height );
+     D_ASSERT( rect->x + rect->w - 1 < state->source->width );
+     D_ASSERT( rect->y + rect->h - 1 < state->source->height );
 
      dfb_state_lock( state );
 
