@@ -4927,7 +4927,7 @@ typedef struct {
 /*
  * Called for each written frame.
  */
-typedef int (*DVFrameCallback)(void *ctx);
+typedef void (*DVFrameCallback)(void *ctx);
 
 
 /**************************
