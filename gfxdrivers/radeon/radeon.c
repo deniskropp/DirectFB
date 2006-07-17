@@ -144,8 +144,10 @@ radeon_get_monitors( RadeonDriverData  *rdrv,
 {
      RadeonMonitorType  dvimon = MT_NONE;
      RadeonMonitorType  vgamon = MT_NONE;
+#if D_DEBUG_ENABLED
      const char        *name[] = { "NONE", "CRT", "DFP", 
                                    "LCD",  "CTV", "STV" }; 
+#endif
      __u32              tmp;
       
      if (rdev->chipset != CHIP_R100) {        
