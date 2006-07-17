@@ -38,12 +38,6 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
-#ifdef HAVE_LINUX_PCI_REGS_H
-#include <linux/pci_regs.h>
-#else
-#include <linux/pci.h>
-#endif
-
 #include <directfb.h>
 
 #include <direct/mem.h>
@@ -230,6 +224,11 @@ pci_read_byte( int fd, int pos )
      return b;
 }
 
+#define PCI_STATUS            0x06
+#define  PCI_STATUS_CAP_LIST  0x10
+#define PCI_CAPABILITY_LIST   0x34
+#define  PCI_CAP_ID_AGP       0x02
+
 static bool
 dfb_agp_capable( int bus, int dev, int func )
 {
@@ -258,7 +257,7 @@ dfb_agp_capable( int bus, int dev, int func )
           while (ttl-- && pos >= 0x40) {
                pos &= ~3;
                
-               id = pci_read_byte( fd, pos+PCI_CAP_LIST_ID );
+               id = pci_read_byte( fd, pos );
                if (id == 0xff)
                     break;
                if (id == PCI_CAP_ID_AGP) {
@@ -266,7 +265,7 @@ dfb_agp_capable( int bus, int dev, int func )
                     break;
                }
                
-               pos = pci_read_byte( fd, pos+PCI_CAP_LIST_NEXT );
+               pos = pci_read_byte( fd, pos+1 );
           }
      }
 
