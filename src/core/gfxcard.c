@@ -438,6 +438,8 @@ dfb_gfxcard_holdup()
 bool
 dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
 {
+     int cx2, cy2;
+
      D_ASSERT( card != NULL );
      D_MAGIC_ASSERT( state, CardState );
 
@@ -465,12 +467,35 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           return false;
      }
 
-     D_ASSUME( state->clip.x2 >= state->clip.x1 );
-     D_ASSUME( state->clip.y2 >= state->clip.y1 );
-     D_ASSUME( state->clip.x1 >= 0 );
-     D_ASSUME( state->clip.y1 >= 0 );
+     D_ASSERT( state->clip.x2 >= state->clip.x1 );
+     D_ASSERT( state->clip.y2 >= state->clip.y1 );
+     D_ASSERT( state->clip.x1 >= 0 );
+     D_ASSERT( state->clip.y1 >= 0 );
+
      D_ASSUME( state->clip.x2 < state->destination->width );
      D_ASSUME( state->clip.y2 < state->destination->height );
+
+     cx2 = state->destination->width  - 1;
+     cy2 = state->destination->height - 1;
+
+     if (state->clip.x2 > cx2) {
+          state->clip.x2 = cx2;
+
+          if (state->clip.x1 > cx2)
+               state->clip.x1 = cx2;
+
+          state->modified |= SMF_CLIP;
+     }
+
+     if (state->clip.y2 > cy2) {
+          state->clip.y2 = cy2;
+
+          if (state->clip.y1 > cy2)
+               state->clip.y1 = cy2;
+
+          state->modified |= SMF_CLIP;
+     }
+
 
      /*
       * If back_buffer policy is 'system only' there's no acceleration
