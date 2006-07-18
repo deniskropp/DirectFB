@@ -199,20 +199,24 @@ surface_callback( FusionObjectPool *pool,
      printf( "%5dk%c  ", vmem >> 10, buffer_locks( surface, true ) ? '°' : ' ' );
      printf( "%5dk%c  ", smem >> 10, buffer_locks( surface, false ) ? '°' : ' ' );
 
+     /* FIXME: assumes all buffers have this flag (or none) */
+     if (surface->front_buffer->flags & SBF_FOREIGN_SYSTEM)
+          printf( "preallocated " );
+
      if (surface->caps & DSCAPS_SYSTEMONLY)
           printf( "system only  " );
 
      if (surface->caps & DSCAPS_VIDEOONLY)
           printf( "video only   " );
 
+     if (surface->caps & DSCAPS_INTERLACED)
+          printf( "interlaced   " );
+
      if (surface->caps & DSCAPS_DOUBLE)
           printf( "double       " );
 
      if (surface->caps & DSCAPS_TRIPLE)
           printf( "triple       " );
-
-     if (surface->caps & DSCAPS_INTERLACED)
-          printf( "interlaced   " );
 
      if (surface->caps & DSCAPS_PREMULTIPLIED)
           printf( "premultiplied" );
