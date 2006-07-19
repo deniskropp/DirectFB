@@ -465,12 +465,12 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
      }
 
      /* Handle local reactions. */
-     if (self)
-          _fusion_reactor_process_message( reactor->id, msg_data, reactor, NULL );
+     //if (self)
+       //   _fusion_reactor_process_message( reactor->id, msg_data, reactor, NULL );
 
      /* Initialize dispatch data. */
      dispatch.reactor_id = reactor->id;
-     dispatch.self       = false;
+     dispatch.self       = self;//false;
      dispatch.msg_size   = msg_size;
      dispatch.msg_data   = msg_data;
 
@@ -850,7 +850,7 @@ fusion_reactor_set_lock( FusionReactor  *reactor,
      D_ASSERT( reactor != NULL );
      D_ASSERT( lock != NULL );
 
-     D_UNIMPLEMENTED();
+//     D_UNIMPLEMENTED();
 
      return DFB_UNIMPLEMENTED;
 }
