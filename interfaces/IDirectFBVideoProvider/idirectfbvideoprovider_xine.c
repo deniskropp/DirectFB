@@ -792,10 +792,6 @@ IDirectFBVideoProvider_Xine_SetPlaybackFlags( IDirectFBVideoProvider        *thi
      if (flags & ~DVPLAY_LOOPING)
           return DFB_UNSUPPORTED;
           
-     if (flags & DVPLAY_LOOPING &&
-         !xine_get_stream_info( data->stream, XINE_STREAM_INFO_SEEKABLE ))
-          return DFB_UNSUPPORTED;
-          
      data->flags = flags;
      
      return DFB_OK;
@@ -811,7 +807,7 @@ IDirectFBVideoProvider_Xine_SetSpeed( IDirectFBVideoProvider *thiz,
           return DFB_INVARG;
      
      xine_set_param( data->stream, XINE_PARAM_SPEED,
-                     multiplier*XINE_SPEED_NORMAL+.5 );
+                     (multiplier*XINE_SPEED_NORMAL+.5) );
                      
      return DFB_OK;
 }
@@ -898,6 +894,10 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      /* Skip test in this case */
      if (!ctx->filename)
           return DFB_OK;
+          
+     /* Ignore GIFs */
+     if (!strcmp( strrchr( ctx->filename, '.' ) ? : "", ".gif" ))
+          return DFB_UNSUPPORTED;
      
      if (!strcmp ( ctx->filename, "/dev/cdrom" )     ||
          !strncmp( ctx->filename, "/dev/cdroms/", 12 )) {
