@@ -998,8 +998,13 @@ IDirectFBVideoProvider_GIF_SetSpeed( IDirectFBVideoProvider *thiz,
      
      if (multiplier < 0.0)
           return DFB_INVARG;
-          
-     data->speed = multiplier;
+    
+     if (data->speed != multiplier) {
+          pthread_mutex_lock( &data->lock ); 
+          data->speed = multiplier;
+          pthread_cond_signal( &data->cond );
+          pthread_mutex_unlock( &data->lock );
+     }
      
      return DFB_OK;
 }
