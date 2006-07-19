@@ -879,6 +879,12 @@ IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
           data->audio.thread = NULL;
      }
      
+     if (data->dest) {
+          data->dest->Release( data->dest );
+          data->dest = NULL;
+          data->dest_data = NULL;
+     }
+     
      data->status = DVSTATE_STOP;
      
      return DFB_OK;
