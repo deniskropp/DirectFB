@@ -1017,6 +1017,12 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
           data->audio.thread = NULL;
      }
      
+     if (data->video.dest) {
+          data->video.dest->Release( data->video.dest );
+          data->video.dest = NULL;
+          data->video.dest_data = NULL;
+     }
+     
      data->status = DVSTATE_STOP;
      
      return DFB_OK;
@@ -1282,7 +1288,8 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
                    !strcmp( format->name, "m4a" ) ||
                    !strcmp( format->name, "ra"  ) ||
                    !strcmp( format->name, "wma" ) ||
-                   !strcmp( format->name, "swf" ))
+                   !strcmp( format->name, "swf" ) ||
+                   !strcmp( format->name, "gif" ))
                     return DFB_UNSUPPORTED;
           }
 
