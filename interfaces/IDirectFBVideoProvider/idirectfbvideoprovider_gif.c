@@ -538,10 +538,6 @@ static DFBResult GIFReadHeader( IDirectFBVideoProvider_GIF_data *data )
      
      memcpy( data->Version, &buf[3], 3 );
      data->Version[3] = '\0';
-     if (strcmp( data->Version, "87a" ) && strcmp( data->Version, "89a" )) {
-          GIFERRORMSG("unsupported version '%s'", data->Version);
-          return DFB_UNSUPPORTED;
-     }
      
      ret = FetchData( data->buffer, buf, 7 );
      if (ret) {
@@ -1027,8 +1023,7 @@ IDirectFBVideoProvider_GIF_GetSpeed( IDirectFBVideoProvider *thiz,
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     if (!memcmp( ctx->header, "GIF87a", 6 ) ||
-         !memcmp( ctx->header, "GIF89a", 6 ))
+     if (!memcmp( ctx->header, "GIF89", 5 ))
           return DFB_OK;
           
      return DFB_UNSUPPORTED;
