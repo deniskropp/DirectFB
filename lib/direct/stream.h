@@ -46,13 +46,17 @@
  *   stdin:/
  */
 DirectResult  direct_stream_create  ( const char     *filename,
-                                      DirectStream  **ret_stream );
+                                      DirectStream  **ret_stream );                                      
+                                      
+/*
+ * Duplicate the stream (never fails).
+ */
+DirectStream *direct_stream_dup     ( DirectStream   *stream );     
 
 /*
- * Open a stream of type FILE from a Direct stream.
+ * Return the file descriptor associated to the stream.
  */
-DirectResult  direct_stream_fopen   ( DirectStream   *stream,
-                                      FILE          **ret_file );
+int           direct_stream_fileno  ( DirectStream   *stream );
 
 /*
  * True if stream is seekable.

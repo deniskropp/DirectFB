@@ -54,6 +54,7 @@
 
 struct __D_DirectStream {
      int                   magic;
+     int                   ref;
      
      int                   fd;
      unsigned int          offset;
@@ -1325,6 +1326,8 @@ direct_stream_create( const char    *filename,
           return D_OOM();
 
      D_MAGIC_SET( stream, DirectStream );
+     
+     stream->ref = 1;
 
      if (!strncmp( filename, "tcp://", 6 )) {
           ret = tcp_open( stream, filename+6 );
@@ -1358,24 +1361,26 @@ direct_stream_create( const char    *filename,
      return DFB_OK;
 }
 
-DirectResult
-direct_stream_fopen( DirectStream  *stream,
-                     FILE         **ret_file )
+DirectStream*
+direct_stream_dup( DirectStream *stream )
 {
-     FILE *fp;
-     
      D_ASSERT( stream != NULL );
-     D_ASSERT( ret_file != NULL );
 
      D_MAGIC_ASSERT( stream, DirectStream );
      
-     fp = fdopen( stream->fd, "rb" );
-     if (!fp)
-          return errno2result( errno );
-
-     *ret_file = fp;
+     stream->ref++;
      
-     return DFB_OK;
+     return stream;
+}
+
+int
+direct_stream_fileno( DirectStream  *stream )
+{
+     D_ASSERT( stream != NULL );
+
+     D_MAGIC_ASSERT( stream, DirectStream );
+     
+     return stream->fd;
 }
 
 bool
@@ -1503,9 +1508,11 @@ direct_stream_destroy( DirectStream *stream )
 
      D_MAGIC_ASSERT( stream, DirectStream );
 
-     if (stream->close)
-          stream->close( stream );
+     if (--stream->ref == 0) {
+          if (stream->close)
+               stream->close( stream );
 
-     D_FREE( stream );
+          D_FREE( stream );
+     }
 }
 
