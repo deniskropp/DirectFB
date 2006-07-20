@@ -44,7 +44,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz,
-           const char                *filename );
+           const char                *filename,
+           DirectStream              *stream );
 
 #include <direct/interface_implementation.h>
 
@@ -329,14 +330,14 @@ vorbis_mix_audio( float **src, void *dst, int len,
 static void
 IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
 {
-     IFusionSoundMusicProvider_Vorbis_data *data =
-         (IFusionSoundMusicProvider_Vorbis_data*)thiz->priv;
+     IFusionSoundMusicProvider_Vorbis_data *data = thiz->priv;
 
      thiz->Stop( thiz );
     
      ov_clear( &data->vf );
 
-     direct_stream_destroy( data->stream );
+     if (data->stream)
+          direct_stream_destroy( data->stream );
 
      pthread_mutex_destroy( &data->lock );
 
@@ -939,52 +940,29 @@ IFusionSoundMusicProvider_Vorbis_SetPlaybackFlags( IFusionSoundMusicProvider    
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     DFBResult     ret;
-     DirectStream *stream;
-     char          buf[58];
+     if (!memcmp( &ctx->header[0], "OggS", 4 ) &&
+         !memcmp( &ctx->header[29], "vorbis", 6 ))
+          return DFB_OK;
 
-     ret = direct_stream_create( ctx->filename, &stream );
-     if (ret)
-          return ret;
-
-     ret = direct_stream_wait( stream, sizeof(buf), NULL );
-     if (ret) {
-          direct_stream_destroy( stream );
-          return ret;
-     }
-
-     ret = direct_stream_read( stream, sizeof(buf), buf, NULL );
-     if (ret == DFB_OK) {
-          if (strncmp( buf, "OggS", 4 ) || strncmp( buf+29, "vorbis", 6 ))
-               ret = DFB_UNSUPPORTED;
-     }
-     
-     direct_stream_destroy( stream );
-
-     return ret;
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, const char *filename )
+Construct( IFusionSoundMusicProvider *thiz, 
+           const char                *filename,
+           DirectStream              *stream )
 {
-     DFBResult  ret;
-     FILE      *fp;
+     FILE *fp;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Vorbis )
 
-     data->ref = 1;
-     
-     ret = direct_stream_create( filename, &data->stream );
-     if (ret) {
-          D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
-                   "Error opening '%s'!\n", filename );
-          return ret;
-     }
+     data->ref    = 1;
+     data->stream = direct_stream_dup( stream );
 
-     ret = direct_stream_fopen( data->stream, &fp );
-     if (ret) {
-          direct_stream_destroy( data->stream );
-          return ret;
+     fp = fdopen( direct_stream_fileno( stream ), "rb" );
+     if (!fp) {
+          IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
+          return DFB_IO;
      }
 
      fcntl( fileno(fp), F_SETFL,
@@ -993,8 +971,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      if (ov_open( fp, &data->vf, NULL, 0 ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error opening ogg/vorbis stream!\n" );
-          fclose( fp );
-          direct_stream_destroy( data->stream );
+          IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DFB_FAILURE;
      }
      
@@ -1002,8 +979,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      if (!data->info) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error getting stream informations!\n" );
-          ov_clear( &data->vf );
-          direct_stream_destroy( data->stream );
+          IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DFB_FAILURE;
      }
      

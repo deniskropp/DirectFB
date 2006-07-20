@@ -45,7 +45,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz,
-           const char                *filename );
+           const char                *filename,
+           DirectStream              *stream );
 
 #include <direct/interface_implementation.h>
 
@@ -70,6 +71,7 @@ struct cdda_track {
 typedef struct {
      int                           ref;        /* reference counter */
      
+     DirectStream                 *stream;
      int                           fd;
 
      unsigned int                  current_track;
@@ -564,28 +566,31 @@ cdda_mix_audio( __s16 *src, __u8 *dst, int len,
 static void
 IFusionSoundMusicProvider_CDDA_Destruct( IFusionSoundMusicProvider *thiz )
 {
-     IFusionSoundMusicProvider_CDDA_data *data =
-         (IFusionSoundMusicProvider_CDDA_data*)thiz->priv;
-     int i;
+     IFusionSoundMusicProvider_CDDA_data *data = thiz->priv;
 
      thiz->Stop( thiz );
-    
-     close( data->fd );
-
-     pthread_mutex_destroy( &data->lock );
      
-     for (i = 0; i < data->total_tracks; i++) {
-          if (data->tracks[i].artist)
-               D_FREE( data->tracks[i].artist );
-          if (data->tracks[i].title)
-               D_FREE( data->tracks[i].title );
-          if (data->tracks[i].genre)
-               D_FREE( data->tracks[i].genre );
-          if (data->tracks[i].album)
-               D_FREE( data->tracks[i].album );
+     if (data->tracks) {
+          int i;
+          
+          for (i = 0; i < data->total_tracks; i++) {
+               if (data->tracks[i].artist)
+                    D_FREE( data->tracks[i].artist );
+               if (data->tracks[i].title)
+                    D_FREE( data->tracks[i].title );
+               if (data->tracks[i].genre)
+                    D_FREE( data->tracks[i].genre );
+               if (data->tracks[i].album)
+                    D_FREE( data->tracks[i].album );
+          }
+     
+          D_FREE( data->tracks );
      }
      
-     D_FREE( data->tracks );
+     if (data->stream)
+          direct_stream_destroy( data->stream );
+
+     pthread_mutex_destroy( &data->lock );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
 }
@@ -1197,21 +1202,13 @@ IFusionSoundMusicProvider_CDDA_SetPlaybackFlags( IFusionSoundMusicProvider    *t
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     int       fd;
-     DFBResult ret;
-     
-     fd = open( ctx->filename, O_RDONLY | O_NONBLOCK );
-     if (fd < 0)
-          return DFB_UNSUPPORTED;
-      
-     ret = cdda_probe( fd );
-     close( fd );
-
-     return ret;
+     return cdda_probe( direct_stream_fileno( ctx->stream ) );
 }
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, const char *filename )
+Construct( IFusionSoundMusicProvider *thiz, 
+           const char                *filename, 
+           DirectStream              *stream )
 {
      DFBResult err;
      
@@ -1219,13 +1216,12 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
 
      data->ref = 1;
      
-     data->fd = open( filename, O_RDONLY | O_NONBLOCK );
-     if (data->fd < 0)
-          return DFB_IO;
+     data->stream = direct_stream_dup( stream );
+     data->fd     = direct_stream_fileno( stream );
     
      err = cdda_build_tracklits( data->fd, &data->tracks, &data->total_tracks );
      if (err != DFB_OK) {
-          close( data->fd );
+          IFusionSoundMusicProvider_CDDA_Destruct( thiz );
           return err;
      }
      

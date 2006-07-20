@@ -46,7 +46,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz,
-           const char                *filename );
+           const char                *filename,
+           DirectStream              *stream );
 
 #include <direct/interface_implementation.h>
 
@@ -439,8 +440,7 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
 static void
 IFusionSoundMusicProvider_Mad_Destruct( IFusionSoundMusicProvider *thiz )
 {
-     IFusionSoundMusicProvider_Mad_data *data =
-         (IFusionSoundMusicProvider_Mad_data*)thiz->priv;
+     IFusionSoundMusicProvider_Mad_data *data = thiz->priv;
 
      thiz->Stop( thiz );
 
@@ -448,7 +448,8 @@ IFusionSoundMusicProvider_Mad_Destruct( IFusionSoundMusicProvider *thiz )
      mad_frame_finish( &data->frame );
      mad_stream_finish( &data->stream );
 
-     direct_stream_destroy( data->s );
+     if (data->s)
+          direct_stream_destroy( data->s );
      
      pthread_mutex_destroy( &data->lock );
 
@@ -1083,7 +1084,9 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 }   
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, const char *filename )
+Construct( IFusionSoundMusicProvider *thiz, 
+           const char                *filename,
+           DirectStream              *stream )
 {
      DFBResult          ret;
      char               buf[16384];
@@ -1097,11 +1100,8 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Mad )
 
-     data->ref = 1;
-     
-     ret = direct_stream_create( filename, &data->s );
-     if (ret)
-          return ret;
+     data->ref = 1;  
+     data->s   = direct_stream_dup( stream );
 
      size = direct_stream_length( data->s );
          
@@ -1109,7 +1109,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      
      ret = direct_stream_peek( data->s, sizeof(buf), 0, buf, &len );
      if (ret) {
-          direct_stream_destroy( data->s );
+          IFusionSoundMusicProvider_Mad_Destruct( thiz );
           return ret;
      }
 
@@ -1142,10 +1142,7 @@ Construct( IFusionSoundMusicProvider *thiz, const char *filename )
      
      if (error) {
           D_DEBUG( "IFusionSoundMusicProvider_Mad: Couldn't find a valid frame!\n" );
-          mad_synth_finish( &data->synth );
-          mad_frame_finish( &data->frame );
-          mad_stream_finish( &data->stream );
-          direct_stream_destroy( data->s );
+          IFusionSoundMusicProvider_Mad_Destruct( thiz );
           return DFB_FAILURE;
      }
      

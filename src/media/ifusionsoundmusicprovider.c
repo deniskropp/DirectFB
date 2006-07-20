@@ -213,9 +213,23 @@ IFusionSoundMusicProvider_Create( const char                 *filename,
      DirectInterfaceFuncs                   *funcs = NULL;
      IFusionSoundMusicProvider              *musicprovider;
      IFusionSoundMusicProvider_ProbeContext  ctx;
+     DirectStream                           *stream;
+     
+     /* Open filename */
+     ret = direct_stream_create( filename, &stream );
+     if (ret)
+          return ret;
      
      /* Fill out probe context */
      ctx.filename = filename;
+     ctx.stream   = stream;
+     
+     /* Clear probe context's header */
+     memset( ctx.header, sizeof(ctx.header), 0 );
+     
+     /* Fill probe context's header */
+     direct_stream_wait( stream, sizeof(ctx.header), NULL );
+     direct_stream_peek( stream, sizeof(ctx.header), 0, ctx.header, NULL );     
 
      /* Find a suitable implemenation */
      ret = DirectGetInterface( &funcs, "IFusionSoundMusicProvider",
@@ -225,12 +239,15 @@ IFusionSoundMusicProvider_Create( const char                 *filename,
 
      DIRECT_ALLOCATE_INTERFACE( musicprovider, IFusionSoundMusicProvider );
 
+     /* Initialize interface pointers. */
      IFusionSoundMusicProvider_Construct( musicprovider );
 
      /* Construct the interface */
-     ret = funcs->Construct( musicprovider, filename );
+     ret = funcs->Construct( musicprovider, filename, stream );
      if (ret)
           return ret;
+          
+     direct_stream_destroy( stream );
 
      *interface = musicprovider;
 

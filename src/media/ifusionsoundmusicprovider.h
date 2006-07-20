@@ -27,11 +27,17 @@
 #ifndef __IFUSIONSOUNDMUSICPROVIDER_H__
 #define __IFUSIONSOUNDMUSICPROVIDER_H__
 
+#include <direct/stream.h>
+
 /*
  * probing context
  */
 typedef struct {
-     const char *filename;
+     const char    *filename;
+     
+     unsigned char  header[64];
+     
+     DirectStream  *stream;
 } IFusionSoundMusicProvider_ProbeContext;
 
 

@@ -46,7 +46,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz,
-           const char                *filename );
+           const char                *filename,
+           DirectStream              *stream );
 
 #include <direct/interface_implementation.h>
 
@@ -556,30 +557,16 @@ static DFBResult IFusionSoundMusicProvider_Timidity_GetLength(
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     char buf[5];
-     FILE *file;
+     if (!memcmp( ctx->header, "MThd", 4 ))
+          return DFB_OK;
 
-     file = fopen( ctx->filename, "rb" );
-     if (!file)
-          return DFB_UNSUPPORTED;
-
-     memset( buf, 0, 5 );
-     if (fread( buf, 1, 4, file ) != 4) {
-          fclose( file );
-          return DFB_UNSUPPORTED;
-     }
-     if (!strstr( buf, "MThd" )) {
-          fclose( file );
-          return DFB_UNSUPPORTED;
-     }
-
-     fclose( file );
-
-     return DFB_OK;
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, const char *filename )
+Construct( IFusionSoundMusicProvider *thiz, 
+           const char                *filename,
+           DirectStream              *stream )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IFusionSoundMusicProvider_Timidity)
 

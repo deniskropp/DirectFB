@@ -42,7 +42,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IFusionSoundMusicProvider *thiz,
-           const char                *filename );
+           const char                *filename,
+           DirectStream              *stream );
 
 #include <direct/interface_implementation.h>
 
@@ -951,12 +952,12 @@ wave_mix_audio( __u8 *src, __u8 *dst, int len,
 static void
 IFusionSoundMusicProvider_Wave_Destruct( IFusionSoundMusicProvider *thiz )
 {
-     IFusionSoundMusicProvider_Wave_data *data =
-         (IFusionSoundMusicProvider_Wave_data*)thiz->priv;
+     IFusionSoundMusicProvider_Wave_data *data = thiz->priv;
 
      thiz->Stop( thiz );
     
-     direct_stream_destroy( data->stream );
+     if (data->stream)
+          direct_stream_destroy( data->stream );
 
      pthread_mutex_destroy( &data->lock );
 
@@ -1723,40 +1724,35 @@ parse_headers( DirectStream *stream,
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     DirectStream *stream;
-     DFBResult     ret;
-     
-     ret = direct_stream_create( ctx->filename, &stream );
-     if (ret)
-          return ret;
+     if (!memcmp( ctx->header, "RIFF", 4 ) ||
+         !memcmp( ctx->header, "RIFX", 4 ))
+     {
+          if (!memcmp( ctx->header+8, "WAVEfmt ", 8 ))
+               return DFB_OK;
+     }
 
-     ret = parse_headers( stream, NULL, NULL, NULL, NULL, NULL, NULL );
-     
-     direct_stream_destroy( stream );
-
-     return ret;
+     return DFB_UNSUPPORTED;
 }
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, const char *filename )
+Construct( IFusionSoundMusicProvider *thiz, 
+           const char                *filename,
+           DirectStream              *stream )
 {
      DFBResult    ret;
      unsigned int size;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Wave )
 
-     data->ref = 1;
-     
-     ret = direct_stream_create( filename, &data->stream );
-     if (ret)
-          return ret;
+     data->ref    = 1;
+     data->stream = direct_stream_dup( stream );
     
      ret = parse_headers( data->stream,
                           &data->byteorder, &data->samplerate,
                           &data->channels,  &data->format,
                           &data->headsize,  &data->datasize );
      if (ret) {
-          direct_stream_destroy( data->stream );
+          IFusionSoundMusicProvider_Wave_Destruct( thiz );
           return ret;
      }
 
