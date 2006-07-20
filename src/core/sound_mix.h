@@ -70,7 +70,7 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
           if (p >= buffer->length)
                p %= buffer->length;
 
-#ifdef FS_ENABLE_ACCURACY
+#ifdef FS_ENABLE_QUALITY
           if (inc < 0x100) {
                /* upsample */
                __fsf l, r;
@@ -104,7 +104,7 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
 
                dest[i+0] += (left  == FSF_ONE) ? s : fsf_mul( s, left  );
                dest[i+1] += (right == FSF_ONE) ? s : fsf_mul( s, right );
-#ifdef FS_ENABLE_ACCURACY
+#ifdef FS_ENABLE_QUALITY
           }
 #endif
      }
@@ -142,7 +142,7 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
           if (p >= buffer->length)
                p %= buffer->length;
 
-#ifdef FS_ENABLE_ACCURACY
+#ifdef FS_ENABLE_QUALITY
           if (inc < 0x100) {
                /* upsample */
                __fsf l, r;
@@ -187,7 +187,7 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
                dest[i+1] += (right == FSF_ONE)
                             ? FSF_FROM_SRC( data,p )
                             : fsf_mul( FSF_FROM_SRC( data,p ), right );
-#ifdef FS_ENABLE_ACCURACY
+#ifdef FS_ENABLE_QUALITY
           }
 #endif
      }
