@@ -1471,7 +1471,7 @@ driver_init_device( GraphicsDevice     *device,
           rdev->fb_size   = ((tom >> 16) - (tom & 0xffff) + 1) << 16;
      } 
      else { 
-          rdev->fb_offset = radeon_in32( mmio, CONFIG_APER_0_BASE );
+          rdev->fb_offset = 0; /* CONFIG_APER_0_BASE makes R300 crash */
           rdev->fb_size   = radeon_in32( mmio, CONFIG_APER_SIZE );
      }
      
