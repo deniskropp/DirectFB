@@ -476,12 +476,12 @@ void r300_set_drawing_color( RadeonDriverData *rdrv,
           case DSPF_UYVY:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                color2d = PIXEL_UYVY( y, u, v );
-               R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
+               //R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
                break;
           case DSPF_YUY2:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                color2d = PIXEL_YUY2( y, u, v );
-               R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
+               //R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
                break;
           case DSPF_I420:
           case DSPF_YV12:
@@ -541,7 +541,7 @@ void r300_set_blitting_color( RadeonDriverData *rdrv,
           case DSPF_UYVY:
           case DSPF_YUY2:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
-               R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
+               //R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
           default:
                color3d = PIXEL_ARGB( color.a, color.r,
                                      color.g, color.b );
