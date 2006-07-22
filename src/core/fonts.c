@@ -43,9 +43,9 @@
 #include <core/surfaces.h>
 
 #include <direct/debug.h>
+#include <direct/hash.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
-#include <direct/tree.h>
 #include <direct/utf8.h>
 #include <direct/util.h>
 
@@ -57,17 +57,25 @@ D_DEBUG_DOMAIN( Core_Font, "Core/Font", "DirectFB Core Font" );
 
 /**********************************************************************************************************************/
 
-CoreFont *
-dfb_font_create( CoreDFB *core )
+DFBResult
+dfb_font_create( CoreDFB *core, CoreFont **ret_font )
 {
-     CoreFont *font;
+     DFBResult  ret;
+     CoreFont  *font;
 
      D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
 
+     D_ASSERT( core != NULL );
+     D_ASSERT( ret_font != NULL );
+
      font = D_CALLOC( 1, sizeof(CoreFont) );
-     if (!font) {
-          D_OOM();
-          return NULL;
+     if (!font)
+          return D_OOM();
+
+     ret = direct_hash_create( 163, &font->glyph_hash );
+     if (ret) {
+          D_FREE( font );
+          return ret;
      }
 
      font->core = core;
@@ -84,11 +92,11 @@ dfb_font_create( CoreDFB *core )
      dfb_state_init( &font->state, core );
      font->state.blittingflags = DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_COLORIZE;
 
-     font->glyph_infos = direct_tree_new();
-
      D_MAGIC_SET( font, CoreFont );
 
-     return font;
+     *ret_font = font;
+
+     return DFB_OK;
 }
 
 void
@@ -109,7 +117,7 @@ dfb_font_destroy( CoreFont *font )
 
      dfb_state_destroy( &font->state );
 
-     direct_tree_destroy( font->glyph_infos );
+     direct_hash_destroy( font->glyph_hash );
 
      if (font->surfaces) {
           for (i = 0; i < font->rows; i++)
@@ -161,7 +169,7 @@ dfb_font_drop_destination( CoreFont    *font,
 
 DFBResult
 dfb_font_get_glyph_data( CoreFont        *font,
-                         unichar          glyph,
+                         unsigned int     index,
                          CoreGlyphData  **ret_data )
 {
      DFBResult      ret;
@@ -170,22 +178,28 @@ dfb_font_get_glyph_data( CoreFont        *font,
      D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( font, CoreFont );
-
      D_ASSERT( ret_data != NULL );
 
-     if ((data = direct_tree_lookup (font->glyph_infos, (void *)glyph)) != NULL) {
+     data = direct_hash_lookup( font->glyph_hash, index );
+     if (data) {
           *ret_data = data;
           return DFB_OK;
      }
 
+     if (!font->GetGlyphInfo)
+          return DFB_UNSUPPORTED;
+
      data = (CoreGlyphData *) D_CALLOC(1, sizeof (CoreGlyphData));
      if (!data)
-          return DFB_NOSYSTEMMEMORY;
+          return D_OOM();
 
-     if (font->GetGlyphInfo &&
-         font->GetGlyphInfo (font, glyph, data) == DFB_OK &&
-         data->width > 0 && data->height > 0)
-     {
+     ret = font->GetGlyphInfo (font, index, data);
+     if (ret) {
+          D_DERROR( ret, "Core/Font: Could not get glyph info for index %d!\n", index );
+          goto error;
+     }
+
+     if (data->width > 0 && data->height > 0) {
           if (font->next_x + data->width > font->row_width) {
                CoreSurface *surface;
 
@@ -208,7 +222,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                                          CSP_VIDEOLOW, font->surface_caps, NULL, &surface );
                if (ret) {
                     D_ERROR( "DirectFB/core/fonts: "
-                              "Could not create glyph surface! (%s)\n",
+                              "Could not create index surface! (%s)\n",
                               DirectFBErrorString( ret ) );
 
                     D_FREE( data );
@@ -225,7 +239,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
                font->surfaces[font->rows - 1] = surface;
           }
 
-          if (font->RenderGlyph(font, glyph, data, font->surfaces[font->rows - 1]) == DFB_OK) {
+          if (font->RenderGlyph(font, index, data, font->surfaces[font->rows - 1]) == DFB_OK) {
                int align = DFB_PIXELFORMAT_ALIGNMENT(font->pixel_format);
 
                data->surface = font->surfaces[font->rows - 1];
@@ -242,7 +256,9 @@ dfb_font_get_glyph_data( CoreFont        *font,
           data->start = data->width = data->height = 0;
      }
 
-     direct_tree_insert (font->glyph_infos, (void *) glyph, data);
+
+error:
+     direct_hash_insert( font->glyph_hash, index, data );
 
      *ret_data = data;
 

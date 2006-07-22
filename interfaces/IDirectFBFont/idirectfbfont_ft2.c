@@ -625,6 +625,7 @@ Construct( IDirectFBFont      *thiz,
            DFBFontDescription *desc )
 {
      int                    i;
+     DFBResult              ret;
      CoreFont              *font;
      FT_Face                face;
      FT_Error               err;
@@ -755,7 +756,14 @@ Construct( IDirectFBFont      *thiz,
      face->generic.data = (void *) load_flags;
      face->generic.finalizer = NULL;
 
-     font = dfb_font_create( core );
+     ret = dfb_font_create( core, &font );
+     if (ret) {
+          pthread_mutex_lock ( &library_mutex );
+          FT_Done_Face( face );
+          pthread_mutex_unlock ( &library_mutex );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return ret;
+     }
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_AiRGB ||

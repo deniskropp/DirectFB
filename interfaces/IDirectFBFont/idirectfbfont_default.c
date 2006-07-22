@@ -38,7 +38,7 @@
 
 #include <media/idirectfbfont.h>
 
-#include <direct/tree.h>
+#include <direct/hash.h>
 
 #include <direct/interface.h>
 #include <direct/mem.h>
@@ -82,6 +82,7 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc )
 {
+     DFBResult    ret;
      CoreFont    *font;
      CoreSurface *surface;
      void        *dst;
@@ -91,7 +92,11 @@ Construct( IDirectFBFont      *thiz,
 
      D_HEAVYDEBUG( "DirectFB/FontDefault: Construct default font");
 
-     font = dfb_font_create( core );
+     ret = dfb_font_create( core, &font );
+     if (ret) {
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return ret;
+     }
 
      D_ASSERT( font->pixel_format == DSPF_ARGB ||
                font->pixel_format == DSPF_AiRGB ||
@@ -161,7 +166,7 @@ Construct( IDirectFBFont      *thiz,
                     else
                          key = index;
 
-                    direct_tree_insert (font->glyph_infos, (void*) key, data);
+                    direct_hash_insert( font->glyph_hash, key, data );
 
                     start = i + 1;
                     index++;
@@ -179,7 +184,7 @@ Construct( IDirectFBFont      *thiz,
           else
                key = index;
 
-          direct_tree_insert (font->glyph_infos, (void*) key, data);
+          direct_hash_insert( font->glyph_hash, key, data );
      }
 
      dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );

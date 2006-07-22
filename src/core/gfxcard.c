@@ -54,10 +54,10 @@
 #include <gfx/clip.h>
 #include <gfx/util.h>
 
+#include <direct/hash.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/modules.h>
-#include <direct/tree.h>
 #include <direct/utf8.h>
 #include <direct/util.h>
 
@@ -1532,11 +1532,7 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
           CoreGlyphData *glyph;
           unsigned int   current = indices[i];
 
-          if (current < 128)
-               glyph = font->glyph_infos->fast_keys[current];
-          else
-               glyph = direct_tree_lookup( font->glyph_infos, (void *) current );
-
+          glyph = direct_hash_lookup( font->glyph_hash, current );
           if (!glyph) {
                switch (blit) {
                     case 1:

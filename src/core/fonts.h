@@ -91,7 +91,7 @@ struct _CoreFont {
      int                           row_width;
      int                           next_x;
 
-     DirectTree                   *glyph_infos;   /* infos about loaded glyphs        */
+     DirectHash                   *glyph_hash;    /* infos about loaded glyphs        */
 
      int                           height;        /* font height                      */
 
@@ -130,7 +130,7 @@ struct _CoreFont {
 /*
  * allocates and initializes a new font structure
  */
-CoreFont *dfb_font_create( CoreDFB *core );
+DFBResult dfb_font_create( CoreDFB *core, CoreFont **ret_font );
 
 /*
  * destroy all data in the CoreFont struct
