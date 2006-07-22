@@ -219,8 +219,7 @@ static const CoreFontEncodingFuncs ft2Latin1Funcs = {
 static DFBResult
 render_glyph( CoreFont      *thiz,
               unsigned int   index,
-              CoreGlyphData *info,
-              CoreSurface   *surface )
+              CoreGlyphData *info )
 {
      FT_Error     err;
      FT_Face      face;
@@ -229,7 +228,8 @@ render_glyph( CoreFont      *thiz,
      void        *dst;
      int          y;
      int          pitch;
-     FT2ImplData *data = thiz->impl_data;
+     FT2ImplData *data    = thiz->impl_data;
+     CoreSurface *surface = info->surface;
 
      pthread_mutex_lock ( &library_mutex );
 
@@ -254,8 +254,8 @@ render_glyph( CoreFont      *thiz,
      }
 
      info->width = face->glyph->bitmap.width;
-     if (info->width + thiz->next_x > surface->width)
-          info->width = surface->width - thiz->next_x;
+     if (info->width + info->start > surface->width)
+          info->width = surface->width - info->start;
 
      info->height = face->glyph->bitmap.rows;
      if (info->height > surface->height)
@@ -265,7 +265,7 @@ render_glyph( CoreFont      *thiz,
      info->top  = thiz->ascender - face->glyph->bitmap_top;
 
      src = face->glyph->bitmap.buffer;
-     dst += DFB_BYTES_PER_LINE(surface->format, thiz->next_x);
+     dst += DFB_BYTES_PER_LINE(surface->format, info->start);
 
      for (y=0; y < info->height; y++) {
           int    i, j, n;
@@ -783,7 +783,7 @@ Construct( IDirectFBFont      *thiz,
      D_HEAVYDEBUG( "DirectFB/FontFT2: font->ascender = %d\n", font->ascender );
      D_HEAVYDEBUG( "DirectFB/FontFT2: font->descender = %d\n",font->descender );
 
-     font->GetGlyphInfo = get_glyph_info;
+     font->GetGlyphData = get_glyph_info;
      font->RenderGlyph  = render_glyph;
 
      if (FT_HAS_KERNING(face) && !disable_kerning) {

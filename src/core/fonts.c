@@ -49,11 +49,14 @@
 #include <direct/utf8.h>
 #include <direct/util.h>
 
+#include <gfx/convert.h>
+
 #include <misc/conf.h>
 #include <misc/util.h>
 
 
-D_DEBUG_DOMAIN( Core_Font, "Core/Font", "DirectFB Core Font" );
+D_DEBUG_DOMAIN( Core_Font,         "Core/Font",      "DirectFB Core Font" );
+D_DEBUG_DOMAIN( Core_FontSurfaces, "Core/Font/Surf", "DirectFB Core Font Surfaces" );
 
 /**********************************************************************************************************************/
 
@@ -78,7 +81,8 @@ dfb_font_create( CoreDFB *core, CoreFont **ret_font )
           return ret;
      }
 
-     font->core = core;
+     font->core     = core;
+     font->max_rows = 5;
 
      direct_util_recursive_pthread_mutex_init( &font->lock );
 
@@ -119,11 +123,20 @@ dfb_font_destroy( CoreFont *font )
 
      direct_hash_destroy( font->glyph_hash );
 
-     if (font->surfaces) {
-          for (i = 0; i < font->rows; i++)
-               dfb_surface_unref( font->surfaces[i] );
+     if (font->rows) {
+          for (i = 0; i < font->num_rows; i++) {
+               CoreFontCacheRow *row = font->rows[i];
 
-          D_FREE( font->surfaces );
+               D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+               dfb_surface_unref( row->surface );
+
+               D_MAGIC_CLEAR( row );
+
+               D_FREE( row );
+          }
+
+          D_FREE( font->rows );
      }
 
      D_ASSERT( font->encodings != NULL || !font->last_encoding );
@@ -172,97 +185,249 @@ dfb_font_get_glyph_data( CoreFont        *font,
                          unsigned int     index,
                          CoreGlyphData  **ret_data )
 {
-     DFBResult      ret;
-     CoreGlyphData *data;
+     DFBResult         ret;
+     CoreGlyphData    *data;
+     int               i;
+     int               align;
+     CoreFontCacheRow *row = NULL;
 
      D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
 
      D_MAGIC_ASSERT( font, CoreFont );
      D_ASSERT( ret_data != NULL );
 
+     D_ASSERT( font->num_rows >= 0 );
+
+     if (font->num_rows) {
+          D_ASSERT( font->num_rows <= font->max_rows || font->max_rows < 0 );
+          D_ASSERT( font->active_row >= 0 );
+          D_ASSERT( font->active_row < font->num_rows );
+     }
+
      data = direct_hash_lookup( font->glyph_hash, index );
      if (data) {
+          D_MAGIC_ASSERT( data, CoreGlyphData );
+          D_ASSERT( data->row >= 0 );
+          D_ASSERT( data->row < font->num_rows );
+
+          row = font->rows[data->row];
+
+          D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+          row->stamp = font->row_stamp++;
+
           *ret_data = data;
           return DFB_OK;
      }
 
-     if (!font->GetGlyphInfo)
+     if (!font->GetGlyphData)
           return DFB_UNSUPPORTED;
 
-     data = (CoreGlyphData *) D_CALLOC(1, sizeof (CoreGlyphData));
+     data = D_CALLOC( 1, sizeof(CoreGlyphData) );
      if (!data)
           return D_OOM();
 
-     ret = font->GetGlyphInfo (font, index, data);
+     D_MAGIC_SET( data, CoreGlyphData );
+
+     align = DFB_PIXELFORMAT_ALIGNMENT( font->pixel_format );
+
+     ret = font->GetGlyphData( font, index, data );
      if (ret) {
           D_DERROR( ret, "Core/Font: Could not get glyph info for index %d!\n", index );
-          goto error;
+          data->start = data->width = data->height = 0;
+          goto out;
      }
 
-     if (data->width > 0 && data->height > 0) {
-          if (font->next_x + data->width > font->row_width) {
-               CoreSurface *surface;
+     if (data->width < 1 || data->height < 1) {
+          data->start = data->width = data->height = 0;
+          goto out;
+     }
 
-               if (font->row_width == 0) {
-                    int width = 8192 / font->height;
+     if (font->rows) {
+          D_ASSERT( font->active_row >= 0 );
+          D_ASSERT( font->active_row < font->num_rows );
 
-                    if (width > 2048)
-                         width = 2048;
+          row = font->rows[font->active_row];
 
-                    if (width < font->maxadvance)
-                         width = font->maxadvance;
+          D_MAGIC_ASSERT( row, CoreFontCacheRow );
+     }
+     else {
+          /* Calculate row width? */
+          if (font->row_width == 0) {
+               int width = 2048 * font->height / 128;
 
-                    font->row_width = (width + 7) & ~7;
+               if (width > 2048)
+                    width = 2048;
+
+               if (width < font->maxadvance)
+                    width = font->maxadvance;
+
+               font->row_width = (width + 7) & ~7;
+          }
+     }
+
+     /* Need another font surface? */
+     if (!row || (row->next_x + data->width > font->row_width)) {
+          D_ASSERT( font->max_rows != 0 );
+
+          /* Maximum number of rows reached? */
+          if (font->num_rows == font->max_rows) {
+               int          best_row = -1;
+               unsigned int best_val = 0;
+
+               /* Check for trailing space first. */
+               for (i=0; i<font->num_rows; i++) {
+                    row = font->rows[i];
+
+                    D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+                    if (row->next_x + data->width <= font->row_width) {
+                         if (best_row == -1 || best_val < row->next_x) {
+                              best_row = i;
+                              best_val = row->next_x;
+                         }
+                    }
                }
 
+               /* Found a row with enough trailing space? */
+               if (best_row != -1) {
+                    font->active_row = best_row;
+                    row = font->rows[best_row];
+
+                    D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+                    D_DEBUG_AT( Core_FontSurfaces, "  -> using trailing space of row %d - %dx%d %s\n",
+                                font->active_row, row->surface->width, row->surface->height,
+                                dfb_pixelformat_name(row->surface->format) );
+               }
+               else {
+                    CoreGlyphData *d, *n;
+
+                    D_ASSERT( best_row == -1 );
+                    D_ASSERT( best_val == 0 );
+
+                    /* Reuse the least recently used row. */
+                    for (i=0; i<font->num_rows; i++) {
+                         row = font->rows[i];
+
+                         D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+                         if (best_row == -1 || best_val > row->stamp) {
+                              best_row = i;
+                              best_val = row->stamp;
+                         }
+                    }
+
+                    D_ASSERT( best_row != -1 );
+
+                    font->active_row = best_row;
+                    row = font->rows[best_row];
+
+                    D_MAGIC_ASSERT( row, CoreFontCacheRow );
+
+                    D_DEBUG_AT( Core_FontSurfaces, "  -> reusing row %d - %dx%d %s\n",
+                                font->active_row, row->surface->width, row->surface->height,
+                                dfb_pixelformat_name(row->surface->format) );
+
+                    /* Kick out all glyphs. */
+                    direct_list_foreach_safe (d, n, row->glyphs) {
+                         D_MAGIC_ASSERT( d, CoreGlyphData );
+
+                         /*ret =*/ direct_hash_remove( font->glyph_hash, d->index );
+                         //FIXME: use D_ASSERT( ret == DFB_OK );
+
+                         D_MAGIC_CLEAR( d );
+                         D_FREE( d );
+                    }
+
+                    /* Reset row. */
+                    row->glyphs = NULL;
+                    row->next_x = 0;
+               }
+          }
+          else {
+               /* Allocate new font cache row structure. */
+               row = D_CALLOC( 1, sizeof(CoreFontCacheRow) );
+               if (!row) {
+                    ret = D_OOM();
+                    goto error;
+               }
+
+               /* Create a new font surface. */
                ret = dfb_surface_create( font->core,
                                          font->row_width,
                                          MAX( font->height + 1, 8 ),
                                          font->pixel_format,
-                                         CSP_VIDEOLOW, font->surface_caps, NULL, &surface );
+                                         CSP_VIDEOLOW, font->surface_caps, NULL, &row->surface );
                if (ret) {
-                    D_ERROR( "DirectFB/core/fonts: "
-                              "Could not create index surface! (%s)\n",
-                              DirectFBErrorString( ret ) );
-
-                    D_FREE( data );
-                    return ret;
+                    D_DERROR( ret, "Core/Font: Could not create font surface!\n" );
+                    D_FREE( row );
+                    goto error;
                }
 
-               font->next_x = 0;
-               font->rows++;
+               D_DEBUG_AT( Core_FontSurfaces, "  -> new row %d - %dx%d %s\n", font->num_rows,
+                           row->surface->width, row->surface->height,
+                           dfb_pixelformat_name(row->surface->format) );
 
-               font->surfaces = D_REALLOC( font->surfaces, sizeof(void *) * font->rows );
+               D_MAGIC_SET( row, CoreFontCacheRow );
 
-               D_ASSERT( font->surfaces != NULL );
 
-               font->surfaces[font->rows - 1] = surface;
-          }
+               /* Append to array. FIXME: Use vector to avoid realloc each time! */
+               font->rows = D_REALLOC( font->rows, sizeof(void*) * (font->num_rows + 1) );
+               D_ASSERT( font->rows != NULL );
 
-          if (font->RenderGlyph(font, index, data, font->surfaces[font->rows - 1]) == DFB_OK) {
-               int align = DFB_PIXELFORMAT_ALIGNMENT(font->pixel_format);
+               font->rows[font->num_rows] = row;
 
-               data->surface = font->surfaces[font->rows - 1];
-               data->start   = font->next_x;
-               font->next_x += (data->width + align) & ~align;
-
-               dfb_gfxcard_flush_texture_cache();
-          }
-          else {
-               data->start = data->width = data->height = 0;
+               /* Set new row to use. */
+               font->active_row = font->num_rows++;
           }
      }
-     else {
+
+     D_MAGIC_ASSERT( row, CoreFontCacheRow );
+     D_ASSERT( font->num_rows > 0 );
+     D_ASSERT( font->num_rows <= font->max_rows || font->max_rows < 0 );
+     D_ASSERT( font->active_row >= 0 );
+     D_ASSERT( font->active_row < font->num_rows );
+     D_ASSERT( row == font->rows[font->active_row] );
+
+     D_DEBUG_AT( Core_FontSurfaces, "  -> render %2d - %2dx%2d at %d:%03d font <%p>\n",
+                 index, data->width, data->height, font->active_row, row->next_x, font );
+
+     data->index   = index;
+     data->row     = font->active_row;
+     data->start   = row->next_x;
+     data->surface = row->surface;
+
+     row->next_x  += (data->width + align) & ~align;
+
+     row->stamp = font->row_stamp++;
+
+     /* Render the glyph data into the surface. */
+     ret = font->RenderGlyph( font, index, data );
+     if (ret) {
           data->start = data->width = data->height = 0;
+          goto out;
      }
 
+     dfb_gfxcard_flush_texture_cache();
 
-error:
+
+out:
+     if (row)
+          direct_list_append( &row->glyphs, &data->link );
+
      direct_hash_insert( font->glyph_hash, index, data );
 
      *ret_data = data;
 
      return DFB_OK;
+
+
+error:
+     D_MAGIC_CLEAR( data );
+     D_FREE( data );
+
+     return ret;
 }
 
 DFBResult

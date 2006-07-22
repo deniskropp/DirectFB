@@ -42,13 +42,20 @@
  * glyph struct
  */
 typedef struct {
-     CoreSurface *surface;              /* contains bitmap of glyph         */
-     int          start;                /* x offset of glyph in surface     */
-     int          width;                /* width of the glyphs bitmap       */
-     int          height;               /* height of the glyphs bitmap      */
-     int          left;                 /* x offset of the glyph            */
-     int          top;                  /* y offset of the glyph            */
-     int          advance;              /* placement of next glyph          */
+     DirectLink     link;
+
+     unsigned int   index;
+     unsigned int   row;
+
+     CoreSurface   *surface;              /* contains bitmap of glyph         */
+     int            start;                /* x offset of glyph in surface     */
+     int            width;                /* width of the glyphs bitmap       */
+     int            height;               /* height of the glyphs bitmap      */
+     int            left;                 /* x offset of the glyph            */
+     int            top;                  /* y offset of the glyph            */
+     int            advance;              /* placement of next glyph          */
+
+     int            magic;
 } CoreGlyphData;
 
 typedef struct {
@@ -73,23 +80,34 @@ typedef struct {
      int                          magic;
 } CoreFontEncoding;
 
+typedef struct {
+     unsigned int                 stamp;
+
+     CoreSurface                 *surface;
+     int                          next_x;
+
+     DirectLink                  *glyphs;
+
+     int                          magic;
+} CoreFontCacheRow;
+
 /*
  * font struct
  */
 
 struct _CoreFont {
-     int                           magic;
-
-     DFBSurfacePixelFormat         pixel_format;
-     DFBSurfaceCapabilities        surface_caps;
-     CardState                     state;         /* the state used to blit glyphs    */
-
      CoreDFB                      *core;
 
-     CoreSurface                 **surfaces;      /* contain bitmaps of loaded glyphs */
-     int                           rows;
+     CardState                     state;         /* the state used to blit glyphs    */
+     DFBSurfacePixelFormat         pixel_format;
+     DFBSurfaceCapabilities        surface_caps;
      int                           row_width;
-     int                           next_x;
+     int                           max_rows;
+
+     CoreFontCacheRow            **rows;          /* contain bitmaps of loaded glyphs */
+     int                           num_rows;
+     int                           active_row;
+     unsigned int                  row_stamp;
 
      DirectHash                   *glyph_hash;    /* infos about loaded glyphs        */
 
@@ -109,14 +127,13 @@ struct _CoreFont {
 
      void                         *impl_data;     /* a pointer used by the impl.      */
 
-     DFBResult                  (* GetGlyphInfo) ( CoreFont      *thiz,
+     DFBResult                  (* GetGlyphData) ( CoreFont      *thiz,
                                                    unsigned int   index,
-                                                   CoreGlyphData *info );
+                                                   CoreGlyphData *data );
 
      DFBResult                  (* RenderGlyph)  ( CoreFont      *thiz,
                                                    unsigned int   index,
-                                                   CoreGlyphData *info,
-                                                   CoreSurface   *surface );
+                                                   CoreGlyphData *data );
 
      DFBResult                  (* GetKerning)   ( CoreFont      *thiz,
                                                    unsigned int   prev,
@@ -125,6 +142,7 @@ struct _CoreFont {
                                                    int           *ret_y );
 
 
+     int                           magic;
 };
 
 /*

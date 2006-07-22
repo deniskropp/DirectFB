@@ -82,13 +82,14 @@ Construct( IDirectFBFont      *thiz,
            const char         *filename,
            DFBFontDescription *desc )
 {
-     DFBResult    ret;
-     CoreFont    *font;
-     CoreSurface *surface;
-     void        *dst;
-     __u8        *pixels;
-     int          pitch;
-     int          i;
+     DFBResult         ret;
+     CoreFont         *font;
+     CoreSurface      *surface;
+     CoreFontCacheRow *row;
+     void             *dst;
+     __u8             *pixels;
+     int               pitch;
+     int               i;
 
      D_HEAVYDEBUG( "DirectFB/FontDefault: Construct default font");
 
@@ -111,14 +112,26 @@ Construct( IDirectFBFont      *thiz,
      font->ascender  = DEFAULT_FONT_ASCENDER;
      font->descender = DEFAULT_FONT_DESCENDER;
 
+     row = D_CALLOC( 1, sizeof(CoreFontCacheRow) );
+     if (!row) {
+          D_OOM();
+          dfb_font_destroy( font );
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
+          return DFB_NOSYSTEMMEMORY;
+     }
+
      dfb_surface_create( core,
                          font_desc.width, font_desc.height, font->pixel_format,
                          CSP_VIDEOHIGH, DSCAPS_NONE, NULL, &surface );
 
-     font->rows = 1;
+     font->num_rows  = 1;
      font->row_width = font_desc.width;
-     font->surfaces = D_MALLOC(sizeof (void *));
-     font->surfaces[0] = surface;
+     font->rows      = D_MALLOC(sizeof (void *));
+     font->rows[0]   = row;
+
+     row->surface = surface;
+
+     D_MAGIC_SET( row, CoreFontCacheRow );
 
      pixels = font_data;
 
@@ -142,7 +155,7 @@ Construct( IDirectFBFont      *thiz,
 
           for (i = 0; i < font_desc.width; i++) {
                if (pixels[i] == 0xFF) {
-                    data = D_MALLOC(sizeof (CoreGlyphData));
+                    data = D_CALLOC( 1, sizeof(CoreGlyphData) );
                     data->surface = surface;
                     data->start   = start;
                     data->width   = i - start + 1;
@@ -157,6 +170,8 @@ Construct( IDirectFBFont      *thiz,
                     D_HEAVYDEBUG( "DirectFB/core/fonts: "
                                    "glyph '%c' at %d, width %d\n",
                                    glyphs[index], start, i-start );
+
+                    D_MAGIC_SET( data, CoreGlyphData );
 
                     if (font->maxadvance < data->advance)
                          font->maxadvance = data->advance;
@@ -176,8 +191,10 @@ Construct( IDirectFBFont      *thiz,
           }
 
           /*  space  */
-          data = D_CALLOC(1, sizeof (CoreGlyphData));
+          data = D_CALLOC( 1, sizeof(CoreGlyphData) );
           data->advance = 5;
+
+          D_MAGIC_SET( data, CoreGlyphData );
 
           if (use_unicode)
                key = 32;
