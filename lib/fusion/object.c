@@ -35,6 +35,7 @@
 
 #include <fusion/build.h>
 #include <fusion/object.h>
+#include <fusion/hash.h>
 #include <fusion/shmalloc.h>
 
 #include "fusion_internal.h"
@@ -481,10 +482,104 @@ fusion_object_destroy( FusionObject *object )
 
      fusion_reactor_free( object->reactor );
 
+     if( object->properties )
+        fusion_hash_destroy(object->properties);
+
      D_MAGIC_CLEAR( object );
-
      SHFREE( shared->main_pool, object );
-
      return DFB_OK;
+}
+
+/*
+ * Sets a value for a key.
+ * If the key currently has a value the old value is returned
+ * in old_value.
+ * If old_value is null the object is freed with SHFREE.
+ * If this is not the correct semantics for your data, if for example
+ * its reference counted  you must pass in a old_value.
+ */
+DirectResult
+fusion_object_set_property( FusionObject      *object ,
+                        const char *key, void *value, void **old_value)
+{
+  DirectResult ret;
+  int len;
+  const char *sharedkey;
+  D_MAGIC_ASSERT( object, FusionObject );
+  if(!object->properties){
+    ret =fusion_hash_create(object->shared->main_pool,HASH_STRING,HASH_PTR,
+                    FUSION_HASH_MIN_SIZE,&object->properties);  
+    if(ret)
+        return ret;
+
+  }
+  len=strlen(key);
+  if(len) {
+     const char *nkey = SHMALLOC(object->shared->main_pool,len+1);  
+     if( !nkey )
+        return DFB_NOSHAREDMEMORY;
+     strcpy((char *)nkey,key);
+     key = nkey;
+
+  }
+  return fusion_hash_replace(object->properties,key,value,NULL,old_value);
+
+}
+
+/*
+ * Helper function for int values
+ */
+DirectResult
+fusion_object_set_int_property( FusionObject      *object ,
+                        const char *key, int value)
+{
+    int *iptr = SHMALLOC(object->shared->main_pool,sizeof(int));
+     if( !iptr )
+        return DFB_NOSHAREDMEMORY;
+     *iptr = value;
+    fusion_object_set_property(object,key,iptr,NULL);
+}
+
+/*
+ * Helper function for char* values use if the string 
+ * is not in shared memory
+ * Assumes that the old value was a string and frees it.
+ */
+DirectResult
+fusion_object_set_string_property( FusionObject      *object ,
+                        const char *key, char *value)
+{
+   int len=strlen(value);
+    if(!len) 
+       return;
+
+        const char *cptr = SHMALLOC(object->shared->main_pool,sizeof(int));
+     if( !cptr )
+        return DFB_NOSHAREDMEMORY;
+     strcpy((char *)cptr,(char *)value);
+    fusion_object_set_property(object,key,cptr,NULL);
+}
+
+void *
+fusion_object_get_property( FusionObject *object , const char *key)
+{
+  D_MAGIC_ASSERT( object, FusionObject );
+  if(!object->properties)
+      return NULL;
+  return fusion_hash_lookup(object->properties,key);
+}
+
+void 
+fusion_object_remove_property( FusionObject *object , const char *key,
+                void **old_value)
+{
+  D_MAGIC_ASSERT( object, FusionObject );
+
+  if(!object->properties)
+      return;
+  fusion_hash_remove(object->properties,key,NULL,old_value);
+
+  if(fusion_hash_should_resize(object->properties))
+        fusion_hash_resize(object->properties);
 }
 

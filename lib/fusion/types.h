@@ -72,6 +72,7 @@ typedef struct __Fusion_FusionSHMShared      FusionSHMShared;
 
 typedef struct __Fusion_FusionSHMPool        FusionSHMPool;
 typedef struct __Fusion_FusionSHMPoolShared  FusionSHMPoolShared;
+typedef struct __Fusion_FusionHash           FusionHash;
 
 #endif
 

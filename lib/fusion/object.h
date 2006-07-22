@@ -34,10 +34,13 @@
 #include <direct/list.h>
 #include <fusion/ref.h>
 #include <fusion/reactor.h>
-
 #include <direct/debug.h>
 
 typedef void (*FusionObjectDestructor)( FusionObject *object, bool zombie );
+
+typedef bool (*FusionPropIterator)( char *key, void *value, void *ctx);
+
+
 
 
 typedef unsigned long FusionObjectID;
@@ -63,6 +66,7 @@ struct __Fusion_FusionObject {
      FusionReactor     *reactor;
 
      FusionWorldShared *shared;
+     FusionHash        *properties;
 };
 
 
@@ -100,6 +104,17 @@ DirectResult      fusion_object_activate( FusionObject      *object );
 
 DirectResult      fusion_object_destroy ( FusionObject      *object );
 
+DirectResult      fusion_object_set_property( FusionObject      *object ,
+                        const char *key, void *value, void **old_value);
+
+DirectResult       fusion_object_set_int_property( FusionObject  *object ,
+                        const char *key,int value);
+
+DirectResult       fusion_object_set_string_property( FusionObject  *object ,
+                        const char *key,char *value);
+
+void *fusion_object_get_property( FusionObject *object ,const char *key);
+void fusion_object_remove_property( FusionObject *object ,const char *key,void **ret_val);
 
 #define FUSION_OBJECT_METHODS(type, prefix)                                    \
                                                                                \

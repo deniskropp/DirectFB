@@ -31,6 +31,7 @@ include_HEADERS = \
 	call.h		\
 	conf.h		\
 	fusion.h	\
+	hash.h      \
 	lock.h		\
 	object.h	\
 	property.h	\
@@ -49,6 +50,7 @@ libfusion_la_SOURCES = \
 	conf.c			\
 	fusion.c		\
 	fusion_internal.h	\
+	hash.c          \
 	lock.c			\
 	object.c		\
 	property.c		\
