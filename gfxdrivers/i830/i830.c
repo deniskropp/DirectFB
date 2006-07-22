@@ -213,9 +213,9 @@ i830_wait_lp_ring( I830DriverData *idrv,
 static void
 i830FlushTextureCache( void *drv, void *dev )
 {
-     I830DriverData *idrv = drv;
-     I830DeviceData *idev = dev;
-     I830RingBlock   block;
+     I830DriverData *idrv  = drv;
+     I830DeviceData *idev  = dev;
+     I830RingBlock   block = {0};
 
      if (i830_begin_lp_ring( idrv, idev, 2, &block ))
           return;

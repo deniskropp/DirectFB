@@ -377,7 +377,7 @@ dfb_window_create( CoreWindowStack        *stack,
      /* Create the window's surface using the layer's palette if possible. */
      if (! (caps & DWCAPS_INPUTONLY)) {
           if (context->config.buffermode == DLBM_WINDOWS) {
-               CoreLayerRegion *region;
+               CoreLayerRegion *region = NULL;
 
                /* Create a region for the window. */
                ret = create_region( layer->core, context, window,
