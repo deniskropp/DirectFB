@@ -2,7 +2,8 @@ EXTRA_DIST = directfb.png
 
 docs_headers = \
 	$(top_srcdir)/include/directfb.h \
-	$(top_srcdir)/include/directfb_keyboard.h
+	$(top_srcdir)/include/directfb_keyboard.h \
+	$(top_srcdir)/include/directfbgl.h
 
 all-local: stamp-docs
 
