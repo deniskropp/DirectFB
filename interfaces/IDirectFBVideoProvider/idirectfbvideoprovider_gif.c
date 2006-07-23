@@ -33,7 +33,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
-#include <sys/timeb.h>
 
 #include <pthread.h>
 
@@ -267,7 +266,7 @@ static int DoExtension( IDirectFBVideoProvider_GIF_data *data, int label )
                (void) GetDataBlock( data->buffer, (__u8*) buf );
                data->disposal    = (buf[0] >> 2) & 0x7;
                data->inputFlag   = (buf[0] >> 1) & 0x1;
-               data->delayTime   = LM_to_uint( buf[1], buf[2] ) * 10;
+               data->delayTime   = LM_to_uint( buf[1], buf[2] ) * 10000;
                if ((buf[0] & 0x1) != 0)
                     data->transparent = buf[3];
                else
@@ -512,7 +511,7 @@ fini:
 static void GIFReset( IDirectFBVideoProvider_GIF_data *data )
 {
      data->transparent = -1;
-     data->delayTime   = 1000; /* default: 1s */
+     data->delayTime   = 1000000; /* default: 1s */
      data->inputFlag   = -1;
      data->disposal    = 0;
      
@@ -751,9 +750,9 @@ GIFVideo( DirectThread *self, void *arg )
           DFBRegion       clip;
           void           *dst;
           int             pitch;
-          struct timeb    tb;
+          struct timeval  tv;
           
-          ftime( &tb );
+          gettimeofday( &tv, NULL );
           
           pthread_mutex_lock( &data->lock );
           
@@ -801,15 +800,15 @@ GIFVideo( DirectThread *self, void *arg )
           }
           else {
                struct timespec ts;
-               unsigned long   ms;
+               unsigned long   us;
                     
-               ms = data->delayTime;
+               us = data->delayTime;
                if (data->speed != 1.0)
-                    ms = ((double)ms / data->speed + .5);
-               ms += tb.millitm;                    
+                    us = ((double)us / data->speed + .5);
+               us += tv.tv_usec;                 
                     
-               ts.tv_sec  = tb.time + ms/1000;
-               ts.tv_nsec = (ms%1000) * 1000000 + 999999;
+               ts.tv_sec  = tv.tv_sec + us/1000000;
+               ts.tv_nsec = (us%1000000) * 1000;
                     
                pthread_cond_timedwait( &data->cond, &data->lock, &ts );
           }
