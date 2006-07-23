@@ -102,13 +102,16 @@ fusion_hash_create_local (FusionHashType key_type, FusionHashType value_type,
 
 DirectResult
 fusion_hash_remove (FusionHash    *hash,
-                    const void *  key, void **old_key, void **old_value);
+                    const void *  key,
+                    void **old_key,
+                    void **old_value);
 
 DirectResult
-fusion_hash_insert( FusionHash *hash, const void  *key, void  *value );
+fusion_hash_insert( FusionHash *hash, void  *key, void  *value );
 
 DirectResult
-fusion_hash_replace (FusionHash *hash, const void *   key, 
+fusion_hash_replace (FusionHash *hash,
+                     void *   key, 
                      void *   value,
                      void **old_key,
                      void **old_value);

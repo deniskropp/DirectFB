@@ -56,64 +56,64 @@ D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
 
 
 static const unsigned int primes[] =
-    {
-        11,
-        19,
-        37,
-        73,
-        109,
-        163,
-        251,
-        367,
-        557,
-        823,
-        1237,
-        1861,
-        2777,
-        4177,
-        6247,
-        9371,
-        14057,
-        21089,
-        31627,
-        47431,
-        71143,
-        106721,
-        160073,
-        240101,
-        360163,
-        540217,
-        810343,
-        1215497,
-        1823231,
-        2734867,
-        4102283,
-        6153409,
-        9230113,
-        13845163,
-    };
+{
+     11,
+     19,
+     37,
+     73,
+     109,
+     163,
+     251,
+     367,
+     557,
+     823,
+     1237,
+     1861,
+     2777,
+     4177,
+     6247,
+     9371,
+     14057,
+     21089,
+     31627,
+     47431,
+     71143,
+     106721,
+     160073,
+     240101,
+     360163,
+     540217,
+     810343,
+     1215497,
+     1823231,
+     2734867,
+     4102283,
+     6153409,
+     9230113,
+     13845163,
+};
 
 
 static const unsigned int nprimes = sizeof (primes) / sizeof (primes[0]);
 
 static DirectResult
 fusion_hash_create_internal(bool type,FusionSHMPoolShared *pool,
-                    FusionHashType key_type,
-                    FusionHashType value_type,
-                    int  size, FusionHash **ret_hash );
+                            FusionHashType key_type,
+                            FusionHashType value_type,
+                            int  size, FusionHash **ret_hash );
 
 static void
 fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
-                void **old_key,void **old_value);
+                          void **old_key,void **old_value);
 
 unsigned int
 spaced_primes_closest (unsigned int num)
 {
-    int i;
-    for (i = 0; i < nprimes; i++)
-        if (primes[i] > num)
-            return primes[i];
-    return primes[nprimes - 1];
+     int i;
+     for (i = 0; i < nprimes; i++)
+          if (primes[i] > num)
+               return primes[i];
+     return primes[nprimes - 1];
 }
 
 /**
@@ -130,8 +130,8 @@ DirectResult
 fusion_hash_create_local (FusionHashType key_type, FusionHashType value_type,
                           int  size, FusionHash **ret_hash )
 {
-    return fusion_hash_create_internal(true,NULL,key_type,value_type,
-                    size,ret_hash );
+     return fusion_hash_create_internal(true,NULL,key_type,value_type,
+                                        size,ret_hash );
 
 }
 
@@ -151,81 +151,81 @@ fusion_hash_create (FusionSHMPoolShared *pool,
                     FusionHashType value_type,
                     int  size, FusionHash **ret_hash )
 {
-    return fusion_hash_create_internal(false,NULL,key_type,value_type,
-                    size,ret_hash );
+     return fusion_hash_create_internal(false,NULL,key_type,value_type,
+                                        size,ret_hash );
 }
 
 static DirectResult
 fusion_hash_create_internal (bool local,FusionSHMPoolShared *pool,
-                    FusionHashType key_type,
-                    FusionHashType value_type,
-                    int  size, FusionHash **ret_hash )
+                             FusionHashType key_type,
+                             FusionHashType value_type,
+                             int  size, FusionHash **ret_hash )
 {
-    FusionHash *hash;
+     FusionHash *hash;
 
-    if(!ret_hash)
-        return DFB_BUG;
-    if(!local && !pool)
-        return DFB_BUG;
+     if (!ret_hash)
+          return DFB_BUG;
+     if (!local && !pool)
+          return DFB_BUG;
 
-    if (size < FUSION_HASH_MIN_SIZE)
-        size = FUSION_HASH_MIN_SIZE;
+     if (size < FUSION_HASH_MIN_SIZE)
+          size = FUSION_HASH_MIN_SIZE;
 
-    if(local)
-        hash = D_CALLOC(1, sizeof (FusionHash) );
-    else
-        hash = SHCALLOC(pool, 1, sizeof (FusionHash) );
+     if (local)
+          hash = D_CALLOC(1, sizeof (FusionHash) );
+     else
+          hash = SHCALLOC(pool, 1, sizeof (FusionHash) );
 
-    if (!hash) 
-        return local ?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
-    
-    hash->local              = local;
-    hash->pool               = pool;
-    hash->key_type           = key_type;
-    hash->value_type         = value_type;
-    hash->size               = size;
-    hash->nnodes             = 0;
-    if(local)
-        hash->nodes = D_CALLOC(size,sizeof (FusionHashNode*) );
-    else
-        hash->nodes = SHCALLOC(pool, size, sizeof(FusionHashNode*) );
+     if (!hash)
+          return local ?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
 
-    if (!hash->nodes) {
-        if(local)
-            D_FREE(hash );
-        else
-            SHFREE(pool, hash );
-        return local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
-    }
+     hash->local              = local;
+     hash->pool               = pool;
+     hash->key_type           = key_type;
+     hash->value_type         = value_type;
+     hash->size               = size;
+     hash->nnodes             = 0;
+     if (local)
+          hash->nodes = D_CALLOC(size,sizeof (FusionHashNode*) );
+     else
+          hash->nodes = SHCALLOC(pool, size, sizeof(FusionHashNode*) );
 
-    D_MAGIC_SET(hash, FusionHash );
+     if (!hash->nodes) {
+          if (local)
+               D_FREE(hash );
+          else
+               SHFREE(pool, hash );
+          return local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+     }
 
-    *ret_hash = hash;
+     D_MAGIC_SET(hash, FusionHash );
 
-    return DFB_OK;
+     *ret_hash = hash;
+
+     return DFB_OK;
 }
 
 void
 fusion_hash_destroy( FusionHash *hash )
 {
-    int i;
-    FusionHashNode *node;
-    D_MAGIC_ASSERT( hash, FusionHash );
+     int i;
+     FusionHashNode *node;
+     D_MAGIC_ASSERT( hash, FusionHash );
 
-    for (i = 0; i < hash->size; i++) {
-        for (node = hash->nodes[i]; node; node = node->next) {
-            fusion_hash_node_destroy(hash, node, NULL, NULL);
-        }
-    }
-    if(hash->local)
-        D_FREE(hash->nodes);
-    else
-        SHFREE( hash->pool, hash->nodes );
-    D_MAGIC_CLEAR( hash );
-    if(hash->local)
-        D_FREE(hash);
-    else
-        SHFREE( hash->pool, hash );
+     for (i = 0; i < hash->size; i++) {
+          for (node = hash->nodes[i]; node; node = node->next) {
+               fusion_hash_node_destroy(hash, node, NULL, NULL);
+          }
+     }
+     if (hash->local)
+          D_FREE(hash->nodes);
+     else
+          SHFREE( hash->pool, hash->nodes );
+     D_MAGIC_CLEAR( hash );
+     if (hash->local)
+          D_FREE(hash);
+     else
+          SHFREE( hash->pool, hash );
 }
 
 
@@ -244,10 +244,10 @@ fusion_hash_destroy( FusionHash *hash )
 void *
 fusion_hash_lookup (FusionHash *hash, const void * key)
 {
-    FusionHashNode *node;
-    D_MAGIC_ASSERT( hash, FusionHash );
-    node = *fusion_hash_lookup_node (hash, key);
-    return node ? node->value : NULL;
+     FusionHashNode *node;
+     D_MAGIC_ASSERT( hash, FusionHash );
+     node = *fusion_hash_lookup_node (hash, key);
+     return node ? node->value : NULL;
 }
 
 /**
@@ -263,32 +263,33 @@ fusion_hash_lookup (FusionHash *hash, const void * key)
  **/
 DirectResult
 fusion_hash_insert( FusionHash *hash,
-                    const void  *key,
+                    void       *key,
                     void       *value )
 {
-    FusionHashNode **node;
-    D_MAGIC_ASSERT( hash, FusionHash );
+     FusionHashNode **node;
+     D_MAGIC_ASSERT( hash, FusionHash );
 
-    node = fusion_hash_lookup_node (hash, key);
+     node = fusion_hash_lookup_node (hash, key);
 
-    if (*node) {
-        D_BUG( "key already exists" );
-        return DFB_BUG;
-    } else {
-        if(hash->local)
-            (*node) = D_CALLOC(1,sizeof(FusionHashNode));
-        else
-            (*node) = SHCALLOC(hash->pool, 1, sizeof(FusionHashNode));
-        if( !(*node) )
-            return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+     if (*node) {
+          D_BUG( "key already exists" );
+          return DFB_BUG;
+     }
+     else {
+          if (hash->local)
+               (*node) = D_CALLOC(1,sizeof(FusionHashNode));
+          else
+               (*node) = SHCALLOC(hash->pool, 1, sizeof(FusionHashNode));
+          if ( !(*node) )
+               return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
 
-        (*node)->key = key;
-        (*node)->value = value;
-        hash->nnodes++;
-        if( fusion_hash_should_resize(hash) )
-            fusion_hash_resize(hash);
-    }
-    return DFB_OK;
+          (*node)->key = key;
+          (*node)->value = value;
+          hash->nnodes++;
+          if ( fusion_hash_should_resize(hash) )
+               fusion_hash_resize(hash);
+     }
+     return DFB_OK;
 }
 
 /**
@@ -305,42 +306,51 @@ fusion_hash_insert( FusionHash *hash,
  * and free is called on the old value if not supplied
  **/
 DirectResult
-fusion_hash_replace (FusionHash *hash, const void *   key, 
+fusion_hash_replace (FusionHash *hash,
+                     void *   key, 
                      void *   value,
                      void **old_key,
                      void **old_value)
 {
-    FusionHashNode **node;
-    D_MAGIC_ASSERT( hash, FusionHash );
+     FusionHashNode **node;
+     D_MAGIC_ASSERT( hash, FusionHash );
 
-    node = fusion_hash_lookup_node (hash, key);
+     node = fusion_hash_lookup_node (hash, key);
 
-    if (*node) {
-        if( old_key)
-            *old_key = (*node)->key;
-        else if( hash->key_type != HASH_INT )
-            if(hash->local)
-                D_FREE((*node)->key);
-            else
-                SHFREE(hash->pool, (*node)->key );
-        if( old_value)
-            *old_value = (*node)->value;
-        else if( hash->value_type != HASH_INT )
-            if(hash->local)
-                D_FREE((*node)->value);
-            else
-                SHFREE(hash->pool, (*node)->value );
-    } else {
-        if(hash->local)
-            *node = D_CALLOC(1, sizeof(FusionHashNode));
-        else
-            *node = SHCALLOC(hash->pool, 1, sizeof(FusionHashNode));
-        if( !(*node) )
-            return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
-        hash->nnodes++;
-    }
-    (*node)->key = (void*)key;
-    (*node)->value = (void*)value;
+     if (*node) {
+          if ( old_key)
+               *old_key = (*node)->key;
+          else if ( hash->key_type != HASH_INT ) {
+               if (hash->local)
+                    D_FREE((*node)->key);
+               else
+                    SHFREE(hash->pool, (*node)->key );
+          }
+
+          if ( old_value)
+               *old_value = (*node)->value;
+          else if ( hash->value_type != HASH_INT ) {
+               if (hash->local)
+                    D_FREE((*node)->value);
+               else
+                    SHFREE(hash->pool, (*node)->value );
+          }
+     }
+     else {
+          if (hash->local)
+               *node = D_CALLOC(1, sizeof(FusionHashNode));
+          else
+               *node = SHCALLOC(hash->pool, 1, sizeof(FusionHashNode));
+
+          if ( !(*node) )
+               return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+
+          hash->nnodes++;
+     }
+     (*node)->key = (void*)key;
+     (*node)->value = (void*)value;
+
+     return DFB_OK;
 }
 
 /**
@@ -362,20 +372,22 @@ fusion_hash_replace (FusionHash *hash, const void *   key,
  **/
 DirectResult
 fusion_hash_remove (FusionHash    *hash,
-                    const void *  key, void **old_key, void **old_value)
+                    const void *  key,
+                    void **old_key,
+                    void **old_value)
 {
-    FusionHashNode **node, *dest;
-    D_MAGIC_ASSERT( hash, FusionHash );
+     FusionHashNode **node, *dest;
+     D_MAGIC_ASSERT( hash, FusionHash );
 
-    node = fusion_hash_lookup_node (hash, key);
-    if (*node) {
-        dest = *node;
-        (*node) = dest->next;
-        fusion_hash_node_destroy(hash, dest, old_key, old_value);
-        hash->nnodes--;
-        return DFB_OK;
-    }
-    return DFB_OK;
+     node = fusion_hash_lookup_node (hash, key);
+     if (*node) {
+          dest = *node;
+          (*node) = dest->next;
+          fusion_hash_node_destroy(hash, dest, old_key, old_value);
+          hash->nnodes--;
+          return DFB_OK;
+     }
+     return DFB_OK;
 }
 
 /**
@@ -396,21 +408,21 @@ fusion_hash_iterate( FusionHash             *hash,
                      FusionHashIteratorFunc  func,
                      void                   *ctx )
 {
-    int i;
-    int count = 0;
-    FusionHashNode *node;
+     int i;
+     int count = 0;
+     FusionHashNode *node;
 
-    D_MAGIC_ASSERT( hash, FusionHash );
+     D_MAGIC_ASSERT( hash, FusionHash );
 
-    for (i = 0; i < hash->size; i++) {
-        for (node = hash->nodes[i]; node; node = node->next) {
-            if( func(hash, node->key, node->value, ctx))
-                return;
-            count++;
-            if( count == hash->nnodes )
-                return;
-        }
-    }
+     for (i = 0; i < hash->size; i++) {
+          for (node = hash->nodes[i]; node; node = node->next) {
+               if ( func(hash, node->key, node->value, ctx))
+                    return;
+               count++;
+               if ( count == hash->nnodes )
+                    return;
+          }
+     }
 }
 
 /**
@@ -424,8 +436,8 @@ fusion_hash_iterate( FusionHash             *hash,
 unsigned int
 fusion_hash_size (FusionHash *hash)
 {
-    D_MAGIC_ASSERT( hash, FusionHash );
-    return hash->nnodes;
+     D_MAGIC_ASSERT( hash, FusionHash );
+     return hash->nnodes;
 }
 
 /**
@@ -436,13 +448,13 @@ fusion_hash_size (FusionHash *hash)
  */
 bool fusion_hash_should_resize ( FusionHash    *hash)
 {
-    D_MAGIC_ASSERT( hash, FusionHash );
-    if ((hash->size >= 3 * hash->nnodes &&
-         hash->size > FUSION_HASH_MIN_SIZE) ||
-        (3 * hash->size <= hash->nnodes &&
-         hash->size < FUSION_HASH_MAX_SIZE))
-        return true;
-    return false;
+     D_MAGIC_ASSERT( hash, FusionHash );
+     if ((hash->size >= 3 * hash->nnodes &&
+          hash->size > FUSION_HASH_MIN_SIZE) ||
+         (3 * hash->size <= hash->nnodes &&
+          hash->size < FUSION_HASH_MAX_SIZE))
+          return true;
+     return false;
 }
 
 /* Hash Functions
@@ -451,76 +463,81 @@ bool fusion_hash_should_resize ( FusionHash    *hash)
 DirectResult
 fusion_hash_resize (FusionHash *hash)
 {
-    FusionHashNode **new_nodes;
-    FusionHashNode *node;
-    FusionHashNode *next;
-    unsigned int hash_val;
-    int new_size;
-    int i;
-    D_MAGIC_ASSERT( hash, FusionHash );
+     FusionHashNode **new_nodes;
+     FusionHashNode *node;
+     FusionHashNode *next;
+     unsigned int hash_val;
+     int new_size;
+     int i;
+     D_MAGIC_ASSERT( hash, FusionHash );
 
-    new_size = spaced_primes_closest (hash->nnodes);
-    if(new_size > FUSION_HASH_MAX_SIZE )
-        new_size = FUSION_HASH_MAX_SIZE;
-    if(new_size <  FUSION_HASH_MIN_SIZE)
-        new_size = FUSION_HASH_MIN_SIZE;
+     new_size = spaced_primes_closest (hash->nnodes);
+     if (new_size > FUSION_HASH_MAX_SIZE )
+          new_size = FUSION_HASH_MAX_SIZE;
+     if (new_size <  FUSION_HASH_MIN_SIZE)
+          new_size = FUSION_HASH_MIN_SIZE;
 
-    if(hash->local)
-        new_nodes = D_CALLOC (new_size, sizeof(FusionHashNode*));
-    else
-        new_nodes = SHCALLOC (hash->pool, new_size, sizeof(FusionHashNode*));
-    if(!new_nodes)
-        return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
+     if (hash->local)
+          new_nodes = D_CALLOC (new_size, sizeof(FusionHashNode*));
+     else
+          new_nodes = SHCALLOC (hash->pool, new_size, sizeof(FusionHashNode*));
+     if (!new_nodes)
+          return hash->local?DFB_NOSYSTEMMEMORY:DFB_NOSHAREDMEMORY;
 
-    for (i = 0; i < hash->size; i++)
-        for (node = hash->nodes[i]; node; node = next) {
-            next = node->next;
-            /*TODO We could also optimize pointer hashing*/
-            if (hash->key_type == HASH_STRING ) {
-                unsigned int h;
-                const signed char *p = node->key;
-                HASH_STR(h, p)
-                hash_val = h % new_size;
-            } else
-                hash_val = ((unsigned int)node->key) % new_size;
+     for (i = 0; i < hash->size; i++)
+          for (node = hash->nodes[i]; node; node = next) {
+               next = node->next;
+               /*TODO We could also optimize pointer hashing*/
+               if (hash->key_type == HASH_STRING ) {
+                    unsigned int h;
+                    const signed char *p = node->key;
+                    HASH_STR(h, p)
+                    hash_val = h % new_size;
+               }
+               else
+                    hash_val = ((unsigned int)node->key) % new_size;
 
-            node->next = new_nodes[hash_val];
-            new_nodes[hash_val] = node;
-        }
-    if(hash->local)
-        D_FREE(hash->nodes);
-    else
-        SHFREE(hash->pool, hash->nodes);
-    hash->nodes = new_nodes;
-    hash->size = new_size;
-    return true;
+               node->next = new_nodes[hash_val];
+               new_nodes[hash_val] = node;
+          }
+     if (hash->local)
+          D_FREE(hash->nodes);
+     else
+          SHFREE(hash->pool, hash->nodes);
+     hash->nodes = new_nodes;
+     hash->size = new_size;
+     return true;
 }
 
 
 static void
 fusion_hash_node_destroy (FusionHash *hash,FusionHashNode *node,
-                void **old_key,void **old_value)
+                          void **old_key,void **old_value)
 {
-    if(!node )
-        return;
+     if (!node )
+          return;
 
-    if( old_key)
-        *old_key = node->key;
-    else if( hash->key_type != HASH_INT )
-        if( hash->local)
-            D_FREE(node->key );
-        else
-            SHFREE(hash->pool,node->key );
-    if( old_value)
-        *old_value = node->value;
-    else if( hash->value_type != HASH_INT )
-        if( hash->local)
-            D_FREE(node->value );
-        else
-            SHFREE(hash->pool,node->value );
-    if( hash->local)
-        D_FREE(node);
-    else
-        SHFREE(hash->pool,node);
+     if ( old_key)
+          *old_key = node->key;
+     else if ( hash->key_type != HASH_INT ) {
+          if ( hash->local)
+               D_FREE(node->key );
+          else
+               SHFREE(hash->pool,node->key );
+     }
+
+     if ( old_value)
+          *old_value = node->value;
+     else if ( hash->value_type != HASH_INT ) {
+          if ( hash->local)
+               D_FREE(node->value );
+          else
+               SHFREE(hash->pool,node->value );
+     }
+
+     if ( hash->local)
+          D_FREE(node);
+     else
+          SHFREE(hash->pool,node);
 }
 

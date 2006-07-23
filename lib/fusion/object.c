@@ -482,8 +482,8 @@ fusion_object_destroy( FusionObject *object )
 
      fusion_reactor_free( object->reactor );
 
-     if( object->properties )
-        fusion_hash_destroy(object->properties);
+     if ( object->properties )
+          fusion_hash_destroy(object->properties);
 
      D_MAGIC_CLEAR( object );
      SHFREE( shared->main_pool, object );
@@ -499,45 +499,68 @@ fusion_object_destroy( FusionObject *object )
  * its reference counted  you must pass in a old_value.
  */
 DirectResult
-fusion_object_set_property( FusionObject      *object ,
-                        const char *key, void *value, void **old_value)
+fusion_object_set_property( FusionObject  *object,
+                            const char    *key,
+                            void          *value,
+                            void         **old_value )
 {
-  DirectResult ret;
-  int len;
-  const char *sharedkey;
-  D_MAGIC_ASSERT( object, FusionObject );
-  if(!object->properties){
-    ret =fusion_hash_create(object->shared->main_pool,HASH_STRING,HASH_PTR,
-                    FUSION_HASH_MIN_SIZE,&object->properties);  
-    if(ret)
-        return ret;
+     DirectResult  ret;
+     char         *sharedkey;
 
-  }
-  len=strlen(key);
-  if(len) {
-     const char *nkey = SHMALLOC(object->shared->main_pool,len+1);  
-     if( !nkey )
-        return DFB_NOSHAREDMEMORY;
-     strcpy((char *)nkey,key);
-     key = nkey;
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( object->shared != NULL );
+     D_ASSERT( key != NULL );
+     D_ASSERT( value != NULL );
 
-  }
-  return fusion_hash_replace(object->properties,key,value,NULL,old_value);
+     /* Create property hash on demand. */
+     if (!object->properties) {
+          ret = fusion_hash_create( object->shared->main_pool,
+                                    HASH_STRING, HASH_PTR,
+                                    FUSION_HASH_MIN_SIZE,
+                                    &object->properties );
+          if (ret)
+               return ret;
+     }
 
+     /* Create a shared copy of the key. */
+     sharedkey = SHSTRDUP( object->shared->main_pool, key );
+     if (!sharedkey)
+          return D_OOSHM();
+
+     /* Put it into the hash. */
+     ret = fusion_hash_replace( object->properties, sharedkey,
+                                value, NULL, old_value );
+     if (ret)
+          SHFREE( object->shared->main_pool, sharedkey );
+
+     return ret;
 }
 
 /*
  * Helper function for int values
  */
 DirectResult
-fusion_object_set_int_property( FusionObject      *object ,
-                        const char *key, int value)
+fusion_object_set_int_property( FusionObject *object,
+                                const char   *key,
+                                int           value )
 {
-    int *iptr = SHMALLOC(object->shared->main_pool,sizeof(int));
-     if( !iptr )
-        return DFB_NOSHAREDMEMORY;
+     DirectResult  ret;
+     int          *iptr;
+
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( key != NULL );
+
+     iptr = SHMALLOC( object->shared->main_pool, sizeof(int) );
+     if (!iptr)
+          return DFB_NOSHAREDMEMORY;
+
      *iptr = value;
-    fusion_object_set_property(object,key,iptr,NULL);
+
+     ret = fusion_object_set_property( object, key, iptr, NULL );
+     if (ret)
+          SHFREE( object->shared->main_pool, iptr );
+
+     return ret;
 }
 
 /*
@@ -546,40 +569,54 @@ fusion_object_set_int_property( FusionObject      *object ,
  * Assumes that the old value was a string and frees it.
  */
 DirectResult
-fusion_object_set_string_property( FusionObject      *object ,
-                        const char *key, char *value)
+fusion_object_set_string_property( FusionObject *object,
+                                   const char   *key,
+                                   char         *value )
 {
-   int len=strlen(value);
-    if(!len) 
-       return;
+     DirectResult  ret;
+     char         *copy;
 
-        const char *cptr = SHMALLOC(object->shared->main_pool,sizeof(int));
-     if( !cptr )
-        return DFB_NOSHAREDMEMORY;
-     strcpy((char *)cptr,(char *)value);
-    fusion_object_set_property(object,key,cptr,NULL);
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( key != NULL );
+     D_ASSERT( value != NULL );
+
+     copy = SHSTRDUP( object->shared->main_pool, value );
+     if (!copy)
+          return D_OOSHM();
+
+     ret = fusion_object_set_property( object, key, copy, NULL );
+     if (ret)
+          SHFREE( object->shared->main_pool, copy );
+
+     return ret;
 }
 
 void *
-fusion_object_get_property( FusionObject *object , const char *key)
+fusion_object_get_property( FusionObject *object, const char *key )
 {
-  D_MAGIC_ASSERT( object, FusionObject );
-  if(!object->properties)
-      return NULL;
-  return fusion_hash_lookup(object->properties,key);
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( key != NULL );
+
+     if (!object->properties)
+          return NULL;
+
+     return fusion_hash_lookup( object->properties, key );
 }
 
 void 
-fusion_object_remove_property( FusionObject *object , const char *key,
-                void **old_value)
+fusion_object_remove_property( FusionObject  *object,
+                               const char    *key,
+                               void         **old_value)
 {
-  D_MAGIC_ASSERT( object, FusionObject );
+     D_MAGIC_ASSERT( object, FusionObject );
+     D_ASSERT( key != NULL );
 
-  if(!object->properties)
-      return;
-  fusion_hash_remove(object->properties,key,NULL,old_value);
+     if (!object->properties)
+          return;
 
-  if(fusion_hash_should_resize(object->properties))
-        fusion_hash_resize(object->properties);
+     fusion_hash_remove( object->properties, key, NULL, old_value );
+
+     if (fusion_hash_should_resize( object->properties ))
+          fusion_hash_resize( object->properties );
 }
 
