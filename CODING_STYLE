@@ -1,0 +1,69 @@
+DirectFB Coding Style
+---------------------
+
+   The purpose of this document is to give developers a brief description
+   of the preferred coding style for the DirectFB source code.
+   
+   
+Indentation
+-----------
+
+   Each new level of code is indented by using 5 spaces, no tabulations at all.
+   Tabulations have a different meaning for different editors and we want to
+   keep uniformity.
+   
+   A line of code should not be longer than 80 columns.
+   
+ 
+Functions
+---------
+
+   Refer to the following prototypes:
+
+   type
+   function( args )
+   {
+      do_something( args );
+   }
+
+   type
+   function( very_long_argument1,
+             very_long_argument2,
+             very_long_argument3 )
+   {
+      do_something( very_long_argument1, 
+                    very_long_argument2,
+                    very_long_argument3 );
+   }
+
+   
+Braces
+------
+
+   We use a bracing style similar to K&R style:
+   
+      if (condition) {
+         do_this();
+         do_that();
+      }
+      else {
+         do_other();
+      }
+
+      if (condition_1 && condition_2 && condition_3 &&
+          condition_4 && condition_5 && condition_6)
+      {
+         do_this();
+         do_that();
+      }
+      else {
+         do_other();
+      }
+
+
+Final Recommendations
+---------------------
+
+   Do not take these hints as strict rules for coding, we rely on your
+   good taste.
+
