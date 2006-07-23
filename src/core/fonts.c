@@ -60,6 +60,13 @@ D_DEBUG_DOMAIN( Core_FontSurfaces, "Core/Font/Surf", "DirectFB Core Font Surface
 
 /**********************************************************************************************************************/
 
+static bool free_glyphs( DirectHash *hash,
+                         __u32       key,
+                         void       *value,
+                         void       *ctx );
+
+/**********************************************************************************************************************/
+
 DFBResult
 dfb_font_create( CoreDFB *core, CoreFont **ret_font )
 {
@@ -121,6 +128,8 @@ dfb_font_destroy( CoreFont *font )
 
      dfb_state_destroy( &font->state );
 
+     direct_hash_iterate( font->glyph_hash, free_glyphs, NULL );
+
      direct_hash_destroy( font->glyph_hash );
 
      if (font->rows) {
@@ -179,6 +188,8 @@ dfb_font_drop_destination( CoreFont    *font,
 
      pthread_mutex_unlock( &font->lock );
 }
+
+/**********************************************************************************************************************/
 
 DFBResult
 dfb_font_get_glyph_data( CoreFont        *font,
@@ -430,6 +441,8 @@ error:
      return ret;
 }
 
+/**********************************************************************************************************************/
+
 DFBResult
 dfb_font_register_encoding( CoreFont                    *font,
                             const char                  *name,
@@ -595,5 +608,23 @@ dfb_font_decode_character( CoreFont          *font,
           *ret_index = character;
 
      return DFB_OK;
+}
+
+/**********************************************************************************************************************/
+
+static bool
+free_glyphs( DirectHash *hash,
+             __u32       key,
+             void       *value,
+             void       *ctx )
+{
+     CoreGlyphData *data = value;
+
+     D_MAGIC_ASSERT( data, CoreGlyphData );
+
+     D_MAGIC_CLEAR( data );
+     D_FREE( data );
+
+     return true;
 }
 
