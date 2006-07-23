@@ -12,7 +12,7 @@ Indentation
    Tabulations have a different meaning for different editors and we want to
    keep uniformity.
    
-   A line of code should not be longer than 80 columns.
+   A line of code should not be longer than 120 columns.
    
  
 Functions
