@@ -50,7 +50,7 @@
 #include <directfb.h>
 
 
-D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
+//D_DEBUG_DOMAIN( Fusion_Hash, "Fusion/Hash", "Hash table implementation" );
 
 
 
