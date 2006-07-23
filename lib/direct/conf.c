@@ -32,11 +32,7 @@
 
 
 static DirectConfig config = {
-#if DIRECT_BUILD_DEBUG
-     debug:      true,
-#else
      debug:      false,
-#endif
      trace:      true,
      sighandler: true,
 
