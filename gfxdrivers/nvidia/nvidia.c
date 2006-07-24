@@ -1546,7 +1546,7 @@ driver_init_device( GraphicsDevice     *device,
 
      snprintf( device_info->name,
                DFB_GRAPHICS_DEVICE_INFO_NAME_LENGTH,
-               "NV%02x (%04x)", (nvdev->chip >> 4) & 0xFF, nvdev->chip );
+               "NV%02X (%04x)", (nvdev->chip >> 4) & 0xFF, nvdev->chip );
 
      snprintf( device_info->vendor,
                DFB_GRAPHICS_DEVICE_INFO_VENDOR_LENGTH, "nVidia" );
