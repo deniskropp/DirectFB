@@ -121,6 +121,7 @@ DFBResult uc_probe_pci( UcDriverData *ucdrv )
         for (i = 0; uc_via_devices[i].id != 0; i++) {
             if (device == uc_via_devices[i].id) {
                 // Found a Unichrome device.
+                ucdrv->hwid = device;
                 ucdrv->name = uc_via_devices[i].name;
                 // Read its revision number from the host bridge.
                 ucdrv->hwrev = pci_config_in8(0, 0, 0, 0xf6);
