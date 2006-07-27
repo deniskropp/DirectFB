@@ -298,6 +298,8 @@ fusion_shm_pool_allocate( FusionSHMPoolShared  *pool,
                return ret;
      }
 
+     __shmalloc_brk( pool->heap, 0 );
+
      data = _fusion_shmalloc( pool->heap, size );
      if (!data) {
           if (lock)
@@ -343,6 +345,8 @@ fusion_shm_pool_reallocate( FusionSHMPoolShared  *pool,
                return ret;
      }
 
+     __shmalloc_brk( pool->heap, 0 );
+
      new_data = _fusion_shrealloc( pool->heap, data, size );
      if (!new_data) {
           if (lock)
@@ -378,6 +382,8 @@ fusion_shm_pool_deallocate( FusionSHMPoolShared *pool,
           if (ret)
                return ret;
      }
+
+     __shmalloc_brk( pool->heap, 0 );
 
      _fusion_shfree( pool->heap, data );
 
