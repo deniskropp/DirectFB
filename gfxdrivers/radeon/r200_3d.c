@@ -252,7 +252,6 @@ r200DoDrawRectangle3D( RadeonDriverData *rdrv,
           
      radeon_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_RECTANGLE_LIST |
                                      VF_PRIM_WALK_DATA           |
-                                     VF_RADEON_MODE              |
                                      (12 << VF_NUM_VERTICES_SHIFT) );
      /* top line */
      out_vertex2d0( mmio, rect->x          , rect->y           );
