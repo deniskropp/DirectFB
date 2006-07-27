@@ -171,13 +171,13 @@ fusion_shm_pool_destroy( FusionWorld         *world,
 
      D_ASSERT( shared == pool->shm );
 
-     ret = fusion_skirmish_prevail( &shared->lock );
+     ret = fusion_skirmish_prevail( &pool->lock );
      if (ret)
           return ret;
 
-     ret = fusion_skirmish_prevail( &pool->lock );
+     ret = fusion_skirmish_prevail( &shared->lock );
      if (ret) {
-          fusion_skirmish_dismiss( &shared->lock );
+          fusion_skirmish_dismiss( &pool->lock );
           return ret;
      }
 
@@ -216,13 +216,8 @@ fusion_shm_pool_attach( FusionSHM           *shm,
 
      D_ASSERT( shared == pool->shm );
 
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return ret;
-
      ret = fusion_skirmish_prevail( &pool->lock );
      if (ret) {
-          fusion_skirmish_dismiss( &shared->lock );
           return ret;
      }
 
@@ -235,7 +230,6 @@ fusion_shm_pool_attach( FusionSHM           *shm,
      ret = join_pool( shm, &shm->pools[pool->index], pool );
 
      fusion_skirmish_dismiss( &pool->lock );
-     fusion_skirmish_dismiss( &shared->lock );
 
      return ret;
 }
@@ -258,10 +252,6 @@ fusion_shm_pool_detach( FusionSHM           *shm,
 
      D_ASSERT( shared == pool->shm );
 
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return ret;
-
      ret = fusion_skirmish_prevail( &pool->lock );
      if (ret) {
           fusion_skirmish_dismiss( &shared->lock );
@@ -280,7 +270,6 @@ fusion_shm_pool_detach( FusionSHM           *shm,
      leave_pool( shm, &shm->pools[pool->index], pool );
 
      fusion_skirmish_dismiss( &pool->lock );
-     fusion_skirmish_dismiss( &shared->lock );
 
      return DFB_OK;
 }
@@ -763,8 +752,9 @@ _fusion_shmpool_process( FusionWorld          *world,
                if (shm->pools[i].pool_id == pool_id) {
                     switch (msg->type) {
                          case FSMT_REMAP:
+                              fusion_skirmish_dismiss( &shared->lock );
                               remap_pool( &shm->pools[i], msg->size );
-                              break;
+                              return;
 
                          case FSMT_UNMAP:
                               D_UNIMPLEMENTED();
@@ -816,8 +806,13 @@ _fusion_shmalloc_cure( FusionWorld *world, const void *ptr )
                D_MAGIC_ASSERT( heap, shmalloc_heap );
 
                if (ptr >= pool->addr_base && ptr < pool->addr_base + heap->size) {
+                    fusion_skirmish_dismiss( &shared->lock );
+
                     cured = remap_pool( &shm->pools[i], heap->size );
-                    break;
+
+                    D_DEBUG_AT( Fusion_SHMPool, "  -> %scured\n", cured ? "" : "not " );
+
+                    return cured;
                }
           }
      }
