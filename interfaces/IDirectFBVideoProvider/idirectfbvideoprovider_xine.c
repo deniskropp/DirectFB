@@ -92,7 +92,6 @@ typedef struct {
 
 typedef struct {
      int                            ref;
-     DFBResult                      err;
      
      char                          *mrl;
      char                          *cfg;
@@ -130,7 +129,7 @@ typedef struct {
 
 /***************************** Private Functions ******************************/
 
-static void
+static DFBResult
 get_stream_error( IDirectFBVideoProvider_Xine_data *data );
 
 static void
@@ -164,18 +163,15 @@ BufferThread( DirectThread *self, void *arg )
           char          buf[4096];
           unsigned int  len = 0;
 
-          while ((ret = buffer->GetData( buffer,
-                                  sizeof(buf), buf, &len )) == DFB_OK) {
-               write( fd, buf, len );
-               
-               if (direct_thread_is_canceled( self ))
-                    break;
+          ret = buffer->WaitForDataWithTimeout( buffer, sizeof(buf), 0, 1 );
+          if (ret == DFB_OK) {
+               ret = buffer->GetData( buffer, sizeof(buf), buf, &len );
+               if (ret == DFB_OK)
+                    write( fd, buf, len );
           }
 
           if (ret == DFB_EOF)
                break;
-               
-          usleep( 100 );
      }
 
      close( fd );
@@ -409,10 +405,8 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
           return DFB_UNSUPPORTED;
      
      if (data->status != DVSTATE_PLAY) {
-          if (!xine_play( data->stream, 0, data->start_time )) {
-               get_stream_error( data );
-               return data->err;
-          }
+          if (!xine_play( data->stream, 0, data->start_time ))
+               return get_stream_error( data );
 
           xine_set_param( data->stream, XINE_PARAM_SPEED, data->speed );
           usleep( 100 );
@@ -478,10 +472,9 @@ IDirectFBVideoProvider_Xine_SeekTo( IDirectFBVideoProvider *thiz,
 
      if (data->status == DVSTATE_PLAY) {
           data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
-          if (!xine_play( data->stream, 0, offset )) {
-               get_stream_error( data );
-               return data->err;
-          }
+          if (!xine_play( data->stream, 0, offset ))
+               return get_stream_error( data );
+
           xine_set_param( data->stream, XINE_PARAM_SPEED, data->speed );
           usleep( 100 );
      }
@@ -1021,7 +1014,6 @@ Construct( IDirectFBVideoProvider *thiz,
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine );
           
      data->ref    = 1;
-     data->err    = DFB_FAILURE;
      data->speed  = XINE_SPEED_NORMAL;
      data->status = DVSTATE_STOP;
      data->format = DSPF_YUY2;
@@ -1097,7 +1089,7 @@ Construct( IDirectFBVideoProvider *thiz,
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load video driver 'DFB'.\n" );
           IDirectFBVideoProvider_Xine_Destruct( thiz );
-          return data->err;
+          return DFB_FAILURE;
      }
 
      /* get available audio plugins */
@@ -1123,7 +1115,7 @@ Construct( IDirectFBVideoProvider *thiz,
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to load audio driver '%s'.\n", ao_driver );
           IDirectFBVideoProvider_Xine_Destruct( thiz );
-          return data->err;
+          return DFB_FAILURE;
      }
      
      /* create a new stream */
@@ -1132,7 +1124,7 @@ Construct( IDirectFBVideoProvider *thiz,
           D_ERROR( "DirectFB/VideoProvider_Xine: "
                    "failed to create a new stream.\n" );
           IDirectFBVideoProvider_Xine_Destruct( thiz );
-          return data->err;
+          return DFB_FAILURE;
      }
 
      xine_set_param( data->stream, 
@@ -1150,9 +1142,9 @@ Construct( IDirectFBVideoProvider *thiz,
 
      /* open the MRL */
      if (!xine_open( data->stream, data->mrl )) {
-          get_stream_error( data );
+          DFBResult ret = get_stream_error( data );
           IDirectFBVideoProvider_Xine_Destruct( thiz );
-          return data->err;
+          return ret;
      }
 
      xine_get_pos_length( data->stream, NULL, NULL, &data->length );
@@ -1206,10 +1198,11 @@ Construct( IDirectFBVideoProvider *thiz,
 
 /***************************** Private Functions ******************************/
 
-static void
+static DFBResult
 get_stream_error( IDirectFBVideoProvider_Xine_data *data )
 {
-     int err = 0;
+     DFBResult ret;
+     int       err = 0;
 
      if (data->stream)     
           err = xine_get_error( data->stream );
@@ -1219,36 +1212,38 @@ get_stream_error( IDirectFBVideoProvider_Xine_data *data )
                D_ERROR( "DirectFB/VideoProvider_Xine: "
                         "there is no input plugin to handle '%s'.\n",
                         data->mrl );
-               data->err = DFB_UNSUPPORTED;
+               ret = DFB_UNSUPPORTED;
                break;
 
           case XINE_ERROR_NO_DEMUX_PLUGIN:
                D_ERROR( "DirectFB/VideoProvider_Xine: "
                         "there is no demuxer plugin to decode '%s'.\n",
                         data->mrl );
-               data->err = DFB_UNSUPPORTED;
+               ret = DFB_UNSUPPORTED;
                break;
 
           case XINE_ERROR_DEMUX_FAILED:
                D_ERROR( "DirectFB/VideoProvider_Xine: "
                         "demuxer plugin failed; probably '%s' is corrupted.\n",
                         data->mrl );
-               data->err = DFB_FAILURE;
+               ret = DFB_FAILURE;
                break;
 
           case XINE_ERROR_MALFORMED_MRL:
                D_ERROR( "DirectFB/VideoProvider_Xine: "
                         "mrl '%s' is corrupted.\n",
                         data->mrl );
-               data->err = DFB_FAILURE;
+               ret = DFB_FAILURE;
                break;
 
           default:
                D_ERROR( "DirectFB/VideoProvider_Xine: "
                         "xine engine generic error !!\n" );
-               data->err = DFB_FAILURE;
+               ret = DFB_FAILURE;
                break;
      }
+     
+     return ret;
 }
 
 static void
