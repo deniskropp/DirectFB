@@ -30,10 +30,11 @@ struct uc_via_chipinfo
 
 static struct uc_via_chipinfo uc_via_devices[] = 
 {
-    {0x3122, "CLE266/UniChrome"},
-    {0x7205, "KM400/UniChrome"},
-    {0x7204, "K8M800/UniChrome Pro"},
-    {0x3118, "CN400/UniChrome Pro"},
+    {0x3122, "CLE266/UniChrome"},       // aka VT3122
+    {0x7205, "KM400/UniChrome"},        // aka VT3205, P4M800
+    {0x7204, "K8M800/UniChrome Pro"},   // aka VT3204, Unichrome Pro B
+    {0x3118, "CN400/UniChrome Pro"},    // aka VT3259, PM8?0, Unichrome Pro A
+    {0x3344, "CN700/Unichrome Pro"},    // aka VT3314, P4M800Pro, VN800, CN900
     {0, ""}
 };
 
