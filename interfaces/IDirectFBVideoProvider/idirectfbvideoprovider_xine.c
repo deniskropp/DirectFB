@@ -879,10 +879,33 @@ IDirectFBVideoProvider_Xine_GetVolume( IDirectFBVideoProvider *thiz,
 
 /****************************** Exported Symbols ******************************/
 
+static char *filename_to_mrl( const char *filename )
+{
+     struct stat st;
+     
+     if (!filename || !strncmp( filename, "stdin:", 6 ))
+          return NULL; /* force data buffer */
+          
+     if (stat( filename, &st ) == 0 && S_ISFIFO( st.st_mode ))
+          return NULL; /* force data buffer */
+        
+     if (!strcmp ( filename, "/dev/cdrom" )     ||
+         !strncmp( filename, "/dev/cdroms/", 12 ))
+          return D_STRDUP( "cdda:/1" );
+
+     if (!strcmp( filename, "/dev/dvd" ))
+          return D_STRDUP( "dvd:/" );
+          
+     if (!strcmp( filename, "/dev/vcd" ))
+          return D_STRDUP( "vcd:/" );
+        
+     return D_STRDUP( filename );
+}
+
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     const char        *mrl;
+     char              *mrl;
      char              *xinerc;
      xine_t            *xine;
      xine_video_port_t *vo;
@@ -891,31 +914,21 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      dfb_visual_t       visual;
      DFBResult          result;
      
-     /* Skip test in this case */
-     if (!ctx->filename)
-          return DFB_OK;
+     mrl = filename_to_mrl( ctx->filename );
+     if (!mrl)
+          return DFB_OK; /* avoid probe in this case */
           
      /* Ignore GIFs */
-     if (!strcmp( strrchr( ctx->filename, '.' ) ? : "", ".gif" ))
+     if (!strcmp( strrchr( mrl, '.' ) ? : "", ".gif" )) {
+          D_FREE( mrl );
           return DFB_UNSUPPORTED;
-     
-     if (!strcmp ( ctx->filename, "/dev/cdrom" )     ||
-         !strncmp( ctx->filename, "/dev/cdroms/", 12 )) {
-          mrl = "cdda:/1";
-     }
-     else if (!strcmp( ctx->filename, "/dev/dvd" )) {
-          mrl = "dvd:/";
-     }
-     else if (!strcmp( ctx->filename, "/dev/vcd" )) {
-          mrl = "vcd:/";
-     }
-     else {
-          mrl = ctx->filename;
      }
      
      xine = xine_new();
-     if (!xine)
+     if (!xine) {
+          D_FREE( mrl );
           return DFB_INIT;
+     }
 
      xinerc = getenv( "XINERC" );
      if (!xinerc || !*xinerc) {
@@ -936,6 +949,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
                                   (void*) &visual );
      if (!vo) {
           xine_exit( xine );
+          D_FREE( mrl );
           return DFB_INIT;
      }
 
@@ -943,6 +957,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      if (!ao) {
           xine_close_video_driver( xine, vo );
           xine_exit( xine );
+          D_FREE( mrl );
           return DFB_INIT;
      }
      
@@ -951,25 +966,23 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
           xine_close_audio_driver( xine, ao );
           xine_close_video_driver( xine, vo );
           xine_exit( xine );
+          D_FREE( mrl );
           return DFB_INIT;
      }
           
-     if (xine_open( stream, mrl ))
-          result = DFB_OK;
-     else
-          result = DFB_UNSUPPORTED;
+     result = xine_open( stream, mrl ) ? DFB_OK : DFB_UNSUPPORTED;
      
      xine_close( stream );
      xine_dispose( stream );
      xine_close_video_driver( xine, vo );
      xine_close_audio_driver( xine, ao );
      xine_exit( xine );
+     D_FREE( mrl );
 
      return result;
 }
 
-static DFBResult
-make_pipe( char **ret_path )
+static DFBResult make_pipe( char **ret_path )
 {
      char path[512];
      int  i, len;
@@ -1015,7 +1028,8 @@ Construct( IDirectFBVideoProvider *thiz,
 
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
 
-     if (!buffer_data->filename) {
+     data->mrl = filename_to_mrl( buffer_data->filename );
+     if (!data->mrl) { /* data buffer mode */
           DFBResult ret;
 
           ret = make_pipe( &data->pipe );
@@ -1026,32 +1040,10 @@ Construct( IDirectFBVideoProvider *thiz,
           
           data->buffer = buffer;
           data->buffer_thread = direct_thread_create( DTT_DEFAULT,
-                                                      BufferThread,
-                                                      data,
-                                                      "Xine DataBuffer Input" );
-          if (!data->buffer_thread) {
-               buffer->Release( buffer );
-               D_FREE( data->pipe );
-               return DFB_FAILURE;
-          }               
-     
+                                                      BufferThread, data, "Xine Input" );
+               
           data->mrl = D_MALLOC( strlen( data->pipe ) + 7 );
           sprintf( data->mrl, "fifo:/%s", data->pipe );
-     }
-     else {
-          if (!strcmp ( buffer_data->filename, "/dev/cdrom" )     ||
-              !strncmp( buffer_data->filename, "/dev/cdroms/", 12 )) {
-               data->mrl = D_STRDUP( "cdda:/1" );
-          }
-          else if (!strcmp( buffer_data->filename, "/dev/dvd" )) {
-               data->mrl = D_STRDUP( "dvd:/" );
-          }
-          else if (!strcmp( buffer_data->filename, "/dev/vcd" )) {
-               data->mrl = D_STRDUP( "vcd:/" );
-          }
-          else {
-               data->mrl = D_STRDUP( buffer_data->filename );
-          }
      }
      
      data->xine = xine_new();
