@@ -144,6 +144,8 @@ struct _GenefxState {
      int Ostep; /* controls horizontal blitting direction */
 
      int SperD; /* for scaled routines only */
+
+     bool need_accumulator;
 };
 
 

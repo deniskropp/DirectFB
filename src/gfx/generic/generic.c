@@ -7154,6 +7154,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      dfb_surfacemanager_unlock( destination->manager );
 
+     gfxs->need_accumulator = true;
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -7328,6 +7329,8 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                     gfxs->SCacc = SCacc;
                }
                else {
+                    gfxs->need_accumulator = false;
+                    
                     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
                          gfxs->Dkey = state->dst_colorkey;
                          *funcs++ = Cop_toK_Aop_PFI[dst_pfi];
@@ -7530,7 +7533,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                               (!DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) ||
                                dfb_palette_equal( gfxs->Alut, gfxs->Blut )))   ||
                              ((gfxs->src_format == DSPF_I420 || gfxs->src_format == DSPF_YV12) &&
-                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12))) {
+                              (gfxs->dst_format == DSPF_I420 || gfxs->dst_format == DSPF_YV12)))
+                    {
+                         gfxs->need_accumulator = false;
+                         
                          if (accel == DFXL_BLIT) {
                               if (state->blittingflags & DSBLIT_SRC_COLORKEY &&
                                   state->blittingflags & DSBLIT_DST_COLORKEY) {
@@ -8027,6 +8033,9 @@ static inline void Bop_prev( GenefxState *gfxs )
 static bool
 ABacc_prepare( GenefxState *gfxs, int size )
 {
+     if (!gfxs->need_accumulator)
+          return true;
+     
      size = (size < 256) ? 256 : (1 << direct_log2(size));
 
      if (gfxs->ABsize < size) {
