@@ -368,7 +368,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     pthread_mutex_unlock( &data->video.lock );
                }
           }
-          else if (packet.stream_index == data->audio.st->index) {
+          else if (data->audio.st && packet.stream_index == data->audio.st->index) {
                if (data->audio.thread)
                     add_packet( &data->audio.queue, &packet );
                else
@@ -684,10 +684,7 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
           direct_thread_join( data->audio.thread );
           direct_thread_destroy( data->audio.thread );
      }
-     
-     if (data->audio.ctx)
-          avcodec_close( data->audio.ctx );
-    
+         
 #ifdef HAVE_FUSIONSOUND
      if (data->audio.playback)
           data->audio.playback->Release( data->audio.playback );
@@ -698,6 +695,9 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      if (data->audio.sound)
           data->audio.sound->Release( data->audio.sound );
 #endif
+
+     if (data->audio.ctx)
+          avcodec_close( data->audio.ctx );
 
      if (data->video.ctx)
           avcodec_close( data->video.ctx );
@@ -1408,57 +1408,56 @@ Construct( IDirectFBVideoProvider *thiz,
           data->video.rate = 30.0;
      }
      data->video.interval = AV_TIME_BASE / data->video.rate;
+
+     if (data->audio.st) {
+          data->audio.ctx   = data->audio.st->codec;
+          data->audio.codec = avcodec_find_decoder( data->audio.ctx->codec_id );
+          if (!data->audio.codec ||
+              avcodec_open( data->audio.ctx, data->audio.codec ) < 0) {
+               data->audio.st    = NULL;
+               data->audio.ctx   = NULL;
+               data->audio.codec = NULL;
+          }
+          if (data->audio.ctx && data->audio.ctx->channels > 2)
+               data->audio.ctx->channels = 2;
+     }
      
 #ifdef HAVE_FUSIONSOUND      
      if (data->audio.st && 
          idirectfb_singleton->GetInterface( idirectfb_singleton,
                     "IFusionSound", 0, 0, (void**)&data->audio.sound ) == DFB_OK)
      {          
-          data->audio.ctx   = data->audio.st->codec;
-          data->audio.codec = avcodec_find_decoder( data->audio.ctx->codec_id );
-          if (data->audio.codec) {
-               if (avcodec_open( data->audio.ctx, data->audio.codec ) < 0)
-                    data->audio.ctx = NULL;
+          FSStreamDescription dsc;
+          DFBResult           ret;
+               
+          dsc.flags        = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS  |
+                             FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
+          dsc.channels     = data->audio.ctx->channels;
+          dsc.samplerate   = data->audio.ctx->sample_rate;
+          dsc.buffersize   = dsc.samplerate*125/1000; /* 125(ms) */
+          dsc.sampleformat = FSSF_S16;
+
+          ret = data->audio.sound->CreateStream( data->audio.sound, 
+                                                 &dsc, &data->audio.stream );
+          if (ret != DFB_OK) {
+               D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
+                        "IFusionSound::CreateStream() failed!\n"
+                        "\t-> %s\n", DirectFBErrorString( ret ) );
+               data->audio.sound->Release( data->audio.sound );
+               data->audio.sound = NULL;
           }
-          
-          if (data->audio.ctx) {
-               FSStreamDescription dsc;
-               
-               if (data->audio.ctx->channels > 2)
-                    data->audio.ctx->channels = 2;
-
-               dsc.flags        = FSSDF_BUFFERSIZE   | FSSDF_CHANNELS  |
-                                  FSSDF_SAMPLEFORMAT | FSSDF_SAMPLERATE;
-               dsc.channels     = data->audio.ctx->channels;
-               dsc.samplerate   = data->audio.ctx->sample_rate;
-               dsc.buffersize   = dsc.samplerate*120/1000; /* 120(ms) */
-               dsc.sampleformat = FSSF_S16;
-
-               if (data->audio.sound->CreateStream( data->audio.sound, 
-                                           &dsc, &data->audio.stream ) != DFB_OK) {
-                    D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
-                             "IFusionSound::CreateStream() failed!\n" );
-                    avcodec_close( data->audio.ctx );
-                    data->audio.ctx = NULL;
-               }
-               
+          else {
                data->audio.stream->GetPlayback( data->audio.stream,
-                                               &data->audio.playback );
+                                                &data->audio.playback );
 
                data->audio.sample_size = 2 * dsc.channels;
                data->audio.sample_rate = dsc.samplerate;
                data->audio.buffer_size = dsc.buffersize;
           }
-          
-          if (!data->audio.stream) {
-               data->audio.sound->Release( data->audio.sound );
-               data->audio.sound = NULL;
-          }
      }
-     else {
-          if (data->audio.st)
-               D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
-                        "failed to get FusionSound interface!\n" );
+     else if (data->audio.st) {
+          D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
+                   "couldn't get FusionSound interface!\n" );
      }
 #endif
 
