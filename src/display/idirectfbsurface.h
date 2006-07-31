@@ -50,10 +50,14 @@ typedef struct {
          DFBRectangle       wanted;          /* passed to GetSubSurface */
          DFBRectangle       granted;         /* clipped by parent on creation */
          DFBRectangle       current;         /* currently available area */
+         DFBInsets          insets;          /* actually set by the window manager */
      } area;
+     
+     bool                   limit_set;       /* greanted rectangle set?
+                                                (GetSubSurface called with rect != NULL) */
 
      bool                   clip_set;        /* fixed clip set? (SetClip called
-                                                with clip != NULL */
+                                                with clip != NULL) */
      DFBRegion              clip_wanted;     /* last region passed to SetClip
                                                 intersected by wanted area,
                                                 only valid if clip_set != 0 */
@@ -89,7 +93,8 @@ typedef struct {
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
                                       DFBRectangle *req_rect,
                                       DFBRectangle *clip_rect,
-                                      CoreSurface *surface,
+                                      DFBInsets    *insets,
+                                      CoreSurface  *surface,
                                       DFBSurfaceCapabilities caps );
 
 /*

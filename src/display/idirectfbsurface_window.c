@@ -187,7 +187,7 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
                                        const DFBRectangle  *rect,
                                        IDirectFBSurface   **surface )
 {
-     DFBRectangle wanted, granted;
+     DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Window)
 
@@ -199,9 +199,14 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
+          
+     /* Allocate interface */
+     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-     /* Compute wanted rectangle */
-     if (rect) {
+     if (rect || data->base.limit_set) {
+          DFBRectangle wanted, granted;
+          
+          /* Compute wanted rectangle */
           wanted = *rect;
 
           wanted.x += data->base.area.wanted.x;
@@ -211,21 +216,25 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
                wanted.w = 0;
                wanted.h = 0;
           }
+          
+          /* Compute granted rectangle */
+          granted = wanted;
+
+          dfb_rectangle_intersect( &granted, &data->base.area.granted );
+          
+          /* Construct */
+          ret = IDirectFBSurface_Window_Construct( *surface, &wanted, &granted,
+                                                   data->window, data->base.caps |
+                                                   DSCAPS_SUBSURFACE );
      }
-     else
-          wanted = data->base.area.wanted;
-
-     /* Compute granted rectangle */
-     granted = wanted;
-
-     dfb_rectangle_intersect( &granted, &data->base.area.granted );
-
-     /* Allocate and construct */
-     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
-
-     return IDirectFBSurface_Window_Construct( *surface, &wanted, &granted,
-                                               data->window, data->base.caps |
-                                               DSCAPS_SUBSURFACE );
+     else {
+          /* Construct */
+          ret = IDirectFBSurface_Window_Construct( *surface, NULL, NULL,
+                                                   data->window, data->base.caps |
+                                                   DSCAPS_SUBSURFACE );
+     }
+     
+     return ret;
 }
 
 DFBResult
@@ -236,30 +245,15 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    DFBSurfaceCapabilities  caps )
 {
      DFBResult ret;
-	 DFBInsets insets;
-
-	 dfb_wm_get_insets(window->stack,window,&insets);
-
-	 if( insets.l != 0 || insets.t != 0 || insets.r != 0  || insets.b != 0 ) {
-		if ( !wanted ) {
-			DFBRectangle rect = { 0, 0, window->surface->width, 
-									window->surface->height };
-			wanted =&rect;
-		    wanted->w -=insets.l+insets.r;
-		    wanted->h -=insets.t+insets.b;
-
-		}
-		wanted->x +=insets.l;
-		wanted->y +=insets.t;
-		if( granted )
-			*granted = *wanted;
-		caps |= DSCAPS_SUBSURFACE;
-	 }
+     DFBInsets insets;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBSurface_Window)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
-     ret = IDirectFBSurface_Construct( thiz, wanted, granted,
+     
+     dfb_wm_get_insets( window->stack, window, &insets );
+     
+     ret = IDirectFBSurface_Construct( thiz, wanted, granted, &insets,
                                        window->surface, caps );
      if (ret)
           return ret;
@@ -280,10 +274,10 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      if (!(caps & DSCAPS_FLIPPING) && !(caps & DSCAPS_SUBSURFACE))
           pthread_create( &data->flip_thread, NULL, Flipping_Thread, thiz );
 
-
      thiz->Release = IDirectFBSurface_Window_Release;
      thiz->Flip = IDirectFBSurface_Window_Flip;
      thiz->GetSubSurface = IDirectFBSurface_Window_GetSubSurface;
+     
      return DFB_OK;
 }
 

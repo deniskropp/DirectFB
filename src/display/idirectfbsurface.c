@@ -1923,7 +1923,7 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
                                 const DFBRectangle  *rect,
                                 IDirectFBSurface   **surface )
 {
-     DFBRectangle wanted, granted;
+     DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -1935,9 +1935,14 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
+          
+     /* Allocate interface */
+     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-     /* Compute wanted rectangle */
-     if (rect) {
+     if (rect || data->limit_set) {
+          DFBRectangle wanted, granted;
+          
+          /* Compute wanted rectangle */
           wanted = *rect;
 
           wanted.x += data->area.wanted.x;
@@ -1947,21 +1952,27 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
                wanted.w = 0;
                wanted.h = 0;
           }
+          
+          /* Compute granted rectangle */
+          granted = wanted;
+
+          dfb_rectangle_intersect( &granted, &data->area.granted );
+          
+          /* Construct */
+          ret = IDirectFBSurface_Construct( *surface, 
+                                            &wanted, &granted, &data->area.insets,
+                                            data->surface,
+                                            data->caps | DSCAPS_SUBSURFACE );
      }
-     else
-          wanted = data->area.wanted;
-
-     /* Compute granted rectangle */
-     granted = wanted;
-
-     dfb_rectangle_intersect( &granted, &data->area.granted );
-
-     /* Allocate and construct */
-     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
-
-     return IDirectFBSurface_Construct( *surface, &wanted, &granted,
-                                        data->surface,
-                                        data->caps | DSCAPS_SUBSURFACE );
+     else {
+          /* Construct */
+          ret = IDirectFBSurface_Construct( *surface, 
+                                            NULL, NULL, &data->area.insets,
+                                            data->surface, 
+                                            data->caps | DSCAPS_SUBSURFACE );
+     }
+     
+     return ret;
 }
 
 static DFBResult
@@ -2050,6 +2061,7 @@ IDirectFBSurface_DisableAcceleration( IDirectFBSurface    *thiz,
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       DFBRectangle           *wanted,
                                       DFBRectangle           *granted,
+                                      DFBInsets              *insets,
                                       CoreSurface            *surface,
                                       DFBSurfaceCapabilities  caps )
 {
@@ -2065,6 +2077,12 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      if (dfb_surface_ref( surface )) {
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
+     }
+     
+     /* The area insets */
+     if (insets) {
+          data->area.insets = *insets;
+          dfb_rectangle_subtract( &rect, insets );
      }
 
      /* The area that was requested */
@@ -2082,6 +2100,9 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      /* The currently accessible rectangle */
      data->area.current = data->area.granted;
      dfb_rectangle_intersect( &data->area.current, &rect );
+     
+     /* Whether granted rectangle is meaningful */
+     data->limit_set = (granted != NULL);
 
      data->surface = surface;
 
@@ -2186,8 +2207,10 @@ IDirectFBSurface_listener( const void *msg_data, void *ctx )
 
      if (notification->flags & CSNF_SIZEFORMAT) {
           DFBRectangle rect = { 0, 0, surface->width, surface->height };
+          
+          dfb_rectangle_subtract( &rect, &data->area.insets );
 
-          if (data->caps & DSCAPS_SUBSURFACE) {
+          if (data->limit_set) {
                data->area.current = data->area.granted;
 
                dfb_rectangle_intersect( &data->area.current, &rect );

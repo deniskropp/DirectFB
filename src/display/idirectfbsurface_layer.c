@@ -126,7 +126,7 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
                                       const DFBRectangle  *rect,
                                       IDirectFBSurface   **surface )
 {
-     DFBRectangle wanted, granted;
+     DFBResult ret;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Layer)
 
@@ -136,9 +136,14 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
 
      if (!surface)
           return DFB_INVARG;
+          
+     /* Allocate interface */
+     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
 
-     /* Compute wanted rectangle */
-     if (rect) {
+     if (rect || data->base.limit_set) {
+          DFBRectangle wanted, granted;
+          
+          /* Compute wanted rectangle */
           wanted = *rect;
 
           wanted.x += data->base.area.wanted.x;
@@ -148,21 +153,25 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
                wanted.w = 0;
                wanted.h = 0;
           }
+          
+          /* Compute granted rectangle */
+          granted = wanted;
+
+          dfb_rectangle_intersect( &granted, &data->base.area.granted );
+          
+          /* Construct */
+          ret = IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
+                                                  data->region, data->base.caps |
+                                                  DSCAPS_SUBSURFACE );
      }
-     else
-          wanted = data->base.area.wanted;
-
-     /* Compute granted rectangle */
-     granted = wanted;
-
-     dfb_rectangle_intersect( &granted, &data->base.area.granted );
-
-     /* Allocate and construct */
-     DIRECT_ALLOCATE_INTERFACE( *surface, IDirectFBSurface );
-
-     return IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
-                                              data->region, data->base.caps |
-                                              DSCAPS_SUBSURFACE );
+     else {
+          /* Construct */
+          ret = IDirectFBSurface_Layer_Construct( *surface, NULL, NULL,
+                                                  data->region, data->base.caps |
+                                                  DSCAPS_SUBSURFACE );
+     }
+     
+     return ret;
 }
 
 DFBResult
@@ -187,7 +196,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
           return ret;
      }
 
-     ret = IDirectFBSurface_Construct( thiz, wanted, granted,
+     ret = IDirectFBSurface_Construct( thiz, wanted, granted, NULL,
                                        surface, surface->caps | caps );
      if (ret) {
           dfb_surface_unref( surface );

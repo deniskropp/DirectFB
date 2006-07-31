@@ -544,7 +544,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-                         ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
+                         ret = IDirectFBSurface_Construct( *interface, 
+                                                            NULL, NULL, NULL, surface, caps );
                          if (ret == DFB_OK) {
                               dfb_windowstack_set_background_image( data->stack, surface );
                               dfb_windowstack_set_background_mode( data->stack, DLBM_IMAGE );
@@ -734,7 +735,8 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-     ret = IDirectFBSurface_Construct( *interface, NULL, NULL, surface, caps );
+     ret = IDirectFBSurface_Construct( *interface, 
+                                        NULL, NULL, NULL, surface, caps );
 
      dfb_surface_unref( surface );
 
