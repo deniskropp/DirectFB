@@ -1448,10 +1448,10 @@ static int dfb_fbdev_compatible_format( struct fb_var_screeninfo *var,
      vgh = var->green.length + var->green.offset - 1;
      vbh = var->blue.length + var->blue.offset - 1;
 
-     if (ah == vah && al >= (int)var->transp.length &&
-         rh == vrh && rl >= (int)var->red.length &&
-         gh == vgh && gl >= (int)var->green.length &&
-         bh == vbh && bl >= (int)var->blue.length)
+     if ((!al || (ah == vah && al >= (int)var->transp.length)) &&
+         (!rl || (rh == vrh && rl >= (int)var->red.length)) &&
+         (!gl || (gh == vgh && gl >= (int)var->green.length)) &&
+         (!bl || (bh == vbh && bl >= (int)var->blue.length)))
           return 1;
 
      return 0;
