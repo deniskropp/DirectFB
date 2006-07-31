@@ -207,14 +207,19 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
           DFBRectangle wanted, granted;
           
           /* Compute wanted rectangle */
-          wanted = *rect;
+          if (rect) {
+               wanted = *rect;
 
-          wanted.x += data->base.area.wanted.x;
-          wanted.y += data->base.area.wanted.y;
+               wanted.x += data->base.area.wanted.x;
+               wanted.y += data->base.area.wanted.y;
 
-          if (wanted.w <= 0 || wanted.h <= 0) {
-               wanted.w = 0;
-               wanted.h = 0;
+               if (wanted.w <= 0 || wanted.h <= 0) {
+                    wanted.w = 0;
+                    wanted.h = 0;
+               }
+          }
+          else {
+               wanted = data->base.area.wanted;
           }
           
           /* Compute granted rectangle */
