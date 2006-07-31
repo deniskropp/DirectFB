@@ -136,7 +136,6 @@ static inline void dfb_rectangle_from_region( DFBRectangle    *rect,
      rect->h = region->y2 - region->y1 + 1;
 }
 
-
 static inline void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       *rect,
                                                              const DFBRectangle *inner,
                                                              const DFBInsets    *insets )
@@ -151,7 +150,6 @@ static inline void dfb_rectangle_from_rectangle_plus_insets( DFBRectangle       
      rect->w = inner->w + insets->l + insets->r;
      rect->h = inner->h + insets->t + insets->b;
 }
-
 
 static inline void dfb_region_from_rectangle( DFBRegion          *region,
                                               const DFBRectangle *rect )
@@ -300,6 +298,21 @@ static inline void dfb_region_clip( DFBRegion *region,
 
      if (region->y2 > y2)
           region->y2 = y2;
+}
+
+static inline void dfb_rectangle_subtract( DFBRectangle    *rect, 
+                                           const DFBInsets *insets )
+{
+     D_ASSERT( rect != NULL );
+     D_ASSERT( insets != NULL );
+     
+     rect->x += insets->l;
+     rect->y += insets->t;
+     rect->w -= insets->l + insets->r;
+     rect->h -= insets->t + insets->b;
+     
+     if (rect->w <= 0 || rect->h <= 0)
+          rect->w = rect->h = 0;
 }
 
 #endif
