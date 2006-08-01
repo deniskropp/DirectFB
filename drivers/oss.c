@@ -259,12 +259,13 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      return DFB_OK;
 }
 
-static int
+static void
 device_write( void *device_data, void *samples, unsigned int size )
 {
      OSSDeviceData *data = device_data;
      
-     return write( data->fd, samples, size*data->bytes_per_frame );
+     if (write( data->fd, samples, size*data->bytes_per_frame ) < 0)
+          D_PERROR( "FusionSound/Device/OSS: couldn't write %d frames!\n", size );
 }
 
 static void

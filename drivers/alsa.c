@@ -224,7 +224,7 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      return DFB_OK;
 }
 
-static int
+static void
 device_write( void *device_data, void *samples, unsigned int size )
 {
      AlsaDeviceData    *data   = device_data;
@@ -247,8 +247,6 @@ device_write( void *device_data, void *samples, unsigned int size )
           frames -= r;
           src += snd_pcm_frames_to_bytes( data->handle, r );
      }
-
-     return size - frames;
 }
 
 static void

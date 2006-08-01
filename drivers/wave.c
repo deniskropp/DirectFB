@@ -184,12 +184,12 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      return DFB_OK;
 }
 
-static int
+static void
 device_write( void *device_data, void *samples, unsigned int size )
 {
      WaveDeviceData *data = device_data;
      
-     return write( data->fd, samples, size*data->bytes_per_frame );
+     write( data->fd, samples, size*data->bytes_per_frame );
 }
 
 static void

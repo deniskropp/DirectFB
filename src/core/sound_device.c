@@ -154,7 +154,7 @@ fs_device_get_configuration( CoreSoundDevice       *device,
      *config = device->config;
 }
    
-int 
+void 
 fs_device_write( CoreSoundDevice *device,
                  void            *samples,
                  unsigned int     size )
@@ -162,7 +162,7 @@ fs_device_write( CoreSoundDevice *device,
      D_ASSERT( device != NULL );
      D_ASSERT( samples != NULL );
      
-     return device->funcs->Write( device->device_data, samples, size );
+     device->funcs->Write( device->device_data, samples, size );
 }
 
 void

@@ -43,7 +43,7 @@ static DFBResult
 device_open( void                  *device_data,
              CoreSoundDeviceConfig *config );
 
-static int
+static void
 device_write( void         *device_data, 
               void         *samples, 
               unsigned int  size );

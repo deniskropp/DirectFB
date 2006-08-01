@@ -98,7 +98,7 @@ typedef struct {
                                      CoreSoundDeviceConfig *config );
      
      /* Write size samples (in frames). */
-     int       (*Write)            ( void                  *device_data,
+     void      (*Write)            ( void                  *device_data,
                                      void                  *samples,
                                      unsigned int           size );
      
@@ -117,7 +117,7 @@ void      fs_device_shutdown  ( CoreSoundDevice *device );
 void      fs_device_get_configuration( CoreSoundDevice       *device, 
                                        CoreSoundDeviceConfig *config );
                                                                                                           
-int       fs_device_write( CoreSoundDevice *device, 
+void      fs_device_write( CoreSoundDevice *device, 
                            void            *samples,
                            unsigned int     size );
                            
