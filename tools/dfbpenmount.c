@@ -58,18 +58,25 @@ main( int argc, char *argv[] )
      char buf[4096]={0};
      
      char *home = getenv( "HOME" );
-	 
+     int   file;
+
+     int leftx, topy, rightx, bottomy, ofs;
+     int mouse_x, mouse_y, tx1, ty1;
+     int touch, count, color; 
+	struct timespec rqtp,rmtp;
+     
      if(home)
          sprintf(init_str,"%s/.directfbrc",home);
 	 else
 	     strcpy(init_str,"root/.directfbrc");
 	 		   
-	 int file = open ( init_str, O_RDONLY );
+	 file = open ( init_str, O_RDONLY );
 	 if ( file != -1 ){
-	 	 read(file, buf, sizeof(buf));
+	 	 char *pos, *pos2;
+           read(file, buf, sizeof(buf));
 		 close(file);
 	 
-		 char* pos = strstr( buf, "penmount-device" ),*pos2;
+		 pos = strstr( buf, "penmount-device" ),*pos2;
 		 if(pos){
 	 		 pos = strchr(pos,'=');
 		 	 if(pos){
@@ -125,11 +132,11 @@ main( int argc, char *argv[] )
 
      primary->Clear( primary, 0x0, 0x0, 0x0, 0xFF );
      
-     int leftx = sx/10;
-     int topy = sy/10;
-     int rightx = sx*9/10;
-     int bottomy = sy*9/10;
-     int ofs = 10;
+     leftx = sx/10;
+     topy = sy/10;
+     rightx = sx*9/10;
+     bottomy = sy*9/10;
+     ofs = 10;
 
      primary->SetColor( primary,0xFF,0,0,0xFF );
    	 primary->DrawLine( primary,rightx-ofs,bottomy,rightx+ofs,bottomy );
@@ -144,9 +151,9 @@ main( int argc, char *argv[] )
           return 1;
      }
 
-	 int mouse_x=0,mouse_y=0,tx1=0,ty1=0;
-	 int touch=0,count=0,color=0;
-	 struct timespec rqtp,rmtp;
+	mouse_x=0,mouse_y=0,tx1=0,ty1=0;
+	touch=0,count=0,color=0;
+      
      while (!quit) {
           DFBInputEvent evt;
           rqtp.tv_nsec = 10000;

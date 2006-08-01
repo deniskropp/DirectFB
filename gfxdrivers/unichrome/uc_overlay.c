@@ -124,12 +124,13 @@ uc_ovl_set_region( CoreLayer                  *layer,
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-
+    DFBRectangle   win;
+    
     /* remember configuration */
     ucovl->config = *config;
 
     /* get new destination rectangle */
-    DFBRectangle win = config->dest;
+    win = config->dest;
 
     // Bounds checking
     if ((win.x < -8192) || (win.x > 8192) ||

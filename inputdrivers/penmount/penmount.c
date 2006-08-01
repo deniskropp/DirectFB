@@ -210,6 +210,7 @@ static void *PenMountEventThread(DirectThread *thread, void *driver_data){
      /* Read data */
      while (1) {
           DFBInputEvent evt;
+          static int pressed = 0;
 
           if (!PeMGetEvent (data))
 	       continue;
@@ -229,7 +230,6 @@ static void *PenMountEventThread(DirectThread *thread, void *driver_data){
           dfb_input_dispatch (data->device, &evt);
 
           /* Dispatch touch event */
-          static int pressed = 0;
           switch (data->action) {
                case PEM_PANEL_TOUCH:
                		if (!pressed)

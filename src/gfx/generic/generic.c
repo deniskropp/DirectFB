@@ -506,10 +506,10 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
      /* in the case when only destination is misaligned we have to
         be more careful copying the pixels */
      if (((long)D + (long)S) & 2) {
-          w = l;
           __u16 *d = gfxs->Aop[0];
           __u16 *s = gfxs->Bop[0];
 
+          w = l; 
           while (w) {
                __u16 mpixel = *s;
                if (mpixel != (__u16)Skey) {
