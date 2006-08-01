@@ -224,7 +224,7 @@ direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex )
      pthread_mutexattr_t attr;
 
      pthread_mutexattr_init( &attr );
-#ifdef __USE_UNIX98
+#if defined(PTHREAD_MUTEX_RECURSIVE) || defined(__USE_UNIX98)
      pthread_mutexattr_settype( &attr, PTHREAD_MUTEX_RECURSIVE );
 #else
 #warning PTHREAD_MUTEX_RECURSIVE is not defined! Dead locks might occur!
