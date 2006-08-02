@@ -109,12 +109,12 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                break;
 
           case DSPF_A8:
-               for (i = 0; i < dx+len; i++)
+               for (i = 0; i < len; i++)
                     d[i] = src[i] >> 24;
                break;
                
           case DSPF_RGB332:
-               for (i = 0; i < dx+len; i++)
+               for (i = 0; i < len; i++)
                     d[i] = RGB32_TO_RGB332( src[i] );
                break;
 
