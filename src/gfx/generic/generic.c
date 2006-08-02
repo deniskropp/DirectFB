@@ -429,6 +429,11 @@ static GenefxFunc Cop_toK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 /********************************* Bop_PFI_to_Aop_PFI *************************/
 
+static void Bop_4_to_Aop( GenefxState *gfxs )
+{
+     direct_memmove( gfxs->Aop[0], gfxs->Bop[0], gfxs->length>>1 );
+}
+
 static void Bop_8_to_Aop( GenefxState *gfxs )
 {
      direct_memmove( gfxs->Aop[0], gfxs->Bop[0], gfxs->length );
@@ -487,7 +492,7 @@ static GenefxFunc Bop_PFI_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Bop_16_to_Aop,      /* DSPF_ARGB4444 */
      Bop_NV_to_Aop,      /* DSPF_NV21 */
      Bop_32_to_Aop,      /* DSPF_AYUV */
-     NULL,               /* DSPF_A4 */
+     Bop_4_to_Aop,       /* DSPF_A4 */
 };
 
 /********************************* Bop_PFI_Kto_Aop_PFI ************************/
@@ -4321,6 +4326,33 @@ static void Sacc_to_Aop_ayuv( GenefxState *gfxs )
      }
 }
 
+static void Sacc_to_Aop_a4( GenefxState *gfxs )
+{
+     int                w = gfxs->length>>1;
+     GenefxAccumulator *S = gfxs->Sacc;
+     __u8              *D = gfxs->Aop[0];
+
+     while (w--) {
+          if (!(S[0].RGB.a & 0xF000) && !(S[1].RGB.a & 0xF000)) {
+               *D = ((S[0].RGB.a & 0xFF00) ? 0xF0 : (S[0].RGB.a & 0xF0)) |
+                    ((S[1].RGB.a & 0XFF00) ? 0x0F : (S[1].RGB.a >> 4));
+          }
+          else if (!(S[0].RGB.a & 0xF000)) {
+               *D = (*D & 0x0F) | ((S[0].RGB.a & 0xFF00) ? 0xF0 : (S[0].RGB.a & 0xF0));
+          }
+          else if (!(S[1].RGB.a & 0xF000)) {
+               *D = (*D & 0xF0) | ((S[1].RGB.a & 0XFF00) ? 0x0F : (S[1].RGB.a >> 4));
+          }
+
+          D++;
+          S += 2;
+     }
+
+     if (gfxs->length & 1) {
+          if (!(S->RGB.a & 0xF000))
+               *D = (*D & 0x0F) | ((S->RGB.a & 0xFF00) ? 0xF0 : (S->RGB.a & 0xF0));
+     }
+}
 
 static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb1555,         /* DSPF_ARGB1555 */
@@ -4344,7 +4376,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
      Sacc_to_Aop_argb4444,         /* DSPF_ARGB4444 */
      Sacc_to_Aop_nv21,             /* DSPF_NV21 */
      Sacc_to_Aop_ayuv,             /* DSPF_AYUV */
-     NULL,                         /* DSPF_A4 */
+     Sacc_to_Aop_a4,               /* DSPF_A4 */
 };
 
 /********************************* Sacc_Sto_Aop_PFI ***************************/
@@ -8182,6 +8214,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
           gfxs->Ostep = 1;
 
      switch (gfxs->src_format) {
+          case DSPF_A4:
           case DSPF_YUY2:
           case DSPF_UYVY:
                rect->x &= ~1;
@@ -8191,6 +8224,7 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
      }
 
      switch (gfxs->dst_format) {
+          case DSPF_A4:
           case DSPF_YUY2:
           case DSPF_UYVY:
                dx &= ~1;
@@ -8266,6 +8300,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
           return;
 
      switch (gfxs->src_format) {
+          case DSPF_A4:
           case DSPF_YUY2:
           case DSPF_UYVY:
                srect->x &= ~1;
@@ -8275,6 +8310,7 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      }
 
      switch (gfxs->dst_format) {
+          case DSPF_A4:
           case DSPF_YUY2:
           case DSPF_UYVY:
                drect->x &= ~1;
