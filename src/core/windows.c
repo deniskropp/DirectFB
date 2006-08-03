@@ -499,6 +499,7 @@ dfb_window_destroy( CoreWindow *window )
 
      /* Avoid multiple destructions. */
      if (DFB_WINDOW_DESTROYED( window )) {
+          D_DEBUG_AT( Core_Windows, "%p already destroyed.\n", window );
           dfb_windowstack_unlock( stack );
           return;
      }
