@@ -769,7 +769,7 @@ static ReactionResult IDirectFBEventBuffer_WindowReact( const void *msg_data,
                if (dfb_window_id( window->window ) == evt->window_id) {
                     /* FIXME: free memory later, because reactor writes to it
                        after we return RS_REMOVE */
-                    //D_FREE( window );
+                    dfb_window_unref( window->window );
                     window->window = NULL;
                }
           }
