@@ -116,12 +116,7 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
           dfb_window_detach( data->window, &data->reaction );
      }
 
-     if (!data->destroyed) {
-          D_DEBUG_AT( IDirectFB_Window, "  -> destroying...\n" );
-
-          dfb_window_destroy( data->window );
-     }
-
+     /* this will destroy the fusion object and (eventually) the window */
      D_DEBUG_AT( IDirectFB_Window, "  -> unrefing...\n" );
 
      dfb_window_unref( data->window );
