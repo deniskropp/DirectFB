@@ -160,9 +160,11 @@ IDirectFBEventBuffer_Destruct( IDirectFBEventBuffer *thiz )
      }
 
      direct_list_foreach_safe (window, n, data->windows) {
-          if (window->window)
+          if (window->window) {
                dfb_window_detach( window->window, &window->reaction );
-
+               dfb_window_unref( window->window );
+          }
+               
           D_FREE( window );
      }
 
@@ -616,6 +618,8 @@ DFBResult IDirectFBEventBuffer_AttachInputDevice( IDirectFBEventBuffer *thiz,
 {
      AttachedDevice *attached;
 
+     D_ASSERT( device != NULL );
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      attached = D_CALLOC( 1, sizeof(AttachedDevice) );
@@ -634,6 +638,8 @@ DFBResult IDirectFBEventBuffer_DetachInputDevice( IDirectFBEventBuffer *thiz,
 {
      AttachedDevice *attached;
      DirectLink     *link;
+
+     D_ASSERT( device != NULL );
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
      
@@ -657,10 +663,14 @@ DFBResult IDirectFBEventBuffer_AttachWindow( IDirectFBEventBuffer *thiz,
 {
      AttachedWindow *attached;
 
+     D_ASSERT( window != NULL );
+     
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
 
      attached = D_CALLOC( 1, sizeof(AttachedWindow) );
      attached->window = window;
+
+     dfb_window_ref( window );
 
      direct_list_prepend( &data->windows, &attached->link );
 
@@ -676,6 +686,8 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
      AttachedWindow *attached;
      DirectLink     *link;
 
+     D_ASSERT( window != NULL );
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
      
      direct_list_foreach_safe (attached, link, data->windows) {
@@ -683,6 +695,7 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
                direct_list_remove( &data->windows, &attached->link );
                
                dfb_window_detach( attached->window, &attached->reaction );
+               dfb_window_unref( attached->window );
                
                D_FREE( attached );
                

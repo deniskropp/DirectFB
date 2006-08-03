@@ -117,10 +117,14 @@ IDirectFBWindow_Destruct( IDirectFBWindow *thiz )
      }
 
      if (!data->destroyed) {
-          D_DEBUG_AT( IDirectFB_Window, "  -> unrefing...\n" );
+          D_DEBUG_AT( IDirectFB_Window, "  -> destroying...\n" );
 
-          dfb_window_unref( data->window );
+          dfb_window_destroy( data->window );
      }
+
+     D_DEBUG_AT( IDirectFB_Window, "  -> unrefing...\n" );
+
+     dfb_window_unref( data->window );
 
      D_DEBUG_AT( IDirectFB_Window, "  -> releasing surface...\n" );
 
