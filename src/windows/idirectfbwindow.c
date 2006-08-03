@@ -877,19 +877,10 @@ IDirectFBWindow_React( const void *msg_data,
      switch (evt->type) {
           case DWET_DESTROYED:
                D_DEBUG_AT( IDirectFB_Window, "  -> window destroyed\n" );
-
-               if (!data->destroyed) {
-                    data->destroyed = true;
-
-                    D_DEBUG_AT( IDirectFB_Window, "  -> unrefing...\n" );
-
-                    dfb_window_unref( data->window );
-
-                    D_DEBUG_AT( IDirectFB_Window, "  -> unref done.\n" );
-               }
-
+               
                data->detached = true;
-
+               data->destroyed = true;
+               
                return RS_REMOVE;
 
           case DWET_LEAVE:
