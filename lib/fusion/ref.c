@@ -90,6 +90,8 @@ fusion_ref_up (FusionRef *ref, bool global)
           switch (errno) {
                case EINTR:
                     continue;
+               case EAGAIN:
+                    return DFB_LOCKED;
                case EINVAL:
                     D_ERROR ("Fusion/Reference: invalid reference\n");
                     return DFB_DESTROYED;
@@ -505,6 +507,8 @@ fusion_ref_inherit (FusionRef *ref, FusionRef *from)
 {
      D_ASSERT( ref != NULL );
      D_ASSERT( from != NULL );
+
+     D_UNIMPLEMENTED();
 
      /* FIXME */
      return fusion_ref_up( ref, true );
