@@ -24,6 +24,8 @@
 #define __RADEON_STATE_H__
 
 /* R100 state funcs */
+void r100_restore           ( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev  );
 void r100_set_destination   ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
@@ -53,6 +55,8 @@ void r100_set_blittingflags ( RadeonDriverData *rdrv,
                               CardState        *state );
                               
 /* R200 state funcs */
+void r200_restore           ( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev  );
 void r200_set_destination   ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
@@ -82,6 +86,8 @@ void r200_set_blittingflags ( RadeonDriverData *rdrv,
                               CardState        *state );
                               
 /* R300 state funcs */
+void r300_restore           ( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev  );
 void r300_set_destination   ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );

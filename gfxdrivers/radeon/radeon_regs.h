@@ -3295,7 +3295,7 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #define R300_RS_CNTL_0                      0x4300
 #       define R300_RS_CNTL_TC_CNT_SHIFT         2
 #       define R300_RS_CNTL_TC_CNT_MASK          (7 << 2)
-#		define R300_RS_CNTL_CI_CNT_SHIFT         7 /* number of color interpolators used */
+#       define R300_RS_CNTL_CI_CNT_SHIFT         7 /* number of color interpolators used */
 #       define R300_RS_CNTL_0_UNKNOWN_18         (1 << 18)
 /* Guess: RS_CNTL_1 holds the index of the highest used RS_ROUTE_n register. */
 #define R300_RS_CNTL_1                      0x4304
@@ -3479,10 +3479,10 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 
 #define R300_TX_SIZE_0                      0x4480
 #define R300_TX_SIZE_1                      0x4484
-#       define R300_TX_WIDTHMASK_SHIFT           0
-#       define R300_TX_WIDTHMASK_MASK            (2047 << 0)
-#       define R300_TX_HEIGHTMASK_SHIFT          11
-#       define R300_TX_HEIGHTMASK_MASK           (2047 << 11)
+#       define R300_TX_WIDTH_SHIFT               0
+#       define R300_TX_WIDTH_MASK               (2047 << 0)
+#       define R300_TX_HEIGHT_SHIFT              11
+#       define R300_TX_HEIGHT_MASK               (2047 << 11)
 #       define R300_TX_UNK23                     (1 << 23)
 #       define R300_TX_SIZE_SHIFT                26 /* largest of width, height */
 #       define R300_TX_SIZE_MASK                 (15 << 26)
@@ -3574,6 +3574,7 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #    define R300_TXFORMAT_A8           R300_EASY_TXFORMAT(ZERO, ZERO, ZERO, X, X8)
 #    define R300_TXFORMAT_I8           R300_EASY_TXFORMAT(X, X, X, X, X8)
 #    define R300_TXFORMAT_VYUY422      R300_EASY_TXFORMAT(X, Y, Z, ONE, G8R8_G8B8)|R300_TX_FORMAT_YUV_MODE
+#    define R300_TXFORMAT_YVYU422      R300_EASY_TXFORMAT(X, Y, Z, ONE, B8G8_B8G8)|R300_TX_FORMAT_YUV_MODE
 
 
 #define R300_TX_PITCH_0			    0x4500 /* obvious missing in gap */
@@ -3670,11 +3671,11 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 /* Unsure if these are opcodes, or some kind of bitfield, but this is how
  * they were set when I checked
  */
-#		define R300_FPITX_OPCODE_SHIFT			15
-#			define R300_FPITX_OP_TEX			1
-#			define R300_FPITX_OP_KIL			2
-#			define R300_FPITX_OP_TXP			3
-#			define R300_FPITX_OP_TXB			4
+#       define R300_FPITX_OPCODE_SHIFT           15
+#       define R300_FPITX_OP_TEX                 (1 << 15)
+#       define R300_FPITX_OP_KIL                 (2 << 15)
+#       define R300_FPITX_OP_TXP                 (3 << 15)
+#       define R300_FPITX_OP_TXB                 (4 << 15)
 
 /* ALU
 // The ALU instructions register blocks are enumerated according to the order
@@ -3748,11 +3749,11 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_FPI1_SRC2C_CONST             (1 << 17)
 #       define R300_FPI1_DSTC_SHIFT              18
 #       define R300_FPI1_DSTC_MASK               (31 << 18)
-#		define R300_FPI1_DSTC_REG_MASK_SHIFT     23
+#       define R300_FPI1_DSTC_REG_MASK_SHIFT     23
 #       define R300_FPI1_DSTC_REG_X              (1 << 23)
 #       define R300_FPI1_DSTC_REG_Y              (1 << 24)
 #       define R300_FPI1_DSTC_REG_Z              (1 << 25)
-#		define R300_FPI1_DSTC_OUTPUT_MASK_SHIFT  26
+#       define R300_FPI1_DSTC_OUTPUT_MASK_SHIFT  26
 #       define R300_FPI1_DSTC_OUTPUT_X           (1 << 26)
 #       define R300_FPI1_DSTC_OUTPUT_Y           (1 << 27)
 #       define R300_FPI1_DSTC_OUTPUT_Z           (1 << 28)
@@ -3771,7 +3772,7 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_FPI3_DSTA_MASK               (31 << 18)
 #       define R300_FPI3_DSTA_REG                (1 << 23)
 #       define R300_FPI3_DSTA_OUTPUT             (1 << 24)
-#		define R300_FPI3_DSTA_DEPTH              (1 << 27)
+#       define R300_FPI3_DSTA_DEPTH              (1 << 27)
 
 #define R300_PFS_INSTR0_0                   0x48C0
 #       define R300_FPI0_ARGC_SRC0C_XYZ          0
@@ -3848,15 +3849,15 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_FPI2_ARG0A_SHIFT             0
 #       define R300_FPI2_ARG0A_MASK              (31 << 0)
 #       define R300_FPI2_ARG0A_NEG               (1 << 5)
-#		define R300_FPI2_ARG0A_ABS				 (1 << 6) /* GUESS */
+#       define R300_FPI2_ARG0A_ABS               (1 << 6) /* GUESS */
 #       define R300_FPI2_ARG1A_SHIFT             7
 #       define R300_FPI2_ARG1A_MASK              (31 << 7)
 #       define R300_FPI2_ARG1A_NEG               (1 << 12)
-#		define R300_FPI2_ARG1A_ABS				 (1 << 13) /* GUESS */
+#       define R300_FPI2_ARG1A_ABS	              (1 << 13) /* GUESS */
 #       define R300_FPI2_ARG2A_SHIFT             14
 #       define R300_FPI2_ARG2A_MASK              (31 << 14)
 #       define R300_FPI2_ARG2A_NEG               (1 << 19)
-#		define R300_FPI2_ARG2A_ABS				 (1 << 20) /* GUESS */
+#       define R300_FPI2_ARG2A_ABS               (1 << 20) /* GUESS */
 #       define R300_FPI2_SPECIAL_LRP             (1 << 21)
 #       define R300_FPI2_OUTA_MAD                (0 << 23)
 #       define R300_FPI2_OUTA_DP4                (1 << 23)
@@ -3944,6 +3945,8 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_COLORMASK0_R                 (1<<2)
 #       define R300_COLORMASK0_A                 (1<<3)
 
+#define R300_RB3D_BLENDCOLOR                0x4E10 /* ARGB */
+
 /* gap */
 #define R300_RB3D_COLOROFFSET0              0x4E28
 #       define R300_COLOROFFSET_MASK             0xFFFFFFF0 /* GUESS */
@@ -3963,6 +3966,8 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_COLOR_ENDIAN_DWORD_SWAP      (2 << 18) /* GUESS */
 #       define R300_COLOR_FORMAT_RGB565          (2 << 22)
 #       define R300_COLOR_FORMAT_ARGB8888        (3 << 22)
+#       define R300_COLOR_FORMAT_RGB8            (4 << 22)
+#       define R300_COLOR_FORMAT_MASK            (7 << 22)
 #define R300_RB3D_COLORPITCH1               0x4E3C /* GUESS */
 #define R300_RB3D_COLORPITCH2               0x4E40 /* GUESS */
 #define R300_RB3D_COLORPITCH3               0x4E44 /* GUESS */
@@ -3982,24 +3987,20 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_RB3D_Z_DISABLED_2            0x00000014 /* GUESS */
 #       define R300_RB3D_Z_TEST                  0x00000012
 #       define R300_RB3D_Z_TEST_AND_WRITE        0x00000016
-#       define R300_RB3D_Z_WRITE_ONLY        	 0x00000006
-
-#       define R300_RB3D_Z_TEST                  0x00000012
-#       define R300_RB3D_Z_TEST_AND_WRITE        0x00000016
-#       define R300_RB3D_Z_WRITE_ONLY        	 0x00000006
-#       define R300_RB3D_STENCIL_ENABLE		 0x00000001
+#       define R300_RB3D_Z_WRITE_ONLY            0x00000006
+#       define R300_RB3D_STENCIL_ENABLE	         0x00000001
 
 #define R300_RB3D_ZSTENCIL_CNTL_1                   0x4F04
 		/* functions */
 #	define R300_ZS_NEVER			0
-#	define R300_ZS_LESS			1
+#	define R300_ZS_LESS	               1
 #	define R300_ZS_LEQUAL			2
 #	define R300_ZS_EQUAL			3
 #	define R300_ZS_GEQUAL			4
 #	define R300_ZS_GREATER			5
 #	define R300_ZS_NOTEQUAL			6
 #	define R300_ZS_ALWAYS			7
-#       define R300_ZS_MASK                     7
+#    define R300_ZS_MASK                7
 		/* operations */
 #	define R300_ZS_KEEP			0
 #	define R300_ZS_ZERO			1

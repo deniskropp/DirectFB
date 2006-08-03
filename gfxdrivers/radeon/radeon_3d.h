@@ -70,6 +70,27 @@ bool r200TextureTriangles( void *drv, void *dev, DFBVertex *ve,
                            int num, DFBTriangleFormation formation );
 bool r200TextureTriangles_420( void *drv, void *dev, DFBVertex *ve,
                                int num, DFBTriangleFormation formation );
+
+/* R300 Functions */
+bool r300FillRectangle3D( void *drv, void *dev, DFBRectangle *rect );
+bool r300FillRectangle3D_420( void *drv, void *dev, DFBRectangle *rect );
+
+bool r300FillTriangle( void *drv, void *dev, DFBTriangle *tri );
+bool r300FillTriangle_420( void *drv, void *dev, DFBTriangle *tri );
+
+bool r300DrawRectangle3D( void *drv, void *dev, DFBRectangle *rect );
+bool r300DrawRectangle3D_420( void *drv, void *dev, DFBRectangle *rect );
+
+bool r300DrawLine3D( void *drv, void *dev, DFBRegion *line );
+bool r300DrawLine3D_420( void *drv, void *dev, DFBRegion *line );
+
+bool r300Blit3D( void *drv, void *dev, DFBRectangle *sr, int dx, int dy );
+bool r300Blit3D_420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy );
+
+bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
+bool r300StretchBlit_420( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
+
+void r300EmitCommands3D( void *drv, void *dev );
                                
 
 #endif /* __RADEON_3D_H__ */

@@ -66,53 +66,67 @@ DFB_GRAPHICS_DRIVER( radeon )
 #include "radeon_3d.h"
 
 
-/* driver capability flags */
+/* Enable the following option if you see strange behaviours */
+#define RESET_AFTER_SETVAR  0
+
+
+/* Driver capability flags */
+#define RADEON_SUPPORTED_2D_DRAWINGFLAGS \
+     ( DSDRAW_XOR )
+
+#define RADEON_SUPPORTED_2D_DRAWINGFUNCS \
+     ( DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE )
+
+#define RADEON_SUPPORTED_2D_BLITTINGFLAGS \
+     ( DSBLIT_XOR | DSBLIT_SRC_COLORKEY )
+
+#define RADEON_SUPPORTED_2D_BLITTINGFUNCS \
+     ( DFXL_BLIT )
+
 
 #define R100_SUPPORTED_DRAWINGFLAGS \
-     ( DSDRAW_BLEND | DSDRAW_XOR )
+     ( RADEON_SUPPORTED_2D_DRAWINGFLAGS | DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY )
 
-#define R100_SUPPORTED_DRAWINGFUNCTIONS \
-     ( DFXL_FILLRECTANGLE | DFXL_FILLTRIANGLE | \
-       DFXL_DRAWRECTANGLE | DFXL_DRAWLINE )
+#define R100_SUPPORTED_DRAWINGFUNCS \
+     ( RADEON_SUPPORTED_2D_DRAWINGFUNCS | DFXL_FILLTRIANGLE )
 
 #define R100_SUPPORTED_BLITTINGFLAGS \
-     ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
+     ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
+       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_SRC_COLORKEY       | DSBLIT_DEINTERLACE      | \
-       DSBLIT_XOR )
+       DSBLIT_DEINTERLACE )
 
-#define R100_SUPPORTED_BLITTINGFUNCTIONS \
-     ( DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
+#define R100_SUPPORTED_BLITTINGFUNCS \
+     ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
 
 
 #define R200_SUPPORTED_DRAWINGFLAGS \
-     ( DSDRAW_BLEND | DSDRAW_XOR )
+     ( RADEON_SUPPORTED_2D_DRAWINGFLAGS | DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY )
 
-#define R200_SUPPORTED_DRAWINGFUNCTIONS \
-     ( DFXL_FILLRECTANGLE | DFXL_FILLTRIANGLE | \
-       DFXL_DRAWRECTANGLE | DFXL_DRAWLINE )
+#define R200_SUPPORTED_DRAWINGFUNCS \
+     ( RADEON_SUPPORTED_2D_DRAWINGFUNCS | DFXL_FILLTRIANGLE )
 
 #define R200_SUPPORTED_BLITTINGFLAGS \
-     ( DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
+     ( RADEON_SUPPORTED_2D_BLITTINGFLAGS                   | \
+       DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA | \
        DSBLIT_COLORIZE           | DSBLIT_SRC_PREMULTCOLOR | \
-       DSBLIT_SRC_COLORKEY       | DSBLIT_DEINTERLACE      | \
-       DSBLIT_XOR )
+       DSBLIT_DEINTERLACE )
 
-#define R200_SUPPORTED_BLITTINGFUNCTIONS \
-     ( DFXL_BLIT | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
+#define R200_SUPPORTED_BLITTINGFUNCS \
+     ( RADEON_SUPPORTED_2D_BLITTINGFUNCS | DFXL_STRETCHBLIT | DFXL_TEXTRIANGLES )
 
 
 #define R300_SUPPORTED_DRAWINGFLAGS \
-     ( DSDRAW_XOR )
+     ( RADEON_SUPPORTED_2D_DRAWINGFLAGS | DSDRAW_BLEND | DSDRAW_SRC_PREMULTIPLY )
 
-#define R300_SUPPORTED_DRAWINGFUNCTIONS \
-     ( DFXL_FILLRECTANGLE | DFXL_DRAWRECTANGLE | DFXL_DRAWLINE )
+#define R300_SUPPORTED_DRAWINGFUNCS \
+     ( RADEON_SUPPORTED_2D_DRAWINGFUNCS | DFXL_FILLTRIANGLE )
 
 #define R300_SUPPORTED_BLITTINGFLAGS \
-     ( DSBLIT_SRC_COLORKEY | DSBLIT_XOR )
+     ( RADEON_SUPPORTED_2D_BLITTINGFLAGS )
      
-#define R300_SUPPORTED_BLITTINGFUNCTIONS \
-     ( DFXL_BLIT )
+#define R300_SUPPORTED_BLITTINGFUNCS \
+     ( RADEON_SUPPORTED_2D_BLITTINGFUNCS )
 
 
 #define DSBLIT_MODULATE_ALPHA ( DSBLIT_BLEND_ALPHACHANNEL | \
@@ -234,7 +248,7 @@ radeon_reset( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 
      host_path_cntl  = radeon_in32( mmio, HOST_PATH_CNTL );
      rbbm_soft_reset = radeon_in32( mmio, RBBM_SOFT_RESET );
-    
+   
      radeon_out32( mmio, RBBM_SOFT_RESET, rbbm_soft_reset |
                                         SOFT_RESET_CP | SOFT_RESET_HI |
                                         SOFT_RESET_SE | SOFT_RESET_RE |
@@ -264,12 +278,13 @@ radeon_reset( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      rdev->fifo_space = 0;
 }
      
-
+#if RESET_AFTER_SETVAR
 static void radeonAfterSetVar( void *drv, void *dev )
 {
      radeon_waitidle( (RadeonDriverData*)drv, (RadeonDeviceData*)dev );
      radeon_reset( (RadeonDriverData*)drv, (RadeonDeviceData*)dev );
 }
+#endif
 
 static void radeonEngineReset( void *drv, void *dev )
 {
@@ -295,130 +310,13 @@ static void radeonEngineReset( void *drv, void *dev )
      radeon_out32( mmio, AUX_SC_CNTL, 0 );
     
      if (rdev->chipset >= CHIP_R300) {
-          /* enable caches */
-          radeon_waitfifo( rdrv, rdev, 1 );
-          radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH |
-                                                  R300_RB2D_DC_ENABLE );
-#if 0
-          /* restor 3d engine state */
-          radeon_waitfifo( rdrv, rdev, 42 );
-          radeon_out32( mmio, 0x2080, 0x0030045a );
-          radeon_out32( mmio, 0x2134, 0x00ffffff );
-          radeon_out32( mmio, 0x2138, 0 );
-          radeon_out32( mmio, 0x2140, 0 );
-          radeon_out32( mmio, 0x21dc, 0xaaaaaaaa );
-          radeon_out32( mmio, R300_VAP_UNKNOWN_221C, R300_221C_NORMAL );
-          if (rdev->chipset >= CHIP_RV350)
-               radeon_out32( mmio, R300_VAP_UNKNOWN_2288, R300_2288_RV350 );
-          else
-               radeon_out32( mmio, R300_VAP_UNKNOWN_2288, R300_2288_R300 );
-          radeon_out32( mmio, R300_VAP_PVS_CNTL_1, 0 );
-          radeon_out32( mmio, R300_VAP_PVS_CNTL_2, 0 );
-          radeon_out32( mmio, R300_VAP_PVS_CNTL_3, 0 );
-          radeon_out32( mmio, R300_GB_VAP_RASTER_VTX_FMT_0, 
-                              R300_GB_VAP_RASTER_VTX_FMT_0__POS_PRESENT |
-                              R300_GB_VAP_RASTER_VTX_FMT_0__COLOR_0_PRESENT );
-          radeon_out32( mmio, R300_GB_VAP_RASTER_VTX_FMT_1, 0 );
-          radeon_out32( mmio, R300_GB_ENABLE, R300_GB_POINT_STUFF_ENABLE |
-                                              R300_GB_LINE_STUFF_ENABLE  |
-                                              R300_GB_TRIANGLE_STUFF_ENABLE );
-          radeon_out32( mmio, R300_GB_MSPOS0, 0x66666666 );
-          radeon_out32( mmio, R300_GB_MSPOS1, 0x66666666 );
-          radeon_out32( mmio, R300_GB_TILE_CONFIG, 0 );
-          radeon_out32( mmio, R300_GB_FIFO_SIZE, 0x0fffffff );
-          radeon_out32( mmio, R300_GB_SELECT, 0 );
-          radeon_out32( mmio, R300_GB_AA_CONFIG, 0 );
-          radeon_out32( mmio, R300_RE_POINTSIZE, (6 << R300_POINTSIZE_Y_SHIFT) |
-                                                 (6 << R300_POINTSIZE_X_SHIFT) );
-          radeon_out32( mmio, R300_RE_LINE_CNT, (6 << R300_LINESIZE_SHIFT) |
-                                                 R300_LINE_CNT_HO          |
-                                                 R300_LINE_CNT_VE );
-          radeon_out32( mmio, R300_RE_SHADE_MODEL, R300_RE_SHADE_MODEL_FLAT );
-          radeon_out32( mmio, R300_RE_POLYGON_MODE, 0 );
-          radeon_out32( mmio, R300_RE_OCCLUSION_CNTL, 0 );
-          radeon_out32( mmio, R300_RE_CULL_CNTL, 0 );
-          radeon_out32( mmio, R300_RS_CNTL_0, (1 << R300_RS_CNTL_CI_CNT_SHIFT) |
-                                              R300_RS_CNTL_0_UNKNOWN_18 );
-          radeon_out32( mmio, R300_RS_CNTL_1, 0 );
-          radeon_out32( mmio, R300_RS_INTERP_0, 0x00d10000 );
-          radeon_out32( mmio, R300_RS_ROUTE_0, 0x00004000 );
-          radeon_out32( mmio, R300_PFS_CNTL_0, 0 );
-          radeon_out32( mmio, R300_PFS_CNTL_1, 0 );
-          radeon_out32( mmio, R300_PFS_CNTL_2, 0 );
-          radeon_out32( mmio, R300_PFS_NODE_0, 0 );
-          radeon_out32( mmio, R300_PFS_NODE_1, 0 );
-          radeon_out32( mmio, R300_PFS_NODE_2, 0 );
-          radeon_out32( mmio, R300_PFS_NODE_3, R300_PFS_NODE_OUTPUT_COLOR );
-          radeon_out32( mmio, R300_PP_ALPHA_TEST, R300_ALPHA_TEST_PASS );
-          radeon_out32( mmio, R300_RB3D_COLORMASK, R300_COLORMASK0_B | 
-                                                   R300_COLORMASK0_G |
-                                                   R300_COLORMASK0_R |
-                                                   R300_COLORMASK0_A );
-          radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_1, R300_ZS_ALWAYS );
-          radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_2, 0xffffff00 );
-          
-          /* set YUV422 color buffer */
-          radeon_waitfifo( rdrv, rdev, 4 );
-          radeon_out32( mmio, R300_TX_FILTER_1, R300_TX_MAG_FILTER_NEAREST |
-                                                R300_TX_MIN_FILTER_NEAREST );
-          radeon_out32( mmio, R300_TX_FILTER1_0, 0 );
-          radeon_out32( mmio, R300_TX_SIZE_1, (1 << R300_TX_WIDTHMASK_SHIFT) |
-                                              (1 << R300_TX_HEIGHTMASK_SHIFT) );
-          radeon_out32( mmio, R300_TX_FORMAT_1, R300_TXFORMAT_VYUY422 );
-#endif 
+          r300_restore( rdrv, rdev );
      }
      else if (rdev->chipset >= CHIP_R200) {
-          /* enable caches */
-          radeon_waitfifo( rdrv, rdev, 2 );
-          radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH     |
-                                                  RB2D_DC_3D_CACHE_AUTOFLUSH     |
-                                                  R200_RB2D_DC_2D_CACHE_AUTOFREE |
-                                                  R200_RB2D_DC_3D_CACHE_AUTOFREE );
-          radeon_out32( mmio, RB3D_DSTCACHE_MODE, RB3D_DC_2D_CACHE_AUTOFLUSH     |
-                                                  RB3D_DC_3D_CACHE_AUTOFLUSH     |
-                                                  R200_RB3D_DC_2D_CACHE_AUTOFREE |
-                                                  R200_RB3D_DC_3D_CACHE_AUTOFREE );
-          
-          /* restor 3d engine state */
-          radeon_waitfifo( rdrv, rdev, 9 );
-          radeon_out32( mmio, SE_LINE_WIDTH, 0x10 );
-          radeon_out32( mmio, PP_MISC, ALPHA_TEST_PASS ); 
-          radeon_out32( mmio, R200_PP_CNTL_X, 0 );
-          radeon_out32( mmio, R200_PP_TXMULTI_CTL_0, 0 ); 
-          radeon_out32( mmio, R200_RE_CNTL, R200_SCISSOR_ENABLE );
-          radeon_out32( mmio, R200_SE_VTX_STATE_CNTL, 0 );
-          radeon_out32( mmio, R200_SE_VAP_CNTL, R200_VAP_VF_MAX_VTX_NUM |
-                                                R200_VAP_FORCE_W_TO_ONE );
-          radeon_out32( mmio, R200_SE_VAP_CNTL_STATUS, TCL_BYPASS );
-          radeon_out32( mmio, RB3D_ROPCNTL, ROP_XOR );
-          
-          /* set YUV422 color buffer */
-          radeon_waitfifo( rdrv, rdev, 3 );
-          radeon_out32( mmio, R200_PP_TXFILTER_1, 0 );
-          radeon_out32( mmio, R200_PP_TXFORMAT_1, R200_TXFORMAT_VYUY422 );
-          radeon_out32( mmio, R200_PP_TXFORMAT_X_1, 0 );
+          r200_restore( rdrv, rdev );
      }
      else if (rdev->chipset >= CHIP_R100) {
-          /* enable caches */
-          radeon_waitfifo( rdrv, rdev, 2 );
-          radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH |
-                                                  RB2D_DC_3D_CACHE_AUTOFLUSH );
-          radeon_out32( mmio, RB3D_DSTCACHE_MODE, RB3D_DC_2D_CACHE_AUTOFLUSH |
-                                                  RB3D_DC_3D_CACHE_AUTOFLUSH );
-          
-          /* restor 3d engine state */
-          radeon_waitfifo( rdrv, rdev, 5 ); 
-          radeon_out32( mmio, SE_COORD_FMT, VTX_XY_PRE_MULT_1_OVER_W0 |
-                                            TEX1_W_ROUTING_USE_W0 );
-          radeon_out32( mmio, SE_LINE_WIDTH, 0x10 );
-          radeon_out32( mmio, SE_CNTL_STATUS, TCL_BYPASS );
-          radeon_out32( mmio, PP_MISC, ALPHA_TEST_PASS );
-          radeon_out32( mmio, RB3D_ROPCNTL, ROP_XOR );
-     
-          /* set YUV422 color buffer */
-          radeon_waitfifo( rdrv, rdev, 2 );
-          radeon_out32( mmio, PP_TXFILTER_1, 0 );
-          radeon_out32( mmio, PP_TXFORMAT_1, TXFORMAT_VYUY422 );
+          r100_restore( rdrv, rdev );
      }
      
      /* sync 2d and 3d engines */
@@ -440,7 +338,8 @@ static void radeonFlushTextureCache( void *drv, void *dev )
      
      radeon_waitfifo( rdrv, rdev, 1 );
      if (rdev->chipset >= CHIP_R300) {
-          //radeon_out32( mmio, R300_TX_CNTL, 0 );
+          if (rdrv->mmio_size > 0x4000)
+               radeon_out32( mmio, R300_TX_CNTL, 0 );
      }
      else if (rdev->chipset >= CHIP_R200) {
           radeon_out32( mmio, R200_PP_TXOFFSET_0, rdev->src_offset );
@@ -521,9 +420,9 @@ static void r100CheckState( void *drv, void *dev,
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
      
-     int supported_drawingfuncs  = R100_SUPPORTED_DRAWINGFUNCTIONS; 
+     int supported_drawingfuncs  = R100_SUPPORTED_DRAWINGFUNCS; 
      int supported_drawingflags  = R100_SUPPORTED_DRAWINGFLAGS;
-     int supported_blittingfuncs = R100_SUPPORTED_BLITTINGFUNCTIONS;
+     int supported_blittingfuncs = R100_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R100_SUPPORTED_BLITTINGFLAGS;
     
      switch (destination->format) {               
@@ -671,9 +570,9 @@ static void r200CheckState( void *drv, void *dev,
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
      
-     int supported_drawingfuncs  = R200_SUPPORTED_DRAWINGFUNCTIONS; 
+     int supported_drawingfuncs  = R200_SUPPORTED_DRAWINGFUNCS; 
      int supported_drawingflags  = R200_SUPPORTED_DRAWINGFLAGS;
-     int supported_blittingfuncs = R200_SUPPORTED_BLITTINGFUNCTIONS;
+     int supported_blittingfuncs = R200_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R200_SUPPORTED_BLITTINGFLAGS;
      
      switch (destination->format) {               
@@ -823,20 +722,25 @@ static void r200CheckState( void *drv, void *dev,
 static void r300CheckState( void *drv, void *dev,
                             CardState *state, DFBAccelerationMask accel )
 {
+     RadeonDriverData *rdrv        = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev        = (RadeonDeviceData*) dev;
      CoreSurface      *destination = state->destination;
      CoreSurface      *source      = state->source;
-     
-     int supported_drawingfuncs  = R300_SUPPORTED_DRAWINGFUNCTIONS; 
+     bool              can_convert = false;
+    
+     int supported_drawingfuncs  = R300_SUPPORTED_DRAWINGFUNCS; 
      int supported_drawingflags  = R300_SUPPORTED_DRAWINGFLAGS;
-     int supported_blittingfuncs = R300_SUPPORTED_BLITTINGFUNCTIONS;
+     int supported_blittingfuncs = R300_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R300_SUPPORTED_BLITTINGFLAGS;
+     if (rdrv->mmio_size <= 0x4000) {
+          supported_drawingfuncs = RADEON_SUPPORTED_2D_DRAWINGFUNCS;
+          supported_drawingflags = RADEON_SUPPORTED_2D_DRAWINGFLAGS;
+          supported_blittingfuncs = RADEON_SUPPORTED_2D_BLITTINGFUNCS;
+          supported_blittingflags = RADEON_SUPPORTED_2D_BLITTINGFLAGS;
+          can_convert = false;
+     }
      
-     switch (destination->format) {               
-          case DSPF_A8:
-          case DSPF_RGB332:
-          case DSPF_ARGB4444:
-          case DSPF_ARGB1555:
+     switch (destination->format) {
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -844,60 +748,34 @@ static void r300CheckState( void *drv, void *dev,
                
           case DSPF_LUT8:
           case DSPF_ALUT44:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != destination->format)
-                    return;
-               supported_drawingflags   =  DSDRAW_NOFX;
-               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
-               break;
-
+          case DSPF_A8:
+          case DSPF_RGB332:
+          case DSPF_ARGB4444:
           case DSPF_ARGB2554:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != destination->format)
-                    return;
-               supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
-               supported_drawingflags   =  DSDRAW_XOR;
-               supported_blittingfuncs &= ~DFXL_TEXTRIANGLES;
-               supported_blittingflags &= ~DSBLIT_MODULATE;
-               break;
-               
+          case DSPF_ARGB1555:
           case DSPF_AiRGB:
-               supported_drawingflags  &= ~DSDRAW_BLEND;
-               supported_blittingflags &= ~DSBLIT_MODULATE_ALPHA;
-               break;
-
-          case DSPF_I420:
-          case DSPF_YV12:
-               if (DFB_BLITTING_FUNCTION( accel ) &&
-                   source->format != DSPF_A8      &&
-                   source->format != DSPF_I420    &&
-                   source->format != DSPF_YV12)
-                    return;
+          case DSPF_AYUV:
           case DSPF_YUY2:
           case DSPF_UYVY:
-               if (source && source->format != DSPF_A8)
-                    supported_blittingflags &= ~(DSBLIT_COLORIZE | DSBLIT_SRC_COLORKEY);
-               break;
-               
-          case DSPF_AYUV:
-               if (DFB_BLITTING_FUNCTION( accel ) && source->format != DSPF_A8) {
-                    if (source->format != DSPF_AYUV)
+          case DSPF_I420:
+          case DSPF_YV12:
+               if (DFB_BLITTING_FUNCTION( accel )) {
+                    if (source->format != destination->format &&
+                       !(DFB_PLANAR_PIXELFORMAT(source->format) &&
+                         DFB_PLANAR_PIXELFORMAT(destination->format)))
                          return;
-                    supported_blittingflags &= ~DSBLIT_COLORIZE;
                }
+               supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
+               supported_drawingflags   =  DSDRAW_NOFX;
+               supported_blittingfuncs  =  DFXL_BLIT;
+               supported_blittingflags  =  DSBLIT_NOFX;
                break;
           
           default:
                return;
      }
 
-     if (DFB_BLITTING_FUNCTION( accel )) {
-          /* actually 3D acceleration doesn't work,
-           * therefore format conversion is unsupported */
-          if (source->format != destination->format)
-               supported_blittingfuncs = DFXL_NONE;
-               
+     if (DFB_BLITTING_FUNCTION( accel )) {               
           if (accel & ~supported_blittingfuncs ||
               state->blittingflags & ~supported_blittingflags)
                return;
@@ -910,18 +788,17 @@ static void r300CheckState( void *drv, void *dev,
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
                
-          switch (source->format) {                    
+          switch (source->format) {
+               case DSPF_A8:                   
                case DSPF_RGB332:
                case DSPF_ARGB4444:
                case DSPF_ARGB1555:
                case DSPF_RGB16:
                case DSPF_RGB32:
                case DSPF_ARGB:
-               case DSPF_AiRGB:
-                    if (destination->format == DSPF_UYVY ||
-                        destination->format == DSPF_YUY2)
+                    if (!can_convert &&
+                        destination->format != source->format)
                          return;
-               case DSPF_A8:
                     break;
                
                case DSPF_LUT8:
@@ -933,15 +810,11 @@ static void r300CheckState( void *drv, void *dev,
                     break;
 
                case DSPF_ARGB2554:
+               case DSPF_AiRGB:
                case DSPF_AYUV:
-                    if (destination->format != source->format)
-                         return;
-                    break;
-                    
                case DSPF_YUY2:
                case DSPF_UYVY:
-                    if (destination->format != DSPF_YUY2 &&
-                        destination->format != DSPF_UYVY)
+                    if (destination->format != source->format)
                          return;
                     break;
 
@@ -1159,7 +1032,7 @@ static void r300SetState( void *drv, void *dev,
     
      switch (accel) {
           case DFXL_FILLRECTANGLE:
-          /*case DFXL_FILLTRIANGLE:*/
+          case DFXL_FILLTRIANGLE:
           case DFXL_DRAWRECTANGLE:
           case DFXL_DRAWLINE:
                r300_set_drawing_color( rdrv, rdev, state );
@@ -1169,16 +1042,25 @@ static void r300SetState( void *drv, void *dev,
                
                r300_set_drawingflags( rdrv, rdev, state );
 
-               funcs->FillRectangle = RADEON_FUNC(radeonFillRectangle2D);
-               funcs->FillTriangle  = NULL;
-               funcs->DrawRectangle = RADEON_FUNC(radeonDrawRectangle2D);
-               funcs->DrawLine      = RADEON_FUNC(radeonDrawLine2D);
+               if (RADEON_DRAW_3D()) {
+                    funcs->FillRectangle = RADEON_FUNC(r300FillRectangle3D);
+                    funcs->FillTriangle  = RADEON_FUNC(r300FillTriangle);
+                    funcs->DrawRectangle = RADEON_FUNC(r300DrawRectangle3D);
+                    funcs->DrawLine      = RADEON_FUNC(r300DrawLine3D);
+                    funcs->EmitCommands  = r300EmitCommands3D;
+               } else {
+                    funcs->FillRectangle = RADEON_FUNC(radeonFillRectangle2D);
+                    funcs->FillTriangle  = NULL;
+                    funcs->DrawRectangle = RADEON_FUNC(radeonDrawRectangle2D);
+                    funcs->DrawLine      = RADEON_FUNC(radeonDrawLine2D);
+                    funcs->EmitCommands  = NULL;
+               }
 
                state->set = rdev->drawing_mask;
                break;
 
           case DFXL_BLIT:
-          /*case DFXL_STRETCHBLIT:*/
+          case DFXL_STRETCHBLIT:
           /*case DFXL_TEXTRIANGLES:*/  
                r300_set_source( rdrv, rdev, state );
                
@@ -1193,9 +1075,15 @@ static void r300SetState( void *drv, void *dev,
                
                r300_set_blittingflags( rdrv, rdev, state );
 
-               funcs->Blit             = RADEON_FUNC(radeonBlit2D);
-               funcs->StretchBlit      = NULL;
-               funcs->TextureTriangles = NULL;
+               if (RADEON_BLIT_3D()) {
+                    funcs->Blit         = RADEON_FUNC(r300Blit3D);
+                    funcs->StretchBlit  = RADEON_FUNC(r300StretchBlit);
+                    funcs->EmitCommands = r300EmitCommands3D;
+               } else {
+                    funcs->Blit         = RADEON_FUNC(radeonBlit2D);
+                    funcs->StretchBlit  = NULL;
+                    funcs->EmitCommands = NULL;
+               }
                
                state->set = (accel & DFXL_TEXTRIANGLES) 
                             ? : (rdev->blitting_mask & ~DFXL_TEXTRIANGLES);
@@ -1298,17 +1186,35 @@ driver_init_driver( GraphicsDevice      *device,
      rdrv->device_data = (RadeonDeviceData*) device_data;
      
      /* gain access to memory mapped registers */
-     rdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     rdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, 0x4000 );
      if (!rdrv->mmio_base)
           return DFB_IO;
+     rdrv->mmio_size = 0x4000;
      
      rdrv->fb_base = dfb_gfxcard_memory_virtual( device, 0 );
 
      if (radeon_find_chipset( rdrv, NULL, &idx ))
           chip = dev_table[idx].chip;
 
+     if (chip >= CHIP_R300 && !getenv( "R300_DISABLE_3D" )) {
+          volatile void *base;
+          /* increase amount of memory mapped registers */
+          base = dfb_gfxcard_map_mmio( device, 0, 0x8000 );
+          if (!base) {
+               D_ERROR( "DirectFB/Radeon: You are running a buggy version of radeonfb!\n"
+                        "     -> Please, apply the kernel patch named radeonfb-r300fix.\n" );
+               D_INFO( "DirectFB/Radeon: 3D Acceleration will be disabled.\n" );
+          }
+          else {
+               rdrv->mmio_base = base;
+               rdrv->mmio_size = 0x8000;
+          }
+     }
+
      /* fill function table */
+#if RESET_AFTER_SETVAR
      funcs->AfterSetVar       = radeonAfterSetVar;
+#endif
      funcs->EngineReset       = radeonEngineReset;
      funcs->EngineSync        = radeonEngineSync;
      funcs->FlushTextureCache = radeonFlushTextureCache;
@@ -1404,26 +1310,33 @@ driver_init_device( GraphicsDevice     *device,
      device_info->caps.flags = CCF_CLIPPING | CCF_AUXMEMORY;
      
      if (rdev->chipset >= CHIP_R300) {
-          device_info->caps.accel    = R300_SUPPORTED_DRAWINGFUNCTIONS |
-                                       R300_SUPPORTED_BLITTINGFUNCTIONS;
-          device_info->caps.drawing  = R300_SUPPORTED_DRAWINGFLAGS;
-          device_info->caps.blitting = R300_SUPPORTED_BLITTINGFLAGS;
+          if (rdrv->mmio_size > 0x4000) {
+               device_info->caps.accel    = R300_SUPPORTED_DRAWINGFUNCS |
+                                            R300_SUPPORTED_BLITTINGFUNCS;
+               device_info->caps.drawing  = R300_SUPPORTED_DRAWINGFLAGS;
+               device_info->caps.blitting = R300_SUPPORTED_BLITTINGFLAGS;
+          } else {
+               device_info->caps.accel    = RADEON_SUPPORTED_2D_DRAWINGFUNCS |
+                                            RADEON_SUPPORTED_2D_BLITTINGFUNCS;
+               device_info->caps.drawing  = RADEON_SUPPORTED_2D_DRAWINGFLAGS;
+               device_info->caps.blitting = RADEON_SUPPORTED_2D_BLITTINGFLAGS;
+          }
      }
      else if (rdev->chipset >= CHIP_R200) {
-          device_info->caps.accel    = R200_SUPPORTED_DRAWINGFUNCTIONS |
-                                       R200_SUPPORTED_BLITTINGFUNCTIONS;
+          device_info->caps.accel    = R200_SUPPORTED_DRAWINGFUNCS |
+                                       R200_SUPPORTED_BLITTINGFUNCS;
           device_info->caps.drawing  = R200_SUPPORTED_DRAWINGFLAGS;
           device_info->caps.blitting = R200_SUPPORTED_BLITTINGFLAGS;
      }
      else if (rdev->chipset >= CHIP_R100) {
-          device_info->caps.accel    = R100_SUPPORTED_DRAWINGFUNCTIONS |
-                                       R100_SUPPORTED_BLITTINGFUNCTIONS;
+          device_info->caps.accel    = R100_SUPPORTED_DRAWINGFUNCS |
+                                       R100_SUPPORTED_BLITTINGFUNCS;
           device_info->caps.drawing  = R100_SUPPORTED_DRAWINGFLAGS;
           device_info->caps.blitting = R100_SUPPORTED_BLITTINGFLAGS;
      }
 
      device_info->limits.surface_byteoffset_alignment = 32;
-     device_info->limits.surface_pixelpitch_alignment = 32;
+     device_info->limits.surface_pixelpitch_alignment = 64;
      device_info->limits.surface_bytepitch_alignment  = 128;
 
      dfb_config->pollvsync_after = 1;
@@ -1580,6 +1493,6 @@ driver_close_driver( GraphicsDevice *device,
 {
     RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
 
-    dfb_gfxcard_unmap_mmio( device, rdrv->mmio_base, -1 );
+    dfb_gfxcard_unmap_mmio( device, rdrv->mmio_base, rdrv->mmio_size );
 }
 

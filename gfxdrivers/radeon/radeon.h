@@ -82,7 +82,7 @@ typedef struct {
      __u32                   dst_offset_cb;
      __u32                   dst_offset_cr;
      __u32                   dst_pitch;
-     bool                    dst_422;
+     DFBBoolean              dst_422;
      
      DFBSurfacePixelFormat   src_format;
      __u32                   src_offset;
@@ -95,6 +95,7 @@ typedef struct {
 
      DFBRegion               clip;
 
+     float                   color[4];
      __u32                   y_cop;
      __u32                   cb_cop;
      __u32                   cr_cop;
@@ -104,7 +105,7 @@ typedef struct {
      
      /* chipset identified */
      RadeonChipsetFamily     chipset;
-     bool                    igp;
+     DFBBoolean              igp;
      
      /* connected monitors */
      RadeonMonitorType       monitor1;
@@ -151,6 +152,7 @@ typedef struct {
      
      __u8                   *fb_base;
      volatile __u8          *mmio_base;
+     unsigned int            mmio_size;
 } RadeonDriverData;
 
 
@@ -169,6 +171,18 @@ extern DisplayLayerFuncs  RadeonOverlayFuncs;
 extern ScreenFuncs        RadeonCrtc2ScreenFuncs;
 
 extern DisplayLayerFuncs  RadeonCrtc2LayerFuncs;
+
+
+/* utility function */
+static __inline__ __u32 f2d( float f )
+{
+     union {
+          float f;
+          __u32 d;
+     } tmp;
+     tmp.f = f;
+     return tmp.d;
+}     
 
 
 #endif /* __RADEON_H__ */

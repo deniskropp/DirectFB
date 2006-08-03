@@ -43,8 +43,13 @@
 #include "radeon_mmio.h"
 #include "radeon_state.h"
 
+#include "r300_program.h"
 
-static __u32 r300SrcBlend[] = {
+
+#define R300_HAS_3DREGS()  (rdrv->mmio_size > 0x4000)
+
+
+static const __u32 r300SrcBlend[] = {
      R300_SRC_BLEND_GL_ZERO,                 // DSBF_ZERO
      R300_SRC_BLEND_GL_ONE,                  // DSBF_ONE
      R300_SRC_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
@@ -58,7 +63,7 @@ static __u32 r300SrcBlend[] = {
      R300_SRC_BLEND_GL_SRC_ALPHA_SATURATE    // DSBF_SRCALPHASAT
 };
 
-static __u32 r300DstBlend[] = {
+static const __u32 r300DstBlend[] = {
      R300_DST_BLEND_GL_ZERO,                 // DSBF_ZERO
      R300_DST_BLEND_GL_ONE,                  // DSBF_ONE
      R300_DST_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
@@ -73,6 +78,213 @@ static __u32 r300DstBlend[] = {
 };
 
 
+void r300_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
+{
+     const __u32    rs_magic[8] = { 0x00, 0x44, 0x84, 0xc4,
+                                    0x04, 0x04, 0x04, 0x04 };
+     volatile __u8 *mmio        = rdrv->mmio_base;
+     int            i;
+     
+     /* enable caches */
+     radeon_waitfifo( rdrv, rdev, 1 );
+     radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH |
+                                             R300_RB2D_DC_ENABLE );
+    
+     if (!R300_HAS_3DREGS())
+          return;
+    
+     /* restore 3d engine state */
+     radeon_waitfifo( rdrv, rdev, 50 );
+     radeon_out32( mmio, 0x2080, 0x0030045a );
+     radeon_out32( mmio, R300_SE_VTE_CNTL, R300_VTX_W0_FMT );
+     radeon_out32( mmio, R300_SE_VTE_CNTL+4, 0x00000008 );
+     radeon_out32( mmio, 0x2134, 0x00FFFFFF );
+     radeon_out32( mmio, 0x2138, 0x00000000 );
+#ifdef WORDS_BIGENDIAN
+     radeon_out32( mmio, 0x2140, 0x00000002 );
+#else
+     radeon_out32( mmio, 0x2140, 0x00000000 );
+#endif
+     radeon_out32( mmio, 0x21dc, 0xaaaaaaaa );
+     radeon_out32( mmio, 0x2220, f2d(1.0) );
+     radeon_out32( mmio, 0x2224, f2d(1.0) );
+     radeon_out32( mmio, 0x2228, f2d(1.0) );
+     radeon_out32( mmio, 0x222c, f2d(1.0) );
+     if (rdev->chipset >= CHIP_RV350)
+          radeon_out32( mmio, R300_VAP_UNKNOWN_2288, R300_2288_RV350 );
+     else
+          radeon_out32( mmio, R300_VAP_UNKNOWN_2288, R300_2288_R300 );
+     radeon_out32( mmio, R300_GB_ENABLE, R300_GB_POINT_STUFF_ENABLE |
+                                         R300_GB_LINE_STUFF_ENABLE  |
+                                         R300_GB_TRIANGLE_STUFF_ENABLE );
+     radeon_out32( mmio, R300_GB_MSPOS0, 0x66666666 );
+     radeon_out32( mmio, R300_GB_MSPOS1, 0x06666666 );
+     if (rdev->chipset == CHIP_R300 || rdev->chipset == CHIP_R350 || rdev->chipset == CHIP_RV410) {
+          radeon_out32( mmio, R300_GB_TILE_CONFIG, R300_GB_TILE_ENABLE          |
+                                                   R300_GB_TILE_PIPE_COUNT_R300 |
+                                                   R300_GB_TILE_SIZE_16 );
+     }
+     else if (rdev->chipset == CHIP_R420) {
+          radeon_out32( mmio, R300_GB_TILE_CONFIG, R300_GB_TILE_ENABLE          |
+                                                   R300_GB_TILE_PIPE_COUNT_R420 |
+                                                   R300_GB_TILE_SIZE_16 );
+     }
+     else {
+          radeon_out32( mmio, R300_GB_TILE_CONFIG, R300_GB_TILE_ENABLE           |
+                                                   R300_GB_TILE_PIPE_COUNT_RV300 |
+                                                   R300_GB_TILE_SIZE_16 );
+     }
+     radeon_out32( mmio, R300_GB_SELECT, 0 );
+     radeon_out32( mmio, R300_GB_AA_CONFIG, 0 );
+     radeon_out32( mmio, 0x4200, f2d(0.0) );
+     radeon_out32( mmio, 0x4204, f2d(0.0) );
+     radeon_out32( mmio, 0x4208, f2d(1.0) );
+     radeon_out32( mmio, 0x420c, f2d(1.0) );
+     radeon_out32( mmio, 0x4214, 0x00050005 );
+     radeon_out32( mmio, R300_RE_POINTSIZE, (6 << R300_POINTSIZE_X_SHIFT) |
+                                            (6 << R300_POINTSIZE_Y_SHIFT) );
+     radeon_out32( mmio, 0x4230, 0x18000006 );
+     radeon_out32( mmio, R300_RE_LINE_CNT, (6 << R300_LINESIZE_SHIFT) |
+                                            R300_LINE_CNT_VE );
+     radeon_out32( mmio, R300_RE_UNK4238, f2d(1.0/192.0) );
+     radeon_out32( mmio, 0x4260, 0x00000000 );
+     radeon_out32( mmio, 0x4264, f2d(0.0) );
+     radeon_out32( mmio, 0x4268, f2d(1.0) );
+     radeon_out32( mmio, 0x4274, 0x00000002 );
+     radeon_out32( mmio, 0x427c, 0x00000000 );
+     radeon_out32( mmio, 0x4280, 0x00000000 );
+     radeon_out32( mmio, R300_RE_POLYGON_MODE, 0 );
+     radeon_out32( mmio, 0x428c, 0x00000001 );
+     radeon_out32( mmio, 0x4290, 0x00000000 );
+     radeon_out32( mmio, 0x4294, 0x00000000 );
+     radeon_out32( mmio, 0x4298, 0x00000000 );
+     radeon_out32( mmio, 0x42a0, 0x00000000 );
+     radeon_out32( mmio, R300_RE_ZBIAS_T_FACTOR, 0 );
+     radeon_out32( mmio, R300_RE_ZBIAS_T_CONSTANT, 0 );
+     radeon_out32( mmio, R300_RE_ZBIAS_W_FACTOR, 0 );
+     radeon_out32( mmio, R300_RE_ZBIAS_W_CONSTANT, 0 );
+     radeon_out32( mmio, R300_RE_OCCLUSION_CNTL, 0 );
+     radeon_out32( mmio, R300_RE_CULL_CNTL, 0 );
+     radeon_out32( mmio, 0x42c0, 0x4b7fffff );
+     radeon_out32( mmio, 0x42c4, 0x00000000 ); 
+
+     radeon_waitfifo( rdrv, rdev, 16 );
+     for (i = 0; i < 8; i++) {
+          radeon_out32( mmio, R300_RS_INTERP_0+i*4, R300_RS_INTERP_USED | rs_magic[i] );
+          //radeon_out32( mmio, R300_RS_ROUTE_0+i*4, 0 );
+     }
+     
+     radeon_waitfifo( rdrv, rdev, 43 );
+     radeon_out32( mmio, 0x43a4, 0x0000001c );
+     radeon_out32( mmio, 0x43a8, 0x2da49525 );
+     radeon_out32( mmio, 0x43e8, 0x00ffffff );
+     radeon_out32( mmio, 0x46a4, 0x00001b01 );
+     radeon_out32( mmio, 0x46a8, 0x00001b0f );
+     radeon_out32( mmio, 0x46ac, 0x00001b0f );
+     radeon_out32( mmio, 0x46b0, 0x00001b0f );
+     radeon_out32( mmio, 0x46b4, 0x00000001 );
+     radeon_out32( mmio, 0x4bc0, 0x00000000 );
+     radeon_out32( mmio, 0x4bc8, 0x00000000 );
+     radeon_out32( mmio, 0x4bcc, 0x00000000 );
+     radeon_out32( mmio, 0x4bd0, 0x00000000 );
+     radeon_out32( mmio, R300_PP_ALPHA_TEST, R300_ALPHA_TEST_PASS );
+     radeon_out32( mmio, 0x4bd8, 0x00000000 );
+     radeon_out32( mmio, 0x4e00, 0x00000000 );
+     radeon_out32( mmio, R300_RB3D_COLORMASK, R300_COLORMASK0_B | 
+                                              R300_COLORMASK0_G |
+                                              R300_COLORMASK0_R |
+                                              R300_COLORMASK0_A );
+     radeon_out32( mmio, R300_RB3D_BLENDCOLOR, 0xffffffff );
+     radeon_out32( mmio, 0x4e14, 0x00000000 );
+     radeon_out32( mmio, 0x4e18, 0x00000000 );
+     radeon_out32( mmio, 0x4e50, 0x00000000 );
+     radeon_out32( mmio, 0x4e54, 0x00000000 );
+     radeon_out32( mmio, 0x4e58, 0x00000000 );
+     radeon_out32( mmio, 0x4e5c, 0x00000000 );
+     radeon_out32( mmio, 0x4e60, 0x00000000 );
+     radeon_out32( mmio, 0x4e64, 0x00000000 );
+     radeon_out32( mmio, 0x4e68, 0x00000000 );
+     radeon_out32( mmio, 0x4e6c, 0x00000000 );
+     radeon_out32( mmio, 0x4e70, 0x00000000 );
+     radeon_out32( mmio, 0x4e88, 0x00000000 );
+     radeon_out32( mmio, 0x4ea0, 0x00000000 );
+     radeon_out32( mmio, 0x4ea4, 0xffffffff );  
+     radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_0, R300_RB3D_Z_DISABLED_1 );
+     radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_1, R300_ZS_ALWAYS );
+     radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_2, 0xffffff00 );
+     radeon_out32( mmio, R300_RB3D_ZSTENCIL_FORMAT, R300_DEPTH_FORMAT_16BIT_INT_Z );
+     radeon_out32( mmio, 0x4f14, 0x00000000 );
+     radeon_out32( mmio, 0x4f18, 0x00000003 );
+     radeon_out32( mmio, 0x4f1c, 0x00000000 );
+     radeon_out32( mmio, 0x4f28, 0x00000000 );
+     radeon_out32( mmio, 0x4f30, 0x00000000 );
+     radeon_out32( mmio, 0x4f34, 0x00000000 );
+     radeon_out32( mmio, 0x4f44, 0x00000000 );
+     radeon_out32( mmio, 0x4f54, 0x00000000 );
+                             
+     /* upload vertex program */ 
+     radeon_waitfifo( rdrv, rdev, 50 );
+     radeon_out32( mmio, R300_VAP_PVS_CNTL_1, 0x00401000 );
+     radeon_out32( mmio, R300_VAP_PVS_CNTL_2, 0x00040000 );
+     radeon_out32( mmio, R300_VAP_PVS_CNTL_3, 0x00000004 );
+     radeon_out32( mmio, R300_VAP_PVS_WAITIDLE, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_ADDRESS, R300_PVS_UPLOAD_POINTSIZE );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, f2d(1.0) );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_WAITIDLE, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_ADDRESS, R300_PVS_UPLOAD_PROGRAM );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00F00004 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00000001 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10002 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x01248002 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00F00004 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00492001 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10022 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10000 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00F00004 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00924001 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10042 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10000 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00F00204 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00DB6001 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10062 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10000 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00F02203 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x00D10021 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x01248021 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0x01248021 );
+     radeon_out32( mmio, R300_VAP_PVS_WAITIDLE, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_ADDRESS, R300_PVS_UPLOAD_PARAMETERS );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, f2d(1.0) );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, f2d(1.0) );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, f2d(1.0) );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, 0 );
+     radeon_out32( mmio, R300_VAP_PVS_UPLOAD_DATA, f2d(1.0) );
+     
+#if 0  
+     /* set YUV422 color buffer */
+     radeon_waitfifo( rdrv, rdev, 4 );
+     radeon_out32( mmio, R300_TX_FILTER_1, R300_TX_MAG_FILTER_NEAREST |
+                                           R300_TX_MIN_FILTER_NEAREST );
+     radeon_out32( mmio, R300_TX_FILTER1_0, 0 );
+     radeon_out32( mmio, R300_TX_SIZE_1, (1 << R300_TX_WIDTHMASK_SHIFT) |
+                                         (1 << R300_TX_HEIGHTMASK_SHIFT) );
+     radeon_out32( mmio, R300_TX_FORMAT_1, R300_TXFORMAT_VYUY422 );
+#endif
+} 
 
 void r300_set_destination( RadeonDriverData *rdrv,
                            RadeonDeviceData *rdev,
@@ -83,7 +295,8 @@ void r300_set_destination( RadeonDriverData *rdrv,
      volatile __u8 *mmio    = rdrv->mmio_base;
      __u32          offset;
      __u32          pitch;
-     __u32          format  = 0;
+     __u32          format  = 0; 
+     bool           dst_422 = false;
     
      if (RADEON_IS_SET( DESTINATION ))
           return;
@@ -93,35 +306,30 @@ void r300_set_destination( RadeonDriverData *rdrv,
 
      offset = radeon_buffer_offset( rdev, buffer );
      pitch  = buffer->video.pitch;
-    
-     if (rdev->dst_offset != offset        ||
-         rdev->dst_pitch  != pitch         ||
-         rdev->dst_format != buffer->format)
-     {
-          bool dst_422 = false;
-          
+
+     if (rdev->dst_offset != offset ||
+         rdev->dst_pitch  != pitch  ||
+         rdev->dst_format != format)
+     {         
           switch (buffer->format) {
                case DSPF_LUT8:
                case DSPF_ALUT44:
                case DSPF_A8:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
-                    format = 0;
+                    format = R300_COLOR_FORMAT_RGB8;
                     break;
                case DSPF_RGB332:          
                     rdev->gui_master_cntl = GMC_DST_8BPP;
-                    format = 0;
+                    format = R300_COLOR_FORMAT_RGB8;
                     break;
                case DSPF_ARGB2554:
                     rdev->gui_master_cntl = GMC_DST_16BPP;
-                    format = 0;
                     break;
                case DSPF_ARGB4444:
                     rdev->gui_master_cntl = GMC_DST_16BPP;
-                    format = 0;
                     break;
                case DSPF_ARGB1555:          
                     rdev->gui_master_cntl = GMC_DST_15BPP;
-                    format = 0;
                     break;
                case DSPF_RGB16:
                     rdev->gui_master_cntl = GMC_DST_16BPP;
@@ -136,24 +344,20 @@ void r300_set_destination( RadeonDriverData *rdrv,
                     break;
                case DSPF_UYVY:
                     rdev->gui_master_cntl = GMC_DST_YVYU;
-                    format = 0;
                     dst_422 = true;
                     break;
                case DSPF_YUY2:
                     rdev->gui_master_cntl = GMC_DST_VYUY;
-                    format = 0;
                     dst_422 = true;
                     break;
                case DSPF_I420:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
-                    format = 0;
                     rdev->dst_offset_cb = offset + pitch * surface->height;
                     rdev->dst_offset_cr = rdev->dst_offset_cb + 
                                           pitch/2 * surface->height/2;
                     break;
                case DSPF_YV12:
                     rdev->gui_master_cntl = GMC_DST_8BPP;
-                    format = 0;
                     rdev->dst_offset_cr = offset + pitch * surface->height;
                     rdev->dst_offset_cb = rdev->dst_offset_cr +
                                           pitch/2 * surface->height/2;
@@ -173,35 +377,18 @@ void r300_set_destination( RadeonDriverData *rdrv,
           radeon_out32( mmio, DST_OFFSET, offset );
           radeon_out32( mmio, DST_PITCH,  pitch );
          
-#if 0
-          radeon_waitfifo( rdrv, rdev, 2 );
-          radeon_out32( mmio, R300_RB3D_COLOROFFSET0, offset );
-          radeon_out32( mmio, R300_RB3D_COLORPITCH0, 
-                      (pitch / DFB_BYTES_PER_PIXEL(buffer->format)) | format ); 
+          if (R300_HAS_3DREGS() && format) {
+               radeon_waitfifo( rdrv, rdev, 2 );
+               radeon_out32( mmio, R300_RB3D_COLOROFFSET0, offset );
+               radeon_out32( mmio, R300_RB3D_COLORPITCH0, 
+                            (pitch / DFB_BYTES_PER_PIXEL(buffer->format)) | format );
+          }
           
-          if (surface->caps & DSCAPS_DEPTH) {
-               SurfaceBuffer *depth = surface->depth_buffer;
-               
-               offset = radeon_buffer_offset( rdev, depth );
-               pitch  = depth->video.pitch >> 1;
-               
-               radeon_waitfifo( rdrv, rdev, 4 );
-               radeon_out32( mmio, R300_RB3D_DEPTHOFFSET, offset );
-               radeon_out32( mmio, R300_RB3D_DEPTHPITCH, pitch );
-               radeon_out32( mmio, R300_RB3D_ZSTENCIL_FORMAT,
-                                   R300_DEPTH_FORMAT_16BIT_INT_Z );
-               radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_0, 0 );
-          } 
-          else {
-               radeoon_waitfifo( rdrv, rdev, 1 );
-               radeon_out32( mmio, R300_RB3D_ZSTENCIL_CNTL_0,
-                                   R300_RB3D_Z_DISABLED_1 );
-          }               
-#endif    
           if (rdev->dst_format != buffer->format) {
                if (dst_422 && !rdev->dst_422) {
-                    RADEON_UNSET( SOURCE );
                     RADEON_UNSET( CLIP );
+                    RADEON_UNSET( SOURCE );
+                    rdev->src_format = DSPF_UNKNOWN;
                }
                
                RADEON_UNSET( COLOR );
@@ -225,8 +412,7 @@ void r300_set_source( RadeonDriverData *rdrv,
      SurfaceBuffer *buffer   = surface->front_buffer;
      volatile __u8 *mmio     = rdrv->mmio_base;
      __u32          txformat = 0;
-     __u32          txfilter = R300_TX_CLAMP             |
-                               R300_TX_MAG_FILTER_LINEAR |
+     __u32          txfilter = R300_TX_MAG_FILTER_LINEAR |
                                R300_TX_MIN_FILTER_LINEAR;
 
      if (RADEON_IS_SET( SOURCE )) {
@@ -245,7 +431,7 @@ void r300_set_source( RadeonDriverData *rdrv,
 
      switch (buffer->format) {
           case DSPF_LUT8:
-               txformat |= R300_TXFORMAT_I8;
+               txformat  = R300_TXFORMAT_I8;
                txfilter &= ~(R300_TX_MAG_FILTER_LINEAR |
                              R300_TX_MIN_FILTER_LINEAR);
                txfilter |= R300_TX_MAG_FILTER_NEAREST |
@@ -253,7 +439,7 @@ void r300_set_source( RadeonDriverData *rdrv,
                rdev->src_mask = 0x000000ff;
                break;
           case DSPF_ALUT44:
-               txformat |= R300_TXFORMAT_I8;
+               txformat  = R300_TXFORMAT_I8;
                txfilter &= ~(R300_TX_MAG_FILTER_LINEAR |
                              R300_TX_MIN_FILTER_LINEAR);
                txfilter |= R300_TX_MAG_FILTER_NEAREST |
@@ -261,15 +447,15 @@ void r300_set_source( RadeonDriverData *rdrv,
                rdev->src_mask = 0x0000000f;
                break;
           case DSPF_A8:
-               txformat |= R300_TXFORMAT_I8;
+               txformat = R300_TXFORMAT_I8;
                rdev->src_mask = 0;
                break;
           case DSPF_RGB332:
-               txformat |= R300_TXFORMAT_RGB332;
+               txformat = R300_TXFORMAT_RGB332;
                rdev->src_mask = 0x000000ff;
                break;
           case DSPF_ARGB2554:
-               txformat |= R300_TXFORMAT_RGB565;
+               txformat = R300_TXFORMAT_RGB565;
                txfilter &= ~(R300_TX_MAG_FILTER_LINEAR |
                              R300_TX_MIN_FILTER_LINEAR);
                txfilter |= R300_TX_MAG_FILTER_NEAREST |
@@ -277,37 +463,34 @@ void r300_set_source( RadeonDriverData *rdrv,
                rdev->src_mask = 0x00003fff;
                break;
           case DSPF_ARGB4444:
-               txformat |= R300_TXFORMAT_ARGB4444;
+               txformat = R300_TXFORMAT_ARGB4444;
                rdev->src_mask = 0x00000fff;
                break;
           case DSPF_ARGB1555:
-               txformat |= R300_TXFORMAT_ARGB1555;
+               txformat = R300_TXFORMAT_ARGB1555;
                rdev->src_mask = 0x00007fff;
                break;
           case DSPF_RGB16:
-               txformat |= R300_TXFORMAT_RGB565;
+               txformat = R300_TXFORMAT_RGB565;
                rdev->src_mask = 0x0000ffff;
                break;
           case DSPF_RGB32:
-               txformat |= R300_TXFORMAT_ARGB8888;
-               rdev->src_mask = 0x00ffffff;
-               break;
           case DSPF_ARGB:
           case DSPF_AiRGB:
           case DSPF_AYUV:
-               txformat |= R300_TXFORMAT_ARGB8888;
+               txformat = R300_TXFORMAT_ARGB8888;
                rdev->src_mask = 0x00ffffff;
                break;
           case DSPF_UYVY:
-               //txformat |= R300_TXFORMAT_YVYU422;
+               txformat = R300_TXFORMAT_YVYU422;
                rdev->src_mask = 0xffffffff;
                break;
           case DSPF_YUY2:
-               txformat |= R300_TXFORMAT_VYUY422;
+               txformat = R300_TXFORMAT_VYUY422;
                rdev->src_mask = 0xffffffff;
                break;
           case DSPF_I420:
-               txformat |= R300_TXFORMAT_I8;
+               txformat = R300_TXFORMAT_I8;
                rdev->src_offset_cb = rdev->src_offset +
                                      rdev->src_pitch * rdev->src_height;
                rdev->src_offset_cr = rdev->src_offset_cb +
@@ -315,7 +498,7 @@ void r300_set_source( RadeonDriverData *rdrv,
                rdev->src_mask = 0x000000ff;
                break;
           case DSPF_YV12:
-               txformat |= R300_TXFORMAT_I8;
+               txformat = R300_TXFORMAT_I8;
                rdev->src_offset_cr = rdev->src_offset +
                                      rdev->src_pitch * rdev->src_height;
                rdev->src_offset_cb = rdev->src_offset_cr +
@@ -348,17 +531,19 @@ void r300_set_source( RadeonDriverData *rdrv,
      radeon_waitfifo( rdrv, rdev, 2 );
      radeon_out32( mmio, SRC_OFFSET, rdev->src_offset );
      radeon_out32( mmio, SRC_PITCH,  rdev->src_pitch );
-#if 0     
-     radeon_waitfifo( rdrv, rdev, 6 );
-     radeon_out32( mmio, R300_TX_FILTER_0, txfilter );
-     radeon_out32( mmio, R300_TX_FILTER1_0, R300_TX_TRI_PERF_0_8 );
-     radeon_out32( mmio, R300_TX_FORMAT_0, txformat );
-     radeon_out32( mmio, R300_TX_SIZE_0,  rdev->src_width         |
-                                         (rdev->src_height << 11) |
-                                         R300_TX_SIZE_TXPITCH_EN );
-     radeon_out32( mmio, R300_TX_PITCH_0,  rdev->src_pitch - 32 );
-     radeon_out32( mmio, R300_TX_OFFSET_0, rdev->src_offset << R300_TXO_OFFSET_SHIFT );
-#endif
+     
+     if (R300_HAS_3DREGS()) {
+          radeon_waitfifo( rdrv, rdev, 6 );
+          radeon_out32( mmio, R300_TX_FILTER_0, txfilter );
+          radeon_out32( mmio, R300_TX_FILTER1_0, R300_TX_TRI_PERF_0_8 );
+          radeon_out32( mmio, R300_TX_FORMAT_0, txformat );
+          radeon_out32( mmio, R300_TX_SIZE_0, ((rdev->src_width -1) << R300_TX_WIDTH_SHIFT)  |
+                                              ((rdev->src_height-1) << R300_TX_HEIGHT_SHIFT) |
+                                              R300_TX_SIZE_TXPITCH_EN );
+          radeon_out32( mmio, R300_TX_PITCH_0,  rdev->src_pitch - 64 );
+          radeon_out32( mmio, R300_TX_OFFSET_0, rdev->src_offset << R300_TXO_OFFSET_SHIFT ); 
+     }
+
      if (rdev->src_format != buffer->format)
           RADEON_UNSET( BLITTING_FLAGS );
      rdev->src_format = buffer->format;
@@ -370,7 +555,7 @@ void r300_set_clip( RadeonDriverData *rdrv,
                     RadeonDeviceData *rdev,
                     CardState        *state )
 {
-     DFBRegion     *clip = &state->clip;
+     DFBRegion      clip = state->clip;
      volatile __u8 *mmio = rdrv->mmio_base;
      
      if (RADEON_IS_SET( CLIP ))
@@ -380,38 +565,53 @@ void r300_set_clip( RadeonDriverData *rdrv,
      radeon_waitfifo( rdrv, rdev, 2 );
      if (rdev->dst_422) {
           radeon_out32( mmio, SC_TOP_LEFT,
-                      (clip->y1 << 16) | (clip->x1/2 & 0xffff) );
+                      (clip.y1 << 16) | (clip.x1/2 & 0xffff) );
           radeon_out32( mmio, SC_BOTTOM_RIGHT,
-                      ((clip->y2+1) << 16) | ((clip->x2+1)/2 & 0xffff) );
+                      ((clip.y2+1) << 16) | ((clip.x2+1)/2 & 0xffff) );
      } else {     
           radeon_out32( mmio, SC_TOP_LEFT, 
-                      (clip->y1 << 16) | (clip->x1 & 0xffff) );
+                      (clip.y1 << 16) | (clip.x1 & 0xffff) );
           radeon_out32( mmio, SC_BOTTOM_RIGHT,
-                      ((clip->y2+1) << 16) | ((clip->x2+1) & 0xffff) );
+                      ((clip.y2+1) << 16) | ((clip.x2+1) & 0xffff) );
      }
-#if 0
+
      /* 3d clip */
-     radeon_waitfifo( rdrv, rdev, 2 );
-     radeon_out32( mmio, R300_RE_SCISSORS_TL,
-                 ((clip->y1 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
-                 ((clip->x1 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
-     radeon_out32( mmio, R300_RE_SCISSORS_BR,
-                 ((clip->y2 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
-                 ((clip->x2 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
-#endif
+     if (R300_HAS_3DREGS()) {
+          clip.x1 += R300_CLIPRECT_OFFSET;
+          clip.y1 += R300_CLIPRECT_OFFSET;
+          clip.x2 += R300_CLIPRECT_OFFSET;
+          clip.y2 += R300_CLIPRECT_OFFSET;
+          
+          radeon_waitfifo( rdrv, rdev, 5 );
+          radeon_out32( mmio, R300_RE_CLIPRECT_TL_0, 
+                       ((clip.y1 << R300_CLIPRECT_Y_SHIFT) & R300_CLIPRECT_Y_MASK) |
+                       ((clip.x1 << R300_CLIPRECT_X_SHIFT) & R300_CLIPRECT_X_MASK) );
+          radeon_out32( mmio, R300_RE_CLIPRECT_BR_0, 
+                       ((clip.y2 << R300_CLIPRECT_Y_SHIFT) & R300_CLIPRECT_Y_MASK) |
+                       ((clip.x2 << R300_CLIPRECT_X_SHIFT) & R300_CLIPRECT_X_MASK) );
+          radeon_out32( mmio, R300_RE_CLIPRECT_CNTL, 0x0000aaaa );
+          radeon_out32( mmio, R300_RE_SCISSORS_TL,
+                       ((clip.y1 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
+                       ((clip.x1 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
+          radeon_out32( mmio, R300_RE_SCISSORS_BR,
+                       ((clip.y2 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
+                       ((clip.x2 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
+     }
+
      rdev->clip = state->clip;
      
      RADEON_SET( CLIP );
 }
 
-#define R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v ) {                \
-     radeon_out32( (rdrv)->fb_base, (rdev)->yuv422_buffer,            \
-                                     PIXEL_YUY2( y, u, v ) );         \
-     radeon_in8( (rdrv)->fb_base, (rdev)->yuv422_buffer );            \
-     radeon_waitfifo( rdrv, rdev, 1 );                                \
-     radeon_out32( (rdrv)->mmio_base, R300_TX_OFFSET_1,               \
-                   ((rdev)->fb_offset + (rdev)->yuv422_buffer) << 5 );\
-}
+#define R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v ) \
+     if (R300_HAS_3DREGS()) { \
+          radeon_out32( (rdrv)->fb_base, \
+                        (rdev)->yuv422_buffer, PIXEL_YUY2( y, u, v ) ); \
+          radeon_in8( (rdrv)->fb_base, (rdev)->yuv422_buffer ); \
+          radeon_waitfifo( rdrv, rdev, 1 ); \
+          radeon_out32( (rdrv)->mmio_base, R300_TX_OFFSET_1, \
+                        ((rdev)->fb_offset + (rdev)->yuv422_buffer) << R300_TXO_OFFSET_SHIFT ); \
+     }
 
 void r300_set_drawing_color( RadeonDriverData *rdrv,
                              RadeonDeviceData *rdev,
@@ -420,25 +620,25 @@ void r300_set_drawing_color( RadeonDriverData *rdrv,
      DFBColor color   = state->color;
      int      index   = state->color_index;
      __u32    color2d;
-     __u32    color3d;
      int      y, u, v;
 
      if (RADEON_IS_SET( COLOR ) && RADEON_IS_SET( DRAWING_FLAGS ))
           return;
 
-     color3d = PIXEL_ARGB( color.a, color.r,
-                           color.g, color.b );
+     if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
+          color.r = ((long) color.r * color.a / 255L);
+          color.g = ((long) color.g * color.a / 255L);
+          color.b = ((long) color.b * color.a / 255L);
+     }
  
      switch (rdev->dst_format) {
           case DSPF_ALUT44:
                index |= (color.a & 0xf0);
           case DSPF_LUT8:
                color2d = index;
-               color3d = PIXEL_RGB32( index, index, index );
                break;
           case DSPF_A8:
                color2d = color.a;
-               color3d = (color.a << 24) | 0x00ffffff;
                break;
           case DSPF_RGB332:
                color2d = PIXEL_RGB332( color.r, color.g, color.b );
@@ -471,7 +671,7 @@ void r300_set_drawing_color( RadeonDriverData *rdrv,
                break;
           case DSPF_AYUV:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
-               color3d = color2d = PIXEL_AYUV( color.a, y, u, v );
+               color2d = PIXEL_AYUV( color.a, y, u, v );
                break;
           case DSPF_UYVY:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
@@ -489,7 +689,7 @@ void r300_set_drawing_color( RadeonDriverData *rdrv,
                rdev->y_cop  = PIXEL_ARGB( color.a, y, y, y );
                rdev->cb_cop = PIXEL_ARGB( color.a, u, u, u );
                rdev->cr_cop = PIXEL_ARGB( color.a, v, v, v );
-               color3d = color2d = rdev->y_cop;
+               color2d = rdev->y_cop;
                break;
           default:
                D_BUG( "unexpected pixelformat" );
@@ -497,9 +697,14 @@ void r300_set_drawing_color( RadeonDriverData *rdrv,
                break;
      }
      
+     rdev->color[0] = (float)color.r/255.0;
+     rdev->color[1] = (float)color.g/255.0;
+     rdev->color[2] = (float)color.b/255.0;
+     rdev->color[3] = (float)color.a/255.0;
+     
      radeon_waitfifo( rdrv, rdev, 1 );
      radeon_out32( rdrv->mmio_base, DP_BRUSH_FRGD_CLR, color2d );
-     /* missing 3d */
+     
 
      RADEON_SET( COLOR );
 }
@@ -508,8 +713,7 @@ void r300_set_blitting_color( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state )
 {
-     DFBColor color   = state->color;
-     __u32    color3d;
+     DFBColor color = state->color;
      int      y, u, v;
      
      if (RADEON_IS_SET( COLOR ) && RADEON_IS_SET( BLITTING_FLAGS ))
@@ -524,7 +728,7 @@ void r300_set_blitting_color( RadeonDriverData *rdrv,
 
      switch (rdev->dst_format) {
           case DSPF_A8:
-               color3d = (color.a << 24) | 0x00ffffff;
+               color.r = color.g = color.b = 0xff;
                break;
           case DSPF_I420:
           case DSPF_YV12: 
@@ -532,23 +736,25 @@ void r300_set_blitting_color( RadeonDriverData *rdrv,
                rdev->y_cop  = PIXEL_ARGB( color.a, y, y, y );
                rdev->cb_cop = PIXEL_ARGB( color.a, u, u, u );
                rdev->cr_cop = PIXEL_ARGB( color.a, v, v, v );
-               color3d = rdev->y_cop;
                break;
           case DSPF_AYUV:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
-               color3d = PIXEL_AYUV( color.a, y, u, v );
+               color.r = y;
+               color.g = u;
+               color.b = v;
                break;
           case DSPF_UYVY:
           case DSPF_YUY2:
                RGB_TO_YCBCR( color.r, color.g, color.b, y, u, v );
                //R300_SET_YUV422_COLOR( rdrv, rdev, y, u, v );
           default:
-               color3d = PIXEL_ARGB( color.a, color.r,
-                                     color.g, color.b );
                break;
      }
      
-     /* missing */
+     rdev->color[0] = (float)color.r/255.0;
+     rdev->color[1] = (float)color.g/255.0;
+     rdev->color[2] = (float)color.b/255.0;
+     rdev->color[3] = (float)color.a/255.0;
      
      RADEON_SET( COLOR );
 }
@@ -557,31 +763,31 @@ void r300_set_src_colorkey( RadeonDriverData *rdrv,
                             RadeonDeviceData *rdev,
                             CardState        *state )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
-     __u32          key  = state->src_colorkey;
-     __u32          chroma;
+     volatile __u8 *mmio   = rdrv->mmio_base;
+     __u32          key    = state->src_colorkey;
+     __u32          chroma = key;
      
      if (RADEON_IS_SET( SRC_COLORKEY ))
           return;
      
      switch (rdev->src_format) {
           case DSPF_RGB332:
-               /*chroma = RGB332_TO_RGB32( key );*/
+               //chroma = RGB332_TO_RGB32( key );
                break;
           case DSPF_ARGB4444:
                key |= 0xf000;
-               /*chroma = ARGB4444_TO_RGB32( key );*/
+               //chroma = ARGB4444_TO_RGB32( key );
                break;
           case DSPF_ARGB2554:
                key |= 0xc000; 
-               /*chroma = ARGB2554_TO_RGB32( key );*/
+               //chroma = ARGB2554_TO_RGB32( key );
                break;
           case DSPF_ARGB1555:
                key |= 0x8000;
-               /*chroma = ARGB1555_TO_RGB32( key );*/
+               chroma = ARGB1555_TO_RGB32( key );
                break;
           case DSPF_RGB16:
-               /*chroma = RGB16_TO_RGB32( key );*/
+               chroma = RGB16_TO_RGB32( key );
                break;
           case DSPF_RGB32:
                chroma = key;
@@ -597,7 +803,8 @@ void r300_set_src_colorkey( RadeonDriverData *rdrv,
      radeon_out32( mmio, CLR_CMP_CLR_SRC, key );
      /* XXX: R300 seems to ignore CLR_CMP_MASK. */
      radeon_out32( mmio, CLR_CMP_MASK, rdev->src_mask );
-     //radeon_out32( mmio, R300_TX_CHROMA_KEY_0, chroma );
+     if (R300_HAS_3DREGS())
+          radeon_out32( mmio, R300_TX_CHROMA_KEY_0, chroma );
      
      RADEON_SET( SRC_COLORKEY );
 }
@@ -618,29 +825,23 @@ r300_set_blend_function( RadeonDriverData *rdrv,
      if (!DFB_PIXELFORMAT_HAS_ALPHA( rdev->dst_format )) {
           switch (state->src_blend) {
                case DSBF_DESTALPHA:
-                    sblend = SRC_BLEND_GL_ONE;
+                    sblend = R300_SRC_BLEND_GL_ONE;
                     break;
                case DSBF_INVDESTALPHA:
-                    sblend = SRC_BLEND_GL_ZERO;
+                    sblend = R300_SRC_BLEND_GL_ZERO;
                     break;
                default:
                     break;
           }
      }
      
-     rdev->rb3d_blend = R300_BLEND_NO_SEPARATE | sblend | dblend;
+     rdev->rb3d_blend = sblend | dblend;
      
      RADEON_UNSET( DRAWING_FLAGS );
      RADEON_UNSET( BLITTING_FLAGS );
      RADEON_SET( SRC_BLEND );
      RADEON_SET( DST_BLEND );
 }
-
-/* NOTES:
- * - We use texture unit 0 for blitting functions,
- *          texture unit 1 for drawing functions
- * - Default blend equation is ADD_CLAMP (A * B + C)
- */
 
 void r300_set_drawingflags( RadeonDriverData *rdrv,
                             RadeonDeviceData *rdev,
@@ -651,23 +852,18 @@ void r300_set_drawingflags( RadeonDriverData *rdrv,
                                   GMC_SRC_DATATYPE_MONO_FG_LA |
                                   GMC_BRUSH_SOLID_COLOR       |
                                   GMC_CLR_CMP_CNTL_DIS;
-     __u32          rb3d_blend  = rdev->rb3d_blend;
-     __u32          tex_enable  = 0;
-     __u32          input_cntl1 = R300_INPUT_CNTL_POS |
-                                  R300_INPUT_CNTL_COLOR;
-     __u32          vtx_fmt1    = 0;
+     __u32          rb3d_blend;
      
      if (RADEON_IS_SET( DRAWING_FLAGS ))
           return;
-
-     if (rdev->dst_422) {
-          tex_enable  |= TEX_1_ENABLE;
-          input_cntl1 |= R300_INPUT_CNTL_TC1;
-          vtx_fmt1    |= 2 << R300_VAP_OUTPUT_VTX_FMT_1__TEX_1_COMP_CNT_SHIFT;
-     }
      
-     if (state->drawingflags & DSDRAW_BLEND)
-          rb3d_blend  |= R300_BLEND_ENABLE;
+     if (state->drawingflags & DSDRAW_BLEND) {
+          rb3d_blend = R300_BLEND_ENABLE      | R300_BLEND_UNKNOWN | 
+                       R300_BLEND_NO_SEPARATE | rdev->rb3d_blend;
+     }
+     else {
+          rb3d_blend = R300_SRC_BLEND_GL_ONE | R300_DST_BLEND_GL_ZERO;
+     }
 
      if (state->drawingflags & DSDRAW_XOR)
           master_cntl |= GMC_ROP3_PATXOR;
@@ -678,32 +874,54 @@ void r300_set_drawingflags( RadeonDriverData *rdrv,
      radeon_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      radeon_out32( mmio, DP_CNTL, DST_X_LEFT_TO_RIGHT | DST_Y_TOP_TO_BOTTOM );
      
-#if 0
-     radeon_waitfifo( rdrv, rdev, 14 );
-     radeon_out32( mmio, R300_TX_ENABLE, tex_enable );
-     radeon_out32( mmio, R300_VAP_INPUT_ROUTE_0_0, 0x21030003 ); 
-     radeon_out32( mmio, R300_VAP_INPUT_ROUTE_1_0, 0xf688f688 );
-     radeon_out32( mmio, R300_VAP_INPUT_CNTL_0, 0x5555 );
-     radeon_out32( mmio, R300_VAP_INPUT_CNTL_1, input_cntl1 );
-     radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_0,
-                         R300_VAP_OUTPUT_VTX_FMT_0__POS_PRESENT |
-                         R300_VAP_OUTPUT_VTX_FMT_0__COLOR_PRESENT );
-     radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_1, vtx_fmt1 );
-     radeon_out32( mmio, R300_SE_VTE_CNTL, R300_VTX_W0_FMT | 
-                                           R300_VTX_ST_DENORMALIZED );
-     radeon_out32( mmio, R300_PFS_INSTR0_0, R300_FPI0_OUTC_MAD                |
-                         (R300_FPI0_ARGC_SRC0C_XYZ << R300_FPI0_ARG0C_SHIFT) |
-                         (R300_FPI0_ARGC_ONE       << R300_FPI0_ARG1C_SHIFT) |
-                         (R300_FPI0_ARGC_ZERO      << R300_FPI0_ARG2C_SHIFT) );
-     radeon_out32( mmio, R300_PFS_INSTR1_0, (0 << 23) | (7 << 26) );
-     radeon_out32( mmio, R300_PFS_INSTR2_0, R300_FPI2_OUTA_MAD |
-                         (R300_FPI2_ARGA_SRC0A << R300_FPI2_ARG0A_SHIFT) |
-                         (R300_FPI2_ARGA_ONE   << R300_FPI2_ARG1A_SHIFT) |
-                         (R300_FPI2_ARGA_ZERO  << R300_FPI2_ARG2A_SHIFT) );
-     radeon_out32( mmio, R300_PFS_INSTR3_0, (0 << 23) | (1  << 26) );
-     radeon_out32( mmio, R300_RB3D_CBLEND, rb3d_blend );
-     radeon_out32( mmio, R300_RB3D_ABLEND, rb3d_blend );  
-#endif
+     if (R300_HAS_3DREGS()) {
+          radeon_waitfifo( rdrv, rdev, 29 ); 
+          radeon_out32( mmio, R300_TX_ENABLE, 0 );
+          radeon_out32( mmio, R300_RE_SHADE_MODEL, R300_RE_SHADE_MODEL_FLAT );
+          radeon_out32( mmio, R300_SE_VTE_CNTL, R300_VTX_W0_FMT ); 
+          /* fragment program */
+          radeon_out32( mmio, R300_PFS_CNTL_0, 0 );
+          radeon_out32( mmio, R300_PFS_CNTL_1, 0 );
+          radeon_out32( mmio, R300_PFS_CNTL_2, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_0, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_1, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_2, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_3, R300_PFS_NODE_OUTPUT_COLOR );
+          radeon_out32( mmio, R300_PFS_INSTR0_0,
+                              FP_INSTRC(MAD, FP_ARGC(SRC0C_XYZ), FP_ARGC(ONE), FP_ARGC(ZERO)) );
+          radeon_out32( mmio, R300_PFS_INSTR1_0,
+                              FP_SELC(0,NO,XYZ,FP_TMP(0),FP_TMP(2),FP_TMP(2)) );
+          radeon_out32( mmio, R300_PFS_INSTR2_0,
+                              FP_INSTRA(MAD, FP_ARGA(SRC0A), FP_ARGA(ONE), FP_ARGA(ZERO)) );
+          radeon_out32( mmio, R300_PFS_INSTR3_0,
+                              FP_SELA(0,NO,W,FP_TMP(0),FP_TMP(2),FP_TMP(2)) );
+          /* blend functions */
+          radeon_out32( mmio, R300_RB3D_CBLEND, rb3d_blend );
+          radeon_out32( mmio, R300_RB3D_ABLEND, rb3d_blend & 0xfffffff0 );
+          /* routing */
+          radeon_out32( mmio, R300_RS_CNTL_0, (0 << R300_RS_CNTL_TC_CNT_SHIFT) | 
+                                              (1 << R300_RS_CNTL_CI_CNT_SHIFT) |
+                                               R300_RS_CNTL_0_UNKNOWN_18 );
+          radeon_out32( mmio, R300_RS_CNTL_1, 0x000000c0 );
+          radeon_out32( mmio, R300_RS_ROUTE_0, R300_RS_ROUTE_0_COLOR );
+          /* input */
+          radeon_out32( mmio, R300_VAP_INPUT_ROUTE_0_0, 0x21030003 );
+          radeon_out32( mmio, R300_VAP_INPUT_ROUTE_1_0, 0xf688f688 );
+          radeon_out32( mmio, R300_VAP_INPUT_CNTL_0, R300_INPUT_CNTL_0_COLOR );
+          radeon_out32( mmio, R300_VAP_INPUT_CNTL_1, R300_INPUT_CNTL_POS |
+                                                     R300_INPUT_CNTL_COLOR );
+          /* output */
+          radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_0,
+                              R300_VAP_OUTPUT_VTX_FMT_0__POS_PRESENT |
+                              R300_VAP_OUTPUT_VTX_FMT_0__COLOR_PRESENT );
+          radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_1, 0 );
+          radeon_out32( mmio, R300_GB_VAP_RASTER_VTX_FMT_0, 
+                              R300_GB_VAP_RASTER_VTX_FMT_0__POS_PRESENT |
+                              R300_GB_VAP_RASTER_VTX_FMT_0__COLOR_0_PRESENT );
+          radeon_out32( mmio, R300_GB_VAP_RASTER_VTX_FMT_1, 0 );
+          radeon_out32( mmio, R300_VAP_UNKNOWN_221C, R300_221C_CLEAR );
+     }     
+
      rdev->drawingflags = state->drawingflags;
 
      RADEON_SET  ( DRAWING_FLAGS );
@@ -719,14 +937,19 @@ void r300_set_blittingflags( RadeonDriverData *rdrv,
                                   GMC_BRUSH_NONE        |
                                   GMC_SRC_DATATYPE_COLOR;
      __u32          cmp_cntl    = 0;
-     __u32          rb3d_blend  = rdev->rb3d_blend;
+     __u32          rb3d_blend;
      
      if (RADEON_IS_SET( BLITTING_FLAGS ))
           return;
           
      if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
-                                 DSBLIT_BLEND_ALPHACHANNEL))
-          rb3d_blend |= R300_BLEND_ENABLE;
+                                 DSBLIT_BLEND_ALPHACHANNEL)) {
+          rb3d_blend = R300_BLEND_ENABLE      | R300_BLEND_UNKNOWN |
+                       R300_BLEND_NO_SEPARATE | rdev->rb3d_blend;
+     }
+     else {
+          rb3d_blend = R300_SRC_BLEND_GL_ONE | R300_DST_BLEND_GL_ZERO;
+     }
  
      if (state->blittingflags & DSBLIT_SRC_COLORKEY)
           cmp_cntl = SRC_CMP_EQ_COLOR | CLR_CMP_SRC_SOURCE;
@@ -743,30 +966,58 @@ void r300_set_blittingflags( RadeonDriverData *rdrv,
      radeon_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      
 #if 0
-     radeon_waitfifo( rdrv, rdev, 14 );
-     radeon_out32( mmio, R300_TX_ENABLE, R300_TX_ENABLE_0 );
-     radeon_out32( mmio, R300_VAP_INPUT_ROUTE_0_0, 0x21030003 );
-     radeon_out32( mmio, R300_VAP_INPUT_ROUTE_1_0, 0xf688f688 );
-     radeon_out32( mmio, R300_VAP_INPUT_CNTL_0, 0x5555 );
-     radeon_out32( mmio, R300_VAP_INPUT_CNTL_1, R300_INPUT_CNTL_POS |
-                                                R300_INPUT_CNTL_TC0 );
-     radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_0,
-                         R300_VAP_OUTPUT_VTX_FMT_0__POS_PRESENT );
-     radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_1,
-                         4 << R300_VAP_OUTPUT_VTX_FMT_1__TEX_0_COMP_CNT_SHIFT );
-     radeon_out32( mmio, R300_SE_VTE_CNTL, R300_VTX_W0_FMT ); 
-     radeon_out32( mmio, R300_PFS_INSTR0_0, R300_FPI0_OUTC_MAD                |
-                         (R300_FPI0_ARGC_SRC0C_XYZ  << R300_FPI0_ARG0C_SHIFT) |
-                         (R300_FPI0_ARGC_ONE  << R300_FPI0_ARG1C_SHIFT) |
-                         (R300_FPI0_ARGC_ZERO << R300_FPI0_ARG2C_SHIFT) );
-     radeon_out32( mmio, R300_PFS_INSTR1_0, (0 << 23) | (7 << 26) );
-     radeon_out32( mmio, R300_PFS_INSTR2_0, R300_FPI2_OUTA_MAD |
-                         (R300_FPI2_ARGA_SRC0A << R300_FPI2_ARG0A_SHIFT) |
-                         (R300_FPI2_ARGA_ONE   << R300_FPI2_ARG1A_SHIFT) |
-                         (R300_FPI2_ARGA_ZERO  << R300_FPI2_ARG2A_SHIFT) );
-     radeon_out32( mmio, R300_PFS_INSTR3_0, (0 << 23) | (1 << 26) );
-     radeon_out32( mmio, R300_RB3D_CBLEND, rb3d_blend );
-     radeon_out32( mmio, R300_RB3D_ABLEND, rb3d_blend );
+     if (R300_HAS_3DREGS()) {
+          radeon_waitfifo( rdrv, rdev, 30 );
+          radeon_out32( mmio, R300_TX_ENABLE, R300_TX_ENABLE_0 );
+          if (rdev->accel == DFXL_TEXTRIANGLES) {
+               radeon_out32( mmio, R300_RE_SHADE_MODEL, R300_RE_SHADE_MODEL_SMOOTH );
+               radeon_out32( mmio, R300_SE_VTE_CNTL, R300_VTX_W0_FMT );
+          } else {
+               radeon_out32( mmio, R300_RE_SHADE_MODEL, R300_RE_SHADE_MODEL_FLAT );
+               radeon_out32( mmio, R300_SE_VTE_CNTL, 
+                                   R300_VTX_W0_FMT | R300_VTX_ST_DENORMALIZED );
+          }
+          /* fragment program */
+          radeon_out32( mmio, R300_PFS_CNTL_0, R300_PFS_CNTL_FIRST_NODE_HAS_TEX );
+          radeon_out32( mmio, R300_PFS_CNTL_1, 0 );
+          radeon_out32( mmio, R300_PFS_CNTL_2, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_0, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_1, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_2, 0 );
+          radeon_out32( mmio, R300_PFS_NODE_3, R300_PFS_NODE_OUTPUT_COLOR ); 
+          radeon_out32( mmio, R300_PFS_TEXI_0, R300_FPITX_OP_TXP );
+          radeon_out32( mmio, R300_PFS_INSTR0_0,
+                              FP_INSTRC(MAD, FP_ARGC(SRC0C_XYZ), FP_ARGC(ONE), FP_ARGC(ZERO)) );
+          radeon_out32( mmio, R300_PFS_INSTR1_0,
+                              FP_SELC(0,NO,XYZ,FP_TMP(0),FP_TMP(2),FP_TMP(2)) );
+          radeon_out32( mmio, R300_PFS_INSTR2_0,
+                              FP_INSTRA(MAD, FP_ARGA(SRC0A), FP_ARGA(ONE), FP_ARGA(ZERO)) );
+          radeon_out32( mmio, R300_PFS_INSTR3_0,
+                              FP_SELA(0,NO,W,FP_TMP(0),FP_TMP(2),FP_TMP(2)) );
+          /* blend functions */
+          radeon_out32( mmio, R300_RB3D_CBLEND, rb3d_blend );
+          radeon_out32( mmio, R300_RB3D_ABLEND, rb3d_blend & 0xfffffff0 );
+          /* routing */
+          radeon_out32( mmio, R300_RS_CNTL_0, (4 << R300_RS_CNTL_TC_CNT_SHIFT) | 
+                                              (0 << R300_RS_CNTL_CI_CNT_SHIFT) |
+                                               R300_RS_CNTL_0_UNKNOWN_18 );
+          radeon_out32( mmio, R300_RS_CNTL_1, 0x000000c0 );
+          radeon_out32( mmio, R300_RS_ROUTE_0, R300_RS_ROUTE_ENABLE );
+          /* input routing */
+          radeon_out32( mmio, R300_VAP_INPUT_ROUTE_0_0, 0x21030003 );
+          radeon_out32( mmio, R300_VAP_INPUT_ROUTE_1_0, 0xf688f688 );
+          radeon_out32( mmio, R300_VAP_INPUT_CNTL_0, 0x5555 );
+          radeon_out32( mmio, R300_VAP_INPUT_CNTL_1, R300_INPUT_CNTL_POS |
+                                                     R300_INPUT_CNTL_TC0 );
+          /* output routing */
+          radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_0,
+                              R300_VAP_OUTPUT_VTX_FMT_0__POS_PRESENT );
+          radeon_out32( mmio, R300_VAP_OUTPUT_VTX_FMT_1, 4 );
+          radeon_out32( mmio, R300_GB_VAP_RASTER_VTX_FMT_0, 
+                              R300_GB_VAP_RASTER_VTX_FMT_0__POS_PRESENT );
+          radeon_out32( mmio, R300_GB_VAP_RASTER_VTX_FMT_1, 4 );
+          radeon_out32( mmio, R300_VAP_UNKNOWN_221C, R300_221C_NORMAL );
+     }
 #endif
      
      rdev->blittingflags = state->blittingflags;
