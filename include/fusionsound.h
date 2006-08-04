@@ -81,8 +81,8 @@ DECLARE_INTERFACE( IFusionSoundMusicProvider )
  * call this before doing anything else. Removes all options used by FusionSound from argv.
  */
 DFBResult FusionSoundInit(
-                           int   *argc,   /* pointer to main()'s argc */
-                           char **argv[]  /* pointer to main()'s argv */
+                           int    *argc,   /* pointer to main()'s argc */
+                           char *(*argv[]) /* pointer to main()'s argv */
                          );
 
 /*
