@@ -167,7 +167,7 @@ bench_ref()
      DirectResult ret;
      FusionRef    ref;
 
-     ret = fusion_ref_init( &ref, world );
+     ret = fusion_ref_init( &ref, "Benchmark", world );
      if (ret) {
           fprintf( stderr, "Fusion Error %d\n", ret );
           return;

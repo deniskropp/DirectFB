@@ -53,25 +53,38 @@
 
 #if FUSION_BUILD_MULTI
 
+D_DEBUG_DOMAIN( Fusion_Ref, "Fusion/Ref", "Fusion's Reference Counter" );
+
+
 DirectResult
 fusion_ref_init (FusionRef         *ref,
+                 const char        *name,
                  const FusionWorld *world)
 {
+     FusionEntryInfo info;
+
      D_ASSERT( ref != NULL );
+     D_ASSERT( name != NULL );
      D_MAGIC_ASSERT( world, FusionWorld );
 
-     while (ioctl (world->fusion_fd, FUSION_REF_NEW, &ref->multi.id)) {
-          switch (errno) {
-               case EINTR:
-                    continue;
-               default:
-                    break;
-          }
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_init( %p, '%s' )\n", ref, name ? : "" );
 
-          D_PERROR ("FUSION_REF_NEW");
+     while (ioctl( world->fusion_fd, FUSION_REF_NEW, &ref->multi.id )) {
+          if (errno == EINTR)
+               continue;
 
-          return DFB_FAILURE;
+          D_PERROR( "FUSION_REF_NEW" );
+          return DFB_FUSION;
      }
+
+     D_DEBUG_AT( Fusion_Ref, "  -> new ref %p [%d]\n", ref, ref->multi.id );
+
+     info.type = FT_REF;
+     info.id   = ref->multi.id;
+
+     strncpy( info.name, name, sizeof(info.name) );
+
+     ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 
      /* Keep back pointer to shared world data. */
      ref->multi.shared = world->shared;
@@ -308,6 +321,8 @@ fusion_ref_destroy (FusionRef *ref)
 {
      D_ASSERT( ref != NULL );
 
+     D_DEBUG_AT( Fusion_Ref, "fusion_ref_destroy( %p [%d] )\n", ref, ref->multi.id );
+
      while (ioctl (_fusion_fd( ref->multi.shared ), FUSION_REF_DESTROY, &ref->multi.id)) {
           switch (errno) {
                case EINTR:
@@ -331,9 +346,11 @@ fusion_ref_destroy (FusionRef *ref)
 
 DirectResult
 fusion_ref_init (FusionRef         *ref,
+                 const char        *name,
                  const FusionWorld *world)
 {
      D_ASSERT( ref != NULL );
+     D_ASSERT( name != NULL );
 
      direct_util_recursive_pthread_mutex_init (&ref->single.lock);
      pthread_cond_init (&ref->single.cond, NULL);

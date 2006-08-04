@@ -325,7 +325,7 @@ fusion_object_create( FusionObjectPool  *pool,
      object->id = ++pool->id_pool;
 
      /* Initialize the reference counter. */
-     if (fusion_ref_init( &object->ref, world )) {
+     if (fusion_ref_init( &object->ref, pool->name, world )) {
           SHFREE( shared->main_pool, object );
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;

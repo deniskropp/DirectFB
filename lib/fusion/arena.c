@@ -436,7 +436,7 @@ lock_arena( FusionWorld *world,
                return NULL;
           }
 
-          if (fusion_ref_init( &arena->ref, world )) {
+          if (fusion_ref_init( &arena->ref, buf, world )) {
                fusion_skirmish_destroy( &arena->lock );
                SHFREE( shared->main_pool, arena );
                fusion_skirmish_dismiss( &shared->arenas_lock );

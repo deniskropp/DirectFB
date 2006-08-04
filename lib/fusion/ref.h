@@ -57,6 +57,7 @@ typedef union {
  * Initialize.
  */
 DirectResult fusion_ref_init         (FusionRef         *ref,
+                                      const char        *name,
                                       const FusionWorld *world);
 
 /*
