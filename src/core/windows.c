@@ -557,6 +557,12 @@ dfb_window_change_stacking( CoreWindow             *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      config.stacking = stacking;
 
      /* Let the window manager do its work. */
@@ -583,6 +589,12 @@ dfb_window_raise( CoreWindow *window )
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      /* Let the window manager do its work. */
      ret = dfb_wm_restack_window( window, window, 1 );
 
@@ -606,6 +618,12 @@ dfb_window_lower( CoreWindow *window )
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      /* Let the window manager do its work. */
      ret = dfb_wm_restack_window( window, window, -1 );
@@ -631,6 +649,12 @@ dfb_window_raisetotop( CoreWindow *window )
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      /* Let the window manager do its work. */
      ret = dfb_wm_restack_window( window, NULL, 1 );
 
@@ -654,6 +678,12 @@ dfb_window_lowertobottom( CoreWindow *window )
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      /* Let the window manager do its work. */
      ret = dfb_wm_restack_window( window, NULL, 0 );
@@ -680,6 +710,12 @@ dfb_window_putatop( CoreWindow *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      /* Let the window manager do its work. */
      ret = dfb_wm_restack_window( window, lower, 1 );
 
@@ -705,6 +741,12 @@ dfb_window_putbelow( CoreWindow *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      /* Let the window manager do its work. */
      ret = dfb_wm_restack_window( window, upper, -1 );
 
@@ -727,6 +769,12 @@ dfb_window_move( CoreWindow *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      if (relative) {
           config.bounds.x = window->config.bounds.x + x;
@@ -772,6 +820,12 @@ dfb_window_resize( CoreWindow   *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      if (window->config.bounds.w == width && window->config.bounds.h == height) {
           dfb_windowstack_unlock( stack );
           return DFB_OK;
@@ -800,6 +854,12 @@ dfb_window_set_colorkey( CoreWindow *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      if (window->config.color_key == color_key) {
           dfb_windowstack_unlock( stack );
           return DFB_OK;
@@ -826,6 +886,12 @@ dfb_window_set_opacity( CoreWindow *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      if (window->config.opacity == opacity) {
           dfb_windowstack_unlock( stack );
@@ -860,6 +926,12 @@ dfb_window_change_options( CoreWindow       *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      config.options = (window->config.options & ~disable) | enable;
 
      ret = dfb_wm_set_window_config( window, &config, CWCF_OPTIONS );
@@ -883,6 +955,12 @@ dfb_window_set_opaque( CoreWindow      *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      config.opaque.x1 = 0;
      config.opaque.y1 = 0;
@@ -918,6 +996,12 @@ dfb_window_change_events( CoreWindow         *window,
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      config.events = (window->config.events & ~disable) | enable;
 
      ret = dfb_wm_set_window_config( window, &config, CWCF_EVENTS );
@@ -938,6 +1022,12 @@ dfb_window_grab_keyboard( CoreWindow *window )
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      grab.target = CWMGT_KEYBOARD;
 
@@ -960,6 +1050,12 @@ dfb_window_ungrab_keyboard( CoreWindow *window )
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      grab.target = CWMGT_KEYBOARD;
 
      ret = dfb_wm_ungrab( window, &grab );
@@ -981,6 +1077,12 @@ dfb_window_grab_pointer( CoreWindow *window )
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
 
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
      grab.target = CWMGT_POINTER;
 
      ret = dfb_wm_grab( window, &grab );
@@ -1001,6 +1103,12 @@ dfb_window_ungrab_pointer( CoreWindow *window )
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      grab.target = CWMGT_POINTER;
 
@@ -1024,6 +1132,12 @@ dfb_window_grab_key( CoreWindow                 *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      grab.target    = CWMGT_KEY;
      grab.symbol    = symbol;
@@ -1049,6 +1163,12 @@ dfb_window_ungrab_key( CoreWindow                 *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      grab.target    = CWMGT_KEY;
      grab.symbol    = symbol;
@@ -1078,6 +1198,12 @@ dfb_window_repaint( CoreWindow          *window,
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      ret = dfb_wm_update_window( window, region, flags );
 
@@ -1122,6 +1248,8 @@ dfb_window_send_configuration( CoreWindow *window )
 {
      DFBWindowEvent event;
 
+     D_ASSUME( !DFB_WINDOW_DESTROYED( window ) );
+
      event.type = DWET_POSITION_SIZE;
      event.x    = window->config.bounds.x;
      event.y    = window->config.bounds.y;
@@ -1142,6 +1270,12 @@ dfb_window_request_focus( CoreWindow *window )
      /* Lock the window stack. */
      if (dfb_windowstack_lock( stack ))
           return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
 
      ret = dfb_wm_request_focus( window );
 
