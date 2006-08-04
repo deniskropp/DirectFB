@@ -52,6 +52,14 @@
 #include <xine/xineutils.h>
 #include <xine/video_out.h>
 
+/* use new speed parameter if available */
+#ifdef XINE_PARAM_FINE_SPEED
+# undef  XINE_PARAM_SPEED
+# undef  XINE_SPEED_NORMAL
+# define XINE_PARAM_SPEED  XINE_PARAM_FINE_SPEED
+# define XINE_SPEED_NORMAL XINE_FINE_SPEED_NORMAL
+#endif
+
 
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
@@ -163,12 +171,10 @@ BufferThread( DirectThread *self, void *arg )
           char          buf[4096];
           unsigned int  len = 0;
 
-          ret = buffer->WaitForDataWithTimeout( buffer, sizeof(buf), 0, 1 );
-          if (ret == DFB_OK) {
-               ret = buffer->GetData( buffer, sizeof(buf), buf, &len );
-               if (ret == DFB_OK)
-                    write( fd, buf, len );
-          }
+          buffer->WaitForDataWithTimeout( buffer, sizeof(buf), 0, 1 );
+          ret = buffer->GetData( buffer, sizeof(buf), buf, &len );
+          if (ret == DFB_OK && len)
+               write( fd, buf, len );
 
           if (ret == DFB_EOF)
                break;
@@ -391,8 +397,9 @@ IDirectFBVideoProvider_Xine_PlayTo( IDirectFBVideoProvider *thiz,
 
           data->dest_rect = *dest_rect;
           data->full_area = false;
-     } else
+     } else {
           data->full_area = true;
+     }
 
      /* update visual */
      data->visual.destination = dest;
@@ -798,6 +805,9 @@ IDirectFBVideoProvider_Xine_SetSpeed( IDirectFBVideoProvider *thiz,
      
      if (multiplier < 0.0)
           return DFB_INVARG;
+          
+     if (multiplier > 32.0)
+          return DFB_UNSUPPORTED;
      
      xine_set_param( data->stream, XINE_PARAM_SPEED,
                      (multiplier*XINE_SPEED_NORMAL+.5) );
@@ -904,7 +914,6 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
      xine_video_port_t *vo;
      xine_audio_port_t *ao;
      xine_stream_t     *stream;
-     dfb_visual_t       visual;
      DFBResult          result;
      
      mrl = filename_to_mrl( ctx->filename );
@@ -934,12 +943,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 
      xine_init( xine );
 
-     memset( &visual, 0, sizeof(visual) );
-     visual.output_cb = frame_output;
-     
-     vo = xine_open_video_driver( xine, "DFB",
-                                  XINE_VISUAL_TYPE_DFB,
-                                  (void*) &visual );
+     vo = xine_open_video_driver( xine, "none", XINE_VISUAL_TYPE_NONE, NULL );
      if (!vo) {
           xine_exit( xine );
           D_FREE( mrl );
@@ -1007,8 +1011,6 @@ Construct( IDirectFBVideoProvider *thiz,
 {
      const char               *xinerc;
      int                       verbosity;
-     char* const              *ao_list;
-     const char               *ao_driver;
      IDirectFBDataBuffer_data *buffer_data;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_Xine );
@@ -1091,29 +1093,12 @@ Construct( IDirectFBVideoProvider *thiz,
           IDirectFBVideoProvider_Xine_Destruct( thiz );
           return DFB_FAILURE;
      }
-
-     /* get available audio plugins */
-     ao_list = (char* const*)xine_list_audio_output_plugins( data->xine );
-     ao_driver = ao_list[0];
-     
-     /* serch for FusionSound plugin */
-     for (; *ao_list; ao_list++) {
-          if (!strcmp( *ao_list, "FusionSound" )) {
-               ao_driver = *ao_list;
-               break;
-          }
-     }
-
-     /* register config entry */
-     ao_driver = xine_config_register_string( data->xine, "audio.driver",
-                                        ao_driver, "Audio driver to use",
-                                        NULL, 0, NULL, NULL );
      
      /* open audio driver */
-     data->ao = xine_open_audio_driver( data->xine, ao_driver, NULL );
+     data->ao = xine_open_audio_driver( data->xine, NULL, NULL );
      if (!data->ao) {
           D_ERROR( "DirectFB/VideoProvider_Xine: "
-                   "failed to load audio driver '%s'.\n", ao_driver );
+                   "failed to load audio driver.\n" );
           IDirectFBVideoProvider_Xine_Destruct( thiz );
           return DFB_FAILURE;
      }
