@@ -62,6 +62,7 @@ static const char *config_usage =
      "  samplerate=<samplerate>        Set the default sample rate\n"
      "  buffersize=<millisec>          Set the default buffer size\n"
      "  session=<num>                  Select multi app world (-1 = new)\n"
+     "  [no-]banner                    Show FusionSound banner on startup\n"
      "\n";
      
 typedef struct {
@@ -147,6 +148,8 @@ config_allocate()
      fs_config->buffersize   = 50;
     
      fs_config->session      = MAX(dfb_config->session,0) + 1;
+
+     fs_config->banner       = dfb_config->banner;
 }
 
 const char*
@@ -287,6 +290,12 @@ fs_config_set( const char *name, const char *value )
                         "No value specified!\n" );
                return DFB_INVARG;
           }
+     }
+     else if (!strcmp( name, "banner" )) {
+          fs_config->banner = true;
+     }
+     else if (!strcmp( name, "no-banner" )) {
+          fs_config->banner = false;
      }
      else
           return DFB_UNSUPPORTED;

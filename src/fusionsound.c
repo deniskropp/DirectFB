@@ -143,7 +143,7 @@ FusionSoundCreate( IFusionSound **ret_interface )
           return DFB_OK;
      }
 
-     if (!direct_config->quiet && dfb_config->banner) {
+     if (!direct_config->quiet && fs_config->banner) {
           direct_log_printf( NULL,
                "\n"
                "       --------------------- FusionSound v%d.%d.%d -------------------\n"

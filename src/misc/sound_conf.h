@@ -40,6 +40,8 @@ typedef struct {
      int             buffersize;   /* default buffersize (in ms) */
 
      int             session;      /* select multi app world */
+
+     bool            banner;       /* startup banner */
 } FSConfig;
 
 extern FSConfig *fs_config;
