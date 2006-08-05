@@ -3237,7 +3237,7 @@ wm_update_cursor( CoreWindowStack       *stack,
           }
      }
 
-     if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
+     if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE | CCUF_OPACITY)) {
           data->cursor_bs_valid  = false;
 
           data->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
