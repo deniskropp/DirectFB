@@ -2,7 +2,7 @@
 .\"
 .\" This man page is Copyright (C) 2006 Claudio Ciccani <klan@users.sf.net>
 
-.TH FUSIONSOUNDRC 5 "15 Jul 2006" "Version @FUSIONSOUND_VERSION@" "FusionSound Manual Page"
+.TH FUSIONSOUNDRC 5 "15 Jul 2006" "Version @FUSIONSOUND_VERSION@" "FusionSound Manual Pages"
 
 .SH NAME
 fusionsoundrc \- FusionSound configuration file
@@ -27,7 +27,6 @@ by prefixing them with
 .BR --fs:
 or by setting the environment variable
 .BR FSARGS
-
 
 
 .SH SYNTAX
@@ -77,6 +76,11 @@ Selects the multi application world which is joined or created.
 Negative values force creation of a new world using the lowest
 unused session number. The default session number is 
 DIRECTFB_SESSION + 1.
+
+.TP
+.BI [no-]banner
+Enables the output of the FusionSound banner at startup. 
+This is on by default.
 
 
 .SH EXAMPLES
