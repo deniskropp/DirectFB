@@ -4324,6 +4324,34 @@ DEFINE_INTERFACE(   IDirectFBWindow,
    /** Appearance and Behaviour **/
 
      /*
+      * Set property controlling appearance and behaviour of the window.
+      */
+     DFBResult (*SetProperty) (
+          IDirectFBWindow               *thiz,
+          char                          *key,
+          void                          *value,
+          void                         **ret_old_value
+     );
+
+     /*
+      * Get property controlling appearance and behaviour of the window.
+      */
+     DFBResult (*GetProperty) (
+          IDirectFBWindow               *thiz,
+          char                          *key,
+          void                         **ret_value
+     );
+
+     /*
+      * Remove property controlling appearance and behaviour of the window.
+      */
+     DFBResult (*RemoveProperty) (
+          IDirectFBWindow               *thiz,
+          char                          *key,
+          void                         **ret_value
+     );
+
+     /*
       * Set options controlling appearance and behaviour of the window.
       */
      DFBResult (*SetOptions) (

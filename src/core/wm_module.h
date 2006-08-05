@@ -120,6 +120,31 @@ static DFBResult wm_preconfigure_window     ( CoreWindowStack        *stack,
                                      CoreWindow             *window,
                                      void                   *window_data );
 
+static DFBResult wm_set_window_property( CoreWindowStack        *stack,
+                                         void                   *wm_data,
+                                         void                   *stack_data,
+                                         CoreWindow             *window,
+                                         void                   *window_data,
+                                         char                   *key,
+                                         void                   *value, 
+                                         void                  **ret_old_value );
+
+static DFBResult wm_get_window_property( CoreWindowStack        *stack,
+                                         void                   *wm_data,
+                                         void                   *stack_data,
+                                         CoreWindow             *window,
+                                         void                   *window_data,
+                                         char                   *key,
+                                         void                  **ret_value );
+
+static DFBResult wm_remove_window_property( CoreWindowStack        *stack,
+                                            void                   *wm_data,
+                                            void                   *stack_data,
+                                            CoreWindow             *window,
+                                            void                   *window_data,
+                                            char                   *key,
+                                            void                  **ret_value );
+
 static DFBResult wm_add_window     ( CoreWindowStack        *stack,
                                      void                   *wm_data,
                                      void                   *stack_data,
@@ -199,9 +224,12 @@ static CoreWMFuncs wm_funcs = {
      WindowLookup:        wm_window_lookup,
      EnumWindows:         wm_enum_windows,
 
-     StartDesktop:     	  wm_start_desktop,
-     GetInsets:     	  wm_get_insets,
-     PreConfigureWindow:     wm_preconfigure_window,
+     StartDesktop:        wm_start_desktop,
+     GetInsets:           wm_get_insets,
+     PreConfigureWindow:  wm_preconfigure_window,
+     SetWindowProperty:   wm_set_window_property,
+     GetWindowProperty:   wm_get_window_property,
+     RemoveWindowProperty:wm_remove_window_property,
      AddWindow:           wm_add_window,
      RemoveWindow:        wm_remove_window,
      SetWindowConfig:     wm_set_window_config,

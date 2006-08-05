@@ -343,6 +343,55 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 }
 
 static DFBResult
+IDirectFBWindow_SetProperty( IDirectFBWindow  *thiz,
+                            char *key, void *value, void **old_value )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     /* Check arguments */
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (!key)
+          return DFB_INVARG;
+
+     return dfb_wm_set_window_property(data->window->stack,data->window,key,value,old_value);
+}
+
+static DFBResult
+IDirectFBWindow_GetProperty( IDirectFBWindow  *thiz,char *key,
+                            void **ret_value )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (!key)
+          return DFB_INVARG;
+
+     if (!ret_value)
+          return DFB_INVARG;
+
+     return dfb_wm_get_window_property(data->window->stack,data->window,key,ret_value);
+}
+
+static DFBResult
+IDirectFBWindow_RemoveProperty( IDirectFBWindow  *thiz,char *key,
+                            void **ret_value )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (!key)
+          return DFB_INVARG;
+
+     return dfb_wm_remove_window_property(data->window->stack,data->window,key,ret_value);
+}
+
+static DFBResult
 IDirectFBWindow_SetOptions( IDirectFBWindow  *thiz,
                             DFBWindowOptions  options )
 {
@@ -831,6 +880,9 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->GetPosition = IDirectFBWindow_GetPosition;
      thiz->GetSize = IDirectFBWindow_GetSize;
      thiz->GetSurface = IDirectFBWindow_GetSurface;
+     thiz->SetProperty = IDirectFBWindow_SetProperty;
+     thiz->GetProperty = IDirectFBWindow_GetProperty;
+     thiz->RemoveProperty = IDirectFBWindow_RemoveProperty;
      thiz->SetOptions = IDirectFBWindow_SetOptions;
      thiz->GetOptions = IDirectFBWindow_GetOptions;
      thiz->SetColorKey = IDirectFBWindow_SetColorKey;
