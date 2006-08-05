@@ -147,7 +147,7 @@ fi
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
 
-AC_CHECK_HEADERS(linux/compiler.h linux/pci_regs.h linux/unistd.h asm/page.h)
+AC_CHECK_HEADERS(linux/compiler.h linux/unistd.h asm/page.h)
 
 
 dnl Clear default CFLAGS
@@ -293,6 +293,12 @@ if test "$have_kos" = "no"; then
     THREADLIB="-lpthread"
   fi
 fi
+
+AC_CHECK_DECLS(PTHREAD_MUTEX_RECURSIVE,,
+  AC_MSG_WARN([
+*** PTHREAD_MUTEX_RECURSIVE is not defined! Dead locks might occur!]), [
+#define _GNU_SOURCE
+#include <pthread.h>])
 
 AC_SUBST(THREADFLAGS)
 AC_SUBST(THREADLIB)
