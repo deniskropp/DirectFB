@@ -132,7 +132,7 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      snd_pcm_uframes_t    buffersize;
      int                  periods, dir;
      
-     buffertime = config->buffersize * 1000 / config->rate * 1000; 
+     buffertime = ((long long)config->buffersize * 1000000ll / config->rate); 
      
      if (snd_pcm_open( &data->handle, fs_config->device ? : "default",
                        SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) < 0) {
@@ -178,7 +178,7 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      
 #if SND_LIB_VERSION >= 0x010009
      /* disable software resampling */
-     //snd_pcm_hw_params_set_rate_resample( data->handle, params, 0 );
+     snd_pcm_hw_params_set_rate_resample( data->handle, params, 0 );
 #endif
      
      dir = 0;
@@ -213,7 +213,8 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      }
      
      snd_pcm_hw_params_get_buffer_size( params, &buffersize  );
-     config->buffersize = buffersize;
+     if (buffersize < config->buffersize)
+          config->buffersize = buffersize;
 
      if (snd_pcm_prepare( data->handle ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't prepare stream!\n" );
