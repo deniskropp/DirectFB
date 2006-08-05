@@ -98,7 +98,8 @@ DFBResult fs_buffer_mixto ( CoreSoundBuffer  *buffer,
                             __fsf             right,
                             int               pitch,
                             int              *ret_pos,
-                            int              *ret_num );
+                            int              *ret_num,
+                            int              *ret_written );
 
 #endif
 

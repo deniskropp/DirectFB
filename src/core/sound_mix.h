@@ -51,11 +51,13 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
                          int              stop,
                          __fsf            left,
                          __fsf            right,
-                         int              pitch )
+                         int              pitch,
+                         int             *written )
+
 {
-     unsigned long  i, n;
-     unsigned long  inc  = (buffer->rate * pitch) / dest_rate;
-     TYPE          *data = buffer->data;
+     int            i;
+     unsigned long  n, inc = (buffer->rate * pitch) / dest_rate;
+     TYPE          *data   = buffer->data;
 
      D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
               __FUNCTION__, buffer, pos, stop, max_samples / 2 );
@@ -109,9 +111,11 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
 #endif
      }
 
-     D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%ld).\n", 
-              __FUNCTION__, n >> 8, i >> 1 );
+     D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%d/%d).\n", 
+              __FUNCTION__, n >> 8, i >> 1, max_samples >> 1 );
 
+     *written = i;
+     
      return n >> 8;
 }
 
@@ -124,11 +128,12 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
                            int              stop,
                            __fsf            left,
                            __fsf            right,
-                           int              pitch )
+                           int              pitch,
+                           int             *written )
 {
-     unsigned long  i, n;
-     unsigned long  inc  = (buffer->rate * pitch) / dest_rate;
-     TYPE          *data = buffer->data;
+     int            i;
+     unsigned long  n, inc = (buffer->rate * pitch) / dest_rate;
+     TYPE          *data   = buffer->data;
 
      D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
               __FUNCTION__, buffer, pos, stop, max_samples / 2 );
@@ -192,9 +197,11 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
 #endif
      }
 
-     D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%ld).\n", 
-              __FUNCTION__, n >> 8, i >> 1 );
+     D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%d/%d).\n", 
+              __FUNCTION__, n >> 8, i >> 1, max_samples >> 1 );
 
+     *written = i;
+     
      return n >> 8;
 }
 

@@ -88,12 +88,13 @@ DFBResult fs_playback_set_pitch   ( CorePlayback     *playback,
                                     int               pitch );
 
 /*
- * Internally called by core_audio.c in the audio thread.
+ * Internally called by core_sound.c in the audio thread.
  */
 DFBResult fs_playback_mixto       ( CorePlayback     *playback,
                                     __fsf            *dest,
                                     int               dest_rate,
-                                    int               max_samples );
+                                    int               max_samples,
+                                    int              *ret_samples );
 
 #endif
 

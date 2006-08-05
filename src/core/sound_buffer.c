@@ -224,10 +224,12 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                  __fsf            right,
                  int              pitch,
                  int             *ret_pos,
-                 int             *ret_num )
+                 int             *ret_num,
+                 int             *ret_written )
 {
      DFBResult ret = DFB_OK;
      int       num;
+     int       len;
 
      D_ASSERT( buffer != NULL );
      D_ASSERT( buffer->data != NULL );
@@ -246,46 +248,46 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           case FSSF_U8:
                if (buffer->channels == 1)
                     num = mix_from_u8_mono( buffer, dest, dest_rate, max_samples,
-                                            pos, stop, left, right, pitch );
+                                            pos, stop, left, right, pitch, &len );
                else
                     num = mix_from_u8_stereo( buffer, dest, dest_rate, max_samples,
-                                              pos, stop, left, right, pitch );
+                                              pos, stop, left, right, pitch, &len );
                break;
 
           case FSSF_S16:
                if (buffer->channels == 1)
                     num = mix_from_s16_mono( buffer, dest, dest_rate, max_samples,
-                                             pos, stop, left, right, pitch );
+                                             pos, stop, left, right, pitch, &len );
                else
                     num = mix_from_s16_stereo( buffer, dest, dest_rate, max_samples,
-                                               pos, stop, left, right, pitch );
+                                               pos, stop, left, right, pitch, &len );
                break;
 
           case FSSF_S24:
                if (buffer->channels == 1)
                     num = mix_from_s24_mono( buffer, dest, dest_rate, max_samples,
-                                             pos, stop, left, right, pitch );
+                                             pos, stop, left, right, pitch, &len );
                else
                     num = mix_from_s24_stereo( buffer, dest, dest_rate, max_samples,
-                                               pos, stop, left, right, pitch );
+                                               pos, stop, left, right, pitch, &len );
                break;
                
           case FSSF_S32:
                if (buffer->channels == 1)
                     num = mix_from_s32_mono( buffer, dest, dest_rate, max_samples,
-                                             pos, stop, left, right, pitch );
+                                             pos, stop, left, right, pitch, &len );
                else
                     num = mix_from_s32_stereo( buffer, dest, dest_rate, max_samples,
-                                               pos, stop, left, right, pitch );
+                                               pos, stop, left, right, pitch, &len );
                break;
                
           case FSSF_FLOAT:
                if (buffer->channels == 1)
                     num = mix_from_float_mono( buffer, dest, dest_rate, max_samples,
-                                               pos, stop, left, right, pitch );
+                                               pos, stop, left, right, pitch, &len );
                else
                     num = mix_from_float_stereo( buffer, dest, dest_rate, max_samples,
-                                                 pos, stop, left, right, pitch );
+                                                 pos, stop, left, right, pitch, &len );
                break;
 
           default:
@@ -312,6 +314,10 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      /* Return number of samples mixed in. */
      if (ret_num)
           *ret_num = num;
+
+     /* Return number of samples written in. */
+     if (ret_written)
+          *ret_written = len;
 
      return ret;
 }

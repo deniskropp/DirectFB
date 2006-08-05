@@ -418,23 +418,25 @@ sound_thread( DirectThread *thread, void *arg )
      __u8             output[size];
      __fsf            mixing[samples];
 
-     bool             empty = true;
+     int              written = 0;
+     bool             empty   = true;
 
-
+     
      while (true) {
           int         i;
           int         delay;
+          int         length = 0;
           DirectLink *next, *l;
-
+          
           direct_thread_testcancel( thread );
 
           fs_device_get_output_delay( core->device, &delay );
           shared->output_delay = delay * 1000 / shared->config.rate;
           
-          /* do not buffer more than 80 ms */
-          if (shared->output_delay > 80) {
+          /* Limit output buffering. */
+          if (delay > shared->config.buffersize) {
                D_DEBUG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
-               usleep( 10000 );
+               usleep( 1000 );
                continue;
           }
 
@@ -444,8 +446,12 @@ sound_thread( DirectThread *thread, void *arg )
                continue;
           }
 
-          /* Clear mixing buffer. */
-          memset( mixing, 0, sizeof(mixing) );
+          if (written >= samples) {
+               /* Clear mixing buffer. */
+               memset( mixing, 0, sizeof(mixing) );
+               /* Reset write position. */
+               written = 0;
+          }
 
           /* Iterate through running playbacks, mixing them together. */
           fusion_skirmish_prevail( &shared->playlist.lock );
@@ -454,9 +460,10 @@ sound_thread( DirectThread *thread, void *arg )
                DFBResult          ret;
                CorePlaylistEntry *entry    = (CorePlaylistEntry *) l;
                CorePlayback      *playback = entry->playback;
+               int                num;
 
-               ret = fs_playback_mixto( playback, mixing,
-                                        shared->config.rate, samples );
+               ret = fs_playback_mixto( playback, mixing+written,
+                                        shared->config.rate, samples-written, &num );
                if (ret) {
                     direct_list_remove( &shared->playlist.entries, l );
 
@@ -464,9 +471,18 @@ sound_thread( DirectThread *thread, void *arg )
 
                     SHFREE( shared->shmpool, entry );
                }
+
+               if (num > length)
+                    length = num;
           }
 
           fusion_skirmish_dismiss( &shared->playlist.lock );
+
+          D_ASSERT( (written+length) <= samples );
+          
+          written += length;
+          if (written < samples)
+               continue;
 
           /* Convert mixing buffer to output format, clipping each sample. */
           switch (shared->config.format) {
