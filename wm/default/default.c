@@ -595,6 +595,7 @@ static void
 draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegion *region )
 {
      DFBRectangle            src;
+     DFBRectangle            clip;
      DFBSurfaceBlittingFlags flags = DSBLIT_BLEND_ALPHACHANNEL;
 
      D_ASSERT( stack != NULL );
@@ -609,6 +610,13 @@ draw_cursor( CoreWindowStack *stack, StackData *data, CardState *state, DFBRegio
      src.y = region->y1 - stack->cursor.y + stack->cursor.hot.y;
      src.w = region->x2 - region->x1 + 1;
      src.h = region->y2 - region->y1 + 1;
+     /* Initialize source clipping rectangle */
+     clip.x = clip.y = 0;
+     clip.w = stack->cursor.surface->width;
+     clip.h = stack->cursor.surface->height;
+     /* Intersect rectangles */
+     if (!dfb_rectangle_intersect( &src, &clip ))
+          return;
 
      /* Use global alpha blending. */
      if (stack->cursor.opacity != 0xFF) {

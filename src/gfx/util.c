@@ -92,7 +92,10 @@ dfb_gfx_copy_to( CoreSurface *source, CoreSurface *destination, DFBRectangle *re
      }
 
      if (rect) {
-          dfb_gfxcard_blit( rect, x, y, &copy_state );
+          /* Wrokaround for window managers passing negative rectangles */
+          DFBRectangle sourcerect = { 0, 0, source->width, source->height };
+          if (dfb_rectangle_intersect( rect, &sourcerect ))
+               dfb_gfxcard_blit( rect, x, y, &copy_state );
      }
      else {
           DFBRectangle sourcerect = { 0, 0, source->width, source->height };
