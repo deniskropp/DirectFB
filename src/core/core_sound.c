@@ -410,16 +410,14 @@ sound_thread( DirectThread *thread, void *arg )
 {
      CoreSound       *core    = arg;
      CoreSoundShared *shared  = core->shared;
-     int              samples = shared->config.buffersize * 2;
+     int              samples = shared->config.buffersize * 2; 
+     int              written = samples;
      int              size    = shared->config.buffersize *
                                 shared->config.channels   *
                                 FS_BITS_PER_SAMPLE(shared->config.format)>>3;
 
      __u8             output[size];
      __fsf            mixing[samples];
-
-     int              written = 0;
-     bool             empty   = true;
 
      
      while (true) {
@@ -433,16 +431,8 @@ sound_thread( DirectThread *thread, void *arg )
           fs_device_get_output_delay( core->device, &delay );
           shared->output_delay = delay * 1000 / shared->config.rate;
           
-          /* Limit output buffering. */
-          if (delay > shared->config.buffersize) {
-               D_DEBUG( "FusionSound/Core: %s sleeping...\n", __FUNCTION__ );
+          if (!shared->playlist.entries) {
                usleep( 1000 );
-               continue;
-          }
-
-          empty = !shared->playlist.entries;
-          if (empty) {
-               usleep( 20000 );
                continue;
           }
 
