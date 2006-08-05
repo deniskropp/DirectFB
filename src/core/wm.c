@@ -543,25 +543,29 @@ dfb_wm_start_desktop( CoreWindowStack  *stack)
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->StartDesktop != NULL );
+     
      D_ASSERT( stack != NULL );
-     return wm_local->funcs->StartDesktop(stack);
+     
+     return wm_local->funcs->StartDesktop( stack );
 }
 
 /**
  * Give the wm a chance to specifiy a border
  */
 DFBResult
-dfb_wm_get_insets( CoreWindowStack  *stack,
-                    CoreWindow      *window,
-                    DFBInsets       *insets)
+dfb_wm_get_insets( CoreWindowStack *stack,
+                   CoreWindow      *window,
+                   DFBInsets       *insets)
 {
      D_ASSERT( wm_local != NULL );
      D_ASSERT( wm_local->funcs != NULL );
      D_ASSERT( wm_local->funcs->GetInsets != NULL );
 
      D_ASSERT( stack != NULL );
+     D_ASSERT( window != NULL );
+     D_ASSERT( insets != NULL );
 
-     return wm_local->funcs->GetInsets(stack,window,insets);
+     return wm_local->funcs->GetInsets( stack, window, insets );
 }
 
 /**
@@ -659,7 +663,7 @@ dfb_wm_remove_window( CoreWindowStack *stack,
 DFBResult
 dfb_wm_set_window_property( CoreWindowStack  *stack,
                             CoreWindow       *window,
-                            char             *key,
+                            const char       *key,
                             void             *value,
                             void            **ret_old_value )
 {
@@ -671,9 +675,9 @@ dfb_wm_set_window_property( CoreWindowStack  *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
-     return wm_local->funcs->SetWindowProperty(stack,wm_local->data,stack->stack_data,
-                                                    window,window->window_data,
-                                                    key,value,ret_old_value);
+     return wm_local->funcs->SetWindowProperty( stack, wm_local->data, stack->stack_data,
+                                                window, window->window_data,
+                                                key, value, ret_old_value );
 }
 
 /**
@@ -682,7 +686,7 @@ dfb_wm_set_window_property( CoreWindowStack  *stack,
 DFBResult
 dfb_wm_get_window_property( CoreWindowStack  *stack,
                             CoreWindow       *window,
-                            char             *key,
+                            const char       *key,
                             void            **ret_value )
 {
      D_ASSERT( wm_local != NULL );
@@ -693,8 +697,8 @@ dfb_wm_get_window_property( CoreWindowStack  *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
-     return wm_local->funcs->GetWindowProperty(stack,wm_local->data,stack->stack_data,
-               window,window->window_data,key,ret_value);
+     return wm_local->funcs->GetWindowProperty( stack, wm_local->data, stack->stack_data,
+                                                window, window->window_data, key, ret_value );
 }
 
 /**
@@ -703,7 +707,7 @@ dfb_wm_get_window_property( CoreWindowStack  *stack,
 DFBResult
 dfb_wm_remove_window_property( CoreWindowStack  *stack,
                                CoreWindow       *window,
-                               char             *key,
+                               const char       *key,
                                void            **ret_value )
 {
      D_ASSERT( wm_local != NULL );
@@ -714,8 +718,8 @@ dfb_wm_remove_window_property( CoreWindowStack  *stack,
      D_ASSERT( window != NULL );
      D_ASSERT( key != NULL );
 
-     return wm_local->funcs->RemoveWindowProperty(stack,wm_local->data,
-               stack->stack_data,window,window->window_data,key,ret_value);
+     return wm_local->funcs->RemoveWindowProperty( stack, wm_local->data, stack->stack_data,
+                                                   window, window->window_data, key, ret_value );
 }
 
 DFBResult

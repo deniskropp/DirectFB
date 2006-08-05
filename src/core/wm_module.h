@@ -125,7 +125,7 @@ static DFBResult wm_set_window_property( CoreWindowStack        *stack,
                                          void                   *stack_data,
                                          CoreWindow             *window,
                                          void                   *window_data,
-                                         char                   *key,
+                                         const char             *key,
                                          void                   *value, 
                                          void                  **ret_old_value );
 
@@ -134,7 +134,7 @@ static DFBResult wm_get_window_property( CoreWindowStack        *stack,
                                          void                   *stack_data,
                                          CoreWindow             *window,
                                          void                   *window_data,
-                                         char                   *key,
+                                         const char             *key,
                                          void                  **ret_value );
 
 static DFBResult wm_remove_window_property( CoreWindowStack        *stack,
@@ -142,7 +142,7 @@ static DFBResult wm_remove_window_property( CoreWindowStack        *stack,
                                             void                   *stack_data,
                                             CoreWindow             *window,
                                             void                   *window_data,
-                                            char                   *key,
+                                            const char             *key,
                                             void                  **ret_value );
 
 static DFBResult wm_add_window     ( CoreWindowStack        *stack,

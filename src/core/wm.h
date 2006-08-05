@@ -190,7 +190,7 @@ typedef struct {
                                     void             *stack_data,
                                     CoreWindow       *window,
                                     void             *window_data,
-                                    char             *key,
+                                    const char       *key,
                                     void             *value,
                                     void            **old_value );
 
@@ -199,7 +199,7 @@ typedef struct {
                                     void             *stack_data,
                                     CoreWindow       *window,
                                     void             *window_data,
-                                    char             *key,
+                                    const char       *key,
                                     void            **value);
 
     DFBResult (*RemoveWindowProperty)( CoreWindowStack  *stack,
@@ -207,7 +207,7 @@ typedef struct {
                                        void             *stack_data,
                                        CoreWindow       *window,
                                        void             *window_data,
-                                       char             *key,
+                                       const char       *key,
                                        void            **value );
 
      DFBResult (*GetInsets)         ( CoreWindowStack        *stack,
@@ -322,18 +322,18 @@ DFBResult dfb_wm_get_insets         ( CoreWindowStack        *stack,
 
 DFBResult dfb_wm_set_window_property ( CoreWindowStack  *stack,
                                        CoreWindow       *window,
-                                       char             *key,
+                                       const char       *key,
                                        void             *value,
                                        void            **ret_old_value );
 
 DFBResult dfb_wm_get_window_property ( CoreWindowStack  *stack,
                                        CoreWindow       *window,
-                                       char             *key,
+                                       const char       *key,
                                        void            **ret_value );
 
 DFBResult dfb_wm_remove_window_property ( CoreWindowStack  *stack,
                                           CoreWindow       *window,
-                                          char             *key,
+                                          const char       *key,
                                           void            **ret_value );
 
 DFBResult dfb_wm_preconfigure_window ( CoreWindowStack        *stack,

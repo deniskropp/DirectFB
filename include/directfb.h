@@ -4328,7 +4328,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*SetProperty) (
           IDirectFBWindow               *thiz,
-          char                          *key,
+          const char                    *key,
           void                          *value,
           void                         **ret_old_value
      );
@@ -4338,7 +4338,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetProperty) (
           IDirectFBWindow               *thiz,
-          char                          *key,
+          const char                    *key,
           void                         **ret_value
      );
 
@@ -4347,7 +4347,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*RemoveProperty) (
           IDirectFBWindow               *thiz,
-          char                          *key,
+          const char                    *key,
           void                         **ret_value
      );
 

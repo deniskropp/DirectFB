@@ -2794,12 +2794,11 @@ wm_get_insets( CoreWindowStack *stack,
                CoreWindow      *window,
                DFBInsets       *insets )
 {
-     if( insets ) {
-          insets->l=0;
-          insets->t=0;
-          insets->r=0;
-          insets->b=0;
-     }
+     insets->l = 0;
+     insets->t = 0;
+     insets->r = 0;
+     insets->b = 0;
+
      return DFB_OK;
 }
 
@@ -2815,14 +2814,14 @@ wm_preconfigure_window( CoreWindowStack *stack,
 }
 
 static DFBResult
-wm_set_window_property( CoreWindowStack *stack,
-               void            *wm_data,
-               void            *stack_data,
-               CoreWindow      *window,
-               void            *window_data,
-               char            *key,
-               void            *value,
-               void           **ret_old_value )
+wm_set_window_property( CoreWindowStack  *stack,
+                        void             *wm_data,
+                        void             *stack_data,
+                        CoreWindow       *window,
+                        void             *window_data,
+                        const char       *key,
+                        void             *value,
+                        void            **ret_old_value )
 {
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2837,13 +2836,13 @@ wm_set_window_property( CoreWindowStack *stack,
 }
 
 static DFBResult
-wm_get_window_property( CoreWindowStack *stack,
-               void            *wm_data,
-               void            *stack_data,
-               CoreWindow      *window,
-               void            *window_data,
-               char            *key,
-               void           **ret_value )
+wm_get_window_property( CoreWindowStack  *stack,
+                        void             *wm_data,
+                        void             *stack_data,
+                        CoreWindow       *window,
+                        void             *window_data,
+                        const char       *key,
+                        void            **ret_value )
 {
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
@@ -2859,13 +2858,13 @@ wm_get_window_property( CoreWindowStack *stack,
 
 
 static DFBResult
-wm_remove_window_property( CoreWindowStack *stack,
-               void            *wm_data,
-               void            *stack_data,
-               CoreWindow      *window,
-               void            *window_data,
-               char            *key,
-               void           **ret_value )
+wm_remove_window_property( CoreWindowStack  *stack,
+                           void             *wm_data,
+                           void             *stack_data,
+                           CoreWindow       *window,
+                           void             *window_data,
+                           const char       *key,
+                           void            **ret_value )
 {
      D_ASSERT( stack != NULL );
      D_ASSERT( wm_data != NULL );
