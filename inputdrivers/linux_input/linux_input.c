@@ -666,6 +666,10 @@ flush_xy( LinuxInputData *data )
           evt.axis    = DIAI_X;
           evt.axisrel = data->dx;
 
+          /* Signal immediately following event. */
+          if (data->dy)
+               evt.flags |= DIEF_FOLLOW;
+
           dfb_input_dispatch( data->device, &evt );
 
           data->dx = 0;

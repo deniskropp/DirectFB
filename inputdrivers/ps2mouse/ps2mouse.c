@@ -82,62 +82,47 @@ static int         ndev;
 static const char *devlist[8];
 
 typedef struct {
-     int            fd;
-     CoreInputDevice   *device;
-     DirectThread  *thread;
+     int              fd;
+     CoreInputDevice *device;
+     DirectThread    *thread;
 
-     int            mouseId;
-     int            packetLength;
+     int              mouseId;
+     int              packetLength;
 
-     DFBInputEvent  x_motion;
-     DFBInputEvent  y_motion;
-     DFBInputEvent  z_motion;
+     int              dx;
+     int              dy;
 } PS2MouseData;
 
 
-static inline void
-ps2mouse_motion_initialize( PS2MouseData *data )
+static void
+flush_xy( PS2MouseData *data )
 {
-     data->x_motion.type    =
-     data->y_motion.type    =
-     data->z_motion.type    = DIET_AXISMOTION;
+     DFBInputEvent evt;
 
-     data->x_motion.axisrel =
-     data->y_motion.axisrel =
-     data->z_motion.axisrel = 0;
+     if (data->dx) {
+          evt.type    = DIET_AXISMOTION;
+          evt.flags   = DIEF_AXISREL;
+          evt.axis    = DIAI_X;
+          evt.axisrel = data->dx;
 
-     data->x_motion.axis    = DIAI_X;
-     data->y_motion.axis    = DIAI_Y;
-     data->z_motion.axis    = DIAI_Z;
-}
+          /* Signal immediately following event. */
+          if (data->dy)
+               evt.flags |= DIEF_FOLLOW;
 
-static inline void
-ps2mouse_motion_compress( PS2MouseData *data, int dx, int dy, int dz )
-{
-     data->x_motion.axisrel += dx;
-     data->y_motion.axisrel += dy;
-     data->z_motion.axisrel += dz;
-}
+          dfb_input_dispatch( data->device, &evt );
 
-static inline void
-ps2mouse_motion_realize( PS2MouseData *data )
-{
-     if (data->x_motion.axisrel) {
-          data->x_motion.flags = DIEF_AXISREL;
-          dfb_input_dispatch( data->device, &data->x_motion );
-          data->x_motion.axisrel = 0;
+          data->dx = 0;
      }
 
-     if (data->y_motion.axisrel) {
-          data->y_motion.flags = DIEF_AXISREL;
-          dfb_input_dispatch( data->device, &data->y_motion );
-          data->y_motion.axisrel = 0;
-     }
+     if (data->dy) {
+          evt.type    = DIET_AXISMOTION;
+          evt.flags   = DIEF_AXISREL;
+          evt.axis    = DIAI_Y;
+          evt.axisrel = data->dy;
 
-     if (data->z_motion.axisrel) {
-          data->z_motion.flags = DIEF_AXISREL;
-          dfb_input_dispatch( data->device, &data->z_motion );
-          data->z_motion.axisrel = 0;
+          dfb_input_dispatch( data->device, &evt );
+
+          data->dy = 0;
      }
 }
 
@@ -153,7 +138,6 @@ ps2mouseEventThread( DirectThread *thread, void *driver_data )
      int readlen;
      unsigned char buf[256];
 
-     ps2mouse_motion_initialize( data );
 
      while ( (readlen = read(data->fd, buf, 256)) > 0 ) {
           int i;
@@ -186,15 +170,29 @@ ps2mouseEventThread( DirectThread *thread, void *driver_data )
                          /* Just strip off the extra buttons if present
                             and sign extend the 4 bit value */
                          dz = (__s8)((packet[3] & 0x80) ?
-                                     packet[3] | 0xf0 : packet[3] & 0x0F);
+                                      packet[3] | 0xf0 : packet[3] & 0x0F);
+                         if (dz) {
+                              DFBInputEvent evt;
+
+                              evt.type    = DIET_AXISMOTION;
+                              evt.flags   = DIEF_AXISREL;
+                              evt.axis    = DIAI_Z;
+                              evt.axisrel = dz;
+
+                              flush_xy( data );
+
+                              dfb_input_dispatch( data->device, &evt );
+                         }
                     }
                     else {
                          dz = 0;
                     }
-                    ps2mouse_motion_compress( data, dx, dy, dz );
+
+                    data->dx += dx;
+                    data->dy += dy;
 
                     if ( !dfb_config->mouse_motion_compression )
-                         ps2mouse_motion_realize( data );
+                         flush_xy( data );
 
                     if ( last_buttons != buttons ) {
                          DFBInputEvent evt;
@@ -204,7 +202,7 @@ ps2mouseEventThread( DirectThread *thread, void *driver_data )
 
                          /* make sure the compressed motion event is dispatched
                             before any button change */
-                         ps2mouse_motion_realize( data );
+                         flush_xy( data );
 
                          if ( changed_buttons & 0x01 ) {
                               evt.type = (buttons & 0x01) ?
@@ -234,7 +232,7 @@ ps2mouseEventThread( DirectThread *thread, void *driver_data )
           }
           /* make sure the compressed motion event is dispatched,
              necessary if the last packet was a motion event */
-          ps2mouse_motion_realize( data );
+          flush_xy( data );
      }
 
      if ( readlen <= 0 && errno != EINTR )

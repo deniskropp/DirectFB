@@ -3819,7 +3819,8 @@ typedef enum {
                                        Indicates that the event would have been
                                        filtered if the buffer hadn't been
                                        global. */
-     DIEF_REPEAT         = 0x400    /* repeated event, e.g. key or button press */
+     DIEF_REPEAT         = 0x400,   /* repeated event, e.g. key or button press */
+     DIEF_FOLLOW         = 0x800    /* another event will follow immediately, e.g. x/y axis */
 } DFBInputEventFlags;
 
 /*

@@ -124,6 +124,9 @@ typedef struct {
      bool                          cursor_bs_valid;
      DFBRegion                     cursor_region;
      bool                          cursor_drawn;
+
+     int                           cursor_dx;
+     int                           cursor_dy;
 } StackData;
 
 typedef struct {
@@ -2425,14 +2428,17 @@ handle_axis_motion( CoreWindowStack     *stack,
 
           switch (event->axis) {
                case DIAI_X:
-                    handle_motion( stack, data, rel, 0 );
+                    data->cursor_dx += rel;
                     break;
+
                case DIAI_Y:
-                    handle_motion( stack, data, 0, rel );
+                    data->cursor_dy += rel;
                     break;
+
                case DIAI_Z:
                     handle_wheel( stack, data, - event->axisrel );
                     break;
+
                default:
                     ;
           }
@@ -2440,14 +2446,23 @@ handle_axis_motion( CoreWindowStack     *stack,
      else if (event->flags & DIEF_AXISABS) {
           switch (event->axis) {
                case DIAI_X:
-                    handle_motion( stack, data, event->axisabs - stack->cursor.x, 0 );
+                    data->cursor_dx = event->axisabs - stack->cursor.x;
                     break;
+
                case DIAI_Y:
-                    handle_motion( stack, data, 0, event->axisabs - stack->cursor.y );
+                    data->cursor_dy = event->axisabs - stack->cursor.y;
                     break;
+
                default:
                     ;
           }
+     }
+
+     if (!(event->flags & DIEF_FOLLOW) && (data->cursor_dx || data->cursor_dy)) {
+          handle_motion( stack, data, data->cursor_dx, data->cursor_dy );
+
+          data->cursor_dx = 0;
+          data->cursor_dy = 0;
      }
 
      return DFB_OK;
