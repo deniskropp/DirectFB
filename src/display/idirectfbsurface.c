@@ -1070,7 +1070,13 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      line.y1 += data->area.wanted.y;
      line.y2 += data->area.wanted.y;
 
-     dfb_gfxcard_drawlines( &line, 1, &data->state );
+     if (x1 == x2 || y1 == y2) {
+          DFBRectangle rect = { line.x1, line.y1, line.x2 - line.x1 + 1, line.y2 - line.y1 + 1 };
+
+          dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
+     }
+     else
+          dfb_gfxcard_drawlines( &line, 1, &data->state );
 
      return DFB_OK;
 }
