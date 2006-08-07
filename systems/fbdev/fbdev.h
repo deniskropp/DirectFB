@@ -57,7 +57,9 @@ typedef struct {
      struct fb_var_screeninfo orig_var;      /* fbdev variable screeninfo
                                                 before DirectFB was started */
 
-     void                    *cmap_memory;
+     void                    *orig_cmap_memory;
+     void                    *temp_cmap_memory;
+     void                    *current_cmap_memory;
 
      struct fb_cmap           orig_cmap;     /* original palette */
 

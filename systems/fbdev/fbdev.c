@@ -406,7 +406,7 @@ system_initialize( CoreDFB *core, void **data )
      DFBResult            ret;
      CoreScreen          *screen;
      long                 page_size;
-     FBDevShared         *shared;
+     FBDevShared         *shared = NULL;
      FusionSHMPoolShared *pool;
      FusionSHMPoolShared *pool_data;
 
@@ -416,8 +416,16 @@ system_initialize( CoreDFB *core, void **data )
      pool_data = dfb_core_shmpool_data( core );
 
      dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
+     if (!dfb_fbdev)
+          return D_OOM();
+
+     dfb_fbdev->fd = -1;
 
      shared = (FBDevShared*) SHCALLOC( pool, 1, sizeof(FBDevShared) );
+     if (!shared) {
+          ret = D_OOSHM();
+          goto error;
+     }
 
      shared->shmpool      = pool;
      shared->shmpool_data = pool_data;
@@ -432,35 +440,22 @@ system_initialize( CoreDFB *core, void **data )
      shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
 
      ret = dfb_fbdev_open();
-     if (ret) {
-          SHFREE( pool, shared );
-          D_FREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return ret;
-     }
+     if (ret)
+          goto error;
 
      if (dfb_config->vt) {
           ret = dfb_vt_initialize();
-          if (ret) {
-               SHFREE( pool, shared );
-               D_FREE( dfb_fbdev );
-               dfb_fbdev = NULL;
-
-               return ret;
-          }
+          if (ret)
+               goto error;
      }
+
+     ret = DFB_INIT;
 
      /* Retrieve fixed informations like video ram size */
      if (ioctl( dfb_fbdev->fd, FBIOGET_FSCREENINFO, &shared->fix ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not get fixed screen information!\n" );
-          SHFREE( pool, shared );
-          close( dfb_fbdev->fd );
-          D_FREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return DFB_INIT;
+          goto error;
      }
 
      /* Map the framebuffer */
@@ -470,24 +465,14 @@ system_initialize( CoreDFB *core, void **data )
      if ((int)(dfb_fbdev->framebuffer_base) == -1) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not mmap the framebuffer!\n");
-          SHFREE( pool, shared );
-          close( dfb_fbdev->fd );
-          D_FREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return DFB_INIT;
+          dfb_fbdev->framebuffer_base = NULL;
+          goto error;
      }
 
      if (ioctl( dfb_fbdev->fd, FBIOGET_VSCREENINFO, &shared->orig_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not get variable screen information!\n" );
-          SHFREE( pool, shared );
-          munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
-          close( dfb_fbdev->fd );
-          D_FREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return DFB_INIT;
+          goto error;
      }
 
      shared->current_var = shared->orig_var;
@@ -496,45 +481,60 @@ system_initialize( CoreDFB *core, void **data )
      if (ioctl( dfb_fbdev->fd, FBIOPUT_VSCREENINFO, &shared->current_var ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not disable console acceleration!\n" );
-          SHFREE( pool, shared );
-          munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
-          close( dfb_fbdev->fd );
-          D_FREE( dfb_fbdev );
-          dfb_fbdev = NULL;
-
-          return DFB_INIT;
+          goto error;
      }
 
      dfb_fbdev_var_to_mode( &shared->current_var,
                             &shared->current_mode );
 
-     shared->cmap_memory = SHMALLOC( pool_data, 256 * 2 * 12 );
+     shared->orig_cmap_memory = SHMALLOC( pool_data, 256 * 2 * 4 );
+     if (!shared->orig_cmap_memory) {
+          ret = D_OOSHM();
+          goto error;
+     }
 
      shared->orig_cmap.start  = 0;
      shared->orig_cmap.len    = 256;
-     shared->orig_cmap.red    = shared->cmap_memory + 256 * 2 * 0;
-     shared->orig_cmap.green  = shared->cmap_memory + 256 * 2 * 1;
-     shared->orig_cmap.blue   = shared->cmap_memory + 256 * 2 * 2;
-     shared->orig_cmap.transp = shared->cmap_memory + 256 * 2 * 3;
+     shared->orig_cmap.red    = shared->orig_cmap_memory + 256 * 2 * 0;
+     shared->orig_cmap.green  = shared->orig_cmap_memory + 256 * 2 * 1;
+     shared->orig_cmap.blue   = shared->orig_cmap_memory + 256 * 2 * 2;
+     shared->orig_cmap.transp = shared->orig_cmap_memory + 256 * 2 * 3;
 
      if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &shared->orig_cmap ) < 0) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not retrieve palette for backup!\n" );
-          SHFREE( pool_data, shared->cmap_memory );
-          shared->orig_cmap.len = 0;
+
+          memset( &shared->orig_cmap, 0, sizeof(shared->orig_cmap) );
+
+          SHFREE( pool_data, shared->orig_cmap_memory );
+          shared->orig_cmap_memory = NULL;
      }
 
-     shared->temp_cmap.len    = 256;
-     shared->temp_cmap.red    = shared->cmap_memory + 256 * 2 * 4;
-     shared->temp_cmap.green  = shared->cmap_memory + 256 * 2 * 5;
-     shared->temp_cmap.blue   = shared->cmap_memory + 256 * 2 * 6;
-     shared->temp_cmap.transp = shared->cmap_memory + 256 * 2 * 7;
+     shared->temp_cmap_memory = SHMALLOC( pool_data, 256 * 2 * 4 );
+     if (!shared->temp_cmap_memory) {
+          ret = D_OOSHM();
+          goto error;
+     }
 
+     shared->temp_cmap.start  = 0;
+     shared->temp_cmap.len    = 256;
+     shared->temp_cmap.red    = shared->temp_cmap_memory + 256 * 2 * 0;
+     shared->temp_cmap.green  = shared->temp_cmap_memory + 256 * 2 * 1;
+     shared->temp_cmap.blue   = shared->temp_cmap_memory + 256 * 2 * 2;
+     shared->temp_cmap.transp = shared->temp_cmap_memory + 256 * 2 * 3;
+
+     shared->current_cmap_memory = SHMALLOC( pool_data, 256 * 2 * 4 );
+     if (!shared->current_cmap_memory) {
+          ret = D_OOSHM();
+          goto error;
+     }
+
+     shared->current_cmap.start  = 0;
      shared->current_cmap.len    = 256;
-     shared->current_cmap.red    = shared->cmap_memory + 256 * 2 * 8;
-     shared->current_cmap.green  = shared->cmap_memory + 256 * 2 * 9;
-     shared->current_cmap.blue   = shared->cmap_memory + 256 * 2 * 10;
-     shared->current_cmap.transp = shared->cmap_memory + 256 * 2 * 11;
+     shared->current_cmap.red    = shared->current_cmap_memory + 256 * 2 * 0;
+     shared->current_cmap.green  = shared->current_cmap_memory + 256 * 2 * 1;
+     shared->current_cmap.blue   = shared->current_cmap_memory + 256 * 2 * 2;
+     shared->current_cmap.transp = shared->current_cmap_memory + 256 * 2 * 3;
      
      dfb_fbdev_get_pci_info( shared );
 
@@ -544,6 +544,7 @@ system_initialize( CoreDFB *core, void **data )
           if (ret) {
                D_DEBUG( "DirectFB/FBDev: dfb_agp_initialize()\n\t->%s\n",
                          DirectFBErrorString( ret ) );
+               ret = DFB_OK;
           }
      }         
 
@@ -559,6 +560,32 @@ system_initialize( CoreDFB *core, void **data )
      *data = dfb_fbdev;
 
      return DFB_OK;
+
+
+error:
+     if (shared) {
+          if (shared->orig_cmap_memory)
+               SHFREE( pool_data, shared->orig_cmap_memory );
+
+          if (shared->temp_cmap_memory)
+               SHFREE( pool_data, shared->temp_cmap_memory );
+
+          if (shared->current_cmap_memory)
+               SHFREE( pool_data, shared->current_cmap_memory );
+
+          SHFREE( pool, shared );
+     }
+
+     if (dfb_fbdev->framebuffer_base)
+          munmap( dfb_fbdev->framebuffer_base, shared->fix.smem_len );
+
+     if (dfb_fbdev->fd != -1)
+          close( dfb_fbdev->fd );
+     
+     D_FREE( dfb_fbdev );
+     dfb_fbdev = NULL;
+
+     return ret;
 }
 
 static DFBResult
@@ -664,7 +691,14 @@ system_shutdown( bool emergency )
                          "Could not restore palette!\n" );
      }
 
-     SHFREE( shared->shmpool_data, shared->cmap_memory );
+     if (shared->orig_cmap_memory)
+          SHFREE( shared->shmpool_data, shared->orig_cmap_memory );
+
+     if (shared->temp_cmap_memory)
+          SHFREE( shared->shmpool_data, shared->temp_cmap_memory );
+
+     if (shared->current_cmap_memory)
+          SHFREE( shared->shmpool_data, shared->current_cmap_memory );
 
      fusion_call_destroy( &shared->fbdev_ioctl );
 
