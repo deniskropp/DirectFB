@@ -41,6 +41,7 @@ device_get_driver_info( SoundDriverInfo *info );
 
 static DFBResult
 device_open( void                  *device_data,
+             SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config );
 
 static void

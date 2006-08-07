@@ -175,7 +175,9 @@ device_get_driver_info( SoundDriverInfo *info )
 }
 
 static DFBResult
-device_open( void *device_data, CoreSoundDeviceConfig *config )
+device_open( void                  *device_data, 
+             SoundDeviceInfo       *device_info,
+             CoreSoundDeviceConfig *config )
 {
      OSSDeviceData *data       = device_data;
      int            fmt        = fs2oss_format( config->format );
@@ -206,6 +208,12 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      
      /* reset to blocking mode */
      fcntl( data->fd, F_SETFL, fcntl( data->fd, F_GETFL ) & ~O_NONBLOCK );
+      
+     /* TODO: get device name */
+     
+     /* device capabilities */
+     device_info->caps = DCF_WRITEBLOCKS;
+
      
      /* set application profile */
 #if defined(SNDCTL_DSP_PROFILE) && defined(APF_NORMAL)
@@ -216,7 +224,7 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
           return DFB_FAILURE;
      }
 #endif
-          
+         
      /* set output format */
      if (ioctl( data->fd, SNDCTL_DSP_SETFMT, &fmt ) < 0 || 
          oss2fs_format( fmt ) != config->format) {
@@ -260,12 +268,12 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
 }
 
 static void
-device_write( void *device_data, void *samples, unsigned int size )
+device_write( void *device_data, void *samples, unsigned count )
 {
      OSSDeviceData *data = device_data;
      
-     if (write( data->fd, samples, size*data->bytes_per_frame ) < 0)
-          D_PERROR( "FusionSound/Device/OSS: couldn't write %d frames!\n", size );
+     if (write( data->fd, samples, count*data->bytes_per_frame ) < 0)
+          D_PERROR( "FusionSound/Device/OSS: couldn't write %d frames!\n", count );
 }
 
 static void

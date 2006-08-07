@@ -45,43 +45,44 @@ typedef float __fsf;
 #define FSF_MIN  -1.0f
 
 
-#define fsf_add( a, b )      ((a) + (b))
+#define fsf_add( a, b )              ((a) + (b))
 
-#define fsf_sub( a, b )      ((a) - (b))
+#define fsf_sub( a, b )              ((a) - (b))
 
-#define fsf_shr( a, b )      ((a) / (__fsf)(1 << (b)))
+#define fsf_shr( a, b )              ((a) / (__fsf)(1 << (b)))
 
-#define fsf_shl( a, b )      ((a) * (__fsf)(1 << (b)))
+#define fsf_shl( a, b )              ((a) * (__fsf)(1 << (b)))
 
-#define fsf_mul( a, b )      ((a) * (b))
+#define fsf_mul( a, b )              ((a) * (b))
 
-#define fsf_mull( a, b )     fsf_mul( a, b )
+#define fsf_mull( a, b )             fsf_mul( a, b )
 
-#define fsf_mulll( a, b )    fsf_mul( a, b )
+#define fsf_mulll( a, b )            fsf_mul( a, b )
 
-#define fsf_div( a, b )      ((a) / (b))
+#define fsf_div( a, b )              ((a) / (b))
 
-#define fsf_clip( x )        (((x) > FSF_MAX) ? FSF_MAX : \
-                              (((x) < FSF_MIN) ? FSF_MIN : (x)))
+#define fsf_clip( x )                (((x) > FSF_MAX) ? FSF_MAX : \
+                                      (((x) < FSF_MIN) ? FSF_MIN : (x)))
 
 
-#define fsf_from_int( x )    (__fsf)(x)
-#define fsf_to_int( x )      (int)(x)
+#define fsf_from_int( x )            (__fsf)(x)
+#define fsf_from_int_scaled( x, s )  (__fsf)(x) * (1.0f/(1<<(s)))
+#define fsf_to_int( x )              (int)(x)
 
-#define fsf_from_float( x )  (__fsf)(x)
-#define fsf_to_float( x )    (__fsf)(x)
+#define fsf_from_float( x )          (__fsf)(x)
+#define fsf_to_float( x )            (__fsf)(x)
 
-#define fsf_from_u8( x )     ((__fsf)((x)-128)/128.0f)
-#define fsf_to_u8( x )       (((x)*128.0f)+128)
+#define fsf_from_u8( x )             ((__fsf)((x)-128)/128.0f)
+#define fsf_to_u8( x )               (((x)*128.0f)+128)
 
-#define fsf_from_s16( x )    ((__fsf)(x)/32768.0f)
-#define fsf_to_s16( x )      ((x)*32768.0f)
+#define fsf_from_s16( x )            ((__fsf)(x)/32768.0f)
+#define fsf_to_s16( x )              ((x)*32768.0f)
 
-#define fsf_from_s24( x )    ((__fsf)(x)/8388608.0f)
-#define fsf_to_s24( x )      ((x)*8388608.0f)
+#define fsf_from_s24( x )            ((__fsf)(x)/8388608.0f)
+#define fsf_to_s24( x )              ((x)*8388608.0f)
 
-#define fsf_from_s32( x )    ((__fsf)(x)/2147483648.0f)
-#define fsf_to_s32( x )      ((x)*2147483648.0f)
+#define fsf_from_s32( x )            ((__fsf)(x)/2147483648.0f)
+#define fsf_to_s32( x )              ((x)*2147483648.0f)
 
 
 #else /* !FS_USE_IEEE_FLOATS (Fixed Floats) */
@@ -102,67 +103,68 @@ typedef signed long __fsf;
 #define FSF_MIN       -FSF_ONE
 
 
-#define fsf_add( a, b )      ((a) + (b))
+#define fsf_add( a, b )              ((a) + (b))
 
-#define fsf_sub( a, b )      ((a) - (b))
+#define fsf_sub( a, b )              ((a) - (b))
 
-#define fsf_shr( a, b )      ((a) >> (b))
+#define fsf_shr( a, b )              ((a) >> (b))
 
-#define fsf_shl( a, b )      ((a) << (b))
+#define fsf_shl( a, b )              ((a) << (b))
 
-#define fsf_mulll( a, b )    (((long long)(a) * (long long)(b)) >> FSF_DECIBITS)
+#define fsf_mulll( a, b )            (((long long)(a) * (long long)(b)) >> FSF_DECIBITS)
 
-#define fsf_mull( a, b )     (((a) >> (FSF_DECIBITS/3)) *           \
-                              ((b) >> (FSF_DECIBITS-FSF_DECIBITS/3)))
+#define fsf_mull( a, b )             (((a) >> (FSF_DECIBITS/3)) *           \
+                                      ((b) >> (FSF_DECIBITS-FSF_DECIBITS/3)))
 
 #if (SIZEOF_LONG == 8) || defined(FS_ENABLE_PRECISION)
-# define fsf_mul( a, b )     fsf_mulll( a, b )
+# define fsf_mul( a, b )             fsf_mulll( a, b )
 #else
-# define fsf_mul( a, b )     fsf_mull( a, b )
+# define fsf_mul( a, b )             fsf_mull( a, b )
 #endif
 
-#define fsf_div( a, b )      ((a) / (b))
+#define fsf_div( a, b )              ((a) / (b))
 
-#define fsf_clip( x )        (((x) > FSF_MAX) ? FSF_MAX : \
-                              (((x) < FSF_MIN) ? FSF_MIN : (x)))
+#define fsf_clip( x )                (((x) > FSF_MAX) ? FSF_MAX : \
+                                      (((x) < FSF_MIN) ? FSF_MIN : (x)))
 
 
-#define fsf_from_int( x )    ((__fsf)(x) << FSF_DECIBITS)
-#define fsf_to_int( x )      ((x) >> FSF_DECIBITS)
+#define fsf_from_int( x )            ((__fsf)(x) << FSF_DECIBITS)
+#define fsf_from_int_scaled( x, s )  ((__fsf)(x) << (FSF_DECIBITS-(s)))
+#define fsf_to_int( x )              (int)((x) >> FSF_DECIBITS)
 
-#define fsf_from_float( x )  ((__fsf)((x)*(float)FSF_ONE))
-#define fsf_to_float( x )    ((float)(x)/(float)FSF_ONE)
+#define fsf_from_float( x )          ((__fsf)((x) * (float)FSF_ONE))
+#define fsf_to_float( x )            ((float)(x) / (float)FSF_ONE)
 
 #if FSF_DECIBITS >= 8
-# define fsf_from_u8( x )    ((__fsf)((x)-128) << (FSF_DECIBITS - 7))
-# define fsf_to_u8( x )      (((x) >> (FSF_DECIBITS - 7))+128)
+# define fsf_from_u8( x )            ((__fsf)((x)-128) << (FSF_DECIBITS - 7))
+# define fsf_to_u8( x )              (((x) >> (FSF_DECIBITS - 7))+128)
 #else
-# define fsf_from_u8( x )    ((__fsf)((x)-128) >> (7 - FSF_DECIBITS))
-# define fsf_to_u8( x )      (((x) << (7 - FS_DECIBITS))+128)
+# define fsf_from_u8( x )            ((__fsf)((x)-128) >> (7 - FSF_DECIBITS))
+# define fsf_to_u8( x )              (((x) << (7 - FS_DECIBITS))+128)
 #endif
 
 #if FSF_DECIBITS >= 16
-# define fsf_from_s16( x )   ((__fsf)(x) << (FSF_DECIBITS - 15))
-# define fsf_to_s16( x )     ((x) >> (FSF_DECIBITS - 15))
+# define fsf_from_s16( x )           ((__fsf)(x) << (FSF_DECIBITS - 15))
+# define fsf_to_s16( x )             ((x) >> (FSF_DECIBITS - 15))
 #else
-# define fsf_from_s16( x )   ((__fsf)(x) >> (15 - FSF_DECIBITS))
-# define fsf_to_s16( x )     ((x) << (15 - FSF_DECIBITS))
+# define fsf_from_s16( x )           ((__fsf)(x) >> (15 - FSF_DECIBITS))
+# define fsf_to_s16( x )             ((x) << (15 - FSF_DECIBITS))
 #endif
 
 #if FSF_DECIBITS >= 24
-# define fsf_from_s24( x )   ((__fsf)(x) << (FSF_DECIBITS - 23))
-# define fsf_to_s24( x )     ((x) >> (FSF_DECIBITS - 23))
+# define fsf_from_s24( x )           ((__fsf)(x) << (FSF_DECIBITS - 23))
+# define fsf_to_s24( x )             ((x) >> (FSF_DECIBITS - 23))
 #else
-# define fsf_from_s24( x )   ((__fsf)(x) >> (23 - FSF_DECIBITS))
-# define fsf_to_s24( x )     ((x) << (23 - FSF_DECIBITS))
+# define fsf_from_s24( x )           ((__fsf)(x) >> (23 - FSF_DECIBITS))
+# define fsf_to_s24( x )             ((x) << (23 - FSF_DECIBITS))
 #endif
 
 #if FSF_DECIBITS >= 32
-# define fsf_from_s32( x )   ((__fsf)(x) << (FSF_DECIBITS - 31))
-# define fsf_to_s32( x )     ((x) >> (FSF_DECIBITS - 31))
+# define fsf_from_s32( x )           ((__fsf)(x) << (FSF_DECIBITS - 31))
+# define fsf_to_s32( x )             ((x) >> (FSF_DECIBITS - 31))
 #else
-# define fsf_from_s32( x )   ((__fsf)(x) >> (31 - FSF_DECIBITS))
-# define fsf_to_s32( x )     ((x) << (31 - FSF_DECIBITS))
+# define fsf_from_s32( x )           ((__fsf)(x) >> (31 - FSF_DECIBITS))
+# define fsf_to_s32( x )             ((x) << (31 - FSF_DECIBITS))
 #endif
 
 

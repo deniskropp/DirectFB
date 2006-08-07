@@ -53,6 +53,10 @@ struct __FS_CoreSoundBuffer {
      FusionSHMPoolShared *shmpool;
 };
 
+/* mixing limitaion */
+#define MAX_BUFFER_RATE  (1 << ((sizeof(long)-2)*8) - 1)
+
+
 typedef enum {
      CSBNF_NONE
 } CoreSoundBufferNotificationFlags;

@@ -56,14 +56,16 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
 
 {
      int            i;
-     unsigned long  n, inc = (buffer->rate * pitch) / dest_rate;
+     unsigned long  n, inc = (buffer->rate > 0xffff)
+                             ? ((long long) buffer->rate * pitch / dest_rate)
+                             : ((unsigned)  buffer->rate * pitch / dest_rate);
      TYPE          *data   = buffer->data;
 
      D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
-              __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+              __FUNCTION__, buffer, pos, stop, max_samples >> 1 );
 
      for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
-          long  p = (n >> 8) + pos;
+          long  p = (n >> 10) + pos;
           __fsf s;
 
           if (stop >= 0 && p >= stop)
@@ -73,13 +75,13 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
                p %= buffer->length;
 
 #ifdef FS_ENABLE_PRECISION
-          if (inc < 0x100) {
+          if (inc < 0x400) {
                /* upsample */
                __fsf l, r;
                long  q = p + 1;
                
-               if (n & 0xff) {
-                    __fsf w = fsf_shr( fsf_from_int( 0x100-(n&0xff) ), 8 );
+               if (n & 0x3ff) {
+                    __fsf w = fsf_from_int_scaled( 0x400-(n&0x3ff), 10 );
                     l = fsf_mul( left, w );
                     r = fsf_mul( right, w );
                } else {
@@ -112,11 +114,11 @@ FUNC_NAME(FORMAT,mono) ( CoreSoundBuffer *buffer,
      }
 
      D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%d/%d).\n", 
-              __FUNCTION__, n >> 8, i >> 1, max_samples >> 1 );
+              __FUNCTION__, n >> 10, i >> 1, max_samples >> 1 );
 
      *written = i;
      
-     return n >> 8;
+     return n >> 10;
 }
 
 static int
@@ -132,14 +134,16 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
                            int             *written )
 {
      int            i;
-     unsigned long  n, inc = (buffer->rate * pitch) / dest_rate;
+     unsigned long  n, inc = (buffer->rate > 0xffff)
+                             ? ((long long) buffer->rate * pitch / dest_rate)
+                             : ((unsigned)  buffer->rate * pitch / dest_rate);
      TYPE          *data   = buffer->data;
 
      D_DEBUG( "FusionSound/Core: %s (%p, pos %d, stop %d, max %d) ...\n",
-              __FUNCTION__, buffer, pos, stop, max_samples / 2 );
+              __FUNCTION__, buffer, pos, stop, max_samples >> 1 );
 
      for (i = 0, n = 0; i < max_samples; i += 2, n += inc) {
-          long p = (n >> 8) + pos;
+          long p = (n >> 10) + pos;
 
           if (stop >= 0 && p >= stop)
                break;
@@ -148,13 +152,13 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
                p %= buffer->length;
 
 #ifdef FS_ENABLE_PRECISION
-          if (inc < 0x100) {
+          if (inc < 0x400) {
                /* upsample */
                __fsf l, r;
                long  q = p + 1;
-               
-               if (n & 0xff) {
-                    __fsf w = fsf_shr( fsf_from_int( 0x100-(n&0xff) ), 8 );
+
+               if (n & 0x3ff) {
+                    __fsf w = fsf_from_int_scaled( 0x400-(n&0x3ff), 10 );
                     l = fsf_mul( left, w );
                     r = fsf_mul( right, w );
                } else {
@@ -198,10 +202,10 @@ FUNC_NAME(FORMAT,stereo) ( CoreSoundBuffer *buffer,
      }
 
      D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%d/%d).\n", 
-              __FUNCTION__, n >> 8, i >> 1, max_samples >> 1 );
+              __FUNCTION__, n >> 10, i >> 1, max_samples >> 1 );
 
      *written = i;
      
-     return n >> 8;
+     return n >> 10;
 }
 

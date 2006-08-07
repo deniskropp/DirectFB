@@ -238,10 +238,10 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
 
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
-     if (value < 0.0f || value > 256.0f)
+     if (value < 0.0f || value > 64.0f)
           return DFB_INVARG;
 
-     fs_playback_set_pitch( data->playback, 0xffff * value / 256.0f );
+     fs_playback_set_pitch( data->playback, (value * 1024.0f + 0.5f) );
 
      return DFB_OK;
 }

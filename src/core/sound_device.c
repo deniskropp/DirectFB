@@ -49,6 +49,7 @@ struct __FS_CoreSoundDevice {
      const SoundDriverFuncs *funcs;
 
      void                   *device_data;
+     SoundDeviceInfo         device_info;
      
      CoreSoundDeviceConfig   config;
 };
@@ -120,9 +121,13 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
      device->config.format     = fs_config->sampleformat;
      device->config.rate       = fs_config->samplerate;
      device->config.buffersize = fs_config->samplerate * fs_config->buffersize / 1000;
+     /* No more than 65535 frames. */
+     if (device->config.buffersize > 65535)
+          device->config.buffersize = 65535;
      
      /* Open sound device. */
-     ret = device->funcs->OpenDevice( device->device_data, &device->config );
+     ret = device->funcs->OpenDevice( device->device_data, 
+                                     &device->device_info, &device->config );
      if (ret) {
           D_ERROR( "FusionSound/Device: could not open device!\n" );
           direct_module_unref( device->module );
@@ -133,15 +138,25 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
      D_INFO( "FusionSound/Device: %s %d.%d (%s)\n",
              info.name, info.version.major, info.version.minor, info.vendor );
              
-     D_INFO( "FusionSound/Device: %d Hz, %d channel(s), %d bits, %d ms.\n",
+     D_INFO( "FusionSound/Device: %d Hz, %d channel(s), %d bits, %.1f ms.\n",
              device->config.rate,
              device->config.channels,
              FS_BITS_PER_SAMPLE(device->config.format),
-             device->config.buffersize*1000/device->config.rate  );
+             (float)device->config.buffersize/device->config.rate*1000.0f  );
      
      *ret_device = device;
      
      return DFB_OK;
+}
+
+void
+fs_device_get_capabilities( CoreSoundDevice    *device,
+                            DeviceCapabilities *caps )
+{
+     D_ASSERT( device != NULL );
+     D_ASSERT( caps != NULL );
+     
+     *caps = device->device_info.caps;
 }
 
 void
@@ -157,12 +172,12 @@ fs_device_get_configuration( CoreSoundDevice       *device,
 void 
 fs_device_write( CoreSoundDevice *device,
                  void            *samples,
-                 unsigned int     size )
+                 unsigned int     count )
 {
      D_ASSERT( device != NULL );
      D_ASSERT( samples != NULL );
      
-     device->funcs->Write( device->device_data, samples, size );
+     device->funcs->Write( device->device_data, samples, count );
 }
 
 void

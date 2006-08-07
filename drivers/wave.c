@@ -127,7 +127,9 @@ device_get_driver_info( SoundDriverInfo *info )
 }
 
 static DFBResult
-device_open( void *device_data, CoreSoundDeviceConfig *config )
+device_open( void                  *device_data, 
+             SoundDeviceInfo       *device_info,
+             CoreSoundDeviceConfig *config )
 {
      WaveDeviceData *data   = device_data;
      WaveHeader      header;
@@ -150,6 +152,15 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
                    "couldn't open '%s' for writing!\n", path );
           return DFB_IO;
      }
+     
+     /* device name */
+     snprintf( device_info->name, 
+               FS_SOUND_DEVICE_INFO_NAME_LENGTH, 
+               "%s", strrchr( path, '/' ) ? (strrchr( path, '/' )+1) : path );
+               
+     /* device capabilities */
+     device_info->caps = 0;
+
 
 #ifdef WORDS_BIGENDIAN
      memcpy( header.ChunkID, "RIFX", 4 );
@@ -185,11 +196,11 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
 }
 
 static void
-device_write( void *device_data, void *samples, unsigned int size )
+device_write( void *device_data, void *samples, unsigned int count )
 {
      WaveDeviceData *data = device_data;
      
-     write( data->fd, samples, size*data->bytes_per_frame );
+     write( data->fd, samples, count*data->bytes_per_frame );
 }
 
 static void

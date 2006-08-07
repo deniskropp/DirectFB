@@ -47,8 +47,7 @@ DECLARE_MODULE_DIRECTORY( fs_sound_drivers );
 #define FS_SOUND_DRIVER_INFO_URL_LENGTH     100
 #define FS_SOUND_DRIVER_INFO_LICENSE_LENGTH  40
 
-#define FS_SOUND_DEVICE_INFO_NAME_LENGTH     48
-#define FS_SOUND_DEVICE_INFO_VENDOR_LENGTH   64
+#define FS_SOUND_DEVICE_INFO_NAME_LENGTH    256
 
 
 typedef struct {
@@ -77,6 +76,21 @@ typedef struct {
 } SoundDriverInfo;
 
 
+typedef enum {
+     DCF_WRITEBLOCKS = 0x00000001  /* This device write blocks instead of frames,
+                                      therefore the amount of frames to write must
+                                      be multiple of buffersize */
+} DeviceCapabilities;
+
+typedef struct {
+     char                name[FS_SOUND_DEVICE_INFO_NAME_LENGTH];
+                                   /* Device name, e.g 'Intel 8x0' */
+     
+     /* Flags representing device capabilities */                             
+     DeviceCapabilities  caps;  
+} SoundDeviceInfo;  
+
+
 /* Device Configuration. */
 typedef struct {
      unsigned int    channels;
@@ -93,16 +107,17 @@ typedef struct {
      /* Get device driver information. */
      void      (*GetDriverInfo)    ( SoundDriverInfo       *info);
 
-     /* Open the device and apply the given configuration. */
+     /* Open the device, get device information and apply given configuration. */
      DFBResult (*OpenDevice)       ( void                  *device_data,
+                                     SoundDeviceInfo       *device_info,
                                      CoreSoundDeviceConfig *config );
      
-     /* Write size samples (in frames). */
+     /* Write "count" frames. */
      void      (*Write)            ( void                  *device_data,
                                      void                  *samples,
-                                     unsigned int           size );
+                                     unsigned int           count );
      
-     /* Get output delay (in frames). */                             
+     /* Get output delay in frames. */                             
      void      (*GetOutputDelay)   ( void                  *device_data,
                                      int                   *delay );
      
@@ -114,14 +129,16 @@ typedef struct {
 DFBResult fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device );
 void      fs_device_shutdown  ( CoreSoundDevice *device );
 
+void      fs_device_get_capabilities( CoreSoundDevice    *device,
+                                      DeviceCapabilities *caps );
+
 void      fs_device_get_configuration( CoreSoundDevice       *device, 
                                        CoreSoundDeviceConfig *config );
                                                                                                           
 void      fs_device_write( CoreSoundDevice *device, 
                            void            *samples,
-                           unsigned int     size );
+                           unsigned int     count );
                            
-void      fs_device_get_output_delay( CoreSoundDevice *device,
-                                      int             *delay );
+void      fs_device_get_output_delay( CoreSoundDevice *device, int *delay );
                    
 #endif                                   

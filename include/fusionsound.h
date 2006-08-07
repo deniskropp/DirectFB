@@ -757,7 +757,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * Set pitch value.
       *
       * The <b>value</b> is a linear factor being 1.0f by default, currently
-      * ranges from 0.0f to 256.0f due to internal mixing limitations.
+      * ranges from 0.0f to 64.0f due to internal mixing limitations.
       */
      DFBResult (*SetPitch) (
           IFusionSoundPlayback     *thiz,

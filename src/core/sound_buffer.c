@@ -238,6 +238,11 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      D_ASSERT( stop <= buffer->length );
      D_ASSERT( dest != NULL );
      D_ASSERT( max_samples >= 0 );
+     
+#if SIZEOF_LONG < 8
+     if (max_samples > (0xffff<<1))
+          max_samples = (0xffff<<1);
+#endif
 
      /* Make sure stop position is greater than start position. */
      if (stop >= 0 && pos >= stop)

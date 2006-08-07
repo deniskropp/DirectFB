@@ -29,6 +29,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #define ALSA_PCM_NEW_HW_PARAMS_API
@@ -124,10 +125,14 @@ device_get_driver_info( SoundDriverInfo *info )
 }
 
 static DFBResult
-device_open( void *device_data, CoreSoundDeviceConfig *config )
+device_open( void                  *device_data, 
+             SoundDeviceInfo       *device_info,
+             CoreSoundDeviceConfig *config )
 {
      AlsaDeviceData      *data = device_data;
      snd_pcm_hw_params_t *params;
+     snd_ctl_t           *ctl;
+     snd_ctl_card_info_t *info;
      unsigned int         buffertime;
      snd_pcm_uframes_t    buffersize;
      int                  periods, dir;
@@ -145,8 +150,23 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
           return DFB_IO;
      }
      
+     /* device name */
+     if (snd_ctl_open( &ctl, fs_config->device ? : "default", 
+                       SND_CTL_READONLY | SND_CTL_NONBLOCK ) == 0) {
+          snd_ctl_card_info_alloca( &info );
+          
+          if (snd_ctl_card_info( ctl, info ) == 0) {
+               snprintf( device_info->name,
+                         FS_SOUND_DEVICE_INFO_NAME_LENGTH,
+                         snd_ctl_card_info_get_name( info ) );
+          }
+          
+          snd_ctl_close( ctl );
+     }
+
      snd_config_update_free_global();
-     
+          
+     /* set configuration */
      snd_pcm_hw_params_alloca( &params );
      
      if (snd_pcm_hw_params_any( data->handle, params ) < 0) {
@@ -213,6 +233,8 @@ device_open( void *device_data, CoreSoundDeviceConfig *config )
      }
      
      snd_pcm_hw_params_get_buffer_size( params, &buffersize  );
+     /* Workaround for ALSA >= 1.0.9 always returning the maximum supported buffersize.
+        Actually FusionSound doesn't work fine with buffers larger than 250ms. */
      if (buffersize < config->buffersize)
           config->buffersize = buffersize;
 
