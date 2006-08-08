@@ -76,6 +76,8 @@ struct __FS_CoreSoundShared {
           FusionSkirmish    lock;
      } playlist;
 
+     FSDeviceDescription    description;
+     
      CoreSoundDeviceConfig  config;
 
      int                    output_delay;      /* output delay in ms */
@@ -388,6 +390,15 @@ fs_core_shmpool( CoreSound *core )
      return core->shared->shmpool;
 }
 
+FSDeviceDescription *
+fs_core_device_description( CoreSound *core )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+     
+     return &(core->shared->description);
+}
+
 /******************************************************************************/
 
 static DirectSignalHandlerResult
@@ -616,6 +627,9 @@ fs_core_initialize( CoreSound *core )
      ret = fs_device_initialize( core, &core->device );
      if (ret)
           return ret;
+          
+     /* get device description */
+     fs_device_get_description( core->device, &shared->description );
       
      /* get device configuration */
      fs_device_get_configuration( core->device, &shared->config );
@@ -785,7 +799,7 @@ fs_core_arena_join( FusionArena *arena,
      D_DEBUG( "FusionSound/Core: Joining...\n" );
 
      /* Get shared data. */
-     if (fusion_arena_get_shared_field( arena, "Core/Shared", (void**)&shared ))
+     if (fusion_arena_get_shared_field( arena, "Core/Shared", (void*)&shared ))
           return DFB_FUSION;
 
      core->shared = shared;

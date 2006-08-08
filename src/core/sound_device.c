@@ -150,6 +150,22 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
 }
 
 void
+fs_device_get_description( CoreSoundDevice     *device,
+                           FSDeviceDescription *desc )
+{
+     SoundDriverInfo info;
+     
+     D_ASSERT( device != NULL );
+     D_ASSERT( device->funcs != NULL );
+     D_ASSERT( desc != NULL );
+     
+     device->funcs->GetDriverInfo( &info );
+     
+     strcpy( desc->name, device->device_info.name );
+     memcpy( &desc->driver, &info, sizeof(FSSoundDriverInfo) );
+} 
+
+void
 fs_device_get_capabilities( CoreSoundDevice    *device,
                             DeviceCapabilities *caps )
 {
@@ -175,6 +191,7 @@ fs_device_write( CoreSoundDevice *device,
                  unsigned int     count )
 {
      D_ASSERT( device != NULL );
+     D_ASSERT( device->funcs != NULL );
      D_ASSERT( samples != NULL );
      
      device->funcs->Write( device->device_data, samples, count );
@@ -185,6 +202,7 @@ fs_device_get_output_delay( CoreSoundDevice *device,
                             int             *delay )
 {
      D_ASSERT( device != NULL );
+     D_ASSERT( device->funcs != NULL );
      D_ASSERT( delay != NULL );
      
      device->funcs->GetOutputDelay( device->device_data, delay );
@@ -194,6 +212,7 @@ void
 fs_device_shutdown( CoreSoundDevice *device )
 {
      D_ASSERT( device != NULL );
+     D_ASSERT( device->funcs != NULL );
      
      device->funcs->CloseDevice( device->device_data );
      

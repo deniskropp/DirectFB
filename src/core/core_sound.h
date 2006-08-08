@@ -72,5 +72,10 @@ FusionWorld *fs_core_world( CoreSound *core );
  */
 FusionSHMPoolShared *fs_core_shmpool( CoreSound *core );
 
-#endif
+/*
+ * Returns device information.
+ */ 
+FSDeviceDescription *fs_core_device_description( CoreSound *core );
 
+
+#endif

@@ -40,14 +40,7 @@ DECLARE_MODULE_DIRECTORY( fs_sound_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define FS_SOUND_DRIVER_ABI_VERSION           1
-
-#define FS_SOUND_DRIVER_INFO_NAME_LENGTH     40
-#define FS_SOUND_DRIVER_INFO_VENDOR_LENGTH   60
-#define FS_SOUND_DRIVER_INFO_URL_LENGTH     100
-#define FS_SOUND_DRIVER_INFO_LICENSE_LENGTH  40
-
-#define FS_SOUND_DEVICE_INFO_NAME_LENGTH    256
+#define FS_SOUND_DRIVER_ABI_VERSION  1
 
 
 typedef struct {
@@ -128,6 +121,9 @@ typedef struct {
      
 DFBResult fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device );
 void      fs_device_shutdown  ( CoreSoundDevice *device );
+
+void      fs_device_get_description( CoreSoundDevice     *device,
+                                     FSDeviceDescription *desc );
 
 void      fs_device_get_capabilities( CoreSoundDevice    *device,
                                       DeviceCapabilities *caps );

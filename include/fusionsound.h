@@ -132,6 +132,36 @@ const char *FusionSoundErrorString(
  */
 const char *FusionSoundUsageString( void );
 
+
+#define FS_SOUND_DRIVER_INFO_NAME_LENGTH     40
+#define FS_SOUND_DRIVER_INFO_VENDOR_LENGTH   60
+#define FS_SOUND_DRIVER_INFO_URL_LENGTH     100
+#define FS_SOUND_DRIVER_INFO_LICENSE_LENGTH  40
+
+/*
+ * Description of the sound driver.
+ */
+typedef struct {
+     int  major;                                        /* Major version */
+     int  minor;                                        /* Minor version */
+     
+     char name[FS_SOUND_DRIVER_INFO_NAME_LENGTH];       /* Driver name */
+     char vendor[FS_SOUND_DRIVER_INFO_VENDOR_LENGTH];   /* Driver vendor */
+     char url[FS_SOUND_DRIVER_INFO_URL_LENGTH];         /* Driver URL */
+     char license[FS_SOUND_DRIVER_INFO_LICENSE_LENGTH]; /* Driver license */
+} FSSoundDriverInfo;
+
+#define FS_SOUND_DEVICE_INFO_NAME_LENGTH    256
+
+/*
+ * Description of the sound device.
+ */
+typedef struct {
+     char name[FS_SOUND_DEVICE_INFO_NAME_LENGTH];       /* Device name */
+     
+     FSSoundDriverInfo driver;
+} FSDeviceDescription;
+
 /*
  * @internal
  *
@@ -330,6 +360,16 @@ typedef DFBEnumerationResult (*FSTrackCallback) (
  */
 DEFINE_INTERFACE( IFusionSound,
 
+   /** Device info **/
+   
+     /* 
+      * Get a description of the sound device.
+      */
+     DFBResult (*GetDeviceDescription) (
+          IFusionSound           *thiz,
+          FSDeviceDescription    *ret_desc
+     );
+
    /** Buffers **/
 
      /*
@@ -341,9 +381,9 @@ DEFINE_INTERFACE( IFusionSound,
       * are 44kHz, 16 bit (FSSF_S16) with two channels.
       */
      DFBResult (*CreateBuffer) (
-          IFusionSound             *thiz,
-          FSBufferDescription      *desc,
-          IFusionSoundBuffer      **interface
+          IFusionSound               *thiz,
+          const FSBufferDescription  *desc,
+          IFusionSoundBuffer        **interface
      );
 
      /*
@@ -354,9 +394,9 @@ DEFINE_INTERFACE( IFusionSound,
       * size that holds enough samples for one second of playback.
       */
      DFBResult (*CreateStream) (
-          IFusionSound             *thiz,
-          FSStreamDescription      *desc,
-          IFusionSoundStream      **interface
+          IFusionSound               *thiz,
+          const FSStreamDescription  *desc,
+          IFusionSoundStream        **interface
      );
 
      /*
@@ -416,7 +456,7 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
       */
      DFBResult (*GetDescription) (
           IFusionSoundBuffer       *thiz,
-          FSBufferDescription      *desc
+          FSBufferDescription      *ret_desc
      );
 
 
@@ -524,7 +564,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       */
      DFBResult (*GetDescription) (
           IFusionSoundStream       *thiz,
-          FSStreamDescription      *desc
+          FSStreamDescription      *ret_desc
      );
 
 
@@ -793,7 +833,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetCapabilities) (
           IFusionSoundMusicProvider   *thiz,
-          FSMusicProviderCapabilities *caps
+          FSMusicProviderCapabilities *ret_caps
      );
 
      /*
@@ -823,7 +863,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetTrackDescription) (
           IFusionSoundMusicProvider *thiz,
-          FSTrackDescription        *desc
+          FSTrackDescription        *ret_desc
      );
 
      /*
@@ -832,7 +872,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetStreamDescription) (
           IFusionSoundMusicProvider *thiz,
-          FSStreamDescription       *desc
+          FSStreamDescription       *ret_desc
      );
      
      /*
@@ -841,7 +881,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetBufferDescription) (
           IFusionSoundMusicProvider *thiz,
-          FSBufferDescription       *desc
+          FSBufferDescription       *ret_desc
      );
 
    /** Playback **/
@@ -892,7 +932,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetStatus) (
           IFusionSoundMusicProvider *thiz,
-          FSMusicProviderStatus     *status
+          FSMusicProviderStatus     *ret_status
      );
 
    /** Media Control **/
@@ -910,7 +950,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetPos) (
           IFusionSoundMusicProvider *thiz,
-          double                    *seconds
+          double                    *ret_seconds
      );
 
      /*
@@ -918,7 +958,7 @@ DEFINE_INTERFACE(   IFusionSoundMusicProvider,
       */
      DFBResult (*GetLength) (
           IFusionSoundMusicProvider *thiz,
-          double                    *seconds
+          double                    *ret_seconds
      );
      
    /** Advanced Playback **/

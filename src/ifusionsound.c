@@ -90,9 +90,23 @@ IFusionSound_Release( IFusionSound *thiz )
 }
 
 static DFBResult
-IFusionSound_CreateBuffer( IFusionSound         *thiz,
-                           FSBufferDescription  *desc,
-                           IFusionSoundBuffer  **ret_interface )
+IFusionSound_GetDeviceDescription( IFusionSound        *thiz,
+                                   FSDeviceDescription *desc )
+{
+     DIRECT_INTERFACE_GET_DATA (IFusionSound);
+     
+     if (!desc)
+          return DFB_INVARG;
+          
+     *desc = *fs_core_device_description( data->core );
+     
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSound_CreateBuffer( IFusionSound               *thiz,
+                           const FSBufferDescription  *desc,
+                           IFusionSoundBuffer        **ret_interface )
 {
      DFBResult                 ret;
      int                       channels = fs_config->channels;
@@ -174,9 +188,9 @@ IFusionSound_CreateBuffer( IFusionSound         *thiz,
 }
 
 static DFBResult
-IFusionSound_CreateStream( IFusionSound         *thiz,
-                           FSStreamDescription  *desc,
-                           IFusionSoundStream  **ret_interface )
+IFusionSound_CreateStream( IFusionSound               *thiz,
+                           const FSStreamDescription  *desc,
+                           IFusionSoundStream        **ret_interface )
 {
      DFBResult                 ret;
      int                       channels  = fs_config->channels;
@@ -307,11 +321,12 @@ IFusionSound_Construct( IFusionSound *thiz )
      }
 
      /* Assign interface pointers. */
-     thiz->AddRef              = IFusionSound_AddRef;
-     thiz->Release             = IFusionSound_Release;
-     thiz->CreateBuffer        = IFusionSound_CreateBuffer;
-     thiz->CreateStream        = IFusionSound_CreateStream;
-     thiz->CreateMusicProvider = IFusionSound_CreateMusicProvider;
+     thiz->AddRef               = IFusionSound_AddRef;
+     thiz->Release              = IFusionSound_Release;
+     thiz->GetDeviceDescription = IFusionSound_GetDeviceDescription;
+     thiz->CreateBuffer         = IFusionSound_CreateBuffer;
+     thiz->CreateStream         = IFusionSound_CreateStream;
+     thiz->CreateMusicProvider  = IFusionSound_CreateMusicProvider;
 
      return DFB_OK;
 }
