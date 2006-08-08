@@ -1127,7 +1127,7 @@ IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
      if (multiplier < 0.0)
           return DFB_INVARG;
           
-     if (multiplier > 8.0)
+     if (multiplier > 64.0)
           return DFB_UNSUPPORTED;
           
      pthread_mutex_lock( &data->video.lock );
@@ -1138,7 +1138,7 @@ IDirectFBVideoProvider_Swfdec_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
-     if (data->playback && multiplier > 0.01)
+     if (data->playback && multiplier >= 0.01)
           data->playback->SetPitch( data->playback, multiplier );
 #endif
 

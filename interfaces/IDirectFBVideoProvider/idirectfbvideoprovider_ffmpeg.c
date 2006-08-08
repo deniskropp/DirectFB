@@ -670,6 +670,8 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
           direct_thread_cancel( data->input.thread );
           direct_thread_join( data->input.thread );
           direct_thread_destroy( data->input.thread );
+          flush_packets( &data->video.queue );
+          flush_packets( &data->audio.queue );
      }    
      
      if (data->video.thread) { 
@@ -678,17 +680,17 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
           direct_thread_join( data->video.thread );
           direct_thread_destroy( data->video.thread );
      }
-     
+    
      if (data->audio.thread) {
           direct_thread_cancel( data->audio.thread );
           direct_thread_join( data->audio.thread );
           direct_thread_destroy( data->audio.thread );
      }
-         
+
 #ifdef HAVE_FUSIONSOUND
      if (data->audio.playback)
           data->audio.playback->Release( data->audio.playback );
-          
+         
      if (data->audio.stream)
           data->audio.stream->Release( data->audio.stream );
 
@@ -721,9 +723,6 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
 
      if (data->iobuf)
           D_FREE( data->iobuf );
-          
-     flush_packets( &data->video.queue );
-     flush_packets( &data->audio.queue );
 
      pthread_cond_destroy( &data->video.cond );
 
@@ -1174,7 +1173,7 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      if (multiplier < 0.0)
           return DFB_INVARG;
           
-     if (multiplier > 8.0)
+     if (multiplier > 64.0)
           return DFB_UNSUPPORTED;
           
      pthread_mutex_lock( &data->video.lock );
@@ -1185,7 +1184,7 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_cond_signal( &data->video.cond );
      
 #ifdef HAVE_FUSIONSOUND
-     if (data->audio.playback && multiplier > 0.01)
+     if (data->audio.playback && multiplier >= 0.01)
           data->audio.playback->SetPitch( data->audio.playback, multiplier );
 #endif
 
