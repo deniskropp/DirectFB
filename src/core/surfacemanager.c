@@ -568,6 +568,15 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
      if (buffer->video.locked)
           D_WARN( "Freeing chunk with a non-zero lock counter" );
 
+     /* If hardware has (to) read/write... */
+     if (buffer->video.access & (VAF_HARDWARE_READ | VAF_HARDWARE_WRITE)) {
+          /* ...wait for it. */
+          dfb_gfxcard_sync(); /* TODO: wait for serial instead */
+
+          /* ...clear hardware access. */
+          buffer->video.access &= ~(VAF_HARDWARE_READ | VAF_HARDWARE_WRITE);
+     }
+
      if (chunk)
           free_chunk( manager, chunk );
 
