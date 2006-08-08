@@ -412,15 +412,14 @@ sound_thread( DirectThread *thread, void *arg )
      CoreSoundShared    *shared  = core->shared;
      DeviceCapabilities  caps;
      
-     int                 samples = shared->config.buffersize * 2; 
-     int                 written = 0;
+     int                 samples = shared->config.buffersize * 2;
+     int                 mixed   = 0;
      int                 size    = shared->config.buffersize *
                                    shared->config.channels   *
                                    FS_BITS_PER_SAMPLE(shared->config.format)>>3;
 
      __u8                output[size];
-     __fsf               mixing[samples];
-     
+     __fsf               mixing[samples]; 
      
      fs_device_get_capabilities( core->device, &caps );
      
@@ -433,14 +432,18 @@ sound_thread( DirectThread *thread, void *arg )
           direct_thread_testcancel( thread );
 
           fs_device_get_output_delay( core->device, &delay );
-          shared->output_delay = delay * 1000 / shared->config.rate;
+          shared->output_delay = (delay + (mixed>>1)) * 1000 / shared->config.rate;
           
           if (!shared->playlist.entries) {
-               usleep( 1000 );
-               continue;
+               if (!mixed || delay > 0) {
+                    usleep( 1000 );
+                    continue;
+               }
+               /* Flush remaining frames. */
+               mixed = samples;
           }
 
-          if (written == 0) {
+          if (mixed == 0) {
                /* Clear mixing buffer. */
                memset( mixing, 0, sizeof(mixing) );
           }
@@ -454,8 +457,8 @@ sound_thread( DirectThread *thread, void *arg )
                CorePlayback      *playback = entry->playback;
                int                num;
 
-               ret = fs_playback_mixto( playback, mixing+written,
-                                        shared->config.rate, samples-written, &num );
+               ret = fs_playback_mixto( playback, mixing+mixed,
+                                        shared->config.rate, samples-mixed, &num );
                if (ret) {
                     direct_list_remove( &shared->playlist.entries, l );
 
@@ -470,17 +473,17 @@ sound_thread( DirectThread *thread, void *arg )
 
           fusion_skirmish_dismiss( &shared->playlist.lock );
 
-          D_ASSERT( (written+length) <= samples );
+          D_ASSERT( (mixed+length) <= samples );
           
-          written += length;
-          if (caps & DCF_WRITEBLOCKS && written < samples)
+          mixed += length;
+          if (caps & DCF_WRITEBLOCKS && mixed < samples)
                continue;
 
           /* Convert mixing buffer to output format, clipping each sample. */
           switch (shared->config.format) {
                case FSSF_U8:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < written; i += 2) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
                               s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
@@ -488,7 +491,7 @@ sound_thread( DirectThread *thread, void *arg )
                               output[i>>1] = fsf_to_u8( s );
                          }
                     } else {      
-                         for (i = 0; i < written; i++) {
+                         for (i = 0; i < mixed; i++) {
                               register __fsf s;
                               s = mixing[i];                       
                               s = fsf_clip( s );                  
@@ -498,7 +501,7 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
                case FSSF_S16:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < written; i += 2) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
                               s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
@@ -506,7 +509,7 @@ sound_thread( DirectThread *thread, void *arg )
                               ((__s16*)output)[i>>1] = fsf_to_s16( s );
                          }
                     } else {
-                         for (i = 0; i < written; i++) {
+                         for (i = 0; i < mixed; i++) {
                               register __fsf s;
                               s = mixing[i];
                               s = fsf_clip( s );                         
@@ -516,7 +519,7 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
                case FSSF_S24:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < written; i += 2) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
                               register int   d;
                               s = fsf_add( mixing[i], mixing[i+1] );
@@ -534,7 +537,7 @@ sound_thread( DirectThread *thread, void *arg )
 #endif
                          }
                     } else {
-                         for (i = 0; i < written; i++) {
+                         for (i = 0; i < mixed; i++) {
                               register __fsf s;
                               register int   d;
                               s = mixing[i];
@@ -554,7 +557,7 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
                case FSSF_S32:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < written; i += 2) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
                               s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
@@ -562,7 +565,7 @@ sound_thread( DirectThread *thread, void *arg )
                               ((__s32*)output)[i>>1] = fsf_to_s32( s );
                          }
                     } else {
-                         for (i = 0; i < written; i++) {
+                         for (i = 0; i < mixed; i++) {
                               register __fsf s;
                               s = mixing[i];
                               s = fsf_clip( s );                         
@@ -572,7 +575,7 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
                case FSSF_FLOAT:
                     if (shared->config.channels == 1) {
-                         for (i = 0; i < written; i += 2) {
+                         for (i = 0; i < mixed; i += 2) {
                               register __fsf s;
                               s = fsf_add( mixing[i], mixing[i+1] );
                               s = fsf_shr( s, 1 );
@@ -580,7 +583,7 @@ sound_thread( DirectThread *thread, void *arg )
                               ((float*)output)[i>>1] = fsf_to_float( s );
                          }
                     } else {
-                         for (i = 0; i < written; i++) {
+                         for (i = 0; i < mixed; i++) {
                               register __fsf s;
                               s = mixing[i];
                               s = fsf_clip( s );                         
@@ -593,9 +596,9 @@ sound_thread( DirectThread *thread, void *arg )
                     break;
           }
 
-          fs_device_write( core->device, output, written >> 1 );
+          fs_device_write( core->device, output, mixed >> 1 );
           
-          written = 0;
+          mixed = 0;
      }
 
      return NULL;
