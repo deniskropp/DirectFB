@@ -278,9 +278,7 @@ device_get_output_delay( void *device_data, int *delay )
      AlsaDeviceData    *data   = device_data;
      snd_pcm_sframes_t  odelay = 0;
     
-     if (snd_pcm_delay( data->handle, &odelay ) < 0)
-          D_ONCE( "snd_pcm_delay() failed" );
-     
+     snd_pcm_delay( data->handle, &odelay );
      *delay = odelay;
 }
 
