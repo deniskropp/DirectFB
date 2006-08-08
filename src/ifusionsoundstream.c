@@ -129,14 +129,16 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
 
      pthread_mutex_lock( &data->lock );
 
-     while (length) {
+     data->pending = length;
+     
+     while (data->pending > 0) {
           DFBResult ret;
           int       num;
           int       bytes;
 
           D_DEBUG( "%s: length %d, read pos %d, write pos %d, filled %d/%d (%splaying)\n",
-                   __FUNCTION__, length, data->pos_read, data->pos_write, data->filled,
-                   data->size, data->playing ? "" : "not " );
+                   __FUNCTION__, data->pending, data->pos_read, data->pos_write,
+                   data->filled, data->size, data->playing ? "" : "not " );
 
           D_ASSERT( data->filled <= data->size );
 
@@ -148,8 +150,8 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           num = data->size - data->filled;
 
           /* Do not write more than requested. */
-          if (num > length)
-               num = length;
+          if (num > data->pending)
+               num = data->pending;
 
           /* Fill free space with automatic wrap around. */
           ret = IFusionSoundStream_FillBuffer( data, sample_data, num, &bytes);
@@ -166,8 +168,8 @@ IFusionSoundStream_Write( IFusionSoundStream *thiz,
           }
 
           /* Update input parameters. */
-          length      -= num;
-          sample_data += bytes;
+          data->pending -= num;
+          sample_data   += bytes;
      }
 
      pthread_mutex_unlock( &data->lock );
@@ -246,7 +248,7 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
 
      /* Stop the playback. */
      fs_playback_stop( data->playback, true );
-
+     
      pthread_mutex_lock( &data->lock );
 
      while (data->playing) {
@@ -262,6 +264,16 @@ IFusionSoundStream_Flush( IFusionSoundStream *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IFusionSoundStream_Drop( IFusionSoundStream *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundStream)
+
+     /* Discard pending data. */
+     data->pending = 0;
+
+     return IFusionSoundStream_Flush( thiz );
+}
 
 static DFBResult
 IFusionSoundStream_GetPresentationDelay( IFusionSoundStream *thiz,
@@ -366,7 +378,8 @@ IFusionSoundStream_Construct( IFusionSoundStream *thiz,
      thiz->Wait                 = IFusionSoundStream_Wait;
      thiz->GetStatus            = IFusionSoundStream_GetStatus;
      thiz->Flush                = IFusionSoundStream_Flush;
-
+     thiz->Drop                 = IFusionSoundStream_Drop;
+     
      thiz->GetPresentationDelay = IFusionSoundStream_GetPresentationDelay;
 
      thiz->GetPlayback          = IFusionSoundStream_GetPlayback;

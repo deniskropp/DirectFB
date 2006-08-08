@@ -582,9 +582,20 @@ DEFINE_INTERFACE( IFusionSoundStream,
      /*
       * Flush the ring buffer.
       *
-      * This method stops the playback immediately and discards any buffered data.
+      * This method stops the playback immediately and 
+      * discards any buffered data.
       */
      DFBResult (*Flush) (
+          IFusionSoundStream       *thiz
+     );
+
+     /*
+      * Drop buffered/pending data.
+      *
+      * This method stops the playback immediately and
+      * discards any buffered/pending data.
+      */
+     DFBResult (*Drop) (
           IFusionSoundStream       *thiz
      );
 
