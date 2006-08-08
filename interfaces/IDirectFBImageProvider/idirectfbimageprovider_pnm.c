@@ -583,7 +583,7 @@ IDirectFBImageProvider_PNM_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, (void**)&dst, &dst_p, 0 );
+     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, (void*)&dst, &dst_p, 0 );
      if (err)
           return err;
 
