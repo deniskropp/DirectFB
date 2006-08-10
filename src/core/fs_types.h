@@ -113,8 +113,7 @@ typedef signed long __fsf;
 
 #define fsf_mulll( a, b )            (((long long)(a) * (long long)(b)) >> FSF_DECIBITS)
 
-#define fsf_mull( a, b )             (((a) >> (FSF_DECIBITS/3)) *           \
-                                      ((b) >> (FSF_DECIBITS-FSF_DECIBITS/3)))
+#define fsf_mull( a, b )             (((a) >> (FSF_DECIBITS-16)) * ((b) >> 16))
 
 #if (SIZEOF_LONG == 8) || defined(FS_ENABLE_PRECISION)
 # define fsf_mul( a, b )             fsf_mulll( a, b )
