@@ -479,9 +479,9 @@ IFusionSoundStream_React( const void *msg_data,
           D_DEBUG( "%s: playback advanced by %d from %d to %d\n",
                    __FUNCTION__, notification->num, data->pos_read, notification->pos );
 
-          //D_ASSERT( data->filled >= notification->num );
-
-          data->filled -= MIN( notification->num, data->filled );
+          D_ASSERT( data->filled >= notification->num );
+          
+          data->filled -= notification->num;
      }
 
      data->pos_read = notification->pos;

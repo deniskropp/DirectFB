@@ -305,8 +305,8 @@ fs_playback_set_pitch( CorePlayback *playback,
                        int           pitch )
 {
      D_ASSERT( playback != NULL );
-     D_ASSERT( pitch >= 0 );
-     D_ASSERT( pitch <= 0x10000 );
+     D_ASSERT( pitch >= -0x10000 );
+     D_ASSERT( pitch <= +0x10000 );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))

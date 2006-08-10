@@ -162,8 +162,6 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
           
      if (flags & FSBDF_LENGTH)
           length = desc->length;
-     else
-          length = rate * fs_config->buffersize / 1000;
           
      if (length < 1)
           return DFB_INVARG;

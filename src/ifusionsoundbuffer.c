@@ -226,6 +226,12 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
           /* Set values produced by SetPan(). */
           if (flags & FSPLAY_PAN)
                fs_playback_set_volume( playback, data->left, data->right );
+               
+          /* Set playback direction. */
+          if (flags & FSPLAY_REWIND)
+               fs_playback_set_pitch( playback, -0x400 );
+          else
+               fs_playback_set_pitch( playback, +0x400 );
 
           /* Set looping playback. */
           fs_playback_set_stop( playback, -1 );
@@ -254,6 +260,12 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
           /* Set values produced by SetPan(). */
           if (flags & FSPLAY_PAN)
                fs_playback_set_volume( playback, data->left, data->right );
+               
+          /* Set playback direction. */
+          if (flags & FSPLAY_REWIND)
+               fs_playback_set_pitch( playback, -0x400 );
+          else
+               fs_playback_set_pitch( playback, +0x400 );
 
           /* Start the playback. */
           ret = fs_playback_start( playback, false );

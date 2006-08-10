@@ -96,5 +96,5 @@ DFBResult fs_playback_mixto       ( CorePlayback     *playback,
                                     int               max_samples,
                                     int              *ret_samples );
 
-#endif
 
+#endif

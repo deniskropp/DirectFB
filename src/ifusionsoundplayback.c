@@ -48,6 +48,9 @@ typedef struct {
 
      float                  volume;
      float                  pan;
+     
+     int                    pitch;
+     int                    dir;
 
      pthread_mutex_t        lock;
      pthread_cond_t         wait;
@@ -240,9 +243,33 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
 
      if (value < 0.0f || value > 64.0f)
           return DFB_INVARG;
+          
+     data->pitch = (value * 1024.0f + 0.5f);
 
-     fs_playback_set_pitch( data->playback, (value * 1024.0f + 0.5f) );
+     fs_playback_set_pitch( data->playback, data->pitch*data->dir );
 
+     return DFB_OK;
+}
+
+static DFBResult
+IFusionSoundPlayback_SetDirection( IFusionSoundPlayback *thiz,
+                                   FSPlaybackDirection   direction )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
+     
+     D_DEBUG( "%s (%p, %d)\n", __FUNCTION__, data->playback, direction );
+     
+     switch (direction) {
+          case FSPD_FORWARD:
+          case FSPD_BACKWARD:
+               data->dir = direction;
+               break;
+          default:
+               return DFB_INVARG;
+     }
+     
+     fs_playback_set_pitch( data->playback, data->pitch*data->dir );
+     
      return DFB_OK;
 }
 
@@ -279,25 +306,28 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      data->stream   = (length < 0);
      data->length   = length;
      data->volume   = 1.0f;
+     data->pitch    = 0x400;
+     data->dir      = +1;
 
      /* Initialize lock and condition. */
      direct_util_recursive_pthread_mutex_init( &data->lock );
      pthread_cond_init( &data->wait, NULL );
 
      /* Initialize method table. */
-     thiz->AddRef    = IFusionSoundPlayback_AddRef;
-     thiz->Release   = IFusionSoundPlayback_Release;
+     thiz->AddRef       = IFusionSoundPlayback_AddRef;
+     thiz->Release      = IFusionSoundPlayback_Release;
 
-     thiz->Start     = IFusionSoundPlayback_Start;
-     thiz->Stop      = IFusionSoundPlayback_Stop;
-     thiz->Continue  = IFusionSoundPlayback_Continue;
-     thiz->Wait      = IFusionSoundPlayback_Wait;
+     thiz->Start        = IFusionSoundPlayback_Start;
+     thiz->Stop         = IFusionSoundPlayback_Stop;
+     thiz->Continue     = IFusionSoundPlayback_Continue;
+     thiz->Wait         = IFusionSoundPlayback_Wait;
+ 
+     thiz->GetStatus    = IFusionSoundPlayback_GetStatus;
 
-     thiz->GetStatus = IFusionSoundPlayback_GetStatus;
-
-     thiz->SetVolume = IFusionSoundPlayback_SetVolume;
-     thiz->SetPan    = IFusionSoundPlayback_SetPan;
-     thiz->SetPitch  = IFusionSoundPlayback_SetPitch;
+     thiz->SetVolume    = IFusionSoundPlayback_SetVolume;
+     thiz->SetPan       = IFusionSoundPlayback_SetPan;
+     thiz->SetPitch     = IFusionSoundPlayback_SetPitch;
+     thiz->SetDirection = IFusionSoundPlayback_SetDirection;
 
      return DFB_OK;
 }

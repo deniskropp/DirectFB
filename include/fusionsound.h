@@ -5,8 +5,9 @@
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -424,7 +425,9 @@ typedef enum {
      FSPLAY_PAN          = 0x00000002,  /* Use value passed to <i>SetPan()</i>
                                            to control the balance between left
                                            and right speakers. */
-     FSPLAY_ALL          = 0x00000003   /* All of these. */
+     FSPLAY_REWIND       = 0x00000004,  /* Play backward from the end of the buffer
+                                           to the beginning. */
+     FSPLAY_ALL          = 0x00000007   /* All of these. */
 } FSBufferPlayFlags;
 
 
@@ -632,8 +635,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
      /*
       * Drop buffered/pending data.
       *
-      * This method stops the playback immediately and
-      * discards any buffered/pending data.
+      * This method behaves like <i>Flush()</i>, but it 
+      * also discards any pending data.
       */
      DFBResult (*Drop) (
           IFusionSoundStream       *thiz
@@ -673,6 +676,14 @@ DEFINE_INTERFACE( IFusionSoundStream,
           IFusionSoundPlayback    **interface
      );
 )
+
+/*
+ * Direction of a playback.
+ */
+typedef enum {
+     FSPD_FORWARD        = +1,
+     FSPD_BACKWARD       = -1,
+} FSPlaybackDirection;
 
 /*
  * <i><b>IFusionSoundPlayback</b></i> represents one concurrent playback and
@@ -813,6 +824,14 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
      DFBResult (*SetPitch) (
           IFusionSoundPlayback     *thiz,
           float                     value
+     );
+     
+     /*
+      * Set the direction of the playback.
+      */
+     DFBResult (*SetDirection) (
+          IFusionSoundPlayback     *thiz,
+          FSPlaybackDirection       direction
      );
 )
 
