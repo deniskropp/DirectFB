@@ -307,7 +307,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      }
 
      /* Mix the data into the buffer. */
-     if (left || right) {
+     if (pitch && (left || right)) {
           SoundMXFunc func;
           
           func = (pitch < 0)
@@ -316,15 +316,15 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           len  = func( buffer, dest, pos, inc, max, left, right );
      }
      else {
-          /* Produce silence */
-          len = (max/inc) << 1;
+          /* Produce silence. */
+          len = (pitch) ? ((max/inc) << 1) : max_samples;
      }
      
      num = (max >> 10);
      pos += num;
      pos %= buffer->length;
      if (pos < 0)
-          pos += buffer->length;     
+          pos += buffer->length;   
 
      /* Return new position. */
      if (ret_pos)
@@ -338,8 +338,8 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
      if (ret_len)
           *ret_len = len;
           
-     D_DEBUG( "FusionSound/Core: %s ... mixed %ld (%d/%d).\n",
-              __FUNCTION__, (long)ABS(max) >> 10, len >> 1, max_samples >> 1 ); 
+     D_DEBUG( "FusionSound/Core: %s ... mixed %d (%d/%d).\n",
+              __FUNCTION__, ABS(num), len >> 1, max_samples >> 1 ); 
 
      return ret;
 }
