@@ -15,7 +15,7 @@ LITE_EXAMPLES =
 endif
 
 bin_PROGRAMS    = fsmaster
-noinst_PROGRAMS = advanced music simple stream $(LITE_EXAMPLES)
+noinst_PROGRAMS = advanced music music_loader simple stream $(LITE_EXAMPLES)
 
 advanced_SOURCES = advanced.c loader.c loader.h
 advanced_LDADD   = $(LIBADDS)
@@ -25,6 +25,9 @@ fsmaster_LDADD   = $(LIBADDS)
 
 music_SOURCES = music.c
 music_LDADD   = $(LIBADDS)
+
+music_loader_SOURCES = music_loader.c
+music_loader_LDADD   = $(LIBADDS)
 
 simple_SOURCES = simple.c loader.c loader.h
 simple_LDADD   = $(LIBADDS)
