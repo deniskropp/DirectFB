@@ -143,13 +143,13 @@ const char *FusionSoundUsageString( void );
  * Description of the sound driver.
  */
 typedef struct {
-     int  major;                                        /* Major version */
-     int  minor;                                        /* Minor version */
+     int  major;                                        /* Major version. */
+     int  minor;                                        /* Minor version. */
      
-     char name[FS_SOUND_DRIVER_INFO_NAME_LENGTH];       /* Driver name */
-     char vendor[FS_SOUND_DRIVER_INFO_VENDOR_LENGTH];   /* Driver vendor */
-     char url[FS_SOUND_DRIVER_INFO_URL_LENGTH];         /* Driver URL */
-     char license[FS_SOUND_DRIVER_INFO_LICENSE_LENGTH]; /* Driver license */
+     char name[FS_SOUND_DRIVER_INFO_NAME_LENGTH];       /* Driver name. */
+     char vendor[FS_SOUND_DRIVER_INFO_VENDOR_LENGTH];   /* Driver vendor. */
+     char url[FS_SOUND_DRIVER_INFO_URL_LENGTH];         /* Driver URL. */
+     char license[FS_SOUND_DRIVER_INFO_LICENSE_LENGTH]; /* Driver license. */
 } FSSoundDriverInfo;
 
 #define FS_SOUND_DEVICE_INFO_NAME_LENGTH    256
@@ -158,7 +158,7 @@ typedef struct {
  * Description of the sound device.
  */
 typedef struct {
-     char name[FS_SOUND_DEVICE_INFO_NAME_LENGTH];       /* Device name */
+     char name[FS_SOUND_DEVICE_INFO_NAME_LENGTH];       /* Device name. */
      
      FSSoundDriverInfo driver;
 } FSDeviceDescription;
@@ -282,28 +282,28 @@ typedef struct {
  * Information about an IFusionSoundMusicProvider.
  */
 typedef enum {
-     FMCAPS_BASIC      = 0x00000000,  /* basic ops (PlayTo, Stop)       */
-     FMCAPS_SEEK       = 0x00000001,  /* supports SeekTo                */
-     FMCAPS_RESAMPLE   = 0x00000002,  /* can resample the audio         */
+     FMCAPS_BASIC      = 0x00000000,  /* Basic ops (PlayTo, Stop).      */
+     FMCAPS_SEEK       = 0x00000001,  /* Supports SeekTo.               */
+     FMCAPS_RESAMPLE   = 0x00000002,  /* Supports audio resampling.     */
 } FSMusicProviderCapabilities;
 
 /*
  * Information about the status of a music provider.
  */
 typedef enum {
-     FMSTATE_UNKNOWN   = 0x00000000, /* unknown status       */
-     FMSTATE_PLAY      = 0x00000001, /* provider is playing  */
-     FMSTATE_STOP      = 0x00000002, /* playback was stopped */
-     FMSTATE_FINISHED  = 0x00000003, /* playback is finished */
+     FMSTATE_UNKNOWN   = 0x00000000, /* Unknown status.       */
+     FMSTATE_PLAY      = 0x00000001, /* Provider is playing.  */
+     FMSTATE_STOP      = 0x00000002, /* Playback was stopped. */
+     FMSTATE_FINISHED  = 0x00000003, /* Playback is finished. */
 } FSMusicProviderStatus;
 
 /*
  * Flags controlling playback of a music provider.
  */
 typedef enum {
-     FMPLAY_NOFX       = 0x000000000, /* normal playback                     */
-     FMPLAY_LOOPING    = 0x000000001, /* automatically restart playback when
-                                         the end of current track is reached */
+     FMPLAY_NOFX       = 0x000000000, /* Normal playback.                        */
+     FMPLAY_LOOPING    = 0x000000001, /* Automatically restart playback as soon
+                                         as end of the current track is reached. */
 } FSMusicProviderPlaybackFlags;
 
 /*
@@ -321,13 +321,13 @@ typedef unsigned int FSTrackID;
  * Description of a track provided by a music provider.
  */
 typedef struct {
-     char  artist[FS_TRACK_DESC_ARTIST_LENGTH];     /* Artist */
-     char  title[FS_TRACK_DESC_TITLE_LENGTH];       /* Title */
-     char  album[FS_TRACK_DESC_ALBUM_LENGTH];       /* Album */
-     short year;                                    /* Year */
-     char  genre[FS_TRACK_DESC_GENRE_LENGTH];       /* Genre */
-     char  encoding[FS_TRACK_DESC_ENCODING_LENGTH]; /* Encoding (for example: MPEG Layer-1) */
-     int   bitrate;                                 /* Bitrate in bits/s */
+     char  artist[FS_TRACK_DESC_ARTIST_LENGTH];     /* Artist. */
+     char  title[FS_TRACK_DESC_TITLE_LENGTH];       /* Title. */
+     char  album[FS_TRACK_DESC_ALBUM_LENGTH];       /* Album. */
+     short year;                                    /* Year. */
+     char  genre[FS_TRACK_DESC_GENRE_LENGTH];       /* Genre. */
+     char  encoding[FS_TRACK_DESC_ENCODING_LENGTH]; /* Encoding (for example: MPEG Layer-1). */
+     int   bitrate;                                 /* Bitrate in bits/s. */
 } FSTrackDescription;
 
 /*
@@ -361,7 +361,7 @@ typedef DFBEnumerationResult (*FSTrackCallback) (
  */
 DEFINE_INTERFACE( IFusionSound,
 
-   /** Device info **/
+   /** Information **/
    
      /* 
       * Get a description of the sound device.
@@ -422,11 +422,9 @@ typedef enum {
                                            looping playback at a time is
                                            supported by the simple playback.
                                            See also <i>CreatePlayback()</i>. */
-     FSPLAY_PAN          = 0x00000002,  /* Use value passed to <i>SetPan()</i>
-                                           to control the balance between left
-                                           and right speakers. */
-     FSPLAY_REWIND       = 0x00000004,  /* Play backward from the end of the buffer
-                                           to the beginning. */
+     FSPLAY_CYCLE        = 0x00000002,  /* Play the whole buffer for one cycle, 
+                                           wrapping at the end. */
+     FSPLAY_REWIND       = 0x00000004,  /* Play reversing sample order. */
      FSPLAY_ALL          = 0x00000007   /* All of these. */
 } FSBufferPlayFlags;
 
@@ -440,10 +438,9 @@ typedef enum {
  *
  * <b>Simple playback</b> is provided by this interface. It includes an
  * unlimited number of non-looping playbacks plus one looping playback at a
- * time. Before <b>starting</b> a playback with <i>Play()</i> the application
- * can <b>adjust the pan value</b> with <i>SetPan()</i> and set the FSPLAY_PAN
- * playback flag. To start the <b>looping</b> playback use FSPLAY_LOOPING. It
- * will <b>stop</b> when the interface is destroyed or <i>Stop()</i> is called.
+ * time. To start the <b>looping</b> playback with <i>Play()</i> use the 
+ * FSPLAY_LOOPING playback flag. It will <b>stop</b> when the interface is
+ * destroyed or <i>Stop()</i> is called.
  *
  * <b>Advanced playback</b> is provided by an extra interface called
  * <i>IFusionSoundPlayback</i> which is created by <i>CreatePlayback()</i>.
@@ -463,22 +460,39 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
      );
 
 
+   /** Positioning **/
+   
+     /*
+      * Set the buffer position indicator.
+      *
+      * Set the buffer position indicator (in frames)
+      * affecting subsequent playback and lock for access.
+      */
+     DFBResult (*SetPosition) (
+          IFusionSoundBuffer       *thiz,
+          int                       position
+     );
+     
+     
    /** Access **/
 
      /*
       * Lock a buffer to access its data.
       *
-      * Lock/unlock semantics are weak right now, API will change!
+      * Optionally returns the amount of available frames or bytes
+      * at the current position.
+      *
+      * See also <i>SetPosition()</i>.
       */
      DFBResult (*Lock) (
           IFusionSoundBuffer       *thiz,
-          void                    **data
+          void                    **ret_data,
+          int                      *ret_frames,
+          int                      *ret_bytes
      );
 
      /*
       * Unlock a buffer.
-      *
-      * Lock/unlock semantics are weak right now, API will change!
       */
      DFBResult (*Unlock) (
           IFusionSoundBuffer       *thiz
@@ -488,18 +502,10 @@ DEFINE_INTERFACE( IFusionSoundBuffer,
    /** Simple playback **/
 
      /*
-      * Set panning value.
-      *
-      * The <b>value</b> ranges from -1.0f (left) to 1.0f (right).
-      */
-     DFBResult (*SetPan) (
-          IFusionSoundBuffer       *thiz,
-          float                     value
-     );
-
-     /*
       * Start playing the buffer.
       *
+      * Start playing the buffer at the specified position 
+      * (see <i>SetPosition()</i>).
       * There's no limited number of concurrent playbacks, but the simple
       * playback only provides one looping playback at a time.
       *
@@ -681,8 +687,8 @@ DEFINE_INTERFACE( IFusionSoundStream,
  * Direction of a playback.
  */
 typedef enum {
-     FSPD_FORWARD        = +1,
-     FSPD_BACKWARD       = -1,
+     FSPD_FORWARD        = +1, /* Forward.  */
+     FSPD_BACKWARD       = -1, /* Backward. */
 } FSPlaybackDirection;
 
 /*
@@ -798,7 +804,7 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
       * Set volume level.
       *
       * The <b>level</b> is a linear factor being 1.0f by default, currently
-      * ranges from 0.0f to 256.0f due to internal mixing limitations.
+      * ranges from 0.0f to 64.0f due to internal mixing limitations.
       */
      DFBResult (*SetVolume) (
           IFusionSoundPlayback     *thiz,
@@ -836,9 +842,17 @@ DEFINE_INTERFACE( IFusionSoundPlayback,
 )
 
 /*
+ * Result of a FMBufferCallback.
+ */
+typedef enum {
+     FMBCR_OK            = 0x00000000, /* Continue. */
+     FMBCR_BREAK         = 0x00000001, /* Stop loading. */
+} FMBufferCallbackResult;
+
+/*
  * Called after each buffer write.
  */
-typedef void (*FMBufferCallback)( int length, void *ctx );
+typedef FMBufferCallbackResult (*FMBufferCallback)( int length, void *ctx );
 
 /*
  * <i>No summary yet...</i>

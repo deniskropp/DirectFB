@@ -165,6 +165,9 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
           
      if (length < 1)
           return DFB_INVARG;
+          
+     if (length > 0xfffffff)
+          return DFB_LIMITEXCEEDED;
 
      ret = fs_buffer_create( data->core,
                              length, channels, format, rate, &buffer );

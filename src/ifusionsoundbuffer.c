@@ -5,8 +5,9 @@
    All rights reserved.
 
    Written by Denis Oliver Kropp <dok@directfb.org>,
-              Andreas Hundt <andi@fischlustig.de> and
-              Sven Neumann <sven@convergence.de>.
+              Andreas Hundt <andi@fischlustig.de>,
+              Sven Neumann <sven@convergence.de> and
+              Claudio Ciccani <klan@users.sf.net>.
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -54,8 +55,7 @@ typedef struct {
 
      bool                   locked;
 
-     float                  left;
-     float                  right;
+     int                    pos;
 
      CorePlayback          *looping;
      pthread_mutex_t        lock;
@@ -128,8 +128,24 @@ IFusionSoundBuffer_GetDescription( IFusionSoundBuffer  *thiz,
 }
 
 static DFBResult
+IFusionSoundBuffer_SetPosition( IFusionSoundBuffer *thiz,
+                                int                 position )
+{
+     DIRECT_INTERFACE_GET_DATA(IFusionSoundBuffer)
+     
+     if (position < 0 || position >= data->size)
+          return DFB_INVARG;
+          
+     data->pos = position;
+    
+     return DFB_OK;
+}
+
+static DFBResult
 IFusionSoundBuffer_Lock( IFusionSoundBuffer  *thiz,
-                         void               **ret_data )
+                         void               **ret_data,
+                         int                 *ret_frames,
+                         int                 *ret_bytes )
 {
      DFBResult  ret;
      void      *lock_data;
@@ -143,15 +159,20 @@ IFusionSoundBuffer_Lock( IFusionSoundBuffer  *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     ret = fs_buffer_lock( data->buffer, 0, 0, &lock_data, &lock_bytes );
+     ret = fs_buffer_lock( data->buffer, data->pos, 0, &lock_data, &lock_bytes );
      if (ret)
           return ret;
 
      data->locked = true;
 
      *ret_data = lock_data;
-
-     /* FIXME: what about returning lock_bytes? */
+     
+     if (ret_frames)
+          *ret_frames = lock_bytes / 
+                        (data->channels * FS_BYTES_PER_SAMPLE(data->format));
+     
+     if (ret_bytes)
+          *ret_bytes = lock_bytes;
 
      return DFB_OK;
 }
@@ -167,29 +188,6 @@ IFusionSoundBuffer_Unlock( IFusionSoundBuffer *thiz )
      fs_buffer_unlock( data->buffer );
 
      data->locked = false;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundBuffer_SetPan( IFusionSoundBuffer *thiz,
-                           float               pan )
-{
-     float left  = 1.0f;
-     float right = 1.0f;
-
-     DIRECT_INTERFACE_GET_DATA(IFusionSoundBuffer)
-
-     if (pan < -1.0f || pan > 1.0f)
-          return DFB_INVARG;
-
-     if (pan < 0.0f)
-          right = 1.0f + pan;
-     else if (pan > 0.0f)
-          left = 1.0f - pan;
-
-     data->left  = left;
-     data->right = right;
 
      return DFB_OK;
 }
@@ -222,16 +220,15 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                pthread_mutex_unlock( &data->lock );
                return ret;
           }
-
-          /* Set values produced by SetPan(). */
-          if (flags & FSPLAY_PAN)
-               fs_playback_set_volume( playback, data->left, data->right );
                
           /* Set playback direction. */
           if (flags & FSPLAY_REWIND)
                fs_playback_set_pitch( playback, -0x400 );
           else
                fs_playback_set_pitch( playback, +0x400 );
+               
+          /* Set the start of the playback. */
+          fs_playback_set_position( playback, data->pos );
 
           /* Set looping playback. */
           fs_playback_set_stop( playback, -1 );
@@ -256,16 +253,21 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                pthread_mutex_unlock( &data->lock );
                return ret;
           }
-
-          /* Set values produced by SetPan(). */
-          if (flags & FSPLAY_PAN)
-               fs_playback_set_volume( playback, data->left, data->right );
                
           /* Set playback direction. */
           if (flags & FSPLAY_REWIND)
                fs_playback_set_pitch( playback, -0x400 );
           else
                fs_playback_set_pitch( playback, +0x400 );
+               
+          /* Set the start of the playback. */
+          fs_playback_set_position( playback, data->pos );
+          
+          /* Set the end of the playback. */
+          if (flags & FSPLAY_CYCLE)
+               fs_playback_set_stop( playback, data->pos );
+          else
+               fs_playback_set_stop( playback, 0 );
 
           /* Start the playback. */
           ret = fs_playback_start( playback, false );
@@ -330,6 +332,7 @@ IFusionSoundBuffer_CreatePlayback( IFusionSoundBuffer    *thiz,
      return ret;
 }
 
+
 /******/
 
 DFBResult
@@ -358,8 +361,6 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      data->channels = channels;
      data->format   = format;
      data->rate     = rate;
-     data->left     = 1.0f;
-     data->right    = 1.0f;
 
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
@@ -368,11 +369,12 @@ IFusionSoundBuffer_Construct( IFusionSoundBuffer *thiz,
      thiz->Release        = IFusionSoundBuffer_Release;
 
      thiz->GetDescription = IFusionSoundBuffer_GetDescription;
+     
+     thiz->SetPosition    = IFusionSoundBuffer_SetPosition;
 
      thiz->Lock           = IFusionSoundBuffer_Lock;
      thiz->Unlock         = IFusionSoundBuffer_Unlock;
 
-     thiz->SetPan         = IFusionSoundBuffer_SetPan;
      thiz->Play           = IFusionSoundBuffer_Play;
      thiz->Stop           = IFusionSoundBuffer_Stop;
 

@@ -89,9 +89,9 @@ typedef float __fsf;
 
 typedef signed long __fsf;
 
-#define FSF_DECIBITS   22 /* Number of bits for decimal part.
-                           * This is 22 by default because we need at least
-                           * 8 bits for integer part (mixing limitations) 
+#define FSF_DECIBITS   24 /* Number of bits for decimal part.
+                           * This is 24 by default because we need at least
+                           * 6 bits for integer part (mixing limitations) 
                            * and 1 bit for sign, another bit is reserved to
                            * avoid overlaps during sums.
                            */

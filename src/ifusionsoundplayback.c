@@ -209,8 +209,11 @@ IFusionSoundPlayback_SetVolume( IFusionSoundPlayback *thiz,
 
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, level );
 
-     if (level < 0.0f || level > 256.0f)
+     if (level < 0.0f)
           return DFB_INVARG;
+          
+     if (level > 64.0f)
+          return DFB_UNSUPPORTED;
 
      data->volume = level;
 
@@ -241,8 +244,11 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
 
      D_DEBUG( "%s (%p, %.3f)\n", __FUNCTION__, data->playback, value );
 
-     if (value < 0.0f || value > 64.0f)
+     if (value < 0.0f)
           return DFB_INVARG;
+          
+     if (value > 64.0f)
+          return DFB_UNSUPPORTED;
           
      data->pitch = (value * 1024.0f + 0.5f);
 
@@ -386,12 +392,12 @@ IFusionSoundPlayback_UpdateVolume( IFusionSoundPlayback_data* data )
 
      if (data->volume != 1.0f) {
           left *= data->volume;
-          if (left > 256.0f)
-               left = 256.0f;
+          if (left > 64.0f)
+               left = 64.0f;
 
           right *= data->volume;
-          if (right > 256.0f)
-               right = 256.0f;
+          if (right > 64.0f)
+               right = 64.0f;
      }
 
      return fs_playback_set_volume( data->playback, left, right );
