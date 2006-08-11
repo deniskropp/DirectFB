@@ -200,8 +200,8 @@ load_sample (IFusionSound *sound, const char *filename)
           return NULL;
      }
 
-     buffer->Lock (buffer, &data);
-     
+     buffer->Lock (buffer, &data, 0, 0);
+    
      if (read (fd, data, len) < len)
           fprintf (stderr, "Warning: Could not read all data bytes!\n");
 

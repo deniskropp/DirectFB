@@ -358,9 +358,11 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
 
      while (data->playing) {
           void *buf;
+          int   len;
 
-          if (data->buffer->Lock( data->buffer, &buf ) != DFB_OK)
+          if (data->buffer->Lock( data->buffer, &buf, &len, 0 ) != DFB_OK)
                break;
+          len /= 2;
           
           pthread_mutex_lock( &data->lock );
 
@@ -370,14 +372,16 @@ TimidityBufferThread( DirectThread *thread, void *ctx )
                break;
           }
 
-          Timidity_PlaySome( buf, data->length );
+          Timidity_PlaySome( buf, len );
 
           pthread_mutex_unlock( &data->lock );
 
           data->buffer->Unlock( data->buffer );
 
-          if (data->callback)
-               data->callback( data->length, data->ctx );
+          if (data->callback) {
+               if (data->callback( len, data->ctx ))
+                    data->playing = false;
+          }
      }
 
      return NULL;

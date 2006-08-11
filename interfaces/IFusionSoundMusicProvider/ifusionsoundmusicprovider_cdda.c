@@ -930,6 +930,7 @@ CDDABufferThread( DirectThread *thread, void *ctx )
      while (data->playing && !data->finished) {
           int   len, pos;
           __u8 *dst;
+          int   size;
           
           pthread_mutex_lock( &data->lock );
 
@@ -943,16 +944,28 @@ CDDABufferThread( DirectThread *thread, void *ctx )
                      data->tracks[data->current_track].length - pos );
           pos += data->tracks[data->current_track].start;
           
-          if (buffer->Lock( buffer, (void*)&dst ) != DFB_OK) {
+          if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
                D_ERROR( "IFusionSoundMusicProvider_CDDA: "
                         "Couldn't lock destination buffer!\n" );
                pthread_mutex_unlock( &data->lock );
                break;
-          }          
+          }         
           
+          size <<= 2;
+          if (size < CD_BYTES_PER_FRAME) {
+               D_WARN( "buffer too small, need at least %d bytes", CD_BYTES_PER_FRAME );
+               len = 0;
+          }
+          else {
+               size /= CD_BYTES_PER_FRAME;
+               if (len > size)
+                    len = size;
+          }
+
           if (len > 0)
                len = cdda_read_audio( data->fd,
                                       (__u8*)data->src_buffer ? : dst, pos, len );
+
           if (len < 1) {
                if (data->flags & FMPLAY_LOOPING)
                     data->tracks[data->current_track].frame = 0;
@@ -977,8 +990,10 @@ CDDABufferThread( DirectThread *thread, void *ctx )
           
           buffer->Unlock( buffer );
 
-          if (data->callback)
-               data->callback( len, data->ctx );
+          if (data->callback) {
+               if (data->callback( len, data->ctx ))
+                    data->playing = false;
+          }
      }
      
      return NULL;
@@ -1218,6 +1233,10 @@ Construct( IFusionSoundMusicProvider *thiz,
      
      data->stream = direct_stream_dup( stream );
      data->fd     = direct_stream_fileno( stream );
+     
+     /* reset to blocking mode */
+     fcntl( data->fd, F_SETFL, 
+               fcntl( data->fd, F_GETFL ) & ~O_NONBLOCK );
     
      err = cdda_build_tracklits( data->fd, &data->tracks, &data->total_tracks );
      if (err != DFB_OK) {

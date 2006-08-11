@@ -752,6 +752,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
           unsigned int   len    = 0;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
+          int            size;
                 
           pthread_mutex_lock( &data->lock );
 
@@ -806,14 +807,14 @@ MadBufferThread( DirectThread *thread, void *ctx )
                mad_synth_frame( &data->synth, &data->frame );
                len = pcm->length;
                
-               if (buffer->Lock( buffer, (void*)&dst ) != DFB_OK) {
+               if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
                     D_ERROR( "IFusionSoundMusicProvider_Mad: "
                              "Couldn't lock buffer!\n" );
                     break;
                }
                
                do {
-                    n = MIN( data->dest.length-written, len );
+                    n = MIN( size-written, len );
                     
                     mad_mix_audio( left, right, &dst[written*blocksize], n,
                                    data->dest.format, pcm->channels,
@@ -823,11 +824,14 @@ MadBufferThread( DirectThread *thread, void *ctx )
                     len     -= n;
                     written += n;
                     
-                    if (written >= data->dest.length) {
+                    if (written >= size) {
                          if (data->callback) {
                               buffer->Unlock( buffer );
-                              data->callback( written, data->ctx );
-                              buffer->Lock( buffer, (void*)&dst );
+                              if (data->callback( written, data->ctx )) {
+                                   data->playing = false;
+                                   break;
+                              }
+                              buffer->Lock( buffer, (void*)&dst, &size, 0 );
                          }
                          written = 0;
                     }

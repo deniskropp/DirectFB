@@ -660,6 +660,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
           char   *dst;
           long    len;
           int     pos = 0;
+          int     size;
           
           pthread_mutex_lock( &data->lock );
 
@@ -668,7 +669,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                break;
           }
 
-          if (buffer->Lock( buffer, (void*)&dst ) != DFB_OK) {
+          if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
                D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                         "Couldn't lock buffer!\n" );
                pthread_mutex_unlock( &data->lock );
@@ -676,8 +677,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
           }
 
           do {
-               len = ov_read_float( &data->vf, &src,
-                                    data->dest.length - pos, &section );
+               len = ov_read_float( &data->vf, &src, size-pos, &section );
                if (len == 0) {
                     if (data->flags & FMPLAY_LOOPING) {
                          if (direct_stream_remote( data->stream ))
@@ -694,7 +694,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                if (len > 0) {
                     int n;
                     do {
-                         n = MIN( len, data->dest.length-pos );
+                         n = MIN( len, size-pos );
                          vorbis_mix_audio( src, &dst[pos*blocksize], n,
                                            data->dest.format,
                                            data->info->channels,
@@ -703,14 +703,16 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                          len -= n;
                     } while (n > 0);
                }
-          } while (pos < data->dest.length && !data->finished);
+          } while (pos < size && !data->finished);
 
           buffer->Unlock( buffer );
 
           pthread_mutex_unlock( &data->lock );
 
-          if (data->callback && pos)
-               data->callback( pos, data->ctx );
+          if (data->callback) {
+               if (data->callback( pos, data->ctx ))
+                    data->playing = false;
+          }
      }
 
      return NULL;

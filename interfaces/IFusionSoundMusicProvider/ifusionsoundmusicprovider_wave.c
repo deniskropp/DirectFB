@@ -1290,6 +1290,7 @@ WaveBufferThread( DirectThread *thread, void *ctx )
      while (data->playing && !data->finished) {
           DFBResult       ret;
           void           *dst;
+          int             size;
           int             len = 0;
           struct timeval  tv  = { 0, 500 };
           
@@ -1301,16 +1302,16 @@ WaveBufferThread( DirectThread *thread, void *ctx )
           }
           
           if (!data->src_buffer) {
-               if (buffer->Lock( buffer, &dst ) != DFB_OK) {
+               if (buffer->Lock( buffer, &dst, 0, &size ) != DFB_OK) {
                     D_ERROR( "IFusionSoundMusicProvider_Wave: "
                              "Couldn't lock buffer!" );
                     pthread_mutex_unlock( &data->lock );
                     break;
                }
                
-               ret = direct_stream_wait( data->stream, count, &tv );
+               ret = direct_stream_wait( data->stream, size, &tv );
                if (ret != DFB_TIMEOUT)
-                    ret = direct_stream_read( data->stream, count, dst, &len );
+                    ret = direct_stream_read( data->stream, size, dst, &len );
                
                buffer->Unlock( buffer );
           } 
@@ -1341,21 +1342,39 @@ WaveBufferThread( DirectThread *thread, void *ctx )
                continue;
 
           if (data->src_buffer) {
-               if (buffer->Lock( buffer, &dst ) != DFB_OK) {
-                    D_ERROR( "IFusionSoundMusicProvider_Wave: "
-                             "Couldn't lock buffer!" );
-                    break;
-               }
+               while (len > 0) {                    
+                    if (buffer->Lock( buffer, &dst, 0, &size ) != DFB_OK) {
+                         D_ERROR( "IFusionSoundMusicProvider_Wave: "
+                                  "Couldn't lock buffer!" );
+                         break;
+                    }
+                    
+                    size /= FS_BYTES_PER_SAMPLE(data->dest.format);
+                    if (size > len)
+                         size = len; 
 
-               wave_mix_audio( data->src_buffer, dst, len,
-                               data->format, data->dest.format,
-                               data->byteorder, delta );
+                    wave_mix_audio( data->src_buffer, dst, size,
+                                    data->format, data->dest.format,
+                                    data->byteorder, delta );
           
-               buffer->Unlock( buffer );
+                    buffer->Unlock( buffer );
+                    
+                    len -= size;
+                    
+                    if (data->callback) {
+                         if (data->callback( size/data->channels, data->ctx )) {
+                              data->playing = false;
+                              break;
+                         }
+                    }
+               }
           }
-
-          if (data->callback)
-               data->callback( len / data->channels, data->ctx );
+          else {
+               if (data->callback) {
+                    if (data->callback( len/data->channels, data->ctx ))
+                         data->playing = false;
+               }
+          }
      }
      
      return NULL;

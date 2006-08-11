@@ -58,13 +58,13 @@ draw_scope( __s16 *data, int len )
      surface->Release( surface );
 }
 
-static void
+static FMBufferCallbackResult
 buffer_callback( int len, void *ctx )
 {
      void *data;
      
-     if (buffer->Lock( buffer, &data ) != DFB_OK)
-          return;
+     if (buffer->Lock( buffer, &data, 0, 0 ) != DFB_OK)
+          return FMBCR_OK;
 
      /* draw scope */
      draw_scope( data, len );
@@ -73,6 +73,8 @@ buffer_callback( int len, void *ctx )
      stream->Write( stream, data, len );
 
      buffer->Unlock( buffer );
+
+     return FMBCR_OK;
 }
      
 static DFBResult
