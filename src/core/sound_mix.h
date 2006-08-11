@@ -56,7 +56,7 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
      __fsf *dst = dest;
      long   i;
 
-#ifdef FS_ENABLE_PRECISION
+#ifdef FS_ENABLE_LINEAR_FILTER
      if (inc < 0x400) {
           /* upsample */
           for (i = 0; i < max; i += inc) {
@@ -96,7 +96,7 @@ FUNC_NAME(FORMAT,mono,fw) ( CoreSoundBuffer *buffer,
           
           return (int)(dst - dest);
      }
-#endif /* FS_ENABLE_PRECISION */
+#endif /* FS_ENABLE_LINEAR_FILTER */
 
      for (i = 0; i < max; i += inc) {
           long  p = (i >> 10) + pos;
@@ -130,7 +130,7 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
      __fsf *dst = dest;
      long   i;
 
-#ifdef FS_ENABLE_PRECISION
+#ifdef FS_ENABLE_LINEAR_FILTER
      if (-inc < 0x400) {
           /* upsample */
           for (i = 0; i > max; i += inc) {
@@ -172,7 +172,7 @@ FUNC_NAME(FORMAT,mono,rw) ( CoreSoundBuffer *buffer,
           
           return (int)(dst - dest);
      }
-#endif /* FS_ENABLE_PRECISION */
+#endif /* FS_ENABLE_LINEAR_FILTER */
 
      for (i = 0; i > max; i += inc) {
           long  p = (i >> 10) + pos;
@@ -208,7 +208,7 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
      __fsf *dst = dest;
      long   i;
 
-#ifdef FS_ENABLE_PRECISION
+#ifdef FS_ENABLE_LINEAR_FILTER
      if (inc < 0x400) {
           /* upsample */
           for (i = 0; i < max; i += inc) {
@@ -257,7 +257,7 @@ FUNC_NAME(FORMAT,stereo,fw) ( CoreSoundBuffer *buffer,
           
           return (int)(dst - dest);
      }
-#endif /* FS_ENABLE_PRECISION */
+#endif /* FS_ENABLE_LINEAR_FILTER */
 
      for (i = 0; i < max; i += inc) {
           long p = (i >> 10) + pos;
@@ -293,7 +293,7 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
      __fsf *dst = dest;
      long   i;
 
-#ifdef FS_ENABLE_PRECISION
+#ifdef FS_ENABLE_LINEAR_FILTER
      if (-inc < 0x400) {
           /* upsample */
           for (i = 0; i > max; i += inc) {
@@ -344,7 +344,7 @@ FUNC_NAME(FORMAT,stereo,rw) ( CoreSoundBuffer *buffer,
           
           return (int)(dst - dest);
      }
-#endif /* FS_ENABLE_PRECISION */
+#endif /* FS_ENABLE_LINEAR_FILTER */
 
      for (i = 0; i > max; i += inc) {
           long p = (i >> 10) + pos;
