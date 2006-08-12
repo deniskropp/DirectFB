@@ -259,7 +259,7 @@ fs_config_set( const char *name, const char *value )
                              "Could not parse value!\n" );
                     return DFB_INVARG;
                }
-               else if (size < 1) {
+               else if (size < 1 || size > 5000) {
                     D_ERROR( "FusionSound/Config 'buffersize': "
                              "Unsupported value '%d'!\n", size );
                     return DFB_INVARG;
