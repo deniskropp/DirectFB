@@ -676,7 +676,8 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
-     if (desc.samplerate != data->samplerate)
+     if (desc.samplerate != data->samplerate  && 
+         desc.samplerate != data->samplerate/2)
           return DFB_UNSUPPORTED;
          
      /* check if number of channels is supported */
@@ -698,7 +699,13 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-
+     
+     if (desc.samplerate == data->samplerate/2)
+          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC      | 
+                                             MAD_OPTION_HALFSAMPLERATE );
+     else
+          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
+     
      /* allocate read/write buffers */
      data->read_size = (data->desc.bitrate ? : 256000) * PREBUFFER_SIZE / 8;
      data->write_size = 1152 * desc.channels * 
@@ -860,7 +867,8 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
-     if (desc.samplerate != data->samplerate)
+     if (desc.samplerate != data->samplerate  &&
+         desc.samplerate != data->samplerate/2)
           return DFB_UNSUPPORTED;
     
      /* check if number of channels is supported */
@@ -882,6 +890,12 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
+     
+     if (desc.samplerate == data->samplerate/2)
+          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC      | 
+                                             MAD_OPTION_HALFSAMPLERATE );
+     else
+          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
 
      /* allocate read buffer */
      data->read_size = (data->desc.bitrate ? : 256000) * PREBUFFER_SIZE / 8;
@@ -1125,7 +1139,7 @@ Construct( IFusionSoundMusicProvider *thiz,
      mad_stream_buffer( &data->stream, buf, len );
      
      /* find first valid frame */
-     for (i = 0; i < 10; i++) {
+     for (i = 0; i < 100; i++) {
           error = mad_frame_decode( &data->frame, &data->stream );
           if (!error) {
                /* get number of frames from Xing headers */
@@ -1227,6 +1241,8 @@ Construct( IFusionSoundMusicProvider *thiz,
                     FS_TRACK_DESC_ENCODING_LENGTH,
                     "MPEG-%s Layer %d", version, header.layer );
      }
+     
+     data->desc.replaygain = 1.0;
      
      direct_util_recursive_pthread_mutex_init( &data->lock );
 

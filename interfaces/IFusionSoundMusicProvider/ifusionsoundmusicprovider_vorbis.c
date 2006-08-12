@@ -386,11 +386,13 @@ static void
 vorbis_get_metadata( OggVorbis_File     *vf,
                      FSTrackDescription *desc )
 {
-     vorbis_comment   *vc = ov_comment( vf, -1 ); 
-     char           **ptr = vc->user_comments;
+     vorbis_comment   *vc     = ov_comment( vf, -1 ); 
+     char           **ptr     = vc->user_comments;
+     char            *rg_gain = NULL;
+     char            *rg_peak = NULL;
 
      memset( desc, 0, sizeof(FSTrackDescription) );
-     
+                  
      while (*ptr) {
           char *comment = *ptr;
 
@@ -415,7 +417,23 @@ vorbis_get_metadata( OggVorbis_File     *vf,
                         FS_TRACK_DESC_GENRE_LENGTH - 1 );
           }
           else if (!strncasecmp( comment, "DATE=", sizeof("DATE=")-1 )) {
-               desc->year = strtol( comment + sizeof("DATE=") - 1, NULL, 10 );
+               desc->year = atoi( comment + sizeof("DATE=") );
+          }
+          else if (!strncasecmp( comment, "REPLAYGAIN_TRACK_GAIN=", 
+                                   sizeof("REPLAYGAIN_TRACK_GAIN=")-1 )) {
+               rg_gain = comment + sizeof("REPLAYGAIN_TRACK_GAIN=") - 1;
+          }
+          else if (!strncasecmp( comment, "REPLAYGAIN_ALBUM_GAIN=", 
+                                   sizeof("REPLAYGAIN_ALBUM_GAIN=")-1 )) {
+               rg_gain = comment + sizeof("REPLAYGAIN_ALBUM_GAIN=") - 1;
+          }
+          else if (!strncasecmp( comment, "REPLAYGAIN_TRACK_PEAK=",
+                                   sizeof("REPLAYGAIN_TRACK_PEAK=")-1 )) {
+               rg_peak = comment + sizeof("REPLAYGAIN_TRACK_PEAK=") - 1;
+          }
+          else if (!strncasecmp( comment, "REPLAYGAIN_ALBUM_PEAK=",
+                                   sizeof("REPLAYGAIN_ALBUM_PEAK=")-1 )) {
+               rg_peak = comment + sizeof("REPLAYGAIN_ALBUM_PEAK=") - 1;
           }
 
           ptr++;
@@ -425,6 +443,19 @@ vorbis_get_metadata( OggVorbis_File     *vf,
                FS_TRACK_DESC_ENCODING_LENGTH, "Vorbis" );
      
      desc->bitrate = ov_bitrate( vf, -1 ) ? : ov_bitrate_instant( vf );
+     
+     if (rg_gain) {
+          float gain, peak = 1.0f;
+          
+          if (rg_peak)
+               peak = atof( rg_peak ) ? : 1.0f;     
+          
+          gain = pow( 10.0f, atof( rg_gain ) / 20.0f );
+          if (gain*peak > 1.0f)
+               gain = 1.0f / peak;
+
+          desc->replaygain = gain;
+     }
 }
 
 static DFBResult

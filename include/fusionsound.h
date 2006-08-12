@@ -328,6 +328,7 @@ typedef struct {
      char  genre[FS_TRACK_DESC_GENRE_LENGTH];       /* Genre. */
      char  encoding[FS_TRACK_DESC_ENCODING_LENGTH]; /* Encoding (for example: MPEG Layer-1). */
      int   bitrate;                                 /* Bitrate in bits/s. */
+     float replaygain;                              /* ReplayGain factor (1.0 by default). */
 } FSTrackDescription;
 
 /*

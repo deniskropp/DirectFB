@@ -668,7 +668,8 @@ IFusionSoundMusicProvider_CDDA_EnumTracks( IFusionSoundMusicProvider *thiz,
                
           snprintf( desc.encoding,
                     FS_TRACK_DESC_ENCODING_LENGTH, "PCM 16 bit" );
-          desc.bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
+          desc.bitrate    = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
+          desc.replaygain = 1.0;
 
           if (callback( i, desc, callbackdata ) != DFENUM_OK)
                break;
@@ -726,7 +727,8 @@ IFusionSoundMusicProvider_CDDA_GetTrackDescription( IFusionSoundMusicProvider *t
       
      snprintf( desc->encoding,
                FS_TRACK_DESC_ENCODING_LENGTH, "PCM 16 bit" );
-     desc->bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
+     desc->bitrate    = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
+     desc->replaygain = 1.0;
 
      return DFB_OK;
 }
