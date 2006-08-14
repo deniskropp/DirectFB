@@ -184,12 +184,12 @@ typedef struct {
 /*
  * The sample format is the way of storing audible information.
  *
- * 8, 16 and 32 bit samples are always stored in <b>native endian</b>, while
- * 24 bit samples are stored in <b>little endian</b>. This keeps the library and
- * applications simple and clean. Always access sample buffers like arrays of
- * 8, 16 or 32 bit integers depending on the sample format, unless data is
- * written with endianness being taken care of. This does not excuse from endian
- * conversion that might be necessary when reading data from files.
+ * 16, 24 and 32 bit samples are always stored in <b>native endian</b>.
+ * This keeps the library and applications simple and clean. 
+ * Always access sample buffers like arrays of 8, 16 or 32 bit integers
+ * depending on the sample format, unless data is written with endianness
+ * being taken care of. This does not excuse from endian conversion
+ * that might be necessary when reading data from files.
  */
 typedef enum {
      FSSF_UNKNOWN        = 0x00000000, /* Unknown or invalid format. */
@@ -328,7 +328,8 @@ typedef struct {
      char  genre[FS_TRACK_DESC_GENRE_LENGTH];       /* Genre. */
      char  encoding[FS_TRACK_DESC_ENCODING_LENGTH]; /* Encoding (for example: MPEG Layer-1). */
      int   bitrate;                                 /* Bitrate in bits/s. */
-     float replaygain;                              /* ReplayGain factor (1.0 by default). */
+     float replaygain;                              /* ReplayGain level (1.0 by default). */
+     float replaygain_album;                        /* Album ReplayGain level. */
 } FSTrackDescription;
 
 /*
@@ -643,7 +644,7 @@ DEFINE_INTERFACE( IFusionSoundStream,
       * Drop buffered/pending data.
       *
       * This method behaves like <i>Flush()</i>, but it 
-      * also discards any pending data.
+      * also discards any pending input data.
       */
      DFBResult (*Drop) (
           IFusionSoundStream       *thiz

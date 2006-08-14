@@ -382,14 +382,31 @@ IFusionSoundMusicProvider_Vorbis_GetCapabilities( IFusionSoundMusicProvider   *t
      return DFB_OK;
 }
 
+static inline float
+vorbis_compute_gain( const char *rg_gain, const char *rg_peak )
+{
+     float gain, peak = 1.0f;
+          
+     if (rg_peak)
+          peak = atof( rg_peak ) ? : 1.0f;     
+          
+     gain = pow( 10.0f, atof( rg_gain ) / 20.0f );
+     if (gain*peak > 1.0f)
+          gain = 1.0f / peak;
+
+     return gain;
+}     
+
 static void
 vorbis_get_metadata( OggVorbis_File     *vf,
                      FSTrackDescription *desc )
 {
-     vorbis_comment   *vc     = ov_comment( vf, -1 ); 
-     char           **ptr     = vc->user_comments;
-     char            *rg_gain = NULL;
-     char            *rg_peak = NULL;
+     vorbis_comment   *vc        = ov_comment( vf, -1 ); 
+     char           **ptr        = vc->user_comments;
+     char            *track_gain = NULL;
+     char            *track_peak = NULL;
+     char            *album_gain = NULL;
+     char            *album_peak = NULL;
 
      memset( desc, 0, sizeof(FSTrackDescription) );
                   
@@ -421,19 +438,19 @@ vorbis_get_metadata( OggVorbis_File     *vf,
           }
           else if (!strncasecmp( comment, "REPLAYGAIN_TRACK_GAIN=", 
                                    sizeof("REPLAYGAIN_TRACK_GAIN=")-1 )) {
-               rg_gain = comment + sizeof("REPLAYGAIN_TRACK_GAIN=") - 1;
+               track_gain = comment + sizeof("REPLAYGAIN_TRACK_GAIN=") - 1;
           }
           else if (!strncasecmp( comment, "REPLAYGAIN_ALBUM_GAIN=", 
                                    sizeof("REPLAYGAIN_ALBUM_GAIN=")-1 )) {
-               rg_gain = comment + sizeof("REPLAYGAIN_ALBUM_GAIN=") - 1;
+               album_gain = comment + sizeof("REPLAYGAIN_ALBUM_GAIN=") - 1;
           }
           else if (!strncasecmp( comment, "REPLAYGAIN_TRACK_PEAK=",
                                    sizeof("REPLAYGAIN_TRACK_PEAK=")-1 )) {
-               rg_peak = comment + sizeof("REPLAYGAIN_TRACK_PEAK=") - 1;
+               track_peak = comment + sizeof("REPLAYGAIN_TRACK_PEAK=") - 1;
           }
           else if (!strncasecmp( comment, "REPLAYGAIN_ALBUM_PEAK=",
                                    sizeof("REPLAYGAIN_ALBUM_PEAK=")-1 )) {
-               rg_peak = comment + sizeof("REPLAYGAIN_ALBUM_PEAK=") - 1;
+               album_peak = comment + sizeof("REPLAYGAIN_ALBUM_PEAK=") - 1;
           }
 
           ptr++;
@@ -443,19 +460,10 @@ vorbis_get_metadata( OggVorbis_File     *vf,
                FS_TRACK_DESC_ENCODING_LENGTH, "Vorbis" );
      
      desc->bitrate = ov_bitrate( vf, -1 ) ? : ov_bitrate_instant( vf );
-     
-     if (rg_gain) {
-          float gain, peak = 1.0f;
-          
-          if (rg_peak)
-               peak = atof( rg_peak ) ? : 1.0f;     
-          
-          gain = pow( 10.0f, atof( rg_gain ) / 20.0f );
-          if (gain*peak > 1.0f)
-               gain = 1.0f / peak;
-
-          desc->replaygain = gain;
-     }
+     if (track_gain)
+          desc->replaygain = vorbis_compute_gain( track_gain, track_peak );
+     if (album_gain)
+          desc->replaygain_album = vorbis_compute_gain( album_gain, album_peak );
 }
 
 static DFBResult
