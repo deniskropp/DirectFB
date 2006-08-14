@@ -168,18 +168,21 @@ main (int argc, char *argv[])
           
           /* Print some informations about the track. */
           printf( "\nTrack %d:\n"
-                  "  Artist:   %s\n"
-                  "  Title:    %s\n"
-                  "  Album:    %s\n"
-                  "  Year:     %d\n"
-                  "  Genre:    %s\n"
-                  "  Encoding: %s\n"
-                  "  Bitrate:  %d Kbits/s\n"
-                  "  Output:   %d Hz, %d channel(s), %d bits\n\n\n",
+                  "  Artist:     %s\n"
+                  "  Title:      %s\n"
+                  "  Album:      %s\n"
+                  "  Year:       %d\n"
+                  "  Genre:      %s\n"
+                  "  Encoding:   %s\n"
+                  "  Bitrate:    %d Kbits/s\n" 
+                  "  ReplayGain: %.2f (track), %.2f (album)\n"
+                  "  Output:     %d Hz, %d channel(s), %d bits\n\n\n",
                   entry->id, entry->desc.artist, entry->desc.title,
                   entry->desc.album, (int)entry->desc.year, 
                   entry->desc.genre, entry->desc.encoding,
-                  entry->desc.bitrate/1000, s_dsc.samplerate, s_dsc.channels,
+                  entry->desc.bitrate/1000, 
+                  entry->desc.replaygain, entry->desc.replaygain_album,
+                  s_dsc.samplerate, s_dsc.channels,
                   FS_BITS_PER_SAMPLE(s_dsc.sampleformat) );
 
           do {
