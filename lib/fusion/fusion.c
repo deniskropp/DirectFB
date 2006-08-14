@@ -140,6 +140,115 @@ _fusion_world( const FusionWorldShared *shared )
 
 /**********************************************************************************************************************/
 
+static void
+fusion_world_fork( FusionWorld *world )
+{
+     int                fd;
+     char               buf1[20];
+     char               buf2[20];
+     FusionFork         fork;
+     FusionWorldShared *shared;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     shared = world->shared;
+
+     D_MAGIC_ASSERT( shared, FusionWorldShared );
+
+     snprintf( buf1, sizeof(buf1), "/dev/fusion%d", shared->world_index );
+     snprintf( buf2, sizeof(buf2), "/dev/fusion/%d", shared->world_index );
+
+     /* Open Fusion Kernel Device. */
+     fd = direct_try_open( buf1, buf2, O_RDWR | O_NONBLOCK, true );
+     if (fd < 0) {
+          D_PERROR( "Fusion/Main: Reopening fusion device (world %d) failed!\n", shared->world_index );
+          raise(5);
+     }
+
+     /* Fill fork information. */
+     fork.fusion_id = world->fusion_id;
+
+     /* Fork within the fusion world. */
+     while (ioctl( fd, FUSION_FORK, &fork )) {
+          if (errno != EINTR) {
+               D_PERROR( "Fusion/Main: Could not fork in world '%d'!\n", shared->world_index );
+               raise(5);
+          }
+     }
+
+     D_DEBUG_AT( Fusion_Main, "  -> Fusion ID 0x%08lx\n", fork.fusion_id );
+
+     /* Get new fusion id back. */
+     world->fusion_id = fork.fusion_id;
+
+     /* Close old file descriptor. */
+     close( world->fusion_fd );
+
+     /* Write back new file descriptor. */
+     world->fusion_fd = fd;
+
+
+
+
+     D_DEBUG_AT( Fusion_Main, "  -> restarting dispatcher loop...\n" );
+
+     /* Restart the dispatcher thread. FIXME: free old struct */
+     world->dispatch_loop = direct_thread_create( DTT_MESSAGING,
+                                                  fusion_dispatch_loop,
+                                                  world, "Fusion Dispatch" );
+     if (!world->dispatch_loop)
+          raise(5);
+}
+
+static void
+fusion_fork_handler_child()
+{
+     int i;
+
+     D_DEBUG_AT( Fusion_Main, "%s()\n", __FUNCTION__ );
+
+     for (i=0; i<FUSION_MAX_WORLDS; i++) {
+          FusionWorld *world = fusion_worlds[i];
+
+          if (!world)
+               continue;
+
+          D_MAGIC_ASSERT( world, FusionWorld );
+
+          switch (world->fork_action) {
+               default:
+                    D_BUG( "unknown fork action %d", world->fork_action );
+
+               case FFA_CLOSE:
+                    D_DEBUG_AT( Fusion_Main, "  -> closing world %d\n", i );
+
+                    /* Remove world from global list. */
+                    fusion_worlds[i] = NULL;
+
+                    /* Unmap shared area. */
+                    munmap( world->shared, sizeof(FusionWorldShared) );
+
+                    /* Close Fusion Kernel Device. */
+                    close( world->fusion_fd );
+
+                    /* Free local world data. */
+                    D_MAGIC_CLEAR( world );
+                    D_FREE( world );
+
+                    break;
+
+               case FFA_FORK:
+                    D_DEBUG_AT( Fusion_Main, "  -> forking in world %d\n", i );
+
+                    fusion_world_fork( world );
+
+                    break;
+          }
+     }
+}
+
+/**********************************************************************************************************************/
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -159,6 +268,14 @@ fusion_enter( int               world_index,
      FusionEnter        enter;
      char               buf1[20];
      char               buf2[20];
+     
+     static bool atfork_called = false;
+
+     if (!atfork_called) {
+          pthread_atfork( NULL, NULL, fusion_fork_handler_child );
+
+          atfork_called = true;
+     }
 
      D_DEBUG_AT( Fusion_Main, "%s( %d, %d, %p )\n", __FUNCTION__, world_index, abi_version, ret_world );
 
@@ -556,6 +673,18 @@ fusion_exit( FusionWorld *world,
      direct_shutdown();
 
      return DFB_OK;
+}
+
+/*
+ * Sets the fork() action of the calling Fusionee within the world.
+ */
+void
+fusion_world_set_fork_action( FusionWorld      *world,
+                              FusionForkAction  action )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+
+     world->fork_action = action;
 }
 
 /*

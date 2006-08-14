@@ -89,6 +89,8 @@ struct __Fusion_FusionWorld {
      pthread_mutex_t      reactor_nodes_lock;
 
      FusionSHM            shm;
+
+     FusionForkAction     fork_action;
 };
 
 /*******************************************

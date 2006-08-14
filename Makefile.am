@@ -8,6 +8,10 @@ if BUILD_TOOLS
 TOOLS_DIR = tools
 endif
 
+if BUILD_TESTS
+TESTS_DIR = tests
+endif
+
 if ENABLE_VOODOO
 PROXY_DIR = proxy
 endif
@@ -24,6 +28,7 @@ SUBDIRS = \
 	interfaces 		\
 	$(PROXY_DIR)		\
 	$(LINUXONLY_DIRS)	\
+	$(TESTS_DIR)		\
 	patches			\
 	rules
 

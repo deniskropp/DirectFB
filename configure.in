@@ -1184,6 +1184,13 @@ fi
 fi
 
 
+AC_ARG_WITH(tests,
+  [  --with-tests              build test programs])
+if test "$with_tests" != "yes"; then
+  with_tests=no
+fi
+
+
 AC_ARG_WITH(tools,
   [  --without-tools           do not build any tools])
 if test "$with_tools" != "no"; then
@@ -1237,6 +1244,7 @@ AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
 
 AM_CONDITIONAL(UCB1X00_TS, test "$enable_ucb1x00_ts" = "yes")
 
+AM_CONDITIONAL(BUILD_TESTS, test "$with_tests" = "yes")
 AM_CONDITIONAL(BUILD_TOOLS, test "$with_tools" = "yes")
 AM_CONDITIONAL(CROSS_COMPILING, test "$cross_compiling" = "yes")
 
@@ -1404,6 +1412,7 @@ interfaces/IDirectFBVideoProvider/Makefile
 
 data/Makefile
 
+tests/Makefile
 tools/Makefile
 
 docs/Makefile
@@ -1450,6 +1459,7 @@ Building WM Modules:
   Default                   yes
   UniQuE                    $enable_unique
 
+Building Tests              $with_tests
 Building Tools              $with_tools
 
 Building Image Providers:

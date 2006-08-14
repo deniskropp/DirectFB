@@ -15,10 +15,7 @@ Finish implementation of cooperative levels.
 
 Finish display layer core and driver API.
 
-Finish multi application core.
- - Some messages may need to be dispatched synchronized.
- - Add fork handling.
- - Run time single/multi app core selection (both enabled during build).
+Run time single/multi app core selection (both enabled during build).
 
 Finish surface manager.
  - Add kicking out a few smaller surfaces for a bigger one.

@@ -36,6 +36,11 @@ typedef enum {
      FER_SLAVE
 } FusionEnterRole;
 
+typedef enum {
+     FFA_CLOSE,
+     FFA_FORK
+} FusionForkAction;
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -54,6 +59,12 @@ DirectResult fusion_enter( int               world_index,
  */
 DirectResult fusion_exit( FusionWorld *world,
                           bool         emergency );
+
+/*
+ * Sets the fork() action of the calling Fusionee within the world.
+ */
+void fusion_world_set_fork_action( FusionWorld      *world,
+                                   FusionForkAction  action );
 
 /*
  * Return the index of the specified world.
