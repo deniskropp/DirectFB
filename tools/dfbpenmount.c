@@ -76,7 +76,7 @@ main( int argc, char *argv[] )
            read(file, buf, sizeof(buf));
 		 close(file);
 	 
-		 pos = strstr( buf, "penmount-device" ),*pos2;
+		 pos = strstr( buf, "penmount-device" );
 		 if(pos){
 	 		 pos = strchr(pos,'=');
 		 	 if(pos){
