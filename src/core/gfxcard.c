@@ -867,11 +867,16 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      }
 
      if (!hw) {
+          build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
+
+          if (!num) {
+               dfb_state_unlock( state );
+               return;
+          }
+
           if (dfb_gfxcard_state_check( state, DFXL_FILLRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
-               build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
-
                for (; i<num; i++) {
                     hw = card->funcs.FillRectangle( card->driver_data,
                                                     card->device_data, &rects[i] );
@@ -884,9 +889,6 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      }
 
      if (!hw && gAcquire( state, DFXL_FILLRECTANGLE )) {
-          if (!num)
-               build_clipped_rectangle_outlines( rect, &state->clip, rects, &num );
-
           for (; i<num; i++)
                gFillRectangle( state, &rects[i] );
 
