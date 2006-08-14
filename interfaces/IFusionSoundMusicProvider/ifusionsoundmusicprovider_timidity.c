@@ -147,7 +147,6 @@ IFusionSoundMusicProvider_Timidity_EnumTracks(
      memset( &desc, 0, sizeof(FSTrackDescription) );
      snprintf( desc.encoding,
                FS_TRACK_DESC_ENCODING_LENGTH, "Midi" );
-     desc.replaygain = 1.0;
 
      callback( 0, desc, callbackdata );
 
@@ -182,7 +181,6 @@ IFusionSoundMusicProvider_Timidity_GetTrackDescription(
      memset( desc, 0, sizeof(FSTrackDescription) );
      snprintf( desc->encoding,
                FS_TRACK_DESC_ENCODING_LENGTH, "Midi" );
-     desc->replaygain = 1.0;
 
      return DFB_OK;
 }

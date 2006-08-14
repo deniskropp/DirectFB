@@ -1019,8 +1019,7 @@ IFusionSoundMusicProvider_Wave_EnumTracks( IFusionSoundMusicProvider *thiz,
                FS_TRACK_DESC_ENCODING_LENGTH,
                "PCM %dbit %s-endian", 
                data->format, data->byteorder ? "big" : "little" );
-     desc.bitrate    = data->samplerate * data->channels * data->format;
-     desc.replaygain = 1.0;
+     desc.bitrate = data->samplerate * data->channels * data->format;
 
      callback( 0, desc, callbackdata );
 
@@ -1055,8 +1054,7 @@ IFusionSoundMusicProvider_Wave_GetTrackDescription( IFusionSoundMusicProvider *t
                FS_TRACK_DESC_ENCODING_LENGTH,
                "PCM %dbit %s-endian", 
                data->format, data->byteorder ? "big" : "little" );
-     desc->bitrate    = data->samplerate * data->channels * data->format;
-     desc->replaygain = 1.0;
+     desc->bitrate = data->samplerate * data->channels * data->format;
 
      return DFB_OK;
 }

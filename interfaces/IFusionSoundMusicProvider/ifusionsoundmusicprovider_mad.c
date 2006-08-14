@@ -1242,8 +1242,6 @@ Construct( IFusionSoundMusicProvider *thiz,
                     "MPEG-%s Layer %d", version, header.layer );
      }
      
-     data->desc.replaygain = 1.0;
-     
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
      /* initialize function pointers */
