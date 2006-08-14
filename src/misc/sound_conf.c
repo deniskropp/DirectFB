@@ -60,7 +60,7 @@ static const char *config_usage =
      "  channels=<channels>            Set the default number of channels\n"
      "  sampleformat=<sampleformat>    Set the default sample format\n"
      "  samplerate=<samplerate>        Set the default sample rate\n"
-     "  buffersize=<millisec>          Set the default buffer size\n"
+     "  buffertime=<millisec>          Set the default buffer time\n"
      "  session=<num>                  Select multi app world (-1 = new)\n"
      "  [no-]banner                    Show FusionSound banner on startup\n"
      "\n";
@@ -145,7 +145,7 @@ config_allocate()
      fs_config->channels     = 2;
      fs_config->sampleformat = FSSF_S16;
      fs_config->samplerate   = 44100;
-     fs_config->buffersize   = 50;
+     fs_config->buffertime   = 25;
     
      fs_config->session      = MAX(dfb_config->session,0) + 1;
 
@@ -250,25 +250,25 @@ fs_config_set( const char *name, const char *value )
                return DFB_INVARG;
           }
      }
-     else if (!strcmp( name, "buffersize" )) {
+     else if (!strcmp( name, "buffertime" )) {
           if (value) {
-               int size;
+               int time;
 
-               if (sscanf( value, "%d", &size ) < 1) {
-                    D_ERROR( "FusionSound/Config 'buffersize': "
+               if (sscanf( value, "%d", &time ) < 1) {
+                    D_ERROR( "FusionSound/Config 'buffertime': "
                              "Could not parse value!\n" );
                     return DFB_INVARG;
                }
-               else if (size < 1 || size > 5000) {
-                    D_ERROR( "FusionSound/Config 'buffersize': "
-                             "Unsupported value '%d'!\n", size );
+               else if (time < 1 || time > 5000) {
+                    D_ERROR( "FusionSound/Config 'buffertime': "
+                             "Unsupported value '%d'!\n", time );
                     return DFB_INVARG;
                }      
 
-               fs_config->buffersize = size;
+               fs_config->buffertime = time;
           }
           else {
-               D_ERROR( "FusionSound/Config 'buffersize': "
+               D_ERROR( "FusionSound/Config 'buffertime': "
                         "No value specified!\n" );
                return DFB_INVARG;
           }

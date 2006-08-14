@@ -67,8 +67,8 @@ Possible values are U8, S16, S24, S32 and FLOAT.
 Set the default sample rate in Hz (e.g 48000).
 
 .TP
-.BI buffersize=<millisec>
-Set the default output buffer size in milliseconds.
+.BI buffertime=<millisec>
+Set the length of the output buffer in milliseconds.
 
 .TP
 .BI session=<num>

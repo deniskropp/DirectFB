@@ -261,7 +261,7 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
      }
      
      if (!size)
-          size = rate * fs_config->buffersize / 1000;
+          size = rate * fs_config->buffertime / 1000;
 
      /* Limit ring buffer size to five seconds. */
      if (size > rate * 5)

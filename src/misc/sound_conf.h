@@ -37,7 +37,7 @@ typedef struct {
      int             channels;     /* default number of channels */
      FSSampleFormat  sampleformat; /* default sampleformat */
      int             samplerate;   /* default samplerate */
-     int             buffersize;   /* default buffersize (in ms) */
+     int             buffertime;   /* default buffertime (in ms) */
 
      int             session;      /* select multi app world */
 

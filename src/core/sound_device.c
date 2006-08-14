@@ -120,7 +120,7 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
      device->config.channels   = fs_config->channels;
      device->config.format     = fs_config->sampleformat;
      device->config.rate       = fs_config->samplerate;
-     device->config.buffersize = fs_config->samplerate * fs_config->buffersize / 1000;
+     device->config.buffersize = fs_config->samplerate * fs_config->buffertime / 1000;
      /* No more than 65535 frames. */
      if (device->config.buffersize > 65535)
           device->config.buffersize = 65535;
