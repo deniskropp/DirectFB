@@ -87,7 +87,11 @@ void r100_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      radeon_out32( mmio, SE_COORD_FMT, VTX_XY_PRE_MULT_1_OVER_W0 |
                                        TEX1_W_ROUTING_USE_W0 );
      radeon_out32( mmio, SE_LINE_WIDTH, 0x10 );
+#ifdef WORDS_BIGENDIAN
+     radeon_out32( mmio, SE_CNTL_STATUS, TCL_BYPASS | VC_32BIT_SWAP );
+#else
      radeon_out32( mmio, SE_CNTL_STATUS, TCL_BYPASS );
+#endif
      radeon_out32( mmio, PP_MISC, ALPHA_TEST_PASS );
      radeon_out32( mmio, RB3D_ZSTENCILCNTL, Z_TEST_ALWAYS );
      radeon_out32( mmio, RB3D_ROPCNTL, ROP_XOR );

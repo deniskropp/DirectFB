@@ -96,7 +96,11 @@ void r200_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      radeon_out32( mmio, R200_SE_VTX_STATE_CNTL, 0 );
      radeon_out32( mmio, R200_SE_VAP_CNTL, R200_VAP_VF_MAX_VTX_NUM |
                                            R200_VAP_FORCE_W_TO_ONE );
-     radeon_out32( mmio, R200_SE_VAP_CNTL_STATUS, TCL_BYPASS );
+#ifdef WORDS_BIGENDIAN
+     radeon_out32( mmio, R200_SE_VAP_CNTL_STATUS, R200_TCL_BYPASS | R200_VC_32BIT_SWAP );
+#else
+     radeon_out32( mmio, R200_SE_VAP_CNTL_STATUS, R200_TCL_BYPASS );
+#endif
      radeon_out32( mmio, RB3D_ZSTENCILCNTL, Z_TEST_ALWAYS );
      radeon_out32( mmio, RB3D_ROPCNTL, ROP_XOR );     
      /* set YUV422 color buffer */

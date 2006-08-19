@@ -2314,8 +2314,9 @@
 #       define R200_VTX_ST_DENORMALIZED		0x00001000
 #define R200_SE_VAP_CNTL_STATUS			0x2140
 #       define R200_VC_NO_SWAP			(0 << 0)
-#       define R200_VC_16BIT_SWAP		(1 << 0)
-#       define R200_VC_32BIT_SWAP		(2 << 0)
+#       define R200_VC_16BIT_SWAP            (1 << 0)
+#       define R200_VC_32BIT_SWAP            (2 << 0)
+#       define R200_TCL_BYPASS               (1 << 8)
 #define R200_PP_TXFILTER_0			0x2c00
 #define R200_PP_TXFILTER_1              0x2c20
 #       define R200_MAG_FILTER_NEAREST		(0  <<  0)
