@@ -48,27 +48,27 @@
 static __inline__ void
 out_vertex2d0( volatile __u8 *mmio, float x, float y, float c[4] )
 {
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = x;
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = y;
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = 0.0; // z
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = 1.0; // w
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = c[0];
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = c[1];
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = c[2];
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = c[3];
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(0) ); // z
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(1) ); // w
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(c[0]) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(c[1]) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(c[2]) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(c[3]) );
 }
 
 static __inline__ void
 out_vertex2d2( volatile __u8 *mmio, float x, float y, float s, float t )
 {
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = x;
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = y;
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = 0.0; // z
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = 1.0; // w
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = s;
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = t;
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = 0.0; // r
-     *((volatile float*)(mmio+SE_PORT_DATA0)) = 1.0; // q
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(0) ); // z
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(1) ); // w
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(s) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(t) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(0) ); // r
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(1) ); // q
 }
 
 
