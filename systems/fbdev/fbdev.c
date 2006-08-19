@@ -1573,8 +1573,6 @@ static DFBResult dfb_fbdev_pan( int offset, bool onsync )
      var->yoffset = offset;
      var->activate = onsync ? FB_ACTIVATE_VBL : FB_ACTIVATE_NOW;
 
-     dfb_gfxcard_sync();
-
      if (FBDEV_IOCTL( FBIOPAN_DISPLAY, var ) < 0) {
           int erno = errno;
 
