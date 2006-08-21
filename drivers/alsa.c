@@ -133,11 +133,11 @@ device_open( void                  *device_data,
      snd_pcm_hw_params_t *params;
      snd_ctl_t           *ctl;
      snd_ctl_card_info_t *info;
-     unsigned int         buffertime;
+     unsigned int         buffertime, time; 
      snd_pcm_uframes_t    buffersize;
      int                  periods, dir;
      
-     buffertime = ((long long)config->buffersize * 1000000ll / config->rate); 
+     buffertime = time = ((long long)config->buffersize * 1000000ll / config->rate); 
      
      if (snd_pcm_open( &data->handle, fs_config->device ? : "default",
                        SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) < 0) {
@@ -208,15 +208,15 @@ device_open( void                  *device_data,
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-     
+
      dir = 0;
      if (snd_pcm_hw_params_set_buffer_time_near( data->handle, params, 
                                                  &buffertime, &dir ) < 0) {
-          D_ERROR( "FusionSound/Device/Alsa: couldn't set buffersize!\n" );
+          D_ERROR( "FusionSound/Device/Alsa: couldn't set buffertime!\n" );
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-     
+      
      dir = 1;
      periods = 2;
      if (snd_pcm_hw_params_set_periods_near( data->handle, params,
@@ -232,11 +232,15 @@ device_open( void                  *device_data,
           return DFB_UNSUPPORTED;
      }
      
-     snd_pcm_hw_params_get_buffer_size( params, &buffersize  );
      /* Workaround for ALSA >= 1.0.9 always returning the maximum supported buffersize.
         Actually FusionSound doesn't work fine with buffers larger than 250ms. */
-     if (buffersize < config->buffersize)
+     if (buffertime > time) {
+          config->buffersize = ((long long)time * config->rate / 1000000ll);
+     }
+     else {
+          snd_pcm_hw_params_get_buffer_size( params, &buffersize  );
           config->buffersize = buffersize;
+     }
 
      if (snd_pcm_prepare( data->handle ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't prepare stream!\n" );
