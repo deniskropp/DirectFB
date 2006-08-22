@@ -54,9 +54,6 @@ typedef struct {
 
      pthread_mutex_t        lock;
      pthread_cond_t         wait;
-     bool                   playing;
-     bool                   looping;
-     int                    position;
 } IFusionSoundPlayback_data;
 
 /******/
@@ -163,40 +160,60 @@ IFusionSoundPlayback_Continue( IFusionSoundPlayback *thiz )
 static DFBResult
 IFusionSoundPlayback_Wait( IFusionSoundPlayback *thiz )
 {
+     DFBResult ret;
+
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
      pthread_mutex_lock( &data->lock );
 
-     while (data->playing) {
-          if (data->looping) {
-               pthread_mutex_unlock( &data->lock );
-               return DFB_UNSUPPORTED;
-          }
+     for (;;) {
+          CorePlaybackStatus status;
 
-          pthread_cond_wait( &data->wait, &data->lock );
+          ret = fs_playback_get_status( data->playback, &status, NULL );
+          if (ret)
+               break;
+
+          if (status & CPS_PLAYING) {
+               if (status & CPS_LOOPING) {
+                    ret = DFB_UNSUPPORTED;
+                    break;
+               }
+               else
+                    pthread_cond_wait( &data->wait, &data->lock );
+          }
+          else
+               break;
      }
 
      pthread_mutex_unlock( &data->lock );
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
 IFusionSoundPlayback_GetStatus( IFusionSoundPlayback *thiz,
-                                DFBBoolean           *playing,
-                                int                  *position )
+                                DFBBoolean           *ret_playing,
+                                int                  *ret_position )
 {
+     DFBResult          ret;
+     CorePlaybackStatus status;
+     int                position;
+
      DIRECT_INTERFACE_GET_DATA(IFusionSoundPlayback)
 
      D_DEBUG( "%s (%p)\n", __FUNCTION__, data->playback );
 
-     if (playing)
-          *playing = data->playing;
+     ret = fs_playback_get_status( data->playback, &status, &position );
+     if (ret)
+          return ret;
 
-     if (position)
-          *position = data->position;
+     if (ret_playing)
+          *ret_playing = (status & CPS_PLAYING) ? DFB_TRUE : DFB_FALSE;
+
+     if (ret_position)
+          *ret_position = position;
 
      return DFB_OK;
 }
@@ -356,23 +373,9 @@ IFusionSoundPlayback_React( const void *msg_data,
      if (notification->flags & CPNF_ADVANCE)
           D_DEBUG( "%s: playback advanced to position %d\n", __FUNCTION__, notification->pos );
 
-     pthread_mutex_lock( &data->lock );
-
-     data->position = notification->pos;
-
-     if (notification->flags & (CPNF_START | CPNF_ADVANCE)) {
-          data->playing = true;
-          data->looping = notification->stop < 0 ? true : false;
-     }
-
-     if (notification->flags & CPNF_STOP) {
-          data->playing = false;
-          data->looping = false;
-     }
-
-     pthread_cond_broadcast( &data->wait );
-
-     pthread_mutex_unlock( &data->lock );
+     /* Notify any Wait()er on start/stop. */
+     if (notification->flags & (CPNF_START | CPNF_STOP))
+          pthread_cond_broadcast( &data->wait );
 
      return RS_OK;
 }

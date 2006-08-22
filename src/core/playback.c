@@ -321,6 +321,41 @@ fs_playback_set_pitch( CorePlayback *playback,
      return DFB_OK;
 }
 
+DFBResult
+fs_playback_get_status( CorePlayback       *playback,
+                        CorePlaybackStatus *ret_status,
+                        int                *ret_position )
+{
+     D_ASSERT( playback != NULL );
+
+     /* Lock playback. */
+     if (fusion_skirmish_prevail( &playback->lock ))
+          return DFB_FUSION;
+
+     /* Return status. */
+     if (ret_status) {
+          CorePlaybackStatus status = CPS_NONE;
+
+          if (playback->running) {
+               status |= CPS_PLAYING;
+
+               if (playback->stop < 0)
+                    status |= CPS_LOOPING;
+          }
+
+          *ret_status = status;
+     }
+
+     /* Return position. */
+     if (ret_position)
+          *ret_position = playback->position;
+
+     /* Unlock playback. */
+     fusion_skirmish_dismiss( &playback->lock );
+
+     return DFB_OK;
+}
+
 /******************************************************************************/
 
 DFBResult

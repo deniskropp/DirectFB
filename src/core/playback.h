@@ -35,6 +35,12 @@
 #include <core/types_sound.h>
 
 typedef enum {
+     CPS_NONE     = 0x00000000,
+     CPS_PLAYING  = 0x00000001,
+     CPS_LOOPING  = 0x00000002
+} CorePlaybackStatus;
+
+typedef enum {
      CPNF_START   = 0x00000001,
      CPNF_STOP    = 0x00000002,
      CPNF_ADVANCE = 0x00000004
@@ -61,40 +67,44 @@ FusionObjectPool *fs_playback_pool_create( const FusionWorld *world );
 FUSION_OBJECT_METHODS( CorePlayback, fs_playback )
 
 
-DFBResult fs_playback_create      ( CoreSound        *core,
-                                    CoreSoundBuffer  *buffer,
-                                    bool              notify,
-                                    CorePlayback    **ret_playback );
+DFBResult fs_playback_create      ( CoreSound           *core,
+                                    CoreSoundBuffer     *buffer,
+                                    bool                 notify,
+                                    CorePlayback       **ret_playback );
 
-DFBResult fs_playback_enable      ( CorePlayback     *playback );
+DFBResult fs_playback_enable      ( CorePlayback        *playback );
 
-DFBResult fs_playback_start       ( CorePlayback     *playback,
-                                    bool              enable );
+DFBResult fs_playback_start       ( CorePlayback        *playback,
+                                    bool                 enable );
 
-DFBResult fs_playback_stop        ( CorePlayback     *playback,
-                                    bool              disable );
+DFBResult fs_playback_stop        ( CorePlayback        *playback,
+                                    bool                 disable );
 
-DFBResult fs_playback_set_stop    ( CorePlayback     *playback,
-                                    int               stop );
+DFBResult fs_playback_set_stop    ( CorePlayback        *playback,
+                                    int                  stop );
 
-DFBResult fs_playback_set_position( CorePlayback     *playback,
-                                    int               position );
+DFBResult fs_playback_set_position( CorePlayback        *playback,
+                                    int                  position );
 
-DFBResult fs_playback_set_volume  ( CorePlayback     *playback,
-                                    float             left,
-                                    float             right );
+DFBResult fs_playback_set_volume  ( CorePlayback        *playback,
+                                    float                left,
+                                    float                right );
 
-DFBResult fs_playback_set_pitch   ( CorePlayback     *playback,
-                                    int               pitch );
+DFBResult fs_playback_set_pitch   ( CorePlayback        *playback,
+                                    int                  pitch );
+
+DFBResult fs_playback_get_status  ( CorePlayback        *playback,
+                                    CorePlaybackStatus  *ret_status,
+                                    int                 *ret_position );
 
 /*
  * Internally called by core_sound.c in the audio thread.
  */
-DFBResult fs_playback_mixto       ( CorePlayback     *playback,
-                                    __fsf            *dest,
-                                    int               dest_rate,
-                                    int               max_samples,
-                                    int              *ret_samples );
+DFBResult fs_playback_mixto       ( CorePlayback        *playback,
+                                    __fsf               *dest,
+                                    int                  dest_rate,
+                                    int                  max_samples,
+                                    int                 *ret_samples );
 
 
 #endif
