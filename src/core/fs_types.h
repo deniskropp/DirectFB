@@ -89,9 +89,9 @@ typedef float __fsf;
 
 typedef signed long __fsf;
 
-#define FSF_DECIBITS   24 /* Number of bits for decimal part.
-                           * This is 24 by default because we need at least
-                           * 6 bits for integer part (mixing limitations) 
+#define FSF_DECIBITS   23 /* Number of bits for decimal part.
+                           * This is 23 by default because we need at least
+                           * 7 bits for integer part (mixing limitations) 
                            * and 1 bit for sign, another bit is reserved to
                            * avoid overlaps during sums.
                            */
@@ -113,7 +113,7 @@ typedef signed long __fsf;
 
 #define fsf_mulll( a, b )            (((long long)(a) * (long long)(b)) >> FSF_DECIBITS)
 
-#define fsf_mull( a, b )             (((a) >> (FSF_DECIBITS-16)) * ((b) >> 16))
+#define fsf_mull( a, b )             (((a) >> (FSF_DECIBITS-15)) * ((b) >> 15))
 
 #if (SIZEOF_LONG == 8) || defined(FS_ENABLE_PRECISION)
 # define fsf_mul( a, b )             fsf_mulll( a, b )
