@@ -137,6 +137,31 @@ fusion_skirmish_swoop( FusionSkirmish *skirmish )
 }
 
 DirectResult
+fusion_skirmish_lock_count( FusionSkirmish *skirmish, int *lock_count )
+{
+     D_ASSERT( skirmish != NULL );
+
+     int data[2] = { skirmish->multi.id, 0 };
+
+     while (ioctl (_fusion_fd( skirmish->multi.shared ), FUSION_SKIRMISH_LOCK_COUNT, data)) {
+           switch (errno) {
+               case EINTR:
+                    continue;
+
+               case EINVAL:
+                    D_ERROR ("Fusion/Lock: invalid skirmish\n");
+                    return DFB_DESTROYED;
+           }
+
+          D_PERROR ("FUSION_SKIRMISH_LOCK_COUNT");
+          return DFB_FUSION;
+     }
+
+     *lock_count = data[1];
+     return DFB_OK;
+}
+
+DirectResult
 fusion_skirmish_dismiss (FusionSkirmish *skirmish)
 {
      D_ASSERT( skirmish != NULL );
