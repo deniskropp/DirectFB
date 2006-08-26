@@ -174,70 +174,86 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static const DeadKeyCombo combos_grave[] = {
-     { DIKS_SPACE,     (unsigned char) '`' },
-     { DIKS_SMALL_A,   (unsigned char) 'à' },
-     { DIKS_SMALL_E,   (unsigned char) 'è' }, 
-     { DIKS_SMALL_I,   (unsigned char) 'ì' },
-     { DIKS_SMALL_O,   (unsigned char) 'ò' },
-     { DIKS_SMALL_U,   (unsigned char) 'ù' },
-     { DIKS_CAPITAL_A, (unsigned char) 'À' },
-     { DIKS_CAPITAL_E, (unsigned char) 'È' },
-     { DIKS_CAPITAL_I, (unsigned char) 'Ì' },
-     { DIKS_CAPITAL_O, (unsigned char) 'Ò' },
-     { DIKS_CAPITAL_U, (unsigned char) 'Ù' },
-     { 0, 0 }
-};
-
-static const DeadKeyCombo combos_acute[] = {
-     { DIKS_SPACE,     (unsigned char) '\'' },
-     { DIKS_SMALL_A,   (unsigned char) 'á' },
-     { DIKS_SMALL_E,   (unsigned char) 'é' }, 
-     { DIKS_SMALL_I,   (unsigned char) 'í' },
-     { DIKS_SMALL_O,   (unsigned char) 'ó' },
-     { DIKS_SMALL_U,   (unsigned char) 'ú' },
-     { DIKS_SMALL_Y,   (unsigned char) 'ý' },
-     { DIKS_CAPITAL_A, (unsigned char) 'Á' },
-     { DIKS_CAPITAL_E, (unsigned char) 'É' },
-     { DIKS_CAPITAL_I, (unsigned char) 'Í' },
-     { DIKS_CAPITAL_O, (unsigned char) 'Ó' },
-     { DIKS_CAPITAL_U, (unsigned char) 'Ú' },
-     { DIKS_CAPITAL_Y, (unsigned char) 'Ý' },
-     { 0, 0 }
-};
-
-static const DeadKeyCombo combos_circumflex[] = {
-     { DIKS_SPACE,     (unsigned char) '^' },
-     { DIKS_SMALL_A,   (unsigned char) 'â' },
-     { DIKS_SMALL_E,   (unsigned char) 'ê' }, 
-     { DIKS_SMALL_I,   (unsigned char) 'î' },
-     { DIKS_SMALL_O,   (unsigned char) 'ô' },
-     { DIKS_SMALL_U,   (unsigned char) 'û' },
-     { DIKS_CAPITAL_A, (unsigned char) 'Â' },
-     { DIKS_CAPITAL_E, (unsigned char) 'Ê' },
-     { DIKS_CAPITAL_I, (unsigned char) 'Î' },
-     { DIKS_CAPITAL_O, (unsigned char) 'Ô' },
-     { DIKS_CAPITAL_U, (unsigned char) 'Û' },
-     { 0, 0 }
-};
-
-static const DeadKeyCombo combos_tilde[] = {
-     { DIKS_SPACE,     (unsigned char) '~' },
-     { DIKS_SMALL_A,   (unsigned char) 'ã' },
-     { DIKS_SMALL_N,   (unsigned char) 'ñ' }, 
-     { DIKS_SMALL_O,   (unsigned char) 'õ' },
-     { DIKS_CAPITAL_A, (unsigned char) 'Ã' },
-     { DIKS_CAPITAL_N, (unsigned char) 'Ñ' },
-     { DIKS_CAPITAL_O, (unsigned char) 'Õ' },
-     { 0, 0 }
-};
-
-static const DeadKeyMap deadkey_maps[] = {
-     { DIKS_DEAD_GRAVE,      combos_grave },
-     { DIKS_DEAD_ACUTE,      combos_acute },
-     { DIKS_DEAD_CIRCUMFLEX, combos_circumflex },
-     { DIKS_DEAD_TILDE,      combos_tilde }
-};
+static const DeadKeyCombo combos_grave[] = {         
+     { DIKS_SPACE,     (unsigned char) '`' },        
+     { DIKS_SMALL_A,   (unsigned char) 'à' },        
+     { DIKS_SMALL_E,   (unsigned char) 'è' },        
+     { DIKS_SMALL_I,   (unsigned char) 'ì' },        
+     { DIKS_SMALL_O,   (unsigned char) 'ò' },        
+     { DIKS_SMALL_U,   (unsigned char) 'ù' },        
+     { DIKS_CAPITAL_A, (unsigned char) 'À' },        
+     { DIKS_CAPITAL_E, (unsigned char) 'È' },        
+     { DIKS_CAPITAL_I, (unsigned char) 'Ì' },        
+     { DIKS_CAPITAL_O, (unsigned char) 'Ò' },        
+     { DIKS_CAPITAL_U, (unsigned char) 'Ù' },        
+     { 0, 0 }                                        
+};                                                   
+                                                     
+static const DeadKeyCombo combos_acute[] = {         
+     { DIKS_SPACE,     (unsigned char) '\'' },       
+     { DIKS_SMALL_A,   (unsigned char) 'á' },        
+     { DIKS_SMALL_E,   (unsigned char) 'é' },        
+     { DIKS_SMALL_I,   (unsigned char) 'í' },        
+     { DIKS_SMALL_O,   (unsigned char) 'ó' },        
+     { DIKS_SMALL_U,   (unsigned char) 'ú' },        
+     { DIKS_SMALL_Y,   (unsigned char) 'ý' },        
+     { DIKS_CAPITAL_A, (unsigned char) 'Á' },        
+     { DIKS_CAPITAL_E, (unsigned char) 'É' },        
+     { DIKS_CAPITAL_I, (unsigned char) 'Í' },        
+     { DIKS_CAPITAL_O, (unsigned char) 'Ó' },        
+     { DIKS_CAPITAL_U, (unsigned char) 'Ú' },        
+     { DIKS_CAPITAL_Y, (unsigned char) 'Ý' },        
+     { 0, 0 }                                        
+};                                                   
+                                                     
+static const DeadKeyCombo combos_circumflex[] = {    
+     { DIKS_SPACE,     (unsigned char) '^' },        
+     { DIKS_SMALL_A,   (unsigned char) 'â' },        
+     { DIKS_SMALL_E,   (unsigned char) 'ê' },        
+     { DIKS_SMALL_I,   (unsigned char) 'î' },        
+     { DIKS_SMALL_O,   (unsigned char) 'ô' },        
+     { DIKS_SMALL_U,   (unsigned char) 'û' },        
+     { DIKS_CAPITAL_A, (unsigned char) 'Â' },        
+     { DIKS_CAPITAL_E, (unsigned char) 'Ê' },        
+     { DIKS_CAPITAL_I, (unsigned char) 'Î' },        
+     { DIKS_CAPITAL_O, (unsigned char) 'Ô' },        
+     { DIKS_CAPITAL_U, (unsigned char) 'Û' },        
+     { 0, 0 }                                        
+};                                                   
+                                                     
+static const DeadKeyCombo combos_diaeresis[] = {     
+     { DIKS_SPACE,     (unsigned char) '¨' },        
+     { DIKS_SMALL_A,   (unsigned char) 'ä' },        
+     { DIKS_SMALL_E,   (unsigned char) 'ë' },        
+     { DIKS_SMALL_I,   (unsigned char) 'ï' },        
+     { DIKS_SMALL_O,   (unsigned char) 'ö' },        
+     { DIKS_SMALL_U,   (unsigned char) 'ü' },        
+     { DIKS_CAPITAL_A, (unsigned char) 'Ä' },        
+     { DIKS_CAPITAL_E, (unsigned char) 'Ë' },        
+     { DIKS_CAPITAL_I, (unsigned char) 'Ï' },        
+     { DIKS_CAPITAL_O, (unsigned char) 'Ö' },        
+     { DIKS_CAPITAL_U, (unsigned char) 'Ü' },        
+     { 0, 0 }                                        
+};                                                   
+                                                     
+static const DeadKeyCombo combos_tilde[] = {         
+     { DIKS_SPACE,     (unsigned char) '~' },        
+     { DIKS_SMALL_A,   (unsigned char) 'ã' },        
+     { DIKS_SMALL_N,   (unsigned char) 'ñ' },        
+     { DIKS_SMALL_O,   (unsigned char) 'õ' },        
+     { DIKS_CAPITAL_A, (unsigned char) 'Ã' },        
+     { DIKS_CAPITAL_N, (unsigned char) 'Ñ' },        
+     { DIKS_CAPITAL_O, (unsigned char) 'Õ' },        
+     { 0, 0 }                                        
+};                                                   
+                                                     
+static const DeadKeyMap deadkey_maps[] = {           
+     { DIKS_DEAD_GRAVE,      combos_grave },         
+     { DIKS_DEAD_ACUTE,      combos_acute },         
+     { DIKS_DEAD_CIRCUMFLEX, combos_circumflex },    
+     { DIKS_DEAD_DIAERESIS,  combos_diaeresis },     
+     { DIKS_DEAD_TILDE,      combos_tilde }          
+};                                                   
 
 /**********************************************************************************************************************/
 
