@@ -56,12 +56,14 @@
 
 /* required implementations */
 
-static void savage2000EngineSync( void *drv, void *dev )
+static DFBResult savage2000EngineSync( void *drv, void *dev )
 {
      Savage2000DriverData *sdrv = (Savage2000DriverData*) drv;
      Savage2000DeviceData *sdev = (Savage2000DeviceData*) dev;
      
      savage2000_waitidle( sdrv, sdev );
+
+     return DFB_OK;
 }
 
 #define SAVAGE2000_DRAWING_FLAGS \

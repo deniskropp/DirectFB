@@ -96,12 +96,14 @@ static bool ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 
 /* required implementations */
 
-static void ati128EngineSync( void *drv, void *dev )
+static DFBResult ati128EngineSync( void *drv, void *dev )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
 
      ati128_waitidle( adrv, adev );
+
+     return DFB_OK;
 }
 
 static bool ati128_check_blend( CardState *state )

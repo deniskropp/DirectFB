@@ -385,6 +385,7 @@ dfb_gfxcard_resume( CoreDFB *core )
 DFBResult
 dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
 {
+     DFBResult             ret;
      GraphicsDeviceShared *shared;
      GraphicsDeviceFuncs  *funcs;
 
@@ -399,14 +400,25 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
            fusion_property_lease( &shared->lock )) )
           return DFB_FAILURE;
 
-     if ((flags & GDLF_SYNC) && funcs->EngineSync)
-          funcs->EngineSync( card->driver_data, card->device_data );
+     if ((flags & GDLF_SYNC) && funcs->EngineSync) {
+          ret = funcs->EngineSync( card->driver_data, card->device_data );
+          if (ret) {
+               if (funcs->EngineReset)
+                    funcs->EngineReset( card->driver_data, card->device_data );
 
-     if (shared->lock_flags & GDLF_INVALIDATE)
-          shared->state = NULL;
+               shared->state = NULL;
+
+               fusion_property_cede( &shared->lock );
+
+               return ret;
+          }
+     }
 
      if ((shared->lock_flags & GDLF_RESET) && funcs->EngineReset)
           funcs->EngineReset( card->driver_data, card->device_data );
+
+     if (shared->lock_flags & GDLF_INVALIDATE)
+          shared->state = NULL;
 
      shared->lock_flags = flags;
 
@@ -443,34 +455,26 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
      D_ASSERT( card != NULL );
      D_MAGIC_ASSERT( state, CardState );
 
-     /*
-      * If there's no CheckState function there's no acceleration at all.
-      */
-     if (!card->funcs.CheckState)
-          return false;
+     D_ASSERT( state->clip.x2 >= state->clip.x1 );
+     D_ASSERT( state->clip.y2 >= state->clip.y1 );
+     D_ASSERT( state->clip.x1 >= 0 );
+     D_ASSERT( state->clip.y1 >= 0 );
 
-     /*
-      * Check if this function has been disabled temporarily.
-      */
-     if (state->disabled & accel)
-          return false;
+     if (state->clip.x1 < 0) {
+          state->clip.x1   = 0;
+          state->modified |= SMF_CLIP;
+     }
+
+     if (state->clip.y1 < 0) {
+          state->clip.y1   = 0;
+          state->modified |= SMF_CLIP;
+     }
 
      /* Destination may have been destroyed. */
      if (!state->destination) {
           D_BUG( "no destination" );
           return false;
      }
-
-     /* Source may have been destroyed. */
-     if (DFB_BLITTING_FUNCTION( accel ) && !state->source) {
-          D_BUG( "no source" );
-          return false;
-     }
-
-     D_ASSERT( state->clip.x2 >= state->clip.x1 );
-     D_ASSERT( state->clip.y2 >= state->clip.y1 );
-     D_ASSERT( state->clip.x1 >= 0 );
-     D_ASSERT( state->clip.y1 >= 0 );
 
      D_ASSUME( state->clip.x2 < state->destination->width );
      D_ASSUME( state->clip.y2 < state->destination->height );
@@ -496,6 +500,23 @@ dfb_gfxcard_state_check( CardState *state, DFBAccelerationMask accel )
           state->modified |= SMF_CLIP;
      }
 
+     /* Source may have been destroyed. */
+     if (DFB_BLITTING_FUNCTION( accel ) && !state->source) {
+          D_BUG( "no source" );
+          return false;
+     }
+
+     /*
+      * If there's no CheckState function there's no acceleration at all.
+      */
+     if (!card->funcs.CheckState)
+          return false;
+
+     /*
+      * Check if this function has been disabled temporarily.
+      */
+     if (state->disabled & accel)
+          return false;
 
      /*
       * If back_buffer policy is 'system only' there's no acceleration
@@ -1732,12 +1753,22 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state )
      dfb_font_unlock( font );
 }
 
-void dfb_gfxcard_sync()
+DFBResult dfb_gfxcard_sync()
 {
+     DFBResult ret;
+
      D_ASSUME( card != NULL );
 
-     if (card && card->funcs.EngineSync)
-          card->funcs.EngineSync( card->driver_data, card->device_data );
+     if (!card)
+          return DFB_OK;
+
+     ret = dfb_gfxcard_lock( GDLF_SYNC );
+     if (ret)
+          return ret;
+
+     dfb_gfxcard_unlock();
+
+     return DFB_OK;
 }
 
 void dfb_gfxcard_invalidate_state()
@@ -1748,18 +1779,37 @@ void dfb_gfxcard_invalidate_state()
      card->shared->state = NULL;
 }
 
-void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
+DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial )
 {
+     DFBResult ret;
+
      D_ASSERT( serial != NULL );
      D_ASSUME( card != NULL );
 
      if (!card)
-          return;
+          return DFB_OK;
+
+     D_ASSERT( card->shared != NULL );
+
+     ret = dfb_gfxcard_lock( GDLF_NONE );
+     if (ret)
+          return ret;
 
      if (card->funcs.WaitSerial)
-          card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
+          ret = card->funcs.WaitSerial( card->driver_data, card->device_data, serial );
      else if (card->funcs.EngineSync)
-          card->funcs.EngineSync( card->driver_data, card->device_data );
+          ret = card->funcs.EngineSync( card->driver_data, card->device_data );
+
+     if (ret) {
+          if (card->funcs.EngineReset)
+               card->funcs.EngineReset( card->driver_data, card->device_data );
+
+          card->shared->state = NULL;
+     }
+
+     dfb_gfxcard_unlock();
+
+     return ret;
 }
 
 void dfb_gfxcard_flush_texture_cache()

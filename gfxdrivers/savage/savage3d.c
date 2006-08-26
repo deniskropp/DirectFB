@@ -62,12 +62,14 @@
 
 /* required implementations */
 
-static void savage3DEngineSync( void *drv, void *dev )
+static DFBResult savage3DEngineSync( void *drv, void *dev )
 {
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
      Savage3DDeviceData *sdev = (Savage3DDeviceData*) dev;
 
      savage3D_waitidle( sdrv, sdev );
+
+     return DFB_OK;
 }
 
 #define SAVAGE3D_DRAWING_FLAGS \

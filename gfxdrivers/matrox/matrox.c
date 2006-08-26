@@ -248,13 +248,15 @@ matroxEngineReset( void *drv, void *dev )
      }
 }
 
-static void
+static DFBResult
 matroxEngineSync( void *drv, void *dev )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
 
      mga_waitidle( mdrv, mdev );
+
+     return DFB_OK;
 }
 
 static void

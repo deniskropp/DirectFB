@@ -226,13 +226,15 @@ i830FlushTextureCache( void *drv, void *dev )
      i830_advance_lp_ring( idrv, idev, &block );
 }
 
-static void
+static DFBResult
 i830EngineSync( void *drv, void *dev )
 {
      I830DriverData *idrv = drv;
      I830DeviceData *idev = dev;
 
      i830_wait_for_blit_idle( idrv, idev );
+
+     return DFB_OK;
 }
 
 /**************************************************************************************************/

@@ -325,9 +325,11 @@ static void radeonEngineReset( void *drv, void *dev )
                                      ISYNC_ANY3D_IDLE2D );
 }
 
-static void radeonEngineSync( void *drv, void *dev )
+static DFBResult radeonEngineSync( void *drv, void *dev )
 {
      radeon_waitidle( (RadeonDriverData*)drv, (RadeonDeviceData*)dev );
+
+     return DFB_OK;
 }
 
 static void radeonFlushTextureCache( void *drv, void *dev )

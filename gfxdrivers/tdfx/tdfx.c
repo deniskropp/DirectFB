@@ -394,12 +394,14 @@ static inline void tdfx_set_clip( TDFXDriverData *tdrv,
 
 /* required implementations */
 
-static void tdfxEngineSync( void *drv, void *dev )
+static DFBResult tdfxEngineSync( void *drv, void *dev )
 {
      TDFXDriverData *tdrv = (TDFXDriverData*) drv;
      TDFXDeviceData *tdev = (TDFXDeviceData*) dev;
 
      tdfx_waitidle( tdrv, tdev );
+
+     return DFB_OK;
 }
 
 #define TDFX_SUPPORTED_DRAWINGFLAGS \

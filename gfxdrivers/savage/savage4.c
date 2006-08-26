@@ -71,13 +71,15 @@
 
 /* required implementations */
 
-static void savage4EngineSync( void *drv, void *dev )
+static DFBResult savage4EngineSync( void *drv, void *dev )
 {
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
      
      SVGDBG("savage4enginesync\n");
      savage4_waitidle( sdrv, sdev );
+
+     return DFB_OK;
 }
 
 #define SAVAGE4_DRAWING_FLAGS \

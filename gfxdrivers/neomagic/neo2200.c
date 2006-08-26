@@ -262,12 +262,14 @@ static inline void neo2200_validate_xpColor( Neo2200DriverData *ndrv,
 
 /* required implementations */
 
-static void neo2200EngineSync( void *drv, void *dev )
+static DFBResult neo2200EngineSync( void *drv, void *dev )
 {
      Neo2200DriverData *ndrv = (Neo2200DriverData*) drv;
      Neo2200DeviceData *ndev = (Neo2200DeviceData*) dev;
 
      neo2200_waitidle( ndrv, ndev );
+
+     return DFB_OK;
 }
 
 #define NEO_SUPPORTED_DRAWINGFLAGS \

@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.14 $
+ * $Revision: 1.15 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -207,9 +207,11 @@ static bool nscDrawRectangle(void *drv, void *dev, DFBRectangle *rect);
 static bool nscBlit(void *drv, void *dev, DFBRectangle *rect, int dx, int dy);
 static bool nscBlitGu1(void *drv, void *dev, DFBRectangle *rect, int dx, int dy);
 
-static void gxEngineSync(void *drv, void *dev)
+static DFBResult gxEngineSync(void *drv, void *dev)
 {
    Gal_wait_until_idle();
+
+   return DFB_OK;
 }
 
 static inline void

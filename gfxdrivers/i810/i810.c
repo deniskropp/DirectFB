@@ -176,13 +176,15 @@ i810FlushTextureCache(void *drv, void *dev)
 	END_LRING(i810drv);
 }
 
-static void
+static DFBResult
 i810EngineSync(void *drv, void *dev)
 {
 	I810DriverData *i810drv = (I810DriverData *) drv;
 	I810DeviceData *i810dev = (I810DeviceData *) dev;
 
 	i810_wait_for_blit_idle(i810drv, i810dev);
+
+    return DFB_OK;
 }
 
 /*

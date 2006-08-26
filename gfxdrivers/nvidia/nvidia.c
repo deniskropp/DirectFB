@@ -399,9 +399,11 @@ static void nvEngineReset( void *drv, void *dev )
      nvdev->beta4_set  = false;
 }
 
-static void nvEngineSync( void *drv, void *dev )
+static DFBResult nvEngineSync( void *drv, void *dev )
 {
      nv_waitidle( (NVidiaDriverData*)drv, (NVidiaDeviceData*)dev );
+
+     return DFB_OK;
 }
 
 static void nvFlushTextureCache( void *drv, void *dev )

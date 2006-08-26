@@ -155,12 +155,14 @@ static void mach64EngineReset( void *drv, void *dev )
           mach64_out32( mmio, HW_DEBUG, mdev->hw_debug );
 }
 
-static void mach64EngineSync( void *drv, void *dev )
+static DFBResult mach64EngineSync( void *drv, void *dev )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
 
      mach64_waitidle( mdrv, mdev );
+
+     return DFB_OK;
 }
 
 static void mach64FlushTextureCache( void *drv, void *dev )

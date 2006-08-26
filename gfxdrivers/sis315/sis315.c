@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.13 2006-05-01 19:09:28 dok Exp $
+ * $Id: sis315.c,v 1.14 2006-08-26 09:34:19 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -50,7 +50,7 @@ DFB_GRAPHICS_DRIVER(sis315);
 #define SIS_SUPPORTED_BLITTING_FLAGS		\
 	(DSBLIT_SRC_COLORKEY)
 
-static void sis_engine_sync(void *driver_data, void *device_data)
+static DFBResult sis_engine_sync(void *driver_data, void *device_data)
 {
 	(void)driver_data;
 	(void)device_data;
@@ -59,6 +59,8 @@ static void sis_engine_sync(void *driver_data, void *device_data)
 	 * this driver syncs after every command,
 	 * so this function can be left empty
 	 */
+
+    return DFB_OK;
 }
 
 static void sis_check_state(void *driver_data, void *device_data,

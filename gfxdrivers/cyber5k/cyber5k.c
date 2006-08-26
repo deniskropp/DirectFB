@@ -90,12 +90,14 @@ static bool cyber5kBlit( void *drv, void *dev,
 static bool cyber5kBlit24( void *drv, void *dev,
                            DFBRectangle *rect, int dx, int dy );
 
-static void cyber5kEngineSync( void *drv, void *dev )
+static DFBResult cyber5kEngineSync( void *drv, void *dev )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
 
      cyber_waitidle( cdrv, cdev );
+
+     return DFB_OK;
 }
 
 static void cyber5kCheckState( void *drv, void *dev,

@@ -152,7 +152,7 @@ typedef struct _GraphicsDeviceFuncs {
       *
       * It's also called before entering the OpenGL state (e.g. DRI driver).
       */
-     void (*EngineSync)( void *driver_data, void *device_data );
+     DFBResult (*EngineSync)( void *driver_data, void *device_data );
 
      /*
       * after the video memory has been written to by the CPU (e.g. modification
@@ -188,7 +188,7 @@ typedef struct _GraphicsDeviceFuncs {
      /*
       * Makes sure that graphics hardware has finished the specified operation.
       */
-     void (*WaitSerial)( void *driver_data, void *device_data, const CoreGraphicsSerial *serial );
+     DFBResult (*WaitSerial)( void *driver_data, void *device_data, const CoreGraphicsSerial *serial );
 
      /*
       * emit any buffered commands, i.e. trigger processing
@@ -319,9 +319,9 @@ void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state );
 void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
                             CoreFont *font, CardState *state );
 
-void dfb_gfxcard_sync( void );
+DFBResult dfb_gfxcard_sync( void );
 void dfb_gfxcard_invalidate_state( void );
-void dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
+DFBResult dfb_gfxcard_wait_serial( const CoreGraphicsSerial *serial );
 void dfb_gfxcard_flush_texture_cache( void );
 void dfb_gfxcard_flush_read_cache( void );
 void dfb_gfxcard_after_set_var( void );

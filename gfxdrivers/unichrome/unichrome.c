@@ -357,7 +357,7 @@ static void uc_after_set_var(void* drv, void* dev)
 
 /** Wait until the engine is idle. */
 
-static void uc_engine_sync(void* drv, void* dev)
+static DFBResult uc_engine_sync(void* drv, void* dev)
 {
      UcDriverData* ucdrv = (UcDriverData*) drv;
      UcDeviceData* ucdev = (UcDeviceData*) dev;
@@ -372,6 +372,8 @@ static void uc_engine_sync(void* drv, void* dev)
           if (++loop > MAXLOOP) {
                D_ERROR("DirectFB/Unichrome: Timeout waiting for idle engine!\n");
                break;
+
+               /* FIXME: return DFB_TIMEOUT and implement EngineReset! */
           }
      }
 
@@ -382,6 +384,8 @@ static void uc_engine_sync(void* drv, void* dev)
 
      ucdev->idle_waitcycles += loop;
      ucdev->must_wait = 0;
+
+     return DFB_OK;
 }
 
 
