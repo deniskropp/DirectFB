@@ -8097,6 +8097,11 @@ void gFillRectangle( CardState *state, DFBRectangle *rect )
 
      D_ASSERT( gfxs != NULL );
 
+     D_ASSERT( state->clip.x1 <= rect->x );
+     D_ASSERT( state->clip.y1 <= rect->y );
+     D_ASSERT( state->clip.x2 >= (rect->x + rect->w - 1) );
+     D_ASSERT( state->clip.y2 >= (rect->y + rect->h - 1) );
+
      CHECK_PIPELINE();
 
      if (!ABacc_prepare( gfxs, rect->w ))
@@ -8201,6 +8206,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
      D_ASSERT( gfxs != NULL );
 
+     D_ASSERT( state->clip.x1 <= dx );
+     D_ASSERT( state->clip.y1 <= dy );
+     D_ASSERT( state->clip.x2 >= (dx + rect->w - 1) );
+     D_ASSERT( state->clip.y2 >= (dy + rect->h - 1) );
+
      CHECK_PIPELINE();
 
      if (!ABacc_prepare( gfxs, rect->w ))
@@ -8293,6 +8303,11 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      int h;
 
      D_ASSERT( gfxs != NULL );
+
+     D_ASSERT( state->clip.x1 <= drect->x );
+     D_ASSERT( state->clip.y1 <= drect->y );
+     D_ASSERT( state->clip.x2 >= (drect->x + drect->w - 1) );
+     D_ASSERT( state->clip.y2 >= (drect->y + drect->h - 1) );
 
      CHECK_PIPELINE();
 
