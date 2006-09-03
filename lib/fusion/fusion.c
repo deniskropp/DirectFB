@@ -921,7 +921,7 @@ fusion_dispatch_loop( DirectThread *thread, void *arg )
                               _fusion_call_process( world, header->msg_id, data );
                               break;
                          case FMT_REACTOR:
-                              _fusion_reactor_process_message( header->msg_id, data, NULL, world );
+                              _fusion_reactor_process_message( world, header->msg_id, data );
                               break;
                          case FMT_SHMPOOL:
                               _fusion_shmpool_process( world, header->msg_id, data );

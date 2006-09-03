@@ -67,6 +67,11 @@ FusionReactor *fusion_reactor_new          ( int                 msg_size,
 /*
  * Destroy the reactor.
  */
+DirectResult   fusion_reactor_destroy      ( FusionReactor      *reactor );
+
+/*
+ * Free the reactor.
+ */
 DirectResult   fusion_reactor_free         ( FusionReactor      *reactor );
 
 

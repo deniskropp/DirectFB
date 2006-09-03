@@ -106,10 +106,9 @@ FusionWorld *_fusion_world( const FusionWorldShared *shared );
  * from reactor.c
  */
 void _fusion_reactor_free_all       ( FusionWorld   *world );
-void _fusion_reactor_process_message( int            reactor_id,
-                                      const void    *msg_data,
-                                      FusionReactor *reactor, /* one of reactor and world must not be NULL */
-                                      FusionWorld   *world );
+void _fusion_reactor_process_message( FusionWorld   *world,
+                                      int            reactor_id,
+                                      const void    *msg_data );
 
 /*
  * from call.c
