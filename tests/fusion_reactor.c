@@ -64,7 +64,7 @@ reaction_callback( const void *msg_data,
 {
      MSG( "Received message (FusionID %lu, pid %d)!\n", fusion_id( m_world ), getpid() );
 
-     return RS_OK;
+     return RS_REMOVE;
 }
 
 
