@@ -110,6 +110,7 @@ struct _CoreFont {
      unsigned int                  row_stamp;
 
      DirectHash                   *glyph_hash;    /* infos about loaded glyphs        */
+     CoreGlyphData                *glyph_data[128];
 
      int                           height;        /* font height                      */
 

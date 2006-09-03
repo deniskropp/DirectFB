@@ -1555,7 +1555,11 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
           CoreGlyphData *glyph;
           unsigned int   current = indices[i];
 
-          glyph = direct_hash_lookup( font->glyph_hash, current );
+          if (current < 128)
+               glyph = font->glyph_data[current];
+          else
+               glyph = direct_hash_lookup( font->glyph_hash, current );
+
           if (!glyph) {
                switch (blit) {
                     case 1:
@@ -1567,7 +1571,7 @@ dfb_gfxcard_drawstring( const __u8 *text, int bytes,
                }
                blit = 0;
 
-               if (dfb_font_get_glyph_data( font, indices[i], &glyph )) {
+               if (dfb_font_get_glyph_data( font, current, &glyph )) {
                     prev = current;
                     continue;
                }

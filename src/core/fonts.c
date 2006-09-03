@@ -215,6 +215,11 @@ dfb_font_get_glyph_data( CoreFont        *font,
           D_ASSERT( font->active_row < font->num_rows );
      }
 
+     if (index < 128 && font->glyph_data[index]) {
+          *ret_data = font->glyph_data[index];
+          return DFB_OK;
+     }
+
      data = direct_hash_lookup( font->glyph_hash, index );
      if (data) {
           D_MAGIC_ASSERT( data, CoreGlyphData );
@@ -347,6 +352,9 @@ dfb_font_get_glyph_data( CoreFont        *font,
                          /*ret =*/ direct_hash_remove( font->glyph_hash, d->index );
                          //FIXME: use D_ASSERT( ret == DFB_OK );
 
+                         if (d->index < 128)
+                              font->glyph_data[d->index] = NULL;
+
                          D_MAGIC_CLEAR( d );
                          D_FREE( d );
                     }
@@ -428,6 +436,9 @@ out:
           direct_list_append( &row->glyphs, &data->link );
 
      direct_hash_insert( font->glyph_hash, index, data );
+
+     if (index < 128)
+          font->glyph_data[index] = data;
 
      *ret_data = data;
 
