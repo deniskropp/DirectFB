@@ -69,7 +69,8 @@
 
 IDirectFB *idirectfb_singleton = NULL;
 
-static DFBResult apply_configuration( IDirectFB *dfb );
+static DFBResult apply_configuration( IDirectFB        *dfb,
+                                      CoreLayerContext *context );
 
 static DFBResult CreateRemote( const char *host, int session, IDirectFB **ret_interface );
 
@@ -156,6 +157,7 @@ DFBResult
 DirectFBCreate( IDirectFB **interface )
 {
      DFBResult  ret;
+     IDirectFB *dfb;
      CoreDFB   *core_dfb;
 
      if (!dfb_config) {
@@ -192,11 +194,10 @@ DirectFBCreate( IDirectFB **interface )
      if (ret)
           return ret;
 
-     DIRECT_ALLOCATE_INTERFACE( idirectfb_singleton, IDirectFB );
+     DIRECT_ALLOCATE_INTERFACE( dfb, IDirectFB );
 
-     ret = IDirectFB_Construct( idirectfb_singleton, core_dfb );
+     ret = IDirectFB_Construct( dfb, core_dfb );
      if (ret) {
-          idirectfb_singleton = NULL;
           dfb_core_destroy( core_dfb, false );
           return ret;
      }
@@ -206,21 +207,23 @@ DirectFBCreate( IDirectFB **interface )
           CoreLayerContext           *context;
           CoreWindowStack            *stack;
 
-          ret = apply_configuration( idirectfb_singleton );
-          if (ret) {
-               idirectfb_singleton->Release( idirectfb_singleton );
-               idirectfb_singleton = NULL;
-               return ret;
-          }
           /* the primary layer */
           layer = dfb_layer_at_translated( DLID_PRIMARY );
 
           /* get the default (shared) context */
-          ret = dfb_layer_get_primary_context( layer, true, &context );
+          ret = dfb_layer_get_primary_context( layer, false, &context );
           if (ret) {
-             D_ERROR( "DirectFB/DirectFBCreate: "
-                    "Could not get default context of primary layer!\n" );
-             return ret;
+               D_ERROR( "DirectFB/DirectFBCreate: "
+                        "Could not get default context of primary layer!\n" );
+               dfb->Release( dfb );
+               return ret;
+          }
+
+          ret = apply_configuration( dfb, context );
+          if (ret) {
+               dfb_layer_context_unref( context );
+               dfb->Release( dfb );
+               return ret;
           }
 
           stack = dfb_layer_context_windowstack( context );
@@ -228,13 +231,13 @@ DirectFBCreate( IDirectFB **interface )
          
           /* not fatal */
           ret = dfb_wm_start_desktop( stack );
-          if (ret) {
-               D_ERROR( "DirectFB/DirectFBCreate: "
-                        "Could not start desktop!\n" );
-          }
+          if (ret)
+               D_ERROR( "DirectFB/DirectFBCreate: Could not start desktop!\n" );
+
+          dfb_layer_context_unref( context );
      }
 
-     *interface = idirectfb_singleton;
+     *interface = idirectfb_singleton = dfb;
 
      return DFB_OK;
 }
@@ -272,28 +275,15 @@ DirectFBErrorFatal( const char *msg, DFBResult error )
 /**************************************************************************************************/
 
 static DFBResult
-apply_configuration( IDirectFB *dfb )
+apply_configuration( IDirectFB        *dfb,
+                     CoreLayerContext *context )
 {
      DFBResult                   ret;
-     CoreLayer                  *layer;
-     CoreLayerContext           *context;
      CoreWindowStack            *stack;
      DFBDisplayLayerConfig       layer_config;
      DFBDisplayLayerConfigFlags  fail;
 
-     /* the primary layer */
-     layer = dfb_layer_at_translated( DLID_PRIMARY );
-
-     /* get the default (shared) context */
-     ret = dfb_layer_get_primary_context( layer, true, &context );
-     if (ret) {
-          D_ERROR( "DirectFB/DirectFBCreate: "
-                    "Could not get default context of primary layer!\n" );
-          return ret;
-     }
-
      stack = dfb_layer_context_windowstack( context );
-
      D_ASSERT( stack != NULL );
 
      /* set default desktop configuration */
@@ -389,7 +379,6 @@ apply_configuration( IDirectFB *dfb )
           ret = dfb->CreateImageProvider( dfb, dfb_config->layer_bg_filename, &provider );
           if (ret) {
                DirectFBError( "Failed loading background image", ret );
-               dfb_layer_context_unref( context );
                return DFB_INIT;
           }
 
@@ -410,21 +399,15 @@ apply_configuration( IDirectFB *dfb )
           ret = dfb->CreateSurface( dfb, &desc, &image );
           if (ret) {
                DirectFBError( "Failed creating surface for background image", ret );
-
                provider->Release( provider );
-
-               dfb_layer_context_unref( context );
                return DFB_INIT;
           }
 
           ret = provider->RenderTo( provider, image, NULL );
           if (ret) {
                DirectFBError( "Failed loading background image", ret );
-
                image->Release( image );
                provider->Release( provider );
-
-               dfb_layer_context_unref( context );
                return DFB_INIT;
           }
 
@@ -439,8 +422,6 @@ apply_configuration( IDirectFB *dfb )
 
      /* now set the background mode */
      dfb_windowstack_set_background_mode( stack, dfb_config->layer_bg_mode );
-
-     dfb_layer_context_unref( context );
 
      return DFB_OK;
 }
