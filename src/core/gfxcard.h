@@ -66,6 +66,11 @@ typedef struct {
      unsigned int            surface_max_power_of_two_pixelpitch;
      unsigned int            surface_max_power_of_two_bytepitch;
      unsigned int            surface_max_power_of_two_height;
+
+     DFBDimension            dst_min;
+     DFBDimension            dst_max;
+     DFBDimension            src_min;
+     DFBDimension            src_max;
 } CardLimitations;
 
 DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
@@ -73,7 +78,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          32
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          33
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     40
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   60

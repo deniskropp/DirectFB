@@ -28,6 +28,7 @@
 
 #include <config.h>
 
+#include <limits.h>
 #include <string.h>
 
 #include <fusion/fusion.h>
@@ -106,6 +107,7 @@ struct _GraphicsDevice {
      void                      *device_data; /* copy of shared->device_data */
 
      CardCapabilities           caps;        /* local caps */
+     CardLimitations            limits;      /* local limits */
 
      GraphicsDeviceFuncs        funcs;
 };
@@ -143,6 +145,12 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
 
      /* fill generic device info */
      gGetDeviceInfo( &shared->device_info );
+
+     if (!shared->device_info.limits.dst_max.w)
+          shared->device_info.limits.dst_max.w = INT_MAX;
+
+     if (!shared->device_info.limits.dst_max.h)
+          shared->device_info.limits.dst_max.h = INT_MAX;
 
      /* Limit video ram length */
      videoram_length = dfb_system_videoram_length();
@@ -216,8 +224,10 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
                D_INFO( "DirectFB/Graphics: Acceleration disabled (by 'no-hardware')\n" );
           }
      }
-     else
-          card->caps = shared->device_info.caps;
+     else {
+          card->caps   = shared->device_info.caps;
+          card->limits = shared->device_info.limits;
+     }
 
      shared->surface_manager = dfb_surfacemanager_create( core,
                                                           &shared->device_info.limits );
@@ -295,8 +305,10 @@ dfb_gfxcard_join( CoreDFB *core, void *data_local, void *data_shared )
                D_INFO( "DirectFB/Graphics: Acceleration disabled (by 'no-hardware')\n" );
           }
      }
-     else
-          card->caps = shared->device_info.caps;
+     else {
+          card->caps   = shared->device_info.caps;
+          card->limits = shared->device_info.limits;
+     }
 
      return DFB_OK;
 }
@@ -766,7 +778,13 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
 
                     rect = rects[i];
 
-                    if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ))
+                    if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h) {
+                         dfb_clip_rectangle( &state->clip, &rect );
+
+                         if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h)
+                              break;
+                    }
+                    else if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ))
                          dfb_clip_rectangle( &state->clip, &rect );
 
                     if (!card->funcs.FillRectangle( card->driver_data, 
@@ -877,7 +895,8 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
      }
 
      if ((card->caps.flags & CCF_CLIPPING) || !dfb_clip_needed( &state->clip, rect )) {
-          if (dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
+          if (rect->w <= card->limits.dst_max.w && rect->h <= card->limits.dst_max.h &&
+              dfb_gfxcard_state_check( state, DFXL_DRAWRECTANGLE ) &&
               dfb_gfxcard_state_acquire( state, DFXL_DRAWRECTANGLE ))
           {
                hw = card->funcs.DrawRectangle( card->driver_data,
@@ -899,8 +918,9 @@ void dfb_gfxcard_drawrectangle( DFBRectangle *rect, CardState *state )
               dfb_gfxcard_state_acquire( state, DFXL_FILLRECTANGLE ))
           {
                for (; i<num; i++) {
-                    hw = card->funcs.FillRectangle( card->driver_data,
-                                                    card->device_data, &rects[i] );
+                    hw = rects[i].w <= card->limits.dst_max.w && rects[i].h <= card->limits.dst_max.h
+                         && card->funcs.FillRectangle( card->driver_data,
+                                                       card->device_data, &rects[i] );
                     if (!hw)
                          break;
                }
@@ -980,11 +1000,17 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
           for (; i<num_spans; i++) {
                DFBRectangle rect = { spans[i].x, y + i, spans[i].w, 1 };
 
-               if (!(card->caps.flags & CCF_CLIPPING)) {
+               if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h) {
                     if (!dfb_clip_rectangle( &state->clip, &rect ))
                          continue;
+
+                    if (rect.w > card->limits.dst_max.w || rect.h > card->limits.dst_max.h)
+                         break;
                }
-               
+               else if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ))
+                    if (!dfb_clip_rectangle( &state->clip, &rect ))
+                         continue;
+
                if (!card->funcs.FillRectangle( card->driver_data,
                                                card->device_data, &rect ))
                     break;
