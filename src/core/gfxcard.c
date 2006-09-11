@@ -1439,7 +1439,7 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
 
      if (!hw) {
           if (gAcquire( state, DFXL_STRETCHBLIT )) {
-               dfb_clip_stretchblit( &state->clip, srect, drect );
+               /* Clipping is performed in the following function. */
                gStretchBlit( state, srect, drect );
                gRelease( state );
           }

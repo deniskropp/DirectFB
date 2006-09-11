@@ -143,7 +143,8 @@ struct _GenefxState {
 
      int Ostep; /* controls horizontal blitting direction */
 
-     int SperD; /* for scaled routines only */
+     int SperD;     /* for scaled routines only */
+     int Xphase;    /* initial value for fractional steps (zero if not clipped) */
 
      bool need_accumulator;
 };

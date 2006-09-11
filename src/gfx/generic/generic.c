@@ -1227,7 +1227,7 @@ static void Bop_16_Sto_Aop( GenefxState *gfxs )
 {
      int    w2;
      int    w      = gfxs->length;
-     int    i      = 0;
+     int    i      = gfxs->Xphase;
      __u32 *D      = gfxs->Aop[0];
      __u16 *S      = gfxs->Bop[0];
      int    SperD  = gfxs->SperD;
@@ -1257,7 +1257,7 @@ static void Bop_16_Sto_Aop( GenefxState *gfxs )
 static void Bop_24_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      __u8 *D     = gfxs->Aop[0];
      __u8 *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
@@ -1276,7 +1276,7 @@ static void Bop_24_Sto_Aop( GenefxState *gfxs )
 static void Bop_32_Sto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      __u32 *D     = gfxs->Aop[0];
      __u32 *S     = gfxs->Bop[0];
      int    SperD = gfxs->SperD;
@@ -1292,7 +1292,7 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      __u16 *D     = gfxs->Aop[0];
      __u16 *S     = gfxs->Bop[0];
      int    SperD = gfxs->SperD;
@@ -1327,7 +1327,7 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
 static void Bop_8_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      __u8 *D     = gfxs->Aop[0];
      __u8 *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
@@ -1343,7 +1343,7 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      __u16 *D     = gfxs->Aop[0];
      __u16 *S     = gfxs->Bop[0];
      int    SperD = gfxs->SperD;
@@ -1378,7 +1378,7 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
 static void Bop_i420_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      __u8 *Dy    = gfxs->Aop[0];
      __u8 *Sy    = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
@@ -1412,7 +1412,7 @@ static void Bop_i420_Sto_Aop( GenefxState *gfxs )
 static void Bop_NV_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      __u8 *Dy    = gfxs->Aop[0];
      __u8 *Sy    = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
@@ -1841,7 +1841,7 @@ static GenefxFunc Bop_PFI_SKtoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 static void Sop_argb1555_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -1864,7 +1864,7 @@ static void Sop_argb1555_Sto_Dacc( GenefxState *gfxs )
 static void Sop_rgb16_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -1887,7 +1887,7 @@ static void Sop_rgb16_Sto_Dacc( GenefxState *gfxs )
 static void Sop_rgb24_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -1910,7 +1910,7 @@ static void Sop_rgb24_Sto_Dacc( GenefxState *gfxs )
 static void Sop_rgb32_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -1933,7 +1933,7 @@ static void Sop_rgb32_Sto_Dacc( GenefxState *gfxs )
 static void Sop_argb_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -1956,7 +1956,7 @@ static void Sop_argb_Sto_Dacc( GenefxState *gfxs )
 static void Sop_airgb_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -1979,7 +1979,7 @@ static void Sop_airgb_Sto_Dacc( GenefxState *gfxs )
 static void Sop_a8_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2002,7 +2002,7 @@ static void Sop_a8_Sto_Dacc( GenefxState *gfxs )
 static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
 {
      int  w     = gfxs->length>>1;
-     int  i     = 0;
+     int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2039,7 +2039,7 @@ static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
 static void Sop_rgb332_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2062,7 +2062,7 @@ static void Sop_rgb332_Sto_Dacc( GenefxState *gfxs )
 static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
 {
      int  w     = gfxs->length>>1;
-     int  i     = 0;
+     int  i     = gfxs->Xphase;
      int  SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2099,7 +2099,7 @@ static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
 static void Sop_lut8_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2124,7 +2124,7 @@ static void Sop_lut8_Sto_Dacc( GenefxState *gfxs )
 static void Sop_alut44_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2150,7 +2150,7 @@ static void Sop_alut44_Sto_Dacc( GenefxState *gfxs )
 static void Sop_argb2554_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2173,7 +2173,7 @@ static void Sop_argb2554_Sto_Dacc( GenefxState *gfxs )
 static void Sop_argb4444_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2196,7 +2196,7 @@ static void Sop_argb4444_Sto_Dacc( GenefxState *gfxs )
 static void Sop_i420_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D  = gfxs->Dacc;
@@ -2219,7 +2219,7 @@ static void Sop_i420_Sto_Dacc( GenefxState *gfxs )
 static void Sop_nv12_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D   = gfxs->Dacc;
@@ -2241,7 +2241,7 @@ static void Sop_nv12_Sto_Dacc( GenefxState *gfxs )
 static void Sop_nv21_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D   = gfxs->Dacc;
@@ -2263,7 +2263,7 @@ static void Sop_nv21_Sto_Dacc( GenefxState *gfxs )
 static void Sop_ayuv_Sto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2313,7 +2313,7 @@ static GenefxFunc Sop_PFI_Sto_Dacc[DFB_NUM_PIXELFORMATS] = {
 static void Sop_argb1555_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2341,7 +2341,7 @@ static void Sop_argb1555_SKto_Dacc( GenefxState *gfxs )
 static void Sop_rgb16_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2369,7 +2369,7 @@ static void Sop_rgb16_SKto_Dacc( GenefxState *gfxs )
 static void Sop_rgb24_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2401,7 +2401,7 @@ static void Sop_rgb24_SKto_Dacc( GenefxState *gfxs )
 static void Sop_rgb32_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2430,7 +2430,7 @@ static void Sop_rgb32_SKto_Dacc( GenefxState *gfxs )
 static void Sop_argb_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2458,7 +2458,7 @@ static void Sop_argb_SKto_Dacc( GenefxState *gfxs )
 static void Sop_airgb_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2486,7 +2486,7 @@ static void Sop_airgb_SKto_Dacc( GenefxState *gfxs )
 static void Sop_a8_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
@@ -2510,7 +2510,7 @@ static void Sop_a8_SKto_Dacc( GenefxState *gfxs )
 static void Sop_lut8_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2540,7 +2540,7 @@ static void Sop_lut8_SKto_Dacc( GenefxState *gfxs )
 static void Sop_alut44_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2571,7 +2571,7 @@ static void Sop_alut44_SKto_Dacc( GenefxState *gfxs )
 static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
 {
      int   w     = gfxs->length>>1;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      int   SperD = gfxs->SperD;
      __u32 Ky    = (gfxs->Skey & 0x000000FF);
 #ifdef WORDS_BIGENDIAN
@@ -2638,7 +2638,7 @@ static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
 static void Sop_rgb332_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2666,7 +2666,7 @@ static void Sop_rgb332_SKto_Dacc( GenefxState *gfxs )
 static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
 {
      int   w     = gfxs->length>>1;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      int   SperD = gfxs->SperD;
      __u32 Ky    = (gfxs->Skey & 0x0000FF00) >>  8;
 #ifdef WORDS_BIGENDIAN
@@ -2733,7 +2733,7 @@ static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
 static void Sop_argb2554_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -2761,7 +2761,7 @@ static void Sop_argb2554_SKto_Dacc( GenefxState *gfxs )
 static void Sop_argb4444_SKto_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
-     int i     = 0;
+     int i     = gfxs->Xphase;
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
@@ -4402,7 +4402,7 @@ static GenefxFunc Sacc_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 static void Sacc_Sto_Aop_argb1555( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u16             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4426,7 +4426,7 @@ static void Sacc_Sto_Aop_rgb16( GenefxState *gfxs )
 {
      int                l;
      int                w      = gfxs->length;
-     int                i      = 0;
+     int                i      = gfxs->Xphase;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
      __u16             *D      = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
@@ -4498,7 +4498,7 @@ static void Sacc_Sto_Aop_rgb16( GenefxState *gfxs )
 static void Sacc_Sto_Aop_rgb24( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4521,7 +4521,7 @@ static void Sacc_Sto_Aop_rgb24( GenefxState *gfxs )
 static void Sacc_Sto_Aop_rgb32( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u32             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4543,7 +4543,7 @@ static void Sacc_Sto_Aop_rgb32( GenefxState *gfxs )
 static void Sacc_Sto_Aop_argb( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u32             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4566,7 +4566,7 @@ static void Sacc_Sto_Aop_argb( GenefxState *gfxs )
 static void Sacc_Sto_Aop_airgb( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u32             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4589,7 +4589,7 @@ static void Sacc_Sto_Aop_airgb( GenefxState *gfxs )
 static void Sacc_Sto_Aop_a8( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4609,7 +4609,7 @@ static void Sacc_Sto_Aop_yuy2( GenefxState *gfxs )
 {
      int                l;
      int                w      = gfxs->length;
-     int                i      = 0;
+     int                i      = gfxs->Xphase;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
      __u16             *D      = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
@@ -4675,7 +4675,7 @@ static void Sacc_Sto_Aop_yuy2( GenefxState *gfxs )
 static void Sacc_Sto_Aop_rgb332( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4698,7 +4698,7 @@ static void Sacc_Sto_Aop_uyvy( GenefxState *gfxs )
 {
      int                l;
      int                w      = gfxs->length;
-     int                i      = 0;
+     int                i      = gfxs->Xphase;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
      __u16             *D      = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
@@ -4764,7 +4764,7 @@ static void Sacc_Sto_Aop_uyvy( GenefxState *gfxs )
 static void Sacc_Sto_Aop_lut8( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4788,7 +4788,7 @@ static void Sacc_Sto_Aop_lut8( GenefxState *gfxs )
 static void Sacc_Sto_Aop_alut44( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4813,7 +4813,7 @@ static void Sacc_Sto_Aop_alut44( GenefxState *gfxs )
 static void Sacc_Sto_Aop_argb2554( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u16             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4836,7 +4836,7 @@ static void Sacc_Sto_Aop_argb2554( GenefxState *gfxs )
 static void Sacc_Sto_Aop_argb4444( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u16             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -4858,7 +4858,7 @@ static void Sacc_Sto_Aop_argb4444( GenefxState *gfxs )
 
 static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
 {
-     int                i      = 0;
+     int                i      = gfxs->Xphase;
      int                w      = gfxs->length;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
      __u8              *Dy     = gfxs->Aop[0];
@@ -4879,7 +4879,7 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
           __u8 *Dv = gfxs->Aop[2];
           
           w = gfxs->length>>1;
-          i = 0;
+          i = gfxs->Xphase>>1;
           
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
@@ -4917,7 +4917,7 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
 
 static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
 {
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      int                w     = gfxs->length;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *Dy    = gfxs->Aop[0];
@@ -4937,7 +4937,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
           __u16 *Duv = gfxs->Aop[1];
           
           w = gfxs->length>>1;
-          i = 0;
+          i = gfxs->Xphase>>1;
           
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
@@ -4975,7 +4975,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
 
 static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
 {
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      int                w     = gfxs->length;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u8              *Dy    = gfxs->Aop[0];
@@ -4995,7 +4995,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
           __u16 *Dvu = gfxs->Aop[1];
           
           w = gfxs->length>>1;
-          i = 0;
+          i = gfxs->Xphase>>1;
           
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
@@ -5034,7 +5034,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
 static void Sacc_Sto_Aop_ayuv( GenefxState *gfxs )
 {
      int                w     = gfxs->length;
-     int                i     = 0;
+     int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
      __u32             *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
@@ -8314,10 +8314,11 @@ void gBlit( CardState *state, DFBRectangle *rect, int dx, int dy )
 
 void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 {
-     GenefxState *gfxs = state->gfxs;
+     GenefxState  *gfxs  = state->gfxs;
+     DFBRectangle  orect = *drect;
 
-     int f;
-     int i = 0;
+     int fx, fy;
+     int ix, iy;
      int h;
 
      D_ASSERT( gfxs != NULL );
@@ -8329,8 +8330,37 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      CHECK_PIPELINE();
 
+     /* Clip destination rectangle. */
+     if (!dfb_rectangle_intersect_by_region( drect, &state->clip ))
+          return;
+
+     /* Calculate fractions. */
+     fx = (srect->w << 16) / orect.w;
+     fy = (srect->h << 16) / orect.h;
+
+     /* Calculate horizontal phase and offset. */
+     ix = fx * (drect->x - orect.x);
+     srect->x += ix >> 16;
+     ix &= 0xFFFF;
+
+     /* Calculate vertical phase and offset. */
+     iy = fy * (drect->y - orect.y);
+     srect->y += iy >> 16;
+     iy &= 0xFFFF;
+
+     /* Adjust source size. */
+     srect->w = ((drect->w * fx + ix) + 0xFFFF) >> 16;
+     srect->h = ((drect->h * fy + iy) + 0xFFFF) >> 16;
+
+     D_ASSERT( srect->x + srect->w <= state->source->width );
+     D_ASSERT( srect->y + srect->h <= state->source->height );
+     D_ASSERT( drect->x + drect->w <= state->clip.x2 + 1 );
+     D_ASSERT( drect->y + drect->h <= state->clip.y2 + 1 );
+
+
      if (!ABacc_prepare( gfxs, MAX( srect->w, drect->w ) ))
           return;
+
 
      switch (gfxs->src_format) {
           case DSPF_A4:
@@ -8355,9 +8385,9 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
      gfxs->Slen   = srect->w;
      gfxs->Dlen   = drect->w;
      gfxs->length = gfxs->Dlen;
-     gfxs->SperD  = (srect->w << 16) / drect->w;
+     gfxs->SperD  = fx;
+     gfxs->Xphase = ix;
 
-     f = (srect->h << 16) / drect->h;
      h = drect->h;
 
      Aop_xy( gfxs, drect->x, drect->y );
@@ -8368,10 +8398,10 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
           Aop_next( gfxs );
 
-          i += f;
+          iy += fy;
 
-          while (i > 0xFFFF) {
-               i -= 0x10000;
+          while (iy > 0xFFFF) {
+               iy -= 0x10000;
                Bop_next( gfxs );
           }
      }

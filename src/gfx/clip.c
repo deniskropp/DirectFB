@@ -242,16 +242,16 @@ dfb_clip_stretchblit( const DFBRegion *clip,
 
      if (drect->x != orig_dst.x)
           srect->x += (int)( (drect->x - orig_dst.x) *
-                             (srect->w / (float)orig_dst.w) + 0.5f );
+                             (srect->w / (float)orig_dst.w) );
 
      if (drect->y != orig_dst.y)
           srect->y += (int)( (drect->y - orig_dst.y) *
-                             (srect->h / (float)orig_dst.h) + 0.5f );
+                             (srect->h / (float)orig_dst.h) );
 
      if (drect->w != orig_dst.w)
-          srect->w = D_ICEIL(srect->w * (drect->w / (float)orig_dst.w));
+          srect->w = (int)( srect->w * (drect->w / (float)orig_dst.w) );
 
      if (drect->h != orig_dst.h)
-          srect->h = D_ICEIL(srect->h * (drect->h / (float)orig_dst.h));
+          srect->h = (int)( srect->h * (drect->h / (float)orig_dst.h) );
 }
 
