@@ -32,6 +32,7 @@ INCLUDES = \
 AM_CPPFLAGS = -DDATADIR=\"${RUNTIME_SYSROOT}@DATADIR@\"
 
 idirectfbimageprovider_LTLIBRARIES = \
+	libidirectfbimageprovider_dfiff.la	\
 	libidirectfbimageprovider_mpeg2.la	\
 	$(GIF_PROVIDER_LTLIB)			\
 	$(JPEG_PROVIDER_LTLIB)			\
@@ -59,6 +60,14 @@ libidirectfbimageprovider_mpeg2_la_LIBADD = \
 	mpeg2/libmpeg2decode.la
 
 libidirectfbimageprovider_mpeg2_la_LDFLAGS = -avoid-version -module
+
+
+libidirectfbimageprovider_dfiff_la_SOURCES = idirectfbimageprovider_dfiff.c
+
+libidirectfbimageprovider_dfiff_la_LIBADD = \
+	$(top_builddir)/src/libdirectfb.la
+
+libidirectfbimageprovider_dfiff_la_LDFLAGS = -avoid-version -module
 
 
 libidirectfbimageprovider_gif_la_SOURCES = idirectfbimageprovider_gif.c
