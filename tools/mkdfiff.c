@@ -373,6 +373,7 @@ static DFIFFHeader header = {
 int
 main( int argc, char *argv[] )
 {
+     int                   i;
      DFBSurfaceDescription desc = { flags: DSDESC_NONE };
 
      /* Parse the command line. */
@@ -386,9 +387,14 @@ main( int argc, char *argv[] )
 
      if (load_image( filename, &desc ))
           return -2;
-     
-     fprintf( stderr, "Writing %dx%d %s image...\n", desc.width, desc.height,
-              dfb_pixelformat_name( desc.pixelformat ) );
+
+     for (i=0; i<D_ARRAY_SIZE(format_names); i++) {
+          if (format_names[i].format == desc.pixelformat) {
+               fprintf( stderr, "Writing %dx%d %s image...\n", desc.width, desc.height,
+                        format_names[i].name );
+               break;
+          }
+     }
 
      header.width  = desc.width;
      header.height = desc.height;

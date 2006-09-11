@@ -59,7 +59,7 @@ dfbpenmount_SOURCES = dfbpenmount.c
 dfbpenmount_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
 
 mkdfiff_SOURCES = mkdfiff.c
-mkdfiff_LDADD   = $(LIBPNG) ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
+mkdfiff_LDADD   = $(LIBPNG) ../lib/direct/libdirect.la
 
 fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
