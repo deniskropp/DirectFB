@@ -32,7 +32,7 @@
 
 #include <direct/build.h>
 
-void direct_print_memleaks();
+void direct_print_memleaks( void );
 
 
 void  direct_free   ( const char *file, int line,
