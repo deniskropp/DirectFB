@@ -1533,10 +1533,13 @@ static DFBResult dfb_surface_allocate_buffer( CoreSurface            *surface,
      pitch = DFB_BYTES_PER_LINE( format, MAX( surface->width, surface->min_width ) );
 
      /* Align pitch. */
-     pitch = (pitch + 3) & ~3;
+     pitch = (pitch + 7) & ~7;
 
      /* Calculate amount of data to allocate. */
      size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
+
+     /* Align buffer size. */
+     size = (size+16 + 15) & ~15;
 
      /* Allocate buffer structure. */
      buffer = SHCALLOC( surface->shmpool, 1, sizeof(SurfaceBuffer) );
@@ -1593,10 +1596,13 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
      pitch = DFB_BYTES_PER_LINE( format, MAX( surface->width, surface->min_width ) );
 
      /* Align pitch. */
-     pitch = (pitch + 3) & ~3;
+     pitch = (pitch + 7) & ~7;
 
      /* Calculate amount of data to allocate. */
      size = DFB_PLANE_MULTIPLY( format, MAX( surface->height, surface->min_height ) * pitch );
+
+     /* Align buffer size. */
+     size = (size+16 + 15) & ~15;
 
      if (buffer->system.health) {
           /* Free old memory. */

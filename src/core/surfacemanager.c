@@ -456,6 +456,9 @@ DFBResult dfb_surfacemanager_allocate( SurfaceManager *manager,
      length = DFB_PLANE_MULTIPLY( buffer->format,
                                   MAX( surface->height, surface->min_height ) * pitch );
 
+     /* Add extra space for optimized routines which are now allowed to overrun, e.g. prefetching. */
+     length += 16;
+
      if (manager->byteoffset_align > 1) {
           length += manager->byteoffset_align - 1;
           length -= length % manager->byteoffset_align;
