@@ -8323,11 +8323,6 @@ void gStretchBlit( CardState *state, DFBRectangle *srect, DFBRectangle *drect )
 
      D_ASSERT( gfxs != NULL );
 
-     D_ASSERT( state->clip.x1 <= drect->x );
-     D_ASSERT( state->clip.y1 <= drect->y );
-     D_ASSERT( state->clip.x2 >= (drect->x + drect->w - 1) );
-     D_ASSERT( state->clip.y2 >= (drect->y + drect->h - 1) );
-
      CHECK_PIPELINE();
 
      /* Clip destination rectangle. */
