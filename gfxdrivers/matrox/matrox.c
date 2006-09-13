@@ -705,6 +705,7 @@ matroxSetState( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
+     bool              prev_blit_fields = mdev->blit_fields;
 
      if (state->modified == SMF_ALL) {
           mdev->valid = 0;
@@ -722,7 +723,7 @@ matroxSetState( void *drv, void *dev,
                MGA_INVALIDATE( m_drawColor | m_blitColor | m_color );
 
           if (state->modified & SMF_DESTINATION)
-               MGA_INVALIDATE( m_color | m_Source | m_source );
+               MGA_INVALIDATE( m_destination | m_clip | m_color | m_Source | m_source );
 
           if (state->modified & SMF_SOURCE)
                MGA_INVALIDATE( m_Source | m_source | m_SrcKey | m_srckey | m_blitBlend );
@@ -758,6 +759,9 @@ matroxSetState( void *drv, void *dev,
                mdev->blit_deinterlace = 0;
                mdev->blit_fields      = 0;
      }
+
+     if (prev_blit_fields != mdev->blit_fields)
+          MGA_INVALIDATE( m_destination | m_source | m_Source );
 
      switch (accel) {
           case DFXL_FILLRECTANGLE:
@@ -896,12 +900,9 @@ matroxSetState( void *drv, void *dev,
                break;
      }
 
-     if (state->modified & SMF_DESTINATION) {
-          matrox_set_destination( mdrv, mdev, state->destination );
-          state->modified |= SMF_CLIP;
-     }
+     matrox_validate_destination( mdrv, mdev, state );
 
-     if (state->modified & SMF_CLIP) {
+     if (!MGA_IS_VALID( m_clip )) {
           mdev->clip = state->clip;
           if (state->destination->format == DSPF_YUY2 || state->destination->format == DSPF_UYVY) {
                mdev->clip.x1 /= 2;
@@ -912,6 +913,7 @@ matroxSetState( void *drv, void *dev,
                mdev->clip.y2 /= 2;
           }
           matrox_set_clip( mdrv, mdev, &mdev->clip );
+          MGA_VALIDATE( m_clip );
      }
 
      state->modified = 0;

@@ -130,14 +130,18 @@ static void matrox_calc_offsets( MatroxDeviceData *mdev,
      }
 }
 
-void matrox_set_destination( MatroxDriverData *mdrv,
-                             MatroxDeviceData *mdev,
-                             CoreSurface      *destination )
+void matrox_validate_destination( MatroxDriverData *mdrv,
+                                  MatroxDeviceData *mdev,
+                                  CardState        *state )
 {
      volatile __u8 *mmio            = mdrv->mmio_base;
+     CoreSurface   *destination     = state->destination;
      SurfaceBuffer *buffer          = destination->back_buffer;
      SurfaceBuffer *depth_buffer    = destination->depth_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(buffer->format);
+
+     if (MGA_IS_VALID( m_destination ))
+          return;
 
      mdev->dst_pitch = buffer->video.pitch / bytes_per_pixel;
 
@@ -196,6 +200,8 @@ void matrox_set_destination( MatroxDriverData *mdrv,
                D_BUG( "unexpected pixelformat!" );
                break;
      }
+
+     MGA_VALIDATE( m_destination );
 }
 
 void matrox_set_clip( MatroxDriverData *mdrv,
@@ -564,6 +570,8 @@ static void matrox_tlutload( MatroxDriverData *mdrv,
      mga_out32( mmio, 0, FXBNDRY );
      mga_out32( mmio, PW16 | TLUTLOAD, MACCESS );
      mga_out32( mmio, palette->num_entries, YDSTLEN | EXECUTE );
+
+     MGA_INVALIDATE( m_destination );
 }
 
 void matrox_validate_Source( MatroxDriverData *mdrv,
@@ -643,12 +651,10 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
           case DSPF_LUT8:
                matrox_tlutload( mdrv, mdev, surface->palette );
                texctl |= TW8;
-               state->modified |= SMF_DESTINATION;
                break;
           case DSPF_RGB332:
                matrox_tlutload( mdrv, mdev, mdev->rgb332_palette );
                texctl |= TW8;
-               state->modified |= SMF_DESTINATION;
                break;
           default:
                D_BUG( "unexpected pixelformat!" );

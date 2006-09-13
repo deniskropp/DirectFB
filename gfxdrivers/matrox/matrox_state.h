@@ -28,9 +28,9 @@
 #ifndef ___MATROX_STATE_H__
 #define ___MATROX_STATE_H__
 
-void matrox_set_destination( MatroxDriverData *mdrv,
-                             MatroxDeviceData *mdev,
-                             CoreSurface      *destination );
+void matrox_validate_destination( MatroxDriverData *mdrv,
+                                  MatroxDeviceData *mdev,
+                                  CardState        *state );
 void matrox_set_clip( MatroxDriverData *mdrv,
                       MatroxDeviceData *mdev,
                       DFBRegion        *clip );
