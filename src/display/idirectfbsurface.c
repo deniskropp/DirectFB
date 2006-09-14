@@ -1049,8 +1049,6 @@ static DFBResult
 IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
                            int x1, int y1, int x2, int y2 )
 {
-     DFBRegion line = { x1, y1, x2, y2 };
-
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
      D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
@@ -1065,18 +1063,42 @@ IDirectFBSurface_DrawLine( IDirectFBSurface *thiz,
      if (data->locked)
           return DFB_LOCKED;
 
-     line.x1 += data->area.wanted.x;
-     line.x2 += data->area.wanted.x;
-     line.y1 += data->area.wanted.y;
-     line.y2 += data->area.wanted.y;
-
      if (x1 == x2 || y1 == y2) {
-          DFBRectangle rect = { line.x1, line.y1, line.x2 - line.x1 + 1, line.y2 - line.y1 + 1 };
+          DFBRectangle rect;
+
+          if (x1 <= x2) {
+               rect.x = x1;
+               rect.w = x2 - x1 + 1;
+          }
+          else {
+               rect.x = x2;
+               rect.w = x1 - x2 + 1;
+          }
+
+          if (y1 <= y2) {
+               rect.y = y1;
+               rect.h = y2 - y1 + 1;
+          }
+          else {
+               rect.y = y2;
+               rect.h = y1 - y2 + 1;
+          }
+
+          rect.x += data->area.wanted.x;
+          rect.y += data->area.wanted.y;
 
           dfb_gfxcard_fillrectangles( &rect, 1, &data->state );
      }
-     else
+     else {
+          DFBRegion line = { x1, y1, x2, y2 };
+
+          line.x1 += data->area.wanted.x;
+          line.x2 += data->area.wanted.x;
+          line.y1 += data->area.wanted.y;
+          line.y2 += data->area.wanted.y;
+
           dfb_gfxcard_drawlines( &line, 1, &data->state );
+     }
 
      return DFB_OK;
 }
