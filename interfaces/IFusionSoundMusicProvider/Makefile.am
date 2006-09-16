@@ -31,12 +31,17 @@ if BUILD_CDDA
 CDDA_PROVIDER_LTLIB = libifusionsoundmusicprovider_cdda.la
 endif
 
+if BUILD_PLAYLIST
+PLAYLIST_PROVIDER_LTLIB = libifusionsoundmusicprovider_playlist.la
+endif
+
 ifusionsoundmusicprovider_LTLIBRARIES =	\
 	$(TIMIDITY_PROVIDER_LTLIB)	\
 	$(WAVE_PROVIDER_LTLIB)		\
 	$(VORBIS_PROVIDER_LTLIB)		\
 	$(MAD_PROVIDER_LTLIB)		\
-	$(CDDA_PROVIDER_LTLIB)
+	$(CDDA_PROVIDER_LTLIB)		\
+	$(PLAYLIST_PROVIDER_LTLIB)
 
 
 libifusionsoundmusicprovider_timidity_la_SOURCES = ifusionsoundmusicprovider_timidity.c
@@ -72,4 +77,9 @@ libifusionsoundmusicprovider_cdda_la_SOURCES = ifusionsoundmusicprovider_cdda.c
 libifusionsoundmusicprovider_cdda_la_LIBADD = $(CDDB_LIBS)
 
 libifusionsoundmusicprovider_cdda_la_LDFLAGS = -avoid-version -module
+
+
+libifusionsoundmusicprovider_playlist_la_SOURCES = ifusionsoundmusicprovider_playlist.c
+
+libifusionsoundmusicprovider_playlist_la_LDFLAGS = -avoid-version -module
 
