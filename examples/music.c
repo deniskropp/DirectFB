@@ -11,17 +11,9 @@
 #include <direct/list.h>
 
 
-typedef struct {
-     DirectLink         link;
-     FSTrackID          id;
-     FSTrackDescription desc;
-} PlaylistEntry;
-
-
 IFusionSound              *sound    = NULL;
 IFusionSoundMusicProvider *provider = NULL;
 IFusionSoundStream        *stream   = NULL;
-PlaylistEntry             *playlist = NULL;
 struct termios             term;
 
 
@@ -46,41 +38,163 @@ cleanup( int s )
      puts ("\nQuit.");
      
      if (provider)
-          provider->Release (provider);
+          provider->Release( provider );
      if (stream)
-          stream->Release (stream);
+          stream->Release( stream );
      if (sound)
-          sound->Release (sound);
+          sound->Release( sound );
      
      tcsetattr( fileno(stdin), TCSADRAIN, &term );
      
-     exit (s);
+     exit( s );
 }
 
 static DFBEnumerationResult
-track_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
+track_display_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
 {
-     PlaylistEntry **list  = (PlaylistEntry**) ctx;
-     PlaylistEntry  *entry;
+     printf( "  Track %2d: %s - %s\n", id,
+             *desc.artist ? desc.artist : "Unknown",
+             *desc.title  ? desc.title  : "Unknown" );
      
-     entry = D_CALLOC( 1, sizeof(PlaylistEntry) );
-     if (!entry)
-          return DFENUM_CANCEL;
+     return DFENUM_OK;
+}
+
+static DFBEnumerationResult
+track_playback_callback( FSTrackID id, FSTrackDescription desc, void *ctx )
+{
+     DFBResult             ret;
+     FSMusicProviderStatus status = FMSTATE_UNKNOWN;
+     double                len    = 0;
+     static int            flags  = FMPLAY_NOFX;
+     FSStreamDescription   s_dsc;
           
-     entry->id   = id;
-     entry->desc = desc;
+     /* Select current track in playlist. */
+     ret = provider->SelectTrack( provider, id );
+     if (ret) {
+          FusionSoundError( "IFusionSoundMusicProvider::SelectTrack", ret );
+          return DFENUM_OK;
+     }
      
-     direct_list_append( (DirectLink**)list, (DirectLink*)entry );
+     provider->GetStreamDescription( provider, &s_dsc );
+     if (stream) {
+          FSStreamDescription dsc;
+          /* Check whether stream format changed. */
+          stream->GetDescription( stream, &dsc );
+          if (dsc.samplerate   != s_dsc.samplerate ||
+              dsc.channels     != s_dsc.channels   ||
+              dsc.sampleformat != s_dsc.sampleformat)
+          {
+               stream->Release( stream );
+               stream = NULL;
+          }
+     }
+     if (!stream) {
+          /* Create the sound stream and feed it. */
+          ret = sound->CreateStream( sound, &s_dsc, &stream );
+          if (ret) {
+               FusionSoundError( "IFusionSound::CreateStream", ret );
+               return DFENUM_CANCEL;
+          }
+          stream->GetDescription( stream, &s_dsc );
+     }
+          
+     /* Query provider for track length. */
+     provider->GetLength( provider, &len );
+          
+     /* Let the provider play the music using our stream. */
+     ret = provider->PlayToStream( provider, stream );
+     if (ret) {
+          FusionSoundError( "IFusionSoundMusicProvider::PlayTo", ret );
+          return DFENUM_CANCEL;
+     }
+     
+     /* Update track's description. */
+     provider->GetTrackDescription( provider, &desc );
+          
+     /* Print some informations about the track. */
+     printf( "\nTrack %d:\n"
+             "  Artist:     %s\n"
+             "  Title:      %s\n"
+             "  Album:      %s\n"
+             "  Year:       %d\n"
+             "  Genre:      %s\n"
+             "  Encoding:   %s\n"
+             "  Bitrate:    %d Kbits/s\n" 
+             "  ReplayGain: %.2f (track), %.2f (album)\n"
+             "  Output:     %d Hz, %d channel(s), %d bits\n\n\n",
+             id, desc.artist, desc.title, desc.album, (int)desc.year, 
+             desc.genre, desc.encoding, desc.bitrate/1000, 
+             desc.replaygain, desc.replaygain_album,
+             s_dsc.samplerate, s_dsc.channels,
+             FS_BITS_PER_SAMPLE(s_dsc.sampleformat) );
+     fflush( stdout );
+
+     do {
+          int    filled = 0;
+          int    total  = 0;
+          double pos    = 0;
+          
+          /* Query ring buffer status. */
+          stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
+          /* Query elapsed seconds. */
+          provider->GetPos( provider, &pos );
+          /* Query playback status. */
+          provider->GetStatus( provider, &status );
+
+          /* Print playback status. */
+          printf( "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%%",
+                  (int)pos/60, (int)pos%60, (int)(pos*100.0)%100,
+                  (int)len/60, (int)len%60, (int)(len*100.0)%100,
+                  filled * 100 / total );
+          fflush( stdout );
+
+          if (isatty( fileno(stdin) )) {
+               int c;
+
+               while ((c = getc( stdin )) > 0) {
+                    switch (c) {
+                         case 's':
+                              provider->Stop( provider );
+                              break;
+                         case 'p':
+                              provider->PlayToStream( provider, stream );
+                              break;
+                         case '+':
+                              provider->GetPos( provider, &pos );
+                              provider->SeekTo( provider, pos+15.0 );
+                              break;
+                         case '-':
+                              provider->GetPos( provider, &pos );
+                              provider->SeekTo( provider, pos-15.0 );
+                              break;
+                         case ' ':
+                              provider->Stop( provider );
+                              status = FMSTATE_FINISHED;
+                              break;
+                         case 'r':
+                              flags ^= FMPLAY_LOOPING;
+                              provider->SetPlaybackFlags( provider, flags );
+                              break;
+                         case 'q':
+                         case 'Q':
+                         case '\033': // Escape
+                              return DFENUM_CANCEL;
+                         default:
+                              break;
+                    }
+               }
+          }
+               
+          usleep( 15000 );
+     } while (status != FMSTATE_FINISHED);
      
      return DFENUM_OK;
 }     
 
 int
-main (int argc, char *argv[])
+main( int argc, char *argv[] )
 {
-     DFBResult            ret;
-     FSStreamDescription  s_dsc;
-     PlaylistEntry       *entry = NULL;
+     DFBResult ret;
 
      ret = FusionSoundInit( &argc, &argv );
      if (ret)
@@ -88,12 +202,12 @@ main (int argc, char *argv[])
 
      if (argc != 2)
           usage( argv[0] );
-
-     /* Don't catch SIGINT. */
-     DirectFBSetOption( "dont-catch", "2" );
-
+          
      /* Get terminal attributes. */
      tcgetattr( fileno(stdin), &term );
+          
+     /* Don't catch SIGINT. */
+     DirectFBSetOption( "dont-catch", "2" );
      
      /* Register clean-up handler for SIGINT. */
      signal( SIGINT, cleanup );
@@ -108,143 +222,24 @@ main (int argc, char *argv[])
      if (ret)
           FusionSoundErrorFatal( "IFusionSound::CreateMusicProvider", ret );
      
-     /* Create the playlist. */
-     ret = provider->EnumTracks( provider, track_callback, (void*)&playlist );
-     if (ret) {
-          FusionSoundError( "IFusionSoundMusicProvider::EnumTracks", ret );
-          cleanup( 1 );
-     }
-     
-     /* Query provider for a suitable stream description. */
-     ret = provider->GetStreamDescription( provider, &s_dsc );
-     if (ret) {
-          FusionSoundError( "IFusionSoundMusicProvider::"
-                            "GetStreamDescription", ret );
-          cleanup( 1 );
-     }
-
-     /* Create the sound stream and feed it. */
-     ret = sound->CreateStream( sound, &s_dsc, &stream );
-     if (ret) {
-          FusionSoundError( "IFusionSound::CreateStream", ret );
-          cleanup (1);
-     }
-     stream->GetDescription( stream, &s_dsc );
-
-     /* Set terminal attributes */
      if (isatty( fileno(stdin) )) {
           struct termios cur;
-
+          /* Set terminal attributes */
           cur = term;
           cur.c_cc[VTIME] = 0;
           cur.c_cc[VMIN]  = 0;
           cur.c_lflag    &= ~(ICANON | ECHO);
-
           tcsetattr( fileno(stdin), TCSAFLUSH, &cur );
      }
      
-     /* Iterate through playlist. */
-     direct_list_foreach( entry, playlist ) {
-          FSMusicProviderStatus status = FMSTATE_UNKNOWN;
-          double                len    = 0;
-          static int            flags  = FMPLAY_NOFX;
-          
-          /* Select current track in playlist. */
-          ret = provider->SelectTrack( provider, entry->id );
-          if (ret) {
-               FusionSoundError( "IFusionSoundMusicProvider::SelectTrack", ret );
-               continue;
-          }
-          
-          /* Query provider for track length. */
-          provider->GetLength( provider, &len );
-          
-          /* Let the provider play the music using our stream. */
-          ret = provider->PlayToStream( provider, stream );
-          if (ret) {
-               FusionSoundError( "IFusionSoundMusicProvider::PlayTo", ret );
-               cleanup( 1 );
-          }
-          
-          /* Print some informations about the track. */
-          printf( "\nTrack %d:\n"
-                  "  Artist:     %s\n"
-                  "  Title:      %s\n"
-                  "  Album:      %s\n"
-                  "  Year:       %d\n"
-                  "  Genre:      %s\n"
-                  "  Encoding:   %s\n"
-                  "  Bitrate:    %d Kbits/s\n" 
-                  "  ReplayGain: %.2f (track), %.2f (album)\n"
-                  "  Output:     %d Hz, %d channel(s), %d bits\n\n\n",
-                  entry->id, entry->desc.artist, entry->desc.title,
-                  entry->desc.album, (int)entry->desc.year, 
-                  entry->desc.genre, entry->desc.encoding,
-                  entry->desc.bitrate/1000, 
-                  entry->desc.replaygain, entry->desc.replaygain_album,
-                  s_dsc.samplerate, s_dsc.channels,
-                  FS_BITS_PER_SAMPLE(s_dsc.sampleformat) );
-
-          do {
-               int    filled = 0;
-               int    total  = 0;
-               double pos    = 0;
-          
-               /* Query ring buffer status. */
-               stream->GetStatus( stream, &filled, &total, NULL, NULL, NULL );
-               /* Query elapsed seconds. */
-               provider->GetPos( provider, &pos );
-               /* Query playback status. */
-               provider->GetStatus( provider, &status );
-
-               /* Print playback status. */
-               printf( "\rTime: %02d:%02d,%02d of %02d:%02d,%02d  Ring Buffer: %02d%%",
-                       (int)pos/60, (int)pos%60, (int)(pos*100.0)%100,
-                       (int)len/60, (int)len%60, (int)(len*100.0)%100,
-                       filled * 100 / total );
-               fflush( stdout );
-
-               if (isatty( fileno(stdin) )) {
-                    int c;
-
-                    while ((c = getc( stdin )) > 0) {
-                         switch (c) {
-                              case 's':
-                                   provider->Stop( provider );
-                                   break;
-                              case 'p':
-                                   provider->PlayToStream( provider, stream );
-                                   break;
-                              case '+':
-                                   provider->GetPos( provider, &pos );
-                                   provider->SeekTo( provider, pos+15.0 );
-                                   break;
-                              case '-':
-                                   provider->GetPos( provider, &pos );
-                                   provider->SeekTo( provider, pos-15.0 );
-                                   break;
-                              case ' ':
-                                   status = FMSTATE_FINISHED;
-                                   break;
-                              case 'r':
-                                   flags ^= FMPLAY_LOOPING;
-                                   provider->SetPlaybackFlags( provider, flags );
-                                   break;
-                              case 'q':
-                              case 'Q':
-                              case '\033': // Escape
-                                   cleanup( 0 );
-                                   return 0;
-                              default:
-                                   break;
-                         }
-                    }
-               }
-               
-               usleep( 10000 );
-          } while (status != FMSTATE_FINISHED);
-     }
-
+     /* Show contents. */
+     printf( "\n%s:\n", argv[1] );
+     provider->EnumTracks( provider, track_display_callback, NULL );
+     printf( "\n" );
+     
+     /* Play tracks. */
+     provider->EnumTracks( provider, track_playback_callback, NULL );
+     
      puts( "\nFinished." );
      cleanup( 0 );
 
