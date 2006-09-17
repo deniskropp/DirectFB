@@ -1088,7 +1088,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      char *ext;
      
-     /* FIXME: detect by contents */
+     if (ctx->mimetype && !strcmp( ctx->mimetype, "audio/mpeg" ))
+          return DFB_OK;
      
      ext = strrchr( ctx->filename, '.' );
      if (ext) {
@@ -1097,6 +1098,8 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
               !strcasecmp( ext, ".mp3" ))
                return DFB_OK;
      }
+     
+     /* Detect by contents ? */
           
      return DFB_UNSUPPORTED;
 }   

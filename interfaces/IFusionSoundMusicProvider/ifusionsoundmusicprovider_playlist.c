@@ -48,6 +48,14 @@ Construct( IFusionSoundMusicProvider *thiz,
 DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Playlist )
 
 
+typedef enum {
+     PLT_NONE = 0,
+     PLT_M3U,
+     PLT_RAM,
+     PLT_PLS,
+     PLT_SMIL
+} PlaylistType;
+
 typedef struct {
      DirectLink                 link;
      
@@ -180,8 +188,48 @@ fetch_tag( DirectStream *stream, char buf[], int len )
           
      return DFB_OK;
 }    
+
+/*****************************************************************************/
+
+static PlaylistType 
+get_playlist_type( const char *mimetype, const char *filename )
+{
+     if (mimetype) {
+          if (!strcmp( mimetype, "audio/mpegurl" ) ||
+              !strcmp( mimetype, "audio/x-mpegurl" ))
+               return PLT_M3U;
+          
+          /*if (!strcmp( mimetype, "audio/vnd.rn-realaudio" ) ||
+              !strcmp( mimetype, "audio/x-pn-realaudio" ))
+               return PLT_RAM;*/
+          
+          if (!strcmp( mimetype, "audio/x-scpls" ))
+               return PLT_PLS;
+               
+          if (!strcmp( mimetype, "application/smil" ))
+               return PLT_SMIL;
+     }
      
-                
+     if (filename) {
+          char *ext = strrchr( filename, '.' );
+          if (ext) {
+               if (!strcasecmp( ext, ".m3u" ))
+                    return PLT_M3U;
+                    
+               if (!strcasecmp( ext, ".ram" ))
+                    return PLT_RAM;
+                    
+               if (!strcasecmp( ext, ".pls" ))
+                    return PLT_PLS;
+                    
+               if (!strcasecmp( ext, ".smil" ))
+                    return PLT_SMIL;
+          }
+     }
+     
+     return PLT_NONE;
+}     
+               
 static void
 m3u_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data, 
                     DirectStream                            *stream )
@@ -640,16 +688,8 @@ IFusionSoundMusicProvider_Playlist_SetPlaybackFlags( IFusionSoundMusicProvider  
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     char *ext;
-     
-     ext = strrchr( ctx->filename, '.' );
-     if (ext) {
-          if (!strcasecmp( ext, ".m3u"  ) || 
-              !strcasecmp( ext, ".ram"  ) ||
-              !strcasecmp( ext, ".pls"  ) ||
-              !strcasecmp( ext, ".smil" ))
-               return DFB_OK;
-     }
+     if (get_playlist_type( ctx->mimetype, ctx->filename ))
+          return DFB_OK;
           
      return DFB_UNSUPPORTED;
 }
@@ -659,21 +699,25 @@ Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename, 
            DirectStream              *stream )
 {
-     char *ext;
+     const char *mimetype = direct_stream_mime( stream );
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Playlist )
      
      data->ref = 1;
      
-     ext = strrchr( filename, '.' );
-     if (!strcasecmp( ext, ".m3u" ) || !strcasecmp( ext, ".ram" )) {
-          m3u_playlist_parse( data, stream );
-     }
-     else if (!strcasecmp( ext, ".pls" )) {
-          pls_playlist_parse( data, stream );
-     }
-     else if (!strcasecmp( ext, ".smil" )) {
-          smil_playlist_parse( data, stream );
+     switch (get_playlist_type( mimetype, filename )) {
+          case PLT_M3U:
+          case PLT_RAM:
+               m3u_playlist_parse( data, stream );
+               break;
+          case PLT_PLS:
+               pls_playlist_parse( data, stream );
+               break;
+          case PLT_SMIL:
+               smil_playlist_parse( data, stream );
+               break;
+          default:
+               break;
      }
      
      if (!data->playlist) {

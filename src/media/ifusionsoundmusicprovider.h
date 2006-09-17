@@ -35,6 +35,8 @@
 typedef struct {
      const char    *filename;
      
+     const char    *mimetype;
+     
      unsigned char  header[64];
      
      DirectStream  *stream;

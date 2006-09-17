@@ -222,6 +222,7 @@ IFusionSoundMusicProvider_Create( const char                 *filename,
      
      /* Fill out probe context */
      ctx.filename = filename;
+     ctx.mimetype = direct_stream_mime( stream );
      ctx.stream   = stream;
      
      /* Clear probe context's header */
