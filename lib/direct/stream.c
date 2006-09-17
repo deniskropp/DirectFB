@@ -59,6 +59,8 @@ struct __D_DirectStream {
      int                   fd;
      unsigned int          offset;
      int                   length;
+     
+     char                 *mime;
 
      /* cache for piped streams */
      void                 *cache;
@@ -428,6 +430,11 @@ net_close( DirectStream *stream )
           close( stream->remote.sd ); 
           stream->remote.sd = -1;
      }
+     
+     if (stream->mime) {
+          D_FREE( stream->mime );
+          stream->mime = NULL;
+     }
 
      if (stream->fd > 0) {
           close( stream->fd );
@@ -566,7 +573,7 @@ http_seek( DirectStream *stream, unsigned int offset )
      if (stream->remote.auth) {
           snprintf( buf, sizeof(buf), 
                     "GET %s HTTP/1.0\r\n"
-                    "Host: %s\r\n"
+                    "Host: %s:%d\r\n"
                     "Authorization: Basic %s\r\n"
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
@@ -574,19 +581,21 @@ http_seek( DirectStream *stream, unsigned int offset )
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
+                    stream->remote.port,
                     stream->remote.auth,
                     DIRECTFB_VERSION, offset );
      }
      else {
           snprintf( buf, sizeof(buf), 
                     "GET %s HTTP/1.0\r\n"
-                    "Host: %s\r\n"
+                    "Host: %s:%d\r\n"
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
                     "Range: bytes=%d-\r\n"
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
+                    stream->remote.port,
                     DIRECTFB_VERSION, offset );
      }
      
@@ -604,10 +613,7 @@ http_seek( DirectStream *stream, unsigned int offset )
      }
 
      switch (status) {
-          case 200: // OK
-          case 201: // CREATED
-          case 202: // ACCEPETED
-          case 206: // PARTIAL CONTENTS
+          case 200 ... 299:
                break;
           default:
                if (status)
@@ -653,25 +659,27 @@ http_open( DirectStream *stream, const char *filename )
      if (stream->remote.auth) {
           snprintf( buf, sizeof(buf), 
                     "GET %s HTTP/1.0\r\n"
-                    "Host: %s\r\n"
+                    "Host: %s:%d\r\n"
                     "Authorization: Basic %s\r\n"
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
                     "\r\n",
                     stream->remote.path,
                     stream->remote.host,
+                    stream->remote.port,
                     stream->remote.auth,
                     DIRECTFB_VERSION );
      }
      else {
           snprintf( buf, sizeof(buf), 
                     "GET %s HTTP/1.0\r\n"
-                    "Host: %s\r\n"
+                    "Host: %s:%d\r\n"
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
+                    stream->remote.port,
                     DIRECTFB_VERSION );
      }
      
@@ -689,6 +697,9 @@ http_open( DirectStream *stream, const char *filename )
           else if (!strncmp( buf, "Accept-Ranges:", sizeof("Accept-Ranges:")-1 )) {
                if (strcmp( buf+sizeof("Accept-Ranges:"), "none" ))
                     stream->seek = http_seek;
+          }
+          else if (!strncmp( buf, "Content-Type:", sizeof("Content-Type:")-1 )) {
+               stream->mime = D_STRDUP( buf+sizeof("Content-Type:") );
           }
           else if (!strncmp( buf, "Content-Length:", sizeof("Content-Length:")-1 )) {
                if (sscanf( buf, "Content-Length: %d", &stream->length ) < 1)
@@ -720,9 +731,7 @@ http_open( DirectStream *stream, const char *filename )
      }
 
      switch (status) {
-          case 200: // OK
-          case 201: // CREATED
-          case 202: // ACCEPETED
+          case 200 ... 299:
                break;
           default:
                if (status)
@@ -1401,6 +1410,16 @@ direct_stream_remote( DirectStream *stream )
      D_MAGIC_ASSERT( stream, DirectStream );
      
      return stream->remote.sd ? true : false;
+}
+
+const char*
+direct_stream_mime( DirectStream *stream )
+{
+     D_ASSERT( stream != NULL );
+     
+     D_MAGIC_ASSERT( stream, DirectStream );
+     
+     return stream->mime;
 }
 
 unsigned int 

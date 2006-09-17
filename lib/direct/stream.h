@@ -69,6 +69,12 @@ bool          direct_stream_seekable( DirectStream   *stream );
 bool          direct_stream_remote  ( DirectStream   *stream );
 
 /*
+ * Get the mime description of the stream.
+ * Returns NULL if the information is not available.
+ */
+const char*   direct_stream_mime    ( DirectStream   *stream );
+
+/*
  * Get stream length.
  */
 unsigned int  direct_stream_length  ( DirectStream   *stream );
