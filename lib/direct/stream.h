@@ -39,6 +39,7 @@
  * 
  * 'filename' can be a plain file name or one of the following:
  *   http://<host>[:<port>]/<path>
+ *   unsv://<host>[:<port>]/<path>
  *   ftp://<host>[:<port>]/<path>
  *   tcp://<host>:<port>
  *   udp://<host>:<port>
