@@ -107,6 +107,7 @@ struct __D_DirectStream {
 #define HTTP_MAX_REDIRECTS  15
 
 static DirectResult tcp_open ( DirectStream *stream, const char *filename );
+static DirectResult udp_open ( DirectStream *stream, const char *filename );
 static DirectResult http_open( DirectStream *stream, const char *filename );
 static DirectResult ftp_open ( DirectStream *stream, const char *filename );
 static DirectResult file_open( DirectStream *stream, const char *filename );
@@ -578,6 +579,7 @@ http_seek( DirectStream *stream, unsigned int offset )
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
                     "Range: bytes=%d-\r\n"
+                    "Connection: Close\r\n"
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
@@ -592,6 +594,7 @@ http_seek( DirectStream *stream, unsigned int offset )
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
                     "Range: bytes=%d-\r\n"
+                    "Connection: Close\r\n"
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
@@ -608,7 +611,10 @@ http_seek( DirectStream *stream, unsigned int offset )
           
           if (!strncmp( buf, "HTTP/", sizeof("HTTP/")-1 )) {
                int version;
-               sscanf( buf, "HTTP/1.%d %d OK", &version, &status );
+               sscanf( buf, "HTTP/1.%d %d", &version, &status );
+          }
+          else if (!strncmp( buf, "ICY ", sizeof("ICY ")-1 )) {
+               sscanf( buf, "ICY %d", &status );
           }
      }
 
@@ -663,6 +669,7 @@ http_open( DirectStream *stream, const char *filename )
                     "Authorization: Basic %s\r\n"
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
+                    "Connection: Close\r\n"
                     "\r\n",
                     stream->remote.path,
                     stream->remote.host,
@@ -676,6 +683,7 @@ http_open( DirectStream *stream, const char *filename )
                     "Host: %s:%d\r\n"
                     "User-Agent: DirectFB/%s\r\n"
                     "Accept: */*\r\n"
+                    "Connection: Close\r\n"
                     "\r\n",
                     stream->remote.path, 
                     stream->remote.host,
@@ -692,14 +700,25 @@ http_open( DirectStream *stream, const char *filename )
 
           if (!strncmp( buf, "HTTP/", sizeof("HTTP/")-1 )) {
                int version;
-               sscanf( buf, "HTTP/1.%d %d OK", &version, &status );
+               sscanf( buf, "HTTP/1.%d %d", &version, &status );
+          }
+          else if (!strncmp( buf, "ICY ", sizeof("ICY ")-1 )) {
+               /* Icecast/Shoutcast */
+               sscanf( buf, "ICY %d", &status );
           }
           else if (!strncmp( buf, "Accept-Ranges:", sizeof("Accept-Ranges:")-1 )) {
                if (strcmp( buf+sizeof("Accept-Ranges:"), "none" ))
                     stream->seek = http_seek;
           }
           else if (!strncmp( buf, "Content-Type:", sizeof("Content-Type:")-1 )) {
+               if (stream->mime)
+                    D_FREE( stream->mime );
                stream->mime = D_STRDUP( buf+sizeof("Content-Type:") );
+          }
+          else if (!strncmp( buf, "content-type:", sizeof("content-type:")-1 )) {
+               if (stream->mime)
+                    D_FREE( stream->mime );
+               stream->mime = D_STRDUP( buf+sizeof("content-type:")-1 );
           }
           else if (!strncmp( buf, "Content-Length:", sizeof("Content-Length:")-1 )) {
                if (sscanf( buf, "Content-Length: %d", &stream->length ) < 1)
