@@ -117,6 +117,18 @@ D_DEBUG_DOMAIN( Direct_Stream, "Direct/Stream", "Stream wrapper" );
 
 /*****************************************************************************/
 
+static inline char* trim( char *s )
+{
+     char *e;
+     
+     for (; isspace(*s); s++);
+     
+     e = s + strlen(s) - 1;
+     for (; isspace(*e); e--);
+     
+     return s;
+}
+
 static void
 parse_url( const char *url, char **ret_host, int *ret_port, 
            char **ret_user, char **ret_pass, char **ret_path )
@@ -225,7 +237,7 @@ base64_encode( const char *string )
      *buf = '\0';
 
      return ret;
-}         
+}
 
 /*****************************************************************************/
 
@@ -614,6 +626,7 @@ http_seek( DirectStream *stream, unsigned int offset )
                sscanf( buf, "HTTP/1.%d %d", &version, &status );
           }
           else if (!strncmp( buf, "ICY ", sizeof("ICY ")-1 )) {
+               /* Icecast/Shoutcast */
                sscanf( buf, "ICY %d", &status );
           }
      }
@@ -706,25 +719,21 @@ http_open( DirectStream *stream, const char *filename )
                /* Icecast/Shoutcast */
                sscanf( buf, "ICY %d", &status );
           }
-          else if (!strncmp( buf, "Accept-Ranges:", sizeof("Accept-Ranges:")-1 )) {
-               if (strcmp( buf+sizeof("Accept-Ranges:"), "none" ))
+          else if (!strncasecmp( buf, "Accept-Ranges:", sizeof("Accept-Ranges:")-1 )) {
+               if (strcmp( trim( buf+sizeof("Accept-Ranges:")-1 ), "none" ))
                     stream->seek = http_seek;
           }
-          else if (!strncmp( buf, "Content-Type:", sizeof("Content-Type:")-1 )) {
+          else if (!strncasecmp( buf, "Content-Type:", sizeof("Content-Type:")-1 )) {
                if (stream->mime)
                     D_FREE( stream->mime );
-               stream->mime = D_STRDUP( buf+sizeof("Content-Type:") );
+               stream->mime = D_STRDUP( trim( buf+sizeof("Content-Type:")-1 ) );
           }
-          else if (!strncmp( buf, "content-type:", sizeof("content-type:")-1 )) {
-               if (stream->mime)
-                    D_FREE( stream->mime );
-               stream->mime = D_STRDUP( buf+sizeof("content-type:")-1 );
+          else if (!strncasecmp( buf, "Content-Length:", sizeof("Content-Length:")-1 )) {
+               char *tmp = trim( buf+sizeof("Content-Length:")-1 );
+               if (sscanf( tmp, "%d", &stream->length ) < 1)
+                    sscanf( tmp, "bytes=%d", &stream->length );
           }
-          else if (!strncmp( buf, "Content-Length:", sizeof("Content-Length:")-1 )) {
-               if (sscanf( buf, "Content-Length: %d", &stream->length ) < 1)
-                    sscanf( buf, "Content-Length: bytes=%d", &stream->length );
-          }
-          else if (!strncmp( buf, "Location:", sizeof("Location:")-1 )) { 
+          else if (!strncasecmp( buf, "Location:", sizeof("Location:")-1 )) { 
                net_close( stream );
                stream->seek = NULL;
                
@@ -736,7 +745,7 @@ http_open( DirectStream *stream, const char *filename )
                     return DFB_FAILURE;
                }
                
-               filename = buf + sizeof("Location:");
+               filename = trim( buf+sizeof("Location:")-1 );
                if (!strncmp( filename, "http://", 7 )) {
                     return http_open( stream, filename+7 );
                }
