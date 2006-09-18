@@ -124,7 +124,7 @@ static inline char* trim( char *s )
      for (; isspace(*s); s++);
      
      e = s + strlen(s) - 1;
-     for (; isspace(*e); e--);
+     for (; isspace(*e); *e-- = '\0');
      
      return s;
 }
