@@ -997,10 +997,20 @@ typedef enum {
 
      /*  4 bit alpha (1 byte/ 2 pixel, more significant nibble used first) */
      DSPF_A4        = DFB_SURFACE_PIXELFORMAT( 21,  0, 4, 1, 4, 0, 1, 0, 0, 0, 0 ),
+
+     /*  1 bit alpha (3 byte/  alpha 1@18, red 6@16, green 6@6, blue 6@0) */
+     DSPF_ARGB1666  = DFB_SURFACE_PIXELFORMAT( 22, 18, 1, 1, 0, 3, 0, 0, 0, 0, 0 ),
+
+     /*  6 bit alpha (3 byte/  alpha 6@18, red 6@16, green 6@6, blue 6@0) */
+     DSPF_ARGB6666  = DFB_SURFACE_PIXELFORMAT( 23,  18, 6, 1, 0, 3, 0, 0, 0, 0, 0 ),
+
+     /*  6 bit RGB (3 byte/   red 6@16, green 6@6, blue 6@0) */
+     DSPF_RGB18     = DFB_SURFACE_PIXELFORMAT( 24,  18, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
+
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            22
+#define DFB_NUM_PIXELFORMATS            25
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )

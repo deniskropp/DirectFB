@@ -1526,6 +1526,17 @@ static DFBSurfacePixelFormat dfb_fbdev_get_pixelformat( struct fb_var_screeninfo
 
                break;
 
+          case 18:
+               if (dfb_fbdev_compatible_format( var, 1, 6, 6, 6, 18, 12, 6, 0 ))
+                    return DSPF_ARGB1666;
+
+               if (dfb_fbdev_compatible_format( var, 6, 6, 6, 6, 18, 12, 6, 0 ))
+                    return DSPF_ARGB6666;
+
+               if (dfb_fbdev_compatible_format( var, 0, 6, 6, 6, 0, 12, 6, 0 ))
+                    return DSPF_RGB18;
+               break;
+
           case 24:
                if (dfb_fbdev_compatible_format( var, 0, 8, 8, 8, 0, 16, 8, 0 ))
                     return DSPF_RGB24;
@@ -1703,6 +1714,37 @@ static DFBResult dfb_fbdev_set_mode( CoreSurface           *surface,
                case DSPF_RGB24:
                case DSPF_RGB32:
                case DSPF_RGB332:
+                    break;
+
+               case DSPF_ARGB1666:
+                    var.transp.length = 1;
+                    var.red.length    = 6;
+                    var.green.length  = 6;
+                    var.blue.length   = 6;
+                    var.transp.offset = 18;
+                    var.red.offset    = 12;
+                    var.green.offset  = 6;
+                    var.blue.offset   = 0;
+                    break;
+
+               case DSPF_ARGB6666:
+                    var.transp.length = 6;
+                    var.red.length    = 6;
+                    var.green.length  = 6;
+                    var.blue.length   = 6;
+                    var.transp.offset = 18;
+                    var.red.offset    = 12;
+                    var.green.offset  = 6;
+                    var.blue.offset   = 0;
+                    break;
+
+               case DSPF_RGB18:
+                    var.red.length    = 6;
+                    var.green.length  = 6;
+                    var.blue.length   = 6;
+                    var.red.offset    = 12;
+                    var.green.offset  = 6;
+                    var.blue.offset   = 0;
                     break;
 
                default:

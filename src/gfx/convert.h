@@ -58,6 +58,10 @@
                                  (((g)&0xFC) << 3) | \
                                  (((b)&0xF8) >> 3) )
 
+#define PIXEL_RGB18(r,g,b)     ( (((r)&0xFC) << 10) | \
+                                 (((g)&0xFC) << 4) | \
+                                 (((b)&0xFC) >> 2) )
+
 #define PIXEL_RGB32(r,g,b)     ( ((r) << 16) | \
                                  ((g) <<  8) | \
                                   (b) )
@@ -66,6 +70,16 @@
                                  ((r) << 16) | \
                                  ((g) << 8)  | \
                                   (b) )
+
+#define PIXEL_ARGB1666(a,r,g,b) ( ( ((a)&0x80) << 11) | \
+                                 (  ((r)&0xFC) << 10) | \
+                                 (  ((g)&0xFC) << 4 )  | \
+                                    ((b)&0xFC) >>2 )
+
+#define PIXEL_ARGB6666(a,r,g,b) ( ( ((a)&0xFC) << 16) | \
+                                 (  ((r)&0xFC) << 10) | \
+                                 (  ((g)&0xFC) << 4 )  | \
+                                    ((b)&0xFC) >>2 )
 
 #define PIXEL_AYUV(a,y,u,v)    ( ((a) << 24) | \
                                  ((y) << 16) | \
@@ -159,6 +173,10 @@
                                  (((pixel) & 0x07E0) << 5) | \
                                  (((pixel) & 0x001F) << 3) )
 
+#define RGB18_TO_ARGB(pixel)   ( 0xFF000000 |                \
+                                 (((pixel) & 0xFC00) << 10) | \
+                                 (((pixel) & 0x3F00) << 4) | \
+                                 (((pixel) & 0x00FC) << 2) )
 
 #define RGB32_TO_RGB332(pixel) ( (((pixel) & 0xE00000) >> 16) | \
                                  (((pixel) & 0x00E000) >> 11) | \

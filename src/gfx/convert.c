@@ -46,6 +46,8 @@ dfb_pixelformat_for_depth( int depth )
                return DSPF_ARGB1555;
           case 16:
                return DSPF_RGB16;
+          case 18:
+               return DSPF_RGB18;
           case 24:
                return DSPF_RGB24;
           case 32:
@@ -77,6 +79,9 @@ dfb_color_to_pixel( DFBSurfacePixelFormat format,
                break;
           case DSPF_RGB16:
                pixel = PIXEL_RGB16( r, g, b );
+               break;
+          case DSPF_RGB18:
+               pixel = PIXEL_RGB18( r, g, b );
                break;
           case DSPF_RGB24:
           case DSPF_RGB32:
@@ -120,6 +125,9 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_RGB16:
                return "RGB16";
+
+          case DSPF_RGB18:
+               return "RGB18";
 
           case DSPF_RGB24:
                return "RGB24";
@@ -174,6 +182,12 @@ dfb_pixelformat_name( DFBSurfacePixelFormat format )
 
           case DSPF_ARGB4444:
                return "ARGB4444";
+
+          case DSPF_ARGB1666:
+               return "ARGB1666";
+
+          case DSPF_ARGB6666:
+               return "ARGB6666";
 
           case DSPF_AYUV:
                return "AYUV";

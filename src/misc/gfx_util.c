@@ -138,6 +138,43 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     ((__u16*)d)[i] = RGB32_TO_RGB16( src[i] );
                break;
 
+          case DSPF_ARGB1666:
+               for (i = 0; i < len; i++) {
+                    __u8 b = src[i] >> 2;
+                    __u8 g = src[i] >> 10;
+                    __u8 r = src[i] >> 18;
+                    __u8 a = (src[i] >> 26) != 0 ?1:0;
+
+                    *d++ =  b | (g << 6 );
+                    *d++ = ( g >> 2 ) |(r << 4 );
+                    *d++ = (r >> 4) | a << 2;
+               }
+               break;
+
+          case DSPF_ARGB6666:
+               for (i = 0; i < len; i++) {
+                    __u8 b = src[i] >> 2;
+                    __u8 g = src[i] >> 10;
+                    __u8 r = src[i] >> 18;
+                    __u8 a = src[i] >> 26;
+
+                    *d++ =  b | (g << 6 );
+                    *d++ = ( g >> 2 ) |(r << 4 );
+                    *d++ = (r >> 4) | a << 2;
+               }
+               break;
+
+          case DSPF_RGB18:
+               for (i = 0; i < len; i++) {
+                    __u8 b = src[i] >> 2;
+                    __u8 g = src[i] >> 10;
+                    __u8 r = src[i] >> 18;
+
+                    *d++ =  b | (g << 6 );
+                    *d++ = ( g >> 2 ) |(r << 4 );
+                    *d++ = (r >> 4) | 0xfc;
+               }
+               break;
           case DSPF_RGB24:
                for (i = 0; i < len; i++) {
 #ifdef WORDS_BIGENDIAN
