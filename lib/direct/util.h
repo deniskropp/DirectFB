@@ -52,6 +52,15 @@
 #define CLAMP(x,min,max) ((x) < (min) ? (min) : (x) > (max) ? (max) : (x))
 #endif
 
+#ifndef BSWAP16
+#define BSWAP16(x) (((__u16)(x)>>8) | ((__u16)(x)<<8))
+#endif
+
+#ifndef BSWAP32
+#define BSWAP32(x) ((((__u32)(x)>>24) & 0x000000ff) | (((__u32)(x)>> 8) & 0x0000ff00) | \
+                    (((__u32)(x)<< 8) & 0x00ff0000) | (((__u32)(x)<<24) & 0xff000000))
+#endif
+
 
 #define D_FLAGS_SET(flags,f)       do { (flags) |= (f); } while (0)
 #define D_FLAGS_CLEAR(flags,f)     do { (flags) &= ~(f); } while (0)
@@ -87,6 +96,17 @@ int direct_safe_dup( int fd );
 int direct_try_open( const char *name1, const char *name2, int flags, bool error_msg );
 
 void direct_trim( char **s );
+
+/*
+ * Encode/Decode Base-64 strings.
+ */
+char *direct_base64_encode( const void *data, int size );
+void *direct_base64_decode( const char *string, int *ret_size );
+
+/*
+ * Compute MD5 sum (store 16-bytes long result in "dst").
+ */
+void  direct_md5_sum( void *dst, const void *src, const int len );
 
 /*
  * Slow implementation, but quite fast if only low bits are set.
