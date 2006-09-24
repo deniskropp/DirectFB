@@ -31,6 +31,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
@@ -284,7 +285,9 @@ net_command( DirectStream *stream, char *buf, size_t size )
                sscanf( buf, "ICY %d", &status );
                break;
           }
-          else if (sscanf( buf, "%3d ", &status ) == 1) {
+          else if (isdigit(buf[0]) && isdigit(buf[1]) &&
+                   isdigit(buf[2]) && buf[3] == ' ') {
+               sscanf( buf, "%d", &status );
                break;
           }
      }
@@ -748,7 +751,7 @@ ftp_seek( DirectStream *stream, unsigned int offset )
           stream->fd = -1;
 
           /* ignore response */
-          net_response( stream, buf, sizeof(buf) );
+          while (net_response( stream, buf, sizeof(buf) ) > 0);
      }
 
      ret = ftp_open_pasv( stream, buf, sizeof(buf) );
@@ -756,10 +759,8 @@ ftp_seek( DirectStream *stream, unsigned int offset )
           return ret;
      
      snprintf( buf, sizeof(buf), "REST %d", offset );
-     if (net_command( stream, buf, sizeof(buf) ) != 350) {
-          ret = DFB_FAILURE;
+     if (net_command( stream, buf, sizeof(buf) ) != 350)
           goto error;
-     }
 
      snprintf( buf, sizeof(buf), "RETR %s", stream->remote.path );
      switch (net_command( stream, buf, sizeof(buf) )) {
@@ -767,7 +768,6 @@ ftp_seek( DirectStream *stream, unsigned int offset )
           case 125:
                break;
           default:
-               ret = DFB_FAILURE;
                goto error;
      }
 
@@ -779,14 +779,14 @@ error:
      close( stream->fd );
      stream->fd = -1;
      
-     return ret;
+     return DFB_FAILURE;
 }
 
 static DirectResult
 ftp_open( DirectStream *stream, const char *filename )
 {
-     DirectResult ret = DFB_OK;
-     int          status;
+     DirectResult ret;
+     int          status = 0;
      char         buf[512];
      int          len;
      
@@ -796,7 +796,10 @@ ftp_open( DirectStream *stream, const char *filename )
      if (ret)
           return ret;
 
-     if (net_response( stream, buf, sizeof(buf) ) != 220)
+     while (net_response( stream, buf, sizeof(buf) ) > 0)
+          sscanf( buf, "%3d", &status );
+     
+     if (status != 220)
           return DFB_FAILURE;
      
      /* login */
@@ -812,7 +815,7 @@ ftp_open( DirectStream *stream, const char *filename )
      if (stream->remote.pass) {
           snprintf( buf, sizeof(buf), "PASS %s", stream->remote.pass );
           if (net_command( stream, buf, sizeof(buf) ) != 230)
-               return ret;
+               return DFB_FAILURE;
      }
      
      /* enter binary mode */
@@ -1914,7 +1917,7 @@ direct_stream_remote( DirectStream *stream )
      D_MAGIC_ASSERT( stream, DirectStream );
      
 #if DIRECT_BUILD_NETWORK
-     if (stream->remote.sd > 0)
+     if (stream->remote.host)
           return true;
 #endif
      return false;
