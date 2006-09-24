@@ -41,13 +41,14 @@
  *   http://<host>[:<port>]/<path>
  *   unsv://<host>[:<port>]/<path>
  *   ftp://<host>[:<port>]/<path>
+ *   rtsp://<host>[:<port>]/<path>
  *   tcp://<host>:<port>
  *   udp://<host>:<port>
  *   file:/<path>
  *   stdin:/
  */
 DirectResult  direct_stream_create  ( const char     *filename,
-                                      DirectStream  **ret_stream );                                      
+                                      DirectStream  **ret_stream );
                                       
 /*
  * Duplicate the stream (never fails).

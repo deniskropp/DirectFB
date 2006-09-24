@@ -414,6 +414,17 @@ fi
 AC_SUBST(DIRECT_BUILD_GETTID)
 
 
+AC_ARG_ENABLE(network,
+  [  --enable-network          enable network support [default=yes]],, enable_network=yes)
+if test "$enable_network" = "no"; then
+    DIRECT_BUILD_NETWORK=0
+else
+    DIRECT_BUILD_NETWORK=1
+fi
+
+AC_SUBST(DIRECT_BUILD_NETWORK)
+
+
 AC_ARG_ENABLE(multi,
   [  --enable-multi            enable multi application core [default=no]],, enable_multi=no)
 if test "$enable_multi" = "yes"; then
@@ -1445,6 +1456,7 @@ Misc options:
   Trace support             $enable_trace
   MMX support               $enable_mmx
   SSE support               $enable_sse
+  Network support           $enable_network
   zlib compression          $use_zlib
   sysfs support             $use_sysfs
 
