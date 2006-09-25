@@ -31,7 +31,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <ctype.h>
 #include <fcntl.h>
 #include <unistd.h>
 #include <signal.h>
@@ -248,11 +247,11 @@ net_response( DirectStream *stream, char *buf, size_t size )
 static int
 net_command( DirectStream *stream, char *buf, size_t size )
 {
-     int status  = 0;
-     int version = 0; 
-     
      fd_set         s;
      struct timeval t;
+     int            status;
+     int            version;
+     char           space;
 
      FD_ZERO( &s );
      FD_SET( stream->remote.sd, &s );
@@ -273,23 +272,12 @@ net_command( DirectStream *stream, char *buf, size_t size )
      D_DEBUG_AT( Direct_Stream, "sent [%s].\n", buf );
 
      while (net_response( stream, buf, size ) > 0) {
-          if (!strncmp( buf, "HTTP/", 5 )) {
-               sscanf( buf, "HTTP/1.%d %d", &version, &status );
+          status = 0;
+          if (sscanf( buf, "HTTP/1.%d %3d", &version, &status ) == 2 ||
+              sscanf( buf, "RTSP/1.%d %3d", &version, &status ) == 2 ||
+              sscanf( buf, "ICY %3d", &status )                 == 1 ||
+              sscanf( buf, "%3d%[ ]", &status, &space )         == 2)
                break;
-          }
-          else if (!strncmp( buf, "RTSP/", 5 )) {
-               sscanf( buf, "RTSP/1.%d %d", &version, &status );
-               break;
-          }
-          else if (!strncmp( buf, "ICY ", 4 )) {
-               sscanf( buf, "ICY %d", &status );
-               break;
-          }
-          else if (isdigit(buf[0]) && isdigit(buf[1]) &&
-                   isdigit(buf[2]) && buf[3] == ' ') {
-               sscanf( buf, "%d", &status );
-               break;
-          }
      }
      
      return status;
@@ -747,11 +735,16 @@ ftp_seek( DirectStream *stream, unsigned int offset )
      char         buf[512];
     
      if (stream->fd > 0) {
+          int status;
+          
           close( stream->fd );
           stream->fd = -1;
 
           /* ignore response */
-          while (net_response( stream, buf, sizeof(buf) ) > 0);
+          while (net_response( stream, buf, sizeof(buf) ) > 0) {
+               if (sscanf( buf, "%3d%[ ]", &status, buf ) == 2)
+                    break;
+          }
      }
 
      ret = ftp_open_pasv( stream, buf, sizeof(buf) );
@@ -796,9 +789,10 @@ ftp_open( DirectStream *stream, const char *filename )
      if (ret)
           return ret;
 
-     while (net_response( stream, buf, sizeof(buf) ) > 0)
-          sscanf( buf, "%3d", &status );
-     
+     while (net_response( stream, buf, sizeof(buf) ) > 0) {
+          if (sscanf( buf, "%3d%[ ]", &status, buf ) == 2)
+               break;
+     }
      if (status != 220)
           return DFB_FAILURE;
      
