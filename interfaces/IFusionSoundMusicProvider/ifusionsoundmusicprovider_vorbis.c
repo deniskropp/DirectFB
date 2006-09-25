@@ -24,6 +24,8 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <errno.h>
+
 #include <math.h>
 
 #include <fusionsound.h>
@@ -323,6 +325,80 @@ vorbis_mix_audio( float **src, void *dst, int len,
                D_BUG( "unexpected sample format" );
                break;
      }
+}
+
+/* I/O callbacks */
+
+static size_t
+ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
+{
+     DirectStream *stream = ctx;
+     unsigned int  length = size * nmemb;
+     DirectResult  ret;
+
+     if (length) {
+          direct_stream_wait( stream, length, NULL );
+          ret = direct_stream_read( stream, length, dst, &length );
+          if (ret) {
+               errno = (ret == DFB_EOF) ? 0 : -1;
+               return errno;
+          }
+     }
+     
+     return length;
+}
+
+static int 
+ov_seek_callback( void *ctx, ogg_int64_t offset, int whence )
+{
+     DirectStream *stream = ctx;
+     unsigned int  pos    = 0;
+     DirectResult  ret    = DFB_UNSUPPORTED;
+     
+     if (!direct_stream_seekable( stream ) || direct_stream_remote( stream ))
+          return -1;
+
+     switch (whence) {
+          case SEEK_SET:
+               break;
+          case SEEK_CUR:
+               pos = direct_stream_offset( stream );
+               offset += pos;
+               break;
+          case SEEK_END:
+               pos = direct_stream_length( stream );
+               if (offset < 0)
+                    return pos;
+               offset = pos-offset;
+               break;
+          default:
+               offset = -1;
+               break;
+     }
+     
+     if (offset >= 0)
+          ret = direct_stream_seek( stream, offset );
+     if (ret) {
+          errno = -1;
+          return -1;
+     }
+     
+     errno = 0;    
+     return direct_stream_offset( stream );
+}
+
+static long
+ov_tell_callback( void *ctx )
+{
+     DirectStream *stream = ctx;
+     
+     return direct_stream_offset( stream );
+}
+
+static int
+ov_close_callback( void *ctx )
+{
+     return 0;
 }
 
 /* provider methods */
@@ -993,23 +1069,19 @@ Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream )
 {
-     FILE *fp;
+     ov_callbacks cb;
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Vorbis )
 
      data->ref    = 1;
      data->stream = direct_stream_dup( stream );
 
-     fp = fdopen( direct_stream_fileno( stream ), "rb" );
-     if (!fp) {
-          IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
-          return DFB_IO;
-     }
-
-     fcntl( fileno(fp), F_SETFL,
-               fcntl( fileno(fp), F_GETFL ) & ~O_NONBLOCK );
+     cb.read_func  = ov_read_callback;
+     cb.seek_func  = ov_seek_callback;
+     cb.tell_func  = ov_tell_callback;
+     cb.close_func = ov_close_callback;
      
-     if (ov_open( fp, &data->vf, NULL, 0 ) < 0) {
+     if (ov_open_callbacks( data->stream, &data->vf, NULL, 0, cb ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error opening ogg/vorbis stream!\n" );
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
