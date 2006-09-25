@@ -1346,6 +1346,14 @@ Construct( IDirectFBVideoProvider *thiz,
           return DFB_INIT;
      }
      
+     if (pd.filename) {
+          if (!strncmp( pd.filename, "http://", 7 ) || 
+              !strncmp( pd.filename, "unsv://", 7 ) ||
+              !strncmp( pd.filename, "ftp://",  6 ) || 
+              !strncmp( pd.filename, "rtsp://", 7 ))
+               pb.is_streamed = 1;
+     }
+     
      if (av_open_input_stream( &data->context, 
                                &pb, pd.filename, fmt, NULL ) < 0) {
           D_ERROR( "IDirectFBVideoProvider_FFmpeg: "
