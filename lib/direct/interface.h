@@ -124,7 +124,7 @@ void direct_dbg_interface_remove( const char *func,
 
 #define DIRECT_ALLOCATE_INTERFACE(p,i)                                               \
      do {                                                                            \
-          (p) = D_CALLOC( 1, sizeof(i) );                                            \
+          (p) = (typeof(p))D_CALLOC( 1, sizeof(i) );                                 \
                                                                                      \
           D_MAGIC_SET( (IAny*)(p), DirectInterface );                                \
                                                                                      \

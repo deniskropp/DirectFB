@@ -209,7 +209,7 @@ dfb_surface_data_offset( const CoreSurface *surface,
           y >>= 1;
      }
 
-     return data + pitch * y + DFB_BYTES_PER_LINE( surface->format, x );
+     return (__u8*) data + pitch * y + DFB_BYTES_PER_LINE( surface->format, x );
 }
 
 static inline void
@@ -218,15 +218,15 @@ dfb_surface_caps_apply_policy( CoreSurfacePolicy       policy,
 {
      switch (policy) {
           case CSP_SYSTEMONLY:
-               *caps = (*caps & ~DSCAPS_VIDEOONLY) | DSCAPS_SYSTEMONLY;
+               *caps = (DFBSurfaceCapabilities)((*caps & ~DSCAPS_VIDEOONLY) | DSCAPS_SYSTEMONLY);
                break;
 
           case CSP_VIDEOONLY:
-               *caps = (*caps & ~DSCAPS_SYSTEMONLY) | DSCAPS_VIDEOONLY;
+               *caps = (DFBSurfaceCapabilities)((*caps & ~DSCAPS_SYSTEMONLY) | DSCAPS_VIDEOONLY);
                break;
 
           default:
-               *caps &= ~(DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY);
+               *caps = (DFBSurfaceCapabilities)(*caps & ~(DSCAPS_SYSTEMONLY | DSCAPS_VIDEOONLY));
                break;
      }
 }
