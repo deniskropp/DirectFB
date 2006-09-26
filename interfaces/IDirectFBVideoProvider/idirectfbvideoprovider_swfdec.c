@@ -641,6 +641,7 @@ IDirectFBVideoProvider_Swfdec_Destruct( IDirectFBVideoProvider *thiz )
      
      if (data->video.thread) { 
           direct_thread_cancel( data->video.thread );
+          pthread_cond_signal( &data->video.cond );
           direct_thread_join( data->video.thread );
           direct_thread_destroy( data->video.thread );
      }
@@ -862,6 +863,9 @@ static DFBResult
 IDirectFBVideoProvider_Swfdec_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_Swfdec )
+     
+     if (data->status == DVSTATE_STOP)
+          return DFB_OK;
      
      pthread_mutex_lock( &data->input.lock );
  
@@ -1330,12 +1334,12 @@ Construct( IDirectFBVideoProvider *thiz,
      }
 #endif     
  
-     direct_util_recursive_pthread_mutex_init( &data->input.lock );
-     direct_util_recursive_pthread_mutex_init( &data->video.lock );
-     direct_util_recursive_pthread_mutex_init( &data->audio.lock );
-     direct_util_recursive_pthread_mutex_init( &data->video.queue.lock );
-     direct_util_recursive_pthread_mutex_init( &data->audio.queue.lock );
-     pthread_cond_init( &data->video.cond, NULL );
+     pthread_mutex_init( &data->input.lock, NULL );
+     pthread_mutex_init( &data->video.lock, NULL );
+     pthread_mutex_init( &data->audio.lock, NULL );
+     pthread_mutex_init( &data->video.queue.lock, NULL );
+     pthread_mutex_init( &data->audio.queue.lock, NULL );
+     pthread_cond_init ( &data->video.cond, NULL );
      
      thiz->AddRef                = IDirectFBVideoProvider_Swfdec_AddRef;
      thiz->Release               = IDirectFBVideoProvider_Swfdec_Release;
