@@ -3157,102 +3157,19 @@ wm_update_cursor( CoreWindowStack       *stack,
      WMData           *wmdata   = wm_data;
      StackData        *data     = stack_data;
      bool              restored = false;
-     CoreLayer        *layer;
      CoreLayerContext *context;
      CoreLayerRegion  *primary;
-     CardState        *state;
      CoreSurface      *surface;
 
      D_ASSERT( stack != NULL );
-     D_ASSERT( stack->context != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( stack_data != NULL );
 
      D_MAGIC_ASSERT( data, StackData );
 
-     /* Optimize case of invisible cursor moving. */
-     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled)) {
-          data->cursor_bs_valid = false;
-          return DFB_OK;
-     }
+     old_region = data->cursor_region;
 
-     context = stack->context;
-
-     /* Get the primary region. */
-     ret = dfb_layer_context_get_primary_region( context, false, &primary );
-     if (ret)
-          return ret;
-
-     layer   = dfb_layer_at( context->layer_id );
-     state   = &layer->state;
-     surface = primary->surface;
-
-     if (flags & CCUF_ENABLE) {
-          CoreSurface *cursor_bs;
-
-          D_ASSERT( data->cursor_bs == NULL );
-
-          /* Create the cursor backing store surface. */
-          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                    DSPF_RGB16, stack->cursor.policy, DSCAPS_NONE, NULL, &cursor_bs );
-          if (ret) {
-               D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
-               dfb_layer_region_unref( primary );
-               return ret;
-          }
-
-          ret = dfb_surface_globalize( cursor_bs );
-          D_ASSERT( ret == DFB_OK );
-
-          /* Ensure valid back buffer for now.
-           * FIXME: Keep a flag to know when back/front have been swapped and need a sync.
-           */
-          switch (context->config.buffermode) {
-               case DLBM_BACKVIDEO:
-               case DLBM_TRIPLE:
-                    dfb_gfx_copy( surface, surface, NULL );
-                    break;
-
-               default:
-                    break;
-          }
-
-          data->cursor_bs = cursor_bs;
-     }
-     else {
-          D_ASSERT( data->cursor_bs != NULL );
-
-          /* restore region under cursor */
-          if (data->cursor_drawn) {
-               DFBRectangle rect = { 0, 0,
-                                     data->cursor_region.x2 - data->cursor_region.x1 + 1,
-                                     data->cursor_region.y2 - data->cursor_region.y1 + 1 };
-
-               D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
-               D_ASSERT( data->cursor_bs_valid );
-
-               dfb_gfx_copy_to( data->cursor_bs, surface, &rect,
-                                data->cursor_region.x1, data->cursor_region.y1, false );
-
-               data->cursor_drawn = false;
-
-               old_region = data->cursor_region;
-               restored   = true;
-          }
-
-          if (flags & CCUF_SIZE) {
-               ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
-                                           stack->cursor.size.w, stack->cursor.size.h,
-                                           data->cursor_bs->format );
-               if (ret) {
-                    D_ERROR( "WM/Default: Failed resizing backing store for cursor!\n" );
-                    dfb_layer_region_unref( primary );
-                    return ret;
-               }
-          }
-     }
-
-     if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE | CCUF_OPACITY)) {
+     if (flags & (CCUF_ENABLE | CCUF_POSITION | CCUF_SIZE)) {
           data->cursor_bs_valid  = false;
 
           data->cursor_region.x1 = stack->cursor.x - stack->cursor.hot.x;
@@ -3262,17 +3179,94 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           if (!dfb_region_intersect( &data->cursor_region, 0, 0, stack->width - 1, stack->height - 1 )) {
                D_BUG( "invalid cursor region" );
-               dfb_layer_region_unref( primary );
                return DFB_BUG;
           }
      }
 
+     /* Optimize case of invisible cursor moving. */
+     if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled))
+          return DFB_OK;
+
+     if (!data->cursor_bs) {
+          CoreSurface *cursor_bs;
+
+          D_ASSUME( flags & CCUF_ENABLE );
+
+          /* Create the cursor backing store surface. */
+          ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
+                                    DSPF_RGB16, stack->cursor.policy, DSCAPS_NONE, NULL, &cursor_bs );
+          if (ret) {
+               D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
+               return ret;
+          }
+
+          ret = dfb_surface_globalize( cursor_bs );
+          D_ASSERT( ret == DFB_OK );
+
+          data->cursor_bs = cursor_bs;
+     }
+
      D_ASSERT( data->cursor_bs != NULL );
+
+     context = stack->context;
+
+     D_ASSERT( context != NULL );
+
+     /* Get the primary region. */
+     ret = dfb_layer_context_get_primary_region( context, false, &primary );
+     if (ret)
+          return ret;
+
+     surface = primary->surface;
+
+     D_ASSERT( surface != NULL );
+
+     if (flags & CCUF_ENABLE) {
+         /* Ensure valid back buffer. From now on swapping is prevented until cursor is disabled.
+          * FIXME: Keep a flag to know when back/front have been swapped and need a sync.
+          */
+         switch (context->config.buffermode) {
+              case DLBM_BACKVIDEO:
+              case DLBM_TRIPLE:
+                   dfb_gfx_copy( surface, surface, NULL );
+                   break;
+
+              default:
+                   break;
+         }
+     }
+
+     /* restore region under cursor */
+     if (data->cursor_drawn) {
+          DFBRectangle rect = { 0, 0,
+                                old_region.x2 - old_region.x1 + 1,
+                                old_region.y2 - old_region.y1 + 1 };
+
+          D_ASSERT( stack->cursor.opacity || (flags & CCUF_OPACITY) );
+
+          dfb_gfx_copy_to( data->cursor_bs, surface, &rect, old_region.x1, old_region.y1, false );
+
+          data->cursor_drawn = false;
+
+          restored = true;
+     }
+
+     if (flags & CCUF_SIZE) {
+          ret = dfb_surface_reformat( wmdata->core, data->cursor_bs,
+                                      stack->cursor.size.w, stack->cursor.size.h,
+                                      data->cursor_bs->format );
+          if (ret)
+               D_DERROR( ret, "WM/Default: Failed resizing backing store for cursor from %dx%d to %dx%d!\n",
+                         data->cursor_bs->width, data->cursor_bs->height, stack->cursor.size.w, stack->cursor.size.h );
+     }
 
      if (flags & CCUF_DISABLE) {
           dfb_surface_unlink( &data->cursor_bs );
      }
      else if (stack->cursor.opacity) {
+          CoreLayer *layer = dfb_layer_at( context->layer_id );
+          CardState *state = &layer->state;
+
           /* backup region under cursor */
           if (!data->cursor_bs_valid) {
                DFBRectangle rect = DFB_RECTANGLE_INIT_FROM_REGION( &data->cursor_region );
