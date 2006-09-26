@@ -317,19 +317,20 @@ FFmpegInput( DirectThread *self, void *arg )
           if (data->input.seeked) {
                if (av_seek_frame( data->context, -1, data->input.seek_time,
                                                 data->input.seek_flag ) >= 0) {
+                    pthread_mutex_lock( &data->video.lock );
+                    pthread_mutex_lock( &data->audio.lock );
                     flush_packets( &data->video.queue );
                     flush_packets( &data->audio.queue );
                     if (data->status == DVSTATE_FINISHED)
                          data->status = DVSTATE_PLAY;
-                    data->video.pts    =
-                    data->audio.pts    = (double)data->input.seek_time/AV_TIME_BASE;
+                    data->video.pts = 
+                    data->audio.pts = (double)data->input.seek_time/AV_TIME_BASE;
                     data->video.seeked = true;
                     data->audio.seeked = true;
-                    if (data->video.thread) {
-                         pthread_mutex_lock( &data->video.lock );
+                    if (data->video.thread)
                          pthread_cond_signal( &data->video.cond );
-                         pthread_mutex_unlock( &data->video.lock );
-                    }
+                    pthread_mutex_unlock( &data->audio.lock );
+                    pthread_mutex_unlock( &data->video.lock );
                }
                data->input.seeked = false;
           }
@@ -337,7 +338,7 @@ FFmpegInput( DirectThread *self, void *arg )
           if (data->video.queue.size >= data->max_videoq_size ||
               data->audio.queue.size >= data->max_audioq_size) {
                pthread_mutex_unlock( &data->input.lock );
-               usleep( 0 );
+               usleep( 50 );
                continue;
           }
           
@@ -347,7 +348,7 @@ FFmpegInput( DirectThread *self, void *arg )
                    data->audio.queue.size == 0)
                {
                     if (data->flags & DVPLAY_LOOPING) {
-                         data->input.seek_time = data->start_time;
+                         data->input.seek_time = 0;
                          data->input.seek_flag = 0;
                          data->input.seeked    = true;
                     } else {
@@ -362,18 +363,13 @@ FFmpegInput( DirectThread *self, void *arg )
           
           if (packet.stream_index == data->video.st->index) {     
                add_packet( &data->video.queue, &packet );
-               if (data->input.seeked && !data->speed) {
-                    pthread_mutex_lock( &data->video.lock );
-                    pthread_cond_signal( &data->video.cond );
-                    pthread_mutex_unlock( &data->video.lock );
-               }
           }
-          else if (data->audio.st && packet.stream_index == data->audio.st->index) {
-               if (data->audio.thread)
-                    add_packet( &data->audio.queue, &packet );
-               else
-                    av_free_packet( &packet );
+#ifdef HAVE_FUSIONSOUND
+          else if (data->audio.stream &&
+                   packet.stream_index == data->audio.st->index) {
+               add_packet( &data->audio.queue, &packet );
           }
+#endif
           else {
                av_free_packet( &packet );
           }
@@ -522,7 +518,7 @@ FFmpegVideo( DirectThread *self, void *arg )
           direct_thread_testcancel( self );
           
           pthread_mutex_lock( &data->video.lock );
-    
+   
           if (!get_packet( &data->video.queue, &pkt )) {
                pthread_mutex_unlock( &data->video.lock );
                usleep( 0 );
@@ -538,7 +534,7 @@ FFmpegVideo( DirectThread *self, void *arg )
           avcodec_decode_video( data->video.ctx, 
                                 data->video.src_frame,
                                 &done, pkt.data, pkt.size );
-          
+
           if (done && !drop) {
                FFmpegPutFrame( data );
           
@@ -623,7 +619,7 @@ FFmpegAudio( DirectThread *self, void *arg )
                                                pkt_data, pkt_size );
                if (decoded < 0)
                     break;
-                         
+                       
                pkt_data += decoded;
                pkt_size -= decoded;
                if (len > 0)
@@ -961,7 +957,7 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      data->ctx              = ctx;
      
      if (data->status == DVSTATE_FINISHED) {
-          data->input.seek_time = data->start_time;
+          data->input.seek_time = 0;
           data->input.seek_flag = 0;
           data->input.seeked    = true;
      }
@@ -973,21 +969,21 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
                                                     (void*)data, "FFmpeg Input" );
      }
      
-     if (!data->video.thread) {
-          data->video.thread = direct_thread_create( DTT_DEFAULT, FFmpegVideo,
-                                                    (void*)data, "FFmpeg Video" );
-     }
-
 #ifdef HAVE_FUSIONSOUND
      if (!data->audio.thread && data->audio.stream) {
           data->audio.thread = direct_thread_create( DTT_DEFAULT, FFmpegAudio,
                                                      (void*)data, "FFmpeg Audio" );
      }
 #endif
- 
-     pthread_mutex_unlock( &data->input.lock );
-     pthread_mutex_unlock( &data->video.lock );
+     
+     if (!data->video.thread) {
+          data->video.thread = direct_thread_create( DTT_DEFAULT, FFmpegVideo,
+                                                    (void*)data, "FFmpeg Video" );
+     }
+
      pthread_mutex_unlock( &data->audio.lock );
+     pthread_mutex_unlock( &data->video.lock );
+     pthread_mutex_unlock( &data->input.lock );
           
      return DFB_OK;
 }
@@ -1063,8 +1059,7 @@ IDirectFBVideoProvider_FFmpeg_SeekTo( IDirectFBVideoProvider *thiz,
           
      thiz->GetPos( thiz, &pos );
   
-     time = (seconds * AV_TIME_BASE) + data->start_time;
-      
+     time = seconds * AV_TIME_BASE; 
      if (data->context->duration != AV_NOPTS_VALUE &&
          time > data->context->duration)
           return DFB_OK;
