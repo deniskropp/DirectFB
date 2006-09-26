@@ -61,7 +61,7 @@
 #endif
 
 #define MAX_BUFFERS 200
-#define MAX_LEVEL   256
+#define MAX_LEVEL   200
 
 #define NAME_LEN    92
 
@@ -498,7 +498,13 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
      if (!buffer)
           buffer = get_trace_buffer();
 
-     copy = calloc( 1, sizeof(DirectTraceBuffer) );
+     level = buffer->level;
+     if (level > MAX_LEVEL) {
+          D_WARN( "only copying %d of %d items", MAX_LEVEL, level );
+          level = MAX_LEVEL;
+     }
+
+     copy = calloc( 1, sizeof(*buffer) - sizeof(buffer->trace) + sizeof(buffer->trace[0]) * level );
      if (!copy)
           return NULL;
 
@@ -507,12 +513,6 @@ direct_trace_copy_buffer( DirectTraceBuffer *buffer )
 
      copy->tid   = buffer->tid;
      copy->level = buffer->level;
-
-     level = buffer->level;
-     if (level > MAX_LEVEL) {
-          D_WARN( "only copying %d of %d items", MAX_LEVEL, level );
-          level = MAX_LEVEL;
-     }
 
      direct_memcpy( copy->trace, buffer->trace, level * sizeof(buffer->trace[0]) );
 
