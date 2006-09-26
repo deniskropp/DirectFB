@@ -113,7 +113,7 @@ char *fusion_shstrdup (FusionSHMPoolShared *pool, const char *string);
 
 
 
-#if DIRECT_BUILD_DEBUGS || DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
+#if DIRECT_BUILD_DEBUGS || DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
 
 #if !DIRECT_BUILD_DEBUGS
 #warning Building with debug, but library headers suggest that debug is not supported.

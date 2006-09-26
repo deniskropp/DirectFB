@@ -91,7 +91,7 @@ void direct_assumption( const char *exp,
 
 
 
-#if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG))
+#if DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG))
 
 #if !DIRECT_BUILD_DEBUGS
 #warning Building with debug, but library headers suggest that debug is not supported.
@@ -168,7 +168,7 @@ void direct_assumption( const char *exp,
 #define D_ASSUME(exp)              do {} while (0)
 #define D_BREAK(x...)              do {} while (0)
 
-#endif    /* DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || DIRECT_FORCE_DEBUG) */
+#endif    /* DIRECT_BUILD_TEXT && (DIRECT_BUILD_DEBUG || DIRECT_ENABLE_DEBUG || DIRECT_FORCE_DEBUG) || ) */
 
 
 #define D_MAGIC(spell)             ( (((spell)[sizeof(spell)*8/9] << 24) | \

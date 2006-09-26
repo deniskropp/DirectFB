@@ -52,7 +52,7 @@ char *direct_strdup ( const char *file, int line,
                       const char *func, const char *string );
 
 
-#if DIRECT_BUILD_DEBUG || defined(DIRECT_FORCE_DEBUG)
+#if DIRECT_BUILD_DEBUG || defined(DIRECT_ENABLE_DEBUG) || defined(DIRECT_FORCE_DEBUG)
 
 #if !DIRECT_BUILD_DEBUGS
 #warning Building with debug, but library headers suggest that debug is not supported.
