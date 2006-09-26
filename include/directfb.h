@@ -3513,6 +3513,24 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           IDirectFBSurface         *thiz,
           DFBAccelerationMask       mask
      );
+
+     /*
+      * Release possible reference to source surface.
+      *
+      * For performance reasons the last surface that has been used for Blit() and others stays
+      * attached to the state of the destination surface to save the overhead of reprogramming
+      * the same values each time.
+      *
+      * That leads to the last source being still around regardless of it being released
+      * via its own interface. The worst case is generation of thumbnails using StretchBlit()
+      * from a huge surface to a small one. The small thumbnail surface keeps the big one alive,
+      * because no other blitting will be done to the small surface afterwards.
+      *
+      * To solve this, here's the method applications should use in such a case.
+      */
+     DFBResult (*ReleaseSource) (
+          IDirectFBSurface         *thiz
+     );
 )
 
 

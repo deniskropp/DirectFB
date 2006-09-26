@@ -200,9 +200,6 @@ IDirectFBSurface_GetAccelerationMask( IDirectFBSurface    *thiz,
 
      *mask = data->state.accel;
 
-     /* unref the source surface so it can be deleted immediately */
-     dfb_state_set_source( &data->state, NULL );
-
      return DFB_OK;
 }
 static DFBResult
@@ -1380,9 +1377,6 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
                        data->area.wanted.x + dx,
                        data->area.wanted.y + dy, &data->state );
 
-     /* unref the source surface so it can be deleted immediately */
-     dfb_state_set_source( &data->state, NULL );
-
      return DFB_OK;
 }
 
@@ -1462,9 +1456,6 @@ IDirectFBSurface_TileBlit( IDirectFBSurface   *thiz,
                            dx + data->area.wanted.w + srect.w - 1,
                            dy + data->area.wanted.h + srect.h - 1, &data->state );
 
-     /* unref the source surface so it can be deleted immediately */
-     dfb_state_set_source( &data->state, NULL );
-
      return DFB_OK;
 }
 
@@ -1535,9 +1526,6 @@ IDirectFBSurface_BatchBlit( IDirectFBSurface   *thiz,
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_batchblit( rects, points, num, &data->state );
-
-     /* unref the source surface so it can be deleted immediately */
-     dfb_state_set_source( &data->state, NULL );
 
      return DFB_OK;
 }
@@ -1630,9 +1618,6 @@ IDirectFBSurface_StretchBlit( IDirectFBSurface   *thiz,
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_stretchblit( &srect, &drect, &data->state );
-
-     /* unref the source surface so it can be deleted immediately */
-     dfb_state_set_source( &data->state, NULL );
 
      return DFB_OK;
 }
@@ -1751,9 +1736,6 @@ IDirectFBSurface_TextureTriangles( IDirectFBSurface     *thiz,
           dfb_state_set_src_colorkey( &data->state, src_data->src_key.value );
 
      dfb_gfxcard_texture_triangles( translated, num, formation, &data->state );
-
-     /* unref the source surface so it can be deleted immediately */
-     dfb_state_set_source( &data->state, NULL );
 
      return DFB_OK;
 }
@@ -2089,6 +2071,18 @@ IDirectFBSurface_DisableAcceleration( IDirectFBSurface    *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBSurface_ReleaseSource( IDirectFBSurface *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     D_DEBUG_AT( Surface, "%s( %p )\n", __FUNCTION__, thiz );
+
+     dfb_state_set_source( &data->state, NULL );
+
+     return DFB_OK;
+}
+
 /******/
 
 DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
@@ -2209,6 +2203,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      thiz->Dump = IDirectFBSurface_Dump;
      thiz->DisableAcceleration = IDirectFBSurface_DisableAcceleration;
+     thiz->ReleaseSource = IDirectFBSurface_ReleaseSource;
 
 
      dfb_surface_attach( surface,
