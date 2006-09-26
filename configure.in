@@ -147,7 +147,7 @@ fi
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
 
-AC_CHECK_HEADERS(linux/compiler.h linux/unistd.h asm/page.h)
+AC_CHECK_HEADERS(stdbool.h linux/compiler.h linux/unistd.h asm/page.h)
 
 
 dnl Clear default CFLAGS
