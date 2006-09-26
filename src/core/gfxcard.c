@@ -115,6 +115,10 @@ struct _GraphicsDevice {
 
 static GraphicsDevice *card = NULL;
 
+/* Hook for registering additional screen(s) and layer(s) in app or lib initializing DirectFB. */
+void (*__DFB_CoreRegisterHook)( CoreDFB *core, CoreGraphicsDevice *device, void *ctx ) = NULL;
+void  *__DFB_CoreRegisterHookCtx = NULL;
+
 
 static void dfb_gfxcard_find_driver( CoreDFB *core );
 static void dfb_gfxcard_load_driver();
@@ -243,6 +247,9 @@ dfb_gfxcard_initialize( CoreDFB *core, void *data_local, void *data_shared )
      }
 
      fusion_property_init( &shared->lock, dfb_core_world(core) );
+
+     if (__DFB_CoreRegisterHook)
+         __DFB_CoreRegisterHook( core, card, __DFB_CoreRegisterHookCtx );
 
      return DFB_OK;
 }

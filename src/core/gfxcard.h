@@ -383,5 +383,11 @@ unsigned long  dfb_gfxcard_auxmemory_physical( GraphicsDevice *device,
 void          *dfb_gfxcard_auxmemory_virtual ( GraphicsDevice *device,
                                                unsigned int    offset );
 
+
+/* Hook for registering additional screen(s) and layer(s) in app or lib initializing DirectFB. */
+extern void (*__DFB_CoreRegisterHook)( CoreDFB *core, CoreGraphicsDevice *device, void *ctx );
+extern void  *__DFB_CoreRegisterHookCtx;
+
+
 #endif
 
