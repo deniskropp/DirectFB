@@ -39,9 +39,22 @@ typedef DFBResult DirectResult;    /* FIXME */
 #undef main
 #endif
 
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
+#ifdef HAVE_STDBOOL_H
+#include <stdbool.h>
+#endif
 
 
 #if !defined(__cplusplus) && !defined(__bool_true_false_are_defined)
+#ifndef NO_WARN_STDBOOL
+#warning \
+     bool definition herein is not 100% compliant,          \
+     add AC_CHECK_HEADERS(stdbool.h) to your configure.in   \
+     or define HAVE_STDBOOL_H or NO_WARN_STDBOOL.
+#endif
 #ifndef false
 #define false (0)
 #endif
