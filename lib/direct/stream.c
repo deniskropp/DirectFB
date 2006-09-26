@@ -277,10 +277,10 @@ net_command( DirectStream *stream, char *buf, size_t size )
               sscanf( buf, "RTSP/1.%d %3d", &version, &status ) == 2 ||
               sscanf( buf, "ICY %3d", &status )                 == 1 ||
               sscanf( buf, "%3d%[ ]", &status, &space )         == 2)
-               break;
+               return status;
      }
      
-     return status;
+     return 0;
 }
      
 static void
