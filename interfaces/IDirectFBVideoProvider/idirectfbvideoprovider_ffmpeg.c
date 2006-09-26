@@ -512,14 +512,14 @@ FFmpegVideo( DirectThread *self, void *arg )
      IDirectFBVideoProvider_FFmpeg_data *data = arg; 
      long                                drop = 0;
 
-     pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
-
-     while (!direct_thread_is_canceled( self )) {
+     while (data->status != DVSTATE_STOP) {
           AVPacket pkt;
           __s64    time;
           int      done = 0;
           
           time = av_gettime();
+          
+          direct_thread_testcancel( self );
           
           pthread_mutex_lock( &data->video.lock );
     
@@ -591,10 +591,8 @@ FFmpegAudio( DirectThread *self, void *arg )
      IDirectFBVideoProvider_FFmpeg_data *data = arg;
      
      __u8 buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
-     
-     pthread_setcancelstate( PTHREAD_CANCEL_DISABLE, NULL );
 
-     while (!direct_thread_is_canceled( self )) {
+     while (data->status != DVSTATE_STOP) {
           AVPacket  pkt;
           __u8     *pkt_data;
           int       pkt_size;
@@ -602,6 +600,8 @@ FFmpegAudio( DirectThread *self, void *arg )
           int       len   = 0;
           int       size  = 0;
           int       delay = 0;
+          
+          direct_thread_testcancel( self );
           
           pthread_mutex_lock( &data->audio.lock );
           
@@ -997,8 +997,14 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
 {
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
+     if (data->status == DVSTATE_STOP)
+          return DFB_OK;
+          
+     pthread_mutex_lock( &data->input.lock );
+          
+     data->status = DVSTATE_STOP;
+     
      if (data->video.thread) {
-          direct_thread_cancel( data->video.thread );
           if (!data->speed) {
                pthread_mutex_lock( &data->video.lock );
                pthread_cond_signal( &data->video.cond );
@@ -1010,7 +1016,6 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
      }
      
      if (data->audio.thread) {
-          direct_thread_cancel( data->audio.thread );
           direct_thread_join( data->audio.thread );
           direct_thread_destroy( data->audio.thread );
           data->audio.thread = NULL;
@@ -1022,7 +1027,7 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
           data->video.dest_data = NULL;
      }
      
-     data->status = DVSTATE_STOP;
+     pthread_mutex_unlock( &data->input.lock );
      
      return DFB_OK;
 }
@@ -1346,13 +1351,11 @@ Construct( IDirectFBVideoProvider *thiz,
           return DFB_INIT;
      }
      
-     if (pd.filename) {
-          if (!strncmp( pd.filename, "http://", 7 ) || 
-              !strncmp( pd.filename, "unsv://", 7 ) ||
-              !strncmp( pd.filename, "ftp://",  6 ) || 
-              !strncmp( pd.filename, "rtsp://", 7 ))
-               pb.is_streamed = 1;
-     }
+     pb.is_streamed = (!data->seekable                       ||
+                       !strncmp( pd.filename, "http://", 7 ) || 
+                       !strncmp( pd.filename, "unsv://", 7 ) ||
+                       !strncmp( pd.filename, "ftp://",  6 ) || 
+                       !strncmp( pd.filename, "rtsp://", 7 ));
      
      if (av_open_input_stream( &data->context, 
                                &pb, pd.filename, fmt, NULL ) < 0) {
@@ -1484,13 +1487,12 @@ Construct( IDirectFBVideoProvider *thiz,
      data->video.pts = 
      data->audio.pts = (double)data->start_time / AV_TIME_BASE;
  
-     direct_util_recursive_pthread_mutex_init( &data->input.lock );
-     direct_util_recursive_pthread_mutex_init( &data->video.lock );
-     direct_util_recursive_pthread_mutex_init( &data->audio.lock );
-     direct_util_recursive_pthread_mutex_init( &data->video.queue.lock );
-     direct_util_recursive_pthread_mutex_init( &data->audio.queue.lock );
-       
-     pthread_cond_init( &data->video.cond, NULL );
+     pthread_mutex_init( &data->input.lock, NULL );
+     pthread_mutex_init( &data->video.lock, NULL );
+     pthread_mutex_init( &data->audio.lock, NULL );
+     pthread_mutex_init( &data->video.queue.lock, NULL );
+     pthread_mutex_init( &data->audio.queue.lock, NULL );  
+     pthread_cond_init ( &data->video.cond, NULL );
      
      thiz->AddRef                = IDirectFBVideoProvider_FFmpeg_AddRef;
      thiz->Release               = IDirectFBVideoProvider_FFmpeg_Release;
