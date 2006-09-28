@@ -110,7 +110,9 @@ struct __D_DirectStream {
 static void direct_stream_close( DirectStream *stream );
 
 
-//D_DEBUG_DOMAIN( Direct_Stream, "Direct/Stream", "Stream wrapper" );
+#if DIRECT_BUILD_NETWORK
+D_DEBUG_DOMAIN( Direct_Stream, "Direct/Stream", "Stream wrapper" );
+#endif
 
 /************************** Begin Network Support ***************************/
 
