@@ -219,12 +219,12 @@ fusion_shm_deinit( FusionWorld *world )
 
      direct_signal_handler_remove( shm->signal_handler );
 
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret)
+          return ret;
+
      /* Deinitialize shared data. */
      if (fusion_master( world )) {
-          ret = fusion_skirmish_prevail( &shared->lock );
-          if (ret)
-               return ret;
-
           D_ASSUME( shared->num_pools == 0 );
 
           for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
@@ -242,6 +242,18 @@ fusion_shm_deinit( FusionWorld *world )
           fusion_skirmish_destroy( &shared->lock );
 
           D_MAGIC_CLEAR( shared );
+     }
+     else {
+          for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
+               if (shared->pools[i].active) {
+                    D_MAGIC_ASSERT( &shared->pools[i], FusionSHMPoolShared );
+                    D_MAGIC_ASSERT( &shm->pools[i], FusionSHMPool );
+
+                    fusion_shm_pool_detach( shm, &shared->pools[i] );
+               }
+          }
+
+          fusion_skirmish_dismiss( &shared->lock );
      }
 
      D_MAGIC_CLEAR( shm );
