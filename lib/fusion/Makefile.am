@@ -26,19 +26,20 @@ install-exec-local:
 includedir = @INCLUDEDIR@/fusion
 
 include_HEADERS = \
-	arena.h		\
-	build.h		\
-	call.h		\
-	conf.h		\
-	fusion.h	\
-	hash.h      \
-	lock.h		\
-	object.h	\
-	property.h	\
-	reactor.h	\
-	ref.h		\
-	shmalloc.h	\
-	types.h		\
+	arena.h			\
+	build.h			\
+	call.h			\
+	conf.h			\
+	fusion.h		\
+	fusion_internal.h	\
+	hash.h			\
+	lock.h			\
+	object.h		\
+	property.h		\
+	reactor.h		\
+	ref.h			\
+	shmalloc.h		\
+	types.h			\
 	vector.h
 
 
@@ -49,8 +50,7 @@ libfusion_la_SOURCES = \
 	call.c			\
 	conf.c			\
 	fusion.c		\
-	fusion_internal.h	\
-	hash.c          \
+	hash.c			\
 	lock.c			\
 	object.c		\
 	property.c		\

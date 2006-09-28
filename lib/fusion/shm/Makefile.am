@@ -21,11 +21,11 @@ EXTRA_DIST = fake.c
 noinst_LTLIBRARIES = libfusion_shm.la
 
 libfusion_shm_la_SOURCES = \
-	$(SHMSOURCES)		\
-	shm_internal.h
+	$(SHMSOURCES)
 
 includedir = @INCLUDEDIR@/fusion/shm
 
 include_HEADERS = \
 	pool.h			\
-	shm.h
+	shm.h			\
+	shm_internal.h
