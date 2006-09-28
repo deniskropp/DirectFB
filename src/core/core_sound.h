@@ -29,7 +29,7 @@
 
 #include <fusionsound.h>
 
-#include <fusion/types.h>
+#include <fusion/object.h>
 
 #include <core/types_sound.h>
 
@@ -46,13 +46,23 @@ CoreSoundBuffer *fs_core_create_buffer  ( CoreSound *core );
 CorePlayback    *fs_core_create_playback( CoreSound *core );
 
 /*
+ * Object enumeration
+ */
+DirectResult     fs_core_enum_buffers   ( CoreSound            *core,
+                                          FusionObjectCallback  callback,
+                                          void                 *ctx );
+DirectResult     fs_core_enum_playbacks ( CoreSound            *core,
+                                          FusionObjectCallback  callback,
+                                          void                 *ctx );
+
+/*
  * Playback list management
  */
-DirectResult fs_core_playlist_lock( CoreSound *core );
+DirectResult fs_core_playlist_lock  ( CoreSound *core );
 DirectResult fs_core_playlist_unlock( CoreSound *core );
 
-DFBResult fs_core_add_playback( CoreSound    *core,
-                                CorePlayback *playback );
+DFBResult fs_core_add_playback   ( CoreSound    *core,
+                                   CorePlayback *playback );
 
 DFBResult fs_core_remove_playback( CoreSound    *core,
                                    CorePlayback *playback );

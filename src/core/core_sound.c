@@ -282,6 +282,30 @@ fs_core_create_playback( CoreSound *core )
 }
 
 DirectResult
+fs_core_enum_buffers( CoreSound            *core,
+                      FusionObjectCallback  callback,
+                      void                 *ctx )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+
+     /* Enumerate objects in the buffer pool. */
+     return fusion_object_pool_enum( core->shared->buffer_pool, callback, ctx );
+}
+
+DirectResult
+fs_core_enum_playbacks( CoreSound            *core,
+                        FusionObjectCallback  callback,
+                        void                 *ctx )
+{
+     D_ASSERT( core != NULL );
+     D_ASSERT( core->shared != NULL );
+
+     /* Enumerate objects in the playback pool. */
+     return fusion_object_pool_enum( core->shared->playback_pool, callback, ctx );
+}
+
+DirectResult
 fs_core_playlist_lock( CoreSound *core )
 {
      D_ASSERT( core != NULL );
