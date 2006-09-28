@@ -45,14 +45,6 @@
 
 #include <misc/sound_conf.h>
 
-/*
- * private data struct of IFusionSound
- */
-typedef struct {
-     int              ref;       /* reference counter */
-
-     CoreSound       *core;
-} IFusionSound_data;
 
 
 static void

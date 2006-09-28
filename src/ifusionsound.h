@@ -30,6 +30,18 @@
 
 #include <fusionsound.h>
 
+#include <core/core_sound.h>
+
+/*
+ * private data struct of IFusionSound
+ */
+typedef struct {
+     int              ref;       /* reference counter */
+
+     CoreSound       *core;
+} IFusionSound_data;
+
+
 DFBResult IFusionSound_Construct( IFusionSound *thiz );
 
 extern IFusionSound *ifusionsound_singleton;
