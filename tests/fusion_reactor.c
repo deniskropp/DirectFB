@@ -33,6 +33,7 @@
 
 #include <directfb.h>
 
+#include <direct/build.h>
 #include <direct/debug.h>
 #include <direct/log.h>
 #include <direct/messages.h>
@@ -42,10 +43,16 @@
 #include <fusion/ref.h>
 
 
+#if DIRECT_BUILD_DEBUGS
 #define MSG(x...)                       \
 do {                                    \
      direct_debug( x ); \
 } while (0)
+#else
+#define MSG(x...)                       \
+do {                                    \
+} while (0)
+#endif
 
 
 typedef struct {
