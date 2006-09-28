@@ -783,7 +783,6 @@ ftp_open( DirectStream *stream, const char *filename )
      DirectResult ret;
      int          status = 0;
      char         buf[512];
-     int          len;
      
      stream->remote.port = FTP_PORT;
 
@@ -1083,7 +1082,7 @@ real_calc_challenge2( char response[64], char checksum[32], char *challenge )
 }
 
 static DirectResult
-rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, int *ret_size )
+rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, unsigned int *ret_size )
 {
      unsigned char *dst, *tmp;
      int            abr = 0;
@@ -1171,7 +1170,7 @@ rmf_write_header( SDPStreamDesc *streams, int n_streams, void **ret_buf, int *re
           *dst++ = 0;
           /* mimetype */
           *dst++ = streams[i].mime_size;
-          for (tmp = streams[i].mime; tmp && *tmp;)
+          for (tmp = (unsigned char*) streams[i].mime; tmp && *tmp;)
                *dst++ = *tmp++;
                
           /* codec data */
