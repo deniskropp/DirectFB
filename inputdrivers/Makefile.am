@@ -1,5 +1,9 @@
 ## Makefile.am for DirectFB/inputdrivers
 
+if DYNAPRO_INPUT
+DYNAPRO_INPUT_DIR = dynapro
+endif
+
 if ELO_INPUT
 ELO_INPUT_DIR = elo
 endif
@@ -65,6 +69,7 @@ WM97XX_TS_DIR = wm97xx_ts
 endif
 
 SUBDIRS = \
+	$(DYNAPRO_INPUT_DIR)	\
 	$(ELO_INPUT_DIR)	\
 	$(GUNZE_INPUT_DIR)	\
 	$(JOYSTICK_INPUT_DIR)	\
