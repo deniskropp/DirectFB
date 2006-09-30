@@ -1239,7 +1239,7 @@ DFBResult dfb_config_read( const char *filename )
           D_DEBUG( "DirectFB/Config: Unable to open config file `%s'!\n", filename );
           return DFB_IO;
      } else {
-          D_INFO( "DirectFB/Config: Parsing config file '%s'.\n", filename );
+          D_DEBUG( "DirectFB/Config: Parsing config file '%s'.\n", filename );
      }
 
      while (fgets( line, 400, f )) {
