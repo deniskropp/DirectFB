@@ -88,6 +88,17 @@ Construct( IDirectFBFont      *thiz,
      int               pitch;
      int               i;
 
+     CoreDFB *core;
+     char *filename;
+     DFBFontDescription *desc;
+
+     va_list tag;
+     va_start(tag, thiz);
+     core = va_arg(tag, CoreDFB *);
+     filename = va_arg(tag, char *);
+     desc = va_arg(tag, DFBFontDescription *);
+     va_end( tag );
+
      D_HEAVYDEBUG( "DirectFB/FontDefault: Construct default font");
 
      ret = dfb_font_create( core, &font );

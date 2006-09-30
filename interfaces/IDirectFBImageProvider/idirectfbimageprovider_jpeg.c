@@ -261,12 +261,19 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           IDirectFBDataBuffer    *buffer )
+           ... )
 {
      struct jpeg_decompress_struct cinfo;
      struct my_error_mgr jerr;
      
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
+
+     IDirectFBDataBuffer *buffer;
+     va_list tag;
+
+     va_start(tag, thiz);
+     buffer = va_arg(tag, IDirectFBDataBuffer *);
+     va_end(tag);
 
      data->ref    = 1;
      data->buffer = buffer;
