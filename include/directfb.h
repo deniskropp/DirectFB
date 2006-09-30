@@ -81,69 +81,64 @@ const char * DirectFBCheckVersion( unsigned int required_major,
 
 
 /*
- * The only interface with a global "Create" function,
- * any other functionality goes from here.
+ * Main interface of DirectFB, created by DirectFBCreate().
  */
 DECLARE_INTERFACE( IDirectFB )
 
 /*
- * Display encoder and output connector settings,
- * input device assignment in multi head environments,
- * power management, synchronization.
+ * Interface to different display outputs, encoders, connector settings, power management and synchronization.
  */
 DECLARE_INTERFACE( IDirectFBScreen )
 
 /*
- * Layer configuration, creation of windows and background
- * configuration.
+ * Layer interface for configuration, window stack usage or direct surface access, with shared/exclusive context.
  */
 DECLARE_INTERFACE( IDirectFBDisplayLayer )
 
 /*
- * Surface locking, setting colorkeys and other drawing
- * parameters, clipping, flipping, blitting, drawing.
+ * Interface to a surface object, being a graphics context for rendering and state control,
+ * buffer operations, palette access and sub area translate'n'clip logic.
  */
 DECLARE_INTERFACE( IDirectFBSurface )
 
 /*
- * Access to palette data. Set/get entries, rotate palette.
+ * Interface for read/write access to the colors of a palette object and for cloning it.
  */
 DECLARE_INTERFACE( IDirectFBPalette )
 
 /*
- * Moving, resizing, raising and lowering.
- * Getting an interface to the window's surface.
- * Setting opacity and handling events.
+ * Interface to a window object, controlling appearance and focus, positioning and stacking,
+ * event buffers and surface access.
  */
 DECLARE_INTERFACE( IDirectFBWindow )
 
 /*
- * Creation of input buffers and explicit state queries.
+ * Input device interface for keymap access, event buffers and state queries.
  */
 DECLARE_INTERFACE( IDirectFBInputDevice )
 
 /*
- * An event buffer puts events from devices or windows into a FIFO.
+ * Interface to a local event buffer to send/receive events, wait for events, abort waiting or reset buffer.
  */
 DECLARE_INTERFACE( IDirectFBEventBuffer )
 
 /*
- * Getting font metrics and pixel width of a string.
+ * Font interface for getting metrics, measuring strings or single characters, query/choose encodings.
  */
 DECLARE_INTERFACE( IDirectFBFont )
 
 /*
- * Getting information about and loading one image from file.
+ * Interface to an image provider, retrieving information about the image and rendering it to a surface.
  */
 DECLARE_INTERFACE( IDirectFBImageProvider )
 
 /*
- * Rendering video data into a surface.
+ * Interface to a video provider for playback with advanced control and basic stream information.
  */
 DECLARE_INTERFACE( IDirectFBVideoProvider )
 
 /*
- * Streaming or static data for image or video providers.
+ * Data buffer interface, providing unified access to different kinds of data storage and live feed.
  */
 DECLARE_INTERFACE( IDirectFBDataBuffer )
 
