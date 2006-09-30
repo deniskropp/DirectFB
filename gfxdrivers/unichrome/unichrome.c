@@ -353,6 +353,8 @@ static void uc_after_set_var(void* drv, void* dev)
      VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) & 0xbf);
      // Set bit 2, it might make a difference.
      VGA_OUT8(ucdrv->hwregs, 0x3c5, VGA_IN8(ucdrv->hwregs, 0x3c5) | 0x4);
+
+     VIA_OUT(ucdrv->hwregs, VIA_REG_CURSOR_MODE, VIA_IN(ucdrv->hwregs, VIA_REG_CURSOR_MODE) & 0xFFFFFFFE);
 }
 
 /** Wait until the engine is idle. */
