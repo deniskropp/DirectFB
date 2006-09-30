@@ -179,7 +179,7 @@ DirectFBCreate( IDirectFB **interface )
      if (!direct_config->quiet && dfb_config->banner) {
           direct_log_printf( NULL,
                              "\n"
-                             "      =======================  DirectFB " DIRECTFB_VERSION "  =======================\n"
+                             "     =======================|  DirectFB " DIRECTFB_VERSION "  |=======================\n"
                              "          (c) 2001-2006  United Cultures of Earth - go for outer space!\n"
                              "          (c) 2000-2004  Convergence (integrated media) GmbH\n"
                              "        ----------------------------------------------------------------\n"
