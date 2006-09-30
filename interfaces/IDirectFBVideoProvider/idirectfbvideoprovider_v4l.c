@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include <string.h>
 
@@ -85,7 +86,7 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBVideoProvider *thiz,
-           IDirectFBDataBuffer    *buffer );
+           ... );
 
 #include <direct/interface_implementation.h>
 
@@ -603,9 +604,17 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
+Construct( IDirectFBVideoProvider *thiz, ... )
 {
      int fd;
+     IDirectFBDataBuffer *buffer;
+     va_list tag;
+     
+     va_start( tag, thiz );
+     buffer = va_arg( tag, IDirectFBDataBuffer * );
+     va_end( tag );
+
+
      IDirectFBDataBuffer_data *buffer_data;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)

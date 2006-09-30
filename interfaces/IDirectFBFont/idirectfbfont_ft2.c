@@ -30,6 +30,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include <ft2build.h>
 #include FT_GLYPH_H
@@ -60,9 +61,7 @@ Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
-           CoreDFB            *core,
-           const char         *filename,
-           DFBFontDescription *desc );
+	   ... );
 
 #include <direct/interface_implementation.h>
 
@@ -620,9 +619,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
-           CoreDFB            *core,
-           const char         *filename,
-           DFBFontDescription *desc )
+	   ... )
 {
      int                    i;
      DFBResult              ret;
@@ -634,6 +631,17 @@ Construct( IDirectFBFont      *thiz,
      bool                   disable_charmap = false;
      bool                   disable_kerning = false;
      bool                   load_mono = false;
+
+     CoreDFB *core;
+     char *filename;
+     DFBFontDescription *desc;
+
+     va_list tag;
+     va_start(tag, thiz);
+     core = va_arg(tag, CoreDFB *);
+     filename = va_arg(tag, char *);
+     desc = va_arg(tag, DFBFontDescription *);
+     va_end( tag );
 
      D_HEAVYDEBUG( "DirectFB/FontFT2: "
                     "Construct font from file `%s' (index %d) at pixel size %d x %d.\n",

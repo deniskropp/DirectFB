@@ -33,6 +33,7 @@
 #include <unistd.h>
 #include <png.h>
 #include <string.h>
+#include <stdarg.h>
 
 #include <directfb.h>
 
@@ -64,7 +65,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           IDirectFBDataBuffer    *buffer );
+           ... );
 
 #include <direct/interface_implementation.h>
 
@@ -165,11 +166,18 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           IDirectFBDataBuffer    *buffer )
+           ... )
 {
      DFBResult ret = DFB_FAILURE;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_PNG)
+
+     IDirectFBDataBuffer *buffer;
+     va_list tag;
+
+     va_start(tag, thiz);
+     buffer = va_arg(tag, IDirectFBDataBuffer *);
+     va_end(tag);
 
      data->ref    = 1;
      data->buffer = buffer;

@@ -32,7 +32,7 @@
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
-
+#include <stdarg.h>
 
 #include <directfb.h>
 
@@ -62,7 +62,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           IDirectFBDataBuffer    *buffer );
+           ... );
 
 #include <direct/interface_implementation.h>
 

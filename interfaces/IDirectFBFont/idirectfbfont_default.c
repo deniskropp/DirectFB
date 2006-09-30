@@ -26,6 +26,7 @@
 */
 
 #include <config.h>
+#include <stdarg.h>
 
 #include <directfb.h>
 
@@ -57,9 +58,7 @@ Probe( IDirectFBFont_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
-           CoreDFB            *core,
-           const char         *filename,
-           DFBFontDescription *desc );
+	   ... );
 
 #include <direct/interface_implementation.h>
 
@@ -78,9 +77,7 @@ Probe( IDirectFBFont_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBFont      *thiz,
-           CoreDFB            *core,
-           const char         *filename,
-           DFBFontDescription *desc )
+	   ... )
 {
      DFBResult         ret;
      CoreFont         *font;
