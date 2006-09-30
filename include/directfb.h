@@ -4791,6 +4791,36 @@ DEFINE_INTERFACE(   IDirectFBFont,
           int                      *ret_advance
      );
 
+     /*
+      * Get the next explicit or automatic break within a string
+      * along with the logical width of the text, the string length,
+      * and a pointer to the next text line.
+      *  
+      * The bytes specifies the maximum number of bytes to take from the
+      * string or -1 for complete NULL-terminated string.
+      *
+      * The max_width specifies logical width of column onto which 
+      * the text will be drawn. Then the logical width of fitted
+      * text is returned in ret_width. The returned width may overlap
+      * the max width specified if there's only one character 
+      * that fits.
+      *
+      * The number of characters that fit into this column is
+      * returned by the ret_str_length. This value can be used as 
+      * the number of bytes to take when using DrawString().
+      *
+      * In ret_next_line a pointer to the next line of text is returned. This 
+      * will point to NULL or the end of the string if there's no more break.
+      */
+     DFBResult (*GetStringBreak) (
+          IDirectFBFont            *thiz,
+          const char               *text,
+          int                       bytes,
+          int                       max_width,
+          int                      *ret_width,
+          int                      *ret_str_length,
+          const char              **ret_next_line
+     );
 
    /** Encodings **/
 
