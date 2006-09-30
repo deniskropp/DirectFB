@@ -1942,7 +1942,8 @@ typedef enum {
      DSOS_CVBS           = 0x00000004, /* CVBS signal */
      DSOS_RGB            = 0x00000008, /* R/G/B signal */
      DSOS_YCBCR          = 0x00000010, /* Y/Cb/Cr signal */
-     DSOS_HDMI           = 0x00000020  /* HDMI signal */
+     DSOS_HDMI           = 0x00000020, /* HDMI signal */
+     DSOS_656            = 0x00000040  /* 656 Digital output signal */
 } DFBScreenOutputSignals;
 
 
@@ -2015,7 +2016,10 @@ typedef enum {
      DSECAPS_HUE          = 0x00000400, /* Adjustment of hue is supported. */
      DSECAPS_SATURATION   = 0x00000800, /* Adjustment of saturation is supported. */
 
-     DSECAPS_ALL          = 0x00000f1f
+     DSECAPS_CONNECTORS   = 0x00001000, /* Select output connector(s). */
+     DSECAPS_SLOW_BLANKING = 0x00002000, /* Slow Blanking on outputs is supported. */
+
+     DSECAPS_ALL          = 0x00003f3f
 } DFBScreenEncoderCapabilities;
 
 /*
@@ -2062,6 +2066,7 @@ typedef struct {
 
      DFBScreenEncoderTVStandards   tv_standards;       /* Supported TV standards. */
      DFBScreenOutputSignals        out_signals;        /* Supported output signals. */
+     DFBScreenOutputConnectors     all_connectors;     /* Supported output connectors */
 
      char name[DFB_SCREEN_ENCODER_DESC_NAME_LENGTH];   /* Encoder name */
 } DFBScreenEncoderDescription;
@@ -2080,7 +2085,10 @@ typedef enum {
      DSECONF_TEST_COLOR   = 0x00000020, /* Set color for DSETP_SINGLE. */
      DSECONF_ADJUSTMENT   = 0x00000040, /* Set color adjustment. */
 
-     DSECONF_ALL          = 0x0000007F
+     DSECONF_CONNECTORS   = 0x00000100, /* Select output connector(s). */
+     DSECONF_SLOW_BLANKING = 0x00000200, /* Can select slow blanking support. */
+
+     DSECONF_ALL          = 0x000003FF
 } DFBScreenEncoderConfigFlags;
 
 /*
@@ -2112,6 +2120,9 @@ typedef struct {
      DFBScreenEncoderTestPicture   test_picture;  /* Test picture mode. */
      int                           mixer;         /* Selected mixer. */
      DFBScreenOutputSignals        out_signals;   /* Generated output signals. */
+     DFBScreenOutputConnectors     out_connectors; /* Selected output connector(s). */
+     DFBScreenOutputSlowBlankingSignals     slow_blanking;/* Slow Blanking signals. */
+
      DFBScreenEncoderScanMode      scanmode;      /* Interlaced or progressive output. */
 
      DFBColor                      test_color;    /* Color for DSETP_SINGLE. */

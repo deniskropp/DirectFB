@@ -619,6 +619,12 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
      if (patch->flags & DSECONF_ADJUSTMENT)
           patched->adjustment = patch->adjustment;
 
+     if (patch->flags & DSECONF_CONNECTORS)
+          patched->out_connectors = patch->out_connectors;
+
+     if (patch->flags & DSECONF_SLOW_BLANKING)
+          patched->slow_blanking = patch->slow_blanking;
+     
      return DFB_OK;
 }
 

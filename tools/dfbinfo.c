@@ -406,6 +406,18 @@ dump_encoders( IDirectFBScreen *screen,
                printf( "\n" );
           }
 
+          /* Output connectors */
+          if (descs[i].caps & DSECAPS_CONNECTORS) {
+               printf( "     Output Connectors: " );
+
+               for (n=0; connectors[n].connector; n++) {
+                    if (descs[i].all_connectors & connectors[n].connector)
+                         printf( "%s ", connectors[n].name );
+               }
+
+               printf( "\n" );
+          }
+
           printf( "\n" );
      }
 
