@@ -70,14 +70,15 @@ D_DEBUG_DOMAIN( Layer, "IDirectFBDisplayLayer", "Display Layer Interface" );
  * private data struct of IDirectFB
  */
 typedef struct {
-     int                              ref;     /* reference counter */
-     DFBDisplayLayerDescription       desc;    /* description of the layer's caps */
-     DFBDisplayLayerCooperativeLevel  level;   /* current cooperative level */
-     CoreScreen                      *screen;  /* layer's screen */
-     CoreLayer                       *layer;   /* core layer data */
-     CoreLayerContext                *context; /* shared or exclusive context */
-     CoreLayerRegion                 *region;  /* primary region of the context */
-     CoreWindowStack                 *stack;   /* stack of shared context */
+     int                              ref;              /* reference counter */
+     DFBDisplayLayerDescription       desc;             /* description of the layer's caps */
+     DFBDisplayLayerCooperativeLevel  level;            /* current cooperative level */
+     CoreScreen                      *screen;           /* layer's screen */
+     CoreLayer                       *layer;            /* core layer data */
+     CoreLayerContext                *context;          /* shared or exclusive context */
+     CoreLayerRegion                 *region;           /* primary region of the context */
+     CoreWindowStack                 *stack;            /* stack of shared context */
+     DFBBoolean                       switch_exclusive; /* switch to exclusive context after creation? */
 } IDirectFBDisplayLayer_data;
 
 
@@ -240,7 +241,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                     data->context = context;
                     data->region  = region;
                     data->stack   = dfb_layer_context_windowstack( data->context );
-                }
+               }
 
                break;
 
@@ -249,10 +250,12 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
                if (ret)
                     return ret;
 
-               ret = dfb_layer_activate_context( data->layer, context );
-               if (ret) {
-                    dfb_layer_context_unref( context );
-                    return ret;
+               if (data->switch_exclusive) {
+                    ret = dfb_layer_activate_context( data->layer, context );
+                    if (ret) {
+                         dfb_layer_context_unref( context );
+                         return ret;
+                    }
                }
 
                ret = dfb_layer_context_get_primary_region( context, true, &region );
@@ -819,6 +822,32 @@ IDirectFBDisplayLayer_GetSourceDescriptions( IDirectFBDisplayLayer            *t
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBDisplayLayer_SwitchContext( IDirectFBDisplayLayer *thiz,
+                                     DFBBoolean             exclusive )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
+
+     if (!exclusive && data->level == DLSCL_EXCLUSIVE) {
+          DFBResult         ret;
+          CoreLayerContext *context;
+
+          ret = dfb_layer_get_primary_context( data->layer, false, &context );
+          if (ret)
+               return ret;
+
+          dfb_layer_activate_context( data->layer, context );
+
+          dfb_layer_context_unref( context );
+     }
+     else
+         dfb_layer_activate_context( data->layer, data->context );
+
+     data->switch_exclusive = exclusive;
+
+     return DFB_OK;
+}
+
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
                                  CoreLayer             *layer )
@@ -842,12 +871,13 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
           return ret;
      }
 
-     data->ref     = 1;
-     data->screen  = dfb_layer_screen( layer );
-     data->layer   = layer;
-     data->context = context;
-     data->region  = region;
-     data->stack   = dfb_layer_context_windowstack( context );
+     data->ref              = 1;
+     data->screen           = dfb_layer_screen( layer );
+     data->layer            = layer;
+     data->context          = context;
+     data->region           = region;
+     data->stack            = dfb_layer_context_windowstack( context );
+     data->switch_exclusive = DFB_TRUE;
 
      dfb_layer_get_description( data->layer, &data->desc );
 
@@ -888,6 +918,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      thiz->GetSourceDescriptions = IDirectFBDisplayLayer_GetSourceDescriptions;
      thiz->SetScreenPosition     = IDirectFBDisplayLayer_SetScreenPosition;
      thiz->SetScreenRectangle    = IDirectFBDisplayLayer_SetScreenRectangle;
+     thiz->SwitchContext         = IDirectFBDisplayLayer_SwitchContext;
 
      return DFB_OK;
 }

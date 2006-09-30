@@ -2780,6 +2780,20 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
      DFBResult (*WaitForSync) (
           IDirectFBDisplayLayer              *thiz
      );
+
+
+   /** Contexts **/
+
+     /*
+      * Switch the layer context.
+      *
+      * Switches to the shared context unless <b>exclusive</b> is DFB_TRUE
+      * and the cooperative level of this interface is DLSCL_EXCLUSIVE.
+      */
+     DFBResult (*SwitchContext) (
+          IDirectFBDisplayLayer              *thiz,
+          DFBBoolean                          exclusive
+     );
 )
 
 
