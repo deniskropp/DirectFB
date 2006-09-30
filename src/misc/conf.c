@@ -127,6 +127,7 @@ static const char *config_usage =
      "  mut-device=<device>            Use this device for the MuTouch driver\n"
      "  penmount-device=<device>       Use this device for the PenMount driver\n"
      "  unichrome-revision=<rev>       Override unichrome hardware revision\n"
+     "  i8xx_overlay_pipe_b            Redirect videolayer to pixelpipe B\n"
      "\n"
      " Window surface swapping policy:\n"
      "  window-surface-policy=(auto|videohigh|videolow|systemonly|videoonly)\n"
@@ -346,6 +347,7 @@ static void config_allocate()
      dfb_config->dma                      = false;
      dfb_config->agp                      = 0;
      dfb_config->matrox_tv_std            = DSETV_PAL;
+     dfb_config->i8xx_overlay_pipe_b      = false;
      
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
@@ -1089,6 +1091,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config 'unichrome-revision': No revision specified!\n");
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "i8xx_overlay_pipe_b") == 0) {
+          dfb_config->i8xx_overlay_pipe_b = true;
      }
      else
           return DFB_UNSUPPORTED;

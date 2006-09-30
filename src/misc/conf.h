@@ -149,6 +149,7 @@ typedef struct
      int        agp;                              /* AGP mode */
      int        agpmem_limit;                     /* Limit of AGP memory
                                                      used by DirectFB */
+     bool       i8xx_overlay_pipe_b;              /* video overlay output via pixel pipe B */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

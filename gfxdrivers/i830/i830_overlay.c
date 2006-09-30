@@ -62,7 +62,7 @@
 
 #include <gfx/convert.h>
 
-
+#include <misc/conf.h>
 
 #define I830_OVERLAY_SUPPORTED_OPTIONS (DLOP_DST_COLORKEY)
 
@@ -523,8 +523,6 @@ ovl_calc_regs( I830DriverData        *idrv,
      int              width  = config->width;
      int              height = config->height;
 
-     DFBSurfacePixelFormat primary_format;
-
      int y_offset, u_offset = 0, v_offset = 0;
 
      unsigned int swidth;
@@ -765,16 +763,37 @@ ovl_calc_regs( I830DriverData        *idrv,
      /*
       * Destination color keying.
       */
+     regs->DCLRKV = PIXEL_RGB32 (config->dst_key.r, config->dst_key.g, config->dst_key.b );
 
-     primary_format = dfb_primary_layer_pixelformat();
+     switch (DFB_COLOR_BITS_PER_PIXEL( dfb_primary_layer_pixelformat() )) {
+          case 8:
+               regs->DCLRKM = 0xffffff;
+               break;
+          case 15:
+               regs->DCLRKM = 0x070707;
+               break;
+          case 16:
+               regs->DCLRKM = 0x070307;
+               break;
+          default:
+               regs->DCLRKM = 0;
+               break;
+     }
 
-     regs->DCLRKV = dfb_color_to_pixel( primary_format,
-                                        config->dst_key.r, config->dst_key.g, config->dst_key.b );
-
-     regs->DCLRKM = (1 << DFB_COLOR_BITS_PER_PIXEL( primary_format )) - 1;
+     if(dfb_config->i8xx_overlay_pipe_b)
+          regs->OCONFIG |= OVERLAY_PIPE_B;
 
      if (config->options & DLOP_DST_COLORKEY)
           regs->DCLRKM |= DEST_KEY_ENABLE;
+
+     /*
+      * Disable source color keying if not selected
+      */
+     if (!(config->options & DLOP_SRC_COLORKEY)) {
+          regs -> SCLRKVH = 0;
+          regs -> SCLRKVL = 0;
+          regs -> SCLRKEN = 0;
+     }
 
 
      //D_INFO("OCMD is 0x%08x\n", regs->OCMD);
