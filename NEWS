@@ -1,3 +1,246 @@
+1.0.0-rc1
+---------
+
+API
+- Added DIEF_FOLLOW to DFBInputEventFlags which indicates that another event
+  will follow immediately. In the mouse driver this is used to "link" the x/y
+  axis motion events. The window manager no longer sends two motion events (x/0, 0/y)
+  for one x/y mouse movement (x and y axis at once). Zig-zag cursor/window movement
+  and double event/update rate are gone.
+- Moved DirectFBGL header to the proper location. We need the header here since the DirectFBGL
+  interface is strongly integrated within DirectFB and we want to support external implementations.
+- More Porter/Duff rules (SRC_ATOP,DST_ATOP,ADD,XOR).
+- Added DFB_SUSPENDED error meaning "The requested object is suspended!".
+- Added 4 bit packed alpha pixel format DSPF_A4, e.g. for fonts.
+- Added support for the 18bpp format family.
+
+API | IDirectFBDisplayLayer
+- Added SwitchContext() that switches between the shared
+  and the exclusive context if present.
+- Added SetClipRegions() that, if supported by hardware, sets the clipping regions that are used to to
+  enable or disable visibility of parts of the layer. The number of regions is stated in the display layer
+  description. The layer will be shown only in these regions or except in these regions.
+
+API | IDirectFBFont
+- Added GetStringBreak() to break a text line by line. Thanks to sridewa <sridewa@gmail.com>.
+- Added EnumEncodings() enumerating all provided encodings, also see Fonts section below.
+- Added FindEncoding() to look up an encoding directly by its name.
+- Added SetEncoding() for choosing the encoding for local interface methods and as a default for the surfaces.
+
+API | IDirectFBImageProvider
+- Added DIRenderCallbackResult to DIRenderCallback to be able to abort rendering.
+
+API | IDirectFBInputDevice
+- Added DetachEventBuffer() to detach an event buffer explicitly.
+
+API | IDirectFBScreen
+- Allow connectors to be selected at the encoders without the need to define
+  outputs, add slow blanking, thanks to Daniel J Laird <danieljlaird@hotmail.com>.
+- Populating screen API a bit more, thanks to Daniel Laird <danieljlaird@hotmail.com>.
+- Added GetSize().
+
+API | IDirectFBSurface
+- Added ReleaseSource() to release a possibly attached source,
+  e.g. after blitting from it only once and from nothing else afterwards.
+- Added GetFramebufferOffset() returning the offset within
+  the graphics memory, thanks to Stefan Lucke <stefan@lucke.in-berlin.de>.
+- Added GetPosition() returning the offset of a sub surface.
+- Finally decided to catch horizontal/vertical lines in DrawLine() and optimize them using rectangle filling.
+- Added SetEncoding() to choose an encoding for the text routines, will be overwritten by SetFont() which takes
+  the default encoding of the new font, also see Fonts section below.
+
+API | IDirectFBVideoProvider
+- Removed return value from DVFrameCallback.
+- Added SetPlaybackFlags(), SetSpeed() and GetSpeed().
+- Added SetVolume() and GetVolume().
+
+API | IDirectFBWindow
+- Added DetachEventBuffer() to detach an event buffer explicitly.
+
+Build Options
+- Added option --enable-netork to enable/disable building network protocols handlers.
+
+Fonts
+- Added support for other encodings than UTF8. Encodings are (or can be) provided
+  with each font implementation. This model reduces code sharing slightly, but   
+  allows higher efficiency via optimized combination of decoding and translation.
+- Every encoding just has a name and an ID, where the name can be chosen freely,
+  except for DTEID_UTF8 which is always available and has the name "UTF8".
+- Implemented UTF8 and "Latin1" encoding in FT2 font loader. Nice demonstration how
+  different encodings can be used, while still having a single glyph cache, which is
+  no longer based on character codes, but on their raw indices.
+- See ChangeLog from 2006-05-06 for more details.
+
+Graphics Core
+- Added DFBResult return value to graphics driver's EngineSync() and WaitSerial()
+  to be able to return DFB_TIMEDOUT or other errors. In these cases the core resets
+  the accelerator via EngineReset() and takes care of state invalidation etc.
+- dfb_gfxcard_sync() and dfb_gfxcard_waitserial() also lease the graphics property,
+  i.e. there are no more concurrent calls to the driver, e.g. FillRectangle() along
+  with EngineSync().
+- Moved clipping from dfb_clip_stretchblit() to gStretchBlit() doing all clipping,
+  phase and offset calculations in place, otherwise clipping suffered from rounding
+  and off-by-one errors due to going back to integer in between.
+- In case of no hardware clipping but rectangle filling, if in DrawRectangle()
+  the whole rectangle outline was outside the clipping area, the clipping area
+  was drawn in the software fallback code.
+- In dfb_surfacemanager_deallocate() make sure no hardware read or write
+  access on the buffer is pending before freeing the chunk.
+- Added global function pointer __DFB_CoreRegisterHook with __DFB_CoreRegisterHookCtx
+  to allow application level layer (and screen) implementations building on top of existing layers.
+- New capabilities for setting destination size limit. If the rectangle is
+  too big, first try clip, then try again and eventually fall back to software.
+- Implemented font cache limit, currently hardcoded to five rows, each row stores a number of glyphs.
+  When the maximum number is reached it will reuse the least recently used row, kicking out all glyphs
+  that have been on it.
+- Before every graphics operation, i.e. in dfb_gfxcard_state_check(),
+  clip the state's clipping region to the destination surface dimension.
+
+Input Core
+- First and fully working implementation of dead key handling using static
+  tables for mapping of dead keys and following symbols to the combined symbol.
+
+Surface Core
+- Some changes that decrease system memory usage for surface buffers, especially where graphics memory
+  is available.
+- Allocate system instance of auto-video buffers on first access, not immediately during creation of the surface.
+- Deallocate system memory when buffer is written to in video memory. Reallocate it if the buffer is kicked out
+  of video memory.
+- Implemented "suspended" surface buffers, temporarily deallocated. No valid instance at all until it's resumed.
+- Added dfb_surface_buffer_suspend/resume().
+- Added SBF_SUSPENDED.
+- Align pitch of system memory buffers to be a multiple of 8 instead 4.
+- Add extra 16 bytes at the end of a buffer as a dummy area for optimized
+  routines, e.g. to avoid segfaults due to prefetching.
+
+Window Core
+- Rewritten cursor handling (software cursor) to use a surface instead of a window.
+  The window manager module gets notified about all kinds of updates regarding the cursor.
+  All window manager modules use the same code for now, using backing store for the region under
+  the cursor. This avoids revealing window content that hasn't been commited via Flip(), yet.
+  It should also be faster as it no longer depends on the windows that are covered by the cursor.
+- Check if window is destroyed and return DFB_DESTROYED in all functions
+  which would have called the WM, because a destroyed window is no longer
+  known to the WM and the WM's window data structure is deallocated.
+
+Software Renderer
+- Fix unaligned 32 bit accesses in color keying code.
+- Allocate the accumulator only if it will be used.
+- Check if palettes are equal when blitting indexed formats.
+
+Misc
+- Added dfb_rectangle_subtract() to subtract insets from rectangle.
+- Added DFB_RECTANGLE_CONTAINS_POINT and DFB_REGION_CONTAINS_POINT macros.
+- Added dfb_gfx_copy_to() as an extension of dfb_gfx_copy(). The advantages are
+  different x/y offset for source/destination and blitting from back buffer.
+  The latter was a must for the backing store based software cursor.
+
+libdirect
+- Reworked Direct/Stream to gain more efficiency, added several optional network protocols.
+- Added direct_stream_mime() that returns mime description of the stream.
+- In addition to DIRECT_FORCE_DEBUG one can use DIRECT_ENABLE_DEBUG now.
+- Only duplicate used portion of array in direct_trace_copy_buffer(), set limit from 256 to 200.
+- Added BSWAP16 and BSWAP32 macros, direct_base64_encode, direct_base64_decode and direct_md5_sum.
+- Due to increasing amount of debug messages the default is "no-debug" now. It makes more sense to
+  only enable wanted debug domains by hand, e.g. "debug=core/font". Otherwise, "debug" option still
+  works, too.
+- Replaced direct_stream_fopen() by direct_stream_fileno().
+- Added direct_stream_dup() to increase the stream's reference counter.
+- In the stack trace show base address of each file to allow offset calculation 'by hand' within
+  dynamically loaded modules, i.e. where ldd doesn't help.
+
+libfusion
+- Local 'local reactions' are no longer processed before dispatching further via the kernel device.
+  This causes all local reactions within each Fusionee to be called by the Fusion Dispatcher only,
+  in chronological order. It's a fundamental change in runtime behaviour which might break some code
+  that relies on the synchronous execution of the dispatcher's own local reactions.
+- Implemented experimental fork() handling in Fusion. Added FusionForkAction being FFA_CLOSE by default,
+  which can be changed to FFA_FORK with a call to fusion_world_set_fork_action() for each Fusionee/World.
+- Added "name" parameter to fusion_ref_init() like others already have.
+- Return DFB_LOCKED in fusion_ref_up() if EAGAIN is received (ref is zero locked).
+- New shared hash table implementation and property support for object.
+- Added fusion_skirmish_lock_count() returning the lock counter if held by the caller.
+- Added fusion_reactor_destroy() like fusion_reactor_free() but without freeing the shared structure etc.
+- No longer (need to) access the shared structure during local message processing in the Fusion dispatcher.
+
+i830 driver
+- Fixed overlay destination color keying for 8/15/16 bit primary layer formats, add
+  "i8xx_overlay_pipe_b" option, thanks to Stefan Lucke <stefan@lucke.in-berlin.de>.
+
+Matrox driver
+- Added field based blitting support.
+- Added DSCAPS_SEPARATED support to BES, CRTC2 and SPIC.
+- Fixed pixelpitch alignment for YUY2/UYVY.
+- PAL-60 support (or at least close enough for Ville's TV).
+
+nVidia driver
+- Avoid to set the overlay memory limit, it's already done by the kernel.
+- Basic acceleration for ALUT44.
+- Disable host-to-video hardware blit for simple blits without format conversion.
+- Added nvEngineReset().
+
+Radeon driver
+- R300: Support FillTriangle() and DSDRAW_BLEND.
+- RV250: Dropped YUV->RGB support.
+- Enable VC_32BIT_SWAP on big-endian machines.
+- Removed (erroneously set) flag VF_RADEON_MODE in r200DoDrawRectangle3D().
+- Added patch to radeonfb fixing support for R300 chipsets (it also adds new devices).
+- Use different settings for R300 and non-R300 when setting MC_FB_LOCATION.
+- Added the possibility to use the graphics layer as an OSD. It works exactly the same way
+  as in the unichrome driver: Set the video layer level to -1 and enable DLOP_ALPHACHANNEL
+  on the graphics layer.
+- Applied patch by Christer Palm <christer.palm@pulsen.se>: fixes word swapping on PPC.
+
+Unichrome driver
+- Disable hardware cursor in VIA_REG_CURSOR_MODE. Thanks to Michel van
+  Noorloos <michel.van.noorloos@sioux.nl>.
+- Added PCI ID for CN700.
+
+DynaPro input driver
+- New 3M DynaPro Touchscreen driver, thanks to Pär Degerman <parde@ikp.liu.se>!
+
+Keyboard input driver
+- Added support for dead keys.
+
+Linux Input input driver
+- Added support for dead keys.
+
+DFIFF image provider
+- New DirectFB Fast Image File Format with a fast image provider module and a tool to
+  convert images from PNG to DFIFF.
+
+GIF image provider
+- Dropped support for GIF87 (can't be animated).
+
+GIF video provider
+- New animated GIF video provider.
+
+V4L video provider
+- Fixed planar data copy.
+- Added more pixelformats for v4l2.
+
+FBDev System
+- Clean up error handling in system_initialize() and fix bug with shared memory (de)allocation.
+- Treat fbdev format 8/16,8/8,8/0,0/0 as ARGB when ARGB was requested
+  (that because framebuffer drivers tend to ignore the alpha channel).
+- Don't touch console blanking when using graphics-vt.
+
+SDL System
+- Better keymap emulation.
+- Fake video modes by reading fb.modes, just like the fbdev backend.
+
+directfb-csource tool
+- Added option --rgbformat which in contrast to the --format option only is effective if the image
+  doesn't require an alpha channel. That's useful e.g. with RGB16 for opaque and ARGB for blended images,
+  when the primary format will be RGB16. So far directfb-csource either used ARGB/RGB32 automatically, or
+  it always used RGB16 or whatever you specified via --format.
+- Make structs and pixel data const, helps with use in shared libs.
+
+fx tool
+- Very basic program to emulate/illustrate the pixel pipeline, blitting flags etc. No 100% guarantee that
+  itself is correct, but in the end it will serve as a verification for software/hardware driver.
+
+
 0.9.25
 ------
 
