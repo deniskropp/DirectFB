@@ -69,6 +69,16 @@ void IDirectFBFont::GetKerning (unsigned int  prev_index,
      DFBCHECK( iface->GetKerning (iface, prev_index, current_index, kern_x, kern_y) );
 }
 
+void IDirectFBFont::GetStringBreak (const char  *text,
+                                    int          bytes,
+                                    int          max_width,
+                                    int         *ret_width,
+                                    int         *ret_str_length,
+                                    const char **ret_next_line) const
+{
+     DFBCHECK( iface->GetStringBreak(iface, text, bytes, max_width, ret_width, ret_str_length, ret_next_line) );
+}
+
 int IDirectFBFont::GetStringWidth (const char *text, int bytes) const
 {
      int width;

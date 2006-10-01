@@ -48,6 +48,13 @@ public:
                                       int                 *kern_x,
                                       int                 *kern_y) const;
 
+     void 	    GetStringBreak   (const char          *text,
+                                      int                  bytes,
+                                      int                  max_width,
+                                      int                 *ret_width,
+                                      int                 *ret_str_length,
+                                      const char         **ret_next_line) const;
+
      int            GetStringWidth   (const char          *text,
                                       int                  bytes = -1) const;
      void           GetStringExtents (const char          *text,
