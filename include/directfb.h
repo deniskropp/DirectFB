@@ -3038,6 +3038,15 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
+      * Returns the framebuffer offset of a locked surface.
+      * The surface must exist in video memory.
+      */
+     DFBResult (*GetFramebufferOffset) (
+          IDirectFBSurface *thiz,
+          int              *offset
+     );
+
+     /*
       * Unlock the surface after direct access.
       */
      DFBResult (*Unlock) (

@@ -408,6 +408,43 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_GetFramebufferOffset( IDirectFBSurface *thiz,
+                                       int *offset )
+{
+     int            front;
+     SurfaceBuffer *buffer;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     if (!data->surface)
+          return DFB_DESTROYED;
+
+     if (!offset)
+          return DFB_INVARG;
+
+     if (!data->locked)
+          return DFB_ACCESSDENIED;
+
+     front = data->locked - 1; /* As set by Lock(). */
+
+     if (front)
+          buffer = data->surface->front_buffer;
+     else
+          buffer = data->surface->back_buffer;
+
+     if (!buffer)
+          return DFB_BUG;
+
+     if (!buffer->video.locked) {
+          /* The surface is probably in a system buffer if video is unlocked. */
+          return DFB_UNSUPPORTED;
+     }
+
+     *offset = buffer->video.offset;
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_Unlock( IDirectFBSurface *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
@@ -2158,6 +2195,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetAlphaRamp = IDirectFBSurface_SetAlphaRamp;
 
      thiz->Lock = IDirectFBSurface_Lock;
+     thiz->GetFramebufferOffset = IDirectFBSurface_GetFramebufferOffset;
      thiz->Unlock = IDirectFBSurface_Unlock;
      thiz->Flip = IDirectFBSurface_Flip;
      thiz->SetField = IDirectFBSurface_SetField;
