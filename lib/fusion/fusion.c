@@ -1030,6 +1030,16 @@ DirectResult fusion_exit( FusionWorld *world,
 }
 
 /*
+ * Sets the fork() action of the calling Fusionee within the world.
+ */
+void
+fusion_world_set_fork_action( FusionWorld      *world,
+                              FusionForkAction  action )
+{
+     D_MAGIC_ASSERT( world, FusionWorld );
+}
+
+/*
  * Return the index of the specified world.
  */
 int
