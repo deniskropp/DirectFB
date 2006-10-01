@@ -651,7 +651,7 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
      int    l    = gfxs->length;
      __u32 *D    = gfxs->Aop[0];
      __u32 *S    = gfxs->Bop[0];
-     __u32  Skey = gfxs->Skey;
+     __u32  Skey = gfxs->Skey & 0x7FFF;
 
      __u32 DSkey = (Skey << 16) | Skey;
 
@@ -676,7 +676,7 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
           if (((long)D)&2) {         /* align */
                __u16 *tmp = gfxs->Aop[0];
                --l;
-               if (*((__u16*)S) != Skey)
+               if ((*((__u16*)S) & 0x7FFF) != Skey)
                     *tmp = *((__u16*)S);
 
                D = (__u32*)((__u16*)D+1);
@@ -688,7 +688,7 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
                __u32 dpixel = *S;
                __u16 *tmp = (__u16*)D;
 
-               if (dpixel != DSkey) {
+               if ((dpixel & 0x7FFF7FFF) != DSkey) {
                     if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
                          if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) {
                               *D = dpixel;
