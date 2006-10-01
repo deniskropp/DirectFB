@@ -663,8 +663,8 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
 
           w = l; 
           while (w) {
-               __u16 mpixel = *s & 0x7FFF;
-               if (mpixel != (__u16)Skey) {
+               __u16 mpixel = *s;
+               if ((mpixel & 0x7FFF) != (__u16)Skey) {
                     *d = mpixel;
                }
                ++d;
@@ -685,12 +685,12 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
 
           w = (l >> 1);
           while (w) {
-               __u32 dpixel = *S & 0x7FFF7FFF;
+               __u32 dpixel = *S;
                __u16 *tmp = (__u16*)D;
 
                if (dpixel != DSkey) {
-                    if ((dpixel & 0xFFFF0000) != (DSkey & 0xFFFF0000)) {
-                         if ((dpixel & 0x0000FFFF) != (DSkey & 0x0000FFFF)) {
+                    if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
+                         if ((dpixel & 0x00007FFF) != (DSkey & 0x00007FFF)) {
                               *D = dpixel;
                          }
                          else {
