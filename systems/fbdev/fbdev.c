@@ -501,8 +501,8 @@ system_initialize( CoreDFB *core, void **data )
      shared->orig_cmap.transp = shared->orig_cmap_memory + 256 * 2 * 3;
 
      if (ioctl( dfb_fbdev->fd, FBIOGETCMAP, &shared->orig_cmap ) < 0) {
-          D_PERROR( "DirectFB/FBDev: "
-                    "Could not retrieve palette for backup!\n" );
+          D_DEBUG( "DirectFB/FBDev: "
+                   "Could not retrieve palette for backup!\n" );
 
           memset( &shared->orig_cmap, 0, sizeof(shared->orig_cmap) );
 
@@ -687,8 +687,8 @@ system_shutdown( bool emergency )
 
      if (shared->orig_cmap.len) {
           if (ioctl( dfb_fbdev->fd, FBIOPUTCMAP, &shared->orig_cmap ) < 0)
-               D_PERROR( "DirectFB/FBDev: "
-                         "Could not restore palette!\n" );
+               D_DEBUG( "DirectFB/FBDev: "
+                        "Could not restore palette!\n" );
      }
 
      if (shared->orig_cmap_memory)
