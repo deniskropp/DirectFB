@@ -851,8 +851,8 @@ IDirectFBVideoProvider_FFmpeg_GetStreamDescription( IDirectFBVideoProvider *thiz
                DFB_STREAM_DESC_ENCODING_LENGTH, data->video.codec->name );
      desc->video.framerate = av_q2d( data->video.st->r_frame_rate );
      desc->video.aspect    = av_q2d( data->video.ctx->sample_aspect_ratio );
-     if (!desc->video.aspect || !finite(desc->video.aspect))
-          desc->video.aspect = 4.0/3.0;
+     if (!finite( desc->video.aspect ))
+          desc->video.aspect = 0.0;
      desc->video.bitrate   = data->video.ctx->bit_rate;
 
      if (data->audio.st) {
