@@ -33,7 +33,6 @@
 #include <string.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include <signal.h>
 #include <errno.h>
 
 #include <sys/types.h>
@@ -284,76 +283,28 @@ net_command( DirectStream *stream, char *buf, size_t size )
      
      return 0;
 }
-     
-static void
-alarm_handler( int sig )
-{
-     return;
-}
 
 static DirectResult
 net_wait( DirectStream   *stream,
           unsigned int    length,
           struct timeval *tv )
 {
-     DirectResult ret = DFB_OK;
-     int          flags;
-     char         buf[length];
+     fd_set s;
 
-     flags = fcntl( stream->fd, F_GETFL );
-
-     if (tv) {
-          struct itimerval t, ot;
-          struct sigaction a, oa;
+     if (stream->fd == -1)
+          return DFB_EOF;
      
-          /* FIXME: avoid using SIGALARM */
-          
-          if (tv->tv_sec || tv->tv_usec) {
-               fcntl( stream->fd, F_SETFL, flags & ~O_NONBLOCK );
-    
-               memset( &a, 0, sizeof(a) );
-               a.sa_handler = alarm_handler;
-               a.sa_flags   = SA_RESETHAND | SA_RESTART;
-               sigaction( SIGALRM, &a, &oa );
-               
-               t.it_interval.tv_sec  = 0;
-               t.it_interval.tv_usec = 0;
-               t.it_value            = *tv;
-               setitimer( ITIMER_REAL, &t, &ot );
-          }
-
-          switch (recv( stream->fd, buf, length, MSG_PEEK | MSG_WAITALL )) {
-               case 0:
-                    ret = DFB_EOF;
-                    break;
-               case -1:
-                    ret = (errno == EINTR) 
-                          ? DFB_TIMEOUT : errno2result( errno );
-                    break;
-          }
-
-          if (tv->tv_sec || tv->tv_usec) {
-               setitimer( ITIMER_REAL, &ot, NULL );
-               sigaction( SIGALRM, &oa, NULL );
-               fcntl( stream->fd, F_SETFL, flags );
-          }
-     }
-     else {
-          fcntl( stream->fd, F_SETFL, flags & ~O_NONBLOCK );
-          
-          switch (recv( stream->fd, buf, length, MSG_PEEK | MSG_WAITALL )) {
-               case 0:
-                    ret = DFB_EOF;
-                    break;
-               case -1:
-                    ret = errno2result( errno );
-                    break;
-          }
-
-          fcntl( stream->fd, F_SETFL, flags );
+     FD_ZERO( &s );
+     FD_SET( stream->fd, &s );
+     
+     switch (select( stream->fd+1, &s, NULL, NULL, tv )) {
+          case 0:
+               return tv ? DFB_TIMEOUT : DFB_EOF;
+          case -1:
+               return errno2result( errno );
      }
 
-     return ret;
+     return DFB_OK;
 }
 
 static DirectResult
@@ -376,7 +327,7 @@ net_peek( DirectStream *stream,
           case 0:
                return DFB_EOF;
           case -1:
-               if (errno == EAGAIN)
+               if (errno == EAGAIN || errno == EWOULDBLOCK)
                     return DFB_BUFFEREMPTY;
                return errno2result( errno );
           default:
@@ -407,7 +358,7 @@ net_read( DirectStream *stream,
           case 0:
                return DFB_EOF;
           case -1:
-               if (errno == EAGAIN)
+               if (errno == EAGAIN || errno == EWOULDBLOCK)
                     return DFB_BUFFEREMPTY;
                return errno2result( errno );
      }
