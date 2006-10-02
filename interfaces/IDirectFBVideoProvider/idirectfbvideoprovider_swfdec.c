@@ -285,7 +285,7 @@ SwfInput( DirectThread *self, void *arg )
           }
      }
 
-     q_max = MAX( (int)data->rate/2, 2 );
+     q_max = MAX( (int)data->rate/3, 2 );
      
      while (!direct_thread_is_canceled( self )) {
           SwfdecBuffer *buffer;
@@ -297,16 +297,17 @@ SwfInput( DirectThread *self, void *arg )
           if (data->input.seek != -1) {
 #ifdef SWFDEC_HAS_SEEK
                swfdec_render_seek( data->decoder, data->input.seek*data->rate );
+               pthread_mutex_lock( &data->video.lock );
+               pthread_mutex_lock( &data->audio.lock );
                flush_frames( &data->video.queue );
                flush_frames( &data->audio.queue );
                data->video.seeked = true;
                data->audio.seeked = true;
                pts = data->input.seek * 1000000ll;
-               if (data->video.thread) {
-                    pthread_mutex_lock( &data->video.lock );
+               if (data->video.thread)
                     pthread_cond_signal( &data->video.cond );
-                    pthread_mutex_unlock( &data->video.lock );
-               }
+               pthread_mutex_unlock( &data->audio.lock );
+               pthread_mutex_unlock( &data->video.lock );
 #endif
                data->input.seek = -1;
           }
@@ -320,11 +321,12 @@ SwfInput( DirectThread *self, void *arg )
           
           swfdec_render_iterate( data->decoder );
            
-          if (data->audio.thread) {
+#ifdef HAVE_FUSIONSOUND
+          if (data->stream) {
                buffer = swfdec_render_get_audio( data->decoder );
                add_frame( &data->audio.queue, buffer, pts );
           }
-
+#endif
           swfdec_decoder_get_image_size( data->decoder, &w, &h );
           rect = (data->rect.w == 0)
                  ? data->dest_data->area.wanted : data->rect;
@@ -1210,29 +1212,11 @@ IDirectFBVideoProvider_Swfdec_GetVolume( IDirectFBVideoProvider *thiz,
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 {
-     SwfdecDecoder *decoder;
-     char*          buf;
-     int            err;
-     
-     swfdec_init();
-     
-     decoder = swfdec_decoder_new();
-     if (!decoder)
-          return DFB_INIT;
-          
-     buf = malloc( sizeof(ctx->header) );
-     if (!buf) {
-          swfdec_decoder_free( decoder );
-          return DFB_NOSYSTEMMEMORY;
-     }
-     
-     memcpy( buf, ctx->header, sizeof(ctx->header) );
-
-     swfdec_decoder_add_data( decoder, buf, sizeof(ctx->header) );
-     err = swfdec_decoder_parse( decoder );
-     swfdec_decoder_free( decoder );
-     
-     return (err == SWF_ERROR) ? DFB_UNSUPPORTED : DFB_OK;
+     if ((ctx->header[0] == 'F' || ctx->header[0] == 'C') &&
+         (ctx->header[1] == 'W' && ctx->header[2] == 'S'))
+          return DFB_OK;
+    
+     return DFB_UNSUPPORTED;
 }
 
 #define PRELOAD_SIZE  512
