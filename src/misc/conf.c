@@ -72,6 +72,7 @@ static const char *config_usage =
      "  tmpfs=<directory>              Location of shared memory file\n"
      "  memcpy=<method>                Skip memcpy() probing (help = show list)\n"
      "  primary-layer=<id>             Select an alternative primary layer\n"
+     "  primary-only                   Tell application only about the primary layer\n"
      "  quiet                          No text output except debugging\n"
      "  [no-]banner                    Show DirectFB Banner on startup\n"
      "  [no-]debug                     Enable debug output\n"
@@ -113,7 +114,7 @@ static const char *config_usage =
      "  [no-]translucent-windows       Allow translucent windows\n"
      "  [no-]decorations               Enable window decorations (if supported by wm)\n"
      "  videoram-limit=<amount>        Limit amount of Video RAM in kb\n"
-     "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n" 
+     "  agpmem-limit=<amount>          Limit amount of AGP memory in kb\n"
      "  screenshot-dir=<directory>     Dump screen content on <Print> key presses\n"
      "  disable-module=<module_name>   suppress loading this module\n"
      "\n"
@@ -323,7 +324,7 @@ static void config_allocate()
      dfb_config->layer_bg_color.g         = 0x7c;
      dfb_config->layer_bg_color.b         = 0xe8;
      dfb_config->layer_bg_mode            = DLBM_COLOR;
-     
+
      dfb_config->pci.bus                  = 1;
      dfb_config->pci.dev                  = 0;
      dfb_config->pci.func                 = 0;
@@ -348,7 +349,7 @@ static void config_allocate()
      dfb_config->agp                      = 0;
      dfb_config->matrox_tv_std            = DSETV_PAL;
      dfb_config->i8xx_overlay_pipe_b      = false;
-     
+
      /* default to fbdev */
      dfb_config->system = D_STRDUP( "FBDev" );
 
@@ -419,17 +420,17 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "busid") == 0 || strcmp (name, "pci-id") == 0) {
           if (value) {
                int bus, dev, func;
-               
+
                if (sscanf( value, "%d:%d:%d", &bus, &dev, &func ) != 3) {
                     D_ERROR( "DirectFB/Config 'busid': Could not parse busid!\n");
                     return DFB_INVARG;
-               }                  
-               
+               }
+
                dfb_config->pci.bus  = bus;
                dfb_config->pci.dev  = dev;
                dfb_config->pci.func = func;
           }
-     } else                    
+     } else
      if (strcmp (name, "tmpfs" ) == 0) {
           if (value) {
                if (fusion_config->tmpfs)
@@ -511,6 +512,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config 'primary-layer': No id specified!\n");
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "primary-only" ) == 0) {
+          dfb_config->primary_only = true;
      } else
      if (strcmp (name, "pixelformat" ) == 0) {
           if (value) {
@@ -712,7 +716,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "no-agp" ) == 0) {
           dfb_config->agp = 0;
      } else
-     if (strcmp (name, "agpmem-limit" ) == 0) { 
+     if (strcmp (name, "agpmem-limit" ) == 0) {
           if (value) {
                int limit;
 
@@ -779,7 +783,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "mouse-source" ) == 0) {
           if (value) {
-               D_FREE( dfb_config->mouse_source );	
+               D_FREE( dfb_config->mouse_source );
                dfb_config->mouse_source = D_STRDUP( value );
           }
           else {
@@ -1246,11 +1250,11 @@ DFBResult dfb_config_read( const char *filename )
           char *name = line;
           char *comment = strchr( line, '#');
           char *value;
-          
+
           if (comment) {
                *comment = 0;
           }
-          
+
           value = strchr( line, '=' );
 
           if (value) {

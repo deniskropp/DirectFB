@@ -80,7 +80,7 @@ typedef struct
 
      char     *fb_device;                         /* Used framebuffer device,
                                                      e.g. "/dev/fb0" */
-                                                     
+
      struct {
           int  bus;                               /* PCI Bus */
           int  dev;                               /* PCI Device */
@@ -143,13 +143,14 @@ typedef struct
 
      int        unichrome_revision;               /* Unichrome hardware
                                                      revision number override */
-     
+
      bool       dma;                              /* Enable DMA */
-     
+
      int        agp;                              /* AGP mode */
      int        agpmem_limit;                     /* Limit of AGP memory
                                                      used by DirectFB */
      bool       i8xx_overlay_pipe_b;              /* video overlay output via pixel pipe B */
+     bool       primary_only;                     /* tell application only about primary layer */
 } DFBConfig;
 
 extern DFBConfig *dfb_config;

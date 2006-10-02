@@ -39,6 +39,8 @@
 #include <core/screen.h>
 #include <core/screens.h>
 
+#include <misc/conf.h>
+
 #include <direct/interface.h>
 
 #include "idirectfbscreen.h"
@@ -143,20 +145,20 @@ IDirectFBScreen_GetSize( IDirectFBScreen *thiz,
      DFBResult ret;
      int       width  = 0;
      int       height = 0;
-     
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen)
-     
+
      if (!ret_width && !ret_height)
           return DFB_INVARG;
-          
+
      ret = dfb_screen_get_screen_size( data->screen, &width, &height );
-     
+
      if (ret_width)
           *ret_width = width;
 
      if (ret_height)
           *ret_height = height;
-          
+
      return ret;
 }
 
@@ -624,7 +626,7 @@ PatchEncoderConfig( DFBScreenEncoderConfig       *patched,
 
      if (patch->flags & DSECONF_SLOW_BLANKING)
           patched->slow_blanking = patch->slow_blanking;
-     
+
      return DFB_OK;
 }
 
@@ -655,14 +657,19 @@ static DFBEnumerationResult
 EnumDisplayLayers_Callback( CoreLayer *layer, void *ctx )
 {
      DFBDisplayLayerDescription  desc;
+     DFBDisplayLayerID           id;
      EnumDisplayLayers_Context  *context = (EnumDisplayLayers_Context*) ctx;
 
      if (dfb_layer_screen( layer ) != context->screen)
           return DFENUM_OK;
 
+     id = dfb_layer_id_translated( layer );
+
+     if (dfb_config->primary_only && id != DLID_PRIMARY)
+          return DFENUM_OK;
+
      dfb_layer_get_description( layer, &desc );
 
-     return context->callback( dfb_layer_id_translated( layer ), desc,
-                               context->callback_ctx );
+     return context->callback( id, desc, context->callback_ctx );
 }
 

@@ -570,7 +570,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-                         ret = IDirectFBSurface_Construct( *interface, 
+                         ret = IDirectFBSurface_Construct( *interface,
                                                             NULL, NULL, NULL, surface, caps );
                          if (ret == DFB_OK) {
                               dfb_windowstack_set_background_image( data->stack, surface );
@@ -761,7 +761,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
-     ret = IDirectFBSurface_Construct( *interface, 
+     ret = IDirectFBSurface_Construct( *interface,
                                         NULL, NULL, NULL, surface, caps );
 
      dfb_surface_unref( surface );
@@ -853,6 +853,9 @@ IDirectFB_GetScreen( IDirectFB        *thiz,
      if (!interface)
           return DFB_INVARG;
 
+     if (dfb_config->primary_only && id != DLID_PRIMARY)
+          return DFB_IDNOTFOUND;
+
      context.interface = interface;
      context.id        = id;
      context.ret       = DFB_IDNOTFOUND;
@@ -897,6 +900,9 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
 
      if (!interface)
           return DFB_INVARG;
+
+     if (dfb_config->primary_only && id != DLID_PRIMARY)
+          return DFB_IDNOTFOUND;
 
      context.interface = interface;
      context.id        = id;
@@ -1034,7 +1040,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
                                const char              *filename,
                                IDirectFBVideoProvider **interface )
 {
-     DFBResult                 ret; 
+     DFBResult                 ret;
      DFBDataBufferDescription  desc;
      IDirectFBDataBuffer      *databuffer;
 
@@ -1364,12 +1370,17 @@ static DFBEnumerationResult
 EnumScreens_Callback( CoreScreen *screen, void *ctx )
 {
      DFBScreenDescription  desc;
+     DFBScreenID           id;
      EnumScreens_Context  *context = (EnumScreens_Context*) ctx;
+
+     id = dfb_screen_id_translated( screen );
+
+     if (dfb_config->primary_only && id != DSCID_PRIMARY)
+          return DFENUM_OK;
 
      dfb_screen_get_info( screen, NULL, &desc );
 
-     return context->callback( dfb_screen_id_translated( screen ),
-                               desc, context->callback_ctx );
+     return context->callback( id, desc, context->callback_ctx );
 }
 
 static DFBEnumerationResult
@@ -1391,12 +1402,17 @@ static DFBEnumerationResult
 EnumDisplayLayers_Callback( CoreLayer *layer, void *ctx )
 {
      DFBDisplayLayerDescription  desc;
+     DFBDisplayLayerID           id;
      EnumDisplayLayers_Context  *context = (EnumDisplayLayers_Context*) ctx;
+
+     id = dfb_layer_id_translated( layer );
+
+     if (dfb_config->primary_only && id != DLID_PRIMARY)
+          return DFENUM_OK;
 
      dfb_layer_get_description( layer, &desc );
 
-     return context->callback( dfb_layer_id_translated( layer ), desc,
-                               context->callback_ctx );
+     return context->callback( id, desc, context->callback_ctx );
 }
 
 static DFBEnumerationResult
