@@ -24,11 +24,13 @@
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <unistd.h>
+
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/time.h>
+#include <time.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #include <math.h>
 
@@ -125,7 +127,7 @@ typedef struct {
           
           PacketQueue            queue;
           
-          double                 pts;
+          __s64                  pts;
           
           double                 rate;         
           unsigned int           interval;
@@ -151,7 +153,7 @@ typedef struct {
           
           PacketQueue            queue;
           
-          double                 pts;
+          __s64                  pts;
           
           bool                   seeked;
      
@@ -304,6 +306,41 @@ flush_packets( PacketQueue *queue )
 
 /*****************************************************************************/
 
+static inline void
+getclock( struct timespec *ret )
+{
+#ifdef _POSIX_TIMERS
+     clock_gettime( CLOCK_REALTIME, ret );
+#else
+     struct timeval t;
+     gettimeofday( &t, NULL );
+     ret->tv_sec  = t.tv_sec;
+     ret->tv_nsec = t.tv_usec * 1000;
+#endif
+}
+
+static inline __s64
+get_audio_clock( IDirectFBVideoProvider_FFmpeg_data *data )
+{
+     int delay = 0;
+#ifdef HAVE_FUSIONSOUND
+     data->audio.stream->GetPresentationDelay( data->audio.stream, &delay );
+#endif
+     return data->audio.pts - delay*1000;
+}
+
+static inline __s64
+get_stream_clock( IDirectFBVideoProvider_FFmpeg_data *data )
+{
+#ifdef HAVE_FUSIONSOUND
+     if (data->audio.stream)
+          return get_audio_clock( data );
+#endif          
+     return data->video.pts;
+}
+
+/******************************************************************************/
+
 static void*
 FFmpegInput( DirectThread *self, void *arg )
 {
@@ -324,7 +361,7 @@ FFmpegInput( DirectThread *self, void *arg )
                     if (data->status == DVSTATE_FINISHED)
                          data->status = DVSTATE_PLAY;
                     data->video.pts = 
-                    data->audio.pts = (double)data->input.seek_time/AV_TIME_BASE;
+                    data->audio.pts = data->input.seek_time;
                     data->video.seeked = true;
                     data->audio.seeked = true;
                     if (data->video.thread)
@@ -338,14 +375,14 @@ FFmpegInput( DirectThread *self, void *arg )
           if (data->video.queue.size >= data->max_videoq_size ||
               data->audio.queue.size >= data->max_audioq_size) {
                pthread_mutex_unlock( &data->input.lock );
-               usleep( 50 );
+               usleep( 100 );
                continue;
           }
           
           if (av_read_frame( data->context, &packet ) < 0) {
-               if (url_feof( &data->context->pb ) &&
-                   data->video.queue.size == 0    &&
-                   data->audio.queue.size == 0)
+               if (url_feof(&data->context->pb) &&
+                   data->video.queue.size == 0  &&
+                   data->audio.queue.size == 0) 
                {
                     if (data->flags & DVPLAY_LOOPING) {
                          data->input.seek_time = 0;
@@ -500,20 +537,22 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
                    rect.w, rect.h );
                              
      dfb_surface_unlock( surface, 0 );
-}     
+}
 
 static void*
 FFmpegVideo( DirectThread *self, void *arg )
 {
-     IDirectFBVideoProvider_FFmpeg_data *data = arg; 
-     long                                drop = 0;
+     IDirectFBVideoProvider_FFmpeg_data *data = arg;
+     
+     AVStream *st = data->video.st;
 
      while (data->status != DVSTATE_STOP) {
-          AVPacket pkt;
-          __s64    time;
-          int      done = 0;
+          AVPacket        pkt;
+          struct timespec start;
+          struct timespec stop;
+          int             done = 0;
           
-          time = av_gettime();
+          getclock( &start );
           
           direct_thread_testcancel( self );
           
@@ -528,24 +567,25 @@ FFmpegVideo( DirectThread *self, void *arg )
           if (data->video.seeked) {
                avcodec_flush_buffers( data->video.ctx );
                data->video.seeked = false;
-               drop = 0;
           }
                
           avcodec_decode_video( data->video.ctx, 
                                 data->video.src_frame,
                                 &done, pkt.data, pkt.size );
 
-          if (done && !drop) {
+          if (done) {
                FFmpegPutFrame( data );
           
                if (data->callback)
                     data->callback( data->ctx );
           }
           
-          if (pkt.dts != AV_NOPTS_VALUE)
-               data->video.pts = av_q2d(data->video.st->time_base) * pkt.dts;
-          else
-               data->video.pts += (double)data->video.interval/AV_TIME_BASE;
+          if (pkt.dts != AV_NOPTS_VALUE) {
+               data->video.pts = av_rescale_q( pkt.dts, 
+                                               st->time_base, AV_TIME_BASE_Q );
+          } else {
+               data->video.pts += data->video.interval;
+          }
                
           av_free_packet( &pkt );
           
@@ -553,26 +593,30 @@ FFmpegVideo( DirectThread *self, void *arg )
                /* paused */
                pthread_cond_wait( &data->video.cond, &data->video.lock );
           }
-          else {
-               time += data->video.interval;
-               if (data->audio.thread)
-                    time += (data->video.pts-data->audio.pts) * AV_TIME_BASE;
-               
-               drop = time - av_gettime();
-               if (drop > 0) {
-                    struct timespec stop;
-                      
-                    stop.tv_sec  =  time / AV_TIME_BASE;
-                    stop.tv_nsec = (time % AV_TIME_BASE) * 1000;
-             
-                    pthread_cond_timedwait( &data->video.cond,
-                                            &data->video.lock, &stop );
-               
-                    drop = 0;
-               } else {
-                    drop /= data->video.interval;
+          else if (data->audio.thread) {
+               __s64 clock = data->video.pts + data->video.interval;
+              
+               while (clock > get_audio_clock(data)) {                    
+                    getclock( &stop );
+                    stop.tv_nsec += 25000; // 25 us
+                    stop.tv_sec  += stop.tv_nsec/1000000000;
+                    stop.tv_nsec %= 1000000000;
+                    
+                    if (pthread_cond_timedwait( &data->video.cond,
+                                                &data->video.lock, &stop ) == 0)
+                         break;
                }
           }
+          else {
+               stop = start;
+               stop.tv_nsec += (data->video.interval%1000000) * 1000;
+               stop.tv_sec  += (data->video.interval/1000000);
+               stop.tv_sec  += (stop.tv_nsec/1000000000);
+               stop.tv_nsec %= 1000000000;
+               
+               pthread_cond_timedwait( &data->video.cond,
+                                       &data->video.lock, &stop );
+          }               
 
           pthread_mutex_unlock( &data->video.lock );
      }
@@ -585,17 +629,17 @@ static void*
 FFmpegAudio( DirectThread *self, void *arg )
 {
      IDirectFBVideoProvider_FFmpeg_data *data = arg;
-     
-     __u8 buf[AVCODEC_MAX_AUDIO_FRAME_SIZE];
+
+     AVStream *st = data->audio.st;   
+     __u8      buf[AVCODEC_MAX_AUDIO_FRAME_SIZE]; 
 
      while (data->status != DVSTATE_STOP) {
           AVPacket  pkt;
           __u8     *pkt_data;
           int       pkt_size;
-          int       decoded;
-          int       len   = 0;
-          int       size  = 0;
-          int       delay = 0;
+          int       decoded = 0;
+          int       len     = 0;
+          int       size    = 0;
           
           direct_thread_testcancel( self );
           
@@ -629,15 +673,13 @@ FFmpegAudio( DirectThread *self, void *arg )
           size /= data->audio.sample_size;
           
           if (pkt.pts != AV_NOPTS_VALUE) {
-               data->audio.pts = av_q2d(data->audio.st->time_base) * pkt.pts;
+               data->audio.pts = av_rescale_q( pkt.pts,
+                                               st->time_base, AV_TIME_BASE_Q );
           }
           else if (size) {
                data->audio.pts += (double)size / 
                                   (double)data->audio.sample_rate;
           }
-          
-          data->audio.stream->GetPresentationDelay( data->audio.stream, &delay );
-          data->audio.pts -= (double)delay / 1000.0;
                
           av_free_packet( &pkt );
  
@@ -899,6 +941,9 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      if (!dest->priv)
           return DFB_DESTROYED;
           
+     if (data->status == DVSTATE_FINISHED && !data->seekable)
+          return DFB_UNSUPPORTED;
+          
      dest_data = dest->priv;
      
      switch (dest_data->surface->format) {
@@ -937,9 +982,6 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
           rect.x += dest_data->area.wanted.x;
           rect.y += dest_data->area.wanted.y;
      }
-     
-     if (data->status == DVSTATE_FINISHED && !data->seekable)
-          return DFB_UNSUPPORTED;
 
      pthread_mutex_lock( &data->input.lock );
      pthread_mutex_lock( &data->video.lock );
@@ -1001,11 +1043,9 @@ IDirectFBVideoProvider_FFmpeg_Stop( IDirectFBVideoProvider *thiz )
      data->status = DVSTATE_STOP;
      
      if (data->video.thread) {
-          if (!data->speed) {
-               pthread_mutex_lock( &data->video.lock );
-               pthread_cond_signal( &data->video.cond );
-               pthread_mutex_unlock( &data->video.lock );
-          }
+          pthread_mutex_lock( &data->video.lock );
+          pthread_cond_signal( &data->video.cond );
+          pthread_mutex_unlock( &data->video.lock );
           direct_thread_join( data->video.thread );
           direct_thread_destroy( data->video.thread );
           data->video.thread = NULL;
@@ -1075,17 +1115,15 @@ static DFBResult
 IDirectFBVideoProvider_FFmpeg_GetPos( IDirectFBVideoProvider *thiz,
                                       double                 *seconds )
 {
-     double pos;
+     __s64 position;
                  
      DIRECT_INTERFACE_GET_DATA( IDirectFBVideoProvider_FFmpeg )
      
      if (!seconds)
           return DFB_INVARG;
      
-     pos  = (data->audio.thread) ? data->audio.pts : data->video.pts;
-     pos -= (double)data->start_time / AV_TIME_BASE;
-          
-     *seconds = (pos < 0.0) ? 0.0 : pos;
+     position = get_stream_clock( data ) - data->start_time;
+     *seconds = (position < 0) ? 0.0 : ((double)position/AV_TIME_BASE);
      
      return DFB_OK;
 }
@@ -1100,7 +1138,7 @@ IDirectFBVideoProvider_FFmpeg_GetLength( IDirectFBVideoProvider *thiz,
           return DFB_INVARG;
      
      if (data->context->duration != AV_NOPTS_VALUE) {      
-          *seconds = (double)data->context->duration / AV_TIME_BASE;
+          *seconds = (double)data->context->duration/AV_TIME_BASE;
           return DFB_OK;
      }
     
@@ -1173,7 +1211,7 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      if (multiplier < 0.0)
           return DFB_INVARG;
           
-     if (multiplier > 64.0)
+     if (multiplier > 32.0)
           return DFB_UNSUPPORTED;
           
      pthread_mutex_lock( &data->video.lock );
