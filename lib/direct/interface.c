@@ -101,7 +101,8 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      int                         len;
      DIR                        *dir;
      char                       *interface_dir;
-     struct dirent              *entry;
+     struct dirent              *entry = NULL;
+     struct dirent               tmp;
 #endif
 
      DirectLink *link;
@@ -157,7 +158,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
      /*
       * Iterate directory.
       */
-     while ( (entry = readdir(dir) ) != NULL ) {
+     while (readdir_r( dir, &tmp, &entry ) == 0 && entry) {
           void *handle = NULL;
           char  buf[4096];
 
@@ -191,12 +192,7 @@ DirectGetInterface( DirectInterfaceFuncs     **funcs,
           /*
            * Open it and check.
            */
-#ifdef RTLD_GLOBAL
-          handle = dlopen( buf, RTLD_NOW /*| RTLD_GLOBAL*/ );
-#else
-          /* RTLD_GLOBAL is missing on OpenBSD*/
           handle = dlopen( buf, RTLD_NOW );
-#endif
           if (handle) {
                DirectInterfaceImplementation *impl = (DirectInterfaceImplementation*) implementations;
 
