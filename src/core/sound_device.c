@@ -47,6 +47,7 @@ DEFINE_MODULE_DIRECTORY( fs_sound_drivers, "snddrivers", FS_SOUND_DRIVER_ABI_VER
 struct __FS_CoreSoundDevice {
      DirectModuleEntry      *module;
      const SoundDriverFuncs *funcs;
+     SoundDriverInfo         info;
 
      void                   *device_data;
      SoundDeviceInfo         device_info;
@@ -60,7 +61,6 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
 {
      DFBResult        ret;
      CoreSoundDevice *device;
-     SoundDriverInfo  info;
      DirectLink      *link;
      
      D_ASSERT( core != NULL );
@@ -70,53 +70,12 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
      if (!device)
           return D_OOM();
           
-     /* Build a list of available drivers. */
-     direct_modules_explore_directory( &fs_sound_drivers );
+     snprintf( device->info.name, 
+               FS_SOUND_DRIVER_INFO_NAME_LENGTH, "none" );
+     snprintf( device->info.vendor,
+               FS_SOUND_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
      
-     /* Load driver */
-     direct_list_foreach( link, fs_sound_drivers.entries ) {
-          DirectModuleEntry *module = (DirectModuleEntry*) link;
-          
-          const SoundDriverFuncs *funcs = direct_module_ref( module );
-          
-          if (!funcs)
-               continue;
-               
-          if (fs_config->driver && strcmp( module->name, fs_config->driver ))
-               continue;
-               
-          if (funcs->Probe() == DFB_OK) {
-               device->module = module;
-               device->funcs  = funcs;
-               
-               funcs->GetDriverInfo( &info );
-               break;
-          }
-          
-          direct_module_unref( module );
-     }
-     
-     if (!device->module) {
-          if (fs_config->driver) {
-               D_ERROR( "FusionSound/Device: driver '%s' not found!\n", 
-                         fs_config->driver );
-          } else {
-               D_ERROR( "FusionSound/Device: no driver found!\n" );
-          }
-          
-          D_FREE( device );
-          return DFB_FAILURE;
-     }
-     
-     if (info.device_data_size) {
-          device->device_data = D_CALLOC( 1, info.device_data_size );
-          if (!device->device_data) {
-               direct_module_unref( device->module );
-               D_FREE( device );
-               return D_OOM();
-          }
-     }
-     
+     /* Set default configuration. */    
      device->config.channels   = fs_config->channels;
      device->config.format     = fs_config->sampleformat;
      device->config.rate       = fs_config->samplerate;
@@ -124,19 +83,70 @@ fs_device_initialize( CoreSound *core, CoreSoundDevice **ret_device )
      /* No more than 65535 frames. */
      if (device->config.buffersize > 65535)
           device->config.buffersize = 65535;
+          
+     if (!fs_config->driver || strcmp( fs_config->driver, "none" )) {
+          /* Build a list of available drivers. */
+          direct_modules_explore_directory( &fs_sound_drivers );
      
-     /* Open sound device. */
-     ret = device->funcs->OpenDevice( device->device_data, 
-                                     &device->device_info, &device->config );
-     if (ret) {
-          D_ERROR( "FusionSound/Device: could not open device!\n" );
-          direct_module_unref( device->module );
-          D_FREE( device );
-          return ret;
+          /* Load driver */
+          direct_list_foreach( link, fs_sound_drivers.entries ) {
+               DirectModuleEntry *module = (DirectModuleEntry*) link;
+          
+               const SoundDriverFuncs *funcs = direct_module_ref( module );
+          
+               if (!funcs)
+                    continue;
+               
+               if (fs_config->driver && strcmp( module->name, fs_config->driver ))
+                    continue;
+               
+               if (funcs->Probe() == DFB_OK) {
+                    device->module = module;
+                    device->funcs  = funcs;
+               
+                    funcs->GetDriverInfo( &device->info );
+                    break;
+               }
+          
+               direct_module_unref( module );
+          }
+     
+          if (!device->module) {
+               if (fs_config->driver) {
+                    D_ERROR( "FusionSound/Device: driver '%s' not found!\n", 
+                              fs_config->driver );
+               } else {
+                    D_ERROR( "FusionSound/Device: no driver found!\n" );
+               }
+          
+               D_FREE( device );
+               return DFB_FAILURE;
+          }
+     
+          if (device->info.device_data_size) {
+               device->device_data = D_CALLOC( 1, device->info.device_data_size );
+               if (!device->device_data) {
+                    direct_module_unref( device->module );
+                    D_FREE( device );
+                    return D_OOM();
+               }
+          }
+         
+          /* Open sound device. */
+          ret = device->funcs->OpenDevice( device->device_data, 
+                                          &device->device_info, &device->config );
+          if (ret) {
+               D_ERROR( "FusionSound/Device: could not open device!\n" );
+               direct_module_unref( device->module );
+               D_FREE( device );
+               return ret;
+          }
      }
      
      D_INFO( "FusionSound/Device: %s %d.%d (%s)\n",
-             info.name, info.version.major, info.version.minor, info.vendor );
+             device->info.name, 
+             device->info.version.major, device->info.version.minor,
+             device->info.vendor );
              
      D_INFO( "FusionSound/Device: %d Hz, %d channel(s), %d bits, %.1f ms.\n",
              device->config.rate,
@@ -153,16 +163,11 @@ void
 fs_device_get_description( CoreSoundDevice     *device,
                            FSDeviceDescription *desc )
 {
-     SoundDriverInfo info;
-     
      D_ASSERT( device != NULL );
-     D_ASSERT( device->funcs != NULL );
      D_ASSERT( desc != NULL );
      
-     device->funcs->GetDriverInfo( &info );
-     
      strcpy( desc->name, device->device_info.name );
-     memcpy( &desc->driver, &info, sizeof(FSSoundDriverInfo) );
+     memcpy( &desc->driver, &device->info, sizeof(FSSoundDriverInfo) );
 } 
 
 void
@@ -191,10 +196,10 @@ fs_device_write( CoreSoundDevice *device,
                  unsigned int     count )
 {
      D_ASSERT( device != NULL );
-     D_ASSERT( device->funcs != NULL );
      D_ASSERT( samples != NULL );
      
-     device->funcs->Write( device->device_data, samples, count );
+     if (device->funcs)
+          device->funcs->Write( device->device_data, samples, count );
 }
 
 void
@@ -202,21 +207,24 @@ fs_device_get_output_delay( CoreSoundDevice *device,
                             int             *delay )
 {
      D_ASSERT( device != NULL );
-     D_ASSERT( device->funcs != NULL );
      D_ASSERT( delay != NULL );
      
-     device->funcs->GetOutputDelay( device->device_data, delay );
+     if (device->funcs)
+          device->funcs->GetOutputDelay( device->device_data, delay );
+     else
+          *delay = 0;
 }
 
 void
 fs_device_shutdown( CoreSoundDevice *device )
 {
      D_ASSERT( device != NULL );
-     D_ASSERT( device->funcs != NULL );
      
-     device->funcs->CloseDevice( device->device_data );
+     if (device->funcs)
+          device->funcs->CloseDevice( device->device_data );
      
-     direct_module_unref( device->module );
+     if (device->module)
+          direct_module_unref( device->module );
      
      if (device->device_data)
           D_FREE( device->device_data );
