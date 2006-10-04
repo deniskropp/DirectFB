@@ -209,11 +209,12 @@ void
 fusion_hash_destroy( FusionHash *hash )
 {
      int i;
-     FusionHashNode *node;
+     FusionHashNode *node, *next;
      D_MAGIC_ASSERT( hash, FusionHash );
 
      for (i = 0; i < hash->size; i++) {
-          for (node = hash->nodes[i]; node; node = node->next) {
+          for (node = hash->nodes[i]; node; node = next) {
+               next = node->next;
                fusion_hash_node_destroy(hash, node, NULL, NULL);
           }
      }
