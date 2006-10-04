@@ -451,8 +451,7 @@ driver_get_info( InputDriverInfo *info )
                DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "PS/2 Mouse Driver" );
 
      snprintf( info->vendor,
-               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
-               "Convergence GmbH" );
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
 
      info->version.major = 1;
      info->version.minor = 0;

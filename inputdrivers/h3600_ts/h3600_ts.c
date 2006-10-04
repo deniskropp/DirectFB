@@ -152,8 +152,7 @@ driver_get_info( InputDriverInfo *info )
                DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "H3600 Touchscreen Driver" );
 
      snprintf( info->vendor,
-               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
 
      info->version.major = 0;
      info->version.minor = 2;
