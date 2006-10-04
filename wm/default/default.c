@@ -2479,7 +2479,7 @@ wm_get_info( CoreWMInfo *info )
      info->version.binary = 1;
 
      snprintf( info->name, DFB_CORE_WM_INFO_NAME_LENGTH, "Default" );
-     snprintf( info->vendor, DFB_CORE_WM_INFO_VENDOR_LENGTH, "Convergence GmbH" );
+     snprintf( info->vendor, DFB_CORE_WM_INFO_VENDOR_LENGTH, "directfb.org" );
 
      info->wm_data_size     = sizeof(WMData);
      info->stack_data_size  = sizeof(StackData);
