@@ -171,8 +171,7 @@ driver_get_info( InputDriverInfo *info )
                DFB_INPUT_DRIVER_INFO_NAME_LENGTH, "WM97xx Touchscreen Driver" );
 
      snprintf( info->vendor,
-               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+               DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH, "directb.org" );
 
      info->version.major = 0;
      info->version.minor = 1;

@@ -8084,8 +8084,7 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
      }
 #endif
 
-     snprintf( info->vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH,
-               "convergence integrated media GmbH" );
+     snprintf( info->vendor, DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH, "directfb.org" );
 
      info->version.major = 0;
      info->version.minor = 6;

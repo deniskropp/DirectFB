@@ -64,7 +64,7 @@ typedef struct {
 
      char               vendor[DFB_INPUT_DRIVER_INFO_VENDOR_LENGTH];
                                       /* Vendor (or author) of the driver,
-                                         e.g. 'convergence' or 'Sven Neumann' */
+                                         e.g. 'directfb.org' or 'Sven Neumann' */
 } InputDriverInfo;
 
 typedef struct {

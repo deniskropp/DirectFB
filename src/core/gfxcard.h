@@ -102,7 +102,7 @@ typedef struct {
 
      char               vendor[DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH];
                                 /* Vendor (or author) of the driver,
-                                   e.g. 'convergence' or 'Denis Oliver Kropp' */
+                                   e.g. 'directfb.org' or 'Denis Oliver Kropp' */
 
      char               url[DFB_GRAPHICS_DRIVER_INFO_URL_LENGTH];
                                 /* URL for driver updates,
