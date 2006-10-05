@@ -699,6 +699,16 @@ if test "$enable_png" = "yes"; then
       ])
   fi
 
+  AC_PATH_PROG(LIBPNG_CONFIG, libpng-config, no)
+  if test "$LIBPNG_CONFIG" = no; then
+      PNG=no
+      AC_MSG_WARN([
+*** libpng-config not found ])
+  else
+      PNG=yes
+      LIBPNG=`$LIBPNG_CONFIG --libs`
+  fi
+
   dnl Test for libpng
   if test -z "$LIBPNG" && test -n "$ZLIB_LIBS"; then
     AC_CHECK_LIB(png, png_read_info,
