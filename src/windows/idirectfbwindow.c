@@ -203,9 +203,6 @@ IDirectFBWindow_DetachEventBuffer( IDirectFBWindow       *thiz,
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
-     if (data->destroyed)
-          return DFB_DESTROYED;
-
      return IDirectFBEventBuffer_DetachWindow( buffer, data->window );
 }
 

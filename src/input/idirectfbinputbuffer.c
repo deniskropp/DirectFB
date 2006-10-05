@@ -691,19 +691,19 @@ DFBResult IDirectFBEventBuffer_DetachWindow( IDirectFBEventBuffer *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBEventBuffer)
      
      direct_list_foreach_safe (attached, link, data->windows) {
-          if (attached->window == window) {
+          if (!attached->window || attached->window == window) {
                direct_list_remove( &data->windows, &attached->link );
-               
-               dfb_window_detach( attached->window, &attached->reaction );
-               dfb_window_unref( attached->window );
+
+               if (attached->window) {
+                    dfb_window_detach( attached->window, &attached->reaction );
+                    dfb_window_unref( attached->window );
+               }
                
                D_FREE( attached );
-               
-               return DFB_OK;
           }
      }
 
-     return DFB_ITEMNOTFOUND;
+     return DFB_OK;
 }
 
 /* file internals */
