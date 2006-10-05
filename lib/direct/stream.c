@@ -169,7 +169,7 @@ parse_url( const char *url, char **ret_host, int *ret_port,
           path = "/";
      }
 
-     tmp = strchr( host, '@' );
+     tmp = strrchr( host, '@' );
      if (tmp) {
           *tmp = '\0';
           pass = strchr( host, ':' );
