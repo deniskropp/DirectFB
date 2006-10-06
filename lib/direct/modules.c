@@ -142,7 +142,8 @@ direct_modules_explore_directory( DirectModuleDir *directory )
 #ifdef DYNAMIC_LINKING
      int            dir_len;
      DIR           *dir;
-     struct dirent *entry;
+     struct dirent *entry = NULL;
+     struct dirent  tmp;
      int            count = 0;
 
      D_ASSERT( directory != NULL );
@@ -156,7 +157,7 @@ direct_modules_explore_directory( DirectModuleDir *directory )
           return 0;
      }
 
-     while ((entry = readdir( dir )) != NULL) {
+     while (readdir_r( dir, &tmp, &entry ) == 0 && entry) {
           void              *handle;
           DirectModuleEntry *module;
           int                entry_len = strlen(entry->d_name);
