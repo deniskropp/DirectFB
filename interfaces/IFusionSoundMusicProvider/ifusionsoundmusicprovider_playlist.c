@@ -106,9 +106,9 @@ add_media( FSTrackID       id,
           
      entry->id = id;
      entry->url = D_STRDUP( url );
-     if (artist)
+     if (artist && *artist)
           entry->artist = D_STRDUP( artist );
-     if (title)
+     if (title && *title)
           entry->title = D_STRDUP( title );
      
      direct_list_append( (DirectLink**)playlist, &entry->link );
@@ -192,16 +192,14 @@ fetch_tag( DirectStream *stream, char buf[], int len )
 /*****************************************************************************/
 
 static PlaylistType 
-get_playlist_type( const char *mimetype, const char *filename )
+get_playlist_type( const char *mimetype, 
+                   const char *filename,
+                   const char *header )
 {
      if (mimetype) {
           if (!strcmp( mimetype, "audio/mpegurl" ) ||
               !strcmp( mimetype, "audio/x-mpegurl" ))
                return PLT_M3U;
-          
-          /*if (!strcmp( mimetype, "audio/vnd.rn-realaudio" ) ||
-              !strcmp( mimetype, "audio/x-pn-realaudio" ))
-               return PLT_RAM;*/
           
           if (!strcmp( mimetype, "audio/x-scpls" ))
                return PLT_PLS;
@@ -216,16 +214,29 @@ get_playlist_type( const char *mimetype, const char *filename )
                if (!strcasecmp( ext, ".m3u" ))
                     return PLT_M3U;
                     
-               if (!strcasecmp( ext, ".ram" ))
+               if (!strcasecmp( ext, ".ram" ) || 
+                   !strcasecmp( ext, ".rpm" ))
                     return PLT_RAM;
                     
                if (!strcasecmp( ext, ".pls" ))
                     return PLT_PLS;
                     
-               if (!strcasecmp( ext, ".smil" ))
+               if (!strcasecmp( ext, ".smi" ) ||
+                   !strcasecmp( ext, ".smil" ))
                     return PLT_SMIL;
           }
      }
+     
+     if (header) {
+          if (!strncmp( header, "#EXTM3U", 7 ))
+               return PLT_M3U;
+               
+          if (!strncmp( header, "[Playlist]", 10 ))
+               return PLT_PLS;
+               
+          if (!strncmp( header, "<smil>", 6 ))
+               return PLT_SMIL;
+     } 
      
      return PLT_NONE;
 }     
@@ -235,13 +246,61 @@ m3u_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                     DirectStream                            *stream )
 {
      char         buf[4096];
+     char         title[1024] = { 0, };
      unsigned int id = 0;     
      
      while (fetch_line( stream, buf, sizeof(buf) ) == DFB_OK) {          
+          if (buf[0] == '\0')
+               continue;
+               
+          if (buf[0] == '#') {
+               if (!strncmp( buf+1, "EXTINF:", 7 )) {
+                    char *tmp = strchr( buf+8, ',' );
+                    if (tmp)
+                         snprintf( title, sizeof(title), "%s", ++tmp );
+               }
+               continue;
+          }
+
+          add_media( id++, buf, NULL, title, &data->playlist );
+          *title = '\0';
+     }
+}
+
+static void
+ram_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data, 
+                    DirectStream                            *stream )
+{
+     char         buf[4096];
+     unsigned int id = 0;     
+     
+     while (fetch_line( stream, buf, sizeof(buf) ) == DFB_OK) {
+          char *info, *artist = NULL, *title = NULL;
+                    
           if (buf[0] == '\0' || buf[0] == '#')
                continue;
 
-          add_media( id++, buf, NULL, NULL, &data->playlist );
+          info = strrchr( buf, '?' );
+          if (info) {
+               char *tmp;
+               
+               *info++ = '\0';
+               artist = strstr( info, "artist=" );
+               title  = strstr( info, "title=" );
+               
+               if (artist) {
+                    artist += 7;
+                    tmp = strchr( artist, '&' );
+                    if (tmp) *tmp = '\0';
+               }
+               if (title) {
+                    title += 6;
+                    tmp = strchr( title, '&' );
+                    if (tmp) *tmp = '\0';
+               }
+          }    
+               
+          add_media( id++, buf, artist, title, &data->playlist );
      }
 }
 
@@ -274,26 +333,9 @@ pls_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                     id--;
                     
                     if (entry->id == id) {
-                         char *artist = NULL;
-                         char *title  = NULL;
-                         
-                         artist = strchr( buf, '=' );
-                         if (artist && *(++artist)) {
-                              title = strstr( artist, " - " );
-                              if (title) {
-                                   *title = '\0';
-                                   title += 3;
-                              }
-                              else {
-                                   title = artist;
-                                   artist = NULL;
-                              }
-                         }
-                         
-                         if (artist && *artist)
-                              entry->artist = D_STRDUP( artist );
-                         if (title && *title)
-                              entry->title  = D_STRDUP( title );
+                         char *title = strchr( buf, '=' );
+                         if (title && *(++title))
+                              entry->title = D_STRDUP( title );
                     }
                }
           }
@@ -341,12 +383,7 @@ smil_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                     char *artist, *title;
                     
                     artist = tag_property( tag, "author", 6 );
-                    if (artist && *artist == '\0')
-                         artist = NULL;
-                    
-                    title = tag_property( tag, "title", 5 );
-                    if (title && *title == '\0')
-                         title = NULL;
+                    title  = tag_property( tag, "title", 5 );
                          
                     add_media( id++, src, artist, title, &data->playlist );
                }
@@ -688,7 +725,7 @@ IFusionSoundMusicProvider_Playlist_SetPlaybackFlags( IFusionSoundMusicProvider  
 static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
-     if (get_playlist_type( ctx->mimetype, ctx->filename ))
+     if (get_playlist_type( ctx->mimetype, ctx->filename, ctx->header ))
           return DFB_OK;
           
      return DFB_UNSUPPORTED;
@@ -700,15 +737,21 @@ Construct( IFusionSoundMusicProvider *thiz,
            DirectStream              *stream )
 {
      const char *mimetype = direct_stream_mime( stream );
+     char        header[64];
      
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Playlist )
      
      data->ref = 1;
      
-     switch (get_playlist_type( mimetype, filename )) {
+     memset( header, 0, sizeof(header) );
+     direct_stream_peek( stream, sizeof(header), 0, header, NULL ); 
+     
+     switch (get_playlist_type( mimetype, filename, header )) {
           case PLT_M3U:
-          case PLT_RAM:
                m3u_playlist_parse( data, stream );
+               break;
+          case PLT_RAM:
+               ram_playlist_parse( data, stream );
                break;
           case PLT_PLS:
                pls_playlist_parse( data, stream );
