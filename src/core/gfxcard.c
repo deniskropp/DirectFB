@@ -794,7 +794,7 @@ dfb_gfxcard_fillrectangles( const DFBRectangle *rects, int num, CardState *state
                     else if (!D_FLAGS_IS_SET( card->caps.flags, CCF_CLIPPING ))
                          dfb_clip_rectangle( &state->clip, &rect );
 
-                    if (!card->funcs.FillRectangle( card->driver_data, 
+                    if (!card->funcs.FillRectangle( card->driver_data,
                                                     card->device_data, &rect ))
                          break;
                }
@@ -966,15 +966,15 @@ void dfb_gfxcard_drawlines( DFBRegion *lines, int num_lines, CardState *state )
                     if (!dfb_clip_line( &state->clip, &lines[i] ))
                          continue;
                }
-               
+
                if (!card->funcs.DrawLine( card->driver_data,
                                           card->device_data, &lines[i] ))
                     break;
           }
-          
+
           dfb_gfxcard_state_release( state );
      }
-    
+
      if (i < num_lines) {
           if (gAcquire( state, DFXL_DRAWLINE )) {
                for (; i<num_lines; i++) {
@@ -1025,7 +1025,7 @@ void dfb_gfxcard_fillspans( int y, DFBSpan *spans, int num_spans, CardState *sta
 
           dfb_gfxcard_state_release( state );
      }
-     
+
      if (i < num_spans) {
           if (gAcquire( state, DFXL_FILLRECTANGLE )) {
                for (; i<num_spans; i++) {
@@ -1151,7 +1151,7 @@ fill_tri( DFBTriangle *tri, CardState *state, bool accelerated )
 void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
 {
      bool hw = false;
-     
+
      D_ASSERT( card != NULL );
      D_ASSERT( card->shared != NULL );
      D_MAGIC_ASSERT( state, CardState );
@@ -1168,7 +1168,7 @@ void dfb_gfxcard_filltriangle( DFBTriangle *tri, CardState *state )
                                          card->device_data, tri );
           dfb_gfxcard_state_release( state );
      }
-     
+
      if (!hw) {
           /* otherwise use the spanline rasterizer (fill_tri)
              and fill the triangle using a rectangle for each spanline */
@@ -1361,7 +1361,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
           bool hw = true;
-          
+
           for (; dy1 < dy2; dy1 += rect->h) {
                for (; dx1 < dx2; dx1 += rect->w) {
 
@@ -1375,7 +1375,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
                     if (!(card->caps.flags & CCF_CLIPPING))
                          dfb_clip_blit( clip, &srect, &x, &y );
 
-                    hw = card->funcs.Blit( card->driver_data, 
+                    hw = card->funcs.Blit( card->driver_data,
                                            card->device_data, &srect, x, y );
                     if (!hw)
                          break;
@@ -1386,7 +1386,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
           }
           dfb_gfxcard_state_release( state );
      }
-     
+
      if (dy1 < dy2) {
           if (gAcquire( state, DFXL_BLIT )) {
                for (; dy1 < dy2; dy1 += rect->h) {
@@ -1742,7 +1742,7 @@ void dfb_gfxcard_drawglyph( unsigned int index, int x, int y,
           hw = card->funcs.Blit( card->driver_data, card->device_data, &rect, x, y);
           dfb_gfxcard_state_release( &font->state );
      }
-     
+
      if (!hw) {
           if (gAcquire( &font->state, DFXL_BLIT )) {
                dfb_clip_blit( &font->state.clip, &rect, &x, &y );
@@ -1950,11 +1950,15 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 
      shared = device->shared;
 
-     if (shared->surface_manager)
+     if (shared->surface_manager) {
+          D_WARN( "too late" );
           return -1;
+     }
 
-     if (shared->videoram_length < size)
+     if (shared->videoram_length < size) {
+          D_WARN( "not enough video memory" );
           return -1;
+     }
 
      shared->videoram_length -= size;
 
