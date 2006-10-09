@@ -593,6 +593,7 @@ system_join( CoreDFB *core, void **data )
 {
      DFBResult   ret;
      CoreScreen *screen;
+     void       *shared;
 
      D_ASSERT( dfb_fbdev == NULL );
 
@@ -605,9 +606,10 @@ system_join( CoreDFB *core, void **data )
      dfb_fbdev = D_CALLOC( 1, sizeof(FBDev) );
 
      fusion_arena_get_shared_field( dfb_core_arena( core ),
-                                    "fbdev", (void**) &dfb_fbdev->shared );
+                                    "fbdev", &shared );
 
      dfb_fbdev->core = core;
+     dfb_fbdev->shared = shared;
 
      /* Open framebuffer device */
      ret = dfb_fbdev_open();
