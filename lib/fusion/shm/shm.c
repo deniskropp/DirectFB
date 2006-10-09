@@ -39,6 +39,7 @@
 #include <direct/signals.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/fusion_internal.h>
 
 #include <fusion/shm/pool.h>
@@ -137,7 +138,10 @@ fusion_shm_init( FusionWorld *world )
      if (fusion_master( world )) {
           memset( shared, 0, sizeof(FusionSHMShared) );
 
-          if (!find_tmpfs( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
+          if (fusion_config->tmpfs) {
+               snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, fusion_config->tmpfs );
+          }
+          else if (!find_tmpfs( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
                D_ERROR( "Fusion/SHM: Could not find tmpfs mount point!\n" );
                return DFB_FILENOTFOUND;
           }
