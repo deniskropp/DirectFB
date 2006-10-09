@@ -22,6 +22,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 
 #include <fusionsound.h>
 
@@ -65,6 +66,8 @@ typedef struct {
      char                      *artist;
      char                      *title;
      
+     double                     start;
+     
      IFusionSoundMusicProvider *provider;
 } PlaylistEntry;
 
@@ -92,7 +95,8 @@ static DFBResult
 add_media( FSTrackID       id, 
            const char     *url, 
            const char     *artist, 
-           const char     *title, 
+           const char     *title,
+           double          start,
            PlaylistEntry **playlist )
 {
      PlaylistEntry *entry;
@@ -110,6 +114,7 @@ add_media( FSTrackID       id,
           entry->artist = D_STRDUP( artist );
      if (title && *title)
           entry->title = D_STRDUP( title );
+     entry->start = start;
      
      direct_list_append( (DirectLink**)playlist, &entry->link );
      
@@ -234,7 +239,7 @@ get_playlist_type( const char *mimetype,
           if (!strncmp( header, "[Playlist]", 10 ))
                return PLT_PLS;
                
-          if (!strncmp( header, "<smil>", 6 ))
+          if (!strncmp( header, "<smil", 5 ))
                return PLT_SMIL;
      } 
      
@@ -262,7 +267,7 @@ m3u_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                continue;
           }
 
-          add_media( id++, buf, NULL, title, &data->playlist );
+          add_media( id++, buf, NULL, title, 0, &data->playlist );
           *title = '\0';
      }
 }
@@ -279,6 +284,9 @@ ram_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                     
           if (buf[0] == '\0' || buf[0] == '#')
                continue;
+               
+          if (!strncmp( buf, "--stop--", 8 ))
+               break;
 
           info = strrchr( buf, '?' );
           if (info) {
@@ -300,7 +308,7 @@ ram_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                }
           }    
                
-          add_media( id++, buf, artist, title, &data->playlist );
+          add_media( id++, buf, artist, title, 0, &data->playlist );
      }
 }
 
@@ -322,7 +330,7 @@ pls_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                if (!url || !*(++url))
                     continue;
                
-               add_media( id, url, NULL, NULL, &data->playlist );
+               add_media( id, url, NULL, NULL, 0, &data->playlist );
           }
           else if (!strncmp( buf, "Title", 5 )) {                    
                if (data->playlist && data->playlist->link.prev) {
@@ -345,22 +353,23 @@ pls_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
 static char*
 tag_property( char *tag, const char *prop, const int prop_len )
 {
-     char  buf[prop_len+3];
-     char *p, *e;
+     char  buf[prop_len+2];
+     char *p, *e = NULL;
      
      memcpy( buf, prop, prop_len );
      buf[prop_len+0] = '=';
-     buf[prop_len+1] = '"';
-     buf[prop_len+2] = '\0';
+     buf[prop_len+1] = '\0';
      
-     p = strstr( tag, buf );
-     if (p) {
-          p += prop_len+2;
-          e = strchr( p, '"' );
-          if (e) {
-               *e = '\0';
-               return p;
+     while ((p = strstr( tag, buf ))) {
+          p += prop_len+1;
+          if (*p == '"') {
+               e = strchr( ++p, '"' );
+          } else {
+               for (e = p; *e && !isspace(*e); e++);
           }
+          if (e > p)
+               return strndup( p, e-p );
+          tag = p;
      }
      
      return NULL;
@@ -380,12 +389,37 @@ smil_playlist_parse( IFusionSoundMusicProvider_Playlist_data *data,
                tag = buf + 6;
                src = tag_property( tag, "src", 3 );
                if (src) {
-                    char *artist, *title;
+                    char   *artist, *title, *begin;
+                    double  start = 0;
                     
                     artist = tag_property( tag, "author", 6 );
                     title  = tag_property( tag, "title", 5 );
+                    begin  = tag_property( tag, "clipBegin" , 9  ) ? :
+                             tag_property( tag, "clip-begin", 10 );
+                    if (begin) {
+                         char *tmp = begin;
+                         float h, m, s;
+
+                         if (!strncmp( tmp, "npt=", 4 ))
+                              tmp += 4;
+                         else if (!strncmp( tmp, "smpte=", 6 ))
+                              tmp += 6;
                          
-                    add_media( id++, src, artist, title, &data->playlist );
+                         if (sscanf( tmp, "%f:%f:%f", &h, &m, &s ) == 3)
+                              start = h * 3600.0 + m * 60.0 + s;
+                         else
+                              start = strtod( tmp, NULL );
+                    }
+                       
+                    add_media( id++, src, artist, title, start, &data->playlist );
+                    
+                    if (artist)
+                         free( artist );
+                    if (title)
+                         free( title );
+                    if (begin)
+                         free( begin );
+                    free( src );
                }
           }
      }
@@ -460,10 +494,13 @@ IFusionSoundMusicProvider_Playlist_EnumTracks( IFusionSoundMusicProvider *thiz,
           if (entry->provider)
                entry->provider->GetTrackDescription( entry->provider, &desc );
           
-          if (desc.artist[0] == '\0' && entry->artist)
-               snprintf( desc.artist, sizeof(desc.artist), "%s", entry->artist );
-          if (desc.title[0] == '\0' && entry->title)
+          if (entry->title) {
                snprintf( desc.title, sizeof(desc.title), "%s", entry->title );
+               desc.artist[0] = '\0';
+          }
+          if (entry->artist) {
+               snprintf( desc.artist, sizeof(desc.artist), "%s", entry->artist );
+          }
                  
           if (callback( entry->id, desc, callbackdata ))
                return DFB_INTERRUPTED;
@@ -500,10 +537,13 @@ IFusionSoundMusicProvider_Playlist_GetTrackDescription( IFusionSoundMusicProvide
      if (data->selected->provider) 
           data->selected->provider->GetTrackDescription( data->selected->provider, desc );
      
-     if (desc->artist[0] == '\0' && data->selected->artist)
-          snprintf( desc->artist, sizeof(desc->artist), "%s", data->selected->artist );
-     if (desc->title[0] == '\0' && data->selected->title)
+     if (data->selected->title) {
           snprintf( desc->title, sizeof(desc->title), "%s", data->selected->title );
+          desc->artist[0] = '\0';
+     }
+     if (data->selected->artist) {
+          snprintf( desc->artist, sizeof(desc->artist), "%s", data->selected->artist );
+     }
      
      return DFB_OK;
 }
@@ -559,17 +599,18 @@ IFusionSoundMusicProvider_Playlist_SelectTrack( IFusionSoundMusicProvider *thiz,
                                                                   entry->url, &entry->provider );
                if (ret)
                     return ret;
+               
+               if (entry->start)
+                    entry->provider->SeekTo( entry->provider, entry->start );
           }
           
           provider = entry->provider;
           provider->SetPlaybackFlags( provider, data->playback_flags );
-          if (data->stream) {
+          if (data->stream)
                provider->PlayToStream( provider, data->stream );
-          }
-          if (data->buffer) {
+          if (data->buffer)
                provider->PlayToBuffer( provider, data->buffer, 
                                        data->callback, data->callback_ctx );
-          }
           
           return DFB_OK;
      }
