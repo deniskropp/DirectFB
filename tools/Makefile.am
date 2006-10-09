@@ -7,6 +7,7 @@ INCLUDES = \
 	-I$(top_srcdir)/lib	\
 	-I$(top_srcdir)/src
 
+AM_CFLAGS = $(FREETYPE_CFLAGS)
 
 if BUILD_DIRECTFB_CSOURCE
 DFB_CSOURCE = directfb-csource
@@ -27,7 +28,11 @@ if ENABLE_VOODOO
 VOODOO_PROGS = dfbproxy
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon dfbpenmount mkdfiff $(VOODOO_PROGS)
+if FREETYPE_PROVIDER
+FREETYPE_PROGS = mkdgiff
+endif
+
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon dfbpenmount mkdfiff $(FREETYPE_PROGS) $(VOODOO_PROGS)
 
 noinst_PROGRAMS = $(LINUXONLY_TOOLS) fx
 
@@ -60,6 +65,9 @@ dfbpenmount_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/di
 
 mkdfiff_SOURCES = mkdfiff.c
 mkdfiff_LDADD   = $(LIBPNG) ../lib/direct/libdirect.la
+
+mkdgiff_SOURCES = mkdgiff.c
+mkdgiff_LDADD   = $(FREETYPE_LIBS) ../lib/direct/libdirect.la
 
 fusion_bench_SOURCES = fusion_bench.c
 fusion_bench_LDADD   = ../src/libdirectfb.la ../lib/fusion/libfusion.la ../lib/direct/libdirect.la
