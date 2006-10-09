@@ -590,6 +590,12 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
      mdev->blit_blend &= SCALE_PIX_EXPAND | DITHER_EN;
 
      if (state->blittingflags & (DSBLIT_BLEND_ALPHACHANNEL | DSBLIT_BLEND_COLORALPHA)) {
+          /* Disable dithering because it is applied even when
+           * the source pixels are completely transparent.
+           */
+          if (DFB_PIXELFORMAT_HAS_ALPHA( state->source->format ))
+               mdev->blit_blend &= ~DITHER_EN;
+
           mdev->blit_blend |= ALPHA_FOG_EN_ALPHA |
                               mach64SourceBlend[state->src_blend - 1] |
                               mach64DestBlend  [state->dst_blend - 1];
