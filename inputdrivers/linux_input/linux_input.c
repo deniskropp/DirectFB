@@ -514,6 +514,10 @@ key_event( struct input_event *levt,
           levt->code = BTN_MOUSE;
 
      if (levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) {
+          /* ignore repeat events for buttons */
+          if (levt->value == 2)
+               return 0;
+
           devt->type   = levt->value ? DIET_BUTTONPRESS : DIET_BUTTONRELEASE;
           /* don't set DIEF_BUTTONS, it will be set by the input core */
           devt->button = DIBI_FIRST + levt->code - BTN_MOUSE;
