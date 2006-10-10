@@ -42,6 +42,8 @@
    driver, please don't hesitate to share it with me.
  */
 
+#include <config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

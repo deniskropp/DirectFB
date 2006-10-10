@@ -1,3 +1,5 @@
+#include <config.h>
+
 #include <direct/cpu_accel.h>
 #include <direct/debug.h>
 #include <direct/direct.h>

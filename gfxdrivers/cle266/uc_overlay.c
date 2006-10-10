@@ -7,6 +7,8 @@
    version 2 of the License, or (at your option) any later version.
 */
 
+#include <config.h>
+
 #include "unichrome.h"
 #include "uc_overlay.h"
 #include "vidregs.h"

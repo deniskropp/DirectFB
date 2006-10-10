@@ -1,5 +1,5 @@
 /*
- * $Id: sis315_accel.c,v 1.1 2003-11-25 10:53:48 oberritter Exp $
+ * $Id: sis315_accel.c,v 1.2 2006-10-10 00:15:22 syrjala Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -18,6 +18,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+
+#include <config.h>
 
 #include <directfb.h>
 #include <core/coredefs.h>

@@ -24,6 +24,8 @@
    This driver is a re-write from the MuTouch driver.
 */
 
+#include <config.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>

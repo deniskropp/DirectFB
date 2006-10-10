@@ -65,6 +65,8 @@ later versions on an EPIA-M10000.
 
 // DirectFB headers
 
+#include <config.h>
+
 #include <directfb.h>
 
 #include <fusion/shmalloc.h>

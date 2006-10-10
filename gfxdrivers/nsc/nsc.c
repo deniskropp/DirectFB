@@ -1,6 +1,6 @@
 /*
  * $Workfile: $
- * $Revision: 1.15 $
+ * $Revision: 1.16 $
  *
  * File Contents: This file contains the main functions of the NSC DFB.
  *
@@ -135,6 +135,8 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  * END_NSC_LIC_GPL */
+
+#include <config.h>
 
 #include <dfb_types.h>
 #include <stdio.h>

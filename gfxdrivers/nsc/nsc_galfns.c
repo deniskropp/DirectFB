@@ -1,7 +1,7 @@
 /*
  * $Workfile: nsc_galfns.c $
- * $Revision: 1.11 $
- * $Author: dok $
+ * $Revision: 1.12 $
+ * $Author: syrjala $
  *
  * File Contents: This file contains the main functions of the Geode
  *                frame buffer device drivers GAL function definitions.
@@ -137,6 +137,8 @@
  * Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
  *
  * END_NSC_LIC_GPL */
+
+#include <config.h>
 
 #ifndef XFree86LOADER
 #include <stdio.h>

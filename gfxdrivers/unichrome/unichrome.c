@@ -9,6 +9,8 @@
 
 // DirectFB headers
 
+#include <config.h>
+
 #include <directfb.h>
 
 #include <direct/messages.h>

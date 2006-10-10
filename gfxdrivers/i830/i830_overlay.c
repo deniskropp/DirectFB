@@ -43,6 +43,8 @@
  *        Matt Sottek <matthew.j.sottek@intel.com>
  */
 
+#include <config.h>
+
 #include "i830.h"
 
 #include <math.h>

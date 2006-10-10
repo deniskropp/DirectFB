@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.14 2006-08-26 09:34:19 dok Exp $
+ * $Id: sis315.c,v 1.15 2006-10-10 00:15:22 syrjala Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -18,6 +18,8 @@
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  *
  */
+
+#include <config.h>
 
 #include <stdio.h>
 #include <sys/ioctl.h>

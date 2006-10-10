@@ -9,6 +9,8 @@
 
 // Hardware mapping functions ------------------------------------------------
 
+#include <config.h>
+
 #include "uc_hw.h"
 #include <gfx/convert.h>
 

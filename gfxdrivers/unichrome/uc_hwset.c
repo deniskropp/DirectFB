@@ -9,6 +9,8 @@
 
 // Hardware setting functions ------------------------------------------------
 
+#include <config.h>
+
 #include "uc_hw.h"
 #include <core/state.h>
 #include <core/palette.h>
