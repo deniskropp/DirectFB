@@ -24,6 +24,8 @@
    Boston, MA 02111-1307, USA.
 */
 
+#include <config.h>
+
 #include <pthread.h>
 
 #include <fusionsound.h>
