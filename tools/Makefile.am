@@ -28,11 +28,15 @@ if ENABLE_VOODOO
 VOODOO_PROGS = dfbproxy
 endif
 
+if PNG_PROVIDER
+PNG_PROGS = mkdfiff
+endif
+
 if FREETYPE_PROVIDER
 FREETYPE_PROGS = mkdgiff
 endif
 
-bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon dfbpenmount mkdfiff $(FREETYPE_PROGS) $(VOODOO_PROGS)
+bin_PROGRAMS = $(DFB_CSOURCE) dfbdump dfbg dfbinfo dfbinput dfblayer dfbscreen dfbsummon dfbpenmount $(PNG_PROGS) $(FREETYPE_PROGS) $(VOODOO_PROGS)
 
 noinst_PROGRAMS = $(LINUXONLY_TOOLS) fx
 
