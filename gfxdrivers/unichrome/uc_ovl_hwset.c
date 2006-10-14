@@ -27,7 +27,7 @@
 
 void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth)
 {
-     __u8* mclk_save = ucovl->mclk_save;
+     u8* mclk_save = ucovl->mclk_save;
 
      if (!iopl(3)) {
           if (scrwidth <= 1024) { // Disable
@@ -64,7 +64,7 @@ void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth)
      ucovl->scrwidth = scrwidth;
 }
 
-void uc_ovl_vcmd_wait(volatile __u8* vio)
+void uc_ovl_vcmd_wait(volatile u8* vio)
 {
      while ((VIDEO_IN(vio, V_COMPOSE_MODE)
              & (V1_COMMAND_FIRE | V3_COMMAND_FIRE)));
@@ -90,19 +90,19 @@ DFBResult uc_ovl_update(UcDriverData* ucdrv,
      int dw, dh;             // Destination width and height
      VideoMode *videomode;
      DFBRectangle scr;       // Screen size
-     __u32 dst_key = 0;      // Destination color key (hw format)
+     u32 dst_key = 0;        // Destination color key (hw format)
 
      bool write_buffers = false;
      bool write_settings = false;
 
-     volatile __u8* vio = ucdrv->hwregs;
+     volatile u8* vio = ucdrv->hwregs;
 
-     __u32 win_start, win_end;   // Overlay register settings
-     __u32 zoom, mini;
-     __u32 dcount, falign, qwpitch;
-     __u32 y_start, u_start, v_start;
-     __u32 v_ctrl, fifo_ctrl;
-     __u32 alpha = 0;
+     u32 win_start, win_end;   // Overlay register settings
+     u32 zoom, mini;
+     u32 dcount, falign, qwpitch;
+     u32 y_start, u_start, v_start;
+     u32 v_ctrl, fifo_ctrl;
+     u32 alpha = 0;
 
      int offset = surface->front_buffer->video.offset;
 
@@ -258,7 +258,7 @@ DFBResult uc_ovl_set_adjustment(CoreLayer            *layer,
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     DFBColorAdjustment* ucadj;
-    __u32 a1, a2;
+    u32 a1, a2;
 
     ucadj = &ucovl->v1.adj;
 

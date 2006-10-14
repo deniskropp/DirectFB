@@ -430,7 +430,7 @@ dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
 }
 
 DFBResult
-dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, __u8 opacity )
+dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack, u8 opacity )
 {
      D_DEBUG_AT( Core_WindowStack, "%s( %p, 0x%02x )\n", __FUNCTION__, stack, opacity );
 
@@ -765,7 +765,7 @@ load_default_cursor( CoreWindowStack *stack )
 #ifdef WORDS_BIGENDIAN
           {
                int i = MIN (40, pitch/4);
-               __u32 *tmp_data = data;
+               u32 *tmp_data = data;
 
                while (i--) {
                     *tmp_data = (*tmp_data & 0xFF000000) >> 24 |

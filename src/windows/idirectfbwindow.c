@@ -434,11 +434,11 @@ IDirectFBWindow_GetOptions( IDirectFBWindow  *thiz,
 
 static DFBResult
 IDirectFBWindow_SetColorKey( IDirectFBWindow *thiz,
-                             __u8             r,
-                             __u8             g,
-                             __u8             b )
+                             u8               r,
+                             u8               g,
+                             u8               b )
 {
-     __u32        key;
+     u32          key;
      CoreSurface *surface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
@@ -463,7 +463,7 @@ static DFBResult
 IDirectFBWindow_SetColorKeyIndex( IDirectFBWindow *thiz,
                                   unsigned int     index )
 {
-     __u32 key = index;
+     u32 key = index;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -500,7 +500,7 @@ IDirectFBWindow_SetOpaqueRegion( IDirectFBWindow *thiz,
 
 static DFBResult
 IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
-                            __u8             opacity )
+                            u8               opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 
@@ -512,7 +512,7 @@ IDirectFBWindow_SetOpacity( IDirectFBWindow *thiz,
 
 static DFBResult
 IDirectFBWindow_GetOpacity( IDirectFBWindow *thiz,
-                            __u8            *opacity )
+                            u8              *opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
 

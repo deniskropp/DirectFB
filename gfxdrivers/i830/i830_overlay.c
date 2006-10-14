@@ -321,7 +321,7 @@ ovlSetColorAdjustment( CoreLayer          *layer,
 {
      I830DriverData *idrv = driver_data;
      I830DeviceData *idev = idrv->idev;
-     __u16 b, c, s;
+     u16 b, c, s;
 
      if (adj->flags & DCAF_BRIGHTNESS)
 	 b = ((adj->brightness >> 8) - 128) & 0xFF;
@@ -378,9 +378,9 @@ DisplayLayerFuncs i830OverlayFuncs = {
 
 
 typedef struct {
-     __u8 sign;
-     __u16 mantissa;
-     __u8 exponent;
+     u8 sign;
+     u16 mantissa;
+     u8 exponent;
 } coeffRec, *coeffPtr;
 
 static bool
@@ -634,7 +634,7 @@ ovl_calc_regs( I830DriverData        *idrv,
           int yscaleIntUV, yscaleFractUV;
           /* UV is half the size of Y -- YUV420 */
           int uvratio = 2;
-          __u32 newval;
+          u32 newval;
           coeffRec xcoeffY[N_HORIZ_Y_TAPS * N_PHASES];
           coeffRec xcoeffUV[N_HORIZ_UV_TAPS * N_PHASES];
           int i, j, pos;

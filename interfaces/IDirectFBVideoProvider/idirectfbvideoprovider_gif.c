@@ -94,7 +94,7 @@ typedef struct {
      IDirectFBSurface_data         *dst_data;
      DFBRectangle                   dst_rect;
      
-     __u32                         *image;
+     u32                           *image;
      
      DirectThread                  *thread;
      pthread_mutex_t                lock;
@@ -109,10 +109,10 @@ typedef struct {
      char                           Version[4];
      unsigned int                   Width;
      unsigned int                   Height;
-     __u8                           ColorMap[3][MAXCOLORMAPSIZE];
+     u8                             ColorMap[3][MAXCOLORMAPSIZE];
      unsigned int                   BitPixel;
      unsigned int                   ColorResolution;
-     __u32                          Background;
+     u32                            Background;
      unsigned int                   AspectRatio;
 
      int                            transparent;
@@ -120,7 +120,7 @@ typedef struct {
      int                            inputFlag;
      int                            disposal;
 
-     __u8                           buf[280];
+     u8                             buf[280];
      int                            curbit, lastbit, done, last_byte;
 
      int                            fresh;
@@ -167,10 +167,10 @@ FetchData( IDirectFBDataBuffer *buffer, void *data, unsigned int len )
 }
 
 static int ReadColorMap( IDirectFBDataBuffer *buffer, int number,
-                         __u8 buf[3][MAXCOLORMAPSIZE] )
+                         u8 buf[3][MAXCOLORMAPSIZE] )
 {
      int  i;
-     __u8 rgb[3*number];
+     u8   rgb[3*number];
      
      if (FetchData( buffer, rgb, sizeof(rgb) )) {
           GIFERRORMSG("bad colormap");
@@ -186,7 +186,7 @@ static int ReadColorMap( IDirectFBDataBuffer *buffer, int number,
      return 0;
 }
 
-static int GetDataBlock(IDirectFBDataBuffer *buffer, __u8 *buf)
+static int GetDataBlock(IDirectFBDataBuffer *buffer, u8 *buf)
 {
      unsigned char count;
 
@@ -258,12 +258,12 @@ static int DoExtension( IDirectFBVideoProvider_GIF_data *data, int label )
                break;
           case 0xfe:              /* Comment Extension */
                str = "Comment Extension";
-               while (GetDataBlock( data->buffer, (__u8*) buf ) != 0)
+               while (GetDataBlock( data->buffer, (u8*) buf ) != 0)
                     GIFDEBUGMSG("gif comment: %s", buf);
                return false;
           case 0xf9:              /* Graphic Control Extension */
                str = "Graphic Control Extension";
-               (void) GetDataBlock( data->buffer, (__u8*) buf );
+               (void) GetDataBlock( data->buffer, (u8*) buf );
                data->disposal    = (buf[0] >> 2) & 0x7;
                data->inputFlag   = (buf[0] >> 1) & 0x1;
                data->delayTime   = LM_to_uint( buf[1], buf[2] ) * 10000;
@@ -271,7 +271,7 @@ static int DoExtension( IDirectFBVideoProvider_GIF_data *data, int label )
                     data->transparent = buf[3];
                else
                     data->transparent = -1;
-               while (GetDataBlock( data->buffer, (__u8*) buf ) != 0)
+               while (GetDataBlock( data->buffer, (u8*) buf ) != 0)
                     ;
                return false;
           default:
@@ -282,7 +282,7 @@ static int DoExtension( IDirectFBVideoProvider_GIF_data *data, int label )
 
      GIFDEBUGMSG("got a '%s' extension", str );
 
-     while (GetDataBlock( data->buffer, (__u8*) buf ) != 0);
+     while (GetDataBlock( data->buffer, (u8*) buf ) != 0);
 
      return 0;
 }
@@ -347,7 +347,7 @@ static int LWZReadByte( IDirectFBVideoProvider_GIF_data *data, int flag, int inp
           }
           else if (code == data->end_code) {
                int count;
-               __u8 buf[260];
+               u8 buf[260];
 
                if (ZeroDataBlock) {
                     return -2;
@@ -402,12 +402,12 @@ static int LWZReadByte( IDirectFBVideoProvider_GIF_data *data, int flag, int inp
 
 static int ReadImage( IDirectFBVideoProvider_GIF_data *data, 
                       int left, int top, int width, int height,
-                      __u8 cmap[3][MAXCOLORMAPSIZE], bool interlace, bool ignore )
+                      u8 cmap[3][MAXCOLORMAPSIZE], bool interlace, bool ignore )
 {
-     __u8   c;
+     u8     c;
      int    v;
      int    xpos = 0, ypos = 0, pass = 0;
-     __u32 *image;
+     u32   *image;
 
      /*
      **  Initialize the decompression routines
@@ -448,7 +448,7 @@ static int ReadImage( IDirectFBVideoProvider_GIF_data *data,
 
      while ((v = LWZReadByte( data, false, c )) >= 0 ) {
           if (v != data->transparent) {
-               __u32 *dst = image + (ypos * data->Width + xpos);
+               u32 *dst = image + (ypos * data->Width + xpos);
                *dst = (0xFF000000              |
                        cmap[CM_RED][v]   << 16 |
                        cmap[CM_GREEN][v] << 8  |
@@ -522,7 +522,7 @@ static void GIFReset( IDirectFBVideoProvider_GIF_data *data )
 static DFBResult GIFReadHeader( IDirectFBVideoProvider_GIF_data *data )
 {
      DFBResult ret;
-     __u8      buf[7];
+     u8        buf[7];
      
      ret = FetchData( data->buffer, buf, 6 );
      if (ret) {
@@ -567,10 +567,10 @@ static DFBResult GIFReadHeader( IDirectFBVideoProvider_GIF_data *data )
 
 static DFBResult GIFReadFrame( IDirectFBVideoProvider_GIF_data *data )
 {
-     __u8  buf[16], c;
+     u8    buf[16], c;
      int   top, left;
      int   width, height;
-     __u8  localColorMap[3][MAXCOLORMAPSIZE];
+     u8    localColorMap[3][MAXCOLORMAPSIZE];
      bool  useGlobalColormap;
 
      data->curbit = data->lastbit = data->done = data->last_byte = 0;

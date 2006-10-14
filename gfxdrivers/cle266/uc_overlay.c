@@ -140,7 +140,7 @@ uc_ovl_remove(CoreLayer *layer,
 {
     UcDriverData*  ucdrv = (UcDriverData*) driver_data;
     UcOverlayData* ucovl = (UcOverlayData*) layer_data;
-    volatile __u8* vio = ucdrv->hwregs;
+    volatile u8*   vio   = ucdrv->hwregs;
 
     ucovl->v1.isenabled = false;
 

@@ -43,7 +43,7 @@ typedef struct {
 } NeoDeviceData;
 
 typedef struct {
-     volatile __u8 *mmio_base;
+     volatile u8 *mmio_base;
 } NeoDriverData;
 
 extern DisplayLayerFuncs neoOverlayFuncs;
@@ -121,13 +121,13 @@ neo2200_close_driver( GraphicsDevice *device,
 #define NEO_MODE1_BLT_ON_ADDR   0x2000
 
 
-static inline void OUTGR (__u8 index, __u8 data)
+static inline void OUTGR (u8 index, u8 data)
 {
      outb (index, 0x3ce);
      outb (data, 0x3cf);
 }
 
-static inline void OUTSR (__u8 index, __u8 data)
+static inline void OUTSR (u8 index, u8 data)
 {
      outb (index, 0x3c4);
      outb (data, 0x3c5);

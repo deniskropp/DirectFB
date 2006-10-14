@@ -180,7 +180,7 @@ set_background_color()
 {
      DFBResult  ret;
      char      *error;
-     __u32      argb;
+     u32        argb;
 
      if (*filename == '#')
           filename++;

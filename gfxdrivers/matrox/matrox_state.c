@@ -136,7 +136,7 @@ void matrox_validate_destination( MatroxDriverData *mdrv,
                                   MatroxDeviceData *mdev,
                                   CardState        *state )
 {
-     volatile __u8 *mmio            = mdrv->mmio_base;
+     volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *destination     = state->destination;
      SurfaceBuffer *buffer          = destination->back_buffer;
      SurfaceBuffer *depth_buffer    = destination->depth_buffer;
@@ -210,7 +210,7 @@ void matrox_set_clip( MatroxDriverData *mdrv,
                       MatroxDeviceData *mdev,
                       DFBRegion        *clip )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      mga_waitfifo( mdrv, mdev, 3 );
 
@@ -233,7 +233,7 @@ void matrox_validate_drawColor( MatroxDriverData *mdrv,
                                 CardState        *state )
 {
      DFBColor       color = state->color;
-     volatile __u8 *mmio  = mdrv->mmio_base;
+     volatile u8   *mmio  = mdrv->mmio_base;
 
      if (MGA_IS_VALID( m_drawColor ))
           return;
@@ -261,7 +261,7 @@ void matrox_validate_blitColor( MatroxDriverData *mdrv,
                                 CardState        *state )
 {
      DFBColor       color = state->color;
-     volatile __u8 *mmio  = mdrv->mmio_base;
+     volatile u8   *mmio  = mdrv->mmio_base;
 
      if (MGA_IS_VALID( m_blitColor ))
           return;
@@ -297,10 +297,10 @@ void matrox_validate_color( MatroxDriverData *mdrv,
                             CardState        *state )
 {
      DFBColor       color = state->color;
-     volatile __u8 *mmio  = mdrv->mmio_base;
+     volatile u8   *mmio  = mdrv->mmio_base;
 
-     __u32 fcol;
-     __u8  cb, cr;
+     u32 fcol;
+     u8  cb, cr;
 
      if (MGA_IS_VALID( m_color ))
           return;
@@ -429,7 +429,7 @@ void matrox_validate_color( MatroxDriverData *mdrv,
      MGA_INVALIDATE( m_srckey );
 }
 
-static __u32 matroxSourceBlend[] = {
+static u32 matroxSourceBlend[] = {
      SRC_ZERO,                /* DSBF_ZERO         */
      SRC_ONE,                 /* DSBF_ONE          */
      0,                       /* DSBF_SRCCOLOR     */
@@ -443,7 +443,7 @@ static __u32 matroxSourceBlend[] = {
      SRC_SRC_ALPHA_SATURATE   /* DSBF_SRCALPHASAT  */
 };
 
-static __u32 matroxDestBlend[] = {
+static u32 matroxDestBlend[] = {
      DST_ZERO,                /* DSBF_ZERO         */
      DST_ONE,                 /* DSBF_ONE          */
      DST_SRC_COLOR,           /* DSBF_SRCCOLOR     */
@@ -461,9 +461,9 @@ void matrox_validate_drawBlend( MatroxDriverData *mdrv,
                                 MatroxDeviceData *mdev,
                                 CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 alphactrl;
+     u32 alphactrl;
 
      if (MGA_IS_VALID( m_drawBlend ))
           return;
@@ -479,7 +479,7 @@ void matrox_validate_drawBlend( MatroxDriverData *mdrv,
      MGA_INVALIDATE( m_blitBlend );
 }
 
-static __u32 matroxAlphaSelect[] = {
+static u32 matroxAlphaSelect[] = {
      0,
      0,
      DIFFUSEDALPHA,
@@ -490,9 +490,9 @@ void matrox_validate_blitBlend( MatroxDriverData *mdrv,
                                 MatroxDeviceData *mdev,
                                 CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 alphactrl;
+     u32 alphactrl;
 
      if (MGA_IS_VALID( m_blitBlend ))
           return;
@@ -543,8 +543,8 @@ static void matrox_tlutload( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CorePalette      *palette )
 {
-     volatile __u8  *mmio = mdrv->mmio_base;
-     volatile __u16 *dst  = dfb_gfxcard_memory_virtual( NULL, mdev->tlut_offset );
+     volatile u8  *mmio = mdrv->mmio_base;
+     volatile u16 *dst  = dfb_gfxcard_memory_virtual( NULL, mdev->tlut_offset );
      int             i;
 
      for (i = 0; i < palette->num_entries; i++)
@@ -580,11 +580,11 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio            = mdrv->mmio_base;
+     volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
-     __u32          texctl = 0, texctl2 = 0;
+     u32            texctl = 0, texctl2 = 0;
 
      if (MGA_IS_VALID( m_Source ))
           return;
@@ -687,13 +687,13 @@ void matrox_validate_Source( MatroxDriverData *mdrv,
      mga_out32( mmio, texctl,  TEXCTL );
      mga_out32( mmio, texctl2, TEXCTL2 );
 
-     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
 
-     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
 
      mga_out32( mmio, mdev->src_offset[0][0], TEXORG );
 
@@ -704,7 +704,7 @@ void matrox_validate_source( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio            = mdrv->mmio_base;
+     volatile u8   *mmio            = mdrv->mmio_base;
      CoreSurface   *surface         = state->source;
      SurfaceBuffer *buffer          = surface->front_buffer;
      int            bytes_per_pixel = DFB_BYTES_PER_PIXEL(surface->format);
@@ -736,10 +736,10 @@ void matrox_validate_SrcKey( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio    = mdrv->mmio_base;
+     volatile u8   *mmio    = mdrv->mmio_base;
      CoreSurface   *surface = state->source;
-     __u32          key;
-     __u32          mask;
+     u32            key;
+     u32            mask;
 
      if (MGA_IS_VALID( m_SrcKey ))
           return;
@@ -764,10 +764,10 @@ void matrox_validate_srckey( MatroxDriverData *mdrv,
                              MatroxDeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio    = mdrv->mmio_base;
+     volatile u8   *mmio    = mdrv->mmio_base;
      CoreSurface   *surface = state->source;
-     __u32          key;
-     __u32          mask;
+     u32            key;
+     u32            mask;
 
      if (MGA_IS_VALID( m_srckey ))
           return;

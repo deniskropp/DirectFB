@@ -87,8 +87,8 @@ DFB_GRAPHICS_DRIVER( ati128 )
 
 
 /* macro for S12.0 and S14.0 format */
-#define S12(val) (((__u16)((__s16)(val)))&0x3fff)
-#define S14(val) (((__u16)((__s16)(val)))&0x3fff)
+#define S12(val) (((u16)((s16)(val)))&0x3fff)
+#define S14(val) (((u16)((s16)(val)))&0x3fff)
 
 /** CARD FUNCTIONS **/
 static bool ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect );
@@ -243,7 +243,7 @@ static bool ati128FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
      ati128_waitfifo( adrv, adev, 5 );
      /* set the destination datatype */
@@ -264,11 +264,11 @@ static bool ati128FillBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
-     __u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
+     u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
      ati128_waitidle( adrv, adev );
-     *((__u32*)  dfb_gfxcard_memory_virtual(NULL,fts)  ) = adev->fake_texture_color;
+     *((u32*)  dfb_gfxcard_memory_virtual(NULL,fts)  ) = adev->fake_texture_color;
      ati128_waitidle( adrv, adev );
 
      ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
@@ -305,7 +305,7 @@ static bool ati128DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
      ati128_waitfifo( adrv, adev, 3 );
      /* set the destination datatype */
@@ -335,12 +335,12 @@ static bool ati128DrawBlendRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
-     __u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
+     u32 fts = adev->ATI_fake_texture_src + (adev->fake_texture_number & 7)*4;
 
      ati128_waitidle( adrv, adev );
-     *((__u32*)  dfb_gfxcard_memory_virtual(NULL,fts)  ) = adev->fake_texture_color;
+     *((u32*)  dfb_gfxcard_memory_virtual(NULL,fts)  ) = adev->fake_texture_color;
      ati128_waitidle( adrv, adev );
 
      ati128_out32( mmio, SCALE_3D_DATATYPE, DST_32BPP );
@@ -390,7 +390,7 @@ static bool ati128DrawLine( void *drv, void *dev, DFBRegion *line )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
      int dx, dy;
      int small, large;
@@ -457,12 +457,12 @@ static bool ati128StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectan
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
-     __u32 src = 0;
+     u32 src = 0;
 
-     __u32 scalex = (__u32)(((double)sr->w/(double)dr->w) * 65536);
-     __u32 scaley = (__u32)(((double)sr->h/(double)dr->h) * 65536);
+     u32 scalex = (u32)(((double)sr->w/(double)dr->w) * 65536);
+     u32 scaley = (u32)(((double)sr->h/(double)dr->h) * 65536);
 
      ati128_waitfifo( adrv, adev, 9 );
 
@@ -597,9 +597,9 @@ static bool ati128Blit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy
 {
      ATI128DriverData *adrv = (ATI128DriverData*) drv;
      ATI128DeviceData *adev = (ATI128DeviceData*) dev;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
-     __u32 dir_cmd = 0;
+     u32 dir_cmd = 0;
 
      if ((adev->source->format != adev->destination->format) ||
          (adev->blittingflags & DSBLIT_BLEND_ALPHACHANNEL))
@@ -698,7 +698,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
 
-     adrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     adrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!adrv->mmio_base)
           return DFB_IO;
 
@@ -728,7 +728,7 @@ driver_init_device( GraphicsDevice     *device,
 {
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
      ATI128DeviceData *adev = (ATI128DeviceData*) device_data;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
      /* fill device info */
      snprintf( device_info->name,
@@ -783,7 +783,7 @@ driver_close_device( GraphicsDevice *device,
 {
      ATI128DeviceData *adev = (ATI128DeviceData*) device_data;
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
      D_DEBUG( "DirectFB/ATI128: FIFO Performance Monitoring:\n" );
      D_DEBUG( "DirectFB/ATI128:  %9d ati128_waitfifo calls\n",

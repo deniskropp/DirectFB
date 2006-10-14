@@ -51,7 +51,7 @@ crtc1InitScreen( CoreScreen           *screen,
                  DFBScreenDescription *description )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *mmio  = nvdrv->mmio_base;
+     volatile u8      *mmio  = nvdrv->mmio_base;
 
      if (OldPrimaryScreenFuncs.InitScreen)
           OldPrimaryScreenFuncs.InitScreen( screen, device, 
@@ -82,7 +82,7 @@ crtc1WaitVSync( CoreScreen *screen,
                 void       *screen_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *mmio  = nvdrv->mmio_base;
+     volatile u8      *mmio  = nvdrv->mmio_base;
 
      if (!dfb_config->pollvsync_none) {
           int i;
@@ -116,7 +116,7 @@ crtc1GetScreenSize( CoreScreen *screen,
                     int        *ret_height )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *mmio  = nvdrv->mmio_base;
+     volatile u8      *mmio  = nvdrv->mmio_base;
      int               w, h;
      int               val;
 
@@ -167,7 +167,7 @@ fb0FlipRegion( CoreLayer           *layer,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev  = nvdrv->device_data;
      SurfaceBuffer    *buffer = surface->back_buffer;
-     __u32             offset;
+     u32               offset;
 
      dfb_gfxcard_sync();
      

@@ -27,7 +27,7 @@ static int uc_spic_datasize()
 }
 
 static void
-uc_spic_set_palette( volatile __u8* hwregs, CorePalette *palette )
+uc_spic_set_palette( volatile u8* hwregs, CorePalette *palette )
 {
     int i;
 
@@ -43,7 +43,7 @@ uc_spic_set_palette( volatile __u8* hwregs, CorePalette *palette )
     }
 }
 
-static void uc_spic_enable( volatile __u8 *hwregs, bool enable )
+static void uc_spic_enable( volatile u8 *hwregs, bool enable )
 {
     VIDEO_OUT(hwregs, SUBP_CONTROL_STRIDE,
         (VIDEO_IN(hwregs, SUBP_CONTROL_STRIDE) & ~SUBP_HQV_ENABLE) |
@@ -51,7 +51,7 @@ static void uc_spic_enable( volatile __u8 *hwregs, bool enable )
 }
 
 static void
-uc_spic_set_buffer( volatile __u8 *hwregs, CoreSurface *surface )
+uc_spic_set_buffer( volatile u8 *hwregs, CoreSurface *surface )
 {
     if (surface) {
         VIDEO_OUT(hwregs, SUBP_STARTADDR,

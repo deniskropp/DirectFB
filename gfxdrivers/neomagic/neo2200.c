@@ -55,27 +55,27 @@
 #include "neomagic.h"
 
 typedef volatile struct {
-  __u32 bltStat;
-  __u32 bltCntl;
-  __u32 xpColor;
-  __u32 fgColor;
-  __u32 bgColor;
-  __u32 pitch;
-  __u32 clipLT;
-  __u32 clipRB;
-  __u32 srcBitOffset;
-  __u32 srcStart;
-  __u32 reserved0;
-  __u32 dstStart;
-  __u32 xyExt;
+  u32 bltStat;
+  u32 bltCntl;
+  u32 xpColor;
+  u32 fgColor;
+  u32 bgColor;
+  u32 pitch;
+  u32 clipLT;
+  u32 clipRB;
+  u32 srcBitOffset;
+  u32 srcStart;
+  u32 reserved0;
+  u32 dstStart;
+  u32 xyExt;
 
-  __u32 reserved1[19];
+  u32 reserved1[19];
 
-  __u32 pageCntl;
-  __u32 pageBase;
-  __u32 postBase;
-  __u32 postPtr;
-  __u32 dataPtr;
+  u32 pageCntl;
+  u32 pageBase;
+  u32 postBase;
+  u32 postPtr;
+  u32 dataPtr;
 } Neo2200;
 
 typedef struct {
@@ -89,7 +89,7 @@ typedef struct {
      int srcPitch;
      int srcPixelWidth;
 
-     __u32 bltCntl;
+     u32 bltCntl;
 
      bool src_dst_equal;
 
@@ -405,9 +405,9 @@ static bool neo2200DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
      Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
      Neo2200           *neo2200 = ndrv->neo2200;
 
-     __u32 dst = ndev->dstOrg +
-                (rect->y * ndev->dstPitch) +
-                (rect->x * ndev->dstPixelWidth);
+     u32 dst = ndev->dstOrg +
+              (rect->y * ndev->dstPitch) +
+              (rect->x * ndev->dstPixelWidth);
 
      neo2200_waitfifo( ndrv, ndev, 3 );
 
@@ -447,8 +447,8 @@ static bool neo2200Blit( void *drv, void *dev,
      Neo2200DeviceData *ndev    = (Neo2200DeviceData*) dev;
      Neo2200           *neo2200 = ndrv->neo2200;
 
-     __u32 src_start, dst_start;
-     __u32 bltCntl = ndev->bltCntl;
+     u32 src_start, dst_start;
+     u32 bltCntl = ndev->bltCntl;
 
 //     fprintf(stderr, "blit: %d, %d (%dx%d) -> %d, %d\n",
 //             rect->x, rect->y, rect->w, rect->h, dx, dy);

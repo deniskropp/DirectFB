@@ -63,7 +63,7 @@ DFB_INPUT_DRIVER( dreamboxremote )
 
 typedef struct {
      DFBInputDeviceKeySymbol  key;
-     __u16                    rccode;
+     u16                      rccode;
 } KeyCode;
 
 static KeyCode keycodes_remote[] = {
@@ -130,10 +130,10 @@ typedef struct {
  * helper function for translating rccode
  */
 static DFBInputDeviceKeySymbol
-dreamboxremote_parse_rccode( __u16 rccode )
+dreamboxremote_parse_rccode( u16 rccode )
 {
 	KeyCode *keycode;
-	static  __u16 rccodeOld = 0;
+	static  u16 rccodeOld = 0;
 
 	keycode = keycodes_remote;
 	/* 0x00ff indicates key was released
@@ -173,7 +173,7 @@ dreamboxremoteEventThread( DirectThread *thread, void *driver_data )
 {
      DreamboxremoteData *data = (DreamboxremoteData*) driver_data;
      int              readlen;
-     __u16            rccode;
+     u16              rccode;
      DFBInputEvent    evt;
 
      while ((readlen = read( data->fd, &rccode, 2 )) == 2) {

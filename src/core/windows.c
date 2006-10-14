@@ -844,7 +844,7 @@ dfb_window_resize( CoreWindow   *window,
 
 DFBResult
 dfb_window_set_colorkey( CoreWindow *window,
-                         __u32       color_key )
+                         u32         color_key )
 {
      DFBResult         ret;
      CoreWindowConfig  config;
@@ -877,7 +877,7 @@ dfb_window_set_colorkey( CoreWindow *window,
 
 DFBResult
 dfb_window_set_opacity( CoreWindow *window,
-                        __u8        opacity )
+                        u8          opacity )
 {
      DFBResult         ret;
      CoreWindowConfig  config;

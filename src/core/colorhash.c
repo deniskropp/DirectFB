@@ -179,10 +179,10 @@ dfb_colorhash_detach( CorePalette *palette )
 
 unsigned int
 dfb_colorhash_lookup( CorePalette *palette,
-                      __u8         r,
-                      __u8         g,
-                      __u8         b,
-                      __u8         a )
+                      u8           r,
+                      u8           g,
+                      u8           b,
+                      u8           a )
 {
      Colorhash    *hash;
      unsigned int  pixel = PIXEL_ARGB(a, r, g, b);

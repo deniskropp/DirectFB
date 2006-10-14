@@ -32,9 +32,9 @@
  *       See ddover.c, DDOVER_HQVCalcZoomHeight()
  */
 
-bool uc_ovl_map_vzoom(int sh, int dh, __u32* zoom, __u32* mini)
+bool uc_ovl_map_vzoom(int sh, int dh, u32* zoom, u32* mini)
 {
-    __u32 sh1, tmp, d;
+    u32 sh1, tmp, d;
     bool zoom_ok = true;
 
     if (sh == dh) { // No zoom
@@ -94,10 +94,10 @@ bool uc_ovl_map_vzoom(int sh, int dh, __u32* zoom, __u32* mini)
  * @note Derived from VIA's V4L driver.
  *       See ddover.c, DDOVER_HQVCalcZoomWidth() and DDOver_GetDisplayCount()
  */
-bool uc_ovl_map_hzoom(int sw, int dw,  __u32* zoom, __u32* mini,
-                      __u32* falign, __u32* dcount)
+bool uc_ovl_map_hzoom(int sw, int dw,  u32* zoom, u32* mini,
+                      u32* falign, u32* dcount)
 {
-    __u32 tmp, sw1, d;
+    u32 tmp, sw1, d;
     int md; // Minify-divider
     bool zoom_ok = true;
 
@@ -160,7 +160,7 @@ bool uc_ovl_map_hzoom(int sw, int dw,  __u32* zoom, __u32* mini,
  * @note Derived from VIA's V4L driver. See ddover.c, DDOver_GetFetch()
  * @note Only call after uc_ovl_map_hzoom()
  */
-__u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw)
+u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw)
 {
     int fetch = 0;
 
@@ -201,7 +201,7 @@ __u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw)
  *
  * @note Derived from VIA's V4L driver. See ddover.c, DDOver_GetV1Format()
  */
-__u32 uc_ovl_map_format(DFBSurfacePixelFormat format)
+u32 uc_ovl_map_format(DFBSurfacePixelFormat format)
 {
     switch (format) {
     case DSPF_YV12:
@@ -240,7 +240,7 @@ __u32 uc_ovl_map_format(DFBSurfacePixelFormat format)
  * @parm oy         will hold new topmost coordinate in source surface
  */
 void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
-                       __u32* win_start, __u32* win_end, int* ox, int* oy)
+                       u32* win_start, u32* win_end, int* ox, int* oy)
 {
     int x1, y1, x2, y2;
     int x,y,dw,dh;      // These help making the code readable...
@@ -339,14 +339,14 @@ void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
  * @note Derived from VIA's V4L driver. See ddover.c,
  *       DDOver_GetSrcStartAddress() and DDOVer_GetYCbCrStartAddress()
  */
-void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
+void uc_ovl_map_buffer(DFBSurfacePixelFormat format, u32 buf,
                        int ox, int oy, int sw, int sh, int sp, int field,
-                       __u32* y_start, __u32* u_start, __u32* v_start)
+                       u32* y_start, u32* u_start, u32* v_start)
 {
     int swap_cb_cr = 0;
 
-    __u32 tmp;
-    __u32 y_offset, uv_offset = 0;
+    u32 tmp;
+    u32 y_offset, uv_offset = 0;
 
     switch (format) {
 
@@ -419,9 +419,9 @@ void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
  * @note: Derived from ddmpeg.c, VIAAlphaWin()
  */
 
-__u32 uc_ovl_map_alpha(int opacity)
+u32 uc_ovl_map_alpha(int opacity)
 {
-    __u32 ctrl = 0x00080000;    // Not sure what this number is, supposedly
+    u32 ctrl = 0x00080000;      // Not sure what this number is, supposedly
                                 // it is the "expire number divided by 4".
 
     if (opacity > 255) opacity = 255;
@@ -448,7 +448,7 @@ __u32 uc_ovl_map_alpha(int opacity)
  */
 void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
                            int hwrev, bool extfifo_on,
-                           __u32* control, __u32* fifo)
+                           u32* control, u32* fifo)
 {
     *control = V1_BOB_ENABLE | V1_ENABLE | uc_ovl_map_format(format);
 
@@ -506,11 +506,11 @@ static float clamp(float x, float lo, float hi)
  * @param mask  Bitmask
  * @param shift Position in hardware register.
  */
-static int fmt(float x, int ndec, int sbit, __u32 mask, int shift)
+static int fmt(float x, int ndec, int sbit, u32 mask, int shift)
 {
     int y = (x * (1 << ndec));
     if (sbit && (y < 0)) y = -y | (1 << sbit);
-    return (((__u32) y) & mask) << shift;
+    return (((u32) y) & mask) << shift;
 }
 
 /**
@@ -520,7 +520,7 @@ static int fmt(float x, int ndec, int sbit, __u32 mask, int shift)
  * @param a1    Will hold value for V1_ColorSpaceReg_1
  * @param a2    Will hold value for V1_ColorSpaceReg_2
  */
-void uc_ovl_map_adjustment(DFBColorAdjustment* adj, __u32* a1, __u32* a2)
+void uc_ovl_map_adjustment(DFBColorAdjustment* adj, u32* a1, u32* a2)
 {
     float con, sat, bri, hue;
     float c, s;

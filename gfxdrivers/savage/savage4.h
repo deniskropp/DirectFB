@@ -40,9 +40,9 @@ typedef struct {
      int v_color;    /* opaque fill color */
 
      /* saved values */
-     __u32 Cmd_Src_Transparent;
-     __u32 Fill_Color;
-     __u32 src_colorkey;
+     u32 Cmd_Src_Transparent;
+     u32 Fill_Color;
+     u32 src_colorkey;
 } Savage4DeviceData;
 
 typedef struct {
@@ -114,7 +114,7 @@ static inline void
 savage4_waitfifo(Savage4DriverData *sdrv, Savage4DeviceData *sdev, int space)
 {
      uint32         slots = MAXFIFO - space;
-     volatile __u8 *mmio  = sdrv->s.mmio_base;
+     volatile u8   *mmio  = sdrv->s.mmio_base;
 
      sdev->s.waitfifo_sum += space;
      sdev->s.waitfifo_calls++;

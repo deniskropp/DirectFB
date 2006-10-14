@@ -33,38 +33,38 @@
 #include "matrox.h"
 
 static inline void
-mga_out8(volatile __u8 *mmioaddr, __u8 value, __u32 reg)
+mga_out8(volatile u8 *mmioaddr, u8 value, u32 reg)
 {
-     *((volatile __u8*)(mmioaddr+reg)) = value;
+     *((volatile u8*)(mmioaddr+reg)) = value;
 }
 
 static inline void
-mga_out32(volatile __u8 *mmioaddr, __u32 value, __u32 reg)
+mga_out32(volatile u8 *mmioaddr, u32 value, u32 reg)
 {
 #ifdef __powerpc__
      asm volatile("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg), "r"(mmioaddr) : "memory");
 #else
-     *((volatile __u32*)(mmioaddr+reg)) = value;
+     *((volatile u32*)(mmioaddr+reg)) = value;
 #endif
 }
 
-static inline __u8
-mga_in8(volatile __u8 *mmioaddr, __u32 reg)
+static inline u8
+mga_in8(volatile u8 *mmioaddr, u32 reg)
 {
-     return *((volatile __u8*)(mmioaddr+reg));
+     return *((volatile u8*)(mmioaddr+reg));
 }
 
-static inline __u32
-mga_in32(volatile __u8 *mmioaddr, __u32 reg)
+static inline u32
+mga_in32(volatile u8 *mmioaddr, u32 reg)
 {
 #ifdef __powerpc__
-     __u32 value;
+     u32 value;
 
      asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg), "r"(mmioaddr));
 
      return value;
 #else
-     return *((volatile __u32*)(mmioaddr+reg));
+     return *((volatile u32*)(mmioaddr+reg));
 #endif
 }
 
@@ -100,14 +100,14 @@ mga_waitfifo(MatroxDriverData *mdrv, MatroxDeviceData *mdev, unsigned int space)
 }
 
 static inline void
-mga_out_dac( volatile __u8 *mmioaddr, __u8 reg, __u8 val )
+mga_out_dac( volatile u8 *mmioaddr, u8 reg, u8 val )
 {
      mga_out8( mmioaddr, reg, DAC_INDEX );
      mga_out8( mmioaddr, val, DAC_DATA );
 }
 
-static inline __u8
-mga_in_dac( volatile __u8 *mmioaddr, __u8 reg )
+static inline u8
+mga_in_dac( volatile u8 *mmioaddr, u8 reg )
 {
      mga_out8( mmioaddr, reg, DAC_INDEX );
      return mga_in8( mmioaddr, DAC_DATA );

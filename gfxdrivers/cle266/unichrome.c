@@ -124,7 +124,7 @@ DFB_GRAPHICS_DRIVER(cle266)
 static void uc_dump_vq(UcDeviceData *ucdev)
 {
      int i;
-     __u8* vq;
+     u8* vq;
 
      if (!ucdev->vq_start) return;
      vq = dfb_system_video_memory_virtual(ucdev->vq_start);
@@ -167,7 +167,7 @@ static DFBResult uc_alloc_vq(GraphicsDevice *device, UcDeviceData *ucdev)
 DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDriverData *ucdrv, bool enable)
 {
      DFBResult result = DFB_OK;
-     volatile __u8* hwregs = ucdrv->hwregs;
+     volatile u8* hwregs = ucdrv->hwregs;
 
      // Init 2D engine registers to reset 2D engine
 
@@ -248,9 +248,9 @@ DFBResult uc_init_2d_engine(GraphicsDevice *device, UcDeviceData *ucdev, UcDrive
      return result;
 }
 
-void uc_init_3d_engine(volatile __u8* hwregs, int hwrev, bool init_all)
+void uc_init_3d_engine(volatile u8* hwregs, int hwrev, bool init_all)
 {
-     __u32 i;
+     u32 i;
 
      if (init_all) {
 

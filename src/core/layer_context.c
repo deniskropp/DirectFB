@@ -742,7 +742,7 @@ update_primary_region_config( CoreLayerContext           *context,
 
 DFBResult
 dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
-                                    __u8 r, __u8 g, __u8 b )
+                                    u8 r, u8 g, u8 b )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -772,7 +772,7 @@ dfb_layer_context_set_src_colorkey( CoreLayerContext *context,
 
 DFBResult
 dfb_layer_context_set_dst_colorkey( CoreLayerContext *context,
-                                    __u8 r, __u8 g, __u8 b )
+                                    u8 r, u8 g, u8 b )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;
@@ -969,7 +969,7 @@ dfb_layer_context_set_screenposition( CoreLayerContext  *context,
 
 DFBResult
 dfb_layer_context_set_opacity( CoreLayerContext *context,
-                               __u8              opacity )
+                               u8                opacity )
 {
      DFBResult             ret;
      CoreLayerRegionConfig config;

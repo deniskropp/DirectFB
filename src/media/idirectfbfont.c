@@ -425,8 +425,8 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
 {
      DFBResult      ret;
      CoreFont      *font;
-     const __u8    *string;
-     const __u8    *end;
+     const u8      *string;
+     const u8      *end;
      CoreGlyphData *glyph;
      int            kern_x;
      int            length = 0;
@@ -456,7 +456,7 @@ IDirectFBFont_GetStringBreak( IDirectFBFont *thiz,
      }
 
      font   = data->font;
-     string = (const __u8*) text;
+     string = (const u8*) text;
      end    = string + bytes;
 
      dfb_font_lock( font );

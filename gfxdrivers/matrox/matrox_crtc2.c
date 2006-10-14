@@ -54,20 +54,20 @@ typedef struct {
      /* Stored registers */
      struct {
           /* CRTC2 */
-          __u32 c2CTL;
-          __u32 c2DATACTL;
-          __u32 c2MISC;
-          __u32 c2OFFSET;
+          u32 c2CTL;
+          u32 c2DATACTL;
+          u32 c2MISC;
+          u32 c2OFFSET;
 
-          __u32 c2HPARAM;
-          __u32 c2VPARAM;
+          u32 c2HPARAM;
+          u32 c2VPARAM;
 
-          __u32 c2STARTADD0;
-          __u32 c2STARTADD1;
-          __u32 c2PL2STARTADD0;
-          __u32 c2PL2STARTADD1;
-          __u32 c2PL3STARTADD0;
-          __u32 c2PL3STARTADD1;
+          u32 c2STARTADD0;
+          u32 c2STARTADD1;
+          u32 c2PL2STARTADD0;
+          u32 c2PL2STARTADD1;
+          u32 c2PL3STARTADD0;
+          u32 c2PL3STARTADD1;
      } regs;
 
      MatroxMavenData mav;
@@ -308,7 +308,7 @@ crtc2FlipRegion( CoreLayer           *layer,
 {
      MatroxDriverData     *mdrv    = (MatroxDriverData*) driver_data;
      MatroxCrtc2LayerData *mcrtc2  = (MatroxCrtc2LayerData*) layer_data;
-     volatile __u8        *mmio    = mdrv->mmio_base;
+     volatile u8          *mmio    = mdrv->mmio_base;
 
      crtc2_calc_buffer( mdrv, mcrtc2, surface, false );
 
@@ -400,7 +400,7 @@ DisplayLayerFuncs matroxCrtc2Funcs = {
 static void crtc2_set_regs( MatroxDriverData     *mdrv,
                             MatroxCrtc2LayerData *mcrtc2 )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      mga_out32( mmio, mcrtc2->regs.c2CTL,     C2CTL );
      mga_out32( mmio, mcrtc2->regs.c2DATACTL, C2DATACTL );
@@ -570,7 +570,7 @@ static void crtc2_calc_buffer( MatroxDriverData     *mdrv,
 static void crtc2_set_buffer( MatroxDriverData     *mdrv,
                               MatroxCrtc2LayerData *mcrtc2 )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      mga_out32( mmio, mcrtc2->regs.c2STARTADD0, C2STARTADD0 );
      mga_out32( mmio, mcrtc2->regs.c2STARTADD1, C2STARTADD1 );
@@ -585,7 +585,7 @@ crtc2OnOff( MatroxDriverData     *mdrv,
             MatroxCrtc2LayerData *mcrtc2,
             int                   on )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      if (on)
           mcrtc2->regs.c2CTL |= C2EN;
@@ -608,8 +608,8 @@ crtc2OnOff( MatroxDriverData     *mdrv,
 static void crtc2_set_mafc( MatroxDriverData     *mdrv,
                             int                   on )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
-     __u8           val;
+     volatile u8   *mmio = mdrv->mmio_base;
+     u8             val;
 
      val = mga_in_dac( mmio, XMISCCTRL );
      if (on) {
@@ -641,8 +641,8 @@ crtc2_disable_output( MatroxDriverData     *mdrv,
      maven_close( mav, mdrv );
 
      if (mdev->g450_matrox) {
-          volatile __u8 *mmio = mdrv->mmio_base;
-          __u8           val;
+          volatile u8   *mmio = mdrv->mmio_base;
+          u8             val;
 
           /* Set Rset to 0.7 V */
           val = mga_in_dac( mmio, XGENIOCTRL );
@@ -671,15 +671,15 @@ crtc2_enable_output( MatroxDriverData      *mdrv,
 {
      MatroxDeviceData *mdev = mdrv->device_data;
      MatroxMavenData  *mav  = &mcrtc2->mav;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      DFBResult         res;
 
      if ((res = maven_open( mav, mdrv )) != DFB_OK)
           return res;
 
      if (mdev->g450_matrox) {
-          volatile __u8 *mmio = mdrv->mmio_base;
-          __u8           val;
+          volatile u8   *mmio = mdrv->mmio_base;
+          u8             val;
 
           /* Set Rset to 1.0 V */
           val = mga_in_dac( mmio, XGENIOCTRL );

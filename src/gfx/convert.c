@@ -57,12 +57,12 @@ dfb_pixelformat_for_depth( int depth )
      return DSPF_UNKNOWN;
 }
 
-__u32
+u32
 dfb_color_to_pixel( DFBSurfacePixelFormat format,
-                    __u8 r, __u8 g, __u8 b )
+                    u8 r, u8 g, u8 b )
 {
-     __u32 pixel;
-     __u32 y, cb, cr;
+     u32 pixel;
+     u32 y, cb, cr;
 
      switch (format) {
           case DSPF_RGB332:

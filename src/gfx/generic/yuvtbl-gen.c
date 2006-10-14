@@ -129,7 +129,7 @@ main( int argc, char **argv )
      
 /* YUV->RGB */
      /* luma */
-     gt.type      = "const __u16";
+     gt.type      = "const u16";
      gt.name      = "y_for_rgb";
      gt.range.max = 235;
      gt.sub       = 16;
@@ -138,7 +138,7 @@ main( int argc, char **argv )
      dump_table( &gt );
 
      /* chroma */
-     gt.type      = "const __s16";
+     gt.type      = "const s16";
      gt.range.max = 240;
      gt.sub       = 128;
 
@@ -166,7 +166,7 @@ main( int argc, char **argv )
      gt.sub       = 0;
      
      /* luma */
-     gt.type      = "const __u16";
+     gt.type      = "const u16";
      gt.name      = "y_from_ey";
      gt.clamp.max = 235;
      gt.mul       = 219.0/255.0;
@@ -181,13 +181,13 @@ main( int argc, char **argv )
      gt.add       = 128;
      
      /* cb */
-     gt.type = "const __u16";
+     gt.type = "const u16";
      gt.name = "cb_from_bey";
      gt.mul  = ECB_FACTOR * 224.0 / 255.0;
      dump_table( &gt );
 
      /* cr */
-     gt.type = "const __u16";
+     gt.type = "const u16";
      gt.name = "cr_from_rey";
      gt.mul  = ECR_FACTOR * 224.0 / 255.0;
      dump_table( &gt );

@@ -47,7 +47,7 @@
 #include "ati128_state.h"
 
 
-static __u32 ati128SourceBlend[] = {
+static u32 ati128SourceBlend[] = {
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_ZERO,        /* DSBF_ZERO         */
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_ONE,         /* DSBF_ONE          */
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_SRCCOLOR,    /* DSBF_SRCCOLOR     */
@@ -61,7 +61,7 @@ static __u32 ati128SourceBlend[] = {
      SCALE_3D_CNTL_ALPHA_BLEND_SRC_SAT          /* DSBF_SRCALPHASAT  */
 };
 
-static __u32 ati128DestBlend[] = {
+static u32 ati128DestBlend[] = {
      SCALE_3D_CNTL_ALPHA_BLEND_DST_ZERO,        /* DSBF_ZERO         */
      SCALE_3D_CNTL_ALPHA_BLEND_DST_ONE,         /* DSBF_ONE          */
      SCALE_3D_CNTL_ALPHA_BLEND_DST_SRCCOLOR,    /* DSBF_SRCCOLOR     */
@@ -214,7 +214,7 @@ void ati128_set_color( ATI128DriverData *adrv,
                        ATI128DeviceData *adev,
                        CardState        *state )
 {
-     __u32 fill_color = 0;
+     u32 fill_color = 0;
 
      if (adev->v_color)
           return;

@@ -66,8 +66,8 @@
 
 
 /* lookup tables for 2/3bit to 8bit color conversion */
-static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff};
-static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
+static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff};
+static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff};
 
 #define EXPAND_1to8(v)   ((v) ? 0xff : 0x00)
 #define EXPAND_2to8(v)   (lookup2to8[v])
@@ -99,16 +99,16 @@ static void Cop_to_Aop_16( GenefxState *gfxs )
 {
      int    w;
      int    l   = gfxs->length;
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
 
-     __u32 DCop = ((Cop << 16) | Cop);
+     u32 DCop = ((Cop << 16) | Cop);
 
      if (((long)D)&2) {         /* align */
-          __u16* tmp = (__u16*) D;
+          u16* tmp = (u16*) D;
           --l;
           *tmp = Cop;
-          D = (__u32*)(tmp+1);
+          D = (u32*)(tmp+1);
      }
 
      w = (l >> 1);
@@ -119,19 +119,19 @@ static void Cop_to_Aop_16( GenefxState *gfxs )
      }
 
      if (l & 1)                 /* do the last ential pixel */
-          *((__u16*)D) = (__u16)Cop;
+          *((u16*)D) = (u16)Cop;
 }
 
 static void Cop_to_Aop_6666( GenefxState *gfxs )
 {
      int   w = gfxs->length;
-     __u8 *D = gfxs->Aop[0];
+     u8   *D = gfxs->Aop[0];
 
      /* use top 6 bits */
-     __u8 r = gfxs->color.r >> 2 & 0x3F;
-     __u8 g = gfxs->color.g >> 2 & 0x3F;
-     __u8 b = gfxs->color.b >> 2 & 0x3F;
-     __u8 a = gfxs->color.a >>2 & 0x3F;
+     u8 r = gfxs->color.r >> 2 & 0x3F;
+     u8 g = gfxs->color.g >> 2 & 0x3F;
+     u8 b = gfxs->color.b >> 2 & 0x3F;
+     u8 a = gfxs->color.a >>2 & 0x3F;
 
      while (w) {
           D[0] =  b | (g << 6 );
@@ -145,13 +145,13 @@ static void Cop_to_Aop_6666( GenefxState *gfxs )
 static void Cop_to_Aop_1666( GenefxState *gfxs )
 {
      int   w = gfxs->length;
-     __u8 *D = gfxs->Aop[0];
+     u8   *D = gfxs->Aop[0];
 
      /* use top 6 bits */
-     __u8 r = gfxs->color.r >> 2 & 0x3F;
-     __u8 g = gfxs->color.g >> 2 & 0x3F;
-     __u8 b = gfxs->color.b >> 2 & 0x3F;
-     __u8 a = gfxs->color.a != 0 ? 1:0;
+     u8 r = gfxs->color.r >> 2 & 0x3F;
+     u8 g = gfxs->color.g >> 2 & 0x3F;
+     u8 b = gfxs->color.b >> 2 & 0x3F;
+     u8 a = gfxs->color.a != 0 ? 1:0;
      while (w) {
           D[0] =  b | (g << 6 );
           D[1] = ( g >> 2 ) |(r << 4 );
@@ -164,12 +164,12 @@ static void Cop_to_Aop_1666( GenefxState *gfxs )
 static void Cop_to_Aop_18( GenefxState *gfxs )
 {
      int   w = gfxs->length;
-     __u8 *D = gfxs->Aop[0];
+     u8   *D = gfxs->Aop[0];
 
      /* use top 6 bits */
-     __u8 r = gfxs->color.r >> 2;
-     __u8 g = gfxs->color.g >> 2;
-     __u8 b = gfxs->color.b >> 2;
+     u8 r = gfxs->color.r >> 2;
+     u8 g = gfxs->color.g >> 2;
+     u8 b = gfxs->color.b >> 2;
 
      while (w) {
           D[0] =  b | (g << 6 );
@@ -183,7 +183,7 @@ static void Cop_to_Aop_18( GenefxState *gfxs )
 static void Cop_to_Aop_24( GenefxState *gfxs )
 {
      int   w = gfxs->length;
-     __u8 *D = gfxs->Aop[0];
+     u8   *D = gfxs->Aop[0];
 
      while (w) {
           D[0] = gfxs->color.b;
@@ -198,8 +198,8 @@ static void Cop_to_Aop_24( GenefxState *gfxs )
 static void Cop_to_Aop_32( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
 
      while (w--)
           *D++ = Cop;
@@ -209,8 +209,8 @@ static void Cop_to_Aop_yuv422( GenefxState *gfxs )
 {
      int    l;
      int    w   = gfxs->length;
-     __u16 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
+     u16   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
 
      if ((long)D & 2) {
 #ifdef WORDS_BIGENDIAN
@@ -222,7 +222,7 @@ static void Cop_to_Aop_yuv422( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          *((__u32*)D) = Cop;
+          *((u32*)D) = Cop;
           D += 2;
      }
 
@@ -249,9 +249,9 @@ static void Cop_to_Aop_nv12( GenefxState *gfxs )
      memset( gfxs->Aop[0], gfxs->YCop, gfxs->length );
     
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
-          __u16 *D   = gfxs->Aop[1];
+          u16   *D   = gfxs->Aop[1];
           int    w   = gfxs->length>>1;
-          __u16  Cop = gfxs->CbCop | (gfxs->CrCop << 8);
+          u16    Cop = gfxs->CbCop | (gfxs->CrCop << 8);
           
           while (w--)
                *D++ = Cop;
@@ -263,9 +263,9 @@ static void Cop_to_Aop_nv21( GenefxState *gfxs )
      memset( gfxs->Aop[0], gfxs->YCop, gfxs->length );
     
      if (gfxs->AopY & 1) {
-          __u16 *D   = gfxs->Aop[1];
+          u16   *D   = gfxs->Aop[1];
           int    w   = gfxs->length>>1;
-          __u16  Cop = gfxs->CrCop | (gfxs->CbCop << 8);
+          u16    Cop = gfxs->CrCop | (gfxs->CbCop << 8);
           
           while (w--)
                *D++ = Cop;
@@ -305,9 +305,9 @@ static GenefxFunc Cop_to_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 static void Cop_toK_Aop_8( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u8  *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u8    *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == *D)
@@ -320,9 +320,9 @@ static void Cop_toK_Aop_8( GenefxState *gfxs )
 static void Cop_toK_Aop_12( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u16 *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u16   *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == (*D & 0x0FFF))
@@ -335,9 +335,9 @@ static void Cop_toK_Aop_12( GenefxState *gfxs )
 static void Cop_toK_Aop_14( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u16 *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u16   *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == (*D & 0x3FFF))
@@ -350,9 +350,9 @@ static void Cop_toK_Aop_14( GenefxState *gfxs )
 static void Cop_toK_Aop_15( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u16 *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u16   *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == (*D & 0x7FFF))
@@ -365,9 +365,9 @@ static void Cop_toK_Aop_15( GenefxState *gfxs )
 static void Cop_toK_Aop_16( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u16 *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u16   *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == *D)
@@ -380,16 +380,16 @@ static void Cop_toK_Aop_16( GenefxState *gfxs )
 static void Cop_toK_Aop_6666( GenefxState *gfxs )
 {
      int   w   = gfxs->length;
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Dkr = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb = (gfxs->Dkey & 0x0000ff);
+     u8   *D   = gfxs->Aop[0];
+     u8    Dkr = (gfxs->Dkey & 0xff0000) >> 16;
+     u8    Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8    Dkb = (gfxs->Dkey & 0x0000ff);
 
      /* use top 6 bits */
-     __u8 r = gfxs->color.r >> 2;
-     __u8 g = gfxs->color.g >> 2;
-     __u8 b = gfxs->color.b >> 2;
-     __u8 a = gfxs->color.a >> 2;
+     u8 r = gfxs->color.r >> 2;
+     u8 g = gfxs->color.g >> 2;
+     u8 b = gfxs->color.b >> 2;
+     u8 a = gfxs->color.a >> 2;
 
      while (w) {
         if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
@@ -405,16 +405,16 @@ static void Cop_toK_Aop_6666( GenefxState *gfxs )
 static void Cop_toK_Aop_1666( GenefxState *gfxs )
 {
      int   w   = gfxs->length;
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Dkr = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb = (gfxs->Dkey & 0x0000ff);
+     u8   *D   = gfxs->Aop[0];
+     u8    Dkr = (gfxs->Dkey & 0xff0000) >> 16;
+     u8    Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8    Dkb = (gfxs->Dkey & 0x0000ff);
 
      /* use top 6 bits */
-     __u8 r = gfxs->color.r >> 2;
-     __u8 g = gfxs->color.g >> 2;
-     __u8 b = gfxs->color.b >> 2;
-     __u8 a = gfxs->color.a != 0 ? 1:0;
+     u8 r = gfxs->color.r >> 2;
+     u8 g = gfxs->color.g >> 2;
+     u8 b = gfxs->color.b >> 2;
+     u8 a = gfxs->color.a != 0 ? 1:0;
 
      while (w) {
         if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
@@ -430,15 +430,15 @@ static void Cop_toK_Aop_1666( GenefxState *gfxs )
 static void Cop_toK_Aop_18( GenefxState *gfxs )
 {
      int   w   = gfxs->length;
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Dkr = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb = (gfxs->Dkey & 0x0000ff);
+     u8   *D   = gfxs->Aop[0];
+     u8    Dkr = (gfxs->Dkey & 0xff0000) >> 16;
+     u8    Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8    Dkb = (gfxs->Dkey & 0x0000ff);
 
      /* use top 6 bits */
-     __u8 r = gfxs->color.r >> 2 & 0xF3;
-     __u8 g = gfxs->color.g >> 2 & 0xF3;
-     __u8 b = gfxs->color.b >> 2 & 0xF3;
+     u8 r = gfxs->color.r >> 2 & 0xF3;
+     u8 g = gfxs->color.g >> 2 & 0xF3;
+     u8 b = gfxs->color.b >> 2 & 0xF3;
 
      while (w) {
         if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
@@ -455,10 +455,10 @@ static void Cop_toK_Aop_18( GenefxState *gfxs )
 static void Cop_toK_Aop_24( GenefxState *gfxs )
 {
      int   w   = gfxs->length;
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Dkr = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb = (gfxs->Dkey & 0x0000ff);
+     u8   *D   = gfxs->Aop[0];
+     u8    Dkr = (gfxs->Dkey & 0xff0000) >> 16;
+     u8    Dkg = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8    Dkb = (gfxs->Dkey & 0x0000ff);
 
      while (w--) {
           if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
@@ -474,9 +474,9 @@ static void Cop_toK_Aop_24( GenefxState *gfxs )
 static void Cop_toK_Aop_32( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u32 *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u32   *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == (*D & 0xffffff))
@@ -490,9 +490,9 @@ static void Cop_toK_Aop_yuv422( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     __u16 *D     = gfxs->Aop[0];
-     __u32  Cop   = gfxs->Cop;
-     __u32  Dkey  = gfxs->Dkey;
+     u16   *D     = gfxs->Aop[0];
+     u32    Cop   = gfxs->Cop;
+     u32    Dkey  = gfxs->Dkey;
 
      if ((long)D & 2) {
 #ifdef WORDS_BIGENDIAN
@@ -507,8 +507,8 @@ static void Cop_toK_Aop_yuv422( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          if (*((__u32*)D) == Dkey)
-               *((__u32*)D) = Cop;
+          if (*((u32*)D) == Dkey)
+               *((u32*)D) = Cop;
           D += 2;
      }
 
@@ -526,9 +526,9 @@ static void Cop_toK_Aop_yuv422( GenefxState *gfxs )
 static void Cop_toK_Aop_alut44( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u8  *D    = gfxs->Aop[0];
-     __u32  Cop  = gfxs->Cop;
-     __u32  Dkey = gfxs->Dkey;
+     u8    *D    = gfxs->Aop[0];
+     u32    Cop  = gfxs->Cop;
+     u32    Dkey = gfxs->Dkey;
 
      while (w--) {
           if (Dkey == (*D & 0x0F))
@@ -649,22 +649,22 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
 {
      int    w;
      int    l    = gfxs->length;
-     __u32 *D    = gfxs->Aop[0];
-     __u32 *S    = gfxs->Bop[0];
-     __u32  Skey = gfxs->Skey & 0x7FFF;
+     u32   *D    = gfxs->Aop[0];
+     u32   *S    = gfxs->Bop[0];
+     u32    Skey = gfxs->Skey & 0x7FFF;
 
-     __u32 DSkey = (Skey << 16) | Skey;
+     u32 DSkey = (Skey << 16) | Skey;
 
      /* in the case when only one start is misaligned we have to be more
         careful copying the pixels to avoid crossing 32bit boundaries */
      if (((long)D + (long)S) & 2) {
-          __u16 *d = gfxs->Aop[0];
-          __u16 *s = gfxs->Bop[0];
+          u16 *d = gfxs->Aop[0];
+          u16 *s = gfxs->Bop[0];
 
           w = l; 
           while (w) {
-               __u16 mpixel = *s;
-               if ((mpixel & 0x7FFF) != (__u16)Skey) {
+               u16 mpixel = *s;
+               if ((mpixel & 0x7FFF) != (u16)Skey) {
                     *d = mpixel;
                }
                ++d;
@@ -674,19 +674,19 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
      }
      else {
           if (((long)D)&2) {         /* align */
-               __u16 *tmp = gfxs->Aop[0];
+               u16 *tmp = gfxs->Aop[0];
                --l;
-               if ((*((__u16*)S) & 0x7FFF) != Skey)
-                    *tmp = *((__u16*)S);
+               if ((*((u16*)S) & 0x7FFF) != Skey)
+                    *tmp = *((u16*)S);
 
-               D = (__u32*)((__u16*)D+1);
-               S = (__u32*)((__u16*)S+1);
+               D = (u32*)((u16*)D+1);
+               S = (u32*)((u16*)S+1);
           }
 
           w = (l >> 1);
           while (w) {
-               __u32 dpixel = *S;
-               __u16 *tmp = (__u16*)D;
+               u32 dpixel = *S;
+               u16 *tmp = (u16*)D;
 
                if ((dpixel & 0x7FFF7FFF) != DSkey) {
                     if ((dpixel & 0x7FFF0000) != (DSkey & 0x7FFF0000)) {
@@ -695,17 +695,17 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
                          }
                          else {
 #ifdef WORDS_BIGENDIAN
-                              tmp[0] = (__u16)(dpixel >> 16);
+                              tmp[0] = (u16)(dpixel >> 16);
 #else
-                              tmp[1] = (__u16)(dpixel >> 16);
+                              tmp[1] = (u16)(dpixel >> 16);
 #endif
                          }
                     }
                     else {
 #ifdef WORDS_BIGENDIAN
-                         tmp[1] = (__u16)dpixel;
+                         tmp[1] = (u16)dpixel;
 #else
-                         tmp[0] = (__u16)dpixel;
+                         tmp[0] = (u16)dpixel;
 #endif
                     }
                }
@@ -715,8 +715,8 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
           }
 
           if (l & 1) {                 /* do the last potential pixel */
-               if ((*(__u16*)S & 0x7FFF) != Skey)
-                    *((__u16*)D) = *((__u16*)S);
+               if ((*(u16*)S & 0x7FFF) != Skey)
+                    *((u16*)D) = *((u16*)S);
           }
      }
 }
@@ -725,22 +725,22 @@ static void Bop_rgb15_Kto_Aop( GenefxState *gfxs )
 static void Bop_rgb16_Kto_Aop( GenefxState *gfxs )
 {
      int    w, l = gfxs->length;
-     __u32 *D    = gfxs->Aop[0];
-     __u32 *S    = gfxs->Bop[0];
-     __u32  Skey = gfxs->Skey;
+     u32   *D    = gfxs->Aop[0];
+     u32   *S    = gfxs->Bop[0];
+     u32    Skey = gfxs->Skey;
 
-     __u32 DSkey = (Skey << 16) | Skey;
+     u32 DSkey = (Skey << 16) | Skey;
 
      /* in the case when only one start is misaligned we have to be more
         careful copying the pixels to avoid crossing 32bit boundaries */
      if (((long)D + (long)S) & 2) {
-          __u16 *d = gfxs->Aop[0];
-          __u16 *s = gfxs->Bop[0];
+          u16 *d = gfxs->Aop[0];
+          u16 *s = gfxs->Bop[0];
 
           w = l; 
           while (w) {
-               __u16 mpixel = *s;
-               if (mpixel != (__u16)Skey) {
+               u16 mpixel = *s;
+               if (mpixel != (u16)Skey) {
                     *d = mpixel;
                }
                ++d;
@@ -750,19 +750,19 @@ static void Bop_rgb16_Kto_Aop( GenefxState *gfxs )
      }
      else {
           if (((long)D)&2) {         /* align */
-               __u16 *tmp = gfxs->Aop[0];
+               u16 *tmp = gfxs->Aop[0];
                --l;
-               if (*((__u16*)S) != Skey)
-                    *tmp = *((__u16*)S);
+               if (*((u16*)S) != Skey)
+                    *tmp = *((u16*)S);
      
-               D = (__u32*)((__u16*)D+1);
-               S = (__u32*)((__u16*)S+1);
+               D = (u32*)((u16*)D+1);
+               S = (u32*)((u16*)S+1);
           }
      
           w = (l >> 1);
           while (w) {
-               __u32 dpixel = *S;
-               __u16 *tmp = (__u16*)D;
+               u32 dpixel = *S;
+               u16 *tmp = (u16*)D;
      
                if (dpixel != DSkey) {
                     if ((dpixel & 0xFFFF0000) != (DSkey & 0xFFFF0000)) {
@@ -771,17 +771,17 @@ static void Bop_rgb16_Kto_Aop( GenefxState *gfxs )
                          }
                          else {
 #ifdef WORDS_BIGENDIAN
-                              tmp[0] = (__u16)(dpixel >> 16);
+                              tmp[0] = (u16)(dpixel >> 16);
 #else
-                              tmp[1] = (__u16)(dpixel >> 16);
+                              tmp[1] = (u16)(dpixel >> 16);
 #endif
                          }
                     }
                     else {
 #ifdef WORDS_BIGENDIAN
-                         tmp[1] = (__u16)dpixel;
+                         tmp[1] = (u16)dpixel;
 #else
-                         tmp[0] = (__u16)dpixel;
+                         tmp[0] = (u16)dpixel;
 #endif
                     }
                }
@@ -791,8 +791,8 @@ static void Bop_rgb16_Kto_Aop( GenefxState *gfxs )
           }
      
           if (l & 1) {                 /* do the last potential pixel */
-               if (*((__u16*)S) != Skey)
-                    *((__u16*)D) = *((__u16*)S);
+               if (*((u16*)S) != Skey)
+                    *((u16*)D) = *((u16*)S);
           }
      }
 }
@@ -801,9 +801,9 @@ static void Bop_argb6666_Kto_Aop( GenefxState *gfxs )
 {
 
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -812,11 +812,11 @@ static void Bop_argb6666_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u8 b = *S;
-          __u8 g = *(S+1);
-          __u8 r = *(S+2);
+          u8 b = *S;
+          u8 g = *(S+1);
+          u8 r = *(S+2);
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                r = r >> 2;
                g = g >> 2;
                b = b >> 2;
@@ -834,9 +834,9 @@ static void Bop_argb1666_Kto_Aop( GenefxState *gfxs )
 {
 
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -845,11 +845,11 @@ static void Bop_argb1666_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u8 b = *S;
-          __u8 g = *(S+1);
-          __u8 r = *(S+2);
+          u8 b = *S;
+          u8 g = *(S+1);
+          u8 r = *(S+2);
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                r = r >> 2;
                g = g >> 2;
                b = b >> 2;
@@ -867,9 +867,9 @@ static void Bop_rgb18_Kto_Aop( GenefxState *gfxs )
 {
 
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -878,11 +878,11 @@ static void Bop_rgb18_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u8 b = *S;
-          __u8 g = *(S+1);
-          __u8 r = *(S+2);
+          u8 b = *S;
+          u8 g = *(S+1);
+          u8 r = *(S+2);
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                r = r >> 2;
                g = g >> 2;
                b = b >> 2;
@@ -899,9 +899,9 @@ static void Bop_rgb18_Kto_Aop( GenefxState *gfxs )
 static void Bop_rgb24_Kto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -910,11 +910,11 @@ static void Bop_rgb24_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u8 b = *S;
-          __u8 g = *(S+1);
-          __u8 r = *(S+2);
+          u8 b = *S;
+          u8 g = *(S+1);
+          u8 r = *(S+2);
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                *D     = b;
                *(D+1) = g;
                *(D+2) = r;
@@ -928,9 +928,9 @@ static void Bop_rgb24_Kto_Aop( GenefxState *gfxs )
 static void Bop_rgb32_Kto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u32 *D     = gfxs->Aop[0];
-     __u32 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u32   *D     = gfxs->Aop[0];
+     u32   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -939,7 +939,7 @@ static void Bop_rgb32_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u32 spixel = *S;
+          u32 spixel = *S;
 
           if ((spixel & 0xffffff) != Skey)
                *D = spixel;
@@ -959,9 +959,9 @@ static void Bop_yuv422_Kto_Aop( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -970,7 +970,7 @@ static void Bop_yuv422_Kto_Aop( GenefxState *gfxs )
      }
 
      if ((long)D & 2) {
-          __u16 s = *S;
+          u16 s = *S;
 #ifdef WORDS_BIGENDIAN
           if (s != (Skey >> 16))
                *D = s;
@@ -989,17 +989,17 @@ static void Bop_yuv422_Kto_Aop( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          __u32 s = *((__u32*)S);
+          u32 s = *((u32*)S);
 
           if (s != Skey)
-               *((__u32*)D) = s;
+               *((u32*)D) = s;
 
           S += Ostep << 1;
           D += Ostep << 1;
      }
 
      if (w & 1) {
-          __u16 s = *S;
+          u16 s = *S;
 #ifdef WORDS_BIGENDIAN
           if (s != (Skey & 0xffff))
                *D = s;
@@ -1017,7 +1017,7 @@ static void Bop_yuv422_Kto_Aop( GenefxState *gfxs )
 
 #define SET_PIXEL( D, S )               \
      do {                               \
-          register __u32 s = S;         \
+          register u32 s = S;           \
                                         \
           if (s != Skey)                \
                D = s;                   \
@@ -1027,9 +1027,9 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
 {
      int    i;
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
 
      if (gfxs->Ostep > 0) {
           SET_PIXEL_DUFFS_DEVICE( D, S, w );
@@ -1047,9 +1047,9 @@ static void Bop_8_Kto_Aop( GenefxState *gfxs )
 static void Bop_alut44_Kto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -1058,7 +1058,7 @@ static void Bop_alut44_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u8 spixel = *S;
+          u8 spixel = *S;
 
           if ((spixel & 0x0F) != Skey)
                *D = spixel;
@@ -1071,9 +1071,9 @@ static void Bop_alut44_Kto_Aop( GenefxState *gfxs )
 static void Bop_argb2554_Kto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u16  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u16    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -1082,7 +1082,7 @@ static void Bop_argb2554_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u16 spixel = *S;
+          u16 spixel = *S;
 
           if ((spixel & 0x3FFF) != Skey)
                *D = spixel;
@@ -1095,9 +1095,9 @@ static void Bop_argb2554_Kto_Aop( GenefxState *gfxs )
 static void Bop_argb4444_Kto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u16  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u16    Skey  = gfxs->Skey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -1106,7 +1106,7 @@ static void Bop_argb4444_Kto_Aop( GenefxState *gfxs )
      }
 
      while (w--) {
-          __u16 spixel = *S;
+          u16 spixel = *S;
 
           if ((spixel & 0x0FFF) != Skey)
                *D = spixel;
@@ -1150,44 +1150,44 @@ static GenefxFunc Bop_PFI_Kto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 static void Bop_rgb15_toK_Aop( GenefxState *gfxs )
 {
      int    w, l = gfxs->length;
-     __u32 *D    = gfxs->Aop[0];
-     __u32 *S    = gfxs->Bop[0];
-     __u32  Lkey = gfxs->Dkey;
-     __u32  Hkey = Lkey << 16;
+     u32   *D    = gfxs->Aop[0];
+     u32   *S    = gfxs->Bop[0];
+     u32    Lkey = gfxs->Dkey;
+     u32    Hkey = Lkey << 16;
 
      if (((long)D)&2) {         /* align */
-          __u16 *tmp = gfxs->Aop[0];
+          u16 *tmp = gfxs->Aop[0];
           --l;
-          if (*((__u16*)D) == Lkey)
-               *tmp = *((__u16*)S);
+          if (*((u16*)D) == Lkey)
+               *tmp = *((u16*)S);
 
-          D = (__u32*)((__u16*)D+1);
-          S = (__u32*)((__u16*)S+1);
+          D = (u32*)((u16*)D+1);
+          S = (u32*)((u16*)S+1);
      }
 
      w = (l >> 1);
      while (w) {
-          __u32 dpixel = *D;
+          u32 dpixel = *D;
 
           if ((dpixel & 0x7FFF0000) == Hkey) {
                if ((dpixel & 0x00007FFF) == Lkey) {
                     *D = *S;
                }
                else {
-                    __u16 *tmp = (__u16*)D;
+                    u16 *tmp = (u16*)D;
 #ifdef WORDS_BIGENDIAN
-                    tmp[0] = (__u16)(*S >> 16);
+                    tmp[0] = (u16)(*S >> 16);
 #else
-                    tmp[1] = (__u16)(*S >> 16);
+                    tmp[1] = (u16)(*S >> 16);
 #endif
                }
           }
           else if ((dpixel & 0x00007FFF) == Lkey) {
-               __u16 *tmp = (__u16*)D;
+               u16 *tmp = (u16*)D;
 #ifdef WORDS_BIGENDIAN
-               tmp[1] = (__u16)*S;
+               tmp[1] = (u16)*S;
 #else
-               tmp[0] = (__u16)*S;
+               tmp[0] = (u16)*S;
 #endif
           }
           ++S;
@@ -1196,8 +1196,8 @@ static void Bop_rgb15_toK_Aop( GenefxState *gfxs )
      }
 
      if (l & 1) {                 /* do the last potential pixel */
-          if (*((__u16*)D) == Lkey)
-               *((__u16*)D) = *((__u16*)S);
+          if (*((u16*)D) == Lkey)
+               *((u16*)D) = *((u16*)S);
      }
 
 }
@@ -1205,26 +1205,26 @@ static void Bop_rgb15_toK_Aop( GenefxState *gfxs )
 static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
 {
      int    w, l = gfxs->length;
-     __u32 *D    = gfxs->Aop[0];
-     __u32 *S    = gfxs->Bop[0];
-     __u32  Dkey = gfxs->Dkey;
+     u32   *D    = gfxs->Aop[0];
+     u32   *S    = gfxs->Bop[0];
+     u32    Dkey = gfxs->Dkey;
 
-     __u32 DDkey = (Dkey << 16) | Dkey;
+     u32 DDkey = (Dkey << 16) | Dkey;
 
      if (((long)D)&2) {         /* align */
-          __u16 *tmp = gfxs->Aop[0];
+          u16 *tmp = gfxs->Aop[0];
           --l;
-          if (*((__u16*)D) == Dkey)
-               *tmp = *((__u16*)S);
+          if (*((u16*)D) == Dkey)
+               *tmp = *((u16*)S);
 
-          D = (__u32*)((__u16*)D+1);
-          S = (__u32*)((__u16*)S+1);
+          D = (u32*)((u16*)D+1);
+          S = (u32*)((u16*)S+1);
      }
 
      w = (l >> 1);
      while (w) {
-          __u32 dpixel = *D;
-          __u16 *tmp = (__u16*)D;
+          u32 dpixel = *D;
+          u16 *tmp = (u16*)D;
 
           if ((dpixel & 0xFFFF0000) == (DDkey & 0xFFFF0000)) {
                if ((dpixel & 0x0000FFFF) == (DDkey & 0x0000FFFF)) {
@@ -1232,17 +1232,17 @@ static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
                }
                else {
 #ifdef WORDS_BIGENDIAN
-                    tmp[0] = (__u16)(*S >> 16);
+                    tmp[0] = (u16)(*S >> 16);
 #else
-                    tmp[1] = (__u16)(*S >> 16);
+                    tmp[1] = (u16)(*S >> 16);
 #endif
                }
           }
           else if ((dpixel & 0x0000FFFF) == (DDkey & 0x0000FFFF)) {
 #ifdef WORDS_BIGENDIAN
-               tmp[1] = (__u16)*S;
+               tmp[1] = (u16)*S;
 #else
-               tmp[0] = (__u16)*S;
+               tmp[0] = (u16)*S;
 #endif
           }
           ++S;
@@ -1251,25 +1251,25 @@ static void Bop_rgb16_toK_Aop( GenefxState *gfxs )
      }
 
      if (l & 1) {                 /* do the last potential pixel */
-          if (*((__u16*)D) == Dkey)
-               *((__u16*)D) = *((__u16*)S);
+          if (*((u16*)D) == Dkey)
+               *((u16*)D) = *((u16*)S);
      }
 }
 
 static void Bop_argb6666_toK_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u8  Dkr  = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg  = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb  = (gfxs->Dkey & 0x0000ff);
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u8     Dkr   = (gfxs->Dkey & 0xff0000) >> 16;
+     u8     Dkg   = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8     Dkb   = (gfxs->Dkey & 0x0000ff);
 
      while (w--) {
           if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
-               __u8 b = S[0] >>2;
-               __u8 g = S[1] >> 2;
-               __u8 r = S[2] >> 2;
+               u8 b = S[0] >>2;
+               u8 g = S[1] >> 2;
+               u8 r = S[2] >> 2;
                *D     = b | (g << 6 );
                *(D+1) = ( g >> 2 ) |(r << 4 );
                *(D+2) = (r >> 4) | 0xfc;
@@ -1282,17 +1282,17 @@ static void Bop_argb6666_toK_Aop( GenefxState *gfxs )
 static void Bop_argb1666_toK_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u8  Dkr  = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg  = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb  = (gfxs->Dkey & 0x0000ff);
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u8     Dkr   = (gfxs->Dkey & 0xff0000) >> 16;
+     u8     Dkg   = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8     Dkb   = (gfxs->Dkey & 0x0000ff);
 
      while (w--) {
           if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
-               __u8 b = S[0] >>2;
-               __u8 g = S[1] >> 2;
-               __u8 r = S[2] >> 2;
+               u8 b = S[0] >>2;
+               u8 g = S[1] >> 2;
+               u8 r = S[2] >> 2;
                *D     = b | (g << 6 );
                *(D+1) = ( g >> 2 ) |(r << 4 );
                *(D+2) = (r >> 4) | 0x4;
@@ -1305,17 +1305,17 @@ static void Bop_argb1666_toK_Aop( GenefxState *gfxs )
 static void Bop_rgb18_toK_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u8  Dkr  = (gfxs->Dkey & 0xff0000) >> 16;
-     __u8  Dkg  = (gfxs->Dkey & 0x00ff00) >>  8;
-     __u8  Dkb  = (gfxs->Dkey & 0x0000ff);
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u8     Dkr   = (gfxs->Dkey & 0xff0000) >> 16;
+     u8     Dkg   = (gfxs->Dkey & 0x00ff00) >>  8;
+     u8     Dkb   = (gfxs->Dkey & 0x0000ff);
 
      while (w--) {
           if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
-               __u8 b = S[0] >>2;
-               __u8 g = S[1] >> 2;
-               __u8 r = S[2] >> 2;
+               u8 b = S[0] >>2;
+               u8 g = S[1] >> 2;
+               u8 r = S[2] >> 2;
                *D     = b | (g << 6 );
                *(D+1) = ( g >> 2 ) |(r << 4 );
                *(D+2) = (r >> 4) | 0xfc;
@@ -1328,11 +1328,11 @@ static void Bop_rgb18_toK_Aop( GenefxState *gfxs )
 static void Bop_rgb24_toK_Aop( GenefxState *gfxs )
 {
       int   w    = gfxs->length;
-      __u8 *S    = gfxs->Bop[0];
-      __u8 *D    = gfxs->Aop[0];
-      __u8  Dkr  = (gfxs->Dkey & 0xff0000) >> 16;
-      __u8  Dkg  = (gfxs->Dkey & 0x00ff00) >>  8;
-      __u8  Dkb  = (gfxs->Dkey & 0x0000ff);
+      u8   *S    = gfxs->Bop[0];
+      u8   *D    = gfxs->Aop[0];
+      u8    Dkr  = (gfxs->Dkey & 0xff0000) >> 16;
+      u8    Dkg  = (gfxs->Dkey & 0x00ff00) >>  8;
+      u8    Dkb  = (gfxs->Dkey & 0x0000ff);
 
       while (w--) {
            if (D[0] == Dkb && D[1] == Dkg && D[2] == Dkr) {
@@ -1348,9 +1348,9 @@ static void Bop_rgb24_toK_Aop( GenefxState *gfxs )
 static void Bop_rgb32_toK_Aop( GenefxState *gfxs )
 {
       int    w    = gfxs->length;
-      __u32 *S    = gfxs->Bop[0];
-      __u32 *D    = gfxs->Aop[0];
-      __u32  Dkey = gfxs->Dkey;
+      u32   *S    = gfxs->Bop[0];
+      u32   *D    = gfxs->Aop[0];
+      u32    Dkey = gfxs->Dkey;
 
       while (w--) {
            if (Dkey == *D) {
@@ -1364,9 +1364,9 @@ static void Bop_rgb32_toK_Aop( GenefxState *gfxs )
 static void Bop_argb_toK_Aop( GenefxState *gfxs )
 {
       int    w    = gfxs->length;
-      __u32 *S    = gfxs->Bop[0];
-      __u32 *D    = gfxs->Aop[0];
-      __u32  Dkey = gfxs->Dkey & 0xffffff;
+      u32   *S    = gfxs->Bop[0];
+      u32   *D    = gfxs->Aop[0];
+      u32    Dkey = gfxs->Dkey & 0xffffff;
 
       while (w--) {
            if (Dkey == (*D & 0xffffff)) {
@@ -1381,9 +1381,9 @@ static void Bop_yuv422_toK_Aop( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     __u16 *S     = gfxs->Bop[0];
-     __u16 *D     = gfxs->Aop[0];
-     __u32  Dkey  = gfxs->Dkey;
+     u16   *S     = gfxs->Bop[0];
+     u16   *D     = gfxs->Aop[0];
+     u32    Dkey  = gfxs->Dkey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -1430,9 +1430,9 @@ static void Bop_yuv422_toK_Aop( GenefxState *gfxs )
 static void Bop_rgb332_toK_Aop( GenefxState *gfxs )
 {
       int   w    = gfxs->length;
-      __u8 *S    = gfxs->Bop[0];
-      __u8 *D    = gfxs->Aop[0];
-      __u8  Dkey = gfxs->Dkey;
+      u8   *S    = gfxs->Bop[0];
+      u8   *D    = gfxs->Aop[0];
+      u8    Dkey = gfxs->Dkey;
 
       while (w--) {
            if (*D == Dkey) {
@@ -1446,9 +1446,9 @@ static void Bop_rgb332_toK_Aop( GenefxState *gfxs )
 static void Bop_argb2554_toK_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u16  Dkey  = gfxs->Dkey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u16    Dkey  = gfxs->Dkey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -1468,9 +1468,9 @@ static void Bop_argb2554_toK_Aop( GenefxState *gfxs )
 static void Bop_argb4444_toK_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u16  Dkey  = gfxs->Dkey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u16    Dkey  = gfxs->Dkey;
      int    Ostep = gfxs->Ostep;
 
      if (Ostep < 0) {
@@ -1552,13 +1552,13 @@ static void Bop_16_Sto_Aop( GenefxState *gfxs )
      int    w2;
      int    w      = gfxs->length;
      int    i      = gfxs->Xphase;
-     __u32 *D      = gfxs->Aop[0];
-     __u16 *S      = gfxs->Bop[0];
+     u32   *D      = gfxs->Aop[0];
+     u16   *S      = gfxs->Bop[0];
      int    SperD  = gfxs->SperD;
      int    SperD2 = SperD << 1;
 
      if (((long)D)&2) {
-          *(__u16*)D = *S;
+          *(u16*)D = *S;
           i += SperD;
           w--;
           D = gfxs->Aop[0] + 2;
@@ -1574,7 +1574,7 @@ static void Bop_16_Sto_Aop( GenefxState *gfxs )
           i += SperD2;
      }
      if (w&1) {
-          *(__u16*)D = S[i>>16];
+          *(u16*)D = S[i>>16];
      }
 }
 
@@ -1582,16 +1582,16 @@ static void Bop_argb6666_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0] >> 2;
-          __u8 g = S[pixelstart+1] >> 2;
-          __u8 r = S[pixelstart+2] >> 2;
+          u8 b = S[pixelstart+0] >> 2;
+          u8 g = S[pixelstart+1] >> 2;
+          u8 r = S[pixelstart+2] >> 2;
           *D++ = b | (g << 6 );
           *D++ = ( g >> 2 ) |(r << 4 );
           *D++ = (r >> 4) | 0xfc;
@@ -1603,16 +1603,16 @@ static void Bop_argb1666_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0] >> 2;
-          __u8 g = S[pixelstart+1] >> 2;
-          __u8 r = S[pixelstart+2] >> 2;
+          u8 b = S[pixelstart+0] >> 2;
+          u8 g = S[pixelstart+1] >> 2;
+          u8 r = S[pixelstart+2] >> 2;
           *D++ = b | (g << 6 );
           *D++ = ( g >> 2 ) |(r << 4 );
           *D++ = (r >> 4) | 0x4;
@@ -1624,16 +1624,16 @@ static void Bop_18_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0] >> 2;
-          __u8 g = S[pixelstart+1] >> 2;
-          __u8 r = S[pixelstart+2] >> 2;
+          u8 b = S[pixelstart+0] >> 2;
+          u8 g = S[pixelstart+1] >> 2;
+          u8 r = S[pixelstart+2] >> 2;
           *D++ = b | (g << 6 );
           *D++ = ( g >> 2 ) |(r << 4 );
           *D++ = (r >> 4) | 0xfc;
@@ -1646,8 +1646,8 @@ static void Bop_24_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = gfxs->Xphase;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
 
      while (w--) {
@@ -1665,8 +1665,8 @@ static void Bop_32_Sto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = gfxs->Xphase;
-     __u32 *D     = gfxs->Aop[0];
-     __u32 *S     = gfxs->Bop[0];
+     u32   *D     = gfxs->Aop[0];
+     u32   *S     = gfxs->Bop[0];
      int    SperD = gfxs->SperD;
 
      while (w--) {
@@ -1681,8 +1681,8 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
      int    l;
      int    w     = gfxs->length;
      int    i     = gfxs->Xphase;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
      int    SperD = gfxs->SperD;
 
      if ((long)D & 2) {
@@ -1692,9 +1692,9 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          register __u32 d;
+          register u32 d;
 
-          d  = ((__u32*)S)[i>>17] & 0xff00ff00;
+          d  = ((u32*)S)[i>>17] & 0xff00ff00;
 #ifdef WORDS_BIGENDIAN
           d |= (S[i>>16]          & 0x00ff) << 16;
           d |= (S[(i+SperD)>>16]  & 0x00ff);
@@ -1702,7 +1702,7 @@ static void Bop_yuy2_Sto_Aop( GenefxState *gfxs )
           d |= (S[i>>16]          & 0x00ff);
           d |= (S[(i+SperD)>>16]  & 0x00ff) << 16;
 #endif
-          *((__u32*)D) = d;
+          *((u32*)D) = d;
           D += 2;
 
           i += SperD << 1;
@@ -1716,8 +1716,8 @@ static void Bop_8_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = gfxs->Xphase;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
 
      while (w--) {
@@ -1732,8 +1732,8 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
      int    l;
      int    w     = gfxs->length;
      int    i     = gfxs->Xphase;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
      int    SperD = gfxs->SperD;
 
      if ((long)D & 2) {
@@ -1743,9 +1743,9 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          register __u32 d;
+          register u32 d;
 
-          d  = ((__u32*)S)[i>>17] & 0x00ff00ff;
+          d  = ((u32*)S)[i>>17] & 0x00ff00ff;
 #ifdef WORDS_BIGENDIAN
           d |= (S[i>>16]          & 0xff00) << 16;
           d |= (S[(i+SperD)>>16]  & 0xff00);
@@ -1753,7 +1753,7 @@ static void Bop_uyvy_Sto_Aop( GenefxState *gfxs )
           d |= (S[i>>16]          & 0xff00);
           d |= (S[(i+SperD)>>16]  & 0xff00) << 16;
 #endif
-          *((__u32*)D) = d;
+          *((u32*)D) = d;
           D += 2;
 
           i += SperD << 1;
@@ -1767,8 +1767,8 @@ static void Bop_i420_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = gfxs->Xphase;
-     __u8 *Dy    = gfxs->Aop[0];
-     __u8 *Sy    = gfxs->Bop[0];
+     u8   *Dy    = gfxs->Aop[0];
+     u8   *Sy    = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
     
      while (w--) {
@@ -1778,10 +1778,10 @@ static void Bop_i420_Sto_Aop( GenefxState *gfxs )
      }
      
      if (gfxs->AopY & 1) {
-          __u8 *Du = gfxs->Aop[1];
-          __u8 *Dv = gfxs->Aop[2]; 
-          __u8 *Su = gfxs->Bop[1];
-          __u8 *Sv = gfxs->Bop[2];  
+          u8 *Du = gfxs->Aop[1];
+          u8 *Dv = gfxs->Aop[2];
+          u8 *Su = gfxs->Bop[1];
+          u8 *Sv = gfxs->Bop[2];
     
           for (w = gfxs->length>>1, i = 0; w--;) {
                *Du++ = Su[i>>16];
@@ -1801,8 +1801,8 @@ static void Bop_NV_Sto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = gfxs->Xphase;
-     __u8 *Dy    = gfxs->Aop[0];
-     __u8 *Sy    = gfxs->Bop[0];
+     u8   *Dy    = gfxs->Aop[0];
+     u8   *Sy    = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
      
      while (w--) {
@@ -1812,8 +1812,8 @@ static void Bop_NV_Sto_Aop( GenefxState *gfxs )
      }
           
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
-          __u16 *Duv = gfxs->Aop[1];
-          __u16 *Suv = gfxs->Bop[1];
+          u16 *Duv = gfxs->Aop[1];
+          u16 *Suv = gfxs->Bop[1];
 
           for (w = gfxs->length>>1, i = 0; w--;) {
                *Duv++ = Suv[i>>16];
@@ -1857,13 +1857,13 @@ static void Bop_rgb15_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if ((s & 0x7FFF) != Skey)
                *D = s;
@@ -1877,13 +1877,13 @@ static void Bop_rgb16_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if (s != Skey)
                *D = s;
@@ -1897,18 +1897,18 @@ static void Bop_argb6666_SKto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
-     int    SperD = gfxs->SperD;
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
+     u32   Skey  = gfxs->Skey;
+     int   SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0];
-          __u8 g = S[pixelstart+1];
-          __u8 r = S[pixelstart+2];
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          u8 b = S[pixelstart+0];
+          u8 g = S[pixelstart+1];
+          u8 r = S[pixelstart+2];
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                b = b >> 2;
                g = g >> 2;
                r = r >> 2;
@@ -1924,18 +1924,18 @@ static void Bop_argb1666_SKto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
-     int    SperD = gfxs->SperD;
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
+     u32   Skey  = gfxs->Skey;
+     int   SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0];
-          __u8 g = S[pixelstart+1];
-          __u8 r = S[pixelstart+2];
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          u8 b = S[pixelstart+0];
+          u8 g = S[pixelstart+1];
+          u8 r = S[pixelstart+2];
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                b = b >> 2;
                g = g >> 2;
                r = r >> 2;
@@ -1951,18 +1951,18 @@ static void Bop_rgb18_SKto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
-     int    SperD = gfxs->SperD;
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
+     u32   Skey  = gfxs->Skey;
+     int   SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0];
-          __u8 g = S[pixelstart+1];
-          __u8 r = S[pixelstart+2];
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          u8 b = S[pixelstart+0];
+          u8 g = S[pixelstart+1];
+          u8 r = S[pixelstart+2];
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                b = b >> 2;
                g = g >> 2;
                r = r >> 2;
@@ -1978,19 +1978,19 @@ static void Bop_rgb24_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0];
-          __u8 g = S[pixelstart+1];
-          __u8 r = S[pixelstart+2];
+          u8 b = S[pixelstart+0];
+          u8 g = S[pixelstart+1];
+          u8 r = S[pixelstart+2];
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                *D     = b;
                *(D+1) = g;
                *(D+2) = r;
@@ -2005,13 +2005,13 @@ static void Bop_rgb32_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u32 *D     = gfxs->Aop[0];
-     __u32 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u32   *D     = gfxs->Aop[0];
+     u32   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
 
           if ((s & 0xffffff) != Skey)
                *D = s;
@@ -2025,8 +2025,8 @@ static void Bop_a8_SKto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
      int   i     = 0;
-     __u8 *D     = gfxs->Aop[0];
-     __u8 *S     = gfxs->Bop[0];
+     u8   *D     = gfxs->Aop[0];
+     u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
 
      /* no color to key */
@@ -2042,20 +2042,20 @@ static void Bop_yuy2_SKto_Aop( GenefxState *gfxs )
      int    l;
      int    w     = gfxs->length;
      int    i     = 0;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
 #ifdef WORDS_BIGENDIAN
-     __u16  Skey0 = gfxs->Skey >> 16;
-     __u16  Skey1 = gfxs->Skey & 0xffff;
+     u16    Skey0 = gfxs->Skey >> 16;
+     u16    Skey1 = gfxs->Skey & 0xffff;
 #else
-     __u16  Skey0 = gfxs->Skey & 0xffff;
-     __u16  Skey1 = gfxs->Skey >> 16;
+     u16    Skey0 = gfxs->Skey & 0xffff;
+     u16    Skey1 = gfxs->Skey >> 16;
 #endif
      int    SperD = gfxs->SperD;
 
      if ((long)D & 2) {
-          __u16 s = *S;
+          u16 s = *S;
           if (s != Skey0)
                *D = s;
           D++;
@@ -2064,9 +2064,9 @@ static void Bop_yuy2_SKto_Aop( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          register __u32 s;
+          register u32 s;
 
-          s  = ((__u32*)S)[i>>17] & 0xff00ff00;
+          s  = ((u32*)S)[i>>17] & 0xff00ff00;
 #ifdef WORDS_BIGENDIAN
           s |= (S[i>>16]          & 0x00ff) << 16;
           s |= (S[(i+SperD)>>16]  & 0x00ff);
@@ -2075,14 +2075,14 @@ static void Bop_yuy2_SKto_Aop( GenefxState *gfxs )
           s |= (S[(i+SperD)>>16]  & 0x00ff) << 16;
 #endif
           if (s != Skey)
-               *((__u32*)D) = s;
+               *((u32*)D) = s;
           D += 2;
 
           i += SperD << 1;
      }
 
      if (w & 1) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
           if (i & 0x20000) {
                if (s != Skey1)
                     *D = s;
@@ -2097,13 +2097,13 @@ static void Bop_8_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           if (s != Skey)
                *D = s;
@@ -2118,20 +2118,20 @@ static void Bop_uyvy_SKto_Aop( GenefxState *gfxs )
      int    l;
      int    w     = gfxs->length;
      int    i     = 0;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
 #ifdef WORDS_BIGENDIAN
-     __u16  Skey0 = gfxs->Skey >> 16;
-     __u16  Skey1 = gfxs->Skey & 0xffff;
+     u16    Skey0 = gfxs->Skey >> 16;
+     u16    Skey1 = gfxs->Skey & 0xffff;
 #else
-     __u16  Skey0 = gfxs->Skey & 0xffff;
-     __u16  Skey1 = gfxs->Skey >> 16;
+     u16    Skey0 = gfxs->Skey & 0xffff;
+     u16    Skey1 = gfxs->Skey >> 16;
 #endif
      int    SperD = gfxs->SperD;
 
      if ((long)D & 2) {
-          __u16 s = *S;
+          u16 s = *S;
           if (s != Skey0)
                *D = s;
           D++;
@@ -2140,9 +2140,9 @@ static void Bop_uyvy_SKto_Aop( GenefxState *gfxs )
      }
 
      for (l = w>>1; l--;) {
-          register __u32 s;
+          register u32 s;
 
-          s  = ((__u32*)S)[i>>17] & 0x00ff00ff;
+          s  = ((u32*)S)[i>>17] & 0x00ff00ff;
 #ifdef WORDS_BIGENDIAN
           s |= (S[i>>16]          & 0xff00) << 16;
           s |= (S[(i+SperD)>>16]  & 0xff00);
@@ -2151,14 +2151,14 @@ static void Bop_uyvy_SKto_Aop( GenefxState *gfxs )
           s |= (S[(i+SperD)>>16]  & 0xff00) << 16;
 #endif
           if (s != Skey)
-               *((__u32*)D) = s;
+               *((u32*)D) = s;
           D += 2;
 
           i += SperD << 1;
      }
 
      if (w & 1) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
           if (i & 0x20000) {
                if (s != Skey1)
                     *D = s;
@@ -2173,13 +2173,13 @@ static void Bop_alut44_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u8  *D     = gfxs->Aop[0];
-     __u8  *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u8    *D     = gfxs->Aop[0];
+     u8    *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           if ((s & 0x0f) != Skey)
                *D = s;
@@ -2193,13 +2193,13 @@ static void Bop_argb2554_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if ((s & 0x3FFF) != Skey)
                *D = s;
@@ -2213,13 +2213,13 @@ static void Bop_argb4444_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
      int    i     = 0;
-     __u16 *D     = gfxs->Aop[0];
-     __u16 *S     = gfxs->Bop[0];
-     __u32  Skey  = gfxs->Skey;
+     u16   *D     = gfxs->Aop[0];
+     u16   *S     = gfxs->Bop[0];
+     u32    Skey  = gfxs->Skey;
      int    SperD = gfxs->SperD;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if ((s & 0x0FFF) != Skey)
                *D = s;
@@ -2326,10 +2326,10 @@ static void Sop_argb1555_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           D->RGB.a = (s & 0x8000) ? 0xff : 0;
           D->RGB.r = (s & 0x7C00) >> 7;
@@ -2349,10 +2349,10 @@ static void Sop_rgb16_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           D->RGB.a = 0xFF;
           D->RGB.r = (s & 0xF800) >> 8;
@@ -2372,15 +2372,15 @@ static void Sop_argb6666_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = (S[pixelstart+0] & 0x3F) << 2;
-          __u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[pixelstart+0] & 0x3F) << 2;
+          u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
 
           D->RGB.a = a;
           D->RGB.r = r;
@@ -2398,15 +2398,15 @@ static void Sop_argb1666_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = (S[pixelstart+0] & 0x3F) << 2;
-          __u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[pixelstart+0] & 0x3F) << 2;
+          u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
           a = (a == 1) ? 0xFF: 0; 
 
           D->RGB.a = a;
@@ -2425,14 +2425,14 @@ static void Sop_rgb18_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = (S[pixelstart+0] & 0x3F) << 2;
-          __u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
+          u8 b = (S[pixelstart+0] & 0x3F) << 2;
+          u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
 
           D->RGB.a = 0xFF;
           D->RGB.r = r;
@@ -2450,7 +2450,7 @@ static void Sop_rgb24_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           int pixelstart = (i>>16)*3;
@@ -2473,10 +2473,10 @@ static void Sop_rgb32_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
 
           D->RGB.a = 0xFF;
           D->RGB.r = (s & 0x00FF0000) >> 16;
@@ -2496,10 +2496,10 @@ static void Sop_argb_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
 
           D->RGB.a = (s & 0xFF000000) >> 24;
           D->RGB.r = (s & 0x00FF0000) >> 16;
@@ -2519,10 +2519,10 @@ static void Sop_airgb_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
 
           D->RGB.a = ((s & 0xFF000000) >> 24) ^ 0xff;
           D->RGB.r = (s & 0x00FF0000) >> 16;
@@ -2542,10 +2542,10 @@ static void Sop_a8_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           D->RGB.a = s;
           D->RGB.r = 0xFF;
@@ -2565,10 +2565,10 @@ static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
      int  SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>17];
+          u32 s = S[i>>17];
 
           D[0].YUV.a = D[1].YUV.a = 0xFF;
 #ifdef WORDS_BIGENDIAN
@@ -2578,15 +2578,15 @@ static void Sop_yuy2_Sto_Dacc( GenefxState *gfxs )
           D[0].YUV.u = D[1].YUV.u = (s & 0x0000FF00) >>  8;
           D[0].YUV.v = D[1].YUV.v = (s & 0xFF000000) >> 24;
 #endif
-          D[0].YUV.y = ((__u16*)S)[i>>16]         & 0x00FF;
-          D[1].YUV.y = ((__u16*)S)[(i+SperD)>>16] & 0x00FF;
+          D[0].YUV.y = ((u16*)S)[i>>16]         & 0x00FF;
+          D[1].YUV.y = ((u16*)S)[(i+SperD)>>16] & 0x00FF;
 
           D += 2;
           i += SperD << 1;
      }
 
      if (gfxs->length & 1) {
-          __u16 s = ((__u16*)S)[i>>17];
+          u16 s = ((u16*)S)[i>>17];
 
           D->YUV.a = 0xFF;
           D->YUV.y = s & 0xFF;
@@ -2602,10 +2602,10 @@ static void Sop_rgb332_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           D->RGB.a = 0xFF;
           D->RGB.r = EXPAND_3to8(s >> 5);
@@ -2625,10 +2625,10 @@ static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
      int  SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>17];
+          u32 s = S[i>>17];
 
           D[0].YUV.a = D[1].YUV.a = 0xFF;
 #ifdef WORDS_BIGENDIAN
@@ -2638,15 +2638,15 @@ static void Sop_uyvy_Sto_Dacc( GenefxState *gfxs )
           D[0].YUV.u = D[1].YUV.u = (s & 0x000000FF);
           D[0].YUV.v = D[1].YUV.v = (s & 0x00FF0000) >> 16;
 #endif
-          D[0].YUV.y = (((__u16*)S)[i>>16]         & 0xFF00) >> 8;
-          D[1].YUV.y = (((__u16*)S)[(i+SperD)>>16] & 0xFF00) >> 8;
+          D[0].YUV.y = (((u16*)S)[i>>16]         & 0xFF00) >> 8;
+          D[1].YUV.y = (((u16*)S)[(i+SperD)>>16] & 0xFF00) >> 8;
 
           D += 2;
           i += SperD << 1;
      }
 
      if (gfxs->length & 1) {
-          __u16 s = ((__u16*)S)[i>>16];
+          u16 s = ((u16*)S)[i>>16];
 
           D->YUV.a = 0xFF;
           D->YUV.y = s >> 8;
@@ -2662,12 +2662,12 @@ static void Sop_lut8_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           D->RGB.a = entries[s].a;
           D->RGB.r = entries[s].r;
@@ -2687,12 +2687,12 @@ static void Sop_alut44_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           D->RGB.a = s & 0xF0;
           s &= 0x0F;
@@ -2713,10 +2713,10 @@ static void Sop_argb2554_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           D->RGB.a = EXPAND_2to8((s         ) >> 14);
           D->RGB.r = EXPAND_5to8((s & 0x3E00) >>  9);
@@ -2736,10 +2736,10 @@ static void Sop_argb4444_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           D->RGB.a = EXPAND_4to8((s         ) >> 12);
           D->RGB.r = EXPAND_4to8((s & 0x0F00) >>  8);
@@ -2759,9 +2759,9 @@ static void Sop_i420_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D  = gfxs->Dacc;
-     __u8              *Sy = gfxs->Sop[0];
-     __u8              *Su = gfxs->Sop[1];
-     __u8              *Sv = gfxs->Sop[2];
+     u8                *Sy = gfxs->Sop[0];
+     u8                *Su = gfxs->Sop[1];
+     u8                *Sv = gfxs->Sop[2];
 
      while (w--) {
           D->YUV.a = 0xFF;
@@ -2782,8 +2782,8 @@ static void Sop_nv12_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D   = gfxs->Dacc;
-     __u8              *Sy  = gfxs->Sop[0];
-     __u16             *Suv = gfxs->Sop[1];
+     u8                *Sy  = gfxs->Sop[0];
+     u16               *Suv = gfxs->Sop[1];
      
      while (w--) {
           D->YUV.a = 0xFF;
@@ -2804,8 +2804,8 @@ static void Sop_nv21_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D   = gfxs->Dacc;
-     __u8              *Sy  = gfxs->Sop[0];
-     __u16             *Svu = gfxs->Sop[1];
+     u8                *Sy  = gfxs->Sop[0];
+     u16               *Svu = gfxs->Sop[1];
      
      while (w--) {
           D->YUV.a = 0xFF;
@@ -2826,10 +2826,10 @@ static void Sop_ayuv_Sto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
           
           D->YUV.a = (s >> 24);
           D->YUV.y = (s >> 16) & 0xff;
@@ -2879,11 +2879,11 @@ static void Sop_argb1555_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if ((s & 0x7fff) != Skey) {
                D->RGB.a = (s & 0x8000) ? 0xff : 0;
@@ -2907,11 +2907,11 @@ static void Sop_rgb16_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if (s != Skey) {
                D->RGB.a = 0xFF;
@@ -2933,20 +2933,20 @@ static void Sop_argb6666_SKto_Dacc( GenefxState *gfxs )
      int w     = gfxs->length;
      int i     = 0;
      int SperD = gfxs->SperD;
-     __u32 Skey = gfxs->Skey;
+     u32 Skey = gfxs->Skey;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = (S[pixelstart+0] & 0x3F) << 2;
-          __u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[pixelstart+0] & 0x3F) << 2;
+          u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = a;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -2967,18 +2967,18 @@ static void Sop_argb1666_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
-     __u32 Skey = gfxs->Skey;
+     u8                *S = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = (S[pixelstart+0] & 0x3F) << 2;
-          __u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[pixelstart+0] & 0x3F) << 2;
+          u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[pixelstart+2] >> 2) & 0x3F)) << 2;
           a = (a == 1) ? 0xFF: 0; 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = 0xFF;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -2996,18 +2996,18 @@ static void Sop_rgb18_SKto_Dacc( GenefxState *gfxs )
      int w     = gfxs->length;
      int i     = 0;
      int SperD = gfxs->SperD;
-     __u32 Skey = gfxs->Skey;
+     u32  Skey = gfxs->Skey;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           int pixelstart = (i>>16)*3;
-          __u8 b = (S[pixelstart+0] & 0x3F) << 2;
-          __u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
+          u8 b = (S[pixelstart+0] & 0x3F) << 2;
+          u8 g = (((S[pixelstart+0] >> 6) & 0x3) | ((S[pixelstart+1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[pixelstart+1] >> 4) & 0xF) | (S[pixelstart+2] & 0x3 << 4)) << 2 ;
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = 0xFF;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -3028,17 +3028,17 @@ static void Sop_rgb24_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
           int pixelstart = (i>>16)*3;
 
-          __u8 b = S[pixelstart+0];
-          __u8 g = S[pixelstart+1];
-          __u8 r = S[pixelstart+2];
+          u8 b = S[pixelstart+0];
+          u8 g = S[pixelstart+1];
+          u8 r = S[pixelstart+2];
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = 0xFF;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -3060,11 +3060,11 @@ static void Sop_rgb32_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u32             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u32               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u32 s = S[i>>16] & 0x00FFFFFF;
+          u32 s = S[i>>16] & 0x00FFFFFF;
 
           if (s != Skey) {
                D->RGB.a = 0xFF;
@@ -3089,11 +3089,11 @@ static void Sop_argb_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u32             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u32               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
 
           if ((s & 0xffffff) != Skey) {
                D->RGB.a = (s & 0xFF000000) >> 24;
@@ -3117,11 +3117,11 @@ static void Sop_airgb_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u32             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u32               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u32 s = S[i>>16];
+          u32 s = S[i>>16];
 
           if ((s & 0xffffff) != Skey) {
                D->RGB.a = ((s & 0xFF000000) >> 24) ^ 0xff;
@@ -3145,11 +3145,11 @@ static void Sop_a8_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      /* no color to key */
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           D->RGB.a = s;
           D->RGB.r = 0xFF;
@@ -3169,13 +3169,13 @@ static void Sop_lut8_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           if (s != Skey) {
                D->RGB.a = entries[s].a;
@@ -3199,13 +3199,13 @@ static void Sop_alut44_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           if ((s & 0x0F) != Skey) {
                D->RGB.a = ((s & 0xF0) >> 4) | (s & 0xF0);
@@ -3228,21 +3228,21 @@ static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
      int   w     = gfxs->length>>1;
      int   i     = gfxs->Xphase;
      int   SperD = gfxs->SperD;
-     __u32 Ky    = (gfxs->Skey & 0x000000FF);
+     u32   Ky    = (gfxs->Skey & 0x000000FF);
 #ifdef WORDS_BIGENDIAN
-     __u32 Kcb   = (gfxs->Skey & 0xFF000000) >> 24;
-     __u32 Kcr   = (gfxs->Skey & 0x0000FF00) >>  8;
+     u32   Kcb   = (gfxs->Skey & 0xFF000000) >> 24;
+     u32   Kcr   = (gfxs->Skey & 0x0000FF00) >>  8;
 #else
-     __u32 Kcb   = (gfxs->Skey & 0x0000FF00) >>  8;
-     __u32 Kcr   = (gfxs->Skey & 0xFF000000) >> 24;
+     u32   Kcb   = (gfxs->Skey & 0x0000FF00) >>  8;
+     u32   Kcr   = (gfxs->Skey & 0xFF000000) >> 24;
 #endif
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>17];
-          __u32 y0, cb, y1, cr;
+          u32 s = S[i>>17];
+          u32 y0, cb, y1, cr;
 
 #ifdef WORDS_BIGENDIAN
           cb = (s & 0xFF000000) >> 24;
@@ -3251,8 +3251,8 @@ static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
           cb = (s & 0x0000FF00) >>  8;
           cr = (s & 0xFF000000) >> 24;
 #endif
-          y0 = ((__u16*)S)[i>>16]         & 0x00FF;
-          y1 = ((__u16*)S)[(i+SperD)>>16] & 0x00FF;
+          y0 = ((u16*)S)[i>>16]         & 0x00FF;
+          y1 = ((u16*)S)[(i+SperD)>>16] & 0x00FF;
 
           if (y0 != Ky || cb != Kcb || cr != Kcr) {
                D[0].YUV.a = 0xFF;
@@ -3277,7 +3277,7 @@ static void Sop_yuy2_SKto_Dacc( GenefxState *gfxs )
      }
 
      if (gfxs->length & 1) {
-          __u16 s = ((__u16*)S)[i>>16];
+          u16 s = ((u16*)S)[i>>16];
 
           if (s != (Ky | (Kcb << 8))) {
                D->YUV.a = 0xFF;
@@ -3297,11 +3297,11 @@ static void Sop_rgb332_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u8               Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u8                 Skey = gfxs->Skey;
 
      while (w--) {
-          __u8 s = S[i>>16];
+          u8 s = S[i>>16];
 
           if (s != Skey) {
                D->RGB.a = 0xFF;
@@ -3323,21 +3323,21 @@ static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
      int   w     = gfxs->length>>1;
      int   i     = gfxs->Xphase;
      int   SperD = gfxs->SperD;
-     __u32 Ky    = (gfxs->Skey & 0x0000FF00) >>  8;
+     u32 Ky      = (gfxs->Skey & 0x0000FF00) >>  8;
 #ifdef WORDS_BIGENDIAN
-     __u32 Kcb   = (gfxs->Skey & 0x00FF0000) >> 16;
-     __u32 Kcr   = (gfxs->Skey & 0x000000FF);
+     u32 Kcb     = (gfxs->Skey & 0x00FF0000) >> 16;
+     u32 Kcr     = (gfxs->Skey & 0x000000FF);
 #else
-     __u32 Kcb   = (gfxs->Skey & 0x000000FF);
-     __u32 Kcr   = (gfxs->Skey & 0x00FF0000) >> 16;
+     u32 Kcb     = (gfxs->Skey & 0x000000FF);
+     u32 Kcr     = (gfxs->Skey & 0x00FF0000) >> 16;
 #endif
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = S[i>>17];
-          __u32 cb, y0, cr, y1;
+          u32 s = S[i>>17];
+          u32 cb, y0, cr, y1;
 
 #ifdef WORDS_BIGENDIAN
           cb = (s & 0x00FF0000) >> 16;
@@ -3346,8 +3346,8 @@ static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
           cb = (s & 0x000000FF);
           cr = (s & 0x00FF0000) >> 16;
 #endif
-          y0 = (((__u16*)S)[i>>16]         & 0xFF00) >> 8;
-          y1 = (((__u16*)S)[(i+SperD)>>16] & 0xFF00) >> 8;
+          y0 = (((u16*)S)[i>>16]         & 0xFF00) >> 8;
+          y1 = (((u16*)S)[(i+SperD)>>16] & 0xFF00) >> 8;
 
           if (y0 != Ky || cb != Kcb || cr != Kcr) {
                D[0].YUV.a = 0xFF;
@@ -3372,7 +3372,7 @@ static void Sop_uyvy_SKto_Dacc( GenefxState *gfxs )
      }
 
      if (gfxs->length & 1) {
-          __u16 s = ((__u16*)S)[i>>16];
+          u16 s = ((u16*)S)[i>>16];
 
           if (s != (Kcb | (Ky << 8))) {
                D->YUV.a = 0xFF;
@@ -3392,11 +3392,11 @@ static void Sop_argb2554_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u16              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u16                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if ((s & 0x3FFF) != Skey) {
                D->RGB.a = EXPAND_2to8((s         ) >> 14);
@@ -3420,11 +3420,11 @@ static void Sop_argb4444_SKto_Dacc( GenefxState *gfxs )
      int SperD = gfxs->SperD;
 
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u16              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u16                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = S[i>>16];
+          u16 s = S[i>>16];
 
           if ((s & 0x0FFF) != Skey) {
                D->RGB.a = EXPAND_4to8((s         ) >> 12);
@@ -3476,10 +3476,10 @@ static void Sop_argb1555_to_Dacc( GenefxState *gfxs )
      int                l;
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      if (((long)S)&2) {
-          __u16 spixel = *S;
+          u16 spixel = *S;
 
           D->RGB.a = (spixel & 0x8000) ? 0xff : 0;
           D->RGB.r = (spixel & 0x7C00) >> 7;
@@ -3493,7 +3493,7 @@ static void Sop_argb1555_to_Dacc( GenefxState *gfxs )
 
      l = w >> 1;
      while (l) {
-          __u32 spixel2 = *((__u32*)S);
+          u32 spixel2 = *((u32*)S);
 
 #ifdef WORDS_BIGENDIAN
           D[0].RGB.a = (spixel2 & 0x80000000) ? 0xff : 0;
@@ -3524,7 +3524,7 @@ static void Sop_argb1555_to_Dacc( GenefxState *gfxs )
      }
 
      if (w&1) {
-          __u16 spixel = *S;
+          u16 spixel = *S;
 
           D->RGB.a = (spixel & 0x8000) ? 0xff : 0;
           D->RGB.r = (spixel & 0x7C00) >> 7;
@@ -3538,10 +3538,10 @@ static void Sop_rgb16_to_Dacc( GenefxState *gfxs )
      int                l;
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      if (((long)S)&2) {
-          __u16 spixel = *S;
+          u16 spixel = *S;
 
           D->RGB.a = 0xFF;
           D->RGB.r = (spixel & 0xF800) >> 8;
@@ -3555,7 +3555,7 @@ static void Sop_rgb16_to_Dacc( GenefxState *gfxs )
 
      l = w >> 1;
      while (l) {
-          __u32 spixel2 = *((__u32*)S);
+          u32 spixel2 = *((u32*)S);
 
 #ifdef WORDS_BIGENDIAN
           D[0].RGB.a = 0xFF;
@@ -3586,7 +3586,7 @@ static void Sop_rgb16_to_Dacc( GenefxState *gfxs )
      }
 
      if (w&1) {
-          __u16 spixel = *S;
+          u16 spixel = *S;
 
           D->RGB.a = 0xFF;
           D->RGB.r = (spixel & 0xF800) >> 8;
@@ -3600,13 +3600,13 @@ static void Sop_argb6666_to_Dacc( GenefxState *gfxs )
      int w     = gfxs->length;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
-          __u8 b = (S[0] & 0x3F) << 2;
-          __u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[0] & 0x3F) << 2;
+          u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
 
           D->RGB.a = a;
           D->RGB.r = r;
@@ -3622,13 +3622,13 @@ static void Sop_argb1666_to_Dacc( GenefxState *gfxs )
      int w     = gfxs->length;
 
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
-          __u8 b = (S[0] & 0x3F) << 2;
-          __u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[1] >> 4) & 0xF) | ( (S[2] & 0x3) << 4)) << 2 ;
-          __u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[0] & 0x3F) << 2;
+          u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[1] >> 4) & 0xF) | ( (S[2] & 0x3) << 4)) << 2 ;
+          u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
           a = (a > 0 ) ? 0xFF: 0; 
 
           D->RGB.a = a;
@@ -3644,12 +3644,12 @@ static void Sop_rgb18_to_Dacc( GenefxState *gfxs )
 {
      int w     = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
-          __u8 b = (S[0] & 0x3F) << 2;
-          __u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
+          u8 b = (S[0] & 0x3F) << 2;
+          u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
 
           D->RGB.a = 0xFF;
           D->RGB.r = r;
@@ -3664,7 +3664,7 @@ static void Sop_rgb24_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           D->RGB.a = 0xFF;
@@ -3680,7 +3680,7 @@ static void Sop_a8_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
           D->RGB.a = *S++;
@@ -3696,7 +3696,7 @@ static void Sop_a4_to_Dacc( GenefxState *gfxs )
 {
      int                i, n;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      for (i=0, n=0; i<gfxs->length; i+=2, n++) {
           register int left  = S[n] & 0xF0;
@@ -3718,10 +3718,10 @@ static void Sop_rgb32_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           D->RGB.a = 0xFF;
           D->RGB.r = (s & 0xFF0000) >> 16;
@@ -3736,10 +3736,10 @@ static void Sop_argb_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           D->RGB.a = (s & 0xFF000000) >> 24;
           D->RGB.r = (s & 0x00FF0000) >> 16;
@@ -3754,10 +3754,10 @@ static void Sop_airgb_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           D->RGB.a = ((s & 0xFF000000) >> 24) ^ 0xff;
           D->RGB.r = (s & 0x00FF0000) >> 16;
@@ -3772,10 +3772,10 @@ static void Sop_yuy2_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length>>1;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           D[0].YUV.a = D[1].YUV.a = 0xFF;
 #ifdef WORDS_BIGENDIAN
@@ -3794,7 +3794,7 @@ static void Sop_yuy2_to_Dacc( GenefxState *gfxs )
      }
 
      if (gfxs->length & 1) {
-          __u16 s = *((__u16*)S);
+          u16 s = *((u16*)S);
 
           D->YUV.a = 0xFF;
           D->YUV.y = s & 0xFF;
@@ -3807,10 +3807,10 @@ static void Sop_rgb332_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      while (w--) {
-          __u8 s = *S++;
+          u8 s = *S++;
 
           D->RGB.a = 0xFF;
           D->RGB.r = EXPAND_3to8(s >> 5);
@@ -3825,10 +3825,10 @@ static void Sop_uyvy_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length>>1;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           D[0].YUV.a = D[1].YUV.a = 0xFF;
 #ifdef WORDS_BIGENDIAN
@@ -3847,7 +3847,7 @@ static void Sop_uyvy_to_Dacc( GenefxState *gfxs )
      }
 
      if (gfxs->length & 1) {
-          __u16 s = *((__u16*)S);
+          u16 s = *((u16*)S);
 
           D->YUV.a = 0xFF;
           D->YUV.y = s >> 8;
@@ -3860,12 +3860,12 @@ static void Sop_lut8_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = *S++;
+          u8 s = *S++;
 
           D->RGB.a = entries[s].a;
           D->RGB.r = entries[s].r;
@@ -3880,12 +3880,12 @@ static void Sop_alut44_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = *S++;
+          u8 s = *S++;
 
           D->RGB.a = s & 0xF0;
           s &= 0x0F;
@@ -3901,10 +3901,10 @@ static void Sop_argb2554_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u16 s = *S++;
+          u16 s = *S++;
 
           D->RGB.a = EXPAND_2to8((s         ) >> 14);
           D->RGB.r = EXPAND_5to8((s & 0x3E00) >>  9);
@@ -3919,10 +3919,10 @@ static void Sop_argb4444_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u16             *S = gfxs->Sop[0];
+     u16               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u16 s = *S++;
+          u16 s = *S++;
 
           D->RGB.a = EXPAND_4to8((s         ) >> 12);
           D->RGB.r = EXPAND_4to8((s & 0x0F00) >>  8);
@@ -3937,9 +3937,9 @@ static void Sop_i420_to_Dacc( GenefxState *gfxs )
 {
      int                w  = gfxs->length>>1;
      GenefxAccumulator *D  = gfxs->Dacc;
-     __u8              *Sy = gfxs->Sop[0];
-     __u8              *Su = gfxs->Sop[1];
-     __u8              *Sv = gfxs->Sop[2];
+     u8                *Sy = gfxs->Sop[0];
+     u8                *Su = gfxs->Sop[1];
+     u8                *Sv = gfxs->Sop[2];
      
      while (w--) {
           D[1].YUV.a = D[0].YUV.a = 0xFF;
@@ -3960,8 +3960,8 @@ static void Sop_nv12_to_Dacc( GenefxState *gfxs )
 {
      int                w   = gfxs->length>>1;
      GenefxAccumulator *D   = gfxs->Dacc;
-     __u8              *Sy  = gfxs->Sop[0];
-     __u16             *Suv = gfxs->Sop[1];
+     u8                *Sy  = gfxs->Sop[0];
+     u16               *Suv = gfxs->Sop[1];
      
      while (w--) {  
           D[1].YUV.a = D[0].YUV.a = 0xFF;
@@ -3981,8 +3981,8 @@ static void Sop_nv21_to_Dacc( GenefxState *gfxs )
 {
      int                w   = gfxs->length>>1;
      GenefxAccumulator *D   = gfxs->Dacc;
-     __u8              *Sy  = gfxs->Sop[0];
-     __u16             *Svu = gfxs->Sop[1];
+     u8                *Sy  = gfxs->Sop[0];
+     u16               *Svu = gfxs->Sop[1];
      
      while (w--) {  
           D[1].YUV.a = D[0].YUV.a = 0xFF;
@@ -4002,10 +4002,10 @@ static void Sop_ayuv_to_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u32             *S = gfxs->Sop[0];
+     u32               *S = gfxs->Sop[0];
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           D->YUV.a = (s >> 24);
           D->YUV.y = (s >> 16) & 0xff;
@@ -4050,11 +4050,11 @@ static void Sop_argb1555_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = *S++;
+          u16 s = *S++;
 
           if ((s & 0x7fff) != Skey) {
                D->RGB.a = (s & 0x8000) ? 0xff : 0;
@@ -4073,11 +4073,11 @@ static void Sop_rgb16_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = *S++;
+          u16 s = *S++;
 
           if (s != Skey) {
                D->RGB.a = 0xFF;
@@ -4096,16 +4096,16 @@ static void Sop_argb6666_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u8 b = (S[0] & 0x3F) << 2;
-          __u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[0] & 0x3F) << 2;
+          u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = a;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -4122,16 +4122,16 @@ static void Sop_argb1666_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u8 b = (S[0] & 0x3F) << 2;
-          __u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
-          __u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
+          u8 b = (S[0] & 0x3F) << 2;
+          u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
+          u8 a = (( (S[2] >> 2) & 0x3F)) << 2;
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = a;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -4148,15 +4148,15 @@ static void Sop_rgb18_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u8 b = (S[0] & 0x3F) << 2;
-          __u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
-          __u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
+          u8 b = (S[0] & 0x3F) << 2;
+          u8 g = (((S[0] >> 6) & 0x3) | ((S[1] & 0xF) << 2)) << 2 ;
+          u8 r = (((S[1] >> 4) & 0xF) | (S[2] & 0x3 << 4)) << 2 ;
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = 0xFF;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -4173,15 +4173,15 @@ static void Sop_rgb24_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u8 b = *S++;
-          __u8 g = *S++;
-          __u8 r = *S++;
+          u8 b = *S++;
+          u8 g = *S++;
+          u8 r = *S++;
 
-          if (Skey != (__u32)(r<<16 | g<<8 | b )) {
+          if (Skey != (u32)(r<<16 | g<<8 | b )) {
                D->RGB.a = 0xFF;
                D->RGB.r = r;
                D->RGB.g = g;
@@ -4198,11 +4198,11 @@ static void Sop_rgb32_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u32             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u32               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u32 s = *S++ & 0x00FFFFFF;
+          u32 s = *S++ & 0x00FFFFFF;
 
           if (s != Skey) {
                D->RGB.a = 0xFF;
@@ -4221,11 +4221,11 @@ static void Sop_argb_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u32             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u32               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           if ((s & 0xFFFFFF) != Skey) {
                D->RGB.a = s >> 24;
@@ -4244,11 +4244,11 @@ static void Sop_airgb_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u32             *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u32               *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           if ((s & 0xFFFFFF) != Skey) {
                D->RGB.a = (s >> 24) ^ 0xff;
@@ -4267,7 +4267,7 @@ static void Sop_a8_Kto_Dacc( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *D = gfxs->Dacc;
-     __u8              *S = gfxs->Sop[0];
+     u8                *S = gfxs->Sop[0];
 
      /* no color to key */
      while (w--) {
@@ -4284,10 +4284,10 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
 {
      int                w     = gfxs->length>>1;
      GenefxAccumulator *D     = gfxs->Dacc;
-     __u32             *S     = gfxs->Sop[0];
-     __u32              Skey  = gfxs->Skey;
-     __u32              Skey0 = gfxs->Skey & 0xFF00FFFF;
-     __u32              Skey1 = gfxs->Skey & 0xFFFFFF00;
+     u32               *S     = gfxs->Sop[0];
+     u32                Skey  = gfxs->Skey;
+     u32                Skey0 = gfxs->Skey & 0xFF00FFFF;
+     u32                Skey1 = gfxs->Skey & 0xFFFFFF00;
 
 #ifdef WORDS_BIGENDIAN
 #define S0_MASK  0xFFFFFF00
@@ -4298,10 +4298,10 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
 #endif
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           if (s != Skey) {
-               __u32 cb, cr;
+               u32 cb, cr;
 
 #ifdef WORDS_BIGENDIAN
                cb = (s & 0xFF000000) >> 24;
@@ -4342,7 +4342,7 @@ static void Sop_yuy2_Kto_Dacc( GenefxState *gfxs )
      }
 
      if (gfxs->length & 1) {
-          __u16 s = *((__u16*)S);
+          u16 s = *((u16*)S);
 
           if (s != Skey0) {
                D->YUV.a = 0xFF;
@@ -4361,11 +4361,11 @@ static void Sop_rgb332_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      while (w--) {
-          __u8 s = *S++;
+          u8 s = *S++;
 
           if (s != Skey) {
                D->RGB.a = 0xFF;
@@ -4384,10 +4384,10 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
 {
      int                w     = gfxs->length>>1;
      GenefxAccumulator *D     = gfxs->Dacc;
-     __u32             *S     = gfxs->Sop[0];
-     __u32              Skey  = gfxs->Skey;
-     __u32              Skey0 = gfxs->Skey & 0x00FFFFFF;
-     __u32              Skey1 = gfxs->Skey & 0xFFFF00FF;
+     u32               *S     = gfxs->Sop[0];
+     u32                Skey  = gfxs->Skey;
+     u32                Skey0 = gfxs->Skey & 0x00FFFFFF;
+     u32                Skey1 = gfxs->Skey & 0xFFFF00FF;
 
 #ifdef WORDS_BIGENDIAN
 #define S0_MASK 0xFFFF00FF
@@ -4398,10 +4398,10 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
 #endif
 
      while (w--) {
-          __u32 s = *S++;
+          u32 s = *S++;
 
           if (s != Skey) {
-               __u32 cb, cr;
+               u32 cb, cr;
 
 #ifdef WORDS_BIGENDIAN
                cb = (s & 0x00FF0000) >> 16;
@@ -4442,7 +4442,7 @@ static void Sop_uyvy_Kto_Dacc( GenefxState *gfxs )
      }
 
      if (gfxs->length & 1) {
-          __u16 s = *((__u16*)S);
+          u16 s = *((u16*)S);
 
           if (s != Skey0) {
                D->YUV.a = 0xFF;
@@ -4461,13 +4461,13 @@ static void Sop_lut8_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = *S++;
+          u8 s = *S++;
 
           if (s != Skey) {
                D->RGB.a = entries[s].a;
@@ -4486,13 +4486,13 @@ static void Sop_alut44_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u8              *S    = gfxs->Sop[0];
-     __u32              Skey = gfxs->Skey;
+     u8                *S    = gfxs->Sop[0];
+     u32                Skey = gfxs->Skey;
 
      DFBColor *entries = gfxs->Slut->entries;
 
      while (w--) {
-          __u8 s = *S++;
+          u8 s = *S++;
 
           if ((s & 0x0F) != Skey) {
                D->RGB.a = ((s & 0xF0) >> 4) | (s & 0xF0);
@@ -4512,11 +4512,11 @@ static void Sop_argb2554_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u16              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u16                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = *S++;
+          u16 s = *S++;
 
           if ((s & 0x3FFF) != Skey) {
                D->RGB.a = EXPAND_2to8((s         ) >> 14);
@@ -4535,11 +4535,11 @@ static void Sop_argb4444_Kto_Dacc( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *D    = gfxs->Dacc;
-     __u16             *S    = gfxs->Sop[0];
-     __u16              Skey = gfxs->Skey;
+     u16               *S    = gfxs->Sop[0];
+     u16                Skey = gfxs->Skey;
 
      while (w--) {
-          __u16 s = *S++;
+          u16 s = *S++;
 
           if ((s & 0x0FFF) != Skey) {
                D->RGB.a = EXPAND_4to8((s         ) >> 12);
@@ -4588,7 +4588,7 @@ static void Sacc_to_Aop_argb1555( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u16             *D = gfxs->Aop[0];
+     u16               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4608,7 +4608,7 @@ static void Sacc_to_Aop_rgb16( GenefxState *gfxs )
      int                l;
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u16             *D = gfxs->Aop[0];
+     u16               *D = gfxs->Aop[0];
 
      if ((long) D & 2) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4624,7 +4624,7 @@ static void Sacc_to_Aop_rgb16( GenefxState *gfxs )
 
      l = w >> 1;
      while (l) {
-          __u32 *D2 = (__u32*) D;
+          u32 *D2 = (u32*) D;
 
           if (!(S[0].RGB.a & 0xF000) && !(S[1].RGB.a & 0xF000)) {
 #ifdef WORDS_BIGENDIAN
@@ -4676,14 +4676,14 @@ static void Sacc_to_Aop_argb6666( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
-               __u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
-               __u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
-               __u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
-               __u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
+               u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
+               u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
 
                D[0] =  b | (g << 6 );
                D[1] = ( g >> 2 ) |(r << 4 );
@@ -4698,14 +4698,14 @@ static void Sacc_to_Aop_argb1666( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
-               __u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
-               __u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
-               __u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
-               __u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
+               u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
+               u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
                a = a > 0 ? 0x4:0;
 
                D[0] =  b | (g << 6 );
@@ -4721,13 +4721,13 @@ static void Sacc_to_Aop_rgb18( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
-               __u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
-               __u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
-               __u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
+               u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
+               u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
 
                D[0] =  b | (g << 6 );
                D[1] = ( g >> 2 ) |(r << 4 );
@@ -4742,7 +4742,7 @@ static void Sacc_to_Aop_rgb24( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4761,7 +4761,7 @@ static void Sacc_to_Aop_rgb32( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u32             *D = gfxs->Aop[0];
+     u32               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4779,7 +4779,7 @@ static void Sacc_to_Aop_argb( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u32             *D = gfxs->Aop[0];
+     u32               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4798,7 +4798,7 @@ static void Sacc_to_Aop_airgb( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u32             *D = gfxs->Aop[0];
+     u32               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4817,7 +4817,7 @@ static void Sacc_to_Aop_a8( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000))
@@ -4833,7 +4833,7 @@ static void Sacc_to_Aop_yuy2( GenefxState *gfxs )
      int                l;
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u16             *D = gfxs->Aop[0];
+     u16               *D = gfxs->Aop[0];
 
      if ((long)D & 2) {
           if (!(S->YUV.a & 0xF00)) {
@@ -4847,7 +4847,7 @@ static void Sacc_to_Aop_yuy2( GenefxState *gfxs )
 
      for (l = w>>1; l--;) {
           if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
-               __u32 y0, cb, y1, cr;
+               u32 y0, cb, y1, cr;
 
                y0 = (S[0].YUV.y & 0xFF00) ? 0xFF : S[0].YUV.y;
                y1 = (S[1].YUV.y & 0xFF00) ? 0xFF : S[1].YUV.y;
@@ -4861,9 +4861,9 @@ static void Sacc_to_Aop_yuy2( GenefxState *gfxs )
                     cr = 0xFF;
 
 #ifdef WORDS_BIGENDIAN
-               *((__u32*)D) = y1 | (cr << 8) | (y0 << 16) | (cb << 24);
+               *((u32*)D) = y1 | (cr << 8) | (y0 << 16) | (cb << 24);
 #else
-               *((__u32*)D) = y0 | (cb << 8) | (y1 << 16) | (cr << 24);
+               *((u32*)D) = y0 | (cb << 8) | (y1 << 16) | (cr << 24);
 #endif
           }
           else if (!(S[0].YUV.a & 0xF000)) {
@@ -4891,7 +4891,7 @@ static void Sacc_to_Aop_rgb332( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4910,7 +4910,7 @@ static void Sacc_to_Aop_uyvy( GenefxState *gfxs )
      int                l;
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u16             *D = gfxs->Aop[0];
+     u16               *D = gfxs->Aop[0];
 
      if ((long)D & 2) {
           if (!(S->YUV.a & 0xF00)) {
@@ -4924,7 +4924,7 @@ static void Sacc_to_Aop_uyvy( GenefxState *gfxs )
 
      for (l = w>>1; l--;) {
           if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
-               __u32 cb, y0, cr, y1;
+               u32 cb, y0, cr, y1;
 
                y0 = (S[0].YUV.y & 0xFF00) ? 0xFF : S[0].YUV.y;
                y1 = (S[1].YUV.y & 0xFF00) ? 0xFF : S[1].YUV.y;
@@ -4938,9 +4938,9 @@ static void Sacc_to_Aop_uyvy( GenefxState *gfxs )
                     cr = 0xFF;
 
 #ifdef WORDS_BIGENDIAN
-               *((__u32*)D) = cr | (y1 << 8) | (cb << 16) | (y0 << 24);
+               *((u32*)D) = cr | (y1 << 8) | (cb << 16) | (y0 << 24);
 #else
-               *((__u32*)D) = cb | (y0 << 8) | (cr << 16) | (y1 << 24);
+               *((u32*)D) = cb | (y0 << 8) | (cr << 16) | (y1 << 24);
 #endif
           }
           else if (!(S[0].YUV.a & 0xF000)) {
@@ -4968,7 +4968,7 @@ static void Sacc_to_Aop_lut8( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -4988,7 +4988,7 @@ static void Sacc_to_Aop_alut44( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -5009,7 +5009,7 @@ static void Sacc_to_Aop_argb2554( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u16             *D = gfxs->Aop[0];
+     u16               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -5028,7 +5028,7 @@ static void Sacc_to_Aop_argb4444( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u16             *D = gfxs->Aop[0];
+     u16               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->RGB.a & 0xF000)) {
@@ -5047,7 +5047,7 @@ static void Sacc_to_Aop_i420( GenefxState *gfxs )
 {
      int                w  = gfxs->length;
      GenefxAccumulator *S  = gfxs->Sacc;
-     __u8              *Dy = gfxs->Aop[0];
+     u8                *Dy = gfxs->Aop[0];
     
      while (w--) {
           if (!(S->YUV.a & 0xF000))
@@ -5058,15 +5058,15 @@ static void Sacc_to_Aop_i420( GenefxState *gfxs )
      }
           
      if (gfxs->AopY & 1) {
-          __u8 *Du = gfxs->Aop[1];
-          __u8 *Dv = gfxs->Aop[2];
+          u8 *Du = gfxs->Aop[1];
+          u8 *Dv = gfxs->Aop[2];
           
           w = gfxs->length>>1;
           S = gfxs->Sacc;
           
           while (w--) {
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
-                    __u32 tmp;
+                    u32 tmp;
 
                     tmp = (S[0].YUV.u + S[1].YUV.u) >> 1;
                     if (tmp & 0xFF00)
@@ -5099,7 +5099,7 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
 {
      int                w  = gfxs->length;
      GenefxAccumulator *S  = gfxs->Sacc;
-     __u8              *Dy = gfxs->Aop[0];
+     u8                *Dy = gfxs->Aop[0];
      
      while (w--) {
           if (!(S->YUV.a & 0xF000))
@@ -5110,13 +5110,13 @@ static void Sacc_to_Aop_nv12( GenefxState *gfxs )
      }
           
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
-          __u16 *Duv = gfxs->Aop[1];
+          u16 *Duv = gfxs->Aop[1];
           
           w = gfxs->length>>1;
           S = gfxs->Sacc;
           
           while (w--) {
-               __u32 cb, cr;
+               u32 cb, cr;
                
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
                     cb = (S[0].YUV.u + S[1].YUV.u) >> 1;
@@ -5150,7 +5150,7 @@ static void Sacc_to_Aop_nv21( GenefxState *gfxs )
 {
      int                w  = gfxs->length;
      GenefxAccumulator *S  = gfxs->Sacc;
-     __u8              *Dy = gfxs->Aop[0];
+     u8                *Dy = gfxs->Aop[0];
      
      while (w--) {
           if (!(S->YUV.a & 0xF000))
@@ -5161,13 +5161,13 @@ static void Sacc_to_Aop_nv21( GenefxState *gfxs )
      }
           
      if (gfxs->AopY & 1) {
-          __u16 *Dvu = gfxs->Aop[1];
+          u16 *Dvu = gfxs->Aop[1];
           
           w = gfxs->length>>1;
           S = gfxs->Sacc;
           
           while (w--) {
-               __u32 cb, cr;
+               u32 cb, cr;
                
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
                     cb = (S[0].YUV.u + S[1].YUV.u) >> 1;
@@ -5201,7 +5201,7 @@ static void Sacc_to_Aop_ayuv( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u32             *D = gfxs->Aop[0];
+     u32               *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S->YUV.a & 0xF000)) {
@@ -5220,7 +5220,7 @@ static void Sacc_to_Aop_a4( GenefxState *gfxs )
 {
      int                w = gfxs->length>>1;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      while (w--) {
           if (!(S[0].RGB.a & 0xF000) && !(S[1].RGB.a & 0xF000)) {
@@ -5279,7 +5279,7 @@ static void Sacc_Sto_Aop_argb1555( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u16             *D     = gfxs->Aop[0];
+     u16               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5303,7 +5303,7 @@ static void Sacc_Sto_Aop_rgb16( GenefxState *gfxs )
      int                w      = gfxs->length;
      int                i      = gfxs->Xphase;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
-     __u16             *D      = gfxs->Aop[0];
+     u16               *D      = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
      int                SperD2 = gfxs->SperD << 1;
 
@@ -5323,7 +5323,7 @@ static void Sacc_Sto_Aop_rgb16( GenefxState *gfxs )
      while (l--) {
           GenefxAccumulator *S0 = &Sacc[i>>16];
           GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
-          __u32             *D2 = (__u32*) D;
+          u32               *D2 = (u32*) D;
 
           if (!(S0->RGB.a & 0xF000) && !(S1->RGB.a & 0xF000)) {
 #ifdef WORDS_BIGENDIAN
@@ -5375,15 +5375,15 @@ static void Sacc_Sto_Aop_argb6666( GenefxState *gfxs )
      int                w    = gfxs->length;
      int                i     = 0;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
           GenefxAccumulator *S = &Sacc[i>>16];
-          __u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
-          __u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
-          __u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
-          __u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+          u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+          u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
+          u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
+          u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
 
           if (!(S->RGB.a & 0xF000)) {
                D[0] =  b | (g << 6 );
@@ -5400,15 +5400,15 @@ static void Sacc_Sto_Aop_argb1666( GenefxState *gfxs )
      int                w    = gfxs->length;
      int                i     = 0;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
           GenefxAccumulator *S = &Sacc[i>>16];
-          __u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
-          __u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
-          __u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
-          __u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+          u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+          u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
+          u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
+          u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
           a = a > 0 ? 0x4:0;
 
           if (!(S->RGB.a & 0xF000)) {
@@ -5426,14 +5426,14 @@ static void Sacc_Sto_Aop_rgb18( GenefxState *gfxs )
      int                w    = gfxs->length;
      int                i     = 0;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
           GenefxAccumulator *S = &Sacc[i>>16];
-          __u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
-          __u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
-          __u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
+          u8 b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+          u8 g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
+          u8 r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
 
           if (!(S->RGB.a & 0xF000)) {
                D[0] =  b | (g << 6 );
@@ -5450,7 +5450,7 @@ static void Sacc_Sto_Aop_rgb24( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5473,7 +5473,7 @@ static void Sacc_Sto_Aop_rgb32( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u32             *D     = gfxs->Aop[0];
+     u32               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5495,7 +5495,7 @@ static void Sacc_Sto_Aop_argb( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u32             *D     = gfxs->Aop[0];
+     u32               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5518,7 +5518,7 @@ static void Sacc_Sto_Aop_airgb( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u32             *D     = gfxs->Aop[0];
+     u32               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5541,7 +5541,7 @@ static void Sacc_Sto_Aop_a8( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5561,7 +5561,7 @@ static void Sacc_Sto_Aop_yuy2( GenefxState *gfxs )
      int                w      = gfxs->length;
      int                i      = gfxs->Xphase;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
-     __u16             *D      = gfxs->Aop[0];
+     u16               *D      = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
      int                SperD2 = gfxs->SperD << 1;
 
@@ -5581,7 +5581,7 @@ static void Sacc_Sto_Aop_yuy2( GenefxState *gfxs )
           GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
 
           if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
-               __u32 y0, cb, y1, cr;
+               u32 y0, cb, y1, cr;
 
                y0 = (S0->YUV.y & 0xFF00) ? 0xFF : S0->YUV.y;
                y1 = (S1->YUV.y & 0xFF00) ? 0xFF : S1->YUV.y;
@@ -5595,9 +5595,9 @@ static void Sacc_Sto_Aop_yuy2( GenefxState *gfxs )
                     cr = 0xFF;
 
 #ifdef WORDS_BIGENDIAN
-               *((__u32*)D) = y1 | (cr << 8) | (y0 << 16) | (cb << 24);
+               *((u32*)D) = y1 | (cr << 8) | (y0 << 16) | (cb << 24);
 #else
-               *((__u32*)D) = y0 | (cb << 8) | (y1 << 16) | (cr << 24);
+               *((u32*)D) = y0 | (cb << 8) | (y1 << 16) | (cr << 24);
 #endif
           }
           else if (!(S0->YUV.a & 0xF000)) {
@@ -5627,7 +5627,7 @@ static void Sacc_Sto_Aop_rgb332( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5650,7 +5650,7 @@ static void Sacc_Sto_Aop_uyvy( GenefxState *gfxs )
      int                w      = gfxs->length;
      int                i      = gfxs->Xphase;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
-     __u16             *D      = gfxs->Aop[0];
+     u16               *D      = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
      int                SperD2 = gfxs->SperD << 1;
 
@@ -5670,7 +5670,7 @@ static void Sacc_Sto_Aop_uyvy( GenefxState *gfxs )
           GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
 
           if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
-               __u32 cb, y0, cr, y1;
+               u32 cb, y0, cr, y1;
 
                y0 = (S0->YUV.y & 0xFF00) ? 0xFF : S0->YUV.y;
                y1 = (S1->YUV.y & 0xFF00) ? 0xFF : S1->YUV.y;
@@ -5684,9 +5684,9 @@ static void Sacc_Sto_Aop_uyvy( GenefxState *gfxs )
                     cr = 0xFF;
 
 #ifdef WORDS_BIGENDIAN
-               *((__u32*)D) = cr | (y1 << 8) | (cb << 16) | (y0 << 24);
+               *((u32*)D) = cr | (y1 << 8) | (cb << 16) | (y0 << 24);
 #else
-               *((__u32*)D) = cb | (y0 << 8) | (cr << 16) | (y1 << 24);
+               *((u32*)D) = cb | (y0 << 8) | (cr << 16) | (y1 << 24);
 #endif
           }
           else if (!(S0->YUV.a & 0xF000)) {
@@ -5716,7 +5716,7 @@ static void Sacc_Sto_Aop_lut8( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5740,7 +5740,7 @@ static void Sacc_Sto_Aop_alut44( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *D     = gfxs->Aop[0];
+     u8                *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5765,7 +5765,7 @@ static void Sacc_Sto_Aop_argb2554( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u16             *D     = gfxs->Aop[0];
+     u16               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5788,7 +5788,7 @@ static void Sacc_Sto_Aop_argb4444( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u16             *D     = gfxs->Aop[0];
+     u16               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -5811,7 +5811,7 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
      int                i      = gfxs->Xphase;
      int                w      = gfxs->length;
      GenefxAccumulator *Sacc   = gfxs->Sacc;
-     __u8              *Dy     = gfxs->Aop[0];
+     u8                *Dy     = gfxs->Aop[0];
      int                SperD  = gfxs->SperD;
      
      while (w--) {
@@ -5825,8 +5825,8 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
      }
           
      if (gfxs->AopY & 1) {
-          __u8 *Du = gfxs->Aop[1];
-          __u8 *Dv = gfxs->Aop[2];
+          u8 *Du = gfxs->Aop[1];
+          u8 *Dv = gfxs->Aop[2];
           
           w = gfxs->length>>1;
           i = gfxs->Xphase>>1;
@@ -5836,7 +5836,7 @@ static void Sacc_Sto_Aop_i420( GenefxState *gfxs )
                GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
                
                if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
-                    __u32 tmp;
+                    u32 tmp;
 
                     tmp = (S0->YUV.u + S1->YUV.u) >> 1;
                     if (tmp & 0xFF00)
@@ -5870,7 +5870,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
      int                i     = gfxs->Xphase;
      int                w     = gfxs->length;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *Dy    = gfxs->Aop[0];
+     u8                *Dy    = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
      
      while (w--) {
@@ -5884,7 +5884,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
      }
           
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
-          __u16 *Duv = gfxs->Aop[1];
+          u16 *Duv = gfxs->Aop[1];
           
           w = gfxs->length>>1;
           i = gfxs->Xphase>>1;
@@ -5892,7 +5892,7 @@ static void Sacc_Sto_Aop_nv12( GenefxState *gfxs )
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
                GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
-               __u32              cb, cr;
+               u32                cb, cr;
                
                if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
                     cb = (S0->YUV.u + S1->YUV.u) >> 1;
@@ -5928,7 +5928,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
      int                i     = gfxs->Xphase;
      int                w     = gfxs->length;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u8              *Dy    = gfxs->Aop[0];
+     u8                *Dy    = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
      
      while (w--) {
@@ -5942,7 +5942,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
      }
           
      if (gfxs->dst_format == DSPF_NV16 || gfxs->AopY & 1) {
-          __u16 *Dvu = gfxs->Aop[1];
+          u16 *Dvu = gfxs->Aop[1];
           
           w = gfxs->length>>1;
           i = gfxs->Xphase>>1;
@@ -5950,7 +5950,7 @@ static void Sacc_Sto_Aop_nv21( GenefxState *gfxs )
           while (w--) {
                GenefxAccumulator *S0 = &Sacc[i>>16];
                GenefxAccumulator *S1 = &Sacc[(i+SperD)>>16];
-               __u32              cb, cr;
+               u32                cb, cr;
                
                if (!(S0->YUV.a & 0xF000) && !(S1->YUV.a & 0xF000)) {
                     cb = (S0->YUV.u + S1->YUV.u) >> 1;
@@ -5986,7 +5986,7 @@ static void Sacc_Sto_Aop_ayuv( GenefxState *gfxs )
      int                w     = gfxs->length;
      int                i     = gfxs->Xphase;
      GenefxAccumulator *Sacc  = gfxs->Sacc;
-     __u32             *D     = gfxs->Aop[0];
+     u32               *D     = gfxs->Aop[0];
      int                SperD = gfxs->SperD;
 
      while (w--) {
@@ -6039,8 +6039,8 @@ static void Sacc_toK_Aop_argb1555( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u16             *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u16               *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0x7fff) == Dkey)) {
@@ -6059,8 +6059,8 @@ static void Sacc_toK_Aop_rgb16( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u16             *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u16               *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && (*D == Dkey)) {
@@ -6078,10 +6078,10 @@ static void Sacc_toK_Aop_argb6666( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
-     __u8               r = (gfxs->Dkey >> 16);
-     __u8               g = (gfxs->Dkey >>  8) & 0xff;
-     __u8               b = (gfxs->Dkey      ) & 0xff;
+     u8                *D = gfxs->Aop[0];
+     u8                 r = (gfxs->Dkey >> 16);
+     u8                 g = (gfxs->Dkey >>  8) & 0xff;
+     u8                 b = (gfxs->Dkey      ) & 0xff;
 
      while (w--) {
 
@@ -6089,7 +6089,7 @@ static void Sacc_toK_Aop_argb6666( GenefxState *gfxs )
                b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
                g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
                r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
-               __u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
                D[0] =  b | (g << 6 );
                D[1] = ( g >> 2 ) |(r << 4 );
                D[2] = (r >> 4) | a;
@@ -6103,10 +6103,10 @@ static void Sacc_toK_Aop_argb1666( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
-     __u8               r = (gfxs->Dkey >> 16);
-     __u8               g = (gfxs->Dkey >>  8) & 0xff;
-     __u8               b = (gfxs->Dkey      ) & 0xff;
+     u8                *D = gfxs->Aop[0];
+     u8                 r = (gfxs->Dkey >> 16);
+     u8                 g = (gfxs->Dkey >>  8) & 0xff;
+     u8                 b = (gfxs->Dkey      ) & 0xff;
 
      while (w--) {
 
@@ -6114,7 +6114,7 @@ static void Sacc_toK_Aop_argb1666( GenefxState *gfxs )
                b = ((S->RGB.b & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
                g = ((S->RGB.g & 0xFF00) ? 0xFF : S->RGB.g)>>2 & 0x3F;
                r = ((S->RGB.r & 0xFF00) ? 0xFF : S->RGB.r)>>2 & 0x3F;
-               __u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
+               u8 a = ((S->RGB.a & 0xFF00) ? 0xFF : S->RGB.b)>>2 & 0x3F;
                a = a > 0 ? 0x4:0;
                D[0] =  b | (g << 6 );
                D[1] = ( g >> 2 ) |(r << 4 );
@@ -6129,10 +6129,10 @@ static void Sacc_toK_Aop_rgb18( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
-     __u8               r = (gfxs->Dkey >> 16);
-     __u8               g = (gfxs->Dkey >>  8) & 0xff;
-     __u8               b = (gfxs->Dkey      ) & 0xff;
+     u8                *D = gfxs->Aop[0];
+     u8                 r = (gfxs->Dkey >> 16);
+     u8                 g = (gfxs->Dkey >>  8) & 0xff;
+     u8                 b = (gfxs->Dkey      ) & 0xff;
 
      while (w--) {
 
@@ -6153,10 +6153,10 @@ static void Sacc_toK_Aop_rgb24( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
-     __u8               r = (gfxs->Dkey >> 16);
-     __u8               g = (gfxs->Dkey >>  8) & 0xff;
-     __u8               b = (gfxs->Dkey      ) & 0xff;
+     u8                *D = gfxs->Aop[0];
+     u8                 r = (gfxs->Dkey >> 16);
+     u8                 g = (gfxs->Dkey >>  8) & 0xff;
+     u8                 b = (gfxs->Dkey      ) & 0xff;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && D[0] == b && D[1] == g && D[2] == r) {
@@ -6175,8 +6175,8 @@ static void Sacc_toK_Aop_rgb32( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u32             *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u32               *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0xffffff) == Dkey)) {
@@ -6194,8 +6194,8 @@ static void Sacc_toK_Aop_argb( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u32             *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u32               *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0xffffff) == Dkey)) {
@@ -6214,8 +6214,8 @@ static void Sacc_toK_Aop_airgb( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u32             *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u32               *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0xffffff) == Dkey)) {
@@ -6234,7 +6234,7 @@ static void Sacc_toK_Aop_a8( GenefxState *gfxs )
 {
      int                w = gfxs->length;
      GenefxAccumulator *S = gfxs->Sacc;
-     __u8              *D = gfxs->Aop[0];
+     u8                *D = gfxs->Aop[0];
 
      /* FIXME: do all or do none? */
      while (w--) {
@@ -6251,14 +6251,14 @@ static void Sacc_toK_Aop_yuy2( GenefxState *gfxs )
      int                l;
      int                w     = gfxs->length;
      GenefxAccumulator *S     = gfxs->Sacc;
-     __u16             *D     = gfxs->Aop[0];
-     __u32              Dkey  = gfxs->Dkey;
+     u16               *D     = gfxs->Aop[0];
+     u32                Dkey  = gfxs->Dkey;
 #ifdef WORDS_BIGENDIAN
-     __u16              Dkey0 = gfxs->Dkey >> 16;
-     __u16              Dkey1 = gfxs->Dkey & 0xFFFF;
+     u16                Dkey0 = gfxs->Dkey >> 16;
+     u16                Dkey1 = gfxs->Dkey & 0xFFFF;
 #else
-     __u16              Dkey0 = gfxs->Dkey & 0xFFFF;
-     __u16              Dkey1 = gfxs->Dkey >> 16;
+     u16                Dkey0 = gfxs->Dkey & 0xFFFF;
+     u16                Dkey1 = gfxs->Dkey >> 16;
 #endif
 
      if ((long)D & 2) {
@@ -6274,7 +6274,7 @@ static void Sacc_toK_Aop_yuy2( GenefxState *gfxs )
      for (l = w>>1; l--;) {
           if (*D == Dkey) {
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
-                    __u32 y0, cb, y1, cr;
+                    u32 y0, cb, y1, cr;
 
                     y0 = (S[0].YUV.y & 0xFF00) ? 0xFF : S[0].YUV.y;
                     y1 = (S[1].YUV.y & 0xFF00) ? 0xFF : S[1].YUV.y;
@@ -6288,9 +6288,9 @@ static void Sacc_toK_Aop_yuy2( GenefxState *gfxs )
                          cr = 0xFF;
 
 #ifdef WORDS_BIGENDIAN
-                    *((__u32*)D) = y1 | (cr << 8) | (y0 << 16) | (cb << 24);
+                    *((u32*)D) = y1 | (cr << 8) | (y0 << 16) | (cb << 24);
 #else
-                    *((__u32*)D) = y0 | (cb << 8) | (y1 << 16) | (cr << 24);
+                    *((u32*)D) = y0 | (cb << 8) | (y1 << 16) | (cr << 24);
 #endif
                }
                else if (!(S[0].YUV.a & 0xF000)) {
@@ -6319,8 +6319,8 @@ static void Sacc_toK_Aop_rgb332( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u8              *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u8                *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && (*D == Dkey)) {
@@ -6339,14 +6339,14 @@ static void Sacc_toK_Aop_uyvy( GenefxState *gfxs )
      int                l;
      int                w     = gfxs->length;
      GenefxAccumulator *S     = gfxs->Sacc;
-     __u16             *D     = gfxs->Aop[0];
-     __u32              Dkey  = gfxs->Dkey;
+     u16               *D     = gfxs->Aop[0];
+     u32                Dkey  = gfxs->Dkey;
 #ifdef WORDS_BIGENDIAN
-     __u16              Dkey0 = gfxs->Dkey >> 16;
-     __u16              Dkey1 = gfxs->Dkey & 0xFFFF;
+     u16                Dkey0 = gfxs->Dkey >> 16;
+     u16                Dkey1 = gfxs->Dkey & 0xFFFF;
 #else
-     __u16              Dkey0 = gfxs->Dkey & 0xFFFF;
-     __u16              Dkey1 = gfxs->Dkey >> 16;
+     u16                Dkey0 = gfxs->Dkey & 0xFFFF;
+     u16                Dkey1 = gfxs->Dkey >> 16;
 #endif
 
      if ((long)D & 2) {
@@ -6362,7 +6362,7 @@ static void Sacc_toK_Aop_uyvy( GenefxState *gfxs )
      for (l = w>>1; l--;) {
           if (*D == Dkey) {
                if (!(S[0].YUV.a & 0xF000) && !(S[1].YUV.a & 0xF000)) {
-                    __u32 cb, y0, cr, y1;
+                    u32 cb, y0, cr, y1;
 
                     y0 = (S[0].YUV.y & 0xFF00) ? 0xFF : S[0].YUV.y;
                     y1 = (S[1].YUV.y & 0xFF00) ? 0xFF : S[1].YUV.y;
@@ -6376,9 +6376,9 @@ static void Sacc_toK_Aop_uyvy( GenefxState *gfxs )
                          cr = 0xFF;
 
 #ifdef WORDS_BIGENDIAN
-                    *((__u32*)D) = cr | (y1 << 8) | (cb << 16) | (y0 << 24);
+                    *((u32*)D) = cr | (y1 << 8) | (cb << 16) | (y0 << 24);
 #else
-                    *((__u32*)D) = cb | (y0 << 8) | (cr << 16) | (y1 << 24);
+                    *((u32*)D) = cb | (y0 << 8) | (cr << 16) | (y1 << 24);
 #endif
                }
                else if (!(S[0].YUV.a & 0xF000)) {
@@ -6407,8 +6407,8 @@ static void Sacc_toK_Aop_lut8( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u8              *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u8                *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && (*D == Dkey)) {
@@ -6428,8 +6428,8 @@ static void Sacc_toK_Aop_alut44( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u8              *D    = gfxs->Aop[0];
-     __u32              Dkey = gfxs->Dkey;
+     u8                *D    = gfxs->Aop[0];
+     u32                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0x0F) == Dkey)) {
@@ -6450,8 +6450,8 @@ static void Sacc_toK_Aop_argb2554( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u16             *D    = gfxs->Aop[0];
-     __u16              Dkey = gfxs->Dkey;
+     u16               *D    = gfxs->Aop[0];
+     u16                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0x3FFF) == Dkey)) {
@@ -6470,8 +6470,8 @@ static void Sacc_toK_Aop_argb4444( GenefxState *gfxs )
 {
      int                w    = gfxs->length;
      GenefxAccumulator *S    = gfxs->Sacc;
-     __u16             *D    = gfxs->Aop[0];
-     __u16              Dkey = gfxs->Dkey;
+     u16               *D    = gfxs->Aop[0];
+     u16                Dkey = gfxs->Dkey;
 
      while (w--) {
           if (!(S->RGB.a & 0xF000) && ((*D & 0x0FFF) == Dkey)) {
@@ -6554,20 +6554,20 @@ static GenefxFunc Sacc_StoK_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 static void Bop_a8_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u16 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0x7c1f;
-     __u32  g   = Cop & 0x03e0;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0x7c1f;
+     u32    g   = Cop & 0x03e0;
 
 #define SET_PIXEL(d,a) \
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = (a>>3)+1;\
-               register __u32 t1 = (d & 0x7c1f);\
-               register __u32 t2 = (d & 0x03e0);\
+               register u32  s = (a>>3)+1;\
+               register u32 t1 = (d & 0x7c1f);\
+               register u32 t2 = (d & 0x03e0);\
                d = ((d) & 0x8000) | ((a & 0x80) << 8) | \
                    ((((rb-t1)*s+(t1<<5)) & 0x000f83e0) + \
                     ((( g-t2)*s+(t2<<5)) & 0x00007c00)) >> 5;\
@@ -6583,20 +6583,20 @@ static void Bop_a8_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_rgb16( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u16 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0xf81f;
-     __u32  g   = Cop & 0x07e0;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0xf81f;
+     u32    g   = Cop & 0x07e0;
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = (a>>2)+1;\
-               register __u32 t1 = (d & 0xf81f);\
-               register __u32 t2 = (d & 0x07e0);\
+               register u32  s = (a>>2)+1;\
+               register u32 t1 = (d & 0xf81f);\
+               register u32 t2 = (d & 0x07e0);\
                d  = ((((rb-t1)*s+(t1<<6)) & 0x003e07c0) + \
                      ((( g-t2)*s+(t2<<6)) & 0x0001f800)) >> 6;\
           }\
@@ -6611,12 +6611,12 @@ static void Bop_a8_set_alphapixel_Aop_argb6666( GenefxState *gfxs )
 {
 
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
 
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0x3f03f;
-     __u32  g   = Cop & 0xfc0;
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0x3f03f;
+     u32    g   = Cop & 0xfc0;
 
 
 #define SET_PIXEL(d,a)\
@@ -6624,9 +6624,9 @@ static void Bop_a8_set_alphapixel_Aop_argb6666( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = (a>>2)+1;\
-               register __u32 t1 = (d & 0x3f03f);\
-               register __u32 t2 = (d & 0xfc0);\
+               register u32  s = (a>>2)+1;\
+               register u32 t1 = (d & 0x3f03f);\
+               register u32 t2 = (d & 0xfc0);\
                d  = ((((rb-t1)*s+(t1<<6)) & 0xfc0fc0) + \
                      ((( g-t2)*s+(t2<<6)) & 0xfc000)) >> 6;\
           }\
@@ -6640,12 +6640,12 @@ static void Bop_a8_set_alphapixel_Aop_argb6666( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_argb1666( GenefxState *gfxs )
 {
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
 
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0x3f03f;
-     __u32  g   = Cop & 0xfc0;
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0x3f03f;
+     u32    g   = Cop & 0xfc0;
 
 
 #define SET_PIXEL(d,a)\
@@ -6653,9 +6653,9 @@ static void Bop_a8_set_alphapixel_Aop_argb1666( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = (a>>2)+1;\
-               register __u32 t1 = (d & 0x3f03f);\
-               register __u32 t2 = (d & 0xfc0);\
+               register u32  s = (a>>2)+1;\
+               register u32 t1 = (d & 0x3f03f);\
+               register u32 t2 = (d & 0xfc0);\
                d  = ((((rb-t1)*s+(t1<<6)) & 0xfc0fc0) + \
                      ((( g-t2)*s+(t2<<6)) & 0xfc000)) >> 6;\
           }\
@@ -6668,12 +6668,12 @@ static void Bop_a8_set_alphapixel_Aop_argb1666( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_rgb18( GenefxState *gfxs )
 {
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
 
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0x3f03f;
-     __u32  g   = Cop & 0xfc0;
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0x3f03f;
+     u32    g   = Cop & 0xfc0;
 
 
 #define SET_PIXEL(d,a)\
@@ -6681,9 +6681,9 @@ static void Bop_a8_set_alphapixel_Aop_rgb18( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = (a>>2)+1;\
-               register __u32 t1 = (d & 0x3f03f);\
-               register __u32 t2 = (d & 0xfc0);\
+               register u32  s = (a>>2)+1;\
+               register u32 t1 = (d & 0x3f03f);\
+               register u32 t2 = (d & 0xfc0);\
                d  = ((((rb-t1)*s+(t1<<6)) & 0xfc0fc0) + \
                      ((( g-t2)*s+(t2<<6)) & 0xfc000)) >> 6;\
           }\
@@ -6697,8 +6697,8 @@ static void Bop_a8_set_alphapixel_Aop_rgb18( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_rgb24( GenefxState *gfxs )
 {
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
      DFBColor  color = gfxs->color;
 
 #define SET_PIXEL(d,r,g,b,a)\
@@ -6709,7 +6709,7 @@ static void Bop_a8_set_alphapixel_Aop_rgb24( GenefxState *gfxs )
                d[2] = r;\
           case 0: break;\
           default: {\
-               register __u16 s = a+1;\
+               register u16 s = a+1;\
                d[0] = ((b-d[0]) * s + (d[0] << 8)) >> 8;\
                d[1] = ((g-d[1]) * s + (d[1] << 8)) >> 8;\
                d[2] = ((r-d[2]) * s + (d[2] << 8)) >> 8;\
@@ -6733,20 +6733,20 @@ static void Bop_a8_set_alphapixel_Aop_rgb24( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_rgb32( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0xff00ff;
-     __u32  g   = Cop & 0x00ff00;
+     u8    *S   = gfxs->Bop[0];
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0xff00ff;
+     u32    g   = Cop & 0x00ff00;
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = a+1;\
-               register __u32 t1 = (d & 0x00ff00ff);\
-               register __u32 t2 = (d & 0x0000ff00);\
+               register u32  s = a+1;\
+               register u32 t1 = (d & 0x00ff00ff);\
+               register u32 t2 = (d & 0x0000ff00);\
                d = ((((rb-t1)*s+(t1<<8)) & 0xff00ff00) + \
                     ((( g-t2)*s+(t2<<8)) & 0x00ff0000)) >> 8;\
           }\
@@ -6763,20 +6763,20 @@ static void Bop_a8_set_alphapixel_Aop_rgb32( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_argb( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop | 0xff000000;
-     __u32  rb  = Cop & 0x00ff00ff;
-     __u32  g   = gfxs->color.g;
+     u8    *S   = gfxs->Bop[0];
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop | 0xff000000;
+     u32    rb  = Cop & 0x00ff00ff;
+     u32    g   = gfxs->color.g;
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = a+1;\
-               register __u32 s1 = 256-a;\
-               register __u32 sa = (((d >> 24) * s1) >> 8) + a;\
+               register u32  s = a+1;\
+               register u32 s1 = 256-a;\
+               register u32 sa = (((d >> 24) * s1) >> 8) + a;\
                d = (sa << 24) + \
                     (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
                     (((((d & 0x0000ff00) >> 8) * s1) + ((g) * s))       & 0x0000ff00);  \
@@ -6791,20 +6791,20 @@ static void Bop_a8_set_alphapixel_Aop_argb( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_airgb( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
-     __u32  rb  = Cop & 0x00ff00ff;
-     __u32  g   = gfxs->color.g;
+     u8    *S   = gfxs->Bop[0];
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
+     u32    rb  = Cop & 0x00ff00ff;
+     u32    g   = gfxs->color.g;
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32  s = a+1;\
-               register __u32 s1 = 256-s;\
-               register __s32 sa = (d >> 24) - a;\
+               register u32  s = a+1;\
+               register u32 s1 = 256-s;\
+               register s32 sa = (d >> 24) - a;\
                if (sa < 0) sa = 0;\
                d = (sa << 24) + \
                     (((((d & 0x00ff00ff)       * s1) + (rb  * s)) >> 8) & 0x00ff00ff) + \
@@ -6820,15 +6820,15 @@ static void Bop_a8_set_alphapixel_Aop_airgb( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_a8( GenefxState *gfxs )
 {
      int    w = gfxs->length;
-     __u8  *S = gfxs->Bop[0];
-     __u8  *D = gfxs->Aop[0];
+     u8    *S = gfxs->Bop[0];
+     u8    *D = gfxs->Aop[0];
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = 0xff;\
           case 0: break; \
           default: {\
-               register __u16 s1 = 255-a;\
+               register u16 s1 = 255-a;\
                d = ((d * s1) >> 8) + a;\
           }\
      }
@@ -6841,22 +6841,22 @@ static void Bop_a8_set_alphapixel_Aop_a8( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_yuy2( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u8  *S    = gfxs->Bop[0];
-     __u16 *D    = gfxs->Aop[0];
-     __u32  y    = gfxs->YCop;
-     __u32  u    = gfxs->CbCop;
-     __u32  v    = gfxs->CrCop;
-     __u16  Cop0 = y | (u << 8);
-     __u16  Cop1 = y | (v << 8);
+     u8    *S    = gfxs->Bop[0];
+     u16   *D    = gfxs->Aop[0];
+     u32    y    = gfxs->YCop;
+     u32    u    = gfxs->CbCop;
+     u32    v    = gfxs->CrCop;
+     u16    Cop0 = y | (u << 8);
+     u16    Cop1 = y | (v << 8);
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = ((long)&(d) & 2) ? Cop1 : Cop0;\
           case 0x00: break;\
           default: {\
-               register __u32  s = a+1;\
-               register __u32 t1 = d & 0xff;\
-               register __u32 t2 = d >> 8;\
+               register u32  s = a+1;\
+               register u32 t1 = d & 0xff;\
+               register u32 t2 = d >> 8;\
                if ((long)&(d) & 2)\
                     d = (((y-t1)*s+(t1<<8)) >> 8) |\
                         (((v-t2)*s+(t2<<8)) & 0xff00);\
@@ -6874,19 +6874,19 @@ static void Bop_a8_set_alphapixel_Aop_yuy2( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_rgb332( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u8  *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
-     __u32  rgb = ((Cop & 0xe0) << 16) | ((Cop & 0x1c) << 8) | (Cop & 0x03);
+     u8    *S   = gfxs->Bop[0];
+     u8    *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
+     u32    rgb = ((Cop & 0xe0) << 16) | ((Cop & 0x1c) << 8) | (Cop & 0x03);
 
 #define SET_PIXEL(d,a) \
      switch (a) {\
           case 0xff: d = Cop;\
           case 0: break;\
           default: {\
-               register __u32 s = a + 1;\
-               register __u32 t = ((d & 0xe0) << 16) | ((d & 0x1c) << 8) | (d & 0x03);\
-               register __u32 c = ((rgb-t)*s + (t<<8)) & 0xe01c0300;\
+               register u32 s = a + 1;\
+               register u32 t = ((d & 0xe0) << 16) | ((d & 0x1c) << 8) | (d & 0x03);\
+               register u32 c = ((rgb-t)*s + (t<<8)) & 0xe01c0300;\
                d = (c >> 24) | ((c >> 16) & 0xff) | ((c >> 8) & 0xff);\
           }\
      }
@@ -6899,22 +6899,22 @@ static void Bop_a8_set_alphapixel_Aop_rgb332( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_uyvy( GenefxState *gfxs )
 {
      int    w    = gfxs->length;
-     __u8  *S    = gfxs->Bop[0];
-     __u16 *D    = gfxs->Aop[0];
-     __u32  y    = gfxs->YCop;
-     __u32  u    = gfxs->CbCop;
-     __u32  v    = gfxs->CrCop;
-     __u16  Cop0 = u | (y << 8);
-     __u16  Cop1 = v | (y << 8);
+     u8    *S    = gfxs->Bop[0];
+     u16   *D    = gfxs->Aop[0];
+     u32    y    = gfxs->YCop;
+     u32    u    = gfxs->CbCop;
+     u32    v    = gfxs->CrCop;
+     u16    Cop0 = u | (y << 8);
+     u16    Cop1 = v | (y << 8);
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff: d = ((long)&(d) & 2) ? Cop1 : Cop0;\
           case 0x00: break;\
           default: {\
-               register __u32  s = a+1;\
-               register __u32 t1 = d & 0xff;\
-               register __u32 t2 = d >> 8;\
+               register u32  s = a+1;\
+               register u32 t1 = d & 0xff;\
+               register u32 t2 = d >> 8;\
                if ((long)&(d) & 2)\
                     d = (((v-t1)*s+(t1<<8)) >> 8) |\
                         (((y-t2)*s+(t2<<8)) & 0xff00);\
@@ -6932,9 +6932,9 @@ static void Bop_a8_set_alphapixel_Aop_uyvy( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_lut8( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u8  *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
+     u8    *S   = gfxs->Bop[0];
+     u8    *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
 
 #if 0
      DFBColor  color   = gfxs->color;
@@ -6945,9 +6945,9 @@ static void Bop_a8_set_alphapixel_Aop_lut8( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break; \
           default: {\
-               register __u16 s = alpha+1;\
+               register u16   s = alpha+1;\
                DFBColor      dc = entries[d];\
-               __u16         sa = alpha + dc.a;\
+               u16           sa = alpha + dc.a;\
                dc.r = ((color.r - dc.r) * s + (dc.r << 8)) >> 8;\
                dc.g = ((color.g - dc.g) * s + (dc.g << 8)) >> 8;\
                dc.b = ((color.b - dc.b) * s + (dc.b << 8)) >> 8;\
@@ -6969,9 +6969,9 @@ static void Bop_a8_set_alphapixel_Aop_lut8( GenefxState *gfxs )
 static void Bop_a8_set_alphapixel_Aop_alut44( GenefxState *gfxs )
 {
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u8  *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
+     u8    *S   = gfxs->Bop[0];
+     u8    *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
 
      DFBColor  color   = gfxs->color;
      DFBColor *entries = gfxs->Alut->entries;
@@ -6981,9 +6981,9 @@ static void Bop_a8_set_alphapixel_Aop_alut44( GenefxState *gfxs )
           case 0xff: d = Cop;\
           case 0: break; \
           default: {\
-               register __u16 s = alpha+1;\
+               register u16   s = alpha+1;\
                DFBColor      dc = entries[d & 0x0f];\
-               __u16         sa = (d & 0xf0) + alpha;\
+               u16           sa = (d & 0xf0) + alpha;\
                dc.r = ((color.r - dc.r) * s + (dc.r << 8)) >> 8;\
                dc.g = ((color.g - dc.g) * s + (dc.g << 8)) >> 8;\
                dc.b = ((color.b - dc.b) * s + (dc.b << 8)) >> 8;\
@@ -7036,9 +7036,9 @@ static void Bop_a1_set_alphapixel_Aop_argb1555( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u16 *D   = gfxs->Aop[0];
-     __u16  Cop = gfxs->Cop | 0x8000;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u16    Cop = gfxs->Cop | 0x8000;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7051,9 +7051,9 @@ static void Bop_a1_set_alphapixel_Aop_rgb16( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u16 *D   = gfxs->Aop[0];
-     __u16  Cop = gfxs->Cop;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u16    Cop = gfxs->Cop;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7065,8 +7065,8 @@ static void Bop_a1_set_alphapixel_Aop_argb6666( GenefxState *gfxs )
 {
      int       i;
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
      DFBColor  color = gfxs->color;
 
      for (i=0; i<w; i++) {
@@ -7084,8 +7084,8 @@ static void Bop_a1_set_alphapixel_Aop_argb1666( GenefxState *gfxs )
 {
      int       i;
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
      DFBColor  color = gfxs->color;
 
      for (i=0; i<w; i++) {
@@ -7103,8 +7103,8 @@ static void Bop_a1_set_alphapixel_Aop_rgb18( GenefxState *gfxs )
 {
      int       i;
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
      DFBColor  color = gfxs->color;
 
      for (i=0; i<w; i++) {
@@ -7122,8 +7122,8 @@ static void Bop_a1_set_alphapixel_Aop_rgb24( GenefxState *gfxs )
 {
      int       i;
      int       w     = gfxs->length;
-     __u8     *S     = gfxs->Bop[0];
-     __u8     *D     = gfxs->Aop[0];
+     u8       *S     = gfxs->Bop[0];
+     u8       *D     = gfxs->Aop[0];
      DFBColor  color = gfxs->color;
 
      for (i=0; i<w; i++) {
@@ -7141,9 +7141,9 @@ static void Bop_a1_set_alphapixel_Aop_rgb32( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop;
+     u8    *S   = gfxs->Bop[0];
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7155,9 +7155,9 @@ static void Bop_a1_set_alphapixel_Aop_argb( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop | 0xFF000000;
+     u8    *S   = gfxs->Bop[0];
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop | 0xFF000000;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7169,9 +7169,9 @@ static void Bop_a1_set_alphapixel_Aop_airgb( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u32 *D   = gfxs->Aop[0];
-     __u32  Cop = gfxs->Cop & 0x00FFFFFF;
+     u8    *S   = gfxs->Bop[0];
+     u32   *D   = gfxs->Aop[0];
+     u32    Cop = gfxs->Cop & 0x00FFFFFF;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7183,8 +7183,8 @@ static void Bop_a1_set_alphapixel_Aop_a8( GenefxState *gfxs )
 {
      int   i;
      int   w = gfxs->length;
-     __u8 *S = gfxs->Bop[0];
-     __u8 *D = gfxs->Aop[0];
+     u8   *S = gfxs->Bop[0];
+     u8   *D = gfxs->Aop[0];
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7196,10 +7196,10 @@ static void Bop_a1_set_alphapixel_Aop_yuy2( GenefxState *gfxs )
 {
      int    i;
      int    w    = gfxs->length;
-     __u8  *S    = gfxs->Bop[0];
-     __u16 *D    = gfxs->Aop[0];
-     __u16  Cop0 = gfxs->YCop | (gfxs->CbCop << 8);
-     __u16  Cop1 = gfxs->YCop | (gfxs->CrCop << 8);
+     u8    *S    = gfxs->Bop[0];
+     u16   *D    = gfxs->Aop[0];
+     u16    Cop0 = gfxs->YCop | (gfxs->CbCop << 8);
+     u16    Cop1 = gfxs->YCop | (gfxs->CrCop << 8);
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7))) {
@@ -7212,9 +7212,9 @@ static void Bop_a1_set_alphapixel_Aop_rgb332( GenefxState *gfxs )
 {
      int   i;
      int   w   = gfxs->length;
-     __u8 *S   = gfxs->Bop[0];
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Cop = gfxs->Cop;
+     u8   *S   = gfxs->Bop[0];
+     u8   *D   = gfxs->Aop[0];
+     u8    Cop = gfxs->Cop;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7226,10 +7226,10 @@ static void Bop_a1_set_alphapixel_Aop_uyvy( GenefxState *gfxs )
 {
      int    i;
      int    w    = gfxs->length;
-     __u8  *S    = gfxs->Bop[0];
-     __u16 *D    = gfxs->Aop[0];
-     __u16  Cop0 = gfxs->CbCop | (gfxs->YCop << 8);
-     __u16  Cop1 = gfxs->CrCop | (gfxs->YCop << 8);
+     u8    *S    = gfxs->Bop[0];
+     u16   *D    = gfxs->Aop[0];
+     u16    Cop0 = gfxs->CbCop | (gfxs->YCop << 8);
+     u16    Cop1 = gfxs->CrCop | (gfxs->YCop << 8);
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7))) {
@@ -7242,9 +7242,9 @@ static void Bop_a1_set_alphapixel_Aop_lut8( GenefxState *gfxs )
 {
      int   i;
      int   w   = gfxs->length;
-     __u8 *S   = gfxs->Bop[0];
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Cop = gfxs->Cop;
+     u8   *S   = gfxs->Bop[0];
+     u8   *D   = gfxs->Aop[0];
+     u8    Cop = gfxs->Cop;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7256,9 +7256,9 @@ static void Bop_a1_set_alphapixel_Aop_alut44( GenefxState *gfxs )
 {
      int   i;
      int   w   = gfxs->length;
-     __u8 *S   = gfxs->Bop[0];
-     __u8 *D   = gfxs->Aop[0];
-     __u8  Cop = gfxs->Cop;
+     u8   *S   = gfxs->Bop[0];
+     u8   *D   = gfxs->Aop[0];
+     u8    Cop = gfxs->Cop;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7270,9 +7270,9 @@ static void Bop_a1_set_alphapixel_Aop_argb2554( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u16 *D   = gfxs->Aop[0];
-     __u16  Cop = gfxs->Cop | 0xC000;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u16    Cop = gfxs->Cop | 0xC000;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7284,9 +7284,9 @@ static void Bop_a1_set_alphapixel_Aop_argb4444( GenefxState *gfxs )
 {
      int    i;
      int    w   = gfxs->length;
-     __u8  *S   = gfxs->Bop[0];
-     __u16 *D   = gfxs->Aop[0];
-     __u16  Cop = gfxs->Cop | 0xF000;
+     u8    *S   = gfxs->Bop[0];
+     u16   *D   = gfxs->Aop[0];
+     u16    Cop = gfxs->Cop | 0xF000;
 
      for (i=0; i<w; i++) {
           if (S[i>>3] & (0x80 >> (i&7)))
@@ -7432,7 +7432,7 @@ static void Xacc_blend_srcalpha( GenefxState *gfxs )
 
           while (w--) {
                if (!(X->RGB.a & 0xF000)) {
-                    register __u16 Sa = S->RGB.a + 1;
+                    register u16 Sa = S->RGB.a + 1;
 
                     X->RGB.r = (Sa * X->RGB.r) >> 8;
                     X->RGB.g = (Sa * X->RGB.g) >> 8;
@@ -7445,7 +7445,7 @@ static void Xacc_blend_srcalpha( GenefxState *gfxs )
           }
      }
      else {
-          register __u16 Sa = gfxs->color.a + 1;
+          register u16 Sa = gfxs->color.a + 1;
 
           while (w--) {
                if (!(X->RGB.a & 0xF000)) {
@@ -7470,7 +7470,7 @@ static void Xacc_blend_invsrcalpha( GenefxState *gfxs )
 
           while (w--) {
                if (!(X->RGB.a & 0xF000)) {
-                    register __u16 Sa = 0x100 - S->RGB.a;
+                    register u16 Sa = 0x100 - S->RGB.a;
 
                     X->RGB.r = (Sa * X->RGB.r) >> 8;
                     X->RGB.g = (Sa * X->RGB.g) >> 8;
@@ -7483,7 +7483,7 @@ static void Xacc_blend_invsrcalpha( GenefxState *gfxs )
           }
      }
      else {
-          register __u16 Sa = 0x100 - gfxs->color.a;
+          register u16 Sa = 0x100 - gfxs->color.a;
 
           while (w--) {
                if (!(X->RGB.a & 0xF000)) {
@@ -7506,7 +7506,7 @@ static void Xacc_blend_dstalpha( GenefxState *gfxs )
 
      while (w--) {
           if (!(X->RGB.a & 0xF000)) {
-               register __u16 Da = D->RGB.a + 1;
+               register u16 Da = D->RGB.a + 1;
 
                X->RGB.r = (Da * X->RGB.r) >> 8;
                X->RGB.g = (Da * X->RGB.g) >> 8;
@@ -7527,7 +7527,7 @@ static void Xacc_blend_invdstalpha( GenefxState *gfxs )
 
      while (w--) {
           if (!(X->RGB.a & 0xF000)) {
-               register __u16 Da = 0x100 - D->RGB.a;
+               register u16 Da = 0x100 - D->RGB.a;
 
                X->RGB.r = (Da * X->RGB.r) >> 8;
                X->RGB.g = (Da * X->RGB.g) >> 8;
@@ -7589,7 +7589,7 @@ static void Xacc_blend_srcalphasat( GenefxState *gfxs )
 
           while (w--) {
                if (!(X->RGB.a & 0xF000)) {
-                    register __u16 Sa = MIN( S->RGB.a + 1, 0x100 - D->RGB.a );
+                    register u16 Sa = MIN( S->RGB.a + 1, 0x100 - D->RGB.a );
 
                     X->RGB.r = (Sa * X->RGB.r) >> 8;
                     X->RGB.g = (Sa * X->RGB.g) >> 8;
@@ -7604,7 +7604,7 @@ static void Xacc_blend_srcalphasat( GenefxState *gfxs )
      else {
           while (w--) {
                if (!(X->RGB.a & 0xF000)) {
-                    register __u16 Sa = MIN( gfxs->color.a + 1, 0x100 - D->RGB.a );
+                    register u16 Sa = MIN( gfxs->color.a + 1, 0x100 - D->RGB.a );
 
                     X->RGB.r = (Sa * X->RGB.r) >> 8;
                     X->RGB.g = (Sa * X->RGB.g) >> 8;
@@ -7737,7 +7737,7 @@ static void Dacc_premultiply( GenefxState *gfxs )
 
      while (w--) {
           if (!(D->RGB.a & 0xF000)) {
-               register __u16 Da = D->RGB.a + 1;
+               register u16 Da = D->RGB.a + 1;
 
                D->RGB.r = (Da * D->RGB.r) >> 8;
                D->RGB.g = (Da * D->RGB.g) >> 8;
@@ -7752,7 +7752,7 @@ static void Dacc_premultiply_color_alpha( GenefxState *gfxs )
 {
      int                w  = gfxs->length;
      GenefxAccumulator *D  = gfxs->Dacc;
-     register __u16     Ca = gfxs->Cacc.RGB.a;
+     register u16       Ca = gfxs->Cacc.RGB.a;
 
      while (w--) {
           if (!(D->RGB.a & 0xF000)) {
@@ -7772,7 +7772,7 @@ static void Dacc_demultiply( GenefxState *gfxs )
 
      while (w--) {
           if (!(D->RGB.a & 0xF000)) {
-               register __u16 Da = D->RGB.a + 1;
+               register u16 Da = D->RGB.a + 1;
 
                D->RGB.r = (D->RGB.r << 8) / Da;
                D->RGB.g = (D->RGB.g << 8) / Da;
@@ -7879,9 +7879,9 @@ static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
      while (w--) {
           /* Actually DirectFB only supports 4:2:X formats */
           if (!(D[0].RGB.a & 0xF000) && !(D[1].RGB.a & 0xF000)) {
-               __u32 r0, g0, b0;
-               __u32 r1, g1, b1;
-               __u32 ey0, ey1;
+               u32 r0, g0, b0;
+               u32 r1, g1, b1;
+               u32 ey0, ey1;
 
                r0 = D[0].RGB.r; g0 = D[0].RGB.g; b0 = D[0].RGB.b;
                r1 = D[1].RGB.r; g1 = D[1].RGB.g; b1 = D[1].RGB.b;
@@ -7894,7 +7894,7 @@ static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
                D[0].YUV.v = D[1].YUV.v = cr_from_rey[(r0-ey0+r1-ey1)>>1];
           }
           else if (!(D[0].RGB.a & 0xF000)) {
-               __u32 r, g, b, ey;
+               u32 r, g, b, ey;
 
                r = D[0].RGB.r; g = D[0].RGB.g; b = D[0].RGB.b;
                ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
@@ -7904,7 +7904,7 @@ static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
                D[0].YUV.v = cr_from_rey[r-ey];
           }
           else if (!(D[1].RGB.a & 0xF000)) {
-               __u32 r, g, b, ey;
+               u32 r, g, b, ey;
 
                r = D[1].RGB.r; g = D[1].RGB.g; b = D[1].RGB.b;
                ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
@@ -7919,7 +7919,7 @@ static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
 
      if (gfxs->length & 1) {
           if (!(D->RGB.a & 0xF000)) {
-               __u32 r, g, b, ey;
+               u32 r, g, b, ey;
 
                r = D->RGB.r; g = D->RGB.g; b = D->RGB.b;
                ey = (19595 * r + 38469 * g + 7471 * b) >> 16;
@@ -7959,8 +7959,8 @@ static void Dacc_YCbCr_to_RGB_C( GenefxState *gfxs )
           /* Actually DirectFB only supports 4:2:X formats,
            * therefore D[0].YUV.u/v is equal to D[1].YUV.u/v */
           if (!(D[0].YUV.a & 0xF000) && !(D[1].YUV.a & 0xF000)) {
-               __s16 c0, c1, c2;
-               __s16 r, g, b;
+               s16 c0, c1, c2;
+               s16 r, g, b;
 
                c0 = cr_for_r[D[0].YUV.v];
                c1 = cr_for_g[D[0].YUV.v] + cb_for_g[D[0].YUV.u];
@@ -7981,8 +7981,8 @@ static void Dacc_YCbCr_to_RGB_C( GenefxState *gfxs )
                D[1].RGB.b = (b < 0) ? 0 : b;
           }
           else if (!(D[0].YUV.a & 0xF000)) {
-               __u16 y, cb, cr;
-               __s16 r, g, b;
+               u16 y, cb, cr;
+               s16 r, g, b;
 
                y  = y_for_rgb[D[0].YUV.y];
                cb = D[0].YUV.u;
@@ -7996,8 +7996,8 @@ static void Dacc_YCbCr_to_RGB_C( GenefxState *gfxs )
                D[0].RGB.b = (b < 0) ? 0 : b;
           }
           else if (!(D[1].YUV.a & 0xF000)) {
-               __u16 y, cb, cr;
-               __s16 r, g, b;
+               u16 y, cb, cr;
+               s16 r, g, b;
 
                y  = y_for_rgb[D[1].YUV.y];
                cb = D[1].YUV.u;
@@ -8016,8 +8016,8 @@ static void Dacc_YCbCr_to_RGB_C( GenefxState *gfxs )
 
      if (gfxs->length & 1) {
           if (!(D->YUV.a & 0xF000)) {
-               __u16 y, cb, cr;
-               __s16 r, g, b;
+               u16 y, cb, cr;
+               s16 r, g, b;
 
                y  = y_for_rgb[D->YUV.y];
                cb = D->YUV.u;
@@ -8176,7 +8176,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      /* premultiply source (color) */
      if (DFB_DRAWING_FUNCTION(accel) && (state->drawingflags & DSDRAW_SRC_PREMULTIPLY)) {
-          __u16 ca = color.a + 1;
+          u16 ca = color.a + 1;
 
           color.r = (color.r * ca) >> 8;
           color.g = (color.g * ca) >> 8;
@@ -8466,7 +8466,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
                     /* premultiply source (color) */
                     /*if (state->drawingflags & DSDRAW_SRC_PREMULTIPLY) {
-                         __u16 ca = color.a + 1;
+                         u16 ca = color.a + 1;
 
                          Cacc.r = (Cacc.r * ca) >> 8;
                          Cacc.g = (Cacc.g * ca) >> 8;
@@ -8494,7 +8494,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    SCacc.RGB.b = (Cacc.RGB.b * (0x100 - Cacc.RGB.b)) >> 8;
                                    break;
                               case DSBF_SRCALPHA: {
-                                        __u16 ca = color.a + 1;
+                                        u16 ca = color.a + 1;
 
                                         SCacc.RGB.a = (Cacc.RGB.a * ca) >> 8;
                                         SCacc.RGB.r = (Cacc.RGB.r * ca) >> 8;
@@ -8503,7 +8503,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                         break;
                                    }
                               case DSBF_INVSRCALPHA: {
-                                        __u16 ca = 0x100 - color.a;
+                                        u16 ca = 0x100 - color.a;
 
                                         SCacc.RGB.a = (Cacc.RGB.a * ca) >> 8;
                                         SCacc.RGB.r = (Cacc.RGB.r * ca) >> 8;

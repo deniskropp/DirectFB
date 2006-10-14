@@ -41,7 +41,7 @@ D_DEBUG_DOMAIN( Direct_Hash, "Direct/Hash", "Hash table implementation" );
 #define REMOVED  ((void *) -1)
 
 typedef struct {
-     __u32     key;
+     u32       key;
      void     *value;
 } Element;
 
@@ -59,7 +59,7 @@ struct __D_DirectHash {
 /**************************************************************************************************/
 
 static inline int
-locate_key( const DirectHash *hash, __u32 key )
+locate_key( const DirectHash *hash, u32 key )
 {
      int            pos;
      const Element *element;
@@ -129,7 +129,7 @@ direct_hash_destroy( DirectHash *hash )
 
 DirectResult
 direct_hash_insert( DirectHash *hash,
-                    __u32       key,
+                    u32         key,
                     void       *value )
 {
      int      pos;
@@ -211,7 +211,7 @@ direct_hash_insert( DirectHash *hash,
 
 void
 direct_hash_remove( DirectHash  *hash,
-                    __u32        key )
+                    u32          key )
 {
      int pos;
 
@@ -234,7 +234,7 @@ direct_hash_remove( DirectHash  *hash,
 
 void *
 direct_hash_lookup( DirectHash *hash,
-                    __u32       key )
+                    u32         key )
 {
      int pos;
 

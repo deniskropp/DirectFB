@@ -74,18 +74,18 @@ struct _PixopsFilter {
 };
 
 
-static void write_argb_span (__u32 *src, __u8 *dst[], int len,
+static void write_argb_span (u32 *src, u8 *dst[], int len,
                               int dx, int dy, CoreSurface *dst_surface)
 {
      CorePalette *palette = dst_surface->palette;
-     __u8        *d       = dst[0];
-     __u8        *d1,*d2;
+     u8          *d       = dst[0];
+     u8          *d1,*d2;
      int          i, j;
 
      if (dst_surface->caps & DSCAPS_PREMULTIPLIED) {
           for (i = 0; i < len; i++) {
-               __u32 s = src[i];
-               __u32 a = (s >> 24) + 1; 
+               u32 s = src[i];
+               u32 a = (s >> 24) + 1;
                
                src[i] = ((((s & 0x00ff00ff) * a) >> 8) & 0x00ff00ff) |
                         ((((s & 0x0000ff00) * a) >> 8) & 0x0000ff00) |
@@ -120,30 +120,30 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
 
           case DSPF_ARGB1555:
                for (i = 0; i < len; i++)
-                    ((__u16*)d)[i] = ARGB_TO_ARGB1555( src[i] );
+                    ((u16*)d)[i] = ARGB_TO_ARGB1555( src[i] );
                break;
 
           case DSPF_ARGB2554:
                for (i = 0; i < len; i++)
-                    ((__u16*)d)[i] = ARGB_TO_ARGB2554( src[i] );
+                    ((u16*)d)[i] = ARGB_TO_ARGB2554( src[i] );
                break;
 
           case DSPF_ARGB4444:
                for (i = 0; i < len; i++)
-                    ((__u16*)d)[i] = ARGB_TO_ARGB4444( src[i] );
+                    ((u16*)d)[i] = ARGB_TO_ARGB4444( src[i] );
                break;
                
           case DSPF_RGB16:
                for (i = 0; i < len; i++)
-                    ((__u16*)d)[i] = RGB32_TO_RGB16( src[i] );
+                    ((u16*)d)[i] = RGB32_TO_RGB16( src[i] );
                break;
 
           case DSPF_ARGB1666:
                for (i = 0; i < len; i++) {
-                    __u8 b = src[i] >> 2;
-                    __u8 g = src[i] >> 10;
-                    __u8 r = src[i] >> 18;
-                    __u8 a = (src[i] >> 26) != 0 ?1:0;
+                    u8 b = src[i] >> 2;
+                    u8 g = src[i] >> 10;
+                    u8 r = src[i] >> 18;
+                    u8 a = (src[i] >> 26) != 0 ?1:0;
 
                     *d++ =  b | (g << 6 );
                     *d++ = ( g >> 2 ) |(r << 4 );
@@ -153,10 +153,10 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
 
           case DSPF_ARGB6666:
                for (i = 0; i < len; i++) {
-                    __u8 b = src[i] >> 2;
-                    __u8 g = src[i] >> 10;
-                    __u8 r = src[i] >> 18;
-                    __u8 a = src[i] >> 26;
+                    u8 b = src[i] >> 2;
+                    u8 g = src[i] >> 10;
+                    u8 r = src[i] >> 18;
+                    u8 a = src[i] >> 26;
 
                     *d++ =  b | (g << 6 );
                     *d++ = ( g >> 2 ) |(r << 4 );
@@ -166,9 +166,9 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
 
           case DSPF_RGB18:
                for (i = 0; i < len; i++) {
-                    __u8 b = src[i] >> 2;
-                    __u8 g = src[i] >> 10;
-                    __u8 r = src[i] >> 18;
+                    u8 b = src[i] >> 2;
+                    u8 g = src[i] >> 10;
+                    u8 r = src[i] >> 18;
 
                     *d++ =  b | (g << 6 );
                     *d++ = ( g >> 2 ) |(r << 4 );
@@ -196,7 +196,7 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                
           case DSPF_AiRGB:
                for (i = 0; i < len; i++)
-                    ((__u32*)d)[i] = src[i] ^ 0xff000000;
+                    ((u32*)d)[i] = src[i] ^ 0xff000000;
                break;
 
           case DSPF_LUT8:
@@ -225,20 +225,20 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
 
           case DSPF_YUY2:
                if (dx & 1) {
-                    __u32 y, u, v;
+                    u32 y, u, v;
                     
                     RGB_TO_YCBCR( (src[0] >> 16) & 0xff, 
                                   (src[0] >>  8) & 0xff,
                                   (src[0]      ) & 0xff, y, u, v );
-                    *((__u16*)d) = y | (v << 8);
+                    *((u16*)d) = y | (v << 8);
                     d += 2;
                     src++;
                     len--;
                }
                
                for (i = 0; i < (len&~1); i += 2) {
-                    __u32 y0, u, v;
-                    __u32 y1, u1, v1;
+                    u32 y0, u, v;
+                    u32 y1, u1, v1;
                     
                     RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
                                   (src[i+0] >>  8) & 0xff,
@@ -250,12 +250,12 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     u = (u + u1) >> 1;
                     v = (v + v1) >> 1;
                                   
-                    ((__u16*)d)[i+0] = y0 | (u << 8);
-                    ((__u16*)d)[i+1] = y1 | (v << 8);
+                    ((u16*)d)[i+0] = y0 | (u << 8);
+                    ((u16*)d)[i+1] = y1 | (v << 8);
                }
                
                if (len & 1) {
-                    __u32 y, u, v;
+                    u32 y, u, v;
                     
                     src += len-1;
                     d   += (len-1)*2;
@@ -263,26 +263,26 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     RGB_TO_YCBCR( (*src >> 16) & 0xff, 
                                   (*src >>  8) & 0xff,
                                   (*src      ) & 0xff, y, u, v );
-                    *((__u16*)d) = y | (u << 8);
+                    *((u16*)d) = y | (u << 8);
                }
                break;
 
           case DSPF_UYVY:
                if (dx & 1) {
-                    __u32 y, u, v;
+                    u32 y, u, v;
                     
                     RGB_TO_YCBCR( (src[0] >> 16) & 0xff, 
                                   (src[0] >>  8) & 0xff,
                                   (src[0]      ) & 0xff, y, u, v );
-                    *((__u16*)d) = v | (y << 8);
+                    *((u16*)d) = v | (y << 8);
                     d += 2;
                     src++;
                     len--;
                }
                
                for (i = 0; i < (len&~1); i += 2) {
-                    __u32 y0, u, v;
-                    __u32 y1, u1, v1;
+                    u32 y0, u, v;
+                    u32 y1, u1, v1;
                     
                     RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
                                   (src[i+0] >>  8) & 0xff,
@@ -294,12 +294,12 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     u = (u + u1) >> 1;
                     v = (v + v1) >> 1;
                                   
-                    ((__u16*)d)[i+0] = u | (y0 << 8);
-                    ((__u16*)d)[i+1] = v | (y1 << 8);
+                    ((u16*)d)[i+0] = u | (y0 << 8);
+                    ((u16*)d)[i+1] = v | (y1 << 8);
                }
                
                if (len & 1) {
-                    __u32 y, u, v;
+                    u32 y, u, v;
                     
                     src += len-1;
                     d   += (len-1)*2;
@@ -307,20 +307,20 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     RGB_TO_YCBCR( (*src >> 16) & 0xff, 
                                   (*src >>  8) & 0xff,
                                   (*src      ) & 0xff, y, u, v );
-                    *((__u16*)d) = u | (y << 8);
+                    *((u16*)d) = u | (y << 8);
                }
                break;
 
           case DSPF_AYUV:
                for (i = 0; i < len; i++) {
-                    __u32 a, y, u, v;
+                    u32 a, y, u, v;
 
                     RGB_TO_YCBCR( (src[i] >> 16) & 0xff,
                                   (src[i] >>  8) & 0xff,
                                   (src[i]      ) & 0xff, y, u, v );
                     a = (src[i] >> 24) & 0xff;
 
-                    ((__u32*)d)[i] = PIXEL_AYUV( a, y, u, v );
+                    ((u32*)d)[i] = PIXEL_AYUV( a, y, u, v );
                }
                break;
 
@@ -329,8 +329,8 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                d1 = dst[1];
                d2 = dst[2];
                for (i = 0; i < (len&~1); i += 2) {
-                    __u32 y0, u0, v0;
-                    __u32 y1, u1, v1;
+                    u32 y0, u0, v0;
+                    u32 y1, u1, v1;
                     
                     RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
                                   (src[i+0] >>  8) & 0xff,
@@ -353,8 +353,8 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
           case DSPF_NV16:
                d1 = dst[1];
                for (i = 0; i < (len&~1); i += 2) {
-                    __u32 y0, u0, v0;
-                    __u32 y1, u1, v1;
+                    u32 y0, u0, v0;
+                    u32 y1, u1, v1;
                     
                     RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
                                   (src[i+0] >>  8) & 0xff,
@@ -367,7 +367,7 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     d[i+1] = y1;
                                   
                     if (dst_surface->format == DSPF_NV16 || dy & 1) {
-                         ((__u16*)d1)[i>>1] =  ((u0 + u1) >> 1)     |
+                         ((u16*)d1)[i>>1] =    ((u0 + u1) >> 1)     |
                                               (((v0 + v1) >> 1) << 8);
                     }
                }
@@ -376,8 +376,8 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
           case DSPF_NV21:
                d1 = dst[1];
                for (i = 0; i < (len&~1); i += 2) {
-                    __u32 y0, u0, v0;
-                    __u32 y1, u1, v1;
+                    u32 y0, u0, v0;
+                    u32 y1, u1, v1;
                     
                     RGB_TO_YCBCR( (src[i+0] >> 16) & 0xff, 
                                   (src[i+0] >>  8) & 0xff,
@@ -390,7 +390,7 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
                     d[i+1] = y1;
                                   
                     if (dy & 1) {
-                         ((__u16*)d1)[i>>1] =  ((v0 + v1) >> 1)     |
+                         ((u16*)d1)[i>>1] =    ((v0 + v1) >> 1)     |
                                               (((u0 + u1) >> 1) << 8);
                     }
                }
@@ -404,10 +404,10 @@ static void write_argb_span (__u32 *src, __u8 *dst[], int len,
 
 #define LINE_PTR(dst,caps,y,h,pitch) \
      ((caps & DSCAPS_SEPARATED) \
-          ? (((__u8*)(dst)) + (y)/2 * (pitch) + (((y)%2) ? (h)/2 * (pitch) : 0)) \
-          : (((__u8*)(dst)) + (y) * (pitch)))
+          ? (((u8*)(dst)) + (y)/2 * (pitch) + (((y)%2) ? (h)/2 * (pitch) : 0)) \
+          : (((u8*)(dst)) + (y) * (pitch)))
 
-void dfb_copy_buffer_32( __u32 *src,
+void dfb_copy_buffer_32( u32 *src,
                          void  *dst, int dpitch, DFBRectangle *drect,
                          CoreSurface *dst_surface, const DFBRegion *dst_clip )
 {
@@ -454,7 +454,7 @@ void dfb_copy_buffer_32( __u32 *src,
                }
                
                for (y = drect->y; y < drect->y + drect->h; y++) {
-                    __u8 *d[3];
+                    u8 *d[3];
                     
                     d[0] = LINE_PTR( dst, dst_surface->caps, y,
                                      dst_surface->height, dpitch ) + x;
@@ -474,7 +474,7 @@ void dfb_copy_buffer_32( __u32 *src,
                dst1 = dst + dpitch * dst_surface->height;
                
                for (y = drect->y; y < drect->y + drect->h; y++) {
-                    __u8 *d[2];
+                    u8 *d[2];
                     
                     d[0] = LINE_PTR( dst, dst_surface->caps, y,
                                      dst_surface->height, dpitch ) + x;
@@ -491,7 +491,7 @@ void dfb_copy_buffer_32( __u32 *src,
                dst1 = dst + dpitch * dst_surface->height;
                
                for (y = drect->y; y < drect->y + drect->h; y++) {
-                    __u8 *d[2];
+                    u8 *d[2];
                     
                     d[0] = LINE_PTR( dst, dst_surface->caps, y,
                                      dst_surface->height, dpitch ) + x;
@@ -506,7 +506,7 @@ void dfb_copy_buffer_32( __u32 *src,
 
           default:
                for (y = drect->y; y < drect->y + drect->h; y++) {
-                    __u8 *d[1];
+                    u8 *d[1];
                     
                     d[0] = LINE_PTR( dst, dst_surface->caps,
                                      y, dst_surface->height, dpitch ) +
@@ -636,17 +636,17 @@ static int bilinear_make_fast_weights( PixopsFilter *filter, float x_scale, floa
 }
 
 static void scale_pixel( int *weights, int n_x, int n_y,
-                         __u32 *dst, __u32 **src, int x, int sw )
+                         u32 *dst, u32 **src, int x, int sw )
 {
-     __u32 r = 0, g = 0, b = 0, a = 0;
+     u32 r = 0, g = 0, b = 0, a = 0;
      int   i, j;
 
      for (i = 0; i < n_y; i++) {
           int *pixel_weights = weights + n_x * i;
 
           for (j = 0; j < n_x; j++) {
-               __u32  ta;
-               __u32 *q;
+               u32  ta;
+               u32 *q;
 
                if (x + j < 0)
                     q = src[i];
@@ -672,14 +672,14 @@ static void scale_pixel( int *weights, int n_x, int n_y,
      *dst = (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-static __u32* scale_line( int *weights, int n_x, int n_y, 
-                          __u32 *dst, __u32 *dst_end,
-                          __u32 **src, int x, int x_step, int sw )
+static u32* scale_line( int *weights, int n_x, int n_y,
+                        u32 *dst, u32 *dst_end,
+                        u32 **src, int x, int x_step, int sw )
 {
      int    i, j;
      int   *pixel_weights;
-     __u32 *q;
-     __u32  r, g, b, a;
+     u32   *q;
+     u32    r, g, b, a;
      int    x_scaled;
      int   *line_weights;
 
@@ -696,7 +696,7 @@ static __u32* scale_line( int *weights, int n_x, int n_y,
                q = src[i] + x_scaled;
 
                for (j = 0; j < n_x; j++) {
-                    __u32 ta;
+                    u32 ta;
 
                     ta = ((*q & 0xFF000000) >> 24) * line_weights[j];
 
@@ -722,7 +722,7 @@ static __u32* scale_line( int *weights, int n_x, int n_y,
      return dst;
 }
 
-void dfb_scale_linear_32( __u32 *src, int sw, int sh,
+void dfb_scale_linear_32( u32 *src, int sw, int sh,
                           void  *dst, int dpitch, DFBRectangle *drect,
                           CoreSurface *dst_surface, const DFBRegion *dst_clip )
 {
@@ -734,7 +734,7 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
      int scaled_x_offset;
      PixopsFilter filter;
      void  *dst1 = NULL, *dst2 = NULL;
-     __u32 *buf;
+     u32 *buf;
 
      if (drect->w == sw && drect->h == sh) {
           dfb_copy_buffer_32( src, dst, dpitch, drect, dst_surface, dst_clip );
@@ -779,24 +779,24 @@ void dfb_scale_linear_32( __u32 *src, int sw, int sh,
                break;
      }
      
-     buf = (__u32*) alloca( drect->w*4 );
+     buf = (u32*) alloca( drect->w*4 );
      
      for (i = drect->y; i < drect->y + drect->h; i++) {
           int     x_start;
           int     y_start;
           int    *run_weights;
-          __u32  *outbuf     = buf;
-          __u32  *outbuf_end = buf+drect->w;
-          __u32  *new_outbuf;
-          __u32 **line_bufs;
-          __u8   *d[3];
+          u32    *outbuf     = buf;
+          u32    *outbuf_end = buf+drect->w;
+          u32    *new_outbuf;
+          u32   **line_bufs;
+          u8     *d[3];
 
           y_start = sy >> SCALE_SHIFT;
 
           run_weights = filter.weights + ((sy >> (SCALE_SHIFT - SUBSAMPLE_BITS))
                                           & SUBSAMPLE_MASK) * filter.n_x * filter.n_y * SUBSAMPLE;
 
-          line_bufs = (__u32 **) alloca( filter.n_y * sizeof (void *) );
+          line_bufs = (u32 **) alloca( filter.n_y * sizeof (void *) );
 
           for (j = 0; j < filter.n_y; j++) {
                if (y_start <  0)

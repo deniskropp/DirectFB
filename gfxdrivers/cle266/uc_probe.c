@@ -82,7 +82,7 @@ int uc_parse_vga_device(char* s, struct uc_vga_device* devinfo)
  * @returns DFB_OK or DFB_FAILURE
  */
 
-DFBResult uc_probe_vga_device(__u16 vendor, __u16 device, char* name,
+DFBResult uc_probe_vga_device(u16 vendor, u16 device, char* name,
                         struct uc_vga_device* devinfo)
 {
     char fbuf[256];
@@ -198,7 +198,7 @@ int main()
 
         r = uc_mmap_vga_device(&devinfo, name);
         if (r == DFB_OK) {
-            printf("IO area mmapped to 0x%x.\n", (__u32) devinfo.iomap);
+            printf("IO area mmapped to 0x%x.\n", (u32) devinfo.iomap);
         }
     }
 

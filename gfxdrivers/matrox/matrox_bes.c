@@ -54,36 +54,36 @@ typedef struct {
      /* Stored registers */
      struct {
           /* BES */
-          __u32 besGLOBCTL;
-          __u32 besA1ORG;
-          __u32 besA2ORG;
-          __u32 besA1CORG;
-          __u32 besA2CORG;
-          __u32 besA1C3ORG;
-          __u32 besA2C3ORG;
-          __u32 besCTL;
+          u32 besGLOBCTL;
+          u32 besA1ORG;
+          u32 besA2ORG;
+          u32 besA1CORG;
+          u32 besA2CORG;
+          u32 besA1C3ORG;
+          u32 besA2C3ORG;
+          u32 besCTL;
 
-          __u32 besCTL_field;
+          u32 besCTL_field;
 
-          __u32 besHCOORD;
-          __u32 besVCOORD;
+          u32 besHCOORD;
+          u32 besVCOORD;
 
-          __u32 besHSRCST;
-          __u32 besHSRCEND;
-          __u32 besHSRCLST;
+          u32 besHSRCST;
+          u32 besHSRCEND;
+          u32 besHSRCLST;
 
-          __u32 besPITCH;
+          u32 besPITCH;
 
-          __u32 besV1WGHT;
-          __u32 besV2WGHT;
+          u32 besV1WGHT;
+          u32 besV2WGHT;
 
-          __u32 besV1SRCLST;
-          __u32 besV2SRCLST;
+          u32 besV1SRCLST;
+          u32 besV2SRCLST;
 
-          __u32 besVISCAL;
-          __u32 besHISCAL;
+          u32 besVISCAL;
+          u32 besHISCAL;
 
-          __u8  xKEYOPMODE;
+          u8    xKEYOPMODE;
      } regs;
 } MatroxBesLayerData;
 
@@ -113,7 +113,7 @@ besInitLayer( CoreLayer                  *layer,
               DFBColorAdjustment         *adjustment )
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
-     volatile __u8      *mmio = mdrv->mmio_base;
+     volatile u8        *mmio = mdrv->mmio_base;
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE |
@@ -258,7 +258,7 @@ besSetRegion( CoreLayer                  *layer,
 {
      MatroxDriverData   *mdrv = (MatroxDriverData*) driver_data;
      MatroxBesLayerData *mbes = (MatroxBesLayerData*) layer_data;
-     volatile __u8      *mmio = mdrv->mmio_base;
+     volatile u8        *mmio = mdrv->mmio_base;
 
      /* remember configuration */
      mbes->config = *config;
@@ -343,13 +343,13 @@ besSetColorAdjustment( CoreLayer          *layer,
                        DFBColorAdjustment *adj )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200)
           return DFB_UNSUPPORTED;
 
      mga_out32( mmio, (adj->contrast >> 8) |
-                      ((__u8)(((int)adj->brightness >> 8) - 128)) << 16,
+                      ((u8)(((int)adj->brightness >> 8) - 128)) << 16,
                 BESLUMACTL );
 
      return DFB_OK;
@@ -393,7 +393,7 @@ static void bes_set_regs( MatroxDriverData *mdrv, MatroxBesLayerData *mbes,
                           bool onsync )
 {
      int            line = 0;
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8   *mmio = mdrv->mmio_base;
      VideoMode     *mode = dfb_system_current_mode();
 
      if (!mode) {
@@ -505,15 +505,15 @@ static void bes_calc_regs( MatroxDriverData      *mdrv,
 
      /* scale crop values to source dimensions */
      if (cropleft)
-          cropleft = ((__u64) (source.w << 16) * cropleft / dest.w) & ~0x3;
+          cropleft = ((u64) (source.w << 16) * cropleft / dest.w) & ~0x3;
      if (croptop)
-          croptop = ((__u64) (source.h << 16) * croptop / dest.h) & ~0x3;
+          croptop = ((u64) (source.h << 16) * croptop / dest.h) & ~0x3;
      if (cropright)
-          cropright = ((__u64) (source.w << 16) * cropright / dest.w) & ~0x3;
+          cropright = ((u64) (source.w << 16) * cropright / dest.w) & ~0x3;
      if (cropbot)
-          cropbot = ((__u64) (source.h << 16) * cropbot / dest.h) & ~0x3;
+          cropbot = ((u64) (source.h << 16) * cropbot / dest.h) & ~0x3;
      if (croptop_uv)
-          croptop_uv = ((__u64) ((source.h/2) << 16) * croptop_uv / dest.h) & ~0x3;
+          croptop_uv = ((u64) ((source.h/2) << 16) * croptop_uv / dest.h) & ~0x3;
 
      /* should horizontal zoom be used? */
      if (mdev->g450_matrox)

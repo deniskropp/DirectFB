@@ -78,7 +78,7 @@ struct __DFB_CoreWindowConfig {
      DFBWindowStackingClass  stacking;       /* level boundaries */
      DFBWindowOptions        options;        /* flags for appearance/behaviour */
      DFBWindowEventType      events;         /* mask of enabled events */
-     __u32                   color_key;      /* transparent pixel */
+     u32                     color_key;      /* transparent pixel */
      DFBRegion               opaque;         /* region of the window forced to be opaque */
 };
 
@@ -187,14 +187,14 @@ dfb_window_putbelow( CoreWindow *window,
  */
 DFBResult
 dfb_window_set_colorkey( CoreWindow *window,
-                         __u32       color_key );
+                         u32         color_key );
 
 /*
  * sets the global alpha factor
  */
 DFBResult
 dfb_window_set_opacity( CoreWindow *window,
-                        __u8        opacity );
+                        u8          opacity );
 
 /*
  * sets the window options

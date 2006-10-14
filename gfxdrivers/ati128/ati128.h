@@ -33,7 +33,7 @@
 #include <core/layers.h>
 
 typedef struct {
-     volatile __u8 *mmio_base;
+     volatile u8 *mmio_base;
 } ATI128DriverData;
 
 typedef struct {
@@ -42,13 +42,13 @@ typedef struct {
      DFBSurfaceBlittingFlags blittingflags;
 
      /* store some ATI register values in native format */
-     __u32 ATI_dst_bpp;
-     __u32 ATI_color_compare;
-     __u32 ATI_blend_function;
+     u32 ATI_dst_bpp;
+     u32 ATI_color_compare;
+     u32 ATI_blend_function;
 
      /* used for the fake texture hack */
-     __u32 ATI_fake_texture_src;
-     __u32 fake_texture_color;
+     u32 ATI_fake_texture_src;
+     u32 fake_texture_color;
      unsigned int fake_texture_number;
 
      /* state validation */

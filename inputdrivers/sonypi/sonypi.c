@@ -78,7 +78,7 @@ sonypiEventThread( DirectThread *thread, void *driver_data )
 {
      SonypiData    *data = (SonypiData*) driver_data;
      int            readlen;
-     __u8           buffer[16];
+     u8             buffer[16];
 
      /* loop until error occurs except EINTR */
      while ((readlen = read( data->fd, buffer, 16 )) > 0 || errno == EINTR) {

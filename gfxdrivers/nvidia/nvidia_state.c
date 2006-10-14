@@ -67,12 +67,12 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
 {
      CoreSurface   *surface     = state->destination;
      SurfaceBuffer *buffer      = surface->back_buffer;
-     volatile __u8 *mmio        = nvdrv->mmio_base;
-     __u32          dst_offset;
-     __u32          dst_pitch;
-     __u32          src_pitch;
-     __u32          depth_offset;
-     __u32          depth_pitch;
+     volatile u8   *mmio        = nvdrv->mmio_base;
+     u32            dst_offset;
+     u32            dst_pitch;
+     u32            src_pitch;
+     u32            depth_offset;
+     u32            depth_pitch;
      
      if (NVIDIA_IS_SET( DESTINATION ))
           return;
@@ -91,9 +91,9 @@ void nv_set_destination( NVidiaDriverData *nvdrv,
      }
 
      if (nvdev->dst_format != buffer->format) {
-          __u32 sformat2D = 0;
-          __u32 sformat3D = 0;
-          __u32 cformat   = 0;
+          u32   sformat2D = 0;
+          u32   sformat3D = 0;
+          u32   cformat   = 0;
           bool  dst_422 = false;
 
           switch (buffer->format) {
@@ -275,8 +275,8 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_system  = true;
      }
      else {
-          __u32 src_offset = (buffer->video.offset + nvdev->fb_offset) & ~63;
-          __u32 src_pitch  = buffer->video.pitch & ~31;
+          u32 src_offset = (buffer->video.offset + nvdev->fb_offset) & ~63;
+          u32 src_pitch  = buffer->video.pitch & ~31;
 
           nv_assign_object( nvdrv, nvdev,
                             SUBC_SURFACES2D, OBJ_SURFACES2D, false );
@@ -321,8 +321,8 @@ void nv_set_source( NVidiaDriverData *nvdrv,
           nvdev->src_interlaced = false;
      
      if (nvdev->enabled_3d) {
-          __u32 size_u = direct_log2( surface->width  ) & 0xF;
-          __u32 size_v = direct_log2( surface->height ) & 0xF;
+          u32 size_u = direct_log2( surface->width  ) & 0xF;
+          u32 size_v = direct_log2( surface->height ) & 0xF;
 
           nvdev->state3d[1].offset  = nvdev->fb_offset + nvdev->buf_offset[1];
           nvdev->state3d[1].format &= 0xFF00FFFF;
@@ -502,7 +502,7 @@ void nv_set_blitting_color( NVidiaDriverData *nvdrv,
      }
      else if (state->blittingflags & (DSBLIT_BLEND_COLORALPHA |
                                       DSBLIT_BLEND_ALPHACHANNEL)) {
-          __u32 beta1;
+          u32 beta1;
           
           if (state->blittingflags & DSBLIT_BLEND_COLORALPHA) {
                nvdev->color3d = (color.a << 24) | 0x00FFFFFF;
@@ -532,7 +532,7 @@ void nv_set_blend_function( NVidiaDriverData *nvdrv,
                             NVidiaDeviceData *nvdev,
                             CardState        *state )
 {
-     __u32 blend;
+     u32 blend;
      
      if (NVIDIA_IS_SET( SRC_BLEND ) && NVIDIA_IS_SET( DST_BLEND ))
           return;
@@ -570,7 +570,7 @@ void nv_set_drawingflags( NVidiaDriverData *nvdrv,
           return;
           
      if (!nvdev->enabled_3d) {
-          __u32 operation;
+          u32 operation;
           
           if (state->drawingflags & DSDRAW_BLEND)
                operation = OPERATION_BLEND;
@@ -600,7 +600,7 @@ void nv_set_blittingflags( NVidiaDriverData *nvdrv,
                            NVidiaDeviceData *nvdev,
                            CardState        *state )
 {
-     __u32 operation;
+     u32 operation;
      bool  src_alpha;
      
      if (NVIDIA_IS_SET( BLITTING_FLAGS ))

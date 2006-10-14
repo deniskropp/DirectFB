@@ -53,12 +53,12 @@
 #endif
 
 #ifndef BSWAP16
-#define BSWAP16(x) (((__u16)(x)>>8) | ((__u16)(x)<<8))
+#define BSWAP16(x) (((u16)(x)>>8) | ((u16)(x)<<8))
 #endif
 
 #ifndef BSWAP32
-#define BSWAP32(x) ((((__u32)(x)>>24) & 0x000000ff) | (((__u32)(x)>> 8) & 0x0000ff00) | \
-                    (((__u32)(x)<< 8) & 0x00ff0000) | (((__u32)(x)<<24) & 0xff000000))
+#define BSWAP32(x) ((((u32)(x)>>24) & 0x000000ff) | (((u32)(x)>> 8) & 0x0000ff00) | \
+                    (((u32)(x)<< 8) & 0x00ff0000) | (((u32)(x)<<24) & 0xff000000))
 #endif
 
 

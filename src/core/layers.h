@@ -46,14 +46,14 @@ struct __DFB_CoreLayerRegionConfig {
      DFBRectangle               source;           /* viewport within source (input) */
      DFBRectangle               dest;             /* viewport on screen (output) */
 
-     __u8                       opacity;          /* global region alpha */
+     u8                         opacity;          /* global region alpha */
 
      DFBColor                   src_key;          /* source color key */
      DFBColor                   dst_key;          /* destination color key */
 
      int                        parity;           /* field parity (for interlaced) */
 
-     __u8                       alpha_ramp[4];    /* alpha values for 1 or 2 bit lookup */
+     u8                         alpha_ramp[4];    /* alpha values for 1 or 2 bit lookup */
 
      DFBRegion                 *clips;            /* clip regions */
      int                        num_clips;        /* number of clip regions */

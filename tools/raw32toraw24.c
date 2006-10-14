@@ -7,8 +7,8 @@
 
 int main()
 {
-     __u8  byt;
-     __u32 pixel32;
+     u8  byt;
+     u32 pixel32;
 
      do {
           fread (&pixel32, 4, 1, stdin);

@@ -50,10 +50,10 @@
 
 
 static void
-nv_copy32( volatile __u32 *dst, __u8 *src, int n )
+nv_copy32( volatile u32 *dst, u8 *src, int n )
 {
-     __u32 *D = (__u32*) dst;
-     __u32 *S = (__u32*) src;
+     u32 *D = (u32*) dst;
+     u32 *S = (u32*) src;
      
 #ifdef ARCH_X86
      __asm__ __volatile__(
@@ -69,10 +69,10 @@ nv_copy32( volatile __u32 *dst, __u8 *src, int n )
 }
 
 static void
-nv_copy16( volatile __u32 *dst, __u8 *src, int n )
+nv_copy16( volatile u32 *dst, u8 *src, int n )
 {
-     __u32 *D = (__u32*) dst;
-     __u16 *S = (__u16*) src;
+     u32 *D = (u32*) dst;
+     u16 *S = (u16*) src;
 
 #ifdef ARCH_X86
      __asm__ __volatile__(
@@ -82,7 +82,7 @@ nv_copy16( volatile __u32 *dst, __u8 *src, int n )
           : "memory" );
 #else
      for (; n > 1; n -= 2) {
-          *D++ = *((__u32*)S);
+          *D++ = *((u32*)S);
           S += 2;
      }
 #endif
@@ -92,7 +92,7 @@ nv_copy16( volatile __u32 *dst, __u8 *src, int n )
 }
 
 static inline bool
-nv_clip_source( DFBRectangle *rect, __u32 width, __u32 height )
+nv_clip_source( DFBRectangle *rect, u32 width, u32 height )
 {
      if (rect->x >= width || rect->y >= height)
           return false;
@@ -213,9 +213,9 @@ bool nvBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      
      if (nvdev->blittingflags || nvdev->src_format != nvdev->dst_format) {
           DFBRectangle  *clip       = &nvdev->clip;
-          __u32          src_width  = (nvdev->src_width  + 1) & ~1;
-          __u32          src_height = (nvdev->src_height + 1) & ~1;
-          __u32          filter     = 0;
+          u32            src_width  = (nvdev->src_width  + 1) & ~1;
+          u32            src_height = (nvdev->src_height + 1) & ~1;
+          u32            filter     = 0;
 
           if (nvdev->dst_422)
                src_width >>= 1; 
@@ -255,9 +255,9 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) dev;
-     __u8             *src   = nvdev->src_address;
-     __u32             src_w;
-     __u32             src_h;
+     u8               *src   = nvdev->src_address;
+     u32               src_w;
+     u32               src_h;
      int               w, h, n;
      
      if (nvdev->blittingflags & DSBLIT_DEINTERLACE) {
@@ -287,7 +287,7 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           case DSPF_RGB16:
                src += rect->y * nvdev->src_pitch + rect->x * 2;
                for (h = rect->h; h--;) {
-                    __u8 *s = src;
+                    u8 *s = src;
                     
                     for (w = rect->w; w >= n*2; w -= n*2) {
                          nv_begin( SUBC_IMAGEBLT, IBLIT_PIXEL0, n );
@@ -306,7 +306,7 @@ bool nvBlitFromCPU( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
           default:
                src += rect->y * nvdev->src_pitch + rect->x * 4;
                for (h = rect->h; h--;) {
-                    __u8 *s = src;
+                    u8 *s = src;
                     
                     for (w = rect->w; w >= n; w -= n) {
                          nv_begin( SUBC_IMAGEBLT, IBLIT_PIXEL0, n );
@@ -331,8 +331,8 @@ bool nvStretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
      NVidiaDriverData *nvdrv      = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev      = (NVidiaDeviceData*) dev;
      DFBRectangle     *cr         = &nvdev->clip;
-     __u32             src_width  = (nvdev->src_width  + 1) & ~1;
-     __u32             src_height = (nvdev->src_height + 1) & ~1;
+     u32               src_width  = (nvdev->src_width  + 1) & ~1;
+     u32               src_height = (nvdev->src_height + 1) & ~1;
      
      if (nvdev->dst_422) {
           sr->x /= 2;
@@ -373,9 +373,9 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
      NVidiaDriverData *nvdrv  = (NVidiaDriverData*) drv;
      NVidiaDeviceData *nvdev  = (NVidiaDeviceData*) dev;
      DFBRectangle     *cr     = &nvdev->clip; 
-     __u8             *src    = nvdev->src_address;
-     __u32             src_w;
-     __u32             src_h;
+     u8               *src    = nvdev->src_address;
+     u32               src_w;
+     u32               src_h;
      int               w, h, n;
 
      if (!nv_clip_source( sr, nvdev->src_width, nvdev->src_height ))
@@ -408,7 +408,7 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
           case DSPF_RGB16:
                src += sr->y * nvdev->src_pitch + sr->x * 2;
                for (h = sr->h; h--;) {
-                    __u8 *s = src;
+                    u8 *s = src;
                     
                     for (w = sr->w; w >= n*2; w -= n*2) {
                          nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_PIXEL0, n );
@@ -427,7 +427,7 @@ bool nvStretchBlitFromCPU( void *drv, void *dev,
           default:
                src += sr->y * nvdev->src_pitch + sr->x * 4;
                for (h = sr->h; h--;) {
-                    __u8 *s= src;
+                    u8 *s= src;
                     
                     for (w = sr->w; w >= n; w -= n) {
                          nv_begin( SUBC_STRETCHEDIMAGE, ISTRETCH_PIXEL0, n );

@@ -28,6 +28,8 @@
 #define __I830_H__
 
 #include <dfb_types.h>
+
+#include <sys/types.h>
 #include <linux/agpgart.h>
 
 #include <core/gfxcard.h>
@@ -96,7 +98,7 @@
  *    - p281
  *    - 2 new bits.
  */
-#define INST_PM                  0x20c0	
+#define INST_PM                  0x20c0
 #define AGP_SYNC_PACKET_FLUSH_ENABLE 0x20 /* reserved */
 #define SYNC_PACKET_FLUSH_ENABLE     0x10
 #define TWO_D_INST_DISABLE           0x08
@@ -187,58 +189,58 @@
 #define MAX_CUTOFF_FREQ         3.0
 
 typedef volatile struct {
-     __u32 OBUF_0Y;
-     __u32 OBUF_1Y;
-     __u32 OBUF_0U;
-     __u32 OBUF_0V;
-     __u32 OBUF_1U;
-     __u32 OBUF_1V;
-     __u32 OSTRIDE;
-     __u32 YRGB_VPH;
-     __u32 UV_VPH;
-     __u32 HORZ_PH;
-     __u32 INIT_PHS;
-     __u32 DWINPOS;
-     __u32 DWINSZ;
-     __u32 SWIDTH;
-     __u32 SWIDTHSW;
-     __u32 SHEIGHT;
-     __u32 YRGBSCALE;
-     __u32 UVSCALE;
-     __u32 OCLRC0;
-     __u32 OCLRC1;
-     __u32 DCLRKV;
-     __u32 DCLRKM;
-     __u32 SCLRKVH;
-     __u32 SCLRKVL;
-     __u32 SCLRKEN;
-     __u32 OCONFIG;
-     __u32 OCMD;
-     __u32 RESERVED1;           /* 0x6C */
-     __u32 AWINPOS;
-     __u32 AWINSZ;
-     __u32 RESERVED2;           /* 0x78 */
-     __u32 RESERVED3;           /* 0x7C */
-     __u32 RESERVED4;           /* 0x80 */
-     __u32 RESERVED5;           /* 0x84 */
-     __u32 RESERVED6;           /* 0x88 */
-     __u32 RESERVED7;           /* 0x8C */
-     __u32 RESERVED8;           /* 0x90 */
-     __u32 RESERVED9;           /* 0x94 */
-     __u32 RESERVEDA;           /* 0x98 */
-     __u32 RESERVEDB;           /* 0x9C */
-     __u32 FASTHSCALE;               /* 0xA0 */
-     __u32 UVSCALEV;            /* 0xA4 */
+     u32 OBUF_0Y;
+     u32 OBUF_1Y;
+     u32 OBUF_0U;
+     u32 OBUF_0V;
+     u32 OBUF_1U;
+     u32 OBUF_1V;
+     u32 OSTRIDE;
+     u32 YRGB_VPH;
+     u32 UV_VPH;
+     u32 HORZ_PH;
+     u32 INIT_PHS;
+     u32 DWINPOS;
+     u32 DWINSZ;
+     u32 SWIDTH;
+     u32 SWIDTHSW;
+     u32 SHEIGHT;
+     u32 YRGBSCALE;
+     u32 UVSCALE;
+     u32 OCLRC0;
+     u32 OCLRC1;
+     u32 DCLRKV;
+     u32 DCLRKM;
+     u32 SCLRKVH;
+     u32 SCLRKVL;
+     u32 SCLRKEN;
+     u32 OCONFIG;
+     u32 OCMD;
+     u32 RESERVED1;           /* 0x6C */
+     u32 AWINPOS;
+     u32 AWINSZ;
+     u32 RESERVED2;           /* 0x78 */
+     u32 RESERVED3;           /* 0x7C */
+     u32 RESERVED4;           /* 0x80 */
+     u32 RESERVED5;           /* 0x84 */
+     u32 RESERVED6;           /* 0x88 */
+     u32 RESERVED7;           /* 0x8C */
+     u32 RESERVED8;           /* 0x90 */
+     u32 RESERVED9;           /* 0x94 */
+     u32 RESERVEDA;           /* 0x98 */
+     u32 RESERVEDB;           /* 0x9C */
+     u32 FASTHSCALE;               /* 0xA0 */
+     u32 UVSCALEV;            /* 0xA4 */
 
-     __u32 RESERVEDC[(0x200 - 0xA8) / 4];         /* 0xA8 - 0x1FC */
-     __u16 Y_VCOEFS[N_VERT_Y_TAPS * N_PHASES];         /* 0x200 */
-     __u16 RESERVEDD[0x100 / 2 - N_VERT_Y_TAPS * N_PHASES];
-     __u16 Y_HCOEFS[N_HORIZ_Y_TAPS * N_PHASES];             /* 0x300 */
-     __u16 RESERVEDE[0x200 / 2 - N_HORIZ_Y_TAPS * N_PHASES];
-     __u16 UV_VCOEFS[N_VERT_UV_TAPS * N_PHASES];            /* 0x500 */
-     __u16 RESERVEDF[0x100 / 2 - N_VERT_UV_TAPS * N_PHASES];
-     __u16 UV_HCOEFS[N_HORIZ_UV_TAPS * N_PHASES];      /* 0x600 */
-     __u16 RESERVEDG[0x100 / 2 - N_HORIZ_UV_TAPS * N_PHASES];
+     u32 RESERVEDC[(0x200 - 0xA8) / 4];         /* 0xA8 - 0x1FC */
+     u16 Y_VCOEFS[N_VERT_Y_TAPS * N_PHASES];         /* 0x200 */
+     u16 RESERVEDD[0x100 / 2 - N_VERT_Y_TAPS * N_PHASES];
+     u16 Y_HCOEFS[N_HORIZ_Y_TAPS * N_PHASES];             /* 0x300 */
+     u16 RESERVEDE[0x200 / 2 - N_HORIZ_Y_TAPS * N_PHASES];
+     u16 UV_VCOEFS[N_VERT_UV_TAPS * N_PHASES];            /* 0x500 */
+     u16 RESERVEDF[0x100 / 2 - N_VERT_UV_TAPS * N_PHASES];
+     u16 UV_HCOEFS[N_HORIZ_UV_TAPS * N_PHASES];      /* 0x600 */
+     u16 RESERVEDG[0x100 / 2 - N_HORIZ_UV_TAPS * N_PHASES];
 } I830OverlayRegs;
 
 typedef struct {
@@ -276,21 +278,21 @@ typedef struct {
      agp_bind              lring_bind;
      agp_bind              ovl_bind;
 
-     __u32                 pattern;
-     __u32                 lring1;
-     __u32                 lring2;
-     __u32                 lring3;
-     __u32                 lring4;
+     u32                   pattern;
+     u32                   lring1;
+     u32                   lring2;
+     u32                   lring3;
+     u32                   lring4;
 
      /* benchmarking */
-     __u32                 waitfifo_sum;
-     __u32                 waitfifo_calls;
-     __u32                 idle_calls;
-     __u32                 fifo_waitcycles;
-     __u32                 idle_waitcycles;
-     __u32                 fifo_cache_hits;
-     __u32                 fifo_timeoutsum;
-     __u32                 idle_timeoutsum;
+     u32                   waitfifo_sum;
+     u32                   waitfifo_calls;
+     u32                   idle_calls;
+     u32                   fifo_waitcycles;
+     u32                   idle_waitcycles;
+     u32                   fifo_cache_hits;
+     u32                   fifo_timeoutsum;
+     u32                   idle_timeoutsum;
 } I830DeviceData;
 
 typedef struct {
@@ -298,14 +300,14 @@ typedef struct {
 
      I830OverlayRegs    *oregs;
 
-     __u32               flags;
+     u32                 flags;
      int                 agpgart;
      agp_info            info;
-     volatile __u8      *aper_base;
-     volatile __u8      *lring_base;
-     volatile __u8      *ovl_base;
-     volatile __u8      *mmio_base;
-     volatile __u8      *pattern_base;
+     volatile u8        *aper_base;
+     volatile u8        *lring_base;
+     volatile u8        *ovl_base;
+     volatile u8        *mmio_base;
+     volatile u8        *pattern_base;
 } I830DriverData;
 
 extern DisplayLayerFuncs i830OverlayFuncs;
@@ -317,22 +319,22 @@ void i830ovlOnOff( I830DriverData       *idrv,
 
 
 #define i830_readb(mmio_base, where)                     \
-        *((volatile __u8 *) (mmio_base + where))           \
+        *((volatile u8 *) (mmio_base + where))           \
 
 #define i830_readw(mmio_base, where)                     \
-       *((volatile __u16 *) (mmio_base + where))           \
+       *((volatile u16 *) (mmio_base + where))           \
 
 #define i830_readl(mmio_base, where)                     \
-       *((volatile __u32 *) (mmio_base + where))           \
+       *((volatile u32 *) (mmio_base + where))           \
 
 #define i830_writeb(mmio_base, where, val)                              \
-        *((volatile __u8 *) (mmio_base + where)) = (volatile __u8) val      \
+        *((volatile u8 *) (mmio_base + where)) = (volatile u8) val      \
 
 #define i830_writew(mmio_base, where, val)                              \
-        *((volatile __u16 *) (mmio_base + where)) = (volatile __u16) val    \
+        *((volatile u16 *) (mmio_base + where)) = (volatile u16) val    \
 
 #define i830_writel(mmio_base, where, val)                              \
-        *((volatile __u32 *) (mmio_base + where)) = (volatile __u32) val    \
+        *((volatile u32 *) (mmio_base + where)) = (volatile u32) val    \
 
 
 
@@ -376,11 +378,11 @@ i830_begin_lp_ring( I830DriverData *idrv,
 
 static inline void
 i830_out_ring( I830RingBlock *block,
-               __u32          value )
+               u32            value )
 {
      D_DEBUG_AT( I830_Ring, "out_ring( 0x%08x, 0x%08x )\n", block->outring, value );
 
-     *(volatile __u32*)(block->virt + block->outring) = value;
+     *(volatile u32*)(block->virt + block->outring) = value;
 
      block->outring = (block->outring + 4) & block->tail_mask;
 }

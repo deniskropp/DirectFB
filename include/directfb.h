@@ -287,10 +287,10 @@ typedef struct {
  * A color defined by channels with 8bit each.
  */
 typedef struct {
-     __u8           a;   /* alpha channel */
-     __u8           r;   /* red channel */
-     __u8           g;   /* green channel */
-     __u8           b;   /* blue channel */
+     u8             a;   /* alpha channel */
+     u8             r;   /* red channel */
+     u8             g;   /* green channel */
+     u8             b;   /* blue channel */
 } DFBColor;
 
 /*
@@ -392,7 +392,7 @@ typedef unsigned int DFBWindowID;
 typedef unsigned int DFBInputDeviceID;
 typedef unsigned int DFBTextEncodingID;
 
-typedef __u32 DFBDisplayLayerIDs;
+typedef u32 DFBDisplayLayerIDs;
 
 /*
  * Maximum number of layer ids.
@@ -1335,10 +1335,10 @@ typedef enum {
 typedef struct {
      DFBColorAdjustmentFlags  flags;
 
-     __u16                    brightness;
-     __u16                    contrast;
-     __u16                    hue;
-     __u16                    saturation;
+     u16                      brightness;
+     u16                      contrast;
+     u16                      hue;
+     u16                      saturation;
 } DFBColorAdjustment;
 
 
@@ -2509,7 +2509,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetOpacity) (
           IDirectFBDisplayLayer              *thiz,
-          __u8                                opacity
+          u8                                  opacity
      );
 
      /*
@@ -2565,9 +2565,9 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetSrcColorKey) (
           IDirectFBDisplayLayer              *thiz,
-          __u8                                r,
-          __u8                                g,
-          __u8                                b
+          u8                                  r,
+          u8                                  g,
+          u8                                  b
      );
 
      /*
@@ -2578,9 +2578,9 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetDstColorKey) (
           IDirectFBDisplayLayer              *thiz,
-          __u8                                r,
-          __u8                                g,
-          __u8                                b
+          u8                                  r,
+          u8                                  g,
+          u8                                  b
      );
 
 
@@ -2644,10 +2644,10 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetBackgroundColor) (
           IDirectFBDisplayLayer              *thiz,
-          __u8                                r,
-          __u8                                g,
-          __u8                                b,
-          __u8                                a
+          u8                                  r,
+          u8                                  g,
+          u8                                  b,
+          u8                                  a
      );
 
    /** Color adjustment **/
@@ -2768,7 +2768,7 @@ DEFINE_INTERFACE(   IDirectFBDisplayLayer,
       */
      DFBResult (*SetCursorOpacity) (
           IDirectFBDisplayLayer              *thiz,
-          __u8                                opacity
+          u8                                  opacity
      );
 
 
@@ -3016,10 +3016,10 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*SetAlphaRamp) (
           IDirectFBSurface         *thiz,
-          __u8                      a0,
-          __u8                      a1,
-          __u8                      a2,
-          __u8                      a3
+          u8                        a0,
+          u8                        a1,
+          u8                        a2,
+          u8                        a3
      );
 
 
@@ -3091,10 +3091,10 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*Clear) (
           IDirectFBSurface         *thiz,
-          __u8                      r,
-          __u8                      g,
-          __u8                      b,
-          __u8                      a
+          u8                        r,
+          u8                        g,
+          u8                        b,
+          u8                        a
      );
 
 
@@ -3135,10 +3135,10 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*SetColor) (
           IDirectFBSurface         *thiz,
-          __u8                      r,
-          __u8                      g,
-          __u8                      b,
-          __u8                      a
+          u8                        r,
+          u8                        g,
+          u8                        b,
+          u8                        a
      );
 
      /*
@@ -3186,9 +3186,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*SetSrcColorKey) (
           IDirectFBSurface         *thiz,
-          __u8                      r,
-          __u8                      g,
-          __u8                      b
+          u8                        r,
+          u8                        g,
+          u8                        b
      );
 
      /*
@@ -3211,9 +3211,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*SetDstColorKey) (
           IDirectFBSurface         *thiz,
-          __u8                      r,
-          __u8                      g,
-          __u8                      b
+          u8                        r,
+          u8                        g,
+          u8                        b
      );
 
      /*
@@ -3626,10 +3626,10 @@ DEFINE_INTERFACE(   IDirectFBPalette,
       */
      DFBResult (*FindBestMatch) (
           IDirectFBPalette         *thiz,
-          __u8                      r,
-          __u8                      g,
-          __u8                      b,
-          __u8                      a,
+          u8                        r,
+          u8                        g,
+          u8                        b,
+          u8                        a,
           unsigned int             *ret_index
      );
 
@@ -4434,9 +4434,9 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*SetColorKey) (
           IDirectFBWindow               *thiz,
-          __u8                           r,
-          __u8                           g,
-          __u8                           b
+          u8                             r,
+          u8                             g,
+          u8                             b
      );
 
      /*
@@ -4460,7 +4460,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*SetOpacity) (
           IDirectFBWindow               *thiz,
-          __u8                           opacity
+          u8                             opacity
      );
 
      /*
@@ -4486,7 +4486,7 @@ DEFINE_INTERFACE(   IDirectFBWindow,
       */
      DFBResult (*GetOpacity) (
           IDirectFBWindow               *thiz,
-          __u8                          *ret_opacity
+          u8                            *ret_opacity
      );
 
      /*
@@ -4907,9 +4907,9 @@ typedef enum {
 typedef struct {
      DFBImageCapabilities     caps;        /* capabilities              */
 
-     __u8                     colorkey_r;  /* colorkey red channel      */
-     __u8                     colorkey_g;  /* colorkey green channel    */
-     __u8                     colorkey_b;  /* colorkey blue channel     */
+     u8                       colorkey_r;  /* colorkey red channel      */
+     u8                       colorkey_g;  /* colorkey green channel    */
+     u8                       colorkey_b;  /* colorkey blue channel     */
 } DFBImageDescription;
 
 

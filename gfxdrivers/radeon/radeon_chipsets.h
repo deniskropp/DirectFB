@@ -24,8 +24,8 @@
 #define __RADEON_CHIPSETS_H__
 
 static const struct {
-     __u16       id;
-     __u16       chip;
+     u16         id;
+     u16         chip;
      bool        igp;
      const char *name;
 } dev_table[] = {

@@ -57,10 +57,10 @@ typedef DFBResult DirectResult;    /* FIXME */
 #ifndef true
 #define true (!false)
 #endif
-typedef __u8 bool;
+typedef u8 bool;
 #endif
 
-typedef __u32 unichar;
+typedef u32 unichar;
 
 typedef struct __D_DirectConfig              DirectConfig;
 typedef struct __D_DirectHash                DirectHash;

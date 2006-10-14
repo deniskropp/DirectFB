@@ -105,73 +105,73 @@ enum {
 typedef struct {
      StateModificationFlags  set;
      
-     __u32                   fb_offset;
-     __u32                   fb_size;
-     __u32                   agp_offset;
+     u32                     fb_offset;
+     u32                     fb_size;
+     u32                     agp_offset;
      
      DFBSurfacePixelFormat   dst_format;
-     __u32                   dst_offset;
-     __u32                   dst_pitch;
+     u32                     dst_offset;
+     u32                     dst_pitch;
      bool                    dst_422;
 
      DFBSurfacePixelFormat   src_format;
-     __u32                   src_offset;
-     __u8                   *src_address;
-     __u32                   src_pitch;
-     __u32                   src_width;
-     __u32                   src_height;
+     u32                     src_offset;
+     u8                     *src_address;
+     u32                     src_pitch;
+     u32                     src_width;
+     u32                     src_height;
      bool                    src_system;
      bool                    src_interlaced;
 
      DFBRectangle            clip;
 
-     __u32                   color2d;
-     __u32                   color3d;
+     u32                     color2d;
+     u32                     color3d;
      
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
      
      /* NVRectangle/NVTriangle/NVLine registers */
-     __u32                   drawing_operation; // SetOperation
+     u32                     drawing_operation; // SetOperation
      
      /* NVScaledImage registers */
-     __u32                   scaler_operation;  // SetOperation
-     __u32                   scaler_format;     // SetColorFormat
-     __u32                   scaler_filter;     // SetImageInFormat
+     u32                     scaler_operation;  // SetOperation
+     u32                     scaler_format;     // SetColorFormat
+     u32                     scaler_filter;     // SetImageInFormat
      
      /* NVImageBlt/NVStretchedImage registers */
-     __u32                   system_operation;  // SetOperation
-     __u32                   system_format;     // SetColorFormat
+     u32                     system_operation;  // SetOperation
+     u32                     system_format;     // SetColorFormat
 
      /* Remember value of NVBeta1 & NVBeta4 */
      bool                    beta1_set;
-     __u32                   beta1_val;
+     u32                     beta1_val;
      bool                    beta4_set;
-     __u32                   beta4_val;
+     u32                     beta4_val;
 
      /* 3D stuff */
      bool                    enabled_3d;       // 3d engine enabled
-     __u32                   buf_offset[2];    // reserved buffers
+     u32                     buf_offset[2];    // reserved buffers
      SurfaceBuffer          *src_texture;      // current source for TextureTriangles
-     __u32                   max_texture_size;
+     u32                     max_texture_size;
      
      struct {
           bool               modified;
-          __u32              colorkey;
-          __u32              offset;
-          __u32              format;
-          __u32              filter;
-          __u32              blend;
-          __u32              control;
-          __u32              fog;
+          u32                colorkey;
+          u32                offset;
+          u32                format;
+          u32                filter;
+          u32                blend;
+          u32                control;
+          u32                fog;
      } state3d[2]; // 0 => drawing | 1 => blitting
 
      /* Remember subchannels configuration */
-     __u32                   subchannel_object[8];
+     u32                     subchannel_object[8];
      
      /* Chipsets informations */
-     __u32                   chip;
-     __u32                   arch;
+     u32                     chip;
+     u32                     arch;
      
      /* AGP control */
      bool                    use_agp;
@@ -188,7 +188,7 @@ typedef struct {
      unsigned int            dma_free;
      unsigned int            dma_put;
      unsigned int            dma_get;
-     volatile __u32         *cmd_ptr;               
+     volatile u32           *cmd_ptr;
 
      /* FIFO control */
      unsigned int            fifo_free;

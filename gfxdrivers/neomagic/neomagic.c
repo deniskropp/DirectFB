@@ -123,7 +123,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      NeoDriverData *ndrv = (NeoDriverData*) driver_data;
 
-     ndrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     ndrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!ndrv->mmio_base)
           return DFB_IO;
 

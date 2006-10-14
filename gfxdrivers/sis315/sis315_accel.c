@@ -1,5 +1,5 @@
 /*
- * $Id: sis315_accel.c,v 1.2 2006-10-10 00:15:22 syrjala Exp $
+ * $Id: sis315_accel.c,v 1.3 2006-10-14 13:05:37 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -33,7 +33,7 @@ static void sis_idle(SiSDriverData *drv)
 	while (!(sis_rl(drv->mmio_base, SIS315_2D_CMD_QUEUE_STATUS) & 0x80000000));
 }
 
-static void sis_cmd(SiSDriverData *drv, SiSDeviceData *dev, __u8 pat, __u8 src, __u8 type, __u8 rop)
+static void sis_cmd(SiSDriverData *drv, SiSDeviceData *dev, u8 pat, u8 src, u8 type, u8 rop)
 {
 	sis_wl(drv->mmio_base, SIS315_2D_CMD, SIS315_2D_CMD_RECT_CLIP_EN |
 					      dev->cmd_bpp | (rop << 8) |

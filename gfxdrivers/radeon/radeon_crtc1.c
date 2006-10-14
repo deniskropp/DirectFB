@@ -56,7 +56,7 @@ crtc1WaitVSync( CoreScreen *screen,
                 void       *screen_data )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
-     volatile __u8    *mmio = rdrv->mmio_base; 
+     volatile u8      *mmio = rdrv->mmio_base;
      int               i;
      
      if (dfb_config->pollvsync_none)

@@ -51,11 +51,11 @@ typedef struct {
      /* Stored registers */
      struct {
           /* CRTC2 sub picture */
-          __u32 c2DATACTL;
+          u32 c2DATACTL;
 
-          __u32 c2SPICSTARTADD0;
-          __u32 c2SPICSTARTADD1;
-          __u32 c2SUBPICLUT;
+          u32 c2SPICSTARTADD0;
+          u32 c2SPICSTARTADD1;
+          u32 c2SUBPICLUT;
      } regs;
 } MatroxSpicLayerData;
 
@@ -181,13 +181,13 @@ spicSetRegion( CoreLayer                  *layer,
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
      MatroxDeviceData    *mdev  = mdrv->device_data;
-     volatile __u8       *mmio  = mdrv->mmio_base;
+     volatile u8         *mmio  = mdrv->mmio_base;
 
      /* remember configuration */
      mspic->config = *config;
 
      if (updated & CLRCF_PALETTE) {
-          __u8 y, cb, cr;
+          u8 y, cb, cr;
           int  i;
 
           for (i = 0; i < 16; i++) {
@@ -240,7 +240,7 @@ spicRemoveRegion( CoreLayer *layer,
 {
      MatroxDriverData    *mdrv  = (MatroxDriverData*) driver_data;
      MatroxSpicLayerData *mspic = (MatroxSpicLayerData*) layer_data;
-     volatile __u8       *mmio  = mdrv->mmio_base;
+     volatile u8         *mmio  = mdrv->mmio_base;
 
      mspic->regs.c2DATACTL = mga_in32( mmio, C2DATACTL );
 
@@ -304,7 +304,7 @@ static void spic_calc_buffer( MatroxDriverData    *mdrv,
 static void spic_set_buffer( MatroxDriverData    *mdrv,
                              MatroxSpicLayerData *mspic )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      mga_out32( mmio, mspic->regs.c2SPICSTARTADD0, C2SPICSTARTADD0 );
      mga_out32( mmio, mspic->regs.c2SPICSTARTADD1, C2SPICSTARTADD1 );

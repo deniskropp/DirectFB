@@ -55,24 +55,24 @@ typedef struct {
      int                   field;
 
      struct {
-          __u32 BUFFER;
-          __u32 STOP;
-          __u32 BASE_0;
-          __u32 BASE_1;
-          __u32 SIZE_IN_0;
-          __u32 SIZE_IN_1;
-          __u32 POINT_IN_0;
-          __u32 POINT_IN_1;
-          __u32 DS_DX_0;
-          __u32 DS_DX_1;
-          __u32 DT_DY_0;
-          __u32 DT_DY_1;
-          __u32 POINT_OUT_0;
-          __u32 POINT_OUT_1;
-          __u32 SIZE_OUT_0;
-          __u32 SIZE_OUT_1;
-          __u32 FORMAT_0;
-          __u32 FORMAT_1;
+          u32 BUFFER;
+          u32 STOP;
+          u32 BASE_0;
+          u32 BASE_1;
+          u32 SIZE_IN_0;
+          u32 SIZE_IN_1;
+          u32 POINT_IN_0;
+          u32 POINT_IN_1;
+          u32 DS_DX_0;
+          u32 DS_DX_1;
+          u32 DT_DY_0;
+          u32 DT_DY_1;
+          u32 POINT_OUT_0;
+          u32 POINT_OUT_1;
+          u32 SIZE_OUT_0;
+          u32 SIZE_OUT_1;
+          u32 FORMAT_0;
+          u32 FORMAT_1;
      } regs;
 } NVidiaOverlayLayerData;
 
@@ -158,7 +158,7 @@ ov0Remove( CoreLayer *layer,
            void      *region_data )
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
-     volatile __u8    *mmio  = nvdrv->mmio_base;
+     volatile u8      *mmio  = nvdrv->mmio_base;
      
      /* disable overlay */
      nv_out32( mmio, PVIDEO_STOP, PVIDEO_STOP_OVERLAY_ACTIVE | 
@@ -432,10 +432,10 @@ ov0DeallocateSurface( CoreLayer   *layer,
 static void
 ov0CopyData420
 (
-     __u8 *src1,
-     __u8 *src2,
-     __u8 *src3,
-     __u8 *dst1,
+     u8 *src1,
+     u8 *src2,
+     u8 *src3,
+     u8 *dst1,
      int   srcPitch,
      int   srcPitch2,
      int   dstPitch,
@@ -443,14 +443,14 @@ ov0CopyData420
      int   w
 )
 {
-     __u32 *dst;
-     __u8 *s1, *s2, *s3;
+     u32 *dst;
+     u8 *s1, *s2, *s3;
      int i, j;
 
      w >>= 1;
 
      for(j = 0; j < h; j++) {
-          dst = (__u32 *)dst1;
+          dst = (u32 *)dst1;
           s1 = src1;  s2 = src2;  s3 = src3;
           i = w;
           while(i > 4) {
@@ -504,11 +504,11 @@ ov0FlipRegion ( CoreLayer           *layer,
      if (DFB_PLANAR_PIXELFORMAT( surface->format )) {  
           SurfaceBuffer *data_buffer;
           SurfaceBuffer *video_buffer;
-          __u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
-          __u32 width  = surface->width;
-          __u32 height = surface->height;
-          __u8 *dstStart;
-          __u8 *buf;
+          u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
+          u32 width  = surface->width;
+          u32 height = surface->height;
+          u8 *dstStart;
+          u8 *buf;
           
           data_buffer  = surface->front_buffer;
           video_buffer = nvov0->videoSurface->front_buffer;
@@ -557,11 +557,11 @@ ov0UpdateRegion ( CoreLayer           *layer,
      if (DFB_PLANAR_PIXELFORMAT( surface->format )) {  
           SurfaceBuffer *data_buffer;
           SurfaceBuffer *video_buffer;
-          __u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
-          __u32 width  = surface->width;
-          __u32 height = surface->height;
-          __u8 *dstStart;
-          __u8 *buf;
+          u32 srcPitch, srcPitch2, dstPitch, s2offset, s3offset, tmp;
+          u32 width  = surface->width;
+          u32 height = surface->height;
+          u8 *dstStart;
+          u8 *buf;
           
           data_buffer  = surface->front_buffer;
           video_buffer = nvov0->videoSurface->front_buffer;
@@ -662,7 +662,7 @@ DisplayLayerFuncs nvidiaOverlayFuncs = {
 
 static void ov0_set_regs( NVidiaDriverData *nvdrv, NVidiaOverlayLayerData *nvov0 )
 {
-     volatile __u8 *mmio = nvdrv->mmio_base;
+     volatile u8 *mmio = nvdrv->mmio_base;
      
      nv_out32( mmio, PVIDEO_BASE_0,      nvov0->regs.BASE_0 );
      nv_out32( mmio, PVIDEO_BASE_1,      nvov0->regs.BASE_1 );
@@ -694,11 +694,11 @@ ov0_calc_regs( NVidiaDriverData       *nvdrv,
      DFBRectangle      source  = config->source;
      DFBRectangle      dest    = config->dest;
      SurfaceBuffer    *buffer  = nvov0->videoSurface->front_buffer;
-     __u32             offset  = buffer->video.offset;
-     __u32             pitch   = buffer->video.pitch;
+     u32               offset  = buffer->video.offset;
+     u32               pitch   = buffer->video.pitch;
      int               width   = config->width;
      int               height  = config->height;
-     __u32             format;
+     u32               format;
 
      source.x <<= 4;
      source.y <<= 4;
@@ -775,7 +775,7 @@ ov0_set_colorkey( NVidiaDriverData       *nvdrv,
                   NVidiaOverlayLayerData *nvov0,
                   CoreLayerRegionConfig  *config )
 {
-     __u32 key;
+     u32 key;
      
      key = dfb_color_to_pixel( dfb_primary_layer_pixelformat(),
                                config->dst_key.r,
@@ -789,10 +789,10 @@ static void
 ov0_set_csc( NVidiaDriverData       *nvdrv,
              NVidiaOverlayLayerData *nvov0 )
 {
-     volatile __u8 *mmio = nvdrv->mmio_base;
-     __s32          satSine;
-     __s32          satCosine;
-     double         angle;
+     volatile u8 *mmio = nvdrv->mmio_base;
+     s32          satSine;
+     s32          satCosine;
+     double       angle;
 
      angle = (double) nvov0->hue * M_PI / 180.0;
      satSine = nvov0->saturation * sin(angle);

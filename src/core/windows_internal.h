@@ -106,7 +106,7 @@ struct __DFB_CoreWindowStack {
           DFBDimension       size;        /* cursor shape size */
           DFBPoint           hot;         /* hot spot */
           CoreSurface       *surface;     /* shape */
-          __u8               opacity;     /* cursor opacity */
+          u8                 opacity;     /* cursor opacity */
           DFBRegion          region;      /* cursor is clipped by this region */
 
           int                numerator;   /* cursor acceleration */

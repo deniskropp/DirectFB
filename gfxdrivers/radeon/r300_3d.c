@@ -46,7 +46,7 @@
 
 
 static __inline__ void
-out_vertex2d0( volatile __u8 *mmio, float x, float y, float c[4] )
+out_vertex2d0( volatile u8 *mmio, float x, float y, float c[4] )
 {
      radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
      radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
@@ -59,7 +59,7 @@ out_vertex2d0( volatile __u8 *mmio, float x, float y, float c[4] )
 }
 
 static __inline__ void
-out_vertex2d2( volatile __u8 *mmio, float x, float y, float s, float t )
+out_vertex2d2( volatile u8 *mmio, float x, float y, float s, float t )
 {
      radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
      radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
@@ -77,7 +77,7 @@ r300DoFillRectangle3D( RadeonDriverData *rdrv,
                        RadeonDeviceData *rdev,
                        DFBRectangle     *rect )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
 
      if (rect->w == 1 && rect->h == 1) {
           radeon_waitfifo( rdrv, rdev, 1+1*8 );
@@ -122,7 +122,7 @@ r300DoFillTriangle( RadeonDriverData *rdrv,
                     RadeonDeviceData *rdev,
                     DFBTriangle      *tri )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
 
      radeon_waitfifo( rdrv, rdev, 1+3*8 );
      
@@ -156,7 +156,7 @@ r300DoDrawRectangle3D( RadeonDriverData *rdrv,
                        DFBRectangle     *rect )
 {
 #if 0
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 1+16*8 );
           
@@ -220,7 +220,7 @@ r300DoDrawLine3D( RadeonDriverData *rdrv,
                   RadeonDeviceData *rdev,
                   DFBRegion        *line )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 1+2*8 );
      
@@ -251,7 +251,7 @@ static void
 r300DoBlit3D( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
               DFBRectangle     *sr,   DFBRectangle     *dr )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 1+4*8 );
 
@@ -313,7 +313,7 @@ void r300EmitCommands3D( void *drv, void *dev )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 2 );
      radeon_out32( mmio, R300_RB3D_DSTCACHE_CTLSTAT, 0xa );

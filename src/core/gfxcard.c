@@ -1550,7 +1550,7 @@ setup_font_state( CoreFont *font, CardState *state )
 }
 
 void
-dfb_gfxcard_drawstring( const __u8 *text, int bytes,
+dfb_gfxcard_drawstring( const u8 *text, int bytes,
                         DFBTextEncodingID encoding, int x, int y,
                         CoreFont *font, CardState *state )
 {

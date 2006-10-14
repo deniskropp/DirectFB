@@ -69,36 +69,36 @@ typedef struct {
      
      /* overlay registers */
      struct {
-          __u32 H_INC;
-          __u32 STEP_BY;
-          __u32 Y_X_START;
-          __u32 Y_X_END;
-          __u32 V_INC;
-          __u32 P1_BLANK_LINES_AT_TOP;
-          __u32 P23_BLANK_LINES_AT_TOP;
-          __u32 VID_BUF_PITCH0_VALUE;
-          __u32 VID_BUF_PITCH1_VALUE;
-          __u32 P1_X_START_END;
-          __u32 P2_X_START_END;
-          __u32 P3_X_START_END;
-          __u32 BASE_ADDR;
-          __u32 VID_BUF0_BASE_ADRS;
-          __u32 VID_BUF1_BASE_ADRS;
-          __u32 VID_BUF2_BASE_ADRS;
-          __u32 VID_BUF3_BASE_ADRS;
-          __u32 VID_BUF4_BASE_ADRS;
-          __u32 VID_BUF5_BASE_ADRS;
-          __u32 P1_V_ACCUM_INIT;
-          __u32 P23_V_ACCUM_INIT;
-          __u32 P1_H_ACCUM_INIT;
-          __u32 P23_H_ACCUM_INIT;
-          __u32 VID_KEY_CLR_LOW;
-          __u32 VID_KEY_CLR_HIGH;
-          __u32 GRPH_KEY_CLR_LOW;
-          __u32 GRPH_KEY_CLR_HIGH;
-          __u32 KEY_CNTL;
-          __u32 MERGE_CNTL;
-          __u32 SCALE_CNTL;
+          u32 H_INC;
+          u32 STEP_BY;
+          u32 Y_X_START;
+          u32 Y_X_END;
+          u32 V_INC;
+          u32 P1_BLANK_LINES_AT_TOP;
+          u32 P23_BLANK_LINES_AT_TOP;
+          u32 VID_BUF_PITCH0_VALUE;
+          u32 VID_BUF_PITCH1_VALUE;
+          u32 P1_X_START_END;
+          u32 P2_X_START_END;
+          u32 P3_X_START_END;
+          u32 BASE_ADDR;
+          u32 VID_BUF0_BASE_ADRS;
+          u32 VID_BUF1_BASE_ADRS;
+          u32 VID_BUF2_BASE_ADRS;
+          u32 VID_BUF3_BASE_ADRS;
+          u32 VID_BUF4_BASE_ADRS;
+          u32 VID_BUF5_BASE_ADRS;
+          u32 P1_V_ACCUM_INIT;
+          u32 P23_V_ACCUM_INIT;
+          u32 P1_H_ACCUM_INIT;
+          u32 P23_H_ACCUM_INIT;
+          u32 VID_KEY_CLR_LOW;
+          u32 VID_KEY_CLR_HIGH;
+          u32 GRPH_KEY_CLR_LOW;
+          u32 GRPH_KEY_CLR_HIGH;
+          u32 KEY_CNTL;
+          u32 MERGE_CNTL;
+          u32 SCALE_CNTL;
      } regs;
 } RadeonOverlayLayerData;
 
@@ -145,7 +145,7 @@ ovlInitLayer( CoreLayer                  *layer,
 {
      RadeonDriverData       *rdrv = (RadeonDriverData*) driver_data;
      RadeonOverlayLayerData *rovl = (RadeonOverlayLayerData*) layer_data;
-     volatile __u8          *mmio = rdrv->mmio_base;
+     volatile u8            *mmio = rdrv->mmio_base;
      DFBScreenDescription    dsc;
      
      dfb_screen_get_info( layer->screen, NULL, &dsc );
@@ -473,12 +473,12 @@ ovl_calc_coordinates( RadeonDriverData       *rdrv,
      RadeonDeviceData *rdev    = rdrv->device_data;
      DFBRectangle      source  = config->source;
      DFBRectangle      dest    = config->dest; 
-     __u32             ecp_div = 0;
-     __u32             h_inc;
-     __u32             h_inc2;
-     __u32             v_inc;
-     __u32             step_by;
-     __u32             tmp;
+     u32               ecp_div = 0;
+     u32               h_inc;
+     u32               h_inc2;
+     u32               v_inc;
+     u32               step_by;
+     u32               tmp;
      int               xres;
      int               yres;
 
@@ -619,8 +619,8 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
      RadeonDeviceData *rdev       = rdrv->device_data;
      SurfaceBuffer    *buffer     = surface->front_buffer;
      DFBRectangle      source     = config->source;
-     __u32             offsets[3] = { 0, 0, 0 };
-     __u32             pitch      = buffer->video.pitch;
+     u32               offsets[3] = { 0, 0, 0 };
+     u32               pitch      = buffer->video.pitch;
      int               even       = 0;
      int               cropleft;
      int               croptop;
@@ -659,7 +659,7 @@ ovl_calc_buffers( RadeonDriverData       *rdrv,
           }
 
           if (surface->format == DSPF_YV12) {
-               __u32 tmp  = offsets[1];
+               u32 tmp    = offsets[1];
                offsets[1] = offsets[2];
                offsets[2] = tmp;
           }
@@ -798,7 +798,7 @@ ovl_set_regs( RadeonDriverData       *rdrv,
               RadeonOverlayLayerData *rovl )
 {
      RadeonDeviceData *rdev = rdrv->device_data;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 1 );
      radeon_out32( mmio, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK );
@@ -848,7 +848,7 @@ ovl_set_buffers( RadeonDriverData       *rdrv,
                  RadeonOverlayLayerData *rovl )
 {
      RadeonDeviceData *rdev = rdrv->device_data;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
       
      radeon_waitfifo( rdrv, rdev, 1 );
      radeon_out32( mmio, OV0_REG_LOAD_CNTL, REG_LD_CTL_LOCK );
@@ -871,10 +871,10 @@ ovl_set_colorkey( RadeonDriverData       *rdrv,
                   RadeonOverlayLayerData *rovl,
                   CoreLayerRegionConfig  *config )              
 {
-     volatile __u8 *mmio = rdrv->mmio_base; 
-     __u32          SkeyLow, SkeyHigh;
-     __u32          DkeyLow, DkeyHigh;
-     __u32          tmp;
+     volatile u8 *mmio = rdrv->mmio_base;
+     u32          SkeyLow, SkeyHigh;
+     u32          DkeyLow, DkeyHigh;
+     u32          tmp;
      
      SkeyLow  = PIXEL_RGB32( config->src_key.r,
                              config->src_key.g,
@@ -925,17 +925,17 @@ ovl_set_adjustment( RadeonDriverData       *rdrv,
                     float                   saturation,
                     float                   hue )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8   *mmio = rdrv->mmio_base;
      float          HueSin, HueCos; 
      float          Luma;
      float          RCb, RCr;
      float          GCb, GCr;
      float          BCb, BCr;
      float          AdjOff, ROff, GOff, BOff;
-     __u32          dwLuma, dwROff, dwGOff, dwBOff;
-     __u32          dwRCb, dwRCr;
-     __u32          dwGCb, dwGCr;
-     __u32          dwBCb, dwBCr;
+     u32            dwLuma, dwROff, dwGOff, dwBOff;
+     u32            dwRCb, dwRCr;
+     u32            dwGCb, dwGCr;
+     u32            dwBCb, dwBCr;
      
      HueSin = sin( hue );
      HueCos = cos( hue );
@@ -955,17 +955,17 @@ ovl_set_adjustment( RadeonDriverData       *rdrv,
      ROff   = CLAMP( ROff, -2048.0, 2047.5 );
      GOff   = CLAMP( GOff, -2048.0, 2047.5 );
      BOff   = CLAMP( BOff, -2048.0, 2047.5 );
-     dwROff = ((__u32)(ROff * 2.0)) & 0x1fff;
-     dwGOff = ((__u32)(GOff * 2.0)) & 0x1fff;
-     dwBOff = ((__u32)(BOff * 2.0)) & 0x1fff;
+     dwROff = ((u32)(ROff * 2.0)) & 0x1fff;
+     dwGOff = ((u32)(GOff * 2.0)) & 0x1fff;
+     dwBOff = ((u32)(BOff * 2.0)) & 0x1fff;
  
-     dwLuma = (((__u32)(Luma * 256.0)) & 0xfff) << 20;
-     dwRCb  = (((__u32)(RCb  * 256.0)) & 0xfff) <<  4;
-     dwRCr  = (((__u32)(RCr  * 256.0)) & 0xfff) << 20;
-     dwGCb  = (((__u32)(GCb  * 256.0)) & 0xfff) <<  4;
-     dwGCr  = (((__u32)(GCr  * 256.0)) & 0xfff) << 20;
-     dwBCb  = (((__u32)(BCb  * 256.0)) & 0xfff) <<  4;
-     dwBCr  = (((__u32)(BCr  * 256.0)) & 0xfff) << 20;
+     dwLuma = (((u32)(Luma * 256.0)) & 0xfff) << 20;
+     dwRCb  = (((u32)(RCb  * 256.0)) & 0xfff) <<  4;
+     dwRCr  = (((u32)(RCr  * 256.0)) & 0xfff) << 20;
+     dwGCb  = (((u32)(GCb  * 256.0)) & 0xfff) <<  4;
+     dwGCr  = (((u32)(GCr  * 256.0)) & 0xfff) << 20;
+     dwBCb  = (((u32)(BCb  * 256.0)) & 0xfff) <<  4;
+     dwBCr  = (((u32)(BCr  * 256.0)) & 0xfff) << 20;
  
      radeon_waitfifo( rdrv, rdrv->device_data, 6 );
      radeon_out32( mmio, OV0_LIN_TRANS_A, dwRCb  | dwLuma );

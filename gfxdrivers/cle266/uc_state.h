@@ -26,27 +26,27 @@ struct uc_hw_misc
 {
     // These control clipping...
 
-    __u32 regHClipTB;
-    __u32 regHClipLR;
-    __u32 regHFPClipTL;
-    __u32 regHFPClipBL;
-    __u32 regHFPClipLL;
-    __u32 regHFPClipRL;
-    __u32 regHFPClipTBH;
-    __u32 regHFPClipLRH;
+    u32 regHClipTB;
+    u32 regHClipLR;
+    u32 regHFPClipTL;
+    u32 regHFPClipBL;
+    u32 regHFPClipLL;
+    u32 regHFPClipRL;
+    u32 regHFPClipTBH;
+    u32 regHFPClipLRH;
 
     // Other functions
 
-    __u32 regHLP;           // Line stipple pattern
-    __u32 regHLPRF;         // Line stipple factor
-    __u32 regHSolidCL;      // --- Don't know. Unused in DRI.
-    __u32 regHPixGC;        // Don't know. Is kept cleared in DRI.
-    //__u32 regHSPXYOS;     // Polygon stipple x and y offsets. Unused here.
-    __u32 regHVertexCNT;    // --- Don't know. Unused in DRI.
+    u32 regHLP;             // Line stipple pattern
+    u32 regHLPRF;           // Line stipple factor
+    u32 regHSolidCL;        // --- Don't know. Unused in DRI.
+    u32 regHPixGC;          // Don't know. Is kept cleared in DRI.
+    //u32 regHSPXYOS;       // Polygon stipple x and y offsets. Unused here.
+    u32 regHVertexCNT;      // --- Don't know. Unused in DRI.
 
-    __u8 ps_xos;            // Polygon stipple x-offset. => regHSPXYOS
-    __u8 ps_yos;            // Polygon stipple y-offset. => regHSPXYOS
-    __u32 ps_pat[32];       // Polygon stipple pattern buffer.
+    u8 ps_xos;              // Polygon stipple x-offset. => regHSPXYOS
+    u8 ps_yos;              // Polygon stipple y-offset. => regHSPXYOS
+    u32 ps_pat[32];         // Polygon stipple pattern buffer.
                             // These are not registers...
 };
 
@@ -55,12 +55,12 @@ struct uc_hw_misc
 
 struct uc_hw_stencil
 {
-    //__u32 regHSBBasL;     // These aren't in regs3d.h, but they should exist...
-    //__u32 regHSBBasH;
-    //__u32 regHSBFM;
+    //u32 regHSBBasL;       // These aren't in regs3d.h, but they should exist...
+    //u32 regHSBBasH;
+    //u32 regHSBFM;
 
-    __u32 regHSTREF;        // Stencil reference value and plane mask
-    __u32 regHSTMD;         // Stencil test function and fail operation and
+    u32 regHSTREF;          // Stencil reference value and plane mask
+    u32 regHSTMD;           // Stencil test function and fail operation and
                             // zpass/zfail operations.
 };
 */

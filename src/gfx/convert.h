@@ -227,15 +227,15 @@
 
 /* RGB <-> YCbCr conversion */
 
-extern const __u16 y_for_rgb[256];
-extern const __s16 cr_for_r[256];
-extern const __s16 cr_for_g[256];
-extern const __s16 cb_for_g[256];
-extern const __s16 cb_for_b[256];
+extern const u16 y_for_rgb[256];
+extern const s16 cr_for_r[256];
+extern const s16 cr_for_g[256];
+extern const s16 cb_for_g[256];
+extern const s16 cb_for_b[256];
 
 #define YCBCR_TO_RGB( y, cb, cr, r, g, b ) do { \
-     __u16 _y, _cb, _cr;\
-     __s16 _r, _g, _b;\
+     u16 _y, _cb, _cr;\
+     s16 _r, _g, _b;\
      _y  = y_for_rgb[(y)]; _cb = (cb); _cr = (cr);\
      _r  = _y + cr_for_r[_cr]; \
      _g  = _y + cr_for_g[_cr] + cb_for_g[_cb]; \
@@ -245,12 +245,12 @@ extern const __s16 cb_for_b[256];
      (b) = CLAMP( _b, 0, 255 ); \
 } while (0)
 
-extern const __u16 y_from_ey[256];
-extern const __u16 cb_from_bey[512];
-extern const __u16 cr_from_rey[512];
+extern const u16 y_from_ey[256];
+extern const u16 cb_from_bey[512];
+extern const u16 cr_from_rey[512];
 
 #define RGB_TO_YCBCR( r, g, b, y, cb, cr ) do { \
-     __u32 _ey, _r, _g, _b;\
+     u32 _ey, _r, _g, _b;\
      _r = (r); _g = (g); _b = (b);\
      _ey = (19595 * _r + 38469 * _g + 7471 * _b) >> 16;\
      (y)  = y_from_ey[_ey]; \
@@ -262,94 +262,94 @@ extern const __u16 cr_from_rey[512];
 
 DFBSurfacePixelFormat dfb_pixelformat_for_depth( int depth );
 
-__u32 dfb_color_to_pixel( DFBSurfacePixelFormat format,
-                          __u8 r, __u8 g, __u8 b );
+u32 dfb_color_to_pixel( DFBSurfacePixelFormat format,
+                        u8 r, u8 g, u8 b );
 
 const char *dfb_pixelformat_name( DFBSurfacePixelFormat format );
 
-static inline __u32
+static inline u32
 dfb_color_to_argb( const DFBColor *color )
 {
      return (color->a << 24) | (color->r << 16) | (color->g << 8) | color->b;
 }
 
-static inline __u32
+static inline u32
 dfb_color_to_aycbcr( const DFBColor *color )
 {
      unsigned int red   = color->r;
      unsigned int green = color->g;
      unsigned int blue  = color->b;
 
-     __u8 y  = (__u8)(((66 * red + 129 * green + 25 * blue) / 256) + 16);
+     u8 y  = (u8)(((66 * red + 129 * green + 25 * blue) / 256) + 16);
 
-     __u8 cb = (__u8)((128 * 256 -  38 * red   - 74 * green + 112 * blue) / 256);
-     __u8 cr = (__u8)((128 * 256 + 112 * red   - 94 * green -  18 * blue) / 256);
+     u8 cb = (u8)((128 * 256 -  38 * red   - 74 * green + 112 * blue) / 256);
+     u8 cr = (u8)((128 * 256 + 112 * red   - 94 * green -  18 * blue) / 256);
 
      return (color->a << 24) | (y << 16) | (cb << 8) | cr;
 }
 
 static inline void
-dfb_argb_to_rgb332( __u32 *src, __u8 *dst, int len )
+dfb_argb_to_rgb332( u32 *src, u8 *dst, int len )
 {
      int i;
 
      for (i=0; i<len; i++) {
-          register __u32 argb = src[i];
+          register u32 argb = src[i];
 
           dst[i] = RGB32_TO_RGB332( argb );
      }
 }
 
 static inline void
-dfb_argb_to_argb1555( __u32 *src, __u16 *dst, int len )
+dfb_argb_to_argb1555( u32 *src, u16 *dst, int len )
 {
      int i;
 
      for (i=0; i<len; i++) {
-          register __u32 argb = src[i];
+          register u32 argb = src[i];
 
           dst[i] = ARGB_TO_ARGB1555( argb );
      }
 }
 
 static inline void
-dfb_argb_to_argb2554( __u32 *src, __u16 *dst, int len )
+dfb_argb_to_argb2554( u32 *src, u16 *dst, int len )
 {
      int i;
 
      for (i=0; i<len; i++) {
-          register __u32 argb = src[i];
+          register u32 argb = src[i];
 
           dst[i] = ARGB_TO_ARGB2554( argb );
      }
 }
 
 static inline void
-dfb_argb_to_argb4444( __u32 *src, __u16 *dst, int len )
+dfb_argb_to_argb4444( u32 *src, u16 *dst, int len )
 {
      int i;
 
      for (i=0; i<len; i++) {
-          register __u32 argb = src[i];
+          register u32 argb = src[i];
 
           dst[i] = ARGB_TO_ARGB4444( argb );
      }
 }
 
 static inline void
-dfb_argb_to_rgb16( __u32 *src, __u16 *dst, int len )
+dfb_argb_to_rgb16( u32 *src, u16 *dst, int len )
 {
      int i;
 
      for (i=0; i<len; i++) {
-          register __u32 argb = src[i];
+          register u32 argb = src[i];
 
           dst[i] = RGB32_TO_RGB16( argb );
      }
 }
 
 static inline void
-dfb_argb_to_a8( __u32 *src, __u8 *dst, int len )
+dfb_argb_to_a8( u32 *src, u8 *dst, int len )
 {
      int i;
 

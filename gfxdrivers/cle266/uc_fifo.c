@@ -69,15 +69,15 @@ static void uc_fifo_pad(struct uc_fifo* fifo)
 
 void uc_fifo_flush_sys(struct uc_fifo* fifo, volatile void *regs)
 {
-    __u32* p;
-    __u32* q;
+    u32* p;
+    u32* q;
 
-    volatile __u32* hwregs     = regs;
-    volatile __u32* reg_tset   = regs + VIA_REG_TRANSET;
-    volatile __u32* reg_tspace = regs + VIA_REG_TRANSPACE;
+    volatile u32* hwregs     = regs;
+    volatile u32* reg_tset   = regs + VIA_REG_TRANSET;
+    volatile u32* reg_tspace = regs + VIA_REG_TRANSPACE;
 
     int check2Dcmd;
-    __u32 addr;
+    u32 addr;
 
     p = fifo->buf;
     q = fifo->head;
@@ -166,7 +166,7 @@ struct uc_fifo* uc_fifo_create(FusionSHMPoolShared *pool, size_t size)
 
     // Note: malloc won't work for DMA buffers...
 
-    fifo->buf = SHMALLOC(pool, sizeof(__u32) * size);
+    fifo->buf = SHMALLOC(pool, sizeof(u32) * size);
     if (!(fifo->buf)) {
         SHFREE(pool, fifo);
         return NULL;

@@ -58,8 +58,8 @@ typedef struct {
 } SavageDeviceData;
 
 typedef struct {
-     volatile __u8  *mmio_base;
-     volatile __u32 *bci_base;
+     volatile u8  *mmio_base;
+     volatile u32 *bci_base;
 } SavageDriverData;
 
 

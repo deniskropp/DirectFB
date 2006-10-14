@@ -85,7 +85,7 @@ typedef struct {
      unsigned int fifo_cache_hits;
 
      /* ATYPE_BLK or ATYPE_RSTR, depending on SGRAM setting */
-     __u32 atype_blk_rstr;
+     u32 atype_blk_rstr;
 
      /* State handling */
      MatroxStateBits valid;
@@ -96,7 +96,7 @@ typedef struct {
      int src_pitch;
      int src_offset[2][3];
      int w, h, w2, h2;
-     __u32 color[3];
+     u32 color[3];
 
      bool draw_blend;
      bool blit_src_colorkey;
@@ -107,9 +107,9 @@ typedef struct {
 
      bool depth_buffer;
 
-     __u32 texctl;
+     u32 texctl;
 
-     __u32 idle_status;
+     u32 idle_status;
 
      DFBRegion clip;
 
@@ -126,7 +126,7 @@ typedef struct {
 typedef struct {
      int            accelerator;
      int            maven_fd;
-     volatile __u8 *mmio_base;
+     volatile u8   *mmio_base;
 
      CoreScreen    *primary;
      CoreScreen    *secondary;

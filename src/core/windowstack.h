@@ -78,7 +78,7 @@ DFBResult dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,
                                             int              hot_y );
 
 DFBResult dfb_windowstack_cursor_set_opacity( CoreWindowStack *stack,
-                                              __u8             opacity );
+                                              u8               opacity );
 
 DFBResult dfb_windowstack_cursor_set_acceleration( CoreWindowStack *stack,
                                                    int              numerator,

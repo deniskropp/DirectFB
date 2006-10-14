@@ -46,14 +46,14 @@
 
 
 static __inline__ void
-out_vertex2d0( volatile __u8 *mmio, float x, float y )
+out_vertex2d0( volatile u8 *mmio, float x, float y )
 {
      radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
      radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
 }
 
 static __inline__ void
-out_vertex2d2( volatile __u8 *mmio, float x, float y, float s, float t )
+out_vertex2d2( volatile u8 *mmio, float x, float y, float s, float t )
 {
      radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
      radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
@@ -62,7 +62,7 @@ out_vertex2d2( volatile __u8 *mmio, float x, float y, float s, float t )
 }
 
 static __inline__ void
-out_vertex3d( volatile __u8 *mmio,
+out_vertex3d( volatile u8 *mmio,
               float x, float y, float z, float w, float s, float t )
 {
      radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
@@ -79,7 +79,7 @@ r100DoFillRectangle3D( RadeonDriverData *rdrv,
                        RadeonDeviceData *rdev,
                        DFBRectangle     *rect )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
 
      if (rect->w == 1 && rect->h == 1) {
           radeon_waitfifo( rdrv, rdev, 3 );
@@ -120,7 +120,7 @@ bool r100FillRectangle3D_420( void *drv, void *dev, DFBRectangle *rect )
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      DFBRegion        *clip = &rdev->clip;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
 
      /* Fill Luma plane */
      r100DoFillRectangle3D( rdrv, rdev, rect );
@@ -169,7 +169,7 @@ r100DoFillTriangle( RadeonDriverData *rdrv,
                     RadeonDeviceData *rdev,
                     DFBTriangle      *tri )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
 
      radeon_waitfifo( rdrv, rdev, 7 );
      
@@ -198,7 +198,7 @@ bool r100FillTriangle_420( void *drv, void *dev, DFBTriangle *tri )
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      DFBRegion        *clip = &rdev->clip;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
 
      /* Fill Luma plane */
      r100DoFillTriangle( rdrv, rdev, tri );
@@ -249,7 +249,7 @@ r100DoDrawRectangle3D( RadeonDriverData *rdrv,
                        RadeonDeviceData *rdev,
                        DFBRectangle     *rect )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
 
      radeon_waitfifo( rdrv, rdev, 25 );
           
@@ -290,7 +290,7 @@ bool r100DrawRectangle3D_420( void *drv, void *dev, DFBRectangle *rect )
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      DFBRegion        *clip = &rdev->clip;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      /* Fill Luma plane */
      r100DoDrawRectangle3D( rdrv, rdev, rect );
@@ -339,7 +339,7 @@ r100DoDrawLine3D( RadeonDriverData *rdrv,
                   RadeonDeviceData *rdev,
                   DFBRegion        *line )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 5 );
      
@@ -367,7 +367,7 @@ bool r100DrawLine3D_420( void *drv, void *dev, DFBRegion *line )
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      DFBRegion        *clip = &rdev->clip;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      line->x1 &= ~1;
      line->y1 &= ~1;
@@ -420,7 +420,7 @@ static void
 r100DoBlit3D( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
               DFBRectangle     *sr,   DFBRectangle     *dr )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 13 );
 
@@ -477,7 +477,7 @@ bool r100StretchBlit_420( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *
      RadeonDriverData *rdrv    = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev    = (RadeonDeviceData*) dev; 
      DFBRegion        *clip    = &rdev->clip;
-     volatile __u8    *mmio    = rdrv->mmio_base;
+     volatile u8      *mmio    = rdrv->mmio_base;
      bool              src_420 = DFB_PLANAR_PIXELFORMAT( rdev->src_format );
      
      if (rdev->blittingflags & DSBLIT_DEINTERLACE) {
@@ -550,9 +550,9 @@ bool r100StretchBlit_420( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *
 
 static void
 r100DoTextureTriangles( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
-                        DFBVertex *ve, int num, __u32 primitive )
+                        DFBVertex *ve, int num, u32 primitive )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8   *mmio = rdrv->mmio_base;
      int            i;
  
      radeon_waitfifo( rdrv, rdev, 1 ); 
@@ -583,7 +583,7 @@ bool r100TextureTriangles( void *drv, void *dev, DFBVertex *ve,
 { 
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     __u32             prim = 0;
+     u32               prim = 0;
 
      if (num > 65535) {
           D_WARN( "R100 supports maximum 65535 vertices" );
@@ -616,9 +616,9 @@ bool r100TextureTriangles_420( void *drv, void *dev, DFBVertex *ve,
      RadeonDriverData *rdrv    = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev    = (RadeonDeviceData*) dev;
      DFBRegion        *clip    = &rdev->clip;
-     volatile __u8    *mmio    = rdrv->mmio_base;
+     volatile u8      *mmio    = rdrv->mmio_base;
      bool              src_420 = DFB_PLANAR_PIXELFORMAT( rdev->src_format );
-     __u32             prim    = 0;
+     u32               prim    = 0;
      int               i;
 
      if (num > 65535) {

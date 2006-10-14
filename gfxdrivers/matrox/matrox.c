@@ -214,7 +214,7 @@ matroxEngineReset( void *drv, void *dev )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mga_waitidle( mdrv, mdev );
 
@@ -926,7 +926,7 @@ matrox_fill_rectangle( MatroxDriverData *mdrv,
                        MatroxDeviceData *mdev,
                        DFBRectangle *rect )
 {
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mga_waitfifo( mdrv, mdev, 3 );
 
@@ -957,7 +957,7 @@ matroxFillRectangle_2P( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      matrox_fill_rectangle( mdrv, mdev, rect );
 
@@ -996,7 +996,7 @@ matroxFillRectangle_3P( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      matrox_fill_rectangle( mdrv, mdev, rect );
 
@@ -1054,7 +1054,7 @@ matroxDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mga_waitfifo( mdrv, mdev, 6 );
 
@@ -1092,7 +1092,7 @@ matroxDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mga_waitfifo( mdrv, mdev, 3 );
 
@@ -1122,7 +1122,7 @@ matrox_fill_trapezoid( MatroxDriverData *mdrv,
                        int Xl, int Xr, int X2l,
                        int X2r, int Y, int dY )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      int dxl = X2l - Xl;
      int dxr = ++X2r - ++Xr;
@@ -1130,7 +1130,7 @@ matrox_fill_trapezoid( MatroxDriverData *mdrv,
      int dXl = ABS(dxl);
      int dXr = ABS(dxr);
 
-     __u32 sgn = 0;
+     u32 sgn = 0;
 
      mga_waitfifo( mdrv, mdev, 6 );
 
@@ -1158,7 +1158,7 @@ matroxFillTriangle( void *drv, void *dev, DFBTriangle *tri )
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mga_waitfifo( mdrv, mdev, 1 );
 
@@ -1217,12 +1217,12 @@ matroxDoBlit2D_Old( MatroxDriverData *mdrv,
                     int w,  int h,
                     int pitch, int offset )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO | ATYPE_RSTR | OP_BITBLT;
-     __u32 start, end;
-     __u32 sgn = 0;
-     __s32 pixelpitch = pitch;
+     u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO | ATYPE_RSTR | OP_BITBLT;
+     u32 start, end;
+     u32 sgn = 0;
+     s32 pixelpitch = pitch;
 
      if (sx < dx)
           sgn |= BLIT_LEFT;
@@ -1284,7 +1284,7 @@ matroxBlit2D_Old_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
 
      src_field = rect->y & 1;
@@ -1329,12 +1329,12 @@ matroxDoBlit2D( MatroxDriverData *mdrv,
                 int w,  int h,
                 int pitch )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO | ATYPE_RSTR | OP_BITBLT;
-     __u32 start, end;
-     __u32 sgn = 0;
-     __s32 pixelpitch = pitch;
+     u32 dwgctl = BLTMOD_BFCOL | BOP_COPY | SHFTZERO | ATYPE_RSTR | OP_BITBLT;
+     u32 start, end;
+     u32 sgn = 0;
+     s32 pixelpitch = pitch;
 
      if (sx < dx)
           sgn |= BLIT_LEFT;
@@ -1393,7 +1393,7 @@ matroxBlit2D_2P( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      matroxDoBlit2D( mdrv, mdev,
                      rect->x, rect->y,
@@ -1439,7 +1439,7 @@ matroxBlit2D_3P( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      matroxDoBlit2D( mdrv, mdev,
                      rect->x, rect->y,
@@ -1518,7 +1518,7 @@ matroxBlit2D_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
 
      src_field = rect->y & 1;
@@ -1560,7 +1560,7 @@ matroxBlit2D_2P_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
 
      src_field = rect->y & 1;
@@ -1640,7 +1640,7 @@ matroxBlit2D_3P_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
 
      src_field = rect->y & 1;
@@ -1747,7 +1747,7 @@ matroxBlit2D_422_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
 
      src_field = rect->y & 1;
@@ -1798,9 +1798,9 @@ matroxDoBlitTMU( MatroxDriverData *mdrv,
                  int w2, int h2,
                  bool filter )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __s32 startx, starty, incx, incy;
+     s32 startx, starty, incx, incy;
 
      if (mdev->blit_deinterlace) {
           sy /= 2;
@@ -1856,8 +1856,8 @@ matroxBlitTMU_2P( MatroxDriverData *mdrv,
                   DFBRectangle *drect,
                   bool filter )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
-     __u32          texctl;
+     volatile u8 *mmio = mdrv->mmio_base;
+     u32          texctl;
 
      matroxDoBlitTMU( mdrv, mdev,
                       srect->x, srect->y,
@@ -1882,12 +1882,12 @@ matroxBlitTMU_2P( MatroxDriverData *mdrv,
      /* CbCr plane */
      mga_waitfifo( mdrv, mdev, 10 );
      mga_out32( mmio, texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->src_offset[0][1], TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
@@ -1910,12 +1910,12 @@ matroxBlitTMU_2P( MatroxDriverData *mdrv,
      /* Restore registers */
      mga_waitfifo( mdrv, mdev, 7 );
      mga_out32( mmio, mdev->texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->src_offset[0][0], TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch, PITCH );
@@ -1932,8 +1932,8 @@ matroxBlitTMU_3P( MatroxDriverData *mdrv,
                   DFBRectangle *drect,
                   bool filter )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
-     __u32          texctl;
+     volatile u8 *mmio = mdrv->mmio_base;
+     u32          texctl;
 
      matroxDoBlitTMU( mdrv, mdev,
                       srect->x, srect->y,
@@ -1958,12 +1958,12 @@ matroxBlitTMU_3P( MatroxDriverData *mdrv,
      /* Cb plane */
      mga_waitfifo( mdrv, mdev, 9 );
      mga_out32( mmio, texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->src_offset[0][1], TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
@@ -1998,12 +1998,12 @@ matroxBlitTMU_3P( MatroxDriverData *mdrv,
      /* Restore registers */
      mga_waitfifo( mdrv, mdev, 6 );
      mga_out32( mmio, mdev->texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->src_offset[0][0], TEXORG );
 
      mga_out32( mmio, mdev->dst_pitch, PITCH );
@@ -2133,8 +2133,8 @@ matroxBlitTMU_F( MatroxDriverData *mdrv,
                  DFBRectangle *drect,
                  bool filter )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
-     int            src_field, dst_field;
+     volatile u8 *mmio = mdrv->mmio_base;
+     int          src_field, dst_field;
 
      src_field = srect->y & 1;
      dst_field = drect->y & 1;
@@ -2217,9 +2217,9 @@ matroxStretchBlit_2P_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
-     __u32             texctl;
+     u32               texctl;
 
      src_field = srect->y & 1;
      dst_field = drect->y & 1;
@@ -2264,12 +2264,12 @@ matroxStretchBlit_2P_F( void *drv, void *dev,
 
      mga_waitfifo( mdrv, mdev, 10 );
      mga_out32( mmio, texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
      mga_out32( mmio, PW16 | NODITHER, MACCESS );
      mga_out32( mmio, (mdev->dst_pitch/2 * mdev->clip.y1/2) & 0xFFFFFF, YTOP );
@@ -2304,12 +2304,12 @@ matroxStretchBlit_2P_F( void *drv, void *dev,
      /* Restore registers */
      mga_waitfifo( mdrv, mdev, 7 );
      mga_out32( mmio, mdev->texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->dst_pitch, PITCH );
      mga_out32( mmio, PW8 | BYPASS332 | NODITHER, MACCESS );
 
@@ -2327,9 +2327,9 @@ matroxStretchBlit_3P_F( void *drv, void *dev,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      int               src_field, dst_field;
-     __u32             texctl;
+     u32               texctl;
 
      src_field = srect->y & 1;
      dst_field = drect->y & 1;
@@ -2374,12 +2374,12 @@ matroxStretchBlit_3P_F( void *drv, void *dev,
 
      mga_waitfifo( mdrv, mdev, 9 );
      mga_out32( mmio, texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
-                        (((__u32)(3 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 3) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h/2 - 1) & 0x7ff) << 18) |
+                        (((u32)(3 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 3) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->dst_pitch/2, PITCH );
      mga_out32( mmio, (mdev->dst_pitch/2 * mdev->clip.y1/2) & 0xFFFFFF, YTOP );
      mga_out32( mmio, (mdev->dst_pitch/2 * mdev->clip.y2/2) & 0xFFFFFF, YBOT );
@@ -2437,12 +2437,12 @@ matroxStretchBlit_3P_F( void *drv, void *dev,
      /* Restore registers */
      mga_waitfifo( mdrv, mdev, 6 );
      mga_out32( mmio, mdev->texctl, TEXCTL );
-     mga_out32( mmio, ( (((__u32)(mdev->w - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->w2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
-     mga_out32( mmio, ( (((__u32)(mdev->h - 1) & 0x7ff) << 18) |
-                        (((__u32)(4 - mdev->h2) & 0x3f) <<  9) |
-                        (((__u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
+     mga_out32( mmio, ( (((u32)(mdev->w - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->w2) & 0x3f) <<  9) |
+                        (((u32)(mdev->w2 + 4) & 0x3f)      )  ), TEXWIDTH );
+     mga_out32( mmio, ( (((u32)(mdev->h - 1) & 0x7ff) << 18) |
+                        (((u32)(4 - mdev->h2) & 0x3f) <<  9) |
+                        (((u32)(mdev->h2 + 4) & 0x3f)      )  ), TEXHEIGHT );
      mga_out32( mmio, mdev->dst_pitch, PITCH );
 
      mga_out32( mmio, mdev->src_offset[0][0], TEXORG );
@@ -2455,14 +2455,14 @@ matroxStretchBlit_3P_F( void *drv, void *dev,
 
 /******************************************************************************/
 
-static __u32 pci_config_in32( unsigned int bus,
-                              unsigned int slot,
-                              unsigned int func,
-                              __u8 reg )
+static u32 pci_config_in32( unsigned int bus,
+                            unsigned int slot,
+                            unsigned int func,
+                            u8 reg )
 {
      char  filename[512];
      int   fd;
-     __u32 val;
+     u32 val;
 
      snprintf( filename, 512,
                "/proc/bus/pci/%02x/%02x.%x",
@@ -2626,7 +2626,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      MatroxDriverData *mdrv = driver_data;
 
-     mdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     mdrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!mdrv->mmio_base)
           return DFB_IO;
 
@@ -2703,7 +2703,7 @@ driver_init_device( GraphicsDevice     *device,
 {
      MatroxDriverData *mdrv = (MatroxDriverData*) driver_data;
      MatroxDeviceData *mdev = (MatroxDeviceData*) device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
      unsigned int      bus, slot, func;
      bool              g450, g550, sgram = false;
      DFBResult         ret;
@@ -2831,7 +2831,7 @@ driver_init_device( GraphicsDevice     *device,
 
      /* soft reset to fix eventually corrupted TMU read offset on G200 */
      if (mdrv->accelerator == FB_ACCEL_MATROX_MGAG200) {
-          __u32 ien = mga_in32( mmio, IEN );
+          u32 ien = mga_in32( mmio, IEN );
           mga_out32( mmio, 1, RST );
           usleep(10);
           mga_out32( mmio, 0, RST );

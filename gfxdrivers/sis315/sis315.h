@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.h,v 1.3 2005-07-10 16:25:41 oberritter Exp $
+ * $Id: sis315.h,v 1.4 2006-10-14 13:05:37 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -25,7 +25,7 @@
 #include <direct/types.h>
 
 typedef struct {
-	volatile __u8 *mmio_base;
+	volatile u8 *mmio_base;
 	bool has_auto_maximize;
 	unsigned long auto_maximize;
 	/* ioctls */

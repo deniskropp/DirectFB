@@ -43,11 +43,11 @@
 #include "nvidia_3d.h"
 
 
-static __inline__ __u32
+static __inline__ u32
 f2d( float f ) {
      union {
           float f;
-          __u32 d;
+          u32 d;
      } t;
      t.f = f;
      return t.d;
@@ -307,9 +307,9 @@ bool nvTextureTriangles( void *drv, void *dev, DFBVertex *ve,
 #define UMASK 0xAAAAAAAA
 
 static inline void
-a8_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+a8_to_tex( u32 *dst, u8 *src, int pitch, int width, int height )
 {
-     __u32 u, v;
+     u32 u, v;
      int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
@@ -335,18 +335,18 @@ a8_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 }
 
 static inline void
-rgb16_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+rgb16_to_tex( u32 *dst, u8 *src, int pitch, int width, int height )
 {
-     __u32 u, v;
+     u32 u, v;
      int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
           for (i = 0, u = 0; i < width/2; i++, u = (u + UINC) & UMASK)
-               dst[(u|v)/4] = ((__u32*) src)[i];
+               dst[(u|v)/4] = ((u32*) src)[i];
           
           if (width & 1) {
                u = (u + UINC) & UMASK;
-               dst[(u|v)/4] = ((__u16*) src)[width-1];
+               dst[(u|v)/4] = ((u16*) src)[width-1];
           }             
                
           src += pitch;
@@ -354,17 +354,17 @@ rgb16_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 }
 
 static inline void
-rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+rgb32_to_tex( u32 *dst, u8 *src, int pitch, int width, int height )
 {
-     __u32 u, v;
+     u32 u, v;
      int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
           for (i = 0, u = 0; i < width; i += 2, u = (u + UINC) & UMASK) {
-               register __u32 pix0, pix1;
-               pix0 = ((__u32*) src)[i];
+               register u32 pix0, pix1;
+               pix0 = ((u32*) src)[i];
                pix0 = RGB32_TO_RGB16( pix0 );
-               pix1 = ((__u32*) src)[i+1];
+               pix1 = ((u32*) src)[i+1];
                pix1 = RGB32_TO_RGB16( pix1 );
 #ifdef WORDS_BIGENDIAN
                dst[(u|v)/4] = (pix0 << 16) | pix1;
@@ -375,7 +375,7 @@ rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
           
           if (width & 1) {
                u = (u + UINC) & UMASK;
-               dst[(u|v)/4] = RGB32_TO_RGB16( ((__u32*) src)[width-1] );
+               dst[(u|v)/4] = RGB32_TO_RGB16( ((u32*) src)[width-1] );
           }             
                
           src += pitch;
@@ -383,17 +383,17 @@ rgb32_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 }
 
 static inline void
-argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
+argb_to_tex( u32 *dst, u8 *src, int pitch, int width, int height )
 {
-     __u32 u, v;
+     u32 u, v;
      int   i;
 
      for (v = 0; height--; v = (v + VINC) & VMASK) {
           for (i = 0, u = 0; i < width; i += 2, u = (u + UINC) & UMASK) {
-               register __u32 pix0, pix1;
-               pix0 = ((__u32*) src)[i];
+               register u32 pix0, pix1;
+               pix0 = ((u32*) src)[i];
                pix0 = ARGB_TO_ARGB4444( pix0 );
-               pix1 = ((__u32*) src)[i+1];
+               pix1 = ((u32*) src)[i+1];
                pix1 = ARGB_TO_ARGB4444( pix1 );
 #ifdef WORDS_BIGENDIAN
                dst[(u|v)/4] = (pix0 << 16) | pix1;
@@ -404,7 +404,7 @@ argb_to_tex( __u32 *dst, __u8 *src, int pitch, int width, int height )
 
           if (width & 1) {
                u = (u + UINC) & UMASK;
-               dst[(u|v)/4] = ARGB_TO_ARGB4444( ((__u32*) src)[width-1] );
+               dst[(u|v)/4] = ARGB_TO_ARGB4444( ((u32*) src)[width-1] );
           }
 
           src += pitch;
@@ -416,16 +416,16 @@ static void nv_load_texture( NVidiaDriverData *nvdrv,
 {
      SurfaceBuffer *buffer       = nvdev->src_texture;
      CoreSurface   *surface      = buffer->surface;
-     __u32         *tex_origin;
-     __u8          *src_buffer;
-     __u32          src_pitch;
-     __u32          field_offset = 0;
+     u32           *tex_origin;
+     u8            *src_buffer;
+     u32            src_pitch;
+     u32            field_offset = 0;
 
      tex_origin = dfb_gfxcard_memory_virtual( nvdrv->device,
                                               nvdev->buf_offset[1] );
 
      if (buffer->policy != CSP_SYSTEMONLY) {
-          __u8 *src_origin;
+          u8 *src_origin;
           
           /* check if source texture was modified */
           if (nvdev->set & SMF_SOURCE_TEXTURE &&

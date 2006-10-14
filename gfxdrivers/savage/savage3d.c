@@ -91,7 +91,7 @@ static inline void savage3D_validate_gbd( Savage3DDriverData *sdrv,
                                           Savage3DDeviceData *sdev,
                                           CardState          *state )
 {
-     __u32 BitmapDescriptor;
+     u32 BitmapDescriptor;
      CoreSurface *destination;
      SurfaceBuffer *buffer;
      int bpp;
@@ -126,7 +126,7 @@ static inline void savage3D_validate_pbd( Savage3DDriverData *sdrv,
                                           Savage3DDeviceData *sdev,
                                           CardState          *state )
 {
-     __u32 BitmapDescriptor;
+     u32 BitmapDescriptor;
      CoreSurface *source;
      SurfaceBuffer *buffer;
      int bpp;
@@ -414,9 +414,9 @@ static bool savage3DBlit( void *drv, void *dev,
      Savage3DDriverData *sdrv = (Savage3DDriverData*) drv;
      Savage3DDeviceData *sdev = (Savage3DDeviceData*) dev;
 
-     __u32 cmd = ( BCI_CMD_RECT | sdev->Cmd_Src_Transparent |
-                   BCI_CMD_CLIP_CURRENT | BCI_CMD_DEST_GBD | 
-                   BCI_CMD_SRC_PBD_COLOR | (0xcc << 16) );
+     u32 cmd = ( BCI_CMD_RECT | sdev->Cmd_Src_Transparent |
+                 BCI_CMD_CLIP_CURRENT | BCI_CMD_DEST_GBD |
+                 BCI_CMD_SRC_PBD_COLOR | (0xcc << 16) );
      
      if (dx < rect->x) {
           cmd |= BCI_CMD_RECT_XP;
@@ -500,7 +500,7 @@ savage3d_init_device( GraphicsDevice     *device,
                       void               *device_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      unsigned long	cobIndex;	/* size index */
      unsigned long	cobSize;	/* size in bytes */

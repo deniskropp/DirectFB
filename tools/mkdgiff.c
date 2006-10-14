@@ -197,17 +197,17 @@ parse_command_line( int argc, char *argv[] )
 static void
 write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
 {
-     int   y;
-     __u8 *src = slot->bitmap.buffer;
+     int  y;
+     u8  *src = slot->bitmap.buffer;
 
      D_DEBUG_AT( mkdgiff, "%s( %p, %p, %p, %d ) <- width %d\n",
                  __FUNCTION__, glyph, slot, dst, pitch, glyph->width );
 
      for (y=0; y < glyph->height; y++) {
-          int    i, j, n;
-          __u8  *dst8  = dst;
-          __u16 *dst16 = dst;
-          __u32 *dst32 = dst;
+          int  i, j, n;
+          u8  *dst8  = dst;
+          u16 *dst16 = dst;
+          u32 *dst32 = dst;
 
           switch (slot->bitmap.pixel_mode) {
                case ft_pixel_mode_grays:
@@ -248,7 +248,7 @@ write_glyph( DGIFFGlyphInfo *glyph, FT_GlyphSlot slot, void *dst, int pitch )
                               break;
                          case DSPF_A1:
                               for (i=0, j=0; i < glyph->width; ++j) {
-                                   register __u8 p = 0;
+                                   register u8 p = 0;
 
                                    for (n=0; n<8 && i<glyph->width; ++i, ++n)
                                         p |= (src[i] & 0x80) >> n;

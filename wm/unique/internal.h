@@ -226,7 +226,7 @@ struct __UniQuE_UniqueWindow {
      DFBWindowOptions         options;       /* flags for appearance/behaviour */
      DFBWindowEventType       events;        /* mask of enabled events */
 
-     __u32                    color_key;     /* transparent pixel */
+     u32                      color_key;     /* transparent pixel */
      DFBRegion                opaque;        /* region of the window forced to be opaque */
 };
 

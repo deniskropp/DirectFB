@@ -825,7 +825,7 @@ i810_agp_setup( GraphicsDevice *device,
 
 
      if (!idev->initialized) {
-          __u32 base;
+          u32 base;
 
           /* We'll attempt to bind at fb_base + fb_len + 1 MB,
           to be safe */
@@ -911,7 +911,7 @@ driver_init_driver( GraphicsDevice      *device,
 
      idrv->idev = device_data;
 
-     idrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     idrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!idrv->mmio_base)
           return DFB_IO;
 

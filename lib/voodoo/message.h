@@ -109,12 +109,12 @@ typedef struct {
      _vp_ptr = (parser).ptr;                                \
                                                             \
      /* Read message block type. */                         \
-     _vp_type = *(const __u32*) _vp_ptr;                    \
+     _vp_type = *(const u32*) _vp_ptr;                      \
                                                             \
      D_ASSERT( _vp_type == (req_type) );                    \
                                                             \
      /* Read data block length. */                          \
-     _vp_length = *(const __s32*) (_vp_ptr + 4)
+     _vp_length = *(const s32*) (_vp_ptr + 4)
 
 
 #define __VOODOO_PARSER_EPILOG( parser )                    \
@@ -144,7 +144,7 @@ typedef struct {
           D_ASSERT( _vp_length == 4 );                                \
                                                                       \
           /* Read the ID. */                                          \
-          (ret_id) = *(const __u32*) (_vp_ptr + 8);                   \
+          (ret_id) = *(const u32*) (_vp_ptr + 8);                     \
                                                                       \
           __VOODOO_PARSER_EPILOG( parser );                           \
      } while (0)
@@ -156,7 +156,7 @@ typedef struct {
           D_ASSERT( _vp_length == 4 );                                \
                                                                       \
           /* Read the integer. */                                     \
-          (ret_int) = *(const __s32*) (_vp_ptr + 8);                  \
+          (ret_int) = *(const s32*) (_vp_ptr + 8);                    \
                                                                       \
           __VOODOO_PARSER_EPILOG( parser );                           \
      } while (0)
@@ -168,7 +168,7 @@ typedef struct {
           D_ASSERT( _vp_length == 4 );                                \
                                                                       \
           /* Read the unsigned integer. */                            \
-          (ret_uint) = *(const __u32*) (_vp_ptr + 8);                 \
+          (ret_uint) = *(const u32*) (_vp_ptr + 8);                   \
                                                                       \
           __VOODOO_PARSER_EPILOG( parser );                           \
      } while (0)
@@ -245,7 +245,7 @@ typedef struct {
      do {                                                             \
           D_MAGIC_ASSERT( &(parser), VoodooMessageParser );           \
                                                                       \
-          D_ASSUME( *(const __u32*) ((parser).ptr) == VMBT_NONE );    \
+          D_ASSUME( *(const u32*) ((parser).ptr) == VMBT_NONE );      \
                                                                       \
           D_MAGIC_CLEAR( &(parser) );                                 \
      } while (0)

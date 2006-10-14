@@ -34,8 +34,8 @@
 struct __D_DirectSerial {
      int   magic;
 
-     __u32 value;
-     __u32 overflow;
+     u32 value;
+     u32 overflow;
 };
 
 static inline void

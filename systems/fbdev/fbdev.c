@@ -780,8 +780,8 @@ system_map_mmio( unsigned int    offset,
           return NULL;
      }
 
-     return(volatile void*) ((__u8*) addr + (dfb_fbdev->shared->fix.mmio_start &
-                                             dfb_fbdev->shared->page_mask));
+     return(volatile void*) ((u8*) addr + (dfb_fbdev->shared->fix.mmio_start &
+                                           dfb_fbdev->shared->page_mask));
 }
 
 static void
@@ -791,8 +791,8 @@ system_unmap_mmio( volatile void  *addr,
      if (length <= 0)
           length = dfb_fbdev->shared->fix.mmio_len;
 
-     if (munmap( (void*) ((__u8*) addr - (dfb_fbdev->shared->fix.mmio_start &
-                                          dfb_fbdev->shared->page_mask)), length ) < 0)
+     if (munmap( (void*) ((u8*) addr - (dfb_fbdev->shared->fix.mmio_start &
+                                        dfb_fbdev->shared->page_mask)), length ) < 0)
           D_PERROR( "DirectFB/FBDev: Could not unmap MMIO region "
                      "at %p (length %d)!\n", addr, length );
 }
@@ -870,7 +870,7 @@ system_video_memory_physical( unsigned int offset )
 static void *
 system_video_memory_virtual( unsigned int offset )
 {
-     return(void*)((__u8*)(dfb_fbdev->framebuffer_base) + offset);
+     return(void*)((u8*)(dfb_fbdev->framebuffer_base) + offset);
 }
 
 static unsigned int
@@ -891,7 +891,7 @@ static void *
 system_aux_memory_virtual( unsigned int offset )
 {
      if (dfb_fbdev->agp)
-          return (void*)(__u8*)dfb_fbdev->agp->base + offset;
+          return (void*)(u8*)dfb_fbdev->agp->base + offset;
      return NULL;
 }
 
@@ -2117,7 +2117,7 @@ static DFBResult dfb_fbdev_read_modes()
  * correct colors, the gamme ramp has to be initialized.
  */
 
-static __u16 dfb_fbdev_calc_gamma(int n, int max)
+static u16 dfb_fbdev_calc_gamma(int n, int max)
 {
      int ret = 65535.0 * ((float)((float)n/(max)));
      if (ret > 65535) ret = 65535;
@@ -2266,10 +2266,10 @@ static DFBResult dfb_fbdev_set_rgb332_palette()
 
      cmap.start  = 0;
      cmap.len    = 256;
-     cmap.red    = (__u16*)SHMALLOC( pool, 2 * 256 );
-     cmap.green  = (__u16*)SHMALLOC( pool, 2 * 256 );
-     cmap.blue   = (__u16*)SHMALLOC( pool, 2 * 256 );
-     cmap.transp = (__u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.red    = (u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.green  = (u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.blue   = (u16*)SHMALLOC( pool, 2 * 256 );
+     cmap.transp = (u16*)SHMALLOC( pool, 2 * 256 );
 
 
      for (red_val = 0; red_val  < 8 ; red_val++) {

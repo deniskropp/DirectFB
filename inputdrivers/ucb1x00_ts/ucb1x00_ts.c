@@ -68,10 +68,10 @@ typedef struct {
 
 /* I copied this from the kernel driver since there is no include file */
 typedef struct {
-     __u16             pressure;
-     __u16             x;
-     __u16             y;
-     __u16             pad;
+     u16               pressure;
+     u16               x;
+     u16               y;
+     u16               pad;
      struct timeval  stamp;
 } TS_EVENT;
 

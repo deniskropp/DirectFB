@@ -77,9 +77,9 @@ DFB_GRAPHICS_DRIVER( i830 )
 /**************************************************************************************************/
 
 static void
-i830_lring_enable( I830DriverData *idrv, __u32 mode )
+i830_lring_enable( I830DriverData *idrv, u32 mode )
 {
-     __u32 tmp;
+     u32 tmp;
 
      D_DEBUG_AT( I830_Ring, "%s lp ring...\n", mode ? "Enabling" : "Disabling" );
 
@@ -94,8 +94,8 @@ static inline void
 i830_wait_for_blit_idle( I830DriverData *idrv,
                          I830DeviceData *idev )
 {
-     __u32 count = 0;
-     __u32 head , tail;
+     u32 count = 0;
+     u32 head , tail;
 
      if (idev != NULL)
           idev->idle_calls++;
@@ -120,7 +120,7 @@ static void
 i830_init_ringbuffer( I830DriverData *idrv,
                       I830DeviceData *idev )
 {
-     __u32 ring_enabled;
+     u32 ring_enabled;
 
      D_DEBUG_AT( I830_Ring, "Previous lp ring config: 0x%08x, 0x%08x, 0x%08x, 0x%08x\n",
                  i830_readl(idrv->mmio_base, LP_RING),
@@ -397,7 +397,7 @@ i830_agp_setup( GraphicsDevice *device,
 
 
      if (!idev->initialized) {
-          __u32 base;
+          u32 base;
 
           /* We'll attempt to bind at fb_base + fb_len + 1 MB,
           to be safe */
@@ -482,7 +482,7 @@ driver_init_driver( GraphicsDevice      *device,
 
      idrv->idev = device_data;
 
-     idrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     idrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!idrv->mmio_base)
           return DFB_IO;
 

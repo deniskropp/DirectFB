@@ -916,7 +916,7 @@ DFBResult dfb_config_set( const char *name, const char *value )
      if (strcmp (name, "bg-color" ) == 0) {
           if (value) {
                char *error;
-               __u32 argb;
+               u32   argb;
 
                argb = strtoul( value, &error, 16 );
 

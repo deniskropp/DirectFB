@@ -27,7 +27,7 @@ Open GL man pages: http://www.3dlabs.com/support/developer/index.htm
  */
  
  /* GL -> UC ROP mapping
-const __u32 UC_ROP[16] = 
+const u32 UC_ROP[16] =
 {
 	HC_HROP_BLACK,    // GL_CLEAR           0
 	HC_HROP_DPa,      // GL_AND             s & d

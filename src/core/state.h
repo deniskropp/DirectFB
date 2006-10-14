@@ -96,8 +96,8 @@ struct _CardState {
      unsigned int             color_index;   /* index to color in palette */
      DFBSurfaceBlendFunction  src_blend;     /* blend function for source */
      DFBSurfaceBlendFunction  dst_blend;     /* blend function for destination */
-     __u32                    src_colorkey;  /* colorkey for source */
-     __u32                    dst_colorkey;  /* colorkey for destination */
+     u32                      src_colorkey;  /* colorkey for source */
+     u32                      dst_colorkey;  /* colorkey for destination */
 
      CoreSurface             *destination;   /* destination surface */
      CoreSurface             *source;        /* source surface */

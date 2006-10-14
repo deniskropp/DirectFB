@@ -169,7 +169,7 @@ struct _CoreSurface
 
      int                    field;
 
-     __u8                   alpha_ramp[4];
+     u8                     alpha_ramp[4];
 
      SurfaceBuffer         *front_buffer;  /* buffer for reading
                                               (blit from or display buffer) */
@@ -209,7 +209,7 @@ dfb_surface_data_offset( const CoreSurface *surface,
           y >>= 1;
      }
 
-     return (__u8*) data + pitch * y + DFB_BYTES_PER_LINE( surface->format, x );
+     return (u8*) data + pitch * y + DFB_BYTES_PER_LINE( surface->format, x );
 }
 
 static inline void
@@ -329,10 +329,10 @@ void dfb_surface_set_field               ( CoreSurface *surface,
                                            int          field );
 
 void dfb_surface_set_alpha_ramp          ( CoreSurface *surface,
-                                           __u8         a0,
-                                           __u8         a1,
-                                           __u8         a2,
-                                           __u8         a3 );
+                                           u8           a0,
+                                           u8           a1,
+                                           u8           a2,
+                                           u8           a3 );
 
 /*
  * This is a utility function for easier usage.

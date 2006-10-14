@@ -131,7 +131,7 @@ ft2UTF8DecodeText( CoreFont       *thiz,
                    int            *ret_num )
 {
      int pos = 0, num = 0;
-     const __u8 *bytes = text;
+     const u8 *bytes   = text;
      FT2ImplData *data = thiz->impl_data;
 
      D_MAGIC_ASSERT( thiz, CoreFont );
@@ -191,7 +191,7 @@ ft2Latin1DecodeText( CoreFont       *thiz,
                      int            *ret_num )
 {
      int i;
-     const __u8 *bytes = text;
+     const u8 *bytes   = text;
      FT2ImplData *data = thiz->impl_data;
 
      D_MAGIC_ASSERT( thiz, CoreFont );
@@ -223,7 +223,7 @@ render_glyph( CoreFont      *thiz,
      FT_Error     err;
      FT_Face      face;
      FT_Int       load_flags;
-     __u8        *src;
+     u8          *src;
      void        *dst;
      int          y;
      int          pitch;
@@ -268,9 +268,9 @@ render_glyph( CoreFont      *thiz,
 
      for (y=0; y < info->height; y++) {
           int    i, j, n;
-          __u8  *dst8  = dst;
-          __u16 *dst16 = dst;
-          __u32 *dst32 = dst;
+          u8    *dst8  = dst;
+          u16   *dst16 = dst;
+          u32   *dst32 = dst;
 
           switch (face->glyph->bitmap.pixel_mode) {
                case ft_pixel_mode_grays:
@@ -311,7 +311,7 @@ render_glyph( CoreFont      *thiz,
                               break;
                          case DSPF_A1:
                               for (i=0, j=0; i < info->width; ++j) {
-                                   register __u8 p = 0;
+                                   register u8 p = 0;
 
                                    for (n=0; n<8 && i<info->width; ++i, ++n)
                                         p |= (src[i] & 0x80) >> n;

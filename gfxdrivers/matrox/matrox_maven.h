@@ -26,8 +26,8 @@
 
 typedef struct {
      char dev[256];
-     __u8 regs[256];
-     __u8 address;
+     u8 regs[256];
+     u8 address;
 } MatroxMavenData;
 
 DFBResult maven_init( MatroxMavenData  *mav,
@@ -52,13 +52,13 @@ void maven_set_regs( MatroxMavenData       *mav,
 
 void maven_set_hue( MatroxMavenData  *mav,
                     MatroxDriverData *mdrv,
-                    __u8              hue );
+                    u8                hue );
 void maven_set_saturation( MatroxMavenData  *mav,
                            MatroxDriverData *mdrv,
-                           __u8              saturation );
+                           u8                saturation );
 void maven_set_bwlevel( MatroxMavenData  *mav,
                         MatroxDriverData *mdrv,
-                        __u8              brightness,
-                        __u8              contrast );
+                        u8                brightness,
+                        u8                contrast );
 
 #endif

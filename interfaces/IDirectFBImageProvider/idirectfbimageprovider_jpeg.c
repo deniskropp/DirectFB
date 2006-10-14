@@ -79,7 +79,7 @@ typedef struct {
      DIRenderCallback     render_callback;
      void                *render_callback_context;
 
-     __u32               *image;
+     u32                 *image;
      int                  width;
      int                  height;
 } IDirectFBImageProvider_JPEG_data;
@@ -230,9 +230,9 @@ jpeglib_panic(j_common_ptr cinfo)
 
 
 static void
-copy_line32( __u32 *dst, __u8 *src, int width)
+copy_line32( u32 *dst, u8 *src, int width)
 {
-     __u32 r, g , b;
+     u32 r, g , b;
      while (width--) {
           r = (*src++) << 16;
           g = (*src++) << 8;
@@ -404,7 +404,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           struct my_error_mgr jerr;
           JSAMPARRAY buffer;      /* Output row buffer */
           int row_stride;         /* physical row width in output buffer */
-          __u32 *row_ptr;
+          u32 *row_ptr;
           int y = 0;
 
           cinfo.err = jpeg_std_error(&jerr.pub);

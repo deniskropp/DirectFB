@@ -36,50 +36,50 @@
 
 
 static __inline__ void
-nv_out8( volatile void *mmioaddr, __u32 reg, __u8 value )
+nv_out8( volatile void *mmioaddr, u32 reg, u8 value )
 {
-     *((volatile __u8*)(mmioaddr+reg)) = value;
+     *((volatile u8*)(mmioaddr+reg)) = value;
 }
 
 static __inline__ void
-nv_out16( volatile void *mmioaddr, __u32 reg, __u16 value )
+nv_out16( volatile void *mmioaddr, u32 reg, u16 value )
 {
-     *((volatile __u16*)(mmioaddr+reg)) = value;
+     *((volatile u16*)(mmioaddr+reg)) = value;
 }
 
 static __inline__ void
-nv_out32( volatile void *mmioaddr, __u32 reg, __u32 value )
+nv_out32( volatile void *mmioaddr, u32 reg, u32 value )
 {
-    *((volatile __u32*)(mmioaddr+reg)) = value;
+    *((volatile u32*)(mmioaddr+reg)) = value;
 }
 
-static __inline__ __u8
-nv_in8( volatile void *mmioaddr, __u32 reg )
+static __inline__ u8
+nv_in8( volatile void *mmioaddr, u32 reg )
 {
-     return *((volatile __u8*)(mmioaddr+reg));
+     return *((volatile u8*)(mmioaddr+reg));
 }
 
-static __inline__ __u16
-nv_in16( volatile void *mmioaddr, __u32 reg )
+static __inline__ u16
+nv_in16( volatile void *mmioaddr, u32 reg )
 {
-     return *((volatile __u16*)(mmioaddr+reg));
+     return *((volatile u16*)(mmioaddr+reg));
 }
 
-static __inline__ __u32
-nv_in32( volatile void *mmioaddr, __u32 reg )
+static __inline__ u32
+nv_in32( volatile void *mmioaddr, u32 reg )
 {
-    return *((volatile __u32*)(mmioaddr+reg));
+    return *((volatile u32*)(mmioaddr+reg));
 }
 
 static __inline__ void
-nv_outcrtc( volatile void *mmioaddr, __u8 reg, __u8 value )
+nv_outcrtc( volatile void *mmioaddr, u8 reg, u8 value )
 {
      nv_out8( mmioaddr, PCIO_CRTC_INDEX, reg );
      nv_out8( mmioaddr, PCIO_CRTC_DATA, value );
 }
 
-static __inline__ __u8
-nv_incrtc( volatile void *mmioaddr, __u8 reg )
+static __inline__ u8
+nv_incrtc( volatile void *mmioaddr, u8 reg )
 {
      nv_out8( mmioaddr, PCIO_CRTC_INDEX, reg );
      return nv_in8( mmioaddr, PCIO_CRTC_DATA );
@@ -90,7 +90,7 @@ nv_incrtc( volatile void *mmioaddr, __u8 reg )
 static inline void
 nv_waitidle( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev )
 {
-     __u32 status;
+     u32 status;
      int   waitcycles = 0;
      
      do {
@@ -149,7 +149,7 @@ static inline void
 nv_emitdma( NVidiaDriverData *nvdrv, NVidiaDeviceData *nvdev )
 {
      if (nvdev->dma_put != nvdev->dma_cur) {
-          volatile __u8 scratch;
+          volatile u8 scratch;
           
           /* flush MTRR buffers */
           scratch = nv_in8( nvdrv->fb_base, 0 );

@@ -72,8 +72,8 @@
 
 D_DEBUG_DOMAIN( Core_Surface, "Core/Surface", "DirectFB Surface Core" );
 
-static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
-static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
+static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
 #if D_DEBUG_ENABLED
 
@@ -734,10 +734,10 @@ dfb_surface_set_field( CoreSurface *surface, int field )
 
 void
 dfb_surface_set_alpha_ramp( CoreSurface *surface,
-                            __u8         a0,
-                            __u8         a1,
-                            __u8         a2,
-                            __u8         a3 )
+                            u8           a0,
+                            u8           a1,
+                            u8           a2,
+                            u8           a3 )
 {
      D_DEBUG_AT( Core_Surface, "dfb_surface_set_alpha_ramp( %p, %02x %02x %02x %02x )\n", surface, a0, a1, a2, a3 );
 
@@ -1322,17 +1322,17 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      /* Write the pixmap (and graymap) data. */
      for (i=0; i<surface->height; i++) {
           int    n3;
-          __u8  *data8;
-          __u16 *data16;
-          __u32 *data32;
+          u8    *data8;
+          u16 *data16;
+          u32 *data32;
 
-          __u8 buf_p[surface->width * 3];
-          __u8 buf_g[surface->width];
+          u8 buf_p[surface->width * 3];
+          u8 buf_g[surface->width];
 
           /* Prepare one row. */
           data8  = dfb_surface_data_offset( surface, data, pitch, 0, i );
-          data16 = (__u16*) data8;
-          data32 = (__u32*) data8;
+          data16 = (u16*) data8;
+          data32 = (u32*) data8;
 
           switch (surface->format) {
                case DSPF_LUT8:
@@ -1442,7 +1442,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                     break;
                case DSPF_YUY2:
                     for (n=0, n3=0; n<surface->width/2; n++, n3+=6) {
-                         register __u32 y0, cb, y1, cr;
+                         register u32 y0, cb, y1, cr;
                          y0 = (data32[n] & 0x000000FF);
                          cb = (data32[n] & 0x0000FF00) >>  8;
                          y1 = (data32[n] & 0x00FF0000) >> 16;
@@ -1455,7 +1455,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
                     break;
                case DSPF_UYVY:
                     for (n=0, n3=0; n<surface->width/2; n++, n3+=6) {
-                         register __u32 y0, cb, y1, cr;
+                         register u32 y0, cb, y1, cr;
                          cb = (data32[n] & 0x000000FF);
                          y0 = (data32[n] & 0x0000FF00) >>  8;
                          cr = (data32[n] & 0x00FF0000) >> 16;

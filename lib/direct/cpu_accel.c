@@ -63,11 +63,11 @@
 D_DEBUG_DOMAIN( Direct_CPU, "Direct/CPU", "CPU model and feature detection" );
 
 
-static __u32 arch_accel (void)
+static u32 arch_accel (void)
 {
-     __u32 eax, ebx, ecx, edx;
+     u32 eax, ebx, ecx, edx;
      int AMD;
-     __u32 caps = 0;
+     u32 caps = 0;
 
 #define cpuid(op,eax,ebx,ecx,edx)  \
      asm ("pushl %%ebx\n\t"        \
@@ -158,7 +158,7 @@ static void sigill_handler (int sig)
      siglongjmp (jmpbuf, 1);
 }
 
-static __u32 arch_accel (void)
+static u32 arch_accel (void)
 {
      signal (SIGILL, sigill_handler);
      if (sigsetjmp (jmpbuf, 1)) {
@@ -178,10 +178,10 @@ static __u32 arch_accel (void)
 }
 #endif /* ARCH_PPC */
 
-__u32 direct_mm_accel (void)
+u32 direct_mm_accel (void)
 {
 #if defined (ARCH_X86) || (defined (ARCH_PPC) && defined (ENABLE_ALTIVEC))
-     static __u32 accel = ~0U;
+     static u32 accel = ~0U;
 
      if (accel != ~0U)
           return accel;
@@ -206,7 +206,7 @@ __u32 direct_mm_accel (void)
      return accel;
 
 #elif defined (ARCH_X86_64)
-     __u32 accel = 0;
+     u32 accel = 0;
      
 #ifdef USE_MMX
      accel |= MM_ACCEL_X86_MMX | MM_ACCEL_X86_MMXEXT;

@@ -55,13 +55,13 @@
 static void
 maven_write_byte( MatroxMavenData  *mav,
                   MatroxDriverData *mdrv,
-                  __u8              reg,
-                  __u8              val )
+                  u8                reg,
+                  u8                val )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
 
      if (mdev->g450_matrox) {
-          volatile __u8 *mmio = mdrv->mmio_base;
+          volatile u8 *mmio = mdrv->mmio_base;
 
           mga_out_dac( mmio, 0x87, reg );
           mga_out_dac( mmio, 0x88, val );
@@ -72,13 +72,13 @@ maven_write_byte( MatroxMavenData  *mav,
 static void
 maven_write_word( MatroxMavenData  *mav,
                   MatroxDriverData *mdrv,
-                  __u8              reg,
-                  __u16             val )
+                  u8                reg,
+                  u16               val )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
 
      if (mdev->g450_matrox) {
-          volatile __u8 *mmio = mdrv->mmio_base;
+          volatile u8 *mmio = mdrv->mmio_base;
 
           mga_out_dac( mmio, 0x87, reg );
           mga_out_dac( mmio, 0x88, val );
@@ -91,10 +91,10 @@ maven_write_word( MatroxMavenData  *mav,
 #if 0
 /* i2c_smbus_read_byte_data() doesn't work with maven. */
 static int
-i2c_read_byte( int fd, __u8 addr, __u8 reg )
+i2c_read_byte( int fd, u8 addr, u8 reg )
 {
      int ret;
-     __u8 val;
+     u8 val;
      struct i2c_msg msgs[] = {
           { addr, I2C_M_REV_DIR_ADDR, sizeof(reg), &reg },
           { addr, I2C_M_RD | I2C_M_NOSTART, sizeof(val), &val }
@@ -287,7 +287,7 @@ maven_set_regs( MatroxMavenData       *mav,
 void
 maven_set_hue( MatroxMavenData  *mav,
                MatroxDriverData *mdrv,
-               __u8              hue )
+               u8                hue )
 {
      maven_write_byte( mav, mdrv, 0x25, hue );
 }
@@ -295,7 +295,7 @@ maven_set_hue( MatroxMavenData  *mav,
 void
 maven_set_saturation( MatroxMavenData  *mav,
                       MatroxDriverData *mdrv,
-                      __u8              saturation )
+                      u8                saturation )
 {
      maven_write_byte( mav, mdrv, 0x20, saturation );
      maven_write_byte( mav, mdrv, 0x22, saturation );
@@ -304,8 +304,8 @@ maven_set_saturation( MatroxMavenData  *mav,
 void
 maven_set_bwlevel( MatroxMavenData  *mav,
                    MatroxDriverData *mdrv,
-                   __u8              brightness,
-                   __u8              contrast )
+                   u8                brightness,
+                   u8                contrast )
 {
      MatroxDeviceData *mdev = mdrv->device_data;
      int b, c, bl, wl, wlmax, blmin, range;
@@ -491,7 +491,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
 
      /* Maven registers */
      {
-          static const __u8 ntscregs[2][0x40] = {
+          static const u8 ntscregs[2][0x40] = {
           /* G400 */
           {
                0x21, 0xF0, 0x7C, 0x1F, /* 00-03 */
@@ -603,7 +603,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
                0x00
           }
           };
-          static const __u8 palregs[2][0x40] = {
+          static const u8 palregs[2][0x40] = {
           /* G400 */
           {
                0x2A, 0x09, 0x8A, 0xCB, /* 00-03 */

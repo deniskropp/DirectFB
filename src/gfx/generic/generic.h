@@ -39,16 +39,16 @@
 
 typedef union {
      struct {
-          __u16 b;
-          __u16 g;
-          __u16 r;
-          __u16 a;
+          u16 b;
+          u16 g;
+          u16 r;
+          u16 a;
      } RGB;
      struct {
-          __u16 u;
-          __u16 v;
-          __u16 y;
-          __u16 a;
+          u16 u;
+          u16 v;
+          u16 y;
+          u16 a;
      } YUV;
 } GenefxAccumulator;
 
@@ -97,11 +97,11 @@ struct _GenefxState {
       */
      void *Aop[3];
      void *Bop[3];
-     __u32 Cop;
+     u32   Cop;
 
-     __u8 YCop;
-     __u8 CbCop;
-     __u8 CrCop;
+     u8 YCop;
+     u8 CbCop;
+     u8 CrCop;
 
      int Aop_field;
      int Bop_field;
@@ -112,8 +112,8 @@ struct _GenefxState {
      /*
       * color keys
       */
-     __u32 Dkey;
-     __u32 Skey;
+     u32 Dkey;
+     u32 Skey;
 
      /*
       * color lookup tables

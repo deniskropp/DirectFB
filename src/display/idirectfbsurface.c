@@ -347,10 +347,10 @@ IDirectFBSurface_SetPalette( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_SetAlphaRamp( IDirectFBSurface *thiz,
-                               __u8              a0,
-                               __u8              a1,
-                               __u8              a2,
-                               __u8              a3 )
+                               u8                a0,
+                               u8                a1,
+                               u8                a2,
+                               u8                a3 )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
 
@@ -532,7 +532,7 @@ IDirectFBSurface_SetField( IDirectFBSurface    *thiz,
 
 static DFBResult
 IDirectFBSurface_Clear( IDirectFBSurface *thiz,
-                        __u8 r, __u8 g, __u8 b, __u8 a )
+                        u8 r, u8 g, u8 b, u8 a )
 {
      DFBColor                old_color;
      unsigned int            old_index;
@@ -644,7 +644,7 @@ IDirectFBSurface_GetClip( IDirectFBSurface *thiz, DFBRegion *ret_clip )
 
 static DFBResult
 IDirectFBSurface_SetColor( IDirectFBSurface *thiz,
-                           __u8 r, __u8 g, __u8 b, __u8 a )
+                           u8 r, u8 g, u8 b, u8 a )
 {
      CoreSurface *surface;
      DFBColor     color = { a, r, g, b };
@@ -829,9 +829,9 @@ IDirectFBSurface_SetPorterDuff( IDirectFBSurface         *thiz,
 
 static DFBResult
 IDirectFBSurface_SetSrcColorKey( IDirectFBSurface *thiz,
-                                 __u8              r,
-                                 __u8              g,
-                                 __u8              b )
+                                 u8                r,
+                                 u8                g,
+                                 u8                b )
 {
      CoreSurface *surface;
 
@@ -900,9 +900,9 @@ IDirectFBSurface_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_SetDstColorKey( IDirectFBSurface *thiz,
-                                 __u8              r,
-                                 __u8              g,
-                                 __u8              b )
+                                 u8                r,
+                                 u8                g,
+                                 u8                b )
 {
      CoreSurface *surface;
 

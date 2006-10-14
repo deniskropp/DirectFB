@@ -84,7 +84,7 @@ Construct( IDirectFBFont      *thiz,
      CoreSurface      *surface;
      CoreFontCacheRow *row;
      void             *dst;
-     __u8             *pixels;
+     u8               *pixels;
      int               pitch;
      int               i;
 
@@ -216,9 +216,9 @@ Construct( IDirectFBFont      *thiz,
 
      for (i = 1; i < font_desc.height; i++) {
           int    j, n;
-          __u8  *dst8  = dst;
-          __u16 *dst16 = dst;
-          __u32 *dst32 = dst;
+          u8    *dst8  = dst;
+          u16   *dst16 = dst;
+          u32   *dst32 = dst;
 
           pixels += font_desc.preallocated[0].pitch;
           switch (surface->format) {
@@ -251,7 +251,7 @@ Construct( IDirectFBFont      *thiz,
                     break;
                case DSPF_A1:
                     for (i=0, j=0; i < font_desc.width; ++j) {
-                         register __u8 p = 0;
+                         register u8 p = 0;
 
                          for (n=0; n<8 && i<font_desc.width; ++i, ++n)
                               p |= (pixels[i] & 0x80) >> n;

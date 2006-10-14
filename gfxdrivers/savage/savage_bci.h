@@ -39,7 +39,7 @@
 
 #define BCI_SEND(dw)   { \
                            if (sdev->s.bci_ptr == BCI_SIZE) sdev->s.bci_ptr = 0; \
-                           sdrv->s.bci_base[sdev->s.bci_ptr++] = (__u32)(dw); \
+                           sdrv->s.bci_base[sdev->s.bci_ptr++] = (u32)(dw); \
                        }
 
 #define BCI_SENDF(dw)  { \

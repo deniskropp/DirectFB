@@ -47,9 +47,9 @@
 #define CEIL(x) my_ceil(x)
 #define FLOOR(x) my_floor(x)
 #else
-#define RINT(x) ((__s32)(x))
-#define CEIL(x) ((__s32)ceil(x))
-#define FLOOR(x) ((__s32)floor(x))
+#define RINT(x) ((s32)(x))
+#define CEIL(x) ((s32)ceil(x))
+#define FLOOR(x) ((s32)floor(x))
 #endif
 
 
@@ -99,9 +99,9 @@ my_floor(const float x)
 
 #define F2COL(x) (RINT(x) & 0x00ffffff)
 
-#define mgaF1800(x) (((__s32) (x)) & 0x0003ffff)
-#define mgaF2400(x) (((__s32) (x)) & 0x00ffffff)
-#define mgaF2200(x) (((__s32) (x)) & 0x003fffff)
+#define mgaF1800(x) (((s32) (x)) & 0x0003ffff)
+#define mgaF2400(x) (((s32) (x)) & 0x00ffffff)
+#define mgaF2200(x) (((s32) (x)) & 0x003fffff)
 
 #define OUTREG(r,d)  do { mga_out32( mmio, d, r ); } while (0)
 
@@ -216,7 +216,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
      int         Shape; /* 1 = Top half, 2 = bottom half, 3 = top+bottom */
 //     float       bf = mga_bf_sign;
 
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
 /* find the order of the 3 vertices along the Y axis */
      {
@@ -476,7 +476,7 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
           }
 
           {
-               __u32 sgn = 0;
+               u32 sgn = 0;
 
                mga_waitfifo( mdrv, mdev, 9 );
 
@@ -491,8 +491,8 @@ texture_triangle( MatroxDriverData *mdrv, MatroxDeviceData *mdev,
                }
 
                mga_out32( mmio, sgn,                            SGN );
-               mga_out32( mmio, ((__u32)(eLeft->sx) & 0xFFFF) | ((__u32)(eRight->sx) << 16), FXBNDRY );
-               mga_out32( mmio, lines     | ((__u32)(eLeft->sy)  << 16), YDSTLEN | EXECUTE );
+               mga_out32( mmio, ((u32)(eLeft->sx) & 0xFFFF) | ((u32)(eRight->sx) << 16), FXBNDRY );
+               mga_out32( mmio, lines     | ((u32)(eLeft->sy)  << 16), YDSTLEN | EXECUTE );
 
                if (Shape != 3) { /* has only one half? */
                     return;
@@ -535,8 +535,8 @@ matroxTextureTriangles( void *drv, void *dev,
      int               i;
      MatroxDriverData *mdrv = (MatroxDriverData*) drv;
      MatroxDeviceData *mdev = (MatroxDeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
-     __u32             dwgctl;
+     volatile u8      *mmio = mdrv->mmio_base;
+     u32               dwgctl;
 
      float wScale;
 

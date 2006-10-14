@@ -34,28 +34,28 @@
 #include "ati128.h"
 
 static inline void
-ati128_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
+ati128_out32(volatile u8 *mmioaddr, u32 reg, u32 value)
 {
 #ifdef __powerpc__
        asm volatile("stwbrx %0,%1,%2;eieio" : : "r"(value), "b"(reg),
                        "r"(mmioaddr) : "memory");
 
 #else
-     *((volatile __u32*)(mmioaddr+reg)) = value;
+     *((volatile u32*)(mmioaddr+reg)) = value;
 #endif
 }
 
-static inline __u32
-ati128_in32(volatile __u8 *mmioaddr, __u32 reg)
+static inline u32
+ati128_in32(volatile u8 *mmioaddr, u32 reg)
 {
 #ifdef __powerpc__
-     __u32 value;
+     u32 value;
 
      asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg), "r"(mmioaddr));
 
      return value;
 #else
-     return *((volatile __u32*)(mmioaddr+reg));
+     return *((volatile u32*)(mmioaddr+reg));
 #endif
 }
 

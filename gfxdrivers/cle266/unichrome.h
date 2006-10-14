@@ -29,52 +29,52 @@
 struct uc_hw_texture {
      DFBSurfaceBlittingFlags bltflags;
 
-     __u32 l2w;      //width, rounded up to nearest 2^m, eg 600 => 1024
-     __u32 l2h;      //height, rounded up, e.g 480 => 512
-     __u32 we;       //width exponent, i.e m in the number 2^m
-     __u32 he;       //height exponent
+     u32 l2w;        //width, rounded up to nearest 2^m, eg 600 => 1024
+     u32 l2h;        //height, rounded up, e.g 480 => 512
+     u32 we;         //width exponent, i.e m in the number 2^m
+     u32 he;         //height exponent
 
-     __u32 format;   // HW pixel format
+     u32 format;     // HW pixel format
 
      // 3d engine texture environment, texture unit 0
 
      // Used for the DSBLIT_BLEND_ALPHACHANNEL, DSBLIT_BLEND_COLORALPHA
      // and DSBLIT_COLORIZE blitting flags.
 
-     __u32 regHTXnTB;
-     __u32 regHTXnMPMD;
+     u32 regHTXnTB;
+     u32 regHTXnMPMD;
 
-     __u32 regHTXnTBLCsat_0;
-     __u32 regHTXnTBLCop_0;
-     __u32 regHTXnTBLMPfog_0;
-     __u32 regHTXnTBLAsat_0;
-     __u32 regHTXnTBLRCb_0;
-     __u32 regHTXnTBLRAa_0;
-     __u32 regHTXnTBLRFog_0;
+     u32 regHTXnTBLCsat_0;
+     u32 regHTXnTBLCop_0;
+     u32 regHTXnTBLMPfog_0;
+     u32 regHTXnTBLAsat_0;
+     u32 regHTXnTBLRCb_0;
+     u32 regHTXnTBLRAa_0;
+     u32 regHTXnTBLRFog_0;
 };
 
 
 /** Hardware source-destination blending registers. */
 struct uc_hw_alpha {
 /*
-    __u32 regHABBasL;       // Alpha buffer, low 24 bits.
-    __u32 regHABBasH;       // Alpha buffer, high 8 bits.
-    __u32 regHABFM;         // Alpha pixel format, memory type and pitch.
-    __u32 regHATMD;         // Alpha test function and reference value.
+    u32 regHABBasL;         // Alpha buffer, low 24 bits.
+    u32 regHABBasH;         // Alpha buffer, high 8 bits.
+    u32 regHABFM;           // Alpha pixel format, memory type and pitch.
+    u32 regHATMD;           // Alpha test function and reference value.
 
     // Blending function
 */
-     __u32 regHABLCsat;
-     __u32 regHABLCop;
-     __u32 regHABLAsat;
-     __u32 regHABLAop;
-     __u32 regHABLRCa;
-     __u32 regHABLRFCa;
-     __u32 regHABLRCbias;
-     __u32 regHABLRCb;
-     __u32 regHABLRFCb;
-     __u32 regHABLRAa;
-     __u32 regHABLRAb;
+     u32 regHABLCsat;
+     u32 regHABLCop;
+     u32 regHABLAsat;
+     u32 regHABLAop;
+     u32 regHABLRCa;
+     u32 regHABLRFCa;
+     u32 regHABLRCbias;
+     u32 regHABLRCb;
+     u32 regHABLRFCb;
+     u32 regHABLRAa;
+     u32 regHABLRAb;
 };
 
 typedef enum {
@@ -96,11 +96,11 @@ typedef struct _UcDeviceData {
      UcStateBits valid;
 
      /* Current state settings */
-     __u32                   pitch;      // combined src/dst pitch (2D)
-     __u32                   color;      // 2D fill color
-     __u32                   color3d;    // color for 3D operations
-     __u32                   draw_rop2d; // logical drawing ROP (2D)
-     __u32                   draw_rop3d; // logical drawing ROP (3D)
+     u32                     pitch;      // combined src/dst pitch (2D)
+     u32                     color;      // 2D fill color
+     u32                     color3d;    // color for 3D operations
+     u32                     draw_rop2d; // logical drawing ROP (2D)
+     u32                     draw_rop3d; // logical drawing ROP (3D)
 
      DFBSurfaceBlittingFlags bflags;     // blitting flags
      DFBRegion               clip;       // clipping region
@@ -121,9 +121,9 @@ typedef struct _UcDeviceData {
      unsigned int cmd_waitcycles;
      unsigned int idle_waitcycles;
 
-     __u32           vq_start;   // VQ related
-     __u32           vq_size;
-     __u32           vq_end;
+     u32             vq_start;   // VQ related
+     u32             vq_size;
+     u32             vq_end;
 
 } UcDeviceData;
 

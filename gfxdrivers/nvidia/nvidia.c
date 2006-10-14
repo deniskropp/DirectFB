@@ -163,7 +163,7 @@ static void nvAfterSetVar( void *driver_data,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
-     volatile __u8    *mmio  = nvdrv->mmio_base;
+     volatile u8      *mmio  = nvdrv->mmio_base;
      int               i;
 
      nv_waitidle( nvdrv, nvdev );
@@ -475,8 +475,8 @@ static void nv4CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               __u32 size = (1 << direct_log2( source->width  )) *
-                            (1 << direct_log2( source->height ));
+               u32 size = (1 << direct_log2( source->width  )) *
+                          (1 << direct_log2( source->height ));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -594,8 +594,8 @@ static void nv5CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               __u32 size = (1 << direct_log2( source->width  )) *
-                            (1 << direct_log2( source->height ));
+               u32 size = (1 << direct_log2( source->width  )) *
+                          (1 << direct_log2( source->height ));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -709,8 +709,8 @@ static void nv10CheckState( void *drv, void *dev,
                return;
 
           if (accel == DFXL_TEXTRIANGLES) {
-               __u32 size = (1 << direct_log2( source->width  )) *
-                            (1 << direct_log2( source->height ));
+               u32 size = (1 << direct_log2( source->width  )) *
+                          (1 << direct_log2( source->height ));
                
                if (size > nvdev->max_texture_size)
                     return;
@@ -1390,7 +1390,7 @@ driver_get_info( GraphicsDevice     *device,
 }
 
 static void
-nv_find_architecture( NVidiaDriverData *nvdrv, __u32 *ret_chip, __u32 *ret_arch )
+nv_find_architecture( NVidiaDriverData *nvdrv, u32 *ret_chip, u32 *ret_arch )
 {
      unsigned int vendor_id;
      unsigned int device_id;
@@ -1452,7 +1452,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      NVidiaDriverData *nvdrv = (NVidiaDriverData*) driver_data;
      NVidiaDeviceData *nvdev = (NVidiaDeviceData*) device_data;
-     __u32             arch  = 0;
+     u32               arch  = 0;
     
      nvdrv->device      = device;
      nvdrv->device_data = device_data;

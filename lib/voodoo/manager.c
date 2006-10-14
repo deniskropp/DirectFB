@@ -104,7 +104,7 @@ struct __V_VoodooManager {
           DirectThread          *thread;
           pthread_mutex_t        lock;
           pthread_cond_t         wait;
-          __u8                   buffer[IN_BUF_MAX + MAX_MSG_SIZE];
+          u8                     buffer[IN_BUF_MAX + MAX_MSG_SIZE];
           int                    start;
           int                    end;
           int                    max;
@@ -114,7 +114,7 @@ struct __V_VoodooManager {
           DirectThread          *thread;
           pthread_mutex_t        lock;
           pthread_cond_t         wait;
-          __u8                   buffer[OUT_BUF_MAX];
+          u8                     buffer[OUT_BUF_MAX];
           int                    start;
           int                    end;
      } output;
@@ -282,7 +282,7 @@ voodoo_manager_quit( VoodooManager *manager )
 
 static bool
 instance_iterator( DirectHash *hash,
-                   __u32       key,
+                   u32         key,
                    void       *value,
                    void       *ctx )
 {
@@ -460,29 +460,29 @@ calc_blocks( VoodooMessageBlockType type, va_list args )
      int size = 4;  /* for the terminating VMBT_NONE */
 
      while (type != VMBT_NONE) {
-          __u32 arg;
-          __s32 in;
+          u32 arg;
+          s32 in;
           void *ptr;
           int   len = 0;
 
           switch (type) {
                case VMBT_ID:
                     len = 4;
-                    arg = va_arg( args, __u32 );
+                    arg = va_arg( args, u32 );
 
                     D_DEBUG( "Voodoo/Message: + ID %u\n", arg );
                     break;
 
                case VMBT_INT:
                     len = 4;
-                    in  = va_arg( args, __s32 );
+                    in  = va_arg( args, s32 );
 
                     D_DEBUG( "Voodoo/Message: + INT %d\n", in );
                     break;
 
                case VMBT_UINT:
                     len = 4;
-                    arg = va_arg( args, __u32 );
+                    arg = va_arg( args, u32 );
 
                     D_DEBUG( "Voodoo/Message: + UINT %u\n", arg );
                     break;
@@ -534,7 +534,7 @@ static inline void
 write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
 {
      while (type != VMBT_NONE) {
-          __u32 arg = 0;
+          u32 arg = 0;
           int   len = 0;
           void *ptr = NULL;
 
@@ -543,7 +543,7 @@ write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
                case VMBT_INT:
                case VMBT_UINT:
                     len = 4;
-                    arg = va_arg( args, __u32 );
+                    arg = va_arg( args, u32 );
                     break;
                case VMBT_DATA:
                     len = va_arg( args, int );
@@ -564,14 +564,14 @@ write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
           }
 
           /* Write block type and length. */
-          *(__u32*) (dst + 0) = type;
-          *(__s32*) (dst + 4) = len;
+          *(u32*) (dst + 0) = type;
+          *(s32*) (dst + 4) = len;
 
           /* Write block content. */
           if (ptr)
                direct_memcpy( dst + 8, ptr, len );
           else if (len)
-               *(__u32*) (dst + 8) = arg;
+               *(u32*) (dst + 8) = arg;
 
           /* Advance message data pointer. */
           dst += len + 8;
@@ -581,7 +581,7 @@ write_blocks( void *dst, VoodooMessageBlockType type, va_list args )
      }
 
      /* Write terminator. */
-     *(__u32*) dst = VMBT_NONE;
+     *(u32*) dst = VMBT_NONE;
 }
 
 DirectResult

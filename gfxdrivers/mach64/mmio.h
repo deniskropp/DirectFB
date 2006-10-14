@@ -34,19 +34,19 @@
 #include "mach64.h"
 
 static inline void
-mach64_out8( volatile __u8 *mmioaddr, __u32 reg, __u8 value )
+mach64_out8( volatile u8 *mmioaddr, u32 reg, u8 value )
 {
-     *((volatile __u8*)(mmioaddr+reg)) = value;
+     *((volatile u8*)(mmioaddr+reg)) = value;
 }
 
-static inline __u8
-mach64_in8( volatile __u8 *mmioaddr, __u32 reg )
+static inline u8
+mach64_in8( volatile u8 *mmioaddr, u32 reg )
 {
-     return *((volatile __u8*)(mmioaddr+reg));
+     return *((volatile u8*)(mmioaddr+reg));
 }
 
 static inline void
-mach64_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
+mach64_out32( volatile u8 *mmioaddr, u32 reg, u32 value )
 {
 #ifdef __powerpc__
      if (reg >= 0x400)
@@ -57,17 +57,17 @@ mach64_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
                               "r"(mmioaddr) : "memory");
 #else
      if (reg >= 0x400)
-          *((volatile __u32*)(mmioaddr+reg-0x800)) = value;
+          *((volatile u32*)(mmioaddr+reg-0x800)) = value;
      else
-          *((volatile __u32*)(mmioaddr+reg)) = value;
+          *((volatile u32*)(mmioaddr+reg)) = value;
 #endif
 }
 
-static inline __u32
-mach64_in32( volatile __u8 *mmioaddr, __u32 reg )
+static inline u32
+mach64_in32( volatile u8 *mmioaddr, u32 reg )
 {
 #ifdef __powerpc__
-     __u32 value;
+     u32 value;
 
      if (reg >= 0x400)
           asm volatile("lwbrx %0,%1,%2;eieio" : "=r"(value) : "b"(reg-0x800), "r"(mmioaddr));
@@ -77,13 +77,13 @@ mach64_in32( volatile __u8 *mmioaddr, __u32 reg )
      return value;
 #else
      if (reg >= 0x400)
-          return *((volatile __u32*)(mmioaddr+reg-0x800));
+          return *((volatile u32*)(mmioaddr+reg-0x800));
      else
-          return *((volatile __u32*)(mmioaddr+reg));
+          return *((volatile u32*)(mmioaddr+reg));
 #endif
 }
 
-static const __u32 lt_lcd_regs[] = {
+static const u32 lt_lcd_regs[] = {
      CONFIG_PANEL_LT,
      LCD_GEN_CTRL_LT,
      DSTN_CONTROL_LT,
@@ -98,7 +98,7 @@ static const __u32 lt_lcd_regs[] = {
 #if 0
 static inline void
 mach64_in_lcd( Mach64DeviceData *mdev,
-               volatile __u8    *mmioaddr, __u8 reg, __u32 value )
+               volatile u8      *mmioaddr, u8 reg, u32 value )
 {
      if (mdev->chip == CHIP_3D_RAGE_LT) {
           mach64_out32( mmioaddr, lt_lcd_regs[reg], value );
@@ -109,9 +109,9 @@ mach64_in_lcd( Mach64DeviceData *mdev,
 }
 #endif
 
-static inline __u32
+static inline u32
 mach64_in_lcd( Mach64DeviceData *mdev,
-               volatile __u8    *mmioaddr, __u8 reg )
+               volatile u8      *mmioaddr, u8 reg )
 {
      if (mdev->chip == CHIP_3D_RAGE_LT) {
           return mach64_in32( mmioaddr, lt_lcd_regs[reg] );
@@ -125,15 +125,15 @@ mach64_in_lcd( Mach64DeviceData *mdev,
 
 #if 0
 static inline void
-mach64_out_pll( volatile __u8 *mmioaddr, __u8 reg, __u8 value )
+mach64_out_pll( volatile u8 *mmioaddr, u8 reg, u8 value )
 {
      mach64_out8( mmioaddr, CLOCK_CNTL1, (reg << 2) | PLL_WR_EN );
      mach64_out8( mmioaddr, CLOCK_CNTL2, value );
 }
 #endif
 
-static inline __u8
-mach64_in_pll( volatile __u8 *mmioaddr, __u8 reg )
+static inline u8
+mach64_in_pll( volatile u8 *mmioaddr, u8 reg )
 {
      mach64_out8( mmioaddr, CLOCK_CNTL1, reg << 2 );
      return mach64_in8( mmioaddr, CLOCK_CNTL2 );
@@ -167,7 +167,7 @@ static inline void mach64_waitfifo( Mach64DriverData *mdrv,
                                     Mach64DeviceData *mdev,
                                     unsigned int requested_fifo_space )
 {
-     __u32 fifo_stat;
+     u32 fifo_stat;
      int timeout = 1000000;
 
      mdev->waitfifo_sum += requested_fifo_space;

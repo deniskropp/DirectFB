@@ -260,7 +260,7 @@ IDirectFBSurface_Dispatcher_SetField( IDirectFBSurface    *thiz,
 
 static DFBResult
 IDirectFBSurface_Dispatcher_Clear( IDirectFBSurface *thiz,
-                                   __u8 r, __u8 g, __u8 b, __u8 a )
+                                   u8 r, u8 g, u8 b, u8 a )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
@@ -277,7 +277,7 @@ IDirectFBSurface_Dispatcher_SetClip( IDirectFBSurface *thiz, const DFBRegion *cl
 
 static DFBResult
 IDirectFBSurface_Dispatcher_SetColor( IDirectFBSurface *thiz,
-                                      __u8 r, __u8 g, __u8 b, __u8 a )
+                                      u8 r, u8 g, u8 b, u8 a )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
@@ -322,9 +322,9 @@ IDirectFBSurface_Dispatcher_SetPorterDuff( IDirectFBSurface         *thiz,
 
 static DFBResult
 IDirectFBSurface_Dispatcher_SetSrcColorKey( IDirectFBSurface *thiz,
-                                            __u8              r,
-                                            __u8              g,
-                                            __u8              b )
+                                            u8                r,
+                                            u8                g,
+                                            u8                b )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
@@ -342,9 +342,9 @@ IDirectFBSurface_Dispatcher_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_Dispatcher_SetDstColorKey( IDirectFBSurface *thiz,
-                                            __u8              r,
-                                            __u8              g,
-                                            __u8              b )
+                                            u8                r,
+                                            u8                g,
+                                            u8                b )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 

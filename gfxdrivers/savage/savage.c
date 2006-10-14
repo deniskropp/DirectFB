@@ -149,11 +149,11 @@ driver_init_driver( GraphicsDevice      *device,
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
 
-     sdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     sdrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!sdrv->mmio_base)
           return DFB_IO;
 
-     sdrv->bci_base = (volatile __u32*)(sdrv->mmio_base + BCI_BUFFER_OFFSET);
+     sdrv->bci_base = (volatile u32*)(sdrv->mmio_base + BCI_BUFFER_OFFSET);
 
      switch (dfb_gfxcard_get_accelerator( device )) {
           case FB_ACCEL_SAVAGE3D:       /* Savage3D series */
@@ -186,7 +186,7 @@ driver_init_device( GraphicsDevice     *device,
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageDeviceData *sdev = (SavageDeviceData*) device_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      /* use polling for syncing, artefacts occur otherwise */
      dfb_config->pollvsync_after = 1;

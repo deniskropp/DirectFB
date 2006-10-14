@@ -195,7 +195,7 @@ set_color()
 {
      DFBResult  ret;
      char      *error;
-     __u32      argb;
+     u32        argb;
      DFBColor   color;
 
      if (*filename == '#')

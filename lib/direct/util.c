@@ -343,14 +343,14 @@ direct_base64_decode( const char *string, int *ret_size )
 /*
  * Compute MD5 sum.
  */
-static const __u8 S[4][4] = {
+static const u8 S[4][4] = {
      { 7, 12, 17, 22 },  /* Round 1 */
      { 5,  9, 14, 20 },  /* Round 2 */
      { 4, 11, 16, 23 },  /* Round 3 */
      { 6, 10, 15, 21 }   /* Round 4 */
 };
 
-static const __u32 T[64] = {
+static const u32 T[64] = {
      0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee,   /* Round 1 */
      0xf57c0faf, 0x4787c62a, 0xa8304613, 0xfd469501,
      0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
@@ -373,12 +373,12 @@ static const __u32 T[64] = {
 };
                 
 static void
-md5_hash( __u32 ABCD[4], __u32 X[16] )
+md5_hash( u32 ABCD[4], u32 X[16] )
 {
-     __u32 a = ABCD[3];
-     __u32 b = ABCD[2];
-     __u32 c = ABCD[1];
-     __u32 d = ABCD[0];
+     u32 a = ABCD[3];
+     u32 b = ABCD[2];
+     u32 c = ABCD[1];
+     u32 d = ABCD[0];
      int   t;
      int   i;
     
@@ -409,8 +409,8 @@ md5_hash( __u32 ABCD[4], __u32 X[16] )
 void 
 direct_md5_sum( void *dst, const void *src, const int len )
 {
-     __u8  block[64];
-     __u32 ABCD[4];
+     u8    block[64];
+     u32 ABCD[4];
      int   i, j;
      
      D_ASSERT( dst != NULL );
@@ -422,9 +422,9 @@ direct_md5_sum( void *dst, const void *src, const int len )
      ABCD[3] = 0x67452301;
      
      for (i = 0, j = 0; i < len; i++) {
-          block[j++] = ((__u8*)src)[i];
+          block[j++] = ((u8*)src)[i];
           if (j == 64) {
-               md5_hash( ABCD, (__u32*)block );
+               md5_hash( ABCD, (u32*)block );
                j = 0;
           }
      }
@@ -433,19 +433,19 @@ direct_md5_sum( void *dst, const void *src, const int len )
      memset( &block[j], 0, 64-j );
      
      if (j > 56) {
-          md5_hash( ABCD, (__u32*)block );
+          md5_hash( ABCD, (u32*)block );
           memset( block, 0, 64 );
      }
      
      for (i = 0; i < 8; i++)
-          block[56+i] = ((__u64)len << 3) >> (i << 3);
+          block[56+i] = ((u64)len << 3) >> (i << 3);
           
-     md5_hash( ABCD, (__u32*)block );
+     md5_hash( ABCD, (u32*)block );
      
      for (i = 0; i < 4; i++)
 #ifdef WORDS_BIGENDIAN
-          ((__u32*)dst)[i] = BSWAP32(ABCD[3-i]);
+          ((u32*)dst)[i] = BSWAP32(ABCD[3-i]);
 #else
-          ((__u32*)dst)[i] = ABCD[3-i];
+          ((u32*)dst)[i] = ABCD[3-i];
 #endif
 }

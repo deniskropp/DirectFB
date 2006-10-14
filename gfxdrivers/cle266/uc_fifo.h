@@ -39,8 +39,8 @@
 
 struct uc_fifo
 {
-    __u32* buf;
-    __u32* head;
+    u32* buf;
+    u32* head;
 
     unsigned int size;
     unsigned int prep;
@@ -142,7 +142,7 @@ struct uc_fifo
 
 #define UC_FIFO_ADD_FLOAT(fifo, val)        \
     do {                                    \
-        union {float f; __u32 i;} v;        \
+        union {float f; u32 i;} v;          \
         v.f = (float) (val);                \
         UC_FIFO_ADD(fifo, v.i);             \
     } while(0)

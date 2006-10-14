@@ -317,7 +317,7 @@ void dfb_gfxcard_texture_triangles( DFBVertex *vertices, int num,
                                     DFBTriangleFormation formation,
                                     CardState *state );
 
-void dfb_gfxcard_drawstring( const __u8 *text, int bytes,
+void dfb_gfxcard_drawstring( const u8 *text, int bytes,
                              DFBTextEncodingID encoding, int x, int y,
                              CoreFont *font, CardState *state );
 void dfb_gfxcard_drawstring_check_state( CoreFont *font, CardState *state );

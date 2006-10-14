@@ -127,7 +127,7 @@ void r300_set_blittingflags ( RadeonDriverData *rdrv,
      rdev->set &= ~(SMF_##flag)
      
      
-static inline __u32
+static inline u32
 radeon_buffer_offset( RadeonDeviceData *rdev, SurfaceBuffer *buffer )
 {
      switch (buffer->storage) {

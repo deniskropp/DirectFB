@@ -94,18 +94,18 @@ typedef struct {
 
      IDirectFBDataBuffer *buffer;
 
-     __u32               *image;
+     u32                 *image;
      int                  image_width;
      int                  image_height;
      bool                 image_transparency;
-     __u32                image_colorkey;
+     u32                  image_colorkey;
 
      unsigned int  Width;
      unsigned int  Height;
-     __u8          ColorMap[3][MAXCOLORMAPSIZE];
+     u8            ColorMap[3][MAXCOLORMAPSIZE];
      unsigned int  BitPixel;
      unsigned int  ColorResolution;
-     __u32         Background;
+     u32           Background;
      unsigned int  AspectRatio;
 
 
@@ -116,7 +116,7 @@ typedef struct {
      int disposal;
 
 
-     __u8 buf[280];
+     u8 buf[280];
      int curbit, lastbit, done, last_byte;
 
 
@@ -136,9 +136,9 @@ static bool verbose       = false;
 static bool showComment   = false;
 static bool ZeroDataBlock = false;
 
-static __u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
+static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
                        int *width, int *height, bool *transparency,
-                       __u32 *key_rgb, bool alpha, bool headeronly);
+                       u32 *key_rgb, bool alpha, bool headeronly);
 
 static bool ReadOK( IDirectFBDataBuffer *buffer, void *data, unsigned int len );
 
@@ -379,10 +379,10 @@ IDirectFBImageProvider_GIF_GetImageDescription( IDirectFBImageProvider *thiz,
  **********************************/
 
 static int ReadColorMap( IDirectFBDataBuffer *buffer, int number,
-                         __u8 buf[3][MAXCOLORMAPSIZE] )
+                         u8 buf[3][MAXCOLORMAPSIZE] )
 {
      int     i;
-     __u8 rgb[3];
+     u8 rgb[3];
 
      for (i = 0; i < number; ++i) {
           if (! ReadOK( buffer, rgb, sizeof(rgb) )) {
@@ -397,7 +397,7 @@ static int ReadColorMap( IDirectFBDataBuffer *buffer, int number,
      return false;
 }
 
-static int GetDataBlock(IDirectFBDataBuffer *buffer, __u8 *buf)
+static int GetDataBlock(IDirectFBDataBuffer *buffer, u8 *buf)
 {
      unsigned char count;
 
@@ -469,21 +469,21 @@ static int DoExtension( IDirectFBImageProvider_GIF_data *data, int label )
                break;
           case 0xfe:              /* Comment Extension */
                str = "Comment Extension";
-               while (GetDataBlock( data->buffer, (__u8*) buf ) != 0) {
+               while (GetDataBlock( data->buffer, (u8*) buf ) != 0) {
                     if (showComment)
                          GIFERRORMSG("gif comment: %s", buf );
                     }
                return false;
           case 0xf9:              /* Graphic Control Extension */
                str = "Graphic Control Extension";
-               (void) GetDataBlock( data->buffer, (__u8*) buf );
+               (void) GetDataBlock( data->buffer, (u8*) buf );
                data->disposal    = (buf[0] >> 2) & 0x7;
                data->inputFlag   = (buf[0] >> 1) & 0x1;
                data->delayTime   = LM_to_uint( buf[1], buf[2] );
                if ((buf[0] & 0x1) != 0) {
                     data->transparent = buf[3];
                }
-               while (GetDataBlock( data->buffer, (__u8*) buf ) != 0)
+               while (GetDataBlock( data->buffer, (u8*) buf ) != 0)
                     ;
                return false;
           default:
@@ -495,7 +495,7 @@ static int DoExtension( IDirectFBImageProvider_GIF_data *data, int label )
      if (verbose)
           GIFERRORMSG("got a '%s' extension", str );
 
-     while (GetDataBlock( data->buffer, (__u8*) buf ) != 0)
+     while (GetDataBlock( data->buffer, (u8*) buf ) != 0)
           ;
 
      return false;
@@ -561,7 +561,7 @@ static int LWZReadByte( IDirectFBImageProvider_GIF_data *data, int flag, int inp
           }
           else if (code == data->end_code) {
                int count;
-               __u8 buf[260];
+               u8 buf[260];
 
                if (ZeroDataBlock) {
                     return -2;
@@ -617,15 +617,15 @@ static int LWZReadByte( IDirectFBImageProvider_GIF_data *data, int flag, int inp
 
 static int SortColors (const void *a, const void *b)
 {
-     return (*((const __u8 *) a) - *((const __u8 *) b));
+     return (*((const u8 *) a) - *((const u8 *) b));
 }
 
 /*  looks for a color that is not in the colormap and ideally not
     even close to the colors used in the colormap  */
-static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
+static u32 FindColorKey( int n_colors, u8 cmap[3][MAXCOLORMAPSIZE] )
 {
-     __u32 color = 0xFF000000;
-     __u8  csort[MAXCOLORMAPSIZE];
+     u32   color = 0xFF000000;
+     u8    csort[MAXCOLORMAPSIZE];
      int   i, j, index, d;
 
      if (n_colors < 1)
@@ -664,14 +664,14 @@ static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
      return color;
 }
 
-static __u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int height,
-                         __u8 cmap[3][MAXCOLORMAPSIZE], __u32 key_rgb,
-                         bool interlace, bool ignore )
+static u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int height,
+                       u8 cmap[3][MAXCOLORMAPSIZE], u32 key_rgb,
+                       bool interlace, bool ignore )
 {
-     __u8 c;
+     u8 c;
      int v;
      int xpos = 0, ypos = 0, pass = 0;
-     __u32 *image;
+     u32 *image;
 
      /*
      **  Initialize the decompression routines
@@ -707,7 +707,7 @@ static __u32* ReadImage( IDirectFBImageProvider_GIF_data *data, int width, int h
      }
 
      while ((v = LWZReadByte( data, false, c )) >= 0 ) {
-          __u32 *dst = image + (ypos * width + xpos);
+          u32 *dst = image + (ypos * width + xpos);
 
           if (v == data->transparent) {
                *dst++ = key_rgb;
@@ -771,14 +771,14 @@ fini:
 }
 
 
-static __u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
-                       int *width, int *height, bool *transparency,
-                       __u32 *key_rgb, bool alpha, bool headeronly)
+static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
+                     int *width, int *height, bool *transparency,
+                     u32 *key_rgb, bool alpha, bool headeronly)
 {
-     __u8  buf[16];
-     __u8  c;
-     __u8  localColorMap[3][MAXCOLORMAPSIZE];
-     __u32 colorKey = 0;
+     u8    buf[16];
+     u8    c;
+     u8    localColorMap[3][MAXCOLORMAPSIZE];
+     u32   colorKey = 0;
      bool  useGlobalColormap;
      int   bitPixel;
      int   imageCount = 0;

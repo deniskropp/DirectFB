@@ -72,33 +72,33 @@ typedef struct {
      /* mask of currently supported blitting functions */
      DFBAccelerationMask     blitting_mask;
 
-     __u32                   fb_offset;
-     __u32                   fb_size;
-     __u32                   agp_offset;
-     __u32                   agp_size;
+     u32                     fb_offset;
+     u32                     fb_size;
+     u32                     agp_offset;
+     u32                     agp_size;
      
      DFBSurfacePixelFormat   dst_format;
-     __u32                   dst_offset;
-     __u32                   dst_offset_cb;
-     __u32                   dst_offset_cr;
-     __u32                   dst_pitch;
+     u32                     dst_offset;
+     u32                     dst_offset_cb;
+     u32                     dst_offset_cr;
+     u32                     dst_pitch;
      DFBBoolean              dst_422;
      
      DFBSurfacePixelFormat   src_format;
-     __u32                   src_offset;
-     __u32                   src_offset_cb;
-     __u32                   src_offset_cr;
-     __u32                   src_pitch;
-     __u32                   src_width;
-     __u32                   src_height;
-     __u32                   src_mask;
+     u32                     src_offset;
+     u32                     src_offset_cb;
+     u32                     src_offset_cr;
+     u32                     src_pitch;
+     u32                     src_width;
+     u32                     src_height;
+     u32                     src_mask;
 
      DFBRegion               clip;
 
      float                   color[4];
-     __u32                   y_cop;
-     __u32                   cb_cop;
-     __u32                   cr_cop;
+     u32                     y_cop;
+     u32                     cb_cop;
+     u32                     cr_cop;
 
      DFBSurfaceDrawingFlags  drawingflags;
      DFBSurfaceBlittingFlags blittingflags;
@@ -112,30 +112,30 @@ typedef struct {
      RadeonMonitorType       monitor2;
  
      /* saved registers */
-     __u32                   mc_fb_location;
-     __u32                   mc_agp_location; 
-     __u32                   crtc_base_addr;
-     __u32                   crtc2_base_addr;
-     __u32                   agp_base;
-     __u32                   agp_cntl;
-     __u32                   aic_cntl;
-     __u32                   bus_cntl;
-     __u32                   fcp_cntl;
-     __u32                   cap0_trig_cntl;
-     __u32                   vid_buffer_control;
-     __u32                   display_test_debug_cntl;
-     __u32                   surface_cntl;
-     __u32                   dp_gui_master_cntl;
+     u32                     mc_fb_location;
+     u32                     mc_agp_location;
+     u32                     crtc_base_addr;
+     u32                     crtc2_base_addr;
+     u32                     agp_base;
+     u32                     agp_cntl;
+     u32                     aic_cntl;
+     u32                     bus_cntl;
+     u32                     fcp_cntl;
+     u32                     cap0_trig_cntl;
+     u32                     vid_buffer_control;
+     u32                     display_test_debug_cntl;
+     u32                     surface_cntl;
+     u32                     dp_gui_master_cntl;
 
      /* recorded registers */
-     __u32                   surface_cntl_p;
-     __u32                   surface_cntl_c;
-     __u32                   gui_master_cntl;
-     __u32                   rb3d_cntl;
-     __u32                   rb3d_blend;
+     u32                     surface_cntl_p;
+     u32                     surface_cntl_c;
+     u32                     gui_master_cntl;
+     u32                     rb3d_cntl;
+     u32                     rb3d_blend;
 
      /* faked texture for YUV422 drawing functions */
-     __u32                   yuv422_buffer;
+     u32                     yuv422_buffer;
      
      /* for fifo/performance monitoring */
      unsigned int            fifo_space;
@@ -150,8 +150,8 @@ typedef struct {
 typedef struct {
      RadeonDeviceData       *device_data; 
      
-     __u8                   *fb_base;
-     volatile __u8          *mmio_base;
+     u8                     *fb_base;
+     volatile u8            *mmio_base;
      unsigned int            mmio_size;
 } RadeonDriverData;
 
@@ -174,11 +174,11 @@ extern DisplayLayerFuncs  RadeonCrtc2LayerFuncs;
 
 
 /* utility function */
-static __inline__ __u32 f2d( float f )
+static __inline__ u32 f2d( float f )
 {
      union {
           float f;
-          __u32 d;
+          u32 d;
      } tmp;
      tmp.f = f;
      return tmp.d;

@@ -238,10 +238,10 @@ IDirectFBPalette_Requestor_GetEntries( IDirectFBPalette *thiz,
 
 static DFBResult
 IDirectFBPalette_Requestor_FindBestMatch( IDirectFBPalette *thiz,
-                                          __u8              r,
-                                          __u8              g,
-                                          __u8              b,
-                                          __u8              a,
+                                          u8                r,
+                                          u8                g,
+                                          u8                b,
+                                          u8                a,
                                           unsigned int     *ret_index )
 {
      DirectResult            ret;

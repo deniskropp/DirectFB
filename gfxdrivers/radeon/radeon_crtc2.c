@@ -67,41 +67,41 @@ typedef struct {
 
      struct {
           unsigned int      size;
-          __u8              r[256];
-          __u8              g[256];
-          __u8              b[256];
+          u8                r[256];
+          u8                g[256];
+          u8                b[256];
      } lut;
 
      struct { 
-          __u32 rCRTC2_GEN_CNTL;
-          __u32 rFP2_GEN_CNTL;
-          __u32 rDAC_CNTL2;
-          __u32 rTV_DAC_CNTL;
-          __u32 rDISP_OUTPUT_CNTL;
-          __u32 rDISP_HW_DEBUG;
-          __u32 rCRTC2_OFFSET_CNTL;
+          u32 rCRTC2_GEN_CNTL;
+          u32 rFP2_GEN_CNTL;
+          u32 rDAC_CNTL2;
+          u32 rTV_DAC_CNTL;
+          u32 rDISP_OUTPUT_CNTL;
+          u32 rDISP_HW_DEBUG;
+          u32 rCRTC2_OFFSET_CNTL;
      } save;
      
      struct {
-          __u32 rCRTC2_GEN_CNTL;
-          __u32 rDAC_CNTL2;
-          __u32 rTV_DAC_CNTL;
-          __u32 rDISP_OUTPUT_CNTL;
-          __u32 rDISP_HW_DEBUG;
-          __u32 rCRTC2_H_TOTAL_DISP;
-          __u32 rCRTC2_H_SYNC_STRT_WID;
-          __u32 rCRTC2_V_TOTAL_DISP;
-          __u32 rCRTC2_V_SYNC_STRT_WID;
-          __u32 rCRTC2_BASE_ADDR;
-          __u32 rCRTC2_OFFSET;
-          __u32 rCRTC2_OFFSET_CNTL;
-          __u32 rCRTC2_PITCH;
-          __u32 rFP2_GEN_CNTL;
-          __u32 rFP2_H_SYNC_STRT_WID;
-          __u32 rFP2_V_SYNC_STRT_WID;
-          __u32 rP2PLL_REF_DIV;
-          __u32 rP2PLL_DIV_0;
-          __u32 rHTOTAL2_CNTL;
+          u32 rCRTC2_GEN_CNTL;
+          u32 rDAC_CNTL2;
+          u32 rTV_DAC_CNTL;
+          u32 rDISP_OUTPUT_CNTL;
+          u32 rDISP_HW_DEBUG;
+          u32 rCRTC2_H_TOTAL_DISP;
+          u32 rCRTC2_H_SYNC_STRT_WID;
+          u32 rCRTC2_V_TOTAL_DISP;
+          u32 rCRTC2_V_SYNC_STRT_WID;
+          u32 rCRTC2_BASE_ADDR;
+          u32 rCRTC2_OFFSET;
+          u32 rCRTC2_OFFSET_CNTL;
+          u32 rCRTC2_PITCH;
+          u32 rFP2_GEN_CNTL;
+          u32 rFP2_H_SYNC_STRT_WID;
+          u32 rFP2_V_SYNC_STRT_WID;
+          u32 rP2PLL_REF_DIV;
+          u32 rP2PLL_DIV_0;
+          u32 rHTOTAL2_CNTL;
      } regs;
 } RadeonCrtc2LayerData;
 
@@ -148,8 +148,8 @@ crtc2SetPowerMode( CoreScreen         *screen,
                    DFBScreenPowerMode  mode )
 {
      RadeonDriverData *rdrv          = (RadeonDriverData*) driver_data;
-     volatile __u8    *mmio          = rdrv->mmio_base;
-     __u32             crtc2_gen_cntl;
+     volatile u8      *mmio          = rdrv->mmio_base;
+     u32               crtc2_gen_cntl;
      
      crtc2_gen_cntl  = radeon_in32( mmio, CRTC2_GEN_CNTL );
      crtc2_gen_cntl &= ~(CRTC2_HSYNC_DIS | CRTC2_VSYNC_DIS | CRTC2_DISP_DIS);
@@ -186,7 +186,7 @@ crtc2WaitVSync( CoreScreen *screen,
                 void       *screen_data )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
-     volatile __u8    *mmio = rdrv->mmio_base; 
+     volatile u8      *mmio = rdrv->mmio_base;
      int               i;
      
      if (dfb_config->pollvsync_none)
@@ -214,7 +214,7 @@ crtc2GetScreenSize( CoreScreen *screen,
                     int        *ret_height )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      unsigned int      xres;
      unsigned int      yres;
     
@@ -268,7 +268,7 @@ crtc2InitLayer( CoreLayer                  *layer,
 {
      RadeonDriverData     *rdrv   = (RadeonDriverData*) driver_data;
      RadeonCrtc2LayerData *rcrtc2 = (RadeonCrtc2LayerData*) layer_data;
-     volatile __u8        *mmio   = rdrv->mmio_base; 
+     volatile u8          *mmio   = rdrv->mmio_base;
      VideoMode            *mode;
      
      mode = dfb_system_modes();
@@ -440,7 +440,7 @@ crtc2RemoveRegion( CoreLayer *layer,
 {
      RadeonDriverData     *rdrv   = (RadeonDriverData*) driver_data;
      RadeonCrtc2LayerData *rcrtc2 = (RadeonCrtc2LayerData*) layer_data;
-     volatile __u8        *mmio   = rdrv->mmio_base;
+     volatile u8          *mmio   = rdrv->mmio_base;
     
      radeon_waitidle( rdrv, rdrv->device_data );
     
@@ -466,7 +466,7 @@ crtc2FlipRegion( CoreLayer           *layer,
      RadeonDriverData     *rdrv   = (RadeonDriverData*) driver_data;
      RadeonDeviceData     *rdev   = rdrv->device_data;
      RadeonCrtc2LayerData *rcrtc2 = (RadeonCrtc2LayerData*) layer_data;
-     volatile __u8        *mmio   = rdrv->mmio_base;
+     volatile u8          *mmio   = rdrv->mmio_base;
      SurfaceBuffer        *buffer = surface->back_buffer;
      
      switch (buffer->storage) {
@@ -584,8 +584,8 @@ crtc2_calc_pllregs( RadeonDriverData     *rdrv,
           { 12, 7 }, /* VCLK_SRC/12 */
           {  0, 0 }
      };
-     __u32 pll_output_freq_2 = 0;
-     __u32 feedback_div_2;
+     u32 pll_output_freq_2 = 0;
+     u32 feedback_div_2;
 
      if (freq > rcrtc2->pll_max_freq)
           freq = rcrtc2->pll_max_freq;
@@ -626,7 +626,7 @@ crtc2_calc_regs( RadeonDriverData      *rdrv,
      RadeonDeviceData *rdev   = rdrv->device_data;
      SurfaceBuffer    *buffer = surface->front_buffer;
      VideoMode        *mode; 
-     __u32             format = 0;
+     u32               format = 0;
     
      int   h_total, h_sync_start, h_sync_end, h_sync_wid;
      int   v_total, v_sync_start, v_sync_end, v_sync_wid;
@@ -789,8 +789,8 @@ static void
 crtc2_set_regs ( RadeonDriverData     *rdrv,
                  RadeonCrtc2LayerData *rcrtc2 )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
-     __u32          tmp;
+     volatile u8 *mmio = rdrv->mmio_base;
+     u32          tmp;
      
      /* Lock the card during mode switching. */
      dfb_gfxcard_lock( GDLF_WAIT | GDLF_SYNC );
@@ -862,7 +862,7 @@ crtc2_set_regs ( RadeonDriverData     *rdrv,
      dfb_gfxcard_unlock();
 }
 
-static inline __u8
+static inline u8
 calc_gamma( float n, float d )
 {
      int ret;
@@ -991,8 +991,8 @@ static void
 crtc2_set_palette( RadeonDriverData     *rdrv,
                    RadeonCrtc2LayerData *rcrtc2 )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
-     __u32          tmp;
+     volatile u8   *mmio = rdrv->mmio_base;
+     u32            tmp;
      int            i, j;
 
      if (!rcrtc2->lut.size) {

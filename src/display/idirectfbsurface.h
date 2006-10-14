@@ -69,18 +69,18 @@ typedef struct {
      DFBTextEncodingID      encoding;        /* text encoding */
 
      struct {
-          __u8              r;               /* red component */
-          __u8              g;               /* green component */
-          __u8              b;               /* blue component */
-          __u32             value;           /* r/g/b in surface's format */
+          u8                r;               /* red component */
+          u8                g;               /* green component */
+          u8                b;               /* blue component */
+          u32               value;           /* r/g/b in surface's format */
      } src_key;                              /* src key for blitting from
                                                 this surface */
 
      struct {
-          __u8              r;               /* red component */
-          __u8              g;               /* green component */
-          __u8              b;               /* blue component */
-          __u32             value;           /* r/g/b in surface's format */
+          u8                r;               /* red component */
+          u8                g;               /* green component */
+          u8                b;               /* blue component */
+          u32               value;           /* r/g/b in surface's format */
      } dst_key;                              /* dst key for blitting to
                                                 this surface */
 

@@ -19,6 +19,8 @@
 #ifndef _LINUX_SISFB
 #define _LINUX_SISFB
 
+#include <linux/types.h>
+
 /* vbflags */
 #define CRT2_DEFAULT            0x00000001
 #define CRT2_LCD                0x00000002  /* TW: Never change the order of the CRT2_XXX entries */

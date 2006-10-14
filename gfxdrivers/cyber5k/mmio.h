@@ -33,39 +33,39 @@
 #include "regs.h"
 
 static inline void
-cyber_out8(volatile __u8 *mmioaddr, __u32 reg, __u8 value)
+cyber_out8(volatile u8 *mmioaddr, u32 reg, u8 value)
 {
-     *((volatile __u8*)(mmioaddr+reg)) = value;
+     *((volatile u8*)(mmioaddr+reg)) = value;
 }
 
 static inline void
-cyber_out16(volatile __u8 *mmioaddr, __u32 reg, __u16 value)
+cyber_out16(volatile u8 *mmioaddr, u32 reg, u16 value)
 {
-     *((volatile __u16*)(mmioaddr+reg)) = value;
+     *((volatile u16*)(mmioaddr+reg)) = value;
 }
 
 static inline void
-cyber_out32(volatile __u8 *mmioaddr, __u32 reg, __u32 value)
+cyber_out32(volatile u8 *mmioaddr, u32 reg, u32 value)
 {
-     *((volatile __u32*)(mmioaddr+reg)) = value;
+     *((volatile u32*)(mmioaddr+reg)) = value;
 }
 
-static inline __u8
-cyber_in8(volatile __u8 *mmioaddr, __u32 reg)
+static inline u8
+cyber_in8(volatile u8 *mmioaddr, u32 reg)
 {
-     return *((volatile __u8*)(mmioaddr+reg));
+     return *((volatile u8*)(mmioaddr+reg));
 }
 
-static inline __u16
-cyber_in16(volatile __u8 *mmioaddr, __u32 reg)
+static inline u16
+cyber_in16(volatile u8 *mmioaddr, u32 reg)
 {
-     return *((volatile __u16*)(mmioaddr+reg));
+     return *((volatile u16*)(mmioaddr+reg));
 }
 
-static inline __u32
-cyber_in32(volatile __u8 *mmioaddr, __u32 reg)
+static inline u32
+cyber_in32(volatile u8 *mmioaddr, u32 reg)
 {
-     return *((volatile __u32*)(mmioaddr+reg));
+     return *((volatile u32*)(mmioaddr+reg));
 }
 
 /* Wait for idle accelerator */

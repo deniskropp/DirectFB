@@ -107,7 +107,7 @@ static DFBResult  update_window   ( UniqueWindow        *window,
 static void       update_flags    ( UniqueWindow  *window );
 
 static void       set_opacity     ( UniqueWindow  *window,
-                                    __u8           opacity );
+                                    u8             opacity );
 
 static DFBResult  move_window     ( UniqueWindow  *window,
                                     int            dx,
@@ -1250,9 +1250,9 @@ restack_window( UniqueWindow           *window,
 
 static void
 set_opacity( UniqueWindow *window,
-             __u8          opacity )
+             u8            opacity )
 {
-     __u8           old;
+     u8             old;
      UniqueContext *context;
 
      D_MAGIC_ASSERT( window, UniqueWindow );

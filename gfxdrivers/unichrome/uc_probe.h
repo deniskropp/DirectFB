@@ -23,7 +23,7 @@ struct uc_via_chipinfo
 #ifdef KERNEL
     u16 id;                 // PCI id
 #else
-    __u16 id;
+    u16 id;
 #endif
     char* name;             // Human readable name, e.g CLE266/UniChrome
 };

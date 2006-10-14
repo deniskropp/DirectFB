@@ -69,10 +69,10 @@ void         dfb_palette_generate_rgb332_map( CorePalette   *palette );
 void         dfb_palette_generate_rgb121_map( CorePalette   *palette );
 
 unsigned int dfb_palette_search             ( CorePalette   *palette,
-                                              __u8           r,
-                                              __u8           g,
-                                              __u8           b,
-                                              __u8           a );
+                                              u8             r,
+                                              u8             g,
+                                              u8             b,
+                                              u8             a );
 
 void         dfb_palette_update             ( CorePalette   *palette,
                                               int            first,

@@ -92,9 +92,9 @@ static void Sacc_add_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
 {
-     static const __u32 preload[] = { 0xFF00FF00, 0x0000FF00 };
-     static const __u32 mask[]    = { 0x00FC00F8, 0x000000F8 };
-     static const __u32 pm[]      = { 0x01000004, 0x00000004 };
+     static const u32 preload[] = { 0xFF00FF00, 0x0000FF00 };
+     static const u32 mask[]    = { 0x00FC00F8, 0x000000F8 };
+     static const u32 pm[]      = { 0x01000004, 0x00000004 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
@@ -129,9 +129,9 @@ static void Sacc_to_Aop_rgb16_MMX( GenefxState *gfxs )
 
 static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
 {
-     static const __u32 preload[]  = { 0xFF00FF00, 0x0000FF00 };
-     static const __u32 postload[] = { 0x00FF00FF, 0x000000FF };
-     static const __u32 pm[]       = { 0x01000001, 0x00000001 };
+     static const u32 preload[]  = { 0xFF00FF00, 0x0000FF00 };
+     static const u32 postload[] = { 0x00FF00FF, 0x000000FF };
+     static const u32 pm[]       = { 0x01000001, 0x00000001 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm1\n\t"
@@ -165,7 +165,7 @@ static void Sacc_to_Aop_rgb32_MMX( GenefxState *gfxs )
 __attribute__((no_instrument_function))
 static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 {
-     static const __u32 zeros[]  = { 0, 0 };
+     static const u32 zeros[]  = { 0, 0 };
      int i = 0;
 
      __asm__ __volatile__ (
@@ -203,7 +203,7 @@ static void Sop_argb_Sto_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static const __u32 zeros[]  = { 0, 0 };
+     static const u32 zeros[]  = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm0\n\t"
@@ -225,9 +225,9 @@ static void Sop_argb_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static const __u32 mask[]  = { 0x07E0001F, 0x0000F800 };
-     static const __u32 smul[]  = { 0x00200800, 0x00000001 };
-     static const __u32 alpha[] = { 0x00000000, 0x00FF0000 };
+     static const u32 mask[]  = { 0x07E0001F, 0x0000F800 };
+     static const u32 smul[]  = { 0x00200800, 0x00000001 };
+     static const u32 alpha[] = { 0x00000000, 0x00FF0000 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm4\n\t"
@@ -303,8 +303,8 @@ static void Sop_rgb16_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
 {
-     static const __u32 alpha[]  = { 0, 0x00FF0000 };
-     static const __u32 zeros[]  = { 0, 0 };
+     static const u32 alpha[]  = { 0, 0x00FF0000 };
+     static const u32 zeros[]  = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
@@ -328,8 +328,8 @@ static void Sop_rgb32_to_Dacc_MMX( GenefxState *gfxs )
 
 static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
 {
-     static const __u32 einser[] = { 0x01000100, 0x01000100 };
-     static const __u32 zeros[]  = { 0, 0 };
+     static const u32 einser[] = { 0x01000100, 0x01000100 };
+     static const u32 zeros[]  = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
@@ -385,8 +385,8 @@ static void Xacc_blend_invsrcalpha_MMX( GenefxState *gfxs )
 
 static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
 {
-     static const __u32 ones[]  = { 0x00010001, 0x00010001 };
-     static const __u32 zeros[] = { 0, 0 };
+     static const u32 ones[]  = { 0x00010001, 0x00010001 };
+     static const u32 zeros[] = { 0, 0 };
 
      __asm__ __volatile__ (
 	       "movq     %3, %%mm7\n\t"
@@ -440,9 +440,9 @@ static void Xacc_blend_srcalpha_MMX( GenefxState *gfxs )
 
 static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
 {  
-     static const __u16 __aligned(8) sub0[4] = {  16,  16,  16,  16 }; 
-     static const __u16 __aligned(8) sub1[4] = { 128, 128, 128, 128 };
-     static const __s16 __aligned(8) mul[20] = {
+     static const u16 __aligned(8) sub0[4] = {  16,  16,  16,  16 }; 
+     static const u16 __aligned(8) sub1[4] = { 128, 128, 128, 128 };
+     static const s16 __aligned(8) mul[20] = {
                      0x253F,  0x253F,  0x253F,  0x253F, // Y       Coeff.
                      0x3312,  0x3312,  0x3312,  0x3312, // V Red   Coeff.
                      0x4093,  0x4093,  0x4093,  0x4093, // U Blue  Coeff.
@@ -527,8 +527,8 @@ static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
 
      while (w) {
           if (!(D->YUV.a & 0xF000)) {
-               __u16 y, cb, cr;
-               __s16 r, g, b;
+               u16 y, cb, cr;
+               s16 r, g, b;
 
                y  = y_for_rgb[D->YUV.y];
                cb = D->YUV.u;
@@ -549,9 +549,9 @@ static void Dacc_YCbCr_to_RGB_MMX( GenefxState *gfxs )
 
 static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
 {
-     static const __u16 __aligned(8) add0[4] = { 128, 128, 128, 128 };
-     static const __u16 __aligned(8) add1[4] = {  16,  16,  16,  16 };
-     static const __u16 __aligned(8) mul[24] = {
+     static const u16 __aligned(8) add0[4] = { 128, 128, 128, 128 };
+     static const u16 __aligned(8) add1[4] = {  16,  16,  16,  16 };
+     static const u16 __aligned(8) mul[24] = {
                     0x03A5, 0x03A5, 0x03A5, 0x03A5, // Eb
                     0x12C8, 0x12C8, 0x12C8, 0x12C8, // Eg
                     0x0991, 0x0991, 0x0991, 0x0991, // Er
@@ -641,7 +641,7 @@ static void Dacc_RGB_to_YCbCr_MMX( GenefxState *gfxs )
 
      while (w) {
           if (!(D->RGB.a & 0xF000)) {
-               __u32 r, g, b, ey;
+               u32 r, g, b, ey;
 
                r = D->RGB.r; g = D->RGB.g; b = D->RGB.b;
                ey = (19595 * r + 38469 * g + 7471 * b) >> 16;

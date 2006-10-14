@@ -90,7 +90,7 @@ typedef struct {
 } TDFXDeviceData;
 
 typedef struct {
-     volatile __u8 *mmio_base;
+     volatile u8   *mmio_base;
      Voodoo2D      *voodoo2D;
      Voodoo3D      *voodoo3D;
 } TDFXDriverData;
@@ -205,8 +205,8 @@ static inline void tdfx_validate_destination3D( TDFXDriverData *tdrv,
      SurfaceBuffer *buffer      = destination->back_buffer;
      Voodoo3D      *voodoo3D    = tdrv->voodoo3D;
 
-     __u32 lfbmode = TDFX_LFBMODE_PIXEL_PIPELINE_ENABLE;
-     __u32 fbzMode = (1 << 9) | 1;
+     u32 lfbmode = TDFX_LFBMODE_PIXEL_PIPELINE_ENABLE;
+     u32 fbzMode = (1 << 9) | 1;
 
      if (tdev->v_destination3D)
           return;
@@ -676,7 +676,7 @@ static bool tdfxBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int dy )
      TDFXDeviceData *tdev     = (TDFXDeviceData*) dev;
      Voodoo2D       *voodoo2D = tdrv->voodoo2D;
 
-     __u32 cmd = 1 | (1 <<8) | (0xCC << 24);//SST_2D_GO | SST_2D_SCRNTOSCRNBLIT | (ROP_COPY << 24);
+     u32 cmd = 1 | (1 <<8) | (0xCC << 24);//SST_2D_GO | SST_2D_SCRNTOSCRNBLIT | (ROP_COPY << 24);
 
      if (rect->x <= dx) {
           cmd |= (1 << 14);//SST_2D_X_RIGHT_TO_LEFT;
@@ -762,7 +762,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      TDFXDriverData *tdrv = (TDFXDriverData*) driver_data;
 
-     tdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     tdrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!tdrv->mmio_base)
           return DFB_IO;
 
@@ -830,7 +830,7 @@ driver_init_device( GraphicsDevice     *device,
 
      tdfx_waitfifo( tdrv, tdev, 1 );           /* VOODOO !!!  */
 
-     *((volatile __u32*)((volatile __u8*) tdrv->mmio_base + 0x10c)) =
+     *((volatile u32*)((volatile u8*) tdrv->mmio_base + 0x10c)) =
           1 << 4 | 1 << 8 | 5 << 12 | 1 << 18 | 5 << 24;
 
      dfb_config->pollvsync_after = 1;

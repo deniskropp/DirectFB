@@ -74,7 +74,7 @@ savage2000_waitfifo(Savage2000DriverData *sdrv,
                     Savage2000DeviceData *sdev, int space)
 {
      uint32         slots = MAXFIFO - space;
-     volatile __u8 *mmio  = sdrv->s.mmio_base;
+     volatile u8   *mmio  = sdrv->s.mmio_base;
 
      sdev->s.waitfifo_sum += space;
      sdev->s.waitfifo_calls++;

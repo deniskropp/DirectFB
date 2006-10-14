@@ -88,7 +88,7 @@ typedef struct {
      int                  width;
      int                  height;
 
-     __u32               *image;
+     u32                 *image;
 } IDirectFBImageProvider_MPEG2_data;
 
 static DFBResult
@@ -117,7 +117,7 @@ IDirectFBImageProvider_MPEG2_GetImageDescription( IDirectFBImageProvider *thiz,
 
 
 static int  mpeg2_read_func ( void *buf, int count, void *ctx );
-static void mpeg2_write_func( int x, int y, __u32 argb, void *ctx );
+static void mpeg2_write_func( int x, int y, u32 argb, void *ctx );
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
@@ -347,7 +347,7 @@ mpeg2_read_func( void *buf, int count, void *ctx )
 }
 
 static void
-mpeg2_write_func( int x, int y, __u32 argb, void *ctx )
+mpeg2_write_func( int x, int y, u32 argb, void *ctx )
 {
      IDirectFBImageProvider_MPEG2_data *data =
                                        (IDirectFBImageProvider_MPEG2_data*) ctx;

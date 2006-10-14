@@ -227,7 +227,7 @@ DFBResult dfb_font_decode_text( CoreFont          *font,
 
 DFBResult dfb_font_decode_character( CoreFont          *font,
                                      DFBTextEncodingID  encoding,
-                                     __u32              character,
+                                     u32                character,
                                      unsigned int      *ret_index );
 
 #endif

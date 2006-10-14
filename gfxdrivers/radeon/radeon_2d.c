@@ -50,7 +50,7 @@ radeonDoFillRectangle2D( RadeonDriverData *rdrv,
                          RadeonDeviceData *rdev,
                          DFBRectangle     *rect )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 2 );
      
@@ -79,8 +79,8 @@ bool radeonFillRectangle2D_420( void *drv, void *dev, DFBRectangle *rect )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     DFBRegion      *clip = &rdev->clip;
-     volatile __u8  *mmio = rdrv->mmio_base;
+     DFBRegion        *clip = &rdev->clip;
+     volatile u8      *mmio = rdrv->mmio_base;
 
      /* Fill Luma plane */
      radeonDoFillRectangle2D( rdrv, rdev, rect );
@@ -130,7 +130,7 @@ radeonDoDrawRectangle2D( RadeonDriverData *rdrv,
                          RadeonDeviceData *rdev,
                          DFBRectangle     *rect )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 7 );
      
@@ -166,8 +166,8 @@ bool radeonDrawRectangle2D_420( void *drv, void *dev, DFBRectangle *rect )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     DFBRegion      *clip = &rdev->clip;
-     volatile __u8  *mmio = rdrv->mmio_base;
+     DFBRegion        *clip = &rdev->clip;
+     volatile u8      *mmio = rdrv->mmio_base;
 
      /* Fill Luma plane */
      radeonDoDrawRectangle2D( rdrv, rdev, rect );
@@ -217,7 +217,7 @@ radeonDoDrawLine2D( RadeonDriverData *rdrv,
                     RadeonDeviceData *rdev,
                     DFBRegion        *line )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
 
      radeon_waitfifo( rdrv, rdev, 2 );
      
@@ -246,8 +246,8 @@ bool radeonDrawLine2D_420( void *drv, void *dev, DFBRegion *line )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     DFBRegion      *clip = &rdev->clip;
-     volatile __u8  *mmio = rdrv->mmio_base;
+     DFBRegion        *clip = &rdev->clip;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      line->x1 &= ~1;
      line->y1 &= ~1;
@@ -301,8 +301,8 @@ static void
 radeonDoBlit2D( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
                 int sx, int sy, int dx, int dy, int w, int h )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
-     __u32          dir  = 0;
+     volatile u8   *mmio = rdrv->mmio_base;
+     u32            dir  = 0;
      
      /* check which blitting direction should be used */
      if (sx <= dx) {
@@ -345,8 +345,8 @@ bool radeonBlit2D_420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;  
-     DFBRegion      *clip = &rdev->clip;
-     volatile __u8  *mmio = rdrv->mmio_base;
+     DFBRegion        *clip = &rdev->clip;
+     volatile u8      *mmio = rdrv->mmio_base;
 
      /* Blit Luma plane */
      radeonDoBlit2D( rdrv, rdev, sr->x, sr->y, dx, dy, sr->w, sr->h );

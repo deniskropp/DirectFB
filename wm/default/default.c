@@ -379,25 +379,25 @@ window_at_pointer( CoreWindowStack *stack,
 
                               switch (surface->format) {
                                    case DSPF_AiRGB:
-                                        alpha = 0xff - (*(__u32*)(data + 4 * wx + pitch * wy) >> 24);
+                                        alpha = 0xff - (*(u32*)(data + 4 * wx + pitch * wy) >> 24);
                                         break;
                                    case DSPF_ARGB:
                                    case DSPF_AYUV:
-                                        alpha = *(__u32*)(data + 4 * wx + pitch * wy) >> 24;
+                                        alpha = *(u32*)(data + 4 * wx + pitch * wy) >> 24;
                                         break;
                                    case DSPF_ARGB1555:
                                    case DSPF_ARGB2554:
                                    case DSPF_ARGB4444:
-                                        alpha = *(__u16*)(data + 2 * wx + pitch * wy) & 0x8000;
+                                        alpha = *(u16*)(data + 2 * wx + pitch * wy) & 0x8000;
                                         alpha = alpha ? 0xff : 0x00;
                                         break;
                                    case DSPF_ALUT44:
-                                        alpha = *(__u8*)(data + wx + pitch * wy) & 0xf0;
+                                        alpha = *(u8*)(data + wx + pitch * wy) & 0xf0;
                                         alpha |= alpha >> 4;
                                         break;
                                    case DSPF_LUT8: {
                                         CorePalette *palette = surface->palette;
-                                        __u8         pix     = *((__u8*) data + wx + pitch * wy);
+                                        u8           pix     = *((u8*) data + wx + pitch * wy);
 
                                         if (palette && pix < palette->num_entries) {
                                              alpha = palette->entries[pix].a;
@@ -420,13 +420,13 @@ window_at_pointer( CoreWindowStack *stack,
                          }
                          if (options & DWOP_COLORKEYING) {
                               int pixel = 0;
-                              __u8 *p;
+                              u8 *p;
                               switch (surface->format) {
                                    case DSPF_ARGB:
                                    case DSPF_AiRGB:
                                    case DSPF_RGB32:
-                                        pixel = *(__u32*)(data +
-                                                          4 * wx + pitch * wy)
+                                        pixel = *(u32*)(data +
+                                                        4 * wx + pitch * wy)
                                                 & 0x00ffffff;
                                         break;
 
@@ -440,25 +440,25 @@ window_at_pointer( CoreWindowStack *stack,
                                         break;
 
                                    case DSPF_RGB16:
-                                        pixel = *(__u16*)(data + 2 * wx +
-                                                          pitch * wy);
+                                        pixel = *(u16*)(data + 2 * wx +
+                                                        pitch * wy);
                                         break;
 
                                    case DSPF_ARGB1555:
-                                        pixel = *(__u16*)(data + 2 * wx +
-                                                          pitch * wy)
+                                        pixel = *(u16*)(data + 2 * wx +
+                                                        pitch * wy)
                                                 & 0x7fff;
                                         break;
 
                                    case DSPF_RGB332:
                                    case DSPF_LUT8:
-                                        pixel = *(__u8*)(data +
-                                                         wx + pitch * wy);
+                                        pixel = *(u8*)(data +
+                                                       wx + pitch * wy);
                                         break;
 
                                    case DSPF_ALUT44:
-                                        pixel = *(__u8*)(data +
-                                                         wx + pitch * wy)
+                                        pixel = *(u8*)(data +
+                                                       wx + pitch * wy)
                                                 & 0x0f;
                                         break;
 
@@ -1716,9 +1716,9 @@ restack_window( CoreWindow             *window,
 static void
 set_opacity( CoreWindow *window,
              WindowData *window_data,
-             __u8        opacity )
+             u8          opacity )
 {
-     __u8             old;
+     u8               old;
      StackData       *data;
      CoreWindowStack *stack;
 

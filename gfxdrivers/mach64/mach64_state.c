@@ -52,7 +52,7 @@ void mach64_set_destination( Mach64DriverData *mdrv,
                              Mach64DeviceData *mdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio        = mdrv->mmio_base;
+     volatile u8 *mmio          = mdrv->mmio_base;
      CoreSurface   *destination = state->destination;
      SurfaceBuffer *buffer      = destination->back_buffer;
      int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
@@ -85,7 +85,7 @@ void mach64gt_set_destination( Mach64DriverData *mdrv,
                                Mach64DeviceData *mdev,
                                CardState        *state )
 {
-     volatile __u8 *mmio        = mdrv->mmio_base;
+     volatile u8 *mmio          = mdrv->mmio_base;
      CoreSurface   *destination = state->destination;
      SurfaceBuffer *buffer      = destination->back_buffer;
      int            pitch       = buffer->video.pitch / DFB_BYTES_PER_PIXEL( destination->format );
@@ -128,7 +128,7 @@ void mach64_set_source( Mach64DriverData *mdrv,
                         Mach64DeviceData *mdev,
                         CardState        *state )
 {
-     volatile __u8 *mmio   = mdrv->mmio_base;
+     volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = state->source;
      SurfaceBuffer *buffer = source->front_buffer;
      int            pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( source->format );
@@ -166,7 +166,7 @@ void mach64gt_set_source( Mach64DriverData *mdrv,
                           Mach64DeviceData *mdev,
                           CardState        *state )
 {
-     volatile __u8 *mmio   = mdrv->mmio_base;
+     volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = state->source;
      SurfaceBuffer *buffer = source->front_buffer;
      int            pitch  = buffer->video.pitch / DFB_BYTES_PER_PIXEL( source->format );
@@ -207,7 +207,7 @@ void mach64gt_set_source_scale( Mach64DriverData *mdrv,
                                 Mach64DeviceData *mdev,
                                 CardState        *state )
 {
-     volatile __u8 *mmio   = mdrv->mmio_base;
+     volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = state->source;
      SurfaceBuffer *buffer = source->front_buffer;
      int            offset = buffer->video.offset;
@@ -284,7 +284,7 @@ void mach64_set_clip( Mach64DriverData *mdrv,
                       Mach64DeviceData *mdev,
                       CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 2 );
      mach64_out32( mmio, SC_LEFT_RIGHT, (S13( state->clip.x2 ) << 16) | S13( state->clip.x1 ) );
@@ -295,9 +295,9 @@ void mach64_set_color( Mach64DriverData *mdrv,
                        Mach64DeviceData *mdev,
                        CardState        *state )
 {
-     volatile __u8 *mmio  = mdrv->mmio_base;
+     volatile u8 *mmio    = mdrv->mmio_base;
      DFBColor       color = state->color;
-     __u32          clr;
+     u32            clr;
 
      if (MACH64_IS_VALID( m_color ))
           return;
@@ -357,7 +357,7 @@ void mach64_set_color_3d( Mach64DriverData *mdrv,
                           Mach64DeviceData *mdev,
                           CardState        *state )
 {
-     volatile __u8 *mmio  = mdrv->mmio_base;
+     volatile u8 *mmio    = mdrv->mmio_base;
      DFBColor       color = state->color;
 
      if (MACH64_IS_VALID( m_color_3d ))
@@ -387,7 +387,7 @@ void mach64_set_color_tex( Mach64DriverData *mdrv,
                            Mach64DeviceData *mdev,
                            CardState        *state )
 {
-     volatile __u8 *mmio  = mdrv->mmio_base;
+     volatile u8 *mmio    = mdrv->mmio_base;
      DFBColor       color = state->color;
 
      if (MACH64_IS_VALID( m_color_tex ))
@@ -421,7 +421,7 @@ void mach64_set_src_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev,
                               CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      if (MACH64_IS_VALID( m_srckey ))
           return;
@@ -440,8 +440,8 @@ void mach64_set_src_colorkey_scale( Mach64DriverData *mdrv,
                                     Mach64DeviceData *mdev,
                                     CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
-     __u32          clr, msk;
+     volatile u8 *mmio = mdrv->mmio_base;
+     u32          clr, msk;
 
      if (MACH64_IS_VALID( m_srckey_scale ))
           return;
@@ -499,7 +499,7 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev,
                               CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      if (MACH64_IS_VALID( m_dstkey ))
           return;
@@ -517,7 +517,7 @@ void mach64_set_dst_colorkey( Mach64DriverData *mdrv,
 void mach64_disable_colorkey( Mach64DriverData *mdrv,
                               Mach64DeviceData *mdev )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      if (MACH64_IS_VALID( m_disable_key ))
           return;
@@ -529,7 +529,7 @@ void mach64_disable_colorkey( Mach64DriverData *mdrv,
      MACH64_INVALIDATE( m_srckey | m_srckey_scale | m_dstkey );
 }
 
-static __u32 mach64SourceBlend[] = {
+static u32 mach64SourceBlend[] = {
      ALPHA_BLND_SRC_ZERO,
      ALPHA_BLND_SRC_ONE,
      0,
@@ -543,7 +543,7 @@ static __u32 mach64SourceBlend[] = {
      ALPHA_BLND_SAT
 };
 
-static __u32 mach64DestBlend[] = {
+static u32 mach64DestBlend[] = {
      ALPHA_BLND_DST_ZERO,
      ALPHA_BLND_DST_ONE,
      ALPHA_BLND_DST_SRCCOLOR,
@@ -561,7 +561,7 @@ void mach64_set_draw_blend( Mach64DriverData *mdrv,
                             Mach64DeviceData *mdev,
                             CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      if (MACH64_IS_VALID( m_draw_blend ))
           return;
@@ -584,7 +584,7 @@ void mach64_set_blit_blend( Mach64DriverData *mdrv,
                             Mach64DeviceData *mdev,
                             CardState        *state )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
      if (MACH64_IS_VALID( m_blit_blend ))
           return;

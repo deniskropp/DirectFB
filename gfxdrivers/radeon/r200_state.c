@@ -44,7 +44,7 @@
 #include "radeon_state.h"
 
 
-static const __u32 r200SrcBlend[] = {
+static const u32 r200SrcBlend[] = {
      SRC_BLEND_GL_ZERO,                 // DSBF_ZERO
      SRC_BLEND_GL_ONE,                  // DSBF_ONE
      SRC_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
@@ -58,7 +58,7 @@ static const __u32 r200SrcBlend[] = {
      SRC_BLEND_GL_SRC_ALPHA_SATURATE    // DSBF_SRCALPHASAT
 };
 
-static const __u32 r200DstBlend[] = {
+static const u32 r200DstBlend[] = {
      DST_BLEND_GL_ZERO,                 // DSBF_ZERO
      DST_BLEND_GL_ONE,                  // DSBF_ONE
      DST_BLEND_GL_SRC_COLOR,            // DSBF_SRCCOLOR
@@ -75,7 +75,7 @@ static const __u32 r200DstBlend[] = {
 
 void r200_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 15 );
      /* enable caches */
@@ -115,9 +115,9 @@ void r200_set_destination( RadeonDriverData *rdrv,
 {
      CoreSurface   *surface = state->destination;
      SurfaceBuffer *buffer  = surface->back_buffer;
-     volatile __u8 *mmio    = rdrv->mmio_base;
-     __u32          offset;
-     __u32          pitch;
+     volatile u8   *mmio    = rdrv->mmio_base;
+     u32            offset;
+     u32            pitch;
     
      if (RADEON_IS_SET( DESTINATION ))
           return;
@@ -235,9 +235,9 @@ void r200_set_source( RadeonDriverData *rdrv,
 {
      CoreSurface   *surface  = state->source;
      SurfaceBuffer *buffer   = surface->front_buffer;
-     volatile __u8 *mmio     = rdrv->mmio_base;
-     __u32          txformat = R200_TXFORMAT_NON_POWER2;
-     __u32          txfilter = R200_MAG_FILTER_LINEAR  |
+     volatile u8   *mmio     = rdrv->mmio_base;
+     u32            txformat = R200_TXFORMAT_NON_POWER2;
+     u32            txfilter = R200_MAG_FILTER_LINEAR  |
                                R200_MIN_FILTER_LINEAR  |
                                R200_CLAMP_S_CLAMP_LAST |
                                R200_CLAMP_T_CLAMP_LAST;
@@ -383,7 +383,7 @@ void r200_set_clip( RadeonDriverData *rdrv,
                     CardState        *state )
 {
      DFBRegion     *clip = &state->clip;
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      if (RADEON_IS_SET( CLIP ))
           return;
@@ -429,8 +429,8 @@ void r200_set_drawing_color( RadeonDriverData *rdrv,
 {
      DFBColor color   = state->color;
      int      index   = state->color_index;
-     __u32    color2d;
-     __u32    color3d;
+     u32      color2d;
+     u32      color3d;
      int      y, u, v;
 
      if (RADEON_IS_SET( COLOR ) && RADEON_IS_SET( DRAWING_FLAGS ))
@@ -525,7 +525,7 @@ void r200_set_blitting_color( RadeonDriverData *rdrv,
                               CardState        *state )
 {
      DFBColor color   = state->color;
-     __u32    color3d;
+     u32      color3d;
      int      y, u, v;
      
      if (RADEON_IS_SET( COLOR ) && RADEON_IS_SET( BLITTING_FLAGS ))
@@ -574,7 +574,7 @@ void r200_set_src_colorkey( RadeonDriverData *rdrv,
                             RadeonDeviceData *rdev,
                             CardState        *state )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      if (RADEON_IS_SET( SRC_COLORKEY ))
           return;
@@ -591,9 +591,9 @@ r200_set_blend_function( RadeonDriverData *rdrv,
                          RadeonDeviceData *rdev,
                          CardState        *state )
 {
-     volatile __u8 *mmio   = rdrv->mmio_base;
-     __u32          sblend;
-     __u32          dblend;
+     volatile u8   *mmio   = rdrv->mmio_base;
+     u32            sblend;
+     u32            dblend;
      
      if (RADEON_IS_SET( SRC_BLEND ) && RADEON_IS_SET( DST_BLEND ))
           return;
@@ -631,14 +631,14 @@ void r200_set_drawingflags( RadeonDriverData *rdrv,
                             RadeonDeviceData *rdev,
                             CardState        *state )
 {
-     volatile __u8 *mmio        = rdrv->mmio_base;
-     __u32          master_cntl = rdev->gui_master_cntl       |
+     volatile u8   *mmio        = rdrv->mmio_base;
+     u32            master_cntl = rdev->gui_master_cntl       |
                                   GMC_SRC_DATATYPE_MONO_FG_LA | 
                                   GMC_BRUSH_SOLID_COLOR       |
                                   GMC_CLR_CMP_CNTL_DIS;
-     __u32          rb3d_cntl   = rdev->rb3d_cntl & ~DITHER_ENABLE;
-     __u32          pp_cntl     = TEX_BLEND_1_ENABLE;
-     __u32          cblend      = R200_TXC_ARG_C_TFACTOR_COLOR;
+     u32            rb3d_cntl   = rdev->rb3d_cntl & ~DITHER_ENABLE;
+     u32            pp_cntl     = TEX_BLEND_1_ENABLE;
+     u32            cblend      = R200_TXC_ARG_C_TFACTOR_COLOR;
      
      if (RADEON_IS_SET( DRAWING_FLAGS ))
           return;
@@ -694,21 +694,21 @@ void r200_set_blittingflags( RadeonDriverData *rdrv,
                              RadeonDeviceData *rdev,
                              CardState        *state )
 {
-     volatile __u8 *mmio        = rdrv->mmio_base;
-     __u32          master_cntl = rdev->gui_master_cntl |
+     volatile u8   *mmio        = rdrv->mmio_base;
+     u32            master_cntl = rdev->gui_master_cntl |
                                   GMC_BRUSH_NONE        |
                                   GMC_SRC_DATATYPE_COLOR;
-     __u32          cmp_cntl    = 0;
-     __u32          rb3d_cntl   = rdev->rb3d_cntl;
-     __u32          se_cntl     = BFACE_SOLID        |
+     u32            cmp_cntl    = 0;
+     u32            rb3d_cntl   = rdev->rb3d_cntl;
+     u32            se_cntl     = BFACE_SOLID        |
                                   FFACE_SOLID        |
                                   VTX_PIX_CENTER_OGL |
                                   ROUND_MODE_ROUND;
-     __u32          pp_cntl     = TEX_0_ENABLE;
-     __u32          cblend      = R200_TXC_ARG_C_R0_COLOR;
-     __u32          ablend      = R200_TXA_ARG_C_R0_ALPHA;
-     __u32          vtx_fmt     = R200_VTX_XY;
-     __u32          vte_cntl;
+     u32            pp_cntl     = TEX_0_ENABLE;
+     u32            cblend      = R200_TXC_ARG_C_R0_COLOR;
+     u32            ablend      = R200_TXA_ARG_C_R0_ALPHA;
+     u32            vtx_fmt     = R200_VTX_XY;
+     u32            vte_cntl;
      
      if (RADEON_IS_SET( BLITTING_FLAGS ))
           return;

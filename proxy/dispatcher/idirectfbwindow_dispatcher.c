@@ -203,9 +203,9 @@ IDirectFBWindow_Dispatcher_GetOptions( IDirectFBWindow  *thiz,
 
 static DFBResult
 IDirectFBWindow_Dispatcher_SetColorKey( IDirectFBWindow *thiz,
-                                        __u8             r,
-                                        __u8             g,
-                                        __u8             b )
+                                        u8               r,
+                                        u8               g,
+                                        u8               b )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -241,7 +241,7 @@ IDirectFBWindow_Dispatcher_SetOpaqueRegion( IDirectFBWindow *thiz,
 
 static DFBResult
 IDirectFBWindow_Dispatcher_SetOpacity( IDirectFBWindow *thiz,
-                                       __u8             opacity )
+                                       u8               opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -252,7 +252,7 @@ IDirectFBWindow_Dispatcher_SetOpacity( IDirectFBWindow *thiz,
 
 static DFBResult
 IDirectFBWindow_Dispatcher_GetOpacity( IDirectFBWindow *thiz,
-                                       __u8            *opacity )
+                                       u8              *opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -622,7 +622,7 @@ Dispatch_SetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
      VoodooMessageParser parser;
-     __u8                opacity;
+     u8                  opacity;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -640,7 +640,7 @@ Dispatch_GetOpacity( IDirectFBWindow *thiz, IDirectFBWindow *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
      DirectResult     ret;
-     __u8             opacity;
+     u8               opacity;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 

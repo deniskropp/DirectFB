@@ -32,7 +32,7 @@
 
 
 typedef bool (*DirectHashIteratorFunc)( DirectHash *hash,
-                                        __u32       key,
+                                        u32         key,
                                         void       *value,
                                         void       *ctx );
 
@@ -43,14 +43,14 @@ DirectResult  direct_hash_create ( int          size,
 void          direct_hash_destroy( DirectHash  *hash );
 
 DirectResult  direct_hash_insert ( DirectHash  *hash,
-                                   __u32        key,
+                                   u32          key,
                                    void        *value );
 
 void          direct_hash_remove ( DirectHash  *hash,
-                                   __u32        key );
+                                   u32          key );
 
 void         *direct_hash_lookup ( DirectHash  *hash,
-                                   __u32        key );
+                                   u32          key );
 
 void          direct_hash_iterate( DirectHash             *hash,
                                    DirectHashIteratorFunc  func,

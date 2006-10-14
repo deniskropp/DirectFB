@@ -75,23 +75,23 @@ typedef struct {
 
      struct {
           /* secondary stream registers */
-          __u32 SSTREAM_CTRL;
-          __u32 SSTREAM_H_SCALE;
-          __u32 BLEND_CTRL;
-          __u32 SSTREAM_MULTIBUF;
-          __u32 SSTREAM_FB_ADDR0;
-          __u32 SSTREAM_FB_ADDR1;
-          __u32 SSTREAM_STRIDE;
-          __u32 SSTREAM_V_SCALE;
-          __u32 SSTREAM_V_INIT_VALUE;
-          __u32 SSTREAM_SRC_LINE_COUNT;
-          __u32 SSTREAM_WIN_START;
-          __u32 SSTREAM_WIN_SIZE;
-          __u32 SSTREAM_FB_CB_ADDR;
-          __u32 SSTREAM_FB_CR_ADDR;
-          __u32 SSTREAM_CBCR_STRIDE;
-          __u32 SSTREAM_FB_SIZE;
-          __u32 SSTREAM_FB_ADDR2;
+          u32 SSTREAM_CTRL;
+          u32 SSTREAM_H_SCALE;
+          u32 BLEND_CTRL;
+          u32 SSTREAM_MULTIBUF;
+          u32 SSTREAM_FB_ADDR0;
+          u32 SSTREAM_FB_ADDR1;
+          u32 SSTREAM_STRIDE;
+          u32 SSTREAM_V_SCALE;
+          u32 SSTREAM_V_INIT_VALUE;
+          u32 SSTREAM_SRC_LINE_COUNT;
+          u32 SSTREAM_WIN_START;
+          u32 SSTREAM_WIN_SIZE;
+          u32 SSTREAM_FB_CB_ADDR;
+          u32 SSTREAM_FB_CR_ADDR;
+          u32 SSTREAM_CBCR_STRIDE;
+          u32 SSTREAM_FB_SIZE;
+          u32 SSTREAM_FB_ADDR2;
      } regs;
 } SavageSecondaryLayerData;
 
@@ -103,13 +103,13 @@ typedef struct {
 
      struct {
           /* primary stream registers */
-          __u32 PSTREAM_CTRL;
-          __u32 PSTREAM_FB_ADDR0;
-          __u32 PSTREAM_FB_ADDR1;
-          __u32 PSTREAM_STRIDE;
-          __u32 PSTREAM_WIN_START;
-          __u32 PSTREAM_WIN_SIZE;
-          __u32 PSTREAM_FB_SIZE;
+          u32 PSTREAM_CTRL;
+          u32 PSTREAM_FB_ADDR0;
+          u32 PSTREAM_FB_ADDR1;
+          u32 PSTREAM_STRIDE;
+          u32 PSTREAM_WIN_START;
+          u32 PSTREAM_WIN_SIZE;
+          u32 PSTREAM_FB_SIZE;
      } regs;
 } SavagePrimaryLayerData;
 
@@ -148,7 +148,7 @@ void waitretrace (void)
 static void
 streamOnOff(SavageDriverData * sdrv, int on)
 {
-     volatile __u8 *mmio = sdrv->mmio_base;
+     volatile u8 *mmio = sdrv->mmio_base;
 
      waitretrace();
 
@@ -233,7 +233,7 @@ static DFBResult savageSecondaryEnable( CoreLayer *layer,
                                         void      *layer_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
-     volatile __u8 *mmio = sdrv->mmio_base;
+     volatile u8 *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondaryEnable\n");
 
@@ -249,7 +249,7 @@ static DFBResult savageSecondaryDisable( CoreLayer *layer,
                                          void      *layer_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
-     volatile __u8 *mmio = sdrv->mmio_base;
+     volatile u8 *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondaryDisable\n");
 
@@ -345,11 +345,11 @@ static DFBResult
 savageSecondarySetOpacity( CoreLayer *layer,
                            void      *driver_data,
                            void      *layer_data,
-                           __u8       opacity )
+                           u8         opacity )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
-     volatile __u8 *mmio = sdrv->mmio_base;
+     volatile u8 *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondarySetOpacity\n");
      switch (opacity) {
@@ -396,7 +396,7 @@ savageSecondarySetScreenLocation( CoreLayer *layer,
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondarySetScreenLocation x:%f y:%f w:%f h:%f\n",
             x, y, width, height);
@@ -434,18 +434,18 @@ static DFBResult
 savageSecondarySetSrcColorKey( CoreLayer *layer,
                                void      *driver_data,
                                void      *layer_data,
-                               __u8       r,
-                               __u8       g,
-                               __u8       b )
+                               u8         r,
+                               u8         g,
+                               u8         b )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondarySetSrcColorKey\n");
 
      if (slay->config.options == DLOP_SRC_COLORKEY) {
-          __u32 reg;
+          u32 reg;
 
           switch (slay->config.pixelformat) {
                case DSPF_ARGB1555:
@@ -476,18 +476,18 @@ static DFBResult
 savageSecondarySetDstColorKey( CoreLayer *layer,
                                void      *driver_data,
                                void      *layer_data,
-                               __u8       r,
-                               __u8       g,
-                               __u8       b )
+                               u8         r,
+                               u8         g,
+                               u8         b )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondarySetDstColorKey\n");
 
      if (slay->config.options == DLOP_DST_COLORKEY) {
-          __u32 reg;
+          u32 reg;
 
           switch (dfb_primary_layer_pixelformat()) {
                case DSPF_RGB16:
@@ -545,14 +545,14 @@ savageSecondarySetColorAdjustment( CoreLayer          *layer,
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
      SavageSecondaryLayerData *slay = (SavageSecondaryLayerData*) layer_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      SVGDBG("savageSecondaryColorAdjustment b:%i c:%i h:%i s:%i\n",
             adj->brightness, adj->contrast, adj->hue, adj->saturation);
 
      if ((slay->regs.SSTREAM_FB_SIZE & 0x00400000) == 0) {
           /* secondary is yuv format */
-          __u32 reg;
+          u32 reg;
           long sat = adj->saturation * 16 / 65536;
           double hue = (adj->hue - 0x8000) * 3.141592654 / 32768.0;
           unsigned char hs1 = ((char)(sat * cos(hue))) & 0x1f;
@@ -596,7 +596,7 @@ DisplayLayerFuncs savageSecondaryFuncs = {
 static void
 secondary_set_regs(SavageDriverData *sdrv, SavageSecondaryLayerData *slay)
 {
-     volatile __u8 *mmio = sdrv->mmio_base;
+     volatile u8 *mmio = sdrv->mmio_base;
 
      SVGDBG("secondary_set_regs\n");
 
@@ -900,7 +900,7 @@ DisplayLayerFuncs savagePrimaryFuncs = {
 static void
 primary_set_regs(SavageDriverData *sdrv, SavagePrimaryLayerData *play)
 {
-     volatile __u8 *mmio = sdrv->mmio_base;
+     volatile u8 *mmio = sdrv->mmio_base;
 
      SVGDBG("primary_set_regs\n");
 

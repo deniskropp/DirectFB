@@ -415,7 +415,7 @@ IDirectFBSurface_Requestor_SetField( IDirectFBSurface    *thiz,
 
 static DFBResult
 IDirectFBSurface_Requestor_Clear( IDirectFBSurface *thiz,
-                                  __u8 r, __u8 g, __u8 b, __u8 a )
+                                  u8 r, u8 g, u8 b, u8 a )
 {
      DFBColor color = { a, r, g, b };
 
@@ -440,7 +440,7 @@ IDirectFBSurface_Requestor_SetClip( IDirectFBSurface *thiz, const DFBRegion *cli
 
 static DFBResult
 IDirectFBSurface_Requestor_SetColor( IDirectFBSurface *thiz,
-                                     __u8 r, __u8 g, __u8 b, __u8 a )
+                                     u8 r, u8 g, u8 b, u8 a )
 {
      DFBColor color = { a, r, g, b };
 
@@ -498,9 +498,9 @@ IDirectFBSurface_Requestor_SetPorterDuff( IDirectFBSurface         *thiz,
 
 static DFBResult
 IDirectFBSurface_Requestor_SetSrcColorKey( IDirectFBSurface *thiz,
-                                           __u8              r,
-                                           __u8              g,
-                                           __u8              b )
+                                           u8                r,
+                                           u8                g,
+                                           u8                b )
 {
      DFBColor color = { 0, r, g, b };
 
@@ -526,9 +526,9 @@ IDirectFBSurface_Requestor_SetSrcColorKeyIndex( IDirectFBSurface *thiz,
 
 static DFBResult
 IDirectFBSurface_Requestor_SetDstColorKey( IDirectFBSurface *thiz,
-                                           __u8              r,
-                                           __u8              g,
-                                           __u8              b )
+                                           u8                r,
+                                           u8                g,
+                                           u8                b )
 {
      DFBColor color = { 0, r, g, b };
 

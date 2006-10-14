@@ -171,7 +171,7 @@ ps2mouseEventThread( DirectThread *thread, void *driver_data )
                     if (data->mouseId == PS2_ID_IMPS2) {
                          /* Just strip off the extra buttons if present
                             and sign extend the 4 bit value */
-                         dz = (__s8)((packet[3] & 0x80) ?
+                         dz = (s8)((packet[3] & 0x80) ?
                                       packet[3] | 0xf0 : packet[3] & 0x0F);
                          if (dz) {
                               DFBInputEvent evt;

@@ -31,9 +31,9 @@
 #include <direct/types.h>
 
 
-typedef __u32 VoodooInstanceID;
-typedef __u32 VoodooMethodID;
-typedef __u64 VoodooMessageSerial;
+typedef u32 VoodooInstanceID;
+typedef u32 VoodooMethodID;
+typedef u64 VoodooMessageSerial;
 
 #define VOODOO_INSTANCE_NONE  ((VoodooInstanceID) 0)
 

@@ -61,7 +61,7 @@ D_DEBUG_DOMAIN( Core_FontSurfaces, "Core/Font/Surf", "DirectFB Core Font Surface
 /**********************************************************************************************************************/
 
 static bool free_glyphs( DirectHash *hash,
-                         __u32       key,
+                         u32         key,
                          void       *value,
                          void       *ctx );
 
@@ -527,7 +527,7 @@ dfb_font_decode_text( CoreFont          *font,
                       int               *ret_num )
 {
      int pos = 0, num = 0;
-     const __u8 *bytes = text;
+     const u8 *bytes = text;
 
      D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
 
@@ -590,7 +590,7 @@ dfb_font_decode_text( CoreFont          *font,
 DFBResult
 dfb_font_decode_character( CoreFont          *font,
                            DFBTextEncodingID  encoding,
-                           __u32              character,
+                           u32                character,
                            unsigned int      *ret_index )
 {
      D_DEBUG_AT( Core_Font, "%s()\n", __FUNCTION__ );
@@ -625,7 +625,7 @@ dfb_font_decode_character( CoreFont          *font,
 
 static bool
 free_glyphs( DirectHash *hash,
-             __u32       key,
+             u32         key,
              void       *value,
              void       *ctx )
 {

@@ -44,26 +44,26 @@ typedef struct {
 
      /* overlay registers */
      struct {
-          __u32 H_INC;
-          __u32 STEP_BY;
-          __u32 Y_X_START;
-          __u32 Y_X_END;
-          __u32 V_INC;
-          __u32 P1_BLANK_LINES_AT_TOP;
-          __u32 P23_BLANK_LINES_AT_TOP;
-          __u32 VID_BUF_PITCH0_VALUE;
-          __u32 VID_BUF_PITCH1_VALUE;
-          __u32 P1_X_START_END;
-          __u32 P2_X_START_END;
-          __u32 P3_X_START_END;
-          __u32 VID_BUF0_BASE_ADRS;
-          __u32 VID_BUF1_BASE_ADRS;
-          __u32 VID_BUF2_BASE_ADRS;
-          __u32 P1_V_ACCUM_INIT;
-          __u32 P23_V_ACCUM_INIT;
-          __u32 P1_H_ACCUM_INIT;
-          __u32 P23_H_ACCUM_INIT;
-          __u32 SCALE_CNTL;
+          u32 H_INC;
+          u32 STEP_BY;
+          u32 Y_X_START;
+          u32 Y_X_END;
+          u32 V_INC;
+          u32 P1_BLANK_LINES_AT_TOP;
+          u32 P23_BLANK_LINES_AT_TOP;
+          u32 VID_BUF_PITCH0_VALUE;
+          u32 VID_BUF_PITCH1_VALUE;
+          u32 P1_X_START_END;
+          u32 P2_X_START_END;
+          u32 P3_X_START_END;
+          u32 VID_BUF0_BASE_ADRS;
+          u32 VID_BUF1_BASE_ADRS;
+          u32 VID_BUF2_BASE_ADRS;
+          u32 P1_V_ACCUM_INIT;
+          u32 P23_V_ACCUM_INIT;
+          u32 P1_H_ACCUM_INIT;
+          u32 P23_H_ACCUM_INIT;
+          u32 SCALE_CNTL;
      } regs;
 } ATIOverlayLayerData;
 
@@ -90,7 +90,7 @@ ov0InitLayer( CoreLayer                  *layer,
               DFBColorAdjustment         *adjustment )
 {
      ATI128DriverData *adrv = (ATI128DriverData*) driver_data;
-     volatile __u8    *mmio = adrv->mmio_base;
+     volatile u8      *mmio = adrv->mmio_base;
 
      /* set capabilities and type */
      description->caps = DLCAPS_SCREEN_LOCATION | DLCAPS_SURFACE;
@@ -260,7 +260,7 @@ DisplayLayerFuncs atiOverlayFuncs = {
 
 static void ov0_set_regs( ATI128DriverData *adrv, ATIOverlayLayerData *aov0 )
 {
-     volatile __u8 *mmio = adrv->mmio_base;
+     volatile u8 *mmio = adrv->mmio_base;
 
      ati128_out32( mmio, OV0_REG_LOAD_CNTL, 1 );
      while (!(ati128_in32( mmio, OV0_REG_LOAD_CNTL ) & (1 << 3)));
@@ -340,7 +340,7 @@ static void ov0_calc_regs( ATI128DriverData      *adrv,
      DFBRegion      dstBox;
      int            dst_w;
      int            dst_h;
-     __u32          offset_u = 0, offset_v = 0;
+     u32            offset_u = 0, offset_v = 0;
 
      SurfaceBuffer *front_buffer = surface->front_buffer;
 

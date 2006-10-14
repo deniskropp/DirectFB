@@ -82,13 +82,13 @@ typedef struct {
 
      Mach64StateBits valid;
 
-     __u32 hw_debug;
-     __u32 hw_debug_orig;
+     u32 hw_debug;
+     u32 hw_debug_orig;
 
-     __u32 pix_width;
+     u32 pix_width;
 
-     __u32 draw_blend;
-     __u32 blit_blend;
+     u32 draw_blend;
+     u32 blit_blend;
 
      int tex_offset;
      int tex_pitch;
@@ -110,7 +110,7 @@ typedef struct {
 
 typedef struct {
      int accelerator;
-     volatile __u8 *mmio_base;
+     volatile u8 *mmio_base;
      Mach64DeviceData *device_data;
 } Mach64DriverData;
 

@@ -45,10 +45,6 @@
 #include <core/gfxcard.h>
 #include <core/layers.h>
 
-typedef unsigned int u32;
-typedef unsigned short u16;
-typedef unsigned char u8;
-
 
 #define LP_RING     0x2030
 #define HP_RING     0x2040
@@ -683,36 +679,36 @@ typedef unsigned char u8;
 #endif
 
 struct i810_ovl_regs {
-	__u32 obuf_0y;
-	__u32 obuf_1y;
-	__u32 obuf_0u;
-	__u32 obuf_0v;
-	__u32 obuf_1u;
-	__u32 obuf_1v;
-	__u32 ov0stride;
-	__u32 yrgb_vph;
-	__u32 uv_vph;
-	__u32 horz_ph;
-	__u32 init_ph;
-	__u32 dwinpos;
-	__u32 dwinsz;
-	__u32 swid;
-	__u32 swidqw;
-	__u32 sheight;
-	__u32 yrgbscale;
-	__u32 uvscale;
-	__u32 ov0clrc0;
-	__u32 ov0clrc1;
-	__u32 dclrkv;
-	__u32 dclrkm;
-	__u32 sclrkvh;
-	__u32 sclrkvl;
-	__u32 sclrkm;
-	__u32 ov0conf;
-	__u32 ov0cmd;
-	__u32 reserved;
-	__u32 awinpos;
-	__u32 awinsz;
+	u32 obuf_0y;
+	u32 obuf_1y;
+	u32 obuf_0u;
+	u32 obuf_0v;
+	u32 obuf_1u;
+	u32 obuf_1v;
+	u32 ov0stride;
+	u32 yrgb_vph;
+	u32 uv_vph;
+	u32 horz_ph;
+	u32 init_ph;
+	u32 dwinpos;
+	u32 dwinsz;
+	u32 swid;
+	u32 swidqw;
+	u32 sheight;
+	u32 yrgbscale;
+	u32 uvscale;
+	u32 ov0clrc0;
+	u32 ov0clrc1;
+	u32 dclrkv;
+	u32 dclrkm;
+	u32 sclrkvh;
+	u32 sclrkvl;
+	u32 sclrkm;
+	u32 ov0conf;
+	u32 ov0cmd;
+	u32 reserved;
+	u32 awinpos;
+	u32 awinsz;
 };
 
 typedef struct {
@@ -751,11 +747,11 @@ typedef struct {
     agp_bind              lring_bind;
     agp_bind              ovl_bind;
 
-    __u32                 pattern;
-    __u32                 lring1;
-    __u32                 lring2;
-    __u32                 lring3;
-    __u32                 lring4;
+    u32                   pattern;
+    u32                   lring1;
+    u32                   lring2;
+    u32                   lring3;
+    u32                   lring4;
 
     u32 i810fb_version;
     u32 cur_tail;
@@ -789,11 +785,11 @@ typedef struct {
     u32 flags;
 	int agpgart;
 	agp_info info;
-	volatile __u8 *aper_base;
-	volatile __u8 *lring_base;
-	volatile __u8 *ovl_base;
-	volatile __u8 *mmio_base;
-	volatile __u8 *pattern_base;
+	volatile u8 *aper_base;
+	volatile u8 *lring_base;
+	volatile u8 *ovl_base;
+	volatile u8 *mmio_base;
+	volatile u8 *pattern_base;
 } I810DriverData;
 
 extern DisplayLayerFuncs i810OverlayFuncs;

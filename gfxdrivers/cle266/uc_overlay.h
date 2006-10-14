@@ -23,7 +23,7 @@ struct uc_ovl_vinfo {
     DFBDisplayLayerConfig cfg;      // Layer configuration
     int ox, oy;                     // Top-left visible corner (the offset)
                                     // in the source surface
-    __u8 opacity;                   // Layer opacity
+    u8 opacity;                     // Layer opacity
     int level;                      // Position in the DirectFB layer stack
                                     // < 0 = underlay mode, > 0 = overlay mode
     DFBColorAdjustment adj;         // Color adjustment (brightness etc)
@@ -33,11 +33,11 @@ typedef struct _UcOverlayData {
 
     // TODO: initialize the variables!!!
 
-    __u8                hwrev;       // CLE266 revision
+    u8                  hwrev;       // CLE266 revision
     int                 scrwidth;    // Current screen width
 
     bool                extfifo_on;  // True when we're using the extended fifo.
-    __u8                mclk_save[3];
+    u8                  mclk_save[3];
 
     struct uc_ovl_vinfo v1;          // Video overlay V1
 
@@ -51,27 +51,27 @@ typedef struct _UcOverlayData {
 
 // Video engine - mapping functions (uc_ovl_hwmap.c)
 
-bool uc_ovl_map_vzoom(int sh, int dh, __u32* zoom, __u32* mini);
-bool uc_ovl_map_hzoom(int sw, int dw,  __u32* zoom, __u32* mini,
-                      __u32* falign, __u32* dcount);
-__u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw);
-__u32 uc_ovl_map_format(DFBSurfacePixelFormat format);
+bool uc_ovl_map_vzoom(int sh, int dh, u32* zoom, u32* mini);
+bool uc_ovl_map_hzoom(int sw, int dw,  u32* zoom, u32* mini,
+                      u32* falign, u32* dcount);
+u32 uc_ovl_map_qwpitch(int falign, DFBSurfacePixelFormat format, int sw);
+u32 uc_ovl_map_format(DFBSurfacePixelFormat format);
 void uc_ovl_map_window(int scrw, int scrh, DFBRectangle* win, int sw, int sh,
-                       __u32* win_start, __u32* win_end, int* ox, int* oy);
-void uc_ovl_map_buffer(DFBSurfacePixelFormat format, __u32 buf,
+                       u32* win_start, u32* win_end, int* ox, int* oy);
+void uc_ovl_map_buffer(DFBSurfacePixelFormat format, u32 buf,
                        int x, int y, int w, int h, int pitch, int field,
-                       __u32* y_start, __u32* u_start, __u32* v_start);
-__u32 uc_ovl_map_alpha(int opacity);
+                       u32* y_start, u32* u_start, u32* v_start);
+u32 uc_ovl_map_alpha(int opacity);
 void uc_ovl_map_v1_control(DFBSurfacePixelFormat format, int sw,
                            int hwrev, bool extfifo_on,
-                           __u32* control, __u32* fifo);
-__u32 uc_ovl_map_fifo(__u8 depth, __u8 pre_thr, __u8 thr);
-void uc_ovl_map_adjustment(DFBColorAdjustment* adj, __u32* a1, __u32* a2);
+                           u32* control, u32* fifo);
+u32 uc_ovl_map_fifo(u8 depth, u8 pre_thr, u8 thr);
+void uc_ovl_map_adjustment(DFBColorAdjustment* adj, u32* a1, u32* a2);
 
 // Video engine - setting functions (uc_ovl_hwset.c)
 
 void uc_ovl_setup_fifo(UcOverlayData* ucovl, int scrwidth);
-void uc_ovl_vcmd_wait(volatile __u8* vio);
+void uc_ovl_vcmd_wait(volatile u8* vio);
 DFBResult uc_ovl_update(UcDriverData* ucdrv,
                         UcOverlayData* ucovl, int action,
                         CoreSurface* surface);

@@ -80,7 +80,7 @@ dfb_agp_info( agp_info *info )
 }
 
 static DFBResult
-dfb_agp_setup( __u32 mode )
+dfb_agp_setup( u32 mode )
 {
      agp_setup setup;
 
@@ -202,10 +202,10 @@ dfb_agp_unbind( int key )
 
 /*****************************************************************************/
 
-static inline __u16
+static inline u16
 pci_read_word( int fd, int pos )
 {
-    __u8 b[2];
+    u8 b[2];
     
     if (pread( fd, b, 2, pos ) < 2)
          return 0;
@@ -213,10 +213,10 @@ pci_read_word( int fd, int pos )
     return b[0] | (b[1] << 8);
 }
 
-static inline __u8
+static inline u8
 pci_read_byte( int fd, int pos )
 {
-     __u8 b;
+     u8 b;
     
      if (pread( fd, &b, 1, pos ) < 1)
           return 0;

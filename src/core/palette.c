@@ -42,8 +42,8 @@
 
 #include <misc/util.h>
 
-static const __u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
-static const __u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
+static const u8 lookup3to8[] = { 0x00, 0x24, 0x49, 0x6d, 0x92, 0xb6, 0xdb, 0xff };
+static const u8 lookup2to8[] = { 0x00, 0x55, 0xaa, 0xff };
 
 static const ReactionFunc dfb_palette_globals[] = {
 /* 0 */   _dfb_surface_palette_listener,
@@ -167,10 +167,10 @@ dfb_palette_generate_rgb121_map( CorePalette *palette )
 
 unsigned int
 dfb_palette_search( CorePalette *palette,
-                    __u8         r,
-                    __u8         g,
-                    __u8         b,
-                    __u8         a )
+                    u8           r,
+                    u8           g,
+                    u8           b,
+                    u8           a )
 {
      unsigned int index;
 
@@ -235,8 +235,8 @@ dfb_palette_update( CorePalette *palette, int first, int last )
 bool
 dfb_palette_equal( CorePalette *palette1, CorePalette *palette2 )
 {
-     __u32 *entries1;
-     __u32 *entries2;
+     u32 *entries1;
+     u32 *entries2;
      int    i;
      
      D_ASSERT( palette1 != NULL );
@@ -248,8 +248,8 @@ dfb_palette_equal( CorePalette *palette1, CorePalette *palette2 )
      if (palette1->num_entries != palette2->num_entries)
           return false;
 
-     entries1 = (__u32*)palette1->entries;
-     entries2 = (__u32*)palette2->entries;
+     entries1 = (u32*)palette1->entries;
+     entries2 = (u32*)palette2->entries;
 
      for (i = 0; i < palette1->num_entries; i++) {
           if (entries1[i] != entries2[i])

@@ -101,7 +101,7 @@ typedef struct {
      png_uint_32          color_key;
      bool                 color_keyed;
 
-     __u32               *image;
+     u32                 *image;
 
      DIRenderCallback     render_callback;
      void                *render_callback_context;
@@ -393,15 +393,15 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
 
 static int SortColors (const void *a, const void *b)
 {
-     return (*((const __u8 *) a) - *((const __u8 *) b));
+     return (*((const u8 *) a) - *((const u8 *) b));
 }
 
 /*  looks for a color that is not in the colormap and ideally not
     even close to the colors used in the colormap  */
-static __u32 FindColorKey( int n_colors, __u8 cmap[3][MAXCOLORMAPSIZE] )
+static u32 FindColorKey( int n_colors, u8 cmap[3][MAXCOLORMAPSIZE] )
 {
-     __u32 color = 0xFF000000;
-     __u8  csort[MAXCOLORMAPSIZE];
+     u32   color = 0xFF000000;
+     u8    csort[MAXCOLORMAPSIZE];
      int   i, j, index, d;
 
      if (n_colors < 1)
@@ -473,12 +473,12 @@ png_info_callback   (png_structp png_read_ptr,
           /* generate color key based on palette... */
           if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
                int        i;
-               __u32      key;
+               u32        key;
                png_colorp palette    = data->info_ptr->palette;
                png_bytep  trans      = data->info_ptr->trans;
                int        num_colors = MIN( MAXCOLORMAPSIZE,
                                             data->info_ptr->num_palette );
-               __u8       cmap[3][num_colors];
+               u8         cmap[3][num_colors];
 
                for (i=0; i<num_colors; i++) {
                     cmap[0][i] = palette[i].red;

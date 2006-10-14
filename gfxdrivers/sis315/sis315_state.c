@@ -1,5 +1,5 @@
 /*
- * $Id: sis315_state.c,v 1.4 2006-10-10 00:15:22 syrjala Exp $
+ * $Id: sis315_state.c,v 1.5 2006-10-14 13:05:37 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -35,7 +35,7 @@
 #include "sis315_regs.h"
 #include "sis315_state.h"
 
-static __u16 dspfToSrcColor(DFBSurfacePixelFormat pf)
+static u16 dspfToSrcColor(DFBSurfacePixelFormat pf)
 {
 	switch (DFB_BITS_PER_PIXEL(pf)) {
 	case 16:
@@ -47,7 +47,7 @@ static __u16 dspfToSrcColor(DFBSurfacePixelFormat pf)
 	}
 }
 
-static __u32 dspfToCmdBpp(DFBSurfacePixelFormat pf)
+static u32 dspfToCmdBpp(DFBSurfacePixelFormat pf)
 {
 	switch (DFB_BITS_PER_PIXEL(pf)) {
 	case 16:
@@ -61,7 +61,7 @@ static __u32 dspfToCmdBpp(DFBSurfacePixelFormat pf)
 
 void sis_validate_color(SiSDriverData *drv, SiSDeviceData *dev, CardState *state)
 {
-	__u32 color;
+	u32 color;
 
 	if (dev->v_color)
 		return;

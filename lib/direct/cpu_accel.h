@@ -79,7 +79,7 @@
 #define MM_SSE                  MM_ACCEL_X86_SSE
 #define MM_SSE2                 MM_ACCEL_X86_SSE2
 
-__u32 direct_mm_accel (void);
+u32 direct_mm_accel (void);
 
 #endif
 

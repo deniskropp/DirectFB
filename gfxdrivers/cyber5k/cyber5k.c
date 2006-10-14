@@ -64,7 +64,7 @@ DFB_GRAPHICS_DRIVER( cyber5k )
 
 
 /* HACK */
-volatile __u8 *cyber_mmio = NULL;
+volatile u8 *cyber_mmio = NULL;
 
 
 /* FIXME: support for destination color keying */
@@ -208,7 +208,7 @@ static inline void
 cyber5k_validate_color( CyberDriverData *cdrv,
                         CyberDeviceData *cdev, CardState *state )
 {
-     __u32 fill_color = 0;
+     u32 fill_color = 0;
 
      if (cdev->v_color)
           return;
@@ -327,7 +327,7 @@ static bool cyber5kFillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
      cyber_waitidle( cdrv, cdev );
 
@@ -345,7 +345,7 @@ static bool cyber5kFillRectangle24( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
      cyber_waitidle( cdrv, cdev );
 
@@ -364,10 +364,10 @@ static bool cyber5kDrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
-     __u32 dst = cdev->dst_pixeloffset +
-                 rect->y * cdev->dst_pixelpitch + rect->x;
+     u32 dst = cdev->dst_pixeloffset +
+               rect->y * cdev->dst_pixelpitch + rect->x;
 
      cyber_waitidle( cdrv, cdev );
      cyber_out32( mmio, DSTPTR, dst );
@@ -396,10 +396,10 @@ static bool cyber5kDrawRectangle24( void *drv, void *dev, DFBRectangle *rect )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
-     __u32 dst = cdev->dst_pixeloffset +
-                (rect->y * cdev->dst_pixelpitch + rect->x) * 3;
+     u32 dst = cdev->dst_pixeloffset +
+               (rect->y * cdev->dst_pixelpitch + rect->x) * 3;
 
      cyber_waitidle( cdrv, cdev );
      cyber_out8( mmio, DSTXROT, rect->x & 7 );
@@ -430,9 +430,9 @@ static bool cyber5kDrawLine( void *drv, void *dev, DFBRegion *line )
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
-     __u32 cmd = COP_LINE_DRAW | PAT_FIXFGD;
+     u32 cmd = COP_LINE_DRAW | PAT_FIXFGD;
 
      int dx;
      int dy;
@@ -474,9 +474,9 @@ static bool cyber5kBlit( void *drv, void *dev, DFBRectangle *rect, int dx, int d
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
-     __u32 cmd = cdev->blitting_cmd;
+     u32 cmd = cdev->blitting_cmd;
 
      cyber_waitidle( cdrv, cdev );
 
@@ -509,11 +509,11 @@ static bool cyber5kBlit24( void *drv, void *dev, DFBRectangle *rect, int dx, int
 {
      CyberDriverData *cdrv = (CyberDriverData*) drv;
      CyberDeviceData *cdev = (CyberDeviceData*) dev;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
-     __u32 cmd = cdev->blitting_cmd;
-     __u32 src = 0;
-     __u32 dst = 0;
+     u32 cmd = cdev->blitting_cmd;
+     u32 src = 0;
+     u32 dst = 0;
 
      cyber_waitidle( cdrv, cdev );
 
@@ -725,7 +725,7 @@ driver_init_driver( GraphicsDevice      *device,
      CyberDriverData *cdrv = (CyberDriverData*) driver_data;
 
      /* gain access to memory mapped registers */
-     cdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     cdrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!cdrv->mmio_base)
           return DFB_IO;
 
@@ -766,7 +766,7 @@ driver_init_device( GraphicsDevice     *device,
                     void               *device_data )
 {
      CyberDriverData *cdrv = (CyberDriverData*) driver_data;
-     volatile __u8   *mmio = cdrv->mmio_base;
+     volatile u8     *mmio = cdrv->mmio_base;
 
      /* fill device info */
      snprintf( device_info->name,

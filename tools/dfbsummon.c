@@ -179,7 +179,7 @@ chunk_callback( SurfaceBuffer *buffer,
                 int            tolerations,
                 void          *ctx )
 {
-     __u8         r = 0, g = 0, b = 0;
+     u8           r = 0, g = 0, b = 0;
      unsigned int screen_length, screen_offset;
 
      if (buffer) {

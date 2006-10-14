@@ -33,10 +33,10 @@
 #include <direct/types.h>
 
 
-#define DIRECT_UTF8_SKIP(c)     (((__u8)(c) < 0xc0) ? 1 : __direct_utf8_skip[(__u8)(c)&0x3f])
+#define DIRECT_UTF8_SKIP(c)     (((u8)(c) < 0xc0) ? 1 : __direct_utf8_skip[(u8)(c)&0x3f])
 
-#define DIRECT_UTF8_GET_CHAR(p) (*(const __u8*)(p) < 0xc0 ? \
-                                 *(const __u8*)(p) : __direct_utf8_get_char((const __u8*)(p)))
+#define DIRECT_UTF8_GET_CHAR(p) (*(const u8*)(p) < 0xc0 ? \
+                                 *(const u8*)(p) : __direct_utf8_get_char((const u8*)(p)))
 
 
 /*
@@ -49,7 +49,7 @@ static const char __direct_utf8_skip[64] = {
      3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 };
 
-static inline unichar __direct_utf8_get_char( const __u8 *p )
+static inline unichar __direct_utf8_get_char( const u8 *p )
 {
      int              len;
      register unichar result = p[0];

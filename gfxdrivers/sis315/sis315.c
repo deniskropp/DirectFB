@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.15 2006-10-10 00:15:22 syrjala Exp $
+ * $Id: sis315.c,v 1.16 2006-10-14 13:05:37 dok Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -167,9 +167,9 @@ static void sis_set_state(void *driver_data, void *device_data,
 
 static void check_sisfb_version(SiSDriverData *drv, const sisfb_info *i)
 {
-	__u32 sisfb_version = SISFB_VERSION(i->sisfb_version,
-					    i->sisfb_revision,
-					    i->sisfb_patchlevel);
+	u32 sisfb_version = SISFB_VERSION(i->sisfb_version,
+					  i->sisfb_revision,
+					  i->sisfb_patchlevel);
 
 	if (sisfb_version < SISFB_VERSION(1, 6, 23)) {
 		fprintf(stderr, "*** Warning: sisfb version < 1.6.23 detected, "
@@ -222,8 +222,8 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	FBDev *dfb_fbdev;
 	sisfb_info *fbinfo;
-	__u32 fbinfo_size;
-	__u32 zero = 0;
+	u32 fbinfo_size;
+	u32 zero = 0;
 
 	(void)device_data;
 

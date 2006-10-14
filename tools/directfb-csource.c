@@ -406,27 +406,27 @@ static DFBResult load_image (const char            *filename,
           switch (dest_format) {
                case DSPF_RGB16:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_rgb16 ((__u32 *) s, (__u16 *) d, width);
+                         dfb_argb_to_rgb16 ((u32 *) s, (u16 *) d, width);
                     break;
                case DSPF_ARGB1555:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_argb1555 ((__u32 *) s, (__u16 *) d, width);
+                         dfb_argb_to_argb1555 ((u32 *) s, (u16 *) d, width);
                     break;
                case DSPF_ARGB2554:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_argb2554 ((__u32 *) s, (__u16 *) d, width);
+                         dfb_argb_to_argb2554 ((u32 *) s, (u16 *) d, width);
                     break;
                case DSPF_ARGB4444:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_argb4444 ((__u32 *) s, (__u16 *) d, width);
+                         dfb_argb_to_argb4444 ((u32 *) s, (u16 *) d, width);
                     break;
                case DSPF_RGB332:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_rgb332 ((__u32 *) s, (__u8 *) d, width);
+                         dfb_argb_to_rgb332 ((u32 *) s, (u8 *) d, width);
                     break;
                case DSPF_A8:
                     for (s = data, d = dest; h; h--, s += pitch, d += d_pitch)
-                         dfb_argb_to_a8 ((__u32 *) s, (__u8 *) d, width);
+                         dfb_argb_to_a8 ((u32 *) s, (u8 *) d, width);
                     break;
                default:
                     fprintf (stderr,

@@ -41,15 +41,15 @@ typedef struct {
 
      /* overlay registers */
      struct {
-          __u32 OFFSET;
-          __u16 PITCH;
-          __u16 X1;
-          __u16 X2;
-          __u16 Y1;
-          __u16 Y2;
-          __u16 HSCALE;
-          __u16 VSCALE;
-          __u8  CONTROL;
+          u32 OFFSET;
+          u16 PITCH;
+          u16 X1;
+          u16 X2;
+          u16 Y1;
+          u16 Y2;
+          u16 HSCALE;
+          u16 VSCALE;
+          u8  CONTROL;
      } regs;
 } NeoOverlayLayerData;
 

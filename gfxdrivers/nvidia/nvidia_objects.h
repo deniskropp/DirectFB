@@ -38,8 +38,8 @@
 #define ENGINE_DVD       2
 
 
-static __inline__ __u32
-nv_hashkey( __u32 obj )
+static __inline__ u32
+nv_hashkey( u32 obj )
 {
      return ((obj >>  0) & 0x000001FF) ^
             ((obj >>  9) & 0x000001FF) ^
@@ -66,13 +66,13 @@ nv_hashkey( __u32 obj )
 #define DMA_FRAME_ACCESS_RDWR      (1 << 1)
 
 static inline void
-nv_store_dma( NVidiaDriverData *nvdrv, __u32 obj,
-              __u32 addr, __u32 class, __u32 flags,
-              __u32 size, __u32 frame, __u32 access )
+nv_store_dma( NVidiaDriverData *nvdrv, u32 obj,
+              u32 addr, u32 class, u32 flags,
+              u32 size, u32 frame, u32 access )
 {
      volatile void *mmio = nvdrv->mmio_base;
-     __u32          key  = nv_hashkey( obj );
-     __u32          ctx  = addr | (ENGINE_SW << 16) | (1 << 31);
+     u32            key  = nv_hashkey( obj );
+     u32            ctx  = addr | (ENGINE_SW << 16) | (1 << 31);
      
      /* NV_PRAMIN_RAMRO_0 */
      nv_out32( mmio, PRAMIN + (addr << 4) +  0, class | flags );
@@ -115,13 +115,13 @@ nv_store_dma( NVidiaDriverData *nvdrv, __u32 obj,
 
 static inline void
 nv_store_object( NVidiaDriverData *nvdrv, 
-                 __u32 obj,   __u32 addr, 
-                 __u32 class, __u32 flags,
-                 __u32 dma0,  __u32 dma1 )
+                 u32 obj,   u32 addr,
+                 u32 class, u32 flags,
+                 u32 dma0,  u32 dma1 )
 {
      volatile void *mmio = nvdrv->mmio_base;
-     __u32          key  = nv_hashkey( obj );
-     __u32          ctx  = addr | (ENGINE_GRAPHICS << 16) | (1 << 31);
+     u32            key  = nv_hashkey( obj );
+     u32            ctx  = addr | (ENGINE_GRAPHICS << 16) | (1 << 31);
      
      /* set the endian flag here, for simplicity */
 #ifdef WORDS_BIGENDIAN
@@ -146,7 +146,7 @@ static inline void
 nv_assign_object( NVidiaDriverData *nvdrv,
                   NVidiaDeviceData *nvdev,
                   int               subc,
-                  __u32             object,
+                  u32               object,
                   bool              reset )
 {
      if (reset || nvdev->subchannel_object[subc] != object) {

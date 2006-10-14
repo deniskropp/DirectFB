@@ -123,7 +123,7 @@ static void mach64EngineReset( void *drv, void *dev )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitidle( mdrv, mdev );
 
@@ -171,7 +171,7 @@ static void mach64FlushTextureCache( void *drv, void *dev )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      if (mdev->chip >= CHIP_3D_RAGE_PRO) {
           mach64_waitfifo( mdrv, mdev, 1 );
@@ -399,7 +399,7 @@ static void mach64SetState( void *drv, void *dev,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      if (state->modified == SMF_ALL) {
           mdev->valid = 0;
@@ -485,7 +485,7 @@ static void mach64GTSetState( void *drv, void *dev,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      bool use_scaler_3d;
 
@@ -656,7 +656,7 @@ static bool mach64FillRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 3 );
 
@@ -671,7 +671,7 @@ static bool mach64DrawRectangle( void *drv, void *dev, DFBRectangle *rect )
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) drv;
      Mach64DeviceData *mdev = (Mach64DeviceData*) dev;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      int x2 = rect->x + rect->w - 1;
      int y2 = rect->y + rect->h - 1;
@@ -697,9 +697,9 @@ static void mach64_draw_line( Mach64DriverData *mdrv,
                               int x2, int y2,
                               bool draw_3d )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 dst_cntl = 0;
+     u32 dst_cntl = 0;
      int   dx, dy;
 
      dx = x2 - x1;
@@ -786,9 +786,9 @@ static void mach64_fill_trapezoid( Mach64DriverData *mdrv,
                                    int X2l, int X2r,
                                    int Y, int dY )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 dst_cntl;
+     u32 dst_cntl;
      int   dXl, dXr;
 
      X1r++; X2r++;
@@ -872,9 +872,9 @@ static void mach64DoBlit2D( Mach64DriverData *mdrv,
                             DFBRectangle *srect,
                             DFBRectangle *drect )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 dst_cntl = 0;
+     u32 dst_cntl = 0;
 
      if (srect->x <= drect->x) {
           srect->x += srect->w - 1;
@@ -904,10 +904,10 @@ static void mach64DoBlitScaleOld( Mach64DriverData *mdrv,
                                   DFBRectangle     *drect,
                                   bool              filter )
 {
-     volatile __u8 *mmio   = mdrv->mmio_base;
+     volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = mdev->source;
 
-     __u32 scale_3d_cntl = SCALE_3D_FCN_SCALE | mdev->blit_blend;
+     u32 scale_3d_cntl = SCALE_3D_FCN_SCALE | mdev->blit_blend;
      int   hacc, vacc;
 
      if (!filter)
@@ -970,10 +970,10 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
                                DFBRectangle     *drect,
                                bool              filter )
 {
-     volatile __u8 *mmio   = mdrv->mmio_base;
+     volatile u8 *mmio     = mdrv->mmio_base;
      CoreSurface   *source = mdev->source;
 
-     __u32 scale_3d_cntl = SCALE_3D_FCN_SCALE | mdev->blit_blend;
+     u32 scale_3d_cntl = SCALE_3D_FCN_SCALE | mdev->blit_blend;
      int   hacc, vacc;
 
      if (!filter)
@@ -993,7 +993,7 @@ static void mach64DoBlitScale( Mach64DriverData *mdrv,
      if (drect->y < mdev->clip.y1) {
           int sy, dy;
           dy = mdev->clip.y1 - drect->y;
-          sy = (__u64) srect->h * dy / drect->h;
+          sy = (u64) srect->h * dy / drect->h;
           srect->y += sy;
           srect->h -= sy;
           drect->y += dy;
@@ -1044,9 +1044,9 @@ static void mach64DoBlitTexOld( Mach64DriverData *mdrv,
                                 DFBRectangle     *drect,
                                 bool              filter )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 scale_3d_cntl = SCALE_3D_FCN_TEXTURE | MIP_MAP_DISABLE | mdev->blit_blend;
+     u32 scale_3d_cntl = SCALE_3D_FCN_TEXTURE | MIP_MAP_DISABLE | mdev->blit_blend;
 
      if (mdev->blit_deinterlace) {
           srect->y /= 2;
@@ -1105,9 +1105,9 @@ static void mach64DoBlitTex( Mach64DriverData *mdrv,
                              DFBRectangle     *drect,
                              bool              filter )
 {
-     volatile __u8 *mmio = mdrv->mmio_base;
+     volatile u8 *mmio = mdrv->mmio_base;
 
-     __u32 scale_3d_cntl = SCALE_3D_FCN_TEXTURE | MIP_MAP_DISABLE | mdev->blit_blend;
+     u32 scale_3d_cntl = SCALE_3D_FCN_TEXTURE | MIP_MAP_DISABLE | mdev->blit_blend;
 
      if (mdev->blit_deinterlace) {
           srect->y /= 2;
@@ -1280,8 +1280,8 @@ static Mach64ChipType
 mach64_chip_type_vt( Mach64DriverData   *mdrv,
                      GraphicsDeviceInfo *device_info )
 {
-     __u32 config_chip_id = mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID );
-     __u32 cfg_chip_type = config_chip_id & CFG_CHIP_TYPE;
+     u32 config_chip_id = mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID );
+     u32 cfg_chip_type = config_chip_id & CFG_CHIP_TYPE;
 
      switch (cfg_chip_type) {
      case MACH64_CFG_CHIP_TYPE( 'V', 'T' ):
@@ -1322,8 +1322,8 @@ static Mach64ChipType
 mach64_chip_type_gt( Mach64DriverData   *mdrv,
                      GraphicsDeviceInfo *device_info )
 {
-     __u32 config_chip_id = mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID );
-     __u32 cfg_chip_type = config_chip_id & CFG_CHIP_TYPE;
+     u32 config_chip_id = mach64_in32( mdrv->mmio_base, CONFIG_CHIP_ID );
+     u32 cfg_chip_type = config_chip_id & CFG_CHIP_TYPE;
 
      switch (cfg_chip_type) {
      case MACH64_CFG_CHIP_TYPE( 'G', 'T' ):
@@ -1456,7 +1456,7 @@ driver_init_driver( GraphicsDevice      *device,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
 
-     mdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
+     mdrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, -1 );
      if (!mdrv->mmio_base)
           return DFB_IO;
 
@@ -1500,7 +1500,7 @@ driver_init_device( GraphicsDevice     *device,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      /* fill device info */
      device_info->caps.flags = CCF_CLIPPING;
@@ -1577,7 +1577,7 @@ driver_close_device( GraphicsDevice *device,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = (Mach64DeviceData*) device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      D_DEBUG( "DirectFB/Mach64: FIFO Performance Monitoring:\n" );
      D_DEBUG( "DirectFB/Mach64:  %9d mach64_waitfifo calls\n",

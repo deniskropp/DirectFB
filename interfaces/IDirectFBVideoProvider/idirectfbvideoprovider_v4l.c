@@ -1120,7 +1120,7 @@ static DFBResult v4l_stop( IDirectFBVideoProvider_V4L_data *data, bool detach )
                int i;
                for (i = 0; i < data->req.count; i++) {
                     struct v4l2_buffer *vidbuf = &data->vidbuf[i];
-                    D_DEBUG("DirectFB/Video4Linux2: %d => 0x%08x, len:%d\n", i, (__u32) data->ptr[i], vidbuf->length);
+                    D_DEBUG("DirectFB/Video4Linux2: %d => 0x%08x, len:%d\n", i, (u32) data->ptr[i], vidbuf->length);
                     if (0 != munmap(data->ptr[i], vidbuf->length)) {
                          D_PERROR("DirectFB/Video4Linux2: munmap().\n");
                     }
@@ -1457,7 +1457,7 @@ static DFBResult v4l2_playto(CoreSurface * surface, DFBRectangle * rect, IDirect
                     return err;
                }
           }
-          D_DEBUG("DirectFB/Video4Linux2: len:0x%08x, %d => 0x%08x\n", vidbuf->length, i, (__u32) data->ptr[i]);
+          D_DEBUG("DirectFB/Video4Linux2: len:0x%08x, %d => 0x%08x\n", vidbuf->length, i, (u32) data->ptr[i]);
      }
 
      if (!data->cleanup)

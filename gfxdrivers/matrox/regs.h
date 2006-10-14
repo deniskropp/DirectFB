@@ -28,12 +28,12 @@
 #ifndef __MATROX__REGS_H__
 #define __MATROX__REGS_H__
 
-#define U8_TO_F0915(x)          (((__u32) ((x+1) << 15)) & 0x00FFFFFF)
+#define U8_TO_F0915(x)          (((u32) ((x+1) << 15)) & 0x00FFFFFF)
 
-#define RS16(val)               ( (__u16)((__s16)(val)))
-#define RS18(val)               (((__u32)((__s32)(val)))&0x003ffff)
-#define RS24(val)               (((__u32)((__s32)(val)))&0x0ffffff)
-#define RS27(val)               (((__u32)((__s32)(val)))&0x7ffffff)
+#define RS16(val)               ( (u16)((s16)(val)))
+#define RS18(val)               (((u32)((s32)(val)))&0x003ffff)
+#define RS24(val)               (((u32)((s32)(val)))&0x0ffffff)
+#define RS27(val)               (((u32)((s32)(val)))&0x7ffffff)
 
 #define DWGSYNC          0x2C4C
 #define SYNC_DMA_BUSY    0x8325340              /* just a random number */

@@ -31,8 +31,8 @@
 #include <dfb_types.h>
 
 
-#define S12_4(val)    (((__u32)((__s32)((val) << 4))) & 0xffff)
-#define S12_4_(a,b)   (((__u32)((__s32)(((a) << 4) + (b)))) & 0xffff)
+#define S12_4(val)    (((u32)((s32)((val) << 4))) & 0xffff)
+#define S12_4_(a,b)   (((u32)((s32)(((a) << 4) + (b)))) & 0xffff)
 
 
 #define TDFX_LFBMODE_RGB565                   0
@@ -50,45 +50,45 @@
 #define TDFX_FBZCOLORPATH_ASELECT_COLOR1     (2 << 2)
 
 typedef volatile struct {
-    __u32 status;
-    __u32 intrCtrl;
+    u32 status;
+    u32 intrCtrl;
 
-    __u32 vertexAx;
-    __u32 vertexAy;
-    __u32 vertexBx;
-    __u32 vertexBy;
-    __u32 vertexCx;
-    __u32 vertexCy;
+    u32 vertexAx;
+    u32 vertexAy;
+    u32 vertexBx;
+    u32 vertexBy;
+    u32 vertexCx;
+    u32 vertexCy;
 
-    __s32 startR;
-    __s32 startG;
-    __s32 startB;
-    __s32 startZ;
-    __s32 startA;
-    __s32 startS;
-    __s32 startT;
-    __s32 startW;
+    s32 startR;
+    s32 startG;
+    s32 startB;
+    s32 startZ;
+    s32 startA;
+    s32 startS;
+    s32 startT;
+    s32 startW;
 
-    __s32 dRdX;
-    __s32 dGdX;
-    __s32 dBdX;
-    __s32 dZdX;
-    __s32 dAdX;
-    __s32 dSdX;
-    __s32 dTdX;
-    __s32 dWdX;
+    s32 dRdX;
+    s32 dGdX;
+    s32 dBdX;
+    s32 dZdX;
+    s32 dAdX;
+    s32 dSdX;
+    s32 dTdX;
+    s32 dWdX;
 
-    __s32 dRdY;
-    __s32 dGdY;
-    __s32 dBdY;
-    __s32 dZdY;
-    __s32 dAdY;
-    __s32 dSdY;
-    __s32 dTdY;
-    __s32 dWdY;
+    s32 dRdY;
+    s32 dGdY;
+    s32 dBdY;
+    s32 dZdY;
+    s32 dAdY;
+    s32 dSdY;
+    s32 dTdY;
+    s32 dWdY;
 
-    __u32 triangleCMD;
-    __u32 reserved0;
+    u32 triangleCMD;
+    u32 reserved0;
 
     float fvertexAx;
     float fvertexAy;
@@ -124,57 +124,57 @@ typedef volatile struct {
     float fdTdY;
     float fdWdY;
 
-    __u32 ftriangleCMD;
-    __u32 fbzColorPath;
-    __u32 fogMode;
-    __u32 alphaMode;
-    __u32 fbzMode;
-    __u32 lfbMode;
-    __u32 clipLeftRight;
-    __u32 clipTopBottom;
+    u32 ftriangleCMD;
+    u32 fbzColorPath;
+    u32 fogMode;
+    u32 alphaMode;
+    u32 fbzMode;
+    u32 lfbMode;
+    u32 clipLeftRight;
+    u32 clipTopBottom;
 
-    __u32 nopCMD;
-    __u32 fastfillCMD;
-    __u32 swapbufferCMD;
-    __u32 fogColor;
-    __u32 zaColor;
-    __u32 chromaKey;
-    __u32 chromaRange;
-    __u32 userIntrCMD;
-    __u32 stipple;
-    __u32 color0;
-    __u32 color1;
+    u32 nopCMD;
+    u32 fastfillCMD;
+    u32 swapbufferCMD;
+    u32 fogColor;
+    u32 zaColor;
+    u32 chromaKey;
+    u32 chromaRange;
+    u32 userIntrCMD;
+    u32 stipple;
+    u32 color0;
+    u32 color1;
 
-    __u32 fbiPixelsIn;
-    __u32 fbiChromaFail;
-    __u32 fbiZfuncFail;
-    __u32 fbiAfuncFail;
-    __u32 fbiPixelsOut;
+    u32 fbiPixelsIn;
+    u32 fbiChromaFail;
+    u32 fbiZfuncFail;
+    u32 fbiAfuncFail;
+    u32 fbiPixelsOut;
 
-    __u32 fogTable[32];
+    u32 fogTable[32];
 
-    __u32 reserved1[3];
+    u32 reserved1[3];
 
-    __u32 colBufferAddr;
-    __u32 colBufferStride;
-    __u32 auxBufferAddr;
-    __u32 auxBufferStride;
+    u32 colBufferAddr;
+    u32 colBufferStride;
+    u32 auxBufferAddr;
+    u32 auxBufferStride;
 
-    __u32 reserved2;
+    u32 reserved2;
 
-    __u32 clipLeftRight1;
-    __u32 clipTopBottom1;
+    u32 clipLeftRight1;
+    u32 clipTopBottom1;
 
-    __u32 reserved3[17];
-    __u32 swapPending;
-    __u32 leftOverlayBuf;
-    __u32 rightOverlayBuf;
-    __u32 fbiSwapHistory;
-    __u32 fbiTrianglesOut;
-    __u32 sSetupMode;
+    u32 reserved3[17];
+    u32 swapPending;
+    u32 leftOverlayBuf;
+    u32 rightOverlayBuf;
+    u32 fbiSwapHistory;
+    u32 fbiTrianglesOut;
+    u32 sSetupMode;
     float sVx;
     float sVy;
-    __u32 sARGB;
+    u32 sARGB;
     float sRed;
     float sGreen;
     float sBlue;
@@ -187,63 +187,63 @@ typedef volatile struct {
     float sWtmu1;
     float sS_Wtmu1;
     float sT_Wtmu1;
-    __u32 sDrawTriCMD;
-    __u32 sBeginTriCMD;
+    u32 sDrawTriCMD;
+    u32 sBeginTriCMD;
 
-    __u32 reserved[22];
-    __u32 textureMode;
-    __u32 tLOD;
-    __u32 tDetail;
-    __u32 texBaseAddr;
-    __u32 texBaseAddr1;
-    __u32 texBaseAddr2;
-    __u32 texBaseAddr3_8;
-    __u32 texStride;
-    __u32 trexInit1;
+    u32 reserved[22];
+    u32 textureMode;
+    u32 tLOD;
+    u32 tDetail;
+    u32 texBaseAddr;
+    u32 texBaseAddr1;
+    u32 texBaseAddr2;
+    u32 texBaseAddr3_8;
+    u32 texStride;
+    u32 trexInit1;
 
-    __u32 nccTable0[12];
-    __u32 nccTable1[12];
+    u32 nccTable0[12];
+    u32 nccTable1[12];
 
-    __u32 reserved4[31];
+    u32 reserved4[31];
 } Voodoo3D;
 
 
 typedef volatile struct {
-     __u32 status;
-     __u32 intCtrl;
-     __u32 clip0Min;
-     __u32 clip0Max;
-     __u32 dstBaseAddr;
-     __u32 dstFormat;
-     __u32 srcColorkeyMin;
-     __u32 srcColorkeyMax;
-     __u32 dstColorkeyMin;
-     __u32 dstColorkeyMax;
-     __u32 bresError0;
-     __u32 bresError1;
-     __u32 rop;
-     __u32 srcBaseAddr;
-     __u32 commandExtra;
-     __u32 lineStipple;
-     __u32 lineStyle;
-     __u32 pattern0Alias;
-     __u32 pattern1Alias;
-     __u32 clip1Min;
-     __u32 clip1Max;
-     __u32 srcFormat;
-     __u32 srcSize;
-     __u32 srcXY;
-     __u32 colorBack;
-     __u32 colorFore;
-     __u32 dstSize;
-     __u32 dstXY;
-     __u32 command;
+     u32 status;
+     u32 intCtrl;
+     u32 clip0Min;
+     u32 clip0Max;
+     u32 dstBaseAddr;
+     u32 dstFormat;
+     u32 srcColorkeyMin;
+     u32 srcColorkeyMax;
+     u32 dstColorkeyMin;
+     u32 dstColorkeyMax;
+     u32 bresError0;
+     u32 bresError1;
+     u32 rop;
+     u32 srcBaseAddr;
+     u32 commandExtra;
+     u32 lineStipple;
+     u32 lineStyle;
+     u32 pattern0Alias;
+     u32 pattern1Alias;
+     u32 clip1Min;
+     u32 clip1Max;
+     u32 srcFormat;
+     u32 srcSize;
+     u32 srcXY;
+     u32 colorBack;
+     u32 colorFore;
+     u32 dstSize;
+     u32 dstXY;
+     u32 command;
 
-     __u32 reserved[3];
+     u32 reserved[3];
 
-     __u32 launchArea[32];
+     u32 launchArea[32];
 
-     __u32 colorPattern[64];
+     u32 colorPattern[64];
 } Voodoo2D;
 
 #endif

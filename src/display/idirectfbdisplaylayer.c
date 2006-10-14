@@ -284,7 +284,7 @@ IDirectFBDisplayLayer_SetCooperativeLevel( IDirectFBDisplayLayer           *thiz
 
 static DFBResult
 IDirectFBDisplayLayer_SetOpacity( IDirectFBDisplayLayer *thiz,
-                                  __u8                   opacity )
+                                  u8                     opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -417,9 +417,9 @@ IDirectFBDisplayLayer_SetScreenRectangle( IDirectFBDisplayLayer *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
-                                      __u8                   r,
-                                      __u8                   g,
-                                      __u8                   b )
+                                      u8                     r,
+                                      u8                     g,
+                                      u8                     b )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -431,9 +431,9 @@ IDirectFBDisplayLayer_SetSrcColorKey( IDirectFBDisplayLayer *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_SetDstColorKey( IDirectFBDisplayLayer *thiz,
-                                      __u8                   r,
-                                      __u8                   g,
-                                      __u8                   b )
+                                      u8                     r,
+                                      u8                     g,
+                                      u8                     b )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 
@@ -584,7 +584,7 @@ IDirectFBDisplayLayer_SetBackgroundImage( IDirectFBDisplayLayer *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_SetBackgroundColor( IDirectFBDisplayLayer *thiz,
-                                          __u8 r, __u8 g, __u8 b, __u8 a )
+                                          u8 r, u8 g, u8 b, u8 a )
 {
      DFBColor color = { a: a, r: r, g: g, b: b };
 
@@ -754,7 +754,7 @@ IDirectFBDisplayLayer_SetCursorShape( IDirectFBDisplayLayer *thiz,
 
 static DFBResult
 IDirectFBDisplayLayer_SetCursorOpacity( IDirectFBDisplayLayer *thiz,
-                                        __u8                   opacity )
+                                        u8                     opacity )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBDisplayLayer)
 

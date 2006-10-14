@@ -79,14 +79,14 @@ DFBResult dfb_layer_context_get_configuration  ( CoreLayerContext            *co
  * configuration details
  */
 DFBResult dfb_layer_context_set_src_colorkey   ( CoreLayerContext            *context,
-                                                 __u8                         r,
-                                                 __u8                         g,
-                                                 __u8                         b );
+                                                 u8                           r,
+                                                 u8                           g,
+                                                 u8                           b );
 
 DFBResult dfb_layer_context_set_dst_colorkey   ( CoreLayerContext            *context,
-                                                 __u8                         r,
-                                                 __u8                         g,
-                                                 __u8                         b );
+                                                 u8                           r,
+                                                 u8                           g,
+                                                 u8                           b );
 
 DFBResult dfb_layer_context_set_sourcerectangle( CoreLayerContext            *context,
                                                  const DFBRectangle          *source );
@@ -102,7 +102,7 @@ DFBResult dfb_layer_context_set_screenposition ( CoreLayerContext            *co
                                                  int                          y );
 
 DFBResult dfb_layer_context_set_opacity        ( CoreLayerContext            *context,
-                                                 __u8                         opacity);
+                                                 u8                           opacity);
 
 DFBResult dfb_layer_context_set_coloradjustment( CoreLayerContext            *context,
                                                  const DFBColorAdjustment    *adjustment );

@@ -29,13 +29,13 @@
 
 #include <dfb_types.h>
 
-typedef __u8 uint8;
-typedef __u16 uint16;
-typedef __u32 uint32;
+typedef u8 uint8;
+typedef u16 uint16;
+typedef u32 uint32;
 
-typedef __s8 sint8;
-typedef __s16 sint16;
-typedef __s32 sint32;
+typedef s8 sint8;
+typedef s16 sint16;
+typedef s32 sint32;
 
 #if 0
 

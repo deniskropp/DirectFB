@@ -30,75 +30,75 @@
 
 
 static __inline__ void
-radeon_out8( volatile __u8 *mmioaddr, __u32 reg, __u8 value )
+radeon_out8( volatile u8 *mmioaddr, u32 reg, u8 value )
 {
-     *((volatile __u8*)(mmioaddr+reg)) = value;
+     *((volatile u8*)(mmioaddr+reg)) = value;
 }
 
 static __inline__ void
-radeon_out16( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
+radeon_out16( volatile u8 *mmioaddr, u32 reg, u32 value )
 {
 #ifdef __powerpc__
      asm volatile( "sthbrx %0,%1,%2;eieio"
                   :: "r" (value), "b"(reg), "r" (mmioaddr) : "memory" );
 #else
-     *((volatile __u16*)(mmioaddr+reg)) = value;
+     *((volatile u16*)(mmioaddr+reg)) = value;
 #endif
 }
 
 static __inline__ void
-radeon_out32( volatile __u8 *mmioaddr, __u32 reg, __u32 value )
+radeon_out32( volatile u8 *mmioaddr, u32 reg, u32 value )
 {
 #ifdef __powerpc__
      asm volatile( "stwbrx %0,%1,%2;eieio" 
                    :: "r" (value), "b"(reg), "r" (mmioaddr) : "memory" );
 #else
-     *((volatile __u32*)(mmioaddr+reg)) = value;
+     *((volatile u32*)(mmioaddr+reg)) = value;
 #endif
 }
 
-static __inline__ __u8
-radeon_in8( volatile __u8 *mmioaddr, __u32 reg )
+static __inline__ u8
+radeon_in8( volatile u8 *mmioaddr, u32 reg )
 {
-     return *((volatile __u8*)(mmioaddr+reg));
+     return *((volatile u8*)(mmioaddr+reg));
 }
 
-static __inline__ __u16
-radeon_in16( volatile __u8 *mmioaddr, __u32 reg )
+static __inline__ u16
+radeon_in16( volatile u8 *mmioaddr, u32 reg )
 {
 #ifdef __powerpc__
-     __u32 value;
+     u32 value;
      asm volatile( "lhbrx %0,%1,%2;eieio"
                    : "=r" (value) : "b" (reg), "r" (mmioaddr) );
      return value;
 #else
-     return *((volatile __u16*)(mmioaddr+reg));
+     return *((volatile u16*)(mmioaddr+reg));
 #endif
 }
 
-static __inline__ __u32
-radeon_in32( volatile __u8 *mmioaddr, __u32 reg )
+static __inline__ u32
+radeon_in32( volatile u8 *mmioaddr, u32 reg )
 {
 #ifdef __powerpc__
-     __u32 value;
+     u32 value;
      asm volatile( "lwbrx %0,%1,%2;eieio"
                   : "=r" (value) : "b" (reg), "r" (mmioaddr) );
      return value;
 #else
-     return *((volatile __u32*)(mmioaddr+reg));
+     return *((volatile u32*)(mmioaddr+reg));
 #endif
 }
 
 
 static __inline__ void
-radeon_outpll( volatile __u8 *mmioaddr, __u32 addr, __u32 value )
+radeon_outpll( volatile u8 *mmioaddr, u32 addr, u32 value )
 {
      radeon_out8( mmioaddr, CLOCK_CNTL_INDEX, (addr & 0x3f) | PLL_WR_EN );
      radeon_out32( mmioaddr, CLOCK_CNTL_DATA, value );
 }
 
-static __inline__ __u32
-radeon_inpll( volatile __u8 *mmioaddr, __u32 addr )
+static __inline__ u32
+radeon_inpll( volatile u8 *mmioaddr, u32 addr )
 {
      radeon_out8( mmioaddr, CLOCK_CNTL_INDEX, addr & 0x3f );
      return radeon_in32( mmioaddr, CLOCK_CNTL_DATA );

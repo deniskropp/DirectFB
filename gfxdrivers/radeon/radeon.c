@@ -162,7 +162,7 @@ radeon_get_monitors( RadeonDriverData  *rdrv,
      const char        *name[] = { "NONE", "CRT", "DFP", 
                                    "LCD",  "CTV", "STV" }; 
 #endif
-     __u32              tmp;
+     u32                tmp;
       
      if (rdev->chipset != CHIP_R100) {        
           if (rdev->chipset >= CHIP_R300 ||
@@ -229,11 +229,11 @@ radeon_get_monitors( RadeonDriverData  *rdrv,
 void
 radeon_reset( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
-     __u32          clock_cntl_index;
-     __u32          mclk_cntl;
-     __u32          rbbm_soft_reset;
-     __u32          host_path_cntl;
+     volatile u8   *mmio = rdrv->mmio_base;
+     u32            clock_cntl_index;
+     u32            mclk_cntl;
+     u32            rbbm_soft_reset;
+     u32            host_path_cntl;
      
      clock_cntl_index = radeon_in32( mmio, CLOCK_CNTL_INDEX );
      
@@ -290,8 +290,8 @@ static void radeonEngineReset( void *drv, void *dev )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     volatile __u8    *mmio = rdrv->mmio_base;
-     __u32             tmp;
+     volatile u8      *mmio = rdrv->mmio_base;
+     u32               tmp;
 
      radeon_out32( mmio, SURFACE_CNTL, rdev->surface_cntl_c );
      
@@ -336,7 +336,7 @@ static void radeonFlushTextureCache( void *drv, void *dev )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      radeon_waitfifo( rdrv, rdev, 1 );
      if (rdev->chipset >= CHIP_R300) {
@@ -357,8 +357,8 @@ static void radeonSurfaceEnter( void *drv, void *dev,
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     volatile __u8    *mmio = rdrv->mmio_base;
-     __u32             tmp;
+     volatile u8      *mmio = rdrv->mmio_base;
+     u32               tmp;
 
      if (!(flags & DSLF_WRITE))
           return;
@@ -406,7 +406,7 @@ static void radeonSurfaceLeave( void *drv, void *dev, SurfaceBuffer *buffer )
 { 
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      if (rdev->surface_cntl_p != rdev->surface_cntl_c) {
           radeon_out32( mmio, SURFACE_CNTL, rdev->surface_cntl_p );
@@ -1105,7 +1105,7 @@ static void r300SetState( void *drv, void *dev,
 static int 
 radeon_find_chipset( RadeonDriverData *rdrv, int *ret_devid, int *ret_index )
 {
-     volatile __u8 *mmio = rdrv->mmio_base;
+     volatile u8   *mmio = rdrv->mmio_base;
      unsigned int   vendor_id;
      unsigned int   device_id;
      int            i;
@@ -1188,7 +1188,7 @@ driver_init_driver( GraphicsDevice      *device,
      rdrv->device_data = (RadeonDeviceData*) device_data;
      
      /* gain access to memory mapped registers */
-     rdrv->mmio_base = (volatile __u8*) dfb_gfxcard_map_mmio( device, 0, 0x4000 );
+     rdrv->mmio_base = (volatile u8*) dfb_gfxcard_map_mmio( device, 0, 0x4000 );
      if (!rdrv->mmio_base)
           return DFB_IO;
      rdrv->mmio_size = 0x4000;
@@ -1345,7 +1345,7 @@ driver_init_device( GraphicsDevice     *device,
 
      /* reserve memory for YUV422 color buffer */
      rdev->yuv422_buffer = dfb_gfxcard_reserve_memory( device, 128 );
-     if (rdev->yuv422_buffer == (__u32)-1) {
+     if (rdev->yuv422_buffer == (u32)-1) {
           D_ERROR( "DirectFB/Radeon: "
                    "couldn't reserve 128 bytes of video memory!\n" );
           return DFB_NOVIDEOMEMORY;
@@ -1379,7 +1379,7 @@ driver_init_device( GraphicsDevice     *device,
      rdev->surface_cntl_c = rdev->surface_cntl_p;
      
      if (rdev->igp) {
-          __u32 tom;
+          u32 tom;
           /* force MC_FB_LOCATION to NB_TOM */
           tom = radeon_in32( mmio, NB_TOM );
           rdev->fb_offset = tom << 16;
@@ -1444,7 +1444,7 @@ driver_close_device( GraphicsDevice *device,
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) driver_data;
      RadeonDeviceData *rdev = (RadeonDeviceData*) device_data;
-     volatile __u8    *mmio = rdrv->mmio_base;
+     volatile u8      *mmio = rdrv->mmio_base;
     
      D_DEBUG( "DirectFB/Radeon: FIFO Performance Monitoring:\n" );
      D_DEBUG( "DirectFB/Radeon:  %9d radeon_waitfifo calls\n",

@@ -1021,18 +1021,18 @@
  * 2D surfaces
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextDmaSource;    /* 0184-0187 */
-     __u32 SetContextDmaDestin;    /* 0188-018B */
-     __u32 Reserved01[0x05D];
-     __u32 Format;                 /* 0300-0303 */
-     __u32 Pitch;                  /* 0304-0307 */
-     __u32 SourceOffset;           /* 0308-030B */
-     __u32 DestOffset;             /* 030C-030F */
-     __u32 Reserved02[0x73C];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextDmaSource;      /* 0184-0187 */
+     u32 SetContextDmaDestin;      /* 0188-018B */
+     u32 Reserved01[0x05D];
+     u32 Format;                   /* 0300-0303 */
+     u32 Pitch;                    /* 0304-0307 */
+     u32 SourceOffset;             /* 0308-030B */
+     u32 DestOffset;               /* 030C-030F */
+     u32 Reserved02[0x73C];
 } NVSurfaces2D;
 #define SURFACES2D_FORMAT                    0x00000300
 #define   SURFACES2D_FORMAT_Y8                         0x00000001
@@ -1051,21 +1051,21 @@ typedef volatile struct {
  * 3D surfaces
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextDmaColor;     /* 0184-0187 */
-     __u32 SetContextDmaZeta;      /* 0188-018B */
-     __u32 Reserved01[0x05B];
-     __u32 ClipHorizontal;         /* 02F8-02FB */          
-     __u32 ClipVertical;           /* 02FC-02FF */
-     __u32 Format;                 /* 0300-0303 */
-     __u32 ClipSize;               /* 0304-0307 */
-     __u32 Pitch;                  /* 0308-030B */
-     __u32 RenderOffset;           /* 030C-030F */
-     __u32 DepthOffset;            /* 0310-0313 */
-     __u32 Reserved02[0x73B];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextDmaColor;       /* 0184-0187 */
+     u32 SetContextDmaZeta;        /* 0188-018B */
+     u32 Reserved01[0x05B];
+     u32 ClipHorizontal;           /* 02F8-02FB */
+     u32 ClipVertical;             /* 02FC-02FF */
+     u32 Format;                   /* 0300-0303 */
+     u32 ClipSize;                 /* 0304-0307 */
+     u32 Pitch;                    /* 0308-030B */
+     u32 RenderOffset;             /* 030C-030F */
+     u32 DepthOffset;              /* 0310-0313 */
+     u32 Reserved02[0x73B];
 } NVSurfaces3D;
 #define SURFACES3D_CLIP_HORIZONTAL           0x000002F8
 #define SURFACES3D_CLIP_VERTICAL             0x000002FC
@@ -1086,15 +1086,15 @@ typedef volatile struct {
  * Scissor clip rectangle
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextDmaImage;     /* 0184-0187 */
-     __u32 Reserved01[0x05E];
-     __u32 TopLeft;                /* 0300-0303 */
-     __u32 WidthHeight;            /* 0304-0307 */
-     __u32 Reserved02[0x73E];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextDmaImage;       /* 0184-0187 */
+     u32 Reserved01[0x05E];
+     u32 TopLeft;                  /* 0300-0303 */
+     u32 WidthHeight;              /* 0304-0307 */
+     u32 Reserved02[0x73E];
 } NVClip;
 #define CLIP_TOP_LEFT                        0x00000300
 #define CLIP_WIDTH_HEIGHT                    0x00000304
@@ -1103,13 +1103,13 @@ typedef volatile struct {
  * Global alpha factor
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 Reserved01[0x05F];
-     __u32 SetBeta1D31;            /* 0300-0303 */
-     __u32 Reserved02[0x73F];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 Reserved01[0x05F];
+     u32 SetBeta1D31;              /* 0300-0303 */
+     u32 Reserved02[0x73F];
 } NVBeta1;
 #define BETA1_FACTOR                         0x00000300
 
@@ -1117,13 +1117,13 @@ typedef volatile struct {
  * Global ARGB factor
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 Reserved01[0x05F];
-     __u32 SetBetaFactor;          /* 0300-0303 */
-     __u32 Reserved02[0x73F];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 Reserved01[0x05F];
+     u32 SetBetaFactor;            /* 0300-0303 */
+     u32 Reserved02[0x73F];
 } NVBeta4;
 #define BETA4_FACTOR                         0x00000300
 
@@ -1146,23 +1146,23 @@ typedef volatile struct {
  * 2D solid rectangle
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextClip;         /* 0184-0187 */
-     __u32 SetContextPattern;      /* 0188-018B */
-     __u32 SetContextRop;          /* 018C-018F */
-     __u32 SetContextBeta1;        /* 0190-0193 */
-     __u32 SetContextSurface;      /* 0194-0197 */
-     __u32 Reserved01[0x059];
-     __u32 SetOperation;           /* 02FC-02FF */
-     __u32 SetColorFormat;         /* 0300-0303 */
-     __u32 Color;                  /* 0304-0307 */
-     __u32 Reserved02[0x03E];
-     __u32 TopLeft;                /* 0400-0403 */
-     __u32 WidthHeight;            /* 0404-0407 */
-     __u32 Reserved03[0x6FE];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextClip;           /* 0184-0187 */
+     u32 SetContextPattern;        /* 0188-018B */
+     u32 SetContextRop;            /* 018C-018F */
+     u32 SetContextBeta1;          /* 0190-0193 */
+     u32 SetContextSurface;        /* 0194-0197 */
+     u32 Reserved01[0x059];
+     u32 SetOperation;             /* 02FC-02FF */
+     u32 SetColorFormat;           /* 0300-0303 */
+     u32 Color;                    /* 0304-0307 */
+     u32 Reserved02[0x03E];
+     u32 TopLeft;                  /* 0400-0403 */
+     u32 WidthHeight;              /* 0404-0407 */
+     u32 Reserved03[0x6FE];
 } NVRectangle;
 #define RECT_OPERATION                       0x000002FC
 #define RECT_COLOR_FORMAT                    0x00000300
@@ -1177,47 +1177,47 @@ typedef volatile struct {
  * 2D solid triangle
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextClip;         /* 0184-0187 */
-     __u32 SetContextPattern;      /* 0188-018B */
-     __u32 SetContextRop;          /* 018C-018F */
-     __u32 SetContextBeta1;        /* 0190-0193 */
-     __u32 SetContextSurface;      /* 0194-0197 */
-     __u32 Reserved01[0x059];
-     __u32 SetOperation;           /* 02FC-02FF */
-     __u32 SetColorFormat;         /* 0300-0303 */
-     __u32 Color;                  /* 0304-0307 */
-     __u32 Reserved02[0x002];
-     __u32 TrianglePoint0;         /* 0310-0313 */
-     __u32 TrianglePoint1;         /* 0314-0317 */
-     __u32 TrianglePoint2;         /* 0318-031B */
-     __u32 Reserved03[0x001];
-     __s32 Triangle32Point0X;      /* 0320-0323 */
-     __s32 Triangle32Point0Y;      /* 0324-0327 */
-     __s32 Triangle32Point1X;      /* 0328-032B */
-     __s32 Triangle32Point1Y;      /* 032C-032F */
-     __s32 Triangle32Point2X;      /* 0330-0333 */
-     __s32 Triangle32Point2Y;      /* 0334-0337 */
-     __u32 Reserved04[0x032];
-     __u32 Trimesh[32];            /* 0400-047F */
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextClip;           /* 0184-0187 */
+     u32 SetContextPattern;        /* 0188-018B */
+     u32 SetContextRop;            /* 018C-018F */
+     u32 SetContextBeta1;          /* 0190-0193 */
+     u32 SetContextSurface;        /* 0194-0197 */
+     u32 Reserved01[0x059];
+     u32 SetOperation;             /* 02FC-02FF */
+     u32 SetColorFormat;           /* 0300-0303 */
+     u32 Color;                    /* 0304-0307 */
+     u32 Reserved02[0x002];
+     u32 TrianglePoint0;           /* 0310-0313 */
+     u32 TrianglePoint1;           /* 0314-0317 */
+     u32 TrianglePoint2;           /* 0318-031B */
+     u32 Reserved03[0x001];
+     s32 Triangle32Point0X;        /* 0320-0323 */
+     s32 Triangle32Point0Y;        /* 0324-0327 */
+     s32 Triangle32Point1X;        /* 0328-032B */
+     s32 Triangle32Point1Y;        /* 032C-032F */
+     s32 Triangle32Point2X;        /* 0330-0333 */
+     s32 Triangle32Point2Y;        /* 0334-0337 */
+     u32 Reserved04[0x032];
+     u32 Trimesh[32];              /* 0400-047F */
      struct {                      /* 0480-     */
-          __s32 x;                 /*    0-   3 */
-          __s32 y;                 /*    4-   7 */
+          s32 x;                   /*    0-   3 */
+          s32 y;                   /*    4-   7 */
      } Trimesh32[16];              /*     -04FF */
      struct {                      /* 0500-     */
-          __u32 color;             /*    0-   3 */
-          __u32 point0;            /*    4-   7 */
-          __u32 point1;            /*    8-   B */
-          __u32 point2;            /*    C-   F */
+          u32 color;               /*    0-   3 */
+          u32 point0;              /*    4-   7 */
+          u32 point1;              /*    8-   B */
+          u32 point2;              /*    C-   F */
      } ColorTriangle[8];           /*     -057F */
      struct {                      /* 0580-     */
-          __u32 color;             /*    0-   3 */
-          __u32 point;             /*    4-   7 */
+          u32 color;               /*    0-   3 */
+          u32 point;               /*    4-   7 */
      } ColorTrimesh[16];           /*     -05FF */
-     __u32 Reserved05[0x680];
+     u32 Reserved05[0x680];
 } NVTriangle;
 #define TRI_OPERATION                        0x000002FC
 #define TRI_COLOR_FORMAT                     0x00000300
@@ -1233,40 +1233,40 @@ typedef volatile struct {
  * 2D solid 
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextClip;         /* 0184-0187 */
-     __u32 SetContextPattern;      /* 0188-018B */
-     __u32 SetContextRop;          /* 018C-018F */
-     __u32 SetContextBeta1;        /* 0190-0193 */
-     __u32 SetContextSurface;      /* 0194-0197 */
-     __u32 Reserved01[0x059];
-     __u32 SetOperation;           /* 02FC-02FF */
-     __u32 SetColorFormat;         /* 0300-0303 */
-     __u32 Color;                  /* 0304-0307 */
-     __u32 Reserved02[0x03E];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextClip;           /* 0184-0187 */
+     u32 SetContextPattern;        /* 0188-018B */
+     u32 SetContextRop;            /* 018C-018F */
+     u32 SetContextBeta1;          /* 0190-0193 */
+     u32 SetContextSurface;        /* 0194-0197 */
+     u32 Reserved01[0x059];
+     u32 SetOperation;             /* 02FC-02FF */
+     u32 SetColorFormat;           /* 0300-0303 */
+     u32 Color;                    /* 0304-0307 */
+     u32 Reserved02[0x03E];
      struct {                      /* 0400-     */
-          __u32 point0;            /*    0-   3 */
-          __u32 point1;            /*    4-   7 */
+          u32 point0;              /*    0-   3 */
+          u32 point1;              /*    4-   7 */
      } Lin[16];                    /*     -047F */
      struct {                      /* 0480-     */
-          __u32 point0X;           /*    0-   3 */
-          __u32 point0Y;           /*    4-   7 */
-          __u32 point1X;           /*    8-   B */
-          __u32 point1Y;           /*    C-   F */
+          u32 point0X;             /*    0-   3 */
+          u32 point0Y;             /*    4-   7 */
+          u32 point1X;             /*    8-   B */
+          u32 point1Y;             /*    C-   F */
      } Lin32[8];                   /*     -04FF */
-     __u32 PolyLin[32];            /* 0500-057F */
+     u32 PolyLin[32];              /* 0500-057F */
      struct {                      /* 0580-     */
-          __u32 x;                 /*    0-   3 */
-          __u32 y;                 /*    4-   7 */
+          u32 x;                   /*    0-   3 */
+          u32 y;                   /*    4-   7 */
      } PolyLin32[16];              /*     -05FF */
      struct {                      /* 0600-     */
-          __u32 color;             /*    0-   3 */
-          __u32 point;             /*    4-   7 */
+          u32 color;               /*    0-   3 */
+          u32 point;               /*    4-   7 */
      } ColorPolyLin[16];           /*     -067F */
-     __u32 Reserved03[0x660];
+     u32 Reserved03[0x660];
 } NVLine;
 #define LINE_OPERATION                       0x000002FC
 #define LINE_COLOR_FORMAT                    0x00000300
@@ -1281,25 +1281,25 @@ typedef volatile struct {
  * 2D screen-screen BLT
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 WaitForIdle;            /* 0108-010B (09F_WAIT_FOR_IDLE) */
-     __u32 WaitForSync;            /* 010C-010F (09F_WAIT_FOR_CRTC) */
-     __u32 Reserved00[0x01C];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextColorKey;     /* 0184-0187 */
-     __u32 SetContextClip;         /* 0188-018B */
-     __u32 SetContextPattern;      /* 018C-018F */
-     __u32 SetContextRop;          /* 0190-0193 */
-     __u32 SetContextBeta1;        /* 0194-0197 */
-     __u32 SetContextBeta4;        /* 0198-019B */
-     __u32 SetContextSurface;      /* 019C-019F */
-     __u32 Reserved01[0x057];
-     __u32 SetOperation;           /* 02FC-02FF */
-     __u32 TopLeftSrc;             /* 0300-0303 */
-     __u32 TopLeftDst;             /* 0304-0307 */
-     __u32 WidthHeight;            /* 0308-030B */
-     __u32 Reserved02[0x73D];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 WaitForIdle;              /* 0108-010B (09F_WAIT_FOR_IDLE) */
+     u32 WaitForSync;              /* 010C-010F (09F_WAIT_FOR_CRTC) */
+     u32 Reserved00[0x01C];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextColorKey;       /* 0184-0187 */
+     u32 SetContextClip;           /* 0188-018B */
+     u32 SetContextPattern;        /* 018C-018F */
+     u32 SetContextRop;            /* 0190-0193 */
+     u32 SetContextBeta1;          /* 0194-0197 */
+     u32 SetContextBeta4;          /* 0198-019B */
+     u32 SetContextSurface;        /* 019C-019F */
+     u32 Reserved01[0x057];
+     u32 SetOperation;             /* 02FC-02FF */
+     u32 TopLeftSrc;               /* 0300-0303 */
+     u32 TopLeftDst;               /* 0304-0307 */
+     u32 WidthHeight;              /* 0308-030B */
+     u32 Reserved02[0x73D];
 } NVScreenBlt;
 #define BLIT_OPERATION                       0x000002FC
 #define BLIT_TOP_LEFT_SRC                    0x00000300
@@ -1310,26 +1310,26 @@ typedef volatile struct {
  * 2D CPU to screen BLT
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextColorKey;     /* 0184-0187 */
-     __u32 SetContextClip;         /* 0188-018B */
-     __u32 SetContextPattern;      /* 018C-018F */
-     __u32 SetContextRop;          /* 0190-0193 */
-     __u32 SetContextBeta1;        /* 0194-0197 */
-     __u32 SetContextBeta4;        /* 0198-019B */
-     __u32 SetContextSurface;      /* 019C-019F */
-     __u32 Reserved01[0x056];
-     __u32 SetColorConversion;     /* 02F8-02FB */
-     __u32 SetOperation;           /* 02FC-02FF */
-     __u32 SetColorFormat;         /* 0300-0303 */
-     __u32 Point;                  /* 0304-0307 */
-     __u32 SizeOut;                /* 0308-030B */
-     __u32 SizeIn;                 /* 030C-030F */
-     __u32 Reserved02[0x03C];
-     __u32 Pixel[1792];            /* 0400-     */
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextColorKey;       /* 0184-0187 */
+     u32 SetContextClip;           /* 0188-018B */
+     u32 SetContextPattern;        /* 018C-018F */
+     u32 SetContextRop;            /* 0190-0193 */
+     u32 SetContextBeta1;          /* 0194-0197 */
+     u32 SetContextBeta4;          /* 0198-019B */
+     u32 SetContextSurface;        /* 019C-019F */
+     u32 Reserved01[0x056];
+     u32 SetColorConversion;       /* 02F8-02FB */
+     u32 SetOperation;             /* 02FC-02FF */
+     u32 SetColorFormat;           /* 0300-0303 */
+     u32 Point;                    /* 0304-0307 */
+     u32 SizeOut;                  /* 0308-030B */
+     u32 SizeIn;                   /* 030C-030F */
+     u32 Reserved02[0x03C];
+     u32 Pixel[1792];              /* 0400-     */
 } NVImageBlt;
 #define IBLIT_COLOR_CONVERSION               0x000002F8
 #define IBLIT_OPERATION                      0x000002FC
@@ -1348,32 +1348,32 @@ typedef volatile struct {
  * 2D scaled image BLT
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextDmaImage;     /* 0184-0187 */
-     __u32 SetContextPattern;      /* 0188-018B */
-     __u32 SetContextRop;          /* 018C-018F */
-     __u32 SetContextBeta1;        /* 0190-0193 */
-     __u32 SetContextBeta4;        /* 0194-0197 */
-     __u32 SetContextSurface;      /* 0198-019C */
-     __u32 Reserved01[0x058];
-     __u32 SetColorConversion;     /* 02FC-02FF */
-     __u32 SetColorFormat;         /* 0300-0303 */
-     __u32 SetOperation;           /* 0304-0307 */
-     __u32 ClipPoint;              /* 0308-030B */
-     __u32 ClipSize;               /* 030C-030F */
-     __u32 ImageOutPoint;          /* 0310-0313 */
-     __u32 ImageOutSize;           /* 0314-0317 */
-     __u32 DuDx;                   /* 0318-031B */
-     __u32 DvDy;                   /* 031C-031F */
-     __u32 Reserved02[0x038];
-     __u32 ImageInSize;            /* 0400-0403 */
-     __u32 ImageInFormat;          /* 0404-0407 */
-     __u32 ImageInOffset;          /* 0408-040B */
-     __u32 ImageInPoint;           /* 040C-040F */
-     __u32 Reserved03[0x6FC];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextDmaImage;       /* 0184-0187 */
+     u32 SetContextPattern;        /* 0188-018B */
+     u32 SetContextRop;            /* 018C-018F */
+     u32 SetContextBeta1;          /* 0190-0193 */
+     u32 SetContextBeta4;          /* 0194-0197 */
+     u32 SetContextSurface;        /* 0198-019C */
+     u32 Reserved01[0x058];
+     u32 SetColorConversion;       /* 02FC-02FF */
+     u32 SetColorFormat;           /* 0300-0303 */
+     u32 SetOperation;             /* 0304-0307 */
+     u32 ClipPoint;                /* 0308-030B */
+     u32 ClipSize;                 /* 030C-030F */
+     u32 ImageOutPoint;            /* 0310-0313 */
+     u32 ImageOutSize;             /* 0314-0317 */
+     u32 DuDx;                     /* 0318-031B */
+     u32 DvDy;                     /* 031C-031F */
+     u32 Reserved02[0x038];
+     u32 ImageInSize;              /* 0400-0403 */
+     u32 ImageInFormat;            /* 0404-0407 */
+     u32 ImageInOffset;            /* 0408-040B */
+     u32 ImageInPoint;             /* 040C-040F */
+     u32 Reserved03[0x6FC];
 } NVScaledImage;
 #define SCALER_COLOR_CONVERSION              0x000002FC
 #define SCALER_COLOR_FORMAT                  0x00000300
@@ -1406,28 +1406,28 @@ typedef volatile struct {
  * 2D stretched image from CPU BLT
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextColorKey;     /* 0184-0187 */
-     __u32 SetContextPattern;      /* 0188-018B */
-     __u32 SetContextRop;          /* 018C-018F */
-     __u32 SetContextBeta1;        /* 0190-0193 */
-     __u32 SetContextBeta4;        /* 0194-0197 */
-     __u32 SetContextSurface;      /* 0198-019C */
-     __u32 Reserved01[0x057];
-     __u32 SetColorConversion;     /* 02F8-02FB */
-     __u32 SetOperation;           /* 02FC-02FF */
-     __u32 SetColorFormat;         /* 0300-0303 */
-     __u32 ImageInSize;            /* 0304-0307 */
-     __u32 DxDu;                   /* 0308-030B */
-     __u32 DyDv;                   /* 030C-030F */
-     __u32 ClipPoint;              /* 0310-0313 */
-     __u32 ClipSize;               /* 0314-0317 */
-     __u32 ImageOutPoint;          /* 0318-031B */
-     __u32 Reserved02[0x039];
-     __u32 Pixel[1792];            /* 0400-     */
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextColorKey;       /* 0184-0187 */
+     u32 SetContextPattern;        /* 0188-018B */
+     u32 SetContextRop;            /* 018C-018F */
+     u32 SetContextBeta1;          /* 0190-0193 */
+     u32 SetContextBeta4;          /* 0194-0197 */
+     u32 SetContextSurface;        /* 0198-019C */
+     u32 Reserved01[0x057];
+     u32 SetColorConversion;       /* 02F8-02FB */
+     u32 SetOperation;             /* 02FC-02FF */
+     u32 SetColorFormat;           /* 0300-0303 */
+     u32 ImageInSize;              /* 0304-0307 */
+     u32 DxDu;                     /* 0308-030B */
+     u32 DyDv;                     /* 030C-030F */
+     u32 ClipPoint;                /* 0310-0313 */
+     u32 ClipSize;                 /* 0314-0317 */
+     u32 ImageOutPoint;            /* 0318-031B */
+     u32 Reserved02[0x039];
+     u32 Pixel[1792];              /* 0400-     */
 } NVStretchedImage;
 #define ISTRETCH_COLOR_CONVERSION            0x000002F8
 #define ISTRETCH_OPERATION                   0x000002FC
@@ -1449,34 +1449,34 @@ typedef volatile struct {
  * 3D textured, Z buffered triangle
  */
 typedef volatile struct {
-     __u32 NoOperation;            /* 0100-0103 */
-     __u32 Notify;                 /* 0104-0107 */
-     __u32 Reserved00[0x01E];
-     __u32 SetContextDmaNotify;    /* 0180-0183 */
-     __u32 SetContextDmaA;         /* 0184-0187 */
-     __u32 SetContextDmaB;         /* 0188-018B */
-     __u32 SetContextSurfaces;     /* 018C-018F */
-     __u32 Reserved01[0x05C];
-     __u32 ColorKey;               /* 0300-0303 */
-     __u32 TextureOffset;          /* 0304-0307 */
-     __u32 TextureFormat;          /* 0308-030B */
-     __u32 TextureFilter;          /* 030C-030F */
-     __u32 Blend;                  /* 0310-0313 */
-     __u32 Control;                /* 0314-0317 */
-     __u32 FogColor;               /* 0318-031B */
-     __u32 Reserved02[0x039];
+     u32 NoOperation;              /* 0100-0103 */
+     u32 Notify;                   /* 0104-0107 */
+     u32 Reserved00[0x01E];
+     u32 SetContextDmaNotify;      /* 0180-0183 */
+     u32 SetContextDmaA;           /* 0184-0187 */
+     u32 SetContextDmaB;           /* 0188-018B */
+     u32 SetContextSurfaces;       /* 018C-018F */
+     u32 Reserved01[0x05C];
+     u32 ColorKey;                 /* 0300-0303 */
+     u32 TextureOffset;            /* 0304-0307 */
+     u32 TextureFormat;            /* 0308-030B */
+     u32 TextureFilter;            /* 030C-030F */
+     u32 Blend;                    /* 0310-0313 */
+     u32 Control;                  /* 0314-0317 */
+     u32 FogColor;                 /* 0318-031B */
+     u32 Reserved02[0x039];
      struct {                      /* 0400-     */
           float sx;                /*   00-  03 */
           float sy;                /*   04-  07 */
           float sz;                /*   08-  0B */
           float rhw;               /*   0C-  0F */
-          __u32 color;             /*   10-  13 */
-          __u32 specular;          /*   14-  17 */
+          u32 color;               /*   10-  13 */
+          u32 specular;            /*   14-  17 */
           float ts;                /*   18-  1B */
           float tt;                /*   1C-  1F */
      } Tlvertex[16];               /*     -05FF */
-     __u32 DrawPrimitives[64];     /* 0600-063F */
-     __u32 Reserved03[0x640];
+     u32 DrawPrimitives[64];       /* 0600-063F */
+     u32 Reserved03[0x640];
 } NVTexturedTriangleDx5;
 #define TXTRI_COLOR_KEY                      0x00000300
 #define TXTRI_OFFSET                         0x00000304
@@ -1613,18 +1613,18 @@ typedef volatile struct {
 
 
 typedef volatile struct {
-     __u32 SetObject;              /* 0000-0003 */
-     __u32 Reserved00[0x003];
+     u32 SetObject;                /* 0000-0003 */
+     u32 Reserved00[0x003];
 #ifdef WORDS_BIGENDIAN
-     __u32 Free;                   /* 0010-0013 */
+     u32 Free;                     /* 0010-0013 */
 #else
-     __u16 Free;                   /* 0010-0011 */
-     __u16 Nop;                    /* 0012-0013 */
+     u16 Free;                     /* 0010-0011 */
+     u16 Nop;                      /* 0012-0013 */
 #endif
-     __u32 Reserved01[0x00B];
-     __u32 DmaPut;                 /* 0040-0043 */
-     __u32 DmaGet;                 /* 0044-0047 */
-     __u32 Reserved02[0x02E];
+     u32 Reserved01[0x00B];
+     u32 DmaPut;                   /* 0040-0043 */
+     u32 DmaGet;                   /* 0044-0047 */
+     u32 Reserved02[0x02E];
      union {
           NVSurfaces2D          Surfaces2D;
           NVSurfaces3D          Surfaces3D;

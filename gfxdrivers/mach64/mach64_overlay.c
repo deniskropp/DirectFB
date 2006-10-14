@@ -50,25 +50,25 @@ typedef struct {
 
      /* overlay registers */
      struct {
-          __u32 overlay_Y_X_START;
-          __u32 overlay_Y_X_END;
-          __u32 overlay_GRAPHICS_KEY_CLR;
-          __u32 overlay_GRAPHICS_KEY_MSK;
-          __u32 overlay_VIDEO_KEY_CLR;
-          __u32 overlay_VIDEO_KEY_MSK;
-          __u32 overlay_KEY_CNTL;
-          __u32 overlay_SCALE_INC;
-          __u32 overlay_SCALE_CNTL;
-          __u32 scaler_HEIGHT_WIDTH;
-          __u32 scaler_BUF_PITCH;
-          __u32 scaler_BUF0_OFFSET;
-          __u32 scaler_BUF1_OFFSET;
-          __u32 scaler_BUF0_OFFSET_U;
-          __u32 scaler_BUF0_OFFSET_V;
-          __u32 scaler_BUF1_OFFSET_U;
-          __u32 scaler_BUF1_OFFSET_V;
-          __u32 video_FORMAT;
-          __u32 capture_CONFIG;
+          u32 overlay_Y_X_START;
+          u32 overlay_Y_X_END;
+          u32 overlay_GRAPHICS_KEY_CLR;
+          u32 overlay_GRAPHICS_KEY_MSK;
+          u32 overlay_VIDEO_KEY_CLR;
+          u32 overlay_VIDEO_KEY_MSK;
+          u32 overlay_KEY_CNTL;
+          u32 overlay_SCALE_INC;
+          u32 overlay_SCALE_CNTL;
+          u32 scaler_HEIGHT_WIDTH;
+          u32 scaler_BUF_PITCH;
+          u32 scaler_BUF0_OFFSET;
+          u32 scaler_BUF1_OFFSET;
+          u32 scaler_BUF0_OFFSET_U;
+          u32 scaler_BUF0_OFFSET_V;
+          u32 scaler_BUF1_OFFSET_U;
+          u32 scaler_BUF1_OFFSET_V;
+          u32 video_FORMAT;
+          u32 capture_CONFIG;
      } regs;
 } Mach64OverlayLayerData;
 
@@ -294,7 +294,7 @@ ovRemoveRegion( CoreLayer *layer,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 2 );
 
@@ -337,7 +337,7 @@ ovSetColorAdjustment( CoreLayer          *layer,
 {
      Mach64DriverData *mdrv = (Mach64DriverData*) driver_data;
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      if (mdev->chip < CHIP_3D_RAGE_PRO)
           return DFB_UNSUPPORTED;
@@ -386,7 +386,7 @@ DisplayLayerFuncs mach64OverlayFuncs = {
 static void ov_reset( Mach64DriverData *mdrv )
 {
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      if (mdev->chip >= CHIP_3D_RAGE_PRO) {
           mach64_waitfifo( mdrv, mdev, 6 );
@@ -416,7 +416,7 @@ static void ov_set_regs( Mach64DriverData       *mdrv,
                          Mach64OverlayLayerData *mov )
 {
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, (mdev->chip >= CHIP_264VT3) ? 6 : 7 );
 
@@ -438,7 +438,7 @@ static void ov_set_buffer( Mach64DriverData       *mdrv,
                            Mach64OverlayLayerData *mov )
 {
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, (mdev->chip >= CHIP_3D_RAGE_PRO) ? 6 : 2 );
 
@@ -462,7 +462,7 @@ static void ov_set_colorkey( Mach64DriverData       *mdrv,
                              Mach64OverlayLayerData *mov )
 {
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 5 );
 
@@ -477,7 +477,7 @@ static void ov_set_opacity( Mach64DriverData       *mdrv,
                             Mach64OverlayLayerData *mov )
 {
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 1 );
 
@@ -488,7 +488,7 @@ static void ov_set_field( Mach64DriverData       *mdrv,
                           Mach64OverlayLayerData *mov )
 {
      Mach64DeviceData *mdev = mdrv->device_data;
-     volatile __u8    *mmio = mdrv->mmio_base;
+     volatile u8      *mmio = mdrv->mmio_base;
 
      mach64_waitfifo( mdrv, mdev, 1 );
 
@@ -501,7 +501,7 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
                           CoreSurface            *surface )
 {
      Mach64DeviceData *mdev   = mdrv->device_data;
-     volatile __u8    *mmio   = mdrv->mmio_base;
+     volatile u8      *mmio   = mdrv->mmio_base;
      SurfaceBuffer    *buffer = surface->front_buffer;
      VideoMode        *mode   = dfb_system_current_mode();
      int               yres   = mode->yres;
@@ -511,8 +511,8 @@ static void ov_calc_regs( Mach64DriverData       *mdrv,
 
      DFBRegion dst;
      int h_inc, v_inc;
-     __u32 lcd_gen_ctrl, vert_stretching;
-     __u8 ecp_div;
+     u32 lcd_gen_ctrl, vert_stretching;
+     u8 ecp_div;
 
      if (mode->doubled) {
           dest.y *= 2;
@@ -590,7 +590,7 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
      int            pitch  = buffer->video.pitch;
      DFBRectangle   source = config->source;
 
-     __u32 offset, offset_u, offset_v;
+     u32 offset, offset_u, offset_v;
      int cropleft, croptop;
 
      if (config->options & DLOP_DEINTERLACING) {
@@ -648,7 +648,7 @@ static void ov_calc_buffer( Mach64DriverData       *mdrv,
      mov->regs.scaler_BUF1_OFFSET_V = offset_v + buffer->video.pitch/2;
 }
 
-static __u32 ovColorKey[] = {
+static u32 ovColorKey[] = {
      VIDEO_KEY_FN_TRUE      | GRAPHICS_KEY_FN_TRUE  | OVERLAY_CMP_MIX_OR, /* 0 */
      VIDEO_KEY_FN_NOT_EQUAL | GRAPHICS_KEY_FN_FALSE | OVERLAY_CMP_MIX_OR, /* DLOP_SRC_COLORKEY */
      VIDEO_KEY_FN_FALSE     | GRAPHICS_KEY_FN_EQUAL | OVERLAY_CMP_MIX_OR, /* DLOP_DST_COLORKEY */

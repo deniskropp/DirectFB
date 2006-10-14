@@ -101,7 +101,7 @@ static inline void savage4_validate_gbd( Savage4DriverData *sdrv,
                                          Savage4DeviceData *sdev,
                                          CardState         *state )
 {
-     __u32 BitmapDescriptor;
+     u32 BitmapDescriptor;
      CoreSurface *destination;
      SurfaceBuffer *buffer;
      int bpp;
@@ -133,7 +133,7 @@ static inline void savage4_validate_pbd( Savage4DriverData *sdrv,
                                          Savage4DeviceData *sdev,
                                          CardState         *state )
 {
-     __u32 BitmapDescriptor;
+     u32 BitmapDescriptor;
      CoreSurface *source;
      SurfaceBuffer *buffer;
      int bpp;
@@ -432,9 +432,9 @@ static bool savage4Blit( void *drv, void *dev,
      Savage4DriverData *sdrv = (Savage4DriverData*) drv;
      Savage4DeviceData *sdev = (Savage4DeviceData*) dev;
      
-     __u32 cmd = ( BCI_CMD_RECT | sdev->Cmd_Src_Transparent |
-                   BCI_CMD_CLIP_CURRENT | BCI_CMD_DEST_GBD | 
-                   BCI_CMD_SRC_PBD_COLOR | (0xcc << 16) );
+     u32 cmd = ( BCI_CMD_RECT | sdev->Cmd_Src_Transparent |
+                 BCI_CMD_CLIP_CURRENT | BCI_CMD_DEST_GBD |
+                 BCI_CMD_SRC_PBD_COLOR | (0xcc << 16) );
  
      SVGDBG("savage4Blit x:%i y:%i w:%i h:%i dx:%i dy:%i\n",
             rect->x, rect->y, rect->w, rect->h, dx, dy);
@@ -532,7 +532,7 @@ savage4_init_device( GraphicsDevice     *device,
                      void               *device_data )
 {
      SavageDriverData *sdrv = (SavageDriverData*) driver_data;
-     volatile __u8    *mmio = sdrv->mmio_base;
+     volatile u8      *mmio = sdrv->mmio_base;
 
      SVGDBG("savage4initdevice\n");
 

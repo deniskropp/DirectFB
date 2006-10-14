@@ -172,8 +172,8 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
      UcDeviceData   *ucdev = (UcDeviceData*) dev;
      struct uc_fifo *fifo  = ucdrv->fifo;
 
-     __u32 rop3d     = HC_HROP_P;
-     __u32 regEnable = HC_HenCW_MASK | HC_HenAW_MASK;
+     u32 rop3d     = HC_HROP_P;
+     u32 regEnable = HC_HenCW_MASK | HC_HenAW_MASK;
 
      StateModificationFlags modified = state->modified;
 

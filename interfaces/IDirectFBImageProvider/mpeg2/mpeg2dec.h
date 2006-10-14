@@ -30,7 +30,7 @@
 #include <dfb_types.h>
 
 typedef int  (*MPEG2_Read)(void *buf, int count, void *ctx);
-typedef void (*MPEG2_Write)(int x, int y, __u32 argb, void *ctx);
+typedef void (*MPEG2_Write)(int x, int y, u32 argb, void *ctx);
 
 typedef struct {
      int Fault_Flag;

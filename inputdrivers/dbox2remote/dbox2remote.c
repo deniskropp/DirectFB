@@ -57,7 +57,7 @@ DFB_INPUT_DRIVER( dbox2remote )
 
 typedef struct {
      DFBInputDeviceKeySymbol  key;
-     __u16                    rccode;
+     u16                      rccode;
 } KeyCode;
 
 /* REMOTE_NEW is the one with _fewer_ buttons */
@@ -153,7 +153,7 @@ typedef struct {
  * helper function for translating rccode
  */
 static DFBInputDeviceKeySymbol
-dbox2remote_parse_rccode( __u16 rccode )
+dbox2remote_parse_rccode( u16 rccode )
 {
      KeyCode *keycode;
 
@@ -184,7 +184,7 @@ dbox2remoteEventThread( DirectThread *thread, void *driver_data )
 {
      Dbox2remoteData *data = (Dbox2remoteData*) driver_data;
      int              readlen;
-     __u16            rccode;
+     u16              rccode;
      DFBInputEvent    evt;
 
      while ((readlen = read( data->fd, &rccode, 2 )) == 2) {

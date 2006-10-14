@@ -333,7 +333,7 @@ uc_set_color_2d( UcDriverData *ucdrv,
                  CardState    *state )
 {
      struct uc_fifo *fifo  = ucdrv->fifo;
-     __u32           color = 0;
+     u32             color = 0;
 
      if (UC_IS_VALID( uc_color2d ))
           return;

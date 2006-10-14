@@ -32,11 +32,11 @@
 #include <core/layers.h>
 
 /* HACK */
-extern volatile __u8 *cyber_mmio;
+extern volatile u8 *cyber_mmio;
 
 
 typedef struct {
-     volatile __u8 *mmio_base;
+     volatile u8 *mmio_base;
 } CyberDriverData;
 
 typedef struct {
@@ -48,12 +48,12 @@ typedef struct {
      int v_blitting_cmd;
 
      /* stored values */
-     __u32 dst_pixeloffset;
-     __u32 dst_pixelpitch;
-     __u32 src_pixeloffset;
-     __u32 src_pixelpitch;
+     u32 dst_pixeloffset;
+     u32 dst_pixelpitch;
+     u32 src_pixeloffset;
+     u32 src_pixelpitch;
 
-     __u32 blitting_cmd;
+     u32 blitting_cmd;
 } CyberDeviceData;
 
 
