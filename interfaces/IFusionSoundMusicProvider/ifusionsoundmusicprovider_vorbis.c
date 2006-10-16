@@ -5,12 +5,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -58,23 +58,23 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Vorbis )
  */
 typedef struct {
      int                           ref;       /* reference counter */
-    
+
      DirectStream                 *stream;
-     
+
      OggVorbis_File                vf;
      vorbis_info                  *info;
-     
+
      FSMusicProviderPlaybackFlags  flags;
-     
+
      DirectThread                 *thread;
-     pthread_mutex_t               lock; 
+     pthread_mutex_t               lock;
      bool                          playing;
      bool                          finished;
 
      void                         *buf;
 
      struct {
-          IFusionSoundStream      *stream; 
+          IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
           int                      channels;
@@ -128,14 +128,14 @@ vorbis_mix_audio( float **src, void *dst, int len,
      int s_n = src_channels;
      int d_n = dst_channels;
      int i, j;
-               
+
      switch (format) {
           case FSSF_U8:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
                          float *s = src[i];
-                         __u8  *d = &((__u8*)dst)[i];
+                         u8    *d = &((u8*)dst)[i];
 
                          for (j = 0; j < len; j++) {
                               *d  = FtoU8(s[j]);
@@ -146,7 +146,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
                     float *s = src[0];
-                    __u8  *d = dst;
+                    u8    *d = dst;
 
                     for (i = 0; i < len; i++)
                          d[i*2+0] = d[i*2+1] = FtoU8(s[i]);
@@ -155,19 +155,19 @@ vorbis_mix_audio( float **src, void *dst, int len,
                else if (s_n > d_n) {
                     float *s0 = src[0];
                     float *s1 = src[1];
-                    __u8  *d  = dst;
+                    u8    *d  = dst;
 
                     for (i = 0; i < len; i++)
                          d[i] = (FtoU8(s0[i]) + FtoU8(s1[i])) >> 1;
                }
-               break;               
-                         
+               break;
+
           case FSSF_S16:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
                          float *s = src[i];
-                         __s16 *d = &((__s16*)dst)[i];
+                         s16   *d = &((s16*)dst)[i];
 
                          for (j = 0; j < len; j++) {
                               *d  = FtoS16(s[j]);
@@ -178,7 +178,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
                     float *s = src[0];
-                    __s16 *d = dst;
+                    s16   *d = dst;
 
                     for (i = 0; i < len; i++)
                          d[i*2+0] = d[i*2+1] = FtoS16(s[i]);
@@ -187,19 +187,19 @@ vorbis_mix_audio( float **src, void *dst, int len,
                else if (s_n > d_n) {
                     float *s0 = src[0];
                     float *s1 = src[1];
-                    __s16 *d  = dst;
+                    s16   *d  = dst;
 
                     for (i = 0; i < len; i++)
                          d[i] = (FtoS16(s0[i]) + FtoS16(s1[i])) >> 1;
                }
                break;
-               
+
           case FSSF_S24:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
                          float *s = src[i];
-                         __u8  *d = &((__u8*)dst)[i*3];
+                         u8 *d = &((u8*)dst)[i*3];
 
                          for (j = 0; j < len; j++) {
                               int c = FtoS24(s[j]);
@@ -219,7 +219,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
                     float *s = src[0];
-                    __u8  *d = dst;
+                    u8    *d = dst;
 
                     for (i = 0; i < len; i++) {
                          int c = FtoS24(s[i]);
@@ -239,7 +239,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                else if (s_n > d_n) {
                     float *s0 = src[0];
                     float *s1 = src[1];
-                    __u8  *d  = dst;
+                    u8    *d  = dst;
 
                     for (i = 0; i < len; i++) {
                          int c = (FtoU8(s0[i]) + FtoU8(s1[i])) >> 1;
@@ -256,13 +256,13 @@ vorbis_mix_audio( float **src, void *dst, int len,
                     }
                }
                break;
-               
+
           case FSSF_S32:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     for (i = 0; i < s_n; i++) {
                          float *s = src[i];
-                         __s32 *d = &((__s32*)dst)[i];
+                         s32   *d = &((s32*)dst)[i];
 
                          for (j = 0; j < len; j++) {
                               *d  = FtoS32(s[j]);
@@ -273,7 +273,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
                     float *s = src[0];
-                    __s32 *d = dst;
+                    s32   *d = dst;
 
                     for (i = 0; i < len; i++)
                          d[i*2+0] = d[i*2+1] = FtoS32(s[i]);
@@ -282,13 +282,13 @@ vorbis_mix_audio( float **src, void *dst, int len,
                else if (s_n > d_n) {
                     float *s0 = src[0];
                     float *s1 = src[1];
-                    __s32 *d  = dst;
+                    s32   *d  = dst;
 
                     for (i = 0; i < len; i++)
                          d[i] = FtoS32( (s0[i] + s1[i]) / 2.0f );
                }
                break;
-          
+
           case FSSF_FLOAT:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
@@ -320,7 +320,7 @@ vorbis_mix_audio( float **src, void *dst, int len,
                          d[i] = (s0[i] + s1[i]) / 2.0f;
                }
                break;
-                         
+
           default:
                D_BUG( "unexpected sample format" );
                break;
@@ -344,17 +344,17 @@ ov_read_callback( void *dst, size_t size, size_t nmemb, void *ctx )
                return errno;
           }
      }
-     
+
      return length;
 }
 
-static int 
+static int
 ov_seek_callback( void *ctx, ogg_int64_t offset, int whence )
 {
      DirectStream *stream = ctx;
      unsigned int  pos    = 0;
      DirectResult  ret    = DFB_UNSUPPORTED;
-     
+
      if (!direct_stream_seekable( stream ) || direct_stream_remote( stream ))
           return -1;
 
@@ -375,15 +375,15 @@ ov_seek_callback( void *ctx, ogg_int64_t offset, int whence )
                offset = -1;
                break;
      }
-     
+
      if (offset >= 0)
           ret = direct_stream_seek( stream, offset );
      if (ret) {
           errno = -1;
           return -1;
      }
-     
-     errno = 0;    
+
+     errno = 0;
      return direct_stream_offset( stream );
 }
 
@@ -391,7 +391,7 @@ static long
 ov_tell_callback( void *ctx )
 {
      DirectStream *stream = ctx;
-     
+
      return direct_stream_offset( stream );
 }
 
@@ -409,7 +409,7 @@ IFusionSoundMusicProvider_Vorbis_Destruct( IFusionSoundMusicProvider *thiz )
      IFusionSoundMusicProvider_Vorbis_data *data = thiz->priv;
 
      thiz->Stop( thiz );
-    
+
      ov_clear( &data->vf );
 
      if (data->stream)
@@ -462,22 +462,22 @@ static inline float
 vorbis_compute_gain( const char *rg_gain, const char *rg_peak )
 {
      float gain, peak = 1.0f;
-          
+
      if (rg_peak)
-          peak = atof( rg_peak ) ? : 1.0f;     
-          
+          peak = atof( rg_peak ) ? : 1.0f;
+
      gain = pow( 10.0f, atof( rg_gain ) / 20.0f );
      if (gain*peak > 1.0f)
           gain = 1.0f / peak;
 
      return gain;
-}     
+}
 
 static void
 vorbis_get_metadata( OggVorbis_File     *vf,
                      FSTrackDescription *desc )
 {
-     vorbis_comment   *vc        = ov_comment( vf, -1 ); 
+     vorbis_comment   *vc        = ov_comment( vf, -1 );
      char           **ptr        = vc->user_comments;
      char            *track_gain = NULL;
      char            *track_peak = NULL;
@@ -485,7 +485,7 @@ vorbis_get_metadata( OggVorbis_File     *vf,
      char            *album_peak = NULL;
 
      memset( desc, 0, sizeof(FSTrackDescription) );
-                  
+
      while (*ptr) {
           char *comment = *ptr;
 
@@ -498,7 +498,7 @@ vorbis_get_metadata( OggVorbis_File     *vf,
                strncpy( desc->title,
                         comment + sizeof("TITLE=") - 1,
                         FS_TRACK_DESC_TITLE_LENGTH - 1 );
-          } 
+          }
           else if (!strncasecmp( comment, "ALBUM=", sizeof("ALBUM=")-1 )) {
                strncpy( desc->album,
                         comment + sizeof("ALBUM=") - 1,
@@ -512,11 +512,11 @@ vorbis_get_metadata( OggVorbis_File     *vf,
           else if (!strncasecmp( comment, "DATE=", sizeof("DATE=")-1 )) {
                desc->year = atoi( comment + sizeof("DATE=") );
           }
-          else if (!strncasecmp( comment, "REPLAYGAIN_TRACK_GAIN=", 
+          else if (!strncasecmp( comment, "REPLAYGAIN_TRACK_GAIN=",
                                    sizeof("REPLAYGAIN_TRACK_GAIN=")-1 )) {
                track_gain = comment + sizeof("REPLAYGAIN_TRACK_GAIN=") - 1;
           }
-          else if (!strncasecmp( comment, "REPLAYGAIN_ALBUM_GAIN=", 
+          else if (!strncasecmp( comment, "REPLAYGAIN_ALBUM_GAIN=",
                                    sizeof("REPLAYGAIN_ALBUM_GAIN=")-1 )) {
                album_gain = comment + sizeof("REPLAYGAIN_ALBUM_GAIN=") - 1;
           }
@@ -532,9 +532,9 @@ vorbis_get_metadata( OggVorbis_File     *vf,
           ptr++;
      }
 
-     snprintf( desc->encoding, 
+     snprintf( desc->encoding,
                FS_TRACK_DESC_ENCODING_LENGTH, "Vorbis" );
-     
+
      desc->bitrate = ov_bitrate( vf, -1 ) ? : ov_bitrate_instant( vf );
      if (track_gain)
           desc->replaygain = vorbis_compute_gain( track_gain, track_peak );
@@ -548,7 +548,7 @@ IFusionSoundMusicProvider_Vorbis_EnumTracks( IFusionSoundMusicProvider *thiz,
                                              void                      *callbackdata )
 {
      FSTrackDescription desc;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!callback)
@@ -591,13 +591,13 @@ IFusionSoundMusicProvider_Vorbis_GetTrackDescription( IFusionSoundMusicProvider 
 static DFBResult
 IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                        FSStreamDescription       *desc )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!desc)
           return DFB_INVARG;
 
-     desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  | 
+     desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = data->info->rate;
      desc->channels     = data->info->channels;
@@ -610,13 +610,13 @@ IFusionSoundMusicProvider_Vorbis_GetStreamDescription( IFusionSoundMusicProvider
 static DFBResult
 IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                        FSBufferDescription       *desc )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (!desc)
           return DFB_INVARG;
 
-     desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS | 
+     desc->flags        = FSBDF_SAMPLERATE   | FSBDF_CHANNELS |
                           FSBDF_SAMPLEFORMAT | FSBDF_LENGTH;
      desc->samplerate   = data->info->rate;
      desc->channels     = data->info->channels;
@@ -641,23 +641,23 @@ IFusionSoundMusicProvider_Vorbis_SelectTrack( IFusionSoundMusicProvider *thiz,
 static void*
 VorbisStreamThread( DirectThread *thread, void *ctx )
 {
-     IFusionSoundMusicProvider_Vorbis_data *data = 
+     IFusionSoundMusicProvider_Vorbis_data *data =
           (IFusionSoundMusicProvider_Vorbis_data*) ctx;
-     
+
      float **src; // src[0] = first channel, src[1] = second channel, ...
      char   *dst     = data->buf;
-     int     section = 0; 
-     
+     int     section = 0;
+
      while (data->playing && !data->finished) {
           long len;
-          
+
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
+
           len = ov_read_float( &data->vf, &src,
                                data->dest.length, &section );
           if (len == 0) {
@@ -675,15 +675,15 @@ VorbisStreamThread( DirectThread *thread, void *ctx )
           }
 
           pthread_mutex_unlock( &data->lock );
-          
+
           if (len > 0) {
                vorbis_mix_audio( src, dst, len, data->dest.format,
                                  data->info->channels, data->dest.channels );
-                                  
+
                data->dest.stream->Write( data->dest.stream, dst, len );
           }
      }
-     
+
      return NULL;
 }
 
@@ -703,12 +703,12 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      /* check if destination samplerate is supported */
      if (desc.samplerate != data->info->rate)
           return DFB_UNSUPPORTED;
-     
+
      /* check if number of channels is supported */
      if (desc.channels != data->info->channels &&
         (desc.channels > 2 || data->info->channels > 2))
           return DFB_UNSUPPORTED;
-     
+
      /* check if destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -726,20 +726,20 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
      pthread_mutex_lock( &data->lock );
 
      /* allocate buffer */
-     data->buf = D_MALLOC( desc.buffersize * desc.channels * 
+     data->buf = D_MALLOC( desc.buffersize * desc.channels *
                            FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3 );
      if (!data->buf) {
           pthread_mutex_unlock( &data->lock );
           return D_OOM();
      }
-     
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.stream   = destination;
      data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
-    
+
      if (data->finished) {
           if (direct_stream_remote( data->stream ))
                direct_stream_seek( data->stream, 0 );
@@ -748,10 +748,10 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
           data->finished = false;
      }
-    
+
      /* start thread */
      data->playing = true;
-     data->thread  = direct_thread_create( DTT_DEFAULT, 
+     data->thread  = direct_thread_create( DTT_DEFAULT,
                                            VorbisStreamThread, data, "Vorbis" );
 
      pthread_mutex_unlock( &data->lock );
@@ -761,22 +761,22 @@ IFusionSoundMusicProvider_Vorbis_PlayToStream( IFusionSoundMusicProvider *thiz,
 
 static void*
 VorbisBufferThread( DirectThread *thread, void *ctx )
-{ 
-     IFusionSoundMusicProvider_Vorbis_data *data = 
+{
+     IFusionSoundMusicProvider_Vorbis_data *data =
           (IFusionSoundMusicProvider_Vorbis_data*) ctx;
-     
+
      IFusionSoundBuffer *buffer    = data->dest.buffer;
      int                 section   = 0;
-     int                 blocksize = data->dest.channels * 
+     int                 blocksize = data->dest.channels *
                                      FS_BITS_PER_SAMPLE(data->dest.format) >> 3;
-     
+
      while (data->playing && !data->finished) {
           float **src;
           char   *dst;
           long    len;
           int     pos = 0;
           int     size;
-          
+
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
@@ -813,7 +813,7 @@ VorbisBufferThread( DirectThread *thread, void *ctx )
                          vorbis_mix_audio( src, &dst[pos*blocksize], n,
                                            data->dest.format,
                                            data->info->channels,
-                                           data->dest.channels );           
+                                           data->dest.channels );
                          pos += n;
                          len -= n;
                     } while (n > 0);
@@ -851,12 +851,12 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      /* check if destination samplerate is supported */
      if (desc.samplerate != data->info->rate)
           return DFB_UNSUPPORTED;
-     
+
      /* check if number of channels is supported */
      if (desc.channels != data->info->channels &&
         (desc.channels > 2 || data->info->channels > 2))
           return DFB_UNSUPPORTED;
-     
+
      /* check if destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -868,11 +868,11 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
-     
+
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-     
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.buffer   = destination;
@@ -883,7 +883,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      /* register new callback */
      data->callback = callback;
      data->ctx      = ctx;
-     
+
      if (data->finished) {
           if (direct_stream_remote( data->stream ))
                direct_stream_seek( data->stream, 0 );
@@ -892,7 +892,7 @@ IFusionSoundMusicProvider_Vorbis_PlayToBuffer( IFusionSoundMusicProvider *thiz,
 
           data->finished = false;
      }
-     
+
      /* start thread */
      data->playing = true;
      data->thread  = direct_thread_create( DTT_DEFAULT,
@@ -948,10 +948,10 @@ IFusionSoundMusicProvider_Vorbis_GetStatus( IFusionSoundMusicProvider *thiz,
                                             FSMusicProviderStatus     *status )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
-     
+
      if (!status)
           return DFB_INVARG;
-          
+
      if (data->finished) {
           *status = FMSTATE_FINISHED;
      }
@@ -961,26 +961,26 @@ IFusionSoundMusicProvider_Vorbis_GetStatus( IFusionSoundMusicProvider *thiz,
      else {
           *status = FMSTATE_STOP;
      }
-     
+
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
                                          double                     seconds )
 {
      DFBResult ret = DFB_OK;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
 
      if (seconds < 0.0)
           return DFB_INVARG;
 
      pthread_mutex_lock( &data->lock );
-     
+
      if (direct_stream_remote( data->stream )) {
           unsigned int off;
-          
+
           if (!data->info->bitrate_nominal)
                return DFB_UNSUPPORTED;
 
@@ -991,13 +991,13 @@ IFusionSoundMusicProvider_Vorbis_SeekTo( IFusionSoundMusicProvider *thiz,
           if (ov_time_seek( &data->vf, seconds ))
                ret = DFB_FAILURE;
      }
-     
+
      pthread_mutex_unlock( &data->lock );
-     
+
      return ret;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
                                          double                    *seconds )
 {
@@ -1005,23 +1005,23 @@ IFusionSoundMusicProvider_Vorbis_GetPos( IFusionSoundMusicProvider *thiz,
 
      if (!seconds)
           return DFB_INVARG;
-          
+
      *seconds = ov_time_tell( &data->vf );
-          
+
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
                                             double                    *seconds )
 {
      double length;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
-     
+
      if (!seconds)
           return DFB_INVARG;
-         
+
      length = ov_time_total( &data->vf, -1 );
      if (length < 0) {
           if (data->info->bitrate_nominal) {
@@ -1029,26 +1029,26 @@ IFusionSoundMusicProvider_Vorbis_GetLength( IFusionSoundMusicProvider *thiz,
                         (double)(data->info->bitrate_nominal >> 3);
           }
      }
-     
+
      *seconds = length;
 
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Vorbis_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                    FSMusicProviderPlaybackFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
-     
+
      if (flags & ~FMPLAY_LOOPING)
           return DFB_UNSUPPORTED;
 
      if (flags & FMPLAY_LOOPING && !direct_stream_seekable( data->stream ))
           return DFB_UNSUPPORTED;
-          
+
      data->flags = flags;
-     
+
      return DFB_OK;
 }
 
@@ -1065,12 +1065,12 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, 
+Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream )
 {
      ov_callbacks cb;
-     
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Vorbis )
 
      data->ref    = 1;
@@ -1080,14 +1080,14 @@ Construct( IFusionSoundMusicProvider *thiz,
      cb.seek_func  = ov_seek_callback;
      cb.tell_func  = ov_tell_callback;
      cb.close_func = ov_close_callback;
-     
+
      if (ov_open_callbacks( data->stream, &data->vf, NULL, 0, cb ) < 0) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
                    "Error opening ogg/vorbis stream!\n" );
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DFB_FAILURE;
      }
-     
+
      data->info = ov_info( &data->vf, -1 );
      if (!data->info) {
           D_ERROR( "IFusionSoundMusicProvider_Vorbis: "
@@ -1095,7 +1095,7 @@ Construct( IFusionSoundMusicProvider *thiz,
           IFusionSoundMusicProvider_Vorbis_Destruct( thiz );
           return DFB_FAILURE;
      }
-     
+
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
      /* initialize function pointers */

@@ -10,12 +10,12 @@
 #include <fusionsound.h>
 
 typedef struct fmtChunk {
-     __u16     encoding;
-     __u16     channels;		/* 1 = mono, 2 = stereo */
-     __u32     frequency;		/* One of 11025, 22050, or 44100 Hz */
-     __u32     byterate;		/* Average bytes per second */
-     __u16     blockalign;		/* Bytes per sample block */
-     __u16     bitspersample;		/* One of 8, 12, 16, or 4 for ADPCM */
+     u16     encoding;
+     u16     channels;		/* 1 = mono, 2 = stereo */
+     u32     frequency;		/* One of 11025, 22050, or 44100 Hz */
+     u32     byterate;		/* Average bytes per second */
+     u16     blockalign;		/* Bytes per sample block */
+     u16     bitspersample;		/* One of 8, 12, 16, or 4 for ADPCM */
 } fmtChunk;
 
 #ifdef WORDS_BIGENDIAN
@@ -33,11 +33,11 @@ static void fixup_fmtchunk(struct fmtChunk *fmtchunk)
      fmtchunk->bitspersample = SWAP16(fmtchunk->bitspersample);
 }
 
-static void fixup_sampledata(__u16 *data, int len)
+static void fixup_sampledata(u16 *data, int len)
 {
     len/=2;
     while (len--) {
-         __u16 tmp = *data;
+         u16 tmp = *data;
          *data++ = SWAP16(tmp);
     }
 }
@@ -133,7 +133,7 @@ load_sample (IFusionSound *sound, const char *filename)
                     close (fd);
                     return NULL;
                }
-               
+
                break;
           }
           else {
@@ -160,24 +160,24 @@ load_sample (IFusionSound *sound, const char *filename)
           close (fd);
           return NULL;
      }
-     
+
 
      desc.flags        = FSBDF_LENGTH | FSBDF_CHANNELS |
                          FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
      desc.channels     = fmt.channels;
      desc.sampleformat = (fmt.bitspersample == 8) ? FSSF_U8 : FSSF_S16;
      desc.samplerate   = fmt.frequency;
-     
+
      while (DFB_TRUE) {
           char magic[4];
-          
+
           len = read_chunk_header (fd, magic);
           if (len <= 0) {
                fprintf (stderr, "Could not find data chunk!\n");
                close (fd);
                return NULL;
           }
-               
+
           if (magic[0] == 'd' && magic[1] == 'a' &&
               magic[2] == 't' && magic[3] == 'a')
           {
@@ -192,7 +192,7 @@ load_sample (IFusionSound *sound, const char *filename)
                }
           }
      }
-     
+
      ret = sound->CreateBuffer (sound, &desc, &buffer);
      if (ret) {
           DirectFBError ("IFusionSound::CreateBuffer", ret);
@@ -201,7 +201,7 @@ load_sample (IFusionSound *sound, const char *filename)
      }
 
      buffer->Lock (buffer, &data, 0, 0);
-    
+
      if (read (fd, data, len) < len)
           fprintf (stderr, "Warning: Could not read all data bytes!\n");
 

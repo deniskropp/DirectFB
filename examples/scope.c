@@ -22,7 +22,7 @@ static LiteWindow                *window;
 
 
 static void
-draw_scope( __s16 *data, int len )
+draw_scope( s16 *data, int len )
 {
      IDirectFBSurface *surface;
      DFBRegion        *r;
@@ -33,21 +33,21 @@ draw_scope( __s16 *data, int len )
      surface->AddRef( surface );
      surface->GetSize( surface, &w, &h );
 
-     r = alloca( w * sizeof(DFBRegion) ); 
+     r = alloca( w * sizeof(DFBRegion) );
      s = (len << 16) / w;
-    
+
      r[0].x1 =
      r[0].x2 = 0;
-     r[0].y1 = 
-     r[0].y2 = h/2 + ((data[0]*h) >> 16);   
+     r[0].y1 =
+     r[0].y2 = h/2 + ((data[0]*h) >> 16);
      for (i = 1, j = s; i < w; i++, j += s) {
-          r[i].x1 = 
+          r[i].x1 =
           r[i].x2 = i;
-          r[i].y1 = r[i-1].y2; 
+          r[i].y1 = r[i-1].y2;
           r[i].y2 = h/2 + ((data[(j>>16)*2]*h) >> 16);
      }
 
-     surface->Clear( surface, window->bg.color.r, 
+     surface->Clear( surface, window->bg.color.r,
                               window->bg.color.g,
                               window->bg.color.b,
                               window->bg.color.a );
@@ -64,13 +64,13 @@ static FMBufferCallbackResult
 buffer_callback( int len, void *ctx )
 {
      void *data;
-     
+
      if (buffer->Lock( buffer, &data, 0, 0 ) != DFB_OK)
           return FMBCR_OK;
 
      /* draw scope */
      draw_scope( data, len );
-     
+
      /* write samples to output stream */
      stream->Write( stream, data, len );
 
@@ -78,7 +78,7 @@ buffer_callback( int len, void *ctx )
 
      return FMBCR_OK;
 }
-     
+
 static DFBResult
 create_playback( const char *filename )
 {
@@ -116,7 +116,7 @@ create_playback( const char *filename )
           return err;
      }
 
-     err = sound->CreateBuffer( sound, &b_desc, &buffer ); 
+     err = sound->CreateBuffer( sound, &b_desc, &buffer );
      if (err != DFB_OK) {
           DirectFBError( "CreateBuffer() failed", err );
           return err;
@@ -154,7 +154,7 @@ main( int argc, char **argv )
      err = DirectFBInit( &argc, &argv );
      if (err != DFB_OK)
           DirectFBErrorFatal( "DirectFBInit() failed", err );
- 
+
      if (argc != 2) {
           fprintf( stderr, "Usage: %s <filaname>\n", basename(argv[0]) );
           return 1;
@@ -184,7 +184,7 @@ main( int argc, char **argv )
      lite_set_window_opacity( window, 0xff );
 
      /* initialize FusionSound and load track */
-     if (create_playback( argv[1] ) != DFB_OK) { 
+     if (create_playback( argv[1] ) != DFB_OK) {
           destroy_playback();
           lite_destroy_window( window );
           lite_close();
@@ -194,16 +194,16 @@ main( int argc, char **argv )
      /* event loop */
      while (lite_window_event_loop( window, 20 ) == DFB_TIMEOUT) {
           double pos;
-          
+
           /* check if playback is finished */
           err = provider->GetPos( provider, &pos );
           if (err == DFB_EOF)
                break;
      }
-     
+
      /* deinitialize FusionSound */
      destroy_playback();
-     
+
      /* destroy the window */
      lite_destroy_window( window );
 

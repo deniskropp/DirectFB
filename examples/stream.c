@@ -15,11 +15,11 @@ feed_stream (IFusionSoundStream *stream)
 {
      DFBResult ret;
      int       i;
-     __s16     buf[16384];
+     s16       buf[16384];
 
      /* Generate woops ;) */
      for (i=0; i<16384; i++)
-          buf[i] = (__s16)( sin(i*i/(16384.0*16384.0)*M_PI*200) * 10000 );
+          buf[i] = (s16)( sin(i*i/(16384.0*16384.0)*M_PI*200) * 10000 );
 
      /* Write eight times (~3 seconds of playback). */
      for (i=0; i<8; i++) {

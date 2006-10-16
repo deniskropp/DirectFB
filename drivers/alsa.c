@@ -78,7 +78,7 @@ fs2alsa_format( FSSampleFormat format )
           default:
                break;
      }
-     
+
      return SND_PCM_FORMAT_UNKNOWN;
 }
 
@@ -89,43 +89,43 @@ static DFBResult
 device_probe( void )
 {
      snd_pcm_t *handle;
-     
+
      if (snd_pcm_open( &handle, fs_config->device ? : "default",
                        SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) == 0) {
           snd_pcm_close( handle );
           return DFB_OK;
      }
-     
+
      return DFB_UNSUPPORTED;
 }
 
 static void
 device_get_driver_info( SoundDriverInfo *info )
 {
-     snprintf( info->name, 
-               FS_SOUND_DRIVER_INFO_NAME_LENGTH, 
+     snprintf( info->name,
+               FS_SOUND_DRIVER_INFO_NAME_LENGTH,
                "ALSA" );
-     
+
      snprintf( info->vendor,
                FS_SOUND_DRIVER_INFO_VENDOR_LENGTH,
                "directfb.org" );
-               
-     snprintf( info->url, 
+
+     snprintf( info->url,
                FS_SOUND_DRIVER_INFO_URL_LENGTH,
                "http://www.directfb.org" );
-               
-     snprintf( info->license, 
+
+     snprintf( info->license,
                FS_SOUND_DRIVER_INFO_LICENSE_LENGTH,
                "LGPL" );
-               
+
      info->version.major = 0;
      info->version.minor = 1;
-     
+
      info->device_data_size = sizeof(AlsaDeviceData);
 }
 
 static DFBResult
-device_open( void                  *device_data, 
+device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config )
 {
@@ -133,74 +133,74 @@ device_open( void                  *device_data,
      snd_pcm_hw_params_t *params;
      snd_ctl_t           *ctl;
      snd_ctl_card_info_t *info;
-     unsigned int         buffertime, time; 
+     unsigned int         buffertime, time;
      snd_pcm_uframes_t    buffersize;
      int                  periods, dir;
-     
-     buffertime = time = ((long long)config->buffersize * 1000000ll / config->rate); 
-     
+
+     buffertime = time = ((long long)config->buffersize * 1000000ll / config->rate);
+
      if (snd_pcm_open( &data->handle, fs_config->device ? : "default",
                        SND_PCM_STREAM_PLAYBACK, SND_PCM_NONBLOCK ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't open pcm device!\n" );
           return DFB_IO;
      }
-     
+
      if (snd_pcm_nonblock( data->handle, 0 ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't disable non-blocking mode!\n" );
           return DFB_IO;
      }
-     
+
      /* device name */
-     if (snd_ctl_open( &ctl, fs_config->device ? : "default", 
+     if (snd_ctl_open( &ctl, fs_config->device ? : "default",
                        SND_CTL_READONLY | SND_CTL_NONBLOCK ) == 0) {
           snd_ctl_card_info_alloca( &info );
-          
+
           if (snd_ctl_card_info( ctl, info ) == 0) {
                snprintf( device_info->name,
                          FS_SOUND_DEVICE_INFO_NAME_LENGTH,
                          snd_ctl_card_info_get_name( info ) );
           }
-          
+
           snd_ctl_close( ctl );
      }
 
      snd_config_update_free_global();
-          
+
      /* set configuration */
      snd_pcm_hw_params_alloca( &params );
-     
+
      if (snd_pcm_hw_params_any( data->handle, params ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't get hw params!\n" );
           snd_pcm_close( data->handle );
           return DFB_FAILURE;
      }
-     
+
      if (snd_pcm_hw_params_set_access( data->handle, params,
                                        SND_PCM_ACCESS_RW_INTERLEAVED ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set interleaved access!\n" );
           snd_pcm_close( data->handle );
           return DFB_FAILURE;
      }
-     
+
      if (snd_pcm_hw_params_set_format( data->handle, params,
                                        fs2alsa_format( config->format ) ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set format!\n" );
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-     
-     if (snd_pcm_hw_params_set_channels( data->handle, params, 
+
+     if (snd_pcm_hw_params_set_channels( data->handle, params,
                                          config->channels ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set channels mode!\n" );
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-     
+
 #if SND_LIB_VERSION >= 0x010009
      /* disable software resampling */
      snd_pcm_hw_params_set_rate_resample( data->handle, params, 0 );
 #endif
-     
+
      dir = 0;
      if (snd_pcm_hw_params_set_rate_near( data->handle, params,
                                           &config->rate, &dir ) < 0) {
@@ -210,13 +210,13 @@ device_open( void                  *device_data,
      }
 
      dir = 0;
-     if (snd_pcm_hw_params_set_buffer_time_near( data->handle, params, 
+     if (snd_pcm_hw_params_set_buffer_time_near( data->handle, params,
                                                  &buffertime, &dir ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set buffertime!\n" );
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-      
+
      dir = 1;
      periods = 2;
      if (snd_pcm_hw_params_set_periods_near( data->handle, params,
@@ -225,13 +225,13 @@ device_open( void                  *device_data,
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-     
+
      if (snd_pcm_hw_params( data->handle, params ) < 0) {
           D_ERROR( "FusionSound/Device/Alsa: couldn't set hw params!\n" );
           snd_pcm_close( data->handle );
           return DFB_UNSUPPORTED;
      }
-     
+
      /* Workaround for ALSA >= 1.0.9 always returning the maximum supported buffersize.
         Actually FusionSound doesn't work fine with buffers larger than 250ms. */
      if (buffertime > time) {
@@ -247,7 +247,7 @@ device_open( void                  *device_data,
           snd_pcm_close( data->handle );
           return DFB_FAILURE;
      }
-     
+
      return DFB_OK;
 }
 
@@ -257,7 +257,7 @@ device_write( void *device_data, void *samples, unsigned int size )
      AlsaDeviceData    *data   = device_data;
      snd_pcm_uframes_t  frames = size;
      snd_pcm_sframes_t  r;
-     __u8              *src;
+     u8                *src;
 
      src = samples;
      while (frames) {
@@ -281,7 +281,7 @@ device_get_output_delay( void *device_data, int *delay )
 {
      AlsaDeviceData    *data   = device_data;
      snd_pcm_sframes_t  odelay = 0;
-    
+
      snd_pcm_delay( data->handle, &odelay );
      *delay = odelay;
 }
@@ -290,7 +290,7 @@ static void
 device_close( void *device_data )
 {
      AlsaDeviceData *data = device_data;
-     
+
      snd_pcm_drop( data->handle );
      snd_pcm_close( data->handle );
 }

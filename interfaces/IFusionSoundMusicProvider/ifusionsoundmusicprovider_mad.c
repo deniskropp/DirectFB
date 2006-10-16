@@ -5,12 +5,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -58,33 +58,33 @@ DIRECT_INTERFACE_IMPLEMENTATION( IFusionSoundMusicProvider, Mad )
  */
 typedef struct {
      int                           ref;       /* reference counter */
-     
+
      DirectStream                 *s;
 
      struct mad_synth              synth;
      struct mad_stream             stream;
-     struct mad_frame              frame;   
-     
+     struct mad_frame              frame;
+
      double                        length;
      int                           samplerate;
      int                           channels;
      FSTrackDescription            desc;
-     
+
      FSMusicProviderPlaybackFlags  flags;
-     
+
      DirectThread                 *thread;
-     pthread_mutex_t               lock; 
+     pthread_mutex_t               lock;
      bool                          playing;
      bool                          finished;
      bool                          seeked;
-     
+
      void                         *read_buffer;
      void                         *write_buffer;
      int                           read_size;
      int                           write_size;
 
      struct {
-          IFusionSoundStream      *stream; 
+          IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
           FSSampleFormat           format;
           int                      channels;
@@ -102,41 +102,41 @@ typedef struct {
 
 
 struct id3_tag {
-     __s8 tag[3];
-     __s8 title[30];
-     __s8 artist[30];
-     __s8 album[30];
-     __s8 year[4];
-     __s8 comment[30];
-     __u8 genre;
+     s8 tag[3];
+     s8 title[30];
+     s8 artist[30];
+     s8 album[30];
+     s8 year[4];
+     s8 comment[30];
+     u8 genre;
 };
 
 static const char *id3_genres[] = {
-     "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge", 
-     "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B", 
-     "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska", 
-     "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient", 
-     "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical", 
-     "Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise", 
-     "AlternRock", "Bass", "Soul", "Punk", "Space", "Meditative", 
-     "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic", "Darkwave", 
-     "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", "Dream", 
-     "Southern Rock", "Comedy", "Cult", "Gangsta Rap", "Top 40", 
-     "Christian Rap", "Pop/Funk", "Jungle", "Native American", "Cabaret", 
-     "New Wave", "Psychedelic", "Rave", "Showtunes", "Trailer", "Lo-Fi", 
-     "Tribal", "Acid Punk", "Acid Jazz", "Polka", "Retro", "Musical", 
-     "Rock & Roll", "Hard Rock", "Folk", "Folk/Rock", "National Folk", "Swing", 
-     "Fast-Fusion", "Bebob", "Latin", "Revival", "Celtic", "Bluegrass", 
-     "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock", 
-     "Symphonic Rock", "Slow Rock", "Big Band", "Chorus", "Easy Listening", 
-     "Acoustic", "Humour", "Speech", "Chanson", "Opera", "Chamber Music", 
-     "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove", "Satire", 
-     "Slow Jam", "Club", "Tango", "Samba", "Folklore", "Ballad", 
-     "Power Ballad", "Rhythmic Soul", "Freestyle", "Duet", "Punk Rock", 
-     "Drum Solo", "A Cappella", "Euro-House", "Dance Hall", "Goa", 
-     "Drum & Bass", "Club-House", "Hardcore", "Terror", "Indie", "BritPop", 
-     "Negerpunk", "Polsk Punk", "Beat", "Christian Gangsta Rap", "Heavy Metal", 
-     "Black Metal", "Crossover", "Contemporary Christian", "Christian Rock", 
+     "Blues", "Classic Rock", "Country", "Dance", "Disco", "Funk", "Grunge",
+     "Hip-Hop", "Jazz", "Metal", "New Age", "Oldies", "Other", "Pop", "R&B",
+     "Rap", "Reggae", "Rock", "Techno", "Industrial", "Alternative", "Ska",
+     "Death Metal", "Pranks", "Soundtrack", "Euro-Techno", "Ambient",
+     "Trip-Hop", "Vocal", "Jazz+Funk", "Fusion", "Trance", "Classical",
+     "Instrumental", "Acid", "House", "Game", "Sound Clip", "Gospel", "Noise",
+     "AlternRock", "Bass", "Soul", "Punk", "Space", "Meditative",
+     "Instrumental Pop", "Instrumental Rock", "Ethnic", "Gothic", "Darkwave",
+     "Techno-Industrial", "Electronic", "Pop-Folk", "Eurodance", "Dream",
+     "Southern Rock", "Comedy", "Cult", "Gangsta Rap", "Top 40",
+     "Christian Rap", "Pop/Funk", "Jungle", "Native American", "Cabaret",
+     "New Wave", "Psychedelic", "Rave", "Showtunes", "Trailer", "Lo-Fi",
+     "Tribal", "Acid Punk", "Acid Jazz", "Polka", "Retro", "Musical",
+     "Rock & Roll", "Hard Rock", "Folk", "Folk/Rock", "National Folk", "Swing",
+     "Fast-Fusion", "Bebob", "Latin", "Revival", "Celtic", "Bluegrass",
+     "Avantgarde", "Gothic Rock", "Progressive Rock", "Psychedelic Rock",
+     "Symphonic Rock", "Slow Rock", "Big Band", "Chorus", "Easy Listening",
+     "Acoustic", "Humour", "Speech", "Chanson", "Opera", "Chamber Music",
+     "Sonata", "Symphony", "Booty Bass", "Primus", "Porn Groove", "Satire",
+     "Slow Jam", "Club", "Tango", "Samba", "Folklore", "Ballad",
+     "Power Ballad", "Rhythmic Soul", "Freestyle", "Duet", "Punk Rock",
+     "Drum Solo", "A Cappella", "Euro-House", "Dance Hall", "Goa",
+     "Drum & Bass", "Club-House", "Hardcore", "Terror", "Indie", "BritPop",
+     "Negerpunk", "Polsk Punk", "Beat", "Christian Gangsta Rap", "Heavy Metal",
+     "Black Metal", "Crossover", "Contemporary Christian", "Christian Rock",
      "Merengue", "Salsa", "Thrash Metal", "Anime", "JPop", "Synthpop"
 };
 
@@ -220,17 +220,17 @@ static void
 mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                char *dst, int len, FSSampleFormat format,
                int src_channels, int dst_channels )
-{ 
+{
      int s_n = src_channels;
      int d_n = dst_channels;
      int i;
-               
+
      switch (format) {
           case FSSF_U8:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
-                    __u8 *d = (__u8*)&dst[0];
-                    
+                    u8 *d = (u8*)&dst[0];
+
                     if (s_n == 2) {
                          for (i = 0; i < len; i++) {
                               d[i*2+0] = FtoU8(left[i]);
@@ -243,25 +243,25 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                }
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
-                    __u8 *d = (__u8*)&dst[0];
+                    u8 *d = (u8*)&dst[0];
 
                     for (i = 0; i < len; i++)
                          d[i*2+0] = d[i*2+1] = FtoU8(left[i]);
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
-                    __u8 *d  = (__u8*)&dst[0];
+                    u8 *d  = (u8*)&dst[0];
 
                     for (i = 0; i < len; i++)
                          d[i] = FtoU8( mad_f_add( left[i], right[i] ) >> 1 );
                }
                break;
-                         
+
           case FSSF_S16:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
-                    __s16 *d = (__s16*)&dst[0];
-                    
+                    s16 *d = (s16*)&dst[0];
+
                     if (s_n == 2) {
                          for (i = 0; i < len; i++) {
                               d[i*2+0] = FtoS16(left[i]);
@@ -274,25 +274,25 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                }
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
-                    __s16 *d = (__s16*)&dst[0];
+                    s16 *d = (s16*)&dst[0];
 
                     for (i = 0; i < len; i++)
                          d[i*2+0] = d[i*2+1] = FtoS16(left[i]);
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
-                    __s16 *d = (__s16*)&dst[0];
+                    s16 *d = (s16*)&dst[0];
 
                     for (i = 0; i < len; i++)
                          d[i] = FtoS16( mad_f_add( left[i], right[i] ) >> 1 );
                }
                break;
-               
+
           case FSSF_S24:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
-                    __u8 *d = (__u8*)&dst[0];
-                    
+                    u8 *d = (u8*)&dst[0];
+
                     if (s_n == 2) {
                          for (i = 0; i < len; i++) {
                               int l = FtoS24(left[i]);
@@ -332,7 +332,7 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                }
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
-                    __u8 *d = (__u8*)&dst[0];
+                    u8 *d = (u8*)&dst[0];
 
                     for (i = 0; i < len; i++) {
                          int s = FtoS24(left[i]);
@@ -350,7 +350,7 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
-                    __u8 *d = (__u8*)&dst[0];
+                    u8 *d = (u8*)&dst[0];
 
                     for (i = 0; i < len; i++) {
                          int s = FtoS24( mad_f_add( left[i], right[i] ) >> 1 );
@@ -367,12 +367,12 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                     }
                }
                break;
-               
+
           case FSSF_S32:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
-                    __s32 *d = (__s32*)&dst[0];
-                    
+                    s32 *d = (s32*)&dst[0];
+
                     if (s_n == 2) {
                          for (i = 0; i < len; i++) {
                               d[i*2+0] = FtoS32(left[i]);
@@ -385,25 +385,25 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                }
                /* Upmix mono to stereo */
                else if (s_n < d_n) {
-                    __s32 *d = (__s32*)&dst[0];
+                    s32 *d = (s32*)&dst[0];
 
                     for (i = 0; i < len; i++)
                          d[i*2+0] = d[i*2+1] = FtoS32(left[i]);
                }
                /* Downmix stereo to mono */
                else if (s_n > d_n) {
-                    __s32 *d = (__s32*)&dst[0];
+                    s32 *d = (s32*)&dst[0];
 
                     for (i = 0; i < len; i++)
                          d[i] = FtoS32( mad_f_add( left[i], right[i] ) >> 1 );
                }
                break;
-               
+
           case FSSF_FLOAT:
                /* Copy/Interleave channels */
                if (s_n == d_n) {
                     float *d = (float*)&dst[0];
-                    
+
                     if (s_n == 2) {
                          for (i = 0; i < len; i++) {
                               d[i*2+0] = FtoFloat(left[i]);
@@ -429,7 +429,7 @@ mad_mix_audio( mad_fixed_t const *left, mad_fixed_t const *right,
                          d[i] = FtoFloat( mad_f_add( left[i], right[i] ) >> 1 );
                }
                break;
-                         
+
           default:
                D_BUG( "unexpected sample format" );
                break;
@@ -450,7 +450,7 @@ IFusionSoundMusicProvider_Mad_Destruct( IFusionSoundMusicProvider *thiz )
 
      if (data->s)
           direct_stream_destroy( data->s );
-     
+
      pthread_mutex_destroy( &data->lock );
 
      DIRECT_DEALLOCATE_INTERFACE( thiz );
@@ -500,13 +500,13 @@ IFusionSoundMusicProvider_Mad_EnumTracks( IFusionSoundMusicProvider *thiz,
                                           void                      *callbackdata )
 {
      FSTrackDescription desc;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!callback)
           return DFB_INVARG;
 
-     desc = data->desc;     
+     desc = data->desc;
      callback( 0, desc, callbackdata );
 
      return DFB_OK;
@@ -543,7 +543,7 @@ IFusionSoundMusicProvider_Mad_GetTrackDescription( IFusionSoundMusicProvider *th
 static DFBResult
 IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                     FSStreamDescription       *desc )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!desc)
@@ -560,7 +560,7 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
 static DFBResult
 IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                     FSBufferDescription       *desc )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!desc)
@@ -591,17 +591,17 @@ MadStreamThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_Mad_data *data   = ctx;
      IFusionSoundStream                 *stream = data->dest.stream;
-     
+
      data->stream.next_frame = NULL;
 
      direct_stream_wait( data->s, data->read_size, NULL );
-     
+
      while (data->playing && !data->finished) {
           DFBResult      ret;
           unsigned int   len    = 0;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
-          
+
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
@@ -610,7 +610,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
           }
 
           data->seeked = false;
-        
+
           if (data->stream.next_frame) {
                offset = data->stream.bufend - data->stream.next_frame;
                direct_memmove( data->read_buffer,
@@ -623,7 +623,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
                                          data->read_size-offset,
                                          data->read_buffer+offset, &len );
           }
-          
+
           if (ret) {
                if (ret == DFB_EOF) {
                     if (data->flags & FMPLAY_LOOPING)
@@ -634,20 +634,20 @@ MadStreamThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                continue;
           }
-          
+
           pthread_mutex_unlock( &data->lock );
-          
+
           mad_stream_buffer( &data->stream, data->read_buffer, len+offset );
 
           do {
                struct mad_pcm *pcm = &data->synth.pcm;
-               
-               if (mad_frame_decode( &data->frame, &data->stream ) == -1) {           
+
+               if (mad_frame_decode( &data->frame, &data->stream ) == -1) {
                     if (!MAD_RECOVERABLE(data->stream.error))
                          break;
                     continue;
                }
-                 
+
                mad_synth_frame( &data->synth, &data->frame );
 
                mad_mix_audio( pcm->samples[0], pcm->samples[1],
@@ -658,7 +658,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
                stream->Write( stream, data->write_buffer, pcm->length );
           } while (data->playing && !data->seeked);
      }
-     
+
      return NULL;
 }
 
@@ -676,14 +676,14 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
      destination->GetDescription( destination, &desc );
 
      /* check if destination samplerate is supported */
-     if (desc.samplerate != data->samplerate  && 
+     if (desc.samplerate != data->samplerate  &&
          desc.samplerate != data->samplerate/2)
           return DFB_UNSUPPORTED;
-         
+
      /* check if number of channels is supported */
      if (desc.channels > 2)
           return DFB_UNSUPPORTED;
-     
+
      /* check if destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -695,20 +695,20 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
-     
+
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-     
+
      if (desc.samplerate == data->samplerate/2)
-          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC      | 
+          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC      |
                                              MAD_OPTION_HALFSAMPLERATE );
      else
           mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
-     
+
      /* allocate read/write buffers */
      data->read_size = (data->desc.bitrate ? : 256000) * PREBUFFER_SIZE / 8;
-     data->write_size = 1152 * desc.channels * 
+     data->write_size = 1152 * desc.channels *
                         FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3;
 
      data->read_buffer = D_MALLOC( data->read_size + data->write_size );
@@ -717,22 +717,22 @@ IFusionSoundMusicProvider_Mad_PlayToStream( IFusionSoundMusicProvider *thiz,
           return D_OOM();
      }
      data->write_buffer = data->read_buffer + data->read_size;
-     
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.stream   = destination;
      data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
-     
+
      if (data->finished) {
           direct_stream_seek( data->s, 0 );
           data->finished = false;
      }
-     
+
      /* start thread */
      data->playing  = true;
-     data->thread   = direct_thread_create( DTT_DEFAULT, 
+     data->thread   = direct_thread_create( DTT_DEFAULT,
                                             MadStreamThread, data, "Mad" );
 
      pthread_mutex_unlock( &data->lock );
@@ -744,23 +744,23 @@ static void*
 MadBufferThread( DirectThread *thread, void *ctx )
 {
      IFusionSoundMusicProvider_Mad_data *data   = ctx;
-     IFusionSoundBuffer                 *buffer = data->dest.buffer; 
-     
-     int  blocksize = data->dest.channels * 
+     IFusionSoundBuffer                 *buffer = data->dest.buffer;
+
+     int  blocksize = data->dest.channels *
                       FS_BITS_PER_SAMPLE(data->dest.format) >> 3;
      int  written   = 0;
 
      data->stream.next_frame = NULL;
 
      direct_stream_wait( data->s, data->read_size, NULL );
-     
+
      while (data->playing && !data->finished) {
           DFBResult      ret;
           unsigned int   len    = 0;
           int            offset = 0;
           struct timeval tv     = { 0, 500 };
           int            size;
-                
+
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
@@ -769,7 +769,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
           }
 
           data->seeked = false;
-          
+
           if (data->stream.next_frame) {
                offset = data->stream.bufend - data->stream.next_frame;
                direct_memmove( data->read_buffer,
@@ -782,7 +782,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                                          data->read_size-offset,
                                          data->read_buffer+offset, &len );
           }
-          
+
           if (ret) {
                if (ret == DFB_EOF) {
                     if (data->flags & FMPLAY_LOOPING)
@@ -793,7 +793,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                continue;
           }
-          
+
           pthread_mutex_unlock( &data->lock );
 
           mad_stream_buffer( &data->stream, data->read_buffer, len+offset );
@@ -804,25 +804,25 @@ MadBufferThread( DirectThread *thread, void *ctx )
                mad_fixed_t    *right = (mad_fixed_t*)pcm->samples[1];
                char           *dst;
                int             len, n;
-               
-               if (mad_frame_decode( &data->frame, &data->stream ) == -1) {           
+
+               if (mad_frame_decode( &data->frame, &data->stream ) == -1) {
                     if (!MAD_RECOVERABLE(data->stream.error))
                          break;
                     continue;
                }
-                 
+
                mad_synth_frame( &data->synth, &data->frame );
                len = pcm->length;
-               
+
                if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
                     D_ERROR( "IFusionSoundMusicProvider_Mad: "
                              "Couldn't lock buffer!\n" );
                     break;
                }
-               
+
                do {
                     n = MIN( size-written, len );
-                    
+
                     mad_mix_audio( left, right, &dst[written*blocksize], n,
                                    data->dest.format, pcm->channels,
                                    data->dest.channels );
@@ -830,7 +830,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                     right   += n;
                     len     -= n;
                     written += n;
-                    
+
                     if (written >= size) {
                          if (data->callback) {
                               buffer->Unlock( buffer );
@@ -847,7 +847,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                buffer->Unlock( buffer );
           } while (data->playing && !data->seeked);
      }
-     
+
      return NULL;
 }
 
@@ -870,11 +870,11 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      if (desc.samplerate != data->samplerate  &&
          desc.samplerate != data->samplerate/2)
           return DFB_UNSUPPORTED;
-    
+
      /* check if number of channels is supported */
      if (desc.channels > 2)
           return DFB_UNSUPPORTED;
-     
+
      /* check if destination format is supported */
      switch (desc.sampleformat) {
           case FSSF_U8:
@@ -886,26 +886,26 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
-     
+
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-     
+
      if (desc.samplerate == data->samplerate/2)
-          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC      | 
+          mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC      |
                                              MAD_OPTION_HALFSAMPLERATE );
      else
           mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
 
      /* allocate read buffer */
      data->read_size = (data->desc.bitrate ? : 256000) * PREBUFFER_SIZE / 8;
-    
+
      data->read_buffer = D_MALLOC( data->read_size );
      if (!data->read_buffer) {
           pthread_mutex_unlock( &data->lock );
           return D_OOM();
      }
-     
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.buffer   = destination;
@@ -916,12 +916,12 @@ IFusionSoundMusicProvider_Mad_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      /* register new callback */
      data->callback = callback;
      data->ctx      = ctx;
-     
+
      if (data->finished) {
           direct_stream_seek( data->s, 0 );
           data->finished = false;
      }
-   
+
      /* start thread */
      data->playing  = true;
      data->thread   = direct_thread_create( DTT_DEFAULT,
@@ -978,10 +978,10 @@ IFusionSoundMusicProvider_Mad_GetStatus( IFusionSoundMusicProvider *thiz,
                                          FSMusicProviderStatus     *status )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
-     
+
      if (!status)
           return DFB_INVARG;
-          
+
      if (data->finished) {
           *status = FMSTATE_FINISHED;
      }
@@ -991,25 +991,25 @@ IFusionSoundMusicProvider_Mad_GetStatus( IFusionSoundMusicProvider *thiz,
      else {
           *status = FMSTATE_STOP;
      }
-     
+
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
                                       double                     seconds )
 {
      DFBResult    ret  = DFB_FAILURE;
      double       rate;
      unsigned int off;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (seconds < 0.0)
           return DFB_INVARG;
-     
+
      pthread_mutex_lock( &data->lock );
-     
+
      rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
      if (rate) {
           off = (seconds*rate);
@@ -1017,19 +1017,19 @@ IFusionSoundMusicProvider_Mad_SeekTo( IFusionSoundMusicProvider *thiz,
           if (ret == DFB_OK)
                data->seeked = true;
      }
-     
+
      pthread_mutex_unlock( &data->lock );
 
      return ret;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
                                       double                    *seconds )
 {
      double rate;
      int    pos;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
 
      if (!seconds)
@@ -1037,47 +1037,47 @@ IFusionSoundMusicProvider_Mad_GetPos( IFusionSoundMusicProvider *thiz,
 
      if (!data->desc.bitrate)
           return DFB_UNSUPPORTED;
-     
+
      pos = direct_stream_offset( data->s );
      if (data->playing && data->stream.this_frame) {
           pos -= data->stream.bufend - data->stream.this_frame;
           pos  = (pos < 0) ? 0 : pos;
      }
-    
+
      rate = (data->desc.bitrate ? : data->frame.header.bitrate) >> 3;
      *seconds = (double)pos / rate;
-          
+
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Mad_GetLength( IFusionSoundMusicProvider *thiz,
                                          double                    *seconds )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
-     
+
      if (!seconds)
           return DFB_INVARG;
-          
+
      *seconds = data->length;
 
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_Mad_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                 FSMusicProviderPlaybackFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
-     
+
      if (flags & ~FMPLAY_LOOPING)
           return DFB_UNSUPPORTED;
-     
+
      if (flags & FMPLAY_LOOPING && !direct_stream_seekable( data->s ))
           return DFB_UNSUPPORTED;
-          
+
      data->flags = flags;
-     
+
      return DFB_OK;
 }
 
@@ -1087,10 +1087,10 @@ static DFBResult
 Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 {
      char *ext;
-     
+
      if (ctx->mimetype && !strcmp( ctx->mimetype, "audio/mpeg" ))
           return DFB_OK;
-     
+
      ext = strrchr( ctx->filename, '.' );
      if (ext) {
           if (!strcasecmp( ext, ".mp1" ) ||
@@ -1098,14 +1098,14 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
               !strcasecmp( ext, ".mp3" ))
                return DFB_OK;
      }
-     
+
      /* Detect by contents ? */
-          
+
      return DFB_UNSUPPORTED;
-}   
+}
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, 
+Construct( IFusionSoundMusicProvider *thiz,
            const char                *filename,
            DirectStream              *stream )
 {
@@ -1118,16 +1118,16 @@ Construct( IFusionSoundMusicProvider *thiz,
      const char        *version;
      struct id3_tag     id3;
      int                i, error;
-     
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_Mad )
 
-     data->ref = 1;  
+     data->ref = 1;
      data->s   = direct_stream_dup( stream );
 
      size = direct_stream_length( data->s );
-         
+
      direct_stream_wait( data->s, sizeof(buf), NULL );
-     
+
      ret = direct_stream_peek( data->s, sizeof(buf), 0, buf, &len );
      if (ret) {
           IFusionSoundMusicProvider_Mad_Destruct( thiz );
@@ -1138,9 +1138,9 @@ Construct( IFusionSoundMusicProvider *thiz,
      mad_frame_init( &data->frame );
      mad_synth_init( &data->synth );
      mad_stream_options( &data->stream, MAD_OPTION_IGNORECRC );
-    
+
      mad_stream_buffer( &data->stream, buf, len );
-     
+
      /* find first valid frame */
      for (i = 0; i < 100; i++) {
           error = mad_frame_decode( &data->frame, &data->stream );
@@ -1154,40 +1154,40 @@ Construct( IFusionSoundMusicProvider *thiz,
                          frames = mad_bit_read( &data->stream.anc_ptr, 32 );
                }
                break;
-          } 
+          }
           else {
                if (!MAD_RECOVERABLE(data->stream.error))
                     break;
           }
      }
-     
+
      if (error) {
           D_DEBUG( "IFusionSoundMusicProvider_Mad: Couldn't find a valid frame!\n" );
           IFusionSoundMusicProvider_Mad_Destruct( thiz );
           return DFB_FAILURE;
      }
-     
-     header           = data->frame.header;   
+
+     header           = data->frame.header;
      data->samplerate = header.samplerate;
      data->channels   = MAD_NCHANNELS( &header );
-     
+
      /* get ID3 tag */
      if (direct_stream_seekable( data->s ) && !direct_stream_remote( data->s )) {
-          direct_stream_peek( data->s, sizeof(id3), 
+          direct_stream_peek( data->s, sizeof(id3),
                               direct_stream_length( data->s ) - sizeof(id3),
                               &id3, NULL );
-     
+
           if (!strncmp( id3.tag, "TAG", 3 )) {
                size -= sizeof(id3);
-            
-               strncpy( data->desc.artist, id3.artist, 
+
+               strncpy( data->desc.artist, id3.artist,
                         MIN( FS_TRACK_DESC_ARTIST_LENGTH-1, sizeof(id3.artist) ) );
-               strncpy( data->desc.title, id3.title, 
+               strncpy( data->desc.title, id3.title,
                         MIN( FS_TRACK_DESC_TITLE_LENGTH-1, sizeof(id3.title) ) );
-               strncpy( data->desc.album, id3.album, 
+               strncpy( data->desc.album, id3.album,
                         MIN( FS_TRACK_DESC_ALBUM_LENGTH-1, sizeof(id3.album) ) );
                data->desc.year = strtol( id3.year, NULL, 10 );
-             
+
                if (id3.genre < sizeof(id3_genres)/sizeof(id3_genres[0])) {
                     const char *genre = id3_genres[(int)id3.genre];
                     strncpy( data->desc.genre, genre,
@@ -1206,8 +1206,8 @@ Construct( IFusionSoundMusicProvider *thiz,
           default:
                version = "1";
                break;
-     }       
-     
+     }
+
      if (frames) {
           /* compute avarage bitrate for VBR stream */
           switch (header.layer) {
@@ -1225,26 +1225,26 @@ Construct( IFusionSoundMusicProvider *thiz,
                          frames *= 1152;
                     break;
           }
-          
+
           data->length = (double)frames / (double)header.samplerate;
           data->desc.bitrate = (double)(size << 3) / data->length;
-          
-          snprintf( data->desc.encoding, 
+
+          snprintf( data->desc.encoding,
                     FS_TRACK_DESC_ENCODING_LENGTH,
                     "MPEG-%s Layer %d (VBR)", version, header.layer );
      }
      else {
           if (header.bitrate < 8000)
                header.bitrate = 8000;
-          
+
           data->length = (double)size / (double)(header.bitrate >> 3);
           data->desc.bitrate = header.bitrate;
-              
-          snprintf( data->desc.encoding, 
+
+          snprintf( data->desc.encoding,
                     FS_TRACK_DESC_ENCODING_LENGTH,
                     "MPEG-%s Layer %d", version, header.layer );
      }
-     
+
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
      /* initialize function pointers */

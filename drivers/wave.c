@@ -56,19 +56,19 @@ typedef struct {
 /******************************************************************************/
 
 typedef struct {
-     __u8  ChunkID[4];
-     __u32 ChunkSize;
-     __u8  Format[4];
-     __u8  Subchunk1ID[4];
-     __u32 Subchunk1Size;
-     __u16 AudioFormat;
-     __u16 NumChannels;
-     __u32 SampleRate;
-     __u32 ByteRate;
-     __u16 BlockAlign;
-     __u16 BitsPerSample;
-     __u8  Subchunk2ID[4];
-     __u32 Subchunk2Size;
+     u8  ChunkID[4];
+     u32 ChunkSize;
+     u8  Format[4];
+     u8  Subchunk1ID[4];
+     u32 Subchunk1Size;
+     u16 AudioFormat;
+     u16 NumChannels;
+     u32 SampleRate;
+     u32 ByteRate;
+     u16 BlockAlign;
+     u16 BitsPerSample;
+     u8  Subchunk2ID[4];
+     u32 Subchunk2Size;
 } WaveHeader;
 
 /******************************************************************************/
@@ -79,11 +79,11 @@ device_probe( void )
 {
      int  fd;
      char path[4096];
-     
+
      /* load only when requested */
      if (!fs_config->driver)
           return DFB_UNSUPPORTED;
-          
+
      if (fs_config->device) {
           snprintf( path, sizeof(path), "%s", fs_config->device );
      }
@@ -91,53 +91,53 @@ device_probe( void )
           snprintf( path, sizeof(path),
                     "./fusionsound-%d.wav", fs_config->session );
      }
-     
+
      fd = open( path, O_WRONLY | O_CREAT | O_NOCTTY | O_NONBLOCK, 0644 );
      if (fd < 0)
           return DFB_UNSUPPORTED;
-          
+
      close( fd );
-     
+
      return DFB_OK;
 }
 
 static void
 device_get_driver_info( SoundDriverInfo *info )
 {
-     snprintf( info->name, 
-               FS_SOUND_DRIVER_INFO_NAME_LENGTH, 
+     snprintf( info->name,
+               FS_SOUND_DRIVER_INFO_NAME_LENGTH,
                "Wave" );
-     
+
      snprintf( info->vendor,
                FS_SOUND_DRIVER_INFO_VENDOR_LENGTH,
                "directfb.org" );
-               
-     snprintf( info->url, 
+
+     snprintf( info->url,
                FS_SOUND_DRIVER_INFO_URL_LENGTH,
                "http://www.directfb.org" );
-               
-     snprintf( info->license, 
+
+     snprintf( info->license,
                FS_SOUND_DRIVER_INFO_LICENSE_LENGTH,
                "LGPL" );
-               
+
      info->version.major = 0;
      info->version.minor = 1;
-     
+
      info->device_data_size = sizeof(WaveDeviceData);
 }
 
 static DFBResult
-device_open( void                  *device_data, 
+device_open( void                  *device_data,
              SoundDeviceInfo       *device_info,
              CoreSoundDeviceConfig *config )
 {
      WaveDeviceData *data   = device_data;
      WaveHeader      header;
      char            path[4096];
-     
+
      if (config->format == FSSF_FLOAT)
           return DFB_UNSUPPORTED;
-     
+
      if (fs_config->device) {
           snprintf( path, sizeof(path), "%s", fs_config->device );
      }
@@ -145,19 +145,19 @@ device_open( void                  *device_data,
           snprintf( path, sizeof(path),
                     "./fusionsound-%d.wav", fs_config->session );
      }
-     
-     data->fd = open( path, O_WRONLY | O_CREAT | O_TRUNC | O_NOCTTY, 0644 );     
+
+     data->fd = open( path, O_WRONLY | O_CREAT | O_TRUNC | O_NOCTTY, 0644 );
      if (data->fd < 0) {
           D_ERROR( "FusionSound/Device/Wave: "
                    "couldn't open '%s' for writing!\n", path );
           return DFB_IO;
      }
-     
+
      /* device name */
-     snprintf( device_info->name, 
-               FS_SOUND_DEVICE_INFO_NAME_LENGTH, 
+     snprintf( device_info->name,
+               FS_SOUND_DEVICE_INFO_NAME_LENGTH,
                "%s", strrchr( path, '/' ) ? (strrchr( path, '/' )+1) : path );
-               
+
      /* device capabilities */
      device_info->caps = 0;
 
@@ -169,7 +169,7 @@ device_open( void                  *device_data,
 #endif
      header.ChunkSize = 0;
      memcpy( header.Format, "WAVE", 4 );
-     
+
      memcpy( header.Subchunk1ID, "fmt ", 4 );
      header.Subchunk1Size = 16;
      header.AudioFormat = 1;
@@ -177,21 +177,21 @@ device_open( void                  *device_data,
      header.SampleRate = config->rate;
      header.ByteRate = config->rate * config->channels *
                        FS_BITS_PER_SAMPLE(config->format) >> 3;
-     header.BlockAlign = config->channels * 
+     header.BlockAlign = config->channels *
                          FS_BITS_PER_SAMPLE(config->format) >> 3;
      header.BitsPerSample = FS_BITS_PER_SAMPLE(config->format);
-     
+
      memcpy( header.Subchunk2ID, "data", 4 );
      header.Subchunk2Size = 0;
-     
+
      if (write( data->fd, &header, sizeof(header) ) < sizeof(header)) {
           D_ERROR( "FusionSound/Device/Wave: write error!\n" );
           return DFB_IO;
-     }    
-     
+     }
+
      data->bytes_per_frame = config->channels *
                              FS_BITS_PER_SAMPLE(config->format) >> 3;
-     
+
      return DFB_OK;
 }
 
@@ -199,7 +199,7 @@ static void
 device_write( void *device_data, void *samples, unsigned int count )
 {
      WaveDeviceData *data = device_data;
-     
+
      write( data->fd, samples, count*data->bytes_per_frame );
 }
 
@@ -214,18 +214,18 @@ device_close( void *device_data )
 {
      WaveDeviceData *data = device_data;
      off_t           pos;
-     
+
      pos = lseek( data->fd, 0, SEEK_CUR );
      if (pos > 0) {
-          __u32 ChunkSize     = pos - 8;
-          __u32 Subchunk2Size = pos - sizeof(WaveHeader);
-          
+          u32 ChunkSize     = pos - 8;
+          u32 Subchunk2Size = pos - sizeof(WaveHeader);
+
           lseek( data->fd, 4, SEEK_SET );
           write( data->fd, &ChunkSize, 4 );
-          
+
           lseek( data->fd, 40, SEEK_SET );
           write( data->fd, &Subchunk2Size, 4 );
      }
-     
+
      close( data->fd );
 }

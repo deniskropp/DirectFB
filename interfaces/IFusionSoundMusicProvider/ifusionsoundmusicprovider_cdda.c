@@ -5,12 +5,12 @@
  * modify it under the terms of the GNU Lesser General Public
  * License as published by the Free Software Foundation; either
  * version 2 of the License, or (at your option) any later version.
- * 
+ *
  * This library is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU Lesser General Public
  * License along with this library; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
@@ -57,7 +57,7 @@ struct cdda_track {
      unsigned int  start;  /* first frame   */
      unsigned int  length; /* total frames  */
      unsigned int  frame;  /* current frame */
-     
+
      char         *artist;
      char         *title;
      char         *genre;
@@ -70,25 +70,25 @@ struct cdda_track {
  */
 typedef struct {
      int                           ref;        /* reference counter */
-     
+
      DirectStream                 *stream;
      int                           fd;
 
      unsigned int                  current_track;
      unsigned int                  total_tracks;
      struct cdda_track            *tracks;
-     
+
      FSMusicProviderPlaybackFlags  flags;
-     
+
      DirectThread                 *thread;
      pthread_mutex_t               lock;
      bool                          playing;
      bool                          finished;
-     
+
      int                           buffered_frames;
-     __s16                        *src_buffer;
-     __u8                         *dst_buffer;
-     
+     s16                          *src_buffer;
+     u8                           *dst_buffer;
+
      struct {
           IFusionSoundStream      *stream;
           IFusionSoundBuffer      *buffer;
@@ -108,7 +108,7 @@ typedef struct {
 
 
 #if defined(__linux__)
- 
+
 #include <linux/cdrom.h>
 
 static DFBResult
@@ -118,10 +118,10 @@ cdda_probe( int fd )
 
      if (ioctl( fd, CDROM_DRIVE_STATUS, CDSL_CURRENT ) != CDS_DISC_OK)
           return DFB_UNSUPPORTED;
-     
+
      if (ioctl( fd, CDROMREADTOCHDR, &tochdr ) < 0)
           return DFB_UNSUPPORTED;
-     
+
      return DFB_OK;
 }
 
@@ -136,31 +136,31 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
      struct cdrom_multisession  ms;
      struct cdrom_msf0          msf;
      int                        i;
-     
+
      /* read TOC header */
      if (ioctl( fd, CDROMREADTOCHDR, &tochdr ) == -1) {
           D_PERROR( "IFusionSoundMusicProvide_CDDA: "
                     "ioctl( CDROMREADTOCHDR ) failed!\n" );
           return DFB_IO;
      }
-     
+
      ms.addr_format = CDROM_LBA;
      if (ioctl( fd, CDROMMULTISESSION, &ms ) == -1) {
           D_PERROR( "IFusionSoundMusicProvide_CDDA: "
                     "ioctl( CDROMMULTISESSION ) failed!\n" );
           return DFB_IO;
      }
-     
+
      total_tracks = tochdr.cdth_trk1 - tochdr.cdth_trk0 + 1;
-          
+
      tracks = D_CALLOC( total_tracks+1, sizeof(struct cdda_track) );
      if (!tracks)
           return D_OOM();
-     
+
      /* iterate through tracks */
-     for (i = tochdr.cdth_trk0, track = tracks; i <= tochdr.cdth_trk1; i++) {          
+     for (i = tochdr.cdth_trk0, track = tracks; i <= tochdr.cdth_trk1; i++) {
           memset( &tocentry, 0, sizeof(tocentry) );
-          
+
           tocentry.cdte_track  = i;
           tocentry.cdte_format = CDROM_MSF;
           if (ioctl( fd, CDROMREADTOCENTRY, &tocentry ) == -1) {
@@ -169,27 +169,27 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
                D_FREE( tracks );
                return DFB_IO;
           }
-          
+
           /* skip data tracks */
           if (tocentry.cdte_ctrl & 0x04) {
                total_tracks--;
                continue;
           }
-          
+
           msf = tocentry.cdte_addr.msf;
           track->start = (msf.minute * 60 * CD_FRAMES_PER_SECOND) +
                          (msf.second      * CD_FRAMES_PER_SECOND) +
                           msf.frame;
           track++;
      }
-     
+
      if (total_tracks < 1) {
           D_FREE( tracks );
           return DFB_FAILURE;
      }
-     
+
      memset( &tocentry, 0, sizeof(tocentry) );
-     
+
      /* get leadout track */
      tocentry.cdte_track  = 0xaa;
      tocentry.cdte_format = CDROM_MSF;
@@ -198,8 +198,8 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
                     "ioctl( CDROMREADTOCENTRY ) failed!\n" );
           D_FREE( tracks );
           return DFB_IO;
-     }          
-     
+     }
+
      if (!ms.xa_flag) {
           msf = tocentry.cdte_addr.msf;
           tracks[total_tracks].start = (msf.minute * 60 * CD_FRAMES_PER_SECOND) +
@@ -208,32 +208,32 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
      } else {
           tracks[total_tracks].start = ms.addr.lba - ((60 + 90 + 2) * CD_FRAMES) + 150;
      }
-     
+
      /* compute tracks' length */
      for (i = 0; i < total_tracks; i++)
           tracks[i].length = tracks[i+1].start - tracks[i].start;
-          
+
      *ret_tracks = tracks;
      *ret_num    = total_tracks;
-     
+
      return DFB_OK;
 }
 
 static int
-cdda_read_audio( int fd, __u8 *buf, int pos, int len )
+cdda_read_audio( int fd, u8 *buf, int pos, int len )
 {
      struct cdrom_read_audio ra;
-     
+
      ra.addr.msf.minute =  pos / (60 * CD_FRAMES_PER_SECOND);
      ra.addr.msf.second = (pos / CD_FRAMES_PER_SECOND) % 60;
      ra.addr.msf.frame  =  pos % CD_FRAMES_PER_SECOND;
      ra.addr_format     = CDROM_MSF;
      ra.nframes         = len;
      ra.buf             = buf;
-          
+
      if (ioctl( fd, CDROMREADAUDIO, &ra ) < 0)
           return -1;
-     
+
      return ra.nframes;
 }
 
@@ -245,10 +245,10 @@ static DFBResult
 cdda_probe( int fd )
 {
      struct ioc_toc_header tochdr;
-     
+
      if (ioctl( fd, CDIOREADTOCHEADER, &tochdr ) < 0)
           return DFB_UNSUPPORTED;
-          
+
      return DFB_OK;
 }
 
@@ -262,24 +262,24 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
      struct ioc_read_toc_single_entry  tocentry;
      union msf_lba                     msf_lba;
      int                               i;
-     
+
      /* read TOC header */
      if (ioctl( fd, CDIOREADTOCHEADER, &tochdr ) == -1) {
           D_PERROR( "IFusionSoundMusicProvide_CDDA: "
                     "ioctl( CDIOREADTOCHEADER ) failed!\n" );
           return DFB_IO;
      }
-     
+
      total_tracks = tochdr.ending_track - tochdr.starting_track + 1;
-          
+
      tracks = D_CALLOC( total_tracks+1, sizeof(struct cdda_track) );
      if (!tracks)
           return D_OOM();
-     
+
      /* iterate through tracks */
-     for (i = tochdr.starting_track, track = tracks; i <= tochdr.ending_track; i++) {          
+     for (i = tochdr.starting_track, track = tracks; i <= tochdr.ending_track; i++) {
           memset( &tocentry, 0, sizeof(tocentry) );
-          
+
           tocentry.track          = i;
           tocentry.address_format = CD_MSF_FORMAT;
           if (ioctl( fd, CDIOREADTOCENTRY, &tocentry ) == -1) {
@@ -288,27 +288,27 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
                D_FREE( tracks );
                return DFB_IO;
           }
-          
+
           /* skip data tracks */
           if (tocentry.entry.control & 0x04) {
                total_tracks--;
                continue;
           }
-          
+
           msf_lba = tocentry.entry.addr;
           track->start = (msf_lba.msf.minute * 60 * CD_FRAMES_PER_SECOND) +
                          (msf_lba.msf.second      * CD_FRAMES_PER_SECOND) +
                           msf_lba.msf.frame;
           track++;
      }
-     
+
      if (total_tracks < 1) {
           D_FREE( tracks );
           return DFB_FAILURE;
      }
-     
+
      memset( &tocentry, 0, sizeof(tocentry) );
-     
+
      /* get leadout track */
      tocentry.track          = 0xaa;
      tocentry.address_format = CD_MSF_FORMAT;
@@ -317,38 +317,38 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
                     "ioctl( CDIOREADTOCENTRY ) failed!\n" );
           D_FREE( tracks );
           return DFB_IO;
-     }          
-     
+     }
+
      msf_lba = tocentry.entry.addr;
      tracks[total_tracks].start = (msf_lba.msf.minute * 60 * CD_FRAMES_PER_SECOND) +
                                   (msf_lba.msf.second      * CD_FRAMES_PER_SECOND) +
                                    msf_lba.msf.frame;
-     
+
      /* compute tracks' length */
      for (i = 0; i < total_tracks; i++)
           tracks[i].length = tracks[i+1].start - tracks[i].start;
-          
+
      *ret_tracks = tracks;
      *ret_num    = total_tracks;
-     
+
      return DFB_OK;
 }
 
 static int
-cdda_read_audio( int fd, __u8 *buf, int pos, int len )
+cdda_read_audio( int fd, u8 *buf, int pos, int len )
 {
      struct ioc_read_audio ra;
-     
+
      ra.address.msf.minute =  pos / (60 * CD_FRAMES_PER_SECOND);
      ra.address.msf.second = (pos / CD_FRAMES_PER_SECOND) % 60;
      ra.address.msf.frame  =  pos % CD_FRAMES_PER_SECOND;
      ra.address_format     = CD_MSF_FORMAT;
      ra.nframes            = len;
      ra.buffer             = buf;
-          
+
      if (ioctl( fd, CDIOCREADAUDIO, &ra ) < 0)
           return -1;
-     
+
      return ra.nframes;
 }
 
@@ -369,14 +369,14 @@ cdda_build_tracklits( int fd, struct cdda_track **ret_tracks,
 }
 
 static int
-cdda_read_audio( int fd, __u8 *buf, int pos, int frames )
+cdda_read_audio( int fd, u8 *buf, int pos, int frames )
 {
      return -1;
 }
 
 #endif
 
-#ifdef HAVE_CDDB     
+#ifdef HAVE_CDDB
 static void
 cdda_get_metadata( struct cdda_track *tracks,
                    unsigned int       total_tracks )
@@ -390,10 +390,10 @@ cdda_get_metadata( struct cdda_track *tracks,
      unsigned int  disclen;
      unsigned int  discid  = 0;
      int           i;
-     
+
      /* init libcddb */
      libcddb_init();
-     
+
      /* create a new connection */
      conn = cddb_new();
      if (!conn)
@@ -404,22 +404,22 @@ cdda_get_metadata( struct cdda_track *tracks,
      cddb_set_timeout( conn, 10 );
 
      /* compute disc length */
-     disclen = tracks[total_tracks].start/CD_FRAMES_PER_SECOND - 
+     disclen = tracks[total_tracks].start/CD_FRAMES_PER_SECOND -
                tracks[0].start/CD_FRAMES_PER_SECOND;
-     
+
      /* compute disc id */
      for (i = 0; i < total_tracks; i++) {
           unsigned int start = tracks[i].start/CD_FRAMES_PER_SECOND;
-          
+
           while (start) {
                discid += start % 10;
                start  /= 10;
           }
-     }    
+     }
      discid = ((discid % 0xff) << 24) | (disclen << 8) | total_tracks;
-     
+
      D_DEBUG( "IFusionSoundMusicProvider_CDDA: CDDB Disc ID = 0x%08x.\n", discid );
-     
+
      /* create a new disc */
      disc = cddb_disc_new();
      if (!disc) {
@@ -427,13 +427,13 @@ cdda_get_metadata( struct cdda_track *tracks,
           return;
      }
 
-     /* set disc id */ 
+     /* set disc id */
      cddb_disc_set_discid( disc, discid );
-     
+
      /* search through categories */
      for (i = 0; i < sizeof(cddb_cats)/sizeof(cddb_cats[0]); i++) {
           cddb_disc_set_category_str( disc, cddb_cats[i] );
-          
+
           /* retrieve informations from the server */
           if (cddb_read( conn, disc )) {
                const char *artist;
@@ -441,18 +441,18 @@ cdda_get_metadata( struct cdda_track *tracks,
                const char *genre  = cddb_disc_get_genre( disc );
                const char *album  = cddb_disc_get_title( disc );
                short       year   = cddb_disc_get_year ( disc );
-          
+
                /* iterate through tracks */
                for (track = cddb_disc_get_track_first( disc );
                     track != NULL;
                     track = cddb_disc_get_track_next( disc ))
                {
                     i = cddb_track_get_number( track ) - 1;
-               
+
                     if (i < total_tracks) {
                          artist = cddb_track_get_artist( track );
                          title  = cddb_track_get_title( track );
-                    
+
                          if (artist)
                               tracks[i].artist = D_STRDUP( artist );
                          if (title)
@@ -464,24 +464,24 @@ cdda_get_metadata( struct cdda_track *tracks,
                          tracks[i].year = year;
                     }
                }
-               
+
                break;
           }
      }
-     
+
      /* release resources */
      cddb_disc_destroy( disc );
      cddb_destroy( conn );
      libcddb_shutdown();
 }
-#endif                
+#endif
 
 static void
-cdda_mix_audio( __s16 *src, __u8 *dst, int len, 
+cdda_mix_audio( s16 *src, u8 *dst, int len,
                 FSSampleFormat format, int channels )
 {
      int i;
-     
+
      switch (format) {
           case FSSF_U8:
                if (channels == 1) {
@@ -497,7 +497,7 @@ cdda_mix_audio( __s16 *src, __u8 *dst, int len,
           case FSSF_S16:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
-                         *((__s16*)dst) = (src[i] + src[i+1]) >> 1;
+                         *((s16*)dst) = (src[i] + src[i+1]) >> 1;
                          dst += 2;
                     }
                }
@@ -537,14 +537,14 @@ cdda_mix_audio( __s16 *src, __u8 *dst, int len,
           case FSSF_S32:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
-                         *((__s32*)dst) = (src[i] + src[i+1]) << 15;
+                         *((s32*)dst) = (src[i] + src[i+1]) << 15;
                          dst += 4;
                     }
                } else {
                     for (i = 0; i < len*2; i++)
-                         ((__s32*)dst)[i] = src[i] << 16;
+                         ((s32*)dst)[i] = src[i] << 16;
                }
-               break; 
+               break;
           case FSSF_FLOAT:
                if (channels == 1) {
                     for (i = 0; i < len*2; i += 2) {
@@ -569,10 +569,10 @@ IFusionSoundMusicProvider_CDDA_Destruct( IFusionSoundMusicProvider *thiz )
      IFusionSoundMusicProvider_CDDA_data *data = thiz->priv;
 
      thiz->Stop( thiz );
-     
+
      if (data->tracks) {
           int i;
-          
+
           for (i = 0; i < data->total_tracks; i++) {
                if (data->tracks[i].artist)
                     D_FREE( data->tracks[i].artist );
@@ -583,10 +583,10 @@ IFusionSoundMusicProvider_CDDA_Destruct( IFusionSoundMusicProvider *thiz )
                if (data->tracks[i].album)
                     D_FREE( data->tracks[i].album );
           }
-     
+
           D_FREE( data->tracks );
      }
-     
+
      if (data->stream)
           direct_stream_destroy( data->stream );
 
@@ -637,24 +637,24 @@ IFusionSoundMusicProvider_CDDA_EnumTracks( IFusionSoundMusicProvider *thiz,
 {
      FSTrackDescription desc;
      int                i;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!callback)
           return DFB_INVARG;
-    
+
      for (i = 0; i < data->total_tracks; i++) {
           struct cdda_track *track = &data->tracks[i];
-          
+
           memset( &desc, 0, sizeof(desc) );
-          
+
           if (track->artist) {
                snprintf( desc.artist,
                          FS_TRACK_DESC_ARTIST_LENGTH, track->artist );
           }
           if (track->title) {
                snprintf( desc.title,
-                         FS_TRACK_DESC_TITLE_LENGTH, track->title );  
+                         FS_TRACK_DESC_TITLE_LENGTH, track->title );
           }
           if (track->genre) {
                snprintf( desc.genre,
@@ -664,8 +664,8 @@ IFusionSoundMusicProvider_CDDA_EnumTracks( IFusionSoundMusicProvider *thiz,
                snprintf( desc.album,
                          FS_TRACK_DESC_ALBUM_LENGTH, track->album );
           }
-          desc.year = track->year;                
-               
+          desc.year = track->year;
+
           snprintf( desc.encoding,
                     FS_TRACK_DESC_ENCODING_LENGTH, "PCM 16 bit" );
           desc.bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
@@ -696,23 +696,23 @@ IFusionSoundMusicProvider_CDDA_GetTrackDescription( IFusionSoundMusicProvider *t
                                                     FSTrackDescription        *desc )
 {
      struct cdda_track *track;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!desc)
           return DFB_INVARG;
-          
+
      memset( desc, 0, sizeof(FSTrackDescription) );
-     
+
      track = &data->tracks[data->current_track];
-          
+
      if (track->artist) {
           snprintf( desc->artist,
                     FS_TRACK_DESC_ARTIST_LENGTH, track->artist );
      }
      if (track->title) {
           snprintf( desc->title,
-                    FS_TRACK_DESC_TITLE_LENGTH, track->title );  
+                    FS_TRACK_DESC_TITLE_LENGTH, track->title );
      }
      if (track->genre) {
           snprintf( desc->genre,
@@ -723,7 +723,7 @@ IFusionSoundMusicProvider_CDDA_GetTrackDescription( IFusionSoundMusicProvider *t
                     FS_TRACK_DESC_ALBUM_LENGTH, track->album );
      }
      desc->year = track->year;
-      
+
      snprintf( desc->encoding,
                FS_TRACK_DESC_ENCODING_LENGTH, "PCM 16 bit" );
      desc->bitrate = CD_FRAMES_PER_SECOND * CD_BYTES_PER_FRAME * 8;
@@ -734,12 +734,12 @@ IFusionSoundMusicProvider_CDDA_GetTrackDescription( IFusionSoundMusicProvider *t
 static DFBResult
 IFusionSoundMusicProvider_CDDA_GetStreamDescription( IFusionSoundMusicProvider *thiz,
                                                      FSStreamDescription       *desc )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!desc)
           return DFB_INVARG;
- 
+
      desc->flags        = FSSDF_SAMPLERATE   | FSSDF_CHANNELS  |
                           FSSDF_SAMPLEFORMAT | FSSDF_BUFFERSIZE;
      desc->samplerate   = 44100;
@@ -753,12 +753,12 @@ IFusionSoundMusicProvider_CDDA_GetStreamDescription( IFusionSoundMusicProvider *
 static DFBResult
 IFusionSoundMusicProvider_CDDA_GetBufferDescription( IFusionSoundMusicProvider *thiz,
                                                      FSBufferDescription       *desc )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!desc)
           return DFB_INVARG;
- 
+
      desc->flags        = FSBDF_LENGTH       | FSBDF_CHANNELS  |
                           FSBDF_SAMPLEFORMAT | FSBDF_SAMPLERATE;
      desc->samplerate   = 44100;
@@ -772,12 +772,12 @@ IFusionSoundMusicProvider_CDDA_GetBufferDescription( IFusionSoundMusicProvider *
 static DFBResult
 IFusionSoundMusicProvider_CDDA_SelectTrack( IFusionSoundMusicProvider *thiz,
                                             FSTrackID                  track_id )
-{     
+{
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (track_id > data->total_tracks)
           return DFB_INVARG;
-     
+
      pthread_mutex_lock( &data->lock );
      data->current_track = track_id;
      pthread_mutex_unlock( &data->lock );
@@ -788,27 +788,27 @@ IFusionSoundMusicProvider_CDDA_SelectTrack( IFusionSoundMusicProvider *thiz,
 static void*
 CDDAStreamThread( DirectThread *thread, void *ctx )
 {
-     IFusionSoundMusicProvider_CDDA_data *data = 
+     IFusionSoundMusicProvider_CDDA_data *data =
           (IFusionSoundMusicProvider_CDDA_data*) ctx;
-     
+
      while (data->playing && !data->finished) {
           int len, pos;
-          
+
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
+
           pos = data->tracks[data->current_track].frame;
-          len = MIN( data->buffered_frames, 
+          len = MIN( data->buffered_frames,
                      data->tracks[data->current_track].length - pos );
-          pos += data->tracks[data->current_track].start;          
-          
+          pos += data->tracks[data->current_track].start;
+
           if (len > 0)
-               len = cdda_read_audio( data->fd, (__u8*)data->src_buffer, pos, len );
-          
+               len = cdda_read_audio( data->fd, (u8*)data->src_buffer, pos, len );
+
           if (len < 1) {
                if (data->flags & FMPLAY_LOOPING)
                     data->tracks[data->current_track].frame = 0;
@@ -817,21 +817,21 @@ CDDAStreamThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                continue;
           }
-          
+
           data->tracks[data->current_track].frame += len;
           data->finished = false;
-          
-          pthread_mutex_unlock( &data->lock );
-          
-          len = len * CD_BYTES_PER_FRAME / 4;
-                   
-          cdda_mix_audio( data->src_buffer, data->dst_buffer, len, 
-                          data->dest.format, data->dest.channels);   
 
-          data->dest.stream->Write( data->dest.stream, 
+          pthread_mutex_unlock( &data->lock );
+
+          len = len * CD_BYTES_PER_FRAME / 4;
+
+          cdda_mix_audio( data->src_buffer, data->dst_buffer, len,
+                          data->dest.format, data->dest.channels);
+
+          data->dest.stream->Write( data->dest.stream,
                                     data->dst_buffer, len );
      }
-     
+
      return NULL;
 }
 
@@ -855,7 +855,7 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      /* check if destination samplerate is supported */
      if (desc.samplerate != 44100)
           return DFB_UNSUPPORTED;
-     
+
      /* check if number of channels is supported */
      if (desc.channels > 2)
           return DFB_UNSUPPORTED;
@@ -871,7 +871,7 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
-     
+
      /* check destination buffer size */
      if (desc.buffersize < CD_BYTES_PER_FRAME/4)
           return DFB_UNSUPPORTED;
@@ -881,33 +881,33 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
      pthread_mutex_lock( &data->lock );
 
      data->buffered_frames = (desc.buffersize << 2) / CD_BYTES_PER_FRAME;
-     
+
      src_size = data->buffered_frames * CD_BYTES_PER_FRAME;
      if (desc.sampleformat != FSSF_S16 || desc.channels != 2) {
-          dst_size = desc.buffersize * desc.channels * 
+          dst_size = desc.buffersize * desc.channels *
                      FS_BITS_PER_SAMPLE(desc.sampleformat) >> 3;
      }
-          
+
      buffer = D_MALLOC( src_size + dst_size );
      if (!buffer) {
           pthread_mutex_unlock( &data->lock );
           return D_OOM();
      }
-     
+
      data->src_buffer = buffer;
      data->dst_buffer = (dst_size) ? (buffer + src_size) : buffer;
- 
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.stream   = destination;
      data->dest.format   = desc.sampleformat;
      data->dest.channels = desc.channels;
      data->dest.length   = desc.buffersize;
-    
+
      track = &data->tracks[data->current_track];
      if (track->frame == track->length)
           track->frame = 0;
-    
+
      /* start thread */
      data->finished = false;
      data->playing  = true;
@@ -922,35 +922,35 @@ IFusionSoundMusicProvider_CDDA_PlayToStream( IFusionSoundMusicProvider *thiz,
 static void*
 CDDABufferThread( DirectThread *thread, void *ctx )
 {
-     IFusionSoundMusicProvider_CDDA_data *data = 
+     IFusionSoundMusicProvider_CDDA_data *data =
           (IFusionSoundMusicProvider_CDDA_data*) ctx;
-     
+
      IFusionSoundBuffer *buffer = data->dest.buffer;
-     
+
      while (data->playing && !data->finished) {
-          int   len, pos;
-          __u8 *dst;
-          int   size;
-          
+          int  len, pos;
+          u8  *dst;
+          int  size;
+
           pthread_mutex_lock( &data->lock );
 
           if (!data->playing) {
                pthread_mutex_unlock( &data->lock );
                break;
           }
-          
+
           pos = data->tracks[data->current_track].frame;
-          len = MIN( data->buffered_frames, 
+          len = MIN( data->buffered_frames,
                      data->tracks[data->current_track].length - pos );
           pos += data->tracks[data->current_track].start;
-          
+
           if (buffer->Lock( buffer, (void*)&dst, &size, 0 ) != DFB_OK) {
                D_ERROR( "IFusionSoundMusicProvider_CDDA: "
                         "Couldn't lock destination buffer!\n" );
                pthread_mutex_unlock( &data->lock );
                break;
-          }         
-          
+          }
+
           size <<= 2;
           if (size < CD_BYTES_PER_FRAME) {
                D_WARN( "buffer too small, need at least %d bytes", CD_BYTES_PER_FRAME );
@@ -964,7 +964,7 @@ CDDABufferThread( DirectThread *thread, void *ctx )
 
           if (len > 0)
                len = cdda_read_audio( data->fd,
-                                      (__u8*)data->src_buffer ? : dst, pos, len );
+                                      (u8*)data->src_buffer ? : dst, pos, len );
 
           if (len < 1) {
                if (data->flags & FMPLAY_LOOPING)
@@ -975,19 +975,19 @@ CDDABufferThread( DirectThread *thread, void *ctx )
                pthread_mutex_unlock( &data->lock );
                continue;
           }
-          
+
           data->tracks[data->current_track].frame += len;
           data->finished = false;
 
           pthread_mutex_unlock( &data->lock );
-          
+
           len = len * CD_BYTES_PER_FRAME / 4;
-          
-          if (data->src_buffer) {          
-               cdda_mix_audio( data->src_buffer, dst, len, 
+
+          if (data->src_buffer) {
+               cdda_mix_audio( data->src_buffer, dst, len,
                                data->dest.format, data->dest.channels );
           }
-          
+
           buffer->Unlock( buffer );
 
           if (data->callback) {
@@ -995,7 +995,7 @@ CDDABufferThread( DirectThread *thread, void *ctx )
                     data->playing = false;
           }
      }
-     
+
      return NULL;
 }
 
@@ -1018,7 +1018,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      /* check if destination samplerate is supported */
      if (desc.samplerate != 44100)
           return DFB_UNSUPPORTED;
-     
+
      /* check if number of channels is supported */
      if (desc.channels > 2)
           return DFB_UNSUPPORTED;
@@ -1034,17 +1034,17 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
           default:
                return DFB_UNSUPPORTED;
      }
-     
+
      /* check destination buffer size */
      if (desc.length < CD_BYTES_PER_FRAME/4)
           return DFB_UNSUPPORTED;
-          
+
      thiz->Stop( thiz );
 
      pthread_mutex_lock( &data->lock );
-     
+
      data->buffered_frames = (desc.length << 2) / CD_BYTES_PER_FRAME;
-     
+
      if (desc.sampleformat != FSSF_S16 || desc.channels != 2) {
           data->src_buffer = D_MALLOC( data->buffered_frames * CD_BYTES_PER_FRAME );
           if (!data->src_buffer) {
@@ -1052,7 +1052,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
                return D_OOM();
           }
      }
- 
+
      /* reference destination stream */
      destination->AddRef( destination );
      data->dest.buffer   = destination;
@@ -1065,7 +1065,7 @@ IFusionSoundMusicProvider_CDDA_PlayToBuffer( IFusionSoundMusicProvider *thiz,
      track = &data->tracks[data->current_track];
      if (track->frame == track->length)
           track->frame = 0;
-     
+
      /* start thread */
      data->finished = false;
      data->playing  = true;
@@ -1093,7 +1093,7 @@ IFusionSoundMusicProvider_CDDA_Stop( IFusionSoundMusicProvider *thiz )
           direct_thread_destroy( data->thread );
           data->thread = NULL;
      }
-     
+
      /* release buffer */
      if (data->src_buffer) {
           D_FREE( data->src_buffer );
@@ -1123,10 +1123,10 @@ IFusionSoundMusicProvider_CDDA_GetStatus( IFusionSoundMusicProvider *thiz,
                                           FSMusicProviderStatus     *status )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
-     
+
      if (!status)
           return DFB_INVARG;
-          
+
      if (data->finished) {
           *status = FMSTATE_FINISHED;
      }
@@ -1136,17 +1136,17 @@ IFusionSoundMusicProvider_CDDA_GetStatus( IFusionSoundMusicProvider *thiz,
      else {
           *status = FMSTATE_STOP;
      }
-     
+
      return DFB_OK;
 }
-          
-static DFBResult 
+
+static DFBResult
 IFusionSoundMusicProvider_CDDA_SeekTo( IFusionSoundMusicProvider *thiz,
                                        double                     seconds )
 {
      struct cdda_track *track;
      unsigned int       frame;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (seconds < 0.0)
@@ -1160,55 +1160,55 @@ IFusionSoundMusicProvider_CDDA_SeekTo( IFusionSoundMusicProvider *thiz,
      pthread_mutex_lock( &data->lock );
      track->frame = frame;
      pthread_mutex_unlock( &data->lock );
-     
+
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_CDDA_GetPos( IFusionSoundMusicProvider *thiz,
                                        double                    *seconds )
 {
      struct cdda_track *track;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
 
      if (!seconds)
           return DFB_INVARG;
-          
+
      track = &data->tracks[data->current_track];
      *seconds = (double)track->frame / CD_FRAMES_PER_SECOND;
-          
+
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_CDDA_GetLength( IFusionSoundMusicProvider *thiz,
                                           double                    *seconds )
 {
      struct cdda_track *track;
-     
+
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
-     
+
      if (!seconds)
           return DFB_INVARG;
-      
-     track = &data->tracks[data->current_track];   
+
+     track = &data->tracks[data->current_track];
      *seconds = (double)track->length / CD_FRAMES_PER_SECOND;
 
      return DFB_OK;
 }
 
-static DFBResult 
+static DFBResult
 IFusionSoundMusicProvider_CDDA_SetPlaybackFlags( IFusionSoundMusicProvider    *thiz,
                                                  FSMusicProviderPlaybackFlags  flags )
 {
      DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_CDDA )
-     
+
      if (flags & ~FMPLAY_LOOPING)
           return DFB_UNSUPPORTED;
-     
+
      data->flags = flags;
-     
+
      return DFB_OK;
 }
 
@@ -1221,33 +1221,33 @@ Probe( IFusionSoundMusicProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IFusionSoundMusicProvider *thiz, 
-           const char                *filename, 
+Construct( IFusionSoundMusicProvider *thiz,
+           const char                *filename,
            DirectStream              *stream )
 {
      DFBResult err;
-     
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IFusionSoundMusicProvider_CDDA )
 
      data->ref = 1;
-     
+
      data->stream = direct_stream_dup( stream );
      data->fd     = direct_stream_fileno( stream );
-     
+
      /* reset to blocking mode */
-     fcntl( data->fd, F_SETFL, 
+     fcntl( data->fd, F_SETFL,
                fcntl( data->fd, F_GETFL ) & ~O_NONBLOCK );
-    
+
      err = cdda_build_tracklits( data->fd, &data->tracks, &data->total_tracks );
      if (err != DFB_OK) {
           IFusionSoundMusicProvider_CDDA_Destruct( thiz );
           return err;
      }
-     
+
 #ifdef HAVE_CDDB
      cdda_get_metadata( data->tracks, data->total_tracks );
-#endif     
-     
+#endif
+
      direct_util_recursive_pthread_mutex_init( &data->lock );
 
      /* initialize function pointers */
