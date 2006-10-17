@@ -114,11 +114,15 @@ ft2UTF8GetCharacterIndex( CoreFont     *thiz,
 
      D_MAGIC_ASSERT( thiz, CoreFont );
 
-     pthread_mutex_lock ( &library_mutex );
+     if (data->disable_charmap)
+          *ret_index = character;
+     else {
+          pthread_mutex_lock ( &library_mutex );
 
-     *ret_index = CHAR_INDEX( character );
+          *ret_index = CHAR_INDEX( character );
 
-     pthread_mutex_unlock ( &library_mutex );
+          pthread_mutex_unlock ( &library_mutex );
+     }
 
      return DFB_OK;
 }
@@ -152,7 +156,10 @@ ft2UTF8DecodeText( CoreFont       *thiz,
                pos += DIRECT_UTF8_SKIP(bytes[pos]);
           }
 
-          ret_indices[num++] = CHAR_INDEX( c );
+          if (data->disable_charmap)
+               ret_indices[num++] = c;
+          else
+               ret_indices[num++] = CHAR_INDEX( c );
      }
 
      pthread_mutex_unlock ( &library_mutex );
@@ -178,7 +185,10 @@ ft2Latin1GetCharacterIndex( CoreFont     *thiz,
 
      D_MAGIC_ASSERT( thiz, CoreFont );
 
-     *ret_index = data->indices[character];
+     if (data->disable_charmap)
+          *ret_index = character;
+     else
+          *ret_index = data->indices[character];
 
      return DFB_OK;
 }
@@ -200,8 +210,14 @@ ft2Latin1DecodeText( CoreFont       *thiz,
      D_ASSERT( ret_indices != NULL );
      D_ASSERT( ret_num != NULL );
 
-     for (i=0; i<length; i++)
-          ret_indices[i] = data->indices[bytes[i]];
+     if (data->disable_charmap) {
+          for (i=0; i<length; i++)
+               ret_indices[i] = bytes[i];
+     }
+     else {
+          for (i=0; i<length; i++)
+               ret_indices[i] = data->indices[bytes[i]];
+     }
 
      *ret_num = length;
 
@@ -631,6 +647,7 @@ Construct( IDirectFBFont      *thiz,
      bool                   disable_charmap = false;
      bool                   disable_kerning = false;
      bool                   load_mono = false;
+     u32                    mask = 0;
 
      CoreDFB *core;
      char *filename;
@@ -716,6 +733,17 @@ Construct( IDirectFBFont      *thiz,
                pthread_mutex_unlock ( &library_mutex );
           }
 #endif
+          if (err) {
+               D_HEAVYDEBUG( "DirectFB/FontFT2: "
+                              "Couldn't select Unicode/Latin1 encoding, "
+                              "trying Symbol.\n");
+               pthread_mutex_lock ( &library_mutex );
+               err = FT_Select_Charmap( face, ft_encoding_symbol );
+               pthread_mutex_unlock ( &library_mutex );
+
+               if (!err)
+                    mask = 0xf000;
+          }
      }
 
 #if 0
@@ -813,7 +841,7 @@ Construct( IDirectFBFont      *thiz,
      }
 
      for (i=0; i<256; i++)
-          data->indices[i] = FT_Get_Char_Index( face, i );
+          data->indices[i] = FT_Get_Char_Index( face, i | mask );
 
      font->impl_data = data;
 
