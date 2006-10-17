@@ -196,6 +196,10 @@ DFBResult dfb_surface_create( CoreDFB *core,
           return DFB_LIMITEXCEEDED;
 
      surface = dfb_core_create_surface( core );
+     if (!surface) {
+          D_WARN( "could not create surface object" );
+          return DFB_FUSION;
+     }
 
      ret = dfb_surface_init( core, surface, width, height, format, caps, palette );
      if (ret) {
