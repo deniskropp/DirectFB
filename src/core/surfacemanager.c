@@ -177,7 +177,7 @@ dfb_surfacemanager_add_heap( SurfaceManager     *manager,
      
      D_ASSERT( manager != NULL );
 
-     if (storage == CSS_SYSTEM)
+     if (storage != CSS_VIDEO && storage != CSS_AUXILIARY)
           return DFB_INVARG;
 
      heap = SHCALLOC( manager->shmpool, 1, sizeof(Heap) );
@@ -557,7 +557,6 @@ DFBResult dfb_surfacemanager_deallocate( SurfaceManager *manager,
 
      buffer->video.health = CSH_INVALID;
      buffer->video.chunk = NULL;
-     buffer->storage = 0;
 
      dfb_surface_notify_listeners( buffer->surface, CSNF_VIDEO );
 
@@ -651,13 +650,8 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
 
      switch (buffer->video.health) {
           case CSH_STORED:
-               if (buffer->video.chunk) {
+               if (buffer->video.chunk)
                     buffer->video.chunk->tolerations = 0;
-
-                    buffer->storage = buffer->video.chunk->heap->storage;
-               }
-               else
-                    buffer->storage = CSS_VIDEO;
 
                break;
 
@@ -698,9 +692,6 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
                /* Reset tolerations. */
                chunk->tolerations = 0;
 
-               /* Remember storage. */
-               buffer->storage = chunk->heap->storage;
-
                dfb_surface_notify_listeners( surface, CSNF_VIDEO );
                break;
           }
@@ -730,7 +721,6 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
 
      switch (buffer->system.health) {
           case CSH_STORED:
-               buffer->storage = CSS_SYSTEM;
                break;
 
           case CSH_INVALID:
@@ -774,9 +764,6 @@ DFBResult dfb_surfacemanager_assure_system( SurfaceManager *manager,
 
                /* Update health. */
                buffer->system.health = CSH_STORED;
-
-               /* Remember storage. */
-               buffer->storage = CSS_SYSTEM;
 
                dfb_surface_notify_listeners( surface, CSNF_SYSTEM );
                break;
@@ -843,6 +830,7 @@ free_chunk( SurfaceManager *manager, Chunk *chunk )
      if (chunk->buffer->policy == CSP_VIDEOONLY)
           chunk->heap->avail += chunk->length;
 
+     chunk->buffer->storage = CSS_NONE;
      chunk->buffer = NULL;
 
      chunk->heap->min_toleration--;

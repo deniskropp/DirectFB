@@ -82,8 +82,7 @@ typedef enum {
 } CoreSurfacePolicy;
 
 typedef enum {
-     CSS_SYSTEM          = 0x00000000,  /* actually stored 
-                                           into system memory */ 
+     CSS_NONE            = 0x00000000,  /* neither video nor auxiliary */
      CSS_VIDEO           = 0x00000001,  /* actually stored 
                                            into video memory */
      CSS_AUXILIARY       = 0x00000002,  /* actually stored 
