@@ -167,8 +167,10 @@ fusion_object_pool_create( const char             *name,
 
      /* Allocate shared memory for the pool. */
      pool = SHCALLOC( shared->main_pool, 1, sizeof(FusionObjectPool) );
-     if (!pool)
+     if (!pool) {
+          D_OOSHM();
           return NULL;
+     }
 
      /* Initialize the pool lock. */
      fusion_skirmish_init( &pool->lock, name, world );
@@ -314,6 +316,7 @@ fusion_object_create( FusionObjectPool  *pool,
      /* Allocate shared memory for the object. */
      object = SHCALLOC( shared->main_pool, 1, pool->object_size );
      if (!object) {
+          D_OOSHM();
           fusion_skirmish_dismiss( &pool->lock );
           return NULL;
      }
@@ -552,7 +555,7 @@ fusion_object_set_int_property( FusionObject *object,
 
      iptr = SHMALLOC( object->shared->main_pool, sizeof(int) );
      if (!iptr)
-          return DFB_NOSHAREDMEMORY;
+          return D_OOSHM();
 
      *iptr = value;
 
