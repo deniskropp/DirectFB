@@ -652,6 +652,8 @@ DFBResult dfb_surfacemanager_assure_video( SurfaceManager *manager,
           case CSH_STORED:
                if (buffer->video.chunk)
                     buffer->video.chunk->tolerations = 0;
+               else
+                    buffer->storage = CSS_VIDEO;  /* for chunk less fbdev surface */
 
                break;
 
