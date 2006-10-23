@@ -32,4 +32,15 @@ typedef int64_t s64;
 
 #endif
 
+#ifndef DIRECTFB_NO_CRUFT
+#define __u8   u8
+#define __u16  u16
+#define __u32  u32
+#define __u64  u64
+#define __s8   s8
+#define __s16  s16
+#define __s32  s32
+#define __s64  s64
+#endif
+
 #endif
