@@ -175,6 +175,8 @@ typedef struct {
 
 #define MAX_QUEUE_LEN   5 /* in seconds */
 
+#define GAP_TOLERANCE   20000 /* in microseconds */
+
 /*****************************************************************************/
 
 static int
@@ -593,10 +595,10 @@ FFmpegVideo( DirectThread *self, void *arg )
                duration = ((frameno == 0) 
                            ? ((double)1000000.0/data->video.rate)
                            : ((double)(data->video.pts-lastpts)/(double)frameno))
-                          * data->speed;
+                          / data->speed;
                
                delay = data->video.pts - get_stream_clock(data);
-               duration += CLAMP( delay, -duration, +duration );
+               duration += CLAMP( delay, -GAP_TOLERANCE, +GAP_TOLERANCE );
                
                time.tv_nsec += (duration%1000000) * 1000;
                time.tv_sec  += (duration/1000000);
