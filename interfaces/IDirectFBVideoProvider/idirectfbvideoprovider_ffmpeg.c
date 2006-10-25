@@ -598,7 +598,9 @@ FFmpegVideo( DirectThread *self, void *arg )
                           / data->speed;
                
                delay = data->video.pts - get_stream_clock(data);
-               duration += CLAMP( delay, -GAP_TOLERANCE, +GAP_TOLERANCE );
+               if (delay > -1000000 && delay < +1000000)
+                    delay = CLAMP( delay, -GAP_TOLERANCE, +GAP_TOLERANCE );
+               duration += delay;
                
                time.tv_nsec += (duration%1000000) * 1000;
                time.tv_sec  += (duration/1000000);
