@@ -27,6 +27,7 @@
 
 #include <config.h>
 
+#include <unistd.h>
 #include <string.h>
 
 #include <directfb.h>
@@ -376,7 +377,7 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
                                       bool               create,
                                       CoreLayerRegion  **ret_region )
 {
-     DFBResult ret;
+     DFBResult ret = DFB_OK;
 
      D_ASSERT( context != NULL );
      D_ASSERT( ret_region != NULL );
@@ -385,53 +386,67 @@ dfb_layer_context_get_primary_region( CoreLayerContext  *context,
      if (dfb_layer_context_lock( context ))
           return DFB_FUSION;
 
-     if (context->primary.region) {
-          /* Increase the primary region's reference counter. */
-          if (dfb_layer_region_ref( context->primary.region )) {
-               dfb_layer_context_unlock( context );
-               return DFB_FUSION;
-          }
+     while (context->primary.region) {
+         /* Increase the primary region's reference counter. */
+         ret = dfb_layer_region_ref( context->primary.region );
+         if (ret == DFB_OK)
+              break;
+
+         dfb_layer_context_unlock( context );
+
+         if (ret == DFB_LOCKED) {
+              //sched_yield();
+              usleep( 10000 );
+
+              if (dfb_layer_context_lock( context ))
+                   return DFB_FUSION;
+         }
+         else
+              return DFB_FUSION;
      }
-     else if (create) {
-          CoreLayerRegion *region;
 
-          /* Create the primary region. */
-          ret = dfb_layer_region_create( context, &region );
-          if (ret) {
-               D_ERROR( "DirectFB/core/layers: Could not create primary region!\n" );
-               dfb_layer_context_unlock( context );
-               return ret;
+     if (!context->primary.region) {
+          if (create) {
+              CoreLayerRegion *region;
+
+              /* Create the primary region. */
+              ret = dfb_layer_region_create( context, &region );
+              if (ret) {
+                   D_ERROR( "DirectFB/core/layers: Could not create primary region!\n" );
+                   dfb_layer_context_unlock( context );
+                   return ret;
+              }
+
+              /* Set the region configuration. */
+              ret = dfb_layer_region_set_configuration( region,
+                                                        &context->primary.config,
+                                                        CLRCF_ALL );
+              if (ret) {
+                   D_DERROR( ret, "DirectFB/core/layers: "
+                             "Could not set primary region config!\n" );
+                   dfb_layer_region_unref( region );
+                   dfb_layer_context_unlock( context );
+                   return ret;
+              }
+
+              /* Remember the primary region. */
+              context->primary.region = region;
+
+              /* Allocate surface, enable region etc. */
+              ret = dfb_layer_context_set_configuration( context, &context->config );
+              if (ret) {
+                   D_DERROR( ret, "DirectFB/core/layers: "
+                             "Could not set layer context config!\n" );
+                   context->primary.region = NULL;
+                   dfb_layer_region_unref( region );
+                   dfb_layer_context_unlock( context );
+                   return ret;
+              }
           }
-
-          /* Set the region configuration. */
-          ret = dfb_layer_region_set_configuration( region,
-                                                    &context->primary.config,
-                                                    CLRCF_ALL );
-          if (ret) {
-               D_DERROR( ret, "DirectFB/core/layers: "
-                         "Could not set primary region config!\n" );
-               dfb_layer_region_unref( region );
+          else {
                dfb_layer_context_unlock( context );
-               return ret;
+               return DFB_TEMPUNAVAIL;
           }
-
-          /* Remember the primary region. */
-          context->primary.region = region;
-
-          /* Allocate surface, enable region etc. */
-          ret = dfb_layer_context_set_configuration( context, &context->config );
-          if (ret) {
-               D_DERROR( ret, "DirectFB/core/layers: "
-                         "Could not set layer context config!\n" );
-               context->primary.region = NULL;
-               dfb_layer_region_unref( region );
-               dfb_layer_context_unlock( context );
-               return ret;
-          }
-     }
-     else {
-          dfb_layer_context_unlock( context );
-          return DFB_TEMPUNAVAIL;
      }
 
      /* Return region. */
