@@ -29,6 +29,7 @@
 
 #include <direct/build.h>
 
+#include <linux/unistd.h>
 
 #include <stdarg.h>
 #include <stdlib.h>
@@ -79,7 +80,7 @@ lookup_domain( const char *name, bool sub )
       */
      if (sub && strchr(name, '/')) {
           int passed_name_len = strlen( name );
-          
+
           direct_list_foreach (entry, domains) {
                int entry_len = strlen( entry->name );
                if ((passed_name_len > entry_len) &&
@@ -89,7 +90,7 @@ lookup_domain( const char *name, bool sub )
                }
           }
      }
-     
+
      return NULL;
 }
 
@@ -297,6 +298,23 @@ direct_debug_exit( DirectDebugDomain *domain,
 }
 
 __attribute__((no_instrument_function))
+static void
+trap( const char *domain )
+{
+     D_DEBUG( "Direct/%s: Raising SIGTRAP...\n", domain );
+
+     raise( SIGTRAP );
+
+     direct_log_printf( NULL, "Direct/%s: ...didn't catch signal on my own, calling killpg().\n", domain );
+
+     killpg( 0, SIGTRAP );
+
+     direct_log_printf( NULL, "Direct/%s: ...still running, calling pthread_exit().\n", domain );
+
+     pthread_exit( NULL );
+}
+
+__attribute__((no_instrument_function))
 void
 direct_break( const char *func,
               const char *file,
@@ -322,15 +340,7 @@ direct_break( const char *func,
 
      direct_trace_print_stack( NULL );
 
-     D_DEBUG( "Direct/Break: "
-              "Sending SIGTRAP to process group %d...\n", getpgrp() );
-#ifndef USE_KOS
-     killpg( getpgrp(), SIGTRAP );
-#endif
-     D_DEBUG( "Direct/Break: "
-              "...didn't catch signal on my own, calling _exit(-1).\n" );
-
-     _exit( -1 );
+     trap( "Break" );
 }
 
 __attribute__((no_instrument_function))
@@ -350,17 +360,8 @@ direct_assertion( const char *exp,
 
      direct_trace_print_stack( NULL );
 
-     if (direct_config->fatal >= DCFL_ASSERT) {
-          D_DEBUG( "Direct/Assertion: "
-                   "Sending SIGTRAP to process group %d...\n", getpgrp() );
-#ifndef USE_KOS
-          killpg( getpgrp(), SIGTRAP );
-#endif
-          D_DEBUG( "Direct/Assertion: "
-                   "...didn't catch signal on my own, calling _exit(-1).\n" );
-
-          _exit( -1 );
-     }
+     if (direct_config->fatal >= DCFL_ASSERT)
+          trap( "Assertion" );
 }
 
 __attribute__((no_instrument_function))
@@ -380,17 +381,8 @@ direct_assumption( const char *exp,
 
      direct_trace_print_stack( NULL );
 
-     if (direct_config->fatal >= DCFL_ASSUME) {
-          D_DEBUG( "Direct/Assumption: "
-                   "Sending SIGTRAP to process group %d...\n", getpgrp() );
-#ifndef USE_KOS
-          killpg( getpgrp(), SIGTRAP );
-#endif
-          D_DEBUG( "Direct/Assumption: "
-                   "...didn't catch signal on my own, calling _exit(-1).\n" );
-
-          _exit( -1 );
-     }
+     if (direct_config->fatal >= DCFL_ASSUME)
+          trap( "Assumption" );
 }
 
 #else

@@ -367,16 +367,17 @@ direct_thread_destroy( DirectThread *thread )
           if (thread->canceled)
                D_DEBUG_AT( Direct_Thread, "'%s' (%d) is canceled but not joined!\n",
                            thread->name, thread->tid );
-          else
+          else {
                D_DEBUG_AT( Direct_Thread, "'%s' (%d) is still running!\n",
                            thread->name, thread->tid );
 
-          if (thread->name)
-               D_ERROR( "Direct/Thread: Killing '%s' (%d)!\n", thread->name, thread->tid );
-          else
-               D_ERROR( "Direct/Thread: Killing %d!\n", thread->tid );
+               if (thread->name)
+                    D_ERROR( "Direct/Thread: Canceling '%s' (%d)!\n", thread->name, thread->tid );
+               else
+                    D_ERROR( "Direct/Thread: Canceling %d!\n", thread->tid );
 
-          pthread_kill( thread->thread, SIGKILL );
+               pthread_cancel( thread->thread );
+          }
      }
 
      D_MAGIC_CLEAR( thread );

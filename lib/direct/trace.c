@@ -89,7 +89,11 @@ struct __D_DirectTraceBuffer {
 
 static DirectTraceBuffer *buffers[MAX_BUFFERS];
 static int                buffers_num  = 0;
+#ifdef HAVE_DECL_PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+static pthread_mutex_t    buffers_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#else
 static pthread_mutex_t    buffers_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 static pthread_key_t      trace_key    = -1;
 
 /**************************************************************************************************/
@@ -171,7 +175,11 @@ typedef struct {
 } SymbolTable;
 
 static DirectLink      *tables      = NULL;
+#ifdef HAVE_DECL_PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP
+static pthread_mutex_t  tables_lock = PTHREAD_RECURSIVE_MUTEX_INITIALIZER_NP;
+#else
 static pthread_mutex_t  tables_lock = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 
 __attribute__((no_instrument_function))

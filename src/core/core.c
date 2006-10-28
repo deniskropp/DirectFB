@@ -257,8 +257,6 @@ dfb_core_create( CoreDFB **ret_core )
 
      direct_find_best_memcpy();
 
-     setpgid( 0, 0 );
-
      D_MAGIC_SET( core, CoreDFB );
 
      core_dfb = core;
@@ -342,11 +340,13 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      D_DEBUG_AT( DirectFB_Core, "%s...\n", __FUNCTION__ );
 
-     pthread_mutex_lock( &core_dfb_lock );
+     if (!emergency) {
+          pthread_mutex_lock( &core_dfb_lock );
 
-     if (!emergency && --core->refs) {
-          pthread_mutex_unlock( &core_dfb_lock );
-          return DFB_OK;
+          if (--core->refs) {
+               pthread_mutex_unlock( &core_dfb_lock );
+               return DFB_OK;
+          }
      }
 
      direct_signal_handler_remove( core->signal_handler );
@@ -373,16 +373,19 @@ dfb_core_destroy( CoreDFB *core, bool emergency )
 
      fusion_exit( core->world, emergency );
 
-     direct_thread_remove_init_handler( core->init_handler );
+     if (!emergency)
+          direct_thread_remove_init_handler( core->init_handler );
 
      D_MAGIC_CLEAR( core );
 
      D_FREE( core );
      core_dfb = NULL;
 
-     pthread_mutex_unlock( &core_dfb_lock );
+     if (!emergency) {
+          pthread_mutex_unlock( &core_dfb_lock );
 
-     direct_shutdown();
+          direct_shutdown();
+     }
 
      return DFB_OK;
 }

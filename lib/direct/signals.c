@@ -396,10 +396,13 @@ signal_handler( int num, siginfo_t *info, void *foo )
 
      pthread_mutex_unlock( &handlers_lock );
 
-     /* Propagate signal. */
-     killpg( 0, SIGKILL );
+     remove_handlers();
 
-     _exit( -1 );
+     raise( num );
+     
+     abort();
+
+     exit( -num );
 }
 
 /**************************************************************************************************/
@@ -419,12 +422,12 @@ install_handlers()
                int              signum = sigs_to_handle[i];
 
                action.sa_sigaction = signal_handler;
-               action.sa_flags     = SA_RESTART | SA_SIGINFO;
-
+               action.sa_flags     = SA_SIGINFO;
+                
                if (signum != SIGSEGV)
-                    action.sa_flags |= SA_RESETHAND;
+                    action.sa_flags |= SA_NODEFER;
 
-               sigfillset( &action.sa_mask );
+               sigemptyset( &action.sa_mask );
 
                if (sigaction( signum, &action, &sigs_handled[i].old_action )) {
                     D_PERROR( "Direct/Signals: "
