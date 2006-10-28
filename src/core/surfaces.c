@@ -481,6 +481,7 @@ DFBResult dfb_surface_reformat( CoreDFB *core, CoreSurface *surface,
                          dfb_palette_generate_rgb332_map( palette );
                          break;
 
+                    case DSPF_LUT2:
                     case DSPF_ALUT44:
                          dfb_palette_generate_rgb121_map( palette );
                          break;
@@ -1079,6 +1080,7 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           case DSPF_AYUV:
           case DSPF_AiRGB:
           case DSPF_I420:
+          case DSPF_LUT2:
           case DSPF_LUT8:
           case DSPF_NV12:
           case DSPF_NV21:
@@ -1128,10 +1130,19 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
           if (ret)
                return ret;
 
-          if (format == DSPF_LUT8)
-               dfb_palette_generate_rgb332_map( palette );
-          else if (format == DSPF_ALUT44)
-               dfb_palette_generate_rgb121_map( palette );
+          switch (format) {
+               case DSPF_LUT8:
+                    dfb_palette_generate_rgb332_map( palette );
+                    break;
+
+               case DSPF_LUT2:
+               case DSPF_ALUT44:
+                    dfb_palette_generate_rgb121_map( palette );
+                    break;
+
+               default:
+                    D_WARN( "unknown indexed format" );
+          }
 
           dfb_surface_set_palette( surface, palette );
 

@@ -171,6 +171,7 @@ static const FormatString format_strings[] = {
      { "AYUV",     DSPF_AYUV     },
      { "AiRGB",    DSPF_AiRGB    },
      { "I420",     DSPF_I420     },
+     { "LUT2",     DSPF_LUT2     },
      { "LUT8",     DSPF_LUT8     },
      { "NV12",     DSPF_NV12     },
      { "NV16",     DSPF_NV16     },
@@ -195,7 +196,8 @@ static const FormatString font_format_strings[] = {
      { "ARGB1555", DSPF_ARGB1555 },
      { "ARGB2554", DSPF_ARGB2554 },
      { "ARGB4444", DSPF_ARGB4444 },
-     { "AiRGB",    DSPF_AiRGB    }
+     { "AiRGB",    DSPF_AiRGB    },
+     { "LUT2",     DSPF_LUT2     }
 };
 
 #define NUM_FONT_FORMAT_STRINGS (sizeof(font_format_strings) / sizeof(FormatString))

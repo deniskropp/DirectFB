@@ -43,6 +43,7 @@
 #include <core/surfaces.h>
 
 #include <direct/mem.h>
+#include <direct/memcpy.h>
 #include <direct/util.h>
 
 
@@ -104,10 +105,10 @@ dfb_state_destroy( CardState *state )
 {
      D_MAGIC_ASSERT( state, CardState );
 
-     D_MAGIC_CLEAR( state );
-
      D_ASSUME( state->destination == NULL );
      D_ASSUME( state->source == NULL );
+
+     D_MAGIC_CLEAR( state );
 
      direct_serial_deinit( &state->dst_serial );
      direct_serial_deinit( &state->src_serial );
@@ -120,6 +121,14 @@ dfb_state_destroy( CardState *state )
 
           D_FREE( gfxs );
      }
+
+     if (state->num_translation) {
+          D_ASSERT( state->index_translation != NULL );
+
+          D_FREE( state->index_translation );
+     }
+     else
+          D_ASSERT( state->index_translation == NULL );
 
      pthread_mutex_destroy( &state->lock );
 }
@@ -221,5 +230,41 @@ dfb_state_update( CardState *state, bool update_source )
           if (direct_serial_update( &state->src_serial, &source->serial ))
                state->modified |= SMF_SOURCE;
      }
+}
+
+DFBResult
+dfb_state_set_index_translation( CardState *state,
+                                 const int *indices,
+                                 int        num_indices )
+{
+     D_MAGIC_ASSERT( state, CardState );
+
+     D_ASSERT( indices != NULL || num_indices == 0 );
+
+     dfb_state_lock( state );
+
+     if (state->num_translation != num_indices) {
+          int *new_trans = D_REALLOC( state->index_translation,
+                                      num_indices * sizeof(int) );
+
+          D_ASSERT( num_indices || new_trans == NULL );
+
+          if (num_indices && !new_trans) {
+               dfb_state_unlock( state );
+               return D_OOM();
+          }
+
+          state->index_translation = new_trans;
+          state->num_translation   = num_indices;
+     }
+
+     if (num_indices)
+          direct_memcpy( state->index_translation, indices, num_indices * sizeof(int) );
+
+     state->modified |= SMF_INDEX_TRANSLATION;
+
+     dfb_state_unlock( state );
+
+     return DFB_OK;
 }
 

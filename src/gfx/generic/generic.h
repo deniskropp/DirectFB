@@ -147,6 +147,9 @@ struct _GenefxState {
      int Xphase;    /* initial value for fractional steps (zero if not clipped) */
 
      bool need_accumulator;
+
+     int *trans;
+     int  num_trans;
 };
 
 

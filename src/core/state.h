@@ -46,19 +46,21 @@
 
 
 typedef enum {
-     SMF_DRAWING_FLAGS   = 0x00000001,
-     SMF_BLITTING_FLAGS  = 0x00000002,
-     SMF_CLIP            = 0x00000004,
-     SMF_COLOR           = 0x00000008,
-     SMF_SRC_BLEND       = 0x00000010,
-     SMF_DST_BLEND       = 0x00000020,
-     SMF_SRC_COLORKEY    = 0x00000040,
-     SMF_DST_COLORKEY    = 0x00000080,
+     SMF_DRAWING_FLAGS     = 0x00000001,
+     SMF_BLITTING_FLAGS    = 0x00000002,
+     SMF_CLIP              = 0x00000004,
+     SMF_COLOR             = 0x00000008,
+     SMF_SRC_BLEND         = 0x00000010,
+     SMF_DST_BLEND         = 0x00000020,
+     SMF_SRC_COLORKEY      = 0x00000040,
+     SMF_DST_COLORKEY      = 0x00000080,
 
-     SMF_DESTINATION     = 0x00000100,
-     SMF_SOURCE          = 0x00000200,
+     SMF_DESTINATION       = 0x00000100,
+     SMF_SOURCE            = 0x00000200,
 
-     SMF_ALL             = 0x000003FF
+     SMF_INDEX_TRANSLATION = 0x00001000,
+
+     SMF_ALL               = 0x000013FF
 } StateModificationFlags;
 
 typedef enum {
@@ -105,6 +107,9 @@ struct _CardState {
      DirectSerial             dst_serial;    /* last destination surface serial */
      DirectSerial             src_serial;    /* last source surface serial */
 
+     int                     *index_translation;
+     int                      num_translation;
+
 
      /* hardware abstraction and state handling helpers */
 
@@ -127,6 +132,10 @@ void dfb_state_set_destination( CardState *state, CoreSurface *destination );
 void dfb_state_set_source( CardState *state, CoreSurface *source );
 
 void dfb_state_update( CardState *state, bool update_source );
+
+DFBResult dfb_state_set_index_translation( CardState *state,
+                                           const int *indices,
+                                           int        num_indices );
 
 static inline void
 dfb_state_get_serial( const CardState *state, CoreGraphicsSerial *ret_serial )

@@ -966,6 +966,31 @@ IDirectFBSurface_SetDstColorKeyIndex( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_SetIndexTranslation( IDirectFBSurface *thiz,
+                                      const int        *indices,
+                                      int               num_indices )
+{
+     CoreSurface *surface;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface)
+
+     surface = data->surface;
+     if (!surface)
+          return DFB_DESTROYED;
+
+     if (! DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
+          return DFB_UNSUPPORTED;
+
+     if (!indices && num_indices > 0)
+          return DFB_INVAREA;
+
+     if (num_indices < 0 || num_indices > 256)
+          return DFB_INVARG;
+
+     return dfb_state_set_index_translation( &data->state, indices, num_indices );
+}
+
+static DFBResult
 IDirectFBSurface_SetFont( IDirectFBSurface *thiz,
                           IDirectFBFont    *font )
 {
@@ -2212,6 +2237,7 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
      thiz->SetSrcColorKeyIndex = IDirectFBSurface_SetSrcColorKeyIndex;
      thiz->SetDstColorKey = IDirectFBSurface_SetDstColorKey;
      thiz->SetDstColorKeyIndex = IDirectFBSurface_SetDstColorKeyIndex;
+     thiz->SetIndexTranslation = IDirectFBSurface_SetIndexTranslation;
 
      thiz->SetBlittingFlags = IDirectFBSurface_SetBlittingFlags;
      thiz->Blit = IDirectFBSurface_Blit;

@@ -196,7 +196,7 @@ create_region( CoreDFB                 *core,
                else if (config.options & DLOP_ALPHACHANNEL)
                     config.options = (config.options & ~DLOP_ALPHACHANNEL) | DLOP_OPACITY;
                else {
-                    D_ERROR( "DirectFB/Core/Windows: Unable to set region configuration!\n" );
+                    D_DERROR( ret, "DirectFB/Core/Windows: Unable to set region configuration!\n" );
                     dfb_layer_region_unref( region );
                     return ret;
                }
@@ -342,9 +342,10 @@ dfb_window_create( CoreWindowStack        *stack,
 
      config.events   = DWET_ALL;
 
-     /* Auto enable blending for ARGB only, not LUT8. */
+     /* Auto enable blending for ARGB only, not indexed. */
      if ((caps & DWCAPS_ALPHACHANNEL) &&
-         DFB_PIXELFORMAT_HAS_ALPHA(pixelformat) && pixelformat != DSPF_LUT8)
+          DFB_PIXELFORMAT_HAS_ALPHA (pixelformat) &&
+         !DFB_PIXELFORMAT_IS_INDEXED(pixelformat))
           config.options |= DWOP_ALPHACHANNEL;
 
 

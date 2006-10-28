@@ -395,6 +395,7 @@ window_at_pointer( CoreWindowStack *stack,
                                         alpha = *(u8*)(data + wx + pitch * wy) & 0xf0;
                                         alpha |= alpha >> 4;
                                         break;
+                                   case DSPF_LUT2:
                                    case DSPF_LUT8: {
                                         CorePalette *palette = surface->palette;
                                         u8           pix     = *((u8*) data + wx + pitch * wy);
@@ -409,6 +410,7 @@ window_at_pointer( CoreWindowStack *stack,
                                    }
 
                                    default:
+                                        D_ONCE( "unknown format 0x%x", surface->format );
                                         break;
                               }
 

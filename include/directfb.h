@@ -671,8 +671,10 @@ typedef enum {
                                                 only one field (every second line of full
                                                 image) scaling it vertically by factor two */
      DSBLIT_SRC_PREMULTCOLOR   = 0x00000200, /* modulates the source color with the color alpha */
-     DSBLIT_XOR                = 0x00000400  /* bitwise xor the destination pixels with the
+     DSBLIT_XOR                = 0x00000400, /* bitwise xor the destination pixels with the
                                                 source pixels after premultiplication */
+     DSBLIT_INDEX_TRANSLATION  = 0x00000800, /* do fast indexed to indexed translation,
+                                                this flag is mutual exclusive with all others */
 } DFBSurfaceBlittingFlags;
 
 /*
@@ -997,15 +999,18 @@ typedef enum {
      DSPF_ARGB1666  = DFB_SURFACE_PIXELFORMAT( 22, 18, 1, 1, 0, 3, 0, 0, 0, 0, 0 ),
 
      /*  6 bit alpha (3 byte/  alpha 6@18, red 6@16, green 6@6, blue 6@0) */
-     DSPF_ARGB6666  = DFB_SURFACE_PIXELFORMAT( 23,  18, 6, 1, 0, 3, 0, 0, 0, 0, 0 ),
+     DSPF_ARGB6666  = DFB_SURFACE_PIXELFORMAT( 23, 18, 6, 1, 0, 3, 0, 0, 0, 0, 0 ),
 
      /*  6 bit RGB (3 byte/   red 6@16, green 6@6, blue 6@0) */
-     DSPF_RGB18     = DFB_SURFACE_PIXELFORMAT( 24,  18, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
+     DSPF_RGB18     = DFB_SURFACE_PIXELFORMAT( 24, 18, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
+
+     /*  2 bit   LUT (1 byte/ 4 pixel, 2 bit color and alpha lookup from palette) */
+     DSPF_LUT2      = DFB_SURFACE_PIXELFORMAT( 21,  2, 0, 1, 2, 0, 3, 0, 0, 1, 0 ),
 
 } DFBSurfacePixelFormat;
 
 /* Number of pixelformats defined */
-#define DFB_NUM_PIXELFORMATS            25
+#define DFB_NUM_PIXELFORMATS            26
 
 /* These macros extract information about the pixel format. */
 #define DFB_PIXELFORMAT_INDEX(fmt)      (((fmt) & 0x0000007F)      )
@@ -1591,6 +1596,7 @@ DEFINE_INTERFACE(   IDirectFB,
           DFBBoolean                   global,
           IDirectFBEventBuffer       **ret_buffer
      );
+
 
 
    /** Media **/
@@ -3230,6 +3236,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
 
+
    /** Blitting functions **/
 
      /*
@@ -3543,6 +3550,9 @@ DEFINE_INTERFACE(   IDirectFBSurface,
           DFBAccelerationMask       mask
      );
 
+
+   /** Resources **/
+
      /*
       * Release possible reference to source surface.
       *
@@ -3559,6 +3569,25 @@ DEFINE_INTERFACE(   IDirectFBSurface,
       */
      DFBResult (*ReleaseSource) (
           IDirectFBSurface         *thiz
+     );
+
+
+   /** Blitting control **/
+
+     /*
+      * Set index translation table.
+      *
+      * Set the translation table used for fast indexed to indexed
+      * pixel format conversion.
+      *
+      * A negative index means that the pixel will not be written.
+      *
+      * Undefined indices will be treated like negative ones.
+      */
+     DFBResult (*SetIndexTranslation) (
+          IDirectFBSurface         *thiz,
+          const int                *indices,
+          int                       num_indices
      );
 )
 

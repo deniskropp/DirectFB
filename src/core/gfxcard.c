@@ -1504,42 +1504,49 @@ setup_font_state( CoreFont *font, CardState *state )
      /* set clip */
      dfb_state_set_clip( &font->state, &state->clip );
 
-     /* set color */
-     if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
-          dfb_state_set_color_index( &font->state, state->color_index );
-     else
-          dfb_state_set_color( &font->state, &state->color );
+     if (state->blittingflags == DSBLIT_INDEX_TRANSLATION) {
+          flags = DSBLIT_INDEX_TRANSLATION;
 
-     /* additional blending? */
-     if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
-          flags |= DSBLIT_BLEND_COLORALPHA;
-
-     if (state->drawingflags & DSDRAW_DST_COLORKEY) {
-          flags |= DSBLIT_DST_COLORKEY;
-          dfb_state_set_dst_colorkey( &font->state, state->dst_colorkey );
+          /* FIXME: Don't set all four indices each time? */
+          dfb_state_set_index_translation( &font->state, state->index_translation, state->num_translation );
      }
+     else {
+          /* set color */
+          if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
+               dfb_state_set_color_index( &font->state, state->color_index );
+          else
+               dfb_state_set_color( &font->state, &state->color );
 
-     if (state->drawingflags & DSDRAW_XOR)
-          flags |= DSBLIT_XOR;
+          /* additional blending? */
+          if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
+               flags |= DSBLIT_BLEND_COLORALPHA;
 
-     /* Porter/Duff SRC_OVER composition */
-     if ((DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )
-          && (state->destination->caps & DSCAPS_PREMULTIPLIED))
-         ||
-         (font->surface_caps & DSCAPS_PREMULTIPLIED))
-     {
-          if (font->surface_caps & DSCAPS_PREMULTIPLIED) {
-               if (flags & DSBLIT_BLEND_COLORALPHA)
-                    flags |= DSBLIT_SRC_PREMULTCOLOR;
+          if (state->drawingflags & DSDRAW_DST_COLORKEY) {
+               flags |= DSBLIT_DST_COLORKEY;
+               dfb_state_set_dst_colorkey( &font->state, state->dst_colorkey );
+          }
+
+          if (state->drawingflags & DSDRAW_XOR)
+               flags |= DSBLIT_XOR;
+
+          /* Porter/Duff SRC_OVER composition */
+          if ((DFB_PIXELFORMAT_HAS_ALPHA( state->destination->format )
+               && (state->destination->caps & DSCAPS_PREMULTIPLIED))
+              ||
+              (font->surface_caps & DSCAPS_PREMULTIPLIED))
+          {
+               if (font->surface_caps & DSCAPS_PREMULTIPLIED) {
+                    if (flags & DSBLIT_BLEND_COLORALPHA)
+                         flags |= DSBLIT_SRC_PREMULTCOLOR;
+               }
+               else
+                    flags |= DSBLIT_SRC_PREMULTIPLY;
+
+               dfb_state_set_src_blend( &font->state, DSBF_ONE );
           }
           else
-               flags |= DSBLIT_SRC_PREMULTIPLY;
-
-          dfb_state_set_src_blend( &font->state, DSBF_ONE );
+               dfb_state_set_src_blend( &font->state, DSBF_SRCALPHA );
      }
-     else
-          dfb_state_set_src_blend( &font->state, DSBF_SRCALPHA );
-
 
      /* set blitting flags */
      dfb_state_set_blitting_flags( &font->state, flags );

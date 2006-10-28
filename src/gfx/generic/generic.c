@@ -7349,6 +7349,44 @@ static GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 };
 
 
+/**************************** Bop_translate_to_Aop ****************************/
+
+static void Bop_lut2_translate_to_Aop_lut8( GenefxState *gfxs )
+{
+     int   i;
+     int   w = gfxs->length;
+     int   W = (w + 3) / 4;
+     __u8 *S = gfxs->Bop[0];
+     __u8 *D = gfxs->Aop[0];
+
+     for (i=0; i<W; i++, D+=4, w-=4) {
+          __u8 index;
+          __u8 pixels = S[i];
+
+          switch (w) {
+               default:
+                    index = (pixels & 3);
+                    if (index < gfxs->num_trans && gfxs->trans[index] >= 0)
+                         D[3] = gfxs->trans[index];
+
+               case 3:
+                    index = (pixels >> 2) & 3;
+                    if (index < gfxs->num_trans && gfxs->trans[index] >= 0)
+                         D[2] = gfxs->trans[index];
+
+               case 2:
+                    index = (pixels >> 4) & 3;
+                    if (index < gfxs->num_trans && gfxs->trans[index] >= 0)
+                         D[1] = gfxs->trans[index];
+
+               case 1:
+                    index = (pixels >> 6);
+                    if (index < gfxs->num_trans && gfxs->trans[index] >= 0)
+                         D[0] = gfxs->trans[index];
+          }
+     }
+}
+  
 /********************************* Xacc_blend *********************************/
 
 static void Xacc_blend_zero( GenefxState *gfxs )
@@ -8279,6 +8317,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                gfxs->Cop = gfxs->YCop;
                dst_ycbcr = true;
                break;
+          case DSPF_LUT2:
           case DSPF_LUT8:
                gfxs->Cop  = state->color_index;
                gfxs->Alut = destination->palette;
@@ -8306,6 +8345,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           switch (gfxs->src_format) {
+               case DSPF_LUT2:
                case DSPF_LUT8:
                case DSPF_ALUT44:
                     gfxs->Blut = source->palette;
@@ -8797,6 +8837,33 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                    *funcs++ = Sacc_toK_Aop_PFI[dst_pfi];
                               } else
                                    *funcs++ = Sacc_to_Aop_PFI[dst_pfi];
+                         }
+                    }
+                    else if (state->blittingflags == DSBLIT_INDEX_TRANSLATION &&
+                             DFB_PIXELFORMAT_IS_INDEXED(gfxs->src_format) &&
+                             DFB_PIXELFORMAT_IS_INDEXED(gfxs->dst_format))
+                    {
+                         gfxs->trans     = state->index_translation;
+                         gfxs->num_trans = state->num_translation;
+
+                         switch (gfxs->src_format) {
+                              case DSPF_LUT2:
+                                   switch (gfxs->dst_format) {
+                                        case DSPF_LUT8:
+                                             *funcs++ = Bop_lut2_translate_to_Aop_lut8;
+                                             break;
+
+                                        default:
+                                             D_ONCE( "no index translation to %s implemented",
+                                                     dfb_pixelformat_name( gfxs->dst_format ) );
+                                             break;
+                                   }
+                                   break;
+
+                              default:
+                                   D_ONCE( "no index translation from %s implemented",
+                                           dfb_pixelformat_name( gfxs->src_format ) );
+                                   break;
                          }
                     }
                     else if ((gfxs->src_format == gfxs->dst_format && 
