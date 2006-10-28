@@ -46,6 +46,7 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#include <direct/debug.h>
 #include <direct/mem.h>
 #include <direct/messages.h>
 #include <direct/thread.h>
@@ -59,6 +60,8 @@
 #include "fbdev.h"
 #include "fb.h"
 #include "vt.h"
+
+D_DEBUG_DOMAIN( VT, "FBDev/VT", "FBDev System Module VT Handling" );
 
 /*
  *  FIXME: the following looks like a bad hack.
@@ -95,6 +98,8 @@ dfb_vt_initialize()
 {
      DFBResult ret;
      struct vt_stat vs;
+
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
      dfb_vt = D_CALLOC( 1, sizeof(VirtualTerminal) );
 
@@ -190,10 +195,10 @@ dfb_vt_initialize()
      ret = vt_init_switching();
      if (ret) {
           if (dfb_config->vt_switch) {
-               D_DEBUG( "switching back...\n" );
+               D_DEBUG_AT( VT, "  -> switching back...\n" );
                ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->prev );
                ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->prev );
-               D_DEBUG( "...switched back\n" );
+               D_DEBUG_AT( VT, "  -> ...switched back\n" );
                ioctl( dfb_vt->fd0, VT_DISALLOCATE, dfb_vt->num );
           }
 
@@ -211,6 +216,8 @@ dfb_vt_initialize()
 DFBResult
 dfb_vt_join()
 {
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
+
      dfb_vt_detach( true );
 
      return DFB_OK;
@@ -222,6 +229,8 @@ dfb_vt_shutdown( bool emergency )
      const char cursoron_str[] = "\033[?0;0;0c";
      const char blankon_str[] = "\033[9;10]";
 
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
+
      if (!dfb_vt)
           return DFB_OK;
 
@@ -229,8 +238,8 @@ dfb_vt_shutdown( bool emergency )
           if (ioctl( dfb_vt->fd, VT_SETMODE, &dfb_vt->vt_mode ) < 0)
                D_PERROR( "DirectFB/fbdev/vt: Unable to restore VT mode!!!\n" );
 
-          sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
-          sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
+          sigaction( SIG_SWITCH_FROM, &dfb_vt->sig_usr1, NULL );
+          sigaction( SIG_SWITCH_TO, &dfb_vt->sig_usr2, NULL );
 
           direct_thread_cancel( dfb_vt->thread );
           direct_thread_join( dfb_vt->thread );
@@ -250,7 +259,7 @@ dfb_vt_shutdown( bool emergency )
      write( dfb_vt->fd, cursoron_str, sizeof(cursoron_str) );
 
      if (dfb_config->vt_switch) {
-          D_DEBUG( "switching back...\n" );
+          D_DEBUG_AT( VT, "  -> switching back...\n" );
 
           if (ioctl( dfb_vt->fd0, VT_ACTIVATE, dfb_vt->prev ) < 0)
                D_PERROR( "DirectFB/core/vt: VT_ACTIVATE" );
@@ -258,7 +267,7 @@ dfb_vt_shutdown( bool emergency )
           if (ioctl( dfb_vt->fd0, VT_WAITACTIVE, dfb_vt->prev ) < 0)
                D_PERROR( "DirectFB/core/vt: VT_WAITACTIVE" );
 
-          D_DEBUG( "switched back...\n" );
+          D_DEBUG_AT( VT, "  -> switched back...\n" );
 
           usleep( 40000 );
 
@@ -294,12 +303,16 @@ dfb_vt_shutdown( bool emergency )
 DFBResult
 dfb_vt_leave( bool emergency )
 {
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
+
      return DFB_OK;
 }
 
 DFBResult
 dfb_vt_detach( bool force )
 {
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
+
      if (dfb_config->vt_switch || force) {
           int            fd;
           struct vt_stat vt_state;
@@ -333,10 +346,12 @@ dfb_vt_detach( bool force )
 bool
 dfb_vt_switch( int num )
 {
+     D_DEBUG_AT( VT, "%s( %d )\n", __FUNCTION__, num );
+
      if (!dfb_config->vt_switching)
           return false;
 
-     D_DEBUG( "DirectFB/fbdev/vt: switching to vt %d...\n", num );
+     D_DEBUG_AT( VT, "  -> switching to vt %d...\n", num );
 
      if (ioctl( dfb_vt->fd0, VT_ACTIVATE, num ) < 0)
           D_PERROR( "DirectFB/fbdev/vt: VT_ACTIVATE failed\n" );
@@ -347,13 +362,14 @@ dfb_vt_switch( int num )
 static void *
 vt_thread( DirectThread *thread, void *arg )
 {
+     D_DEBUG_AT( VT, "%s( %p, %p )\n", __FUNCTION__, thread, arg );
+
      pthread_mutex_lock( &dfb_vt->lock );
 
      while (true) {
           direct_thread_testcancel( thread );
 
-          D_DEBUG( "DirectFB/fbdev/vt: %s (%d)\n",
-                    __FUNCTION__, dfb_vt->vt_sig);
+          D_DEBUG_AT( VT, "...%s (signal %d)\n", __FUNCTION__, dfb_vt->vt_sig);
 
           switch (dfb_vt->vt_sig) {
                default:
@@ -364,14 +380,14 @@ vt_thread( DirectThread *thread, void *arg )
                     pthread_cond_wait( &dfb_vt->wait, &dfb_vt->lock );
                     continue;
 
-               case SIGUSR1:
+               case SIG_SWITCH_FROM:
                     if (ioctl( dfb_vt->fd, VT_RELDISP,
                                dfb_core_suspend( NULL ) == DFB_OK ? 1 : 0 ) < 0)
                          D_PERROR( "DirectFB/fbdev/vt: VT_RELDISP failed\n" );
 
                     break;
 
-               case SIGUSR2:
+               case SIG_SWITCH_TO:
                     dfb_core_resume( NULL );
 
                     if (ioctl( dfb_vt->fd, VT_RELDISP, 2 ) < 0)
@@ -394,7 +410,7 @@ vt_thread( DirectThread *thread, void *arg )
 static void
 vt_switch_handler( int signum )
 {
-     D_DEBUG( "DirectFB/fbdev/vt: %s (%d)\n", __FUNCTION__, signum);
+     D_DEBUG_AT( VT, "%s( %d )\n", __FUNCTION__, signum );
 
      pthread_mutex_lock( &dfb_vt->lock );
 
@@ -411,6 +427,8 @@ vt_init_switching()
      const char cursoroff_str[] = "\033[?1;0;0c";
      const char blankoff_str[] = "\033[9;0]";
      char buf[32];
+
+     D_DEBUG_AT( VT, "%s()\n", __FUNCTION__ );
 
      /* FIXME: Opening the device should be moved out of this function. */
 
@@ -465,8 +483,8 @@ vt_init_switching()
           sig_tty.sa_handler = vt_switch_handler;
           sigemptyset( &sig_tty.sa_mask );
 
-          if (sigaction( SIGUSR1, &sig_tty, &dfb_vt->sig_usr1 ) ||
-              sigaction( SIGUSR2, &sig_tty, &dfb_vt->sig_usr2 )) {
+          if (sigaction( SIG_SWITCH_FROM, &sig_tty, &dfb_vt->sig_usr1 ) ||
+              sigaction( SIG_SWITCH_TO, &sig_tty, &dfb_vt->sig_usr2 )) {
                D_PERROR( "DirectFB/fbdev/vt: sigaction failed!\n" );
                close( dfb_vt->fd );
                return DFB_INIT;
@@ -475,14 +493,14 @@ vt_init_switching()
 
           vt.mode   = VT_PROCESS;
           vt.waitv  = 0;
-          vt.relsig = SIGUSR1;
-          vt.acqsig = SIGUSR2;
+          vt.relsig = SIG_SWITCH_FROM;
+          vt.acqsig = SIG_SWITCH_TO;
 
           if (ioctl( dfb_vt->fd, VT_SETMODE, &vt ) < 0) {
                D_PERROR( "DirectFB/fbdev/vt: VT_SETMODE failed!\n" );
 
-               sigaction( SIGUSR1, &dfb_vt->sig_usr1, NULL );
-               sigaction( SIGUSR2, &dfb_vt->sig_usr2, NULL );
+               sigaction( SIG_SWITCH_FROM, &dfb_vt->sig_usr1, NULL );
+               sigaction( SIG_SWITCH_TO, &dfb_vt->sig_usr2, NULL );
 
                close( dfb_vt->fd );
 
@@ -506,6 +524,8 @@ vt_get_fb( int vt )
 {
      struct fb_con2fbmap c2m;
 
+     D_DEBUG_AT( VT, "%s( %d )\n", __FUNCTION__, vt );
+
      c2m.console = vt;
 
      if (ioctl( dfb_fbdev->fd, FBIOGET_CON2FBMAP, &c2m )) {
@@ -513,6 +533,8 @@ vt_get_fb( int vt )
                      "FBIOGET_CON2FBMAP failed!\n" );
           return 0;
      }
+
+     D_DEBUG_AT( VT, "  -> %d\n", c2m.framebuffer );
 
      return c2m.framebuffer;
 }
@@ -522,6 +544,8 @@ vt_set_fb( int vt, int fb )
 {
      struct fb_con2fbmap c2m;
      struct stat         sbf;
+
+     D_DEBUG_AT( VT, "%s( %d, %d )\n", __FUNCTION__, vt, fb );
 
      if (fstat( dfb_fbdev->fd, &sbf )) {
           D_PERROR( "DirectFB/FBDev/vt: Could not fstat fb device!\n" );
