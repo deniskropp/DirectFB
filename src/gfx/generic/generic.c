@@ -6846,12 +6846,36 @@ static void Bop_a8_set_alphapixel_Aop_yuy2( GenefxState *gfxs )
      u32    y    = gfxs->YCop;
      u32    u    = gfxs->CbCop;
      u32    v    = gfxs->CrCop;
+
+#ifdef WORDS_BIGENDIAN
+     __u16  Cop0 = u | (y << 8);
+     __u16  Cop1 = v | (y << 8);
+
+#define SET_ALPHA_PIXEL_YUY2(d,a)\
+     switch (a) {\
+          case 0xff:\
+               d = ((long)&(d) & 2) ? Cop1 : Cop0;\
+          case 0x00: break;\
+          default: {\
+               register __u32  s = a+1;\
+               register __u32 t1 = d & 0xff;\
+               register __u32 t2 = d >> 8;\
+               if ((long)&(d) & 2)\
+                    d = (((v-t1)*s+(t1<<8)) >> 8) |\
+                        (((y-t2)*s+(t2<<8)) & 0xff00);\
+               else\
+                    d = (((u-t1)*s+(t1<<8)) >> 8) |\
+                        (((y-t2)*s+(t2<<8)) & 0xff00);\
+          } break;\
+     }
+#else
      u16    Cop0 = y | (u << 8);
      u16    Cop1 = y | (v << 8);
 
 #define SET_PIXEL(d,a)\
      switch (a) {\
-          case 0xff: d = ((long)&(d) & 2) ? Cop1 : Cop0;\
+          case 0xff:\
+               d = ((long)&(d) & 2) ? Cop1 : Cop0;\
           case 0x00: break;\
           default: {\
                register u32  s = a+1;\
@@ -6865,6 +6889,7 @@ static void Bop_a8_set_alphapixel_Aop_yuy2( GenefxState *gfxs )
                         (((u-t2)*s+(t2<<8)) & 0xff00);\
           } break;\
      }
+#endif
 
      SET_PIXEL_DUFFS_DEVICE( D, S, w );
 
