@@ -6851,7 +6851,7 @@ static void Bop_a8_set_alphapixel_Aop_yuy2( GenefxState *gfxs )
      __u16  Cop0 = u | (y << 8);
      __u16  Cop1 = v | (y << 8);
 
-#define SET_ALPHA_PIXEL_YUY2(d,a)\
+#define SET_PIXEL(d,a)\
      switch (a) {\
           case 0xff:\
                d = ((long)&(d) & 2) ? Cop1 : Cop0;\
