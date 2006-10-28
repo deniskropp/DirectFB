@@ -94,13 +94,13 @@ object_reference_watcher( int caller, int call_arg, void *call_ptr, void *ctx )
                     fusion_skirmish_dismiss( &pool->lock );
                     return 0;
 
-               case DFB_BUSY:
-                    D_BUG( "revived object %p [%ld] in '%s'", object, object->id, pool->name );
-                    /* fall through */
 
                default:
-                    D_ERROR( "Fusion/ObjectPool: Error locking ref of %p [%ld] in '%s'",
+                    D_ERROR( "Fusion/ObjectPool: Error locking ref of %p [%ld] in '%s'\n",
                              object, object->id, pool->name );
+                    /* fall through */
+
+               case DFB_BUSY:
                     fusion_skirmish_dismiss( &pool->lock );
                     return 0;
           }
