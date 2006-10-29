@@ -37,7 +37,8 @@
 #include <sysfs/libsysfs.h>
 #endif
 
-#include "i2c-dev.h"
+#include <linux/i2c.h>
+#include <linux/i2c-dev.h>
 
 #include <directfb.h>
 
@@ -52,6 +53,7 @@
 #include "mmio.h"
 #include "matrox_maven.h"
 
+
 static void
 maven_write_byte( MatroxMavenData  *mav,
                   MatroxDriverData *mdrv,
@@ -65,8 +67,19 @@ maven_write_byte( MatroxMavenData  *mav,
 
           mga_out_dac( mmio, 0x87, reg );
           mga_out_dac( mmio, 0x88, val );
-     } else
-          i2c_smbus_write_byte_data( mdrv->maven_fd, reg, val );
+     } else {
+          union  i2c_smbus_data       data;
+          struct i2c_smbus_ioctl_data args;
+
+          data.byte = val;
+
+          args.read_write = I2C_SMBUS_WRITE;
+          args.command    = reg;
+          args.size       = I2C_SMBUS_BYTE_DATA;
+          args.data       = &data;
+
+          ioctl( mdrv->maven_fd, I2C_SMBUS, &args );
+     }
 }
 
 static void
@@ -84,8 +97,19 @@ maven_write_word( MatroxMavenData  *mav,
           mga_out_dac( mmio, 0x88, val );
           mga_out_dac( mmio, 0x87, reg + 1 );
           mga_out_dac( mmio, 0x88, val >> 8 );
-     } else
-          i2c_smbus_write_word_data( mdrv->maven_fd, reg, val );
+     } else {
+          union  i2c_smbus_data       data;
+          struct i2c_smbus_ioctl_data args;
+
+          data.word = val;
+
+          args.read_write = I2C_SMBUS_WRITE;
+          args.command    = reg;
+          args.size       = I2C_SMBUS_WORD_DATA;
+          args.data       = &data;
+
+          ioctl( mdrv->maven_fd, I2C_SMBUS, &args );
+     }
 }
 
 #if 0
