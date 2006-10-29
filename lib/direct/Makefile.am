@@ -49,7 +49,6 @@ include_HEADERS = \
 	build.h				\
 	clock.h				\
 	conf.h				\
-	cpu_accel.h			\
 	debug.h				\
 	direct.h			\
 	hash.h				\
@@ -79,7 +78,6 @@ libdirect_la_SOURCES = \
 	$(ppcasm_sources)	\
 	clock.c			\
 	conf.c			\
-	cpu_accel.c		\
 	debug.c			\
 	direct.c		\
 	hash.c			\

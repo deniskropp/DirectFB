@@ -54,7 +54,6 @@
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
-#include <direct/cpu_accel.h>
 #include <direct/util.h>
 
 #include <gfx/convert.h>
@@ -8119,6 +8118,51 @@ static void Len_is_Dlen( GenefxState *gfxs )  { gfxs->length = gfxs->Dlen;}
 
 /******************************************************************************/
 
+#ifdef USE_MMX
+static bool has_mmx( void )
+{
+     u32 a, b, c, d;
+
+     asm( "pushfl             \n"
+          "pushfl             \n"
+          "popl %0            \n"
+          "movl %0, %1        \n"
+          "xorl $0x200000, %0 \n"
+          "pushl %0           \n"
+          "popfl              \n"
+          "pushfl             \n"
+          "popl %0            \n"
+          "popfl"
+          : "=a" (a), "=r" (b)
+          :
+          : "cc" );
+
+     if (a == b)
+          return false;
+
+     asm( "pushl %%ebx        \n"
+          "cpuid              \n"
+          "movl %%ebx, %1     \n"
+          "popl %%ebx"
+          : "=a" (a), "=r" (b), "=c" (c), "=d" (d)
+          : "a" (0)
+          : "cc" );
+
+     if (!a)
+          return false;
+
+     asm( "pushl %%ebx        \n"
+          "cpuid              \n"
+          "movl %%ebx, %1     \n"
+          "popl %%ebx"
+          : "=a" (a), "=r" (b), "=c" (c), "=d" (d)
+          : "a" (1)
+          : "cc" );
+
+     return (d & 0x800000) ? true : false;
+}
+#endif
+
 void gGetDriverInfo( GraphicsDriverInfo *info )
 {
      snprintf( info->name,
@@ -8129,7 +8173,7 @@ void gGetDriverInfo( GraphicsDriverInfo *info )
 #endif
 
 #ifdef USE_MMX
-     if (direct_mm_accel() & MM_MMX) {
+     if (has_mmx()) {
           if (!dfb_config->mmx) {
                D_INFO( "DirectFB/Genefx: MMX detected, but disabled by option 'no-mmx'\n");
           }

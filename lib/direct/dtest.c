@@ -1,6 +1,5 @@
 #include <config.h>
 
-#include <direct/cpu_accel.h>
 #include <direct/debug.h>
 #include <direct/direct.h>
 #include <direct/log.h>
@@ -68,7 +67,6 @@ main( int argc, char *argv[] )
 
      direct_find_best_memcpy();
 
-     D_DEBUG( "Direct/Test: direct_mm_accel() returns 0x%08x\n", direct_mm_accel() );
 
      /* Shutdown libdirect. */
      direct_shutdown();
@@ -77,7 +75,7 @@ main( int argc, char *argv[] )
      /* Shutdown logging. */
      direct_log_destroy( log );
 
-
+     direct_config->debug = true;
      direct_print_memleaks();
 
      return 0;
