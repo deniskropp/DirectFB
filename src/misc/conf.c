@@ -177,7 +177,7 @@ static const FormatString format_strings[] = {
      { "NV16",     DSPF_NV16     },
      { "NV21",     DSPF_NV21     },
      { "RGB16",    DSPF_RGB16    },
-     { "RGB18",    DSPF_RGB18   },
+     { "RGB18",    DSPF_RGB18    },
      { "RGB24",    DSPF_RGB24    },
      { "RGB32",    DSPF_RGB32    },
      { "RGB332",   DSPF_RGB332   },
