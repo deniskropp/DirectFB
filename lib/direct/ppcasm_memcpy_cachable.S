@@ -3,10 +3,33 @@
  *
  * Copyright (C) 1996 Paul Mackerras.
  *
- * This program is free software; you can redistribute it and/or
- * modify it under the terms of the GNU General Public License
- * as published by the Free Software Foundation; either version
- * 2 of the License, or (at your option) any later version.
+ *
+ * In a mail from Paul on 23.10.2006 05:47:
+ *
+ * You may put an LGPL permission statement on that code, replacing the
+ * GPL permission statement.  From a technical point of view, I'm not
+ * sure that the code in ppcasm_memcpy_cachable.S is the best thing to
+ * use in userspace, though; for one thing, it has a cache line size
+ * assumption encoded into it.  Why don't you just use the glibc memcpy?
+ * It's pretty well optimized these days, AFAIK.
+ * 
+ * Paul.
+ *
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 2 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU Lesser General Public
+ * License along with this library; if not, write to the
+ * Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+ * Boston, MA 02111-1307, USA.
  */
 
 #define __ASSEMBLY__
