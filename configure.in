@@ -968,7 +968,9 @@ if test "$checkfor_savage" = "yes" && test "$have_sysio" = "yes"; then
 fi
 
 if test "$checkfor_sis315" = "yes"; then
-  sis315=yes
+  AC_CHECK_HEADER(linux/sisfb.h,
+        sis315=yes,
+        sis315=no)
 fi
 
 if test "$checkfor_neomagic" = "yes" && test "$have_sysio" = "yes"; then
