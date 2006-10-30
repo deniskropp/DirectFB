@@ -171,11 +171,13 @@ typedef struct {
 } IDirectFBVideoProvider_FFmpeg_data;
 
 
-#define IO_BUFFER_SIZE  8192
+#define IO_BUFFER_SIZE       8 /* in kylobytes */
 
-#define MAX_QUEUE_LEN   5 /* in seconds */
+#define MAX_QUEUE_LEN        5 /* in seconds */
 
-#define GAP_TOLERANCE   20000 /* in microseconds */
+#define GAP_TOLERANCE    20000 /* in microseconds */
+
+#define GAP_THRESHOLD  1000000 /* in microseconds */
 
 /*****************************************************************************/
 
@@ -541,6 +543,7 @@ FFmpegVideo( DirectThread *self, void *arg )
      AVStream    *st = data->video.st;
      __s64        lastpts = 0;
      unsigned int frameno = 0;
+     int          drop    = 0;
 
      while (data->status != DVSTATE_STOP) {
           AVPacket        pkt;
@@ -569,7 +572,7 @@ FFmpegVideo( DirectThread *self, void *arg )
                                 data->video.src_frame,
                                 &done, pkt.data, pkt.size );
 
-          if (done) {
+          if (done && !drop) {
                FFmpegPutFrame( data );
           
                if (data->callback)
@@ -598,7 +601,7 @@ FFmpegVideo( DirectThread *self, void *arg )
                           / data->speed;
                
                delay = data->video.pts - get_stream_clock(data);
-               if (delay > -1000000 && delay < +1000000)
+               if (delay > -GAP_THRESHOLD && delay < +GAP_THRESHOLD)
                     delay = CLAMP( delay, -GAP_TOLERANCE, +GAP_TOLERANCE );
                duration += delay;
                
@@ -609,6 +612,8 @@ FFmpegVideo( DirectThread *self, void *arg )
                
                pthread_cond_timedwait( &data->video.cond,
                                        &data->video.lock, &time );
+                                       
+               drop = (delay <= -GAP_THRESHOLD);
           }
 
           pthread_mutex_unlock( &data->video.lock );
@@ -1363,7 +1368,7 @@ Construct( IDirectFBVideoProvider *thiz,
      
      data->seekable = (buffer->SeekTo( buffer, 0 ) == DFB_OK);
      
-     data->iobuf = D_MALLOC( IO_BUFFER_SIZE );
+     data->iobuf = D_MALLOC( IO_BUFFER_SIZE * 1024 );
      if (!data->iobuf) {
           IDirectFBVideoProvider_FFmpeg_Destruct( thiz );
           return D_OOM();
