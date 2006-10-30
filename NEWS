@@ -1,3 +1,109 @@
+1.0.0-rc2
+---------
+
+API
+- Breaking API Freeze but keeping source and binary compatibility!
+- All __u8, __s16 etc. types have been changed to u8, s16 etc.
+- Compatibility is in place unless DIRECTFB_NO_CRUFT is defined.
+- Added DSPF_LUT2 being indexed 2 bit per pixel packed, i.e. four pixel in one byte.
+
+API | IDirectFBSurface
+- Added SetIndexTranslation() that sets a translation table used for
+  fast indexed to indexed pixel format conversion. Negative or undefined values in the
+  table will result in no pixel being written.
+- Added DSBLIT_INDEX_TRANSLATION to do fast indexed to indexed translation, this flag
+  is mutual exclusive with all others.
+- So far only LUT2 to LUT8 is supported, used for fast anti-aliased text rendering
+  to indexed format. The translation table contains "-1, 36, 37, 38" for example.
+  First entry makes the background transparent and the other three are shaded versions
+  of the text color.
+
+Build Options
+- Use libpng-config if present. Thanks to Gery <gxkahn-et-gmail.com>!
+
+Runtime Options
+- Added "primary-only" to tell applications only about the primary layer, pretending there are no others.
+- Fixed "tmpfs" option.
+- Fixed "pixelformat" option.
+- Don't depend on "debug" option when printing interface leakage at exit time (only debug builds).
+
+Core
+- No longer create a new process group in dfb_core_create().
+- Don't take certain locks in core shutdown functions if emergency is true.
+
+Layer Core
+- In dfb_layer_context_get_primary_region() if increasing the ref count of the
+  existing primary region fails, due it being destroyed, wait for a short time
+  and try again, probably recreating the region.
+
+Surface Core
+- Fixed bug in auto-video surface locking that could return a NULL pointer.
+
+libfusion
+- Safely cycle through hash nodes while freeing them.
+- Don't print an error if an object revived after it's ref count reached
+  zero but got increased again before the destructor is called. That applies
+  to the multi application core only. In the single application core the
+  destructor is called synchronously.
+
+libdirect
+- Use readdir_r() instead of readdir().
+- Don't include config.h in direct/types.h. Fix stdbool.h warnings.
+- No longer use pthread_kill(KILL) which doesn't only kill the specified thread, use pthread_cancel().
+- Let direct_assert() and others try raise(TRAP) first, then killpg(0,TRAP) and pthread_exit().
+- At the end of the global signal handler no longer use killpg(0,KILL) but remove all handlers,
+  raise(num), abort() and then exit( -num ). But the exit shouldn't be reached.
+- Register signal handler with empty instead of full blocking mask and use SA_NODEFER except
+  for SIGSEGV. Also no longer use SA_RESTART.
+- Use recursive mutexes in trace support if available.
+
+libdirect (optional network stuff)
+- Replaced the usage of setitimer()+recv() in net_peek() with a single call to select().
+- Fixed username/password parsing.
+
+DGIFF
+- DirectFB Glyph Image File Format
+- Purpose of DGIFF is to offload as much as possible from runtime, especially during
+  application startup when loading the default or system fonts.
+- Added a new font module and a tool called mkdgiff to generate .dgiff from .ttf or other.
+- mkdgiff uses FreeType2 to load the glyphs of the font and stores them in one or more ready
+  to use font cache rows, up to 2047 pixels wide right now.
+- The loader creates preallocated surfaces from the mmapped font file. The only copy ever
+  made would be when the surface is transfered to video memory for acceleration.
+- DGIFF supports different sizes of one face in a single file.
+
+DFIFF
+- Build mkdfiff only if PNG support is enabled.
+
+FT2 Font
+- Made DFFA_NOCHARMAP work again.
+- If Unicode/Latin1 failed, try Symbol Encoding and do some 0xf000 magic.
+
+Mach64
+- Disable dithering when doing alpha blended blits. Dithering it is applied
+  even when the source pixels are completely transparent. This change makes
+  the mouse cursor look sane.
+
+Matrox
+- Include <linux/i2c.h> and <linux/i2c-dev.h> now.
+
+SiS315
+- Include <linux/sisfb.h> now.
+- Build only if this header is found by configure.
+
+Linux Input
+- Ignore repeat events for mouse buttons.
+
+FBDev System
+- Use other signals than SIGUSR1/SIGUSR2 for vt-switching.
+
+Other fixes
+- Plugged mem leak of AttachedWindow struct when DetachEventBuffer() happens
+  after the window has been destroyed.
+- Fix Bop_a8_set_alphapixel_Aop_yuy2() for big endian.
+- Remove/relicense GPL code.
+
+
 1.0.0-rc1
 ---------
 
