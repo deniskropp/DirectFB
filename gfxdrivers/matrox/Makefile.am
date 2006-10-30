@@ -16,7 +16,6 @@ endif
 matroxdir = $(MODULEDIR)/gfxdrivers
 
 libdirectfb_matrox_la_SOURCES =	\
-	i2c-dev.h		\
 	matrox.c		\
 	matrox.h		\
 	matrox_3d.c		\
