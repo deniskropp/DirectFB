@@ -13,7 +13,8 @@ include_HEADERS = \
 	directfb_version.h	\
 	directfbgl.h		\
 	dfb_types.h		\
-	dfiff.h
+	dfiff.h			\
+	dgiff.h
 
 MKNAMES = $(top_srcdir)/include/mknames.sh
 INCP = $(top_srcdir)/include
