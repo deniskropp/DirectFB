@@ -335,7 +335,18 @@ render_glyph( CoreFont      *thiz,
                                    dst8[j] = p;
                               }
                               break;
+                         case DSPF_LUT2:
+                              for (i=0, j=0; i < info->width; ++j) {
+                                   register __u8 p = 0;
+
+                                   for (n=0; n<8 && i<info->width; ++i, n+=2)
+                                        p |= (src[i] & 0xC0) >> n;
+
+                                   dst8[j] = p;
+                              }
+                              break;
                          default:
+                              D_UNIMPLEMENTED();
                               break;
                     }
                     break;
@@ -383,6 +394,7 @@ render_glyph( CoreFont      *thiz,
                               direct_memcpy( dst, src, DFB_BYTES_PER_LINE(DSPF_A1, info->width) );
                               break;
                          default:
+                              D_UNIMPLEMENTED();
                               break;
                     }
                     break;
