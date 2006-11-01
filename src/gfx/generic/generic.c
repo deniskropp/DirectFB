@@ -7352,15 +7352,15 @@ static GenefxFunc Bop_a1_set_alphapixel_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 
 static void Bop_lut2_translate_to_Aop_lut8( GenefxState *gfxs )
 {
-     int   i;
-     int   w = gfxs->length;
-     int   W = (w + 3) / 4;
-     __u8 *S = gfxs->Bop[0];
-     __u8 *D = gfxs->Aop[0];
+     int  i;
+     int  w = gfxs->length;
+     int  W = (w + 3) / 4;
+     u8  *S = gfxs->Bop[0];
+     u8  *D = gfxs->Aop[0];
 
      for (i=0; i<W; i++, D+=4, w-=4) {
-          __u8 index;
-          __u8 pixels = S[i];
+          u8 index;
+          u8 pixels = S[i];
 
           switch (w) {
                default:

@@ -337,7 +337,7 @@ render_glyph( CoreFont      *thiz,
                               break;
                          case DSPF_LUT2:
                               for (i=0, j=0; i < info->width; ++j) {
-                                   register __u8 p = 0;
+                                   register u8 p = 0;
 
                                    for (n=0; n<8 && i<info->width; ++i, n+=2)
                                         p |= (src[i] & 0xC0) >> n;
