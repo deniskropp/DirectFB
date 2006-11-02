@@ -542,6 +542,10 @@ main( int argc, char *argv[] )
      }
 #endif
 
+     if (argc > 1 && !strcmp( argv[1], "-p" )) {
+          pause();
+     }
+
      printf( "\n" );
 
 out:
