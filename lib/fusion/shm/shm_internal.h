@@ -32,6 +32,7 @@
 
 #include <direct/list.h>
 
+#include <fusion/build.h>
 #include <fusion/lock.h>
 
 
@@ -133,10 +134,6 @@ struct __Fusion_FusionSHMShared {
 #define BLOCKIFY(SIZE)   (((SIZE) + BLOCKSIZE - 1) / BLOCKSIZE)
 #define BLOCKALIGN(SIZE) (((SIZE) + BLOCKSIZE - 1) & ~(BLOCKSIZE - 1))
 
-/* Determine the amount of memory spanned by the initial heap table
-   (not an absolute limit).  */
-#define HEAP            (INT_BIT > 16 ? 4194304 : 65536)
-
 /* Number of contiguous free blocks allowed to build up at the end of
    memory before they will be returned to the system.  */
 #define FINAL_FREE_BLOCKS       8
@@ -182,6 +179,9 @@ struct list {
      struct list *prev;
 };
 
+
+#if FUSION_BUILD_MULTI
+
 #define SHMEMDESC_FUNC_NAME_LENGTH 48
 #define SHMEMDESC_FILE_NAME_LENGTH 24
 
@@ -194,8 +194,11 @@ typedef struct {
      char          func[SHMEMDESC_FUNC_NAME_LENGTH];
      char          file[SHMEMDESC_FILE_NAME_LENGTH];
      unsigned int  line;
+
+     FusionID      fid;
 } SHMemDesc;
 
+#endif
 
 
 struct __shmalloc_heap {

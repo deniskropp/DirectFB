@@ -493,10 +493,8 @@ _fusion_shfree( shmalloc_heap *heap, void *ptr )
                     register size_t bytes = blocks * BLOCKSIZE;
                     heap->heaplimit -= blocks;
                     __shmalloc_brk( heap, -bytes );
-                    heap->heapinfo[heap->heapinfo[block].free.prev].free.next
-                    = heap->heapinfo[block].free.next;
-                    heap->heapinfo[heap->heapinfo[block].free.next].free.prev
-                    = heap->heapinfo[block].free.prev;
+                    heap->heapinfo[heap->heapinfo[block].free.prev].free.next = heap->heapinfo[block].free.next;
+                    heap->heapinfo[heap->heapinfo[block].free.next].free.prev = heap->heapinfo[block].free.prev;
                     block = heap->heapinfo[block].free.prev;
                     heap->chunks_free--;
                     heap->bytes_free -= bytes;
@@ -604,7 +602,7 @@ __shmalloc_init_heap( FusionSHM  *shm,
      D_ASSERT( ret_size != NULL );
 
      shared = shm->shared;
-     
+
      D_MAGIC_ASSERT( shared, FusionSHMShared );
      D_ASSERT( shared->tmpfs[0] != 0 );
 
@@ -692,7 +690,7 @@ __shmalloc_join_heap( FusionSHM  *shm,
      D_ASSERT( ret_fd != NULL );
 
      shared = shm->shared;
-     
+
      D_MAGIC_ASSERT( shared, FusionSHMShared );
      D_ASSERT( shared->tmpfs[0] != 0 );
 

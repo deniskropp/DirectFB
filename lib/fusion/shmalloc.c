@@ -39,6 +39,7 @@
 #include <fusion/build.h>
 #include <fusion/shmalloc.h>
 
+#include <fusion/fusion_internal.h>
 #include <fusion/shm/shm_internal.h>
 
 
@@ -75,7 +76,7 @@ fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
 }
 
 static SHMemDesc *
-fill_shmem_desc( SHMemDesc *desc, int bytes, const char *func, const char *file, int line )
+fill_shmem_desc( SHMemDesc *desc, int bytes, const char *func, const char *file, int line, FusionID fusion_id )
 {
      D_ASSERT( desc != NULL );
 
@@ -86,6 +87,7 @@ fill_shmem_desc( SHMemDesc *desc, int bytes, const char *func, const char *file,
      snprintf( desc->file, SHMEMDESC_FILE_NAME_LENGTH, file );
 
      desc->line = line;
+     desc->fid  = fusion_id;
 
      return desc;
 }
@@ -127,7 +129,7 @@ fusion_dbg_shmalloc( FusionSHMPoolShared *pool,
      }
 
      /* Fill description. */
-     desc = fill_shmem_desc( data, __size, func, file, line );
+     desc = fill_shmem_desc( data, __size, func, file, line, _fusion_id(pool->shm->world) );
 
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
@@ -176,7 +178,7 @@ fusion_dbg_shcalloc( FusionSHMPoolShared *pool,
      }
 
      /* Fill description. */
-     desc = fill_shmem_desc( data, __nmemb * __size, func, file, line );
+     desc = fill_shmem_desc( data, __nmemb * __size, func, file, line, _fusion_id(pool->shm->world) );
 
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
@@ -249,8 +251,8 @@ fusion_dbg_shrealloc( FusionSHMPoolShared *pool,
      }
 
      /* Fill description. */
-     desc = fill_shmem_desc( data, __size, func, file, line );
-     
+     desc = fill_shmem_desc( data, __size, func, file, line, _fusion_id(pool->shm->world) );
+
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
 
@@ -349,7 +351,7 @@ fusion_dbg_shstrdup( FusionSHMPoolShared *pool,
      }
 
      /* Fill description. */
-     desc = fill_shmem_desc( data, length, func, file, line );
+     desc = fill_shmem_desc( data, length, func, file, line, _fusion_id(pool->shm->world) );
 
      /* Add description to list. */
      direct_list_append( &pool->allocs, &desc->link );
