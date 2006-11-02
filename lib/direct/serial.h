@@ -38,7 +38,7 @@ struct __D_DirectSerial {
      u32 overflow;
 };
 
-static inline void
+static __inline__ void
 direct_serial_init( DirectSerial *serial )
 {
      D_ASSERT( serial != NULL );
@@ -49,13 +49,13 @@ direct_serial_init( DirectSerial *serial )
      D_MAGIC_SET( serial, DirectSerial );
 }
 
-static inline void
+static __inline__ void
 direct_serial_deinit( DirectSerial *serial )
 {
      D_MAGIC_CLEAR( serial );
 }
 
-static inline void
+static __inline__ void
 direct_serial_increase( DirectSerial *serial )
 {
      D_MAGIC_ASSERT( serial, DirectSerial );
@@ -64,7 +64,7 @@ direct_serial_increase( DirectSerial *serial )
           serial->overflow++;
 }
 
-static inline void
+static __inline__ void
 direct_serial_copy( DirectSerial *serial, const DirectSerial *source )
 {
      D_MAGIC_ASSERT( serial, DirectSerial );
@@ -74,7 +74,7 @@ direct_serial_copy( DirectSerial *serial, const DirectSerial *source )
      serial->overflow = source->overflow;
 }
 
-static inline bool
+static __inline__ bool
 direct_serial_update( DirectSerial *serial, const DirectSerial *source )
 {
      D_MAGIC_ASSERT( serial, DirectSerial );

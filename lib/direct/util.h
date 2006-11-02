@@ -111,7 +111,7 @@ void  direct_md5_sum( void *dst, const void *src, const int len );
 /*
  * Slow implementation, but quite fast if only low bits are set.
  */
-static inline int
+static __inline__ int
 direct_util_count_bits( unsigned int mask )
 {
      register int ret = 0;
@@ -127,7 +127,7 @@ direct_util_count_bits( unsigned int mask )
 /*
  * Generic alignment routine.
  */
-static inline int
+static __inline__ int
 direct_util_align( int value,
                    int alignment )
 {
@@ -157,7 +157,7 @@ int direct_util_recursive_pthread_mutex_init( pthread_mutex_t *mutex );
  This floor operation is done by "(iround(f + .5) + iround(f - .5)) >> 1",
  but uses some IEEE specific tricks for better speed.
 */
-static inline int D_IFLOOR(float f)
+static __inline__ int D_IFLOOR(float f)
 {
         int ai, bi;
         double af, bf;
@@ -191,7 +191,7 @@ static inline int D_IFLOOR(float f)
  This ceil operation is done by "(iround(f + .5) + iround(f - .5) + 1) >> 1",
  but uses some IEEE specific tricks for better speed.
 */
-static inline int D_ICEIL(float f)
+static __inline__ int D_ICEIL(float f)
 {
         int ai, bi;
         double af, bf;
@@ -216,7 +216,7 @@ static inline int D_ICEIL(float f)
         return (ai - bi + 1) >> 1;
 }
 
-static inline int direct_log2( int val )
+static __inline__ int direct_log2( int val )
 {
      register int ret = 0;
 

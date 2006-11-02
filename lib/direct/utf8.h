@@ -49,7 +49,7 @@ static const char __direct_utf8_skip[64] = {
      3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,4,4,4,4,4,4,4,4,5,5,5,5,6,6,1,1
 };
 
-static inline unichar __direct_utf8_get_char( const u8 *p )
+static __inline__ unichar __direct_utf8_get_char( const u8 *p )
 {
      int              len;
      register unichar result = p[0];

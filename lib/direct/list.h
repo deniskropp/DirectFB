@@ -40,7 +40,7 @@ struct __D_DirectLink {
                           to the last element of the list, for fast appending ;-) */
 };
 
-static inline void
+static __inline__ void
 direct_list_prepend( DirectLink **list, DirectLink *link )
 {
      DirectLink *first = *list;
@@ -62,7 +62,7 @@ direct_list_prepend( DirectLink **list, DirectLink *link )
      D_MAGIC_SET( link, DirectLink );
 }
 
-static inline void
+static __inline__ void
 direct_list_append( DirectLink **list, DirectLink *link )
 {
      DirectLink *first = *list;
@@ -85,7 +85,7 @@ direct_list_append( DirectLink **list, DirectLink *link )
      D_MAGIC_SET( link, DirectLink );
 }
 
-static inline bool
+static __inline__ bool
 direct_list_contains_element_EXPENSIVE( DirectLink *list, DirectLink *link )
 {
      D_MAGIC_ASSERT_IF( list, DirectLink );
@@ -105,7 +105,7 @@ direct_list_contains_element_EXPENSIVE( DirectLink *list, DirectLink *link )
      return false;
 }
 
-static inline int
+static __inline__ int
 direct_list_count_elements_EXPENSIVE( DirectLink *list )
 {
      int count = 0;
@@ -121,7 +121,7 @@ direct_list_count_elements_EXPENSIVE( DirectLink *list )
      return count;
 }
 
-static inline void
+static __inline__ void
 direct_list_remove( DirectLink **list, DirectLink *link )
 {
      DirectLink *next;
@@ -156,7 +156,7 @@ direct_list_remove( DirectLink **list, DirectLink *link )
      D_MAGIC_CLEAR( link );
 }
 
-static inline bool
+static __inline__ bool
 direct_list_check_link( const DirectLink *link )
 {
      D_MAGIC_ASSERT_IF( link, DirectLink );
