@@ -460,6 +460,46 @@ dump_layers()
      dfb_layers_enumerate( layer_callback, NULL );
 }
 
+static void
+dump_shmpool( FusionSHMPoolShared *pool )
+{
+     DFBResult     ret;
+     SHMemDesc    *desc;
+     int           length;
+     unsigned int  total = 0;
+
+     ret = fusion_skirmish_prevail( &pool->lock );
+     if (ret) {
+          D_DERROR( ret, "Could not lock shared memory pool!\n" );
+          return;
+     }
+
+     printf( "\n" );
+     printf( "----------------------------[ Allocations in %s ]----------------------------%n\n", pool->name, &length );
+     printf( "      Size          Address      Offset      Function                     FusionID\n" );
+
+     while (length--)
+          putc( '-', stdout );
+
+     putc( '\n', stdout );
+
+     if (pool->allocs) {
+          direct_list_foreach (desc, pool->allocs) {
+               printf( " %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+                       desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                       desc->func, desc->fid, desc->file, desc->line );
+
+               total += desc->bytes;
+          }
+
+          printf( "   -------\n  %7dk total\n", total >> 10 );
+     }
+
+     printf( "\nShared memory file size: %dk\n", pool->heap->size >> 10 );
+
+     fusion_skirmish_dismiss( &pool->lock );
+}
+
 int
 main( int argc, char *argv[] )
 {
@@ -512,33 +552,9 @@ main( int argc, char *argv[] )
 
 #if FUSION_BUILD_MULTI
      if (argc > 1 && !strcmp( argv[1], "-s" )) {
-          SHMemDesc           *desc;
-          unsigned int         total = 0;
-          FusionSHMPoolShared *pool  = dfb_core_shmpool(NULL);
-
-          ret = fusion_skirmish_prevail( &pool->lock );
-          if (ret) {
-               D_DERROR( ret, "Could not lock shared memory pool!\n" );
-               goto out;
-          }
-     
-          if (pool->allocs) {
-               printf( "\nShared memory allocations (%d): \n",
-                       direct_list_count_elements_EXPENSIVE( pool->allocs ) );
-     
-               direct_list_foreach (desc, pool->allocs) {
-                    printf( " %9d bytes at %p allocated in %-30s (%s: %u)\n",
-                         desc->bytes, desc->mem, desc->func, desc->file, desc->line );
-
-                    total += desc->bytes;
-               }
-
-               printf( "   -------\n  %7dk total\n", total >> 10 );
-          }
-     
-          printf( "\nShared memory file size: %dk\n", pool->heap->size >> 10 );
-
-          fusion_skirmish_dismiss( &pool->lock );
+          printf( "\n" );
+          dump_shmpool( dfb_core_shmpool(NULL) );
+          dump_shmpool( dfb_core_shmpool_data(NULL) );
      }
 #endif
 
