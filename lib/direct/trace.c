@@ -335,9 +335,17 @@ find_table( const char *filename )
 {
      SymbolTable *table;
 
-     direct_list_foreach (table, tables) {
-          if ((!filename && !table->filename) || !strcmp( filename, table->filename ))
-               return table;
+     if (filename) {
+          direct_list_foreach (table, tables) {
+               if (table->filename && !strcmp( filename, table->filename ))
+                    return table;
+          }
+     }
+     else {
+          direct_list_foreach (table, tables) {
+               if (!table->filename)
+                    return table;
+          }
      }
 
      return NULL;
