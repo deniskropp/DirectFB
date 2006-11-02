@@ -385,7 +385,7 @@ direct_dbg_interface_remove( const char *func,
                free( desc->name );
 
                if (i < --alloc_count)
-                    direct_memcpy( desc, desc + 1, (alloc_count - i) * sizeof(InterfaceDesc) );
+                    direct_memmove( desc, desc + 1, (alloc_count - i) * sizeof(InterfaceDesc) );
 
                pthread_mutex_unlock( &alloc_lock );
 
