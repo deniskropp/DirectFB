@@ -305,11 +305,11 @@ trap( const char *domain )
 
      raise( SIGTRAP );
 
-     direct_log_printf( NULL, "Direct/%s: ...didn't catch signal on my own, calling killpg().\n", domain );
+     D_DEBUG( "Direct/%s: ...didn't catch signal on my own, calling killpg().\n", domain );
 
      killpg( 0, SIGTRAP );
 
-     direct_log_printf( NULL, "Direct/%s: ...still running, calling pthread_exit().\n", domain );
+     D_DEBUG( "Direct/%s: ...still running, calling pthread_exit().\n", domain );
 
      pthread_exit( NULL );
 }
