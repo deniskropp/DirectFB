@@ -424,9 +424,11 @@ init_pool( FusionSHM           *shm,
 
      D_MAGIC_ASSERT( world, FusionWorld );
 
-
      /* Fill out information for new pool. */
      pool_new.max_size = max_size;
+
+     pool_new.max_size += BLOCKALIGN(sizeof(shmalloc_heap)) +
+                          BLOCKALIGN( (max_size + BLOCKSIZE-1) / BLOCKSIZE * sizeof(shmalloc_info) );
 
      /* Create the new pool. */
      while (ioctl( world->fusion_fd, FUSION_SHMPOOL_NEW, &pool_new )) {
@@ -472,7 +474,7 @@ init_pool( FusionSHM           *shm,
                fusion_world_index( shm->world ), pool_new.pool_id );
 
      /* Initialize the heap. */
-     ret = __shmalloc_init_heap( shm, buf, pool_new.addr_base, &fd, &size );
+     ret = __shmalloc_init_heap( shm, buf, pool_new.addr_base, max_size, &fd, &size );
      if (ret) {
           while (ioctl( world->fusion_fd, FUSION_SHMPOOL_DESTROY, &shared->pool_id )) {
                if (errno != EINTR) {
@@ -498,7 +500,7 @@ init_pool( FusionSHM           *shm,
      shared->active     = true;
      shared->debug      = debug;
      shared->shm        = shm->shared;
-     shared->max_size   = max_size;
+     shared->max_size   = pool_new.max_size;
      shared->pool_id    = pool_new.pool_id;
      shared->addr_base  = pool_new.addr_base;
      shared->heap       = pool_new.addr_base;

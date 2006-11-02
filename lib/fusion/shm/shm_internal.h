@@ -248,6 +248,7 @@ void  _fusion_shfree (shmalloc_heap *heap, void *__ptr);
 DirectResult __shmalloc_init_heap( FusionSHM     *shm,
                                    const char    *filename,
                                    void          *addr_base,
+                                   int            space,
                                    int           *ret_fd,
                                    int           *ret_size );
 

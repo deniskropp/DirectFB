@@ -25,6 +25,28 @@
    Boston, MA 02111-1307, USA.
 */
 
+/* Heap management adapted from libc
+   Copyright 1990, 1991, 1992 Free Software Foundation, Inc.
+                  Written May 1989 by Mike Haertel.
+
+This library is free software; you can redistribute it and/or
+modify it under the terms of the GNU Library General Public License as
+published by the Free Software Foundation; either version 2 of the
+License, or (at your option) any later version.
+
+This library is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+Library General Public License for more details.
+
+You should have received a copy of the GNU Library General Public
+License along with this library; see the file COPYING.LIB.  If
+not, write to the Free Software Foundation, Inc., 675 Mass Ave,
+Cambridge, MA 02139, USA.
+
+   The author may be reached (Email) at the address mike@ai.mit.edu,
+   or (US mail) as Mike Haertel c/o Free Software Foundation.  */
+
 #include <config.h>
 
 #include <unistd.h>
@@ -561,12 +583,13 @@ DirectResult
 __shmalloc_init_heap( FusionSHM  *shm,
                       const char *filename,
                       void       *addr_base,
+                      int         space,
                       int        *ret_fd,
                       int        *ret_size )
 {
      DirectResult     ret;
      int              size;
-     int              heapsize = HEAP / BLOCKSIZE;
+     int              heapsize = (space + BLOCKSIZE-1) / BLOCKSIZE;
      FusionSHMShared *shared;
      int              fd   = -1;
      shmalloc_heap   *heap = NULL;
@@ -589,6 +612,9 @@ __shmalloc_init_heap( FusionSHM  *shm,
 
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> opening shared memory file '%s'...\n", filename );
+
+     /* First remove potentially remaining file from a previous session. */
+     unlink( filename );
 
      /* open the virtual file */
      fd = open( filename, O_RDWR | O_CREAT, 0660 );
@@ -618,8 +644,6 @@ __shmalloc_init_heap( FusionSHM  *shm,
      }
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> done.\n" );
-
-     memset( heap, 0, size );
 
      heap->size     = size;
      heap->heapsize = heapsize;
