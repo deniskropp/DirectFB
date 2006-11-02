@@ -57,6 +57,8 @@ struct __D_DirectConfig {
      DirectLog *log;
 
      DirectConfigFatalLevel fatal;
+     
+     bool                   debugmem;
 };
 
 extern DirectConfig *direct_config;

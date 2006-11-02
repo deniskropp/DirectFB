@@ -76,6 +76,8 @@ static const char *config_usage =
      "  quiet                          No text output except debugging\n"
      "  [no-]banner                    Show DirectFB Banner on startup\n"
      "  [no-]debug                     Enable debug output\n"
+     "  [no-]debugmem                  Enable memory allocation tracking\n"
+     "  [no-]debugshm                  Enable shared memory allocation tracking\n"
      "  [no-]trace                     Enable stack trace support\n"
      "  log-file=<name>                Write all messages to a file\n"
      "  log-udp=<host>:<port>          Send all messages via UDP to host:port\n"
@@ -629,6 +631,18 @@ DFBResult dfb_config_set( const char *name, const char *value )
                direct_debug_config_domain( value, false );
           else
                direct_config->debug = false;
+     } else
+     if (strcmp (name, "debugmem" ) == 0) {
+          direct_config->debugmem = true;
+     } else
+     if (strcmp (name, "no-debugmem" ) == 0) {
+          direct_config->debugmem = false;
+     } else
+     if (strcmp (name, "debugshm" ) == 0) {
+          fusion_config->debugshm = true;
+     } else
+     if (strcmp (name, "no-debugshm" ) == 0) {
+          fusion_config->debugshm = false;
      } else
      if (strcmp (name, "trace" ) == 0) {
           direct_config->trace = true;

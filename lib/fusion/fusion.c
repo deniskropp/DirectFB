@@ -50,6 +50,7 @@
 #include <direct/trace.h>
 
 #include <fusion/build.h>
+#include <fusion/conf.h>
 #include <fusion/types.h>
 
 #include "fusion_internal.h"
@@ -497,7 +498,7 @@ fusion_enter( int               world_index,
 
           /* Create the main pool. */
           ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
-                                        direct_config->debug, &shared->main_pool );
+                                        fusion_config->debugshm, &shared->main_pool );
           if (ret)
                goto error3;
      }
@@ -978,7 +979,7 @@ DirectResult fusion_enter( int               world_index,
 
      /* Create the main pool. */
      ret = fusion_shm_pool_create( world, "Fusion Main Pool", 0x100000,
-                                   direct_config->debug, &world->shared->main_pool );
+                                   fusion_config->debugshm, &world->shared->main_pool );
      if (ret)
           goto error;
 

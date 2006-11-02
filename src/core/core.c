@@ -66,6 +66,7 @@
 #include <direct/util.h>
 
 #include <fusion/build.h>
+#include <fusion/conf.h>
 
 #include <misc/conf.h>
 #include <misc/util.h>
@@ -831,7 +832,7 @@ dfb_core_initialize( CoreDFB *core )
      D_MAGIC_ASSERT( shared, CoreDFBShared );
 
      ret = fusion_shm_pool_create( core->world, "DirectFB Surface Pool", 0x8000000,
-                                   direct_config->debug, &shared->shmpool_data );
+                                   fusion_config->debugshm, &shared->shmpool_data );
      if (ret)
           return ret;
 
@@ -902,7 +903,7 @@ dfb_core_arena_initialize( FusionArena *arena,
 
      /* Create the shared memory pool first! */
      ret = fusion_shm_pool_create( core->world, "DirectFB Main Pool", 0x400000,
-                                   direct_config->debug, &pool );
+                                   fusion_config->debugshm, &pool );
      if (ret)
           return ret;
 

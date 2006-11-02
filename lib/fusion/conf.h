@@ -33,6 +33,8 @@
 
 struct __Fusion_FusionConfig {
      char *tmpfs;             /* location of shm file */
+
+     bool  debugshm;
 };
 
 extern FusionConfig *fusion_config;
