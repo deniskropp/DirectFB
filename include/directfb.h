@@ -1005,7 +1005,7 @@ typedef enum {
      DSPF_RGB18     = DFB_SURFACE_PIXELFORMAT( 24, 18, 0, 0, 0, 3, 0, 0, 0, 0, 0 ),
 
      /*  2 bit   LUT (1 byte/ 4 pixel, 2 bit color and alpha lookup from palette) */
-     DSPF_LUT2      = DFB_SURFACE_PIXELFORMAT( 21,  2, 0, 1, 2, 0, 3, 0, 0, 1, 0 ),
+     DSPF_LUT2      = DFB_SURFACE_PIXELFORMAT( 25,  2, 0, 1, 2, 0, 3, 0, 0, 1, 0 ),
 
 } DFBSurfacePixelFormat;
 
