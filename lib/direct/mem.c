@@ -233,7 +233,7 @@ direct_free( const char *file, int line, const char *func, const char *what, voi
                alloc_count--;
 
                if (i < alloc_count)
-                    direct_memcpy( desc, desc + 1, (alloc_count - i) * sizeof(MemDesc) );
+                    direct_memmove( desc, desc + 1, (alloc_count - i) * sizeof(MemDesc) );
 
                pthread_mutex_unlock( &alloc_lock );
 

@@ -39,10 +39,11 @@ extern void *(*direct_memcpy)( void *to, const void *from, size_t len );
 
 static __inline__ void *direct_memmove( void *to, const void *from, size_t len )
 {
-     if (from > to  ||  ((const char*) from + len) < ((char*) to))
+     if ((from < to && ((char*) from + len) < ((char*) to)) ||
+         (((char*) to + len) < ((char*) from)))
           return direct_memcpy( to, from, len );
-
-     return memmove( to, from, len );
+     else
+          return memmove( to, from, len );
 }
 
 #endif
