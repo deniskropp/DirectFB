@@ -270,7 +270,7 @@ dfb_font_get_glyph_data( CoreFont        *font,
      else {
           /* Calculate row width? */
           if (font->row_width == 0) {
-               int width = 2048 * font->height / 128;
+               int width = 2048 * font->height / 64;
 
                if (width > 2048)
                     width = 2048;
