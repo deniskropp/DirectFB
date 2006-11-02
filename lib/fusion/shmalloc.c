@@ -64,12 +64,12 @@ fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
      }
 
      if (pool->allocs) {
-          D_DEBUG( "Shared memory allocations remaining (%d): \n",
-                   direct_list_count_elements_EXPENSIVE( pool->allocs ) );
+          direct_log_printf( NULL, "Shared memory allocations remaining (%d): \n",
+                             direct_list_count_elements_EXPENSIVE( pool->allocs ) );
 
           direct_list_foreach (desc, pool->allocs)
-               D_DEBUG( "%7d bytes at %p allocated in %s (%s: %u)\n",
-                        desc->bytes, desc->mem, desc->func, desc->file, desc->line );
+               direct_log_printf( NULL, "%7d bytes at %p allocated in %s (%s: %u)\n",
+                                  desc->bytes, desc->mem, desc->func, desc->file, desc->line );
      }
 
      fusion_skirmish_dismiss( &pool->lock );

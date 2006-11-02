@@ -795,6 +795,7 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
 
           if (new_size > shared->max_size) {
                D_WARN ("maximum shared memory size reached!");
+               fusion_dbg_print_memleaks( shared );
                return NULL;
           }
 
