@@ -68,7 +68,7 @@ direct_print_memleaks()
 
      pthread_mutex_lock( &alloc_lock );
 
-     if (alloc_count) {
+     if (alloc_count && (!direct_config || direct_config->debugmem)) {
           direct_log_printf( NULL, "Local memory allocations remaining (%d): \n", alloc_count );
 
           for (i=0; i<alloc_count; i++) {
@@ -129,9 +129,6 @@ direct_malloc( const char* file, int line, const char *func, size_t bytes )
      if (!mem)
           return NULL;
 
-     if (!direct_config->debugmem)
-          return mem;
-
      pthread_mutex_lock( &alloc_lock );
 
      desc = allocate_mem_desc();
@@ -157,9 +154,6 @@ direct_calloc( const char* file, int line, const char *func, size_t count, size_
      if (!mem)
           return NULL;
 
-     if (!direct_config->debugmem)
-          return mem;
-
      pthread_mutex_lock( &alloc_lock );
 
      desc = allocate_mem_desc();
@@ -184,9 +178,6 @@ direct_realloc( const char *file, int line, const char *func, const char *what, 
           direct_free( file, line, func, what, mem );
           return NULL;
      }
-
-     if (!direct_config->debugmem)
-          return realloc( mem, bytes );
 
      pthread_mutex_lock( &alloc_lock );
 
@@ -227,9 +218,6 @@ direct_free( const char *file, int line, const char *func, const char *what, voi
 
      if (!mem)
           return;
-
-     if (!direct_config->debugmem)
-          return free( mem );
 
      pthread_mutex_lock( &alloc_lock );
 
@@ -275,9 +263,6 @@ direct_strdup( const char* file, int line, const char *func, const char *string 
           return NULL;
 
      direct_memcpy( mem, string, length );
-
-     if (!direct_config->debugmem)
-          return mem;
 
      pthread_mutex_lock( &alloc_lock );
 
