@@ -264,9 +264,10 @@ static int DoExtension( IDirectFBVideoProvider_GIF_data *data, int label )
           case 0xf9:              /* Graphic Control Extension */
                str = "Graphic Control Extension";
                (void) GetDataBlock( data->buffer, (u8*) buf );
-               data->disposal    = (buf[0] >> 2) & 0x7;
-               data->inputFlag   = (buf[0] >> 1) & 0x1;
-               data->delayTime   = LM_to_uint( buf[1], buf[2] ) * 10000;
+               data->disposal  = (buf[0] >> 2) & 0x7;
+               data->inputFlag = (buf[0] >> 1) & 0x1;
+               if (LM_to_uint( buf[1], buf[2] ))
+                    data->delayTime = LM_to_uint( buf[1], buf[2] ) * 100000;
                if ((buf[0] & 0x1) != 0)
                     data->transparent = buf[3];
                else
@@ -404,10 +405,10 @@ static int ReadImage( IDirectFBVideoProvider_GIF_data *data,
                       int left, int top, int width, int height,
                       u8 cmap[3][MAXCOLORMAPSIZE], bool interlace, bool ignore )
 {
-     u8     c;
-     int    v;
-     int    xpos = 0, ypos = 0, pass = 0;
-     u32   *image;
+     u8   c;
+     int  v;
+     int  xpos = 0, ypos = 0, pass = 0;
+     u32 *image, *dst;
 
      /*
      **  Initialize the decompression routines
@@ -441,18 +442,17 @@ static int ReadImage( IDirectFBVideoProvider_GIF_data *data,
                break;
      }
      
-     image = data->image + (top * data->Width + left);
+     dst = image = data->image + (top * data->Width + left);
 
      GIFDEBUGMSG("reading %dx%d at %dx%d %sGIF image",
                  width, height, left, top, interlace ? " interlaced " : "" );
 
      while ((v = LWZReadByte( data, false, c )) >= 0 ) {
           if (v != data->transparent) {
-               u32 *dst = image + (ypos * data->Width + xpos);
-               *dst = (0xFF000000              |
-                       cmap[CM_RED][v]   << 16 |
-                       cmap[CM_GREEN][v] << 8  |
-                       cmap[CM_BLUE][v]);
+               dst[xpos] = (0xFF000000              |
+                            cmap[CM_RED][v]   << 16 |
+                            cmap[CM_GREEN][v] << 8  |
+                            cmap[CM_BLUE][v]);
           }
 
           ++xpos;
@@ -492,6 +492,7 @@ static int ReadImage( IDirectFBVideoProvider_GIF_data *data,
                else {
                     ++ypos;
                }
+               dst = image + ypos * data->Width;
           } 
           if (ypos >= height) {
                break;
@@ -750,9 +751,6 @@ GIFVideo( DirectThread *self, void *arg )
           DFBRegion       clip;
           void           *dst;
           int             pitch;
-          struct timeval  tv;
-          
-          gettimeofday( &tv, NULL );
           
           pthread_mutex_lock( &data->lock );
           
@@ -800,7 +798,10 @@ GIFVideo( DirectThread *self, void *arg )
           }
           else {
                struct timespec ts;
+               struct timeval  tv;
                unsigned long   us;
+               
+               gettimeofday( &tv, NULL );
                     
                us = data->delayTime;
                if (data->speed != 1.0)
