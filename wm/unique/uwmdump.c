@@ -132,24 +132,19 @@ window_callback( UniqueWindow *window )
 
      printf( "%5d  ", dfb_window_id( window->window ) );
 
-     if (window->caps & DWHC_TOPMOST) {
-          printf( "*  " );
-     }
-     else {
-          switch (window->stacking) {
-               case DWSC_UPPER:
-                    printf( "^  " );
-                    break;
-               case DWSC_MIDDLE:
-                    printf( "-  " );
-                    break;
-               case DWSC_LOWER:
-                    printf( "v  " );
-                    break;
-               default:
-                    printf( "?  " );
-                    break;
-          }
+     switch (window->stacking) {
+          case DWSC_UPPER:
+               printf( "^  " );
+               break;
+          case DWSC_MIDDLE:
+               printf( "-  " );
+               break;
+          case DWSC_LOWER:
+               printf( "v  " );
+               break;
+          default:
+               printf( "?  " );
+               break;
      }
 
      if (D_FLAGS_IS_SET( window->flags, UWF_VISIBLE ))

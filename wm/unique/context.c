@@ -625,7 +625,7 @@ unique_context_window_at( UniqueContext  *context,
      }
      else {
           fusion_vector_foreach_reverse (window, i, context->windows)
-               if (window->opacity && !(window->options & DWOP_GHOST) && !(window->caps & DWHC_TOPMOST))
+               if (window->opacity && !(window->options & DWOP_GHOST))
                     break;
 
           if (i < 0)
@@ -652,13 +652,8 @@ unique_context_lookup_window( UniqueContext  *context,
      D_MAGIC_ASSERT( context, UniqueContext );
 
      fusion_vector_foreach_reverse (window, i, context->windows) {
-          if (window->window->id == window_id) {
-               /* don't hand out the cursor window */
-               if (window->window->caps & DWHC_TOPMOST)
-                    window = NULL;
-
+          if (window->window->id == window_id)
                break;
-          }
      }
 
      *ret_window = window;

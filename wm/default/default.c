@@ -205,9 +205,6 @@ get_priority( const CoreWindow *window )
 {
      D_ASSERT( window != NULL );
 
-     if (window->caps & DWHC_TOPMOST)
-          return 2;
-
      switch (window->config.stacking) {
           case DWSC_UPPER:
                return  1;
@@ -1383,7 +1380,7 @@ insert_window( CoreWindowStack *stack,
 
           D_ASSERT( other->window_data != NULL );
 
-          if (other->caps & DWHC_TOPMOST || other_data->priority > window_data->priority)
+          if (other_data->priority > window_data->priority)
                break;
      }
 

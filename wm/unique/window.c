@@ -822,9 +822,6 @@ _unique_window_input_channel_listener( const void *msg_data,
 static inline int
 get_priority( DFBWindowCapabilities caps, DFBWindowStackingClass stacking )
 {
-     if (caps & DWHC_TOPMOST)
-          return 2;
-
      switch (stacking) {
           case DWSC_UPPER:
                return  1;
@@ -943,7 +940,7 @@ insert_window( UniqueContext *context,
      fusion_vector_foreach (other, index, context->windows) {
           D_MAGIC_ASSERT( other, UniqueWindow );
 
-          if (window->caps & DWHC_TOPMOST || other->priority > window->priority)
+          if (other->priority > window->priority)
                break;
      }
 
@@ -1410,7 +1407,7 @@ update_flags( UniqueWindow *window )
 
      D_MAGIC_ASSERT( window, UniqueWindow );
 
-     if (! (window->options & DWOP_GHOST) && ! (window->caps & DWHC_TOPMOST)) {
+     if (! (window->options & DWOP_GHOST)) {
           if (window->foos[0]) {
                for (i=0; i<8; i++)
                     window->foos[i]->flags |= SRF_INPUT;
@@ -1484,7 +1481,7 @@ create_regions( UniqueWindow *window )
 
      D_MAGIC_ASSERT( shared, WMShared );
 
-     if (! (window->options & DWOP_GHOST) && ! (window->caps & DWHC_TOPMOST))
+     if (! (window->options & DWOP_GHOST))
           flags |= SRF_INPUT;
 
      if (! (window->caps & DWCAPS_INPUTONLY))

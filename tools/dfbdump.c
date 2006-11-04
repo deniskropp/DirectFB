@@ -357,24 +357,19 @@ window_callback( CoreWindow *window,
 
      printf( "%5d  ", window->id );
 
-     if (window->caps & DWHC_TOPMOST) {
-          printf( "*  " );
-     }
-     else {
-          switch (config->stacking) {
-               case DWSC_UPPER:
-                    printf( "^  " );
-                    break;
-               case DWSC_MIDDLE:
-                    printf( "-  " );
-                    break;
-               case DWSC_LOWER:
-                    printf( "v  " );
-                    break;
-               default:
-                    printf( "?  " );
-                    break;
-          }
+     switch (config->stacking) {
+          case DWSC_UPPER:
+               printf( "^  " );
+               break;
+          case DWSC_MIDDLE:
+               printf( "-  " );
+               break;
+          case DWSC_LOWER:
+               printf( "v  " );
+               break;
+          default:
+               printf( "?  " );
+               break;
      }
 
      if (window->caps & DWCAPS_ALPHACHANNEL)

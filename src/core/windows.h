@@ -35,25 +35,6 @@
 
 #include <fusion/object.h>
 
-/*
- * Hidden capability for software cursor, window will be the "super topmost".
- */
-#define DWHC_TOPMOST   0x80000000
-
-
-typedef enum {
-     CWUF_NONE      = 0x00000000,
-
-     CWUF_SURFACE   = 0x00000001,
-     CWUF_POSITION  = 0x00000002,
-     CWUF_SIZE      = 0x00000004,
-     CWUF_OPTIONS   = 0x00000008,
-     CWUF_OPACITY   = 0x00000010,
-     CWUF_COLORKEY  = 0x00000020,
-     CWUF_PALETTE   = 0x00000040,
-
-     CWUF_ALL       = 0x0000003F
-} CoreWindowUpdateFlags;
 
 typedef enum {
      CWCF_NONE      = 0x00000000,

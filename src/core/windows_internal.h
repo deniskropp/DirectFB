@@ -145,9 +145,6 @@ struct __DFB_CoreWindowStack {
 
 
 /* global reactions */
-ReactionResult _dfb_window_surface_listener              ( const void *msg_data,
-                                                           void       *ctx );
-
 ReactionResult _dfb_windowstack_inputdevice_listener     ( const void *msg_data,
                                                            void       *ctx );
 

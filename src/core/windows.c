@@ -416,6 +416,9 @@ dfb_window_create( CoreWindowStack        *stack,
                dfb_layer_region_link( &window->primary_region, region );
                dfb_layer_region_unref( region );
 
+
+
+
                /* Create the surface for the window. */
                ret = dfb_surface_create( layer->core,
                                          width, height, pixelformat,
@@ -1303,42 +1306,6 @@ dfb_window_surface( const CoreWindow *window )
 }
 
 /******************************************************************************/
-
-/*
- * listen to the window's surface
- */
-ReactionResult
-_dfb_window_surface_listener( const void *msg_data, void *ctx )
-{
-     const CoreSurfaceNotification *notification = msg_data;
-     CoreWindow                    *window       = ctx;
-
-     (void) window;
-
-     D_ASSERT( notification != NULL );
-     D_ASSERT( notification->surface != NULL );
-
-     D_ASSERT( window != NULL );
-     D_ASSERT( window->stack != NULL );
-     D_ASSERT( window->surface == notification->surface );
-
-     if (notification->flags & CSNF_DESTROY) {
-          D_WARN( "window surface destroyed" );
-          return RS_REMOVE;
-     }
-
-     if (notification->flags & (CSNF_PALETTE_CHANGE | CSNF_PALETTE_UPDATE)) {
-/*          if (window->window_data) {
-               CoreLayer *layer = dfb_layer_at( window->stack->layer_id );
-
-               D_ASSERT( layer != NULL );
-
-               dfb_layer_update_window( layer, window, CWUF_PALETTE );
-          }*/
-     }
-
-     return RS_OK;
-}
 
 static bool
 core_window_filter( CoreWindow *window, const DFBWindowEvent *event )
