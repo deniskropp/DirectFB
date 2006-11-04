@@ -396,10 +396,6 @@ dfb_window_create( CoreWindowStack        *stack,
                /* Link the surface into the window structure. */
                dfb_surface_link( &window->surface, surface );
                dfb_surface_unref( surface );
-
-               /* Attach our global listener to the surface. */
-               dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
-                                          window, &window->surface_reaction );
           }
           else {
                CoreLayerRegion *region;
@@ -435,10 +431,6 @@ dfb_window_create( CoreWindowStack        *stack,
                /* Link the surface into the window structure. */
                dfb_surface_link( &window->surface, surface );
                dfb_surface_unref( surface );
-
-               /* Attach our global listener to the surface. */
-               dfb_surface_attach_global( surface, DFB_WINDOW_SURFACE_LISTENER,
-                                          window, &window->surface_reaction );
           }
      }
 
@@ -446,7 +438,6 @@ dfb_window_create( CoreWindowStack        *stack,
      ret = dfb_wm_add_window( stack, window );
      if (ret) {
           if (window->surface) {
-               dfb_surface_detach_global( surface, &window->surface_reaction );
                dfb_surface_unlink( &window->surface );
           }
 
@@ -528,7 +519,6 @@ dfb_window_destroy( CoreWindow *window )
 
      /* Unlink the window's surface. */
      if (window->surface) {
-          dfb_surface_detach_global( window->surface, &window->surface_reaction );
           dfb_surface_unlink( &window->surface );
      }
 
