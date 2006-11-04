@@ -412,25 +412,25 @@ dfb_window_create( CoreWindowStack        *stack,
                dfb_layer_region_link( &window->primary_region, region );
                dfb_layer_region_unref( region );
 
+               /* Give the WM a chance to provide its own surface. */
+               if (!window->surface) {
+                    /* Create the surface for the window. */
+                    ret = dfb_surface_create( layer->core,
+                                              width, height, pixelformat,
+                                              surface_policy, surface_caps,
+                                              region->surface ?
+                                              region->surface->palette : NULL, &surface );
+                    if (ret) {
+                         dfb_layer_region_unlink( &window->primary_region );
+                         fusion_object_destroy( &window->object );
+                         dfb_windowstack_unlock( stack );
+                         return ret;
+                    }
 
-
-
-               /* Create the surface for the window. */
-               ret = dfb_surface_create( layer->core,
-                                         width, height, pixelformat,
-                                         surface_policy, surface_caps,
-                                         region->surface ?
-                                         region->surface->palette : NULL, &surface );
-               if (ret) {
-                    dfb_layer_region_unlink( &window->primary_region );
-                    fusion_object_destroy( &window->object );
-                    dfb_windowstack_unlock( stack );
-                    return ret;
+                    /* Link the surface into the window structure. */
+                    dfb_surface_link( &window->surface, surface );
+                    dfb_surface_unref( surface );
                }
-
-               /* Link the surface into the window structure. */
-               dfb_surface_link( &window->surface, surface );
-               dfb_surface_unref( surface );
           }
      }
 
