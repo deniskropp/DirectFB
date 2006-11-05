@@ -180,8 +180,6 @@ struct list {
 };
 
 
-#if FUSION_BUILD_MULTI
-
 #define SHMEMDESC_FUNC_NAME_LENGTH 48
 #define SHMEMDESC_FILE_NAME_LENGTH 24
 
@@ -197,8 +195,6 @@ typedef struct {
 
      FusionID      fid;
 } SHMemDesc;
-
-#endif
 
 
 struct __shmalloc_heap {
