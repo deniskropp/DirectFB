@@ -8447,7 +8447,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
      dfb_surfacemanager_lock( destination->manager );
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (dfb_surface_software_lock( source, DSLF_READ, &gfxs->src_org[0],
+          if (dfb_surface_software_lock( state->core, source, DSLF_READ, &gfxs->src_org[0],
                                          &gfxs->src_pitch, true )) {
                dfb_surfacemanager_unlock( destination->manager );
                return false;
@@ -8475,7 +8475,7 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           state->flags |= CSF_SOURCE_LOCKED;
      }
 
-     if (dfb_surface_software_lock( state->destination, lock_flags,
+     if (dfb_surface_software_lock( state->core, state->destination, lock_flags,
                                     &gfxs->dst_org[0], &gfxs->dst_pitch, false ))
      {
           if (state->flags & CSF_SOURCE_LOCKED) {

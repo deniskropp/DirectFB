@@ -425,7 +425,7 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      DFBResult    ret;
 
      D_ASSERT( surface != NULL );
-     ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
+     ret = dfb_surface_soft_lock( dfb_osx_core, surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
           D_ERROR( "DirectFB/OSX: Couldn't lock layer surface: %s\n",
                    DirectFBErrorString( ret ) );

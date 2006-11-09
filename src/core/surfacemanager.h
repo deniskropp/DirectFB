@@ -83,7 +83,8 @@ void dfb_surfacemanager_unlock( SurfaceManager *manager );
  * lock a surface for access by software, returns a pointer to the
  * surface data and the line pitch a.k.a. rowstride
  */
-DFBResult dfb_surface_software_lock( CoreSurface          *surface,
+DFBResult dfb_surface_software_lock( CoreDFB              *core,
+                                     CoreSurface          *surface,
                                      DFBSurfaceLockFlags   flags,
                                      void                **data,
                                      int                  *pitch,
@@ -95,7 +96,8 @@ DFBResult dfb_surface_software_lock( CoreSurface          *surface,
  * video struct, however this function will fail if the surfacemanager could
  * not assure a video memory instance
  */
-DFBResult dfb_surface_hardware_lock( CoreSurface         *surface,
+DFBResult dfb_surface_hardware_lock( CoreDFB             *core,
+                                     CoreSurface         *surface,
                                      DFBSurfaceLockFlags  flags,
                                      bool                 front );
 

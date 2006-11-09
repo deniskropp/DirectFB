@@ -89,6 +89,8 @@ typedef struct {
      int                  height;
 
      u32                 *image;
+
+     CoreDFB             *core;
 } IDirectFBImageProvider_MPEG2_data;
 
 static DFBResult
@@ -136,16 +138,19 @@ Construct( IDirectFBImageProvider *thiz,
 {
      DFBResult ret = DFB_FAILURE;
      IDirectFBDataBuffer *buffer;
-     va_list tag;
+     CoreDFB             *core;
+     va_list              tag;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_MPEG2)
-       
-     va_start(tag, thiz);
-     buffer = va_arg(tag, IDirectFBDataBuffer *);
-     va_end(tag);
+
+     va_start( tag, thiz );
+     buffer = va_arg( tag, IDirectFBDataBuffer * );
+     core = va_arg( tag, CoreDFB * );
+     va_end( tag );
        
      data->ref    = 1;
      data->buffer = buffer;
+     data->core   = core;
 
      /* Increase the data buffer reference counter. */
      buffer->AddRef( buffer );
@@ -277,7 +282,7 @@ IDirectFBImageProvider_MPEG2_RenderTo( IDirectFBImageProvider *thiz,
           void *dst;
           int   pitch;
 
-          ret = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
           if (ret)
                return ret;
 

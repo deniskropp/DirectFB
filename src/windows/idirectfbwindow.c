@@ -100,6 +100,8 @@ typedef struct {
 
      bool               detached;
      bool               destroyed;
+
+     CoreDFB           *core;
 } IDirectFBWindow_data;
 
 
@@ -325,7 +327,7 @@ IDirectFBWindow_GetSurface( IDirectFBWindow   *thiz,
 
           ret = IDirectFBSurface_Window_Construct( *surface,
                                                    NULL, NULL, data->window,
-                                                   DSCAPS_DOUBLE );
+                                                   DSCAPS_DOUBLE, data->core );
           if (ret)
                return ret;
 
@@ -864,7 +866,8 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
-                           CoreLayer       *layer )
+                           CoreLayer       *layer,
+                           CoreDFB         *core )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBWindow)
 
@@ -874,6 +877,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      data->ref    = 1;
      data->window = window;
      data->layer  = layer;
+     data->core   = core;
 
      dfb_window_attach( window, IDirectFBWindow_React, data, &data->reaction );
 

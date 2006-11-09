@@ -456,7 +456,7 @@ update_screen( int x, int y, int w, int h )
 
      D_DEBUG_AT( SDL_Updates, "  -> locking dfb surface...\n" );
 
-     ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
+     ret = dfb_surface_soft_lock( dfb_sdl_core, surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
           D_ERROR( "DirectFB/SDL: Couldn't lock layer surface: %s\n",
                    DirectFBErrorString( ret ) );

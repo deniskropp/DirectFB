@@ -85,6 +85,8 @@ typedef struct {
                                                 this surface */
 
      Reaction               reaction;
+
+     CoreDFB               *core;
 } IDirectFBSurface_data;
 
 /*
@@ -95,7 +97,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface *thiz,
                                       DFBRectangle *clip_rect,
                                       DFBInsets    *insets,
                                       CoreSurface  *surface,
-                                      DFBSurfaceCapabilities caps );
+                                      DFBSurfaceCapabilities  caps,
+                                      CoreDFB                *core );
 
 /*
  * destroys surface(s) and frees private data

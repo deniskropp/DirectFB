@@ -91,34 +91,6 @@ D_DEBUG_DOMAIN( IDFB, "IDirectFB", "DirectFB Main Interface" );
 
 /**********************************************************************************************************************/
 
-/*
- * private data struct of IDirectFB
- */
-typedef struct {
-     int                         ref;      /* reference counter */
-     CoreDFB                    *core;
-
-     DFBCooperativeLevel         level;    /* current cooperative level */
-
-     CoreLayer                  *layer;    /* primary display layer */
-     CoreLayerContext           *context;  /* shared context of primary layer */
-     CoreWindowStack            *stack;    /* window stack of primary layer */
-
-     struct {
-          int                    width;    /* IDirectFB stores window width    */
-          int                    height;   /* and height and the pixel depth   */
-          DFBSurfacePixelFormat  format;   /* from SetVideoMode() parameters.  */
-
-          CoreWindow            *window;   /* implicitly created window */
-          Reaction               reaction; /* for the focus listener */
-          bool                   focused;  /* primary's window has the focus */
-
-          CoreLayerContext      *context;  /* context for fullscreen primary */
-     } primary;                            /* Used for DFSCL_NORMAL's primary. */
-
-     bool                        app_focus;
-} IDirectFB_data;
-
 typedef struct {
      DFBScreenCallback  callback;
      void              *callback_ctx;
@@ -139,6 +111,7 @@ typedef struct {
      IDirectFBDisplayLayer **interface;
      DFBDisplayLayerID       id;
      DFBResult               ret;
+     CoreDFB                *core;
 } GetDisplayLayer_Context;
 
 typedef struct {
@@ -463,6 +436,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
           if (width < 1)
                return DFB_INVARG;
      }
+
      if (desc->flags & DSDESC_HEIGHT) {
           height = desc->height;
           if (height < 1)
@@ -572,7 +546,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                          ret = IDirectFBSurface_Construct( *interface,
-                                                            NULL, NULL, NULL, surface, caps );
+                                                            NULL, NULL, NULL, surface, caps, data->core );
                          if (ret == DFB_OK) {
                               dfb_windowstack_set_background_image( data->stack, surface );
                               dfb_windowstack_set_background_mode( data->stack, DLBM_IMAGE );
@@ -607,7 +581,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (caps & DSCAPS_DOUBLE)
                               window_caps |= DWCAPS_DOUBLEBUFFER;
 
-                         ret = dfb_layer_context_create_window( data->context, x, y,
+                         ret = dfb_layer_context_create_window( data->core, data->context, x, y,
                                                                 width, height, window_caps,
                                                                 caps, format, &window );
                          if (ret)
@@ -626,7 +600,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          return IDirectFBSurface_Window_Construct( *interface, NULL,
                                                                    NULL, window,
-                                                                   caps );
+                                                                   caps, data->core );
                     }
                case DFSCL_FULLSCREEN:
                case DFSCL_EXCLUSIVE: {
@@ -700,7 +674,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
                     ret = IDirectFBSurface_Layer_Construct( *interface, NULL,
-                                                            NULL, region, caps );
+                                                            NULL, region, caps, data->core );
 
                     dfb_surface_unref( surface );
                     dfb_layer_region_unref( region );
@@ -763,7 +737,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
      DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
 
      ret = IDirectFBSurface_Construct( *interface,
-                                        NULL, NULL, NULL, surface, caps );
+                                        NULL, NULL, NULL, surface, caps, data->core );
 
      dfb_surface_unref( surface );
 
@@ -908,6 +882,7 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
      context.interface = interface;
      context.id        = id;
      context.ret       = DFB_IDNOTFOUND;
+     context.core      = data->core;
 
      dfb_layers_enumerate( GetDisplayLayer_Callback, &context );
 
@@ -1028,7 +1003,7 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
           return ret;
 
      /* Create (probing) the image provider. */
-     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, interface );
+     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, data->core, interface );
 
      /* We don't need it anymore, image provider has its own reference. */
      databuffer->Release( databuffer );
@@ -1140,7 +1115,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
      if (!desc) {
           DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
 
-          return IDirectFBDataBuffer_Streamed_Construct( *interface );
+          return IDirectFBDataBuffer_Streamed_Construct( *interface, data->core );
      }
 
      if (desc->flags & DBDESC_FILE) {
@@ -1149,7 +1124,7 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
 
           DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
 
-          return IDirectFBDataBuffer_File_Construct( *interface, desc->file );
+          return IDirectFBDataBuffer_File_Construct( *interface, desc->file, data->core );
      }
 
      if (desc->flags & DBDESC_MEMORY) {
@@ -1160,7 +1135,8 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
 
           return IDirectFBDataBuffer_Memory_Construct( *interface,
                                                        desc->memory.data,
-                                                       desc->memory.length );
+                                                       desc->memory.length,
+                                                       data->core );
      }
 
      return DFB_INVARG;
@@ -1427,7 +1403,7 @@ GetDisplayLayer_Callback( CoreLayer *layer, void *ctx )
      DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBDisplayLayer );
 
      context->ret = IDirectFBDisplayLayer_Construct( *context->interface,
-                                                     layer );
+                                                     layer, context->core );
 
      return DFENUM_CANCEL;
 }
@@ -1519,11 +1495,11 @@ input_filter_local( DFBEvent *evt,
           switch (event->type) {
                case DIET_BUTTONPRESS:
                     if (data->primary.window)
-                         dfb_windowstack_cursor_enable( data->stack, false );
+                         dfb_windowstack_cursor_enable( data->core, data->stack, false );
                     break;
                case DIET_KEYPRESS:
                     if (data->primary.window)
-                         dfb_windowstack_cursor_enable( data->stack,
+                         dfb_windowstack_cursor_enable( data->core, data->stack,
                                                         (event->key_symbol ==
                                                          DIKS_ESCAPE) ||
                                                         (event->modifiers &
@@ -1565,6 +1541,6 @@ drop_window( IDirectFB_data *data )
      data->primary.window  = NULL;
      data->primary.focused = false;
 
-     dfb_windowstack_cursor_enable( data->stack, true );
+     dfb_windowstack_cursor_enable( data->core, data->stack, true );
 }
 

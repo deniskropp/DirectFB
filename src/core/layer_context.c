@@ -1158,7 +1158,8 @@ dfb_layer_context_set_clip_regions( CoreLayerContext *context,
 }
 
 DFBResult
-dfb_layer_context_create_window( CoreLayerContext        *context,
+dfb_layer_context_create_window( CoreDFB                 *core,
+                                 CoreLayerContext        *context,
                                  int                      x,
                                  int                      y,
                                  int                      width,
@@ -1188,7 +1189,7 @@ dfb_layer_context_create_window( CoreLayerContext        *context,
      stack = context->stack;
 
      if (!stack->cursor.set) {
-          ret = dfb_windowstack_cursor_enable( stack, true );
+          ret = dfb_windowstack_cursor_enable( core, stack, true );
           if (ret) {
                dfb_layer_context_unlock( context );
                return ret;

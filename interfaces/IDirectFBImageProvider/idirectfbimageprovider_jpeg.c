@@ -82,6 +82,8 @@ typedef struct {
      u32                 *image;
      int                  width;
      int                  height;
+
+     CoreDFB             *core;
 } IDirectFBImageProvider_JPEG_data;
 
 static DFBResult
@@ -266,17 +268,20 @@ Construct( IDirectFBImageProvider *thiz,
      struct jpeg_decompress_struct cinfo;
      struct my_error_mgr jerr;
      
+     IDirectFBDataBuffer *buffer;
+     CoreDFB             *core;
+     va_list              tag;
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_JPEG)
 
-     IDirectFBDataBuffer *buffer;
-     va_list tag;
-
-     va_start(tag, thiz);
-     buffer = va_arg(tag, IDirectFBDataBuffer *);
-     va_end(tag);
+     va_start( tag, thiz );
+     buffer = va_arg( tag, IDirectFBDataBuffer * );
+     core = va_arg( tag, CoreDFB * );
+     va_end( tag );
 
      data->ref    = 1;
      data->buffer = buffer;
+     data->core   = core;
 
      buffer->AddRef( buffer );
 
@@ -394,7 +399,7 @@ IDirectFBImageProvider_JPEG_RenderTo( IDirectFBImageProvider *thiz,
           rect = dst_data->area.wanted;
      }
 
-     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+     err = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (err)
           return err;
 

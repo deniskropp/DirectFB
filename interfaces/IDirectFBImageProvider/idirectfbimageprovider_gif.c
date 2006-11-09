@@ -130,6 +130,8 @@ typedef struct {
 
      DIRenderCallback  render_callback;
      void             *render_callback_ctx;
+
+     CoreDFB *core;
 } IDirectFBImageProvider_GIF_data;
 
 static bool verbose       = false;
@@ -181,13 +183,15 @@ static DFBResult
 Construct( IDirectFBImageProvider *thiz,
            ... )
 {
-     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_GIF)
-
      IDirectFBDataBuffer *buffer;
-     va_list tag;
+     CoreDFB             *core;
+     va_list              tag;
+
+     DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_GIF)
 
      va_start( tag, thiz );
      buffer = va_arg( tag, IDirectFBDataBuffer * );
+     core = va_arg( tag, CoreDFB * );
      va_end( tag );
      
      data->ref = 1;
@@ -196,6 +200,7 @@ Construct( IDirectFBImageProvider *thiz,
      data->transparent = -1;
      data->delayTime   = -1;
 
+     data->core = core;
      data->buffer = buffer;
      buffer->AddRef( buffer );
 
@@ -300,7 +305,7 @@ IDirectFBImageProvider_GIF_RenderTo( IDirectFBImageProvider *thiz,
           void  *dst;
           int    pitch;
 
-          err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+          err = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
           if (err)
                return err;
 

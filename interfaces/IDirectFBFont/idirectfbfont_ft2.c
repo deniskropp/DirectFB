@@ -262,7 +262,7 @@ render_glyph( CoreFont      *thiz,
 
      pthread_mutex_unlock ( &library_mutex );
 
-     err = dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
+     err = dfb_surface_soft_lock( thiz->core, surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (err) {
           D_ERROR( "DirectB/FontFT2: Unable to lock surface!\n" );
           return err;

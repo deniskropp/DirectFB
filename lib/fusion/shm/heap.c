@@ -587,10 +587,11 @@ __shmalloc_init_heap( FusionSHM  *shm,
 {
      DirectResult     ret;
      int              size;
-     int              heapsize = (space + BLOCKSIZE-1) / BLOCKSIZE;
      FusionSHMShared *shared;
-     int              fd   = -1;
-     shmalloc_heap   *heap = NULL;
+     int              heapsize = (space + BLOCKSIZE-1) / BLOCKSIZE;
+     bool             clear    = false;
+     int              fd       = -1;
+     shmalloc_heap   *heap     = NULL;
 
      D_DEBUG_AT( Fusion_SHMHeap, "%s( %p, '%s', %p, %p )\n",
                  __FUNCTION__, shm, filename, addr_base, ret_fd );
@@ -612,7 +613,10 @@ __shmalloc_init_heap( FusionSHM  *shm,
      D_DEBUG_AT( Fusion_SHMHeap, "  -> opening shared memory file '%s'...\n", filename );
 
      /* First remove potentially remaining file from a previous session. */
-     unlink( filename );
+     if (unlink( filename ) && errno != ENOENT) {
+          D_PERROR( "Fusion/SHM: Could not unlink '%s'! Erasing content instead...\n", filename );
+          clear = true;
+     }
 
      /* open the virtual file */
      fd = open( filename, O_RDWR | O_CREAT, 0660 );
@@ -642,6 +646,9 @@ __shmalloc_init_heap( FusionSHM  *shm,
      }
 
      D_DEBUG_AT( Fusion_SHMHeap, "  -> done.\n" );
+
+     if (clear)
+          memset( heap, 0, size );
 
      heap->size     = size;
      heap->heapsize = heapsize;

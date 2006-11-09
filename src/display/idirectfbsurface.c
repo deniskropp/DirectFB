@@ -392,7 +392,7 @@ IDirectFBSurface_Lock( IDirectFBSurface *thiz,
 
      front = (flags & DSLF_WRITE) ? 0 : 1;
 
-     ret = dfb_surface_soft_lock( data->surface, flags, &ptr, &pitch, front );
+     ret = dfb_surface_soft_lock( data->core, data->surface, flags, &ptr, &pitch, front );
      if (ret)
           return ret;
 
@@ -1406,7 +1406,6 @@ IDirectFBSurface_Blit( IDirectFBSurface   *thiz,
      if (!src_data->area.current.w || !src_data->area.current.h)
           return DFB_INVAREA;
 
-
      if (sr) {
           if (sr->w < 1  ||  sr->h < 1)
                return DFB_OK;
@@ -2039,14 +2038,14 @@ IDirectFBSurface_GetSubSurface( IDirectFBSurface    *thiz,
           ret = IDirectFBSurface_Construct( *surface, 
                                             &wanted, &granted, &data->area.insets,
                                             data->surface,
-                                            data->caps | DSCAPS_SUBSURFACE );
+                                            data->caps | DSCAPS_SUBSURFACE, data->core );
      }
      else {
           /* Construct */
           ret = IDirectFBSurface_Construct( *surface, 
                                             NULL, NULL, &data->area.insets,
                                             data->surface, 
-                                            data->caps | DSCAPS_SUBSURFACE );
+                                            data->caps | DSCAPS_SUBSURFACE, data->core );
      }
      
      return ret;
@@ -2114,7 +2113,7 @@ IDirectFBSurface_Dump( IDirectFBSurface   *thiz,
      if (!surface)
           return DFB_DESTROYED;
 
-     return dfb_surface_dump( surface, directory, prefix );
+     return dfb_surface_dump( data->core, surface, directory, prefix );
 }
 
 static DFBResult
@@ -2152,7 +2151,8 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
                                       DFBRectangle           *granted,
                                       DFBInsets              *insets,
                                       CoreSurface            *surface,
-                                      DFBSurfaceCapabilities  caps )
+                                      DFBSurfaceCapabilities  caps,
+                                      CoreDFB                *core )
 {
      DFBRectangle rect = { 0, 0, surface->width, surface->height };
 
@@ -2162,12 +2162,13 @@ DFBResult IDirectFBSurface_Construct( IDirectFBSurface       *thiz,
 
      data->ref = 1;
      data->caps = caps | surface->caps;
+     data->core = core;
 
      if (dfb_surface_ref( surface )) {
           DIRECT_DEALLOCATE_INTERFACE(thiz);
           return DFB_FAILURE;
      }
-     
+
      /* The area insets */
      if (insets) {
           data->area.insets = *insets;

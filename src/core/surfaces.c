@@ -51,6 +51,7 @@
 #include <direct/messages.h>
 #include <direct/util.h>
 
+#include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 
 #include <core/core.h>
@@ -755,7 +756,9 @@ dfb_surface_set_alpha_ramp( CoreSurface *surface,
      dfb_surface_notify_listeners( surface, CSNF_ALPHA_RAMP );
 }
 
-DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
+DFBResult dfb_surface_soft_lock( CoreDFB     *core,
+                                 CoreSurface *surface,
+                                 DFBSurfaceLockFlags flags,
                                  void **data, int *pitch, bool front )
 {
      DFBResult ret;
@@ -768,15 +771,13 @@ DFBResult dfb_surface_soft_lock( CoreSurface *surface, DFBSurfaceLockFlags flags
      D_ASSERT( pitch != NULL );
 
      dfb_surfacemanager_lock( surface->manager );
-     ret = dfb_surface_software_lock( surface, flags, data, pitch, front );
+     ret = dfb_surface_software_lock( core, surface, flags, data, pitch, front );
      dfb_surfacemanager_unlock( surface->manager );
 
      return ret;
 }
 
-
-
-DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags flags,
+DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSurfaceLockFlags flags,
                                      void **data, int *pitch, bool front )
 {
      DFBResult      ret;
@@ -790,7 +791,13 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
      D_ASSERT( data != NULL );
      D_ASSERT( pitch != NULL );
 
+     if (surface->owner && surface->owner != fusion_id( dfb_core_world(core) ))
+          return DFB_ACCESSDENIED;
+
      buffer = front ? surface->front_buffer : surface->back_buffer;
+
+     if (buffer->flags & SBF_SUSPENDED)
+          return DFB_SUSPENDED;
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
@@ -899,7 +906,7 @@ DFBResult dfb_surface_software_lock( CoreSurface *surface, DFBSurfaceLockFlags f
      return DFB_OK;
 }
 
-DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
+DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
                                      DFBSurfaceLockFlags flags, bool front )
 {
      SurfaceBuffer *buffer;
@@ -910,7 +917,13 @@ DFBResult dfb_surface_hardware_lock( CoreSurface *surface,
      D_ASSERT( surface != NULL );
      D_ASSERT( flags != 0 );
 
+     if (surface->owner && surface->owner != fusion_id( dfb_core_world(core) ))
+          return DFB_ACCESSDENIED;
+
      buffer = front ? surface->front_buffer : surface->back_buffer;
+
+     if (buffer->flags & SBF_SUSPENDED)
+          return DFB_SUSPENDED;
 
      switch (buffer->policy) {
           case CSP_SYSTEMONLY:
@@ -1155,7 +1168,8 @@ DFBResult dfb_surface_init ( CoreDFB                *core,
      return DFB_OK;
 }
 
-DFBResult dfb_surface_dump( CoreSurface *surface,
+DFBResult dfb_surface_dump( CoreDFB     *core,
+                            CoreSurface *surface,
                             const char  *directory,
                             const char  *prefix )
 {
@@ -1232,7 +1246,7 @@ DFBResult dfb_surface_dump( CoreSurface *surface,
      }
 
      /* Lock the surface, get the data pointer and pitch. */
-     ret = dfb_surface_soft_lock( surface, DSLF_READ, &data, &pitch, true );
+     ret = dfb_surface_soft_lock( core, surface, DSLF_READ, &data, &pitch, true );
      if (ret) {
           if (palette)
                dfb_palette_unref( palette );

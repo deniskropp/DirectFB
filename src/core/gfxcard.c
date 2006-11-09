@@ -645,7 +645,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      /* if blitting... */
      if (DFB_BLITTING_FUNCTION( accel )) {
           /* ...lock source for reading */
-          if (dfb_surface_hardware_lock( state->source, DSLF_READ, true )) {
+          if (dfb_surface_hardware_lock( state->core, state->source, DSLF_READ, true )) {
                dfb_surfacemanager_unlock( shared->surface_manager );
                return false;
           }
@@ -654,7 +654,7 @@ dfb_gfxcard_state_acquire( CardState *state, DFBAccelerationMask accel )
      }
 
      /* lock destination */
-     if (dfb_surface_hardware_lock( state->destination, lock_flags, false )) {
+     if (dfb_surface_hardware_lock( state->core, state->destination, lock_flags, false )) {
           if (state->flags & CSF_SOURCE_LOCKED) {
                dfb_surface_unlock( state->source, true );
                state->flags &= ~CSF_SOURCE_LOCKED;

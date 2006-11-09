@@ -30,6 +30,8 @@
 
 #include <directfb.h>
 
+#include <core/core.h>
+
 #include <direct/interface.h>
 #include <direct/mem.h>
 
@@ -103,6 +105,7 @@ IDirectFBImageProvider_Construct( IDirectFBImageProvider *thiz )
 
 DFBResult
 IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
+                                         CoreDFB                 *core,
                                          IDirectFBImageProvider **interface )
 {
      DFBResult                            ret;
@@ -140,7 +143,7 @@ IDirectFBImageProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      IDirectFBImageProvider_Construct( imageprovider );
 
      /* Construct the interface. */
-     ret = funcs->Construct( imageprovider, buffer );
+     ret = funcs->Construct( imageprovider, buffer, core );
      if (ret)
           return ret;
 

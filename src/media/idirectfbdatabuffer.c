@@ -181,7 +181,7 @@ IDirectFBDataBuffer_CreateImageProvider( IDirectFBDataBuffer     *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     return IDirectFBImageProvider_CreateFromBuffer( thiz, interface );
+     return IDirectFBImageProvider_CreateFromBuffer( thiz, data->core, interface );
 }
 
 static DFBResult
@@ -198,11 +198,14 @@ IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
 }
 
 DFBResult
-IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz, const char *filename )
+IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
+                               const char          *filename,
+                               CoreDFB             *core )
 {
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer)
 
-     data->ref = 1;
+     data->ref  = 1;
+     data->core = core;
 
      if (filename)
           data->filename = D_STRDUP( filename );

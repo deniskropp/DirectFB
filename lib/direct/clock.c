@@ -76,3 +76,19 @@ direct_clock_set_start( const struct timeval *start )
      start_time = *start;
 }
 
+long long
+direct_clock_get_abs_micros()
+{
+     struct timeval tv;
+
+     gettimeofday( &tv, NULL );
+
+     return (long long)(tv.tv_sec) * 1000000LL + (long long)(tv.tv_usec);
+}
+
+long long
+direct_clock_get_abs_millis()
+{
+     return direct_clock_get_abs_micros() / 1000LL;
+}
+

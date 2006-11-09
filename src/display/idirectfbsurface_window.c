@@ -230,13 +230,13 @@ IDirectFBSurface_Window_GetSubSurface( IDirectFBSurface    *thiz,
           /* Construct */
           ret = IDirectFBSurface_Window_Construct( *surface, &wanted, &granted,
                                                    data->window, data->base.caps |
-                                                   DSCAPS_SUBSURFACE );
+                                                   DSCAPS_SUBSURFACE, data->base.core );
      }
      else {
           /* Construct */
           ret = IDirectFBSurface_Window_Construct( *surface, NULL, NULL,
                                                    data->window, data->base.caps |
-                                                   DSCAPS_SUBSURFACE );
+                                                   DSCAPS_SUBSURFACE, data->base.core );
      }
      
      return ret;
@@ -247,7 +247,8 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
                                    DFBRectangle           *wanted,
                                    DFBRectangle           *granted,
                                    CoreWindow             *window,
-                                   DFBSurfaceCapabilities  caps )
+                                   DFBSurfaceCapabilities  caps,
+                                   CoreDFB                *core )
 {
      DFBResult ret;
      DFBInsets insets;
@@ -259,7 +260,7 @@ IDirectFBSurface_Window_Construct( IDirectFBSurface       *thiz,
      dfb_wm_get_insets( window->stack, window, &insets );
      
      ret = IDirectFBSurface_Construct( thiz, wanted, granted, &insets,
-                                       window->surface, caps );
+                                       window->surface, caps, core );
      if (ret)
           return ret;
 

@@ -33,6 +33,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/time.h>
+#include <stdarg.h>
 
 #include <pthread.h>
 
@@ -60,7 +61,7 @@
 static DFBResult Probe( IDirectFBVideoProvider_ProbeContext *ctx );
 
 static DFBResult Construct( IDirectFBVideoProvider *thiz,
-                            IDirectFBDataBuffer    *buffer );
+                            ... );
 
 
 #include <direct/interface_implementation.h>
@@ -133,6 +134,8 @@ typedef struct {
 
      DVFrameCallback                callback;
      void                          *callback_ctx;
+
+     CoreDFB                       *core;
 } IDirectFBVideoProvider_GIF_data;
 
 #define GIFERRORMSG(x, ...) \
@@ -781,7 +784,7 @@ GIFVideo( DirectThread *self, void *arg )
           dfb_region_from_rectangle( &clip, &data->dst_data->area.current );
           
           if (dfb_rectangle_region_intersects( &rect, &clip ) &&
-              dfb_surface_soft_lock( data->dst_data->surface,
+              dfb_surface_soft_lock( data->core, data->dst_data->surface,
                                      DSLF_WRITE, &dst, &pitch, 0 ) == DFB_OK)
           {
                dfb_scale_linear_32( data->image, data->Width, data->Height,
@@ -1030,15 +1033,26 @@ Probe( IDirectFBVideoProvider_ProbeContext *ctx )
 }
 
 static DFBResult
-Construct( IDirectFBVideoProvider *thiz, IDirectFBDataBuffer *buffer )
+Construct( IDirectFBVideoProvider *thiz,
+           ... )
 {
      DFBResult ret;
-     
+     IDirectFBDataBuffer *buffer;
+     CoreDFB             *core;
+     va_list              tag;
+
      DIRECT_ALLOCATE_INTERFACE_DATA( thiz, IDirectFBVideoProvider_GIF )
+
+     va_start( tag, thiz );
+     buffer = va_arg( tag, IDirectFBDataBuffer * );
+     core = va_arg( tag, CoreDFB * );
+     va_end( tag );
+
      
      data->ref    = 1;
      data->status = DVSTATE_STOP;
      data->buffer = buffer;
+     data->core   = core;
      data->speed  = 1.0;
      
      buffer->AddRef( buffer );

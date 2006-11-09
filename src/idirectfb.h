@@ -30,7 +30,37 @@
 
 #include <directfb.h>
 
+#include <fusion/reactor.h>
+
 #include <core/coretypes.h>
+
+/*
+ * private data struct of IDirectFB
+ */
+typedef struct {
+     int                         ref;      /* reference counter */
+     CoreDFB                    *core;
+
+     DFBCooperativeLevel         level;    /* current cooperative level */
+
+     CoreLayer                  *layer;    /* primary display layer */
+     CoreLayerContext           *context;  /* shared context of primary layer */
+     CoreWindowStack            *stack;    /* window stack of primary layer */
+
+     struct {
+          int                    width;    /* IDirectFB stores window width    */
+          int                    height;   /* and height and the pixel depth   */
+          DFBSurfacePixelFormat  format;   /* from SetVideoMode() parameters.  */
+
+          CoreWindow            *window;   /* implicitly created window */
+          Reaction               reaction; /* for the focus listener */
+          bool                   focused;  /* primary's window has the focus */
+
+          CoreLayerContext      *context;  /* context for fullscreen primary */
+     } primary;                            /* Used for DFSCL_NORMAL's primary. */
+
+     bool                        app_focus;
+} IDirectFB_data;
 
 /*
  * IDirectFB constructor/destructor

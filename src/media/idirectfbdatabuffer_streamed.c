@@ -377,13 +377,14 @@ IDirectFBDataBuffer_Streamed_PutData( IDirectFBDataBuffer *thiz,
 }
 
 DFBResult
-IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz )
+IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz,
+                                        CoreDFB             *core )
 {
      DFBResult ret;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Streamed)
 
-     ret = IDirectFBDataBuffer_Construct( thiz, NULL );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL, core );
      if (ret)
           return ret;
 

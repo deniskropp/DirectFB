@@ -319,6 +319,7 @@ get_keyboard_window( CoreWindowStack     *stack,
 static CoreWindow*
 window_at_pointer( CoreWindowStack *stack,
                    StackData       *data,
+                   WMData          *wmdata,
                    int              x,
                    int              y )
 {
@@ -367,7 +368,7 @@ window_at_pointer( CoreWindowStack *stack,
                     int          pitch;
                     CoreSurface *surface = window->surface;
 
-                    if ( dfb_surface_soft_lock( surface, DSLF_READ,
+                    if ( dfb_surface_soft_lock( wmdata->core, surface, DSLF_READ,
                                                 &data, &pitch, true ) == DFB_OK ) {
                          if (options & DWOP_ALPHACHANNEL) {
                               int alpha = -1;
@@ -528,7 +529,8 @@ switch_focus( CoreWindowStack *stack,
 
 static bool
 update_focus( CoreWindowStack *stack,
-              StackData       *data )
+              StackData       *data,
+              WMData          *wmdata )
 {
      D_ASSERT( stack != NULL );
      D_ASSERT( data != NULL );
@@ -536,7 +538,7 @@ update_focus( CoreWindowStack *stack,
      /* if pointer is not grabbed */
      if (!data->pointer_window) {
           CoreWindow *before = data->entered_window;
-          CoreWindow *after  = window_at_pointer( stack, data, -1, -1 );
+          CoreWindow *after  = window_at_pointer( stack, data, wmdata, -1, -1 );
 
           /* and the window under the cursor is another one now */
           if (before != after) {
@@ -1606,7 +1608,7 @@ resize_window( CoreWindow *window,
 
      post_event( window, data->stack_data, &evt );
 
-     update_focus( stack, data->stack_data );
+     update_focus( stack, data->stack_data, wm_data );
 
      return DFB_OK;
 }
@@ -1715,6 +1717,7 @@ restack_window( CoreWindow             *window,
 static void
 set_opacity( CoreWindow *window,
              WindowData *window_data,
+             WMData     *wmdata,
              u8          opacity )
 {
      u8               old;
@@ -1750,7 +1753,7 @@ set_opacity( CoreWindow *window,
 
           /* Check focus after window appeared or disappeared */
           if (show || hide)
-               update_focus( stack, data );
+               update_focus( stack, data, wmdata );
 
           /* If window disappeared... */
           if (hide) {
@@ -1823,7 +1826,8 @@ grab_pointer( CoreWindow *window,
 
 static DFBResult
 ungrab_pointer( CoreWindow *window,
-                WindowData *window_data )
+                WindowData *window_data,
+                WMData     *wmdata )
 {
      StackData       *data;
      CoreWindowStack *stack;
@@ -1839,7 +1843,7 @@ ungrab_pointer( CoreWindow *window,
           data->pointer_window = NULL;
 
           /* Possibly change focus to window that's now under the cursor */
-          update_focus( stack, data );
+          update_focus( stack, data, wmdata );
      }
 
      return DFB_OK;
@@ -1960,6 +1964,7 @@ request_focus( CoreWindow *window,
 static bool
 handle_wm_key( CoreWindowStack     *stack,
                StackData           *data,
+               WMData              *wmdata,
                const DFBInputEvent *event )
 {
      int         i, num;
@@ -2037,14 +2042,14 @@ handle_wm_key( CoreWindowStack     *stack,
                break;
 
           case DIKS_SMALL_E:
-               update_focus( stack, data );
+               update_focus( stack, data, wmdata );
                break;
 
           case DIKS_SMALL_A:
                if (focused && !(focused->config.options & DWOP_KEEP_STACKING)) {
                     restack_window( focused, focused->window_data,
                                     NULL, NULL, 0, focused->config.stacking );
-                    update_focus( stack, data );
+                    update_focus( stack, data, wmdata );
                }
                break;
 
@@ -2063,7 +2068,7 @@ handle_wm_key( CoreWindowStack     *stack,
           case DIKS_SMALL_P:
                /* Enable and show cursor. */
                dfb_windowstack_cursor_set_opacity( stack, 0xff );
-               dfb_windowstack_cursor_enable( stack, true );
+               dfb_windowstack_cursor_enable( wmdata->core, stack, true );
 
                /* Ungrab pointer. */
                data->pointer_window = NULL;
@@ -2073,7 +2078,7 @@ handle_wm_key( CoreWindowStack     *stack,
 
           case DIKS_PRINT:
                if (dfb_config->screenshot_dir && focused && focused->surface)
-                    dfb_surface_dump( focused->surface, dfb_config->screenshot_dir, "dfb_window" );
+                    dfb_surface_dump( wmdata->core, focused->surface, dfb_config->screenshot_dir, "dfb_window" );
 
                break;
 
@@ -2112,6 +2117,7 @@ is_wm_key( DFBInputDeviceKeySymbol key_symbol )
 static DFBResult
 handle_key_press( CoreWindowStack     *stack,
                   StackData           *data,
+                  WMData              *wmdata,
                   const DFBInputEvent *event )
 {
      CoreWindow *window;
@@ -2136,7 +2142,7 @@ handle_key_press( CoreWindowStack     *stack,
                     break;
 
                default:
-                    if (handle_wm_key( stack, data, event ))
+                    if (handle_wm_key( stack, data, wmdata, event ))
                          return DFB_OK;
 
                     break;
@@ -2266,6 +2272,7 @@ handle_button_release( CoreWindowStack     *stack,
 static void
 handle_motion( CoreWindowStack *stack,
                StackData       *data,
+               WMData          *wmdata,
                int              dx,
                int              dy )
 {
@@ -2347,7 +2354,7 @@ handle_motion( CoreWindowStack *stack,
 
                     post_event( window, data, &we );
                }
-               else if (!update_focus( stack, data ) && data->entered_window) {
+               else if (!update_focus( stack, data, wmdata ) && data->entered_window) {
                     CoreWindow *window = data->entered_window;
 
                     we.type = DWET_MOTION;
@@ -2405,6 +2412,7 @@ handle_wheel( CoreWindowStack *stack,
 static DFBResult
 handle_axis_motion( CoreWindowStack     *stack,
                     StackData           *data,
+                    WMData              *wmdata,
                     const DFBInputEvent *event )
 {
      D_ASSERT( stack != NULL );
@@ -2458,7 +2466,7 @@ handle_axis_motion( CoreWindowStack     *stack,
      }
 
      if (!(event->flags & DIEF_FOLLOW) && (data->cursor_dx || data->cursor_dy)) {
-          handle_motion( stack, data, data->cursor_dx, data->cursor_dy );
+          handle_motion( stack, data, wmdata, data->cursor_dx, data->cursor_dy );
 
           data->cursor_dx = 0;
           data->cursor_dy = 0;
@@ -2667,7 +2675,7 @@ wm_process_input( CoreWindowStack     *stack,
 
      switch (event->type) {
           case DIET_KEYPRESS:
-               return handle_key_press( stack, data, event );
+               return handle_key_press( stack, data, wm_data, event );
 
           case DIET_KEYRELEASE:
                return handle_key_release( stack, data, event );
@@ -2679,7 +2687,7 @@ wm_process_input( CoreWindowStack     *stack,
                return handle_button_release( stack, data, event );
 
           case DIET_AXISMOTION:
-               return handle_axis_motion( stack, data, event );
+               return handle_axis_motion( stack, data, wm_data, event );
 
           default:
                D_ONCE( "unknown input event type" );
@@ -2736,7 +2744,7 @@ wm_window_at( CoreWindowStack  *stack,
      D_ASSERT( stack_data != NULL );
      D_ASSERT( ret_window != NULL );
 
-     *ret_window = window_at_pointer( stack, data, x, y );
+     *ret_window = window_at_pointer( stack, data, wm_data, x, y );
 
      return DFB_OK;
 }
@@ -2923,7 +2931,7 @@ wm_add_window( CoreWindowStack *stack,
      insert_window( stack, sdata, window, data );
 
      /* Possibly switch focus to the new window. */
-     update_focus( stack, sdata );
+     update_focus( stack, sdata, wm_data );
 
      return DFB_OK;
 }
@@ -2981,7 +2989,7 @@ wm_set_window_config( CoreWindow             *window,
           window->config.opaque = config->opaque;
 
      if (flags & CWCF_OPACITY && !config->opacity)
-          set_opacity( window, window_data, config->opacity );
+          set_opacity( window, window_data, wm_data, config->opacity );
 
      if (flags & CWCF_POSITION) {
           ret = move_window( window, window_data,
@@ -2995,7 +3003,7 @@ wm_set_window_config( CoreWindow             *window,
           restack_window( window, window_data, window, window_data, 0, config->stacking );
 
      if (flags & CWCF_OPACITY && config->opacity)
-          set_opacity( window, window_data, config->opacity );
+          set_opacity( window, window_data, wm_data, config->opacity );
 
      if (flags & CWCF_SIZE)
           return resize_window( window, wm_data, window_data, config->bounds.w, config->bounds.h );
@@ -3033,7 +3041,7 @@ wm_restack_window( CoreWindow             *window,
           return ret;
 
      /* Possibly switch focus to window now under the cursor */
-     update_focus( data->stack_data->stack, data->stack_data );
+     update_focus( data->stack_data->stack, data->stack_data, wm_data );
 
      return DFB_OK;
 }
@@ -3083,7 +3091,7 @@ wm_ungrab( CoreWindow *window,
                return ungrab_keyboard( window, window_data );
 
           case CWMGT_POINTER:
-               return ungrab_pointer( window, window_data );
+               return ungrab_pointer( window, window_data, wm_data );
 
           case CWMGT_KEY:
                return ungrab_key( window, window_data, grab->symbol, grab->modifiers );

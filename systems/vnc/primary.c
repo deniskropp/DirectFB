@@ -417,7 +417,7 @@ update_screen( CoreSurface *surface, int x, int y, int w, int h )
      D_ASSERT( rfb_screen != NULL );
      D_ASSERT( rfb_screen->frameBuffer != NULL );
 
-     ret = dfb_surface_soft_lock( surface, DSLF_READ, &src, &pitch, true );
+     ret = dfb_surface_soft_lock( dfb_vnc_core, surface, DSLF_READ, &src, &pitch, true );
      if (ret) {
           D_ERROR( "DirectFB/VNC: Couldn't lock layer surface: %s\n",
                    DirectFBErrorString( ret ) );

@@ -242,13 +242,14 @@ IDirectFBDataBuffer_Memory_PutData( IDirectFBDataBuffer *thiz,
 DFBResult
 IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
                                       const void          *data_buffer,
-                                      unsigned int         length )
+                                      unsigned int         length,
+                                      CoreDFB             *core )
 {
      DFBResult ret;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Memory)
 
-     ret = IDirectFBDataBuffer_Construct( thiz, NULL );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL, core );
      if (ret)
           return ret;
 

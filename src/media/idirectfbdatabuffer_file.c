@@ -273,13 +273,14 @@ IDirectFBDataBuffer_File_PutData( IDirectFBDataBuffer *thiz,
 
 DFBResult
 IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
-                                    const char          *filename )
+                                    const char          *filename,
+                                    CoreDFB             *core )
 {
      DFBResult ret;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_File)
 
-     ret = IDirectFBDataBuffer_Construct( thiz, filename );
+     ret = IDirectFBDataBuffer_Construct( thiz, filename, core );
      if (ret)
           return ret;
 

@@ -40,6 +40,7 @@ DFBResult IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                             DFBRectangle           *req_rect,
                                             DFBRectangle           *clip_rect,
                                             CoreLayerRegion        *region,
-                                            DFBSurfaceCapabilities  caps );
+                                            DFBSurfaceCapabilities  caps,
+                                            CoreDFB                *core );
 
 #endif

@@ -122,7 +122,8 @@ DFBResult dfb_layer_context_set_clip_regions   ( CoreLayerContext            *co
 /*
  * window control
  */
-DFBResult dfb_layer_context_create_window( CoreLayerContext       *context,
+DFBResult dfb_layer_context_create_window( CoreDFB                *core,
+                                           CoreLayerContext       *context,
                                            int                     x,
                                            int                     y,
                                            int                     width,

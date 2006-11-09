@@ -79,6 +79,7 @@ typedef struct {
      CoreLayerRegion                 *region;           /* primary region of the context */
      CoreWindowStack                 *stack;            /* stack of shared context */
      DFBBoolean                       switch_exclusive; /* switch to exclusive context after creation? */
+     CoreDFB                         *core;
 } IDirectFBDisplayLayer_data;
 
 
@@ -178,7 +179,7 @@ IDirectFBDisplayLayer_GetSurface( IDirectFBDisplayLayer  *thiz,
      DIRECT_ALLOCATE_INTERFACE( surface, IDirectFBSurface );
 
      ret = IDirectFBSurface_Layer_Construct( surface, NULL, NULL,
-                                             region, DSCAPS_NONE );
+                                             region, DSCAPS_NONE, data->core );
 
      *interface = ret ? NULL : surface;
 
@@ -635,7 +636,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
      if (width < 1 || width > 4096 || height < 1 || height > 4096)
           return DFB_INVARG;
 
-     ret = dfb_layer_context_create_window( data->context,
+     ret = dfb_layer_context_create_window( data->core, data->context,
                                             posx, posy, width, height, caps,
                                             surface_caps, format, &w );
      if (ret)
@@ -643,7 +644,7 @@ IDirectFBDisplayLayer_CreateWindow( IDirectFBDisplayLayer       *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, data->layer );
+     return IDirectFBWindow_Construct( *window, w, data->layer, data->core );
 }
 
 static DFBResult
@@ -668,7 +669,7 @@ IDirectFBDisplayLayer_GetWindow( IDirectFBDisplayLayer  *thiz,
 
      DIRECT_ALLOCATE_INTERFACE( *window, IDirectFBWindow );
 
-     return IDirectFBWindow_Construct( *window, w, data->layer );
+     return IDirectFBWindow_Construct( *window, w, data->layer, data->core );
 }
 
 static DFBResult
@@ -679,7 +680,7 @@ IDirectFBDisplayLayer_EnableCursor( IDirectFBDisplayLayer *thiz, int enable )
      if (data->level == DLSCL_SHARED)
           return DFB_ACCESSDENIED;
 
-     return dfb_windowstack_cursor_enable( data->stack, enable );
+     return dfb_windowstack_cursor_enable( data->core, data->stack, enable );
 }
 
 static DFBResult
@@ -850,7 +851,8 @@ IDirectFBDisplayLayer_SwitchContext( IDirectFBDisplayLayer *thiz,
 
 DFBResult
 IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
-                                 CoreLayer             *layer )
+                                 CoreLayer             *layer,
+                                 CoreDFB               *core )
 {
      DFBResult         ret;
      CoreLayerContext *context;
@@ -872,6 +874,7 @@ IDirectFBDisplayLayer_Construct( IDirectFBDisplayLayer *thiz,
      }
 
      data->ref              = 1;
+     data->core             = core;
      data->screen           = dfb_layer_screen( layer );
      data->layer            = layer;
      data->context          = context;

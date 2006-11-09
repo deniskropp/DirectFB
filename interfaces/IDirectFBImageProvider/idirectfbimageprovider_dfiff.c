@@ -33,6 +33,7 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include <directfb.h>
 
@@ -57,7 +58,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx );
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           IDirectFBDataBuffer    *buffer );
+           ... );
 
 #include <direct/interface_implementation.h>
 
@@ -75,6 +76,8 @@ typedef struct {
 
      DIRenderCallback     render_callback;
      void                *render_callback_context;
+
+     CoreDFB             *core;
 } IDirectFBImageProvider_DFIFF_data;
 
 
@@ -159,7 +162,7 @@ IDirectFBImageProvider_DFIFF_RenderTo( IDirectFBImageProvider *thiz,
           if (rect.w != header->width || rect.h != header->height)
                return DFB_UNSUPPORTED;
 
-          ret = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dptr, &dpitch, 0 );
+          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dptr, &dpitch, 0 );
           if (ret)
                return ret;
 
@@ -256,7 +259,7 @@ Probe( IDirectFBImageProvider_ProbeContext *ctx )
 
 static DFBResult
 Construct( IDirectFBImageProvider *thiz,
-           IDirectFBDataBuffer    *buffer )
+           ... )
 {
      DFBResult                 ret;
      struct stat               stat;
@@ -264,7 +267,16 @@ Construct( IDirectFBImageProvider *thiz,
      int                       fd = -1;
      IDirectFBDataBuffer_data *buffer_data;
 
+     IDirectFBDataBuffer *buffer;
+     CoreDFB             *core;
+     va_list              tag;
+
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBImageProvider_DFIFF)
+
+     va_start( tag, thiz );
+     buffer = va_arg( tag, IDirectFBDataBuffer * );
+     core = va_arg( tag, CoreDFB * );
+     va_end( tag );
 
      D_MAGIC_ASSERT( (IAny*) buffer, DirectInterface );
 
@@ -310,6 +322,7 @@ Construct( IDirectFBImageProvider *thiz,
      data->ref = 1;
      data->ptr = ptr;
      data->len = stat.st_size;
+     data->core = core;
 
      thiz->AddRef                = IDirectFBImageProvider_DFIFF_AddRef;
      thiz->Release               = IDirectFBImageProvider_DFIFF_Release;

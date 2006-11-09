@@ -35,5 +35,8 @@ long long direct_clock_get_millis( void );
 
 void      direct_clock_set_start( const struct timeval *start );
 
+long long direct_clock_get_abs_micros( void );
+long long direct_clock_get_abs_millis( void );
+
 #endif
 

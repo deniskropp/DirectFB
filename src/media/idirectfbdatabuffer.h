@@ -27,12 +27,16 @@
 #ifndef __IDIRECTFBDATABUFFER_H__
 #define __IDIRECTFBDATABUFFER_H__
 
+#include <core/core.h>
+
 /*
  * private data struct of IDirectFBDataBuffer
  */
 typedef struct {
      int          ref;        /* reference counter */
      char        *filename;   /* Only set if databuffer is created from file. */
+
+     CoreDFB     *core;
 } IDirectFBDataBuffer_data;
 
 /*
@@ -42,7 +46,8 @@ typedef struct {
  * for fallbacks.
  */
 DFBResult IDirectFBDataBuffer_Construct( IDirectFBDataBuffer *thiz,
-                                         const char          *filename );
+                                         const char          *filename,
+                                         CoreDFB             *core );
 
 /*
  * base destructor
@@ -52,19 +57,22 @@ void IDirectFBDataBuffer_Destruct( IDirectFBDataBuffer *thiz );
 /*
  * generic streamed data buffer
  */
-DFBResult IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz );
+DFBResult IDirectFBDataBuffer_Streamed_Construct( IDirectFBDataBuffer *thiz,
+                                                  CoreDFB             *core );
 
 /*
  * file based static data buffer
  */
 DFBResult IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
-                                              const char          *filename );
+                                              const char          *filename,
+                                              CoreDFB             *core );
 
 /*
  * memory based static data buffer
  */
 DFBResult IDirectFBDataBuffer_Memory_Construct( IDirectFBDataBuffer *thiz,
                                                 const void          *data,
-                                                unsigned int         length );
+                                                unsigned int         length,
+                                                CoreDFB             *core );
 
 #endif

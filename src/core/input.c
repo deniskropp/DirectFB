@@ -144,6 +144,8 @@ struct __DFB_CoreInputDevice {
 
      InputDriver        *driver;
      void               *driver_data;
+
+     CoreDFB            *core;
 };
 
 typedef struct {
@@ -955,6 +957,8 @@ init_devices( CoreDFB *core )
                /* FIXME: error handling */
                device = D_CALLOC( 1, sizeof(CoreInputDevice) );
                shared = SHCALLOC( pool, 1, sizeof(InputDeviceShared) );
+
+               device->core = core;
 
                memset( &device_info, 0, sizeof(InputDeviceInfo) );
 
@@ -1818,7 +1822,7 @@ flush_keys( CoreInputDevice *device )
 }
 
 static void
-dump_primary_layer_surface()
+dump_primary_layer_surface( CoreDFB *core )
 {
      CoreLayer        *layer = dfb_layer_at( DLID_PRIMARY );
      CoreLayerContext *context;
@@ -1839,7 +1843,7 @@ dump_primary_layer_surface()
                /* Get the surface of the region. */
                if (dfb_layer_region_get_surface( region, &surface ) == DFB_OK) {
                     /* Dump the surface contents. */
-                    dfb_surface_dump( surface,
+                    dfb_surface_dump( core, surface,
                                       dfb_config->screenshot_dir, "dfb" );
 
                     /* Release the surface. */
@@ -1870,7 +1874,7 @@ core_input_filter( CoreInputDevice *device, DFBInputEvent *event )
           switch (event->key_symbol) {
                case DIKS_PRINT:
                     if (!event->modifiers && dfb_config->screenshot_dir) {
-                         dump_primary_layer_surface();
+                         dump_primary_layer_surface( device->core );
                          return true;
                     }
                     break;

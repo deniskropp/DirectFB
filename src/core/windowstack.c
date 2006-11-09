@@ -77,7 +77,8 @@ typedef struct {
 
 /**********************************************************************************************************************/
 
-static DFBResult load_default_cursor  ( CoreWindowStack *stack );
+static DFBResult load_default_cursor  ( CoreDFB         *core,
+                                        CoreWindowStack *stack );
 static DFBResult create_cursor_surface( CoreWindowStack *stack,
                                         int              width,
                                         int              height );
@@ -390,7 +391,7 @@ dfb_windowstack_set_background_color( CoreWindowStack *stack,
  */
 
 DFBResult
-dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
+dfb_windowstack_cursor_enable( CoreDFB *core, CoreWindowStack *stack, bool enable )
 {
      DFBResult ret;
 
@@ -410,7 +411,7 @@ dfb_windowstack_cursor_enable( CoreWindowStack *stack, bool enable )
      }
 
      if (enable && !stack->cursor.surface) {
-          ret = load_default_cursor( stack );
+          ret = load_default_cursor( core, stack );
           if (ret) {
                dfb_windowstack_unlock( stack );
                return ret;
@@ -705,7 +706,7 @@ stack_attach_devices( CoreInputDevice *device,
  * and fills it with data from 'cursor.dat'
  */
 static DFBResult
-load_default_cursor( CoreWindowStack *stack )
+load_default_cursor( CoreDFB *core, CoreWindowStack *stack )
 {
      DFBResult ret;
      int       i;
@@ -730,7 +731,7 @@ load_default_cursor( CoreWindowStack *stack )
      }
 
      /* lock the surface of the window */
-     ret = dfb_surface_soft_lock( stack->cursor.surface, DSLF_WRITE, &data, &pitch, false );
+     ret = dfb_surface_soft_lock( core, stack->cursor.surface, DSLF_WRITE, &data, &pitch, false );
      if (ret) {
           D_ERROR( "Core/WindowStack: cannot lock the surface for cursor window data!\n" );
           return ret;

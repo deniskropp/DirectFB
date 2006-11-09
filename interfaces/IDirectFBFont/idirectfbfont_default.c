@@ -212,7 +212,7 @@ Construct( IDirectFBFont      *thiz,
           direct_hash_insert( font->glyph_hash, key, data );
      }
 
-     dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &pitch, 0 );
+     dfb_surface_soft_lock( core, surface, DSLF_WRITE, &dst, &pitch, 0 );
 
      for (i = 1; i < font_desc.height; i++) {
           int    j, n;

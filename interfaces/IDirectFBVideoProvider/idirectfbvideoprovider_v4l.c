@@ -134,6 +134,8 @@ typedef struct {
      pthread_mutex_t          lock;
 
      Reaction                 reaction; /* for the destination listener */
+
+     CoreDFB                 *core;
 } IDirectFBVideoProvider_V4L_data;
 
 static const unsigned int zero = 0;
@@ -381,7 +383,7 @@ static DFBResult IDirectFBVideoProvider_V4L_PlayTo(
                 * Because we're constantly writing to the surface we
                 * permanently lock it.
                 */
-               ret = dfb_surface_hardware_lock( surface,
+               ret = dfb_surface_hardware_lock( data->core, surface,
                                                 DSLF_WRITE | CSLF_FORCE, false );
 
                dfb_surfacemanager_unlock( surface->manager );
@@ -608,18 +610,20 @@ Construct( IDirectFBVideoProvider *thiz, ... )
 {
      int fd;
      IDirectFBDataBuffer *buffer;
-     va_list tag;
-     
-     va_start( tag, thiz );
-     buffer = va_arg( tag, IDirectFBDataBuffer * );
-     va_end( tag );
-
-
      IDirectFBDataBuffer_data *buffer_data;
+     CoreDFB             *core;
+     va_list              tag;
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBVideoProvider_V4L)
 
-     data->ref = 1;
+     va_start( tag, thiz );
+     buffer = va_arg( tag, IDirectFBDataBuffer * );
+     core = va_arg( tag, CoreDFB * );
+     va_end( tag );
+
+
+     data->ref  = 1;
+     data->core = core;
 
      buffer_data = (IDirectFBDataBuffer_data*) buffer->priv;
 
@@ -759,7 +763,7 @@ static void* GrabThread( DirectThread *thread, void *ctx )
 
           h = surface->height;
           src = data->buffer + data->vmbuf.offsets[frame];
-          dfb_surface_soft_lock( surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
+          dfb_surface_soft_lock( data->core, surface, DSLF_WRITE, &dst, &dst_pitch, 0 );
           while (h--) {
                direct_memcpy( dst, src, src_pitch );
                dst += dst_pitch;

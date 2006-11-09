@@ -184,6 +184,8 @@ struct _CoreSurface
 
      FusionSHMPoolShared   *shmpool;       /* for structures, e.g. CoreSurface or SurfaceBuffer */
      FusionSHMPoolShared   *shmpool_data;  /* for raw data in the surface buffers */
+
+     FusionID               owner;
 };
 
 static inline void *
@@ -338,7 +340,8 @@ void dfb_surface_set_alpha_ramp          ( CoreSurface *surface,
  * It locks the surface maneger, does a surface_software_lock, and unlocks
  * the surface manager.
  */
-DFBResult dfb_surface_soft_lock          ( CoreSurface          *surface,
+DFBResult dfb_surface_soft_lock          ( CoreDFB              *core,
+                                           CoreSurface          *surface,
                                            DFBSurfaceLockFlags   flags,
                                            void                **data,
                                            int                  *pitch,
@@ -364,7 +367,8 @@ DFBResult dfb_surface_buffer_resume ( SurfaceBuffer *buffer );
  * The complete path will be <directory>/<prefix>_####.ppm for RGB and
  * <directory>/<prefix>_####.pgm for the alpha channel if present.
  */
-DFBResult dfb_surface_dump               ( CoreSurface *surface,
+DFBResult dfb_surface_dump               ( CoreDFB     *core,
+                                           CoreSurface *surface,
                                            const char  *directory,
                                            const char  *prefix );
 

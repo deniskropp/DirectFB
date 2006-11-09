@@ -167,13 +167,13 @@ IDirectFBSurface_Layer_GetSubSurface( IDirectFBSurface    *thiz,
           /* Construct */
           ret = IDirectFBSurface_Layer_Construct( *surface, &wanted, &granted,
                                                   data->region, data->base.caps |
-                                                  DSCAPS_SUBSURFACE );
+                                                  DSCAPS_SUBSURFACE, data->base.core );
      }
      else {
           /* Construct */
           ret = IDirectFBSurface_Layer_Construct( *surface, NULL, NULL,
                                                   data->region, data->base.caps |
-                                                  DSCAPS_SUBSURFACE );
+                                                  DSCAPS_SUBSURFACE, data->base.core );
      }
      
      return ret;
@@ -184,7 +184,8 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
                                   DFBRectangle           *wanted,
                                   DFBRectangle           *granted,
                                   CoreLayerRegion        *region,
-                                  DFBSurfaceCapabilities  caps )
+                                  DFBSurfaceCapabilities  caps,
+                                  CoreDFB                *core )
 {
      DFBResult    ret;
      CoreSurface *surface;
@@ -202,7 +203,7 @@ IDirectFBSurface_Layer_Construct( IDirectFBSurface       *thiz,
      }
 
      ret = IDirectFBSurface_Construct( thiz, wanted, granted, NULL,
-                                       surface, surface->caps | caps );
+                                       surface, surface->caps | caps, core );
      if (ret) {
           dfb_surface_unref( surface );
           dfb_layer_region_unref( region );

@@ -69,7 +69,8 @@ DFBResult dfb_windowstack_set_background_color( CoreWindowStack               *s
 /*
  * cursor control
  */
-DFBResult dfb_windowstack_cursor_enable( CoreWindowStack *stack,
+DFBResult dfb_windowstack_cursor_enable( CoreDFB         *core,
+                                         CoreWindowStack *stack,
                                          bool             enable );
 
 DFBResult dfb_windowstack_cursor_set_shape( CoreWindowStack *stack,

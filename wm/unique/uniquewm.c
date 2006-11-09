@@ -101,7 +101,7 @@ load_foo( CoreDFB *core, WMShared *shared )
           return ret;
      }
 
-     ret = dfb_surface_soft_lock( shared->foo_surface, DSLF_WRITE, &data, &pitch, false );
+     ret = dfb_surface_soft_lock( core, shared->foo_surface, DSLF_WRITE, &data, &pitch, false );
      if (ret) {
           D_DERROR( ret, "UniQuE/WM: Could not lock surface for border tiles!\n" );
           dfb_surface_unref( shared->foo_surface );
