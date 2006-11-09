@@ -309,7 +309,7 @@ translate_key( SDLKey key, DFBInputEvent *evt )
                evt->key_symbol = DIKS_ALTGR;
                return true;
           default:
-			printf("SDL: Unknown key pressed\n");
+               break;
      }
 
      evt->flags = DIEF_NONE;
