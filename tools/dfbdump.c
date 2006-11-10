@@ -455,6 +455,7 @@ dump_layers()
      dfb_layers_enumerate( layer_callback, NULL );
 }
 
+#if FUSION_BUILD_MULTI
 static void
 dump_shmpool( FusionSHMPoolShared *pool )
 {
@@ -494,6 +495,7 @@ dump_shmpool( FusionSHMPoolShared *pool )
 
      fusion_skirmish_dismiss( &pool->lock );
 }
+#endif
 
 int
 main( int argc, char *argv[] )
