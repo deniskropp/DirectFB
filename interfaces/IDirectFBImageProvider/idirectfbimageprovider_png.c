@@ -49,14 +49,16 @@
 #include <core/surfaces.h>
 
 #include <misc/gfx_util.h>
+#include <misc/util.h>
+
+#include <gfx/clip.h>
+#include <gfx/convert.h>
 
 #include <direct/interface.h>
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 #include <direct/util.h>
-
-#include <misc/util.h>
 
 #include "config.h"
 
@@ -101,7 +103,10 @@ typedef struct {
      png_uint_32          color_key;
      bool                 color_keyed;
 
-     u32                 *image;
+     void                *image;
+     int                  pitch;
+     u32                  palette[256];
+     DFBColor             colors[256];
 
      DIRenderCallback     render_callback;
      void                *render_callback_context;
@@ -156,6 +161,8 @@ static DFBResult
 push_data_until_stage (IDirectFBImageProvider_PNG_data *data,
                        int                              stage,
                        int                              buffer_size);
+
+/**********************************************************************************************************************/
 
 static DFBResult
 Probe( IDirectFBImageProvider_ProbeContext *ctx )
@@ -236,6 +243,8 @@ error:
      return ret;
 }
 
+/**********************************************************************************************************************/
+
 static void
 IDirectFBImageProvider_PNG_Destruct( IDirectFBImageProvider *thiz )
 {
@@ -276,6 +285,8 @@ IDirectFBImageProvider_PNG_Release( IDirectFBImageProvider *thiz )
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
+
 static DFBResult
 IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                                      IDirectFBSurface       *destination,
@@ -286,8 +297,12 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
      CoreSurface           *dst_surface;
      DFBRegion              clip;
      DFBRectangle           rect;
+     png_infop              info;
+     int                    x, y;
 
      DIRECT_INTERFACE_GET_DATA (IDirectFBImageProvider_PNG)
+
+     info = data->info_ptr;
 
      dst_data = (IDirectFBSurface_data*) destination->priv;
      if (!dst_data)
@@ -320,17 +335,77 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
           void *dst;
           int   pitch;
 
-          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+          ret = dfb_surface_soft_lock( data->core, dst_surface, DSLF_WRITE, &dst, &pitch, false );
           if (ret)
                return ret;
 
-          dfb_scale_linear_32( data->image, data->width, data->height,
-                               dst, pitch, &rect, dst_surface, &clip );
+          if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
+               if (dst_surface->format == DSPF_LUT8) {
+                    /*
+                     * Special indexed PNG to LUT8 loading.
+                     */
 
-          dfb_surface_unlock( dst_surface, 0 );
+                    /* FIXME: Limitation for LUT8 is to load complete surface only. */
+                    dfb_clip_rectangle( &clip, &rect );
+                    if (rect.x || rect.y ||
+                        rect.w != dst_surface->width  ||
+                        rect.h != dst_surface->height ||
+                        rect.w != data->width         ||
+                        rect.h != data->height)
+                    {
+                         D_UNIMPLEMENTED();
+                         ret = DFB_UNIMPLEMENTED;
+                    }
+
+                    for (y=0; y<data->height; y++)
+                         direct_memcpy( dst + pitch * y,
+                                        data->image + data->pitch * y,
+                                        data->width );
+               }
+               else {
+                    /*
+                     * Convert to ARGB and use generic loading code.
+                     */
+
+                    // FIXME: allocates four additional bytes because the scaling functions
+                    //        in src/misc/gfx_util.c have an off-by-one bug which causes
+                    //        segfaults on darwin/osx (not on linux)                
+                    int size = data->width * data->height * 4 + 4;
+
+                    /* allocate image data */
+                    void *image_argb = D_MALLOC( size );
+
+                    if (!image_argb) {
+                         D_ERROR( "DirectFB/ImageProvider_PNG: Could not "
+                                  "allocate %d bytes of system memory!\n", size );
+                         ret = DFB_NOSYSTEMMEMORY;
+                    }
+                    else {
+                         for (y=0; y<data->height; y++) {
+                              u8  *S = data->image + data->pitch * y;
+                              u32 *D = image_argb  + data->width * y * 4;
+
+                              for (x=0; x<data->width; x++)
+                                   D[x] = data->palette[ S[x] ];
+                         }
+
+                         dfb_scale_linear_32( image_argb, data->width, data->height,
+                                              dst, pitch, &rect, dst_surface, &clip );
+                    }
+               }
+          }
+          else {
+               /*
+                * Generic loading code.
+                */
+               dfb_scale_linear_32( data->image, data->width, data->height,
+                                    dst, pitch, &rect, dst_surface, &clip );
+          }
+
+          dfb_surface_unlock( dst_surface, false );
      }
 
-     return DFB_OK;
+     return ret;
 }
 
 static DFBResult
@@ -345,8 +420,6 @@ IDirectFBImageProvider_PNG_SetRenderCallback( IDirectFBImageProvider *thiz,
 
      return DFB_OK;
 }
-
-/* Loading routines */
 
 static DFBResult
 IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
@@ -364,6 +437,13 @@ IDirectFBImageProvider_PNG_GetSurfaceDescription( IDirectFBImageProvider *thiz,
           dsc->pixelformat = DFB_PIXELFORMAT_HAS_ALPHA(primary_format) ? primary_format : DSPF_ARGB;
      else
           dsc->pixelformat = primary_format;
+
+     if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
+          dsc->flags  |= DSDESC_PALETTE;
+
+          dsc->palette.entries = data->colors;  /* FIXME */
+          dsc->palette.size    = 256;
+     }
 
      return DFB_OK;
 }
@@ -393,6 +473,7 @@ IDirectFBImageProvider_PNG_GetImageDescription( IDirectFBImageProvider *thiz,
      return DFB_OK;
 }
 
+/**********************************************************************************************************************/
 
 #define MAXCOLORMAPSIZE 256
 
@@ -447,9 +528,10 @@ static u32 FindColorKey( int n_colors, u8 cmap[3][MAXCOLORMAPSIZE] )
 
 /* Called at the start of the progressive load, once we have image info */
 static void
-png_info_callback   (png_structp png_read_ptr,
-                     png_infop   png_info_ptr)
+png_info_callback( png_structp png_read_ptr,
+                   png_infop   png_info_ptr )
 {
+     int                              i;
      IDirectFBImageProvider_PNG_data *data;
 
      data = png_get_progressive_ptr( png_read_ptr );
@@ -465,19 +547,11 @@ png_info_callback   (png_structp png_read_ptr,
                    &data->width, &data->height, &data->bpp, &data->color_type,
                    NULL, NULL, NULL );
 
-     if (data->color_type == PNG_COLOR_TYPE_PALETTE)
-          png_set_palette_to_rgb( data->png_ptr );
-
-     if (data->color_type == PNG_COLOR_TYPE_GRAY
-         || data->color_type == PNG_COLOR_TYPE_GRAY_ALPHA)
-          png_set_gray_to_rgb( data->png_ptr );
-
      if (png_get_valid( data->png_ptr, data->info_ptr, PNG_INFO_tRNS )) {
           data->color_keyed = true;
 
           /* generate color key based on palette... */
           if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
-               int        i;
                u32        key;
                png_colorp palette    = data->info_ptr->palette;
                png_bytep  trans      = data->info_ptr->trans;
@@ -495,8 +569,6 @@ png_info_callback   (png_structp png_read_ptr,
 
                for (i=0; i<data->info_ptr->num_trans; i++) {
                     if (!trans[i]) {
-                         //trans[i] = 0;
-
                          palette[i].red   = (key & 0xff0000) >> 16;
                          palette[i].green = (key & 0x00ff00) >>  8;
                          palette[i].blue  = (key & 0x0000ff);
@@ -517,20 +589,53 @@ png_info_callback   (png_structp png_read_ptr,
           }
      }
 
-     if (data->bpp == 16)
-          png_set_strip_16( data->png_ptr );
+     switch (data->color_type) {
+          case PNG_COLOR_TYPE_PALETTE: {
+               png_colorp palette    = data->info_ptr->palette;
+               png_bytep  trans      = data->info_ptr->trans;
+               int        num_trans  = data->info_ptr->num_trans;
+               int        num_colors = MIN( MAXCOLORMAPSIZE, data->info_ptr->num_palette );
+
+               for (i=0; i<num_colors; i++) {
+                    data->colors[i].a = (i < num_trans) ? trans[i] : 0xff;
+                    data->colors[i].r = palette[i].red;
+                    data->colors[i].g = palette[i].green;
+                    data->colors[i].b = palette[i].blue;
+
+                    data->palette[i] = PIXEL_ARGB( data->colors[i].a,
+                                                   data->colors[i].r,
+                                                   data->colors[i].g,
+                                                   data->colors[i].b );
+               }
+
+               data->pitch = (data->width + 7) & ~7;
+               break;
+          }
+
+          case PNG_COLOR_TYPE_GRAY:
+          case PNG_COLOR_TYPE_GRAY_ALPHA:
+               png_set_gray_to_rgb( data->png_ptr );
+               /* fall through */
+
+          default:
+               data->pitch = data->width * 4;
+
+               if (data->bpp == 16)
+                    png_set_strip_16( data->png_ptr );
 
 #ifdef WORDS_BIGENDIAN
-     if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_BEFORE );
+               if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
+                    png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_BEFORE );
 
-     png_set_swap_alpha( data->png_ptr );
+               png_set_swap_alpha( data->png_ptr );
 #else
-     if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
-          png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_AFTER );
+               if (!(data->color_type & PNG_COLOR_MASK_ALPHA))
+                    png_set_filler( data->png_ptr, 0xFF, PNG_FILLER_AFTER );
 
-     png_set_bgr( data->png_ptr );
+               png_set_bgr( data->png_ptr );
 #endif
+               break;
+     }
 
      png_set_interlace_handling( data->png_ptr );
 
@@ -541,10 +646,10 @@ png_info_callback   (png_structp png_read_ptr,
 /* Called for each row; note that you will get duplicate row numbers
    for interlaced PNGs */
 static void
-png_row_callback   (png_structp png_read_ptr,
-                    png_bytep   new_row,
-                    png_uint_32 row_num,
-                    int         pass_num)
+png_row_callback( png_structp png_read_ptr,
+                  png_bytep   new_row,
+                  png_uint_32 row_num,
+                  int         pass_num )
 {
      IDirectFBImageProvider_PNG_data *data;
 
@@ -562,7 +667,7 @@ png_row_callback   (png_structp png_read_ptr,
           // FIXME: allocates four additional bytes because the scaling functions
           //        in src/misc/gfx_util.c have an off-by-one bug which causes
           //        segfaults on darwin/osx (not on linux)                
-          int size = data->width * data->height * 4 + 4 ;
+          int size = data->pitch * data->height + 4;
 
           /* allocate image data */
           data->image = D_MALLOC( size );
@@ -579,7 +684,7 @@ png_row_callback   (png_structp png_read_ptr,
 
      /* write to image data */
      png_progressive_combine_row( data->png_ptr, (png_bytep) (data->image +
-                                  row_num * data->width), new_row );
+                                  row_num * data->pitch), new_row );
 
      /* increase row counter, FIXME: interlaced? */
      data->rows++;
