@@ -163,7 +163,19 @@ fs_buffer_unlock( CoreSoundBuffer *buffer )
      return DFB_OK;
 }
 
-/******************************************************************************/          
+/******************************************************************************/
+
+typedef struct {
+#ifdef WORDS_BIGENDIAN
+     s8 c;
+     u8 b;
+     u8 a;
+#else
+     u8 a;
+     u8 b;
+     s8 c;
+#endif
+} __attribute__((packed)) s24;
 
 typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
                              __fsf           *mixing,
@@ -175,7 +187,7 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
 
 
 #define FORMAT u8
-#define TYPE __u8
+#define TYPE   u8
 #define FSF_FROM_SRC(s,i) fsf_from_u8(s[i])
 #include "sound_mix.h"
 #undef  FSF_FROM_SRC
@@ -183,7 +195,7 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
 #undef  FORMAT
 
 #define FORMAT s16
-#define TYPE __s16
+#define TYPE   s16
 #define FSF_FROM_SRC(s,i) fsf_from_s16(s[i])
 #include "sound_mix.h"
 #undef  FSF_FROM_SRC
@@ -191,23 +203,17 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
 #undef  FORMAT
 
 #define FORMAT s24
-#define TYPE __u8
-#ifdef WORDS_BIGENDIAN
-# define FSF_FROM_SRC(s,i) fsf_from_s24(((int)((s[i*3+2]<< 8) | \
-                                               (s[i*3+1]<<16) | \
-                                               (s[i*3+0]<<24)) >> 8))
-#else
-# define FSF_FROM_SRC(s,i) fsf_from_s24(((int)((s[i*3+0]<< 8) | \
-                                               (s[i*3+1]<<16) | \
-                                               (s[i*3+2]<<24)) >> 8))
-#endif
+#define TYPE   s24
+#define FSF_FROM_SRC(s,i) fsf_from_s24((long)((s[i].a      ) | \
+                                              (s[i].b <<  8) | \
+                                              (s[i].c << 16)))
 #include "sound_mix.h"
 #undef  FSF_FROM_SRC
 #undef  TYPE
 #undef  FORMAT
 
 #define FORMAT s32
-#define TYPE __s32
+#define TYPE   s32
 #define FSF_FROM_SRC(s,i) fsf_from_s32(s[i])
 #include "sound_mix.h"
 #undef  FSF_FROM_SRC
@@ -215,7 +221,7 @@ typedef int (*SoundMXFunc) ( CoreSoundBuffer *buffer,
 #undef  FORMAT
 
 #define FORMAT f32
-#define TYPE float
+#define TYPE   float
 #define FSF_FROM_SRC(s,i) fsf_from_float(s[i])
 #include "sound_mix.h"
 #undef  FSF_FROM_SRC
