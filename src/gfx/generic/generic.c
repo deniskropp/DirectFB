@@ -8121,6 +8121,9 @@ static void Len_is_Dlen( GenefxState *gfxs )  { gfxs->length = gfxs->Dlen;}
 #ifdef USE_MMX
 static bool has_mmx( void )
 {
+#ifdef ARCH_X86_64
+     return true;
+#else
      u32 a, b, c, d;
 
      asm( "pushfl             \n"
@@ -8160,6 +8163,7 @@ static bool has_mmx( void )
           : "cc" );
 
      return (d & 0x800000) ? true : false;
+#endif /* !ARCH_X86_64 */
 }
 #endif
 
