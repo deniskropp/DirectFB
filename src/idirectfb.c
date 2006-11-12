@@ -564,8 +564,14 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          if (caps & DSCAPS_TRIPLE)
                               return DFB_UNSUPPORTED;
 
-                         x = (config.width  - width)  / 2;
-                         y = (config.height - height) / 2;
+                         if (dfb_config->scaled.width && dfb_config->scaled.height) {
+                              x = (config.width  - dfb_config->scaled.width)  / 2;
+                              y = (config.height - dfb_config->scaled.height) / 2;
+                         }
+                         else {
+                              x = (config.width  - width)  / 2;
+                              y = (config.height - height) / 2;
+                         }
 
                          switch (format) {
                               case DSPF_ARGB:
@@ -593,6 +599,11 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          dfb_window_attach( window, focus_listener,
                                             data, &data->primary.reaction );
+
+                         if (dfb_config->scaled.width && dfb_config->scaled.height) {
+                              dfb_window_change_options( window, DWOP_NONE, DWOP_SCALE );
+                              dfb_window_resize( window, dfb_config->scaled.width, dfb_config->scaled.height );
+                         }
 
                          init_palette( window->surface, desc );
 

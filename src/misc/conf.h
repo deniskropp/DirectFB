@@ -100,6 +100,11 @@ typedef struct
           DFBSurfacePixelFormat format;           /* primary layer format */
      } mode;
 
+     struct {
+          int                   width;            /* scaled window width */
+          int                   height;           /* scaled window height */
+     } scaled;
+
      int       videoram_limit;                    /* limit amount of video
                                                      memory used by DirectFB */
 

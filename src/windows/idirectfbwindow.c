@@ -880,6 +880,30 @@ IDirectFBWindow_SetBounds( IDirectFBWindow *thiz,
      return dfb_window_set_bounds( data->window, x, y, width, height );
 }
 
+static DFBResult
+IDirectFBWindow_ResizeSurface( IDirectFBWindow *thiz,
+                               int              width,
+                               int              height )
+{
+     CoreWindow *window;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     if (width < 1 || width > 4096 || height < 1 || height > 4096)
+          return DFB_INVARG;
+
+     window = data->window;
+
+     if (!(window->config.options & DWOP_SCALE))
+          return DFB_UNSUPPORTED;
+
+     return dfb_surface_reformat( data->core, window->surface,
+                                  width, height, window->surface->format );
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -940,6 +964,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->Close = IDirectFBWindow_Close;
      thiz->Destroy = IDirectFBWindow_Destroy;
      thiz->SetBounds = IDirectFBWindow_SetBounds;
+     thiz->ResizeSurface = IDirectFBWindow_ResizeSurface;
 
      return DFB_OK;
 }

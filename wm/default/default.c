@@ -829,8 +829,27 @@ draw_window( CoreWindow *window, CardState *state,
      state->source    = window->surface;
      state->modified |= SMF_SOURCE;
 
-     /* Blit from the window to the region being updated. */
-     dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+     if (window->config.options & DWOP_SCALE) {
+          DFBRegion    clip = state->clip;
+          DFBRectangle dst  = window->config.bounds;
+          DFBRectangle src  = { 0, 0, window->surface->width, window->surface->height };
+
+          /* Change clipping region. */
+          dfb_state_set_clip( state, region );
+
+          /* Scale window to the screen clipped by the region being updated. */
+          dfb_gfxcard_stretchblit( &src, &dst, state );
+
+          /* Restore clipping region. */
+          dfb_state_set_clip( state, &clip );
+     }
+     else {
+          D_ASSERT( window->surface->width  == window->config.bounds.w );
+          D_ASSERT( window->surface->height == window->config.bounds.h );
+
+          /* Blit from the window to the region being updated. */
+          dfb_gfxcard_blit( &src, region->x1, region->y1, state );
+     }
 
      /* Reset blitting source. */
      state->source    = NULL;
@@ -1314,7 +1333,8 @@ update_window( CoreWindow          *window,
                const DFBRegion     *region,
                DFBSurfaceFlipFlags  flags,
                bool                 force_complete,
-               bool                 force_invisible )
+               bool                 force_invisible,
+               bool                 scale_region )
 {
      DFBRegion        area;
      StackData       *data;
@@ -1339,8 +1359,41 @@ update_window( CoreWindow          *window,
 
      bounds = &window->config.bounds;
 
-     if (region)
-          area = DFB_REGION_INIT_TRANSLATED( region, bounds->x, bounds->y );
+     if (region) {
+          if (scale_region && (window->config.options & DWOP_SCALE)) {
+               int sw = window->surface->width;
+               int sh = window->surface->height;
+
+               /* horizontal */
+               if (bounds->w > sw) {
+                    /* upscaling */
+                    area.x1 = (region->x1 - 1) * bounds->w / sw;
+                    area.x2 = (region->x2 + 1) * bounds->w / sw;
+               }
+               else {
+                    /* downscaling */
+                    area.x1 = region->x1 * bounds->w / sw - 1;
+                    area.x2 = region->x2 * bounds->w / sw + 1;
+               }
+
+               /* vertical */
+               if (bounds->h > sh) {
+                    /* upscaling */
+                    area.y1 = (region->y1 - 1) * bounds->h / sh;
+                    area.y2 = (region->y2 + 1) * bounds->h / sh;
+               }
+               else {
+                    /* downscaling */
+                    area.y1 = region->y1 * bounds->h / sh - 1;
+                    area.y2 = region->y2 * bounds->h / sh + 1;
+               }
+
+               /* screen offset */
+               dfb_region_translate( &area, bounds->x, bounds->y );
+          }
+          else
+               area = DFB_REGION_INIT_TRANSLATED( region, bounds->x, bounds->y );
+     }
      else
           area = DFB_REGION_INIT_FROM_RECTANGLE( bounds );
 
@@ -1520,7 +1573,7 @@ move_window( CoreWindow *window,
           else if (dy < 0)
                region.y2 -= dy;
 
-          update_window( window, data, &region, 0, false, false );
+          update_window( window, data, &region, 0, false, false, false );
      }
 
      /* Send new position */
@@ -1559,7 +1612,7 @@ resize_window( CoreWindow *window,
      if (width > 4096 || height > 4096)
           return DFB_LIMITEXCEEDED;
 
-     if (window->surface) {
+     if (window->surface && !(window->config.options & DWOP_SCALE)) {
           ret = dfb_surface_reformat( wm_data->core, window->surface,
                                       width, height, window->surface->format );
           if (ret)
@@ -1590,13 +1643,13 @@ resize_window( CoreWindow *window,
                if (ow > bounds->w) {
                     DFBRegion region = { bounds->w, 0, ow - 1, MIN(bounds->h, oh) - 1 };
 
-                    update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false, false );
                }
 
                if (oh > bounds->h) {
                     DFBRegion region = { 0, bounds->h, MAX(bounds->w, ow) - 1, oh - 1 };
 
-                    update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false, false );
                }
           }
      }
@@ -1640,7 +1693,7 @@ set_window_bounds( CoreWindow *window,
      if (width > 4096 || height > 4096)
           return DFB_LIMITEXCEEDED;
 
-     if (window->surface) {
+     if (window->surface && !(window->config.options & DWOP_SCALE)) {
           ret = dfb_surface_reformat( wm_data->core, window->surface,
                                       width, height, window->surface->format );
           if (ret)
@@ -1673,7 +1726,7 @@ set_window_bounds( CoreWindow *window,
                     DFBRegion region = { old_region.x1, old_region.y1,
                                          new_region.x1 - 1, new_region.y2 };
 
-                    update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false, false );
                }
 
                /* upper */
@@ -1681,7 +1734,7 @@ set_window_bounds( CoreWindow *window,
                     DFBRegion region = { old_region.x1, old_region.y1,
                                          old_region.x2, new_region.y1 - 1 };
 
-                    update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false, false );
                }
 
                /* right */
@@ -1689,7 +1742,7 @@ set_window_bounds( CoreWindow *window,
                     DFBRegion region = { new_region.x2 + 1, new_region.y1,
                                          old_region.x2, new_region.y2 };
 
-                    update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false, false );
                }
 
                /* lower */
@@ -1697,11 +1750,11 @@ set_window_bounds( CoreWindow *window,
                     DFBRegion region = { old_region.x1, new_region.y2 + 1,
                                          old_region.x2, old_region.y2 };
 
-                    update_window( window, data, &region, 0, false, false );
+                    update_window( window, data, &region, 0, false, false, false );
                }
           }
           else
-               update_window( window, data, &old_region, 0, false, false );
+               update_window( window, data, &old_region, 0, false, false, false );
      }
 
      /* Send new position and size */
@@ -1814,7 +1867,7 @@ restack_window( CoreWindow             *window,
      /* Actually change the stacking order now. */
      fusion_vector_move( &data->windows, old, index );
 
-     update_window( window, window_data, NULL, DSFLIP_NONE, (index < old), false );
+     update_window( window, window_data, NULL, DSFLIP_NONE, (index < old), false, false );
 
      return DFB_OK;
 }
@@ -1853,7 +1906,7 @@ set_opacity( CoreWindow *window,
                dfb_layer_region_set_configuration( window->region, &window_data->config, CLRCF_OPACITY );
           }
           else
-               update_window( window, window_data, NULL, DSFLIP_NONE, false, true );
+               update_window( window, window_data, NULL, DSFLIP_NONE, false, true, false );
 
 
           /* Check focus after window appeared or disappeared */
@@ -3074,15 +3127,37 @@ wm_set_window_config( CoreWindow             *window,
                       const CoreWindowConfig *config,
                       CoreWindowConfigFlags   flags )
 {
-     DFBResult ret;
+     DFBResult  ret;
+     WMData    *wmdata = wm_data;
 
      D_ASSERT( window != NULL );
      D_ASSERT( wm_data != NULL );
      D_ASSERT( window_data != NULL );
      D_ASSERT( config != NULL );
 
-     if (flags & CWCF_OPTIONS)
+     if (flags & CWCF_OPTIONS) {
+          if ((window->config.options & DWOP_SCALE) && !(config->options & DWOP_SCALE)) {
+               if (window->config.bounds.w != window->surface->width ||
+                   window->config.bounds.h != window->surface->height)
+               {
+                    ret = dfb_surface_reformat( wmdata->core, window->surface,
+                                                window->config.bounds.w,
+                                                window->config.bounds.h,
+                                                window->surface->format );
+                    if (ret) {
+                         D_DERROR( ret, "WM/Default: Could not resize surface "
+                                        "(%dx%d -> %dx%d) to remove DWOP_SCALE!\n",
+                                   window->surface->width,
+                                   window->surface->height,
+                                   window->config.bounds.w,
+                                   window->config.bounds.h );
+                         return ret;
+                    }
+               }
+          }
+
           window->config.options = config->options;
+     }
 
      if (flags & CWCF_EVENTS)
           window->config.events = config->events;
@@ -3258,7 +3333,7 @@ static DFBResult
 wm_update_window( CoreWindow          *window,
                   void                *wm_data,
                   void                *window_data,
-                  const DFBRegion     *region,
+                  const DFBRegion     *region,    /* surface coordinates! */
                   DFBSurfaceFlipFlags  flags )
 {
      D_ASSERT( window != NULL );
@@ -3267,7 +3342,7 @@ wm_update_window( CoreWindow          *window,
 
      DFB_REGION_ASSERT_IF( region );
 
-     return update_window( window, window_data, region, flags, false, false );
+     return update_window( window, window_data, region, flags, false, false, true );
 }
 
 static DFBResult

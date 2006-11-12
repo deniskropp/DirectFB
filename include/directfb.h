@@ -4282,7 +4282,9 @@ typedef enum {
                                            implies DWOP_KEEP... */
      DWOP_INDESTRUCTIBLE = 0x00002000,  /* window can't be destroyed
                                            by internal shortcut */
-     DWOP_ALL            = 0x0000307F   /* all possible options */
+     DWOP_SCALE          = 0x00010000,  /* Surface won't be changed if window size on screen changes. The surface
+                                           can be resized separately using IDirectFBWindow::ResizeSurface(). */
+     DWOP_ALL            = 0x0001307F   /* all possible options */
 } DFBWindowOptions;
 
 /*
@@ -4715,6 +4717,21 @@ DEFINE_INTERFACE(   IDirectFBWindow,
           IDirectFBWindow               *thiz,
           int                            x,
           int                            y,
+          int                            width,
+          int                            height
+     );
+
+
+   /** Scaling **/
+
+     /*
+      * Resize the surface of a scalable window.
+      *
+      * This requires the option DWOP_SCALE.
+      * See IDirectFBWindow::SetOptions().
+      */
+     DFBResult (*ResizeSurface) (
+          IDirectFBWindow               *thiz,
           int                            width,
           int                            height
      );

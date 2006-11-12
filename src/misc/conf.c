@@ -65,6 +65,7 @@ static const char *config_usage =
      "  fbdev=<device>                 Open <device> instead of /dev/fb0\n"
      "  busid=<id>                     Specify the bus location of the graphics card (default 1:0:0)\n"
      "  mode=<width>x<height>          Set the default resolution\n"
+     "  scaled=<width>x<height>        Scale the window to this size for 'force-windowed' apps\n"
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
@@ -482,6 +483,23 @@ DFBResult dfb_config_set( const char *name, const char *value )
           }
           else {
                D_ERROR("DirectFB/Config 'mode': No mode specified!\n");
+               return DFB_INVARG;
+          }
+     } else
+     if (strcmp (name, "scaled" ) == 0) {
+          if (value) {
+               int width, height;
+
+               if (sscanf( value, "%dx%d", &width, &height ) < 2) {
+                    D_ERROR("DirectFB/Config 'scaled': Could not parse size!\n");
+                    return DFB_INVARG;
+               }
+
+               dfb_config->scaled.width  = width;
+               dfb_config->scaled.height = height;
+          }
+          else {
+               D_ERROR("DirectFB/Config 'scaled': No size specified!\n");
                return DFB_INVARG;
           }
      } else
