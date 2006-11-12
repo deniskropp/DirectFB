@@ -4704,6 +4704,20 @@ DEFINE_INTERFACE(   IDirectFBWindow,
      DFBResult (*Destroy) (
           IDirectFBWindow               *thiz
      );
+
+
+   /** Geometry **/
+
+     /*
+      * Set position and size in one step.
+      */
+     DFBResult (*SetBounds) (
+          IDirectFBWindow               *thiz,
+          int                            x,
+          int                            y,
+          int                            width,
+          int                            height
+     );
 )
 
 

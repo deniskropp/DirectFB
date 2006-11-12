@@ -793,6 +793,49 @@ dfb_window_move( CoreWindow *window,
 }
 
 DFBResult
+dfb_window_set_bounds( CoreWindow *window,
+                       int         x,
+                       int         y,
+                       int         width,
+                       int         height )
+{
+     DFBResult         ret;
+     CoreWindowConfig  config;
+     CoreWindowStack  *stack = window->stack;
+
+     /* Lock the window stack. */
+     if (dfb_windowstack_lock( stack ))
+          return DFB_FUSION;
+
+     /* Never call WM after destroying the window. */
+     if (DFB_WINDOW_DESTROYED( window )) {
+          dfb_windowstack_unlock( stack );
+          return DFB_DESTROYED;
+     }
+
+     config.bounds.x = x;
+     config.bounds.y = y;
+     config.bounds.w = width;
+     config.bounds.h = height;
+
+     if (window->config.bounds.x == x &&
+         window->config.bounds.y == y &&
+         window->config.bounds.w == width &&
+         window->config.bounds.h == height)
+     {
+          dfb_windowstack_unlock( stack );
+          return DFB_OK;
+     }
+
+     ret = dfb_wm_set_window_config( window, &config, CWCF_POSITION | CWCF_SIZE );
+
+     /* Unlock the window stack. */
+     dfb_windowstack_unlock( stack );
+
+     return ret;
+}
+
+DFBResult
 dfb_window_resize( CoreWindow   *window,
                    int           width,
                    int           height )

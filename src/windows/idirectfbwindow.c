@@ -863,6 +863,23 @@ IDirectFBWindow_Destroy( IDirectFBWindow *thiz )
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBWindow_SetBounds( IDirectFBWindow *thiz,
+                           int              x,
+                           int              y,
+                           int              width,
+                           int              height )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow)
+
+     if (data->destroyed)
+          return DFB_DESTROYED;
+
+     D_DEBUG_AT( IDirectFB_Window, "IDirectFBWindow_SetBounds( %d, %d - %dx%d )\n", x, y, width, height );
+
+     return dfb_window_set_bounds( data->window, x, y, width, height );
+}
+
 DFBResult
 IDirectFBWindow_Construct( IDirectFBWindow *thiz,
                            CoreWindow      *window,
@@ -922,6 +939,7 @@ IDirectFBWindow_Construct( IDirectFBWindow *thiz,
      thiz->PutBelow = IDirectFBWindow_PutBelow;
      thiz->Close = IDirectFBWindow_Close;
      thiz->Destroy = IDirectFBWindow_Destroy;
+     thiz->SetBounds = IDirectFBWindow_SetBounds;
 
      return DFB_OK;
 }

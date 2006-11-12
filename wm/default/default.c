@@ -1614,6 +1614,111 @@ resize_window( CoreWindow *window,
 }
 
 static DFBResult
+set_window_bounds( CoreWindow *window,
+                   WMData     *wm_data,
+                   WindowData *data,
+                   int         x,
+                   int         y,
+                   int         width,
+                   int         height)
+{
+     DFBResult        ret;
+     DFBWindowEvent   evt;
+     CoreWindowStack *stack = window->stack;
+     DFBRegion        old_region;
+     DFBRegion        new_region;
+
+     D_DEBUG_AT( WM_Default, "%s( %p [%d] %d, %d - %dx%d )\n", __FUNCTION__, window, window->id, x, y, width, height );
+
+     D_ASSERT( wm_data != NULL );
+
+     D_MAGIC_ASSERT( data, WindowData );
+
+     D_ASSERT( width > 0 );
+     D_ASSERT( height > 0 );
+
+     if (width > 4096 || height > 4096)
+          return DFB_LIMITEXCEEDED;
+
+     if (window->surface) {
+          ret = dfb_surface_reformat( wm_data->core, window->surface,
+                                      width, height, window->surface->format );
+          if (ret)
+               return ret;
+     }
+
+     old_region.x1 = window->config.bounds.x - x;
+     old_region.y1 = window->config.bounds.y - y;
+     old_region.x2 = old_region.x1 + window->config.bounds.w - 1;
+     old_region.y2 = old_region.y1 + window->config.bounds.h - 1;
+
+     window->config.bounds.x = x;
+     window->config.bounds.y = y;
+     window->config.bounds.w = width;
+     window->config.bounds.h = height;
+
+     new_region.x1 = 0;
+     new_region.y1 = 0;
+     new_region.x2 = width  - 1;
+     new_region.y2 = height - 1;
+
+     if (!dfb_region_region_intersect( &window->config.opaque, &new_region ))
+          window->config.opaque = new_region;
+
+     /* Update exposed area. */
+     if (VISIBLE_WINDOW( window )) {
+          if (dfb_region_region_intersect( &new_region, &old_region )) {
+               /* left */
+               if (new_region.x1 > old_region.x1) {
+                    DFBRegion region = { old_region.x1, old_region.y1,
+                                         new_region.x1 - 1, new_region.y2 };
+
+                    update_window( window, data, &region, 0, false, false );
+               }
+
+               /* upper */
+               if (new_region.y1 > old_region.y1) {
+                    DFBRegion region = { old_region.x1, old_region.y1,
+                                         old_region.x2, new_region.y1 - 1 };
+
+                    update_window( window, data, &region, 0, false, false );
+               }
+
+               /* right */
+               if (new_region.x2 < old_region.x2) {
+                    DFBRegion region = { new_region.x2 + 1, new_region.y1,
+                                         old_region.x2, new_region.y2 };
+
+                    update_window( window, data, &region, 0, false, false );
+               }
+
+               /* lower */
+               if (new_region.y2 < old_region.y2) {
+                    DFBRegion region = { old_region.x1, new_region.y2 + 1,
+                                         old_region.x2, old_region.y2 };
+
+                    update_window( window, data, &region, 0, false, false );
+               }
+          }
+          else
+               update_window( window, data, &old_region, 0, false, false );
+     }
+
+     /* Send new position and size */
+     evt.type = DWET_POSITION_SIZE;
+     evt.x    = window->config.bounds.x;
+     evt.y    = window->config.bounds.y;
+     evt.w    = window->config.bounds.w;
+     evt.h    = window->config.bounds.h;
+
+     post_event( window, data->stack_data, &evt );
+
+     update_focus( stack, data->stack_data, wm_data );
+
+     return DFB_OK;
+}
+
+static DFBResult
 restack_window( CoreWindow             *window,
                 WindowData             *window_data,
                 CoreWindow             *relative,
@@ -2991,12 +3096,27 @@ wm_set_window_config( CoreWindow             *window,
      if (flags & CWCF_OPACITY && !config->opacity)
           set_opacity( window, window_data, wm_data, config->opacity );
 
-     if (flags & CWCF_POSITION) {
-          ret = move_window( window, window_data,
-                             config->bounds.x - window->config.bounds.x,
-                             config->bounds.y - window->config.bounds.y );
+     if (flags == (CWCF_POSITION | CWCF_SIZE)) {
+          ret = set_window_bounds (window, wm_data, window_data,
+                                   config->bounds.x, config->bounds.y,
+                                   config->bounds.w, config->bounds.h);
           if (ret)
-               return ret;
+              return ret;
+     }
+     else {
+          if (flags & CWCF_POSITION) {
+               ret = move_window( window, window_data,
+                                  config->bounds.x - window->config.bounds.x,
+                                  config->bounds.y - window->config.bounds.y );
+               if (ret)
+                    return ret;
+          }
+
+          if (flags & CWCF_SIZE) {
+               ret = resize_window( window, wm_data, window_data, config->bounds.w, config->bounds.h );
+               if (ret)
+                    return ret;
+          }
      }
 
      if (flags & CWCF_STACKING)
@@ -3004,9 +3124,6 @@ wm_set_window_config( CoreWindow             *window,
 
      if (flags & CWCF_OPACITY && config->opacity)
           set_opacity( window, window_data, wm_data, config->opacity );
-
-     if (flags & CWCF_SIZE)
-          return resize_window( window, wm_data, window_data, config->bounds.w, config->bounds.h );
 
      return DFB_OK;
 }

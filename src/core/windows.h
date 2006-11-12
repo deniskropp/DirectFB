@@ -111,6 +111,16 @@ dfb_window_move( CoreWindow *window,
                  bool        relative );
 
 /*
+ * set position and size
+ */
+DFBResult
+dfb_window_set_bounds( CoreWindow *window,
+                       int         x,
+                       int         y,
+                       int         width,
+                       int         height );
+
+/*
  * resizes a window
  */
 DFBResult
