@@ -75,7 +75,7 @@ typedef struct {
 } InputDeviceInfo;
 
 typedef struct {
-     int       (*GetAvailable)   ();
+     int       (*GetAvailable)   (void);
      void      (*GetDriverInfo)  (InputDriverInfo            *driver_info);
      DFBResult (*OpenDevice)     (CoreInputDevice            *device,
                                   unsigned int                number,
