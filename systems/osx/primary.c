@@ -313,7 +313,7 @@ primaryAllocateSurface( CoreLayer              *layer,
 
           /* reallocation just needs an allocated buffer structure */
           surface->idle_buffer = surface->back_buffer = surface->front_buffer
-                               = SHCALLOC( 1, sizeof(SurfaceBuffer) );
+                               = SHCALLOC( dfb_core_shmpool(dfb_osx_core), 1, sizeof(SurfaceBuffer) );
 
           surface->front_buffer->policy = CSP_SYSTEMONLY;
           surface->front_buffer->format = config->format;
@@ -558,7 +558,7 @@ dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           return dfb_osx_set_video_mode_handler( config );
 
      if (!fusion_is_shared( config )) {
-          tmp = SHMALLOC( sizeof(CoreLayerRegionConfig) );
+          tmp = SHMALLOC( dfb_core_shmpool(dfb_osx_core), sizeof(CoreLayerRegionConfig) );
           if (!tmp)
                return D_OOSHM();
 
@@ -569,7 +569,7 @@ dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
                           tmp ? tmp : config, &ret );
 
      if (tmp)
-          SHFREE( tmp );
+          SHFREE( dfb_core_shmpool(dfb_osx_core), tmp );
 
      return ret;
 }
@@ -585,7 +585,7 @@ dfb_osx_update_screen( CoreDFB *core, DFBRegion *region )
 
      if (region) {
           if (!fusion_is_shared( region )) {
-               tmp = SHMALLOC( sizeof(DFBRegion) );
+               tmp = SHMALLOC( dfb_core_shmpool(dfb_osx_core), sizeof(DFBRegion) );
                if (!tmp)
                     return D_OOSHM();
 
@@ -597,7 +597,7 @@ dfb_osx_update_screen( CoreDFB *core, DFBRegion *region )
                           tmp ? tmp : region, &ret );
 
      if (tmp)
-          SHFREE( tmp );
+          SHFREE( dfb_core_shmpool(dfb_osx_core), tmp );
 
      return ret;
 }

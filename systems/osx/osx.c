@@ -80,7 +80,7 @@ system_initialize( CoreDFB *core, void **data )
 
      D_ASSERT( dfb_osx == NULL );
 
-     dfb_osx = (DFBOSX*) SHCALLOC( 1, sizeof(DFBOSX) );
+     dfb_osx = (DFBOSX*) SHCALLOC( dfb_core_shmpool(dfb_osx_core), 1, sizeof(DFBOSX) );
      if (!dfb_osx) {
           D_ERROR( "DirectFB/OSX: Couldn't allocate shared memory!\n" );
           return D_OOSHM();
@@ -137,7 +137,7 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_destroy( &dfb_osx->lock );
 
-     SHFREE( dfb_osx );
+     SHFREE( dfb_core_shmpool(dfb_osx_core), dfb_osx );
      dfb_osx = NULL;
      dfb_osx_core = NULL;
 
