@@ -557,7 +557,7 @@ dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
      if (dfb_core_is_master( core ))
           return dfb_osx_set_video_mode_handler( config );
 
-     if (!fusion_is_shared( config )) {
+     if (!fusion_is_shared( dfb_core_world(core), config )) {
           tmp = SHMALLOC( dfb_core_shmpool(dfb_osx_core), sizeof(CoreLayerRegionConfig) );
           if (!tmp)
                return D_OOSHM();
@@ -565,7 +565,7 @@ dfb_osx_set_video_mode( CoreDFB *core, CoreLayerRegionConfig *config )
           direct_memcpy( tmp, config, sizeof(CoreLayerRegionConfig) );
      }
 
-     fusion_call_execute( &dfb_osx->call, OSX_SET_VIDEO_MODE,
+     fusion_call_execute( &dfb_osx->call, FCEF_NONE, OSX_SET_VIDEO_MODE,
                           tmp ? tmp : config, &ret );
 
      if (tmp)
@@ -584,7 +584,7 @@ dfb_osx_update_screen( CoreDFB *core, DFBRegion *region )
           return dfb_osx_update_screen_handler( region );
 
      if (region) {
-          if (!fusion_is_shared( region )) {
+          if (!fusion_is_shared( dfb_core_world(core), region )) {
                tmp = SHMALLOC( dfb_core_shmpool(dfb_osx_core), sizeof(DFBRegion) );
                if (!tmp)
                     return D_OOSHM();
@@ -593,7 +593,7 @@ dfb_osx_update_screen( CoreDFB *core, DFBRegion *region )
           }
      }
 
-     fusion_call_execute( &dfb_osx->call, OSX_UPDATE_SCREEN,
+     fusion_call_execute( &dfb_osx->call, FCEF_ONEWAY, OSX_UPDATE_SCREEN,
                           tmp ? tmp : region, &ret );
 
      if (tmp)
@@ -607,7 +607,7 @@ dfb_osx_set_palette( CorePalette *palette )
 {
      int ret;
 
-     fusion_call_execute( &dfb_osx->call, OSX_SET_PALETTE,
+     fusion_call_execute( &dfb_osx->call, FCEF_NONE, OSX_SET_PALETTE,
                           palette, &ret );
 
      return ret;
