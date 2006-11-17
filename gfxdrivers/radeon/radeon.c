@@ -149,6 +149,35 @@ DFB_GRAPHICS_DRIVER( radeon )
 #define RADEON_FUNC( f ) DFB_PLANAR_PIXELFORMAT(rdev->dst_format) ? f##_420 : f
 
 
+static inline bool
+radeon_compatible_format( RadeonDriverData *rdrv, DFBSurfacePixelFormat format )
+{
+#ifdef WORDS_BIGENDIAN
+     u32 tmp, bpp;
+
+     tmp = radeon_in32( rdrv->mmio_base, CRTC_GEN_CNTL );
+     switch ((tmp >> 8) & 0xf) {
+          case DST_8BPP:
+          case DST_8BPP_RGB332:
+               bpp = 8;
+               break;
+          case DST_15BPP:
+          case DST_16BPP:
+               bpp = 16;
+               break;               
+          case DST_24BPP:
+               bpp = 24;
+               break;
+          default:
+               bpp = 32;
+               break;
+     }
+
+     return (DFB_BITS_PER_PIXEL(format) == bpp);
+#else
+     return true;
+#endif
+}
 
 static void
 radeon_get_monitors( RadeonDriverData  *rdrv,
@@ -278,13 +307,20 @@ radeon_reset( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
      rdev->fifo_space = 0;
 }
      
-#if RESET_AFTER_SETVAR
 static void radeonAfterSetVar( void *drv, void *dev )
 {
-     radeon_waitidle( (RadeonDriverData*)drv, (RadeonDeviceData*)dev );
-     radeon_reset( (RadeonDriverData*)drv, (RadeonDeviceData*)dev );
-}
+     RadeonDriverData *rdrv = (RadeonDriverData*) drv;
+     RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     
+     rdev->surface_cntl   =
+     rdev->surface_cntl_c =
+     rdev->surface_cntl_p = radeon_in32( rdrv->mmio_base, SURFACE_CNTL );
+
+#if RESET_AFTER_SETVAR
+     radeon_waitidle( rdrv, rdev );
+     radeon_reset( rdrv, rdev );
 #endif
+}
 
 static void radeonEngineReset( void *drv, void *dev )
 {
@@ -426,7 +462,10 @@ static void r100CheckState( void *drv, void *dev,
      int supported_drawingflags  = R100_SUPPORTED_DRAWINGFLAGS;
      int supported_blittingfuncs = R100_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R100_SUPPORTED_BLITTINGFLAGS;
-    
+   
+     if (!radeon_compatible_format( drv, destination->format ))
+          return;
+
      switch (destination->format) {               
           case DSPF_A8:
           case DSPF_RGB332:
@@ -507,7 +546,10 @@ static void r100CheckState( void *drv, void *dev,
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
                
-          switch (source->format) {                    
+          if (!radeon_compatible_format( drv, source->format ))
+               return;
+
+          switch (source->format) {           
                case DSPF_RGB332:
                case DSPF_ARGB4444:
                case DSPF_ARGB1555:
@@ -577,6 +619,9 @@ static void r200CheckState( void *drv, void *dev,
      int supported_blittingfuncs = R200_SUPPORTED_BLITTINGFUNCS;
      int supported_blittingflags = R200_SUPPORTED_BLITTINGFLAGS;
      
+     if (!radeon_compatible_format( drv, destination->format ))
+          return;
+     
      switch (destination->format) {               
           case DSPF_A8:
           case DSPF_RGB332:
@@ -656,7 +701,10 @@ static void r200CheckState( void *drv, void *dev,
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
               state->dst_blend == DSBF_SRCALPHASAT)
                return;
-               
+         
+          if (!radeon_compatible_format( drv, source->format ))
+               return;
+         
           switch (source->format) {                    
                case DSPF_RGB332:
                case DSPF_ARGB4444:
@@ -741,6 +789,9 @@ static void r300CheckState( void *drv, void *dev,
           supported_blittingflags = RADEON_SUPPORTED_2D_BLITTINGFLAGS;
           can_convert = false;
      }
+
+     if (!radeon_compatible_format( drv, destination->format ))
+          return;
      
      switch (destination->format) {
           case DSPF_RGB16:
@@ -788,6 +839,9 @@ static void r300CheckState( void *drv, void *dev,
 
           if (state->blittingflags & DSBLIT_MODULATE_ALPHA &&
               state->dst_blend == DSBF_SRCALPHASAT)
+               return;
+               
+          if (!radeon_compatible_format( drv, source->format ))
                return;
                
           switch (source->format) {
@@ -1214,9 +1268,7 @@ driver_init_driver( GraphicsDevice      *device,
      }
 
      /* fill function table */
-#if RESET_AFTER_SETVAR
      funcs->AfterSetVar       = radeonAfterSetVar;
-#endif
      funcs->EngineReset       = radeonEngineReset;
      funcs->EngineSync        = radeonEngineSync;
      funcs->FlushTextureCache = radeonFlushTextureCache;
@@ -1372,11 +1424,8 @@ driver_init_device( GraphicsDevice     *device,
      rdev->surface_cntl = radeon_in32( mmio, SURFACE_CNTL ); 
      rdev->dp_gui_master_cntl = radeon_in32( mmio, DP_GUI_MASTER_CNTL );   
      
-     rdev->surface_cntl_p = rdev->surface_cntl & ~(NONSURF_AP0_SWP_16BPP |
-                                                   NONSURF_AP0_SWP_32BPP |
-                                                   NONSURF_AP1_SWP_16BPP |
-                                                   NONSURF_AP1_SWP_32BPP);
-     rdev->surface_cntl_c = rdev->surface_cntl_p;
+     rdev->surface_cntl_p = 
+     rdev->surface_cntl_c = rdev->surface_cntl;
      
      if (rdev->igp) {
           u32 tom;
