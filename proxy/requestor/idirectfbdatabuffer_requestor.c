@@ -458,7 +458,7 @@ Construct( IDirectFBDataBuffer *thiz,
 
      DIRECT_ALLOCATE_INTERFACE_DATA(thiz, IDirectFBDataBuffer_Requestor)
 
-     ret = IDirectFBDataBuffer_Construct( thiz, NULL );
+     ret = IDirectFBDataBuffer_Construct( thiz, NULL, NULL );
      if (ret)
           return ret;
 

@@ -659,7 +659,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
      if (!desc) {
           DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBDataBuffer );
 
-          ret = IDirectFBDataBuffer_Streamed_Construct( buffer );
+          ret = IDirectFBDataBuffer_Streamed_Construct( buffer, NULL );
      }
      else if (desc->flags & DBDESC_FILE) {
           if (!desc->file)
@@ -667,7 +667,7 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
 
           DIRECT_ALLOCATE_INTERFACE( buffer, IDirectFBDataBuffer );
 
-          ret = IDirectFBDataBuffer_File_Construct( buffer, desc->file );
+          ret = IDirectFBDataBuffer_File_Construct( buffer, desc->file, NULL );
      }
      else if (desc->flags & DBDESC_MEMORY) {
           if (!desc->memory.data || !desc->memory.length)
@@ -677,7 +677,8 @@ IDirectFB_Requestor_CreateDataBuffer( IDirectFB                       *thiz,
 
           ret = IDirectFBDataBuffer_Memory_Construct( buffer,
                                                       desc->memory.data,
-                                                      desc->memory.length );
+                                                      desc->memory.length,
+                                                      NULL );
      }
      else
           return DFB_INVARG;
