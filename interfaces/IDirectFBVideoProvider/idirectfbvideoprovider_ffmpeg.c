@@ -416,6 +416,7 @@ FFmpegInput( DirectThread *self, void *arg )
 static void
 FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
 {
+     CoreDFB      *core      = data->video.dest_data->core;
      CoreSurface  *surface   = data->video.dest_data->surface;
      AVFrame      *src_frame = data->video.src_frame;
      AVFrame      *dst_frame = data->video.dst_frame;
@@ -440,7 +441,7 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
      if (rect.w < 1 || rect.h < 1)
           return;
                 
-     if (dfb_surface_soft_lock( surface, DSLF_WRITE, 
+     if (dfb_surface_soft_lock( core, surface, DSLF_WRITE, 
                                (void*)&dst_frame->data[0], 
                                &dst_frame->linesize[0], 0 ))
           return;

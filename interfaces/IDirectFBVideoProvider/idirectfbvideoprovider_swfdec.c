@@ -351,7 +351,8 @@ SwfInput( DirectThread *self, void *arg )
 }
 
 static void
-SwfPutImage( CoreSurface  *surface,
+SwfPutImage( CoreDFB      *core,
+             CoreSurface  *surface,
              DFBRectangle *current,
              DFBRectangle *rect,
              SwfdecBuffer *source )
@@ -373,7 +374,7 @@ SwfPutImage( CoreSurface  *surface,
      if (srect.w < 1 || srect.h < 1)
           return;
      
-     if (dfb_surface_soft_lock( surface, DSLF_WRITE,
+     if (dfb_surface_soft_lock( core, surface, DSLF_WRITE,
                                 (void*)&dst, &pitch, 0 ) != DFB_OK)
           return;
    
@@ -542,7 +543,7 @@ SwfVideo( DirectThread *self, void *arg )
                rect = (data->rect.w == 0)
                       ? data->dest_data->area.wanted : data->rect;
                
-               SwfPutImage( data->dest_data->surface, 
+               SwfPutImage( data->dest_data->core, data->dest_data->surface, 
                            &data->dest_data->area.current, &rect, buffer );
                                  
                swfdec_buffer_unref( buffer );
