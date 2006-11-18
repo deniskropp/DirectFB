@@ -367,7 +367,7 @@ WriteRGBFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&ptr, &pitch, 0 );
+     dfb_surface_soft_lock( dst_data->core, surface, DSLF_WRITE, (void**)&ptr, &pitch, 0 );
 
      ptr += data->dest_clip.y * pitch +
             data->dest_clip.x * DFB_BYTES_PER_PIXEL (surface->format);
@@ -451,7 +451,7 @@ WriteYUVFrame( IDirectFBVideoProvider_OpenQuicktime_data *data )
      dst_data = (IDirectFBSurface_data*) data->destination->priv;
      surface  = dst_data->surface;
 
-     dfb_surface_soft_lock( surface, DSLF_WRITE, (void**)&dst, &pitch, 0 );
+     dfb_surface_soft_lock( dst_data->core, surface, DSLF_WRITE, (void**)&dst, &pitch, 0 );
 
      src_y  = data->yuv.lines[0];
      src_u  = data->yuv.lines[1];
