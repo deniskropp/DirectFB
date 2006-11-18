@@ -8238,6 +8238,19 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
 
      DFBSurfaceLockFlags lock_flags;
 
+     if (dfb_config->hardware_only) {
+         if (DFB_BLITTING_FUNCTION( accel ))
+             D_WARN( "Ignoring blit (%x) from %s to %s, flags 0x%08x", accel,
+                     source ? dfb_pixelformat_name(source->format) : "NULL SOURCE",
+                     destination ? dfb_pixelformat_name(destination->format) : "NULL DESTINATION",
+                     state->blittingflags );
+         else
+             D_WARN( "Ignoring draw (%x) to %s, flags 0x%08x", accel,
+                     destination ? dfb_pixelformat_name(destination->format) : "NULL DESTINATION",
+                     state->drawingflags );
+         return false;
+     }
+
      if (!state->gfxs) {
           gfxs = D_CALLOC( 1, sizeof(GenefxState) );
           if (!gfxs) {

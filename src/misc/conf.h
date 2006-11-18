@@ -54,8 +54,9 @@ typedef struct
 
      bool      pollvsync_after;
      bool      pollvsync_none;
-     bool      software_only;                     /* disable hardware
-                                                     acceleration */
+
+     bool      software_only;                     /* disable hardware acceleration */
+     bool      hardware_only;                     /* disable software fallbacks */
 
      bool      mmx;                               /* mmx support */
 

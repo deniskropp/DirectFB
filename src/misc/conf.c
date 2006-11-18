@@ -86,6 +86,7 @@ static const char *config_usage =
      "  force-windowed                 Primary surface always is a window\n"
      "  force-desktop                  Primary surface is the desktop background\n"
      "  [no-]hardware                  Hardware acceleration\n"
+     "  [no-]software                  Software fallbacks\n"
      "  [no-]dma                       Enable DMA acceleration\n"
      "  [no-]sync                      Do `sync()' (default=no)\n"
 #ifdef USE_MMX
@@ -718,6 +719,12 @@ DFBResult dfb_config_set( const char *name, const char *value )
      } else
      if (strcmp (name, "no-hardware" ) == 0) {
           dfb_config->software_only = true;
+     } else
+     if (strcmp (name, "software" ) == 0) {
+          dfb_config->hardware_only = false;
+     } else
+     if (strcmp (name, "no-software" ) == 0) {
+          dfb_config->hardware_only = true;
      } else
      if (strcmp (name, "dma" ) == 0) {
           dfb_config->dma = true;
