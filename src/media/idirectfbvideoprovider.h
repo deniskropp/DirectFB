@@ -29,6 +29,8 @@
 #ifndef __IDIRECTFBVIDEOPROVIDER_H__
 #define __IDIRECTFBVIDEOPROVIDER_H__
 
+#include <core/coretypes.h>
+
 /*
  * probing context
  */
@@ -45,6 +47,7 @@ typedef struct {
 
 DFBResult
 IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
+                                         CoreDFB                 *core,
                                          IDirectFBVideoProvider **interface );
 
 #endif

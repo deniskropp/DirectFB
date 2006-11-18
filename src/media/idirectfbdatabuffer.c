@@ -194,7 +194,7 @@ IDirectFBDataBuffer_CreateVideoProvider( IDirectFBDataBuffer     *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     return IDirectFBVideoProvider_CreateFromBuffer( thiz, interface );
+     return IDirectFBVideoProvider_CreateFromBuffer( thiz, data->core, interface );
 }
 
 DFBResult

@@ -1048,7 +1048,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
           return ret;
 
      /* Create (probing) the video provider. */
-     ret = IDirectFBVideoProvider_CreateFromBuffer( databuffer, interface );
+     ret = IDirectFBVideoProvider_CreateFromBuffer( databuffer, data->core, interface );
 
      /* We don't need it anymore, video provider has its own reference. */
      databuffer->Release( databuffer );
@@ -1257,7 +1257,7 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
 
      if (!strncmp( type, "IDirectFB", 9 )) {
           D_ERROR( "IDirectFB::GetInterface() "
-                    "is not allowed for \"IDirectFB*\"!\n" );
+                   "is not allowed for \"IDirectFB*\"!\n" );
           return DFB_ACCESSDENIED;
      }
 
@@ -1269,7 +1269,7 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
      if (ret)
           return ret;
 
-     ret = funcs->Construct( *interface, arg );
+     ret = funcs->Construct( *interface, arg, data->core );
      if (ret)
           *interface = NULL;
 

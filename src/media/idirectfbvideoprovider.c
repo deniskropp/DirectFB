@@ -230,6 +230,7 @@ IDirectFBVideoProvider_Construct( IDirectFBVideoProvider *thiz )
 
 DFBResult
 IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
+                                         CoreDFB                 *core,
                                          IDirectFBVideoProvider **interface )
 {
      DFBResult                            ret;
@@ -269,7 +270,7 @@ IDirectFBVideoProvider_CreateFromBuffer( IDirectFBDataBuffer     *buffer,
      IDirectFBVideoProvider_Construct( videoprovider );
 
      /* Construct the interface. */
-     ret = funcs->Construct( videoprovider, buffer );
+     ret = funcs->Construct( videoprovider, buffer, core );
      if (ret)
           return ret;
 

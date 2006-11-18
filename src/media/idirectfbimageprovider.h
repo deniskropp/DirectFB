@@ -28,6 +28,8 @@
 #ifndef __IDIRECTFBIMAGEPROVIDER_H__
 #define __IDIRECTFBIMAGEPROVIDER_H__
 
+#include <core/coretypes.h>
+
 /*
  * probing context
  */
