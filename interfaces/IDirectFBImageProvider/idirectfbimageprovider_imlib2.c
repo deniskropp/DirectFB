@@ -255,7 +255,7 @@ IDirectFBImageProvider_IMLIB2_RenderTo( IDirectFBImageProvider *thiz,
      if (!image_data)
           return DFB_FAILURE; /* what else makes sense here? */
 
-     err = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+     err = dfb_surface_soft_lock( dst_data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (err)
           return err;
 

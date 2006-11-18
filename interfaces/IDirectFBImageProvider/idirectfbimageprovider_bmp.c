@@ -401,7 +401,7 @@ IDirectFBImageProvider_BMP_RenderTo( IDirectFBImageProvider *thiz,
      if (!dfb_rectangle_region_intersects( &rect, &clip ))
           return DFB_OK;
 
-     ret = dfb_surface_soft_lock( dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
+     ret = dfb_surface_soft_lock( dst_data->core, dst_surface, DSLF_WRITE, &dst, &pitch, 0 );
      if (ret)
           return ret;
      
