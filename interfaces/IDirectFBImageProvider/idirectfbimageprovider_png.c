@@ -484,19 +484,17 @@ static int SortColors (const void *a, const void *b)
 
 /*  looks for a color that is not in the colormap and ideally not
     even close to the colors used in the colormap  */
-static u32 FindColorKey( int n_colors, u8 cmap[3][MAXCOLORMAPSIZE] )
+static u32 FindColorKey( int n_colors, u8 *cmap )
 {
      u32   color = 0xFF000000;
-     u8    csort[MAXCOLORMAPSIZE];
+     u8    csort[n_colors];
      int   i, j, index, d;
 
      if (n_colors < 1)
           return color;
 
-     D_ASSERT( n_colors <= MAXCOLORMAPSIZE );
-
      for (i = 0; i < 3; i++) {
-          direct_memcpy( csort, cmap[i], n_colors );
+          direct_memcpy( csort, cmap + (n_colors * i), n_colors );
           qsort( csort, n_colors, 1, SortColors );
 
           for (j = 1, index = 0, d = 0; j < n_colors; j++) {
@@ -565,7 +563,7 @@ png_info_callback( png_structp png_read_ptr,
                     cmap[2][i] = palette[i].blue;
                }
 
-               key = FindColorKey( num_colors, cmap );
+               key = FindColorKey( num_colors, &cmap[0][0] );
 
                for (i=0; i<data->info_ptr->num_trans; i++) {
                     if (!trans[i]) {
