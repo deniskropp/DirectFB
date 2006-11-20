@@ -1260,7 +1260,7 @@ static void *V4L2_Thread(DirectThread * thread, void *ctx)
 
                h = surface->height;
                src = data->ptr[cur.index];
-               dfb_surface_soft_lock(surface, DSLF_WRITE, &dst, &dst_pitch, 0);
+               dfb_surface_soft_lock(data->core, surface, DSLF_WRITE, &dst, &dst_pitch, 0);
                while (h--) {
                     direct_memcpy(dst, src, src_pitch);
                     dst += dst_pitch;
