@@ -1656,20 +1656,17 @@ static DFBResult dfb_surface_reallocate_buffer( CoreSurface           *surface,
       */
      if (buffer->video.health) {
           dfb_surfacemanager_deallocate( surface->manager, buffer );
-          ret = dfb_surfacemanager_allocate( surface->manager, buffer );
 
-          if (ret) {
-               if (!buffer->system.health)
+          if (buffer->policy == CSP_VIDEOONLY) {
+               ret = dfb_surfacemanager_allocate( surface->manager, buffer );
+
+               if (ret) {
                     D_WARN( "reallocation of video instance failed" );
-               else {
-                    buffer->system.health = CSH_STORED;
-                    return DFB_OK;
+                    return ret;
                }
 
-               return ret;
+               buffer->video.health = CSH_STORED;
           }
-
-          buffer->video.health = CSH_STORED;
      }
 
      return DFB_OK;
