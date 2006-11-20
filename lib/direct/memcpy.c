@@ -59,6 +59,78 @@ D_DEBUG_DOMAIN( Direct_Memcpy, "Direct/Memcpy", "Direct's Memcpy Routines" );
 #endif
 
 
+#if SIZEOF_LONG == 8
+
+static void * generic64_memcpy( void * to, const void * from, size_t len )
+{
+     register __u8 *d = (__u8*)to;
+     register __u8 *s = (__u8*)from;
+     size_t         n;
+
+     if (len >= 128) {
+          unsigned long delta;
+
+          /* Align destination to 8-byte boundary */
+          delta = (unsigned long)d & 7;
+          if (delta) {
+               len -= 8 - delta;                 
+
+               if ((unsigned long)d & 1) {
+                    *d++ = *s++;
+               }
+               if ((unsigned long)d & 2) {
+                    *((__u16*)d) = *((__u16*)s);
+                    d += 2; s += 2;
+               }
+               if ((unsigned long)d & 4) {
+                    *((__u32*)d) = *((__u32*)s);
+                    d += 4; s += 4;
+               }
+          }
+          
+          n    = len >> 6;
+          len &= 63;
+          
+          for (; n; n--) {
+               ((__u64*)d)[0] = ((__u64*)s)[0];
+               ((__u64*)d)[1] = ((__u64*)s)[1];
+               ((__u64*)d)[2] = ((__u64*)s)[2];
+               ((__u64*)d)[3] = ((__u64*)s)[3];
+               ((__u64*)d)[4] = ((__u64*)s)[4];
+               ((__u64*)d)[5] = ((__u64*)s)[5];
+               ((__u64*)d)[6] = ((__u64*)s)[6];
+               ((__u64*)d)[7] = ((__u64*)s)[7];
+               d += 64; s += 64;
+          }
+     }
+     /*
+      * Now do the tail of the block
+      */
+     if (len) {
+          n = len >> 3;
+          
+          for (; n; n--) {
+               *((__u64*)d) = *((__u64*)s);
+               d += 8; s += 8;
+          }
+          if (len & 4) {
+               *((__u32*)d) = *((__u32*)s);
+               d += 4; s += 4;
+          }
+          if (len & 2)  {
+               *((__u16*)d) = *((__u16*)s);
+               d += 2; s += 2;
+          }
+          if (len & 1)
+               *d = *s;
+     }
+     
+     return to;
+}
+
+#endif /* SIZEOF_LONG == 8 */
+
+
 typedef void* (*memcpy_func)(void *to, const void *from, size_t len);
 
 static struct {
