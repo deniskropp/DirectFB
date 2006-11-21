@@ -1423,6 +1423,11 @@ void dfb_gfxcard_stretchblit( DFBRectangle *srect, DFBRectangle *drect,
      D_ASSERT( srect != NULL );
      D_ASSERT( drect != NULL );
 
+     if (srect->w == drect->w && srect->h == drect->h) {
+          dfb_gfxcard_blit( srect, drect->x, drect->y, state );
+          return;
+     }
+
      dfb_state_lock( state );
 
      if (!dfb_clip_blit_precheck( &state->clip, drect->w, drect->h,
