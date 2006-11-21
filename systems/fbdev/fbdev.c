@@ -462,7 +462,7 @@ system_initialize( CoreDFB *core, void **data )
      dfb_fbdev->framebuffer_base = mmap( NULL, shared->fix.smem_len,
                                          PROT_READ | PROT_WRITE, MAP_SHARED,
                                          dfb_fbdev->fd, 0 );
-     if ((int)(dfb_fbdev->framebuffer_base) == -1) {
+     if (dfb_fbdev->framebuffer_base == MAP_FAILED) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not mmap the framebuffer!\n");
           dfb_fbdev->framebuffer_base = NULL;
@@ -623,7 +623,7 @@ system_join( CoreDFB *core, void **data )
      dfb_fbdev->framebuffer_base = mmap( NULL, dfb_fbdev->shared->fix.smem_len,
                                          PROT_READ | PROT_WRITE, MAP_SHARED,
                                          dfb_fbdev->fd, 0 );
-     if ((int)(dfb_fbdev->framebuffer_base) == -1) {
+     if (dfb_fbdev->framebuffer_base == MAP_FAILED) {
           D_PERROR( "DirectFB/FBDev: "
                     "Could not mmap the framebuffer!\n");
           close( dfb_fbdev->fd );
