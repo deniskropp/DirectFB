@@ -600,10 +600,10 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          dfb_window_attach( window, focus_listener,
                                             data, &data->primary.reaction );
 
-                         if (dfb_config->scaled.width && dfb_config->scaled.height) {
-                              dfb_window_change_options( window, DWOP_NONE, DWOP_SCALE );
-                              dfb_window_resize( window, dfb_config->scaled.width, dfb_config->scaled.height );
-                         }
+                         dfb_window_change_options( window, DWOP_NONE, DWOP_SCALE );
+                         if (dfb_config->scaled.width && dfb_config->scaled.height)
+                              dfb_window_resize( window, dfb_config->scaled.width,
+                                                         dfb_config->scaled.height );
 
                          init_palette( window->surface, desc );
 
