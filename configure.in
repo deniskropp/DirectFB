@@ -106,8 +106,7 @@ AM_CONDITIONAL(HAVE_MAN2HTML, test "$MAN2HTML" != "no")
 
 dnl Test for OSX
 AC_ARG_ENABLE(osx,
-  [  --enable-osx            build with Mac OS X support
-[default=auto]],,
+  [  --enable-osx            build with Mac OS X support [[default=auto]]],,
   enable_osx=yes)
 
 if test "$enable_osx" = "yes"; then
@@ -125,8 +124,7 @@ AM_CONDITIONAL(OSX_CORE, test "$enable_osx" = "yes")
 
 dnl Test for X11
 AC_ARG_ENABLE(x11,
-  [  --enable-x11            build with X11 support
-[default=no]],,
+  [  --enable-x11            build with X11 support [[default=no]]],,
   enable_x11=no)
 
 if test "$enable_x11" = "yes"; then
@@ -160,7 +158,7 @@ CFLAGS="-O3 -ffast-math -pipe $CFLAGS"
 DFB_INTERNAL_CFLAGS="-D_GNU_SOURCE $DFB_INTERNAL_CFLAGS"
 
 AC_ARG_ENABLE(extra-warnings,
-  [  --enable-extra-warnings   enable extra warnings [default=no]],,
+  [  --enable-extra-warnings   enable extra warnings [[default=no]]],,
   enable_extra_warnings=no)
 if test "$enable_extra_warnings" = "yes"; then
   CFLAGS="-W -Wno-sign-compare -Wno-unused-parameter -Wundef -Wcast-qual -Wcast-align -Waggregate-return -Wmissing-declarations -Winline $CFLAGS"
@@ -350,7 +348,7 @@ fi
 
 
 AC_ARG_ENABLE(profiling,
-  [  --enable-profiling        enable profiling support [default=no]],,
+  [  --enable-profiling        enable profiling support [[default=no]]],,
   enable_profiling=no)
 if test "$enable_profiling" = "yes"; then
     CFLAGS="$CFLAGS -pg -g3"
@@ -360,7 +358,8 @@ fi
 
 
 AC_ARG_ENABLE(debug,
-  [  --enable-debug            enable debugging [default=no]],, enable_debug=no)
+  [  --enable-debug            enable debugging [[default=no]]],,
+  enable_debug=no)
 if test "$enable_debug" = "yes"; then
     CFLAGS="$CFLAGS -g3 -fno-inline"
     DIRECT_BUILD_DEBUG=1
@@ -373,7 +372,7 @@ AC_SUBST(DIRECT_BUILD_DEBUG)
 
 
 AC_ARG_ENABLE(debug-support,
-  [  --enable-debug-support    enable debugging support [default=yes]],, enable_debug_support=yes)
+  [  --enable-debug-support    enable debugging support [[default=yes]]],, enable_debug_support=yes)
 if test "$enable_debug_support" = "yes" || test "$enable_debug" = "yes"; then
     enable_debug_support=yes
     DIRECT_BUILD_DEBUGS=1
@@ -386,7 +385,8 @@ AC_SUBST(DIRECT_BUILD_DEBUGS)
 
 
 AC_ARG_ENABLE(trace,
-  [  --enable-trace            enable call tracing [default=no]],, enable_trace=no)
+  [  --enable-trace            enable call tracing [[default=no]]],,
+  enable_trace=no)
 if test "$enable_trace" = "yes"; then
     DFB_INTERNAL_CFLAGS="$DFB_INTERNAL_CFLAGS -finstrument-functions"
     DIRECT_BUILD_TRACE=1
@@ -399,7 +399,8 @@ AC_SUBST(DIRECT_BUILD_TRACE)
 
 
 AC_ARG_ENABLE(text,
-  [  --enable-text             enable text output [default=yes]],, enable_text=yes)
+  [  --enable-text             enable text output [[default=yes]]],,
+  enable_text=yes)
 if test "$enable_text" = "no"; then
     DIRECT_BUILD_TEXT=0
 else
@@ -410,7 +411,8 @@ AC_SUBST(DIRECT_BUILD_TEXT)
 
 
 AC_ARG_ENABLE(gettid,
-  [  --enable-gettid           enable usage of gettid() [default=yes]],, enable_gettid=yes)
+  [  --enable-gettid           enable usage of gettid() [[default=yes]]],,
+  enable_gettid=yes)
 if test "$enable_gettid" = "no"; then
     DIRECT_BUILD_GETTID=0
 else
@@ -421,7 +423,8 @@ AC_SUBST(DIRECT_BUILD_GETTID)
 
 
 AC_ARG_ENABLE(network,
-  [  --enable-network          enable network support [default=yes]],, enable_network=yes)
+  [  --enable-network          enable network support [[default=yes]]],,
+  enable_network=yes)
 if test "$enable_network" = "no"; then
     DIRECT_BUILD_NETWORK=0
 else
@@ -432,7 +435,8 @@ AC_SUBST(DIRECT_BUILD_NETWORK)
 
 
 AC_ARG_ENABLE(multi,
-  [  --enable-multi            enable multi application core [default=no]],, enable_multi=no)
+  [  --enable-multi            enable multi application core [[default=no]]],,
+  enable_multi=no)
 if test "$enable_multi" = "yes"; then
   dnl Test for Fusion Kernel Device
   linux_fusion=yes
@@ -453,23 +457,25 @@ AC_SUBST(FUSION_BUILD_MULTI)
 
 
 AC_ARG_ENABLE(voodoo,
-  [  --enable-voodoo           enable Voodoo (network support) [default=no]],, enable_voodoo=no)
+  [  --enable-voodoo           enable Voodoo (network support) [[default=no]]],,
+  enable_voodoo=no)
 
 AM_CONDITIONAL(ENABLE_VOODOO, test "$enable_voodoo" = "yes")
 
 
 AC_ARG_ENABLE(unique,
-  [  --enable-unique           enable Unique (WM Module) [default=no]],, enable_unique=no)
+  [  --enable-unique           enable Unique (WM Module) [[default=no]]],,
+  enable_unique=no)
 
 AM_CONDITIONAL(ENABLE_UNIQUE, test "$enable_unique" = "yes")
 
 
 AC_ARG_ENABLE(mmx,
-  [  --enable-mmx              enable MMX support [default=autodetect]],,
+  [  --enable-mmx              enable MMX support [[default=auto]]],,
   enable_mmx=$have_x86)
 
 AC_ARG_ENABLE(sse,
-  [  --enable-sse              enable SSE support [default=autodetect]],,
+  [  --enable-sse              enable SSE support [[default=auto]]],,
   enable_sse=$have_x86)
 
 if test "$enable_mmx" = "yes"; then
@@ -527,7 +533,7 @@ AM_CONDITIONAL(BUILDMMX, test "$enable_mmx" = "yes")
 
 dnl Test for Linux frame buffer device
 AC_ARG_ENABLE(fbdev,
-  [  --enable-fbdev            build with linux fbdev support [default=auto]],,
+  [  --enable-fbdev            build with linux fbdev support [[default=auto]]],,
   enable_fbdev=yes)
 
 if test "$have_linux" = "no"; then
@@ -542,7 +548,7 @@ AM_CONDITIONAL(FBDEV_CORE, test "$enable_fbdev" = "yes")
 
 dnl Test for SDL
 AC_ARG_ENABLE(sdl,
-  [  --enable-sdl              build with SDL support [default=auto]],,
+  [  --enable-sdl              build with SDL support [[default=auto]]],,
   enable_sdl=yes)
 
 if test "$enable_sdl" = "yes"; then
@@ -570,7 +576,7 @@ AM_CONDITIONAL(SDL_CORE, test "$enable_sdl" = "yes")
 
 dnl Test for VNC
 AC_ARG_ENABLE(vnc,
-  [  --enable-vnc              build with VNC support [default=auto]],,
+  [  --enable-vnc              build with VNC support [[default=auto]]],,
   enable_vnc=yes)
                                                                      
                                                                      
@@ -596,7 +602,7 @@ AC_SUBST(VNC_CFLAGS)
 
 dnl Test for libsysfs
 AC_ARG_ENABLE(sysfs,
-  [  --enable-sysfs            build with sysfs support [default=auto]],,
+  [  --enable-sysfs            build with sysfs support [[default=auto]]],,
   enable_sysfs=yes)
 
 use_sysfs=no
@@ -623,7 +629,7 @@ dnl Test for libjpeg
 JPEG=no
 
 AC_ARG_ENABLE(jpeg,
-  [  --enable-jpeg             build JPEG image provider [default=yes]],
+  [  --enable-jpeg             build JPEG image provider [[default=yes]]],
   enable_jpeg="$enableval", enable_jpeg=yes)
 
 if test "$enable_jpeg" = "yes"; then
@@ -660,7 +666,7 @@ fi
 
 
 AC_ARG_ENABLE(zlib,
-  [  --enable-zlib             use zlib, e.g. for screen shots [default=no]],
+  [  --enable-zlib             use zlib, e.g. for screen shots [[default=no]]],
   enable_zlib="$enableval", enable_zlib=no)
 
 use_zlib=no
@@ -688,7 +694,7 @@ dnl Test for libpng and libz
 PNG=no
 
 AC_ARG_ENABLE(png,
-  [  --enable-png              build PNG image provider [default=yes]],
+  [  --enable-png              build PNG image provider [[default=yes]]],
   enable_png="$enableval", enable_png=yes)
 
 if test "$enable_png" = "yes"; then
@@ -762,7 +768,7 @@ fi
 
 dnl Allow to disable GIF support
 AC_ARG_ENABLE(gif,
-  [  --enable-gif              build GIF image/video provider [default=yes]],
+  [  --enable-gif              build GIF image/video provider [[default=yes]]],
   enable_gif="$enableval", enable_gif=yes)
  
 AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
@@ -770,7 +776,7 @@ AM_CONDITIONAL(GIF_PROVIDER, test "$enable_gif" = "yes")
 
 dnl Test for freetype
 AC_ARG_ENABLE(freetype,
-  [  --enable-freetype         build FreeType2 font provider [default=yes]],
+  [  --enable-freetype         build FreeType2 font provider [[default=yes]]],
   enable_freetype="$enableval", enable_freetype=yes)
 
 if test "$enable_freetype" = "yes"; then
@@ -802,7 +808,7 @@ V4L=no
 
 if test "$have_linux" = "yes"; then
   AC_ARG_ENABLE(video4linux,
-    [  --enable-video4linux      build Video4Linux video provider [default=yes]],
+    [  --enable-video4linux      build Video4Linux video provider [[default=yes]]],
     enable_v4l="$enableval", enable_v4l=yes)
 
   if test "$enable_v4l" = "yes"; then
@@ -818,7 +824,7 @@ V4L2=no
 
 if test "$V4L" = "yes"; then
   AC_ARG_ENABLE(video4linux2,
-    [  --enable-video4linux2     build with Video4Linux2 support [default=no]],
+    [  --enable-video4linux2     build with Video4Linux2 support [[default=no]]],
     enable_v4l2="$enableval", enable_v4l2=no)
 
   if test "$enable_v4l2" = "yes"; then
