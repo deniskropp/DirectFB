@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.17 2006-10-29 23:24:50 dok Exp $
+ * $Id: sis315.c,v 1.18 2006-11-21 16:03:46 klan Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -166,7 +166,7 @@ static void sis_set_state(void *driver_data, void *device_data,
 	state->modified = 0;
 }
 
-static void check_sisfb_version(SiSDriverData *drv, const sisfb_info *i)
+static void check_sisfb_version(SiSDriverData *drv, const struct sisfb_info *i)
 {
 	u32 sisfb_version = SISFB_VERSION(i->sisfb_version,
 					  i->sisfb_revision,
@@ -222,7 +222,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 {
 	SiSDriverData *drv = (SiSDriverData *)driver_data;
 	FBDev *dfb_fbdev;
-	sisfb_info *fbinfo;
+	struct sisfb_info *fbinfo;
 	u32 fbinfo_size;
 	u32 zero = 0;
 
@@ -239,7 +239,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 		drv->set_automaximize = SISFB_SET_AUTOMAXIMIZE;
 	}
 	else {
-		fbinfo = D_MALLOC(sizeof(sisfb_info) + 16);
+		fbinfo = D_MALLOC(sizeof(struct sisfb_info) + 16);
 		drv->get_info = SISFB_GET_INFO_OLD;
 		drv->get_automaximize = SISFB_GET_AUTOMAXIMIZE_OLD;
 		drv->set_automaximize = SISFB_SET_AUTOMAXIMIZE_OLD;
