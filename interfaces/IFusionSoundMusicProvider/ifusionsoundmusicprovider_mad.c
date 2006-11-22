@@ -552,7 +552,7 @@ IFusionSoundMusicProvider_Mad_GetStreamDescription( IFusionSoundMusicProvider *t
      desc->flags      = FSSDF_SAMPLERATE | FSSDF_CHANNELS | FSSDF_BUFFERSIZE;
      desc->samplerate = data->samplerate;
      desc->channels   = data->channels;
-     desc->buffersize = data->samplerate/5;
+     desc->buffersize = 1152;
 
      return DFB_OK;
 }
@@ -569,7 +569,7 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      desc->flags      = FSBDF_SAMPLERATE | FSBDF_CHANNELS | FSBDF_LENGTH;
      desc->samplerate = data->samplerate;
      desc->channels   = data->channels;
-     desc->length     = data->samplerate/5;
+     desc->length     = 1152;
 
      return DFB_OK;
 }
@@ -609,7 +609,10 @@ MadStreamThread( DirectThread *thread, void *ctx )
                break;
           }
 
-          data->seeked = false;
+          if (data->seeked) {
+               stream->Flush( stream );
+               data->seeked = false;
+          }
 
           if (data->stream.next_frame) {
                offset = data->stream.bufend - data->stream.next_frame;
@@ -639,7 +642,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
 
           mad_stream_buffer( &data->stream, data->read_buffer, len+offset );
 
-          do {
+          while (data->playing && !data->seeked) {
                struct mad_pcm *pcm = &data->synth.pcm;
 
                if (mad_frame_decode( &data->frame, &data->stream ) == -1) {
@@ -656,7 +659,7 @@ MadStreamThread( DirectThread *thread, void *ctx )
                               data->dest.channels );
 
                stream->Write( stream, data->write_buffer, pcm->length );
-          } while (data->playing && !data->seeked);
+          }
      }
 
      return NULL;
@@ -798,7 +801,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
 
           mad_stream_buffer( &data->stream, data->read_buffer, len+offset );
 
-          do {
+          while (data->playing && !data->seeked) {
                struct mad_pcm *pcm   = &data->synth.pcm;
                mad_fixed_t    *left  = (mad_fixed_t*)pcm->samples[0];
                mad_fixed_t    *right = (mad_fixed_t*)pcm->samples[1];
@@ -845,7 +848,7 @@ MadBufferThread( DirectThread *thread, void *ctx )
                } while (len > 0);
 
                buffer->Unlock( buffer );
-          } while (data->playing && !data->seeked);
+          }
      }
 
      return NULL;
