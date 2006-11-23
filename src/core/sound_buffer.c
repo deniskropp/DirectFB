@@ -298,15 +298,14 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                /* Make sure start position is greater than stop position. */
                if (pos <= stop)
                     stop -= buffer->length;
-               tmp = (long long)(pos - stop) << 10;
           } else {
                /* Make sure stop position is greater than start position. */
                if (pos >= stop)
                     stop += buffer->length;
-               tmp = (long long)(stop - pos) << 10;
           }
           
-          if (ABS(max) > tmp) {
+          tmp = (long long)(stop - pos) << 10;
+          if (ABS(max) > ABS(tmp)) {
                max = tmp;
                ret = DFB_BUFFEREMPTY;
           }
