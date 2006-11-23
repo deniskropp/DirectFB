@@ -439,6 +439,8 @@ system_initialize( CoreDFB *core, void **data )
 
      shared->page_mask = page_size < 0 ? 0 : (page_size - 1);
 
+     setpgid( 0, 0 );
+
      ret = dfb_fbdev_open();
      if (ret)
           goto error;
