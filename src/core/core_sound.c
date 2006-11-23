@@ -27,6 +27,8 @@
 
 #include <config.h>
 
+#include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 #include <pthread.h>
@@ -96,6 +98,9 @@ struct __FS_CoreSound {
      bool                 master;
      CoreSoundDevice     *device;
      DirectThread        *sound_thread;
+     
+     void                *mixing_buffer;
+     void                *output_buffer;
 
      DirectSignalHandler *signal_handler;
 };
@@ -447,14 +452,10 @@ sound_thread( DirectThread *thread, void *arg )
      CoreSoundShared    *shared  = core->shared;
      DeviceCapabilities  caps;
      
+     __u8               *output  = core->output_buffer;
+     __fsf              *mixing  = core->mixing_buffer;
      int                 samples = shared->config.buffersize * 2;
      int                 mixed   = 0;
-     int                 size    = shared->config.buffersize *
-                                   shared->config.channels   *
-                                   FS_BITS_PER_SAMPLE(shared->config.format)>>3;
-
-     __u8                output[size];
-     __fsf               mixing[samples]; 
      
      fs_device_get_capabilities( core->device, &caps );
      
@@ -480,7 +481,7 @@ sound_thread( DirectThread *thread, void *arg )
 
           if (mixed == 0) {
                /* Clear mixing buffer. */
-               memset( mixing, 0, sizeof(mixing) );
+               memset( mixing, 0, samples*sizeof(__fsf) );
           }
 
           /* Iterate through running playbacks, mixing them together. */
@@ -507,8 +508,6 @@ sound_thread( DirectThread *thread, void *arg )
           }
 
           fusion_skirmish_dismiss( &shared->playlist.lock );
-
-          D_ASSERT( (mixed+length) <= samples );
           
           mixed += length;
           if (caps & DCF_WRITEBLOCKS && mixed < samples)
@@ -666,6 +665,18 @@ fs_core_initialize( CoreSound *core )
 
      /* create a pool for playback objects */
      shared->playback_pool = fs_playback_pool_create( core->world );
+     
+     /* allocate mixing buffer */
+     core->mixing_buffer = D_MALLOC( shared->config.buffersize * 2 * sizeof(__fsf) );
+     if (!core->mixing_buffer)
+          return D_OOM();
+          
+     /* allocate output buffer */
+     core->output_buffer = D_MALLOC( shared->config.buffersize *
+                                     shared->config.channels   *
+                                     FS_BYTES_PER_SAMPLE(shared->config.format) );
+     if (!core->output_buffer)
+          return D_OOM();
 
      /* create sound thread */
      core->sound_thread = direct_thread_create( DTT_CRITICAL, sound_thread, core, "Sound Mixer" );
@@ -707,7 +718,7 @@ fs_core_shutdown( CoreSound *core )
      direct_thread_cancel( core->sound_thread );
      direct_thread_join( core->sound_thread );
      direct_thread_destroy( core->sound_thread );
-
+     
      /* close output device */
      fs_device_shutdown( core->device );
 
@@ -730,6 +741,10 @@ fs_core_shutdown( CoreSound *core )
 
      /* destroy playlist lock */
      fusion_skirmish_destroy( &shared->playlist.lock );
+     
+     /* release buffers */
+     D_FREE( core->mixing_buffer );
+     D_FREE( core->output_buffer );
 
      return DFB_OK;
 }
