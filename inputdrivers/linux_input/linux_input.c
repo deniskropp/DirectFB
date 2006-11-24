@@ -61,6 +61,8 @@ typedef unsigned long kernel_ulong_t;
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/kd.h>
+#include <stdlib.h>
+
 
 #include <linux/keyboard.h>
 
@@ -284,6 +286,35 @@ int ext_keycodes [] = {
      DIKS_PLAY, DIKS_RESTART, DIKS_SLOW, DIKS_SHUFFLE, DIKS_FASTFORWARD,
      DIKS_PREVIOUS, DIKS_NEXT, DIKS_DIGITS, DIKS_TEEN, DIKS_TWEN, DIKS_BREAK
 };
+
+/*
+ * Touchpads related stuff
+ */
+#define TOUCHPAD_SCALING_FACTOR 5
+#define TOUCHPAD_FSM_START  0
+#define TOUCHPAD_FSM_MAIN   1
+#define TOUCHPAD_FSM_END    2
+
+/* expressed in usecs 
+ */
+#define TOUCHPAD_SINGLE_CLICK_TIMEOUT    250000
+
+/* lower touchpad pressure treshold for the mouse cursor to start moving
+ */
+#define TOUCHPAD_START_MOTION_PRESSURE_TRESHOLD 20
+
+/* motion is reduced in a indirectly proportional way to finger pressure,
+ * this is the unit treshold
+ */
+#define TOUCHPAD_SCALING_FACTOR_PRESSURE 40
+
+int x_old = -1, y_old = -1, dx, dy, last_pressure, fire_single_click_flag = 0;
+struct timeval *last_mousetouch;
+int touchpad_state = TOUCHPAD_FSM_START;
+
+static int
+touchpad_fsm ( struct input_event *levt,
+               DFBInputEvent      *devt );
 
 /*
  * Translates a Linux input keycode into a DirectFB keycode.
@@ -512,10 +543,10 @@ key_event( struct input_event *levt,
            DFBInputEvent      *devt )
 {
      /* map touchscreen and smartpad events to button mouse */
-     if (levt->code == BTN_TOUCH || levt->code == BTN_TOOL_FINGER)
-          levt->code = BTN_MOUSE;
+//     if (levt->code == BTN_TOUCH || levt->code == BTN_TOOL_FINGER)
+//          levt->code = BTN_MOUSE;
 
-     if (levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) {
+     if ((levt->code >= BTN_MOUSE && levt->code < BTN_JOYSTICK) || levt->code == BTN_TOUCH) {
           /* ignore repeat events for buttons */
           if (levt->value == 2)
                return 0;
@@ -610,8 +641,9 @@ abs_event( struct input_event *levt,
                break;
 
           default:
-               if (levt->code >= ABS_PRESSURE || levt->code > DIAI_LAST)
-                    return 0;
+// why this ?
+//               if (levt->code >= ABS_PRESSURE || levt->code > DIAI_LAST)
+//                    return 0;
                devt->axis = levt->code;
      }
 
@@ -704,6 +736,8 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
      int                readlen;
      struct input_event levt[64];
 
+     last_mousetouch = malloc ( sizeof(struct timeval));
+
      while ((readlen = read(data->fd, levt, sizeof(levt)) / sizeof(levt[0])) > 0
             || (readlen < 0 && errno == EINTR))
      {
@@ -716,9 +750,14 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
 
           for (i=0; i<readlen; i++) {
                DFBInputEvent devt;
-
+//printf("levt->type = %d, levt->code = %d, levt->value = %d\n", levt[i].type, levt[i].code, levt->value );
                if (!translate_event( &levt[i], &devt ))
                     continue;
+
+               if ( (devt.type == DIET_AXISMOTION && (devt.flags & DIEF_AXISABS)) || levt[i].code == BTN_TOUCH || ( levt[i].type == EV_ABS && levt[i].code == ABS_PRESSURE ) ) {
+                    if (touchpad_fsm ( &levt[i], &devt ) == 0)
+                         continue;
+               }
 
                if (devt.type == DIET_AXISMOTION && (devt.flags & DIEF_AXISREL)) {
                     switch (devt.axis) {
@@ -735,7 +774,7 @@ linux_input_EventThread( DirectThread *thread, void *driver_data )
                     }
                }
 
-               flush_xy( data );
+//               flush_xy( data );
 
                dfb_input_dispatch( data->device, &devt );
 
@@ -1115,4 +1154,105 @@ driver_close_device( void *driver_data )
 
      /* free private data */
      D_FREE( data );
+}
+
+/*
+ * This FSM takes into accout finger landing on touchpad and leaving and
+ * translates absolute DFBInputEvent into a relative one
+ */
+static int
+touchpad_fsm ( struct input_event *levt,
+               DFBInputEvent      *devt )
+{
+     int ret_val;
+
+     if ( levt->type == EV_ABS && levt->code == ABS_PRESSURE ) {
+         last_pressure = levt->value;
+         return 0;
+     }
+
+     switch (touchpad_state) {
+
+          case TOUCHPAD_FSM_START:
+               /* finger is landing */
+               if ((levt->type == EV_KEY && levt->code == BTN_TOUCH && levt->value == 1) || (last_pressure > TOUCHPAD_START_MOTION_PRESSURE_TRESHOLD)) {
+                    last_mousetouch->tv_sec = (levt->time).tv_sec;
+                    last_mousetouch->tv_usec = (levt->time).tv_usec;
+                    if (last_pressure > TOUCHPAD_START_MOTION_PRESSURE_TRESHOLD)
+                         touchpad_state = TOUCHPAD_FSM_MAIN;
+               }
+               ret_val = 0;
+               break;
+
+          case TOUCHPAD_FSM_MAIN:
+               /* translating mouse movements into relative coordinates */
+               if (levt->type == EV_ABS && (levt->code == ABS_X || levt->code == ABS_Y)) {
+                    switch (devt->axis) {
+                         case DIAI_X:
+                              if (x_old == -1)
+                                   x_old = devt->axisabs;
+                              dx = (devt->axisabs - x_old ) / TOUCHPAD_SCALING_FACTOR;
+                              dx = dx * (last_pressure/ TOUCHPAD_SCALING_FACTOR_PRESSURE);
+                              x_old = devt->axisabs;
+                              devt->axisrel = dx;
+                              devt->flags = devt->flags |= DIEF_AXISABS;
+                              devt->flags = devt->flags |= DIEF_AXISREL;
+                              ret_val = 1;
+                              break;
+                         case DIAI_Y:
+                              if (y_old == -1)
+                                   y_old = devt->axisabs;
+                              dy = (devt->axisabs - y_old ) / TOUCHPAD_SCALING_FACTOR;
+                              dy = dy * (last_pressure/ TOUCHPAD_SCALING_FACTOR_PRESSURE);
+                              y_old = devt->axisabs;
+                              devt->axisrel = dy;
+                              devt->flags = devt->flags |= DIEF_AXISABS;
+                              devt->flags = devt->flags |= DIEF_AXISREL;
+                              ret_val = 1;
+                              break;
+                         default:
+                              ret_val = 0;
+                              break;
+                    }
+               }
+
+               /* finger is leaving */
+               else if (levt->type == EV_KEY && levt->code == BTN_TOUCH && levt->value == 0) {
+                    if ( ((levt->time).tv_sec * 1000000 + (levt->time).tv_usec) -\
+                         (last_mousetouch->tv_sec * 1000000 + last_mousetouch->tv_usec)\
+                         <= TOUCHPAD_SINGLE_CLICK_TIMEOUT) {
+                         devt->type = DIET_BUTTONPRESS;
+                         devt->button = DIBI_FIRST;
+                         fire_single_click_flag = 1;
+                         ret_val = 1;
+                    }
+                    else
+                         ret_val = 0;
+
+                    touchpad_state = TOUCHPAD_FSM_END;
+               }
+               else
+                    ret_val = 0;
+          break;
+
+          case TOUCHPAD_FSM_END:
+               x_old = y_old = last_pressure = -1;
+               touchpad_state = TOUCHPAD_FSM_START;
+
+               if (fire_single_click_flag == 1) {
+                    fire_single_click_flag = 0;
+                    devt->type = DIET_BUTTONRELEASE;
+                    devt->button = DIBI_FIRST;
+                    ret_val = 1;
+               }
+               else
+                    ret_val = 0;
+               break;
+
+          default:
+               ret_val = 0;
+               break;
+     }
+
+     return ret_val;
 }
