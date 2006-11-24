@@ -613,6 +613,8 @@ system_join( CoreDFB *core, void **data )
      dfb_fbdev->core = core;
      dfb_fbdev->shared = shared;
 
+     setpgid( 0, 0 );
+
      /* Open framebuffer device */
      ret = dfb_fbdev_open();
      if (ret) {
