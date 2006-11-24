@@ -64,6 +64,10 @@ if PENMOUNT_TS
 PENMOUNT_TS_DIR = penmount
 endif
 
+if TSLIB
+TSLIB_DIR = tslib
+endif
+
 if WM97XX_TS
 WM97XX_TS_DIR = wm97xx_ts
 endif
@@ -85,4 +89,5 @@ SUBDIRS = \
 	$(SONYPI_DIR)		\
 	$(DBOX2REMOTE_DIR)	\
 	$(DREAMBOXREMOTE_DIR)	\
+	$(TSLIB_DIR)		\
 	$(WM97XX_TS_DIR)

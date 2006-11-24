@@ -1021,6 +1021,7 @@ checkfor_penmount=no
 checkfor_ps2mouse=no
 checkfor_serialmouse=no
 checkfor_sonypijogdial=no
+checkfor_tslib=no
 checkfor_ucb1x00=no
 checkfor_wm97xx=no
 
@@ -1032,7 +1033,7 @@ AC_ARG_WITH(inputdrivers,
 [                             Possible inputdrivers are: ]
 [                             dbox2remote, dynapro, elo-input, gunze, h3600_ts, joystick, keyboard, ]
 [                             dreamboxremote, linuxinput, lirc, mutouch, penmount, ps2mouse, ]
-[                             serialmouse, sonypijogdial, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
+[                             serialmouse, sonypijogdial, tslib, wm97xx], inputdrivers="$withval",[inputdrivers="all"])
 
 if test "$inputdrivers" = "all"; then
   checkfor_dbox2remote=yes
@@ -1050,6 +1051,7 @@ if test "$inputdrivers" = "all"; then
   checkfor_ps2mouse=yes
   checkfor_serialmouse=yes
   checkfor_sonypijogdial=yes
+  checkfor_tslib=yes
   checkfor_ucb1x00="$have_arm"
   checkfor_wm97xx=yes
   AC_MSG_RESULT(all)
@@ -1103,6 +1105,9 @@ else
                   ;;
           sonypijogdial)
                   checkfor_sonypijogdial=yes
+                  ;;
+          tslib)
+                  checkfor_tslib=yes
                   ;;
           ucb1x00)
                   checkfor_ucb1x00=yes
@@ -1214,6 +1219,12 @@ if test "$checkfor_sonypijogdial" = "yes"; then
     AC_MSG_WARN([*** no linux/sonypi.h -- SonyPI Jogdial driver will not be built.]))
 fi
 
+enable_tslib=no
+if test "$checkfor_tslib" = "yes"; then
+    PKG_CHECK_MODULES([TSLIB], [tslib-0.0 >= 0.0.2], enable_tslib=yes, enable_tslib=no
+        AC_MSG_WARN([*** no tslib -- tslib driver will not be built.]))
+fi
+
 enable_ucb1x00_ts=no
 if test "$checkfor_ucb1x00" = "yes"; then
   dnl Test for UCB1x00 Touchscreen support
@@ -1287,6 +1298,7 @@ AM_CONDITIONAL(PENMOUNT_TS, test "$enable_penmount" = "yes" )
 AM_CONDITIONAL(PS2MOUSE_INPUT, test "$enable_ps2mouse" = "yes")
 AM_CONDITIONAL(SERIAL_MOUSE_INPUT, test "$enable_serial_mouse" = "yes")
 AM_CONDITIONAL(SONYPI, test "$enable_sonypi_jogdial" = "yes")
+AM_CONDITIONAL(TSLIB, test "$enable_tslib" = "yes")
 AM_CONDITIONAL(WM97XX_TS, test "$enable_wm97xx_ts" = "yes")
 
 AM_CONDITIONAL(UCB1X00_TS, test "$enable_ucb1x00_ts" = "yes")
@@ -1337,6 +1349,8 @@ AC_SUBST(X11_CFLAGS)
 AC_SUBST(X11_LIBS)
 AC_SUBST(SDL_CFLAGS)
 AC_SUBST(SDL_LIBS)
+AC_SUBST(TSLIB_CFLAGS)
+AC_SUBST(TSLIB_LIBS)
 AC_SUBST(ZLIB_LIBS)
 AC_SUBST(GIF_PROVIDER)
 AC_SUBST(JPEG_PROVIDER)
@@ -1449,6 +1463,7 @@ inputdrivers/penmount/Makefile
 inputdrivers/ps2mouse/Makefile
 inputdrivers/serialmouse/Makefile
 inputdrivers/sonypi/Makefile
+inputdrivers/tslib/Makefile
 inputdrivers/ucb1x00_ts/Makefile
 inputdrivers/wm97xx_ts/Makefile
 
@@ -1559,6 +1574,7 @@ Building Input Drivers:
   PS/2 Mouse                $enable_ps2mouse
   Serial Mouse              $enable_serial_mouse
   SonyPI Jogdial            $enable_sonypi_jogdial
+  tslib                     $enable_tslib
   ucb1x00 Touchscreen       $enable_ucb1x00_ts
   WM97xx Touchscreen        $enable_wm97xx_ts]);
 fi
