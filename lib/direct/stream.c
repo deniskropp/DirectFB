@@ -291,6 +291,9 @@ net_wait( DirectStream   *stream,
 {
      fd_set s;
 
+     if (stream->cache_size >= length)
+          return DFB_OK;
+
      if (stream->fd == -1)
           return DFB_EOF;
      
@@ -1515,7 +1518,6 @@ rtsp_open( DirectStream *stream, const char *filename )
      fcntl( stream->fd, F_SETFL, 
             fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
        
-     stream->wait = NULL;
      stream->peek = rtsp_peek;
      stream->read = rtsp_read;
      
