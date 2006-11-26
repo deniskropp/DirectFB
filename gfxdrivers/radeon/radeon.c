@@ -155,28 +155,26 @@ radeon_compatible_format( RadeonDriverData *rdrv, DFBSurfacePixelFormat format )
 #ifdef WORDS_BIGENDIAN
      u32 tmp, bpp;
 
+     bpp = DFB_BYTES_PER_PIXEL( format );
      tmp = radeon_in32( rdrv->mmio_base, CRTC_GEN_CNTL );
      switch ((tmp >> 8) & 0xf) {
           case DST_8BPP:
-          case DST_8BPP_RGB332:
-               bpp = 8;
+          case DST_24BPP:
+               if (bpp == 2 || bpp == 4)
+                    return false;
                break;
           case DST_15BPP:
           case DST_16BPP:
-               bpp = 16;
-               break;               
-          case DST_24BPP:
-               bpp = 24;
+               if (bpp != 2)
+                    return false;
                break;
           default:
-               bpp = 32;
+               if (bpp != 4)
+                    return false;
                break;
      }
-
-     return (DFB_BITS_PER_PIXEL(format) == bpp);
-#else
-     return true;
 #endif
+     return true;
 }
 
 static void
