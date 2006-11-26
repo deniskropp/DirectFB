@@ -3045,6 +3045,7 @@ DEFINE_INTERFACE(   IDirectFBSurface,
 
      /*
       * Returns the framebuffer offset of a locked surface.
+      *
       * The surface must exist in video memory.
       */
      DFBResult (*GetFramebufferOffset) (
@@ -3060,12 +3061,13 @@ DEFINE_INTERFACE(   IDirectFBSurface,
      );
 
      /*
-      * Flip the two buffers of the surface.
+      * Flip/Update surface buffers.
       *
       * If no region is specified the whole surface is flipped,
       * otherwise blitting is used to update the region.
-      * This function fails if the surfaces capabilities don't
-      * include DSCAPS_FLIPPING.
+      * If surface capabilities don't include DSCAPS_FLIPPING,
+      * this method has the effect to make visible changes
+      * made to the surface contents.
       */
      DFBResult (*Flip) (
           IDirectFBSurface         *thiz,
