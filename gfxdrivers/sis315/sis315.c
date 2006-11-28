@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.c,v 1.18 2006-11-21 16:03:46 klan Exp $
+ * $Id: sis315.c,v 1.19 2006-11-28 10:53:42 klan Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -239,7 +239,7 @@ static DFBResult driver_init_driver(GraphicsDevice *device,
 		drv->set_automaximize = SISFB_SET_AUTOMAXIMIZE;
 	}
 	else {
-		fbinfo = D_MALLOC(sizeof(struct sisfb_info) + 16);
+		fbinfo = D_MALLOC(sizeof(struct sisfb_info));
 		drv->get_info = SISFB_GET_INFO_OLD;
 		drv->get_automaximize = SISFB_GET_AUTOMAXIMIZE_OLD;
 		drv->set_automaximize = SISFB_SET_AUTOMAXIMIZE_OLD;

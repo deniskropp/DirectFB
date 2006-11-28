@@ -25,8 +25,7 @@ libdirectfb_sis315_la_SOURCES =	\
 	sis315_mmio.h		\
 	sis315_regs.h		\
 	sis315_state.c		\
-	sis315_state.h		\
-	sisfb.h
+	sis315_state.h
 
 libdirectfb_sis315_la_LDFLAGS = \
 	-export-dynamic		\

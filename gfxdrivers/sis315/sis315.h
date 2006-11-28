@@ -1,5 +1,5 @@
 /*
- * $Id: sis315.h,v 1.5 2006-10-29 23:24:50 dok Exp $
+ * $Id: sis315.h,v 1.6 2006-11-28 10:53:42 klan Exp $
  *
  * Copyright (C) 2003 by Andreas Oberritter <obi@saftware.de>
  *
@@ -28,7 +28,7 @@
 typedef struct {
 	volatile u8 *mmio_base;
 	bool has_auto_maximize;
-	unsigned long auto_maximize;
+	u32 auto_maximize;
 	/* ioctls */
 	int get_info;
 	int get_automaximize;
