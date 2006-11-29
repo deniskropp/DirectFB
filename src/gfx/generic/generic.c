@@ -7995,6 +7995,79 @@ static void Dacc_RGB_to_YCbCr_C( GenefxState *gfxs )
 
 static GenefxFunc Dacc_RGB_to_YCbCr = Dacc_RGB_to_YCbCr_C;
 
+
+static void Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb16( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u32 *S = gfxs->Bop[0];
+     u16 *D = gfxs->Aop[0];
+
+     while (w--) {
+          u16 dp16   = *D;
+          u32 sp32   = *S++;
+          int salpha = (sp32 >> 26) + 1;
+
+#define rb (((sp32 >> 8) & 0xf800) | ((sp32 >> 3) & 0x001f))
+#define g   ((sp32 >> 5) & 0x07e0)
+
+          *D++ = ((((rb-(dp16 & 0xf81f))*salpha+((dp16 & 0xf81f)<<6)) & 0x003e07c0) +
+                  ((( g-(dp16 & 0x07e0))*salpha+((dp16 & 0x07e0)<<6)) & 0x0001f800)) >> 6;
+
+#undef rb
+#undef g
+     }
+}
+
+static void Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb32( GenefxState *gfxs )
+{
+     int  w = gfxs->length;
+     u32 *S = gfxs->Bop[0];
+     u32 *D = gfxs->Aop[0];
+
+     while (w--) {
+          u32 dp32   = *D;
+          u32 sp32   = *S++;
+          int salpha = (sp32 >> 25) + 1;
+
+#define rb (sp32 & 0xff00ff)
+#define g  (sp32 & 0x00ff00)
+
+          *D++ = ((((rb-(dp32 & 0xff00ff))*salpha+((dp32 & 0xff00ff)<<7)) & 0x7f807f80) +
+                  ((( g-(dp32 & 0x00ff00))*salpha+((dp32 & 0x00ff00)<<7)) & 0x007f8000)) >> 7;
+
+#undef rb
+#undef g
+     }
+}
+
+static GenefxFunc Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
+     NULL,                                             /* DSPF_ARGB1555 */
+     Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb16, /* DSPF_RGB16 */
+     NULL,                                             /* DSPF_RGB24 */
+     Bop_argb_blend_alphachannel_src_invsrc_Aop_rgb32, /* DSPF_RGB32 */
+     NULL,                                             /* DSPF_ARGB */
+     NULL,                                             /* DSPF_A8 */
+     NULL,                                             /* DSPF_YUY2 */
+     NULL,                                             /* DSPF_RGB332 */
+     NULL,                                             /* DSPF_UYVY */
+     NULL,                                             /* DSPF_I420 */
+     NULL,                                             /* DSPF_YV12 */
+     NULL,                                             /* DSPF_LUT8 */
+     NULL,                                             /* DSPF_ALUT44 */
+     NULL,                                             /* DSPF_AiRGB */
+     NULL,                                             /* DSPF_A1 */
+     NULL,                                             /* DSPF_NV12 */
+     NULL,                                             /* DSPF_NV16 */
+     NULL,                                             /* DSPF_ARGB2554 */
+     NULL,                                             /* DSPF_ARGB4444 */
+     NULL,                                             /* DSPF_NV21 */
+     NULL,                                             /* DSPF_AYUV */
+     NULL,                                             /* DSPF_A4 */
+     NULL,                                             /* DSPF_ARGB1666 */
+     NULL,                                             /* DSPF_ARGB6666 */
+     NULL,                                             /* DSPF_RGB18 */
+};
+
 /* A8/A1 to YCbCr */
 static void Dacc_Alpha_to_YCbCr( GenefxState *gfxs )
 {
@@ -8711,6 +8784,17 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                }
                break;
           case DFXL_BLIT:
+               if (state->blittingflags == DSBLIT_BLEND_ALPHACHANNEL &&
+                   state->src_blend     == DSBF_SRCALPHA             &&
+                   state->dst_blend     == DSBF_INVSRCALPHA)
+               {
+                    if (gfxs->src_format == DSPF_ARGB &&
+                        Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[dst_pfi])
+                    {
+                         *funcs++ = Bop_argb_blend_alphachannel_src_invsrc_Aop_PFI[dst_pfi];
+                         break;
+                    }
+               }
                if (((state->blittingflags == (DSBLIT_COLORIZE | DSBLIT_BLEND_ALPHACHANNEL |
                                               DSBLIT_SRC_PREMULTIPLY) &&
                      state->src_blend == DSBF_ONE)
