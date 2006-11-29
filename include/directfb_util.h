@@ -32,6 +32,11 @@
 
 #include <directfb.h>
 
+#ifdef __cplusplus
+extern "C"
+{
+#endif
+
 #include <direct/types.h>
 #include <direct/debug.h>
 
@@ -314,5 +319,9 @@ static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
      if (rect->w <= 0 || rect->h <= 0)
           rect->w = rect->h = 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
