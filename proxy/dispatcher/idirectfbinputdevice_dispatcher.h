@@ -42,6 +42,7 @@
 #define IDIRECTFBINPUTDEVICE_METHOD_ID_GetButtonState            12
 #define IDIRECTFBINPUTDEVICE_METHOD_ID_GetAxis                   13
 #define IDIRECTFBINPUTDEVICE_METHOD_ID_GetXY                     14
+#define IDIRECTFBINPUTDEVICE_METHOD_ID_DetachEventBuffer         15
 
 /*
  * private data struct of IDirectFBInputDevice_Dispatcher

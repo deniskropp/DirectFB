@@ -432,6 +432,49 @@ IDirectFBFont_Requestor_GetGlyphExtents( IDirectFBFont *thiz,
      return DFB_OK;
 }
 
+static DFBResult
+IDirectFBFont_Requestor_GetStringBreak( IDirectFBFont *thiz,
+                                        const char    *text, 
+                                        int            bytes,
+                                        int            max_width,
+                                        int           *ret_width,
+                                        int           *ret_str_length,
+                                        const char   **ret_next_line )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Requestor_SetEncoding( IDirectFBFont     *thiz,
+                                     DFBTextEncodingID  encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Requestor_EnumEncodings( IDirectFBFont           *thiz,
+                                       DFBTextEncodingCallback  callback,
+                                       void                    *ctx )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Requestor_FindEncoding( IDirectFBFont     *thiz,
+                                      const char        *name,
+                                      DFBTextEncodingID *encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Requestor)
+
+     return DFB_UNIMPLEMENTED;
+}
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -463,6 +506,10 @@ Construct( IDirectFBFont    *thiz,
      thiz->GetStringWidth   = IDirectFBFont_Requestor_GetStringWidth;
      thiz->GetStringExtents = IDirectFBFont_Requestor_GetStringExtents;
      thiz->GetGlyphExtents  = IDirectFBFont_Requestor_GetGlyphExtents;
+     thiz->GetStringBreak   = IDirectFBFont_Requestor_GetStringBreak;
+     thiz->SetEncoding      = IDirectFBFont_Requestor_SetEncoding;
+     thiz->EnumEncodings    = IDirectFBFont_Requestor_EnumEncodings;
+     thiz->FindEncoding     = IDirectFBFont_Requestor_FindEncoding;
 
      return DFB_OK;
 }

@@ -65,6 +65,9 @@
 #define IDIRECTFBWINDOW_METHOD_ID_PutBelow                  35
 #define IDIRECTFBWINDOW_METHOD_ID_Close                     36
 #define IDIRECTFBWINDOW_METHOD_ID_Destroy                   37
+#define IDIRECTFBWINDOW_METHOD_ID_DetachEventBuffer         38
+#define IDIRECTFBWINDOW_METHOD_ID_SetBounds                 39
+#define IDIRECTFBWINDOW_METHOD_ID_ResizeSurface             40
 
 /*
  * private data struct of IDirectFBWindow_Dispatcher

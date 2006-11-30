@@ -181,7 +181,6 @@ IDirectFBInputDevice_Requestor_CreateEventBuffer( IDirectFBInputDevice  *thiz,
      return DFB_OK;
 }
 
-
 static DFBResult
 IDirectFBInputDevice_Requestor_AttachEventBuffer( IDirectFBInputDevice *thiz,
                                                   IDirectFBEventBuffer *buffer )
@@ -200,6 +199,37 @@ IDirectFBInputDevice_Requestor_AttachEventBuffer( IDirectFBInputDevice *thiz,
      /* Send the request including the instance ID of the dispatcher. */
      ret = voodoo_manager_request( data->manager, data->instance,
                                    IDIRECTFBINPUTDEVICE_METHOD_ID_AttachEventBuffer,
+                                   VREQ_RESPOND, &response,
+                                   VMBT_ID, buffer_data->self,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBInputDevice_Requestor_DetachEventBuffer( IDirectFBInputDevice *thiz,
+                                                  IDirectFBEventBuffer *buffer )
+{
+     DFBResult                             ret;
+     IDirectFBEventBuffer_Dispatcher_data *buffer_data;
+     VoodooResponseMessage                *response;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Requestor)
+
+     if (!buffer)
+          return DFB_INVARG;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Dispatcher );
+
+     /* Send the request including the instance ID of the dispatcher. */
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBINPUTDEVICE_METHOD_ID_DetachEventBuffer,
                                    VREQ_RESPOND, &response,
                                    VMBT_ID, buffer_data->self,
                                    VMBT_NONE );
@@ -415,6 +445,7 @@ Construct( IDirectFBInputDevice *thiz,
      thiz->GetKeymapEntry     = IDirectFBInputDevice_Requestor_GetKeymapEntry;
      thiz->CreateEventBuffer  = IDirectFBInputDevice_Requestor_CreateEventBuffer;
      thiz->AttachEventBuffer  = IDirectFBInputDevice_Requestor_AttachEventBuffer;
+     thiz->DetachEventBuffer  = IDirectFBInputDevice_Requestor_DetachEventBuffer;
      thiz->GetKeyState        = IDirectFBInputDevice_Requestor_GetKeyState;
      thiz->GetModifiers       = IDirectFBInputDevice_Requestor_GetModifiers;
      thiz->GetLockState       = IDirectFBInputDevice_Requestor_GetLockState;

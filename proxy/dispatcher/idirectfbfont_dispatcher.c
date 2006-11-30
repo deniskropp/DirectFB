@@ -172,6 +172,8 @@ IDirectFBFont_Dispatcher_GetStringWidth( IDirectFBFont *thiz,
                                          const char *text, int bytes,
                                          int *width )
 {
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+     
      if (!text || !width)
           return DFB_INVARG;
 
@@ -188,6 +190,49 @@ IDirectFBFont_Dispatcher_GetGlyphExtents( IDirectFBFont *thiz,
 
      if (!rect && !advance)
           return DFB_INVARG;
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Dispatcher_GetStringBreak( IDirectFBFont *thiz,
+                                         const char    *text, 
+                                         int            bytes,
+                                         int            max_width,
+                                         int           *ret_width,
+                                         int           *ret_str_length,
+                                         const char   **ret_next_line )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Dispatcher_SetEncoding( IDirectFBFont     *thiz,
+                                      DFBTextEncodingID  encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Dispatcher_EnumEncodings( IDirectFBFont           *thiz,
+                                        DFBTextEncodingCallback  callback,
+                                        void                    *ctx )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBFont_Dispatcher_FindEncoding( IDirectFBFont     *thiz,
+                                       const char        *name,
+                                       DFBTextEncodingID *encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBFont_Dispatcher)
 
      return DFB_UNIMPLEMENTED;
 }
@@ -457,6 +502,10 @@ Construct( IDirectFBFont    *thiz,
      thiz->GetStringWidth   = IDirectFBFont_Dispatcher_GetStringWidth;
      thiz->GetStringExtents = IDirectFBFont_Dispatcher_GetStringExtents;
      thiz->GetGlyphExtents  = IDirectFBFont_Dispatcher_GetGlyphExtents;
+     thiz->GetStringBreak   = IDirectFBFont_Dispatcher_GetStringBreak;
+     thiz->SetEncoding      = IDirectFBFont_Dispatcher_SetEncoding;
+     thiz->EnumEncodings    = IDirectFBFont_Dispatcher_EnumEncodings;
+     thiz->FindEncoding     = IDirectFBFont_Dispatcher_FindEncoding;
 
      return DFB_OK;
 }

@@ -112,6 +112,17 @@ IDirectFBWindow_Dispatcher_AttachEventBuffer( IDirectFBWindow       *thiz,
 }
 
 static DFBResult
+IDirectFBWindow_Dispatcher_DetachEventBuffer( IDirectFBWindow       *thiz,
+                                              IDirectFBEventBuffer  *buffer )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+     
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBWindow_Dispatcher_EnableEvents( IDirectFBWindow       *thiz,
                                          DFBWindowEventType     mask )
 {
@@ -171,6 +182,43 @@ IDirectFBWindow_Dispatcher_GetSize( IDirectFBWindow *thiz,
 static DFBResult
 IDirectFBWindow_Dispatcher_GetSurface( IDirectFBWindow   *thiz,
                                        IDirectFBSurface **surface )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Dispatcher_SetProperty( IDirectFBWindow  *thiz,
+                                        const char       *key,
+                                        void             *value,
+                                        void            **old_value )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Dispatcher_GetProperty( IDirectFBWindow  *thiz,
+                                        const char       *key,
+                                        void            **value )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Dispatcher_RemoveProperty( IDirectFBWindow  *thiz,
+                                           const char       *key,
+                                           void            **value )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
 
@@ -473,6 +521,30 @@ IDirectFBWindow_Dispatcher_Destroy( IDirectFBWindow *thiz )
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBWindow_Dispatcher_SetBounds( IDirectFBWindow *thiz,
+                                      int x, int y, int w, int h )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBWindow_Dispatcher_ResizeSurface( IDirectFBWindow *thiz,
+                                          int              width,
+                                          int              height )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+
 /**************************************************************************************************/
 
 static DirectResult
@@ -528,6 +600,35 @@ Dispatch_AttachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
      DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Requestor );
 
      ret = real->AttachEventBuffer( real, buffer_data->src );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_DetachEventBuffer( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                            VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult                         ret;
+     IDirectFBEventBuffer                *buffer;
+     IDirectFBEventBuffer_Requestor_data *buffer_data;
+     VoodooInstanceID                     instance;
+     VoodooMessageParser                  parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup_remote( manager, instance, (void**) &buffer );
+     if (ret)
+          return ret;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Requestor );
+
+     ret = real->DetachEventBuffer( real, buffer_data->src );
 
      return voodoo_manager_respond( manager, msg->header.serial,
                                     ret, VOODOO_INSTANCE_NONE,
@@ -874,6 +975,49 @@ Dispatch_Destroy( IDirectFBWindow *thiz, IDirectFBWindow *real,
 }
 
 static DirectResult
+Dispatch_SetBounds( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                    VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult           ret;
+     VoodooMessageParser parser;
+     const DFBRectangle *bounds;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, bounds );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetBounds( real, bounds->x, bounds->y, bounds->w, bounds->h );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_ResizeSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                        VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult           ret;
+     VoodooMessageParser parser;
+     const DFBDimension *size;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_DATA( parser, size );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->ResizeSurface( real, size->w, size->h );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBWindow/Dispatcher: "
@@ -885,6 +1029,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBWINDOW_METHOD_ID_AttachEventBuffer:
                return Dispatch_AttachEventBuffer( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBWINDOW_METHOD_ID_DetachEventBuffer:
+               return Dispatch_DetachEventBuffer( dispatcher, real, manager, msg );
 
           case IDIRECTFBWINDOW_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
@@ -945,6 +1092,12 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBWINDOW_METHOD_ID_Destroy:
                return Dispatch_Destroy( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBWINDOW_METHOD_ID_SetBounds:
+               return Dispatch_SetBounds( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBWINDOW_METHOD_ID_ResizeSurface:
+               return Dispatch_ResizeSurface( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
@@ -996,14 +1149,18 @@ Construct( IDirectFBWindow  *thiz,     /* Dispatcher interface */
      /* Initialize interface methods. */
      thiz->AddRef             = IDirectFBWindow_Dispatcher_AddRef;
      thiz->Release            = IDirectFBWindow_Dispatcher_Release;
-     thiz->CreateEventBuffer  = IDirectFBWindow_Dispatcher_CreateEventBuffer;
-     thiz->AttachEventBuffer  = IDirectFBWindow_Dispatcher_AttachEventBuffer;
-     thiz->EnableEvents       = IDirectFBWindow_Dispatcher_EnableEvents;
-     thiz->DisableEvents      = IDirectFBWindow_Dispatcher_DisableEvents;
      thiz->GetID              = IDirectFBWindow_Dispatcher_GetID;
      thiz->GetPosition        = IDirectFBWindow_Dispatcher_GetPosition;
      thiz->GetSize            = IDirectFBWindow_Dispatcher_GetSize;
+     thiz->CreateEventBuffer  = IDirectFBWindow_Dispatcher_CreateEventBuffer;
+     thiz->AttachEventBuffer  = IDirectFBWindow_Dispatcher_AttachEventBuffer;
+     thiz->DetachEventBuffer  = IDirectFBWindow_Dispatcher_DetachEventBuffer;
+     thiz->EnableEvents       = IDirectFBWindow_Dispatcher_EnableEvents;
+     thiz->DisableEvents      = IDirectFBWindow_Dispatcher_DisableEvents;
      thiz->GetSurface         = IDirectFBWindow_Dispatcher_GetSurface;
+     thiz->SetProperty        = IDirectFBWindow_Dispatcher_SetProperty;
+     thiz->GetProperty        = IDirectFBWindow_Dispatcher_GetProperty;
+     thiz->RemoveProperty     = IDirectFBWindow_Dispatcher_RemoveProperty;
      thiz->SetOptions         = IDirectFBWindow_Dispatcher_SetOptions;
      thiz->GetOptions         = IDirectFBWindow_Dispatcher_GetOptions;
      thiz->SetColorKey        = IDirectFBWindow_Dispatcher_SetColorKey;
@@ -1031,6 +1188,8 @@ Construct( IDirectFBWindow  *thiz,     /* Dispatcher interface */
      thiz->PutBelow           = IDirectFBWindow_Dispatcher_PutBelow;
      thiz->Close              = IDirectFBWindow_Dispatcher_Close;
      thiz->Destroy            = IDirectFBWindow_Dispatcher_Destroy;
+     thiz->SetBounds          = IDirectFBWindow_Dispatcher_SetBounds;
+     thiz->ResizeSurface      = IDirectFBWindow_Dispatcher_ResizeSurface;
 
      return DFB_OK;
 }

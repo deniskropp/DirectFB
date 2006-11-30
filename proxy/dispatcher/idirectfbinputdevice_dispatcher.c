@@ -113,9 +113,19 @@ IDirectFBInputDevice_Dispatcher_CreateEventBuffer( IDirectFBInputDevice  *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
-
 static DFBResult
 IDirectFBInputDevice_Dispatcher_AttachEventBuffer( IDirectFBInputDevice *thiz,
+                                                   IDirectFBEventBuffer *buffer )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBInputDevice_Dispatcher_DetachEventBuffer( IDirectFBInputDevice *thiz,
                                                    IDirectFBEventBuffer *buffer )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
@@ -381,6 +391,35 @@ Dispatch_AttachEventBuffer( IDirectFBInputDevice *thiz, IDirectFBInputDevice *re
 }
 
 static DirectResult
+Dispatch_DetachEventBuffer( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
+                            VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult                         ret;
+     IDirectFBEventBuffer                *buffer;
+     IDirectFBEventBuffer_Requestor_data *buffer_data;
+     VoodooInstanceID                     instance;
+     VoodooMessageParser                  parser;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBInputDevice_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_ID( parser, instance );
+     VOODOO_PARSER_END( parser );
+
+     ret = voodoo_manager_lookup_remote( manager, instance, (void**) &buffer );
+     if (ret)
+          return ret;
+
+     DIRECT_INTERFACE_GET_DATA_FROM( buffer, buffer_data, IDirectFBEventBuffer_Requestor );
+
+     ret = real->DetachEventBuffer( real, buffer_data->src );
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    ret, VOODOO_INSTANCE_NONE,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetKeyState( IDirectFBInputDevice *thiz, IDirectFBInputDevice *real,
                       VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -478,6 +517,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBINPUTDEVICE_METHOD_ID_AttachEventBuffer:
                return Dispatch_AttachEventBuffer( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBINPUTDEVICE_METHOD_ID_DetachEventBuffer:
+               return Dispatch_DetachEventBuffer( dispatcher, real, manager, msg );
 
           case IDIRECTFBINPUTDEVICE_METHOD_ID_GetKeyState:
                return Dispatch_GetKeyState( dispatcher, real, manager, msg );
@@ -555,6 +597,7 @@ Construct( IDirectFBInputDevice *thiz,     /* Dispatcher interface */
      thiz->GetKeymapEntry     = IDirectFBInputDevice_Dispatcher_GetKeymapEntry;
      thiz->CreateEventBuffer  = IDirectFBInputDevice_Dispatcher_CreateEventBuffer;
      thiz->AttachEventBuffer  = IDirectFBInputDevice_Dispatcher_AttachEventBuffer;
+     thiz->DetachEventBuffer  = IDirectFBInputDevice_Dispatcher_DetachEventBuffer;
      thiz->GetKeyState        = IDirectFBInputDevice_Dispatcher_GetKeyState;
      thiz->GetModifiers       = IDirectFBInputDevice_Dispatcher_GetModifiers;
      thiz->GetLockState       = IDirectFBInputDevice_Dispatcher_GetLockState;
