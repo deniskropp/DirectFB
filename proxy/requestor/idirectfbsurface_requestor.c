@@ -198,6 +198,49 @@ IDirectFBSurface_Requestor_GetAccelerationMask( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_GetPosition( IDirectFBSurface *thiz,
+                                        int              *x,
+                                        int              *y )
+{
+     DFBResult              ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const DFBPoint        *position;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!x && !y)
+          return DFB_INVARG;
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSURFACE_METHOD_ID_GetPosition, 
+                                   VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, position );
+     VOODOO_PARSER_END( parser );
+
+     if (x)
+          *x = position->x;
+
+     if (y)
+          *y = position->y;
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     return DFB_OK;
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_GetSize( IDirectFBSurface *thiz,
                                     int              *width,
                                     int              *height )
@@ -339,6 +382,17 @@ IDirectFBSurface_Requestor_SetPalette( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_SetAlphaRamp( IDirectFBSurface *thiz,
+                                         u8 a0, u8 a1, u8 a2, u8 a3 )
+{
+     DIRECT_INTERFACE_GET_DATA( IDirectFBSurface_Requestor )
+     
+     D_UNIMPLEMENTED();
+     
+     return DFB_UNIMPLEMENTED;
+}     
+
+static DFBResult
 IDirectFBSurface_Requestor_Lock( IDirectFBSurface *thiz,
                                  DFBSurfaceLockFlags flags,
                                  void **ret_ptr, int *ret_pitch )
@@ -346,6 +400,20 @@ IDirectFBSurface_Requestor_Lock( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
 
      if (!flags || !ret_ptr || !ret_pitch)
+          return DFB_INVARG;
+
+     D_UNIMPLEMENTED();
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_GetFramebufferOffset( IDirectFBSurface *thiz,
+                                                 int              *offset )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     if (!offset)
           return DFB_INVARG;
 
      D_UNIMPLEMENTED();
@@ -925,6 +993,18 @@ IDirectFBSurface_Requestor_DrawGlyph( IDirectFBSurface    *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Requestor_SetEncoding( IDirectFBSurface  *thiz,
+                                        DFBTextEncodingID  encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_SetEncoding, VREQ_QUEUE, NULL,
+                                    VMBT_UINT, encoding,
+                                    VMBT_NONE );
+}
+
+static DFBResult
 IDirectFBSurface_Requestor_GetSubSurface( IDirectFBSurface    *thiz,
                                           const DFBRectangle  *rect,
                                           IDirectFBSurface   **ret_interface )
@@ -986,6 +1066,42 @@ IDirectFBSurface_Requestor_Dump( IDirectFBSurface   *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBSurface_Requestor_DisableAcceleration( IDirectFBSurface   *thiz,
+                                                DFBAccelerationMask mask )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+     
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_DisableAcceleration,
+                                    VREQ_QUEUE, NULL,
+                                    VMBT_UINT, mask,
+                                    VMBT_NONE );
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_ReleaseSource( IDirectFBSurface *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+     
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSURFACE_METHOD_ID_ReleaseSource, VREQ_QUEUE, NULL,
+                                    VMBT_NONE );
+}
+
+static DFBResult
+IDirectFBSurface_Requestor_SetIndexTranslation( IDirectFBSurface *thiz,
+                                                const int        *indices,
+                                                int               num_indices )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Requestor)
+     
+     D_UNIMPLEMENTED();
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+
 /**************************************************************************************************/
 
 static DFBResult
@@ -1011,6 +1127,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->Release = IDirectFBSurface_Requestor_Release;
 
      thiz->GetCapabilities = IDirectFBSurface_Requestor_GetCapabilities;
+     thiz->GetPosition = IDirectFBSurface_Requestor_GetPosition;
      thiz->GetSize = IDirectFBSurface_Requestor_GetSize;
      thiz->GetVisibleRectangle = IDirectFBSurface_Requestor_GetVisibleRectangle;
      thiz->GetPixelFormat = IDirectFBSurface_Requestor_GetPixelFormat;
@@ -1018,8 +1135,10 @@ Construct( IDirectFBSurface *thiz,
 
      thiz->GetPalette = IDirectFBSurface_Requestor_GetPalette;
      thiz->SetPalette = IDirectFBSurface_Requestor_SetPalette;
+     thiz->SetAlphaRamp = IDirectFBSurface_Requestor_SetAlphaRamp;
 
      thiz->Lock = IDirectFBSurface_Requestor_Lock;
+     thiz->GetFramebufferOffset = IDirectFBSurface_Requestor_GetFramebufferOffset;
      thiz->Unlock = IDirectFBSurface_Requestor_Unlock;
      thiz->Flip = IDirectFBSurface_Requestor_Flip;
      thiz->SetField = IDirectFBSurface_Requestor_SetField;
@@ -1056,12 +1175,19 @@ Construct( IDirectFBSurface *thiz,
      thiz->GetFont = IDirectFBSurface_Requestor_GetFont;
      thiz->DrawString = IDirectFBSurface_Requestor_DrawString;
      thiz->DrawGlyph = IDirectFBSurface_Requestor_DrawGlyph;
+     thiz->SetEncoding = IDirectFBSurface_Requestor_SetEncoding;
 
      thiz->GetSubSurface = IDirectFBSurface_Requestor_GetSubSurface;
 
      thiz->GetGL = IDirectFBSurface_Requestor_GetGL;
 
      thiz->Dump = IDirectFBSurface_Requestor_Dump;
+     
+     thiz->DisableAcceleration = IDirectFBSurface_Requestor_DisableAcceleration;
+     
+     thiz->ReleaseSource = IDirectFBSurface_Requestor_ReleaseSource;
+     
+     thiz->SetIndexTranslation = IDirectFBSurface_Requestor_SetIndexTranslation;
 
      return DFB_OK;
 }

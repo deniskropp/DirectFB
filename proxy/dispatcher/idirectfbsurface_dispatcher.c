@@ -128,27 +128,26 @@ IDirectFBSurface_Dispatcher_Release( IDirectFBSurface *thiz )
      return DFB_OK;
 }
 
-
 static DFBResult
-IDirectFBSurface_Dispatcher_GetPixelFormat( IDirectFBSurface      *thiz,
-                                            DFBSurfacePixelFormat *format )
+IDirectFBSurface_Dispatcher_GetCapabilities( IDirectFBSurface       *thiz,
+                                             DFBSurfaceCapabilities *caps )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
-     if (!format)
+     if (!caps)
           return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
 }
 
 static DFBResult
-IDirectFBSurface_Dispatcher_GetAccelerationMask( IDirectFBSurface    *thiz,
-                                                 IDirectFBSurface    *source,
-                                                 DFBAccelerationMask *mask )
+IDirectFBSurface_Dispatcher_GetPosition( IDirectFBSurface *thiz,
+                                         int              *x,
+                                         int              *y )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
-     if (!mask)
+     if (!x && !y)
           return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
@@ -180,12 +179,25 @@ IDirectFBSurface_Dispatcher_GetVisibleRectangle( IDirectFBSurface *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_Dispatcher_GetCapabilities( IDirectFBSurface       *thiz,
-                                             DFBSurfaceCapabilities *caps )
+IDirectFBSurface_Dispatcher_GetPixelFormat( IDirectFBSurface      *thiz,
+                                            DFBSurfacePixelFormat *format )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
-     if (!caps)
+     if (!format)
+          return DFB_INVARG;
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Dispatcher_GetAccelerationMask( IDirectFBSurface    *thiz,
+                                                 IDirectFBSurface    *source,
+                                                 DFBAccelerationMask *mask )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     if (!mask)
           return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
@@ -216,6 +228,16 @@ IDirectFBSurface_Dispatcher_SetPalette( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Dispatcher_SetAlphaRamp( IDirectFBSurface *thiz,
+                                          u8 a0, u8 a1, u8 a2, u8 a3 )
+ 
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBSurface_Dispatcher_Lock( IDirectFBSurface *thiz,
                                   DFBSurfaceLockFlags flags,
                                   void **ret_ptr, int *ret_pitch )
@@ -223,6 +245,18 @@ IDirectFBSurface_Dispatcher_Lock( IDirectFBSurface *thiz,
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
 
      if (!flags || !ret_ptr || !ret_pitch)
+          return DFB_INVARG;
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Dispatcher_GetFramebufferOffset( IDirectFBSurface *thiz,
+                                                  int              *offset )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     if (!offset)
           return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
@@ -268,9 +302,22 @@ IDirectFBSurface_Dispatcher_Clear( IDirectFBSurface *thiz,
 }
 
 static DFBResult
-IDirectFBSurface_Dispatcher_SetClip( IDirectFBSurface *thiz, const DFBRegion *clip )
+IDirectFBSurface_Dispatcher_SetClip( IDirectFBSurface *thiz, 
+                                     const DFBRegion  *clip )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Dispatcher_GetClip( IDirectFBSurface *thiz, 
+                                     DFBRegion        *clip )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+     
+     if (!clip)
+          return DFB_INVARG;
 
      return DFB_UNIMPLEMENTED;
 }
@@ -575,6 +622,15 @@ IDirectFBSurface_Dispatcher_DrawGlyph( IDirectFBSurface *thiz,
 }
 
 static DFBResult
+IDirectFBSurface_Dispatcher_SetEncoding( IDirectFBSurface  *thiz,
+                                         DFBTextEncodingID  encoding )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
 IDirectFBSurface_Dispatcher_GetSubSurface( IDirectFBSurface    *thiz,
                                            const DFBRectangle  *rect,
                                            IDirectFBSurface   **surface )
@@ -612,7 +668,53 @@ IDirectFBSurface_Dispatcher_Dump( IDirectFBSurface   *thiz,
      return DFB_UNIMPLEMENTED;
 }
 
+static DFBResult
+IDirectFBSurface_Dispatcher_DisableAcceleration( IDirectFBSurface   *thiz,
+                                                 DFBAccelerationMask mask )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Dispatcher_ReleaseSource( IDirectFBSurface *thiz )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+     
+     return DFB_UNIMPLEMENTED;
+}
+
+static DFBResult
+IDirectFBSurface_Dispatcher_SetIndexTranslation( IDirectFBSurface *thiz,
+                                                 const int        *indices,
+                                                 int               num_indices )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+     
+     return DFB_UNIMPLEMENTED;
+}
+
 /**************************************************************************************************/
+
+static DirectResult
+Dispatch_GetPosition( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                      VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DFBResult ret;
+     DFBPoint  position;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     ret = real->GetPosition( real, &position.x, &position.y );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBPoint), &position,
+                                    VMBT_NONE );
+}
 
 static DirectResult
 Dispatch_GetSize( IDirectFBSurface *thiz, IDirectFBSurface *real,
@@ -1298,6 +1400,24 @@ Dispatch_DrawGlyph( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_SetEncoding( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                      VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser parser;
+     DFBTextEncodingID   encoding;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_UINT( parser, encoding );
+     VOODOO_PARSER_END( parser );
+
+     real->SetEncoding( real, encoding );
+     
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch_GetSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
                         VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1330,12 +1450,44 @@ Dispatch_GetSubSurface( IDirectFBSurface *thiz, IDirectFBSurface *real,
 }
 
 static DirectResult
+Dispatch_DisableAcceleration( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                              VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     VoodooMessageParser parser;
+     DFBAccelerationMask mask;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, mask );
+     VOODOO_PARSER_END( parser );
+
+     real->DisableAcceleration( real, mask );
+
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_ReleaseSource( IDirectFBSurface *thiz, IDirectFBSurface *real,
+                        VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DIRECT_INTERFACE_GET_DATA(IDirectFBSurface_Dispatcher)
+
+     real->ReleaseSource( real );
+
+     return DFB_OK;
+}
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBSurface/Dispatcher: "
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
      switch (msg->method) {
+          case IDIRECTFBSURFACE_METHOD_ID_GetPosition:
+               return Dispatch_GetPosition( dispatcher, real, manager, msg );
+               
           case IDIRECTFBSURFACE_METHOD_ID_GetSize:
                return Dispatch_GetSize( dispatcher, real, manager, msg );
 
@@ -1422,6 +1574,9 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_DrawGlyph:
                return Dispatch_DrawGlyph( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSURFACE_METHOD_ID_SetEncoding:
+               return Dispatch_SetEncoding( dispatcher, real, manager, msg );
 
           case IDIRECTFBSURFACE_METHOD_ID_GetSubSurface:
                return Dispatch_GetSubSurface( dispatcher, real, manager, msg );
@@ -1431,6 +1586,12 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBSURFACE_METHOD_ID_FillSpans:
                return Dispatch_FillSpans( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSURFACE_METHOD_ID_DisableAcceleration:
+               return Dispatch_DisableAcceleration( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSURFACE_METHOD_ID_ReleaseSource:
+               return Dispatch_ReleaseSource( dispatcher, real, manager, msg );
      }
 
      return DFB_NOSUCHMETHOD;
@@ -1471,6 +1632,7 @@ Construct( IDirectFBSurface *thiz,
      thiz->Release = IDirectFBSurface_Dispatcher_Release;
 
      thiz->GetCapabilities = IDirectFBSurface_Dispatcher_GetCapabilities;
+     thiz->GetPosition = IDirectFBSurface_Dispatcher_GetPosition;
      thiz->GetSize = IDirectFBSurface_Dispatcher_GetSize;
      thiz->GetVisibleRectangle = IDirectFBSurface_Dispatcher_GetVisibleRectangle;
      thiz->GetPixelFormat = IDirectFBSurface_Dispatcher_GetPixelFormat;
@@ -1478,14 +1640,17 @@ Construct( IDirectFBSurface *thiz,
 
      thiz->GetPalette = IDirectFBSurface_Dispatcher_GetPalette;
      thiz->SetPalette = IDirectFBSurface_Dispatcher_SetPalette;
+     thiz->SetAlphaRamp = IDirectFBSurface_Dispatcher_SetAlphaRamp;
 
      thiz->Lock = IDirectFBSurface_Dispatcher_Lock;
+     thiz->GetFramebufferOffset = IDirectFBSurface_Dispatcher_GetFramebufferOffset;
      thiz->Unlock = IDirectFBSurface_Dispatcher_Unlock;
      thiz->Flip = IDirectFBSurface_Dispatcher_Flip;
      thiz->SetField = IDirectFBSurface_Dispatcher_SetField;
      thiz->Clear = IDirectFBSurface_Dispatcher_Clear;
 
      thiz->SetClip = IDirectFBSurface_Dispatcher_SetClip;
+     thiz->GetClip = IDirectFBSurface_Dispatcher_GetClip;
      thiz->SetColor = IDirectFBSurface_Dispatcher_SetColor;
      thiz->SetColorIndex = IDirectFBSurface_Dispatcher_SetColorIndex;
      thiz->SetSrcBlendFunction = IDirectFBSurface_Dispatcher_SetSrcBlendFunction;
@@ -1516,12 +1681,19 @@ Construct( IDirectFBSurface *thiz,
      thiz->GetFont = IDirectFBSurface_Dispatcher_GetFont;
      thiz->DrawString = IDirectFBSurface_Dispatcher_DrawString;
      thiz->DrawGlyph = IDirectFBSurface_Dispatcher_DrawGlyph;
+     thiz->SetEncoding = IDirectFBSurface_Dispatcher_SetEncoding;
 
      thiz->GetSubSurface = IDirectFBSurface_Dispatcher_GetSubSurface;
 
      thiz->GetGL = IDirectFBSurface_Dispatcher_GetGL;
 
      thiz->Dump = IDirectFBSurface_Dispatcher_Dump;
+     
+     thiz->DisableAcceleration = IDirectFBSurface_Dispatcher_DisableAcceleration;
+     
+     thiz->ReleaseSource = IDirectFBSurface_Dispatcher_ReleaseSource;
+     
+     thiz->SetIndexTranslation = IDirectFBSurface_Dispatcher_SetIndexTranslation;
 
      return DFB_OK;
 }

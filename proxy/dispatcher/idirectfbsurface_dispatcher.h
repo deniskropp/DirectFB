@@ -73,5 +73,9 @@
 #define IDIRECTFBSURFACE_METHOD_ID_Dump                      43
 #define IDIRECTFBSURFACE_METHOD_ID_FillRectangles            44
 #define IDIRECTFBSURFACE_METHOD_ID_FillSpans                 45
+#define IDIRECTFBSURFACE_METHOD_ID_GetPosition               46
+#define IDIRECTFBSURFACE_METHOD_ID_SetEncoding               47
+#define IDIRECTFBSURFACE_METHOD_ID_DisableAcceleration       48
+#define IDIRECTFBSURFACE_METHOD_ID_ReleaseSource             49
 
 #endif
