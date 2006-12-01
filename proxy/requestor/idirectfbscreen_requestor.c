@@ -102,30 +102,118 @@ IDirectFBScreen_Requestor_Release( IDirectFBScreen *thiz )
 
 static DFBResult
 IDirectFBScreen_Requestor_GetID( IDirectFBScreen *thiz,
-                       DFBScreenID     *id )
+                                 DFBScreenID     *ret_id )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     DFBScreenID            id;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
 
-     if (!id)
+     if (!ret_id)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSCREEN_METHOD_ID_GetID, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_ID( parser, id );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_id = id;
+
+     return ret;
 }
 
 static DFBResult
 IDirectFBScreen_Requestor_GetDescription( IDirectFBScreen      *thiz,
-                                DFBScreenDescription *desc )
+                                          DFBScreenDescription *ret_desc )
 {
+     DirectResult                ret;
+     VoodooResponseMessage      *response;
+     VoodooMessageParser         parser;
+     const DFBScreenDescription *desc; 
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
 
-     if (!desc)
+     if (!ret_desc)
           return DFB_INVARG;
 
-     D_UNIMPLEMENTED();
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSCREEN_METHOD_ID_GetDescription,
+                                   VREQ_RESPOND, &response, VMBT_NONE );
+     if (ret)
+          return ret;
 
-     return DFB_UNIMPLEMENTED;
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, desc );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     *ret_desc = *desc;
+
+     return ret;
+}
+
+static DFBResult
+IDirectFBScreen_Requestor_GetSize( IDirectFBScreen *thiz,
+                                   int             *width,
+                                   int             *height )
+{
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const DFBDimension    *size; 
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
+
+     if (!width && !height)
+          return DFB_INVARG;
+
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBSCREEN_METHOD_ID_GetSize,
+                                   VREQ_RESPOND, &response, VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, size );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     if (width)
+          *width = size->w;
+          
+     if (height)
+          *height = size->h;
+
+     return ret;
 }
 
 static DFBResult
@@ -145,13 +233,14 @@ IDirectFBScreen_Requestor_EnumDisplayLayers( IDirectFBScreen         *thiz,
 
 static DFBResult
 IDirectFBScreen_Requestor_SetPowerMode( IDirectFBScreen    *thiz,
-                              DFBScreenPowerMode  mode )
+                                        DFBScreenPowerMode  mode )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
 
-     D_UNIMPLEMENTED();
-
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSCREEN_METHOD_ID_SetPowerMode, VREQ_NONE, NULL,
+                                    VMBT_INT, mode,
+                                    VMBT_NONE );
 }
 
 static DFBResult
@@ -159,9 +248,9 @@ IDirectFBScreen_Requestor_WaitForSync( IDirectFBScreen *thiz )
 {
      DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Requestor)
 
-     D_UNIMPLEMENTED();
-
-     return DFB_UNIMPLEMENTED;
+     return voodoo_manager_request( data->manager, data->instance,
+                                    IDIRECTFBSCREEN_METHOD_ID_WaitForSync, VREQ_NONE, NULL,
+                                    VMBT_NONE );
 }
 
 static DFBResult
@@ -369,6 +458,7 @@ Construct( IDirectFBScreen  *thiz,
      thiz->Release                  = IDirectFBScreen_Requestor_Release;
      thiz->GetID                    = IDirectFBScreen_Requestor_GetID;
      thiz->GetDescription           = IDirectFBScreen_Requestor_GetDescription;
+     thiz->GetSize                  = IDirectFBScreen_Requestor_GetSize;
      thiz->EnumDisplayLayers        = IDirectFBScreen_Requestor_EnumDisplayLayers;
      thiz->SetPowerMode             = IDirectFBScreen_Requestor_SetPowerMode;
      thiz->WaitForSync              = IDirectFBScreen_Requestor_WaitForSync;

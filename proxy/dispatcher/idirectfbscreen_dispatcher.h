@@ -32,20 +32,21 @@
 #define IDIRECTFBSCREEN_METHOD_ID_Release                    2
 #define IDIRECTFBSCREEN_METHOD_ID_GetID                      3
 #define IDIRECTFBSCREEN_METHOD_ID_GetDescription             4
-#define IDIRECTFBSCREEN_METHOD_ID_EnumDisplayLayers          5
-#define IDIRECTFBSCREEN_METHOD_ID_SetPowerMode               6
-#define IDIRECTFBSCREEN_METHOD_ID_WaitForSync                7
-#define IDIRECTFBSCREEN_METHOD_ID_GetMixerDescriptions       8
-#define IDIRECTFBSCREEN_METHOD_ID_GetMixerConfiguration      9
-#define IDIRECTFBSCREEN_METHOD_ID_TestMixerConfiguration    10
-#define IDIRECTFBSCREEN_METHOD_ID_SetMixerConfiguration     11
-#define IDIRECTFBSCREEN_METHOD_ID_GetEncoderDescriptions    12
-#define IDIRECTFBSCREEN_METHOD_ID_GetEncoderConfiguration   13
-#define IDIRECTFBSCREEN_METHOD_ID_TestEncoderConfiguration  14
-#define IDIRECTFBSCREEN_METHOD_ID_SetEncoderConfiguration   15
-#define IDIRECTFBSCREEN_METHOD_ID_GetOutputDescriptions     16
-#define IDIRECTFBSCREEN_METHOD_ID_GetOutputConfiguration    17
-#define IDIRECTFBSCREEN_METHOD_ID_TestOutputConfiguration   18
-#define IDIRECTFBSCREEN_METHOD_ID_SetOutputConfiguration    19
+#define IDIRECTFBSCREEN_METHOD_ID_GetSize                    5
+#define IDIRECTFBSCREEN_METHOD_ID_EnumDisplayLayers          6
+#define IDIRECTFBSCREEN_METHOD_ID_SetPowerMode               7
+#define IDIRECTFBSCREEN_METHOD_ID_WaitForSync                8
+#define IDIRECTFBSCREEN_METHOD_ID_GetMixerDescriptions       9
+#define IDIRECTFBSCREEN_METHOD_ID_GetMixerConfiguration     10
+#define IDIRECTFBSCREEN_METHOD_ID_TestMixerConfiguration    11
+#define IDIRECTFBSCREEN_METHOD_ID_SetMixerConfiguration     12
+#define IDIRECTFBSCREEN_METHOD_ID_GetEncoderDescriptions    13
+#define IDIRECTFBSCREEN_METHOD_ID_GetEncoderConfiguration   14
+#define IDIRECTFBSCREEN_METHOD_ID_TestEncoderConfiguration  15
+#define IDIRECTFBSCREEN_METHOD_ID_SetEncoderConfiguration   16
+#define IDIRECTFBSCREEN_METHOD_ID_GetOutputDescriptions     17
+#define IDIRECTFBSCREEN_METHOD_ID_GetOutputConfiguration    18
+#define IDIRECTFBSCREEN_METHOD_ID_TestOutputConfiguration   19
+#define IDIRECTFBSCREEN_METHOD_ID_SetOutputConfiguration    20
 
 #endif

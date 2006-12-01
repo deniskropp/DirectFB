@@ -329,15 +329,117 @@ IDirectFBScreen_Dispatcher_SetOutputConfiguration( IDirectFBScreen             *
 /**************************************************************************************************/
 
 static DirectResult
+Dispatch_GetID( IDirectFBScreen *thiz, IDirectFBScreen *real,
+                VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     DFBScreenID  id;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
+
+     ret = real->GetID( real, &id );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_ID, id,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetDescription( IDirectFBScreen *thiz, IDirectFBScreen *real,
+                         VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult         ret;
+     DFBScreenDescription desc;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
+
+     ret = real->GetDescription( real, &desc );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBScreenDescription), &desc,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetSize( IDirectFBScreen *thiz, IDirectFBScreen *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     DFBDimension size;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
+
+     ret = real->GetSize( real, &size.w, &size.h );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBDimension), &size,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_SetPowerMode( IDirectFBScreen *thiz, IDirectFBScreen *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult        ret;
+     VoodooMessageParser parser;
+     DFBScreenPowerMode  mode;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
+     
+     VOODOO_PARSER_BEGIN( parser, msg );
+     VOODOO_PARSER_GET_INT( parser, mode );
+     VOODOO_PARSER_END( parser );
+
+     ret = real->SetPowerMode( real, mode );
+     
+     return DFB_OK;
+}
+
+static DirectResult
+Dispatch_WaitForSync( IDirectFBScreen *thiz, IDirectFBScreen *real,
+                       VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBScreen_Dispatcher)
+
+     ret = real->WaitForSync( real );
+     
+     return DFB_OK;
+}
+
+
+static DirectResult
 Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMessage *msg )
 {
      D_DEBUG( "IDirectFBScreen/Dispatcher: "
               "Handling request for instance %u with method %u...\n", msg->instance, msg->method );
 
-/*     switch (msg->method) {
-          case IDIRECTFB_METHOD_ID_EnumScreens:
-               return Dispatch_EnumScreens( dispatcher, real, manager, msg );
-     }*/
+     switch (msg->method) {
+          case IDIRECTFBSCREEN_METHOD_ID_GetID:
+               return Dispatch_GetID( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSCREEN_METHOD_ID_GetDescription:
+               return Dispatch_GetDescription( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSCREEN_METHOD_ID_GetSize:
+               return Dispatch_GetSize( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSCREEN_METHOD_ID_SetPowerMode:
+               return Dispatch_SetPowerMode( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBSCREEN_METHOD_ID_WaitForSync:
+               return Dispatch_WaitForSync( dispatcher, real, manager, msg );
+     }
 
      return DFB_NOSUCHMETHOD;
 }
