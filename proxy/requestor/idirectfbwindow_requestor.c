@@ -268,11 +268,41 @@ IDirectFBWindow_Requestor_GetPosition( IDirectFBWindow *thiz,
                                        int             *x,
                                        int             *y )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const DFBPoint        *position;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!x && !y)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_GetPosition, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, position );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     if (x)
+          *x = position->x;
+
+     if (y)
+          *y = position->y;
+
+     return ret;
 }
 
 static DFBResult
@@ -280,11 +310,41 @@ IDirectFBWindow_Requestor_GetSize( IDirectFBWindow *thiz,
                                    int             *width,
                                    int             *height )
 {
+     DirectResult           ret;
+     VoodooResponseMessage *response;
+     VoodooMessageParser    parser;
+     const DFBDimension    *size;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Requestor)
 
-     D_UNIMPLEMENTED();
+     if (!width && !height)
+          return DFB_INVARG;
 
-     return DFB_UNIMPLEMENTED;
+     ret = voodoo_manager_request( data->manager, data->instance,
+                                   IDIRECTFBWINDOW_METHOD_ID_GetSize, VREQ_RESPOND, &response,
+                                   VMBT_NONE );
+     if (ret)
+          return ret;
+
+     ret = response->result;
+     if (ret) {
+          voodoo_manager_finish_request( data->manager, response );
+          return ret;
+     }
+
+     VOODOO_PARSER_BEGIN( parser, response );
+     VOODOO_PARSER_GET_DATA( parser, size );
+     VOODOO_PARSER_END( parser );
+
+     voodoo_manager_finish_request( data->manager, response );
+
+     if (width)
+          *width = size->w;
+
+     if (height)
+          *height = size->h;
+
+     return ret;
 }
 
 static DFBResult

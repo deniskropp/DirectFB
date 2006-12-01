@@ -655,6 +655,44 @@ Dispatch_GetID( IDirectFBWindow *thiz, IDirectFBWindow *real,
 }
 
 static DirectResult
+Dispatch_GetPosition( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                      VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     DFBPoint     position;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     ret = real->GetPosition( real, &position.x, &position.y );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBPoint), &position,
+                                    VMBT_NONE );
+}
+
+static DirectResult
+Dispatch_GetSize( IDirectFBWindow *thiz, IDirectFBWindow *real,
+                  VoodooManager *manager, VoodooRequestMessage *msg )
+{
+     DirectResult ret;
+     DFBDimension size;
+
+     DIRECT_INTERFACE_GET_DATA(IDirectFBWindow_Dispatcher)
+
+     ret = real->GetSize( real, &size.w, &size.h );
+     if (ret)
+          return ret;
+
+     return voodoo_manager_respond( manager, msg->header.serial,
+                                    DFB_OK, VOODOO_INSTANCE_NONE,
+                                    VMBT_DATA, sizeof(DFBDimension), &size,
+                                    VMBT_NONE );
+}
+
+static DirectResult
 Dispatch_GetSurface( IDirectFBWindow *thiz, IDirectFBWindow *real,
                      VoodooManager *manager, VoodooRequestMessage *msg )
 {
@@ -1035,6 +1073,12 @@ Dispatch( void *dispatcher, void *real, VoodooManager *manager, VoodooRequestMes
 
           case IDIRECTFBWINDOW_METHOD_ID_GetID:
                return Dispatch_GetID( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBWINDOW_METHOD_ID_GetPosition:
+               return Dispatch_GetPosition( dispatcher, real, manager, msg );
+               
+          case IDIRECTFBWINDOW_METHOD_ID_GetSize:
+               return Dispatch_GetSize( dispatcher, real, manager, msg );
 
           case IDIRECTFBWINDOW_METHOD_ID_GetSurface:
                return Dispatch_GetSurface( dispatcher, real, manager, msg );
