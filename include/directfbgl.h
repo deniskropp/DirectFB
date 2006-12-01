@@ -36,6 +36,11 @@ extern "C"
 {
 #endif
 
+/*
+ * The DirectFBGL interface version.
+ */
+#define DIRECTFBGL_INTERFACE_VERSION  1
+
 
 /* 
  * Attributes of an OpenGL context.
@@ -92,6 +97,15 @@ DEFINE_INTERFACE(   IDirectFBGL,
      DFBResult (*GetAttributes) (
           IDirectFBGL              *thiz,
           DFBGLAttributes          *attributes
+     );
+     
+     /*
+      * Get the address of an OpenGL function.
+      */
+     DFBResult (*GetProcAddress) (
+          IDirectFBGL              *thiz,
+          const char               *name,
+          void                    **ret_address
      );
 )
 
