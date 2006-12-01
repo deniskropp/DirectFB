@@ -145,7 +145,7 @@ fi
 AM_CONDITIONAL(X11_CORE, test "$enable_x11" = "yes")
 
 
-AC_CHECK_HEADERS(stdbool.h linux/compiler.h linux/unistd.h asm/page.h)
+AC_CHECK_HEADERS(linux/compiler.h linux/unistd.h asm/page.h)
 
 
 dnl Clear default CFLAGS
@@ -432,6 +432,11 @@ else
 fi
 
 AC_SUBST(DIRECT_BUILD_NETWORK)
+
+
+AC_CHECK_HEADER(stdbool.h, DIRECT_BUILD_STDBOOL=1, DIRECT_BUILD_STDBOOL=0)
+
+AC_SUBST(DIRECT_BUILD_STDBOOL)
 
 
 AC_ARG_ENABLE(multi,

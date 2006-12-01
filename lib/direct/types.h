@@ -30,8 +30,10 @@
 
 #include <dfb_types.h>
 
-
 #include <directfb.h>
+
+#include <direct/build.h>
+
 typedef DFBResult DirectResult;    /* FIXME */
 
 /* can be removed if directfb.h is no longer included */
@@ -39,18 +41,13 @@ typedef DFBResult DirectResult;    /* FIXME */
 #undef main
 #endif
 
-#ifdef HAVE_STDBOOL_H
-#include <stdbool.h>
-#endif
+#if DIRECT_BUILD_STDBOOL
 
+#include <stdbool.h>
+
+#else
 
 #if !defined(__cplusplus) && !defined(__bool_true_false_are_defined)
-#ifndef NO_WARN_STDBOOL
-#warning \
-     bool definition herein is not 100% compliant,          \
-     add AC_CHECK_HEADERS(stdbool.h) to your configure.in   \
-     or define HAVE_STDBOOL_H or NO_WARN_STDBOOL.
-#endif
 #ifndef false
 #define false (0)
 #endif
@@ -59,6 +56,8 @@ typedef DFBResult DirectResult;    /* FIXME */
 #endif
 typedef u8 bool;
 #endif
+
+#endif /* DIRECT_BUILD_STDBOOL */
 
 typedef u32 unichar;
 
