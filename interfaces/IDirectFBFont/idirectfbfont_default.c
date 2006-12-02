@@ -152,7 +152,7 @@ Construct( IDirectFBFont      *thiz,
           const char *glyphs =
           "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
           "abcdefghijklmnopqrstuvwxyz"
-          "01234567890!\"$%&/()=?^<>"
+          "01234567890!\"$%&/()=?^<>" // FIXME: '0' is repeated!
           "|,;.:-_{[]}\\`+*~#'";
 
           if (desc && (desc->flags & DFDESC_ATTRIBUTES) &&
@@ -163,33 +163,35 @@ Construct( IDirectFBFont      *thiz,
 
           for (i = 0; i < font_desc.width; i++) {
                if (pixels[i] == 0xFF) {
-                    data = D_CALLOC( 1, sizeof(CoreGlyphData) );
-                    data->surface = surface;
-                    data->start   = start;
-                    data->width   = i - start + 1;
-                    data->height  = font_desc.height - 1;
-                    data->left    = 0;
-                    data->top     = 0;
-                    data->advance = ((desc && (desc->flags &
-                                               DFDESC_FIXEDADVANCE)) ?
-                                     desc->fixed_advance :
-                                     data->width + 1);
-
-                    D_HEAVYDEBUG( "DirectFB/core/fonts: "
-                                   "glyph '%c' at %d, width %d\n",
-                                   glyphs[index], start, i-start );
-
-                    D_MAGIC_SET( data, CoreGlyphData );
-
-                    if (font->maxadvance < data->advance)
-                         font->maxadvance = data->advance;
-
                     if (use_unicode)
                          key = glyphs[index];
                     else
                          key = index;
+                         
+                    if (!direct_hash_lookup( font->glyph_hash, key )) { 
+                         data = D_CALLOC( 1, sizeof(CoreGlyphData) );
+                         data->surface = surface;
+                         data->start   = start;
+                         data->width   = i - start + 1;
+                         data->height  = font_desc.height - 1;
+                         data->left    = 0;
+                         data->top     = 0;
+                         data->advance = ((desc && (desc->flags &
+                                                    DFDESC_FIXEDADVANCE)) ?
+                                         desc->fixed_advance :
+                                         data->width + 1);
 
-                    direct_hash_insert( font->glyph_hash, key, data );
+                         D_HEAVYDEBUG( "DirectFB/core/fonts: "
+                                       "glyph '%c' at %d, width %d\n",
+                                       glyphs[index], start, i-start );
+
+                         D_MAGIC_SET( data, CoreGlyphData );
+
+                         if (font->maxadvance < data->advance)
+                              font->maxadvance = data->advance;
+                              
+                         direct_hash_insert( font->glyph_hash, key, data );
+                    }
 
                     start = i + 1;
                     index++;
