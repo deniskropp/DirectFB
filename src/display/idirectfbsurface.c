@@ -2072,7 +2072,7 @@ IDirectFBSurface_GetGL( IDirectFBSurface   *thiz,
           return DFB_INVAREA;
 
 
-     ret = DirectGetInterface( &funcs, "IDirectFBGL", NULL, NULL, NULL );
+     ret = DirectGetInterface( &funcs, "IDirectFBGL", NULL, DirectProbeInterface, thiz );
      if (ret)
           return ret;
 
