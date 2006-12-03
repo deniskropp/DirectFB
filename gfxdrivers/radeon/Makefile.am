@@ -34,7 +34,8 @@ libdirectfb_radeon_la_SOURCES =	\
 	radeon_mmio.h		\
 	radeon_state.h		\
 	radeon_2d.h		\
-	radeon_3d.h
+	radeon_3d.h		\
+	vertex_shader.h
 
 libdirectfb_radeon_la_LDFLAGS = \
 	-export-dynamic		\

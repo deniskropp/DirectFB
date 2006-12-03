@@ -90,6 +90,11 @@ bool r300Blit3D_420( void *drv, void *dev, DFBRectangle *sr, int dx, int dy );
 bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
 bool r300StretchBlit_420( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr );
 
+bool r300TextureTriangles( void *drv, void *dev, DFBVertex *ve,
+                           int num, DFBTriangleFormation formation );
+bool r300TextureTriangles_420( void *drv, void *dev, DFBVertex *ve,
+                               int num, DFBTriangleFormation formation );
+
 void r300EmitCommands3D( void *drv, void *dev );
                                
 

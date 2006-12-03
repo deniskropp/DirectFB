@@ -145,5 +145,7 @@ WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 	((arg1) << R300_FPI2_ARG1A_SHIFT) |	\
 	((arg2) << R300_FPI2_ARG2A_SHIFT))
 
+
+#include "vertex_shader.h"
 	
 #endif /* __R300_PROGRAM_H__ */

@@ -71,6 +71,20 @@ out_vertex2d2( volatile u8 *mmio, float x, float y, float s, float t )
      radeon_out32( mmio, SE_PORT_DATA0, f2d(1) ); // q
 }
 
+static __inline__ void
+out_vertex3d( volatile u8 *mmio,
+              float x, float y, float z, float w, float s, float t )
+{
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(x) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(y) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(z) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(1) ); // FIXME 
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(s) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(t) );
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(0) ); // r
+     radeon_out32( mmio, SE_PORT_DATA0, f2d(1) ); // q
+}
+
 
 static void
 r300DoFillRectangle3D( RadeonDriverData *rdrv,
@@ -252,17 +266,23 @@ r300DoBlit3D( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
               DFBRectangle     *sr,   DFBRectangle     *dr )
 {
      volatile u8 *mmio = rdrv->mmio_base;
-     
+     float        sx1, sy1, sx2, sy2;
+
+     sx1 = (float)sr->x / rdev->src_width; 
+     sy1 = (float)sr->y / rdev->src_height;
+     sx2 = (float)(sr->x+sr->w) / rdev->src_width;
+     sy2 = (float)(sr->y+sr->h) / rdev->src_height;
+
      radeon_waitfifo( rdrv, rdev, 1+4*8 );
 
      radeon_out32( mmio, SE_VF_CNTL, VF_PRIM_TYPE_QUAD_LIST |
                                      VF_PRIM_WALK_DATA      |
                                      (4 << VF_NUM_VERTICES_SHIFT) );
      
-     out_vertex2d2( mmio, dr->x      , dr->y      , sr->x      , sr->y       );
-     out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sr->x+sr->w, sr->y       );
-     out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sr->x+sr->w, sr->y+sr->h );
-     out_vertex2d2( mmio, dr->x      , dr->y+dr->h, sr->x      , sr->y+sr->h );
+     out_vertex2d2( mmio, dr->x      , dr->y      , sx1, sy1 );
+     out_vertex2d2( mmio, dr->x+dr->w, dr->y      , sx2, sy1 );
+     out_vertex2d2( mmio, dr->x+dr->w, dr->y+dr->h, sx2, sy2 );
+     out_vertex2d2( mmio, dr->x      , dr->y+dr->h, sx1, sy2 );
 }
 
 bool r300Blit3D( void *drv, void *dev, DFBRectangle *sr, int dx, int dy )
@@ -304,6 +324,72 @@ bool r300StretchBlit( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
 }
 
 bool r300StretchBlit_420( void *drv, void *dev, DFBRectangle *sr, DFBRectangle *dr )
+{
+     return false;
+}
+
+static void
+r300DoTextureTriangles( RadeonDriverData *rdrv, RadeonDeviceData *rdev,
+                        DFBVertex *ve, int num, u32 primitive )
+{
+     volatile u8 *mmio = rdrv->mmio_base;
+     int          i;
+ 
+     radeon_waitfifo( rdrv, rdev, 1 ); 
+     
+     radeon_out32( mmio, SE_VF_CNTL, primitive | VF_PRIM_WALK_DATA |
+                                     (num << VF_NUM_VERTICES_SHIFT) );
+
+     for (; num >= 8; num -= 8) {
+          radeon_waitfifo( rdrv, rdev, 64 );
+          for (i = 0; i < 8; i++)
+               out_vertex3d( mmio, ve[i].x, ve[i].y, ve[i].z,
+                                   ve[i].w, ve[i].s, ve[i].t );
+          ve += 8;
+     }
+
+     if (num > 0) {
+          radeon_waitfifo( rdrv, rdev, num*8 );
+          for (i = 0; i < num; i++)
+               out_vertex3d( mmio, ve[i].x, ve[i].y, ve[i].z,
+                                   ve[i].w, ve[i].s, ve[i].t );
+     }
+}
+
+bool r300TextureTriangles( void *drv, void *dev, DFBVertex *ve,
+                           int num, DFBTriangleFormation formation )
+{ 
+     RadeonDriverData *rdrv = (RadeonDriverData*) drv;
+     RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     u32               prim = 0;
+
+     if (num > 65535) {
+          D_WARN( "R300 supports maximum 65535 vertices" );
+          return false;
+     }
+
+     switch (formation) {
+          case DTTF_LIST:
+               prim = VF_PRIM_TYPE_TRIANGLE_LIST;
+               break;
+          case DTTF_STRIP:
+               prim = VF_PRIM_TYPE_TRIANGLE_STRIP;
+               break;
+          case DTTF_FAN:
+               prim = VF_PRIM_TYPE_TRIANGLE_FAN;
+               break;
+          default:
+               D_BUG( "unexpected triangle formation" );
+               return false;
+     }
+     
+     r300DoTextureTriangles( rdrv, rdev, ve, num, prim );
+
+     return true;
+}
+
+bool r300TextureTriangles_420( void *drv, void *dev, DFBVertex *ve,
+                               int num, DFBTriangleFormation formation )
 {
      return false;
 }

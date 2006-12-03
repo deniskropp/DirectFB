@@ -3591,7 +3591,6 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_TXO_MACRO_TILE               (1 << 2)
 #       define R300_TXO_MICRO_TILE               (1 << 3)
 #       define R300_TXO_OFFSET_MASK              0xffffffe0
-#       define R300_TXO_OFFSET_SHIFT             5
 /* END */
 
 #define R300_TX_CHROMA_KEY_0                0x4580 /* 32 bit chroma key */
@@ -3973,6 +3972,7 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #define R300_RB3D_COLORPITCH2               0x4E40 /* GUESS */
 #define R300_RB3D_COLORPITCH3               0x4E44 /* GUESS */
 
+#define R300_RB3D_DSTCACHE_MODE             0x4E48
 /* gap */
 /* Guess by Vladimir.
 // Set to 0A before 3D operations, set to 02 afterwards. */
