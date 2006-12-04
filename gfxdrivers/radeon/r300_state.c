@@ -484,6 +484,9 @@ void r300_set_source( RadeonDriverData *rdrv,
                rdev->src_mask = 0x0000ffff;
                break;
           case DSPF_RGB32:
+               txformat = R300_TXFORMAT_XRGB8888;
+               rdev->src_mask = 0x00ffffff;
+               break;
           case DSPF_ARGB:
           case DSPF_AiRGB:
           case DSPF_AYUV:
@@ -542,10 +545,9 @@ void r300_set_source( RadeonDriverData *rdrv,
      radeon_out32( mmio, SRC_PITCH,  rdev->src_pitch );
      
      if (R300_HAS_3DREGS()) {
-          radeon_waitfifo( rdrv, rdev, 7 );
+          radeon_waitfifo( rdrv, rdev, 6 );
           radeon_out32( mmio, R300_TX_CNTL, 0 );
           radeon_out32( mmio, R300_TX_FILTER_0, txfilter );
-          radeon_out32( mmio, R300_TX_FILTER1_0, R300_TX_TRI_PERF_0_8 );
           radeon_out32( mmio, R300_TX_FORMAT_0, txformat );
           radeon_out32( mmio, R300_TX_SIZE_0, ((rdev->src_width -1) << R300_TX_WIDTH_SHIFT)  |
                                               ((rdev->src_height-1) << R300_TX_HEIGHT_SHIFT) |
@@ -782,48 +784,36 @@ void r300_set_src_colorkey( RadeonDriverData *rdrv,
                             RadeonDeviceData *rdev,
                             CardState        *state )
 {
-     volatile u8 *mmio   = rdrv->mmio_base;
-     u32          key    = state->src_colorkey;
-     u32          chroma = key;
+     volatile u8 *mmio = rdrv->mmio_base;
+     u32          key  = state->src_colorkey;
      
      if (RADEON_IS_SET( SRC_COLORKEY ))
           return;
      
      switch (rdev->src_format) {
-          case DSPF_RGB332:
-               //chroma = RGB332_TO_RGB32( key );
-               break;
           case DSPF_ARGB4444:
                key |= 0xf000;
-               //chroma = ARGB4444_TO_RGB32( key );
                break;
           case DSPF_ARGB2554:
-               key |= 0xc000; 
-               //chroma = ARGB2554_TO_RGB32( key );
+               key |= 0xc000;
                break;
           case DSPF_ARGB1555:
                key |= 0x8000;
-               chroma = ARGB1555_TO_RGB32( key );
                break;
-          case DSPF_RGB16:
-               chroma = RGB16_TO_RGB32( key );
-               break;
-          case DSPF_RGB32:
-               chroma = key;
+          case DSPF_ARGB:
+          case DSPF_AYUV:
+               key |= 0xff000000;
                break;
           default:
-               key |= 0xff000000;
-               chroma = key;
                break;
      }
-     chroma |= 0xff000000;               
-     
-     radeon_waitfifo( rdrv, rdev, 2 );
+    
+     radeon_waitfifo( rdrv, rdev, 3 );
      radeon_out32( mmio, CLR_CMP_CLR_SRC, key );
      /* XXX: R300 seems to ignore CLR_CMP_MASK. */
      radeon_out32( mmio, CLR_CMP_MASK, rdev->src_mask );
      if (R300_HAS_3DREGS())
-          radeon_out32( mmio, R300_TX_CHROMA_KEY_0, chroma );
+          radeon_out32( mmio, R300_TX_CHROMA_KEY_0, state->src_colorkey );
      
      RADEON_SET( SRC_COLORKEY );
 }
@@ -953,7 +943,8 @@ void r300_set_blittingflags( RadeonDriverData *rdrv,
      volatile u8   *mmio        = rdrv->mmio_base;
      u32            master_cntl = rdev->gui_master_cntl |
                                   GMC_BRUSH_NONE        |
-                                  GMC_SRC_DATATYPE_COLOR;
+                                  GMC_SRC_DATATYPE_COLOR; 
+     u32            txfilter1   = R300_TX_TRI_PERF_0_8;
      u32            cmp_cntl    = 0;
      u32            rb3d_blend;
      
@@ -969,10 +960,13 @@ void r300_set_blittingflags( RadeonDriverData *rdrv,
           rb3d_blend = R300_SRC_BLEND_GL_ONE | R300_DST_BLEND_GL_ZERO;
      }
 
-     if (state->blittingflags & DSBLIT_SRC_COLORKEY)
-          cmp_cntl = SRC_CMP_EQ_COLOR | CLR_CMP_SRC_SOURCE;
-     else 
+     if (state->blittingflags & DSBLIT_SRC_COLORKEY) {
+          txfilter1 |= R300_CHROMA_KEY_FORCE;
+          cmp_cntl   = SRC_CMP_EQ_COLOR | CLR_CMP_SRC_SOURCE;
+     }
+     else {
           master_cntl |= GMC_CLR_CMP_CNTL_DIS;
+     }
 
      if (state->blittingflags & DSBLIT_XOR)
           master_cntl |= GMC_ROP3_XOR;
@@ -984,7 +978,8 @@ void r300_set_blittingflags( RadeonDriverData *rdrv,
      radeon_out32( mmio, DP_GUI_MASTER_CNTL, master_cntl );
      
      if (R300_HAS_3DREGS()) {
-          radeon_waitfifo( rdrv, rdev, 28 );
+          radeon_waitfifo( rdrv, rdev, 29 );
+          radeon_out32( mmio, R300_TX_FILTER1_0, txfilter1 );
           radeon_out32( mmio, R300_TX_ENABLE, R300_TX_ENABLE_0 );
           if (rdev->accel == DFXL_TEXTRIANGLES)
                radeon_out32( mmio, R300_RE_SHADE_MODEL, R300_RE_SHADE_MODEL_SMOOTH );

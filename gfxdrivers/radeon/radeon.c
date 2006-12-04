@@ -796,7 +796,6 @@ static void r300CheckState( void *drv, void *dev,
           return;
      
      switch (destination->format) {
-          case DSPF_RGB332:
           case DSPF_RGB16:
           case DSPF_RGB32:
           case DSPF_ARGB:
@@ -805,6 +804,7 @@ static void r300CheckState( void *drv, void *dev,
           case DSPF_LUT8:
           case DSPF_ALUT44:
           case DSPF_A8:
+          case DSPF_RGB332:
           case DSPF_ARGB4444:
           case DSPF_ARGB2554:
           case DSPF_ARGB1555:
@@ -839,7 +839,7 @@ static void r300CheckState( void *drv, void *dev,
      }
 
      if (DFB_BLITTING_FUNCTION( accel )) {
-          if (state->blittingflags & (DSBLIT_SRC_COLORKEY | DSBLIT_XOR)) {
+          if (state->blittingflags & DSBLIT_XOR) {
                if (destination->format != source->format)
                     return;
                supported_blittingfuncs  = DFXL_BLIT;

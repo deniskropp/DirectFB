@@ -3568,11 +3568,12 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #	define R300_TX_FORMAT_YUV_MODE     0x00800000
      /* Precalculated formats */
 #    define R300_TXFORMAT_ARGB8888     R300_EASY_TXFORMAT(X, Y, Z, W, W8Z8Y8X8)
+#    define R300_TXFORMAT_XRGB8888     R300_EASY_TXFORMAT(X, Y, Z, ONE, W8Z8Y8X8)
 #    define R300_TXFORMAT_RGB565       R300_EASY_TXFORMAT(X, Y, Z, ONE, Z5Y6X5)
 #    define R300_TXFORMAT_ARGB4444     R300_EASY_TXFORMAT(X, Y, Z, W, W4Z4Y4X4)
 #    define R300_TXFORMAT_ARGB1555     R300_EASY_TXFORMAT(X, Y, Z, W, W1Z5Y5X5)
 #    define R300_TXFORMAT_RGB332       R300_EASY_TXFORMAT(X, Y, Z, ONE, Z3Y3X2)
-#    define R300_TXFORMAT_A8           R300_EASY_TXFORMAT(ZERO, ZERO, ZERO, X, X8)
+#    define R300_TXFORMAT_A8           R300_EASY_TXFORMAT(ONE, ONE, ONE, X, X8)
 #    define R300_TXFORMAT_I8           R300_EASY_TXFORMAT(X, X, X, X, X8)
 #    define R300_TXFORMAT_VYUY422      R300_EASY_TXFORMAT(X, Y, Z, ONE, G8R8_G8B8)|R300_TX_FORMAT_YUV_MODE
 #    define R300_TXFORMAT_YVYU422      R300_EASY_TXFORMAT(X, Y, Z, ONE, B8G8_B8G8)|R300_TX_FORMAT_YUV_MODE
@@ -3593,7 +3594,7 @@ I am fairly certain that they are correct unless stated otherwise in comments.
 #       define R300_TXO_OFFSET_MASK              0xffffffe0
 /* END */
 
-#define R300_TX_CHROMA_KEY_0                0x4580 /* 32 bit chroma key */
+#define R300_TX_CHROMA_KEY_0                0x4580 /* pixel value */
 
 #define R300_TX_BORDER_COLOR_0              0x45C0 //ff00ff00 == { 0, 1.0, 0, 1.0 }
 
