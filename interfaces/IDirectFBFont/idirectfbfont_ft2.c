@@ -55,6 +55,12 @@
 #include <misc/conf.h>
 #include <misc/util.h>
 
+#ifndef FT_LOAD_TARGET_MONO
+    /* FT_LOAD_TARGET_MONO was added in FreeType-2.1.3, we have to use (less good)
+       FT_LOAD_MONOCHROME with older versions. Make it an alias for code simplicity. */
+    #define FT_LOAD_TARGET_MONO FT_LOAD_MONOCHROME
+#endif
+
 
 static DFBResult
 Probe( IDirectFBFont_ProbeContext *ctx );
@@ -440,7 +446,8 @@ get_glyph_info( CoreFont      *thiz,
      }
 
      if (face->glyph->format != ft_glyph_format_bitmap) {
-          err = FT_Render_Glyph( face->glyph, ft_render_mode_normal );
+          err = FT_Render_Glyph( face->glyph,
+                                 (load_flags & FT_LOAD_TARGET_MONO) ? ft_render_mode_mono : ft_render_mode_normal );
           if (err) {
                D_ERROR( "DirectFB/FontFT2: Could not "
                          "render glyph for character index #%d!\n", index );
@@ -720,13 +727,8 @@ Construct( IDirectFBFont      *thiz,
                load_mono = true;
      }
 
-     if (load_mono) {
-#ifdef FT_LOAD_TARGET_MONO  /* added in FreeType-2.1.3 */
+     if (load_mono)
           load_flags |= FT_LOAD_TARGET_MONO;
-#else
-          load_flags |= FT_LOAD_MONOCHROME;
-#endif
-     }
 
      if (!disable_charmap) {
           pthread_mutex_lock ( &library_mutex );
