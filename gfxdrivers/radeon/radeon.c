@@ -812,20 +812,28 @@ static void r300CheckState( void *drv, void *dev,
           case DSPF_AYUV:
           case DSPF_YUY2:
           case DSPF_UYVY:
-          case DSPF_I420:
-          case DSPF_YV12:
-               if (DFB_BLITTING_FUNCTION( accel )) {
-                    if (source->format != destination->format &&
-                       !(DFB_PLANAR_PIXELFORMAT(source->format) &&
-                         DFB_PLANAR_PIXELFORMAT(destination->format)))
+               if (DFB_BLITTING_FUNCTION( accel )) { 
+                    if (source->format != destination->format)
                          return;
-               } 
+               }
                supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
                supported_drawingflags   =  DSDRAW_NOFX; 
                supported_blittingfuncs  =  DFXL_BLIT;
                supported_blittingflags  =  DSBLIT_NOFX;
                break;
-          
+ 
+          case DSPF_I420:
+          case DSPF_YV12:
+               if (DFB_BLITTING_FUNCTION( accel )) {
+                    if (source->format != DSPF_I420 &&
+                        source->format != DSPF_YV12)
+                         return;
+               }
+               supported_drawingfuncs  &= ~DFXL_FILLTRIANGLE;
+               supported_drawingflags   =  DSDRAW_XOR;
+               supported_blittingflags  =  DSBLIT_DEINTERLACE;
+               break;
+               
           default:
                return;
      }

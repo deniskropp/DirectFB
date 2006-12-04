@@ -23,6 +23,8 @@
 #ifndef __RADEON_STATE_H__
 #define __RADEON_STATE_H__
 
+#include <core/surfaces.h>
+
 /* R100 state funcs */
 void r100_restore           ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev  );
@@ -94,6 +96,9 @@ void r300_set_destination   ( RadeonDriverData *rdrv,
 void r300_set_source        ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );
+void r300_set_clip3d        ( RadeonDriverData *rdrv,
+                              RadeonDeviceData *rdev,
+                              const DFBRegion  *clip  );
 void r300_set_clip          ( RadeonDriverData *rdrv,
                               RadeonDeviceData *rdev,
                               CardState        *state );

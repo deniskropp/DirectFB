@@ -562,12 +562,40 @@ void r300_set_source( RadeonDriverData *rdrv,
      RADEON_SET( SOURCE );
 }
 
+void r300_set_clip3d( RadeonDriverData *rdrv,
+                      RadeonDeviceData *rdev,
+                      const DFBRegion  *clip )
+{
+     volatile u8 *mmio = rdrv->mmio_base;
+     int          x1, y1, x2, y2;
+     
+     x1 = clip->x1 + R300_CLIPRECT_OFFSET;
+     y1 = clip->y1 + R300_CLIPRECT_OFFSET;
+     x2 = clip->x2 + R300_CLIPRECT_OFFSET;
+     y2 = clip->y2 + R300_CLIPRECT_OFFSET;
+          
+     radeon_waitfifo( rdrv, rdev, 5 );
+     radeon_out32( mmio, R300_RE_CLIPRECT_TL_0, 
+                  ((y1 << R300_CLIPRECT_Y_SHIFT) & R300_CLIPRECT_Y_MASK) |
+                  ((x1 << R300_CLIPRECT_X_SHIFT) & R300_CLIPRECT_X_MASK) );
+     radeon_out32( mmio, R300_RE_CLIPRECT_BR_0, 
+                  ((y2 << R300_CLIPRECT_Y_SHIFT) & R300_CLIPRECT_Y_MASK) |
+                  ((x2 << R300_CLIPRECT_X_SHIFT) & R300_CLIPRECT_X_MASK) );
+     radeon_out32( mmio, R300_RE_CLIPRECT_CNTL, 0x0000aaaa );
+     radeon_out32( mmio, R300_RE_SCISSORS_TL,
+                  ((y1 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
+                  ((x1 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
+     radeon_out32( mmio, R300_RE_SCISSORS_BR,
+                  ((y2 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
+                  ((x2 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
+}     
+
 void r300_set_clip( RadeonDriverData *rdrv,
                     RadeonDeviceData *rdev,
                     CardState        *state )
 {
-     DFBRegion      clip = state->clip;
-     volatile u8   *mmio = rdrv->mmio_base;
+     DFBRegion   *clip = &state->clip;
+     volatile u8 *mmio = rdrv->mmio_base;
      
      if (RADEON_IS_SET( CLIP ))
           return;
@@ -576,38 +604,19 @@ void r300_set_clip( RadeonDriverData *rdrv,
      radeon_waitfifo( rdrv, rdev, 2 );
      if (rdev->dst_422) {
           radeon_out32( mmio, SC_TOP_LEFT,
-                      (clip.y1 << 16) | (clip.x1/2 & 0xffff) );
+                      (clip->y1 << 16) | (clip->x1/2 & 0xffff) );
           radeon_out32( mmio, SC_BOTTOM_RIGHT,
-                      ((clip.y2+1) << 16) | ((clip.x2+1)/2 & 0xffff) );
+                      ((clip->y2+1) << 16) | ((clip->x2+1)/2 & 0xffff) );
      } else {     
           radeon_out32( mmio, SC_TOP_LEFT, 
-                      (clip.y1 << 16) | (clip.x1 & 0xffff) );
+                      (clip->y1 << 16) | (clip->x1 & 0xffff) );
           radeon_out32( mmio, SC_BOTTOM_RIGHT,
-                      ((clip.y2+1) << 16) | ((clip.x2+1) & 0xffff) );
+                      ((clip->y2+1) << 16) | ((clip->x2+1) & 0xffff) );
      }
 
      /* 3d clip */
-     if (R300_HAS_3DREGS()) {
-          clip.x1 += R300_CLIPRECT_OFFSET;
-          clip.y1 += R300_CLIPRECT_OFFSET;
-          clip.x2 += R300_CLIPRECT_OFFSET;
-          clip.y2 += R300_CLIPRECT_OFFSET;
-          
-          radeon_waitfifo( rdrv, rdev, 5 );
-          radeon_out32( mmio, R300_RE_CLIPRECT_TL_0, 
-                       ((clip.y1 << R300_CLIPRECT_Y_SHIFT) & R300_CLIPRECT_Y_MASK) |
-                       ((clip.x1 << R300_CLIPRECT_X_SHIFT) & R300_CLIPRECT_X_MASK) );
-          radeon_out32( mmio, R300_RE_CLIPRECT_BR_0, 
-                       ((clip.y2 << R300_CLIPRECT_Y_SHIFT) & R300_CLIPRECT_Y_MASK) |
-                       ((clip.x2 << R300_CLIPRECT_X_SHIFT) & R300_CLIPRECT_X_MASK) );
-          radeon_out32( mmio, R300_RE_CLIPRECT_CNTL, 0x0000aaaa );
-          radeon_out32( mmio, R300_RE_SCISSORS_TL,
-                       ((clip.y1 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
-                       ((clip.x1 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
-          radeon_out32( mmio, R300_RE_SCISSORS_BR,
-                       ((clip.y2 << R300_SCISSORS_Y_SHIFT) & R300_SCISSORS_Y_MASK) |
-                       ((clip.x2 << R300_SCISSORS_X_SHIFT) & R300_SCISSORS_X_MASK) );
-     }
+     if (R300_HAS_3DREGS())
+          r300_set_clip3d( rdrv, rdev, clip );
 
      rdev->clip = state->clip;
      
