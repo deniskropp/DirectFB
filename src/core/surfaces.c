@@ -263,6 +263,8 @@ DFBResult dfb_surface_create( CoreDFB *core,
 
 
      fusion_object_activate( &surface->object );
+     
+     fusion_reactor_sync( surface->object.reactor, false );
 
      *ret_surface = surface;
 
@@ -345,7 +347,7 @@ dfb_surface_notify_listeners( CoreSurface                  *surface,
      notification.surface = surface;
 
      direct_serial_increase( &surface->serial );
-
+     
      return dfb_surface_dispatch( surface, &notification, dfb_surface_globals );
 }
 
