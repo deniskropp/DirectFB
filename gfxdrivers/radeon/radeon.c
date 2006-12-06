@@ -362,7 +362,8 @@ static void radeonEngineReset( void *drv, void *dev )
 
 static DFBResult radeonEngineSync( void *drv, void *dev )
 {
-     radeon_waitidle( (RadeonDriverData*)drv, (RadeonDeviceData*)dev );
+     if (!radeon_waitidle( (RadeonDriverData*)drv, (RadeonDeviceData*)dev ))
+     	return DFB_IO; /* DFB_TIMEOUT !? */
 
      return DFB_OK;
 }
@@ -812,7 +813,7 @@ static void r300CheckState( void *drv, void *dev,
           case DSPF_AYUV:
           case DSPF_YUY2:
           case DSPF_UYVY:
-               if (DFB_BLITTING_FUNCTION( accel )) { 
+               if (DFB_BLITTING_FUNCTION( accel )) {
                     if (source->format != destination->format)
                          return;
                }
@@ -840,8 +841,7 @@ static void r300CheckState( void *drv, void *dev,
 
      if (DFB_BLITTING_FUNCTION( accel )) {
           if (state->blittingflags & DSBLIT_XOR) {
-               if (destination->format != source->format)
-                    return;
+			can_convert = false;
                supported_blittingfuncs  = DFXL_BLIT;
                supported_blittingflags &= DSBLIT_SRC_COLORKEY | DSBLIT_XOR;
           }
@@ -906,6 +906,11 @@ static void r300CheckState( void *drv, void *dev,
           rdev->blitting_mask = supported_blittingfuncs;
      } 
      else {
+          if (state->drawingflags & DSDRAW_XOR) {
+               supported_drawingfuncs &= ~DFXL_FILLTRIANGLE;
+               supported_drawingflags &= DSDRAW_XOR;
+          }
+          
           if (accel & ~supported_drawingfuncs ||
               state->drawingflags & ~supported_drawingflags)
                return;

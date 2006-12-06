@@ -105,7 +105,7 @@ radeon_inpll( volatile u8 *mmioaddr, u32 addr )
 }
 
 
-static inline void 
+static inline bool
 radeon_waitfifo( RadeonDriverData *rdrv,
                  RadeonDeviceData *rdev,
                  unsigned int    space )
@@ -122,7 +122,7 @@ radeon_waitfifo( RadeonDriverData *rdrv,
                if (++waitcycles > 10000000) {
                     radeon_reset( rdrv, rdev );
                     D_BREAK( "FIFO timed out" );
-                    return;
+                    return false;
                }
           } while (rdev->fifo_space < space);
           
@@ -131,27 +131,32 @@ radeon_waitfifo( RadeonDriverData *rdrv,
           rdev->fifo_cache_hits++;
 	    
     rdev->fifo_space -= space;
+    
+    return true;
 }
 
-static inline void
+static inline bool
 radeon_waitidle( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 {
      int waitcycles = 0;
      int status;
 
-     radeon_waitfifo( rdrv, rdev, 64 );
+     if (!radeon_waitfifo( rdrv, rdev, 64 ))
+     	return false;
      
      do {
           status = radeon_in32( rdrv->mmio_base, RBBM_STATUS );
           if (++waitcycles > 10000000) {
                radeon_reset( rdrv, rdev );
                D_BREAK( "Engine timed out" );
-               return;
+               return false;
           }
      } while (status & RBBM_ACTIVE);
      
      rdev->fifo_space = status & RBBM_FIFOCNT_MASK;
      rdev->idle_waitcycles += waitcycles;
+     
+     return true;
 }
 
 
