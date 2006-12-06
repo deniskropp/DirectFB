@@ -66,6 +66,7 @@ struct __Fusion_FusionReactor {
 
      int                id;        /* reactor id                          */
      int                msg_size;  /* size of each message                */
+     bool               sync;
      bool               destroyed;
 
      DirectLink        *globals;
@@ -140,6 +141,9 @@ fusion_reactor_new( int                msg_size,
 
      /* set the static message size, should we make dynamic? (TODO?) */
      reactor->msg_size = msg_size;
+     
+     /* synchronize by default */
+     reactor->sync = true;
 
      /* Set default lock for global reactions. */
      reactor->globals_lock = &shared->reactor_globals;
@@ -492,6 +496,12 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
                D_ERROR( "Fusion/Reactor: global reactions exist but no "
                         "globals have been passed to dispatch()\n" );
      }
+     
+     /* Handle local reactions. */
+     if (self && !reactor->sync) {
+          _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, msg_data );
+          self = false;
+     }
 
      /* Initialize dispatch data. */
      dispatch.reactor_id = reactor->id;
@@ -514,6 +524,16 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
           return DFB_FUSION;
      }
 
+     return DFB_OK;
+}
+
+DirectResult
+fusion_reactor_sync( FusionReactor *reactor, bool sync )
+{
+     D_MAGIC_ASSERT( reactor, FusionReactor );
+     
+     reactor->sync = sync;
+     
      return DFB_OK;
 }
 
@@ -984,6 +1004,14 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
 
      pthread_mutex_unlock( &reactor->reactions_lock );
 
+     return DFB_OK;
+}
+
+DirectResult
+fusion_reactor_sync( FusionReactor *reactor, bool sync )
+{
+     D_ASSERT( reactor != NULL );
+     
      return DFB_OK;
 }
 

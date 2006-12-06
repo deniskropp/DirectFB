@@ -146,5 +146,14 @@ DirectResult   fusion_reactor_sized_dispatch( FusionReactor      *reactor,
                                               int                 msg_size,
                                               bool                self,
                                               const ReactionFunc *globals );
+                                              
+/*
+ * Specify whether message dispatching must happen synchronously or not.
+ * 
+ * Set 'sync' to false to dispatch messages immediatly to local reactions.
+ */
+DirectResult   fusion_reactor_sync          ( FusionReactor      *reactor,
+                                              bool                sync );
+
 #endif
 
