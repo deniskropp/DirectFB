@@ -37,8 +37,6 @@
 struct __FS_CoreSoundBuffer {
      FusionObject     object;
 
-     CoreSound       *core;
-
      int              length;
      int              channels;
      FSSampleFormat   format;

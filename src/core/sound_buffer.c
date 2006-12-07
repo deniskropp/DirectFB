@@ -111,13 +111,12 @@ fs_buffer_create( CoreSound        *core,
           return DFB_NOSYSTEMMEMORY;
      }
 
-     buffer->core      = core;
-     buffer->length    = length;
-     buffer->channels  = channels;
-     buffer->format    = format;
-     buffer->rate      = rate;
-     buffer->bytes     = bytes * channels;
-     buffer->shmpool   = pool;
+     buffer->length   = length;
+     buffer->channels = channels;
+     buffer->format   = format;
+     buffer->rate     = rate;
+     buffer->bytes    = bytes * channels;
+     buffer->shmpool  = pool;
 
      fusion_object_activate( &buffer->object );
 
