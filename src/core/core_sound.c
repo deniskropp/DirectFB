@@ -44,6 +44,7 @@
 
 #include <fusion/arena.h>
 #include <fusion/build.h>
+#include <fusion/conf.h>
 #include <fusion/fusion.h>
 #include <fusion/shmalloc.h>
 #include <fusion/object.h>
@@ -764,7 +765,7 @@ fs_core_arena_initialize( FusionArena *arena,
 
      /* Create the shared memory pool first! */
      ret = fusion_shm_pool_create( core->world, "FusionSound Main Pool", 0x1000000,
-                                   direct_config->debug, &pool );
+                                   fusion_config->debugshm, &pool );
      if (ret)
           return ret;
 
