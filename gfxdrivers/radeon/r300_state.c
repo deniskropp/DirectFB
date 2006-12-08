@@ -314,9 +314,9 @@ void r300_set_destination( RadeonDriverData *rdrv,
      offset = radeon_buffer_offset( rdev, buffer );
      pitch  = buffer->video.pitch;
 
-     if (rdev->dst_offset != offset ||
-         rdev->dst_pitch  != pitch  ||
-         rdev->dst_format != format)
+     if (rdev->dst_offset != offset        ||
+         rdev->dst_pitch  != pitch         ||
+         rdev->dst_format != buffer->format)
      {         
           switch (buffer->format) {
                case DSPF_LUT8:
