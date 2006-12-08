@@ -310,10 +310,14 @@ static void radeonAfterSetVar( void *drv, void *dev )
 {
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+     volatile u8      *mmio = rdrv->mmio_base;
      
      rdev->surface_cntl   =
      rdev->surface_cntl_c =
-     rdev->surface_cntl_p = radeon_in32( rdrv->mmio_base, SURFACE_CNTL );
+     rdev->surface_cntl_p = radeon_in32( mmio, SURFACE_CNTL );
+
+     radeon_out32( mmio, CRTC_OFFSET_CNTL, 
+                  (radeon_in32( mmio, CRTC_OFFSET_CNTL ) & ~CRTC_TILE_EN) | CRTC_HSYNC_EN );
 
 #if RESET_AFTER_SETVAR
      radeon_waitidle( rdrv, rdev );
@@ -326,19 +330,18 @@ static void radeonEngineReset( void *drv, void *dev )
      RadeonDriverData *rdrv = (RadeonDriverData*) drv;
      RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
      volatile u8      *mmio = rdrv->mmio_base;
-     u32               tmp;
+
+     rdev->fifo_space = 0;
 
      radeon_out32( mmio, SURFACE_CNTL, rdev->surface_cntl_c );
      
-     tmp = radeon_in32( mmio, CRTC_OFFSET_CNTL );
-     radeon_out32( mmio, CRTC_OFFSET_CNTL, (tmp & ~CRTC_TILE_EN) | CRTC_HSYNC_EN ); 
-     
      radeon_waitfifo( rdrv, rdev, 3 );
-     tmp = radeon_in32( mmio, DP_DATATYPE );
 #ifdef WORDS_BIGENDIAN
-     radeon_out32( mmio, DP_DATATYPE, tmp | HOST_BIG_ENDIAN_EN );
+     radeon_out32( mmio, DP_DATATYPE, 
+                   radeon_in32( mmio, DP_DATATYPE ) | HOST_BIG_ENDIAN_EN );
 #else
-     radeon_out32( mmio, DP_DATATYPE, tmp & ~HOST_BIG_ENDIAN_EN );
+     radeon_out32( mmio, DP_DATATYPE, 
+                   radeon_in32( mmio, DP_DATATYPE ) & ~HOST_BIG_ENDIAN_EN );
 #endif
      radeon_out32( mmio, DEFAULT_SC_BOTTOM_RIGHT, DEFAULT_SC_RIGHT_MAX |
                                                   DEFAULT_SC_BOTTOM_MAX );
@@ -366,6 +369,15 @@ static DFBResult radeonEngineSync( void *drv, void *dev )
      	return DFB_IO; /* DFB_TIMEOUT !? */
 
      return DFB_OK;
+}
+
+static void radeonInvalidateState( void *drv, void *dev )
+{
+     RadeonDeviceData *rdev = (RadeonDeviceData*) dev;
+ 
+     rdev->set = 0;
+     rdev->src_format = DSPF_UNKNOWN;
+     rdev->dst_format = DSPF_UNKNOWN;
 }
 
 static void radeonFlushTextureCache( void *drv, void *dev )
@@ -1295,6 +1307,7 @@ driver_init_driver( GraphicsDevice      *device,
      funcs->AfterSetVar       = radeonAfterSetVar;
      funcs->EngineReset       = radeonEngineReset;
      funcs->EngineSync        = radeonEngineSync;
+     funcs->InvalidateState   = radeonInvalidateState;
      funcs->FlushTextureCache = radeonFlushTextureCache;
 #ifdef WORDS_BIGENDIAN
      funcs->SurfaceEnter      = radeonSurfaceEnter;
