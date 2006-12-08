@@ -436,8 +436,11 @@ dfb_gfxcard_lock( GraphicsDeviceLockFlags flags )
      if ((shared->lock_flags & GDLF_RESET) && funcs->EngineReset)
           funcs->EngineReset( card->driver_data, card->device_data );
 
-     if (shared->lock_flags & GDLF_INVALIDATE)
+     if (shared->lock_flags & GDLF_INVALIDATE) {
+          if (funcs->InvalidateState)
+               funcs->InvalidateState( card->driver_data, card->device_data );
           shared->state = NULL;
+     }
 
      shared->lock_flags = flags;
 

@@ -78,7 +78,7 @@ DECLARE_MODULE_DIRECTORY( dfb_graphics_drivers );
 /*
  * Increase this number when changes result in binary incompatibility!
  */
-#define DFB_GRAPHICS_DRIVER_ABI_VERSION          33
+#define DFB_GRAPHICS_DRIVER_ABI_VERSION          34
 
 #define DFB_GRAPHICS_DRIVER_INFO_NAME_LENGTH     40
 #define DFB_GRAPHICS_DRIVER_INFO_VENDOR_LENGTH   60
@@ -158,6 +158,12 @@ typedef struct _GraphicsDeviceFuncs {
       * It's also called before entering the OpenGL state (e.g. DRI driver).
       */
      DFBResult (*EngineSync)( void *driver_data, void *device_data );
+     
+     /*
+      * Called during dfb_gfxcard_lock() to notify the driver that
+      * the current rendering state is no longer valid.
+      */
+     void (*InvalidateState)( void *driver_data, void *device_data );
 
      /*
       * after the video memory has been written to by the CPU (e.g. modification
