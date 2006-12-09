@@ -42,6 +42,7 @@ long long
 direct_clock_get_micros()
 {
      struct timeval tv;
+     long long      ret;
 
      if (start_time.tv_sec == 0) {
           gettimeofday( &start_time, NULL );
@@ -50,8 +51,15 @@ direct_clock_get_micros()
 
      gettimeofday( &tv, NULL );
 
-     return (long long)(tv.tv_sec - start_time.tv_sec) * 1000000LL +
-            (long long)(tv.tv_usec - start_time.tv_usec);
+     ret = (long long)(tv.tv_sec - start_time.tv_sec) * 1000000LL +
+           (long long)(tv.tv_usec - start_time.tv_usec);
+     if (ret < 0) {
+          D_DEBUG_AT( Direct_Clock, "Clock skew detected (%lld in the past)!\n", -ret );
+          start_time = tv;
+          ret = 0;
+     }
+
+     return ret;
 }
 
 long long
