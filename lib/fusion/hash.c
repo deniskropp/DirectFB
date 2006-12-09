@@ -151,7 +151,7 @@ fusion_hash_create (FusionSHMPoolShared *pool,
                     FusionHashType value_type,
                     int  size, FusionHash **ret_hash )
 {
-     return fusion_hash_create_internal(false,NULL,key_type,value_type,
+     return fusion_hash_create_internal(false,pool,key_type,value_type,
                                         size,ret_hash );
 }
 
