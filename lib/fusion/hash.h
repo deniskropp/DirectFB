@@ -126,6 +126,9 @@ fusion_hash_iterate( FusionHash             *hash,
                      FusionHashIteratorFunc  func,
                      void                   *ctx );
 
+unsigned int
+fusion_hash_size (FusionHash *hash);
+
 bool fusion_hash_should_resize ( FusionHash    *hash);
 
 
