@@ -410,17 +410,16 @@ fusion_hash_iterate( FusionHash             *hash,
                      void                   *ctx )
 {
      int i;
-     int count = 0;
      FusionHashNode *node;
+     FusionHashNode *next;
 
      D_MAGIC_ASSERT( hash, FusionHash );
 
      for (i = 0; i < hash->size; i++) {
-          for (node = hash->nodes[i]; node; node = node->next) {
+          for (node = hash->nodes[i]; node; node = next) {
+               next = node->next;
+
                if ( func(hash, node->key, node->value, ctx))
-                    return;
-               count++;
-               if ( count == hash->nnodes )
                     return;
           }
      }
