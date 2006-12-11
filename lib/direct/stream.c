@@ -84,6 +84,7 @@ struct __D_DirectStream {
           
           int              redirects;
           
+          int              bitrate;
           bool             real_rtsp;
           bool             real_pack;
      } remote;
@@ -852,7 +853,13 @@ sdp_parse( DirectStream *stream, int length, SDPStreamDesc **ret_streams, int *r
           char *end;
           
           end = strchr( tmp, '\n' );
-          if (end) *end = '\0';
+          if (end) {
+               if (end > tmp && *(end-1) == '\r')
+                    *(end-1) = '\0';
+               *end = '\0';
+          }
+          
+          D_DEBUG_AT( Direct_Stream, "SDP [%s]\n", tmp );
           
           switch (*tmp) {
                case 'm':
@@ -982,57 +989,6 @@ sdp_free( SDPStreamDesc *streams, int num )
                D_FREE( streams[i].data );
      }
      D_FREE( streams );
-}          
-
-static void
-real_calc_challenge2( char response[64], char checksum[32], char *challenge )
-{
-     const unsigned char xor_table[37] = {
-          0x05, 0x18, 0x74, 0xd0, 0x0d, 0x09, 0x02, 0x53,
-          0xc0, 0x01, 0x05, 0x05, 0x67, 0x03, 0x19, 0x70,
-          0x08, 0x27, 0x66, 0x10, 0x10, 0x72, 0x08, 0x09,
-          0x63, 0x11, 0x03, 0x71, 0x08, 0x08, 0x70, 0x02,
-          0x10, 0x57, 0x05, 0x18, 0x54
-     };
-     char buf[128];
-     char md5[16];
-     int  len;
-     int  i;
-     
-     memset( response, 0, 64 );
-     memset( checksum, 0, 32 );
-     
-     buf[0] = 0xa1; buf[1] = 0xe9; buf[2] = 0x14; buf[3] = 0x9d;
-     buf[4] = 0x0e; buf[5] = 0x6b; buf[6] = 0x3b; buf[7] = 0x59;
-     memset( buf+8, 0, 120 );
-     
-     len = strlen( challenge );
-     if (len == 40) {
-          challenge[32] = '\0';
-          len = 32;
-     }
-     memcpy( buf+8, challenge, MAX(len,56) );
-     
-     for (i = 0; i < 37; i++)
-          buf[8+i] ^= xor_table[i];
-      
-     /* compute response */    
-     direct_md5_sum( md5, buf, 64 );
-     /* convert to ascii */
-     for (i = 0; i < 16; i++) {
-          char a, b;
-          a = (md5[i] >> 4) & 15;
-          b =  md5[i]       & 15;
-          response[i*2+0] = ((a < 10) ? (a + 48) : (a + 87)) & 255;
-          response[i*2+1] = ((b < 10) ? (b + 48) : (b + 87)) & 255;
-     }
-     /* tail */
-     len = strlen( response );
-     strncpy( &response[len], "01d0a8e3", 64-len );
-     
-     /* compute checksum */
-     for (i = 0; i < len/4; i++)
-          checksum[i] = response[i*4];
 }
 
 static DirectResult
@@ -1164,6 +1120,232 @@ rmf_write_pheader( unsigned char **buf, int id, int sz, unsigned int ts )
      dst += 12;
      
      *buf = dst;
+}
+
+static void
+real_calc_challenge2( char response[64], char checksum[32], char *challenge )
+{
+     const unsigned char xor_table[37] = {
+          0x05, 0x18, 0x74, 0xd0, 0x0d, 0x09, 0x02, 0x53,
+          0xc0, 0x01, 0x05, 0x05, 0x67, 0x03, 0x19, 0x70,
+          0x08, 0x27, 0x66, 0x10, 0x10, 0x72, 0x08, 0x09,
+          0x63, 0x11, 0x03, 0x71, 0x08, 0x08, 0x70, 0x02,
+          0x10, 0x57, 0x05, 0x18, 0x54
+     };
+     char buf[128];
+     char md5[16];
+     int  len;
+     int  i;
+     
+     memset( response, 0, 64 );
+     memset( checksum, 0, 32 );
+     
+     buf[0] = 0xa1; buf[1] = 0xe9; buf[2] = 0x14; buf[3] = 0x9d;
+     buf[4] = 0x0e; buf[5] = 0x6b; buf[6] = 0x3b; buf[7] = 0x59;
+     memset( buf+8, 0, 120 );
+     
+     len = strlen( challenge );
+     if (len == 40) {
+          challenge[32] = '\0';
+          len = 32;
+     }
+     memcpy( buf+8, challenge, MAX(len,56) );
+     
+     for (i = 0; i < 37; i++)
+          buf[8+i] ^= xor_table[i];
+      
+     /* compute response */    
+     direct_md5_sum( md5, buf, 64 );
+     /* convert to ascii */
+     for (i = 0; i < 16; i++) {
+          char a, b;
+          a = (md5[i] >> 4) & 15;
+          b =  md5[i]       & 15;
+          response[i*2+0] = ((a < 10) ? (a + 48) : (a + 87)) & 255;
+          response[i*2+1] = ((b < 10) ? (b + 48) : (b + 87)) & 255;
+     }
+     /* tail */
+     len = strlen( response );
+     strncpy( &response[len], "01d0a8e3", 64-len );
+     
+     /* compute checksum */
+     for (i = 0; i < len/4; i++)
+          checksum[i] = response[i*4];
+}
+
+static DirectResult
+rtsp_session_open( DirectStream *stream, double start )
+{
+     DirectResult   ret;
+     int            status;
+     int            cseq        = 0;
+     SDPStreamDesc *streams     = NULL;
+     int            n_streams   = 0;
+     char           session[32] = {0, };
+     char           challen[64] = {0, };
+     char           buf[1600];
+     int            i, len;
+     
+     snprintf( buf, sizeof(buf),
+               "OPTIONS rtsp://%s:%d RTSP/1.0\r\n"
+               "CSeq: %d\r\n"
+               "User-Agent: DirectFB/%s\r\n"
+               "ClientChallenge: 9e26d33f2984236010ef6253fb1887f7\r\n"
+               "PlayerStarttime: [28/03/2003:22:50:23 00:00]\r\n"
+               "CompanyID: KnKV4M4I/B2FjJ1TToLycw==\r\n"
+               "GUID: 00000000-0000-0000-0000-000000000000\r\n"
+               "RegionData: 0\r\n",
+               stream->remote.host,
+               stream->remote.port,
+               ++cseq, DIRECTFB_VERSION );
+     
+     if (net_command( stream, buf, sizeof(buf) ) != 200)
+          return DFB_FAILURE;
+     
+     while (net_response( stream, buf, sizeof(buf) ) > 0) {
+          if (!strncmp( buf, "RealChallenge1:", 15 )) {
+               snprintf( challen, sizeof(challen), "%s", trim( buf+15 ) );
+               stream->remote.real_rtsp = true;
+          }
+     }
+
+     len = snprintf( buf, sizeof(buf),
+                     "DESCRIBE rtsp://%s:%d%s RTSP/1.0\r\n"
+                     "CSeq: %d\r\n"
+                     "Accept: application/sdp\r\n"
+                     "Bandwidth: 10485800\r\n",
+                     stream->remote.host,
+                     stream->remote.port,
+                     stream->remote.path,
+                     ++cseq );
+     if (stream->remote.real_rtsp) {
+          snprintf( buf+len, sizeof(buf)-len,
+                    "GUID: 00000000-0000-0000-0000-000000000000\r\n"
+                    "RegionData: 0\r\n"
+                    "SupportsMaximumASMBandwidth: 1\r\n"
+                    "Require: com.real.retain-entity-for-setup\r\n" );
+     }
+     
+     status = net_command( stream, buf, sizeof(buf) );
+     if (status != 200)
+          return (status == 404) ? DFB_FILENOTFOUND : DFB_FAILURE;
+     
+     len = 0;
+     while (net_response( stream, buf, sizeof(buf) ) > 0) {
+          if (!strncasecmp( buf, "ETag:", 5 )) {
+               snprintf( session, sizeof(session), "%s", trim( buf+5 ) );
+          }
+          else if (!strncasecmp( buf, "Content-Length:", 15 )) {
+               char *tmp = trim( buf+15 );
+               if (sscanf( tmp, "%d", &len ) != 1)
+                    sscanf( tmp, "bytes=%d", &len );
+          }
+     }
+     
+     if (!len) {
+          D_DEBUG_AT( Direct_Stream, "Couldn't get sdp length!\n" );
+          return DFB_FAILURE;
+     }       
+         
+     ret = sdp_parse( stream, len, &streams, &n_streams );
+     if (ret)
+          return ret;
+     
+     stream->remote.bitrate = 0;
+     
+     for (i = 0; i < n_streams; i++) {
+          stream->remote.bitrate += streams[i].abr;
+          
+          len = snprintf( buf, sizeof(buf),
+                         "SETUP rtsp://%s:%d%s/%s RTSP/1.0\r\n"
+                         "CSeq: %d\r\n",
+                         stream->remote.host,
+                         stream->remote.port,
+                         stream->remote.path,
+                         streams[i].control, ++cseq );
+          if (*session) {
+               if (*challen) {
+                    char response[64];
+                    char checksum[32];
+                    
+                    real_calc_challenge2( response, checksum, challen );
+                    len += snprintf( buf+len, sizeof(buf)-len,
+                                     "RealChallenge2: %s, sd=%s\r\n",
+                                     response, checksum );
+                    *challen = '\0';
+               }
+               len += snprintf( buf+len, sizeof(buf)-len,
+                                "%s: %s\r\n",
+                                i ? "Session" : "If-Match", session );
+          }
+          snprintf( buf+len, sizeof(buf)-len,
+                    "Transport: %s\r\n",
+                    stream->remote.real_rtsp
+                    ? "x-pn-tng/tcp;mode=play,rtp/avp/tcp;unicast;mode=play"
+                    : "RTP/AVP/TCP;unicast" );
+
+          if (net_command( stream, buf, sizeof(buf) ) != 200) {
+               sdp_free( streams, n_streams );
+               return DFB_FAILURE;
+          }
+          
+          while (net_response( stream, buf, sizeof(buf) ) > 0) {
+               if (!strncmp( buf, "Session:", 8 ))
+                    snprintf( session, sizeof(session), "%s", trim( buf+8 ) );
+          }
+     }
+     
+     stream->remote.bitrate /= n_streams;
+     
+     len = snprintf( buf, sizeof(buf),
+                    "PLAY rtsp://%s:%d%s RTSP/1.0\r\n"
+                    "CSeq: %d\r\n",
+                    stream->remote.host,
+                    stream->remote.port,
+                    stream->remote.path,
+                    ++cseq );
+     if (*session) {
+          len += snprintf( buf+len, sizeof(buf)-len,
+                           "Session: %s\r\n", session );
+     }
+     snprintf( buf+len, sizeof(buf)-len, 
+               "Range: npt=%.3f-\r\n", (start < 0.0) ? 0.0 : start );
+     
+     if (net_command( stream, buf, sizeof(buf) ) != 200) {
+          sdp_free( streams, n_streams );
+          return DFB_FAILURE;
+     }
+     
+     /* discard remaining headers */
+     while (net_response( stream, buf, sizeof(buf) ) > 0);
+     
+     /* revert to blocking mode */
+     fcntl( stream->fd, F_SETFL, 
+            fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
+     
+     if (start == -1.0) {
+          stream->remote.real_pack = true;
+          if (n_streams == 1) {
+               if (!streams[0].mime || !strstr( streams[0].mime, "real" )) {
+                    if (streams[0].mime)
+                         stream->mime = D_STRDUP( streams[0].mime );
+                    stream->remote.real_pack = false;
+               }
+          }
+          if (stream->remote.real_pack) {
+               ret = rmf_write_header( streams, n_streams,
+                                       &stream->cache, &stream->cache_size );
+               if (ret) {
+                    sdp_free( streams, n_streams );
+                    return ret;
+               }
+               stream->mime = D_STRDUP( "application/vnd.rn-realmedia" );
+          }
+     }        
+
+     sdp_free( streams, n_streams );
+     
+     return DFB_OK;
 }
 
 static DirectResult
@@ -1352,174 +1534,54 @@ rtsp_read( DirectStream *stream,
           *read_out = size;
 
      return DFB_OK;
-}              
+}
+
+static DirectResult
+rtsp_seek( DirectStream *stream, unsigned int offset )
+{
+     DirectResult ret;
+     double       start = (double)offset*8/(double)stream->remote.bitrate;
+     
+     close( stream->remote.sd );
+     stream->remote.sd = -1;
+
+     ret = net_connect( stream->remote.addr, 
+                        SOCK_STREAM, IPPROTO_TCP, &stream->remote.sd );
+     if (ret)
+          return ret;
+     
+     stream->fd = stream->remote.sd;
+     
+     ret = rtsp_session_open( stream, start );
+     if (ret)
+          return ret;
+          
+     stream->offset = offset;
+     
+     return DFB_OK;
+}             
  
 static DirectResult 
 rtsp_open( DirectStream *stream, const char *filename )
 {
-     DirectResult   ret;
-     int            status;
-     int            cseq        = 0;
-     SDPStreamDesc *streams     = NULL;
-     int            n_streams   = 0;
-     char           session[32] = {0, };
-     char           challen[64] = {0, };
-     char           buf[1024];
-     int            i, len;     
+     DirectResult ret;
      
      stream->remote.port = RTSP_PORT;
 
      ret = net_open( stream, filename, IPPROTO_TCP );
      if (ret)
           return ret;
-     
-     snprintf( buf, sizeof(buf),
-               "OPTIONS rtsp://%s:%d RTSP/1.0\r\n"
-               "CSeq: %d\r\n"
-               "User-Agent: DirectFB/%s\r\n"
-               "ClientChallenge: 9e26d33f2984236010ef6253fb1887f7\r\n"
-               "PlayerStarttime: [28/03/2003:22:50:23 00:00]\r\n"
-               "CompanyID: KnKV4M4I/B2FjJ1TToLycw==\r\n"
-               "GUID: 00000000-0000-0000-0000-000000000000\r\n"
-               "RegionData: 0\r\n",
-               stream->remote.host,
-               stream->remote.port,
-               ++cseq, DIRECTFB_VERSION );
-     
-     if (net_command( stream, buf, sizeof(buf) ) != 200)
-          return DFB_FAILURE;
-     
-     while (net_response( stream, buf, sizeof(buf) ) > 0) {
-          if (!strncmp( buf, "RealChallenge1:", 15 )) {
-               snprintf( challen, sizeof(challen), "%s", trim( buf+15 ) );
-               stream->remote.real_rtsp = true;
-          }
-     }
-
-     len = snprintf( buf, sizeof(buf),
-                     "DESCRIBE rtsp://%s:%d%s RTSP/1.0\r\n"
-                     "CSeq: %d\r\n"
-                     "Accept: application/sdp\r\n"
-                     "Bandwidth: 10485800\r\n",
-                     stream->remote.host,
-                     stream->remote.port,
-                     stream->remote.path,
-                     ++cseq );
-     if (stream->remote.real_rtsp) {
-          snprintf( buf+len, sizeof(buf)-len,
-                    "GUID: 00000000-0000-0000-0000-000000000000\r\n"
-                    "RegionData: 0\r\n"
-                    "SupportsMaximumASMBandwidth: 1\r\n"
-                    "Require: com.real.retain-entity-for-setup\r\n" );
-     }
-     
-     status = net_command( stream, buf, sizeof(buf) );
-     if (status != 200)
-          return (status == 404) ? DFB_FILENOTFOUND : DFB_FAILURE;
-     
-     len = 0;
-     while (net_response( stream, buf, sizeof(buf) ) > 0) {
-          if (!strncasecmp( buf, "ETag:", 5 )) {
-               snprintf( session, sizeof(session), "%s", trim( buf+5 ) );
-          }
-          else if (!strncasecmp( buf, "Content-Length:", 15 )) {
-               char *tmp = trim( buf+15 );
-               if (sscanf( tmp, "%d", &len ) != 1)
-                    sscanf( tmp, "bytes=%d", &len );
-          }
-     }
-     
-     if (!len) {
-          D_DEBUG_AT( Direct_Stream, "Couldn't get sdp length!\n" );
-          return DFB_FAILURE;
-     }       
-         
-     ret = sdp_parse( stream, len, &streams, &n_streams );
-     if (ret)
-          return ret;
-     
-     for (i = 0; i < n_streams; i++) {
-          len = snprintf( buf, sizeof(buf),
-                         "SETUP rtsp://%s:%d%s/%s RTSP/1.0\r\n"
-                         "CSeq: %d\r\n",
-                         stream->remote.host,
-                         stream->remote.port,
-                         stream->remote.path,
-                         streams[i].control, ++cseq );
-          if (*session) {
-               if (*challen) {
-                    char response[64];
-                    char checksum[32];
-                    
-                    real_calc_challenge2( response, checksum, challen );
-                    len += snprintf( buf+len, sizeof(buf)-len,
-                                     "RealChallenge2: %s, sd=%s\r\n",
-                                     response, checksum );
-                    *challen = '\0';
-               }
-               len += snprintf( buf+len, sizeof(buf)-len,
-                                "%s: %s\r\n",
-                                i ? "Session" : "If-Match", session );
-          }
-          snprintf( buf+len, sizeof(buf)-len,
-                    "Transport: %s\r\n",
-                    stream->remote.real_rtsp
-                    ? "x-pn-tng/tcp;mode=play,rtp/avp/tcp;unicast;mode=play"
-                    : "RTP/AVP/TCP;unicast" );
-
-          if (net_command( stream, buf, sizeof(buf) ) != 200)
-               return DFB_FAILURE;
           
-          while (net_response( stream, buf, sizeof(buf) ) > 0) {
-               if (!strncmp( buf, "Session:", 8 ))
-                    snprintf( session, sizeof(session), "%s", trim( buf+8 ) );
-          }
+     ret = rtsp_session_open( stream, -1 );
+     if (ret) {
+          close( stream->remote.sd );
+          return ret;
      }
-     
-     len = snprintf( buf, sizeof(buf),
-                    "PLAY rtsp://%s:%d%s RTSP/1.0\r\n"
-                    "CSeq: %d\r\n",
-                    stream->remote.host,
-                    stream->remote.port,
-                    stream->remote.path,
-                    ++cseq );
-     if (*session) {
-          len += snprintf( buf+len, sizeof(buf)-len,
-                           "Session: %s\r\n", session );
-     }
-     snprintf( buf+len, sizeof(buf)-len, "Range: npt=0-\r\n" );
-     
-     if (net_command( stream, buf, sizeof(buf) ) != 200)
-          return DFB_FAILURE;
-     
-     /* discard remaining headers */
-     while (net_response( stream, buf, sizeof(buf) ) > 0);
-     
-     /* select delivery mode (raw or RMF) */
-     stream->remote.real_pack = true;
-     if (n_streams == 1) {
-          if (!streams[0].mime || !strstr( streams[0].mime, "real" )) {
-               if (streams[0].mime)
-                    stream->mime = D_STRDUP( streams[0].mime );
-               stream->remote.real_pack = false;
-          }
-     }
-     if (stream->remote.real_pack) {
-          ret = rmf_write_header( streams, n_streams,
-                                  &stream->cache, &stream->cache_size );
-          if (ret)
-               return ret;
-          stream->mime = D_STRDUP( "application/vnd.rn-realmedia" );
-     }          
-
-     sdp_free( streams, n_streams );
-
-     /* revert to blocking mode */
-     fcntl( stream->fd, F_SETFL, 
-            fcntl( stream->fd, F_GETFL ) & ~O_NONBLOCK );
        
      stream->peek = rtsp_peek;
      stream->read = rtsp_read;
+     if (stream->remote.bitrate > 0)
+          stream->seek = rtsp_seek;
      
      return DFB_OK;
 }
