@@ -1295,8 +1295,6 @@ rtsp_session_open( DirectStream *stream, double start )
           }
      }
      
-     stream->remote.bitrate /= n_streams;
-     
      len = snprintf( buf, sizeof(buf),
                     "PLAY rtsp://%s:%d%s RTSP/1.0\r\n"
                     "CSeq: %d\r\n",
@@ -1309,7 +1307,9 @@ rtsp_session_open( DirectStream *stream, double start )
                            "Session: %s\r\n", session );
      }
      snprintf( buf+len, sizeof(buf)-len, 
-               "Range: npt=%.3f-\r\n", (start < 0.0) ? 0.0 : start );
+               "Range: npt=%.3f-\r\n"
+               "Connection: Close\r\n",
+               (start < 0.0) ? 0.0 : start );
      
      if (net_command( stream, buf, sizeof(buf) ) != 200) {
           sdp_free( streams, n_streams );
