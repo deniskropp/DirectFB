@@ -107,6 +107,9 @@ osdTestRegion( CoreLayer                  *layer,
           {
                fail |= CLRCF_OPTIONS;
           }
+
+          if ((options & DLOP_ALPHACHANNEL) && config->format != DSPF_AiRGB)
+               fail |= CLRCF_OPTIONS;
      }
 
      /* restore options */
