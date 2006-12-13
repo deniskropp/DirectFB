@@ -101,7 +101,7 @@ r300DoFillRectangle3D( RadeonDriverData *rdrv,
                                           VF_PRIM_WALK_DATA       |
                                           (1 << VF_NUM_VERTICES_SHIFT) );
 
-          out_vertex2d0( mmio, rect->x, rect->y, rdev->color );
+          out_vertex2d0( mmio, rect->x+1, rect->y+1, rdev->color );
      }
      else {
           radeon_waitfifo( rdrv, rdev, 1+4*8 );

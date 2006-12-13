@@ -88,7 +88,7 @@ r200DoFillRectangle3D( RadeonDriverData *rdrv,
                                           VF_PRIM_WALK_DATA      |
                                           (1 << VF_NUM_VERTICES_SHIFT) );
 
-          out_vertex2d0( mmio, rect->x, rect->y );
+          out_vertex2d0( mmio, rect->x+1, rect->y+1 );
      }
      else {
           radeon_waitfifo( rdrv, rdev, 7 );
@@ -142,6 +142,7 @@ bool r200FillRectangle3D_420( void *drv, void *dev, DFBRectangle *rect )
      /* Fill Cb plane */
      r200DoFillRectangle3D( rdrv, rdev, rect );
 
+     /* Prepare Cr plane */
      radeon_waitfifo( rdrv, rdev, 2 );
      radeon_out32( mmio, RB3D_COLOROFFSET, rdev->dst_offset_cr );
      radeon_out32( mmio, R200_PP_TFACTOR_1, rdev->cr_cop );
