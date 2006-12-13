@@ -15,7 +15,6 @@
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *
  */
- 
 
 typedef void (*BlendSpanFunc) ( dfb_frame_t *frame, 
                                 int          x,
@@ -24,19 +23,6 @@ typedef void (*BlendSpanFunc) ( dfb_frame_t *frame,
                                 clut_t       clut,
                                 uint8_t      alpha );
 
-
-#define YCBCR_TO_RGB( y, cb, cr, r, g, b ) do {\
-  int _y, _cb, _cr, _r, _g, _b;\
-  _y  = ((y) - 16) * 76309;\
-  _cb = (cb) - 128;\
-  _cr = (cr) - 128;\
-  _r = (_y                + _cr * 104597 + 0x8000) >> 16;\
-  _g = (_y - _cb *  25675 - _cr *  53279 + 0x8000) >> 16;\
-  _b = (_y + _cb * 132201                + 0x8000) >> 16;\
-  (r) = (_r < 0) ? 0 : ((_r > 255) ? 255 : _r);\
-  (g) = (_g < 0) ? 0 : ((_g > 255) ? 255 : _g);\
-  (b) = (_b < 0) ? 0 : ((_b > 255) ? 255 : _b);\
-} while (0)
 
 
 static void 
@@ -82,6 +68,17 @@ vo_dfb_blend_overlay( dfb_driver_t *this,
      clip.x2 = clip.x1 + overlay->width - 1;
      clip.y2 = clip.y1 + overlay->height - 1;
      this->ovl->SetClip( this->ovl, &clip );
+     
+     if (dfb_region_region_intersects( &this->ovl_region, &clip )) {
+          /* overlapping overlays */
+          this->ovl->SetPorterDuff( this->ovl, DSPD_ADD );
+          this->ovl->SetDrawingFlags( this->ovl, DSDRAW_BLEND );
+     } 
+     else {
+          this->ovl->SetDrawingFlags( this->ovl, DSDRAW_NOFX );
+     }
+     
+     dfb_region_region_union( &this->ovl_region, &clip );
   
      for (x = 0, y= 0, i = 0; i < overlay->num_rle; i++) {
           int idx = overlay->rle[i].color;

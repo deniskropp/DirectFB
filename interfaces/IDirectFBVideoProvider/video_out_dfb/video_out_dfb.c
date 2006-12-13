@@ -27,10 +27,13 @@
 
 #include <directfb.h>
 #include <directfb_version.h>
+#include <directfb_util.h>
+
+#include <direct/util.h>
 
 #include <idirectfb.h>
 
-#include <direct/util.h>
+#include <gfx/convert.h>
 
 #define LOG_MODULE "video_out_dfb"
 #define LOG_VERBOSE
@@ -211,6 +214,7 @@ vo_dfb_overlay_begin( vo_driver_t *vo_driver,
 
                this->ovl_width   = w;
                this->ovl_height  = h;
+               this->ovl_region  = (DFBRegion) { 0, 0, 0, 0 };
                this->ovl_changed = 1;
           }
      }

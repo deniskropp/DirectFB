@@ -119,6 +119,7 @@ struct dfb_driver_s {
      IDirectFBSurface       *ovl;
      int                     ovl_width;
      int                     ovl_height;
+     DFBRegion               ovl_region;
      int                     ovl_changed;
      
      struct {
