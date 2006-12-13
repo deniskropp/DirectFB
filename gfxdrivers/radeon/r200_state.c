@@ -77,7 +77,7 @@ void r200_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
 {
      volatile u8 *mmio = rdrv->mmio_base;
      
-     radeon_waitfifo( rdrv, rdev, 15 );
+     radeon_waitfifo( rdrv, rdev, 16 );
      /* enable caches */
      radeon_out32( mmio, RB2D_DSTCACHE_MODE, RB2D_DC_2D_CACHE_AUTOFLUSH     |
                                              RB2D_DC_3D_CACHE_AUTOFLUSH     |
@@ -89,6 +89,7 @@ void r200_restore( RadeonDriverData *rdrv, RadeonDeviceData *rdev )
                                              R200_RB3D_DC_3D_CACHE_AUTOFREE );          
      /* restore 3d engine state */
      radeon_out32( mmio, SE_LINE_WIDTH, 0x10 );
+     radeon_out32( mmio, RE_POINTSIZE, 0x10 );
      radeon_out32( mmio, PP_MISC, ALPHA_TEST_PASS ); 
      radeon_out32( mmio, R200_PP_CNTL_X, 0 );
      radeon_out32( mmio, R200_PP_TXMULTI_CTL_0, 0 ); 
