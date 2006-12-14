@@ -793,7 +793,7 @@ DFBResult dfb_surface_software_lock( CoreDFB *core, CoreSurface *surface, DFBSur
      D_ASSERT( data != NULL );
      D_ASSERT( pitch != NULL );
 
-     if (surface->owner && surface->owner != fusion_id( dfb_core_world(core) ))
+     if (surface->owner && surface->owner != fusion_id( dfb_core_world(core) ) && flags & DSLF_WRITE)
           return DFB_ACCESSDENIED;
 
      buffer = front ? surface->front_buffer : surface->back_buffer;
@@ -919,7 +919,7 @@ DFBResult dfb_surface_hardware_lock( CoreDFB *core, CoreSurface *surface,
      D_ASSERT( surface != NULL );
      D_ASSERT( flags != 0 );
 
-     if (surface->owner && surface->owner != fusion_id( dfb_core_world(core) ))
+     if (surface->owner && surface->owner != fusion_id( dfb_core_world(core) ) && flags & DSLF_WRITE)
           return DFB_ACCESSDENIED;
 
      buffer = front ? surface->front_buffer : surface->back_buffer;
