@@ -84,21 +84,21 @@ class IPPAny
 		}
 		inline IPPAny_C *get_iface() { return iface; }
 		inline IPPAny_C *get_iface() const { return iface; }
-		
+
 	protected:
 		IPPAny_C* iface;
 	public:
 		IPPAny(){
 			iface = NULL;
 		}
-		
-		IPPAny(const IMPLEMENTINGCLASS &other) {
+
+		IPPAny(const IPPAny &other) {
 			IPPAny_C *other_iface = other.iface;
 			if (other_iface)
 				other_iface->AddRef( other_iface );
 			iface = other_iface;
 		}
-		
+
 		virtual ~IPPAny() {
 			if (iface)
 				iface->Release( iface );
