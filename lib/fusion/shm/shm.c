@@ -142,8 +142,8 @@ fusion_shm_init( FusionWorld *world )
                snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, fusion_config->tmpfs );
           }
           else if (!find_tmpfs( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN )) {
-               D_ERROR( "Fusion/SHM: Could not find tmpfs mount point!\n" );
-               return DFB_FILENOTFOUND;
+               D_ERROR( "Fusion/SHM: Could not find tmpfs mount point, falling back to /dev/shm!\n" );
+               snprintf( shared->tmpfs, FUSION_SHM_TMPFS_PATH_NAME_LEN, "/dev/shm" );
           }
 
           shared->world = world->shared;
