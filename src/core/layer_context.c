@@ -1454,7 +1454,6 @@ allocate_surface( CoreLayer             *layer,
                     break;
 
                case DLBM_BACKSYSTEM:
-                    D_ONCE("DLBM_BACKSYSTEM as default is unimplemented");
                     break;
 
                default:
@@ -1477,8 +1476,15 @@ allocate_surface( CoreLayer             *layer,
                                     config->format, CSP_VIDEOONLY,
                                     caps, NULL, &surface );
           if (ret) {
-               D_ERROR( "DirectFB/core/layers: Surface creation failed!\n" );
+               D_DERROR( ret, "Core/layers: Surface creation failed!\n" );
                return ret;
+          }
+
+          if (config->buffermode == DLBM_BACKSYSTEM) {
+               surface->caps |= DSCAPS_DOUBLE;
+               ret = dfb_surface_reconfig( surface, CSP_VIDEOONLY, CSP_SYSTEMONLY );
+               if (ret)
+                    D_DERROR( ret, "Core/layers: Surface reconfiguration failed!\n" );
           }
      }
 
