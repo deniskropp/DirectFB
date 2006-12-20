@@ -774,8 +774,9 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
 
      D_MAGIC_ASSERT( pool, FusionSHMPool );
 
+     /* FIXME: Fix this with a little help of the kernel module. */
      if (pool->size != heap->size) {
-          D_WARN( "local pool size %d differs from shared heap size %d", pool->size, heap->size );
+          D_DEBUG_AT( Fusion_SHMHeap, "  -> local pool size %d differs from shared heap size %d", pool->size, heap->size );
 
           if (!increment) {
                void *new_mem;
