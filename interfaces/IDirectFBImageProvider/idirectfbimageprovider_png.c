@@ -340,7 +340,7 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                return ret;
 
           if (data->color_type == PNG_COLOR_TYPE_PALETTE) {
-               if (dst_surface->format == DSPF_LUT8) {
+               if (dst_surface->format == DSPF_LUT8 && data->info_ptr->bit_depth == 8) {
                     /*
                      * Special indexed PNG to LUT8 loading.
                      */
@@ -381,12 +381,34 @@ IDirectFBImageProvider_PNG_RenderTo( IDirectFBImageProvider *thiz,
                          ret = DFB_NOSYSTEMMEMORY;
                     }
                     else {
-                         for (y=0; y<data->height; y++) {
-                              u8  *S = data->image + data->pitch * y;
-                              u32 *D = image_argb  + data->width * y * 4;
+                         switch (data->info_ptr->bit_depth) {
+                              case 8:
+                                   for (y=0; y<data->height; y++) {
+                                        u8  *S = data->image + data->pitch * y;
+                                        u32 *D = image_argb  + data->width * y * 4;
 
-                              for (x=0; x<data->width; x++)
-                                   D[x] = data->palette[ S[x] ];
+                                        for (x=0; x<data->width; x++)
+                                             D[x] = data->palette[ S[x] ];
+                                   }
+                                   break;
+
+                              case 4:
+                                   for (y=0; y<data->height; y++) {
+                                        u8  *S = data->image + data->pitch * y;
+                                        u32 *D = image_argb  + data->width * y * 4;
+
+                                        for (x=0; x<data->width; x++) {
+                                             if (x & 1)
+                                                  D[x] = data->palette[ S[x>>1] & 0xf ];
+                                             else
+                                                  D[x] = data->palette[ S[x>>1] >> 4 ];
+                                        }
+                                   }
+                                   break;
+
+                              default:
+                                   D_ERROR( "ImageProvider/PNG: Unsupported indexed bit depth %d!\n",
+                                            data->info_ptr->bit_depth );
                          }
 
                          dfb_scale_linear_32( image_argb, data->width, data->height,
