@@ -251,16 +251,11 @@ IDirectFBDataBuffer_File_PeekData( IDirectFBDataBuffer *thiz,
 static DFBResult
 IDirectFBDataBuffer_File_HasData( IDirectFBDataBuffer *thiz )
 {
-     DFBResult      ret;
      struct timeval tv = {0,0};
      
      DIRECT_INTERFACE_GET_DATA(IDirectFBDataBuffer_File)
-
-     pthread_mutex_lock( &data->mutex );          
-     ret = direct_stream_wait( data->stream, 1, &tv );
-     pthread_mutex_unlock( &data->mutex );
-
-     return ret;
+        
+     return direct_stream_wait( data->stream, 1, &tv );
 }
 
 static DFBResult
