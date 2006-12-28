@@ -1298,7 +1298,7 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
           bool          malloced = (num_rects > 256);
 
           if (malloced)
-               local_rects = malloc( sizeof(DFBRectangle) * num_rects );
+               local_rects = D_MALLOC( sizeof(DFBRectangle) * num_rects );
           else
                local_rects = alloca( sizeof(DFBRectangle) * num_rects );
 
@@ -1312,7 +1312,7 @@ IDirectFBSurface_FillRectangles( IDirectFBSurface   *thiz,
           dfb_gfxcard_fillrectangles( local_rects, num_rects, &data->state );
 
           if (malloced)
-               free( local_rects );
+               D_FREE( local_rects );
      }
      else
           dfb_gfxcard_fillrectangles( rects, num_rects, &data->state );
