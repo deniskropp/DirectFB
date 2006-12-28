@@ -608,6 +608,7 @@ FFmpegVideo( DirectThread *self, void *arg )
      AVStream    *st       = data->video.st;
      s64          firtspts = 0;
      unsigned int framecnt = 0;
+     long         duration = 1000000.0/data->video.rate;
      int          drop     = 0;
 
      while (data->status != DVSTATE_STOP) {
@@ -648,7 +649,7 @@ FFmpegVideo( DirectThread *self, void *arg )
                data->video.pts = av_rescale_q( pkt.dts, 
                                                st->time_base, AV_TIME_BASE_Q );
           } else {
-               data->video.pts += 1000000.0/data->video.rate;
+               data->video.pts += duration;
           }
 
           av_free_packet( &pkt );
@@ -658,19 +659,19 @@ FFmpegVideo( DirectThread *self, void *arg )
                pthread_cond_wait( &data->video.cond, &data->video.lock );
           }
           else {
-               long duration, delay;
+               long length, delay;
                
-               duration = ((framecnt == 0) 
-                          ? (1000000.0/data->video.rate)
-                          : ((data->video.pts-firtspts)/framecnt)) / data->speed;
+               if (framecnt)
+                    duration = (data->video.pts - firtspts) / framecnt;
+               length = (double)duration / data->speed;
                
                delay = data->video.pts - get_stream_clock(data);
                if (delay > -GAP_THRESHOLD && delay < +GAP_THRESHOLD)
                     delay = CLAMP( delay, -GAP_TOLERANCE, +GAP_TOLERANCE );
-               duration += delay;
+               length += delay;
                
-               time.tv_nsec += (duration%1000000) * 1000;
-               time.tv_sec  += (duration/1000000);
+               time.tv_nsec += (length%1000000) * 1000;
+               time.tv_sec  += (length/1000000);
                time.tv_sec  += (time.tv_nsec/1000000000);
                time.tv_nsec %= 1000000000;
                
@@ -700,7 +701,7 @@ FFmpegAudio( DirectThread *self, void *arg )
 
      while (data->status != DVSTATE_STOP) {
           AVPacket  pkt;
-          __u8     *pkt_data;
+          u8       *pkt_data;
           int       pkt_size;
           int       decoded = 0;
           int       len     = 0;
@@ -777,7 +778,6 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      
      if (data->video.thread) { 
           direct_thread_cancel( data->video.thread );
-          pthread_cond_signal( &data->video.cond );
           direct_thread_join( data->video.thread );
           direct_thread_destroy( data->video.thread );
      }
@@ -1517,8 +1517,8 @@ Construct( IDirectFBVideoProvider *thiz,
      
      data->video.rate = av_q2d(data->video.st->r_frame_rate);
      if (!data->video.rate || !finite(data->video.rate)) {
-          D_INFO( "IDirectFBVideoProvider_FFmpeg: assuming 30 framesXsecond.\n" );
-          data->video.rate = 30.0;
+          D_INFO( "IDirectFBVideoProvider_FFmpeg: assuming 25 framesXsecond.\n" );
+          data->video.rate = 25.0;
      }
 
      if (data->audio.st) {
