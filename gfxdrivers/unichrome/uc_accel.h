@@ -37,6 +37,10 @@
                                     DSBLIT_COLORIZE           | \
                                     DSBLIT_DEINTERLACE)
 
+#define UC_BLITTING_FLAGS_3D_INV   (DSBLIT_BLEND_ALPHACHANNEL | \
+                                    DSBLIT_COLORIZE           | \
+                                    DSBLIT_DEINTERLACE)
+
 #define UC_DRAWING_FUNCTIONS_3D    (DFXL_DRAWLINE      | \
                                     DFXL_DRAWRECTANGLE | \
                                     DFXL_FILLRECTANGLE | \

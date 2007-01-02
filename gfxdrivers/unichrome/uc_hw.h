@@ -21,11 +21,11 @@ static inline int uc_map_dst_format( DFBSurfacePixelFormat format )
           case DSPF_RGB16:    return HC_HDBFM_RGB565;
           case DSPF_RGB32:    return HC_HDBFM_ARGB0888;
           case DSPF_ARGB:     return HC_HDBFM_ARGB8888;
+          case DSPF_AiRGB:    return HC_HDBFM_ARGB8888; // limited support
 
           case DSPF_YUY2:
           case DSPF_YV12:
           case DSPF_I420:
-          case DSPF_AiRGB:
                // not supported for 3D but don't report an error
                return 0;
 
@@ -45,6 +45,7 @@ static inline int uc_map_src_format_3d( DFBSurfacePixelFormat format )
           case DSPF_RGB16:    return HC_HTXnFM_RGB565;
           case DSPF_RGB32:    return HC_HTXnFM_ARGB0888;
           case DSPF_ARGB:     return HC_HTXnFM_ARGB8888;
+          case DSPF_AiRGB:    return HC_HTXnFM_ARGB8888; // limited support
           case DSPF_A8:       return HC_HTXnFM_A8;
           case DSPF_LUT8:     return HC_HTXnFM_Index8;
 
@@ -62,7 +63,8 @@ inline void uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
 
 inline void uc_map_blitflags  ( struct uc_hw_texture    *tex,
                                 DFBSurfaceBlittingFlags  bflags,
-                                DFBSurfacePixelFormat    sformat );
+                                DFBSurfacePixelFormat    sformat,
+                                DFBSurfacePixelFormat    dformat );
 
 // GPU - setting functions (uc_hwset.c)
 

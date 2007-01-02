@@ -92,6 +92,34 @@ uc_has_src_format_3d( DFBSurfacePixelFormat format )
      return false;
 }
 
+static inline bool
+uc_has_inv_src_format_3d( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_AiRGB:
+               return true;
+
+          default:
+               break;
+     }
+
+     return false;
+}
+
+static inline bool
+uc_has_inv_dst_format_3d( DFBSurfacePixelFormat format )
+{
+     switch (format) {
+          case DSPF_AiRGB:
+               return true;
+
+          default:
+               break;
+     }
+
+     return false;
+}
+
 static inline enum uc_state_type
 uc_select_drawtype( CardState* state,
                     DFBAccelerationMask accel )
@@ -120,6 +148,19 @@ uc_select_blittype( CardState* state,
 
      if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D)) {
           if (uc_has_src_format_3d( state->source->format ))
+               return UC_TYPE_3D;
+     }
+     
+     if (!(state->blittingflags & ~UC_BLITTING_FLAGS_3D_INV)) {
+          if (uc_has_inv_src_format_3d( state->source->format ))
+               return UC_TYPE_3D;
+     }
+     
+     /* Special case for an inverted destination alpha channel.  This
+      * can only be done if no blending is requested at the same time. */
+     if (state->blittingflags == DSBLIT_NOFX) {
+          if (DFB_PIXELFORMAT_INV_ALPHA(state->destination->format) &&
+              !DFB_PIXELFORMAT_INV_ALPHA(state->source->format))
                return UC_TYPE_3D;
      }
 
@@ -156,7 +197,8 @@ void uc_check_state(void *drv, void *dev,
                          state->accel |= UC_BLITTING_FUNCTIONS_2D;
                     break;
                case UC_TYPE_3D:
-                    if (uc_has_dst_format( state->destination->format ))
+                    if (uc_has_dst_format( state->destination->format ) ||
+                         uc_has_inv_dst_format_3d( state->destination->format ))
                          state->accel |= UC_BLITTING_FUNCTIONS_3D;
                     break;
                default:
@@ -183,7 +225,10 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
           UC_INVALIDATE( uc_source2d );
 
      if (modified & (SMF_BLITTING_FLAGS | SMF_SOURCE))
-          UC_INVALIDATE( uc_source3d | uc_texenv );
+          UC_INVALIDATE( uc_source3d );
+
+     if (modified & (SMF_BLITTING_FLAGS | SMF_SOURCE | SMF_DESTINATION))
+          UC_INVALIDATE( uc_texenv );
 
      if (modified & (SMF_BLITTING_FLAGS | SMF_SRC_COLORKEY | SMF_DST_COLORKEY))
           UC_INVALIDATE( uc_colorkey2d );
@@ -280,7 +325,7 @@ void uc_set_state(void *drv, void *dev, GraphicsDeviceFuncs *funcs,
                     break;
 
                case UC_TYPE_UNSUPPORTED:
-                    D_BUG("Unsupported drawing function!");
+                    D_BUG("Unsupported blitting function!");
                     break;
           }
      }

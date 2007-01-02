@@ -246,9 +246,12 @@ uc_map_blending_fn( struct uc_hw_alpha      *hwalpha,
 inline void
 uc_map_blitflags( struct uc_hw_texture    *tex,
                   DFBSurfaceBlittingFlags  bflags,
-                  DFBSurfacePixelFormat    sformat )
+                  DFBSurfacePixelFormat    sformat,
+                  DFBSurfacePixelFormat    dformat )
 {
      bool gotalpha = DFB_PIXELFORMAT_HAS_ALPHA(sformat);
+     bool invalpha = DFB_PIXELFORMAT_INV_ALPHA(sformat) ||
+          (!DFB_PIXELFORMAT_INV_ALPHA(sformat) && DFB_PIXELFORMAT_INV_ALPHA(dformat));
 
      if (bflags & DSBLIT_COLORIZE) {
           // Cv0 = Ct*Cf
@@ -315,7 +318,7 @@ uc_map_blitflags( struct uc_hw_texture    *tex,
           }
      }
      else {  // !(bflags & DSBLIT_BLEND_COLORALPHA)
-          if ((bflags & DSBLIT_BLEND_ALPHACHANNEL) && gotalpha) {
+          if (gotalpha && ((bflags & DSBLIT_BLEND_ALPHACHANNEL) || invalpha)) {
                // Av0 = At
 
                // Hw setting:
@@ -327,6 +330,8 @@ uc_map_blitflags( struct uc_hw_texture    *tex,
                                        HC_HTXnTBLAc_TOPA | HC_HTXnTBLAc_HTXnTBLRA;
                tex->regHTXnTBLCop_0 |= HC_HTXnTBLAop_Add |
                                        HC_HTXnTBLAbias_Atex | HC_HTXnTBLAshift_No;
+               if (invalpha)
+                    tex->regHTXnTBLCop_0 |= HC_HTXnTBLAbias_Inv;
                tex->regHTXnTBLRAa_0 = 0x0;
                tex->regHTXnTBLRFog_0 = 0x0;
           }

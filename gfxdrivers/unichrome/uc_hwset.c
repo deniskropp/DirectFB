@@ -81,7 +81,8 @@ uc_set_texenv( UcDriverData *ucdrv,
      if (UC_IS_VALID( uc_texenv ))
           return;
 
-     uc_map_blitflags( hwtex, state->blittingflags, state->source->format );
+     uc_map_blitflags( hwtex, state->blittingflags, state->source->format,
+                       state->destination->format );
 
      // Texture mapping method
      hwtex->regHTXnTB   = HC_HTXnFLSs_Linear | HC_HTXnFLTs_Linear |
