@@ -442,10 +442,6 @@ bool uc_fill_triangle(void* drv, void* dev, DFBTriangle* tri)
 bool uc_blit_3d(void* drv, void* dev,
                 DFBRectangle* rect, int dx, int dy)
 {
-    // TODO: Write separate blit function to save some overhead.
-
-    // Hmm, I don't think we can save anything beyond a few CPU cycles. -- dok
-
     DFBRectangle dest = {dx, dy, rect->w, rect->h};
     return uc_stretch_blit(drv, dev, rect, &dest);
 }
