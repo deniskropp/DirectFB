@@ -44,8 +44,8 @@ Special features
   
   To enable this, set the level of the overlay to -1 (using SetLevel)
   and enable the DLOP_ALPHACHANNEL option on the primary.  Then use
-  either ARGB or AiRGB as the primary pixel format (see also 'known
-  bugs and quirks' below).
+  either AiRGB as the primary pixel format (see also 'known bugs and
+  quirks' below).
   
 * The FIELD_PARITY option is supported for the video overlay but this
   requires that the DirectFB version of the viafb framebuffer driver
@@ -67,6 +67,8 @@ Limitations (of the hardware)
 * The blitter does not support YUV->RGB pixel-format conversion.
   Video surfaces does the conversion automatically.
 
+* Hardware accelerated blending is not available on AiRGB surfaces.
+
 Known bugs and quirks
 ---------------------
 
@@ -74,22 +76,10 @@ Known bugs and quirks
   is fully visible where the primary layer's alpha is 255, and
   invisible (= graphics visible) where the alpha is 0.
 
-  There are two options to overcome this:
-  
-  The first is to use the special pixel format AiRGB.
-
-  The second is to XOR the alpha channel of the surface, e.g. just
-  before flipping the primary surface.  This can be done as follows:
-
-  void InvertSurfaceAlpha(IDirectFBSurface* surface)
-  {
-      int w,h;
-
-      surface->SetColor(surface, 0, 0, 0, 0xff);
-      surface->SetDrawingFlags(surface, DSDRAW_XOR);
-      surface->GetSize(surface, &w, &h);
-      surface->FillRectangle(surface, 0, 0, w, h);
-  }
+  This requires the special pixel format AiRGB.  Accelerated blitting
+  to AiRGB surfaces is supported but blending is not.  If blending is
+  required, use a convential RGB surface first and blit the composed
+  image to the AiRGB layer surface.
 
 * Do not use the CPU to write into VRAM surfaces, unless where
   absolutely needed (ie system -> video blits). CPU accesses
