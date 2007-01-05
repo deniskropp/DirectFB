@@ -151,6 +151,8 @@ system_join( CoreDFB *core, void **data )
 static DFBResult
 system_shutdown( bool emergency )
 {
+     FusionSHMPoolShared *pool;
+
      D_ASSERT( dfb_sdl != NULL );
 
      /* Stop update thread. */
@@ -175,7 +177,17 @@ system_shutdown( bool emergency )
 
      fusion_skirmish_destroy( &dfb_sdl->lock );
 
-     SHFREE( dfb_core_shmpool(dfb_sdl_core), dfb_sdl );
+     pool = dfb_core_shmpool(dfb_sdl_core);
+
+     while (dfb_sdl->modes) {
+          VideoMode *next = dfb_sdl->modes->next;
+
+          SHFREE( pool, dfb_sdl->modes );
+
+          dfb_sdl->modes = next;
+     }
+
+     SHFREE( pool, dfb_sdl );
      dfb_sdl = NULL;
      dfb_sdl_core = NULL;
 
