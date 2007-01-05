@@ -647,6 +647,10 @@ shutdown_pool( FusionSHM           *shm,
 
      D_MAGIC_ASSERT( world, FusionWorld );
 
+     SHFREE( shared, shared->name );
+
+     fusion_dbg_print_memleaks( shared );
+
      while (ioctl( world->fusion_fd, FUSION_SHMPOOL_DESTROY, &shared->pool_id )) {
           if (errno != EINTR) {
                D_PERROR( "Fusion/SHM: FUSION_SHMPOOL_DESTROY failed!\n" );
