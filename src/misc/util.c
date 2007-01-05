@@ -301,3 +301,105 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
           rect1->h = rect2->h;
      }
 }
+
+void
+dfb_updates_init( DFBUpdates *updates,
+                  DFBRegion  *regions,
+                  int         max_regions )
+{
+     D_ASSERT( updates != NULL );
+     D_ASSERT( regions != NULL );
+     D_ASSERT( max_regions > 0 );
+
+     updates->regions     = regions;
+     updates->max_regions = max_regions;
+     updates->num_regions = 0;
+
+     D_MAGIC_SET( updates, DFBUpdates );
+}
+
+void
+dfb_updates_add( DFBUpdates      *updates,
+                 const DFBRegion *region )
+{
+     int i;
+
+     D_MAGIC_ASSERT( updates, DFBUpdates );
+     DFB_REGION_ASSERT( region );
+     D_ASSERT( updates->regions != NULL );
+     D_ASSERT( updates->num_regions >= 0 );
+     D_ASSERT( updates->num_regions <= updates->max_regions );
+
+     if (updates->num_regions == 0) {
+          updates->regions[0]  = updates->bounding = *region;
+          updates->num_regions = 1;
+
+          return;
+     }
+
+     for (i=0; i<updates->num_regions; i++) {
+          DFBRegion inter = updates->regions[i];
+
+          if (dfb_region_region_intersect( &inter, region )) {
+               DFBRegion uni = updates->regions[i];
+
+               dfb_region_region_union( &uni, region );
+
+               updates->regions[i] = uni;
+
+               return;
+          }
+     }
+
+     if (updates->num_regions == updates->max_regions) {
+          dfb_region_region_union( &updates->bounding, region );
+
+          updates->regions[0]  = updates->bounding;
+          updates->num_regions = 1;
+     }
+     else {
+          updates->regions[updates->num_regions++] = *region;
+
+          dfb_region_region_union( &updates->bounding, region );
+     }
+}
+
+void
+dfb_updates_stat( DFBUpdates *updates,
+                  int        *ret_total,
+                  int        *ret_bounding )
+{
+     int i;
+
+     D_MAGIC_ASSERT( updates, DFBUpdates );
+     D_ASSERT( updates->regions != NULL );
+     D_ASSERT( updates->num_regions >= 0 );
+     D_ASSERT( updates->num_regions <= updates->max_regions );
+
+     if (updates->num_regions == 0) {
+          if (ret_total)
+               *ret_total = 0;
+
+          if (ret_bounding)
+               *ret_bounding = 0;
+
+          return;
+     }
+
+     if (ret_total) {
+          int total = 0;
+
+          for (i=0; i<updates->num_regions; i++) {
+               const DFBRegion *r = &updates->regions[i];
+
+               total += (r->x2 - r->x1 + 1) * (r->y2 - r->y1 + 1);
+          }
+
+          *ret_total = total;
+     }
+
+     if (ret_bounding)
+          *ret_bounding = (updates->bounding.x2 - updates->bounding.x1 + 1) *
+                          (updates->bounding.y2 - updates->bounding.y1 + 1);
+}
+

@@ -90,6 +90,15 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 #define DFB_RECTANGLE_CONTAINS_POINT(r,X,Y)  (((X) >= (r)->x) && ((X) < (r)->x + (r)->w) && \
                                               ((Y) >= (r)->y) && ((Y) < (r)->y + (r)->h))
 
+#define DFB_REGION_CHECK(r)     \
+      ((r) != NULL &&           \
+       (r)->x1 <= (r)->x2 &&    \
+       (r)->y1 <= (r)->y2)
+
+#define DFB_REGION_CHECK_IF(r)  \
+      ((r) == NULL ||           \
+       ((r)->x1 <= (r)->x2 &&   \
+        (r)->y1 <= (r)->y2))
 
 #define DFB_REGION_ASSERT(r)                 \
      do {                                    \
@@ -108,6 +117,9 @@ void dfb_rectangle_union ( DFBRectangle       *rect1,
 
 
 #define DFB_REGION_VALS(r)                   (r)->x1, (r)->y1, (r)->x2, (r)->y2
+
+#define DFB_REGION_VALS_FROM_DIMENSION(d)    0, 0, (d)->w-1, (d)->h-1
+#define DFB_REGION_INIT_FROM_DIMENSION(d)    (DFBRegion){ DFB_REGION_VALS_FROM_DIMENSION(d) }
 
 #define DFB_REGION_VALS_FROM_RECTANGLE(r)    (r)->x, (r)->y, (r)->x+(r)->w-1, (r)->y+(r)->h-1
 #define DFB_REGION_INIT_FROM_RECTANGLE(r)    (DFBRegion){ DFB_REGION_VALS_FROM_RECTANGLE(r) }
@@ -318,6 +330,48 @@ static inline void dfb_rectangle_subtract( DFBRectangle    *rect,
      
      if (rect->w <= 0 || rect->h <= 0)
           rect->w = rect->h = 0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct {
+     int        magic;
+
+     DFBRegion *regions;
+     int        max_regions;
+     int        num_regions;
+
+     DFBRegion  bounding;
+} DFBUpdates;
+
+
+void dfb_updates_init( DFBUpdates      *updates,
+                       DFBRegion       *regions,
+                       int              max_regions );
+
+void dfb_updates_add ( DFBUpdates      *updates,
+                       const DFBRegion *region );
+
+void dfb_updates_stat( DFBUpdates      *updates,
+                       int             *ret_total,
+                       int             *ret_bounding );
+
+
+static inline void
+dfb_updates_reset( DFBUpdates *updates )
+{
+     D_MAGIC_ASSERT( updates, DFBUpdates );
+
+     updates->num_regions = 0;
 }
 
 #ifdef __cplusplus
