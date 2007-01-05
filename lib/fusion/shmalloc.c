@@ -54,6 +54,7 @@ fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
 {
      DirectResult  ret;
      SHMemDesc    *desc;
+     unsigned int  total = 0;
 
      D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
 
@@ -64,12 +65,19 @@ fusion_dbg_print_memleaks( FusionSHMPoolShared *pool )
      }
 
      if (pool->allocs) {
-          direct_log_printf( NULL, "Shared memory allocations remaining (%d): \n",
-                             direct_list_count_elements_EXPENSIVE( pool->allocs ) );
+          direct_log_printf( NULL, "\nShared memory allocations remaining (%d) in '%s': \n",
+                             direct_list_count_elements_EXPENSIVE( pool->allocs ), pool->name );
 
-          direct_list_foreach (desc, pool->allocs)
-               direct_log_printf( NULL, "%7d bytes at %p allocated in %s (%s: %u)\n",
-                                  desc->bytes, desc->mem, desc->func, desc->file, desc->line );
+          direct_list_foreach (desc, pool->allocs) {
+               direct_log_printf( NULL, " %9d bytes at %p [%8lu] in %-30s [%3lx] (%s: %u)\n",
+                                  desc->bytes, desc->mem, (ulong)desc->mem - (ulong)pool->heap,
+                                  desc->func, desc->fid, desc->file, desc->line );
+
+               total += desc->bytes;
+          }
+
+          direct_log_printf( NULL, "   -------\n  %7dk total\n", total >> 10 );
+          direct_log_printf( NULL, "\nShared memory file size: %dk\n", pool->heap->size >> 10 );
      }
 
      fusion_skirmish_dismiss( &pool->lock );
