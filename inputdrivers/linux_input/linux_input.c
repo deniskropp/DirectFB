@@ -1289,7 +1289,7 @@ touchpad_fsm_init( struct touchpad_fsm_state *state )
      state->y.old = -1;
      state->fsm_state = TOUCHPAD_FSM_START;
      timeout_clear( &state->timeout );
-};
+}
 
 static int
 touchpad_normalize( struct touchpad_axis *axis, int value )
