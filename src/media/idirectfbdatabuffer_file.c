@@ -280,8 +280,10 @@ IDirectFBDataBuffer_File_Construct( IDirectFBDataBuffer *thiz,
           return ret;
 
      ret = direct_stream_create( filename, &data->stream );
-     if (ret)
+     if (ret) {
+          DIRECT_DEALLOCATE_INTERFACE( thiz );
           return ret;
+     }
 
      direct_util_recursive_pthread_mutex_init( &data->mutex );
 
