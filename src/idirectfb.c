@@ -122,6 +122,7 @@ typedef struct {
 typedef struct {
      IDirectFBInputDevice **interface;
      DFBInputDeviceID       id;
+     DFBResult              ret;
 } GetInputDevice_Context;
 
 typedef struct {
@@ -408,6 +409,7 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          const DFBSurfaceDescription  *desc,
                          IDirectFBSurface            **interface )
 {
+     IDirectFBSurface *iface;
      DFBResult ret;
      int width = 256;
      int height = 256;
@@ -543,16 +545,19 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          init_palette( surface, desc );
 
-                         DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                         DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
-                         ret = IDirectFBSurface_Construct( *interface,
-                                                            NULL, NULL, NULL, surface, caps, data->core );
+                         ret = IDirectFBSurface_Construct( iface,
+                                                           NULL, NULL, NULL, surface, caps, data->core );
                          if (ret == DFB_OK) {
                               dfb_windowstack_set_background_image( data->stack, surface );
                               dfb_windowstack_set_background_mode( data->stack, DLBM_IMAGE );
                          }
 
                          dfb_surface_unref( surface );
+
+                         if (!ret)
+                              *interface = iface;
 
                          return ret;
                     }
@@ -607,11 +612,16 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                          init_palette( window->surface, desc );
 
-                         DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                         DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
-                         return IDirectFBSurface_Window_Construct( *interface, NULL,
-                                                                   NULL, window,
-                                                                   caps, data->core );
+                         ret = IDirectFBSurface_Window_Construct( iface, NULL,
+                                                                  NULL, window,
+                                                                  caps, data->core );
+
+                         if (!ret)
+                              *interface = iface;
+
+                         return ret;
                     }
                case DFSCL_FULLSCREEN:
                case DFSCL_EXCLUSIVE: {
@@ -682,13 +692,16 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
                     init_palette( surface, desc );
 
-                    DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+                    DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
-                    ret = IDirectFBSurface_Layer_Construct( *interface, NULL,
+                    ret = IDirectFBSurface_Layer_Construct( iface, NULL,
                                                             NULL, region, caps, data->core );
 
                     dfb_surface_unref( surface );
                     dfb_layer_region_unref( region );
+
+                    if (!ret)
+                         *interface = iface;
 
                     return ret;
                }
@@ -745,12 +758,15 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
 
      init_palette( surface, desc );
 
-     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBSurface );
+     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBSurface );
 
-     ret = IDirectFBSurface_Construct( *interface,
-                                        NULL, NULL, NULL, surface, caps, data->core );
+     ret = IDirectFBSurface_Construct( iface,
+                                       NULL, NULL, NULL, surface, caps, data->core );
 
      dfb_surface_unref( surface );
+
+     if (!ret)
+          *interface = iface;
 
      return ret;
 }
@@ -830,6 +846,7 @@ IDirectFB_GetScreen( IDirectFB        *thiz,
                      DFBScreenID       id,
                      IDirectFBScreen **interface )
 {
+     IDirectFBScreen   *iface;
      GetScreen_Context context;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
@@ -842,11 +859,14 @@ IDirectFB_GetScreen( IDirectFB        *thiz,
      if (dfb_config->primary_only && id != DLID_PRIMARY)
           return DFB_IDNOTFOUND;
 
-     context.interface = interface;
+     context.interface = &iface;
      context.id        = id;
      context.ret       = DFB_IDNOTFOUND;
 
      dfb_screens_enumerate( GetScreen_Callback, &context );
+
+     if (!context.ret)
+          *interface = iface;
 
      return context.ret;
 }
@@ -878,6 +898,7 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
                            DFBDisplayLayerID       id,
                            IDirectFBDisplayLayer **interface )
 {
+     IDirectFBDisplayLayer   *iface;
      GetDisplayLayer_Context context;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
@@ -890,12 +911,15 @@ IDirectFB_GetDisplayLayer( IDirectFB              *thiz,
      if (dfb_config->primary_only && id != DLID_PRIMARY)
           return DFB_IDNOTFOUND;
 
-     context.interface = interface;
+     context.interface = &iface;
      context.id        = id;
      context.ret       = DFB_IDNOTFOUND;
      context.core      = data->core;
 
      dfb_layers_enumerate( GetDisplayLayer_Callback, &context );
+
+     if (!context.ret)
+          *interface = iface;
 
      return context.ret;
 }
@@ -927,6 +951,7 @@ IDirectFB_GetInputDevice( IDirectFB             *thiz,
                           DFBInputDeviceID       id,
                           IDirectFBInputDevice **interface )
 {
+     IDirectFBInputDevice   *iface;
      GetInputDevice_Context context;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
@@ -936,18 +961,25 @@ IDirectFB_GetInputDevice( IDirectFB             *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     context.interface = interface;
+     context.interface = &iface;
      context.id        = id;
+     context.ret       = DFB_IDNOTFOUND;
 
      dfb_input_enumerate_devices( GetInputDevice_Callback, &context, DICAPS_ALL );
 
-     return (*interface) ? DFB_OK : DFB_IDNOTFOUND;
+     if (!context.ret)
+          *interface = iface;
+
+     return context.ret;
 }
 
 static DFBResult
 IDirectFB_CreateEventBuffer( IDirectFB             *thiz,
                              IDirectFBEventBuffer **interface)
 {
+     DFBResult             ret;
+     IDirectFBEventBuffer *iface;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
@@ -955,9 +987,14 @@ IDirectFB_CreateEventBuffer( IDirectFB             *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
+     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBEventBuffer );
 
-     return IDirectFBEventBuffer_Construct( *interface, NULL, NULL );
+     ret = IDirectFBEventBuffer_Construct( iface, NULL, NULL );
+
+     if (!ret)
+          *interface = iface;
+
+     return ret;
 }
 
 static DFBResult
@@ -966,6 +1003,8 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
                                   DFBBoolean                   global,
                                   IDirectFBEventBuffer       **interface)
 {
+     DFBResult                  ret;
+     IDirectFBEventBuffer      *iface;
      CreateEventBuffer_Context context;
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
@@ -975,15 +1014,19 @@ IDirectFB_CreateInputEventBuffer( IDirectFB                   *thiz,
      if (!interface)
           return DFB_INVARG;
 
-     DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBEventBuffer );
+     DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBEventBuffer );
 
-     IDirectFBEventBuffer_Construct( *interface, global ? input_filter_global :
-                                     input_filter_local, data );
+     ret = IDirectFBEventBuffer_Construct( iface, global ? input_filter_global :
+                                           input_filter_local, data );
+     if (ret)
+          return ret;
 
      context.caps      = caps;
-     context.interface = interface;
+     context.interface = &iface;
 
      dfb_input_enumerate_devices( CreateEventBuffer_Callback, &context, caps );
+
+     *interface = iface;
 
      return DFB_OK;
 }
@@ -996,6 +1039,7 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
      DFBResult                 ret;
      DFBDataBufferDescription  desc;
      IDirectFBDataBuffer      *databuffer;
+     IDirectFBImageProvider   *iface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -1014,10 +1058,13 @@ IDirectFB_CreateImageProvider( IDirectFB               *thiz,
           return ret;
 
      /* Create (probing) the image provider. */
-     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, data->core, interface );
+     ret = IDirectFBImageProvider_CreateFromBuffer( databuffer, data->core, &iface );
 
      /* We don't need it anymore, image provider has its own reference. */
      databuffer->Release( databuffer );
+
+     if (!ret)
+          *interface = iface;
 
      return ret;
 }
@@ -1030,6 +1077,7 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
      DFBResult                 ret;
      DFBDataBufferDescription  desc;
      IDirectFBDataBuffer      *databuffer;
+     IDirectFBVideoProvider   *iface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -1048,10 +1096,13 @@ IDirectFB_CreateVideoProvider( IDirectFB               *thiz,
           return ret;
 
      /* Create (probing) the video provider. */
-     ret = IDirectFBVideoProvider_CreateFromBuffer( databuffer, data->core, interface );
+     ret = IDirectFBVideoProvider_CreateFromBuffer( databuffer, data->core, &iface );
 
      /* We don't need it anymore, video provider has its own reference. */
      databuffer->Release( databuffer );
+
+     if (!ret)
+          *interface = iface;
 
      return ret;
 }
@@ -1116,6 +1167,9 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
                             const DFBDataBufferDescription  *desc,
                             IDirectFBDataBuffer            **interface )
 {
+     DFBResult            ret = DFB_INVARG;
+     IDirectFBDataBuffer *iface;
+
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
      D_DEBUG_AT( IDFB, "%s( %p )\n", __FUNCTION__, thiz );
@@ -1124,33 +1178,34 @@ IDirectFB_CreateDataBuffer( IDirectFB                       *thiz,
           return DFB_INVARG;
 
      if (!desc) {
-          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+          DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBDataBuffer );
 
-          return IDirectFBDataBuffer_Streamed_Construct( *interface, data->core );
+          ret = IDirectFBDataBuffer_Streamed_Construct( iface, data->core );
      }
-
-     if (desc->flags & DBDESC_FILE) {
+     else if (desc->flags & DBDESC_FILE) {
           if (!desc->file)
                return DFB_INVARG;
 
-          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+          DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBDataBuffer );
 
-          return IDirectFBDataBuffer_File_Construct( *interface, desc->file, data->core );
+          ret = IDirectFBDataBuffer_File_Construct( iface, desc->file, data->core );
      }
-
-     if (desc->flags & DBDESC_MEMORY) {
+     else if (desc->flags & DBDESC_MEMORY) {
           if (!desc->memory.data || !desc->memory.length)
                return DFB_INVARG;
 
-          DIRECT_ALLOCATE_INTERFACE( *interface, IDirectFBDataBuffer );
+          DIRECT_ALLOCATE_INTERFACE( iface, IDirectFBDataBuffer );
 
-          return IDirectFBDataBuffer_Memory_Construct( *interface,
-                                                       desc->memory.data,
-                                                       desc->memory.length,
-                                                       data->core );
+          ret = IDirectFBDataBuffer_Memory_Construct( iface,
+                                                      desc->memory.data,
+                                                      desc->memory.length,
+                                                      data->core );
      }
 
-     return DFB_INVARG;
+     if (!ret)
+          *interface = iface;
+
+     return ret;
 }
 
 static DFBResult
@@ -1247,6 +1302,7 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
 {
      DFBResult             ret;
      DirectInterfaceFuncs *funcs = NULL;
+     void                 *iface;
 
      DIRECT_INTERFACE_GET_DATA(IDirectFB)
 
@@ -1265,13 +1321,14 @@ IDirectFB_GetInterface( IDirectFB   *thiz,
      if (ret)
           return ret;
 
-     ret = funcs->Allocate( interface );
+     ret = funcs->Allocate( &iface );
      if (ret)
           return ret;
 
-     ret = funcs->Construct( *interface, arg, data->core );
-     if (ret)
-          *interface = NULL;
+     ret = funcs->Construct( iface, arg, data->core );
+
+     if (!ret)
+          *interface = iface;
 
      return ret;
 }
@@ -1441,7 +1498,7 @@ GetInputDevice_Callback( CoreInputDevice *device, void *ctx )
 
      DIRECT_ALLOCATE_INTERFACE( *context->interface, IDirectFBInputDevice );
 
-     IDirectFBInputDevice_Construct( *context->interface, device );
+     context->ret = IDirectFBInputDevice_Construct( *context->interface, device );
 
      return DFENUM_CANCEL;
 }
