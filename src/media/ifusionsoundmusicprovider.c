@@ -67,14 +67,31 @@ IFusionSoundMusicProvider_EnumTracks( IFusionSoundMusicProvider *thiz,
                                       FSTrackCallback            callback,
                                       void                      *callbackdata )
 {
-     return DFB_UNIMPLEMENTED;
+     FSTrackDescription desc;
+     DFBResult          ret;
+     
+     if (!callback)
+          return DFB_INVARG;
+          
+     ret = thiz->GetTrackDescription( thiz, &desc );
+     if (ret)
+          return ret;
+          
+     callback( 0, desc, callbackdata );
+          
+     return DFB_OK;
 }
 
 static DFBResult
 IFusionSoundMusicProvider_GetTrackID( IFusionSoundMusicProvider *thiz,
                                       FSTrackID                 *ret_track_id )
 {
-     return DFB_UNIMPLEMENTED;
+     if (!ret_track_id)
+          return DFB_INVARG;
+          
+     *ret_track_id = 0;
+     
+     return DFB_OK;
 }
 
 static DFBResult
@@ -117,7 +134,10 @@ static DFBResult
 IFusionSoundMusicProvider_SelectTrack( IFusionSoundMusicProvider *thiz,
                                        FSTrackID                  track_id )
 {
-     return DFB_UNIMPLEMENTED;
+     if (track_id != 0)
+          return DFB_UNSUPPORTED;
+          
+     return DFB_OK;
 }
 
 static DFBResult
@@ -149,7 +169,7 @@ IFusionSoundMusicProvider_GetStatus( IFusionSoundMusicProvider *thiz,
      if (!status)
           return DFB_INVARG;
           
-     status = FMSTATE_UNKNOWN;
+     *status = FMSTATE_UNKNOWN;
           
      return DFB_UNIMPLEMENTED;
 }
