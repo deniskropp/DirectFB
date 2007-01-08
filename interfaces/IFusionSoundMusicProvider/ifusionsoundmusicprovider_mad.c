@@ -495,38 +495,6 @@ IFusionSoundMusicProvider_Mad_GetCapabilities( IFusionSoundMusicProvider   *thiz
 }
 
 static DFBResult
-IFusionSoundMusicProvider_Mad_EnumTracks( IFusionSoundMusicProvider *thiz,
-                                          FSTrackCallback            callback,
-                                          void                      *callbackdata )
-{
-     FSTrackDescription desc;
-
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
-
-     if (!callback)
-          return DFB_INVARG;
-
-     desc = data->desc;
-     callback( 0, desc, callbackdata );
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundMusicProvider_Mad_GetTrackID( IFusionSoundMusicProvider *thiz,
-                                          FSTrackID                 *ret_track_id )
-{
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
-
-     if (!ret_track_id)
-          return DFB_INVARG;
-
-     *ret_track_id = 0;
-
-     return DFB_OK;
-}
-
-static DFBResult
 IFusionSoundMusicProvider_Mad_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                    FSTrackDescription        *desc )
 {
@@ -570,18 +538,6 @@ IFusionSoundMusicProvider_Mad_GetBufferDescription( IFusionSoundMusicProvider *t
      desc->samplerate = data->samplerate;
      desc->channels   = data->channels;
      desc->length     = 1152;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundMusicProvider_Mad_SelectTrack( IFusionSoundMusicProvider *thiz,
-                                           FSTrackID                  track_id )
-{
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Mad )
-
-     if (track_id != 0)
-          return DFB_INVARG;
 
      return DFB_OK;
 }
@@ -1254,12 +1210,9 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->AddRef               = IFusionSoundMusicProvider_Mad_AddRef;
      thiz->Release              = IFusionSoundMusicProvider_Mad_Release;
      thiz->GetCapabilities      = IFusionSoundMusicProvider_Mad_GetCapabilities;
-     thiz->EnumTracks           = IFusionSoundMusicProvider_Mad_EnumTracks;
-     thiz->GetTrackID           = IFusionSoundMusicProvider_Mad_GetTrackID;
      thiz->GetTrackDescription  = IFusionSoundMusicProvider_Mad_GetTrackDescription;
      thiz->GetStreamDescription = IFusionSoundMusicProvider_Mad_GetStreamDescription;
      thiz->GetBufferDescription = IFusionSoundMusicProvider_Mad_GetBufferDescription;
-     thiz->SelectTrack          = IFusionSoundMusicProvider_Mad_SelectTrack;
      thiz->PlayToStream         = IFusionSoundMusicProvider_Mad_PlayToStream;
      thiz->PlayToBuffer         = IFusionSoundMusicProvider_Mad_PlayToBuffer;
      thiz->Stop                 = IFusionSoundMusicProvider_Mad_Stop;

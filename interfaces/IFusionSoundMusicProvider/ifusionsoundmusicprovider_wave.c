@@ -1003,44 +1003,6 @@ IFusionSoundMusicProvider_Wave_GetCapabilities( IFusionSoundMusicProvider   *thi
 }
 
 static DFBResult
-IFusionSoundMusicProvider_Wave_EnumTracks( IFusionSoundMusicProvider *thiz,
-                                           FSTrackCallback            callback,
-                                           void                      *callbackdata )
-{
-     FSTrackDescription desc;
-
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
-
-     if (!callback)
-          return DFB_INVARG;
-
-     memset( &desc, 0, sizeof(FSTrackDescription) );
-     snprintf( desc.encoding,
-               FS_TRACK_DESC_ENCODING_LENGTH,
-               "PCM %dbit %s-endian",
-               data->format, data->byteorder ? "big" : "little" );
-     desc.bitrate = data->samplerate * data->channels * data->format;
-
-     callback( 0, desc, callbackdata );
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundMusicProvider_Wave_GetTrackID( IFusionSoundMusicProvider *thiz,
-                                           FSTrackID                 *ret_track_id )
-{
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
-
-     if (!ret_track_id)
-          return DFB_INVARG;
-
-     *ret_track_id = 0;
-
-     return DFB_OK;
-}
-
-static DFBResult
 IFusionSoundMusicProvider_Wave_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                     FSTrackDescription        *desc )
 {
@@ -1119,18 +1081,6 @@ IFusionSoundMusicProvider_Wave_GetBufferDescription( IFusionSoundMusicProvider *
                break;
      }
      desc->length       = data->samplerate/5;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundMusicProvider_Wave_SelectTrack( IFusionSoundMusicProvider *thiz,
-                                            FSTrackID                  track_id )
-{
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Wave )
-
-     if (track_id != 0)
-          return DFB_INVARG;
 
      return DFB_OK;
 }
@@ -1797,12 +1747,9 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->AddRef               = IFusionSoundMusicProvider_Wave_AddRef;
      thiz->Release              = IFusionSoundMusicProvider_Wave_Release;
      thiz->GetCapabilities      = IFusionSoundMusicProvider_Wave_GetCapabilities;
-     thiz->EnumTracks           = IFusionSoundMusicProvider_Wave_EnumTracks;
-     thiz->GetTrackID           = IFusionSoundMusicProvider_Wave_GetTrackID;
      thiz->GetTrackDescription  = IFusionSoundMusicProvider_Wave_GetTrackDescription;
      thiz->GetStreamDescription = IFusionSoundMusicProvider_Wave_GetStreamDescription;
      thiz->GetBufferDescription = IFusionSoundMusicProvider_Wave_GetBufferDescription;
-     thiz->SelectTrack          = IFusionSoundMusicProvider_Wave_SelectTrack;
      thiz->PlayToStream         = IFusionSoundMusicProvider_Wave_PlayToStream;
      thiz->PlayToBuffer         = IFusionSoundMusicProvider_Wave_PlayToBuffer;
      thiz->Stop                 = IFusionSoundMusicProvider_Wave_Stop;

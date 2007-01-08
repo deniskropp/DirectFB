@@ -543,38 +543,6 @@ vorbis_get_metadata( OggVorbis_File     *vf,
 }
 
 static DFBResult
-IFusionSoundMusicProvider_Vorbis_EnumTracks( IFusionSoundMusicProvider *thiz,
-                                             FSTrackCallback            callback,
-                                             void                      *callbackdata )
-{
-     FSTrackDescription desc;
-
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
-
-     if (!callback)
-          return DFB_INVARG;
-
-     vorbis_get_metadata( &data->vf, &desc );
-     callback( 0, desc, callbackdata );
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundMusicProvider_Vorbis_GetTrackID( IFusionSoundMusicProvider *thiz,
-                                             FSTrackID                 *ret_track_id )
-{
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
-
-     if (!ret_track_id)
-          return DFB_INVARG;
-
-     *ret_track_id = 0;
-
-     return DFB_OK;
-}
-
-static DFBResult
 IFusionSoundMusicProvider_Vorbis_GetTrackDescription( IFusionSoundMusicProvider *thiz,
                                                       FSTrackDescription        *desc )
 {
@@ -622,18 +590,6 @@ IFusionSoundMusicProvider_Vorbis_GetBufferDescription( IFusionSoundMusicProvider
      desc->channels     = data->info->channels;
      desc->sampleformat = FSSF_FLOAT;
      desc->length       = desc->samplerate/5;
-
-     return DFB_OK;
-}
-
-static DFBResult
-IFusionSoundMusicProvider_Vorbis_SelectTrack( IFusionSoundMusicProvider *thiz,
-                                              FSTrackID                  track_id )
-{
-     DIRECT_INTERFACE_GET_DATA( IFusionSoundMusicProvider_Vorbis )
-
-     if (track_id != 0)
-          return DFB_INVARG;
 
      return DFB_OK;
 }
@@ -1102,12 +1058,9 @@ Construct( IFusionSoundMusicProvider *thiz,
      thiz->AddRef               = IFusionSoundMusicProvider_Vorbis_AddRef;
      thiz->Release              = IFusionSoundMusicProvider_Vorbis_Release;
      thiz->GetCapabilities      = IFusionSoundMusicProvider_Vorbis_GetCapabilities;
-     thiz->EnumTracks           = IFusionSoundMusicProvider_Vorbis_EnumTracks;
-     thiz->GetTrackID           = IFusionSoundMusicProvider_Vorbis_GetTrackID;
      thiz->GetTrackDescription  = IFusionSoundMusicProvider_Vorbis_GetTrackDescription;
      thiz->GetStreamDescription = IFusionSoundMusicProvider_Vorbis_GetStreamDescription;
      thiz->GetBufferDescription = IFusionSoundMusicProvider_Vorbis_GetBufferDescription;
-     thiz->SelectTrack          = IFusionSoundMusicProvider_Vorbis_SelectTrack;
      thiz->PlayToStream         = IFusionSoundMusicProvider_Vorbis_PlayToStream;
      thiz->PlayToBuffer         = IFusionSoundMusicProvider_Vorbis_PlayToBuffer;
      thiz->Stop                 = IFusionSoundMusicProvider_Vorbis_Stop;
