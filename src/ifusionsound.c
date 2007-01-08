@@ -170,12 +170,10 @@ IFusionSound_CreateBuffer( IFusionSound               *thiz,
 
      ret = IFusionSoundBuffer_Construct( interface, data->core, buffer,
                                          length, channels, format, rate );
-     if (ret)
-          *ret_interface = NULL;
-     else
-          *ret_interface = interface;
-
      fs_buffer_unref( buffer );
+
+     if (!ret)
+          *ret_interface = interface;
 
      return ret;
 }
@@ -268,12 +266,10 @@ IFusionSound_CreateStream( IFusionSound               *thiz,
 
      ret = IFusionSoundStream_Construct( interface, data->core, buffer, size,
                                          channels, format, rate, prebuffer );
-     if (ret)
-          *ret_interface = NULL;
-     else
-          *ret_interface = interface;
-
      fs_buffer_unref( buffer );
+
+     if (!ret)
+          *ret_interface = interface;
 
      return ret;
 }
