@@ -40,6 +40,15 @@ typedef unsigned long kernel_ulong_t;
 #define BITS_PER_LONG    (sizeof(long)*8)
 #endif
 
+/* compat defines for older kernel like 2.4.x */
+#ifndef EV_SYN
+#define EV_SYN			0x00
+#define SYN_REPORT              0
+#define SYN_CONFIG              1
+#define ABS_TOOL_WIDTH		0x1c
+#define BTN_TOOL_DOUBLETAP	0x14d
+#define BTN_TOOL_TRIPLETAP	0x14e
+#endif
 
 #include <linux/input.h>
 #ifndef KEY_OK
@@ -99,6 +108,18 @@ DFB_INPUT_DRIVER( linux_input )
 #define LONG(x)              ((x)/BITS_PER_LONG)
 #undef test_bit
 #define test_bit(bit, array) ((array[LONG(bit)] >> OFF(bit)) & 1)
+
+/* compat for 2.4.x kernel - just a compile fix */
+#ifndef input_absinfo
+ struct input_absinfo {
+        __s32 value;
+        __s32 minimum;
+        __s32 maximum;
+        __s32 fuzz;
+        __s32 flat;
+};
+#endif
+
 
 /*
  * declaration of private data
@@ -245,16 +266,16 @@ int basic_keycodes [] = {
 
      /* KEY_PLAY */
      DIKS_PLAY,
-     
+
      /* KEY_FASTFORWARD */
      DIKS_FASTFORWARD,
-     
+
      /* KEY_BASSBOOST */
      DIKI_UNKNOWN,
-     
+
      /* KEY_PRINT */
      DIKS_PRINT,
-     
+
      /* KEY_HP             */  DIKI_UNKNOWN,
      /* KEY_CAMERA         */  DIKI_UNKNOWN,
      /* KEY_SOUND          */  DIKS_AUDIO,
@@ -346,7 +367,7 @@ keyboard_get_symbol( int                             code,
      unsigned char type  = KTYP(value);
      unsigned char index = KVAL(value);
      int           base  = (level == DIKSI_BASE);
-     
+
      switch (type) {
           case KT_FN:
                if (index < 20)
