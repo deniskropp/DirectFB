@@ -3386,6 +3386,9 @@ wm_update_cursor( CoreWindowStack       *stack,
      if (!(flags & ~(CCUF_POSITION | CCUF_SHAPE)) && (!stack->cursor.opacity || !stack->cursor.enabled))
           return DFB_OK;
 
+     context = stack->context;
+     D_ASSERT( context != NULL );
+
      if (!data->cursor_bs) {
           CoreSurface *cursor_bs;
 
@@ -3393,7 +3396,8 @@ wm_update_cursor( CoreWindowStack       *stack,
 
           /* Create the cursor backing store surface. */
           ret = dfb_surface_create( wmdata->core, stack->cursor.size.w, stack->cursor.size.h,
-                                    DSPF_RGB16, stack->cursor.policy, DSCAPS_NONE, NULL, &cursor_bs );
+                                    context->config.pixelformat, stack->cursor.policy,
+                                    DSCAPS_NONE, NULL, &cursor_bs );
           if (ret) {
                D_ERROR( "WM/Default: Failed creating backing store for cursor!\n" );
                return ret;
@@ -3406,10 +3410,6 @@ wm_update_cursor( CoreWindowStack       *stack,
      }
 
      D_ASSERT( data->cursor_bs != NULL );
-
-     context = stack->context;
-
-     D_ASSERT( context != NULL );
 
      /* Get the primary region. */
      ret = dfb_layer_context_get_primary_region( context, false, &primary );
