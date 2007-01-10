@@ -1567,7 +1567,7 @@ static GenefxFunc Bop_PFI_Sto_Aop_PFI[DFB_NUM_PIXELFORMATS] = {
 static void Bop_rgb15_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u16   *D     = gfxs->Aop[0];
      u16   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1587,7 +1587,7 @@ static void Bop_rgb15_SKto_Aop( GenefxState *gfxs )
 static void Bop_rgb16_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u16   *D     = gfxs->Aop[0];
      u16   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1633,7 +1633,7 @@ static void Bop_rgb18_SKto_Aop( GenefxState *gfxs )
 static void Bop_rgb24_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u8    *D     = gfxs->Aop[0];
      u8    *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1660,7 +1660,7 @@ static void Bop_rgb24_SKto_Aop( GenefxState *gfxs )
 static void Bop_rgb32_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u32   *D     = gfxs->Aop[0];
      u32   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1680,7 +1680,7 @@ static void Bop_rgb32_SKto_Aop( GenefxState *gfxs )
 static void Bop_a8_SKto_Aop( GenefxState *gfxs )
 {
      int   w     = gfxs->length;
-     int   i     = 0;
+     int   i     = gfxs->Xphase;
      u8   *D     = gfxs->Aop[0];
      u8   *S     = gfxs->Bop[0];
      int   SperD = gfxs->SperD;
@@ -1697,7 +1697,7 @@ static void Bop_yuy2_SKto_Aop( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u16   *D     = gfxs->Aop[0];
      u16   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1752,7 +1752,7 @@ static void Bop_yuy2_SKto_Aop( GenefxState *gfxs )
 static void Bop_8_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u8    *D     = gfxs->Aop[0];
      u8    *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1773,7 +1773,7 @@ static void Bop_uyvy_SKto_Aop( GenefxState *gfxs )
 {
      int    l;
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u16   *D     = gfxs->Aop[0];
      u16   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1828,7 +1828,7 @@ static void Bop_uyvy_SKto_Aop( GenefxState *gfxs )
 static void Bop_alut44_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u8    *D     = gfxs->Aop[0];
      u8    *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1848,7 +1848,7 @@ static void Bop_alut44_SKto_Aop( GenefxState *gfxs )
 static void Bop_argb2554_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u16   *D     = gfxs->Aop[0];
      u16   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
@@ -1868,7 +1868,7 @@ static void Bop_argb2554_SKto_Aop( GenefxState *gfxs )
 static void Bop_argb4444_SKto_Aop( GenefxState *gfxs )
 {
      int    w     = gfxs->length;
-     int    i     = 0;
+     int    i     = gfxs->Xphase;
      u16   *D     = gfxs->Aop[0];
      u16   *S     = gfxs->Bop[0];
      u32    Skey  = gfxs->Skey;
