@@ -140,39 +140,39 @@ static void write_argb_span (u32 *src, u8 *dst[], int len,
 
           case DSPF_ARGB1666:
                for (i = 0; i < len; i++) {
-                    u8 b = src[i] >> 2;
-                    u8 g = src[i] >> 10;
-                    u8 r = src[i] >> 18;
-                    u8 a = (src[i] >> 26) != 0 ?1:0;
+                    u32 pixel = PIXEL_ARGB1666( src[i] >> 24,
+                                                src[i] >> 16,
+                                                src[i] >> 8,
+                                                src[i] );
 
-                    *d++ =  b | (g << 6 );
-                    *d++ = ( g >> 2 ) |(r << 4 );
-                    *d++ = (r >> 4) | a << 2;
+                    *d++ = pixel;
+                    *d++ = pixel >> 8;
+                    *d++ = pixel >> 16;
                }
                break;
 
           case DSPF_ARGB6666:
                for (i = 0; i < len; i++) {
-                    u8 b = src[i] >> 2;
-                    u8 g = src[i] >> 10;
-                    u8 r = src[i] >> 18;
-                    u8 a = src[i] >> 26;
+                    u32 pixel = PIXEL_ARGB6666( src[i] >> 24,
+                                                src[i] >> 16,
+                                                src[i] >> 8,
+                                                src[i] );
 
-                    *d++ =  b | (g << 6 );
-                    *d++ = ( g >> 2 ) |(r << 4 );
-                    *d++ = (r >> 4) | a << 2;
+                    *d++ = pixel;
+                    *d++ = pixel >> 8;
+                    *d++ = pixel >> 16;
                }
                break;
 
           case DSPF_RGB18:
                for (i = 0; i < len; i++) {
-                    u8 b = src[i] >> 2;
-                    u8 g = src[i] >> 10;
-                    u8 r = src[i] >> 18;
+                    u32 pixel = PIXEL_RGB18( src[i] >> 16,
+                                             src[i] >> 8,
+                                             src[i] );
 
-                    *d++ =  b | (g << 6 );
-                    *d++ = ( g >> 2 ) |(r << 4 );
-                    *d++ = (r >> 4) | 0xfc;
+                    *d++ = pixel;
+                    *d++ = pixel >> 8;
+                    *d++ = pixel >> 16;
                }
                break;
           case DSPF_RGB24:

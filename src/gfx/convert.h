@@ -59,8 +59,8 @@
                                  (((b)&0xF8) >> 3) )
 
 #define PIXEL_RGB18(r,g,b)     ( (((r)&0xFC) << 10) | \
-                                 (((g)&0xFC) << 4) | \
-                                 (((b)&0xFC) >> 2) )
+                                 (((g)&0xFC) <<  4) | \
+                                 (((b)&0xFC) >>  2) )
 
 #define PIXEL_RGB32(r,g,b)     ( ((r) << 16) | \
                                  ((g) <<  8) | \
@@ -71,15 +71,15 @@
                                  ((g) << 8)  | \
                                   (b) )
 
-#define PIXEL_ARGB1666(a,r,g,b) ( ( ((a)&0x80) << 11) | \
-                                 (  ((r)&0xFC) << 10) | \
-                                 (  ((g)&0xFC) << 4 )  | \
-                                    ((b)&0xFC) >>2 )
+#define PIXEL_ARGB1666(a,r,g,b) ( (((a)&0x80) << 11) | \
+                                  (((r)&0xFC) << 10) | \
+                                  (((g)&0xFC) <<  4) | \
+                                  (((b)&0xFC) >>  2) )
 
-#define PIXEL_ARGB6666(a,r,g,b) ( ( ((a)&0xFC) << 16) | \
-                                 (  ((r)&0xFC) << 10) | \
-                                 (  ((g)&0xFC) << 4 )  | \
-                                    ((b)&0xFC) >>2 )
+#define PIXEL_ARGB6666(a,r,g,b) ( (((a)&0xFC) << 16) | \
+                                  (((r)&0xFC) << 10) | \
+                                  (((g)&0xFC) <<  4) | \
+                                  (((b)&0xFC) >>  2) )
 
 #define PIXEL_AYUV(a,y,u,v)    ( ((a) << 24) | \
                                  ((y) << 16) | \
