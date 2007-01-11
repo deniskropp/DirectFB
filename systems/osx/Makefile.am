@@ -17,7 +17,7 @@ endif
 
 
 libdirectfb_osx_la_LDFLAGS = \
-	-framework CoreGraphics	\
+	-framework ApplicationServices	\
 	-avoid-version	\
 	-module
 
