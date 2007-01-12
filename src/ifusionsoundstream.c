@@ -274,7 +274,7 @@ IFusionSoundStream_Drop( IFusionSoundStream *thiz )
      /* Discard pending data. */
      data->pending = 0;
 
-     return IFusionSoundStream_Flush( thiz );
+     return DFB_OK;
 }
 
 static DFBResult

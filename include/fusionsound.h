@@ -641,10 +641,10 @@ DEFINE_INTERFACE( IFusionSoundStream,
      );
 
      /*
-      * Drop buffered/pending data.
+      * Drop pending data.
       *
-      * This method behaves like <i>Flush()</i>, but it 
-      * also discards any pending input data.
+      * This method discards any pending input data,
+      * making <i>Write()</i> return as soon as possible.
       */
      DFBResult (*Drop) (
           IFusionSoundStream       *thiz
