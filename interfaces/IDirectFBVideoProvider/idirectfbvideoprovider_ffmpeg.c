@@ -743,20 +743,17 @@ FFmpegAudio( DirectThread *self, void *arg )
                                                st->time_base, AV_TIME_BASE_Q );
           }
           else if (size) {
-               data->audio.pts += (double)size / 
-                                  (double)data->audio.sample_rate;
+               data->audio.pts += (s64)size * AV_TIME_BASE / data->audio.sample_rate;
           }
                
           av_free_packet( &pkt );
  
           pthread_mutex_unlock( &data->audio.lock );
           
-          if (size && data->speed) {
-               data->audio.stream->Write( data->audio.stream, buf, size );
-          } 
-          else {
+          if (size)
+               data->audio.stream->Write( data->audio.stream, buf, size ); 
+          else
                usleep( 0 );
-          }
      }
 
      return (void*)0;
