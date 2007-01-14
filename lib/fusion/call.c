@@ -108,7 +108,7 @@ fusion_call_execute (FusionCall          *call,
      if (!call->handler)
           return DFB_DESTROYED;
 
-     if (call->fusion_id == _fusion_id( call->shared )) {
+     if (!(flags & FCEF_NODIRECT) && call->fusion_id == _fusion_id( call->shared )) {
           int ret = call->handler( _fusion_id( call->shared ), call_arg, call_ptr, call->ctx );
 
           if (ret_val)

@@ -46,13 +46,14 @@
 typedef unsigned long FusionID;
 
 typedef enum {
-     FCEF_NONE   = 0x00000000,
-     FCEF_ONEWAY = 0x00000001,
-     FCEF_ALL    = 0x00000001
+     FCEF_NONE     = 0x00000000,
+     FCEF_ONEWAY   = 0x00000001,
+     FCEF_ALL      = 0x00000001
 } FusionCallExecFlags;
 
 #endif
 
+#define FCEF_NODIRECT 0x80000000
 
 #include <direct/types.h>
 
