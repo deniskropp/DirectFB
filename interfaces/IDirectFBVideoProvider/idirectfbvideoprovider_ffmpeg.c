@@ -65,6 +65,10 @@
 #include <avcodec.h>
 #include <avformat.h>
 
+#ifdef HAVE_SWSCALE
+# include <swscale.h>
+#endif
+
 
 static DFBResult
 Probe( IDirectFBVideoProvider_ProbeContext *ctx );
@@ -140,6 +144,14 @@ typedef struct {
           AVFrame                  *src_frame;
           AVFrame                  *dst_frame;
           enum PixelFormat          dst_format;
+
+#ifdef HAVE_SWSCALE
+          int                       src_width;
+          int                       src_height;
+          int                       dst_width;
+          int                       dst_height;
+          struct SwsContext        *sws;
+#endif    
      } video;
      
      struct {
@@ -468,26 +480,31 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
      CoreSurface  *surface   = data->video.dest_data->surface;
      AVFrame      *src_frame = data->video.src_frame;
      AVFrame      *dst_frame = data->video.dst_frame;
-     DFBRectangle  rect      = { x:0, y:0, };
-     int           dx, dy;
+     DFBRectangle  sr, dr;
      DFBRegion     clip;
-               
-     if (data->video.rect.w) {
-          rect.w = MIN( data->video.rect.w, data->video.ctx->width );
-          rect.h = MIN( data->video.rect.h, data->video.ctx->height );
-          dx = data->video.rect.x;
-          dy = data->video.rect.y;
-     } else {
-          rect.w = data->video.ctx->width;
-          rect.h = data->video.ctx->height;
-          dx = data->video.dest_data->area.wanted.x;
-          dy = data->video.dest_data->area.wanted.y;
-     }
+     
+     sr.x = 0;
+     sr.y = 0;
+     sr.w = data->video.ctx->width;
+     sr.h = data->video.ctx->height;
+     if (data->video.rect.w)
+          dr = data->video.rect;
+     else
+          dr = data->video.dest_data->area.wanted;
 
      dfb_region_from_rectangle( &clip, &data->video.dest_data->area.current );
-     dfb_clip_blit( &clip, &rect, &dx, &dy );
-     if (rect.w < 1 || rect.h < 1)
+     if (!dfb_clip_blit_precheck( &clip, dr.w, dr.h, dr.x, dr.y ))
           return;
+          
+#ifdef HAVE_SWSCALE
+     dfb_clip_stretchblit( &clip, &sr, &dr );
+#else
+     if (sr.w > dr.w)
+          sr.w = dr.w;
+     if (sr.h > dr.h)
+          sr.h = dr.h;
+     dfb_clip_blit( &clip, &sr, &dr.x, &dr.y );
+#endif
                 
      if (dfb_surface_soft_lock( core, surface, DSLF_WRITE, 
                                (void*)&dst_frame->data[0], 
@@ -495,8 +512,8 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
           return;
                                  
      if (DFB_PLANAR_PIXELFORMAT(surface->format)) {
-          dx &= ~1;
-          dy &= ~1; 
+          dr.x &= ~1;
+          dr.y &= ~1; 
           
           dst_frame->linesize[1] =
           dst_frame->linesize[2] = dst_frame->linesize[0]/2;
@@ -504,8 +521,8 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
                                surface->height * dst_frame->linesize[0];
           dst_frame->data[2] = dst_frame->data[1] +
                                surface->height/2 * dst_frame->linesize[1];
-          dst_frame->data[1] += dy/2 * dst_frame->linesize[1] + dx/2;
-          dst_frame->data[2] += dy/2 * dst_frame->linesize[2] + dx/2;               
+          dst_frame->data[1] += dr.y/2 * dst_frame->linesize[1] + dr.x/2;
+          dst_frame->data[2] += dr.y/2 * dst_frame->linesize[2] + dr.x/2;               
           
           if (surface->format == DSPF_YV12) {
                void *tmp = dst_frame->data[1];
@@ -514,88 +531,117 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
           }
      }
      
-     dst_frame->data[0] += dy * dst_frame->linesize[0] +
-                           DFB_BYTES_PER_LINE( surface->format, dx );
+     dst_frame->data[0] += dr.y * dst_frame->linesize[0] +
+                           DFB_BYTES_PER_LINE( surface->format, dr.x );
 
-     if (rect.y || rect.x) {
+     if (sr.x || sr.y) {
           src_frame = alloca( sizeof(AVFrame) );
           direct_memcpy( src_frame, data->video.src_frame, sizeof(AVFrame) );
 
           switch (data->video.ctx->pix_fmt) {
                case PIX_FMT_GRAY8:
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x;
                     break;
                case PIX_FMT_RGB555:
                case PIX_FMT_RGB565:
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*2;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x*2;
                     break;
                case PIX_FMT_RGB24:
                case PIX_FMT_BGR24:
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*3;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x*3;
                     break;
                case PIX_FMT_RGBA32:
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*4;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x*4;
                     break;
                case PIX_FMT_YUV422:
                case PIX_FMT_UYVY422:
-                    rect.x &= ~1;
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x*2;
+                    sr.x &= ~1;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x*2;
                     break;
                case PIX_FMT_UYVY411:
-                    rect.x &= ~3;
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x + rect.x/2;
+                    sr.x &= ~3;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x + sr.x/2;
                     break;
                case PIX_FMT_YUV444P:
                case PIX_FMT_YUVJ444P:
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
-                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
-                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x;
+                    src_frame->data[1] += sr.y*src_frame->linesize[1] + sr.x;
+                    src_frame->data[2] += sr.y*src_frame->linesize[2] + sr.x;
                     break;
                case PIX_FMT_YUV422P:
                case PIX_FMT_YUVJ422P:
-                    rect.x &= ~1;
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
-                    rect.x >>= 1;
-                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
-                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    sr.x &= ~1;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x;
+                    sr.x >>= 1;
+                    src_frame->data[1] += sr.y*src_frame->linesize[1] + sr.x;
+                    src_frame->data[2] += sr.y*src_frame->linesize[2] + sr.x;
                     break;                    
                case PIX_FMT_YUV420P:
                case PIX_FMT_YUVJ420P:
-                    rect.y &= ~1;
-                    rect.x &= ~1;
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
-                    rect.y >>= 1;
-                    rect.x >>= 1;
-                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
-                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    sr.y &= ~1;
+                    sr.x &= ~1;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x;
+                    sr.y >>= 1;
+                    sr.x >>= 1;
+                    src_frame->data[1] += sr.y*src_frame->linesize[1] + sr.x;
+                    src_frame->data[2] += sr.y*src_frame->linesize[2] + sr.x;
                     break;
                case PIX_FMT_YUV411P:
-                    rect.x &= ~3;
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
-                    rect.x >>= 2;
-                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
-                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    sr.x &= ~3;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x;
+                    sr.x >>= 2;
+                    src_frame->data[1] += sr.y*src_frame->linesize[1] + sr.x;
+                    src_frame->data[2] += sr.y*src_frame->linesize[2] + sr.x;
                     break;
                case PIX_FMT_YUV410P:
-                    rect.x &= ~3;
-                    rect.y &= ~3;
-                    src_frame->data[0] += rect.y*src_frame->linesize[0] + rect.x;
-                    rect.x >>= 2;
-                    rect.y >>= 2;
-                    src_frame->data[1] += rect.y*src_frame->linesize[1] + rect.x;
-                    src_frame->data[2] += rect.y*src_frame->linesize[2] + rect.x;
+                    sr.x &= ~3;
+                    sr.y &= ~3;
+                    src_frame->data[0] += sr.y*src_frame->linesize[0] + sr.x;
+                    sr.x >>= 2;
+                    sr.y >>= 2;
+                    src_frame->data[1] += sr.y*src_frame->linesize[1] + sr.x;
+                    src_frame->data[2] += sr.y*src_frame->linesize[2] + sr.x;
                     break;
                default:
                     D_ONCE( "Unexpected frame format" );
                     break;
           }
      }
-               
+     
+#ifdef HAVE_SWSCALE
+     if (data->video.sws) {
+          if (data->video.src_width != sr.w || data->video.src_height != sr.h ||
+              data->video.dst_width != dr.w || data->video.dst_height != dr.h) {
+               sws_freeContext( data->video.sws );
+               data->video.sws = NULL;
+          }
+     }
+     
+     if (!data->video.sws) {
+          data->video.sws = sws_getContext( sr.w, sr.h, data->video.ctx->pix_fmt,
+                                            dr.w, dr.h, data->video.dst_format,
+                                            SWS_BICUBIC, NULL, NULL, NULL );
+          if (!data->video.sws) {
+               D_WARN( "sws_getContext() failed" );
+               return;
+          }
+          data->video.src_width  = sr.w;
+          data->video.src_height = sr.h;
+          data->video.dst_width  = dr.w;
+          data->video.dst_height = dr.h;
+     }
+     
+     sws_scale( data->video.sws, 
+                src_frame->data, src_frame->linesize, 0, sr.h,
+                dst_frame->data, dst_frame->linesize );              
+#else /* !HAVE_SWSCALE */
+
      img_convert( (AVPicture*)dst_frame,
                    data->video.dst_format,
                   (AVPicture*)src_frame,
                    data->video.ctx->pix_fmt,
-                   rect.w, rect.h );
+                   sr.w, sr.h );
+#endif
                              
      dfb_surface_unlock( surface, 0 );
 }
@@ -801,6 +847,11 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
 
      if (data->video.ctx)
           avcodec_close( data->video.ctx );
+         
+#ifdef HAVE_SWSCALE
+     if (data->video.sws)
+          sws_freeContext( data->video.sws );
+#endif
           
      if (data->video.src_frame)
           av_free( data->video.src_frame );
@@ -864,12 +915,16 @@ IDirectFBVideoProvider_FFmpeg_GetCapabilities( IDirectFBVideoProvider       *thi
      
      if (!caps)
           return DFB_INVARG;
-          
+   
+#ifdef HAVE_SWSCALE
+     *caps = DVCAPS_BASIC | DVCAPS_SCALE | DVCAPS_SPEED;
+#else
      *caps = DVCAPS_BASIC | DVCAPS_SPEED;
+#endif
      if (data->seekable)
           *caps |= DVCAPS_SEEK;
      if (data->video.src_frame->interlaced_frame)
-          *caps |= DVCAPS_INTERLACED;
+          *caps |= DVCAPS_INTERLACED;     
 #ifdef HAVE_FUSIONSOUND
      if (data->audio.playback)
           *caps |= DVCAPS_VOLUME;
@@ -1060,6 +1115,15 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      if (data->video.dest)
           data->video.dest->Release( data->video.dest );
      dest->AddRef( dest );
+     
+#ifdef HAVE_SWSCALE
+     if (data->video.sws) {
+          if (data->video.dst_format != pix_fmt) {
+               sws_freeContext( data->video.sws );
+               data->video.sws = NULL;
+          }
+     }
+#endif
      
      data->video.dst_format = pix_fmt;
      data->video.dest       = dest;
