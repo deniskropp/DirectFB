@@ -655,22 +655,6 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
                }
           }
 
-          /* Update the window stack. */
-          if (context->stack) {
-               CoreWindowStack *stack = context->stack;
-
-               /* Update hardware flag. */
-               stack->hw_mode = (region_config.buffermode == DLBM_WINDOWS);
-
-               /* Tell the windowing core about the new size. */
-               dfb_windowstack_resize( stack,
-                                       region_config.width,
-                                       region_config.height );
-
-               /* FIXME: call only if really needed */
-               dfb_windowstack_repaint_all( stack );
-          }
-
           /* Unlock the region and give up the local reference. */
           dfb_layer_region_unlock( region );
           dfb_layer_region_unref( region );
@@ -702,6 +686,26 @@ dfb_layer_context_set_configuration( CoreLayerContext            *context,
 
      if (config->flags & DLCONF_SURFACE_CAPS)
           context->config.surface_caps = config->surface_caps;
+
+     /* Update the window stack. */
+     if (context->stack) {
+          CoreWindowStack *stack = context->stack;
+
+          /* Update hardware flag. */
+          stack->hw_mode = (region_config.buffermode == DLBM_WINDOWS);
+
+          /* Tell the windowing core about the new size. */
+          if (config->flags & (DLCONF_WIDTH | DLCONF_HEIGHT |
+                               DLCONF_PIXELFORMAT | DLCONF_BUFFERMODE | DLCONF_SURFACE_CAPS))
+          {
+               dfb_windowstack_resize( stack,
+                                       region_config.width,
+                                       region_config.height );
+
+               /* FIXME: call only if really needed */
+               dfb_windowstack_repaint_all( stack );
+          }
+     }
 
      /* Unlock the context. */
      dfb_layer_context_unlock( context );
