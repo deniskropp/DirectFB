@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2004-2005 Claudio "KLaN" Ciccani <klan@users.sf.net>
+ * Copyright (C) 2004-2007 Claudio Ciccani <klan@users.sf.net>
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 as
@@ -102,6 +102,8 @@ typedef struct {
      int                            ref;
      
      char                          *mrl;
+     int                            mrl_changed;
+     
      char                          *cfg;
      char                          *pipe;
 
@@ -1135,7 +1137,8 @@ Construct( IDirectFBVideoProvider *thiz,
      xine_get_pos_length( data->stream, NULL, NULL, &data->length );
 
      /* init a post plugin if no video */
-     if (!xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO )) {
+     if (!xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_VIDEO ) &&
+          xine_get_stream_info( data->stream, XINE_STREAM_INFO_HAS_AUDIO )) {
           const char* const *post_list;
           const char        *post_plugin;
           xine_post_out_t   *audio_source;
@@ -1267,18 +1270,45 @@ event_listner( void *cdata, const xine_event_t *event )
           return;
 
      switch (event->type) {
+          case XINE_EVENT_MRL_REFERENCE:
+               if (!data->mrl_changed) {
+                    xine_mrl_reference_data_t *ref = event->data;
+                    
+                    D_FREE( data->mrl );
+                    data->mrl = D_STRDUP( ref->mrl );
+                    data->mrl_changed = 1;
+               }
+               break;
+               
           case XINE_EVENT_UI_PLAYBACK_FINISHED:
                data->speed = xine_get_param( data->stream, XINE_PARAM_SPEED );
-               if (data->flags & DVPLAY_LOOPING) {
-                    xine_play( data->stream, 0, 0 );
-                    xine_set_param( data->stream, 
-                                    XINE_PARAM_SPEED, data->speed );
+               if (data->mrl_changed) {
+                    data->mrl_changed = 0;
+                    if (!xine_open( data->stream, data->mrl )) {
+                         data->status = DVSTATE_FINISHED;
+                         break;
+                    }
+                    if (data->status == DVSTATE_PLAY) {
+                         if (!xine_play( data->stream, 0, data->start_time )) {
+                              data->status = DVSTATE_STOP;
+                              break;
+                         }
+                         xine_set_param( data->stream, 
+                                         XINE_PARAM_SPEED, data->speed );
+                    }
                }
                else {
-                    xine_stop( data->stream );
-                    data->status = DVSTATE_FINISHED;
+                    if (data->flags & DVPLAY_LOOPING) {
+                         xine_play( data->stream, 0, 0 );
+                         xine_set_param( data->stream, 
+                                         XINE_PARAM_SPEED, data->speed );
+                    }
+                    else {
+                         xine_stop( data->stream );
+                         data->status = DVSTATE_FINISHED;
+                    }
+                    data->start_time = 0;
                }
-               data->start_time = 0;
                break;
 
           default:
