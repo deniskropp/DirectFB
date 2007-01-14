@@ -100,8 +100,8 @@ fusion_shm_pool_create( FusionWorld          *world,
 
      D_MAGIC_ASSERT( shared, FusionSHMShared );
 
-     if (max_size < 16384) {
-          D_ERROR( "Fusion/SHMPool: Maximum size (%dkb) should be 16k at least!\n", max_size >> 10 );
+     if (max_size < 8192) {
+          D_ERROR( "Fusion/SHMPool: Maximum size (%d) should be 8192 at least!\n", max_size );
           return DFB_INVARG;
      }
 
