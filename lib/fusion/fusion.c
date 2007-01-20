@@ -327,6 +327,8 @@ fusion_enter( int               world_index,
 
                if (role == FER_MASTER)
                     flags |= O_EXCL;
+               else if (role == FER_SLAVE)
+                    flags |= O_APPEND;
 
                /* Open Fusion Kernel Device. */
                fd = direct_try_open( buf1, buf2, flags, true );
