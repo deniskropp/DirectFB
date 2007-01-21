@@ -579,6 +579,9 @@ IDirectFB_CreateSurface( IDirectFB                    *thiz,
                          }
 
                          switch (format) {
+                              case DSPF_ARGB4444:
+                              case DSPF_ARGB2554:
+                              case DSPF_ARGB1555:
                               case DSPF_ARGB:
                               case DSPF_AYUV:
                               case DSPF_AiRGB:
