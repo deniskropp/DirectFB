@@ -23,10 +23,21 @@ test -z "$srcdir" && srcdir=.
 ORIGDIR=`pwd`
 cd $srcdir
 
+make_version ()
+{
+    major=`echo $1 | cut -d '.' -f 1`
+    minor=`echo $1 | cut -d '.' -f 2`
+    micro=`echo $1 | cut -d '.' -f 3`
+
+    expr $major \* 65536 + $minor \* 256 + $micro
+}
 
 check_version ()
 {
-    if expr $1 \>= $2 > /dev/null; then
+    ver=`make_version $1.0.0`
+    req=`make_version $2.0.0`
+
+    if test $ver -ge $req; then
 	echo "yes (version $1)"
     else
 	echo "Too old (found version $1)!"
