@@ -62,6 +62,7 @@ Cambridge, MA 02139, USA.
 #include <direct/memcpy.h>
 #include <direct/messages.h>
 
+#include <fusion/conf.h>
 #include <fusion/shmalloc.h>
 #include <fusion/fusion_internal.h>
 
@@ -488,10 +489,13 @@ _fusion_shfree( shmalloc_heap *heap, void *ptr )
 
                blocks = heap->heapinfo[block].free.size;
 
-#ifdef MADV_REMOVE
-               /* Punch a hole into the tmpfs file to really free RAM. */
-               madvise( ADDRESS(block), blocks * BLOCKSIZE, MADV_REMOVE );
+/* FIXME: as this is used when kernel is detected as >= 2.6.19.2 only, this fallback definition should be ok for now */
+#ifndef MADV_REMOVE
+#define MADV_REMOVE 9
 #endif
+               /* Punch a hole into the tmpfs file to really free RAM. */
+               if (fusion_config->madv_remove)
+                    madvise( ADDRESS(block), blocks * BLOCKSIZE, MADV_REMOVE );
 
                /* Now see if we can truncate the end.  */
                if (blocks >= FINAL_FREE_BLOCKS && block + blocks == heap->heaplimit

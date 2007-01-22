@@ -39,6 +39,7 @@
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/mman.h>
+#include <sys/utsname.h>
 
 #include <direct/clock.h>
 #include <direct/debug.h>
@@ -76,6 +77,7 @@ static void                      *fusion_dispatch_loop ( DirectThread *thread,
 
 static FusionWorld     *fusion_worlds[FUSION_MAX_WORLDS];
 static pthread_mutex_t  fusion_worlds_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_once_t   fusion_init_once   = PTHREAD_ONCE_INIT;
 
 /**********************************************************************************************************************/
 
@@ -250,6 +252,39 @@ fusion_fork_handler_child()
 
 /**********************************************************************************************************************/
 
+static void
+init_once()
+{
+     struct utsname uts;
+     int            i, j, k, l;
+
+     pthread_atfork( NULL, NULL, fusion_fork_handler_child );
+
+     if (uname( &uts ) < 0) {
+          D_PERROR( "Fusion/Init: uname() failed!\n" );
+          return;
+     }
+
+     switch (sscanf( uts.release, "%d.%d.%d.%d", &i, &j, &k, &l )) {
+          case 3:
+               l = 0;
+          case 4:
+               if (((i << 24) | (j << 16) | (k << 8) | l) >= 0x02061302)
+                    fusion_config->madv_remove = true;
+               break;
+
+          default:
+               D_WARN( "could not parse kernel version '%s'", uts.release );
+     }
+
+     if (fusion_config->madv_remove)
+          D_INFO( "Fusion/SHM: Using MADV_REMOVE (%d.%d.%d.%d >= 2.6.19.2)\n", i, j, k, l );
+     else
+          D_INFO( "Fusion/SHM: Not using MADV_REMOVE (%d.%d.%d.%d < 2.6.19.2)!\n", i, j, k, l );
+}
+
+/**********************************************************************************************************************/
+
 /*
  * Enters a fusion world by joining or creating it.
  *
@@ -269,14 +304,6 @@ fusion_enter( int               world_index,
      FusionEnter        enter;
      char               buf1[20];
      char               buf2[20];
-     
-     static bool atfork_called = false;
-
-     if (!atfork_called) {
-          pthread_atfork( NULL, NULL, fusion_fork_handler_child );
-
-          atfork_called = true;
-     }
 
      D_DEBUG_AT( Fusion_Main, "%s( %d, %d, %p )\n", __FUNCTION__, world_index, abi_version, ret_world );
 
@@ -286,6 +313,9 @@ fusion_enter( int               world_index,
           D_ERROR( "Fusion/Init: World index %d exceeds maximum index %d!\n", world_index, FUSION_MAX_WORLDS - 1 );
           return DFB_INVARG;
      }
+
+     pthread_once( &fusion_init_once, init_once );
+
 
      direct_initialize();
 

@@ -35,6 +35,7 @@ struct __Fusion_FusionConfig {
      char *tmpfs;             /* location of shm file */
 
      bool  debugshm;
+     bool  madv_remove;
 };
 
 extern FusionConfig *fusion_config;
