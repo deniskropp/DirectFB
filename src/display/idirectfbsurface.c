@@ -566,8 +566,8 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
           dfb_state_set_color_index( &data->state,
                                      dfb_palette_search( surface->palette, r, g, b, a ) );
-     else
-          dfb_state_set_color( &data->state, &color );
+
+     dfb_state_set_color( &data->state, &color );
 
      /* fill the visible rectangle */
      dfb_gfxcard_fillrectangles( &data->area.current, 1, &data->state );
@@ -582,8 +582,8 @@ IDirectFBSurface_Clear( IDirectFBSurface *thiz,
      /* restore color */
      if (DFB_PIXELFORMAT_IS_INDEXED( surface->format ))
           dfb_state_set_color_index( &data->state, old_index );
-     else
-          dfb_state_set_color( &data->state, &old_color );
+
+     dfb_state_set_color( &data->state, &old_color );
 
      return DFB_OK;
 }
