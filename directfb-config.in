@@ -276,7 +276,7 @@ if test -n "$echo_fusionsound"; then
 fi
 
 
-function print_voodoo ()
+print_voodoo ()
 {
 	echo $moduledir/interfaces/$1/lib$2_dispatcher.o $moduledir/interfaces/$1/lib$2_requestor.o
 }
