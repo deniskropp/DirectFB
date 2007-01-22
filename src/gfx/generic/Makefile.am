@@ -25,6 +25,10 @@ libdirectfb_generic_la_SOURCES = \
 	generic.h		\
 	generic_mmx.h	\
 	generic_64.h	\
+	template_acc_16.h	\
+	template_acc_32.h	\
+	template_colorkey_16.h	\
+	template_colorkey_32.h	\
 	yuvtbl.h
 
 generic.c: yuvtbl.h
