@@ -98,21 +98,6 @@ find_tmpfs( char *name, int len )
 
 /**********************************************************************************************************************/
 
-static DirectSignalHandlerResult
-segfault_handler( int   num,
-                  void *addr,
-                  void *ctx )
-{
-     FusionWorld *world = ctx;
-
-     D_ASSERT( num == SIGSEGV );
-     D_MAGIC_ASSERT( world, FusionWorld );
-
-     return _fusion_shmalloc_cure( world, addr ) ? DSHR_RESUME : DSHR_OK;
-}
-
-/**********************************************************************************************************************/
-
 DirectResult
 fusion_shm_init( FusionWorld *world )
 {
@@ -198,8 +183,6 @@ fusion_shm_init( FusionWorld *world )
           fusion_skirmish_dismiss( &shared->lock );
      }
 
-     direct_signal_handler_add( SIGSEGV, segfault_handler, world, &shm->signal_handler );
-
      return DFB_OK;
 }
 
@@ -220,8 +203,6 @@ fusion_shm_deinit( FusionWorld *world )
      shared = shm->shared;
 
      D_MAGIC_ASSERT( shared, FusionSHMShared );
-
-     direct_signal_handler_remove( shm->signal_handler );
 
      ret = fusion_skirmish_prevail( &shared->lock );
      if (ret)

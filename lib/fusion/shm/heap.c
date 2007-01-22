@@ -625,7 +625,7 @@ __shmalloc_init_heap( FusionSHM  *shm,
      D_DEBUG_AT( Fusion_SHMHeap, "  -> mmaping shared memory file... (%d bytes)\n", size );
 
      /* map it shared */
-     heap = mmap( addr_base, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0 );
+     heap = mmap( addr_base, size + space, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_FIXED, fd, 0 );
      if (heap == MAP_FAILED) {
           ret = errno2result(errno);
           D_PERROR( "Fusion/SHM: Could not mmap shared memory file '%s'!\n", filename );
@@ -749,83 +749,32 @@ __shmalloc_brk( shmalloc_heap *heap, int increment )
      D_MAGIC_ASSERT( heap, shmalloc_heap );
 
      shared = heap->pool;
-
      D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
 
      shm = shared->shm;
-
      D_MAGIC_ASSERT( shm, FusionSHMShared );
 
      world = _fusion_world( shm->world );
-
      D_MAGIC_ASSERT( world, FusionWorld );
 
      pool = &world->shm.pools[shared->index];
-
      D_MAGIC_ASSERT( pool, FusionSHMPool );
 
-     /* FIXME: Fix this with a little help of the kernel module. */
-     if (pool->size != heap->size) {
-          D_DEBUG_AT( Fusion_SHMHeap, "  -> local pool size %d differs from shared heap size %d", pool->size, heap->size );
-
-          if (!increment) {
-               void *new_mem;
-
-               new_mem = mremap( shared->addr_base, pool->size, heap->size, 0 );
-               if (new_mem == MAP_FAILED) {
-                    D_PERROR ("Fusion/SHM: mremapping shared memory file failed!\n");
-                    return NULL;
-               }
-
-               D_DEBUG_AT( Fusion_SHMHeap, "  -> remapped (%d -> %d)\n", pool->size, heap->size );
-
-               pool->size = heap->size;
-
-               if (new_mem != shared->addr_base)
-                    D_BREAK ("mremap returned a different address!");
-          }
-     }
-
      if (increment) {
-          void                  *new_mem;
-          int                    new_size = heap->size + increment;
-          FusionSHMPoolDispatch  dispatch;
+          int new_size = heap->size + increment;
 
           if (new_size > shared->max_size) {
-               D_WARN ("maximum shared memory size reached!");
+               D_WARN( "maximum shared memory size exceeded!" );
                fusion_dbg_print_memleaks( shared );
                return NULL;
           }
 
           if (ftruncate( pool->fd, new_size ) < 0) {
-               D_PERROR ("Fusion/SHM: ftruncating shared memory file failed!\n");
+               D_PERROR( "Fusion/SHM: ftruncating shared memory file failed!\n" );
                return NULL;
           }
-
-          new_mem = mremap( shared->addr_base, pool->size, new_size, 0 );
-          if (new_mem == MAP_FAILED) {
-               D_PERROR ("Fusion/SHM: mremapping shared memory file failed!\n");
-               ftruncate( pool->fd, heap->size );
-               return NULL;
-          }
-
-          D_DEBUG_AT( Fusion_SHMHeap, "  -> remapped (%d -> %d)\n", pool->size, new_size );
 
           heap->size = new_size;
-          pool->size = new_size;
-
-          if (new_mem != shared->addr_base)
-               D_BREAK ("mremap returned a different address!");
-
-          dispatch.pool_id = shared->pool_id;
-          dispatch.size    = heap->size;
-
-          while (ioctl( world->fusion_fd, FUSION_SHMPOOL_DISPATCH, &dispatch )) {
-               if (errno != EINTR) {
-                    D_PERROR( "Fusion/SHM: FUSION_SHMPOOL_DISPATCH failed!\n" );
-                    break;
-               }
-          }
      }
 
      return shared->addr_base + heap->size - increment;

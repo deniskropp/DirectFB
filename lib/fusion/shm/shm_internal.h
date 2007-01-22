@@ -58,8 +58,6 @@ struct __Fusion_FusionSHMPool {
      int                  pool_id;      /* The pool's ID within the world. */
 
      int                  fd;           /* File descriptor of shared memory file. */
-     int                  size;         /* Size of local mapping (last mmap on fd). */
-
      char                *filename;     /* Name of the shared memory file. */
 };
 
@@ -259,9 +257,6 @@ DirectResult __shmalloc_join_heap( FusionSHM     *shm,
 
 void        *__shmalloc_brk      ( shmalloc_heap *heap,
                                    int            increment );
-
-
-bool _fusion_shmalloc_cure( FusionWorld *world, const void *ptr );
 
 
 #endif

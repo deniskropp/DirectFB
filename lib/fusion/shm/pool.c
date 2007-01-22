@@ -493,7 +493,6 @@ init_pool( FusionSHM           *shm,
      pool->shared   = shared;
      pool->pool_id  = pool_new.pool_id;
      pool->fd       = fd;
-     pool->size     = size;
      pool->filename = D_STRDUP( buf );
 
      /* Initialize shared data. */
@@ -565,7 +564,7 @@ join_pool( FusionSHM           *shm,
                fusion_world_index( shm->world ), shared->pool_id );
 
      /* Join the heap. */
-     ret = __shmalloc_join_heap( shm, buf, pool_attach.addr_base, pool_attach.size, &fd );
+     ret = __shmalloc_join_heap( shm, buf, pool_attach.addr_base, shared->max_size, &fd );
      if (ret) {
           while (ioctl( world->fusion_fd, FUSION_SHMPOOL_DETACH, &shared->pool_id )) {
                if (errno != EINTR) {
@@ -584,7 +583,6 @@ join_pool( FusionSHM           *shm,
      pool->shared   = shared;
      pool->pool_id  = shared->pool_id;
      pool->fd       = fd;
-     pool->size     = pool_attach.size;
      pool->filename = D_STRDUP( buf );
 
 
@@ -617,7 +615,7 @@ leave_pool( FusionSHM           *shm,
           }
      }
 
-     if (munmap( shared->addr_base, pool->size ))
+     if (munmap( shared->addr_base, shared->max_size ))
           D_PERROR( "Fusion/SHM: Could not munmap shared memory file '%s'!\n", pool->filename );
 
      if (close( pool->fd ))
@@ -658,7 +656,7 @@ shutdown_pool( FusionSHM           *shm,
           }
      }
 
-     if (munmap( shared->addr_base, pool->size ))
+     if (munmap( shared->addr_base, shared->max_size ))
           D_PERROR( "Fusion/SHM: Could not munmap shared memory file '%s'!\n", pool->filename );
 
      if (close( pool->fd ))
@@ -678,55 +676,6 @@ shutdown_pool( FusionSHM           *shm,
      fusion_skirmish_destroy( &shared->lock );
 
      D_MAGIC_CLEAR( shared );
-}
-
-/**********************************************************************************************************************/
-
-static bool
-remap_pool( FusionSHMPool *pool,
-            int            size )
-{
-     DirectResult         ret;
-     void                *addr;
-     FusionSHMPoolShared *shared;
-
-     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %d )\n", __FUNCTION__, pool, size );
-
-     D_MAGIC_ASSERT( pool, FusionSHMPool );
-     D_ASSERT( size > 0 );
-
-     shared = pool->shared;
-
-     D_MAGIC_ASSERT( shared, FusionSHMPoolShared );
-
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return false;
-
-     if (pool->size == size) {
-          D_DEBUG_AT( Fusion_SHMPool, "  -> already that size!\n" );
-          fusion_skirmish_dismiss( &shared->lock );
-          return true;
-     }
-
-     addr = mremap( shared->addr_base, pool->size, size, 0 );
-
-     if (addr == MAP_FAILED) {
-          D_PERROR( "Fusion/SHM: Could not mremap shared memory file '%s'!\n", pool->filename );
-          fusion_skirmish_dismiss( &shared->lock );
-          return false;
-     }
-
-     if (addr != shared->addr_base)
-          D_BREAK ("mremap returned a different address!");
-
-     D_DEBUG_AT( Fusion_SHMPool, "  -> remapped (%d -> %d)\n", pool->size, size );
-
-     pool->size = size;
-
-     fusion_skirmish_dismiss( &shared->lock );
-
-     return true;
 }
 
 /**********************************************************************************************************************/
@@ -764,9 +713,7 @@ _fusion_shmpool_process( FusionWorld          *world,
                if (shm->pools[i].pool_id == pool_id) {
                     switch (msg->type) {
                          case FSMT_REMAP:
-                              fusion_skirmish_dismiss( &shared->lock );
-                              remap_pool( &shm->pools[i], msg->size );
-                              return;
+                              break;
 
                          case FSMT_UNMAP:
                               D_UNIMPLEMENTED();
@@ -779,60 +726,5 @@ _fusion_shmpool_process( FusionWorld          *world,
      }
 
      fusion_skirmish_dismiss( &shared->lock );
-}
-
-bool
-_fusion_shmalloc_cure( FusionWorld *world, const void *ptr )
-{
-     int              i;
-     DirectResult     ret;
-     FusionSHM       *shm;
-     FusionSHMShared *shared;
-     bool             cured = false;
-
-     D_DEBUG_AT( Fusion_SHMPool, "%s( %p, %p )\n", __FUNCTION__, world, ptr );
-
-     D_MAGIC_ASSERT( world, FusionWorld );
-
-     shm = &world->shm;
-
-     D_MAGIC_ASSERT( shm, FusionSHM );
-
-     shared = shm->shared;
-
-     D_MAGIC_ASSERT( shared, FusionSHMShared );
-
-     ret = fusion_skirmish_prevail( &shared->lock );
-     if (ret)
-          return false;
-
-     for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
-          if (shared->pools[i].active && shm->pools[i].attached) {
-               shmalloc_heap       *heap;
-               FusionSHMPoolShared *pool = &shared->pools[i];
-
-               D_MAGIC_ASSERT( pool, FusionSHMPoolShared );
-
-               heap = pool->heap;
-
-               D_MAGIC_ASSERT( heap, shmalloc_heap );
-
-               if (ptr >= pool->addr_base && ptr < pool->addr_base + heap->size) {
-                    fusion_skirmish_dismiss( &shared->lock );
-
-                    cured = remap_pool( &shm->pools[i], heap->size );
-
-                    D_DEBUG_AT( Fusion_SHMPool, "  -> %scured\n", cured ? "" : "not " );
-
-                    return cured;
-               }
-          }
-     }
-
-     fusion_skirmish_dismiss( &shared->lock );
-
-     D_DEBUG_AT( Fusion_SHMPool, "  -> %scured\n", cured ? "" : "not " );
-
-     return cured;
 }
 
