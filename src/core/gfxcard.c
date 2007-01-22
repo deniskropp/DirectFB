@@ -1522,8 +1522,8 @@ setup_font_state( CoreFont *font, CardState *state )
           /* set color */
           if (DFB_PIXELFORMAT_IS_INDEXED( state->destination->format ))
                dfb_state_set_color_index( &font->state, state->color_index );
-          else
-               dfb_state_set_color( &font->state, &state->color );
+
+          dfb_state_set_color( &font->state, &state->color );
 
           /* additional blending? */
           if ((state->drawingflags & DSDRAW_BLEND) && (state->color.a != 0xff))
