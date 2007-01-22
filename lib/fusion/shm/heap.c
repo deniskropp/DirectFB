@@ -486,10 +486,17 @@ _fusion_shfree( shmalloc_heap *heap, void *ptr )
                     heap->chunks_free--;
                }
 
-               /* Now see if we can return stuff to the system.  */
                blocks = heap->heapinfo[block].free.size;
+
+#ifdef MADV_REMOVE
+               /* Punch a hole into the tmpfs file to really free RAM. */
+               madvise( ADDRESS(block), blocks * BLOCKSIZE, MADV_REMOVE );
+#endif
+
+               /* Now see if we can truncate the end.  */
                if (blocks >= FINAL_FREE_BLOCKS && block + blocks == heap->heaplimit
-                   && __shmalloc_brk( heap, 0 ) == ADDRESS (block + blocks)) {
+                   && __shmalloc_brk( heap, 0 ) == ADDRESS (block + blocks))
+               {
                     register size_t bytes = blocks * BLOCKSIZE;
                     heap->heaplimit -= blocks;
                     __shmalloc_brk( heap, -bytes );
