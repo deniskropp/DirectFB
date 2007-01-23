@@ -79,7 +79,7 @@ fusion_skirmish_init( FusionSkirmish    *skirmish,
      info.type = FT_SKIRMISH;
      info.id   = skirmish->multi.id;
 
-     strncpy( info.name, name, sizeof(info.name) );
+     direct_snputs( info.name, name, sizeof(info.name) );
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 

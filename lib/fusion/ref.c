@@ -82,7 +82,7 @@ fusion_ref_init (FusionRef         *ref,
      info.type = FT_REF;
      info.id   = ref->multi.id;
 
-     strncpy( info.name, name, sizeof(info.name) );
+     direct_snputs( info.name, name, sizeof(info.name) );
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 

@@ -159,7 +159,7 @@ fusion_reactor_new( int                msg_size,
      info.type = FT_REACTOR;
      info.id   = reactor->id;
 
-     strncpy( info.name, name, sizeof(info.name) );
+     direct_snputs( info.name, name, sizeof(info.name) );
 
      ioctl( world->fusion_fd, FUSION_ENTRY_SET_INFO, &info );
 

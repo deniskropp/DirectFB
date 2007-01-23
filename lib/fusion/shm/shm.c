@@ -86,7 +86,7 @@ find_tmpfs( char *name, int len )
                if (bytes > largest || (bytes == largest && !strcmp(mount_point,"/dev/shm"))) {
                     largest = bytes;
 
-                    strncpy( name, mount_point, len );
+                    direct_snputs( name, mount_point, len );
                }
           }
      }

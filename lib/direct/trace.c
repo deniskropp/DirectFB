@@ -213,9 +213,7 @@ add_symbol( SymbolTable *table, long offset, const char *name )
 
      symbol->offset = offset;
 
-     strncpy( symbol->name, name, NAME_LEN - 1 );
-
-     symbol->name[NAME_LEN - 1] = 0;
+     direct_snputs( symbol->name, name, NAME_LEN );
 }
 
 __attribute__((no_instrument_function))

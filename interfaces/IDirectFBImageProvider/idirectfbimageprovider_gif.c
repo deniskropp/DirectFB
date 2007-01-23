@@ -797,8 +797,7 @@ static u32* ReadGIF( IDirectFBImageProvider_GIF_data *data, int imageNumber,
           GIFERRORMSG("not a GIF file" );
      }
 
-     strncpy( version, (char *)buf + 3, 3 );
-     version[3] = '\0';
+     direct_snputs( version, (char *)buf + 3, 4 );
 
      if ((strcmp(version, "87a") != 0) && (strcmp(version, "89a") != 0)) {
           GIFERRORMSG("bad version number, not '87a' or '89a'" );

@@ -1166,7 +1166,7 @@ real_calc_challenge2( char response[64], char checksum[32], char *challenge )
      }
      /* tail */
      len = strlen( response );
-     strncpy( &response[len], "01d0a8e3", 64-len );
+     direct_snputs( &response[len], "01d0a8e3", 64-len );
      
      /* compute checksum */
      for (i = 0; i < len/4; i++)

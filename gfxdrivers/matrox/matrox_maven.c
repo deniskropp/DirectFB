@@ -445,7 +445,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
                     attr = sysfs_get_device_attr( device, "name" );
                     if (attr) {
                          if (strstr( attr->value, "MAVEN" )) {
-                              strncpy( mav->dev, "/dev/", 6 );
+                              direct_snputs( mav->dev, "/dev/", 6 );
                               strncat( mav->dev, class_device->name, 250 );
                               found = true;
                               break;
@@ -471,7 +471,7 @@ DFBResult maven_init( MatroxMavenData  *mav,
                     while (!isspace( *p ))
                          p++;
                     *p = '\0';
-                    strncpy( mav->dev, "/dev/", 6 );
+                    direct_snputs( mav->dev, "/dev/", 6 );
                     strncat( mav->dev, line, 250 );
                     found = true;
                     break;

@@ -233,7 +233,7 @@ driver_get_available()
      struct sockaddr_un addr;
 
      addr.sun_family = AF_UNIX;
-     strncpy( addr.sun_path, "/dev/lircd", sizeof(addr.sun_path) );
+     direct_snputs( addr.sun_path, "/dev/lircd", sizeof(addr.sun_path) );
 
      fd = socket( PF_UNIX, SOCK_STREAM, 0 );
      if (fd < 0)
@@ -275,7 +275,7 @@ driver_open_device( CoreInputDevice      *device,
 
      /* create socket */
      sa.sun_family = AF_UNIX;
-     strncpy( sa.sun_path, "/dev/lircd", sizeof(sa.sun_path) );
+     direct_snputs( sa.sun_path, "/dev/lircd", sizeof(sa.sun_path) );
 
      fd = socket( PF_UNIX, SOCK_STREAM, 0 );
      if (fd < 0) {
