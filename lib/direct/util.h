@@ -28,7 +28,7 @@
 #ifndef __DIRECT__UTIL_H__
 #define __DIRECT__UTIL_H__
 
-#include <direct/types.h>
+#include <direct/debug.h>
 #include <direct/messages.h>
 
 #include <pthread.h>
@@ -101,8 +101,29 @@ void direct_trim( char **s );
  * Set a string with a maximum size including the zero termination.
  *
  * This acts like a strncpy(d,s,n), but always terminates the string like snprintf(d,n,"%s",s).
+ *
+ * Returns dest or NULL if n is zero.
  */
-char *direct_snputs( char *dest, const char *src, size_t n );
+static __inline__ char *
+direct_snputs( char       *dest,
+               const char *src,
+               size_t      n )
+{
+     char *start = dest;
+
+     D_ASSERT( dest != NULL );
+     D_ASSERT( src != NULL );
+
+     if (!n)
+          return NULL;
+
+     for (; n>1 && *src; n--)
+          *dest++ = *src++;
+
+     *dest = 0;
+
+     return start;
+}
 
 /*
  * Encode/Decode Base-64 strings.
