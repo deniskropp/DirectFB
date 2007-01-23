@@ -49,6 +49,7 @@
 #include <direct/signals.h>
 #include <direct/thread.h>
 #include <direct/trace.h>
+#include <direct/util.h>
 
 #include <fusion/build.h>
 #include <fusion/conf.h>

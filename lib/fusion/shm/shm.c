@@ -38,6 +38,7 @@
 #include <direct/list.h>
 #include <direct/signals.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/conf.h>
 #include <fusion/fusion_internal.h>

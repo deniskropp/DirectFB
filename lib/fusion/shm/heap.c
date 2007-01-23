@@ -61,6 +61,7 @@ Cambridge, MA 02139, USA.
 #include <direct/mem.h>
 #include <direct/memcpy.h>
 #include <direct/messages.h>
+#include <direct/util.h>
 
 #include <fusion/conf.h>
 #include <fusion/shmalloc.h>
