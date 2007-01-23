@@ -127,6 +127,8 @@ direct_list_remove( DirectLink **list, DirectLink *link )
      DirectLink *next;
      DirectLink *prev;
 
+     D_ASSERT( list != NULL );
+
      D_ASSERT( direct_list_contains_element_EXPENSIVE( *list, link ) );
 
      D_MAGIC_ASSERT( *list, DirectLink );
@@ -154,6 +156,48 @@ direct_list_remove( DirectLink **list, DirectLink *link )
      link->next = link->prev = NULL;
 
      D_MAGIC_CLEAR( link );
+}
+
+static __inline__ void
+direct_list_move_to_front( DirectLink **list, DirectLink *link )
+{
+     DirectLink *next;
+     DirectLink *prev;
+     DirectLink *first;
+
+     D_ASSERT( list != NULL );
+
+     first = *list;
+
+     D_ASSERT( direct_list_contains_element_EXPENSIVE( first, link ) );
+
+     D_MAGIC_ASSERT( first, DirectLink );
+     D_MAGIC_ASSERT( link, DirectLink );
+
+     if (first == link)
+          return;
+
+     next = link->next;
+     prev = link->prev;
+
+     D_MAGIC_ASSERT_IF( next, DirectLink );
+     D_MAGIC_ASSERT( prev, DirectLink );
+
+     if (next) {
+          next->prev = prev;
+
+          link->prev = first->prev;
+     }
+     else
+          link->prev = prev;
+
+     prev->next = next;
+
+     link->next = first;
+
+     first->prev = link;
+
+     *list = link;
 }
 
 static __inline__ bool
