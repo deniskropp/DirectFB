@@ -752,6 +752,8 @@ lock_node( int reactor_id, bool add_it, FusionReactor *reactor, FusionWorld *wor
                     D_ASSERT( node->reactor == reactor || reactor == NULL );
                }
 
+               direct_list_move_to_front( &world->reactor_nodes, &node->link );
+
                pthread_mutex_unlock( &world->reactor_nodes_lock );
 
                return node;
