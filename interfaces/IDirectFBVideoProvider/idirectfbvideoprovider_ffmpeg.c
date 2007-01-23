@@ -1,5 +1,5 @@
 /*
-   Copyright (C) 2006 Claudio Ciccani <klan@users.sf.net>
+   Copyright (C) 2006-2007 Claudio Ciccani <klan@users.sf.net>
 
    This library is free software; you can redistribute it and/or
    modify it under the terms of the GNU Lesser General Public
@@ -1351,10 +1351,12 @@ IDirectFBVideoProvider_FFmpeg_SetSpeed( IDirectFBVideoProvider *thiz,
      pthread_mutex_lock( &data->video.lock );
      pthread_mutex_lock( &data->audio.lock );
      
+     if (multiplier)
+          multiplier = MAX( multiplier, 0.01 );
      data->speed = multiplier;
      
 #ifdef HAVE_FUSIONSOUND
-     if (data->audio.playback && multiplier >= 0.01)
+     if (data->audio.playback)
           data->audio.playback->SetPitch( data->audio.playback, multiplier );
 #endif
      
@@ -1540,10 +1542,16 @@ Construct( IDirectFBVideoProvider *thiz,
      for (i = 0; i < data->context->nb_streams; i++) {
           switch (data->context->streams[i]->codec->codec_type) {
                case CODEC_TYPE_VIDEO:
-                    data->video.st = data->context->streams[i];
+                    if (!data->video.st || 
+                         data->video.st->codec->bit_rate < 
+                         data->context->streams[i]->codec->bit_rate)
+                         data->video.st = data->context->streams[i];
                     break;
                case CODEC_TYPE_AUDIO:
-                    data->audio.st = data->context->streams[i];
+                    if (!data->audio.st || 
+                         data->audio.st->codec->bit_rate <
+                         data->context->streams[i]->codec->bit_rate)
+                         data->audio.st = data->context->streams[i];
                     break;
                default:
                     break;
