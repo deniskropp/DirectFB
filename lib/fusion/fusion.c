@@ -768,7 +768,7 @@ fusion_sync( const FusionWorld *world )
      int            result;
      fd_set         set;
      struct timeval tv;
-     int            loops = 100;
+     int            loops = 40;
 
      D_MAGIC_ASSERT( world, FusionWorld );
 
