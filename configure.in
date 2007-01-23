@@ -1319,6 +1319,7 @@ DFB_LDFLAGS="$LDFLAGS $ZLIB_LIBS"
 ACLOCAL="$ACLOCAL $ACLOCAL_FLAGS"
 
 
+AM_CONDITIONAL(BUILD_SHARED, test "$enable_shared" = "yes")
 AM_CONDITIONAL(BUILD_STATIC, test "$enable_static" = "yes")
 
 # Sysroot used for runtime module loading, etc.

@@ -221,7 +221,8 @@ static SymbolTable *
 load_symbols( const char *filename )
 {
      SymbolTable *table;
-     FILE        *pipe;
+     FILE        *fp = NULL;
+     bool         is_pipe = false;
      char         file[1024];
      char         line[1024];
      int          command_len;
@@ -267,25 +268,38 @@ load_symbols( const char *filename )
      command_len = strlen( full_path ) + 32;
      command     = alloca( command_len );
 
-     snprintf( command, command_len, "nm -n %s", full_path );
+     /* First check if there's an ".nm" file. */
+     snprintf( command, command_len, "%s.nm", full_path );
 
-     pipe = popen( command, "r" );
-     if (!pipe) {
-          D_PERROR( "Direct/Trace: popen( \"%s\", \"r\" ) failed!\n", command );
-          return NULL;
+     if (access( command, R_OK ) == 0) {
+          fp = fopen( command, "r" );
+          if (!fp)
+               D_PERROR( "Direct/Trace: fopen( \"%s\", \"r\" ) failed!\n", command );
+     }
+
+     /* Fallback to live mode. */
+     if (!fp) {
+          snprintf( command, command_len, "nm -n %s", full_path );
+
+          fp = popen( command, "r" );
+          if (!fp) {
+               D_PERROR( "Direct/Trace: popen( \"%s\", \"r\" ) failed!\n", command );
+               return NULL;
+          }
+
+          is_pipe = true;
      }
 
      table = calloc( 1, sizeof(SymbolTable) );
      if (!table) {
-          D_WARN( "out of memory" );
-          pclose( pipe );
-          return NULL;
+          D_OOM();
+          goto out;
      }
 
      if (filename)
           table->filename = strdup( filename );
 
-     while (fgets( line, sizeof(line), pipe )) {
+     while (fgets( line, sizeof(line), fp )) {
           int  n;
           long offset = 0;
           int  length = strlen(line);
@@ -315,7 +329,11 @@ load_symbols( const char *filename )
           add_symbol( table, offset, line + 11 );
      }
 
-     pclose( pipe );
+out:
+     if (is_pipe)
+          pclose( fp );
+     else
+          fclose( fp );
 
      return table;
 }
