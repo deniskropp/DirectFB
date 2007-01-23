@@ -2225,13 +2225,15 @@ handle_wm_key( CoreWindowStack     *stack,
 
           case DIKS_SMALL_P:
                /* Enable and show cursor. */
-               dfb_windowstack_cursor_set_opacity( stack, 0xff );
-               dfb_windowstack_cursor_enable( wmdata->core, stack, true );
+               if (stack->cursor.set) {
+                    dfb_windowstack_cursor_set_opacity( stack, 0xff );
+                    dfb_windowstack_cursor_enable( wmdata->core, stack, true );
+               }
 
                /* Ungrab pointer. */
                data->pointer_window = NULL;
 
-               /* TODO: set new cursor shape, the one current might be completely transparent */
+               /* TODO: set new cursor shape, the current one might be completely transparent */
                break;
 
           case DIKS_PRINT:
