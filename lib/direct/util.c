@@ -217,6 +217,30 @@ direct_trim( char **s )
 }
 
 /*
+ * Set a string with a maximum size including the zero termination.
+ *
+ * This acts like a strncpy(d,s,n), but always terminates the string like snprintf(d,n,"%s",s).
+ */
+char *
+direct_snputs( char       *dest,
+               const char *src,
+               size_t      n )
+{
+     char *start = dest;
+
+     D_ASSERT( dest != NULL );
+     D_ASSERT( src != NULL );
+     D_ASSERT( n > 0 );
+
+     for (; n>1 && *src; n--)
+          *dest++ = *src++;
+
+     *dest = 0;
+
+     return start;
+}
+
+/*
  * Utility function to initialize recursive mutexes.
  */
 int

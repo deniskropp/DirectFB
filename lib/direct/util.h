@@ -98,6 +98,13 @@ int direct_try_open( const char *name1, const char *name2, int flags, bool error
 void direct_trim( char **s );
 
 /*
+ * Set a string with a maximum size including the zero termination.
+ *
+ * This acts like a strncpy(d,s,n), but always terminates the string like snprintf(d,n,"%s",s).
+ */
+char *direct_snputs( char *dest, const char *src, size_t n );
+
+/*
  * Encode/Decode Base-64 strings.
  */
 char *direct_base64_encode( const void *data, int size );
