@@ -38,7 +38,6 @@
 #include <direct/messages.h>
 #include <direct/system.h>
 #include <direct/types.h>
-#include <direct/util.h>
 
 
 typedef struct {
