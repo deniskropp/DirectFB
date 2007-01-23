@@ -51,7 +51,7 @@ typedef enum {
 
 #define DFB_KEY(type,index)        ((DIKT_##type) | (index))
 
-#define DFB_KEY_TYPE(symbol)       ((symbol) & 0xFF00)
+#define DFB_KEY_TYPE(symbol)       ((((symbol) & ~0xFFF) == 0xF000) ? (symbol) & 0xFF00 : DIKT_UNICODE)
 #define DFB_KEY_INDEX(symbol)      ((symbol) & 0x00FF)
 
 #define DFB_KEY_IS_ASCII(symbol)   ((symbol) < 128)
