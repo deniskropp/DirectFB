@@ -138,8 +138,7 @@ typedef struct {
           IDirectFBSurface         *dest;
           DFBRectangle              rect;
           
-          AVFrame                  *src_frame;
-          DVCPixelFormat            dst_format;   
+          AVFrame                  *src_frame; 
      } video;
      
      struct {
@@ -468,17 +467,17 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
      DVCPicture  picture;
      
      switch (data->video.ctx->pix_fmt) {
-          case PIX_FMT_GRAY8:
-               picture.format = DVCPF_Y8;
-               break;
-          case PIX_FMT_YUV444P:
-               picture.format = DVCPF_YUV444;
+          case PIX_FMT_YUV420P:
+          case PIX_FMT_YUVJ420P:
+               picture.format = DVCPF_YUV420;
                break;
           case PIX_FMT_YUV422P:
+          case PIX_FMT_YUVJ422P:
                picture.format = DVCPF_YUV422;
                break;
-          case PIX_FMT_YUV420P:
-               picture.format = DVCPF_YUV420;
+          case PIX_FMT_YUV444P:
+          case PIX_FMT_YUVJ444P:
+               picture.format = DVCPF_YUV444;
                break;
           case PIX_FMT_YUV411P:
                picture.format = DVCPF_YUV411;
@@ -497,6 +496,9 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
                break;
           case PIX_FMT_NV21:
                picture.format = DVCPF_NV12_BE;
+               break;
+          case PIX_FMT_GRAY8:
+               picture.format = DVCPF_Y8;
                break;
           case PIX_FMT_RGB8:
                picture.format = DVCPF_RGB8;
@@ -537,7 +539,7 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
      picture.palette = NULL;
      picture.palette_size = 0;
      
-     picture.separeted = false;
+     picture.separated = false;
      picture.premultiplied = false;
      
      dvc_copy_to_surface( &picture, data->video.dest, 
@@ -958,10 +960,8 @@ IDirectFBVideoProvider_FFmpeg_PlayTo( IDirectFBVideoProvider *thiz,
      if (dest_rect) {
           if (dest_rect->w < 1 || dest_rect->h < 1)
                return DFB_INVARG;
-         
-          rect    = *dest_rect;
-          rect.x += dest_data->area.wanted.x;
-          rect.y += dest_data->area.wanted.y;
+
+          rect = *dest_rect;
      }
 
      pthread_mutex_lock( &data->input.lock );
