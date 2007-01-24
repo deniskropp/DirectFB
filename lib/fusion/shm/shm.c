@@ -247,3 +247,46 @@ fusion_shm_deinit( FusionWorld *world )
      return DFB_OK;
 }
 
+DirectResult
+fusion_shm_attach_unattached( FusionWorld *world )
+{
+     int              i;
+     DirectResult     ret;
+     FusionSHM       *shm;
+     FusionSHMShared *shared;
+
+     D_MAGIC_ASSERT( world, FusionWorld );
+     D_MAGIC_ASSERT( world->shared, FusionWorldShared );
+
+     shm    = &world->shm;
+     shared = &world->shared->shm;
+
+     D_MAGIC_ASSERT( shm, FusionSHM );
+     D_MAGIC_ASSERT( shared, FusionSHMShared );
+
+     ret = fusion_skirmish_prevail( &shared->lock );
+     if (ret)
+          return ret;
+
+
+     for (i=0; i<FUSION_SHM_MAX_POOLS; i++) {
+          if (!shared->pools[i].active)
+               continue;
+
+          D_MAGIC_ASSERT( &shared->pools[i], FusionSHMPoolShared );
+
+          if (!shm->pools[i].attached) {
+               ret = fusion_shm_pool_attach( shm, &shared->pools[i] );
+               if (ret)
+                    D_DERROR( ret, "fusion_shm_pool_attach( '%s' ) failed!\n", shared->pools[i].name );
+          }
+          else
+               D_MAGIC_ASSERT( &shm->pools[i], FusionSHMPool );
+     }
+
+
+     fusion_skirmish_dismiss( &shared->lock );
+
+     return DFB_OK;
+}
+

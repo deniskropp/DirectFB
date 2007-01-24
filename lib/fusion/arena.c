@@ -45,6 +45,7 @@
 #include <fusion/lock.h>
 #include <fusion/ref.h>
 #include <fusion/arena.h>
+#include <fusion/shm/shm.h>
 #include <fusion/shmalloc.h>
 
 #include "fusion_internal.h"
@@ -126,6 +127,8 @@ fusion_arena_enter (FusionWorld     *world,
      }
      else {
           D_DEBUG ("Fusion/Arena: entering arena '%s' (joining)\n", name);
+
+          fusion_shm_attach_unattached( world );
 
           /* Call 'join' later. */
           func = join;

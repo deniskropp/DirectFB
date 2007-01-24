@@ -35,5 +35,7 @@ DirectResult fusion_shm_init  ( FusionWorld *world );
 
 DirectResult fusion_shm_deinit( FusionWorld *world );
 
+DirectResult fusion_shm_attach_unattached( FusionWorld *world );
+
 #endif
 
