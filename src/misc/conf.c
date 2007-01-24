@@ -1160,14 +1160,6 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
 
      config_allocate();
 
-     /* Current session is default. */
-     session = getenv( "DIRECTFB_SESSION" );
-     if (session) {
-          ret = dfb_config_set( "session", session );
-          if (ret)
-               return ret;
-     }
-
      /* Read system settings. */
      ret = dfb_config_read( "/etc/directfbrc" );
      if (ret  &&  ret != DFB_IO)
@@ -1226,6 +1218,11 @@ DFBResult dfb_config_init( int *argc, char *(*argv[]) )
           if (ret)
                return ret;
      }
+
+     /* Active session is used if present, only command line can override. */
+     session = getenv( "DIRECTFB_SESSION" );
+     if (session)
+          dfb_config_set( "session", session );
 
      /* Read settings from command line. */
      if (argc && argv) {
