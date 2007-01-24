@@ -722,6 +722,9 @@ matroxSetState( void *drv, void *dev,
           if (state->modified & SMF_COLOR)
                MGA_INVALIDATE( m_drawColor | m_blitColor | m_color );
 
+          if (state->modified & SMF_CLIP)
+               MGA_INVALIDATE( m_clip );
+
           if (state->modified & SMF_DESTINATION)
                MGA_INVALIDATE( m_destination | m_clip | m_color | m_Source | m_source );
 
