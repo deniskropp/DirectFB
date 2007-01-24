@@ -1321,9 +1321,6 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
      D_ASSERT( rect->w >= 1 );
      D_ASSERT( rect->h >= 1 );
 
-
-     odx = dx1;
-
      dfb_state_lock( state );
 
      clip = &state->clip;
@@ -1359,7 +1356,7 @@ void dfb_gfxcard_tileblit( DFBRectangle *rect, int dx1, int dy1, int dx2, int dy
           dy2 -= outer - (outer % rect->h);
      }
 
-     dx1 = odx;
+     odx = dx1;
 
      if (dfb_gfxcard_state_check( state, DFXL_BLIT ) &&
          dfb_gfxcard_state_acquire( state, DFXL_BLIT )) {
