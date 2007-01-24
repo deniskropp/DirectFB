@@ -36,6 +36,7 @@ struct __Fusion_FusionConfig {
 
      bool  debugshm;
      bool  madv_remove;
+     bool  force_slave;
 };
 
 extern FusionConfig *fusion_config;

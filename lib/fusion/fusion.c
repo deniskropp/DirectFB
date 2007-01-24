@@ -318,6 +318,9 @@ fusion_enter( int               world_index,
      pthread_once( &fusion_init_once, init_once );
 
 
+     if (fusion_config->force_slave)
+          role = FER_SLAVE;
+
      direct_initialize();
 
      pthread_mutex_lock( &fusion_worlds_lock );

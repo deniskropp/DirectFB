@@ -69,6 +69,7 @@ static const char *config_usage =
      "  depth=<pixeldepth>             Set the default pixel depth\n"
      "  pixelformat=<pixelformat>      Set the default pixel format\n"
      "  session=<num>                  Select multi app world (zero based, -1 = new)\n"
+     "  force-slave                    Always enter as a slave, waiting for the master, if not there\n"
      "  remote=<host>[:<session>]      Select remote session to connect to\n"
      "  tmpfs=<directory>              Location of shared memory file\n"
      "  memcpy=<method>                Skip memcpy() probing (help = show list)\n"
@@ -588,6 +589,9 @@ DFBResult dfb_config_set( const char *name, const char *value )
                D_ERROR("DirectFB/Config 'session': No value specified!\n");
                return DFB_INVARG;
           }
+     } else
+     if (strcmp (name, "force-slave" ) == 0) {
+          fusion_config->force_slave = true;
      } else
      if (strcmp (name, "remote" ) == 0) {
           if (value) {
