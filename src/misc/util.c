@@ -347,6 +347,8 @@ dfb_updates_add( DFBUpdates      *updates,
 
                updates->regions[i] = uni;
 
+               dfb_region_region_union( &updates->bounding, &uni );
+
                return;
           }
      }
