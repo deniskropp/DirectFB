@@ -6362,7 +6362,9 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
                                                DSDRAW_DST_COLORKEY ) ?
                        DSLF_READ | DSLF_WRITE : DSLF_WRITE;
 
-
+     /* invert alpha */
+     if (gfxs->dst_format == DSPF_AiRGB)
+          color.a ^= 0xff;
 
      /* premultiply source (color) */
      if (DFB_DRAWING_FUNCTION(accel) && (state->drawingflags & DSDRAW_SRC_PREMULTIPLY)) {
@@ -6393,11 +6395,10 @@ bool gAcquire( CardState *state, DFBAccelerationMask accel )
           case DSPF_RGB32:
                gfxs->Cop = PIXEL_RGB32( color.r, color.g, color.b );
                break;
+          case DSPF_AiRGB:
+               /* alpha has already been inverted */
           case DSPF_ARGB:
                gfxs->Cop = PIXEL_ARGB( color.a, color.r, color.g, color.b );
-               break;
-          case DSPF_AiRGB:
-               gfxs->Cop = PIXEL_AiRGB( color.a, color.r, color.g, color.b );
                break;
           case DSPF_ARGB6666:
                gfxs->Cop = PIXEL_ARGB6666( color.a, color.r, color.g, color.b ); 
