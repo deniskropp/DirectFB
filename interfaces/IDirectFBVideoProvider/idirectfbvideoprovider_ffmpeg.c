@@ -101,6 +101,10 @@ typedef struct {
      double                         speed;
      float                          volume;
      
+     u16                            brightness;
+     u16                            contrast;
+     u16                            saturation;
+     
      IDirectFBDataBuffer           *buffer;
      bool                           seekable;
      void                          *iobuf;
@@ -138,7 +142,9 @@ typedef struct {
           IDirectFBSurface         *dest;
           DFBRectangle              rect;
           
-          AVFrame                  *src_frame; 
+          AVFrame                  *src_frame;
+          
+          DVCColormap              *colormap;
      } video;
      
      struct {
@@ -460,72 +466,62 @@ FFmpegInput( DirectThread *self, void *arg )
      return (void*)0;
 }
 
+static inline DVCPixelFormat
+ff2dvc_pixelformat( int pix_fmt )
+{
+     switch (pix_fmt) {
+          case PIX_FMT_YUV420P:
+          case PIX_FMT_YUVJ420P:
+               return DVCPF_YUV420;
+          case PIX_FMT_YUV422P:
+          case PIX_FMT_YUVJ422P:
+               return DVCPF_YUV422;
+          case PIX_FMT_YUV444P:
+          case PIX_FMT_YUVJ444P:
+               return DVCPF_YUV444;
+          case PIX_FMT_YUV411P:
+               return DVCPF_YUV411;
+          case PIX_FMT_YUV410P:
+               return DVCPF_YUV410;
+          case PIX_FMT_YUYV422:
+               return DVCPF_YUYV_LE;
+          case PIX_FMT_UYVY422:
+               return DVCPF_YUYV_BE;
+          case PIX_FMT_NV12:
+               return DVCPF_NV12_LE;
+          case PIX_FMT_NV21:
+               return DVCPF_NV12_BE;
+          case PIX_FMT_GRAY8:
+               return DVCPF_Y8;
+          case PIX_FMT_RGB8:
+               return DVCPF_RGB8;
+          case PIX_FMT_RGB555:
+               return DVCPF_RGB15;
+          case PIX_FMT_RGB565:
+               return DVCPF_RGB16;
+          case PIX_FMT_RGB24:
+               return DVCPF_RGB24;
+          case PIX_FMT_BGR24:
+               return DVCPF_BGR24;
+          case PIX_FMT_RGB32:
+               return DVCPF_RGB32;
+          case PIX_FMT_BGR32:
+               return DVCPF_BGR32;
+         default:
+               D_ONCE("unsupported picture format");
+               break;
+     }
+     
+     return DVCPF_UNKNOWN;
+}
+
 static void
 FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
 {
      AVFrame    *src_frame = data->video.src_frame;
      DVCPicture  picture;
      
-     switch (data->video.ctx->pix_fmt) {
-          case PIX_FMT_YUV420P:
-          case PIX_FMT_YUVJ420P:
-               picture.format = DVCPF_YUV420;
-               break;
-          case PIX_FMT_YUV422P:
-          case PIX_FMT_YUVJ422P:
-               picture.format = DVCPF_YUV422;
-               break;
-          case PIX_FMT_YUV444P:
-          case PIX_FMT_YUVJ444P:
-               picture.format = DVCPF_YUV444;
-               break;
-          case PIX_FMT_YUV411P:
-               picture.format = DVCPF_YUV411;
-               break;
-          case PIX_FMT_YUV410P:
-               picture.format = DVCPF_YUV410;
-               break;
-          case PIX_FMT_YUYV422:
-               picture.format = DVCPF_YUYV_LE;
-               break;
-          case PIX_FMT_UYVY422:
-               picture.format = DVCPF_YUYV_BE;
-               break;
-          case PIX_FMT_NV12:
-               picture.format = DVCPF_NV12_LE;
-               break;
-          case PIX_FMT_NV21:
-               picture.format = DVCPF_NV12_BE;
-               break;
-          case PIX_FMT_GRAY8:
-               picture.format = DVCPF_Y8;
-               break;
-          case PIX_FMT_RGB8:
-               picture.format = DVCPF_RGB8;
-               break;
-          case PIX_FMT_RGB555:
-               picture.format = DVCPF_RGB15;
-               break;
-          case PIX_FMT_RGB565:
-               picture.format = DVCPF_RGB16;
-               break;
-          case PIX_FMT_RGB24:
-               picture.format = DVCPF_RGB24;
-               break;
-          case PIX_FMT_BGR24:
-               picture.format = DVCPF_BGR24;
-               break;
-          case PIX_FMT_RGB32:
-               picture.format = DVCPF_RGB32;
-               break;
-          case PIX_FMT_BGR32:
-               picture.format = DVCPF_BGR32;
-               break;
-         default:
-               D_ONCE("unsupported picture format");
-               return;
-     }
-
+     picture.format = ff2dvc_pixelformat( data->video.ctx->pix_fmt );
      picture.width = data->video.ctx->width;
      picture.height = data->video.ctx->height;
      
@@ -543,7 +539,8 @@ FFmpegPutFrame( IDirectFBVideoProvider_FFmpeg_data *data )
      picture.premultiplied = false;
      
      dvc_copy_to_surface( &picture, data->video.dest, 
-                          data->video.rect.w ? &data->video.rect : NULL );
+                          data->video.rect.w ? &data->video.rect : NULL,
+                          data->video.colormap );
 }
 
 static void*
@@ -754,6 +751,9 @@ IDirectFBVideoProvider_FFmpeg_Destruct( IDirectFBVideoProvider *thiz )
      if (data->video.dest)
           data->video.dest->Release( data->video.dest );
           
+     if (data->video.colormap)
+          D_FREE( data->video.colormap );
+          
      if (data->context) {
           data->context->iformat->flags |= AVFMT_NOFILE;
           av_close_input_file( data->context );
@@ -809,7 +809,9 @@ IDirectFBVideoProvider_FFmpeg_GetCapabilities( IDirectFBVideoProvider       *thi
           return DFB_INVARG;
    
 
-     *caps = DVCAPS_BASIC | DVCAPS_SPEED;
+     *caps = DVCAPS_BASIC      | DVCAPS_SPEED    |
+             DVCAPS_BRIGHTNESS | DVCAPS_CONTRAST |
+             DVCAPS_SATURATION;
      if (data->seekable)
           *caps |= DVCAPS_SEEK;
      if (data->video.src_frame->interlaced_frame)
@@ -1134,9 +1136,12 @@ IDirectFBVideoProvider_FFmpeg_GetColorAdjustment( IDirectFBVideoProvider *thiz,
      if (!adj)
           return DFB_INVARG;
           
-     adj->flags = DCAF_NONE;
+     adj->flags      = DCAF_BRIGHTNESS | DCAF_CONTRAST | DCAF_SATURATION;
+     adj->brightness = data->brightness;
+     adj->contrast   = data->contrast;
+     adj->saturation = data->saturation;
      
-     return DFB_UNIMPLEMENTED;
+     return DFB_OK;
 }
 
 static DFBResult
@@ -1147,8 +1152,44 @@ IDirectFBVideoProvider_FFmpeg_SetColorAdjustment( IDirectFBVideoProvider   *thiz
 
      if (!adj)
           return DFB_INVARG;
+          
+     if (adj->flags & DCAF_BRIGHTNESS)
+          data->brightness = adj->brightness;
+     if (adj->flags & DCAF_CONTRAST)
+          data->contrast = adj->contrast;
+     if (adj->flags & DCAF_SATURATION)
+          data->saturation = adj->saturation;
+          
+     pthread_mutex_lock( &data->video.lock );
      
-     return DFB_UNIMPLEMENTED;
+     if (data->brightness != 0x8000 ||
+         data->contrast   != 0x8000 ||
+         data->saturation != 0x8000)
+     {
+          if (!data->video.colormap) {
+               data->video.colormap = D_MALLOC( sizeof(DVCColormap) );
+               if (!data->video.colormap) {
+                    pthread_mutex_unlock( &data->video.lock );
+                    return D_OOM();
+               }
+          }
+          
+          dvc_colormap_gen( data->video.colormap,
+                            ff2dvc_pixelformat(data->video.ctx->pix_fmt),
+                            data->brightness,
+                            data->contrast,
+                            data->saturation );
+     }
+     else {
+          if (data->video.colormap) {
+               D_FREE( data->video.colormap );
+               data->video.colormap = NULL;
+          }
+     }
+     
+     pthread_mutex_unlock( &data->video.lock );
+
+     return DFB_OK;
 }
 
 static DFBResult
@@ -1331,6 +1372,10 @@ Construct( IDirectFBVideoProvider *thiz,
      data->buffer = buffer;
      data->speed  = 1.0;
      data->volume = 1.0;
+     
+     data->brightness =
+     data->contrast   =
+     data->saturation = 0x8000;
      
      buffer->AddRef( buffer ); 
      buffer->PeekData( buffer, sizeof(buf), 0, &buf[0], &len );
