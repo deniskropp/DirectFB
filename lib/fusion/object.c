@@ -213,7 +213,8 @@ fusion_object_pool_destroy( FusionObjectPool  *pool,
      D_DEBUG_AT( Fusion_Object, "  -> syncing...\n" );
 
      /* Wait for processing of pending messages. */
-     fusion_sync( world );
+     if (pool->objects)
+          fusion_sync( world );
 
      D_DEBUG_AT( Fusion_Object, "  -> locking...\n" );
 
