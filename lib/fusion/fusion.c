@@ -772,7 +772,7 @@ fusion_sync( const FusionWorld *world )
      int            result;
      fd_set         set;
      struct timeval tv;
-     int            loops = 40;
+     int            loops = 200;
 
      D_MAGIC_ASSERT( world, FusionWorld );
 
@@ -788,21 +788,26 @@ fusion_sync( const FusionWorld *world )
           tv.tv_usec = 20000;
 
           result = select( world->fusion_fd + 1, &set, NULL, NULL, &tv );
-
+          D_DEBUG_AT( Fusion_Main, "  -> select() returned %d...\n", result );
           switch (result) {
                case -1:
                     if (errno == EINTR)
-                         continue;
+                         return DFB_OK;
 
                     D_PERROR( "Fusion/Sync: select() failed!\n");
                     return DFB_FAILURE;
 
+               default:
+                    D_DEBUG_AT( Fusion_Main, "  -> FD_ISSET %d...\n", FD_ISSET( world->fusion_fd, &set ) );
+                    
+                    if (FD_ISSET( world->fusion_fd, &set )) {
+                         usleep( 20000 );
+                         break;
+                    }
+
                case 0:
                     D_DEBUG_AT( Fusion_Main, "  -> synced.\n");
                     return DFB_OK;
-
-               default:
-                    usleep( 20000 );
           }
      }
 
