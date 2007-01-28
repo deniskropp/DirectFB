@@ -184,7 +184,7 @@ static DFBResult IDirectFBVideoProvider_AviFile_GetStreamDescription(
 
      desc->video.encoding[0] = 0;
      desc->video.framerate   = data->player->GetFps();
-     desc->video.apsect      = (double) data->player->GetWidth() /
+     desc->video.aspect      = (double) data->player->GetWidth() /
                                (double) data->player->GetHeight();
      desc->video.bitrate     = 0;
      
