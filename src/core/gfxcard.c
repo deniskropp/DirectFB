@@ -1962,13 +1962,20 @@ dfb_gfxcard_reserve_memory( GraphicsDevice *device, unsigned int size )
 
      shared = device->shared;
 
+     if (shared->device_info.limits.surface_byteoffset_alignment) {
+          size += shared->device_info.limits.surface_byteoffset_alignment - 1;
+          size -= (size % shared->device_info.limits.surface_byteoffset_alignment);
+     }
+     else
+          D_WARN( "no alignment specified yet?" );
+
      if (shared->surface_manager) {
           D_WARN( "too late" );
           return -1;
      }
 
      if (shared->videoram_length < size) {
-          D_WARN( "not enough video memory" );
+          D_WARN( "not enough video memory (%u < %u)", shared->videoram_length, size );
           return -1;
      }
 
