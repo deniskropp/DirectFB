@@ -47,6 +47,8 @@
 # include <sysfs/libsysfs.h>
 #endif
 
+#include <asm/types.h>    /* Needs to be included before dfb_types.h */
+
 #include <fusion/arena.h>
 #include <fusion/fusion.h>
 #include <fusion/reactor.h>

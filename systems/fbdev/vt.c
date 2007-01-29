@@ -41,6 +41,8 @@
 #include <errno.h>
 #include <pthread.h>
 
+#include <asm/types.h>    /* Needs to be included before dfb_types.h */
+
 #include <directfb.h>
 
 #include <misc/conf.h>

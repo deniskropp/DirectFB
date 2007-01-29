@@ -28,6 +28,8 @@
 #ifndef __CORE__FBDEV_H__
 #define __CORE__FBDEV_H__
 
+#include <asm/types.h>    /* Needs to be included before dfb_types.h */
+
 #include <core/coretypes.h>
 
 #include <core/system.h>

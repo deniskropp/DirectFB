@@ -38,6 +38,8 @@
 #include <sys/ioctl.h>
 #include <errno.h>
 
+#include <asm/types.h>    /* Needs to be included before dfb_types.h */
+
 #include <directfb.h>
 
 #include <direct/mem.h>
