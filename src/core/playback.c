@@ -117,7 +117,7 @@ fs_playback_create( CoreSound        *core,
      playback->notify = notify;
      playback->left   = fsf_from_int( 1 );
      playback->right  = fsf_from_int( 1 );
-     playback->pitch  = 0x400;
+     playback->pitch  = 4096;
 
      fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
 
@@ -305,8 +305,8 @@ fs_playback_set_pitch( CorePlayback *playback,
                        int           pitch )
 {
      D_ASSERT( playback != NULL );
-     D_ASSERT( pitch >= -0x10000 );
-     D_ASSERT( pitch <= +0x10000 );
+     D_ASSERT( pitch >= -0x40000 );
+     D_ASSERT( pitch <= +0x40000 );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))
