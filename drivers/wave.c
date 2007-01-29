@@ -50,16 +50,17 @@ FS_SOUND_DRIVER( wave )
 
 typedef struct {
      int fd;
-     int bytes_per_frame;
+     int bits;
+     int channels;
 } WaveDeviceData;
 
 /******************************************************************************/
 
 typedef struct {
-     u8  ChunkID[4];
+     u32 ChunkID;
      u32 ChunkSize;
-     u8  Format[4];
-     u8  Subchunk1ID[4];
+     u32 Format;
+     u32 Subchunk1ID;
      u32 Subchunk1Size;
      u16 AudioFormat;
      u16 NumChannels;
@@ -67,9 +68,11 @@ typedef struct {
      u32 ByteRate;
      u16 BlockAlign;
      u16 BitsPerSample;
-     u8  Subchunk2ID[4];
+     u32 Subchunk2ID;
      u32 Subchunk2Size;
 } WaveHeader;
+
+#define FCC( a, b, c, d ) ((a) | ((b)<<8) | ((c)<<16) | ((d)<<24))
 
 /******************************************************************************/
 
@@ -161,36 +164,45 @@ device_open( void                  *device_data,
      /* device capabilities */
      device_info->caps = 0;
 
-
-#ifdef WORDS_BIGENDIAN
-     memcpy( header.ChunkID, "RIFX", 4 );
-#else
-     memcpy( header.ChunkID, "RIFF", 4 );
-#endif
-     header.ChunkSize = 0;
-     memcpy( header.Format, "WAVE", 4 );
-
-     memcpy( header.Subchunk1ID, "fmt ", 4 );
+     header.ChunkID       = FCC('R','I','F','F');
+     header.ChunkSize     = 0;
+     header.Format        = FCC('W','A','V','E');
+     header.Subchunk1ID   = FCC('f','m','t',' ');
      header.Subchunk1Size = 16;
-     header.AudioFormat = 1;
-     header.NumChannels = config->channels;
-     header.SampleRate = config->rate;
-     header.ByteRate = config->rate * config->channels *
-                       FS_BITS_PER_SAMPLE(config->format) >> 3;
-     header.BlockAlign = config->channels *
-                         FS_BITS_PER_SAMPLE(config->format) >> 3;
+     header.AudioFormat   = 1;
+     header.NumChannels   = config->channels;
+     header.SampleRate    = config->rate;
+     header.ByteRate      = config->rate * config->channels *
+                            FS_BITS_PER_SAMPLE(config->format) >> 3;
+     header.BlockAlign    = config->channels *
+                            FS_BITS_PER_SAMPLE(config->format) >> 3;
      header.BitsPerSample = FS_BITS_PER_SAMPLE(config->format);
-
-     memcpy( header.Subchunk2ID, "data", 4 );
+     header.Subchunk2ID   = FCC('d','a','t','a');
      header.Subchunk2Size = 0;
+     
+#ifdef WORDS_BIGENDIAN
+     header.ChunkID       = BSWAP32(header.ChunkID);
+     header.ChunkSize     = BSWAP32(header.ChunkSize);
+     header.Format        = BSWAP32(header.Format);
+     header.Subchunk1ID   = BSWAP32(header.Subchunk1ID);
+     header.Subchunk1Size = BSWAP32(header.Subchunk1Size);
+     header.AudioFormat   = BSWAP16(header.AudioFormat);
+     header.NumChannels   = BSWAP16(header.NumChannels);
+     header.SampleRate    = BSWAP32(header.SampleRate);
+     header.ByteRate      = BSWAP32(header.ByteRate);
+     header.BlockAlign    = BSWAP16(header.BlockAlign);
+     header.BitsPerSample = BSWAP16(header.BitsPerSample);
+     header.Subchunk2ID   = BSWAP32(header.Subchunk2ID);
+     header.Subchunk2Size = BSWAP32(header.Subchunk2Size);
+#endif
 
      if (write( data->fd, &header, sizeof(header) ) < sizeof(header)) {
           D_ERROR( "FusionSound/Device/Wave: write error!\n" );
           return DFB_IO;
      }
 
-     data->bytes_per_frame = config->channels *
-                             FS_BITS_PER_SAMPLE(config->format) >> 3;
+     data->bits = FS_BITS_PER_SAMPLE(config->format);
+     data->channels = config->channels;
 
      return DFB_OK;
 }
@@ -199,8 +211,31 @@ static void
 device_write( void *device_data, void *samples, unsigned int count )
 {
      WaveDeviceData *data = device_data;
+#ifdef WORDS_BIGENDIAN
+     unsigned int    i;
+     
+     switch (data->bits) {
+          case 16:
+               for (i = 0; i < count*data->channels; i++)
+                    ((u16*)samples)[i] = BSWAP16(((u16*)samples)[i]);
+               break;
+          case 24:
+               for (i = 0; i < count*data->channels; i++) {
+                    u8 tmp = ((u8*)samples)[i*3+0];
+                    ((u8*)samples)[i*3+0] = ((u8*)samples)[i*3+2];
+                    ((u8*)samples)[i*3+2] = tmp;
+               }
+               break;
+          case 32:
+               for (i = 0; i < count*data->channels; i++)
+                    ((u32*)samples)[i] = BSWAP32(((u32*)samples)[i]);
+               break;
+          default:
+               break;
+     }
+#endif
 
-     write( data->fd, samples, count*data->bytes_per_frame );
+     write( data->fd, samples, count * data->channels * data->bits >> 3 );
 }
 
 static void
@@ -219,12 +254,17 @@ device_close( void *device_data )
      if (pos > 0) {
           u32 ChunkSize     = pos - 8;
           u32 Subchunk2Size = pos - sizeof(WaveHeader);
+          
+#ifdef WORDS_BIGENDIAN
+          ChunkSize     = BSWAP32(ChunkSize);
+          Subchunk2Size = BSWAP32(Subchunk2Size);
+#endif
 
-          lseek( data->fd, 4, SEEK_SET );
-          write( data->fd, &ChunkSize, 4 );
+          if (lseek( data->fd, 4, SEEK_SET ) == 4)
+               write( data->fd, &ChunkSize, 4 );
 
-          lseek( data->fd, 40, SEEK_SET );
-          write( data->fd, &Subchunk2Size, 4 );
+          if (lseek( data->fd, 40, SEEK_SET ) == 40)
+               write( data->fd, &Subchunk2Size, 4 );
      }
 
      close( data->fd );
