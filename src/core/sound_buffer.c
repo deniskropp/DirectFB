@@ -297,16 +297,20 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
                /* Make sure start position is greater than stop position. */
                if (pos <= stop)
                     stop -= buffer->length;
+               tmp = (long long)(stop - pos) << FS_PITCH_BITS;
+               if (max < tmp) {
+                    max = tmp;
+                    ret = DFB_BUFFEREMPTY;
+               }
           } else {
                /* Make sure stop position is greater than start position. */
                if (pos >= stop)
                     stop += buffer->length;
-          }
-          
-          tmp = (long long)(stop - pos) << 12;
-          if (ABS(max) > ABS(tmp)) {
-               max = tmp;
-               ret = DFB_BUFFEREMPTY;
+               tmp = (long long)(stop - pos) << FS_PITCH_BITS;
+               if (max > tmp) {
+                    max = tmp;
+                    ret = DFB_BUFFEREMPTY;
+               }
           }
      }
 
@@ -324,7 +328,7 @@ fs_buffer_mixto( CoreSoundBuffer *buffer,
           len = (pitch) ? ((max/inc) << 1) : max_samples;
      }
      
-     num = (max >> 12);
+     num = (max >> FS_PITCH_BITS);
      pos += num;
      pos %= buffer->length;
      if (pos < 0)

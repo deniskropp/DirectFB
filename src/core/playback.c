@@ -51,9 +51,9 @@ struct __FS_CorePlayback {
      int              position;
      int              stop;
 
-     __fsf            left;        /*     multiplier for left channel */
-     __fsf            right;       /*     multiplier for right channel */
-     int              pitch;       /* 8.8 multiplier for sample rate */
+     __fsf            left;        /* multiplier for left channel */
+     __fsf            right;       /* multiplier for right channel */
+     int              pitch;       /* multiplier for sample rate in FS_PITCH_ONE units */
 };
 
 static void fs_playback_notify( CorePlayback                  *playback,
@@ -117,7 +117,7 @@ fs_playback_create( CoreSound        *core,
      playback->notify = notify;
      playback->left   = fsf_from_int( 1 );
      playback->right  = fsf_from_int( 1 );
-     playback->pitch  = 4096;
+     playback->pitch  = FS_PITCH_ONE;
 
      fusion_skirmish_init( &playback->lock, "FusionSound Playback", fs_core_world(core) );
 
@@ -305,8 +305,8 @@ fs_playback_set_pitch( CorePlayback *playback,
                        int           pitch )
 {
      D_ASSERT( playback != NULL );
-     D_ASSERT( pitch >= -0x40000 );
-     D_ASSERT( pitch <= +0x40000 );
+     D_ASSERT( pitch >= -(64*FS_PITCH_ONE) );
+     D_ASSERT( pitch <= +(64*FS_PITCH_ONE) );
 
      /* Lock playback. */
      if (fusion_skirmish_prevail( &playback->lock ))

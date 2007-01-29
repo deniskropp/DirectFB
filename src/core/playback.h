@@ -56,6 +56,13 @@ typedef struct {
      int                             num;    /* Number of samples played (CPNF_ADVANCE) or zero. */
 } CorePlaybackNotification;
 
+
+/*
+ * Internal definitions.
+ */
+#define FS_PITCH_BITS  12
+#define FS_PITCH_ONE   (1 << FS_PITCH_BITS)
+
 /*
  * Creates a pool of playback objects.
  */

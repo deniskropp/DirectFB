@@ -269,7 +269,7 @@ IFusionSoundPlayback_SetPitch( IFusionSoundPlayback *thiz,
      if (value > 64.0f)
           return DFB_UNSUPPORTED;
           
-     data->pitch = (value * 4096.0f + 0.5f);
+     data->pitch = (value * FS_PITCH_ONE + 0.5f);
 
      fs_playback_set_pitch( data->playback, data->pitch*data->dir );
 
@@ -331,7 +331,7 @@ IFusionSoundPlayback_Construct( IFusionSoundPlayback *thiz,
      data->stream   = (length < 0);
      data->length   = length;
      data->volume   = 1.0f;
-     data->pitch    = 4096;
+     data->pitch    = FS_PITCH_ONE;
      data->dir      = +1;
 
      /* Initialize lock and condition. */
