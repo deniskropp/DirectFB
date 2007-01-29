@@ -66,7 +66,7 @@ struct __Fusion_FusionReactor {
 
      int                id;        /* reactor id                          */
      int                msg_size;  /* size of each message                */
-     bool               sync;
+     bool               direct;
      bool               destroyed;
 
      DirectLink        *globals;
@@ -142,9 +142,6 @@ fusion_reactor_new( int                msg_size,
      /* set the static message size, should we make dynamic? (TODO?) */
      reactor->msg_size = msg_size;
      
-     /* synchronize by default */
-     reactor->sync = true;
-
      /* Set default lock for global reactions. */
      reactor->globals_lock = &shared->reactor_globals;
 
@@ -498,7 +495,7 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
      }
      
      /* Handle local reactions. */
-     if (self && !reactor->sync) {
+     if (self && reactor->direct) {
           _fusion_reactor_process_message( _fusion_world(reactor->shared), reactor->id, msg_data );
           self = false;
      }
@@ -528,11 +525,11 @@ fusion_reactor_sized_dispatch( FusionReactor      *reactor,
 }
 
 DirectResult
-fusion_reactor_sync( FusionReactor *reactor, bool sync )
+fusion_reactor_direct( FusionReactor *reactor, bool direct )
 {
      D_MAGIC_ASSERT( reactor, FusionReactor );
      
-     reactor->sync = sync;
+     reactor->direct = direct;
      
      return DFB_OK;
 }
@@ -1010,7 +1007,7 @@ fusion_reactor_dispatch (FusionReactor      *reactor,
 }
 
 DirectResult
-fusion_reactor_sync( FusionReactor *reactor, bool sync )
+fusion_reactor_direct( FusionReactor *reactor, bool direct )
 {
      D_ASSERT( reactor != NULL );
      

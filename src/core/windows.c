@@ -461,7 +461,7 @@ dfb_window_create( CoreWindowStack        *stack,
      /* Finally activate the object. */
      fusion_object_activate( &window->object );
 
-     fusion_reactor_sync( window->object.reactor, false );
+     fusion_reactor_direct( window->object.reactor, true );
 
      /* Unlock the window stack. */
      dfb_windowstack_unlock( stack );

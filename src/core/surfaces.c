@@ -264,7 +264,7 @@ DFBResult dfb_surface_create( CoreDFB *core,
 
      fusion_object_activate( &surface->object );
      
-     fusion_reactor_sync( surface->object.reactor, false );
+     fusion_reactor_direct( surface->object.reactor, true );
 
      *ret_surface = surface;
 
