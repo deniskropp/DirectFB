@@ -7,6 +7,8 @@ Finish surface manager.
 
 Support rotated screens.
 
+Support vga16, i.e. add DSPF_LUT4.
+
 Move config system to libdirect with more features and much smaller/generic code.
 
 Finish VT switching.
