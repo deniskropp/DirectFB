@@ -1,3 +1,28 @@
+2007-01-29   dok	20:27:21	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	lib/fusion/reactor.c (1.20) (+5 -8;)
+		src/core/windows.c (1.233) (+1 -1;)
+		src/core/surfaces.c (1.149) (+1 -1;)
+		lib/fusion/reactor.h (1.8) (+3 -5;)
+	
+	Argh, reading the NEWS I recognized I forgot to change the ambiguous
+	fusion_reactor_sync() into fusion_reactor_direct() to make it more clear:
+	
+	Specify whether local message handlers (reactions) should be called directly.
+	
+2007-01-29   dok	15:47:57	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	ChangeLog (1.63) (+1535 -15;)
+		NEWS (1.62) (+150 -0;)
+	
+	updated
+	
+2007-01-29   dok	04:13:29	Denis Oliver Kropp <dok@directfb.org>
+
+	Files:	TODO (1.67) (+2 -0;)
+	
+	We should "Support vga16, i.e. add DSPF_LUT4."
+	
 2007-01-29   dok	01:00:45	Denis Oliver Kropp <dok@directfb.org>
 
 	Files:	gfxdrivers/i810/i810.c (1.18) (+1 -1;)
