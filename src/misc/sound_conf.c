@@ -144,7 +144,7 @@ config_allocate()
      
      fs_config->channels     = 2;
      fs_config->sampleformat = FSSF_S16;
-     fs_config->samplerate   = 44100;
+     fs_config->samplerate   = 48000;
      fs_config->buffertime   = 25;
     
      fs_config->session      = MAX(dfb_config->session,0) + 1;
