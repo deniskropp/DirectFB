@@ -225,9 +225,9 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                
           /* Set playback direction. */
           if (flags & FSPLAY_REWIND)
-               fs_playback_set_pitch( playback, -0x400 );
+               fs_playback_set_pitch( playback, -0x1000 );
           else
-               fs_playback_set_pitch( playback, +0x400 );
+               fs_playback_set_pitch( playback, +0x1000 );
                
           /* Set the start of the playback. */
           fs_playback_set_position( playback, data->pos );
@@ -258,9 +258,9 @@ IFusionSoundBuffer_Play( IFusionSoundBuffer *thiz,
                
           /* Set playback direction. */
           if (flags & FSPLAY_REWIND)
-               fs_playback_set_pitch( playback, -0x400 );
+               fs_playback_set_pitch( playback, -0x1000 );
           else
-               fs_playback_set_pitch( playback, +0x400 );
+               fs_playback_set_pitch( playback, +0x1000 );
                
           /* Set the start of the playback. */
           fs_playback_set_position( playback, data->pos );
